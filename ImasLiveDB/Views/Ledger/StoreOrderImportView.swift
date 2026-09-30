@@ -19,6 +19,7 @@ struct StoreOrderImportView: View {
     @State private var showOptions: [LedgerShowOption] = []
     @State private var picking: DraftOrder.ID?
     @State private var saving = false
+    @State private var promptCopied = false
 
     private var categories: [ExpenseCategoryInfo] { expenseCategories() }
 
@@ -33,6 +34,7 @@ struct StoreOrderImportView: View {
         NavigationStack {
             List {
                 if drafts.isEmpty {
+                    aiSection
                     pasteSection
                 } else {
                     ForEach($drafts) { $draft in
@@ -78,12 +80,51 @@ struct StoreOrderImportView: View {
         }
     }
 
+    // MARK: - AI にまとめてもらう
+
+    /// 指示文を入れて AI を開く。メール・マイページのスクリーンショットなど形の揃わない材料は
+    /// 利用者の AI に読ませ、アプリは決まった形の結果だけを読む (指示文と形はコアが持つ)。
+    private var aiSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: DS.sp4) {
+                Text("メールやマイページのスクリーンショットから、AI に明細をまとめてもらえます。開いたら送信して、返ってきた結果をコピーして下に貼ってください。")
+                    .font(.imasFootnote).foregroundStyle(DS.ink2)
+                HStack(spacing: DS.sp3) {
+                    ForEach(storeOrderAiLinks(), id: \.label) { link in
+                        if let url = URL(string: link.url) {
+                            Link(destination: url) {
+                                Label(link.label, systemImage: "arrow.up.right")
+                                    .font(.imasFootnote.weight(.semibold))
+                            }
+                            .accessibilityLabel("\(link.label)で開く")
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                        }
+                    }
+                }
+                Button {
+                    UIPasteboard.general.string = storeOrderAiPrompt()
+                    promptCopied = true
+                } label: {
+                    Label(promptCopied ? "指示文をコピーしました" : "ほかの AI 用に指示文をコピー",
+                          systemImage: promptCopied ? "checkmark" : "doc.on.doc")
+                }
+                .font(.imasFootnote)
+                // 行に複数のボタンがあるので、行全体のタップにしない。
+                .buttonStyle(.borderless)
+            }
+            .padding(.vertical, DS.sp2)
+        } header: {
+            Text("AI にまとめてもらう")
+        }
+    }
+
     // MARK: - 貼り付け
 
     private var pasteSection: some View {
         Section {
             VStack(alignment: .leading, spacing: DS.sp4) {
-                Text("アソビストアから届く「購入完了のご連絡」メールの本文をコピーして、ここに貼り付けてください。")
+                Text("AI の結果か、アソビストアから届く「購入完了のご連絡」メールの本文を貼り付けてください。")
                     .font(.imasFootnote).foregroundStyle(DS.ink2)
                 PasteButton(payloadType: String.self) { strings in
                     let pasted = strings.joined(separator: "\n")
@@ -105,9 +146,11 @@ struct StoreOrderImportView: View {
                             .allowsHitTesting(false)
                     }
                 }
+        } header: {
+            Text("貼り付け")
         } footer: {
             if !text.isEmpty {
-                Text("注文を読み取れませんでした。メールの「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
+                Text("注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
                     .foregroundStyle(DS.danger)
             } else {
                 Text("何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。")

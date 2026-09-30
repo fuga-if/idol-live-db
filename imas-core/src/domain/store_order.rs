@@ -121,14 +121,17 @@ pub fn parse_store_orders(
         .map(|(i, _)| i)
         .collect();
 
-    starts
+    let mut orders: Vec<StoreOrder> = starts
         .iter()
         .enumerate()
         .filter_map(|(n, &start)| {
             let end = starts.get(n + 1).copied().unwrap_or(lines.len());
             parse_one(&lines[start..end], today, candidates, existing_notes)
         })
-        .collect()
+        .collect();
+    // AI にまとめさせた JSON (取り込み用の形式) も同じ箱で受ける。
+    orders.extend(parse_ai_json(text, today, candidates, existing_notes));
+    orders
 }
 
 /// 注文 1 件を帳簿の下書きにする。含める品目を費目ごとにまとめ、
@@ -192,7 +195,11 @@ pub fn store_order_expenses(
             amount,
             show_id: show_id.clone(),
             event_id: event_id.clone(),
-            note: format!("{} {}\n{}", order.store, order_marker(&order.order_number), names.join("、")),
+            note: if order.order_number.is_empty() {
+                format!("{}\n{}", order.store, names.join("、"))
+            } else {
+                format!("{} {}\n{}", order.store, order_marker(&order.order_number), names.join("、"))
+            },
         })
         .collect()
 }
@@ -293,7 +300,30 @@ fn parse_one(
     }
     let items_total = items_total.unwrap_or_else(|| items.iter().map(|i| i.subtotal).sum());
     let paid_total = paid_total.unwrap_or(items_total);
+    Some(finish_order(
+        STORE_ASOBI.to_string(),
+        order_number,
+        date.unwrap_or_else(|| today.to_string()),
+        items,
+        items_total,
+        paid_total,
+        candidates,
+        existing_notes,
+    ))
+}
 
+/// 読み取った注文に、記録済みの判定と紐づけ先の推しを足して仕上げる。
+#[allow(clippy::too_many_arguments)]
+fn finish_order(
+    store: String,
+    order_number: String,
+    date: String,
+    items: Vec<StoreOrderItem>,
+    items_total: i64,
+    paid_total: i64,
+    candidates: &[StoreShowCandidate],
+    existing_notes: &[String],
+) -> StoreOrder {
     let marker = order_marker(&order_number);
     // 行末で合わせる (「注文番号 X-1」が「注文番号 X-10」に当たらないように)。
     let already_recorded = !order_number.is_empty()
@@ -303,10 +333,10 @@ fn parse_one(
     let read_total: i64 = items.iter().map(|i| i.subtotal).sum();
     let suggestion = suggest_show(&items, candidates);
 
-    Some(StoreOrder {
-        store: STORE_ASOBI.to_string(),
+    StoreOrder {
+        store,
         order_number,
-        date: date.unwrap_or_else(|| today.to_string()),
+        date,
         items,
         items_total,
         paid_total,
@@ -315,7 +345,181 @@ fn parse_one(
         has_unread_items: read_total != items_total,
         suggested_show_id: suggestion.map(|c| c.show_id.clone()),
         suggested_event_id: suggestion.map(|c| c.event_id.clone()),
-    })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// AI にまとめさせる経路
+// ---------------------------------------------------------------------------
+//
+// メールの形は店ごと・時期ごとに違い、マイページの注文履歴はスクリーンショットでしか
+// 持ち出せない。そこは読み取りの得意な AI (利用者が自分で使っているもの) に任せ、
+// アプリは**決まった形の JSON だけ**を読む。アプリから AI を呼ぶことはしない
+// (利用者が自分で開いて、結果を貼り戻す)。
+
+/// 取り込み用 JSON の形の版。形を変えたら上げる。
+const AI_FORMAT: &str = "imas-live-db/expenses@1";
+
+/// AI に渡す指示文。費目の英字キーは費目一覧から組む (一覧が唯一の出どころ)。
+pub fn store_order_ai_prompt() -> String {
+    let keys = crate::domain::ledger::expense_categories()
+        .into_iter()
+        .map(|c| format!("{}={}", c.key, c.label))
+        .collect::<Vec<_>>()
+        .join(" / ");
+    format!(
+        "アイマス関連の支出を家計簿アプリ「アイマスライブDB」に取り込みたいので、購入明細をまとめてください。\n\
+         \n\
+         材料: 私のメール (読めるなら「アソビストア」「アソビチケット」「アソビステージ」などの購入完了・決済完了のメール) と、私がこのあと貼る注文履歴のテキストやスクリーンショット。期間の指定が無ければ、始める前に聞いてください。\n\
+         \n\
+         決まり:\n\
+         - 明細に書いてある事実だけを使う。金額や品名を推測で作らない。読めない注文は入れない\n\
+         - 金額は税込の整数の円。paid_total は実際に払った額 (送料・手数料を足し、ポイント・クーポンを引いた額)\n\
+         - 抽選に外れた申込・キャンセルした注文は入れない\n\
+         - category は次のどれか: {keys}\n\
+         - date は注文日 (YYYY-MM-DD)。order_number は明細の注文番号で、無ければ空文字\n\
+         \n\
+         出力は次の形の JSON を 1 つのコードブロックにして、ほかの文は付けない:\n\
+         {{\"format\":\"{AI_FORMAT}\",\"orders\":[{{\"store\":\"アソビストア\",\"order_number\":\"113892000000000000-0\",\"date\":\"2025-08-03\",\"paid_total\":12700,\"items\":[{{\"name\":\"品名\",\"quantity\":1,\"unit_price\":3000,\"subtotal\":3000,\"category\":\"goods\"}}]}}]}}"
+    )
+}
+
+/// 指示文を入れて AI を開くリンク。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct AiPromptLink {
+    pub label: String,
+    pub url: String,
+}
+
+/// 指示文を入れて開けるチャット。どれも「開いた時点では送らない」
+/// (利用者が中身を見てから送る)。
+pub fn store_order_ai_links() -> Vec<AiPromptLink> {
+    let q = encode_strict(&store_order_ai_prompt());
+    vec![
+        AiPromptLink { label: "Claude".into(), url: format!("https://claude.ai/new?q={q}") },
+        AiPromptLink { label: "ChatGPT".into(), url: format!("https://chatgpt.com/?q={q}") },
+    ]
+}
+
+/// クエリ値の percent-encoding。英数字と `-_.~` だけ素通し (`+` を空白と読む受け手がある)。
+fn encode_strict(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() * 3);
+    for b in s.bytes() {
+        if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
+/// 貼られたテキストから取り込み用 JSON を探して読む。コードブロックや前後の文が
+/// 付いていてもよい (`"format"` を含む一番外の `{…}` を探す)。
+fn parse_ai_json(
+    text: &str,
+    today: &str,
+    candidates: &[StoreShowCandidate],
+    existing_notes: &[String],
+) -> Vec<StoreOrder> {
+    let Some(value) = find_format_json(text) else { return vec![] };
+    let Some(orders) = value.get("orders").and_then(|o| o.as_array()) else { return vec![] };
+
+    orders
+        .iter()
+        .filter_map(|o| {
+            let items: Vec<StoreOrderItem> = o
+                .get("items")?
+                .as_array()?
+                .iter()
+                .filter_map(|i| {
+                    let name = str_of(i, "name")?.trim().to_string();
+                    if name.is_empty() {
+                        return None;
+                    }
+                    let quantity = int_of(i, "quantity").filter(|q| *q > 0).unwrap_or(1);
+                    let unit_price = int_of(i, "unit_price");
+                    let subtotal = int_of(i, "subtotal")
+                        .or_else(|| unit_price.map(|u| u * quantity))?;
+                    if subtotal < 0 {
+                        return None;
+                    }
+                    let category = match str_of(i, "category") {
+                        Some(key) if crate::domain::ledger::expense_categories()
+                            .iter()
+                            .any(|c| c.key == key) =>
+                        {
+                            crate::domain::ledger::expense_category_from_key(key)
+                        }
+                        _ => guess_category(&name),
+                    };
+                    Some(StoreOrderItem {
+                        name,
+                        quantity: u32::try_from(quantity).unwrap_or(1),
+                        unit_price: unit_price.unwrap_or(subtotal / quantity.max(1)),
+                        subtotal,
+                        category,
+                        included: true,
+                    })
+                })
+                .collect();
+            if items.is_empty() {
+                return None;
+            }
+            let items_total: i64 = items.iter().map(|i| i.subtotal).sum();
+            let paid_total = int_of(o, "paid_total").filter(|p| *p >= 0).unwrap_or(items_total);
+            let date = str_of(o, "date")
+                .and_then(parse_date)
+                .unwrap_or_else(|| today.to_string());
+            let store = str_of(o, "store")
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .unwrap_or("通販")
+                .to_string();
+            let order_number = str_of(o, "order_number").unwrap_or("").trim().to_string();
+            Some(finish_order(
+                store,
+                order_number,
+                date,
+                items,
+                items_total,
+                paid_total,
+                candidates,
+                existing_notes,
+            ))
+        })
+        .collect()
+}
+
+fn find_format_json(text: &str) -> Option<serde_json::Value> {
+    let marker = text.find(AI_FORMAT)?;
+    // 印より前の `{` から順に、閉じ括弧までを JSON として試す。
+    let opens: Vec<usize> = text[..marker].match_indices('{').map(|(i, _)| i).collect();
+    for &start in &opens {
+        let mut stream = serde_json::Deserializer::from_str(&text[start..]).into_iter::<serde_json::Value>();
+        if let Some(Ok(value)) = stream.next() {
+            if value.get("format").and_then(|f| f.as_str()) == Some(AI_FORMAT) {
+                return Some(value);
+            }
+        }
+    }
+    None
+}
+
+fn str_of<'a>(v: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    v.get(key)?.as_str()
+}
+
+/// 整数。AI が `"3,000"` や `3000.0` で返しても読む。
+fn int_of(v: &serde_json::Value, key: &str) -> Option<i64> {
+    let x = v.get(key)?;
+    if let Some(n) = x.as_i64() {
+        return Some(n);
+    }
+    if let Some(f) = x.as_f64() {
+        return (f.fract() == 0.0).then_some(f as i64);
+    }
+    x.as_str().and_then(parse_yen)
 }
 
 /// 全角の数字・記号を半角へ寄せる (転送や端末のコピーで全角になることがある)。
@@ -666,6 +870,47 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
         let notes = vec!["アソビストア 注文番号 100000000000000002-00\nx".to_string()];
         let o = parse_store_orders(GOODS_MAIL, "2026-01-01", &[], &notes).remove(0);
         assert!(!o.already_recorded);
+    }
+
+    #[test]
+    fn reads_ai_json_inside_code_block() {
+        let text = r#"まとめました。
+```json
+{"format":"imas-live-db/expenses@1","orders":[
+ {"store":"アソビストア","order_number":"A-1","date":"2025-10-01","paid_total":12700,
+  "items":[{"name":"THE IDOLM@STER SHINY COLORS 7thLIVE パンフレット","quantity":1,"unit_price":3000,"subtotal":3000,"category":"goods"},
+           {"name":"アクリルスタンド","quantity":3,"unit_price":"1,500","category":"goods"},
+           {"name":"ペンライト","quantity":1,"subtotal":4400}]},
+ {"store":"","date":"2025/11/02","items":[{"name":"配信チケット","subtotal":5000,"category":"ticket"}]},
+ {"store":"x","items":[]}
+]}
+```"#;
+        let c = vec![cand("a", "sc7", "THE IDOLM@STER SHINY COLORS 7thLIVE", "2025-11-01")];
+        let orders = parse_store_orders(text, "2026-09-30", &c, &[]);
+        assert_eq!(orders.len(), 2);
+        let o = &orders[0];
+        assert_eq!(o.items.len(), 3);
+        assert_eq!(o.items[1].subtotal, 4_500);
+        assert_eq!(o.items[2].category, ExpenseCategory::Penlight);
+        assert_eq!(o.adjustment, 800);
+        assert_eq!(o.suggested_show_id.as_deref(), Some("a"));
+        let second = &orders[1];
+        assert_eq!(second.store, "通販");
+        assert_eq!(second.date, "2025-11-02");
+        assert_eq!(second.paid_total, 5_000);
+        let d = store_order_expenses(second, None, None);
+        assert_eq!(d[0].note, "通販\n配信チケット");
+        assert_eq!(d[0].category, ExpenseCategory::Ticket);
+    }
+
+    #[test]
+    fn prompt_links_carry_the_format() {
+        assert!(store_order_ai_prompt().contains(AI_FORMAT));
+        assert!(store_order_ai_prompt().contains("penlight=UO代"));
+        for link in store_order_ai_links() {
+            assert!(link.url.starts_with("https://"));
+            assert!(!link.url.contains(' ') && !link.url.contains('+'));
+        }
     }
 
     #[test]

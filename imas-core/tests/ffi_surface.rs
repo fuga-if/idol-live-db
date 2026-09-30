@@ -238,6 +238,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_sort_idol_list,
     uniffi_imas_core_checksum_func_sort_idol_list_rows,
     uniffi_imas_core_checksum_func_split_credit_names,
+    uniffi_imas_core_checksum_func_store_order_ai_links,
+    uniffi_imas_core_checksum_func_store_order_ai_prompt,
     uniffi_imas_core_checksum_func_store_order_expenses,
     uniffi_imas_core_checksum_func_sync_chunk_progress,
     uniffi_imas_core_checksum_func_sync_classify_error,

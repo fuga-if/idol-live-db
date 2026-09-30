@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Circle
@@ -42,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -58,6 +65,8 @@ import uniffi.imas_core.expenseCategories
 import uniffi.imas_core.expenseCategoryLabel
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.parseStoreOrders
+import uniffi.imas_core.storeOrderAiLinks
+import uniffi.imas_core.storeOrderAiPrompt
 import uniffi.imas_core.storeOrderExpenses
 
 /** 画面で直せる注文 1 件 (含めるか・紐づけ先・品目ごとの費目と含めるか)。iOS `DraftOrder` と対。 */
@@ -116,9 +125,13 @@ fun StoreOrderImportSheet(
             Text("明細の取り込み", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Spacer(Modifier.height(12.dp))
 
-            if (drafts.isEmpty()) {
+            if (drafts.isEmpty()) Column(Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())) {
+                AiSection(onCopyPrompt = { clipboard.setText(AnnotatedString(storeOrderAiPrompt())) })
+                Spacer(Modifier.height(20.dp))
+                Text("貼り付け", fontSize = 12.sp, color = DS.ink2)
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    "アソビストアから届く「購入完了のご連絡」メールの本文をコピーして、ここに貼り付けてください。",
+                    "AI の結果か、アソビストアから届く「購入完了のご連絡」メールの本文を貼り付けてください。",
                     fontSize = 13.sp, color = DS.ink2
                 )
                 Spacer(Modifier.height(12.dp))
@@ -136,7 +149,7 @@ fun StoreOrderImportSheet(
                 )
                 Text(
                     if (text.isNotEmpty()) {
-                        "注文を読み取れませんでした。メールの「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
+                        "注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
                     } else {
                         "何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。"
                     },
@@ -196,6 +209,39 @@ fun StoreOrderImportSheet(
             },
             onDismiss = { pickingIndex = null }
         )
+    }
+}
+
+/**
+ * 指示文を入れて AI を開く。メール・マイページのスクリーンショットなど形の揃わない材料は
+ * 利用者の AI に読ませ、アプリは決まった形の結果だけを読む (指示文と形はコアが持つ)。iOS `aiSection` と対。
+ */
+@Composable
+private fun AiSection(onCopyPrompt: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
+    var copied by remember { mutableStateOf(false) }
+    Text("AI にまとめてもらう", fontSize = 12.sp, color = DS.ink2)
+    Spacer(Modifier.height(6.dp))
+    Column(Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp)).padding(14.dp)) {
+        Text(
+            "メールやマイページのスクリーンショットから、AI に明細をまとめてもらえます。開いたら送信して、返ってきた結果をコピーして下に貼ってください。",
+            fontSize = 13.sp, color = DS.ink2
+        )
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            storeOrderAiLinks().forEach { link ->
+                OutlinedButton(onClick = { uriHandler.openUri(link.url) }) {
+                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("${link.label}で開く")
+                }
+            }
+        }
+        TextButton(onClick = { onCopyPrompt(); copied = true }) {
+            Icon(if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text(if (copied) "指示文をコピーしました" else "ほかの AI 用に指示文をコピー", fontSize = 13.sp)
+        }
     }
 }
 
