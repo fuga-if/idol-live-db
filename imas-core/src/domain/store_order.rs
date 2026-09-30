@@ -151,8 +151,8 @@ pub fn parse_store_orders(
 //
 // 列はタブ区切りのことも、端末によっては 1 セル 1 行のこともあるので、
 // **セルを順に並べて「注文番号 → 日付 → 金額 → 状態」の並びを探す**。
-// 品名は一覧に無いので、状態から費目を推す (発送のある注文 = グッズ、
-// 発送の無い「購入済」= 視聴チケットなどのデジタル商品)。
+// 品名は一覧に無いので、注文番号と状態から費目を推す (`A` で始まる番号 = 発送のあるグッズ、
+// それ以外の「購入済」= 配信チケット)。
 
 /// 購入履歴一覧から注文を読む。キャンセルした注文は入れない。
 fn parse_order_history(text: &str, existing_notes: &[String]) -> Vec<StoreOrder> {
@@ -176,9 +176,10 @@ fn parse_order_history(text: &str, existing_notes: &[String]) -> Vec<StoreOrder>
         if status.contains("キャンセル") {
             continue;
         }
-        let digital = status.contains("購入済");
+        // A で始まる番号はグッズの通販、それ以外の「購入済」は配信チケット (利用者の確認済み)。
+        let digital = !number.starts_with('A') && status.contains("購入済");
         let item = StoreOrderItem {
-            name: if digital { "デジタル商品の注文 (明細なし)" } else { "グッズの注文 (明細なし)" }.into(),
+            name: if digital { "配信チケットの注文 (明細なし)" } else { "グッズの注文 (明細なし)" }.into(),
             quantity: 1,
             unit_price: total,
             subtotal: total,
