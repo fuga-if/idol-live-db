@@ -65,7 +65,7 @@ mod tests {
         assert_eq!(color("ml").as_deref(), Some("#ffc30b"));
         assert_eq!(color("765as").as_deref(), Some("#fe0000"));
         assert_eq!(color("sidem").as_deref(), Some("#0fbe94"));
-        assert_eq!(color("sc").as_deref(), Some("#6bb6b9"));
+        assert_eq!(color("sc").as_deref(), Some("#8dbbff"));
         assert_eq!(color("gakuen").as_deref(), Some("#f39800"));
         assert_eq!(brand_color_hex(bundle_snapshot(), Some("存在しない")), None);
         assert_eq!(brand_color_hex(bundle_snapshot(), None), None);

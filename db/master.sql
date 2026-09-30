@@ -47,7 +47,7 @@ INSERT INTO "brands" VALUES('876','THE IDOLM@STER Dearly Stars','876','#656a75',
 INSERT INTO "brands" VALUES('cg','THE IDOLM@STER CINDERELLA GIRLS','デレマス','#2681c8',4);
 INSERT INTO "brands" VALUES('ml','THE IDOLM@STER MILLION LIVE!','ミリオン','#ffc30b',5);
 INSERT INTO "brands" VALUES('sidem','THE IDOLM@STER SideM','SideM','#0fbe94',6);
-INSERT INTO "brands" VALUES('sc','THE IDOLM@STER SHINY COLORS','シャニマス','#6bb6b9',7);
+INSERT INTO "brands" VALUES('sc','THE IDOLM@STER SHINY COLORS','シャニマス','#8dbbff',7);
 INSERT INTO "brands" VALUES('gakuen','学園アイドルマスター','学マス','#f39800',8);
 INSERT INTO "brands" VALUES('other','その他','Other','#8E8E93',99);
 INSERT INTO "brands" VALUES('961','961 Production','961','#520000',2);
@@ -2806,7 +2806,7 @@ INSERT INTO "idols" VALUES('cg_黒川千秋','cg','黒川千秋','くろかわ�
 INSERT INTO "idols" VALUES('cg_龍崎薫','cg','龍崎薫','りゅうざきかおる',NULL,'#F4D956',4187,'--07-20','O',132.0,32.0,'愛媛',9,65.0,51.0,70.0,'蟹座','料理',NULL,'愛媛出身の9歳のひまわりのように元気なアイドル。料理が趣味で、事務所のスタッフに振る舞う。CV: 春瀬なつみ。','female','right','龍崎','薫',NULL,'2011-11-28','passion',0,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','89');
+INSERT INTO "meta" VALUES('data_version','90');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
