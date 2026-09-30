@@ -26,6 +26,8 @@ struct SongLyricsTab: View {
     /// 配色シード (ソロ曲は担当色、それ以外はブランド色)。
     let seed: String?
     let vm: DetailSheetViewModel
+    /// 色を敷いて示す行 (歌詞クイズの出題箇所)。スクロールは親 (`SongSheetContent`) が行 id で行う。
+    var focusLineIds: Set<String> = []
     /// 通信失敗時の再試行 (束ね取得のやり直し)。
     let reload: () -> Void
 
@@ -183,9 +185,23 @@ struct SongLyricsTab: View {
     @ViewBuilder
     private func viewingBody(_ lyrics: Lyrics) -> some View {
         legend(lyrics)
+        let firstFocus = lyrics.lines.first { focusLineIds.contains($0.id) }?.id
         ForEach(lyrics.lines) { line in
+            if line.id == firstFocus { focusCaption }
             viewingRow(line)
+                .modifier(FocusedLineStyle(isFocused: focusLineIds.contains(line.id), seed: seed))
+                .id(line.id)
         }
+    }
+
+    /// 出題箇所の見出し。色だけに頼らず、何の印なのかを言葉でも出す。
+    private var focusCaption: some View {
+        let t = ImasTheme.derive(seed: seed, scheme: scheme)
+        return Label("クイズで出題された箇所", systemImage: "quote.bubble.fill")
+            .font(.imasCaption2.weight(.semibold))
+            .foregroundStyle(t.chipText)
+            .padding(.top, DS.sp2)
+            .padding(.bottom, DS.sp1)
     }
 
     /// 凡例は**その曲で実際に使われているものだけ**を出す (曲ごとに凡例が違う)。
@@ -587,5 +603,29 @@ struct SongLyricsTab: View {
             result[call.id] = groups[key]
         }
         return order > 1 ? result : nil
+    }
+}
+
+/// 出題箇所の行に敷く帯。カードの余白へ少しはみ出させて、本文の折り返し位置は変えない。
+private struct FocusedLineStyle: ViewModifier {
+    @Environment(\.colorScheme) private var scheme
+    let isFocused: Bool
+    let seed: String?
+
+    func body(content: Content) -> some View {
+        if isFocused {
+            let t = ImasTheme.derive(seed: seed, scheme: scheme)
+            content
+                .padding(.horizontal, DS.sp2)
+                .background(t.accent.opacity(scheme == .dark ? 0.24 : 0.14),
+                            in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+                .overlay(alignment: .leading) {
+                    Capsule().fill(t.accent).frame(width: 3).padding(.vertical, 4)
+                }
+                .padding(.horizontal, -DS.sp2)
+                .accessibilityHint("クイズで出題された行")
+        } else {
+            content
+        }
     }
 }

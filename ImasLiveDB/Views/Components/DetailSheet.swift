@@ -8,7 +8,8 @@ enum DetailDestination: Identifiable, Hashable {
     case songHistory(Song)
     /// 楽曲詳細を「歌詞」タブで開く (歌詞検索の結果から直接ジャンプ)。
     /// 歌詞タブが載っていないビルドでは `SongDetailTab.resolved` が情報タブに倒す。
-    case songLyrics(Song)
+    /// `focusLineIds` を渡すとその行までスクロールして色を敷く (歌詞クイズの出題箇所)。
+    case songLyrics(Song, focusLineIds: [String] = [])
     case idol(Idol)
     case event(Event)
     case show(Show)
@@ -32,7 +33,7 @@ enum DetailDestination: Identifiable, Hashable {
         switch self {
         case .song(let s): return "song_\(s.id)"
         case .songHistory(let s): return "songHistory_\(s.id)"
-        case .songLyrics(let s): return "songLyrics_\(s.id)"
+        case .songLyrics(let s, let focus): return "songLyrics_\(s.id)_\(focus.joined(separator: ","))"
         case .idol(let i): return "idol_\(i.id)"
         case .event(let e): return "event_\(e.id)"
         case .show(let s): return "show_\(s.id)"
@@ -113,8 +114,8 @@ struct DetailContentView: View {
         case .songHistory(let song):
             SongSheetContent(song: song, initialTab: .history, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
-        case .songLyrics(let song):
-            SongSheetContent(song: song, initialTab: .lyrics, navigate: { navigate($0) })
+        case .songLyrics(let song, let focus):
+            SongSheetContent(song: song, initialTab: .lyrics, lyricsFocus: focus, navigate: { navigate($0) })
                 .onAppear { RecentsService.shared.record(kind: .song, id: song.id, name: song.title) }
         case .idol(let idol):
             // 共通のアイドル詳細 (一覧と同一コンポーネント)。子遷移は共有 path に push。
@@ -200,9 +201,14 @@ struct SongSheetContent: View {
     let song: Song
     let navigate: (DetailDestination) -> Void
 
+    /// 歌詞タブで示す行 (歌詞クイズの出題箇所)。歌詞が届いたら最初の行までスクロールする。
+    let lyricsFocus: [String]
+
     /// 開く時の初期タブ。
-    init(song: Song, initialTab: SongDetailTab = .info, navigate: @escaping (DetailDestination) -> Void) {
+    init(song: Song, initialTab: SongDetailTab = .info, lyricsFocus: [String] = [],
+         navigate: @escaping (DetailDestination) -> Void) {
         self.song = song
+        self.lyricsFocus = lyricsFocus
         self.navigate = navigate
         _tab = State(initialValue: initialTab.resolved)
     }
@@ -220,6 +226,8 @@ struct SongSheetContent: View {
     @State private var showCommunityLoginPrompt = false
 
     @State private var tab: SongDetailTab
+    /// 出題箇所へのスクロールは 1 回だけ (読み直しや編集のたびに引き戻さない)。
+    @State private var didScrollToFocus = false
     /// 補足シート。補足は利用者の投稿が主な入口なので、楽曲編集とは別の軽い導線にしている。
     @State private var showNoteEditor = false
     /// 未ログインで補足の導線を押した時のログイン誘導。
@@ -264,23 +272,26 @@ struct SongSheetContent: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                hero
-                segmentBar
-                    .padding(.horizontal, DS.sp5)
-                    .padding(.top, DS.sp4)
-                    .padding(.bottom, DS.sp1)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    hero
+                    segmentBar
+                        .padding(.horizontal, DS.sp5)
+                        .padding(.top, DS.sp4)
+                        .padding(.bottom, DS.sp1)
 
-                switch tab.resolved {
-                case .info: infoTab
-                case .lyrics: lyricsTab
-                case .history: historyTab
-                case .community: communityTab
+                    switch tab.resolved {
+                    case .info: infoTab
+                    case .lyrics: lyricsTab
+                    case .history: historyTab
+                    case .community: communityTab
+                    }
+
+                    Color.clear.frame(height: DS.sp9)
                 }
-
-                Color.clear.frame(height: DS.sp9)
             }
+            .onChange(of: vm.lyrics) { _, lyrics in scrollToFocus(lyrics, proxy: proxy) }
         }
         .background(DS.bg)
         .navigationTitle(song.title)
@@ -360,6 +371,18 @@ struct SongSheetContent: View {
             AppAnalytics.tap("song_detail.tab.\(newTab.analyticsKey)")
         }
         .trackScreen("song_detail")
+    }
+
+    /// 歌詞が届いたら出題箇所を画面の中ほどへ寄せる。行の高さが決まってから動かしたいので
+    /// 1 拍置く (届いた瞬間はまだ行が並んでいない)。
+    private func scrollToFocus(_ lyrics: Lyrics?, proxy: ScrollViewProxy) {
+        guard !didScrollToFocus, tab.resolved == .lyrics,
+              let target = lyrics?.lines.first(where: { lyricsFocus.contains($0.id) })?.id else { return }
+        didScrollToFocus = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation(.easeInOut(duration: 0.45)) { proxy.scrollTo(target, anchor: .center) }
+        }
     }
 
     // MARK: - Hero (大ジャケ + 曲名 + アーティスト + 主要アクション)
@@ -566,7 +589,7 @@ struct SongSheetContent: View {
     /// 歌詞は束ね取得 (`/songs/{id}/detail`) に同梱されるので、常時読み込みでも
     /// リクエストは増えない。中身は `SongLyricsTab` (VM を読むだけ)。
     private var lyricsTab: some View {
-        SongLyricsTab(song: song, seed: songSeed, vm: vm) {
+        SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus)) {
             Task { await vm.loadServerData(song: song) }
         }
     }

@@ -107,6 +107,9 @@ pub struct LyricsQuizExcerpt {
     pub fifty_fifty_hidden: Vec<u32>,
     /// 開ける順のヒント (最大 2 つ)。
     pub hints: Vec<LyricsQuizHintKind>,
+    /// 解答後に歌詞画面で「ここが出題された」と示す行 (入力 `lines` の位置、昇順)。
+    /// 曲名当て = 出題行、続きはどれ = 出題行と正解の行。
+    pub focus_lines: Vec<u32>,
 }
 
 /// 次に開けるヒント。
@@ -235,15 +238,21 @@ fn visible_len(s: &str) -> usize {
 struct Lyric<'a> {
     text: &'a str,
     block: usize,
+    /// 入力 `lines` での位置 (歌詞画面で出題箇所を示すのに使う)。
+    source: u32,
 }
 
 fn lyric_lines(lines: &[LyricsQuizLine]) -> Vec<Lyric<'_>> {
     let mut block = 0;
     let mut out = Vec::new();
-    for line in lines {
+    for (source, line) in lines.iter().enumerate() {
         let text = line.text.trim();
         if line.is_lyric && !text.is_empty() {
-            out.push(Lyric { text, block });
+            out.push(Lyric {
+                text,
+                block,
+                source: source as u32,
+            });
         } else {
             block += 1;
         }
@@ -321,6 +330,7 @@ fn title_excerpt(
         answer: 0,
         fifty_fifty_hidden: Vec::new(),
         hints,
+        focus_lines: vec![lyrics[prompt].source],
     })
 }
 
@@ -384,6 +394,7 @@ fn next_line_excerpt(lyrics: &[Lyric<'_>], rng: &mut SplitMix64) -> Option<Lyric
             answer,
             fifty_fifty_hidden: wrong,
             hints,
+            focus_lines: vec![lyrics[i].source, lyrics[i + 1].source],
         })
     };
 
@@ -640,6 +651,39 @@ mod tests {
             assert_eq!(ex.fifty_fifty_hidden.len(), 2);
             assert!(!ex.fifty_fifty_hidden.contains(&ex.answer));
             assert_eq!(ex.hints.last(), Some(&LyricsQuizHintKind::FiftyFifty));
+        }
+    }
+
+    /// 歌詞画面で示す行は、空行・マーカーを含む入力の位置で返す (歌詞画面の行とそのまま対応させる)。
+    #[test]
+    fn focus_lines_point_at_the_input_rows() {
+        let lines = vec![
+            LyricsQuizLine {
+                text: "イントロ".into(),
+                is_lyric: false,
+            },
+            lyric("はじめの長い一行です"),
+            lyric("ふたつめの長い一行です"),
+            blank(),
+            lyric("みっつめの長い一行です"),
+            lyric("よっつめの長い一行です"),
+            lyric("いつつめの長い一行です"),
+            lyric("むっつめの長い一行です"),
+        ];
+        for seed in 0..50 {
+            for mode in [LyricsQuizMode::Title, LyricsQuizMode::NextLine] {
+                let ex =
+                    lyrics_quiz_excerpt(&lines, "曲", false, mode, &mut SplitMix64(seed)).unwrap();
+                let first = ex.focus_lines[0] as usize;
+                assert_eq!(lines[first].text, ex.prompt);
+                match mode {
+                    LyricsQuizMode::Title => assert_eq!(ex.focus_lines.len(), 1),
+                    LyricsQuizMode::NextLine => {
+                        assert_eq!(ex.focus_lines, vec![first as u32, first as u32 + 1]);
+                        assert_eq!(lines[first + 1].text, ex.choices[ex.answer as usize]);
+                    }
+                }
+            }
         }
     }
 

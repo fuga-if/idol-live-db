@@ -10,6 +10,8 @@ import SwiftUI
 /// - 歌詞は**出題のたびに 1 曲ずつ**取る。先読みは「次の 1 問」まで。
 /// - 歌詞の断片は表示中の問題 (と先読みした 1 問) にだけ持つ。振り返り・リザルト・シェアは
 ///   曲名だけで組み、歌詞を載せない。
+/// - 解答後に歌詞全体を見たい人には、曲の歌詞タブを**タップしたときだけ**開く
+///   (判定カードに歌詞を並べると 1 問ごとに歌詞の表示が増える)。持ち回すのは行 id だけ。
 struct LyricsQuizView: View {
     let mode: LyricsQuizMode
     /// 同梱 SQLite の曲 (出題の index 参照元)。コアが返す index はこの配列の位置を指す。
@@ -25,6 +27,8 @@ struct LyricsQuizView: View {
         let cursor: Int
         let question: LyricsQuizQuestion
         let excerpt: LyricsQuizExcerpt
+        /// 歌詞タブで示す行の id (出題行、続きはどれは正解の行も)。本文は持たない。
+        let focusLineIds: [String]
     }
 
     private enum Phase: Equatable {
@@ -66,6 +70,9 @@ struct LyricsQuizView: View {
     @State private var seed: UInt64 = 0
     /// `resume` は最初の 1 回だけ使う (「もう一度」は新しいセッション)。
     @State private var didUseResume = false
+    /// 解答後に開く曲の歌詞タブ。
+    @State private var lyricsSheet: DetailDestination?
+    @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
 
     private var header: QuizStageHeader {
@@ -112,6 +119,9 @@ struct LyricsQuizView: View {
             guard let new else { return nil }
             return new ? .success : .error
         }
+        .sheet(item: $lyricsSheet) { dest in
+            DetailSheetView(destination: dest).environment(database)
+        }
         .task { startSession() }
         .onDisappear { prefetch?.cancel() }
         .trackScreen("lyrics_quiz")
@@ -128,6 +138,9 @@ struct LyricsQuizView: View {
         if let verdict {
             QuizVerdictCard(verdict: verdict).id(verdict.number)
             QuizVerdictStats(before: scoreBefore, after: Int(tally.points), streak: plays.streak)
+            if LyricsFeature.isAvailable, let s = song(p.question.song), !p.focusLineIds.isEmpty {
+                lyricsLink(song: s.song, focusLineIds: p.focusLineIds)
+            }
             if !verdict.isCorrect { QuizVerdictFootnote() }
             if phase == .loading {
                 // 次の曲の歌詞がまだ届いていない (先読みが間に合わなかった)。
@@ -156,6 +169,31 @@ struct LyricsQuizView: View {
             .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
                                     removal: .opacity))
         }
+    }
+
+    /// 「どこの歌詞だったか」を確かめる入口。押したときだけ歌詞を取りに行く。
+    private func lyricsLink(song: Song, focusLineIds: [String]) -> some View {
+        Button {
+            AppAnalytics.tap("lyrics_quiz.open_lyrics")
+            lyricsSheet = .songLyrics(song, focusLineIds: focusLineIds)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "text.quote")
+                    .font(.system(size: 18, weight: .semibold)).foregroundStyle(QS.ink)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("歌詞で出題箇所を見る").font(QS.text(14, weight: .bold)).foregroundStyle(QS.ink)
+                    Text("曲の歌詞を開いて、出題された行に印を付けます").font(QS.text(11)).foregroundStyle(QS.dim)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(QS.dim)
+            }
+            .padding(.horizontal, 16).frame(minHeight: 56)
+            .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(QuizPressStyle())
+        .accessibilityHint("曲の歌詞を開きます")
     }
 
     private func song(_ index: UInt32) -> SongWithArtists? {
@@ -511,7 +549,10 @@ struct LyricsQuizView: View {
                     if let excerpt = lyricsQuizExcerpt(lines: lines, songTitle: s.song.title,
                                                        hasSinger: !singer.isEmpty, mode: mode,
                                                        seed: generator.next()) {
-                        return Prepared(cursor: cursor, question: q, excerpt: excerpt)
+                        let focus = excerpt.focusLines.compactMap { i in
+                            lyrics.lines.indices.contains(Int(i)) ? lyrics.lines[Int(i)].id : nil
+                        }
+                        return Prepared(cursor: cursor, question: q, excerpt: excerpt, focusLineIds: focus)
                     }
                 }
                 cursor += 1
