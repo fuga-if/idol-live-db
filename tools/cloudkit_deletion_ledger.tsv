@@ -12,19 +12,19 @@
 #   remaining  確かめた時点で生きていた件数 / TSV の件数
 #   summary    何を消すためのものか
 file	created	status	checked	remaining	summary
-pending_cloudkit_deletions_20260720.tsv	2026-07-20	pending	2026-09-23	3/46	誤った原唱者・ユニット構成員とユニット 1 つ (--delete-file を入れたときの最初の削除リスト)
-pending_cloudkit_deletions_agitato_20260927.tsv	2026-09-27	pending	2026-09-28	4/4	Agitato の原唱者訂正で外した旧 original 4 行
-pending_cloudkit_deletions_cg15th_20260803.tsv	2026-08-03	pending	2026-09-23	39/39	シンデレラ 15th の旧 show_cast
+pending_cloudkit_deletions_20260720.tsv	2026-07-20	done	2026-09-30	0/43	誤った原唱者・ユニット構成員とユニット 1 つ (--delete-file を入れたときの最初の削除リスト)
+pending_cloudkit_deletions_agitato_20260927.tsv	2026-09-27	done	2026-09-30	0/4	Agitato の原唱者訂正で外した旧 original 4 行
+pending_cloudkit_deletions_cg15th_20260803.tsv	2026-08-03	done	2026-09-30	0/39	シンデレラ 15th の旧 show_cast
 pending_cloudkit_deletions_cg_musical_phantom_show_20260913.tsv	2026-09-13	done	2026-09-23	0/1	実在しないミュージカル公演 1 件
 pending_cloudkit_deletions_dup_jiyukei_20260919.tsv	2026-09-19	done	2026-09-23	0/1	自由系*ガール 発売記念イベントの二重登録 (旧 id)
-pending_cloudkit_deletions_duplicate_events_20260912.tsv	2026-09-12	pending	2026-09-23	1/6	アプリ投稿で二重登録になったイベント 4 件と公演 2 件
+pending_cloudkit_deletions_duplicate_events_20260912.tsv	2026-09-12	done	2026-09-30	0/6	アプリ投稿で二重登録になったイベント 4 件と公演 2 件
 pending_cloudkit_deletions_duplicate_units_20260913.tsv	2026-09-13	done	2026-09-23	0/40	表示クレジットから分裂した 315 STARS の 3 ユニットと構成員
 pending_cloudkit_deletions_idol_merge.tsv	2026-09-01	done	2026-09-23	0/4	秋月涼の二重登録の統合で不要になったアイドルと構成員
 pending_cloudkit_deletions_ml_theater_final_20260913.tsv	2026-09-13	done	2026-09-23	0/18	THE@TER SEASON FINAL 3 曲の過剰な原唱者
 pending_cloudkit_deletions_overcredited_performers_20260907.tsv	2026-09-07	done	2026-09-23	0/2012	公演に来ていない歌唱者 (144 公演 574 曲)
 pending_cloudkit_deletions_revived_dup_20260923.tsv	2026-09-23	done	2026-09-23	0/1	09-13 の古い push で復活した重複曲 765as_私はアイドル_2
 pending_cloudkit_deletions_riiriya_20260819.tsv	2026-08-19	done	2026-09-23	0/2	葛城リーリヤのページに出ていた謎曲「リーリヤ」
-pending_cloudkit_deletions_setlist_performers_20260819.tsv	2026-08-19	pending	2026-09-23	6/67	マスタ修正リクエスト (#86/#89/#90) で外した歌唱者
+pending_cloudkit_deletions_setlist_performers_20260819.tsv	2026-08-19	done	2026-09-30	0/67	マスタ修正リクエスト (#86/#89/#90) で外した歌唱者
 pending_cloudkit_deletions_sidem_original.tsv	2026-09-01	done	2026-09-23	0/172	315 STARS 4 曲の原唱者を公式クレジットに揃えて不要になった行
 pending_cloudkit_deletions_stream_events_20260905.tsv	2026-09-05	done	2026-09-23	0/1970	配信・ラジオ系イベントとその配下
 pending_cloudkit_deletions_stream_leftovers_20260906.tsv	2026-09-06	done	2026-09-23	0/1441	上の削除で CloudKit に残っていたセトリ行とカバー曲
