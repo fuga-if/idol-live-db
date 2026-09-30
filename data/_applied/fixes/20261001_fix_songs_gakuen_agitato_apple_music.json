@@ -1,0 +1,19 @@
+{
+ "title": "gakuen_agitato の配信 (2026-10-01) を埋める",
+ "source": "https://itunes.apple.com/lookup?id=6816800575&entity=song&country=jp",
+ "note": "iTunes Lookup: Agitato - Single (初星学園, releaseDate 2026-10-01, trackId 6816800580 isStreamable=true)。Instrumental は入れない。songs.release_date は配信日。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "gakuen_agitato",
+   "fields": {
+    "release_date": "2026-10-01",
+    "apple_music_id": "6816800580",
+    "apple_music_album_id": "6816800575",
+    "cd_series": "Agitato - Single",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f3/b1/13/f3b11306-f2ad-f33f-67ec-b63147ffd358/PA00229432_0_255513_jacket.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7d/2e/b7/7d2eb766-03ac-6897-8f8b-a79392aa0a5b/mzaf_5230869230407404945.plus.aac.p.m4a"
+   }
+  }
+ ]
+}

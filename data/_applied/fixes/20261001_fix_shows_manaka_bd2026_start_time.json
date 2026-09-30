@@ -1,0 +1,12 @@
+{
+ "title": "灯里愛夏 BIRTHDAY ONLINE LIVE 2026 (延期公演) の開演時刻",
+ "source": "https://idolmaster-official.jp/news/01_19896.html",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_灯里愛夏_birthday_online_live_2026_1",
+   "fields": {"start_time": "19:00"},
+   "note": "公演内容「■ライブビューイング会場 開場18:00／開演19:00 (予定)」「■本編 19:00～20:30(予定)」"
+  }
+ ]
+}

@@ -1,0 +1,54 @@
+{
+ "title": "F＠NTASTIC BATTLE FES ～Wanna step in～ の夜公演 4 公演",
+ "source": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/information/",
+ "shows": [
+  {
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_5",
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "name": "長野公演 DAY1 夜公演",
+   "date": "2026-12-26",
+   "venue": "ホクト文化ホール (長野県県民文化会館) 大ホール",
+   "venue_id": "venue_ホクト文化ホール(長野県県民文化会館)",
+   "hall": "大ホール",
+   "start_time": "17:00",
+   "sort_order": 1,
+   "note": "特設 Information「昼公演／夜公演」「※8公演(長野・幕張、各2日程・昼夜公演)」"
+  },
+  {
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_6",
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "name": "長野公演 DAY2 夜公演",
+   "date": "2026-12-27",
+   "venue": "ホクト文化ホール (長野県県民文化会館) 大ホール",
+   "venue_id": "venue_ホクト文化ホール(長野県県民文化会館)",
+   "hall": "大ホール",
+   "start_time": "17:00",
+   "sort_order": 3,
+   "note": "特設 Information「昼公演／夜公演」「※8公演(長野・幕張、各2日程・昼夜公演)」"
+  },
+  {
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_7",
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "name": "幕張公演 DAY1 夜公演",
+   "date": "2027-01-23",
+   "venue": "幕張メッセ イベントホール",
+   "venue_id": "venue_幕張メッセ",
+   "hall": "幕張イベントホール",
+   "start_time": "",
+   "sort_order": 5,
+   "note": "特設 Information「昼公演／夜公演」「※8公演(長野・幕張、各2日程・昼夜公演)」"
+  },
+  {
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8",
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "name": "幕張公演 DAY2 夜公演",
+   "date": "2027-01-24",
+   "venue": "幕張メッセ イベントホール",
+   "venue_id": "venue_幕張メッセ",
+   "hall": "幕張イベントホール",
+   "start_time": "",
+   "sort_order": 7,
+   "note": "特設 Information「昼公演／夜公演」「※8公演(長野・幕張、各2日程・昼夜公演)」"
+  }
+ ]
+}

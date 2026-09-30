@@ -1,0 +1,50 @@
+{
+ "title": "F＠NTASTIC BATTLE FES ～Wanna step in～ を昼夜 8 公演に合わせる (既存 4 公演を昼公演に)・特設の ticket_url",
+ "source": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/information/ (公演日時: 各日 昼公演 開演12:00 / 夜公演 開演17:00、※8公演(長野・幕張、各2日程・昼夜公演)) / https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "fields": {
+    "ticket_url": "https://idolmaster-official.jp/live_event/sidem_fbfes_wsi/ticket/"
+   },
+   "note": "ニュース 01_20017 の特設リンク"
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1",
+   "fields": {
+    "name": "長野公演 DAY1 昼公演",
+    "start_time": "12:00",
+    "sort_order": 0
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_2",
+   "fields": {
+    "name": "長野公演 DAY2 昼公演",
+    "start_time": "12:00",
+    "sort_order": 2
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_3",
+   "fields": {
+    "name": "幕張公演 DAY1 昼公演",
+    "sort_order": 4
+   },
+   "note": "幕張の開演時刻は未掲載"
+  },
+  {
+   "table": "shows",
+   "id": "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_4",
+   "fields": {
+    "name": "幕張公演 DAY2 昼公演",
+    "sort_order": 6
+   },
+   "note": "幕張の開演時刻は未掲載"
+  }
+ ]
+}

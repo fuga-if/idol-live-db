@@ -1,0 +1,52 @@
+{
+ "title": "CINDERELLA MASTER NUMBER ONE! クロス×オーバー! の Another ver. 2 曲",
+ "source": "https://columbia.jp/prod-info/COKM-46681/ (2026/09/30 発売・配信限定。2. オーバークロック!(クロス×オーバー! Another ver.) 歌：島村卯月、渋谷凛、本田未央 / 3. エイエム×アイアム(クロス×オーバー! Another ver.) 歌：辻野あかり、砂塚あきら、夢見りあむ) / iTunes Lookup 6810133264",
+ "songs": [
+  {
+   "id": "cg_オーバークロック",
+   "title": "オーバークロック! (クロス×オーバー! Another ver.)",
+   "title_kana": "おーばーくろっく",
+   "brand_id": "cg",
+   "song_type": "unit",
+   "release_date": "2026-09-30",
+   "unit_id": "unit_new_generations",
+   "unit_name": "new generations",
+   "singer_label": "new generations（島村卯月、渋谷凛、本田未央）",
+   "parent_song_id": "cg_クロスオーバー",
+   "cd_series": "THE IDOLM@STER CINDERELLA MASTER NUMBER ONE! クロス×オーバー!",
+   "apple_music_id": "6810133267",
+   "apple_music_album_id": "6810133264",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ed/17/0d/ed170d71-a923-ab73-852c-04e6fcbe3ae3/COKM-46681.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/de/04/5d/de045db3-7968-a75b-d707-d79a173ba220/mzaf_10693280806824407541.plus.aac.p.m4a",
+   "duration_sec": 260,
+   "original_singers": [
+    "cg_島村卯月",
+    "cg_渋谷凛",
+    "cg_本田未央"
+   ]
+  },
+  {
+   "id": "cg_エイエムアイアム",
+   "title": "エイエム×アイアム (クロス×オーバー! Another ver.)",
+   "title_kana": "えいえむあいあむ",
+   "brand_id": "cg",
+   "song_type": "unit",
+   "release_date": "2026-09-30",
+   "unit_id": "unit_unicus",
+   "unit_name": "#UNICUS",
+   "singer_label": "#UNICUS（辻野あかり、砂塚あきら、夢見りあむ）",
+   "parent_song_id": "cg_クロスオーバー",
+   "cd_series": "THE IDOLM@STER CINDERELLA MASTER NUMBER ONE! クロス×オーバー!",
+   "apple_music_id": "6810133269",
+   "apple_music_album_id": "6810133264",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ed/17/0d/ed170d71-a923-ab73-852c-04e6fcbe3ae3/COKM-46681.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/33/7c/cb/337ccbaa-eb2e-7064-9503-90cf6302b89f/mzaf_8352635543157184646.plus.aac.p.m4a",
+   "duration_sec": 260,
+   "original_singers": [
+    "cg_辻野あかり",
+    "cg_砂塚あきら",
+    "cg_夢見りあむ"
+   ]
+  }
+ ]
+}

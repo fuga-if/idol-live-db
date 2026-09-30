@@ -1,0 +1,57 @@
+{
+ "title": "CG 配信限定シングル 4 作 (2026-09-30 配信) の Apple Music を埋め、クロス×オーバー! の原唱者に辻野あかりを足す",
+ "source": "https://columbia.jp/prod-info/COKM-46681/ / https://columbia.jp/prod-info/COKM-46794/ / https://columbia.jp/prod-info/COKM-46795/ / https://columbia.jp/prod-info/COKM-46796/ (日本コロムビア商品ページ、2026/09/30 発売・配信限定、トラック別の「歌：」) / iTunes Lookup 6810133264, 6810133166, 6810133710, 6810133615",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_クロスオーバー",
+   "fields": {
+    "apple_music_id": "6810133266",
+    "apple_music_album_id": "6810133264",
+    "cd_series": "THE IDOLM@STER CINDERELLA MASTER NUMBER ONE! クロス×オーバー!",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ed/17/0d/ed170d71-a923-ab73-852c-04e6fcbe3ae3/COKM-46681.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/57/09/46/57094607-cf28-152b-771b-530f427f2a4d/mzaf_8574905546100831637.plus.aac.p.m4a",
+    "singer_label": "new generations × #UNICUS（島村卯月、渋谷凛、本田未央、辻野あかり、砂塚あきら、夢見りあむ）"
+   },
+   "add_original_singers": [
+    "cg_辻野あかり"
+   ],
+   "note": "COKM-46681 の 1 曲目「歌：島村卯月、渋谷凛、本田未央、辻野あかり、砂塚あきら、夢見りあむ」。原唱者に辻野あかりが欠けていた (performer だけあった)。名義は公式 X の #new_generations × #UNICUS。unit_id / unit_name (new generations) は 6 人の曲に合わないが、直し方は要判断なので触らない"
+  },
+  {
+   "table": "songs",
+   "id": "cg_もしもカワイイが世界からなくなっても",
+   "fields": {
+    "apple_music_id": "6810133168",
+    "apple_music_album_id": "6810133166",
+    "cd_series": "もしも「カワイイ」が世界からなくなっても - Single",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/99/86/0c/99860c58-c4d1-46b9-01d9-3096c5bb617d/COKM-46794.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/ff/b9/ce/ffb9ced1-61a6-357f-c333-8f4169294c66/mzaf_13297658502905388642.plus.aac.p.m4a"
+   },
+   "note": "COKM-46794 歌：輿水幸子、佐藤心 (DB の原唱者と一致)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_恒久のユニバース",
+   "fields": {
+    "apple_music_id": "6810133711",
+    "apple_music_album_id": "6810133710",
+    "cd_series": "恒久のユニバース - Single",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c2/fd/e4/c2fde490-942f-30a0-8448-f7ce8cb74caf/COKM-46795.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/97/e2/fe/97e2fe7b-4ba2-c9be-bb0a-79fe3372be10/mzaf_1022444296045512350.plus.aac.p.m4a"
+   },
+   "note": "COKM-46795 歌：鷺沢文香、橘ありす (DB の原唱者と一致)"
+  },
+  {
+   "table": "songs",
+   "id": "cg_neon_sphere",
+   "fields": {
+    "apple_music_id": "6810133616",
+    "apple_music_album_id": "6810133615",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/0b/ef/b0/0befb01f-1fce-8ff6-9d80-024f15113629/COKM-46796.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c6/48/f8/c648f873-c410-d96a-79f5-a7fabb514a8d/mzaf_6871250272110962309.plus.aac.p.m4a"
+   },
+   "note": "COKM-46796 歌：一ノ瀬志希、宮本フレデリカ、塩見周子、速水奏、城ヶ崎美嘉 (DB の原唱者と一致)。cd_series (Restful Ambience) は触らない"
+  }
+ ]
+}
