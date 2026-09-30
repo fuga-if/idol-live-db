@@ -30,10 +30,10 @@ enum SortMakerItem: Identifiable, Hashable {
         }
     }
 
-    /// テーマ色の種。曲はブランド色、アイドルはイメージカラー。
+    /// テーマ色の種。曲はブランド色 (曲に固有の色は無い)、アイドルはイメージカラー。
     var seed: String? {
         switch self {
-        case .song: return nil
+        case .song(let s): return BrandColors.hex(for: s.brandId)
         case .idol(let i): return i.color
         }
     }

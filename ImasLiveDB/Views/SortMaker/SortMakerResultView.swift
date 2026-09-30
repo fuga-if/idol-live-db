@@ -150,7 +150,7 @@ struct SortMakerPodiumCard: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        let theme = ImasTheme.derive(seed: item.seed, brand: item.brandId, scheme: scheme)
+        let theme = ImasTheme.derive(seed: item.seed, brand: BrandColors.hex(for: item.brandId), scheme: scheme)
         Button(action: action) {
             VStack(spacing: DS.sp3) {
                 ZStack(alignment: .topLeading) {
