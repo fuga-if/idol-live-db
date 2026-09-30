@@ -2,10 +2,11 @@
 """crawl_show_details.py — 今後のライブの公式ページから、空いている「特設 URL・開演時刻・会場」を
 埋め、チケット価格の案を作る (daily-data-crawl §3.9)。
 
-    # 見るだけ (既定)
-    python3 tools/crawl_show_details.py --prices-out Scripts/crawl_review/$DATE.prices.tsv
-    # 埋められるものを data/fixes/ に書き、apply_data.py で master.sqlite と CloudKit Production に入れる
-    CLOUDKIT_KEY_ID=$KID python3 tools/crawl_show_details.py --apply
+    # 見るだけ。埋める中身を plan に書く
+    python3 tools/crawl_show_details.py --plan-out Scripts/crawl_review/$DATE.details.json \
+        --prices-out Scripts/crawl_review/$DATE.prices.tsv
+    # plan を目で見てから、そのまま data/fixes/ に置いて apply_data.py で master.sqlite と CloudKit Production に入れる
+    CLOUDKIT_KEY_ID=$KID python3 tools/crawl_show_details.py --apply Scripts/crawl_review/$DATE.details.json
 
 - 対象: 開催日が今日以降の公演を持つイベント。公式ページは lib/live_pages.event_pages で探す
   (特設 → 公式ポータルのスケジュール → ニュース)。
@@ -39,14 +40,17 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
 from lib.live_pages import (  # noqa: E402
-    DATE, LIVE_EVENT, Cms, event_pages, fetch, fold_title, html_to_lines, special_site,
+    LIVE_EVENT, Cms, event_pages, fetch, fold_title, html_to_lines, mentions_dates, special_site,
 )
 
 ROOT = TOOLS.parent
 DB_PATH = ROOT / "ImasLiveDB" / "Resources" / "master.sqlite"
 
 FULL_DATE = re.compile(r"(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?|(\d{4})\s*[./]\s*(\d{1,2})\s*[./]\s*(\d{1,2})")
-START = re.compile(r"開演\s*[:：]?\s*(\d{1,2})\s*[:：]\s*(\d{2})|(\d{1,2})\s*[:：]\s*(\d{2})\s*開演")
+# 「開演17:00」を先に見る。「16:00開演」の形は、直前が「開場」の時刻 (開場 16:00 開演 17:00) を拾わない。
+START_AFTER = re.compile(r"開演\s*[:：]?\s*(\d{1,2})\s*[:：]\s*(\d{2})")
+START_BEFORE = re.compile(r"(?<![0-9])(\d{1,2})\s*[:：]\s*(\d{2})\s*開演")
+NOT_SHOW_TIME = re.compile(r"ライブビューイング|LV|配信|物販|グッズ|開場のみ")
 # 見出しだけの行か「会場：〇〇」。「会場内では…」のような注意書きは拾わない。
 VENUE_HEAD = re.compile(r"^[★■●◆・]?\s*(?:開催場所|開催会場|会場)\s*(?:[:：]\s*(.*))?$")
 PRICE = re.compile(r"(\d{1,3}(?:,\d{3})+|\d{3,6})\s*円\s*[(（]\s*税込[^)）]{0,20}[)）]")
@@ -56,6 +60,15 @@ PREFECTURE = re.compile(r"^(北海道|東京都|(?:京都|大阪)府|.{2,3}県)\
 # ---------------------------------------------------------------------------
 # ページの読み取り
 # ---------------------------------------------------------------------------
+
+def start_time(line: str) -> str | None:
+    if NOT_SHOW_TIME.search(line):
+        return None
+    m = START_AFTER.search(line)
+    if not m:
+        m = next((x for x in START_BEFORE.finditer(line) if not re.search(r"開場\s*$", line[:x.start()])), None)
+    return f"{int(m[1]):02d}:{m[2]}" if m else None
+
 
 def parse_start_times(lines: list[str]) -> list[tuple[str, str]]:
     """(日付, 開演) をページの順に。日付のある行 (か、その日の直前の開演) から 2 行以内の開演を、
@@ -73,10 +86,9 @@ def parse_start_times(lines: list[str]) -> list[tuple[str, str]]:
                 since_date = 0
             except ValueError:
                 date = None
-        t = START.search(line)
+        t = start_time(line)
         if t and date and since_date <= 2:
-            hh, mm = (t[1], t[2]) if t[1] else (t[3], t[4])
-            out.append((date, f"{int(hh):02d}:{mm}"))
+            out.append((date, t))
             since_date = 0
             timed = True
         elif not m and timed:
@@ -204,17 +216,27 @@ def plan_event(conn, eid, name, ticket_url, shows: list[Show], urls: list[str], 
             if page_times:
                 plan.notes.append(f"{d}: 開演がページに {len(page_times)} つ・公演は {len(day_shows)} つ ({'・'.join(page_times)})")
             continue
-        for s, t in zip(day_shows, page_times):
-            if not s.start_time:
-                plan.fixes.append({"table": "shows", "id": s.id, "fields": {"start_time": t}})
-            elif s.start_time != t:
-                plan.notes.append(f"{s.name} ({d}) の開演が DB は {s.start_time}・ページは {t}")
+        # 同じ日は時刻の早い順に公演の順と合わせる。入っている時刻が 1 つでも食い違えばその日は埋めない。
+        pairs = list(zip(day_shows, sorted(page_times)))
+        wrong = [(s, t) for s, t in pairs if s.start_time and s.start_time != t]
+        for s, t in wrong:
+            plan.notes.append(f"{s.name} ({d}) の開演が DB は {s.start_time}・ページは {t}")
+        if not wrong:
+            plan.fixes += [{"table": "shows", "id": s.id, "fields": {"start_time": t}} for s, t in pairs if not s.start_time]
     # 会場: ページに 1 か所だけ
     venues = list(dict.fromkeys(v for ls in pages.values() for v in parse_venues(ls)))
     todo = [s for s in shows if not s.venue_id]
-    if todo and len(venues) == 1:
+    texts = {fold_title(s.venue) for s in todo}
+    if todo and len(venues) == 1 and "某所" in venues[0]:
+        pass
+    elif todo and len(venues) == 1 and len(texts) > 1:
+        plan.notes.append(f"会場「{venues[0]}」: DB の公演ごとの会場名が揃っていない (ツアー?)。公演ごとの会場は人が見る")
+    elif todo and len(venues) == 1:
         hit = match_venue(conn, index, venues[0])
-        if hit:
+        db_text = next(iter(texts))
+        if hit and db_text and match_venue(conn, index, todo[0].venue) not in (None, hit):
+            plan.notes.append(f"会場がページは「{venues[0]}」・DB は「{todo[0].venue}」")
+        elif hit:
             for s in todo:
                 fields = {"venue_id": hit[0]}
                 if hit[1]:
@@ -255,12 +277,15 @@ def crawl(conn, today: str, cms: Cms | None, fetcher=fetch) -> list[EventPlan]:
     index = venue_index(conn)
     plans = []
     for eid, name, brands, url, shows in upcoming_events(conn, today):
-        urls = event_pages(name, brands, sorted({s.date for s in shows}), url or None, cms)
+        dates = sorted({s.date for s in shows})
+        urls = event_pages(name, brands, dates, url or None, cms)
         pages = {}
         for u in urls:
             body = fetcher(u)
-            if body:
-                pages[u] = html_to_lines(body)
+            lines = html_to_lines(body) if body else []
+            # 特設でないページは、公演日を書いているものだけ (同名の前回・延期前の告知を読まない)
+            if lines and (LIVE_EVENT.match(u) or mentions_dates(lines, dates)):
+                pages[u] = lines
         if not pages:
             plans.append(EventPlan(eid, name, None, notes=["公式ページが見つからない"]))
             continue
@@ -285,19 +310,34 @@ def report(plans: list[EventPlan]) -> str:
     return "\n".join(out)
 
 
-def apply(db_path: Path, plans: list[EventPlan], today: str) -> int:
+def write_plan(plans: list[EventPlan], path: Path) -> int:
+    """見るだけの実行で、反映する中身を data/fixes の形で書く。--apply はこのファイルをそのまま入れる。"""
     fixes = [f for p in plans for f in p.fixes]
-    if not fixes:
-        print("埋めるものなし")
-        return 0
     sources = sorted({p.url for p in plans if p.fixes and p.url})
-    path = ROOT / "data" / "fixes" / f"{today.replace('-', '')}_crawl_show_details.json"
     path.write_text(json.dumps({
         "title": "公式ページから、今後の公演の空いていた特設 URL・開演時刻・会場を埋める",
         "author": "crawl_show_details.py",
         "source": " ".join(sources),
         "fixes": fixes,
     }, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return len(fixes)
+
+
+def apply(db_path: Path, plan_path: Path, today: str) -> int:
+    """見て確かめた plan_path をそのまま入れる (取り直さない。見たものと入れるものを揃える)。"""
+    left = sorted((ROOT / "data" / "fixes").glob("*_crawl_show_details.json"))
+    if left:
+        # 前回の反映が途中で落ちた (同梱 DB には入ったが push されていない) かもしれない。先に片付ける。
+        print("⚠️ 前回の反映の残りがある。先に入れ直してから実行する:\n" + "\n".join(
+            f"  python3 tools/apply_data.py --db={db_path} --only {p.relative_to(ROOT)} --apply --push --production"
+            f"  # 済んだら data/_applied/fixes/ へ移す" for p in left), file=sys.stderr)
+        return 1
+    fixes = json.loads(plan_path.read_text(encoding="utf-8")).get("fixes") or []
+    if not fixes:
+        print("埋めるものなし")
+        return 0
+    path = ROOT / "data" / "fixes" / f"{today.replace('-', '')}_crawl_show_details.json"
+    shutil.copy2(plan_path, path)
     cmd = [sys.executable, str(TOOLS / "apply_data.py"), f"--db={db_path}", "--only", str(path),
            "--apply", "--push", "--production"]
     if subprocess.run([sys.executable, str(TOOLS / "apply_data.py"), f"--db={db_path}", "--check", "--only", str(path)],
@@ -316,12 +356,16 @@ def main() -> int:
     ap.add_argument("--today", default=dt.date.today().isoformat())
     ap.add_argument("--no-cms", action="store_true", help="公式ポータルの CMS API で探さない")
     ap.add_argument("--prices-out", type=Path, help="価格の案を import_show_tickets.py の TSV で書く")
-    ap.add_argument("--apply", action="store_true", help="特設 URL・開演時刻・会場を反映する (要 CLOUDKIT_KEY_ID)")
+    ap.add_argument("--plan-out", type=Path, help="埋める中身を data/fixes の形で書く (見るだけの実行で)")
+    ap.add_argument("--apply", type=Path, metavar="PLAN",
+                    help="--plan-out で書いて目で見たファイルをそのまま反映する (要 CLOUDKIT_KEY_ID)。ページは取り直さない")
     args = ap.parse_args()
 
-    if args.apply and not os.environ.get("CLOUDKIT_KEY_ID"):
-        print("--apply には環境変数 CLOUDKIT_KEY_ID (Production) が要る", file=sys.stderr)
-        return 2
+    if args.apply:
+        if not os.environ.get("CLOUDKIT_KEY_ID"):
+            print("--apply には環境変数 CLOUDKIT_KEY_ID (Production) が要る", file=sys.stderr)
+            return 2
+        return apply(args.db, args.apply, args.today)
     conn = sqlite3.connect(str(args.db))
     plans = crawl(conn, args.today, None if args.no_cms else Cms())
     conn.close()
@@ -330,8 +374,9 @@ def main() -> int:
         rows = [r for p in plans for r in p.prices]
         args.prices_out.write_text("".join(r + "\n" for r in rows), encoding="utf-8")
         print(f"価格の案 {len(rows)} 行 → {args.prices_out}")
-    if args.apply:
-        return apply(args.db, plans, args.today)
+    if args.plan_out:
+        n = write_plan(plans, args.plan_out)
+        print(f"埋める {n} 件 → {args.plan_out} (目で見てから --apply {args.plan_out})")
     return 0
 
 

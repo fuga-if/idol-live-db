@@ -32,6 +32,18 @@ class TitleTest(unittest.TestCase):
                                           "315 Production presents F＠NTASTIC BATTLE FES ～Who goes first～ 開催決定"))
 
 
+class DatesTest(unittest.TestCase):
+    def test_mentions_dates(self):
+        self.assertTrue(lp.mentions_dates(["開催日 2027年1月23(土)"], ["2027-01-23"]))
+        self.assertTrue(lp.mentions_dates(["3.13 Sat"], ["2027-03-13"]))
+        self.assertFalse(lp.mentions_dates(["2026年7月1日(水) 開催"], ["2026-10-28"]))
+        self.assertFalse(lp.mentions_dates(["13.130"], ["2027-03-13"]))
+
+    def test_title_containment_only_one_way(self):
+        self.assertFalse(lp.title_matches("THE IDOLM@STER SHINY COLORS ORCHESTRA CONCERT -Radiant Chord-",
+                                          "THE IDOLM@STER SHINY COLORS ORCHESTRA CONCERT"))
+
+
 class EventPagesTest(unittest.TestCase):
     def test_special_site_expands_and_skips_cms(self):
         urls = lp.event_pages("x", ["sc"], ["2027-01-01"], "https://idolmaster-official.jp/live_event/abc/ticket/", None)

@@ -21,6 +21,12 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(csd.parse_start_times(lines), [
             ("2027-02-13", "19:00"), ("2027-03-14", "16:30"), ("2027-03-22", "13:00"), ("2027-03-22", "18:00")])
 
+    def test_door_open_time_is_not_start_time(self):
+        self.assertEqual(csd.parse_start_times(["2027年3月13日(土) 開場16:00 開演17:00"]), [("2027-03-13", "17:00")])
+        self.assertEqual(csd.parse_start_times(["2027年3月13日(土) 開場 16:00　開演 17:00"]), [("2027-03-13", "17:00")])
+        self.assertEqual(csd.parse_start_times(["2027年3月14日(日)", "15:30開場/16:30開演", "※ライブビューイング 開演17:30"]),
+                         [("2027-03-14", "16:30")])
+
     def test_venue_heading_only(self):
         lines = ["開催場所", "山形県 やまぎん県民ホール", "会場内では会話をお控えください。", "会場",
                  "パシフィコ横浜 国立大ホール MAP", "★会場：幕張イベントホール"]
@@ -55,7 +61,7 @@ class PlanTest(unittest.TestCase):
 
     def test_plan_fills_only_empty_columns(self):
         shows = [csd.Show("a", "DAY1", "2027-03-13", "", "", "", False),
-                 csd.Show("b", "DAY2", "2027-03-14", "16:00", "京王アリーナTOKYO", "", True)]
+                 csd.Show("b", "DAY2", "2027-03-14", "16:00", "", "", True)]
         site = "https://idolmaster-official.jp/live_event/x/"
         pages = {site: ["2027年3月13日(土)", "開演17:00", "2027年3月14日(日)", "開演16:30", "開催場所", "京王アリーナ TOKYO"],
                  site + "ticket/": ["TICKET", "一般指定席 9,900円(税込)"]}
@@ -64,10 +70,25 @@ class PlanTest(unittest.TestCase):
             {"table": "events", "id": "ev", "fields": {"ticket_url": site + "ticket/"}},
             {"table": "shows", "id": "a", "fields": {"start_time": "17:00"}},
             {"table": "shows", "id": "a", "fields": {"venue_id": "venue_k", "venue": "京王アリーナ TOKYO"}},
-            {"table": "shows", "id": "b", "fields": {"venue_id": "venue_k"}},
+            {"table": "shows", "id": "b", "fields": {"venue_id": "venue_k", "venue": "京王アリーナ TOKYO"}},
         ])
         self.assertIn("DB は 16:00・ページは 16:30", plan.notes[0])
         self.assertEqual(plan.prices, ["a\tlive\t一般指定席\t9900\t0\t\t" + site + "ticket/"])
+
+    def test_filled_time_disagreeing_blocks_the_day(self):
+        shows = [csd.Show("a", "昼", "2027-03-22", "13:00", "", "v", True), csd.Show("b", "夜", "2027-03-22", "", "", "v", True)]
+        pages = {"u": ["2027年3月22日", "昼 開演12:00", "夜 開演18:00"]}
+        plan = csd.plan_event(self.conn, "ev", "イベント", "x", shows, ["u"], pages, self.index)
+        self.assertEqual(plan.fixes, [])
+
+    def test_unknown_place_and_tour_are_not_filled(self):
+        shows = [csd.Show("a", "D1", "2027-03-13", "", "都内某所", "", True)]
+        plan = csd.plan_event(self.conn, "ev", "イベント", "x", shows, ["u"], {"u": ["会場", "都内某所"]}, self.index)
+        self.assertEqual(plan.fixes, [])
+        shows = [csd.Show("a", "長野", "2027-03-13", "", "ホクト文化ホール", "", True),
+                 csd.Show("b", "幕張", "2027-03-20", "", "幕張イベントホール", "", True)]
+        plan = csd.plan_event(self.conn, "ev", "イベント", "x", shows, ["u"], {"u": ["会場", "京王アリーナ TOKYO"]}, self.index)
+        self.assertEqual(plan.fixes, [])
 
     def test_time_count_mismatch_is_left_alone(self):
         shows = [csd.Show("a", "昼", "2027-03-22", "", "", "", True), csd.Show("b", "夜", "2027-03-22", "", "", "", True)]

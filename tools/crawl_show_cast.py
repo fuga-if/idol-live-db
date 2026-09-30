@@ -41,7 +41,7 @@ if str(TOOLS) not in sys.path:
 
 from lib import discord_notify  # noqa: E402
 from lib.live_pages import (  # noqa: E402
-    DAY_NO, Cms, event_pages, expand, fetch, header_hint, html_to_lines, is_header,
+    DAY_NO, LIVE_EVENT, Cms, event_pages, expand, fetch, header_hint, html_to_lines, is_header, mentions_dates,
 )
 from lib.text import nfkc_drop_spaces  # noqa: E402
 
@@ -305,6 +305,9 @@ def crawl(conn, today: str, overrides: dict[str, str], fetcher=fetch, cms: Cms |
         for url in urls:
             page = fetcher(url)
             if not page:
+                continue
+            # 特設でないページは、公演日を書いているものだけ (同名の前回・追加公演・延期前の告知を読まない)
+            if eid not in overrides and not LIVE_EVENT.match(url) and not mentions_dates(html_to_lines(page), dates):
                 continue
             segs = parse_cast(page, known)
             if segs and (best is None or sum(len(s.cast) for s in segs) > sum(len(s.cast) for s in best[1])):

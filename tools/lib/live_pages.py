@@ -87,7 +87,7 @@ def title_matches(event_name: str, title: str) -> bool:
     # BIRTHDAY ONLINE LIVE など) が題に無ければ別の催し。
     if any(w not in b for w in re.findall(r"\d+|[\u3040-\u30ff\u3400-\u9fff]{2,}", a)):
         return False
-    if a in b or b in a:
+    if a in b:
         return True
     m = difflib.SequenceMatcher(None, a, b, autojunk=False).find_longest_match(0, len(a), 0, len(b))
     return m.size >= max(8, int(len(a) * 0.8))
@@ -169,6 +169,20 @@ def event_pages(name: str, brands: list[str], dates: list[str], ticket_url: str 
                 if a.get("path") and title_matches(name, a.get("title") or ""):
                     urls.append(f"{PORTAL}/news/{a['path']}.html")
     return list(dict.fromkeys(urls))
+
+
+def mentions_dates(lines: list[str], dates: list[str]) -> bool:
+    """ページが公演日のどれかを書いているか (2027年3月13日 / 2027.3.13 / 3月13日 / 3.13)。
+
+    特設でないページ (スケジュール・ニュース) は、同じ名前の前回・追加公演・延期前の告知が混ざるので、
+    公演日を書いているものだけを読む。
+    """
+    text = "\n".join(lines)
+    for d in dates:
+        y, m, day = (int(x) for x in d.split("-"))
+        if re.search(rf"(?<!\d)(?:{y}\s*[年./]\s*)?{m}\s*[月./]\s*{day}(?!\d)", text):
+            return True
+    return False
 
 
 def special_site(urls: list[str]) -> str | None:
