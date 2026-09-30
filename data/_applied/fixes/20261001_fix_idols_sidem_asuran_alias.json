@@ -1,0 +1,14 @@
+{
+ "title": "アスラン=ベルゼビュートⅡ世 に公式の略記「アスラン=BBⅡ世」を別名として足す",
+ "source": "https://idolmaster-official.jp/live_event/sidem11th/cast/",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "sidem_アスランbbⅱ世",
+   "fields": {
+    "aliases": "アスラン=BBⅡ世,アスラン＝BBⅡ世"
+   },
+   "note": "公式の出演者一覧は「古川 慎（アスラン＝BBⅡ世 役）」と略記で書くので、名前で引けるようにする"
+  }
+ ]
+}

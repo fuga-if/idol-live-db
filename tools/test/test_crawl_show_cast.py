@@ -106,6 +106,12 @@ class ParseTest(unittest.TestCase):
         (seg,) = csc.parse_cast("<p>DAY1</p><p>W</p><p>菊池 勇成(蒼井 悠介役) / 山谷 祥生(蒼井 享介役) /</p>")
         self.assertEqual(seg.cast, [("菊池 勇成", "蒼井 悠介"), ("山谷 祥生", "蒼井 享介")])
 
+    def test_header_far_above_cast_is_not_used(self):
+        page = ("<p>★開催日</p><p>2027年1月23(土)・24(日)</p><p>★会場</p><p>幕張イベントホール</p><p>https://x</p>"
+                "<p>出演者</p><p>Jupiter</p><p>天道 輝 / 木村 龍</p>")
+        (seg,) = csc.parse_cast(page, {"天道輝", "木村龍"})
+        self.assertEqual(seg.headers, [])
+
     def test_day_number_two_digits(self):
         self.assertEqual(csc.header_hint(["DAY10"], 2027)[0], 10)
 
@@ -153,8 +159,29 @@ class CrawlTest(unittest.TestCase):
         self.assertEqual([p.show.id for p in result.plans], ["sh_2"])
 
     def test_no_page_and_no_cast(self):
-        self.assertEqual(csc.crawl(self.conn, "2026-10-01", {}, fetcher=lambda _: None)[0].note[:7], "特設ページ不明")
+        self.assertEqual(csc.crawl(self.conn, "2026-10-01", {}, fetcher=lambda _: None)[0].note[:12], "公式ページが見つからない")
         self.assertEqual(self.crawl("<p>出演者は後日発表</p>")[0].note, "出演者の記載なし")
+
+
+    def test_idol_name_list_and_same_cast(self):
+        page = "<p>出演者</p><p>天道 輝 / 木村 龍</p><p>主催 / 企画</p>"
+        (result,) = self.crawl(page)
+        self.assertIn("決められない", result.note)
+        (result,) = csc.crawl(self.conn, "2026-10-01", {"ev_t": "https://example.com/x"},
+                              fetcher=lambda _: page, same_cast=frozenset({"ev_t"}))
+        self.assertEqual([(p.show.id, p.idol_ids, p.status) for p in result.plans], [
+            ("sh_1", ["sidem_天道輝", "sidem_木村龍"], "ok"), ("sh_2", ["sidem_天道輝", "sidem_木村龍"], "ok")])
+
+    def test_show_number_headers(self):
+        page = "<p>第一公演「はじまり」</p><p>天道 輝 / 木村 龍</p><p>第二公演「おわり」</p><p>天道 輝 / 木村 龍</p>"
+        (result,) = self.crawl(page)
+        self.assertEqual([p.show.id for p in result.plans], ["sh_1", "sh_2"])
+
+    def test_since_includes_finished_shows(self):
+        (result,) = csc.crawl(self.conn, "2027-06-01", {"ev_t": "https://example.com/x"},
+                              fetcher=lambda _: PAGE_DAYS, since="2027-01-01")
+        self.assertEqual(len(result.plans), 2)
+        self.assertEqual(csc.crawl(self.conn, "2027-06-01", {}, fetcher=lambda _: PAGE_DAYS), [])
 
 
 class MasterSqlTest(unittest.TestCase):
