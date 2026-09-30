@@ -217,7 +217,7 @@ private fun message(error: ExpenseInputError?): String = when (error) {
 /** 紐づける公演を選ぶ。参加を付けた公演だけが並ぶ。iOS `LedgerShowPicker` の移植。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LedgerShowPickerSheet(
+internal fun LedgerShowPickerSheet(
     options: List<LedgerShowOption>,
     onPick: (LedgerShowOption?) -> Unit,
     onDismiss: () -> Unit

@@ -11,6 +11,7 @@ pub mod snapshot;
 pub mod snapshot_build;
 pub mod kamisabi_cards;
 pub mod ledger;
+pub mod store_order;
 pub mod ticket_prices;
 pub mod ticket_sales;
 pub mod mastery;

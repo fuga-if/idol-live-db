@@ -134,11 +134,16 @@ class LedgerViewModel(app: Application) : AndroidViewModel(app) {
      * 取り込んだ分を 1 件ずつ書く。書けたものだけ一覧に足し、候補を読み直す
      * (途中で失敗しても、書けた公演が候補に残って二重に入らないように)。iOS `saveBackfill` と対。
      */
-    fun saveBackfill(expenses: List<Expense>, onDone: () -> Unit) {
+    fun saveBackfill(expenses: List<Expense>, onDone: () -> Unit) = saveAll(expenses, "チケット代の記録", onDone)
+
+    /** 購入明細から取り込んだ分を書く。iOS `saveAll` と対。 */
+    fun saveStoreOrders(expenses: List<Expense>, onDone: () -> Unit) = saveAll(expenses, "明細の取り込み", onDone)
+
+    private fun saveAll(expenses: List<Expense>, action: String, onDone: () -> Unit) {
         viewModelScope.launch {
             val written = mutableListOf<Expense>()
             for (expense in expenses) {
-                localWrite("チケット代の記録") { repository.save(expense) } ?: break
+                localWrite(action) { repository.save(expense) } ?: break
                 written += expense
             }
             onDone()

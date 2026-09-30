@@ -76,6 +76,8 @@ extension AppDatabase {
 struct LedgerShowOption: Identifiable, Hashable {
     let id: String
     let eventId: String
+    /// イベント名だけ (通販の明細から紐づけ先を推すのに使う)。
+    let eventName: String
     let label: String
     let date: String
 }
@@ -114,10 +116,12 @@ extension AppDatabase {
             """
         return try Row.fetchAll(db, sql: sql).map { row in
             let date: String = row["date"] ?? ""
+            let eventName: String = row["event_name"] ?? ""
             return LedgerShowOption(
                 id: row["show_id"],
                 eventId: row["event_id"],
-                label: showDisplayTitle(eventName: row["event_name"] ?? "",
+                eventName: eventName,
+                label: showDisplayTitle(eventName: eventName,
                                         showName: row["show_name"] ?? "",
                                         date: date),
                 date: date

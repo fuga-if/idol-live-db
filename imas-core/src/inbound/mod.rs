@@ -6,6 +6,7 @@ pub mod snapshot_store;
 pub mod song_queries;
 pub mod kamisabi_cards;
 pub mod ledger;
+pub mod store_order;
 pub mod show_naming;
 pub mod ticket_prices;
 pub mod ticket_sales;

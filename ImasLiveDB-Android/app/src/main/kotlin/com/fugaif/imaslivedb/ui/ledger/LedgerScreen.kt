@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -73,12 +74,16 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
     var showingBackfill by remember { mutableStateOf(false) }
+    var showingStoreImport by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("収支", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = { showingStoreImport = true }) {
+                        Icon(Icons.Filled.ContentPaste, "購入明細から取り込む")
+                    }
                     IconButton(onClick = { editorTarget = EditorTarget(null) }) {
                         Icon(Icons.Filled.Add, "支出を足す")
                     }
@@ -101,7 +106,7 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
                     item {
                         ImasEmptyState(
                             Icons.Filled.AttachMoney, "まだ記録がありません",
-                            "右上の + から、チケット代や遠征費を足してください。"
+                            "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は、購入明細のメールを貼り付けて取り込めます。"
                         )
                     }
                 } else {
@@ -149,6 +154,15 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
             rows = state.backfillRows,
             onSave = { expenses -> viewModel.saveBackfill(expenses) { showingBackfill = false } },
             onDismiss = { showingBackfill = false }
+        )
+    }
+
+    if (showingStoreImport) {
+        StoreOrderImportSheet(
+            existingNotes = state.expenses.mapNotNull { it.note },
+            showOptions = state.showOptions,
+            onSave = { expenses -> viewModel.saveStoreOrders(expenses) { showingStoreImport = false } },
+            onDismiss = { showingStoreImport = false }
         )
     }
 }

@@ -29,6 +29,7 @@ struct LedgerView: View {
     /// 過去の参加でチケット代がまだ無い公演 (取り込みの候補)。
     @State private var backfillRows: [TicketBackfillRow] = []
     @State private var showingBackfill = false
+    @State private var showingStoreImport = false
     /// 書き換えの版。**件数だけを鍵にすると、金額や紐づけを直しただけのときに
     /// 再集計が走らない** (件数が変わらないので `.task(id:)` が発火しない)。
     @State private var changeToken = 0
@@ -58,7 +59,7 @@ struct LedgerView: View {
                     ImasEmptyState(
                         systemImage: "yensign.circle",
                         title: "まだ記録がありません",
-                        message: "右上の + から、チケット代や遠征費を足してください。"
+                        message: "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は、購入明細のメールを貼り付けて取り込めます。"
                     )
                     .plainRow(background: DS.bg)
                 } else {
@@ -76,6 +77,14 @@ struct LedgerView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    showingStoreImport = true
+                } label: {
+                    Image(systemName: "doc.on.clipboard")
+                }
+                .accessibilityLabel("購入明細から取り込む")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     editing = ExpenseEditorTarget(expense: nil)
                 } label: {
                     Image(systemName: "plus")
@@ -91,6 +100,11 @@ struct LedgerView: View {
         .sheet(isPresented: $showingBackfill) {
             TicketBackfillView(rows: backfillRows) { saved in
                 await saveBackfill(saved)
+            }
+        }
+        .sheet(isPresented: $showingStoreImport) {
+            StoreOrderImportView(existingNotes: expenses.compactMap(\.note)) { saved in
+                await saveAll(saved)
             }
         }
         .task { if !loaded { await load() } }
@@ -308,10 +322,15 @@ struct LedgerView: View {
     /// 取り込んだ分を 1 件ずつ書く。書けたものだけ一覧に足し、候補を読み直す
     /// (途中で失敗しても、書けた公演が候補に残って二重に入らないように)。
     private func saveBackfill(_ saved: [Expense]) async {
+        await saveAll(saved)
+        backfillRows = (try? await TicketBackfill.candidates()) ?? []
+    }
+
+    /// まとめて書く。失敗したらそこで止める (書けた分だけが一覧に載る)。
+    private func saveAll(_ saved: [Expense]) async {
         for expense in saved {
             guard await save(expense) else { break }
         }
-        backfillRows = (try? await TicketBackfill.candidates()) ?? []
     }
 
     private func recompute() {

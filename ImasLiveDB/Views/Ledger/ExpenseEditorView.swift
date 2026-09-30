@@ -171,7 +171,7 @@ struct ExpenseEditorView: View {
 }
 
 /// 紐づける公演を選ぶ。参加を付けた公演だけが並ぶ。
-private struct LedgerShowPicker: View {
+struct LedgerShowPicker: View {
     @Environment(\.dismiss) private var dismiss
     let options: [LedgerShowOption]
     let onPick: (LedgerShowOption?) -> Void

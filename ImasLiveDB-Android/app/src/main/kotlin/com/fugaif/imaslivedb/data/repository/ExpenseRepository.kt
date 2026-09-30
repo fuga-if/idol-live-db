@@ -12,6 +12,8 @@ import uniffi.imas_core.showDisplayTitle
 data class LedgerShowOption(
     val id: String,
     val eventId: String,
+    /** イベント名だけ (通販の明細から紐づけ先を推すのに使う)。 */
+    val eventName: String,
     val label: String,
     val date: String
 )
@@ -60,6 +62,7 @@ class ExpenseRepository(private val db: AppDatabase) {
             LedgerShowOption(
                 id = row.showId,
                 eventId = row.eventId,
+                eventName = row.eventName.orEmpty(),
                 label = showDisplayTitle(row.eventName.orEmpty(), row.showName.orEmpty(), row.date.orEmpty()),
                 date = row.date.orEmpty()
             )
