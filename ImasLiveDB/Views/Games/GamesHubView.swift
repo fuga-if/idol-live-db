@@ -9,6 +9,7 @@ struct GamesHubView: View {
     @State private var progress = GameProgressStore.shared
     @State private var resumeStore = QuizResumeStore.shared
     @State private var sortStore = SortMakerStore.shared
+    @State private var tierStore = TierListStore.shared
 
     /// ハブに並べるゲーム定義 (表示順)。
     private struct GameEntry {
@@ -195,7 +196,7 @@ struct GamesHubView: View {
     /// 点数を競うゲームではないので、QUIZ STAGE の記録とは別の節に置く。
     private var sortMakerList: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: "ソートメーカー")
+            ImasSectionHeader(title: "ソートメーカー・ティアー表")
             ImasListContainer {
                 ForEach(Array(SortMakerSubject.allCases.enumerated()), id: \.element) { i, subject in
                     if i > 0 { ImasRowDivider(inset: 68) }
@@ -203,6 +204,15 @@ struct GamesHubView: View {
                         SortMakerSetupView(subject: subject)
                     } label: {
                         sortMakerRow(subject)
+                    }
+                    .buttonStyle(.plain)
+                }
+                ForEach(SortMakerSubject.allCases) { subject in
+                    ImasRowDivider(inset: 68)
+                    NavigationLink {
+                        SortMakerSetupView(subject: subject, purpose: .tier)
+                    } label: {
+                        tierListRow(subject)
                     }
                     .buttonStyle(.plain)
                 }
@@ -228,6 +238,33 @@ struct GamesHubView: View {
                 Text("\(saved.replay().progressPercent)%").font(.imasCaption.weight(.semibold))
                     .foregroundStyle(DS.ink2).monospacedDigit()
             }
+            Image(systemName: "chevron.right")
+                .font(.imasScaled(13, weight: .semibold))
+                .foregroundStyle(DS.ink3)
+        }
+        .padding(.horizontal, DS.sp4)
+        .frame(minHeight: 64)
+        .background(DS.surface)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    private func tierListRow(_ subject: SortMakerSubject) -> some View {
+        let board = tierStore.board(subject)
+        return HStack(spacing: 12) {
+            Image(systemName: "square.stack.3d.up")
+                .font(.imasScaled(18, weight: .semibold))
+                .foregroundStyle(DS.onSys)
+                .frame(width: 40, height: 40)
+                .background(DS.sys, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subject.tierTitle).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(board.map { "\($0.itemIds.count - $0.unplacedIds.count) / \($0.itemIds.count) 振り分け済み" }
+                     ?? "S〜Dの段に振り分けて見せ合う")
+                    .font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
+            }
+            Spacer(minLength: 8)
             Image(systemName: "chevron.right")
                 .font(.imasScaled(13, weight: .semibold))
                 .foregroundStyle(DS.ink3)

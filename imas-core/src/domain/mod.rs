@@ -108,3 +108,4 @@ pub mod entity_resolution;
 pub mod gallery_manifest;
 pub mod pending_favorites;
 pub mod sort_maker;
+pub mod tier_list;

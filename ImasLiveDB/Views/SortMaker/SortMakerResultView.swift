@@ -8,6 +8,8 @@ struct SortMakerResultView: View {
     @State private var detail: DetailDestination?
     @State private var showShare = false
     @State private var confirmRestart = false
+    @State private var tierBoard: TierListBoard?
+    @State private var confirmOverwriteTier = false
 
     private var subject: SortMakerSubject { model.session.subject }
     private var rows: [(rank: Int, item: SortMakerItem)] { model.rankedItems }
@@ -37,6 +39,11 @@ struct SortMakerResultView: View {
                 dismiss()
             }
         }
+        .confirmationDialog("作りかけのティアー表を、この結果のたたき台で置き換えますか？",
+                            isPresented: $confirmOverwriteTier, titleVisibility: .visible) {
+            Button("置き換える", role: .destructive) { makeTierList() }
+        }
+        .navigationDestination(item: $tierBoard) { TierListView(board: $0) }
         .sensoryFeedback(.success, trigger: model.state.isFinished)
     }
 
@@ -83,6 +90,21 @@ struct SortMakerResultView: View {
             }
             .buttonStyle(.plain)
 
+            Button {
+                AppAnalytics.tap("sort_maker.to_tier_list")
+                if TierListStore.shared.board(subject) != nil {
+                    confirmOverwriteTier = true
+                } else {
+                    makeTierList()
+                }
+            } label: {
+                Label("この順位でティアー表をつくる", systemImage: "square.stack.3d.up")
+                    .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
             HStack(spacing: DS.sp3) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) { model.undo() }
@@ -107,6 +129,15 @@ struct SortMakerResultView: View {
             }
         }
         .padding(.top, DS.sp3)
+    }
+}
+
+extension SortMakerResultView {
+    /// 順位からたたき台 (S〜D の振り分け) を作って開く。振り分け規則はコア。
+    fileprivate func makeTierList() {
+        let board = TierListBoard.fromRanking(subject: subject, scopeLabel: model.session.scopeLabel, rows: rows)
+        TierListStore.shared.save(board)
+        tierBoard = board
     }
 }
 

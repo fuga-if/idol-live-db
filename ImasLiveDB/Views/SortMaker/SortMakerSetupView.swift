@@ -1,9 +1,16 @@
 import SwiftUI
 
-/// ソートメーカーの設定画面。対象 (ブランド・曲の種類・歌唱アイドル) と
-/// 決め方 (ベスト10 / 全順位) を選んで始める。途中のセッションがあれば「つづきから」を先頭に出す。
+/// 何を作るか。対象の選び方はソートとティアー表で共通。
+enum SortMakerPurpose {
+    case sort
+    case tier
+}
+
+/// ソートメーカー / ティアー表の設定画面。対象 (ブランド・曲の種類・歌唱アイドル) と
+/// 決め方 (ベスト10 / 全順位) を選んで始める。途中のものがあれば「つづきから」を先頭に出す。
 struct SortMakerSetupView: View {
     let subject: SortMakerSubject
+    var purpose: SortMakerPurpose = .sort
 
     @State private var store = SortMakerStore.shared
     @State private var brands: [Brand] = []
@@ -15,13 +22,16 @@ struct SortMakerSetupView: View {
     /// 遷移先のセッション (始める / つづきから / 結果を見る)。
     @State private var playing: SortMakerSession?
     @State private var confirmRestart = false
+    @State private var tierStore = TierListStore.shared
+    @State private var openBoard: TierListBoard?
 
     /// 前回の設定。カンマ区切り (曲とアイドルで別キー)。
     @AppStorage private var brandIdsRaw: String
     @AppStorage private var depthRaw: Int
 
-    init(subject: SortMakerSubject) {
+    init(subject: SortMakerSubject, purpose: SortMakerPurpose = .sort) {
         self.subject = subject
+        self.purpose = purpose
         _brandIdsRaw = AppStorage(wrappedValue: "", "sortMaker.\(subject.rawValue).brandIds")
         _depthRaw = AppStorage(wrappedValue: SortMakerDepth.top10.rawValue, "sortMaker.\(subject.rawValue).depth")
     }
@@ -34,14 +44,19 @@ struct SortMakerSetupView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.sp5) {
                 header
-                if let s = store.session(subject) {
+                if purpose == .sort, let s = store.session(subject) {
                     savedCard(s)
+                }
+                if purpose == .tier, let b = tierStore.board(subject) {
+                    savedBoardCard(b)
                 }
                 brandSection
                 if subject == .song {
                     songSection
                 }
-                depthSection
+                if purpose == .sort {
+                    depthSection
+                }
                 summary
             }
             .padding(DS.sp5)
@@ -50,12 +65,14 @@ struct SortMakerSetupView: View {
         .background(DS.bg.ignoresSafeArea())
         .scrollContentBackground(.hidden)
         .safeAreaInset(edge: .bottom) { startBar }
-        .navigationTitle(subject.title)
+        .navigationTitle(purpose == .sort ? subject.title : subject.tierTitle)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $playing) { session in
             SortMakerPlayView(session: session)
         }
-        .confirmationDialog("前回の続きを消して最初から始めますか？", isPresented: $confirmRestart, titleVisibility: .visible) {
+        .navigationDestination(item: $openBoard) { TierListView(board: $0) }
+        .confirmationDialog(purpose == .sort ? "前回の続きを消して最初から始めますか？" : "今のティアー表を消して作り直しますか？",
+                            isPresented: $confirmRestart, titleVisibility: .visible) {
             Button("最初から始める", role: .destructive) { start() }
         }
         .task {
@@ -69,7 +86,7 @@ struct SortMakerSetupView: View {
             Task { await reload() }
         }
         .onChange(of: depth) { _, new in depthRaw = new.rawValue }
-        .trackScreen("sort_maker_setup")
+        .trackScreen(purpose == .sort ? "sort_maker_setup" : "tier_list_setup")
     }
 
     private func reload() async {
@@ -86,15 +103,17 @@ struct SortMakerSetupView: View {
 
     private var header: some View {
         HStack(spacing: DS.sp4) {
-            Image(systemName: "arrow.left.arrow.right")
+            Image(systemName: purpose == .sort ? "arrow.left.arrow.right" : "square.stack.3d.up")
                 .font(.imasScaled(24, weight: .semibold))
                 .foregroundStyle(DS.onSys)
                 .frame(width: 52, height: 52)
                 .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("2つから好きな方を選ぶだけ")
+                Text(purpose == .sort ? "2つから好きな方を選ぶだけ" : "S〜Dの段に振り分ける")
                     .font(.imasHeadline).foregroundStyle(DS.ink)
-                Text("対戦を重ねると、あなたの\(subject == .song ? "好きな曲" : "好きなアイドル")ランキングができあがります。途中でやめても続きから遊べます。")
+                Text(purpose == .sort
+                     ? "対戦を重ねると、あなたの\(subject == .song ? "好きな曲" : "好きなアイドル")ランキングができあがります。途中でやめても続きから遊べます。"
+                     : "選んだ対象がぜんぶ未分類に並びます。ソートメーカーの結果からたたき台を作ることもできます。")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -145,6 +164,31 @@ struct SortMakerSetupView: View {
                     .padding(.bottom, 6)
             }
         }
+    }
+
+    private func savedBoardCard(_ b: TierListBoard) -> some View {
+        let placed = b.itemIds.count - b.unplacedIds.count
+        return HStack(spacing: DS.sp3) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text("つくりかけのティアー表").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
+                Text("\(placed) / \(b.itemIds.count) 振り分け済み")
+                    .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).monospacedDigit()
+                Text(b.scopeLabel).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+            }
+            Spacer(minLength: DS.sp2)
+            Button {
+                AppAnalytics.tap("tier_list.open")
+                openBoard = b
+            } label: {
+                Text("開く")
+                    .font(.imasSubhead.weight(.bold)).foregroundStyle(DS.onSys)
+                    .padding(.horizontal, DS.sp5).frame(minHeight: 40)
+                    .background(DS.sys, in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(DS.sp4)
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
     }
 
     // MARK: - ブランド
@@ -243,12 +287,14 @@ struct SortMakerSetupView: View {
                     Text(subject.counter).font(.imasCaption).foregroundStyle(DS.ink3)
                 }
             }
+            if purpose == .sort {
             VStack(alignment: .leading, spacing: 2) {
                 Text("対戦の目安").font(.imasCaption).foregroundStyle(DS.ink3)
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(isLoading ? "…" : "約\(estimate)").font(.imasTitle2.weight(.bold)).monospacedDigit()
                     Text("戦").font(.imasCaption).foregroundStyle(DS.ink3)
                 }
+            }
             }
             Spacer(minLength: 0)
         }
@@ -261,6 +307,9 @@ struct SortMakerSetupView: View {
     /// 対戦が長すぎる / 少なすぎるときのひとこと。
     private var hint: String? {
         if candidates.count < 2 { return "2\(subject.counter)以上になるように絞り込みをゆるめてください。" }
+        if purpose == .tier {
+            return candidates.count > 120 ? "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" : nil
+        }
         if estimate > 600 {
             return depth == .all
                 ? "かなり長くなります。ブランドを絞るか「ベスト10」がおすすめです。途中保存されるので少しずつでも大丈夫です。"
@@ -273,13 +322,15 @@ struct SortMakerSetupView: View {
 
     private var startBar: some View {
         Button {
-            if let s = store.session(subject), !s.isFinished, !s.answers.isEmpty {
+            if purpose == .tier, tierStore.board(subject) != nil {
+                confirmRestart = true
+            } else if purpose == .sort, let s = store.session(subject), !s.isFinished, !s.answers.isEmpty {
                 confirmRestart = true
             } else {
                 start()
             }
         } label: {
-            Text("はじめる")
+            Text(purpose == .sort ? "はじめる" : "ティアー表をつくる")
                 .font(.imasHeadline).foregroundStyle(DS.onSys)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
@@ -295,6 +346,14 @@ struct SortMakerSetupView: View {
     private var canStart: Bool { !isLoading && candidates.count >= 2 }
 
     private func start() {
+        if purpose == .tier {
+            AppAnalytics.tap("tier_list.start")
+            let board = TierListBoard(subject: subject, itemIds: candidates.map(\.id), placements: [:],
+                                      scopeLabel: scopeLabel, savedAt: Date())
+            tierStore.save(board)
+            openBoard = board
+            return
+        }
         AppAnalytics.tap("sort_maker.start")
         let session = SortMakerSession(
             subject: subject,
@@ -321,8 +380,9 @@ struct SortMakerSetupView: View {
                                                    : "\(pickedIdols[0].name)ほか")
             }
         }
-        let depthText = depth == .top10 ? "ベスト10" : "全順位"
-        return parts.joined(separator: "・") + " \(candidates.count)\(subject.counter)から\(depthText)"
+        let base = parts.joined(separator: "・") + " \(candidates.count)\(subject.counter)"
+        guard purpose == .sort else { return base }
+        return base + "から" + (depth == .top10 ? "ベスト10" : "全順位")
     }
 
     // MARK: - 部品

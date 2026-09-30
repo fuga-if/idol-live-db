@@ -469,6 +469,31 @@ pub fn sort_maker_share_text(title: &str, scope_label: &str, ranked: &[(u32, Str
     out
 }
 
+/// ティアー表の共有文で 1 段に載せる名前の上限。超えた分は「ほかN件」。
+const TIER_LIST_SHARE_NAMES_PER_TIER: usize = 5;
+
+/// ティアー表のシェア文。`tiers` は (段名, その段の名前列) を上から。空の段は書かない。
+pub fn tier_list_share_text(title: &str, scope_label: &str, tiers: &[(String, Vec<String>)]) -> String {
+    let mut out = format!("{title}");
+    if !scope_label.is_empty() {
+        out.push_str(&format!("（{scope_label}）"));
+    }
+    out.push('\n');
+    for (label, names) in tiers {
+        if names.is_empty() {
+            continue;
+        }
+        let shown: Vec<&str> = names.iter().take(TIER_LIST_SHARE_NAMES_PER_TIER).map(String::as_str).collect();
+        out.push_str(&format!("{label}: {}", shown.join("、")));
+        if names.len() > shown.len() {
+            out.push_str(&format!(" ほか{}件", names.len() - shown.len()));
+        }
+        out.push('\n');
+    }
+    out.push_str(HASHTAG);
+    out
+}
+
 /// イントロドンのゲームモード (シェア文の分岐に必要な分だけ)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IntroDonShareMode {
@@ -1052,5 +1077,20 @@ mod tests {
         assert!(!text.contains("曲11"));
         assert!(text.ends_with(HASHTAG));
         assert_eq!(sort_maker_share_text("t", "", &[]), format!("tの結果\n{HASHTAG}"));
+    }
+
+    #[test]
+    fn tier_list_share_text_skips_empty_tiers_and_folds_long_ones() {
+        let many: Vec<String> = (1..=7).map(|i| format!("曲{i}")).collect();
+        let tiers = vec![
+            ("S".to_string(), vec!["曲A".to_string()]),
+            ("A".to_string(), vec![]),
+            ("B".to_string(), many),
+        ];
+        let text = tier_list_share_text("好きな曲ティアー表", "シャニマス", &tiers);
+        assert_eq!(
+            text,
+            format!("好きな曲ティアー表（シャニマス）\nS: 曲A\nB: 曲1、曲2、曲3、曲4、曲5 ほか2件\n{HASHTAG}")
+        );
     }
 }

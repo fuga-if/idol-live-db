@@ -23,6 +23,14 @@ enum SortMakerSubject: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// ティアー表のナビタイトル。
+    var tierTitle: String {
+        switch self {
+        case .song: return "曲のティアー表"
+        case .idol: return "アイドルのティアー表"
+        }
+    }
+
     /// 「128曲」「52人」の助数詞。
     var counter: String {
         switch self {
