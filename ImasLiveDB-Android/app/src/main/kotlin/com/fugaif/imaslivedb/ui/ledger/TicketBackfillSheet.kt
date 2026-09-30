@@ -119,6 +119,9 @@ fun TicketBackfillSheet(
         }
     }
 
+    // 書き終わるまで閉じないので、その間の二度押しで二重に入らないように止める。
+    var saving by remember { mutableStateOf(false) }
+
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
             Text("チケット代を取り込む", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
@@ -148,9 +151,10 @@ fun TicketBackfillSheet(
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = {
+                        saving = true
                         onSave(rows.mapNotNull { row -> selection[row.id]?.let { TicketBackfill.expense(row, it) } })
                     },
-                    enabled = selection.isNotEmpty()
+                    enabled = selection.isNotEmpty() && !saving
                 ) { Text("${selection.size}件を記録") }
             }
         }

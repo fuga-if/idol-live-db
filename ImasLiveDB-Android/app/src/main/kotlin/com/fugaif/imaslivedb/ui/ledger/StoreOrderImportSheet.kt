@@ -89,6 +89,8 @@ fun StoreOrderImportSheet(
     var text by remember { mutableStateOf("") }
     val drafts = remember { mutableStateListOf<DraftOrder>() }
     var pickingIndex by remember { mutableStateOf<Int?>(null) }
+    // 書き終わるまで閉じないので、その間の二度押しで同じ注文が 2 セット入らないように止める。
+    var saving by remember { mutableStateOf(false) }
 
     fun parse(value: String) {
         text = value
@@ -174,11 +176,12 @@ fun StoreOrderImportSheet(
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = {
+                        saving = true
                         onSave(planned.map {
                             Expense.make(it.date, it.category, it.amount, it.showId, it.eventId, it.note)
                         })
                     },
-                    enabled = planned.isNotEmpty()
+                    enabled = planned.isNotEmpty() && !saving
                 ) { Text(if (planned.isEmpty()) "記録" else "${planned.size}件を記録") }
             }
         }
@@ -215,6 +218,9 @@ private fun OrderCard(
                     if (order.alreadyRecorded) {
                         Text("この注文は記録済みです", fontSize = 12.sp, color = DS.danger)
                     }
+                    if (order.hasUnreadItems) {
+                        Text("読み取れなかった品目があります。額は合計に含めています", fontSize = 12.sp, color = DS.danger)
+                    }
                 }
                 Switch(checked = draft.include, onCheckedChange = { onChange(draft.copy(include = it)) })
             }
@@ -230,7 +236,14 @@ private fun OrderCard(
                     Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(if (order.adjustment > 0) "送料・手数料" else "ポイント・値引き", fontSize = 13.sp, color = DS.ink)
+                            Text(
+                                when {
+                                    order.hasUnreadItems -> "その他の品目・送料など"
+                                    order.adjustment > 0 -> "送料・手数料"
+                                    else -> "ポイント・値引き"
+                                },
+                                fontSize = 13.sp, color = DS.ink
+                            )
                             Text("一番多い費目に含めて記録します", fontSize = 11.sp, color = DS.ink3)
                         }
                         Text((if (order.adjustment > 0) "+" else "") + formatYen(order.adjustment),

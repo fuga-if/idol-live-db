@@ -128,6 +128,10 @@ struct StoreOrderImportView: View {
                         Text("この注文は記録済みです")
                             .font(.imasCaption).foregroundStyle(DS.danger)
                     }
+                    if order.hasUnreadItems {
+                        Text("読み取れなかった品目があります。額は合計に含めています")
+                            .font(.imasCaption).foregroundStyle(DS.danger)
+                    }
                 }
             }
 
@@ -201,7 +205,8 @@ struct StoreOrderImportView: View {
     private func adjustmentRow(_ order: StoreOrder) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(order.adjustment > 0 ? "送料・手数料" : "ポイント・値引き")
+                Text(order.hasUnreadItems ? "その他の品目・送料など"
+                     : order.adjustment > 0 ? "送料・手数料" : "ポイント・値引き")
                     .font(.imasFootnote).foregroundStyle(DS.ink)
                 Text("一番多い費目に含めて記録します")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
@@ -243,7 +248,8 @@ struct StoreOrderImportView: View {
 
     private func loadOptions() async {
         showOptions = (try? await AppContainer.shared.ledgerReading.attendedShowOptions()) ?? []
-        parse()
+        // 読み込みより先に貼って直し始めていたら作り直さない (直した費目や除外が消える)。
+        if drafts.isEmpty { parse() }
     }
 
     private func parse() {

@@ -67,6 +67,9 @@ pub struct StoreOrder {
     pub adjustment: i64,
     /// 同じ注文番号の支出がもう帳簿にある。
     pub already_recorded: bool,
+    /// 品目の小計の和が商品金額合計と合わない (読み取れなかった品目がある)。
+    /// 額は `adjustment` に入るので合計は合うが、品名と費目が抜けている。
+    pub has_unread_items: bool,
     /// 品名から推した紐づけ先の公演 (参加を付けた公演の中から)。
     pub suggested_show_id: Option<String>,
     pub suggested_event_id: Option<String>,
@@ -161,14 +164,24 @@ pub fn store_order_expenses(
     }
     groups.sort_by_key(|g| order_cats.iter().position(|c| *c == g.0).unwrap_or(usize::MAX));
 
-    // 差を寄せる先: 一番大きい費目 (同額なら費目一覧で先のもの)。
-    let target = groups
-        .iter()
-        .enumerate()
-        .max_by(|(ia, a), (ib, b)| a.1.cmp(&b.1).then(ib.cmp(ia)))
-        .map(|(i, _)| i)
-        .unwrap_or(0);
-    groups[target].1 += order.adjustment;
+    // 差を寄せる先: 大きい費目から順 (同額なら費目一覧で先のもの)。
+    // 値引きが 1 つの費目より大きければ、0 で止めて残りを次の費目へ繰り越す
+    // (マイナスの残りを捨てると、記録の合計が支払額より多くなる)。
+    let mut by_size: Vec<usize> = (0..groups.len()).collect();
+    by_size.sort_by(|&a, &b| groups[b].1.cmp(&groups[a].1).then(a.cmp(&b)));
+    let mut rest = order.adjustment;
+    for &i in &by_size {
+        if rest >= 0 {
+            groups[i].1 += rest;
+            break;
+        }
+        let taken = rest.max(-groups[i].1);
+        groups[i].1 += taken;
+        rest -= taken;
+        if rest == 0 {
+            break;
+        }
+    }
 
     groups
         .into_iter()
@@ -224,7 +237,23 @@ fn parse_one(
             date = parse_date(line.trim_start_matches("【ご注文日時】"));
             continue;
         }
-        if line.starts_with('【') {
+        // 品名が【受注生産】のように【】で始まることがあるので、明細の中では品目の形を先に見る。
+        if section == Section::Items {
+            if let Some((name, quantity, unit_price, subtotal)) = parse_item_line(line) {
+                let full = format!("{pending_name}{name}").trim().to_string();
+                pending_name.clear();
+                items.push(StoreOrderItem {
+                    category: guess_category(&full),
+                    name: full,
+                    quantity,
+                    unit_price,
+                    subtotal,
+                    included: true,
+                });
+                continue;
+            }
+        }
+        if is_heading(line) {
             section = match *line {
                 l if l.starts_with("【商品明細】") => Section::Items,
                 l if l.starts_with("【お買上金額】") => Section::Amounts,
@@ -242,22 +271,8 @@ fn parse_one(
             Section::Items => {
                 if line.is_empty() || is_item_code(line) {
                     pending_name.clear();
-                    continue;
-                }
-                match parse_item_line(line) {
-                    Some((name, quantity, unit_price, subtotal)) => {
-                        let full = format!("{pending_name}{name}").trim().to_string();
-                        pending_name.clear();
-                        items.push(StoreOrderItem {
-                            category: guess_category(&full),
-                            name: full,
-                            quantity,
-                            unit_price,
-                            subtotal,
-                            included: true,
-                        });
-                    }
-                    None => pending_name.push_str(line),
+                } else {
+                    pending_name.push_str(line);
                 }
             }
             Section::Amounts => {
@@ -280,7 +295,12 @@ fn parse_one(
     let paid_total = paid_total.unwrap_or(items_total);
 
     let marker = order_marker(&order_number);
-    let already_recorded = !order_number.is_empty() && existing_notes.iter().any(|n| n.contains(&marker));
+    // 行末で合わせる (「注文番号 X-1」が「注文番号 X-10」に当たらないように)。
+    let already_recorded = !order_number.is_empty()
+        && existing_notes
+            .iter()
+            .any(|n| n.lines().any(|l| l.trim_end().ends_with(&marker)));
+    let read_total: i64 = items.iter().map(|i| i.subtotal).sum();
     let suggestion = suggest_show(&items, candidates);
 
     Some(StoreOrder {
@@ -292,6 +312,7 @@ fn parse_one(
         paid_total,
         adjustment: paid_total - items_total,
         already_recorded,
+        has_unread_items: read_total != items_total,
         suggested_show_id: suggestion.map(|c| c.show_id.clone()),
         suggested_event_id: suggestion.map(|c| c.event_id.clone()),
     })
@@ -325,6 +346,25 @@ fn parse_date(text: &str) -> Option<String> {
         return None;
     }
     Some(format!("{y:04}-{m:02}-{d:02}"))
+}
+
+/// 見出しの行 (`【商品明細】` だけの行、または知っている見出しで始まる行)。
+/// `【受注生産】アクリルスタンド` のような品名の頭を見出しと取り違えないため、
+/// 知らない【】は行が【】だけで終わるときに限る。
+fn is_heading(line: &str) -> bool {
+    const KNOWN: [&str; 8] = [
+        "【商品明細】",
+        "【お買上金額】",
+        "【お支払い方法】",
+        "【お支払方法】",
+        "【お届け先】",
+        "【配送方法】",
+        "【お届け予定",
+        "【ご注文者",
+    ];
+    line.starts_with('【')
+        && (line.ends_with('】') && line.matches('【').count() == 1
+            || KNOWN.iter().any(|k| line.starts_with(k)))
 }
 
 /// 商品コードの行 (`0-0-0-4077`)。数字とハイフンだけ。
@@ -375,7 +415,7 @@ fn parse_yen(text: &str) -> Option<i64> {
 /// 品名から費目を推す。迷うものはグッズ代 (この取り込みの主目的)。
 fn guess_category(name: &str) -> ExpenseCategory {
     // 視聴チケット・配信チケット・現地チケットはチケット代。
-    if name.contains("チケット") {
+    if name.contains("チケット") && !["ホルダー", "ケース", "ファイル"].iter().any(|k| name.contains(k)) {
         return ExpenseCategory::Ticket;
     }
     // ペンライト・ブレード・電池は「UO代」の箱 (費目の定義がそう)。
@@ -585,6 +625,47 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
         assert_eq!(o.items[0].name, "とても長い品名の前半と後半");
         assert_eq!(o.items[0].subtotal, 2_000);
         assert_eq!(o.paid_total, 2_000);
+    }
+
+    #[test]
+    fn reads_items_whose_name_starts_with_brackets() {
+        let text = "【注文番号】9-0\n【商品明細】\n0-0-0-1\n【受注生産】アクリルスタンド：1×1,500円=1,500円\n0-0-0-2\n【アソビストア限定】チケットホルダー：1×1,000円=1,000円\n【お買上金額】\n商品金額合計(税込)：2,500円\nお支払金額(税込)：2,500円\n";
+        let o = parse_store_orders(text, "2026-09-30", &[], &[]).remove(0);
+        assert_eq!(o.items.len(), 2);
+        assert_eq!(o.items[0].name, "【受注生産】アクリルスタンド");
+        assert_eq!(o.items[1].category, ExpenseCategory::Goods);
+        assert_eq!(o.adjustment, 0);
+        assert!(!o.has_unread_items);
+    }
+
+    #[test]
+    fn flags_unread_items() {
+        let text = GOODS_MAIL.replace("商品金額合計(税込)：11,900円", "商品金額合計(税込)：13,900円");
+        let o = parse_store_orders(&text, "2026-01-01", &[], &[]).remove(0);
+        assert!(o.has_unread_items);
+    }
+
+    #[test]
+    fn big_discount_carries_over_to_next_category() {
+        // チケット 6,500 + グッズ 3,000、ポイント 7,000 で支払 2,500。
+        let text = "【注文番号】8-0\n【商品明細】\n配信チケット：1×6,500円=6,500円\nパンフレット：1×3,000円=3,000円\n【お買上金額】\n商品金額合計(税込)：9,500円\nお支払金額(税込)：2,500円\n";
+        let mut o = parse_store_orders(text, "2026-01-01", &[], &[]).remove(0);
+        let drafts = store_order_expenses(&o, None, None);
+        assert_eq!(drafts.iter().map(|d| d.amount).sum::<i64>(), 2_500);
+        assert_eq!(drafts.len(), 1);
+        assert_eq!(drafts[0].category, ExpenseCategory::Goods);
+
+        // 値引きが含めた品目より大きければ何も入らない (マイナスは入れない)。
+        o.items[0].included = false;
+        o.adjustment = -3_500;
+        assert!(store_order_expenses(&o, None, None).is_empty());
+    }
+
+    #[test]
+    fn recorded_check_does_not_match_longer_numbers() {
+        let notes = vec!["アソビストア 注文番号 100000000000000002-00\nx".to_string()];
+        let o = parse_store_orders(GOODS_MAIL, "2026-01-01", &[], &notes).remove(0);
+        assert!(!o.already_recorded);
     }
 
     #[test]
