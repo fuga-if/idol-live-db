@@ -1,20 +1,25 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -24,30 +29,38 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
 import com.fugaif.imaslivedb.ui.share.ShareCardActionPane
 import com.fugaif.imaslivedb.ui.share.ShareCardArtwork
+import com.fugaif.imaslivedb.ui.share.ShareCardFooter
 import com.fugaif.imaslivedb.ui.share.ShareCardRatio
 import com.fugaif.imaslivedb.ui.share.ShareCardSheet
 import com.fugaif.imaslivedb.ui.share.ShareCardSize
 import com.fugaif.imaslivedb.ui.share.ShareInk
-import com.fugaif.imaslivedb.ui.share.SoloShareScaffold
 import com.fugaif.imaslivedb.ui.share.SocialShare
 import com.fugaif.imaslivedb.ui.share.rememberShareCardPalette
+import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.SortMakerShareRow
 import uniffi.imas_core.sortMakerShareText
 
 // =============================================================================
-// 結果の共有シート。画像カード (ベスト10) と、文字だけの共有。iOS SortMakerShareCard.swift の移植。
+// 結果の共有シート。画像カード (ランキングのポスター) と、文字だけの共有。
+// iOS SortMakerShareCard.swift (design(sort-maker) 2023e85d/d8475fef) の移植。
 // =============================================================================
 
 @Composable
@@ -58,13 +71,19 @@ fun SortMakerShareSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val topArtworkUrl = (rows.firstOrNull()?.second as? SortMakerItem.SongItem)?.song?.artworkUrl
-    var artwork by remember { mutableStateOf<ImageBitmap?>(null) }
-    var isPreparing by remember(topArtworkUrl) { mutableStateOf(!topArtworkUrl.isNullOrBlank()) }
+    // 表彰台 (1〜3 位) のジャケ。焼き込みは非同期読み込みを待たないので先に読んでおく。
+    var artworks by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
+    var isLoadingArtwork by remember { mutableStateOf(true) }
 
-    LaunchedEffect(topArtworkUrl) {
-        artwork = ShareCardArtwork.load(context, topArtworkUrl)
-        isPreparing = false
+    LaunchedEffect(rows) {
+        val loaded = mutableMapOf<String, ImageBitmap>()
+        rows.take(3).forEach { (_, item) ->
+            if (item is SortMakerItem.SongItem) {
+                ShareCardArtwork.load(context, item.song.artworkUrl)?.let { loaded[item.song.id] = it }
+            }
+        }
+        artworks = loaded
+        isLoadingArtwork = false
     }
 
     val shareText = remember(subject, scopeLabel, rows) {
@@ -79,106 +98,222 @@ fun SortMakerShareSheet(
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ShareCardActionPane(
                 ratios = listOf(ShareCardRatio.PORTRAIT),
-                isPreparingCard = isPreparing,
+                isPreparingCard = isLoadingArtwork,
                 fileNamePrefix = "sort_maker"
             ) { size ->
-                SortMakerShareCard(subject = subject, scopeLabel = scopeLabel, rows = rows, artwork = artwork, size = size)
+                SortMakerShareCard(subject = subject, scopeLabel = scopeLabel, rows = rows, artworks = artworks, size = size)
             }
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(com.fugaif.imaslivedb.ui.theme.DS.fill)
+                    .background(DS.fill)
                     .clickable { SocialShare.shareText(context, shareText) }
                     .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Icon(Icons.Filled.TextSnippet, null, tint = com.fugaif.imaslivedb.ui.theme.DS.ink, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.TextSnippet, null, tint = DS.ink, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("テキストでシェア", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = com.fugaif.imaslivedb.ui.theme.DS.ink)
+                Text("テキストでシェア", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
             }
         }
     }
 }
 
 /**
- * 画像カード。near-black 地に 1 位を大きく、2〜10 位を 1 行ずつ。
- * 版権の都合でアイドルの画像は載せず、メンバーカラーの印だけにする。
+ * 画像カード: ランキングのポスター。
+ *
+ * 上に「MY BEST 10」の大見出し、中央に 1〜3 位の表彰台 (1 位を大きく真ん中に)、
+ * 下に 4〜10 位を 2 列で。near-black の単色地に、1 位の色を差し色として 1 点だけ使う。
+ *
+ * 焼き込む固定キャンバスなので、色は固定色だけ・文字は固定 sp
+ * (アプリ内の文字サイズ倍率がかかると枠からあふれるため)。
+ * 版権の都合でアイドルの絵は載せず、メンバーカラーのモノグラムにする。
  */
 @Composable
 private fun SortMakerShareCard(
     subject: SortMakerSubject,
     scopeLabel: String,
     rows: List<Pair<Int, SortMakerItem>>,
-    artwork: ImageBitmap?,
+    artworks: Map<String, ImageBitmap>,
     size: ShareCardSize
 ) {
-    val palette = rememberShareCardPalette(seed = rows.firstOrNull()?.second?.seed)
-    SoloShareScaffold(palette = palette, size = size, badge = subject.title) {
-        Column {
+    val podium = rows.take(3)
+    val rest = rows.drop(3).take(7)
+    val accent = rememberShareCardPalette(seed = rows.firstOrNull()?.second?.seed).accent
+
+    Box(
+        Modifier
+            .size(size.widthUnits.dp, size.heightUnits.dp)
+            .background(ShareInk.nearBlack)
+    ) {
+        Watermark(accent = accent, size = size)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 36.dp, vertical = 0.dp)
+                .padding(top = 32.dp, bottom = 28.dp)
+        ) {
+            Header(subject = subject, scopeLabel = scopeLabel, resultCount = rows.size, accent = accent)
+            PodiumRow(podium = podium, accent = accent, artworks = artworks, modifier = Modifier.fillMaxWidth().padding(top = 22.dp))
+            if (rest.isNotEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(top = 18.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+                RestGrid(rest = rest, modifier = Modifier.padding(top = 14.dp))
+            }
+            Spacer(Modifier.weight(1f))
+            ShareCardFooter(ink = Color.White.copy(alpha = 0.62f), rule = Color.White.copy(alpha = 0.16f))
+        }
+    }
+}
+
+// MARK: - 見出し
+
+@Composable
+private fun Header(subject: SortMakerSubject, scopeLabel: String, resultCount: Int, accent: Color) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(18.dp).height(3.dp).background(accent))
+            Spacer(Modifier.width(8.dp))
+            Text(subject.title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f))
+            Spacer(Modifier.weight(1f, fill = true))
             Text(
-                scopeLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = ShareInk.ink.copy(alpha = 0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 10.dp)
+                "RESULT", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace,
+                letterSpacing = 2.4.sp, color = Color.White.copy(alpha = 0.45f)
             )
+        }
+        Text(
+            if (resultCount >= 10) "MY BEST 10" else "MY BEST $resultCount",
+            fontSize = 50.sp, fontWeight = FontWeight.Black, color = Color.White,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+        Text(
+            scopeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.55f),
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
 
-            val first = rows.firstOrNull()
-            if (first != null) {
-                Row(modifier = Modifier.padding(top = 18.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    if (subject == SortMakerSubject.SONG) {
-                        FirstVisual(artwork, palette.accentDeep)
-                        Spacer(Modifier.width(16.dp))
-                    }
-                    Column {
-                        Text("${first.first}位", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = palette.accent)
-                        Text(
-                            first.second.title,
-                            fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                            color = ShareInk.ink, maxLines = 2, overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
+// MARK: - 表彰台
 
-            Column(modifier = Modifier.padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                rows.drop(1).take(9).forEach { (rank, item) ->
-                    val rowAccent = rememberShareCardPalette(seed = item.seed).accent
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Text(
-                            "$rank", fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                            color = ShareInk.ink.copy(alpha = 0.55f),
-                            modifier = Modifier.width(26.dp)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        androidx.compose.foundation.layout.Box(
-                            Modifier.width(4.dp).height(16.dp).clip(RoundedCornerShape(2.dp)).background(rowAccent)
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            item.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
-                            color = ShareInk.ink.copy(alpha = 0.92f), maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
+@Composable
+private fun PodiumRow(podium: List<Pair<Int, SortMakerItem>>, accent: Color, artworks: Map<String, ImageBitmap>, modifier: Modifier = Modifier) {
+    // 並びは 2 位・1 位・3 位 (1 位を真ん中に高く)。
+    val order = listOf(1, 0, 2).filter { it < podium.size }
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Bottom) {
+        order.forEach { i ->
+            PodiumSlot(row = podium[i], isFirst = i == 0, accent = accent, artworks = artworks)
         }
     }
 }
 
 @Composable
-private fun FirstVisual(artwork: ImageBitmap?, fallback: androidx.compose.ui.graphics.Color) {
-    if (artwork != null) {
-        Image(
-            bitmap = artwork, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(10.dp))
+private fun PodiumSlot(row: Pair<Int, SortMakerItem>, isFirst: Boolean, accent: Color, artworks: Map<String, ImageBitmap>) {
+    val (rank, item) = row
+    val side = if (isFirst) 148.dp else 112.dp
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "$rank", fontSize = if (isFirst) 44.sp else 32.sp, fontWeight = FontWeight.Black,
+            color = if (isFirst) accent else Color.White.copy(alpha = 0.75f)
         )
-    } else {
-        androidx.compose.foundation.layout.Box(
-            Modifier.size(96.dp).clip(RoundedCornerShape(10.dp)).background(fallback),
-            contentAlignment = androidx.compose.ui.Alignment.Center
-        ) {
-            Icon(Icons.Filled.MusicNote, null, tint = ShareInk.ink.copy(alpha = 0.3f), modifier = Modifier.size(32.dp))
+        PodiumVisual(item = item, side = side, artworks = artworks)
+        Text(
+            item.title, fontSize = if (isFirst) 15.sp else 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
+            textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(side + 12.dp).height(if (isFirst) 40.dp else 32.dp)
+        )
+    }
+}
+
+@Composable
+private fun PodiumVisual(item: SortMakerItem, side: androidx.compose.ui.unit.Dp, artworks: Map<String, ImageBitmap>) {
+    when (item) {
+        is SortMakerItem.SongItem -> {
+            val artwork = artworks[item.song.id]
+            if (artwork != null) {
+                Image(
+                    bitmap = artwork, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(side).clip(RoundedCornerShape(side * 0.08f))
+                )
+            } else {
+                val fallback = rememberShareCardPalette(seed = null).accentDeep
+                Box(
+                    Modifier.size(side).clip(RoundedCornerShape(side * 0.08f)).background(fallback),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        item.song.title, fontSize = (side.value * 0.12f).sp, fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center, maxLines = 3,
+                        overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(side * 0.1f)
+                    )
+                }
+            }
         }
+        is SortMakerItem.IdolItem -> {
+            val palette = rememberShareCardPalette(seed = item.idol.color)
+            val shortName = item.idol.shortName
+            Box(
+                Modifier
+                    .size(side)
+                    .clip(CircleShape)
+                    .background(palette.accentDeep)
+                    .border(side * 0.03f, palette.accent, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    shortName,
+                    fontSize = (side.value * (if (shortName.length >= 3) 0.24f else 0.32f)).sp,
+                    fontWeight = FontWeight.Black, color = palette.accent,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(side * 0.12f)
+                )
+            }
+        }
+    }
+}
+
+// MARK: - 4〜10 位
+
+@Composable
+private fun RestGrid(rest: List<Pair<Int, SortMakerItem>>, modifier: Modifier = Modifier) {
+    // 縦に読めるよう左列 4〜7 位、右列 8〜10 位。
+    val left = rest.take(4)
+    val right = rest.drop(4)
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+        RestColumn(items = left, modifier = Modifier.weight(1f))
+        RestColumn(items = right, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun RestColumn(items: List<Pair<Int, SortMakerItem>>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        items.forEach { (rank, item) ->
+            val rowAccent = rememberShareCardPalette(seed = item.seed).accent
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "$rank", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White.copy(alpha = 0.5f),
+                    modifier = Modifier.width(22.dp), textAlign = TextAlign.End
+                )
+                Box(Modifier.width(3.dp).height(14.dp).clip(RoundedCornerShape(1.5.dp)).background(rowAccent))
+                Text(
+                    item.title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.92f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/** 右上に覗く淡い同心円 1 つ (他の共有カードと同じ透かし)。 */
+@Composable
+private fun Watermark(accent: Color, size: ShareCardSize) {
+    val innerAccent = accent
+    Canvas(Modifier.fillMaxSize()) {
+        val cx = this.size.width * 0.92f
+        val cy = this.size.height * 0.18f
+        val stroke = Stroke(1.5.dp.toPx())
+        drawCircle(Color.White.copy(alpha = 0.06f), radius = this.size.width / 2f, center = Offset(cx, cy), style = stroke)
+        drawCircle(innerAccent.copy(alpha = 0.16f), radius = this.size.width * 0.3335f, center = Offset(cx, cy), style = stroke)
     }
 }

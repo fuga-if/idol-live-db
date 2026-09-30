@@ -413,7 +413,7 @@ fun TierListChip(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val theme = ImasTheme.derive(item?.seed, item?.brandId, dark = true)
+    val theme = ImasTheme.derive(item?.seed, com.fugaif.imaslivedb.ui.theme.BrandColors.hex(item?.brandId), dark = true)
     val scale by animateFloatAsState(if (isSelected) 1.06f else 1f, label = "tierChipScale")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

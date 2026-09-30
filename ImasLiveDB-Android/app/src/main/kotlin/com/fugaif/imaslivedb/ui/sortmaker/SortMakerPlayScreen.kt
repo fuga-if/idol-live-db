@@ -494,7 +494,7 @@ fun SortMakerCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val theme = ImasTheme.derive(item?.seed, item?.brandId, dark = true)
+    val theme = ImasTheme.derive(item?.seed, com.fugaif.imaslivedb.ui.theme.BrandColors.hex(item?.brandId), dark = true)
     val scaleTarget = if (isPicked) 1.03f else if (isDimmed) 0.97f else 1f
     val scale by animateFloatAsState(scaleTarget, label = "sortMakerCardScale")
     Column(

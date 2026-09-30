@@ -186,7 +186,7 @@ private fun Podium(rows: List<Pair<Int, SortMakerItem>>, onClick: (SortMakerItem
 
 @Composable
 private fun PodiumCard(rank: Int, item: SortMakerItem, large: Boolean, onClick: () -> Unit) {
-    val theme = ImasTheme.derive(item.seed, item.brandId, dark = true)
+    val theme = ImasTheme.derive(item.seed, com.fugaif.imaslivedb.ui.theme.BrandColors.hex(item.brandId), dark = true)
     Column(
         modifier = Modifier
             .fillMaxWidth()

@@ -37,10 +37,10 @@ sealed class SortMakerItem {
             is IdolItem -> VoiceActorDirectory.current(idol.id)?.let { "CV. $it" }
         }
 
-    /** テーマ色の種。曲はブランド色、アイドルはイメージカラー。 */
+    /** テーマ色の種。曲はブランド色 (曲に固有の色は無い)、アイドルはイメージカラー。 */
     val seed: String?
         get() = when (this) {
-            is SongItem -> null
+            is SongItem -> com.fugaif.imaslivedb.ui.theme.BrandColors.hex(song.brandId)
             is IdolItem -> idol.color
         }
 
