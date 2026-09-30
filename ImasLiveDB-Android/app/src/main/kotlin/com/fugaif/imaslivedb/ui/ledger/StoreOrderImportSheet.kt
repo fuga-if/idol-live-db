@@ -110,8 +110,8 @@ fun StoreOrderImportSheet(
         }
         drafts.clear()
         parseStoreOrders(value, LocalDate.now().toString(), candidates, existingNotes).forEach { order ->
-            // 記録済みの注文は最初から外しておく (2 度貼っても二重にならない)。
-            drafts += DraftOrder(order, !order.alreadyRecorded, order.suggestedShowId, order.suggestedEventId)
+            // 記録済みの注文・チケットだけの注文は最初から外しておく (判断はコア)。
+            drafts += DraftOrder(order, order.includeByDefault, order.suggestedShowId, order.suggestedEventId)
         }
     }
 
@@ -153,7 +153,7 @@ fun StoreOrderImportSheet(
                     if (text.isNotEmpty()) {
                         "注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
                     } else {
-                        "何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。"
+                        "何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットの品目は最初から外してあります。"
                     },
                     fontSize = 11.sp, color = if (text.isNotEmpty()) DS.danger else DS.ink3,
                     modifier = Modifier.padding(top = 6.dp)

@@ -177,7 +177,7 @@ struct StoreOrderImportView: View {
                 Text("注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
                     .foregroundStyle(DS.danger)
             } else {
-                Text("何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。")
+                Text("何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットの品目は最初から外してあります。")
             }
         }
     }
@@ -327,8 +327,8 @@ struct StoreOrderImportView: View {
                                       candidates: candidates, existingNotes: existingNotes)
         drafts = orders.enumerated().map { index, order in
             DraftOrder(id: index, order: order,
-                       // 記録済みの注文は最初から外しておく (2 度貼っても二重にならない)。
-                       include: !order.alreadyRecorded,
+                       // 記録済みの注文・チケットだけの注文は最初から外しておく (判断はコア)。
+                       include: order.includeByDefault,
                        showId: order.suggestedShowId, eventId: order.suggestedEventId)
         }
     }

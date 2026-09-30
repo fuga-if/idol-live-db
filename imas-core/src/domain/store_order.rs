@@ -46,7 +46,9 @@ pub struct StoreOrderItem {
     pub subtotal: i64,
     /// 入れる費目。既定は品名から推す (視聴チケット → チケット代 など)。画面で変えてよい。
     pub category: ExpenseCategory,
-    /// 帳簿に入れるか。友人の代理購入などを外せるように。既定は true。
+    /// 帳簿に入れるか。友人の代理購入などを外せるように。
+    /// 既定は**チケット代以外**。チケット代は公演の参加から記録するので、
+    /// 明細からも入れると二重になる (利用者の運用)。
     pub included: bool,
 }
 
@@ -67,6 +69,9 @@ pub struct StoreOrder {
     pub adjustment: i64,
     /// 同じ注文番号の支出がもう帳簿にある。
     pub already_recorded: bool,
+    /// 画面で最初から「記録する」にしておくか。記録済みの注文と、
+    /// 入れる品目が 1 つも無い注文 (チケットだけの注文) は外しておく。
+    pub include_by_default: bool,
     /// 品目の小計の和が商品金額合計と合わない (読み取れなかった品目がある)。
     /// 額は `adjustment` に入るので合計は合うが、品名と費目が抜けている。
     pub has_unread_items: bool,
@@ -398,6 +403,13 @@ fn finish_order(
     candidates: &[StoreShowCandidate],
     existing_notes: &[String],
 ) -> StoreOrder {
+    let items: Vec<StoreOrderItem> = items
+        .into_iter()
+        .map(|mut i| {
+            i.included = i.category != ExpenseCategory::Ticket;
+            i
+        })
+        .collect();
     let marker = order_marker(&order_number);
     // 行末で合わせる (「注文番号 X-1」が「注文番号 X-10」に当たらないように)。
     let already_recorded = !order_number.is_empty()
@@ -406,6 +418,7 @@ fn finish_order(
             .any(|n| n.lines().any(|l| l.trim_end().ends_with(&marker)));
     let read_total: i64 = items.iter().map(|i| i.subtotal).sum();
     let suggestion = suggest_show(&items, candidates);
+    let include_by_default = !already_recorded && items.iter().any(|i| i.included);
 
     StoreOrder {
         store,
@@ -415,6 +428,7 @@ fn finish_order(
         items_total,
         paid_total,
         adjustment: paid_total - items_total,
+        include_by_default,
         already_recorded,
         has_unread_items: read_total != items_total,
         suggested_show_id: suggestion.map(|c| c.show_id.clone()),
@@ -933,6 +947,7 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
         // チケット 6,500 + グッズ 3,000、ポイント 7,000 で支払 2,500。
         let text = "【注文番号】8-0\n【商品明細】\n配信チケット：1×6,500円=6,500円\nパンフレット：1×3,000円=3,000円\n【お買上金額】\n商品金額合計(税込)：9,500円\nお支払金額(税込)：2,500円\n";
         let mut o = parse_store_orders(text, "2026-01-01", &[], &[]).remove(0);
+        o.items[0].included = true; // チケットは既定で外れるので、含めた場合を見る。
         let drafts = store_order_expenses(&o, None, None);
         assert_eq!(drafts.iter().map(|d| d.amount).sum::<i64>(), 2_500);
         assert_eq!(drafts.len(), 1);
@@ -973,11 +988,13 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
         assert_eq!(o.items[2].category, ExpenseCategory::Penlight);
         assert_eq!(o.adjustment, 800);
         assert_eq!(o.suggested_show_id.as_deref(), Some("a"));
-        let second = &orders[1];
+        let mut second = orders[1].clone();
         assert_eq!(second.store, "通販");
         assert_eq!(second.date, "2025-11-02");
         assert_eq!(second.paid_total, 5_000);
-        let d = store_order_expenses(second, None, None);
+        assert!(!second.include_by_default, "チケットだけの注文は最初から外す");
+        second.items[0].included = true;
+        let d = store_order_expenses(&second, None, None);
         assert_eq!(d[0].note, "通販\n配信チケット");
         assert_eq!(d[0].category, ExpenseCategory::Ticket);
     }
@@ -1030,6 +1047,19 @@ A10232025080308352\t2025/08/03\t16,500円\tキャンセル\t\tクレジットカ
         let same: Vec<_> = orders.iter().filter(|o| o.order_number == "175107202163693924-0").collect();
         assert_eq!(same.len(), 1);
         assert!(same[0].items[0].name.contains("視聴チケット"));
+    }
+
+    #[test]
+    fn tickets_are_left_out_by_default() {
+        // チケット代は公演の参加から記録するので、明細からは最初から外す。
+        let o = parse_store_orders(TICKET_MAIL, "2026-01-01", &[], &[]).remove(0);
+        assert!(!o.items[0].included);
+        assert!(!o.include_by_default);
+        assert!(store_order_expenses(&o, None, None).is_empty());
+
+        let g = parse_store_orders(GOODS_MAIL, "2026-01-01", &[], &[]).remove(0);
+        assert!(g.include_by_default);
+        assert!(g.items.iter().all(|i| i.included));
     }
 
     #[test]
