@@ -20,8 +20,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -75,17 +78,30 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
     var editorTarget by remember { mutableStateOf<EditorTarget?>(null) }
     var showingBackfill by remember { mutableStateOf(false) }
     var showingStoreImport by remember { mutableStateOf(false) }
+    var addMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("収支", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { showingStoreImport = true }) {
-                        Icon(Icons.Filled.ContentPaste, "購入明細から取り込む")
-                    }
-                    IconButton(onClick = { editorTarget = EditorTarget(null) }) {
-                        Icon(Icons.Filled.Add, "支出を足す")
+                    // 入口は + 1 つ。何を足すかをメニューで選ぶ (アイコンを並べると意味が伝わらない)。iOS と対。
+                    Box {
+                        IconButton(onClick = { addMenuOpen = true }) {
+                            Icon(Icons.Filled.Add, "支出を足す")
+                        }
+                        DropdownMenu(expanded = addMenuOpen, onDismissRequest = { addMenuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("支出を入力") },
+                                leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                                onClick = { addMenuOpen = false; editorTarget = EditorTarget(null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("アソビストアの明細を入力") },
+                                leadingIcon = { Icon(Icons.Filled.ShoppingBag, contentDescription = null) },
+                                onClick = { addMenuOpen = false; showingStoreImport = true }
+                            )
+                        }
                     }
                 }
             )
@@ -106,7 +122,7 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
                     item {
                         ImasEmptyState(
                             Icons.Filled.AttachMoney, "まだ記録がありません",
-                            "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は、購入明細のメールを貼り付けて取り込めます。"
+                            "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は「アソビストアの明細を入力」から購入履歴をまとめて取り込めます。"
                         )
                     }
                 } else {

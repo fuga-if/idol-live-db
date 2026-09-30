@@ -5,8 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,8 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.outlined.Circle
@@ -50,7 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -67,8 +62,7 @@ import uniffi.imas_core.expenseCategories
 import uniffi.imas_core.expenseCategoryLabel
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.parseStoreOrders
-import uniffi.imas_core.storeOrderAiLinks
-import uniffi.imas_core.storeOrderAiPrompt
+import uniffi.imas_core.asobiOrderHistoryUrl
 import uniffi.imas_core.storeOrderExpenses
 
 /** 画面で直せる注文 1 件 (含めるか・紐づけ先・品目ごとの費目と含めるか)。iOS `DraftOrder` と対。 */
@@ -124,19 +118,14 @@ fun StoreOrderImportSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("明細の取り込み", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Text("アソビストアの明細", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Spacer(Modifier.height(12.dp))
 
             if (drafts.isEmpty()) Column(Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())) {
-                AiSection(onCopyPrompt = { clipboard.setText(AnnotatedString(storeOrderAiPrompt())) })
+                GuideSection()
                 Spacer(Modifier.height(20.dp))
                 Text("貼り付け", fontSize = 12.sp, color = DS.ink2)
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    "AI の結果、アソビストアのマイページの「購入履歴一覧」の表、または「購入完了のご連絡」メールの本文を貼り付けてください。",
-                    fontSize = 13.sp, color = DS.ink2
-                )
-                Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = { clipboard.getText()?.text?.let(::parse) }) {
                     Icon(Icons.Filled.ContentPaste, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
@@ -146,14 +135,14 @@ fun StoreOrderImportSheet(
                 OutlinedTextField(
                     value = text, onValueChange = ::parse,
                     placeholder = { Text("または、ここに直接貼り付け") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
                 )
                 Text(
                     if (text.isNotEmpty()) {
-                        "注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
+                        "注文を読み取れませんでした。購入履歴は表の見出しの行から、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
                     } else {
-                        "何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットの品目は最初から外してあります。"
+                        "送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。"
                     },
                     fontSize = 11.sp, color = if (text.isNotEmpty()) DS.danger else DS.ink3,
                     modifier = Modifier.padding(top = 6.dp)
@@ -214,50 +203,38 @@ fun StoreOrderImportSheet(
     }
 }
 
-/**
- * 指示文を入れて AI を開く。メール・マイページのスクリーンショットなど形の揃わない材料は
- * 利用者の AI に読ませ、アプリは決まった形の結果だけを読む (指示文と形はコアが持つ)。iOS `aiSection` と対。
- */
-@OptIn(ExperimentalLayoutApi::class)
+/** 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。iOS `guideSection` と対。 */
 @Composable
-private fun AiSection(onCopyPrompt: () -> Unit) {
+private fun GuideSection() {
     val uriHandler = LocalUriHandler.current
-    var copied by remember { mutableStateOf(false) }
-    var pasteHint by remember { mutableStateOf<String?>(null) }
-    Text("AI にまとめてもらう", fontSize = 12.sp, color = DS.ink2)
+    Text("取り込み方", fontSize = 12.sp, color = DS.ink2)
     Spacer(Modifier.height(6.dp))
-    Column(Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp)).padding(14.dp)) {
-        Text(
-            "メールやマイページのスクリーンショットから、AI に明細をまとめてもらえます。開いたら送信して、返ってきた結果をコピーして下に貼ってください。",
-            fontSize = 13.sp, color = DS.ink2
-        )
-        Spacer(Modifier.height(10.dp))
-        // 狭い画面では 3 つ並ばないので折り返す。
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            storeOrderAiLinks().forEach { link ->
-                OutlinedButton(onClick = {
-                    // 指示文を URL で渡せない AI には、先にクリップボードへ入れておく。
-                    if (link.needsPaste) {
-                        onCopyPrompt()
-                        pasteHint = link.label
-                    }
-                    uriHandler.openUri(link.url)
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
-                    Spacer(Modifier.width(4.dp))
-                    Text(link.label)
-                }
-            }
-        }
-        pasteHint?.let {
-            Text("指示文をコピーしました。${it}の入力欄に貼り付けて送信してください。",
-                fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 6.dp))
-        }
-        TextButton(onClick = { onCopyPrompt(); copied = true }) {
-            Icon(if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy, contentDescription = null)
+    Column(
+        Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp)).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        GuideStep(1, "アソビストアの購入履歴を開く")
+        OutlinedButton(onClick = { uriHandler.openUri(asobiOrderHistoryUrl()) }, modifier = Modifier.padding(start = 30.dp)) {
+            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
             Spacer(Modifier.width(6.dp))
-            Text(if (copied) "指示文をコピーしました" else "ほかの AI 用に指示文をコピー", fontSize = 13.sp)
+            Text("購入履歴を開く")
         }
+        GuideStep(2, "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする")
+        GuideStep(3, "下の「ペースト」を押す")
+    }
+    Text(
+        "「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。",
+        fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp)
+    )
+}
+
+@Composable
+private fun GuideStep(number: Int, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Box(Modifier.width(20.dp).height(20.dp).background(DS.fill, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+            Text("$number", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DS.ink2)
+        }
+        Text(text, fontSize = 13.sp, color = DS.ink)
     }
 }
 

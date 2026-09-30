@@ -19,10 +19,6 @@ struct StoreOrderImportView: View {
     @State private var showOptions: [LedgerShowOption] = []
     @State private var picking: DraftOrder.ID?
     @State private var saving = false
-    @State private var promptCopied = false
-    /// 指示文を貼ってもらう AI を開いたとき、その名前。
-    @State private var pasteHint: String?
-    @Environment(\.openURL) private var openURL
 
     private var categories: [ExpenseCategoryInfo] { expenseCategories() }
 
@@ -37,7 +33,7 @@ struct StoreOrderImportView: View {
         NavigationStack {
             List {
                 if drafts.isEmpty {
-                    aiSection
+                    guideSection
                     pasteSection
                 } else {
                     ForEach($drafts) { $draft in
@@ -50,7 +46,7 @@ struct StoreOrderImportView: View {
             }
             .scrollContentBackground(.hidden)
             .background(DS.bg.ignoresSafeArea())
-            .navigationTitle("明細の取り込み")
+            .navigationTitle("アソビストアの明細")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -83,63 +79,40 @@ struct StoreOrderImportView: View {
         }
     }
 
-    // MARK: - AI にまとめてもらう
+    // MARK: - 案内
 
-    /// 指示文を入れて AI を開く。メール・マイページのスクリーンショットなど形の揃わない材料は
-    /// 利用者の AI に読ませ、アプリは決まった形の結果だけを読む (指示文と形はコアが持つ)。
-    private var aiSection: some View {
+    /// 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。
+    private var guideSection: some View {
         Section {
             VStack(alignment: .leading, spacing: DS.sp4) {
-                Text("メールやマイページのスクリーンショットから、AI に明細をまとめてもらえます。開いたら送信して、返ってきた結果をコピーして下に貼ってください。")
-                    .font(.imasFootnote).foregroundStyle(DS.ink2)
-                // 狭い画面では 3 つ並ばないので縦に落とす。
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: DS.sp3) { aiLinkButtons }
-                    VStack(alignment: .leading, spacing: DS.sp2) { aiLinkButtons }
+                step(1, "アソビストアの購入履歴を開く")
+                if let url = URL(string: asobiOrderHistoryUrl()) {
+                    Link(destination: url) {
+                        Label("購入履歴を開く", systemImage: "arrow.up.right.square")
+                            .font(.imasFootnote.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .padding(.leading, 28)
                 }
-                if let pasteHint {
-                    Text("指示文をコピーしました。\(pasteHint)の入力欄に貼り付けて送信してください。")
-                        .font(.imasCaption).foregroundStyle(DS.ink2)
-                }
-                Button {
-                    UIPasteboard.general.string = storeOrderAiPrompt()
-                    promptCopied = true
-                } label: {
-                    Label(promptCopied ? "指示文をコピーしました" : "ほかの AI 用に指示文をコピー",
-                          systemImage: promptCopied ? "checkmark" : "doc.on.doc")
-                }
-                .font(.imasFootnote)
-                // 行に複数のボタンがあるので、行全体のタップにしない。
-                .buttonStyle(.borderless)
+                step(2, "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする")
+                step(3, "下の「ペースト」を押す")
             }
             .padding(.vertical, DS.sp2)
         } header: {
-            Text("AI にまとめてもらう")
+            Text("取り込み方")
+        } footer: {
+            Text("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
         }
     }
 
-    @ViewBuilder
-    private var aiLinkButtons: some View {
-        ForEach(storeOrderAiLinks(), id: \.label) { link in
-            if let url = URL(string: link.url) {
-                Button {
-                    // 指示文を URL で渡せない AI には、先にクリップボードへ入れておく。
-                    if link.needsPaste {
-                        UIPasteboard.general.string = storeOrderAiPrompt()
-                        pasteHint = link.label
-                    }
-                    openURL(url)
-                } label: {
-                    // 折り返すと ViewThatFits が縦に落とさないので 1 行に固定する。
-                    Text(link.label)
-                        .font(.imasFootnote.weight(.semibold))
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-                .accessibilityLabel("\(link.label)で開く")
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.capsule)
-            }
+    private func step(_ number: Int, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
+            Text("\(number)")
+                .font(.imasCaption.weight(.bold)).foregroundStyle(DS.ink2)
+                .frame(width: 20, height: 20)
+                .background(DS.fill, in: Circle())
+            Text(text).font(.imasFootnote).foregroundStyle(DS.ink)
         }
     }
 
@@ -147,21 +120,17 @@ struct StoreOrderImportView: View {
 
     private var pasteSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                Text("AI の結果、アソビストアのマイページの「購入履歴一覧」の表、または「購入完了のご連絡」メールの本文を貼り付けてください。")
-                    .font(.imasFootnote).foregroundStyle(DS.ink2)
-                PasteButton(payloadType: String.self) { strings in
-                    let pasted = strings.joined(separator: "\n")
-                    Task { @MainActor in text = pasted }
-                }
-                .labelStyle(.titleAndIcon)
-                .buttonBorderShape(.capsule)
+            PasteButton(payloadType: String.self) { strings in
+                let pasted = strings.joined(separator: "\n")
+                Task { @MainActor in text = pasted }
             }
+            .labelStyle(.titleAndIcon)
+            .buttonBorderShape(.capsule)
             .padding(.vertical, DS.sp2)
 
             TextEditor(text: $text)
                 .font(.imasFootnote)
-                .frame(minHeight: 160)
+                .frame(minHeight: 120)
                 .overlay(alignment: .topLeading) {
                     if text.isEmpty {
                         Text("または、ここに直接貼り付け")
@@ -174,10 +143,10 @@ struct StoreOrderImportView: View {
             Text("貼り付け")
         } footer: {
             if !text.isEmpty {
-                Text("注文を読み取れませんでした。AI の結果はコードブロックの中身ごと、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
+                Text("注文を読み取れませんでした。購入履歴は表の見出しの行から、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
                     .foregroundStyle(DS.danger)
             } else {
-                Text("何通ぶんでも続けて貼れます。送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットの品目は最初から外してあります。")
+                Text("送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。")
             }
         }
     }

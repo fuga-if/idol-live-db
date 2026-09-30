@@ -59,7 +59,7 @@ struct LedgerView: View {
                     ImasEmptyState(
                         systemImage: "yensign.circle",
                         title: "まだ記録がありません",
-                        message: "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は、購入明細のメールを貼り付けて取り込めます。"
+                        message: "右上の + から、チケット代や遠征費を足してください。アソビストアのグッズ代は「アソビストアの明細を入力」から購入履歴をまとめて取り込めます。"
                     )
                     .plainRow(background: DS.bg)
                 } else {
@@ -76,16 +76,18 @@ struct LedgerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingStoreImport = true
-                } label: {
-                    Image(systemName: "doc.on.clipboard")
-                }
-                .accessibilityLabel("購入明細から取り込む")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    editing = ExpenseEditorTarget(expense: nil)
+                // 入口は + 1 つ。何を足すかをメニューで選ぶ (アイコンを並べると意味が伝わらない)。
+                Menu {
+                    Button {
+                        editing = ExpenseEditorTarget(expense: nil)
+                    } label: {
+                        Label("支出を入力", systemImage: "square.and.pencil")
+                    }
+                    Button {
+                        showingStoreImport = true
+                    } label: {
+                        Label("アソビストアの明細を入力", systemImage: "bag")
+                    }
                 } label: {
                     Image(systemName: "plus")
                 }

@@ -2,7 +2,7 @@
 //!
 //! 貼り付けたテキスト全体を 1 回で渡して、読めた注文をまとめて受け取る。
 
-use crate::domain::store_order::{AiPromptLink, StoreExpenseDraft, StoreOrder, StoreShowCandidate};
+use crate::domain::store_order::{StoreExpenseDraft, StoreOrder, StoreShowCandidate};
 
 #[uniffi::export]
 pub fn parse_store_orders(
@@ -23,14 +23,8 @@ pub fn store_order_expenses(
     crate::domain::store_order::store_order_expenses(&order, show_id, event_id)
 }
 
-/// AI に購入明細をまとめさせる指示文 (コピー用)。
+/// アソビストアのマイページの購入履歴一覧 (取り込み画面の案内で開く)。
 #[uniffi::export]
-pub fn store_order_ai_prompt() -> String {
-    crate::domain::store_order::store_order_ai_prompt()
-}
-
-/// 指示文を入れて AI を開くリンク。
-#[uniffi::export]
-pub fn store_order_ai_links() -> Vec<AiPromptLink> {
-    crate::domain::store_order::store_order_ai_links()
+pub fn asobi_order_history_url() -> String {
+    crate::domain::store_order::ASOBI_ORDER_HISTORY_URL.to_string()
 }
