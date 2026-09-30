@@ -203,6 +203,11 @@ def build_report(conn, load, before=None) -> list[str]:
     return lines
 
 
+def cast_line(shows: list[tuple[str, str, int]]) -> str:
+    """出演者を入れた公演 (show id, 表示名, 人数) の 1 行。crawl_show_cast.py が使う。"""
+    return "🎤 **出演者** " + _names([f"{_link(name, 'shows', sid)}（{n}人）" for sid, name, n in shows])
+
+
 def _token() -> str | None:
     tok = os.environ.get("DISCORD_BOT_TOKEN")
     if tok:
