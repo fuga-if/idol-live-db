@@ -33,6 +33,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
@@ -44,9 +45,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,7 +83,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uniffi.imas_core.TierListTier
+import uniffi.imas_core.tierListNormalizeTierLabel
+import uniffi.imas_core.tierListNormalizeTitle
+import uniffi.imas_core.tierListTierLabelMaxChars
 import uniffi.imas_core.tierListTiers
+import uniffi.imas_core.tierListTitleMaxChars
 
 // =============================================================================
 // ティアー表の編集画面。iOS TierListView.swift の移植。
@@ -134,6 +142,12 @@ class TierListViewModel : ViewModel() {
         commit(current.board.copy(placements = emptyMap(), savedAt = System.currentTimeMillis()))
     }
 
+    /** 表の名前・段の名前の上書きを保存する。 */
+    fun updateNames(title: String?, tierLabels: List<String?>?) {
+        val current = _uiState.value ?: return
+        commit(current.board.copy(title = title, tierLabels = tierLabels, savedAt = System.currentTimeMillis()))
+    }
+
     private fun commit(newBoard: TierListBoard) {
         appModule?.tierListStore?.save(newBoard)
         _uiState.value = _uiState.value?.copy(board = newBoard)
@@ -156,6 +170,7 @@ fun TierListScreen(
     var showMenu by remember { mutableStateOf(false) }
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     var showShare by rememberSaveable { mutableStateOf(false) }
+    var showRename by rememberSaveable { mutableStateOf(false) }
     val tiers = remember { tierListTiers() }
 
     Scaffold(
@@ -167,6 +182,11 @@ fun TierListScreen(
                     IconButton(onClick = { showShare = true }) { Icon(Icons.Filled.Share, "シェア") }
                     IconButton(onClick = { showMenu = true }) { Icon(Icons.Filled.MoreVert, "その他") }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("名前を変える") },
+                            leadingIcon = { Icon(Icons.Filled.Edit, null) },
+                            onClick = { showMenu = false; showRename = true }
+                        )
                         if (state?.board?.suggested != null) {
                             DropdownMenuItem(
                                 text = { Text("ソート結果のたたき台に戻す") },
@@ -189,6 +209,10 @@ fun TierListScreen(
             if (s == null || !s.isLoaded) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
+                // 段の名前の上書きを反映した段の並び (色はコアの既定のまま)。
+                val displayTiers = remember(tiers, s.board.tierLabels) {
+                    tiers.mapIndexed { i, t -> t.copy(label = s.board.label(ofTier = i, default = t.label)) }
+                }
                 Column(Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
@@ -197,7 +221,18 @@ fun TierListScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(s.board.scopeLabel, fontSize = 12.sp, color = DS.ink3)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showRename = true },
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(s.board.displayTitle, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                                Icon(Icons.Filled.Edit, contentDescription = "名前を変える", tint = DS.ink3, modifier = Modifier.size(15.dp))
+                            }
+                            Text(s.board.scopeLabel, fontSize = 12.sp, color = DS.ink3)
+                        }
                         // チップのタップ。何か選んでいて別のチップを押したら、そのチップの段
                         // (未分類なら未分類) へ移す (段の中はチップで埋まるので、行の余白を
                         // 押せと言っても押せない)。
@@ -214,7 +249,7 @@ fun TierListScreen(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            tiers.forEachIndexed { index, tier ->
+                            displayTiers.forEachIndexed { index, tier ->
                                 TierRow(
                                     tier = tier,
                                     ids = s.board.idsInTier(index),
@@ -250,7 +285,7 @@ fun TierListScreen(
                         if (id != null) {
                             MoveBar(
                                 title = item?.title ?: "",
-                                tiers = tiers,
+                                tiers = displayTiers,
                                 onCancel = { selectedId = null },
                                 onMove = { tierIndex -> viewModel.move(id, tierIndex); selectedId = null },
                                 onUnplace = { viewModel.move(id, null); selectedId = null }
@@ -280,12 +315,24 @@ fun TierListScreen(
 
     if (showShare) {
         state?.let { s ->
+            val displayTiers = tiers.mapIndexed { i, t -> t.copy(label = s.board.label(ofTier = i, default = t.label)) }
             TierListShareSheet(
-                subject = s.board.subject,
+                title = s.board.displayTitle,
                 scopeLabel = s.board.scopeLabel,
-                tiers = tiers,
-                rowsByTier = tiers.indices.map { index -> s.board.idsInTier(index).mapNotNull { s.items[it] } },
+                tiers = displayTiers,
+                rowsByTier = displayTiers.indices.map { index -> s.board.idsInTier(index).mapNotNull { s.items[it] } },
                 onDismiss = { showShare = false }
+            )
+        }
+    }
+
+    if (showRename) {
+        state?.let { s ->
+            TierListRenameSheet(
+                board = s.board,
+                tiers = tiers,
+                onDismiss = { showRename = false },
+                onSave = { title, labels -> viewModel.updateNames(title, labels); showRename = false }
             )
         }
     }
@@ -316,7 +363,11 @@ private fun TierRow(
                 .clickable(enabled = selectedId != null, onClick = onRowClick),
             contentAlignment = Alignment.Center
         ) {
-            Text(tier.label, fontSize = 24.sp, fontWeight = FontWeight.Black, color = theme.onAccent)
+            Text(
+                tier.label, fontSize = if (tier.label.length <= 2) 24.sp else 14.sp, fontWeight = FontWeight.Black,
+                color = theme.onAccent, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
         Box(
             modifier = Modifier
@@ -477,7 +528,11 @@ private fun MoveBar(
                         .clickable { onMove(index) },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(tier.label, fontSize = 18.sp, fontWeight = FontWeight.Black, color = theme.onAccent)
+                    Text(
+                        tier.label, fontSize = if (tier.label.length <= 2) 18.sp else 12.sp, fontWeight = FontWeight.Black,
+                        color = theme.onAccent, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 2.dp)
+                    )
                 }
             }
             Box(
@@ -490,6 +545,109 @@ private fun MoveBar(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.Inbox, contentDescription = "未分類へ", tint = DS.ink2, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+// MARK: - 名前を変えるシート
+
+/** 表の名前と段の名前を変えるシート。空にすると既定の名前に戻る。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TierListRenameSheet(
+    board: TierListBoard,
+    tiers: List<TierListTier>,
+    onDismiss: () -> Unit,
+    onSave: (title: String?, labels: List<String?>?) -> Unit
+) {
+    val titleMax = remember { tierListTitleMaxChars().toInt() }
+    val labelMax = remember { tierListTierLabelMaxChars().toInt() }
+    var title by rememberSaveable { mutableStateOf(board.title ?: "") }
+    var labels by rememberSaveable { mutableStateOf(tiers.indices.map { i -> board.tierLabels?.getOrNull(i) ?: "" }) }
+    val accent = ImasTheme.derive(null, null, dark = true).accent
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = DS.bg
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Text("キャンセル", fontSize = 15.sp, color = DS.ink2, modifier = Modifier.clickable(onClick = onDismiss))
+                Spacer(Modifier.weight(1f))
+                Text("名前を変える", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "保存", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = accent,
+                    modifier = Modifier.clickable {
+                        // 整え方 (空白・改行・上限) はコアの規則で揃える。
+                        val normalizedLabels = labels.map { tierListNormalizeTierLabel(it) }
+                        onSave(
+                            tierListNormalizeTitle(title),
+                            if (normalizedLabels.all { it == null }) null else normalizedLabels
+                        )
+                    }
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("表の名前", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { v -> title = if (v.length > titleMax) v.take(titleMax) else v },
+                    placeholder = { Text(board.displayTitle(ignoringCustom = true)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    "シェア画像の見出しになります。空にすると「${board.displayTitle(ignoringCustom = true)}」に戻ります。",
+                    fontSize = 12.sp, color = DS.ink3
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("段の名前", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+                tiers.forEachIndexed { i, tier ->
+                    val theme = ImasTheme.derive(seed = tier.colorSeed, brand = null, dark = true)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .width(44.dp)
+                                .height(32.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(theme.accent),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                labels[i].ifEmpty { tier.label }, fontSize = 14.sp, fontWeight = FontWeight.Black,
+                                color = theme.onAccent, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(horizontal = 2.dp)
+                            )
+                        }
+                        OutlinedTextField(
+                            value = labels[i],
+                            onValueChange = { v ->
+                                val next = if (v.length > labelMax) v.take(labelMax) else v
+                                labels = labels.toMutableList().also { it[i] = next }
+                            },
+                            placeholder = { Text(tier.label) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+                Text(
+                    "${labelMax}文字まで。「神」「沼」「好き」のように自由に付けられます。空にすると S〜D に戻ります。",
+                    fontSize = 12.sp, color = DS.ink3
+                )
             }
         }
     }

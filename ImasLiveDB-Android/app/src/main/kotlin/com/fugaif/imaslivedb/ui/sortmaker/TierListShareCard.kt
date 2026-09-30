@@ -24,10 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.data.games.SortMakerSubject
 import com.fugaif.imaslivedb.ui.share.ShareCardActionPane
 import com.fugaif.imaslivedb.ui.share.ShareCardRatio
 import com.fugaif.imaslivedb.ui.share.ShareCardSheet
@@ -46,19 +46,15 @@ import uniffi.imas_core.tierListShareText
 // ティアー表の共有 (画像 / テキスト)。iOS TierListShareSheet / TierListShareCard の移植。
 // =============================================================================
 
-private fun tierListTitle(subject: SortMakerSubject): String =
-    if (subject == SortMakerSubject.SONG) "好きな曲ティアー表" else "好きなアイドルティアー表"
-
 @Composable
 fun TierListShareSheet(
-    subject: SortMakerSubject,
+    title: String,
     scopeLabel: String,
     tiers: List<TierListTier>,
     rowsByTier: List<List<SortMakerItem>>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val title = tierListTitle(subject)
     val rows = remember(tiers, rowsByTier) { tiers.zip(rowsByTier) }
 
     val shareText = remember(title, scopeLabel, rows) {
@@ -107,12 +103,17 @@ private fun TierListShareCard(
     val palette = rememberShareCardPalette(seed = rows.firstOrNull()?.first?.colorSeed)
     /** 1 段に載せる名前の上限。超えた分は「ほかN」。 */
     val perTier = 8
-    SoloShareScaffold(palette = palette, size = size, badge = title) {
+    SoloShareScaffold(palette = palette, size = size, badge = "TIER LIST") {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // 利用者が付けた表の名前を主役の見出しに (固定キャンバスなので固定 sp)。
             Text(
-                scopeLabel, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = ShareInk.ink.copy(alpha = 0.6f), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 10.dp, bottom = 6.dp)
+                title, fontSize = 34.sp, fontWeight = FontWeight.Black, color = ShareInk.ink,
+                maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 12.dp)
+            )
+            Text(
+                scopeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                color = ShareInk.ink.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = 10.dp)
             )
             rows.forEach { (tier, items) ->
                 val tierAccent = rememberShareCardPalette(seed = tier.colorSeed).accent
@@ -121,7 +122,12 @@ private fun TierListShareCard(
                         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp)).background(tierAccent),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(tier.label, fontSize = 20.sp, fontWeight = FontWeight.Black, color = ShareInk.nearBlack)
+                        Text(
+                            tier.label, fontSize = if (tier.label.length <= 2) 20.sp else 11.sp,
+                            fontWeight = FontWeight.Black, color = ShareInk.nearBlack,
+                            textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(2.dp)
+                        )
                     }
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),

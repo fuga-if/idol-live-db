@@ -23,11 +23,30 @@ data class TierListBoard(
     val scopeLabel: String,
     /** ソートメーカーの結果から作ったときのたたき台 (「たたき台に戻す」用)。 */
     val suggested: Map<String, Int>? = null,
+    /** 利用者が付けた表の名前 (null = 「好きな曲ティアー表」等の既定)。 */
+    val title: String? = null,
+    /** 段ごとの名前の上書き (添字は段。null / 範囲外 / 要素が null = S〜D の既定名)。 */
+    val tierLabels: List<String?>? = null,
     val savedAt: Long = System.currentTimeMillis()
 ) {
     val unplacedIds: List<String> get() = itemIds.filter { placements[it] == null }
 
     fun idsInTier(tier: Int): List<String> = itemIds.filter { placements[it] == tier }
+
+    /** 見出し・共有に出す表の名前。 */
+    val displayTitle: String get() = displayTitle(ignoringCustom = false)
+
+    /** [ignoringCustom] なら利用者の名前を無視した既定の名前 (入力欄の見本用)。 */
+    fun displayTitle(ignoringCustom: Boolean): String {
+        if (!ignoringCustom && title != null) return title
+        return if (subject == SortMakerSubject.SONG) "好きな曲ティアー表" else "好きなアイドルティアー表"
+    }
+
+    /** 段の名前 (上書きがあればそれ、無ければコアの既定名)。 */
+    fun label(ofTier: Int, default: String): String {
+        val custom = tierLabels?.getOrNull(ofTier)
+        return custom ?: default
+    }
 }
 
 /**
@@ -84,6 +103,10 @@ class TierListStore(context: Context) {
             b.suggested?.let { suggested ->
                 put("suggested", JSONObject().apply { suggested.forEach { (id, tier) -> put(id, tier) } })
             }
+            b.title?.let { put("title", it) }
+            b.tierLabels?.let { labels ->
+                put("tierLabels", JSONArray().apply { labels.forEach { put(it ?: JSONObject.NULL) } })
+            }
             put("savedAt", b.savedAt)
         }
 
@@ -99,12 +122,20 @@ class TierListStore(context: Context) {
                 suggestedJson.keys().forEach { id -> map[id] = suggestedJson.optInt(id) }
                 map
             } else null
+            // 古い保存 (title/tierLabels 追加前) を読んでも欠けたキーは null 扱いになるだけで壊れない。
+            val title = if (o.has("title")) o.optString("title").takeIf { it.isNotEmpty() } else null
+            val tierLabelsJson = o.optJSONArray("tierLabels")
+            val tierLabels = tierLabelsJson?.let { arr ->
+                (0 until arr.length()).map { i -> if (arr.isNull(i)) null else arr.getString(i) }
+            }
             return TierListBoard(
                 subject = subject,
                 itemIds = (0 until itemIds.length()).map { itemIds.getString(it) },
                 placements = placements,
                 scopeLabel = o.optString("scopeLabel"),
                 suggested = suggested,
+                title = title,
+                tierLabels = tierLabels,
                 savedAt = o.optLong("savedAt")
             )
         }
