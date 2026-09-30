@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -303,11 +305,12 @@ private fun TierRow(
     onRowClick: () -> Unit
 ) {
     val theme = ImasTheme.derive(seed = tier.colorSeed, brand = null, dark = true)
-    Row(modifier = Modifier.fillMaxWidth()) {
+    // 札を行の高さいっぱいに伸ばす (中身が 2 段に折り返しても色が途切れないように)。
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
             modifier = Modifier
                 .width(56.dp)
-                .fillMaxWidth()
+                .fillMaxHeight()
                 .background(theme.accent)
                 // 段の札ボタンは何か選んでいるときだけ有効 (押しても行き先が無いため)。
                 .clickable(enabled = selectedId != null, onClick = onRowClick),
