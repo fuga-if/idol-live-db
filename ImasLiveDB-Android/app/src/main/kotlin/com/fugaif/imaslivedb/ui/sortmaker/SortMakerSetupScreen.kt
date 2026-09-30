@@ -87,8 +87,17 @@ data class SortMakerSetupUiState(
     val isLoading: Boolean = true
 ) {
     val estimate: Int get() = sortMakerEstimateTotal(candidates.size.toUInt(), depth.rawValue.toUInt()).toInt()
-    val canStart: Boolean get() = !isLoading && candidates.size >= 2
+
+    /**
+     * 始められるか。ティアー表は全部を 1 画面に並べる (遅延表示しない) ので、
+     * [TIER_LIST_LIMIT] を超えたら無効にする (振り分ける手間からも現実的な上限)。
+     */
+    fun canStart(purpose: SortMakerPurpose): Boolean =
+        !isLoading && candidates.size >= 2 && (purpose == SortMakerPurpose.SORT || candidates.size <= TIER_LIST_LIMIT)
 }
+
+/** ティアー表に並べられる上限。 */
+const val TIER_LIST_LIMIT = 200
 
 class SortMakerSetupViewModel : ViewModel() {
 
@@ -242,10 +251,10 @@ fun SortMakerSetupScreen(
             )
         },
         bottomBar = {
-            StartBar(canStart = state.canStart, purpose = purpose) {
+            StartBar(canStart = state.canStart(purpose), purpose = purpose) {
                 if (purpose == SortMakerPurpose.TIER && savedBoard != null) {
                     confirmRestart = true
-                } else if (purpose == SortMakerPurpose.SORT && savedSession != null && !savedSession.isFinished && savedSession.answers.isNotEmpty()) {
+                } else if (purpose == SortMakerPurpose.SORT && savedSession != null && (savedSession.isFinished || savedSession.answers.isNotEmpty())) {
                     confirmRestart = true
                 } else if (purpose == SortMakerPurpose.TIER) {
                     onOpenTier(viewModel.startTier())
@@ -293,7 +302,15 @@ fun SortMakerSetupScreen(
     if (confirmRestart) {
         AlertDialog(
             onDismissRequest = { confirmRestart = false },
-            title = { Text(if (purpose == SortMakerPurpose.SORT) "前回の続きを消して最初から始めますか？" else "今のティアー表を消して作り直しますか？") },
+            title = {
+                Text(
+                    when {
+                        purpose == SortMakerPurpose.TIER -> "今のティアー表を消して作り直しますか？"
+                        savedSession?.isFinished == true -> "前回の結果を消して新しく始めますか？"
+                        else -> "前回の続きを消して最初から始めますか？"
+                    }
+                )
+            },
             confirmButton = {
                 Text(
                     "最初から始める",
@@ -564,6 +581,9 @@ private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject, pur
 private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject, purpose: SortMakerPurpose): String? {
     if (state.candidates.size < 2) return "2${subject.counter}以上になるように絞り込みをゆるめてください。"
     if (purpose == SortMakerPurpose.TIER) {
+        if (state.candidates.size > TIER_LIST_LIMIT) {
+            return "ティアー表は${TIER_LIST_LIMIT}${subject.counter}までです。ブランドや曲の種類で絞ってください。"
+        }
         return if (state.candidates.size > 120) "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" else null
     }
     if (state.estimate > 600) {

@@ -196,6 +196,18 @@ fun TierListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(s.board.scopeLabel, fontSize = 12.sp, color = DS.ink3)
+                        // チップのタップ。何か選んでいて別のチップを押したら、そのチップの段
+                        // (未分類なら未分類) へ移す (段の中はチップで埋まるので、行の余白を
+                        // 押せと言っても押せない)。
+                        val tapChip: (String) -> Unit = { id ->
+                            val selected = selectedId
+                            if (selected != null && selected != id) {
+                                viewModel.move(selected, s.board.placements[id])
+                                selectedId = null
+                            } else {
+                                selectedId = if (selectedId == id) null else id
+                            }
+                        }
                         Column(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
                             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -206,7 +218,7 @@ fun TierListScreen(
                                     ids = s.board.idsInTier(index),
                                     items = s.items,
                                     selectedId = selectedId,
-                                    onSelect = { selectedId = if (selectedId == it) null else it },
+                                    onSelect = tapChip,
                                     onItemDetail = onItemClick,
                                     onRowClick = { selectedId?.let { viewModel.move(it, index); selectedId = null } }
                                 )
@@ -217,7 +229,7 @@ fun TierListScreen(
                             items = s.items,
                             selectedId = selectedId,
                             hasSelection = selectedId != null,
-                            onSelect = { selectedId = if (selectedId == it) null else it },
+                            onSelect = tapChip,
                             onItemDetail = onItemClick,
                             onRowClick = { selectedId?.let { viewModel.move(it, null); selectedId = null } }
                         )
@@ -297,7 +309,8 @@ private fun TierRow(
                 .width(56.dp)
                 .fillMaxWidth()
                 .background(theme.accent)
-                .clickable(onClick = onRowClick),
+                // 段の札ボタンは何か選んでいるときだけ有効 (押しても行き先が無いため)。
+                .clickable(enabled = selectedId != null, onClick = onRowClick),
             contentAlignment = Alignment.Center
         ) {
             Text(tier.label, fontSize = 24.sp, fontWeight = FontWeight.Black, color = theme.onAccent)

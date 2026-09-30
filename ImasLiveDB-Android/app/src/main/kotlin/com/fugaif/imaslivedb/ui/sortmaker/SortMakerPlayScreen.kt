@@ -89,8 +89,20 @@ data class SortMakerPlayUiState(
     val coreState: SortMakerState,
     /** `session.itemIds` と同じ並び。消えた曲・アイドルは null。 */
     val items: List<SortMakerItem?> = emptyList(),
-    val isLoaded: Boolean = false
-)
+    val isLoaded: Boolean = false,
+    /**
+     * 画面に出す進み具合と残り。ベスト10モードは K 位に勝った新顔の探索が見積りに
+     * 後から乗るので、コアの値は 1 戦ごとに少し戻ることがある。表示だけは戻さない
+     * (1 つ戻る / 読み込み直しで取り直す)。
+     */
+    val shownPercent: UInt = 0u,
+    val shownRemaining: UInt = 0u,
+    /** 終わった (isFinished が false→true になった) たびに増える。触覚フィードバックの一度きりの合図。 */
+    val finishEventId: Int = 0
+) {
+    /** 保存した対象のうち、マスタから消えて引けなかった件数。 */
+    val missingCount: Int get() = items.count { it == null }
+}
 
 class SortMakerPlayViewModel : ViewModel() {
 
@@ -105,14 +117,22 @@ class SortMakerPlayViewModel : ViewModel() {
         loaded = true
         val module = AppModule.from(context)
         appModule = module
-        _uiState.value = SortMakerPlayUiState(session = initialSession, coreState = initialSession.replay())
+        // 再生は load で 1 回だけ (コアを呼ぶ重い初期化を Composable の再評価で何度も走らせない)。
+        _uiState.value = SortMakerPlayUiState(
+            session = initialSession,
+            coreState = SortMakerState(pair = null, answered = 0u, estimatedRemaining = 0u, progressPercent = 0u, ranking = emptyList(), isFinished = false)
+        )
         viewModelScope.launch {
             val items = SortMakerCandidates.loadByIds(
                 initialSession.subject, initialSession.itemIds, module.songRepository, module.idolRepository
             )
             val current = _uiState.value ?: return@launch
-            _uiState.value = current.copy(items = items, isLoaded = true)
-            if (current.coreState.isFinished && !current.session.isFinished) finish()
+            val coreState = initialSession.replay()
+            _uiState.value = current.copy(
+                items = items, isLoaded = true, coreState = coreState,
+                shownPercent = coreState.progressPercent, shownRemaining = coreState.estimatedRemaining
+            )
+            if (coreState.isFinished && !initialSession.isFinished) finish()
         }
     }
 
@@ -130,13 +150,14 @@ class SortMakerPlayViewModel : ViewModel() {
     fun answer(choice: SortMakerChoice) {
         val current = _uiState.value ?: return
         if (current.coreState.isFinished) return
-        commit(current.session.appendChoice(choice))
+        commit(current.session.appendChoice(choice), resetShown = false)
     }
 
     fun undo() {
         val current = _uiState.value ?: return
         if (!canUndo) return
-        commit(current.session.withoutLastAnswer())
+        // 「1 つ戻る」は進み具合が実際に減る操作なので、戻らない表示もここで取り直す。
+        commit(current.session.withoutLastAnswer(), resetShown = true)
     }
 
     /** 順位表の行 (消えたものは飛ばす)。 */
@@ -147,19 +168,32 @@ class SortMakerPlayViewModel : ViewModel() {
         }
     }
 
-    private fun commit(newSession: SortMakerSession) {
+    private fun commit(newSession: SortMakerSession, resetShown: Boolean) {
         val withSavedAt = newSession.copy(savedAt = System.currentTimeMillis())
         val newCoreState = withSavedAt.replay()
+        val current = _uiState.value
+        val (shownPercent, shownRemaining) = when {
+            resetShown -> newCoreState.progressPercent to newCoreState.estimatedRemaining
+            newCoreState.isFinished -> 100u to 0u
+            else -> maxOf(current?.shownPercent ?: 0u, newCoreState.progressPercent) to
+                minOf(current?.shownRemaining ?: newCoreState.estimatedRemaining, newCoreState.estimatedRemaining)
+        }
         if (newCoreState.isFinished) {
+            // 消えた項目も位置を詰めない (詰めると「前回の1位」が実際の2位になる)。
             val finished = withSavedAt.copy(
                 isFinished = true,
-                topNames = newCoreState.ranking.take(3).mapNotNull { item(it.item)?.title }
+                topNames = newCoreState.ranking.take(3).map { item(it.item)?.title ?: "（見つかりません）" }
             )
             appModule?.sortMakerStore?.save(finished)
-            _uiState.value = _uiState.value?.copy(session = finished, coreState = newCoreState)
+            _uiState.value = current?.copy(
+                session = finished, coreState = newCoreState, shownPercent = shownPercent, shownRemaining = shownRemaining,
+                finishEventId = current.finishEventId + 1
+            )
         } else {
             appModule?.sortMakerStore?.save(withSavedAt)
-            _uiState.value = _uiState.value?.copy(session = withSavedAt, coreState = newCoreState)
+            _uiState.value = current?.copy(
+                session = withSavedAt, coreState = newCoreState, shownPercent = shownPercent, shownRemaining = shownRemaining
+            )
         }
     }
 
@@ -167,10 +201,10 @@ class SortMakerPlayViewModel : ViewModel() {
         val current = _uiState.value ?: return
         val finished = current.session.copy(
             isFinished = true,
-            topNames = current.coreState.ranking.take(3).mapNotNull { item(it.item)?.title }
+            topNames = current.coreState.ranking.take(3).map { item(it.item)?.title ?: "（見つかりません）" }
         )
         appModule?.sortMakerStore?.save(finished)
-        _uiState.value = current.copy(session = finished)
+        _uiState.value = current.copy(session = finished, finishEventId = current.finishEventId + 1)
     }
 }
 
@@ -190,6 +224,14 @@ fun SortMakerPlayScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showProvisional by rememberSaveable { mutableStateOf(false) }
+
+    // 結果が出た瞬間だけ触覚を鳴らす (finishEventId は最初に終わった時点でしか増えない)。
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    LaunchedEffect(state?.finishEventId) {
+        if ((state?.finishEventId ?: 0) > 0) {
+            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -248,64 +290,96 @@ fun SortMakerPlayScreen(
 
 // MARK: - 対戦
 
+/**
+ * 画面幅から絵の大きさを決める定数。カードの左右余白 (画面 16.dp×2・カード間 16.dp・
+ * カード内側 12.dp×2) を引いた残りを 2 枚に割り、64〜148.dp に収める
+ * (375pt 幅の端末でもカードがはみ出さないように)。
+ */
+private val SCREEN_HORIZONTAL_PADDING = 16.dp
+private val INTER_CARD_SPACING = 16.dp
+private val CARD_INNER_HORIZONTAL_PADDING = 12.dp
+private val CARD_TOP_INSET = 34.dp // カード上端からジャケ/アイコン上端まで (上余白20 + 帯4 + 間隔10)
+private val VS_BADGE_RADIUS = 18.dp
+
 @Composable
 private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerPlayUiState) {
     var picked by remember { mutableStateOf<SortMakerChoice?>(null) }
     val scope = rememberCoroutineScopeCompat()
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        ProgressHeader(model, state)
-        Spacer(Modifier.weight(1f))
-        Text(
-            "どっちが好き？", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-            textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
-        )
-        val pair = state.coreState.pair
-        if (pair != null) {
-            Box(Modifier.fillMaxWidth()) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SortMakerCard(
-                        item = model.item(pair.left),
-                        isPicked = picked == SortMakerChoice.LEFT,
-                        isDimmed = picked != null && picked != SortMakerChoice.LEFT && picked != SortMakerChoice.TIE,
-                        isTied = picked == SortMakerChoice.TIE,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if (picked == null) {
-                            picked = SortMakerChoice.LEFT
-                            AudioPreviewManager.stop()
-                            scope.launch {
-                                kotlinx.coroutines.delay(220)
-                                model.answer(SortMakerChoice.LEFT)
-                                picked = null
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 本文: 普段は残りの高さいっぱいに収まるが、文字を大きくして収まらないときだけスクロール。
+        androidx.compose.foundation.layout.BoxWithConstraints(
+            modifier = Modifier.weight(1f).fillMaxWidth()
+        ) {
+            val cardInner = (maxWidth - SCREEN_HORIZONTAL_PADDING * 2 - INTER_CARD_SPACING) / 2 - CARD_INNER_HORIZONTAL_PADDING * 2
+            val visual = cardInner.coerceIn(64.dp, 148.dp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = SCREEN_HORIZONTAL_PADDING)
+                    .padding(top = 12.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                ProgressHeader(model, state)
+                if (state.missingCount > 0) {
+                    Text(
+                        "対象のうち ${state.missingCount} 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。",
+                        fontSize = 12.sp, color = DS.ink3
+                    )
+                }
+                Text(
+                    "どっちが好き？", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink,
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                )
+                val pair = state.coreState.pair
+                if (pair != null) {
+                    Box(Modifier.fillMaxWidth()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(INTER_CARD_SPACING)) {
+                            SortMakerCard(
+                                item = model.item(pair.left),
+                                visualSize = visual,
+                                isPicked = picked == SortMakerChoice.LEFT,
+                                isDimmed = picked != null && picked != SortMakerChoice.LEFT && picked != SortMakerChoice.TIE,
+                                isTied = picked == SortMakerChoice.TIE,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (picked == null) {
+                                    picked = SortMakerChoice.LEFT
+                                    AudioPreviewManager.stop()
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(220)
+                                        model.answer(SortMakerChoice.LEFT)
+                                        picked = null
+                                    }
+                                }
+                            }
+                            SortMakerCard(
+                                item = model.item(pair.right),
+                                visualSize = visual,
+                                isPicked = picked == SortMakerChoice.RIGHT,
+                                isDimmed = picked != null && picked != SortMakerChoice.RIGHT && picked != SortMakerChoice.TIE,
+                                isTied = picked == SortMakerChoice.TIE,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (picked == null) {
+                                    picked = SortMakerChoice.RIGHT
+                                    AudioPreviewManager.stop()
+                                    scope.launch {
+                                        kotlinx.coroutines.delay(220)
+                                        model.answer(SortMakerChoice.RIGHT)
+                                        picked = null
+                                    }
+                                }
                             }
                         }
-                    }
-                    SortMakerCard(
-                        item = model.item(pair.right),
-                        isPicked = picked == SortMakerChoice.RIGHT,
-                        isDimmed = picked != null && picked != SortMakerChoice.RIGHT && picked != SortMakerChoice.TIE,
-                        isTied = picked == SortMakerChoice.TIE,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if (picked == null) {
-                            picked = SortMakerChoice.RIGHT
-                            AudioPreviewManager.stop()
-                            scope.launch {
-                                kotlinx.coroutines.delay(220)
-                                model.answer(SortMakerChoice.RIGHT)
-                                picked = null
-                            }
-                        }
+                        VsBadge(Modifier.align(Alignment.TopCenter).padding(top = CARD_TOP_INSET + visual / 2 - VS_BADGE_RADIUS))
                     }
                 }
-                VsBadge(Modifier.align(Alignment.TopCenter).padding(top = 64.dp))
             }
         }
-        Spacer(Modifier.weight(1f))
+        // 操作バーは常に画面下に固定 (本文がスクロールしても位置が変わらない)。
         BottomBar(
             canUndo = model.canUndo && picked == null,
             onUndo = {
@@ -322,7 +396,8 @@ private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerP
                     }
                 }
             },
-            tieDisabled = picked != null
+            tieDisabled = picked != null,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
         )
     }
 }
@@ -337,11 +412,11 @@ private fun ProgressHeader(model: SortMakerPlayViewModel, state: SortMakerPlayUi
             Text("第${model.round}戦", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Spacer(Modifier.weight(1f))
             Text(
-                "残り約${state.coreState.estimatedRemaining}戦 · ${state.coreState.progressPercent}%",
+                "残り約${state.shownRemaining}戦 · ${state.shownPercent}%",
                 fontSize = 12.sp, color = DS.ink3
             )
         }
-        val progress by animateFloatAsState(targetValue = state.coreState.progressPercent.toFloat() / 100f, label = "sortMakerProgress")
+        val progress by animateFloatAsState(targetValue = state.shownPercent.toFloat() / 100f, label = "sortMakerProgress")
         Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(DS.fill)) {
             Box(
                 Modifier
@@ -368,8 +443,14 @@ private fun VsBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun BottomBar(canUndo: Boolean, onUndo: () -> Unit, onTie: () -> Unit, tieDisabled: Boolean) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+private fun BottomBar(
+    canUndo: Boolean,
+    onUndo: () -> Unit,
+    onTie: () -> Unit,
+    tieDisabled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -405,6 +486,8 @@ private fun BottomBar(canUndo: Boolean, onUndo: () -> Unit, onTie: () -> Unit, t
 @Composable
 fun SortMakerCard(
     item: SortMakerItem?,
+    /** ジャケ / アイコンの一辺。画面幅から決まる。 */
+    visualSize: androidx.compose.ui.unit.Dp,
     isPicked: Boolean,
     isDimmed: Boolean,
     isTied: Boolean,
@@ -436,7 +519,7 @@ fun SortMakerCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(theme.accent))
-            CardVisual(item)
+            CardVisual(item, visualSize)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     item?.title ?: "（見つかりません）",
@@ -453,11 +536,11 @@ fun SortMakerCard(
 }
 
 @Composable
-private fun CardVisual(item: SortMakerItem?) {
+private fun CardVisual(item: SortMakerItem?, visualSize: androidx.compose.ui.unit.Dp) {
     when (item) {
-        is SortMakerItem.SongItem -> ImasArtwork(title = item.song.title, imageUrl = item.song.artworkUrl, size = 116.dp)
-        is SortMakerItem.IdolItem -> ImasAvatar(label = item.idol.shortName, seed = item.idol.color, brand = item.idol.brandId, size = 108.dp, entityId = item.idol.id)
-        null -> ImasArtwork(title = "?", size = 116.dp)
+        is SortMakerItem.SongItem -> ImasArtwork(title = item.song.title, imageUrl = item.song.artworkUrl, size = visualSize)
+        is SortMakerItem.IdolItem -> ImasAvatar(label = item.idol.shortName, seed = item.idol.color, brand = item.idol.brandId, size = visualSize * 0.92f, entityId = item.idol.id)
+        null -> ImasArtwork(title = "?", size = visualSize)
     }
 }
 
