@@ -71,7 +71,8 @@ struct SortMakerSetupView: View {
             SortMakerPlayView(session: session)
         }
         .navigationDestination(item: $openBoard) { TierListView(board: $0) }
-        .confirmationDialog(purpose == .sort ? "前回の続きを消して最初から始めますか？" : "今のティアー表を消して作り直しますか？",
+        .confirmationDialog(purpose == .tier ? "今のティアー表を消して作り直しますか？"
+                            : (store.session(subject)?.isFinished == true ? "前回の結果を消して新しく始めますか？" : "前回の続きを消して最初から始めますか？"),
                             isPresented: $confirmRestart, titleVisibility: .visible) {
             Button("最初から始める", role: .destructive) { start() }
         }
@@ -308,6 +309,9 @@ struct SortMakerSetupView: View {
     private var hint: String? {
         if candidates.count < 2 { return "2\(subject.counter)以上になるように絞り込みをゆるめてください。" }
         if purpose == .tier {
+            if candidates.count > Self.tierListLimit {
+                return "ティアー表は\(Self.tierListLimit)\(subject.counter)までです。ブランドや曲の種類で絞ってください。"
+            }
             return candidates.count > 120 ? "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" : nil
         }
         if estimate > 600 {
@@ -324,7 +328,7 @@ struct SortMakerSetupView: View {
         Button {
             if purpose == .tier, tierStore.board(subject) != nil {
                 confirmRestart = true
-            } else if purpose == .sort, let s = store.session(subject), !s.isFinished, !s.answers.isEmpty {
+            } else if purpose == .sort, let s = store.session(subject), s.isFinished || !s.answers.isEmpty {
                 confirmRestart = true
             } else {
                 start()
@@ -343,7 +347,13 @@ struct SortMakerSetupView: View {
         .background(.bar)
     }
 
-    private var canStart: Bool { !isLoading && candidates.count >= 2 }
+    /// ティアー表に並べられる上限。全部を 1 画面に並べる (遅延表示しない) ので、
+    /// 全曲 (2000 超) を並べると画面ごと重くなる。振り分ける手間からも現実的な上限。
+    static let tierListLimit = 200
+
+    private var canStart: Bool {
+        !isLoading && candidates.count >= 2 && (purpose == .sort || candidates.count <= Self.tierListLimit)
+    }
 
     private func start() {
         if purpose == .tier {

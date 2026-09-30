@@ -44,7 +44,6 @@ struct SortMakerResultView: View {
             Button("置き換える", role: .destructive) { makeTierList() }
         }
         .navigationDestination(item: $tierBoard) { TierListView(board: $0) }
-        .sensoryFeedback(.success, trigger: model.state.isFinished)
     }
 
     private var header: some View {

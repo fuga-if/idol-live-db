@@ -109,6 +109,7 @@ struct TierListView: View {
                     .background(theme.accent)
             }
             .buttonStyle(.plain)
+            .disabled(selectedId == nil)
             .accessibilityLabel("\(tier.label)ランク \(ids.count)件")
             .accessibilityHint(selectedId == nil ? "" : "選んだものをここへ移す")
 
@@ -120,7 +121,8 @@ struct TierListView: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .dropDestination(for: String.self) { dropped, _ in
-            guard let id = dropped.first else { return false }
+            // 他のアプリから運ばれた文字列は受けない。
+            guard let id = dropped.first, board.itemIds.contains(id) else { return false }
             move(id, to: index)
             return true
         }
@@ -140,7 +142,8 @@ struct TierListView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { if let id = selectedId { move(id, to: nil) } }
                 .dropDestination(for: String.self) { dropped, _ in
-                    guard let id = dropped.first else { return false }
+                    // 他のアプリから運ばれた文字列は受けない。
+            guard let id = dropped.first, board.itemIds.contains(id) else { return false }
                     move(id, to: nil)
                     return true
                 }
@@ -157,9 +160,9 @@ struct TierListView: View {
             FlowLayout(spacing: 6) {
                 ForEach(ids, id: \.self) { id in
                     TierListChip(item: items[id], isSelected: selectedId == id)
-                        .onTapGesture {
-                            selectedId = selectedId == id ? nil : id
-                        }
+                        .onTapGesture { tapChip(id) }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityHint(selectedId == nil || selectedId == id ? "選んでから段を指定" : "選んだものをこの段へ移す")
                         .draggable(id) {
                             TierListChip(item: items[id], isSelected: true)
                         }
@@ -211,6 +214,16 @@ struct TierListView: View {
         .padding(.horizontal, DS.sp5)
         .padding(.vertical, DS.sp3)
         .background(.bar)
+    }
+
+    /// チップのタップ。何か選んでいて別のチップを押したら、そのチップの段へ移す
+    /// (段の中はチップで埋まるので、行の余白を押せと言っても押せない)。
+    private func tapChip(_ id: String) {
+        if let selected = selectedId, selected != id {
+            move(selected, to: board.placements[id])
+        } else {
+            selectedId = selectedId == id ? nil : id
+        }
     }
 
     // MARK: - 更新

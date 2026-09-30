@@ -10,16 +10,33 @@ final class SortMakerPlayModel {
     private(set) var items: [SortMakerItem?] = []
     private(set) var isLoaded = false
 
+    /// 画面に出す進み具合と残り。ベスト10モードは K 位に勝った新顔の探索が見積りに
+    /// 後から乗るので、コアの値は 1 戦ごとに少し戻ることがある。表示だけは戻さない
+    /// (1 つ戻る / 読み込み直しで取り直す)。
+    private(set) var shownPercent: UInt32 = 0
+    private(set) var shownRemaining: UInt32 = 0
+    /// 保存した対象のうち、マスタから消えて引けなかった件数。
+    var missingCount: Int { items.filter { $0 == nil }.count }
+
     init(session: SortMakerSession) {
+        // 再生は load で 1 回だけ (init は SwiftUI の再評価で何度も走るので重い処理を置かない)。
         self.session = session
-        self.state = session.replay()
+        self.state = SortMakerState(pair: nil, answered: 0, estimatedRemaining: 0, progressPercent: 0,
+                                    ranking: [], isFinished: false)
     }
 
     func load() async {
         guard !isLoaded else { return }
         items = await SortMakerCandidates.load(session.subject, ids: session.itemIds)
+        state = session.replay()
+        resetShown()
         isLoaded = true
         if state.isFinished { finish() }
+    }
+
+    private func resetShown() {
+        shownPercent = state.progressPercent
+        shownRemaining = state.estimatedRemaining
     }
 
     func item(_ index: UInt32) -> SortMakerItem? {
@@ -44,10 +61,13 @@ final class SortMakerPlayModel {
         session.isFinished = false
         session.topNames = []
         commit()
+        resetShown()
     }
 
     private func commit() {
         state = session.replay()
+        shownPercent = state.isFinished ? 100 : max(shownPercent, state.progressPercent)
+        shownRemaining = min(shownRemaining, state.estimatedRemaining)
         session.savedAt = Date()
         if state.isFinished {
             finish()
@@ -58,7 +78,8 @@ final class SortMakerPlayModel {
 
     private func finish() {
         session.isFinished = true
-        session.topNames = state.ranking.prefix(3).compactMap { item($0.item)?.title }
+        // 消えた項目も位置を詰めない (詰めると「前回の1位」が実際の 2 位になる)。
+        session.topNames = state.ranking.prefix(3).map { item($0.item)?.title ?? "（見つかりません）" }
         SortMakerStore.shared.save(session)
     }
 
@@ -89,6 +110,7 @@ struct SortMakerPlayView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: model.state.isFinished)
+        .sensoryFeedback(.success, trigger: model.state.isFinished) { _, new in new }
         .background(DS.bg.ignoresSafeArea())
         .navigationTitle(model.session.subject.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -142,31 +164,61 @@ struct SortMakerBattleView: View {
     @State private var undoFeedback = 0
 
     var body: some View {
+        GeometryReader { geo in
+            // カード 1 枚の中身の幅から絵の大きさを決める (SE / mini の 375pt 幅でもはみ出さない)。
+            let cardInner = (geo.size.width - DS.sp5 * 2 - DS.sp4) / 2 - DS.sp4 * 2
+            let visual = max(64, min(148, cardInner))
+            // 普段は中央に置き、文字を大きくして収まらないときだけスクロールさせる。
+            ViewThatFits(in: .vertical) {
+                VStack(spacing: DS.sp5) {
+                    progressHeader
+                    Spacer(minLength: 0)
+                    battle(visual: visual)
+                    Spacer(minLength: 0)
+                }
+                ScrollView {
+                    VStack(spacing: DS.sp5) {
+                        progressHeader
+                        battle(visual: visual)
+                    }
+                }
+            }
+            .padding(.horizontal, DS.sp5)
+            .padding(.top, DS.sp3)
+        }
+        .safeAreaInset(edge: .bottom) {
+            bottomBar
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp3)
+                .background(DS.bg)
+        }
+        .sensoryFeedback(.selection, trigger: feedback)
+        .sensoryFeedback(.impact(weight: .light), trigger: undoFeedback)
+    }
+
+    @ViewBuilder
+    private func battle(visual: CGFloat) -> some View {
         VStack(spacing: DS.sp5) {
-            progressHeader
-            Spacer(minLength: 0)
+            if model.missingCount > 0 {
+                Text("対象のうち \(model.missingCount) 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。")
+                    .font(.imasCaption).foregroundStyle(DS.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("どっちが好き？")
                 .font(.imasTitle2.weight(.bold)).foregroundStyle(DS.ink)
                 .frame(maxWidth: .infinity)
             if let pair = model.state.pair {
                 HStack(alignment: .top, spacing: DS.sp4) {
-                    card(pair.left, side: .left)
-                    card(pair.right, side: .right)
+                    card(pair.left, side: .left, visual: visual)
+                    card(pair.right, side: .right, visual: visual)
                 }
                 .fixedSize(horizontal: false, vertical: true)
-                .overlay(alignment: .top) { vsBadge.padding(.top, 74) }
+                .overlay(alignment: .top) { vsBadge.padding(.top, DS.sp5 + visual / 2 - 18) }
                 .id("\(pair.left)-\(pair.right)-\(model.state.answered)")
                 .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96)),
                                         removal: .opacity))
             }
-            Spacer(minLength: 0)
-            bottomBar
         }
-        .padding(.horizontal, DS.sp5)
-        .padding(.top, DS.sp3)
-        .padding(.bottom, DS.sp4)
-        .sensoryFeedback(.selection, trigger: feedback)
-        .sensoryFeedback(.impact(weight: .light), trigger: undoFeedback)
     }
 
     // MARK: 進み具合
@@ -176,7 +228,7 @@ struct SortMakerBattleView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("第\(model.round)戦").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
                 Spacer()
-                Text("残り約\(model.state.estimatedRemaining)戦 · \(model.state.progressPercent)%")
+                Text("残り約\(model.shownRemaining)戦 · \(model.shownPercent)%")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
             }
             .monospacedDigit()
@@ -184,20 +236,20 @@ struct SortMakerBattleView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(DS.fill)
                     Capsule().fill(DS.sys)
-                        .frame(width: max(6, geo.size.width * CGFloat(model.state.progressPercent) / 100))
+                        .frame(width: max(6, geo.size.width * CGFloat(model.shownPercent) / 100))
                 }
             }
             .frame(height: 6)
-            .animation(.easeOut(duration: 0.3), value: model.state.progressPercent)
+            .animation(.easeOut(duration: 0.3), value: model.shownPercent)
         }
         .accessibilityElement(children: .combine)
     }
 
     // MARK: カード
 
-    private func card(_ index: UInt32, side: SortMakerChoice) -> some View {
+    private func card(_ index: UInt32, side: SortMakerChoice, visual: CGFloat) -> some View {
         let item = model.item(index)
-        return SortMakerCard(item: item, isPicked: picked == side, isDimmed: picked != nil && picked != side && picked != .tie,
+        return SortMakerCard(item: item, visualSize: visual, isPicked: picked == side, isDimmed: picked != nil && picked != side && picked != .tie,
                              isTied: picked == .tie) {
             choose(side)
         }
@@ -264,6 +316,8 @@ struct SortMakerBattleView: View {
 /// 対戦カード 1 枚。全面がタップ領域。曲は試聴ボタン付き。
 struct SortMakerCard: View {
     let item: SortMakerItem?
+    /// ジャケ / アイコンの一辺。画面幅から決まる。
+    let visualSize: CGFloat
     let isPicked: Bool
     let isDimmed: Bool
     let isTied: Bool
@@ -318,13 +372,13 @@ struct SortMakerCard: View {
     private var visual: some View {
         switch item {
         case .song(let song):
-            ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: 148,
+            ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: visualSize,
                              songTitle: song.title, songId: song.id)
                 .allowsHitTesting(false)
         case .idol(let idol):
-            IdolAvatarView(idol: idol, size: 136, reservesPickRing: false)
+            IdolAvatarView(idol: idol, size: visualSize * 0.92, reservesPickRing: false)
         case nil:
-            ImasArtwork(title: "?", size: 148)
+            ImasArtwork(title: "?", size: visualSize)
         }
     }
 
