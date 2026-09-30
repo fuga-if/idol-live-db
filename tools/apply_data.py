@@ -836,7 +836,7 @@ def apply_all(conn):
     return affected
 
 
-def push_cloudkit(affected, production):
+def push_cloudkit(affected, production, db=None):
     """触った行だけを CloudKit へ push する。
 
     **表ごとに、その表の id で絞って押す。** まとめて `--tables a b` と渡すと
@@ -875,6 +875,8 @@ def push_cloudkit(affected, production):
     for tables, ids, space in runs:
         cmd = [sys.executable, str(SEED_SCRIPT), "--tables", *tables]
         cmd += ["--production"] if production else ["--environment", "development"]
+        if db:
+            cmd += ["--db", str(db)]  # --db で入れた DB から押す (既定の同梱 DB からだと別の DB の行が飛ぶ)
         tmp = None
         if ids:
             # id は日本語やコマンドライン長の問題があるので、ファイルで渡す。
@@ -971,7 +973,7 @@ def main():
     print(f"対象テーブル: {sorted(affected)}")
 
     if args.push:
-        rc = push_cloudkit(affected, args.production)
+        rc = push_cloudkit(affected, args.production, args.db)
         if rc != 0:
             sys.exit(rc)
         print("✓ CloudKit push 完了")
