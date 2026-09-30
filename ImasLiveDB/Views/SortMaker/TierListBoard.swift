@@ -16,6 +16,10 @@ struct TierListBoard: Codable, Identifiable, Hashable {
     let scopeLabel: String
     /// ソートメーカーの結果から作ったときのたたき台 (「たたき台に戻す」用)。
     var suggested: [String: Int]? = nil
+    /// 利用者が付けた表の名前 (nil = 「好きな曲ティアー表」等の既定)。
+    var title: String? = nil
+    /// 段ごとの名前の上書き (添字は段。nil / 範囲外 = S〜D の既定名)。
+    var tierLabels: [String?]? = nil
     var savedAt: Date
 
     var id: SortMakerSubject { subject }
@@ -24,6 +28,23 @@ struct TierListBoard: Codable, Identifiable, Hashable {
 
     func ids(inTier tier: Int) -> [String] {
         itemIds.filter { placements[$0] == tier }
+    }
+
+    /// 見出し・共有に出す表の名前。
+    var displayTitle: String { displayTitle(ignoringCustom: false) }
+
+    /// `ignoringCustom` なら利用者の名前を無視した既定の名前 (入力欄の見本用)。
+    func displayTitle(ignoringCustom: Bool) -> String {
+        if !ignoringCustom, let title { return title }
+        return subject == .song ? "好きな曲ティアー表" : "好きなアイドルティアー表"
+    }
+
+    /// 段の名前 (上書きがあればそれ、無ければコアの既定名)。
+    func label(ofTier index: Int, default defaultLabel: String) -> String {
+        guard let labels = tierLabels, labels.indices.contains(index), let custom = labels[index] else {
+            return defaultLabel
+        }
+        return custom
     }
 }
 

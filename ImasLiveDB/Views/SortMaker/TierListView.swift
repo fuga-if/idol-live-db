@@ -15,9 +15,17 @@ struct TierListView: View {
     @State private var showShare = false
     @State private var confirmReset = false
     @State private var moveFeedback = 0
+    @State private var showRename = false
     @Environment(\.colorScheme) private var scheme
 
     private let tiers = tierListTiers()
+
+    /// 段の名前の上書きを反映した段の並び (色はコアの既定のまま)。
+    private var displayTiers: [TierListTier] {
+        tiers.enumerated().map { i, t in
+            TierListTier(label: board.label(ofTier: i, default: t.label), colorSeed: t.colorSeed)
+        }
+    }
 
     init(board: TierListBoard) {
         self.subject = board.subject
@@ -27,9 +35,26 @@ struct TierListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.sp4) {
-                Text(board.scopeLabel).font(.imasCaption).foregroundStyle(DS.ink3)
+                Button {
+                    showRename = true
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: DS.sp2) {
+                            Text(board.displayTitle)
+                                .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                                .multilineTextAlignment(.leading)
+                            Image(systemName: "pencil")
+                                .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
+                        }
+                        Text(board.scopeLabel).font(.imasCaption).foregroundStyle(DS.ink3)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("名前を変える")
                 VStack(spacing: 2) {
-                    ForEach(Array(tiers.enumerated()), id: \.offset) { index, tier in
+                    ForEach(Array(displayTiers.enumerated()), id: \.offset) { index, tier in
                         tierRow(index: index, tier: tier)
                     }
                 }
@@ -65,6 +90,7 @@ struct TierListView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button("名前を変える", systemImage: "pencil") { showRename = true }
                     if board.suggested != nil {
                         Button("ソート結果のたたき台に戻す", systemImage: "arrow.counterclockwise") {
                             update { $0.placements = $0.suggested ?? [:] }
@@ -82,7 +108,15 @@ struct TierListView: View {
         }
         .sheet(item: $detail) { DetailSheetView(destination: $0) }
         .sheet(isPresented: $showShare) {
-            TierListShareSheet(board: board, items: items, tiers: tiers)
+            TierListShareSheet(board: board, items: items, tiers: displayTiers)
+        }
+        .sheet(isPresented: $showRename) {
+            TierListRenameSheet(board: board, tiers: tiers) { title, labels in
+                update {
+                    $0.title = title
+                    $0.tierLabels = labels
+                }
+            }
         }
         .sensoryFeedback(.selection, trigger: moveFeedback)
         .task {
@@ -102,7 +136,11 @@ struct TierListView: View {
                 if let id = selectedId { move(id, to: index) }
             } label: {
                 Text(tier.label)
-                    .font(.imasScaled(24, weight: .black))
+                    .font(.imasScaled(tier.label.count <= 2 ? 24 : 14, weight: .black))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 4)
                     .foregroundStyle(theme.onAccent)
                     .frame(width: 56)
                     .frame(maxHeight: .infinity)
@@ -189,11 +227,14 @@ struct TierListView: View {
                     .font(.imasSubhead).foregroundStyle(DS.ink2)
             }
             HStack(spacing: 6) {
-                ForEach(Array(tiers.enumerated()), id: \.offset) { index, tier in
+                ForEach(Array(displayTiers.enumerated()), id: \.offset) { index, tier in
                     let theme = ImasTheme.derive(seed: tier.colorSeed, scheme: scheme)
                     Button { move(item.id, to: index) } label: {
                         Text(tier.label)
-                            .font(.imasScaled(18, weight: .black))
+                            .font(.imasScaled(tier.label.count <= 2 ? 18 : 12, weight: .black))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .padding(.horizontal, 2)
                             .foregroundStyle(theme.onAccent)
                             .frame(maxWidth: .infinity, minHeight: 44)
                             .background(theme.accent, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
@@ -290,9 +331,7 @@ struct TierListShareSheet: View {
     let items: [String: SortMakerItem]
     let tiers: [TierListTier]
 
-    private var title: String {
-        board.subject == .song ? "好きな曲ティアー表" : "好きなアイドルティアー表"
-    }
+    private var title: String { board.displayTitle }
 
     private var rows: [(tier: TierListTier, names: [String])] {
         tiers.enumerated().map { i, t in (t, board.ids(inTier: i).compactMap { items[$0]?.title }) }
@@ -331,18 +370,28 @@ struct TierListShareCard: View {
     private let perTier = 8
 
     var body: some View {
-        SoloShareScaffold(palette: ShareCardPalette(seed: rows.first?.tier.colorSeed), size: size, badge: title) {
+        SoloShareScaffold(palette: ShareCardPalette(seed: rows.first?.tier.colorSeed), size: size, badge: "TIER LIST") {
             VStack(alignment: .leading, spacing: 8) {
+                // 利用者が付けた表の名前を主役の見出しに (固定キャンバスなので固定 pt)。
+                Text(title)
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .padding(.top, 12)
                 Text(scopeLabel)
-                    .font(.imasScaled(13, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
                     .lineLimit(1)
-                    .padding(.top, 10)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 10)
                 ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                     HStack(alignment: .top, spacing: 10) {
                         Text(row.tier.label)
-                            .font(.imasScaled(20, weight: .black))
+                            .font(.system(size: row.tier.label.count <= 2 ? 20 : 11, weight: .black))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                            .padding(2)
                             .foregroundStyle(ShareInk.nearBlack)
                             .frame(width: 40, height: 40)
                             .background(ShareCardPalette(seed: row.tier.colorSeed).accent,
@@ -368,5 +417,81 @@ struct TierListShareCard: View {
                 }
             }
         }
+    }
+}
+
+/// 表の名前と段の名前を変えるシート。空にすると既定の名前に戻る。
+struct TierListRenameSheet: View {
+    let board: TierListBoard
+    let tiers: [TierListTier]
+    let onSave: (_ title: String?, _ labels: [String?]?) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
+    @State private var title: String
+    @State private var labels: [String]
+
+    private let defaults = tierListTiers()
+    private let titleMax = Int(tierListTitleMaxChars())
+    private let labelMax = Int(tierListTierLabelMaxChars())
+
+    init(board: TierListBoard, tiers: [TierListTier], onSave: @escaping (String?, [String?]?) -> Void) {
+        self.board = board
+        self.tiers = tiers
+        self.onSave = onSave
+        _title = State(initialValue: board.title ?? "")
+        _labels = State(initialValue: tierListTiers().indices.map { i in
+            board.tierLabels.flatMap { $0.indices.contains(i) ? $0[i] : nil } ?? ""
+        })
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(board.displayTitle(ignoringCustom: true), text: $title)
+                        .onChange(of: title) { _, v in if v.count > titleMax { title = String(v.prefix(titleMax)) } }
+                } header: {
+                    Text("表の名前")
+                } footer: {
+                    Text("シェア画像の見出しになります。空にすると「\(board.displayTitle(ignoringCustom: true))」に戻ります。")
+                }
+                Section {
+                    ForEach(defaults.indices, id: \.self) { i in
+                        HStack(spacing: DS.sp3) {
+                            let theme = ImasTheme.derive(seed: defaults[i].colorSeed, scheme: scheme)
+                            Text(labels[i].isEmpty ? defaults[i].label : labels[i])
+                                .font(.imasScaled(14, weight: .black))
+                                .foregroundStyle(theme.onAccent)
+                                .lineLimit(1).minimumScaleFactor(0.5)
+                                .frame(width: 44, height: 32)
+                                .background(theme.accent, in: RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+                            TextField(defaults[i].label, text: $labels[i])
+                                .onChange(of: labels[i]) { _, v in if v.count > labelMax { labels[i] = String(v.prefix(labelMax)) } }
+                        }
+                    }
+                } header: {
+                    Text("段の名前")
+                } footer: {
+                    Text("\(labelMax)文字まで。「神」「沼」「好き」のように自由に付けられます。空にすると S〜D に戻ります。")
+                }
+            }
+            .navigationTitle("名前を変える")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        // 整え方 (空白・改行・上限) はコアの規則で揃える。
+                        let normalizedLabels = labels.map { tierListNormalizeTierLabel(input: $0) }
+                        onSave(tierListNormalizeTitle(input: title),
+                               normalizedLabels.allSatisfy { $0 == nil } ? nil : normalizedLabels)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+        .presentationDetents([.large])
     }
 }

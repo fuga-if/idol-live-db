@@ -20,6 +20,29 @@ pub fn tier_list_tiers() -> Vec<TierListTier> {
         .collect()
 }
 
+/// ティアー表の名前を整える (空なら None = 既定の名前)。上限は domain::tier_list::TITLE_MAX_CHARS。
+#[uniffi::export]
+pub fn tier_list_normalize_title(input: String) -> Option<String> {
+    tier_list::normalize_name(&input, tier_list::TITLE_MAX_CHARS)
+}
+
+/// 段の名前を整える (空なら None = S〜D の既定名)。上限は TIER_LABEL_MAX_CHARS。
+#[uniffi::export]
+pub fn tier_list_normalize_tier_label(input: String) -> Option<String> {
+    tier_list::normalize_name(&input, tier_list::TIER_LABEL_MAX_CHARS)
+}
+
+/// 名前の入力欄の上限 (入力中に数えて出す用)。
+#[uniffi::export]
+pub fn tier_list_title_max_chars() -> u32 {
+    tier_list::TITLE_MAX_CHARS as u32
+}
+
+#[uniffi::export]
+pub fn tier_list_tier_label_max_chars() -> u32 {
+    tier_list::TIER_LABEL_MAX_CHARS as u32
+}
+
 /// ソートメーカーの順位列 (上位から、同順位は同じ値) → 段の添字列 (0 = S) のたたき台。
 #[uniffi::export]
 pub fn tier_list_assign_from_ranking(ranks: Vec<u32>) -> Vec<u32> {

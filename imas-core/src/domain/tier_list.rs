@@ -22,6 +22,33 @@ pub const TIER_COLOR_SEEDS: [&str; 5] = ["#FF5A5F", "#FF9F43", "#F6C744", "#2BC4
 /// 各段の取り分の目安 (百分率、合計 100)。
 const TIER_SHARES: [u32; 5] = [10, 20, 30, 25, 15];
 
+/// ティアー表の名前 (「推しソロ曲ティアー」等) の上限文字数。共有画像の見出し 1 行に収まる長さ。
+pub const TITLE_MAX_CHARS: usize = 24;
+
+/// 段の名前 (「神」「沼」等) の上限文字数。段の札 (幅の狭い色の四角) に 2 行で収まる長さ。
+pub const TIER_LABEL_MAX_CHARS: usize = 6;
+
+/// 利用者が付けた名前を保存できる形に整える。前後の空白を落とし、改行・タブは空白 1 つに、
+/// 上限を超えた分は切る。空になったら `None` (= 既定の名前に戻す)。
+pub fn normalize_name(input: &str, max_chars: usize) -> Option<String> {
+    let mut out = String::new();
+    let mut pending_space = false;
+    for c in input.trim().chars() {
+        if c.is_whitespace() {
+            pending_space = true;
+            continue;
+        }
+        if pending_space && !out.is_empty() {
+            out.push(' ');
+        }
+        pending_space = false;
+        out.push(c);
+    }
+    let cut: String = out.chars().take(max_chars).collect();
+    let cut = cut.trim_end().to_string();
+    if cut.is_empty() { None } else { Some(cut) }
+}
+
 /// 上位から並んだ順位列 (`ranks[i]` は i 番目の順位。同順位は同じ値) を段の添字列にする。
 /// 戻り値は `ranks` と同じ長さで、0 = S。
 pub fn assign_from_ranking(ranks: &[u32]) -> Vec<u32> {
@@ -94,6 +121,16 @@ mod tests {
         assert!(t[3] >= 1);
         // 単調 (下の順位が上の段に来ない)。
         assert!(t.windows(2).all(|w| w[0] <= w[1]));
+    }
+
+    #[test]
+    fn names_are_trimmed_flattened_and_cut() {
+        assert_eq!(normalize_name("  推し\nソロ曲  ", 24), Some("推し ソロ曲".to_string()));
+        assert_eq!(normalize_name("   ", 24), None);
+        assert_eq!(normalize_name("", 6), None);
+        assert_eq!(normalize_name("かみかみかみかみ", 6), Some("かみかみかみ".to_string()));
+        // 切った位置の直前が空白なら落とす。
+        assert_eq!(normalize_name("abcde fgh", 6), Some("abcde".to_string()));
     }
 
     #[test]
