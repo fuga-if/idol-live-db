@@ -389,6 +389,9 @@ pub fn store_order_ai_prompt() -> String {
 pub struct AiPromptLink {
     pub label: String,
     pub url: String,
+    /// URL で指示文を入れられないチャット (Gemini)。開く前に指示文をクリップボードへ入れ、
+    /// 利用者に貼ってもらう。
+    pub needs_paste: bool,
 }
 
 /// 指示文を入れて開けるチャット。どれも「開いた時点では送らない」
@@ -396,8 +399,10 @@ pub struct AiPromptLink {
 pub fn store_order_ai_links() -> Vec<AiPromptLink> {
     let q = encode_strict(&store_order_ai_prompt());
     vec![
-        AiPromptLink { label: "Claude".into(), url: format!("https://claude.ai/new?q={q}") },
-        AiPromptLink { label: "ChatGPT".into(), url: format!("https://chatgpt.com/?q={q}") },
+        AiPromptLink { label: "Claude".into(), url: format!("https://claude.ai/new?q={q}"), needs_paste: false },
+        AiPromptLink { label: "ChatGPT".into(), url: format!("https://chatgpt.com/?q={q}"), needs_paste: false },
+        // Gemini は URL で入力欄を埋める口が公開されていない。
+        AiPromptLink { label: "Gemini".into(), url: "https://gemini.google.com/app".into(), needs_paste: true },
     ]
 }
 
@@ -910,6 +915,7 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
         for link in store_order_ai_links() {
             assert!(link.url.starts_with("https://"));
             assert!(!link.url.contains(' ') && !link.url.contains('+'));
+            assert_eq!(link.needs_paste, !link.url.contains("?q="));
         }
     }
 

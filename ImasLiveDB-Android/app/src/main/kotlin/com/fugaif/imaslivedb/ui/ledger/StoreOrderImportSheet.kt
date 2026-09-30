@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -216,10 +218,12 @@ fun StoreOrderImportSheet(
  * 指示文を入れて AI を開く。メール・マイページのスクリーンショットなど形の揃わない材料は
  * 利用者の AI に読ませ、アプリは決まった形の結果だけを読む (指示文と形はコアが持つ)。iOS `aiSection` と対。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AiSection(onCopyPrompt: () -> Unit) {
     val uriHandler = LocalUriHandler.current
     var copied by remember { mutableStateOf(false) }
+    var pasteHint by remember { mutableStateOf<String?>(null) }
     Text("AI にまとめてもらう", fontSize = 12.sp, color = DS.ink2)
     Spacer(Modifier.height(6.dp))
     Column(Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp)).padding(14.dp)) {
@@ -228,14 +232,26 @@ private fun AiSection(onCopyPrompt: () -> Unit) {
             fontSize = 13.sp, color = DS.ink2
         )
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 狭い画面では 3 つ並ばないので折り返す。
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             storeOrderAiLinks().forEach { link ->
-                OutlinedButton(onClick = { uriHandler.openUri(link.url) }) {
+                OutlinedButton(onClick = {
+                    // 指示文を URL で渡せない AI には、先にクリップボードへ入れておく。
+                    if (link.needsPaste) {
+                        onCopyPrompt()
+                        pasteHint = link.label
+                    }
+                    uriHandler.openUri(link.url)
+                }) {
                     Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("${link.label}で開く")
+                    Spacer(Modifier.width(4.dp))
+                    Text(link.label)
                 }
             }
+        }
+        pasteHint?.let {
+            Text("指示文をコピーしました。${it}の入力欄に貼り付けて送信してください。",
+                fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 6.dp))
         }
         TextButton(onClick = { onCopyPrompt(); copied = true }) {
             Icon(if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy, contentDescription = null)

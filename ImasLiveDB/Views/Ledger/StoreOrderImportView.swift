@@ -20,6 +20,9 @@ struct StoreOrderImportView: View {
     @State private var picking: DraftOrder.ID?
     @State private var saving = false
     @State private var promptCopied = false
+    /// 指示文を貼ってもらう AI を開いたとき、その名前。
+    @State private var pasteHint: String?
+    @Environment(\.openURL) private var openURL
 
     private var categories: [ExpenseCategoryInfo] { expenseCategories() }
 
@@ -89,18 +92,14 @@ struct StoreOrderImportView: View {
             VStack(alignment: .leading, spacing: DS.sp4) {
                 Text("メールやマイページのスクリーンショットから、AI に明細をまとめてもらえます。開いたら送信して、返ってきた結果をコピーして下に貼ってください。")
                     .font(.imasFootnote).foregroundStyle(DS.ink2)
-                HStack(spacing: DS.sp3) {
-                    ForEach(storeOrderAiLinks(), id: \.label) { link in
-                        if let url = URL(string: link.url) {
-                            Link(destination: url) {
-                                Label(link.label, systemImage: "arrow.up.right")
-                                    .font(.imasFootnote.weight(.semibold))
-                            }
-                            .accessibilityLabel("\(link.label)で開く")
-                            .buttonStyle(.bordered)
-                            .buttonBorderShape(.capsule)
-                        }
-                    }
+                // 狭い画面では 3 つ並ばないので縦に落とす。
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: DS.sp3) { aiLinkButtons }
+                    VStack(alignment: .leading, spacing: DS.sp2) { aiLinkButtons }
+                }
+                if let pasteHint {
+                    Text("指示文をコピーしました。\(pasteHint)の入力欄に貼り付けて送信してください。")
+                        .font(.imasCaption).foregroundStyle(DS.ink2)
                 }
                 Button {
                     UIPasteboard.general.string = storeOrderAiPrompt()
@@ -116,6 +115,31 @@ struct StoreOrderImportView: View {
             .padding(.vertical, DS.sp2)
         } header: {
             Text("AI にまとめてもらう")
+        }
+    }
+
+    @ViewBuilder
+    private var aiLinkButtons: some View {
+        ForEach(storeOrderAiLinks(), id: \.label) { link in
+            if let url = URL(string: link.url) {
+                Button {
+                    // 指示文を URL で渡せない AI には、先にクリップボードへ入れておく。
+                    if link.needsPaste {
+                        UIPasteboard.general.string = storeOrderAiPrompt()
+                        pasteHint = link.label
+                    }
+                    openURL(url)
+                } label: {
+                    // 折り返すと ViewThatFits が縦に落とさないので 1 行に固定する。
+                    Text(link.label)
+                        .font(.imasFootnote.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+                .accessibilityLabel("\(link.label)で開く")
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.capsule)
+            }
         }
     }
 
