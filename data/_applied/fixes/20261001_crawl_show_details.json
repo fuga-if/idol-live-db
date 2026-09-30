@@ -1,0 +1,249 @@
+{
+ "title": "公式ページから、今後の公演の空いていた特設 URL・開演時刻・会場を埋める",
+ "author": "crawl_show_details.py",
+ "source": "https://idolmaster-official.jp/live_event/283_noctchill/ https://idolmaster-official.jp/live_event/cg_15th_orchestra/ https://idolmaster-official.jp/live_event/cg_apai/ https://idolmaster-official.jp/live_event/deremilli_clashmatch/ https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ https://idolmaster-official.jp/live_event/shinycolors_orchestra_RC/ https://idolmaster-official.jp/live_event/sidem_pm2027/ https://idolmaster-official.jp/live_event/sidem_shinycolors_ss/",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~_1",
+   "fields": {
+    "start_time": "18:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~_2",
+   "fields": {
+    "start_time": "19:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~_1",
+   "fields": {
+    "venue_id": "venue_パシフィコ横浜",
+    "hall": "国立大ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~_2",
+   "fields": {
+    "venue_id": "venue_パシフィコ横浜",
+    "hall": "国立大ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_1",
+   "fields": {
+    "start_time": "19:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_2",
+   "fields": {
+    "start_time": "12:30"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_3",
+   "fields": {
+    "start_time": "17:30"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_1",
+   "fields": {
+    "venue_id": "venue_やまぎん県民ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_2",
+   "fields": {
+    "venue_id": "venue_やまぎん県民ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_athome_xr_live_apple_of_my_アイ_3",
+   "fields": {
+    "venue_id": "venue_やまぎん県民ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch_1",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch_2",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~_1",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~_2",
+   "fields": {
+    "start_time": "16:30"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~_1",
+   "fields": {
+    "venue_id": "venue_京王アリーナtokyo"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_producer_meeting_~ajewelholic_~_2",
+   "fields": {
+    "venue_id": "venue_京王アリーナtokyo"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_1",
+   "fields": {
+    "start_time": "13:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_2",
+   "fields": {
+    "start_time": "18:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_1",
+   "fields": {
+    "venue_id": "venue_パシフィコ横浜",
+    "hall": "国立大ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_orchestra_concert_-radiant_chord-_2",
+   "fields": {
+    "venue_id": "venue_パシフィコ横浜",
+    "hall": "国立大ホール"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_1",
+   "fields": {
+    "start_time": "13:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_2",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_3",
+   "fields": {
+    "start_time": "13:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_4",
+   "fields": {
+    "start_time": "17:00"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_1",
+   "fields": {
+    "venue_id": "venue_ゼビオアリーナ仙台"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_2",
+   "fields": {
+    "venue_id": "venue_ゼビオアリーナ仙台"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_3",
+   "fields": {
+    "venue_id": "venue_ゼビオアリーナ仙台"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_283_production_live_performance_noctchill_4",
+   "fields": {
+    "venue_id": "venue_ゼビオアリーナ仙台"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1",
+   "fields": {
+    "start_time": "17:30"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2",
+   "fields": {
+    "start_time": "17:30"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_1",
+   "fields": {
+    "venue_id": "venue_横浜アリーナ"
+   }
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_sidem_×_shiny_colors_sparkle_showdown_2",
+   "fields": {
+    "venue_id": "venue_横浜アリーナ"
+   }
+  }
+ ]
+}
