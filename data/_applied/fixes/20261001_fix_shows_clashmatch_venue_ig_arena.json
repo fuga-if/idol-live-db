@@ -1,0 +1,8 @@
+{
+ "title": "CLASH M@TCH!! 両日の会場を IGアリーナ に紐づける",
+ "source": "https://idolmaster-official.jp/live_event/deremilli_clashmatch/information/",
+ "fixes": [
+  {"table": "shows", "id": "sh_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch_1", "fields": {"venue_id": "venue_igアリーナ"}, "note": "公式の公演概要「開催場所 IGアリーナ」"},
+  {"table": "shows", "id": "sh_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch_2", "fields": {"venue_id": "venue_igアリーナ"}, "note": "同上"}
+ ]
+}
