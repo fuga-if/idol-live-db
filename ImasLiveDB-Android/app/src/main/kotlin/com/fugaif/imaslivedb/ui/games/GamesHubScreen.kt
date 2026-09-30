@@ -24,7 +24,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.games.QuizSuspended
+import com.fugaif.imaslivedb.data.games.SortMakerSession
+import com.fugaif.imaslivedb.data.games.SortMakerSubject
 import com.fugaif.imaslivedb.data.games.emptyGameRecord
 import com.fugaif.imaslivedb.data.games.hasPlayed
 import com.fugaif.imaslivedb.data.games.totalPlays
@@ -56,6 +61,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasListContainer
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import uniffi.imas_core.GameRecord
 import uniffi.imas_core.QuizGrade
 import uniffi.imas_core.gameProgressBestRatePercent
@@ -93,6 +99,7 @@ fun GamesHubScreen(
     onNavigateToIdolQuizSetup: () -> Unit,
     onNavigateToSongQuizSetup: () -> Unit,
     onNavigateToSetlistQuizSetup: () -> Unit,
+    onNavigateToSortMakerSetup: (SortMakerSubject) -> Unit,
     /** 「つづきから」。途中でやめたゲームへ直接入る。 */
     onResume: (GameKind) -> Unit = {}
 ) {
@@ -104,6 +111,7 @@ fun GamesHubScreen(
     val displayStreak = remember(streakState) { store.displayStreak }
     // 途中でやめたクイズ (1 問答えるたびに保存される)。
     val suspended by AppModule.from(context).quizResumeStore.sessions.collectAsStateWithLifecycle()
+    val sortMakerSessions by AppModule.from(context).sortMakerStore.sessions.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -157,8 +165,71 @@ fun GamesHubScreen(
                     }
                 }
             }
+            SortMakerSection(sortMakerSessions, onNavigateToSortMakerSetup)
         }
     }
+}
+
+// MARK: - ソートメーカー
+
+@Composable
+private fun SortMakerSection(
+    sessions: Map<SortMakerSubject, SortMakerSession>,
+    onOpen: (SortMakerSubject) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ImasSectionHeader(title = "ソートメーカー")
+        ImasListContainer {
+            SortMakerSubject.entries.forEachIndexed { i, subject ->
+                if (i > 0) {
+                    Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 68.dp)) {
+                        Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
+                    }
+                }
+                SortMakerRow(subject, sessions[subject]) { onOpen(subject) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortMakerRow(subject: SortMakerSubject, saved: SortMakerSession?, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .background(DS.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(ImasTheme.derive(null, null, dark = true).accent)
+        ) {
+            Icon(
+                if (subject == SortMakerSubject.SONG) Icons.Filled.MusicNote else Icons.Filled.Person,
+                contentDescription = null, tint = DS.surface, modifier = Modifier.size(20.dp)
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+            Text(subject.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(sortMakerBlurb(subject, saved), fontSize = 13.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        if (saved != null && !saved.isFinished) {
+            Text("${saved.replay().progressPercent}%", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(20.dp))
+    }
+}
+
+private fun sortMakerBlurb(subject: SortMakerSubject, saved: SortMakerSession?): String {
+    if (saved != null) {
+        if (saved.isFinished) saved.topNames.firstOrNull()?.let { return "前回の1位: $it" }
+        if (!saved.isFinished) return "つづきから"
+    }
+    return if (subject == SortMakerSubject.SONG) "2曲ずつ選んで好きな曲の順位を決める" else "2人ずつ選んで好きなアイドルの順位を決める"
 }
 
 // MARK: - QUIZ STAGE チケット

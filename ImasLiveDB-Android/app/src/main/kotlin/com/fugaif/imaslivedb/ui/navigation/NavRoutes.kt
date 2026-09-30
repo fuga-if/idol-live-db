@@ -115,6 +115,19 @@ sealed class NavRoutes(val route: String) {
         }
     }
     data object GamesColorMatch : NavRoutes("games_colormatch")
+    /** subject: "song" / "idol" (`SortMakerSubject.key`)。 */
+    data class GamesSortMakerSetup(val subject: String) : NavRoutes("games_sortmaker_setup/{subject}") {
+        companion object {
+            const val ROUTE = "games_sortmaker_setup/{subject}"
+            fun createRoute(subject: String) = "games_sortmaker_setup/$subject"
+        }
+    }
+    data class GamesSortMakerPlay(val subject: String) : NavRoutes("games_sortmaker_play/{subject}") {
+        companion object {
+            const val ROUTE = "games_sortmaker_play/{subject}"
+            fun createRoute(subject: String) = "games_sortmaker_play/$subject"
+        }
+    }
     data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")
     data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}") {
         companion object {

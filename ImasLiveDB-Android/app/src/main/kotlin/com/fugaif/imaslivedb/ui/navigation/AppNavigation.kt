@@ -43,6 +43,9 @@ import com.fugaif.imaslivedb.ui.games.SetlistQuizScreen
 import com.fugaif.imaslivedb.ui.games.SetlistQuizSetupScreen
 import com.fugaif.imaslivedb.ui.games.SongSingerQuizScreen
 import com.fugaif.imaslivedb.ui.games.SongSingerQuizSetupScreen
+import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.ui.sortmaker.SortMakerPlayScreen
+import com.fugaif.imaslivedb.ui.sortmaker.SortMakerSetupScreen
 import com.fugaif.imaslivedb.ui.idols.IdolDetailScreen
 import com.fugaif.imaslivedb.ui.idols.IdolListScreen
 import com.fugaif.imaslivedb.ui.idols.IdolSongHistoryScreen
@@ -384,6 +387,7 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToIdolQuizSetup = { navController.navigate(NavRoutes.GamesIdolQuizSetup.route) },
             onNavigateToSongQuizSetup = { navController.navigate(NavRoutes.GamesSongQuizSetup.route) },
             onNavigateToSetlistQuizSetup = { navController.navigate(NavRoutes.GamesSetlistQuizSetup.route) },
+            onNavigateToSortMakerSetup = { navController.navigate(NavRoutes.GamesSortMakerSetup.createRoute(it.key)) },
             onResume = { navController.navigate(NavRoutes.GamesResume.createRoute(it)) }
         )
     }
@@ -489,6 +493,38 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     composable(NavRoutes.GamesSetlistQuiz.ROUTE) { backStackEntry ->
         val brandIds = decodeGameBrandIds(backStackEntry.arguments?.getString("brandIds"))
         SetlistQuizScreen(selectedBrandIds = brandIds, onBack = { navController.popBackStack() })
+    }
+    composable(NavRoutes.GamesSortMakerSetup.ROUTE) { backStackEntry ->
+        val subject = SortMakerSubject.fromKey(backStackEntry.arguments?.getString("subject")) ?: SortMakerSubject.SONG
+        SortMakerSetupScreen(
+            subject = subject,
+            onBack = { navController.popBackStack() },
+            onPlay = { navController.navigate(NavRoutes.GamesSortMakerPlay.createRoute(subject.key)) }
+        )
+    }
+    composable(NavRoutes.GamesSortMakerPlay.ROUTE) { backStackEntry ->
+        val subject = SortMakerSubject.fromKey(backStackEntry.arguments?.getString("subject")) ?: SortMakerSubject.SONG
+        val context = LocalContext.current
+        val session = remember(subject) { AppModule.from(context).sortMakerStore.session(subject) }
+        if (session == null) {
+            LaunchedEffect(Unit) { navController.popBackStack() }
+        } else {
+            SortMakerPlayScreen(
+                session = session,
+                onBack = { navController.popBackStack() },
+                onItemClick = { item ->
+                    when (item) {
+                        is com.fugaif.imaslivedb.ui.sortmaker.SortMakerItem.SongItem ->
+                            navController.navigate(NavRoutes.SongDetail.createRoute(item.song.id))
+                        is com.fugaif.imaslivedb.ui.sortmaker.SortMakerItem.IdolItem ->
+                            navController.navigate(NavRoutes.IdolDetail.createRoute(item.idol.id))
+                    }
+                },
+                onPlayAgain = {
+                    navController.popBackStack(NavRoutes.GamesSortMakerSetup.createRoute(subject.key), false)
+                }
+            )
+        }
     }
     detailRoutes(navController)
 }
