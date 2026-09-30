@@ -27,7 +27,9 @@ class UserMarkRepository(
 
     private val dao get() = db.userMarkDao()
 
-    private val _attendanceMarked = MutableSharedFlow<AttendanceMarkedEvent>(extraBufferCapacity = 1)
+    // 公演の参加シートの「全部現地」は公演の数だけ続けて流す。受け手がシートを出している
+    // 間に溢れると tryEmit が黙って捨てる (2days の片方が聞かれなかった) ので、余裕を持たせる。
+    private val _attendanceMarked = MutableSharedFlow<AttendanceMarkedEvent>(extraBufferCapacity = 64)
 
     /**
      * 参加登録の入口は複数ある (行のスワイプ / 公演の参加シート / セトリ画面) が、

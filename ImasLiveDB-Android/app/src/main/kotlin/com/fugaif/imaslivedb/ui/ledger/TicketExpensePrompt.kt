@@ -25,6 +25,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,35 +73,44 @@ fun TicketExpensePrompt() {
     val context = LocalContext.current
     val module = remember(context) { AppModule.from(context) }
     val scope = rememberCoroutineScope()
-    var request by remember { mutableStateOf<TicketExpenseRequest?>(null) }
+    // 出番待ちの確認 (先頭を出す)。**2days をまとめて付けると通知が続けて届く**ので、
+    // 1 つの枠に入れると後の公演で前の公演が上書きされ、片方しか聞けない。
+    val queue = remember { mutableStateListOf<TicketExpenseRequest>() }
 
     LaunchedEffect(Unit) {
         module.userMarkRepository.attendanceMarked.collect { event ->
-            request = prepare(module, event)
+            val next = prepare(module, event) ?: return@collect
+            // 同じ公演は 1 度だけ聞く (付け外しを繰り返したときに同じ確認を重ねない)。
+            if (queue.any { it.showId == next.showId }) return@collect
+            queue.add(next)
         }
     }
 
-    request?.let { req ->
-        TicketExpenseSheet(
-            request = req,
-            onSave = { ticket, amount ->
-                scope.launch {
-                    val note = ticketExpenseNote(ticket)
-                    val expense = Expense.make(
-                        date = req.date.ifEmpty { DATE_FORMAT.format(Instant.now().atZone(ZoneOffset.UTC)) },
-                        category = ExpenseCategory.TICKET,
-                        amount = amount,
-                        showId = req.showId,
-                        eventId = req.eventId,
-                        note = note
-                    )
-                    // 保存できたときだけ閉じる (書けなかったら知らせて、シートは残す)。
-                    localWrite("チケット代の記録") { module.expenseRepository.save(expense) } ?: return@launch
-                    request = null
-                }
-            },
-            onDismiss = { request = null }
-        )
+    queue.firstOrNull()?.let { req ->
+        val done = { queue.remove(req) }
+        // 公演ごとに別のシートとして作り直す (前の公演の閉じた状態を引き継がない)。
+        key(req.showId) {
+            TicketExpenseSheet(
+                request = req,
+                onSave = { ticket, amount ->
+                    scope.launch {
+                        val note = ticketExpenseNote(ticket)
+                        val expense = Expense.make(
+                            date = req.date.ifEmpty { DATE_FORMAT.format(Instant.now().atZone(ZoneOffset.UTC)) },
+                            category = ExpenseCategory.TICKET,
+                            amount = amount,
+                            showId = req.showId,
+                            eventId = req.eventId,
+                            note = note
+                        )
+                        // 保存できたときだけ閉じる (書けなかったら知らせて、シートは残す)。
+                        localWrite("チケット代の記録") { module.expenseRepository.save(expense) } ?: return@launch
+                        done()
+                    }
+                },
+                onDismiss = { done() }
+            )
+        }
     }
 }
 

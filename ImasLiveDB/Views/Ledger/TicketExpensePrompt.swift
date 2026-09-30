@@ -30,7 +30,11 @@ struct TicketExpensePromptModifier: ViewModifier {
     let ledgerWriting: any LedgerWriting
     let showReading: any ShowReading
 
+    /// いま出している確認。
     @State private var request: TicketExpensePromptRequest?
+    /// 出番待ちの確認。**2days をまとめて付けると通知が続けて届く**ので、
+    /// 1 つの枠に入れると後の公演で前の公演が上書きされ、片方しか聞けない。
+    @State private var pending: [TicketExpensePromptRequest] = []
 
     func body(content: Content) -> some View {
         content
@@ -40,7 +44,7 @@ struct TicketExpensePromptModifier: ViewModifier {
                       let type = AttendanceType(rawValue: raw) else { return }
                 Task { await prepare(showId: showId, type: type) }
             }
-            .sheet(item: $request) { request in
+            .sheet(item: $request, onDismiss: presentNext) { request in
                 TicketExpenseSheet(request: request) { ticket, amount in
                     Task { await save(request: request, ticket: ticket, amount: amount) }
                 }
@@ -66,14 +70,34 @@ struct TicketExpensePromptModifier: ViewModifier {
 
         let options = (try? await ledgerReading.attendedShowOptions()) ?? []
         let option = options.first { $0.id == showId }
-        request = TicketExpensePromptRequest(
+        enqueue(TicketExpensePromptRequest(
             showId: showId,
             showLabel: option?.label ?? "この公演",
             eventId: option?.eventId,
             date: option?.date ?? "",
             kind: prompt.kind,
             tickets: prompt.tickets
-        )
+        ))
+    }
+
+    /// 空いていればすぐ出し、出していれば待ち行列に積む。同じ公演は 1 度だけ聞く
+    /// (付け外しを繰り返したときに同じ確認を重ねない)。待ちは公演日順に並べる
+    /// (通知ごとの読み込みは並行に走るので、届いた順は日付順とは限らない)。
+    private func enqueue(_ next: TicketExpensePromptRequest) {
+        guard request?.showId != next.showId,
+              !pending.contains(where: { $0.showId == next.showId }) else { return }
+        guard request != nil else {
+            request = next
+            return
+        }
+        pending.append(next)
+        pending.sort { ($0.date, $0.showId) < ($1.date, $1.showId) }
+    }
+
+    /// 閉じ終わってから次を出す (閉じている途中に差し替えると出ないことがある)。
+    private func presentNext() {
+        guard !pending.isEmpty else { return }
+        request = pending.removeFirst()
     }
 
     private func save(request: TicketExpensePromptRequest, ticket: ShowTicket, amount: Int64) async {
