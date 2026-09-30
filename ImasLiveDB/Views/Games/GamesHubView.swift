@@ -250,7 +250,7 @@ struct GamesHubView: View {
     }
 
     private func tierListRow(_ subject: SortMakerSubject) -> some View {
-        let board = tierStore.board(subject)
+        let count = tierStore.boards(for: subject).count
         return HStack(spacing: 12) {
             Image(systemName: "square.stack.3d.up")
                 .font(.imasScaled(18, weight: .semibold))
@@ -260,8 +260,7 @@ struct GamesHubView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(subject.tierTitle).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
                     .lineLimit(1).minimumScaleFactor(0.8)
-                Text(board.map { "\($0.itemIds.count - $0.unplacedIds.count) / \($0.itemIds.count) 振り分け済み" }
-                     ?? "S〜Dの段に振り分けて見せ合う")
+                Text(count > 0 ? "保存 \(count) 件" : "段に振り分けて1枚の画像に")
                     .font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
             }
             Spacer(minLength: 8)

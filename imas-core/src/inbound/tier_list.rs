@@ -43,6 +43,32 @@ pub fn tier_list_tier_label_max_chars() -> u32 {
     tier_list::TIER_LABEL_MAX_CHARS as u32
 }
 
+/// 段の数の下限・上限。
+#[uniffi::export]
+pub fn tier_list_min_tiers() -> u32 {
+    tier_list::MIN_TIERS as u32
+}
+
+#[uniffi::export]
+pub fn tier_list_max_tiers() -> u32 {
+    tier_list::MAX_TIERS as u32
+}
+
+/// `index` 番目 (0 始まり) に段を足すときの既定の段。色は今の段と被らない候補から選ぶ。
+#[uniffi::export]
+pub fn tier_list_new_tier(index: u32, existing_color_seeds: Vec<String>) -> TierListTier {
+    TierListTier {
+        label: tier_list::default_label(index as usize),
+        color_seed: tier_list::next_color_for_new_tier(&existing_color_seeds),
+    }
+}
+
+/// 段の色を次の候補へ (色の札をタップしたとき)。
+#[uniffi::export]
+pub fn tier_list_cycle_color(current: String) -> String {
+    tier_list::cycle_color(&current)
+}
+
 /// ソートメーカーの順位列 (上位から、同順位は同じ値) → 段の添字列 (0 = S) のたたき台。
 #[uniffi::export]
 pub fn tier_list_assign_from_ranking(ranks: Vec<u32>) -> Vec<u32> {

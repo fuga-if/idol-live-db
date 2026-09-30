@@ -9,7 +9,6 @@ struct SortMakerResultView: View {
     @State private var showShare = false
     @State private var confirmRestart = false
     @State private var tierBoard: TierListBoard?
-    @State private var confirmOverwriteTier = false
 
     private var subject: SortMakerSubject { model.session.subject }
     private var rows: [(rank: Int, item: SortMakerItem)] { model.rankedItems }
@@ -38,10 +37,6 @@ struct SortMakerResultView: View {
                 SortMakerStore.shared.clear(subject)
                 dismiss()
             }
-        }
-        .confirmationDialog("作りかけのティアー表を、この結果のたたき台で置き換えますか？",
-                            isPresented: $confirmOverwriteTier, titleVisibility: .visible) {
-            Button("置き換える", role: .destructive) { makeTierList() }
         }
         .navigationDestination(item: $tierBoard) { TierListView(board: $0) }
     }
@@ -91,11 +86,8 @@ struct SortMakerResultView: View {
 
             Button {
                 AppAnalytics.tap("sort_maker.to_tier_list")
-                if TierListStore.shared.board(subject) != nil {
-                    confirmOverwriteTier = true
-                } else {
-                    makeTierList()
-                }
+                // ティアー表は何枚でも保存できるので、新しい 1 枚として作る。
+                makeTierList()
             } label: {
                 Label("この順位でティアー表をつくる", systemImage: "square.stack.3d.up")
                     .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)

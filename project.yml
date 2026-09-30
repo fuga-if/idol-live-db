@@ -75,6 +75,7 @@ targets:
         INFOPLIST_KEY_NSAppleMusicUsageDescription: "楽曲のジャケット写真の表示とプレビュー再生に使用します"
         INFOPLIST_KEY_NSCameraUsageDescription: "セットリストの写真を撮影してOCRで曲名を認識します"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "セットリストの写真を選択してOCRで曲名を認識します"
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "ティアー表の画像を写真に保存します"
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるために使用します"
         INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription: "ライブの予定をカレンダーに追加するために使用します"
         INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription: "お手持ちのカレンダーの予定をアプリ内のスケジュールに重ねて表示するために使用します"

@@ -24,6 +24,7 @@ struct SortMakerSetupView: View {
     @State private var confirmRestart = false
     @State private var tierStore = TierListStore.shared
     @State private var openBoard: TierListBoard?
+    @State private var deletingBoard: TierListBoard?
 
     /// 前回の設定。カンマ区切り (曲とアイドルで別キー)。
     @AppStorage private var brandIdsRaw: String
@@ -47,8 +48,8 @@ struct SortMakerSetupView: View {
                 if purpose == .sort, let s = store.session(subject) {
                     savedCard(s)
                 }
-                if purpose == .tier, let b = tierStore.board(subject) {
-                    savedBoardCard(b)
+                if purpose == .tier, !tierStore.boards(for: subject).isEmpty {
+                    savedBoardsSection
                 }
                 brandSection
                 if subject == .song {
@@ -71,8 +72,15 @@ struct SortMakerSetupView: View {
             SortMakerPlayView(session: session)
         }
         .navigationDestination(item: $openBoard) { TierListView(board: $0) }
-        .confirmationDialog(purpose == .tier ? "今のティアー表を消して作り直しますか？"
-                            : (store.session(subject)?.isFinished == true ? "前回の結果を消して新しく始めますか？" : "前回の続きを消して最初から始めますか？"),
+        .confirmationDialog("「\(deletingBoard?.displayTitle ?? "")」を削除しますか？",
+                            isPresented: Binding(get: { deletingBoard != nil }, set: { if !$0 { deletingBoard = nil } }),
+                            titleVisibility: .visible) {
+            Button("削除", role: .destructive) {
+                if let b = deletingBoard { tierStore.delete(b.id) }
+                deletingBoard = nil
+            }
+        }
+        .confirmationDialog(store.session(subject)?.isFinished == true ? "前回の結果を消して新しく始めますか？" : "前回の続きを消して最初から始めますか？",
                             isPresented: $confirmRestart, titleVisibility: .visible) {
             Button("最初から始める", role: .destructive) { start() }
         }
@@ -110,11 +118,11 @@ struct SortMakerSetupView: View {
                 .frame(width: 52, height: 52)
                 .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(purpose == .sort ? "2つから好きな方を選ぶだけ" : "S〜Dの段に振り分ける")
+                Text(purpose == .sort ? "2つから好きな方を選ぶだけ" : "段に振り分けて1枚の画像に")
                     .font(.imasHeadline).foregroundStyle(DS.ink)
                 Text(purpose == .sort
                      ? "対戦を重ねると、あなたの\(subject == .song ? "好きな曲" : "好きなアイドル")ランキングができあがります。途中でやめても続きから遊べます。"
-                     : "選んだ対象がぜんぶ未分類に並びます。ソートメーカーの結果からたたき台を作ることもできます。")
+                     : "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -167,29 +175,43 @@ struct SortMakerSetupView: View {
         }
     }
 
-    private func savedBoardCard(_ b: TierListBoard) -> some View {
-        let placed = b.itemIds.count - b.unplacedIds.count
-        return HStack(spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("つくりかけのティアー表").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
-                Text("\(placed) / \(b.itemIds.count) 振り分け済み")
-                    .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).monospacedDigit()
-                Text(b.scopeLabel).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+    /// 端末に保存してあるティアー表 (新しく触ったものから)。長押しで削除。
+    private var savedBoardsSection: some View {
+        let boards = tierStore.boards(for: subject)
+        return VStack(alignment: .leading, spacing: DS.sp3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("保存したティアー表").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
+                Text("\(boards.count)").font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
             }
-            Spacer(minLength: DS.sp2)
-            Button {
-                AppAnalytics.tap("tier_list.open")
-                openBoard = b
-            } label: {
-                Text("開く")
-                    .font(.imasSubhead.weight(.bold)).foregroundStyle(DS.onSys)
-                    .padding(.horizontal, DS.sp5).frame(minHeight: 40)
-                    .background(DS.sys, in: Capsule())
+            ImasListContainer {
+                ForEach(Array(boards.enumerated()), id: \.element.id) { i, b in
+                    if i > 0 { ImasRowDivider(inset: DS.sp4) }
+                    Button {
+                        AppAnalytics.tap("tier_list.open")
+                        openBoard = b
+                    } label: {
+                        HStack(spacing: DS.sp3) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(b.displayTitle).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
+                                Text("\(b.placedCount) / \(b.itemIds.count) 振り分け済み · \(b.savedAt.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1).monospacedDigit()
+                            }
+                            Spacer(minLength: DS.sp2)
+                            Image(systemName: "chevron.right")
+                                .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
+                        }
+                        .padding(.horizontal, DS.sp4)
+                        .frame(minHeight: 60)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button("削除", systemImage: "trash", role: .destructive) { deletingBoard = b }
+                    }
+                }
             }
-            .buttonStyle(.plain)
+            Text("長押しで削除できます。").font(.imasCaption).foregroundStyle(DS.ink3)
         }
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
     }
 
     // MARK: - ブランド
@@ -326,9 +348,7 @@ struct SortMakerSetupView: View {
 
     private var startBar: some View {
         Button {
-            if purpose == .tier, tierStore.board(subject) != nil {
-                confirmRestart = true
-            } else if purpose == .sort, let s = store.session(subject), s.isFinished || !s.answers.isEmpty {
+            if purpose == .sort, let s = store.session(subject), s.isFinished || !s.answers.isEmpty {
                 confirmRestart = true
             } else {
                 start()
@@ -358,8 +378,7 @@ struct SortMakerSetupView: View {
     private func start() {
         if purpose == .tier {
             AppAnalytics.tap("tier_list.start")
-            let board = TierListBoard(subject: subject, itemIds: candidates.map(\.id), placements: [:],
-                                      scopeLabel: scopeLabel, savedAt: Date())
+            let board = TierListBoard(subject: subject, itemIds: candidates.map(\.id), scopeLabel: scopeLabel)
             tierStore.save(board)
             openBoard = board
             return

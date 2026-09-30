@@ -12,12 +12,52 @@
 //! - S には必ず 1 件以上入れる。
 //! - 件数が段数より少ないときは上から 1 件ずつ (空の段が下に残る)。
 
-/// 段の名前 (上から)。
+/// 最初に並ぶ段の名前 (上から)。
 pub const TIER_LABELS: [&str; 5] = ["S", "A", "B", "C", "D"];
 
-/// 段の色の種 (hex)。見慣れたティアー表の配色 (赤→橙→黄→緑→青)。
-/// 画面ではこれをテーマエンジンに通して明暗に合わせる。
-pub const TIER_COLOR_SEEDS: [&str; 5] = ["#FF5A5F", "#FF9F43", "#F6C744", "#2BC48A", "#4C8DFF"];
+/// 段を足したときの既定名 (6 段目以降)。
+const EXTRA_LABELS: [&str; 5] = ["E", "F", "G", "H", "I"];
+
+/// 段の色の候補 (hex)。先頭 5 色が最初の S〜D (見慣れた 赤→橙→黄→緑→青)、
+/// 残りは段を足したときと色を変えるときの候補。画面ではテーマエンジンに通して明暗に合わせる。
+pub const TIER_PALETTE: [&str; 10] = [
+    "#FF5A5F", "#FF9F43", "#F6C744", "#2BC48A", "#4C8DFF",
+    "#9B6BFF", "#FF6FB5", "#2EC4D6", "#A3D651", "#8E8E93",
+];
+
+/// 最初の S〜D の色 (= 候補の先頭 5 色)。
+pub const TIER_COLOR_SEEDS: [&str; 5] = [
+    TIER_PALETTE[0], TIER_PALETTE[1], TIER_PALETTE[2], TIER_PALETTE[3], TIER_PALETTE[4],
+];
+
+/// 段の数の下限と上限。1 段では振り分けにならず、10 段を超えると 1 画面に収まらない。
+pub const MIN_TIERS: usize = 2;
+pub const MAX_TIERS: usize = 10;
+
+/// `index` 番目 (0 始まり) に段を足すときの既定名。
+pub fn default_label(index: usize) -> String {
+    TIER_LABELS
+        .iter()
+        .chain(EXTRA_LABELS.iter())
+        .nth(index)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("{}", index + 1))
+}
+
+/// 段を足すときの色。今の段で使っていない候補を先頭から選ぶ (全部使っていれば段数で巡回)。
+pub fn next_color_for_new_tier(existing: &[String]) -> String {
+    TIER_PALETTE
+        .iter()
+        .find(|c| !existing.iter().any(|e| e.eq_ignore_ascii_case(c)))
+        .unwrap_or(&TIER_PALETTE[existing.len() % TIER_PALETTE.len()])
+        .to_string()
+}
+
+/// 色を変える操作 (タップごとに次の候補へ)。候補に無い色なら先頭へ。
+pub fn cycle_color(current: &str) -> String {
+    let i = TIER_PALETTE.iter().position(|c| c.eq_ignore_ascii_case(current));
+    TIER_PALETTE[i.map_or(0, |i| (i + 1) % TIER_PALETTE.len())].to_string()
+}
 
 /// 各段の取り分の目安 (百分率、合計 100)。
 const TIER_SHARES: [u32; 5] = [10, 20, 30, 25, 15];
@@ -131,6 +171,20 @@ mod tests {
         assert_eq!(normalize_name("かみかみかみかみ", 6), Some("かみかみかみ".to_string()));
         // 切った位置の直前が空白なら落とす。
         assert_eq!(normalize_name("abcde fgh", 6), Some("abcde".to_string()));
+    }
+
+    #[test]
+    fn tier_defaults_and_colors() {
+        assert_eq!(default_label(0), "S");
+        assert_eq!(default_label(5), "E");
+        assert_eq!(default_label(12), "13");
+        let used: Vec<String> = TIER_COLOR_SEEDS.iter().map(|s| s.to_string()).collect();
+        assert_eq!(next_color_for_new_tier(&used), TIER_PALETTE[5]);
+        let all: Vec<String> = TIER_PALETTE.iter().map(|s| s.to_lowercase()).collect();
+        assert_eq!(next_color_for_new_tier(&all), TIER_PALETTE[0]);
+        assert_eq!(cycle_color("#ff5a5f"), TIER_PALETTE[1]);
+        assert_eq!(cycle_color(TIER_PALETTE[9]), TIER_PALETTE[0]);
+        assert_eq!(cycle_color("#123456"), TIER_PALETTE[0]);
     }
 
     #[test]
