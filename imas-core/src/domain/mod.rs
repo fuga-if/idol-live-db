@@ -107,3 +107,4 @@ pub mod entity_resolution;
 // ギャラリーの manifest と、お気に入り送信の積み残し (両 OS に同じ規則が書かれていた)。
 pub mod gallery_manifest;
 pub mod pending_favorites;
+pub mod sort_maker;

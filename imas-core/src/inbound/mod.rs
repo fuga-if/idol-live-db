@@ -78,3 +78,4 @@ pub mod lyric_chunks;
 pub mod performance_stats;
 pub mod gallery_manifest;
 pub mod pending_favorites;
+pub mod sort_maker;

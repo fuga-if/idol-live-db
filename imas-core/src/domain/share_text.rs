@@ -448,6 +448,27 @@ pub fn quiz_result_share_text(
     )
 }
 
+/// ソートメーカー結果の共有文に載せる順位の上限。
+const SORT_MAKER_SHARE_LIMIT: usize = 10;
+
+/// ソートメーカー結果のシェア文。
+///
+/// `title` は「好きな曲ソート」等、`scope_label` は対象の説明 (「シャニマス 128曲」)。
+/// `ranked` は (順位, 名前) を上位から。同順位はそのまま同じ数字で並べる。
+/// 11 位以降は載せない (SNS の文字数で末尾のハッシュタグが切られないように)。
+pub fn sort_maker_share_text(title: &str, scope_label: &str, ranked: &[(u32, String)]) -> String {
+    let mut out = format!("{title}の結果");
+    if !scope_label.is_empty() {
+        out.push_str(&format!("（{scope_label}）"));
+    }
+    out.push('\n');
+    for (rank, name) in ranked.iter().take(SORT_MAKER_SHARE_LIMIT) {
+        out.push_str(&format!("{rank}位 {name}\n"));
+    }
+    out.push_str(HASHTAG);
+    out
+}
+
 /// イントロドンのゲームモード (シェア文の分岐に必要な分だけ)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IntroDonShareMode {
@@ -1019,5 +1040,17 @@ mod tests {
         assert_eq!(time_string(59.5), "1:00");
         assert_eq!(time_string(125.6), "2:06");
         assert_eq!(time_string(3599.5), "60:00");
+    }
+
+    #[test]
+    fn sort_maker_share_text_lists_top_ten_with_ties() {
+        let ranked: Vec<(u32, String)> =
+            (1..=12).map(|i| (if i == 2 { 1 } else { i }, format!("曲{i}"))).collect();
+        let text = sort_maker_share_text("好きな曲ソート", "シャニマス 12曲", &ranked);
+        assert!(text.starts_with("好きな曲ソートの結果（シャニマス 12曲）\n1位 曲1\n1位 曲2\n3位 曲3\n"));
+        assert!(text.contains("10位 曲10\n"));
+        assert!(!text.contains("曲11"));
+        assert!(text.ends_with(HASHTAG));
+        assert_eq!(sort_maker_share_text("t", "", &[]), format!("tの結果\n{HASHTAG}"));
     }
 }

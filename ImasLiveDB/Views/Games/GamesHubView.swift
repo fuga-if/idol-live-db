@@ -8,6 +8,7 @@ import SwiftUI
 struct GamesHubView: View {
     @State private var progress = GameProgressStore.shared
     @State private var resumeStore = QuizResumeStore.shared
+    @State private var sortStore = SortMakerStore.shared
 
     /// ハブに並べるゲーム定義 (表示順)。
     private struct GameEntry {
@@ -37,6 +38,7 @@ struct GamesHubView: View {
             VStack(alignment: .leading, spacing: DS.sp5) {
                 stageTicket
                 gameList
+                sortMakerList
             }
             .padding(DS.sp5)
         }
@@ -186,6 +188,63 @@ struct GamesHubView: View {
                 }
             }
         }
+    }
+
+    // MARK: - ソートメーカー
+
+    /// 点数を競うゲームではないので、QUIZ STAGE の記録とは別の節に置く。
+    private var sortMakerList: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            ImasSectionHeader(title: "ソートメーカー")
+            ImasListContainer {
+                ForEach(Array(SortMakerSubject.allCases.enumerated()), id: \.element) { i, subject in
+                    if i > 0 { ImasRowDivider(inset: 68) }
+                    NavigationLink {
+                        SortMakerSetupView(subject: subject)
+                    } label: {
+                        sortMakerRow(subject)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func sortMakerRow(_ subject: SortMakerSubject) -> some View {
+        let saved = sortStore.session(subject)
+        return HStack(spacing: 12) {
+            Image(systemName: subject.systemImage)
+                .font(.imasScaled(18, weight: .semibold))
+                .foregroundStyle(DS.onSys)
+                .frame(width: 40, height: 40)
+                .background(DS.sys, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(subject.title).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(sortMakerBlurb(subject, saved)).font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            if let saved, !saved.isFinished {
+                Text("\(saved.replay().progressPercent)%").font(.imasCaption.weight(.semibold))
+                    .foregroundStyle(DS.ink2).monospacedDigit()
+            }
+            Image(systemName: "chevron.right")
+                .font(.imasScaled(13, weight: .semibold))
+                .foregroundStyle(DS.ink3)
+        }
+        .padding(.horizontal, DS.sp4)
+        .frame(minHeight: 64)
+        .background(DS.surface)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+
+    private func sortMakerBlurb(_ subject: SortMakerSubject, _ saved: SortMakerSession?) -> String {
+        if let saved {
+            if saved.isFinished, let top = saved.topNames.first { return "前回の1位: \(top)" }
+            if !saved.isFinished { return "つづきから" }
+        }
+        return subject == .song ? "2曲ずつ選んで好きな曲の順位を決める" : "2人ずつ選んで好きなアイドルの順位を決める"
     }
 
     private func gameRow(_ entry: GameEntry) -> some View {
