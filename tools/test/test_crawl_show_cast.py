@@ -71,6 +71,48 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(mapping["a"].cast, [("礒部 花凜", "月岡 恋鐘")])
         self.assertEqual(mapping["b"].cast, [("関根 瞳", "櫻木 真乃")])
 
+    def test_schedule_dates_right_before_day_header(self):
+        # 開催日程の 2 日分のすぐ後に DAY.1 が来ても、日程の日付を DAY.1 の塊に持ち込まない (DAY2 に入れてしまった例)。
+        page = "<p>2027年3月13日(土)</p><p>2027年3月14日(日)</p><h3>DAY.1 出演者</h3><p>仲村 宗悟（天道 輝 役）</p>"
+        mapping, why = csc.assign(csc.parse_cast(page), self.days())
+        self.assertEqual(list(mapping), ["a"])
+
+    def test_two_dates_in_one_group_are_ambiguous(self):
+        page = "<p>2027年3月13日(土)</p><p>2027年3月14日(日)</p><p>仲村 宗悟（天道 輝 役）</p>"
+        self.assertEqual(csc.assign(csc.parse_cast(page), self.days())[0], {})
+
+    def test_schedule_far_above_is_ignored(self):
+        page = ("<p>2027年3月14日(日)</p><p>会場: 某所</p><h3>DAY.1 出演者</h3><p>仲村 宗悟（天道 輝 役）</p>"
+                "<h3>DAY.2</h3><p>濱 健人（木村 龍 役）</p>")
+        mapping, why = csc.assign(csc.parse_cast(page), self.days())
+        self.assertEqual((mapping["a"].cast[0][1], mapping["b"].cast[0][1]), ("天道 輝", "木村 龍"))
+
+    def test_day_number_and_date_disagree(self):
+        page = "<p>DAY1 3.14 Sun</p><p>仲村 宗悟（天道 輝 役）</p>"
+        self.assertEqual(csc.assign(csc.parse_cast(page), self.days())[0], {})
+
+    def test_day_number_is_not_used_for_multi_venue_tour(self):
+        shows = self.days() + [csc.Show("c", "DAY1", "2027-03-20", False), csc.Show("d", "DAY2", "2027-03-21", False)]
+        page = "<p>DAY1</p><p>仲村 宗悟（天道 輝 役）</p><p>DAY2</p><p>濱 健人（木村 龍 役）</p>"
+        self.assertEqual(csc.assign(csc.parse_cast(page), shows)[0], {})
+
+    def test_br_separated_cast(self):
+        (seg,) = csc.parse_cast("<p>濱 健人（木村 龍 役）<br>野上 翔（伊瀬谷 四季 役）</p>")
+        self.assertEqual(len(seg.cast), 2)
+        (seg,) = csc.parse_cast("<p>濱 健人（木村 龍 役）</p><p>野上 翔（伊瀬谷 四季 役） 小林 大紀（水嶋 咲 役）</p>")
+        self.assertEqual(len(seg.unread), 1)
+
+    def test_slash_separated_cast(self):
+        (seg,) = csc.parse_cast("<p>DAY1</p><p>W</p><p>菊池 勇成(蒼井 悠介役) / 山谷 祥生(蒼井 享介役) /</p>")
+        self.assertEqual(seg.cast, [("菊池 勇成", "蒼井 悠介"), ("山谷 祥生", "蒼井 享介")])
+
+    def test_day_number_two_digits(self):
+        self.assertEqual(csc.header_hint(["DAY10"], 2027)[0], 10)
+
+    @staticmethod
+    def days():
+        return [csc.Show("a", "DAY1", "2027-03-13", False), csc.Show("b", "DAY2", "2027-03-14", False)]
+
     def test_one_list_for_two_shows_needs_judgment(self):
         shows = [csc.Show("a", "DAY1", "2027-03-13", False), csc.Show("b", "DAY2", "2027-03-14", False)]
         mapping, why = csc.assign(csc.parse_cast("<p>仲村 宗悟（天道 輝 役）</p>"), shows)
