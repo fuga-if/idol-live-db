@@ -34,6 +34,10 @@ jobs:
         with:
           python-version: "3.12"
 
+      # export_cloudkit / seed_cloudkit のテストが requests を import する。版は refresh-data.yml と揃える。
+      - name: Install deps
+        run: pip install requests==2.32.5 ecdsa==0.19.2
+
       - name: Syntax check
         run: python3 tools/check_python_syntax.py
 
