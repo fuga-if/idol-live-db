@@ -128,6 +128,19 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(subject: String) = "games_sortmaker_play/$subject"
         }
     }
+    /** subject: "song" / "idol" (`SortMakerSubject.key`)。 */
+    data class GamesTierListSetup(val subject: String) : NavRoutes("games_tierlist_setup/{subject}") {
+        companion object {
+            const val ROUTE = "games_tierlist_setup/{subject}"
+            fun createRoute(subject: String) = "games_tierlist_setup/$subject"
+        }
+    }
+    data class GamesTierListEdit(val subject: String) : NavRoutes("games_tierlist_edit/{subject}") {
+        companion object {
+            const val ROUTE = "games_tierlist_edit/{subject}"
+            fun createRoute(subject: String) = "games_tierlist_edit/$subject"
+        }
+    }
     data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")
     data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}") {
         companion object {

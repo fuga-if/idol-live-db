@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,8 +51,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.games.SortMakerDepth
+import com.fugaif.imaslivedb.data.games.SortMakerPurpose
 import com.fugaif.imaslivedb.data.games.SortMakerSession
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
@@ -90,6 +93,7 @@ data class SortMakerSetupUiState(
 class SortMakerSetupViewModel : ViewModel() {
 
     private lateinit var subject: SortMakerSubject
+    private var purpose: SortMakerPurpose = SortMakerPurpose.SORT
     private var appModule: AppModule? = null
     private var appContext: Context? = null
 
@@ -99,8 +103,9 @@ class SortMakerSetupViewModel : ViewModel() {
     /** 条件が変わっている間に読み込みが終わっても、古い件数で上書きしない。 */
     private var loadRequest = 0
 
-    fun load(context: Context, subject: SortMakerSubject) {
+    fun load(context: Context, subject: SortMakerSubject, purpose: SortMakerPurpose = SortMakerPurpose.SORT) {
         this.subject = subject
+        this.purpose = purpose
         val module = AppModule.from(context)
         appModule = module
         appContext = context.applicationContext
@@ -152,6 +157,19 @@ class SortMakerSetupViewModel : ViewModel() {
         return session
     }
 
+    /** ティアー表を新しく作って開く。 */
+    fun startTier(): TierListBoard {
+        val state = _uiState.value
+        val board = TierListBoard(
+            subject = subject,
+            itemIds = state.candidates.map { it.id },
+            placements = emptyMap(),
+            scopeLabel = scopeLabel(state)
+        )
+        appModule?.tierListStore?.save(board)
+        return board
+    }
+
     fun scopeLabel(state: SortMakerSetupUiState = _uiState.value): String {
         val parts = mutableListOf<String>()
         val names = state.brands.filter { state.scope.brandIds.contains(it.id) }.map { it.shortName }
@@ -165,8 +183,9 @@ class SortMakerSetupViewModel : ViewModel() {
                 )
             }
         }
-        val depthText = state.depth.label
-        return parts.joinToString("・") + " ${state.candidates.size}${subject.counter}から$depthText"
+        val base = parts.joinToString("・") + " ${state.candidates.size}${subject.counter}"
+        if (purpose != SortMakerPurpose.SORT) return base
+        return base + "から" + state.depth.label
     }
 
     private suspend fun reload() {
@@ -194,34 +213,42 @@ class SortMakerSetupViewModel : ViewModel() {
 @Composable
 fun SortMakerSetupScreen(
     subject: SortMakerSubject,
+    purpose: SortMakerPurpose = SortMakerPurpose.SORT,
     onBack: () -> Unit,
     onPlay: (SortMakerSession) -> Unit,
-    viewModel: SortMakerSetupViewModel = viewModel(key = "sort_maker_setup_${subject.key}")
+    onOpenTier: (TierListBoard) -> Unit = {},
+    viewModel: SortMakerSetupViewModel = viewModel(key = "sort_maker_setup_${purpose}_${subject.key}")
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // 「つづきから」の有無は SortMakerStore を直接購読する (ViewModel の uiState は load() 時点の
-    // スナップショットで、Play 画面で答えたあと戻ってきても古いままになるため)。
+    // 「つづきから」の有無は SortMakerStore/TierListStore を直接購読する (ViewModel の uiState は
+    // load() 時点のスナップショットで、Play/編集画面から戻ってきても古いままになるため)。
     val sortMakerSessions by AppModule.from(context).sortMakerStore.sessions.collectAsStateWithLifecycle()
+    val tierBoards by AppModule.from(context).tierListStore.boards.collectAsStateWithLifecycle()
     val savedSession = sortMakerSessions[subject]
+    val savedBoard = tierBoards[subject]
     var confirmRestart by rememberSaveable { mutableStateOf(false) }
     var showIdolPicker by rememberSaveable { mutableStateOf(false) }
 
-    androidx.compose.runtime.LaunchedEffect(subject) {
-        viewModel.load(context, subject)
+    androidx.compose.runtime.LaunchedEffect(subject, purpose) {
+        viewModel.load(context, subject, purpose)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(subject.title, fontWeight = FontWeight.Bold) },
+                title = { Text(if (purpose == SortMakerPurpose.SORT) subject.title else subject.tierTitle, fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") } }
             )
         },
         bottomBar = {
-            StartBar(canStart = state.canStart) {
-                if (savedSession != null && !savedSession.isFinished && savedSession.answers.isNotEmpty()) {
+            StartBar(canStart = state.canStart, purpose = purpose) {
+                if (purpose == SortMakerPurpose.TIER && savedBoard != null) {
                     confirmRestart = true
+                } else if (purpose == SortMakerPurpose.SORT && savedSession != null && !savedSession.isFinished && savedSession.answers.isNotEmpty()) {
+                    confirmRestart = true
+                } else if (purpose == SortMakerPurpose.TIER) {
+                    onOpenTier(viewModel.startTier())
                 } else {
                     onPlay(viewModel.start())
                 }
@@ -237,9 +264,11 @@ fun SortMakerSetupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            HeaderCard(subject)
-            savedSession?.let { saved ->
-                SavedCard(saved) { onPlay(saved) }
+            HeaderCard(subject, purpose)
+            if (purpose == SortMakerPurpose.SORT) {
+                savedSession?.let { saved -> SavedCard(saved) { onPlay(saved) } }
+            } else {
+                savedBoard?.let { saved -> SavedBoardCard(saved) { onOpenTier(saved) } }
             }
             BrandSection(state) { viewModel.updateScope(state.scope.copy(brandIds = it)) }
             if (subject == SortMakerSubject.SONG) {
@@ -254,15 +283,17 @@ fun SortMakerSetupScreen(
                     }
                 )
             }
-            DepthSection(state.depth) { viewModel.setDepth(it) }
-            Summary(state, subject)
+            if (purpose == SortMakerPurpose.SORT) {
+                DepthSection(state.depth) { viewModel.setDepth(it) }
+            }
+            Summary(state, subject, purpose)
         }
     }
 
     if (confirmRestart) {
         AlertDialog(
             onDismissRequest = { confirmRestart = false },
-            title = { Text("前回の続きを消して最初から始めますか？") },
+            title = { Text(if (purpose == SortMakerPurpose.SORT) "前回の続きを消して最初から始めますか？" else "今のティアー表を消して作り直しますか？") },
             confirmButton = {
                 Text(
                     "最初から始める",
@@ -270,7 +301,7 @@ fun SortMakerSetupScreen(
                     modifier = Modifier
                         .clickable {
                             confirmRestart = false
-                            onPlay(viewModel.start())
+                            if (purpose == SortMakerPurpose.TIER) onOpenTier(viewModel.startTier()) else onPlay(viewModel.start())
                         }
                         .padding(12.dp)
                 )
@@ -310,7 +341,7 @@ private fun rememberCoroutineScopeCompat() = androidx.compose.runtime.rememberCo
 // MARK: - ヘッダ
 
 @Composable
-private fun HeaderCard(subject: SortMakerSubject) {
+private fun HeaderCard(subject: SortMakerSubject, purpose: SortMakerPurpose) {
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -319,12 +350,18 @@ private fun HeaderCard(subject: SortMakerSubject) {
             modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(ImasTheme.derive(null, null, dark = true).accent),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.SwapHoriz, null, tint = DS.surface)
+            Icon(if (purpose == SortMakerPurpose.SORT) Icons.Filled.SwapHoriz else Icons.Filled.Layers, null, tint = DS.surface)
         }
         Column {
-            Text("2つから好きな方を選ぶだけ", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Text(
-                "対戦を重ねると、あなたの${if (subject == SortMakerSubject.SONG) "好きな曲" else "好きなアイドル"}ランキングができあがります。途中でやめても続きから遊べます。",
+                if (purpose == SortMakerPurpose.SORT) "2つから好きな方を選ぶだけ" else "S〜Dの段に振り分ける",
+                fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink
+            )
+            Text(
+                if (purpose == SortMakerPurpose.SORT)
+                    "対戦を重ねると、あなたの${if (subject == SortMakerSubject.SONG) "好きな曲" else "好きなアイドル"}ランキングができあがります。途中でやめても続きから遊べます。"
+                else
+                    "選んだ対象がぜんぶ未分類に並びます。ソートメーカーの結果からたたき台を作ることもできます。",
                 fontSize = 12.sp, color = DS.ink3
             )
         }
@@ -377,6 +414,32 @@ private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
                 color = ImasTheme.derive(null, null, dark = true).accent,
                 trackColor = DS.fill
             )
+        }
+    }
+}
+
+@Composable
+private fun SavedBoardCard(b: TierListBoard, onOpen: () -> Unit) {
+    val placed = b.itemIds.size - b.unplacedIds.size
+    Row(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("つくりかけのティアー表", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
+            Text("$placed / ${b.itemIds.size} 振り分け済み", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Text(b.scopeLabel, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
+        }
+        val accent = ImasTheme.derive(null, null, dark = true).accent
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(accent)
+                .clickable(onClick = onOpen)
+                .padding(horizontal = 20.dp, vertical = 10.dp)
+        ) {
+            Text("開く", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.surface)
         }
     }
 }
@@ -467,7 +530,7 @@ private fun DepthSection(depth: SortMakerDepth, onChange: (SortMakerDepth) -> Un
 // MARK: - 件数と見積り
 
 @Composable
-private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject) {
+private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject, purpose: SortMakerPurpose) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
@@ -480,15 +543,17 @@ private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject) {
                     Text(subject.counter, fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(start = 2.dp, bottom = 2.dp))
                 }
             }
-            Column {
-                Text("対戦の目安", fontSize = 12.sp, color = DS.ink3)
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(if (state.isLoading) "…" else "約${state.estimate}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                    Text("戦", fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(start = 2.dp, bottom = 2.dp))
+            if (purpose == SortMakerPurpose.SORT) {
+                Column {
+                    Text("対戦の目安", fontSize = 12.sp, color = DS.ink3)
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(if (state.isLoading) "…" else "約${state.estimate}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                        Text("戦", fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(start = 2.dp, bottom = 2.dp))
+                    }
                 }
             }
         }
-        val hint = hintFor(state, subject)
+        val hint = hintFor(state, subject, purpose)
         if (!state.isLoading && hint != null) {
             Text(hint, fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(horizontal = 4.dp))
         }
@@ -496,8 +561,11 @@ private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject) {
 }
 
 /** 対戦が長すぎる / 少なすぎるときのひとこと。 */
-private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject): String? {
+private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject, purpose: SortMakerPurpose): String? {
     if (state.candidates.size < 2) return "2${subject.counter}以上になるように絞り込みをゆるめてください。"
+    if (purpose == SortMakerPurpose.TIER) {
+        return if (state.candidates.size > 120) "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" else null
+    }
     if (state.estimate > 600) {
         return if (state.depth == SortMakerDepth.ALL) {
             "かなり長くなります。ブランドを絞るか「ベスト10」がおすすめです。途中保存されるので少しずつでも大丈夫です。"
@@ -511,7 +579,7 @@ private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject): St
 // MARK: - 開始
 
 @Composable
-private fun StartBar(canStart: Boolean, onStart: () -> Unit) {
+private fun StartBar(canStart: Boolean, purpose: SortMakerPurpose, onStart: () -> Unit) {
     val accent = ImasTheme.derive(null, null, dark = true).accent
     Box(
         modifier = Modifier.fillMaxWidth().background(DS.bg).padding(horizontal = 16.dp, vertical = 12.dp)
@@ -525,7 +593,10 @@ private fun StartBar(canStart: Boolean, onStart: () -> Unit) {
                 .padding(vertical = 16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("はじめる", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.surface)
+            Text(
+                if (purpose == SortMakerPurpose.SORT) "はじめる" else "ティアー表をつくる",
+                fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.surface
+            )
         }
     }
 }

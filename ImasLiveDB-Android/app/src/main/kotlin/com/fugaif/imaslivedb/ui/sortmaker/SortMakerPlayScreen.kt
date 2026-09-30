@@ -181,6 +181,7 @@ fun SortMakerPlayScreen(
     onBack: () -> Unit,
     onItemClick: (SortMakerItem) -> Unit,
     onPlayAgain: () -> Unit,
+    onOpenTierList: (com.fugaif.imaslivedb.data.games.TierListBoard) -> Unit = {},
     viewModel: SortMakerPlayViewModel = viewModel(key = "sort_maker_play_${session.subject.key}")
 ) {
     val context = LocalContext.current
@@ -216,7 +217,8 @@ fun SortMakerPlayScreen(
                         model = viewModel,
                         state = s,
                         onItemClick = onItemClick,
-                        onPlayAgain = onPlayAgain
+                        onPlayAgain = onPlayAgain,
+                        onOpenTierList = onOpenTierList
                     )
                 }
                 else -> {

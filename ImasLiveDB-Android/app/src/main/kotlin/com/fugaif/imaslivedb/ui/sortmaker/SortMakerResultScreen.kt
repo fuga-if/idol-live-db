@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -40,7 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.di.AppModule
+import uniffi.imas_core.tierListAssignFromRanking
 import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
@@ -56,13 +59,30 @@ fun SortMakerResultScreen(
     model: SortMakerPlayViewModel,
     state: SortMakerPlayUiState,
     onItemClick: (SortMakerItem) -> Unit,
-    onPlayAgain: () -> Unit
+    onPlayAgain: () -> Unit,
+    onOpenTierList: (TierListBoard) -> Unit = {}
 ) {
     val context = LocalContext.current
     val subject = state.session.subject
     val rows = remember(state) { model.rankedItems() }
     var showShare by rememberSaveable { mutableStateOf(false) }
     var confirmRestart by rememberSaveable { mutableStateOf(false) }
+    var confirmOverwriteTier by rememberSaveable { mutableStateOf(false) }
+
+    fun makeTierList() {
+        // 振り分け規則はコア (tierListAssignFromRanking)。ここでは順位を渡すだけ。
+        val tiers = tierListAssignFromRanking(rows.map { it.first.toUInt() })
+        val placements = rows.mapIndexed { i, (_, item) -> item.id to tiers[i].toInt() }.toMap()
+        val board = TierListBoard(
+            subject = subject,
+            itemIds = rows.map { it.second.id },
+            placements = placements,
+            scopeLabel = state.session.scopeLabel,
+            suggested = placements
+        )
+        AppModule.from(context).tierListStore.save(board)
+        onOpenTierList(board)
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -88,6 +108,9 @@ fun SortMakerResultScreen(
         Actions(
             canUndo = model.canUndo,
             onShare = { showShare = true },
+            onMakeTierList = {
+                if (AppModule.from(context).tierListStore.board(subject) != null) confirmOverwriteTier = true else makeTierList()
+            },
             onUndoLast = { model.undo() },
             onPlayAgain = { confirmRestart = true }
         )
@@ -121,6 +144,22 @@ fun SortMakerResultScreen(
             },
             dismissButton = {
                 Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmRestart = false }.padding(12.dp))
+            }
+        )
+    }
+
+    if (confirmOverwriteTier) {
+        AlertDialog(
+            onDismissRequest = { confirmOverwriteTier = false },
+            title = { Text("作りかけのティアー表を、この結果のたたき台で置き換えますか？") },
+            confirmButton = {
+                Text(
+                    "置き換える", color = DS.warning,
+                    modifier = Modifier.clickable { confirmOverwriteTier = false; makeTierList() }.padding(12.dp)
+                )
+            },
+            dismissButton = {
+                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmOverwriteTier = false }.padding(12.dp))
             }
         )
     }
@@ -194,7 +233,13 @@ private fun PodiumVisual(item: SortMakerItem, size: androidx.compose.ui.unit.Dp)
 // MARK: - 操作
 
 @Composable
-private fun Actions(canUndo: Boolean, onShare: () -> Unit, onUndoLast: () -> Unit, onPlayAgain: () -> Unit) {
+private fun Actions(
+    canUndo: Boolean,
+    onShare: () -> Unit,
+    onMakeTierList: () -> Unit,
+    onUndoLast: () -> Unit,
+    onPlayAgain: () -> Unit
+) {
     val accent = ImasTheme.derive(null, null, dark = true).accent
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -210,6 +255,20 @@ private fun Actions(canUndo: Boolean, onShare: () -> Unit, onUndoLast: () -> Uni
             Icon(Icons.Filled.Share, null, tint = DS.surface, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text("結果をシェア", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.surface)
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(DS.surface)
+                .clickable(onClick = onMakeTierList)
+                .padding(vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.Layers, null, tint = DS.ink, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("この順位でティアー表をつくる", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Row(

@@ -40,6 +40,7 @@ import com.fugaif.imaslivedb.data.net.WorkerHttpClient
 import com.fugaif.imaslivedb.data.games.GameProgressStore
 import com.fugaif.imaslivedb.data.games.QuizResumeStore
 import com.fugaif.imaslivedb.data.games.SortMakerStore
+import com.fugaif.imaslivedb.data.games.TierListStore
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -142,6 +143,7 @@ class AppModule private constructor(context: Context) {
     val gameProgressStore: GameProgressStore by lazy { GameProgressStore(appContext) }
     val quizResumeStore: QuizResumeStore by lazy { QuizResumeStore(appContext) }
     val sortMakerStore: SortMakerStore by lazy { SortMakerStore(appContext) }
+    val tierListStore: TierListStore by lazy { TierListStore(appContext) }
     val backupTransferApi: BackupTransferApi by lazy { BackupTransferApi(workerHttpClient) }
 
     companion object {

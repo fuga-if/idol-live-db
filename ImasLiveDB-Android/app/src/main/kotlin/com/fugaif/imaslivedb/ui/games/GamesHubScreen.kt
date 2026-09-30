@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
@@ -53,6 +54,7 @@ import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.games.QuizSuspended
 import com.fugaif.imaslivedb.data.games.SortMakerSession
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.data.games.emptyGameRecord
 import com.fugaif.imaslivedb.data.games.hasPlayed
 import com.fugaif.imaslivedb.data.games.totalPlays
@@ -100,6 +102,7 @@ fun GamesHubScreen(
     onNavigateToSongQuizSetup: () -> Unit,
     onNavigateToSetlistQuizSetup: () -> Unit,
     onNavigateToSortMakerSetup: (SortMakerSubject) -> Unit,
+    onNavigateToTierListSetup: (SortMakerSubject) -> Unit,
     /** 「つづきから」。途中でやめたゲームへ直接入る。 */
     onResume: (GameKind) -> Unit = {}
 ) {
@@ -112,6 +115,7 @@ fun GamesHubScreen(
     // 途中でやめたクイズ (1 問答えるたびに保存される)。
     val suspended by AppModule.from(context).quizResumeStore.sessions.collectAsStateWithLifecycle()
     val sortMakerSessions by AppModule.from(context).sortMakerStore.sessions.collectAsStateWithLifecycle()
+    val tierBoards by AppModule.from(context).tierListStore.boards.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -165,30 +169,68 @@ fun GamesHubScreen(
                     }
                 }
             }
-            SortMakerSection(sortMakerSessions, onNavigateToSortMakerSetup)
+            SortMakerSection(sortMakerSessions, tierBoards, onNavigateToSortMakerSetup, onNavigateToTierListSetup)
         }
     }
 }
 
-// MARK: - ソートメーカー
+// MARK: - ソートメーカー・ティアー表
 
 @Composable
 private fun SortMakerSection(
     sessions: Map<SortMakerSubject, SortMakerSession>,
-    onOpen: (SortMakerSubject) -> Unit
+    tierBoards: Map<SortMakerSubject, TierListBoard>,
+    onOpenSort: (SortMakerSubject) -> Unit,
+    onOpenTier: (SortMakerSubject) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        ImasSectionHeader(title = "ソートメーカー")
+        ImasSectionHeader(title = "ソートメーカー・ティアー表")
         ImasListContainer {
-            SortMakerSubject.entries.forEachIndexed { i, subject ->
+            val subjects = SortMakerSubject.entries.toList()
+            subjects.forEachIndexed { i, subject ->
                 if (i > 0) {
                     Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 68.dp)) {
                         Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
                     }
                 }
-                SortMakerRow(subject, sessions[subject]) { onOpen(subject) }
+                SortMakerRow(subject, sessions[subject]) { onOpenSort(subject) }
+            }
+            subjects.forEach { subject ->
+                Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 68.dp)) {
+                    Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
+                }
+                TierListRow(subject, tierBoards[subject]) { onOpenTier(subject) }
             }
         }
+    }
+}
+
+@Composable
+private fun TierListRow(subject: SortMakerSubject, board: TierListBoard?, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .background(DS.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(ImasTheme.derive(null, null, dark = true).accent)
+        ) {
+            Icon(Icons.Filled.Layers, contentDescription = null, tint = DS.surface, modifier = Modifier.size(20.dp))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.weight(1f)) {
+            Text(subject.tierTitle, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                board?.let { "${it.itemIds.size - it.unplacedIds.size} / ${it.itemIds.size} 振り分け済み" } ?: "S〜Dの段に振り分けて見せ合う",
+                fontSize = 13.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(20.dp))
     }
 }
 

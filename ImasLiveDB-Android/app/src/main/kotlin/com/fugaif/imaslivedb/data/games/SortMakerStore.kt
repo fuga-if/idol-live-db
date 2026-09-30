@@ -37,6 +37,13 @@ enum class SortMakerSubject {
             IDOL -> "人"
         }
 
+    /** ティアー表のナビタイトル。 */
+    val tierTitle: String
+        get() = when (this) {
+            SONG -> "曲のティアー表"
+            IDOL -> "アイドルのティアー表"
+        }
+
     /** 永続化キー用の短い文字列。 */
     val key: String
         get() = when (this) {
@@ -47,6 +54,12 @@ enum class SortMakerSubject {
     companion object {
         fun fromKey(key: String?): SortMakerSubject? = entries.firstOrNull { it.key == key }
     }
+}
+
+/** 何を作るか。対象の選び方はソートとティアー表で共通 (SortMakerSetupScreen)。 */
+enum class SortMakerPurpose {
+    SORT,
+    TIER
 }
 
 /** 上位何位まで決めるか。値は `topK` (0 = 全順位)。 */
