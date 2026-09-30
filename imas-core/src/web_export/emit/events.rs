@@ -314,6 +314,7 @@ pub fn show_page(ctx: &Ctx, show_id: &str) -> Option<ShowPage> {
                         song: ctx.song_ref(&s.song_id)?,
                         percent: (s.score * 100.0).round().clamp(0.0, 100.0) as u32,
                         reasons: s.reasons.iter().map(|r| r.label.clone()).collect(),
+                        originals: s.originals.as_ref().map(|o| o.label.clone()).filter(|l| !l.is_empty()),
                     })
                 })
                 .collect(),

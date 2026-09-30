@@ -26,6 +26,7 @@ const { forecast } = Astro.props;
             <span class="rank-row__name">
               <span class="rank-row__title u-clamp1 u-underline-hover">{row.song.name}</span>
               {row.song.sub && <span class="rank-row__sub u-clamp1">{row.song.sub}</span>}
+              {row.originals && <span class="forecast__originals">{row.originals}</span>}
               {row.reasons.length > 0 && (
                 <span class="forecast__reasons">
                   {row.reasons.map((r) => (

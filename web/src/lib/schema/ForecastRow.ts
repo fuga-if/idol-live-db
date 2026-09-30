@@ -10,6 +10,10 @@ export type ForecastRow = { rank: number, song: Ref,
  */
 percent: number, 
 /**
- * 理由 (「オリメン全員出演」など)。表示の優先順。
+ * 理由 (「前日に歌った」など)。表示の優先順。
  */
-reasons: Array<string>, };
+reasons: Array<string>, 
+/**
+ * オリメンは誰で、この公演に出るか (`オリメン 2/3: … · 欠席 …`)。ソロ曲などは無し。
+ */
+originals: string | null, };

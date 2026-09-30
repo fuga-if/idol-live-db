@@ -365,6 +365,10 @@ private fun ForecastRowView(
                     color = DS.ink2
                 )
             }
+            // オリメンは誰で、この公演に出るか (文言はコア)。ソロ曲などは無し。
+            song.originals?.label?.takeIf { it.isNotEmpty() }?.let { originals ->
+                Text(originals, fontSize = 12.sp, color = DS.ink2)
+            }
             if (reasonLabels.isNotEmpty()) {
                 // 札は省略せずに全文を出す。横に収まらなければ折り返す。
                 FlowRow(

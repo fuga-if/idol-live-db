@@ -75,8 +75,10 @@ web_dto! {
         pub song: Ref,
         /// セトリに入る推定確率 (0〜100 の整数)。
         pub percent: u32,
-        /// 理由 (「オリメン全員出演」など)。表示の優先順。
+        /// 理由 (「前日に歌った」など)。表示の優先順。
         pub reasons: Vec<String>,
+        /// オリメンは誰で、この公演に出るか (`オリメン 2/3: … · 欠席 …`)。ソロ曲などは無し。
+        pub originals: Option<String>,
     }
 }
 

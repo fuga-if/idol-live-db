@@ -668,6 +668,13 @@ private struct ForecastRowView: View {
                         .font(.imasCaption.monospacedDigit().weight(.semibold))
                         .foregroundStyle(DS.ink2)
                 }
+                // オリメンは誰で、この公演に出るか (文言はコア)。ソロ曲などは無し。
+                if let originals = song.originals?.label, !originals.isEmpty {
+                    Text(originals)
+                        .font(.imasCaption)
+                        .foregroundStyle(DS.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if !reasonLabels.isEmpty {
                     // 札は省略せずに全文を出す。横に収まらなければ縦に積む。
                     ViewThatFits(in: .horizontal) {

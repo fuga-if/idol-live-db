@@ -1400,6 +1400,11 @@ a.rank-row:hover {
   gap: 4px;
   margin-block-start: 4px;
 }
+.forecast__originals {
+  margin-block-start: 2px;
+  color: var(--ds-ink2);
+  font-size: var(--fs-caption2);
+}
 .forecast__reason {
   padding: 1px 8px;
   border-radius: var(--r-pill);

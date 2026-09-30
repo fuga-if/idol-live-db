@@ -74,8 +74,6 @@ pub enum ForecastReason {
     SungPreviousDay,
     /// 同じイベントの前の日程 (前日ではない) で歌った。
     SungEarlierInEvent,
-    /// 原唱者が全員出演する (ソロ曲には付けない。本人が出るのは候補に残る前提なので理由にならない)。
-    FullOriginalCast,
     /// 出演者のソロ曲のうち、その人のソロ曲でいちばん歌われている。
     SoloSignature,
     /// 発売から 1 年以内で、まだライブで歌われていない。
@@ -99,7 +97,6 @@ impl ForecastReason {
         match self {
             Self::SungPreviousDay => "前日に歌った",
             Self::SungEarlierInEvent => "この公演の前の日程で歌った",
-            Self::FullOriginalCast => "オリメン全員出演",
             Self::SoloSignature => "本人のソロ曲でいちばん歌われている",
             Self::NewUnperformed => "未披露の新曲",
             Self::SungAtPreviousLive => "前回のライブでも歌った",
@@ -152,6 +149,61 @@ pub struct ForecastSongRecord {
     pub score: f64,
     /// 理由 ([`ForecastReason`] の並び順)。空のこともある。
     pub reasons: Vec<ForecastReasonRecord>,
+    /// オリメンは誰で、この公演に出るか。ソロ曲・原唱者の登録が無い曲は None。
+    pub originals: Option<ForecastOriginalsRecord>,
+}
+
+/// 予測の 1 曲のオリメン。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct ForecastOriginalsRecord {
+    /// 1 行の文言 (`オリメン 2/3: 天海春香・如月千早 · 欠席 星井美希` など)。
+    /// 出演者未発表で名前も並べきれない (全体曲) ときは空。
+    pub label: String,
+    /// 原唱者 (アイドルの並び順)。
+    pub members: Vec<ForecastOriginalMember>,
+}
+
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct ForecastOriginalMember {
+    pub idol_id: String,
+    pub name: String,
+    /// この公演に出るか。出演者未発表なら None。
+    pub attending: Option<bool>,
+}
+
+/// オリメンの名前を並べる上限。これより多い曲 (全体曲) は数と、少ないときだけ欠席の名前。
+const ORIGINAL_NAMES_LIMIT: usize = 5;
+/// 全体曲で欠席の名前を並べる上限。
+const ABSENT_NAMES_LIMIT: usize = 3;
+
+/// [`ForecastOriginalsRecord::label`] を作る。
+fn originals_label(members: &[ForecastOriginalMember]) -> String {
+    let names = |attending: bool| {
+        members.iter().filter(|m| m.attending == Some(attending)).map(|m| m.name.as_str()).collect::<Vec<_>>()
+    };
+    let total = members.len();
+    if members.iter().any(|m| m.attending.is_none()) {
+        return if total <= ORIGINAL_NAMES_LIMIT {
+            format!("オリメン: {}", members.iter().map(|m| m.name.as_str()).collect::<Vec<_>>().join("・"))
+        } else {
+            String::new()
+        };
+    }
+    let (present, absent) = (names(true), names(false));
+    let head =
+        if absent.is_empty() { "オリメン全員".to_string() } else { format!("オリメン {}/{total}", present.len()) };
+    let mut body = Vec::new();
+    if total <= ORIGINAL_NAMES_LIMIT {
+        if !present.is_empty() {
+            body.push(present.join("・"));
+        }
+        if !absent.is_empty() {
+            body.push(format!("欠席 {}", absent.join("・")));
+        }
+    } else if !absent.is_empty() && absent.len() <= ABSENT_NAMES_LIMIT {
+        body.push(format!("欠席 {}", absent.join("・")));
+    }
+    if body.is_empty() { head } else { format!("{head}: {}", body.join(" · ")) }
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
@@ -241,7 +293,6 @@ struct Row {
     rate: RateBand,
     gap: GapBand,
     kind: SongKind,
-    lineup: Option<Lineup>,
     new_within_year: bool,
     /// 出演者の中でのソロ曲の順位 ([`Feature::SoloRank`] と同じ値)。
     solo_rank: Option<u8>,
@@ -756,7 +807,6 @@ impl ForecastPrep {
                 rate,
                 gap,
                 kind,
-                lineup,
                 new_within_year,
                 solo_rank,
                 sung_previous: sung_previous || sung_tour,
@@ -818,12 +868,9 @@ impl ForecastPrep {
                 ForecastReason::SungEarlierInEvent
             });
         }
-        if row.kind == SongKind::Solo {
-            if row.solo_rank == Some(0) && row.past_events > 0 {
-                reasons.push(ForecastReason::SoloSignature);
-            }
-        } else if row.lineup == Some(Lineup::Full) {
-            reasons.push(ForecastReason::FullOriginalCast);
+        // オリメンのそろい方は札にしない ([`ForecastOriginalsRecord`] が誰がそろうかまで出す)。
+        if row.kind == SongKind::Solo && row.solo_rank == Some(0) && row.past_events > 0 {
+            reasons.push(ForecastReason::SoloSignature);
         }
         if row.new_within_year {
             reasons.push(ForecastReason::NewUnperformed);
@@ -867,6 +914,26 @@ pub fn forecast_show(
 ) -> Option<SetlistForecastRecord> {
     let (rows, context) = prep.rows_for(snap, show)?;
     let date = prep.show_day[show as usize]?;
+    let mut cast: Vec<u32> = snap.cast_by_show[show as usize].iter().map(|l| l.idol).collect();
+    cast.sort_unstable();
+    let originals = |row: &Row| {
+        let ids = &prep.originals[row.song as usize];
+        if row.kind == SongKind::Solo || ids.is_empty() {
+            return None;
+        }
+        let members: Vec<ForecastOriginalMember> = ids
+            .iter()
+            .map(|&i| {
+                let idol = &snap.idols[i as usize];
+                ForecastOriginalMember {
+                    idol_id: idol.id.clone(),
+                    name: idol.name.clone(),
+                    attending: context.cast_known.then(|| contains_sorted(&cast, i)),
+                }
+            })
+            .collect();
+        Some(ForecastOriginalsRecord { label: originals_label(&members), members })
+    };
     let mut scored: Vec<(f64, &Row)> = rows.iter().map(|r| (prep.score(model, &r.features), r)).collect();
     scored.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.song.cmp(&b.1.song)));
     let songs = scored
@@ -885,6 +952,7 @@ pub fn forecast_show(
                     .into_iter()
                     .map(|reason| ForecastReasonRecord { reason, label: reason.label().to_string() })
                     .collect(),
+                originals: originals(row),
             }
         })
         .collect();
@@ -1086,7 +1154,7 @@ mod tests {
         }
         assert_eq!(
             prep.reasons(unit, &context, prep.show_day[snap.show_index_by_id["t2"] as usize].unwrap()),
-            vec![ForecastReason::SungPreviousDay, ForecastReason::FullOriginalCast, ForecastReason::SungAtPreviousLive]
+            vec![ForecastReason::SungPreviousDay, ForecastReason::SungAtPreviousLive]
         );
 
         let new = row(&rows, &snap, "new");
@@ -1099,10 +1167,7 @@ mod tests {
 
         let solo = row(&rows, &snap, "solo");
         assert!(solo.features.contains(&Feature::SoloRank(0)));
-        // 本人が出るのはソロ曲が候補に残る前提なので、「オリメン全員出演」は理由に出さない。
-        assert_eq!(solo.lineup, Some(Lineup::Full));
         let solo_reasons = prep.reasons(solo, &context, prep.show_day[snap.show_index_by_id["t2"] as usize].unwrap());
-        assert!(!solo_reasons.contains(&ForecastReason::FullOriginalCast), "{solo_reasons:?}");
         assert_eq!(
             solo_reasons.contains(&ForecastReason::SoloSignature),
             solo.past_events > 0,
@@ -1136,10 +1201,46 @@ mod tests {
                 label: "出演者未発表のため精度が低い".into()
             }]
         );
+        // 出演者が分からないので、オリメンは名前だけ (出るかは None)。ソロ曲には付けない。
+        let by_id = |r: &SetlistForecastRecord, id: &str| r.songs.iter().find(|s| s.song_id == id).cloned().unwrap();
+        let unit = by_id(&record, "unit").originals.unwrap();
+        assert!(unit.label.starts_with("オリメン: "), "{}", unit.label);
+        assert!(unit.members.iter().all(|m| m.attending.is_none()));
+        assert_eq!(by_id(&record, "solo").originals, None);
+        // 出演者が分かる公演は、誰が出るかまで。
+        let t2 = snap.show_index_by_id["t2"];
+        let with_cast = forecast_show(&snap, &prep, &prep.train(prep.training_prefix(&snap, t2).unwrap()), t2, 10).unwrap();
+        let unit = by_id(&with_cast, "unit").originals.unwrap();
+        assert!(unit.label.starts_with("オリメン全員: "), "{}", unit.label);
+        assert_eq!(unit.members.iter().map(|m| m.attending).collect::<Vec<_>>(), vec![Some(true), Some(true)]);
         // 学習に使えるのは開始日 (2/10) より前の 1 公演だけ。
         assert_eq!(record.training_show_count, 1);
         assert_eq!(record.songs.iter().map(|s| s.rank).collect::<Vec<_>>(), (1..=record.songs.len() as u32).collect::<Vec<_>>());
         assert!(record.songs.iter().all(|s| (0.0..=1.0).contains(&s.score)));
+    }
+
+    #[test]
+    fn originals_label_names_who_attends() {
+        let m = |name: &str, attending: Option<bool>| ForecastOriginalMember {
+            idol_id: name.to_string(),
+            name: name.to_string(),
+            attending,
+        };
+        assert_eq!(originals_label(&[m("A", Some(true)), m("B", Some(true))]), "オリメン全員: A・B");
+        assert_eq!(
+            originals_label(&[m("A", Some(true)), m("B", Some(false)), m("C", Some(true))]),
+            "オリメン 2/3: A・C · 欠席 B"
+        );
+        assert_eq!(originals_label(&[m("A", Some(false)), m("B", Some(false))]), "オリメン 0/2: 欠席 A・B");
+        assert_eq!(originals_label(&[m("A", None), m("B", None)]), "オリメン: A・B");
+        // 名前を並べきれない曲は数と、少ないときだけ欠席の名前。
+        let many = |absent: usize| -> Vec<ForecastOriginalMember> {
+            (0..8).map(|i| m(&format!("I{i}"), Some(i >= absent))).collect()
+        };
+        assert_eq!(originals_label(&many(0)), "オリメン全員");
+        assert_eq!(originals_label(&many(2)), "オリメン 6/8: 欠席 I0・I1");
+        assert_eq!(originals_label(&many(4)), "オリメン 4/8");
+        assert_eq!(originals_label(&(0..8).map(|i| m(&format!("I{i}"), None)).collect::<Vec<_>>()), "");
     }
 
     #[test]

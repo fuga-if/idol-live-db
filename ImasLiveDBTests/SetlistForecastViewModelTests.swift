@@ -37,7 +37,8 @@ final class SetlistForecastViewModelTests: XCTestCase {
     private func song(_ id: String, rank: UInt32) -> ForecastSongRecord {
         ForecastSongRecord(
             rank: rank, songId: id, title: "曲\(id)", score: 0.5,
-            reasons: [ForecastReasonRecord(reason: .frequentlyPerformed, label: "よく歌われている")])
+            reasons: [ForecastReasonRecord(reason: .frequentlyPerformed, label: "よく歌われている")],
+            originals: nil)
     }
 
     private func record(songIds: [String], flags: [ForecastShowFlagRecord] = []) -> SetlistForecastRecord {
