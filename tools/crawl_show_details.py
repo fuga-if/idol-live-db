@@ -103,11 +103,19 @@ def parse_venues(lines: list[str]) -> list[str]:
 
 
 def parse_prices(lines: list[str]) -> list[tuple[str, int]]:
-    """(券種名, 税込の円)。券種名は同じ行の前か、1 つ前の行。"""
+    """(券種名, 税込の円)。券種名は同じ行の前か、1 つ前の行。
+
+    「チケット」の見出しより後だけを見て、グッズ・物販の見出しで止める (グッズの価格を拾わない)。
+    """
     out = []
+    in_ticket = False
     for i, line in enumerate(lines):
+        if re.search(r"チケット|TICKET|Ticket", line) and len(line) <= 30:
+            in_ticket = True
+        elif re.search(r"グッズ|物販|GOODS|Goods", line) and len(line) <= 30:
+            in_ticket = False
         m = PRICE.search(line)
-        if not m:
+        if not m or not in_ticket:
             continue
         name = line[:m.start()].strip(" :：/")
         if not name and i > 0 and not PRICE.search(lines[i - 1]):

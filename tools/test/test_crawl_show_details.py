@@ -27,7 +27,8 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(csd.parse_venues(lines), ["やまぎん県民ホール", "パシフィコ横浜 国立大ホール", "幕張イベントホール"])
 
     def test_prices(self):
-        lines = ["チケット概要", "アリーナ前方席", "30,000円(税込)", "一般指定席 15,000円（税込）"]
+        lines = ["価格", "3,300円(税込)", "チケット概要", "アリーナ前方席", "30,000円(税込)", "一般指定席 15,000円（税込）",
+                 "グッズ販売", "価格", "11,000円(税込)"]
         self.assertEqual(csd.parse_prices(lines), [("アリーナ前方席", 30000), ("一般指定席", 15000)])
 
 
@@ -57,7 +58,7 @@ class PlanTest(unittest.TestCase):
                  csd.Show("b", "DAY2", "2027-03-14", "16:00", "京王アリーナTOKYO", "", True)]
         site = "https://idolmaster-official.jp/live_event/x/"
         pages = {site: ["2027年3月13日(土)", "開演17:00", "2027年3月14日(日)", "開演16:30", "開催場所", "京王アリーナ TOKYO"],
-                 site + "ticket/": ["一般指定席 9,900円(税込)"]}
+                 site + "ticket/": ["TICKET", "一般指定席 9,900円(税込)"]}
         plan = csd.plan_event(self.conn, "ev", "イベント", "", shows, list(pages), pages, self.index)
         self.assertEqual(plan.fixes, [
             {"table": "events", "id": "ev", "fields": {"ticket_url": site + "ticket/"}},

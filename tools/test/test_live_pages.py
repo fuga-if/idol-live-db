@@ -27,6 +27,7 @@ class TitleTest(unittest.TestCase):
         self.assertTrue(lp.title_matches(name, "【シャニマス】「THE IDOLM@STER SHINY COLORS Song for Prism 散花-sanka- / 紅花-benibana-」発売記念イベント開催決定！"))
         self.assertFalse(lp.title_matches(name, "【シャニマス】「THE IDOLM@STER SHINY COLORS Song for Prism Karma / Naraku」発売記念イベント"))
         self.assertFalse(lp.title_matches("KIMCHIKURA Fes '26", "KIMCHIKURA Fes '25 出演決定"))
+        self.assertFalse(lp.title_matches("灯里愛夏 BIRTHDAY ONLINE LIVE 2026", "「上水流宇宙 BIRTHDAY ONLINE LIVE 2026」ありがとうございました"))
         self.assertFalse(lp.title_matches("315 Production presents F＠NTASTIC BATTLE FES ～Wanna step in～",
                                           "315 Production presents F＠NTASTIC BATTLE FES ～Who goes first～ 開催決定"))
 

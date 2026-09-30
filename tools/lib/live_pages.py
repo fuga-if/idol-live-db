@@ -83,8 +83,9 @@ def title_matches(event_name: str, title: str) -> bool:
     a, b = _core(event_name), _core(title)
     if not a or not b:
         return False
-    # 年や回の数字 (KIMCHIKURA Fes '26 と '25 など) が題に無ければ別の回。
-    if any(n not in b for n in re.findall(r"\d+", a)):
+    # 年や回の数字 (KIMCHIKURA Fes '26 と '25 など)・漢字かなの固有の語 (灯里愛夏 と 上水流宇宙 の
+    # BIRTHDAY ONLINE LIVE など) が題に無ければ別の催し。
+    if any(w not in b for w in re.findall(r"\d+|[\u3040-\u30ff\u3400-\u9fff]{2,}", a)):
         return False
     if a in b or b in a:
         return True
