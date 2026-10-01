@@ -16,8 +16,6 @@ struct IdolDetailView: View {
     @State private var vm = IdolDetailViewModel()
     @State private var showEmptyUnits = false
     @State private var selectedPhoto: PhotosPickerItem?
-    /// ギャラリーへのまとめ追加 (複数選択)。
-    @State private var galleryPicks: [PhotosPickerItem] = []
     @State private var imageService = CustomImageService.shared
     @State private var markService = UserMarkService.shared
     @State private var sheetDestination: DetailDestination?
@@ -33,10 +31,10 @@ struct IdolDetailView: View {
     @State private var similarTagIdols: [Idol] = []
     @State private var similarSharedTags: [String: Int] = [:]
     @State private var showCommunityLoginPrompt = false
-    @State private var showingNote = false
-    @State private var noteDraft = ""
     @State private var personalTagService = PersonalTagService.shared
     @State private var newPersonalTagName = ""
+    /// 「タグが似ているアイドル」横スクロールの名札 1 枚の幅。
+    @ScaledMetric(relativeTo: .caption) private var similarIdolCellWidth: CGFloat = 84
 
     @Environment(\.colorScheme) private var scheme
 
@@ -46,8 +44,6 @@ struct IdolDetailView: View {
     private var brandColor: String? { vm.brand?.color }
 
     private var isPick: Bool { markService.bool(.myPick, entity: .idol, id: idol.id) }
-    private var isFavorite: Bool { markService.bool(.favorite, entity: .idol, id: idol.id) }
-    private var hasNote: Bool { !(markService.note(entity: .idol, id: idol.id) ?? "").isEmpty }
 
     /// 出演履歴のうち今日以降で最も近い公演 (= 次の出演)。無ければ nil。
     /// 選び方 (日付の精度を揃えて今日以降か・同じ日なら先の方) はコアの `next_show_index`。
@@ -91,10 +87,6 @@ struct IdolDetailView: View {
         .scrollContentBackground(.hidden)
         .navigationTitle(idol.name)
         .navigationBarTitleDisplayMode(.inline)
-        // ナビバーをヒーロー色で不透明化。スクロール内容がヘッダー裏に透ける問題を防ぎ、
-        // 固定ヒーローと色が繋がる。
-        .toolbarBackground(ImasTheme.derive(seed: seed, brand: brandColor, scheme: scheme).heroSurface, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar { toolbarMenu }
         .sheet(item: $sheetDestination) { dest in
             DetailSheetView(destination: dest)
@@ -116,19 +108,6 @@ struct IdolDetailView: View {
                 selectedPhoto = nil
             }
         }
-        .onChange(of: galleryPicks) { _, picks in
-            guard !picks.isEmpty else { return }
-            Task {
-                for pick in picks {
-                    if let data = try? await pick.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        _ = try? await imageService.addImage(image, for: idol.id)
-                    }
-                }
-                galleryPicks = []
-                await WidgetImageBridge.sync(database: database)
-            }
-        }
         .task { await vm.loadDetails(idol: idol) }
         .trackScreen("idol_detail")
     }
@@ -138,148 +117,59 @@ struct IdolDetailView: View {
     private var fixedHeader: some View {
         VStack(spacing: 0) {
             heroView
+            UserMarkBar(entity: .idol, entityId: idol.id, kinds: [.favorite, .note], seed: seed, brand: brandColor)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.bottom, DS.Space.gap)
             segmentedBar
         }
         .background(DS.bg)
     }
 
-    private var heroView: some View {
-        let t = ImasTheme.derive(seed: seed, brand: brandColor, scheme: scheme)
-        return VStack(alignment: .leading, spacing: DS.sp5) {
-            HStack(spacing: DS.sp5) {
-                ZStack(alignment: .bottomTrailing) {
-                    IdolAvatarView(idol: idol, size: 72, isPick: isPick)
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Image(systemName: "camera.fill")
-                            .font(.imasScaled( 11, weight: .semibold))
-                            .foregroundStyle(t.onAccent)
-                            .frame(width: 26, height: 26)
-                            .background(t.accent, in: Circle())
-                            .overlay(Circle().strokeBorder(DS.surface, lineWidth: 2))
-                    }
-                    // IdolAvatarView の外形フレームは isPick に関わらず一定 (担当リング込みサイズ) だが、
-                    // isPick=false では可視アバターがその中央に余白 ImasAvatar.ringPadding 分だけ
-                    // 小さく描画される。ボタンをリングの有無に関係なく可視アバターの縁に揃えるため補正する。
-                    .offset(
-                        x: isPick ? 4 : 4 - ImasAvatar.ringPadding,
-                        y: isPick ? 4 : 4 - ImasAvatar.ringPadding
-                    )
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(idol.name)
-                        .font(.imasTitle1.weight(.bold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                        .imasCopyable([
-                            CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
-                            CopyItem("よみをコピー", idol.nameKana, key: "kana"),
-                            CopyItem("CV名をコピー", VoiceActorDirectory.shared.current(for: idol.id), key: "voice_actor"),
-                        ])
-                    if let brand = vm.brand {
-                        Button {
-                            go(.filteredIdols(.brand(id: brand.id, label: brand.shortName)))
-                        } label: {
-                            Text(brand.shortName)
-                                .font(.imasSubhead)
-                                .foregroundStyle(DS.ink2)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    if let cv = VoiceActorDirectory.shared.current(for: idol.id) {
-                        Text("CV \(cv)")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink3)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-
-            HStack(spacing: DS.sp3) {
-                heroActionButton(
-                    title: "担当",
-                    activeTitle: "担当",
-                    systemImage: isPick ? "heart.fill" : "heart",
-                    isOn: isPick,
-                    onColor: t.accent,
-                    onText: t.onAccent
-                ) {
-                    do {
-                        try markService.toggle(.myPick, entity: .idol, id: idol.id)
-                    } catch {
-                        LocalWriteFailure.report(error, action: "担当の切り替え")
-                    }
-                }
-                heroActionButton(
-                    title: "お気に入り",
-                    activeTitle: "お気に入り済",
-                    systemImage: isFavorite ? "star.fill" : "star",
-                    isOn: isFavorite,
-                    onColor: t.chipBg,
-                    onText: t.chipText,
-                    ghost: true
-                ) {
-                    do {
-                        try markService.toggle(.favorite, entity: .idol, id: idol.id)
-                    } catch {
-                        LocalWriteFailure.report(error, action: "お気に入りの切り替え")
-                    }
-                }
-                Spacer(minLength: 0)
-                // メモ。担当/お気に入りと同じピル型ボタンに揃える (UserMarkBar のタイル型は
-                // 50pt四方+ラベルで縦に大きく、横並びだと担当/お気に入りより不釣り合いに高かった)。
-                heroActionButton(
-                    title: "メモ",
-                    activeTitle: "メモあり",
-                    systemImage: hasNote ? "note.text.badge.plus" : "note.text",
-                    isOn: hasNote,
-                    onColor: t.chipBg,
-                    onText: t.chipText,
-                    ghost: true
-                ) {
-                    noteDraft = markService.note(entity: .idol, id: idol.id) ?? ""
-                    showingNote = true
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5)
-        .padding(.top, DS.sp4)
-        .padding(.bottom, DS.sp5)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(t.heroSurface)
-        .sheet(isPresented: $showingNote) {
-            NoteEditorSheet(entity: .idol, entityId: idol.id, draft: $noteDraft)
-        }
+    /// よみ・CV・誕生日 (誕生日の整形はコア `idolProfileRowsFromSource` の「誕生日」行を借りる)。
+    private var heroSubtitle: String? {
+        let birthday = profileRowModels.first { $0.label == "誕生日" }?.value
+        let parts = [idol.nameKana, VoiceActorDirectory.shared.current(for: idol.id).map { "CV \($0)" }, birthday]
+            .compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    private func heroActionButton(
-        title: String,
-        activeTitle: String,
-        systemImage: String,
-        isOn: Bool,
-        onColor: Color,
-        onText: Color,
-        ghost: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage).font(.imasScaled( 15, weight: .semibold))
-                Text(isOn ? activeTitle : title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+    private var heroView: some View {
+        ImasIdolHeader(
+            imprint: vm.brand?.shortName ?? "",
+            onImprintTap: vm.brand.map { brand in { go(.filteredIdols(.brand(id: brand.id, label: brand.shortName))) } },
+            name: idol.name,
+            subtitle: heroSubtitle,
+            seed: seed,
+            brand: brandColor,
+            iconLabel: idol.shortName,
+            imageURL: imageService.imageURL(for: idol.id),
+            isPick: isPick,
+            onTogglePick: togglePick,
+            copyItems: [
+                CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
+                CopyItem("よみをコピー", idol.nameKana, key: "kana"),
+                CopyItem("CV名をコピー", VoiceActorDirectory.shared.current(for: idol.id), key: "voice_actor"),
+            ],
+            stats: [
+                ImasBoard.Cell(value: "\(vm.castShows.count)", label: "出演"),
+                ImasBoard.Cell(value: "\(vm.performedSongs.count)", label: "歌唱曲"),
+            ]
+        ) {
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                ImasIconBadge(systemImage: "camera.fill", label: "写真を選ぶ", seed: seed, brand: brandColor)
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 9)
-            .foregroundStyle(isOn ? onText : (ghost ? DS.ink2 : onColor))
-            .background(isOn ? onColor : DS.fill,
-                        in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.15), value: isOn)
+        .padding(.horizontal, DS.Space.screen)
+        .padding(.top, DS.Space.gapLoose)
+    }
+
+    /// 担当の切り替え。
+    private func togglePick() {
+        do {
+            try markService.toggle(.myPick, entity: .idol, id: idol.id)
+        } catch {
+            LocalWriteFailure.report(error, action: "担当の切り替え")
+        }
     }
 
     private var segmentedBar: some View {
@@ -360,42 +250,22 @@ struct IdolDetailView: View {
         .padding(.top, DS.sp4)
     }
 
-    /// 次の出演カード (ucard)。
+    /// 次の出演。紙のチケットで見せる。
     private func upcomingCard(_ row: CastShowRow) -> some View {
-        let t = ImasTheme.derive(seed: seed, brand: brandColor, scheme: scheme)
-        return Button {
+        ImasTicket(
+            label: "次の出演",
+            title: eventDisplayName(row.eventName),
+            metaImprint: dateLabel(date: row.date, today: JSTDay.today()),
+            meta: [row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
+            seed: seed,
+            brand: brandColor
+        ) {
             Task {
                 if let show = try? await AppContainer.shared.showReading.show(id: row.showId) {
                     go(.show(show))
                 }
             }
-        } label: {
-            HStack(spacing: 0) {
-                Rectangle().fill(t.accent).frame(width: 4)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("次の出演 ・ \(monthDay(row.date))")
-                        .font(.imasDisplay(12, weight: .semibold))
-                        .foregroundStyle(t.accent)
-                    Text(eventDisplayName(row.eventName))
-                        .font(.imasHeadline.weight(.bold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(2)
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: "mappin.and.ellipse").font(.imasCaption)
-                        Text([row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ・ "))
-                            .lineLimit(1)
-                    }
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                }
-                .padding(.horizontal, DS.sp4)
-                .padding(.vertical, DS.sp4)
-                Spacer(minLength: 0)
-            }
-            .background(t.heroSurface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - 楽曲
@@ -489,14 +359,13 @@ struct IdolDetailView: View {
             if !vm.unitsWithoutSongs.isEmpty {
                 VStack(alignment: .leading, spacing: DS.sp3) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { showEmptyUnits.toggle() }
+                        withAnimation(.imasStandard) { showEmptyUnits.toggle() }
                     } label: {
-                        HStack(spacing: 6) {
-                            Text("曲なしユニット").font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink2)
-                            Text("\(vm.unitsWithoutSongs.count)").font(.imasCaption).foregroundStyle(DS.ink3)
-                            Spacer(minLength: 4)
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
+                        HStack(spacing: DS.Space.gapTight) {
+                            Text("曲なしユニット").imasText(.sectionLabel)
+                            Text("\(vm.unitsWithoutSongs.count)").imasText(.meta)
+                            Spacer(minLength: DS.Space.gapTight)
+                            ImasRowChevron()
                                 .rotationEffect(.degrees(showEmptyUnits ? 90 : 0))
                         }
                         .contentShape(Rectangle())
@@ -566,12 +435,9 @@ struct IdolDetailView: View {
                         AppAnalytics.tap("idol_detail.tag_action")
                         startCommunityEdit { showIdolTagPicker = true }
                     } label: {
-                        HStack(spacing: DS.sp2) {
-                            Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
-                            Text("タグ").font(.imasScaled( 14, weight: .semibold))
-                        }
-                        .foregroundStyle(ImasTheme.derive(seed: seed, brand: brandColor, scheme: scheme).accent)
+                        Label("タグ", systemImage: "plus")
                     }
+                    .buttonStyle(.imas(.plain, size: .small))
                 }
             }
             if let tagData = idolTagData, !tagData.tags.isEmpty {
@@ -615,12 +481,11 @@ struct IdolDetailView: View {
         let tags = personalTagService.tags(for: "idol", entityId: idol.id)
         VStack(alignment: .leading, spacing: DS.sp3) {
             VStack(alignment: .leading, spacing: DS.sp1) {
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill").font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
-                    Text("マイタグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                HStack(spacing: DS.Space.gapTight) {
+                    Image(systemName: "lock.fill").imasText(.note)
+                    Text("マイタグ").imasText(.cardTitle)
                 }
-                Text("自分だけに表示されます (コミュニティには公開されません)")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
+                Text("自分だけに表示されます (コミュニティには公開されません)").imasText(.note)
             }
             if !tags.isEmpty {
                 FlowLayout(spacing: DS.sp3) {
@@ -634,25 +499,8 @@ struct IdolDetailView: View {
                     }
                 }
             }
-            HStack(spacing: DS.sp3) {
-                TextField("マイタグを追加 (例: 聞いた)", text: $newPersonalTagName)
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 13).padding(.vertical, DS.sp3)
-                    .background(DS.fill, in: Capsule())
-                    .onChange(of: newPersonalTagName) { _, new in
-                        if new.count > 30 { newPersonalTagName = String(new.prefix(30)) }
-                    }
-                    .onSubmit(addPersonalTag)
-                Button(action: addPersonalTag) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.imasScaled(26, weight: .semibold))
-                        .foregroundStyle(canAddPersonalTag ? DS.ink : DS.ink3)
-                }
-                .buttonStyle(.plain)
-                .disabled(!canAddPersonalTag)
-            }
+            ImasChipInputField(text: $newPersonalTagName, prompt: "マイタグを追加 (例: 聞いた)", limit: 30,
+                              isEnabled: canAddPersonalTag, onSubmit: addPersonalTag)
         }
     }
 
@@ -685,35 +533,23 @@ struct IdolDetailView: View {
     private var communitySimilarIdols: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("タグが似ているアイドル")
-                    .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                Text("つけられたタグが似ているアイドル")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
+                Text("タグが似ているアイドル").imasText(.cardTitle)
+                Text("つけられたタグが似ているアイドル").imasText(.note)
             }
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: DS.sp4) {
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
                     ForEach(similarTagIdols) { other in
                         Button {
                             go(.idol(other))
                         } label: {
-                            VStack(spacing: DS.sp2) {
-                                IdolAvatarView(idol: other, size: 56)
-                                Text(other.shortName)
-                                    .font(.imasCaption.weight(.semibold))
-                                    .lineLimit(1)
-                                    .foregroundStyle(DS.ink)
-                                if let shared = similarSharedTags[other.id] {
-                                    Text("タグ\(shared)個一致")
-                                        .font(.imasScaled(10))
-                                        .foregroundStyle(DS.ink3)
-                                }
-                            }
-                            .frame(width: 72)
+                            // metric の枠を借りて「タグ N 個一致」を名札の下段に出す。
+                            ImasIdolCell(idol: other, isPick: false,
+                                        metric: similarSharedTags[other.id].map { "タグ\($0)個一致" })
+                                .frame(width: similarIdolCellWidth)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 1)
             }
         }
     }
@@ -737,133 +573,15 @@ struct IdolDetailView: View {
 
     // MARK: - 画像ギャラリー (ユーザーがローカルに持たせる複数画像)
 
-    @ViewBuilder
     private var gallerySection: some View {
-        // galleryVersion を読んで追加/削除/並べ替え後に再描画する。
-        let _ = imageService.galleryVersion
-        let urls = imageService.imageURLs(for: idol.id)
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            HStack {
-                ImasSectionHeader(title: "ギャラリー", count: urls.isEmpty ? nil : "\(urls.count)", tight: true)
-                Spacer()
-                PhotosPicker(selection: $galleryPicks, maxSelectionCount: 10, matching: .images) {
-                    Label("追加", systemImage: "plus")
-                        .font(.imasSubhead.weight(.medium))
-                }
-            }
-            .padding(.horizontal, DS.sp5)
-
-            if urls.isEmpty {
-                Text("画像を追加すると、先頭の1枚がアイコンになります。ホーム画面ウィジェットにも使えます。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DS.sp5)
-            } else {
-                galleryGrid(urls: urls)
-
-                Text("長押しでアイコン設定・ウィジェットのスライドショー対象を切り替えられます。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
-                    .padding(.horizontal, DS.sp5)
-            }
-        }
+        // Unit 詳細と共通の `GallerySectionView` (写真1枚目がアイコンになる・スライドショー対象の
+        // 切り替えも idol kind では引き続き出す)。
+        GallerySectionView(kind: .idol, entityId: idol.id, entityLabel: "アイコン", onChange: syncWidget)
     }
 
     /// ギャラリー変更後にウィジェットへ反映する (App Group ミラー + タイムライン再読込)。
     private func syncWidget() {
         Task { await WidgetImageBridge.sync(database: database) }
-    }
-
-    /// ギャラリーを横3列で並べる。`LazyVGrid` + 貪欲セルの組み合わせだと flexible 列が
-    /// 広がって列数が崩れる (実機で2列になる) ため、HStack で確実に3等分する。
-    @ViewBuilder
-    private func galleryGrid(urls: [URL]) -> some View {
-        let spacing = DS.sp2
-        let perRow = 3
-        VStack(spacing: spacing) {
-            ForEach(Array(stride(from: 0, to: urls.count, by: perRow)), id: \.self) { start in
-                let end = min(start + perRow, urls.count)
-                HStack(spacing: spacing) {
-                    ForEach(start..<end, id: \.self) { i in
-                        let url = urls[i]
-                        galleryThumb(
-                            url: url,
-                            isPrimary: i == 0,
-                            inSlideshow: imageService.isInSlideshow(url, for: idol.id))
-                            .frame(maxWidth: .infinity)
-                    }
-                    // 端数行も 1/3 幅を保つよう空セルで埋める (左寄せ維持)。
-                    ForEach(end..<(start + perRow), id: \.self) { _ in
-                        Color.clear.frame(maxWidth: .infinity)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, DS.sp5)
-    }
-
-    private func galleryThumb(url: URL, isPrimary: Bool, inSlideshow: Bool) -> some View {
-        Color.clear
-            .overlay {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    DS.fill
-                }
-                // スライドショー対象外は淡く落として一目で分かるようにする。
-                .opacity(inSlideshow ? 1 : 0.45)
-            }
-            // グリッドのセルは .fit で列幅に収める。.fill だと flexible 列が貪欲セルに
-            // 合わせて広がり、count:3 指定でも 2 列しか並ばなくなる (SwiftUI のレイアウト罠)。
-            .aspectRatio(1, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-            .overlay(alignment: .topLeading) {
-                if isPrimary {
-                    Label("アイコン", systemImage: "star.fill")
-                        .font(.imasScaled(9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .padding(5)
-                }
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if !inSlideshow {
-                    Image(systemName: "play.slash.fill")
-                        .font(.imasScaled(10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(5)
-                        .background(.black.opacity(0.55), in: Circle())
-                        .padding(5)
-                        .accessibilityLabel("スライドショー対象外")
-                }
-            }
-            .contextMenu {
-                if !isPrimary {
-                    Button {
-                        imageService.setPrimary(url, for: idol.id)
-                        syncWidget()
-                    } label: {
-                        Label("アイコンにする", systemImage: "star")
-                    }
-                }
-                Button {
-                    imageService.setInSlideshow(!inSlideshow, url: url, for: idol.id)
-                    syncWidget()
-                } label: {
-                    Label(inSlideshow ? "スライドショーから外す" : "スライドショーに入れる",
-                          systemImage: inSlideshow ? "play.slash" : "play.rectangle")
-                }
-                Button(role: .destructive) {
-                    Task {
-                        try? await imageService.deleteImage(at: url, for: idol.id)
-                        await WidgetImageBridge.sync(database: database)
-                    }
-                } label: {
-                    Label("削除", systemImage: "trash")
-                }
-            }
     }
 
     /// プロフィール行は整形 (「4月3日」「160cm」) も並べる判断も共有コアが持つ
@@ -940,6 +658,8 @@ struct IdolDetailView: View {
 
     /// 楽曲行 (現地回収✓ / 披露回数バッジ付き)。歌唱者アバターはこの画面では本人なので省略し、
     /// リードバー + ジャケ + 曲名 + ユニット名 + 回収マーク に集約する。
+    /// 試聴 (タップで再生・停止) は `ArtworkImageView` 固有の機能で `ImasArtwork` にまだ無いため、
+    /// ここは `ImasRow` の先頭を `.custom` で差し替えて組む (曲一覧領域の GAP 解消を待つ)。
     private func songRow(
         song: Song,
         detailLabel: String,
@@ -950,47 +670,27 @@ struct IdolDetailView: View {
         let artURL = song.artworkUrl.flatMap { URL(string: $0) }
         let prevURL = song.previewUrl.flatMap { URL(string: $0) }
         return Button(action: action) {
-            HStack(spacing: DS.sp3) {
-                ImasLeadBar(seed: seed, brand: brandColor)
-                ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title, songId: song.id, seed: seed ?? brandColor)
-                VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text(song.title)
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    if !detailLabel.isEmpty {
-                        Text(detailLabel)
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink2)
-                            .lineLimit(1)
-                    }
-                    if collected || performCount != nil {
-                        HStack(spacing: DS.sp3) {
-                            if collected {
-                                Label("回収済", systemImage: "checkmark")
-                                    .labelStyle(.titleAndIcon)
-                                    .font(.imasCaption.weight(.semibold))
-                                    .foregroundStyle(DS.success)
-                            }
-                            if let performCount {
-                                Text("\(performCount)回")
-                                    .font(.imasDisplay(11, weight: .semibold))
-                                    .foregroundStyle(DS.ink3)
-                            }
-                        }
+            ImasRow(
+                title: song.title,
+                subtitle: detailLabel.isEmpty ? nil : detailLabel,
+                leading: .custom(AnyView(
+                    ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title,
+                                     songId: song.id, seed: seed ?? brandColor)
+                ), width: 44),
+                density: .compact
+            ) {
+                if collected || performCount != nil {
+                    HStack(spacing: DS.Space.gap) {
+                        if collected { ImasBadge(text: "回収済", kind: .positive) }
+                        if let performCount { ImasMetric(value: "\(performCount)", unit: "回", size: .small) }
                     }
                 }
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 9)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    /// 出演履歴 (EventRow)。ブランド帯 + ライブ名 + 日付 + 会場。
+    /// 出演履歴。半券の行 (左に日付、右にライブ名・会場・公演名)。主演/ゲストは札で添える。
     private func eventRow(_ row: CastShowRow) -> some View {
         Button {
             Task {
@@ -999,32 +699,15 @@ struct IdolDetailView: View {
                 }
             }
         } label: {
-            HStack(spacing: DS.sp3) {
-                ImasLeadBar(seed: seed, brand: brandColor)
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    HStack(spacing: 6) {
-                        Text(eventDisplayName(row.eventName))
-                            .font(.imasBody.weight(.semibold))
-                            .foregroundStyle(DS.ink)
-                            .lineLimit(1)
-                        if row.isLead {
-                            ImasTagChip(text: "主演", kind: .lead, seed: seed, brand: brandColor)
-                        } else if row.isGuest {
-                            ImasTagChip(text: "ゲスト", kind: .guest, seed: seed, brand: brandColor)
-                        }
-                    }
-                    Text([row.date, row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ・ "))
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                ImasRowChevron()
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            ImasStubRow(
+                date: ImasStubDate(row.date),
+                title: eventDisplayName(row.eventName),
+                subtitle: [row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
+                seed: seed,
+                brand: brandColor,
+                badges: row.isLead ? [ImasBadgeSpec(text: "主演", kind: .lead)]
+                    : row.isGuest ? [ImasBadgeSpec(text: "ゲスト", kind: .guest)] : []
+            )
         }
         .buttonStyle(.plain)
     }
@@ -1058,15 +741,6 @@ struct IdolDetailView: View {
         } else {
             showLoginPrompt = true
         }
-    }
-
-    // MARK: - Helpers
-
-    /// "2026-06-21" → "6/21"
-    private func monthDay(_ date: String) -> String {
-        let parts = date.split(separator: "-")
-        guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return date }
-        return "\(m)/\(d)"
     }
 
 }
