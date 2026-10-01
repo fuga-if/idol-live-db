@@ -83,9 +83,10 @@ enum class ImasTextRole(
     CHIP(ImasType.text(14.sp, FontWeight.SemiBold)),
 
     /**
-     * 英字の印字 (10.5sp 等幅・大文字・字間)。チケットの「ADMIT ONE」、見出しの横の「PLAY」、
+     * 英字の印字 (10.5sp 等幅・字間)。チケットの「ADMIT ONE」、見出しの横の「PLAY」、
      * 頭の「PRODUCE · 2026.10.01 THU」。日本語の見出しと並べて、印刷物の手触りを出す。
-     * 大文字にするのは [ImasText] (Compose の Text には大文字にする指定が無いので文字列を変える)。
+     * 大文字にはしない: ブランド名 (SideM) や公演名のような値の綴りを変えないため。
+     * ADMIT ONE・SETLIST のような決まった英字は、呼び出し側で大文字のまま書く (iOS と同じ)。
      */
     IMPRINT(ImasType.mono(10.5.sp, FontWeight.Medium).copy(letterSpacing = 0.6.sp)),
 
@@ -104,14 +105,11 @@ enum class ImasTextRole(
             META, MICRO -> DS.ink3
             EYEBROW, BADGE, IMPRINT -> DS.ink2
         }
-
-    /** 文字列を大文字にして組むか (印字だけ)。 */
-    val uppercase: Boolean get() = this == IMPRINT
 }
 
 /**
  * 文字の役割を当てた Text (iOS の `.imasText(role, color:)`)。部品の中で使う。
- * 色を替えるときは [color] で渡す。印字 ([ImasTextRole.IMPRINT]) は大文字にする。
+ * 色を替えるときは [color] で渡す。印字 ([ImasTextRole.IMPRINT]) も文字列はそのまま組む (大文字にしない)。
  */
 @Composable
 fun ImasText(
@@ -124,7 +122,7 @@ fun ImasText(
     overflow: TextOverflow = TextOverflow.Clip
 ) {
     Text(
-        text = if (role.uppercase) text.uppercase() else text,
+        text = text,
         modifier = modifier,
         color = color,
         textAlign = textAlign,

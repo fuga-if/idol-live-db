@@ -77,7 +77,7 @@ object ImasType {
     fun heading(size: TextUnit, weight: FontWeight = FontWeight.Bold): TextStyle =
         TextStyle(fontSize = size, fontWeight = weight, fontFeatureSettings = "palt")
 
-    /** 英字の印字の書体 (iOS `Font.imasMono`)。大文字と字間は [ImasTextRole.IMPRINT] が付ける。 */
+    /** 英字の印字の書体 (iOS `Font.imasMono`)。字間は [ImasTextRole.IMPRINT] が付ける (大文字にはしない。決まった英字は大文字で書く)。 */
     fun mono(size: TextUnit, weight: FontWeight = FontWeight.Medium): TextStyle =
         TextStyle(fontFamily = monoFamily, fontSize = size, fontWeight = weight)
 
