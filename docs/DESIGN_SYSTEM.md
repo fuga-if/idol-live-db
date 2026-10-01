@@ -359,6 +359,12 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **状態** `eyebrow` は `onEyebrowTap` を渡すと押せる (ブランドで絞った一覧などへ)。渡さなければただの文字。
 - **置き換えるもの** 曲・アイドル詳細の自前ヒーロー、アイドル詳細のヒーローのピル型トグル (印は `ImasMarkBar` に移した)。
 
+### 6.10 読みものの部品 `ImasStepList` / `ImasPointList`
+- **用途** 読みもの画面 (§2.8) の、手順や特徴の列挙。
+- **`ImasStepList`** 手順 1・2・3。番号は等幅の墨丸の札。手順に写真・図解を添えたいときは `media` (任意の View) を渡す (ウィジェットの使い方など)。複数のカードに分けて続き番号にしたいときは `startIndex` を渡す。
+- **`ImasPointList`** アイコン付きの箇条書き。順序を持たない特徴・利点の列挙 (ログイン誘導の案内など)。番号が付く `ImasStepList` との違いは、順番に意味が無いこと。
+- **使わない** 一覧の絞り込み条件の列挙 → `ImasFilterBar` / 区画の補足 1 行 → `ImasNote`。
+
 ---
 
 ## 7. 入力
@@ -577,6 +583,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - 押したとき: `ImasPressStyle` (0.97)。ゲームごとの押し心地は作らない。
 - **イントロドンもこのステージに揃える** (イントロドン専用の左上だけ丸い角・独自の押し心地・独自の進捗バーはやめる)。
 - 設定画面は通常の画面: `ImasSetupHeader` (記号 + 題 + 説明) → `ImasBrandPicker` → 区画 → `ImasCandidateCount` (候補の数) → 足りないとき `ImasNotice(.warning)` → 画面の下に `ImasButton(.primary, .large)`「はじめる」。
+  `ImasCandidateCount` は数えている間 `isLoading: true` でくるくる + `loadingText` を出し、数えられなかったときは `count: nil` (「—」) に一言 (`note`) を添える。
 
 ---
 

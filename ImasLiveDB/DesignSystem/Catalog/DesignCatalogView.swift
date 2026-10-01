@@ -1149,6 +1149,8 @@ private struct SetupPage: View {
             ImasSetupHeader(systemImage: "music.quarternote.3", title: "歌詞クイズ",
                             message: "歌詞の一節から曲名を当てます。")
             ImasCandidateCount(count: 7, minimum: 10)
+            ImasCandidateCount(count: nil, minimum: 10, isLoading: true, loadingText: "候補を計算中…")
+            ImasCandidateCount(count: nil, minimum: 10, note: "読み込みに失敗しました")
             ImasNotice(kind: .warning, title: "候補が足りません", message: "出題に必要な 10 曲に届いていません。ブランドを増やしてください。")
             ImasSection("習熟度", style: .small) {
                 ImasCard {
@@ -1158,12 +1160,23 @@ private struct SetupPage: View {
                     }
                 }
             }
-            ImasSection("使い方", style: .small) {
+            ImasSection("使い方 (写真・図解を添えた手順)", style: .small) {
                 ImasCard {
                     ImasStepList(steps: [
                         .init(title: "ホーム画面を長押しする", detail: "アイコンが揺れたら左上の ＋ を押します。"),
                         .init(title: "「アイドルライブDB」を探す"),
-                        .init(title: "担当画像を選ぶ", detail: "ウィジェットを長押しして編集します。"),
+                        .init(title: "担当画像を選ぶ", detail: "ウィジェットを長押しして編集します。") {
+                            ImasArtwork(title: "担当画像の見本", size: 120, imageURL: Sample.Art.idolmaster)
+                        },
+                    ])
+                }
+            }
+            ImasSection("できること (番号の無い列挙)", style: .small) {
+                ImasCard {
+                    ImasPointList(points: [
+                        .init("checkmark.seal", "現地で聴いた曲を記録する"),
+                        .init("chart.bar", "ブランドごとの回収率を見る"),
+                        .init("sparkles", "次のセトリをみんなで予想する"),
                     ])
                 }
             }
