@@ -316,17 +316,25 @@ struct ProduceTabView: View {
                         $0 == 0 ? .init(prefix: "", value: "今日", unit: "") : .init(value: "\($0)", unit: "DAYS")
                     },
                     onOpen: {
-                        AppAnalytics.tap("produce_tab.next_live_predict")
                         if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
                     }
                 )
-                if LyricsFeature.isAvailable {
+                HStack(spacing: DS.Space.gap) {
                     Button {
-                        if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) }
+                        AppAnalytics.tap("produce_tab.next_live_predict")
+                        if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
                     } label: {
-                        Label("コールを見る", systemImage: "hands.clap")
+                        Label("セトリを予想する", systemImage: "sparkles")
                     }
-                    .buttonStyle(.imas(.secondary, size: .medium))
+                    .buttonStyle(.imas(.primary, size: .medium))
+                    if LyricsFeature.isAvailable {
+                        Button {
+                            if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) }
+                        } label: {
+                            Label("コールを見る", systemImage: "hands.clap")
+                        }
+                        .buttonStyle(.imas(.secondary, size: .medium))
+                    }
                 }
             }
         }
