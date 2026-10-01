@@ -322,7 +322,7 @@ fun ImasAvatarStack(
  * 色で分かるのはこれだけが頼りなので、灰に潰さない)。色が分からない実体 (アルバム・シリーズの格子など) は
  * 灰の面 + 記号。
  *
- * **ジャケに回収の判子を押さない** (§5.1。回収は下段の札 ✓N)。[isCollected] は iOS と揃えるために残してある。
+ * 回収は印にしない (ジャケに判子を押さない。回収は下段の札 ✓N。2026-10-02 ユーザーの決まり)。
  * [previewUrl] を渡すと試聴の再生/停止の記号が点き、押すと [onPreview] を呼ぶ (再生状態はアプリ側が [isPreviewing] で渡す)。
  *
  * @param brand ブランド ID。
@@ -337,7 +337,6 @@ fun ImasArtwork(
     size: Dp = 48.dp,
     imageUrl: String? = null,
     modifier: Modifier = Modifier,
-    isCollected: Boolean = false,
     isElevated: Boolean = false,
     fallbackIcon: ImageVector = Icons.Filled.MusicNote,
     previewUrl: String? = null,
@@ -348,8 +347,7 @@ fun ImasArtwork(
     val t = if (hasColor) imasThemeForBrand(seed, brand) else imasEnvTheme
     val shape = RoundedCornerShape(DS.rArtwork(size))
     val dark = LocalImasColors.current.dark
-    val base = if (isCollected) "$title、回収済み" else title
-    val spoken = if (previewUrl != null) "${base}を試聴" else base
+    val spoken = if (previewUrl != null) "${title}を試聴" else title
     Box(
         modifier
             .size(size)
@@ -401,18 +399,6 @@ fun ImasArtwork(
                     modifier = Modifier.size(maxOf(14.dp, size * 0.3f))
                 )
             }
-        }
-        if (isCollected) {
-            // 小さいジャケ (行) は角からはみ出させ、大きいジャケ (棚) は角の内側に押す。
-            val stamp = (size * 0.42f).coerceIn(16.dp, 24.dp)
-            val nudge = if (size < 80.dp) 6.dp else (-6).dp
-            ImasStampMark(
-                diameter = stamp,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = nudge, y = nudge)
-                    .clearAndSetSemantics { }
-            )
         }
     }
 }

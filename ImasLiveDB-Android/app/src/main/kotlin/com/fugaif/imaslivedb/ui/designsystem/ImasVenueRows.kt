@@ -165,7 +165,6 @@ data class ImasStubDate(
  * 行を引く操作は呼び出し側で `ImasSwipe` に包む (右に引く = 参加・参加予定)。
  *
  * @param seed ペンライトの色 hex。[brand] はブランド ID。色の帯 (ペンライト) は副題の有無によらずいつも出す。
- * @param isPunched 参加した (半券に穴を開ける)。**記録の印には使わない** (§1-2。参加は札で出す)。iOS と揃えるために残す。
  * @param rainbow 合同ライブ等、単色で表せないとき、ペンライトを虹色にする。
  * @param spokenDate 読み上げの日付 (コアの `spokenDate(date)`、「2026年11月7日 土曜日」)。無ければ日付欄をそのまま読む。
  * @param showsChevron 別画面へ進む矢印 (押して詳細へ行く一覧)。
@@ -181,7 +180,6 @@ fun ImasStubRow(
     subtitle: String? = null,
     seed: String? = null,
     brand: String? = null,
-    isPunched: Boolean = false,
     badges: List<ImasBadgeSpec> = emptyList(),
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     rainbow: Boolean = false,
@@ -201,7 +199,6 @@ fun ImasStubRow(
         title,
         subtitle,
         badges.takeIf { it.isNotEmpty() }?.joinToString("、") { it.text },
-        if (isPunched) "参加済み" else null,
         detailAccessibilityLabel
     ).joinToString("、")
     val shape = ImasTicketShape(12.dp, ImasTicketShape.Cut.VerticalFromLeading(stubWidth + 1.dp), notchRadius = 6.dp)
@@ -213,7 +210,8 @@ fun ImasStubRow(
                 val x = (stubWidth + 1.dp).toPx()
                 drawImasDash(Offset(x, 8.dp.toPx()), Offset(x, size.height - 8.dp.toPx()), perforation, 2.dp.toPx())
             }
-            .semantics(mergeDescendants = true) { contentDescription = spoken },
+            .semantics(mergeDescendants = true) { contentDescription = spoken }
+            .imasSwipeActions(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.width(stubWidth)) {
@@ -233,9 +231,6 @@ fun ImasStubRow(
                     minScale = 0.6f
                 )
                 if (date.bottom.isNotEmpty()) Text(date.bottom, style = small, color = date.weekdayColor, maxLines = 1)
-            }
-            if (isPunched) {
-                ImasPunchHole(size = ImasPunchHoleSize.SMALL, modifier = Modifier.align(Alignment.TopEnd).padding(6.dp))
             }
         }
         // 切り取り線の分 (drawBehind で引く)。

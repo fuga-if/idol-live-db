@@ -140,7 +140,6 @@ fun ImasSetlistRow(
     performerSummary: String? = null,
     badges: List<ImasBadgeSpec> = emptyList(),
     facts: List<String> = emptyList(),
-    isCollected: Boolean = false,
     performerLimit: Int = 6,
     customArtwork: (@Composable () -> Unit)? = null,
     onSelectTitle: (() -> Unit)? = null,
@@ -160,8 +159,7 @@ fun ImasSetlistRow(
             title = title,
             seed = seed,
             brand = brand,
-            imageUrl = artworkUrl,
-            isCollected = isCollected
+            imageUrl = artworkUrl
         )
     } else {
         // 前と同じく上揃え (曲順・ジャケ・末尾を縦の真ん中に寄せない)。

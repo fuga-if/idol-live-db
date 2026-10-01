@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -153,7 +155,7 @@ private val SwipeButtonMinWidth = 74.dp
  *
  * 引くと行の下から操作のボタンが出る。半分より多く引いて離すと開いたまま止まり、ボタンを押すと実行して閉じる。
  * 操作が 1 つだけの側は、引き切る (行の幅の半分を超えて離す) とその場で実行する ([allowsFullSwipe])。
- * 開いている間に行を押すと閉じる。読み上げでは行の「操作」から選べる。
+ * 開いている間に行を押すと閉じる。読み上げでは行の「操作」から選べる (行の部品が自分の要素に付ける。[LocalImasSwipeActions])。
  *
  * Android では画面の右端から引き始めると OS の「戻る」に取られる。末尾側の操作は行の中ほどから引く
  * (記録を付ける主な操作は先頭側に置く。iOS と同じ割り当て)。
@@ -225,15 +227,15 @@ fun ImasSwipe(
     val settleVelocity = with(density) { 800.dp.toPx() }
     val paint = background ?: if (LocalImasBackdrop.current == ImasBackdrop.PAPER) DS.paper else DS.surface
 
+    // 読み上げの操作は行の部品 (ImasRow・ImasStubRow) が自分の読み上げの要素に付ける
+    // (押せる行は行の要素に読み上げが集まるので、外側の箱に付けても選べない)。
+    val spokenActions = remember(leading, trailing) {
+        (leading + trailing).map { a -> CustomAccessibilityAction(a.title) { a.action(); true } }
+    }
     Box(
         modifier
             .clipToBounds()
             .onSizeChanged { rowWidth = it.width }
-            .semantics {
-                customActions = (latestLeading + latestTrailing).map { a ->
-                    CustomAccessibilityAction(a.title) { a.action(); true }
-                }
-            }
     ) {
         // 行の下の操作のボタン。引いた側だけを見せる (行の高さいっぱい)。
         Box(Modifier.matchParentSize()) {
@@ -260,6 +262,7 @@ fun ImasSwipe(
                 )
             }
         }
+        CompositionLocalProvider(LocalImasSwipeActions provides spokenActions) {
         Box(
             Modifier
                 .offset { IntOffset(offset.roundToInt(), 0) }
@@ -293,7 +296,21 @@ fun ImasSwipe(
                 )
             }
         }
+        }
     }
+}
+
+/**
+ * [ImasSwipe] の中の行が読み上げの操作として持つもの。行の部品 (ImasRow・ImasStubRow) が自分の要素に付ける。
+ * 部品の外で組んだ行を [ImasSwipe] で包むときは、行の要素に `Modifier.imasSwipeActions()` を付ける。
+ */
+val LocalImasSwipeActions = staticCompositionLocalOf<List<CustomAccessibilityAction>> { emptyList() }
+
+/** [ImasSwipe] の操作を、この要素の読み上げの操作にする (行を引けない人も同じ操作を選べる)。 */
+@Composable
+fun Modifier.imasSwipeActions(): Modifier {
+    val actions = LocalImasSwipeActions.current
+    return if (actions.isEmpty()) this else this.semantics { customActions = actions }
 }
 
 /** 操作のボタンを並べる。1 つだけの側は引いた幅いっぱいに伸びる (引き切りの手応え)。 */

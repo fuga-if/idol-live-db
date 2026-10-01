@@ -74,8 +74,6 @@ import com.fugaif.imaslivedb.ui.theme.imasPress
 //
 // ImasTicketShape   切り取り線の両端に半円の切り欠きがある紙の形。
 // ImasPerforation   切り取り線 (点線)。
-// ImasPunchHole     パンチ穴。小さな印 (選んだ札など。記録の印には使わない — §1-2)。
-// ImasStampMark     ジャケの角に押す小さな判子 (記録の印には使わない — §1-2)。
 // ImasTicket        紙のチケット。次のライブ・次の出演。右の半券に「あと 37 DAYS」。
 // ImasBoard         電光掲示板。記録や出演の数を暗い板に細長い数字で。
 // ImasMasthead      画面の頭の印字の行 (「PRODUCE · 2026.10.01 THU」)。
@@ -184,79 +182,6 @@ fun ImasPerforation(
             ImasPerforationAxis.VERTICAL ->
                 drawImasDash(Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), color, w)
         }
-    }
-}
-
-// MARK: - 穴と判子
-
-/** パンチ穴の大きさ。 */
-enum class ImasPunchHoleSize(val diameter: Dp) { SMALL(10.dp), REGULAR(13.dp) }
-
-/**
- * パンチ穴 (iOS `ImasPunchHole`)。紙に開いた穴なので、ライトは下の暗い客席が、ダークは照明が透けて明るく見える。
- *
- * **記録 (回収・参加) の印には使わない** (§1-2。記録は札で出す)。選んだ札 (`ImasChoiceCards`) の印など。
- * 意味は読み上げで伝える ([label])。
- */
-@Composable
-fun ImasPunchHole(
-    modifier: Modifier = Modifier,
-    size: ImasPunchHoleSize = ImasPunchHoleSize.REGULAR,
-    label: String? = null
-) {
-    val dark = LocalImasColors.current.dark
-    val hole = DS.hole
-    // 穴の縁の内側に落ちる影 (iOS `.shadow(.inner(...))`)。上の縁から下へ影が差す。
-    val inner = Color.Black.copy(alpha = if (dark) 0.45f else 0.55f)
-    val a11y = if (label != null) Modifier.semantics { contentDescription = label } else Modifier.clearAndSetSemantics { }
-    Canvas(
-        modifier
-            .size(size.diameter)
-            .then(a11y)
-    ) {
-        val r = this.size.minDimension / 2f
-        val c = Offset(this.size.width / 2f, this.size.height / 2f)
-        if (dark) {
-            // ダークは照明が穴から漏れる (iOS `.shadow(color: hole 30%, radius: 4)`)。
-            drawCircle(hole.copy(alpha = 0.18f), radius = r + 3.dp.toPx(), center = c)
-        }
-        drawCircle(hole, radius = r, center = c)
-        val circle = Path().apply { addOval(Rect(center = c, radius = r)) }
-        clipPath(circle) {
-            // ぼかしの代わりに、ずらした穴を 2 段重ねて縁の影を柔らかく見せる。
-            drawCircle(inner.copy(alpha = inner.alpha * 0.5f), radius = r, center = c)
-            drawCircle(hole, radius = r, center = c + Offset(0f, 0.75.dp.toPx()))
-            drawCircle(inner.copy(alpha = inner.alpha * 0.5f), radius = r, center = c + Offset(0f, 0.75.dp.toPx()))
-            drawCircle(hole, radius = r, center = c + Offset(0f, 1.5.dp.toPx()))
-        }
-    }
-}
-
-/**
- * ジャケの角に押す小さな判子 (iOS `ImasStampMark`)。
- *
- * **記録 (回収) の印には使わない** (§1-2。ジャケに回収の判子を押さず、回収は札 ✓N で出す)。
- * iOS の部品と揃えるために置いてある。下の面の色で縁を抜くので、置く面の色を [under] に渡す。
- */
-@Composable
-fun ImasStampMark(
-    modifier: Modifier = Modifier,
-    diameter: Dp = 20.dp,
-    under: Color = DS.surface
-) {
-    // iOS の @ScaledMetric(relativeTo: .caption) と同じく、文字の大きさの設定に合わせて大きくする。
-    val d = with(LocalDensity.current) { diameter.value.sp.toDp() }
-    val stamp = DS.stamp
-    Box(
-        modifier
-            .size(d)
-            .rotate(-12f)
-            .background(under, CircleShape)
-            .border(maxOf(1.4.dp, d * 0.08f), stamp, CircleShape)
-            .semantics { contentDescription = "回収済み" },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(Icons.Filled.Check, contentDescription = null, tint = stamp, modifier = Modifier.size(d * 0.56f))
     }
 }
 

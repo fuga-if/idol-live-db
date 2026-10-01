@@ -118,8 +118,7 @@ sealed interface ImasRowLeading {
         val title: String,
         val seed: String? = null,
         val brand: String? = null,
-        val imageUrl: String? = null,
-        val isCollected: Boolean = false
+        val imageUrl: String? = null
     ) : ImasRowLeading
 
     /** 記号 (幅 28、地なし)。seed / brand を渡すとその実体の色で点く (予定の種類・ブランド)。 */
@@ -139,8 +138,7 @@ sealed interface ImasRowLeading {
         val title: String,
         val seed: String? = null,
         val brand: String? = null,
-        val imageUrl: String? = null,
-        val isCollected: Boolean = false
+        val imageUrl: String? = null
     ) : ImasRowLeading
 
     /** 順位。1〜3 位は墨。 */
@@ -314,6 +312,7 @@ fun ImasRow(
     }
 
     val outer = modifier
+        .imasSwipeActions()
         .fillMaxWidth()
         .imasRowTopDivider(inset, position ?: LocalImasRowPosition.current)
         .heightIn(min = DS.Size.touch)
@@ -399,8 +398,7 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
             seed = leading.seed,
             brand = leading.brand,
             size = density.artworkSize,
-            imageUrl = leading.imageUrl,
-            isCollected = leading.isCollected
+            imageUrl = leading.imageUrl
         )
         is ImasRowLeading.Icon -> ImasIconTile(
             leading.icon,
@@ -436,8 +434,7 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
                 seed = leading.seed,
                 brand = leading.brand,
                 size = 44.dp,
-                imageUrl = leading.imageUrl,
-                isCollected = leading.isCollected
+                imageUrl = leading.imageUrl
             )
         }
         is ImasRowLeading.Rank -> ImasRankNumber(leading.rank, modifier = modifier)

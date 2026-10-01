@@ -36,7 +36,7 @@ import uniffi.imas_core.spokenDate
 /**
  * 曲の行 (iOS `ImasSongRow`)。先頭はジャケ (無ければブランド色の面 + 曲名)。
  *
- * **ジャケに回収の判子を押さない** (§5.1。回収は下段の ✓N)。[isCollected] は iOS と揃えるために残す。
+ * 回収は印にしない (ジャケに判子を押さない。回収は下段の札 ✓N)。
  *
  * @param brand ジャケが無いときの面とリードバーの色 (ブランド ID。iOS の `brandHex`)。[seed] は色 hex で直に渡すとき。
  * @param showsBrandBar 行頭にブランドの色の帯を立てる (楽曲一覧)。
@@ -51,7 +51,6 @@ fun ImasSongRow(
     artworkUrl: String? = null,
     brand: String? = null,
     seed: String? = null,
-    isCollected: Boolean = false,
     showsBrandBar: Boolean = false,
     previewUrl: String? = null,
     isPreviewing: Boolean = false,
@@ -67,7 +66,7 @@ fun ImasSongRow(
     val size = density.artworkSize
     // 試聴に対応する呼び出しだけ、ジャケに試聴の口を足す (行の先頭の種類はそのまま)。
     val leading: ImasRowLeading = if (previewUrl == null) {
-        ImasRowLeading.Artwork(title = title, seed = seed, brand = brand, imageUrl = artworkUrl, isCollected = isCollected)
+        ImasRowLeading.Artwork(title = title, seed = seed, brand = brand, imageUrl = artworkUrl)
     } else {
         ImasRowLeading.Custom(width = size) {
             ImasArtwork(
@@ -76,7 +75,6 @@ fun ImasSongRow(
                 brand = brand,
                 size = size,
                 imageUrl = artworkUrl,
-                isCollected = isCollected,
                 previewUrl = previewUrl,
                 isPreviewing = isPreviewing,
                 onPreview = onPreviewTap
@@ -187,7 +185,6 @@ fun ImasEventRow(
     modifier: Modifier = Modifier,
     date: String? = null,
     subtitle: String? = null,
-    isPunched: Boolean = false,
     badges: List<ImasBadgeSpec> = emptyList(),
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     rainbow: Boolean = false,
@@ -208,7 +205,6 @@ fun ImasEventRow(
             title = AppPreferences.eventDisplayName(event.name),
             subtitle = subtitle,
             brand = event.brandId,
-            isPunched = isPunched,
             badges = badges,
             emphasis = emphasis,
             rainbow = rainbow,
@@ -239,7 +235,6 @@ fun ImasShowRow(
     subtitle: String? = null,
     brand: String? = null,
     seed: String? = null,
-    isPunched: Boolean = false,
     badges: List<ImasBadgeSpec> = emptyList(),
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     rainbow: Boolean = false,
@@ -255,7 +250,6 @@ fun ImasShowRow(
         subtitle = subtitle,
         seed = seed,
         brand = brand,
-        isPunched = isPunched,
         badges = badges,
         emphasis = emphasis,
         rainbow = rainbow,
