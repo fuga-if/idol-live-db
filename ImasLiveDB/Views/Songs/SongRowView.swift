@@ -23,18 +23,15 @@ enum SongRowMetric: Equatable {
     case collectRate(collected: Int, total: Int)
 }
 
-/// 楽曲一覧の 1 行 (新デザインシステム移植版)。
+/// 楽曲一覧の 1 行。見た目は `ImasSongRow` (DS の曲の行)。
 ///
-/// 構成: ImasLeadBar(ブランド) + ArtworkImageView(実ジャケ×ソリッドフォールバック, プレビュー対応)
-///       + 曲名 + [歌唱者 StackedAvatars + ユニット/演者ラベル]
-///       + マイマーク行 (リリース日 / 担当♥ / メモ / 習熟度 / 現地回収✓)。
+/// 構成: ImasSongRow (ブランドの色の帯 + ジャケ + 曲名) の detail に
+///       [歌唱者 ImasAvatarStack + ユニット/演者ラベル] + マイマーク行 (リリース日 / 担当♥ /
+///       メモ / 習熟度 / 現地回収✓) を積む。並び順の根拠 (披露回数・回収率) は行の末尾 (`.metric`)。
 ///
 /// ★お気に入りトグルは行から撤去済み (2026-09)。一覧で毎行トグルできても
 /// 実際にはほとんど使われず、行の情報密度だけが上がっていた。お気に入り自体は
 /// 曲詳細のボタン・お気に入り一覧・絞り込みに残しているので機能は消えていない。
-///
-/// 実ジャケと「画像なし=ソリッド面+曲名」が同列で違和感なく並ぶよう、ArtworkImageView に
-/// ブランド色 seed を渡してフォールバックをテーマ色で表現する。
 struct SongRowView: View {
     let item: SongWithArtists
     /// 現地回収 N 回 (参加ライブで披露された回数)。 0 / nil なら非表示。
@@ -64,14 +61,8 @@ struct SongRowView: View {
 
     private var song: Song { item.song }
 
-    /// フォールバック (画像なし) と行頭リードバーに使うブランド色 hex。
+    /// フォールバック (画像なし) と行頭の帯に使うブランド色 hex。
     private var brandHex: String? { Self.brandColorHex(for: song.brandId) }
-
-    /// タグ票数バッジの色。行のブランド色から導出する
-    /// (DS 原則: システム accent を塗らず、色は常にエンティティ側から来る)。
-    private var tagBadgeAccent: Color {
-        ImasTheme.derive(seed: nil, brand: brandHex, scheme: scheme).accent
-    }
 
     private var artworkURL: URL? {
         guard let dbUrl = song.artworkUrl else { return nil }
@@ -81,6 +72,10 @@ struct SongRowView: View {
     private var previewURL: URL? {
         guard let dbUrl = song.previewUrl else { return nil }
         return URL(string: dbUrl)
+    }
+
+    private var isCurrentlyPlaying: Bool {
+        MusicKitService.shared.isPlaying(songId: song.id)
     }
 
     /// 表示用ラベル: ユニット名/全体名 (あれば) を優先、無ければアイドル個別名連結。
@@ -102,55 +97,33 @@ struct SongRowView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: DS.sp4) {
-            // 行頭の控えめなブランド色マーカー (集約 = 細いリードバー)。
-            ImasLeadBar(brand: brandHex)
-                .frame(height: 50)
-
-            // 実ジャケ × ソリッドフォールバック (プレビュー再生対応)。
-            ArtworkImageView(
-                url: artworkURL,
-                size: 50,
-                previewURL: previewURL,
-                songTitle: song.title, songId: song.id,
-                seed: brandHex
-            )
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    Text(highlightedTitle)
-                        .font(.imasHeadline.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    if let tagVoteCount {
-                        HStack(spacing: 3) {
-                            Image(systemName: "tag.fill").font(.imasScaled( 9, weight: .bold))
-                            Text("\(tagVoteCount)").font(.imasCaption.weight(.bold)).monospacedDigit()
-                        }
-                        .foregroundStyle(tagBadgeAccent)
-                        .padding(.horizontal, 6).padding(.vertical, DS.sp1)
-                        .background(tagBadgeAccent.opacity(0.14), in: Capsule())
-                    }
+        ImasSongRow(
+            title: song.title,
+            artworkURL: artworkURL,
+            brandHex: brandHex,
+            showsBrandBar: true,
+            previewURL: previewURL,
+            isPreviewing: isCurrentlyPlaying,
+            onPreviewTap: {
+                if let previewURL { MusicKitService.shared.togglePreview(url: previewURL, songId: song.id) }
+            },
+            trailing: trailingMetric,
+            attributedTitle: highlightedTitle
+        ) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                if let tagVoteCount {
+                    ImasBadge(text: "\(tagVoteCount)", kind: .themed, systemImage: "tag.fill", brand: brandHex)
                 }
-
                 performerLine
-
                 creatorLine
-
                 markRow
-
                 // 歌詞検索で当たった一節。語ごとに 1 本ずつ返るが、一覧の行に
                 // 3 本も積むと 1 曲で画面が埋まるので 2 本まで。
                 ForEach(lyricsSnippets.prefix(2)) { s in
                     LyricsSnippetText(snippet: s, lineLimit: 1)
                 }
             }
-            .padding(.top, 1)
-
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
         .imasCopyable([
             CopyItem("曲名をコピー", song.title, key: "song_title"),
             CopyItem("よみをコピー", song.titleKana, key: "kana"),
@@ -158,24 +131,40 @@ struct SongRowView: View {
         ])
     }
 
+    // MARK: - 並び順の根拠 (行の末尾)
+
+    private var trailingMetric: ImasRowTrailing {
+        guard let metric else { return .none }
+        switch metric {
+        case .performances(let count):
+            return .metric("\(count)", unit: "回")
+        case .collectRate(_, 0):
+            // 一度も披露されていない曲の「0%」は率ではなく分母が無いだけ。
+            // 率として出すと 0% で回収し損ねたように読める。
+            return .metric("0", unit: "回")
+        case .collectRate(let collected, let total):
+            let rate = Int((Double(collected) / Double(total) * 100).rounded())
+            return .metric("\(rate)%", unit: "\(total)回")
+        }
+    }
+
     // MARK: - 歌唱者 + ユニット/演者ラベル
 
     @ViewBuilder
     private var performerLine: some View {
         if !item.performerIdols.isEmpty {
-            HStack(spacing: 7) {
-                StackedAvatars(idols: item.performerIdols, maxVisible: 4, size: 22)
-                Text(highlighted(performerText, in: .performer))
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
+            HStack(spacing: DS.Space.gap) {
+                ImasAvatarStack(people: item.performerIdols.map(Self.performer), maxVisible: 4, size: 22)
+                Text(highlighted(performerText, in: .performer)).imasText(.rowSubtitle)
             }
         } else if !item.artistNames.isEmpty {
-            Text(highlighted(item.artistNames, in: .performer))
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
-                .lineLimit(1)
+            Text(highlighted(item.artistNames, in: .performer)).imasText(.rowSubtitle)
         }
+    }
+
+    private static func performer(_ idol: Idol) -> ImasPerformer {
+        ImasPerformer(id: idol.id, name: idol.name, color: idol.color, iconLabel: idol.shortName,
+                      imageURL: CustomImageService.shared.imageURL(for: idol.id))
     }
 
     /// アイドルで絞っているときは、**当たった名前を先頭に**出す。
@@ -191,16 +180,12 @@ struct SongRowView: View {
         return described
     }
 
-
     /// 作詞・作曲・編曲で絞っているときだけ出す行。普段の一覧には要らない情報なので、
     /// 当たった理由を見せる必要がある時にだけ増やす。
     @ViewBuilder
     private var creatorLine: some View {
         if searchMatch?.scope == .creator, let text = matchedCreatorText {
-            Text(highlighted(text, in: .creator))
-                .font(.imasCaption2)
-                .foregroundStyle(DS.ink3)
-                .lineLimit(1)
+            Text(highlighted(text, in: .creator)).imasText(.meta, color: DS.ink3)
         }
     }
 
@@ -218,39 +203,25 @@ struct SongRowView: View {
     @ViewBuilder
     private var markRow: some View {
         if hasAnyMark {
-            HStack(spacing: DS.sp3) {
+            HStack(spacing: DS.Space.gap) {
                 if let date = song.releaseDate {
-                    Text(date)
-                        .font(.imasDisplay(11, weight: .regular))
-                        .foregroundStyle(DS.ink3)
+                    Text(date).imasText(.meta)
                 }
                 if isMyPick {
                     Label("担当", systemImage: "heart.fill")
                         .labelStyle(.titleAndIcon)
-                        .font(.imasScaled( 11, weight: .semibold))
-                        .foregroundStyle(DS.pick)
+                        .imasText(.meta, color: DS.pick)
                 }
                 if hasNote {
-                    Image(systemName: "pencil")
-                        .font(.imasScaled( 11, weight: .semibold))
-                        .foregroundStyle(DS.warning)
+                    Image(systemName: "pencil").imasText(.meta, color: DS.warning)
                 }
                 if masteryLevel > 0 {
                     MasteryChip(level: masteryLevel, scale: UserMarkService.shared.scale)
                 }
-                if let metric {
-                    metricBadge(metric)
-                }
                 if let count = collectedCount, count > 0 {
-                    let badge = HStack(spacing: DS.sp1) {
-                        Image(systemName: "checkmark")
-                        Text("\(count)").font(.imasDisplay(11, weight: .bold))
-                    }
-                    .font(.imasScaled( 11, weight: .semibold))
-                    .foregroundStyle(DS.success)
+                    let badge = ImasBadge(text: "\(count)", kind: .positive, systemImage: "checkmark")
                     if let onCollectedTap {
-                        Button(action: onCollectedTap) { badge.contentShape(Rectangle()) }
-                            .buttonStyle(.plain)
+                        Button(action: onCollectedTap) { badge }.buttonStyle(.plain)
                     } else {
                         badge
                     }
@@ -261,31 +232,7 @@ struct SongRowView: View {
 
     private var hasAnyMark: Bool {
         song.releaseDate != nil || isMyPick || hasNote || (collectedCount ?? 0) > 0
-            || metric != nil || masteryLevel > 0
-    }
-
-    /// 並び順の根拠 (披露回数 / 回収率)。
-    ///
-    /// 回収率は分子 (回収数) が隣の ✓ バッジに出ているので、ここでは率と母数を出す。
-    /// 率だけだと「1回のうち1回」も「12回のうち12回」も 100% で並んでしまい、
-    /// どちらが重いのか読めない。
-    private func metricBadge(_ metric: SongRowMetric) -> some View {
-        let text: String
-        switch metric {
-        case .performances(let count):
-            text = "\(count)回"
-        case .collectRate(_, 0):
-            // 一度も披露されていない曲の「0%」は率ではなく分母が無いだけ。
-            // 率として出すと 0% で回収し損ねたように読める。
-            text = "0回"
-        case .collectRate(let collected, let total):
-            let rate = Int((Double(collected) / Double(total) * 100).rounded())
-            text = "\(rate)% / \(total)回"
-        }
-        return Label(text, systemImage: "music.mic")
-            .labelStyle(.titleAndIcon)
-            .font(.imasScaled(11, weight: .semibold))
-            .foregroundStyle(DS.ink2)
+            || masteryLevel > 0
     }
 
     // MARK: - 一致部分のハイライト

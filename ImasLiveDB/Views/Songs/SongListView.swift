@@ -316,22 +316,17 @@ struct SongListView: View {
     private var scopeSuggestionBar: some View {
         let suggestions = scopeSuggestions
         if !suggestions.isEmpty || showsLyricsSuggestion {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    Text("ほかに")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
-                    ForEach(suggestions, id: \.scope) { item in
-                        scopeChip(label: "\(item.scope.label(in: listMode)) \(item.count)件",
-                                  scope: item.scope)
-                    }
-                    if showsLyricsSuggestion {
-                        scopeChip(label: "歌詞で探す", scope: .lyrics)
-                    }
+            ImasChipRow {
+                Text("ほかに").imasText(.meta)
+                ForEach(suggestions, id: \.scope) { item in
+                    scopeChip(label: "\(item.scope.label(in: listMode)) \(item.count)件",
+                              scope: item.scope)
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp2)
+                if showsLyricsSuggestion {
+                    scopeChip(label: "歌詞で探す", scope: .lyrics)
+                }
             }
+            .padding(.vertical, DS.Space.gapTight)
         }
     }
 
@@ -389,79 +384,35 @@ struct SongListView: View {
         // ことで navigationDestination が解除されて 1 回戻る。ここで追加で dismissSelf() を
         // 呼ぶと 2 回戻りになる (= 設定画面を更に飛び越えて IntroDonHome まで戻る) ため、
         // dismiss はせず onSelectPool だけ呼ぶ。
-        Button {
+        ImasSuggestionBar(
+            systemImage: "checkmark.circle.fill",
+            title: "この範囲で出題",
+            detail: playable < 4 ? "4曲以上必要" : "\(playable)曲",
+            style: .prominent,
+            isEnabled: playable >= 4
+        ) {
             AppAnalytics.tap("song_list.introdon_select")
             onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
-        } label: {
-            HStack(spacing: DS.sp3) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.imasScaled(15, weight: .bold))
-                Text("この範囲で出題")
-                    .font(.imasSubhead.weight(.bold))
-                Text("\(playable)曲")
-                    .font(.imasCaption)
-                    .opacity(0.85)
-                Spacer(minLength: 0)
-                if playable < 4 {
-                    Text("4曲以上必要")
-                        .font(.imasCaption.weight(.bold))
-                }
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(12, weight: .bold))
-            }
-            // DS.sys はシステムのテキスト色 (ダーク=白 / ライト=黒)。背景にこれを使うと、
-            // 上に乗せる文字色は必ず DS.onSys (反転色) でなければならない。
-            // 旧コードは固定 .white を載せており、ダークモードで「白背景白文字」になっていた。
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp4)
-            .frame(maxWidth: .infinity)
-            .foregroundStyle(playable >= 4 ? DS.onSys : Color.white)
-            .background(playable >= 4 ? AnyShapeStyle(DS.sys) : AnyShapeStyle(Color.secondary))
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .disabled(playable < 4)
     }
 
     /// いま表示中の曲でこの場でイントロドンを始める通常導線 (絞り込みバー直下)。
     @ViewBuilder
     private func normalIntroDonBar(playable: Int) -> some View {
-        HStack(spacing: 0) {
-            Button {
+        ImasSuggestionBar(
+            systemImage: "music.note.list",
+            title: "この絞り込みでイントロドン",
+            detail: "\(playable)曲",
+            style: .subtle,
+            action: {
                 AppAnalytics.tap("song_list.introdon")
                 showIntroDon = true
-            } label: {
-                HStack(spacing: DS.sp3) {
-                    Image(systemName: "music.note.list")
-                        .font(.imasScaled( 14, weight: .bold))
-                    Text("この絞り込みでイントロドン")
-                        .font(.imasSubhead.weight(.bold))
-                    Text("\(playable)曲")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                    Spacer(minLength: 0)
-                }
-                .foregroundStyle(DS.sys)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Button {
+            },
+            onDismiss: {
                 AppAnalytics.tap("song_list.introdon_hide")
                 withAnimation { introDonBarHidden = true }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.imasScaled( 12, weight: .bold))
-                    .foregroundStyle(DS.ink2)
-                    .padding(.leading, 10)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("イントロドン導線を隠す")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(DS.sys.opacity(0.10))
+        )
     }
 
     /// 選択モードで呼び元に返す範囲ラベル (適用中フィルタの簡潔な説明)。
@@ -478,16 +429,9 @@ struct SongListView: View {
     @ViewBuilder
     private var tagFilterErrorBanner: some View {
         if vm.tagFilterError {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.warning)
-                Text("タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp2)
+            ImasNotice(kind: .warning, message: "タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
         }
     }
 
@@ -496,27 +440,16 @@ struct SongListView: View {
     @ViewBuilder
     private var callGuideFilterErrorBanner: some View {
         if vm.callGuideFilterError {
-            callGuideBanner("exclamationmark.triangle.fill", DS.warning,
-                            "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
+            ImasNotice(kind: .warning, message: "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
         } else if callGuideOnly && listMode == .songs && vm.callGuideFilterTruncated {
             // サーバは 200 件で打ち切る。201 曲目以降が黙って消えるのではなく、
             // 「何で絞っているか」を名乗る。
-            callGuideBanner("info.circle.fill", DS.ink3,
-                            "最近更新された 200 曲で絞り込んでいます。")
+            ImasNotice(kind: .info, message: "最近更新された 200 曲で絞り込んでいます。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
         }
-    }
-
-    private func callGuideBanner(_ systemImage: String, _ tint: Color, _ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.imasCaption)
-                .foregroundStyle(tint)
-            Text(text)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
-        }
-        .padding(.horizontal, DS.sp5)
-        .padding(.vertical, DS.sp2)
     }
 
     /// KAMISABI 収録曲だけに絞り込んでいる間だけ出す所持コンプ。
@@ -530,33 +463,15 @@ struct SongListView: View {
     @ViewBuilder
     private var kamisabiCompletionBanner: some View {
         if kamisabiOnly, listMode == .songs, !vm.isLoading, let completion = vm.kamisabiCompletion {
-            HStack(spacing: 6) {
-                Image(systemName: UserMarkKind.owned.activeIcon)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                Text(kamisabiCompletionLabel(completion: completion))
-                    .font(.imasCaption.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp2)
+            ImasNote(kamisabiCompletionLabel(completion: completion), systemImage: UserMarkKind.owned.activeIcon)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
         }
     }
 
     @ViewBuilder
     private var removableFilterBar: some View {
-        let chips = activeFilterChips
-        if !chips.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    ForEach(chips) { chip in
-                        ImasRemovableChip(text: chip.label, onRemove: chip.remove)
-                    }
-                }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp2)
-            }
-        }
+        ImasFilterBar(items: activeFilterChips.map { .init(id: $0.id, title: $0.label, onRemove: $0.remove) })
     }
 
     /// 行頭に並ぶ removable フィルタチップの定義。
@@ -675,18 +590,7 @@ struct SongListView: View {
                 }
             }
         } label: {
-            HStack(spacing: 1) {
-                Text(searchMode.label(in: listMode))
-                    .font(.imasCaption.weight(.semibold))
-                Image(systemName: "chevron.down")
-                    .font(.imasScaled(8, weight: .semibold))
-            }
-            .foregroundStyle(DS.ink2)
-            .padding(.horizontal, DS.sp2)
-            .padding(.vertical, 2)
-            .background(DS.surface, in: Capsule())
-            .lineLimit(1)
-            .fixedSize()
+            ImasChip(text: searchMode.label(in: listMode), systemImage: "chevron.down", style: .neutral)
         }
         .accessibilityLabel("検索対象: \(searchMode.label(in: listMode))")
     }
@@ -796,6 +700,8 @@ struct SongListView: View {
                 } else {
                     VStack(spacing: 0) {
                         countSortBar(count: display.count + fuzzy.count)
+                            .frame(maxWidth: DS.readableContentWidth)
+                            .frame(maxWidth: .infinity)
                         songsList(display, fuzzy: fuzzy)
                     }
                 }
@@ -811,50 +717,13 @@ struct SongListView: View {
     /// 並び替えはその場のメニューで切り替える。フィルタシートを開かせると、並びだけ
     /// 変えたい時に絞り込み全体を掻き分けることになる (シート側にも同じ項目は残す)。
     private func countSortBar(count: Int) -> some View {
-        HStack {
-            (Text("\(count)").font(.imasDisplay(15, weight: .bold)).foregroundStyle(DS.ink)
-                + Text(" 件").font(.imasFootnote).foregroundStyle(DS.ink2))
-            Spacer()
-            Menu {
-                Picker("並び順", selection: Binding(
-                    get: { sortOrder },
-                    set: { changeSortOrder($0) }
-                )) {
-                    ForEach(SongSortOrder.allCases, id: \.rawValue) { order in
-                        Text(order.rawValue).tag(order)
-                    }
-                }
-                Picker("方向", selection: Binding(
-                    get: { effectiveSortAscending },
-                    set: { changeSortAscending($0) }
-                )) {
-                    Label("昇順", systemImage: "arrow.up").tag(true)
-                    Label("降順", systemImage: "arrow.down").tag(false)
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: effectiveSortAscending ? "arrow.up" : "arrow.down")
-                        .font(.imasScaled( 13, weight: .semibold))
-                        .foregroundStyle(DS.ink2)
-                    Text(sortOrder.rawValue)
-                        .font(.imasScaled( 13.5, weight: .semibold))
-                        .foregroundStyle(DS.ink)
-                    Image(systemName: "chevron.down")
-                        .font(.imasScaled( 11, weight: .semibold))
-                        .foregroundStyle(DS.ink2)
-                }
-                .padding(.horizontal, 11).padding(.vertical, 7)
-                .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("並び替え: \(sortOrder.rawValue)、\(effectiveSortAscending ? "昇順" : "降順")")
-        }
-        .padding(.horizontal, DS.sp5)
-        .padding(.top, DS.sp2)
-        .padding(.bottom, DS.sp2)
-        // 下の一覧 (`readableContentMargins`) と左右を揃える。
-        .frame(maxWidth: DS.readableContentWidth)
-        .frame(maxWidth: .infinity)
+        ImasListSummary(
+            count: count,
+            sortOptions: SongSortOrder.allCases,
+            sortSelection: Binding(get: { sortOrder }, set: { changeSortOrder($0) }),
+            sortLabel: { $0.rawValue },
+            sortAscending: Binding(get: { effectiveSortAscending }, set: { changeSortAscending($0) })
+        )
     }
 
     private var effectiveSortAscending: Bool { sortAscending ?? sortOrder.defaultAscending }

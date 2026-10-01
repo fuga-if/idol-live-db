@@ -174,6 +174,8 @@ struct ImasAvatarStack: View {
 
 /// 曲のジャケ。実画像があれば表示、無ければ灰の面 + 音符。
 /// 回収した曲 (`isCollected`) は角に小さな判子 (`ImasStampMark`) を押す。
+/// `previewURL` を渡すと試聴の再生/停止オーバーレイが点き、タップで `onPreview` を呼ぶ
+/// (再生状態そのものはアプリ側が持つので `isPreviewing` で渡す)。
 struct ImasArtwork: View {
     let title: String
     var seed: String?
@@ -183,6 +185,12 @@ struct ImasArtwork: View {
     var isCollected: Bool = false
     /// 詳細の頭の大きいジャケ。レコードのスリーブのように紙から浮かせる (影)。
     var isElevated: Bool = false
+    /// 試聴できる音源の URL。nil なら試聴の記号を出さない (タップしても何も起きない)。
+    var previewURL: URL? = nil
+    /// いま試聴中か (再生中は停止の記号にする)。
+    var isPreviewing: Bool = false
+    /// タップされたとき (再生/停止の切り替えは呼び出し側が行う)。`previewURL` が無いときは呼ばれない。
+    var onPreview: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var artworkScheme
 
@@ -191,9 +199,24 @@ struct ImasArtwork: View {
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
-        let t = (seed != nil || brand != nil)
-            ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
-            : envTheme
+        // 試聴 URL が無いときは (アプリ内のほぼ全ての呼び出し) タップの記号を一切付けない。
+        // `.onTapGesture` は無条件に付けると、行全体を Button/NavigationLink にしている
+        // 呼び出し元でジャケの上だけタップが奪われて遷移しなくなる (他画面への影響が大きい
+        // ため、試聴に対応する呼び出し側だけに絞る)。
+        if previewURL != nil {
+            core(theme).contentShape(Rectangle())
+                .onTapGesture { onPreview?() }
+                .accessibilityAddTraits(.isButton)
+        } else {
+            core(theme)
+        }
+    }
+
+    private var theme: ImasTheme {
+        (seed != nil || brand != nil) ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) : envTheme
+    }
+
+    private func core(_ t: ImasTheme) -> some View {
         Group {
             if let imageURL {
                 let px = Int(size * displayScale)
@@ -224,6 +247,21 @@ struct ImasArtwork: View {
                 ImasStampMark(diameter: stamp)
                     .offset(x: size < 80 ? 6 : -6, y: size < 80 ? 6 : -6)
                     .accessibilityHidden(true)
+            }
+        }
+        .overlay {
+            if previewURL != nil {
+                ZStack {
+                    if isPreviewing {
+                        Color.black.opacity(0.4)
+                    }
+                    Image(systemName: isPreviewing ? "stop.fill" : "play.fill")
+                        .font(.imasScaled(max(11, size * 0.25)))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 2)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: DS.rArtwork(size), style: .continuous))
+                .accessibilityHidden(true)
             }
         }
         .accessibilityLabel(isCollected ? "\(title)、回収済み" : title)

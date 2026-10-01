@@ -246,6 +246,9 @@ struct ImasListSummary<Sort: Hashable>: View {
     var sortOptions: [Sort] = []
     var sortSelection: Binding<Sort>? = nil
     var sortLabel: (Sort) -> String = { "\($0)" }
+    /// 昇順・降順の方向トグル (任意)。渡すとメニューに「方向」の項目が増え、
+    /// ボタンの記号もその向きになる。渡さなければ軸の切り替えだけ (双方向の矢印)。
+    var sortAscending: Binding<Bool>? = nil
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -256,9 +259,16 @@ struct ImasListSummary<Sort: Hashable>: View {
                     Picker("並び順", selection: sortSelection) {
                         ForEach(sortOptions, id: \.self) { Text(sortLabel($0)).tag($0) }
                     }
+                    if let sortAscending {
+                        Picker("方向", selection: sortAscending) {
+                            Label("昇順", systemImage: "arrow.up").tag(true)
+                            Label("降順", systemImage: "arrow.down").tag(false)
+                        }
+                    }
                 } label: {
                     HStack(spacing: DS.Space.gapTight) {
-                        Image(systemName: "arrow.up.arrow.down")
+                        Image(systemName: sortAscending.map { $0.wrappedValue ? "arrow.up" : "arrow.down" }
+                              ?? "arrow.up.arrow.down")
                         Text(sortLabel(sortSelection.wrappedValue))
                     }
                     .font(.imasFootnote.weight(.semibold))

@@ -1,4 +1,3 @@
-import NukeUI
 import SwiftUI
 
 // MARK: - Protocol
@@ -12,6 +11,7 @@ protocol GridCardItem: Identifiable, Hashable {
 
 // MARK: - GenericGridView
 
+/// アルバム・シリーズなど「ジャケ + 題」の格子一覧。見た目は `ImasArtworkCell` (DS §6.6)。
 struct GenericGridView<Item: GridCardItem>: View {
     let items: [Item]
     let isLoading: Bool
@@ -19,7 +19,7 @@ struct GenericGridView<Item: GridCardItem>: View {
     let emptySystemImage: String
     let onSelect: (Item) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: DS.sp5)]
+    private let columns = [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: DS.Space.screen)]
 
     init(
         items: [Item],
@@ -41,85 +41,22 @@ struct GenericGridView<Item: GridCardItem>: View {
                 ImasInlineLoading()
             } else if items.isEmpty {
                 ImasEmptyState(systemImage: emptySystemImage, title: emptyTitle)
-                    .padding(.top, 60)
+                    .padding(.top, DS.Space.section * 2)
             } else {
-                LazyVGrid(columns: columns, spacing: DS.sp5) {
+                LazyVGrid(columns: columns, spacing: DS.Space.screen) {
                     ForEach(items) { item in
                         Button { onSelect(item) } label: {
-                            GridCardView(item: item)
+                            ImasArtworkCell(title: item.title, subtitle: item.subtitle,
+                                            imageURL: item.artworkUrl.flatMap(URL.init))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasPress)
                     }
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp5)
-                .padding(.bottom, DS.sp7)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.screen)
+                .padding(.bottom, DS.Space.section)
             }
         }
         .clipped()
-    }
-}
-
-// MARK: - GridCardView
-
-struct GridCardView<Item: GridCardItem>: View {
-    let item: Item
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            artworkSection
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: DS.rSM))
-                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
-
-            Text(item.title)
-                .font(.imasHeadline)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-
-            if let subtitle = item.subtitle {
-                Text(subtitle)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var artworkSection: some View {
-        if let url = item.artworkUrl.flatMap(URL.init) {
-            LazyImage(url: url) { state in
-                if let image = state.image {
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } else {
-                    placeholderView
-                }
-            }
-        } else {
-            placeholderView
-        }
-    }
-
-    private var placeholderView: some View {
-        ZStack {
-            LinearGradient(
-                colors: [DS.fill, DS.surface2],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            VStack(spacing: 6) {
-                Image(systemName: item.placeholderSystemImage)
-                    .font(.imasScaled( 28))
-                    .foregroundStyle(DS.ink2)
-                Text(item.title)
-                    .font(.imasCaption2)
-                    .foregroundStyle(DS.ink2)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(3)
-                    .padding(.horizontal, DS.sp3)
-            }
-        }
     }
 }

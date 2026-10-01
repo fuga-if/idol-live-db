@@ -26,6 +26,13 @@ struct ImasSongRow<Detail: View>: View {
     var isCollected: Bool = false
     /// 行頭にブランドの色の帯を立てる (楽曲一覧)。
     var showsBrandBar: Bool = false
+    /// 試聴できる音源の URL。渡すとジャケのタップが曲詳細への遷移と別に試聴を切り替える
+    /// (行全体のタップは呼び出し側の Button/NavigationLink のまま)。
+    var previewURL: URL? = nil
+    /// いま試聴中か。
+    var isPreviewing: Bool = false
+    /// ジャケがタップされたとき。`previewURL` が無いときは使わない。
+    var onPreviewTap: (() -> Void)? = nil
     var trailing: ImasRowTrailing = .none
     var density: ImasRowDensity = .regular
     var emphasis: ImasRowEmphasis = .normal
@@ -37,7 +44,7 @@ struct ImasSongRow<Detail: View>: View {
         ImasRow(
             title: title,
             subtitle: subtitle,
-            leading: .artwork(title: title, brand: brandHex, imageURL: artworkURL, isCollected: isCollected),
+            leading: leading,
             leadBar: showsBrandBar ? ImasRowLeadBar(brand: brandHex) : nil,
             trailing: trailing,
             density: density,
@@ -46,6 +53,19 @@ struct ImasSongRow<Detail: View>: View {
             attributedTitle: attributedTitle,
             detail: { detail }
         )
+    }
+
+    /// 試聴に対応する呼び出しだけ、ジャケを `ImasArtwork` 直書きに差し替えて試聴の口を足す
+    /// (`ImasRowLeading.artwork` 自体は変えない。試聴を使わない呼び出しは今までどおり)。
+    private var leading: ImasRowLeading {
+        guard previewURL != nil else {
+            return .artwork(title: title, brand: brandHex, imageURL: artworkURL, isCollected: isCollected)
+        }
+        let size = density.artworkSize
+        return .custom(AnyView(
+            ImasArtwork(title: title, brand: brandHex, size: size, imageURL: artworkURL, isCollected: isCollected,
+                       previewURL: previewURL, isPreviewing: isPreviewing, onPreview: onPreviewTap)
+        ), width: size)
     }
 }
 
@@ -142,7 +162,7 @@ struct ImasUnitRow: View {
         ImasRow(
             title: unit.displayName,
             subtitle: subtitle,
-            leading: .custom(AnyView(UnitAvatarView(unit: unit, size: size)), width: size),
+            leading: .custom(AnyView(ImasUnitAvatar(unit: unit, size: size)), width: size),
             trailing: trailing,
             density: density,
             titleLineLimit: 1
