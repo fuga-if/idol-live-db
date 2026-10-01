@@ -105,7 +105,6 @@ ImasLiveDB/Views/Polls/PollAchievementBadges.swift	1
 ImasLiveDB/Views/Polls/PollCreateSheet.swift	6
 ImasLiveDB/Views/Polls/PollDetailView.swift	5
 ImasLiveDB/Views/Polls/PollListView.swift	1
-ImasLiveDB/Views/Produce/ProduceTabView.swift	33
 ImasLiveDB/Views/Search/LyricsSearchRow.swift	1
 ImasLiveDB/Views/Settings/InboxView.swift	6
 ImasLiveDB/Views/Songs/SongCommunityEditView.swift	3
