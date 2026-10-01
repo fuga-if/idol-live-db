@@ -331,10 +331,7 @@ struct SortMakerSetupView: View {
     private var hint: String? {
         if candidates.count < 2 { return "2\(subject.counter)以上になるように絞り込みをゆるめてください。" }
         if purpose == .tier {
-            if candidates.count > Self.tierListLimit {
-                return "ティアー表は\(Self.tierListLimit)\(subject.counter)までです。ブランドや曲の種類で絞ってください。"
-            }
-            return candidates.count > 120 ? "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" : nil
+            return candidates.count > 200 ? "未分類は名前で絞り込めるので、全\(subject.counter)からでも探して振り分けられます。" : nil
         }
         if estimate > 600 {
             return depth == .all
@@ -367,13 +364,7 @@ struct SortMakerSetupView: View {
         .background(.bar)
     }
 
-    /// ティアー表に並べられる上限。全部を 1 画面に並べる (遅延表示しない) ので、
-    /// 全曲 (2000 超) を並べると画面ごと重くなる。振り分ける手間からも現実的な上限。
-    static let tierListLimit = 200
-
-    private var canStart: Bool {
-        !isLoading && candidates.count >= 2 && (purpose == .sort || candidates.count <= Self.tierListLimit)
-    }
+    private var canStart: Bool { !isLoading && candidates.count >= 2 }
 
     private func start() {
         if purpose == .tier {

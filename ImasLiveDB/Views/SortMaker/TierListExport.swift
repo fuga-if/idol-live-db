@@ -106,9 +106,13 @@ struct TierListExportSheet: View {
         let thumbnails = await loadThumbnails()
         let content = TierListBoardImage(board: board, items: items, thumbnails: thumbnails)
         let renderer = ImageRenderer(content: content)
-        renderer.scale = 2
         renderer.isOpaque = true
         renderer.proposedSize = ProposedViewSize(width: TierListBoardImage.width, height: nil)
+        // 縦が長すぎると描画できる上限 (一辺 8192px 前後) を超えて真っ黒になる。
+        // 先に等倍で高さを測り、上限に収まる倍率で焼く (普段は 2 倍 = 横 1080px)。
+        renderer.scale = 1
+        let height = renderer.uiImage?.size.height ?? 0
+        renderer.scale = height > 0 ? min(2, TierListBoardImage.maxPixelHeight / height) : 2
         image = renderer.uiImage
     }
 
@@ -197,9 +201,16 @@ struct TierListBoardImage: View {
     let thumbnails: [String: UIImage]
 
     static let width: CGFloat = 540
+    /// 書き出す画像の縦の上限 (px)。これを超えるときは倍率を下げる。
+    static let maxPixelHeight: CGFloat = 8000
     private let labelWidth: CGFloat = 76
-    private let cell: CGFloat = 62
     private let gap: CGFloat = 6
+
+    /// 載せる件数が多いほど 1 枚を小さくして、縦に伸びすぎないようにする
+    /// (全曲から数百件を段に入れても読める大きさで 1 枚に収める)。
+    private var placedCount: Int { board.placedCount }
+    private var cell: CGFloat { placedCount <= 150 ? 62 : (placedCount <= 400 ? 46 : 34) }
+    private var showsNames: Bool { placedCount <= 400 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -263,7 +274,7 @@ struct TierListBoardImage: View {
                 }
             }
             .padding(gap)
-            .frame(maxWidth: .infinity, minHeight: cell + 22 + gap * 2, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: cell + (showsNames ? 22 : 8) + gap * 2, alignment: .topLeading)
             .background(Color.white.opacity(0.06))
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -273,11 +284,13 @@ struct TierListBoardImage: View {
         VStack(spacing: 3) {
             visual(id)
                 .frame(width: cell, height: cell)
-            Text(items[id]?.title ?? "")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.85))
-                .lineLimit(1)
-                .frame(width: cell)
+            if showsNames {
+                Text(items[id]?.title ?? "")
+                    .font(.system(size: cell >= 60 ? 9 : 7, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .frame(width: cell)
+            }
         }
     }
 

@@ -17,6 +17,10 @@ struct TierListView: View {
     @State private var showEdit = false
     @State private var confirmReset = false
     @State private var moveFeedback = 0
+    /// 未分類の絞り込み (全曲を入れても探せるように)。
+    @State private var unplacedQuery = ""
+    /// 未分類の検索用カタログ。照合規則はコア (`text_search_index`)。項目を読み込んだ時に 1 回組む。
+    @State private var catalog: TextSearchCatalog?
     @Environment(\.colorScheme) private var scheme
 
     init(board: TierListBoard) {
@@ -110,6 +114,13 @@ struct TierListView: View {
         .task {
             let loaded = await SortMakerCandidates.load(subject, ids: board.itemIds)
             items = Dictionary(loaded.compactMap { $0.map { ($0.id, $0) } }, uniquingKeysWith: { a, _ in a })
+            catalog = TextSearchCatalog(fieldsPerItem: board.itemIds.map { id in
+                switch items[id] {
+                case .song(let s): return [s.title, s.titleKana, s.singerLabel, s.unitName]
+                case .idol(let i): return [i.name, i.nameKana, i.aliases]
+                case nil: return []
+                }
+            })
         }
         .trackScreen("tier_list")
     }
@@ -172,15 +183,29 @@ struct TierListView: View {
         }
     }
 
+    /// 未分類のうち、絞り込みに当たるもの (並びは対象の並びのまま)。
+    private var visibleUnplacedIds: [String] {
+        let unplaced = board.unplacedIds
+        let needle = unplacedQuery.trimmingCharacters(in: .whitespaces)
+        guard !needle.isEmpty, let catalog else { return unplaced }
+        let hits = Set(catalog.filter(board.itemIds, needle: needle))
+        return unplaced.filter { hits.contains($0) }
+    }
+
     private var unplacedSection: some View {
-        let ids = board.unplacedIds
+        let total = board.unplacedIds.count
+        let ids = visibleUnplacedIds
         return VStack(alignment: .leading, spacing: DS.sp3) {
             HStack {
                 Text("未分類").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
-                Text("\(ids.count)").font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
+                Text(unplacedQuery.isEmpty ? "\(total)" : "\(ids.count) / \(total)")
+                    .font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
                 Spacer()
             }
-            itemsFlow(ids, emptyText: ids.isEmpty ? "全部振り分けました" : nil)
+            if total > 12 {
+                NameFilterField(prompt: subject == .song ? "曲名・歌唱で絞り込み" : "名前で絞り込み", text: $unplacedQuery)
+            }
+            unplacedGrid(ids, emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil))
                 .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
                 .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                 .contentShape(Rectangle())
@@ -202,22 +227,43 @@ struct TierListView: View {
         } else {
             FlowLayout(spacing: 6) {
                 ForEach(ids, id: \.self) { id in
-                    TierListChip(item: items[id], isSelected: selectedId == id)
-                        .onTapGesture { tapChip(id) }
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityHint(selectedId == nil || selectedId == id ? "選んでから段を指定" : "選んだものをこの段へ移す")
-                        .draggable(id) {
-                            TierListChip(item: items[id], isSelected: true)
-                        }
-                        .contextMenu {
-                            if let item = items[id] {
-                                Button("詳細を見る", systemImage: "info.circle") { detail = item.detail }
-                            }
-                        }
+                    chip(id)
                 }
             }
             .padding(6)
         }
+    }
+
+    /// 未分類は数千件になりうる (全曲) ので、見えている分だけ描く格子にする。
+    @ViewBuilder
+    private func unplacedGrid(_ ids: [String], emptyText: String?) -> some View {
+        if ids.isEmpty {
+            Text(emptyText ?? "")
+                .font(.imasCaption).foregroundStyle(DS.ink3)
+                .padding(DS.sp4)
+        } else {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 66), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(ids, id: \.self) { id in
+                    chip(id)
+                }
+            }
+            .padding(6)
+        }
+    }
+
+    private func chip(_ id: String) -> some View {
+        TierListChip(item: items[id], isSelected: selectedId == id)
+            .onTapGesture { tapChip(id) }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(selectedId == nil || selectedId == id ? "選んでから段を指定" : "選んだものをこの段へ移す")
+            .draggable(id) {
+                TierListChip(item: items[id], isSelected: true)
+            }
+            .contextMenu {
+                if let item = items[id] {
+                    Button("詳細を見る", systemImage: "info.circle") { detail = item.detail }
+                }
+            }
     }
 
     // MARK: - 移すバー
