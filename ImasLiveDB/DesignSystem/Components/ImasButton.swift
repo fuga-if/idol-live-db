@@ -189,19 +189,27 @@ struct ImasIconButton: View {
     let label: String
     var size: Size = .regular
     var style: Style = .tinted
+    /// 押してから終わるまで記号をくるくるに替える (削除中など)。
+    var isLoading: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(size.iconFont)
-                .foregroundStyle(fg)
-                .frame(width: size.diameter, height: size.diameter)
-                .background(bg, in: Circle())
-                .contentShape(Circle())
+            ZStack {
+                Image(systemName: systemImage).opacity(isLoading ? 0 : 1)
+                if isLoading {
+                    ProgressView().controlSize(.small).tint(fg)
+                }
+            }
+            .font(size.iconFont)
+            .foregroundStyle(fg)
+            .frame(width: size.diameter, height: size.diameter)
+            .background(bg, in: Circle())
+            .contentShape(Circle())
         }
         .buttonStyle(.imasPress)
         .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+        .allowsHitTesting(!isLoading)
         .accessibilityLabel(label)
     }
 

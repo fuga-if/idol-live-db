@@ -53,8 +53,11 @@ struct ImasSetlistRow: View {
     var customArtwork: AnyView? = nil
     /// 曲名を押せるようにする (曲の詳細などへ)。nil なら押せない文字のまま。
     var onSelectTitle: (() -> Void)? = nil
-    /// 歌唱者の表示を画面側で組みたいとき (アバターの束など)。渡すと `performers`/`performerSummary` より優先する。
+    /// 歌唱者の表示を画面側で組みたいとき。渡すと `performers`/`performerSummary` より優先する
+    /// (ユニット名義・全員などの定型以外で、行固有の組み方がどうしても要るときだけ使う)。
     var performersOverride: AnyView? = nil
+    /// 歌唱者のアイコンの束 (`ImasAvatarStack`) を押したとき (歌唱者の一覧シートを開く)。
+    var onSelectPerformers: (() -> Void)? = nil
     /// 担当 (マイピック) の強調。行の左端に細い帯を立てる。
     var highlightsPick: Bool = false
     /// 行の末尾 (Good ボタンなど)。
@@ -62,6 +65,8 @@ struct ImasSetlistRow: View {
     /// この披露についての事実を、軸 (披露・回収) ごとにまとめたもの。詳細表示のときだけ渡る。
     /// 軸の分け方・ラベル・順・強さ (`tone`) は imas-core (`SetlistRowMetaRecord`) が決める。
     var noteGroups: [SetlistRowNoteGroupRecord] = []
+    /// 自由記述のメモ (MC・コメント等)。斜体の小さい文字で最後に添える。
+    var note: String? = nil
 
     @Environment(\.colorScheme) private var scheme
 
@@ -69,7 +74,8 @@ struct ImasSetlistRow: View {
         ImasRow(
             title: title,
             leading: leadingView,
-            trailing: trailing
+            trailing: trailing,
+            onSelectTitle: onSelectTitle
         ) {
             if let performersOverride {
                 performersOverride
@@ -88,6 +94,9 @@ struct ImasSetlistRow: View {
             }
             if !noteGroups.isEmpty {
                 noteGroupsBlock
+            }
+            if let note {
+                Text(note).imasText(.note).italic()
             }
         }
         .overlay(alignment: .leading) {
@@ -120,9 +129,12 @@ struct ImasSetlistRow: View {
     /// 事実のうち、墨で強める言葉。
     static let firstPerformance = "初披露"
 
-    /// 歌唱者。人数が多いときは名前の代わりにペンライトを並べて人数を添える (全体曲)。
+    /// 歌唱者。アイドルのアイコン (写真か判子) が分かる人がいれば束ねて見せる (アイコンを消さない)。
+    /// アイコンが分からない人だけのときは名前のチップ、人数だけ多いときはペンライト + 人数。
     @ViewBuilder private var performerLine: some View {
-        if performers.count > performerLimit || (performers.isEmpty && performerSummary != nil) {
+        if performers.contains(where: { $0.iconLabel != nil || $0.imageURL != nil }) {
+            ImasAvatarStack(people: performers, maxVisible: 5, size: 26, onTap: onSelectPerformers)
+        } else if performers.count > performerLimit || (performers.isEmpty && performerSummary != nil) {
             HStack(spacing: 6) {
                 if !performers.isEmpty {
                     HStack(spacing: 3) {
@@ -277,6 +289,11 @@ struct ImasForecastRow: View {
                     }
                     .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
                     .padding(.top, 2)
+                } else if isMine {
+                    // 投票できない状態 (締切後など) でも、自分が選んだことは押せない印で残す。
+                    Label(votedLabel, systemImage: "checkmark")
+                        .imasText(.badge, color: DS.ink2)
+                        .padding(.top, 2)
                 }
             }
         }

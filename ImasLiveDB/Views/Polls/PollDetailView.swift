@@ -71,14 +71,10 @@ struct PollDetailView: View {
         }
         // 自分の票が変わるたびに表示名を解決し直す (シェア文面の候補名に使う)。
         .task(id: myVotedEntityIds) { await loadMyVoteNames() }
-        .alert("エラー", isPresented: Binding(
-            get: { vm.deleteErrorMessage != nil },
-            set: { if !$0 { vm.deleteErrorMessage = nil } }
-        )) {
-            Button("OK") { vm.deleteErrorMessage = nil }
-        } message: {
-            Text(vm.deleteErrorMessage ?? "")
-        }
+        .imasErrorAlert("削除できませんでした", message: Binding(
+            get: { vm.deleteErrorMessage },
+            set: { vm.deleteErrorMessage = $0 }
+        ))
         .confirmationDialog(
             "このお題を削除しますか？",
             isPresented: $showDeleteConfirm,
@@ -114,14 +110,10 @@ struct PollDetailView: View {
 
     private func pollHeader(poll: Poll) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            Text(poll.title)
-                .font(.imasTitle2.weight(.bold))
-                .foregroundStyle(DS.ink)
+            Text(poll.title).imasText(.sectionTitle)
 
             if let desc = poll.description, !desc.isEmpty {
-                Text(desc)
-                    .font(.imasBody)
-                    .foregroundStyle(DS.ink2)
+                Text(desc).imasText(.body, color: DS.ink2)
             }
 
             HStack(spacing: DS.sp2) {
@@ -229,7 +221,9 @@ struct PollDetailView: View {
     // MARK: - Ranking
 
     private func rankingSection(detail: PollDetail) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+        // 割合バーの基準 (いちばん多い票数)。0 票しかないときに割らないよう下限 1。
+        let maxVotes = max(detail.entries.map(\.voteCount).max() ?? 0, 1)
+        return VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(
                 title: "ランキング",
                 count: detail.entries.isEmpty ? nil : "\(detail.entries.count)\(entryCountUnit(for: detail.poll.targetType))"
@@ -247,6 +241,7 @@ struct PollDetailView: View {
                             rank: index + 1,
                             entry: entry,
                             targetType: detail.poll.targetType,
+                            maxVotes: maxVotes,
                             canVote: AuthService.shared.isSignedIn && detail.poll.isActive,
                             remaining: vm.remaining,
                             isAnyVoting: vm.isVoting,
@@ -265,43 +260,31 @@ struct PollDetailView: View {
     @ViewBuilder
     private func voteSection(detail: PollDetail) -> some View {
         if !AuthService.shared.isSignedIn {
-            InlineLoginPrompt(message: "投票にはログインが必要です")
+            ImasSignInPrompt(message: "投票にはログインが必要です")
         } else if detail.poll.isActive {
             let remaining = vm.remaining
             let scope = detail.poll.scope
             VStack(spacing: DS.sp3) {
                 if let msg = vm.errorMessage {
-                    Text(msg)
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.danger)
+                    Text(msg).imasText(.note, color: DS.danger)
                 }
 
                 // ランキングの各行で直接投票できるので、このボタンは「新しい候補を追加」専用。
-                Text("👍 上のランキングをタップで投票/取消（残り\(remaining)/\(CommunityVoteLimit.perTarget)）")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ImasNote("👍 上のランキングをタップで投票/取消（残り\(remaining)/\(CommunityVoteLimit.perTarget)）")
 
                 // manual スコープは候補がすでにランキングに全件並んでいるので「候補を追加」ボタン不要。
                 if scope != .manual {
-                    Button {
+                    ImasButton(
+                        title: remaining > 0
+                            ? "候補を追加して投票（残り\(remaining)/\(CommunityVoteLimit.perTarget)）"
+                            : "投票済み（\(CommunityVoteLimit.perTarget)/\(CommunityVoteLimit.perTarget)）",
+                        systemImage: "plus.circle.fill",
+                        size: .large
+                    ) {
                         AppAnalytics.tap("poll_detail.add_vote")
                         showVotePicker = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text(remaining > 0
-                                 ? "候補を追加して投票（残り\(remaining)/\(CommunityVoteLimit.perTarget)）"
-                                 : "投票済み（\(CommunityVoteLimit.perTarget)/\(CommunityVoteLimit.perTarget)）")
-                                .font(.imasSubhead.weight(.semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.sp3)
-                        .background(remaining > 0 ? DS.sys : DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-                        .foregroundStyle(remaining > 0 ? DS.bg : DS.ink3)
                     }
                     .disabled(remaining <= 0 || vm.isVoting)
-                    .buttonStyle(.plain)
                 }
             }
             .sheet(isPresented: $showVotePicker) {
@@ -378,18 +361,11 @@ struct PollDetailView: View {
     }
 
     private func deleteButton(poll: Poll) -> some View {
-        Button(role: .destructive) {
+        ImasIconButton(systemImage: "trash", label: "このお題を削除", style: .plain, isLoading: vm.isDeleting) {
             AppAnalytics.tap("poll_detail.delete")
             showDeleteConfirm = true
-        } label: {
-            if vm.isDeleting {
-                ProgressView()
-            } else {
-                Image(systemName: "trash")
-            }
         }
         .disabled(vm.isDeleting)
-        .accessibilityLabel("このお題を削除")
     }
 
     private func performDelete() {
@@ -436,6 +412,8 @@ private struct PollEntryRow: View {
     let rank: Int
     let entry: PollEntry
     let targetType: PollTargetType
+    /// ランキングでいちばん多い票数 (割合バーの基準)。
+    let maxVotes: Int
     /// 投票トグルを出すか (= ログイン済み かつ 開催中)。未ログイン/終了時は読み取り専用。
     let canVote: Bool
     /// 残り投票可能数 (未投票の候補に投票できるか判定)。
@@ -451,6 +429,7 @@ private struct PollEntryRow: View {
     @State private var resolvedIdol: Idol?
     @State private var resolvedUnit: Unit?
     @State private var isBusy = false
+    @State private var imageService = CustomImageService.shared
 
     /// 未投票だが残票が無い (この候補にはこれ以上投票できない)。
     private var voteDisabled: Bool { !entry.hasUserVoted && remaining <= 0 }
@@ -458,72 +437,55 @@ private struct PollEntryRow: View {
     /// 他の行/ボタンが投票処理中 (自分が処理中の場合は除く) なので操作をロックする。
     private var lockedByOther: Bool { isAnyVoting && !isBusy }
 
-    var body: some View {
-        HStack(spacing: DS.sp3) {
-            TagRankBadge(rank: rank)
-                .frame(width: 30, alignment: .center)
-
-            // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう
-            // (SongListView と同じ iOS 18 の button-in-button 問題)。行全体は
-            // onTapGesture で遷移を受け、ジャケ写の再生タップは独立して機能させる。
-            entityView
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if detailDestination != nil { openDetail() }
-                }
-
-            Spacer(minLength: 8)
-
-            HStack(spacing: DS.sp2) {
-                Text("\(entry.voteCount)票")
-                    .font(.imasCaption.monospacedDigit())
-                    .foregroundStyle(DS.ink2)
-
-                if canVote {
-                    // ワンタップ投票/取消トグル。未投票=アウトライン、投票済み=塗り。
-                    Button {
-                        guard !isBusy, !voteDisabled, !lockedByOther else { return }
-                        isBusy = true
-                        Task {
-                            if entry.hasUserVoted { await onUnvote() } else { await onVote() }
-                            isBusy = false
-                        }
-                    } label: {
-                        Image(systemName: isBusy ? "hourglass" : (entry.hasUserVoted ? "hand.thumbsup.fill" : "hand.thumbsup"))
-                            .font(.imasScaled(18))
-                            .foregroundStyle(entry.hasUserVoted ? DS.success : (voteDisabled || lockedByOther ? DS.ink3 : DS.sys))
-                            .frame(minWidth: 32, minHeight: 32)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(voteDisabled || lockedByOther)
-                    .accessibilityLabel(entry.hasUserVoted ? "投票を取消" : "投票")
-                } else if entry.hasUserVoted {
-                    Image(systemName: "hand.thumbsup.fill")
-                        .foregroundStyle(DS.ink3)
-                        .font(.imasScaled(18))
-                }
-            }
+    private var title: String {
+        switch targetType {
+        case .song: return resolvedSong?.title ?? entry.entityId
+        case .idol: return resolvedIdol?.name ?? entry.entityId
+        case .unit: return resolvedUnit?.displayName ?? entry.entityId
         }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .task { await resolveEntity() }
     }
 
-    @ViewBuilder
-    private var entityView: some View {
-        if targetType == .song, let song = resolvedSong {
-            SongTitleRow(song: song, showsChevron: true)
-        } else if targetType == .idol, let idol = resolvedIdol {
-            IdolNameRow(idol: idol, showsChevron: true)
-        } else if targetType == .unit, let unit = resolvedUnit {
-            UnitNameRow(unit: unit, showsChevron: true)
-        } else {
-            Text(entry.entityId)
-                .font(.imasSubhead.weight(.semibold))
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
+    /// アイドル・ユニットの候補は写真があれば写真、無ければ `ImasAvatar` 自身の判子 (アイコンを消さない)。
+    private var avatar: (label: String, imageURL: URL?, seed: String?)? {
+        switch targetType {
+        case .song: return nil
+        case .idol:
+            guard let resolvedIdol else { return nil }
+            return (resolvedIdol.name, imageService.imageURL(for: resolvedIdol.id), resolvedIdol.color)
+        case .unit:
+            guard let resolvedUnit else { return nil }
+            return (resolvedUnit.displayName, nil, nil)
         }
+    }
+
+    var body: some View {
+        ImasForecastRow(
+            rank: rank,
+            title: title,
+            artworkURL: targetType == .song ? resolvedSong?.artworkUrl.flatMap(URL.init(string:)) : nil,
+            avatar: avatar,
+            measure: .votes(entry.voteCount, share: Double(entry.voteCount) / Double(maxVotes)),
+            isMine: entry.hasUserVoted,
+            onVote: canVote ? {
+                guard !isBusy, !voteDisabled, !lockedByOther else { return }
+                isBusy = true
+                Task {
+                    if entry.hasUserVoted { await onUnvote() } else { await onVote() }
+                    isBusy = false
+                }
+            } : nil,
+            voteLabel: "投票する",
+            votedLabel: "投票済み"
+        )
+        // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう
+        // (SongListView と同じ iOS 18 の button-in-button 問題)。行全体は onTapGesture
+        // で遷移を受け、投票ボタン自身のタップは独立して機能させる。
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if detailDestination != nil { openDetail() }
+        }
+        .disabled(voteDisabled || lockedByOther)
+        .task { await resolveEntity() }
     }
 
     /// 解決済みの曲/アイドル/ユニットから詳細遷移先を作る (未解決なら nil)。
