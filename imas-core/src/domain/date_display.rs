@@ -128,6 +128,72 @@ pub fn label_ja(date: &str, today: &str) -> String {
     }
 }
 
+/// 曜日の種類。土日を色で分けるため (祝日は持たない)。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum WeekdayKind {
+    /// 平日。
+    Weekday,
+    Saturday,
+    Sunday,
+    /// 曜日が決まらない (部分日付・読めない入力)。
+    Unknown,
+}
+
+/// 半券の日付欄 (上の印字 / 大きい数字 / 下の印字)。
+///
+/// 日付は `NOV` / `07` / `SAT`、年月だけは `2024` / `08` / 空、年だけは 空 / `2024` / 空、
+/// 読めない入力は 空 / 原文 / 空。月と曜日は英字 3 文字 (チケットの印字)。
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct TicketStubDate {
+    pub top: String,
+    pub big: String,
+    pub bottom: String,
+    pub weekday_kind: WeekdayKind,
+}
+
+const MONTHS_EN: [&str; 12] = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+const WEEKDAYS_EN: [&str; 7] = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+/// 半券の日付欄に分ける。
+pub fn ticket_stub(date: &str) -> TicketStubDate {
+    if let Some(d) = parse_ymd(date) {
+        let w = d.weekday().num_days_from_monday() as usize;
+        let kind = match w {
+            5 => WeekdayKind::Saturday,
+            6 => WeekdayKind::Sunday,
+            _ => WeekdayKind::Weekday,
+        };
+        return TicketStubDate {
+            top: MONTHS_EN[d.month0() as usize].to_string(),
+            big: format!("{:02}", d.day()),
+            bottom: WEEKDAYS_EN[w].to_string(),
+            weekday_kind: kind,
+        };
+    }
+    let comps = ymd_components(date);
+    let month = comps.get(1).and_then(|m| m.parse::<u32>().ok());
+    match (comps.as_slice(), month) {
+        ([y, _], Some(m)) if is_year(y) && (1..=12).contains(&m) => TicketStubDate {
+            top: (*y).to_string(),
+            big: format!("{m:02}"),
+            bottom: String::new(),
+            weekday_kind: WeekdayKind::Unknown,
+        },
+        ([y], _) if is_year(y) => TicketStubDate {
+            top: String::new(),
+            big: (*y).to_string(),
+            bottom: String::new(),
+            weekday_kind: WeekdayKind::Unknown,
+        },
+        _ => TicketStubDate {
+            top: String::new(),
+            big: date.to_string(),
+            bottom: String::new(),
+            weekday_kind: WeekdayKind::Unknown,
+        },
+    }
+}
+
 /// 期間の終端。**初日と違う日にだけ `Some`** (1 日で終わるものに終端は無い)。
 /// 「同じ日を 2 度出さない」判断はここ 1 箇所。
 pub fn range_end<'a>(first: Option<&str>, last: Option<&'a str>) -> Option<&'a str> {
@@ -292,5 +358,30 @@ mod masthead_tests {
         assert_eq!(days_until("2026-09-24", "2026-09-24"), Some(0));
         assert_eq!(days_until("2026-09-24", "2026-09-20"), None);
         assert_eq!(days_until("2026-09-24", "2026-10"), None);
+    }
+}
+
+#[cfg(test)]
+mod ticket_stub_tests {
+    use super::*;
+
+    #[test]
+    fn full_date_has_month_day_weekday() {
+        let s = ticket_stub("2026-11-07");
+        assert_eq!((s.top.as_str(), s.big.as_str(), s.bottom.as_str()), ("NOV", "07", "SAT"));
+        assert_eq!(s.weekday_kind, WeekdayKind::Saturday);
+        assert_eq!(ticket_stub("2026-11-08").weekday_kind, WeekdayKind::Sunday);
+        assert_eq!(ticket_stub("2026-10-28").weekday_kind, WeekdayKind::Weekday);
+    }
+
+    #[test]
+    fn partial_dates_are_not_invented() {
+        let ym = ticket_stub("2024-08");
+        assert_eq!((ym.top.as_str(), ym.big.as_str(), ym.bottom.as_str()), ("2024", "08", ""));
+        let y = ticket_stub("2024");
+        assert_eq!((y.top.as_str(), y.big.as_str()), ("", "2024"));
+        let raw = ticket_stub("未定");
+        assert_eq!(raw.big, "未定");
+        assert_eq!(raw.weekday_kind, WeekdayKind::Unknown);
     }
 }

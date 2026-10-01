@@ -153,7 +153,7 @@ struct ImasLabeledRow: View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         let valueFont = mono ? ImasTextRole.value.font.monospacedDigit() : ImasTextRole.value.font
         let row = HStack(spacing: DS.Space.rowGap) {
-            Text(key).imasText(.value).foregroundStyle(DS.ink2)
+            Text(key).imasText(.value, color: DS.ink2)
             Spacer(minLength: DS.Space.rowGap)
             if showSwatch {
                 Circle().fill(t.accent).frame(width: 16, height: 16)

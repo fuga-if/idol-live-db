@@ -9,7 +9,7 @@ import SwiftUI
 // =============================================================================
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
-    case venue, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor,
+    case venue, venueRows, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor,
          feedback, setlist, list, form, setup
 
     var id: String { rawValue }
@@ -17,6 +17,7 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .venue: return "会場の部品 (チケット・掲示板・印)"
+        case .venueRows: return "半券の行・入場証・名札"
         case .application: return "申込書 (編集シートの欄)"
         case .buttons: return "ボタン"
         case .chips: return "チップ・札・数字"
@@ -54,6 +55,7 @@ struct DesignCatalogPageView: View {
         Group {
             switch page {
             case .venue: VenuePage()
+            case .venueRows: VenueRowsPage()
             case .application: ApplicationFormPage()
             case .buttons: ButtonsPage()
             case .chips: ChipsPage()
@@ -74,6 +76,16 @@ struct DesignCatalogPageView: View {
         }
         .navigationTitle(page.title)
         .navigationBarTitleDisplayMode(.inline)
+        // 見本を撮るとき、ページの途中・下を出す (DS_SCROLL=center / bottom)。
+        .defaultScrollAnchor(Self.scrollAnchor)
+    }
+
+    private static var scrollAnchor: UnitPoint? {
+        switch ProcessInfo.processInfo.environment["DS_SCROLL"] {
+        case "bottom": return .bottom
+        case "center": return .center
+        default: return nil
+        }
     }
 }
 
@@ -168,6 +180,96 @@ private struct VenuePage: View {
             }
             ImasSection("切り取り線", style: .small) {
                 ImasPerforation()
+            }
+        }
+    }
+}
+
+// MARK: - 半券の行・入場証・名札
+
+private struct VenueRowsPage: View {
+    @State private var pick = true
+    @State private var brands: Set<String> = ["765as", "gakuen"]
+
+    private let brandOptions: [ImasBrandPicker.Option] = [
+        .init(id: "765as", label: "765", color: Sample.as765),
+        .init(id: "cg", label: "シンデレラ", color: Sample.cg),
+        .init(id: "ml", label: "ミリオン", color: Sample.ml),
+        .init(id: "sidem", label: "SideM", color: "#0fbe94"),
+        .init(id: "sc", label: "シャニ", color: "#8dbbff"),
+        .init(id: "gakuen", label: "学マス", color: Sample.gakuen),
+    ]
+
+    var body: some View {
+        ImasPage {
+            ImasSection("半券の行", style: .small, footer: "ライブ・公演・記録の一覧。参加した公演は半券に穴。右に引くと参加予定にできる。") {
+                VStack(spacing: DS.Space.gap) {
+                    ImasStubRow(date: ImasStubDate("2026-11-07"),
+                                title: "学園アイドルマスター LIVE TOUR -標- Kアリーナ横浜公演 (FINAL) DAY1",
+                                subtitle: "Kアリーナ横浜 · 17:00", brand: Sample.gakuen,
+                                badges: [.init(text: "参加予定", kind: .planned)])
+                    ImasStubRow(date: ImasStubDate("2026-10-28"), title: "灯里愛夏 BIRTHDAY ONLINE LIVE 2026",
+                                subtitle: "配信 · ASOBI STAGE", brand: "#656a75",
+                                badges: [.init(text: "配信", kind: .neutral)])
+                    ImasStubRow(date: ImasStubDate("2026-09-23"), title: "学園アイドルマスター LIVE TOUR -標- 岩手公演 DAY2",
+                                subtitle: "トーサイクラシックホール岩手", brand: Sample.gakuen, isPunched: true,
+                                badges: [.init(text: "参加", kind: .positive)])
+                    ImasStubRow(date: ImasStubDate("2024-08"), title: "日付が月までの公演", subtitle: "会場未定")
+                }
+            }
+            ImasSection("半券の形の短い行", style: .small) {
+                VStack(spacing: DS.Space.gap) {
+                    ImasTicketRow(title: "アソビストア一般会員先行", subtitle: "抽選 · 受付中 · 当落 10.31 13:00", deadline: "10.19")
+                    ImasTicketRow(title: "SideM PRODUCER MEETING", subtitle: "プレミアム会員先行 · 締切", deadline: "23:59", isUrgent: true)
+                    ImasTicketRow(title: "チケット代が未記録の公演が 3 件", subtitle: "過去の参加から取り込む") {}
+                }
+            }
+            ImasSection("入場証", style: .small) {
+                VStack(spacing: DS.Space.gapLoose) {
+                    ImasPass(leftImprint: "PRODUCER PASS", rightImprint: "担当", title: "花海咲季",
+                             subtitle: "学マス · CV 長月あおい", seed: Sample.saki) {
+                        ImasPassStats(items: [("12", "回収"), ("4", "参加")])
+                    }
+                    ImasPass(leftImprint: "ACCOUNT", rightImprint: "ログイン中", title: "fuga",
+                             subtitle: "コミュニティで表示される名前", onOpen: {})
+                }
+            }
+            ImasSection("チケットの束", style: .small, footer: "横に払うと次のチケットが上に来る。") {
+                ImasTicketStack(items: [
+                    .init(id: "1", ticket: ImasTicket(label: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL) DAY1",
+                                                      metaImprint: "11.07 SAT", meta: "Kアリーナ横浜 · 17:00",
+                                                      brand: Sample.gakuen, countdown: .init(value: "37")),
+                          edge: "11.07 SAT · 標 FINAL DAY1 · 37 DAYS"),
+                    .init(id: "2", ticket: ImasTicket(label: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL) DAY2",
+                                                      metaImprint: "11.08 SUN", meta: "Kアリーナ横浜 · 17:00",
+                                                      brand: Sample.gakuen, countdown: .init(value: "38")),
+                          edge: "11.08 SUN · 標 FINAL DAY2 · 38 DAYS"),
+                    .init(id: "3", ticket: ImasTicket(label: "参加予定", title: "CINDERELLA GIRLS 15th ANNIVERSARY PARTY!!!! DAY1",
+                                                      metaImprint: "11.28 SAT", meta: "Kアリーナ横浜 · 17:00",
+                                                      brand: Sample.cg, countdown: .init(value: "58")),
+                          edge: "11.28 SAT · CG 15th ANNIVERSARY PARTY!!!! · 58 DAYS"),
+                ])
+            }
+            ImasSection("アイドル詳細の頭", style: .small) {
+                ImasIdolHeader(imprint: "765PRO ALLSTARS · IDOL FILE", name: "天海春香",
+                               subtitle: "あまみ はるか · CV 中村繪里子 · 04.03", seed: Sample.haruka, isPick: pick,
+                               onTogglePick: { pick.toggle() },
+                               stats: [.init(value: "189", unit: "公演", label: "出演"),
+                                       .init(value: "42", unit: "曲", label: "歌唱した曲"),
+                                       .init(value: "12", unit: "公演", label: "一緒に参加")])
+            }
+            ImasSection("アイドルの名札", style: .small) {
+                ImasIdolGrid {
+                    ImasIdolCell(name: "天海春香", kana: "あまみはるか", seed: Sample.haruka, isPick: true)
+                    ImasIdolCell(name: "如月千早", kana: "きさらぎちはや", seed: Sample.chihaya)
+                    ImasIdolCell(name: "星井美希", kana: "ほしいみき", seed: Sample.miki)
+                    ImasIdolCell(name: "菊地真", kana: "きくちまこと", seed: Sample.makoto)
+                    ImasIdolCell(name: "高槻やよい", kana: "たかつきやよい", seed: Sample.yayoi, isSelected: true)
+                    ImasIdolCell(name: "速水奏", kana: "はやみかなで", seed: Sample.kanade, isSelected: false)
+                }
+            }
+            ImasSection("ブランドを選ぶ", style: .small) {
+                ImasBrandPicker(options: brandOptions, selection: $brands)
             }
         }
     }
@@ -736,9 +838,10 @@ private struct ListTemplatePage: View {
                             brandHex: Sample.as765, trailing: .metric("56", unit: "回", emphasized: true)) { EmptyView() }
             }
             ImasListSection("ライブ") {
-                ImasShowRow(title: "DAY1", subtitle: "12月13日(土) · 京セラドーム大阪 · 17:00 開演", rainbow: true,
-                            trailing: .badge(ImasBadge(text: "参加済", kind: .positive)))
-                ImasShowRow(title: "DAY2", subtitle: "12月14日(日) · 京セラドーム大阪 · 16:00 開演", rainbow: true)
+                ImasShowRow(date: "2025-12-13", title: "DAY1", subtitle: "京セラドーム大阪 · 17:00 開演",
+                            brandHex: Sample.as765, isPunched: true, badges: [.init(text: "参加", kind: .positive)])
+                ImasShowRow(date: "2025-12-14", title: "DAY2", subtitle: "京セラドーム大阪 · 16:00 開演",
+                            brandHex: Sample.as765)
             }
         }
         .imasList()

@@ -179,8 +179,7 @@ struct ImasTicket: View {
                 HStack(spacing: 6) {
                     if let penlight { ImasPenlight(color: penlight, size: .regular).environment(\.colorScheme, .light) }
                     Text([imprint, label].compactMap { $0 }.joined(separator: " · "))
-                        .imasText(.imprint)
-                        .foregroundStyle(DS.ticketSub)
+                        .imasText(.imprint, color: DS.ticketSub)
                         .lineLimit(1)
                 }
                 Text(title)
@@ -204,13 +203,13 @@ struct ImasTicket: View {
                 ImasPerforation(axis: .vertical, color: DS.ticketDash, lineWidth: 2)
                     .padding(.vertical, 12)
                 VStack(spacing: 4) {
-                    Text(countdown.prefix).imasText(.imprint).foregroundStyle(DS.ticketSub)
+                    Text(countdown.prefix).imasText(.imprint, color: DS.ticketSub)
                     Text(countdown.value)
                         .font(ImasNumeralSize.countdown.font)
                         .foregroundStyle(DS.ticketInk)
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
-                    Text(countdown.unit).imasText(.imprint).foregroundStyle(DS.ticketSub)
+                    Text(countdown.unit).imasText(.imprint, color: DS.ticketSub)
                 }
                 .frame(width: stubWidth)
                 .padding(.vertical, 10)
@@ -253,9 +252,9 @@ struct ImasBoard: View {
         VStack(alignment: .leading, spacing: 0) {
             if title != nil || trailing != nil {
                 HStack {
-                    if let title { Text(title).imasText(.imprint).foregroundStyle(DS.boardDim) }
+                    if let title { Text(title).imasText(.imprint, color: DS.boardDim) }
                     Spacer(minLength: 8)
-                    if let trailing { Text(trailing).imasText(.imprint).foregroundStyle(DS.boardDim) }
+                    if let trailing { Text(trailing).imasText(.imprint, color: DS.boardDim) }
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, 12)

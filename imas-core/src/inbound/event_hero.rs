@@ -29,6 +29,18 @@ pub fn date_label(date: String, today: String) -> String {
     date_display::label_ja(&date, &today)
 }
 
+/// 半券の日付欄 (`NOV` / `07` / `SAT`)。ライブ一覧・公演・記録の行の左端。
+#[uniffi::export]
+pub fn ticket_stub_date(date: String) -> date_display::TicketStubDate {
+    date_display::ticket_stub(&date)
+}
+
+/// 頭の印字の日付 (`2026.10.01 THU`)。
+#[uniffi::export]
+pub fn masthead_date(date: String) -> String {
+    date_display::masthead(&date)
+}
+
 /// 年の幅 (`2019` / `2019 – 2021`)。
 #[uniffi::export]
 pub fn year_range_display(earliest: Option<String>, latest: Option<String>) -> Option<String> {

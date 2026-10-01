@@ -20,8 +20,8 @@ enum ImasRowLeading {
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
     /// アイドルのアイコン (40)。写真を設定したアイドルだけ。無ければリードバーにする。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
-    /// 曲のジャケ (48、compact は 40)。
-    case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
+    /// 曲のジャケ (48、compact は 40)。回収した曲は角に判子。
+    case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isCollected: Bool = false)
     /// 記号 (幅 28、地なし)。`seed` / `brand` を渡すとその実体の色で点く (予定の種類・ブランド)。
     case icon(String, tone: ImasIconTile.Tone = .themed, seed: String? = nil, brand: String? = nil)
     /// 曲順・番号 (等幅)。
@@ -204,8 +204,9 @@ struct ImasRow<Detail: View>: View {
                 ImasLeadBar(seed: seed, brand: brand)
                     .frame(height: 36)
             }
-        case let .artwork(title, seed, brand, url):
-            ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
+        case let .artwork(title, seed, brand, url, isCollected):
+            ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url,
+                        isCollected: isCollected)
         case let .icon(name, tone, seed, brand):
             ImasIconTile(systemImage: name, size: .s28, tone: tone, seed: seed, brand: brand)
         case let .number(text):
@@ -258,8 +259,7 @@ struct ImasRow<Detail: View>: View {
             ImasRowChevron()
         case let .value(text):
             Text(text)
-                .imasText(.value)
-                .foregroundStyle(DS.ink2)
+                .imasText(.value, color: DS.ink2)
                 .lineLimit(1)
         case let .metric(value, unit, emphasized):
             ImasMetric(value: value, unit: unit, size: .medium, emphasized: emphasized)
@@ -389,8 +389,7 @@ struct ImasValueRow: View {
     var body: some View {
         let row = HStack(alignment: .firstTextBaseline, spacing: DS.Space.rowGap) {
             Text(key)
-                .imasText(.value)
-                .foregroundStyle(DS.ink2)
+                .imasText(.value, color: DS.ink2)
                 .layoutPriority(1)
             Spacer(minLength: DS.Space.rowGap)
             Text(value)
@@ -473,7 +472,7 @@ struct ImasNavRow: View {
             trailing: .custom(AnyView(
                 HStack(spacing: DS.Space.gap) {
                     if let value {
-                        Text(value).imasText(.value).foregroundStyle(DS.ink2).lineLimit(1)
+                        Text(value).imasText(.value, color: DS.ink2).lineLimit(1)
                     }
                     if isLoading {
                         ProgressView().controlSize(.small)
@@ -564,7 +563,7 @@ struct ImasMenuRow<Selection: Hashable>: View {
                 leading: systemImage.map { .icon($0, tone: .neutral) } ?? .none,
                 trailing: .custom(AnyView(
                     HStack(spacing: DS.Space.gapTight) {
-                        Text(label(selection)).imasText(.value).foregroundStyle(DS.ink2).lineLimit(1)
+                        Text(label(selection)).imasText(.value, color: DS.ink2).lineLimit(1)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.imasScaled(11, weight: .semibold))
                             .foregroundStyle(DS.ink3)

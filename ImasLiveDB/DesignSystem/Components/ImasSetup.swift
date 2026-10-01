@@ -44,7 +44,7 @@ struct ImasCandidateCount: View {
 
     var body: some View {
         HStack(spacing: DS.Space.gap) {
-            Text(label).imasText(.value).foregroundStyle(DS.ink2)
+            Text(label).imasText(.value, color: DS.ink2)
             Spacer(minLength: DS.Space.gap)
             if let count {
                 ImasMetric(value: count.formatted(), unit: unit, size: .medium, emphasized: false)

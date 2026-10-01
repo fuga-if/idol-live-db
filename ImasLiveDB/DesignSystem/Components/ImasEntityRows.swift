@@ -9,8 +9,8 @@ import SwiftUI
 // ImasSongRow   ジャケ・曲名・歌唱者
 // ImasIdolRow   アバター (担当は二重輪)・名前・ブランドと CV
 // ImasUnitRow   ユニットのアバター・ユニット名・メンバー
-// ImasEventRow  リードバー (ブランド・合同は縞)・ライブ名・日付と会場
-// ImasShowRow   リードバー・公演名・日付と会場と開演
+// ImasEventRow  半券 (初日)・ライブ名・会場と期間。参加した公演があれば穴
+// ImasShowRow   半券 (日付)・公演名・開演と会場。参加した公演は穴
 // ImasRecordRow 記号の札・何をしたか・誰がいつ・操作の札 (編集履歴・お知らせ)
 // =============================================================================
 
@@ -22,6 +22,8 @@ struct ImasSongRow<Detail: View>: View {
     var artworkURL: URL? = nil
     /// ジャケが無いときの面とリードバーの色 (ブランドの hex)。
     var brandHex: String? = nil
+    /// 自分が現地で聴いた曲 (ジャケの角に判子)。
+    var isCollected: Bool = false
     var trailing: ImasRowTrailing = .none
     var density: ImasRowDensity = .regular
     var emphasis: ImasRowEmphasis = .normal
@@ -33,7 +35,7 @@ struct ImasSongRow<Detail: View>: View {
         ImasRow(
             title: title,
             subtitle: subtitle,
-            leading: .artwork(title: title, brand: brandHex, imageURL: artworkURL),
+            leading: .artwork(title: title, brand: brandHex, imageURL: artworkURL, isCollected: isCollected),
             trailing: trailing,
             density: density,
             emphasis: emphasis,
@@ -46,13 +48,14 @@ struct ImasSongRow<Detail: View>: View {
 
 extension ImasSongRow where Detail == EmptyView {
     /// 曲のデータから組む。副題は既定でユニット名 (無ければ歌唱者の表記)。
-    init(song: Song, subtitle: String? = nil, trailing: ImasRowTrailing = .none,
+    init(song: Song, subtitle: String? = nil, isCollected: Bool = false, trailing: ImasRowTrailing = .none,
          density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal) {
         self.init(
             title: song.title,
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
+            isCollected: isCollected,
             trailing: trailing,
             density: density,
             emphasis: emphasis,
@@ -63,7 +66,7 @@ extension ImasSongRow where Detail == EmptyView {
 
 extension ImasSongRow {
     /// 曲のデータから組み、下段 (札・日付) を足す。
-    init(song: Song, subtitle: String? = nil, trailing: ImasRowTrailing = .none,
+    init(song: Song, subtitle: String? = nil, isCollected: Bool = false, trailing: ImasRowTrailing = .none,
          density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal,
          @ViewBuilder detail: () -> Detail) {
         self.init(
@@ -71,6 +74,7 @@ extension ImasSongRow {
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
+            isCollected: isCollected,
             trailing: trailing,
             density: density,
             emphasis: emphasis,
@@ -130,64 +134,62 @@ struct ImasUnitRow: View {
 
 // MARK: - ライブ
 
+/// ライブ 1 件の行。半券の形 (左に初日、右にライブ名と日付・会場)。参加した公演があれば穴が開く。
 struct ImasEventRow<Detail: View>: View {
     let event: Event
-    /// 日付と会場 (「11月7日(土)〜8日(日) · Kアリーナ横浜」)。
+    /// 初日 (`yyyy-MM-dd`)。半券の日付欄に出す。
+    var date: String? = nil
+    /// 会場・期間 (「Kアリーナ横浜 · 〜 11/8 (日)」)。
     var subtitle: String? = nil
-    var trailing: ImasRowTrailing = .none
+    var isPunched: Bool = false
+    var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
     @ViewBuilder var detail: Detail
 
     var body: some View {
-        ImasRow(
-            title: eventDisplayName(event.name),
-            subtitle: subtitle,
-            leading: .bar(brand: BrandColors.hex(for: event.brandId), rainbow: !event.jointBrandIdList.isEmpty),
-            trailing: trailing,
-            emphasis: emphasis,
-            detail: { detail }
-        )
-        .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
+        ImasStubRow(date: date.map(ImasStubDate.init) ?? ImasStubDate(top: "", big: "—", bottom: ""),
+                    title: eventDisplayName(event.name), subtitle: subtitle,
+                    brand: BrandColors.hex(for: event.brandId), isPunched: isPunched, badges: badges,
+                    emphasis: emphasis) { detail }
+            .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
     }
 }
 
 extension ImasEventRow where Detail == EmptyView {
-    init(event: Event, subtitle: String? = nil, trailing: ImasRowTrailing = .none,
-         emphasis: ImasRowEmphasis = .normal) {
-        self.init(event: event, subtitle: subtitle, trailing: trailing, emphasis: emphasis) { EmptyView() }
+    init(event: Event, date: String? = nil, subtitle: String? = nil, isPunched: Bool = false,
+         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal) {
+        self.init(event: event, date: date, subtitle: subtitle, isPunched: isPunched, badges: badges,
+                  emphasis: emphasis) { EmptyView() }
     }
 }
 
 // MARK: - 公演
 
+/// 公演 1 件の行。半券の形 (左に日付、右に公演名と開演・会場)。参加した公演は穴が開く。
 struct ImasShowRow<Detail: View>: View {
+    /// 公演の日 (`yyyy-MM-dd`)。
+    let date: String
     /// 公演名 (DAY1 など)。
     let title: String
-    /// 日付・会場・開演。
+    /// 開演・会場・出演者数。
     var subtitle: String? = nil
     var brandHex: String? = nil
-    var rainbow: Bool = false
-    var trailing: ImasRowTrailing = .none
+    var isPunched: Bool = false
+    var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
     @ViewBuilder var detail: Detail
 
     var body: some View {
-        ImasRow(
-            title: title,
-            subtitle: subtitle,
-            leading: .bar(brand: brandHex, rainbow: rainbow),
-            trailing: trailing,
-            emphasis: emphasis,
-            detail: { detail }
-        )
+        ImasStubRow(date: ImasStubDate(date), title: title, subtitle: subtitle, brand: brandHex,
+                    isPunched: isPunched, badges: badges, emphasis: emphasis) { detail }
     }
 }
 
 extension ImasShowRow where Detail == EmptyView {
-    init(title: String, subtitle: String? = nil, brandHex: String? = nil, rainbow: Bool = false,
-         trailing: ImasRowTrailing = .none, emphasis: ImasRowEmphasis = .normal) {
-        self.init(title: title, subtitle: subtitle, brandHex: brandHex, rainbow: rainbow,
-                  trailing: trailing, emphasis: emphasis) { EmptyView() }
+    init(date: String, title: String, subtitle: String? = nil, brandHex: String? = nil, isPunched: Bool = false,
+         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal) {
+        self.init(date: date, title: title, subtitle: subtitle, brandHex: brandHex, isPunched: isPunched,
+                  badges: badges, emphasis: emphasis) { EmptyView() }
     }
 }
 

@@ -62,7 +62,7 @@ struct ImasSectionHeader: View {
                     .foregroundStyle(DS.ink3)
             }
             if let imprint, style == .large {
-                Text(imprint).imasText(.imprint).foregroundStyle(DS.ink3).lineLimit(1)
+                Text(imprint).imasText(.imprint, color: DS.ink3).lineLimit(1)
             }
             Spacer(minLength: DS.Space.gapLoose)
             if let seeAll {

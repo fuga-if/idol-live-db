@@ -133,7 +133,7 @@ struct ImasTextFieldRow: View {
                     .multilineTextAlignment(.trailing)
                     .keyboardType(keyboard)
             } label: {
-                Text(title).imasText(.value).foregroundStyle(DS.ink2)
+                Text(title).imasText(.value, color: DS.ink2)
             }
             if let error {
                 Text(error)

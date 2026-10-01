@@ -187,11 +187,12 @@ enum ImasTextRole {
 }
 
 extension View {
-    /// 文字の役割を当てる (書体 + 既定の色)。部品の中で使う。
+    /// 文字の役割を当てる (書体 + 色)。部品の中で使う。
+    /// 色を替えるときは `color:` で渡す (後ろに `.foregroundStyle` を足しても内側の色が勝つので効かない)。
     /// 印字 (`.imprint`) は大文字にして字間を空ける。
-    func imasText(_ role: ImasTextRole) -> some View {
+    func imasText(_ role: ImasTextRole, color: Color? = nil) -> some View {
         font(role.font)
-            .foregroundStyle(role.color)
+            .foregroundStyle(color ?? role.color)
             .textCase(role == .imprint ? .uppercase : nil)
             .tracking(role == .imprint ? 0.6 : 0)
     }
