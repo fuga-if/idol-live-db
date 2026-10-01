@@ -29,8 +29,15 @@
   DTO 変換で明示的に落とし、テスト T12 (`imas-core/tests/web_export.rs`) で機械的に固定している。
   **MCP 側にも同等のテストを置く** (§4 の末尾)。`jasrac_code` と `apple_music_id` は返してよい。
 - **本番データへ直接書かない。** 新規登録は `data/` に JSON ドラフトを置いて `--check` を通すところまで (§5)。
-- **LLM を呼ばない。** これは LLM に**呼ばれる**側。アプリにチャット機能を作る計画ではない
-  (推論コストが発生し「ランニングコスト 0」の制約に反する)。
+- **LLM を呼ばない。** これは LLM に**呼ばれる**側。サーバ (このリポジトリが持つ経路) から
+  推論を呼ぶと「ランニングコスト 0」の制約に反する。
+  - **アプリ内の AI は例外ではなく、この制約の内側にある。** 2026-10-01 に Sign in with ChatGPT
+    (OSS 向けの ChatGPT プラン利用フロー) で、推論の費用を**利用者本人の ChatGPT プラン**が持つ形が
+    取れるようになった (iOS で実機確認済み)。アプリが利用者の端末から直接 Responses API を呼び、
+    こちらのサーバも課金も通らないので、ランニングコストは 0 のまま。以前の「アプリにチャット機能を
+    作らない」は、推論費をこちらが持つ前提での判断だった。
+  - アプリ内の AI に渡すツールは**このツール面そのもの** (`agent::tools::assistant`)。
+    Swift / Kotlin でツールを書き直さない — 書き直すと「MCP とアプリで同じ質問に違う答え」が出る。
 
 ## 2. 絶対制約
 
@@ -43,8 +50,17 @@
    返った JSON を書き出すだけ。**これを崩すと、アプリ・Web・LLM で「同じ質問に違う答え」が出る。**
 3. **照合規則はコア一本**。検索の畳み込みは `imas-text-fold` / `domain::text_search_index` /
    `fuzzy_search` が唯一の実体。ツール面で `contains` や `to_lowercase` を書かない。
-4. **FFI 面は不変**。新しい `#[uniffi::export]` を足さない (`tests/ffi_surface.rs` が固定している)。
-   アダプタと bin は既定 off の `feature = "agent"` で、iOS/Android のビルドには一切入らない。
+4. **アプリに出すのはツール面だけ**。`agent::tools` (読み取りツールと、アプリ内アシスタント向けの
+   `assistant` / 本人の記録を読む `personal`) は常にコンパイルされ、`inbound::assistant_tools` で FFI に出る
+   (`assistant_instructions` / `assistant_tools_json` / `SnapshotStore::assistant_call_tool`、
+   画面の文言の `assistant_tool_progress_label` / `assistant_example_prompts`) (`tests/ffi_surface.rs` に登録済み)。ツールを足しても FFI は増えない
+   (名前と引数 JSON で呼ぶ汎用の入口なので)。入出力のアダプタ (`mcp` / `stdio` / `cli` / `proposal_io`)・
+   書き込み (`proposal`)・歌詞検索 (`lyrics_*`、HTTP を叩く) と bin は既定 off の `feature = "agent"` で、
+   iOS/Android のビルドには入らない。
+   - 2026-10-01 までは「FFI 面は不変、`#[uniffi::export]` を足さない」だった。アプリ内 AI
+     (§1 の Sign in with ChatGPT) でツール面をアプリから使う必要ができたため、ツール面だけを外に出した。
+     歌詞本文・`lyrics_url`・`preview_url` を返さない制約 (§1) はアプリ内 AI でもそのまま効く
+     (同じツール面を通るので)。
 5. **出典なしの登録を構造で禁じる**。書き込みツールは `source` (一次ソースの URL) を必須引数にする。
 
 ## 3. 依存方向

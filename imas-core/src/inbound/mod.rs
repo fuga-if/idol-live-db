@@ -1,5 +1,6 @@
 //! FFI 面: #[uniffi::export] はこの層にだけ置く (domain への薄い委譲)。
 
+pub mod assistant_tools;
 pub mod jst_day;
 pub mod now_playing;
 pub mod snapshot_store;

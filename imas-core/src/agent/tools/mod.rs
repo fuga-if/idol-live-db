@@ -16,8 +16,10 @@
 //! 歌詞本文は JASRAC の許諾が「D1 に置き、ダウンロードさせない」形で下りている。
 //! ここから本文を返すとその前提を外れるので、扱うのは作品コードと掲載有無まで。
 
+pub mod assistant;
 pub mod browse;
 pub mod lookup;
+pub mod personal;
 pub mod predict;
 pub mod scope;
 pub mod vocab;
@@ -759,6 +761,7 @@ mod tests {
     /// 揃っていることを固定する。以前は `additionalProperties: false` が browse の
     /// 7 本にしか付いておらず、残り 13 本は引数を打ち間違えても黙って無視されていた
     /// (レビュー指摘)。ここで 1 本でも漏れたら壊れるようにする。
+    #[cfg(feature = "agent")]
     #[test]
     fn 全25本のツールでスキーマの封が揃っている() {
         let mut all = tool_catalog();

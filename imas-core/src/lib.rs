@@ -22,9 +22,9 @@ pub mod outbound;
 #[cfg(test)]
 pub(crate) mod test_support;
 
-// LLM 向けツール面 (MCP / CLI)。ツールのカタログと応答の組み立て、入出力のアダプタ。
-// 既定 off の feature で、iOS/Android のビルドには一切入らない (uniffi も通らない)。
-#[cfg(feature = "agent")]
+// LLM 向けツール面。ツールのカタログと応答の組み立て (agent::tools) は常に入り、
+// アプリ内アシスタントが FFI 経由で使う。MCP / CLI の入出力と書き込みは既定 off の
+// feature = "agent" の内側 (iOS/Android のビルドには入らない)。
 pub mod agent;
 
 // Web 出面 (静的サイト) の JSON エクスポータ。既定 off の feature で、
