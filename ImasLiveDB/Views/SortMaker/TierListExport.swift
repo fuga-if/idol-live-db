@@ -155,7 +155,9 @@ struct TierListExportSheet: View {
             return
         }
         do {
-            try await PHPhotoLibrary.shared().performChanges {
+            // performChanges はクロージャを別キューで走らせる。MainActor を継がせないよう @Sendable にする
+            // (付けないと Swift 6 で「non-Sendable なクロージャを送る」コンパイルエラー)。
+            try await PHPhotoLibrary.shared().performChanges { @Sendable in
                 PHAssetChangeRequest.creationRequestForAsset(from: image)
             }
             saveMessage = "写真に保存しました"
