@@ -88,7 +88,8 @@ enum ChatGPTPlanClient {
         var isUsageLimit: Bool {
             switch self {
             case .responseFailed(let code, _): code == "subscription_sharing_usage_limit_exceeded"
-            case .http(let status, let body, _): status == 429 || body.contains("subscription_sharing_usage_limit_exceeded")
+            // 429 は一時的なレート制限のこともあるので、コードで見分ける。
+            case .http(_, let body, _): body.contains("subscription_sharing_usage_limit_exceeded")
             default: false
             }
         }

@@ -8,7 +8,7 @@ use crate::agent::tools::{assistant, persona, personal, timeline};
 #[derive(Debug, Clone, uniffi::Record)]
 pub struct AssistantAttendedShow {
     pub show_id: String,
-    /// "live" (現地) / "stream" (配信)。
+    /// "live" (現地) / "stream" (配信) / "live_viewing" (ライブビューイング)。
     pub attendance: String,
 }
 

@@ -61,7 +61,13 @@ private struct AssistantHome: View {
                 .padding(.vertical, DS.sp3)
             }
             if let modelsError {
-                Text(modelsError).font(.imasCaption).foregroundStyle(DS.warning).padding(.horizontal, DS.sp5)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("モデルの一覧を読み込めませんでした: \(modelsError)")
+                        .font(.imasCaption).foregroundStyle(DS.warning)
+                    Spacer()
+                    Button("再読み込み") { Task { await loadModels() } }.font(.imasCaption.weight(.semibold))
+                }
+                .padding(.horizontal, DS.sp5)
             }
             switch mode {
             case .ask: AssistantChatScreen()
@@ -101,6 +107,7 @@ private struct AssistantHome: View {
     }
 
     private func loadModels() async {
+        modelsError = nil
         do {
             try await session.loadModelsIfNeeded()
             if !session.models.contains(where: { $0.slug == selectedModel }) {
@@ -182,6 +189,8 @@ private struct AssistantChatScreen: View {
             AssistantHistoryView(store: store) { id in chat.open(id) }
         }
         .sheet(isPresented: $chat.usageLimitHit) { AssistantUsageLimitSheet() }
+        // モードを切り替えるとこの画面ごと作り直されるので、走っている応答はここで止めて残す。
+        .onDisappear { chat.leave() }
     }
 
     // MARK: - 部品
@@ -194,7 +203,7 @@ private struct AssistantChatScreen: View {
             Text("曲・ライブ・セトリ・あなたの参戦記録をデータベースから調べて答えます。参戦記録を使うときは、その内容を ChatGPT に送ります。")
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
-            FlowChips(items: examples) { example in
+            FlowChips(items: examples, isEnabled: !selectedModel.isEmpty) { example in
                 input = ""
                 chat.send(example, model: selectedModel)
             }
@@ -212,6 +221,7 @@ private struct AssistantChatScreen: View {
 /// 質問例のチップ。幅に合わせて折り返す。
 private struct FlowChips: View {
     let items: [String]
+    let isEnabled: Bool
     let onTap: (String) -> Void
 
     var body: some View {
@@ -227,6 +237,7 @@ private struct FlowChips: View {
                         .background(DS.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .disabled(!isEnabled)
             }
         }
     }

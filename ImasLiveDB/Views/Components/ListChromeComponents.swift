@@ -175,8 +175,10 @@ func standardListToolbar<SearchField: View>(
     ToolbarItem(placement: .topBarTrailing) {
         FilterBarButton(activeCount: filterBadge, action: onFilter)
     }
-    // 試作の AI チャット (開発ビルド / TestFlight だけ中身が出る)。
-    ToolbarItem(placement: .topBarTrailing) { AssistantToolbarButton() }
+    // 試作の AI チャット (開発ビルド / TestFlight だけ)。
+    if ChatGPTPlanSession.isPrototypeVisible {
+        ToolbarItem(placement: .topBarTrailing) { AssistantToolbarButton() }
+    }
     if menuActions.count == 1, let only = menuActions.first {
         ToolbarItem(placement: .topBarTrailing) {
             Button(action: only.action) {

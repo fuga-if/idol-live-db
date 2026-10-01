@@ -70,8 +70,10 @@ struct ProduceTabView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     SettingsToolbarButton()
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    AssistantToolbarButton()
+                if ChatGPTPlanSession.isPrototypeVisible {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        AssistantToolbarButton()
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

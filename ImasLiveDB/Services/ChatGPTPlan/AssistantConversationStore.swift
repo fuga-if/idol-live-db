@@ -25,6 +25,8 @@ struct AssistantConversation: Codable, Identifiable, Hashable {
     var items: [String] = []
     /// キャラとのトークならアイドル id (普通のチャットは nil)。
     var idolID: String?
+    /// 最後に応答したモデル。モデルを変えたら、前のモデルの暗号化された推論項目は積み直さない。
+    var model: String?
 }
 
 /// 会話を端末内 (Application Support) に保存する。ファイル 1 つに全会話。

@@ -171,6 +171,8 @@ struct CharacterTalkView: View {
             AssistantUsageLimitSheet()
         }
         .task { await prepare() }
+        // 戻るときは走っている応答を止めて残す (開き直したときに古い応答が後から書き込まないように)。
+        .onDisappear { chat?.leave() }
     }
 
     private func messages(_ chat: AssistantChatModel) -> some View {
@@ -218,11 +220,12 @@ struct CharacterTalkView: View {
     private func prepare() async {
         guard chat == nil else { return }
         await cache.load([idolID])
+        // モデル一覧が取れなくても、前に選んだモデルがあればそのまま話せる。
+        try? await session.loadModelsIfNeeded()
+        if !session.models.isEmpty, !session.models.contains(where: { $0.slug == selectedModel }) {
+            selectedModel = session.models.first?.slug ?? ""
+        }
         do {
-            try await session.loadModelsIfNeeded()
-            if !session.models.contains(where: { $0.slug == selectedModel }) {
-                selectedModel = session.models.first?.slug ?? ""
-            }
             let store = try await AppContainer.shared.coreSnapshot.loadedStore()
             guard let instructions = try store.assistantTalkInstructions(idolId: idolID) else {
                 loadError = "このアイドルのデータが見つかりませんでした"

@@ -53,7 +53,11 @@ final class CharacterTimelineStore {
 
     /// 続きを生成して先頭に足す。顔ぶれと話題はコアが決める (担当がいればその子を中心に)。
     func generate(model: String) async {
-        guard !isGenerating, !model.isEmpty else { return }
+        guard !isGenerating else { return }
+        guard !model.isEmpty else {
+            errorMessage = "モデルを読み込めていません。上のモデル選択を確かめてください"
+            return
+        }
         isGenerating = true
         errorMessage = nil
         defer { isGenerating = false }
@@ -92,7 +96,8 @@ final class CharacterTimelineStore {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard replyingPostID == nil, !text.isEmpty, !model.isEmpty,
               let index = posts.firstIndex(where: { $0.id == postID }) else { return }
-        posts[index].replies.append(.init(idolID: nil, text: text))
+        let mine = TimelinePost.Reply(idolID: nil, text: text)
+        posts[index].replies.append(mine)
         save()
         replyingPostID = postID
         errorMessage = nil
@@ -115,6 +120,11 @@ final class CharacterTimelineStore {
             posts[i].replies.append(.init(idolID: post.idolID, text: answer.trimmingCharacters(in: .whitespacesAndNewlines)))
             save()
         } catch {
+            // 返事が来なかったリプライは取り下げる (書き直して送り直せるように)。
+            if let i = posts.firstIndex(where: { $0.id == postID }) {
+                posts[i].replies.removeAll { $0.id == mine.id }
+                save()
+            }
             handle(error)
         }
     }

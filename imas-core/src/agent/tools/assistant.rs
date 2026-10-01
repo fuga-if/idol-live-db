@@ -72,6 +72,9 @@ pub fn responses_tools() -> Value {
                 "name": spec.name,
                 "description": spec.description,
                 "parameters": responses_parameters(spec.input_schema),
+                // Responses API の関数ツールは既定で strict (全キー required) として検証される。
+                // MCP のスキーマは省略できる引数が前提なので、明示的に外す。
+                "strict": false,
             })
         })
         .collect();
@@ -133,6 +136,7 @@ mod tests {
         assert_eq!(functions.len(), catalog().len());
         for f in functions {
             assert_eq!(f["type"], "function");
+            assert_eq!(f["strict"], false, "{}", f["name"]);
             assert_eq!(f["parameters"]["type"], "object", "{}", f["name"]);
             assert!(f["parameters"].get("$schema").is_none(), "{}", f["name"]);
             assert!(f["parameters"].get("anyOf").is_none(), "{}", f["name"]);
