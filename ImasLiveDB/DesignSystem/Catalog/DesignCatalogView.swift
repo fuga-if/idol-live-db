@@ -491,9 +491,52 @@ private struct EntityRowsPage: View {
 private struct ValueRowsPage: View {
     @State private var notify = true
     @State private var selected: Set<Int> = [0]
+    @State private var scope = "現地のみ"
+    @State private var count = 10
+    @State private var pick = true
+    @State private var favorite = false
+    @State private var query = ""
 
     var body: some View {
         ImasPage {
+            ImasSection("選ぶ・設定する行", style: .small, footer: "選べる行は行のどこを押しても切り替わる。値を選ぶ行はその場にメニューが出る。") {
+                ImasCardList {
+                    ImasSelectableRow(title: "天海春香", subtitle: "765PRO ALLSTARS", isSelected: selected.contains(0), seed: Sample.haruka) {
+                        if !selected.insert(0).inserted { selected.remove(0) }
+                    }
+                    ImasSelectableRow(title: "READY!!", leading: .artwork(title: "READY!!", imageURL: Sample.Art.ready),
+                                      isSelected: selected.contains(1)) {
+                        if !selected.insert(1).inserted { selected.remove(1) }
+                    }
+                    .environment(\.imasRowPosition, .following)
+                    ImasMenuRow(title: "回収に数える", systemImage: "checkmark.seal", options: ["現地のみ", "現地と配信"],
+                                selection: $scope) { $0 }
+                        .environment(\.imasRowPosition, .following)
+                    ImasStepperRow(title: "問題数", systemImage: "number", value: $count, range: 5...30, step: 5, unit: "問")
+                        .environment(\.imasRowPosition, .following)
+                }
+            }
+            ImasSection("行の末尾の印", style: .small) {
+                ImasCardList {
+                    ImasRow(title: "天海春香", subtitle: "あまみ はるか", leading: .avatar(label: "春香", seed: Sample.haruka),
+                            trailing: .mark(.pick, isOn: pick) { pick.toggle() })
+                    ImasRow(title: "READY!!", leading: .artwork(title: "READY!!", imageURL: Sample.Art.ready, isCollected: true),
+                            trailing: .mark(.favorite, isOn: favorite) { favorite.toggle() })
+                        .environment(\.imasRowPosition, .following)
+                }
+                .imasTheme(seed: Sample.haruka)
+            }
+            ImasSection("一覧の頭", style: .small) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    HStack(spacing: DS.Space.gap) {
+                        ImasToolbarButton(systemImage: "gearshape", label: "設定") {}
+                        ImasSearchField(prompt: "曲名・歌詞・アイドル", text: $query)
+                        ImasToolbarButton(systemImage: "line.3.horizontal.decrease.circle.fill", label: "絞り込み", badge: 2) {}
+                    }
+                    ImasDateHeader(big: "11", imprint: "NOV 2026 · 4 公演")
+                    ImasDateHeader(big: "09", imprint: "SEP 2026 · 終わった", isPast: true)
+                }
+            }
             ImasSection("項目と値", style: .small) {
                 ImasCardList {
                     ImasValueRow(key: "よみ", value: "あいどるますたー")
@@ -761,19 +804,25 @@ private struct SetlistPage: View {
 
     var body: some View {
         ImasPage {
-            ImasSection("セトリ", count: "24曲") {
-                ImasCardList(style: .plain) {
-                    ImasSetlistRow(number: "M01", title: "THE IDOLM@STER",
+            ImasSection("セトリ", count: "24曲", footer: "紙に入れて切り取り線で区切る。回収した曲はジャケの角に判子。") {
+                ImasCardList(style: .sheet) {
+                    ImasSetlistRow(number: "01", title: "THE IDOLM@STER", artworkURL: Sample.Art.idolmaster, brand: Sample.as765,
                                    performers: [.init(id: "a", name: "天海春香", color: Sample.haruka),
                                                 .init(id: "b", name: "如月千早", color: Sample.chihaya),
                                                 .init(id: "c", name: "星井美希", color: Sample.miki)],
-                                   badges: [.init(text: "全員", kind: .all)], facts: ["初披露"], isCollected: true)
-                    ImasSetlistRow(number: "M02", title: "細氷",
+                                   badges: [.init(text: "全体", kind: .all)], facts: ["初披露"], isCollected: true)
+                    ImasSetlistRow(number: "02", title: "READY!!", artworkURL: Sample.Art.ready, brand: Sample.as765,
                                    performers: [.init(id: "b", name: "如月千早", color: Sample.chihaya)],
                                    badges: [.init(text: "ソロ", kind: .unit)], facts: ["12 回目"])
                         .environment(\.imasRowPosition, .following)
-                    ImasSetlistRow(number: "M03", title: "Thank You!", performerSummary: "MILLIONSTARS 13 人",
+                    ImasSetlistRow(number: "03", title: "Thank You!", artworkURL: Sample.Art.thankYou, brand: Sample.ml,
+                                   performers: (0..<13).map { .init(id: "m\($0)", name: "", color: [Sample.ml, Sample.shizuka, Sample.kotoha][$0 % 3]) },
+                                   performerSummary: "MILLIONSTARS 13 人",
                                    badges: [.init(text: "カバー", kind: .cover)], facts: ["未回収"])
+                        .environment(\.imasRowPosition, .following)
+                    ImasSetlistRow(number: "04", title: "ジャケの無い曲", brand: Sample.ml,
+                                   performers: [.init(id: "d", name: "田中琴葉", color: Sample.kotoha)],
+                                   facts: ["3 回目"], isCollected: true)
                         .environment(\.imasRowPosition, .following)
                 }
             }
