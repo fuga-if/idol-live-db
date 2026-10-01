@@ -125,13 +125,14 @@ fun ImasButton(
     size: ImasButtonSize = ImasButtonSize.MEDIUM,
     fillsWidth: Boolean? = null,
     isLoading: Boolean = false,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    accessibilityLabel: String? = null
 ) {
     val colors = buttonColors(role)
     ImasButtonFrame(
         onClick = onClick,
         modifier = modifier.clearAndSetSemantics {
-            contentDescription = title
+            contentDescription = accessibilityLabel ?: title
             this.role = Role.Button
             if (isLoading) stateDescription = "処理中"
             if (!enabled) disabled()
