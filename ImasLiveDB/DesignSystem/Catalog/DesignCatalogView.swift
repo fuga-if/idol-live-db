@@ -777,11 +777,12 @@ private struct SectionsPage: View {
 private struct SongHeroPage: View {
     @State private var tab = 0
     @State private var favorite = false
+    @State private var previewing = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ImasHero(layout: .centered, eyebrow: "765PRO ALLSTARS", title: "THE IDOLM@STER",
+                ImasHero(layout: .centered, eyebrow: "765PRO ALLSTARS", onEyebrowTap: {}, title: "THE IDOLM@STER",
                          subtitle: "天海春香 / 如月千早 / 星井美希 / 菊地真 / 高槻やよい",
                          primary: .init(title: "Apple Music で再生", systemImage: "play.fill") {}) {
                     ImasArtwork(title: "THE IDOLM@STER", size: 200, imageURL: Sample.Art.idolmaster)
@@ -805,6 +806,16 @@ private struct SongHeroPage: View {
                         ImasStatTile(systemImage: "mic.fill", value: "89", unit: "回", label: "披露")
                         ImasStatTile(systemImage: "checkmark.seal.fill", value: "3", unit: "公演", label: "現地で回収", tappable: true)
                         ImasStatTile(systemImage: "calendar", value: "2005", unit: "年", label: "初披露")
+                    }
+                    ImasSection("ジャケの状態", style: .small, footer: "画像が無ければブランド色の面 + 曲名。previewURL を渡すと再生/停止が乗る。") {
+                        HStack(spacing: DS.Space.gapLoose) {
+                            ImasArtwork(title: "THE IDOLM@STER", size: 64, imageURL: Sample.Art.idolmaster)
+                            ImasArtwork(title: "ジャケ未登録の曲", seed: nil, brand: Sample.ml, size: 64)
+                            ImasArtwork(title: "READY!!", size: 64, imageURL: Sample.Art.ready,
+                                        previewURL: URL(string: "https://example.com/preview.m4a"), isPreviewing: previewing) {
+                                previewing.toggle()
+                            }
+                        }
                     }
                     ImasSection("最近の披露", count: "89回") {
                         ImasCardList(style: .plain) {
@@ -1021,7 +1032,9 @@ private struct SetlistPage: View {
 private struct ListTemplatePage: View {
     enum Sort: String, CaseIterable { case release = "リリース日順", performances = "披露回数順" }
     @State private var sort: Sort = .performances
+    @State private var ascending = false
     @State private var filters = ["765AS", "全体曲"]
+    @State private var previewingSong = false
 
     var body: some View {
         List {
@@ -1030,20 +1043,24 @@ private struct ListTemplatePage: View {
                     .init(id: f, title: f, brand: f == "765AS" ? Sample.as765 : nil) { filters.removeAll { $0 == f } }
                 }, onClearAll: { filters.removeAll() })
                 .listRowInsets(EdgeInsets())
-                ImasListSummary(count: 2051, unit: "件", sortOptions: Sort.allCases, sortSelection: $sort) { $0.rawValue }
+                ImasListSummary(count: 2051, unit: "件", sortOptions: Sort.allCases, sortSelection: $sort,
+                                sortLabel: { $0.rawValue }, sortAscending: $ascending)
                     .listRowInsets(EdgeInsets())
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             ImasListSection("2005年") {
                 ImasSongRow(title: "THE IDOLM@STER", subtitle: "765PRO ALLSTARS", artworkURL: Sample.Art.idolmaster,
-                            brandHex: Sample.as765, showsBrandBar: true, trailing: .metric("89", unit: "回", emphasized: true)) {
+                            brandHex: Sample.as765, showsBrandBar: true,
+                            previewURL: URL(string: "https://example.com/preview.m4a"), isPreviewing: previewingSong,
+                            onPreviewTap: { previewingSong.toggle() },
+                            trailing: .metric("89", unit: "回", emphasized: true)) {
                     HStack(spacing: DS.Space.gapTight) {
                         Text("7月26日").imasText(.meta)
                         ImasBadge(text: "回収 3", kind: .positive, systemImage: "checkmark")
                     }
                 }
-                ImasSongRow(title: "READY!!", subtitle: "765PRO ALLSTARS", artworkURL: Sample.Art.ready,
+                ImasSongRow(title: "ジャケ未登録の曲", subtitle: "765PRO ALLSTARS",
                             brandHex: Sample.as765, showsBrandBar: true, trailing: .metric("56", unit: "回", emphasized: true)) { EmptyView() }
             }
             ImasListSection("ライブ") {
