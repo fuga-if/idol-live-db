@@ -8,7 +8,7 @@ import SwiftUI
 //           ImasRemovableChip 押すと外れる。効いている絞り込み・選んだもの
 // 使わない  状態を示す小さい札 (参加済・ユニット・NEW) → ImasBadge /
 //           操作のボタン → ImasButton
-// 構成      [先頭 (ペンライト・記号・画像、任意)] [文言] [× (Removable のみ)]
+// 構成      [先頭 (ペンライト・記号・アイコン、任意)] [文言] [× (Removable のみ)]
 // 寸法      高さ 32、角丸 8 の四角 (カプセルにしない)、文字 14pt 中太、左右 12。
 // 状態      未選択 (線) / 選択 (墨の塗り。ペンライトはそのまま光る) / 押下 / 無効 (薄く)
 // 色        地は墨と灰だけ。アイドル・ブランドの色は先頭のペンライトに出す。
@@ -21,7 +21,7 @@ enum ImasChipLeading {
     case symbol(String)
     /// ペンライト (アイドル・ブランドの色)。
     case dot
-    /// 画像 (アイドルの画像を設定してあるとき)。画像が無ければペンライト。
+    /// アイドルのアイコン (20)。画像が無ければ判子。
     case avatar(label: String, imageURL: URL? = nil)
 }
 
@@ -61,6 +61,7 @@ struct ImasChip: View {
         HStack(spacing: 6) {
             ImasChipLeadingView(
                 leading: lead,
+                theme: t,
                 penlight: style == .selected
                     ? ImasChipColors.penlightOnInk(seed: seed, brand: brand, color: color, fallback: t, scheme: scheme)
                     : t.penlight
@@ -135,7 +136,7 @@ struct ImasRemovableChip: View {
         let lead = leading ?? ((seed != nil || brand != nil) ? .dot : nil)
         Button(action: onRemove) {
             HStack(spacing: 6) {
-                ImasChipLeadingView(leading: lead, penlight: t.penlight)
+                ImasChipLeadingView(leading: lead, theme: t, penlight: t.penlight)
                 Text(text).font(ImasTextRole.chip.font).lineLimit(1)
                 Image(systemName: "xmark")
                     .font(.imasScaled(10, weight: .bold))
@@ -248,6 +249,8 @@ struct ImasAwardChip: View {
 /// チップの先頭。
 private struct ImasChipLeadingView: View {
     let leading: ImasChipLeading?
+    /// アイコンの色 (チップの実体の色)。
+    let theme: ImasTheme
     /// ペンライトの色 (墨の塗りの上では明るい側の色)。
     let penlight: Color
 
@@ -260,12 +263,9 @@ private struct ImasChipLeadingView: View {
         case .dot:
             ImasPenlight(color: penlight, size: .small)
         case .avatar(let label, let url):
-            if let url {
-                ImasAvatar(label: label, seed: nil, size: 20, imageURL: url, reservesPickRing: false)
-                    .padding(.leading, -4)
-            } else {
-                ImasPenlight(color: penlight, size: .small)
-            }
+            ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
+                .environment(\.imasTheme, theme)
+                .padding(.leading, -4)
         }
     }
 }

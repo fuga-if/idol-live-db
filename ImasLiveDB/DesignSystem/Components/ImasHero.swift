@@ -3,9 +3,9 @@ import SwiftUI
 // =============================================================================
 // 詳細の頭 (docs/DESIGN_SYSTEM.md §2.2・§8.4)
 //
-// ImasHero      そのものの顔。名前を大きく組み、前にペンライト。地は白い紙面。
+// ImasHero      そのものの顔。アイコン (ジャケ) と、大きく組んだ名前。地は白い紙面。
 //               曲は大きいジャケを中央に (`.centered`)、アイドル・ユニット・ライブ・公演は
-//               名前を左に大きく、画像があれば右に (`.leading`)。同じ種類のものはいつも同じ形。
+//               アイコンを左・名前を右に (`.leading`)。同じ種類のものはいつも同じ形。
 //               `.color` は地を実体の色で塗る (担当の顔など、色そのものを主役にする所)。
 // ImasMarkBar   担当・お気に入り・参加・メモ・座席の印を 1 本の帯に並べる。
 // ImasMarkTile  印 1 つ。ON は記号が実体の色で点く (タイルを塗らない)。
@@ -13,20 +13,23 @@ import SwiftUI
 // ImasSegmented フォーム・設定の中で値を 1 つ選ぶ (OS の segmented control)。
 // =============================================================================
 
+/// 詳細の頭の地。
+enum ImasHeroSurface {
+    /// 白い紙面 (既定)。色はペンライトとアイコンの輪だけ。
+    case paper
+    /// 実体の色で塗る。文字は色の上で読める白か黒。
+    case color
+}
+
 struct ImasHero<Media: View, Facts: View>: View {
     enum Layout {
         /// 画像を中央に大きく (曲)。
         case centered
-        /// 名前を左、画像を右 (アイドル・ユニット・ライブ・公演)。
+        /// アイコンを左、名前を右 (アイドル・ユニット・ライブ・公演)。
         case leading
     }
 
-    enum Surface {
-        /// 白い紙面 (既定)。色はペンライトだけ。
-        case paper
-        /// 実体の色で塗る。文字は色の上で読める白か黒。
-        case color
-    }
+    typealias Surface = ImasHeroSurface
 
     struct Action {
         let title: String
@@ -64,10 +67,10 @@ struct ImasHero<Media: View, Facts: View>: View {
                 }
                 .frame(maxWidth: .infinity)
             case .leading:
-                HStack(alignment: .top, spacing: DS.Space.card) {
+                HStack(alignment: .center, spacing: DS.Space.card) {
+                    media
                     texts(alignment: .leading)
                     Spacer(minLength: 0)
-                    media
                 }
             }
             if let primary {

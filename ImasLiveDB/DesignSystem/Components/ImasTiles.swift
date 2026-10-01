@@ -5,17 +5,25 @@ import SwiftUI
 //
 // ImasFeatureCard   ハブの最上段で「いま一番大事なもの」を 1 枚で。題は大きく、操作は下に行で並べる。
 // ImasEntryCard     奥の画面への入口を大きく見せる。
-// ImasStatTile      数 1 つ (名前 + 細長い太字の数)。`ImasStatGrid` が 1 枚の面に並べる。
+// ImasStatTile      数 1 つ (記号 + 細長い太字の数 + 名前)。`ImasStatGrid` が 1 枚の面に並べる。
 // ImasStatBar       項目ごとの割合の横棒。
 // ImasProgressRing  1 つの割合を大きく。
 // ImasShortcutGroup 種類ごとの入口の行のまとまり (あそぶ・みんな・しらべる)。
 // ImasCarousel      カードを横に流す。
 //
 // どれも色の地を敷かない。面は地から決まる灰 (紙面) か白 (灰の地) で、実体の色は
-// ペンライトにだけ出す。記号を淡い色の四角に入れない (v1 の「よくある見た目」の元)。
+// ペンライトと記号にだけ出す。記号は淡い色の四角に入れない (v1 の「よくある見た目」の元)。
 // =============================================================================
 
 // MARK: - 主役のカード
+
+/// 主役のカードの面。
+enum ImasFeatureSurface {
+    /// 地の上の面 (紙面なら灰)。
+    case panel
+    /// 実体の色を面いっぱいに塗る (担当)。文字は色の上で読める白か黒。
+    case color
+}
 
 /// ハブの最上段で「いま一番大事なもの」を 1 枚で見せる (担当・次のライブ・開催中のお題)。
 ///
@@ -36,12 +44,7 @@ struct ImasFeatureCard<Media: View>: View {
         var unit: String? = nil
     }
 
-    enum Surface {
-        /// 地の上の面 (紙面なら灰)。
-        case panel
-        /// 実体の色を面いっぱいに塗る (担当)。文字は色の上で読める白か黒。
-        case color
-    }
+    typealias Surface = ImasFeatureSurface
 
     /// 上の目印 (「担当」「参加予定」)。前に実体の色のペンライトが付く。
     var eyebrow: String? = nil
@@ -239,45 +242,50 @@ struct ImasEntryCard: View {
 
 // MARK: - 数
 
-/// 数 1 つ。名前 (小さい灰) の下に細長い太字の数。奥へ行けるときは名前の横に矢印。
+/// 数 1 つ。上に記号 (実体の色)、その下に細長い太字の数と名前。奥へ行けるときは右上に矢印。
 /// `ImasStatGrid` の中では面を持たず、外に単独で置くと自分で面を持つ。
 struct ImasStatTile: View {
+    var systemImage: String? = nil
     let value: String
     var unit: String? = nil
     let label: String
+    var seed: String? = nil
+    var brand: String? = nil
     var tappable: Bool = false
 
     @Environment(\.imasInStatGrid) private var inGrid
     @Environment(\.imasBackdrop) private var backdrop
-
-    init(value: String, unit: String? = nil, label: String, tappable: Bool = false) {
-        self.value = value
-        self.unit = unit
-        self.label = label
-        self.tappable = tappable
-    }
-
-    /// 旧い呼び方 (記号と色付き)。記号の四角と色の地はやめたので、記号と色は使わない。
-    init(systemImage: String, value: String, unit: String? = nil, label: String,
-         seed: String? = nil, brand: String? = nil, tappable: Bool = false) {
-        self.init(value: value, unit: unit, label: label, tappable: tappable)
-    }
+    @Environment(\.imasTheme) private var envTheme
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 3) {
-                Text(label)
-                    .font(.imasCaption.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-                if tappable {
-                    Image(systemName: "chevron.right")
-                        .font(.imasScaled(9, weight: .bold))
-                        .foregroundStyle(DS.ink3)
+        let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
+        VStack(alignment: .leading, spacing: 4) {
+            if systemImage != nil || tappable {
+                HStack(alignment: .center) {
+                    if let systemImage {
+                        Image(systemName: systemImage)
+                            .font(.imasScaled(16, weight: .semibold))
+                            .foregroundStyle(t.penlight)
+                            .frame(height: 20)
+                            .accessibilityHidden(true)
+                    }
+                    Spacer(minLength: 0)
+                    if tappable {
+                        Image(systemName: "chevron.right")
+                            .font(.imasScaled(10, weight: .bold))
+                            .foregroundStyle(DS.ink3)
+                    }
                 }
+                .padding(.bottom, 2)
             }
             // 金額のように桁が伸びる値でも折り返さない (タイルの高さが揃わなくなる)。
             ImasMetric(value: value, unit: unit, size: .large)
+            Text(label)
+                .font(.imasCaption.weight(.semibold))
+                .foregroundStyle(DS.ink2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, inGrid ? DS.Space.gapLoose : DS.Space.card)
@@ -439,7 +447,7 @@ extension ImasShortcutGroup where Accessory == EmptyView {
     }
 }
 
-/// 入口の行 1 つ (記号 + 名前 + 補足 + 矢印)。押してから外へ飛ぶまでは くるくる。
+/// 入口の行 1 つ (記号 + 名前 + 補足 + 矢印)。記号は実体の色 (無ければ墨)。押してから外へ飛ぶまでは くるくる。
 struct ImasShortcutTile: View {
     let systemImage: String
     let label: String
@@ -450,7 +458,7 @@ struct ImasShortcutTile: View {
 
     var body: some View {
         HStack(spacing: DS.Space.rowGap) {
-            ImasIconTile(systemImage: systemImage, size: .s28, tone: .solid)
+            ImasIconTile(systemImage: systemImage, size: .s28, tone: .themed, seed: seed)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label).imasText(.rowLabel).lineLimit(1)
                 if let detail {

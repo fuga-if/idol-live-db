@@ -28,7 +28,6 @@ struct ProduceTabView: View {
     @State private var collectedSongIds: [String] = []
     // ローカル履歴 (投稿・投票) は @Observable で参照するだけでカウントが見える。
     @State private var voteLog = LocalPollVoteLog.shared
-    @State private var imageService = CustomImageService.shared
     @State private var contributionLog = LocalContributionLog.shared
 
     // 参加したライブ (タイル「参加ライブ」の遷移先に渡す)。
@@ -135,10 +134,10 @@ struct ProduceTabView: View {
                 title: poll.title,
                 subtitle: "\(poll.totalVotes ?? 0)票 · \(poll.entryCount ?? 0)候補",
                 metric: pollRemaining(poll.endsAt),
-                primary: .init(title: "投票する") {
+                primary: .init(title: "投票する", systemImage: "hand.thumbsup") {
                     if NavThrottle.allow() { navPath.append(PollRoute.detail(poll.id)) }
                 },
-                secondary: .init(title: "ほかのお題") {
+                secondary: .init(title: "ほかのお題", systemImage: "list.bullet") {
                     if NavThrottle.allow() { navPath.append(PollRoute.list) }
                 }
             )
@@ -176,11 +175,7 @@ struct ProduceTabView: View {
                     brand: brand?.color,
                     onOpen: { if NavThrottle.allow() { navPath.append(idol) } }
                 ) {
-                    // 画像を設定した担当だけ顔を出す (画像の無い丸は出さない)。
-                    if let url = imageService.imageURL(for: idol.id) {
-                        ImasAvatar(label: idol.shortName, seed: idol.color, size: 56, imageURL: url,
-                                   reservesPickRing: false)
-                    }
+                    IdolAvatarView(idol: idol, size: 60, isPick: true)
                 }
             }
         }
@@ -200,28 +195,28 @@ struct ProduceTabView: View {
         ImasSection("あなたの記録") {
             ImasStatGrid(columns: 4) {
                 statTileLink(route: .attendedEvents) {
-                    ImasStatTile(value: numberString(attendedCount), label: "参加ライブ", tappable: true)
+                    ImasStatTile(systemImage: "music.mic", value: numberString(attendedCount), label: "参加ライブ", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .myPredictions) {
-                    ImasStatTile(value: numberString(predictionCount), label: "予想", tappable: true)
+                    ImasStatTile(systemImage: "sparkles", value: numberString(predictionCount), label: "予想", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .favorites) {
-                    ImasStatTile(value: numberString(favoriteCount), label: "お気に入り", tappable: true)
+                    ImasStatTile(systemImage: "star.fill", value: numberString(favoriteCount), label: "お気に入り", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .myContributions) {
-                    ImasStatTile(value: numberString(contributionLog.total), label: "投稿", tappable: true)
+                    ImasStatTile(systemImage: "square.and.pencil", value: numberString(contributionLog.total), label: "投稿", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .myVotes) {
-                    ImasStatTile(value: numberString(voteLog.votedPollCount), label: "投票", tappable: true)
+                    ImasStatTile(systemImage: "chart.bar.doc.horizontal", value: numberString(voteLog.votedPollCount), label: "投票", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .collectedSongs) {
-                    ImasStatTile(value: numberString(collectedCount), label: "回収", tappable: true)
+                    ImasStatTile(systemImage: "music.note", value: numberString(collectedCount), label: "回収", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .mastery) {
-                    ImasStatTile(value: numberString(masteryCount), label: "習熟度", tappable: true)
+                    ImasStatTile(systemImage: "chart.bar.fill", value: numberString(masteryCount), label: "習熟度", seed: pickBrandSeed, tappable: true)
                 }
                 statTileLink(route: .ledger) {
-                    ImasStatTile(value: formatYen(amount: ledgerTotal), label: "収支", tappable: true)
+                    ImasStatTile(systemImage: "yensign.circle.fill", value: formatYen(amount: ledgerTotal), label: "収支", seed: pickBrandSeed, tappable: true)
                 }
             }
         }
@@ -311,12 +306,12 @@ struct ProduceTabView: View {
                 subtitle: nextLiveSubLine(next),
                 seed: next.event.brandId.flatMap { brandsById[$0]?.color } ?? pickBrandSeed,
                 metric: next.daysUntil.map { $0 == 0 ? .init(value: "今日") : .init(prefix: "あと", value: "\($0)", unit: "日") },
-                primary: .init(title: "セトリを予想する") {
+                primary: .init(title: "セトリを予想する", systemImage: "sparkles") {
                     AppAnalytics.tap("produce_tab.next_live_predict")
                     if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
                 },
                 secondary: LyricsFeature.isAvailable
-                    ? .init(title: "コールを見る") { if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) } }
+                    ? .init(title: "コールを見る", systemImage: "hands.clap") { if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) } }
                     : nil
             )
         }
@@ -339,42 +334,43 @@ struct ProduceTabView: View {
                     } label: {
                         ImasShortcutTile(
                             systemImage: "play.fill", label: "つづきから",
-                            detail: "\(gameTitle(s.kind)) " + String(format: "Q.%02d", min(s.plays.count + 1, s.total))
+                            detail: "\(gameTitle(s.kind)) " + String(format: "Q.%02d", min(s.plays.count + 1, s.total)),
+                            seed: pickBrandSeed
                         )
                     }
                 }
                 NavigationLink { IntroDonHomeView() } label: {
-                    ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン")
+                    ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン", seed: pickBrandSeed)
                 }
                 NavigationLink { LyricsQuizSetupView() } label: {
-                    ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ")
+                    ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ", seed: pickBrandSeed)
                 }
                 NavigationLink { SetlistQuizSetupView() } label: {
-                    ImasShortcutTile(systemImage: "list.number", label: "セトリ当て")
+                    ImasShortcutTile(systemImage: "list.number", label: "セトリ当て", seed: pickBrandSeed)
                 }
                 NavigationLink { GamesHubView() } label: {
-                    ImasShortcutTile(systemImage: "gamecontroller", label: "すべてのゲーム")
+                    ImasShortcutTile(systemImage: "gamecontroller", label: "すべてのゲーム", seed: pickBrandSeed)
                 }
             }
 
             ImasShortcutGroup("みんな") {
                 NavigationLink { RecentEditsView() } label: {
-                    ImasShortcutTile(systemImage: "person.2", label: "編集の動き")
+                    ImasShortcutTile(systemImage: "person.2", label: "編集の動き", seed: pickBrandSeed)
                 }
                 NavigationLink { TagActivityView() } label: {
-                    ImasShortcutTile(systemImage: "number", label: "タグ")
+                    ImasShortcutTile(systemImage: "number", label: "タグ", seed: pickBrandSeed)
                 }
                 // 歌詞タブと同じ根拠 (JASRAC 許諾) で出し分ける。歌詞が出ないビルドでは
                 // コールガイドを書く場所そのものが無いので、入口も出さない。
                 if LyricsFeature.isAvailable {
                     NavigationLink { CallGuideDashboardView() } label: {
-                        ImasShortcutTile(systemImage: "hands.clap", label: "コールガイド")
+                        ImasShortcutTile(systemImage: "hands.clap", label: "コールガイド", seed: pickBrandSeed)
                     }
                 }
                 // 開催中のお題が無いと上の「ほかのお題」が出ないので、そのときだけここに置く。
                 if activePoll == nil {
                     NavigationLink(value: PollRoute.list) {
-                        ImasShortcutTile(systemImage: "chart.bar.doc.horizontal", label: "みんなの投票")
+                        ImasShortcutTile(systemImage: "chart.bar.doc.horizontal", label: "みんなの投票", seed: pickBrandSeed)
                     }
                 }
                 // 編集の協力者に Discord のロールを渡す入口。セッションで本人を確かめるので
@@ -384,17 +380,17 @@ struct ProduceTabView: View {
                         Task { await openDiscordLink() }
                     } label: {
                         ImasShortcutTile(systemImage: "rosette", label: "Discord のロールを受け取る",
-                                         isLoading: isLinkingDiscord)
+                                         seed: pickBrandSeed, isLoading: isLinkingDiscord)
                     }
                 }
             }
 
             ImasShortcutGroup("しらべる") {
                 NavigationLink { StatsView() } label: {
-                    ImasShortcutTile(systemImage: "chart.bar.xaxis", label: "統計")
+                    ImasShortcutTile(systemImage: "chart.bar.xaxis", label: "統計", seed: pickBrandSeed)
                 }
                 NavigationLink { BrandTimelineView(initialBrandId: pickIdols.first?.brandId) } label: {
-                    ImasShortcutTile(systemImage: "calendar.day.timeline.left", label: "年表")
+                    ImasShortcutTile(systemImage: "calendar.day.timeline.left", label: "年表", seed: pickBrandSeed)
                 }
             }
         }
@@ -429,7 +425,7 @@ struct ProduceTabView: View {
 
     // MARK: - Derived
 
-    /// 担当アイドルの代表色 (次のライブにブランドの色が無いときのペンライト)。
+    /// 担当アイドルの代表色 (記録・入口の記号と、次のライブにブランドの色が無いときのペンライト)。
     private var pickBrandSeed: String? { pickIdols.first?.color ?? brandsById[pickIdols.first?.brandId ?? ""]?.color }
 
     // MARK: - Helpers

@@ -5,8 +5,8 @@ import SwiftUI
 // =============================================================================
 // 画像と印 (docs/DESIGN_SYSTEM.md §10.3)
 //
-// ImasAvatar       アイドルの画像 (設定してあるときだけ)。画像が無いアイドルに丸を出さない
-//                  (頭文字の丸は中身の無い飾り)。行は `ImasRow` が帯に替える。
+// ImasAvatar       アイドルのアイコン。設定した画像があれば画像、無ければ判子 (紙の白 +
+//                  実体色の輪 + 実体色の名前)。担当は輪を二重にする。
 // ImasArtwork      曲のジャケ。角のある四角。画像が無ければ灰の面 + 音符。
 // ImasIconTile     記号 1 つ。地を敷かない (記号を淡い色の四角に入れない)。
 // ImasSwatch       色の丸 (タグの色・ペンライトの色)。読み上げは色名。
@@ -18,8 +18,10 @@ import SwiftUI
 
 // MARK: - アバター
 
-/// モノグラム・アバター。淡い実体色の面 + 細い輪 + 実体色の頭文字。
-/// 担当 (`isPick`) のときは外側に二重輪をまとう。
+/// アイドルのアイコン。設定した画像があれば画像、無ければ「判子」にする。
+///
+/// 判子は紙の白の丸に、実体色の輪と実体色の名前 (詰め組みの太字)。白い紙面に押した印のように見せ、
+/// 色は輪と文字だけに出す (淡い色の地は敷かない)。担当 (`isPick`) は輪を二重にする (二重丸の判子)。
 struct ImasAvatar: View {
     let label: String
     var seed: String?
@@ -35,10 +37,14 @@ struct ImasAvatar: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.displayScale) private var displayScale
 
-    /// 可視のアバターと外形の間の片側の余白 (担当の輪の分)。
+    /// 可視のアイコンと外形の間の片側の余白 (担当の外の輪の分)。どの大きさでもこれに収まる。
     static let ringPadding: CGFloat = 5.5
 
     private var outerSize: CGFloat { reservesPickRing ? size + Self.ringPadding * 2 : size }
+    /// 輪の太さ。大きいアイコンほど太く。
+    private var ringWidth: CGFloat { size >= 64 ? 2.5 : (size >= 36 ? 1.75 : 1.25) }
+    /// 二重の輪の間。
+    private var ringGap: CGFloat { size >= 64 ? 3 : 2 }
 
     var body: some View {
         let t = (seed != nil || brand != nil)
@@ -46,14 +52,15 @@ struct ImasAvatar: View {
             : envTheme
         ZStack {
             if isPick {
-                Circle().fill(t.gradTo).frame(width: size + 11, height: size + 11)
-                Circle().fill(t.accent).frame(width: size + 7, height: size + 7)
-                Circle().fill(DS.surface).frame(width: size + 4, height: size + 4)
+                let d = size + (ringWidth + ringGap) * 2
+                Circle()
+                    .strokeBorder(t.accent, lineWidth: ringWidth)
+                    .frame(width: d, height: d)
             }
             core(t)
                 .frame(width: size, height: size)
                 .clipShape(Circle())
-                .overlay(Circle().strokeBorder(t.ring, lineWidth: size >= 56 ? 2 : 1.5))
+                .overlay(Circle().strokeBorder(t.accent, lineWidth: ringWidth))
         }
         .frame(width: outerSize, height: outerSize)
         .accessibilityLabel(label)
@@ -66,24 +73,25 @@ struct ImasAvatar: View {
                 if let img = state.image {
                     img.resizable().scaledToFill()
                 } else {
-                    monogram(t)
+                    seal(t)
                 }
             }
             .processors([ImageProcessors.Resize(size: CGSize(width: px, height: px), unit: .pixels)])
         } else {
-            monogram(t)
+            seal(t)
         }
     }
 
-    private func monogram(_ t: ImasTheme) -> some View {
+    /// 判子。名前はアイコンの大きさに対して決める (Dynamic Type で丸からはみ出さないよう固定)。
+    private func seal(_ t: ImasTheme) -> some View {
         ZStack {
-            t.tint
+            DS.paper
             Text(label)
-                .font(.imasDisplay(size * 0.40, weight: .semibold))
+                .font(Font(Font.imasProportionalUIFont(size * 0.34, weight: .bold)))
                 .foregroundStyle(t.accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-                .padding(.horizontal, 2)
+                .padding(.horizontal, size * 0.1)
         }
     }
 }
@@ -161,8 +169,8 @@ struct ImasIconTile: View {
 
         var iconFont: Font {
             switch self {
-            case .s28: return .imasScaled(17, weight: .regular)
-            case .s32: return .imasScaled(19, weight: .regular)
+            case .s28: return .imasScaled(18, weight: .medium)
+            case .s32: return .imasScaled(20, weight: .medium)
             case .s36: return .imasScaled(21, weight: .regular)
             case .s44: return .imasScaled(24, weight: .light)
             case .s56: return .imasScaled(34, weight: .ultraLight)

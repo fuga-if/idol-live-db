@@ -179,14 +179,13 @@ private struct ChipsPage: View {
                     ImasFilterChip(text: "学マス", isSelected: brand == "gakuen", brand: Sample.gakuen, leading: .dot) { brand = "gakuen" }
                 }
             }
-            ImasSection("歌唱メンバーの予想 (ペンライト付き)", style: .small) {
+            ImasSection("歌唱メンバーの予想 (アイコン付き)", style: .small) {
                 ImasChipFlow {
                     ForEach([("haruka", "天海春香", "春香", Sample.haruka), ("chihaya", "如月千早", "千早", Sample.chihaya),
                              ("miki", "星井美希", "美希", Sample.miki), ("makoto", "菊地真", "真", Sample.makoto),
                              ("yayoi", "高槻やよい", "やよい", Sample.yayoi)], id: \.0) { id, name, short, color in
                         ImasFilterChip(text: name, isSelected: picked.contains(id), seed: color,
                                        leading: .avatar(label: short)) {
-                            // 画像が無いのでペンライトになる
                             if picked.contains(id) { picked.remove(id) } else { picked.insert(id) }
                         }
                     }
@@ -395,9 +394,9 @@ private struct SongHeroPage: View {
                     .padding(.horizontal, DS.Space.screen)
                 VStack(alignment: .leading, spacing: DS.Space.section) {
                     ImasStatGrid(columns: 3) {
-                        ImasStatTile(value: "89", unit: "回", label: "披露")
-                        ImasStatTile(value: "3", unit: "公演", label: "現地で回収", tappable: true)
-                        ImasStatTile(value: "2005", unit: "年", label: "初披露")
+                        ImasStatTile(systemImage: "mic.fill", value: "89", unit: "回", label: "披露")
+                        ImasStatTile(systemImage: "checkmark.seal.fill", value: "3", unit: "公演", label: "現地で回収", tappable: true)
+                        ImasStatTile(systemImage: "calendar", value: "2005", unit: "年", label: "初披露")
                     }
                     ImasSection("最近の披露", count: "89回") {
                         ImasCardList(style: .plain) {
@@ -420,7 +419,7 @@ private struct SongHeroPage: View {
 }
 
 private struct IdolHeroPage: View {
-    let surface: ImasHero<EmptyView, EmptyView>.Surface
+    let surface: ImasHeroSurface
     @State private var tab = 0
     @State private var pick = true
 
@@ -430,7 +429,7 @@ private struct IdolHeroPage: View {
                 ImasHero(layout: .leading, surface: surface, eyebrow: "765PRO ALLSTARS", title: "天海春香",
                          subtitle: "あまみ はるか · CV 中村繪里子",
                          primary: .init(title: "出演ライブ", systemImage: "music.mic") {}) {
-                    EmptyView()
+                    ImasAvatar(label: "春香", size: 76, isPick: pick)
                 }
                 ImasMarkBar {
                     ImasMarkTile(systemImage: pick ? "heart.fill" : "heart", label: "担当", isOn: pick) { pick.toggle() }
@@ -447,9 +446,9 @@ private struct IdolHeroPage: View {
                                     subtitle: "11月28日(土) · Kアリーナ横浜 · DAY1", seed: Sample.haruka,
                                     metric: .init(prefix: "あと", value: "58", unit: "日"), onOpen: {})
                     ImasStatGrid(columns: 3) {
-                        ImasStatTile(value: "189", unit: "公演", label: "出演")
-                        ImasStatTile(value: "42", unit: "曲", label: "歌唱した曲")
-                        ImasStatTile(value: "12", unit: "公演", label: "一緒に参加", tappable: true)
+                        ImasStatTile(systemImage: "music.mic", value: "189", unit: "公演", label: "出演")
+                        ImasStatTile(systemImage: "music.note", value: "42", unit: "曲", label: "歌唱した曲")
+                        ImasStatTile(systemImage: "person.2.fill", value: "12", unit: "公演", label: "一緒に参加", tappable: true)
                     }
                     ImasSection("ライブ歌唱曲", count: "42曲", seeAll: {}) {
                         ImasCardList(style: .plain) {
@@ -477,36 +476,39 @@ private struct IdolHeroPage: View {
 // MARK: - ハブ
 
 private struct HubPage: View {
-    let oshiSurface: ImasFeatureCard<EmptyView>.Surface
+    let oshiSurface: ImasFeatureSurface
 
     var body: some View {
         ImasPage {
             ImasFeatureCard(eyebrow: "担当", title: "花海咲季", subtitle: "学マス · CV 長月あおい",
-                            seed: Sample.saki, surface: oshiSurface, onOpen: {})
+                            seed: Sample.saki, surface: oshiSurface, onOpen: {}) {
+                ImasAvatar(label: "咲季", size: 60, isPick: true)
+            }
             ImasFeatureCard(eyebrow: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)",
                             subtitle: "11月7日(土) · DAY1", brand: Sample.gakuen,
                             metric: .init(prefix: "あと", value: "37", unit: "日"),
-                            primary: .init(title: "セトリを予想する") {},
-                            secondary: .init(title: "コールを見る") {})
+                            primary: .init(title: "セトリを予想する", systemImage: "sparkles") {},
+                            secondary: .init(title: "コールを見る", systemImage: "hands.clap") {})
             ImasFeatureCard(eyebrow: "お題", title: "お化け屋敷に一緒に行きたいアイドルは？",
                             subtitle: "42票 · 21候補", metric: .init(prefix: "あと", value: "28", unit: "日"),
-                            primary: .init(title: "投票する") {}, secondary: .init(title: "ほかのお題") {})
+                            primary: .init(title: "投票する", systemImage: "hand.thumbsup") {},
+                            secondary: .init(title: "ほかのお題", systemImage: "list.bullet") {})
             ImasShortcutGroup("あそぶ") {
-                ImasShortcutTile(systemImage: "play.fill", label: "つづきから", detail: "歌詞クイズ Q.02")
-                ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン")
-                ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ")
-                ImasShortcutTile(systemImage: "gamecontroller", label: "すべてのゲーム")
+                ImasShortcutTile(systemImage: "play.fill", label: "つづきから", detail: "歌詞クイズ Q.02", seed: Sample.saki)
+                ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン", seed: Sample.saki)
+                ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ", seed: Sample.saki)
+                ImasShortcutTile(systemImage: "gamecontroller", label: "すべてのゲーム", seed: Sample.saki)
             }
             ImasSection("あなたの記録") {
                 ImasStatGrid(columns: 4) {
-                    ImasStatTile(value: "24", label: "参加ライブ", tappable: true)
-                    ImasStatTile(value: "3", label: "予想", tappable: true)
-                    ImasStatTile(value: "112", label: "お気に入り", tappable: true)
-                    ImasStatTile(value: "12", label: "投稿", tappable: true)
-                    ImasStatTile(value: "5", label: "投票", tappable: true)
-                    ImasStatTile(value: "39", label: "回収", tappable: true)
-                    ImasStatTile(value: "18", label: "習熟度", tappable: true)
-                    ImasStatTile(value: "¥184,300", label: "収支", tappable: true)
+                    ImasStatTile(systemImage: "music.mic", value: "24", label: "参加ライブ", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "sparkles", value: "3", label: "予想", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "star.fill", value: "112", label: "お気に入り", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "square.and.pencil", value: "12", label: "投稿", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "chart.bar.doc.horizontal", value: "5", label: "投票", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "music.note", value: "39", label: "回収", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "chart.bar.fill", value: "18", label: "習熟度", seed: Sample.saki, tappable: true)
+                    ImasStatTile(systemImage: "yensign.circle.fill", value: "¥184,300", label: "収支", seed: Sample.saki, tappable: true)
                 }
             }
         }
