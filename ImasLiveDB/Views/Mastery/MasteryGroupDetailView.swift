@@ -147,34 +147,34 @@ struct MasteryGroupDetailView: View {
         let steps = marks.scale.steps
         return VStack(alignment: .leading, spacing: DS.sp4) {
             ImasSectionHeader(title: "このグループの習熟度", tight: true)
-            HStack(spacing: DS.sp5) {
-                MasteryRing(fraction: Double(group?.percent ?? 0) / 100)
-                    .frame(width: 92, height: 92)
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                        Text("\(group?.setCount ?? 0)")
-                            .font(.imasDisplay(30, weight: .bold)).foregroundStyle(DS.ink)
-                        Text("/ \(group?.total ?? 0)曲")
-                            .font(.imasDisplay(15)).foregroundStyle(DS.ink2)
+            ImasCard(padding: DS.sp5) {
+                HStack(spacing: DS.sp5) {
+                    ImasProgressRing(fraction: Double(group?.percent ?? 0) / 100)
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+                            Text("\(group?.setCount ?? 0)")
+                                .font(.imasDisplay(30, weight: .bold)).foregroundStyle(DS.ink)
+                            Text("/ \(group?.total ?? 0)曲")
+                                .font(.imasDisplay(15)).foregroundStyle(DS.ink2)
+                        }
+                        Text("段階を付けた曲").font(.imasFootnote).foregroundStyle(DS.ink2)
+                        Text("\(marks.scale.label(steps)) \(group?.doneCount ?? 0) 曲")
+                            .font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
                     }
-                    Text("段階を付けた曲").font(.imasFootnote).foregroundStyle(DS.ink2)
-                    Text("\(marks.scale.label(steps)) \(group?.doneCount ?? 0) 曲")
-                        .font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
             }
-            .padding(DS.sp5)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
 
-            VStack(spacing: 0) {
-                ForEach(Array((1...Int(steps)).reversed()), id: \.self) { level in
-                    let c = count(atLevel: level)
-                    ImasStatBar(label: marks.scale.label(UInt8(level)), value: "\(c)",
-                                percent: Double(c) / Double(total) * 100)
+            ImasCard(padding: 0) {
+                VStack(spacing: 0) {
+                    ForEach(Array((1...Int(steps)).reversed()), id: \.self) { level in
+                        let c = count(atLevel: level)
+                        ImasStatBar(label: marks.scale.label(UInt8(level)), value: "\(c)",
+                                    percent: Double(c) / Double(total) * 100)
+                    }
                 }
+                .padding(.horizontal, DS.sp4)
             }
-            .padding(.horizontal, DS.sp4)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
     }
 

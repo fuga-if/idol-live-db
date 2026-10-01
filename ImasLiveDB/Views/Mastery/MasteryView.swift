@@ -146,30 +146,29 @@ struct MasteryView: View {
         let s = summary
         return VStack(alignment: .leading, spacing: DS.sp4) {
             ImasSectionHeader(title: "あなたの習熟度", tight: true)
-            HStack(spacing: DS.sp5) {
-                MasteryRing(fraction: Double(s.percent) / 100)
-                    .frame(width: 92, height: 92)
+            ImasCard(padding: DS.sp5) {
+                HStack(spacing: DS.sp5) {
+                    ImasProgressRing(fraction: Double(s.percent) / 100)
 
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                        Text("\(s.setCount)")
-                            .font(.imasDisplay(30, weight: .bold))
-                            .foregroundStyle(DS.ink)
-                        Text("/ \(s.total)曲")
-                            .font(.imasDisplay(15))
+                    VStack(alignment: .leading, spacing: DS.sp3) {
+                        HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+                            Text("\(s.setCount)")
+                                .font(.imasDisplay(30, weight: .bold))
+                                .foregroundStyle(DS.ink)
+                            Text("/ \(s.total)曲")
+                                .font(.imasDisplay(15))
+                                .foregroundStyle(DS.ink2)
+                        }
+                        Text("段階を付けた曲")
+                            .font(.imasFootnote)
                             .foregroundStyle(DS.ink2)
+                        Text("\(marks.scale.label(marks.scale.steps)) \(s.doneCount) 曲")
+                            .font(.imasCaption.weight(.semibold))
+                            .foregroundStyle(DS.ink3)
                     }
-                    Text("段階を付けた曲")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                    Text("\(marks.scale.label(marks.scale.steps)) \(s.doneCount) 曲")
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(DS.ink3)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
             }
-            .padding(DS.sp5)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
 
             stageBars
         }
@@ -178,16 +177,17 @@ struct MasteryView: View {
     /// 段ごとの本数。ブランド別回収率と同じ `ImasStatBar` の積み方。
     private var stageBars: some View {
         let total = max(scopedCount, 1)
-        return VStack(spacing: 0) {
-            ForEach(Array((1...Int(marks.scale.steps)).reversed()), id: \.self) { level in
-                let c = level - 1 < stageCounts.count ? stageCounts[level - 1] : 0
-                ImasStatBar(label: marks.scale.label(UInt8(level)),
-                            value: "\(c)",
-                            percent: Double(c) / Double(total) * 100)
+        return ImasCard(padding: 0) {
+            VStack(spacing: 0) {
+                ForEach(Array((1...Int(marks.scale.steps)).reversed()), id: \.self) { level in
+                    let c = level - 1 < stageCounts.count ? stageCounts[level - 1] : 0
+                    ImasStatBar(label: marks.scale.label(UInt8(level)),
+                                value: "\(c)",
+                                percent: Double(c) / Double(total) * 100)
+                }
             }
+            .padding(.horizontal, DS.sp4)
         }
-        .padding(.horizontal, DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - 群の一覧
@@ -456,49 +456,5 @@ struct MasteryFilterSheet: View {
             draft = filter
             loaded = true
         }
-    }
-}
-
-// MARK: - 共有パーツ
-
-/// 全体の進み具合のリング。回収率の `CollectionRing` と同じ寸法・同じ描き方。
-struct MasteryRing: View {
-    /// 0.0–1.0。
-    let fraction: Double
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        let t = ImasTheme.derive(seed: nil, scheme: scheme)
-        let clamped = min(1, max(0, fraction))
-        ZStack {
-            Circle().stroke(DS.fill, lineWidth: 10)
-            Circle()
-                .trim(from: 0, to: clamped)
-                .stroke(t.accent, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Text("\(Int((clamped * 100).rounded()))%")
-                .font(.imasDisplay(18, weight: .bold))
-                .foregroundStyle(DS.ink)
-        }
-    }
-}
-
-/// マス 1 つ。未設定は面を持たず点線の枠だけ。
-struct MasteryCell: View {
-    let level: UInt8
-    let scale: MasteryScale
-    var size: CGFloat = 14
-
-    var body: some View {
-        let radius: CGFloat = size > 10 ? 3 : 2
-        return RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(level == 0 ? Color.clear : MasteryPalette.fill(level: level, steps: scale.steps))
-            .overlay {
-                if level == 0 {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(DS.ink3, lineWidth: 1)
-                }
-            }
-            .frame(width: size, height: size)
     }
 }

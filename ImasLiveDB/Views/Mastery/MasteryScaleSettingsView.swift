@@ -73,8 +73,8 @@ struct MasteryScaleSettingsView: View {
         Section {
             ForEach(labels.indices, id: \.self) { i in
                 HStack(spacing: DS.sp4) {
-                    MasteryCell(level: UInt8(i + 1),
-                                scale: MasteryScale(labels: labels), size: 16)
+                    ImasLevelCell(level: UInt8(i + 1), steps: MasteryScale(labels: labels).steps,
+                                 size: 16, fill: MasteryPalette.fill(level:steps:))
                     TextField("段の名前", text: Binding(
                         get: { i < labels.count ? labels[i] : "" },
                         set: { if i < labels.count { labels[i] = $0 } }
