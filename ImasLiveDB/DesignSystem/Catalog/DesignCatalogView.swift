@@ -948,6 +948,26 @@ private struct FeedbackPage: View {
                                actionTitle: "絞り込みを解除", action: {})
             }
             ImasSignInPrompt(message: "セトリ予想の投票にはログインが必要です")
+            ImasSection("画面全体の読み込み中", style: .small) {
+                HStack(spacing: DS.Space.card) {
+                    ImasCard { ImasLoadingState().frame(height: 100) }
+                    ImasCard { ImasLoadingState(title: "読み込み中…").frame(height: 100) }
+                }
+            }
+            ImasSection("メーター (習熟度・進み具合)", style: .small, footer: "ImasLevelCell は段階のマス (色は呼び出し側のドメインが決める)。ImasProgressBar はラベル無しの線 (対戦の進み具合・つづきからの達成率)。") {
+                ImasCard {
+                    VStack(alignment: .leading, spacing: DS.Space.gap) {
+                        HStack(spacing: 3) {
+                            ForEach(0..<10, id: \.self) { i in
+                                ImasLevelCell(level: UInt8(i), steps: 10) { level, steps in
+                                    DS.sys.opacity(0.35 + 0.65 * Double(level) / Double(steps))
+                                }
+                            }
+                        }
+                        ImasProgressBar(fraction: 0.42, seed: Sample.saki)
+                    }
+                }
+            }
             ImasSection("割合", style: .small) {
                 ImasCard {
                     HStack(spacing: DS.Space.card) {

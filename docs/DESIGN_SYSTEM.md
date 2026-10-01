@@ -525,7 +525,9 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasStatBar` | 項目ごとの割合 (ブランド別の回収率) |
 | `ImasProportionLine` | 行の下端の細い線 (票・確率の大きさ) |
 | `ImasProgressRing` | 1 つの割合を大きく (回収率・習熟度) |
-| `ImasMeter` | 段階 (習熟度の 10 段・クイズの点数) |
+| `ImasMeter` | 段階 (習熟度の 10 段・クイズの点数)。塗りは実体の色 1 色、段の高さはすべて同じ |
+| `ImasLevelCell` | 段階 1 マス (習熟度の 1 曲・クイズの 1 項目)。未設定 (0) は面を持たず点線の枠だけ。色の塗り分けは呼び出し側のドメイン (`fill` クロージャ) が決める |
+| `ImasProgressBar` | ラベル無しの 0〜1 の割合を細い線で (対戦の進み具合・つづきからの達成率)。内訳を見せるなら `ImasStatBar`、輪なら `ImasProgressRing` |
 
 ---
 
@@ -534,7 +536,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 状況 | 部品 | 文言の型 |
 |---|---|---|
 | 一覧を初めて読む | `ImasSkeleton(.list / .grid)` | — |
-| 画面全体を読む | `ImasLoadingState` | — |
+| 画面全体を読む | `ImasLoadingState` | 既定は記号だけ。`title` を渡すとくるくるの下に文言を添える (「読み込み中…」) |
 | 区画だけ読む | `ImasInlineLoading` | — |
 | 保存・送信中 | `.imasSavingOverlay(isSaving, label:)` | 「保存中」「送信中」 |
 | 何もない | `ImasEmptyState(.empty)` | 「まだ〇〇がありません」+ 次にできること |
