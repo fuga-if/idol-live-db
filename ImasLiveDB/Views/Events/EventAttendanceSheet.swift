@@ -12,7 +12,6 @@ struct EventAttendanceSheet: View {
     var onChange: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var scheme
     @State private var attendance: [String: AttendanceType] = [:]
 
     private let markService = UserMarkService.shared
@@ -20,81 +19,53 @@ struct EventAttendanceSheet: View {
     private var allLive: Bool { !shows.isEmpty && shows.allSatisfy { attendance[$0.id] == .live } }
 
     var body: some View {
-        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         NavigationStack {
             List {
-                Section {
-                    Button { AppAnalytics.tap("event_attendance.toggle_all_live"); toggleAllLive() } label: {
-                        HStack(spacing: DS.sp3) {
-                            Image(systemName: allLive ? "checkmark.circle.fill" : "circle")
-                                .font(.imasScaled( 20))
-                                .foregroundStyle(allLive ? t.accent : DS.ink3)
-                            Text("全公演に現地参加")
-                                .font(.imasSubhead.weight(.semibold))
-                                .foregroundStyle(DS.ink)
-                            Spacer()
-                            Text("\(shows.count)公演")
-                                .font(.imasCaption).foregroundStyle(DS.ink2)
-                        }
+                ImasListSection(footer: "公演ごとに参加形態を選べます（配信・ライブビューイングは開催があった公演のみ）。回収率には現地参加だけが数えられます。") {
+                    ImasSelectableRow(
+                        title: "全公演に現地参加",
+                        trailing: .value("\(shows.count)公演"),
+                        isSelected: allLive,
+                        seed: seed, brand: brand
+                    ) {
+                        AppAnalytics.tap("event_attendance.toggle_all_live")
+                        toggleAllLive()
                     }
-                    .buttonStyle(.plain)
-                } footer: {
-                    Text("公演ごとに参加形態を選べます（配信・ライブビューイングは開催があった公演のみ）。回収率には現地参加だけが数えられます。")
                 }
-                .listRowBackground(DS.surface)
 
-                Section {
+                ImasListSection("公演ごとに選ぶ") {
                     ForEach(shows) { show in
-                        VStack(alignment: .leading, spacing: DS.sp3) {
-                            VStack(alignment: .leading, spacing: DS.sp1) {
-                                Text(show.name)
-                                    .font(.imasSubhead).foregroundStyle(DS.ink).lineLimit(1)
+                        VStack(alignment: .leading, spacing: DS.Space.gap) {
+                            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                                Text(show.name).imasText(.rowLabel).lineLimit(1)
                                 Text([show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "))
-                                    .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
+                                    .imasText(.meta).lineLimit(1)
                             }
-                            HStack(spacing: DS.sp2) {
+                            HStack(spacing: DS.Space.gap) {
                                 // そのライブに実在した形態だけ出す (show優先・eventフォールバック)。
                                 ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
-                                    typePill(show: show, type: type, theme: t)
+                                    let on = attendance[show.id] == type
+                                    ImasFilterChip(text: type.label, systemImage: type.icon, isSelected: on,
+                                                  seed: seed, brand: brand) {
+                                        AppAnalytics.tap("event_attendance.set_\(type.label)")
+                                        set(show: show, type: on ? nil : type)
+                                    }
                                 }
                                 Spacer(minLength: 0)
                             }
                         }
-                        .padding(.vertical, DS.sp1)
+                        .padding(.vertical, DS.Space.gapTight)
+                        .listRowBackground(DS.surface)
                     }
-                } header: {
-                    Text("公演ごとに選ぶ")
                 }
-                .listRowBackground(DS.surface)
             }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
+            .imasForm()
             .navigationTitle("参加した公演")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完了") { dismiss() }.fontWeight(.semibold)
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             .onAppear(perform: reload)
             .trackScreen("event_attendance")
         }
-    }
-
-    /// 現地/配信 選択ピル。選択中をもう一度押すと不参加に戻る。
-    private func typePill(show: Show, type: AttendanceType, theme t: ImasTheme) -> some View {
-        let on = attendance[show.id] == type
-        return Button { AppAnalytics.tap("event_attendance.set_\(type.label)"); set(show: show, type: on ? nil : type) } label: {
-            HStack(spacing: 5) {
-                Image(systemName: type.icon).font(.imasScaled( 12, weight: .semibold))
-                Text(type.label).font(.imasScaled( 13.5, weight: .semibold))
-            }
-            .padding(.horizontal, 13).padding(.vertical, 7)
-            .foregroundStyle(on ? t.onAccent : DS.ink2)
-            .background(on ? AnyShapeStyle(t.accent) : AnyShapeStyle(DS.fill), in: Capsule())
-        }
-        .buttonStyle(.plain)
     }
 
     private func reload() {

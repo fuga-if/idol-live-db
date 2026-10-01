@@ -45,11 +45,9 @@ struct MyPredictionsView: View {
                             ForEach(group.entries) { entry in
                                 // Button でラップすると内側のジャケ写プレビュー再生タップが
                                 // 吸われるため、行全体は onTapGesture で遷移を受ける。
-                                HStack(spacing: DS.sp2) {
+                                HStack(spacing: DS.Space.gap) {
                                     SongTitleRow(song: entry.song, showsChevron: false)
-                                    Label("\(entry.voteCount)", systemImage: "hand.thumbsup.fill")
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
+                                    ImasBadge(text: "\(entry.voteCount)", kind: .neutral, systemImage: "hand.thumbsup.fill")
                                 }
                                 .contentShape(Rectangle())
                                 .onTapGesture { sheetDestination = .song(entry.song) }
@@ -57,15 +55,16 @@ struct MyPredictionsView: View {
                         } header: {
                             Button { sheetDestination = .show(group.show) } label: {
                                 HStack {
-                                    Text(group.show.name).textCase(nil)
+                                    Text(group.show.name).imasText(.sectionLabel).textCase(nil)
                                     Spacer()
-                                    Text(group.show.date).foregroundStyle(DS.ink2)
+                                    Text(group.show.date).imasText(.meta)
                                 }
                             }
                             .buttonStyle(.plain)
                         }
                     }
                 }
+                .imasList()
             }
         }
         .navigationTitle("マイ予想")

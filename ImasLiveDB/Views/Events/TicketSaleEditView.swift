@@ -73,106 +73,74 @@ struct TicketSaleEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本情報") {
+                ImasListSection("基本情報") {
                     if let original {
-                        LabeledContent("ID") { Text(original.id).foregroundStyle(DS.ink2) }
+                        ImasValueRow(key: "ID", value: original.id)
                     }
-                    TextField("受付名 (例: 最速先行抽選)", text: $name)
-                    Picker("種別", selection: $kind) {
-                        ForEach(Self.kinds, id: \.self) { k in
-                            Text(kindLabel(k)).tag(k)
-                        }
-                    }
-                    Stepper("並び順: \(sortOrder)", value: $sortOrder, in: 0...999)
+                    ImasTextFieldRow(title: "受付名 (例: 最速先行抽選)", text: $name)
+                    ImasMenuRow(title: "種別", options: Self.kinds, selection: $kind, label: kindLabel)
+                    ImasStepperRow(title: "並び順", value: $sortOrder, range: 0...999)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section {
+                ImasListSection(
+                    "対象公演",
+                    footer: selectedShowIds.isEmpty ? "未選択 = 全公演が対象" : "\(selectedShowIds.count) 公演を選択中"
+                ) {
                     if eventShows.isEmpty {
-                        Text("公演が未登録です").foregroundStyle(DS.ink3)
+                        ImasNote("公演が未登録です")
                     } else {
                         ForEach(eventShows) { show in
-                            Button {
+                            ImasSelectableRow(
+                                title: show.name.isEmpty ? show.date : "\(show.name) ・ \(show.date)",
+                                isSelected: selectedShowIds.contains(show.id)
+                            ) {
                                 toggle(show.id)
-                            } label: {
-                                HStack {
-                                    Text(show.name.isEmpty ? show.date : "\(show.name) ・ \(show.date)")
-                                        .foregroundStyle(DS.ink)
-                                    Spacer()
-                                    if selectedShowIds.contains(show.id) {
-                                        Image(systemName: "checkmark").foregroundStyle(DS.sys)
-                                    }
-                                }
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                } header: {
-                    Text("対象公演")
-                } footer: {
-                    Text(selectedShowIds.isEmpty ? "未選択 = 全公演が対象" : "\(selectedShowIds.count) 公演を選択中")
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section {
-                    TextField("受付開始", text: $startsAt).autocapitalization(.none).autocorrectionDisabled()
-                    TextField("申込締切", text: $endsAt).autocapitalization(.none).autocorrectionDisabled()
-                    TextField("当落発表", text: $resultAt).autocapitalization(.none).autocorrectionDisabled()
-                } header: {
-                    Text("日程")
-                } footer: {
-                    Text("YYYY-MM-DD、または時刻つき YYYY-MM-DD HH:MM。1 つも入力が無いと保存できません。")
+                ImasListSection("日程", footer: "YYYY-MM-DD、または時刻つき YYYY-MM-DD HH:MM。1 つも入力が無いと保存できません。") {
+                    ImasTextFieldRow(title: "受付開始", text: $startsAt)
+                        .autocapitalization(.none).autocorrectionDisabled()
+                    ImasTextFieldRow(title: "申込締切", text: $endsAt)
+                        .autocapitalization(.none).autocorrectionDisabled()
+                    ImasTextFieldRow(title: "当落発表", text: $resultAt)
+                        .autocapitalization(.none).autocorrectionDisabled()
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("リンク・補足") {
-                    TextField("申込 URL", text: $url)
-                        .keyboardType(.URL).autocapitalization(.none).autocorrectionDisabled()
-                    TextField("出典 URL (必須)", text: $sourceUrl)
-                        .keyboardType(.URL).autocapitalization(.none).autocorrectionDisabled()
-                    TextField("補足", text: $note, axis: .vertical)
+                ImasListSection("リンク・補足") {
+                    ImasTextFieldRow(title: "申込 URL", text: $url, keyboard: .URL)
+                        .autocapitalization(.none).autocorrectionDisabled()
+                    ImasTextFieldRow(title: "出典 URL (必須)", text: $sourceUrl, keyboard: .URL)
+                        .autocapitalization(.none).autocorrectionDisabled()
+                    ImasTextAreaRow(text: $note, prompt: "補足")
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 if original != nil {
-                    Section {
-                        Button("この受付を削除", role: .destructive) {
+                    ImasListSection {
+                        ImasActionRow(title: "この受付を削除", kind: .destructive) {
                             showDeleteConfirm = true
                         }
                         .disabled(isSaving)
                     }
-                    .listRowBackground(DS.surface)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle(isCreate ? "受付を追加" : "受付を編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("ticket_sale_edit.save"); Task { await save() } }
-                        .disabled(isSaving || name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-            .overlay { if isSaving { savingOverlay } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
-            .alert("この受付を削除しますか?", isPresented: $showDeleteConfirm) {
-                Button("削除する", role: .destructive) { Task { await delete() } }
-                Button("キャンセル", role: .cancel) {}
-            } message: {
-                Text("「\(name)」を削除します。この操作は取り消せません。")
+            .imasSheetToolbar(.edit(
+                canSave: !isSaving && !name.trimmingCharacters(in: .whitespaces).isEmpty,
+                onCancel: { dismiss() },
+                onSave: { AppAnalytics.tap("ticket_sale_edit.save"); Task { await save() } }
+            ))
+            .imasSavingOverlay(isSaving)
+            .imasErrorAlert(message: $errorMessage)
+            .imasConfirmDestructive(
+                "この受付を削除しますか?", isPresented: $showDeleteConfirm, actionTitle: "削除する",
+                message: "「\(name)」を削除します。この操作は取り消せません。"
+            ) {
+                Task { await delete() }
             }
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .trackScreen("ticket_sale_edit")
@@ -189,14 +157,6 @@ struct TicketSaleEditView: View {
             selectedShowIds.remove(showId)
         } else {
             selectedShowIds.insert(showId)
-        }
-    }
-
-    private var savingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 

@@ -30,40 +30,36 @@ struct CostumeShowsView: View {
 
     private var content: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: DS.sp5) {
+            VStack(alignment: .leading, spacing: DS.Space.screen) {
                 header
                 ForEach(events, id: \.eventId) { event in
-                    VStack(alignment: .leading, spacing: DS.sp2) {
-                        ImasSectionHeader(title: event.eventName, tight: true)
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        ImasSectionHeader(event.eventName, style: .small)
                         ImasCardList {
                             ForEach(Array(event.shows.enumerated()), id: \.element.showId) { index, show in
-                                if index > 0 { ImasRowDivider(inset: DS.sp5) }
+                                if index > 0 { ImasRowDivider(inset: DS.Space.screen) }
                                 showRow(show)
                             }
                         }
                     }
                 }
             }
-            .padding(.horizontal, DS.sp5)
-            .padding(.top, DS.sp4)
-            .padding(.bottom, DS.sp7)
+            .padding(.horizontal, DS.Space.screen)
+            .padding(.top, DS.Space.card)
+            .padding(.bottom, DS.Space.section)
         }
         .readableContentMargins()
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
-            Text(costume.name)
-                .font(.imasTitle2.weight(.bold))
-                .foregroundStyle(DS.ink)
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            Text(costume.name).imasText(.heroTitle)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 8) {
+            HStack(spacing: DS.Space.gap) {
                 if let attribution = costume.attribution {
-                    ImasTagChip(text: attribution, kind: .unit)
+                    ImasBadge(text: attribution, kind: .unit)
                 }
-                Text("\(costume.showCount) 公演で着用")
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
+                Text("\(costume.showCount) 公演で着用").imasText(.value, color: DS.ink2)
             }
         }
     }
@@ -72,34 +68,21 @@ struct CostumeShowsView: View {
         Button {
             Task { await open(showId: show.showId) }
         } label: {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 8) {
-                        Text(show.showName)
-                            .font(.imasScaled(15, weight: .semibold))
-                            .foregroundStyle(DS.ink)
-                        Text(show.date)
-                            .font(.imasScaled(13).monospacedDigit())
-                            .foregroundStyle(DS.ink2)
+            ImasRow(
+                title: show.showName,
+                subtitle: show.songsLabel,
+                trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gap) {
+                        Text(show.date).font(ImasTextRole.value.font.monospacedDigit()).foregroundStyle(DS.ink2)
+                        ImasRowChevron()
                     }
-                    if let songs = show.songsLabel {
-                        Text(songs)
-                            .font(.imasScaled(12))
-                            .foregroundStyle(DS.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+                )),
+                density: .compact,
+                titleLineLimit: 1,
+                titleRole: .rowLabel
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 
     private func open(showId: String) async {

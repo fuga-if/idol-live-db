@@ -20,93 +20,55 @@ struct EventCostumesSection: View {
 
     var body: some View {
         if total > 0 {
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                ImasSectionHeader(title: "衣装 ・ \(total) 着", tight: true)
-                    .padding(.horizontal, DS.sp5)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                ImasSectionHeader("衣装", count: "\(total) 着", style: .small)
+                    .padding(.horizontal, DS.Space.screen)
                 ImasCardList {
                     ForEach(Array(costumes.shared.enumerated()), id: \.element.costume.id) { index, entry in
-                        if index > 0 { ImasRowDivider(inset: DS.sp5) }
+                        if index > 0 { ImasRowDivider(inset: DS.Space.screen) }
                         costumeRow(entry, individual: false)
                     }
                     if !costumes.individual.isEmpty {
-                        if !costumes.shared.isEmpty { ImasRowDivider(inset: DS.sp5) }
-                        individualToggle
+                        if !costumes.shared.isEmpty { ImasRowDivider(inset: DS.Space.screen) }
+                        ImasDisclosureRow(title: "個別衣装", count: "\(costumes.individual.count) 着",
+                                         isExpanded: $individualExpanded)
                         if individualExpanded {
                             ForEach(costumes.individual, id: \.costume.id) { entry in
-                                ImasRowDivider(inset: DS.sp5)
+                                ImasRowDivider(inset: DS.Space.screen)
                                 costumeRow(entry, individual: true)
                             }
                         }
                     }
                 }
-                .padding(.horizontal, DS.sp5)
+                .padding(.horizontal, DS.Space.screen)
             }
         }
     }
 
-    /// 個別衣装を畳んだ 1 行。押すと 1 人ずつの衣装が開く。
-    private var individualToggle: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { individualExpanded.toggle() }
-        } label: {
-            HStack(spacing: 8) {
-                Text("個別衣装")
-                    .font(.imasScaled(15, weight: .semibold))
-                    .foregroundStyle(DS.ink)
-                Text("\(costumes.individual.count) 着")
-                    .font(.imasScaled(13))
-                    .foregroundStyle(DS.ink2)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.down")
-                    .font(.imasScaled(12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                    .rotationEffect(.degrees(individualExpanded ? 180 : 0))
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("個別衣装 \(costumes.individual.count) 着")
-        .accessibilityHint(individualExpanded ? "畳む" : "開く")
-    }
-
-    /// 衣装 1 着の行。個別衣装は「誰の衣装か」を名前の上に小さく出す
+    /// 衣装 1 着の行。個別衣装は「誰の衣装か」を副題に出す
     /// (39 人ぶん並ぶので、人で探せるようにする)。
     private func costumeRow(_ entry: EventCostumeRecord, individual: Bool) -> some View {
         Button { onOpen(entry.costume) } label: {
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    if individual, let who = entry.costume.attribution {
-                        Text(who)
-                            .font(.imasScaled(12))
-                            .foregroundStyle(DS.ink2)
-                    }
-                    HStack(spacing: 8) {
-                        Text(entry.costume.name)
-                            .font(.imasScaled(15, weight: individual ? .regular : .semibold))
-                            .foregroundStyle(DS.ink)
-                        if !individual, let attribution = entry.costume.attribution {
-                            ImasTagChip(text: attribution, kind: .unit, seed: seed, brand: brand)
+            ImasRow(
+                title: entry.costume.name,
+                subtitle: individual ? entry.costume.attribution : nil,
+                trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gap) {
+                        if let worn = entry.wornInLabel {
+                            Text(worn).imasText(.meta).lineLimit(1)
                         }
+                        ImasRowChevron()
                     }
+                )),
+                density: .compact,
+                titleLineLimit: 1,
+                titleRole: .rowLabel
+            ) {
+                if !individual, let attribution = entry.costume.attribution {
+                    ImasBadge(text: attribution, kind: .unit, seed: seed, brand: brand)
                 }
-                Spacer(minLength: 8)
-                if let worn = entry.wornInLabel {
-                    Text(worn)
-                        .font(.imasScaled(12))
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled(12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
             }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 }

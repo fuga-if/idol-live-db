@@ -185,6 +185,8 @@ struct ImasArtwork: View {
     var isCollected: Bool = false
     /// 詳細の頭の大きいジャケ。レコードのスリーブのように紙から浮かせる (影)。
     var isElevated: Bool = false
+    /// 画像が無いときの記号。曲は音符のまま、円盤など曲以外の実体はそれぞれの記号に替える。
+    var fallbackSystemImage: String = "music.note"
     /// 試聴できる音源の URL。nil なら試聴の記号を出さない (タップしても何も起きない)。
     var previewURL: URL? = nil
     /// いま試聴中か (再生中は停止の記号にする)。
@@ -272,7 +274,7 @@ struct ImasArtwork: View {
     private func fallback(_ t: ImasTheme) -> some View {
         ZStack {
             DS.fill
-            Image(systemName: "music.note")
+            Image(systemName: fallbackSystemImage)
                 .font(.imasScaled(max(10, size * 0.32), weight: .regular))
                 .foregroundStyle(DS.ink3)
         }

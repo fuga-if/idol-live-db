@@ -20,15 +20,13 @@ struct EventReleasesSection: View {
         Group {
             if !releases.isEmpty {
                 let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(spacing: 6) {
-                        ImasSectionHeader(title: "映像円盤", tight: true)
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    HStack(spacing: DS.Space.gapTight) {
+                        ImasSectionHeader("映像円盤", style: .small)
                         Spacer()
-                        Text("\(ownedIds.count)/\(releases.count) 所有")
-                            .font(.imasCaption.weight(.semibold))
-                            .foregroundStyle(DS.ink2)
+                        Text("\(ownedIds.count)/\(releases.count) 所有").imasText(.eyebrow)
                     }
-                    .padding(.horizontal, DS.sp5)
+                    .padding(.horizontal, DS.Space.screen)
 
                     ImasCardList {
                         ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
@@ -36,12 +34,10 @@ struct EventReleasesSection: View {
                             releaseRow(release, theme: t)
                         }
                     }
-                    .padding(.horizontal, DS.sp5)
+                    .padding(.horizontal, DS.Space.screen)
 
-                    Text("持っている円盤に印を付けられます。")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
-                        .padding(.horizontal, DS.sp5)
+                    ImasNote("持っている円盤に印を付けられます。")
+                        .padding(.horizontal, DS.Space.screen)
                 }
             }
         }
@@ -50,47 +46,44 @@ struct EventReleasesSection: View {
 
     private func releaseRow(_ release: EventRelease, theme t: ImasTheme) -> some View {
         let owned = ownedIds.contains(release.id)
-        return HStack(spacing: DS.sp3) {
-            jacket(release)
+        return HStack(spacing: DS.Space.gap) {
+            ImasArtwork(title: release.title, size: 52,
+                       imageURL: release.jacketUrl.flatMap(URL.init(string:)),
+                       fallbackSystemImage: "opticaldisc")
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(release.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                HStack(spacing: 6) {
-                    Text(release.productTypeEnum.label)
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(t.accent)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Text(release.title).imasText(.rowTitle).lineLimit(2)
+                HStack(spacing: DS.Space.gap) {
+                    Text(release.productTypeEnum.label).imasText(.eyebrow, color: t.accent)
                     if let date = release.releaseDate, !date.isEmpty {
-                        Text(date).font(.imasCaption).foregroundStyle(DS.ink3)
+                        Text(date).imasText(.meta)
                     }
                     if let cat = release.catalogNumber, !cat.isEmpty {
-                        Text(cat).font(.imasCaption.monospacedDigit()).foregroundStyle(DS.ink3)
+                        Text(cat).font(ImasTextRole.meta.font.monospacedDigit()).foregroundStyle(DS.ink3)
                     }
                 }
                 if let urlStr = release.purchaseUrl, let url = URL.safeHTTP(string: urlStr) {
                     Button { openURL(url) } label: {
-                        HStack(spacing: 3) {
-                            Image(systemName: "cart").font(.imasScaled(10, weight: .semibold))
-                            Text("購入ページ").font(.imasScaled(11, weight: .semibold))
+                        HStack(spacing: DS.Space.gapTight) {
+                            Image(systemName: "cart")
+                            Text("購入ページ")
                         }
+                        .font(ImasTextRole.badge.font)
                         .foregroundStyle(t.accent)
                     }
                     .buttonStyle(.borderless)
                 }
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: DS.Space.gapTight)
 
             // 所有トグル。アイコンは `UserMarkKind.owned` の見た目を直参照する
             // (ここで独自に決め打つと、KAMISABI カード所持と二重管理になって食い違う)。
             Button { toggleOwned(release) } label: {
-                VStack(spacing: DS.sp1) {
+                VStack(spacing: DS.Space.gapTight) {
                     Image(systemName: owned ? UserMarkKind.owned.activeIcon : UserMarkKind.owned.icon)
                         .font(.imasTitle3)
-                    Text(owned ? "所有" : "未所有")
-                        .font(.imasScaled(10, weight: .semibold))
+                    Text(owned ? "所有" : "未所有").imasText(.badge, color: owned ? t.accent : DS.ink3)
                 }
                 .foregroundStyle(owned ? t.accent : DS.ink3)
                 .frame(width: 52)
@@ -99,30 +92,8 @@ struct EventReleasesSection: View {
             }
             .buttonStyle(.borderless)
         }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-    }
-
-    @ViewBuilder
-    private func jacket(_ release: EventRelease) -> some View {
-        let url = release.jacketUrl.flatMap { URL(string: $0) }
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image.resizable().aspectRatio(contentMode: .fill)
-            default:
-                ZStack {
-                    DS.fill
-                    // ジャケ画像が無いときの「円盤である」ことを示す挿絵。所有トグル (上の
-                    // `UserMarkKind.owned` 参照) とは無関係なので固定で opticaldisc のまま。
-                    Image(systemName: "opticaldisc")
-                        .font(.imasTitle3)
-                        .foregroundStyle(DS.ink3)
-                }
-            }
-        }
-        .frame(width: 52, height: 52)
-        .clipShape(RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+        .padding(.horizontal, DS.Space.card)
+        .padding(.vertical, DS.Space.gap)
     }
 
     private func load() async {

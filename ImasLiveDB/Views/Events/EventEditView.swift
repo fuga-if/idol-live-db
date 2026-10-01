@@ -53,100 +53,60 @@ struct EventEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本情報") {
+                ImasListSection("基本情報") {
                     if let original = mode.original {
-                        LabeledContent("ID") { Text(original.id).foregroundStyle(DS.ink2) }
+                        ImasValueRow(key: "ID", value: original.id)
                     }
-                    TextField("イベント名", text: $name)
-                    Picker("ブランド", selection: $brandId) {
-                        Text("未指定").tag("")
-                        ForEach(allBrands) { brand in
-                            Text(brand.name).tag(brand.id)
-                        }
+                    ImasTextFieldRow(title: "イベント名", text: $name)
+                    ImasMenuRow(title: "ブランド", options: [""] + allBrands.map(\.id), selection: $brandId) { id in
+                        id.isEmpty ? "未指定" : (allBrands.first { $0.id == id }?.name ?? id)
                     }
-                    Picker("種別", selection: $kind) {
-                        // 「その他」は知らない種別の受け皿なので、書き込む値としては出さない。
-                        ForEach(EventKind.allCases.filter { $0 != .other }, id: \.self) {
-                            Text($0.displayLabel).tag($0)
-                        }
-                        if let raw = unlistedKindRaw {
-                            Text("変更しない (\(raw))").tag(EventKind.other)
-                        }
+                    ImasMenuRow(title: "種別", options: kindOptions, selection: $kind) { k in
+                        k == .other ? "変更しない (\(unlistedKindRaw ?? ""))" : k.displayLabel
                     }
-                    TextField("合同ブランド (カンマ区切り)", text: $jointBrandIds)
+                    ImasTextFieldRow(title: "合同ブランド (カンマ区切り)", text: $jointBrandIds)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-                Section("チケット") {
-                    TextField("案内 URL (イベント全体)", text: $ticketUrl)
-                        .keyboardType(.URL)
+                ImasListSection("チケット") {
+                    ImasTextFieldRow(title: "案内 URL (イベント全体)", text: $ticketUrl, keyboard: .URL)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // 受付の日程・種別・対象公演は ticket_sales 側の個別編集 (TicketSaleEditView) に移った。
                 // 新規イベントは先に本体を保存してから (id が要る)、この画面には出さない。
                 if let original = mode.original {
-                    Section {
+                    ImasListSection("チケット受付") {
                         if ticketSales.isEmpty {
-                            Text("チケット受付は未登録です")
-                                .foregroundStyle(DS.ink3)
+                            ImasNote("チケット受付は未登録です")
                         } else {
                             ForEach(ticketSales) { sale in
                                 Button {
                                     editTicketSale = sale
                                 } label: {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        HStack {
-                                            Text(sale.name).foregroundStyle(DS.ink)
-                                            Spacer()
-                                            Text(sale.stageLabel).font(.imasCaption).foregroundStyle(DS.ink2)
-                                        }
-                                        if let period = sale.periodLabel {
-                                            Text(period).font(.imasFootnote).foregroundStyle(DS.ink2)
-                                        }
-                                    }
+                                    ImasNavRow(title: sale.name, subtitle: sale.periodLabel, value: sale.stageLabel)
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        Button {
+                        ImasActionRow(title: "受付を追加", systemImage: "plus.circle") {
                             showTicketSaleCreate = true
-                        } label: {
-                            Label("受付を追加", systemImage: "plus.circle")
                         }
-                    } header: {
-                        Text("チケット受付")
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                     .task { await loadTicketSales(eventId: original.id) }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle(mode.isCreate ? "イベント追加" : "イベント編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("event_edit.save"); Task { await save() } }
-                        .disabled(isSaving || name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-            .overlay { if isSaving { savingOverlay } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.edit(
+                canSave: !isSaving && !name.trimmingCharacters(in: .whitespaces).isEmpty,
+                onCancel: { dismiss() },
+                onSave: { AppAnalytics.tap("event_edit.save"); Task { await save() } }
+            ))
+            .imasSavingOverlay(isSaving)
+            .imasErrorAlert(message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task {
                 allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? []
@@ -163,20 +123,18 @@ struct EventEditView: View {
         }
     }
 
+    /// 「その他」は知らない種別の受け皿なので、書き込む値としては出さない
+    /// (元が未知の種別だったときだけ「変更しない」の選択肢として残す)。
+    private var kindOptions: [EventKind] {
+        EventKind.allCases.filter { $0 != .other } + (unlistedKindRaw != nil ? [.other] : [])
+    }
+
     /// イベント編集画面用のチケット受付一覧 + 対象公演読み込み。
     private func loadTicketSales(eventId: String) async {
         async let sales = AppContainer.shared.eventReading.ticketSales(eventId: eventId)
         async let shows = AppContainer.shared.showReading.shows(eventId: eventId)
         ticketSales = (try? await sales) ?? []
         eventShows = (try? await shows) ?? []
-    }
-
-    private var savingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
     }
 
     private var kindToSend: String {

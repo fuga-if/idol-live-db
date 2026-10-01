@@ -61,52 +61,36 @@ struct ShowEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本情報") {
+                ImasListSection("基本情報") {
                     if let original = mode.original {
-                        LabeledContent("ID") { Text(original.id).foregroundStyle(DS.ink2) }
+                        ImasValueRow(key: "ID", value: original.id)
                     }
-                    TextField("公演名", text: $name)
-                    TextField("日付 (YYYY-MM-DD)", text: $date)
+                    ImasTextFieldRow(title: "公演名", text: $name)
+                    ImasTextFieldRow(title: "日付 (YYYY-MM-DD)", text: $date)
                         .autocapitalization(.none)
                         .autocorrectionDisabled()
-                    TextField("会場", text: $venue)
-                    TextField("会場所在地", text: $venueCity)
-                    TextField("開演時刻 (HH:mm)", text: $startTime)
-                    Stepper("並び順: \(sortOrder)", value: $sortOrder, in: 0...999)
-                    Picker("出演形態", selection: $performerType) {
-                        ForEach(performerTypes, id: \.self) {
-                            Text($0.isEmpty ? "未指定" : $0).tag($0)
-                        }
+                    ImasTextFieldRow(title: "会場", text: $venue)
+                    ImasTextFieldRow(title: "会場所在地", text: $venueCity)
+                    ImasTextFieldRow(title: "開演時刻 (HH:mm)", text: $startTime)
+                    ImasStepperRow(title: "並び順", value: $sortOrder, range: 0...999)
+                    ImasMenuRow(title: "出演形態", options: performerTypes, selection: $performerType) {
+                        $0.isEmpty ? "未指定" : $0
                     }
-                    Picker("会場の形態", selection: $venueMode) {
-                        ForEach(venueModes, id: \.raw) { option in
-                            Text(option.label).tag(option.raw)
-                        }
+                    ImasMenuRow(title: "会場の形態", options: venueModes.map(\.raw), selection: $venueMode) { raw in
+                        venueModes.first { $0.raw == raw }?.label ?? raw
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle(mode.isCreate ? "公演追加" : "公演編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("show_edit.save"); Task { await save() } }
-                        .disabled(isSaving || !canSave)
-                }
-            }
-            .overlay { if isSaving { savingOverlay } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.edit(
+                canSave: !isSaving && canSave,
+                onCancel: { dismiss() },
+                onSave: { AppAnalytics.tap("show_edit.save"); Task { await save() } }
+            ))
+            .imasSavingOverlay(isSaving)
+            .imasErrorAlert(message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .trackScreen("show_edit")
         }
@@ -116,14 +100,6 @@ struct ShowEditView: View {
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
             && !date.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    private var savingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
     }
 
     private func save() async {
