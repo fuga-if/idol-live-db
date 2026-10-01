@@ -76,7 +76,7 @@ struct UserModerationView: View {
         } message: {
             Text(resultMessage ?? "")
         }
-        .imasErrorAlert("操作できませんでした", message: Binding(
+        .imasErrorAlert("エラー", message: Binding(
             get: { actionError },
             set: { actionError = $0 }
         ))
