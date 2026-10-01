@@ -22,8 +22,8 @@ enum ImasRowLeading {
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
     /// 曲のジャケ (48、compact は 40)。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
-    /// 記号 (幅 28、地なし)。
-    case icon(String, tone: ImasIconTile.Tone = .themed)
+    /// 記号 (幅 28、地なし)。`seed` / `brand` を渡すとその実体の色で点く (予定の種類・ブランド)。
+    case icon(String, tone: ImasIconTile.Tone = .themed, seed: String? = nil, brand: String? = nil)
     /// 曲順・番号 (等幅)。
     case number(String)
     /// 曲順 + ジャケ (セトリ)。回収した曲はジャケに判子。
@@ -90,10 +90,20 @@ extension EnvironmentValues {
     }
 }
 
+/// 行の頭に置く選択の印 (`ImasSelectableRow` が使う)。
+struct ImasRowSelection: Equatable {
+    var isOn: Bool
+    var single: Bool = false
+    var seed: String? = nil
+    var brand: String? = nil
+}
+
 struct ImasRow<Detail: View>: View {
     let title: String
     var subtitle: String? = nil
     var leading: ImasRowLeading = .none
+    /// 先頭の前に置く選択の印。先頭 (ジャケ・アイコン) と並べて出せる。
+    var selection: ImasRowSelection? = nil
     var trailing: ImasRowTrailing = .none
     var density: ImasRowDensity = .regular
     var emphasis: ImasRowEmphasis = .normal
@@ -114,6 +124,10 @@ struct ImasRow<Detail: View>: View {
 
         layout {
             HStack(alignment: rowAlignment, spacing: DS.Space.rowGap) {
+                if let selection {
+                    ImasSelectionMark(isSelected: selection.isOn, seed: selection.seed, brand: selection.brand,
+                                      isSingle: selection.single)
+                }
                 leadingView
                 textColumn
                     .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
@@ -128,7 +142,8 @@ struct ImasRow<Detail: View>: View {
         .contentShape(Rectangle())
         .overlay(alignment: .top) {
             if position == .following {
-                ImasRowDivider(inset: DS.Space.rowH + leadingWidth + (leadingWidth > 0 ? DS.Space.rowGap : 0))
+                let markWidth: CGFloat = selection == nil ? 0 : 24 + DS.Space.rowGap
+                ImasRowDivider(inset: DS.Space.rowH + markWidth + leadingWidth + (leadingWidth > 0 ? DS.Space.rowGap : 0))
             }
         }
         // 余白は行が持つので、List・Form の中では List の余白を消す (二重に入らないように)。
@@ -189,8 +204,8 @@ struct ImasRow<Detail: View>: View {
             }
         case let .artwork(title, seed, brand, url):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
-        case let .icon(name, tone):
-            ImasIconTile(systemImage: name, size: .s28, tone: tone)
+        case let .icon(name, tone, seed, brand):
+            ImasIconTile(systemImage: name, size: .s28, tone: tone, seed: seed, brand: brand)
         case let .number(text):
             Text(text)
                 .font(ImasNumeralSize.small.font)
@@ -258,11 +273,13 @@ struct ImasRow<Detail: View>: View {
 
 extension ImasRow where Detail == EmptyView {
     init(title: String, subtitle: String? = nil, leading: ImasRowLeading = .none,
+         selection: ImasRowSelection? = nil,
          trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular,
          emphasis: ImasRowEmphasis = .normal, titleLineLimit: Int = 2, titleRole: ImasTextRole = .rowTitle) {
         self.title = title
         self.subtitle = subtitle
         self.leading = leading
+        self.selection = selection
         self.trailing = trailing
         self.density = density
         self.emphasis = emphasis
@@ -484,6 +501,107 @@ struct ImasToggleRow: View {
             density: .compact,
             titleRole: .rowLabel
         )
+    }
+}
+
+/// 選べる行 (ピッカー・複数選択)。行のどこを押しても切り替わる。
+/// 複数選択は ○ と ✓、1 つ選択は選んだ行にだけ ✓。先頭 (ジャケ・アイコン) と並べられる。
+struct ImasSelectableRow: View {
+    let title: String
+    var subtitle: String? = nil
+    var leading: ImasRowLeading = .none
+    var trailing: ImasRowTrailing = .none
+    let isSelected: Bool
+    var isSingle: Bool = false
+    var seed: String? = nil
+    var brand: String? = nil
+    var isDisabled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ImasRow(
+                title: title,
+                subtitle: subtitle,
+                leading: leading,
+                selection: ImasRowSelection(isOn: isSelected, single: isSingle, seed: seed, brand: brand),
+                trailing: trailing,
+                density: .compact,
+                emphasis: isDisabled ? .dimmed : .normal
+            )
+        }
+        .buttonStyle(.imasRow)
+        .disabled(isDisabled)
+        .sensoryFeedback(.selection, trigger: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// 値を 1 つ選ぶ設定の行。押すとその場に選択肢のメニューが出る (画面を移らない)。
+struct ImasMenuRow<Selection: Hashable>: View {
+    let title: String
+    var subtitle: String? = nil
+    var systemImage: String? = nil
+    let options: [Selection]
+    @Binding var selection: Selection
+    let label: (Selection) -> String
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                ForEach(options, id: \.self) { option in
+                    Text(label(option)).tag(option)
+                }
+            }
+        } label: {
+            ImasRow(
+                title: title,
+                subtitle: subtitle,
+                leading: systemImage.map { .icon($0, tone: .neutral) } ?? .none,
+                trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gapTight) {
+                        Text(label(selection)).imasText(.value).foregroundStyle(DS.ink2).lineLimit(1)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.imasScaled(11, weight: .semibold))
+                            .foregroundStyle(DS.ink3)
+                    }
+                )),
+                density: .compact,
+                titleLineLimit: 1,
+                titleRole: .rowLabel
+            )
+        }
+        .buttonStyle(.imasRow)
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+/// 数を 1 つずつ増減する設定の行 (問題数・人数)。
+struct ImasStepperRow: View {
+    let title: String
+    var subtitle: String? = nil
+    var systemImage: String? = nil
+    @Binding var value: Int
+    var range: ClosedRange<Int>
+    var step: Int = 1
+    var unit: String? = nil
+
+    var body: some View {
+        ImasRow(
+            title: title,
+            subtitle: subtitle,
+            leading: systemImage.map { .icon($0, tone: .neutral) } ?? .none,
+            trailing: .custom(AnyView(
+                HStack(spacing: DS.Space.gap) {
+                    ImasMetric(value: "\(value)", unit: unit, size: .medium, emphasized: true)
+                    Stepper(title, value: $value, in: range, step: step).labelsHidden()
+                }
+            )),
+            density: .compact,
+            titleLineLimit: 1,
+            titleRole: .rowLabel
+        )
+        .sensoryFeedback(.selection, trigger: value)
     }
 }
 
