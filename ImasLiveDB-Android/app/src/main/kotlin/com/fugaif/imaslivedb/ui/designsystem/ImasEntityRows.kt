@@ -38,7 +38,7 @@ import uniffi.imas_core.spokenDate
  *
  * **ジャケに回収の判子を押さない** (§5.1。回収は下段の ✓N)。[isCollected] は iOS と揃えるために残す。
  *
- * @param brand ジャケが無いときの面とリードバーの色 (ブランド ID。iOS の `brandHex`)。
+ * @param brand ジャケが無いときの面とリードバーの色 (ブランド ID。iOS の `brandHex`)。[seed] は色 hex で直に渡すとき。
  * @param showsBrandBar 行頭にブランドの色の帯を立てる (楽曲一覧)。
  * @param previewUrl 試聴できる音源。渡すとジャケのタップが行のタップと別に試聴を切り替える ([onPreviewTap])。
  * @param copyItems 長押しでコピーできる項目 (曲名・よみ・歌唱者など)。空なら長押しを付けない。
@@ -50,6 +50,7 @@ fun ImasSongRow(
     subtitle: String? = null,
     artworkUrl: String? = null,
     brand: String? = null,
+    seed: String? = null,
     isCollected: Boolean = false,
     showsBrandBar: Boolean = false,
     previewUrl: String? = null,
@@ -66,11 +67,12 @@ fun ImasSongRow(
     val size = density.artworkSize
     // 試聴に対応する呼び出しだけ、ジャケに試聴の口を足す (行の先頭の種類はそのまま)。
     val leading: ImasRowLeading = if (previewUrl == null) {
-        ImasRowLeading.Artwork(title = title, brand = brand, imageUrl = artworkUrl, isCollected = isCollected)
+        ImasRowLeading.Artwork(title = title, seed = seed, brand = brand, imageUrl = artworkUrl, isCollected = isCollected)
     } else {
         ImasRowLeading.Custom(width = size) {
             ImasArtwork(
                 title = title,
+                seed = seed,
                 brand = brand,
                 size = size,
                 imageUrl = artworkUrl,
@@ -86,7 +88,7 @@ fun ImasSongRow(
             title = title,
             subtitle = subtitle,
             leading = leading,
-            leadBar = if (showsBrandBar) ImasRowLeadBar(brand = brand) else null,
+            leadBar = if (showsBrandBar) ImasRowLeadBar(seed = seed, brand = brand) else null,
             trailing = trailing,
             density = density,
             emphasis = emphasis,
@@ -227,7 +229,7 @@ fun ImasEventRow(
  * @param date 公演の日 (`yyyy-MM-dd`)。読み上げはコアの `spokenDate` (「2026年11月7日 土曜日」)。
  * @param title 公演名 (DAY1 など)。
  * @param subtitle 開演・会場・出演者数。
- * @param brand ブランド ID (iOS の `brandHex`)。
+ * @param brand ブランド ID (iOS の `brandHex`)。[seed] は色 hex で直に渡すとき。
  */
 @Composable
 fun ImasShowRow(
@@ -236,6 +238,7 @@ fun ImasShowRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     brand: String? = null,
+    seed: String? = null,
     isPunched: Boolean = false,
     badges: List<ImasBadgeSpec> = emptyList(),
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
@@ -250,6 +253,7 @@ fun ImasShowRow(
         title = title,
         modifier = modifier,
         subtitle = subtitle,
+        seed = seed,
         brand = brand,
         isPunched = isPunched,
         badges = badges,

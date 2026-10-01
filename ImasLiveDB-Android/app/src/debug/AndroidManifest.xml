@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  デバッグビルドだけに足すもの。部品カタログ (DesignCatalogActivity) は adb の am start で開くので
+  exported にする (ランチャーには出さない)。リリースビルドには入らない。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name="com.fugaif.imaslivedb.ui.designsystem.catalog.DesignCatalogActivity"
+            android:exported="true"
+            android:label="部品カタログ"
+            android:theme="@style/Theme.ImasLiveDB"
+            android:windowSoftInputMode="adjustResize" />
+    </application>
+</manifest>
