@@ -6,7 +6,6 @@ import SwiftUI
 /// 「ライブ」タブは無く、担当/お気に入り/メモも UserMark が unit を扱わないため無い。
 struct UnitDetailView: View {
     @Environment(AppDatabase.self) private var database
-    @Environment(\.colorScheme) private var scheme
     let unit: Unit
     /// DetailSheetView の NavigationStack 内で表示された時に渡される push クロージャ。
     /// 非 nil なら子遷移は自前 sheet ではなく共有 path に push する (sheet 多重化回避)。
@@ -26,6 +25,8 @@ struct UnitDetailView: View {
     @State private var similarSharedTags: [String: Int] = [:]
     @State private var personalTagService = PersonalTagService.shared
     @State private var newPersonalTagName = ""
+    /// 「タグが似ているユニット」横スクロールの名札 1 枚の幅。
+    @ScaledMetric(relativeTo: .caption) private var similarUnitCellWidth: CGFloat = 84
 
     private var brandColor: String? { vm.brand?.color }
 
@@ -61,11 +62,6 @@ struct UnitDetailView: View {
         .scrollContentBackground(.hidden)
         .navigationTitle(unit.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(
-            ImasTheme.derive(seed: nil, brand: brandColor, scheme: scheme).heroSurface,
-            for: .navigationBar
-        )
-        .toolbarBackground(.visible, for: .navigationBar)
         .sheet(item: $sheetDestination) { dest in
             DetailSheetView(destination: dest)
                 .environment(database)
@@ -85,37 +81,17 @@ struct UnitDetailView: View {
     }
 
     private var heroView: some View {
-        let t = ImasTheme.derive(seed: nil, brand: brandColor, scheme: scheme)
-        return HStack(spacing: DS.sp5) {
-            UnitAvatarView(unit: unit, size: 72)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(unit.displayName)
-                    .font(.imasTitle1.weight(.bold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    // 表示は 2 行に省略されうるので、コピーは原文 (displayName) を渡す。
-                    .imasCopyable([CopyItem("ユニット名をコピー", unit.displayName, key: "unit_name"),
-                                   CopyItem("別名をコピー", unit.nameAlt, key: "unit_name_alt")])
-                if let brand = vm.brand {
-                    Button {
-                        go(.filteredIdols(.brand(id: brand.id, label: brand.shortName)))
-                    } label: {
-                        Text(brand.shortName)
-                            .font(.imasSubhead)
-                            .foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            Spacer(minLength: 0)
+        ImasHero(
+            layout: .leading,
+            eyebrow: vm.brand?.shortName,
+            onEyebrowTap: vm.brand.map { brand in { go(.filteredIdols(.brand(id: brand.id, label: brand.shortName))) } },
+            title: unit.displayName
+        ) {
+            ImasUnitAvatar(unit: unit, size: 72)
         }
-        .padding(.horizontal, DS.sp5)
-        .padding(.top, DS.sp4)
-        .padding(.bottom, DS.sp5)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(t.heroSurface)
+        // 表示は 2〜3 行に省略されうるので、コピーは原文 (displayName) を渡す。
+        .imasCopyable([CopyItem("ユニット名をコピー", unit.displayName, key: "unit_name"),
+                       CopyItem("別名をコピー", unit.nameAlt, key: "unit_name_alt")])
     }
 
     private var segmentedBar: some View {
@@ -182,33 +158,23 @@ struct UnitDetailView: View {
         .padding(.top, DS.sp4)
     }
 
-    /// 楽曲行 (現地回収✓バッジ)。IdolDetailView.songRow と同じ構成。
+    /// 楽曲行。試聴 (タップで再生・停止) は `ArtworkImageView` 固有の機能で `ImasArtwork` に
+    /// まだ無いため、ここは `ImasRow` の先頭を `.custom` で差し替えて組む (IdolDetailView.songRow と同型)。
     private func songRow(_ song: Song, action: @escaping () -> Void) -> some View {
         let collected = markService.bool(.collected, entity: .song, id: song.id)
         let artURL = song.artworkUrl.flatMap { URL(string: $0) }
         let prevURL = song.previewUrl.flatMap { URL(string: $0) }
         return Button(action: action) {
-            HStack(spacing: DS.sp3) {
-                ImasLeadBar(seed: nil, brand: brandColor)
-                ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title, songId: song.id, seed: brandColor)
-                VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text(song.title)
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    if collected {
-                        Label("回収済", systemImage: "checkmark")
-                            .labelStyle(.titleAndIcon)
-                            .font(.imasCaption.weight(.semibold))
-                            .foregroundStyle(DS.success)
-                    }
-                }
-                Spacer(minLength: 0)
+            ImasRow(
+                title: song.title,
+                leading: .custom(AnyView(
+                    ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title,
+                                     songId: song.id, seed: brandColor)
+                ), width: 44),
+                density: .compact
+            ) {
+                if collected { ImasBadge(text: "回収済", kind: .positive) }
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 9)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -257,26 +223,13 @@ struct UnitDetailView: View {
 
     private func memberRow(_ member: Idol) -> some View {
         Button { go(.idol(member)) } label: {
-            HStack(spacing: DS.sp3) {
-                IdolAvatarView(idol: member, size: 44, isPick: markService.bool(.myPick, entity: .idol, id: member.id))
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(member.name)
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    if let cv = VoiceActorDirectory.shared.current(for: member.id) {
-                        Text("CV \(cv)")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink3)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-                ImasRowChevron()
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            ImasIdolRow(
+                idol: member,
+                subtitle: VoiceActorDirectory.shared.current(for: member.id).map { "CV \($0)" },
+                isPick: markService.bool(.myPick, entity: .idol, id: member.id),
+                trailing: .chevron,
+                density: .compact
+            )
         }
         .buttonStyle(.plain)
     }
@@ -317,12 +270,9 @@ struct UnitDetailView: View {
                         AppAnalytics.tap("unit_detail.tag_action")
                         startCommunityEdit { showUnitTagPicker = true }
                     } label: {
-                        HStack(spacing: DS.sp2) {
-                            Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
-                            Text("タグ").font(.imasScaled( 14, weight: .semibold))
-                        }
-                        .foregroundStyle(ImasTheme.derive(seed: nil, brand: brandColor, scheme: scheme).accent)
+                        Label("タグ", systemImage: "plus")
                     }
+                    .buttonStyle(.imas(.plain, size: .small))
                 }
             }
             if let tagData = unitTagData, !tagData.tags.isEmpty {
@@ -364,12 +314,11 @@ struct UnitDetailView: View {
         let tags = personalTagService.tags(for: "unit", entityId: unit.id)
         VStack(alignment: .leading, spacing: DS.sp3) {
             VStack(alignment: .leading, spacing: DS.sp1) {
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill").font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
-                    Text("マイタグ").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
+                HStack(spacing: DS.Space.gapTight) {
+                    Image(systemName: "lock.fill").imasText(.note)
+                    Text("マイタグ").imasText(.cardTitle)
                 }
-                Text("自分だけに表示されます (コミュニティには公開されません)")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
+                Text("自分だけに表示されます (コミュニティには公開されません)").imasText(.note)
             }
             if !tags.isEmpty {
                 FlowLayout(spacing: DS.sp3) {
@@ -383,26 +332,8 @@ struct UnitDetailView: View {
                     }
                 }
             }
-            HStack(spacing: DS.sp3) {
-                TextField("マイタグを追加 (例: 聞いた)", text: $newPersonalTagName)
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 13).padding(.vertical, DS.sp3)
-                    .background(DS.fill, in: Capsule())
-                    .onChange(of: newPersonalTagName) { _, new in
-                        if new.count > 30 { newPersonalTagName = String(new.prefix(30)) }
-                    }
-                    .onSubmit(addPersonalTag)
-                Button(action: addPersonalTag) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.imasScaled(26, weight: .semibold))
-                        .foregroundStyle(canAddPersonalTag ? DS.ink : DS.ink3)
-                }
-                .buttonStyle(.plain)
-                .disabled(!canAddPersonalTag)
-                .accessibilityLabel("マイタグを追加")
-            }
+            ImasChipInputField(text: $newPersonalTagName, prompt: "マイタグを追加 (例: 聞いた)", limit: 30,
+                              isEnabled: canAddPersonalTag, onSubmit: addPersonalTag)
         }
     }
 
@@ -435,35 +366,22 @@ struct UnitDetailView: View {
     private var communitySimilarUnits: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("タグが似ているユニット")
-                    .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                Text("つけられたタグが似ているユニット")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
+                Text("タグが似ているユニット").imasText(.cardTitle)
+                Text("つけられたタグが似ているユニット").imasText(.note)
             }
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: DS.sp4) {
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
                     ForEach(similarTagUnits) { other in
                         Button {
                             go(.unit(other))
                         } label: {
-                            VStack(spacing: DS.sp2) {
-                                UnitAvatarView(unit: other, size: 56)
-                                Text(other.displayName)
-                                    .font(.imasCaption.weight(.semibold))
-                                    .lineLimit(1)
-                                    .foregroundStyle(DS.ink)
-                                if let shared = similarSharedTags[other.id] {
-                                    Text("タグ\(shared)個一致")
-                                        .font(.imasScaled(10))
-                                        .foregroundStyle(DS.ink3)
-                                }
-                            }
-                            .frame(width: 72)
+                            // metric の枠を借りて「タグ N 個一致」を名札の下段に出す。
+                            ImasUnitCell(unit: other, metric: similarSharedTags[other.id].map { "タグ\($0)個一致" })
+                                .frame(width: similarUnitCellWidth)
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 1)
             }
         }
     }

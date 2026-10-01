@@ -120,7 +120,7 @@ struct UnitListContent: View {
                                 ForEach(Array(group.enumerated()), id: \.element.id) { index, unit in
                                     if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: unit) {
-                                        UnitRowView(unit: unit, brandColor: brand.color)
+                                        ImasUnitRow(unit: unit, trailing: .chevron)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -141,9 +141,8 @@ struct UnitListContent: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 BrandSectionHeader(brand: brand, count: count, unit: "組")
-                Image(systemName: vm.collapsedBrands.contains(brand.id) ? "chevron.right" : "chevron.down")
-                    .font(.imasScaled( 12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
+                    .rotationEffect(.degrees(vm.collapsedBrands.contains(brand.id) ? 0 : 90))
             }
             .contentShape(Rectangle())
         }
@@ -158,10 +157,10 @@ struct UnitListContent: View {
         }
     }
 
-    // MARK: - Grid Body (アバター(カスタム画像 or アイコン) + 名前 + ブランド色チップ)
+    // MARK: - Grid Body (名札 `ImasUnitCell`。`ImasIdolGrid` と同じ列数・間隔)
 
     private var gridColumns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: 4)
+        Array(repeating: GridItem(.flexible(), spacing: DS.Space.gap), count: 4)
     }
 
     private var gridBody: some View {
@@ -172,9 +171,9 @@ struct UnitListContent: View {
                         BrandSectionHeader(brand: brand, count: (vm.groupedByBrand[brand.id] ?? []).count, unit: "組")
                             .padding(.horizontal, DS.sp5)
 
-                        LazyVGrid(columns: gridColumns, spacing: DS.sp5) {
+                        LazyVGrid(columns: gridColumns, spacing: DS.Space.gap) {
                             ForEach(vm.groupedByBrand[brand.id] ?? []) { unit in
-                                unitGridCell(unit, brand: brand)
+                                unitGridCell(unit)
                             }
                         }
                         .padding(.horizontal, DS.sp4)
@@ -186,53 +185,13 @@ struct UnitListContent: View {
         }
     }
 
-    private func unitGridCell(_ unit: Unit, brand: Brand) -> some View {
+    private func unitGridCell(_ unit: Unit) -> some View {
         Button {
             AppAnalytics.tap("unit_list.grid_select")
             vm.sheetUnit = unit
         } label: {
-            VStack(spacing: DS.sp2) {
-                UnitAvatarView(unit: unit, size: 60)
-                Text(unit.displayName)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                ImasChip(text: brand.shortName, seed: brand.color)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            ImasUnitCell(unit: unit)
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - UnitRowView
-
-/// 行頭リードバー (ブランド色) + アバター (`UnitAvatarView`) + 名前 + シェブロン。IdolRowView と同型。
-private struct UnitRowView: View {
-    let unit: Unit
-    var brandColor: String? = nil
-
-    var body: some View {
-        HStack(spacing: DS.sp3) {
-            ImasLeadBar(seed: nil, brand: brandColor)
-                .padding(.vertical, 5)
-
-            UnitAvatarView(unit: unit, size: 40)
-
-            Text(unit.displayName)
-                .font(.imasSubhead.weight(.semibold))
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-
-            Spacer(minLength: DS.sp2)
-
-            ImasRowChevron()
-                .padding(.trailing, DS.sp2)
-        }
-        .padding(.vertical, DS.sp3)
-        .padding(.leading, DS.sp2)
-        .contentShape(Rectangle())
     }
 }
