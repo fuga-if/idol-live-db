@@ -100,7 +100,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
 import com.fugaif.imaslivedb.ui.filtered.IdolFilterKind

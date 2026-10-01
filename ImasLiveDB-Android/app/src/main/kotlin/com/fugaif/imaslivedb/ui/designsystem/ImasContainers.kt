@@ -210,6 +210,8 @@ fun ImasSectionHeader(
 /**
  * 見出し + 中身 + 補足文 (iOS `ImasSection`)。区画どうしの間隔は並べる側 ([ImasPage]) が持つ。
  * 小さい見出しと補足文は、面の中の行の文字に揃えて左右に行の余白を空ける。
+ *
+ * @param actionTitle 見出しの右の、その場で何かを始める操作 ([seeAll] と同時には出さない)。
  */
 @Composable
 fun ImasSection(
@@ -220,6 +222,9 @@ fun ImasSection(
     style: ImasSectionHeaderStyle = ImasSectionHeaderStyle.LARGE,
     footer: String? = null,
     seeAll: (() -> Unit)? = null,
+    actionTitle: String? = null,
+    actionIcon: ImageVector? = null,
+    onAction: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -231,6 +236,9 @@ fun ImasSection(
                 onSeeAll = seeAll,
                 style = style,
                 imprint = imprint,
+                actionTitle = actionTitle,
+                actionIcon = actionIcon,
+                onAction = onAction,
                 contentPadding = PaddingValues(start = side, end = side, bottom = DS.Space.header)
             )
         }

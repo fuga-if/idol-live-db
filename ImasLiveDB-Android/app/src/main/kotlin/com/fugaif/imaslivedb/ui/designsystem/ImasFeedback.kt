@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +53,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
+import com.fugaif.imaslivedb.ui.theme.imasPress
 import kotlinx.coroutines.launch
 
 // =============================================================================
@@ -70,11 +72,18 @@ import kotlinx.coroutines.launch
 
 // MARK: - 読み込み
 
-/** 画面・シート全体の読み込み中 (iOS `ImasLoadingState`)。空いている領域いっぱいに出して中央に置く。 */
+/**
+ * 画面・シート全体の読み込み中 (iOS `ImasLoadingState`)。空いている領域いっぱいに出して中央に置く。
+ *
+ * @param title くるくるの下に出す文字 (「読み込み中…」)。null なら記号だけ (既定)。
+ */
 @Composable
-fun ImasLoadingState(modifier: Modifier = Modifier) {
+fun ImasLoadingState(modifier: Modifier = Modifier, title: String? = null) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = DS.ink3)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            CircularProgressIndicator(color = DS.ink3)
+            if (title != null) Text(title, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+        }
     }
 }
 
@@ -259,14 +268,19 @@ enum class ImasNoticeKind(internal val icon: ImageVector) {
 /**
  * 読まないと困ることを囲んで知らせる帯 (iOS `ImasNotice`)。補足 (読まなくても困らない) は [ImasNote]。
  * 地は面の色。意味の色 (注意 = 橙・失敗 = 朱・完了 = 緑) は記号だけに出す (色の地も、縁の色の帯も敷かない)。
+ *
+ * @param message 本文。見出しだけで足りる注意 (件数だけ伝えれば済む警告など) は null。
+ * @param icon 記号の上書き。省くと種類ごとの既定。
  */
 @Composable
 fun ImasNotice(
     kind: ImasNoticeKind,
-    message: String,
+    message: String?,
     modifier: Modifier = Modifier,
     title: String? = null,
+    icon: ImageVector? = null,
     actionTitle: String? = null,
+    actionIcon: ImageVector? = null,
     onAction: (() -> Unit)? = null
 ) {
     val tint = when (kind) {
@@ -284,7 +298,7 @@ fun ImasNotice(
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
     ) {
         Icon(
-            kind.icon,
+            icon ?: kind.icon,
             contentDescription = null,
             tint = tint,
             modifier = Modifier
@@ -295,11 +309,12 @@ fun ImasNotice(
             if (title != null) {
                 Text(title, style = ImasType.text(15.sp, FontWeight.Bold), color = DS.ink)
             }
-            Text(message, style = ImasType.text(13.sp), color = DS.ink2)
+            if (message != null) Text(message, style = ImasType.text(13.sp), color = DS.ink2)
             if (actionTitle != null && onAction != null) {
                 ImasButton(
                     title = actionTitle,
                     onClick = onAction,
+                    icon = actionIcon,
                     role = ImasButtonRole.SECONDARY,
                     size = ImasButtonSize.SMALL,
                     modifier = Modifier.padding(top = DS.Space.gapTight)
@@ -313,7 +328,8 @@ fun ImasNotice(
 
 /**
  * 区画の中の「〇〇にはログインが必要です」(iOS `ImasSignInPrompt`)。ログインしていれば何も出さない。
- * 押すとログイン (Google の Credential Manager のシート) を始める (`CommunityLoginPromptDialog` と同じ入口)。
+ * カード全体が押せる (「ログイン」だけの小さい押し場所にはしない)。押すとログイン
+ * (Google の Credential Manager のシート) を始める (`CommunityLoginPromptDialog` と同じ入口)。
  */
 @Composable
 fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・投票にはログインが必要です") {
@@ -322,9 +338,12 @@ fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・
     val state by auth.state.collectAsState()
     if (state.isSignedIn) return
     val scope = rememberCoroutineScope()
+    // signIn はアカウント選択のシートを出すため Activity の context が要る。
+    val signIn: () -> Unit = { scope.launch { auth.signIn(context) } }
     Row(
         modifier
             .fillMaxWidth()
+            .imasPress(onClickLabel = "ログイン", onClick = signIn)
             .background(DS.surface, RoundedCornerShape(DS.rCard))
             .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapLoose),
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
@@ -342,14 +361,13 @@ fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・
             color = DS.ink2,
             modifier = Modifier.weight(1f)
         )
+        // 見た目だけ。押すのはカード全体 (入れ子の押し場所にしない)。
         ImasButton(
             title = "ログイン",
-            onClick = {
-                // signIn はアカウント選択のシートを出すため Activity の context が要る。
-                scope.launch { auth.signIn(context) }
-            },
+            onClick = signIn,
             role = ImasButtonRole.PRIMARY,
-            size = ImasButtonSize.SMALL
+            size = ImasButtonSize.SMALL,
+            modifier = Modifier.clearAndSetSemantics { }
         )
     }
 }

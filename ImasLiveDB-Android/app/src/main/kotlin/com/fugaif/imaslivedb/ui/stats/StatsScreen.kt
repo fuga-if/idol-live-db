@@ -61,7 +61,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasListContainer
 import com.fugaif.imaslivedb.ui.designsystem.ImasMetricBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasRankingRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
 import com.fugaif.imaslivedb.ui.events.SetlistScreen

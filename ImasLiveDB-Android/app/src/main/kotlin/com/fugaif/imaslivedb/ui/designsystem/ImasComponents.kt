@@ -32,7 +32,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.components.CopyItem
-import com.fugaif.imaslivedb.ui.components.Copyable
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -211,7 +210,7 @@ fun ImasLabeledRow(
     }
     val tap: (() -> Unit)? = if (showsToggle) ({ expanded = !expanded }) else onClick
     // 省略表示されていても原文 (value) を渡すので全文がコピーできる。
-    Copyable(
+    ImasCopyableRow(
         items = if (copyable) listOf(CopyItem("${key}をコピー", value)) else emptyList(),
         modifier = Modifier.fillMaxWidth(),
         onClick = tap,

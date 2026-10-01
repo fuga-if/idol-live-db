@@ -4,6 +4,10 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Indication
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
@@ -47,13 +51,25 @@ fun Copyable(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     actions: List<RowAction> = emptyList(),
+    // 押したときの見え方。デザインシステムの行は波紋を出さず面を沈めるので、
+    // 押下の状態 (interactionSource) を受け取り、波紋 (indication) を消せるようにする。
+    interactionSource: MutableInteractionSource? = null,
+    indication: Indication? = LocalIndication.current,
     content: @Composable () -> Unit
 ) {
     val valid = items.mapNotNull { item ->
         item.text?.trim()?.takeIf { it.isNotEmpty() }?.let { item.label to it }
     }
     if (valid.isEmpty() && actions.isEmpty()) {
-        Box(modifier) { content() }
+        // コピーする物が無くても、押せる行は押せるままにする。
+        val click = if (onClick != null) {
+            Modifier.clickable(
+                interactionSource = interactionSource,
+                indication = indication,
+                onClick = onClick
+            )
+        } else Modifier
+        Box(modifier.then(click)) { content() }
         return
     }
 
@@ -63,6 +79,8 @@ fun Copyable(
 
     Box(
         modifier = modifier.combinedClickable(
+            interactionSource = interactionSource,
+            indication = indication,
             onClick = { onClick?.invoke() },
             onLongClick = {
                 // コピーは画面に変化が出ないので、触覚で「入った」ことを返す。

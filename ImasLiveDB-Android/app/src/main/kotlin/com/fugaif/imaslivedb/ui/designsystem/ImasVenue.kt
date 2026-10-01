@@ -43,6 +43,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -273,6 +278,7 @@ data class ImasTicketCountdown(
  *
  * @param label 目印 (「参加予定」「次の出演」)。前の印字は [imprint] (既定 ADMIT ONE)。
  * @param metaImprint 日付・会場の行の先頭の印字 (「11.07 SAT」)。
+ * @param metaIcon [meta] の前に置く小さな記号 (会場なら場所の印など)。
  * @param seed ペンライトの色の手がかり (担当の色 hex)。[brand] (ブランド ID) と合わせて、無ければペンライトを出さない。
  */
 @Composable
@@ -283,6 +289,7 @@ fun ImasTicket(
     imprint: String? = "ADMIT ONE",
     metaImprint: String? = null,
     meta: String? = null,
+    metaIcon: ImageVector? = null,
     seed: String? = null,
     brand: String? = null,
     countdown: ImasTicketCountdown? = null,
@@ -348,9 +355,18 @@ fun ImasTicket(
                                 if (meta != null) append(" · ")
                             }
                         }
+                        if (metaIcon != null) {
+                            appendInlineContent(TicketMetaIconId, "")
+                            append(" ")
+                        }
                         if (meta != null) withStyle(SpanStyle(fontSize = 13.sp)) { append(meta) }
                     },
-                    color = ticketSub
+                    color = ticketSub,
+                    inlineContent = if (metaIcon == null) emptyMap() else mapOf(
+                        TicketMetaIconId to InlineTextContent(
+                            Placeholder(13.sp, 13.sp, PlaceholderVerticalAlign.TextCenter)
+                        ) { Icon(metaIcon, contentDescription = null, tint = ticketSub) }
+                    )
                 )
             }
         }
@@ -372,6 +388,9 @@ fun ImasTicket(
     }
 }
 
+/** チケットの日付・会場の行の記号の置き場の名前 (`appendInlineContent` の鍵)。 */
+private const val TicketMetaIconId = "ticketMetaIcon"
+
 // MARK: - 電光掲示板
 
 /** 電光掲示板の数 1 つ。 */
@@ -387,6 +406,8 @@ data class ImasBoardCell(
  *
  * 上の行は印字 (「STATS」「2005 — 2026」)。数は 2〜4 個。ライトでもダークでも板は暗い。
  * [onSelect] を渡すと、数を押してその記録の一覧へ進める。
+ *
+ * @param shape 板の形。名札の下につなげるとき (`ImasIdolHeader`) は下の角だけ丸める。
  */
 @Composable
 fun ImasBoard(
@@ -394,14 +415,15 @@ fun ImasBoard(
     modifier: Modifier = Modifier,
     title: String? = null,
     trailing: String? = null,
-    onSelect: ((ImasBoardCell) -> Unit)? = null
+    onSelect: ((ImasBoardCell) -> Unit)? = null,
+    shape: Shape = RoundedCornerShape(18.dp)
 ) {
     val boardDim = DS.boardDim
     val boardLine = DS.boardLine
     Column(
         modifier
             .fillMaxWidth()
-            .background(DS.board, RoundedCornerShape(18.dp))
+            .background(DS.board, shape)
     ) {
         if (title != null || trailing != null) {
             Row(

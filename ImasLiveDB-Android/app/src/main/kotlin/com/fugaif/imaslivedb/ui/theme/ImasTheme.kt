@@ -10,6 +10,7 @@ import uniffi.imas_core.ThemeRgb
 import uniffi.imas_core.ThemeSeedRequest
 import uniffi.imas_core.themeDerive
 import uniffi.imas_core.themeDeriveBatch
+import uniffi.imas_core.themeDeriveForCategoryKey
 import uniffi.imas_core.themeEnsureContrast
 import uniffi.imas_core.themeOnColor
 
@@ -88,6 +89,18 @@ data class ImasTheme(
         /** 単一の有効な hex からトークンを導出。無効な hex はコアがニュートラルへ倒す。 */
         fun derive(hex: String, dark: Boolean): ImasTheme =
             derive(seed = hex, brand = null, dark = dark)
+
+        /**
+         * 実体色を持たない「分類キー」(ブランドの色がまだ読めないユニット、タグのカテゴリ名等) から
+         * 安定した色を導く (iOS `ImasTheme.derive(categoryKey:scheme:)`)。同じキーは常に同じ色になる。
+         * アイドル/ブランドの「本当の色」ではなく、区分を見分けやすく塗り分けたいだけの場面向け。
+         */
+        @Synchronized
+        fun forCategoryKey(key: String, dark: Boolean): ImasTheme =
+            categoryCache.getOrPut(key to dark) { themeDeriveForCategoryKey(key, dark).toSharedTheme() }
+
+        /** 分類キーの導出のメモ (キーの種類は有界)。 */
+        private val categoryCache = HashMap<Pair<String, Boolean>, ImasTheme>()
 
         /** 任意の背景 Color の上に乗せる前景色を WCAG で黒/白から選ぶ。 */
         fun onColor(background: Color): Color =

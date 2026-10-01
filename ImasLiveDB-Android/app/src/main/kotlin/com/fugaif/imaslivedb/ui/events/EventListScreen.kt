@@ -50,7 +50,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.EventAttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
-import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS

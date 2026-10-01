@@ -64,7 +64,7 @@ import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.games.GameBrandFilterGrid
 import com.fugaif.imaslivedb.ui.songs.IdolMultiPickerPage
 import com.fugaif.imaslivedb.ui.theme.DS

@@ -75,7 +75,9 @@ data class ImasCandidateMetric(val count: Int?, val unit: String = "曲")
  * @param count 候補の数。null は数えている途中。
  * @param minimum 足りるための数。下回ると数を注意の色 (`DS.warning`) にする。
  * @param secondary 2 つ目の指標。渡すと「37 曲 / 12 歌手」のように並べる。
- * @param note 数の下に添える一言 (「4択の選択肢は歌手数が基準です」)。
+ * @param note 数の下に添える一言 (「4択の選択肢は歌手数が基準です」)。読み込み中は出さない。
+ * @param isLoading 数えている間。true の間は数を無視してくるくる + [loadingText] を出す。
+ * @param loadingText 読み込み中に数の代わりに出す文言 (「候補を計算中…」)。
  */
 @Composable
 fun ImasCandidateCount(
@@ -85,33 +87,43 @@ fun ImasCandidateCount(
     minimum: Int? = null,
     label: String = "出題できる候補",
     secondary: ImasCandidateMetric? = null,
-    note: String? = null
+    note: String? = null,
+    isLoading: Boolean = false,
+    loadingText: String? = null
 ) {
     val isShort = count != null && minimum != null && count < minimum
+    val showsNote = note != null && !isLoading
     Column(
         modifier
             .fillMaxWidth()
             .heightIn(min = DS.Size.touch + 4.dp)
             .background(DS.surface, RoundedCornerShape(DS.rCard))
-            .padding(horizontal = DS.Space.rowH, vertical = if (note == null) 0.dp else DS.Space.gapTight)
+            .padding(horizontal = DS.Space.rowH, vertical = if (showsNote) DS.Space.gapTight else 0.dp)
             .semantics(mergeDescendants = true) { },
         verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight, Alignment.CenterVertically)
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = DS.Size.touch + 4.dp - if (note == null) 0.dp else DS.Space.gapTight * 2),
+                .heightIn(min = DS.Size.touch + 4.dp - if (showsNote) DS.Space.gapTight * 2 else 0.dp),
             horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(label, style = ImasTextRole.VALUE.style, color = DS.ink2, modifier = Modifier.weight(1f))
-            CandidateMetric(count, unit, if (isShort) DS.warning else DS.ink)
-            if (secondary != null) {
-                Text("/", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
-                CandidateMetric(secondary.count, secondary.unit, DS.ink)
+            if (isLoading) {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(16.dp), color = DS.ink3, strokeWidth = 2.dp)
+                    if (loadingText != null) Text(loadingText, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+                }
+            } else {
+                CandidateMetric(count, unit, if (isShort) DS.warning else DS.ink)
+                if (secondary != null) {
+                    Text("/", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+                    CandidateMetric(secondary.count, secondary.unit, DS.ink)
+                }
             }
         }
-        if (note != null) {
+        if (showsNote && note != null) {
             Text(note, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
         }
     }
@@ -127,7 +139,8 @@ private fun CandidateMetric(value: Int?, unit: String, color: androidx.compose.u
             color = color
         )
     } else {
-        CircularProgressIndicator(Modifier.size(16.dp), color = DS.ink3, strokeWidth = 2.dp)
+        // 数が分からない (数えていない) ときは横棒。数えている間は呼び出し側が isLoading を渡す。
+        Text("—", style = ImasTextRole.VALUE.style, color = DS.ink3)
     }
 }
 
@@ -204,9 +217,13 @@ class ImasStep(
     val media: (@Composable () -> Unit)? = null
 )
 
-/** 手順 1・2・3 (iOS `ImasStepList`)。番号は墨の丸に細長い数字。 */
+/**
+ * 手順 1・2・3 (iOS `ImasStepList`)。番号は墨の丸に細長い数字。
+ *
+ * @param startIndex 最初の番号。複数のカードに分けて 1 枚ずつ手順を置くとき、続き番号を渡す。
+ */
 @Composable
-fun ImasStepList(steps: List<ImasStep>, modifier: Modifier = Modifier) {
+fun ImasStepList(steps: List<ImasStep>, modifier: Modifier = Modifier, startIndex: Int = 1) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
         steps.forEachIndexed { index, step ->
             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
@@ -217,7 +234,7 @@ fun ImasStepList(steps: List<ImasStep>, modifier: Modifier = Modifier) {
                             .background(DS.sys, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("${index + 1}", style = ImasNumeralSize.SMALL.style, color = DS.onSys, maxLines = 1)
+                        Text("${index + startIndex}", style = ImasNumeralSize.SMALL.style, color = DS.onSys, maxLines = 1)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                         Text(step.title, style = ImasTextRole.ROW_TITLE.style, color = ImasTextRole.ROW_TITLE.color)

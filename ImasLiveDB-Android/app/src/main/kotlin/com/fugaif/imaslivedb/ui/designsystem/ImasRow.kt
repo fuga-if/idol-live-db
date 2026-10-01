@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -229,9 +231,11 @@ private const val AccessibilityFontScale = 1.6f
  * @param selection 先頭の前に置く選択の印。先頭 (ジャケ・アイコン) と並べて出せる。
  * @param leadBar 先頭の前に立てる色の帯。
  * @param titleLineLimit 題の行数。
+ * @param subtitleLineLimit 副題の行数。既定は 1 行 (値を添えるだけの行)。説明文が長い行は 2。
  * @param attributedTitle 題の代わりに強調付きの文字 (絞り込みで当たった所に色を敷くなど)。
  * @param titleRole 題の書体。もの (曲・アイドル・ライブ) は ROW_TITLE、操作・設定は ROW_LABEL。
  * @param onSelectTitle 題だけを押せるようにする (行の他の場所にも別の押せる物があるとき)。
+ * @param titleAccessibilityLabel 題の読み上げを見た目と変えたいとき (「タグ: 〇〇」など前置きを足す)。
  * @param position 並びの中の位置。null なら [LocalImasRowPosition] (`ImasCardList(items)` が伝える)。
  * @param detail 下段 (札・日付・回数)。
  */
@@ -247,9 +251,11 @@ fun ImasRow(
     density: ImasRowDensity = ImasRowDensity.REGULAR,
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     titleLineLimit: Int = 2,
+    subtitleLineLimit: Int = 1,
     attributedTitle: AnnotatedString? = null,
     titleRole: ImasTextRole = ImasTextRole.ROW_TITLE,
     onSelectTitle: (() -> Unit)? = null,
+    titleAccessibilityLabel: String? = null,
     position: ImasRowPosition? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -290,13 +296,13 @@ fun ImasRow(
                     .then(if (alignment == null) Modifier.alignByBaseline() else Modifier),
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
             ) {
-                ImasRowTitle(title, attributedTitle, titleRole, emphasis, titleLineLimit, onSelectTitle)
+                ImasRowTitle(title, attributedTitle, titleRole, emphasis, titleLineLimit, onSelectTitle, titleAccessibilityLabel)
                 if (!subtitle.isNullOrEmpty()) {
                     Text(
                         subtitle,
                         style = ImasTextRole.ROW_SUBTITLE.style,
                         color = if (emphasis == ImasRowEmphasis.DIMMED) DS.ink3 else DS.ink2,
-                        maxLines = 1,
+                        maxLines = subtitleLineLimit,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -360,10 +366,12 @@ private fun ImasRowTitle(
     role: ImasTextRole,
     emphasis: ImasRowEmphasis,
     maxLines: Int,
-    onSelectTitle: (() -> Unit)?
+    onSelectTitle: (() -> Unit)?,
+    accessibilityLabel: String?
 ) {
     val color = if (emphasis == ImasRowEmphasis.DIMMED) DS.ink3 else DS.ink
-    val m = if (onSelectTitle != null) Modifier.fillMaxWidth().clickable(onClick = onSelectTitle) else Modifier
+    val m = (if (onSelectTitle != null) Modifier.fillMaxWidth().clickable(onClick = onSelectTitle) else Modifier)
+        .then(if (accessibilityLabel != null) Modifier.semantics { contentDescription = accessibilityLabel } else Modifier)
     if (attributed != null) {
         Text(attributed, style = role.style, color = color, maxLines = maxLines, overflow = TextOverflow.Ellipsis, modifier = m)
     } else {
@@ -460,6 +468,31 @@ private fun ImasRowTrailingView(trailing: ImasRowTrailing) {
         is ImasRowTrailing.Mark -> ImasMarkButton(trailing.kind, trailing.isOn, onClick = trailing.onClick)
         is ImasRowTrailing.Custom -> trailing.content()
     }
+}
+
+// MARK: - 長押しでコピー
+
+/**
+ * 長押しでコピー (+ 押して進む) できる行の包み (iOS の行に `.imasCopyable` を付けた形)。
+ * 押している間は面が沈む (波紋は出さない)。コピーする物が無ければ長押しは付けない。
+ */
+@Composable
+internal fun ImasCopyableRow(
+    items: List<CopyItem>,
+    modifier: Modifier,
+    onClick: (() -> Unit)?,
+    content: @Composable () -> Unit
+) {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    Copyable(
+        items = items,
+        modifier = modifier.background(if (pressed && onClick != null) DS.fill else Color.Transparent),
+        onClick = onClick,
+        interactionSource = source,
+        indication = null,
+        content = content
+    )
 }
 
 // MARK: - 行の中の小物
@@ -593,7 +626,7 @@ fun ImasValueRow(
         else -> onClick
     }
     // 省略されている値も原文 (value) を渡すので、全文がコピーできる。
-    Copyable(
+    ImasCopyableRow(
         items = if (copyable) listOf(CopyItem("${key}をコピー", value)) else emptyList(),
         modifier = modifier.fillMaxWidth(),
         onClick = tap,
@@ -609,6 +642,7 @@ fun ImasValueRow(
  * @param iconTone 記号の色 (既定は墨)。seed / brand を渡すと記号を実体の色で点ける (混在ブランドの一覧など)。
  * @param value 矢印の前に添える今の値 (「すべて」)。
  * @param isLoading 押してから外へ飛ぶまでの待ち。矢印をくるくるに替える。
+ * @param showsChevron 矢印を描くか (既定は出す)。
  * @param onClick 押したとき (iOS は NavigationLink で包む。Compose は行が押せる口を持つ)。
  */
 @Composable
@@ -622,6 +656,9 @@ fun ImasNavRow(
     brand: String? = null,
     value: String? = null,
     isLoading: Boolean = false,
+    showsChevron: Boolean = true,
+    subtitleLineLimit: Int = 1,
+    titleLineLimit: Int = 1,
     position: ImasRowPosition? = null,
     onClick: (() -> Unit)? = null
 ) {
@@ -644,13 +681,14 @@ fun ImasNavRow(
                 }
                 if (isLoading) {
                     CircularProgressIndicator(Modifier.size(16.dp), color = DS.ink3, strokeWidth = 2.dp)
-                } else {
+                } else if (showsChevron) {
                     ImasRowChevron()
                 }
             }
         },
         density = ImasRowDensity.COMPACT,
-        titleLineLimit = 1,
+        titleLineLimit = titleLineLimit,
+        subtitleLineLimit = subtitleLineLimit,
         titleRole = ImasTextRole.ROW_LABEL,
         position = position
     )
