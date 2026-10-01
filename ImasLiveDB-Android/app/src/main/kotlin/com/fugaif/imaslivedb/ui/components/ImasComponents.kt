@@ -50,6 +50,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.ImasRainbow
 
 // =============================================================================
 // ImasLiveDB — 共通コンポーネント (iOS DesignSystem/ImasComponents.swift の 1:1 移植)
@@ -189,12 +190,8 @@ fun ImasLeadBar(
     rainbow: Boolean = false
 ) {
     val background = if (rainbow) {
-        androidx.compose.ui.graphics.Brush.verticalGradient(
-            listOf(
-                Color(0xFFFF0000), Color(0xFFFFA500), Color(0xFFFFFF00),
-                Color(0xFF00FF00), Color(0xFF0000FF), Color(0xFF800080)
-            )
-        )
+        // 合同ライブの虹は、ペンライトと同じアプリアイコンの帯の色 (iOS は `QS.penlights`)。
+        androidx.compose.ui.graphics.Brush.verticalGradient(ImasRainbow)
     } else {
         val t = imasThemeForBrand(seedHex, brandId)
         androidx.compose.ui.graphics.SolidColor(t.bar)

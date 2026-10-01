@@ -89,7 +89,9 @@ import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.navigation.BottomBarVisibility
 import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
 import com.fugaif.imaslivedb.ui.theme.ImasDarkNavigationBar
+import com.fugaif.imaslivedb.ui.theme.ImasRainbow
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import uniffi.imas_core.QuizGrade
 import uniffi.imas_core.QuizSessionResult
 
@@ -129,29 +131,20 @@ object QS {
     val paperDash = Color(0xFFC9C0B0)
     val stamp = Color(0xFFB42335)
 
-    /** 答えの色が無いとき (曲など) にペンライトへ回す色。アプリアイコンの帯の色。 */
-    val penlights: List<Color> = listOf(
-        Color(0xFFE5484D), Color(0xFFF08C2E), Color(0xFFF2C12E), Color(0xFF3FB27F),
-        Color(0xFF3A8EE6), Color(0xFF7A5AE0), Color(0xFFD65DB1)
-    )
+    /** 答えの色が無いとき (曲など) にペンライトへ回す色。アプリアイコンの帯の色 (合同ライブの虹と同じ)。 */
+    val penlights: List<Color> = ImasRainbow
 
     fun penlight(index: Int): Color = penlights[index.mod(penlights.size)]
 
-    /**
-     * 細長い太字 (iOS の `.width(.compressed)` 相当)。Android 標準の condensed 書体を使い、
-     * 無い端末では通常のサンセリフに落ちる。
-     */
-    private val condensed: FontFamily = FontFamily(
-        androidx.compose.ui.text.font.Typeface(
-            android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL)
-        )
-    )
-
     private val noPadding = PlatformTextStyle(includeFontPadding = false)
 
-    /** 大きな数字 (細長い太字・等幅数字)。 */
+    /**
+     * 大きな数字 (細長い太字・等幅数字)。書体は DS の [ImasType.condensedFamily]
+     * (iOS の `.width(.compressed)` に当たる端末の sans-serif-condensed を太さごとに引く)。
+     * 以前は Typeface 1 本で包んでいたので、太さの指定が効かずに細い字で出ていた。
+     */
     fun num(size: Int, weight: FontWeight = FontWeight.ExtraBold): TextStyle = TextStyle(
-        fontFamily = condensed, fontSize = size.sp, fontWeight = weight,
+        fontFamily = ImasType.condensedFamily, fontSize = size.sp, fontWeight = weight,
         fontFeatureSettings = "tnum", platformStyle = noPadding
     )
 
