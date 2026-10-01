@@ -317,24 +317,44 @@ private struct VenueRowsPage: View {
 
 private struct ApplicationFormPage: View {
     enum How: Hashable { case venue, stream, viewing }
+    enum Mode: Hashable { case normal, hard, endless }
     @State private var how: How = .venue
+    @State private var mode: Mode = .normal
+    @State private var questionCount = 20
     @State private var seat = "1階 C列 24番"
     @State private var price: Int? = 9900
     @State private var notify = true
     @State private var memo = ""
+    @State private var reply = ""
     @State private var url = "htps://example"
+    @State private var tagText = ""
+    @State private var tags = ["ソロ曲好き", "初参戦"]
 
     var body: some View {
         ImasFormPage {
             ImasTicket(label: "DAY2", imprint: "09.23 WED",
                        title: "学園アイドルマスター LIVE TOUR -標- 岩手公演",
                        brand: Sample.gakuen)
-            ImasSection("参加のしかた", style: .small) {
+            ImasSection("参加のしかた (横に並ぶ札: grid)", style: .small) {
                 ImasChoiceCards(choices: [
                     .init(value: How.venue, title: "現地", systemImage: "chair"),
                     .init(value: How.stream, title: "配信", systemImage: "dot.radiowaves.left.and.right"),
                     .init(value: How.viewing, title: "LV", systemImage: "film"),
                 ], selection: $how)
+            }
+            ImasSection("遊び方 (縦に積む行: row)", style: .small) {
+                ImasChoiceCards(choices: [
+                    .init(value: Mode.normal, title: "ノーマル", systemImage: "music.note", subtitle: "よく流れる曲だけ出題"),
+                    .init(value: Mode.hard, title: "ハード", systemImage: "music.note.list", subtitle: "登録曲すべてから出題"),
+                    .init(value: Mode.endless, title: "エンドレス", systemImage: "infinity", subtitle: "正解し続ける限り続く"),
+                ], selection: $mode, style: .row)
+            }
+            ImasSection("問題数 (数字だけの札: numeral)", style: .small) {
+                ImasChoiceCards(choices: [
+                    .init(value: 10, title: "10", subtitle: "問"),
+                    .init(value: 20, title: "20", subtitle: "問"),
+                    .init(value: 30, title: "30", subtitle: "問"),
+                ], selection: $questionCount, style: .numeral)
             }
             ImasFormCard {
                 ImasFormTextField(label: "席", imprint: "SEAT", systemImage: "chair", text: $seat)
@@ -344,6 +364,26 @@ private struct ApplicationFormPage: View {
                                   error: "URL の形になっていません", keyboard: .URL)
                 ImasFormToggle(label: "通知", imprint: "NOTIFY", systemImage: "bell", title: "開演 1 時間前に知らせる", isOn: $notify)
                 ImasFormTextArea(label: "メモ", text: $memo, prompt: "座席・同行者・感想など")
+            }
+            ImasSection("返信 (開いたら自動でキーボードを出す: autofocus)", style: .small) {
+                ImasFormCard {
+                    ImasFormTextArea(label: "返信", imprint: "REPLY", systemImage: "arrowshape.turn.up.left",
+                                      text: $reply, prompt: "コメントへの返信", autofocus: true)
+                }
+            }
+            ImasSection("マイタグ", style: .small, footer: "押すと増える、手元だけのタグ。") {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    ImasChipFlow {
+                        ForEach(tags, id: \.self) { tag in
+                            ImasRemovableChip(text: tag) { tags.removeAll { $0 == tag } }
+                        }
+                    }
+                    ImasChipInputField(text: $tagText, prompt: "マイタグを追加", submitAccessibilityLabel: "マイタグを追加") {
+                        guard !tagText.isEmpty else { return }
+                        tags.append(tagText)
+                        tagText = ""
+                    }
+                }
             }
             ImasNote("チケット代は収支に入ります。この端末にだけ保存されます。")
             ImasButton(title: "この記録を削除", systemImage: "trash", role: .destructive, size: .large) {}

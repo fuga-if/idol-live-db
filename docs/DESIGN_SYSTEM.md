@@ -348,6 +348,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasDateRow` | 日付・時刻 | OS の DatePicker (compact) |
 | `ImasColorPicker` | タグの色など | 色の丸 + 選んだ色に ✓、色名を読み上げ |
 | `ImasBrandPicker` | ブランドを選ぶ (ゲーム・絞り込み) | `ImasBrandCell` の格子 + 「すべて」 |
+| `ImasChipInputField` | マイタグ等、押すと増える手元のチップを 1 行で追加 | カプセルの入力欄 + 丸い送信ボタン (`+`)。文字数の上限は超えた分を切り詰める |
 
 **検索と絞り込みは別物** — 虫眼鏡はアプリで 1 つ (横断検索 `UnifiedSearchView`、結果は push)。一覧を絞るのは `ImasSearchField` と絞り込みシート。
 
