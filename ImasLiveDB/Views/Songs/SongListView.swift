@@ -652,7 +652,7 @@ struct SongListView: View {
         ) {
             // 何を絞るかはチップが示すので、プレースホルダは動詞だけでいい。
             // 「曲名⌄ 曲名で絞り込み」と二重に書くと、狭い欄が更に読みにくくなる。
-            ListSearchField(
+            ImasSearchField(
                 prompt: searchMode == .lyrics ? "一節を入力" : "絞り込み",
                 text: $searchText,
                 onSubmit: runLyricsSearchIfNeeded

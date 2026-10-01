@@ -610,27 +610,17 @@ struct TagFilterSheet: View {
 
 // MARK: - Filter Badge Button
 
-/// ナビバーのフィルタアイコン。activeCount > 0 なら赤バッジを表示。
+/// ナビバーのフィルタアイコン。効いている絞り込みがあれば記号を塗り、数の札を付ける。
 struct FilterBarButton: View {
     let activeCount: Int
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: activeCount > 0
-                      ? "line.3.horizontal.decrease.circle.fill"
-                      : "line.3.horizontal.decrease.circle")
-                if activeCount > 0 {
-                    Text("\(activeCount)")
-                        .font(.imasCaption2.weight(.bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 16, height: 16)
-                        .background(DS.danger)
-                        .clipShape(Circle())
-                        .offset(x: 6, y: -6)
-                }
-            }
-        }
+        ImasToolbarButton(
+            systemImage: activeCount > 0 ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle",
+            label: "絞り込み",
+            badge: activeCount,
+            action: action
+        )
     }
 }

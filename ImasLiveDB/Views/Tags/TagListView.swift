@@ -44,7 +44,7 @@ struct TagListView: View {
         NavigationStack(path: $navPath) {
             List {
                 Section {
-                    NameFilterField(prompt: "タグ名で絞り込み", text: $nameFilter)
+                    ImasNameFilterField(prompt: "タグ名で絞り込み", text: $nameFilter)
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
                 }
                 .listRowBackground(Color.clear)

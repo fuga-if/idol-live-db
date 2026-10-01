@@ -203,7 +203,7 @@ struct TierListView: View {
                 Spacer()
             }
             if total > 12 {
-                NameFilterField(prompt: subject == .song ? "曲名・歌唱で絞り込み" : "名前で絞り込み", text: $unplacedQuery)
+                ImasNameFilterField(prompt: subject == .song ? "曲名・歌唱で絞り込み" : "名前で絞り込み", text: $unplacedQuery)
             }
             unplacedGrid(ids, emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil))
                 .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)

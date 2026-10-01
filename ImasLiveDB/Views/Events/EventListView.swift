@@ -276,7 +276,7 @@ struct EventListView: View {
                 ) {
                     // 虫眼鏡アイコンが用途を示すので、文言は対象だけ。
                     // 「〜で絞り込み」まで書くと狭い欄で末尾が切れる。
-                    ListSearchField(prompt: "ライブ名・会場", text: $searchText)
+                    ImasSearchField(prompt: "ライブ名・会場", text: $searchText)
                 }
             }
             // 「他のタブに N 件」から飛んで来たら、その語で絞り込む。

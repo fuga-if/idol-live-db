@@ -209,7 +209,7 @@ struct MasteryView: View {
 
             ImasTabs(labels: Self.axisLabels, selection: $axisIndex)
 
-            NameFilterField(prompt: "\(Self.axisLabels[axisIndex])名で絞り込み", text: $nameFilter)
+            ImasNameFilterField(prompt: "\(Self.axisLabels[axisIndex])名で絞り込み", text: $nameFilter)
 
             if filter.progress != .all || filter.sort != .songCount {
                 activeFilterChips

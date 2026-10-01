@@ -30,12 +30,11 @@ ImasLiveDB/Views/Components/CallGuide/CallGuideLineViews.swift	12
 ImasLiveDB/Views/Components/ColorDotView.swift	1
 ImasLiveDB/Views/Components/DetailSheet.swift	7
 ImasLiveDB/Views/Components/EditHistoryView.swift	12
-ImasLiveDB/Views/Components/FilterSheet.swift	7
+ImasLiveDB/Views/Components/FilterSheet.swift	6
 ImasLiveDB/Views/Components/GallerySectionView.swift	6
 ImasLiveDB/Views/Components/GenericGridView.swift	6
 ImasLiveDB/Views/Components/IdolGridSection.swift	1
 ImasLiveDB/Views/Components/LinkRows.swift	3
-ImasLiveDB/Views/Components/ListChromeComponents.swift	6
 ImasLiveDB/Views/Components/ListPickerView.swift	1
 ImasLiveDB/Views/Components/LoginToEditSheet.swift	7
 ImasLiveDB/Views/Components/MasterySwipe.swift	3

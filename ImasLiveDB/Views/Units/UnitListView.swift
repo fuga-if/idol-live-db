@@ -78,10 +78,10 @@ struct UnitListContent: View {
             vm.rebuild(searchText: new)
         }
         .toolbar {
-            // 絞り込み欄はナビバーの中。以前は一覧の先頭に `NameFilterField` を敷いていたが、
+            // 絞り込み欄はナビバーの中。以前は一覧の先頭に `ImasNameFilterField` を敷いていたが、
             // アイドル一覧と並ぶタブなのにヘッダーの高さと欄の見た目が揃わなかった。
             ToolbarItem(placement: .principal) {
-                ListSearchField(prompt: "ユニット名", text: $vm.searchText)
+                ImasSearchField(prompt: "ユニット名", text: $vm.searchText)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {

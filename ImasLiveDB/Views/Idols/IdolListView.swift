@@ -256,7 +256,7 @@ struct IdolListView: View {
                 },
                 menuActions: idolMenuActions
             ) {
-                ListSearchField(prompt: "アイドル名・CV名", text: $searchText)
+                ImasSearchField(prompt: "アイドル名・CV名", text: $searchText)
             }
         }
         .navigationDestination(for: Idol.self) { idol in
