@@ -164,20 +164,21 @@ struct TagDetailView: View {
     @ViewBuilder
     private func songRankRow(entry: TagSongEntry, rank: Int) -> some View {
         if let song = songCache[entry.songId] {
-            Button {
-                nextDestination = .song(song)
-            } label: {
-                HStack(spacing: DS.Space.gapTight) {
-                    ImasRankBadge(rank: rank)
-                    ImasSongRow(song: song, subtitle: song.singerLabel, trailing: .custom(AnyView(
-                        HStack(spacing: DS.Space.gap) {
-                            ImasMetric(value: "\(entry.voteCount)", unit: "票", size: .medium)
-                            ImasRowChevron()
-                        }
-                    )))
-                }
+            // Button でラップすると内側のジャケ写プレビュー再生タップが吸われるため、
+            // 行全体は onTapGesture で遷移を受ける。
+            HStack(spacing: DS.Space.gapTight) {
+                ImasRankBadge(rank: rank)
+                ImasSongRow(song: song, subtitle: song.singerLabel, trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gap) {
+                        ImasMetric(value: "\(entry.voteCount)", unit: "票", size: .medium)
+                        ImasRowChevron()
+                    }
+                )))
             }
-            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                nextDestination = .song(song)
+            }
         } else {
             HStack(spacing: DS.Space.gapTight) {
                 ImasRankBadge(rank: rank)

@@ -158,9 +158,9 @@ struct TagRowView: View {
                         }
                     }
                 )),
-                density: .compact
+                density: .compact,
+                titleAccessibilityLabel: "タグ: \(tag.name)"
             )
-            .accessibilityLabel("タグ: \(tag.name)")
         }
     }
 }

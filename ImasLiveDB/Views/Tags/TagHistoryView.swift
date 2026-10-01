@@ -20,9 +20,22 @@ struct TagHistoryView: View {
                 ForEach(history) { entry in
                     ImasRecordRow(
                         systemImage: "pencil",
-                        title: entry.description?.isEmpty == false ? entry.description! : "（説明なし）",
-                        subtitle: "\(String(entry.editedBy.prefix(8)))... · \(times[entry.id] ?? "")"
-                    )
+                        title: "説明を編集",
+                        subtitle: "\(times[entry.id] ?? "") · \(String(entry.editedBy.prefix(8)))..."
+                    ) {
+                        // 説明は行数の制限なしで全文 (最大 300 字)。題 (2 行までの ImasRecordRow
+                        // の既定) に乗せると切れるため detail に出す。
+                        if let desc = entry.description, !desc.isEmpty {
+                            Text(desc)
+                                .font(.imasBody)
+                                .foregroundStyle(DS.ink)
+                        } else {
+                            Text("（説明なし）")
+                                .font(.imasBody)
+                                .foregroundStyle(DS.ink3)
+                                .italic()
+                        }
+                    }
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }
