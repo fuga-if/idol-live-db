@@ -276,6 +276,12 @@ struct SongSheetContent: View {
             ScrollView {
                 VStack(spacing: 0) {
                     hero
+                    actionRow
+                        .padding(.horizontal, DS.sp5)
+                        .padding(.top, DS.sp4)
+                    statsBoard
+                        .padding(.horizontal, DS.sp5)
+                        .padding(.top, DS.sp4)
                     segmentBar
                         .padding(.horizontal, DS.sp5)
                         .padding(.top, DS.sp4)
@@ -385,105 +391,118 @@ struct SongSheetContent: View {
         }
     }
 
-    // MARK: - Hero (大ジャケ + 曲名 + アーティスト + 主要アクション)
+    // MARK: - Hero (ジャケを左 + 題・歌唱者・配信日 / 試聴と印 / 数)
+
+    private var heroEyebrow: String? {
+        var parts: [String] = []
+        if !song.songType.isEmpty, song.songType != "unknown" { parts.append(song.songTypeLabel) }
+        if let brandName = vm.brand?.shortName { parts.append(brandName) }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+    }
 
     @ViewBuilder
     private var hero: some View {
-        let t = ImasTheme.derive(seed: songSeed, scheme: scheme)
-        VStack(spacing: DS.sp4) {
+        ImasHero(layout: .leading, eyebrow: heroEyebrow, title: song.title) {
             ArtworkImageView(
                 url: vm.artworkInfo?.artworkURL,
-                size: 168,
+                size: 116,
                 previewURL: vm.artworkInfo?.previewURL,
                 songTitle: song.title, songId: song.id,
                 seed: songSeed
             )
-
-            VStack(spacing: DS.sp1) {
-                Text(song.title)
-                    .font(.imasTitle2)
-                    .foregroundStyle(DS.ink)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .imasCopyable([
-                        CopyItem("曲名をコピー", song.title, key: "song_title"),
-                        CopyItem("よみをコピー", song.titleKana, key: "kana"),
-                        CopyItem("歌唱者をコピー", vm.artistLine(for: song), key: "artists"),
-                    ])
+        } facts: {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 if let artistLine = vm.artistLine(for: song) {
-                    Text(artistLine)
-                        .font(.imasSubhead)
-                        .foregroundStyle(DS.ink2)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                    ImasPerformerChip(name: artistLine, seed: songSeed)
+                }
+                if let meta = vm.releaseMeta(for: song) {
+                    Text(meta).imasText(.imprint, color: DS.ink3)
                 }
                 // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。どのタブを開いていても曲の
-                // 位置づけが分かるよう、曲名・歌唱者のすぐ下に 1 文で添える。無い曲は何も出さない。
+                // 位置づけが分かるよう、歌唱者・配信日のすぐ下に 1 文で添える。無い曲は何も出さない。
                 if let note = displayNote {
                     Text(note)
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                        .multilineTextAlignment(.center)
+                        .imasText(.note)
                         .lineLimit(3)
-                        .padding(.top, DS.sp1)
                         .imasCopyable([CopyItem("補足をコピー", note, key: "song_note")])
                 }
                 // KAMISABI (音楽カードゲーム) 収録曲のときだけ、その札をチップで出す。
                 // 語 (`kamisabiCardLabel()` = 「KAMISABI 収録」) はコアが決めるので手書きしない。
-                // 「楽曲情報」の行 (key: value の並び) にすると値が空になり形が合わないため、
-                // Android (Hero のアクセントチップ) / Web (TagChip) と同じくバッジで出す。
                 if song.hasKamisabiCard {
                     ImasChip(text: kamisabiCardLabel(), style: .themed, seed: songSeed)
-                        .padding(.top, DS.sp1)
                 }
             }
-            .padding(.horizontal, DS.sp5)
+        }
+        .imasTheme(seed: songSeed)
+        .imasCopyable([
+            CopyItem("曲名をコピー", song.title, key: "song_title"),
+            CopyItem("よみをコピー", song.titleKana, key: "kana"),
+            CopyItem("歌唱者をコピー", vm.artistLine(for: song), key: "artists"),
+        ])
+    }
 
-            HStack(spacing: DS.sp3) {
-                playAction(t)
-                favoriteAction(t)
+    /// 試聴 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す
+    /// (コール・メモの導線はこのヒーローには元から無いので足さない)。
+    private var actionRow: some View {
+        HStack(spacing: DS.Space.gap) {
+            ImasButton(
+                title: isPreviewing ? "停止する" : "試聴する",
+                systemImage: isPreviewing ? "stop.fill" : "play.fill",
+                role: .primary,
+                size: .large
+            ) {
+                AppAnalytics.tap("song_detail.play")
+                if let info = vm.artworkInfo, info.musicKitId != nil {
+                    Task { await playFull(info) }
+                } else if let previewURL = vm.artworkInfo?.previewURL {
+                    MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
+                }
             }
-            .padding(.horizontal, DS.sp5)
+            .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil)
+
+            ImasMarkButton(kind: .favorite, isOn: isFavorite, seed: songSeed) {
+                AppAnalytics.tap("song_detail.toggle_favorite")
+                toggleFavorite()
+            }
+            .id(markVersion)
 
             // KAMISABI (音楽カードゲーム) 収録曲のときだけ、カード所持のトグルを出す。
             // 未収録曲にトグルを出すと「持っていない」のか「そもそも対象外」なのか
             // 読み取れなくなるので、収録曲以外には出さない。
             if song.hasKamisabiCard {
-                kamisabiOwnedAction(t)
-                    .padding(.horizontal, DS.sp5)
+                ImasMarkButton(kind: .owned, isOn: isKamisabiOwned, seed: songSeed) {
+                    AppAnalytics.tap("song_detail.toggle_kamisabi_owned")
+                    toggleKamisabiOwned()
+                }
+                .id(markVersion)
             }
         }
-        .padding(.top, DS.sp4)
-        .padding(.bottom, DS.sp5)
-        .frame(maxWidth: .infinity)
-        .background(t.heroSurface)
+    }
+
+    /// 披露・回収・最終披露 (今ある数をそのまま電光掲示板で)。
+    private var statsBoard: some View {
+        ImasBoard(cells: boardCells)
+    }
+
+    private var boardCells: [ImasBoard.Cell] {
+        var cells: [ImasBoard.Cell] = [
+            .init(value: "\(vm.history.count)", unit: "回", label: "披露"),
+        ]
+        if !vm.collectedShows.isEmpty {
+            cells.append(.init(value: "\(vm.collectedShows.count)", unit: "公演", label: "回収"))
+        }
+        if let last = vm.history.first?.date {
+            cells.append(.init(value: ShortYearMonth.format(last), label: "最終披露"))
+        }
+        return cells
     }
 
     private var isPreviewing: Bool {
         MusicKitService.shared.isPlaying(songId: song.id)
     }
 
-    @ViewBuilder
-    private func playAction(_ t: ImasTheme) -> some View {
-        Button {
-            AppAnalytics.tap("song_detail.play")
-            if let info = vm.artworkInfo, info.musicKitId != nil {
-                Task { await playFull(info) }
-            } else if let previewURL = vm.artworkInfo?.previewURL {
-                MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
-            }
-        } label: {
-            Label(isPreviewing ? "停止" : "再生", systemImage: isPreviewing ? "stop.fill" : "play.fill")
-                .font(.imasSubhead.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .foregroundStyle(t.onAccent)
-                .background(t.accent, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil)
-        .opacity((vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil) ? 0.5 : 1)
-    }
+    private var isFavorite: Bool { markService.bool(.favorite, entity: .song, id: song.id) }
+    private var isKamisabiOwned: Bool { markService.bool(.owned, entity: .song, id: song.id) }
 
     private func playFull(_ info: MusicKitSongInfo) async {
         if MusicKitService.shared.isPlaying
@@ -505,24 +524,6 @@ struct SongSheetContent: View {
         await MusicKitService.shared.playFull(songInfo: info, songId: song.id)
     }
 
-    @ViewBuilder
-    private func favoriteAction(_ t: ImasTheme) -> some View {
-        let isFav = markService.bool(.favorite, entity: .song, id: song.id)
-        Button {
-            AppAnalytics.tap("song_detail.toggle_favorite")
-            toggleFavorite()
-        } label: {
-            Label(isFav ? "お気に入り済み" : "お気に入り", systemImage: isFav ? "star.fill" : "star")
-                .font(.imasSubhead.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .foregroundStyle(isFav ? DS.favorite : t.accent)
-                .background(t.chipBg, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .id(markVersion) // toggle 後に再評価
-    }
-
     private func toggleFavorite() {
         do {
             try markService.toggle(.favorite, entity: .song, id: song.id)
@@ -536,26 +537,6 @@ struct SongSheetContent: View {
     /// (`user_marks` は端末ローカル唯一データで CloudKit には乗らないが、
     /// `UserMarkBackup` 経由の iCloud KVS バックアップはそのまま効く)。
     /// ON/OFF の判定はここでは持たず、保存済みの値を出すだけ。
-    @ViewBuilder
-    private func kamisabiOwnedAction(_ t: ImasTheme) -> some View {
-        let owned = markService.bool(.owned, entity: .song, id: song.id)
-        Button {
-            AppAnalytics.tap("song_detail.toggle_kamisabi_owned")
-            toggleKamisabiOwned()
-        } label: {
-            Label(owned ? "カード所持済み" : "カード所持を記録",
-                  systemImage: owned ? UserMarkKind.owned.activeIcon : UserMarkKind.owned.icon)
-                .font(.imasSubhead.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .foregroundStyle(owned ? t.onAccent : t.accent)
-                .background(owned ? AnyShapeStyle(t.accent) : AnyShapeStyle(t.chipBg),
-                            in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .id(markVersion) // toggle 後に再評価
-    }
-
     private func toggleKamisabiOwned() {
         do {
             try markService.toggle(.owned, entity: .song, id: song.id)
@@ -653,7 +634,3 @@ struct SongSheetContent: View {
         return URL(string: "https://www.uta-net.com/search/?Keyword=\(encoded)") ?? URL(string: "https://www.uta-net.com")!
     }
 }
-
-// MARK: - Credits Row
-
-/// 作曲者・作詞者・編曲者を分割してタップ可能に表示する行

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// アイドルを顔アイコン + 名前のグリッドで並べるセクション。
+/// アイドルを名札のグリッドで並べるセクション。見た目は `ImasIdolCell` (DS §6.6)。
 ///
 /// 楽曲詳細の「歌唱アイドル」(オリジナル歌唱) と「ライブ歌唱歴」(実演者) が同じ見た目。
 struct IdolGridSection: View {
@@ -9,20 +9,14 @@ struct IdolGridSection: View {
     let navigate: (DetailDestination) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.Space.header) {
             ImasSectionHeader(title: title, count: "\(idols.count)")
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: DS.sp3)], spacing: DS.sp4) {
+            ImasIdolGrid(columns: 4) {
                 ForEach(idols) { idol in
                     Button { navigate(.idol(idol)) } label: {
-                        VStack(spacing: 6) {
-                            IdolAvatarView(idol: idol, size: 52)
-                            Text(idol.name)
-                                .font(.imasCaption.weight(.medium))
-                                .foregroundStyle(DS.ink2)
-                                .lineLimit(1).minimumScaleFactor(0.7)
-                        }
+                        ImasIdolCell(idol: idol, isPick: false)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.imasPress)
                 }
             }
         }

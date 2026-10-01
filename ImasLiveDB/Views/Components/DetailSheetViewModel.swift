@@ -224,6 +224,13 @@ final class DetailSheetViewModel {
         return song.singerLabel ?? song.unitName
     }
 
+    /// 詳細の頭の印字向け「配信日・再生時間」1 行。どちらも無ければ nil。
+    /// 既存の「楽曲情報」の行 (`infoRows`) と同じ値をそのまま使う (新しい日付計算はしない)。
+    func releaseMeta(for song: Song) -> String? {
+        let parts = [song.releaseDate, durationValue(for: song)].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+    }
+
     /// 「楽曲情報」セクションの行を宣言的モデルとして組み立てる。
     /// 描画 (ImasLabeledRow 等) と divider は View 側がインデックスから行う。
     func infoRows(for song: Song) -> [SongInfoRow] {
