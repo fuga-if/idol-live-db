@@ -339,6 +339,13 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasPerforation`** 切り取り線。チケットの半券の境目、申込書の欄の間、セトリの紙の行の間 (`ImasCardList(style: .sheet)`)。
 - **`ImasPriceList`** 料金表 (暗い板に「種類 … ¥ 数字」)。
 
+### 6.8 `ImasSuggestionBar` 提案バー
+- **用途** 一覧の絞り込み結果から「この範囲でイントロドンを始める」のような、その場限りの単発の提案を 1 本の全幅バーで出す。
+- **使わない** 恒常的な入口 → `ImasEntryCard` / 読まないと困る注意 → `ImasNotice`。
+- **構成** [記号] [文言] [補足 (件数など、任意)] ……… [矢印 (`showsChevron`、任意) または閉じる × (`onDismiss`、任意)]。
+- **種類** `.prominent` (強い提案。墨の塗り) / `.subtle` (弱い提案。墨の薄い地、一覧の下にそっと置く誘い)。
+- **状態** 通常 / 無効 (`isEnabled: false` で `.prominent` は薄灰になり押せなくなる。足りない件数を示すときなど)。
+
 ---
 
 ## 7. 入力
@@ -524,6 +531,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - `ImasStateContainer(state:)` が読み込み・空・失敗・中身を出し分ける。画面で `if isLoading { ProgressView() }` を書かない。
 - `ImasNotice` と `ImasNote` の使い分け: 読まなくても困らない説明は `ImasNote`。読まないと困る (候補が足りなくて始められない、取得に失敗した、オフライン) ときだけ `ImasNotice`。
 - `ImasNotice` は面の上に、意味の色 (注意 = 橙・失敗 = 赤・完了 = 緑) の記号と文を置く。色の地やカードの縁の色の帯は使わない。
+  記号は `kind` ごとの既定のままでよいが、`systemImage` で上書きできる (例: オフライン通知は `wifi.slash`)。
 - `ImasEmptyState` の記号は細い線の記号を薄い灰で 1 つ。記号を色の四角に入れない。
 - 絵文字を画面の文言に入れない。記号は SF Symbols。
 

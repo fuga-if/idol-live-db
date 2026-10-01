@@ -730,6 +730,9 @@ private struct SectionsPage: View {
             ImasSection("区画の見出し (大)", count: "42曲", seeAll: {}) {
                 ImasCard { Text("カードの中身。行でない中身 (説明・グラフ・プレビュー) を 1 枚にまとめる。").imasText(.body) }
             }
+            ImasSection("区画の見出し (文脈アクション)", actionTitle: "＋ タグ", actionSystemImage: "plus", onAction: {}) {
+                ImasCard { Text("「すべて見る」(別画面へ) とは見え方が違う。その場で何かを始める操作のときに使い、同時には出さない。").imasText(.body) }
+            }
             ImasSection("区画の見出し (小)", style: .small, footer: "補足文は区画の下に灰色で置き、囲まない。") {
                 ImasCard {
                     VStack(alignment: .leading, spacing: DS.Space.gap) {
@@ -752,7 +755,18 @@ private struct SectionsPage: View {
                     ImasNotice(kind: .error, message: "タグを読み込めませんでした。", actionTitle: "もう一度", action: {})
                     ImasNotice(kind: .success, message: "コールガイドを保存しました。")
                     ImasNotice(kind: .info, message: "5 分前時点の情報です。")
+                    ImasNotice(kind: .info, message: "オフラインです。記録はこの端末に保存され、次につながったときに同期します。", systemImage: "wifi.slash")
                 }
+            }
+            ImasSection("提案バー", style: .small, footer: "一覧の絞り込み結果から、その場限りの単発の提案を 1 本の全幅バーで出す。恒常的な入口は ImasEntryCard、読まないと困る注意は ImasNotice。") {
+                VStack(spacing: DS.Space.gapTight) {
+                    ImasSuggestionBar(systemImage: "sparkles", title: "この 12 曲でイントロドンを始める",
+                                      detail: "12曲", style: .prominent, showsChevron: true) {}
+                    ImasSuggestionBar(systemImage: "sparkles", title: "あと 4 曲必要です", style: .prominent, isEnabled: false) {}
+                    ImasSuggestionBar(systemImage: "arrow.up.arrow.down", title: "披露回数順に並べ替える", style: .subtle,
+                                      action: {}, onDismiss: {})
+                }
+                .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
             }
         }
     }
