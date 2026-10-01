@@ -106,6 +106,10 @@ private enum Sample {
     static let ml = "#ffc30b"
     static let gakuen = "#f39800"
 
+    /// 見本のユニット (`ImasUnitAvatar`・`ImasUnitCell`・`ImasForecastRow(unit:)`)。
+    static let unit = Unit(id: "sample-765as", brandId: "765as", name: "765PRO ALLSTARS",
+                           isPermanent: true, nameAlt: nil, nameKana: nil)
+
     /// 見本のジャケ (実際の配信の画像)。
     enum Art {
         private static func url(_ s: String) -> URL? { URL(string: "https://is1-ssl.mzstatic.com/image/thumb/\(s)/600x600bb.jpg") }
@@ -158,6 +162,14 @@ private struct VenuePage: View {
                     .init(value: "12", unit: "公演", label: "一緒に参加"),
                 ])
             }
+            ImasSection("料金表", style: .small, footer: "電光掲示板と同じ暗い板。価格帯は内訳行を少し下げて小さく添える。") {
+                ImasPriceList(title: "TICKET", rows: [
+                    .init(id: "general", label: "一般 指定席", amount: "¥9,800"),
+                    .init(id: "premium", label: "プレミアム席", amount: "¥15,800", note: "特典付き"),
+                    .init(id: "stream", label: "ライブ・ビューイング", amount: "¥5,500〜¥13,200"),
+                    .init(id: "stream-sub", label: "会場による内訳あり", amount: "推定含む", indented: true),
+                ])
+            }
             ImasSection("印", style: .small, footer: "担当・お気に入り・メモは丸いパンチ。押すと実体の色で点く。操作 (出演ライブ) は墨の丸。") {
                 ImasMarkBar {
                     ImasMarkTile(systemImage: "heart.fill", label: "担当", isOn: pick) { pick.toggle() }
@@ -204,6 +216,10 @@ private struct VenueRowsPage: View {
                                 subtitle: "トーサイクラシックホール岩手", brand: Sample.gakuen,
                                 badges: [.init(text: "参加", kind: .positive)])
                     ImasStubRow(date: ImasStubDate("2024-08"), title: "日付が月までの公演", subtitle: "会場未定")
+                    ImasStubRow(date: ImasStubDate("2025-12-13"), title: "765PRO ALLSTARS × CINDERELLA GIRLS 合同ライブ",
+                                subtitle: "京セラドーム大阪", badges: [.init(text: "合同", kind: .unit)], rainbow: true)
+                    ImasStubRow(date: ImasStubDate("2026-11-28"), title: "絞り込み結果から開いた公演",
+                                subtitle: "Kアリーナ横浜", brand: Sample.cg, showsChevron: true)
                 }
             }
             ImasSection("半券の形の短い行", style: .small) {
@@ -264,6 +280,34 @@ private struct VenueRowsPage: View {
             }
             ImasSection("ブランドを選ぶ", style: .small) {
                 ImasBrandPicker(options: brandOptions, selection: $brands)
+            }
+            ImasSection("ユニットの名札", style: .small, footer: "登録画像があれば画像、無ければブランド色 + 人数の記号 (`person.3.fill`)。") {
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+                    ImasUnitAvatar(unit: Sample.unit, size: 52)
+                    ImasUnitCell(unit: Sample.unit, metric: "タグ 3 個一致")
+                        .frame(width: 120)
+                }
+            }
+            ImasSection("日付の印", style: .small, footer: "月カレンダー・週ビューの日セル。当日=塗り、選択日(当日以外)=線。") {
+                HStack(spacing: DS.Space.gapLoose) {
+                    VStack(spacing: 4) { ImasDateMark(isToday: true, isSelected: false); Text("7").imasText(.meta) }
+                    VStack(spacing: 4) { ImasDateMark(isToday: false, isSelected: true); Text("12").imasText(.meta) }
+                    VStack(spacing: 4) { ImasDateMark(isToday: false, isSelected: false); Text("20").imasText(.meta) }
+                }
+            }
+            ImasSection("写真の角の印", style: .small, footer: "写真サムネイルの角の小さな印。地の色に関わらず読めるよう半透明の黒 + 白。") {
+                HStack(spacing: DS.Space.gapLoose) {
+                    ZStack(alignment: .bottomTrailing) {
+                        RoundedRectangle(cornerRadius: DS.rArtwork(72), style: .continuous).fill(DS.fill)
+                            .frame(width: 72, height: 72)
+                        ImasMediaBadge(systemImage: "star.fill", accessibilityLabel: "アイコンに設定中")
+                    }
+                    ZStack(alignment: .bottomTrailing) {
+                        RoundedRectangle(cornerRadius: DS.rArtwork(72), style: .continuous).fill(DS.fill)
+                            .frame(width: 72, height: 72)
+                        ImasMediaBadge(systemImage: "eye.slash", label: "対象外")
+                    }
+                }
             }
         }
     }
