@@ -1,10 +1,12 @@
 import SwiftUI
 
 /// 一覧の各行から 担当 (UserMarkKind.myPick) をタップで toggle できるハートボタン。
-/// 主に Idol 一覧用 (idol entity のみ意味のある mark)。
+/// 主に Idol 一覧用 (idol entity のみ意味のある mark)。見た目は DesignSystem の `ImasMarkButton`
+/// (ON はアイドル本人 (無ければ所属ブランド) の色で点く)。
 struct MyPickToggleButton: View {
     let id: String
-    var size: CGFloat = 18
+    var seed: String? = nil
+    var brand: String? = nil
 
     @State private var refresh = false
 
@@ -13,7 +15,7 @@ struct MyPickToggleButton: View {
     }
 
     var body: some View {
-        Button {
+        ImasMarkButton(kind: .pick, isOn: isMyPick, seed: seed, brand: brand) {
             AppAnalytics.tap("my_pick.toggle")
             do {
                 try UserMarkService.shared.toggle(.myPick, entity: .idol, id: id)
@@ -21,15 +23,7 @@ struct MyPickToggleButton: View {
                 LocalWriteFailure.report(error, action: "担当の切り替え")
             }
             refresh.toggle()
-        } label: {
-            Image(systemName: isMyPick ? "heart.fill" : "heart")
-                .font(.imasScaled( size))
-                .foregroundStyle(isMyPick ? DS.pick : DS.ink3)
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
         }
-        .buttonStyle(.borderless)
         .id(refresh)
-        .accessibilityLabel(isMyPick ? "担当解除" : "担当に追加")
     }
 }

@@ -1,7 +1,7 @@
 import os
 import SwiftUI
 
-/// イメージカラードット — アイドル名の前に表示
+/// イメージカラードット — アイドル名の前に表示。中身は DesignSystem の `ImasSwatch`。
 struct ColorDotView: View {
     let hex: String?
     var size: CGFloat = 8
@@ -11,14 +11,14 @@ struct ColorDotView: View {
     var accessibilityColorName: String? = nil
 
     var body: some View {
-        Circle()
-            .fill(Color(hexString: hex))
-            .frame(width: size, height: size)
-            .accessibilityElement()
-            .modifier(ColorDotAccessibility(
-                isDecorative: isDecorative,
-                label: accessibilityColorName ?? ColorAccessibilityName.of(hex)
-            ))
+        // ImasSwatch 自身が「カラー: <名前>」の読み上げ/非表示 (isDecorative) を持つ。
+        // 名前を明示されたときだけ、その名前で上書きする。
+        let swatch = ImasSwatch(hex: hex, diameter: size, isDecorative: isDecorative)
+        if let accessibilityColorName, !isDecorative {
+            swatch.accessibilityLabel("カラー: \(accessibilityColorName)")
+        } else {
+            swatch
+        }
     }
 }
 
@@ -33,19 +33,5 @@ enum ColorAccessibilityName {
         let name = colorAccessibilityName(hex: hex)
         cache.withLock { $0[key] = name }
         return name
-    }
-}
-
-/// アクセシビリティ修飾子を切り替えるモディファイア
-private struct ColorDotAccessibility: ViewModifier {
-    let isDecorative: Bool
-    let label: String
-
-    func body(content: Content) -> some View {
-        if isDecorative {
-            content.accessibilityHidden(true)
-        } else {
-            content.accessibilityLabel("カラー: \(label)")
-        }
     }
 }

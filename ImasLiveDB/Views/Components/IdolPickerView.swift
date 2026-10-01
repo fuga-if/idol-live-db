@@ -199,29 +199,10 @@ struct IdolPickerView: View {
     @ViewBuilder
     private var brandFilterBar: some View {
         if !brands.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    Button { selectedBrandIds = [] } label: {
-                        ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
-                    }
-                    .buttonStyle(.plain)
-                    ForEach(brands) { brand in
-                        Button {
-                            if !selectedBrandIds.insert(brand.id).inserted {
-                                selectedBrandIds.remove(brand.id)
-                            }
-                        } label: {
-                            ImasChip(text: brand.shortName,
-                                     style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
-                                     brand: brand.color)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
                 .padding(.horizontal, DS.sp4)
                 .padding(.vertical, DS.sp3)
-            }
-            .background(DS.surface)
+                .background(DS.surface)
             ImasRowDivider()
         }
     }
@@ -231,13 +212,11 @@ struct IdolPickerView: View {
     private var idolList: some View {
         List {
             ForEach(grouped, id: \.brand.id) { section in
-                Section(section.brand.shortName) {
+                ImasListSection(section.brand.shortName) {
                     ForEach(section.idols) { idol in
                         idolRow(idol)
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
         }
         .listStyle(.plain)
@@ -247,28 +226,16 @@ struct IdolPickerView: View {
 
     private func idolRow(_ idol: Idol) -> some View {
         let isSelected = selection.contains(idol.id)
-        return Button {
-            toggle(idol)
-        } label: {
-            HStack(spacing: DS.sp3) {
-                IdolAvatarView(idol: idol, size: 40)
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(idol.name)
-                        .font(.imasSubhead)
-                        .foregroundStyle(DS.ink)
-                    if let cv = VoiceActorDirectory.shared.current(for: idol.id) {
-                        Text(cv)
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
-                    }
-                }
-                Spacer()
-                selectionIndicator(isSelected: isSelected, seed: idol.color)
-            }
-        }
-        .buttonStyle(.plain)
+        return ImasSelectableRow(
+            title: idol.name,
+            subtitle: VoiceActorDirectory.shared.current(for: idol.id),
+            leading: .avatar(label: idol.shortName, seed: idol.color,
+                             imageURL: CustomImageService.shared.imageURL(for: idol.id)),
+            isSelected: isSelected,
+            seed: idol.color,
+            action: { toggle(idol) }
+        )
         .accessibilityLabel(idol.name)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - グリッド
@@ -301,50 +268,18 @@ struct IdolPickerView: View {
 
     private func gridCell(_ idol: Idol) -> some View {
         let isSelected = selection.contains(idol.id)
-        return VStack(spacing: DS.sp2) {
-            IdolAvatarView(idol: idol, size: 60)
-                .overlay(alignment: .bottomTrailing) {
-                    selectionIndicator(isSelected: isSelected, seed: idol.color)
-                        .background(DS.bg, in: Circle())
-                        // IdolAvatarView は isPick=false でも担当リング込みの外形フレームを確保するため、
-                        // 可視アバターは中央に ImasAvatar.ringPadding 分小さく描画される。ここは isPick を
-                        // 渡さない (常に false) ので、その余白を差し引いて可視アバターの縁に揃える。
-                        .offset(x: 2 - ImasAvatar.ringPadding, y: 2 - ImasAvatar.ringPadding)
-                }
-                .opacity(isSelected ? 1 : 0.55)
-            Text(idol.name)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { toggle(idol) }
-        .accessibilityLabel(idol.name)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    /// 選択マーク。色はアイドル固有色から導出する (システム accent を塗らない)。
-    private func selectionIndicator(isSelected: Bool, seed: String?) -> some View {
-        ImasSelectionMark(isSelected: isSelected, seed: seed)
+        return ImasIdolCell(idol: idol, isPick: false, isSelected: isSelected)
+            .contentShape(Rectangle())
+            .onTapGesture { toggle(idol) }
+            .accessibilityLabel(idol.name)
     }
 
     // MARK: - 選択中バー
 
     private var selectedBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DS.sp3) {
-                ForEach(selectedIdols) { idol in
-                    ImasRemovableChip(text: idol.name, seed: idol.color) {
-                        withAnimation { toggle(idol) }
-                    }
-                }
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp4)
+        ImasSelectionTray(items: selectedIdols, title: { $0.name }, seed: { $0.color }) { idol in
+            withAnimation(.imasStandard) { toggle(idol) }
         }
-        .background(DS.surface)
     }
 
     // MARK: - 選択
@@ -398,29 +333,10 @@ private struct UnitMemberAddPicker: View {
         NavigationStack {
             VStack(spacing: 0) {
                 if !brands.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: DS.sp3) {
-                            Button { selectedBrandIds = [] } label: {
-                                ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
-                            }
-                            .buttonStyle(.plain)
-                            ForEach(brands) { brand in
-                                Button {
-                                    if !selectedBrandIds.insert(brand.id).inserted {
-                                        selectedBrandIds.remove(brand.id)
-                                    }
-                                } label: {
-                                    ImasChip(text: brand.shortName,
-                                             style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
-                                             brand: brand.color)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                    ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
                         .padding(.horizontal, DS.sp4)
                         .padding(.vertical, DS.sp3)
-                    }
-                    .background(DS.surface)
+                        .background(DS.surface)
                     ImasRowDivider()
                 }
                 List(filtered) { unit in
@@ -433,24 +349,12 @@ private struct UnitMemberAddPicker: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: DS.sp3) {
-                            Image(systemName: "person.3.fill")
-                                .font(.imasSubhead)
-                                .foregroundStyle(DS.ink2)
-                            VStack(alignment: .leading, spacing: DS.sp1) {
-                                Text(unit.name)
-                                    .font(.imasSubhead)
-                                    .foregroundStyle(DS.ink)
-                                if let alt = unit.nameAlt, !alt.isEmpty {
-                                    Text(alt)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink3)
-                                }
-                            }
-                            Spacer()
-                            Image(systemName: "plus.circle")
-                                .foregroundStyle(DS.ink2)
-                        }
+                        ImasRow(
+                            title: unit.name,
+                            subtitle: unit.nameAlt,
+                            leading: .icon("person.3.fill", tone: .neutral),
+                            trailing: .custom(AnyView(Image(systemName: "plus.circle").imasText(.value)))
+                        )
                     }
                     .buttonStyle(.plain)
                     .listRowBackground(DS.surface)

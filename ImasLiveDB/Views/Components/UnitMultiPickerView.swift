@@ -106,31 +106,10 @@ struct UnitMultiPickerView: View {
     @ViewBuilder
     private var brandFilterBar: some View {
         if !brands.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    Button { selectedBrandIds = [] } label: {
-                        ImasChip(text: "すべて", style: selectedBrandIds.isEmpty ? .selected : .neutral)
-                    }
-                    .buttonStyle(.plain)
-                    ForEach(brands) { brand in
-                        Button {
-                            if selectedBrandIds.contains(brand.id) {
-                                selectedBrandIds.remove(brand.id)
-                            } else {
-                                selectedBrandIds.insert(brand.id)
-                            }
-                        } label: {
-                            ImasChip(text: brand.shortName,
-                                      style: selectedBrandIds.contains(brand.id) ? .selected : .neutral,
-                                      brand: brand.color)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
                 .padding(.horizontal, DS.sp4)
                 .padding(.vertical, DS.sp3)
-            }
-            .background(.regularMaterial)
+                .background(.regularMaterial)
         }
     }
 
@@ -138,13 +117,11 @@ struct UnitMultiPickerView: View {
     private var unitList: some View {
         List {
             ForEach(grouped, id: \.brand.id) { section in
-                Section(section.brand.shortName) {
+                ImasListSection(section.brand.shortName) {
                     ForEach(section.units) { unit in
                         unitRow(unit)
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
         }
         .listStyle(.plain)
@@ -155,17 +132,13 @@ struct UnitMultiPickerView: View {
     @ViewBuilder
     private func unitRow(_ unit: Unit) -> some View {
         let isSelected = selection.contains(unit.id)
-        Button {
-            toggle(unit)
-        } label: {
-            HStack(spacing: DS.sp3) {
-                UnitAvatarView(unit: unit, size: 40)
-                Text(unit.displayName)
-                Spacer()
-                ImasSelectionMark(isSelected: isSelected, brand: BrandColors.hex(for: unit.brandId))
-            }
-        }
-        .buttonStyle(.plain)
+        ImasSelectableRow(
+            title: unit.displayName,
+            leading: .custom(AnyView(ImasUnitAvatar(unit: unit, size: 40)), width: 40),
+            isSelected: isSelected,
+            brand: BrandColors.hex(for: unit.brandId),
+            action: { toggle(unit) }
+        )
     }
 
     private func toggle(_ unit: Unit) {
@@ -207,22 +180,8 @@ struct UnitMultiPickerView: View {
 
     private func gridCell(_ unit: Unit) -> some View {
         let isSelected = selection.contains(unit.id)
-        return VStack(spacing: DS.sp2) {
-            UnitAvatarView(unit: unit, size: 60)
-                .overlay(alignment: .bottomTrailing) {
-                    ImasSelectionMark(isSelected: isSelected, brand: BrandColors.hex(for: unit.brandId))
-                        .background(DS.bg, in: Circle())
-                        .offset(x: 2, y: 2)
-                }
-                .opacity(isSelected ? 1 : 0.55)
-            Text(unit.displayName)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { toggle(unit) }
+        return ImasUnitCell(unit: unit, isSelected: isSelected)
+            .contentShape(Rectangle())
+            .onTapGesture { toggle(unit) }
     }
 }
