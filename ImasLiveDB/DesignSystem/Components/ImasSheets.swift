@@ -33,33 +33,61 @@ enum ImasSheetToolbarKind {
 extension View {
     /// シートのツールバー。文言と置き場所は種類が決める。画面で「閉じる」「完了」を書かない。
     func imasSheetToolbar(_ kind: ImasSheetToolbarKind) -> some View {
-        toolbar {
-            switch kind {
-            case let .edit(canSave, onCancel, onSave):
-                ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "キャンセル", role: .cancel, action: onCancel) }
-                ToolbarItem(placement: .confirmationAction) {
-                    ImasSheetButton(title: "保存", role: .confirm, action: onSave).disabled(!canSave)
-                }
-            case let .submit(canSubmit, isSubmitting, onCancel, onSubmit):
-                ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "キャンセル", role: .cancel, action: onCancel) }
-                ToolbarItem(placement: .confirmationAction) {
-                    ImasSheetButton(title: "送信", role: .confirm, isLoading: isSubmitting, action: onSubmit)
-                        .disabled(!canSubmit || isSubmitting)
-                }
-            case let .select(canFinish, onCancel, onFinish):
-                ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "キャンセル", role: .cancel, action: onCancel) }
-                ToolbarItem(placement: .confirmationAction) {
-                    ImasSheetButton(title: "完了", role: .confirm, action: onFinish).disabled(!canFinish)
-                }
-            case let .read(onClose):
-                ToolbarItem(placement: .confirmationAction) { ImasSheetButton(title: "閉じる", role: .close, action: onClose) }
-            case let .prompt(canRecord, onLater, onRecord):
-                ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "あとで", role: .cancel, action: onLater) }
-                ToolbarItem(placement: .confirmationAction) {
-                    ImasSheetButton(title: "記録する", role: .confirm, action: onRecord).disabled(!canRecord)
-                }
-            }
+        toolbar { ImasSheetToolbarContent(kind: kind) }
+    }
+}
+
+/// 種類から左右のボタンを決める。5 種類を 1 つの `toolbar { switch }` に書くと、古いコンパイラ
+/// (CI の macos-15) が型を決めきれずに止まるので、ボタンの中身を値 (`Spec`) にしてから並べる。
+private struct ImasSheetToolbarContent: ToolbarContent {
+    let kind: ImasSheetToolbarKind
+
+    struct Spec {
+        let title: String
+        let role: ImasSheetButton.Role
+        var isLoading: Bool = false
+        var isEnabled: Bool = true
+        let action: () -> Void
+    }
+
+    /// 左 (取り消し側)。読むだけのシートには無い。
+    private var cancel: Spec? {
+        switch kind {
+        case let .edit(_, onCancel, _): return Spec(title: "キャンセル", role: .cancel, action: onCancel)
+        case let .submit(_, _, onCancel, _): return Spec(title: "キャンセル", role: .cancel, action: onCancel)
+        case let .select(_, onCancel, _): return Spec(title: "キャンセル", role: .cancel, action: onCancel)
+        case .read: return nil
+        case let .prompt(_, onLater, _): return Spec(title: "あとで", role: .cancel, action: onLater)
         }
+    }
+
+    /// 右 (確定側)。
+    private var confirm: Spec {
+        switch kind {
+        case let .edit(canSave, _, onSave):
+            return Spec(title: "保存", role: .confirm, isEnabled: canSave, action: onSave)
+        case let .submit(canSubmit, isSubmitting, _, onSubmit):
+            return Spec(title: "送信", role: .confirm, isLoading: isSubmitting,
+                        isEnabled: canSubmit && !isSubmitting, action: onSubmit)
+        case let .select(canFinish, _, onFinish):
+            return Spec(title: "完了", role: .confirm, isEnabled: canFinish, action: onFinish)
+        case let .read(onClose):
+            return Spec(title: "閉じる", role: .close, action: onClose)
+        case let .prompt(canRecord, _, onRecord):
+            return Spec(title: "記録する", role: .confirm, isEnabled: canRecord, action: onRecord)
+        }
+    }
+
+    var body: some ToolbarContent {
+        if let cancel {
+            ToolbarItem(placement: .cancellationAction) { button(cancel) }
+        }
+        ToolbarItem(placement: .confirmationAction) { button(confirm) }
+    }
+
+    private func button(_ spec: Spec) -> some View {
+        ImasSheetButton(title: spec.title, role: spec.role, isLoading: spec.isLoading, action: spec.action)
+            .disabled(!spec.isEnabled)
     }
 }
 
