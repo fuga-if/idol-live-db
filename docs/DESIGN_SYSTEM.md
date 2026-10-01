@@ -673,6 +673,20 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 消す前に確かめる | `.imasConfirmDestructive` |
 | 1 つ・複数を選ばせる | 選択シート (`IdolPickerView` ほか) + `ImasSelectableRow` |
 | 歌唱者を見せる・予想させる | `ImasPerformerChip` / `ImasFilterChip(leading: .avatar)` |
+| 試聴する (ジャケをタップ) | `ImasArtwork` (`previewURL`) |
+| 行・区画の中身をその場で開閉する | `ImasDisclosureRow` |
+| 料金表を見せる | `ImasPriceList` |
+| セトリに Good を付ける | `ImasLikeButton` |
+| ユニットを並べる・名札を見せる | `ImasUnitAvatar` / `ImasUnitCell` |
+| 日付に印を付ける (カレンダー) | `ImasDateMark` |
+| 写真サムネイルの角に印を乗せる | `ImasMediaBadge` |
+| 大きな札から 1 つ選ばせる (申込書) | `ImasChoiceCards` |
+| マイタグを追加する | `ImasChipInputField` |
+| タグの詳細を見せる | `ImasTagHeaderCard` |
+| 一覧の絞り込み結果からその場で提案する | `ImasSuggestionBar` |
+| AI と話す | `ImasChatBubble` / `ImasChatComposer` |
+| 手順・特徴を示す | `ImasStepList` / `ImasPointList` |
+| ゲームの表彰台・対戦結果を見せる | `ImasPodium` / `ImasStageVersusResult` |
 
 ---
 

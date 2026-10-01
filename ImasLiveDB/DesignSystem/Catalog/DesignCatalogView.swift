@@ -209,7 +209,7 @@ private struct VenueRowsPage: View {
 
     var body: some View {
         ImasPage {
-            ImasSection("半券の行", style: .small, footer: "ライブ・公演・記録の一覧。参加した公演は半券に穴。右に引くと参加予定にできる。") {
+            ImasSection("半券の行", style: .small, footer: "ライブ・公演・記録の一覧。参加・参加予定は事実の札で出す。右に引くと参加予定にできる。") {
                 VStack(spacing: DS.Space.gap) {
                     ImasStubRow(date: ImasStubDate("2026-11-07"),
                                 title: "学園アイドルマスター LIVE TOUR -標- Kアリーナ横浜公演 (FINAL) DAY1",
@@ -994,6 +994,7 @@ private struct FeedbackPage: View {
 
 private struct SetlistPage: View {
     @State private var voted: Set<Int> = [1]
+    @State private var previewingSetlist = false
 
     var body: some View {
         ImasPage {
@@ -1010,9 +1011,14 @@ private struct SetlistPage: View {
                                    badges: [.init(text: "全体", kind: .all)], facts: ["初披露", "初回収"],
                                    onSelectPerformers: {}, highlightsPick: true,
                                    trailing: .custom(AnyView(ImasLikeButton(isOn: true, count: 42) {})))
-                    ImasSetlistRow(number: "02", title: "READY!!", artworkURL: Sample.Art.ready, brand: Sample.as765,
+                    ImasSetlistRow(number: "02", title: "READY!!", brand: Sample.as765,
                                    performers: [.init(id: "b", name: "如月千早", color: Sample.chihaya, iconLabel: "千早")],
                                    badges: [.init(text: "ソロ", kind: .unit)], facts: ["12 回目"],
+                                   customArtwork: AnyView(
+                                       ImasArtwork(title: "READY!!", size: 44, imageURL: Sample.Art.ready,
+                                                   previewURL: URL(string: "https://example.com/preview.m4a"),
+                                                   isPreviewing: previewingSetlist) { previewingSetlist.toggle() }
+                                   ),
                                    trailing: .custom(AnyView(ImasLikeButton(isOn: false, count: 0) {})))
                         .environment(\.imasRowPosition, .following)
                     ImasSetlistRow(number: "03", title: "Thank You!", artworkURL: Sample.Art.thankYou, brand: Sample.ml,
