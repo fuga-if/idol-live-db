@@ -75,7 +75,7 @@ struct CallGuideDashboardView: View {
     }
 
     private func errorBanner(_ message: String) -> some View {
-        ImasNotice(.warning, message: "コールガイドの情報を取得できませんでした (\(message))")
+        ImasNotice(kind: .warning, message: "コールガイドの情報を取得できませんでした (\(message))")
     }
 
     // MARK: - ① コールガイドがある曲
@@ -190,7 +190,6 @@ struct CallGuideDashboardView: View {
             ImasSongRow(
                 song: row.song,
                 subtitle: "",
-                density: .compact,
                 // ボタンは縮ませない。曲名の方を省略する
                 // (「ログイン…」まで潰れると、何のボタンか読めなくなる)。
                 trailing: .custom(AnyView(
@@ -198,7 +197,8 @@ struct CallGuideDashboardView: View {
                              systemImage: "square.and.pencil", style: .selected)
                         .fixedSize(horizontal: true, vertical: false)
                         .layoutPriority(1)
-                ))
+                )),
+                density: .compact
             )
         }
         .buttonStyle(.imasRow)
@@ -231,7 +231,7 @@ struct CallGuideDashboardView: View {
 
     private func songRow(_ song: Song, subtitle: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            ImasSongRow(song: song, subtitle: subtitle, density: .compact, trailing: .chevron)
+            ImasSongRow(song: song, subtitle: subtitle, trailing: .chevron, density: .compact)
         }
         .buttonStyle(.imasRow)
     }
