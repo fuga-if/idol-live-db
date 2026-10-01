@@ -305,7 +305,9 @@ private fun PlayerHalf(index: Int, rotationDeg: Float, state: IntroDonPartyUiSta
         state.phase == PartyPhase.BUZZED && state.buzzedPlayer == index -> color.copy(alpha = 0.18f)
         state.phase == PartyPhase.BUZZED -> DS.bg
         state.phase == PartyPhase.REVEALED -> if (state.lastCorrect && state.lastAnswerer == index) DS.success.copy(alpha = 0.22f) else DS.surface
-        else -> if (buzzable) color else DS.surface
+        // 押せない側 (脱落・出題前) は iOS と同じく、モードに関係なく暗い面にする。上に載る「OUT」と
+        // プレイヤー名は白抜きなので、ライトの紙の面だと消える。DS で常に暗いのは電光掲示板の板。
+        else -> if (buzzable) color else DS.board
     }
 
     Box(
