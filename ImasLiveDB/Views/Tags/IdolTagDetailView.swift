@@ -16,7 +16,6 @@ struct IdolTagDetailView: View {
     @State private var alertError: CommunityAPIError?
     @State private var idolCache: [String: Idol] = [:]
     @State private var nextDestination: DetailDestination?
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         List {
@@ -25,41 +24,14 @@ struct IdolTagDetailView: View {
                     .listRowBackground(Color.clear)
             } else if let detail {
                 Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: DS.sp3) {
-                            if let hexColor = detail.tag.color {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color(hexColor: hexColor))
-                                    .frame(width: 16, height: 16)
-                                    .accessibilityLabel("タグカラー: \(hexColor.rawValue)")
-                            }
-                            Text(detail.tag.name)
-                                .font(.imasTitle2.bold())
-                            Spacer()
-                            if let cat = detail.tag.category {
-                                Text(categoryLabel(cat.rawValue))
-                                    .font(.imasCaption)
-                                    .padding(.horizontal, DS.sp3)
-                                    .padding(.vertical, 3)
-                                    .background(categoryColor(cat.rawValue).opacity(0.2))
-                                    .foregroundStyle(categoryColor(cat.rawValue))
-                                    .clipShape(Capsule())
-                                    .accessibilityLabel("カテゴリ: \(categoryLabel(cat.rawValue))")
-                            }
-                        }
-                        if let desc = detail.tag.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink)
-                                .imasSelectableText()
-                        } else {
-                            Text("説明なし")
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink3)
-                                .italic()
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    ImasTagHeaderCard(
+                        name: detail.tag.name,
+                        colorHex: detail.tag.color?.rawValue,
+                        categoryLabel: detail.tag.category.map { categoryLabel($0.rawValue) },
+                        description: detail.tag.description
+                    )
+                    .listRowInsets(EdgeInsets(top: DS.Space.rowV, leading: DS.Space.screen,
+                                              bottom: DS.Space.rowV, trailing: DS.Space.screen))
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 } footer: {
@@ -68,48 +40,21 @@ struct IdolTagDetailView: View {
                             AppAnalytics.tap("idol_tag_detail.edit")
                             showEditSheet = true
                         }
-                            .font(.imasCaption)
+                        .buttonStyle(.imas(.plain, size: .small))
                         Spacer()
                         Button("編集履歴") {
                             AppAnalytics.tap("idol_tag_detail.history")
                             showHistoryView = true
                         }
-                            .font(.imasCaption)
+                        .buttonStyle(.imas(.plain, size: .small))
                     }
                 }
 
                 if !detail.idols.isEmpty {
-                    Section("「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
+                    ImasListSection(title: "「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
                         ForEach(Array(detail.idols.enumerated()), id: \.element.id) { idx, entry in
-                            if let idol = idolCache[entry.idolId] {
-                                Button { nextDestination = .idol(idol) } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        TagRankBadge(rank: idx + 1)
-                                        IdolAvatarView(idol: idol, size: 32)
-                                        Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                                        Spacer(minLength: 4)
-                                        Text("\(entry.voteCount)票")
-                                            .font(.imasCaption.monospacedDigit())
-                                            .foregroundStyle(DS.ink2)
-                                        ImasRowChevron()
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                HStack(spacing: DS.sp2) {
-                                    TagRankBadge(rank: idx + 1)
-                                    Text(entry.idolId)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                    Spacer()
-                                    Text("\(entry.voteCount)票")
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
+                            idolRankRow(entry: entry, rank: idx + 1)
                         }
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
                     }
                 } else {
                     Section {
@@ -212,7 +157,32 @@ struct IdolTagDetailView: View {
         TagCategoryOptions.idol.first { $0.value == cat }?.label ?? cat
     }
 
-    private func categoryColor(_ cat: String) -> Color {
-        ImasTheme.derive(categoryKey: cat, scheme: scheme).accent
+    /// アイドルランキング 1 行。アイコンは写真があれば写真、無ければ `IdolAvatarView` 自身の判子
+    /// (アイコンを消さない)。未解決ならタイトルの代わりに ID を薄字で出す。
+    @ViewBuilder
+    private func idolRankRow(entry: TagIdolEntry, rank: Int) -> some View {
+        if let idol = idolCache[entry.idolId] {
+            Button { nextDestination = .idol(idol) } label: {
+                HStack(spacing: DS.Space.gapTight) {
+                    ImasRankBadge(rank: rank)
+                    ImasRow(
+                        title: idol.name,
+                        leading: .custom(AnyView(IdolAvatarView(idol: idol, size: 32)), width: 32),
+                        trailing: .custom(AnyView(
+                            HStack(spacing: DS.Space.gap) {
+                                ImasMetric(value: "\(entry.voteCount)", unit: "票", size: .medium)
+                                ImasRowChevron()
+                            }
+                        ))
+                    )
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(spacing: DS.Space.gapTight) {
+                ImasRankBadge(rank: rank)
+                ImasRow(title: entry.idolId, trailing: .metric("\(entry.voteCount)", unit: "票"), emphasis: .dimmed)
+            }
+        }
     }
 }

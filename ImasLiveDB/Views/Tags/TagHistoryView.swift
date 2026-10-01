@@ -13,34 +13,16 @@ struct TagHistoryView: View {
                 ImasInlineLoading()
                     .listRowBackground(Color.clear)
             } else if history.isEmpty {
-                Text("編集履歴はありません")
-                    .foregroundStyle(DS.ink2)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                ImasEmptyState(.empty, title: "編集履歴はありません")
                     .listRowBackground(Color.clear)
             } else {
+                let times = EditFeedFormat.relativeTimes(history.map { ($0.id, $0.editedAt) })
                 ForEach(history) { entry in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(entry.editedAt, style: .relative)
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                            Spacer()
-                            Text(String(entry.editedBy.prefix(8)) + "...")
-                                .font(.imasCaption2)
-                                .foregroundStyle(DS.ink3)
-                        }
-                        if let desc = entry.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink)
-                        } else {
-                            Text("（説明なし）")
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink3)
-                                .italic()
-                        }
-                    }
-                    .padding(.vertical, DS.sp2)
+                    ImasRecordRow(
+                        systemImage: "pencil",
+                        title: entry.description?.isEmpty == false ? entry.description! : "（説明なし）",
+                        subtitle: "\(String(entry.editedBy.prefix(8)))... · \(times[entry.id] ?? "")"
+                    )
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }

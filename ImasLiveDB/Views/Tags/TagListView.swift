@@ -84,11 +84,9 @@ struct TagListView: View {
                         // 未サインイン時は押しても汎用エラーになりログイン導線も出ないため、
                         // PollListView と同様にボタン自体を出し分ける。
                         if AuthService.shared.isSignedIn {
-                            Button {
+                            ImasToolbarButton(systemImage: "plus", label: "タグを作成") {
                                 AppAnalytics.tap("tag_list.create")
                                 showCreateSheet = true
-                            } label: {
-                                Image(systemName: "plus")
                             }
                         }
                     }
@@ -142,74 +140,27 @@ struct TagRowView: View {
     var rank: Int? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
-            HStack(spacing: 6) {
-                if let rank {
-                    TagRankBadge(rank: rank)
-                }
-                if let hexColor = tag.color {
-                    Circle()
-                        .fill(Color(hexColor: hexColor))
-                        .frame(width: 8, height: 8)
-                        .accessibilityHidden(true)
-                }
-                Text(tag.name)
-                    .font(.imasSubhead.weight(.semibold))
-                    .accessibilityLabel("タグ: \(tag.name)")
-                if let cat = tag.category {
-                    Text(cat.rawValue)
-                        .font(.imasCaption2)
-                        .foregroundStyle(DS.ink2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, DS.sp1)
-                        .background(DS.fill)
-                        .clipShape(Capsule())
-                }
-                Spacer()
-                if let uses = tag.totalUses, uses > 0 {
-                    Text("\(uses)曲")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                }
+        HStack(spacing: DS.Space.gapTight) {
+            if let rank {
+                ImasRankBadge(rank: rank)
             }
-            if let desc = tag.description, !desc.isEmpty {
-                Text(desc.prefix(40))
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.vertical, DS.sp1)
-    }
-}
-
-// MARK: - Rank Badge
-
-/// 人気ランキングの順位バッジ。上位3つはメダル色 (金/銀/銅)、それ以降はグレー。
-/// タグ一覧・楽曲一覧のタグ絞り込みで共用する。
-struct TagRankBadge: View {
-    let rank: Int
-
-    var body: some View {
-        Text("\(rank)")
-            .font(.imasCaption.bold().monospacedDigit())
-            .foregroundStyle(textColor)
-            .frame(minWidth: 22)
-            .padding(.vertical, DS.sp1)
-            .padding(.horizontal, 5)
-            .background(bgColor, in: Capsule())
-            .accessibilityLabel("\(rank)位")
-    }
-
-    private var medalColor: Color? {
-        switch rank {
-        case 1: return Color(red: 0.91, green: 0.66, blue: 0.0)   // 金
-        case 2: return Color(red: 0.66, green: 0.69, blue: 0.72)  // 銀
-        case 3: return Color(red: 0.80, green: 0.50, blue: 0.20)  // 銅
-        default: return nil
+            ImasRow(
+                title: tag.name,
+                subtitle: tag.description.flatMap { $0.isEmpty ? nil : String($0.prefix(40)) },
+                leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0, size: .small)), width: 16) } ?? .none,
+                trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gapTight) {
+                        if let cat = tag.category {
+                            ImasBadge(text: cat.rawValue, kind: .neutral)
+                        }
+                        if let uses = tag.totalUses, uses > 0 {
+                            Text("\(uses)曲").imasText(.meta)
+                        }
+                    }
+                )),
+                density: .compact
+            )
+            .accessibilityLabel("タグ: \(tag.name)")
         }
     }
-
-    private var textColor: Color { medalColor ?? DS.ink2 }
-    private var bgColor: Color { (medalColor ?? DS.ink3).opacity(0.16) }
 }

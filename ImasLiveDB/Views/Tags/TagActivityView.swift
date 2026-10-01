@@ -88,29 +88,22 @@ struct TagActivityView: View {
         NavigationLink {
             tagDestination(for: trend.domain, tagId: trend.tagId, tagName: trend.tagName)
         } label: {
-            HStack(spacing: DS.sp3) {
-                TagRankBadge(rank: rank)
-                if let color = trend.tagColor {
-                    Circle().fill(Color(hexColor: color)).frame(width: 10, height: 10)
-                }
-                Text(trend.tagName)
-                    .font(.imasBody.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                VStack(alignment: .trailing, spacing: 1) {
-                    Text("直近\(trend.recentCount)件")
-                        .font(.imasFootnote.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                    Text("累計\(trend.totalCount)")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
-                }
-                ImasRowChevron()
+            HStack(spacing: DS.Space.gapTight) {
+                ImasRankBadge(rank: rank)
+                ImasRecordRow(
+                    leading: trend.tagColor.map { .custom(AnyView(ImasSwatch(hex: $0, size: .dot)), width: 10) } ?? .none,
+                    title: trend.tagName,
+                    trailing: .custom(AnyView(
+                        HStack(spacing: DS.Space.gap) {
+                            VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
+                                Text("直近\(trend.recentCount)件").imasText(.rowSubtitle, color: DS.ink)
+                                Text("累計\(trend.totalCount)").imasText(.meta)
+                            }
+                            ImasRowChevron()
+                        }
+                    ))
+                )
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -137,33 +130,18 @@ struct TagActivityView: View {
         Button {
             openEntity(domain: rise.domain, entityId: rise.entityId)
         } label: {
-            HStack(spacing: DS.sp3) {
-                entityLead(domain: rise.domain, entityId: rise.entityId)
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(entityName(domain: rise.domain, entityId: rise.entityId))
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    HStack(spacing: DS.sp2) {
-                        Text("「\(rise.tagName)」")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink2)
-                            .lineLimit(1)
+            ImasRecordRow(
+                leading: .custom(AnyView(entityLead(domain: rise.domain, entityId: rise.entityId)), width: 40),
+                title: entityName(domain: rise.domain, entityId: rise.entityId),
+                subtitle: "「\(rise.tagName)」",
+                trailing: .custom(AnyView(
+                    HStack(spacing: DS.Space.gap) {
+                        Label("\(rise.recentCount)件", systemImage: "arrow.up.right")
+                            .imasText(.badge, color: DS.favorite)
+                        ImasRowChevron()
                     }
-                }
-                Spacer(minLength: 0)
-                HStack(spacing: 3) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.imasScaled(11, weight: .bold))
-                    Text("\(rise.recentCount)件")
-                        .font(.imasFootnote.weight(.bold))
-                }
-                .foregroundStyle(DS.favorite)
-                ImasRowChevron()
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+                ))
+            )
         }
         .buttonStyle(.plain)
         .disabled(!entityResolved(domain: rise.domain, entityId: rise.entityId))
@@ -192,26 +170,12 @@ struct TagActivityView: View {
         Button {
             openEntity(domain: event.domain, entityId: event.entityId)
         } label: {
-            HStack(spacing: DS.sp3) {
-                entityLead(domain: event.domain, entityId: event.entityId)
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(entityName(domain: event.domain, entityId: event.entityId))
-                        .font(.imasBody.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    Text("「\(event.tagName)」タグが付きました")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                Text(timeLabel)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            ImasRecordRow(
+                leading: .custom(AnyView(entityLead(domain: event.domain, entityId: event.entityId)), width: 40),
+                title: entityName(domain: event.domain, entityId: event.entityId),
+                subtitle: "「\(event.tagName)」タグが付きました",
+                trailing: .value(timeLabel)
+            )
         }
         .buttonStyle(.plain)
         .disabled(!entityResolved(domain: event.domain, entityId: event.entityId))

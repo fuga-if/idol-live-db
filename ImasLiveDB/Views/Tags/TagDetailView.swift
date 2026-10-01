@@ -14,7 +14,6 @@ struct TagDetailView: View {
     @State private var alertError: CommunityAPIError?
     @State private var songCache: [String: Song] = [:]
     @State private var nextDestination: DetailDestination?
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         List {
@@ -24,41 +23,14 @@ struct TagDetailView: View {
             } else if let detail {
                 // タグ情報セクション
                 Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: DS.sp3) {
-                            if let hexColor = detail.tag.color {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color(hexColor: hexColor))
-                                    .frame(width: 16, height: 16)
-                                    .accessibilityLabel("タグカラー: \(hexColor.rawValue)")
-                            }
-                            Text(detail.tag.name)
-                                .font(.imasTitle2.bold())
-                            Spacer()
-                            if let cat = detail.tag.category {
-                                Text(categoryLabel(cat.rawValue))
-                                    .font(.imasCaption)
-                                    .padding(.horizontal, DS.sp3)
-                                    .padding(.vertical, 3)
-                                    .background(categoryColor(cat.rawValue).opacity(0.2))
-                                    .foregroundStyle(categoryColor(cat.rawValue))
-                                    .clipShape(Capsule())
-                                    .accessibilityLabel("カテゴリ: \(categoryLabel(cat.rawValue))")
-                            }
-                        }
-                        if let desc = detail.tag.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink)
-                                .imasSelectableText()
-                        } else {
-                            Text("説明なし")
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink3)
-                                .italic()
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+                    ImasTagHeaderCard(
+                        name: detail.tag.name,
+                        colorHex: detail.tag.color?.rawValue,
+                        categoryLabel: detail.tag.category.map { categoryLabel($0.rawValue) },
+                        description: detail.tag.description
+                    )
+                    .listRowInsets(EdgeInsets(top: DS.Space.rowV, leading: DS.Space.screen,
+                                              bottom: DS.Space.rowV, trailing: DS.Space.screen))
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 } footer: {
@@ -67,49 +39,23 @@ struct TagDetailView: View {
                             AppAnalytics.tap("tag_detail.edit")
                             showEditSheet = true
                         }
-                            .font(.imasCaption)
+                        .buttonStyle(.imas(.plain, size: .small))
                         Spacer()
                         Button("編集履歴") {
                             AppAnalytics.tap("tag_detail.history")
                             showHistoryView = true
                         }
-                            .font(.imasCaption)
+                        .buttonStyle(.imas(.plain, size: .small))
                     }
                 }
 
                 // 付いた曲セクション
                 if !detail.songs.isEmpty {
                     // 「このタグが一番多く付いた曲」ランキング (票数降順)。順位バッジ + 票数。
-                    Section("「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
+                    ImasListSection(title: "「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
                         ForEach(Array(detail.songs.enumerated()), id: \.element.id) { idx, entry in
-                            if let song = songCache[entry.songId] {
-                                // Button でラップすると内側のジャケ写プレビュー再生タップが
-                                // 吸われるため、行全体は onTapGesture で遷移を受ける。
-                                HStack(spacing: DS.sp2) {
-                                    TagRankBadge(rank: idx + 1)
-                                    SongTitleRow(song: song, subtitle: song.singerLabel, showsChevron: false)
-                                    Text("\(entry.voteCount)票")
-                                        .font(.imasCaption.monospacedDigit())
-                                        .foregroundStyle(DS.ink2)
-                                    ImasRowChevron()
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture { nextDestination = .song(song) }
-                            } else {
-                                HStack(spacing: DS.sp2) {
-                                    TagRankBadge(rank: idx + 1)
-                                    Text(entry.songId)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                    Spacer()
-                                    Text("\(entry.voteCount)票")
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
+                            songRankRow(entry: entry, rank: idx + 1)
                         }
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
                     }
                 } else {
                     Section {
@@ -213,9 +159,30 @@ struct TagDetailView: View {
         TagCategoryOptions.song.first { $0.value == cat }?.label ?? cat
     }
 
-    /// 4種のタグカテゴリを見分けやすく塗り分ける。カテゴリは実体色を持たないので
-    /// `ImasTheme.derive(categoryKey:)` で安定した色を導出する (増えても手書きパレット不要)。
-    private func categoryColor(_ cat: String) -> Color {
-        ImasTheme.derive(categoryKey: cat, scheme: scheme).accent
+    /// 曲ランキング 1 行。解決済みなら曲の行 (ジャケ+曲名+歌唱者) とタップで詳細へ、
+    /// 未解決ならタイトルの代わりに ID を薄字で出す。
+    @ViewBuilder
+    private func songRankRow(entry: TagSongEntry, rank: Int) -> some View {
+        if let song = songCache[entry.songId] {
+            Button {
+                nextDestination = .song(song)
+            } label: {
+                HStack(spacing: DS.Space.gapTight) {
+                    ImasRankBadge(rank: rank)
+                    ImasSongRow(song: song, subtitle: song.singerLabel, trailing: .custom(AnyView(
+                        HStack(spacing: DS.Space.gap) {
+                            ImasMetric(value: "\(entry.voteCount)", unit: "票", size: .medium)
+                            ImasRowChevron()
+                        }
+                    )))
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(spacing: DS.Space.gapTight) {
+                ImasRankBadge(rank: rank)
+                ImasRow(title: entry.songId, trailing: .metric("\(entry.voteCount)", unit: "票"), emphasis: .dimmed)
+            }
+        }
     }
 }

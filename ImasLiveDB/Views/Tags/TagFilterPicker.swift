@@ -32,55 +32,28 @@ struct TagFilterPicker: View {
         NavigationStack {
             List {
                 if !selected.isEmpty {
-                    Section {
-                        Text(selected.map(\.name).joined(separator: " ＋ "))
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink2)
-                    } header: {
-                        Text("選択中 (\(selected.count)) — すべてを含む曲に絞り込み")
+                    ImasListSection(title: "選択中 (\(selected.count)) — すべてを含む曲に絞り込み") {
+                        ImasChipRow {
+                            ForEach(selected) { tag in
+                                ImasRemovableChip(text: tag.name, seed: tag.color) { toggle(tag) }
+                            }
+                        }
+                        .padding(.vertical, DS.Space.gapTight)
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
+                    .listRowInsets(EdgeInsets())
                 }
-                Section {
+                ImasListSection(title: query.isEmpty ? "人気タグランキング" : "検索結果") {
                     if isLoading {
                         ImasInlineLoading()
                             .listRowBackground(Color.clear)
                     } else if tags.isEmpty {
-                        Text("タグがありません").foregroundStyle(DS.ink2)
+                        ImasEmptyState(.empty, title: "タグがありません")
                             .listRowBackground(DS.surface)
                     } else {
                         ForEach(Array(tags.enumerated()), id: \.element.id) { idx, tag in
-                            Button {
-                                AppAnalytics.tap("tag_filter.toggle_tag")
-                                toggle(tag)
-                            } label: {
-                                HStack(spacing: DS.sp3) {
-                                    // 検索していない時は人気順そのものなので順位バッジを出す。
-                                    if query.isEmpty {
-                                        TagRankBadge(rank: idx + 1)
-                                    }
-                                    if let color = tag.color {
-                                        RoundedRectangle(cornerRadius: 3)
-                                            .fill(Color(hexColor: color))
-                                            .frame(width: 14, height: 14)
-                                    }
-                                    Text(tag.name).foregroundStyle(DS.ink)
-                                    Spacer()
-                                    if let uses = tag.totalUses, uses > 0 {
-                                        Text("\(uses)曲").font(.imasCaption).foregroundStyle(DS.ink2)
-                                    }
-                                    if isSelected(tag) {
-                                        ImasSelectionMark(isSelected: true, color: tag.color.map { Color(hexColor: $0) })
-                                    }
-                                }
-                            }
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
+                            tagRow(tag, rank: idx + 1)
                         }
                     }
-                } header: {
-                    Text(query.isEmpty ? "人気タグランキング" : "検索結果")
                 }
             }
             .listStyle(.plain)
@@ -89,22 +62,35 @@ struct TagFilterPicker: View {
             .searchable(text: $query, prompt: "タグ名で検索")
             .navigationTitle("タグで絞り込み")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("完了") {
-                        AppAnalytics.tap("tag_filter.done")
-                        onDone(selected)
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
+            .imasSheetToolbar(.select(onCancel: { dismiss() }, onFinish: {
+                AppAnalytics.tap("tag_filter.done")
+                onDone(selected)
+                dismiss()
+            }))
             .task(id: query) { await load() }
             .trackScreen("tag_filter")
         }
+    }
+
+    /// タグ候補 1 行。検索していない時は人気順そのものなので順位バッジを出す。
+    private func tagRow(_ tag: CommunityTag, rank: Int) -> some View {
+        Button {
+            AppAnalytics.tap("tag_filter.toggle_tag")
+            toggle(tag)
+        } label: {
+            HStack(spacing: DS.Space.gapTight) {
+                if query.isEmpty { ImasRankBadge(rank: rank) }
+                ImasRow(
+                    title: tag.name,
+                    leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0, size: .small)), width: 16) } ?? .none,
+                    selection: ImasRowSelection(isOn: isSelected(tag), seed: tag.color),
+                    trailing: (tag.totalUses ?? 0) > 0 ? .value("\(tag.totalUses ?? 0)曲") : .none,
+                    density: .compact
+                )
+            }
+        }
+        .buttonStyle(.imasRow)
+        .sensoryFeedback(.selection, trigger: isSelected(tag))
     }
 
     private func load() async {
