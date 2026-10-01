@@ -63,7 +63,7 @@ struct SetlistEditView: View {
                     }
                 }
                 .imasSavingOverlay(isSaving)
-                .imasErrorAlert(message: $errorMessage)
+                .imasErrorAlert("エラー", message: $errorMessage)
                 .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
                 .imasConfirmDestructive(
                     "セトリを全削除しますか?", isPresented: $showClearConfirm, actionTitle: "削除する",
@@ -371,12 +371,14 @@ private struct SetlistEditRow: View {
 
             Button(action: onPickCasts) {
                 ImasRow(
-                    title: row.castIds.isEmpty ? "出演者なし — タップで追加" : performerNames(),
+                    title: row.castIds.isEmpty ? "(出演者なし — タップで追加)" : performerNames(),
                     leading: .icon("person.2", tone: .neutral),
                     trailing: .chevron,
                     density: .compact,
                     emphasis: row.castIds.isEmpty ? .dimmed : .normal,
-                    titleLineLimit: 3,
+                    // 全体曲は 74 人まで出演することがあるので、行数は実質無制限にする
+                    // (以前は制限なしで全員出していた)。
+                    titleLineLimit: 99,
                     titleRole: .rowLabel
                 )
             }

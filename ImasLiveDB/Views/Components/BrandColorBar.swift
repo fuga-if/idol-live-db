@@ -6,7 +6,7 @@ struct BrandColorBar: View {
     let brandId: String?
 
     var body: some View {
-        ImasLeadBar(brand: brandId)
+        ImasLeadBar(brand: BrandColors.hex(for: brandId))
             .frame(width: DS.Size.leadBar, height: 40)
     }
 }

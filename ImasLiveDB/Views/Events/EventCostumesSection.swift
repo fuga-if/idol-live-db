@@ -61,7 +61,6 @@ struct EventCostumesSection: View {
                     }
                 )),
                 density: .compact,
-                titleLineLimit: 1,
                 titleRole: .rowLabel
             ) {
                 if !individual, let attribution = entry.costume.attribution {

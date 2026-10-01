@@ -75,7 +75,7 @@ struct TicketSaleEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original {
-                        ImasValueRow(key: "ID", value: original.id)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
                     }
                     ImasTextFieldRow(title: "受付名 (例: 最速先行抽選)", text: $name)
                     ImasMenuRow(title: "種別", options: Self.kinds, selection: $kind, label: kindLabel)
@@ -135,7 +135,7 @@ struct TicketSaleEditView: View {
                 onSave: { AppAnalytics.tap("ticket_sale_edit.save"); Task { await save() } }
             ))
             .imasSavingOverlay(isSaving)
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .imasConfirmDestructive(
                 "この受付を削除しますか?", isPresented: $showDeleteConfirm, actionTitle: "削除する",
                 message: "「\(name)」を削除します。この操作は取り消せません。"

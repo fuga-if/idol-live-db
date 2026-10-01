@@ -68,9 +68,9 @@ struct CostumeShowsView: View {
         Button {
             Task { await open(showId: show.showId) }
         } label: {
+            // 曲名の並び (songsLabel) は副題 (1 行固定) ではなく detail に置き、全文を折り返す。
             ImasRow(
                 title: show.showName,
-                subtitle: show.songsLabel,
                 trailing: .custom(AnyView(
                     HStack(spacing: DS.Space.gap) {
                         Text(show.date).font(ImasTextRole.value.font.monospacedDigit()).foregroundStyle(DS.ink2)
@@ -80,7 +80,11 @@ struct CostumeShowsView: View {
                 density: .compact,
                 titleLineLimit: 1,
                 titleRole: .rowLabel
-            )
+            ) {
+                if let songs = show.songsLabel {
+                    Text(songs).imasText(.meta).fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .buttonStyle(.imasRow)
     }

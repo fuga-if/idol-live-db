@@ -55,7 +55,7 @@ struct EventEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original = mode.original {
-                        ImasValueRow(key: "ID", value: original.id)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
                     }
                     ImasTextFieldRow(title: "イベント名", text: $name)
                     ImasMenuRow(title: "ブランド", options: [""] + allBrands.map(\.id), selection: $brandId) { id in
@@ -85,9 +85,28 @@ struct EventEditView: View {
                                 Button {
                                     editTicketSale = sale
                                 } label: {
-                                    ImasNavRow(title: sale.name, subtitle: sale.periodLabel, value: sale.stageLabel)
+                                    // ImasNavRow は題を 1 行に固定するため使わない。受付名は
+                                    // 「岩手公演 公式リセール(9月22日(火)公演)」のように末尾でしか
+                                    // 見分けが付かないものがあるので、ここでは行数を広げて全文を出す。
+                                    ImasRow(
+                                        title: sale.name,
+                                        trailing: .custom(AnyView(
+                                            HStack(spacing: DS.Space.gap) {
+                                                Text(sale.stageLabel).imasText(.value, color: DS.ink2).lineLimit(1)
+                                                ImasRowChevron()
+                                            }
+                                        )),
+                                        density: .compact,
+                                        titleLineLimit: 3,
+                                        titleRole: .rowLabel
+                                    ) {
+                                        if let period = sale.periodLabel {
+                                            Text(period).imasText(.meta)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.imasRow)
                             }
                         }
                         ImasActionRow(title: "受付を追加", systemImage: "plus.circle") {
@@ -106,7 +125,7 @@ struct EventEditView: View {
                 onSave: { AppAnalytics.tap("event_edit.save"); Task { await save() } }
             ))
             .imasSavingOverlay(isSaving)
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task {
                 allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? []

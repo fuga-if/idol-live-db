@@ -15,7 +15,8 @@ struct SeatEditorSheet: View {
         NavigationStack {
             Form {
                 ImasListSection(footer: "ブロック・列・番号など、自由に記録できます。") {
-                    ImasTextAreaRow(text: $draft, prompt: "例: アリーナ A6 12列 34番", minHeight: 60)
+                    ImasTextAreaRow(text: $draft, prompt: "例: アリーナ A6 12列 34番", minHeight: 60,
+                                   minLines: 1, maxLines: 3)
                         .focused($focused)
                 }
             }

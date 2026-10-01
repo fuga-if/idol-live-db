@@ -151,14 +151,16 @@ struct ImasTextAreaRow: View {
     @Binding var text: String
     var prompt: String
     var minHeight: CGFloat = 120
+    /// 行数の下限。既定は 4 行分の高さを確保する (メモ・感想などの長文)。
+    var minLines: Int = 4
+    /// 行数の上限。nil なら上限なし (打つだけ伸びる)。座席のような短い欄は上限を決める。
+    var maxLines: Int? = nil
     /// 文字数の上限。nil なら数えない。
     var limit: Int? = nil
 
     var body: some View {
         VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
-            TextField(prompt, text: $text, axis: .vertical)
-                .font(ImasTextRole.body.font)
-                .lineLimit(4...)
+            textField
                 .frame(minHeight: minHeight, alignment: .topLeading)
             if let limit {
                 Text("\(text.count) / \(limit)")
@@ -167,6 +169,15 @@ struct ImasTextAreaRow: View {
             }
         }
         .listRowBackground(DS.surface)
+    }
+
+    @ViewBuilder private var textField: some View {
+        let field = TextField(prompt, text: $text, axis: .vertical).font(ImasTextRole.body.font)
+        if let maxLines {
+            field.lineLimit(minLines...maxLines)
+        } else {
+            field.lineLimit(minLines...)
+        }
     }
 }
 

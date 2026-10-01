@@ -63,7 +63,7 @@ struct ShowEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original = mode.original {
-                        ImasValueRow(key: "ID", value: original.id)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
                     }
                     ImasTextFieldRow(title: "公演名", text: $name)
                     ImasTextFieldRow(title: "日付 (YYYY-MM-DD)", text: $date)
@@ -90,7 +90,7 @@ struct ShowEditView: View {
                 onSave: { AppAnalytics.tap("show_edit.save"); Task { await save() } }
             ))
             .imasSavingOverlay(isSaving)
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .trackScreen("show_edit")
         }
