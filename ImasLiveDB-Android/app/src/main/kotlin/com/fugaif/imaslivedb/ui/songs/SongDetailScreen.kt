@@ -101,6 +101,7 @@ import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.youtubeVideoRefs
 import uniffi.imas_core.kamisabiCardLabel
@@ -380,7 +381,7 @@ private fun SongSheetContent(
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
-    val t = ImasTheme.forBrand(seed, song.brandId)
+    val t = imasThemeForBrand(seed, song.brandId)
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
@@ -705,7 +706,7 @@ private fun CreditRow(
     // 行き先のパスが組み立たず、押した瞬間に落ちる。
     val names = remember(value) { splitCreditNames(value).filter { it.isNotBlank() } }
     if (names.isEmpty()) return
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Row(
         modifier = Modifier.fillMaxWidth().background(DS.surface).padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1101,7 +1102,7 @@ private fun EvidenceNote(text: String) {
 /** 楽曲情報の下の補足 (iOS `SongInfoTab.noteEntry` と同じ見た目と文言)。 */
 @Composable
 private fun NoteEntry(note: String?, seed: String?, brandId: String?, onEdit: (() -> Unit)?) {
-    val t = ImasTheme.forBrand(seed, brandId)
+    val t = imasThemeForBrand(seed, brandId)
     if (note != null) {
         // ある曲は本文が主役。直す導線は見出しの右に小さく添える (iOS SongInfoTab と同じ)。
         Column(

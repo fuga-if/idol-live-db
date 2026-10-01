@@ -16,9 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import uniffi.imas_core.IdolQuizIdolRef
 import uniffi.imas_core.quizSessionLength
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 // =============================================================================
 // 4 択クイズ系 (アイドル当て / ソロ曲) のコアへの受け渡しと、出題設定画面の共通ボタン。
@@ -100,7 +100,7 @@ fun hasVoiceActorData(refs: List<IdolQuizIdolRef>): Boolean =
 /** 出題設定画面の主ボタン (スタート / はじめる)。ゲーム中はステージの [QuizStagePrimaryButton] を使う。 */
 @Composable
 fun QuizPrimaryButton(title: String, onClick: () -> Unit) {
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
     Box(
         modifier = Modifier
             .fillMaxWidth()

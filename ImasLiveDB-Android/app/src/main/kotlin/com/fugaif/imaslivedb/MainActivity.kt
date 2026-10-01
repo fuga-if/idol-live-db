@@ -50,6 +50,12 @@ import com.fugaif.imaslivedb.data.sync.LocalDataStartup
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 引数なしの enableEdgeToEdge() は、システムバーのアイコン色を**端末の**ライト/ダーク
+        // 設定から決める (auto)。アプリの配色 (ImasLiveDBTheme) も同じ設定に追従するので、
+        // 「暗い面には明るいアイコン / 明るい面には暗いアイコン」が常に揃う。
+        // SystemBarStyle.dark などで固定すると、ライトモードで明るいアイコンが明るい地に乗って消える。
+        // 端末のモードに関係なく下端まで暗い画面 (ゲームのステージ) は、ImasDarkNavigationBar で
+        // ナビゲーションバーのアイコンだけ個別に明るくする。
         enableEdgeToEdge()
         val module = AppModule.from(this)
         val boot = module.databaseBoot

@@ -69,7 +69,7 @@ import com.fugaif.imaslivedb.ui.share.CollectionShareSheet
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.CatchChanceRecord
 import uniffi.imas_core.PlayFrequency
 import uniffi.imas_core.UncollectedSongRecord
@@ -290,12 +290,14 @@ private fun CollectionSummarySection(collected: Int, total: Int) {
 
 @Composable
 private fun CollectionRing(fraction: Double, modifier: Modifier = Modifier) {
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
+    // DrawScope のラムダは合成の外なので、DS のトークンはここで値にしておく。
+    val track = DS.fill
     val clamped = fraction.coerceIn(0.0, 1.0)
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-            drawArc(DS.fill, startAngle = 0f, sweepAngle = 360f, useCenter = false, style = stroke, size = Size(size.width, size.height))
+            drawArc(track, startAngle = 0f, sweepAngle = 360f, useCenter = false, style = stroke, size = Size(size.width, size.height))
             drawArc(t.accent, startAngle = -90f, sweepAngle = (360 * clamped).toFloat(), useCenter = false, style = stroke, size = Size(size.width, size.height))
         }
         Text("${(clamped * 100).toInt()}%", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)

@@ -46,6 +46,7 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.size.Size
+import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
 import coil3.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -185,7 +186,11 @@ fun ShareCardCanvas(
                             capture.layer.record { this@drawWithContent.drawContent() }
                             drawLayer(capture.layer)
                         }
-                ) { card() }
+                ) {
+                    // カードの地は端末のライト/ダークに関係なくほぼ黒 (焼いた画像にモードは無い)。
+                    // 中で DS のトークンを引いても、暗い地に墨の文字が載らないようダーク側に固定する。
+                    ImasAlwaysDark(card)
+                }
             }
         }
     }

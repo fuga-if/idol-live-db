@@ -63,6 +63,8 @@ import com.fugaif.imaslivedb.ui.components.ImasChipStyle
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasColors
+import com.fugaif.imaslivedb.ui.theme.LocalImasColors
 import uniffi.imas_core.TimelineBarTarget
 import uniffi.imas_core.TimelineHitBox
 import uniffi.imas_core.timelineEpochAtX
@@ -117,7 +119,11 @@ fun BrandTimelineScreen(
     // しておくのが要点で、ジェスチャのラムダはここから毎回読み直す。composition ごとに
     // 作り直される val を捕まえると、ピンチで倍率が変わった瞬間から古いレイアウトに
     // 対して座標を計算し続けてしまう。
-    val planState = remember { derivedStateOf { buildTimelinePlan(state.bars, pointsPerDay) } }
+    // 帯の色はレイアウトの一部として焼かれるので、モードが変わったら組み直す。
+    // Canvas の描画木も合成の外なので、クロムのトークンはここで値にして持ち回す。
+    val chrome = LocalImasColors.current
+    val dark = chrome.dark
+    val planState = remember(dark) { derivedStateOf { buildTimelinePlan(state.bars, pointsPerDay, dark) } }
     val plan by planState
 
     fun clampX(value: Float, canvasWidth: Float): Float =
@@ -269,7 +275,7 @@ fun BrandTimelineScreen(
                             }
                     ) {
                         val p = planState.value ?: return@Canvas
-                        drawTimeline(p, panX, panY, density, textMeasurer)
+                        drawTimeline(p, panX, panY, density, textMeasurer, chrome)
                     }
                 }
             }
@@ -336,7 +342,8 @@ private fun DrawScope.drawTimeline(
     panX: Float,
     panY: Float,
     density: Float,
-    textMeasurer: TextMeasurer
+    textMeasurer: TextMeasurer,
+    chrome: ImasColors
 ) {
     val rail = TimelineMetrics.RAIL_WIDTH * density
     val ruler = TimelineMetrics.RULER_HEIGHT * density
@@ -344,47 +351,47 @@ private fun DrawScope.drawTimeline(
     // --- 本体 (グリッド + 帯) ---
     clipRect(left = rail, top = ruler, right = size.width, bottom = size.height) {
         translate(left = rail - panX * density, top = ruler - panY * density) {
-            drawLaneBands(plan, density)
-            drawYearColumns(plan, density)
-            drawTodayLine(plan, density)
+            drawLaneBands(plan, density, chrome)
+            drawYearColumns(plan, density, chrome)
+            drawTodayLine(plan, density, chrome)
             drawBars(plan, panX, density, textMeasurer)
         }
     }
 
     // --- 上に貼り付く年ルーラー (横だけ追従) ---
-    drawRect(DS.surface, topLeft = Offset(rail, 0f), size = Size(size.width - rail, ruler))
+    drawRect(chrome.surface, topLeft = Offset(rail, 0f), size = Size(size.width - rail, ruler))
     clipRect(left = rail, top = 0f, right = size.width, bottom = ruler) {
         translate(left = rail - panX * density, top = 0f) {
-            drawRuler(plan, density, textMeasurer)
+            drawRuler(plan, density, textMeasurer, chrome)
         }
     }
-    drawRect(DS.sep, topLeft = Offset(rail, ruler - density), size = Size(size.width - rail, density))
+    drawRect(chrome.sep, topLeft = Offset(rail, ruler - density), size = Size(size.width - rail, density))
 
     // --- 左に貼り付くレーン名 (縦だけ追従) ---
-    drawRect(DS.surface, topLeft = Offset(0f, ruler), size = Size(rail, size.height - ruler))
+    drawRect(chrome.surface, topLeft = Offset(0f, ruler), size = Size(rail, size.height - ruler))
     clipRect(left = 0f, top = ruler, right = rail, bottom = size.height) {
         translate(left = 0f, top = ruler - panY * density) {
-            drawRail(plan, density, textMeasurer)
+            drawRail(plan, density, textMeasurer, chrome)
         }
     }
-    drawRect(DS.sep, topLeft = Offset(rail - density, ruler), size = Size(density, size.height - ruler))
+    drawRect(chrome.sep, topLeft = Offset(rail - density, ruler), size = Size(density, size.height - ruler))
 
     // --- 左上の角 (ルーラーとレールの交差部) ---
-    drawRect(DS.surface, topLeft = Offset.Zero, size = Size(rail, ruler))
+    drawRect(chrome.surface, topLeft = Offset.Zero, size = Size(rail, ruler))
 }
 
 /** レーンごとの背景バンド。交互に薄く塗って行を追いやすくする。 */
-private fun DrawScope.drawLaneBands(plan: TimelinePlan, density: Float) {
+private fun DrawScope.drawLaneBands(plan: TimelinePlan, density: Float, chrome: ImasColors) {
     plan.lanes.forEachIndexed { index, lane ->
         if (index % 2 == 1) {
             drawRect(
-                DS.fill.copy(alpha = 0.4f),
+                chrome.fill.copy(alpha = 0.4f),
                 topLeft = Offset(0f, lane.y * density),
                 size = Size(plan.canvasWidth * density, lane.height * density)
             )
         }
         drawRect(
-            DS.sep,
+            chrome.sep,
             topLeft = Offset(0f, (lane.y + lane.height) * density - density),
             size = Size(plan.canvasWidth * density, density)
         )
@@ -392,20 +399,20 @@ private fun DrawScope.drawLaneBands(plan: TimelinePlan, density: Float) {
 }
 
 /** 年の区切り線。 */
-private fun DrawScope.drawYearColumns(plan: TimelinePlan, density: Float) {
+private fun DrawScope.drawYearColumns(plan: TimelinePlan, density: Float, chrome: ImasColors) {
     plan.years.forEach { tick ->
         drawRect(
-            DS.sep.copy(alpha = 0.7f),
+            chrome.sep.copy(alpha = 0.7f),
             topLeft = Offset(tick.x * density, 0f),
             size = Size(density, plan.canvasHeight * density)
         )
     }
 }
 
-private fun DrawScope.drawTodayLine(plan: TimelinePlan, density: Float) {
+private fun DrawScope.drawTodayLine(plan: TimelinePlan, density: Float, chrome: ImasColors) {
     val x = plan.todayX ?: return
     drawRect(
-        DS.pick.copy(alpha = 0.7f),
+        chrome.pick.copy(alpha = 0.7f),
         topLeft = Offset(x * density, 0f),
         size = Size(1.5f * density, plan.canvasHeight * density)
     )
@@ -477,15 +484,15 @@ private fun DrawScope.drawBars(
 }
 
 /** 年ルーラー。年の幅が狭いとラベルは間引く (罫線は毎年引いたまま)。 */
-private fun DrawScope.drawRuler(plan: TimelinePlan, density: Float, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawRuler(plan: TimelinePlan, density: Float, textMeasurer: TextMeasurer, chrome: ImasColors) {
     val stride = plan.yearLabelStride
     val height = TimelineMetrics.RULER_HEIGHT * density
     plan.years.forEach { tick ->
-        drawRect(DS.sep, topLeft = Offset(tick.x * density, 0f), size = Size(density, height))
+        drawRect(chrome.sep, topLeft = Offset(tick.x * density, 0f), size = Size(density, height))
         if (tick.year % stride != 0) return@forEach
         val layout = textMeasurer.measure(
             text = tick.year.toString(),
-            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = chrome.ink2)
         )
         drawText(
             textLayoutResult = layout,
@@ -498,11 +505,11 @@ private fun DrawScope.drawRuler(plan: TimelinePlan, density: Float, textMeasurer
  * 左のレーン名。アイコンは置かず名前だけ (Canvas にベクタアイコンを流し込む口が無く、
  * ここだけ Composable を重ねると貼り付きの計算が 2 系統に割れるため)。
  */
-private fun DrawScope.drawRail(plan: TimelinePlan, density: Float, textMeasurer: TextMeasurer) {
+private fun DrawScope.drawRail(plan: TimelinePlan, density: Float, textMeasurer: TextMeasurer, chrome: ImasColors) {
     plan.lanes.forEach { lane ->
         val layout = textMeasurer.measure(
             text = lane.lane.title,
-            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+            style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = chrome.ink2)
         )
         drawText(
             textLayoutResult = layout,

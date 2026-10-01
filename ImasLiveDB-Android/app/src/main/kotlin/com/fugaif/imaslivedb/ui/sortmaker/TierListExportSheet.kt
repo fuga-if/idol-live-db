@@ -80,7 +80,9 @@ import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.share.rememberShareCardPalette
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.async
@@ -166,7 +168,7 @@ fun TierListExportSheet(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                val accent = ImasTheme.derive(null, null, dark = true).accent
+                val accent = imasTheme(null, null).accent
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -280,7 +282,10 @@ private fun HiddenCapture(capture: com.fugaif.imaslivedb.ui.share.ShareCardCaptu
                         capture.layer.record { this@drawWithContent.drawContent() }
                         drawLayer(capture.layer)
                     }
-            ) { content() }
+            ) {
+                // 書き出す 1 枚の地はほぼ黒。端末がライトでも中の部品はダーク側の色で組む。
+                ImasAlwaysDark(content)
+            }
         }
     }
 }

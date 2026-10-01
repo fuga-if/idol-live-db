@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -56,18 +58,36 @@ data class MasteryScale(val labels: List<String>) {
  * 習熟度専用の 1 色を濃度で割る。
  */
 object MasteryPalette {
-    // アプリはダーク基調なので、上の段ほど明るい側へ伸ばす (iOS のダーク用ランプと同値)。
-    private val ramp = listOf(
+    // ライトは上の段ほど濃く、ダークは上の段ほど明るい側へ伸ばす (iOS のランプと同値)。
+    private val rampLight = listOf(
+        Color(0xFFD7E5F4), Color(0xFF9DC4E6), Color(0xFF5392CE), Color(0xFF1C5FA3),
+    )
+    private val rampDark = listOf(
         Color(0xFF17304A), Color(0xFF27547F), Color(0xFF4287C6), Color(0xFF7FBAF0),
     )
 
-    fun fill(level: UByte, steps: UByte): Color =
-        if (level.toInt() == 0) Color.Transparent else ramp[rampIndex(level, steps)]
+    /** `level` (1..=steps) の面の色。`0` (未設定) は面を持たない。 */
+    @Composable
+    @ReadOnlyComposable
+    fun fill(level: UByte, steps: UByte): Color {
+        if (level.toInt() == 0) return Color.Transparent
+        val ramp = if (LocalImasColors.current.dark) rampDark else rampLight
+        return ramp[rampIndex(level, steps)]
+    }
 
-    /** その面の上に乗せる文字色。上位 2 段は明るいので黒文字に倒す。 */
-    fun ink(level: UByte, steps: UByte): Color =
-        if (level.toInt() == 0) DS.ink3
-        else if (rampIndex(level, steps) >= 2) Color(0xFF06121F) else Color.White
+    /** その面の上に乗せる文字色。薄い段は濃い文字、濃い段は抜き文字。 */
+    @Composable
+    @ReadOnlyComposable
+    fun ink(level: UByte, steps: UByte): Color {
+        if (level.toInt() == 0) return DS.ink3
+        val upper = rampIndex(level, steps) >= 2
+        // ライトは上位 2 段が濃いので白抜き、ダークは上位が明るいので黒文字。
+        return if (LocalImasColors.current.dark) {
+            if (upper) Color(0xFF06121F) else Color.White
+        } else {
+            if (upper) Color.White else Color(0xFF12293D)
+        }
+    }
 
     /** 段数が 4 でないときは 4 段のランプ上へ等間隔に写す (最上段は必ず一番濃い)。 */
     private fun rampIndex(level: UByte, steps: UByte): Int {

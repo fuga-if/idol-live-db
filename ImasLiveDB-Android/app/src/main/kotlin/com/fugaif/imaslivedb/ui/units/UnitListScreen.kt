@@ -54,7 +54,7 @@ import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import uniffi.imas_core.TextSearchCatalog
 
 /**
@@ -106,12 +106,10 @@ fun UnitListBody(
     //
     // 1 行が引く組は 2 通り。ImasLeadBar は brandId をブランド色 hex に解決してから derive し、
     // ImasAvatar は brandId をそのまま渡す。両方温めないと片方が行ごとに跨ぐ。
-    remember(state.units, q) {
-        ImasTheme.prewarm(
-            filteredUnits.flatMap {
-                listOf<Pair<String?, String?>>(null to it.brandId, it.id to it.brandId)
-            }
-        )
+    imasThemePrewarm(state.units, q) {
+        filteredUnits.flatMap {
+            listOf<Pair<String?, String?>>(null to it.brandId, it.id to it.brandId)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {

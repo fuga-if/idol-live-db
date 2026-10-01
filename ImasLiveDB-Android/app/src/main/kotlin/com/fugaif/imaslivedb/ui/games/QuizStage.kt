@@ -87,6 +87,8 @@ import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.games.QuizStagePlay
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.navigation.BottomBarVisibility
+import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
+import com.fugaif.imaslivedb.ui.theme.ImasDarkNavigationBar
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import uniffi.imas_core.QuizGrade
 import uniffi.imas_core.QuizSessionResult
@@ -1173,51 +1175,56 @@ fun QuizStageScaffold(
 ) {
     // iOS と同じく、ステージの間は下のタブバーを隠して会場を全画面で見せる。
     BottomBarVisibility.Hide()
+    // ステージは端末のライト/ダークに関係なく暗い会場。iOS の `.environment(\.colorScheme, .dark)` と
+    // `.toolbarColorScheme(.dark)` と同じく、中の部品の既定色とナビゲーションバーのアイコンをダーク側に固定する。
+    ImasDarkNavigationBar()
     val scroll = rememberScrollState()
     LaunchedEffect(scrollKey) { if (scroll.value > 0) scroll.animateScrollTo(0) }
-    Scaffold(
-        containerColor = QS.bg,
-        topBar = {
-            CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = QS.bg, scrolledContainerColor = QS.bg,
-                    titleContentColor = QS.ink, navigationIconContentColor = QS.ink, actionIconContentColor = QS.ink
-                ),
-                navigationIcon = {
-                    Box(Modifier.padding(start = 12.dp)) {
-                        QuizStageRoundButton(Icons.Filled.Close, "クイズを終了", onClick = onClose)
-                    }
-                },
-                title = {
-                    when (header) {
-                        is QuizStageHeader.Question -> QuizStageTitle(title, header.current, header.total)
-                        is QuizStageHeader.Result -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("RESULT", style = QS.num(24).copy(letterSpacing = 1.sp), color = QS.ink)
-                            Text("$title · 全${header.total}問", style = QS.text(11, FontWeight.Bold), color = QS.dim)
+    ImasAlwaysDark {
+        Scaffold(
+            containerColor = QS.bg,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = QS.bg, scrolledContainerColor = QS.bg,
+                        titleContentColor = QS.ink, navigationIconContentColor = QS.ink, actionIconContentColor = QS.ink
+                    ),
+                    navigationIcon = {
+                        Box(Modifier.padding(start = 12.dp)) {
+                            QuizStageRoundButton(Icons.Filled.Close, "クイズを終了", onClick = onClose)
                         }
-                        QuizStageHeader.None -> Text(title, style = QS.text(15, FontWeight.Bold), color = QS.ink)
+                    },
+                    title = {
+                        when (header) {
+                            is QuizStageHeader.Question -> QuizStageTitle(title, header.current, header.total)
+                            is QuizStageHeader.Result -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("RESULT", style = QS.num(24).copy(letterSpacing = 1.sp), color = QS.ink)
+                                Text("$title · 全${header.total}問", style = QS.text(11, FontWeight.Bold), color = QS.dim)
+                            }
+                            QuizStageHeader.None -> Text(title, style = QS.text(15, FontWeight.Bold), color = QS.ink)
+                        }
+                    },
+                    actions = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 16.dp)
+                        ) {
+                            if (header is QuizStageHeader.Question) QuizStageScore(header.points) else trailing()
+                        }
                     }
-                },
-                actions = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        if (header is QuizStageHeader.Question) QuizStageScore(header.points) else trailing()
-                    }
-                }
+                )
+            }
+        ) { padding ->
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(scroll)
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 34.dp),
+                content = content
             )
         }
-    ) { padding ->
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scroll)
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 34.dp),
-            content = content
-        )
     }
 }
 

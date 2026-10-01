@@ -49,7 +49,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 
 // =============================================================================
 // 結果: 表彰台 (1〜3 位) + 4 位以下の一覧 + 共有。iOS SortMakerResultView.swift の移植。
@@ -172,7 +173,7 @@ private fun Podium(rows: List<Pair<Int, SortMakerItem>>, onClick: (SortMakerItem
 
 @Composable
 private fun PodiumCard(rank: Int, item: SortMakerItem, large: Boolean, onClick: () -> Unit) {
-    val theme = ImasTheme.derive(item.seed, com.fugaif.imaslivedb.ui.theme.BrandColors.hex(item.brandId), dark = true)
+    val theme = imasThemeForBrand(item.seed, item.brandId)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -226,7 +227,7 @@ private fun Actions(
     onUndoLast: () -> Unit,
     onPlayAgain: () -> Unit
 ) {
-    val accent = ImasTheme.derive(null, null, dark = true).accent
+    val accent = imasTheme(null, null).accent
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
             modifier = Modifier

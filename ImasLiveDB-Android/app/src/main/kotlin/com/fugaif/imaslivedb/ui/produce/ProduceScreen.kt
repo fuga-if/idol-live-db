@@ -78,8 +78,8 @@ import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasStatTile
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -447,7 +447,7 @@ private fun SectionTitle(title: String) {
 /** 次のライブ。札 + ライブ名 + 公演日 と「セトリを予想」。iOS の「コールを見る」は歌詞が無いので出さない。 */
 @Composable
 private fun NextLiveCard(next: NextLive, seed: String?, onPredict: () -> Unit) {
-    val t = ImasTheme.forBrand(seed, next.event.brandId)
+    val t = imasThemeForBrand(seed, next.event.brandId)
     val sub = buildList {
         add(next.show.date)
         if (next.show.name.isNotEmpty() && next.show.name != next.event.name) add(next.show.name)
@@ -502,7 +502,7 @@ private fun ShortcutGroup(
     seed: String?,
     accessory: @Composable () -> Unit = {}
 ) {
-    val t = ImasTheme.forBrand(seed, null)
+    val t = imasThemeForBrand(seed, null)
     Column(
         modifier = Modifier
             .fillMaxWidth()

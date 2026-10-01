@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -177,7 +178,7 @@ fun QuizSetupHeaderCard(icon: androidx.compose.ui.graphics.vector.ImageVector, t
         Box(
             modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(DS.fill),
             contentAlignment = Alignment.Center
-        ) { Icon(icon, null, tint = com.fugaif.imaslivedb.ui.theme.ImasTheme.derive(null, null, dark = true).accent, modifier = Modifier.size(28.dp)) }
+        ) { Icon(icon, null, tint = imasTheme(null, null).accent, modifier = Modifier.size(28.dp)) }
         Column {
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Text(subtitle, fontSize = 12.sp, color = DS.ink3)
@@ -204,7 +205,7 @@ fun QuizSetupBrandSection(
             if (selectedBrandIds.isNotEmpty()) {
                 Text(
                     "全てに戻す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = com.fugaif.imaslivedb.ui.theme.ImasTheme.derive(null, null, dark = true).accent,
+                    color = imasTheme(null, null).accent,
                     modifier = Modifier.clickable(onClick = onClearAll)
                 )
             }

@@ -48,6 +48,8 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 
 // =============================================================================
 // ImasLiveDB — 共通コンポーネント (iOS DesignSystem/ImasComponents.swift の 1:1 移植)
@@ -86,7 +88,7 @@ fun ImasAvatar(
     entityId: String? = null,
     entityKind: GalleryKind = GalleryKind.IDOL
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     // ローカル取り込み画像が最優先。File のまま渡せば Coil が file:// として読む。
     val model: Any? = rememberCustomImage(entityId, entityKind) ?: imageUrl
     // 占有スペースは isPick に関わらず常に一定 (担当リング分の size + 11.dp) にする。
@@ -142,7 +144,7 @@ fun ImasArtwork(
     size: Dp = 56.dp,
     imageUrl: String? = null
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     val radius = maxOf(8.dp, size * 0.16f)
     Box(
         modifier = Modifier.size(size).clip(RoundedCornerShape(radius)),
@@ -194,7 +196,7 @@ fun ImasLeadBar(
             )
         )
     } else {
-        val t = ImasTheme.forBrand(seedHex, brandId)
+        val t = imasThemeForBrand(seedHex, brandId)
         androidx.compose.ui.graphics.SolidColor(t.bar)
     }
     Box(
@@ -250,7 +252,7 @@ fun ImasStatTile(
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -280,7 +282,7 @@ fun ImasStatTile(
 /** メトリクスバッジ (値 + 単位、accent 色)。 */
 @Composable
 fun ImasMetricBadge(value: String, unit: String = "", emphasized: Boolean = true, seed: String? = null) {
-    val t = ImasTheme.derive(seed, null, dark = true)
+    val t = imasTheme(seed, null)
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (emphasized) t.accent else DS.ink2)
         if (unit.isNotEmpty()) Text(unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
@@ -291,7 +293,7 @@ fun ImasMetricBadge(value: String, unit: String = "", emphasized: Boolean = true
 /** 横棒の統計バー (ラベル + バー + 値)。 */
 @Composable
 fun ImasStatBar(label: String, value: String, percent: Double, seed: String? = null, brand: String? = null) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -316,7 +318,7 @@ fun ImasRankingRow(
     sub: String? = null, seed: String? = null, brand: String? = null,
     onClick: (() -> Unit)? = null, lead: @Composable () -> Unit
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Row(
         modifier = Modifier.fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
@@ -381,7 +383,7 @@ fun ImasLabeledRow(
     brand: String? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -434,8 +436,8 @@ fun ImasChip(
     color: Color? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val t = if (color != null) ImasTheme.derive(color, dark = true)
-            else ImasTheme.forBrand(seed, brand)
+    val t = if (color != null) imasTheme(color)
+            else imasThemeForBrand(seed, brand)
     val (bg, fg) = when (style) {
         ImasChipStyle.THEMED -> t.chipBg to t.chipText
         ImasChipStyle.SELECTED -> t.accent to t.onAccent
@@ -476,7 +478,7 @@ fun ImasEmptyState(
     actionTitle: String? = null,
     onAction: (() -> Unit)? = null
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -500,7 +502,7 @@ fun ImasEmptyState(
 /** 役割/種別を示す小さめのピルバッジ (主演・ゲスト・ユニット名等)。 */
 @Composable
 fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outlined: Boolean = false) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))

@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -51,7 +51,7 @@ import kotlin.random.Random
 
 /** ゲーム系画面共通のアクセント色 (iOS ID.menuCardDark 相当)。 */
 @Composable
-fun introDonAccent(): Color = ImasTheme.derive(null, null, dark = true).accent
+fun introDonAccent(): Color = imasTheme(null, null).accent
 
 /** 主ボタン (スタート/次の問題 等)。 */
 @Composable

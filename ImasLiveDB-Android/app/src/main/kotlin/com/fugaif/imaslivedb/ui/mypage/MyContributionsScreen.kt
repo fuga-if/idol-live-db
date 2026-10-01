@@ -41,7 +41,7 @@ import com.fugaif.imaslivedb.data.community.LocalContributionLog
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * 自分の投稿累計の内訳画面。プロデュースタブ「投稿」タイル → ここに飛ぶ。
@@ -81,7 +81,7 @@ fun MyContributionsScreen(onBack: () -> Unit) {
 
 @Composable
 private fun SummaryCard(total: Int) {
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
     Column(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(16.dp)).background(DS.surface)
@@ -112,7 +112,7 @@ private fun Breakdown(counts: Map<LocalContributionLog.Kind, Int>) {
 
 @Composable
 private fun BreakdownRow(kind: LocalContributionLog.Kind, count: Int) {
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
     Row(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(12.dp)).background(DS.surface)

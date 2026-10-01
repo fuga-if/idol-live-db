@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * ヘルプ (使い方カタログ)。iOS `Views/Help/HelpView.swift` の移植。
@@ -315,7 +316,7 @@ fun HelpScreen(onBack: () -> Unit) {
 @Composable
 private fun HelpSectionCard(section: HelpSection) {
     var expanded by remember { mutableStateOf(false) }
-    val theme = ImasTheme.derive(section.tint)
+    val theme = imasTheme(section.tint)
     Column(
         modifier = Modifier
             .fillMaxWidth()

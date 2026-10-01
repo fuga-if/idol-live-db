@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /** 投票にはログインが必要です、のバナー (PollsScreen/PollDetailScreen 共通)。 */
 @Composable
@@ -88,7 +88,7 @@ fun PollEntriesList(
     onToggleVote: (String, Boolean) -> Unit
 ) {
     val total = totalVotes.coerceAtLeast(1)
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
     entries.sortedByDescending { it.voteCount }.forEach { entry ->
         val name = entityNames[entry.entityId] ?: entry.entityId
         val pct = (entry.voteCount.toFloat() / total).coerceIn(0f, 1f)

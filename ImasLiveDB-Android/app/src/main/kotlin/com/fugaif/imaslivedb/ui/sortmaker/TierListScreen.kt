@@ -90,6 +90,7 @@ import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -372,7 +373,7 @@ private fun TierRow(
     onItemDetail: (SortMakerItem) -> Unit,
     onRowClick: () -> Unit
 ) {
-    val theme = ImasTheme.derive(seed = tier.colorSeed, brand = null, dark = true)
+    val theme = imasTheme(seed = tier.colorSeed, brand = null)
     // 札を行の高さいっぱいに伸ばす (中身が 2 段に折り返しても色が途切れないように)。
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Box(
@@ -531,7 +532,7 @@ fun TierListChip(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val theme = ImasTheme.derive(item?.seed, BrandColors.hex(item?.brandId), dark = true)
+    val theme = imasTheme(item?.seed, BrandColors.hex(item?.brandId))
     val scale by animateFloatAsState(if (isSelected) 1.06f else 1f, label = "tierChipScale")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -589,7 +590,7 @@ private fun MoveBar(
             modifier = Modifier.fillMaxWidth().height((44.dp + 6.dp) * ((tiers.size) / columns + 1))
         ) {
             items(tiers) { tier ->
-                val theme = ImasTheme.derive(seed = tier.colorSeed, brand = null, dark = true)
+                val theme = imasTheme(seed = tier.colorSeed, brand = null)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -635,7 +636,7 @@ private fun TierListEditSheet(
     val maxTiers = remember { tierListMaxTiers().toInt() }
     var title by rememberSaveable { mutableStateOf(board.title ?: "") }
     var tiers by remember { mutableStateOf(board.tiers) }
-    val accent = ImasTheme.derive(null, null, dark = true).accent
+    val accent = imasTheme(null, null).accent
 
     val removedWithItems = remember(tiers) {
         val kept = tiers.map { it.id }.toSet()
@@ -689,7 +690,7 @@ private fun TierListEditSheet(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("段 (${tiers.size} / $maxTiers)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
                 tiers.forEachIndexed { i, tier ->
-                    val theme = ImasTheme.derive(seed = tier.colorSeed, brand = null, dark = true)
+                    val theme = imasTheme(seed = tier.colorSeed, brand = null)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(
                             modifier = Modifier

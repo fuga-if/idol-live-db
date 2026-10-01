@@ -43,7 +43,7 @@ import androidx.lifecycle.lifecycleScope
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.launch
 import com.fugaif.imaslivedb.ui.components.searchFiltered
 
@@ -224,7 +224,7 @@ private fun OshiCandidateList(
 
 @Composable
 private fun BrandHeader(candidate: OshiCandidate) {
-    val theme = ImasTheme.derive(seed = candidate.brandColorHex, brand = null, dark = true)
+    val theme = imasTheme(seed = candidate.brandColorHex, brand = null)
     Text(
         text = candidate.brandShortName.orEmpty(),
         fontSize = 12.sp,

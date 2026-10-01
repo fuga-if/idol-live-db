@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 
 /**
  * 参加 / お気に入り / メモ / 座席 のマーキングバー。iOS `UserMarkBar` の移植。
@@ -67,7 +68,7 @@ fun UserMarkBar(
     brand: String? = null,
     modifier: Modifier = Modifier
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     var editingNote by remember { mutableStateOf(false) }
     var editingSeat by remember { mutableStateOf(false) }
 

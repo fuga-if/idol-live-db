@@ -43,7 +43,7 @@ import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import kotlinx.coroutines.launch
 
 /**
@@ -66,7 +66,7 @@ fun EventAttendanceSheet(
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
 
     var attendance by remember { mutableStateOf<Map<String, AttendanceType>>(emptyMap()) }
 

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,10 +35,11 @@ import com.fugaif.imaslivedb.ui.theme.brandColor
 
 /** 公演。フィルタチップの色 (帯自体はブランド色を使う)。 */
 val ShowColor = Color(0xFF3E6DD6)
-val ReleaseColor = DS.warning
-val BirthdayColor = DS.pick
-val StaffColor = DS.pick
-val AnniversaryColor = DS.sys
+// DS トークン由来の 4 色は、現在のモードを合成から引く (`DS` と同じ形の @Composable プロパティ)。
+val ReleaseColor: Color @Composable @ReadOnlyComposable get() = DS.warning
+val BirthdayColor: Color @Composable @ReadOnlyComposable get() = DS.pick
+val StaffColor: Color @Composable @ReadOnlyComposable get() = DS.pick
+val AnniversaryColor: Color @Composable @ReadOnlyComposable get() = DS.sys
 
 /** チケット系 (受付期間・当落発表)。公演(青)・リリース(橙)・誕生日(桃) と被らない藍 (iOS と同じ色域)。 */
 val TicketColor = Color(0xFF5856D6)
@@ -49,6 +51,7 @@ val TicketColor = Color(0xFF5856D6)
  * 誕生日は iOS がアイドルのイメージカラーを使うが、Android の `CalBirthdayRow` は
  * イメージカラーを運んでいないので既存のドットと同じ桃で塗る。
  */
+@Composable
 fun CalendarEntry.accentColor(): Color = when (this) {
     is CalendarEntry.Show -> brandColor(row.brandId)
     is CalendarEntry.Release -> ReleaseColor
@@ -64,6 +67,7 @@ fun CalendarEntry.accentColor(): Color = when (this) {
  * ブランド色には黄色 (#F5C900 系) や白系も普通にあるので、白固定にせず
  * 色エンジンの WCAG コントラスト判定で黒/白を選ばせる (iOS `accentInk` と同じ)。
  */
+@Composable
 fun CalendarEntry.accentInk(): Color = ImasTheme.onColor(accentColor())
 
 /**

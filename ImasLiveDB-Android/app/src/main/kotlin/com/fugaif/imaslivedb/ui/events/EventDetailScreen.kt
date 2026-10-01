@@ -93,6 +93,8 @@ import com.fugaif.imaslivedb.ui.edit.ShowEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.fugaif.imaslivedb.ui.share.SocialShare
@@ -137,7 +139,7 @@ fun EventDetailScreen(
     val seed: String? = if (uiState.isJoint) null else uiState.brandColorHex
     // 画面の部品に渡す brand はブランド ID (部品がマスタの色へ引く)。
     val brand = uiState.brandId
-    val t = ImasTheme.derive(seed, uiState.brandColorHex, dark = true)
+    val t = imasTheme(seed, uiState.brandColorHex)
 
     // ブランド行の行き先には brand_id が要るが、UiState が持つのは表示名と色だけ。
     // この画面の担当範囲外である ViewModel を変えずに済ませるため、ここで 1 回だけ引く
@@ -601,7 +603,7 @@ private fun RoleSection(
     brand: String?,
     onIdolClick: (String) -> Unit
 ) {
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     if (attendance.shows.size > 1) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             attendance.shows.forEachIndexed { idx, show ->
@@ -731,7 +733,7 @@ private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
 @Composable
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
     Column {
         ImasSectionHeader(title = "チケット情報", tight = true)
@@ -776,7 +778,7 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
 @Composable
 private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
-    val t = ImasTheme.forBrand(seed, brand)
+    val t = imasThemeForBrand(seed, brand)
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(sale.kindLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = t.accent)

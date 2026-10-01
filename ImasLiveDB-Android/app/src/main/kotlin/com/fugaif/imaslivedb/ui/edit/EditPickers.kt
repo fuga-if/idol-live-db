@@ -63,7 +63,7 @@ import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -288,9 +288,7 @@ fun IdolMultiSelectSheet(
     // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
     // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
     // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
-    remember(state.idols) {
-        ImasTheme.prewarm(state.idols.map { it.color to it.brandId })
-    }
+    imasThemePrewarm(state.idols) { state.idols.map { it.color to it.brandId } }
 
     // 語で絞ってからブランドで絞る (索引は母集団全体で組んであるため)。並びは入力順のまま。
     val matched = rememberSearchFiltered(state.idols, query) {

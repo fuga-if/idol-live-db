@@ -146,8 +146,11 @@ private const val SECONDS_PER_DAY = 86_400.0
  *
  * 日付 → x の変換は 1 本ずつではなく [timelineXPositions] の一括版に寄せる
  * (帯が 1,000 本を超えるブランドがあり、要素ごとに FFI を跨ぐと目に見えて遅くなる)。
+ *
+ * [dark] を引数で受けるのは、これが合成の外 (derivedStateOf の中) で走る純粋計算だから。
+ * 帯の色は計算結果の一部なので、モードを合成から読める呼び出し元が渡す。
  */
-fun buildTimelinePlan(bars: List<TimelineBarRecord>, pointsPerDay: Double): TimelinePlan? {
+fun buildTimelinePlan(bars: List<TimelineBarRecord>, pointsPerDay: Double, dark: Boolean): TimelinePlan? {
     if (bars.isEmpty()) return null
     val range = timelineYearRange(
         bars.map { TimelineBarPeriod(it.startEpochSeconds, it.endEpochSeconds) }
@@ -227,7 +230,7 @@ fun buildTimelinePlan(bars: List<TimelineBarRecord>, pointsPerDay: Double): Time
         }
 
         laneBars.forEachIndexed { index, bar ->
-            val theme = barColors(bar)
+            val theme = barColors(bar, dark)
             placed += PlacedBar(
                 bar = bar,
                 x = xs[index].toFloat(),
@@ -290,18 +293,18 @@ private fun markOffsets(bar: TimelineBarRecord, barWidth: Double, pointsPerDay: 
  * 読めなくなる。ブランド色を基準にすれば、全ブランドではブランドごとにまとまり、
  * 1 ブランドでもシリーズが見分けられる。
  */
-private fun barColors(bar: TimelineBarRecord): Pair<Color, Color> {
+private fun barColors(bar: TimelineBarRecord, dark: Boolean): Pair<Color, Color> {
     val seed = bar.seedHex
     if (seed == null) {
         // ブランド未設定 (稀) のときだけ分類キー由来の色にフォールバックする。
         // ImasTheme にこの入口が無いので、コアの導出をここで直に呼ぶ。
-        val colors = themeDeriveForCategoryKey(bar.categoryKey, true)
+        val colors = themeDeriveForCategoryKey(bar.categoryKey, dark)
         return colors.accent.toComposeColor() to colors.chipText.toComposeColor()
     }
     val theme = if (bar.lane == TimelineBarLane.MUSIC) {
-        ImasTheme.derive(variantHex(seed, bar.categoryKey), dark = true)
+        ImasTheme.derive(hex = variantHex(seed, bar.categoryKey), dark = dark)
     } else {
-        ImasTheme.derive(seed, null, dark = true)
+        ImasTheme.derive(seed, null, dark)
     }
     return theme.accent to theme.chipText
 }

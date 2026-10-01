@@ -47,6 +47,7 @@ fun tagCategoryOptions(domain: TagDomain): List<Pair<String, String>> = when (do
 fun tagCategoryLabel(category: String?): String =
     TAG_CATEGORIES.firstOrNull { it.first == category }?.second ?: (category ?: "")
 
+@Composable
 fun tagCategoryColor(category: String?): Color = when (category) {
     "mood" -> Color(0xFFAF52DE)
     "scene" -> Color(0xFF0A84FF)
@@ -58,6 +59,7 @@ fun tagCategoryColor(category: String?): Color = when (category) {
 fun idolTagCategoryLabel(category: String?): String =
     TAG_CATEGORIES_IDOL.firstOrNull { it.first == category }?.second ?: (category ?: "")
 
+@Composable
 fun idolTagCategoryColor(category: String?): Color = when (category) {
     "personality" -> Color(0xFFFF375F)
     "charm" -> Color(0xFFBF5AF2)
@@ -69,6 +71,7 @@ fun idolTagCategoryColor(category: String?): Color = when (category) {
 fun unitTagCategoryLabel(category: String?): String =
     TAG_CATEGORIES_UNIT.firstOrNull { it.first == category }?.second ?: (category ?: "")
 
+@Composable
 fun unitTagCategoryColor(category: String?): Color = when (category) {
     "concept" -> Color(0xFF5E5CE6)
     "mood" -> Color(0xFFAF52DE)

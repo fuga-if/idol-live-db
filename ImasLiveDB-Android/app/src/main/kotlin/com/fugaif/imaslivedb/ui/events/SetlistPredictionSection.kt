@@ -50,7 +50,7 @@ import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.polls.SongPollCandidatePicker
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.ForecastSongRecord
 import uniffi.imas_core.voteLimitPerTarget
 import kotlin.math.roundToInt
@@ -85,7 +85,7 @@ fun SetlistPredictionSection(
         authState.startCommunityEdit(promptLogin = viewModel::requestLogin, present = action)
     }
 
-    val t = ImasTheme.derive(seed, null, dark = true)
+    val t = imasTheme(seed, null)
     val limit = remember { voteLimitPerTarget().toInt() }
     val remaining = state.remaining
     // 未ログインはログイン誘導のため常に押せる (残票はログイン後に効く)。
@@ -247,7 +247,7 @@ private fun PredictionRowView(
     canAddVote: Boolean,
     onVote: () -> Unit
 ) {
-    val t = ImasTheme.derive(seed, null, dark = true)
+    val t = imasTheme(seed, null)
     val voteDisabled = !row.hasUserVoted && !canAddVote
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -343,7 +343,7 @@ private fun ForecastRowView(
     isPromoting: Boolean,
     onPromote: () -> Unit
 ) {
-    val t = ImasTheme.derive(seed, null, dark = true)
+    val t = imasTheme(seed, null)
     // 札は表示の都合で先頭 2 個まで (並びはコアの優先順)。
     val reasonLabels = song.reasons.take(2).map { it.label }
     Row(

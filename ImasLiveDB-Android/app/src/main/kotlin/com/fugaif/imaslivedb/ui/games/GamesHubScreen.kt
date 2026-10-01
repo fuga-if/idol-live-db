@@ -63,7 +63,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasListContainer
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.GameRecord
 import uniffi.imas_core.QuizGrade
 import uniffi.imas_core.gameProgressBestRatePercent
@@ -219,7 +219,7 @@ private fun TierListRow(subject: SortMakerSubject, savedCount: Int, onClick: () 
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(ImasTheme.derive(null, null, dark = true).accent)
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(imasTheme(null, null).accent)
         ) {
             Icon(Icons.Filled.Layers, contentDescription = null, tint = DS.surface, modifier = Modifier.size(20.dp))
         }
@@ -248,7 +248,7 @@ private fun SortMakerRow(subject: SortMakerSubject, saved: SortMakerSession?, on
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(ImasTheme.derive(null, null, dark = true).accent)
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(imasTheme(null, null).accent)
         ) {
             Icon(
                 if (subject == SortMakerSubject.SONG) Icons.Filled.MusicNote else Icons.Filled.Person,

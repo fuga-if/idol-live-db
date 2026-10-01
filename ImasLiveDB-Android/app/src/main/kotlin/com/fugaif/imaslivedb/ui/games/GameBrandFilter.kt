@@ -9,8 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.ui.components.ImasFilterChip
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * ゲーム/クイズ出題ブランドの複数選択チップ (「全て」+ 各ブランド)。
@@ -25,7 +25,7 @@ fun GameBrandFilterGrid(
     onClearAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val neutralAccent = ImasTheme.derive(null, null, dark = true).accent
+    val neutralAccent = imasTheme(null, null).accent
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

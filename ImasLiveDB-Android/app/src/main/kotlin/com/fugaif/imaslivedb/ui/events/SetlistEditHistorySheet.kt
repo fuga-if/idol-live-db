@@ -110,6 +110,7 @@ fun SetlistEditHistorySheet(showId: String, showName: String, onDismiss: () -> U
  * 操作種別のラベルと色。「最近の編集」画面の同名の表と同じ対応にしてある
  * (向こうは private なので参照できない — 表を足すときは両方直すこと)。
  */
+@Composable
 private fun opDesign(op: String): Pair<String, Color> = when (op) {
     "create" -> "追加" to DS.success
     "update", "replace" -> "更新" to Color(0xFF4A90D9)

@@ -17,7 +17,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasColorsDark
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 
 /**
@@ -26,9 +26,16 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
  * ## なぜ DS をそのまま使えないか
  *
  * Glance は Compose とは別の描画系 (RemoteViews) で、色は [ColorProvider]、文字は
- * Glance 独自の [TextStyle] を要求する。アプリ本体の [DS] / [ImasTheme] を **値の出どころ**
- * として引き、ここで Glance の型に包み直すだけにする。ウィジェット側のコードで 16 進や
- * `Color(0xFF…)` を直書きしないこと (アプリと色がずれる)。
+ * Glance 独自の [TextStyle] を要求する。アプリ本体のトークン ([ImasColorsDark] /
+ * [ImasTheme]) を **値の出どころ** として引き、ここで Glance の型に包み直すだけにする。
+ * ウィジェット側のコードで 16 進や `Color(0xFF…)` を直書きしないこと (アプリと色がずれる)。
+ *
+ * ## ここだけ端末のライト/ダーク設定に追従しない
+ *
+ * アプリ本体はモードに追従する (`DS` が合成から現在のトークンを引く) が、ウィジェットは
+ * ダーク側のトークンで固定する。ウィジェットが載るのはアプリの面ではなく**壁紙**で、
+ * 明るい壁紙・暗い壁紙のどちらでも読めるように濃い面を敷いて白抜きにするのが Glance の
+ * 定石だから。ここを追従させると、ライトモード + 明るい壁紙で白い板に白文字になる。
  *
  * ## ブランド色だけは DB 由来
  *
@@ -39,18 +46,18 @@ import com.fugaif.imaslivedb.ui.theme.ImasTheme
  */
 object WidgetTheme {
 
-    /** ウィジェットの下地。純黒 (DS.bg) だと壁紙から浮くので、アプリのカード面と同じ surface。 */
-    val surface: Color = DS.surface
+    /** ウィジェットの下地。地 (DS.bg) だと壁紙から浮くので、アプリのカード面と同じ surface。 */
+    val surface: Color = ImasColorsDark.surface
 
-    val ink: Color = DS.ink
-    val ink2: Color = DS.ink2
-    val ink3: Color = DS.ink3
+    val ink: Color = ImasColorsDark.ink
+    val ink2: Color = ImasColorsDark.ink2
+    val ink3: Color = ImasColorsDark.ink3
 
     /** チケット締切の強調色 (iOS の .orange に対応する DS トークン)。 */
-    val warning: Color = DS.warning
+    val warning: Color = ImasColorsDark.warning
 
     /** ブランド色が引けないときのアクセント。 */
-    val fallbackAccent: Color = DS.pick
+    val fallbackAccent: Color = ImasColorsDark.pick
 
     /** ウィジェットの角丸。Android 12 未満では無視される (システム側が角丸を持たないため)。 */
     val corner = 16.dp
@@ -67,7 +74,7 @@ object WidgetTheme {
         return runCatching {
             val theme = ImasTheme.derive(seed = seed, brand = null, dark = true)
             BrandAccent(accent = theme.accent, tint = theme.tint)
-        }.getOrElse { BrandAccent(accent = fallbackAccent, tint = DS.fill) }
+        }.getOrElse { BrandAccent(accent = fallbackAccent, tint = ImasColorsDark.fill) }
     }
 
     // MARK: - テキストスタイル (ウィジェットの中で sp を直書きしないための入口)

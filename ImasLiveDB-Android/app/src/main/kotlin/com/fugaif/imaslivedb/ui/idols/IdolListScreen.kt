@@ -70,7 +70,8 @@ import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import com.fugaif.imaslivedb.ui.units.UnitListBody
 import com.fugaif.imaslivedb.ui.units.UnitListMode
 import com.fugaif.imaslivedb.ui.units.UnitListViewModel
@@ -111,12 +112,10 @@ fun IdolListScreen(
     //
     // 1 行が引く組は 2 通り。ImasLeadBar は brandId をブランド色 hex に解決してから derive し、
     // ImasAvatar と件数テキストは brandId をそのまま渡す。両方温めないと片方が行ごとに跨ぐ。
-    remember(filteredIdols) {
-        ImasTheme.prewarm(
-            filteredIdols.flatMap {
-                listOf(it.color to it.brandId)
-            }
-        )
+    imasThemePrewarm(filteredIdols) {
+        filteredIdols.flatMap {
+            listOf(it.color to it.brandId)
+        }
     }
 
     val flatHeader = if (state.sortOrder.keepsBrandGrouping) {
@@ -389,7 +388,7 @@ private fun IdolRow(
                 metric,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                color = ImasTheme.forBrand(idol.color, idol.brandId).accent,
+                color = imasThemeForBrand(idol.color, idol.brandId).accent,
                 modifier = Modifier.padding(end = 4.dp)
             )
         }

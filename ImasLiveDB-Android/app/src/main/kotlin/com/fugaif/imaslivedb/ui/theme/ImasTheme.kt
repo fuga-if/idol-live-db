@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import uniffi.imas_core.ImasThemeColors
@@ -7,6 +10,7 @@ import uniffi.imas_core.ThemeRgb
 import uniffi.imas_core.ThemeSeedRequest
 import uniffi.imas_core.themeDerive
 import uniffi.imas_core.themeDeriveBatch
+import uniffi.imas_core.themeEnsureContrast
 import uniffi.imas_core.themeOnColor
 
 // =============================================================================
@@ -62,14 +66,14 @@ data class ImasTheme(
          * [brand] は**ブランドカラーの hex**。ブランド ID から引くときは [forBrand]
          * (ID をここへ素通しすると hex として読まれ、グレーや偶然の色になる)。
          */
-        fun derive(seed: String?, brand: String? = null, dark: Boolean = true): ImasTheme =
+        fun derive(seed: String?, brand: String? = null, dark: Boolean): ImasTheme =
             memoized(Key(seed, brand, dark))
 
         /**
          * シード hex → [brandId] (ブランド ID) のマスタの色 → ニュートラルの順で導く。
          * ID → 色はスナップショットのブランドから引く ([BrandColors])。
          */
-        fun forBrand(seed: String?, brandId: String?, dark: Boolean = true): ImasTheme =
+        fun forBrand(seed: String?, brandId: String?, dark: Boolean): ImasTheme =
             derive(seed, BrandColors.hex(brandId), dark)
 
         /**
@@ -78,7 +82,7 @@ data class ImasTheme(
          * 素の `Color` をそのまま塗るのではなく、通常の seed/brand と同じ WCAG コントラスト
          * 計算を経由するので、選択色がどんな明るさでも前景色が自動で読める側に倒れる。
          */
-        fun derive(color: Color, dark: Boolean = true): ImasTheme =
+        fun derive(color: Color, dark: Boolean): ImasTheme =
             derive(seed = color.toSeedHex(), brand = null, dark = dark)
 
         /** 単一の有効な hex からトークンを導出。無効な hex はコアがニュートラルへ倒す。 */
@@ -88,6 +92,14 @@ data class ImasTheme(
         /** 任意の背景 Color の上に乗せる前景色を WCAG で黒/白から選ぶ。 */
         fun onColor(background: Color): Color =
             themeOnColor(background.toThemeRgb()).toColor()
+
+        /**
+         * [foreground] の色相・彩度は保ったまま、[background] から離れる方向へ明度を寄せて
+         * [minRatio] 以上のコントラストにする (コアの `ensure_contrast`)。足りていればそのまま返り、
+         * 満たせない組み合わせでは寄せられる所まで寄せた色が返る。
+         */
+        fun ensureContrast(foreground: Color, background: Color, minRatio: Double): Color =
+            themeEnsureContrast(foreground.toThemeRgb(), background.toThemeRgb(), minRatio).toColor()
 
         /**
          * 一覧 1 画面ぶんのテーマを **1 回の FFI** でまとめて温める。
@@ -101,7 +113,7 @@ data class ImasTheme(
          * @param seeds 行ごとの (seed hex, ブランド ID) の組。[forBrand] に渡すのと同じ形。
          */
         @Synchronized
-        fun prewarm(seeds: List<Pair<String?, String?>>, dark: Boolean = true) {
+        fun prewarm(seeds: List<Pair<String?, String?>>, dark: Boolean) {
             // 重複と既出を落としてから 1 往復。順序を保つのは、結果を同じ並びで受けるため。
             val missing = LinkedHashSet<Key>()
             for ((seed, brandId) in seeds) {
@@ -152,3 +164,53 @@ private fun Color.toThemeRgb(): ThemeRgb =
 
 /** `Color` 直指定の入口を、コアが受け取る hex 1 本に寄せるための橋。 */
 private fun Color.toSeedHex(): String = "#%06X".format(toArgb() and 0xFFFFFF)
+
+// =============================================================================
+// 合成の中からの入口
+//
+// `dark` の既定値は**置かない**。既定を持たせると、渡し忘れた画面だけが端末設定に
+// 関係なくダークのまま残り、しかもコンパイルは通ってしまう (実際にライト配色が
+// 一度も世に出ないまま死にコードになっていたのがこれ)。
+//
+// 代わりにモードは [LocalImasColors] から読む。合成の中にいる呼び出し元は下の
+// `imasTheme(...)` を使えば渡し忘れようが無く、合成の外 (Glance ウィジェット、
+// DrawScope、derivedStateOf の中の計算) は `dark` を明示する以外に選択肢が無い。
+// iOS が `@Environment(\.colorScheme)` を読むのと同じ構造。
+// =============================================================================
+
+/**
+ * シード hex (アイドル色) → 現在のモードのトークン。無ければ [brand] → ニュートラル。
+ * [brand] は**ブランドカラーの hex** ([ImasTheme.derive] と同じ)。ブランド ID なら [imasThemeForBrand]。
+ */
+@Composable
+@ReadOnlyComposable
+fun imasTheme(seed: String?, brand: String? = null): ImasTheme =
+    ImasTheme.derive(seed, brand, LocalImasColors.current.dark)
+
+/** シード hex → ブランド ID のマスタの色 → ニュートラルの順で、現在のモードのトークンを導く ([ImasTheme.forBrand])。 */
+@Composable
+@ReadOnlyComposable
+fun imasThemeForBrand(seed: String?, brandId: String?): ImasTheme =
+    ImasTheme.forBrand(seed, brandId, LocalImasColors.current.dark)
+
+/** 実体色から現在のモードのトークンを導出する ([ImasTheme.derive] の Color 版)。 */
+@Composable
+@ReadOnlyComposable
+fun imasTheme(color: Color): ImasTheme =
+    ImasTheme.derive(color, LocalImasColors.current.dark)
+
+/**
+ * 一覧 1 画面ぶんのテーマを、行が組まれる前に 1 回の FFI でまとめて温める
+ * ([ImasTheme.prewarm] の合成側の入口)。
+ *
+ * @param population 母集団が入れ替わったら変わる安い値。これが同じなら温める物は 1 件も
+ *   無いので [seeds] の評価ごと省く。モードは内部で鍵に足すので渡さなくてよい。
+ * @param seeds 行ごとの (seed hex, ブランド ID) の組。[ImasTheme.prewarm] に渡すのと同じ形。
+ */
+@Composable
+fun imasThemePrewarm(vararg population: Any?, seeds: () -> List<Pair<String?, String?>>) {
+    val dark = LocalImasColors.current.dark
+    // 温めは remember の中で行う。LaunchedEffect / SideEffect はコンポーズの後なので、
+    // 初回に組まれる行には間に合わない (埋めるのは純粋計算のメモだけなので再コンポーズも誘発しない)。
+    remember(*population, dark) { ImasTheme.prewarm(seeds(), dark); Unit }
+}

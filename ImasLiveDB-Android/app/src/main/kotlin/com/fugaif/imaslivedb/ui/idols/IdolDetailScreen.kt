@@ -107,6 +107,7 @@ import com.fugaif.imaslivedb.ui.filtered.IdolFilterKind
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import kotlinx.coroutines.launch
 import uniffi.imas_core.IdolProfileSource
 import uniffi.imas_core.RowAction
@@ -157,7 +158,7 @@ fun IdolDetailScreen(
     // 一般ユーザーは修正リクエスト止まりで反映されないため、ここに入ることはない。
     var editedIdol by remember(idolId) { mutableStateOf<Idol?>(null) }
     val idol = editedIdol ?: state.idol
-    val t = ImasTheme.forBrand(idol?.color, idol?.brandId)
+    val t = imasThemeForBrand(idol?.color, idol?.brandId)
     var segment by rememberSaveable(idolId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
@@ -485,7 +486,7 @@ private fun LiveBody(
 /** 次の出演カード。今日以降で最も近い公演 (state.nextShow) をタップで公演詳細へ。 */
 @Composable
 private fun UpcomingCard(row: CastShowRow, idol: Idol, onClick: (String) -> Unit, modifier: Modifier = Modifier) {
-    val t = ImasTheme.forBrand(idol.color, idol.brandId)
+    val t = imasThemeForBrand(idol.color, idol.brandId)
     Row(
         modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(14.dp))
@@ -580,7 +581,7 @@ private fun SongsBody(state: IdolDetailUiState, idol: Idol, onUnit: (String) -> 
 
 @Composable
 private fun UnitChip(unit: ImasUnit, idol: Idol, onClick: () -> Unit) {
-    val t = ImasTheme.forBrand(idol.color, idol.brandId)
+    val t = imasThemeForBrand(idol.color, idol.brandId)
     Text(
         unit.displayName,
         fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.chipText,
@@ -891,7 +892,7 @@ private fun SongRow(song: Song, seed: String?, performCount: Int? = null, onClic
 
 @Composable
 private fun ShowRow(row: CastShowRow, idol: Idol, onClick: () -> Unit) {
-    val t = ImasTheme.forBrand(idol.color, idol.brandId)
+    val t = imasThemeForBrand(idol.color, idol.brandId)
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically

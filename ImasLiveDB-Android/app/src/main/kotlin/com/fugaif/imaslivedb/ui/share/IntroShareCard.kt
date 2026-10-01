@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 // =============================================================================
 // 機能 4: イントロドンの結果シェアカード
@@ -239,12 +239,17 @@ private fun IntroShareFooter(modifier: Modifier = Modifier) {
     }
 }
 
-/** 正答率 → グレード表記と色。iOS IntroResultShareCard.grade と同じ刻み。 */
+/**
+ * 正答率 → グレード表記と色。iOS IntroResultShareCard.grade と同じ刻み。
+ *
+ * `@Composable` なのは色が DS トークン (現在のモードで決まる) だから。刻みの判定自体は純粋。
+ */
+@Composable
 private fun introGrade(percentage: Int): Pair<String, Color> = when {
     percentage >= 100 -> "パーフェクト！" to DS.favorite
     percentage >= 80 -> "すごい！" to DS.success
     // iOS の accentBlue に相当する固定色は Android に無いので、ゲーム画面と同じアクセントを使う。
-    percentage >= 60 -> "なかなか！" to ImasTheme.derive(seed = null, brand = null, dark = true).accent
+    percentage >= 60 -> "なかなか！" to imasTheme(seed = null, brand = null).accent
     percentage >= 40 -> "もう少し！" to DS.warning
     else -> "練習あるのみ！" to DS.pick
 }

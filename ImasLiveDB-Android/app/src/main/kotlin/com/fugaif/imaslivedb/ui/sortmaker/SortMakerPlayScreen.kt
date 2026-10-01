@@ -70,7 +70,8 @@ import com.fugaif.imaslivedb.ui.components.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -423,7 +424,7 @@ private fun ProgressHeader(model: SortMakerPlayViewModel, state: SortMakerPlayUi
                     .fillMaxHeight()
                     .fillMaxWidth(progress.coerceIn(0.02f, 1f))
                     .clip(RoundedCornerShape(3.dp))
-                    .background(ImasTheme.derive(null, null, dark = true).accent)
+                    .background(imasTheme(null, null).accent)
             )
         }
     }
@@ -435,7 +436,7 @@ private fun VsBadge(modifier: Modifier = Modifier) {
         modifier = modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(ImasTheme.derive(null, null, dark = true).accent),
+            .background(imasTheme(null, null).accent),
         contentAlignment = Alignment.Center
     ) {
         Text("VS", fontSize = 13.sp, fontWeight = FontWeight.Black, color = DS.surface)
@@ -494,7 +495,7 @@ fun SortMakerCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val theme = ImasTheme.derive(item?.seed, com.fugaif.imaslivedb.ui.theme.BrandColors.hex(item?.brandId), dark = true)
+    val theme = imasThemeForBrand(item?.seed, item?.brandId)
     val scaleTarget = if (isPicked) 1.03f else if (isDimmed) 0.97f else 1f
     val scale by animateFloatAsState(scaleTarget, label = "sortMakerCardScale")
     Column(

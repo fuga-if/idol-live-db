@@ -6,7 +6,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import com.fugaif.imaslivedb.data.core.TextSearch
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /** iOS の `.opacity(0.28)` と同値。文字が読める濃さで、かつ当たった箇所が拾える濃さ。 */
 private const val HIGHLIGHT_ALPHA = 0.28f
@@ -27,7 +27,7 @@ fun rememberHighlighted(source: String, needle: String?): AnnotatedString {
     val trimmed = needle?.trim().orEmpty()
     // 行のブランド色ではなく無彩シードのアクセント。ハイライトは「当たった箇所」を示す印で
     // あって、行の帰属を示す色ではない (ブランド色だとリードバーと意味が混ざる)。
-    val accent = ImasTheme.derive(seed = null, dark = true).accent
+    val accent = imasTheme(seed = null).accent
     return remember(source, trimmed, accent) {
         val span = trimmed.takeIf { it.isNotEmpty() }?.let { TextSearch.matchRange(source, it) }
         if (span == null) {

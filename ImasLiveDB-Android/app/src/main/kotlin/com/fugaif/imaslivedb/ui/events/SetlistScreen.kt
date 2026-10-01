@@ -99,7 +99,6 @@ import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import uniffi.imas_core.PerformerNameMode
 import uniffi.imas_core.RowNoteTone
 import uniffi.imas_core.Lineup
@@ -115,6 +114,7 @@ import uniffi.imas_core.ticketPriceRanges
 import uniffi.imas_core.ticketsForKind
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.displayName
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -265,7 +265,7 @@ fun SetlistScreen(
                                 SetlistBreadcrumb(
                                     brandName = uiState.brandShortName,
                                     eventName = uiState.eventName,
-                                    accent = ImasTheme.derive(seedHex, null, dark = true).accent,
+                                    accent = imasTheme(seedHex, null).accent,
                                     onBrandClick = {
                                         uiState.brandId?.let {
                                             onFilteredEventsClick(EventFilterKind.BRAND, it)
@@ -622,7 +622,7 @@ private fun VoteHintRow(isSignedIn: Boolean, onLoginClick: () -> Unit) {
 @Composable
 private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: String?) {
     if (noteGroups.isEmpty()) return
-    val accent = ImasTheme.derive(seed, null, dark = true).accent
+    val accent = imasTheme(seed, null).accent
     Column(
         modifier = Modifier.padding(top = 1.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -839,7 +839,7 @@ private fun SetlistSimpleRow(
     brandHex: String?,
     onClick: () -> Unit
 ) {
-    val titleColor = brandHex?.let { ImasTheme.derive(it, null, dark = true).accent } ?: DS.ink
+    val titleColor = brandHex?.let { imasTheme(it, null).accent } ?: DS.ink
     Row(
         modifier = Modifier
             .fillMaxWidth()

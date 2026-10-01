@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.*
 import com.fugaif.imaslivedb.ui.theme.*
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.MasteryAxis
 import uniffi.imas_core.MasteryBulkScope
 import uniffi.imas_core.MasteryGroup
@@ -293,7 +294,7 @@ private fun subtitle(g: MasteryGroup, state: MasteryUiState): String {
 /** 全体の進み具合のリング。回収率の CollectionRing と同じ寸法・描き方。 */
 @Composable
 fun MasteryRing(fraction: Double, modifier: Modifier = Modifier) {
-    val t = ImasTheme.derive(null, null, dark = true)
+    val t = imasTheme(null, null)
     val clamped = fraction.coerceIn(0.0, 1.0)
     Box(modifier, contentAlignment = Alignment.Center) {
         CircularProgressIndicator(

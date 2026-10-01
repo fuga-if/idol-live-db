@@ -578,7 +578,9 @@ private fun OpBadge(op: String) {
 }
 
 /** record_type / op の表示メタ + 相対時刻整形。iOS `EditFeedFormat` の移植。 */
+// 色は DS トークン (現在のモードで決まる) なので、色を返す表だけ @Composable。
 private object EditFeedFormat {
+    @Composable
     fun recordTypeDesign(type: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, Color> = when (type) {
         "Event" -> Icons.Filled.Event to Color(0xFF9C6ADE)
         "Show" -> Icons.Filled.MusicNote to Color(0xFF6A7FDE)
@@ -605,6 +607,7 @@ private object EditFeedFormat {
         else -> type
     }
 
+    @Composable
     fun opDesign(op: String): Pair<String, Color> = when (op) {
         "create" -> "追加" to DS.success
         "update", "replace" -> "更新" to Color(0xFF4A90D9)

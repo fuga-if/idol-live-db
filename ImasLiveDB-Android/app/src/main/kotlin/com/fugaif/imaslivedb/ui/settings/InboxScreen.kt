@@ -41,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * お知らせ受信箱。iOS `Views/Settings/InboxView.swift` の移植。
@@ -107,7 +107,7 @@ fun InboxScreen(onBack: () -> Unit, onOpenWidgetHowTo: (() -> Unit)? = null) {
 
 @Composable
 private fun AnnouncementRow(item: Announcement, unread: Boolean, onClick: () -> Unit) {
-    val theme = ImasTheme.derive(item.tint)
+    val theme = imasTheme(item.tint)
     Row(
         modifier = Modifier
             .fillMaxWidth()

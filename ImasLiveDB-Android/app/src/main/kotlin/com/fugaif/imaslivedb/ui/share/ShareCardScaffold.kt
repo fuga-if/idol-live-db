@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.launch
 
 // =============================================================================
@@ -458,7 +459,7 @@ private fun ShareCardButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val accent = ImasTheme.derive(seed = null, brand = null, dark = true).accent
+    val accent = imasTheme(seed = null, brand = null).accent
     val bg = if (filled) accent else DS.fill
     val fg = if (filled) Color.White else DS.ink
     Row(

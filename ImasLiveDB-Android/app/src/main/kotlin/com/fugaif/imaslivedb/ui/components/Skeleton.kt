@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -55,12 +56,15 @@ private fun shimmerOverlay(content: @Composable () -> Unit) {
             val w = size.width
             val center = (p * 2f - 0.5f) * w
             val band = w * 0.4f
+            // 加算で重ねる (iOS の `.blendMode(.plusLighter)` と同じ)。ふつうの重ね方だと、ライトの明るい地では
+            // 白 12% がほとんど足されず、光が流れていないように見える。
             drawRect(
                 brush = Brush.linearGradient(
                     colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.12f), Color.Transparent),
                     start = Offset(center - band, 0f),
                     end = Offset(center + band, size.height)
-                )
+                ),
+                blendMode = BlendMode.Plus
             )
         }
     ) { content() }

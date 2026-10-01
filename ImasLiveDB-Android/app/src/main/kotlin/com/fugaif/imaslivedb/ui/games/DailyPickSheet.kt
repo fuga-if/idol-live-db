@@ -47,7 +47,7 @@ import com.fugaif.imaslivedb.ui.components.ImasLeadBar
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
 import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.DailyPickKind
 
 /**
@@ -230,7 +230,7 @@ private fun PickCard(
     onVote: () -> Unit,
     thumbnail: @Composable () -> Unit
 ) {
-    val accent = ImasTheme.derive(seed).accent
+    val accent = imasTheme(seed).accent
     Row(
         modifier = Modifier
             .fillMaxWidth()

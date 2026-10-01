@@ -67,6 +67,7 @@ import com.fugaif.imaslivedb.ui.polls.PollAchievementBadges
 import com.fugaif.imaslivedb.ui.tags.UnitTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 
 /**
  * ユニット詳細。iOS 構造: hero(ユニット名) → [楽曲/メンバー/コミュニティ] セグメント。
@@ -92,7 +93,7 @@ fun UnitDetailScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val unit = state.unit
-    val t = ImasTheme.forBrand(null, unit?.brandId)
+    val t = imasThemeForBrand(null, unit?.brandId)
     var segment by rememberSaveable(unitId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }

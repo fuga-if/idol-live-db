@@ -68,7 +68,7 @@ import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.games.GameBrandFilterGrid
 import com.fugaif.imaslivedb.ui.songs.IdolMultiPickerPage
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -380,7 +380,7 @@ private fun HeaderCard(subject: SortMakerSubject, purpose: SortMakerPurpose) {
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(ImasTheme.derive(null, null, dark = true).accent),
+            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(imasTheme(null, null).accent),
             contentAlignment = Alignment.Center
         ) {
             Icon(if (purpose == SortMakerPurpose.SORT) Icons.Filled.SwapHoriz else Icons.Filled.Layers, null, tint = DS.surface)
@@ -429,7 +429,7 @@ private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
                 }
                 Text(s.scopeLabel, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
             }
-            val accent = ImasTheme.derive(null, null, dark = true).accent
+            val accent = imasTheme(null, null).accent
             Box(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -444,7 +444,7 @@ private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
             LinearProgressIndicator(
                 progress = { stateResult.progressPercent.toFloat() / 100f },
                 modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter),
-                color = ImasTheme.derive(null, null, dark = true).accent,
+                color = imasTheme(null, null).accent,
                 trackColor = DS.fill
             )
         }
@@ -543,7 +543,7 @@ private fun SongSection(
             if (state.scope.idolIds.isNotEmpty()) {
                 Text(
                     "アイドルの指定を外す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = ImasTheme.derive(null, null, dark = true).accent,
+                    color = imasTheme(null, null).accent,
                     modifier = Modifier.clickable(onClick = onClearIdols)
                 )
             }
@@ -626,7 +626,7 @@ private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject, pur
 
 @Composable
 private fun StartBar(canStart: Boolean, purpose: SortMakerPurpose, onStart: () -> Unit) {
-    val accent = ImasTheme.derive(null, null, dark = true).accent
+    val accent = imasTheme(null, null).accent
     Box(
         modifier = Modifier.fillMaxWidth().background(DS.bg).padding(horizontal = 16.dp, vertical = 12.dp)
     ) {

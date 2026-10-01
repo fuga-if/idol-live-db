@@ -61,7 +61,7 @@ import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
 import com.fugaif.imaslivedb.ui.components.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -116,9 +116,7 @@ fun UnitPollCandidatePicker(
     // FFI を跨ぐ。行が組まれる前に母集団ぶんを 1 往復で温め、行はメモに当てる。
     // 鍵を filtered ではなく母集団にするのは、行が引く色が絞り込みで変わらないため
     // (打鍵のたびに温め直しても新しい組は 1 件も無い)。
-    remember(state.units) {
-        ImasTheme.prewarm(state.units.map { it.id to it.brandId })
-    }
+    imasThemePrewarm(state.units) { state.units.map { it.id to it.brandId } }
 
     val matched = rememberSearchFiltered(state.units, query) { listOf(it.name, it.nameAlt, it.nameKana) }
     val filtered = remember(matched, selectedBrandId) {
