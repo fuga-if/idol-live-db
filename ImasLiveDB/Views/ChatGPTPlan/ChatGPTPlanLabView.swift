@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Sign in with ChatGPT の試作画面。サインイン → モデル一覧 → ストリーミング推論まで通す。
+/// Sign in with ChatGPT の管理画面 (試作)。サインイン / サインアウト / 使用状況 / 接続の記録。
+/// 質問するのはメイン画面右上から開くチャット (`AssistantChatView`)。
 ///
 /// 使えるのは ChatGPT Plus / Pro のアカウントだけ (プラン外は推論時に
 /// `subscription_sharing_user_not_eligible` で弾かれる)。
@@ -9,15 +10,6 @@ struct ChatGPTPlanLabView: View {
 
     @AppStorage("chatgpt_plan.browser_mode") private var browserModeRaw = ChatGPTPlanBrowser.Mode.authSession.rawValue
     @State private var signInError: String?
-    @State private var models: [ChatGPTPlanClient.Model] = []
-    @State private var modelsError: String?
-    @AppStorage("chatgpt_plan.model") private var selectedModel = ""
-    @State private var prompt = "アイドルマスターのライブで定番の曲を3つ、1行ずつ挙げて"
-    @State private var output = ""
-    @State private var outputError: String?
-    @State private var isStreaming = false
-    @State private var completed = false
-    @State private var streamTask: Task<Void, Never>?
     @State private var signOutNote: String?
 
     private var browserMode: Binding<ChatGPTPlanBrowser.Mode> {
@@ -30,12 +22,8 @@ struct ChatGPTPlanLabView: View {
     var body: some View {
         List {
             accountSection
-            if session.isSignedIn {
-                if session.canUsePlan {
-                    trySection
-                } else {
-                    planDisabledSection
-                }
+            if session.isSignedIn, !session.canUsePlan {
+                planDisabledSection
             }
             if !session.log.isEmpty || signInError != nil {
                 logSection
@@ -44,12 +32,8 @@ struct ChatGPTPlanLabView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(DS.bg.ignoresSafeArea())
-        .navigationTitle("ChatGPT で AI (試作)")
+        .navigationTitle("ChatGPT 連携 (試作)")
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: session.isSignedIn) {
-            if session.isSignedIn, session.canUsePlan, models.isEmpty { await loadModels() }
-        }
-        .onDisappear { streamTask?.cancel() }
     }
 
     // MARK: - アカウント
@@ -82,12 +66,10 @@ struct ChatGPTPlanLabView: View {
                         do { try await session.refresh() } catch { signInError = error.localizedDescription }
                     }
                 }
-                Link("ChatGPT の使用状況を見る", destination: URL(string: "https://chatgpt.com/settings/usage")!)
+                Link("ChatGPT の使用状況を見る (Manage usage)", destination: chatGPTUsageURL)
                 Button("サインアウト", role: .destructive) {
-                    streamTask?.cancel()
                     Task {
                         let revoked = await session.signOut()
-                        models = []
                         signOutNote = revoked ? nil : "ChatGPT 側の失効は確認できませんでした。ChatGPT の設定から連携を解除できます。"
                     }
                 }
@@ -149,53 +131,6 @@ struct ChatGPTPlanLabView: View {
         .disabled(session.isSigningIn)
     }
 
-    // MARK: - 試す
-
-    @ViewBuilder
-    private var trySection: some View {
-        Section {
-            if let modelsError {
-                Text(modelsError).font(.imasCaption).foregroundStyle(DS.warning)
-            }
-            Picker("モデル", selection: $selectedModel) {
-                if models.isEmpty { Text("読み込み中…").tag(selectedModel) }
-                ForEach(models) { model in
-                    Text(model.label).tag(model.slug)
-                }
-            }
-            TextField("聞きたいこと", text: $prompt, axis: .vertical)
-                .lineLimit(2...6)
-            Button {
-                isStreaming ? streamTask?.cancel() : send()
-            } label: {
-                Label(isStreaming ? "止める" : "送信", systemImage: isStreaming ? "stop.circle" : "paperplane")
-            }
-            .disabled(!isStreaming && (selectedModel.isEmpty || prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-
-            if !output.isEmpty || isStreaming {
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    Text(output.isEmpty ? "…" : output)
-                        .font(.imasBody)
-                        .textSelection(.enabled)
-                    HStack(spacing: DS.sp2) {
-                        if isStreaming { ProgressView().controlSize(.mini) }
-                        Text(isStreaming ? "生成中" : completed ? "Using ChatGPT plan ・ 完了" : "未完了")
-                            .font(.imasCaption2)
-                            .foregroundStyle(DS.ink3)
-                    }
-                }
-                .padding(.vertical, DS.sp2)
-            }
-            if let outputError {
-                Text(outputError).font(.imasCaption).foregroundStyle(DS.warning)
-            }
-        } header: {
-            Text("試す")
-        }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
-    }
-
     @ViewBuilder
     private var planDisabledSection: some View {
         Section {
@@ -231,50 +166,8 @@ struct ChatGPTPlanLabView: View {
         Task {
             do {
                 try await session.signIn(mode: browserMode.wrappedValue, intent: intent)
-                models = []
-                if session.canUsePlan { await loadModels() }
             } catch {
                 signInError = error.localizedDescription
-            }
-        }
-    }
-
-    private func loadModels() async {
-        modelsError = nil
-        do {
-            let token = try await session.validAccessToken()
-            models = try await ChatGPTPlanClient.listModels(accessToken: token)
-            if !models.contains(where: { $0.slug == selectedModel }) {
-                selectedModel = models.first?.slug ?? ""
-            }
-        } catch {
-            modelsError = error.localizedDescription
-        }
-    }
-
-    private func send() {
-        output = ""
-        outputError = nil
-        completed = false
-        isStreaming = true
-        let model = selectedModel
-        let text = prompt
-        streamTask = Task {
-            defer { isStreaming = false }
-            do {
-                let token = try await session.validAccessToken()
-                for try await event in ChatGPTPlanClient.stream(model: model, prompt: text, accessToken: token) {
-                    switch event {
-                    case .delta(let delta): output += delta
-                    case .completed: completed = true
-                    }
-                }
-                // 止めたときはストリームがエラー無しで終わるので、ここで拾う。
-                if Task.isCancelled { outputError = "止めました" }
-            } catch is CancellationError {
-                outputError = "止めました"
-            } catch {
-                outputError = error.localizedDescription
             }
         }
     }

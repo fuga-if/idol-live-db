@@ -71,6 +71,9 @@ struct ProduceTabView: View {
                     SettingsToolbarButton()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    AssistantToolbarButton()
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         AppAnalytics.tap("produce_tab.open_inbox")
                         showInbox = true

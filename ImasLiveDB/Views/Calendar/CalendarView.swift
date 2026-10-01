@@ -131,6 +131,9 @@ struct CalendarView: View {
                     SettingsToolbarButton()
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    AssistantToolbarButton()
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         AppAnalytics.tap("calendar.daily_pick")
                         showDailySong = true

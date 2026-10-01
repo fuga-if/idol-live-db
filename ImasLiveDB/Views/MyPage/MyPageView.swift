@@ -435,7 +435,7 @@ struct MyPageView: View {
                 ChatGPTPlanLabView()
             } label: {
                 HStack {
-                    Label("ChatGPT で AI (試作)", systemImage: "sparkles")
+                    Label("ChatGPT 連携 (試作)", systemImage: "sparkles")
                     Spacer()
                     Text(ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT")
                         .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)

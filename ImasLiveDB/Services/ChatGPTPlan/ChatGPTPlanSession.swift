@@ -60,7 +60,26 @@ final class ChatGPTPlanSession {
     private init() {
         registration = Self.load(Registration.self, key: Key.registration)
         tokens = Self.load(Tokens.self, key: Key.tokens)
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ChatGPTPlanScreenshotDemo") { installScreenshotDemo() }
+        #endif
     }
+
+    #if DEBUG
+    /// 画面確認用 (シミュレータに ChatGPT アカウントが無いので)。保存はしない。推論は通らない。
+    private func installScreenshotDemo() {
+        registration = Registration(clientID: "oaiapp_demo", subject: "demo", email: "producer@example.com")
+        tokens = Tokens(
+            accessToken: "demo", refreshToken: nil, idToken: nil, tokenType: "Bearer",
+            scopes: ChatGPTPlanAuth.scope.split(separator: " ").map(String.init),
+            expiresAt: .distantFuture
+        )
+        models = [
+            ChatGPTPlanClient.Model(slug: "gpt-5.6-luna", displayName: "GPT-5.6-Luna", visibility: "list"),
+            ChatGPTPlanClient.Model(slug: "gpt-6.1-sol", displayName: "GPT-6.1-Sol", visibility: "list"),
+        ]
+    }
+    #endif
 
     /// 端末ごとに 1 回だけ作って以後ずっと同じ値を送る。
     private var hostID: String {
@@ -174,6 +193,7 @@ final class ChatGPTPlanSession {
         )
         save(registration: newRegistration)
         save(tokens: newTokens)
+        models = []
         KeychainStore.delete(key: Key.pendingClientID)
         note("scope: \(newTokens.scopes.joined(separator: " "))")
         if !canUsePlan {
@@ -221,6 +241,16 @@ final class ChatGPTPlanSession {
         }
     }
 
+    // MARK: - モデル
+
+    /// サインイン中のアカウントで選べるモデル (サーバの並び順)。
+    private(set) var models: [ChatGPTPlanClient.Model] = []
+
+    func loadModelsIfNeeded() async throws {
+        guard models.isEmpty, canUsePlan else { return }
+        models = try await ChatGPTPlanClient.listModels(accessToken: validAccessToken())
+    }
+
     // MARK: - サインアウト
 
     /// 失効を試してからローカルのトークンを消す。登録 (client_id / アカウント) は残す。
@@ -234,6 +264,7 @@ final class ChatGPTPlanSession {
             revoked = (try? await ChatGPTPlanAuth.revoke(refreshToken: refreshToken, clientID: clientID)) != nil
         }
         clearTokens()
+        models = []
         return revoked
     }
 

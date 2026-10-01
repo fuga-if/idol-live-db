@@ -23,9 +23,46 @@ enum ChatGPTPlanClient {
         }
     }
 
+    /// Responses API の 1 リクエスト。`input` の各要素は JSON 1 項目ぶんの文字列
+    /// (store: false なので会話の履歴は毎回ここに積み直す)。
+    struct Request: Sendable {
+        var model: String
+        var instructions: String?
+        var input: [String]
+        /// `tools` に入れる配列 (JSON)。
+        var toolsJSON: String?
+        /// `text.format` に入れる構造化出力の指定 (JSON)。
+        var textFormatJSON: String?
+        /// 推論項目を暗号化して返してもらい、次のリクエストに積み直せるようにする。
+        var includeEncryptedReasoning = true
+    }
+
     enum StreamEvent: Sendable {
         case delta(String)
+        /// 関数呼び出しが始まった (名前だけ先に分かる)。
+        case toolCallStarted(name: String)
+        /// 出力項目 1 つが確定した (JSON)。次のリクエストの input に積み直す材料。
+        case outputItem(String)
         case completed
+    }
+
+    /// ユーザー発言 1 件の input 項目。
+    static func userMessage(_ text: String) -> String {
+        jsonString(["role": "user", "content": text])
+    }
+
+    /// 関数の実行結果の input 項目。
+    static func functionCallOutput(callID: String, output: String) -> String {
+        jsonString(["type": "function_call_output", "call_id": callID, "output": output])
+    }
+
+    static func jsonString(_ object: Any) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: object) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    static func jsonObject(_ text: String) -> [String: Any]? {
+        (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]
     }
 
     enum ClientError: LocalizedError {
@@ -44,6 +81,15 @@ enum ChatGPTPlanClient {
                 "応答が途中で終わりました (\(reason ?? "理由不明"))"
             case .endedWithoutCompletion:
                 "response.completed を受け取る前にストリームが切れました"
+            }
+        }
+
+        /// ChatGPT プランの利用上限に当たったか (画面は「Manage usage」を主ボタンにして案内する)。
+        var isUsageLimit: Bool {
+            switch self {
+            case .responseFailed(let code, _): code == "subscription_sharing_usage_limit_exceeded"
+            case .http(let status, let body, _): status == 429 || body.contains("subscription_sharing_usage_limit_exceeded")
+            default: false
             }
         }
 
@@ -88,24 +134,33 @@ enum ChatGPTPlanClient {
         return try JSONDecoder().decode(Envelope.self, from: data).models.filter { $0.visibility == "list" }
     }
 
-    static func stream(model: String, prompt: String, accessToken: String) -> AsyncThrowingStream<StreamEvent, Error> {
+    static func stream(_ request: Request, accessToken: String) -> AsyncThrowingStream<StreamEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var request = URLRequest(url: responsesURL)
-                    request.httpMethod = "POST"
-                    request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    let body: [String: Any] = [
-                        "model": model,
-                        "input": [["role": "user", "content": prompt]],
+                    var urlRequest = URLRequest(url: responsesURL)
+                    urlRequest.httpMethod = "POST"
+                    urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+                    urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    urlRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    // サンプリング系 (temperature 等) はこの経路では送れない。
+                    var body: [String: Any] = [
+                        "model": request.model,
+                        "input": request.input.compactMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) },
                         "store": false,
                         "stream": true,
                     ]
-                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    if let instructions = request.instructions { body["instructions"] = instructions }
+                    if let tools = request.toolsJSON, let parsed = try? JSONSerialization.jsonObject(with: Data(tools.utf8)) {
+                        body["tools"] = parsed
+                    }
+                    if let format = request.textFormatJSON, let parsed = try? JSONSerialization.jsonObject(with: Data(format.utf8)) {
+                        body["text"] = ["format": parsed]
+                    }
+                    if request.includeEncryptedReasoning { body["include"] = ["reasoning.encrypted_content"] }
+                    urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
                     if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
                         var data = Data()
                         for try await byte in bytes { data.append(byte) }
@@ -125,6 +180,13 @@ enum ChatGPTPlanClient {
                         switch type {
                         case "response.output_text.delta":
                             if let delta = object["delta"] as? String { continuation.yield(.delta(delta)) }
+                        case "response.output_item.added":
+                            if let item = object["item"] as? [String: Any], item["type"] as? String == "function_call",
+                               let name = item["name"] as? String {
+                                continuation.yield(.toolCallStarted(name: name))
+                            }
+                        case "response.output_item.done":
+                            if let item = object["item"] { continuation.yield(.outputItem(jsonString(item))) }
                         case "response.completed":
                             completed = true
                             continuation.yield(.completed)
