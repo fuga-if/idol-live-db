@@ -82,7 +82,6 @@ import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -297,6 +296,13 @@ import com.fugaif.imaslivedb.ui.theme.LocalImasBackdrop
 import com.fugaif.imaslivedb.ui.theme.QS
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatchSize
+import kotlinx.coroutines.delay
 import uniffi.imas_core.RowNoteTone
 import uniffi.imas_core.SetlistRowNoteGroupRecord
 import uniffi.imas_core.SetlistRowNoteRecord
@@ -305,7 +311,7 @@ import uniffi.imas_core.SetlistRowNoteRecord
 // 部品カタログ (デバッグビルドだけ)。iOS `DesignSystem/Catalog/DesignCatalogView.swift` の移植。
 //
 // デザインシステムの全部品を、種類と状態ごとに実物で並べる。ページ割りは iOS と同じ
-// (末尾の 2 ページは iOS のカタログに無い部品を見るための Android の見本)。
+// (末尾の 1 ページは iOS のカタログに無い部品・操作を見るための Android の見本)。
 // 開き方は DesignCatalogActivity の KDoc (adb の intent extra)。
 // =============================================================================
 
@@ -329,12 +335,12 @@ enum class DesignCatalogPage(val id: String, val title: String) {
     LIST("list", "一覧の型"),
     FORM("form", "編集シートの型"),
     SETUP("setup", "ゲームの設定・読みもの"),
+    COMMUNITY("community", "コミュニティ (タグ・記録)"),
+    CHAT("chat", "AI チャット"),
+    STAGE("stage", "あそぶ (ステージ)"),
 
-    /** Android だけ: iOS のカタログに載っていない部品 (タグ・指の操作・シートの帯ほか)。 */
-    EXTRAS("extras", "そのほかの部品 (Android の見本)"),
-
-    /** Android だけ: ゲームのステージの部品。 */
-    STAGE("stage", "ゲームのステージ (Android の見本)");
+    /** Android だけ: iOS のカタログに載っていない部品 (行を引く・横に払う・値を選ぶ・絞り込みの帯ほか)。 */
+    EXTRAS("extras", "指の操作・そのほか (Android の見本)");
 
     companion object {
         fun fromId(id: String): DesignCatalogPage? = entries.firstOrNull { it.id.equals(id, ignoreCase = true) }
@@ -431,8 +437,10 @@ fun DesignCatalogScreen(
                     DesignCatalogPage.LIST -> ListTemplatePage()
                     DesignCatalogPage.FORM -> FormTemplatePage()
                     DesignCatalogPage.SETUP -> SetupPage()
-                    DesignCatalogPage.EXTRAS -> ExtrasPage()
+                    DesignCatalogPage.COMMUNITY -> CommunityPage()
+                    DesignCatalogPage.CHAT -> ChatPage()
                     DesignCatalogPage.STAGE -> StagePage()
+                    DesignCatalogPage.EXTRAS -> ExtrasPage()
                 }
             }
         }
@@ -591,7 +599,7 @@ private fun VenueRowsPage() {
         )
     }
     CatalogPage {
-        ImasSection("半券の行", style = Small, footer = "ライブ・公演・記録の一覧。参加は札で出す。右に引くと参加予定にできる。") {
+        ImasSection("半券の行", style = Small, footer = "ライブ・公演・記録の一覧。参加・参加予定は事実の札で出す。右に引くと参加予定にできる。") {
             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 ImasStubRow(
                     date = ImasStubDate("2026-11-07"),
@@ -1649,6 +1657,7 @@ private fun FeedbackPage() {
 @Composable
 private fun SetlistPage() {
     var voted by remember { mutableStateOf(setOf(1)) }
+    var previewingSetlist by remember { mutableStateOf(false) }
     fun toggle(i: Int) {
         voted = if (i in voted) voted - i else voted + i
     }
@@ -1678,8 +1687,17 @@ private fun SetlistPage() {
                 ImasSetlistRow(
                     number = "02",
                     title = "READY!!",
-                    artworkUrl = Sample.Art.ready,
                     seed = Sample.as765,
+                    customArtwork = {
+                        ImasArtwork(
+                            "READY!!",
+                            size = 44.dp,
+                            imageUrl = Sample.Art.ready,
+                            previewUrl = "https://example.com/preview.m4a",
+                            isPreviewing = previewingSetlist,
+                            onPreview = { previewingSetlist = !previewingSetlist }
+                        )
+                    },
                     performers = listOf(ImasPerformer("b", "如月千早", Sample.chihaya, iconLabel = "千早")),
                     badges = listOf(ImasBadgeSpec("ソロ", ImasBadgeKind.UNIT)),
                     facts = listOf("12 回目"),
@@ -1869,6 +1887,8 @@ private fun ListTemplatePage() {
 
 // MARK: - 編集シートの型
 
+private enum class SavingDemo { SPINNER, PROGRESS }
+
 @Composable
 private fun FormTemplatePage() {
     var name by remember { mutableStateOf("LIVE TOUR -標-") }
@@ -1876,23 +1896,60 @@ private fun FormTemplatePage() {
     var memo by remember { mutableStateOf("") }
     var notify by remember { mutableStateOf(true) }
     var confirmDelete by remember { mutableStateOf(false) }
-    ImasFormBackdrop(Modifier.fillMaxSize()) {
-        Column {
-            ImasSheetToolbar(ImasSheetToolbarKind.Edit(canSave = true, onCancel = {}, onSave = {}), title = "ライブを編集")
-            Column(Modifier.verticalScroll(rememberCatalogScrollState())) {
-                ImasListSection("基本") {
-                    ImasTextFieldRow("ライブ名", name, { name = it })
-                    ImasTextFieldRow("特設ページ", url, { url = it }, error = "URL の形になっていません")
-                    ImasToggleRow("開演前に知らせる", notify, { notify = it }, subtitle = "開演 1 時間前に通知します")
-                }
-                ImasListSection("メモ", footer = "メモはこの端末にだけ保存されます。") {
-                    ImasTextAreaRow(memo, { memo = it }, prompt = "座席・同行者・感想など", limit = 400)
-                }
-                ImasListSection {
-                    ImasActionRow("このライブを削除", { confirmDelete = true }, kind = ImasActionRowKind.DESTRUCTIVE)
+    var toolbarKind by remember { mutableIntStateOf(0) }
+    var savingDemo by remember { mutableStateOf<SavingDemo?>(null) }
+    LaunchedEffect(savingDemo) {
+        if (savingDemo != null) {
+            delay(1500)
+            savingDemo = null
+        }
+    }
+    val kind = when (toolbarKind) {
+        0 -> ImasSheetToolbarKind.Edit(canSave = true, onCancel = {}, onSave = {})
+        1 -> ImasSheetToolbarKind.Submit(canSubmit = true, isSubmitting = false, onCancel = {}, onSubmit = {})
+        2 -> ImasSheetToolbarKind.Select(canFinish = true, onCancel = {}, onFinish = {})
+        3 -> ImasSheetToolbarKind.Read(onClose = {})
+        else -> ImasSheetToolbarKind.Prompt(canRecord = true, onLater = {}, onRecord = {})
+    }
+    Box(Modifier.fillMaxSize()) {
+        ImasFormBackdrop(Modifier.fillMaxSize()) {
+            Column {
+                ImasSheetToolbar(kind, title = "ライブを編集")
+                Column(Modifier.verticalScroll(rememberCatalogScrollState())) {
+                    ImasListSection(
+                        "ツールバーの種類 (見本切り替え)",
+                        footer = "編集=キャンセル/保存、送信=キャンセル/送信、選択=キャンセル/完了、閲覧=閉じる、後で=あとで/記録する。"
+                    ) {
+                        ImasSegmented(
+                            labels = listOf("編集", "送信", "選択", "閲覧", "後で"),
+                            selection = toolbarKind,
+                            onSelect = { toolbarKind = it },
+                            modifier = Modifier.padding(DS.Space.gap)
+                        )
+                    }
+                    ImasListSection("基本") {
+                        ImasTextFieldRow("ライブ名", name, { name = it })
+                        ImasTextFieldRow("特設ページ", url, { url = it }, error = "URL の形になっていません")
+                        ImasToggleRow("開演前に知らせる", notify, { notify = it }, subtitle = "開演 1 時間前に通知します")
+                    }
+                    ImasListSection("メモ", footer = "メモはこの端末にだけ保存されます。") {
+                        ImasTextAreaRow(memo, { memo = it }, prompt = "座席・同行者・感想など", limit = 400)
+                    }
+                    ImasListSection("保存中のオーバーレイ (見本。触ると 1.5 秒で消える)") {
+                        ImasActionRow("保存中 (くるくる) を試す", { savingDemo = SavingDemo.SPINNER }, icon = Icons.Filled.Replay)
+                        ImasActionRow("送信中 (進み具合) を試す", { savingDemo = SavingDemo.PROGRESS }, icon = Icons.Filled.ArrowUpward)
+                    }
+                    ImasListSection {
+                        ImasActionRow("このライブを削除", { confirmDelete = true }, kind = ImasActionRowKind.DESTRUCTIVE)
+                    }
                 }
             }
         }
+        ImasSavingOverlay(
+            isSaving = savingDemo != null,
+            label = if (savingDemo == SavingDemo.PROGRESS) "送信中" else "保存中",
+            progress = if (savingDemo == SavingDemo.PROGRESS) 0.6 else null
+        )
     }
     ImasConfirmDestructive(
         "このライブを削除しますか？",
@@ -1949,11 +2006,271 @@ private fun SetupPage() {
     }
 }
 
-// MARK: - そのほかの部品 (Android の見本)
+// MARK: - コミュニティ (タグ・記録)
+
+@Composable
+private fun CommunityPage() {
+    var tagColor by remember { mutableStateOf("#FF8C42") }
+    CatalogPage {
+        ImasSection("タグ詳細の頭", style = Small) {
+            ImasCard {
+                ImasTagHeaderCard("夏に聴きたい曲", colorHex = "#FF8C42", categoryLabel = "雰囲気", description = "海・花火・浴衣が似合う曲。")
+            }
+        }
+        ImasSection("タグ詳細の頭 (説明なし・色なし)", style = Small) {
+            ImasCard { ImasTagHeaderCard("ソロ曲好き", categoryLabel = "好み") }
+        }
+        ImasSection("タグの色を選ぶ", style = Small) {
+            ImasCard { ImasColorPicker(selectedHex = tagColor, onSelect = { tagColor = it }) }
+        }
+        ImasSection("色そのものを見せる丸", style = Small, footer = "タグの色・ペンライトの色そのもの (導出を通さない数少ない部品)。読み上げは色名。") {
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.CenterVertically) {
+                ImasSwatch("#FF6B6B", size = ImasSwatchSize.DOT)
+                ImasSwatch("#4D96FF", size = ImasSwatchSize.SMALL)
+                ImasSwatch("#1DD1A1", size = ImasSwatchSize.LARGE, isSelected = true)
+                ImasSwatch("#9B5DE5", size = ImasSwatchSize.LARGE)
+            }
+        }
+        ImasSection(
+            "順位の小さい札 (文中に差し込む)",
+            style = Small,
+            footer = "行の先頭いっぱいに置く大きな順位は ImasRankNumber。こちらは名前と同じ行に添える小さい版。"
+        ) {
+            ImasCard {
+                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                    listOf(Triple(1, "天海春香", "42票"), Triple(12, "萩原雪歩", "3票")).forEach { (rank, name, votes) ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                            ImasRankBadge(rank)
+                            ImasText(name, ImasTextRole.ROW_TITLE, modifier = Modifier.weight(1f))
+                            ImasText(votes, ImasTextRole.META)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - AI チャット
+
+@Composable
+private fun ChatPage() {
+    CatalogPage {
+        ImasNotice(
+            ImasNoticeKind.INFO,
+            "AI チャット (ChatGPT 連携・キャラとのトーク) の画面は Android にまだ無いので、吹き出し・入力欄 " +
+                "(iOS の ImasChatBubble・ImasChatComposer・ImasChatToolChip) は写していない。機能を Android に持ってくるときに写す。",
+            title = "Android には無い部品"
+        )
+    }
+}
+
+// MARK: - あそぶ (ステージ)
+
+@Composable
+private fun StagePage() {
+    var playing by remember { mutableStateOf(false) }
+    CompositionLocalProvider(LocalImasBackdrop provides ImasBackdrop.PAPER) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(DS.paper)
+                .verticalScroll(rememberCatalogScrollState())
+                .padding(top = DS.Space.gapLoose, bottom = DS.Space.section),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.section)
+        ) {
+            Column(Modifier.padding(horizontal = DS.Space.screen), verticalArrangement = Arrangement.spacedBy(DS.Space.section)) {
+                ImasSection(
+                    "表彰台・対戦の結果",
+                    style = Small,
+                    footer = "ImasPodium・ImasVersusBadge・imasAccentCard は地が紙面のまま (QS の固定色は使わない)。ソートメーカー・ティアー表の結果で使う。"
+                ) {
+                    ImasPodium(
+                        listOf(
+                            ImasPodiumEntry("1", 1, "天海春香", seed = Sample.haruka, visual = {
+                                ImasAvatar(label = "春香", seed = Sample.haruka, size = 64.dp)
+                            }, onClick = {}),
+                            ImasPodiumEntry("2", 2, "如月千早", seed = Sample.chihaya, visual = {
+                                ImasAvatar(label = "千早", seed = Sample.chihaya, size = 52.dp)
+                            }, onClick = {}),
+                            ImasPodiumEntry("3", 3, "星井美希", seed = Sample.miki, visual = {
+                                ImasAvatar(label = "美希", seed = Sample.miki, size = 52.dp)
+                            }, onClick = {})
+                        )
+                    )
+                }
+                ImasSection("対戦カードの間・選べるカードの縁", style = Small) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ImasAvatar(label = "春香", seed = Sample.haruka, size = 44.dp)
+                            ImasVersusBadge()
+                            ImasAvatar(label = "千早", seed = Sample.chihaya, size = 44.dp)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .imasAccentCard(seed = Sample.haruka, isSelected = true, style = ImasAccentCardStyle.CARD)
+                                    .padding(vertical = DS.Space.gap),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                ImasText("対戦相手", ImasTextRole.ROW_LABEL)
+                                ImasText("765AS", ImasTextRole.META)
+                            }
+                            Box(
+                                Modifier
+                                    .imasAccentCard(seed = Sample.gakuen, isSelected = false, style = ImasAccentCardStyle.CHIP)
+                                    .heightIn(min = DS.Size.chip)
+                                    .padding(horizontal = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ImasText("学マス", ImasTextRole.CHIP)
+                            }
+                        }
+                    }
+                }
+                ImasSection(
+                    "ハブからステージへの入口",
+                    style = Small,
+                    footer = "ImasStageWordmark・ImasStagePreviewCard は QS の固定色のまま、明るい一覧に埋め込む窓。"
+                ) {
+                    ImasStagePreviewCard {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ImasStageWordmark("Q")
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("QUIZ STAGE", style = QS.mono(11), color = QS.dim)
+                                Text("歌詞クイズ Q.04 / 10", style = QS.text(13, FontWeight.Bold), color = QS.ink)
+                            }
+                        }
+                    }
+                }
+            }
+            ImasAlwaysDark {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(QS.bg)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    StageLabel("メンバーカラークイズ")
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ImasStageColorSwatch("#E54B4D", Modifier.weight(1f), letter = "A", isSelected = true, onClick = {})
+                        ImasStageColorSwatch("#3A8EE6", Modifier.weight(1f), letter = "B", onClick = {})
+                        ImasStageColorSwatch("#7A5AE0", Modifier.weight(1f), letter = "C", isEliminated = true, onClick = {})
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ImasStageColorSwatch("#F2C12E", Modifier.width(56.dp), style = ImasStageColorSwatchStyle.PALETTE)
+                        ImasStageColorSwatch("#3FB27F", Modifier.width(56.dp), style = ImasStageColorSwatchStyle.PALETTE, isUsed = true)
+                        ImasStageAssignmentTarget(assignedHex = null)
+                        ImasStageAssignmentTarget(assignedHex = "#E54B4D", verdict = true)
+                        ImasStageAssignmentTarget(assignedHex = "#3A8EE6", verdict = false)
+                        ImasStageColorGridIcon()
+                    }
+
+                    StageLabel("再生中の表示・案内行")
+                    ImasStageEqualizer(columns = 20, rows = 4, dotSize = 8.dp)
+                    ImasStageInfoRow(Icons.Filled.Info, "正解すると次の問題に進みます", detail = "残り 12 問", showsChevron = true, onClick = {})
+                    ImasStageInfoRow(Icons.Filled.Replay, "次の問題を読み込み中", isLoading = true)
+
+                    StageLabel("判定カード")
+                    ImasStagePartialVerdictCard(number = 4, isPerfect = true, headline = "全員正解！", score = 120)
+                    ImasStagePartialVerdictCard(number = 5, isPerfect = false, headline = "2 / 3 正解", score = 60)
+
+                    StageLabel("再生・操作のボタン")
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        ImasStageIconTileButton(Icons.Filled.Replay, "もう一度", {}, Modifier.weight(1f))
+                        ImasStagePlaybackControl(isPlaying = false, onTap = {}, onHoldBegin = {}, onHoldEnd = {}, modifier = Modifier.weight(1f))
+                        ImasStagePlaybackControl(isPlaying = true, onTap = {}, onHoldBegin = {}, onHoldEnd = {}, modifier = Modifier.weight(1f))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ImasStagePlaybackControl(
+                            isPlaying = playing,
+                            onTap = { playing = !playing },
+                            onHoldBegin = { playing = true },
+                            onHoldEnd = { playing = false },
+                            style = ImasStagePlaybackStyle.CIRCLE
+                        )
+                        ImasStageCircleButton("!", 88.dp, {})
+                    }
+
+                    StageLabel("進捗・数・達成")
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ImasStageProgressBar(0.6)
+                        ImasStageProgressBar(0.92, isUrgent = true)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        ImasStageStatTile("SCORE", Modifier.weight(1f)) {
+                            Text("820", style = QS.num(26))
+                        }
+                        ImasStageStatTile(
+                            "ハイスコア",
+                            Modifier.weight(1f),
+                            trailing = { ImasStageBadgeStamp("自己ベスト更新", detail = "700 → 755") }
+                        ) {
+                            Text("755", style = QS.num(26))
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ImasStageScoreChip(Sample.haruka, "春香P", 420)
+                        ImasStageScoreChip(Sample.chihaya, "千早P", 380)
+                    }
+
+                    StageLabel("聴取中・判定中・正誤")
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ImasStagePenlightBars(listOf(hexToColor(Sample.haruka), hexToColor(Sample.chihaya), hexToColor(Sample.miki)))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            ImasStagePulse()
+                            Text("聴取中", style = QS.text(12, FontWeight.SemiBold), color = QS.dim)
+                        }
+                    }
+                    ImasStagePanel {
+                        Text("判定中…", style = QS.text(13, FontWeight.Bold), color = QS.ink)
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(110.dp),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ImasStageRushFlash(isCorrect = true)
+                        ImasStageRushFlash(isCorrect = false)
+                    }
+
+                    StageLabel("1 対 1 対戦の結果")
+                    Box(Modifier.height(260.dp)) {
+                        ImasStageVersusResult(
+                            winnerColorHex = Sample.haruka,
+                            headline = "春香P の勝ち！",
+                            players = ImasStageVersusPlayer("春香P", Sample.haruka, 820) to ImasStageVersusPlayer("千早P", Sample.chihaya, 640)
+                        ) {
+                            ImasStageIconTileButton(Icons.Filled.Replay, "もう一度", {})
+                            ImasStageIconTileButton(Icons.Filled.Share, "シェア", {})
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StageLabel(text: String) {
+    Text(text, style = QS.text(12, FontWeight.Bold), color = QS.dim)
+}
+
+// MARK: - 指の操作・そのほか (Android の見本)
 
 @Composable
 private fun ExtrasPage() {
-    var tagColor by remember { mutableStateOf("#4D96FF") }
     var segment by remember { mutableIntStateOf(0) }
     var tab by remember { mutableIntStateOf(0) }
     var nameFilter by remember { mutableStateOf("") }
@@ -1961,25 +2278,11 @@ private fun ExtrasPage() {
     var attended by remember { mutableStateOf(setOf<Int>()) }
     var favorites by remember { mutableStateOf(setOf<Int>()) }
     CatalogPage {
-        ImasSection("タグ詳細の頭", style = Small) {
-            ImasCard {
-                ImasTagHeaderCard(
-                    "夏に聴きたい曲",
-                    colorHex = tagColor,
-                    categoryLabel = "雰囲気",
-                    description = "夏のライブで盛り上がる曲、夏の景色が浮かぶ曲。"
-                )
-            }
-        }
-        ImasSection("タグの色を選ぶ", style = Small, footer = "「なし」+ 10 色。選んだ色に墨の輪。読み上げは色名。") {
-            ImasColorPicker(selectedHex = tagColor, onSelect = { tagColor = it })
-        }
-        ImasSection("順位の札", style = Small) {
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                (1..5).forEach { ImasRankBadge(it) }
-            }
-        }
-        ImasSection("行を引く操作", style = Small, footer = "右に引く = 記録を付ける (1 つなら引き切りで実行)。左に引く = 手元に置く・削除。行の中ほどから引く。") {
+        ImasSection(
+            "行を引く操作",
+            style = Small,
+            footer = "右に引く = 記録を付ける (1 つなら引き切りで実行)。左に引く = 手元に置く・削除。行の中ほどから引く。読み上げでは行の「操作」から選べる。"
+        ) {
             ImasCardList {
                 listOf("THE IDOLM@STER", "READY!!", "太陽のジェラシー").forEachIndexed { i, title ->
                     ImasSwipe(
@@ -2022,17 +2325,12 @@ private fun ExtrasPage() {
         ImasSection("値を 1 つ選ぶ", style = Small) {
             ImasSegmented(labels = listOf("1か月", "半年", "1年", "すべて"), selection = segment, onSelect = { segment = it })
         }
-        ImasSection("シートの頭の帯", style = Small, footer = "文字は書かず × と ✓ の記号。読み上げは言葉 (キャンセル・保存・送信・完了・閉じる・あとで・記録する)。") {
-            Column(
+        ImasSection("フィルタシートの頭の帯", style = Small, footer = "リセットはこの帯にだけ置く。条件が無いときは押せない。") {
+            Box(
                 Modifier
                     .clip(RoundedCornerShape(DS.rCard))
-                    .background(DS.surface),
-                verticalArrangement = Arrangement.spacedBy(1.dp)
+                    .background(DS.surface)
             ) {
-                ImasSheetToolbar(ImasSheetToolbarKind.Submit(canSubmit = true, isSubmitting = true, onCancel = {}, onSubmit = {}), title = "送信中")
-                ImasSheetToolbar(ImasSheetToolbarKind.Select(canFinish = false, onCancel = {}, onFinish = {}), title = "選ぶ (まだ選んでいない)")
-                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = {}), title = "読むだけ")
-                ImasSheetToolbar(ImasSheetToolbarKind.Prompt(onLater = {}, onRecord = {}), title = "チケット代の記録")
                 ImasFilterSheetToolbar(canReset = false, onReset = {}, onApply = {})
             }
         }
@@ -2048,160 +2346,5 @@ private fun ExtrasPage() {
                 ImasText("送信中", ImasTextRole.NOTE)
             }
         }
-        ImasSection("表彰台・対戦カード", style = Small) {
-            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
-                ImasPodium(
-                    listOf(
-                        ImasPodiumEntry("1", 1, "天海春香", "765AS", seed = Sample.haruka, visual = {
-                            ImasAvatar(label = "春香", seed = Sample.haruka, size = 72.dp)
-                        }, onClick = {}),
-                        ImasPodiumEntry("2", 2, "如月千早", "765AS", seed = Sample.chihaya, visual = {
-                            ImasAvatar(label = "千早", seed = Sample.chihaya, size = 52.dp)
-                        }, onClick = {}),
-                        ImasPodiumEntry("3", 3, "星井美希", "765AS", seed = Sample.miki, visual = {
-                            ImasAvatar(label = "美希", seed = Sample.miki, size = 52.dp)
-                        }, onClick = {})
-                    )
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .imasAccentCard(seed = Sample.haruka, isSelected = true)
-                            .padding(DS.Space.card)
-                    ) { ImasText("READY!!", ImasTextRole.ROW_TITLE) }
-                    ImasVersusBadge()
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .imasAccentCard(seed = Sample.chihaya)
-                            .padding(DS.Space.card)
-                    ) { ImasText("relations", ImasTextRole.ROW_TITLE) }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                    Box(
-                        Modifier
-                            .imasAccentCard(seed = Sample.saki, isSelected = true, style = ImasAccentCardStyle.CHIP)
-                            .padding(horizontal = DS.Space.gapLoose, vertical = DS.Space.gap)
-                    ) { ImasText("花海咲季", ImasTextRole.CHIP) }
-                    Box(
-                        Modifier
-                            .imasAccentCard(seed = Sample.saki, style = ImasAccentCardStyle.CHIP)
-                            .padding(horizontal = DS.Space.gapLoose, vertical = DS.Space.gap)
-                    ) { ImasText("月村手毬", ImasTextRole.CHIP) }
-                }
-            }
-        }
     }
-}
-
-// MARK: - ゲームのステージ (Android の見本)
-
-@Composable
-private fun StagePage() {
-    var playing by remember { mutableStateOf(false) }
-    var selectedSwatch by remember { mutableIntStateOf(1) }
-    var stamped by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { stamped = true }
-    ImasAlwaysDark {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .background(QS.bg)
-                .verticalScroll(rememberCatalogScrollState())
-                .padding(DS.Space.screen),
-            verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
-        ) {
-            StageLabel("飾り")
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.CenterVertically) {
-                ImasStageWordmark("@")
-                ImasStageColorGridIcon()
-                ImasStagePulse()
-                ImasStagePenlightBars(listOf(hexToColor(Sample.haruka), hexToColor(Sample.chihaya), hexToColor(Sample.miki)))
-            }
-            ImasStagePreviewCard {
-                ImasStagePanel {
-                    Text("INTRO", style = QS.mono(12, tracking = 1.4f), color = QS.dim)
-                    ImasStageEqualizer(isAnimating = playing)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
-                ImasStageRushFlash(isCorrect = true, modifier = Modifier.size(96.dp))
-                ImasStageRushFlash(isCorrect = false, modifier = Modifier.size(96.dp))
-            }
-            StageLabel("色見本")
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                listOf(Sample.haruka, Sample.chihaya, Sample.miki).forEachIndexed { i, hex ->
-                    ImasStageColorSwatch(
-                        hex,
-                        Modifier.weight(1f),
-                        letter = listOf("A", "B", "C")[i],
-                        isSelected = selectedSwatch == i,
-                        isEliminated = i == 2,
-                        onClick = { selectedSwatch = i }
-                    )
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
-                listOf(Sample.yayoi, Sample.kanade).forEachIndexed { i, hex ->
-                    ImasStageColorSwatch(hex, Modifier.width(88.dp), style = ImasStageColorSwatchStyle.PALETTE, isUsed = i == 0)
-                }
-                ImasStageAssignmentTarget(assignedHex = null, isTargeted = true)
-                ImasStageAssignmentTarget(assignedHex = Sample.haruka, verdict = true)
-                ImasStageAssignmentTarget(assignedHex = Sample.chihaya, verdict = false)
-            }
-            StageLabel("案内・数・進み")
-            ImasStageInfoRow(Icons.Filled.Hearing, "音声で答える", detail = "マイクの許可が必要です", showsChevron = true, onClick = {})
-            ImasStageInfoRow(Icons.Filled.Hearing, "次の問題を準備中", isLoading = true)
-            ImasStageStatTile("スコア", trailing = { ImasStageBadgeStamp("自己ベスト更新", detail = "700 → 755", appeared = stamped) }) {
-                Text("755", style = QS.num(40))
-            }
-            ImasStageProgressBar(0.62)
-            ImasStageProgressBar(0.12, isUrgent = true)
-            ImasStagePartialVerdictCard(number = 4, isPerfect = true, headline = "全員正解！", score = 300)
-            ImasStagePartialVerdictCard(number = 5, isPerfect = false, headline = "2 / 3 正解", score = 120)
-            StageLabel("操作")
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                ImasStageIconTileButton(Icons.Filled.Replay, "もう一度", {}, Modifier.weight(1f))
-                ImasStagePlaybackControl(
-                    isPlaying = playing,
-                    onTap = { playing = !playing },
-                    onHoldBegin = { playing = true },
-                    onHoldEnd = { playing = false },
-                    modifier = Modifier.weight(1f)
-                )
-                ImasStageIconTileButton(Icons.Filled.SkipNext, "次の曲", {}, Modifier.weight(1f))
-            }
-            ImasStagePlaybackControl(
-                isPlaying = playing,
-                onTap = { playing = !playing },
-                onHoldBegin = { playing = true },
-                onHoldEnd = { playing = false },
-                style = ImasStagePlaybackStyle.CIRCLE
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.CenterVertically) {
-                ImasStageCircleButton("!", 120.dp, {})
-                ImasStageCircleButton("!", 80.dp, {}, isEnabled = false)
-            }
-            StageLabel("対戦")
-            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
-                ImasStageScoreChip(Sample.haruka, "春香チーム", 12)
-                ImasStageScoreChip(Sample.chihaya, "千早チーム", 9)
-            }
-            Box(Modifier.height(320.dp)) {
-                ImasStageVersusResult(
-                    winnerColorHex = Sample.haruka,
-                    headline = "春香チームの勝ち",
-                    players = ImasStageVersusPlayer("春香チーム", Sample.haruka, 12) to ImasStageVersusPlayer("千早チーム", Sample.chihaya, 9)
-                ) {
-                    ImasStageIconTileButton(Icons.Filled.Replay, "もう一度", {})
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StageLabel(text: String) {
-    Text(text, style = QS.mono(11, tracking = 1.4f), color = QS.faint)
 }

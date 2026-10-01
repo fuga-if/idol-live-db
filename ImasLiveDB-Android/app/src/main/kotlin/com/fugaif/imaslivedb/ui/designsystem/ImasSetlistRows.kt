@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
@@ -399,14 +398,20 @@ data class ImasForecastAvatar(
  * @param previewUrl 曲の試聴。渡すとジャケのタップが行のタップと別に試聴を切り替える ([onPreviewTap])。
  * @param showsProportionLine 割合の線を出すか。お題の投票 (最多との比較を出さない) では外す。
  * @param reasonLabel 根拠の見出し (「オリメン」「理由」)。[reason] は根拠の文、[performers] は根拠の人 (欠席は薄字と取り消し線)。
+ * @param secondReason 2 行目の根拠 (オリメンの行の下に「理由」を出すとき)。見出しと文。
+ * @param isVoteDisabled 「予想する」を押せないとき (残りの票が無い)。予想済みの取り消しはいつでも押せる。
+ * @param isVoting 「予想する」を送っている最中 (ボタンがくるくるになる)。
  * @param onVote 「予想する」の押し場所。null なら出さない (機械予測)。
  * @param voteAccessibilityLabel 読み上げだけ見た目の文言と変えたいとき (お題の投票はトグルなので「投票」「投票を取消」)。
- * @param voteDisabled 投票ボタンだけを無効にする (残票切れ・他の行の処理中)。行のタップはいつでも有効。
- * @param isVoteLoading 投票/取消の通信中。ボタンの記号を砂時計に替える。
+ * @param voteDisabled 投票ボタンだけを無効にする (他の行の処理中など)。[isVoteDisabled] と違い予想済みの取り消しも止める (お題の投票)。
+ * @param isVoteLoading 投票/取消の通信中 ([isVoting] と同じ。お題の投票が使う呼び名)。
  * @param showsChevron 別画面へ進む矢印。行のタップで遷移するときに出す。
  * @param copyItems 長押しでコピーできる項目 (曲名・よみなど)。空なら長押しを付けない。
- * @param combineAccessibility 行の読み上げを 1 つにまとめるか。false なら投票ボタンが独立して読める
- *   (呼び出し側は行に「詳細を開く」の読み上げの操作を別に足す)。
+ * @param combineAccessibility 行の読み上げを 1 つにまとめてよいか。押せるもの (予想・投票のボタン、開く中身) を持つ行は
+ *   この値に関わらずまとめない (まとめると中のボタンを読み上げから押せない)。false なら押せるものが無くても分ける
+ *   (呼び出し側が行に「詳細を開く」の読み上げの操作を足すとき)。
+ * @param accessory 「予想する」の横に並べる補助の操作 (歌唱メンバー予想の開閉など)。
+ * @param expansion 行の下に開く中身 (歌唱メンバー予想)。
  * @param onClick 行のタップ (詳細を開く)。長押しのコピーと両立させるため、行の部品が受ける (Android だけ)。
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -428,7 +433,10 @@ fun ImasForecastRow(
     reasonLabel: String? = null,
     reason: String? = null,
     performers: List<ImasPerformer> = emptyList(),
+    secondReason: Pair<String, String>? = null,
     isMine: Boolean = false,
+    isVoteDisabled: Boolean = false,
+    isVoting: Boolean = false,
     onVote: (() -> Unit)? = null,
     voteLabel: String = "予想する",
     votedLabel: String = "予想した",
@@ -439,17 +447,20 @@ fun ImasForecastRow(
     showsChevron: Boolean = false,
     copyItems: List<CopyItem> = emptyList(),
     combineAccessibility: Boolean = true,
+    accessory: (@Composable () -> Unit)? = null,
+    expansion: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     val fraction = when (measure) {
         is ImasForecastMeasure.Probability -> measure.value
         is ImasForecastMeasure.Votes -> measure.share
     }
-    val row: @Composable () -> Unit = {
+    // 押せるものを持つ行は要素をまとめない (まとめると中のボタンを読み上げから押せない)。
+    val combines = combineAccessibility && onVote == null && expansion == null
+    val mainRow: @Composable () -> Unit = {
         Row(
             Modifier
                 .fillMaxWidth()
-                .then(if (combineAccessibility) Modifier.semantics(mergeDescendants = true) { } else Modifier)
                 .padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
             horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
             verticalAlignment = Alignment.Top
@@ -507,24 +518,34 @@ fun ImasForecastRow(
                 if (reason != null || performers.isNotEmpty()) {
                     ReasonLine(reasonLabel, reason, performers)
                 }
+                if (secondReason != null) {
+                    ReasonLine(secondReason.first, secondReason.second, emptyList())
+                }
                 if (showsProportionLine) {
                     ImasProportionLine(fraction, Modifier.padding(top = 2.dp))
                 }
-                if (onVote != null) {
-                    ImasButton(
-                        title = if (isMine) votedLabel else voteLabel,
-                        onClick = onVote,
-                        modifier = Modifier.padding(top = 2.dp),
-                        icon = when {
-                            isVoteLoading -> Icons.Filled.HourglassEmpty
-                            isMine -> Icons.Filled.Check
-                            else -> Icons.Outlined.ThumbUp
-                        },
-                        role = if (isMine) ImasButtonRole.PRIMARY else ImasButtonRole.SECONDARY,
-                        size = ImasButtonSize.SMALL,
-                        enabled = !voteDisabled,
-                        accessibilityLabel = if (isMine) votedAccessibilityLabel ?: votedLabel else voteAccessibilityLabel ?: voteLabel
-                    )
+                if (onVote != null || accessory != null) {
+                    Row(
+                        Modifier.padding(top = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (onVote != null) {
+                            ImasButton(
+                                title = if (isMine) votedLabel else voteLabel,
+                                onClick = onVote,
+                                icon = if (isMine) Icons.Filled.Check else Icons.Outlined.ThumbUp,
+                                role = if (isMine) ImasButtonRole.PRIMARY else ImasButtonRole.SECONDARY,
+                                size = ImasButtonSize.SMALL,
+                                isLoading = isVoting || isVoteLoading,
+                                // 予想済みの取り消しは残りの票に関わらず押せる (isVoteDisabled)。
+                                // お題の投票は他の行の処理中なども含めてボタンごと止める (voteDisabled)。
+                                enabled = !(voteDisabled || (isVoteDisabled && !isMine)),
+                                accessibilityLabel = if (isMine) votedAccessibilityLabel ?: votedLabel else voteAccessibilityLabel ?: voteLabel
+                            )
+                        }
+                        accessory?.invoke()
+                    }
                 } else if (isMine) {
                     // 投票できない状態 (締切後など) でも、自分が選んだことは押せない印で残す。
                     Row(
@@ -541,6 +562,22 @@ fun ImasForecastRow(
                         Text(votedLabel, style = ImasTextRole.BADGE.style, color = DS.ink2)
                     }
                 }
+            }
+        }
+    }
+    val row: @Composable () -> Unit = {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .then(if (combines) Modifier.semantics(mergeDescendants = true) { } else Modifier)
+        ) {
+            mainRow()
+            if (expansion != null) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = DS.Space.rowH + ImasRankNumberWidth + DS.Space.rowGap, end = DS.Space.rowH, bottom = DS.Space.rowV)
+                ) { expansion() }
             }
         }
     }
