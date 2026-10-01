@@ -390,7 +390,7 @@ private struct SongHeroPage: View {
                 }
                 .padding(.horizontal, DS.Space.screen)
                 .padding(.bottom, DS.Space.section)
-                ImasTabs(labels: ["情報", "歌詞", "披露履歴", "みんな"], selection: $tab)
+                ImasTabs(labels: ["情報・歌唱", "歌詞", "披露履歴", "コミュニティ"], selection: $tab)
                     .padding(.horizontal, DS.Space.screen)
                 VStack(alignment: .leading, spacing: DS.Space.section) {
                     ImasStatGrid(columns: 3) {
@@ -440,7 +440,7 @@ private struct IdolHeroPage: View {
                 .padding(.horizontal, DS.Space.screen)
                 .padding(.top, surface == .color ? DS.Space.card : 0)
                 .padding(.bottom, DS.Space.section)
-                ImasTabs(labels: ["ライブ", "楽曲", "プロフィール", "みんな"], selection: $tab)
+                ImasTabs(labels: ["ライブ", "楽曲", "プロフィール", "コミュニティ"], selection: $tab)
                     .padding(.horizontal, DS.Space.screen)
                 VStack(alignment: .leading, spacing: DS.Space.section) {
                     ImasFeatureCard(eyebrow: "次の出演", title: "15th ANNIVERSARY PARTY!!!! ~ for your ONE ~",
