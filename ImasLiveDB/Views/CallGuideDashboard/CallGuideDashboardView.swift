@@ -18,23 +18,17 @@ struct CallGuideDashboardView: View {
     @State private var showLoginPrompt = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DS.sp6) {
-                summarySection
-                if vm.isLoading && vm.withCalls.isEmpty && vm.wanted.isEmpty {
-                    ImasInlineLoading()
-                } else {
-                    if let message = vm.loadError { errorBanner(message) }
-                    withCallsSection
-                    recentEditsSection
-                    wantedSection
-                }
+        ImasPage {
+            summarySection
+            if vm.isLoading && vm.withCalls.isEmpty && vm.wanted.isEmpty {
+                ImasInlineLoading()
+            } else {
+                if let message = vm.loadError { errorBanner(message) }
+                withCallsSection
+                recentEditsSection
+                wantedSection
             }
-            .padding(.horizontal, DS.sp5)
-            .padding(.top, DS.sp4)
-            .padding(.bottom, DS.sp7)
         }
-        .background(DS.bg.ignoresSafeArea())
         .navigationTitle("コールガイド")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $sheetDestination) { dest in
@@ -53,8 +47,8 @@ struct CallGuideDashboardView: View {
 
     @ViewBuilder
     private var summarySection: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            HStack(spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasStatGrid(columns: 3) {
                 ImasStatTile(systemImage: "hands.clap.fill", value: "\(vm.withCalls.count)",
                              unit: "曲", label: "ガイドあり")
                 ImasStatTile(systemImage: "tag.fill", value: "\(vm.tag?.tagged ?? 0)",
@@ -62,7 +56,7 @@ struct CallGuideDashboardView: View {
                 ImasStatTile(systemImage: "square.and.pencil", value: "\(vm.tag?.writable ?? 0)",
                              unit: "曲", label: "書き手募集中")
             }
-            VStack(alignment: .leading, spacing: DS.sp1) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text("歌詞の行ごとに「ここでこう叫ぶ」を書き込むのがコールガイドです。歌詞タブから直接付けられます。")
                 if let generatedAt = vm.generatedAt {
                     // 全端末で共有するキャッシュ (最大 30 分) 越しなので「今」ではない。
@@ -75,22 +69,13 @@ struct CallGuideDashboardView: View {
                     Text("\(vm.droppedCount) 曲は、この端末の曲一覧に出ない曲 (別バージョン等) のため表示していません。")
                 }
             }
-            .font(.imasCaption)
-            .foregroundStyle(DS.ink3)
+            .imasText(.meta)
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func errorBanner(_ message: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.imasCaption)
-                .foregroundStyle(DS.warning)
-            Text("コールガイドの情報を取得できませんでした (\(message))")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        ImasNotice(.warning, message: "コールガイドの情報を取得できませんでした (\(message))")
     }
 
     // MARK: - ① コールガイドがある曲
@@ -119,8 +104,7 @@ struct CallGuideDashboardView: View {
                 }
                 if vm.withCallsTruncated {
                     Text("ここに出ているのは、最近更新された 200 曲です。")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
+                        .imasText(.meta)
                 }
             }
         }
@@ -203,31 +187,26 @@ struct CallGuideDashboardView: View {
                 showLoginPrompt = true
             }
         } label: {
-            HStack(spacing: DS.sp3) {
-                ImasArtwork(title: row.song.title, seed: nil, size: 40,
-                            imageURL: row.song.artworkUrl.flatMap(URL.init))
-                Text(row.song.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                Spacer(minLength: DS.sp2)
+            ImasSongRow(
+                song: row.song,
+                subtitle: "",
+                density: .compact,
                 // ボタンは縮ませない。曲名の方を省略する
                 // (「ログイン…」まで潰れると、何のボタンか読めなくなる)。
-                ImasChip(text: signedIn ? "書く" : "ログインして書く",
-                         systemImage: "square.and.pencil", style: .selected)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .layoutPriority(1)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+                trailing: .custom(AnyView(
+                    ImasChip(text: signedIn ? "書く" : "ログインして書く",
+                             systemImage: "square.and.pencil", style: .selected)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .layoutPriority(1)
+                ))
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 
     @ViewBuilder
     private var wantedFooter: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
             if let tag = vm.tag, tag.withoutLyrics > 0 {
                 Text("歌詞が未登録の \(tag.withoutLyrics) 曲は、歌詞が入るまで書けません。")
             }
@@ -244,8 +223,7 @@ struct CallGuideDashboardView: View {
                 .buttonStyle(.plain)
             }
         }
-        .font(.imasCaption)
-        .foregroundStyle(DS.ink3)
+        .imasText(.meta)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -253,27 +231,9 @@ struct CallGuideDashboardView: View {
 
     private func songRow(_ song: Song, subtitle: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: DS.sp3) {
-                ImasArtwork(title: song.title, seed: nil, size: 40,
-                            imageURL: song.artworkUrl.flatMap(URL.init))
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(song.title)
-                        .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                    Text(subtitle)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                ImasRowChevron()
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
+            ImasSongRow(song: song, subtitle: subtitle, density: .compact, trailing: .chevron)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 
     private func open(_ song: Song, from source: String) {
