@@ -18,6 +18,9 @@ final class IdolDetailViewModel {
     private(set) var unitsWithSongs: [Unit] = []
     private(set) var unitsWithoutSongs: [Unit] = []
     private(set) var brand: Brand?
+    /// `loadDetails` が一度でも終わったか。電光掲示板 (出演・歌唱曲の数) を読み込み中の
+    /// 「0 / 0」のまま一瞬出してしまわないためのガード。
+    private(set) var hasLoadedDetails = false
 
     private let idolReading: any IdolReading
     private let brandReading: any BrandReading
@@ -38,6 +41,7 @@ final class IdolDetailViewModel {
     }
 
     func loadDetails(idol: Idol) async {
+        defer { hasLoadedDetails = true }
         do {
             async let o = idolReading.idolOriginalSongSections(idolId: idol.id)
             async let p = idolReading.idolPerformedSongs(idolId: idol.id)

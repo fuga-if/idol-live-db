@@ -47,7 +47,7 @@ struct IdolEditView: View {
         NavigationStack {
             Form {
                 ImasListSection("名前") {
-                    ImasValueRow(key: "ID", value: original.id)
+                    ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
                     ImasTextFieldRow(title: "名前", text: $name)
                     ImasTextFieldRow(title: "カナ", text: $nameKana)
                     ImasTextFieldRow(title: "ローマ字", text: $nameRomaji)
@@ -77,7 +77,7 @@ struct IdolEditView: View {
                 Task { await save() }
             }))
             .imasSavingOverlay(isSaving, label: "保存中")
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task { allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? [] }
             .trackScreen("idol_edit")
@@ -145,7 +145,7 @@ struct IdolEditView: View {
                 requestSent = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "保存失敗: \(error.localizedDescription)"
         }
     }
 }

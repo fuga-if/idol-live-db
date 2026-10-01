@@ -12,7 +12,15 @@ struct IdolSongHistoryView: View {
     @State private var isLoading = true
 
     private var seed: String? { idol.color }
-    private var brandColor: String? { idol.brandId }
+    private var brandColor: String? { BrandColors.hex(for: idol.brandId) }
+
+    /// 披露履歴を年ごとの塊に (新しい年が先)。見出しと並びはコアの `group_indices_by_year_desc`
+    /// (ライブ一覧 `FilteredShowsView` と同じ規則)。
+    private var yearGroups: [(year: String, rows: [CastShowRow])] {
+        groupIndicesByYearDesc(dates: history.map(\.date)).map { group in
+            (year: group.label, rows: group.indices.map { history[Int($0)] })
+        }
+    }
 
     var body: some View {
         ScrollView {
@@ -32,12 +40,16 @@ struct IdolSongHistoryView: View {
                     VStack(alignment: .leading, spacing: DS.sp3) {
                         ImasSectionHeader(title: "披露履歴", count: "\(history.count)", tight: true)
                             .padding(.horizontal, DS.sp5)
-                        VStack(spacing: DS.Space.gap) {
-                            ForEach(Array(history.enumerated()), id: \.offset) { _, row in
-                                historyRow(row)
+                        ForEach(yearGroups, id: \.year) { group in
+                            ImasDateHeader(big: group.year, imprint: "\(group.rows.count) 件")
+                                .padding(.horizontal, DS.sp5)
+                            VStack(spacing: DS.Space.gap) {
+                                ForEach(Array(group.rows.enumerated()), id: \.offset) { _, row in
+                                    historyRow(row)
+                                }
                             }
+                            .padding(.horizontal, DS.sp5)
                         }
-                        .padding(.horizontal, DS.sp5)
                     }
                 }
             }
@@ -65,7 +77,8 @@ struct IdolSongHistoryView: View {
                 title: row.eventName,
                 subtitle: [row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
                 seed: seed,
-                brand: brandColor
+                brand: brandColor,
+                spokenDate: spokenDate(date: row.date)
             )
         }
         .buttonStyle(.plain)

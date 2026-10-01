@@ -125,9 +125,13 @@ struct IdolDetailView: View {
         .background(DS.bg)
     }
 
-    /// よみ・CV・誕生日 (誕生日の整形はコア `idolProfileRowsFromSource` の「誕生日」行を借りる)。
+    /// よみ・CV・誕生日 (誕生日の整形はコア `idolProfileRowsFromSource` の行を借りる。
+    /// 見出し文字列ではなく、誕生日の行だけが持つ構造上の action (`filterByBirthMonth`) で拾う)。
     private var heroSubtitle: String? {
-        let birthday = profileRowModels.first { $0.label == "誕生日" }?.value
+        let birthday = profileRowModels.first {
+            if case .filterByBirthMonth = $0.action { return true }
+            return false
+        }?.value
         let parts = [idol.nameKana, VoiceActorDirectory.shared.current(for: idol.id).map { "CV \($0)" }, birthday]
             .compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
@@ -150,10 +154,11 @@ struct IdolDetailView: View {
                 CopyItem("よみをコピー", idol.nameKana, key: "kana"),
                 CopyItem("CV名をコピー", VoiceActorDirectory.shared.current(for: idol.id), key: "voice_actor"),
             ],
-            stats: [
+            // 読み込みが終わるまでは出さない (0 / 0 の瞬間表示を防ぐ)。
+            stats: vm.hasLoadedDetails ? [
                 ImasBoard.Cell(value: "\(vm.castShows.count)", label: "出演"),
                 ImasBoard.Cell(value: "\(vm.performedSongs.count)", label: "歌唱曲"),
-            ]
+            ] : []
         ) {
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
                 ImasIconBadge(systemImage: "camera.fill", label: "写真を選ぶ", seed: seed, brand: brandColor)
@@ -225,12 +230,15 @@ struct IdolDetailView: View {
             }
 
             if !vm.castShows.isEmpty {
-                VStack(spacing: DS.sp3) {
+                VStack(alignment: .leading, spacing: DS.sp3) {
                     ImasSectionHeader(title: "出演履歴", count: "\(vm.castShows.count)", tight: true)
-                    ImasCardList {
-                        ForEach(Array(vm.castShows.enumerated()), id: \.offset) { idx, row in
-                            if idx > 0 { ImasRowDivider(inset: DS.sp4) }
-                            eventRow(row)
+                    ForEach(castShowYearGroups, id: \.year) { group in
+                        ImasDateHeader(big: group.year, imprint: "\(group.rows.count) 件")
+                        ImasCardList {
+                            ForEach(Array(group.rows.enumerated()), id: \.offset) { idx, row in
+                                if idx > 0 { ImasRowDivider(inset: DS.sp4) }
+                                eventRow(row)
+                            }
                         }
                     }
                 }
@@ -254,6 +262,7 @@ struct IdolDetailView: View {
     private func upcomingCard(_ row: CastShowRow) -> some View {
         ImasTicket(
             label: "次の出演",
+            imprint: nil,
             title: eventDisplayName(row.eventName),
             metaImprint: dateLabel(date: row.date, today: JSTDay.today()),
             meta: [row.venue, row.showName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "),
@@ -500,7 +509,8 @@ struct IdolDetailView: View {
                 }
             }
             ImasChipInputField(text: $newPersonalTagName, prompt: "マイタグを追加 (例: 聞いた)", limit: 30,
-                              isEnabled: canAddPersonalTag, onSubmit: addPersonalTag)
+                              isEnabled: canAddPersonalTag, submitAccessibilityLabel: "マイタグを追加",
+                              onSubmit: addPersonalTag)
         }
     }
 
@@ -677,6 +687,7 @@ struct IdolDetailView: View {
                     ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title,
                                      songId: song.id, seed: seed ?? brandColor)
                 ), width: 44),
+                leadBar: ImasRowLeadBar(seed: seed, brand: brandColor),
                 density: .compact
             ) {
                 if collected || performCount != nil {
@@ -688,6 +699,14 @@ struct IdolDetailView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// 出演履歴を年ごとの塊に (新しい年が先)。見出しと並びはコアの `group_indices_by_year_desc`
+    /// (ライブ一覧 `FilteredShowsView` と同じ規則)。
+    private var castShowYearGroups: [(year: String, rows: [CastShowRow])] {
+        groupIndicesByYearDesc(dates: vm.castShows.map(\.date)).map { group in
+            (year: group.label, rows: group.indices.map { vm.castShows[Int($0)] })
+        }
     }
 
     /// 出演履歴。半券の行 (左に日付、右にライブ名・会場・公演名)。主演/ゲストは札で添える。
@@ -706,7 +725,8 @@ struct IdolDetailView: View {
                 seed: seed,
                 brand: brandColor,
                 badges: row.isLead ? [ImasBadgeSpec(text: "主演", kind: .lead)]
-                    : row.isGuest ? [ImasBadgeSpec(text: "ゲスト", kind: .guest)] : []
+                    : row.isGuest ? [ImasBadgeSpec(text: "ゲスト", kind: .guest)] : [],
+                spokenDate: spokenDate(date: row.date)
             )
         }
         .buttonStyle(.plain)

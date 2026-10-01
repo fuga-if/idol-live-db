@@ -171,6 +171,7 @@ struct UnitDetailView: View {
                     ArtworkImageView(url: artURL, size: 44, previewURL: prevURL, songTitle: song.title,
                                      songId: song.id, seed: brandColor)
                 ), width: 44),
+                leadBar: ImasRowLeadBar(brand: brandColor),
                 density: .compact
             ) {
                 if collected { ImasBadge(text: "回収済", kind: .positive) }
@@ -333,7 +334,8 @@ struct UnitDetailView: View {
                 }
             }
             ImasChipInputField(text: $newPersonalTagName, prompt: "マイタグを追加 (例: 聞いた)", limit: 30,
-                              isEnabled: canAddPersonalTag, onSubmit: addPersonalTag)
+                              isEnabled: canAddPersonalTag, submitAccessibilityLabel: "マイタグを追加",
+                              onSubmit: addPersonalTag)
         }
     }
 
