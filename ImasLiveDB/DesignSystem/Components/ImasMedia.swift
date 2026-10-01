@@ -108,6 +108,10 @@ struct ImasArtwork: View {
     var size: CGFloat = 48
     var imageURL: URL? = nil
     var isCollected: Bool = false
+    /// 詳細の頭の大きいジャケ。レコードのスリーブのように紙から浮かせる (影)。
+    var isElevated: Bool = false
+
+    @Environment(\.colorScheme) private var artworkScheme
 
     @Environment(\.imasTheme) private var envTheme
     @Environment(\.colorScheme) private var scheme
@@ -138,6 +142,8 @@ struct ImasArtwork: View {
             RoundedRectangle(cornerRadius: DS.rArtwork(size), style: .continuous)
                 .strokeBorder(DS.sep, lineWidth: 0.5)
         )
+        .shadow(color: isElevated ? .black.opacity(artworkScheme == .dark ? 0.6 : 0.22) : .clear,
+                radius: isElevated ? 15 : 0, y: isElevated ? 12 : 0)
         .overlay(alignment: .bottomTrailing) {
             if isCollected {
                 // 小さいジャケ (行) は角からはみ出させ、大きいジャケ (棚) は角の内側に押す。

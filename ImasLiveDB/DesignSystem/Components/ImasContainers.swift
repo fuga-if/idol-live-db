@@ -26,6 +26,9 @@ struct ImasSectionHeader: View {
     var count: String? = nil
     /// 見出しの横の英字の印字 (「PLAY」「42 SONGS」)。大きい見出しにだけ付ける。
     var imprint: String? = nil
+    /// 見出しの前のペンライトの色の手がかり (ブランドごと・アイドルごとの区切り)。
+    var seed: String? = nil
+    var brand: String? = nil
     var seeAll: (() -> Void)? = nil
     /// seeAll の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。
     var seeAllTitle: String = "すべて見る"
@@ -41,18 +44,27 @@ struct ImasSectionHeader: View {
         self.style = tight ? .small : .large
     }
 
-    init(_ title: String, count: String? = nil, imprint: String? = nil, style: Style = .large,
-         seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil) {
+    init(_ title: String, count: String? = nil, imprint: String? = nil, seed: String? = nil, brand: String? = nil,
+         style: Style = .large, seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil) {
         self.title = title
         self.count = count
         self.imprint = imprint
+        self.seed = seed
+        self.brand = brand
         self.seeAll = seeAll
         self.seeAllTitle = seeAllTitle
         self.style = style
     }
 
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
+            if seed != nil || brand != nil {
+                ImasPenlight(color: ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).penlight,
+                             size: style == .large ? .regular : .small)
+                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 1 }
+            }
             Text(title)
                 .imasText(style == .large ? .sectionTitle : .sectionLabel)
                 .lineLimit(2)
@@ -182,8 +194,10 @@ struct ImasCard<Content: View>: View {
 /// 行を並べる。中の行は左揃え・幅いっぱい。区切り線は行の部品が持つ。
 struct ImasCardList<Content: View>: View {
     enum Style {
-        /// 面に入れる (紙面なら灰の面、灰の地なら白い面)。入口・設定・カードの中の短い一覧。
+        /// 面に入れる。入口・設定・カードの中の短い一覧。
         case panel
+        /// 紙に入れ、行の間を切り取り線で区切る (セトリ・申込書のような「刷られた紙」)。
+        case sheet
         /// 紙面にそのまま並べる。行は画面の端から端まで、線は本文の頭から右の端まで。
         /// 曲・ライブ・アイドルなど「もの」の一覧 (`ImasPage` の中でだけ使う)。
         case plain
@@ -201,9 +215,10 @@ struct ImasCardList<Content: View>: View {
 
     var body: some View {
         switch style {
-        case .panel:
+        case .panel, .sheet:
             VStack(alignment: .leading, spacing: 0) { content }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .environment(\.imasDividerStyle, style == .sheet ? .perforated : .hairline)
                 .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
                 .imasSurfaceEdge(cornerRadius: DS.rCard)
@@ -244,15 +259,72 @@ struct ImasNote: View {
 // MARK: - 区切り線
 
 /// 行の間の線。色は `DS.sep`、左は行の本文の頭に揃える (`inset`)。
+/// `ImasCardList(style: .sheet)` の中では切り取り線 (点線) になる。
 struct ImasRowDivider: View {
     var inset: CGFloat = 0
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.imasDividerStyle) private var style
+
     var body: some View {
-        Rectangle()
-            .fill(DS.sep)
-            .frame(height: 1 / displayScale)
-            .padding(.leading, inset)
-            .accessibilityHidden(true)
+        Group {
+            switch style {
+            case .hairline:
+                Rectangle()
+                    .fill(DS.sep)
+                    .frame(height: 1 / displayScale)
+            case .perforated:
+                ImasPerforation(color: DS.perforation)
+            }
+        }
+        .padding(.leading, inset)
+        .accessibilityHidden(true)
+    }
+}
+
+/// 行の区切りの線の種類。
+enum ImasDividerStyle {
+    /// 細い線 (一覧)。
+    case hairline
+    /// 切り取り線 (セトリの紙・申込書)。
+    case perforated
+}
+
+private struct ImasDividerStyleKey: EnvironmentKey {
+    static let defaultValue: ImasDividerStyle = .hairline
+}
+
+extension EnvironmentValues {
+    var imasDividerStyle: ImasDividerStyle {
+        get { self[ImasDividerStyleKey.self] }
+        set { self[ImasDividerStyleKey.self] = newValue }
+    }
+}
+
+// MARK: - 年・月の見出し
+
+/// 年・月で区切る見出し (ライブ一覧・収支・予定)。細長い大きな数字と、横に英字の印字。
+/// 終わった区切りは薄くする。
+struct ImasDateHeader: View {
+    /// 大きい数字 (「2026」「11」)。
+    let big: String
+    /// 横の印字 (「NOV 2026 · 4 公演」)。
+    var imprint: String? = nil
+    var isPast: Bool = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.gapLoose) {
+            Text(big)
+                .font(ImasNumeralSize.date.font)
+                .foregroundStyle(isPast ? DS.ink3 : DS.ink)
+            if let imprint {
+                Text(imprint).imasText(.imprint, color: DS.ink3).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.top, DS.Space.gapLoose)
+        .padding(.bottom, DS.Space.gapTight)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
