@@ -33,11 +33,7 @@ struct SongTagPicker: View {
                 TagShareCompletionView(context: share, onClose: { dismiss() })
                     .navigationTitle("タグを追加")
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("閉じる") { dismiss() }
-                        }
-                    }
+                    .imasSheetToolbar(.read(onClose: { dismiss() }))
             } else {
                 pickerContent
             }
@@ -45,91 +41,60 @@ struct SongTagPicker: View {
     }
 
     private var pickerContent: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp6) {
-                    // 対象曲を汎用の曲行コンポーネントで表示 (どの曲に付けているか明示)。
-                    if let song {
-                        ImasCardList {
-                            SongRowView(item: song)
-                        }
+            ImasFormPage {
+                // 対象曲を汎用の曲行コンポーネントで表示 (どの曲に付けているか明示)。
+                if let song {
+                    ImasCardList {
+                        SongRowView(item: song)
                     }
+                }
 
-                    // 検索語をそのまま新規タグ名にできる導線 (デザインの「このタグを作成」)。
-                    if !trimmedSearch.isEmpty && !exactMatchExists {
-                        Button {
+                // 検索語をそのまま新規タグ名にできる導線 (デザインの「このタグを作成」)。
+                if !trimmedSearch.isEmpty && !exactMatchExists {
+                    ImasCardList {
+                        ImasActionRow(title: "「\(trimmedSearch)」を作成", systemImage: "plus.circle.fill") {
                             AppAnalytics.tap("song_tag_picker.create_from_search")
                             showCreateSheet = true
-                        } label: {
-                            HStack(spacing: DS.sp2) {
-                                Image(systemName: "plus.circle.fill").font(.imasScaled( 18, weight: .semibold))
-                                Text("「\(trimmedSearch)」を作成").font(.imasSubhead.weight(.semibold))
-                                Spacer()
-                            }
-                            .foregroundStyle(DS.sys)
-                            .padding(.horizontal, DS.sp4).padding(.vertical, 13)
-                            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        Text(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補")
-                            .font(.imasFootnote.weight(.semibold))
-                            .foregroundStyle(DS.ink3)
-                        if vm.isLoading {
-                            ImasInlineLoading()
-                        } else if vm.tags.isEmpty {
-                            Text("タグが見つかりません").font(.imasFootnote).foregroundStyle(DS.ink3)
-                        } else {
-                            FlowLayout(spacing: DS.sp2) {
-                                ForEach(vm.tags) { tag in tagChip(tag) }
-                            }
                         }
                     }
-
-                    // 作成だけしたい場合のフォールバック (色やカテゴリも付けたいとき)。
-                    Button {
-                        AppAnalytics.tap("song_tag_picker.create_full")
-                        showCreateSheet = true
-                    } label: {
-                        HStack(spacing: DS.sp2) {
-                            Image(systemName: "plus").font(.imasScaled( 14, weight: .semibold))
-                            Text("色やカテゴリを付けて新規作成").font(.imasFootnote.weight(.semibold))
-                        }
-                        .foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(DS.sp5)
+
+                VStack(alignment: .leading, spacing: DS.Space.header) {
+                    ImasSectionHeader(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補", style: .small)
+                    if vm.isLoading {
+                        ImasInlineLoading()
+                    } else if vm.tags.isEmpty {
+                        ImasNote("タグが見つかりません")
+                    } else {
+                        ImasChipFlow {
+                            ForEach(vm.tags) { tag in tagChip(tag) }
+                        }
+                    }
+                }
+
+                // 作成だけしたい場合のフォールバック (色やカテゴリも付けたいとき)。
+                ImasActionRow(title: "色やカテゴリを付けて新規作成", systemImage: "plus") {
+                    AppAnalytics.tap("song_tag_picker.create_full")
+                    showCreateSheet = true
+                }
             }
-            .background(DS.bg)
             .navigationTitle("タグを追加")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("song_tag_picker")
             .searchable(text: $searchText, prompt: "タグを検索 / 新規作成")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("追加") {
-                        // タップ直後に同期的にガードを立てる。Task 起動〜isApplying=true までの
-                        // 間隙での連打による二重送信を防ぐ (サーバは冪等だが UI 上のフラッシュ防止)。
-                        guard !vm.isApplying else { return }
-                        AppAnalytics.tap("song_tag_picker.apply")
-                        Task {
-                            if let share = await vm.applyTags(selectedTagIds, selectedTagsById: selectedTagsById, song: song) {
-                                onApplied?()
-                                // 即 dismiss せず、完了 + シェア導線に切り替える (閉じるのはユーザー操作)。
-                                appliedShare = share
-                            }
-                        }
+            .imasSheetToolbar(.submit(canSubmit: !selectedTagIds.isEmpty && !vm.isApplying, onCancel: { dismiss() }, onSubmit: {
+                // タップ直後に同期的にガードを立てる。Task 起動〜isApplying=true までの
+                // 間隙での連打による二重送信を防ぐ (サーバは冪等だが UI 上のフラッシュ防止)。
+                guard !vm.isApplying else { return }
+                AppAnalytics.tap("song_tag_picker.apply")
+                Task {
+                    if let share = await vm.applyTags(selectedTagIds, selectedTagsById: selectedTagsById, song: song) {
+                        onApplied?()
+                        // 即 dismiss せず、完了 + シェア導線に切り替える (閉じるのはユーザー操作)。
+                        appliedShare = share
                     }
-                    .fontWeight(.semibold)
-                    .disabled(selectedTagIds.isEmpty || vm.isApplying)
                 }
-            }
+            }))
             .sheet(isPresented: $showCreateSheet) {
                 TagCreateSheet(onCreated: { newTag in
                     vm.insertCreated(newTag)

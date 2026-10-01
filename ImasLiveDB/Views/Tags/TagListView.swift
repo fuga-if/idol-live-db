@@ -147,7 +147,7 @@ struct TagRowView: View {
             ImasRow(
                 title: tag.name,
                 subtitle: tag.description.flatMap { $0.isEmpty ? nil : String($0.prefix(40)) },
-                leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0, size: .small)), width: 16) } ?? .none,
+                leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0.rawValue, size: .small)), width: 16) } ?? .none,
                 trailing: .custom(AnyView(
                     HStack(spacing: DS.Space.gapTight) {
                         if let cat = tag.category {

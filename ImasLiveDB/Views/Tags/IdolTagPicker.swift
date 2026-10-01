@@ -27,90 +27,58 @@ struct IdolTagPicker: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp6) {
-                    // 対象アイドルを明示する見出し行。
-                    ImasCardList {
-                        HStack(spacing: DS.sp3) {
-                            IdolAvatarView(idol: idol, size: 40)
-                            Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, DS.sp4).padding(.vertical, 10)
-                    }
+            ImasFormPage {
+                // 対象アイドルを明示する見出し行。
+                ImasCardList {
+                    ImasRow(
+                        title: idol.name,
+                        leading: .custom(AnyView(IdolAvatarView(idol: idol, size: 40)), width: 40),
+                        density: .compact
+                    )
+                }
 
-                    // 検索語をそのまま新規タグ名にできる導線。
-                    if !trimmedSearch.isEmpty && !exactMatchExists {
-                        Button {
+                // 検索語をそのまま新規タグ名にできる導線。
+                if !trimmedSearch.isEmpty && !exactMatchExists {
+                    ImasCardList {
+                        ImasActionRow(title: "「\(trimmedSearch)」を作成", systemImage: "plus.circle.fill") {
                             AppAnalytics.tap("idol_tag_picker.create_from_search")
                             showCreateSheet = true
-                        } label: {
-                            HStack(spacing: DS.sp2) {
-                                Image(systemName: "plus.circle.fill").font(.imasScaled( 18, weight: .semibold))
-                                Text("「\(trimmedSearch)」を作成").font(.imasSubhead.weight(.semibold))
-                                Spacer()
-                            }
-                            .foregroundStyle(DS.sys)
-                            .padding(.horizontal, DS.sp4).padding(.vertical, 13)
-                            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        Text(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補")
-                            .font(.imasFootnote.weight(.semibold))
-                            .foregroundStyle(DS.ink3)
-                        if vm.isLoading {
-                            ImasInlineLoading()
-                        } else if vm.tags.isEmpty {
-                            Text("タグが見つかりません").font(.imasFootnote).foregroundStyle(DS.ink3)
-                        } else {
-                            FlowLayout(spacing: DS.sp2) {
-                                ForEach(vm.tags) { tag in tagChip(tag) }
-                            }
                         }
                     }
-
-                    Button {
-                        AppAnalytics.tap("idol_tag_picker.create_full")
-                        showCreateSheet = true
-                    } label: {
-                        HStack(spacing: DS.sp2) {
-                            Image(systemName: "plus").font(.imasScaled( 14, weight: .semibold))
-                            Text("色やカテゴリを付けて新規作成").font(.imasFootnote.weight(.semibold))
-                        }
-                        .foregroundStyle(DS.ink2)
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(DS.sp5)
+
+                VStack(alignment: .leading, spacing: DS.Space.header) {
+                    ImasSectionHeader(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補", style: .small)
+                    if vm.isLoading {
+                        ImasInlineLoading()
+                    } else if vm.tags.isEmpty {
+                        ImasNote("タグが見つかりません")
+                    } else {
+                        ImasChipFlow {
+                            ForEach(vm.tags) { tag in tagChip(tag) }
+                        }
+                    }
+                }
+
+                ImasActionRow(title: "色やカテゴリを付けて新規作成", systemImage: "plus") {
+                    AppAnalytics.tap("idol_tag_picker.create_full")
+                    showCreateSheet = true
+                }
             }
-            .background(DS.bg)
             .navigationTitle("タグを追加")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("idol_tag_picker")
             .searchable(text: $searchText, prompt: "タグを検索 / 新規作成")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("追加") {
-                        guard !vm.isApplying else { return }
-                        AppAnalytics.tap("idol_tag_picker.apply")
-                        Task {
-                            if await vm.applyTags(selectedTagIds) {
-                                onApplied?()
-                                dismiss()
-                            }
-                        }
+            .imasSheetToolbar(.submit(canSubmit: !selectedTagIds.isEmpty && !vm.isApplying, onCancel: { dismiss() }, onSubmit: {
+                guard !vm.isApplying else { return }
+                AppAnalytics.tap("idol_tag_picker.apply")
+                Task {
+                    if await vm.applyTags(selectedTagIds) {
+                        onApplied?()
+                        dismiss()
                     }
-                    .fontWeight(.semibold)
-                    .disabled(selectedTagIds.isEmpty || vm.isApplying)
                 }
-            }
+            }))
             .sheet(isPresented: $showCreateSheet) {
                 TagCreateSheet(domain: .idol, onCreated: { newTag in
                     vm.insertCreated(newTag)

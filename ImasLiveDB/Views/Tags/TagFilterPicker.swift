@@ -35,7 +35,7 @@ struct TagFilterPicker: View {
                     ImasListSection(title: "選択中 (\(selected.count)) — すべてを含む曲に絞り込み") {
                         ImasChipRow {
                             ForEach(selected) { tag in
-                                ImasRemovableChip(text: tag.name, seed: tag.color) { toggle(tag) }
+                                ImasRemovableChip(text: tag.name, seed: tag.color?.rawValue) { toggle(tag) }
                             }
                         }
                         .padding(.vertical, DS.Space.gapTight)
@@ -82,8 +82,8 @@ struct TagFilterPicker: View {
                 if query.isEmpty { ImasRankBadge(rank: rank) }
                 ImasRow(
                     title: tag.name,
-                    leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0, size: .small)), width: 16) } ?? .none,
-                    selection: ImasRowSelection(isOn: isSelected(tag), seed: tag.color),
+                    leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0.rawValue, size: .small)), width: 16) } ?? .none,
+                    selection: ImasRowSelection(isOn: isSelected(tag), seed: tag.color?.rawValue),
                     trailing: (tag.totalUses ?? 0) > 0 ? .value("\(tag.totalUses ?? 0)曲") : .none,
                     density: .compact
                 )

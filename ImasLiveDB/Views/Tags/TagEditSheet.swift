@@ -21,72 +21,46 @@ struct TagEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp6) {
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        ImasSectionHeader(title: "説明文", tight: true)
-                        ImasCardList {
+            ImasFormPage {
+                ImasFormCard {
+                    ImasFormField(label: "説明文（任意）", imprint: "DESCRIPTION", systemImage: "text.alignleft") {
+                        VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
                             TextField("どんな時に使うタグか", text: $description, axis: .vertical)
-                                .font(.imasSubhead)
-                                .foregroundStyle(DS.ink)
+                                .font(.imasBody)
                                 .lineLimit(3...6)
-                                .padding(.horizontal, DS.sp4)
-                                .padding(.vertical, DS.sp3)
                                 .onChange(of: description) { _, new in
                                     let clamped = InputLimits.clamp(.tagDescription, new)
                                     if clamped != new { description = clamped }
                                 }
+                            Text(InputLimits.counter(.tagDescription, description))
+                                .font(.imasCaption.monospacedDigit())
+                                .foregroundStyle(DS.ink3)
                         }
                     }
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        ImasSectionHeader(title: "カテゴリ", tight: true)
-                        FlowLayout(spacing: DS.sp2) {
+                    ImasFormField(label: "カテゴリ（任意）", imprint: "CATEGORY") {
+                        ImasChipFlow {
                             categoryChip(value: "", label: Vocab.table.tagCategoryNoneLabel)
                             ForEach(TagCategoryOptions.options(for: domain), id: \.value) { cat in
                                 categoryChip(value: cat.value, label: cat.label)
                             }
                         }
                     }
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        ImasSectionHeader(title: "色", tight: true)
-                        ImasCardList {
-                            TagColorPicker(selectedHex: $selectedColor)
-                                .padding(.horizontal, DS.sp4)
-                                .padding(.vertical, DS.sp3)
-                        }
-                    }
-
-                    if let errorMessage {
-                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.danger)
-                            .fixedSize(horizontal: false, vertical: true)
+                    ImasFormField(label: "色（任意）", imprint: "COLOR") {
+                        ImasColorPicker(selectedHex: $selectedColor)
                     }
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp4)
-                .padding(.bottom, DS.sp7)
+
+                if let errorMessage {
+                    ImasNotice(kind: .error, message: errorMessage)
+                }
             }
-            .background(DS.bg.ignoresSafeArea())
-            .scrollContentBackground(.hidden)
             .navigationTitle("「\(tag.name)」を編集")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("tag_edit")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("保存") {
-                        AppAnalytics.tap("tag_edit.save")
-                        Task { await save() }
-                    }
-                    .disabled(isSaving)
-                    .fontWeight(.semibold)
-                }
-            }
+            .imasSheetToolbar(.edit(canSave: !isSaving, onCancel: { dismiss() }, onSave: {
+                AppAnalytics.tap("tag_edit.save")
+                Task { await save() }
+            }))
         }
     }
 

@@ -91,7 +91,7 @@ struct TagActivityView: View {
             HStack(spacing: DS.Space.gapTight) {
                 ImasRankBadge(rank: rank)
                 ImasRecordRow(
-                    leading: trend.tagColor.map { .custom(AnyView(ImasSwatch(hex: $0, size: .dot)), width: 10) } ?? .none,
+                    leading: trend.tagColor.map { .custom(AnyView(ImasSwatch(hex: $0.rawValue, size: .dot)), width: 10) } ?? .none,
                     title: trend.tagName,
                     trailing: .custom(AnyView(
                         HStack(spacing: DS.Space.gap) {
