@@ -60,7 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.ui.designsystem.ImasChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasColors

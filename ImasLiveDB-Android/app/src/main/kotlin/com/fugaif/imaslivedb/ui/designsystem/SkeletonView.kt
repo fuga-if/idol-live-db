@@ -1,4 +1,4 @@
-package com.fugaif.imaslivedb.ui.components
+package com.fugaif.imaslivedb.ui.designsystem
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -16,9 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -32,8 +29,18 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.ui.theme.DS
+
+// =============================================================================
+// 読み込み中の形 (docs/DESIGN_SYSTEM.md §11)。iOS `SkeletonView.swift` の移植。
+//
+// ImasListSkeleton  一覧の初回 (ジャケ/アイコン + 2 行の文字)。行の間に区切り線。
+// ImasGridSkeleton  アイドルの格子の初回 (丸 + 名前)。
+// SkeletonBox       角丸の塊 (部品の中で組むとき)。
+// 光沢は塊ごとでなく全体に 1 回だけ流す。読み上げには出さない。
+// =============================================================================
 
 /**
  * 左→右に光沢を流すスケルトン用シマーをコンテナ全体に重ねる。iOS の ImasShimmer と対の実装。
@@ -94,47 +101,58 @@ fun ImasListSkeleton(rows: Int = 10, thumb: SkeletonThumb = SkeletonThumb.Square
     val titleWidths = listOf(180.dp, 140.dp, 210.dp, 160.dp, 120.dp)
     val subWidths = listOf(90.dp, 70.dp, 110.dp, 80.dp, 60.dp)
     shimmerOverlay {
-        Column(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().clearAndSetSemantics { }) {
             for (i in 0 until rows) {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp3),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(DS.sp3)
                 ) {
                     when (thumb) {
                         SkeletonThumb.Square -> SkeletonBox(44.dp, 44.dp, 8.dp)
                         SkeletonThumb.Circle -> SkeletonCircle(44.dp)
                         SkeletonThumb.None -> {}
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
                         SkeletonBox(titleWidths[i % 5], 13.dp)
                         SkeletonBox(subWidths[i % 5], 10.dp)
                     }
                 }
+                if (i < rows - 1) ImasRowDivider(inset = DS.sp5)
             }
         }
     }
 }
 
-/** アイドルグリッド用スケルトン (アバター円 + 名前)。 */
+/**
+ * アイドルグリッド用スケルトン (アバター円 + 名前)。
+ * 格子は Lazy にしない (縦にスクロールする親の中に置いても高さが決まるように。数は固定で少ない)。
+ */
 @Composable
 fun ImasGridSkeleton(columns: Int = 4, count: Int = 16, avatar: Dp = 60.dp) {
     shimmerOverlay {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            userScrollEnabled = false
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DS.sp4, vertical = DS.sp4)
+                .clearAndSetSemantics { },
+            verticalArrangement = Arrangement.spacedBy(DS.sp5)
         ) {
-            items(count) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    SkeletonCircle(avatar)
-                    SkeletonBox(48.dp, 10.dp)
+            for (row in 0 until (count + columns - 1) / columns) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                    for (col in 0 until columns) {
+                        val visible = row * columns + col < count
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(DS.sp2),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (visible) {
+                                SkeletonCircle(avatar)
+                                SkeletonBox(48.dp, 10.dp)
+                            }
+                        }
+                    }
                 }
             }
         }

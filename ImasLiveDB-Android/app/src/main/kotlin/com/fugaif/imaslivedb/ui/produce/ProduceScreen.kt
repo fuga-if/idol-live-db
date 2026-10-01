@@ -75,7 +75,7 @@ import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.components.ImasStatTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.hexToColor

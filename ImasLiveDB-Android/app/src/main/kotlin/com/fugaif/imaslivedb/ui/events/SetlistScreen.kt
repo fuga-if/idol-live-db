@@ -86,7 +86,7 @@ import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.GradientHeader
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader

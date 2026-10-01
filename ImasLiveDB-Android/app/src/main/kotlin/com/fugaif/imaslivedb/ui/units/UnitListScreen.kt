@@ -47,11 +47,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
-import com.fugaif.imaslivedb.ui.components.ImasGridSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasGridSkeleton
 import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
-import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
-import com.fugaif.imaslivedb.ui.components.SkeletonThumb
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm

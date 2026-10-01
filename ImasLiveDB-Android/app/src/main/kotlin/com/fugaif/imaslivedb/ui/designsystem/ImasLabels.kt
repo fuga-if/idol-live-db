@@ -145,6 +145,7 @@ fun ImasBadge(
  *
  * @param emphasized 強調する (1〜3 位・0 でない値など)。強調は墨、そうでなければ灰。色では飾らない。
  *   大 ([ImasNumeralSize.LARGE]) はいつも墨。
+ * @param color 数の色を意味の色に替えるとき (足りない候補の数を注意の色にする `ImasCandidateCount` など)。
  */
 @Composable
 fun ImasMetric(
@@ -152,7 +153,8 @@ fun ImasMetric(
     modifier: Modifier = Modifier,
     unit: String? = null,
     size: ImasNumeralSize = ImasNumeralSize.MEDIUM,
-    emphasized: Boolean = false
+    emphasized: Boolean = false,
+    color: Color? = null
 ) {
     Row(
         modifier.semantics(mergeDescendants = true) { },
@@ -161,7 +163,7 @@ fun ImasMetric(
         ImasFitText(
             value,
             style = size.style,
-            color = if (emphasized || size == ImasNumeralSize.LARGE) DS.ink else DS.ink2,
+            color = color ?: if (emphasized || size == ImasNumeralSize.LARGE) DS.ink else DS.ink2,
             minScale = 0.6f,
             modifier = Modifier.alignByBaseline().weight(1f, fill = false)
         )

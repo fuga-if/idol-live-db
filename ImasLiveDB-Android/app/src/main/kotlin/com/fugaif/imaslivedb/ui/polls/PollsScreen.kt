@@ -39,7 +39,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.share.ShareMessage
 import com.fugaif.imaslivedb.ui.share.SocialShareIconButton

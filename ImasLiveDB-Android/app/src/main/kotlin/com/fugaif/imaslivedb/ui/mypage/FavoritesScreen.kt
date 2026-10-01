@@ -44,7 +44,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.components.ImasSegmented

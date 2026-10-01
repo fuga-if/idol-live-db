@@ -59,67 +59,6 @@ import com.fugaif.imaslivedb.ui.theme.ImasRainbow
 // SF Symbol は ImageVector へ、Nuke は Coil へ置換。色は ImasTheme(seed) から導出。
 // =============================================================================
 
-/** 活動サマリの統計タイル (アイコン + 値 + 単位 + ラベル)。 */
-@Composable
-fun ImasStatTile(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    unit: String? = null,
-    seed: String? = null,
-    brand: String? = null,
-    tappable: Boolean = false,
-    onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    val t = imasThemeForBrand(seed, brand)
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(DS.surface)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            Box(
-                modifier = Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(t.chipBg),
-                contentAlignment = Alignment.Center
-            ) { Icon(icon, null, tint = t.chipText, modifier = Modifier.size(18.dp)) }
-            Box(Modifier.weight(1f))
-            if (tappable) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(12.dp))
-            }
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(value, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            if (unit != null) Text(unit, fontSize = 13.sp, color = DS.ink3, modifier = Modifier.padding(bottom = 3.dp))
-        }
-        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
-    }
-}
-
-/** 横棒の統計バー (ラベル + バー + 値)。 */
-@Composable
-fun ImasStatBar(label: String, value: String, percent: Double, seed: String? = null, brand: String? = null) {
-    val t = imasThemeForBrand(seed, brand)
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(modifier = Modifier.width(92.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(t.dot))
-            Text(label, fontSize = 13.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Box(modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(DS.fill)) {
-            Box(Modifier.fillMaxWidth((percent / 100.0).coerceIn(0.0, 1.0).toFloat()).fillMaxHeight()
-                .clip(RoundedCornerShape(4.dp)).background(t.accent))
-        }
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
-    }
-}
-
 /** セグメントバー (内部タブ切替)。 */
 @Composable
 fun ImasSegmented(
@@ -142,38 +81,6 @@ fun ImasSegmented(
                 contentAlignment = Alignment.Center
             ) {
                 Text(label, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = if (on) DS.ink else DS.ink2)
-            }
-        }
-    }
-}
-
-/** 空状態 (任意で投稿アクション)。 */
-@Composable
-fun ImasEmptyState(
-    icon: ImageVector,
-    title: String,
-    message: String? = null,
-    seed: String? = null,
-    brand: String? = null,
-    actionTitle: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    val t = imasThemeForBrand(seed, brand)
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(t.chipBg),
-            contentAlignment = Alignment.Center
-        ) { Icon(icon, null, tint = t.chipText, modifier = Modifier.size(28.dp)) }
-        Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.padding(top = 14.dp))
-        if (message != null) {
-            Text(message, fontSize = 13.5.sp, color = DS.ink2, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
-        }
-        if (actionTitle != null && onAction != null) {
-            androidx.compose.material3.Button(onClick = onAction, modifier = Modifier.padding(top = 14.dp)) {
-                Text(actionTitle)
             }
         }
     }

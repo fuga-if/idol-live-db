@@ -45,14 +45,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.EventAttendanceSwipeRow
-import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.NameFilterField
-import com.fugaif.imaslivedb.ui.components.SkeletonThumb
+import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.search.CrossTabCountChips

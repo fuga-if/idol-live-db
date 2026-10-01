@@ -68,7 +68,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand

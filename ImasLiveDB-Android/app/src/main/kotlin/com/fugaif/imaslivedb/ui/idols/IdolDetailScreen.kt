@@ -96,7 +96,7 @@ import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
-import com.fugaif.imaslivedb.ui.components.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
