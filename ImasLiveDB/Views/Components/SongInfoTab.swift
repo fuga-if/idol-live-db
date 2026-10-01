@@ -43,18 +43,11 @@ struct SongInfoTab: View {
                 ImasStatTile(systemImage: "mic.fill", value: "\(vm.history.count)", unit: "回", label: "披露回数", seed: seed)
                 ImasStatTile(systemImage: "checkmark.seal.fill", value: "\(vm.collectedShows.count)", unit: "公演", label: "現地回収", seed: seed)
             }
-            Button {
+            ImasButton(title: "参加ライブを登録して現地回収", systemImage: "plus", role: .secondary, size: .medium,
+                      fillsWidth: true) {
                 AppAnalytics.tap("song_detail.register_attendance")
                 onRequestAttendPicker()
-            } label: {
-                Label("参加ライブを登録して現地回収", systemImage: "plus")
-                    .font(.imasSubhead.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DS.sp4)
-                    .foregroundStyle(DS.ink2)
-                    .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
-            .buttonStyle(.plain)
 
             if !vm.collectedShows.isEmpty {
                 ImasCardList {
@@ -63,7 +56,7 @@ struct SongInfoTab: View {
                         Button { navigate(.show(show.asShow)) } label: {
                             collectedRow(show)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                     }
                 }
             }
@@ -71,20 +64,13 @@ struct SongInfoTab: View {
     }
 
     private func collectedRow(_ show: ShowWithEventName) -> some View {
-        HStack(spacing: DS.sp3) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.imasScaled( 15, weight: .semibold))
-                .foregroundStyle(DS.success)
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(eventDisplayName(show.eventName)).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
-                Text([show.name, show.date].joined(separator: " ・ "))
-                    .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            ImasRowChevron()
-        }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-        .contentShape(Rectangle())
+        ImasRow(
+            title: eventDisplayName(show.eventName),
+            subtitle: [show.name, show.date].joined(separator: " ・ "),
+            leading: .icon("checkmark.seal.fill", tone: .positive),
+            trailing: .chevron,
+            density: .compact
+        )
     }
 
     // MARK: - 楽曲情報
@@ -104,55 +90,33 @@ struct SongInfoTab: View {
     @ViewBuilder
     private var noteEntry: some View {
         if let note {
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("この曲の補足")
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(DS.ink2)
-                    Spacer(minLength: 8)
-                    if let onEditNote {
-                        Button(action: onEditNote) {
-                            Text("直す")
+            ImasCard {
+                VStack(alignment: .leading, spacing: DS.sp2) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("この曲の補足").imasText(.sectionLabel)
+                        Spacer(minLength: 8)
+                        if let onEditNote {
+                            Button("直す", action: onEditNote)
                                 .font(.imasCaption.weight(.semibold))
-                                .foregroundStyle(ImasTheme.derive(seed: seed, scheme: scheme).accent)
+                                .accessibilityLabel("補足を直す")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("補足を直す")
                     }
+                    Text(note)
+                        .imasText(.value)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
                 }
-                Text(note)
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
             }
-            .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         } else if let onEditNote {
             Button(action: onEditNote) {
-                HStack(spacing: DS.sp3) {
-                    Image(systemName: "text.bubble")
-                        .font(.imasScaled(15, weight: .semibold))
-                        .foregroundStyle(ImasTheme.derive(seed: seed, scheme: scheme).accent)
-                    VStack(alignment: .leading, spacing: DS.sp1) {
-                        Text("補足を書く")
-                            .font(.imasSubhead.weight(.semibold))
-                            .foregroundStyle(DS.ink)
-                        Text("「◯周年記念楽曲」「アニメ◯話の挿入歌」など、この曲の由来を 1 文で")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink2)
-                            .lineLimit(2)
-                    }
-                    Spacer(minLength: 8)
-                    ImasRowChevron()
-                }
-                .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                .contentShape(Rectangle())
+                ImasEntryCard(
+                    systemImage: "text.bubble",
+                    title: "補足を書く",
+                    preview: "「◯周年記念楽曲」「アニメ◯話の挿入歌」など、この曲の由来を 1 文で",
+                    seed: seed
+                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.imasPress)
         }
     }
 
@@ -170,43 +134,45 @@ struct SongInfoTab: View {
     private func infoRow(_ row: SongInfoRow) -> some View {
         switch row.kind {
         case .plain(let value, let mono):
-            ImasLabeledRow(key: row.key, value: value, mono: mono, seed: seed)
+            ImasValueRow(key: row.key, value: value, monospaced: mono)
         case .navigate(let value, let destination):
             Button { navigate(destination) } label: {
-                ImasLabeledRow(key: row.key, value: value, showChevron: true, tappable: true, seed: seed)
+                ImasValueRow(key: row.key, value: value, isLink: true)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.imasRow)
         case .credit(let names):
             creditRow(key: row.key, names: names)
         case .unit(let value, let unitId):
             Button {
                 Task { if let unit = await vm.resolveUnit(id: unitId) { navigate(.unit(unit)) } }
             } label: {
-                ImasLabeledRow(key: row.key, value: value, showChevron: true, tappable: true, seed: seed)
+                ImasValueRow(key: row.key, value: value, isLink: true)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.imasRow)
         }
     }
 
     /// クレジット行: 分割済みの名前を各クリエイター絞り込みへタップ可能に表示する。
+    /// 複数名が独立してタップできる行は `ImasValueRow` では表現できないため据え置き
+    /// (寸法だけ DS のトークンに揃える)。
     private func creditRow(key: String, names: [String]) -> some View {
-        HStack(spacing: DS.sp4) {
-            Text(key).font(.imasSubhead).foregroundStyle(DS.ink2)
-            Spacer(minLength: 12)
-            HStack(spacing: DS.sp2) {
+        HStack(spacing: DS.Space.rowGap) {
+            Text(key).imasText(.value, color: DS.ink2)
+            Spacer(minLength: DS.Space.rowGap)
+            HStack(spacing: DS.Space.gapTight) {
                 ForEach(Array(names.enumerated()), id: \.offset) { idx, name in
-                    if idx > 0 { Text("/").font(.imasSubhead).foregroundStyle(DS.ink3) }
+                    if idx > 0 { Text("/").imasText(.value, color: DS.ink3) }
                     Button { navigate(.filteredSongs(.creator(name))) } label: {
-                        Text(name).font(.imasSubhead)
-                            .foregroundStyle(ImasTheme.derive(seed: seed, scheme: scheme).accent)
+                        Text(name).imasText(.value, color: ImasTheme.derive(seed: seed, scheme: scheme).accent)
                     }
                     .buttonStyle(.plain)
                 }
             }
             .lineLimit(1)
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
-        .background(DS.surface)
+        .padding(.horizontal, DS.Space.rowH)
+        .padding(.vertical, DS.Space.rowV)
+        .frame(minHeight: DS.Size.touch)
     }
 
     // MARK: - 別バージョン
@@ -222,7 +188,7 @@ struct SongInfoTab: View {
                 ForEach(Array(vm.variantSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: seed) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                 }
             }
         }
@@ -238,7 +204,7 @@ struct SongInfoTab: View {
                 ForEach(Array(vm.relatedSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: seed) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                 }
             }
         }

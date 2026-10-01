@@ -35,7 +35,7 @@ struct SongCommunityTab: View {
     var body: some View {
         VStack(spacing: DS.sp5) {
             PollAchievementBadges(entityId: song.id)
-            InlineLoginPrompt(message: "タグ・動画・投票にはログインが必要です", seed: seed)
+            ImasSignInPrompt(message: "タグ・動画・投票にはログインが必要です")
             tags
             if !vm.similarTagSongs.isEmpty { similarByTags }
             videos
@@ -56,7 +56,7 @@ struct SongCommunityTab: View {
             }
             if let tagData = vm.songTagData, !tagData.tags.isEmpty {
                 let myTagIds = Set(tagData.myTagIds)
-                FlowLayout(spacing: DS.sp3) {
+                ImasChipFlow {
                     ForEach(tagData.tags) { tag in
                         tagChip(tag, isMine: myTagIds.contains(tag.id))
                     }
@@ -93,10 +93,8 @@ struct SongCommunityTab: View {
     private var similarByTags: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("この曲が好きな人にはこれも")
-                    .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                Text("つけられたタグが似ている楽曲")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
+                ImasSectionHeader("この曲が好きな人にはこれも", style: .large)
+                Text("つけられたタグが似ている楽曲").imasText(.note)
             }
             ImasCardList {
                 ForEach(Array(vm.similarTagSongs.enumerated()), id: \.element.id) { idx, s in
@@ -105,7 +103,7 @@ struct SongCommunityTab: View {
                         RelatedSongRow(song: s, seed: seed,
                                        badge: vm.similarSharedTags[s.id].map { "タグ\($0)個一致" })
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.imasRow)
                 }
             }
         }
@@ -151,34 +149,33 @@ struct SongCommunityTab: View {
                 .buttonStyle(.plain)
             }
             if let title = video.videoTitle {
-                Text(title).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
+                Text(title).imasText(.value)
             }
             if videoID == nil, let url = URL.safeHTTP(string: video.youtubeUrl) {
                 // YouTube 以外 (または ID 解析不可) は従来どおり外部リンク。
                 Link(destination: url) {
                     Label(video.youtubeUrl, systemImage: "play.rectangle.fill")
-                        .font(.imasCaption).foregroundStyle(DS.danger)
+                        .imasText(.meta, color: DS.danger)
                         .lineLimit(1).truncationMode(.middle)
                 }
             }
             if let note = video.note, !note.isEmpty {
-                Text(note).font(.imasCaption).foregroundStyle(DS.ink2)
-                    .imasSelectableText()
+                Text(note).imasText(.meta).imasSelectableText()
             }
             HStack(spacing: DS.sp3) {
                 if let author = video.authorDisplayName {
-                    Text("投稿者: \(author)").font(.imasCaption).foregroundStyle(DS.ink3)
+                    Text("投稿者: \(author)").imasText(.meta, color: DS.ink3)
                 }
                 Spacer(minLength: 4)
                 if permission.showEditAffordance {
                     Button { onIntent(.editVideo(video)) } label: {
-                        Image(systemName: "pencil").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
+                        Image(systemName: "pencil").imasText(.meta)
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 11)
+        .padding(.horizontal, DS.sp5).padding(.vertical, DS.Space.rowV)
     }
 
     private func videoThumbnail(_ ref: YouTubeVideoRef) -> some View {
@@ -226,9 +223,7 @@ struct SongCommunityTab: View {
                         penlightRow(set, myKey: votes.myColorSet?.key, total: max(votes.totalVotes, 1))
                     }
                 }
-                Text("この曲のペンライト色 ・ \(votes.totalVotes)票")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
-                    .padding(.leading, DS.sp1)
+                ImasNote("この曲のペンライト色 ・ \(votes.totalVotes)票")
             } else {
                 ImasEmptyState(systemImage: "lightspectrum.horizontal", title: "まだ投票がありません",
                                message: "あなたが思うこの曲のペンライト色を投票しませんか？",
@@ -241,7 +236,7 @@ struct SongCommunityTab: View {
 
     private func penlightRow(_ set: PenlightColorSet, myKey: String?, total: Int) -> some View {
         let isMine = myKey == set.key
-        return VStack(spacing: 7) {
+        return VStack(spacing: DS.Space.gap) {
             HStack(spacing: DS.sp3) {
                 PenlightColorBar(colors: set.colors.map(\.rawValue), height: 22)
                     .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
@@ -250,37 +245,20 @@ struct SongCommunityTab: View {
                     Text("自分の投票").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.pick)
                 }
                 Spacer(minLength: 4)
-                Text("\(set.count)票").font(.imasDisplay(13, weight: .semibold)).foregroundStyle(DS.ink2)
+                ImasMetric(value: "\(set.count)", unit: "票", size: .small)
             }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(DS.fill)
-                    Capsule().fill(DS.pick.opacity(0.7))
-                        .frame(width: max(4, geo.size.width * CGFloat(set.count) / CGFloat(total)))
-                }
-            }
-            .frame(height: 4)
+            ImasProportionLine(fraction: Double(set.count) / Double(total))
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 10)
+        .padding(.horizontal, DS.sp5).padding(.vertical, DS.Space.rowVCompact)
     }
 
     /// セクション見出し + 文脈投稿導線 (＋タグ / ▶動画 / ✦投票)。
-    @ViewBuilder
     private func header(title: String, actionLabel: String, systemImage: String, action: @escaping () -> Void) -> some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-            Spacer(minLength: 12)
-            if permission.showEditAffordance {
-                Button(action: action) {
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: systemImage).font(.imasScaled( 13, weight: .semibold))
-                        Text(actionLabel).font(.imasScaled( 14, weight: .semibold))
-                    }
-                    .foregroundStyle(t.accent)
-                }
-                .buttonStyle(.plain)
-            }
-        }
+        ImasSectionHeader(
+            title,
+            actionTitle: permission.showEditAffordance ? actionLabel : nil,
+            actionSystemImage: permission.showEditAffordance ? systemImage : nil,
+            onAction: permission.showEditAffordance ? action : nil
+        )
     }
 }

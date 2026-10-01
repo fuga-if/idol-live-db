@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 関連 / おすすめ楽曲の 1 行。ジャケ + 曲名 + 歌唱表記 (+ 補足バッジ)。
+/// 関連 / おすすめ楽曲の 1 行。見た目は DS の `ImasSongRow`。
 ///
 /// 楽曲詳細の「関連楽曲」(ローカル算出) と「この曲が好きな人にはこれも」(タグ類似・サーバ算出)
 /// が同じ見た目を使う。タップ時の遷移は呼び出し側が決める (ここは行の描画だけ)。
@@ -12,23 +12,22 @@ struct RelatedSongRow: View {
     var badge: String? = nil
 
     var body: some View {
-        HStack(spacing: DS.sp3) {
-            ImasArtwork(title: song.title, seed: seed, size: 44,
-                        imageURL: URL.safeHTTP(string: song.artworkUrl))
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(song.title).font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink).lineLimit(1)
-                if let sub = song.singerLabel ?? song.unitName, !sub.isEmpty {
-                    Text(sub).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
-                }
-            }
-            Spacer(minLength: 4)
-            if let badge {
-                Text(badge).font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
-            }
+        ImasSongRow(
+            title: song.title,
+            subtitle: song.singerLabel ?? song.unitName,
+            artworkURL: URL.safeHTTP(string: song.artworkUrl),
+            brandHex: seed,
+            trailing: badge.map { .custom(AnyView(trailingBadge($0))) } ?? .chevron,
+            density: .compact
+        ) {
+            EmptyView()
+        }
+    }
+
+    private func trailingBadge(_ text: String) -> some View {
+        HStack(spacing: DS.Space.gapTight) {
+            Text(text).imasText(.meta)
             ImasRowChevron()
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 9)
-        .contentShape(Rectangle())
     }
 }

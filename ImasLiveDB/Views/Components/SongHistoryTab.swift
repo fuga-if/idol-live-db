@@ -60,7 +60,7 @@ struct SongHistoryTab: View {
                 ImasSectionHeader(title: "この曲を歌った人", tight: true)
                 // 分母 (全 N 回) は上のサマリタイル「総披露」と同じ数え方。同じ画面に
                 // 単位の違う数字 (共起節は公演数) が並ぶので、どちらなのかを言っておく。
-                evidenceNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
+                ImasNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
                 ImasCardList {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 36) }
@@ -70,10 +70,8 @@ struct SongHistoryTab: View {
                         } label: {
                             // 副題が根拠。「よく歌う人」ではなく「何回歌ったか」を出す。
                             IdolNameRow(idol: row.idol, subtitle: "\(row.times)回 ／ 全\(row.total)回")
-                                .padding(.horizontal, DS.sp5)
-                                .padding(.vertical, 9)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                     }
                 }
             }
@@ -93,7 +91,7 @@ struct SongHistoryTab: View {
                 // 相手の曲を開いた先の「総披露 N 回」(セトリ行数) より小さい数になる
                 // (同梱 master で 48 曲がこのズレを持つ。例: 初 = 39 公演 / 64 回)。
                 // 単位を書かないと「どちらが本当の回数か」が読み手に判断できない。
-                evidenceNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
+                ImasNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
                 ImasCardList {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
@@ -103,7 +101,7 @@ struct SongHistoryTab: View {
                         } label: {
                             coOccurringRow(row)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                     }
                 }
             }
@@ -113,27 +111,16 @@ struct SongHistoryTab: View {
     /// 共起曲の 1 行。`RelatedSongRow` と同じ形だが、副題は歌唱表記ではなく**根拠の回数**。
     /// この行が並んでいる理由そのものが回数なので、歌唱表記よりそちらを副題の位置に置く。
     private func coOccurringRow(_ row: CoOccurringSong) -> some View {
-        HStack(spacing: DS.sp3) {
-            ImasArtwork(title: row.song.title, seed: seed, size: 44,
-                        imageURL: URL.safeHTTP(string: row.song.artworkUrl))
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(row.song.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                // 分母まで出す。12/15 (ほぼ必ず一緒) と 12/300 (たまたま) は別物で、
-                // 回数だけだと読み手が区別できない。単位は「回」ではなく「公演」
-                // (歌唱者行の「全 N 回」= セトリ行数とは別の数え方なので語を分ける)。
-                Text("いっしょに\(row.together)公演 ／ 全\(row.performances)公演")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 4)
-            ImasRowChevron()
+        ImasSongRow(
+            title: row.song.title,
+            subtitle: "いっしょに\(row.together)公演 ／ 全\(row.performances)公演",
+            artworkURL: URL.safeHTTP(string: row.song.artworkUrl),
+            brandHex: seed,
+            trailing: .chevron,
+            density: .compact
+        ) {
+            EmptyView()
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, 9)
-        .contentShape(Rectangle())
     }
 
     // MARK: - 生ログ
@@ -150,33 +137,18 @@ struct SongHistoryTab: View {
         }
     }
 
-    /// 集計の但し書き。回数だけ並べると「予想」と読まれうるので、過去の実績だと明示する。
-    private func evidenceNote(_ text: String) -> some View {
-        Text(text)
-            .font(.imasCaption)
-            .foregroundStyle(DS.ink3)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
     private func historyRow(_ row: PerformanceHistoryRow) -> some View {
         Button {
             Task { if let show = await vm.resolveShow(id: row.showId) { navigate(.show(show)) } }
         } label: {
-            HStack(spacing: 0) {
-                ImasLeadBar(seed: seed)
-                    .frame(height: 34)
-                    .padding(.trailing, DS.sp4)
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(eventDisplayName(row.eventName)).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
-                    Text([row.showName, row.date].joined(separator: " ・ "))
-                        .font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                ImasRowChevron()
-            }
-            .padding(.horizontal, DS.sp4).padding(.vertical, 10)
-            .contentShape(Rectangle())
+            ImasRow(
+                title: eventDisplayName(row.eventName),
+                subtitle: [row.showName, row.date].joined(separator: " ・ "),
+                leading: .bar(seed: seed),
+                trailing: .chevron,
+                density: .compact
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 }

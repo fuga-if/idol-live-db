@@ -32,6 +32,12 @@ struct ImasSectionHeader: View {
     var seeAll: (() -> Void)? = nil
     /// seeAll の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。
     var seeAllTitle: String = "すべて見る"
+    /// 見出し右の文脈アクション (「＋ タグ」「▶ 動画」)。`seeAll` (矢印付き「すべて見る」) とは
+    /// 見え方が違う (記号 + 可変の文言、矢印なし)。別の画面へ移るのではなくその場で何かを
+    /// 始める操作のときに使う。`seeAll` と同時には出さない。
+    var actionTitle: String? = nil
+    var actionSystemImage: String? = nil
+    var onAction: (() -> Void)? = nil
     var style: Style = .large
 
     /// 旧い呼び方 (`tight: true` = 小) を残す。
@@ -45,7 +51,8 @@ struct ImasSectionHeader: View {
     }
 
     init(_ title: String, count: String? = nil, imprint: String? = nil, seed: String? = nil, brand: String? = nil,
-         style: Style = .large, seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil) {
+         style: Style = .large, seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil,
+         actionTitle: String? = nil, actionSystemImage: String? = nil, onAction: (() -> Void)? = nil) {
         self.title = title
         self.count = count
         self.imprint = imprint
@@ -53,10 +60,14 @@ struct ImasSectionHeader: View {
         self.brand = brand
         self.seeAll = seeAll
         self.seeAllTitle = seeAllTitle
+        self.actionTitle = actionTitle
+        self.actionSystemImage = actionSystemImage
+        self.onAction = onAction
         self.style = style
     }
 
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.imasTheme) private var envTheme
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
@@ -85,6 +96,18 @@ struct ImasSectionHeader: View {
                     }
                     .font(.imasSubhead)
                     .foregroundStyle(DS.ink2)
+                }
+                .buttonStyle(.plain)
+            } else if let actionTitle, let onAction {
+                let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
+                Button(action: onAction) {
+                    HStack(spacing: DS.Space.gapTight) {
+                        if let actionSystemImage {
+                            Image(systemName: actionSystemImage).font(.imasScaled(13, weight: .semibold))
+                        }
+                        Text(actionTitle).font(.imasScaled(14, weight: .semibold))
+                    }
+                    .foregroundStyle(t.isNeutral ? DS.ink : t.accent)
                 }
                 .buttonStyle(.plain)
             }
