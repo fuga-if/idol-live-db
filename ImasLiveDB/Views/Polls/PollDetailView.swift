@@ -71,7 +71,7 @@ struct PollDetailView: View {
         }
         // 自分の票が変わるたびに表示名を解決し直す (シェア文面の候補名に使う)。
         .task(id: myVotedEntityIds) { await loadMyVoteNames() }
-        .imasErrorAlert("削除できませんでした", message: Binding(
+        .imasErrorAlert("エラー", message: Binding(
             get: { vm.deleteErrorMessage },
             set: { vm.deleteErrorMessage = $0 }
         ))
@@ -221,9 +221,7 @@ struct PollDetailView: View {
     // MARK: - Ranking
 
     private func rankingSection(detail: PollDetail) -> some View {
-        // 割合バーの基準 (いちばん多い票数)。0 票しかないときに割らないよう下限 1。
-        let maxVotes = max(detail.entries.map(\.voteCount).max() ?? 0, 1)
-        return VStack(alignment: .leading, spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(
                 title: "ランキング",
                 count: detail.entries.isEmpty ? nil : "\(detail.entries.count)\(entryCountUnit(for: detail.poll.targetType))"
@@ -241,7 +239,6 @@ struct PollDetailView: View {
                             rank: index + 1,
                             entry: entry,
                             targetType: detail.poll.targetType,
-                            maxVotes: maxVotes,
                             canVote: AuthService.shared.isSignedIn && detail.poll.isActive,
                             remaining: vm.remaining,
                             isAnyVoting: vm.isVoting,
@@ -412,8 +409,6 @@ private struct PollEntryRow: View {
     let rank: Int
     let entry: PollEntry
     let targetType: PollTargetType
-    /// ランキングでいちばん多い票数 (割合バーの基準)。
-    let maxVotes: Int
     /// 投票トグルを出すか (= ログイン済み かつ 開催中)。未ログイン/終了時は読み取り専用。
     let canVote: Bool
     /// 残り投票可能数 (未投票の候補に投票できるか判定)。
@@ -445,16 +440,55 @@ private struct PollEntryRow: View {
         }
     }
 
-    /// アイドル・ユニットの候補は写真があれば写真、無ければ `ImasAvatar` 自身の判子 (アイコンを消さない)。
+    /// アイドル候補は写真があれば写真、無ければ `ImasAvatar` 自身の判子 (アイコンを消さない)。
+    /// 判子の文字は前どおり略称。ユニット候補は `ImasForecastRow` に `unit:` を渡して解決する。
     private var avatar: (label: String, imageURL: URL?, seed: String?)? {
+        guard targetType == .idol, let resolvedIdol else { return nil }
+        return (resolvedIdol.shortName, imageService.imageURL(for: resolvedIdol.id), resolvedIdol.color)
+    }
+
+    /// 曲の副題 (ユニット名、無ければ歌唱者の表記)。アイドル・ユニット候補には付けない (前どおり)。
+    private var subtitle: String? {
+        guard targetType == .song, let resolvedSong else { return nil }
+        return resolvedSong.unitName ?? resolvedSong.singerLabel
+    }
+
+    /// ジャケが無いときの面の色 (曲のブランド色)。
+    private var brandHex: String? {
+        guard targetType == .song else { return nil }
+        return resolvedSong.flatMap { BrandColors.hex(for: $0.brandId) }
+    }
+
+    /// 曲の試聴の配線 (楽曲一覧の行と同じ MusicKitService)。
+    private var previewURL: URL? {
+        guard targetType == .song else { return nil }
+        return resolvedSong.flatMap { URL.safeHTTP(string: $0.previewUrl) }
+    }
+
+    private var isPreviewing: Bool {
+        guard targetType == .song, let resolvedSong else { return false }
+        return MusicKitService.shared.isPlaying(songId: resolvedSong.id)
+    }
+
+    private func onPreviewTap() {
+        guard let resolvedSong, let previewURL else { return }
+        MusicKitService.shared.togglePreview(url: previewURL, songId: resolvedSong.id)
+    }
+
+    /// 長押しでコピーできる項目 (曲名・よみ・歌唱者 / アイドル名・よみ)。ユニットは前どおり無し。
+    private var copyItems: [CopyItem] {
         switch targetType {
-        case .song: return nil
+        case .song:
+            guard let resolvedSong else { return [] }
+            return [CopyItem("曲名をコピー", resolvedSong.title, key: "song_title"),
+                    CopyItem("よみをコピー", resolvedSong.titleKana, key: "kana"),
+                    CopyItem("歌唱者をコピー", resolvedSong.singerLabel, key: "artists")]
         case .idol:
-            guard let resolvedIdol else { return nil }
-            return (resolvedIdol.name, imageService.imageURL(for: resolvedIdol.id), resolvedIdol.color)
+            guard let resolvedIdol else { return [] }
+            return [CopyItem("アイドル名をコピー", resolvedIdol.name, key: "idol_name"),
+                    CopyItem("よみをコピー", resolvedIdol.nameKana, key: "kana")]
         case .unit:
-            guard let resolvedUnit else { return nil }
-            return (resolvedUnit.displayName, nil, nil)
+            return []
         }
     }
 
@@ -462,9 +496,16 @@ private struct PollEntryRow: View {
         ImasForecastRow(
             rank: rank,
             title: title,
+            subtitle: subtitle,
             artworkURL: targetType == .song ? resolvedSong?.artworkUrl.flatMap(URL.init(string:)) : nil,
+            brand: brandHex,
             avatar: avatar,
-            measure: .votes(entry.voteCount, share: Double(entry.voteCount) / Double(maxVotes)),
+            unit: targetType == .unit ? resolvedUnit : nil,
+            previewURL: previewURL,
+            isPreviewing: isPreviewing,
+            onPreviewTap: onPreviewTap,
+            measure: .votes(entry.voteCount, share: 0),
+            showsProportionLine: false,
             isMine: entry.hasUserVoted,
             onVote: canVote ? {
                 guard !isBusy, !voteDisabled, !lockedByOther else { return }
@@ -475,7 +516,14 @@ private struct PollEntryRow: View {
                 }
             } : nil,
             voteLabel: "投票する",
-            votedLabel: "投票済み"
+            votedLabel: "投票済み",
+            voteAccessibilityLabel: "投票",
+            votedAccessibilityLabel: "投票を取消",
+            voteDisabled: voteDisabled || lockedByOther,
+            isVoteLoading: isBusy,
+            showsChevron: true,
+            copyItems: copyItems,
+            combineAccessibility: false
         )
         // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう
         // (SongListView と同じ iOS 18 の button-in-button 問題)。行全体は onTapGesture
@@ -484,7 +532,9 @@ private struct PollEntryRow: View {
         .onTapGesture {
             if detailDestination != nil { openDetail() }
         }
-        .disabled(voteDisabled || lockedByOther)
+        .accessibilityAction {
+            if detailDestination != nil { openDetail() }
+        }
         .task { await resolveEntity() }
     }
 

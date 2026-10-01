@@ -31,13 +31,14 @@ struct PollHallOfFameView: View {
                             if index > 0 {
                                 ImasRowDivider(inset: DS.sp5)
                             }
-                            Button {
-                                AppAnalytics.tap("poll_hall_of_fame.view_result")
-                                Task { await navigate(result) }
-                            } label: {
-                                HallOfFameRow(result: result)
-                            }
-                            .buttonStyle(.plain)
+                            // Button でラップすると内側のジャケ写プレビュー再生タップが
+                            // 吸われるため、行全体は onTapGesture で遷移を受ける。
+                            HallOfFameRow(result: result)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    AppAnalytics.tap("poll_hall_of_fame.view_result")
+                                    Task { await navigate(result) }
+                                }
                         }
                     }
                     .listRowInsets(EdgeInsets())

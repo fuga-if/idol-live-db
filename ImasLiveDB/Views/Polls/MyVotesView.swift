@@ -56,7 +56,9 @@ struct MyVotesView: View {
                             }
                         } header: {
                             NavigationLink(value: PollRoute.detail(entry.poll.id)) {
-                                ImasSectionHeader(entry.poll.title, count: entry.poll.statusLabel, style: .small)
+                                // お題の題はユーザーが書く文なので区画見出しの既定 2 行で切らない。
+                                ImasSectionHeader(entry.poll.title, count: entry.poll.statusLabel, style: .small,
+                                                  titleLineLimit: Int.max)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
