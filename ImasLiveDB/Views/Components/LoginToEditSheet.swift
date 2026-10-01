@@ -13,43 +13,25 @@ struct LoginToEditSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: DS.sp6) {
-                Image(systemName: "square.and.pencil")
-                    .font(.imasScaled( 44))
-                    .foregroundStyle(.tint)
-                    .padding(.top, DS.sp8)
+            ImasFormPage {
+                ImasSetupHeader(
+                    systemImage: "square.and.pencil",
+                    title: "ログインして編集に参加",
+                    message: "ライブ・公演・セトリ・楽曲の情報は、ログインしたユーザーみんなで編集できます。誤りの修正や新しいライブの追加に、ぜひ協力してください。"
+                )
 
-                Text("ログインして編集に参加")
-                    .font(.imasTitle3.bold())
-
-                Text("ライブ・公演・セトリ・楽曲の情報は、ログインしたユーザーみんなで編集できます。誤りの修正や新しいライブの追加に、ぜひ協力してください。")
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, DS.sp3)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    pointRow("bolt.fill", "編集は承認待ちなし。すぐ全員に反映されます")
-                    pointRow("clock.arrow.circlepath", "変更履歴が残り、間違えてもいつでも戻せます")
-                    pointRow("eye", "閲覧はログイン不要。編集する時だけログインします")
-                }
-                .font(.imasFootnote)
-                .padding(.horizontal)
+                ImasStepList(steps: [
+                    .init(title: "編集は承認待ちなし", detail: "すぐ全員に反映されます"),
+                    .init(title: "変更履歴が残ります", detail: "間違えてもいつでも戻せます"),
+                    .init(title: "閲覧はログイン不要", detail: "編集する時だけログインします"),
+                ])
 
                 AppleSignInButton()
-                    .padding(.horizontal)
-
-                Spacer()
             }
-            .padding()
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("login_sheet")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             // ログイン完了を監視。サインインすると即 dismiss → 呼び出し側が編集対象を再 present。
             .onChange(of: AuthService.shared.isSignedIn) { _, signedIn in
                 if signedIn {
@@ -59,17 +41,6 @@ struct LoginToEditSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-    }
-
-    private func pointRow(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(.tint)
-                .frame(width: 20)
-            Text(text)
-                .foregroundStyle(DS.ink2)
-            Spacer(minLength: 0)
-        }
     }
 }
 

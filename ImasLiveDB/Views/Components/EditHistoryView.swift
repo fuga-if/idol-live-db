@@ -25,7 +25,7 @@ struct EditHistoryView: View {
     var body: some View {
         let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
         return ScrollView {
-            LazyVStack(spacing: 10) {
+            LazyVStack(spacing: DS.Space.gapLoose) {
                 ForEach(entries) { entry in
                     HistoryRow(entry: entry, recordType: recordType, timeLabel: times[entry.id] ?? "")
                 }
@@ -38,9 +38,7 @@ struct EditHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
             if isLoading && entries.isEmpty {
-                ProgressView("読み込み中...")
-                    .padding(DS.sp7)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                ImasLoadingState()
             } else if entries.isEmpty && !isLoading && errorMessage == nil {
                 ImasEmptyState(
                     systemImage: "clock.arrow.circlepath",
@@ -89,84 +87,58 @@ private struct HistoryRow: View {
     let timeLabel: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            // 編集者 + op バッジ + 相対時刻
-            HStack(spacing: 6) {
-                Text(entry.editorDisplayLabel)
-                    .font(.imasSubhead.weight(.semibold))
-                    .lineLimit(1)
-                OpBadge(op: entry.op)
-                if entry.source == "revert" || entry.source == "admin", entry.op != "revert" {
-                    sourceBadge
-                }
-                if entry.reverted {
-                    Text("差戻し済み")
-                        .font(.imasCaption2.weight(.semibold))
-                        .foregroundStyle(DS.ink2)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, DS.sp1)
-                        .background(DS.fill, in: Capsule())
-                }
-                Spacer(minLength: 4)
-                Text(timeLabel)
-                    .font(.imasCaption2)
-                    .foregroundStyle(DS.ink2)
-            }
-
-            diffBody
-        }
-        .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
-    }
-
-    private var sourceBadge: some View {
-        Text(entry.source == "admin" ? "運営" : "巻き戻し")
-            .font(.imasCaption2.weight(.semibold))
-            .foregroundStyle(DS.warning)
-            .padding(.horizontal, 7)
-            .padding(.vertical, DS.sp1)
-            .background(DS.warning.opacity(0.15), in: Capsule())
-    }
-
-    @ViewBuilder
-    private var diffBody: some View {
-        switch entry.op {
-        case "create":
-            Text("新規追加されました")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-        case "delete":
-            Text("削除されました")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-        case "snapshot":
-            Text("セットリスト全体が更新されました")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-        default:
-            updateDiff
-        }
-    }
-
-    /// update の変更フィールドを「ラベル: 旧 → 新」で列挙する。
-    @ViewBuilder
-    private var updateDiff: some View {
-        let fields = entry.changedFields
-        if fields.isEmpty {
-            Text("内容が更新されました")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-        } else {
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(fields, id: \.self) { field in
-                    FieldDiffRow(
-                        label: EditFieldLabel.label(for: field),
-                        before: entry.before?[field],
-                        after: entry.after?[field]
-                    )
+        ImasCard {
+            ImasRecordRow(
+                systemImage: "pencil",
+                title: title,
+                subtitle: "\(entry.editorDisplayLabel) · \(timeLabel)",
+                badges: badges
+            ) {
+                if case .update = Op(entry.op), !entry.changedFields.isEmpty {
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        ForEach(entry.changedFields, id: \.self) { field in
+                            FieldDiffRow(
+                                label: EditFieldLabel.label(for: field),
+                                before: entry.before?[field],
+                                after: entry.after?[field]
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /// 操作の種類 (`EditFeedFormat.opBadgeKind` と対にする、画面固有の分岐用)。
+    private enum Op { case create, delete, snapshot, update
+        init(_ raw: String) {
+            switch raw {
+            case "create": self = .create
+            case "delete": self = .delete
+            case "snapshot": self = .snapshot
+            default: self = .update
+            }
+        }
+    }
+
+    private var title: String {
+        switch Op(entry.op) {
+        case .create: return "新規追加されました"
+        case .delete: return "削除されました"
+        case .snapshot: return "セットリスト全体が更新されました"
+        case .update: return "内容が更新されました"
+        }
+    }
+
+    private var badges: [ImasBadgeSpec] {
+        var specs = [ImasBadgeSpec(text: EditFeedFormat.opLabel(entry.op), kind: EditFeedFormat.opBadgeKind(entry.op))]
+        if entry.source == "revert" || entry.source == "admin", entry.op != "revert" {
+            specs.append(ImasBadgeSpec(text: entry.source == "admin" ? "運営" : "巻き戻し", kind: .attention))
+        }
+        if entry.reverted {
+            specs.append(ImasBadgeSpec(text: "差戻し済み", kind: .negative))
+        }
+        return specs
     }
 }
 
@@ -178,28 +150,20 @@ private struct FieldDiffRow: View {
     let after: JSONValue?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp1) {
-            Text(label)
-                .font(.imasCaption.weight(.semibold))
-                .foregroundStyle(DS.ink2)
-            HStack(alignment: .top, spacing: 6) {
-                Text(before?.displayString ?? "(なし)")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .strikethrough(true, color: DS.ink3)
-                    .lineLimit(2)
-                Image(systemName: "arrow.right")
-                    .font(.imasCaption2)
-                    .foregroundStyle(DS.ink3)
-                Text(after?.displayString ?? "(なし)")
-                    .font(.imasCaption.weight(.medium))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
+        ImasCard(style: .inset, padding: DS.Space.gap) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Text(label).imasText(.sectionLabel)
+                HStack(alignment: .top, spacing: DS.Space.gapTight) {
+                    Text(before?.displayString ?? "(なし)")
+                        .imasText(.meta)
+                        .strikethrough(true, color: DS.ink3)
+                        .lineLimit(2)
+                    Image(systemName: "arrow.right").imasText(.meta)
+                    Text(after?.displayString ?? "(なし)").imasText(.note, color: DS.ink).lineLimit(2)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DS.sp3)
-        .background(DS.surface2, in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

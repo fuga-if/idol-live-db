@@ -34,10 +34,10 @@ struct SyncStatusBar: View {
                     .frame(height: 2)
                     .animation(.easeInOut(duration: 0.25), value: syncEngine.syncProgress)
             } else {
-                Rectangle().fill(DS.sep).frame(height: 0.5)
+                ImasRowDivider()
             }
 
-            HStack(spacing: 6) {
+            HStack(spacing: DS.Space.gapTight) {
                 leadingIcon(state)
                     .frame(width: 16, height: 16)
                 Text(state.description)
@@ -48,7 +48,7 @@ struct SyncStatusBar: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 5)
+            .padding(.vertical, DS.Space.gapTight)
         }
         .background(.bar)
         .animation(.easeInOut(duration: 0.2), value: syncEngine.isSyncing)
@@ -72,14 +72,11 @@ struct SyncStatusBar: View {
         case .syncing:
             ProgressView().controlSize(.mini).tint(DS.ink2)
         case .completed:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.success)
+            Image(systemName: "checkmark.circle.fill").imasText(.eyebrow, color: DS.successInk)
         case .error:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.danger)
+            Image(systemName: "exclamationmark.triangle.fill").imasText(.eyebrow, color: DS.danger)
         case .idle:
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.imasScaled( 13, weight: .semibold)).foregroundStyle(DS.ink3)
+            Image(systemName: "arrow.triangle.2.circlepath").imasText(.eyebrow, color: DS.ink3)
         }
     }
 
