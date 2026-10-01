@@ -160,8 +160,11 @@ struct IdolDetailView: View {
                 ImasBoard.Cell(value: "\(vm.performedSongs.count)", label: "歌唱曲"),
             ] : []
         ) {
+            // PhotosPicker の label は Sendable の closure なので、MainActor の値は先に取り出して渡す。
+            let badgeSeed = seed
+            let badgeBrand = brandColor
             PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                ImasIconBadge(systemImage: "camera.fill", label: "写真を選ぶ", seed: seed, brand: brandColor)
+                ImasIconBadge(systemImage: "camera.fill", label: "写真を選ぶ", seed: badgeSeed, brand: badgeBrand)
             }
         }
         .padding(.horizontal, DS.Space.screen)
