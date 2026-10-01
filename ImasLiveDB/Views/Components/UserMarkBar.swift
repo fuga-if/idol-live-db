@@ -30,13 +30,17 @@ struct UserMarkBar: View {
         }
     }
 
+    @Environment(\.imasTheme) private var envTheme
+
     var body: some View {
-        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
-        HStack(spacing: DS.sp3) {
+        // seed / brand を渡されたらその色、無ければ画面の実体色 (`.imasTheme`) を使う。
+        let t = (seed != nil || brand != nil) ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) : envTheme
+        HStack(spacing: DS.Space.gap) {
             ForEach(visibleKinds, id: \.self) { kind in
                 cell(for: kind, theme: t)
             }
         }
+        .environment(\.imasTheme, t)
         .sheet(isPresented: $showingNote) {
             NoteEditorSheet(entity: entity, entityId: entityId, draft: $noteDraft)
         }
@@ -93,32 +97,8 @@ struct UserMarkBar: View {
         }
     }
 
-    /// アイコンタイル + ラベルだけの軽量セル。外側の面カードを廃し (二重ボックス解消)、
-    /// iOS 標準のアクションロー風に整える。タイルはタップ領域確保のため固定 50pt。
+    /// 印のタイル 1 つ (見た目は DesignSystem の `ImasMarkTile`)。
     private func markCell(icon: String, label: String, isOn: Bool, theme t: ImasTheme, a11y: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 7) {
-                Image(systemName: icon)
-                    .font(.imasScaled(19, weight: .semibold))
-                    .foregroundStyle(isOn ? t.onAccent : t.chipText)
-                    .frame(width: 50, height: 50)
-                    .background(isOn ? AnyShapeStyle(t.accent) : AnyShapeStyle(t.chipBg),
-                                in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15, style: .continuous)
-                            .strokeBorder(isOn ? Color.clear : DS.sep, lineWidth: 0.5)
-                    )
-                    .symbolEffect(.bounce, value: isOn)
-                Text(label)
-                    .font(.imasScaled(11, weight: .medium))
-                    .foregroundStyle(isOn ? t.accent : DS.ink2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(a11y)
-        .animation(.easeInOut(duration: 0.15), value: isOn)
+        ImasMarkTile(systemImage: icon, label: label, isOn: isOn, accessibilityText: a11y, action: action)
     }
 }
