@@ -63,7 +63,7 @@ mod tests {
         assert_eq!(color("961").as_deref(), Some("#520000"));
         assert_eq!(color("cg").as_deref(), Some("#2681c8"));
         assert_eq!(color("ml").as_deref(), Some("#ffc30b"));
-        assert_eq!(color("765as").as_deref(), Some("#fe0000"));
+        assert_eq!(color("765as").as_deref(), Some("#f34f6d"));
         assert_eq!(color("sidem").as_deref(), Some("#0fbe94"));
         assert_eq!(color("sc").as_deref(), Some("#8dbbff"));
         assert_eq!(color("gakuen").as_deref(), Some("#f39800"));

@@ -42,7 +42,7 @@ INSERT INTO "anniversaries" VALUES('ann_sidem_20140228_service_start','sidem','�
 INSERT INTO "anniversaries" VALUES('ann_sidem_20230105_service_end','sidem','モバゲー版SideM サービス終了','2023-01-05','service_end',0);
 INSERT INTO "anniversaries" VALUES('ann_sc_20190313_app_start','sc','シャニマス アプリ版配信開始','2019-03-13','app_start',0);
 CREATE TABLE brands (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, short_name TEXT NOT NULL, color TEXT, sort_order INTEGER NOT NULL);
-INSERT INTO "brands" VALUES('765as','THE IDOLM@STER','765AS','#fe0000',1);
+INSERT INTO "brands" VALUES('765as','THE IDOLM@STER','765AS','#f34f6d',1);
 INSERT INTO "brands" VALUES('876','THE IDOLM@STER Dearly Stars','876','#656a75',3);
 INSERT INTO "brands" VALUES('cg','THE IDOLM@STER CINDERELLA GIRLS','デレマス','#2681c8',4);
 INSERT INTO "brands" VALUES('ml','THE IDOLM@STER MILLION LIVE!','ミリオン','#ffc30b',5);
@@ -2806,7 +2806,7 @@ INSERT INTO "idols" VALUES('cg_黒川千秋','cg','黒川千秋','くろかわ�
 INSERT INTO "idols" VALUES('cg_龍崎薫','cg','龍崎薫','りゅうざきかおる',NULL,'#F4D956',4187,'--07-20','O',132.0,32.0,'愛媛',9,65.0,51.0,70.0,'蟹座','料理',NULL,'愛媛出身の9歳のひまわりのように元気なアイドル。料理が趣味で、事務所のスタッフに振る舞う。CV: 春瀬なつみ。','female','right','龍崎','薫',NULL,'2011-11-28','passion',0,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','90');
+INSERT INTO "meta" VALUES('data_version','91');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
