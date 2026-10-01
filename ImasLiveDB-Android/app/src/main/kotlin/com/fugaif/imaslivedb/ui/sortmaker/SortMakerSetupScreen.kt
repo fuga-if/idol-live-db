@@ -94,16 +94,12 @@ data class SortMakerSetupUiState(
 ) {
     val estimate: Int get() = sortMakerEstimateTotal(candidates.size.toUInt(), depth.rawValue.toUInt()).toInt()
 
-    /**
-     * 始められるか。ティアー表は全部を 1 画面に並べる (遅延表示しない) ので、
-     * [TIER_LIST_LIMIT] を超えたら無効にする (振り分ける手間からも現実的な上限)。
-     */
+    /** 始められるか (2 件以上)。ティアー表は全曲でも作れる (未分類は絞り込みと遅延表示)。 */
     fun canStart(purpose: SortMakerPurpose): Boolean =
-        !isLoading && candidates.size >= 2 && (purpose == SortMakerPurpose.SORT || candidates.size <= TIER_LIST_LIMIT)
+        !isLoading && candidates.size >= 2
 }
 
 /** ティアー表に並べられる上限。 */
-const val TIER_LIST_LIMIT = 200
 
 class SortMakerSetupViewModel : ViewModel() {
 
@@ -614,10 +610,7 @@ private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject, pur
 private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject, purpose: SortMakerPurpose): String? {
     if (state.candidates.size < 2) return "2${subject.counter}以上になるように絞り込みをゆるめてください。"
     if (purpose == SortMakerPurpose.TIER) {
-        if (state.candidates.size > TIER_LIST_LIMIT) {
-            return "ティアー表は${TIER_LIST_LIMIT}${subject.counter}までです。ブランドや曲の種類で絞ってください。"
-        }
-        return if (state.candidates.size > 120) "数が多いと振り分けが大変です。ブランドなどで絞るのがおすすめです。" else null
+        return if (state.candidates.size > 200) "未分類は名前で絞り込めるので、全${subject.counter}からでも探して振り分けられます。" else null
     }
     if (state.estimate > 600) {
         return if (state.depth == SortMakerDepth.ALL) {

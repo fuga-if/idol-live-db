@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
+import androidx.compose.foundation.layout.heightIn
+import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -421,11 +424,26 @@ private fun UnplacedSection(
     onItemDetail: (SortMakerItem) -> Unit,
     onRowClick: () -> Unit
 ) {
+    // 全曲を入れると数千件になるので、名前・歌唱で絞り込めるようにする (照合はコア)。
+    var query by rememberSaveable { mutableStateOf("") }
+    val visible = rememberSearchFiltered(ids, query) { id ->
+        when (val item = items[id]) {
+            is SortMakerItem.SongItem -> listOf(item.song.title, item.song.titleKana, item.song.singerLabel, item.song.unitName)
+            is SortMakerItem.IdolItem -> listOf(item.idol.name, item.idol.nameKana, item.idol.aliases)
+            else -> emptyList()
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("未分類", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Spacer(Modifier.width(6.dp))
-            Text("${ids.size}", fontSize = 12.sp, color = DS.ink3)
+            Text(if (query.isBlank()) "${ids.size}" else "${visible.size} / ${ids.size}", fontSize = 12.sp, color = DS.ink3)
+        }
+        if (ids.size > 12) {
+            NameFilterField(
+                prompt = if (items.values.firstOrNull() is SortMakerItem.IdolItem) "名前で絞り込み" else "曲名・歌唱で絞り込み",
+                value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth()
+            )
         }
         Box(
             modifier = Modifier
@@ -434,14 +452,39 @@ private fun UnplacedSection(
                 .background(DS.surface)
                 .clickable(onClick = onRowClick)
         ) {
-            ItemsFlow(
-                ids = ids,
-                items = items,
-                selectedId = selectedId,
-                emptyText = if (ids.isEmpty()) "全部振り分けました" else if (hasSelection) "ここへ移す" else null,
-                onSelect = onSelect,
-                onItemDetail = onItemDetail
-            )
+            if (visible.size > 60) {
+                // 数が多いときは見えている分だけ描く格子 (枠の中でスクロール)。
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(66.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).padding(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(visible, key = { it }) { id ->
+                        val item = items[id]
+                        TierListChip(
+                            item = item,
+                            isSelected = selectedId == id,
+                            onClick = { onSelect(id) },
+                            onLongClick = { item?.let { onItemDetail(it) } }
+                        )
+                    }
+                }
+            } else {
+                ItemsFlow(
+                    ids = visible,
+                    items = items,
+                    selectedId = selectedId,
+                    emptyText = when {
+                        ids.isEmpty() -> "全部振り分けました"
+                        visible.isEmpty() -> "当てはまるものがありません"
+                        hasSelection -> "ここへ移す"
+                        else -> null
+                    },
+                    onSelect = onSelect,
+                    onItemDetail = onItemDetail
+                )
+            }
         }
     }
 }

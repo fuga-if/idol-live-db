@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.fugaif.imaslivedb.di.AppModule
 import android.content.Context
 import android.graphics.Bitmap
@@ -287,15 +288,32 @@ private fun HiddenCapture(capture: com.fugaif.imaslivedb.ui.share.ShareCardCaptu
 // =============================================================================
 // 書き出す 1 枚。near-black の地に、見出し → 段ごとの行 → フッター。
 // 色は固定色、文字は固定 sp (端末の文字サイズ倍率がかかると枠からあふれるため)。
-// 版権の都合でアイドルの絵は載せず、メンバーカラーのモノグラムにする。
+// アイドルはアプリ内と同じアイコン (取り込んだ画像) を、無ければメンバーカラーのモノグラムを載せる。
 // =============================================================================
 
 private val LABEL_WIDTH = 76.dp
-private val CELL = 62.dp
 private val GAP = 6.dp
+
+/** 1 枚の一辺。段に入れた件数が多いほど小さくして、縦に伸びすぎないようにする (iOS と同じ閾値)。 */
+private val LocalExportCell = staticCompositionLocalOf { 62.dp }
+/** 名前を添えるか (件数が多いときは絵だけにする)。 */
+private val LocalExportShowsNames = staticCompositionLocalOf { true }
 
 @Composable
 private fun TierListBoardImage(board: TierListBoard, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    val placed = board.itemIds.count { board.tierIndexOf(it) != null }
+    val cell = when {
+        placed <= 150 -> 62.dp
+        placed <= 400 -> 46.dp
+        else -> 34.dp
+    }
+    CompositionLocalProvider(LocalExportCell provides cell, LocalExportShowsNames provides (placed <= 400)) {
+        TierListBoardImageBody(board, items, thumbnails)
+    }
+}
+
+@Composable
+private fun TierListBoardImageBody(board: TierListBoard, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
     Column(
         modifier = Modifier
             .width(540.dp)
@@ -355,7 +373,7 @@ private fun ExportRow(tier: TierDef, board: TierListBoard, items: Map<String, So
         FlowRow(
             modifier = Modifier
                 .weight(1f)
-                .defaultMinSize(minHeight = CELL + 22.dp + GAP * 2)
+                .defaultMinSize(minHeight = LocalExportCell.current + (if (LocalExportShowsNames.current) 22.dp else 8.dp) + GAP * 2)
                 .background(Color.White.copy(alpha = 0.06f))
                 .padding(GAP),
             horizontalArrangement = Arrangement.spacedBy(GAP),
@@ -370,15 +388,20 @@ private fun ExportRow(tier: TierDef, board: TierListBoard, items: Map<String, So
 private fun ExportTile(id: String, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         ExportVisual(id, items, thumbnails)
-        Text(
-            items[id]?.title ?: "", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Color.White.copy(alpha = 0.85f),
-            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(CELL)
-        )
+        if (LocalExportShowsNames.current) {
+            val cell = LocalExportCell.current
+            Text(
+                items[id]?.title ?: "", fontSize = if (cell >= 60.dp) 9.sp else 7.sp, fontWeight = FontWeight.SemiBold,
+                color = Color.White.copy(alpha = 0.85f),
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(cell)
+            )
+        }
     }
 }
 
 @Composable
 private fun ExportVisual(id: String, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
+    val CELL = LocalExportCell.current
     when (val item = items[id]) {
         is SortMakerItem.SongItem -> {
             val thumb = thumbnails[id]
