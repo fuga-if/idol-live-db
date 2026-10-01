@@ -55,7 +55,7 @@ struct MyEditsView: View {
         .trackScreen("my_edits")
         .overlay {
             if isLoading && entries.isEmpty {
-                ImasLoadingState()
+                ImasLoadingState(title: "読み込み中...")
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
                     systemImage: "square.and.pencil",
@@ -84,7 +84,7 @@ struct MyEditsView: View {
         } message: { target in
             Text(revertMessage(for: target))
         }
-        .imasErrorAlert("操作に失敗しました", message: $errorMessage)
+        .imasErrorAlert("エラー", message: $errorMessage)
     }
 
     // MARK: - State resolution
@@ -253,15 +253,6 @@ struct OpBadge: View {
     let op: String
 
     var body: some View {
-        let (label, _) = EditFeedFormat.opDesign(op)
-        ImasBadge(text: label, kind: kind)
-    }
-
-    private var kind: ImasBadge.Kind {
-        switch op {
-        case "delete": return .attention
-        case "revert": return .negative
-        default: return .neutral
-        }
+        ImasBadge(text: EditFeedFormat.opLabel(op), kind: EditFeedFormat.opBadgeKind(op))
     }
 }

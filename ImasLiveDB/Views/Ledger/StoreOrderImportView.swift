@@ -81,24 +81,27 @@ struct StoreOrderImportView: View {
 
     /// 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。
     private var guideCard: some View {
-        ImasFormCard {
-            VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
-                Text("取り込み方").imasText(.sectionLabel)
-                ImasStepList(steps: [
-                    .init(title: "アソビストアの購入履歴を開く") {
-                        if let url = URL(string: asobiOrderHistoryUrl()) {
-                            Link(destination: url) {
-                                Label("購入履歴を開く", systemImage: "arrow.up.right.square")
-                                    .font(.imasFootnote.weight(.semibold))
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasFormCard {
+                VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                    Text("取り込み方").imasText(.sectionLabel)
+                    ImasStepList(steps: [
+                        .init(title: "アソビストアの購入履歴を開く") {
+                            if let url = URL(string: asobiOrderHistoryUrl()) {
+                                Link(destination: url) {
+                                    Label("購入履歴を開く", systemImage: "arrow.up.right.square")
+                                        .font(.imasFootnote.weight(.semibold))
+                                }
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
                             }
-                            .buttonStyle(.bordered)
-                            .buttonBorderShape(.capsule)
-                        }
-                    },
-                    .init(title: "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする"),
-                    .init(title: "下の「ペースト」を押す"),
-                ])
+                        },
+                        .init(title: "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする"),
+                        .init(title: "下の「ペースト」を押す"),
+                    ])
+                }
             }
+            ImasNote("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
         }
     }
 
@@ -115,7 +118,7 @@ struct StoreOrderImportView: View {
                     .labelStyle(.titleAndIcon)
                     .buttonBorderShape(.capsule)
 
-                    ImasFormTextArea(label: "貼り付け", imprint: "PASTE", text: $text, prompt: "ここに直接貼り付け")
+                    ImasFormTextArea(label: "貼り付け", imprint: "PASTE", text: $text, prompt: "または、ここに直接貼り付け")
                 }
             }
             if !text.isEmpty {

@@ -133,13 +133,15 @@ struct StatsView: View {
                 VStack(spacing: DS.Space.gap) {
                     ForEach(catchChances) { chance in
                         ImasTicket(
-                            label: abbreviateEventNames ? chance.eventShortName : chance.eventName,
+                            label: "\(dateLabel(date: chance.show.date, today: JSTDay.today())) ・ "
+                                + (abbreviateEventNames ? chance.eventShortName : chance.eventName),
                             imprint: nil,
                             title: chance.show.name,
-                            metaImprint: mastheadDate(date: chance.show.date),
                             meta: (chance.show.venue?.isEmpty == false) ? chance.show.venue : nil,
+                            metaIcon: "mappin.and.ellipse",
                             brand: chance.brandColor,
-                            countdown: .init(prefix: "未回収", value: "\(chance.likelyCount)", unit: "SONGS"),
+                            // 回収する根拠 (何回披露された曲が) まで読めるように。
+                            countdown: .init(prefix: "過去に披露", value: "\(chance.likelyCount)", unit: "曲"),
                             onOpen: { selectedShow = chance.show }
                         )
                     }
@@ -182,6 +184,7 @@ struct StatsView: View {
                             ImasSongRow(
                                 song: item.song,
                                 subtitle: brandShortName(for: item.song.brandId),
+                                playsPreview: false,
                                 trailing: .custom(AnyView(frequencyBadge(item)))
                             )
                         }
@@ -243,7 +246,10 @@ struct StatsView: View {
             date: show.date,
             title: show.name,
             subtitle: venueLine.isEmpty ? nil : venueLine,
-            brandHex: latestShowBrandColor
+            brandHex: latestShowBrandColor,
+            badges: [ImasBadgeSpec(text: "最新公演", kind: .neutral)],
+            detailAccessibilityLabel: "セトリを見る",
+            subtitleLineLimit: 2
         ) {
             ImasChip(text: "セトリを見る", systemImage: "music.note.list", style: .themed, seed: latestShowBrandColor)
         }

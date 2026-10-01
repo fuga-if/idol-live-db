@@ -40,7 +40,12 @@ struct ImasChatBubble<Avatar: View>: View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             if role == .user {
                 Spacer(minLength: DS.Size.touch)
-                bubble
+                VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
+                    if let partnerName {
+                        Text(partnerName).imasText(.meta)
+                    }
+                    bubble
+                }
             } else {
                 avatar()
                 VStack(alignment: .leading, spacing: DS.Space.gapTight) {

@@ -82,17 +82,17 @@ struct AboutView: View {
                 NavigationLink {
                     PrivacyPolicyView()
                 } label: {
-                    ImasNavRow(title: "プライバシーポリシー")
+                    ImasNavRow(title: "プライバシーポリシー", showsChevron: false)
                 }
                 NavigationLink {
                     TermsOfServiceView()
                 } label: {
-                    ImasNavRow(title: "利用規約")
+                    ImasNavRow(title: "利用規約", showsChevron: false)
                 }
                 NavigationLink {
                     SupportView()
                 } label: {
-                    ImasNavRow(title: "サポート")
+                    ImasNavRow(title: "サポート", showsChevron: false)
                 }
                 // ⚠️ ここで requestReview() を呼ばないこと。OS の都合 (年3回の上限等) で
                 //    無視されることがあり、押しても何も起きないボタンになる。

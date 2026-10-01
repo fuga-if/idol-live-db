@@ -190,6 +190,8 @@ struct CallGuideDashboardView: View {
             ImasSongRow(
                 song: row.song,
                 subtitle: "",
+                // 行全体がシートを開くボタンなので、ジャケは試聴ではなくそのまま押せるようにする。
+                playsPreview: false,
                 // ボタンは縮ませない。曲名の方を省略する
                 // (「ログイン…」まで潰れると、何のボタンか読めなくなる)。
                 trailing: .custom(AnyView(
@@ -231,7 +233,7 @@ struct CallGuideDashboardView: View {
 
     private func songRow(_ song: Song, subtitle: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            ImasSongRow(song: song, subtitle: subtitle, trailing: .chevron, density: .compact)
+            ImasSongRow(song: song, subtitle: subtitle, playsPreview: false, trailing: .chevron, density: .compact)
         }
         .buttonStyle(.imasRow)
     }

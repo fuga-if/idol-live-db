@@ -255,24 +255,26 @@ struct LedgerView: View {
     }
 
     private func row(_ expense: Expense) -> some View {
-        let categoryLabel = expenseCategoryLabel(category: expense.categoryValue)
-        // 公演名かメモ。両方あれば公演名 (どの遠征の支出かが先に要る)。無ければ費目を題にする。
+        // 費目・日付は常に出す (題にする)。公演名かメモは、あるときだけ下にもう1行足す
+        // (無ければ何も足さない。費目を題の代わりに使うような分岐は作らない)。
         let detail = expense.showId.flatMap { showLabels[$0] } ?? expense.note
-        let title = (detail?.isEmpty == false ? detail : nil) ?? categoryLabel
         return Button {
             editing = ExpenseEditorTarget(expense: expense)
         } label: {
             ImasRecordRow(
-                title: title,
+                title: expenseCategoryLabel(category: expense.categoryValue),
                 subtitle: shortDate(expense.date),
-                badges: [ImasBadgeSpec(text: categoryLabel, kind: .neutral)],
                 trailing: .custom(AnyView(
                     Text(formatYen(amount: expense.amount))
                         .font(.imasBody.weight(.semibold))
                         .foregroundStyle(DS.ink)
                         .monospacedDigit()
                 ))
-            ) { EmptyView() }
+            ) {
+                if let detail, !detail.isEmpty {
+                    Text(detail).imasText(.note)
+                }
+            }
         }
         .buttonStyle(.imasRow)
     }

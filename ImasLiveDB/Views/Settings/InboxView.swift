@@ -51,6 +51,7 @@ struct InboxView: View {
             trailing: store.isRead(a.id) ? .none : .custom(AnyView(
                 ImasSwatch(hex: hex, size: .dot, isDecorative: true)
             )),
+            subtitleLineLimit: 2,
             titleRole: .rowTitle
         ) {
             Text(a.date).imasText(.meta)

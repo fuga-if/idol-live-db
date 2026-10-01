@@ -158,6 +158,8 @@ struct ImasTicket: View {
     /// 日付・会場などの行。先頭の印字 (「11.07 SAT」) は `metaImprint` に。
     var metaImprint: String? = nil
     var meta: String? = nil
+    /// `meta` の前に置く小さな記号 (会場なら "mappin.and.ellipse" など)。
+    var metaIcon: String? = nil
     /// ペンライトの色の手がかり (公演のブランド・担当)。無ければペンライトを出さない。
     var seed: String? = nil
     var brand: String? = nil
@@ -189,6 +191,8 @@ struct ImasTicket: View {
                 if metaImprint != nil || meta != nil {
                     (Text(metaImprint.map { $0 + (meta == nil ? "" : " · ") } ?? "")
                         .font(.imasMono(11, weight: .medium))
+                     + (metaIcon.map { Text(Image(systemName: $0)) + Text(" ") } ?? Text(""))
+                        .font(.imasFootnote)
                      + Text(meta ?? "").font(.imasFootnote))
                         .foregroundStyle(DS.ticketSub)
                         .fixedSize(horizontal: false, vertical: true)

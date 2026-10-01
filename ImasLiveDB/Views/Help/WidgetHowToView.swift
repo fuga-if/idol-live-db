@@ -18,7 +18,7 @@ struct WidgetHowToView: View {
                           detail: "アイドル詳細 → プロフィール下の「ギャラリー」→「追加」から、好きな画像を何枚でも入れられます。先頭の1枚がアイコンになります。") {
                         addImageArt
                     },
-                ])
+                ], startIndex: 1)
             }
 
             ImasCard {
@@ -27,7 +27,7 @@ struct WidgetHowToView: View {
                           detail: "ホーム画面の何もない所を長押し → 左上の「＋」をタップ。") {
                         homeAddArt
                     },
-                ])
+                ], startIndex: 2)
             }
 
             ImasCard {
@@ -36,7 +36,7 @@ struct WidgetHowToView: View {
                           detail: "ウィジェット一覧で「担当」と検索。「担当の画像（タップで切替）」と「（タップでアプリ）」の2種類があります。好きな方を追加。") {
                         searchArt
                     },
-                ])
+                ], startIndex: 3)
             }
 
             ImasCard {
@@ -45,7 +45,7 @@ struct WidgetHowToView: View {
                           detail: "置いたウィジェットを長押し →「ウィジェットを編集」→ アイドルを選択。画像を入れた担当が候補に出ます。") {
                         editArt
                     },
-                ])
+                ], startIndex: 4)
             }
 
             ImasCard {
@@ -54,7 +54,7 @@ struct WidgetHowToView: View {
                           detail: "「タップで切替」版はタップするたびに次の画像にローテーション。放っておいても30分ごとに自動で切り替わります。「タップでアプリ」版はタップでアプリが開きます。") {
                         tapArt
                     },
-                ])
+                ], startIndex: 5)
             }
 
             tips

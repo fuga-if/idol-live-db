@@ -140,7 +140,9 @@ struct CharacterTalkView: View {
                         chat.send(text, model: selectedModel)
                     },
                     onStop: { chat.stop() }
-                )
+                ) {
+                    AssistantPlanFooter()
+                }
             } else if let loadError {
                 ImasEmptyState(systemImage: "person.crop.circle.badge.exclamationmark", title: loadError)
                     .frame(maxHeight: .infinity)

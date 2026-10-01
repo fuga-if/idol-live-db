@@ -199,7 +199,7 @@ struct MyPageView: View {
             } message: {
                 Text("コミュニティ投稿で表示される名前です (\(InputLimits.max(.displayName))文字以内)")
             }
-            .imasErrorAlert("表示名を変更できませんでした", message: $nameErrorMessage)
+            .imasErrorAlert("表示名の保存に失敗", message: $nameErrorMessage)
             .alert("ユーザーをモデレーション", isPresented: $showModerationPrompt) {
                 TextField("ユーザー ID", text: $moderationUserIdInput)
                     .textInputAutocapitalization(.never)
@@ -222,15 +222,17 @@ struct MyPageView: View {
                 }
             }
             .imasConfirmDestructive(
-                "アカウントを削除しますか？",
+                "アカウントを削除しますか?",
                 isPresented: $showDeleteAccountConfirm,
-                message: "サーバー上のあなたの編集・Good・予想・ユーザー情報がすべて削除され、サインアウトされます。この操作は取り消せません。"
+                actionTitle: "削除する",
+                message: "サーバー上のあなたの編集・Good・予想・ユーザー情報がすべて削除され、サインアウトされます。この操作は取り消せません。",
+                style: .alert
             ) {
                 Task { await performAccountDeletion() }
             }
             .imasErrorAlert("削除に失敗しました", message: $deleteAccountErrorMessage)
-            .imasErrorAlert("引き継ぎコードを発行できませんでした", message: $transferCodeErrorMessage)
-            .imasErrorAlert("バックアップを保存できませんでした", message: $exportErrorMessage)
+            .imasErrorAlert("引き継ぎコードの発行に失敗しました", message: $transferCodeErrorMessage)
+            .imasErrorAlert("バックアップの保存に失敗しました", message: $exportErrorMessage)
             .fileImporter(isPresented: $showBackupFileImporter, allowedContentTypes: [.json]) { result in
                 switch result {
                 case .success(let url):
@@ -253,7 +255,8 @@ struct MyPageView: View {
             } message: {
                 Text(importErrorMessage ?? importResultMessage ?? "")
             }
-            .imasSavingOverlay(importer.isImporting, label: importer.statusMessage, progress: importer.progress)
+            .imasSavingOverlay(importer.isImporting, label: importer.statusMessage, progress: importer.progress,
+                               blocksInteraction: false)
         }
         .trackScreen("my_page")
     }
@@ -263,16 +266,23 @@ struct MyPageView: View {
     @ViewBuilder
     private var accountSection: some View {
         if AuthService.shared.isSignedIn {
-            ImasListSection {
+            ImasListSection("アカウント") {
                 ImasPass(
                     leftImprint: "ACCOUNT",
                     rightImprint: "ログイン中",
                     title: AuthService.shared.userName ?? "ユーザー",
-                    subtitle: "コミュニティで表示される名前"
+                    subtitle: "コミュニティで表示される名前",
+                    onOpen: nil
                 ) {
-                    AppAnalytics.tap("my_page.edit_name")
-                    editingName = AuthService.shared.userName ?? ""
-                    showEditName = true
+                    Button {
+                        AppAnalytics.tap("my_page.edit_name")
+                        editingName = AuthService.shared.userName ?? ""
+                        showEditName = true
+                    } label: {
+                        Image(systemName: "pencil.circle").font(.imasCallout)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel("表示名を変更")
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
@@ -298,7 +308,7 @@ struct MyPageView: View {
                 .disabled(isDeletingAccount)
             }
         } else {
-            ImasListSection {
+            ImasListSection("アカウント") {
                 VStack(spacing: DS.Space.gap) {
                     Text("ログインするとライブ・セトリ・楽曲データの編集や Good ができます")
                         .imasText(.note)
@@ -329,7 +339,7 @@ struct MyPageView: View {
             NavigationLink {
                 PlayabilityCheckView()
             } label: {
-                ImasNavRow(title: "再生可否チェック (Apple Music)", systemImage: "music.note.list")
+                ImasNavRow(title: "再生可否チェック (Apple Music)", systemImage: "music.note.list", showsChevron: false)
             }
         }
     }
@@ -371,7 +381,8 @@ struct MyPageView: View {
                 ImasNavRow(
                     title: "ChatGPT 連携 (試作)",
                     systemImage: "sparkles",
-                    value: ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT"
+                    value: ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT",
+                    showsChevron: false
                 )
             }
         }
@@ -379,7 +390,7 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var generalSettingsSection: some View {
-        ImasListSection("表示") {
+        ImasListSection("設定") {
             ImasMenuRow(
                 title: "デフォルトブランド",
                 systemImage: "square.grid.2x2",
@@ -467,7 +478,7 @@ struct MyPageView: View {
                 MasteryScaleSettingsView()
             } label: {
                 ImasNavRow(title: "習熟度の段階", systemImage: "chart.bar",
-                           value: UserMarkService.shared.scale.labels.joined(separator: " / "))
+                           value: UserMarkService.shared.scale.labels.joined(separator: " / "), showsChevron: false)
             }
         }
     }
@@ -511,7 +522,8 @@ struct MyPageView: View {
             }
             if let url = vm.idolTemplateURL {
                 ShareLink(item: url) {
-                    ImasNavRow(title: "型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down")
+                    ImasNavRow(title: "型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down",
+                               showsChevron: false, titleLineLimit: 2)
                 }
             }
 
@@ -521,7 +533,8 @@ struct MyPageView: View {
             }
             if let url = vm.brandTemplateURL {
                 ShareLink(item: url) {
-                    ImasNavRow(title: "型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
+                    ImasNavRow(title: "型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down",
+                               showsChevron: false, titleLineLimit: 2)
                 }
             }
 
@@ -531,7 +544,8 @@ struct MyPageView: View {
             }
             if let url = vm.unitTemplateURL {
                 ShareLink(item: url) {
-                    ImasNavRow(title: "型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
+                    ImasNavRow(title: "型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down",
+                               showsChevron: false, titleLineLimit: 2)
                 }
             }
 
@@ -590,7 +604,8 @@ struct MyPageView: View {
                     }
                 }
                 if notifAuthStatus == .denied {
-                    ImasNote("通知が拒否されています。設定アプリから許可してください。")
+                    Text("通知が拒否されています。設定アプリから許可してください。")
+                        .imasText(.note, color: DS.warning)
                         .padding(.horizontal, DS.Space.rowH)
                         .padding(.vertical, DS.Space.gapTight)
                 }
@@ -615,8 +630,14 @@ struct MyPageView: View {
     @ViewBuilder
     private var dataSyncSection: some View {
         ImasListSection("データ同期") {
-            ImasNavRow(title: syncEngine.state.description, systemImage: syncStateIcon,
-                       iconTone: syncStateTone, isLoading: isSyncing)
+            // 押せない状態表示なので矢印は出さない。末尾は同期中だけくるくる。
+            ImasRow(
+                title: syncEngine.state.description,
+                leading: .icon(syncStateIcon, tone: syncStateTone),
+                trailing: isSyncing ? .custom(AnyView(ImasInlineSpinner())) : .none,
+                titleLineLimit: 3,
+                titleRole: .rowLabel
+            )
 
             ImasActionRow(title: "差分更新", systemImage: "arrow.triangle.2.circlepath") {
                 AppAnalytics.tap("my_page.sync_incremental")
@@ -696,7 +717,8 @@ struct MyPageView: View {
                 .padding(.horizontal, DS.Space.rowH)
                 .padding(.vertical, DS.Space.gap)
             }
-            ImasActionRow(title: isCreatingTransferCode ? "発行中…" : "引き継ぎコードを発行する", systemImage: "arrow.up.doc") {
+            ImasActionRow(title: isCreatingTransferCode ? "発行中..." : "引き継ぎコードを発行する", systemImage: "arrow.up.doc",
+                          isLoading: isCreatingTransferCode) {
                 AppAnalytics.tap("my_page.backup_create_transfer_code")
                 Task { await createTransferCode() }
             }
@@ -722,7 +744,8 @@ struct MyPageView: View {
             }
             if let url = backupFileURL {
                 ShareLink(item: url) {
-                    ImasNavRow(title: "バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square")
+                    ImasNavRow(title: "バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square",
+                               showsChevron: false)
                 }
             }
 
@@ -755,22 +778,22 @@ struct MyPageView: View {
             NavigationLink {
                 AboutView()
             } label: {
-                ImasNavRow(title: "アプリについて")
+                ImasNavRow(title: "アプリについて", showsChevron: false)
             }
             NavigationLink {
                 PrivacyPolicyView()
             } label: {
-                ImasNavRow(title: "プライバシーポリシー")
+                ImasNavRow(title: "プライバシーポリシー", showsChevron: false)
             }
             NavigationLink {
                 TermsOfServiceView()
             } label: {
-                ImasNavRow(title: "利用規約")
+                ImasNavRow(title: "利用規約", showsChevron: false)
             }
             NavigationLink {
                 SupportView()
             } label: {
-                ImasNavRow(title: "サポート")
+                ImasNavRow(title: "サポート", showsChevron: false)
             }
         }
     }

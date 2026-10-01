@@ -325,7 +325,9 @@ struct HelpView: View {
                             subtitle: "推しの画像をホーム画面に。画像付きで手順を案内します。",
                             systemImage: "person.crop.square.badge.camera",
                             iconTone: .themed,
-                            seed: "#FF4D8C"
+                            seed: "#FF4D8C",
+                            showsChevron: false,
+                            subtitleLineLimit: 2
                         )
                     }
                 }
@@ -340,7 +342,9 @@ struct HelpView: View {
                                 subtitle: section.summary,
                                 systemImage: section.icon,
                                 iconTone: .themed,
-                                seed: section.tint
+                                seed: section.tint,
+                                showsChevron: false,
+                                subtitleLineLimit: 2
                             )
                         }
                     }

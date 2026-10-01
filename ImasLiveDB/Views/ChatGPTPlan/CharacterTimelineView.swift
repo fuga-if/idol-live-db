@@ -78,7 +78,7 @@ private struct TimelinePostCard: View {
                             if let idolID = reply.idolID {
                                 entry(idolID: idolID, text: reply.text, date: reply.createdAt)
                             } else {
-                                ImasChatBubble(role: .user, content: .text(reply.text))
+                                ImasChatBubble(role: .user, content: .text(reply.text), partnerName: "あなた")
                             }
                         }
                         if isReplying {

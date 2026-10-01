@@ -16,6 +16,13 @@ import SwiftUI
 
 // MARK: - 読み込み
 
+/// 行の末尾などに置く小さなくるくる。画面のコードで素の `ProgressView()` を書かない。
+struct ImasInlineSpinner: View {
+    var body: some View {
+        ProgressView().controlSize(.small)
+    }
+}
+
 /// 画面・シート全体の読み込み中。空いている領域いっぱいに出して中央に置く。
 struct ImasLoadingState: View {
     /// くるくるの下に出す文字 (「読み込み中…」)。nil なら記号だけ (既定)。
