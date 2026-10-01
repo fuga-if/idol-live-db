@@ -3,50 +3,62 @@ import SwiftUI
 /// 担当画像ウィジェットの使い方を、各ステップのイラスト付きで案内する画面。
 /// ヘルプ → 「担当ウィジェットの使い方」から開く。
 struct WidgetHowToView: View {
-    private let pink = Color(red: 1.0, green: 0.30, blue: 0.55)
-    private let purple = Color(red: 0.55, green: 0.35, blue: 0.95)
+    @Environment(\.colorScheme) private var scheme
+
+    private var pink: ImasTheme { ImasTheme.derive(seed: "#FF4D8C", scheme: scheme) }
+    private var purple: ImasTheme { ImasTheme.derive(seed: "#8C59F2", scheme: scheme) }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                header
+        ImasPage {
+            header
 
-                StepCard(number: 1, tint: pink,
-                         title: "アプリで担当に画像を追加",
-                         detail: "アイドル詳細 → プロフィール下の「ギャラリー」→「追加」から、好きな画像を何枚でも入れられます。先頭の1枚がアイコンになります。") {
-                    addImageArt
-                }
-
-                StepCard(number: 2, tint: purple,
-                         title: "ホーム画面にウィジェットを追加",
-                         detail: "ホーム画面の何もない所を長押し → 左上の「＋」をタップ。") {
-                    homeAddArt
-                }
-
-                StepCard(number: 3, tint: pink,
-                         title: "「担当」で検索して選ぶ",
-                         detail: "ウィジェット一覧で「担当」と検索。「担当の画像（タップで切替）」と「（タップでアプリ）」の2種類があります。好きな方を追加。") {
-                    searchArt
-                }
-
-                StepCard(number: 4, tint: purple,
-                         title: "どのアイドルを出すか選ぶ",
-                         detail: "置いたウィジェットを長押し →「ウィジェットを編集」→ アイドルを選択。画像を入れた担当が候補に出ます。") {
-                    editArt
-                }
-
-                StepCard(number: 5, tint: pink,
-                         title: "タップで次の画像へ",
-                         detail: "「タップで切替」版はタップするたびに次の画像にローテーション。放っておいても30分ごとに自動で切り替わります。「タップでアプリ」版はタップでアプリが開きます。") {
-                    tapArt
-                }
-
-                tips
+            ImasCard {
+                ImasStepList(steps: [
+                    .init(title: "アプリで担当に画像を追加",
+                          detail: "アイドル詳細 → プロフィール下の「ギャラリー」→「追加」から、好きな画像を何枚でも入れられます。先頭の1枚がアイコンになります。") {
+                        addImageArt
+                    },
+                ])
             }
-            .padding(DS.sp5)
+
+            ImasCard {
+                ImasStepList(steps: [
+                    .init(title: "ホーム画面にウィジェットを追加",
+                          detail: "ホーム画面の何もない所を長押し → 左上の「＋」をタップ。") {
+                        homeAddArt
+                    },
+                ])
+            }
+
+            ImasCard {
+                ImasStepList(steps: [
+                    .init(title: "「担当」で検索して選ぶ",
+                          detail: "ウィジェット一覧で「担当」と検索。「担当の画像（タップで切替）」と「（タップでアプリ）」の2種類があります。好きな方を追加。") {
+                        searchArt
+                    },
+                ])
+            }
+
+            ImasCard {
+                ImasStepList(steps: [
+                    .init(title: "どのアイドルを出すか選ぶ",
+                          detail: "置いたウィジェットを長押し →「ウィジェットを編集」→ アイドルを選択。画像を入れた担当が候補に出ます。") {
+                        editArt
+                    },
+                ])
+            }
+
+            ImasCard {
+                ImasStepList(steps: [
+                    .init(title: "タップで次の画像へ",
+                          detail: "「タップで切替」版はタップするたびに次の画像にローテーション。放っておいても30分ごとに自動で切り替わります。「タップでアプリ」版はタップでアプリが開きます。") {
+                        tapArt
+                    },
+                ])
+            }
+
+            tips
         }
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
         .navigationTitle("担当ウィジェットの使い方")
         .navigationBarTitleDisplayMode(.inline)
         .trackScreen("widget_how_to")
@@ -55,51 +67,42 @@ struct WidgetHowToView: View {
     // MARK: - Header / Tips
 
     private var header: some View {
-        VStack(spacing: 10) {
-            phoneFrame {
-                imageFill
-            }
-            .frame(width: 120, height: 120)
-            Text("推しの画像をホーム画面に")
-                .font(.imasTitle3)
+        VStack(spacing: DS.Space.gap) {
+            phoneFrame { imageFill }
+                .frame(width: 120, height: 120)
+            Text("推しの画像をホーム画面に").imasText(.cardTitle)
             Text("自分でアプリに入れた画像だけを表示します。版権画像は使いません。")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
+                .imasText(.note)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, DS.sp3)
+        .padding(.vertical, DS.Space.gap)
     }
 
     private var tips: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            Label("画像を足した・消した時は、アプリを一度開くとウィジェットも更新されます。", systemImage: "arrow.triangle.2.circlepath")
-            Label("ロック画面ウィジェットは仕様上フルカラー写真を出せません（ホーム画面向けの機能です）。", systemImage: "lock.iphone")
+        ImasCard {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                Label("画像を足した・消した時は、アプリを一度開くとウィジェットも更新されます。", systemImage: "arrow.triangle.2.circlepath")
+                Label("ロック画面ウィジェットは仕様上フルカラー写真を出せません（ホーム画面向けの機能です）。", systemImage: "lock.iphone")
+            }
+            .imasText(.note)
         }
-        .font(.imasCaption)
-        .foregroundStyle(DS.ink2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     // MARK: - Illustrations
 
-    /// 端末/ウィジェットらしい角丸フレーム。
+    /// 端末/ウィジェットらしい角丸フレーム (実機の角丸を模した図解なので RoundedRectangle を使う)。
     private func phoneFrame<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.white.opacity(0.5), lineWidth: 2))
-            .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
     }
 
     private var imageFill: some View {
         ZStack {
-            LinearGradient(colors: [pink.opacity(0.85), purple.opacity(0.85)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
+            pink.accent.opacity(0.85)
             Image(systemName: "person.fill")
-                .font(.imasScaled(52, weight: .regular))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(ImasTextRole.heroTitle.font)
+                .foregroundStyle(pink.onAccent.opacity(0.9))
                 .offset(y: 6)
         }
     }
@@ -109,17 +112,21 @@ struct WidgetHowToView: View {
             phoneFrame { imageFill }
                 .frame(width: 92, height: 92)
             Image(systemName: "plus.circle.fill")
-                .font(.imasScaled(30))
+                .font(ImasNumeralSize.large.font)
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, .green)
+                .foregroundStyle(DS.ticket, .green)
                 .offset(x: 6, y: 6)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 140)
     }
 
     private var homeAddArt: some View {
         ZStack(alignment: .topLeading) {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: DS.sp3), count: 3), spacing: DS.sp3) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: DS.Space.gap), count: 3),
+                      spacing: DS.Space.gap) {
                 ForEach(0..<6, id: \.self) { _ in
+                    // ホーム画面のアプリアイコンの実形状を模した図解。
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
                         .fill(DS.fill)
                         .frame(width: 34, height: 34)
@@ -127,94 +134,65 @@ struct WidgetHowToView: View {
             }
             .frame(width: 122)
             Image(systemName: "plus.circle.fill")
-                .font(.imasScaled(26))
+                .font(ImasNumeralSize.large.font)
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, purple)
+                .foregroundStyle(DS.ticket, purple.accent)
                 .offset(x: -10, y: -10)
         }
-        .padding(.top, 6)
+        .padding(.top, DS.Space.gapTight)
+        .frame(maxWidth: .infinity)
+        .frame(height: 140)
     }
 
     private var searchArt: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 6) {
+        VStack(spacing: DS.Space.rowGap) {
+            HStack(spacing: DS.Space.gap) {
                 Image(systemName: "magnifyingglass").foregroundStyle(DS.ink2)
-                Text("担当").font(.imasSubhead).foregroundStyle(DS.ink)
+                Text("担当").imasText(.value)
                 Spacer()
             }
-            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
+            // 検索欄の実形状を模した図解。
+            .padding(.horizontal, DS.Space.rowGap).padding(.vertical, DS.Space.gap)
             .background(DS.fill, in: Capsule())
             .frame(width: 150)
             phoneFrame { imageFill }.frame(width: 64, height: 64)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 140)
     }
 
     private var editArt: some View {
-        HStack(spacing: DS.sp4) {
+        HStack(spacing: DS.Space.rowGap) {
             phoneFrame { imageFill }.frame(width: 70, height: 70)
             Image(systemName: "arrow.right").foregroundStyle(DS.ink3)
-            HStack(spacing: 6) {
+            HStack(spacing: DS.Space.gap) {
                 Image(systemName: "slider.horizontal.3")
-                Text("編集").font(.imasCaption.bold())
+                Text("編集").imasText(.chip)
             }
-            .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
+            // 編集ボタンの実形状を模した図解。
+            .padding(.horizontal, DS.Space.rowGap).padding(.vertical, DS.Space.gap)
             .background(DS.fill, in: Capsule())
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 140)
     }
 
     private var tapArt: some View {
         ZStack(alignment: .bottomTrailing) {
             phoneFrame { imageFill }.frame(width: 92, height: 92)
             Image(systemName: "hand.tap.fill")
-                .font(.imasScaled(26))
-                .foregroundStyle(.white)
-                .padding(7)
-                .background(.black.opacity(0.4), in: Circle())
+                .font(ImasNumeralSize.large.font)
+                .foregroundStyle(DS.ticket)
                 .offset(x: 8, y: 8)
         }
         .overlay(alignment: .topTrailing) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.imasScaled(20, weight: .bold))
-                .foregroundStyle(pink)
+                .font(ImasTextRole.sectionTitle.font)
+                .foregroundStyle(pink.accent)
                 .offset(x: 10, y: -4)
         }
-    }
-}
-
-/// 番号バッジ + イラスト + 説明 の 1 ステップカード。
-private struct StepCard<Art: View>: View {
-    let number: Int
-    let tint: Color
-    let title: String
-    let detail: String
-    @ViewBuilder let art: () -> Art
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
-            HStack(spacing: 10) {
-                Text("\(number)")
-                    .font(.imasDisplay(15, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(tint.gradient, in: Circle())
-                Text(title)
-                    .font(.imasHeadline)
-                    .foregroundStyle(DS.ink)
-                Spacer(minLength: 0)
-            }
-
-            art()
-                .frame(maxWidth: .infinity)
-                .frame(height: 140)
-                .background(DS.bg, in: RoundedRectangle(cornerRadius: DS.rMD))
-
-            Text(detail)
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(DS.sp5)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG))
+        .frame(maxWidth: .infinity)
+        .frame(height: 140)
     }
 }
 

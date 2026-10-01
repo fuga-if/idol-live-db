@@ -303,98 +303,60 @@ enum HelpCatalog {
 
 struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        Text("アイドルライブDB の使い方")
-                            .font(.imasTitle3)
+                ImasListSection {
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        Text("アイドルライブDB の使い方").imasText(.cardTitle)
                         Text("各カテゴリで「こんなことができる」を一覧で紹介しています。気になる項目から覗いてみてください。")
-                            .font(.imasSubhead)
-                            .foregroundStyle(DS.ink2)
+                            .imasText(.rowSubtitle)
                     }
-                    .padding(.vertical, DS.sp2)
+                    .padding(.vertical, DS.Space.gapTight)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("特集") {
+                ImasListSection("特集") {
                     NavigationLink {
                         WidgetHowToView()
                     } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "person.crop.square.badge.camera")
-                                .font(.imasTitle3)
-                                .foregroundStyle(.white)
-                                .frame(width: 36, height: 36)
-                                .background(
-                                    LinearGradient(colors: [Color(red: 1, green: 0.3, blue: 0.55),
-                                                            Color(red: 0.55, green: 0.35, blue: 0.95)],
-                                                   startPoint: .topLeading, endPoint: .bottomTrailing),
-                                    in: RoundedRectangle(cornerRadius: 9))
-                            VStack(alignment: .leading, spacing: DS.sp1) {
-                                Text("担当ウィジェットの使い方").font(.imasHeadline)
-                                Text("推しの画像をホーム画面に。画像付きで手順を案内します。")
-                                    .font(.imasCaption)
-                                    .foregroundStyle(DS.ink2)
-                                    .lineLimit(2)
-                            }
-                        }
-                        .padding(.vertical, DS.sp1)
+                        ImasNavRow(
+                            title: "担当ウィジェットの使い方",
+                            subtitle: "推しの画像をホーム画面に。画像付きで手順を案内します。",
+                            systemImage: "person.crop.square.badge.camera",
+                            iconTone: .themed,
+                            seed: "#FF4D8C"
+                        )
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("機能カテゴリ") {
+                ImasListSection("機能カテゴリ") {
                     ForEach(HelpCatalog.sections) { section in
-                        let t = ImasTheme.derive(seed: section.tint, scheme: scheme)
                         NavigationLink {
                             HelpDetailView(section: section)
                         } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: section.icon)
-                                    .font(.imasTitle3)
-                                    .foregroundStyle(t.onAccent)
-                                    .frame(width: 36, height: 36)
-                                    .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: 9))
-                                VStack(alignment: .leading, spacing: DS.sp1) {
-                                    Text(section.title).font(.imasHeadline)
-                                    Text(section.summary)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                        .lineLimit(2)
-                                }
-                            }
-                            .padding(.vertical, DS.sp1)
+                            ImasNavRow(
+                                title: section.title,
+                                subtitle: section.summary,
+                                systemImage: section.icon,
+                                iconTone: .themed,
+                                seed: section.tint
+                            )
                         }
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section {
-                    Text("使い方は今後さらに増えていく予定です。データの間違いに気づいたらログインしてその場で直せます。要望や不具合は GitHub Issue からお寄せください。")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
+                ImasListSection {
+                    ImasNote("使い方は今後さらに増えていく予定です。データの間違いに気づいたらログインしてその場で直せます。要望や不具合は GitHub Issue からお寄せください。")
+                        .padding(.vertical, DS.Space.gapTight)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
             .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
+            .imasForm()
             .navigationTitle("ヘルプ")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("help")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
         }
     }
 }
@@ -408,49 +370,35 @@ private struct HelpDetailView: View {
     var body: some View {
         let t = ImasTheme.derive(seed: section.tint, scheme: scheme)
         List {
-            Section {
-                VStack(spacing: 14) {
-                    Image(systemName: section.icon)
-                        .font(.imasScaled( 36, weight: .semibold))
-                        .foregroundStyle(t.onAccent)
-                        .frame(width: 72, height: 72)
-                        .background(t.accent.gradient, in: RoundedRectangle(cornerRadius: DS.rLG))
-                    Text(section.title)
-                        .font(.imasTitle2)
+            ImasListSection {
+                VStack(spacing: DS.Space.gapLoose) {
+                    ImasIconTile(systemImage: section.icon, size: .s56, tone: .themed, seed: section.tint)
+                    Text(section.title).imasText(.sectionTitle)
                     Text(section.summary)
-                        .font(.imasSubhead)
-                        .foregroundStyle(DS.ink2)
+                        .imasText(.rowSubtitle)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .listRowBackground(Color.clear)
+                .padding(.vertical, DS.Space.gapLoose)
             }
 
-            Section("できること") {
+            ImasListSection("できること") {
                 ForEach(section.body) { item in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .top, spacing: DS.sp3) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(t.accent)
-                                .padding(.top, DS.sp1)
-                            Text(item.label)
-                                .font(.imasSubhead.bold())
+                    HStack(alignment: .top, spacing: DS.Space.gap) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(t.accent)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                            Text(item.label).imasText(.rowTitle)
+                            Text(item.detail).imasText(.rowSubtitle)
                         }
-                        Text(item.detail)
-                            .font(.imasSubhead)
-                            .foregroundStyle(DS.ink2)
-                            .padding(.leading, 26)
                     }
-                    .padding(.vertical, DS.sp2)
+                    .padding(.vertical, DS.Space.gapTight)
                 }
             }
-            .listRowBackground(DS.surface)
-            .listRowSeparatorTint(DS.sep)
         }
         .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
+        .imasForm()
         .navigationTitle(section.title)
         .navigationBarTitleDisplayMode(.inline)
     }

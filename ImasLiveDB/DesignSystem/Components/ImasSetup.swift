@@ -36,24 +36,39 @@ struct ImasSetupHeader: View {
 
 /// 出題できる候補の数。数えている間はくるくる、足りないときは注意の色。
 struct ImasCandidateCount: View {
+    /// 2 つ目の指標 (「曲 + 歌手」のように軸が 2 つある出題のとき)。
+    struct Metric {
+        let count: Int?
+        var unit: String = "曲"
+    }
+
     let count: Int?
     var unit: String = "曲"
     /// 足りるための数。下回ると注意の色にする。
     var minimum: Int? = nil
     var label: String = "出題できる候補"
+    /// 2 つ目の指標。渡すと「37 曲 / 12 歌手」のように並べる。
+    var secondary: Metric? = nil
+    /// 数値の下に添える一言 (「4択の選択肢は歌手数が基準です」)。
+    var note: String? = nil
 
     var body: some View {
-        HStack(spacing: DS.Space.gap) {
-            Text(label).imasText(.value, color: DS.ink2)
-            Spacer(minLength: DS.Space.gap)
-            if let count {
-                ImasMetric(value: count.formatted(), unit: unit, size: .medium, emphasized: false)
-                    .foregroundStyle(isShort ? DS.warning : DS.ink)
-            } else {
-                ProgressView().controlSize(.small)
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            HStack(spacing: DS.Space.gap) {
+                Text(label).imasText(.value, color: DS.ink2)
+                Spacer(minLength: DS.Space.gap)
+                metricView(count, unit: unit, dimsWhenShort: true)
+                if let secondary {
+                    Text("/").imasText(.meta)
+                    metricView(secondary.count, unit: secondary.unit, dimsWhenShort: false)
+                }
+            }
+            if let note {
+                Text(note).imasText(.meta)
             }
         }
         .padding(.horizontal, DS.Space.rowH)
+        .padding(.vertical, note == nil ? 0 : DS.Space.gapTight)
         .frame(minHeight: DS.Size.touch + 4)
         .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -64,6 +79,16 @@ struct ImasCandidateCount: View {
     private var isShort: Bool {
         guard let count, let minimum else { return false }
         return count < minimum
+    }
+
+    @ViewBuilder
+    private func metricView(_ value: Int?, unit: String, dimsWhenShort: Bool) -> some View {
+        if let value {
+            ImasMetric(value: value.formatted(), unit: unit, size: .medium, emphasized: false)
+                .foregroundStyle(dimsWhenShort && isShort ? DS.warning : DS.ink)
+        } else {
+            ProgressView().controlSize(.small)
+        }
     }
 }
 
@@ -130,9 +155,24 @@ struct ImasProse: View {
 
 /// 手順 1・2・3。番号は等幅の札。
 struct ImasStepList: View {
-    struct Step: Hashable {
+    struct Step {
         let title: String
         var detail: String? = nil
+        /// 手順に添える説明イラスト (任意)。
+        var media: AnyView? = nil
+
+        init(title: String, detail: String? = nil) {
+            self.title = title
+            self.detail = detail
+            self.media = nil
+        }
+
+        /// イラスト付きの手順 (ウィジェットの使い方など)。
+        init<Media: View>(title: String, detail: String? = nil, @ViewBuilder media: () -> Media) {
+            self.title = title
+            self.detail = detail
+            self.media = AnyView(media())
+        }
     }
 
     let steps: [Step]
@@ -140,17 +180,22 @@ struct ImasStepList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
-                    Text("\(index + 1)")
-                        .font(ImasNumeralSize.small.font)
-                        .foregroundStyle(DS.onSys)
-                        .frame(width: 26, height: 26)
-                        .background(DS.sys, in: Circle())
-                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-                        Text(step.title).imasText(.rowTitle)
-                        if let detail = step.detail {
-                            Text(detail).imasText(.note).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: DS.Space.rowGap) {
+                    HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+                        Text("\(index + 1)")
+                            .font(ImasNumeralSize.small.font)
+                            .foregroundStyle(DS.onSys)
+                            .frame(width: 26, height: 26)
+                            .background(DS.sys, in: Circle())
+                        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                            Text(step.title).imasText(.rowTitle)
+                            if let detail = step.detail {
+                                Text(detail).imasText(.note).fixedSize(horizontal: false, vertical: true)
+                            }
                         }
+                    }
+                    if let media = step.media {
+                        media
                     }
                 }
             }
