@@ -116,7 +116,7 @@ struct UnitListContent: View {
                             .padding(.horizontal, DS.sp2)
 
                         if !vm.collapsedBrands.contains(brand.id) {
-                            ImasListContainer {
+                            ImasCardList {
                                 ForEach(Array(group.enumerated()), id: \.element.id) { index, unit in
                                     if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: unit) {

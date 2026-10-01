@@ -30,7 +30,7 @@ struct IdolTagPicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp6) {
                     // 対象アイドルを明示する見出し行。
-                    ImasListContainer {
+                    ImasCardList {
                         HStack(spacing: DS.sp3) {
                             IdolAvatarView(idol: idol, size: 40)
                             Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)

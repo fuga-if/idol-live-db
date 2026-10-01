@@ -29,7 +29,7 @@ struct UnitTagPicker: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp6) {
                     // 対象ユニットを明示する見出し行。
-                    ImasListContainer {
+                    ImasCardList {
                         HStack(spacing: DS.sp3) {
                             UnitAvatarView(unit: unit, size: 40)
                             Text(unit.displayName).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)

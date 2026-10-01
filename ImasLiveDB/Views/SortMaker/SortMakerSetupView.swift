@@ -183,7 +183,7 @@ struct SortMakerSetupView: View {
                 Text("保存したティアー表").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
                 Text("\(boards.count)").font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
             }
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(boards.enumerated()), id: \.element.id) { i, b in
                     if i > 0 { ImasRowDivider(inset: DS.sp4) }
                     Button {

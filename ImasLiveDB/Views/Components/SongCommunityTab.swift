@@ -98,7 +98,7 @@ struct SongCommunityTab: View {
                 Text("つけられたタグが似ている楽曲")
                     .font(.imasCaption).foregroundStyle(DS.ink2)
             }
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(vm.similarTagSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: {
@@ -129,7 +129,7 @@ struct SongCommunityTab: View {
             } else {
                 // 動画 id とサムネイルはコア (`youtubeVideoRefs`) が一覧ぶん 1 回で返す。
                 let refs = youtubeVideoRefs(urls: vm.songVideos.map(\.youtubeUrl))
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(vm.songVideos.enumerated()), id: \.element.id) { idx, video in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         videoRow(video, ref: refs.indices.contains(idx) ? refs[idx] : nil)
@@ -220,7 +220,7 @@ struct SongCommunityTab: View {
                 onIntent(.votePenlight)
             }
             if let votes = vm.penlightVotes, !votes.topColorSets.isEmpty {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(votes.topColorSets.enumerated()), id: \.element.id) { idx, set in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         penlightRow(set, myKey: votes.myColorSet?.key, total: max(votes.totalVotes, 1))

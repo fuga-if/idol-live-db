@@ -318,7 +318,7 @@ struct IdolDetailView: View {
             if !vm.performedSongs.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "ライブ歌唱曲", count: "\(vm.performedSongs.count)", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.performedSongs.enumerated()), id: \.element.id) { idx, item in
                             if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(
@@ -337,7 +337,7 @@ struct IdolDetailView: View {
             if !vm.castShows.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "出演履歴", count: "\(vm.castShows.count)", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.castShows.enumerated()), id: \.offset) { idx, row in
                             if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             eventRow(row)
@@ -439,7 +439,7 @@ struct IdolDetailView: View {
                     .padding(.horizontal, DS.sp5)
                 }
                 if let section = currentSongSection {
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(section.songs.enumerated()), id: \.element.id) { idx, song in
                             if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(
@@ -512,7 +512,7 @@ struct IdolDetailView: View {
                 .padding(.horizontal, DS.sp5)
             }
 
-            ImasListContainer {
+            ImasCardList {
                 profileRows
             }
             .padding(.horizontal, DS.sp5)

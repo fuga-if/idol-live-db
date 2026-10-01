@@ -132,7 +132,7 @@ struct SetlistPredictionView: View {
         .task { await forecast.load() }
     }
 
-    /// 予想リスト本体。共通の ImasListContainer カードに詰めて、旧 List 行の強いマージンを解消。
+    /// 予想リスト本体。共通の ImasCardList カードに詰めて、旧 List 行の強いマージンを解消。
     @ViewBuilder
     private var predictionBody: some View {
         if isLoading && predictions.isEmpty {
@@ -148,7 +148,7 @@ struct SetlistPredictionView: View {
             // filter が行数分走るので、ここで1回だけ畳んで各行に配る。
             let canAdd = remaining > 0
             VStack(alignment: .leading, spacing: DS.sp2) {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(predictions.enumerated()), id: \.element.id) { index, prediction in
                         // 行と行の区切りは、ぴったり密着すると詰まって見えるので、
                         // フル幅 Divider + 上下に少し余白を確保する。
@@ -199,7 +199,7 @@ struct SetlistPredictionView: View {
                 let canAdd = !authService.isSignedIn || remaining > 0
                 VStack(alignment: .leading, spacing: DS.sp2) {
                     forecastHeading(note: forecast.castUnannouncedNote)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(songs.enumerated()), id: \.element.songId) { index, song in
                             if index > 0 {
                                 ImasRowDivider()

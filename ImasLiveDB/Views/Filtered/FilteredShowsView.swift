@@ -4,7 +4,7 @@ import SwiftUI
 /// 「この会場での公演」「この日の公演」の一覧。
 ///
 /// 会場での一覧は 20〜30 公演が数年にまたがるので、 イベント一覧と同じく **年で束ねる**。
-/// 行の作りもイベント一覧 (ImasSectionHeader + ImasListContainer + ImasLeadBar) に揃える。
+/// 行の作りもイベント一覧 (ImasSectionHeader + ImasCardList + ImasLeadBar) に揃える。
 struct FilteredShowsView: View {
     @Environment(AppDatabase.self) private var database
     let criterion: ShowFilterCriterion

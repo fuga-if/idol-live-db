@@ -9,7 +9,7 @@ import SwiftUI
 /// 体裁は**回収率ダッシュボード (`StatsView`) に倣う**。同じ「全体の進捗 + 群別の進捗 +
 /// 対象の一覧」という形なので、そこだけ別の組み方にすると同じアプリで進捗の見せ方が
 /// 2 通りになる。ScrollView + `VStack(spacing: DS.sp7)` に
-/// `ImasSectionHeader(tight:) + ImasListContainer / ImasStatBar` を積む。
+/// `ImasSectionHeader(tight:) + ImasCardList / ImasStatBar` を積む。
 struct MasteryView: View {
     @Environment(AppDatabase.self) private var database
     private var marks: UserMarkService { UserMarkService.shared }

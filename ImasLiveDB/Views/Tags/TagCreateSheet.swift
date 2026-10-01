@@ -84,7 +84,7 @@ struct TagCreateSheet: View {
 
                     VStack(alignment: .leading, spacing: DS.sp3) {
                         ImasSectionHeader(title: "色（任意）", tight: true)
-                        ImasListContainer {
+                        ImasCardList {
                             TagColorPicker(selectedHex: $selectedColor)
                                 .padding(.horizontal, DS.sp4)
                                 .padding(.vertical, DS.sp3)
@@ -134,7 +134,7 @@ struct TagCreateSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: header, tight: true)
-            ImasListContainer {
+            ImasCardList {
                 content()
                     .padding(.horizontal, DS.sp4)
                     .padding(.vertical, DS.sp3)

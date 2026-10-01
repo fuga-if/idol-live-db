@@ -30,7 +30,7 @@ struct EventReleasesSection: View {
                     }
                     .padding(.horizontal, DS.sp5)
 
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(releases.enumerated()), id: \.element.id) { index, release in
                             if index > 0 { ImasRowDivider(inset: 72) }
                             releaseRow(release, theme: t)

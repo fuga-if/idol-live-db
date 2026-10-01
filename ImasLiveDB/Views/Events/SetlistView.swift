@@ -295,7 +295,7 @@ struct SetlistView: View {
             // 会場 / 日付 カード
             if !simpleMode {
             Section {
-                ImasListContainer {
+                ImasCardList {
                     // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
                     if let venueLabel = venueDirectory.displayName(for: show) {
                         ImasLabeledRow(key: "会場", value: venueLabel, showChevron: true, tappable: true, seed: showBrandHex)
@@ -327,7 +327,7 @@ struct SetlistView: View {
             if !tickets.isEmpty {
                 Section {
                     ImasSectionHeader(title: "チケット", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         // 並びと価格帯の作り方はコア (domain/ticket_prices.rs) 一本。
                         ForEach(Array(ticketPriceRanges(tickets: tickets).enumerated()),
                                 id: \.element.kind) { rangeIndex, range in
@@ -442,8 +442,8 @@ struct SetlistView: View {
             // 実セトリ: 両方ありで予想タブ選択中は隠す。それ以外は表示。
             ForEach((isFutureShow && !setlist.isEmpty && contentTab == 1) ? [] : sections) { section in
                 Section(header: ImasSectionHeader(title: section.sectionName, tight: true).textCase(nil)) {
-                    // セクションの曲を 1 枚の角丸カード (ImasListContainer) にまとめる (デザイン 03 の .list)。
-                    ImasListContainer {
+                    // セクションの曲を 1 枚の角丸カード (ImasCardList) にまとめる (デザイン 03 の .list)。
+                    ImasCardList {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                             if index > 0 { ImasRowDivider(inset: simpleMode ? 34 : 66) }
                             setlistRow(item: item, index: index)

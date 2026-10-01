@@ -31,7 +31,7 @@ struct IdolSongHistoryView: View {
                 } else {
                     VStack(spacing: DS.sp3) {
                         ImasSectionHeader(title: "披露履歴", count: "\(history.count)", tight: true)
-                        ImasListContainer {
+                        ImasCardList {
                             ForEach(Array(history.enumerated()), id: \.offset) { idx, row in
                                 if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                                 historyRow(row)

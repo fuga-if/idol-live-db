@@ -177,7 +177,7 @@ struct GamesHubView: View {
     private var gameList: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "ゲーム", count: "\(entries.count)")
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(entries.enumerated()), id: \.element.kind) { i, entry in
                     if i > 0 { ImasRowDivider(inset: 68) }
                     NavigationLink {
@@ -197,7 +197,7 @@ struct GamesHubView: View {
     private var sortMakerList: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "ソートメーカー・ティアー表")
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(SortMakerSubject.allCases.enumerated()), id: \.element) { i, subject in
                     if i > 0 { ImasRowDivider(inset: 68) }
                     NavigationLink {

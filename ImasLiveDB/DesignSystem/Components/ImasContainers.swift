@@ -215,8 +215,6 @@ struct ImasCardList<Content: View>: View {
     }
 }
 
-/// 旧名。`ImasCardList` に置き換えていく。
-typealias ImasListContainer = ImasCardList
 
 // MARK: - 補足文
 

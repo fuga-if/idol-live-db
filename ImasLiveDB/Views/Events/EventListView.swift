@@ -70,7 +70,7 @@ struct EventListView: View {
 
     /// 一覧の 1 行ぶんの表示単位。
     ///
-    /// 以前は `ForEach(年グループ) { VStack { 見出し; ImasListContainer { ForEach(行) } } }` と
+    /// 以前は `ForEach(年グループ) { VStack { 見出し; ImasCardList { ForEach(行) } } }` と
     /// 入れ子にしていたが、この構造だと実機で一覧をスクロールした瞬間に主スレッドが
     /// 戻らなくなった (`LazyVStack` の中で、角丸クリップ付きコンテナに包まれた入れ子 `ForEach` の
     /// 高さ計算が破綻する)。楽曲・アイドル一覧が平坦な `ForEach` で無事だったこと、
@@ -210,7 +210,7 @@ struct EventListView: View {
                                 .buttonStyle(.plain)
                             }
                             // カードの角丸はグループの先頭/末尾の行だけ丸める
-                            // (従来 ImasListContainer がグループ全体に掛けていた見た目を、
+                            // (従来 ImasCardList がグループ全体に掛けていた見た目を、
                             //  入れ子にせず行単位で再現する)。
                             .background(DS.surface)
                             .clipShape(

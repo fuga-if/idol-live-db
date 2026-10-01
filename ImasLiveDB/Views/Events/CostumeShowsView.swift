@@ -35,7 +35,7 @@ struct CostumeShowsView: View {
                 ForEach(events, id: \.eventId) { event in
                     VStack(alignment: .leading, spacing: DS.sp2) {
                         ImasSectionHeader(title: event.eventName, tight: true)
-                        ImasListContainer {
+                        ImasCardList {
                             ForEach(Array(event.shows.enumerated()), id: \.element.showId) { index, show in
                                 if index > 0 { ImasRowDivider(inset: DS.sp5) }
                                 showRow(show)

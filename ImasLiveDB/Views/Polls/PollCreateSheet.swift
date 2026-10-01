@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// お題作成シート。デザインシステム準拠 (ImasSectionHeader / ImasListContainer /
+/// お題作成シート。デザインシステム準拠 (ImasSectionHeader / ImasCardList /
 /// ImasSegmented + 対象カード)。
 struct PollCreateSheet: View {
     let onCreate: (Poll) -> Void
@@ -171,7 +171,7 @@ struct PollCreateSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: header, tight: true)
-            ImasListContainer {
+            ImasCardList {
                 content()
                     .padding(.horizontal, DS.sp4)
                     .padding(.vertical, DS.sp3)
@@ -260,7 +260,7 @@ struct PollCreateSheet: View {
                     .foregroundStyle(manualCount >= 2 ? DS.ink2 : DS.danger)
             }
 
-            ImasListContainer {
+            ImasCardList {
                 VStack(spacing: 0) {
                     switch targetType {
                     case .song:

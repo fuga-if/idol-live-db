@@ -73,7 +73,7 @@ struct TagActivityView: View {
             if !trends.isEmpty {
                 VStack(alignment: .leading, spacing: DS.sp3) {
                     ImasSectionHeader(title: "伸びてるタグ", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(trends.enumerated()), id: \.element.id) { idx, trend in
                             if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             trendRow(trend, rank: idx + 1)
@@ -122,7 +122,7 @@ struct TagActivityView: View {
             if !rises.isEmpty {
                 VStack(alignment: .leading, spacing: DS.sp3) {
                     ImasSectionHeader(title: "タグが急増中", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(rises.enumerated()), id: \.element.id) { idx, rise in
                             if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             riseRow(rise)
@@ -177,7 +177,7 @@ struct TagActivityView: View {
                 VStack(alignment: .leading, spacing: DS.sp3) {
                     ImasSectionHeader(title: "最近つけられたタグ", tight: true)
                     let times = EditFeedFormat.relativeTimes(events.map { ($0.id, $0.createdAt) })
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(events.enumerated()), id: \.element.id) { idx, event in
                             if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                             recentRow(event, timeLabel: times[event.id] ?? "")

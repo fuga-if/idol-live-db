@@ -25,7 +25,7 @@ struct TagEditSheet: View {
                 VStack(alignment: .leading, spacing: DS.sp6) {
                     VStack(alignment: .leading, spacing: DS.sp3) {
                         ImasSectionHeader(title: "説明文", tight: true)
-                        ImasListContainer {
+                        ImasCardList {
                             TextField("どんな時に使うタグか", text: $description, axis: .vertical)
                                 .font(.imasSubhead)
                                 .foregroundStyle(DS.ink)
@@ -51,7 +51,7 @@ struct TagEditSheet: View {
 
                     VStack(alignment: .leading, spacing: DS.sp3) {
                         ImasSectionHeader(title: "色", tight: true)
-                        ImasListContainer {
+                        ImasCardList {
                             TagColorPicker(selectedHex: $selectedColor)
                                 .padding(.horizontal, DS.sp4)
                                 .padding(.vertical, DS.sp3)

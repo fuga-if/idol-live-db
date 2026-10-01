@@ -232,7 +232,7 @@ struct StatsView: View {
                 )
                 .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             } else {
-                ImasListContainer {
+                ImasCardList {
                     let shown = Array(uncollectedSongs.prefix(30))
                     ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
                         Button {
@@ -399,7 +399,7 @@ struct StatsView: View {
                 )
                 .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             } else {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(favoritesRanking.enumerated()), id: \.element.id) { index, entry in
                         Button {
                             Task { selectedSong = try? await AppContainer.shared.songReading.song(id: entry.songId) }
@@ -432,7 +432,7 @@ struct StatsView: View {
         if !songPlayCounts.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp4) {
                 ImasSectionHeader(title: "活動量 ・ 披露回数", tight: true)
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(songPlayCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
                             rank: index + 1,
@@ -459,7 +459,7 @@ struct StatsView: View {
         if !castShowCounts.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp4) {
                 ImasSectionHeader(title: "活動量 ・ 出演回数", tight: true)
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(castShowCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
                             rank: index + 1,

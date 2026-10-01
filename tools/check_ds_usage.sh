@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # 画面のコードに「その場限りの見た目」を書いていないかのチェック (docs/DESIGN_SYSTEM.md §15)。
 #
-# 画面 (ImasLiveDB/Views・App) は DesignSystem の部品だけで組む。色・文字の大きさ・余白・
-# 角丸の数字や、形 (Capsule / RoundedRectangle)・素の ProgressView / Divider を書いたら止める。
+# 画面 (ImasLiveDB/Views・App・ウィジェット) は DesignSystem の部品だけで組む。色・文字の大きさ・余白・
+# 角丸の数字や、形 (Capsule / RoundedRectangle / Circle)・影・グラデーション・素の色の名前・
+# 素の ProgressView / Divider を書いたら止める。
 #
 # 今ある手書きは tools/ds_usage_baseline.tsv に「ファイルごとの行数」として載せてあり、
 # **増えたときだけ** 落とす (移した分だけ減らしていく。減ったら --update で書き直す)。
@@ -26,12 +27,17 @@ PATTERN+='|\.font\(\.imasScaled\(|\.font\(\.system\(|\.font\(\.(largeTitle|title
 PATTERN+='|Color\(red:|Color\(hex|Color\.accentColor|\.foregroundStyle\(\.(secondary|primary|tertiary)\)'
 PATTERN+='|(Color)?\.(white|black)([^A-Za-z]|$)'
 PATTERN+='|Capsule\(\)|RoundedRectangle\('
-PATTERN+='|\.alert\("エラー"|ProgressView\(\)|[^A-Za-z]Divider\(\)'
+PATTERN+='|\.alert\("エラー"|ProgressView\(\)|ProgressView\(value:|[^A-Za-z]Divider\(\)'
+# 記号を色の丸に入れる・影・グラデーション・素の色の名前 (部品が持つもの)
+PATTERN+='|Circle\(\)|\.shadow\(|(Linear|Radial|Angular)Gradient\(|\.gradient\b'
+PATTERN+='|(Color\.|foregroundStyle\(\.|foregroundColor\(\.|tint\(\.|fill\(\.|background\(\.)(red|green|blue|orange|purple|pink|yellow|gray|mint|teal|cyan|indigo|brown)\b'
+# 選択の印の手書き (ImasSelectionMark の写し)
+PATTERN+='|"checkmark\.circle\.fill" *: *"circle"'
 
 EXCLUDE='/DesignSystem/|/Views/Share/|ShareCard|QuizStage\.swift|TierListExport\.swift|DesignCatalog'
 
 files() {
-    find ImasLiveDB/Views ImasLiveDB/App -name '*.swift' | grep -Ev "$EXCLUDE" | sort
+    find ImasLiveDB/Views ImasLiveDB/App ImasLiveDBWidget -name '*.swift' | grep -Ev "$EXCLUDE" | sort
 }
 
 count_file() {

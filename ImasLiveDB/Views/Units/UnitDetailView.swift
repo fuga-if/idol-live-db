@@ -160,7 +160,7 @@ struct UnitDetailView: View {
             } else if !vm.songs.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "楽曲", count: "\(vm.songs.count)", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.songs.enumerated()), id: \.element.id) { idx, song in
                             if idx > 0 { ImasRowDivider(inset: 66) }
                             songRow(song) {
@@ -235,7 +235,7 @@ struct UnitDetailView: View {
             } else if !vm.members.isEmpty {
                 VStack(spacing: DS.sp3) {
                     ImasSectionHeader(title: "メンバー", count: "\(vm.members.count)", tight: true)
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.members.enumerated()), id: \.element.id) { idx, member in
                             if idx > 0 { ImasRowDivider(inset: 66) }
                             memberRow(member)

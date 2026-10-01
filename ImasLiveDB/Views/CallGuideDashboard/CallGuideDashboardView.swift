@@ -109,7 +109,7 @@ struct CallGuideDashboardView: View {
             } else {
                 let times = EditFeedFormat.relativeTimes(
                     vm.withCalls.compactMap { row in row.updatedAt.map { (row.id, $0) } })
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(vm.withCalls.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                         songRow(row.song, subtitle: subtitle(for: row, time: times[row.id])) {
@@ -147,7 +147,7 @@ struct CallGuideDashboardView: View {
                 )
             } else {
                 let times = EditFeedFormat.relativeTimes(vm.recentEdits.map { ($0.id, $0.at) })
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(vm.recentEdits.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                         songRow(row.song,
@@ -174,7 +174,7 @@ struct CallGuideDashboardView: View {
                     message: "「コール曲」タグが付いた曲は、いまのところ全部書かれています。"
                 )
             } else {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(vm.wanted.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                         wantedRow(row)

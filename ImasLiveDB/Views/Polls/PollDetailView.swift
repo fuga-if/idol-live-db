@@ -238,7 +238,7 @@ struct PollDetailView: View {
             if detail.entries.isEmpty {
                 ImasEmptyState(systemImage: "chart.bar", title: "まだ票がありません", message: "最初の一票を入れましょう！")
             } else {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(detail.entries.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 {
                             ImasRowDivider(inset: 56)

@@ -357,7 +357,7 @@ struct EventDetailView: View {
             )
             .padding(.horizontal, DS.sp5)
         } else {
-            ImasListContainer {
+            ImasCardList {
                 ImasEmptyState(
                     systemImage: "person.2",
                     title: "出演情報がありません",
@@ -393,7 +393,7 @@ struct EventDetailView: View {
 
             // ブランド / 年度メタ
             VStack(alignment: .leading, spacing: DS.sp2) {
-                ImasListContainer {
+                ImasCardList {
                     if let brand = vm.brand {
                         Button {
                             go(.filteredEvents(.brand(id: brand.id, label: brand.shortName)))
@@ -451,7 +451,7 @@ struct EventDetailView: View {
                 .padding(.horizontal, DS.sp5)
 
                 if vm.ticketSales.isEmpty {
-                    ImasListContainer {
+                    ImasCardList {
                         Text("チケット受付は未登録です")
                             .font(.imasFootnote)
                             .foregroundStyle(DS.ink3)
@@ -460,7 +460,7 @@ struct EventDetailView: View {
                     }
                     .padding(.horizontal, DS.sp5)
                 } else {
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.ticketSales.enumerated()), id: \.element.id) { idx, sale in
                             if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                             ticketSaleRow(sale)
@@ -771,7 +771,7 @@ private struct AttendancePanel: View {
                         if !dayIdols.isEmpty {
                             VStack(alignment: .leading, spacing: DS.sp2) {
                                 dayHeader(index: idx, show: show)
-                                ImasListContainer {
+                                ImasCardList {
                                     roleGrid(idols: dayIdols, chipText: chipText,
                                              chipKind: chipKind, ringAccent: ringAccent)
                                         .padding(DS.sp4)
@@ -781,7 +781,7 @@ private struct AttendancePanel: View {
                     }
                 }
             } else {
-                ImasListContainer {
+                ImasCardList {
                     roleGrid(idols: allIdols, chipText: chipText,
                              chipKind: chipKind, ringAccent: ringAccent)
                         .padding(DS.sp4)
@@ -841,7 +841,7 @@ private struct AttendancePanel: View {
         let allMembers = attendance.brandIdols.filter { memberIds.contains($0.id) }
         let presentCount = allMembers.filter { presentIds.contains($0.id) }.count
 
-        ImasListContainer {
+        ImasCardList {
             VStack(alignment: .leading, spacing: DS.sp3) {
                 HStack(spacing: 6) {
                     ImasTagChip(text: unit.name, kind: .unit, seed: seed, brand: brandSeed)
@@ -862,7 +862,7 @@ private struct AttendancePanel: View {
                 title: "\(group.label) ・ \(group.idols.count)名",
                 tight: true
             )
-            ImasListContainer {
+            ImasCardList {
                 avatarGrid(idols: group.idols, isAbsent: { _ in group.label == "欠席" })
                     .padding(DS.sp4)
             }

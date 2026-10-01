@@ -26,7 +26,7 @@ struct PollHallOfFameView: View {
                 )
             } else {
                 List {
-                    ImasListContainer {
+                    ImasCardList {
                         ForEach(Array(vm.results.enumerated()), id: \.element.id) { index, result in
                             if index > 0 {
                                 ImasRowDivider(inset: DS.sp5)

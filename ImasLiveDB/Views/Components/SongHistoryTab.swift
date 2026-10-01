@@ -61,7 +61,7 @@ struct SongHistoryTab: View {
                 // 分母 (全 N 回) は上のサマリタイル「総披露」と同じ数え方。同じ画面に
                 // 単位の違う数字 (共起節は公演数) が並ぶので、どちらなのかを言っておく。
                 evidenceNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 36) }
                         Button {
@@ -94,7 +94,7 @@ struct SongHistoryTab: View {
                 // (同梱 master で 48 曲がこのズレを持つ。例: 初 = 39 公演 / 64 回)。
                 // 単位を書かないと「どちらが本当の回数か」が読み手に判断できない。
                 evidenceNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                         Button {
@@ -141,7 +141,7 @@ struct SongHistoryTab: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "ライブ披露履歴", count: "\(vm.history.count)回", tight: true)
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(vm.history.enumerated()), id: \.offset) { idx, row in
                     if idx > 0 { ImasRowDivider(inset: DS.sp4) }
                     historyRow(row)

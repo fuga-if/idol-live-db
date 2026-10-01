@@ -57,7 +57,7 @@ struct SongInfoTab: View {
             .buttonStyle(.plain)
 
             if !vm.collectedShows.isEmpty {
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(vm.collectedShows.enumerated()), id: \.element.id) { idx, show in
                         if idx > 0 { ImasRowDivider(inset: DS.sp5) }
                         Button { navigate(.show(show.asShow)) } label: {
@@ -92,7 +92,7 @@ struct SongInfoTab: View {
     private var songInfoSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "楽曲情報", tight: true)
-            ImasListContainer {
+            ImasCardList {
                 infoRows
             }
             noteEntry
@@ -218,7 +218,7 @@ struct SongInfoTab: View {
     private var variantSongsSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "別バージョン", count: "\(vm.variantSongs.count)")
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(vm.variantSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: seed) }
@@ -234,7 +234,7 @@ struct SongInfoTab: View {
     private var relatedSongsSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             ImasSectionHeader(title: "関連楽曲", count: "\(vm.relatedSongs.count)")
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(vm.relatedSongs.enumerated()), id: \.element.id) { idx, s in
                     if idx > 0 { ImasRowDivider(inset: DS.sp5 + 44) }
                     Button { navigate(.song(s)) } label: { RelatedSongRow(song: s, seed: seed) }

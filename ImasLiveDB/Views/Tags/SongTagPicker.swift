@@ -49,7 +49,7 @@ struct SongTagPicker: View {
                 VStack(alignment: .leading, spacing: DS.sp6) {
                     // 対象曲を汎用の曲行コンポーネントで表示 (どの曲に付けているか明示)。
                     if let song {
-                        ImasListContainer {
+                        ImasCardList {
                             SongRowView(item: song)
                         }
                     }

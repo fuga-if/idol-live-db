@@ -325,7 +325,7 @@ struct IdolListView: View {
             }
             .padding(.horizontal, DS.sp2)
 
-            ImasListContainer {
+            ImasCardList {
                 ForEach(Array(vm.filteredIdols.enumerated()), id: \.element.id) { index, idol in
                     if index > 0 { ImasRowDivider(inset: 69) }
                     NavigationLink(value: idol) {
@@ -375,7 +375,7 @@ struct IdolListView: View {
                             .padding(.horizontal, DS.sp2)
 
                         if !collapsedBrands.contains(brand.id) {
-                            ImasListContainer {
+                            ImasCardList {
                                 ForEach(Array(group.enumerated()), id: \.element.id) { index, idol in
                                     // IdolAvatarView の外形フレームは isPick に関わらず一定 (担当リング込み
                                     // サイズ) になったため、テキスト開始位置は常に旧・担当時相当分右へ寄る。

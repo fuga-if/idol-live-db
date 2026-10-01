@@ -23,7 +23,7 @@ struct EventCostumesSection: View {
             VStack(alignment: .leading, spacing: DS.sp2) {
                 ImasSectionHeader(title: "衣装 ・ \(total) 着", tight: true)
                     .padding(.horizontal, DS.sp5)
-                ImasListContainer {
+                ImasCardList {
                     ForEach(Array(costumes.shared.enumerated()), id: \.element.costume.id) { index, entry in
                         if index > 0 { ImasRowDivider(inset: DS.sp5) }
                         costumeRow(entry, individual: false)

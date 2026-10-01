@@ -105,14 +105,14 @@ struct PollListView: View {
     }
 
     private var pollList: some View {
-        // List ではなく ScrollView を使う。List の中に ImasListContainer (VStack) を
-        // 入れると、List は ImasListContainer 全体を「1つのセル」として扱うため、
+        // List ではなく ScrollView を使う。List の中に ImasCardList (VStack) を
+        // 入れると、List は ImasCardList 全体を「1つのセル」として扱うため、
         // その1セル内に N 個の NavigationLink が詰め込まれた状態になる。
         // この状態だと、詳細から戻る時に List が「セル」を再評価する際に複数の
         // NavigationLink が同時にアクティブ状態として復元されてしまい、「戻ると
         // 隣のお題も開く」現象が起きる。ScrollView ならセル概念が無いので回避できる。
         ScrollView {
-            ImasListContainer {
+            ImasCardList {
                 ForEach(currentPolls) { poll in
                     if poll.id != currentPolls.first?.id {
                         ImasRowDivider(inset: DS.sp5)
