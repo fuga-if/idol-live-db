@@ -12,6 +12,15 @@ import UIKit
 final class ChatGPTPlanSession {
     static let shared = ChatGPTPlanSession()
 
+    /// 試作の導線を出すか。開発ビルドと TestFlight (レシートが sandboxReceipt) だけ。
+    nonisolated static var isPrototypeVisible: Bool {
+        #if DEBUG
+        true
+        #else
+        Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        #endif
+    }
+
     struct Registration: Codable {
         let clientID: String
         let subject: String

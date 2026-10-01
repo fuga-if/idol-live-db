@@ -401,10 +401,10 @@ struct MyPageView: View {
     @ViewBuilder
     private var settingsSection: some View {
         helpSection
-        #if DEBUG
-        // 試作。リリースビルドには出さない。
-        chatGPTPlanSection
-        #endif
+        // 試作。開発ビルドと TestFlight だけに出し、App Store 版には出さない。
+        if ChatGPTPlanSession.isPrototypeVisible {
+            chatGPTPlanSection
+        }
         generalSettingsSection
         collectionSettingsSection
         masterySection
