@@ -82,6 +82,7 @@ ImasLiveDB/Views/Idols/IdolListView.swift	4
 ImasLiveDB/Views/Idols/IdolSongHistoryView.swift	1
 ImasLiveDB/Views/IntroDon/IntroComponents.swift	15
 ImasLiveDB/Views/IntroDon/IntroDesign.swift	2
+ImasLiveDB/Views/IntroDon/IntroDonHomeView.swift	1
 ImasLiveDB/Views/IntroDon/IntroGameView.swift	2
 ImasLiveDB/Views/IntroDon/IntroPartyGameView.swift	6
 ImasLiveDB/Views/Ledger/ExpenseEditorView.swift	1
@@ -107,6 +108,7 @@ ImasLiveDB/Views/Songs/SongFilterView.swift	2
 ImasLiveDB/Views/Songs/SongListView.swift	22
 ImasLiveDB/Views/Songs/SongNoteEditSheet.swift	3
 ImasLiveDB/Views/Songs/SongRowView.swift	13
+ImasLiveDB/Views/SortMaker/SortMakerResultView.swift	2
 ImasLiveDB/Views/SortMaker/TierListView.swift	21
 ImasLiveDB/Views/Stats/StatsView.swift	14
 ImasLiveDB/Views/Tags/IdolTagDetailView.swift	5
