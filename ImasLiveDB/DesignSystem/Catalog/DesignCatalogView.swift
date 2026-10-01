@@ -581,6 +581,28 @@ private struct EntityRowsPage: View {
                         .environment(\.imasRowPosition, .following)
                 }
             }
+            ImasSection("ジャケの格子 (アルバム・シリーズ)", style: .small) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.Space.gap), count: 3), spacing: DS.Space.gapLoose) {
+                    ImasArtworkCell(title: "THE IDOLM@STER", subtitle: "2005年7月26日", brand: Sample.as765, imageURL: Sample.Art.idolmaster)
+                    ImasArtworkCell(title: "READY!!", subtitle: "2008年2月27日", brand: Sample.as765, imageURL: Sample.Art.ready)
+                    ImasArtworkCell(title: "ジャケ未登録のシリーズ", brand: Sample.ml, fallbackSystemImage: "square.stack")
+                }
+            }
+            ImasSection("記録 (編集履歴・お知らせ)", style: .small, footer: "先頭は種類ごとの記号 (地は敷かない)。自由な中身 (diff 本文など) は detail で足す。") {
+                ImasCardList {
+                    ImasRecordRow(systemImage: "pencil", tone: .themed, title: "「THE IDOLM@STER」の歌唱者を直した",
+                                  subtitle: "よ〜だ · 3分前", badges: [.init(text: "変更", kind: .neutral)]) {
+                        Text("歌唱者: 5人 → 6人").imasText(.note)
+                    }
+                    ImasRecordRow(systemImage: "arrow.uturn.backward", tone: .negative, title: "「お願い！シンデレラ」の追加を差し戻した",
+                                  subtitle: "fuga · 1時間前", badges: [.init(text: "差し戻し", kind: .negative)])
+                        .environment(\.imasRowPosition, .following)
+                    ImasRecordRow(leading: .avatar(label: "春香", seed: Sample.haruka),
+                                  title: "天海春香のプロフィールが直された", subtitle: "よ〜だ · 昨日",
+                                  badges: [.init(text: "変更", kind: .neutral)])
+                        .environment(\.imasRowPosition, .following)
+                }
+            }
         }
     }
 }
@@ -594,7 +616,9 @@ private struct ValueRowsPage: View {
     @State private var count = 10
     @State private var pick = true
     @State private var favorite = false
+    @State private var owned = true
     @State private var query = ""
+    @State private var expanded = true
 
     var body: some View {
         ImasPage {
@@ -622,8 +646,27 @@ private struct ValueRowsPage: View {
                     ImasRow(title: "READY!!", leading: .artwork(title: "READY!!", imageURL: Sample.Art.ready),
                             trailing: .mark(.favorite, isOn: favorite) { favorite.toggle() })
                         .environment(\.imasRowPosition, .following)
+                    ImasRow(title: "KAMISABI SR 「THE IDOLM@STER」", leading: .icon("rectangle.stack", tone: .themed),
+                            trailing: .mark(.owned, isOn: owned) { owned.toggle() })
+                        .environment(\.imasRowPosition, .following)
                 }
                 .imasTheme(seed: Sample.haruka)
+            }
+            ImasSection("開閉トグルの行", style: .small, footer: "押すたびに chevron が回転する。中身の開閉は呼び出し側が isExpanded を見て出し分ける。") {
+                ImasCardList {
+                    ImasDisclosureRow(title: "個別衣装", count: "4着", isExpanded: $expanded)
+                    if expanded {
+                        ImasChipFlow {
+                            ImasChip(text: "制服")
+                            ImasChip(text: "ライブ衣装")
+                            ImasChip(text: "私服")
+                            ImasChip(text: "サンタ衣装")
+                        }
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.bottom, DS.Space.gap)
+                        .environment(\.imasRowPosition, .following)
+                    }
+                }
             }
             ImasSection("一覧の頭", style: .small) {
                 VStack(alignment: .leading, spacing: DS.Space.gap) {

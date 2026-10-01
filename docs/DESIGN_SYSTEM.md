@@ -280,6 +280,11 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **構成** 先頭=`.iconTile` (種類ごとの記号と色)。題=何をしたか。副題=誰が・いつ (相対時刻)。下段=操作の札 (追加・変更・削除・差し戻し)。
 - **置き換えるもの** `MyEditsView` と `RecentEditsView` の記録カード・アイコン・op バッジ (重複していた 2 系統)。
 
+### 5.15 `ImasDisclosureRow` 開閉トグルの行
+- **用途** 行・区画の中身をその場で開閉する (個別衣装・歌唱メンバー予想など)。
+- **使わない** 別の画面へ進む → `ImasNavRow` / 一覧の絞り込みをその場で切り替える → `ImasFilterChip`。
+- **構成** 題 + 件数 (任意) + 開閉の chevron。押すたびに chevron が回転する。中身の表示・非表示は呼び出し側が `isExpanded` を見て出し分ける (この部品自体は中身を持たない)。
+
 ---
 
 ## 6. カード・格子・タイル
@@ -383,7 +388,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasMarkBar`** 詳細の頭の下に、丸いパンチを横に並べる (左寄せ、曲の詳細は中央寄せ `alignment: .center`)。
 - **`ImasMarkTile`** 印 1 つ (直径 50 の丸 + 名前)。OFF = 線の丸に墨の記号、ON = 丸が実体の色で塗られて点く (影が付き、押すと手応え)。
   `isAction: true` は印でなく操作 (出演ライブ・試聴・セトリ予想) で、墨で塗った丸。
-- **`ImasMarkButton`** 行の末尾で印を付け外しする記号のボタン (`ImasRowTrailing.mark(.pick / .favorite, isOn:action:)`)。
+- **`ImasMarkButton`** 行の末尾で印を付け外しする記号のボタン (`ImasRowTrailing.mark(.pick / .favorite / .owned, isOn:action:)`)。
 - **置き換えるもの** `UserMarkBar` の中身、アイドル詳細のヒーローのピル型トグル、`MyPickToggleButton`、`EventReleasesSection` の所有トグル。
 
 ### 8.5 指の操作 `.imasSwipe` / `.imasTabSwipe`
