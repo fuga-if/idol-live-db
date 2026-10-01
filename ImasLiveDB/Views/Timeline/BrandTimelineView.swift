@@ -84,7 +84,7 @@ struct BrandTimelineView: View {
     var body: some View {
         VStack(spacing: 0) {
             brandBar
-            Divider()
+            ImasRowDivider()
             chartArea
         }
         .background(DS.bg.ignoresSafeArea())
@@ -109,24 +109,21 @@ struct BrandTimelineView: View {
     // MARK: - ブランド切替
 
     private var brandBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DS.sp2) {
-                ImasFilterChip(text: "全ブランド", isSelected: viewModel.selectedBrandId == nil) {
-                    Task { await select(nil) }
-                }
-                ForEach(viewModel.brands) { brand in
-                    ImasFilterChip(
-                        text: brand.shortName,
-                        isSelected: viewModel.selectedBrandId == brand.id,
-                        seed: brand.color
-                    ) {
-                        Task { await select(brand.id) }
-                    }
+        ImasChipRow {
+            ImasFilterChip(text: "全ブランド", isSelected: viewModel.selectedBrandId == nil) {
+                Task { await select(nil) }
+            }
+            ForEach(viewModel.brands) { brand in
+                ImasFilterChip(
+                    text: brand.shortName,
+                    isSelected: viewModel.selectedBrandId == brand.id,
+                    seed: brand.color
+                ) {
+                    Task { await select(brand.id) }
                 }
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, DS.sp3)
         }
+        .padding(.vertical, DS.Space.gapTight)
         .background(DS.surface)
     }
 
