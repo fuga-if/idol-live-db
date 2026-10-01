@@ -401,6 +401,7 @@ struct MyPageView: View {
     @ViewBuilder
     private var settingsSection: some View {
         helpSection
+        chatGPTPlanSection
         generalSettingsSection
         collectionSettingsSection
         masterySection
@@ -417,6 +418,25 @@ struct MyPageView: View {
                 showHelp = true
             } label: {
                 Label("使い方を見る", systemImage: "questionmark.circle.fill")
+            }
+        }
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+    }
+
+    /// Sign in with ChatGPT の試作。ChatGPT Plus / Pro のプランで AI を呼ぶ。
+    @ViewBuilder
+    private var chatGPTPlanSection: some View {
+        Section {
+            NavigationLink {
+                ChatGPTPlanLabView()
+            } label: {
+                HStack {
+                    Label("ChatGPT で AI (試作)", systemImage: "sparkles")
+                    Spacer()
+                    Text(ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT")
+                        .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+                }
             }
         }
         .listRowBackground(DS.surface)
