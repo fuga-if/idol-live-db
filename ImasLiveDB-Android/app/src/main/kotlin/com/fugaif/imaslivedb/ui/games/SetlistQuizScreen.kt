@@ -58,6 +58,7 @@ import uniffi.imas_core.setlistQuizAnswer
 import uniffi.imas_core.setlistQuizHintState
 import uniffi.imas_core.setlistQuizSessionResult
 import uniffi.imas_core.setlistSectionLabel
+import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
 // セトリ当てクイズ。iOS SetlistQuizView の移植。

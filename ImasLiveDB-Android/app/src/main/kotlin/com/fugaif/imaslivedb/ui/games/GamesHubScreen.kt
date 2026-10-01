@@ -68,6 +68,7 @@ import uniffi.imas_core.GameRecord
 import uniffi.imas_core.QuizGrade
 import uniffi.imas_core.gameProgressBestRatePercent
 import uniffi.imas_core.quizGradeForRate
+import com.fugaif.imaslivedb.ui.theme.QS
 
 /**
  * クイズ・ゲームのハブ。プロデュース → 「ゲーム」から遷移。iOS GamesHubView の移植。

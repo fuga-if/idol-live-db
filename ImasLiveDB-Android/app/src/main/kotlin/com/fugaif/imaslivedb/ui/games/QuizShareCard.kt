@@ -67,6 +67,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 import uniffi.imas_core.QuizSessionResult
 import uniffi.imas_core.shareQuizResultText
+import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
 // ミニゲーム共通の結果シェア画像 (1080×1350)。iOS QuizShareCard.swift の移植。

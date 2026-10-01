@@ -50,6 +50,7 @@ import uniffi.imas_core.songSingerQuizAnswer
 import uniffi.imas_core.songSingerQuizHintState
 import uniffi.imas_core.songSingerQuizSession
 import uniffi.imas_core.songSingerQuizSessionResult
+import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
 // ソロ曲クイズ (ヒント式段階採点)。iOS SongSingerQuizView の移植。

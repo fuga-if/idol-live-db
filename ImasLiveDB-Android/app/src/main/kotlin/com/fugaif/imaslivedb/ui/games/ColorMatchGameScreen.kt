@@ -95,6 +95,7 @@ import uniffi.imas_core.colorQuizHintState
 import uniffi.imas_core.colorQuizSessionResult
 import uniffi.imas_core.colorQuizStartGame
 import uniffi.imas_core.quizAccuracyResult
+import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
 // メンバーカラー合わせ。iOS ColorMatchGameView の移植。
