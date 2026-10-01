@@ -18,9 +18,18 @@ import SwiftUI
 
 /// 画面・シート全体の読み込み中。空いている領域いっぱいに出して中央に置く。
 struct ImasLoadingState: View {
+    /// くるくるの下に出す文字 (「読み込み中…」)。nil なら記号だけ (既定)。
+    var title: String? = nil
+
     var body: some View {
-        ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        Group {
+            if let title {
+                ProgressView(title)
+            } else {
+                ProgressView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -194,12 +203,15 @@ struct ImasNotice: View {
     var title: String? = nil
     /// 本文。見出しだけで足りる注意 (例: 件数だけ伝えれば済む警告) は nil にして省く。
     var message: String? = nil
+    /// 記号の上書き。省くと種類ごとの既定 (`kind.systemImage`) のまま。
+    var systemImage: String? = nil
     var actionTitle: String? = nil
+    var actionSystemImage: String? = nil
     var action: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: DS.Space.gapLoose) {
-            Image(systemName: kind.systemImage)
+            Image(systemName: systemImage ?? kind.systemImage)
                 .font(.imasScaled(16, weight: .semibold))
                 .foregroundStyle(kind.tint)
                 .padding(.top, 1)
@@ -214,9 +226,15 @@ struct ImasNotice: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let actionTitle, let action {
-                    Button(actionTitle, action: action)
-                        .buttonStyle(.imas(.secondary, size: .small))
-                        .padding(.top, DS.Space.gapTight)
+                    Button(action: action) {
+                        if let actionSystemImage {
+                            Label(actionTitle, systemImage: actionSystemImage)
+                        } else {
+                            Text(actionTitle)
+                        }
+                    }
+                    .buttonStyle(.imas(.secondary, size: .small))
+                    .padding(.top, DS.Space.gapTight)
                 }
             }
             Spacer(minLength: 0)

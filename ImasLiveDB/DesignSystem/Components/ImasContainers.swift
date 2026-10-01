@@ -127,10 +127,15 @@ struct ImasSection<Content: View>: View {
     var style: ImasSectionHeader.Style = .large
     var footer: String? = nil
     var seeAll: (() -> Void)? = nil
+    /// 見出し右の文脈アクション (`seeAll` とは同時に出さない)。
+    var actionTitle: String? = nil
+    var actionSystemImage: String? = nil
+    var onAction: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
     init(_ title: String? = nil, count: String? = nil, imprint: String? = nil,
          style: ImasSectionHeader.Style = .large, footer: String? = nil, seeAll: (() -> Void)? = nil,
+         actionTitle: String? = nil, actionSystemImage: String? = nil, onAction: (() -> Void)? = nil,
          @ViewBuilder content: () -> Content) {
         self.title = title
         self.count = count
@@ -138,13 +143,17 @@ struct ImasSection<Content: View>: View {
         self.style = style
         self.footer = footer
         self.seeAll = seeAll
+        self.actionTitle = actionTitle
+        self.actionSystemImage = actionSystemImage
+        self.onAction = onAction
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let title {
-                ImasSectionHeader(title, count: count, imprint: imprint, style: style, seeAll: seeAll)
+                ImasSectionHeader(title, count: count, imprint: imprint, style: style, seeAll: seeAll,
+                                  actionTitle: actionTitle, actionSystemImage: actionSystemImage, onAction: onAction)
                     .padding(.horizontal, style == .small ? DS.Space.rowH : 0)
                     .padding(.bottom, DS.Space.header)
             }

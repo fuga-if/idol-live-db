@@ -20,7 +20,7 @@ extension ImasBrandPicker.Option {
 extension ImasBrandPicker {
     /// ブランドの並びから組む。
     @MainActor init(brands: [Brand], selection: Binding<Set<String>>, includesAll: Bool = true,
-                    allLabel: String = "すべて", allowsMultiple: Bool = true) {
+                    allLabel: String = "全て", allowsMultiple: Bool = true) {
         self.init(options: brands.map { ImasBrandPicker.Option(brand: $0) }, selection: selection,
                   includesAll: includesAll, allLabel: allLabel, allowsMultiple: allowsMultiple)
     }
@@ -54,9 +54,12 @@ extension ImasSongRow {
 extension ImasSongRow where Detail == EmptyView {
     /// 曲のデータから組む。副題は既定でユニット名 (無ければ歌唱者の表記)。
     /// ジャケの試聴と長押しコピーを自動で持つ (楽曲一覧の行と同じ配線)。
+    /// `playsPreview: false` で試聴だけ切る行 (ジャケを押しても行全体のタップが効く。
+    /// 集計の行など、ジャケを押すたびに詳細シートが開いてほしい画面で使う)。長押しコピーは残る。
     @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+                    playsPreview: Bool = true,
                     trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal) {
-        let (previewURL, isPreviewing, onPreviewTap) = Self.previewWiring(for: song)
+        let (previewURL, isPreviewing, onPreviewTap) = playsPreview ? Self.previewWiring(for: song) : (nil, false, {})
         self.init(
             title: song.title,
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,
@@ -79,9 +82,10 @@ extension ImasSongRow where Detail == EmptyView {
 extension ImasSongRow {
     /// 曲のデータから組み、下段 (札・日付) を足す。試聴・長押しコピーは上と同じく自動配線。
     @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+                    playsPreview: Bool = true,
                     trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal,
                     @ViewBuilder detail: () -> Detail) {
-        let (previewURL, isPreviewing, onPreviewTap) = Self.previewWiring(for: song)
+        let (previewURL, isPreviewing, onPreviewTap) = playsPreview ? Self.previewWiring(for: song) : (nil, false, {})
         self.init(
             title: song.title,
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,

@@ -533,6 +533,8 @@ struct QuizStageChoiceGrid: View {
     var columns = 2
     /// 50:50 などで消した選択肢 (押せなくし、取り消し線で薄く見せる)。
     var eliminated: Set<String> = []
+    /// 先頭の A〜D 表記。パーティ対戦 (声で早押しした後に選ぶだけ) は文字無しにする。
+    var showsLetters: Bool = true
     let onPick: (QuizStageChoice) -> Void
 
     private static let letters = ["A", "B", "C", "D", "E", "F"]
@@ -543,7 +545,9 @@ struct QuizStageChoiceGrid: View {
                 let isOut = eliminated.contains(choice.id)
                 Button { onPick(choice) } label: {
                     HStack(spacing: 10) {
-                        Text(Self.letters[i % Self.letters.count]).font(QS.mono(12)).foregroundStyle(QS.faint)
+                        if showsLetters {
+                            Text(Self.letters[i % Self.letters.count]).font(QS.mono(12)).foregroundStyle(QS.faint)
+                        }
                         Text(choice.title)
                             .font(QS.text(16, weight: .bold))
                             .foregroundStyle(QS.ink)

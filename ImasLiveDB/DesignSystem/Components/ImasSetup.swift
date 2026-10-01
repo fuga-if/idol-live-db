@@ -49,26 +49,39 @@ struct ImasCandidateCount: View {
     var label: String = "出題できる候補"
     /// 2 つ目の指標。渡すと「37 曲 / 12 歌手」のように並べる。
     var secondary: Metric? = nil
-    /// 数値の下に添える一言 (「4択の選択肢は歌手数が基準です」)。
+    /// 数値の下に添える一言 (「4択の選択肢は歌手数が基準です」)。読み込み中は出さない。
     var note: String? = nil
+    /// 数えている間。true の間は count/secondary を無視してくるくる + loadingText を出す。
+    var isLoading: Bool = false
+    /// 読み込み中に数の代わりに出す文言 (「候補を計算中…」)。
+    var loadingText: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapTight) {
             HStack(spacing: DS.Space.gap) {
                 Text(label).imasText(.value, color: DS.ink2)
                 Spacer(minLength: DS.Space.gap)
-                metricView(count, unit: unit, dimsWhenShort: true)
-                if let secondary {
-                    Text("/").imasText(.meta)
-                    metricView(secondary.count, unit: secondary.unit, dimsWhenShort: false)
+                if isLoading {
+                    HStack(spacing: DS.Space.gapTight) {
+                        ProgressView().controlSize(.small)
+                        if let loadingText {
+                            Text(loadingText).imasText(.meta)
+                        }
+                    }
+                } else {
+                    metricView(count, unit: unit, dimsWhenShort: true)
+                    if let secondary {
+                        Text("/").imasText(.meta)
+                        metricView(secondary.count, unit: secondary.unit, dimsWhenShort: false)
+                    }
                 }
             }
-            if let note {
+            if !isLoading, let note {
                 Text(note).imasText(.meta)
             }
         }
         .padding(.horizontal, DS.Space.rowH)
-        .padding(.vertical, note == nil ? 0 : DS.Space.gapTight)
+        .padding(.vertical, (isLoading || note == nil) ? 0 : DS.Space.gapTight)
         .frame(minHeight: DS.Size.touch + 4)
         .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -87,7 +100,7 @@ struct ImasCandidateCount: View {
             ImasMetric(value: value.formatted(), unit: unit, size: .medium, emphasized: false)
                 .foregroundStyle(dimsWhenShort && isShort ? DS.warning : DS.ink)
         } else {
-            ProgressView().controlSize(.small)
+            Text("—").imasText(.value, color: DS.ink3)
         }
     }
 }
@@ -176,13 +189,15 @@ struct ImasStepList: View {
     }
 
     let steps: [Step]
+    /// 最初の番号。複数のカードに分けて 1 枚ずつ手順を置くとき、続き番号を渡す (既定は 1 から)。
+    var startIndex: Int = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
             ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                 VStack(alignment: .leading, spacing: DS.Space.rowGap) {
                     HStack(alignment: .top, spacing: DS.Space.gapLoose) {
-                        Text("\(index + 1)")
+                        Text("\(index + startIndex)")
                             .font(ImasNumeralSize.small.font)
                             .foregroundStyle(DS.onSys)
                             .frame(width: 26, height: 26)

@@ -82,6 +82,7 @@ struct ImasFormField<Content: View>: View {
             content
                 .font(.imasHeading(17, weight: .bold))
                 .foregroundStyle(DS.ink)
+                .accessibilityElement(children: .contain)
                 .accessibilityLabel(label)
             if let error {
                 Text(error)
@@ -238,6 +239,13 @@ struct ImasFormAmount: View {
             .onTapGesture { focused = true }
         }
         .onAppear { text = amount.map { $0.formatted(.number.grouping(.automatic)) } ?? "" }
+        // 開いた直後 (子の onAppear が親より先に走ることがある) や、券種の選び直しなど
+        // 外から amount が書き換わったときも欄を追わせる。自分の入力 (上の onChange(of: text))
+        // で既に揃っているときは書き直さない。
+        .onChange(of: amount) { _, new in
+            let formatted = new.map { $0.formatted(.number.grouping(.automatic)) } ?? ""
+            if formatted != text { text = formatted }
+        }
     }
 }
 
@@ -299,7 +307,12 @@ struct ImasChoiceCards<Option: Hashable>: View {
                         .strokeBorder(on ? DS.ink : DS.line, lineWidth: on ? 2 : 1.5)
                 }
                 .overlay(alignment: .topTrailing) {
-                    if on { ImasPunchHole(size: .small).padding(8) }
+                    if on {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.imasScaled(18))
+                            .foregroundStyle(DS.ink)
+                            .padding(8)
+                    }
                 }
                 .contentShape(Rectangle())
         }

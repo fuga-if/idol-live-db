@@ -42,6 +42,11 @@ struct ImasStagePlaybackControl: View {
 
     let isPlaying: Bool
     var style: Style = .tile
+    /// 読み上げ: 再生中のラベル。
+    var playingLabel: String = "再生中"
+    /// 読み上げ: 止まっているときのラベル。タップで何が起きるか (続きから／頭から 等) を呼び出し側が渡す。
+    var pausedLabel: String = "続きから"
+    var accessibilityHintText: String = "タップで続きを流す。長押しの間は流し続けます"
     let onTap: () -> Void
     let onHoldBegin: () -> Void
     let onHoldEnd: () -> Void
@@ -72,8 +77,8 @@ struct ImasStagePlaybackControl: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(isPlaying ? "再生中" : "続きから")
-        .accessibilityHint("タップで続きを流す。長押しの間は流し続けます")
+        .accessibilityLabel(isPlaying ? playingLabel : pausedLabel)
+        .accessibilityHint(accessibilityHintText)
     }
 
     private var tileBody: some View {

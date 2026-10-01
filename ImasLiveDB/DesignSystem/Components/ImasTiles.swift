@@ -48,6 +48,8 @@ struct ImasFeatureCard<Media: View>: View {
 
     /// 上の目印 (「担当」「参加予定」)。前に実体の色のペンライトが付く。
     var eyebrow: String? = nil
+    /// 目印の前にペンライトを付けるか。実体に紐づかない一般の見出し (「BATTLE MODE」等) は false にする。
+    var eyebrowPenlight: Bool = true
     let title: String
     var subtitle: String? = nil
     var seed: String? = nil
@@ -61,25 +63,26 @@ struct ImasFeatureCard<Media: View>: View {
     @ViewBuilder var media: Media
 
     var body: some View {
-        FeatureCardBody(eyebrow: eyebrow, title: title, subtitle: subtitle, metric: metric,
-                        surface: surface, onOpen: onOpen,
+        FeatureCardBody(eyebrow: eyebrow, eyebrowPenlight: eyebrowPenlight, title: title, subtitle: subtitle,
+                        metric: metric, surface: surface, onOpen: onOpen,
                         actions: [primary, secondary].compactMap { $0 }, media: media)
             .imasTheme(seed: seed, brand: brand)
     }
 }
 
 extension ImasFeatureCard where Media == EmptyView {
-    init(eyebrow: String? = nil, title: String, subtitle: String? = nil, seed: String? = nil,
-         brand: String? = nil, metric: Metric? = nil, surface: Surface = .panel,
+    init(eyebrow: String? = nil, eyebrowPenlight: Bool = true, title: String, subtitle: String? = nil,
+         seed: String? = nil, brand: String? = nil, metric: Metric? = nil, surface: Surface = .panel,
          onOpen: (() -> Void)? = nil, primary: Action? = nil, secondary: Action? = nil) {
-        self.init(eyebrow: eyebrow, title: title, subtitle: subtitle, seed: seed, brand: brand,
-                  metric: metric, surface: surface, onOpen: onOpen,
+        self.init(eyebrow: eyebrow, eyebrowPenlight: eyebrowPenlight, title: title, subtitle: subtitle,
+                  seed: seed, brand: brand, metric: metric, surface: surface, onOpen: onOpen,
                   primary: primary, secondary: secondary) { EmptyView() }
     }
 }
 
 private struct FeatureCardBody<Media: View>: View {
     let eyebrow: String?
+    let eyebrowPenlight: Bool
     let title: String
     let subtitle: String?
     let metric: ImasFeatureCard<Media>.Metric?
@@ -138,7 +141,9 @@ private struct FeatureCardBody<Media: View>: View {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
                     if let eyebrow {
                         HStack(spacing: 7) {
-                            ImasPenlight(color: onColor ? theme.onAccent : theme.penlight, size: .regular)
+                            if eyebrowPenlight {
+                                ImasPenlight(color: onColor ? theme.onAccent : theme.penlight, size: .regular)
+                            }
                             Text(eyebrow)
                                 .font(ImasTextRole.eyebrow.font)
                                 .foregroundStyle(ink2)
