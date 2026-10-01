@@ -308,3 +308,88 @@ struct SoloShareScaffold<Content: View>: View {
         .offset(x: size.width * 0.39, y: -size.height * 0.30)
     }
 }
+
+// MARK: - ランキング・ティアー表の骨格 (暗地 + 大見出し + 透かし + フッター)
+
+/// ランキング・ティアー表カードの共通骨格 (docs/DESIGN_SYSTEM.md §13 `.poster`)。
+/// `.photo`/`.solo` と同じ near-black の地に、[差し色の印字バー + 大見出し + 補足 1 行] の見出しと
+/// 右上の透かしを乗せ、本文 (表彰台・段ごとの行) は呼び出し側が自由に組む。グラデは使わない。
+///
+/// ティアー表の書き出しのように件数で縦に伸びる画像は `height: nil` を渡す
+/// (`Spacer` が最小 22pt に収まり、固定キャンバスでは残りを埋めて下端にフッターを揃える)。
+struct PosterShareScaffold<Content: View>: View {
+    var palette: ShareCardPalette
+    /// キャンバスの横幅 (共有画像は 540pt 基準)。
+    var width: CGFloat = ShareCard.portrait.width
+    /// キャンバスの高さ。nil なら中身なりに伸ばす (ティアー表のような件数依存の縦長画像)。
+    var height: CGFloat? = ShareCard.portrait.height
+    /// 見出し前の印字 (差し色の短い棒 + 文言)。
+    let kicker: String
+    /// kicker の右に出す小さな印字 (「RESULT」)。無ければ出さない。
+    var trailingKicker: String? = nil
+    /// 大見出し (「MY BEST 10」「ティアー表の題」)。
+    let title: String
+    var titleSize: CGFloat = 50
+    /// 見出し下の 1 行 (対象範囲など)。
+    var subtitle: String? = nil
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            ShareInk.nearBlack
+            watermark
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                content
+                Spacer(minLength: 22)
+                ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))
+            }
+            .padding(.horizontal, 36)
+            .padding(.top, 32)
+            .padding(.bottom, 28)
+        }
+        .frame(width: width, height: height)
+        .clipped()
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Rectangle().fill(palette.accent).frame(width: 18, height: 3)
+                Text(kicker)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.8))
+                if let trailingKicker {
+                    Spacer(minLength: 8)
+                    Text(trailingKicker)
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .tracking(2.4)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
+            }
+            Text(title)
+                .font(.system(size: titleSize, weight: .black).width(.compressed))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .padding(.top, 6)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    /// 右上に覗く淡い同心円 1 つ (`SoloShareScaffold` と同じ考え方の透かし)。
+    private var watermark: some View {
+        let anchor = height ?? width
+        return ZStack {
+            Circle().stroke(.white.opacity(0.06), lineWidth: 1.5).frame(width: width, height: width)
+            Circle().stroke(palette.accent.opacity(0.16), lineWidth: 1.5).frame(width: width * 0.667, height: width * 0.667)
+        }
+        .frame(width: width, height: anchor, alignment: .center)
+        .offset(x: width * 0.42, y: -anchor * 0.32)
+    }
+}

@@ -113,9 +113,7 @@ struct TagShareCompletionView: View {
                     isPreparingCard: artwork.isPreparing(urlString: context.artworkUrl)
                 )
 
-                Button("閉じる", action: onClose)
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
+                ImasButton(title: "閉じる", role: .plain, size: .medium, action: onClose)
                     .padding(.bottom, DS.sp4)
             }
             .padding(DS.sp5)

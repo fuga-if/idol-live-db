@@ -115,12 +115,12 @@ struct SetlistCommentComposeSheet: View {
                         Text("この曲の感想")
                             .font(.imasFootnote.weight(.semibold))
                             .foregroundStyle(DS.ink3)
-                        TextField("最高だった！ 泣いた…など", text: $comment, axis: .vertical)
-                            .lineLimit(3...6)
-                            .font(.imasBody)
-                            .focused($commentFocused)
-                            .padding(DS.sp4)
-                            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+                        ImasCard {
+                            TextField("最高だった！ 泣いた…など", text: $comment, axis: .vertical)
+                                .lineLimit(3...6)
+                                .font(.imasBody)
+                                .focused($commentFocused)
+                        }
                     }
 
                 ShareCardActionPane(

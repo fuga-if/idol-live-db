@@ -21,6 +21,19 @@ enum ShareCardRenderer {
         renderer.isOpaque = true
         return renderer.uiImage
     }
+
+    /// 件数で縦に伸びる版下 (ティアー表の書き出しなど) 用。既定の scale (2x) のまま焼くと
+    /// 高さが長すぎて描画できる上限 (一辺 8192px 前後) を超え、画像が真っ黒になることがあるため、
+    /// 先に等倍で高さを測ってから、上限に収まる倍率に落として焼き直す。
+    static func renderTall(_ card: some View, width: CGFloat, maxPixelHeight: CGFloat) -> UIImage? {
+        let renderer = ImageRenderer(content: card)
+        renderer.isOpaque = true
+        renderer.proposedSize = ProposedViewSize(width: width, height: nil)
+        renderer.scale = 1
+        let height = renderer.uiImage?.size.height ?? 0
+        renderer.scale = height > 0 ? min(2, maxPixelHeight / height) : 2
+        return renderer.uiImage
+    }
 }
 
 /// シェアカードに焼き込むジャケット画像のローダ。
@@ -186,7 +199,8 @@ struct ShareCardActionPane<Card: View>: View {
         VStack(spacing: DS.sp5) {
             ShareCardPreview(size: cardSize) { card(cardSize) }
 
-            Button {
+            ImasButton(title: "シェアする", systemImage: "square.and.arrow.up", role: .primary, size: .large,
+                       isLoading: isPreparingCard) {
                 AppAnalytics.tap("share_card.share")
                 guard let image = ShareCardRenderer.render(card(cardSize)) else {
                     logger.error("share_card_render_failed: ImageRenderer returned nil")
@@ -194,23 +208,7 @@ struct ShareCardActionPane<Card: View>: View {
                     return
                 }
                 SystemShare.present(items: [ShareCardImageSource(image)])
-            } label: {
-                HStack(spacing: DS.sp3) {
-                    if isPreparingCard {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.white)
-                        Text("画像を準備中…")
-                    } else {
-                        Label("シェアする", systemImage: "square.and.arrow.up")
-                    }
-                }
-                .font(.imasHeadline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(isPreparingCard)
         }
         .alert("シェア画像の生成に失敗しました", isPresented: $showRenderError) {
             Button("OK") {}
@@ -243,11 +241,7 @@ struct ShareCardSheet<Content: View>: View {
             .background(DS.bg)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             .trackScreen(screenName)
         }
     }
