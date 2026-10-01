@@ -18,16 +18,14 @@ final class CharacterIdolCache {
 /// 画面上部の小さな断り (「AI・非公式」)。
 struct CharacterDisclaimerBadge: View {
     var body: some View {
-        HStack(spacing: DS.sp2) {
+        HStack(spacing: DS.Space.gapTight) {
             Image(systemName: "sparkles")
-            Text("AI・非公式")
-                .fontWeight(.semibold)
+            Text("AI・非公式").fontWeight(.semibold)
             Text("公式の発言ではありません")
         }
-        .font(.imasCaption2)
-        .foregroundStyle(DS.ink2)
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp2)
+        .imasText(.meta)
+        .padding(.horizontal, DS.Space.card)
+        .padding(.vertical, DS.Space.gapTight)
         .background(DS.fill, in: Capsule())
         .accessibilityElement(children: .combine)
     }
@@ -45,32 +43,29 @@ struct CharacterTalkListView: View {
 
     var body: some View {
         List {
-            Section {
+            ImasListSection {
                 CharacterDisclaimerBadge()
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
             if store.sorted.isEmpty {
-                Section {
-                    VStack(spacing: DS.sp4) {
+                ImasListSection {
+                    VStack(spacing: DS.Space.gap) {
                         Text("好きなアイドルとメッセージでおしゃべりできます")
-                            .font(.imasCallout)
-                            .foregroundStyle(DS.ink2)
+                            .imasText(.body, color: DS.ink2)
                             .multilineTextAlignment(.center)
-                        Button("アイドルを選ぶ") { showPicker = true }
-                            .buttonStyle(.borderedProminent)
+                        ImasButton(title: "アイドルを選ぶ", role: .primary, size: .medium) { showPicker = true }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, DS.sp7)
-                    .listRowBackground(DS.surface)
+                    .padding(.vertical, DS.Space.section)
                 }
             }
-            Section {
+            ImasListSection {
                 ForEach(store.sorted) { conversation in
                     if let idolID = conversation.idolID {
                         Button { openIdolID = idolID } label: { row(conversation, idolID: idolID) }
-                            .listRowBackground(DS.surface)
+                            .buttonStyle(.imasRow)
                             .swipeActions {
                                 Button("削除", role: .destructive) { store.delete(conversation.id) }
                             }
@@ -79,8 +74,7 @@ struct CharacterTalkListView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg.ignoresSafeArea())
+        .imasForm()
         .toolbar {
             ToolbarItem(placement: .bottomBar) {
                 Button { showPicker = true } label: { Label("新しいトーク", systemImage: "plus.bubble") }
@@ -98,30 +92,22 @@ struct CharacterTalkListView: View {
         }
     }
 
+    @ViewBuilder
     private func row(_ conversation: AssistantConversation, idolID: String) -> some View {
-        HStack(spacing: DS.sp4) {
-            if let idol = cache.idols[idolID] {
-                IdolAvatarView(idol: idol, size: 44, reservesPickRing: false)
-            } else {
-                Circle().fill(DS.fill).frame(width: 44, height: 44)
+        let timeLabel = conversation.updatedAt.formatted(.relative(presentation: .numeric))
+        if let idol = cache.idols[idolID] {
+            ImasIdolRow(idol: idol, subtitle: conversation.messages.last?.text ?? "") {
+                Text(timeLabel).imasText(.meta)
             }
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                HStack {
-                    Text(cache.idols[idolID]?.name ?? conversation.title)
-                        .font(.imasHeadline)
-                        .foregroundStyle(DS.ink)
-                    Spacer()
-                    Text(conversation.updatedAt.formatted(.relative(presentation: .numeric)))
-                        .font(.imasCaption2)
-                        .foregroundStyle(DS.ink3)
-                }
-                Text(conversation.messages.last?.text ?? "")
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
+        } else {
+            ImasRow(
+                title: conversation.title,
+                subtitle: conversation.messages.last?.text ?? "",
+                leading: .icon("person.fill", tone: .neutral)
+            ) {
+                Text(timeLabel).imasText(.meta)
             }
         }
-        .padding(.vertical, DS.sp2)
     }
 }
 
@@ -138,15 +124,12 @@ struct CharacterTalkView: View {
     @State private var loadError: String?
 
     private var idol: Idol? { cache.idols[idolID] }
-    private var partnerTint: Color {
-        Color(hexString: idol?.color, default: DS.surface).opacity(0.18)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
             if let chat {
                 messages(chat)
-                AssistantInputBar(
+                ImasChatComposer(
                     text: $input,
                     placeholder: "メッセージ",
                     isRunning: chat.isRunning,
@@ -159,9 +142,10 @@ struct CharacterTalkView: View {
                     onStop: { chat.stop() }
                 )
             } else if let loadError {
-                ContentUnavailableView(loadError, systemImage: "person.crop.circle.badge.exclamationmark")
+                ImasEmptyState(systemImage: "person.crop.circle.badge.exclamationmark", title: loadError)
+                    .frame(maxHeight: .infinity)
             } else {
-                ProgressView().frame(maxHeight: .infinity)
+                ImasLoadingState()
             }
         }
         .background(DS.bg.ignoresSafeArea())
@@ -178,25 +162,31 @@ struct CharacterTalkView: View {
     private func messages(_ chat: AssistantChatModel) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DS.sp4) {
+                LazyVStack(alignment: .leading, spacing: DS.Space.gap) {
                     CharacterDisclaimerBadge()
                         .frame(maxWidth: .infinity)
-                        .padding(.bottom, DS.sp2)
+                        .padding(.bottom, DS.Space.gapTight)
                     ForEach(chat.conversation.messages) { message in
                         if message.failed {
-                            AssistantFailedBubble(message: chat.errorMessage) { chat.retry(model: selectedModel) }
+                            ImasChatBubble(role: .assistant,
+                                           content: .failed(message: chat.errorMessage) { chat.retry(model: selectedModel) },
+                                           partnerName: idol?.name, seed: idol?.color) { avatar }
                         } else {
-                            AssistantBubble(message: message, partnerName: idol?.name, partnerTint: partnerTint) { avatar }
+                            ImasChatBubble(role: message.role.chatRole, content: .text(message.text),
+                                           partnerName: idol?.name, seed: idol?.color) { avatar }
                         }
                     }
                     if chat.isRunning {
-                        if let label = chat.toolLabel { AssistantToolChip(label: label).padding(.leading, 44) }
-                        AssistantStreamingBubble(text: chat.streamingText, partnerTint: partnerTint) { avatar }
+                        if let label = chat.toolLabel {
+                            ImasChatToolChip(label: label).padding(.leading, DS.Size.touch)
+                        }
+                        ImasChatBubble(role: .assistant, content: .streaming(chat.streamingText),
+                                       partnerName: idol?.name, seed: idol?.color) { avatar }
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp4)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gap)
             }
             .scrollDismissesKeyboard(.interactively)
             .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -212,7 +202,7 @@ struct CharacterTalkView: View {
         if let idol {
             IdolAvatarView(idol: idol, size: 34, reservesPickRing: false)
         } else {
-            Circle().fill(DS.fill).frame(width: 34, height: 34)
+            ImasIconTile(systemImage: "person.fill", size: .s32, tone: .neutral)
         }
     }
 

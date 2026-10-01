@@ -12,6 +12,8 @@ import SwiftUI
 // ImasFormLink       押して別のシート・選択へ行く欄 (会場・日程)。値と矢印。
 // ImasFormAmount     金額の欄。「¥」と細長い数字。
 // ImasChoiceCards    大きな札から 1 つ選ぶ (参加のしかた: 現地・配信・LV)。選んだ札に穴が開く。
+//                    種類: `.grid` (横に並ぶ等幅の札、既定) / `.row` (縦に積む全幅の行、モード選択) /
+//                    `.numeral` (大きな数字 + 単位、問題数・時間の選択)。
 //
 // OS の Form (灰の表) は設定画面だけ。ものを編集するシートはこの申込書で組む。
 // =============================================================================
@@ -126,8 +128,11 @@ struct ImasFormTextArea: View {
     @Binding var text: String
     var prompt: String
     var limit: Int? = nil
+    /// 開いたら自動でキーボードを出す (返信シートなど、すぐ打ち始めてほしい欄)。
+    var autofocus: Bool = false
 
     @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 88
+    @FocusState private var focused: Bool
 
     var body: some View {
         ImasFormField(label: label, imprint: imprint, systemImage: systemImage) {
@@ -136,6 +141,7 @@ struct ImasFormTextArea: View {
                     .font(.imasBody)
                     .lineLimit(3...)
                     .frame(minHeight: minHeight, alignment: .topLeading)
+                    .focused($focused)
                 if let limit {
                     Text("\(text.count) / \(limit)")
                         .font(.imasMono(11))
@@ -143,6 +149,7 @@ struct ImasFormTextArea: View {
                 }
             }
         }
+        .onAppear { if autofocus { focused = true } }
     }
 }
 
@@ -238,6 +245,15 @@ struct ImasFormAmount: View {
 
 /// 大きな札から 1 つ選ぶ (参加のしかた・遊び方の種類)。選んだ札は墨の縁で囲み、角に穴が開く。
 struct ImasChoiceCards<Option: Hashable>: View {
+    enum Style {
+        /// 横に並ぶ等幅の札 (2〜4 個)。
+        case grid
+        /// 縦に積む全幅の行 (4 個以上・説明が長いモード選択)。
+        case row
+        /// 大きな数字 + 単位だけの札 (問題数・時間の選択)。
+        case numeral
+    }
+
     struct Choice {
         let value: Option
         let title: String
@@ -247,42 +263,84 @@ struct ImasChoiceCards<Option: Hashable>: View {
 
     let choices: [Choice]
     @Binding var selection: Option
+    var style: Style = .grid
 
     @ScaledMetric(relativeTo: .body) private var height: CGFloat = 76
+    @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 56
 
     var body: some View {
-        HStack(spacing: DS.Space.gap) {
-            ForEach(choices, id: \.value) { choice in
-                let on = choice.value == selection
-                Button {
-                    withAnimation(.imasStandard) { selection = choice.value }
-                } label: {
-                    VStack(spacing: 6) {
-                        if let systemImage = choice.systemImage {
-                            Image(systemName: systemImage).font(.imasScaled(20, weight: .regular))
-                        }
-                        Text(choice.title).font(.imasHeading(14, weight: .heavy)).foregroundStyle(DS.ink)
-                        if let subtitle = choice.subtitle {
-                            Text(subtitle).font(.imasCaption2).foregroundStyle(DS.ink2).lineLimit(1)
-                        }
-                    }
-                    .foregroundStyle(on ? DS.ink : DS.ink2)
-                    .frame(maxWidth: .infinity, minHeight: height)
-                    .background(on ? DS.surface : Color.clear,
-                                in: RoundedRectangle(cornerRadius: DS.rControl(height) - 6, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DS.rControl(height) - 6, style: .continuous)
-                            .strokeBorder(on ? DS.ink : DS.line, lineWidth: on ? 2 : 1.5)
-                    }
-                    .overlay(alignment: .topTrailing) {
-                        if on { ImasPunchHole(size: .small).padding(8) }
-                    }
-                    .contentShape(Rectangle())
+        Group {
+            switch style {
+            case .grid, .numeral:
+                HStack(spacing: DS.Space.gap) {
+                    ForEach(choices, id: \.value) { card($0, minHeight: height) }
                 }
-                .buttonStyle(.imasPress)
-                .accessibilityAddTraits(on ? .isSelected : [])
+            case .row:
+                VStack(spacing: DS.Space.gap) {
+                    ForEach(choices, id: \.value) { card($0, minHeight: rowHeight) }
+                }
             }
         }
         .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private func card(_ choice: Choice, minHeight: CGFloat) -> some View {
+        let on = choice.value == selection
+        return Button {
+            withAnimation(.imasStandard) { selection = choice.value }
+        } label: {
+            cardLabel(choice, on: on)
+                .foregroundStyle(on ? DS.ink : DS.ink2)
+                .frame(maxWidth: .infinity, minHeight: minHeight)
+                .background(on ? DS.surface : Color.clear,
+                            in: RoundedRectangle(cornerRadius: DS.rControl(minHeight) - 6, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: DS.rControl(minHeight) - 6, style: .continuous)
+                        .strokeBorder(on ? DS.ink : DS.line, lineWidth: on ? 2 : 1.5)
+                }
+                .overlay(alignment: .topTrailing) {
+                    if on { ImasPunchHole(size: .small).padding(8) }
+                }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.imasPress)
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private func cardLabel(_ choice: Choice, on: Bool) -> some View {
+        switch style {
+        case .grid:
+            VStack(spacing: 6) {
+                if let systemImage = choice.systemImage {
+                    Image(systemName: systemImage).font(.imasScaled(20, weight: .regular))
+                }
+                Text(choice.title).font(.imasHeading(14, weight: .heavy)).foregroundStyle(DS.ink)
+                if let subtitle = choice.subtitle {
+                    Text(subtitle).font(.imasCaption2).foregroundStyle(DS.ink2).lineLimit(1)
+                }
+            }
+        case .numeral:
+            VStack(spacing: 2) {
+                Text(choice.title).font(ImasNumeralSize.medium.font)
+                if let subtitle = choice.subtitle {
+                    Text(subtitle).font(.imasCaption2.weight(.bold))
+                }
+            }
+        case .row:
+            HStack(spacing: DS.Space.rowGap) {
+                if let systemImage = choice.systemImage {
+                    ImasIconTile(systemImage: systemImage, size: .s36, tone: on ? .solid : .themed)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(choice.title).font(.imasHeading(15, weight: .bold))
+                    if let subtitle = choice.subtitle {
+                        Text(subtitle).font(.imasCaption).foregroundStyle(on ? DS.ink2 : DS.ink3).lineLimit(2)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, DS.Space.card)
+        }
     }
 }

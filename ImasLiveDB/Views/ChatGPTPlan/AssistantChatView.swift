@@ -18,11 +18,7 @@ struct AssistantChatView: View {
                         .background(DS.bg.ignoresSafeArea())
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
         }
     }
 }
@@ -53,21 +49,21 @@ private struct AssistantHome: View {
     var body: some View {
         VStack(spacing: 0) {
             if characterFeatures {
-                Picker("モード", selection: $modeRaw) {
-                    ForEach(Mode.allCases) { Text($0.label).tag($0.rawValue) }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp3)
+                ImasSegmented(
+                    options: Mode.allCases.map(\.rawValue),
+                    selection: $modeRaw
+                ) { raw in Mode(rawValue: raw)?.label ?? raw }
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gap)
             }
             if let modelsError {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("モデルの一覧を読み込めませんでした: \(modelsError)")
-                        .font(.imasCaption).foregroundStyle(DS.warning)
+                    Text("モデルの一覧を読み込めませんでした: \(modelsError)").imasText(.note, color: DS.warning)
                     Spacer()
-                    Button("再読み込み") { Task { await loadModels() } }.font(.imasCaption.weight(.semibold))
+                    Button("再読み込み") { Task { await loadModels() } }
+                        .font(.imasFootnote.weight(.semibold))
                 }
-                .padding(.horizontal, DS.sp5)
+                .padding(.horizontal, DS.Space.screen)
             }
             switch mode {
             case .ask: AssistantChatScreen()
@@ -96,7 +92,7 @@ private struct AssistantHome: View {
                 }
             }
         } label: {
-            HStack(spacing: DS.sp1) {
+            HStack(spacing: DS.Space.gapTight) {
                 Text(session.models.first { $0.slug == selectedModel }?.label ?? "モデル")
                     .font(.imasSubhead.weight(.semibold))
                 Image(systemName: "chevron.down").font(.imasCaption2.weight(.bold))
@@ -141,25 +137,26 @@ private struct AssistantChatScreen: View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: DS.sp4) {
+                    LazyVStack(alignment: .leading, spacing: DS.Space.gap) {
                         if chat.isEmpty {
                             emptyState
                         }
                         ForEach(chat.conversation.messages) { message in
                             if message.failed {
-                                AssistantFailedBubble(message: chat.errorMessage) { chat.retry(model: selectedModel) }
+                                ImasChatBubble(role: .assistant,
+                                               content: .failed(message: chat.errorMessage) { chat.retry(model: selectedModel) })
                             } else {
-                                AssistantBubble(message: message)
+                                ImasChatBubble(role: message.role.chatRole, content: .text(message.text))
                             }
                         }
                         if chat.isRunning {
-                            if let label = chat.toolLabel { AssistantToolChip(label: label) }
-                            AssistantStreamingBubble(text: chat.streamingText) { EmptyView() }
+                            if let label = chat.toolLabel { ImasChatToolChip(label: label) }
+                            ImasChatBubble(role: .assistant, content: .streaming(chat.streamingText))
                         }
                         Color.clear.frame(height: 1).id("bottom")
                     }
-                    .padding(.horizontal, DS.sp5)
-                    .padding(.vertical, DS.sp4)
+                    .padding(.horizontal, DS.Space.screen)
+                    .padding(.vertical, DS.Space.gap)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: chat.streamingText) { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -167,14 +164,16 @@ private struct AssistantChatScreen: View {
                     withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
             }
-            AssistantInputBar(
+            ImasChatComposer(
                 text: $input,
                 placeholder: "ライブやセトリについて質問",
                 isRunning: chat.isRunning,
                 canSend: !selectedModel.isEmpty && !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                 onSend: send,
                 onStop: { chat.stop() }
-            )
+            ) {
+                AssistantPlanFooter()
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -196,18 +195,17 @@ private struct AssistantChatScreen: View {
     // MARK: - 部品
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             Text("何でも聞いてください")
-                .font(.imasTitle3)
-                .padding(.top, DS.sp7)
+                .imasText(.sectionTitle)
+                .padding(.top, DS.Space.section)
             Text("曲・ライブ・セトリ・あなたの参戦記録をデータベースから調べて答えます。参戦記録を使うときは、その内容を ChatGPT に送ります。")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
+                .imasText(.note)
             FlowChips(items: examples, isEnabled: !selectedModel.isEmpty) { example in
                 input = ""
                 chat.send(example, model: selectedModel)
             }
-            .padding(.top, DS.sp2)
+            .padding(.top, DS.Space.gapTight)
         }
     }
 
@@ -225,18 +223,14 @@ private struct FlowChips: View {
     let onTap: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             ForEach(items, id: \.self) { item in
                 Button { onTap(item) } label: {
-                    Text(item)
-                        .font(.imasCallout)
-                        .foregroundStyle(DS.ink)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal, DS.sp4)
-                        .padding(.vertical, DS.sp3)
-                        .background(DS.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    ImasCard {
+                        Text(item).imasText(.body).multilineTextAlignment(.leading)
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.imasPress)
                 .disabled(!isEnabled)
             }
         }
@@ -252,39 +246,33 @@ struct AssistantHistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                if store.sorted.isEmpty {
-                    Text("まだ会話がありません").foregroundStyle(DS.ink2)
-                        .listRowBackground(DS.surface)
-                }
-                ForEach(store.sorted) { conversation in
-                    Button {
-                        onOpen(conversation.id)
-                        dismiss()
-                    } label: {
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            Text(conversation.title.isEmpty ? "新しい会話" : conversation.title)
-                                .font(.imasBody)
-                                .foregroundStyle(DS.ink)
-                                .lineLimit(1)
-                            Text(conversation.updatedAt.formatted(date: .abbreviated, time: .shortened))
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink3)
-                        }
+                ImasListSection {
+                    if store.sorted.isEmpty {
+                        ImasEmptyState(systemImage: "clock", title: "まだ会話がありません")
                     }
-                    .listRowBackground(DS.surface)
-                    .swipeActions {
-                        Button("削除", role: .destructive) { store.delete(conversation.id) }
+                    ForEach(store.sorted) { conversation in
+                        Button {
+                            onOpen(conversation.id)
+                            dismiss()
+                        } label: {
+                            ImasRow(
+                                title: conversation.title.isEmpty ? "新しい会話" : conversation.title,
+                                subtitle: conversation.updatedAt.formatted(date: .abbreviated, time: .shortened),
+                                titleRole: .rowLabel
+                            )
+                        }
+                        .buttonStyle(.imasRow)
+                        .swipeActions {
+                            Button("削除", role: .destructive) { store.delete(conversation.id) }
+                        }
                     }
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle("会話の履歴")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("閉じる") { dismiss() } }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
         }
     }
 }
