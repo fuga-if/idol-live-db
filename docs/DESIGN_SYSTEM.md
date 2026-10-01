@@ -5,7 +5,7 @@
 
 - 正本はコード。iOS は `ImasLiveDB/DesignSystem/`、Android は `ui/designsystem/` (同じ名前・同じ見た目)。
 - 見本 (全部品・全状態の実物) はアプリ内の「部品カタログ」(DEBUG ビルドの設定 → 開発 → 部品カタログ) と参照ページ。
-- 画面のコードに数字の寸法・色・文字サイズを書くと `Scripts/check_ds_usage.sh` が止める。
+- 画面のコードに数字の寸法・色・文字サイズを書くと `tools/check_ds_usage.sh` が止める。
 - 足りない部品があったら、画面に書かずに DesignSystem に部品として足し、この文書に 1 節足す (§15)。
 
 ---
@@ -506,7 +506,10 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 4. Android の `ui/designsystem/` に同じ名前・同じ見た目で足す。
 5. この文書に 1 節足し、早見表に 1 行足す。
 
-`Scripts/check_ds_usage.sh` が止めるもの (`DesignSystem/`・`Stage`・`ShareCard` の中は除く):
+`tools/check_ds_usage.sh` が止めるもの (`DesignSystem/`・`Stage`・`ShareCard` の中は除く)。
+今ある手書き (2026-10-01 時点 135 ファイル・1,137 行) は `tools/ds_usage_baseline.tsv` に載せてあり、
+**ファイルごとに増えたときだけ** CI (`.github/workflows/ds-guard.yml`) で落ちる。画面を部品に移して減ったら
+`bash tools/check_ds_usage.sh --update` で基準を下げる。該当行は `--list <file>` で出る。
 - `cornerRadius:` に数字、`.padding(` / `spacing:` に数字、`.font(.imasScaled(` / `.font(.system(` / `.font(.caption)` 等の直書き
 - `Color(red:` / `Color(hex` / `.white` / `.black` / `Color.accentColor` / `.foregroundStyle(.secondary)`
 - `Capsule()` / `RoundedRectangle(` の直書き (形は部品が持つ)

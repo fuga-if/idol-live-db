@@ -1,0 +1,30 @@
+name: Design System Guard
+
+# 画面のコードに色・文字の大きさ・余白・角丸の数字や形を直接書いていないかを見る
+# (docs/DESIGN_SYSTEM.md §15)。今ある手書きは tools/ds_usage_baseline.tsv に載せてあり、
+# 増えたときだけ落とす。減らしたら `bash tools/check_ds_usage.sh --update` で基準を下げる。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ImasLiveDB/Views/**'
+      - 'ImasLiveDB/App/**'
+      - 'tools/check_ds_usage.sh'
+      - 'tools/ds_usage_baseline.tsv'
+  pull_request:
+    paths:
+      - 'ImasLiveDB/Views/**'
+      - 'ImasLiveDB/App/**'
+      - 'tools/check_ds_usage.sh'
+      - 'tools/ds_usage_baseline.tsv'
+  workflow_dispatch:
+
+jobs:
+  ds-usage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: 手書きの見た目が増えていないか
+        run: bash tools/check_ds_usage.sh
