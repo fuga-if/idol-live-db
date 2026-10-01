@@ -38,8 +38,11 @@ struct ShowSearchPickerView: View {
                         onSelect(show)
                         dismiss()
                     } label: {
+                        // Button の中なので矢印は自前で出す。ライブ名 (副題) は前どおり
+                        // 行数の制限なしで全文 (1 行に切ると長いライブ名が消える)。
                         ImasShowRow(date: String(show.date.prefix(10)), title: show.name,
-                                   subtitle: eventDisplayName(show.eventName))
+                                   subtitle: eventDisplayName(show.eventName),
+                                   showsChevron: true, subtitleLineLimit: Int.max)
                     }
                     .buttonStyle(.plain)
                 }

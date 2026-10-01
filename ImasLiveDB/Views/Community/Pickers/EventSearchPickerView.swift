@@ -38,7 +38,8 @@ struct EventSearchPickerView: View {
                         onSelect(event)
                         dismiss()
                     } label: {
-                        ImasEventRow(event: event, subtitle: event.brandId)
+                        // Button の中なので矢印は自前で出す (NavigationLink と違い OS が出さない)。
+                        ImasEventRow(event: event, subtitle: event.brandId, showsChevron: true)
                     }
                     .buttonStyle(.plain)
                 }

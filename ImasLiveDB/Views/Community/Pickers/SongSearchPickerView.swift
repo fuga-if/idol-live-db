@@ -505,22 +505,35 @@ private struct SongPickerFilterSheet: View {
                     }
                 }
             }
-            .imasFilterSheetChrome()
+            // 他の絞り込みシート (ライブ/アイドル/タグ) と違い、この画面は並び順も兼ねる
+            // 専用のシートのため、共通のフィルタ体裁 (題「フィルタ」・適用) ではなく
+            // 前からの題と文言 (「フィルター / 並び順」・「完了」) を保つ。
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(DS.bg)
+            .navigationTitle("フィルター / 並び順")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                filterSheetToolbar(analyticsPrefix: "song_search_picker.filter", canReset: isAnyFilterActive, onReset: {
-                    brandIds.removeAll()
-                    sortOrder = .titleKana
-                    excludeLiveOnly = false
-                    includeRemixes = false
-                    castOriginalOnly = false
-                    songwriterText = ""
-                    songType = nil
-                    selectedIdolIds.removeAll()
-                    selectedSeriesGroup = nil
-                    selectedCdSeries = nil
-                    myMarkFilter = SongMyMarkFilter()
-                    selectedTags.removeAll()
-                }, onApply: { dismiss() })
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("リセット") {
+                        brandIds.removeAll()
+                        sortOrder = .titleKana
+                        excludeLiveOnly = false
+                        includeRemixes = false
+                        castOriginalOnly = false
+                        songwriterText = ""
+                        songType = nil
+                        selectedIdolIds.removeAll()
+                        selectedSeriesGroup = nil
+                        selectedCdSeries = nil
+                        myMarkFilter = SongMyMarkFilter()
+                        selectedTags.removeAll()
+                    }
+                    .disabled(!isAnyFilterActive)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完了") { dismiss() }.fontWeight(.semibold)
+                }
             }
             .sheet(isPresented: $showIdolPicker) {
                 IdolPickerView(

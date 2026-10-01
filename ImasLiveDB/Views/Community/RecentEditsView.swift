@@ -74,7 +74,7 @@ struct RecentEditsView: View {
         .navigationTitle(mineOnly ? "自分の編集" : "最近の編集")
         .overlay {
             if isLoading && entries.isEmpty {
-                ImasLoadingState()
+                ImasLoadingState(title: "読み込み中...")
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
                     systemImage: "square.and.pencil",
@@ -98,7 +98,7 @@ struct RecentEditsView: View {
         .navigationDestination(item: $historyTarget) { target in
             EditHistoryView(recordType: target.recordType, recordName: target.recordName, title: target.title)
         }
-        .imasErrorAlert("通信に失敗しました", message: Binding(
+        .imasErrorAlert("エラー", message: Binding(
             get: { errorMessage },
             set: { errorMessage = $0 }
         ))
@@ -307,9 +307,17 @@ private struct EditFeedCard: View {
                     ImasRecordRow(
                         leading: .icon(EditFeedFormat.recordTypeIcon(entry.recordType), tone: .themed, seed: entry.recordType),
                         title: recordTitle ?? EditFeedFormat.recordTypeLabel(entry.recordType),
-                        subtitle: "\(entry.editorDisplayLabel) · \(timeLabel)",
+                        // 対象の題 (公演名など) は前どおり全文。長い表示名で時刻が消えないよう、
+                        // 時刻は後ろの値に分けて独立させる (末尾の › と一緒に出す)。
+                        titleLineLimit: Int.max,
+                        subtitle: entry.editorDisplayLabel,
                         badges: [ImasBadgeSpec(text: EditFeedFormat.opLabel(entry.op), kind: EditFeedFormat.opBadgeKind(entry.op))],
-                        trailing: .chevron
+                        trailing: .custom(AnyView(
+                            HStack(spacing: DS.Space.gapTight) {
+                                Text(timeLabel).imasText(.meta)
+                                ImasRowChevron()
+                            }
+                        ))
                     ) {
                         // summary (どうした — 機械生成の変更概要)
                         if let summary = entry.summary, !summary.isEmpty {

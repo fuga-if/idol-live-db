@@ -10,12 +10,14 @@ struct PenlightVoteSheet: View {
     @State private var isLoading = false
     @State private var isSending = false
     @State private var alertError: CommunityAPIError?
+    /// 今の alertError がカラーの取得の失敗か (投票の失敗と題を分けるため)。
+    @State private var isLoadError = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ImasLoadingState()
+                    ImasLoadingState(title: "読み込み中…")
                 } else {
                     List {
                         Section {
@@ -70,12 +72,17 @@ struct PenlightVoteSheet: View {
             }
             .navigationTitle("ペンライトカラーを投票")
             .navigationBarTitleDisplayMode(.inline)
-            .imasSheetToolbar(.submit(canSubmit: !selectedColors.isEmpty && !isSending, onCancel: { dismiss() }, onSubmit: {
-                AppAnalytics.tap("penlight_vote.submit")
-                Task { await vote() }
-            }))
+            .imasSheetToolbar(.submit(
+                canSubmit: !selectedColors.isEmpty && !isSending,
+                isSubmitting: isSending,
+                onCancel: { dismiss() },
+                onSubmit: {
+                    AppAnalytics.tap("penlight_vote.submit")
+                    Task { await vote() }
+                }
+            ))
             .task { await loadPalette() }
-            .imasErrorAlert("投票できませんでした", message: Binding(
+            .imasErrorAlert(isLoadError ? "カラーを取得できませんでした" : "投票できませんでした", message: Binding(
                 get: { alertError?.errorDescription ?? (alertError != nil ? "不明なエラーが発生しました" : nil) },
                 set: { if $0 == nil { alertError = nil } }
             ))
@@ -88,8 +95,10 @@ struct PenlightVoteSheet: View {
         do {
             palette = try await CommunityAPI.shared.penlightPalette()
         } catch let error as CommunityAPIError {
+            isLoadError = true
             alertError = error
         } catch {
+            isLoadError = true
             alertError = .transport(error)
         }
         isLoading = false
@@ -106,8 +115,10 @@ struct PenlightVoteSheet: View {
             onVoted()
             dismiss()
         } catch let error as CommunityAPIError {
+            isLoadError = false
             alertError = error
         } catch {
+            isLoadError = false
             alertError = .transport(error)
         }
         isSending = false
@@ -130,10 +141,20 @@ private struct PenlightColorChip: View {
             VStack(spacing: DS.Space.gapTight) {
                 ZStack(alignment: .topTrailing) {
                     ImasSwatch(hex: hexColor.rawValue, size: .large, isSelected: isSelected)
+                    if isSelected {
+                        // 選択は輪に加えて中央にも✓ (色の違いだけに頼らない)。
+                        Image(systemName: "checkmark.circle.fill")
+                            .imasText(.body, color: ColorMath.onColor(Color(hexColor: hexColor)))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .allowsHitTesting(false)
+                    }
                     if entry.note != nil {
                         // 任意の色の上に乗る記号なので、WCAG 計算で読める側の色を選ぶ。
+                        // 押せる範囲は見た目の記号より広く取り、44pt 以上を確保する。
                         Image(systemName: "info.circle.fill")
                             .imasText(.meta, color: ColorMath.onColor(Color(hexColor: hexColor)))
+                            .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+                            .contentShape(Rectangle())
                             .onTapGesture { showNote.toggle() }
                     }
                 }
