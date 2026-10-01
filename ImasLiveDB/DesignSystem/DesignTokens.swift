@@ -183,7 +183,7 @@ extension Font {
     }
 
     /// 英字の印字 (ADMIT ONE・SETLIST・M01・OPEN / START)。チケットの印字のような等幅。
-    /// 大文字と字間は `.imasText(.imprint)` が付ける。
+    /// 字間は `.imasText(.imprint)` が付ける (大文字にはしない。決まった英字は大文字で書く)。
     static func imasMono(_ size: CGFloat, weight: Font.Weight = .medium) -> Font {
         scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight), design: .monospaced)
     }
