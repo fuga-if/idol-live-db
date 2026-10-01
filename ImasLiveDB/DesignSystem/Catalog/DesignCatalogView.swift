@@ -1113,14 +1113,37 @@ private struct ListTemplatePage: View {
 // MARK: - 編集シートの型
 
 private struct FormTemplatePage: View {
+    enum SavingDemo { case spinner, progress }
+
     @State private var name = "LIVE TOUR -標-"
     @State private var url = "htps://example"
     @State private var memo = ""
     @State private var notify = true
     @State private var confirmDelete = false
+    @State private var toolbarKind = 0
+    @State private var savingDemo: SavingDemo?
+
+    private var currentToolbarKind: ImasSheetToolbarKind {
+        switch toolbarKind {
+        case 0: return .edit(canSave: true, onCancel: {}, onSave: {})
+        case 1: return .submit(canSubmit: true, isSubmitting: false, onCancel: {}, onSubmit: {})
+        case 2: return .select(canFinish: true, onCancel: {}, onFinish: {})
+        case 3: return .read(onClose: {})
+        default: return .prompt(canRecord: true, onLater: {}, onRecord: {})
+        }
+    }
+
+    private func trySaving(_ demo: SavingDemo) {
+        savingDemo = demo
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { savingDemo = nil }
+    }
 
     var body: some View {
         Form {
+            ImasListSection("ツールバーの種類 (見本切り替え)", footer: "編集=キャンセル/保存、送信=キャンセル/送信、選択=キャンセル/完了、閲覧=閉じる、後で=あとで/記録する。") {
+                ImasSegmented(labels: ["編集", "送信", "選択", "閲覧", "後で"], selection: $toolbarKind)
+                    .listRowBackground(Color.clear)
+            }
             ImasListSection("基本") {
                 ImasTextFieldRow(title: "ライブ名", text: $name)
                 ImasTextFieldRow(title: "特設ページ", text: $url, error: "URL の形になっていません")
@@ -1129,15 +1152,21 @@ private struct FormTemplatePage: View {
             ImasListSection("メモ", footer: "メモはこの端末にだけ保存されます。") {
                 ImasTextAreaRow(text: $memo, prompt: "座席・同行者・感想など", limit: 400)
             }
+            ImasListSection("保存中のオーバーレイ (見本。触ると 1.5 秒で消える)") {
+                ImasActionRow(title: "保存中 (くるくる) を試す", systemImage: "arrow.clockwise") { trySaving(.spinner) }
+                ImasActionRow(title: "送信中 (進み具合) を試す", systemImage: "arrow.up.circle") { trySaving(.progress) }
+            }
             ImasListSection {
                 ImasActionRow(title: "このライブを削除", kind: .destructive) { confirmDelete = true }
             }
         }
         .imasForm()
         .navigationTitle("ライブを編集")
-        .imasSheetToolbar(.edit(canSave: true, onCancel: {}, onSave: {}))
+        .imasSheetToolbar(currentToolbarKind)
         .imasConfirmDestructive("このライブを削除しますか？", isPresented: $confirmDelete,
                                 message: "公演とセトリもいっしょに削除されます。") {}
+        .imasSavingOverlay(savingDemo != nil, label: savingDemo == .progress ? "送信中" : "保存中",
+                           progress: savingDemo == .progress ? 0.6 : nil)
     }
 }
 

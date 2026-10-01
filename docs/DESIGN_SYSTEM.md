@@ -92,7 +92,7 @@
 **組み方**
 - 申込書: `NavigationStack` + `ImasFormPage` に `ImasFormCard` (欄の間は切り取り線) と欄 (`ImasFormTextField`・`ImasFormTextArea`・`ImasFormLink`・`ImasFormToggle`・`ImasFormAmount`・自由な中身は `ImasFormField`)。大きな選択は `ImasChoiceCards`。
   対象の公演はチケット (`ImasTicket`) で頭に置く。OS の `Form` + `.imasForm()` で組んでよいのは項目の多い設定寄りのシートだけ。タイトルは「〇〇を追加」「〇〇を編集」。
-- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=×、右=✓ の記号だけ (文字のボタンを書かない。読み上げは「キャンセル」「保存」)。みんなに見えるものは `.submit`。iOS 26 は OS のガラスの丸 (確定は塗り)、iOS 17/18 は記号のボタン。
+- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=×、右=✓ の記号だけ (文字のボタンを書かない。読み上げは「キャンセル」「保存」)。みんなに見えるものは `.submit`。複数を選ぶシートは `.select`、読むだけのシートは `.read`、後で答えてよい問いかけは `.prompt` (左=あとで、右=記録する。§16)。iOS 26 は OS のガラスの丸 (確定は塗り)、iOS 17/18 は記号のボタン。
 - 保存中は `.imasSavingOverlay(isSaving, label: "保存中")`、失敗は `.imasErrorAlert($error)`、書きかけを閉じるときは `.imasDiscardConfirmation(isDirty:)`。
 - 入力は §7 の入力行だけで組む。削除は最後の区画に `ImasActionRow(.destructive)` を 1 つ置き、確認を出す。
 
@@ -544,7 +544,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 一覧を初めて読む | `ImasSkeleton(.list / .grid)` | — |
 | 画面全体を読む | `ImasLoadingState` | 既定は記号だけ。`title` を渡すとくるくるの下に文言を添える (「読み込み中…」) |
 | 区画だけ読む | `ImasInlineLoading` | — |
-| 保存・送信中 | `.imasSavingOverlay(isSaving, label:)` | 「保存中」「送信中」 |
+| 保存・送信中 | `.imasSavingOverlay(isSaving, label:, progress:)` | 「保存中」「送信中」。`progress` (0〜1) を渡すとくるくるの代わりに進み具合のバー (画像の一括インポートなど割合が意味を持つ処理) |
 | 何もない | `ImasEmptyState(.empty)` | 「まだ〇〇がありません」+ 次にできること |
 | 絞って 0 件 | `ImasEmptyState(.noResults)` | 「見つかりません」+「絞り込みを解除」 |
 | 読めなかった | `ImasEmptyState(.failed(retry:))` | 「読み込めませんでした」+「もう一度」 |
@@ -660,7 +660,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 読むだけのシート | — | 閉じる |
 | 後で答えてよい問いかけ (チケット代の記録など) | あとで | 記録する |
 
-「やめる」「決定」「OK」(アラート以外) は使わない。文言と置き場所は `.imasSheetToolbar(.edit / .submit / .select / .read)` が決める (画面で「閉じる」「完了」を書かない)。iOS 26 では OS のガラスのボタン (確定は白黒の塗り) になる。
+「やめる」「決定」「OK」(アラート以外) は使わない。文言と置き場所は `.imasSheetToolbar(.edit / .submit / .select / .read / .prompt)` が決める (画面で「閉じる」「完了」を書かない)。iOS 26 では OS のガラスのボタン (確定は白黒の塗り) になる。
 
 **確認とエラー**
 - 確認の題: 「〇〇を削除しますか？」(疑問符は全角)。ボタン: 「削除」(破壊) / 「キャンセル」。印を外すときは「取り消す」(「参加を取り消す」)。
