@@ -46,65 +46,41 @@ struct IdolEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("名前") {
-                    LabeledContent("ID") { Text(original.id).foregroundStyle(DS.ink2) }
-                    TextField("名前", text: $name)
-                    TextField("カナ", text: $nameKana)
-                    TextField("ローマ字", text: $nameRomaji)
-                    TextField("別名 (カンマ区切り)", text: $aliases)
+                ImasListSection("名前") {
+                    ImasValueRow(key: "ID", value: original.id)
+                    ImasTextFieldRow(title: "名前", text: $name)
+                    ImasTextFieldRow(title: "カナ", text: $nameKana)
+                    ImasTextFieldRow(title: "ローマ字", text: $nameRomaji)
+                    ImasTextFieldRow(title: "別名 (カンマ区切り)", text: $aliases)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-                Section("分類") {
-                    Picker("ブランド", selection: $brandId) {
-                        ForEach(allBrands) { Text($0.name).tag($0.id) }
+                ImasListSection("分類") {
+                    ImasMenuRow(title: "ブランド", options: allBrands.map(\.id), selection: $brandId) { id in
+                        allBrands.first { $0.id == id }?.name ?? id
                     }
-                    TextField("属性 (cute/cool/passion 等)", text: $attribute)
-                    Stepper("並び順: \(sortOrder)", value: $sortOrder, in: 0...9999)
+                    ImasTextFieldRow(title: "属性 (cute/cool/passion 等)", text: $attribute)
+                    ImasStepperRow(title: "並び順", value: $sortOrder, range: 0...9999)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-                Section("プロフィール") {
-                    TextField("カラー (#hex)", text: $color)
+                ImasListSection("プロフィール") {
+                    ImasTextFieldRow(title: "カラー (#hex)", text: $color)
                         .autocapitalization(.none).autocorrectionDisabled()
-                    TextField("誕生日 (MM-DD)", text: $birthday)
-                    TextField("血液型", text: $bloodType)
-                    TextField("出身地", text: $birthPlace)
-                    TextField("実装日 (YYYY-MM-DD)", text: $debutDate)
+                    ImasTextFieldRow(title: "誕生日 (MM-DD)", text: $birthday)
+                    ImasTextFieldRow(title: "血液型", text: $bloodType)
+                    ImasTextFieldRow(title: "出身地", text: $birthPlace)
+                    ImasTextFieldRow(title: "実装日 (YYYY-MM-DD)", text: $debutDate)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle("アイドル編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("idol_edit.save"); Task { await save() } }.disabled(isSaving)
-                }
-            }
-            .overlay { if isSaving { savingOverlay } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.edit(canSave: !isSaving, onCancel: { dismiss() }, onSave: {
+                AppAnalytics.tap("idol_edit.save")
+                Task { await save() }
+            }))
+            .imasSavingOverlay(isSaving, label: "保存中")
+            .imasErrorAlert(message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .task { allBrands = (try? await AppContainer.shared.brandReading.brands()) ?? [] }
             .trackScreen("idol_edit")
-        }
-    }
-
-    private var savingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -169,7 +145,7 @@ struct IdolEditView: View {
                 requestSent = true
             }
         } catch {
-            errorMessage = "保存失敗: \(error.localizedDescription)"
+            errorMessage = error.localizedDescription
         }
     }
 }

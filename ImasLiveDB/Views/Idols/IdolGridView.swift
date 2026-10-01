@@ -15,10 +15,7 @@ struct IdolGridView: View {
 
     /// 1 行あたりの列数。コンパクト幅 (iPhone) は 4、レギュラー幅 (iPad) は 6。
     /// フルネーム表示のため列数を抑え気味にしている。
-    private var columns: [GridItem] {
-        let count = sizeClass == .regular ? 6 : 4
-        return Array(repeating: GridItem(.flexible(), spacing: DS.sp3), count: count)
-    }
+    private var columnCount: Int { sizeClass == .regular ? 6 : 4 }
 
     private var groupedIdols: [(brand: Brand, idols: [Idol])] {
         var byBrand: [String: [Idol]] = [:]
@@ -40,11 +37,10 @@ struct IdolGridView: View {
                     VStack(alignment: .leading, spacing: DS.sp4) {
                         if let flatHeader {
                             Text(flatHeader)
-                                .font(.imasScaled(13, weight: .semibold))
-                                .foregroundStyle(DS.ink2)
+                                .imasText(.sectionLabel)
                                 .padding(.horizontal, DS.sp5)
                         }
-                        LazyVGrid(columns: columns, spacing: DS.sp5) {
+                        ImasIdolGrid(columns: columnCount) {
                             ForEach(idols) { idol in
                                 cell(idol, brand: nil)
                             }
@@ -57,7 +53,7 @@ struct IdolGridView: View {
                         header(group.brand, count: group.idols.count)
                             .padding(.horizontal, DS.sp5)
 
-                        LazyVGrid(columns: columns, spacing: DS.sp5) {
+                        ImasIdolGrid(columns: columnCount) {
                             ForEach(group.idols) { idol in
                                 cell(idol, brand: group.brand)
                             }
@@ -82,26 +78,12 @@ struct IdolGridView: View {
         BrandSectionHeader(brand: brand, count: count)
     }
 
-    // MARK: - Idol Cell (IdolAvatarView 主役・ブランド色をまとう)
+    // MARK: - Idol Cell (名札。写真があれば写真、無ければ判子)
 
     private func cell(_ idol: Idol, brand: Brand?) -> some View {
-        VStack(spacing: DS.sp2) {
-            IdolAvatarView(idol: idol, size: 60, isPick: pickIds.contains(idol.id))
-            Text(idol.name)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            // 何順に並んでいるかセルから読めるようにする。
-            if let metric = metricLabels[idol.id] {
-                Text(metric)
-                    .font(.imasDisplay(11, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                    .lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { onSelect(idol) }
+        // metric: 何順に並んでいるかセルから読めるようにする (公式順/五十音順では nil)。
+        ImasIdolCell(idol: idol, isPick: pickIds.contains(idol.id), metric: metricLabels[idol.id])
+            .contentShape(Rectangle())
+            .onTapGesture { onSelect(idol) }
     }
 }

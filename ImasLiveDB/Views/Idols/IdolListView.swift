@@ -314,31 +314,15 @@ struct IdolListView: View {
     /// 各行には並び替えのキー値を併記して、何順に並んでいるか行から読めるようにする。
     private var flatListSection: some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
-            HStack {
-                Text("\(sortOrder.rawValue)順")
-                    .font(.imasScaled(13, weight: .semibold))
-                    .foregroundStyle(DS.ink2)
-                Spacer()
-                Text("\(vm.filteredIdols.count)人")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
-            }
-            .padding(.horizontal, DS.sp2)
+            ImasSectionHeader("\(sortOrder.rawValue)順", count: "\(vm.filteredIdols.count)人", style: .small)
+                .padding(.horizontal, DS.sp2)
 
             ImasCardList {
                 ForEach(Array(vm.filteredIdols.enumerated()), id: \.element.id) { index, idol in
                     if index > 0 { ImasRowDivider(inset: 69) }
                     NavigationLink(value: idol) {
-                        IdolRowView(
-                            idol: idol,
-                            // 通しリストにはブランド別セクションが無いので、行ごとに引く。
-                            brandColor: vm.brandColor(for: idol),
-                            isPick: vm.pickIds.contains(idol.id),
-                            displayName: displayName(for: idol),
-                            secondary: secondaryText(for: idol),
-                            cvLine: cvText(for: idol),
-                            metric: vm.metricLabels[idol.id]
-                        )
+                        // 通しリストにはブランド別セクションが無いので、行ごとに引く。
+                        idolRow(idol, brandColor: vm.brandColor(for: idol))
                     }
                     .buttonStyle(.plain)
                 }
@@ -382,15 +366,7 @@ struct IdolListView: View {
                                     // 旧インセット (58) にリング分の増分 (+11) を足して追従させる。
                                     if index > 0 { ImasRowDivider(inset: 69) }
                                     NavigationLink(value: idol) {
-                                        IdolRowView(
-                                            idol: idol,
-                                            brandColor: brand.color,
-                                            isPick: vm.pickIds.contains(idol.id),
-                                            displayName: displayName(for: idol),
-                                            secondary: secondaryText(for: idol),
-                                            cvLine: cvText(for: idol),
-                                            metric: vm.metricLabels[idol.id]
-                                        )
+                                        idolRow(idol, brandColor: brand.color)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -417,9 +393,8 @@ struct IdolListView: View {
         } label: {
             HStack(spacing: DS.sp3) {
                 BrandSectionHeader(brand: brand, count: count)
-                Image(systemName: collapsedBrands.contains(brand.id) ? "chevron.right" : "chevron.down")
-                    .font(.imasScaled( 12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                ImasRowChevron()
+                    .rotationEffect(.degrees(collapsedBrands.contains(brand.id) ? 0 : 90))
             }
             .contentShape(Rectangle())
         }
@@ -508,63 +483,35 @@ struct IdolListView: View {
         guard showCV, displayMode == .idolName, let cv = vm.castNames[idol.id] else { return nil }
         return "CV: \(cv)"
     }
-}
 
-// MARK: - IdolRowView
+    // MARK: - Row
 
-/// 行頭リードバー (アイドル色/ブランド) + IdolAvatarView(担当は二重輪) + 名前 + サブ(よみ/CV) + シェブロン。
-private struct IdolRowView: View {
-    let idol: Idol
-    var brandColor: String? = nil
-    var isPick: Bool = false
-    let displayName: String
-    var secondary: String? = nil
-    var cvLine: String? = nil
-    /// 並び替えのキー値 (「17歳」「158cm」等)。並び順が公式順/五十音順のときは nil。
-    /// 何順で並んでいるか行から読めないと、並び替えても意味が分からないため出す。
-    var metric: String? = nil
-
-    var body: some View {
-        HStack(spacing: DS.sp3) {
-            ImasLeadBar(seed: idol.color, brand: brandColor)
-                .padding(.vertical, 5)
-
-            IdolAvatarView(idol: idol, size: 40, isPick: isPick)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(displayName)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                if let secondary, !secondary.isEmpty {
-                    Text(secondary)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
+    /// アイドル行。表示形式 (アイドル名/CV名) で主題が入れ替わるため `ImasIdolRow` ではなく
+    /// `ImasRow` を直接組む (題を常にアイドル名に固定する `ImasIdolRow` では表現できない)。
+    /// アイコン (写真 / 無ければ判子) + 名前 + 副題 (よみ or CV) + CV 併記行 + 並べ替えの根拠 + 担当の印 + 矢印。
+    private func idolRow(_ idol: Idol, brandColor: String?) -> some View {
+        ImasRow(
+            title: displayName(for: idol),
+            subtitle: secondaryText(for: idol),
+            leading: .avatar(label: idol.shortName, seed: idol.color, brand: brandColor,
+                             imageURL: CustomImageService.shared.imageURL(for: idol.id),
+                             isPick: vm.pickIds.contains(idol.id)),
+            trailing: .custom(AnyView(
+                HStack(spacing: DS.Space.gap) {
+                    // 何順で並んでいるか行から読めるようにする並べ替えの根拠 (公式順/五十音順では nil)。
+                    if let metric = vm.metricLabels[idol.id] {
+                        ImasMetric(value: metric, size: .medium)
+                    }
+                    MyPickToggleButton(id: idol.id, seed: idol.color, brand: brandColor)
+                    ImasRowChevron()
                 }
-                if let cvLine, !cvLine.isEmpty {
-                    Text(cvLine)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
+            )),
+            titleLineLimit: 1
+        ) {
+            if let cvLine = cvText(for: idol) {
+                Text(cvLine).imasText(.meta)
             }
-
-            Spacer(minLength: DS.sp2)
-
-            if let metric {
-                ImasMetricBadge(value: metric, unit: "", seed: idol.color)
-                    .padding(.trailing, DS.sp1)
-            }
-
-            MyPickToggleButton(id: idol.id)
-
-            ImasRowChevron()
-                .padding(.trailing, DS.sp2)
         }
-        .padding(.vertical, DS.sp3)
-        .padding(.leading, DS.sp2)
-        .contentShape(Rectangle())
         .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
                        CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
