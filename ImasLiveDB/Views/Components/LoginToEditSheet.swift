@@ -20,10 +20,11 @@ struct LoginToEditSheet: View {
                     message: "ライブ・公演・セトリ・楽曲の情報は、ログインしたユーザーみんなで編集できます。誤りの修正や新しいライブの追加に、ぜひ協力してください。"
                 )
 
-                ImasStepList(steps: [
-                    .init(title: "編集は承認待ちなし", detail: "すぐ全員に反映されます"),
-                    .init(title: "変更履歴が残ります", detail: "間違えてもいつでも戻せます"),
-                    .init(title: "閲覧はログイン不要", detail: "編集する時だけログインします"),
+                // 手順ではなく特徴の列挙なので、番号 (ImasStepList) でなく記号の箇条書きにする。
+                ImasPointList(points: [
+                    .init("bolt.fill", "編集は承認待ちなし。すぐ全員に反映されます"),
+                    .init("clock.arrow.circlepath", "変更履歴が残り、間違えてもいつでも戻せます"),
+                    .init("eye", "閲覧はログイン不要。編集する時だけログインします"),
                 ])
 
                 AppleSignInButton()

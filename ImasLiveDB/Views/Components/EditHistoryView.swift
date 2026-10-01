@@ -38,7 +38,7 @@ struct EditHistoryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
             if isLoading && entries.isEmpty {
-                ImasLoadingState()
+                ImasLoadingState(title: "読み込み中...")
             } else if entries.isEmpty && !isLoading && errorMessage == nil {
                 ImasEmptyState(
                     systemImage: "clock.arrow.circlepath",
@@ -91,8 +91,10 @@ private struct HistoryRow: View {
             ImasRecordRow(
                 systemImage: "pencil",
                 title: title,
-                subtitle: "\(entry.editorDisplayLabel) · \(timeLabel)",
-                badges: badges
+                subtitle: entry.editorDisplayLabel,
+                badges: badges,
+                // 時刻は独立した値として末尾に出す (長い表示名でも隠れない)。
+                trailing: .value(timeLabel)
             ) {
                 if case .update = Op(entry.op), !entry.changedFields.isEmpty {
                     VStack(alignment: .leading, spacing: DS.Space.gapTight) {
