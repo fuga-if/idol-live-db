@@ -9,8 +9,8 @@ import SwiftUI
 // ImasSongRow   ジャケ・曲名・歌唱者
 // ImasIdolRow   アバター (担当は二重輪)・名前・ブランドと CV
 // ImasUnitRow   ユニットのアバター・ユニット名・メンバー
-// ImasEventRow  半券 (初日)・ライブ名・会場と期間。参加した公演があれば穴
-// ImasShowRow   半券 (日付)・公演名・開演と会場。参加した公演は穴
+// ImasEventRow  半券 (初日)・ライブ名・会場と期間
+// ImasShowRow   半券 (日付)・公演名・開演と会場
 // ImasRecordRow 記号の札・何をしたか・誰がいつ・操作の札 (編集履歴・お知らせ)
 // =============================================================================
 
@@ -22,8 +22,6 @@ struct ImasSongRow<Detail: View>: View {
     var artworkURL: URL? = nil
     /// ジャケが無いときの面とリードバーの色 (ブランドの hex)。
     var brandHex: String? = nil
-    /// 自分が現地で聴いた曲 (ジャケの角に判子)。
-    var isCollected: Bool = false
     /// 行頭にブランドの色の帯を立てる (楽曲一覧)。
     var showsBrandBar: Bool = false
     /// 試聴できる音源の URL。渡すとジャケのタップが曲詳細への遷移と別に試聴を切り替える
@@ -63,11 +61,11 @@ struct ImasSongRow<Detail: View>: View {
     /// (`ImasRowLeading.artwork` 自体は変えない。試聴を使わない呼び出しは今までどおり)。
     private var leading: ImasRowLeading {
         guard previewURL != nil else {
-            return .artwork(title: title, brand: brandHex, imageURL: artworkURL, isCollected: isCollected)
+            return .artwork(title: title, brand: brandHex, imageURL: artworkURL)
         }
         let size = density.artworkSize
         return .custom(AnyView(
-            ImasArtwork(title: title, brand: brandHex, size: size, imageURL: artworkURL, isCollected: isCollected,
+            ImasArtwork(title: title, brand: brandHex, size: size, imageURL: artworkURL,
                        previewURL: previewURL, isPreviewing: isPreviewing, onPreview: onPreviewTap)
         ), width: size)
     }
@@ -140,14 +138,13 @@ struct ImasUnitRow: View {
 
 // MARK: - ライブ
 
-/// ライブ 1 件の行。半券の形 (左に初日、右にライブ名と日付・会場)。参加した公演があれば穴が開く。
+/// ライブ 1 件の行。半券の形 (左に初日、右にライブ名と日付・会場)。
 struct ImasEventRow<Detail: View>: View {
     let event: Event
     /// 初日 (`yyyy-MM-dd`)。半券の日付欄に出す。
     var date: String? = nil
     /// 会場・期間 (「Kアリーナ横浜 · 〜 11/8 (日)」)。
     var subtitle: String? = nil
-    var isPunched: Bool = false
     var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
     /// 合同ライブ (複数ブランド名義) は単色で表せないので、ペンライトを虹色にする。
@@ -161,7 +158,7 @@ struct ImasEventRow<Detail: View>: View {
     var body: some View {
         ImasStubRow(date: date.map(ImasStubDate.init) ?? ImasStubDate(top: "", big: "—", bottom: ""),
                     title: eventDisplayName(event.name), subtitle: subtitle,
-                    brand: BrandColors.hex(for: event.brandId), isPunched: isPunched, badges: badges,
+                    brand: BrandColors.hex(for: event.brandId), badges: badges,
                     emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
                     subtitleLineLimit: subtitleLineLimit) { detail }
             .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
@@ -169,10 +166,10 @@ struct ImasEventRow<Detail: View>: View {
 }
 
 extension ImasEventRow where Detail == EmptyView {
-    init(event: Event, date: String? = nil, subtitle: String? = nil, isPunched: Bool = false,
+    init(event: Event, date: String? = nil, subtitle: String? = nil,
          badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
          showsChevron: Bool = false, subtitleLineLimit: Int = 1) {
-        self.init(event: event, date: date, subtitle: subtitle, isPunched: isPunched, badges: badges,
+        self.init(event: event, date: date, subtitle: subtitle, badges: badges,
                   emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
                   subtitleLineLimit: subtitleLineLimit) { EmptyView() }
     }
@@ -180,7 +177,7 @@ extension ImasEventRow where Detail == EmptyView {
 
 // MARK: - 公演
 
-/// 公演 1 件の行。半券の形 (左に日付、右に公演名と開演・会場)。参加した公演は穴が開く。
+/// 公演 1 件の行。半券の形 (左に日付、右に公演名と開演・会場)。
 struct ImasShowRow<Detail: View>: View {
     /// 公演の日 (`yyyy-MM-dd`)。
     let date: String
@@ -189,7 +186,6 @@ struct ImasShowRow<Detail: View>: View {
     /// 開演・会場・出演者数。
     var subtitle: String? = nil
     var brandHex: String? = nil
-    var isPunched: Bool = false
     var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
     /// 合同ライブの公演など、単色で表せないとき、ペンライトを虹色にする。
@@ -204,17 +200,17 @@ struct ImasShowRow<Detail: View>: View {
 
     var body: some View {
         ImasStubRow(date: ImasStubDate(date), title: title, subtitle: subtitle, brand: brandHex,
-                    isPunched: isPunched, badges: badges, emphasis: emphasis, rainbow: rainbow,
+                    badges: badges, emphasis: emphasis, rainbow: rainbow,
                     showsChevron: showsChevron, detailAccessibilityLabel: detailAccessibilityLabel,
                     subtitleLineLimit: subtitleLineLimit) { detail }
     }
 }
 
 extension ImasShowRow where Detail == EmptyView {
-    init(date: String, title: String, subtitle: String? = nil, brandHex: String? = nil, isPunched: Bool = false,
+    init(date: String, title: String, subtitle: String? = nil, brandHex: String? = nil,
          badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
          showsChevron: Bool = false, subtitleLineLimit: Int = 1) {
-        self.init(date: date, title: title, subtitle: subtitle, brandHex: brandHex, isPunched: isPunched,
+        self.init(date: date, title: title, subtitle: subtitle, brandHex: brandHex,
                   badges: badges, emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
                   subtitleLineLimit: subtitleLineLimit) { EmptyView() }
     }

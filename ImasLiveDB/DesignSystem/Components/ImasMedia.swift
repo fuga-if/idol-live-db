@@ -188,8 +188,8 @@ struct ImasAvatarStack: View {
 
 // MARK: - ジャケ
 
-/// 曲のジャケ。実画像があれば表示、無ければ灰の面 + 音符。
-/// 回収した曲 (`isCollected`) は角に小さな判子 (`ImasStampMark`) を押す。
+/// 曲のジャケ。実画像があれば表示、無ければブランド色の面 + 曲名 (色の手がかりが無ければ灰の面 + 記号)。
+/// 回収は印にしない (ジャケに判子を押さない。2026-10-02 ユーザーの決まり)。
 /// `previewURL` を渡すと試聴の再生/停止オーバーレイが点き、タップで `onPreview` を呼ぶ
 /// (再生状態そのものはアプリ側が持つので `isPreviewing` で渡す)。
 struct ImasArtwork: View {
@@ -198,7 +198,6 @@ struct ImasArtwork: View {
     var brand: String? = nil
     var size: CGFloat = 48
     var imageURL: URL? = nil
-    var isCollected: Bool = false
     /// 詳細の頭の大きいジャケ。レコードのスリーブのように紙から浮かせる (影)。
     var isElevated: Bool = false
     /// 画像が無いときの記号。曲は音符のまま、円盤など曲以外の実体はそれぞれの記号に替える。
@@ -234,11 +233,9 @@ struct ImasArtwork: View {
         (seed != nil || brand != nil) ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) : envTheme
     }
 
-    /// 曲名 + 回収済みの読み上げ。試聴の記号はここに積まず `accessibilityLabel`/`Value` に分ける
+    /// 曲名の読み上げ。試聴の記号はここに積まず `accessibilityLabel`/`Value` に分ける
     /// (「どの曲か」と「いま鳴っているか」は別の情報なので、値の方だけ状態が変わる)。
-    private var baseAccessibilityLabel: String {
-        isCollected ? "\(title)、回収済み" : title
-    }
+    private var baseAccessibilityLabel: String { title }
 
     private var previewAccessibilityLabel: String {
         previewURL != nil ? "\(baseAccessibilityLabel)を試聴" : baseAccessibilityLabel
@@ -272,15 +269,6 @@ struct ImasArtwork: View {
         )
         .shadow(color: isElevated ? .black.opacity(artworkScheme == .dark ? 0.6 : 0.22) : .clear,
                 radius: isElevated ? 15 : 0, y: isElevated ? 12 : 0)
-        .overlay(alignment: .bottomTrailing) {
-            if isCollected {
-                // 小さいジャケ (行) は角からはみ出させ、大きいジャケ (棚) は角の内側に押す。
-                let stamp = max(16, min(24, size * 0.42))
-                ImasStampMark(diameter: stamp)
-                    .offset(x: size < 80 ? 6 : -6, y: size < 80 ? 6 : -6)
-                    .accessibilityHidden(true)
-            }
-        }
         .overlay {
             if previewURL != nil {
                 ZStack {

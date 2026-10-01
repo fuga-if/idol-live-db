@@ -8,7 +8,6 @@ import SwiftUI
 //
 //   ImasLeadRow     → ImasRow(leading: .bar) / ImasEventRow
 //   ImasMetricBadge → ImasMetric
-//   ImasTagChip     → ImasBadge
 //   ImasLabeledRow  → ImasValueRow
 // =============================================================================
 
@@ -95,31 +94,6 @@ struct ImasRankingRow: View {
         .frame(minHeight: DS.Size.touch)
         .background(DS.surface)
         .imasTheme(seed: seed, brand: brand)
-    }
-}
-
-// MARK: - セトリの役割の札 (→ ImasBadge)
-
-struct ImasTagChip: View {
-    enum Kind { case unit, all, cover, partial, lead, guest }
-    let text: String
-    let kind: Kind
-    var seed: String? = nil
-    var brand: String? = nil
-
-    var body: some View {
-        ImasBadge(text: text, kind: badgeKind, seed: seed, brand: brand)
-    }
-
-    private var badgeKind: ImasBadge.Kind {
-        switch kind {
-        case .unit: return .unit
-        case .all: return .all
-        case .cover: return .cover
-        case .partial: return .partial
-        case .lead: return .lead
-        case .guest: return .guest
-        }
     }
 }
 

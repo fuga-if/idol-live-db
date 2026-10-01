@@ -4,7 +4,7 @@ import SwiftUI
 // セトリと予想の行 (docs/DESIGN_SYSTEM.md §5.6・§5.8)
 //
 // ImasSetlistRow  セトリの 1 曲。曲順・ジャケ・曲名・歌唱者・役割の札・事実 (初披露・回収)。
-//                 回収した曲はジャケの角に小さな判子 (場所を取らない)。
+//                 回収は印にせず事実の札 (初回収など) で出す。
 // ImasForecastRow 予想・機械予測の 1 曲。順位・ジャケ・曲名・根拠・確率 (または票)。
 //                 推測なので確率は「%」付きで出し、事実の行 (セトリ) と同じ札を使わない。
 //
@@ -43,8 +43,6 @@ struct ImasSetlistRow: View {
     var badges: [ImasBadgeSpec] = []
     /// 下段の事実 (「初披露」「12 回目」「回収」)。
     var facts: [String] = []
-    /// 自分がこの曲を現地で聴いた。
-    var isCollected: Bool = false
     /// 歌唱者の名前を何人まで並べるか。超えたら要約に替える。
     var performerLimit: Int = 6
     /// ジャケの代わりに渡す試聴可能なジャケなど。渡すと `artworkURL` より優先する
@@ -132,7 +130,7 @@ struct ImasSetlistRow: View {
     private var leadingView: ImasRowLeading {
         guard let customArtwork else {
             return .numberedArtwork(number: number ?? "", title: title, seed: seed, brand: brand,
-                                    imageURL: artworkURL, isCollected: isCollected)
+                                    imageURL: artworkURL)
         }
         let combined = HStack(alignment: .top, spacing: 10) {
             Text(number ?? "")

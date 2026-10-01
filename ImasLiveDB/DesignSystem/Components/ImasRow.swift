@@ -20,15 +20,15 @@ enum ImasRowLeading {
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
     /// アイドルのアイコン (40)。写真があれば写真、無ければ判子 (`ImasAvatar` の既定の見た目)。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
-    /// 曲のジャケ (48、compact は 40)。回収した曲は角に判子。
-    case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isCollected: Bool = false)
+    /// 曲のジャケ (48、compact は 40)。
+    case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
     /// 記号 (幅 28、地なし)。`seed` / `brand` を渡すとその実体の色で点く (予定の種類・ブランド)。
     case icon(String, tone: ImasIconTile.Tone = .themed, seed: String? = nil, brand: String? = nil)
     /// 曲順・番号 (等幅)。
     case number(String)
-    /// 曲順 + ジャケ (セトリ)。回収した曲はジャケに判子。
+    /// 曲順 + ジャケ (セトリ)。
     case numberedArtwork(number: String, title: String, seed: String? = nil, brand: String? = nil,
-                         imageURL: URL? = nil, isCollected: Bool = false)
+                         imageURL: URL? = nil)
     /// 順位。1〜3 位は実体色。
     case rank(Int)
     /// 選択の印 (ピッカー)。
@@ -238,9 +238,8 @@ struct ImasRow<Detail: View>: View {
         case let .avatar(label, seed, brand, url, isPick):
             // 写真があれば写真、無ければ ImasAvatar 既定の判子 (アイコンは常に出す)。
             ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
-        case let .artwork(title, seed, brand, url, isCollected):
-            ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url,
-                        isCollected: isCollected)
+        case let .artwork(title, seed, brand, url):
+            ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
         case let .icon(name, tone, seed, brand):
             ImasIconTile(systemImage: name, size: .s28, tone: tone, seed: seed, brand: brand)
         case let .number(text):
@@ -248,14 +247,14 @@ struct ImasRow<Detail: View>: View {
                 .font(ImasNumeralSize.small.font)
                 .foregroundStyle(DS.ink3)
                 .frame(width: 30, alignment: .trailing)
-        case let .numberedArtwork(number, title, seed, brand, url, isCollected):
+        case let .numberedArtwork(number, title, seed, brand, url):
             HStack(alignment: .top, spacing: 10) {
                 Text(number)
                     .font(.imasMono(11.5, weight: .bold))
                     .foregroundStyle(DS.ink2)
                     .frame(width: 24, alignment: .trailing)
                     .padding(.top, 2)
-                ImasArtwork(title: title, seed: seed, brand: brand, size: 44, imageURL: url, isCollected: isCollected)
+                ImasArtwork(title: title, seed: seed, brand: brand, size: 44, imageURL: url)
             }
         case let .rank(rank):
             ImasRankNumber(rank: rank)

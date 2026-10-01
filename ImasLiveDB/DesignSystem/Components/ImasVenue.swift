@@ -5,8 +5,6 @@ import SwiftUI
 //
 // ImasTicketShape   切り取り線の両端に半円の切り欠きがある紙の形。
 // ImasPerforation   切り取り線 (点線)。
-// ImasPunchHole     パンチ穴。回収・参加の小さな印。
-// ImasStampMark     ジャケの角に押す小さな判子。回収の印。
 // ImasTicket        紙のチケット。次のライブ・次の出演。右の半券に「あと 37 DAYS」。
 // ImasBoard         電光掲示板。記録や出演の数を暗い板に細長い数字で。
 // ImasMasthead      画面の頭の印字の行 (「PRODUCE · 2026.10.01 THU」)。
@@ -84,57 +82,6 @@ struct ImasPerforation: View {
         .frame(width: axis == .vertical ? max(lineWidth, 1) : nil,
                height: axis == .horizontal ? max(lineWidth, 1) : nil)
         .accessibilityHidden(true)
-    }
-}
-
-// MARK: - 穴と判子
-
-/// パンチ穴。回収した曲・参加した公演の小さな印。
-///
-/// 紙に開いた穴なので、ライトは下の暗い客席が、ダークは照明が透けて明るく見える。
-/// 意味は読み上げで伝える (`label`)。
-struct ImasPunchHole: View {
-    enum Size {
-        case small, regular
-
-        var diameter: CGFloat { self == .small ? 10 : 13 }
-    }
-
-    var size: Size = .regular
-    var label: String? = nil
-
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        Circle()
-            .fill(DS.hole.shadow(.inner(color: .black.opacity(scheme == .dark ? 0.45 : 0.55), radius: 1.2, y: 1.5)))
-            .frame(width: size.diameter, height: size.diameter)
-            .shadow(color: scheme == .dark ? DS.hole.opacity(0.3) : .clear, radius: 4)
-            .accessibilityElement()
-            .accessibilityLabel(label ?? "")
-            .accessibilityHidden(label == nil)
-    }
-}
-
-/// ジャケの角に押す小さな判子 (回収)。ジャケが出る所ならどこでも同じ印で通す。
-///
-/// 下の面の色で縁を抜くので、置く面の色を `under` に渡す (既定は面)。
-struct ImasStampMark: View {
-    var diameter: CGFloat = 20
-    var under: Color = DS.surface
-
-    @ScaledMetric(relativeTo: .caption) private var scale: CGFloat = 1
-
-    var body: some View {
-        let d = diameter * scale
-        Image(systemName: "checkmark")
-            .font(.system(size: d * 0.46, weight: .black))
-            .foregroundStyle(DS.stamp)
-            .frame(width: d, height: d)
-            .background(Circle().fill(under))
-            .overlay(Circle().strokeBorder(DS.stamp, lineWidth: max(1.4, d * 0.08)))
-            .rotationEffect(.degrees(-12))
-            .accessibilityLabel("回収済み")
     }
 }
 

@@ -56,7 +56,7 @@ extension ImasSongRow where Detail == EmptyView {
     /// ジャケの試聴と長押しコピーを自動で持つ (楽曲一覧の行と同じ配線)。
     /// `playsPreview: false` で試聴だけ切る行 (ジャケを押しても行全体のタップが効く。
     /// 集計の行など、ジャケを押すたびに詳細シートが開いてほしい画面で使う)。長押しコピーは残る。
-    @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+    @MainActor init(song: Song, subtitle: String? = nil, showsBrandBar: Bool = false,
                     playsPreview: Bool = true,
                     trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal) {
         let (previewURL, isPreviewing, onPreviewTap) = playsPreview ? Self.previewWiring(for: song) : (nil, false, {})
@@ -65,7 +65,6 @@ extension ImasSongRow where Detail == EmptyView {
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
-            isCollected: isCollected,
             showsBrandBar: showsBrandBar,
             previewURL: previewURL,
             isPreviewing: isPreviewing,
@@ -81,7 +80,7 @@ extension ImasSongRow where Detail == EmptyView {
 
 extension ImasSongRow {
     /// 曲のデータから組み、下段 (札・日付) を足す。試聴・長押しコピーは上と同じく自動配線。
-    @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+    @MainActor init(song: Song, subtitle: String? = nil, showsBrandBar: Bool = false,
                     playsPreview: Bool = true,
                     trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal,
                     @ViewBuilder detail: () -> Detail) {
@@ -91,7 +90,6 @@ extension ImasSongRow {
             subtitle: subtitle ?? song.unitName ?? song.singerLabel,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
-            isCollected: isCollected,
             showsBrandBar: showsBrandBar,
             previewURL: previewURL,
             isPreviewing: isPreviewing,

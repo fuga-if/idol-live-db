@@ -4,7 +4,7 @@ import SwiftUI
 // 会場の行と札 (docs/DESIGN_SYSTEM.md §5.4・§5.5・§6.7〜§6.10)
 //
 // ImasStubRow      半券の行。左の半券に日付 (月・日・曜日)、切り取り線、右に題と会場。
-//                  参加した公演は半券に穴が開く。ライブ・公演・記録の一覧の 1 行。
+//                  ライブ・公演・記録の一覧の 1 行。
 // ImasTicketRow    半券の形の短い行 (チケットの受付・取り込みの誘い)。左に記号、右に〆切。
 // ImasPass         入場証 (担当・アカウント)。上の帯が実体の色、ストラップの穴、名前を大きく。
 // ImasTicketStack  参加予定のチケットの束。いちばん上を大きく、後ろの 2 枚は端だけ見せる。
@@ -68,8 +68,6 @@ struct ImasStubRow<Detail: View>: View {
     var subtitle: String? = nil
     var seed: String? = nil
     var brand: String? = nil
-    /// 参加した (半券に穴を開ける)。
-    var isPunched: Bool = false
     var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
     /// 合同ライブ等、単色で表せないとき、ペンライトを虹色にする。
@@ -113,11 +111,6 @@ struct ImasStubRow<Detail: View>: View {
             }
             .frame(width: stubWidth)
             .padding(.vertical, 10)
-            .overlay(alignment: .topTrailing) {
-                if isPunched {
-                    ImasPunchHole(size: .small).padding(6)
-                }
-            }
             ImasPerforation(axis: .vertical, color: DS.perforation, lineWidth: 2)
                 .padding(.vertical, 8)
             VStack(alignment: .leading, spacing: 4) {
@@ -157,7 +150,6 @@ struct ImasStubRow<Detail: View>: View {
         .accessibilityLabel([spokenDate ?? [date.top, date.big, date.bottom].joined(separator: " "),
                              title, subtitle,
                              badges.isEmpty ? nil : badges.map(\.text).joined(separator: "、"),
-                             isPunched ? "参加済み" : nil,
                              detailAccessibilityLabel].compactMap { $0 }.joined(separator: "、"))
         .listRowInsets(EdgeInsets(top: 4, leading: DS.Space.screen, bottom: 4, trailing: DS.Space.screen))
         .listRowSeparator(.hidden)
@@ -167,9 +159,9 @@ struct ImasStubRow<Detail: View>: View {
 
 extension ImasStubRow where Detail == EmptyView {
     init(date: ImasStubDate, title: String, subtitle: String? = nil, seed: String? = nil, brand: String? = nil,
-         isPunched: Bool = false, badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal,
+         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal,
          rainbow: Bool = false, spokenDate: String? = nil, showsChevron: Bool = false) {
-        self.init(date: date, title: title, subtitle: subtitle, seed: seed, brand: brand, isPunched: isPunched,
+        self.init(date: date, title: title, subtitle: subtitle, seed: seed, brand: brand,
                   badges: badges, emphasis: emphasis, rainbow: rainbow, spokenDate: spokenDate,
                   showsChevron: showsChevron) { EmptyView() }
     }
