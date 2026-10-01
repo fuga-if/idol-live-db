@@ -680,6 +680,10 @@
     "ベルーナドーム": {
       "capacity": 40000,
       "source": "Wikipedia 西武ドーム フィールドに観客席を設けた場合最大4万人"
+    },
+    "IGアリーナ": {
+      "capacity": 17000,
+      "source": "愛知県 https://www.pref.aichi.jp/soshiki/kokusai-arena/kokusai-arena.html (最大収容人数 17,000人・立見含む)"
     }
   },
   "halls": {

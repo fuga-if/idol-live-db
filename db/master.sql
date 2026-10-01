@@ -120745,7 +120745,7 @@ INSERT INTO "venues" VALUES('venue_miraikenstudio','MIRAIKEN studio','みらい�
 INSERT INTO "venues" VALUES('venue_駒場公園テンペストステージ','駒場公園 テンペストステージ','こまばこうえんてんぺすとすてーじ','長野',NULL,NULL,NULL,231);
 INSERT INTO "venues" VALUES('venue_駒場公園ファントムステージ','駒場公園 ファントムステージ','こまばこうえんふぁんとむすてーじ','長野',NULL,NULL,598,232);
 INSERT INTO "venues" VALUES('venue_movix日吉津','ＭＯＶＩＸ日吉津','むーびっくすひえづ','鳥取',NULL,NULL,NULL,233);
-INSERT INTO "venues" VALUES('venue_igアリーナ','IGアリーナ','あいじーありーな','愛知',NULL,'IG Arena',NULL,234);
+INSERT INTO "venues" VALUES('venue_igアリーナ','IGアリーナ','あいじーありーな','愛知',NULL,'IG Arena,愛知国際アリーナ',17000,234);
 CREATE INDEX idx_show_tickets_show ON show_tickets(show_id);
 CREATE INDEX idx_songs_brand ON songs(brand_id);
 CREATE INDEX idx_shows_event ON shows(event_id);
