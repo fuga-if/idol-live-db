@@ -43,51 +43,33 @@ struct SetlistEditView: View {
             content
                 .navigationTitle("セトリ編集")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("キャンセル") { dismiss() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("保存") {
-                            AppAnalytics.tap("setlist_edit.save")
-                            // 既存セトリがあったのに 0 行で保存しようとした時は確認。
-                            // 意図的な全削除 / 投稿前のリセットは許可するが誤操作を防ぐ。
-                            if rows.isEmpty && !initialItemIds.isEmpty {
-                                showClearConfirm = true
-                            } else {
-                                Task { await save() }
-                            }
+                .imasSheetToolbar(.edit(
+                    canSave: !isSaving,
+                    onCancel: { dismiss() },
+                    onSave: {
+                        AppAnalytics.tap("setlist_edit.save")
+                        // 既存セトリがあったのに 0 行で保存しようとした時は確認。
+                        // 意図的な全削除 / 投稿前のリセットは許可するが誤操作を防ぐ。
+                        if rows.isEmpty && !initialItemIds.isEmpty {
+                            showClearConfirm = true
+                        } else {
+                            Task { await save() }
                         }
-                        .disabled(isSaving)
                     }
+                ))
+                .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         EditButton().disabled(isSaving)
                     }
                 }
-                .overlay {
-                    if isSaving {
-                        Color.black.opacity(0.3).ignoresSafeArea()
-                        ProgressView("保存中…")
-                            .padding(DS.sp7)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-                .alert("エラー", isPresented: Binding(
-                    get: { errorMessage != nil },
-                    set: { if !$0 { errorMessage = nil } }
-                )) {
-                    Button("OK") {}
-                } message: {
-                    Text(errorMessage ?? "")
-                }
+                .imasSavingOverlay(isSaving)
+                .imasErrorAlert(message: $errorMessage)
                 .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
-                .alert("セトリを全削除しますか?", isPresented: $showClearConfirm) {
-                    Button("削除する", role: .destructive) {
-                        Task { await save() }
-                    }
-                    Button("キャンセル", role: .cancel) {}
-                } message: {
-                    Text("この公演のセトリ \(initialItemIds.count) 件をすべて削除します。 この操作は取り消せません。")
+                .imasConfirmDestructive(
+                    "セトリを全削除しますか?", isPresented: $showClearConfirm, actionTitle: "削除する",
+                    message: "この公演のセトリ \(initialItemIds.count) 件をすべて削除します。 この操作は取り消せません。"
+                ) {
+                    Task { await save() }
                 }
                 .sheet(item: $songPickerForRowId) { wrapper in
                     SongPickerView { song in
@@ -140,7 +122,7 @@ struct SetlistEditView: View {
                 }
 
                 Section {
-                    Button {
+                    ImasActionRow(title: "曲を追加", systemImage: "plus.circle.fill") {
                         AppAnalytics.tap("setlist_edit.add_song")
                         let newRow = EditableSetlistRow(
                             songId: "",
@@ -150,16 +132,12 @@ struct SetlistEditView: View {
                         )
                         rows.append(newRow)
                         songPickerForRowId = PickerSheetRowId(id: newRow.id)
-                    } label: {
-                        Label("曲を追加", systemImage: "plus.circle.fill")
                     }
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
+            .imasList()
         }
     }
 
@@ -372,19 +350,19 @@ private struct SetlistEditRow: View {
     private let sections = ["本編", "アンコール", "MC", "ダブルアンコール"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             Button(action: onPickSong) {
-                HStack {
-                    Image(systemName: "music.note")
-                        .foregroundStyle(DS.ink2)
-                    Text(row.songTitle)
-                        .foregroundStyle(row.songId.isEmpty ? DS.ink2 : DS.ink)
-                        .lineLimit(2)
-                    Spacer()
-                    ImasRowChevron()
-                }
+                ImasRow(
+                    title: row.songId.isEmpty ? "(曲を選択)" : row.songTitle,
+                    leading: .icon("music.note", tone: .neutral),
+                    trailing: .chevron,
+                    density: .compact,
+                    emphasis: row.songId.isEmpty ? .dimmed : .normal,
+                    titleLineLimit: 2,
+                    titleRole: .rowLabel
+                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.imasRow)
 
             ImasSegmented(labels: sections, selection: Binding(
                 get: { sections.firstIndex(of: row.section ?? "本編") ?? 0 },
@@ -392,24 +370,19 @@ private struct SetlistEditRow: View {
             ))
 
             Button(action: onPickCasts) {
-                HStack(alignment: .top) {
-                    Image(systemName: "person.2")
-                        .foregroundStyle(DS.ink2)
-                    if row.castIds.isEmpty {
-                        Text("(出演者なし — タップで追加)")
-                            .foregroundStyle(DS.ink2)
-                    } else {
-                        Text(performerNames())
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink)
-                            .multilineTextAlignment(.leading)
-                    }
-                    Spacer()
-                }
+                ImasRow(
+                    title: row.castIds.isEmpty ? "出演者なし — タップで追加" : performerNames(),
+                    leading: .icon("person.2", tone: .neutral),
+                    trailing: .chevron,
+                    density: .compact,
+                    emphasis: row.castIds.isEmpty ? .dimmed : .normal,
+                    titleLineLimit: 3,
+                    titleRole: .rowLabel
+                )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.imasRow)
         }
-        .padding(.vertical, DS.sp2)
+        .padding(.vertical, DS.Space.gapTight)
     }
 
     private func performerNames() -> String {
