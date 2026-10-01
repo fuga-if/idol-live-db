@@ -18,15 +18,10 @@ struct SortMakerShareSheet: View {
                                        artworks: artworks, size: size)
                 }, isPreparingCard: isLoadingArtwork)
 
-                Button {
+                ImasButton(title: "テキストでシェア", systemImage: "text.alignleft", role: .secondary, size: .medium) {
                     AppAnalytics.tap("sort_maker.share_text")
                     SystemShare.present(items: [shareText])
-                } label: {
-                    Label("テキストでシェア", systemImage: "text.alignleft")
-                        .font(.imasSubhead.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
-                .buttonStyle(.bordered)
             }
         }
         .task { await loadArtworks() }
@@ -50,11 +45,8 @@ struct SortMakerShareSheet: View {
     }
 }
 
-/// 画像カード: ランキングのポスター。
-///
-/// 上に「MY BEST 10」の大見出し、中央に 1〜3 位の表彰台 (1 位を大きく真ん中に)、
-/// 下に 4〜10 位を 2 列で。near-black の単色地に、1 位の色を差し色として 1 点だけ使う
-/// (ShareCardScaffold のアートディレクション)。
+/// 画像カード: ランキングのポスター。骨格は `PosterShareScaffold` (見出し・透かし・フッター)、
+/// 中身は 1〜3 位の表彰台 (1 位を大きく真ん中に) と 4〜10 位の 2 列。1 位の色を差し色として 1 点だけ使う。
 ///
 /// ImageRenderer で焼く固定キャンバスなので、色は固定色だけ、文字は固定 pt
 /// (アプリ内の文字サイズ倍率がかかると枠からあふれる。QuizShareCard と同じ扱い)。
@@ -66,8 +58,10 @@ struct SortMakerShareCard: View {
     var artworks: [String: UIImage] = [:]
     var size: ShareCard.Size = ShareCard.portrait
 
-    private var accent: Color { rows.first.map { color(for: $0.item) } ?? ShareCardPalette(seed: nil).accent }
-
+    /// 差し色の拠り所。1 位の色 (アイドルはメンバーカラー、曲はブランド色) → 無ければ中立色。
+    private var palette: ShareCardPalette {
+        rows.first.map { ShareCardPalette(seed: $0.item.seed) } ?? ShareCardPalette(seed: nil)
+    }
     /// 差し色。アイドルはメンバーカラー、曲はブランド色 (`SortMakerItem.seed`)。
     private func color(for item: SortMakerItem) -> Color {
         ShareCardPalette(seed: item.seed).accent
@@ -76,11 +70,15 @@ struct SortMakerShareCard: View {
     private var rest: [(rank: Int, item: SortMakerItem)] { Array(rows.dropFirst(3).prefix(7)) }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ShareInk.nearBlack
-            watermark
+        PosterShareScaffold(
+            palette: palette,
+            width: size.width, height: size.height,
+            kicker: subject.title,
+            trailingKicker: "RESULT",
+            title: rows.count >= 10 ? "MY BEST 10" : "MY BEST \(rows.count)",
+            subtitle: scopeLabel
+        ) {
             VStack(alignment: .leading, spacing: 0) {
-                header
                 podiumRow
                     .frame(maxWidth: .infinity)
                     .padding(.top, 22)
@@ -89,40 +87,7 @@ struct SortMakerShareCard: View {
                         .padding(.top, 18)
                     restGrid.padding(.top, 14)
                 }
-                Spacer(minLength: 0)
-                ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))
             }
-            .padding(.horizontal, 36)
-            .padding(.top, 32)
-            .padding(.bottom, 28)
-        }
-        .frame(width: size.width, height: size.height)
-        .clipped()
-    }
-
-    // MARK: 見出し
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Rectangle().fill(accent).frame(width: 18, height: 3)
-                Text(subject.title)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.8))
-                Spacer(minLength: 8)
-                Text("RESULT")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .tracking(2.4)
-                    .foregroundStyle(.white.opacity(0.45))
-            }
-            Text(rows.count >= 10 ? "MY BEST 10" : "MY BEST \(rows.count)")
-                .font(.system(size: 50, weight: .black).width(.compressed))
-                .foregroundStyle(.white)
-                .padding(.top, 6)
-            Text(scopeLabel)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.55))
-                .lineLimit(1)
         }
     }
 
@@ -143,7 +108,7 @@ struct SortMakerShareCard: View {
         return VStack(spacing: 8) {
             Text("\(row.rank)")
                 .font(.system(size: isFirst ? 44 : 32, weight: .black).width(.compressed).monospacedDigit())
-                .foregroundStyle(isFirst ? accent : .white.opacity(0.75))
+                .foregroundStyle(isFirst ? palette.accent : .white.opacity(0.75))
             visual(row.item, side: side)
             Text(row.item.title)
                 .font(.system(size: isFirst ? 15 : 12, weight: .bold))
@@ -225,17 +190,5 @@ struct SortMakerShareCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// 右上に覗く淡い同心円 1 つ (他の共有カードと同じ透かし)。
-    private var watermark: some View {
-        ZStack {
-            Circle().stroke(.white.opacity(0.06), lineWidth: 1.5)
-                .frame(width: size.width, height: size.width)
-            Circle().stroke(accent.opacity(0.16), lineWidth: 1.5)
-                .frame(width: size.width * 0.667, height: size.width * 0.667)
-        }
-        .frame(width: size.width, height: size.height)
-        .offset(x: size.width * 0.42, y: -size.height * 0.32)
     }
 }

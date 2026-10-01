@@ -30,14 +30,13 @@ struct TierListExportSheet: View {
                             .shadow(color: .black.opacity(0.18), radius: 12, y: 5)
                     } else {
                         VStack(spacing: DS.sp3) {
-                            ProgressView()
+                            ImasInlineLoading()
                             Text("画像を作っています…").font(.imasCaption).foregroundStyle(DS.ink3)
                         }
                         .frame(maxWidth: .infinity, minHeight: 320)
                     }
                     if board.unplacedIds.count > 0 {
-                        Text("未分類の \(board.unplacedIds.count) 件は画像に入りません。")
-                            .font(.imasCaption).foregroundStyle(DS.ink3)
+                        ImasNote("未分類の \(board.unplacedIds.count) 件は画像に入りません。")
                     }
                 }
                 .padding(DS.sp5)
@@ -46,9 +45,7 @@ struct TierListExportSheet: View {
             .safeAreaInset(edge: .bottom) { actions }
             .navigationTitle("画像にする")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("閉じる") { dismiss() } }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             .alert(saveMessage ?? "", isPresented: Binding(get: { saveMessage != nil }, set: { if !$0 { saveMessage = nil } })) {
                 Button("OK") {}
             }
@@ -60,31 +57,20 @@ struct TierListExportSheet: View {
     private var actions: some View {
         VStack(spacing: DS.sp3) {
             HStack(spacing: DS.sp3) {
-                Button {
+                ImasButton(title: "写真に保存", systemImage: "square.and.arrow.down", role: .primary, size: .large) {
                     AppAnalytics.tap("tier_list.save_photo")
                     Task { await saveToPhotos() }
-                } label: {
-                    Label("写真に保存", systemImage: "square.and.arrow.down")
-                        .font(.imasHeadline)
-                        .frame(maxWidth: .infinity, minHeight: 50)
                 }
-                .buttonStyle(.borderedProminent)
-                Button {
+                ImasButton(title: "シェア", systemImage: "square.and.arrow.up", role: .secondary, size: .large) {
                     AppAnalytics.tap("tier_list.share_image")
                     if let image { SystemShare.present(items: [ShareCardImageSource(image)]) }
-                } label: {
-                    Label("シェア", systemImage: "square.and.arrow.up")
-                        .font(.imasHeadline)
-                        .frame(maxWidth: .infinity, minHeight: 50)
                 }
-                .buttonStyle(.bordered)
             }
             .disabled(image == nil)
-            Button("テキストでシェア") {
+            ImasButton(title: "テキストでシェア", role: .plain, size: .medium) {
                 AppAnalytics.tap("tier_list.share_text")
                 SystemShare.present(items: [shareText])
             }
-            .font(.imasSubhead)
         }
         .padding(.horizontal, DS.sp5)
         .padding(.vertical, DS.sp3)
@@ -105,15 +91,10 @@ struct TierListExportSheet: View {
     private func render() async {
         let thumbnails = await loadThumbnails()
         let content = TierListBoardImage(board: board, items: items, thumbnails: thumbnails)
-        let renderer = ImageRenderer(content: content)
-        renderer.isOpaque = true
-        renderer.proposedSize = ProposedViewSize(width: TierListBoardImage.width, height: nil)
-        // 縦が長すぎると描画できる上限 (一辺 8192px 前後) を超えて真っ黒になる。
-        // 先に等倍で高さを測り、上限に収まる倍率で焼く (普段は 2 倍 = 横 1080px)。
-        renderer.scale = 1
-        let height = renderer.uiImage?.size.height ?? 0
-        renderer.scale = height > 0 ? min(2, TierListBoardImage.maxPixelHeight / height) : 2
-        image = renderer.uiImage
+        // 縦が長すぎると描画できる上限 (一辺 8192px 前後) を超えて真っ黒になるため、
+        // 等倍で高さを測ってから上限に収まる倍率で焼く専用パス (普段は 2 倍 = 横 1080px)。
+        image = ShareCardRenderer.renderTall(content, width: TierListBoardImage.width,
+                                             maxPixelHeight: TierListBoardImage.maxPixelHeight)
     }
 
     /// 段に載っているものの絵を小さく読む (数百枚でも重くならない大きさ)。
@@ -190,7 +171,7 @@ struct TierListExportSheet: View {
     }
 }
 
-/// 書き出す 1 枚。near-black の地に、見出し → 段ごとの行 → フッター。
+/// 書き出す 1 枚。骨格は `PosterShareScaffold` (見出し・透かし・フッター)、中身は段ごとの行。
 ///
 /// ImageRenderer で焼く固定キャンバスなので、色は固定色、文字は固定 pt
 /// (アプリの文字サイズ倍率がかかると枠からあふれる。共有カードと同じ扱い)。
@@ -211,10 +192,17 @@ struct TierListBoardImage: View {
     private var placedCount: Int { board.placedCount }
     private var cell: CGFloat { placedCount <= 150 ? 62 : (placedCount <= 400 ? 46 : 34) }
     private var showsNames: Bool { placedCount <= 400 }
+    private var palette: ShareCardPalette { ShareCardPalette(seed: board.tiers.first?.colorSeed) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
+        PosterShareScaffold(
+            palette: palette,
+            width: Self.width, height: nil,
+            kicker: "TIER LIST",
+            title: board.displayTitle,
+            titleSize: 32,
+            subtitle: board.scopeLabel
+        ) {
             VStack(spacing: 2) {
                 ForEach(board.tiers) { tier in
                     row(tier)
@@ -222,35 +210,6 @@ struct TierListBoardImage: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.top, 18)
-            ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))
-                .padding(.top, 22)
-        }
-        .padding(.horizontal, 24)
-        .padding(.top, 28)
-        .padding(.bottom, 22)
-        .frame(width: Self.width)
-        .background(ShareInk.nearBlack)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Rectangle().fill(ShareCardPalette(seed: board.tiers.first?.colorSeed).accent).frame(width: 18, height: 3)
-                Text("TIER LIST")
-                    .font(.system(size: 12, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(.white.opacity(0.75))
-            }
-            Text(board.displayTitle)
-                .font(.system(size: 32, weight: .black))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .minimumScaleFactor(0.6)
-                .padding(.top, 4)
-            Text(board.scopeLabel)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.55))
-                .lineLimit(1)
         }
     }
 

@@ -9,29 +9,18 @@ import UIKit
 /// /dev/intro (本家 IntroQuiz) の ShareImage / SoloShareCard の手法を踏襲:
 /// ImageRenderer で SwiftUI カードを UIImage 化 → UIActivityViewController で共有。
 /// カード下部に本家アプリ「イントロクイズ」のダウンロード導線を載せ、広告も兼ねる。
+///
+/// 画像化とシェアシートの起動そのものは共有カード共通基盤 (`ShareCardRenderer`/`SystemShare`) に寄せ、
+/// ここはサイズ固定の `frame` 付与と「画像 + 文面」の items 組み立てだけを持つ。
 enum IntroShareImageRenderer {
     @MainActor
     static func render<Content: View>(size: CGSize, @ViewBuilder content: () -> Content) -> UIImage? {
-        let renderer = ImageRenderer(content: content().frame(width: size.width, height: size.height))
-        renderer.scale = 2
-        renderer.isOpaque = true
-        return renderer.uiImage
+        ShareCardRenderer.render(content().frame(width: size.width, height: size.height))
     }
 
     @MainActor
     static func share(image: UIImage?, text: String) {
-        let items: [Any] = image.map { [$0, text] } ?? [text]
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
-                    ?? scene.windows.first?.rootViewController else { return }
-        var presenter = root
-        while let presented = presenter.presentedViewController { presenter = presented }
-        let vc = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        if let pop = vc.popoverPresentationController {
-            pop.sourceView = presenter.view
-            pop.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
-            pop.permittedArrowDirections = []
-        }
-        presenter.present(vc, animated: true)
+        let items: [Any] = image.map { [ShareCardImageSource($0), text] } ?? [text]
+        SystemShare.present(items: items)
     }
 }
