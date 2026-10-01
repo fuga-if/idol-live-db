@@ -981,19 +981,27 @@ private struct SetlistPage: View {
                                                 .init(id: "e", name: "高槻やよい", color: Sample.yayoi, iconLabel: "やよい"),
                                                 .init(id: "f", name: "萩原雪歩", color: "#D3DDE9", iconLabel: "雪歩"),
                                                 .init(id: "g", name: "水瀬伊織", color: "#FD99E1", iconLabel: "伊織")],
-                                   badges: [.init(text: "全体", kind: .all)], facts: ["初披露", "初回収"])
+                                   badges: [.init(text: "全体", kind: .all)], facts: ["初披露", "初回収"],
+                                   onSelectPerformers: {}, highlightsPick: true,
+                                   trailing: .custom(AnyView(ImasLikeButton(isOn: true, count: 42) {})))
                     ImasSetlistRow(number: "02", title: "READY!!", artworkURL: Sample.Art.ready, brand: Sample.as765,
                                    performers: [.init(id: "b", name: "如月千早", color: Sample.chihaya, iconLabel: "千早")],
-                                   badges: [.init(text: "ソロ", kind: .unit)], facts: ["12 回目"])
+                                   badges: [.init(text: "ソロ", kind: .unit)], facts: ["12 回目"],
+                                   trailing: .custom(AnyView(ImasLikeButton(isOn: false, count: 0) {})))
                         .environment(\.imasRowPosition, .following)
                     ImasSetlistRow(number: "03", title: "Thank You!", artworkURL: Sample.Art.thankYou, brand: Sample.ml,
                                    performers: (0..<13).map { .init(id: "m\($0)", name: "", color: [Sample.ml, Sample.shizuka, Sample.kotoha][$0 % 3]) },
                                    performerSummary: "MILLIONSTARS 13 人",
-                                   badges: [.init(text: "カバー", kind: .cover)], facts: ["未回収"])
+                                   badges: [.init(text: "カバー", kind: .cover)], facts: ["未回収"],
+                                   trailing: .custom(AnyView(ImasLikeButton(isOn: false, count: 3, isBusy: true) {})))
                         .environment(\.imasRowPosition, .following)
                     ImasSetlistRow(number: "04", title: "ジャケの無い曲", brand: Sample.ml,
                                    performers: [.init(id: "d", name: "田中琴葉", color: Sample.kotoha)],
-                                   facts: ["3 回目"])
+                                   noteGroups: [
+                                       .init(label: "披露", notes: [.init(text: "3回目", tone: .value), .init(text: "1年ぶり", tone: .detail)]),
+                                       .init(label: "回収", notes: [.init(text: "未回収", tone: .missing)]),
+                                   ],
+                                   note: "この公演だけアレンジ違い")
                         .environment(\.imasRowPosition, .following)
                 }
             }
@@ -1004,7 +1012,7 @@ private struct SetlistPage: View {
                                     performers: [.init(id: "s", name: "花海咲季", color: Sample.saki),
                                                  .init(id: "t", name: "月村手毬", color: "#3D5BA8"),
                                                  .init(id: "k", name: "藤田ことね", color: "#F5C900", isAbsent: true)])
-                    ImasForecastRow(rank: 2, title: "Fighting My Way", artworkURL: Sample.Art.fightingMyWay, brand: Sample.gakuen, measure: .probability(0.64),
+                    ImasForecastRow(rank: 2, title: "Fighting My Way", subtitle: "ソロ曲", artworkURL: Sample.Art.fightingMyWay, brand: Sample.gakuen, measure: .probability(0.64),
                                     reasonLabel: "理由", reason: "ソロの代表曲")
                         .environment(\.imasRowPosition, .following)
                 }
@@ -1016,6 +1024,14 @@ private struct SetlistPage: View {
                                     isMine: voted.contains(1)) { toggle(1) }
                     ImasForecastRow(rank: 2, title: "初", artworkURL: Sample.Art.hajime, brand: Sample.gakuen, measure: .votes(3, share: 0.6),
                                     isMine: voted.contains(2)) { toggle(2) }
+                        .environment(\.imasRowPosition, .following)
+                    ImasForecastRow(rank: 3, title: "太陽のジェラシー", artworkURL: Sample.Art.jealousy, brand: Sample.gakuen,
+                                    measure: .votes(2, share: 0.4), onVote: {}, voteDisabled: true)
+                        .environment(\.imasRowPosition, .following)
+                    ImasForecastRow(rank: 4, title: "Fighting My Way", artworkURL: Sample.Art.fightingMyWay, brand: Sample.gakuen,
+                                    measure: .votes(1, share: 0.2), onVote: {}, isVoteLoading: true)
+                        .environment(\.imasRowPosition, .following)
+                    ImasForecastRow(rank: 5, title: "次に新ユニット曲が出るなら", unit: Sample.unit, measure: .votes(1, share: 0.2), onVote: {})
                         .environment(\.imasRowPosition, .following)
                 }
                 .imasTheme(seed: nil, brand: Sample.gakuen)
