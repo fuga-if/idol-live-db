@@ -138,7 +138,12 @@ struct ImasButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            // 読み込み中は押せない。指の当たり判定だけでは VoiceOver・スイッチコントロールからの実行が通るので、
+            // ここでも止める (共有画像の準備中に押されると、ジャケの無いカードが焼かれる)。
+            guard !isLoading else { return }
+            action()
+        } label: {
             ZStack {
                 label.opacity(isLoading ? 0 : 1)
                 if isLoading {
@@ -150,6 +155,7 @@ struct ImasButton: View {
         // 読み込み中は押せないだけで、無効 (薄い) の見た目にはしない。
         .allowsHitTesting(!isLoading)
         .accessibilityLabel(title)
+        .accessibilityValue(isLoading ? "処理中" : "")
     }
 
     @ViewBuilder private var label: some View {
@@ -194,7 +200,11 @@ struct ImasIconButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            // 読み込み中は VoiceOver・スイッチコントロールからの実行も止める。
+            guard !isLoading else { return }
+            action()
+        } label: {
             ZStack {
                 Image(systemName: systemImage).opacity(isLoading ? 0 : 1)
                 if isLoading {
@@ -211,6 +221,7 @@ struct ImasIconButton: View {
         .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
         .allowsHitTesting(!isLoading)
         .accessibilityLabel(label)
+        .accessibilityValue(isLoading ? "処理中" : "")
     }
 
     private var bg: Color {
