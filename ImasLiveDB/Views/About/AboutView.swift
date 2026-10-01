@@ -13,40 +13,34 @@ struct AboutView: View {
 
     var body: some View {
         List {
-            Section {
-                VStack(spacing: DS.sp3) {
-                    Image(systemName: "music.mic.circle.fill")
-                        .font(.imasScaled( 64))
-                        .foregroundStyle(.tint)
-                    Text("ImasLiveDB")
-                        .font(.imasTitle2.bold())
-                    Text("非公式ファンメイドアプリ")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                    Text("ver. \(appVersion) (\(buildNumber))")
-                        .font(.imasCaption2)
-                        .foregroundStyle(DS.ink2)
+            ImasListSection {
+                VStack(spacing: DS.Space.gap) {
+                    ImasIconTile(systemImage: "music.mic.circle.fill", size: .s56, tone: .solid)
+                    Text("ImasLiveDB").imasText(.sectionTitle)
+                    Text("非公式ファンメイドアプリ").imasText(.rowSubtitle)
+                    Text("ver. \(appVersion) (\(buildNumber))").imasText(.meta)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.sp4)
+                .padding(.vertical, DS.Space.gapLoose)
             }
 
-            Section("開発者") {
-                LabeledContent("開発者", value: "fuga-if")
+            ImasListSection("開発者") {
+                ImasValueRow(key: "開発者", value: "fuga-if")
                 Link(destination: URL(string: "https://github.com/fuga-if")!) {
-                    Label("GitHub プロフィール", systemImage: "arrow.up.right.square")
+                    ImasNavRow(title: "GitHub プロフィール", systemImage: "arrow.up.right.square")
                 }
             }
 
-            Section {
+            ImasListSection(footer: "サーバー運用費等の足しにさせていただきます。任意のご支援です。") {
                 Link(destination: URL(string: "https://ko-fi.com/fugaapp")!) {
-                    Label("開発をサポートする", systemImage: "heart.fill")
+                    ImasNavRow(title: "開発をサポートする", systemImage: "heart.fill")
                 }
-            } footer: {
-                Text("サーバー運用費等の足しにさせていただきます。任意のご支援です。")
             }
 
-            Section {
+            ImasListSection(
+                "データ提供",
+                footer: "各情報源のデータはそのままの複製ではなく、独自の集計・整形を加えて利用しています。"
+            ) {
                 ossCredit(
                     name: "アイマスDB",
                     license: "楽曲・ライブ等のデータ参照元",
@@ -67,13 +61,9 @@ struct AboutView: View {
                     license: "アイドルのイメージカラー",
                     url: "https://github.com/arrow2nd/imas-palette"
                 )
-            } header: {
-                Text("データ提供")
-            } footer: {
-                Text("各情報源のデータはそのままの複製ではなく、独自の集計・整形を加えて利用しています。")
             }
 
-            Section("ライセンス情報") {
+            ImasListSection("ライセンス情報") {
                 // 許諾条件で掲示が要る。歌詞タブを畳んでも消さないこと
                 // (許諾期間中は掲載し続けるのが条件)。
                 JASRACLicenseNotice(placement: .about)
@@ -81,15 +71,28 @@ struct AboutView: View {
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")
             }
 
-            Section("アプリ情報") {
-                NavigationLink("プライバシーポリシー") {
+            ImasListSection(
+                "アプリ情報",
+                footer: """
+                担当・お気に入り・メモは iCloud に自動バックアップされ、再インストールや機種変更でも復元されます (同じ Apple ID でのサインインが必要)。
+
+                本アプリはアイドルマスターシリーズの非公式ファンメイドアプリです。バンダイナムコエンターテインメント等の権利者とは一切関係ありません。
+                """
+            ) {
+                NavigationLink {
                     PrivacyPolicyView()
+                } label: {
+                    ImasNavRow(title: "プライバシーポリシー")
                 }
-                NavigationLink("利用規約") {
+                NavigationLink {
                     TermsOfServiceView()
+                } label: {
+                    ImasNavRow(title: "利用規約")
                 }
-                NavigationLink("サポート") {
+                NavigationLink {
                     SupportView()
+                } label: {
+                    ImasNavRow(title: "サポート")
                 }
                 // ⚠️ ここで requestReview() を呼ばないこと。OS の都合 (年3回の上限等) で
                 //    無視されることがあり、押しても何も起きないボタンになる。
@@ -97,26 +100,15 @@ struct AboutView: View {
                 //    requestReview() は「こちらから声を掛ける」側 (ContentView) の担当。
                 if let url = ReviewPrompt.writeReviewURL {
                     Link(destination: url) {
-                        Label("アプリを評価する", systemImage: "star.fill")
+                        ImasNavRow(title: "アプリを評価する", systemImage: "star.fill")
                     }
                     .simultaneousGesture(TapGesture().onEnded {
                         AppAnalytics.tap("about.rate_app")
                     })
                 }
             }
-
-            Section {
-                Text("担当・お気に入り・メモは iCloud に自動バックアップされ、再インストールや機種変更でも復元されます (同じ Apple ID でのサインインが必要)。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-
-            Section {
-                Text("本アプリはアイドルマスターシリーズの非公式ファンメイドアプリです。バンダイナムコエンターテインメント等の権利者とは一切関係ありません。")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
         }
+        .imasForm()
         .navigationTitle("アプリについて")
         .navigationBarTitleDisplayMode(.inline)
         .trackScreen("about")
@@ -124,14 +116,7 @@ struct AboutView: View {
 
     private func ossCredit(name: String, license: String, url: String) -> some View {
         Link(destination: URL(string: url)!) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(name)
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink)
-                Text(license)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
+            ImasNavRow(title: name, subtitle: license)
         }
     }
 }

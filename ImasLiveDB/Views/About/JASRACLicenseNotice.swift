@@ -53,12 +53,11 @@ struct JASRACLicenseNotice: View {
                             mark.resizable().scaledToFit().frame(width: 40, height: 40)
                         }
                         Text(license.notice)
-                            .font(.footnote)
+                            .imasText(.value)
                     }
                 }
                 Text("歌詞は JASRAC・NexTone の許諾を受けて掲載しています。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .imasText(.meta)
             }
             .accessibilityElement(children: .combine)
 
@@ -82,8 +81,7 @@ struct JASRACLicenseNotice: View {
                     mark.resizable().scaledToFit().frame(width: 28, height: 28)
                 }
                 Text(license.notice)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .imasText(.meta)
             }
         }
     }
