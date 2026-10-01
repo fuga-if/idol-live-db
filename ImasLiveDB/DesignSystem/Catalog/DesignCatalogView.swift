@@ -443,6 +443,7 @@ private struct ButtonsPage: View {
                     ImasIconButton(systemImage: "play.fill", label: "再生", style: .filled) {}
                         .imasTheme(seed: Sample.haruka)
                     ImasIconButton(systemImage: "ellipsis", label: "その他", style: .plain) {}
+                    ImasIconButton(systemImage: "trash", label: "削除中", style: .filled, isLoading: true) {}
                 }
             }
         }
@@ -503,11 +504,22 @@ private struct ChipsPage: View {
                     ImasBadge(text: "12", kind: .themed, systemImage: "tag.fill", brand: Sample.ml)
                 }
             }
-            ImasSection("数字", style: .small) {
+            ImasSection("数字", style: .small, footer: "`.micro` (8pt) は枠の高さが決まっていて文字を詰め込むしかない場所専用 (月カレンダーの単日バー・あふれ件数など)。") {
                 HStack(alignment: .firstTextBaseline, spacing: 24) {
                     ImasMetric(value: "89", unit: "回", size: .large)
                     ImasMetric(value: "42", unit: "%", size: .medium, emphasized: true).imasTheme(seed: Sample.haruka)
                     ImasMetric(value: "2,051", unit: "件", size: .small)
+                    Text("+12").imasText(.micro)
+                        .padding(.horizontal, 4)
+                        .frame(minWidth: 18, minHeight: 14)
+                        .background(DS.fill, in: RoundedRectangle(cornerRadius: 3, style: .continuous))
+                }
+            }
+            ImasSection("1 段で横スクロール (続きは端を透かす: fades)", style: .small) {
+                ImasChipRow(fades: true) {
+                    ForEach(["すべて", "765AS", "シンデレラ", "ミリオン", "SideM", "シャニ", "学マス", "ALSTREAM", "シャッフル"], id: \.self) { text in
+                        ImasFilterChip(text: text, isSelected: text == "すべて") {}
+                    }
                 }
             }
         }
