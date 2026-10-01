@@ -74,22 +74,34 @@ private struct ImasSheetButton: View {
     let action: () -> Void
 
     var body: some View {
+        // ButtonRole の .confirm / .close と label の無い Button(role:action:) は iOS 26 の SDK にしか無い。
+        // CI (macos-15) の古い SDK でもビルドできるよう、コンパイラの版で分ける。
+        #if compiler(>=6.2)
         if #available(iOS 26, *) {
             Button(role: buttonRole, action: action)
                 .accessibilityLabel(title)
         } else {
-            Button(action: action) {
-                if isLoading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: role == .confirm ? "checkmark" : "xmark")
-                        .font(.imasScaled(17, weight: role == .confirm ? .bold : .semibold))
-                }
-            }
-            .accessibilityLabel(title)
+            symbolButton
         }
+        #else
+        symbolButton
+        #endif
     }
 
+    /// 17/18 (と古い SDK) の記号のボタン。
+    private var symbolButton: some View {
+        Button(action: action) {
+            if isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: role == .confirm ? "checkmark" : "xmark")
+                    .font(.imasScaled(17, weight: role == .confirm ? .bold : .semibold))
+            }
+        }
+        .accessibilityLabel(title)
+    }
+
+    #if compiler(>=6.2)
     @available(iOS 26, *)
     private var buttonRole: ButtonRole {
         switch role {
@@ -98,6 +110,7 @@ private struct ImasSheetButton: View {
         case .close: return .close
         }
     }
+    #endif
 }
 
 // MARK: - フォーム
