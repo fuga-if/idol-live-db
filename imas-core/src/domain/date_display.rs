@@ -109,6 +109,25 @@ pub fn short_with_weekday(date: &str) -> String {
     }
 }
 
+/// アプリの画面に置く日付 (`11月7日(土)`)。今年でない日付は年を付ける (`2024年11月7日(土)`)。
+///
+/// 画面に ISO の日付 (`2026-11-07`) を出さないための 1 本 (docs/DESIGN_SYSTEM.md §16)。
+/// 年月までの部分日付は `2024年8月`、年だけは `2024年`、読めない入力は原文のまま。
+/// `today` は JST の今日 (`yyyy-MM-dd`)。今年かどうかだけに使う。
+pub fn label_ja(date: &str, today: &str) -> String {
+    let this_year = today.get(..4).filter(|y| is_year(y));
+    if let Some(d) = parse_ymd(date) {
+        let md = format!("{}月{}日({})", d.month(), d.day(), weekday_of(d));
+        return if this_year == Some(d.year().to_string().as_str()) { md } else { format!("{}年{md}", d.year()) };
+    }
+    let parts = date_parts(date);
+    match (parts.year.is_empty(), parts.month_day.is_empty()) {
+        (false, false) => format!("{}年{}", parts.year, parts.month_day),
+        (false, true) => format!("{}年", parts.year),
+        _ => date.to_string(),
+    }
+}
+
 /// 期間の終端。**初日と違う日にだけ `Some`** (1 日で終わるものに終端は無い)。
 /// 「同じ日を 2 度出さない」判断はここ 1 箇所。
 pub fn range_end<'a>(first: Option<&str>, last: Option<&'a str>) -> Option<&'a str> {
@@ -231,6 +250,29 @@ mod tests {
             Some("〜 9/13 (日)".to_string())
         );
         assert_eq!(until_display(Some("2026-09-12"), Some("2026-09-12")), None);
+    }
+}
+
+#[cfg(test)]
+mod label_ja_tests {
+    use super::*;
+
+    /// 今年は月日と曜日だけ。年をまたぐと年を付ける (一覧で去年の公演を今年と読み違えない)。
+    #[test]
+    fn this_year_drops_the_year() {
+        assert_eq!(label_ja("2026-11-07", "2026-10-01"), "11月7日(土)");
+        assert_eq!(label_ja("2025-12-13", "2026-10-01"), "2025年12月13日(土)");
+        assert_eq!(label_ja("2027-01-09", "2026-10-01"), "2027年1月9日(土)");
+    }
+
+    #[test]
+    fn partial_and_unknown_dates_are_not_invented() {
+        assert_eq!(label_ja("2024-08", "2026-10-01"), "2024年8月");
+        assert_eq!(label_ja("2024", "2026-10-01"), "2024年");
+        assert_eq!(label_ja("未定", "2026-10-01"), "未定");
+        assert_eq!(label_ja("", "2026-10-01"), "");
+        // 今日が読めなくても、日付は年付きで出す (今年だと決めつけない)。
+        assert_eq!(label_ja("2026-11-07", ""), "2026年11月7日(土)");
     }
 }
 

@@ -23,6 +23,12 @@ pub fn date_range_display(first: Option<String>, last: Option<String>) -> Option
     date_display::range_with_weekday(first.as_deref(), last.as_deref())
 }
 
+/// 画面に置く日付 (`11月7日(土)` / 今年でなければ `2024年11月7日(土)`)。`today` は JST の今日。
+#[uniffi::export]
+pub fn date_label(date: String, today: String) -> String {
+    date_display::label_ja(&date, &today)
+}
+
 /// 年の幅 (`2019` / `2019 – 2021`)。
 #[uniffi::export]
 pub fn year_range_display(earliest: Option<String>, latest: Option<String>) -> Option<String> {
