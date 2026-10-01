@@ -130,7 +130,8 @@ struct IntroPartyGameView: View {
         VStack(spacing: DS.sp3) {
             Text("\(session.players[index].name) 回答中").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
             if let q = session.currentQuestion {
-                QuizStageChoiceGrid(choices: q.choices.map { QuizStageChoice(id: $0, title: $0) }, columns: 2) { choice in
+                QuizStageChoiceGrid(choices: q.choices.map { QuizStageChoice(id: $0, title: $0) }, columns: 2,
+                                showsLetters: false) { choice in
                     AppAnalytics.tap("intro_party.answer")
                     session.submitAnswer(player: index, title: choice.title)
                 }
@@ -206,6 +207,8 @@ struct IntroPartyGameView: View {
         ImasStagePlaybackControl(
             isPlaying: session.isPlayingIntro,
             style: .circle,
+            pausedLabel: "頭から再生",
+            accessibilityHintText: "タップで頭から再生します。長押しの間は流し続けます",
             onTap: { Task { await session.replayIntro() } },
             onHoldBegin: { session.continueIntroHeld() },
             onHoldEnd: { session.pauseHeldIntro() }

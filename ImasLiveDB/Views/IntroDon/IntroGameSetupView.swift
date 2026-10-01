@@ -64,7 +64,7 @@ struct IntroGameSetupView: View {
             modeSection
 
             // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
-            ImasSectionHeader(title: "出題範囲", tight: true)
+            ImasSectionHeader(title: "出題範囲", count: effectivePool == nil ? "ブランドで絞る" : nil, tight: true)
             if let pool = effectivePool {
                 presetRangeCard(count: IntroGameSession.playable(pool).count)
                 refineButton(title: "出題範囲を変更")
@@ -167,7 +167,12 @@ struct IntroGameSetupView: View {
                         .imasText(.value)
                         .monospacedDigit()
                 }
-                Slider(value: $introDuration, in: 0.2...10.0, step: 0.1)
+                Slider(value: Binding(
+                    get: { introDuration },
+                    // 0.1 刻みへ丸めてから入れる。浮動小数の誤差が残ると、プリセット値
+                    // (例: 5.0) ぴったりに乗っても札の選択表示 (`==` 比較) と噛み合わなくなる。
+                    set: { introDuration = (($0 * 10).rounded()) / 10 }
+                ), in: 0.2...10.0, step: 0.1)
                     .tint(DS.favorite)
             }
         }
@@ -218,7 +223,8 @@ struct IntroGameSetupView: View {
     }
 
     private var allSongsNote: some View {
-        ImasNotice(kind: .info, message: "選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。")
+        ImasNotice(kind: .info, message: "選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。",
+                   systemImage: "infinity")
     }
 
     /// ④ 詳細設定 (折りたたみ): 再生方式・難易度。

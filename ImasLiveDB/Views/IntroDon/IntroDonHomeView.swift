@@ -19,7 +19,7 @@ struct IntroDonHomeView: View {
             }
             if authStatus != .authorized {
                 ImasNotice(kind: .warning, message: "Apple Music が未認証です",
-                           actionTitle: "Apple Music を許可する") {
+                           actionTitle: "Apple Music を許可する", actionSystemImage: "music.note") {
                     AppAnalytics.tap("intro_don_home.music_auth")
                     Task {
                         await MusicKitService.shared.requestAuthorization(includingMediaLibrary: true)
@@ -47,11 +47,16 @@ struct IntroDonHomeView: View {
     private var battleModeCard: some View {
         ImasFeatureCard(
             eyebrow: "BATTLE MODE",
+            eyebrowPenlight: false,
             title: "友達と対戦したい方へ",
             subtitle: "姉妹アプリ「イントロドン」でローカル・オンライン対戦ができます",
             secondary: .init(title: "App Store で開く", systemImage: "arrow.up.right") {
                 openURL(battleModeURL)
             }
-        )
+        ) {
+            Image(systemName: "person.2.fill")
+                .font(.imasScaled(28))
+                .foregroundStyle(DS.ink3)
+        }
     }
 }
