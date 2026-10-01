@@ -123,6 +123,8 @@ struct ImasRow<Detail: View>: View {
     var attributedTitle: AttributedString? = nil
     /// 題の書体。もの (曲・アイドル・ライブ) は `.rowTitle`、操作・設定は `.rowLabel`。
     var titleRole: ImasTextRole = .rowTitle
+    /// 題だけを押せるようにする (行の他の場所にも別の押せる物があるとき)。nil なら押せない文字のまま。
+    var onSelectTitle: (() -> Void)? = nil
     @ViewBuilder var detail: Detail
 
     @Environment(\.imasRowPosition) private var position
@@ -180,17 +182,7 @@ struct ImasRow<Detail: View>: View {
 
     private var textColumn: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-            Group {
-                if let attributedTitle {
-                    Text(attributedTitle)
-                } else {
-                    Text(title)
-                }
-            }
-            .font(titleRole.font)
-            .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
-            .lineLimit(titleLineLimit)
-            .fixedSize(horizontal: false, vertical: true)
+            titleView
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
@@ -199,6 +191,30 @@ struct ImasRow<Detail: View>: View {
                     .lineLimit(1)
             }
             detail
+        }
+    }
+
+    /// 題の文字。`onSelectTitle` があるときだけボタンにする (行の他の場所の押せる物を邪魔しない)。
+    @ViewBuilder private var titleView: some View {
+        let text = Group {
+            if let attributedTitle {
+                Text(attributedTitle)
+            } else {
+                Text(title)
+            }
+        }
+        .font(titleRole.font)
+        .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
+        .lineLimit(titleLineLimit)
+        .fixedSize(horizontal: false, vertical: true)
+
+        if let onSelectTitle {
+            Button(action: onSelectTitle) {
+                text.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+        } else {
+            text
         }
     }
 
@@ -297,7 +313,8 @@ extension ImasRow where Detail == EmptyView {
     init(title: String, subtitle: String? = nil, leading: ImasRowLeading = .none,
          selection: ImasRowSelection? = nil,
          trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular,
-         emphasis: ImasRowEmphasis = .normal, titleLineLimit: Int = 2, titleRole: ImasTextRole = .rowTitle) {
+         emphasis: ImasRowEmphasis = .normal, titleLineLimit: Int = 2, titleRole: ImasTextRole = .rowTitle,
+         onSelectTitle: (() -> Void)? = nil) {
         self.title = title
         self.subtitle = subtitle
         self.leading = leading
@@ -307,6 +324,7 @@ extension ImasRow where Detail == EmptyView {
         self.emphasis = emphasis
         self.titleLineLimit = titleLineLimit
         self.titleRole = titleRole
+        self.onSelectTitle = onSelectTitle
         self.detail = EmptyView()
     }
 }
@@ -672,11 +690,14 @@ enum ImasMarkKind {
     case pick
     /// お気に入り (★)。
     case favorite
+    /// 所有 (カードゲームの収録カードなど)。
+    case owned
 
     func systemImage(isOn: Bool) -> String {
         switch self {
         case .pick: return isOn ? "heart.fill" : "heart"
         case .favorite: return isOn ? "star.fill" : "star"
+        case .owned: return isOn ? "shippingbox.fill" : "shippingbox"
         }
     }
 
@@ -684,6 +705,7 @@ enum ImasMarkKind {
         switch self {
         case .pick: return isOn ? "担当から外す" : "担当にする"
         case .favorite: return isOn ? "お気に入りから外す" : "お気に入りにする"
+        case .owned: return isOn ? "所有から外す" : "所有を記録"
         }
     }
 }
@@ -716,7 +738,10 @@ struct ImasMarkButton: View {
     }
 
     private func onColor(_ t: ImasTheme) -> Color {
-        if t.isNeutral { return kind == .pick ? DS.pick : DS.favorite }
-        return kind == .pick ? t.penlight : DS.favorite
+        switch kind {
+        case .pick: return t.isNeutral ? DS.pick : t.penlight
+        case .favorite: return DS.favorite
+        case .owned: return t.isNeutral ? DS.ink : t.accent
+        }
     }
 }

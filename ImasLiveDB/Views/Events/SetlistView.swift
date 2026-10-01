@@ -202,7 +202,7 @@ struct SetlistView: View {
     private var breadcrumb: some View {
         if let event {
             let accent = ImasTheme.derive(seed: showBrandHex, brand: nil, scheme: scheme).accent
-            HStack(spacing: 5) {
+            HStack(spacing: DS.Space.gapTight) {
                 if let brandId = event.brandId, let brandName = brandNameById[brandId] {
                     Button {
                         AppAnalytics.tap("setlist.breadcrumb.brand")
@@ -215,7 +215,7 @@ struct SetlistView: View {
                     }
                     .buttonStyle(.borderless)
                     Image(systemName: "chevron.right")
-                        .font(.imasScaled(9, weight: .semibold))
+                        .font(.imasCaption2.weight(.semibold))
                         .foregroundStyle(DS.ink3)
                 }
                 Button {
@@ -258,6 +258,32 @@ struct SetlistView: View {
         return result
     }
 
+    /// チケット価格の表。価格帯 (複数券種) は内訳行を従える。並びと価格帯の作り方は
+    /// コア (`domain/ticket_prices.rs`) 一本、ここは `ImasPriceList.Row` に写すだけ。
+    private var priceRows: [ImasPriceList.Row] {
+        var rows: [ImasPriceList.Row] = []
+        for range in ticketPriceRanges(tickets: tickets) {
+            if range.count > 1 {
+                rows.append(ImasPriceList.Row(
+                    id: "range-\(range.kind)",
+                    label: ticketKindLabel(kind: range.kind),
+                    amount: range.label,
+                    note: range.hasEstimate ? "推定含む" : nil
+                ))
+            }
+            for ticket in ticketsForKind(tickets: tickets, kind: range.kind) {
+                let label = range.count > 1
+                    ? (ticket.isEstimate ? "\(ticket.name) (推定)" : ticket.name)
+                    : "\(ticketKindLabel(kind: range.kind))・\(ticket.name)"
+                rows.append(ImasPriceList.Row(
+                    id: ticket.id, label: label, amount: formatYen(amount: ticket.price),
+                    indented: range.count > 1
+                ))
+            }
+        }
+        return rows
+    }
+
     var body: some View {
         List {
             // 上の階層 (ブランド → イベント) へのパンくず + 公演名 大見出し。
@@ -265,11 +291,10 @@ struct SetlistView: View {
             // 戻り先が無い)。この画面がライブの木のどこに居るのかを示して、
             // 上の階層へ直接行けるようにする。
             Section {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                     breadcrumb
                     Text(show.name)
-                        .font(.imasTitle2)
-                        .foregroundStyle(DS.ink)
+                        .imasText(.heroTitle)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .listRowBackground(Color.clear)
@@ -282,10 +307,8 @@ struct SetlistView: View {
             // 収まらない (シンプル表示を作った意味が無くなる)。
             if simpleMode {
                 Section {
-                    Text([venueDirectory.displayName(for: show), show.date]
+                    ImasNote([venueDirectory.displayName(for: show), show.date]
                         .compactMap { $0 }.joined(separator: " ・ "))
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
                         .listRowSeparator(.hidden)
@@ -298,26 +321,29 @@ struct SetlistView: View {
                 ImasCardList {
                     // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
                     if let venueLabel = venueDirectory.displayName(for: show) {
-                        ImasLabeledRow(key: "会場", value: venueLabel, showChevron: true, tappable: true, seed: showBrandHex)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if let vid = show.venueId { go(.filteredShows(.venue(vid))) }
+                        if let vid = show.venueId {
+                            Button { go(.filteredShows(.venue(vid))) } label: {
+                                ImasValueRow(key: "会場", value: venueLabel, isLink: true)
                             }
-                            // コピーは ImasLabeledRow が既定で持つ (ここで重ねると contextMenu が二重になる)。
+                            .buttonStyle(.plain)
+                        } else {
+                            ImasValueRow(key: "会場", value: venueLabel)
+                        }
                         ImasRowDivider(inset: 16)
                     }
                     // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
                     if let cap = venueDirectory.capacity(for: show) {
-                        ImasLabeledRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", seed: showBrandHex)
+                        ImasValueRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", monospaced: true)
                         ImasRowDivider(inset: 16)
                     }
                     if let stream = show.streamPlatform, !stream.isEmpty {
-                        ImasLabeledRow(key: "配信", value: stream, seed: showBrandHex)
+                        ImasValueRow(key: "配信", value: stream)
                         ImasRowDivider(inset: 16)
                     }
-                    ImasLabeledRow(key: "日付", value: show.date, showChevron: true, tappable: true, seed: showBrandHex)
-                        .contentShape(Rectangle())
-                        .onTapGesture { go(.filteredShows(.date(show.date))) }
+                    Button { go(.filteredShows(.date(show.date))) } label: {
+                        ImasValueRow(key: "日付", value: show.date, isLink: true)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
@@ -326,34 +352,8 @@ struct SetlistView: View {
 
             if !tickets.isEmpty {
                 Section {
-                    ImasSectionHeader(title: "チケット", tight: true)
-                    ImasCardList {
-                        // 並びと価格帯の作り方はコア (domain/ticket_prices.rs) 一本。
-                        ForEach(Array(ticketPriceRanges(tickets: tickets).enumerated()),
-                                id: \.element.kind) { rangeIndex, range in
-                            if rangeIndex > 0 { ImasRowDivider(inset: 16) }
-                            // 券種が 1 つだけの形態は帯を出さない (「配信 ¥6,500」が
-                            // 2 行並んで、同じ数字を 2 回読ませることになる)。
-                            if range.count > 1 {
-                                ImasLabeledRow(
-                                    key: ticketKindLabel(kind: range.kind),
-                                    value: range.hasEstimate ? "\(range.label) (推定含む)" : range.label,
-                                    seed: showBrandHex
-                                )
-                            }
-                            ForEach(Array(ticketsForKind(tickets: tickets, kind: range.kind).enumerated()),
-                                    id: \.element.id) { index, ticket in
-                                if range.count > 1 || index > 0 { ImasRowDivider(inset: range.count > 1 ? 32 : 16) }
-                                ImasLabeledRow(
-                                    key: range.count > 1
-                                        ? (ticket.isEstimate ? "\(ticket.name) (推定)" : ticket.name)
-                                        : "\(ticketKindLabel(kind: range.kind))・\(ticket.name)",
-                                    value: formatYen(amount: ticket.price),
-                                    seed: showBrandHex
-                                )
-                            }
-                        }
-                    }
+                    ImasSectionHeader("チケット", style: .small)
+                    ImasPriceList(rows: priceRows)
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
@@ -422,13 +422,9 @@ struct SetlistView: View {
                 Section {
                     Group {
                         if AuthService.shared.isSignedIn {
-                            HStack(spacing: 6) {
-                                Image(systemName: "hand.thumbsup.fill").font(.imasCaption).foregroundStyle(DS.pick)
-                                Text("良かったと思った曲に 👍 で投票しよう！")
-                                    .font(.imasCaption).foregroundStyle(DS.ink2)
-                            }
+                            ImasNote("良かったと思った曲に 👍 で投票しよう！", systemImage: "hand.thumbsup.fill")
                         } else {
-                            InlineLoginPrompt(message: "👍 で投票するにはログインが必要です", seed: showBrandHex)
+                            ImasSignInPrompt(message: "👍 で投票するにはログインが必要です")
                         }
                     }
                     .listRowBackground(Color.clear)
@@ -441,9 +437,9 @@ struct SetlistView: View {
 
             // 実セトリ: 両方ありで予想タブ選択中は隠す。それ以外は表示。
             ForEach((isFutureShow && !setlist.isEmpty && contentTab == 1) ? [] : sections) { section in
-                Section(header: ImasSectionHeader(title: section.sectionName, tight: true).textCase(nil)) {
-                    // セクションの曲を 1 枚の角丸カード (ImasCardList) にまとめる (デザイン 03 の .list)。
-                    ImasCardList {
+                Section(header: ImasSectionHeader(section.sectionName, style: .small).textCase(nil)) {
+                    // セクションの曲を 1 枚の紙にまとめ、切り取り線で区切る (セトリ・申込書と同じ紙面)。
+                    ImasCardList(style: .sheet) {
                         ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
                             if index > 0 { ImasRowDivider(inset: simpleMode ? 34 : 66) }
                             setlistRow(item: item, index: index)
@@ -556,26 +552,12 @@ struct SetlistView: View {
             SongSearchPickerView(showId: req.showId) { songs in req.onSelect(songs) }
                 .environment(database)
         }
-        .overlay {
-            if isCreatingPlaylist {
-                ZStack {
-                    Color.black.opacity(0.35).ignoresSafeArea()
-                    VStack(spacing: 14) {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.large)
-                        Text(playlistProgress.total > 0
-                             ? "プレイリスト作成中… \(playlistProgress.current)/\(playlistProgress.total)"
-                             : "プレイリスト作成中…")
-                            .font(.imasSubhead)
-                    }
-                    .padding(28)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                }
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.15), value: isCreatingPlaylist)
+        .imasSavingOverlay(
+            isCreatingPlaylist,
+            label: playlistProgress.total > 0
+                ? "プレイリスト作成中… \(playlistProgress.current)/\(playlistProgress.total)"
+                : "プレイリスト作成中…"
+        )
         .task { await loadSetlist() }
         // 参加の付け外しと「配信も回収に含める」設定で回収の札と要約が変わるので、
         // それも鍵に含める (表示モードと歌唱者の設定と同じ扱い)。
@@ -610,27 +592,20 @@ struct SetlistView: View {
     /// 自分の回収の要約。セトリの真上に置いて、この下の並びの読み方を先に言う。
     ///
     /// **文言も出す/出さないも imas-core が決める** (`collectionSummary` が nil なら
-    /// 何も出さない)。ここが持つのは「参加した公演は緑」という見た目だけ。
+    /// 何も出さない)。ここが持つのは「参加した公演は済んだ記録の札」という見た目だけ。
     @ViewBuilder
     private var collectionSummarySection: some View {
         if let summary = collectionSummary, !setlist.isEmpty,
            !(isFutureShow && contentTab == 1) {
             Section {
-                HStack(spacing: DS.sp2) {
-                    Image(systemName: summary.attended ? "checkmark.seal.fill" : "circle.dashed")
-                        .font(.imasCaption)
-                        .foregroundStyle(summary.attended ? DS.success : DS.ink3)
-                    Text(summary.label)
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(summary.attended ? DS.ink : DS.ink2)
+                HStack {
+                    ImasBadge(
+                        text: summary.label,
+                        kind: summary.attended ? .positive : .neutral,
+                        systemImage: summary.attended ? "checkmark.seal.fill" : "circle.dashed"
+                    )
                     Spacer(minLength: 0)
                 }
-                .padding(.horizontal, DS.sp3)
-                .padding(.vertical, DS.sp2)
-                .background(
-                    summary.attended ? AnyShapeStyle(DS.success.opacity(0.10)) : AnyShapeStyle(DS.fill),
-                    in: Capsule()
-                )
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
                 .listRowSeparator(.hidden)

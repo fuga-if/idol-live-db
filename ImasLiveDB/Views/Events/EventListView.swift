@@ -76,27 +76,33 @@ struct EventListView: View {
     /// 高さ計算が破綻する)。楽曲・アイドル一覧が平坦な `ForEach` で無事だったこと、
     /// 見出しを外すと再現しなくなることの両方から特定した。
     ///
-    /// そこで年見出しも行も同じ 1 本の `ForEach` に並べ、カードの角丸は行ごとに
-    /// 「グループの先頭/末尾か」で描き分ける (見た目は従来と同じ)。
+    /// 行を半券の形 (`ImasEventRow`) にしてからは、行どうしがカードへ入れ子にならず
+    /// それぞれ自分の形を持つので、この平坦な並びがそのまま正しい組み方になった
+    /// (先頭/末尾で角丸を描き分ける計算はもう要らない)。
     private enum EventListItem: Identifiable {
-        case yearHeader(String, isFirst: Bool)
-        case row(EventWithDate, isFirst: Bool, isLast: Bool)
+        case yearHeader(String)
+        case row(EventWithDate)
 
         var id: String {
             switch self {
-            case .yearHeader(let year, _): "header_\(year)"
-            case .row(let ew, _, _): ew.id
+            case .yearHeader(let year): "header_\(year)"
+            case .row(let ew): ew.id
             }
         }
+    }
+
+    /// 年の見出しの横に添える件数 (「14 件」)。`ImasDateHeader` の imprint 用。
+    private func eventCount(forYear year: String) -> Int {
+        vm.groupedByYear.first { $0.year == year }?.events.count ?? 0
     }
 
     /// 年グループを 1 本の並びへ畳む (グループの順序と行の順序はそのまま)。
     private var listItems: [EventListItem] {
         var items: [EventListItem] = []
-        for (gi, group) in vm.groupedByYear.enumerated() {
-            items.append(.yearHeader(group.year, isFirst: gi == 0))
-            for (i, ew) in group.events.enumerated() {
-                items.append(.row(ew, isFirst: i == 0, isLast: i == group.events.count - 1))
+        for group in vm.groupedByYear {
+            items.append(.yearHeader(group.year))
+            for ew in group.events {
+                items.append(.row(ew))
             }
         }
         return items
@@ -162,8 +168,8 @@ struct EventListView: View {
                 // に付けても無言で消える (習熟度画面で一度踏んだ罠と同じ)。
                 List {
                     ImasTabs(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
-                        .padding(.horizontal, DS.sp5)
-                        .padding(.top, 6)
+                        .padding(.horizontal, DS.Space.screen)
+                        .padding(.top, DS.Space.gapTight)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(DS.bg)
                         .listRowSeparator(.hidden)
@@ -177,54 +183,36 @@ struct EventListView: View {
 
                     if vm.isLoading {
                         ImasListSkeleton(rows: 10, thumb: .none)
-                            .padding(.horizontal, DS.sp5)
-                            .padding(.top, DS.sp3)
+                            .padding(.horizontal, DS.Space.screen)
+                            .padding(.top, DS.Space.gap)
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(DS.bg)
                             .listRowSeparator(.hidden)
                     }
 
+                    // 半券の行はそれぞれが自分の形 (角丸・切り取り欠き) を持つので、
+                    // カードへの入れ子 (と、その入れ子が実機のスクロールで主スレッドを
+                    // 固まらせていた既知の不具合) が要らなくなった。年の区切りと行を
+                    // 1 本の ForEach にそのまま並べ、行の間は半券どうしの余白で空ける。
                     ForEach(listItems) { item in
                         switch item {
-                        case .yearHeader(let year, let isFirstGroup):
-                            ImasSectionHeader(title: year, tight: true)
-                                // 従来の「グループ VStack に付けていた上余白」と同じ値
-                                .padding(.top, isFirstGroup && !hasActiveFilterChips ? 6 : 18)
-                                .padding(.bottom, DS.sp3)
-                                .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                        case .yearHeader(let year):
+                            ImasDateHeader(big: year, imprint: "\(eventCount(forYear: year)) 件", isPast: timeFilter == 1)
+                                .padding(.horizontal, DS.Space.screen)
+                                .listRowInsets(EdgeInsets())
                                 .listRowBackground(DS.bg)
                                 .listRowSeparator(.hidden)
 
-                        case .row(let ew, let isFirst, let isLast):
-                            VStack(spacing: 0) {
-                                if !isFirst {
-                                    ImasRowDivider(inset: 16)
-                                }
-                                NavigationLink(value: ew.event) {
-                                    EventRowView(
-                                        event: ew.event,
-                                        dateText: ew.dateRange,
-                                        seedHex: brandColorMap[ew.event.brandId ?? ""]
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            // カードの角丸はグループの先頭/末尾の行だけ丸める
-                            // (従来 ImasCardList がグループ全体に掛けていた見た目を、
-                            //  入れ子にせず行単位で再現する)。
-                            .background(DS.surface)
-                            .clipShape(
-                                .rect(
-                                    topLeadingRadius: isFirst ? DS.rMD : 0,
-                                    bottomLeadingRadius: isLast ? DS.rMD : 0,
-                                    bottomTrailingRadius: isLast ? DS.rMD : 0,
-                                    topTrailingRadius: isFirst ? DS.rMD : 0
+                        case .row(let ew):
+                            NavigationLink(value: ew.event) {
+                                ImasEventRow(
+                                    event: ew.event,
+                                    date: ew.firstDate,
+                                    subtitle: ew.dateRange,
+                                    rainbow: !ew.event.jointBrandIdList.isEmpty
                                 )
-                            )
-                            .padding(.horizontal, DS.sp5)
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
+                            }
+                            .buttonStyle(.plain)
                             // イベントは公演 (show) を複数束ねることがあり、参加は show 単位でしか
                             // 保存できない。ここで「1 公演なら直接登録」等の判定を新設すると
                             // 出し分け規則の二重管理になるので、公演ごとの参加管理は既存の
@@ -243,16 +231,14 @@ struct EventListView: View {
                             .listRowSeparator(.hidden)
                     }
 
-                    Color.clear.frame(height: 24)
+                    Color.clear.frame(height: DS.Space.section)
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(DS.bg)
                         .listRowSeparator(.hidden)
                 }
-                .listStyle(.plain)
+                .imasList()
                 .readableContentMargins()
                 .environment(\.defaultMinListRowHeight, 0)
-                .scrollContentBackground(.hidden)
-                .background(DS.bg)
                 .scrollDismissesKeyboard(.immediately)
                 .refreshable {
                     await syncEngine.performIncrementalSync(database: database)
@@ -343,52 +329,43 @@ struct EventListView: View {
 
     // MARK: - Active filter chips (removable)
 
-    /// アクティブなフィルタを横スクロールの removable chip 列で表示。
-    /// 各チップのタップでそのフィルタだけを即時解除する (既存 AppStorage ロジックに配線)。
+    /// アクティブなフィルタを `ImasFilterBar` で表示。各チップのタップでそのフィルタだけを
+    /// 即時解除する (既存 AppStorage ロジックに配線)。2 つ以上効いていれば「すべて解除」も出す。
     private var hasActiveFilterChips: Bool { activeFilterCount > 0 }
 
-    @ViewBuilder private var activeFilterChips: some View {
-        if hasActiveFilterChips {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    ForEach(selectedBrandIds.sorted(), id: \.self) { bid in
-                        removableChip(brandNameMap[bid] ?? bid, seed: brandColorMap[bid]) {
-                            selectedBrandIds.remove(bid)
-                        }
-                    }
-                    ForEach(Array(excludedKinds).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { kind in
-                        removableChip("除外: \(kind.displayLabel)") {
-                            removeExcludedKind(kind)
-                        }
-                    }
-                    if attendanceFilter == "attended" {
-                        removableChip("参加済み") { attendanceFilter = "all" }
-                    } else if attendanceFilter == "not_attended" {
-                        removableChip("未参加") { attendanceFilter = "all" }
-                    }
-                    if requireFavorite {
-                        removableChip("お気に入り") { requireFavorite = false }
-                    }
-                    if requireNote {
-                        removableChip("メモあり") { requireNote = false }
-                    }
-                    if !venueFilter.isEmpty {
-                        removableChip(venueDirectory.venue(id: venueFilter)?.name ?? venueFilter) {
-                            venueFilter = ""
-                        }
-                    }
-                }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp1)
-            }
-            .padding(.top, 6)
+    private var activeFilterItems: [ImasFilterBar.Item] {
+        var items: [ImasFilterBar.Item] = []
+        for bid in selectedBrandIds.sorted() {
+            items.append(ImasFilterBar.Item(id: "brand_\(bid)", title: brandNameMap[bid] ?? bid, seed: brandColorMap[bid]) {
+                selectedBrandIds.remove(bid)
+            })
         }
+        for kind in Array(excludedKinds).sorted(by: { $0.rawValue < $1.rawValue }) {
+            items.append(ImasFilterBar.Item(id: "kind_\(kind.rawValue)", title: "除外: \(kind.displayLabel)") {
+                removeExcludedKind(kind)
+            })
+        }
+        if attendanceFilter == "attended" {
+            items.append(ImasFilterBar.Item(id: "attendance", title: "参加済み") { attendanceFilter = "all" })
+        } else if attendanceFilter == "not_attended" {
+            items.append(ImasFilterBar.Item(id: "attendance", title: "未参加") { attendanceFilter = "all" })
+        }
+        if requireFavorite {
+            items.append(ImasFilterBar.Item(id: "favorite", title: "お気に入り") { requireFavorite = false })
+        }
+        if requireNote {
+            items.append(ImasFilterBar.Item(id: "note", title: "メモあり") { requireNote = false })
+        }
+        if !venueFilter.isEmpty {
+            items.append(ImasFilterBar.Item(id: "venue", title: venueDirectory.venue(id: venueFilter)?.name ?? venueFilter) {
+                venueFilter = ""
+            })
+        }
+        return items
     }
 
-    /// selected スタイルの removable chip。テキスト + 末尾 × を 1 つのピルに収め、
-    /// タップで `onRemove`。design の `chip sel removable` 相当。
-    private func removableChip(_ text: String, seed: String? = nil, onRemove: @escaping () -> Void) -> some View {
-        ImasRemovableChip(text: text, seed: seed, onRemove: onRemove)
+    @ViewBuilder private var activeFilterChips: some View {
+        ImasFilterBar(items: activeFilterItems, onClearAll: activeFilterItems.count >= 2 ? { clearAllFilters() } : nil)
     }
 
     /// 新規イベント作成導線。ログイン済みなら作成 sheet、未ログインならログイン誘導。
@@ -446,7 +423,7 @@ struct EventListView: View {
                 actionTitle: "絞り込みを解除",
                 action: { searchText = ""; appliedSearchText = "" }
             )
-            .padding(.top, 40)
+            .padding(.top, DS.Space.section)
         } else {
             ImasEmptyState(
                 systemImage: "music.mic",
@@ -459,7 +436,7 @@ struct EventListView: View {
                 actionTitle: activeFilterCount > 0 ? "フィルタを解除" : nil,
                 action: activeFilterCount > 0 ? { clearAllFilters() } : nil
             )
-            .padding(.top, 40)
+            .padding(.top, DS.Space.section)
         }
     }
 
@@ -467,33 +444,8 @@ struct EventListView: View {
 
 // MARK: - Supporting types
 // YearGroup は Domain/UseCases/EventGrouping.swift に移動 (純粋ロジックとして単体テスト対象)。
-
-/// ライブ一覧の 1 行。行頭の細いリードバー (合同 = rainbow) + ライブ名 + 日付レンジ。
-/// エンティティ色は seed (ブランドカラー hex) で控えめに供給する。
-/// 参加登録は行のスワイプ (`eventAttendanceSwipe`) から。
-private struct EventRowView: View {
-    let event: Event
-    var dateText: String? = nil
-    /// ブランドカラー hex (リードバーの seed)。合同ライブのときは無視され rainbow になる。
-    var seedHex: String? = nil
-
-    /// joint_brand_ids を持つ = 合同ライブ → rainbow リードバー。
-    private var isJoint: Bool { !event.jointBrandIdList.isEmpty }
-
-    var body: some View {
-        // ★お気に入りトグルは行から撤去済み (2026-09)。お気に入り自体は
-        // 詳細画面・お気に入り一覧・絞り込みに残る。
-        //
-        // 矢印は**この行では描かない**。一覧が List になったので NavigationLink 側が
-        // 標準の矢印を出しており、行にも付けると 2 本並ぶ (実機で確認)。
-        ImasLeadRow(
-            title: eventDisplayName(event.name),
-            subtitle: dateText,
-            seed: seedHex,
-            rainbow: isJoint
-        ) {
-            EmptyView()
-        }
-        .background(DS.surface)
-    }
-}
+//
+// ★行の見た目は `ImasEventRow` (半券) に一本化済み。以前はここに専用の `EventRowView`
+// (リードバー + ライブ名 + 日付レンジ) を持っていたが、半券の行は行末の矢印を自分で
+// 描かない・区切り線を自分の余白で表すなど、同じ事情をすべて `ImasEventRow` 側が
+// 引き継いでいるので、この一覧専用の行は廃止した。

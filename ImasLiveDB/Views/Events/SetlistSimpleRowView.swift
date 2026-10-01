@@ -2,9 +2,10 @@ import SwiftUI
 
 /// セトリの「シンプル表示」1 行。
 ///
-/// 通常の `SetlistRowView` はジャケ写・Good・カバータグ・ユニットチップ・アバターを
-/// 載せていて 1 曲で 80pt 前後になる。 20 曲超のライブだと 3 画面ぶんスクロールが要り、
-/// 「セトリ全体を 1 枚のスクショで残す」ができない。
+/// 通常の `SetlistRowView` (`ImasSetlistRow`) はジャケ写・Good・カバータグ・ユニットチップ・
+/// アバターを載せていて 1 曲で 80pt 前後になる。 20 曲超のライブだと 3 画面ぶんスクロールが要り、
+/// 「セトリ全体を 1 枚のスクショで残す」ができない。`ImasRow` も最小高さ (44pt) を敷くので使わず、
+/// この行だけは軽い自前の組み方にする。
 ///
 /// この行は公式のセトリ画像と同じ **番号・曲名・演者名だけ**に絞り、
 /// 1 曲 40pt 前後に収める。 曲名はブランド色で出すので、色だけで所属が読み取れる。
@@ -25,17 +26,17 @@ struct SetlistSimpleRowView: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.rowGap) {
             // 番号は幅を固定して曲名の頭を揃える (等幅数字。 二桁で桁が動くと読みにくい)。
+            // 通常表示の `ImasSetlistRow` と同じ書体にして、表示モードが替わっても数字の見え方を揃える。
             Text(displayNumber.map { String(format: "%02d", $0) } ?? "–")
-                .font(.imasCaption.monospacedDigit())
-                .foregroundStyle(DS.ink3)
-                .frame(width: 22, alignment: .trailing)
+                .font(.imasMono(11.5, weight: .bold))
+                .foregroundStyle(DS.ink2)
+                .frame(width: 24, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.songTitle)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(titleColor)
+                    .imasText(.rowTitle, color: titleColor)
                     .lineLimit(2)
 
                 if !performerLabel.isEmpty {
@@ -51,7 +52,7 @@ struct SetlistSimpleRowView: View {
                 }
             }
         }
-        .padding(.vertical, DS.sp2)
+        .padding(.vertical, DS.Space.gapTight)
         .contentShape(Rectangle())
         .imasCopyable([
             CopyItem("曲名をコピー", item.songTitle, key: "song_title"),

@@ -2,8 +2,7 @@ import SwiftUI
 
 struct SetlistRowView: View {
     @Environment(AppDatabase.self) private var database
-    @Environment(\.colorScheme) private var scheme
-    /// 文字サイズ設定。曲名 (生 .system) のスケールに使い、変更時の行再評価の依存源も兼ねる。
+    /// 文字サイズ設定。歌唱者アイコンの束・ジャケのスケールに使い、変更時の行再評価の依存源も兼ねる。
     @AppStorage("text_scale") private var textScale: Double = 1.0
     let item: SetlistRow
     var displayNumber: Int? = nil
@@ -16,11 +15,7 @@ struct SetlistRowView: View {
     var isFullCast: Bool = false
     /// この披露についての事実を、軸 (`披露` / `回収`) ごとにまとめたもの。
     /// **軸の分け方も、ラベルも、順も、どれを強く見せるか (`tone`) も imas-core が決める**
-    /// ので、ここは受け取った順に並べるだけ。詳細表示以外では必ず空で来る。
-    ///
-    /// 丸い札にはしない。曲の属性 (カバー・ユニット名) と同じ形で並べると 1 行に丸が
-    /// 5 つ並び、「・」で繋いだ 1 行にしても並列に並ぶだけで構造にならない。
-    /// 軸の名前を左に固定幅で置き、値を右に流す。
+    /// ので、ここは受け取ったまま `ImasSetlistRow` に渡す。詳細表示以外では必ず空で来る。
     var noteGroups: [SetlistRowNoteGroupRecord] = []
     /// 歌唱者をどの名前で出すか (親が AppStorage から解決して渡す)。
     var performerName: PerformerNameMode = .idolOnly
@@ -70,7 +65,7 @@ struct SetlistRowView: View {
     }
 
     /// アイドルと表示名を 1 組にした並び。**解決はここ 1 箇所**で、
-    /// チップもシートもこれを見る (同じ人の名前を 2 度解決しない)。
+    /// アバターの束もシートもこれを見る (同じ人の名前を 2 度解決しない)。
     private var resolvedPerformers: [ResolvedPerformer] {
         performers.compactMap { row in
             guard let idol = row.idolId.flatMap({ idolsById[$0] }) else { return nil }
@@ -81,67 +76,51 @@ struct SetlistRowView: View {
         }
     }
 
+    /// `ImasSetlistRow`/`ImasAvatarStack` に渡す形。アイドルが分かる人は判子の略称と写真を持たせ、
+    /// アイコンを出せるようにする (アイコンを消さない)。
+    private var rowPerformers: [ImasPerformer] {
+        performers.map { row in
+            let idol = row.idolId.flatMap { idolsById[$0] }
+            return ImasPerformer(
+                id: row.id,
+                name: row.displayName(performerName, isCharacterLive: isCharacterLive).joined,
+                color: row.idolColor,
+                iconLabel: idol?.shortName,
+                imageURL: row.idolId.flatMap { CustomImageService.shared.imageURL(for: $0) }
+            )
+        }
+    }
+
     /// フォールバック色シード。曲のブランド色。
     private var seed: String? { brandHex }
 
-    @ViewBuilder
-    private var likeButton: some View {
-        let liked = likeEntry?.hasUserLiked ?? false
-        let count = likeEntry?.likeCount ?? 0
-        VStack(spacing: 1) {
-            Button {
-                guard let showId, !likeBusy else { return }
-                // 未ログインは投票不可 → 親にログイン誘導を依頼 (黙って失敗させない)。
-                // bearerToken の事前チェックはしない (セッション更新中の窓で bearerToken == nil に
-                // なる瞬間があり、401 の自動リフレッシュを潰して誤ってログイン誘導してしまうため)。
-                guard AuthService.shared.isSignedIn else {
-                    onRequireLogin?(); return
-                }
-                likeBusy = true
-                Task {
-                    defer { likeBusy = false }
-                    do {
-                        let result = liked
-                            ? try await SetlistLikeService.shared.unlike(showId: showId, songId: item.songId)
-                            : try await SetlistLikeService.shared.like(showId: showId, songId: item.songId)
-                        onToggleLike?(result)
-                    } catch LikeError.unauthorized {
-                        onRequireLogin?()
-                    } catch APIClientError.notAuthorized {
-                        onRequireLogin?()
-                    } catch {
-                        // それ以外 (network 等) は黙る。次回 fetch で正しい状態に。
-                    }
-                }
-            } label: {
-                Image(systemName: liked ? "hand.thumbsup.fill" : "hand.thumbsup")
-                    .font(.imasScaled( 18, weight: liked ? .semibold : .regular))
-                    .foregroundStyle(liked ? DS.pick : DS.ink3)
-                    .frame(minWidth: 44, minHeight: 32)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.borderless)
-            .disabled(likeBusy)
-            .accessibilityLabel(liked ? "Good を取り消す" : "この曲が良かった")
-
-            if count > 0 {
-                Text("\(count)")
-                    .font(.imasDisplay(10))
-                    .foregroundStyle(DS.ink3)
-            }
-        }
-        .padding(.top, 6)
-    }
-
-    /// オリメンの札を ImasTagChip に写す。色の出し分けは種類だけで決める (文言はコア)。
-    private var coverTag: (text: String, kind: ImasTagChip.Kind)? {
+    /// オリメンの札 (役割の札の 1 つ目)。
+    private var lineupBadge: ImasBadgeSpec? {
         guard let lineup else { return nil }
-        let kind: ImasTagChip.Kind = switch lineup.kind {
+        let kind: ImasBadge.Kind = switch lineup.kind {
         case .original, .originalPlus: .unit
         case .partial: .partial
         case .cover: .cover
         }
-        return (lineup.label, kind)
+        return ImasBadgeSpec(text: lineup.label, kind: kind, seed: seed)
+    }
+
+    /// 役割の札。ユニット名義 / 全員 / オリメン を並べる (ユニット名・全員の札は今どおり)。
+    private var badges: [ImasBadgeSpec] {
+        var result: [ImasBadgeSpec] = []
+        if let lineupBadge { result.append(lineupBadge) }
+        if !unitNames.isEmpty {
+            result.append(contentsOf: unitNames.map { ImasBadgeSpec(text: $0, kind: .unit, seed: seed) })
+        } else if isFullCast {
+            result.append(ImasBadgeSpec(text: "全員", kind: .all, seed: seed))
+        }
+        return result
+    }
+
+    /// 歌唱者の行。ユニット名義だけの行は顔ぶれを出さない (チップが名義を言い切っている)。
+    /// 全員・個別歌唱は顔ぶれ (アイコンの束) を出す。
+    private var performersForRow: [ImasPerformer] {
+        unitNames.isEmpty ? rowPerformers : []
     }
 
     private var artworkURL: URL? {
@@ -159,17 +138,10 @@ struct SetlistRowView: View {
         return performers.contains { $0.idolId.map { myPickIdolIds.contains($0) } ?? false }
     }
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            // 連番 (等幅数字)
-            Text("\(displayNumber ?? item.position)")
-                .font(.imasDisplay(13))
-                .foregroundStyle(DS.ink3)
-                .frame(width: 22, alignment: .trailing)
-                .padding(.top, DS.sp4)
-
-            // ジャケ (画像/プレビュー対応。フォールバックは曲のブランド色ソリッド)。
-            // 文字サイズ設定に合わせて縮小し、行全体のサイズ感を揃える。
+    /// ジャケ (画像/プレビュー対応。フォールバックは曲のブランド色ソリッド)。
+    /// 文字サイズ設定に合わせて縮小し、行全体のサイズ感を揃える。
+    private var customArtwork: AnyView {
+        AnyView(
             ArtworkImageView(
                 url: artworkURL,
                 size: 44 * CGFloat(textScale),
@@ -177,63 +149,68 @@ struct SetlistRowView: View {
                 songTitle: item.songTitle, songId: item.songId,
                 seed: seed
             )
+        )
+    }
 
-            VStack(alignment: .leading, spacing: 5) {
-                // 曲名タップ → 楽曲詳細シート。タップ領域・折り返しを行幅いっぱいに取り、
-                // チップに幅を奪われて単語途中で改行する詰まりを防ぐ。
-                Button {
-                    Task {
-                        if let song = try? await AppContainer.shared.songReading.song(id: item.songId) {
-                            go(.song(song))
-                        }
-                    }
-                } label: {
-                    Text(item.songTitle)
-                        .font(.imasScaled( 16 * textScale, weight: .semibold))
-                        .foregroundStyle(DS.ink)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                // List セル内に複数ボタンが同居するため .borderless でタップをスコープ。
-                .buttonStyle(.borderless)
+    @ViewBuilder
+    private var trailing: some View {
+        if showId != nil {
+            ImasLikeButton(isOn: likeEntry?.hasUserLiked ?? false, count: likeEntry?.likeCount ?? 0,
+                          isBusy: likeBusy, action: toggleLike)
+        }
+    }
 
-                // 「この曲が何か」(カバー・ユニット・歌唱者) の行。
-                if hasMeta {
-                    metaRow
-                }
-
-                // 「この披露はどうだったか」(披露の履歴・自分の回収) の段。
-                noteGroupsBlock
-
-                if let notes = item.notes {
-                    Text(notes)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .italic()
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            // 良かった like (公演がセトリ確定 = showId 注入時のみ)。
-            if showId != nil {
-                likeButton
+    private func toggleLike() {
+        guard let showId, !likeBusy else { return }
+        let liked = likeEntry?.hasUserLiked ?? false
+        // 未ログインは投票不可 → 親にログイン誘導を依頼 (黙って失敗させない)。
+        // bearerToken の事前チェックはしない (セッション更新中の窓で bearerToken == nil に
+        // なる瞬間があり、401 の自動リフレッシュを潰して誤ってログイン誘導してしまうため)。
+        guard AuthService.shared.isSignedIn else {
+            onRequireLogin?(); return
+        }
+        likeBusy = true
+        Task {
+            defer { likeBusy = false }
+            do {
+                let result = liked
+                    ? try await SetlistLikeService.shared.unlike(showId: showId, songId: item.songId)
+                    : try await SetlistLikeService.shared.like(showId: showId, songId: item.songId)
+                onToggleLike?(result)
+            } catch LikeError.unauthorized {
+                onRequireLogin?()
+            } catch APIClientError.notAuthorized {
+                onRequireLogin?()
+            } catch {
+                // それ以外 (network 等) は黙る。次回 fetch で正しい状態に。
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 13)
-        // 担当アイドルが歌唱 → 左端にピンク帯 (デザイン 03 の pinkbar)。
-        .overlay(alignment: .leading) {
-            if hasMyPick {
-                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(DS.pick.opacity(0.7))
-                    .frame(width: 3)
-                    .padding(.vertical, DS.sp3)
+    }
+
+    /// 曲名タップ → 楽曲詳細シート。曲は id だけ持っているので取得してから遷移する。
+    private func selectTitle() {
+        Task {
+            if let song = try? await AppContainer.shared.songReading.song(id: item.songId) {
+                go(.song(song))
             }
         }
-        .contentShape(Rectangle())
+    }
+
+    var body: some View {
+        ImasSetlistRow(
+            number: "\(displayNumber ?? item.position)",
+            title: item.songTitle,
+            seed: seed,
+            performers: performersForRow,
+            badges: badges,
+            customArtwork: customArtwork,
+            onSelectTitle: selectTitle,
+            onSelectPerformers: { showPerformersSheet = true },
+            highlightsPick: hasMyPick,
+            trailing: .custom(AnyView(trailing)),
+            noteGroups: noteGroups,
+            note: item.notes
+        )
         // 長押し → 感想カード (曲名 + コメントのシェア画像) を作る。
         .contextMenu {
             Button {
@@ -267,164 +244,4 @@ struct SetlistRowView: View {
             .environment(database)
         }
     }
-
-    /// メタ行に出すものがあるか (カバー種別チップ or 履歴の札 or 歌唱者表現)。無ければ行ごと省く。
-    private var hasMeta: Bool {
-        coverTag != nil || !unitNames.isEmpty || isFullCast || !performers.isEmpty
-    }
-
-    /// **この曲が何か**の行 — カバー種別チップ + 歌唱者 (ユニット / 全員 / アバター)。
-    ///
-    /// 披露の履歴と自分の回収はここに入れない ([`notesLine`])。同じ形の札で混ぜると
-    /// 「カバー」と「4 回目」が同じ重みに見えて、行が札の羅列になる。
-    ///
-    /// 横一列 (HStack) ではなく回り込み (FlowLayout) にしてある。幅が足りないとき、
-    /// HStack は**札の中の文字を折り返す**ので「1 年 1 か月 / ぶり」と割れて読めなくなる。
-    /// 回り込みなら札ごと次の行に落ちる (札は ideal size で置かれるので中では折れない)。
-    @ViewBuilder
-    private var metaRow: some View {
-        FlowLayout(spacing: 6) {
-            if let tag = coverTag {
-                ImasTagChip(text: tag.text, kind: tag.kind, seed: seed)
-            }
-            performerMeta
-        }
-    }
-
-    /// **この披露についての事実**の段 (詳細表示のときだけ来る)。
-    ///
-    /// ```text
-    /// ────────────────────────
-    /// 披露   3 回目   2 年 6 か月ぶり
-    /// 回収   初回収
-    /// ```
-    ///
-    /// 歌唱者との間にヘアラインを 1 本引いて、「この曲が何か」と「この披露がどうだったか」を
-    /// 別のブロックとして読ませる。軸の名前は固定幅で左に置くので、39 曲のセトリでも
-    /// 同じ位置に同じ軸が来る (縦に流し読みできる)。
-    @ViewBuilder
-    private var noteGroupsBlock: some View {
-        if !noteGroups.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
-                Rectangle()
-                    .fill(DS.sep)
-                    .frame(height: 0.5)
-                    .padding(.top, 3)
-                    .padding(.bottom, 2)
-                ForEach(noteGroups, id: \.label) { group in
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(group.label)
-                            .font(.imasCaption2)
-                            .kerning(0.4)
-                            .foregroundStyle(DS.ink3)
-                            .frame(width: 26, alignment: .leading)
-                        Self.notesText(group.notes, accent: accent)
-                            .font(.imasCaption)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-        }
-    }
-
-    private var accent: Color { ImasTheme.derive(seed: seed, scheme: scheme).accent }
-
-    /// 1 つの軸の値を 1 本の `Text` に連結する。
-    /// 連結した `Text` は普通の文として折り返すので、幅が足りなくても語の途中で割れない。
-    private static func notesText(_ notes: [SetlistRowNoteRecord], accent: Color) -> Text {
-        notes.enumerated().reduce(Text("")) { acc, pair in
-            let (index, note) = pair
-            return acc + (index == 0 ? Text("") : Text("  ")) + noteText(note, accent: accent)
-        }
-    }
-
-    /// 事実 1 つの見え方。**判断はしない** — core が付けた `tone` に対応表を当てるだけ。
-    ///
-    /// 色だけで意味を分けると、色が見分けづらい人には全部同じ文字列に見える。
-    /// 自分の記録 (回収 / 未回収) には印を付けて、色に頼らず分かるようにする。
-    private static func noteText(_ note: SetlistRowNoteRecord, accent: Color) -> Text {
-        switch note.tone {
-        case .value:
-            return Text(note.text).font(.imasCaption.weight(.medium)).foregroundColor(DS.ink)
-        case .detail:
-            return Text(note.text).foregroundColor(DS.ink3)
-        case .debut:
-            return Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(accent)
-        case .mine:
-            // 印は細いチェックマークだけ。塗りつぶしのシールはこの大きさだとシール然として
-            // 行から浮く (行に貼るのは「済み」の合図であって、賞ではない)。
-            return Text(Image(systemName: "checkmark"))
-                .font(.imasCaption2.weight(.semibold))
-                .foregroundColor(DS.successInk)
-                + Text(" ")
-                + Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(DS.successInk)
-        case .missing:
-            return Text(Image(systemName: "circle.dotted"))
-                .font(.imasCaption2)
-                .foregroundColor(DS.ink3)
-                + Text(" ")
-                + Text(note.text).foregroundColor(DS.ink2)
-        }
-    }
-
-    @ViewBuilder
-    private var performerMeta: some View {
-        if !unitNames.isEmpty {
-            // ユニット名義の行: ユニット名チップ
-            ForEach(unitNames, id: \.self) { name in
-                ImasTagChip(text: name, kind: .unit, seed: seed)
-            }
-        } else if isFullCast {
-            ImasTagChip(text: "全員", kind: .all, seed: seed)
-                .contentShape(Rectangle())
-                .onTapGesture { showPerformersSheet = true }
-        } else if !performers.isEmpty {
-            if !performerIdols.isEmpty {
-                StackedAvatars(idols: performerIdols, maxVisible: 5, size: 26 * CGFloat(textScale)) {
-                    showPerformersSheet = true
-                }
-            } else {
-                // アイドル情報なし → テキスト chip フォールバック
-                FlowLayout(spacing: DS.sp2) {
-                    ForEach(performers) { performer in
-                        PerformerChip(
-                            name: performer.displayName(performerName, isCharacterLive: isCharacterLive),
-                            colorHex: performer.idolColor
-                        )
-                    }
-                }
-            }
-        }
-    }
 }
-
-private struct PerformerChip: View {
-    /// 解決済みの表示名。**どちらを出すかの規則は imas-core が持つ**ので、
-    /// ここは受け取った主/副を並べるだけ (chip の中で解決し直さない)。
-    let name: PerformerDisplayName
-    let colorHex: String?
-
-    var body: some View {
-        HStack(spacing: DS.sp2) {
-            Circle()
-                .fill(Color(hexString: colorHex, default: DS.ink3))
-                .frame(width: 6, height: 6)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(name.primary)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                if let sub = name.secondary {
-                    Text(sub)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-            }
-        }
-        .padding(.horizontal, 7)
-        .padding(.vertical, 3)
-        .background(DS.fill, in: Capsule())
-    }
-}
-

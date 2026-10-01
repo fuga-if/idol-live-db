@@ -80,15 +80,40 @@ struct EventDetailView: View {
         vm.hero.map { AttendanceStatus($0.attendance) } ?? .none
     }
 
-    /// ヒーローのサブ行 (開催期間 ・ 会場)。組み方はコア。
-    private var heroSub: String { vm.hero?.subLine ?? "" }
+    /// ヒーローのサブ行 (開催期間 ・ 会場 ・ 合同)。組み方はコア + 合同の注記のみここで足す。
+    private var heroSub: String {
+        guard let sub = vm.hero?.subLine, !sub.isEmpty else { return "" }
+        return isJoint ? "\(sub) ・ 合同" : sub
+    }
+
+    /// 頭の印字 (「LIVE · ブランド名」/「LIVE · 合同」)。
+    private var mastheadItems: [String] {
+        ["LIVE", isJoint ? "合同" : (vm.brand?.shortName ?? "")].filter { !$0.isEmpty }
+    }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brandSeed, scheme: scheme)
         VStack(spacing: 0) {
-            // 常時固定: ヒーロー + UserMarkBar + 内部セグメント
+            // 常時固定: 頭 + UserMarkBar + 内部セグメント
             VStack(spacing: 0) {
-                hero(t)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: DS.Space.gap) {
+                        if !isJoint { ImasPenlight(color: t.penlight, size: .regular) }
+                        ImasMasthead(items: mastheadItems)
+                    }
+                    Text(event.name)
+                        .imasText(.heroTitle)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, DS.Space.gapTight)
+                        .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
+                    if !heroSub.isEmpty {
+                        ImasNote(heroSub, systemImage: "calendar")
+                            .padding(.top, DS.Space.gapTight)
+                    }
+                }
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.gap)
+                .padding(.bottom, DS.Space.gap)
 
                 UserMarkBar(
                     entity: .event,
@@ -99,25 +124,17 @@ struct EventDetailView: View {
                     onAttendedTap: { showAttendanceSheet = true },
                     attendedIsOn: !vm.attendedShowIds.isEmpty
                 )
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp4)
+                .padding(.horizontal, DS.Space.screen)
 
-                // 参加予定 (あとN日) / 参加済み のチップ。日付から導出。
+                // 参加予定 (あとN日) / 参加済み の札。日付から導出。
                 if attendanceStatus.isMarked {
-                    HStack(spacing: 6) {
-                        Image(systemName: attendanceStatus.systemImage)
-                            .font(.imasScaled(12, weight: .semibold))
-                        Text(attendanceStatus.label)
-                            .font(.imasScaled(13, weight: .semibold))
-                    }
-                    .foregroundStyle(attendanceStatus.isPlanned ? t.onAccent : DS.ink2)
-                    .padding(.horizontal, DS.sp4)
-                    .padding(.vertical, 6)
-                    .background(
-                        attendanceStatus.isPlanned ? AnyShapeStyle(t.accent) : AnyShapeStyle(DS.fill),
-                        in: Capsule()
+                    ImasBadge(
+                        text: attendanceStatus.label,
+                        kind: attendanceStatus.isPlanned ? .planned : .positive,
+                        systemImage: attendanceStatus.systemImage
                     )
-                    .padding(.top, DS.sp3)
+                    .padding(.horizontal, DS.Space.screen)
+                    .padding(.top, DS.Space.gapTight)
                 }
 
                 ImasTabs(
@@ -126,9 +143,9 @@ struct EventDetailView: View {
                     seed: seed,
                     brand: brandSeed
                 )
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp4)
-                .padding(.bottom, DS.sp3)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.gap)
+                .padding(.bottom, DS.Space.gapTight)
             }
             .background(DS.bg)
             .imasTheme(seed: seed, brand: brandSeed)
@@ -146,8 +163,8 @@ struct EventDetailView: View {
                             default: infoPanel
                             }
                         }
-                        .padding(.top, DS.sp3)
-                        .padding(.bottom, DS.sp7)
+                        .padding(.top, DS.Space.gap)
+                        .padding(.bottom, DS.Space.section)
                     }
                 }
             }
@@ -224,71 +241,17 @@ struct EventDetailView: View {
         .trackScreen("event_detail")
     }
 
-    // MARK: - Hero
-
-    @ViewBuilder
-    private func hero(_ t: ImasTheme) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // ブランドバー (accent ピル)。合同ライブは虹色。
-            RoundedRectangle(cornerRadius: DS.rPill, style: .continuous)
-                .fill(isJoint
-                      ? AnyShapeStyle(LinearGradient(
-                            colors: [.red, .orange, .yellow, .green, .blue, .purple],
-                            startPoint: .leading, endPoint: .trailing))
-                      : AnyShapeStyle(t.accent))
-                .frame(width: 44, height: 6)
-                .padding(.bottom, DS.sp3)
-
-            Text(event.name)
-                .font(.imasTitle2.weight(.bold))
-                .foregroundStyle(DS.ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
-
-            if !heroSub.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar").font(.imasScaled( 13, weight: .semibold))
-                    Text(heroSub)
-                    if isJoint {
-                        Text("・ 合同").foregroundStyle(t.accent)
-                    }
-                }
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
-                .padding(.top, DS.sp2)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, DS.sp5)
-        .padding(.top, DS.sp4)
-        .padding(.bottom, DS.sp4)
-        .background(t.heroSurface)
-    }
-
     // MARK: - Panel 0: 公演・セトリ
 
     /// ⚠️ ここは **List でなければならない**。行をスワイプしての参加登録 (`attendanceSwipe`)
     /// は List の行にしか効かず、ScrollView + LazyVStack に付けても無言で消える
-    /// (習熟度画面のスワイプが同じ理由で一度死んでいる)。見出し・追加ボタン・空状態も
+    /// (習熟度画面のスワイプが同じ理由で一度死んでいる)。見出し・空状態も
     /// 同じ理由で List の行として差す (`plainRow`)。
     @ViewBuilder
     private var showsList: some View {
         List {
-            HStack {
-                ImasSectionHeader(title: "公演 ・ \(vm.shows.count) 公演 → セトリへ", tight: true)
-                Spacer(minLength: 8)
-                if EditPermission.showEditAffordance {
-                    Button {
-                        start(.createShow)
-                    } label: {
-                        Label("追加", systemImage: "plus.circle")
-                            .font(.imasScaled( 13, weight: .semibold))
-                            .labelStyle(.titleAndIcon)
-                            .foregroundStyle(seedAccent)
-                    }
-                }
-            }
-            .plainRow(background: DS.bg)
+            ImasSectionHeader("公演", count: "\(vm.shows.count) 公演 → セトリへ", style: .small)
+                .plainRow(background: DS.bg)
 
             if vm.shows.isEmpty {
                 ImasEmptyState(
@@ -303,14 +266,21 @@ struct EventDetailView: View {
             } else {
                 ForEach(vm.shows) { show in
                     showRow(show)
-                        .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
+                        .listRowInsets(EdgeInsets(top: 4, leading: DS.Space.screen, bottom: 4, trailing: DS.Space.screen))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                         .attendanceSwipe(show: show, event: event) {
                             vm.recomputeAttendedShows()
                             Task { await vm.reloadHero(eventId: event.id) }
                         }
                 }
+            }
+
+            if EditPermission.showEditAffordance {
+                ImasActionRow(title: "公演を追加", systemImage: "plus.circle") {
+                    start(.createShow)
+                }
+                .plainRow(background: DS.bg)
             }
         }
         .listStyle(.plain)
@@ -322,13 +292,13 @@ struct EventDetailView: View {
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         Button { openShow(show) } label: {
-            ImasLeadRow(
+            ImasShowRow(
+                date: show.date,
                 title: show.name,
-                subtitle: [show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "),
-                seed: seed,
-                brand: brandSeed,
-                rainbow: isJoint,
-                titleLineLimit: 1
+                subtitle: show.venue,
+                brandHex: brandSeed,
+                isPunched: vm.attendedShowIds.contains(show.id),
+                rainbow: isJoint
             )
         }
         .buttonStyle(.plain)
@@ -355,7 +325,7 @@ struct EventDetailView: View {
                 brandSeed: brandSeed,
                 navigate: { go($0) }
             )
-            .padding(.horizontal, DS.sp5)
+            .padding(.horizontal, DS.Space.screen)
         } else {
             ImasCardList {
                 ImasEmptyState(
@@ -365,7 +335,7 @@ struct EventDetailView: View {
                     seed: seed, brand: brandSeed
                 )
             }
-            .padding(.horizontal, DS.sp5)
+            .padding(.horizontal, DS.Space.screen)
         }
     }
 
@@ -373,10 +343,15 @@ struct EventDetailView: View {
 
     @ViewBuilder
     private var infoPanel: some View {
-        VStack(alignment: .leading, spacing: DS.sp5) {
+        VStack(alignment: .leading, spacing: DS.Space.screen) {
             if let stats = vm.stats {
-                EventStatsTiles(stats: stats, seed: seed, brand: brandSeed)
-                    .padding(.horizontal, DS.sp5)
+                ImasStatGrid(columns: 2) {
+                    ImasStatTile(systemImage: "music.mic", value: "\(stats.showCount)", label: "公演", seed: seed, brand: brandSeed)
+                    ImasStatTile(systemImage: "music.note.list", value: "\(stats.totalSongs)", label: "曲（延べ）", seed: seed, brand: brandSeed)
+                    ImasStatTile(systemImage: "music.note", value: "\(stats.uniqueSongs)", label: "ユニーク曲", seed: seed, brand: brandSeed)
+                    ImasStatTile(systemImage: "person.2", value: "\(stats.castCount)", label: "キャスト", seed: seed, brand: brandSeed)
+                }
+                .padding(.horizontal, DS.Space.screen)
             }
 
             ticketInfoSection
@@ -392,36 +367,25 @@ struct EventDetailView: View {
             EventReleasesSection(eventId: event.id, seed: seed, brand: brandSeed)
 
             // ブランド / 年度メタ
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                ImasCardList {
-                    if let brand = vm.brand {
-                        Button {
-                            go(.filteredEvents(.brand(id: brand.id, label: brand.shortName)))
-                        } label: {
-                            ImasLabeledRow(
-                                key: "ブランド", value: brand.shortName,
-                                showChevron: true, tappable: true,
-                                seed: seed, brand: brandSeed
-                            )
-                        }
-                        .buttonStyle(.plain)
+            ImasCardList {
+                if let brand = vm.brand {
+                    Button {
+                        go(.filteredEvents(.brand(id: brand.id, label: brand.shortName)))
+                    } label: {
+                        ImasValueRow(key: "ブランド", value: brand.shortName, isLink: true)
                     }
-                    if let year = firstShowYear {
-                        if vm.brand != nil { ImasRowDivider(inset: DS.sp5) }
-                        Button {
-                            go(.filteredEvents(.year(year)))
-                        } label: {
-                            ImasLabeledRow(
-                                key: "年度", value: "\(year)年",
-                                showChevron: true, tappable: true,
-                                seed: seed, brand: brandSeed
-                            )
-                        }
-                        .buttonStyle(.plain)
+                    .buttonStyle(.plain)
+                }
+                if let year = firstShowYear {
+                    Button {
+                        go(.filteredEvents(.year(year)))
+                    } label: {
+                        ImasValueRow(key: "年度", value: "\(year)年", isLink: true)
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, DS.sp5)
+            .padding(.horizontal, DS.Space.screen)
         }
     }
 
@@ -431,59 +395,46 @@ struct EventDetailView: View {
     private var ticketInfoSection: some View {
         let hasGuideUrl = URL.safeHTTP(string: event.ticketUrl) != nil
         if !vm.ticketSales.isEmpty || hasGuideUrl || isFutureEvent {
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                HStack(alignment: .firstTextBaseline) {
-                    ImasSectionHeader(title: "チケット受付", tight: true)
-                    Spacer(minLength: 12)
-                    if EditPermission.showEditAffordance {
-                        Button {
-                            start(.createTicketSale)
-                        } label: {
-                            HStack(spacing: DS.sp2) {
-                                Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
-                                Text("追加").font(.imasScaled( 14, weight: .semibold))
-                            }
-                            .foregroundStyle(seedAccent)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, DS.sp5)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                ImasSectionHeader("チケット受付", style: .small)
+                    .padding(.horizontal, DS.Space.screen)
 
                 if vm.ticketSales.isEmpty {
                     ImasCardList {
-                        Text("チケット受付は未登録です")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, DS.sp4).padding(.vertical, 11)
+                        ImasNote("チケット受付は未登録です")
+                            .padding(.horizontal, DS.Space.rowH)
+                            .padding(.vertical, DS.Space.rowVCompact)
                     }
-                    .padding(.horizontal, DS.sp5)
+                    .padding(.horizontal, DS.Space.screen)
                 } else {
                     ImasCardList {
-                        ForEach(Array(vm.ticketSales.enumerated()), id: \.element.id) { idx, sale in
-                            if idx > 0 { ImasRowDivider(inset: DS.sp5) }
+                        ForEach(Array(vm.ticketSales.enumerated()), id: \.element.id) { index, sale in
+                            if index > 0 { ImasRowDivider(inset: DS.Space.rowH) }
                             ticketSaleRow(sale)
                         }
                     }
-                    .padding(.horizontal, DS.sp5)
+                    .padding(.horizontal, DS.Space.screen)
+
+                    if EditPermission.showEditAffordance {
+                        ImasActionRow(title: "受付を追加", systemImage: "plus.circle") {
+                            start(.createTicketSale)
+                        }
+                        .padding(.horizontal, DS.Space.screen)
+                    }
+                }
+                if vm.ticketSales.isEmpty, EditPermission.showEditAffordance {
+                    ImasActionRow(title: "受付を追加", systemImage: "plus.circle") {
+                        start(.createTicketSale)
+                    }
+                    .padding(.horizontal, DS.Space.screen)
                 }
 
                 if let url = URL.safeHTTP(string: event.ticketUrl) {
                     Link(destination: url) {
-                        HStack(spacing: DS.sp2) {
-                            Image(systemName: "ticket").font(.imasScaled( 15, weight: .semibold))
-                            Text("公式チケットページを開く").font(.imasSubhead.weight(.semibold))
-                            Spacer()
-                            ImasRowChevron()
-                        }
-                        .foregroundStyle(seedAccent)
-                        .padding(.horizontal, DS.sp4).padding(.vertical, 11)
-                        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                        .contentShape(Rectangle())
+                        ImasNavRow(title: "公式チケットページを開く", systemImage: "ticket", iconTone: .themed)
                     }
                     .buttonStyle(.plain)
-                    .padding(.horizontal, DS.sp5)
+                    .padding(.horizontal, DS.Space.screen)
                 }
             }
         }
@@ -493,20 +444,14 @@ struct EventDetailView: View {
     ///
     /// M8: 以前は行全体が `Button` で、その `label` の中に申込リンクの `Link` が入れ子に
     /// なっていた。SwiftUI では外側の `Button` がタップを取ってしまい、申込リンクが実質
-    /// 押せなくなる。編集への導線は行末の別ボタン (鉛筆アイコン) に分け、`Link` は
+    /// 押せなくなる。編集への導線は行末の別ボタン (chevron) に分け、`Link` は
     /// どの `Button` の外にも置く。
     @ViewBuilder
     private func ticketSaleRow(_ sale: TicketSale) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
-            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                Text(sale.stageLabel)
-                    .font(.imasCaption.weight(.bold))
-                    .foregroundStyle(ColorMath.onColor(stageColor(sale.stage)))
-                    .padding(.horizontal, DS.sp2).padding(.vertical, 2)
-                    .background(stageColor(sale.stage), in: Capsule())
-                Text(sale.kindLabel)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            HStack(alignment: .firstTextBaseline, spacing: DS.Space.gapTight) {
+                ImasBadge(text: sale.stageLabel, kind: stageBadgeKind(sale.stage))
+                Text(sale.kindLabel).imasText(.meta)
                 Spacer()
                 if EditPermission.showEditAffordance {
                     Button {
@@ -517,45 +462,37 @@ struct EventDetailView: View {
                     .buttonStyle(.plain)
                 }
             }
-            Text(sale.name)
-                .font(.imasSubhead.weight(.semibold))
-                .foregroundStyle(DS.ink)
+            Text(sale.name).imasText(.rowTitle)
             if let period = sale.periodLabel {
-                Text(period)
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
+                Text(period).imasText(.note)
             }
             if let result = sale.resultLabel {
-                Text("当落発表 \(result)")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
+                Text("当落発表 \(result)").imasText(.note)
             }
             if !sale.showLabels.isEmpty {
-                Text("対象: \(sale.showLabels.joined(separator: "・"))")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink3)
+                Text("対象: \(sale.showLabels.joined(separator: "・"))").imasText(.meta)
             }
             if let url = URL.safeHTTP(string: sale.url) {
                 Link(destination: url) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.right.square").font(.imasScaled( 12, weight: .semibold))
-                        Text("申込ページを開く").font(.imasFootnote.weight(.semibold))
+                    HStack(spacing: DS.Space.gapTight) {
+                        Image(systemName: "arrow.up.right.square").font(ImasTextRole.note.font)
+                        Text("申込ページを開く")
                     }
+                    .imasText(.note, color: seedAccent)
                 }
-                .foregroundStyle(seedAccent)
             }
         }
-        .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
+        .padding(.horizontal, DS.Space.rowH)
+        .padding(.vertical, DS.Space.gap)
         .contentShape(Rectangle())
     }
 
-    /// 段階の帯色。抽選中/受付中=accent、結果待ち=注意、終了=中立、受付前=中立寄り。
-    private func stageColor(_ stage: TicketSaleStage) -> Color {
+    /// 段階の札の種類。受付中/結果待ちは「墨の線」(§10.1 `.attention` が受付中を例示)、
+    /// 受付前/終了は「灰」(`.neutral` が終了・未定を例示)。色の数を増やさない。
+    private func stageBadgeKind(_ stage: TicketSaleStage) -> ImasBadge.Kind {
         switch stage {
-        case .open: return seedAccent
-        case .awaitingResult: return DS.warning
-        case .upcoming: return DS.fill
-        case .ended: return DS.fill
+        case .open, .awaitingResult: return .attention
+        case .upcoming, .ended: return .neutral
         }
     }
 
@@ -595,25 +532,6 @@ struct EventDetailView: View {
         }
     }
 
-}
-
-// MARK: - EventStats タイル (情報パネル)
-
-private struct EventStatsTiles: View {
-    let stats: EventStats
-    var seed: String?
-    var brand: String?
-
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
-
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: DS.sp3) {
-            ImasStatTile(systemImage: "music.mic", value: "\(stats.showCount)", label: "公演", seed: seed, brand: brand)
-            ImasStatTile(systemImage: "music.note.list", value: "\(stats.totalSongs)", label: "曲（延べ）", seed: seed, brand: brand)
-            ImasStatTile(systemImage: "music.note", value: "\(stats.uniqueSongs)", label: "ユニーク曲", seed: seed, brand: brand)
-            ImasStatTile(systemImage: "person.2", value: "\(stats.castCount)", label: "キャスト", seed: seed, brand: brand)
-        }
-    }
 }
 
 // MARK: - 出演パネル (披露ユニット + DAY別グリッド)
@@ -670,14 +588,10 @@ private struct AttendancePanel: View {
         return "\(m)/\(d)"
     }
 
-    private var panelAccent: Color {
-        ImasTheme.derive(seed: seed, brand: brandSeed, scheme: scheme).accent
-    }
-
-    private let avatarColumns = [GridItem(.adaptive(minimum: 56, maximum: 76), spacing: DS.sp3)]
+    private let avatarColumns = [GridItem(.adaptive(minimum: 56, maximum: 76), spacing: DS.Space.card)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp5) {
+        VStack(alignment: .leading, spacing: DS.Space.screen) {
             // 0) 主演 (出演パネルの最上部で最優先に目立たせる)
             if !leadIdols.isEmpty {
                 roleSection(
@@ -703,25 +617,21 @@ private struct AttendancePanel: View {
             }
 
             if attendance.isFullAttendance {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles").foregroundStyle(DS.warning)
-                    Text("全員集合！").font(.imasHeadline.weight(.bold)).foregroundStyle(DS.ink)
-                    Spacer()
-                    Text("\(attendance.brandIdols.count)/\(attendance.brandIdols.count) 名")
-                        .font(.imasFootnote).foregroundStyle(DS.ink2)
+                ImasCard {
+                    HStack(spacing: DS.Space.gapTight) {
+                        Image(systemName: "sparkles").foregroundStyle(DS.warning)
+                        Text("全員集合！").imasText(.cardTitle)
+                        Spacer(minLength: DS.Space.gap)
+                        Text("\(attendance.brandIdols.count)/\(attendance.brandIdols.count) 名").imasText(.note)
+                    }
                 }
-                .padding(.horizontal, DS.sp4).padding(.vertical, DS.sp3)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
 
             // 1) 披露ユニット (披露曲を unit 完全一致で歌った unit のみ)
             if !coveredUnits.isEmpty {
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    ImasSectionHeader(
-                        title: "披露ユニット ・ 全 \(attendance.presentIdols.count)/\(attendance.brandIdols.count) 名",
-                        tight: true
-                    )
-                    VStack(spacing: DS.sp3) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    ImasSectionHeader("披露ユニット", count: "全 \(attendance.presentIdols.count)/\(attendance.brandIdols.count) 名", style: .small)
+                    VStack(spacing: DS.Space.gap) {
                         ForEach(coveredUnits) { unit in
                             unitBlock(unit: unit)
                         }
@@ -749,61 +659,52 @@ private struct AttendancePanel: View {
 
     /// 役割セクション (主演 / ゲスト)。複数日公演では「どの DAY の主演か」が一目で分かるよう、
     /// DAY ごとに見出し付きのブロックへ分けて表示する。単一日では従来通りのフラット表示。
-    /// 主演は accent リングで強く、 ゲストはリング無し + outline バッジで控えめに区別する。
+    /// 主演は accent リングで強く、 ゲストはリング無し + outline の札で控えめに区別する。
     @ViewBuilder
     private func roleSection(
         byShow: [String: Set<String>],
         allIdols: [Idol],
         titleBase: String,
         chipText: String,
-        chipKind: ImasTagChip.Kind,
+        chipKind: ImasBadge.Kind,
         ringAccent: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(
-                title: allIdols.count > 1 ? "\(titleBase) ・ \(allIdols.count)名" : titleBase,
-                tight: true
-            )
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasSectionHeader(titleBase, count: allIdols.count > 1 ? "\(allIdols.count)名" : nil, style: .small)
             if attendance.shows.count > 1 {
-                VStack(alignment: .leading, spacing: DS.sp4) {
+                VStack(alignment: .leading, spacing: DS.Space.card) {
                     ForEach(Array(attendance.shows.enumerated()), id: \.element.id) { idx, show in
                         let dayIdols = roleIdols(byShow, show: show, allowed: allIdols)
                         if !dayIdols.isEmpty {
-                            VStack(alignment: .leading, spacing: DS.sp2) {
+                            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                                 dayHeader(index: idx, show: show)
-                                ImasCardList {
+                                ImasCard {
                                     roleGrid(idols: dayIdols, chipText: chipText,
                                              chipKind: chipKind, ringAccent: ringAccent)
-                                        .padding(DS.sp4)
                                 }
                             }
                         }
                     }
                 }
             } else {
-                ImasCardList {
+                ImasCard {
                     roleGrid(idols: allIdols, chipText: chipText,
                              chipKind: chipKind, ringAccent: ringAccent)
-                        .padding(DS.sp4)
                 }
             }
         }
     }
 
-    /// DAY 見出し: 「DAY1」バッジ + 日付(M/D(曜)) + 公演名。
+    /// DAY 見出し: 「DAY1」札 + 日付(M/D(曜)) + 公演名。
     @ViewBuilder
     private func dayHeader(index: Int, show: Show) -> some View {
-        HStack(spacing: 6) {
-            Text("DAY\(index + 1)")
-                .font(.imasCaption.weight(.bold))
-                .foregroundStyle(DS.onSys)
-                .padding(.horizontal, DS.sp3).padding(.vertical, 3)
-                .background(panelAccent, in: Capsule())
+        HStack(spacing: DS.Space.gapTight) {
+            ImasBadge(text: "DAY\(index + 1)", kind: .lead)
             if let d = shortDate(show.date) {
-                Text(d).font(.imasCaption.weight(.medium)).foregroundStyle(DS.ink2)
+                Text(d).imasText(.meta)
             }
             if !show.name.isEmpty, show.name != "DAY\(index + 1)" {
-                Text(show.name).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
+                Text(show.name).imasText(.meta).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
@@ -812,22 +713,19 @@ private struct AttendancePanel: View {
     /// 役割アイドルのアバターグリッド (1 ブロック分)。
     @ViewBuilder
     private func roleGrid(idols: [Idol], chipText: String,
-                          chipKind: ImasTagChip.Kind, ringAccent: Bool) -> some View {
-        LazyVGrid(columns: avatarColumns, spacing: DS.sp4) {
+                          chipKind: ImasBadge.Kind, ringAccent: Bool) -> some View {
+        LazyVGrid(columns: avatarColumns, spacing: DS.Space.card) {
             ForEach(idols) { idol in
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: DS.sp2) {
+                    VStack(spacing: DS.Space.gapTight) {
                         // isPick は使わず roleAvatarRing で独自の accent リングを重ねるため、
                         // 担当リング分の外形余白は予約しない (可視アバターぴったりの size に戻す)。
                         IdolAvatarView(idol: idol, size: 56, reservesPickRing: false)
                             .overlay { roleAvatarRing(show: ringAccent) }
-                        ImasTagChip(text: chipText, kind: chipKind, seed: seed, brand: brandSeed)
-                        Text(idol.shortName)
-                            .font(.imasCaption.weight(.semibold))
-                            .lineLimit(1)
-                            .foregroundStyle(DS.ink)
+                        ImasBadge(text: chipText, kind: chipKind, seed: seed, brand: brandSeed)
+                        Text(idol.shortName).imasText(.meta, color: DS.ink).lineLimit(1)
                     }
                 }
                 .buttonStyle(.plain)
@@ -841,50 +739,41 @@ private struct AttendancePanel: View {
         let allMembers = attendance.brandIdols.filter { memberIds.contains($0.id) }
         let presentCount = allMembers.filter { presentIds.contains($0.id) }.count
 
-        ImasCardList {
-            VStack(alignment: .leading, spacing: DS.sp3) {
-                HStack(spacing: 6) {
-                    ImasTagChip(text: unit.name, kind: .unit, seed: seed, brand: brandSeed)
-                    Text("\(presentCount)/\(allMembers.count)")
-                        .font(.imasCaption).foregroundStyle(DS.ink2)
+        ImasCard {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                HStack(spacing: DS.Space.gapTight) {
+                    ImasBadge(text: unit.name, kind: .unit, seed: seed, brand: brandSeed)
+                    Text("\(presentCount)/\(allMembers.count)").imasText(.meta)
                     Spacer()
                 }
                 avatarGrid(idols: allMembers, isAbsent: { !presentIds.contains($0.id) })
             }
-            .padding(DS.sp4)
         }
     }
 
     @ViewBuilder
     private func groupView(group: EventAttendance.Group) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(
-                title: "\(group.label) ・ \(group.idols.count)名",
-                tight: true
-            )
-            ImasCardList {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasSectionHeader(group.label, count: "\(group.idols.count)名", style: .small)
+            ImasCard {
                 avatarGrid(idols: group.idols, isAbsent: { _ in group.label == "欠席" })
-                    .padding(DS.sp4)
             }
         }
     }
 
     @ViewBuilder
     private func avatarGrid(idols: [Idol], isAbsent: @escaping (Idol) -> Bool) -> some View {
-        LazyVGrid(columns: avatarColumns, spacing: DS.sp4) {
+        LazyVGrid(columns: avatarColumns, spacing: DS.Space.card) {
             ForEach(idols) { idol in
                 let absent = isAbsent(idol)
                 Button {
                     navigate(.idol(idol))
                 } label: {
-                    VStack(spacing: DS.sp2) {
+                    VStack(spacing: DS.Space.gapTight) {
                         IdolAvatarView(idol: idol, size: 48)
                             .grayscale(absent ? 0.5 : 0)
                             .opacity(absent ? 0.45 : 1)
-                        Text(idol.shortName)
-                            .font(.imasCaption)
-                            .lineLimit(1)
-                            .foregroundStyle(absent ? DS.ink3 : DS.ink)
+                        Text(idol.shortName).imasText(.meta, color: absent ? DS.ink3 : DS.ink).lineLimit(1)
                     }
                 }
                 .buttonStyle(.plain)
