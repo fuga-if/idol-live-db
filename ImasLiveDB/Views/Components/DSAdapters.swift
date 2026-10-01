@@ -26,6 +26,81 @@ extension ImasBrandPicker {
     }
 }
 
+// MARK: - 曲
+
+extension ImasSongRow {
+    /// 曲の試聴 URL から、試聴の配線一式 (`previewURL`/`isPreviewing`/`onPreviewTap`) を組む。
+    /// 楽曲一覧の行 (`SongRowView`) と同じ配線をここ 1 箇所にまとめ、`song:` から組む
+    /// 呼び出し全部 (曲名表示の統一行・お気に入り一覧・タグ詳細など) に自動で効かせる。
+    @MainActor private static func previewWiring(for song: Song) -> (URL?, Bool, () -> Void) {
+        let previewURL = URL.safeHTTP(string: song.previewUrl)
+        let isPreviewing = MusicKitService.shared.isPlaying(songId: song.id)
+        let onPreviewTap = {
+            if let previewURL { MusicKitService.shared.togglePreview(url: previewURL, songId: song.id) }
+        }
+        return (previewURL, isPreviewing, onPreviewTap)
+    }
+
+    /// 曲の長押しコピー (曲名・よみ・歌唱者)。`song:` から組む行はいつもこれを持つ。
+    private static func copyItems(for song: Song) -> [CopyItem] {
+        [
+            CopyItem("曲名をコピー", song.title, key: "song_title"),
+            CopyItem("よみをコピー", song.titleKana, key: "kana"),
+            CopyItem("歌唱者をコピー", song.singerLabel, key: "artists"),
+        ]
+    }
+}
+
+extension ImasSongRow where Detail == EmptyView {
+    /// 曲のデータから組む。副題は既定でユニット名 (無ければ歌唱者の表記)。
+    /// ジャケの試聴と長押しコピーを自動で持つ (楽曲一覧の行と同じ配線)。
+    @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+                    trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal) {
+        let (previewURL, isPreviewing, onPreviewTap) = Self.previewWiring(for: song)
+        self.init(
+            title: song.title,
+            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
+            artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
+            brandHex: BrandColors.hex(for: song.brandId),
+            isCollected: isCollected,
+            showsBrandBar: showsBrandBar,
+            previewURL: previewURL,
+            isPreviewing: isPreviewing,
+            onPreviewTap: onPreviewTap,
+            trailing: trailing,
+            density: density,
+            emphasis: emphasis,
+            copyItems: Self.copyItems(for: song),
+            detail: { EmptyView() }
+        )
+    }
+}
+
+extension ImasSongRow {
+    /// 曲のデータから組み、下段 (札・日付) を足す。試聴・長押しコピーは上と同じく自動配線。
+    @MainActor init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
+                    trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal,
+                    @ViewBuilder detail: () -> Detail) {
+        let (previewURL, isPreviewing, onPreviewTap) = Self.previewWiring(for: song)
+        self.init(
+            title: song.title,
+            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
+            artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
+            brandHex: BrandColors.hex(for: song.brandId),
+            isCollected: isCollected,
+            showsBrandBar: showsBrandBar,
+            previewURL: previewURL,
+            isPreviewing: isPreviewing,
+            onPreviewTap: onPreviewTap,
+            trailing: trailing,
+            density: density,
+            emphasis: emphasis,
+            copyItems: Self.copyItems(for: song),
+            detail: detail
+        )
+    }
+}
+
 // MARK: - アイドル
 
 extension ImasIdolCell {

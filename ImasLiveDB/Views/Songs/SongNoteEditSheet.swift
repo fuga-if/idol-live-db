@@ -56,7 +56,7 @@ struct SongNoteEditSheet: View {
                 onSubmit: { AppAnalytics.tap("song_note.submit"); Task { await submit() } }
             ))
             .imasSavingOverlay(isSaving, label: "送信中")
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
         }
         .trackScreen("song_note_edit")

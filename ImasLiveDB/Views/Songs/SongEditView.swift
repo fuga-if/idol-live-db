@@ -105,7 +105,7 @@ struct SongEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original = mode.original {
-                        ImasValueRow(key: "ID", value: original.id)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
                     }
                     ImasTextFieldRow(title: "タイトル", text: $title)
                     ImasTextFieldRow(title: "タイトル (カナ)", text: $titleKana)
@@ -128,6 +128,8 @@ struct SongEditView: View {
                     ImasTextFieldRow(title: "編曲", text: $arranger)
                     ImasTextFieldRow(title: "リリース日", text: $releaseDate, prompt: "YYYY-MM-DD",
                                      keyboard: .numbersAndPunctuation)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     ImasTextFieldRow(title: "歌唱表記", text: $singerLabel, prompt: "例: 春香・千早")
                     ImasTextFieldRow(title: "補足", text: $note, prompt: "例: ミリシタ 1 周年記念楽曲")
                     ImasTextFieldRow(title: "再生時間 (秒)", text: $durationSecText, keyboard: .numberPad)
@@ -137,13 +139,21 @@ struct SongEditView: View {
                     ImasTextFieldRow(title: "apple_music_id", text: $appleMusicId, keyboard: .numberPad)
                     ImasTextFieldRow(title: "apple_music_album_id", text: $appleMusicAlbumId, keyboard: .numberPad)
                     ImasTextFieldRow(title: "artwork URL", text: $artworkUrl, keyboard: .URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     ImasTextFieldRow(title: "preview URL", text: $previewUrl, keyboard: .URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
                 ImasListSection("CD / その他") {
                     ImasTextFieldRow(title: "cd_series", text: $cdSeries)
                     ImasTextFieldRow(title: "cd_title", text: $cdTitle)
                     ImasTextFieldRow(title: "ISRC", text: $isrc)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     ImasTextFieldRow(title: "歌詞 URL", text: $lyricsUrl, keyboard: .URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
                 if !mode.isCreate {
                     ImasListSection(footer: "誤紐付けで他の曲が再生されるときに使う。サブスク未配信の曲はクリアすべき。") {
@@ -165,7 +175,7 @@ struct SongEditView: View {
                 onSave: { AppAnalytics.tap("song_edit.save"); Task { await save() } }
             ))
             .imasSavingOverlay(isSaving, label: "保存中")
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .sheet(isPresented: $showArtistPicker) {
                 IdolPickerView(title: "歌唱アイドル", idols: allIdols, selected: artistIdolIds) { newSelection in
@@ -192,8 +202,17 @@ struct SongEditView: View {
             Button {
                 showArtistPicker = true
             } label: {
-                ImasNavRow(title: "歌唱アイドル", systemImage: "person.2",
-                          value: artistIdolIds.isEmpty ? "選択" : artistNames())
+                // ImasNavRow は value を 1 行に固定するため使わない。全体曲は選んだ名前が
+                // 1 行に収まらないので、ImasRow 直書きで題の行数を広げて全員を折り返す
+                // (616eb4a3 の EventEditView/SetlistEditView と同じ形)。
+                ImasRow(
+                    title: artistIdolIds.isEmpty ? "選択" : artistNames(),
+                    leading: .icon("person.2", tone: .neutral),
+                    trailing: .chevron,
+                    density: .compact,
+                    titleLineLimit: 99,
+                    titleRole: .rowLabel
+                )
             }
             .buttonStyle(.imasRow)
         }

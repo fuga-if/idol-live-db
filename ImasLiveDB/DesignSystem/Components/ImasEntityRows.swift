@@ -38,6 +38,9 @@ struct ImasSongRow<Detail: View>: View {
     var emphasis: ImasRowEmphasis = .normal
     /// 絞り込みで当たった所に色を敷いた曲名。
     var attributedTitle: AttributedString? = nil
+    /// 長押しでコピーできる項目 (曲名・よみ・歌唱者など)。空なら長押しメニュー自体を付けない
+    /// (`imasCopyable` 側の既定動作)。`song:` から組む行はここに自動で入る。
+    var copyItems: [CopyItem] = []
     @ViewBuilder var detail: Detail
 
     var body: some View {
@@ -53,6 +56,7 @@ struct ImasSongRow<Detail: View>: View {
             attributedTitle: attributedTitle,
             detail: { detail }
         )
+        .imasCopyable(copyItems)
     }
 
     /// 試聴に対応する呼び出しだけ、ジャケを `ImasArtwork` 直書きに差し替えて試聴の口を足す
@@ -69,44 +73,8 @@ struct ImasSongRow<Detail: View>: View {
     }
 }
 
-extension ImasSongRow where Detail == EmptyView {
-    /// 曲のデータから組む。副題は既定でユニット名 (無ければ歌唱者の表記)。
-    init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
-         trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal) {
-        self.init(
-            title: song.title,
-            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
-            artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
-            brandHex: BrandColors.hex(for: song.brandId),
-            isCollected: isCollected,
-            showsBrandBar: showsBrandBar,
-            trailing: trailing,
-            density: density,
-            emphasis: emphasis,
-            detail: { EmptyView() }
-        )
-    }
-}
-
-extension ImasSongRow {
-    /// 曲のデータから組み、下段 (札・日付) を足す。
-    init(song: Song, subtitle: String? = nil, isCollected: Bool = false, showsBrandBar: Bool = false,
-         trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular, emphasis: ImasRowEmphasis = .normal,
-         @ViewBuilder detail: () -> Detail) {
-        self.init(
-            title: song.title,
-            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
-            artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
-            brandHex: BrandColors.hex(for: song.brandId),
-            isCollected: isCollected,
-            showsBrandBar: showsBrandBar,
-            trailing: trailing,
-            density: density,
-            emphasis: emphasis,
-            detail: detail
-        )
-    }
-}
+// `song:` から組む便利イニシャライザは `Views/Components/DSAdapters.swift` にある
+// (試聴の配線に MusicKitService が要るため。DesignSystem はアプリのサービスを知らない)。
 
 // MARK: - アイドル
 

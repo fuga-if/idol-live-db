@@ -192,7 +192,8 @@ struct ImasNotice: View {
 
     let kind: Kind
     var title: String? = nil
-    let message: String
+    /// 本文。見出しだけで足りる注意 (例: 件数だけ伝えれば済む警告) は nil にして省く。
+    var message: String? = nil
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
 
@@ -206,10 +207,12 @@ struct ImasNotice: View {
                 if let title {
                     Text(title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
                 }
-                Text(message)
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let message {
+                    Text(message)
+                        .font(.imasFootnote)
+                        .foregroundStyle(DS.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let actionTitle, let action {
                     Button(actionTitle, action: action)
                         .buttonStyle(.imas(.secondary, size: .small))
@@ -235,24 +238,31 @@ struct ImasSignInPrompt: View {
 
     var body: some View {
         if !AuthService.shared.isSignedIn {
-            HStack(spacing: DS.Space.gapLoose) {
-                Image(systemName: "person.crop.circle.badge.exclamationmark")
-                    .font(.imasScaled(18, weight: .regular))
-                    .foregroundStyle(DS.ink2)
-                Text(message)
-                    .font(.imasFootnote.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: DS.Space.gap)
-                Button("ログイン") {
-                    AppAnalytics.tap("inline_login.open")
-                    showLogin = true
+            // カード全体を押せるようにする (以前の「ログイン」だけの小さい押下域には戻さない)。
+            // 中の「ログイン」は見た目だけ残し、実際のタップはこの外の Button が受ける
+            // (Button の label の中に別の Button を入れても入れ子では反応しないため)。
+            Button {
+                AppAnalytics.tap("inline_login.open")
+                showLogin = true
+            } label: {
+                HStack(spacing: DS.Space.gapLoose) {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .font(.imasScaled(18, weight: .regular))
+                        .foregroundStyle(DS.ink2)
+                    Text(message)
+                        .font(.imasFootnote.weight(.semibold))
+                        .foregroundStyle(DS.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: DS.Space.gap)
+                    ImasButton(title: "ログイン", role: .primary, size: .small) {}
+                        .allowsHitTesting(false)
                 }
-                .buttonStyle(.imas(.primary, size: .small))
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.gapLoose)
+                .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
             }
-            .padding(.horizontal, DS.Space.rowH)
-            .padding(.vertical, DS.Space.gapLoose)
-            .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+            .buttonStyle(.plain)
             .sheet(isPresented: $showLogin) { LoginToEditSheet() }
         }
     }

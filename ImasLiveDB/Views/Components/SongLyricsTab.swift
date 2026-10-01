@@ -345,8 +345,10 @@ struct SongLyricsTab: View {
         let theme = ImasTheme.derive(seed: seed, scheme: scheme)
         if !stale.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp3) {
-                ImasNotice(kind: .warning, title: "アンカーがズレたコール（\(stale.count) 件）",
-                          message: "語をタップ、または長押しからなぞって選び直してください。")
+                // 見出しだけ (前は Label のみ)。「語をタップで選び直せる」という文言は、
+                // ここではまだ reanchorTarget が立っていないため実際には新規コール作成を
+                // 開いてしまい誤り。選び直しは各行の「選び直す」ボタンからのみ行える。
+                ImasNotice(kind: .warning, title: "アンカーがズレたコール（\(stale.count) 件）")
                 ImasCardList {
                     ForEach(Array(stale.enumerated()), id: \.element.call.id) { idx, entry in
                         if idx > 0 { ImasRowDivider(inset: DS.sp4) }

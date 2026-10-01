@@ -393,10 +393,23 @@ struct SongSheetContent: View {
 
     // MARK: - Hero (ジャケを左 + 題・歌唱者・配信日 / 試聴と印 / 数)
 
+    /// 「タイプを出すかどうか」の条件は `vm.infoRows` 側 1 箇所だけに持たせ、ここでは
+    /// その行があれば値を拾うだけにする (同じ条件 (`songType` が空/unknown でない) を
+    /// 画面側に書き直すと、条件を直すときに片方だけ直し忘れる)。
     private var heroEyebrow: String? {
         var parts: [String] = []
-        if !song.songType.isEmpty, song.songType != "unknown" { parts.append(song.songTypeLabel) }
+        if let typeRow = vm.infoRows(for: song).first(where: { $0.key == "タイプ" }) {
+            parts.append(typeRow.displayValue)
+        }
         if let brandName = vm.brand?.shortName { parts.append(brandName) }
+        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
+    }
+
+    /// 「配信日 ・ 再生時間」1 行。値と「出すかどうか」はどちらも `vm.infoRows` の
+    /// 該当行から拾う (新しい判断をここに増やさない。`infoRows` が唯一の根拠)。
+    private var heroReleaseMeta: String? {
+        let rows = vm.infoRows(for: song)
+        let parts = ["リリース日", "再生時間"].compactMap { key in rows.first { $0.key == key }?.displayValue }
         return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
     }
 
@@ -413,9 +426,9 @@ struct SongSheetContent: View {
         } facts: {
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 if let artistLine = vm.artistLine(for: song) {
-                    ImasPerformerChip(name: artistLine, seed: songSeed)
+                    artistLineView(artistLine)
                 }
-                if let meta = vm.releaseMeta(for: song) {
+                if let meta = heroReleaseMeta {
                     Text(meta).imasText(.imprint, color: DS.ink3)
                 }
                 // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。どのタブを開いていても曲の
@@ -441,12 +454,26 @@ struct SongSheetContent: View {
         ])
     }
 
-    /// 試聴 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す
+    /// 歌唱者を「/」で繋いだ 1 行。全体曲は 10 人を超えることがあり、`ImasPerformerChip`
+    /// (1 行固定・fixedSize) に入れると画面全体が横に広がって崩れる (原唱 4 人以上の曲は
+    /// 605 曲ある)。ペンライト + 複数行に折り返せる Text にする。
+    private func artistLineView(_ artistLine: String) -> some View {
+        HStack(alignment: .top, spacing: DS.Space.gapTight) {
+            ImasPenlight(
+                color: songSeed == nil ? DS.ink3 : ImasTheme.derive(seed: songSeed, brand: nil, scheme: scheme).penlight,
+                size: .small
+            )
+            Text(artistLine).imasText(.rowSubtitle).lineLimit(2)
+        }
+    }
+
+    /// 再生 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す
     /// (コール・メモの導線はこのヒーローには元から無いので足さない)。
     private var actionRow: some View {
         HStack(spacing: DS.Space.gap) {
             ImasButton(
-                title: isPreviewing ? "停止する" : "試聴する",
+                // Apple Music 契約者はフル再生になるので「試聴」とは言えない。
+                title: isPreviewing ? "停止" : "再生",
                 systemImage: isPreviewing ? "stop.fill" : "play.fill",
                 role: .primary,
                 size: .large
@@ -469,8 +496,16 @@ struct SongSheetContent: View {
             // KAMISABI (音楽カードゲーム) 収録曲のときだけ、カード所持のトグルを出す。
             // 未収録曲にトグルを出すと「持っていない」のか「そもそも対象外」なのか
             // 読み取れなくなるので、収録曲以外には出さない。
+            // `.owned` は円盤所有と記号を共有するため、見える名前と読み上げを
+            // 「カード所持」に明示する (ImasMarkButton の既定「所有」のままでは何を
+            // 記録するボタンか伝わらない)。
             if song.hasKamisabiCard {
-                ImasMarkButton(kind: .owned, isOn: isKamisabiOwned, seed: songSeed) {
+                ImasMarkTile(
+                    systemImage: isKamisabiOwned ? UserMarkKind.owned.activeIcon : UserMarkKind.owned.icon,
+                    label: "カード所持",
+                    isOn: isKamisabiOwned,
+                    accessibilityText: isKamisabiOwned ? "カード所持済み" : "カード所持を記録"
+                ) {
                     AppAnalytics.tap("song_detail.toggle_kamisabi_owned")
                     toggleKamisabiOwned()
                 }

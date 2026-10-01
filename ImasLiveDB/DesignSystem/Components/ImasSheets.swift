@@ -170,9 +170,13 @@ struct ImasTextAreaRow: View {
             textField
                 .frame(minHeight: minHeight, alignment: .topLeading)
             if let limit {
-                Text("\(text.count) / \(limit)")
+                // 送信を止める条件 (前後の空白・改行を除いた数) と同じ数え方にする。
+                // 生の文字数で数えると、改行だけ打った分で上限に見えるのに送信は通る
+                // (またはその逆) というズレが出る。
+                let count = text.trimmingCharacters(in: .whitespacesAndNewlines).count
+                Text("\(count) / \(limit)")
                     .font(.imasCaption.monospacedDigit())
-                    .foregroundStyle(text.count > limit ? DS.danger : DS.ink3)
+                    .foregroundStyle(count > limit ? DS.danger : DS.ink3)
             }
         }
         .listRowBackground(DS.surface)

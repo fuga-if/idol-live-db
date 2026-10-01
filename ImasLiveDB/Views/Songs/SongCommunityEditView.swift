@@ -95,7 +95,7 @@ struct VideoEditView: View {
                 onSave: { AppAnalytics.tap("video_edit.save"); Task { await save() } }
             ))
             .imasSavingOverlay(isSaving, label: "保存中")
-            .imasErrorAlert(message: $errorMessage)
+            .imasErrorAlert("エラー", message: $errorMessage)
             .trackScreen("video_edit")
         }
         .onAppear { restoreDraft() }

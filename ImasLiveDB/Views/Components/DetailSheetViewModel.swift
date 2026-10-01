@@ -224,13 +224,6 @@ final class DetailSheetViewModel {
         return song.singerLabel ?? song.unitName
     }
 
-    /// 詳細の頭の印字向け「配信日・再生時間」1 行。どちらも無ければ nil。
-    /// 既存の「楽曲情報」の行 (`infoRows`) と同じ値をそのまま使う (新しい日付計算はしない)。
-    func releaseMeta(for song: Song) -> String? {
-        let parts = [song.releaseDate, durationValue(for: song)].compactMap { $0 }
-        return parts.isEmpty ? nil : parts.joined(separator: " ・ ")
-    }
-
     /// 「楽曲情報」セクションの行を宣言的モデルとして組み立てる。
     /// 描画 (ImasLabeledRow 等) と divider は View 側がインデックスから行う。
     func infoRows(for song: Song) -> [SongInfoRow] {
@@ -318,5 +311,17 @@ struct SongInfoRow: Identifiable {
         case credit(names: [String])
         /// ユニット: タップ時に unitId から Unit を非同期解決して遷移。
         case unit(value: String, unitId: String)
+    }
+
+    /// 行が持つ値だけを文字列で (遷移・等幅などの飾りを落とした生の表示値)。
+    /// 詳細の頭の印字 (タイプ・配信日・再生時間) は、ここから拾って「出すかどうか」の
+    /// 判断を `infoRows` 側 1 箇所だけに保つ (同じ条件を画面側で書き直さない)。
+    var displayValue: String {
+        switch kind {
+        case .plain(let value, _): return value
+        case .navigate(let value, _): return value
+        case .credit(let names): return names.joined(separator: "、")
+        case .unit(let value, _): return value
+        }
     }
 }
