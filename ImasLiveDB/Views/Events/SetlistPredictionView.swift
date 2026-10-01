@@ -87,7 +87,7 @@ struct SetlistPredictionView: View {
             predictionHeader
 
             if !authService.isSignedIn {
-                InlineLoginPrompt(message: "セトリ予想の投票にはログインが必要です", seed: seed)
+                ImasSignInPrompt(message: "セトリ予想の投票にはログインが必要です")
                     .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: DS.sp3, trailing: DS.sp5))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -103,25 +103,9 @@ struct SetlistPredictionView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
         }
-        .overlay {
-            if isCreatingPlaylist {
-                ZStack {
-                    Color.black.opacity(0.35).ignoresSafeArea()
-                    VStack(spacing: 14) {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.large)
-                        Text(playlistProgress.total > 0
-                             ? "プレイリスト作成中… \(playlistProgress.current)/\(playlistProgress.total)"
-                             : "プレイリスト作成中…")
-                            .font(.imasSubhead)
-                    }
-                    .padding(28)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                }
-                .transition(.opacity)
-            }
-        }
+        .imasSavingOverlay(isCreatingPlaylist, label: playlistProgress.total > 0
+                           ? "プレイリスト作成中 \(playlistProgress.current)/\(playlistProgress.total)"
+                           : "プレイリスト作成中")
         .animation(.easeInOut(duration: 0.15), value: isCreatingPlaylist)
         .alert("プレイリスト", isPresented: $showAlert) {
             Button("OK") {}
@@ -147,7 +131,7 @@ struct SetlistPredictionView: View {
             // 押せない理由が見えている方が早い)。行ごとに remaining を引くと
             // filter が行数分走るので、ここで1回だけ畳んで各行に配る。
             let canAdd = remaining > 0
-            VStack(alignment: .leading, spacing: DS.sp2) {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
                 ImasCardList {
                     ForEach(Array(predictions.enumerated()), id: \.element.id) { index, prediction in
                         // 行と行の区切りは、ぴったり密着すると詰まって見えるので、
@@ -160,23 +144,12 @@ struct SetlistPredictionView: View {
                         // contextMenu を重ねると long-press ジェスチャがタップを飲み込み、
                         // .borderless ボタンのタップが不発になる (like 行は contextMenu 無しで正常)。
                         // トグルで取消できるので contextMenu は付けない。
-                        PredictionRowView(
-                            prediction: prediction,
-                            rank: index + 1,
-                            seed: seed,
-                            canAddVote: canAdd,
-                            isExpanded: expandedSongIds.contains(prediction.songId),
-                            onToggleExpand: { toggleExpand(songId: prediction.songId) },
-                            onVote: { await handleVote(prediction: prediction) },
-                            requireLogin: requireLogin
-                        )
+                        predictionRow(prediction, rank: index + 1, canAddVote: canAdd)
                     }
                 }
                 myVoteShareBar
                 if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
-                        .font(.imasCaption).foregroundStyle(DS.danger)
-                        .padding(.leading, DS.sp1)
+                    ImasNotice(kind: .error, message: errorMessage)
                 }
             }
         }
@@ -187,7 +160,7 @@ struct SetlistPredictionView: View {
     private var forecastBody: some View {
         switch forecast.phase {
         case .loading:
-            VStack(alignment: .leading, spacing: DS.sp2) {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
                 forecastHeading(note: nil)
                 ImasInlineLoading()
             }
@@ -197,20 +170,14 @@ struct SetlistPredictionView: View {
             let songs = forecast.visibleSongs(predictedSongIds: Set(predictions.map(\.songId)))
             if !songs.isEmpty {
                 let canAdd = !authService.isSignedIn || remaining > 0
-                VStack(alignment: .leading, spacing: DS.sp2) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
                     forecastHeading(note: forecast.castUnannouncedNote)
                     ImasCardList {
                         ForEach(Array(songs.enumerated()), id: \.element.songId) { index, song in
                             if index > 0 {
                                 ImasRowDivider()
                             }
-                            ForecastRowView(
-                                song: song,
-                                seed: seed,
-                                canPromote: canAdd && forecast.promotingSongId == nil,
-                                isPromoting: forecast.promotingSongId == song.songId,
-                                onPromote: { await promoteForecast(songId: song.songId) }
-                            )
+                            forecastRow(song, canPromote: canAdd)
                         }
                     }
                 }
@@ -220,15 +187,70 @@ struct SetlistPredictionView: View {
 
     /// 「機械予測」の見出しと注記。出演者未発表の注記はコアの label をそのまま出す。
     private func forecastHeading(note: String?) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp1) {
-            Text("機械予測").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-            Text("過去のセトリから推定").font(.imasCaption).foregroundStyle(DS.ink3)
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            ImasSectionHeader("機械予測")
+            ImasNote("過去のセトリから推定")
             if let note {
-                Label(note, systemImage: "exclamationmark.circle")
-                    .font(.imasCaption).foregroundStyle(DS.ink2)
+                ImasNote(note, systemImage: "exclamationmark.circle")
             }
         }
-        .padding(.leading, DS.sp1)
+    }
+
+    // MARK: - Rows
+
+    /// みんなの予想の 1 曲。押すと投票・取り消し、「歌唱メンバー予想」を開ける。
+    private func predictionRow(_ prediction: SetlistPrediction, rank: Int, canAddVote: Bool) -> some View {
+        let isExpanded = expandedSongIds.contains(prediction.songId)
+        let maxVotes = max(1, predictions.map(\.voteCount).max() ?? 1)
+        return ImasForecastRow(
+            rank: rank,
+            title: prediction.songTitle,
+            artworkURL: prediction.artworkUrl.flatMap { URL(string: $0) },
+            measure: .votes(prediction.voteCount, share: Double(prediction.voteCount) / Double(maxVotes)),
+            preview: prediction.previewUrl.flatMap { URL(string: $0) }.map { ($0, prediction.songId) },
+            isMine: prediction.hasUserVoted,
+            isVoteDisabled: !canAddVote,
+            onVote: { Task { await handleVote(prediction: prediction) } },
+            accessory: AnyView(
+                Button {
+                    AppAnalytics.tap("setlist_prediction.toggle_performers")
+                    withAnimation(.easeInOut(duration: 0.18)) { toggleExpand(songId: prediction.songId) }
+                } label: {
+                    Label("歌唱メンバー予想", systemImage: isExpanded ? "chevron.up" : "person.2")
+                }
+                .buttonStyle(.imas(.plain, size: .small))
+            ),
+            expansion: isExpanded
+                ? AnyView(PerformerPredictionView(showId: prediction.showId, songId: prediction.songId,
+                                                  seed: seed, requireLogin: requireLogin))
+                : nil
+        )
+    }
+
+    /// 機械予測の 1 曲。根拠はオリメン (誰が出るか) と理由 (コアの文言)。
+    private func forecastRow(_ song: ForecastSongRecord, canPromote: Bool) -> some View {
+        let originals = song.originals
+        let reasons = song.reasons.map(\.label).joined(separator: "・")
+        let performers = (originals?.namesListed == true ? originals?.members ?? [] : []).map {
+            ImasPerformer(id: $0.idolId, name: $0.name, color: $0.color, isAbsent: $0.attending == false)
+        }
+        let originalsSummary = originals.flatMap { $0.namesListed ? nil : ($0.summary.isEmpty ? nil : $0.summary) }
+        let hasOriginalsLine = !performers.isEmpty || originalsSummary != nil
+        return ImasForecastRow(
+            rank: Int(song.rank),
+            title: song.title,
+            artworkURL: song.artworkUrl.flatMap { URL(string: $0) },
+            brand: BrandColors.hex(for: song.brandId),
+            measure: .probability(song.score),
+            reasonLabel: hasOriginalsLine ? "オリメン" : (reasons.isEmpty ? nil : "理由"),
+            reason: hasOriginalsLine ? originalsSummary : (reasons.isEmpty ? nil : reasons),
+            performers: performers,
+            secondReason: hasOriginalsLine && !reasons.isEmpty ? ("理由", reasons) : nil,
+            preview: song.previewUrl.flatMap { URL(string: $0) }.map { ($0, song.songId) },
+            isVoteDisabled: !canPromote || forecast.promotingSongId != nil,
+            isVoting: forecast.promotingSongId == song.songId,
+            onVote: { Task { await promoteForecast(songId: song.songId) } }
+        )
     }
 
     /// 自分の予想をまとめてシェアする導線。1票も入れていない間は出さない。
@@ -238,8 +260,7 @@ struct SetlistPredictionView: View {
             let t = ImasTheme.derive(seed: seed, scheme: scheme)
             HStack(spacing: DS.sp2) {
                 Text("あなたの予想 \(myVotedPredictions.count)/\(CommunityVoteLimit.perTarget)")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                    .imasText(.meta, color: DS.ink3)
                 Spacer(minLength: 8)
                 SocialShareMenu(payload: votePayload, analyticsKey: "setlist_prediction.share") {
                     SocialShareChipLabel(title: "予想をシェア", accent: t.accent)
@@ -255,40 +276,29 @@ struct SetlistPredictionView: View {
     /// セクション見出し + 文脈投稿導線。コミュニティ投稿 (タグ/動画/投票) の
     /// communityHeader と同じ「タイトル + アクセント色の＋投稿ボタン」パターンに揃える。
     private var predictionHeader: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        return VStack(alignment: .leading, spacing: DS.sp2) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("セトリ予想").font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                if totalVotes > 0 {
-                    Text("\(totalVotes)票").font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink3)
-                }
-                // 残り票数はログイン済みのときだけ意味を持つ (未ログインは常に3票のままなので出さない)。
-                if authService.isSignedIn {
-                    Text("残り\(remaining)/\(CommunityVoteLimit.perTarget)")
-                        .font(.imasFootnote.weight(.semibold))
-                        .foregroundStyle(remaining > 0 ? DS.ink3 : DS.danger)
-                }
-                Spacer(minLength: 12)
-
-                Button {
-                    // 未ログインでも押せる。押したらログイン誘導 → 完了後に picker を開く。
-                    requireLogin {
-                        presentSongPicker { songs in
-                            Task { await addPredictions(songs: songs) }
-                        }
-                    }
-                } label: {
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: "plus").font(.imasScaled( 13, weight: .semibold))
-                        Text("予想を追加").font(.imasScaled( 14, weight: .semibold))
-                    }
-                    .foregroundStyle(canAddVote ? t.accent : DS.ink3)
-                }
-                .buttonStyle(.plain)
-                .disabled(!canAddVote)
-
-                utilitiesMenu
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
+            ImasSectionHeader("セトリ予想", count: totalVotes > 0 ? "\(totalVotes)票" : nil)
+                .fixedSize()
+            // 残り票数はログイン済みのときだけ意味を持つ (未ログインは常に3票のままなので出さない)。
+            if authService.isSignedIn {
+                Text("残り\(remaining)/\(CommunityVoteLimit.perTarget)")
+                    .imasText(.meta, color: remaining > 0 ? DS.ink3 : DS.danger)
             }
+            Spacer(minLength: DS.Space.gap)
+            Button {
+                // 未ログインでも押せる。押したらログイン誘導 → 完了後に picker を開く。
+                requireLogin {
+                    presentSongPicker { songs in
+                        Task { await addPredictions(songs: songs) }
+                    }
+                }
+            } label: {
+                Label("予想を追加", systemImage: "plus")
+            }
+            .buttonStyle(.imas(.secondary, size: .small))
+            .disabled(!canAddVote)
+
+            utilitiesMenu
         }
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: DS.sp4, trailing: 16))
         // ヘッダは常時表示で安定しているのでログイン sheet のホストに使う
@@ -331,8 +341,7 @@ struct SetlistPredictionView: View {
             }
         } label: {
             Image(systemName: "ellipsis.circle")
-                .font(.imasSubhead)
-                .foregroundStyle(DS.ink2)
+                .imasText(.value, color: DS.ink2)
                 .accessibilityLabel("操作")
         }
     }
@@ -501,223 +510,6 @@ struct SetlistPredictionView: View {
             MusicKitService.shared.togglePreview(url: previewURL, songId: prediction.songId)
             try? await Task.sleep(for: .seconds(32))
             if !MusicKitService.shared.isPlaying { break }
-        }
-    }
-}
-
-// MARK: - PredictionRowView
-
-/// 予想セトリ1行 (DS共通トークン)。ランク + ジャケ(プレビュー再生) + 曲名/票数 + 投票トグル。
-/// 下部に「誰が歌う？」展開ブロックを持つ。
-private struct PredictionRowView: View {
-    @Environment(AppDatabase.self) private var database
-    @Environment(\.colorScheme) private var scheme
-    let prediction: SetlistPrediction
-    let rank: Int
-    var seed: String? = nil
-    /// 残票が残っているか。false かつ未投票の曲は「予想」ボタンを押せない (投票済みの取消は常に可能)。
-    let canAddVote: Bool
-    /// 「歌唱メンバー予想」の展開状態は親 (SetlistPredictionView) が songId キーで保持する。
-    /// 行ローカル @State にすると List 再描画/id 衝突で他行へ漏れるため、親から注入する。
-    let isExpanded: Bool
-    let onToggleExpand: () -> Void
-    let onVote: () async -> Void
-    /// 「誰が歌う？」の未ログイン投票導線用。親 SetlistPredictionView の requireLogin をそのまま流す。
-    let requireLogin: (@escaping () -> Void) -> Void
-
-    private var artworkURL: URL? { prediction.artworkUrl.flatMap { URL(string: $0) } }
-    private var previewURL: URL? { prediction.previewUrl.flatMap { URL(string: $0) } }
-
-    var body: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: DS.sp3) {
-                Text("\(rank)")
-                    .font(.imasCaption.monospacedDigit())
-                    .foregroundStyle(DS.ink3)
-                    .frame(width: 22, alignment: .trailing)
-
-                ArtworkImageView(
-                    url: artworkURL,
-                    size: 44,
-                    previewURL: previewURL,
-                    songTitle: prediction.songTitle, songId: prediction.songId,
-                    seed: seed
-                )
-
-                VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text(prediction.songTitle)
-                        .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(2)
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: "hand.thumbsup.fill")
-                            .font(.imasScaled( 10))
-                            .foregroundStyle(DS.ink3)
-                        Text("\(prediction.voteCount)票")
-                            .font(.imasCaption.monospacedDigit())
-                            .foregroundStyle(DS.ink2)
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                // 投票 = Good ボタン (★お気に入り/★like と区別するため thumbsup)。右寄せ。
-                // 残票切れの未投票曲は押せない (投票済みの取消は上限に関係なく常に可能)。
-                let voteDisabled = !prediction.hasUserVoted && !canAddVote
-                Button {
-                    Task { await onVote() }
-                } label: {
-                    HStack(spacing: DS.sp2) {
-                        Image(systemName: prediction.hasUserVoted ? "hand.thumbsup.fill" : "hand.thumbsup")
-                            .font(.imasSubhead.weight(.semibold))
-                        Text(prediction.hasUserVoted ? "投票済" : "予想")
-                            .font(.imasCaption.weight(.semibold))
-                    }
-                    .foregroundStyle(prediction.hasUserVoted ? t.onAccent : (voteDisabled ? DS.ink3 : t.accent))
-                    .padding(.horizontal, 11).padding(.vertical, 7)
-                    .background(prediction.hasUserVoted ? AnyShapeStyle(t.accent) : AnyShapeStyle(t.chipBg),
-                                in: Capsule())
-                    .contentShape(Capsule())
-                    .accessibilityLabel(prediction.hasUserVoted ? "投票を取り消す" : "この曲に投票")
-                }
-                // List セル内に複数ボタンがある時 .plain だとタップがセル全体に散って効かない。
-                // .borderless で各ボタンにタップをスコープする。
-                .buttonStyle(.borderless)
-                .disabled(voteDisabled)
-            }
-            .padding(.horizontal, DS.sp4)
-            .padding(.top, DS.sp4)
-            .padding(.bottom, DS.sp3)
-            .contentShape(Rectangle())
-
-            // MARK: 「誰が歌う？」展開ブロック
-            performerToggle(theme: t)
-
-            if isExpanded {
-                PerformerPredictionView(
-                    showId: prediction.showId,
-                    songId: prediction.songId,
-                    seed: seed,
-                    requireLogin: requireLogin
-                )
-                .padding(.horizontal, DS.sp4)
-                .padding(.bottom, DS.sp3)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .animation(.easeInOut(duration: 0.18), value: isExpanded)
-    }
-
-    /// 「歌唱メンバー予想」トグルボタン。曲行下端に補助行として配置。
-    /// 「次の曲」と紛らわしくならないよう、淡い塗りのチップ形にして曲行から視覚的に分離する。
-    private func performerToggle(theme t: ImasTheme) -> some View {
-        Button {
-            AppAnalytics.tap("setlist_prediction.toggle_performers")
-            onToggleExpand()
-        } label: {
-            HStack(spacing: DS.sp2) {
-                Image(systemName: "person.2")
-                    .font(.imasScaled(10, weight: .semibold))
-                Text("歌唱メンバー予想")
-                    .font(.imasScaled(12, weight: .semibold))
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.imasScaled(9, weight: .semibold))
-            }
-            .foregroundStyle(DS.ink2)
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(DS.fill, in: Capsule())
-        }
-        .buttonStyle(.borderless)
-        .padding(.leading, DS.sp4 + 22 + DS.sp3) // rank(22) + spacing でジャケと水平揃え
-        .padding(.bottom, isExpanded ? DS.sp2 : DS.sp4)
-    }
-}
-
-
-// MARK: - ForecastRowView
-
-/// 機械予測の 1 行。順位・曲名・点数・理由の札 (コアの label) と「予想に入れる」。
-private struct ForecastRowView: View {
-    @Environment(\.colorScheme) private var scheme
-    let song: ForecastSongRecord
-    var seed: String? = nil
-    let canPromote: Bool
-    let isPromoting: Bool
-    let onPromote: () async -> Void
-
-    /// 札は表示の都合で先頭 2 個まで (並びはコアの優先順)。
-    private var reasonLabels: [String] { song.reasons.prefix(2).map(\.label) }
-
-    var body: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        HStack(alignment: .top, spacing: DS.sp3) {
-            Text("\(song.rank)")
-                .font(.imasCaption.monospacedDigit())
-                .foregroundStyle(DS.ink3)
-                .frame(width: 22, alignment: .trailing)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                    Text(song.title)
-                        .font(.imasSubhead.weight(.semibold))
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(2)
-                    Text(song.score.formatted(.percent.precision(.fractionLength(0))))
-                        .font(.imasCaption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(DS.ink2)
-                }
-                // オリメンは誰で、この公演に出るか (文言はコア)。ソロ曲などは無し。
-                if let originals = song.originals?.label, !originals.isEmpty {
-                    Text(originals)
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if !reasonLabels.isEmpty {
-                    // 札は省略せずに全文を出す。横に収まらなければ縦に積む。
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: DS.sp1) { reasonChips }
-                        VStack(alignment: .leading, spacing: DS.sp1) { reasonChips }
-                    }
-                }
-            }
-
-            Spacer(minLength: 4)
-
-            Button {
-                Task { await onPromote() }
-            } label: {
-                Group {
-                    if isPromoting {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("予想に入れる").font(.imasCaption.weight(.semibold))
-                    }
-                }
-                .foregroundStyle(canPromote ? t.accent : DS.ink3)
-                .padding(.horizontal, 11).padding(.vertical, 7)
-                .background(t.chipBg, in: Capsule())
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.borderless)
-            .disabled(!canPromote)
-            .accessibilityLabel("\(song.title)を予想に入れる")
-        }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .accessibilityElement(children: .contain)
-    }
-
-    private var reasonChips: some View {
-        ForEach(reasonLabels, id: \.self) { label in
-            Text(label)
-                .font(.imasScaled(11, weight: .semibold))
-                .foregroundStyle(DS.ink2)
-                .fixedSize()
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(DS.fill, in: Capsule())
         }
     }
 }

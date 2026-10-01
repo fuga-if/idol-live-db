@@ -58,9 +58,7 @@ ImasLiveDB/Views/Events/EventDetailView.swift	27
 ImasLiveDB/Views/Events/EventEditView.swift	4
 ImasLiveDB/Views/Events/EventListView.swift	4
 ImasLiveDB/Views/Events/EventReleasesSection.swift	8
-ImasLiveDB/Views/Events/PerformerPredictionView.swift	12
 ImasLiveDB/Views/Events/SetlistEditView.swift	3
-ImasLiveDB/Views/Events/SetlistPredictionView.swift	24
 ImasLiveDB/Views/Events/SetlistRowView.swift	19
 ImasLiveDB/Views/Events/SetlistSimpleRowView.swift	1
 ImasLiveDB/Views/Events/SetlistView.swift	10

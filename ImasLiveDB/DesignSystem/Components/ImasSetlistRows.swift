@@ -129,12 +129,39 @@ struct ImasForecastRow: View {
     var reason: String? = nil
     /// 根拠の人 (オリメン)。欠席は薄字と取り消し線。
     var performers: [ImasPerformer] = []
+    /// 2 行目の根拠 (オリメンの行の下に「理由」を出すとき)。
+    var secondReason: (label: String, text: String)? = nil
+    /// 試聴。渡すとジャケを押して 30 秒の試聴を再生・停止できる。
+    var preview: (url: URL, songId: String)? = nil
     /// 自分が予想したか。
     var isMine: Bool = false
-    /// 「予想する」の押し場所。nil なら出さない (機械予測)。
+    /// 「予想する」を押せないとき (残りの票が無い)。予想済みの取り消しは常に押せる。
+    var isVoteDisabled: Bool = false
+    /// 「予想する」を送っている最中。
+    var isVoting: Bool = false
+    /// 「予想する」の押し場所。nil なら出さない。
     var onVote: (() -> Void)? = nil
+    /// 「予想する」の横に並べる補助の操作 (歌唱メンバー予想の開閉など)。
+    var accessory: AnyView? = nil
+    /// 行の下に開く中身 (歌唱メンバー予想)。
+    var expansion: AnyView? = nil
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            mainRow
+            if let expansion {
+                expansion
+                    .padding(.leading, DS.Space.rowH + ImasRankNumber.width + DS.Space.rowGap)
+                    .padding(.trailing, DS.Space.rowH)
+                    .padding(.bottom, DS.Space.rowV)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        // 押せるものを持つ行は要素を束ねない (束ねると中のボタンを読み上げから押せない)。
+        .accessibilityElement(children: onVote == nil && expansion == nil ? .combine : .contain)
+    }
+
+    private var mainRow: some View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
                 .padding(.top, 10)
@@ -147,6 +174,7 @@ struct ImasForecastRow: View {
                 }
             } else {
                 ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
+                    .overlay { if let preview { ImasPreviewOverlay(url: preview.url, songId: preview.songId, size: 44) } }
             }
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
@@ -160,13 +188,24 @@ struct ImasForecastRow: View {
                 if reason != nil || !performers.isEmpty {
                     reasonLine
                 }
+                if let secondReason {
+                    basisLine(label: secondReason.label) {
+                        Text(secondReason.text).imasText(.rowSubtitle).lineLimit(2)
+                    }
+                }
                 ImasProportionLine(fraction: fraction)
                     .padding(.top, 2)
-                if let onVote {
-                    Button(action: onVote) {
-                        Label(isMine ? "予想した" : "予想する", systemImage: isMine ? "checkmark" : "hand.thumbsup")
+                if onVote != nil || accessory != nil {
+                    HStack(spacing: DS.Space.gap) {
+                        if let onVote {
+                            ImasButton(title: isMine ? "予想した" : "予想する",
+                                       systemImage: isMine ? "checkmark" : "hand.thumbsup",
+                                       role: isMine ? .primary : .secondary, size: .small,
+                                       isLoading: isVoting, action: onVote)
+                                .disabled(isVoteDisabled && !isMine)
+                        }
+                        if let accessory { accessory }
                     }
-                    .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
                     .padding(.top, 2)
                 }
             }
@@ -174,7 +213,6 @@ struct ImasForecastRow: View {
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.rowV)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
     }
 
     private var fraction: Double {
@@ -190,6 +228,17 @@ struct ImasForecastRow: View {
             ImasMetric(value: "\(Int((p * 100).rounded()))", unit: "%", size: .medium, emphasized: rank <= 3)
         case let .votes(n, _):
             ImasMetric(value: "\(n)", unit: "票", size: .medium, emphasized: rank <= 3)
+        }
+    }
+
+    /// 見出し付きの根拠 1 行 (「理由」+ 文)。
+    private func basisLine<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
+            Text(label)
+                .font(ImasTextRole.badge.font)
+                .foregroundStyle(DS.ink3)
+                .fixedSize()
+            content()
         }
     }
 
@@ -214,5 +263,37 @@ struct ImasForecastRow: View {
                 Text(reason).imasText(.rowSubtitle).lineLimit(2)
             }
         }
+    }
+}
+
+// MARK: - 試聴
+
+/// ジャケに重ねる試聴の印。押すと 30 秒の試聴を再生・停止する。再生中は暗くして停止の記号。
+struct ImasPreviewOverlay: View {
+    let url: URL
+    let songId: String
+    var size: CGFloat = 44
+
+    private var isPlaying: Bool { MusicKitService.shared.isPlaying(songId: songId) }
+
+    var body: some View {
+        Button {
+            MusicKitService.shared.togglePreview(url: url, songId: songId)
+        } label: {
+            ZStack {
+                if isPlaying {
+                    RoundedRectangle(cornerRadius: DS.rArtwork(size), style: .continuous)
+                        .fill(Color.black.opacity(0.4))
+                }
+                Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                    .font(.imasScaled(size * 0.25))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 2)
+            }
+            .frame(width: size, height: size)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isPlaying ? "試聴を止める" : "試聴する")
     }
 }

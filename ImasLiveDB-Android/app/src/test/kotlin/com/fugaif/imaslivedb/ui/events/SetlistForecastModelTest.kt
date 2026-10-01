@@ -47,7 +47,7 @@ class SetlistForecastModelTest {
     }
 
     private fun song(id: String, rank: Int) = ForecastSongRecord(
-        rank = rank.toUInt(), songId = id, title = "曲$id", score = 0.5,
+        rank = rank.toUInt(), songId = id, title = "曲$id", artworkUrl = null, previewUrl = null, brandId = null, score = 0.5,
         reasons = listOf(ForecastReasonRecord(ForecastReason.FREQUENTLY_PERFORMED, "よく歌われている")),
         originals = null
     )
