@@ -17,7 +17,7 @@ struct PollAchievementBadges: View {
         // FlowLayout を常に描画する。`Group { if … }` だと初期(実績ゼロ)で EmptyView になり、
         // EmptyView には .task が installされず取得が走らない (= 永遠に空) ため。
         // 実績ゼロのときは subview 0 で高さ0になり見えない。
-        FlowLayout(spacing: 6) {
+        FlowLayout(spacing: DS.Space.gap) {
             ForEach(achievements) { a in
                 Button {
                     AppAnalytics.tap("poll_achievement.open")
@@ -33,9 +33,13 @@ struct PollAchievementBadges: View {
             NavigationStack {
                 PollDetailView(pollId: link.id)
                     .environment(database)
+                    // PollDetailView 自身の共有・削除 (末尾) と競合しないよう、閉じるは先頭側に置く。
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("閉じる") { openPoll = nil }
+                            Button { openPoll = nil } label: {
+                                Image(systemName: "xmark")
+                            }
+                            .accessibilityLabel("閉じる")
                         }
                     }
             }
