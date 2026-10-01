@@ -18,7 +18,7 @@ enum ImasRowLeading {
     case none
     /// ライブ・公演のリードバー (実体の色の細い帯)。
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
-    /// アイドルのアイコン (40)。画像が無ければ判子。
+    /// アイドルのアイコン (40)。写真を設定したアイドルだけ。無ければリードバーにする。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
     /// 曲のジャケ (48、compact は 40)。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
@@ -176,7 +176,13 @@ struct ImasRow<Detail: View>: View {
             ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
                 .frame(height: 36)
         case let .avatar(label, seed, brand, url, isPick):
-            ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
+            // アイコンは写真を設定したアイドルだけ。無いときは色をリードバーで見せる。
+            if let url {
+                ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
+            } else {
+                ImasLeadBar(seed: seed, brand: brand)
+                    .frame(height: 36)
+            }
         case let .artwork(title, seed, brand, url):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
         case let .icon(name, tone):
@@ -200,7 +206,8 @@ struct ImasRow<Detail: View>: View {
         switch leading {
         case .none: return 0
         case .bar: return DS.Size.leadBar
-        case .avatar: return density.avatarSize + ImasAvatar.ringPadding * 2
+        case let .avatar(_, _, _, url, _):
+            return url == nil ? DS.Size.leadBar : density.avatarSize + ImasAvatar.ringPadding * 2
         case .artwork: return density.artworkSize
         case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30

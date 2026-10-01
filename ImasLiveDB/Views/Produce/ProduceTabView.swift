@@ -28,6 +28,7 @@ struct ProduceTabView: View {
     @State private var collectedSongIds: [String] = []
     // ローカル履歴 (投稿・投票) は @Observable で参照するだけでカウントが見える。
     @State private var voteLog = LocalPollVoteLog.shared
+    @State private var imageService = CustomImageService.shared
     @State private var contributionLog = LocalContributionLog.shared
 
     // 参加したライブ (タイル「参加ライブ」の遷移先に渡す)。
@@ -175,7 +176,10 @@ struct ProduceTabView: View {
                     brand: brand?.color,
                     onOpen: { if NavThrottle.allow() { navPath.append(idol) } }
                 ) {
-                    IdolAvatarView(idol: idol, size: 60, isPick: true)
+                    // アイコンは写真を設定した担当だけ。
+                    if let url = imageService.imageURL(for: idol.id) {
+                        ImasAvatar(label: idol.shortName, seed: idol.color, size: 60, isPick: true, imageURL: url)
+                    }
                 }
             }
         }

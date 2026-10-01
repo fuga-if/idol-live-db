@@ -21,7 +21,7 @@ enum ImasChipLeading {
     case symbol(String)
     /// ペンライト (アイドル・ブランドの色)。
     case dot
-    /// アイドルのアイコン (20)。画像が無ければ判子。
+    /// アイドルのアイコン (22)。写真を設定したアイドルだけ。無ければペンライト。
     case avatar(label: String, imageURL: URL? = nil)
 }
 
@@ -263,9 +263,14 @@ private struct ImasChipLeadingView: View {
         case .dot:
             ImasPenlight(color: penlight, size: .small)
         case .avatar(let label, let url):
-            ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
-                .environment(\.imasTheme, theme)
-                .padding(.leading, -4)
+            // アイコンは写真を設定したアイドルだけ。無いときはペンライト。
+            if let url {
+                ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
+                    .environment(\.imasTheme, theme)
+                    .padding(.leading, -4)
+            } else {
+                ImasPenlight(color: penlight, size: .small)
+            }
         }
     }
 }

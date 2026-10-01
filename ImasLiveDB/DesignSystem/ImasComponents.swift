@@ -77,7 +77,12 @@ struct ImasRankingRow: View {
             switch lead {
             case let .artwork(title, url): ImasArtwork(title: title, seed: seed, brand: brand, size: 44, imageURL: url)
             case let .avatar(label, url):
-                ImasAvatar(label: label, seed: seed, brand: brand, size: 40, imageURL: url, reservesPickRing: false)
+                // アイコンは写真を設定したアイドルだけ。無いときは色をリードバーで見せる。
+                if let url {
+                    ImasAvatar(label: label, seed: seed, brand: brand, size: 40, imageURL: url, reservesPickRing: false)
+                } else {
+                    ImasLeadBar(seed: seed, brand: brand).frame(height: 36)
+                }
             }
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(title).imasText(.rowTitle).lineLimit(1)

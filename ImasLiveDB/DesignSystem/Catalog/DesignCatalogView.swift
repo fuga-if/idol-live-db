@@ -179,7 +179,7 @@ private struct ChipsPage: View {
                     ImasFilterChip(text: "学マス", isSelected: brand == "gakuen", brand: Sample.gakuen, leading: .dot) { brand = "gakuen" }
                 }
             }
-            ImasSection("歌唱メンバーの予想 (アイコン付き)", style: .small) {
+            ImasSection("歌唱メンバーの予想 (写真が無ければペンライト)", style: .small) {
                 ImasChipFlow {
                     ForEach([("haruka", "天海春香", "春香", Sample.haruka), ("chihaya", "如月千早", "千早", Sample.chihaya),
                              ("miki", "星井美希", "美希", Sample.miki), ("makoto", "菊地真", "真", Sample.makoto),
@@ -429,7 +429,8 @@ private struct IdolHeroPage: View {
                 ImasHero(layout: .leading, surface: surface, eyebrow: "765PRO ALLSTARS", title: "天海春香",
                          subtitle: "あまみ はるか · CV 中村繪里子",
                          primary: .init(title: "出演ライブ", systemImage: "music.mic") {}) {
-                    ImasAvatar(label: "春香", size: 76, isPick: pick)
+                    // 写真を設定したアイドルだけアイコンが出る (見本は写真なし)。
+                    EmptyView()
                 }
                 ImasMarkBar {
                     ImasMarkTile(systemImage: pick ? "heart.fill" : "heart", label: "担当", isOn: pick) { pick.toggle() }
@@ -481,9 +482,7 @@ private struct HubPage: View {
     var body: some View {
         ImasPage {
             ImasFeatureCard(eyebrow: "担当", title: "花海咲季", subtitle: "学マス · CV 長月あおい",
-                            seed: Sample.saki, surface: oshiSurface, onOpen: {}) {
-                ImasAvatar(label: "咲季", size: 60, isPick: true)
-            }
+                            seed: Sample.saki, surface: oshiSurface, onOpen: {})
             ImasFeatureCard(eyebrow: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)",
                             subtitle: "11月7日(土) · DAY1", brand: Sample.gakuen,
                             metric: .init(prefix: "あと", value: "37", unit: "日"),
