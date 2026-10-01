@@ -12,21 +12,20 @@ struct InboxView: View {
                     ImasEmptyState(systemImage: "bell.slash", title: "お知らせはありません")
                 } else {
                     List {
-                        ForEach(AnnouncementCatalog.all) { a in
-                            NavigationLink {
-                                AnnouncementDetailView(announcement: a)
-                            } label: {
-                                row(a)
+                        ImasListSection {
+                            ForEach(AnnouncementCatalog.all) { a in
+                                NavigationLink {
+                                    AnnouncementDetailView(announcement: a)
+                                } label: {
+                                    row(a)
+                                }
                             }
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
                         }
                     }
                     .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
+                    .imasForm()
                 }
             }
-            .background(DS.bg)
             .navigationTitle("お知らせ")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -37,89 +36,59 @@ struct InboxView: View {
                     }
                     .disabled(store.unreadCount == 0)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
-                }
             }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             .trackScreen("inbox")
         }
     }
 
     private func row(_ a: Announcement) -> some View {
-        HStack(spacing: DS.sp4) {
-            Image(systemName: a.icon)
-                .font(.imasTitle3)
-                .foregroundStyle(ColorMath.onColor(a.tint))
-                .frame(width: 38, height: 38)
-                .background(a.tint.gradient, in: RoundedRectangle(cornerRadius: DS.rSM))
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    if !store.isRead(a.id) {
-                        Circle().fill(a.tint).frame(width: 8, height: 8)
-                    }
-                    Text(a.title)
-                        .font(.imasHeadline)
-                        .foregroundStyle(DS.ink)
-                        .lineLimit(1)
-                }
-                Text(a.summary)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(2)
-                Text(a.date)
-                    .font(.imasCaption2)
-                    .foregroundStyle(DS.ink3)
-            }
+        let hex = ColorMath.hexString(from: a.tint)
+        return ImasRow(
+            title: a.title,
+            subtitle: a.summary,
+            leading: .icon(a.icon, tone: .themed, seed: hex),
+            trailing: store.isRead(a.id) ? .none : .custom(AnyView(
+                ImasSwatch(hex: hex, size: .dot, isDecorative: true)
+            )),
+            titleRole: .rowTitle
+        ) {
+            Text(a.date).imasText(.meta)
         }
-        .padding(.vertical, DS.sp2)
     }
 }
 
 private struct AnnouncementDetailView: View {
     let announcement: Announcement
     @State private var store = AnnouncementStore.shared
+    @State private var showWidgetHowTo = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DS.sp5) {
-                Image(systemName: announcement.icon)
-                    .font(.imasScaled(40, weight: .semibold))
-                    .foregroundStyle(ColorMath.onColor(announcement.tint))
-                    .frame(width: 76, height: 76)
-                    .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: 19))
+        let hex = ColorMath.hexString(from: announcement.tint)
+        ImasPage {
+            VStack(alignment: .leading, spacing: DS.Space.card) {
+                ImasIconTile(systemImage: announcement.icon, size: .s56, tone: .themed, seed: hex)
 
-                VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text(announcement.title).font(.imasTitle2)
-                    Text(announcement.date).font(.imasCaption).foregroundStyle(DS.ink2)
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    Text(announcement.title).imasText(.sectionTitle)
+                    Text(announcement.date).imasText(.meta)
                 }
 
-                ForEach(Array(announcement.body.enumerated()), id: \.offset) { _, para in
-                    Text(para)
-                        .font(.imasSubhead)
-                        .foregroundStyle(DS.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                ImasProse(blocks: announcement.body.map { .paragraph($0) })
 
                 if announcement.link == .widgetHowTo {
-                    NavigationLink {
-                        WidgetHowToView()
+                    Button {
+                        showWidgetHowTo = true
                     } label: {
                         Label("使い方を見る", systemImage: "arrow.right.circle.fill")
-                            .font(.imasHeadline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(announcement.tint.gradient, in: RoundedRectangle(cornerRadius: DS.rMD))
-                            .foregroundStyle(ColorMath.onColor(announcement.tint))
                     }
-                    .padding(.top, DS.sp2)
+                    .buttonStyle(.imas(.primary, size: .large))
                 }
             }
-            .padding(DS.sp5)
         }
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
         .navigationTitle("お知らせ")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showWidgetHowTo) { WidgetHowToView() }
         .task { store.markRead(announcement.id) }
     }
 }
