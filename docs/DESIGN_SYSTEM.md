@@ -73,7 +73,7 @@
 **用途** 作る・直す (ライブ・公演・受付・曲・アイドル・支出・タグ・お題・補足・参考動画・セトリ)。
 **組み方**
 - `NavigationStack` + `Form` に `.imasForm()`。タイトルは「〇〇を追加」「〇〇を編集」。
-- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=キャンセル、右=保存 (みんなに見えるものは「送信」)。iOS 26 は OS の × と ✓ の丸ボタン、iOS 17/18 は文字ボタンで出る。
+- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=キャンセル、右=保存 (みんなに見えるもので「送信」にするときは `.submit`)。iOS 26 は OS のガラスのボタン (確定は白黒の塗り)、iOS 17/18 は文字のボタンで出る。
 - 保存中は `.imasSavingOverlay(isSaving, label: "保存中")`、失敗は `.imasErrorAlert($error)`、書きかけを閉じるときは `.imasDiscardConfirmation(isDirty:)`。
 - 入力は §7 の入力行だけで組む。削除は最後の区画に `ImasActionRow(.destructive)` を 1 つ置き、確認を出す。
 
@@ -530,7 +530,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 読むだけのシート | — | 閉じる |
 | 後で答えてよい問いかけ (チケット代の記録など) | あとで | 記録する |
 
-「やめる」「決定」「OK」(アラート以外) は使わない。iOS 26 では「閉じる」「キャンセル」は OS の × 、「保存」「完了」は ✓ の丸ボタンで出る (部品が出し分ける)。
+「やめる」「決定」「OK」(アラート以外) は使わない。文言と置き場所は `.imasSheetToolbar(.edit / .submit / .select / .read)` が決める (画面で「閉じる」「完了」を書かない)。iOS 26 では OS のガラスのボタン (確定は白黒の塗り) になる。
 
 **確認とエラー**
 - 確認の題: 「〇〇を削除しますか？」(疑問符は全角)。ボタン: 「削除」(破壊) / 「キャンセル」。印を外すときは「取り消す」(「参加を取り消す」)。

@@ -128,7 +128,8 @@ struct ImasRow<Detail: View>: View {
                 ImasRowDivider(inset: DS.Space.rowH + leadingWidth + (leadingWidth > 0 ? DS.Space.rowGap : 0))
             }
         }
-        .opacity(1)
+        // 余白は行が持つので、List・Form の中では List の余白を消す (二重に入らないように)。
+        .listRowInsets(EdgeInsets())
     }
 
     // MARK: 本文
@@ -367,6 +368,7 @@ struct ImasValueRow: View {
         .overlay(alignment: .top) {
             if position == .following { ImasRowDivider(inset: DS.Space.rowH) }
         }
+        .listRowInsets(EdgeInsets())
         .imasCopyable(copyable ? [CopyItem("\(key)をコピー", value, key: "labeled_row")] : [])
 
         if showsToggle {
@@ -485,5 +487,6 @@ struct ImasActionRow: View {
             }
         }
         .buttonStyle(.imasRow)
+        .listRowInsets(EdgeInsets())
     }
 }

@@ -9,7 +9,7 @@ import SwiftUI
 // =============================================================================
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
-    case buttons, chips, rows, rows2, sections, heroSong, heroIdol, hub, feedback, setlist
+    case buttons, chips, rows, rows2, sections, heroSong, heroIdol, hub, feedback, setlist, list, form, setup
 
     var id: String { rawValue }
 
@@ -25,6 +25,9 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
         case .hub: return "ハブ"
         case .feedback: return "状態・メーター"
         case .setlist: return "セトリと予想"
+        case .list: return "一覧の型"
+        case .form: return "編集シートの型"
+        case .setup: return "ゲームの設定・読みもの"
         }
     }
 }
@@ -55,6 +58,9 @@ struct DesignCatalogPageView: View {
             case .hub: HubPage()
             case .feedback: FeedbackPage()
             case .setlist: SetlistPage()
+            case .list: ListTemplatePage()
+            case .form: FormTemplatePage()
+            case .setup: SetupPage()
             }
         }
         .navigationTitle(page.title)
@@ -544,6 +550,108 @@ private struct SetlistPage: View {
 
     private func toggle(_ i: Int) {
         if voted.contains(i) { voted.remove(i) } else { voted.insert(i) }
+    }
+}
+// MARK: - 一覧の型
+
+private struct ListTemplatePage: View {
+    enum Sort: String, CaseIterable { case release = "リリース日順", performances = "披露回数順" }
+    @State private var sort: Sort = .performances
+    @State private var filters = ["765AS", "全体曲"]
+
+    var body: some View {
+        List {
+            Section {
+                ImasFilterBar(items: filters.map { f in
+                    .init(id: f, title: f, brand: f == "765AS" ? Sample.as765 : nil) { filters.removeAll { $0 == f } }
+                }, onClearAll: { filters.removeAll() })
+                .listRowInsets(EdgeInsets())
+                ImasListSummary(count: 2051, unit: "件", sortOptions: Sort.allCases, sortSelection: $sort) { $0.rawValue }
+                    .listRowInsets(EdgeInsets())
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            ImasListSection("2005年") {
+                ImasSongRow(title: "THE IDOLM@STER", subtitle: "765PRO ALLSTARS", brandHex: Sample.as765,
+                            trailing: .metric("89", unit: "回")) {
+                    HStack(spacing: DS.Space.gapTight) {
+                        Text("7月26日").imasText(.meta)
+                        ImasBadge(text: "回収 3", kind: .positive, systemImage: "checkmark")
+                    }
+                }
+                ImasSongRow(title: "READY!!", subtitle: "765PRO ALLSTARS", brandHex: Sample.as765,
+                            trailing: .metric("56", unit: "回")) { EmptyView() }
+            }
+            ImasListSection("ライブ") {
+                ImasShowRow(title: "DAY1", subtitle: "12月13日(土) · 京セラドーム大阪 · 17:00 開演", rainbow: true,
+                            trailing: .badge(ImasBadge(text: "参加済", kind: .positive)))
+                ImasShowRow(title: "DAY2", subtitle: "12月14日(日) · 京セラドーム大阪 · 16:00 開演", rainbow: true)
+            }
+        }
+        .listStyle(.plain)
+        .imasForm()
+    }
+}
+
+// MARK: - 編集シートの型
+
+private struct FormTemplatePage: View {
+    @State private var name = "LIVE TOUR -標-"
+    @State private var url = "htps://example"
+    @State private var memo = ""
+    @State private var notify = true
+    @State private var confirmDelete = false
+
+    var body: some View {
+        Form {
+            ImasListSection("基本") {
+                ImasTextFieldRow(title: "ライブ名", text: $name)
+                ImasTextFieldRow(title: "特設ページ", text: $url, error: "URL の形になっていません")
+                ImasToggleRow(title: "開演前に知らせる", subtitle: "開演 1 時間前に通知します", isOn: $notify)
+            }
+            ImasListSection("メモ", footer: "メモはこの端末にだけ保存されます。") {
+                ImasTextAreaRow(text: $memo, prompt: "座席・同行者・感想など", limit: 400)
+            }
+            ImasListSection {
+                ImasActionRow(title: "このライブを削除", kind: .destructive) { confirmDelete = true }
+            }
+        }
+        .imasForm()
+        .navigationTitle("ライブを編集")
+        .imasSheetToolbar(.edit(canSave: true, onCancel: {}, onSave: {}))
+        .imasConfirmDestructive("このライブを削除しますか？", isPresented: $confirmDelete,
+                                message: "公演とセトリもいっしょに削除されます。") {}
+    }
+}
+
+// MARK: - ゲームの設定・読みもの
+
+private struct SetupPage: View {
+    var body: some View {
+        ImasPage {
+            ImasSetupHeader(systemImage: "music.quarternote.3", title: "歌詞クイズ",
+                            message: "歌詞の一節から曲名を当てます。")
+            ImasCandidateCount(count: 7, minimum: 10)
+            ImasNotice(kind: .warning, title: "候補が足りません", message: "出題に必要な 10 曲に届いていません。ブランドを増やしてください。")
+            ImasSection("習熟度", style: .small) {
+                ImasCard {
+                    VStack(alignment: .leading, spacing: DS.Space.gap) {
+                        Text("覚えた").imasText(.rowTitle)
+                        ImasMeter(value: 7, total: 10).imasTheme(seed: Sample.chihaya)
+                    }
+                }
+            }
+            ImasSection("使い方", style: .small) {
+                ImasCard {
+                    ImasStepList(steps: [
+                        .init(title: "ホーム画面を長押しする", detail: "アイコンが揺れたら左上の ＋ を押します。"),
+                        .init(title: "「アイドルライブDB」を探す"),
+                        .init(title: "担当画像を選ぶ", detail: "ウィジェットを長押しして編集します。"),
+                    ])
+                }
+            }
+            ImasButton(title: "はじめる", size: .large) {}
+        }
     }
 }
 #endif
