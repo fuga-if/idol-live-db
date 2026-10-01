@@ -75,52 +75,27 @@ struct VideoEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("YouTube URL", text: $youtubeUrl)
-                        .keyboardType(.URL)
+                ImasListSection("動画 URL", footer: "YouTube の watch / youtu.be / shorts / embed URL に対応。") {
+                    ImasTextFieldRow(title: "YouTube URL", text: $youtubeUrl, keyboard: .URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                } header: {
-                    Text("動画 URL")
-                } footer: {
-                    Text("YouTube の watch / youtu.be / shorts / embed URL に対応。")
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section {
-                    TextField("動画タイトル (任意)", text: $videoTitle)
-                    TextField("メモ (任意)", text: $note, axis: .vertical)
-                        .lineLimit(2...6)
-                } header: {
-                    Text("補足")
-                } footer: {
-                    Text("どの公演の映像かなどの補足。メモ \(note.count)/\(Self.maxNote) 文字")
-                        .foregroundStyle(note.count > Self.maxNote ? DS.danger : DS.ink2)
+                ImasListSection("補足", footer: "どの公演の映像かなどの補足。メモ \(note.count)/\(Self.maxNote) 文字") {
+                    ImasTextFieldRow(title: "動画タイトル", text: $videoTitle, prompt: "任意")
+                    ImasTextAreaRow(text: $note, prompt: "メモ (任意)", limit: Self.maxNote)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle(mode.isCreate ? "参考動画を投稿" : "参考動画を編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { clearDraft(); dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("video_edit.save"); Task { await save() } }
-                        .disabled(isSaving || !isValid)
-                }
-            }
-            .overlay { if isSaving { SavingOverlay() } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.edit(
+                canSave: !isSaving && isValid,
+                onCancel: { clearDraft(); dismiss() },
+                onSave: { AppAnalytics.tap("video_edit.save"); Task { await save() } }
+            ))
+            .imasSavingOverlay(isSaving, label: "保存中")
+            .imasErrorAlert(message: $errorMessage)
             .trackScreen("video_edit")
         }
         .onAppear { restoreDraft() }
@@ -230,17 +205,6 @@ struct VideoEditView: View {
 }
 
 // MARK: - Shared helpers
-
-/// 保存中のフルスクリーンオーバーレイ (SongEditView 等と同じ見た目)。
-private struct SavingOverlay: View {
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
-}
 
 /// EditService.submit の throw を日本語の短文へ変換する。
 private func friendlyEditError(_ error: Error) -> String {

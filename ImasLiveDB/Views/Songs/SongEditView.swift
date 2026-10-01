@@ -103,100 +103,69 @@ struct SongEditView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("基本情報") {
+                ImasListSection("基本情報") {
                     if let original = mode.original {
-                        LabeledContent("ID") { Text(original.id).foregroundStyle(DS.ink2) }
+                        ImasValueRow(key: "ID", value: original.id)
                     }
-                    TextField("タイトル", text: $title)
-                    TextField("タイトル (カナ)", text: $titleKana)
-                    Picker("ブランド", selection: $brandId) {
-                        Text("未指定").tag("")
-                        ForEach(allBrands) { Text($0.name).tag($0.id) }
+                    ImasTextFieldRow(title: "タイトル", text: $title)
+                    ImasTextFieldRow(title: "タイトル (カナ)", text: $titleKana)
+                    ImasMenuRow(title: "ブランド", options: [""] + allBrands.map(\.id), selection: $brandId) { id in
+                        id.isEmpty ? "未指定" : (allBrands.first { $0.id == id }?.name ?? id)
                     }
-                    Picker("種別", selection: $songType) {
-                        ForEach(songTypes, id: \.value) { Text($0.shortLabel).tag($0.value) }
+                    ImasMenuRow(title: "種別", options: songTypes.map(\.value), selection: $songType) { value in
+                        songTypes.first { $0.value == value }?.shortLabel ?? value
                     }
-                    TextField("ユニット名", text: $unitName)
+                    ImasTextFieldRow(title: "ユニット名", text: $unitName)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 if mode.isCreate {
                     artistSection
                 }
 
-                Section("制作情報") {
-                    TextField("作詞", text: $lyricist)
-                    TextField("作曲", text: $composer)
-                    TextField("編曲", text: $arranger)
-                    TextField("リリース日 (YYYY-MM-DD)", text: $releaseDate)
-                        .keyboardType(.numbersAndPunctuation)
-                        .autocapitalization(.none).autocorrectionDisabled()
-                    TextField("歌唱表記 (例: 春香・千早)", text: $singerLabel)
-                    TextField("補足 (例: ミリシタ 1 周年記念楽曲)", text: $note)
-                    TextField("再生時間 (秒)", text: $durationSecText)
-                        .keyboardType(.numberPad)
+                ImasListSection("制作情報") {
+                    ImasTextFieldRow(title: "作詞", text: $lyricist)
+                    ImasTextFieldRow(title: "作曲", text: $composer)
+                    ImasTextFieldRow(title: "編曲", text: $arranger)
+                    ImasTextFieldRow(title: "リリース日", text: $releaseDate, prompt: "YYYY-MM-DD",
+                                     keyboard: .numbersAndPunctuation)
+                    ImasTextFieldRow(title: "歌唱表記", text: $singerLabel, prompt: "例: 春香・千早")
+                    ImasTextFieldRow(title: "補足", text: $note, prompt: "例: ミリシタ 1 周年記念楽曲")
+                    ImasTextFieldRow(title: "再生時間 (秒)", text: $durationSecText, keyboard: .numberPad)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
-                Section("Apple Music") {
-                    TextField("apple_music_id", text: $appleMusicId)
-                        .keyboardType(.numberPad)
-                    TextField("apple_music_album_id", text: $appleMusicAlbumId)
-                        .keyboardType(.numberPad)
-                    TextField("artwork URL", text: $artworkUrl)
-                        .keyboardType(.URL).autocapitalization(.none).autocorrectionDisabled()
-                    TextField("preview URL", text: $previewUrl)
-                        .keyboardType(.URL).autocapitalization(.none).autocorrectionDisabled()
+                ImasListSection("Apple Music") {
+                    ImasTextFieldRow(title: "apple_music_id", text: $appleMusicId, keyboard: .numberPad)
+                    ImasTextFieldRow(title: "apple_music_album_id", text: $appleMusicAlbumId, keyboard: .numberPad)
+                    ImasTextFieldRow(title: "artwork URL", text: $artworkUrl, keyboard: .URL)
+                    ImasTextFieldRow(title: "preview URL", text: $previewUrl, keyboard: .URL)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
-                Section("CD / その他") {
-                    TextField("cd_series", text: $cdSeries)
-                    TextField("cd_title", text: $cdTitle)
-                    TextField("ISRC", text: $isrc)
-                        .autocapitalization(.none).autocorrectionDisabled()
-                    TextField("歌詞 URL", text: $lyricsUrl)
-                        .keyboardType(.URL).autocapitalization(.none).autocorrectionDisabled()
+                ImasListSection("CD / その他") {
+                    ImasTextFieldRow(title: "cd_series", text: $cdSeries)
+                    ImasTextFieldRow(title: "cd_title", text: $cdTitle)
+                    ImasTextFieldRow(title: "ISRC", text: $isrc)
+                    ImasTextFieldRow(title: "歌詞 URL", text: $lyricsUrl, keyboard: .URL)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
                 if !mode.isCreate {
-                    Section {
-                        Button("Apple Music 関連を全て空にする", role: .destructive) {
+                    ImasListSection(footer: "誤紐付けで他の曲が再生されるときに使う。サブスク未配信の曲はクリアすべき。") {
+                        ImasActionRow(title: "Apple Music 関連を全て空にする", kind: .destructive) {
                             appleMusicId = ""
                             appleMusicAlbumId = ""
                             artworkUrl = ""
                             previewUrl = ""
                         }
-                    } footer: {
-                        Text("誤紐付けで他の曲が再生されるときに使う。サブスク未配信の曲はクリアすべき。")
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle(mode.isCreate ? "曲を追加" : "曲編集")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { AppAnalytics.tap("song_edit.save"); Task { await save() } }
-                        .disabled(isSaving || title.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-            .overlay { if isSaving { savingOverlay } }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.edit(
+                canSave: !isSaving && !title.trimmingCharacters(in: .whitespaces).isEmpty,
+                onCancel: { dismiss() },
+                onSave: { AppAnalytics.tap("song_edit.save"); Task { await save() } }
+            ))
+            .imasSavingOverlay(isSaving, label: "保存中")
+            .imasErrorAlert(message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
             .sheet(isPresented: $showArtistPicker) {
                 IdolPickerView(title: "歌唱アイドル", idols: allIdols, selected: artistIdolIds) { newSelection in
@@ -218,34 +187,16 @@ struct SongEditView: View {
 
     @ViewBuilder
     private var artistSection: some View {
-        Section {
+        ImasListSection("歌唱アイドル",
+                        footer: "一覧でアイコンを出すために必要です。ソロ曲なら 1 名、ユニット曲なら全員を選んでください。") {
             Button {
                 showArtistPicker = true
             } label: {
-                HStack(alignment: .top) {
-                    Image(systemName: "person.2")
-                        .foregroundStyle(DS.ink2)
-                    if artistIdolIds.isEmpty {
-                        Text("歌唱アイドルを選択")
-                            .foregroundStyle(DS.ink2)
-                    } else {
-                        Text(artistNames())
-                            .font(.imasCallout)
-                            .foregroundStyle(DS.ink)
-                            .multilineTextAlignment(.leading)
-                    }
-                    Spacer()
-                    ImasRowChevron()
-                }
+                ImasNavRow(title: "歌唱アイドル", systemImage: "person.2",
+                          value: artistIdolIds.isEmpty ? "選択" : artistNames())
             }
-            .buttonStyle(.plain)
-        } header: {
-            Text("歌唱アイドル")
-        } footer: {
-            Text("一覧でアイコンを出すために必要です。ソロ曲なら 1 名、ユニット曲なら全員を選んでください。")
+            .buttonStyle(.imasRow)
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     private func artistNames() -> String {
@@ -253,14 +204,6 @@ struct SongEditView: View {
             .compactMap { idolById[$0]?.name }
             .sorted()
             .joined(separator: " / ")
-    }
-
-    private var savingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.3).ignoresSafeArea()
-            ProgressView("保存中…").padding(DS.sp7)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
     }
 
     private func save() async {

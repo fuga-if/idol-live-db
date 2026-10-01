@@ -37,61 +37,26 @@ struct SongNoteEditSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("例: ミリシタ 1 周年記念楽曲", text: $note, axis: .vertical)
-                        .lineLimit(2...5)
-                } header: {
-                    Text("補足")
-                } footer: {
-                    HStack(alignment: .top) {
-                        Text("由来や位置づけを 1 文で。曲詳細の曲名の下に表示されます。")
-                        Spacer(minLength: DS.sp3)
-                        Text("\(trimmedNote.count)/\(Self.maxLength)")
-                            .monospacedDigit()
-                            .foregroundStyle(isTooLong ? DS.danger : DS.ink3)
-                    }
+                ImasListSection("補足", footer: "由来や位置づけを 1 文で。曲詳細の曲名の下に表示されます。") {
+                    ImasTextAreaRow(text: $note, prompt: "例: ミリシタ 1 周年記念楽曲", minHeight: 80, limit: Self.maxLength)
                 }
 
-                Section {
-                    TextField("公式サイトの URL など", text: $source, axis: .vertical)
-                        .lineLimit(1...3)
+                ImasListSection("出典", footer: "公式の告知や CD のクレジットなど、確かめられるものを書いてください。確認の目安にします。") {
+                    ImasTextAreaRow(text: $source, prompt: "公式サイトの URL など", minHeight: 60)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                } header: {
-                    Text("出典")
-                } footer: {
-                    Text("公式の告知や CD のクレジットなど、確かめられるものを書いてください。確認の目安にします。")
                 }
             }
+            .imasForm()
             .navigationTitle(song.note == nil ? "補足を書く" : "補足を直す")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("送信") {
-                        AppAnalytics.tap("song_note.submit")
-                        Task { await submit() }
-                    }
-                    .disabled(isSaving || isUnchanged || isTooLong)
-                }
-            }
-            .overlay {
-                if isSaving {
-                    ZStack {
-                        Color.black.opacity(0.3).ignoresSafeArea()
-                        ProgressView("送信中…").padding(DS.sp7)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    }
-                }
-            }
-            .alert("エラー", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("OK") {}
-            } message: { Text(errorMessage ?? "") }
+            .imasSheetToolbar(.submit(
+                canSubmit: !isSaving && !isUnchanged && !isTooLong,
+                onCancel: { dismiss() },
+                onSubmit: { AppAnalytics.tap("song_note.submit"); Task { await submit() } }
+            ))
+            .imasSavingOverlay(isSaving, label: "送信中")
+            .imasErrorAlert(message: $errorMessage)
             .editRequestSentAlert(isPresented: $requestSent, onDismiss: { dismiss() })
         }
         .trackScreen("song_note_edit")
