@@ -28,7 +28,7 @@ struct ListPickerView: View {
     var body: some View {
         List {
             // 「選択なし」= 絞り込み解除
-            row(label: "選択なし", value: nil, muted: true)
+            row(label: "選択なし", value: nil)
 
             if filteredItems.isEmpty {
                 ImasEmptyState(
@@ -39,41 +39,21 @@ struct ListPickerView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredItems, id: \.self) { item in
-                    row(label: item, value: item, muted: false)
+                    row(label: item, value: item)
                 }
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
+        .imasList()
         .searchable(text: $searchText, prompt: "\(title)を検索")
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task { catalog = TextSearchCatalog(fieldsPerItem: items.map { [$0] }) }
     }
 
-    private func row(label: String, value: String?, muted: Bool) -> some View {
-        Button {
+    private func row(label: String, value: String?) -> some View {
+        ImasSelectableRow(title: label, isSelected: selected == value, isSingle: true) {
             selected = value
             dismiss()
-        } label: {
-            HStack(spacing: DS.sp3) {
-                Text(label)
-                    .font(.imasSubhead)
-                    .foregroundStyle(muted ? DS.ink2 : DS.ink)
-                    .lineLimit(2)
-                Spacer(minLength: DS.sp3)
-                if selected == value {
-                    Image(systemName: "checkmark")
-                        .font(.imasScaled(14, weight: .semibold))
-                        .foregroundStyle(DS.sys)
-                }
-            }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
-        .accessibilityAddTraits(selected == value ? .isSelected : [])
     }
 }

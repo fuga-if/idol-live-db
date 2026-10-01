@@ -76,24 +76,19 @@ struct CrossTabCountChips: View {
         // View ごと消えて `.task` が走らず、件数が 0 のままでまた消える、で永久に出なかった。
         VStack(spacing: 0) {
             if !suggestions.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: DS.sp3) {
-                        // 上のスコープ列 (「ほかに」) と同じ形の見出しを置く。
-                        // 見出しが無いと、同じ見た目のチップ列が 2 段あるだけになり、
-                        // 「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
-                        Text("別のタブ")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
-                        ForEach(suggestions, id: \.tab) { item in
-                            ImasFilterChip(text: "\(item.tab.label)に \(item.count)", isSelected: false) {
-                                AppAnalytics.tap("cross_tab_search.jump")
-                                CrossTabSearch.shared.hand(query, to: item.tab)
-                            }
+                // 上のスコープ列 (「ほかに」) と同じ形の見出しを置く。
+                // 見出しが無いと、同じ見た目のチップ列が 2 段あるだけになり、
+                // 「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
+                ImasChipRow {
+                    Text("別のタブ").imasText(.note)
+                    ForEach(suggestions, id: \.tab) { item in
+                        ImasFilterChip(text: "\(item.tab.label)に \(item.count)", isSelected: false) {
+                            AppAnalytics.tap("cross_tab_search.jump")
+                            CrossTabSearch.shared.hand(query, to: item.tab)
                         }
                     }
-                    .padding(.horizontal, DS.sp5)
-                    .padding(.vertical, DS.sp2)
                 }
+                .padding(.vertical, DS.Space.gapTight)
             }
         }
         // 打鍵ごとにコアへ 1 往復 (数えるだけなので実体は運ばない)。

@@ -52,7 +52,7 @@ struct VenuePickerView: View {
     var body: some View {
         List {
             Section {
-                row(label: "選択なし", venue: nil, muted: true)
+                row(label: "選択なし", venue: nil)
             }
 
             if filteredVenues.isEmpty {
@@ -66,54 +66,31 @@ struct VenuePickerView: View {
                 ForEach(grouped, id: \.area) { group in
                     Section(group.area) {
                         ForEach(group.venues) { venue in
-                            row(label: venue.name, venue: venue, muted: false)
+                            row(label: venue.name, venue: venue)
                         }
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
+        .imasForm()
         .searchable(text: $searchText, prompt: "会場名・旧名・地域で検索")
         .navigationTitle("会場")
         .navigationBarTitleDisplayMode(.inline)
         .task { catalog = makeCatalog() }
     }
 
-    @ViewBuilder
-    private func row(label: String, venue: Venue?, muted: Bool) -> some View {
+    private func row(label: String, venue: Venue?) -> some View {
         let id = venue?.id
-        Button {
+        return ImasSelectableRow(
+            title: label,
+            subtitle: venue.flatMap(subtitle(for:)),
+            isSelected: selected == id,
+            isSingle: true
+        ) {
             selected = id
             dismiss()
-        } label: {
-            HStack(spacing: DS.sp3) {
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(label)
-                        .font(.imasSubhead)
-                        .foregroundStyle(muted ? DS.ink2 : DS.ink)
-                        .lineLimit(2)
-                    if let venue, let sub = subtitle(for: venue) {
-                        Text(sub)
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: DS.sp3)
-                if selected == id {
-                    Image(systemName: "checkmark")
-                        .font(.imasScaled(14, weight: .semibold))
-                        .foregroundStyle(DS.sys)
-                }
-            }
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
-        .accessibilityAddTraits(selected == id ? .isSelected : [])
     }
 
     /// キャパと旧名を副題に出す。キャパは出典が取れた会場だけ入っているので nil もある。

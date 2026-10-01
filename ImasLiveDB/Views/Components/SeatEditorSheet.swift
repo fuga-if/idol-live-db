@@ -14,43 +14,30 @@ struct SeatEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("例: アリーナ A6 12列 34番", text: $draft, axis: .vertical)
-                        .lineLimit(1...3)
+                ImasListSection(footer: "ブロック・列・番号など、自由に記録できます。") {
+                    ImasTextAreaRow(text: $draft, prompt: "例: アリーナ A6 12列 34番", minHeight: 60)
                         .focused($focused)
-                        .scrollContentBackground(.hidden)
-                } footer: {
-                    Text("ブロック・列・番号など、自由に記録できます。")
-                        .foregroundStyle(DS.ink2)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle("座席")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") {
-                        draft = markService.seat(entity: entity, id: entityId) ?? ""
+            .imasSheetToolbar(.edit(
+                onCancel: {
+                    draft = markService.seat(entity: entity, id: entityId) ?? ""
+                    dismiss()
+                },
+                onSave: {
+                    AppAnalytics.tap("seat_editor.save")
+                    do {
+                        try markService.setSeat(entity: entity, id: entityId, text: draft)
                         dismiss()
+                    } catch {
+                        // 書けなかったら閉じない (入れた座席を捨てずに、もう一度押せるように)。
+                        LocalWriteFailure.report(error, action: "座席の保存")
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        AppAnalytics.tap("seat_editor.save")
-                        do {
-                            try markService.setSeat(entity: entity, id: entityId, text: draft)
-                            dismiss()
-                        } catch {
-                            // 書けなかったら閉じない (入れた座席を捨てずに、もう一度押せるように)。
-                            LocalWriteFailure.report(error, action: "座席の保存")
-                        }
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
+            ))
         }
         .presentationDetents([.height(220), .medium])
         .onAppear {

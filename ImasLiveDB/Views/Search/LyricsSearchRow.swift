@@ -10,18 +10,12 @@ struct LyricsSearchRow: View {
     let hit: LyricsSearchHit
 
     var body: some View {
-        HStack(alignment: .top, spacing: DS.sp4) {
+        HStack(alignment: .top, spacing: DS.Space.rowGap) {
             artwork
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(song.title)
-                    .font(.imasBody)
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Text(song.title).imasText(.body).lineLimit(1)
                 if let label = song.unitName ?? song.singerLabel, !label.isEmpty {
-                    Text(label)
-                        .font(.imasCaption2)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
+                    Text(label).font(.imasCaption2).foregroundStyle(DS.ink2).lineLimit(1)
                 }
                 // 語ごとに1本ずつ。AND だと複数出て「なぜ引っかかったか」が分かる。
                 ForEach(hit.snippets) { s in
@@ -30,7 +24,7 @@ struct LyricsSearchRow: View {
                 }
             }
         }
-        .padding(.vertical, DS.sp1)
+        .padding(.vertical, DS.Space.gapTight)
     }
 
     /// ジャケ写。曲一覧と同じ `ArtworkImageView` を使う (プレビュー再生の配線込み)。

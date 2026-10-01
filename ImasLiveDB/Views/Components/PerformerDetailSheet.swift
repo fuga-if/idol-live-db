@@ -10,6 +10,8 @@ struct PerformerDetailSheet: View {
     let performers: [ResolvedPerformer]
     let navigate: (DetailDestination) -> Void
 
+    @State private var imageService = CustomImageService.shared
+
     var body: some View {
         NavigationStack {
             List {
@@ -18,23 +20,19 @@ struct PerformerDetailSheet: View {
                         AppAnalytics.tap("performer_detail.select_idol")
                         navigate(.idol(performer.idol))
                     } label: {
-                        HStack(spacing: DS.sp4) {
-                            IdolAvatarView(idol: performer.idol, size: 40)
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(performer.name.primary)
-                                    .font(.imasBody)
-                                    .foregroundStyle(DS.ink)
-                                if let sub = performer.name.secondary {
-                                    Text(sub)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
-                            Spacer()
-                            ImasRowChevron()
-                        }
+                        // 題は idol.name 固定の `ImasIdolRow` ではなくここで組む。
+                        // 歌唱者の表示名設定 (CV 名優先など) で主/副が入れ替わるため、
+                        // 解決済みの `performer.name` をそのまま使う必要がある。
+                        ImasRow(
+                            title: performer.name.primary,
+                            subtitle: performer.name.secondary,
+                            leading: .avatar(label: performer.idol.shortName, seed: performer.idol.color,
+                                            imageURL: imageService.imageURL(for: performer.idol.id)),
+                            trailing: .chevron,
+                            titleLineLimit: 1
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.imasRow)
                 }
             }
             .navigationTitle("\(songTitle) / 出演者 \(performers.count)名")

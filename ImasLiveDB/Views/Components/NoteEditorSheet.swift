@@ -14,32 +14,27 @@ struct NoteEditorSheet: View {
                 .padding()
                 .navigationTitle("メモ")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("キャンセル") {
-                            draft = markService.note(entity: entity, id: entityId) ?? ""
+                .imasSheetToolbar(.edit(
+                    onCancel: {
+                        draft = markService.note(entity: entity, id: entityId) ?? ""
+                        dismiss()
+                    },
+                    onSave: {
+                        AppAnalytics.tap("note_editor.save")
+                        let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        do {
+                            try markService.setNote(
+                                entity: entity,
+                                id: entityId,
+                                text: trimmed.isEmpty ? nil : trimmed
+                            )
                             dismiss()
+                        } catch {
+                            // 書けなかったら閉じない (打ったメモを捨てずに、もう一度押せるように)。
+                            LocalWriteFailure.report(error, action: "メモの保存")
                         }
                     }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("保存") {
-                            AppAnalytics.tap("note_editor.save")
-                            let trimmed = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-                            do {
-                                try markService.setNote(
-                                    entity: entity,
-                                    id: entityId,
-                                    text: trimmed.isEmpty ? nil : trimmed
-                                )
-                                dismiss()
-                            } catch {
-                                // 書けなかったら閉じない (打ったメモを捨てずに、もう一度押せるように)。
-                                LocalWriteFailure.report(error, action: "メモの保存")
-                            }
-                        }
-                        .fontWeight(.semibold)
-                    }
-                }
+                ))
         }
         .presentationDetents([.medium, .large])
         .onAppear {
