@@ -257,12 +257,26 @@ struct ImasForecastRow: View {
 
     let rank: Int
     let title: String
+    /// 題の下に 1 行 (ユニット名・歌唱者など)。お題の投票は曲のときだけ渡す。
+    var subtitle: String? = nil
     var artworkURL: URL? = nil
     /// ジャケが無いときの面の色 (曲のブランド色 hex)。
     var brand: String? = nil
-    /// 曲でなくアイドル・ユニットの予想 (お題の投票) のとき。写真があれば写真、無ければ色の帯。
+    /// 曲でなくアイドルの予想 (お題の投票) のとき。写真があれば写真、無ければ色の帯。
     var avatar: (label: String, imageURL: URL?, seed: String?)? = nil
+    /// 曲でなくユニットの予想のとき。登録画像とブランド色を自分で解決する (`avatar` より優先)。
+    var unit: Unit? = nil
+    /// 曲の試聴 URL。渡すとジャケのタップが曲詳細への遷移と別に試聴を切り替える
+    /// (行全体のタップは呼び出し側の onTapGesture のまま)。
+    var previewURL: URL? = nil
+    /// いま試聴中か。
+    var isPreviewing: Bool = false
+    /// ジャケがタップされたとき。`previewURL` が無いときは使わない。
+    var onPreviewTap: (() -> Void)? = nil
     let measure: Measure
+    /// `measure` の割合バーを出すか。機械予測はいつも出す。みんなの投票は最多との比較が
+    /// 無かった表示なので、お題の投票では外す。
+    var showsProportionLine: Bool = true
     /// 根拠の見出し (「オリメン」「理由」)。
     var reasonLabel: String? = nil
     /// 根拠の文 (「2/3 が出演」「ソロの代表曲」)。
@@ -276,19 +290,37 @@ struct ImasForecastRow: View {
     /// 投票ボタンの文言 (お題の投票は「投票する」、予想は既定の「予想する」)。
     var voteLabel: String = "予想する"
     var votedLabel: String = "予想した"
+    /// 読み上げだけ見た目の文言と変えたいとき (お題の投票はトグルなので「投票」「投票を取消」)。
+    /// nil なら見た目の文言 (`voteLabel`/`votedLabel`) をそのまま読む。
+    var voteAccessibilityLabel: String? = nil
+    var votedAccessibilityLabel: String? = nil
+    /// 投票ボタンだけを無効にする (残票切れ・他の行の処理中)。行のタップで詳細を開く操作はいつでも有効。
+    var voteDisabled: Bool = false
+    /// 投票/取消の通信中。ボタンの記号を砂時計に替える。
+    var isVoteLoading: Bool = false
+    /// 別画面へ進む矢印。行のタップで遷移するときに出す。
+    var showsChevron: Bool = false
+    /// 長押しでコピーできる項目 (曲名・よみなど)。空なら長押しメニュー自体を付けない。
+    var copyItems: [CopyItem] = []
+    /// 行の読み上げを 1 つに合成するか。既定 (true) は今まで通り、投票ボタンも含めて
+    /// 行全体を 1 要素にまとめる (セトリ予想のスレッドの既定の振る舞い)。`false` にすると
+    /// 投票ボタンが独立した要素になり (「投票」「投票を取消」と読める)、呼び出し側は
+    /// 行に `.accessibilityAction` で「詳細を開く」操作を別途足す (お題の投票はこちら)。
+    var combineAccessibility: Bool = true
 
     var body: some View {
+        if combineAccessibility {
+            rowContent.accessibilityElement(children: .combine)
+        } else {
+            rowContent.accessibilityElement(children: .contain)
+        }
+    }
+
+    private var rowContent: some View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
                 .padding(.top, 10)
-            if let avatar {
-                // アイドル・ユニットの候補は写真があれば写真、無ければ ImasAvatar 自身の判子
-                // (アイコンを消さない。以前はここで帯だけに落としていた)。
-                ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40,
-                           imageURL: avatar.imageURL, reservesPickRing: false)
-            } else {
-                ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
-            }
+            leadingView
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
                     Text(title)
@@ -297,30 +329,62 @@ struct ImasForecastRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: DS.Space.gap)
                     measureView
+                    if showsChevron {
+                        ImasRowChevron()
+                    }
+                }
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(ImasTextRole.rowSubtitle.font)
+                        .foregroundStyle(DS.ink2)
+                        .lineLimit(1)
                 }
                 if reason != nil || !performers.isEmpty {
                     reasonLine
                 }
-                ImasProportionLine(fraction: fraction)
-                    .padding(.top, 2)
-                if let onVote {
-                    Button(action: onVote) {
-                        Label(isMine ? votedLabel : voteLabel, systemImage: isMine ? "checkmark" : "hand.thumbsup")
-                    }
-                    .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
-                    .padding(.top, 2)
-                } else if isMine {
-                    // 投票できない状態 (締切後など) でも、自分が選んだことは押せない印で残す。
-                    Label(votedLabel, systemImage: "checkmark")
-                        .imasText(.badge, color: DS.ink2)
+                if showsProportionLine {
+                    ImasProportionLine(fraction: fraction)
                         .padding(.top, 2)
                 }
+                voteArea
             }
         }
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.rowV)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        .imasCopyable(copyItems)
+    }
+
+    @ViewBuilder private var leadingView: some View {
+        if let unit {
+            ImasUnitAvatar(unit: unit, size: 40)
+        } else if let avatar {
+            // アイドル・ユニットの候補は写真があれば写真、無ければ ImasAvatar 自身の判子
+            // (アイコンを消さない。以前はここで帯だけに落としていた)。
+            ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40,
+                       imageURL: avatar.imageURL, reservesPickRing: false)
+        } else {
+            ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL,
+                        previewURL: previewURL, isPreviewing: isPreviewing, onPreview: onPreviewTap)
+        }
+    }
+
+    @ViewBuilder private var voteArea: some View {
+        if let onVote {
+            Button(action: onVote) {
+                Label(isMine ? votedLabel : voteLabel,
+                      systemImage: isVoteLoading ? "hourglass" : (isMine ? "checkmark" : "hand.thumbsup"))
+            }
+            .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
+            .padding(.top, 2)
+            .disabled(voteDisabled)
+            .accessibilityLabel(isMine ? (votedAccessibilityLabel ?? votedLabel) : (voteAccessibilityLabel ?? voteLabel))
+        } else if isMine {
+            // 投票できない状態 (締切後など) でも、自分が選んだことは押せない印で残す。
+            Label(votedLabel, systemImage: "checkmark")
+                .imasText(.badge, color: DS.ink2)
+                .padding(.top, 2)
+        }
     }
 
     private var fraction: Double {

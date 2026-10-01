@@ -79,6 +79,11 @@ struct ImasStubRow<Detail: View>: View {
     /// 別画面へ進む矢印。`NavigationLink` に包んで OS が矢印を出す一覧では不要 (既定 false)。
     /// `Button` に包んで自前で矢印が要る一覧 (絞り込み結果など) だけ true にする。
     var showsChevron: Bool = false
+    /// `detail` に free-form な見た目 (チップのボタンなど) を渡したとき、読み上げにも足したい文言。
+    /// 題・副題・札だけでは伝わらない操作 (「セトリを見る」) をここで補う。
+    var detailAccessibilityLabel: String? = nil
+    /// 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 にする。
+    var subtitleLineLimit: Int = 1
     @ViewBuilder var detail: Detail
 
     @Environment(\.colorScheme) private var scheme
@@ -94,6 +99,7 @@ struct ImasStubRow<Detail: View>: View {
             VStack(spacing: 3) {
                 if !date.top.isEmpty {
                     Text(date.top).font(.imasMono(9.5, weight: .medium)).tracking(0.8).foregroundStyle(DS.ink2)
+                        .lineLimit(1)
                 }
                 Text(date.big)
                     .font(date.big.count > 3 ? ImasNumeralSize.medium.font : ImasNumeralSize.date.font)
@@ -102,6 +108,7 @@ struct ImasStubRow<Detail: View>: View {
                     .minimumScaleFactor(0.6)
                 if !date.bottom.isEmpty {
                     Text(date.bottom).font(.imasMono(9.5, weight: .medium)).tracking(0.8).foregroundStyle(date.weekdayColor)
+                        .lineLimit(1)
                 }
             }
             .frame(width: stubWidth)
@@ -124,7 +131,7 @@ struct ImasStubRow<Detail: View>: View {
                     HStack(spacing: 6) {
                         if let penlight { ImasPenlight(color: penlight, size: .small, rainbow: rainbow) }
                         if let subtitle {
-                            Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
+                            Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(subtitleLineLimit)
                         }
                     }
                 }
@@ -150,7 +157,8 @@ struct ImasStubRow<Detail: View>: View {
         .accessibilityLabel([spokenDate ?? [date.top, date.big, date.bottom].joined(separator: " "),
                              title, subtitle,
                              badges.isEmpty ? nil : badges.map(\.text).joined(separator: "、"),
-                             isPunched ? "参加済み" : nil].compactMap { $0 }.joined(separator: "、"))
+                             isPunched ? "参加済み" : nil,
+                             detailAccessibilityLabel].compactMap { $0 }.joined(separator: "、"))
         .listRowInsets(EdgeInsets(top: 4, leading: DS.Space.screen, bottom: 4, trailing: DS.Space.screen))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)

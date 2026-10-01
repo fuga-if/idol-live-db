@@ -154,13 +154,16 @@ struct ImasEventRow<Detail: View>: View {
     var rainbow: Bool = false
     /// 別画面へ進む矢印。`NavigationLink` の中では不要 (既定 false)、`Button` の中では true。
     var showsChevron: Bool = false
+    /// 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 以上にする。
+    var subtitleLineLimit: Int = 1
     @ViewBuilder var detail: Detail
 
     var body: some View {
         ImasStubRow(date: date.map(ImasStubDate.init) ?? ImasStubDate(top: "", big: "—", bottom: ""),
                     title: eventDisplayName(event.name), subtitle: subtitle,
                     brand: BrandColors.hex(for: event.brandId), isPunched: isPunched, badges: badges,
-                    emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { detail }
+                    emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
+                    subtitleLineLimit: subtitleLineLimit) { detail }
             .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
     }
 }
@@ -168,9 +171,10 @@ struct ImasEventRow<Detail: View>: View {
 extension ImasEventRow where Detail == EmptyView {
     init(event: Event, date: String? = nil, subtitle: String? = nil, isPunched: Bool = false,
          badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
-         showsChevron: Bool = false) {
+         showsChevron: Bool = false, subtitleLineLimit: Int = 1) {
         self.init(event: event, date: date, subtitle: subtitle, isPunched: isPunched, badges: badges,
-                  emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { EmptyView() }
+                  emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
+                  subtitleLineLimit: subtitleLineLimit) { EmptyView() }
     }
 }
 
@@ -192,21 +196,27 @@ struct ImasShowRow<Detail: View>: View {
     var rainbow: Bool = false
     /// 別画面へ進む矢印。`NavigationLink` の中では不要 (既定 false)、`Button` の中では true。
     var showsChevron: Bool = false
+    /// `detail` の見た目 (チップのボタンなど) に添える読み上げ文言。
+    var detailAccessibilityLabel: String? = nil
+    /// 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 にする。
+    var subtitleLineLimit: Int = 1
     @ViewBuilder var detail: Detail
 
     var body: some View {
         ImasStubRow(date: ImasStubDate(date), title: title, subtitle: subtitle, brand: brandHex,
                     isPunched: isPunched, badges: badges, emphasis: emphasis, rainbow: rainbow,
-                    showsChevron: showsChevron) { detail }
+                    showsChevron: showsChevron, detailAccessibilityLabel: detailAccessibilityLabel,
+                    subtitleLineLimit: subtitleLineLimit) { detail }
     }
 }
 
 extension ImasShowRow where Detail == EmptyView {
     init(date: String, title: String, subtitle: String? = nil, brandHex: String? = nil, isPunched: Bool = false,
          badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
-         showsChevron: Bool = false) {
+         showsChevron: Bool = false, subtitleLineLimit: Int = 1) {
         self.init(date: date, title: title, subtitle: subtitle, brandHex: brandHex, isPunched: isPunched,
-                  badges: badges, emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { EmptyView() }
+                  badges: badges, emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
+                  subtitleLineLimit: subtitleLineLimit) { EmptyView() }
     }
 }
 
@@ -220,6 +230,8 @@ struct ImasRecordRow<Detail: View>: View {
     var leading: ImasRowLeading = .none
     /// 何をしたか (「THE IDOLM@STER の歌唱者を直した」)。
     let title: String
+    /// 題の行数。長い対象名などを省略したくないときに増やす (既定は他の行と同じ 2 行)。
+    var titleLineLimit: Int = 2
     /// 誰が・いつ (「よ〜だ · 3分前」)。
     var subtitle: String? = nil
     /// 操作の札 (追加・変更・削除・差し戻し)。
@@ -228,7 +240,8 @@ struct ImasRecordRow<Detail: View>: View {
     @ViewBuilder var detail: Detail
 
     var body: some View {
-        ImasRow(title: title, subtitle: subtitle, leading: leading, trailing: trailing) {
+        ImasRow(title: title, subtitle: subtitle, leading: leading, trailing: trailing,
+                titleLineLimit: titleLineLimit) {
             if !badges.isEmpty {
                 HStack(spacing: DS.Space.gapTight) {
                     ForEach(badges) { b in ImasBadge(text: b.text, kind: b.kind, seed: b.seed) }
@@ -241,25 +254,26 @@ struct ImasRecordRow<Detail: View>: View {
 
 extension ImasRecordRow where Detail == EmptyView {
     /// 記号 1 つの記録行 (編集履歴・お知らせなど、これまでの既定の形)。
-    init(systemImage: String, tone: ImasIconTile.Tone = .neutral, title: String, subtitle: String? = nil,
-         badges: [ImasBadgeSpec] = [], trailing: ImasRowTrailing = .none) {
-        self.init(leading: .icon(systemImage, tone: tone), title: title, subtitle: subtitle, badges: badges,
-                  trailing: trailing, detail: { EmptyView() })
+    init(systemImage: String, tone: ImasIconTile.Tone = .neutral, title: String, titleLineLimit: Int = 2,
+         subtitle: String? = nil, badges: [ImasBadgeSpec] = [], trailing: ImasRowTrailing = .none) {
+        self.init(leading: .icon(systemImage, tone: tone), title: title, titleLineLimit: titleLineLimit,
+                  subtitle: subtitle, badges: badges, trailing: trailing, detail: { EmptyView() })
     }
 
     /// 先頭を記号以外 (アイドルのアイコン・ジャケなど) にしたいとき。
-    init(leading: ImasRowLeading, title: String, subtitle: String? = nil, badges: [ImasBadgeSpec] = [],
-         trailing: ImasRowTrailing = .none) {
-        self.init(leading: leading, title: title, subtitle: subtitle, badges: badges, trailing: trailing,
-                  detail: { EmptyView() })
+    init(leading: ImasRowLeading, title: String, titleLineLimit: Int = 2, subtitle: String? = nil,
+         badges: [ImasBadgeSpec] = [], trailing: ImasRowTrailing = .none) {
+        self.init(leading: leading, title: title, titleLineLimit: titleLineLimit, subtitle: subtitle,
+                  badges: badges, trailing: trailing, detail: { EmptyView() })
     }
 }
 
 extension ImasRecordRow {
     /// 記号 + diff 本文などの自由な中身を足す版。
-    init(systemImage: String, tone: ImasIconTile.Tone = .neutral, title: String, subtitle: String? = nil,
-         badges: [ImasBadgeSpec] = [], trailing: ImasRowTrailing = .none, @ViewBuilder detail: () -> Detail) {
-        self.init(leading: .icon(systemImage, tone: tone), title: title, subtitle: subtitle, badges: badges,
-                  trailing: trailing, detail: detail)
+    init(systemImage: String, tone: ImasIconTile.Tone = .neutral, title: String, titleLineLimit: Int = 2,
+         subtitle: String? = nil, badges: [ImasBadgeSpec] = [], trailing: ImasRowTrailing = .none,
+         @ViewBuilder detail: () -> Detail) {
+        self.init(leading: .icon(systemImage, tone: tone), title: title, titleLineLimit: titleLineLimit,
+                  subtitle: subtitle, badges: badges, trailing: trailing, detail: detail)
     }
 }

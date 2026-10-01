@@ -217,3 +217,37 @@ struct ImasStepList: View {
         }
     }
 }
+
+// MARK: - 箇条書き (手順でない点)
+
+/// アイコン付きの箇条書き。`ImasStepList` は番号が付くため「手順」に見える。
+/// 順序を持たない特徴・利点の列挙 (ログイン誘導の案内など) はこちらを使う。
+struct ImasPointList: View {
+    struct Point {
+        let systemImage: String
+        let text: String
+
+        init(_ systemImage: String, _ text: String) {
+            self.systemImage = systemImage
+            self.text = text
+        }
+    }
+
+    let points: [Point]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.rowGap) {
+            ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+                    Image(systemName: point.systemImage)
+                        .foregroundStyle(DS.sys)
+                        .frame(width: 20)
+                    Text(point.text)
+                        .imasText(.note)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+}

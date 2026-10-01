@@ -292,11 +292,14 @@ extension View {
     /// 保存・送信中に画面を覆う。下の操作を止め、何をしているかを 1 語で出す。
     /// `progress` を渡すと (0〜1)、くるくるの代わりに進み具合のバーを出す
     /// (画像の一括インポートなど、割合が意味を持つ処理向け)。
-    func imasSavingOverlay(_ isSaving: Bool, label: String = "保存中", progress: Double? = nil) -> some View {
+    /// `blocksInteraction: false` で地を暗くせず、箱だけ浮かせる (長く走る一括処理の間も
+    /// 後ろの一覧を触れたままにしたいとき。既定 (true) は今まで通り地を暗くして止める)。
+    func imasSavingOverlay(_ isSaving: Bool, label: String = "保存中", progress: Double? = nil,
+                           blocksInteraction: Bool = true) -> some View {
         overlay {
             if isSaving {
                 ZStack {
-                    Color.black.opacity(0.25).ignoresSafeArea()
+                    if blocksInteraction { Color.black.opacity(0.25).ignoresSafeArea() }
                     VStack(spacing: DS.Space.gapLoose) {
                         if let progress {
                             ProgressView(value: progress).frame(width: 160)
@@ -310,6 +313,7 @@ extension View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
                 }
                 .transition(.opacity)
+                .allowsHitTesting(blocksInteraction)
             }
         }
         .animation(.imasStandard, value: isSaving)
@@ -328,13 +332,34 @@ extension View {
     }
 
     /// 消す前の確認。題は「〇〇を削除しますか？」、破壊のボタンは「削除」。
+    /// `style: .alert` で中央のアラートにする (アカウント削除など、取り消せない重い操作)。
     func imasConfirmDestructive(_ title: String, isPresented: Binding<Bool>, actionTitle: String = "削除",
-                                message: String? = nil, action: @escaping () -> Void) -> some View {
-        confirmationDialog(title, isPresented: isPresented, titleVisibility: .visible) {
-            Button(actionTitle, role: .destructive, action: action)
-            Button("キャンセル", role: .cancel) {}
-        } message: {
-            if let message { Text(message) }
+                                message: String? = nil, style: ImasConfirmDestructiveStyle = .confirmationDialog,
+                                action: @escaping () -> Void) -> some View {
+        Group {
+            switch style {
+            case .confirmationDialog:
+                confirmationDialog(title, isPresented: isPresented, titleVisibility: .visible) {
+                    Button(actionTitle, role: .destructive, action: action)
+                    Button("キャンセル", role: .cancel) {}
+                } message: {
+                    if let message { Text(message) }
+                }
+            case .alert:
+                alert(title, isPresented: isPresented) {
+                    Button(actionTitle, role: .destructive, action: action)
+                    Button("キャンセル", role: .cancel) {}
+                } message: {
+                    if let message { Text(message) }
+                }
+            }
         }
     }
+}
+
+enum ImasConfirmDestructiveStyle {
+    /// 既定。下からの確認シート (操作系の一覧の削除など、軽い取り消し)。
+    case confirmationDialog
+    /// 中央のアラート (アカウント削除など、取り消せない重い操作)。
+    case alert
 }

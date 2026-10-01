@@ -20,7 +20,8 @@ enum ImasSheetToolbarKind {
     /// 編集・追加。左 = キャンセル、右 = 保存。
     case edit(canSave: Bool = true, onCancel: () -> Void, onSave: () -> Void)
     /// 投稿・投票・修正リクエスト (みんなに見える)。左 = キャンセル、右 = 送信。
-    case submit(canSubmit: Bool = true, onCancel: () -> Void, onSubmit: () -> Void)
+    /// `isSubmitting` の間は送信の記号の代わりにくるくるを出し、連打できないようにする。
+    case submit(canSubmit: Bool = true, isSubmitting: Bool = false, onCancel: () -> Void, onSubmit: () -> Void)
     /// 複数を選ぶ。左 = キャンセル、右 = 完了。
     case select(canFinish: Bool = true, onCancel: () -> Void, onFinish: () -> Void)
     /// 読むだけ。右 = 閉じる。
@@ -39,10 +40,11 @@ extension View {
                 ToolbarItem(placement: .confirmationAction) {
                     ImasSheetButton(title: "保存", role: .confirm, action: onSave).disabled(!canSave)
                 }
-            case let .submit(canSubmit, onCancel, onSubmit):
+            case let .submit(canSubmit, isSubmitting, onCancel, onSubmit):
                 ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "キャンセル", role: .cancel, action: onCancel) }
                 ToolbarItem(placement: .confirmationAction) {
-                    ImasSheetButton(title: "送信", role: .confirm, action: onSubmit).disabled(!canSubmit)
+                    ImasSheetButton(title: "送信", role: .confirm, isLoading: isSubmitting, action: onSubmit)
+                        .disabled(!canSubmit || isSubmitting)
                 }
             case let .select(canFinish, onCancel, onFinish):
                 ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "キャンセル", role: .cancel, action: onCancel) }
@@ -67,6 +69,8 @@ private struct ImasSheetButton: View {
     enum Role { case cancel, confirm, close }
     let title: String
     let role: Role
+    /// 送信・保存の処理中。記号の代わりに砂時計がわりのくるくるを出す (17/18 のみ)。
+    var isLoading: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -75,8 +79,12 @@ private struct ImasSheetButton: View {
                 .accessibilityLabel(title)
         } else {
             Button(action: action) {
-                Image(systemName: role == .confirm ? "checkmark" : "xmark")
-                    .font(.imasScaled(17, weight: role == .confirm ? .bold : .semibold))
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: role == .confirm ? "checkmark" : "xmark")
+                        .font(.imasScaled(17, weight: role == .confirm ? .bold : .semibold))
+                }
             }
             .accessibilityLabel(title)
         }

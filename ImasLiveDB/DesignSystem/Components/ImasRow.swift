@@ -120,12 +120,17 @@ struct ImasRow<Detail: View>: View {
     var density: ImasRowDensity = .regular
     var emphasis: ImasRowEmphasis = .normal
     var titleLineLimit: Int = 2
+    /// 副題の行数。既定は 1 行 (値を添えるだけの行)。説明文が長い行は 2 にする。
+    var subtitleLineLimit: Int = 1
     /// 題の代わりに強調付きの文字 (絞り込みで当たった所に色を敷くなど)。
     var attributedTitle: AttributedString? = nil
     /// 題の書体。もの (曲・アイドル・ライブ) は `.rowTitle`、操作・設定は `.rowLabel`。
     var titleRole: ImasTextRole = .rowTitle
     /// 題だけを押せるようにする (行の他の場所にも別の押せる物があるとき)。nil なら押せない文字のまま。
     var onSelectTitle: (() -> Void)? = nil
+    /// 題の読み上げを見た目の文字と変えたいとき (「タグ: 〇〇」など前置きを足す)。nil なら題の文字をそのまま読む。
+    /// 行全体に付けると副題・末尾の札まで隠れて読めなくなるため、ここで題だけに絞って付ける。
+    var titleAccessibilityLabel: String? = nil
     @ViewBuilder var detail: Detail
 
     @Environment(\.imasRowPosition) private var position
@@ -190,7 +195,7 @@ struct ImasRow<Detail: View>: View {
                 Text(subtitle)
                     .font(ImasTextRole.rowSubtitle.font)
                     .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink2)
-                    .lineLimit(1)
+                    .lineLimit(subtitleLineLimit)
             }
             detail
         }
@@ -209,6 +214,7 @@ struct ImasRow<Detail: View>: View {
         .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
         .lineLimit(titleLineLimit)
         .fixedSize(horizontal: false, vertical: true)
+        .accessibilityLabel(titleAccessibilityLabel ?? title)
 
         if let onSelectTitle {
             Button(action: onSelectTitle) {
@@ -319,8 +325,9 @@ extension ImasRow where Detail == EmptyView {
     init(title: String, subtitle: String? = nil, leading: ImasRowLeading = .none,
          selection: ImasRowSelection? = nil,
          trailing: ImasRowTrailing = .none, density: ImasRowDensity = .regular,
-         emphasis: ImasRowEmphasis = .normal, titleLineLimit: Int = 2, titleRole: ImasTextRole = .rowTitle,
-         onSelectTitle: (() -> Void)? = nil) {
+         emphasis: ImasRowEmphasis = .normal, titleLineLimit: Int = 2, subtitleLineLimit: Int = 1,
+         titleRole: ImasTextRole = .rowTitle,
+         onSelectTitle: (() -> Void)? = nil, titleAccessibilityLabel: String? = nil) {
         self.title = title
         self.subtitle = subtitle
         self.leading = leading
@@ -329,8 +336,10 @@ extension ImasRow where Detail == EmptyView {
         self.density = density
         self.emphasis = emphasis
         self.titleLineLimit = titleLineLimit
+        self.subtitleLineLimit = subtitleLineLimit
         self.titleRole = titleRole
         self.onSelectTitle = onSelectTitle
+        self.titleAccessibilityLabel = titleAccessibilityLabel
         self.detail = EmptyView()
     }
 }
@@ -508,6 +517,13 @@ struct ImasNavRow: View {
     var value: String? = nil
     /// 押してから外へ飛ぶまでの待ち。矢印をくるくるに替える。
     var isLoading: Bool = false
+    /// 矢印を描くか。`NavigationLink` の中など、OS 側が既に矢印を出す場所では `false` にする
+    /// (二重に並ぶのを防ぐ)。既定は今まで通り出す。
+    var showsChevron: Bool = true
+    /// 副題の行数。既定は 1 行、説明文が長い行は 2 にする。
+    var subtitleLineLimit: Int = 1
+    /// 題の行数。既定は 1 行。見分ける語が丸ごと要る行は 2 にする。
+    var titleLineLimit: Int = 1
 
     var body: some View {
         ImasRow(
@@ -521,13 +537,14 @@ struct ImasNavRow: View {
                     }
                     if isLoading {
                         ProgressView().controlSize(.small)
-                    } else {
+                    } else if showsChevron {
                         ImasRowChevron()
                     }
                 }
             )),
             density: .compact,
-            titleLineLimit: 1,
+            titleLineLimit: titleLineLimit,
+            subtitleLineLimit: subtitleLineLimit,
             titleRole: .rowLabel
         )
     }
@@ -663,6 +680,8 @@ struct ImasActionRow: View {
     let title: String
     var systemImage: String? = nil
     var kind: Kind = .standard
+    /// 処理中。記号をくるくるに替え、押せなくする (発行・送信など時間のかかる操作)。
+    var isLoading: Bool = false
     let action: () -> Void
 
     @Environment(\.imasRowPosition) private var position
@@ -670,7 +689,11 @@ struct ImasActionRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: DS.Space.gap) {
-                if let systemImage { Image(systemName: systemImage) }
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else if let systemImage {
+                    Image(systemName: systemImage)
+                }
                 Text(title)
                 Spacer(minLength: 0)
             }
@@ -684,6 +707,7 @@ struct ImasActionRow: View {
             }
         }
         .buttonStyle(.imasRow)
+        .disabled(isLoading)
         .listRowInsets(EdgeInsets())
     }
 }

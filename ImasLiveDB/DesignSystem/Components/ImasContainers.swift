@@ -39,6 +39,9 @@ struct ImasSectionHeader: View {
     var actionSystemImage: String? = nil
     var onAction: (() -> Void)? = nil
     var style: Style = .large
+    /// 見出しの行数。ユーザーが書いた題 (お題のタイトルなど) を区画見出しに流用するときは
+    /// 切りたくないので増やす (既定は他の区画見出しと同じ 2 行)。
+    var titleLineLimit: Int = 2
 
     /// 旧い呼び方 (`tight: true` = 小) を残す。
     init(title: String, count: String? = nil, seeAll: (() -> Void)? = nil, tight: Bool = false,
@@ -51,7 +54,7 @@ struct ImasSectionHeader: View {
     }
 
     init(_ title: String, count: String? = nil, imprint: String? = nil, seed: String? = nil, brand: String? = nil,
-         style: Style = .large, seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil,
+         style: Style = .large, titleLineLimit: Int = 2, seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil,
          actionTitle: String? = nil, actionSystemImage: String? = nil, onAction: (() -> Void)? = nil) {
         self.title = title
         self.count = count
@@ -64,6 +67,7 @@ struct ImasSectionHeader: View {
         self.actionSystemImage = actionSystemImage
         self.onAction = onAction
         self.style = style
+        self.titleLineLimit = titleLineLimit
     }
 
     @Environment(\.colorScheme) private var scheme
@@ -78,7 +82,7 @@ struct ImasSectionHeader: View {
             }
             Text(title)
                 .imasText(style == .large ? .sectionTitle : .sectionLabel)
-                .lineLimit(2)
+                .lineLimit(titleLineLimit)
             if let count {
                 Text(count)
                     .font(style == .large ? ImasNumeralSize.small.font : .imasCaption)

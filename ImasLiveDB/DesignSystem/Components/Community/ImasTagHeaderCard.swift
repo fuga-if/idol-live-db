@@ -19,12 +19,16 @@ struct ImasTagHeaderCard: View {
         VStack(alignment: .leading, spacing: DS.Space.note) {
             HStack(spacing: DS.Space.gap) {
                 if let colorHex {
+                    // ImasSwatch 既定の読み上げ (「カラー: ...」) ではこの画面の文脈が
+                    // 伝わらないため、「タグカラー:」に差し替える。
                     ImasSwatch(hex: colorHex, size: .small)
+                        .accessibilityLabel("タグカラー: \(ColorAccessibilityName.of(colorHex))")
                 }
                 Text(name).imasText(.heroTitle)
                 Spacer(minLength: DS.Space.gap)
                 if let categoryLabel {
                     ImasBadge(text: categoryLabel, kind: .neutral)
+                        .accessibilityLabel("カテゴリ: \(categoryLabel)")
                 }
             }
             if let description, !description.isEmpty {
