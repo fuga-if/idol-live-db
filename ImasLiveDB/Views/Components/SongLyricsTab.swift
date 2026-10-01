@@ -54,7 +54,7 @@ struct SongLyricsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.sp4) {
-            InlineLoginPrompt(message: "歌詞の表示にはログインが必要です", seed: seed)
+            ImasSignInPrompt(message: "歌詞の表示にはログインが必要です")
             content
             // 歌詞が実際に出ているときだけ掲示する。読み込み中やエラーの画面に
             // 許諾番号だけが残っていると、何に対する許諾なのか分からなくなる。
@@ -112,13 +112,7 @@ struct SongLyricsTab: View {
                 // 取り違えないよう画面に明示する。JASRAC の許諾が下りるまで
                 // 一般ユーザーには配信されない。
                 if lyrics.isDraft {
-                    Label("下書き（未公開）。この表示は管理者のみ",
-                          systemImage: "eye.slash")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
-                        .padding(.horizontal, DS.sp2)
-                        .padding(.vertical, DS.sp1)
-                        .background(DS.ink3.opacity(0.12), in: Capsule())
+                    ImasBadge(text: "下書き（未公開）。この表示は管理者のみ", kind: .attention, systemImage: "eye.slash")
                         .padding(.horizontal, DS.sp1)
                 }
                 editBar(lyrics)
@@ -130,9 +124,7 @@ struct SongLyricsTab: View {
                     card { viewingBody(lyrics) }
                 }
                 if let source = lyrics.source, !source.isEmpty {
-                    Text("出典: \(source)")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink3)
+                    ImasNote("出典: \(source)")
                         .padding(.horizontal, DS.sp1)
                 }
             } else {
@@ -161,23 +153,16 @@ struct SongLyricsTab: View {
     // MARK: - カード
 
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(song.title)
-                .font(.imasTitle3.weight(.bold))
-                .foregroundStyle(DS.ink)
-                .padding(.bottom, DS.sp2)
-            if let artistLine = vm.artistLine(for: song), !artistLine.isEmpty {
-                Text(artistLine)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .padding(.bottom, DS.sp3)
+        ImasCard {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(song.title).imasText(.cardTitle).padding(.bottom, DS.sp2)
+                if let artistLine = vm.artistLine(for: song), !artistLine.isEmpty {
+                    Text(artistLine).imasText(.note).padding(.bottom, DS.sp3)
+                }
+                content()
             }
-            content()
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, DS.sp5)
-        .padding(.vertical, DS.sp5)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - 閲覧
@@ -296,21 +281,16 @@ struct SongLyricsTab: View {
             HStack(spacing: DS.sp3) {
                 Spacer(minLength: 0)
                 if let editor {
-                    Button("編集を終了") {
+                    ImasButton(title: "編集を終了", role: .plain, size: .small) {
                         self.editor = nil
                         reanchorTarget = nil
                     }
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
                     saveButton(editor)
                 } else {
-                    Button {
+                    ImasButton(title: lyrics.hasCalls ? "コールを編集" : "コールを付ける",
+                              systemImage: "square.and.pencil", role: .secondary, size: .small) {
                         AppAnalytics.tap("call_guide.begin_edit")
                         editor = CallGuideEditorModel(lyrics: lyrics, songId: song.id)
-                    } label: {
-                        Label(lyrics.hasCalls ? "コールを編集" : "コールを付ける",
-                              systemImage: "square.and.pencil")
-                            .font(.imasSubhead.weight(.semibold))
                     }
                 }
             }
@@ -319,25 +299,10 @@ struct SongLyricsTab: View {
     }
 
     private func saveButton(_ editor: CallGuideEditorModel) -> some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        return Button {
+        ImasButton(title: "保存", role: .primary, size: .small, isLoading: editor.saveState == .saving) {
             AppAnalytics.tap("call_guide.save")
             Task { await save(editor) }
-        } label: {
-            Group {
-                if editor.saveState == .saving {
-                    ProgressView().controlSize(.small).tint(t.onAccent)
-                } else {
-                    Text("保存").font(.imasSubhead.weight(.semibold))
-                }
-            }
-            .frame(minWidth: 56)
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .foregroundStyle(t.onAccent)
-            .background(t.accent.opacity(editor.isDirty ? 1 : 0.4),
-                        in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
         }
-        .buttonStyle(.plain)
         .disabled(!editor.isDirty || editor.saveState == .saving)
     }
 
@@ -361,26 +326,13 @@ struct SongLyricsTab: View {
     @ViewBuilder
     private var editingBanner: some View {
         if let target = reanchorTarget {
-            HStack(spacing: DS.sp3) {
-                Image(systemName: "scope").font(.imasCaption)
-                Text("「\(target.text)」の掛かる範囲を選び直しています。語をタップ、または長押しからなぞる。")
-                    .font(.imasCaption)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                Button("やめる") { reanchorTarget = nil }
-                    .font(.imasCaption.weight(.semibold))
-            }
-            .foregroundStyle(DS.warning)
-            .padding(DS.sp3)
-            .background(DS.warning.opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
+            ImasNotice(kind: .warning,
+                      message: "「\(target.text)」の掛かる範囲を選び直しています。語をタップ、または長押しからなぞる。",
+                      actionTitle: "やめる", action: { reanchorTarget = nil })
         } else {
             // 多数派 (追っかけ) の導線を先に書く。被せるコールの範囲選択はその次。
-            Label("歌詞の語をタップすると、その語に被せるコールを付けられます。行末の ＋ は追っかけ、行頭の記号は手拍子。語をまたぐ範囲は長押しからなぞって選びます。",
-                  systemImage: "hand.tap")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
-                .fixedSize(horizontal: false, vertical: true)
+            ImasNote("歌詞の語をタップすると、その語に被せるコールを付けられます。行末の ＋ は追っかけ、行頭の記号は手拍子。語をまたぐ範囲は長押しからなぞって選びます。",
+                    systemImage: "hand.tap")
                 .padding(.horizontal, DS.sp1)
         }
     }
@@ -393,34 +345,35 @@ struct SongLyricsTab: View {
         let theme = ImasTheme.derive(seed: seed, scheme: scheme)
         if !stale.isEmpty {
             VStack(alignment: .leading, spacing: DS.sp3) {
-                Label("アンカーがズレたコール（\(stale.count) 件）", systemImage: "exclamationmark.triangle.fill")
-                    .font(.imasFootnote.weight(.bold))
-                    .foregroundStyle(DS.warning)
-                ForEach(stale, id: \.call.id) { entry in
-                    HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(entry.call.text)
-                                .font(.imasFootnote.weight(.semibold))
-                                .foregroundStyle(entry.call.emphasis.color(accent: theme.accent))
-                            Text("元のアンカー: \(entry.call.anchorText.isEmpty ? "（なし）" : entry.call.anchorText)")
-                                .font(.imasCaption2)
-                                .foregroundStyle(DS.ink3)
+                ImasNotice(kind: .warning, title: "アンカーがズレたコール（\(stale.count) 件）",
+                          message: "語をタップ、または長押しからなぞって選び直してください。")
+                ImasCardList {
+                    ForEach(Array(stale.enumerated()), id: \.element.call.id) { idx, entry in
+                        if idx > 0 { ImasRowDivider(inset: DS.sp4) }
+                        let attributedTitle: AttributedString = {
+                            var title = AttributedString(entry.call.text)
+                            title.foregroundColor = entry.call.emphasis.color(accent: theme.accent)
+                            return title
+                        }()
+                        ImasRow(
+                            title: entry.call.text,
+                            subtitle: "元のアンカー: \(entry.call.anchorText.isEmpty ? "（なし）" : entry.call.anchorText)",
+                            trailing: .custom(AnyView(
+                                Button("選び直す") {
+                                    reanchorTarget = ReanchorTarget(lineId: entry.line.id, callId: entry.call.id,
+                                                                    text: entry.call.text)
+                                    selectionResetToken += 1
+                                }
+                                .font(.imasCaption.weight(.semibold))
+                            )),
+                            density: .compact,
+                            attributedTitle: attributedTitle
+                        ) {
+                            EmptyView()
                         }
-                        Spacer(minLength: 0)
-                        Button("選び直す") {
-                            reanchorTarget = ReanchorTarget(lineId: entry.line.id,
-                                                            callId: entry.call.id,
-                                                            text: entry.call.text)
-                            selectionResetToken += 1
-                        }
-                        .font(.imasCaption.weight(.semibold))
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(DS.sp4)
-            .background(DS.warning.opacity(0.10),
-                        in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
     }
 

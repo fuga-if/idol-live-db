@@ -132,47 +132,7 @@ enum CallGuideText {
 }
 
 // MARK: - 折り返しレイアウト
-
-/// 幅に収まらなくなったら次の行に送る、素朴なフロー配置。
-///
-/// 編集モードの 1 文字セル並べと、凡例チップの折り返しに使う。`LazyVGrid` は列数固定
-/// なので文字幅がバラバラな (全角/半角混在の) セルには使えない。
-struct CallGuideFlowLayout: Layout {
-    var itemSpacing: CGFloat = 0
-    var lineSpacing: CGFloat = 6
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0, widest: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > 0, x + size.width > maxWidth {
-                widest = max(widest, x - itemSpacing)
-                x = 0
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            x += size.width + itemSpacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        widest = max(widest, x - itemSpacing)
-        return CGSize(width: maxWidth.isFinite ? maxWidth : max(widest, 0), height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
-        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > 0, x + size.width > bounds.width {
-                x = 0
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            subview.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y),
-                          anchor: .topLeading,
-                          proposal: ProposedViewSize(size))
-            x += size.width + itemSpacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
+//
+// 編集モードの 1 文字セル並べと、凡例チップの折り返しは DS の `FlowLayout`
+// (`DesignSystem/Components/ImasLayout.swift`) をそのまま使う (旧 `CallGuideFlowLayout`
+// は引数名違いだけの重複実装だったため統合した)。

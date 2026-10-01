@@ -85,33 +85,31 @@ struct CallEditorSheet: View {
 
     @ViewBuilder
     private var anchorSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
-            Text("アンカー").font(.imasCaption).foregroundStyle(DS.ink2)
-            if request.anchorText.isEmpty {
-                Label("行末（追っかけ）— 歌詞に被せず、この行の後で返すコール",
-                      systemImage: "arrow.turn.down.right")
-                    .font(.imasSubhead)
-                    .foregroundStyle(DS.ink2)
+        ImasCard {
+            VStack(alignment: .leading, spacing: DS.sp2) {
+                Text("アンカー").imasText(.sectionLabel)
+                if request.anchorText.isEmpty {
+                    Label("行末（追っかけ）— 歌詞に被せず、この行の後で返すコール",
+                          systemImage: "arrow.turn.down.right")
+                        .imasText(.value, color: DS.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    // 行ごと出して、その中でアンカーを光らせる。
+                    // シートは歌詞を覆うので、後ろの行に色を敷いても見えない
+                    // (`.medium` でも隠れる位置にあることを実機で確認した)。
+                    // 語だけを出す形だと、同じ語が行に 2 回出てくるとどちらか分からない。
+                    Text(CallGuideText.attributed(
+                        request.lineText,
+                        highlights: [.init(start: request.start, end: request.end,
+                                           color: ImasTheme.derive(seed: seed, scheme: scheme).accent,
+                                           isPending: true)]
+                    ))
+                    .imasText(.body)
                     .fixedSize(horizontal: false, vertical: true)
-            } else {
-                // 行ごと出して、その中でアンカーを光らせる。
-                // シートは歌詞を覆うので、後ろの行に色を敷いても見えない
-                // (`.medium` でも隠れる位置にあることを実機で確認した)。
-                // 語だけを出す形だと、同じ語が行に 2 回出てくるとどちらか分からない。
-                Text(CallGuideText.attributed(
-                    request.lineText,
-                    highlights: [.init(start: request.start, end: request.end,
-                                       color: ImasTheme.derive(seed: seed, scheme: scheme).accent,
-                                       isPending: true)]
-                ))
-                .font(.imasBody)
-                .foregroundStyle(DS.ink)
-                .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - タイミング
@@ -136,16 +134,14 @@ struct CallEditorSheet: View {
 
     private var inputSection: some View {
         VStack(alignment: .leading, spacing: DS.sp2) {
-            Text("コール文言").font(.imasCaption).foregroundStyle(DS.ink2)
-            TextField("(Hi!) など", text: $text, axis: .vertical)
-                .font(.imasBody)
-                .lineLimit(1...4)
-                .focused($focused)
-                .padding(DS.sp4)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            Text("繰り返しは「× 26」のように文言へ直接書く。")
-                .font(.imasCaption2)
-                .foregroundStyle(DS.ink3)
+            Text("コール文言").imasText(.sectionLabel)
+            ImasCard {
+                TextField("(Hi!) など", text: $text, axis: .vertical)
+                    .imasText(.body)
+                    .lineLimit(1...4)
+                    .focused($focused)
+            }
+            ImasNote("繰り返しは「× 26」のように文言へ直接書く。")
         }
     }
 
@@ -190,7 +186,7 @@ struct CallEditorSheet: View {
     private func paletteGroup(title: String, items: [String]) -> some View {
         VStack(alignment: .leading, spacing: DS.sp3) {
             Text(title).font(.imasCaption2.weight(.semibold)).foregroundStyle(DS.ink3)
-            CallGuideFlowLayout(itemSpacing: DS.sp2, lineSpacing: DS.sp2) {
+            FlowLayout(spacing: DS.sp2, lineSpacing: DS.sp2) {
                 ForEach(items, id: \.self) { item in
                     Button { append(item) } label: {
                         ImasChip(text: item, style: .themed, seed: seed)
@@ -208,18 +204,9 @@ struct CallEditorSheet: View {
     // MARK: - 削除
 
     private var deleteButton: some View {
-        Button(role: .destructive) {
+        ImasButton(title: "このコールを削除", systemImage: "trash", role: .destructive, size: .medium, fillsWidth: true) {
             onDelete?()
             dismiss()
-        } label: {
-            Label("このコールを削除", systemImage: "trash")
-                .font(.imasSubhead.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 11)
-                .foregroundStyle(DS.danger)
-                .background(DS.danger.opacity(0.12),
-                            in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
-        .buttonStyle(.plain)
     }
 }

@@ -110,12 +110,12 @@ struct CallGuideCallRows: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
             if call.isOverlapping {
-                tag(CallTiming.over.label, color: DS.sys2)
+                ImasBadge(text: CallTiming.over.label, kind: .neutral)
             } else if isMixed, !call.hasAnchor {
-                tag("行末", color: DS.ink3)
+                ImasBadge(text: "行末", kind: .neutral)
             }
             if call.isStale {
-                tag("ズレ", color: DS.warning)
+                ImasBadge(text: "ズレ", kind: .attention)
             }
             Spacer(minLength: 0)
         }
@@ -130,13 +130,6 @@ struct CallGuideCallRows: View {
         return "\(place)のコール: \(call.text)。\(call.emphasis.label)"
     }
 
-    private func tag(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.imasCaption2.weight(.bold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 5).padding(.vertical, 1)
-            .background(color.opacity(0.16), in: Capsule())
-    }
 
     private func marker(for call: LyricCall) -> String {
         // 幅ゼロは行内に掛かる範囲が無い = ①②③ / ↳ の対応付けが成り立たないので別記号。
@@ -196,7 +189,7 @@ struct CallGuideLegend: View {
     var body: some View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
         if !isEmpty {
-            CallGuideFlowLayout(itemSpacing: DS.sp2, lineSpacing: DS.sp2) {
+            FlowLayout(spacing: DS.sp2, lineSpacing: DS.sp2) {
                 ForEach(emphases, id: \.self) { emphasis in
                     legendItem(dot: emphasis.color(accent: theme.accent), text: emphasis.label)
                 }
@@ -210,14 +203,10 @@ struct CallGuideLegend: View {
         }
     }
 
+    /// 凡例 1 件。ドット (強調度の色) か記号 + 文言を `ImasChip` で (押せない情報の札)。
     private func legendItem(dot: Color? = nil, symbol: String? = nil, text: String) -> some View {
-        HStack(spacing: 5) {
-            if let dot { Circle().fill(dot).frame(width: 7, height: 7) }
-            if let symbol { Text(symbol).font(.imasCaption2).foregroundStyle(DS.ink2) }
-            Text(text).font(.imasCaption2.weight(.semibold)).foregroundStyle(DS.ink2)
-        }
-        .padding(.horizontal, 9).padding(.vertical, 5)
-        .background(DS.fill, in: Capsule())
+        let label = [symbol, text].compactMap { $0 }.joined(separator: " ")
+        return ImasChip(text: label, style: .neutral, color: dot, leading: dot != nil ? .dot : nil)
     }
 }
 
@@ -284,7 +273,7 @@ struct CallGuideSelectableLine: View {
 
     var body: some View {
         let cells = CallGuideText.cells(of: text)
-        CallGuideFlowLayout(itemSpacing: 0, lineSpacing: 4) {
+        FlowLayout(spacing: 0, lineSpacing: 4) {
             ForEach(cells) { cell in
                 Text(cell.text)
                     .font(.imasBody)
