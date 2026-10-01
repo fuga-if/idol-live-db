@@ -1,0 +1,310 @@
+[
+ {
+  "idol_id": "765as_天海春香",
+  "name": "天海春香",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "混在：プロデューサーには「〜ですよ」等の丁寧語寄り。仲間は基本呼び捨てで、年上には「さん」付け、千早・響には「ちゃん」付け",
+  "endings": [
+   "〜ですよ"
+  ],
+  "catchphrases": [
+   "○○ですよ、○○！"
+  ],
+  "tone_notes": "前向きで素直、明るく仲間を励ますタイプの話し方。決まった口癖はないとされるが、「プロデューサーさん、○○ですよ、○○！」という言い回しがシリーズを代表する定番フレーズになっている。少し天然でドジ（よく転ぶ）な面があり、感情が高ぶると勢いが止まらなくなることもある。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://www.idolmaster.jp/imas/archive/callnames/index.htm",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/haruka/",
+   "https://en.wikipedia.org/wiki/List_of_The_Idolmaster_characters"
+  ]
+ },
+ {
+  "idol_id": "765as_如月千早",
+  "name": "如月千早",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "混在：プロデューサーには丁寧語（〜ません/〜ですから 等）。仲間は基本呼び捨てだが、雪歩・やよい・伊織・響・貴音は名字＋さん、あずさは名前＋さん",
+  "endings": null,
+  "catchphrases": [
+   "くっ"
+  ],
+  "tone_notes": "真面目でストイック、歌に強く執着しており、口数が少なく硬い話し方。人付き合いが不器用で序盤は冷たく見えるが、根は朗らかで優しく、仲間やプロデューサーとの交流を通じて柔らかい表情を取り戻していく。思い通りにいかない時に漏らす「くっ」が口癖として知られる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://www.idolmaster.jp/imas/archive/callnames/index.htm",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/chihaya/",
+   "https://en.wikipedia.org/wiki/List_of_The_Idolmaster_characters",
+   "https://idolmaster-statistics.hatenablog.com/entry/2019/01/15/004311"
+  ]
+ },
+ {
+  "idol_id": "765as_星井美希",
+  "name": "星井美希",
+  "first_person": "ミキ",
+  "producer_call": [
+   "ハニー（覚醒後・『SP ミッシングムーン』一部・『DS』以降の定番）",
+   "プロデューサー",
+   "プロデューサーさん"
+  ],
+  "politeness": "タメ口が基本（プロデューサーにも）。尊敬する千早には「さん」付け、説教を避けたい律子には思い出したように「さん」を付ける",
+  "endings": [
+   "〜なの"
+  ],
+  "catchphrases": [
+   "あふぅ",
+   "あはっ☆"
+  ],
+  "tone_notes": "天才肌でとことんマイペース、面倒くさがりで眠たげな、ゆるく甘えた口調。自分を「ミキ」と呼び、語尾に「〜なの」を付けるのが特徴。好きな相手への好意は隠さずストレートに口にし、本気になると真剣な物言いに変わる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/miki/",
+   "https://en.wikipedia.org/wiki/List_of_The_Idolmaster_characters"
+  ]
+ },
+ {
+  "idol_id": "765as_萩原雪歩",
+  "name": "萩原雪歩",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "丁寧語が基本（プロデューサーや年上に対して。「〜ですぅ」と語尾が伸びがち）。仲間はほぼ「ちゃん」付け、あずさ・律子（・小鳥）は「さん」付け",
+  "endings": [
+   "〜ですぅ"
+  ],
+  "catchphrases": [
+   "穴掘って埋まってますぅ"
+  ],
+  "tone_notes": "内気で臆病、悲観的になりやすく、弱気で語尾が細く伸びるような控えめな話し方。男性や犬が苦手で、すぐ泣いたり取り乱したりする。ひどく落ち込むと「穴を掘って埋まりたい」と言い出すのが定番ネタで、自分を変えようと少しずつ前に進む健気さも持つ。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://www.idolmaster.jp/imas/archive/callnames/index.htm",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/yukiho/",
+   "https://en.wikipedia.org/wiki/List_of_The_Idolmaster_characters",
+   "https://renote.net/articles/72191"
+  ]
+ },
+ {
+  "idol_id": "765as_高槻やよい",
+  "name": "高槻やよい",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "混在：プロデューサーや年上メンバーには元気な丁寧語（〜ますねっ／〜ましょー 等）。伊織は「ちゃん」、年下の亜美・真美は呼び捨て、それ以外は「さん」付け",
+  "endings": [
+   "〜かなーって"
+  ],
+  "catchphrases": [
+   "うっうー",
+   "ハイ、ターッチ",
+   "はわっ"
+  ],
+  "tone_notes": "明朗快活で家族思い、語尾を伸ばし気味の元気いっぱいな話し方。難しい漢字や横文字が苦手で言い間違えることがある。「うっうー」の掛け声やハイタッチ（「ハイ、ターッチ」）がトレードマーク。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://www.idolmaster.jp/imas/archive/callnames/index.htm",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/yayoi/",
+   "https://en.wikipedia.org/wiki/List_of_The_Idolmaster_characters",
+   "https://renote.net/articles/71644",
+   "https://appget.com/c/special/183942/nosmith_1606-3/"
+  ]
+ },
+ {
+  "idol_id": "765as_菊地真",
+  "name": "菊地真",
+  "first_person": "ボク",
+  "producer_call": "プロデューサー",
+  "politeness": "混在: 年上のあずさ・小鳥には「さん」付けで丁寧、他の仲間には呼び捨て・タメ口",
+  "endings": null,
+  "catchphrases": [
+   "へへっ",
+   "やーりぃ",
+   "まっこまっこりーん"
+  ],
+  "tone_notes": "ボーイッシュで直情的、体を動かすのが好きな元気な話し方。嬉しいことがあると照れ笑い混じりに素直に喜ぶ。本心では女の子らしさに憧れており、可愛らしさを狙った言動を時折見せるが周囲には空回りしがち。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/菊地真",
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://renote.net/articles/74674",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "http://www5f.biglobe.ne.jp/~masurawo/masurawo/iM@S-kosyou.htm"
+  ]
+ },
+ {
+  "idol_id": "765as_水瀬伊織",
+  "name": "水瀬伊織",
+  "first_person": [
+   "私",
+   "伊織ちゃん（自分を「伊織ちゃん」と呼ぶ自己アピール時）"
+  ],
+  "producer_call": [
+   "プロデューサー",
+   "あんた（アンタ）"
+  ],
+  "politeness": "タメ口: 年上（律子・あずさ・小鳥）も含め全員呼び捨て。プロデューサーにも強気なタメ口",
+  "endings": [
+   "〜よ",
+   "〜んだから"
+  ],
+  "catchphrases": [
+   "にひひっ"
+  ],
+  "tone_notes": "財閥令嬢らしくプライドが高く、勝気で上から目線のきつい物言いをする典型的なツンデレ。思い通りにならないとすぐ怒るが、仲間意識は強く親しい相手には本音を隠さない。自分の可愛さに絶対の自信を持ち、得意げに笑ってみせる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/水瀬伊織",
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://starlit-season.idolmaster.jp/idol/idol.php?idol=iori-minase",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "http://www5f.biglobe.ne.jp/~masurawo/masurawo/iM@S-kosyou.htm"
+  ]
+ },
+ {
+  "idol_id": "765as_四条貴音",
+  "name": "四条貴音",
+  "first_person": "わたくし",
+  "producer_call": [
+   "あなた様",
+   "プロデューサー"
+  ],
+  "politeness": "敬語寄りの古風な丁寧語を誰に対しても使う。呼称はフルネームまたは「殿」付け、親しい相手には呼び捨て（ミリシタでは基本的に全員呼び捨てとの分析あり）",
+  "endings": null,
+  "catchphrases": [
+   "面妖な",
+   "なにやつ",
+   "あなた様"
+  ],
+  "tone_notes": "時代がかった古風な言葉遣いで、ゆったり落ち着いて話す気高い王女様タイプ。律儀で時に辛辣だが本質は繊細で優しく、世間知らずな一面もある。カタカナ語に弱く、外来語をひらがな的な発音で言うのが特徴。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/四条貴音",
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://renote.net/articles/71517",
+   "https://www.sakuya765.work/entry/shijou_takane",
+   "https://enoden-precure.hatenablog.com/entry/2023/01/21/215402"
+  ]
+ },
+ {
+  "idol_id": "765as_秋月律子",
+  "name": "秋月律子",
+  "first_person": "私",
+  "producer_call": [
+   "プロデューサー殿",
+   "プロデューサー（初期作品の呼称表）"
+  ],
+  "politeness": "混在: 年上のあずさ・小鳥には「さん」付け、他のアイドルには呼び捨て・タメ口。プロデューサーには「殿」付けのやや改まった呼び方",
+  "endings": null,
+  "catchphrases": [
+   "プロデューサー殿"
+  ],
+  "tone_notes": "冷静で頭の切れる眼鏡っ娘で、はっきりとした理詰めの物言いをする。根性論を嫌い合理性を重視し、身だしなみや言葉遣いに厳しく仲間をよく叱るまとめ役。素直な気持ちを表すのは苦手で、挑発に乗りやすい面もある。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/秋月律子",
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://renote.net/articles/74403",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "http://www5f.biglobe.ne.jp/~masurawo/masurawo/iM@S-kosyou.htm"
+  ]
+ },
+ {
+  "idol_id": "765as_三浦あずさ",
+  "name": "三浦あずさ",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "誰に対しても丁寧語（です・ます）ベースの柔らかい口調。年下のアイドルには「ちゃん」付け、律子・小鳥には「さん」付け",
+  "endings": [
+   "〜です〜（語尾を伸ばす）",
+   "〜ですね"
+  ],
+  "catchphrases": [
+   "うふふっ"
+  ],
+  "tone_notes": "最年長のおっとりした癒し系お姉さんで、語尾をゆったり伸ばしながら丁寧語で話す。天然ボケで極度の方向音痴という一面があり、「運命の人」や占いといった話題を好む。年下の仲間を包み込むような余裕のある話しぶりが特徴。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://greemas.doorblog.jp/archives/54005788.html",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "https://starlit-season.idolmaster.jp/idol/idol.php?idol=azusa-miura"
+  ]
+ },
+ {
+  "idol_id": "765as_双海亜美",
+  "name": "双海亜美",
+  "first_person": [
+   {
+    "form": "亜美",
+    "scene": "普段"
+   },
+   {
+    "form": "私",
+    "scene": "営業・あいさつの一部"
+   }
+  ],
+  "producer_call": "兄ちゃん（メールでは「兄(C)」）",
+  "politeness": "全員にタメ口。大半のメンバーをあだ名で呼び、千早・あずさだけ「お姉ちゃん」付け",
+  "endings": [
+   "〜だよ→（語尾上げの「→」表記）"
+  ],
+  "catchphrases": [
+   "んっふっふ～"
+  ],
+  "tone_notes": "最年少の双子の妹側で、悪戯好きだが悪気のない無邪気な性格。仲間に独特のあだ名を付け、ノリと勢いで話すカジュアルな口調。企みごとのときに含み笑いをするのがお決まりで、真美よりさらに自由奔放。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://greemas.doorblog.jp/archives/53979182.html",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "https://starlit-season.idolmaster.jp/idol/idol.php?idol=ami-futami"
+  ]
+ },
+ {
+  "idol_id": "765as_双海真美",
+  "name": "双海真美",
+  "first_person": [
+   {
+    "form": "真美",
+    "scene": "普段"
+   },
+   {
+    "form": "私",
+    "scene": "営業・あいさつの一部"
+   }
+  ],
+  "producer_call": "兄ちゃん（メールでは「兄(C)」）",
+  "politeness": "全員にタメ口。呼び方は亜美と同じあだ名体系で、千早・あずさだけ「お姉ちゃん」付け",
+  "endings": [
+   "〜かんね"
+  ],
+  "catchphrases": [
+   "んっふっふ～"
+  ],
+  "tone_notes": "亜美の双子の姉で、基本的なノリや口調は亜美と同じく元気でいたずらっぽいタメ口。亜美より少し我慢強く責任感があり、声もやや低めに演じられる。「あだると担当」を名乗るなど、年頃らしく少し大人っぽく振る舞いたがる面がある。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://greemas.doorblog.jp/archives/53982795.html",
+   "https://www.arondight.jp/imasss/callnames.htm",
+   "https://starlit-season.idolmaster.jp/idol/idol.php?idol=mami-futami",
+   "https://frequ.jp/376"
+  ]
+ },
+ {
+  "idol_id": "765as_我那覇響",
+  "name": "我那覇響",
+  "first_person": "自分",
+  "producer_call": "プロデューサー",
+  "politeness": "基本タメ口で、メンバーはほぼ呼び捨て。あずさにだけ「さん」付け（アニメ第10話では呼び捨て）",
+  "endings": [
+   "〜だぞ",
+   "〜さー"
+  ],
+  "catchphrases": [
+   "なんくるないさ〜",
+   "はいさーい",
+   "自分、完璧さー",
+   "うがー"
+  ],
+  "tone_notes": "沖縄出身で、挨拶や口癖に沖縄言葉が混じる明るく元気な話し方。根拠の薄い自信を堂々と口にする自信家で負けず嫌いだが、実は寂しがり屋で涙もろい。困ると声を上げて頭を抱えるなど、感情表現がストレート。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "https://greemas.doorblog.jp/archives/53864835.html",
+   "https://enoden-precure.hatenablog.com/entry/2022/10/10/183102",
+   "https://starlit-season.idolmaster.jp/idol/idol.php?idol=hibiki-ganaha",
+   "https://animemiru.jp/articles/15602"
+  ]
+ }
+]
