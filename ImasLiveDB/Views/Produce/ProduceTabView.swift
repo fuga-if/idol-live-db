@@ -168,18 +168,18 @@ struct ProduceTabView: View {
         } else {
             ImasCarousel(data: pickIdols) { idol in
                 let brand = brandsById[idol.brandId]
-                ImasFeatureCard(
-                    eyebrow: "担当",
+                ImasPass(
+                    leftImprint: "PRODUCER PASS",
+                    rightImprint: "担当",
                     title: idol.name,
                     subtitle: oshiMetaLine(idol, brand: brand),
                     seed: idol.color,
                     brand: brand?.color,
                     onOpen: { if NavThrottle.allow() { navPath.append(idol) } }
                 ) {
-                    // アイコンは写真を設定した担当だけ。
-                    if let url = imageService.imageURL(for: idol.id) {
-                        ImasAvatar(label: idol.shortName, seed: idol.color, size: 60, isPick: true, imageURL: url)
-                    }
+                    // アイコンは写真か判子で必ず出す (担当なので二重の輪)。
+                    ImasAvatar(label: idol.shortName, seed: idol.color, brand: brand?.color,
+                               size: 60, isPick: true, imageURL: imageService.imageURL(for: idol.id))
                 }
             }
         }
@@ -304,27 +304,32 @@ struct ProduceTabView: View {
     @ViewBuilder
     private var nextLiveSection: some View {
         if let next = nextLive {
-            ImasFeatureCard(
-                eyebrow: next.isPlanned ? "参加予定" : "お気に入り",
-                title: eventDisplayName(next.event.name),
-                subtitle: nextLiveSubLine(next),
-                seed: next.event.brandId.flatMap { brandsById[$0]?.color } ?? pickBrandSeed,
-                metric: next.daysUntil.map { $0 == 0 ? .init(value: "今日") : .init(prefix: "あと", value: "\($0)", unit: "日") },
-                primary: .init(title: "セトリを予想する", systemImage: "sparkles") {
-                    AppAnalytics.tap("produce_tab.next_live_predict")
-                    if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
-                },
-                secondary: LyricsFeature.isAvailable
-                    ? .init(title: "コールを見る", systemImage: "hands.clap") { if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) } }
-                    : nil
-            )
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                ImasTicket(
+                    label: next.isPlanned ? "参加予定" : "お気に入り",
+                    imprint: next.isPlanned ? "ADMIT ONE" : nil,
+                    title: eventDisplayName(next.event.name),
+                    metaImprint: dateLabel(date: next.show.date, today: JSTDay.today()),
+                    meta: (!next.show.name.isEmpty && next.show.name != next.event.name) ? next.show.name : nil,
+                    seed: next.event.brandId.flatMap { brandsById[$0]?.color } ?? pickBrandSeed,
+                    countdown: next.daysUntil.map {
+                        $0 == 0 ? .init(prefix: "", value: "今日", unit: "") : .init(value: "\($0)", unit: "DAYS")
+                    },
+                    onOpen: {
+                        AppAnalytics.tap("produce_tab.next_live_predict")
+                        if NavThrottle.allow() { navPath.append(NextLiveRoute.prediction(next.show)) }
+                    }
+                )
+                if LyricsFeature.isAvailable {
+                    Button {
+                        if NavThrottle.allow() { navPath.append(NextLiveRoute.callGuide) }
+                    } label: {
+                        Label("コールを見る", systemImage: "hands.clap")
+                    }
+                    .buttonStyle(.imas(.secondary, size: .medium))
+                }
+            }
         }
-    }
-
-    private func nextLiveSubLine(_ next: NextLive) -> String {
-        var parts = [dateLabel(date: next.show.date, today: JSTDay.today())]
-        if !next.show.name.isEmpty, next.show.name != next.event.name { parts.append(next.show.name) }
-        return parts.joined(separator: " · ")
     }
 
     // MARK: - 入口 (あそぶ / みんな / しらべる)
