@@ -38,15 +38,9 @@ struct TierListView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                Button {
+                ImasButton(title: "段を編集", systemImage: "slider.horizontal.3", role: .secondary, size: .medium, fillsWidth: true) {
                     showEdit = true
-                } label: {
-                    Label("段を編集", systemImage: "slider.horizontal.3")
-                        .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink2)
-                        .frame(maxWidth: .infinity, minHeight: 40)
-                        .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
                 }
-                .buttonStyle(.plain)
                 unplacedSection
                 Text("タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。変えるたびに端末に保存されます。")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
@@ -205,16 +199,17 @@ struct TierListView: View {
             if total > 12 {
                 ImasNameFilterField(prompt: subject == .song ? "曲名・歌唱で絞り込み" : "名前で絞り込み", text: $unplacedQuery)
             }
-            unplacedGrid(ids, emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil))
-                .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                .contentShape(Rectangle())
-                .onTapGesture { if let id = selectedId { move(id, to: nil) } }
-                .dropDestination(for: String.self) { dropped, _ in
-                    guard let id = dropped.first, board.itemIds.contains(id) else { return false }
-                    move(id, to: nil)
-                    return true
-                }
+            ImasCard(padding: 0) {
+                unplacedGrid(ids, emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil))
+                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { if let id = selectedId { move(id, to: nil) } }
+            .dropDestination(for: String.self) { dropped, _ in
+                guard let id = dropped.first, board.itemIds.contains(id) else { return false }
+                move(id, to: nil)
+                return true
+            }
         }
     }
 

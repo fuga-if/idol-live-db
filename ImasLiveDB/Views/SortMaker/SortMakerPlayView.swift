@@ -101,7 +101,7 @@ struct SortMakerPlayView: View {
     var body: some View {
         Group {
             if !model.isLoaded {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                ImasLoadingState()
             } else if model.state.isFinished {
                 SortMakerResultView(model: model)
                     .transition(.opacity)
@@ -135,13 +135,9 @@ struct SortMakerPlayView: View {
                 .background(DS.bg.ignoresSafeArea())
                     .navigationTitle("いまの順位")
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) { Button("閉じる") { showProvisional = false } }
-                    }
+                    .imasSheetToolbar(.read(onClose: { showProvisional = false }))
                     .safeAreaInset(edge: .top) {
-                        Text("ここまでの対戦で並んだ分だけの暫定順位です。")
-                            .font(.imasCaption).foregroundStyle(DS.ink3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        ImasNote("ここまでの対戦で並んだ分だけの暫定順位です。")
                             .padding(.horizontal, DS.sp5).padding(.top, DS.sp3)
                     }
             }
@@ -200,9 +196,7 @@ struct SortMakerBattleView: View {
     private func battle(visual: CGFloat) -> some View {
         VStack(spacing: DS.sp5) {
             if model.missingCount > 0 {
-                Text("対象のうち \(model.missingCount) 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
+                ImasNote("対象のうち \(model.missingCount) 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。")
             }
             Text("どっちが好き？")
                 .font(.imasTitle2.weight(.bold)).foregroundStyle(DS.ink)
@@ -213,7 +207,7 @@ struct SortMakerBattleView: View {
                     card(pair.right, side: .right, visual: visual)
                 }
                 .fixedSize(horizontal: false, vertical: true)
-                .overlay(alignment: .top) { vsBadge.padding(.top, DS.sp5 + visual / 2 - 18) }
+                .overlay(alignment: .top) { ImasVersusBadge().padding(.top, DS.sp5 + visual / 2 - 18) }
                 .id("\(pair.left)-\(pair.right)-\(model.state.answered)")
                 .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96)),
                                         removal: .opacity))
@@ -232,15 +226,7 @@ struct SortMakerBattleView: View {
                     .font(.imasCaption).foregroundStyle(DS.ink3)
             }
             .monospacedDigit()
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(DS.fill)
-                    Capsule().fill(DS.sys)
-                        .frame(width: max(6, geo.size.width * CGFloat(model.shownPercent) / 100))
-                }
-            }
-            .frame(height: 6)
-            .animation(.easeOut(duration: 0.3), value: model.shownPercent)
+            ImasProgressBar(fraction: Double(model.shownPercent) / 100)
         }
         .accessibilityElement(children: .combine)
     }
@@ -255,44 +241,20 @@ struct SortMakerBattleView: View {
         }
     }
 
-    private var vsBadge: some View {
-        Text("VS")
-            .font(.imasScaled(13, weight: .black))
-            .foregroundStyle(DS.onSys)
-            .frame(width: 36, height: 36)
-            .background(DS.sys, in: Circle())
-            .overlay(Circle().stroke(DS.bg, lineWidth: 3))
-            .accessibilityHidden(true)
-    }
-
     // MARK: 下の操作
 
     private var bottomBar: some View {
         HStack(spacing: DS.sp3) {
-            Button {
+            ImasButton(title: "1つ戻る", systemImage: "arrow.uturn.backward", role: .secondary, size: .medium, fillsWidth: true) {
                 undoFeedback += 1
                 MusicKitService.shared.stop()
                 withAnimation(.easeInOut(duration: 0.2)) { model.undo() }
-            } label: {
-                Label("1つ戻る", systemImage: "arrow.uturn.backward")
-                    .font(.imasSubhead.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .foregroundStyle(model.canUndo ? DS.ink : DS.ink3)
-                    .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
-            .buttonStyle(.plain)
             .disabled(!model.canUndo || picked != nil)
 
-            Button {
+            ImasButton(title: "引き分け", systemImage: "equal", role: .secondary, size: .medium, fillsWidth: true) {
                 choose(.tie)
-            } label: {
-                Label("引き分け", systemImage: "equal")
-                    .font(.imasSubhead.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .foregroundStyle(DS.ink)
-                    .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
-            .buttonStyle(.plain)
             .disabled(picked != nil)
             .accessibilityHint("どちらも同じくらい好き")
         }
@@ -323,10 +285,7 @@ struct SortMakerCard: View {
     let isTied: Bool
     let action: () -> Void
 
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
-        let theme = ImasTheme.derive(seed: item?.seed, brand: BrandColors.hex(for: item?.brandId), scheme: scheme)
         VStack(spacing: DS.sp3) {
             Button(action: action) {
                 VStack(spacing: DS.sp3) {
@@ -348,19 +307,12 @@ struct SortMakerCard: View {
                 .padding(.top, DS.sp5)
                 .padding(.bottom, DS.sp5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DS.rLG, style: .continuous)
-                        .stroke(theme.accent, lineWidth: isPicked || isTied ? 3 : 0)
-                )
-                .overlay(alignment: .top) {
-                    Capsule().fill(theme.accent).frame(width: 36, height: 4).padding(.top, 6)
-                }
+                .imasAccentCard(seed: item?.seed, brand: BrandColors.hex(for: item?.brandId), isSelected: isPicked || isTied)
                 .scaleEffect(isPicked ? 1.03 : (isDimmed ? 0.97 : 1))
                 .opacity(isDimmed ? 0.5 : 1)
-                .contentShape(RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
+                .contentShape(Rectangle())
             }
-            .buttonStyle(QuizPressStyle())
+            .buttonStyle(.imasPress)
             .accessibilityLabel(item.map { "\($0.title)\($0.subtitle.map { "、\($0)" } ?? "")" } ?? "不明")
             .accessibilityHint("こちらが好き")
 
@@ -370,14 +322,11 @@ struct SortMakerCard: View {
 
     @ViewBuilder
     private var visual: some View {
-        switch item {
-        case .song(let song):
-            ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: visualSize,
-                             songTitle: song.title, songId: song.id)
-                .allowsHitTesting(false)
-        case .idol(let idol):
-            IdolAvatarView(idol: idol, size: visualSize * 0.92, reservesPickRing: false)
-        case nil:
+        if let item {
+            // アイドルはジャケより一回り小さい (角丸の有無で詰まって見えないように)。
+            let isIdol = if case .idol = item { true } else { false }
+            SortMakerVisual(item: item, size: isIdol ? visualSize * 0.92 : visualSize)
+        } else {
             ImasArtwork(title: "?", size: visualSize)
         }
     }
@@ -387,16 +336,10 @@ struct SortMakerCard: View {
     private var previewButton: some View {
         if case .song(let song) = item, let url = song.previewUrl.flatMap(URL.safeHTTP(string:)) {
             let playing = MusicKitService.shared.isPlaying(songId: song.id)
-            Button {
+            ImasButton(title: playing ? "停止" : "試聴", systemImage: playing ? "stop.fill" : "play.fill",
+                      role: .secondary, size: .small) {
                 MusicKitService.shared.togglePreview(url: url, songId: song.id)
-            } label: {
-                Label(playing ? "停止" : "試聴", systemImage: playing ? "stop.fill" : "play.fill")
-                    .font(.imasCaption.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
-                    .padding(.horizontal, DS.sp4).frame(minHeight: 32)
-                    .background(DS.fill, in: Capsule())
             }
-            .buttonStyle(.plain)
         } else {
             Color.clear.frame(height: 32)
         }

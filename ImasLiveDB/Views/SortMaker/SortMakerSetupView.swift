@@ -42,29 +42,23 @@ struct SortMakerSetupView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: DS.sp5) {
-                header
-                if purpose == .sort, let s = store.session(subject) {
-                    savedCard(s)
-                }
-                if purpose == .tier, !tierStore.boards(for: subject).isEmpty {
-                    savedBoardsSection
-                }
-                brandSection
-                if subject == .song {
-                    songSection
-                }
-                if purpose == .sort {
-                    depthSection
-                }
-                summary
+        ImasPage {
+            header
+            if purpose == .sort, let s = store.session(subject) {
+                savedCard(s)
             }
-            .padding(DS.sp5)
-            .padding(.bottom, 96)
+            if purpose == .tier, !tierStore.boards(for: subject).isEmpty {
+                savedBoardsSection
+            }
+            brandSection
+            if subject == .song {
+                songSection
+            }
+            if purpose == .sort {
+                depthSection
+            }
+            summary
         }
-        .background(DS.bg.ignoresSafeArea())
-        .scrollContentBackground(.hidden)
         .safeAreaInset(edge: .bottom) { startBar }
         .navigationTitle(purpose == .sort ? subject.title : subject.tierTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -111,66 +105,38 @@ struct SortMakerSetupView: View {
     // MARK: - ヘッダ
 
     private var header: some View {
-        HStack(spacing: DS.sp4) {
-            Image(systemName: purpose == .sort ? "arrow.left.arrow.right" : "square.stack.3d.up")
-                .font(.imasScaled(24, weight: .semibold))
-                .foregroundStyle(DS.onSys)
-                .frame(width: 52, height: 52)
-                .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(purpose == .sort ? "2つから好きな方を選ぶだけ" : "段に振り分けて1枚の画像に")
-                    .font(.imasHeadline).foregroundStyle(DS.ink)
-                Text(purpose == .sort
-                     ? "対戦を重ねると、あなたの\(subject == .song ? "好きな曲" : "好きなアイドル")ランキングができあがります。途中でやめても続きから遊べます。"
-                     : "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
+        ImasSetupHeader(
+            systemImage: purpose == .sort ? "arrow.left.arrow.right" : "square.stack.3d.up",
+            title: purpose == .sort ? "2つから好きな方を選ぶだけ" : "段に振り分けて1枚の画像に",
+            message: purpose == .sort
+                ? "対戦を重ねると、あなたの\(subject == .song ? "好きな曲" : "好きなアイドル")ランキングができあがります。途中でやめても続きから遊べます。"
+                : "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。")
     }
 
     // MARK: - つづきから / 前回の結果
 
     private func savedCard(_ s: SortMakerSession) -> some View {
         let state = s.replay()
-        return HStack(spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(s.isFinished ? "前回の結果" : "つづきから")
-                    .font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
-                if s.isFinished {
-                    Text(s.topNames.first.map { "1位 \($0)" } ?? s.scopeLabel)
-                        .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).lineLimit(1)
-                } else {
-                    Text("\(state.progressPercent)% · \(state.answered)戦 済み")
-                        .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink)
-                        .monospacedDigit()
+        return ImasCard {
+            HStack(spacing: DS.sp3) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
+                    Text(s.isFinished ? "前回の結果" : "つづきから").imasText(.meta)
+                    if s.isFinished {
+                        Text(s.topNames.first.map { "1位 \($0)" } ?? s.scopeLabel).imasText(.rowTitle)
+                    } else {
+                        Text("\(state.progressPercent)% · \(state.answered)戦 済み").imasText(.rowTitle).monospacedDigit()
+                    }
+                    Text(s.scopeLabel).imasText(.meta)
+                    if !s.isFinished {
+                        ImasProgressBar(fraction: Double(state.progressPercent) / 100)
+                            .padding(.top, DS.Space.gapTight)
+                    }
                 }
-                Text(s.scopeLabel).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-            }
-            Spacer(minLength: DS.sp2)
-            Button {
-                AppAnalytics.tap(s.isFinished ? "sort_maker.open_result" : "sort_maker.resume")
-                playing = s
-            } label: {
-                Text(s.isFinished ? "見る" : "再開")
-                    .font(.imasSubhead.weight(.bold)).foregroundStyle(DS.onSys)
-                    .padding(.horizontal, DS.sp5).frame(minHeight: 40)
-                    .background(DS.sys, in: Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-        .overlay(alignment: .leading) {
-            if !s.isFinished {
-                ProgressView(value: Double(state.progressPercent), total: 100)
-                    .tint(DS.sys)
-                    .padding(.horizontal, DS.sp4)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 6)
+                Spacer(minLength: DS.sp2)
+                ImasButton(title: s.isFinished ? "見る" : "再開", role: .primary, size: .medium) {
+                    AppAnalytics.tap(s.isFinished ? "sort_maker.open_result" : "sort_maker.resume")
+                    playing = s
+                }
             }
         }
     }
@@ -180,8 +146,8 @@ struct SortMakerSetupView: View {
         let boards = tierStore.boards(for: subject)
         return VStack(alignment: .leading, spacing: DS.sp3) {
             HStack(alignment: .firstTextBaseline) {
-                Text("保存したティアー表").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
-                Text("\(boards.count)").font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
+                Text("保存したティアー表").imasText(.value)
+                Text("\(boards.count)").imasText(.meta).monospacedDigit()
             }
             ImasCardList {
                 ForEach(Array(boards.enumerated()), id: \.element.id) { i, b in
@@ -190,27 +156,19 @@ struct SortMakerSetupView: View {
                         AppAnalytics.tap("tier_list.open")
                         openBoard = b
                     } label: {
-                        HStack(spacing: DS.sp3) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(b.displayTitle).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
-                                Text("\(b.placedCount) / \(b.itemIds.count) 振り分け済み · \(b.savedAt.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1).monospacedDigit()
-                            }
-                            Spacer(minLength: DS.sp2)
-                            Image(systemName: "chevron.right")
-                                .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
-                        }
-                        .padding(.horizontal, DS.sp4)
-                        .frame(minHeight: 60)
-                        .contentShape(Rectangle())
+                        ImasRow(
+                            title: b.displayTitle,
+                            subtitle: "\(b.placedCount) / \(b.itemIds.count) 振り分け済み · \(b.savedAt.formatted(date: .abbreviated, time: .shortened))",
+                            trailing: .chevron
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.imasRow)
                     .contextMenu {
                         Button("削除", systemImage: "trash", role: .destructive) { deletingBoard = b }
                     }
                 }
             }
-            Text("長押しで削除できます。").font(.imasCaption).foregroundStyle(DS.ink3)
+            ImasNote("長押しで削除できます。")
         }
     }
 
@@ -218,21 +176,7 @@ struct SortMakerSetupView: View {
 
     private var brandSection: some View {
         section(title: "ブランド", note: "複数選択可 · 空=全ブランド") {
-            let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
-            LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-                BrandIconCell(brandId: nil, label: "全て", iconText: "全", color: nil,
-                              isSelected: scope.brandIds.isEmpty) {
-                    withAnimation(.easeInOut(duration: 0.15)) { scope.brandIds = [] }
-                }
-                ForEach(brands) { brand in
-                    BrandIconCell(brandId: brand.id, label: brand.shortName, iconText: brand.iconText,
-                                  color: brand.color, isSelected: scope.brandIds.contains(brand.id)) {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            if !scope.brandIds.insert(brand.id).inserted { scope.brandIds.remove(brand.id) }
-                        }
-                    }
-                }
-            }
+            ImasBrandPicker(brands: brands, selection: $scope.brandIds)
         }
     }
 
@@ -251,31 +195,27 @@ struct SortMakerSetupView: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: DS.sp3) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("歌っているアイドルで絞る").font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                            Text(scope.idolIds.isEmpty ? "指定なし" : pickedIdols.map(\.name).joined(separator: "、"))
-                                .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-                        }
-                        Spacer(minLength: DS.sp2)
-                        if !scope.idolIds.isEmpty {
-                            StackedAvatars(idols: pickedIdols, maxVisible: 4, size: 26)
-                        }
-                        Image(systemName: "chevron.right")
-                            .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
-                    }
-                    .contentShape(Rectangle())
+                    ImasRow(
+                        title: "歌っているアイドルで絞る",
+                        subtitle: scope.idolIds.isEmpty ? "指定なし" : pickedIdols.map(\.name).joined(separator: "、"),
+                        trailing: .custom(AnyView(
+                            HStack(spacing: DS.Space.gap) {
+                                if !scope.idolIds.isEmpty {
+                                    StackedAvatars(idols: pickedIdols, maxVisible: 4, size: 26)
+                                }
+                                ImasRowChevron()
+                            }
+                        ))
+                    )
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.imasRow)
                 if !scope.idolIds.isEmpty {
-                    Button("アイドルの指定を外す") { scope.idolIds = []; pickedIdols = [] }
-                        .font(.imasCaption.weight(.semibold)).foregroundStyle(DS.sys)
+                    ImasButton(title: "アイドルの指定を外す", role: .plain, size: .small) {
+                        scope.idolIds = []; pickedIdols = []
+                    }
                 }
 
-                Toggle(isOn: $scope.includeRemixes) {
-                    Text("リミックス・別バージョンも入れる").font(.imasSubhead).foregroundStyle(DS.ink)
-                }
-                .tint(DS.sys)
+                ImasToggleRow(title: "リミックス・別バージョンも入れる", isOn: $scope.includeRemixes)
             }
         }
     }
@@ -294,37 +234,18 @@ struct SortMakerSetupView: View {
         VStack(alignment: .leading, spacing: DS.sp2) {
             counts
             if !isLoading, let hint {
-                Text(hint).font(.imasCaption).foregroundStyle(DS.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, DS.sp1)
+                ImasNote(hint)
             }
         }
     }
 
     private var counts: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DS.sp6) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("対象").font(.imasCaption).foregroundStyle(DS.ink3)
-                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(isLoading ? "…" : "\(candidates.count)").font(.imasTitle2.weight(.bold)).monospacedDigit()
-                    Text(subject.counter).font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-            }
+        ImasStatGrid(columns: purpose == .sort ? 2 : 1) {
+            ImasStatTile(value: isLoading ? "…" : "\(candidates.count)", unit: subject.counter, label: "対象")
             if purpose == .sort {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("対戦の目安").font(.imasCaption).foregroundStyle(DS.ink3)
-                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                    Text(isLoading ? "…" : "約\(estimate)").font(.imasTitle2.weight(.bold)).monospacedDigit()
-                    Text("戦").font(.imasCaption).foregroundStyle(DS.ink3)
-                }
+                ImasStatTile(value: isLoading ? "…" : "約\(estimate)", unit: "戦", label: "対戦の目安")
             }
-            }
-            Spacer(minLength: 0)
         }
-        .foregroundStyle(DS.ink)
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-        .accessibilityElement(children: .combine)
     }
 
     /// 対戦が長すぎる / 少なすぎるときのひとこと。
@@ -344,20 +265,13 @@ struct SortMakerSetupView: View {
     // MARK: - 開始
 
     private var startBar: some View {
-        Button {
+        ImasButton(title: purpose == .sort ? "はじめる" : "ティアー表をつくる", role: .primary, size: .large) {
             if purpose == .sort, let s = store.session(subject), s.isFinished || !s.answers.isEmpty {
                 confirmRestart = true
             } else {
                 start()
             }
-        } label: {
-            Text(purpose == .sort ? "はじめる" : "ティアー表をつくる")
-                .font(.imasHeadline).foregroundStyle(DS.onSys)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-                .opacity(canStart ? 1 : 0.4)
         }
-        .buttonStyle(.plain)
         .disabled(!canStart)
         .padding(.horizontal, DS.sp5)
         .padding(.vertical, DS.sp3)
@@ -408,15 +322,14 @@ struct SortMakerSetupView: View {
     // MARK: - 部品
 
     private func section<Content: View>(title: String, note: String?, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
-                if let note { Text(note).font(.imasCaption).foregroundStyle(DS.ink3) }
+        ImasCard {
+            VStack(alignment: .leading, spacing: DS.sp3) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
+                    Text(title).imasText(.value)
+                    if let note { ImasNote(note) }
+                }
+                content()
             }
-            content()
         }
-        .padding(DS.sp5)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
     }
 }

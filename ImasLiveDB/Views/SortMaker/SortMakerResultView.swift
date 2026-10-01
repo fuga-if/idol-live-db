@@ -52,71 +52,40 @@ struct SortMakerResultView: View {
 
     // MARK: - 表彰台
 
-    @ViewBuilder
     private var podium: some View {
-        if let first = rows.first {
-            VStack(spacing: DS.sp3) {
-                SortMakerPodiumCard(rank: first.rank, item: first.item, large: true) { detail = first.item.detail }
-                if rows.count > 1 {
-                    HStack(alignment: .top, spacing: DS.sp3) {
-                        ForEach(Array(rows.dropFirst().prefix(2).enumerated()), id: \.offset) { _, row in
-                            SortMakerPodiumCard(rank: row.rank, item: row.item, large: false) { detail = row.item.detail }
-                        }
-                        if rows.count == 2 { Color.clear.frame(maxWidth: .infinity) }
-                    }
-                }
+        ImasPodium(entries: rows.prefix(3).map { row in
+            ImasPodium.Entry(id: row.item.id, rank: row.rank, title: row.item.title, subtitle: row.item.subtitle,
+                             seed: row.item.seed, brand: row.item.brandId,
+                             visual: AnyView(SortMakerVisual(item: row.item, size: row.rank == 1 ? 150 : 96))) {
+                detail = row.item.detail
             }
-        }
+        })
     }
 
     // MARK: - 操作
 
     private var actions: some View {
         VStack(spacing: DS.sp3) {
-            Button {
+            ImasButton(title: "結果をシェア", systemImage: "square.and.arrow.up", role: .primary, size: .large, fillsWidth: true) {
                 AppAnalytics.tap("sort_maker.share")
                 showShare = true
-            } label: {
-                Label("結果をシェア", systemImage: "square.and.arrow.up")
-                    .font(.imasHeadline).foregroundStyle(DS.onSys)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
             }
-            .buttonStyle(.plain)
 
-            Button {
+            ImasButton(title: "この順位でティアー表をつくる", systemImage: "square.stack.3d.up", role: .secondary, size: .large, fillsWidth: true) {
                 AppAnalytics.tap("sort_maker.to_tier_list")
                 // ティアー表は何枚でも保存できるので、新しい 1 枚として作る。
                 makeTierList()
-            } label: {
-                Label("この順位でティアー表をつくる", systemImage: "square.stack.3d.up")
-                    .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
-            .buttonStyle(.plain)
 
             HStack(spacing: DS.sp3) {
-                Button {
+                ImasButton(title: "最後の1戦をやり直す", systemImage: "arrow.uturn.backward", role: .secondary, size: .large, fillsWidth: true) {
                     withAnimation(.easeInOut(duration: 0.2)) { model.undo() }
-                } label: {
-                    Label("最後の1戦をやり直す", systemImage: "arrow.uturn.backward")
-                        .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                 }
-                .buttonStyle(.plain)
                 .disabled(!model.canUndo)
 
-                Button {
+                ImasButton(title: "もう一度", systemImage: "arrow.clockwise", role: .secondary, size: .large, fillsWidth: true) {
                     confirmRestart = true
-                } label: {
-                    Label("もう一度", systemImage: "arrow.clockwise")
-                        .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.top, DS.sp3)
@@ -132,50 +101,12 @@ extension SortMakerResultView {
     }
 }
 
-/// 表彰台のカード。1 位は大きく、2・3 位は横並び。
-struct SortMakerPodiumCard: View {
-    let rank: Int
+/// 曲 (ジャケ) / アイドル (判子) の絵。表彰台・順位表・対戦カードで共通の出し分け。
+struct SortMakerVisual: View {
     let item: SortMakerItem
-    let large: Bool
-    let action: () -> Void
-
-    @Environment(\.colorScheme) private var scheme
+    let size: CGFloat
 
     var body: some View {
-        let theme = ImasTheme.derive(seed: item.seed, brand: BrandColors.hex(for: item.brandId), scheme: scheme)
-        Button(action: action) {
-            VStack(spacing: DS.sp3) {
-                ZStack(alignment: .topLeading) {
-                    visual(size: large ? 150 : 96)
-                    Text("\(rank)")
-                        .font(.imasScaled(large ? 22 : 16, weight: .black)).monospacedDigit()
-                        .foregroundStyle(theme.onAccent)
-                        .frame(minWidth: large ? 40 : 30, minHeight: large ? 40 : 30)
-                        .background(theme.accent, in: Circle())
-                        .overlay(Circle().stroke(DS.surface, lineWidth: 3))
-                        .offset(x: -10, y: -10)
-                }
-                VStack(spacing: DS.sp1) {
-                    Text(item.title)
-                        .font(large ? .imasTitle3.weight(.bold) : .imasSubhead.weight(.bold))
-                        .foregroundStyle(DS.ink).multilineTextAlignment(.center).lineLimit(2)
-                    if let sub = item.subtitle {
-                        Text(sub).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-                    }
-                }
-            }
-            .padding(large ? DS.sp6 : DS.sp4)
-            .frame(maxWidth: .infinity)
-            .background(large ? theme.tint : DS.surface, in: RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: DS.rLG, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(rank)位 \(item.title)")
-    }
-
-    @ViewBuilder
-    private func visual(size: CGFloat) -> some View {
         switch item {
         case .song(let song):
             ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: size,
@@ -196,53 +127,22 @@ struct SortMakerRankingList: View {
         if rows.isEmpty {
             ImasEmptyState(systemImage: "list.number", title: "まだ順位はありません")
         } else {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.item.id) { i, row in
-                    if i > 0 { ImasRowDivider(inset: 96) }
-                    rowView(row)
+            ImasCardList(rows, id: \.item.id) { row in
+                let content = ImasRow(title: row.item.title, subtitle: row.item.subtitle,
+                                      leading: .custom(AnyView(leadingVisual(row)), width: 78))
+                if let onSelect {
+                    Button { onSelect(row.item) } label: { content }.buttonStyle(.imasRow)
+                } else {
+                    content
                 }
             }
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
     }
 
-    @ViewBuilder
-    private func rowView(_ row: (rank: Int, item: SortMakerItem)) -> some View {
-        let content = HStack(spacing: DS.sp4) {
-            Text("\(row.rank)")
-                .font(.imasHeadline).monospacedDigit().foregroundStyle(DS.ink2)
-                .frame(width: 32, alignment: .trailing)
-            thumb(row.item)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(row.item.title).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
-                if let sub = row.item.subtitle {
-                    Text(sub).font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, DS.sp4)
-        .frame(minHeight: 60)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-
-        if let onSelect {
-            Button { onSelect(row.item) } label: { content }.buttonStyle(.plain)
-        } else {
-            content
-        }
-    }
-
-    @ViewBuilder
-    private func thumb(_ item: SortMakerItem) -> some View {
-        switch item {
-        case .song(let song):
-            ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: 44,
-                             songTitle: song.title, songId: song.id)
-                .allowsHitTesting(false)
-        case .idol(let idol):
-            IdolAvatarView(idol: idol, size: 44, reservesPickRing: false)
+    private func leadingVisual(_ row: (rank: Int, item: SortMakerItem)) -> some View {
+        HStack(spacing: DS.sp2) {
+            ImasRankNumber(rank: row.rank)
+            SortMakerVisual(item: row.item, size: 44)
         }
     }
 }
