@@ -442,7 +442,8 @@ fun ImasConfirmDestructive(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     actionTitle: String = "削除",
-    message: String? = null
+    message: String? = null,
+    dismissTitle: String = "キャンセル"
 ) {
     if (!isPresented) return
     AlertDialog(
@@ -455,7 +456,7 @@ fun ImasConfirmDestructive(
                 onConfirm()
             }) { Text(actionTitle, color = DS.danger) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル", color = DS.ink) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
         containerColor = DS.surface,
         titleContentColor = DS.ink,
         textContentColor = DS.ink2
