@@ -58,54 +58,46 @@ struct FilteredShowsView: View {
     // ⚠️ ここは **List でなければならない**。行をスワイプしての参加登録 (`attendanceSwipe`) は
     // List の行にしか効かず、ScrollView + LazyVStack に付けても無言で消える
     // (習熟度画面のスワイプが同じ理由で一度死んでいる)。
+    //
+    // 行を半券 (`ImasShowRow`) にしてからは、行どうしがカードへ入れ子にならず
+    // それぞれ自分の形を持つので、グループの先頭/末尾で角丸を描き分ける計算は要らない
+    // (イベント一覧 `EventListView` で突き当たった実機スクロールの不具合もこれで避けられる)。
     private var content: some View {
         List {
-            ForEach(Array(groupedByYear.enumerated()), id: \.element.year) { index, group in
-                ImasSectionHeader(title: group.year, tight: true)
-                    .padding(.top, index == 0 ? 8 : 18)
-                    .plainRow(background: DS.bg)
-
-                ForEach(Array(group.shows.enumerated()), id: \.element.id) { rowIndex, show in
-                    VStack(spacing: 0) {
-                        if rowIndex > 0 {
-                            ImasRowDivider(inset: 16)
-                        }
-                        Button { navigate(.show(show)) } label: { showRow(show) }
-                            .buttonStyle(.plain)
-                    }
-                    .background(DS.surface)
-                    .clipShape(
-                        .rect(
-                            topLeadingRadius: rowIndex == 0 ? DS.rMD : 0,
-                            bottomLeadingRadius: rowIndex == group.shows.count - 1 ? DS.rMD : 0,
-                            bottomTrailingRadius: rowIndex == group.shows.count - 1 ? DS.rMD : 0,
-                            topTrailingRadius: rowIndex == 0 ? DS.rMD : 0
-                        )
-                    )
-                    .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
-                    .listRowBackground(Color.clear)
+            ForEach(groupedByYear, id: \.year) { group in
+                ImasDateHeader(big: group.year, imprint: "\(group.shows.count) 件")
+                    .padding(.horizontal, DS.Space.screen)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(DS.bg)
                     .listRowSeparator(.hidden)
-                    .attendanceSwipe(show: show, event: events[show.eventId])
+
+                ForEach(group.shows) { show in
+                    Button { navigate(.show(show)) } label: { showRow(show) }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 4, leading: DS.Space.screen, bottom: 4, trailing: DS.Space.screen))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .attendanceSwipe(show: show, event: events[show.eventId])
                 }
             }
-            Color.clear.frame(height: 24)
+            Color.clear.frame(height: DS.Space.section)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(DS.bg)
                 .listRowSeparator(.hidden)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
+        .imasList()
         .environment(\.defaultMinListRowHeight, 0)
     }
 
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         let event = events[show.eventId]
-        ImasLeadRow(
+        ImasShowRow(
+            date: show.date,
             title: event.map { eventDisplayName($0.name) } ?? show.name,
             subtitle: subtitle(show),
-            seed: BrandColors.hex(for: event?.brandId),
+            brandHex: BrandColors.hex(for: event?.brandId),
+            isPunched: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil,
             rainbow: !(event?.jointBrandIdList.isEmpty ?? true)
         )
         .imasCopyable([
@@ -114,11 +106,9 @@ struct FilteredShowsView: View {
         ])
     }
 
-    /// 「07/25 · DAY2 · メインアリーナ」。 年はセクション見出しにあるので月日だけ出す。
-    private func subtitle(_ show: Show) -> String {
+    /// 「DAY2 · メインアリーナ」。 年は見出し、月日は半券の日付欄にあるので、ここは公演名と会場だけ。
+    private func subtitle(_ show: Show) -> String? {
         var parts: [String] = []
-        let md = show.date.split(separator: "-")
-        parts.append(md.count >= 3 ? "\(md[1])/\(md[2])" : show.date)
         if !show.name.isEmpty { parts.append(show.name) }
         if showsVenueInRow, let venue = venueDirectory.displayName(for: show) ?? show.venue {
             parts.append(venue)
@@ -126,7 +116,7 @@ struct FilteredShowsView: View {
             // 同じ会場でもホールが違えば別物なので、 会場名を省く代わりにホールは出す。
             parts.append(hall)
         }
-        return parts.joined(separator: " · ")
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private func loadShows() async {

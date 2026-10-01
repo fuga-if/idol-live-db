@@ -20,19 +20,18 @@ struct FilteredIdolsView: View {
                 )
             } else {
                 List {
-                    Section {
-                        ForEach(idols) { idol in
-                            Button { navigate(.idol(idol)) } label: {
-                                IdolNameRow(idol: idol)
-                            }
-                            .buttonStyle(.plain)
+                    ImasListSummary<Int>(count: idols.count, unit: "人")
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(DS.bg)
+                        .listRowSeparator(.hidden)
+                    ForEach(idols) { idol in
+                        Button { navigate(.idol(idol)) } label: {
+                            ImasIdolRow(idol: idol, trailing: .chevron, density: .compact)
                         }
-                    } header: {
-                        Text("\(idols.count)人")
-                            .font(.imasCaption)
+                        .buttonStyle(.plain)
                     }
                 }
-                .listStyle(.plain)
+                .imasList()
             }
         }
         .navigationTitle(criterion.navigationTitle)

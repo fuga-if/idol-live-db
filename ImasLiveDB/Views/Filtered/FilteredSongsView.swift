@@ -39,46 +39,44 @@ struct FilteredSongsView: View {
 
     private var standardList: some View {
         List {
-            Section {
-                ForEach(songs) { item in
-                    Button {
-                        navigate(.song(item.song))
-                    } label: {
-                        SongRowView(item: item)
-                    }
-                    .buttonStyle(.plain)
+            ImasListSummary<Int>(count: songs.count, unit: "曲")
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(DS.bg)
+                .listRowSeparator(.hidden)
+            ForEach(songs) { item in
+                Button {
+                    navigate(.song(item.song))
+                } label: {
+                    SongRowView(item: item)
                 }
-            } header: {
-                Text("\(songs.count)曲")
-                    .font(.imasCaption)
+                .buttonStyle(.plain)
             }
         }
-        .listStyle(.plain)
+        .imasList()
     }
 
     private var creatorList: some View {
         List {
-            Section {
-                ForEach(songsWithRoles) { item in
-                    Button {
-                        navigate(.song(item.song))
-                    } label: {
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            SongRowView(item: SongWithArtists(song: item.song, artistNames: item.song.singerLabel ?? ""))
-                            Text(item.rolesLabel)
-                                .font(.imasCaption2)
-                                .foregroundStyle(.tint)
-                                .padding(.leading, 62)
-                        }
+            ImasListSummary<Int>(count: songsWithRoles.count, unit: "曲")
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(DS.bg)
+                .listRowSeparator(.hidden)
+            ForEach(songsWithRoles) { item in
+                Button {
+                    navigate(.song(item.song))
+                } label: {
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        SongRowView(item: SongWithArtists(song: item.song, artistNames: item.song.singerLabel ?? ""))
+                        Text(item.rolesLabel)
+                            .font(.imasCaption2)
+                            .foregroundStyle(DS.ink2)
+                            .padding(.leading, 62)
                     }
-                    .buttonStyle(.plain)
                 }
-            } header: {
-                Text("\(songsWithRoles.count)曲")
-                    .font(.imasCaption)
+                .buttonStyle(.plain)
             }
         }
-        .listStyle(.plain)
+        .imasList()
     }
 
     private func loadSongs() async {

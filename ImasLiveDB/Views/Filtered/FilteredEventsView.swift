@@ -21,31 +21,24 @@ struct FilteredEventsView: View {
                 )
             } else {
                 List {
-                    Section {
-                        ForEach(eventsWithDate) { ew in
-                            Button { navigate(.event(ew.event)) } label: {
-                                EventNameRow(
-                                    event: ew.event,
-                                    // 種別は生の内部値ではなくラベルで出す。未分類なら日付だけ。
-                                    subtitle: [
-                                        EventType(rawValue: ew.event.eventType)?.displayLabel,
-                                        ew.firstDate,
-                                    ].compactMap { $0 }.joined(separator: "  ")
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
+                    ImasListSummary<Int>(count: eventsWithDate.count, unit: "件")
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(DS.bg)
+                        .listRowSeparator(.hidden)
+                    ForEach(eventsWithDate) { ew in
+                        Button { navigate(.event(ew.event)) } label: {
+                            // 種別は生の内部値ではなくラベルで出す。未分類なら何も出さない
+                            // (日付は半券の日付欄が言うので、ここで重ねない)。
+                            ImasEventRow(
+                                event: ew.event,
+                                date: ew.firstDate,
+                                subtitle: EventType(rawValue: ew.event.eventType)?.displayLabel
+                            )
                         }
-                    } header: {
-                        Text("\(eventsWithDate.count)件")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink2)
+                        .buttonStyle(.plain)
                     }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .background(DS.bg)
+                .imasList()
             }
         }
         .navigationTitle(criterion.navigationTitle)
