@@ -1,0 +1,12 @@
+{
+ "title": "レトラ BIRTHDAY ONLINE LIVE 2026 の種別を誕生日配信ライブに",
+ "source": "https://idolmaster-official.jp/news/01_20045.html",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_レトラ_birthday_online_live_2026",
+   "fields": {"event_type": "birthday", "is_streaming": 1},
+   "note": "「毎年恒例の誕生日配信が、今年も”3D”オンラインLIVEとして開催」。前年・灯里愛夏 2026 と同じ birthday / 配信"
+  }
+ ]
+}
