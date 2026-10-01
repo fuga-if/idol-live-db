@@ -1,0 +1,844 @@
+[
+ {
+  "idol_id": "ml_春日未来",
+  "name": "春日未来",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには「です・ます」中心の軽い敬語、くだけた言い方も混ざる",
+  "endings": [
+   "〜ですね♪",
+   "〜かも"
+  ],
+  "catchphrases": [
+   "でへへ♪",
+   "えへへ"
+  ],
+  "tone_notes": "天真爛漫でまっすぐ、何にでも飛びつく元気な話し方。照れると「でへへ」と笑い、ほめられると素直に調子に乗る。ひたむきさが周囲を元気にするタイプで、ときどき空回りもする。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/mirai/",
+   "https://gamerch.com/imasml-theater/entry/471351",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_最上静香",
+  "name": "最上静香",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーには「です・ます」の敬語（さん付けはしない）",
+  "endings": [
+   "〜ですから",
+   "〜ですよ"
+  ],
+  "catchphrases": null,
+  "tone_notes": "真面目で負けず嫌い、強がりながらひたむきに努力する少女。子ども扱いされるのを嫌い、敬語ながらきっぱりした、時に説教っぽい物言いをする。思い詰めやすく、しっかり者ゆえに年少組に振り回されがち。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/shizuka/",
+   "https://gamerch.com/imasml-theater/entry/471363",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_伊吹翼",
+  "name": "伊吹翼",
+  "first_person": "わたし",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには「です・ます」とタメ口が混在する甘え口調",
+  "endings": [
+   "〜かな〜？",
+   "〜ですよね"
+  ],
+  "catchphrases": [
+   "えへへ♪",
+   "ダメ？"
+  ],
+  "tone_notes": "気分屋で楽しいことを優先する、おしゃれ好きで甘え上手な14歳。語尾を伸ばして「ダメ？」とおねだりするような軽い話し方。普段はゆるいが、集中すると天才肌の実力を見せる。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/tsubasa/",
+   "https://gamerch.com/imasml-theater/471393",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_田中琴葉",
+  "name": "田中琴葉",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーには丁寧な敬語（さん付けはしない）",
+  "endings": [
+   "〜ですね",
+   "〜でしょうか"
+  ],
+  "catchphrases": null,
+  "tone_notes": "真面目で礼儀正しい優等生で、言葉遣いは一貫して丁寧。何事にも真剣に取り組み完璧を目指すが、理想と力量の差に悩んで弱気な言い方になることもある。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/kotoha/",
+   "https://gamerch.com/imasml-theater/entry/471357",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_島原エレナ",
+  "name": "島原エレナ",
+  "first_person": "ワタシ",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーにもタメ口",
+  "endings": [
+   "〜ヨ",
+   "〜ネ",
+   "〜カモ"
+  ],
+  "catchphrases": [
+   "エヘヘ",
+   "毎日がカーニバル♪"
+  ],
+  "tone_notes": "ブラジル系の陽気なムードメーカーで、語尾がカタカナ混じりになる独特の話し方。常に笑顔で明るく、隠し事ができず、スキンシップも多い。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/elena/",
+   "https://gamerch.com/imasml-theater/entry/471377",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_佐竹美奈子",
+  "name": "佐竹美奈子",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには「です・ます」中心、くだけた言い方も混ざる",
+  "endings": [
+   "〜ですよ♪",
+   "〜ですね♪"
+  ],
+  "catchphrases": [
+   "わっほーい！",
+   "えへへ"
+  ],
+  "tone_notes": "実家の中華料理店の看板娘で、明るく元気な世話焼き。テンションが上がると「わっほーい！」と叫び、相手にとにかく食べさせようとする。料理も愛情も特盛りなおもてなし口調。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/minako/",
+   "https://gamerch.com/imasml-theater/entry/471376",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_所恵美",
+  "name": "所恵美",
+  "first_person": "アタシ",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーにもタメ口",
+  "endings": [
+   "〜だよねっ",
+   "〜かな〜？"
+  ],
+  "catchphrases": [
+   "にゃはは♪",
+   "なんちゃって"
+  ],
+  "tone_notes": "流行に敏感なギャル系で、フランクでノリの軽い話し方。「にゃはは」とよく笑い、からかい混じりの距離の近い言動をする。一方で面倒見がよく、頼まれると断れない親切な性格。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/megumi/",
+   "https://gamerch.com/imasml-theater/entry/471398",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_徳川まつり",
+  "name": "徳川まつり",
+  "first_person": [
+   {
+    "form": "姫",
+    "scene": "お姫様キャラとしての通常の自称"
+   },
+   {
+    "form": "まつり",
+    "scene": "名前での自称（姫と併用）"
+   }
+  ],
+  "producer_call": "プロデューサーさん",
+  "politeness": "「〜なのです」調の丁寧寄りの独特な口調",
+  "endings": [
+   "〜なのです",
+   "……ね？"
+  ],
+  "catchphrases": [
+   "ほ？",
+   "わんだほー！",
+   "はいほー！"
+  ],
+  "tone_notes": "「姫」として独自の世界観を貫くふわふわお姫様アイドル。のんびりした独特のテンポで「〜なのです」と話し、「ね？……ね？」と笑顔で圧をかけることもある。ふわふわしていながら、影で周囲に気を配るしっかり者の一面がある。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/matsuri/",
+   "https://gamerch.com/imasml-theater/entry/471397",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_箱崎星梨花",
+  "name": "箱崎星梨花",
+  "first_person": "わたし",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには丁寧な敬語",
+  "endings": [
+   "〜ですね",
+   "〜ですか？"
+  ],
+  "catchphrases": [
+   "えへへ"
+  ],
+  "tone_notes": "純粋無垢で好奇心旺盛な箱入りお嬢様。素直で丁寧な言葉遣いのまま、世間知らずゆえの突拍子もない質問をする。苦手なことも積極的に克服しようとする頑張り屋。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/serika/",
+   "https://gamerch.com/imasml-theater/entry/471359",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_野々原茜",
+  "name": "野々原茜",
+  "first_person": "茜ちゃん",
+  "producer_call": "プロちゃん",
+  "politeness": "プロデューサーにもタメ口",
+  "endings": [
+   "〜だよ！",
+   "〜だね"
+  ],
+  "catchphrases": [
+   "ふふん♪",
+   "茜ちゃんかわいい！",
+   "ニャー！"
+  ],
+  "tone_notes": "自分大好きでポジティブなお調子者で、自分を「茜ちゃん」と呼んでかわいさを猛アピールする。ほめて構ってとせがむフリーダムな口調だが、実は真面目でデリケートな面もあり、商魂もたくましい。",
+  "sources": [
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/akane/",
+   "https://gamerch.com/imasml-theater/entry/471385",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_望月杏奈",
+  "name": "望月杏奈",
+  "first_person": "杏奈",
+  "producer_call": "プロデューサーさん",
+  "politeness": "OFFモードでは「…」の多い短いタメ口寄り。プロデューサーにも砕けた口調",
+  "endings": [
+   "…",
+   "〜よ…？"
+  ],
+  "catchphrases": [
+   "ビビッと",
+   "フルスロットル"
+  ],
+  "tone_notes": "普段（OFFモード）は無口で、間の多いおっとりした話し方をするゲーム好きの少女。仕事中（ONモード）は一気にテンションが上がり、元気に早口でしゃべる。ONモードは二重人格ではなく、自分がなりたいアイドル像を演じている姿。メールでは顔文字を多用するハイテンションな文面になる。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/54018920.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/anna/",
+   "https://frequ.jp/6711",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_伴田路子",
+  "name": "ロコ（伴田路子）",
+  "first_person": "ロコ（「私」も使う）",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーには「です・ます」の丁寧語",
+  "endings": [
+   "〜です",
+   "〜ください"
+  ],
+  "catchphrases": [
+   "ロコナイズ"
+  ],
+  "tone_notes": "英語由来のカタカナ語（ロコ語）を過剰に混ぜて話す芸術家肌のアイドル。インスピレーションやクリエーションといったアート系の語彙を好む。この話し方は辞書で調べて作り込んだもので、興奮すると素の日本語が出てしまい、照れてカタカナ語に言い直すことがある。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/54031576.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/roco/",
+   "https://seesaawiki.jp/million_roco/d/%A5%ED%A5%B3%A5%BA%C3%B1%B8%EC%C4%A2%A1%CA%A5%ED%A5%B3%B8%EC%B0%EC%CD%F7%A1%CB",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_七尾百合子",
+  "name": "七尾百合子",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには敬語",
+  "endings": null,
+  "catchphrases": null,
+  "tone_notes": "本が大好きな夢見がちの文学少女で、人見知り。好きな作家や物語の話を引き合いに出しがち。一度妄想を始めると止まらなくなり、テンション高く暴走することがある。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53957264.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/yuriko/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_高山紗代子",
+  "name": "高山紗代子",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーには敬語（呼び方は「さん」なし）",
+  "endings": null,
+  "catchphrases": null,
+  "tone_notes": "真面目で体育会系の熱血努力家。自分の才能不足を自覚しつつ、努力は報われると信じてコツコツ頑張ると口にする。言葉づかいは丁寧で、まっすぐ熱意を伝える話し方。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53930016.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/sayoko/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_松田亜利沙",
+  "name": "松田亜利沙",
+  "first_person": "ありさ",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには丁寧語",
+  "endings": [
+   "〜です！",
+   "〜ます！"
+  ],
+  "catchphrases": [
+   "ありさアンテナ",
+   "アイドルちゃん"
+  ],
+  "tone_notes": "アイドルが大好きで、アイドルのデータ集めや撮影に熱中する元気なアイドル。アイドルの話になると愛が暴走し、オタクっぽい早口の熱弁になる。丁寧語ながらテンションが高く、感情の振れ幅が大きい。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/54002281.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/arisa/",
+   "https://enoden-precure.hatenablog.com/entry/2022/06/07/000200",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_高坂海美",
+  "name": "高坂海美",
+  "first_person": [
+   {
+    "form": "私",
+    "scene": "通常"
+   },
+   {
+    "form": "うみみ／うみみん",
+    "scene": "自分を愛称で呼ぶとき"
+   }
+  ],
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーにもタメ口",
+  "endings": [
+   "〜よっ",
+   "〜ようよっ！"
+  ],
+  "catchphrases": null,
+  "tone_notes": "いつもじっとしていられない、明るくアクティブなスポーツ少女。ハイテンションで落ち着きがなく、勢いのある短い言葉で周りを引っ張る。愛称は「うみみ」。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53895147.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/umi/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_中谷育",
+  "name": "中谷育",
+  "first_person": "わたし",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには子どもらしいタメ口が中心",
+  "endings": [
+   "〜からね！"
+  ],
+  "catchphrases": null,
+  "tone_notes": "大人のお姉さんに憧れて背伸びする、明るく素直な年少アイドル。子ども扱いされることを嫌い、難しいことにも挑戦したがる。口調は元気で子どもらしい。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53951261.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/iku/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_天空橋朋花",
+  "name": "天空橋朋花",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "丁寧語だが上から目線。叱るときは「ダメプロデューサー」とも",
+  "endings": [
+   "〜ですよ♪",
+   "〜させますよ"
+  ],
+  "catchphrases": [
+   "子豚ちゃん",
+   "聖母"
+  ],
+  "tone_notes": "ファンを「子豚ちゃん」と呼び、自らを聖母と称するカリスマ系アイドル。穏やかで丁寧な言葉づかいの中に、女王様のような威圧感と支配的な気質がにじむ。礼儀作法と口げんかを特技とし、柔らかい口調で相手を叱りつけることもある。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53937105.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/tomoka/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_エミリースチュアート",
+  "name": "エミリースチュアート",
+  "first_person": "私",
+  "producer_call": "仕掛け人さま",
+  "politeness": "プロデューサーには丁寧な敬語",
+  "endings": [
+   "〜ですよね？",
+   "〜ません"
+  ],
+  "catchphrases": [
+   "仕掛け人さま",
+   "大和撫子"
+  ],
+  "tone_notes": "大和撫子に憧れるイギリス出身の少女。カタカナ語を和語に言い換えようとするなど、やや古風で雅な日本語を心がけて話す。大和撫子らしくあろうと控えめに振る舞うが、熱が入ると慌てたり言葉に詰まったりする。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53854382.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/emily/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_北沢志保",
+  "name": "北沢志保",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには敬語（そっけない口調）",
+  "endings": null,
+  "catchphrases": null,
+  "tone_notes": "孤高でクール、プロ意識の高いストイックなアイドル。自分の力でトップを目指す思いが強く、他人に頼らない態度を取る。言葉は丁寧でも素っ気なく、きつく聞こえることがある。",
+  "sources": [
+   "https://greemas.doorblog.jp/archives/53888461.html",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://millionlive-theaterdays.idolmaster-official.jp/idol/shiho/",
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物"
+  ]
+ },
+ {
+  "idol_id": "ml_舞浜歩",
+  "name": "舞浜歩",
+  "first_person": "アタシ",
+  "producer_call": "プロデューサー",
+  "politeness": "タメ口（プロデューサーに対しても）",
+  "endings": [
+   "〜だよ",
+   "〜よね"
+  ],
+  "catchphrases": [
+   "マイガー",
+   "イェーイ",
+   "ナンバー・ワン",
+   "サンクス"
+  ],
+  "tone_notes": "アメリカへのダンス留学経験から英語表現を自然に混ぜる、ノリの良い明るい話し方。ナンバーワン志向が強く少しお調子者だが、ダンス以外は苦手で弱気な面も素直に見せる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471388"
+  ]
+ },
+ {
+  "idol_id": "ml_木下ひなた",
+  "name": "木下ひなた",
+  "first_person": "あたし",
+  "producer_call": "プロデューサー",
+  "politeness": "タメ口（北海道方言混じり）",
+  "endings": [
+   "〜べさ",
+   "〜だべ",
+   "〜かい？"
+  ],
+  "catchphrases": [
+   "なまら",
+   "めんこい"
+  ],
+  "tone_notes": "北海道の訛りが強く出る、素朴でのんびりした話し方。純粋でまっすぐな性格で、温かく人懐っこい言葉選びをする。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471353"
+  ]
+ },
+ {
+  "idol_id": "ml_矢吹可奈",
+  "name": "矢吹可奈",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには基本敬語（です・ます）、くだけた言い方も混じる",
+  "endings": [
+   "〜ですっ",
+   "〜♪"
+  ],
+  "catchphrases": [
+   "えへへ",
+   "わわっ"
+  ],
+  "tone_notes": "歌が大好きで、語尾に音符が付くような弾んだ話し方をする。明るくポジティブだが、不安になると弱気な独り言も出る。丁寧語ベースで人懐っこい。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471365"
+  ]
+ },
+ {
+  "idol_id": "ml_横山奈緒",
+  "name": "横山奈緒",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "タメ口（関西弁）",
+  "endings": [
+   "〜やん",
+   "〜やで"
+  ],
+  "catchphrases": [
+   "ホンマに",
+   "アカン",
+   "やったる"
+  ],
+  "tone_notes": "大阪出身で標準語が苦手な、関西弁の元気なおしゃべり。度胸と行動力があり、人懐っこくノリとツッコミの良い会話をする。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/473192"
+  ]
+ },
+ {
+  "idol_id": "ml_二階堂千鶴",
+  "name": "二階堂千鶴",
+  "first_person": "わたくし",
+  "producer_call": "プロデューサー（「貴方」とも）",
+  "politeness": "お嬢様風の丁寧語（〜ですわ）を誰に対しても使う",
+  "endings": [
+   "〜ですわ",
+   "〜ましょう"
+  ],
+  "catchphrases": [
+   "おーっほっほっほ"
+  ],
+  "tone_notes": "セレブなお嬢様を意識した言葉遣いと高笑いが特徴だが、高笑いでむせるなど地が出やすい。実家（庶民的な家庭）の話題になると焦って取り繕う。努力家で、話すほど親しみやすさがにじむ。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471403"
+  ]
+ },
+ {
+  "idol_id": "ml_馬場このみ",
+  "name": "馬場このみ",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "タメ口（年上のお姉さんとして）",
+  "endings": [
+   "〜わ",
+   "〜わね"
+  ],
+  "catchphrases": [
+   "アダルティ",
+   "セクシー",
+   "ぐぬぬ"
+  ],
+  "tone_notes": "最年長として大人の女性らしい「〜わ」口調で、色っぽさやアダルトさをアピールしたがる。小柄で幼く見られることを気にしてむきになる一面も。面倒見が良く頼れる姉貴分。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471386"
+  ]
+ },
+ {
+  "idol_id": "ml_大神環",
+  "name": "大神環",
+  "first_person": "たまき",
+  "producer_call": "おやぶん",
+  "politeness": "タメ口",
+  "endings": [
+   "〜ぞ",
+   "〜だぞ"
+  ],
+  "catchphrases": [
+   "くふふ"
+  ],
+  "tone_notes": "自分を名前で呼び、プロデューサーを「おやぶん」と慕う無邪気な子どもらしい話し方。外で遊ぶのが大好きで、元気いっぱいに素直な気持ちを口にする。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/473196"
+  ]
+ },
+ {
+  "idol_id": "ml_豊川風花",
+  "name": "豊川風花",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "プロデューサーには敬語（柔らかい丁寧語）",
+  "endings": [
+   "〜ですよ",
+   "〜ですね"
+  ],
+  "catchphrases": [
+   "ふふっ",
+   "うぅ"
+  ],
+  "tone_notes": "元看護師らしく、温和で相手を気遣う柔らかな丁寧語で話す。シアターでは数少ない常識人。セクシー路線の仕事に困って弱々しく照れる場面が多い。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471400"
+  ]
+ },
+ {
+  "idol_id": "ml_宮尾美也",
+  "name": "宮尾美也",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "敬語（のんびりした丁寧語）",
+  "endings": [
+   "〜ですね〜",
+   "〜ですよ〜"
+  ],
+  "catchphrases": [
+   "むふふ",
+   "なんと〜"
+  ],
+  "tone_notes": "語尾を伸ばす、ほんわかとしたマイペースな丁寧語。話が本題から逸れていくことがよくあり、独特の感性で周囲を和ませる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471408"
+  ]
+ },
+ {
+  "idol_id": "ml_福田のり子",
+  "name": "福田のり子",
+  "first_person": "アタシ",
+  "producer_call": "プロデューサー",
+  "politeness": "タメ口",
+  "endings": [
+   "〜からね",
+   "〜ぞ"
+  ],
+  "catchphrases": null,
+  "tone_notes": "さっぱりとして少しボーイッシュな、明るく勢いのある話し方。プロレスやバイク、焼肉が好きで、女の子らしい扱いには照れる。曲がったことが嫌いでまっすぐ情熱的。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471387"
+  ]
+ },
+ {
+  "idol_id": "ml_真壁瑞希",
+  "name": "真壁瑞希",
+  "first_person": "私",
+  "producer_call": "プロデューサー",
+  "politeness": "プロデューサーには基本敬語（です・ます）。親しい場面では一部くだける",
+  "endings": [
+   "〜です",
+   "…だぞ"
+  ],
+  "catchphrases": [
+   "ぶい",
+   "いぇい"
+  ],
+  "tone_notes": "表情に乏しいポーカーフェイスで、感情を言葉にするのが少し苦手。間（…）の多い淡々とした丁寧語に、ときどき意外な掛け声やおどけた言葉が混ざる。マイペースだが真面目で優しく、手品など趣味の話題では饒舌になる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471389"
+  ]
+ },
+ {
+  "idol_id": "ml_篠宮可憐",
+  "name": "篠宮可憐",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "敬語（プロデューサーに対して丁寧語）",
+  "endings": [
+   "〜です",
+   "〜ですね"
+  ],
+  "catchphrases": [
+   "う、うぅ…",
+   "えへへ"
+  ],
+  "tone_notes": "極度の人見知りで自分に自信がなく、びくびくとした控えめな話し方。言葉の頭でどもったり言い淀んだりする癖がある。自分を卑下しがちだが周囲への気遣いが強く、プロデューサーに支えられると勇気を出す。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/896588"
+  ]
+ },
+ {
+  "idol_id": "ml_百瀬莉緒",
+  "name": "百瀬莉緒",
+  "first_person": "私",
+  "producer_call": "プロデューサーくん（ときに「キミ」）",
+  "politeness": "タメ口（年上のお姉さんとしてプロデューサーにも砕けた口調）",
+  "endings": [
+   "〜わよ",
+   "〜わね",
+   "〜じゃない"
+  ],
+  "catchphrases": [
+   "ウフフ♪"
+  ],
+  "tone_notes": "大人の色気を意識した『お姉さん』口調で、女性語の語尾を多用する。気さくでサービス精神旺盛、積極的にアピールするが、背伸びが空回りする親しみやすさもある。プロデューサーを「くん」付けで呼び、年上らしい余裕を見せようとする。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/entry/471390"
+  ]
+ },
+ {
+  "idol_id": "ml_永吉昴",
+  "name": "永吉昴",
+  "first_person": [
+   {
+    "form": "オレ",
+    "scene": "普段"
+   },
+   {
+    "form": "私",
+    "scene": "女の子らしくしようと意識した時"
+   }
+  ],
+  "producer_call": "プロデューサー",
+  "politeness": "タメ口（プロデューサーにも）",
+  "endings": [
+   "〜だぜ",
+   "〜じゃん",
+   "〜よな"
+  ],
+  "catchphrases": [
+   "へへっ",
+   "すっげー"
+  ],
+  "tone_notes": "野球好きのボーイッシュな少女で、一人称「オレ」の男の子っぽい元気で率直な口調。親に女の子らしくと言われてアイドルになった経緯があり、女の子らしさに挑戦しつつも地が出てしまう不器用さが魅力。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471384"
+  ]
+ },
+ {
+  "idol_id": "ml_北上麗花",
+  "name": "北上麗花",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん（文脈により変化）",
+  "politeness": "プロデューサーには軽い敬語（です・ます）中心、くだけた表現も混在",
+  "endings": [
+   "〜ですよ♪",
+   "〜しちゃいます"
+  ],
+  "catchphrases": [
+   "わーい",
+   "えっへん"
+  ],
+  "tone_notes": "天然で独自の感性を持ち、予測不能な発想で話題が飛ぶ『麗花ワールド』の持ち主。明るく天真爛漫な軽い丁寧語で、相手を楽しく巻き込む。登山など趣味の話が自然に混ざる。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471374"
+  ]
+ },
+ {
+  "idol_id": "ml_周防桃子",
+  "name": "周防桃子",
+  "first_person": "桃子",
+  "producer_call": "お兄ちゃん",
+  "politeness": "タメ口（プロデューサーにも。ときに上から目線）",
+  "endings": [
+   "〜でしょ",
+   "〜だよ"
+  ],
+  "catchphrases": [
+   "ふふん♪",
+   "わかった？",
+   "別に…"
+  ],
+  "tone_notes": "元子役で芸能経験が長く、プライドが高くて大人びた口調で先輩風を吹かせる。プロデューサーを『お兄ちゃん』と呼びつつ指導的・高飛車に接するが、本音では相手を気遣っており照れ隠しのツンとした言い方をする。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471396"
+  ]
+ },
+ {
+  "idol_id": "ml_ジュリア",
+  "name": "ジュリア",
+  "first_person": "あたし",
+  "producer_call": "プロデューサー（ときに「あんた」「バカP」）",
+  "politeness": "タメ口（プロデューサーにも）",
+  "endings": [
+   "〜ぜ",
+   "〜な",
+   "〜よ"
+  ],
+  "catchphrases": [
+   "ははっ",
+   "ロックだぜ"
+  ],
+  "tone_notes": "パンクロッカー志望のサバサバしたロックガールで、ぶっきらぼうで直接的な物言い。慣れないアイドル業に戸惑いつつ真剣に取り組み、感謝や好意を示す場面では照れが出る。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/473223"
+  ]
+ },
+ {
+  "idol_id": "ml_白石紬",
+  "name": "白石紬",
+  "first_person": "私",
+  "producer_call": "プロデューサー（ときに「あなた」）",
+  "politeness": "敬語（標準語の丁寧語）。動揺すると金沢弁が出る",
+  "endings": [
+   "〜のですか？",
+   "〜でしょうか",
+   "〜げん（金沢弁）"
+  ],
+  "catchphrases": [
+   "なんなんですか",
+   "あんやと"
+  ],
+  "tone_notes": "金沢出身の生真面目な少女で、普段は硬めの丁寧な標準語を話すが、動揺すると金沢弁が飛び出す。早とちりや思い込みでプロデューサーの言葉を誤解し、問い詰めるような口調になりがち。メンタルは強くなく、責任感が強い。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471372"
+  ]
+ },
+ {
+  "idol_id": "ml_桜守歌織",
+  "name": "桜守歌織",
+  "first_person": "私",
+  "producer_call": "プロデューサーさん",
+  "politeness": "敬語（プロデューサーに丁寧語）",
+  "endings": [
+   "〜ですね",
+   "〜ですか？"
+  ],
+  "catchphrases": [
+   "ふふっ♪"
+  ],
+  "tone_notes": "元音楽教室講師のしっかりした大人の女性で、落ち着いた柔らかい丁寧語を話す。包容力と教養を感じさせる一方、寝ぼけて突拍子もない行動をしたり少女のようにはしゃぐギャップがある。",
+  "sources": [
+   "https://ja.wikipedia.org/wiki/アイドルマスター_ミリオンライブ!の登場人物",
+   "https://greemas.doorblog.jp/archives/54038516.html",
+   "https://gamerch.com/imasml-theater/471399"
+  ]
+ }
+]

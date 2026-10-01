@@ -105,7 +105,13 @@ final class CharacterTimelineStore {
         let post = posts[index]
         do {
             let store = try await AppContainer.shared.coreSnapshot.loadedStore()
-            guard let instructions = try store.assistantTimelineReplyInstructions(idolId: post.idolID) else {
+            // その子の直近の投稿・返信に出た口癖は、今回は避けさせる。
+            let recent = posts.prefix(20).flatMap { p in
+                (p.idolID == post.idolID ? [p.text] : []) + p.replies.filter { $0.idolID == post.idolID }.map(\.text)
+            }
+            guard let instructions = try store.assistantTimelineReplyInstructions(
+                idolId: post.idolID, recentReplies: Array(recent.prefix(5))
+            ) else {
                 throw TimelineError.unknownIdol
             }
             let answer = try await complete(ChatGPTPlanClient.Request(

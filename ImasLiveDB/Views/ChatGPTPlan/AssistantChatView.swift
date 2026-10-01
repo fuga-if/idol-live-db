@@ -126,7 +126,7 @@ private struct AssistantChatScreen: View {
 
     @State private var chat = AssistantChatModel(config: .init(
         store: .chat,
-        instructions: { assistantInstructions() },
+        instructions: { _ in assistantInstructions() },
         toolsJSON: assistantToolsJson(),
         idolID: nil,
         newTitle: { String($0.prefix(40)) }

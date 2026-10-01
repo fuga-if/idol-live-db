@@ -8,7 +8,8 @@ import Observation
 final class AssistantChatModel {
     struct Config {
         var store: AssistantConversationStore
-        var instructions: () -> String?
+        /// 送るたびに呼ぶ。引数はこれまでの発言 (キャラとのトークは直近の返信から口癖の重なりを避ける)。
+        var instructions: ([AssistantMessage]) -> String?
         var toolsJSON: String?
         var idolID: String?
         var newTitle: (String) -> String
@@ -107,7 +108,7 @@ final class AssistantChatModel {
                 let added = try await AssistantTurnRunner.run(
                     model: model,
                     history: history,
-                    instructions: config.instructions(),
+                    instructions: config.instructions(conversation.messages),
                     toolsJSON: config.toolsJSON
                 ) { event in
                     guard conversation.id == id else { return }

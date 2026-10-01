@@ -227,16 +227,21 @@ struct CharacterTalkView: View {
         }
         do {
             let store = try await AppContainer.shared.coreSnapshot.loadedStore()
-            guard let instructions = try store.assistantTalkInstructions(idolId: idolID) else {
+            guard try store.assistantTalkInstructions(idolId: idolID, recentReplies: []) != nil else {
                 loadError = "このアイドルのデータが見つかりませんでした"
                 return
             }
+            let idolID = idolID
             let name = idol?.name ?? ""
             let existing = AssistantConversationStore.talk.conversations.first { $0.idolID == idolID }
             chat = AssistantChatModel(
                 config: .init(
                     store: .talk,
-                    instructions: { instructions },
+                    // 直近の返信に出た口癖は、今回は使わないよう指示文に添える (コアが判定する)。
+                    instructions: { messages in
+                        let recent = messages.filter { $0.role == .assistant && !$0.failed }.suffix(5).map(\.text)
+                        return try? store.assistantTalkInstructions(idolId: idolID, recentReplies: Array(recent)) ?? nil
+                    },
                     toolsJSON: assistantToolsJson(),
                     idolID: idolID,
                     newTitle: { _ in name }

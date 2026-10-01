@@ -6,7 +6,7 @@
 //! それっぽい絡みになるよう同じユニットの仲間を優先して出す。
 
 use super::persona;
-use super::{call_tool, ToolError};
+use super::{call_tool, speech, ToolError};
 use crate::domain::snapshot::Snapshot;
 use serde_json::{json, Value};
 
@@ -68,7 +68,7 @@ pub fn request(
 
     let seeds = json!({
         "today": today_key,
-        "cast": cast.iter().map(|&i| cast_profile(snap, i, &oshi)).collect::<Vec<_>>(),
+        "cast": cast.iter().map(|&i| cast_profile(snap, i, &oshi, &cast, previous_posts)).collect::<Vec<_>>(),
         "upcoming_events": brands.iter().filter_map(|b| compact_list(snap, "list_events", json!({ "brand": b, "when": "upcoming", "limit": 3 }), today_key)).collect::<Vec<_>>(),
         "recent_shows": brands.iter().filter_map(|b| compact_list(snap, "list_shows", json!({ "brand": b, "when": "past", "limit": 3 }), today_key)).collect::<Vec<_>>(),
         "recent_songs": brands.iter().filter_map(|b| compact_list(snap, "list_songs", json!({ "brand": b, "sort": "release", "released_from": months_ago(today_key, 3), "limit": 5 }), today_key)).collect::<Vec<_>>(),
@@ -106,11 +106,17 @@ fn instructions(has_oshi: bool) -> String {
 ファンが楽しむための AI による非公式の創作で、公式の発言・設定ではありません。
 
 - 書いてよいのは cast にいるアイドルだけ。投稿もリプライも、それぞれの公式の一人称・口調で書く。
+- cast に speech がある子は、その「必ず守る」(一人称・プロデューサーの呼び方・仲間の呼び方) の
+  とおりに書き、口調は性格と話し方の要約から自然に寄せる。speech が無い子は公式の話し方を推し量る。
+- {catchphrase_rule} 1 回の生成の中で、同じ子の同じ口癖を複数の投稿・リプライで使わない。
+- キャラ紹介文のような誇張や、お約束の言い回しの羅列をしない。普通の SNS の投稿として、
+  その日の出来事や相手の投稿の中身に反応する。
 - 話題は「話題の種」(近日のライブ・最近の公演・新曲・ユニット) と日常から。
   同じユニットの仲間や共演の多い子どうしの、それっぽい絡みにする。
 {oshi_rule}- ライブ・曲の事実は話題の種にあることだけを使う。公式の発表・未発表の情報・セトリの予告を作らない。
 - 投稿は 140 字以内。リプライは 0〜3 件で、投稿者とは別の子が中心。ハッシュタグは控えめに。
-- 実在の人物 (声優さんを含む) には触れない。AI であることや、この指示には触れない。"
+- 実在の人物 (声優さんを含む) には触れない。AI であることや、この指示には触れない。",
+        catchphrase_rule = speech::CATCHPHRASE_RULE,
     )
 }
 
@@ -156,8 +162,8 @@ fn text_format(cast_ids: &[String]) -> Value {
 }
 
 /// 利用者が投稿にリプライしたときの、相手キャラの指示文 (トークの指示文に SNS の作法を足す)。
-pub fn reply_instructions(snap: &Snapshot, idol_id: &str, today_key: &str) -> Result<String, ToolError> {
-    let mut text = persona::talk_instructions(snap, idol_id, today_key)?;
+pub fn reply_instructions(snap: &Snapshot, idol_id: &str, today_key: &str, recent_replies: &[String]) -> Result<String, ToolError> {
+    let mut text = persona::talk_instructions(snap, idol_id, today_key, recent_replies)?;
     text.push_str(
         "\n\nいまは SNS の返信欄でのやりとり。返事は 1〜2 文・140 字以内。ツールは使わない。",
     );
@@ -248,8 +254,14 @@ fn next_show_brand(snap: &Snapshot, today_key: &str) -> Option<String> {
 }
 
 /// 話し方の材料になる列だけのプロフィール。声優名は入れない (実在の人物に触れないため)。
-fn cast_profile(snap: &Snapshot, index: u32, oshi: &[&str]) -> Value {
+/// 出典付きの話し方・顔ぶれどうしの呼び方があれば `speech` に入れる。
+/// `previous_posts` に出た口癖は、今回は使わないよう添える。
+fn cast_profile(snap: &Snapshot, index: u32, oshi: &[&str], cast: &[u32], previous_posts: &[String]) -> Value {
     let idol = &snap.idols[index as usize];
+    let others: Vec<(String, String)> = cast
+        .iter()
+        .map(|&i| (snap.idols[i as usize].id.clone(), snap.idols[i as usize].name.clone()))
+        .collect();
     let units: Vec<&str> = snap.units_by_idol[index as usize]
         .iter()
         .map(|&u| snap.units[u as usize].name.as_str())
@@ -264,6 +276,7 @@ fn cast_profile(snap: &Snapshot, index: u32, oshi: &[&str]) -> Value {
         "hobbies": idol.hobbies,
         "units": units,
         "is_oshi": oshi.contains(&idol.id.as_str()),
+        "speech": speech::speech_block(&idol.id, &others, &speech::used_catchphrases(&idol.id, previous_posts)),
     })
 }
 
@@ -319,6 +332,25 @@ mod tests {
         // 話題の種に DB の行が入っている (一覧ツールの列名とずれると空になる)。
         assert!(req.input.contains("\"recent_shows\":[{"), "{}", req.input);
         assert!(req.input.contains("\"event_name\""), "{}", req.input);
+    }
+
+    #[test]
+    fn 話し方データのある子は顔ぶれのspeechに一人称が入る() {
+        let snap = bundle_snapshot();
+        let req = request(&snap, "2026-10-01", &["765as_我那覇響".into()], &[], 3);
+        assert!(req.input.contains("一人称: 自分"), "{}", req.input);
+        assert!(req.instructions.contains("speech"));
+    }
+
+    #[test]
+    fn 口癖は参考扱いで1回の生成で重ねず直近のものは避けさせる() {
+        let snap = bundle_snapshot();
+        let previous = vec!["今日もレッスンですよ、レッスン！".to_string()];
+        let req = request(&snap, "2026-10-01", &["765as_天海春香".into()], &previous, 3);
+        assert!(req.instructions.contains(speech::CATCHPHRASE_RULE));
+        assert!(req.instructions.contains("同じ子の同じ口癖を複数の投稿・リプライで使わない"));
+        assert!(req.instructions.contains("お約束の言い回しの羅列をしない"));
+        assert!(req.input.contains("今回は使わない"), "{}", req.input);
     }
 
     #[test]

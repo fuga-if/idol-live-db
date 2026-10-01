@@ -73,9 +73,14 @@ impl SnapshotStore {
     }
 
     /// キャラとのトークの指示文。知らないアイドルなら None。
-    pub fn assistant_talk_instructions(&self, idol_id: String) -> Result<Option<String>, SnapshotError> {
+    /// `recent_replies` はそのキャラの直近の返信 (出てきた口癖を今回は避けさせる)。
+    pub fn assistant_talk_instructions(
+        &self,
+        idol_id: String,
+        recent_replies: Vec<String>,
+    ) -> Result<Option<String>, SnapshotError> {
         let snap = self.current()?;
-        Ok(persona::talk_instructions(&snap, &idol_id, &today_jst()).ok())
+        Ok(persona::talk_instructions(&snap, &idol_id, &today_jst(), &recent_replies).ok())
     }
 
     /// キャラ同士のタイムラインの生成リクエスト。`seed` は呼ぶたびに変える (顔ぶれが変わる)。
@@ -96,9 +101,13 @@ impl SnapshotStore {
     }
 
     /// タイムラインの投稿へのリプライに、そのキャラが返すときの指示文。知らないアイドルなら None。
-    pub fn assistant_timeline_reply_instructions(&self, idol_id: String) -> Result<Option<String>, SnapshotError> {
+    pub fn assistant_timeline_reply_instructions(
+        &self,
+        idol_id: String,
+        recent_replies: Vec<String>,
+    ) -> Result<Option<String>, SnapshotError> {
         let snap = self.current()?;
-        Ok(timeline::reply_instructions(&snap, &idol_id, &today_jst()).ok())
+        Ok(timeline::reply_instructions(&snap, &idol_id, &today_jst(), &recent_replies).ok())
     }
 }
 

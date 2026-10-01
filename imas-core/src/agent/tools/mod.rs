@@ -23,6 +23,7 @@ pub mod persona;
 pub mod personal;
 pub mod predict;
 pub mod scope;
+pub mod speech;
 pub mod timeline;
 pub mod vocab;
 
