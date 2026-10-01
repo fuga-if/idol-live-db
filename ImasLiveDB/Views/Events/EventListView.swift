@@ -91,11 +91,6 @@ struct EventListView: View {
         }
     }
 
-    /// 年の見出しの横に添える件数 (「14 件」)。`ImasDateHeader` の imprint 用。
-    private func eventCount(forYear year: String) -> Int {
-        vm.groupedByYear.first { $0.year == year }?.events.count ?? 0
-    }
-
     /// 年グループを 1 本の並びへ畳む (グループの順序と行の順序はそのまま)。
     private var listItems: [EventListItem] {
         var items: [EventListItem] = []
@@ -197,7 +192,7 @@ struct EventListView: View {
                     ForEach(listItems) { item in
                         switch item {
                         case .yearHeader(let year):
-                            ImasDateHeader(big: year, imprint: "\(eventCount(forYear: year)) 件", isPast: timeFilter == 1)
+                            ImasDateHeader(big: year, isPast: timeFilter == 1)
                                 .padding(.horizontal, DS.Space.screen)
                                 .listRowInsets(EdgeInsets())
                                 .listRowBackground(DS.bg)
@@ -365,7 +360,9 @@ struct EventListView: View {
     }
 
     @ViewBuilder private var activeFilterChips: some View {
-        ImasFilterBar(items: activeFilterItems, onClearAll: activeFilterItems.count >= 2 ? { clearAllFilters() } : nil)
+        // 「すべて解除」は出さない: チップに出ない「空のイベントも表示」まで一緒に消えてしまうため
+        // (外せるのはチップに見えているものだけ、が前からの決まり)。
+        ImasFilterBar(items: activeFilterItems)
     }
 
     /// 新規イベント作成導線。ログイン済みなら作成 sheet、未ログインならログイン誘導。

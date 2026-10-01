@@ -598,17 +598,12 @@ struct SetlistView: View {
         if let summary = collectionSummary, !setlist.isEmpty,
            !(isFutureShow && contentTab == 1) {
             Section {
-                HStack {
-                    ImasBadge(
-                        text: summary.label,
-                        kind: summary.attended ? .positive : .neutral,
-                        systemImage: summary.attended ? "checkmark.seal.fill" : "circle.dashed"
-                    )
-                    Spacer(minLength: 0)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
+                // 札 (ImasBadge) は 1 行の短い値向けで、長い文だと大きい文字設定で切れる。
+                // ここは文なので折り返す ImasNote を使う。
+                ImasNote(summary.label, systemImage: summary.attended ? "checkmark.seal.fill" : "circle.dashed")
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
+                    .listRowSeparator(.hidden)
             }
         }
     }

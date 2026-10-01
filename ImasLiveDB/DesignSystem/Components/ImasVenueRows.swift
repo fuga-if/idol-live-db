@@ -76,6 +76,9 @@ struct ImasStubRow<Detail: View>: View {
     var rainbow: Bool = false
     /// 読み上げの日付 (「2026年11月7日 土曜日」)。無ければ日付欄をそのまま読む。
     var spokenDate: String? = nil
+    /// 別画面へ進む矢印。`NavigationLink` に包んで OS が矢印を出す一覧では不要 (既定 false)。
+    /// `Button` に包んで自前で矢印が要る一覧 (絞り込み結果など) だけ true にする。
+    var showsChevron: Bool = false
     @ViewBuilder var detail: Detail
 
     @Environment(\.colorScheme) private var scheme
@@ -116,10 +119,13 @@ struct ImasStubRow<Detail: View>: View {
                     .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                if let subtitle {
+                // 色の帯は副題の有無によらずいつも出す (実体の色を常に示す)。
+                if penlight != nil || subtitle != nil {
                     HStack(spacing: 6) {
                         if let penlight { ImasPenlight(color: penlight, size: .small, rainbow: rainbow) }
-                        Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
+                        if let subtitle {
+                            Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
+                        }
                     }
                 }
                 if !badges.isEmpty {
@@ -133,6 +139,10 @@ struct ImasStubRow<Detail: View>: View {
             .padding(.trailing, 14)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
+            if showsChevron {
+                ImasRowChevron()
+                    .padding(.trailing, 14)
+            }
         }
         .background(DS.surface, in: ImasTicketShape(cornerRadius: 12, cut: .verticalFromLeading(stubWidth + 1), notchRadius: 6))
         .contentShape(Rectangle())
@@ -148,9 +158,10 @@ struct ImasStubRow<Detail: View>: View {
 extension ImasStubRow where Detail == EmptyView {
     init(date: ImasStubDate, title: String, subtitle: String? = nil, seed: String? = nil, brand: String? = nil,
          isPunched: Bool = false, badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal,
-         rainbow: Bool = false, spokenDate: String? = nil) {
+         rainbow: Bool = false, spokenDate: String? = nil, showsChevron: Bool = false) {
         self.init(date: date, title: title, subtitle: subtitle, seed: seed, brand: brand, isPunched: isPunched,
-                  badges: badges, emphasis: emphasis, rainbow: rainbow, spokenDate: spokenDate) { EmptyView() }
+                  badges: badges, emphasis: emphasis, rainbow: rainbow, spokenDate: spokenDate,
+                  showsChevron: showsChevron) { EmptyView() }
     }
 }
 

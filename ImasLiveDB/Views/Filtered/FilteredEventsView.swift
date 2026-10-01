@@ -27,12 +27,17 @@ struct FilteredEventsView: View {
                         .listRowSeparator(.hidden)
                     ForEach(eventsWithDate) { ew in
                         Button { navigate(.event(ew.event)) } label: {
-                            // 種別は生の内部値ではなくラベルで出す。未分類なら何も出さない
-                            // (日付は半券の日付欄が言うので、ここで重ねない)。
+                            // 種別は生の内部値ではなくラベルで出す。未分類なら日付だけ。
+                            // 半券の日付欄 (`date:`) は年を持たないので、副題には年の分かる
+                            // 日付 (コアの開催期間表示、無ければ初日) を添えて重ねる。
                             ImasEventRow(
                                 event: ew.event,
                                 date: ew.firstDate,
-                                subtitle: EventType(rawValue: ew.event.eventType)?.displayLabel
+                                subtitle: [
+                                    EventType(rawValue: ew.event.eventType)?.displayLabel,
+                                    ew.dateRange ?? ew.firstDate,
+                                ].compactMap { $0 }.joined(separator: "  "),
+                                showsChevron: true
                             )
                         }
                         .buttonStyle(.plain)

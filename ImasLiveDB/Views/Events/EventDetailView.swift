@@ -86,9 +86,9 @@ struct EventDetailView: View {
         return isJoint ? "\(sub) ・ 合同" : sub
     }
 
-    /// 頭の印字 (「LIVE · ブランド名」/「LIVE · 合同」)。
+    /// 頭の印字。合同ライブは虹色のペンライトだけで示すので、ここに「合同」等は重ねない。
     private var mastheadItems: [String] {
-        ["LIVE", isJoint ? "合同" : (vm.brand?.shortName ?? "")].filter { !$0.isEmpty }
+        isJoint ? ["LIVE"] : ["LIVE", vm.brand?.shortName ?? ""].filter { !$0.isEmpty }
     }
 
     var body: some View {
@@ -98,7 +98,8 @@ struct EventDetailView: View {
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: DS.Space.gap) {
-                        if !isJoint { ImasPenlight(color: t.penlight, size: .regular) }
+                        // 合同ライブは単色で表せないので虹色 (前と同じ目印)。
+                        ImasPenlight(color: t.penlight, size: .regular, rainbow: isJoint)
                         ImasMasthead(items: mastheadItems)
                     }
                     Text(event.name)
@@ -292,13 +293,14 @@ struct EventDetailView: View {
     @ViewBuilder
     private func showRow(_ show: Show) -> some View {
         Button { openShow(show) } label: {
+            // 会場 ・ 日付 (年まで分かる形)。参加済みの特別な印は付けない (事実の札だけで示す)。
             ImasShowRow(
                 date: show.date,
                 title: show.name,
-                subtitle: show.venue,
+                subtitle: [show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "),
                 brandHex: brandSeed,
-                isPunched: vm.attendedShowIds.contains(show.id),
-                rainbow: isJoint
+                rainbow: isJoint,
+                showsChevron: true
             )
         }
         .buttonStyle(.plain)

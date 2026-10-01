@@ -65,7 +65,7 @@ struct FilteredShowsView: View {
     private var content: some View {
         List {
             ForEach(groupedByYear, id: \.year) { group in
-                ImasDateHeader(big: group.year, imprint: "\(group.shows.count) 件")
+                ImasDateHeader(big: group.year)
                     .padding(.horizontal, DS.Space.screen)
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(DS.bg)
@@ -97,8 +97,8 @@ struct FilteredShowsView: View {
             title: event.map { eventDisplayName($0.name) } ?? show.name,
             subtitle: subtitle(show),
             brandHex: BrandColors.hex(for: event?.brandId),
-            isPunched: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil,
-            rainbow: !(event?.jointBrandIdList.isEmpty ?? true)
+            rainbow: !(event?.jointBrandIdList.isEmpty ?? true),
+            showsChevron: true
         )
         .imasCopyable([
             CopyItem("ライブ名をコピー", event?.name, key: "event_name"),

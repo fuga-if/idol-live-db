@@ -34,7 +34,8 @@ enum ImasRowLeading {
     /// 選択の印 (ピッカー)。
     case selection(Bool, single: Bool = false)
     /// 部品の外で作った先頭 (ゲーム・特殊な一覧のみ。増やす前に種類を足せないか考える)。
-    case custom(AnyView, width: CGFloat)
+    /// `alignment` は行内の縦揃え (既定は中央。セトリの曲順+ジャケのように上揃えにしたいときに渡す)。
+    case custom(AnyView, width: CGFloat, alignment: VerticalAlignment = .center)
 }
 
 /// 行の末尾に置けるもの。
@@ -174,6 +175,7 @@ struct ImasRow<Detail: View>: View {
         switch leading {
         case .number, .rank: return .firstTextBaseline
         case .numberedArtwork: return .top
+        case let .custom(_, _, alignment): return alignment
         default: return .center
         }
     }
@@ -253,7 +255,7 @@ struct ImasRow<Detail: View>: View {
             ImasRankNumber(rank: rank)
         case let .selection(isOn, single):
             ImasSelectionMark(isSelected: isOn, isSingle: single)
-        case let .custom(view, width):
+        case let .custom(view, width, _):
             view.frame(width: width)
         }
     }
@@ -266,7 +268,7 @@ struct ImasRow<Detail: View>: View {
         // `.custom` は呼び出し側がジャケ等を直書きした先頭 (例: 試聴対応の ImasSongRow)。
         // 渡された `width` がその面の一辺 (正方形) なので、帯もそれに揃える。
         // 揃えないと試聴対応の行だけ帯が既定の 36pt のまま浮いてばらつく。
-        case let .custom(_, width): return width
+        case let .custom(_, width, _): return width
         default: return 36
         }
     }
@@ -283,7 +285,7 @@ struct ImasRow<Detail: View>: View {
         case .numberedArtwork: return 24 + 10 + 44
         case .rank: return ImasRankNumber.width
         case .selection: return 24
-        case let .custom(_, width): return width
+        case let .custom(_, width, _): return width
         }
     }
 

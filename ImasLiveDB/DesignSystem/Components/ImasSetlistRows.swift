@@ -62,6 +62,10 @@ struct ImasSetlistRow: View {
     var highlightsPick: Bool = false
     /// 行の末尾 (Good ボタンなど)。
     var trailing: ImasRowTrailing = .none
+    /// 歌唱者のアイコンの束の直径。文字サイズ設定に合わせて画面側が倍率をかけて渡す (既定 26)。
+    var avatarSize: CGFloat = 26
+    /// ジャケの一辺。文字サイズ設定に合わせて画面側が倍率をかけて渡す (既定 44)。
+    var artworkSize: CGFloat = 44
     /// この披露についての事実を、軸 (披露・回収) ごとにまとめたもの。詳細表示のときだけ渡る。
     /// 軸の分け方・ラベル・順・強さ (`tone`) は imas-core (`SetlistRowMetaRecord`) が決める。
     var noteGroups: [SetlistRowNoteGroupRecord] = []
@@ -75,6 +79,8 @@ struct ImasSetlistRow: View {
             title: title,
             leading: leadingView,
             trailing: trailing,
+            // セトリの曲名は折り返し優先で省略しない (全体曲の長い曲名も最後まで出す)。
+            titleLineLimit: 99,
             onSelectTitle: onSelectTitle
         ) {
             if let performersOverride {
@@ -82,9 +88,22 @@ struct ImasSetlistRow: View {
             } else if !performers.isEmpty || performerSummary != nil {
                 performerLine
             }
+            // 横一列 (HStack) ではなく回り込み (FlowLayout) にしてある。幅が足りないとき、
+            // HStack は札の中の文字を折り返すので「1 年 1 か月 / ぶり」と割れて読めなくなる。
+            // 回り込みなら札ごと次の行に落ちる (札は ideal size で置かれるので中では折れない)。
             if !badges.isEmpty || !facts.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(badges) { b in ImasBadge(text: b.text, kind: b.kind, seed: b.seed) }
+                FlowLayout(spacing: 6) {
+                    ForEach(badges) { b in
+                        // 「全員」だけは押せる (歌唱者の一覧シートを開く)。他の札はただの表示。
+                        if b.kind == .all, let onSelectPerformers {
+                            Button(action: onSelectPerformers) {
+                                ImasBadge(text: b.text, kind: b.kind, seed: b.seed)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            ImasBadge(text: b.text, kind: b.kind, seed: b.seed)
+                        }
+                    }
                     ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
                         Text(fact)
                             .font(fact == Self.firstPerformance ? .imasCaption.weight(.heavy) : .imasCaption)
@@ -123,7 +142,8 @@ struct ImasSetlistRow: View {
                 .padding(.top, 2)
             customArtwork
         }
-        return .custom(AnyView(combined), width: 24 + 10 + 44)
+        // 前と同じく上揃え (曲順・ジャケ・Good を縦の真ん中に寄せない)。
+        return .custom(AnyView(combined), width: 24 + 10 + artworkSize, alignment: .top)
     }
 
     /// 事実のうち、墨で強める言葉。
@@ -133,7 +153,7 @@ struct ImasSetlistRow: View {
     /// アイコンが分からない人だけのときは名前のチップ、人数だけ多いときはペンライト + 人数。
     @ViewBuilder private var performerLine: some View {
         if performers.contains(where: { $0.iconLabel != nil || $0.imageURL != nil }) {
-            ImasAvatarStack(people: performers, maxVisible: 5, size: 26, onTap: onSelectPerformers)
+            ImasAvatarStack(people: performers, maxVisible: 5, size: avatarSize, onTap: onSelectPerformers)
         } else if performers.count > performerLimit || (performers.isEmpty && performerSummary != nil) {
             HStack(spacing: 6) {
                 if !performers.isEmpty {

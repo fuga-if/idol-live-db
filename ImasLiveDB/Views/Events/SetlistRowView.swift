@@ -117,10 +117,10 @@ struct SetlistRowView: View {
         return result
     }
 
-    /// 歌唱者の行。ユニット名義だけの行は顔ぶれを出さない (チップが名義を言い切っている)。
-    /// 全員・個別歌唱は顔ぶれ (アイコンの束) を出す。
+    /// 歌唱者の行。ユニット名義・全員の行は顔ぶれを出さない (札がそれを言い切っており、
+    /// 「全員」はアイコンの束でなく札自体が押せる歌唱者の一覧の入口)。個別歌唱だけ顔ぶれ (アイコンの束) を出す。
     private var performersForRow: [ImasPerformer] {
-        unitNames.isEmpty ? rowPerformers : []
+        (unitNames.isEmpty && !isFullCast) ? rowPerformers : []
     }
 
     private var artworkURL: URL? {
@@ -203,11 +203,16 @@ struct SetlistRowView: View {
             seed: seed,
             performers: performersForRow,
             badges: badges,
+            // アイドルの読み込みに失敗して全員アイコン不明になっても、人数で名前を畳まず
+            // 全員出す (以前の FlowLayout フォールバックと同じ)。
+            performerLimit: .max,
             customArtwork: customArtwork,
             onSelectTitle: selectTitle,
             onSelectPerformers: { showPerformersSheet = true },
             highlightsPick: hasMyPick,
             trailing: .custom(AnyView(trailing)),
+            avatarSize: 26 * CGFloat(textScale),
+            artworkSize: 44 * CGFloat(textScale),
             noteGroups: noteGroups,
             note: item.notes
         )

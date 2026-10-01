@@ -184,22 +184,25 @@ struct ImasEventRow<Detail: View>: View {
     var emphasis: ImasRowEmphasis = .normal
     /// 合同ライブ (複数ブランド名義) は単色で表せないので、ペンライトを虹色にする。
     var rainbow: Bool = false
+    /// 別画面へ進む矢印。`NavigationLink` の中では不要 (既定 false)、`Button` の中では true。
+    var showsChevron: Bool = false
     @ViewBuilder var detail: Detail
 
     var body: some View {
         ImasStubRow(date: date.map(ImasStubDate.init) ?? ImasStubDate(top: "", big: "—", bottom: ""),
                     title: eventDisplayName(event.name), subtitle: subtitle,
                     brand: BrandColors.hex(for: event.brandId), isPunched: isPunched, badges: badges,
-                    emphasis: emphasis, rainbow: rainbow) { detail }
+                    emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { detail }
             .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
     }
 }
 
 extension ImasEventRow where Detail == EmptyView {
     init(event: Event, date: String? = nil, subtitle: String? = nil, isPunched: Bool = false,
-         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false) {
+         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
+         showsChevron: Bool = false) {
         self.init(event: event, date: date, subtitle: subtitle, isPunched: isPunched, badges: badges,
-                  emphasis: emphasis, rainbow: rainbow) { EmptyView() }
+                  emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { EmptyView() }
     }
 }
 
@@ -219,19 +222,23 @@ struct ImasShowRow<Detail: View>: View {
     var emphasis: ImasRowEmphasis = .normal
     /// 合同ライブの公演など、単色で表せないとき、ペンライトを虹色にする。
     var rainbow: Bool = false
+    /// 別画面へ進む矢印。`NavigationLink` の中では不要 (既定 false)、`Button` の中では true。
+    var showsChevron: Bool = false
     @ViewBuilder var detail: Detail
 
     var body: some View {
         ImasStubRow(date: ImasStubDate(date), title: title, subtitle: subtitle, brand: brandHex,
-                    isPunched: isPunched, badges: badges, emphasis: emphasis, rainbow: rainbow) { detail }
+                    isPunched: isPunched, badges: badges, emphasis: emphasis, rainbow: rainbow,
+                    showsChevron: showsChevron) { detail }
     }
 }
 
 extension ImasShowRow where Detail == EmptyView {
     init(date: String, title: String, subtitle: String? = nil, brandHex: String? = nil, isPunched: Bool = false,
-         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false) {
+         badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal, rainbow: Bool = false,
+         showsChevron: Bool = false) {
         self.init(date: date, title: title, subtitle: subtitle, brandHex: brandHex, isPunched: isPunched,
-                  badges: badges, emphasis: emphasis, rainbow: rainbow) { EmptyView() }
+                  badges: badges, emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron) { EmptyView() }
     }
 }
 
