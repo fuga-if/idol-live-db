@@ -97,7 +97,7 @@ impl ForecastReason {
         match self {
             Self::SungPreviousDay => "前日に歌った",
             Self::SungEarlierInEvent => "この公演の前の日程で歌った",
-            Self::SoloSignature => "本人のソロ曲でいちばん歌われている",
+            Self::SoloSignature => "ソロの代表曲",
             Self::NewUnperformed => "未披露の新曲",
             Self::SungAtPreviousLive => "前回のライブでも歌った",
             Self::AllSongStaple => "全体曲の定番",
@@ -145,6 +145,12 @@ pub struct ForecastSongRecord {
     pub rank: u32,
     pub song_id: String,
     pub title: String,
+    /// ジャケの URL。
+    pub artwork_url: Option<String>,
+    /// 30 秒の試聴の URL。
+    pub preview_url: Option<String>,
+    /// 曲のブランド (ジャケが無いときの色の手がかり)。
+    pub brand_id: Option<String>,
     /// セトリに入る推定確率 (0〜1)。
     pub score: f64,
     /// 理由 ([`ForecastReason`] の並び順)。空のこともある。
@@ -161,12 +167,20 @@ pub struct ForecastOriginalsRecord {
     pub label: String,
     /// 原唱者 (アイドルの並び順)。
     pub members: Vec<ForecastOriginalMember>,
+    /// 名前を 1 人ずつ並べる曲か (原唱者が [`ORIGINAL_NAMES_LIMIT`] 人まで)。
+    /// false の曲 (全体曲) は名前の代わりに `summary` を出す。
+    pub names_listed: bool,
+    /// 名前を並べないときの短い要約 (「全員」「10/13」「10/13 · 欠席 A・B」)。見出し「オリメン」は付けない。
+    /// 名前を並べる曲と、出演者未発表の全体曲は空。
+    pub summary: String,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct ForecastOriginalMember {
     pub idol_id: String,
     pub name: String,
+    /// イメージカラーの hex。
+    pub color: Option<String>,
     /// この公演に出るか。出演者未発表なら None。
     pub attending: Option<bool>,
 }
@@ -175,6 +189,20 @@ pub struct ForecastOriginalMember {
 const ORIGINAL_NAMES_LIMIT: usize = 5;
 /// 全体曲で欠席の名前を並べる上限。
 const ABSENT_NAMES_LIMIT: usize = 3;
+
+/// [`ForecastOriginalsRecord::summary`] を作る。
+fn originals_summary(members: &[ForecastOriginalMember]) -> String {
+    let total = members.len();
+    if total <= ORIGINAL_NAMES_LIMIT || members.iter().any(|m| m.attending.is_none()) {
+        return String::new();
+    }
+    let absent: Vec<&str> = members.iter().filter(|m| m.attending == Some(false)).map(|m| m.name.as_str()).collect();
+    if absent.is_empty() {
+        return "全員".to_string();
+    }
+    let head = format!("{}/{total}", total - absent.len());
+    if absent.len() <= ABSENT_NAMES_LIMIT { format!("{head} · 欠席 {}", absent.join("・")) } else { head }
+}
 
 /// [`ForecastOriginalsRecord::label`] を作る。
 fn originals_label(members: &[ForecastOriginalMember]) -> String {
@@ -928,11 +956,17 @@ pub fn forecast_show(
                 ForecastOriginalMember {
                     idol_id: idol.id.clone(),
                     name: idol.name.clone(),
+                    color: idol.color.clone(),
                     attending: context.cast_known.then(|| contains_sorted(&cast, i)),
                 }
             })
             .collect();
-        Some(ForecastOriginalsRecord { label: originals_label(&members), members })
+        Some(ForecastOriginalsRecord {
+            label: originals_label(&members),
+            names_listed: members.len() <= ORIGINAL_NAMES_LIMIT,
+            summary: originals_summary(&members),
+            members,
+        })
     };
     let mut scored: Vec<(f64, &Row)> = rows.iter().map(|r| (prep.score(model, &r.features), r)).collect();
     scored.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.song.cmp(&b.1.song)));
@@ -946,6 +980,9 @@ pub fn forecast_show(
                 rank: i as u32 + 1,
                 song_id: song.id.clone(),
                 title: song.title.clone(),
+                artwork_url: song.artwork_url.clone(),
+                preview_url: song.preview_url.clone(),
+                brand_id: song.brand_id.clone(),
                 score: sigmoid(z),
                 reasons: prep
                     .reasons(row, &context, date)
@@ -1224,6 +1261,7 @@ mod tests {
         let m = |name: &str, attending: Option<bool>| ForecastOriginalMember {
             idol_id: name.to_string(),
             name: name.to_string(),
+            color: None,
             attending,
         };
         assert_eq!(originals_label(&[m("A", Some(true)), m("B", Some(true))]), "オリメン全員: A・B");
@@ -1241,6 +1279,12 @@ mod tests {
         assert_eq!(originals_label(&many(2)), "オリメン 6/8: 欠席 I0・I1");
         assert_eq!(originals_label(&many(4)), "オリメン 4/8");
         assert_eq!(originals_label(&(0..8).map(|i| m(&format!("I{i}"), None)).collect::<Vec<_>>()), "");
+        // 名前を並べない曲 (全体曲) の要約。名前を並べる曲は空。
+        assert_eq!(originals_summary(&[m("A", Some(true)), m("B", Some(false))]), "");
+        assert_eq!(originals_summary(&many(0)), "全員");
+        assert_eq!(originals_summary(&many(2)), "6/8 · 欠席 I0・I1");
+        assert_eq!(originals_summary(&many(4)), "4/8");
+        assert_eq!(originals_summary(&(0..8).map(|i| m(&format!("I{i}"), None)).collect::<Vec<_>>()), "");
     }
 
     #[test]

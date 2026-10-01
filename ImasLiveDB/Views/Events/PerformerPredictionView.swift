@@ -6,8 +6,6 @@ import SwiftUI
 /// SetlistPredictionView 内の各曲行から展開して表示する。
 /// 候補アイドル = その公演の show_cast に登録されたキャスト。
 struct PerformerPredictionView: View {
-    @Environment(\.colorScheme) private var scheme
-
     let showId: String
     let songId: String
     /// 投稿導線の文脈色 (公演のブランド色)。SetlistPredictionView と統一。
@@ -19,6 +17,8 @@ struct PerformerPredictionView: View {
 
     @State private var performers: [PerformerPrediction] = []
     @State private var castIdols: [Idol] = []
+    /// この曲のオリメン (idol_id)。出演者の並びを「オリメン」と「ほかの出演者」に分ける。
+    @State private var originalIds: Set<String> = []
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -28,7 +28,7 @@ struct PerformerPredictionView: View {
     private var totalVotes: Int { performers.reduce(0) { $0 + $1.voteCount } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp2) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             header
             content
         }
@@ -37,18 +37,14 @@ struct PerformerPredictionView: View {
 
     // MARK: - Header
 
-    // 展開元のトグル行が既に「歌唱メンバー予想」と表示しているため、ここでは
-    // タイトルを繰り返さず票数だけ出す (文言の二重表示を避ける)。票が無ければ非表示。
-    @ViewBuilder
+    // 展開元のボタンが既に「歌唱メンバー予想」と表示しているため、ここでは
+    // タイトルを繰り返さず、何をするかと票数だけ出す。
     private var header: some View {
-        if totalVotes > 0 {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: "person.2.fill")
-                    .font(.imasScaled(11, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                Text("\(totalVotes)票")
-                    .font(.imasCaption.monospacedDigit())
-                    .foregroundStyle(DS.ink3)
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
+            Text("誰が歌う？ 押して予想").imasText(.sectionLabel)
+            Spacer(minLength: DS.Space.gap)
+            if totalVotes > 0 {
+                Text("\(totalVotes)票").imasText(.meta, color: DS.ink3)
             }
         }
     }
@@ -58,38 +54,59 @@ struct PerformerPredictionView: View {
     @ViewBuilder
     private var content: some View {
         if isLoading && performers.isEmpty && castIdols.isEmpty {
-            ProgressView()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, DS.sp1)
+            ImasInlineLoading()
         } else if castIdols.isEmpty {
-            Text("出演キャスト情報がありません")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink3)
+            ImasNote("出演キャスト情報がありません")
         } else {
-            performerChips
+            let originals = castIdols.filter { originalIds.contains($0.id) }
+            // ほかの出演者は票の多い順 (同票は出演者の並びのまま)。
+            let others = castIdols.enumerated()
+                .filter { !originalIds.contains($0.element.id) }
+                .sorted { (voteCount($0.element), -$0.offset) > (voteCount($1.element), -$1.offset) }
+                .map(\.element)
+            if !originals.isEmpty {
+                group("オリメン", originals)
+            }
+            group(originals.isEmpty ? nil : "ほかの出演者", others)
         }
 
         if let errorMessage {
-            Label(errorMessage, systemImage: "exclamationmark.triangle")
-                .font(.imasCaption)
-                .foregroundStyle(DS.danger)
+            ImasNotice(kind: .error, message: errorMessage)
         }
     }
 
     // MARK: - Performer Chips
 
-    /// 出演キャストのチップ一覧。投票済みはメンバーカラーで塗り、未投票はアウトライン。
-    private var performerChips: some View {
-        FlowLayout(spacing: DS.sp2) {
-            ForEach(castIdols) { idol in
-                let prediction = performers.first { $0.idolId == idol.id }
-                PerformerChip(
-                    idol: idol,
-                    voteCount: prediction?.voteCount ?? 0,
-                    hasUserVoted: prediction?.hasUserVoted ?? false,
-                    seed: seed,
-                    onTap: { await handleVote(idol: idol, currentPrediction: prediction) }
-                )
+    private func voteCount(_ idol: Idol) -> Int {
+        performers.first { $0.idolId == idol.id }?.voteCount ?? 0
+    }
+
+    /// 出演者のチップの並び。選んだ人だけ墨の塗り、先頭のペンライトは担当色。票はチップの中の数字。
+    @ViewBuilder
+    private func group(_ title: String?, _ idols: [Idol]) -> some View {
+        if !idols.isEmpty {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                if let title {
+                    Text(title).imasText(.meta, color: DS.ink2)
+                }
+                FlowLayout(spacing: DS.Space.gap) {
+                    ForEach(idols) { idol in
+                        let prediction = performers.first { $0.idolId == idol.id }
+                        let votes = prediction?.voteCount ?? 0
+                        let voted = prediction?.hasUserVoted ?? false
+                        ImasFilterChip(
+                            text: votes > 0 ? "\(idol.shortName) \(votes)" : idol.shortName,
+                            isSelected: voted,
+                            seed: idol.color,
+                            leading: .dot
+                        ) {
+                            Task { await handleVote(idol: idol, currentPrediction: prediction) }
+                        }
+                        .accessibilityLabel(voted
+                            ? "\(idol.name) の予想を取り消す (現在\(votes)票)"
+                            : "\(idol.name) を予想 (現在\(votes)票)")
+                    }
+                }
             }
         }
     }
@@ -101,6 +118,7 @@ struct PerformerPredictionView: View {
         errorMessage = nil
         // 出演キャストはポート経由でオフメイン取得。予想データ取得と順次呼ぶ。
         castIdols = (try? await AppContainer.shared.showReading.showCastIdols(showId: showId)) ?? []
+        originalIds = (try? await AppContainer.shared.showReading.originalArtistIds(songIds: [songId]))?[songId] ?? []
         performers = (try? await predictionService.fetchPerformers(showId: showId, songId: songId)) ?? []
         isLoading = false
     }
@@ -124,55 +142,5 @@ struct PerformerPredictionView: View {
             errorMessage = error.localizedDescription
             AppAnalytics.event("prediction_vote_failed")
         }
-    }
-}
-
-// MARK: - PerformerChip
-
-/// アイドル1人ぶんの投票チップ。
-/// 投票済み → メンバーカラー塗りつぶし、未投票 → メンバーカラーアウトライン。
-private struct PerformerChip: View {
-    @Environment(\.colorScheme) private var scheme
-    let idol: Idol
-    let voteCount: Int
-    let hasUserVoted: Bool
-    var seed: String? = nil
-    let onTap: () async -> Void
-
-    private var memberColor: Color {
-        Color(hexString: idol.color, default: Color(hexString: seed))
-    }
-
-    var body: some View {
-        Button {
-            Task { await onTap() }
-        } label: {
-            HStack(spacing: 5) {
-                ColorDotView(hex: idol.color, size: 7, isDecorative: true)
-                Text(idol.shortName)
-                    .font(.imasScaled(13, weight: .semibold))
-                    .lineLimit(1)
-                if voteCount > 0 {
-                    Text("\(voteCount)")
-                        .font(.imasCaption.monospacedDigit().weight(.semibold))
-                        .opacity(0.8)
-                }
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 6)
-            .foregroundStyle(hasUserVoted ? .white : memberColor)
-            .background(
-                hasUserVoted ? memberColor : memberColor.opacity(0.12),
-                in: Capsule()
-            )
-            .overlay(
-                hasUserVoted ? nil : Capsule().strokeBorder(memberColor.opacity(0.45), lineWidth: 1)
-            )
-            .contentShape(Capsule())
-            .accessibilityLabel(hasUserVoted
-                ? "\(idol.name) の予想を取り消す (現在\(voteCount)票)"
-                : "\(idol.name) を予想 (現在\(voteCount)票)")
-        }
-        .buttonStyle(.borderless)
     }
 }

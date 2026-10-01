@@ -260,7 +260,7 @@ struct ImasForecastRow: View {
     var artworkURL: URL? = nil
     /// ジャケが無いときの面の色 (曲のブランド色 hex)。
     var brand: String? = nil
-    /// 曲でなくアイドルの予想 (お題の投票) のとき。写真があれば写真、無ければ色の帯。
+    /// 曲でなくアイドルの予想 (お題の投票) のとき。写真があれば写真、無ければ判子。
     var avatar: (label: String, imageURL: URL?, seed: String?)? = nil
     /// 曲でなくユニットの予想のとき。登録画像とブランド色を自分で解決する (`avatar` より優先)。
     var unit: Unit? = nil
@@ -281,9 +281,17 @@ struct ImasForecastRow: View {
     var reason: String? = nil
     /// 根拠の人 (オリメン)。欠席は薄字と取り消し線。
     var performers: [ImasPerformer] = []
+    /// 2 行目の根拠 (オリメンの行の下に「理由」を出すとき)。
+    var secondReason: (label: String, text: String)? = nil
+    /// 試聴。渡すとジャケを押して 30 秒の試聴を再生・停止できる。
+    var preview: (url: URL, songId: String)? = nil
     /// 自分が予想したか。
     var isMine: Bool = false
-    /// 「予想する」の押し場所。nil なら出さない (機械予測)。
+    /// 「予想する」を押せないとき (残りの票が無い)。予想済みの取り消しは常に押せる。
+    var isVoteDisabled: Bool = false
+    /// 「予想する」を送っている最中。
+    var isVoting: Bool = false
+    /// 「予想する」の押し場所。nil なら出さない。
     var onVote: (() -> Void)? = nil
     /// 投票ボタンの文言 (お題の投票は「投票する」、予想は既定の「予想する」)。
     var voteLabel: String = "予想する"
@@ -293,28 +301,43 @@ struct ImasForecastRow: View {
     var voteAccessibilityLabel: String? = nil
     var votedAccessibilityLabel: String? = nil
     /// 投票ボタンだけを無効にする (残票切れ・他の行の処理中)。行のタップで詳細を開く操作はいつでも有効。
+    /// (`isVoteDisabled` と違い、予想済みの取り消しも止める。お題の投票が使う)
     var voteDisabled: Bool = false
-    /// 投票/取消の通信中。ボタンの記号を砂時計に替える。
+    /// 投票/取消の通信中 (`isVoting` と同じ。お題の投票が使う呼び名)。
     var isVoteLoading: Bool = false
     /// 別画面へ進む矢印。行のタップで遷移するときに出す。
     var showsChevron: Bool = false
     /// 長押しでコピーできる項目 (曲名・よみなど)。空なら長押しメニュー自体を付けない。
     var copyItems: [CopyItem] = []
-    /// 行の読み上げを 1 つに合成するか。既定 (true) は今まで通り、投票ボタンも含めて
-    /// 行全体を 1 要素にまとめる (セトリ予想のスレッドの既定の振る舞い)。`false` にすると
-    /// 投票ボタンが独立した要素になり (「投票」「投票を取消」と読める)、呼び出し側は
-    /// 行に `.accessibilityAction` で「詳細を開く」操作を別途足す (お題の投票はこちら)。
+    /// 行の読み上げを 1 つに合成してよいか。押せるもの (予想・投票のボタン、開く中身) を持つ行は
+    /// この値に関わらず合成しない (合成すると中のボタンを読み上げから押せず、行のダブルタップで投票が走る)。
+    /// `false` にすると押せるものが無くても要素を分ける (呼び出し側が行に「詳細を開く」操作を足すとき)。
     var combineAccessibility: Bool = true
+    /// 「予想する」の横に並べる補助の操作 (歌唱メンバー予想の開閉など)。
+    var accessory: AnyView? = nil
+    /// 行の下に開く中身 (歌唱メンバー予想)。
+    var expansion: AnyView? = nil
 
     var body: some View {
-        if combineAccessibility {
-            rowContent.accessibilityElement(children: .combine)
+        let content = VStack(alignment: .leading, spacing: 0) {
+            mainRow
+            if let expansion {
+                expansion
+                    .padding(.leading, DS.Space.rowH + ImasRankNumber.width + DS.Space.rowGap)
+                    .padding(.trailing, DS.Space.rowH)
+                    .padding(.bottom, DS.Space.rowV)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        // 押せるものを持つ行は要素を束ねない (束ねると中のボタンを読み上げから押せない)。
+        if combineAccessibility && onVote == nil && expansion == nil {
+            content.accessibilityElement(children: .combine)
         } else {
-            rowContent.accessibilityElement(children: .contain)
+            content.accessibilityElement(children: .contain)
         }
     }
 
-    private var rowContent: some View {
+    private var mainRow: some View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
                 .padding(.top, 10)
@@ -340,6 +363,11 @@ struct ImasForecastRow: View {
                 if reason != nil || !performers.isEmpty {
                     reasonLine
                 }
+                if let secondReason {
+                    basisLine(label: secondReason.label) {
+                        Text(secondReason.text).imasText(.rowSubtitle).lineLimit(2)
+                    }
+                }
                 if showsProportionLine {
                     ImasProportionLine(fraction: fraction)
                         .padding(.top, 2)
@@ -361,22 +389,33 @@ struct ImasForecastRow: View {
             // (アイコンを消さない。以前はここで帯だけに落としていた)。
             ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40,
                        imageURL: avatar.imageURL, reservesPickRing: false)
+        } else if let preview {
+            ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
+                .overlay { ImasPreviewOverlay(url: preview.url, songId: preview.songId, size: 44) }
         } else {
             ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL,
                         previewURL: previewURL, isPreviewing: isPreviewing, onPreview: onPreviewTap)
         }
     }
 
+    /// 予想・投票のボタンと、その横の補助の操作。
     @ViewBuilder private var voteArea: some View {
-        if let onVote {
-            Button(action: onVote) {
-                Label(isMine ? votedLabel : voteLabel,
-                      systemImage: isVoteLoading ? "hourglass" : (isMine ? "checkmark" : "hand.thumbsup"))
+        if onVote != nil || accessory != nil {
+            HStack(spacing: DS.Space.gap) {
+                if let onVote {
+                    ImasButton(title: isMine ? votedLabel : voteLabel,
+                               systemImage: isMine ? "checkmark" : "hand.thumbsup",
+                               role: isMine ? .primary : .secondary, size: .small,
+                               isLoading: isVoting || isVoteLoading, action: onVote)
+                        // 予想済みの取り消しは残りの票に関わらず押せる (`isVoteDisabled`)。
+                        // お題の投票は他の行の処理中なども含めてボタンごと止める (`voteDisabled`)。
+                        .disabled(voteDisabled || (isVoteDisabled && !isMine))
+                        .accessibilityLabel(isMine ? (votedAccessibilityLabel ?? votedLabel)
+                                                   : (voteAccessibilityLabel ?? voteLabel))
+                }
+                if let accessory { accessory }
             }
-            .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
             .padding(.top, 2)
-            .disabled(voteDisabled)
-            .accessibilityLabel(isMine ? (votedAccessibilityLabel ?? votedLabel) : (voteAccessibilityLabel ?? voteLabel))
         } else if isMine {
             // 投票できない状態 (締切後など) でも、自分が選んだことは押せない印で残す。
             Label(votedLabel, systemImage: "checkmark")
@@ -401,6 +440,17 @@ struct ImasForecastRow: View {
         }
     }
 
+    /// 見出し付きの根拠 1 行 (「理由」+ 文)。
+    private func basisLine<Content: View>(label: String, @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
+            Text(label)
+                .font(ImasTextRole.badge.font)
+                .foregroundStyle(DS.ink3)
+                .fixedSize()
+            content()
+        }
+    }
+
     private var reasonLine: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
             if let reasonLabel {
@@ -422,5 +472,37 @@ struct ImasForecastRow: View {
                 Text(reason).imasText(.rowSubtitle).lineLimit(2)
             }
         }
+    }
+}
+
+// MARK: - 試聴
+
+/// ジャケに重ねる試聴の印。押すと 30 秒の試聴を再生・停止する。再生中は暗くして停止の記号。
+struct ImasPreviewOverlay: View {
+    let url: URL
+    let songId: String
+    var size: CGFloat = 44
+
+    private var isPlaying: Bool { MusicKitService.shared.isPlaying(songId: songId) }
+
+    var body: some View {
+        Button {
+            MusicKitService.shared.togglePreview(url: url, songId: songId)
+        } label: {
+            ZStack {
+                if isPlaying {
+                    RoundedRectangle(cornerRadius: DS.rArtwork(size), style: .continuous)
+                        .fill(Color.black.opacity(0.4))
+                }
+                Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                    .font(.imasScaled(size * 0.25))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 2)
+            }
+            .frame(width: size, height: size)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isPlaying ? "試聴を止める" : "試聴する")
     }
 }
