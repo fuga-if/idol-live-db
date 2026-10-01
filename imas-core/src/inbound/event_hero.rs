@@ -29,6 +29,13 @@ pub fn date_label(date: String, today: String) -> String {
     date_display::label_ja(&date, &today)
 }
 
+/// 読み上げ用の日付 (`2026年9月19日 土曜日`)。半券の日付欄 (`ticket_stub_date`) は上下左右に
+/// 分かれていて耳では順番が崩れて聞こえるため、支援技術にはこちらを渡す。年は常に含む。
+#[uniffi::export]
+pub fn spoken_date(date: String) -> String {
+    date_display::spoken(&date)
+}
+
 /// 半券の日付欄 (`NOV` / `07` / `SAT`)。ライブ一覧・公演・記録の行の左端。
 #[uniffi::export]
 pub fn ticket_stub_date(date: String) -> date_display::TicketStubDate {
