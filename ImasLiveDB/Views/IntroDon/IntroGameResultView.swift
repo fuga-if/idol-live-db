@@ -125,22 +125,12 @@ struct IntroGameResultView: View {
     }
 
     private var timeTile: some View {
-        HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("タイム").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
-                Text(timeString(session.elapsedTime)).font(QS.num(40)).foregroundStyle(QS.ink)
-            }
-            Spacer()
+        ImasStageStatTile(label: "タイム") {
+            Text(timeString(session.elapsedTime)).font(QS.num(40))
+        } trailing: {
             if session.newBestTimeAchieved {
-                Text("ベストタイム更新")
-                    .font(QS.text(13, weight: .black))
-                    .foregroundStyle(QS.stamp)
-                    .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(QS.paper, in: RoundedRectangle(cornerRadius: 8))
-                    .rotationEffect(.degrees(-4))
+                ImasStageBadgeStamp(title: "ベストタイム更新")
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

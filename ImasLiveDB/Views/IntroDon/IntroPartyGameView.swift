@@ -2,17 +2,18 @@ import SwiftUI
 
 /// パーティ対戦 (1台2人・分割画面)。上半分=2P(180°回転)、下半分=1P。
 /// 早押し → 押した人が回答 (4択) → 正解で加点して次のラウンド。
+///
+/// 見た目は他のクイズと同じ「ステージ」(QuizStage.swift): 暗い会場・生成りの判定・墨の操作。
 struct IntroPartyGameView: View {
     @Bindable var session: IntroPartySession
     @Environment(AppDatabase.self) private var database
     @Environment(\.dismiss) private var dismiss
     @State private var showExitAlert = false
     @State private var autoNextTask: Task<Void, Never>? = nil
-    @State private var didHoldPlay = false
 
     var body: some View {
         ZStack {
-            ID.bgDark.ignoresSafeArea()
+            QS.bg.ignoresSafeArea()
 
             switch session.phase {
             case .loading:
@@ -23,21 +24,14 @@ struct IntroPartyGameView: View {
                 splitLayout
             }
         }
+        .environment(\.colorScheme, .dark)
         .toolbar(.hidden, for: .tabBar)
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
-                Button {
+                QuizStageRoundButton(systemImage: "xmark", label: "対戦を終了") {
                     showExitAlert = true
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.imasScaled( 16, weight: .semibold))
-                        .foregroundColor(ID.t2)
-                        .frame(width: 36, height: 36)
-                        .background(ID.surfaceDarkCard)
-                        .clipShape(Circle())
                 }
-                .idPress()
             }
         }
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -89,10 +83,10 @@ struct IntroPartyGameView: View {
                 answerChoices(for: index).rotationEffect(.degrees(rotation))
 
             case .buzzed:
-                Color(white: 0.06)
+                QS.bg
                 Text("相手が回答中…")
-                    .font(ID.font(15, weight: .bold))
-                    .foregroundColor(ID.t3)
+                    .font(QS.text(15, weight: .bold))
+                    .foregroundStyle(QS.faint)
                     .rotationEffect(.degrees(rotation))
 
             case .revealed:
@@ -100,7 +94,7 @@ struct IntroPartyGameView: View {
                 revealHalfContent(for: index).rotationEffect(.degrees(rotation))
 
             default:
-                (buzzable ? color : Color(white: 0.08))
+                (buzzable ? color : QS.raised)
                 buzzContent(player: player, eliminated: eliminated).rotationEffect(.degrees(rotation))
             }
         }
@@ -115,54 +109,30 @@ struct IntroPartyGameView: View {
                     }
                 }
         )
-        .overlay(Rectangle().stroke(Color.black.opacity(0.5), lineWidth: 1))
+        .overlay(Rectangle().stroke(QS.bg.opacity(0.6), lineWidth: 1))
     }
 
     private func buzzContent(player: IntroPartySession.Player, eliminated: Bool) -> some View {
         VStack(spacing: DS.sp3) {
             if eliminated {
                 Image(systemName: "xmark.circle.fill")
-                    .font(.imasScaled( 30, weight: .bold))
-                    .foregroundColor(ID.menuCardDarkText.opacity(0.35))
-                Text("OUT")
-                    .font(ID.font(16, weight: .black))
-                    .foregroundColor(ID.menuCardDarkText.opacity(0.4))
+                    .font(.imasScaled(30, weight: .bold))
+                    .foregroundStyle(QS.ink.opacity(0.35))
+                Text("OUT").font(QS.text(16, weight: .black)).foregroundStyle(QS.ink.opacity(0.4))
             } else {
-                Text(player.name)
-                    .font(.imasScaled( 40, weight: .black))
-                    .foregroundColor(ID.menuCardDarkText)
-                Text("タップで早押し！")
-                    .font(ID.font(14, weight: .bold))
-                    .foregroundColor(ID.menuCardDarkText.opacity(0.85))
+                Text(player.name).font(.imasScaled(40, weight: .black)).foregroundStyle(QS.ink)
+                Text("タップで早押し！").font(QS.text(14, weight: .bold)).foregroundStyle(QS.ink.opacity(0.85))
             }
         }
     }
 
     private func answerChoices(for index: Int) -> some View {
-        VStack(spacing: 10) {
-            Text("\(session.players[index].name) 回答中")
-                .font(ID.font(12, weight: .bold))
-                .foregroundColor(ID.t2)
+        VStack(spacing: DS.sp3) {
+            Text("\(session.players[index].name) 回答中").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
             if let q = session.currentQuestion {
-                let cols = [GridItem(.flexible(), spacing: DS.sp3), GridItem(.flexible(), spacing: DS.sp3)]
-                LazyVGrid(columns: cols, spacing: DS.sp3) {
-                    ForEach(q.choices, id: \.self) { title in
-                        Button {
-                            AppAnalytics.tap("intro_party.answer")
-                            session.submitAnswer(player: index, title: title)
-                        } label: {
-                            Text(title)
-                                .font(ID.font(13, weight: .bold))
-                                .foregroundColor(ID.t0)
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, minHeight: 52)
-                                .padding(.horizontal, 6)
-                                .background(ID.surfaceDarkCard)
-                                .clipShape(IDCorner(radius: 12))
-                        }
-                        .idPress()
-                    }
+                QuizStageChoiceGrid(choices: q.choices.map { QuizStageChoice(id: $0, title: $0) }, columns: 2) { choice in
+                    AppAnalytics.tap("intro_party.answer")
+                    session.submitAnswer(player: index, title: choice.title)
                 }
             }
         }
@@ -171,32 +141,24 @@ struct IntroPartyGameView: View {
 
     private func revealedColor(for index: Int) -> Color {
         if session.lastCorrect, session.lastAnswerer == index {
-            return ID.correct.opacity(0.22)
+            return DS.success.opacity(0.22)
         }
-        return Color(white: 0.07)
+        return QS.raised
     }
 
     @ViewBuilder
     private func revealHalfContent(for index: Int) -> some View {
         if session.lastCorrect, session.lastAnswerer == index {
-            VStack(spacing: 6) {
+            VStack(spacing: DS.sp2) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.imasScaled( 28, weight: .bold))
-                    .foregroundColor(ID.correct)
-                Text("正解！ +1")
-                    .font(ID.font(16, weight: .black))
-                    .foregroundColor(ID.correct)
+                    .font(.imasScaled(28, weight: .bold)).foregroundStyle(DS.success)
+                Text("正解！ +1").font(QS.text(16, weight: .black)).foregroundStyle(DS.success)
             }
         } else if let q = session.currentQuestion {
             VStack(spacing: DS.sp2) {
-                Text("正解")
-                    .font(ID.font(11, weight: .bold))
-                    .foregroundColor(ID.t3)
-                Text(q.title)
-                    .font(ID.font(15, weight: .bold))
-                    .foregroundColor(ID.t1)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                Text("正解").font(QS.text(11, weight: .bold)).foregroundStyle(QS.faint)
+                Text(q.title).font(QS.text(15, weight: .bold)).foregroundStyle(QS.ink)
+                    .multilineTextAlignment(.center).lineLimit(2)
             }
             .padding(.horizontal, DS.sp5)
         }
@@ -206,42 +168,30 @@ struct IntroPartyGameView: View {
 
     private var centerStrip: some View {
         ZStack {
-            ID.surfaceDarkCard
+            QS.panel
 
             VStack(spacing: DS.sp3) {
                 HStack(spacing: DS.sp5) {
-                    scoreChip(0)
-                    Text(session.roundText)
-                        .font(ID.font(12, weight: .bold))
-                        .monospacedDigit()
-                        .foregroundColor(ID.t3)
-                    scoreChip(1)
+                    ImasStageScoreChip(colorHex: session.players[0].colorHex, name: session.players[0].name,
+                                      score: session.scores[0])
+                    Text(session.roundText).font(QS.text(12, weight: .bold)).monospacedDigit().foregroundStyle(QS.faint)
+                    ImasStageScoreChip(colorHex: session.players[1].colorHex, name: session.players[1].name,
+                                      score: session.scores[1])
                 }
 
                 switch session.phase {
                 case .revealed:
-                    Button {
+                    let isLast = session.currentIndex + 1 >= session.totalRounds
+                    QuizStagePrimaryButton(title: isLast ? "結果を見る" : "次のラウンドへ", compact: true) {
                         autoNextTask?.cancel()
                         Task { await session.nextRound() }
-                    } label: {
-                        let isLast = session.currentIndex + 1 >= session.totalRounds
-                        Text(isLast ? "結果を見る" : "次のラウンドへ")
-                            .font(ID.font(14, weight: .bold))
-                            .foregroundColor(ID.menuCardDarkText)
-                            .padding(.horizontal, 22)
-                            .padding(.vertical, 10)
-                            .background(ID.menuCardDark)
-                            .clipShape(IDCorner(radius: 10))
                     }
-                    .idPress()
 
                 case .buzzed:
-                    Text("早押し成立！回答してください")
-                        .font(ID.font(12, weight: .semibold))
-                        .foregroundColor(ID.accentPurple)
+                    Text("早押し成立！回答してください").font(QS.text(12, weight: .semibold)).foregroundStyle(QS.ink)
 
                 default:
-                    HStack(spacing: 14) {
+                    HStack(spacing: DS.sp4) {
                         playButton
                         giveUpButton
                     }
@@ -249,143 +199,50 @@ struct IntroPartyGameView: View {
             }
             .padding(.horizontal, DS.sp4)
         }
-        .overlay(Rectangle().stroke(Color.black.opacity(0.5), lineWidth: 1))
-    }
-
-    private func scoreChip(_ index: Int) -> some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(Color(hexString: session.players[index].colorHex))
-                .frame(width: 10, height: 10)
-            Text(session.players[index].name)
-                .font(ID.font(12, weight: .bold))
-                .foregroundColor(ID.t2)
-            Text("\(session.scores[index])")
-                .font(ID.font(18, weight: .black))
-                .monospacedDigit()
-                .foregroundColor(ID.t0)
-        }
+        .overlay(Rectangle().stroke(QS.bg.opacity(0.6), lineWidth: 1))
     }
 
     private var playButton: some View {
-        HStack(spacing: DS.sp3) {
-            ZStack {
-                Circle()
-                    .fill(session.isPlayingIntro ? ID.accentPurple : ID.surfaceDarkSubtle)
-                    .frame(width: 40, height: 40)
-                Image(systemName: session.isPlayingIntro ? "waveform" : "play.fill")
-                    .font(.imasScaled( 15, weight: .bold))
-                    .foregroundColor(session.isPlayingIntro ? ID.t0 : ID.accentPurple)
-            }
-            .contentShape(Circle())
-            .scaleEffect(didHoldPlay ? 0.9 : 1.0)
-            .onLongPressGesture(minimumDuration: 0.2, maximumDistance: 100) {
-                didHoldPlay = true
-                session.continueIntroHeld()
-            } onPressingChanged: { pressing in
-                if pressing {
-                    didHoldPlay = false
-                } else if didHoldPlay {
-                    didHoldPlay = false
-                    session.pauseHeldIntro()
-                } else {
-                    Task { await session.replayIntro() }
-                }
-            }
-            Text("長押しでもう少し")
-                .font(ID.font(10, weight: .semibold))
-                .foregroundColor(ID.t3)
-        }
+        ImasStagePlaybackControl(
+            isPlaying: session.isPlayingIntro,
+            style: .circle,
+            onTap: { Task { await session.replayIntro() } },
+            onHoldBegin: { session.continueIntroHeld() },
+            onHoldEnd: { session.pauseHeldIntro() }
+        )
     }
 
     private var giveUpButton: some View {
-        Button {
+        ImasButton(title: "わからない", role: .secondary, size: .small) {
             AppAnalytics.tap("intro_party.giveup")
             session.giveUp()
-        } label: {
-            Text("わからない")
-                .font(ID.font(12, weight: .semibold))
-                .foregroundColor(ID.t3)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .background(ID.surfaceDarkSubtle)
-                .clipShape(IDCorner(radius: 10))
         }
-        .idPress()
     }
 
     // MARK: - Loading / Finished
 
     private var loadingOverlay: some View {
         VStack(spacing: DS.sp5) {
-            ProgressView().tint(ID.t2).scaleEffect(1.2)
-            Text("問題を生成中...")
-                .font(ID.font(14, weight: .semibold))
-                .foregroundColor(ID.t2)
+            ImasInlineLoading(tint: QS.dim)
+            Text("問題を生成中...").font(QS.text(14, weight: .semibold)).foregroundStyle(QS.dim)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var finishedOverlay: some View {
-        VStack(spacing: DS.sp6) {
-            if let w = session.winner {
-                Text("\(session.players[w].name) の勝ち！")
-                    .font(.imasScaled( 28, weight: .black))
-                    .foregroundColor(Color(hexString: session.players[w].colorHex))
-            } else {
-                Text("引き分け")
-                    .font(.imasScaled( 28, weight: .black))
-                    .foregroundColor(ID.t0)
+        ImasStageVersusResult(
+            winnerColorHex: session.winner.map { session.players[$0].colorHex },
+            headline: session.winner.map { "\(session.players[$0].name) の勝ち！" } ?? "引き分け",
+            players: (.init(name: session.players[0].name, colorHex: session.players[0].colorHex, score: session.scores[0]),
+                     .init(name: session.players[1].name, colorHex: session.players[1].colorHex, score: session.scores[1]))
+        ) {
+            ImasButton(title: "もう一度", role: .primary, size: .large) {
+                Task { try? await session.generateQuestions(database: database) }
             }
-
-            HStack(spacing: DS.sp7) {
-                finalScore(0)
-                Text("vs").font(ID.font(14, weight: .bold)).foregroundColor(ID.t3)
-                finalScore(1)
+            ImasButton(title: "退出", role: .secondary, size: .large) {
+                session.reset()
+                dismiss()
             }
-
-            VStack(spacing: 10) {
-                Button {
-                    Task { try? await session.generateQuestions(database: database) }
-                } label: {
-                    Text("もう一度")
-                        .font(ID.font(16, weight: .bold))
-                        .foregroundColor(ID.menuCardDarkText)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(ID.menuCardDark)
-                        .clipShape(IDCorner(radius: 14))
-                }
-                .idPress()
-
-                Button {
-                    session.reset()
-                    dismiss()
-                } label: {
-                    Text("退出")
-                        .font(ID.font(15, weight: .semibold))
-                        .foregroundColor(ID.t2)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(ID.surfaceDarkCard)
-                        .clipShape(IDCorner(radius: 14))
-                }
-                .idPress()
-            }
-            .padding(.horizontal, 40)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func finalScore(_ index: Int) -> some View {
-        VStack(spacing: 6) {
-            Text(session.players[index].name)
-                .font(ID.font(14, weight: .bold))
-                .foregroundColor(Color(hexString: session.players[index].colorHex))
-            Text("\(session.scores[index])")
-                .font(.imasScaled( 44, weight: .black))
-                .monospacedDigit()
-                .foregroundColor(ID.t0)
         }
     }
 

@@ -58,72 +58,49 @@ struct IntroGameSetupView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // ① モード (先に決める)
-                IDSectionLabel(text: "モード")
-                    .padding(.horizontal, DS.sp6)
-                Spacer().frame(height: 12)
-                modeSection
-                    .padding(.horizontal, DS.sp6)
+        ImasPage {
+            // ① モード (先に決める)
+            ImasSectionHeader(title: "モード", tight: true)
+            modeSection
 
-                // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
-                Spacer().frame(height: 24)
-                IDSectionLabel(text: "出題範囲", hint: effectivePool == nil ? "ブランドで絞る" : nil)
-                    .padding(.horizontal, DS.sp6)
-                Spacer().frame(height: 12)
-                if let pool = effectivePool {
-                    presetRangeCard(count: IntroGameSession.playable(pool).count)
-                        .padding(.horizontal, DS.sp6)
-                    Spacer().frame(height: 10)
-                    refineButton(title: "出題範囲を変更")
-                        .padding(.horizontal, DS.sp6)
-                } else {
-                    brandSection
-                        .padding(.horizontal, DS.sp6)
-                    Spacer().frame(height: 10)
-                    refineButton(title: "タグ・担当・検索で絞り込んで出題")
-                        .padding(.horizontal, DS.sp6)
-                }
-
-                // ③ モード別の設定 (必要な項目だけ出す)
-                modeSpecificSection
-
-                // ④ 詳細設定 (折りたたみ): 再生方式・難易度
-                Spacer().frame(height: 24)
-                advancedSection
-                    .padding(.horizontal, DS.sp6)
-
-                if authStatus != .authorized {
-                    Spacer().frame(height: 20)
-                    authWarningCard
-                        .padding(.horizontal, DS.sp6)
-                }
-
-                if let err = errorMessage {
-                    Spacer().frame(height: 16)
-                    errorCard(err)
-                        .padding(.horizontal, DS.sp6)
-                }
-
-                Spacer().frame(height: 32)
-
-                IDActionButton(
-                    title: isLoading ? "問題を生成中..." : "スタート",
-                    icon: isLoading ? nil : "play.fill",
-                    style: .primary,
-                    isLoading: isLoading
-                ) {
-                    AppAnalytics.tap("intro_game_setup.start")
-                    Task { await startGame() }
-                }
-                .padding(.horizontal, DS.sp6)
-
-                Spacer().frame(height: 32)
+            // ② 出題範囲: プリセット(曲一覧の絞り込み) があればそれを表示、無ければブランド選択。
+            ImasSectionHeader(title: "出題範囲", tight: true)
+            if let pool = effectivePool {
+                presetRangeCard(count: IntroGameSession.playable(pool).count)
+                refineButton(title: "出題範囲を変更")
+            } else {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+                refineButton(title: "タグ・担当・検索で絞り込んで出題")
             }
-            .padding(.top, DS.sp5)
+
+            // ③ モード別の設定 (必要な項目だけ出す)
+            modeSpecificSection
+
+            // ④ 詳細設定 (折りたたみ): 再生方式・難易度
+            advancedSection
+
+            if authStatus != .authorized {
+                ImasNotice(kind: .warning, message: "Apple Music が未認証です",
+                           actionTitle: "Apple Music を許可する") {
+                    AppAnalytics.tap("intro_game_setup.music_auth")
+                    Task {
+                        await MusicKitService.shared.requestAuthorization(includingMediaLibrary: true)
+                        authStatus = MusicKitService.shared.authorizationStatus
+                    }
+                }
+            }
+
+            if let err = errorMessage {
+                ImasNotice(kind: .error, message: err)
+            }
+
+            ImasButton(title: isLoading ? "問題を生成中..." : "スタート",
+                      systemImage: isLoading ? nil : "play.fill",
+                      role: .primary, size: .large, isLoading: isLoading) {
+                AppAnalytics.tap("intro_game_setup.start")
+                Task { await startGame() }
+            }
         }
-        .background(ID.menuBg.ignoresSafeArea())
         .navigationTitle("設定")
         .navigationBarTitleDisplayMode(.inline)
         // **遷移先はここ 1 つだけ。** 同じ View に navigationDestination(isPresented:) を
@@ -162,73 +139,36 @@ struct IntroGameSetupView: View {
         .trackScreen("intro_game_setup")
     }
 
-    // MARK: - Brand Section
-
-    /// ブランド選択 = 曲フィルターと同じ丸アイコングリッド (BrandIconCell)。複数選択可・空=全て。
-    private var brandSection: some View {
-        let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
-        return LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-            BrandIconCell(brandId: nil, label: "全て", iconText: "全", color: nil,
-                          isSelected: selectedBrandIds.isEmpty) {
-                withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
-            }
-            ForEach(brands) { brand in
-                BrandIconCell(brandId: brand.id, label: brand.shortName, iconText: brand.iconText,
-                              color: brand.color, isSelected: selectedBrandIds.contains(brand.id)) {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        if !selectedBrandIds.insert(brand.id).inserted {
-                            selectedBrandIds.remove(brand.id)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: - Count / Duration Sections
 
     private var countSection: some View {
-        HStack(spacing: DS.sp3) {
-            ForEach(questionCounts, id: \.self) { n in
-                IDSegmentButton(
-                    primary: "\(n)",
-                    secondary: "問",
-                    selected: questionCount == n
-                ) {
-                    withAnimation(.easeInOut(duration: 0.15)) { questionCount = n }
-                }
-            }
-        }
+        ImasChoiceCards(
+            choices: questionCounts.map { .init(value: $0, title: "\($0)", subtitle: "問") },
+            selection: Binding(get: { questionCount }, set: { questionCount = $0 }),
+            style: .numeral
+        )
     }
 
     private var durationSection: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: DS.sp3) {
-                ForEach(durations, id: \.value) { d in
-                    IDSegmentButton(
-                        primary: d.label,
-                        secondary: d.sub,
-                        selected: abs(introDuration - d.value) < 0.001
-                    ) {
-                        withAnimation(.easeInOut(duration: 0.15)) { introDuration = d.value }
-                    }
-                }
-            }
+        VStack(spacing: DS.Space.gapLoose) {
+            ImasChoiceCards(
+                choices: durations.map { .init(value: $0.value, title: $0.label, subtitle: $0.sub) },
+                selection: Binding(get: { introDuration }, set: { introDuration = $0 }),
+                style: .numeral
+            )
 
             // 細かく秒数を決めるスライダー (0.2〜10秒)。超イントロ(1秒未満)も自由に。
-            VStack(spacing: 6) {
+            VStack(spacing: DS.Space.gap) {
                 HStack {
                     Text(introDuration < 1.0 ? "超イントロ" : "再生時間")
-                        .font(ID.font(12, weight: .semibold))
-                        .foregroundColor(introDuration < 1.0 ? ID.accentGold : ID.menuTextSecondary)
+                        .imasText(.sectionLabel, color: introDuration < 1.0 ? DS.favorite : DS.ink2)
                     Spacer()
                     Text(String(format: "%.1f秒", introDuration))
-                        .font(ID.font(14, weight: .bold))
-                        .foregroundColor(ID.menuText)
+                        .imasText(.value)
                         .monospacedDigit()
                 }
                 Slider(value: $introDuration, in: 0.2...10.0, step: 0.1)
-                    .tint(ID.accentGold)
+                    .tint(DS.favorite)
             }
         }
     }
@@ -239,55 +179,26 @@ struct IntroGameSetupView: View {
             AppAnalytics.tap("intro_game_setup.refine")
             pushedRoute = .songFilter
         } label: {
-            HStack(spacing: DS.sp3) {
-                Image(systemName: "line.3.horizontal.decrease.circle")
-                    .font(.imasScaled( 14, weight: .semibold))
-                Text(title)
-                    .font(ID.font(13, weight: .semibold))
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.imasScaled( 12, weight: .semibold))
-            }
-            .foregroundColor(ID.accentPurple)
-            .padding(.horizontal, 14)
-            .padding(.vertical, DS.sp4)
-            .background(ID.accentPurple.opacity(0.08))
-            .clipShape(IDCorner(radius: 12))
+            ImasNavRow(title: title, systemImage: "line.3.horizontal.decrease.circle")
         }
-        .idPress()
+        .buttonStyle(.imasRow)
     }
 
     /// 出題範囲: 曲一覧の絞り込みプリセットの表示カード。
     private func presetRangeCard(count: Int) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                .font(.imasScaled( 18, weight: .bold))
-                .foregroundColor(ID.accentPurple)
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(effectiveLabel ?? "曲一覧の絞り込み")
-                    .font(ID.font(14, weight: .bold))
-                    .foregroundColor(ID.menuText)
-                    .lineLimit(1)
-                Text("\(count)曲から出題")
-                    .font(.imasCaption)
-                    .foregroundColor(ID.menuTextSecondary)
-            }
-            Spacer(minLength: 0)
+        ImasCard(padding: 0) {
+            ImasRow(title: effectiveLabel ?? "曲一覧の絞り込み", subtitle: "\(count)曲から出題",
+                    leading: .icon("line.3.horizontal.decrease.circle.fill", tone: .themed))
         }
-        .padding(14)
-        .background(ID.menuCardSubtle)
-        .clipShape(IDCorner(radius: 14))
     }
 
     // MARK: - Section layout helpers
 
-    /// 見出し付きセクション (上に余白 + ラベル + 中身)。
+    /// 見出し付きセクション (見出し + 中身)。
     @ViewBuilder
-    private func labeledSection<C: View>(_ title: String, hint: String? = nil, @ViewBuilder _ content: () -> C) -> some View {
-        Spacer().frame(height: 24)
-        IDSectionLabel(text: title, hint: hint).padding(.horizontal, DS.sp6)
-        Spacer().frame(height: 12)
-        content().padding(.horizontal, DS.sp6)
+    private func labeledSection<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
+        ImasSectionHeader(title: title, tight: true)
+        content()
     }
 
     /// ③ モード別に必要な設定だけ出す。
@@ -300,67 +211,48 @@ struct IntroGameSetupView: View {
         case .rush:
             labeledSection("制限時間") { rushTimeSection }
         case .allSongs:
-            Spacer().frame(height: 20)
-            allSongsNote.padding(.horizontal, DS.sp6)
+            allSongsNote
         case .party:
             labeledSection("ラウンド数") { countSection }
         }
     }
 
     private var allSongsNote: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "infinity")
-                .font(.imasScaled( 16, weight: .bold))
-                .foregroundColor(ID.accentGold)
-            Text("選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。")
-                .font(.imasCaption)
-                .foregroundColor(ID.menuTextSecondary)
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .background(ID.accentGold.opacity(0.08))
-        .clipShape(IDCorner(radius: 14))
+        ImasNotice(kind: .info, message: "選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。")
     }
 
     /// ④ 詳細設定 (折りたたみ): 再生方式・難易度。
     private var advancedSection: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) { showAdvanced.toggle() }
+                withAnimation(.imasStandard) { showAdvanced.toggle() }
             } label: {
                 HStack {
-                    Text("詳細設定")
-                        .font(ID.font(11, weight: .bold))
-                        .tracking(2)
-                        .foregroundColor(ID.menuTextMuted)
+                    Text("詳細設定").imasText(.sectionLabel)
                     Spacer()
                     Image(systemName: showAdvanced ? "chevron.up" : "chevron.down")
-                        .font(.imasScaled( 12, weight: .bold))
-                        .foregroundColor(ID.menuTextMuted)
+                        .font(.imasCaption.weight(.bold))
+                        .foregroundStyle(DS.ink3)
                 }
-                .padding(.vertical, 6)
             }
-            .idPress()
+            .buttonStyle(.plain)
 
             if showAdvanced {
-                VStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: DS.Space.section) {
                     advancedBlock("再生方式") { playbackSection }
                     if mode == .normal || mode == .party {
                         advancedBlock("難易度 (イントロ再生時間)") { durationSection }
                     }
                 }
-                .padding(.top, 14)
+                .padding(.top, DS.Space.gapLoose)
             }
         }
     }
 
     @ViewBuilder
     private func advancedBlock<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(ID.font(11, weight: .bold))
-                .tracking(1.5)
-                .foregroundColor(ID.menuTextMuted)
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasSectionHeader(title: title, tight: true)
             content()
         }
     }
@@ -368,158 +260,44 @@ struct IntroGameSetupView: View {
     // MARK: - Mode / Answer Mode
 
     private var modeSection: some View {
-        VStack(spacing: DS.sp3) {
-            modeRow(.normal, icon: "list.number", title: "ノーマル", sub: "決めた問題数で挑戦")
-            modeRow(.rush, icon: "timer", title: "ラッシュ", sub: "制限時間内に何問正解できるか")
-            modeRow(.allSongs, icon: "infinity", title: "全曲チャレンジ", sub: "全曲出し切るまで・タイムと正答率を競う")
-            modeRow(.party, icon: "person.2.fill", title: "パーティ対戦", sub: "1台2人・分割画面で早押し")
-        }
-    }
-
-    private func modeRow(_ m: IntroGameMode, icon: String, title: String, sub: String) -> some View {
-        let selected = mode == m
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { mode = m }
-        } label: {
-            HStack(spacing: DS.sp4) {
-                Image(systemName: icon)
-                    .font(.imasScaled( 16, weight: .semibold))
-                    .foregroundColor(selected ? ID.menuCardDarkText : ID.accentPurple)
-                    .frame(width: 36, height: 36)
-                    .background((selected ? Color.white.opacity(0.18) : ID.accentPurple.opacity(0.10)))
-                    .clipShape(IDCorner(radius: 10))
-                VStack(alignment: .leading, spacing: DS.sp1) {
-                    Text(title)
-                        .font(ID.font(15, weight: .bold))
-                        .foregroundColor(selected ? ID.menuCardDarkText : ID.menuText)
-                    Text(sub)
-                        .font(ID.font(11, weight: .semibold))
-                        .foregroundColor(selected ? ID.menuCardDarkText.opacity(0.8) : ID.menuTextSecondary)
-                }
-                Spacer()
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(ID.menuCardDarkText)
-                        .font(.imasScaled( 18))
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, DS.sp4)
-            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
-            .clipShape(IDCorner(radius: 14))
-        }
-        .idPress()
+        ImasChoiceCards(
+            choices: [
+                .init(value: IntroGameMode.normal, title: "ノーマル", systemImage: "list.number", subtitle: "決めた問題数で挑戦"),
+                .init(value: .rush, title: "ラッシュ", systemImage: "timer", subtitle: "制限時間内に何問正解できるか"),
+                .init(value: .allSongs, title: "全曲チャレンジ", systemImage: "infinity", subtitle: "全曲出し切るまで・タイムと正答率を競う"),
+                .init(value: .party, title: "パーティ対戦", systemImage: "person.2.fill", subtitle: "1台2人・分割画面で早押し"),
+            ],
+            selection: Binding(get: { mode }, set: { mode = $0 }),
+            style: .row
+        )
     }
 
     private var answerModeSection: some View {
-        HStack(spacing: DS.sp3) {
-            answerModeButton(.choices, icon: "square.grid.2x2.fill", title: "4択", sub: "タップで回答")
-            answerModeButton(.voice, icon: "mic.fill", title: "音声判定", sub: "声で曲名を回答")
-        }
-    }
-
-    private func answerModeButton(_ a: IntroAnswerMode, icon: String, title: String, sub: String) -> some View {
-        let selected = answerMode == a
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { answerMode = a }
-        } label: {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.imasScaled( 18, weight: .semibold))
-                Text(title)
-                    .font(ID.font(15, weight: .bold))
-                Text(sub)
-                    .font(ID.font(10, weight: .semibold))
-            }
-            .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.sp5)
-            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
-            .clipShape(IDCorner(radius: 16))
-        }
-        .idPress()
+        ImasChoiceCards(
+            choices: [
+                .init(value: IntroAnswerMode.choices, title: "4択", systemImage: "square.grid.2x2.fill", subtitle: "タップで回答"),
+                .init(value: .voice, title: "音声判定", systemImage: "mic.fill", subtitle: "声で曲名を回答"),
+            ],
+            selection: Binding(get: { answerMode }, set: { answerMode = $0 })
+        )
     }
 
     private var playbackSection: some View {
-        HStack(spacing: DS.sp3) {
-            playbackButton(.full, icon: "music.note", title: "フル再生", sub: "実イントロ(要サブスク)")
-            playbackButton(.preview, icon: "bolt.fill", title: "プレビュー", sub: "30秒・サクサク")
-        }
-    }
-
-    private func playbackButton(_ p: IntroPlaybackMode, icon: String, title: String, sub: String) -> some View {
-        let selected = playback == p
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { playbackRaw = p.rawValue }
-        } label: {
-            VStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.imasScaled( 18, weight: .semibold))
-                Text(title)
-                    .font(ID.font(15, weight: .bold))
-                Text(sub)
-                    .font(ID.font(10, weight: .semibold))
-            }
-            .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.sp5)
-            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
-            .clipShape(IDCorner(radius: 16))
-        }
-        .idPress()
+        ImasChoiceCards(
+            choices: [
+                .init(value: IntroPlaybackMode.full, title: "フル再生", systemImage: "music.note", subtitle: "実イントロ(要サブスク)"),
+                .init(value: .preview, title: "プレビュー", systemImage: "bolt.fill", subtitle: "30秒・サクサク"),
+            ],
+            selection: Binding(get: { playback }, set: { playbackRaw = $0.rawValue })
+        )
     }
 
     private var rushTimeSection: some View {
-        HStack(spacing: DS.sp3) {
-            ForEach(rushTimes, id: \.value) { t in
-                IDSegmentButton(
-                    primary: t.label.replacingOccurrences(of: "秒", with: ""),
-                    secondary: "秒",
-                    selected: abs(rushTimeLimit - t.value) < 0.001
-                ) {
-                    withAnimation(.easeInOut(duration: 0.15)) { rushTimeLimit = t.value }
-                }
-            }
-        }
-    }
-
-    // MARK: - Warnings / Error
-
-    private var authWarningCard: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: DS.sp3) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(ID.accentGold)
-                Text("Apple Music が未認証です")
-                    .font(ID.font(13, weight: .semibold))
-                    .foregroundColor(ID.menuText)
-                Spacer()
-            }
-            IDActionButton(title: "Apple Music を許可する", style: .secondary) {
-                AppAnalytics.tap("intro_game_setup.music_auth")
-                Task {
-                    await MusicKitService.shared.requestAuthorization(includingMediaLibrary: true)
-                    authStatus = MusicKitService.shared.authorizationStatus
-                }
-            }
-        }
-        .padding(14)
-        .background(ID.accentGold.opacity(0.08))
-        .clipShape(IDCorner(radius: 14))
-    }
-
-    private func errorCard(_ msg: String) -> some View {
-        HStack(spacing: DS.sp3) {
-            Image(systemName: "xmark.circle.fill")
-                .foregroundColor(ID.incorrect)
-            Text(msg)
-                .font(.imasFootnote)
-                .foregroundColor(ID.menuText)
-            Spacer()
-        }
-        .padding(14)
-        .background(ID.incorrect.opacity(0.08))
-        .clipShape(IDCorner(radius: 14))
+        ImasChoiceCards(
+            choices: rushTimes.map { .init(value: $0.value, title: $0.label.replacingOccurrences(of: "秒", with: ""), subtitle: "秒") },
+            selection: Binding(get: { rushTimeLimit }, set: { rushTimeLimit = $0 }),
+            style: .numeral
+        )
     }
 
     // MARK: - Start
@@ -568,31 +346,5 @@ struct IntroGameSetupView: View {
             errorMessage = "エラー: \(error.localizedDescription)"
         }
         isLoading = false
-    }
-}
-
-// MARK: - IDSegmentButton
-
-private struct IDSegmentButton: View {
-    let primary: String
-    let secondary: String
-    let selected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: DS.sp1) {
-                Text(primary)
-                    .font(ID.font(22, weight: .black))
-                Text(secondary)
-                    .font(ID.font(11, weight: .bold))
-            }
-            .foregroundColor(selected ? ID.menuCardDarkText : ID.menuTextSecondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.sp5)
-            .background(selected ? ID.menuCardDark : ID.menuCardSubtle)
-            .clipShape(IDCorner(radius: 16))
-        }
-        .idPress()
     }
 }
