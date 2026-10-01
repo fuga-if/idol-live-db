@@ -5,9 +5,10 @@ import SwiftUI
 // =============================================================================
 // 画像と印 (docs/DESIGN_SYSTEM.md §10.3)
 //
-// ImasAvatar       アイドルのアイコン (ユーザーが設定した写真)。担当は輪を二重にする。
-//                  写真の無いアイドルには置かない (行は `ImasRow` が帯に、チップはペンライトに替える)。
-//                  写真が読めない間・旧い画面の呼び出しだけ、判子 (紙の白 + 実体色の輪と名前) を出す。
+// ImasAvatar       アイドルのアイコン。設定した写真があれば写真、無ければ判子 (紙の白 + 実体色の輪と名前)。
+//                  担当は輪を二重にする。アイドルを出す所ではいつも出す (目印として読まれている)。
+// ImasIconBadge    アイコンの角に重ねる小さな丸い口 (写真を選ぶ「カメラ」)。
+// ImasAvatarStack  歌唱者・出演者のアイコンを重ねて並べる。入り切らない人数は「+N」の丸。
 // ImasArtwork      曲のジャケ。角のある四角。画像が無ければ灰の面 + 音符。
 // ImasIconTile     記号 1 つ。地を敷かない (記号を淡い色の四角に入れない)。
 // ImasSwatch       色の丸 (タグの色・ペンライトの色)。読み上げは色名。
@@ -19,10 +20,11 @@ import SwiftUI
 
 // MARK: - アバター
 
-/// アイドルのアイコン。ユーザーが設定した写真を丸く切って、実体色の輪で囲む。担当 (`isPick`) は輪を二重にする。
+/// アイドルのアイコン。設定した写真があれば写真、無ければ「判子」にする。
 ///
-/// 写真の無いアイドルには置かない (行は `ImasRow(.avatar)` が帯に、チップはペンライトに替える)。
-/// 写真が読めない間と、まだ部品に移していない画面の呼び出しでは「判子」(紙の白の丸に実体色の輪と名前) を出す。
+/// 判子は紙の白の丸に、実体色の輪と実体色の名前 (詰め組みの太字)。色は輪と文字だけに出す
+/// (淡い色の地は敷かない)。担当 (`isPick`) は輪を二重にする (二重丸の判子)。
+/// アイドルを出す所 (詳細の頭・名札・行・チップ・セトリの歌唱者) ではいつも出す。写真の有無で消さない。
 struct ImasAvatar: View {
     let label: String
     var seed: String?
@@ -94,6 +96,77 @@ struct ImasAvatar: View {
                 .minimumScaleFactor(0.5)
                 .padding(.horizontal, size * 0.1)
         }
+    }
+}
+
+// MARK: - アイコンの角の口
+
+/// アイコンの角に重ねる小さな丸い口 (写真を選ぶ「カメラ」など)。実体の色で塗り、紙の色で縁取る。
+/// 押す動作は画面が包む (`PhotosPicker { ImasIconBadge(...) }`)。
+struct ImasIconBadge: View {
+    let systemImage: String
+    /// 読み上げ (「写真を選ぶ」)。
+    var label: String? = nil
+    var seed: String? = nil
+    var brand: String? = nil
+    var size: CGFloat = 26
+
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
+        Image(systemName: systemImage)
+            .font(.imasScaled(11, weight: .semibold))
+            .foregroundStyle(t.isNeutral ? DS.onSys : t.onAccent)
+            .frame(width: size, height: size)
+            .background(t.isNeutral ? DS.sys : t.accent, in: Circle())
+            .overlay(Circle().strokeBorder(DS.surface, lineWidth: 2))
+            .accessibilityLabel(label ?? "")
+            .accessibilityHidden(label == nil)
+    }
+}
+
+// MARK: - アイコンの重ね
+
+/// 歌唱者・出演者のアイコンを少しずつ重ねて並べる (同じ集団の合図)。
+/// 入り切らない人数は列の最後に「+N」の丸。この丸は人ではなく注記なので、重ねずに少し離して置く。
+struct ImasAvatarStack: View {
+    let people: [ImasPerformer]
+    var maxVisible: Int = 5
+    var size: CGFloat = 26
+    /// 押したとき (歌唱者の一覧を開く)。nil なら押せない (親の行のタップに通す)。
+    var onTap: (() -> Void)? = nil
+
+    var body: some View {
+        if let onTap {
+            stack.contentShape(Rectangle()).onTapGesture(perform: onTap)
+                .accessibilityAddTraits(.isButton)
+        } else {
+            stack
+        }
+    }
+
+    private var stack: some View {
+        HStack(spacing: -(size * 0.4)) {
+            ForEach(Array(people.prefix(maxVisible).enumerated()), id: \.element.id) { idx, p in
+                ImasAvatar(label: p.iconLabel ?? p.name, seed: p.color, size: size, imageURL: p.imageURL,
+                           reservesPickRing: false)
+                    .overlay(Circle().strokeBorder(DS.surface, lineWidth: 2))
+                    .opacity(p.isAbsent ? 0.4 : 1)
+                    .zIndex(Double(maxVisible - idx))
+            }
+            if people.count > maxVisible {
+                Text("+\(people.count - maxVisible)")
+                    .font(.imasCaption2.weight(.semibold))
+                    .foregroundStyle(DS.ink2)
+                    .frame(width: size, height: size)
+                    .background(DS.fill, in: Circle())
+                    .padding(.leading, size * 0.4 + DS.Space.gapTight)
+                    .zIndex(Double(maxVisible + 1))
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(people.map(\.name).joined(separator: "、"))
     }
 }
 

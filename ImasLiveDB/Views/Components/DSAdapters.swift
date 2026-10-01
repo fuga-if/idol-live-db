@@ -29,11 +29,13 @@ extension ImasBrandPicker {
 // MARK: - アイドル
 
 extension ImasIdolCell {
-    /// アイドルから。写真を設定した子は写真、担当は帯と枠が点く。
-    @MainActor init(idol: Idol, isPick: Bool, isSelected: Bool? = nil) {
-        self.init(name: idol.name, kana: idol.nameKana, seed: idol.color,
-                  brand: BrandColors.hex(for: idol.brandId),
+    /// アイドルから。アイコンは写真を設定した子は写真、無ければ略称の判子。担当は輪が二重になる。
+    /// `metric` は並べ替えの値 (何順に並んでいるか)。
+    @MainActor init(idol: Idol, isPick: Bool, metric: String? = nil, showsKana: Bool = false,
+                    isSelected: Bool? = nil) {
+        self.init(name: idol.name, kana: showsKana ? idol.nameKana : nil, seed: idol.color,
+                  brand: BrandColors.hex(for: idol.brandId), iconLabel: idol.shortName,
                   imageURL: CustomImageService.shared.imageURL(for: idol.id),
-                  isPick: isPick, isSelected: isSelected)
+                  isPick: isPick, metric: metric, isSelected: isSelected)
     }
 }

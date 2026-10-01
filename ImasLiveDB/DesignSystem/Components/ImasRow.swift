@@ -18,7 +18,7 @@ enum ImasRowLeading {
     case none
     /// ライブ・公演のリードバー (実体の色の細い帯)。
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
-    /// アイドルのアイコン (40)。写真を設定したアイドルだけ。無ければリードバーにする。
+    /// アイドルのアイコン (40)。写真があれば写真、無ければ判子 (`ImasAvatar` の既定の見た目)。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
     /// 曲のジャケ (48、compact は 40)。回収した曲は角に判子。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isCollected: Bool = false)
@@ -92,6 +92,13 @@ extension EnvironmentValues {
     }
 }
 
+/// 行頭の色の帯 (ブランド・実体の色)。先頭 (ジャケなど) の前に立てる。楽曲一覧のブランドの色など。
+struct ImasRowLeadBar: Equatable {
+    var seed: String? = nil
+    var brand: String? = nil
+    var rainbow: Bool = false
+}
+
 /// 行の頭に置く選択の印 (`ImasSelectableRow` が使う)。
 struct ImasRowSelection: Equatable {
     var isOn: Bool
@@ -106,6 +113,8 @@ struct ImasRow<Detail: View>: View {
     var leading: ImasRowLeading = .none
     /// 先頭の前に置く選択の印。先頭 (ジャケ・アイコン) と並べて出せる。
     var selection: ImasRowSelection? = nil
+    /// 先頭の前に立てる色の帯。
+    var leadBar: ImasRowLeadBar? = nil
     var trailing: ImasRowTrailing = .none
     var density: ImasRowDensity = .regular
     var emphasis: ImasRowEmphasis = .normal
@@ -130,6 +139,10 @@ struct ImasRow<Detail: View>: View {
                     ImasSelectionMark(isSelected: selection.isOn, seed: selection.seed, brand: selection.brand,
                                       isSingle: selection.single)
                 }
+                if let leadBar {
+                    ImasLeadBar(seed: leadBar.seed, brand: leadBar.brand, rainbow: leadBar.rainbow)
+                        .frame(height: leadBarHeight)
+                }
                 leadingView
                 textColumn
                     .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
@@ -145,7 +158,9 @@ struct ImasRow<Detail: View>: View {
         .overlay(alignment: .top) {
             if position == .following {
                 let markWidth: CGFloat = selection == nil ? 0 : 24 + DS.Space.rowGap
-                ImasRowDivider(inset: DS.Space.rowH + markWidth + leadingWidth + (leadingWidth > 0 ? DS.Space.rowGap : 0))
+                let barWidth: CGFloat = leadBar == nil ? 0 : DS.Size.leadBar + DS.Space.rowGap
+                ImasRowDivider(inset: DS.Space.rowH + markWidth + barWidth + leadingWidth
+                               + (leadingWidth > 0 ? DS.Space.rowGap : 0))
             }
         }
         // 余白は行が持つので、List・Form の中では List の余白を消す (二重に入らないように)。
@@ -197,13 +212,8 @@ struct ImasRow<Detail: View>: View {
             ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
                 .frame(height: 36)
         case let .avatar(label, seed, brand, url, isPick):
-            // アイコンは写真を設定したアイドルだけ。無いときは色をリードバーで見せる。
-            if let url {
-                ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
-            } else {
-                ImasLeadBar(seed: seed, brand: brand)
-                    .frame(height: 36)
-            }
+            // 写真があれば写真、無ければ ImasAvatar 既定の判子 (アイコンは常に出す)。
+            ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
         case let .artwork(title, seed, brand, url, isCollected):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url,
                         isCollected: isCollected)
@@ -232,13 +242,21 @@ struct ImasRow<Detail: View>: View {
         }
     }
 
+    /// 色の帯の高さ。ジャケと並ぶときはジャケの高さに揃える。
+    private var leadBarHeight: CGFloat {
+        switch leading {
+        case .artwork: return density.artworkSize
+        case .numberedArtwork: return 44
+        default: return 36
+        }
+    }
+
     /// 先頭の幅 (区切り線を本文の頭に揃えるため)。
     private var leadingWidth: CGFloat {
         switch leading {
         case .none: return 0
         case .bar: return DS.Size.leadBar
-        case let .avatar(_, _, _, url, _):
-            return url == nil ? DS.Size.leadBar : density.avatarSize + ImasAvatar.ringPadding * 2
+        case .avatar: return density.avatarSize + ImasAvatar.ringPadding * 2
         case .artwork: return density.artworkSize
         case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30
@@ -460,6 +478,9 @@ struct ImasNavRow: View {
     var subtitle: String? = nil
     var systemImage: String? = nil
     var iconTone: ImasIconTile.Tone = .solid
+    /// 記号を実体の色で点けたいとき (混在ブランドの一覧など)。既定は `iconTone` 任せ。
+    var seed: String? = nil
+    var brand: String? = nil
     var value: String? = nil
     /// 押してから外へ飛ぶまでの待ち。矢印をくるくるに替える。
     var isLoading: Bool = false
@@ -468,7 +489,7 @@ struct ImasNavRow: View {
         ImasRow(
             title: title,
             subtitle: subtitle,
-            leading: systemImage.map { .icon($0, tone: iconTone) } ?? .none,
+            leading: systemImage.map { .icon($0, tone: iconTone, seed: seed, brand: brand) } ?? .none,
             trailing: .custom(AnyView(
                 HStack(spacing: DS.Space.gap) {
                     if let value {

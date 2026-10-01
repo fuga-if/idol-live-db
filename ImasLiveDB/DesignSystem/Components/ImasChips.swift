@@ -21,7 +21,7 @@ enum ImasChipLeading {
     case symbol(String)
     /// ペンライト (アイドル・ブランドの色)。
     case dot
-    /// アイドルのアイコン (22)。写真を設定したアイドルだけ。無ければペンライト。
+    /// アイドルのアイコン (22)。写真があれば写真、無ければ判子。
     case avatar(label: String, imageURL: URL? = nil)
     /// 読み込んだブランドのロゴ (端末の中のファイル、20 の丸)。
     case logo(URL)
@@ -265,14 +265,10 @@ private struct ImasChipLeadingView: View {
         case .dot:
             ImasPenlight(color: penlight, size: .small)
         case .avatar(let label, let url):
-            // アイコンは写真を設定したアイドルだけ。無いときはペンライト。
-            if let url {
-                ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
-                    .environment(\.imasTheme, theme)
-                    .padding(.leading, -4)
-            } else {
-                ImasPenlight(color: penlight, size: .small)
-            }
+            // 写真があれば写真、無ければ判子 (アイコンは消さない)。
+            ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
+                .environment(\.imasTheme, theme)
+                .padding(.leading, -4)
         case .logo(let url):
             if let image = UIImage(contentsOfFile: url.path) {
                 Image(uiImage: image)
