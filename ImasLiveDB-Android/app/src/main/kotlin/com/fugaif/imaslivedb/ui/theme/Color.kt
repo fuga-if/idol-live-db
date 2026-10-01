@@ -5,6 +5,9 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 // =============================================================================
 // iOS の DesignTokens (DS) を移植したファウンデーション・トークン一式。
@@ -260,6 +263,98 @@ object DS {
 
     // エレベーション
     val elevation1: Color @Composable @ReadOnlyComposable get() = LocalImasColors.current.elevation1
+
+    // MARK: - スペーシング (4dp グリッド)。iOS `DS.sp1`〜`sp9` と同じ値の段。
+    // 部品は下の役割の名前 ([Space]) で引く。値の段を直接使うのは役割に名前の無い所だけ。
+    val sp1: Dp = 2.dp
+    val sp2: Dp = 4.dp
+    val sp3: Dp = 8.dp
+    val sp4: Dp = 12.dp
+    val sp5: Dp = 16.dp
+    val sp6: Dp = 20.dp
+    val sp7: Dp = 24.dp
+    val sp8: Dp = 32.dp
+    val sp9: Dp = 44.dp
+
+    // MARK: - 角丸 (値の段)。iOS `DS.rXS`〜`rPill`。
+    val rXS: Dp = 6.dp
+    val rSM: Dp = 10.dp
+    val rMD: Dp = 14.dp
+    val rLG: Dp = 18.dp
+    val rXL: Dp = 24.dp
+    val rPill: Dp = 999.dp
+
+    // MARK: - 面の角丸 (docs/DESIGN_SYSTEM.md §4)。iOS `DSFoundations.swift` の `DS.rCard` ほか。
+
+    /**
+     * カードの角丸。チケットや入場証と同じ、紙を切り抜いた程度の丸み。
+     * 「会場とチケット」では面を紙として見せるので、OS の表より角を立てる。
+     */
+    val rCard: Dp = 18.dp
+
+    /** カードの中に入れる面の角丸。外の角丸から内側の余白を引いて同心円にする (下限 6)。 */
+    val rInner: Dp = maxOf(6.dp, rCard - Space.card)
+
+    /**
+     * 札の角丸。札は「印刷された小さな見出し」なので、ほぼ角のある四角にする。
+     * カプセルにすると、淡い色の丸い札が並ぶ「よくある見た目」になる (v1 の反省)。
+     */
+    val rTag: Dp = 4.dp
+
+    /**
+     * 押せる部品 (ボタン・切り替え・入口) の角丸。高さに比例させる (50→12, 40→10, 32→8)。
+     * 中身の部品はカプセルにしない。カプセルは OS の枠 (タブバー・ツールバー) だけが使う形。
+     */
+    fun rControl(height: Dp): Dp = (height.value * 0.24f).roundToInt().dp
+
+    /** 記号を入れる角丸四角の角丸。設定の行の頭など、OS の形に合わせる所だけで使う。 */
+    fun rIconTile(size: Dp): Dp = (size.value * 0.28f).roundToInt().dp
+
+    /** ジャケの角丸。CD のジャケは角のある四角なので小さく (下限 3・上限 10)。 */
+    fun rArtwork(size: Dp): Dp = (size.value * 0.08f).roundToInt().coerceIn(3, 10).dp
+
+    /** 広い画面 (タブレット) で一覧の本文が伸びきらない幅。Web の本文段と揃える (iOS と同じ値)。 */
+    val readableContentWidth: Dp = 880.dp
+
+    /** 役割で引く余白 (iOS `DS.Space`)。値は 4dp の段 (`sp*`) から選んでいる。 */
+    object Space {
+        /** 画面の左右。 */
+        val screen: Dp = 16.dp
+        /** 区画どうしの間。 */
+        val section: Dp = 28.dp
+        /** 見出しと中身の間。 */
+        val header: Dp = 8.dp
+        /** 中身と補足文の間。 */
+        val note: Dp = 6.dp
+        /** カードの内側。 */
+        val card: Dp = 16.dp
+        /** 行の左右。 */
+        val rowH: Dp = 16.dp
+        /** 行の上下 (一覧)。 */
+        val rowV: Dp = 12.dp
+        /** 行の上下 (カードの中の短い一覧・ピッカー)。 */
+        val rowVCompact: Dp = 8.dp
+        /** 行の中の、先頭・本文・末尾の間。 */
+        val rowGap: Dp = 12.dp
+        /** 並んだもの同士 (チップ・ボタン・タイル)。 */
+        val gap: Dp = 8.dp
+        /** 詰めて並べるもの同士 (題と副題、記号と文字)。 */
+        val gapTight: Dp = 4.dp
+        /** ゆったり並べるもの同士。 */
+        val gapLoose: Dp = 12.dp
+    }
+
+    /** 部品の大きさの段 (iOS `DS.Size`)。画面からは部品の種類として選ぶ (数字は書かない)。 */
+    object Size {
+        /** 押せる所の最小。 */
+        val touch: Dp = 44.dp
+        /** チップの高さ。 */
+        val chip: Dp = 32.dp
+        /** 札の高さ。 */
+        val badge: Dp = 20.dp
+        /** リードバーの幅。 */
+        val leadBar: Dp = 3.dp
+    }
 }
 
 /**

@@ -1,12 +1,30 @@
 package com.fugaif.imaslivedb.ui.theme
 
+import android.os.Build
+import android.view.HapticFeedbackConstants
+import android.view.View
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -271,3 +289,143 @@ val ImasTheme.onActionFill: Color
 /** ペンライトの色。実体の色が無ければ墨。 */
 val ImasTheme.penlight: Color
     @Composable @ReadOnlyComposable get() = if (isNeutral) DS.ink else dot
+
+// MARK: - 地
+
+/**
+ * 部品が置かれている地 (iOS `ImasBackdrop`)。
+ *
+ * 「会場とチケット」では地は 1 種類 (ロビーの生成り / 客席の闇) で、面はどこでも `DS.surface`。
+ * 一覧・詳細・ハブ (`ImasPage`) とフォーム・設定 (`ImasFormPage`) の区別は残しておく
+ * (面の影や線の出し方を地ごとに変えたくなったときの受け口)。
+ */
+enum class ImasBackdrop {
+    /** 一覧・詳細・ハブの地。 */
+    PAPER,
+
+    /** フォーム・設定の地。 */
+    GROUPED
+}
+
+/** 今の地。`ImasPage` / `ImasFormPage` が配下に伝える (iOS の `@Environment(\.imasBackdrop)`)。 */
+val LocalImasBackdrop = staticCompositionLocalOf { ImasBackdrop.GROUPED }
+
+// MARK: - 実体の色の環境
+
+/**
+ * 祖先が与えた実体の色 (iOS の `@Environment(\.imasTheme)`)。null はニュートラル。
+ * 読むときは [imasEnvTheme] を通す (null のときに今のモードのニュートラルを返す)。
+ */
+val LocalImasTheme = staticCompositionLocalOf<ImasTheme?> { null }
+
+/**
+ * このサブツリーに実体の色を与える (iOS の `.imasTheme(seed:brand:)`)。
+ * 配下の部品は `seed` / `brand` を渡さなければこの色を使う (部品ごとに seed を渡さない)。
+ *
+ * @param seed アイドル等のイメージカラー hex。
+ * @param brand ブランド ID (Android の部品は brand をいつも ID で受ける。色はマスタから引く)。
+ */
+@Composable
+fun ImasThemeProvider(seed: String?, brand: String? = null, content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalImasTheme provides imasThemeForBrand(seed, brand), content = content)
+}
+
+/** 環境の実体の色。祖先が [ImasThemeProvider] を置いていなければ、今のモードのニュートラル。 */
+val imasEnvTheme: ImasTheme
+    @Composable @ReadOnlyComposable get() = LocalImasTheme.current ?: imasTheme(seed = null)
+
+// MARK: - 動き
+
+/** 状態が切り替わるときの動き (iOS `Animation.imasStandard` = `.snappy(duration: 0.22)`)。 */
+object ImasMotion {
+    /** 選択・開閉など、状態が切り替わるときの標準の動き。 */
+    fun <T> standard(): AnimationSpec<T> = spring(dampingRatio = 0.86f, stiffness = 800f)
+}
+
+// MARK: - 押し心地
+
+/**
+ * 押せるカード・セル・ボタンの押し心地 (iOS `ImasPressStyle`)。押すと少し縮んで (0.97) 暗くなる (0.88)。
+ * 波紋 (リップル) は出さない: 紙の面に灰色の波紋が乗ると安っぽく見えるため (ゲームの `quizPress` と同じ判断)。
+ */
+@Composable
+fun Modifier.imasPress(
+    enabled: Boolean = true,
+    role: Role? = Role.Button,
+    onClickLabel: String? = null,
+    onClick: () -> Unit
+): Modifier {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed && enabled) 0.97f else 1f, ImasMotion.standard(), label = "imasPressScale")
+    val dim by animateFloatAsState(if (pressed && enabled) 0.88f else 1f, ImasMotion.standard(), label = "imasPressDim")
+    return this
+        .graphicsLayer { scaleX = scale; scaleY = scale; alpha = dim }
+        .clickable(
+            interactionSource = source,
+            indication = null,
+            enabled = enabled,
+            onClickLabel = onClickLabel,
+            role = role,
+            onClick = onClick
+        )
+}
+
+/**
+ * カードの中の行を押せるようにする (iOS `.buttonStyle(.imasRow)`)。押している間だけ面が `DS.fill` になる。
+ * 縮めない (行は面の一部なので)。
+ */
+@Composable
+fun Modifier.imasRowPress(
+    enabled: Boolean = true,
+    role: Role? = Role.Button,
+    onClickLabel: String? = null,
+    onClick: () -> Unit
+): Modifier {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    return this
+        .background(if (pressed && enabled) DS.fill else Color.Transparent)
+        .clickable(
+            interactionSource = source,
+            indication = null,
+            enabled = enabled,
+            onClickLabel = onClickLabel,
+            role = role,
+            onClick = onClick
+        )
+}
+
+// MARK: - 手応え
+
+/**
+ * 印を押す・選ぶ・切り替えるときの触覚 (iOS `sensoryFeedback`)。部品が返す (画面で足さない)。
+ * Compose の `HapticFeedbackType` は 2 種類しか無いので、View の触覚の定数で段を分ける。
+ */
+@Stable
+class ImasHaptics internal constructor(private val view: View) {
+    /** 選ぶ・切り替える (iOS `.selection`)。 */
+    fun selection() {
+        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+    }
+
+    /** 軽い手応え (iOS `.impact(weight: .light)`)。行の末尾の印。 */
+    fun impactLight() {
+        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+    }
+
+    /** はっきりした手応え (iOS `.impact(weight: .medium)`)。印を点ける・判子を押す。 */
+    fun impactMedium() {
+        view.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM
+            else HapticFeedbackConstants.VIRTUAL_KEY
+        )
+    }
+}
+
+/** 部品の中で触覚を返す口。 */
+@Composable
+fun rememberImasHaptics(): ImasHaptics {
+    val view = LocalView.current
+    return remember(view) { ImasHaptics(view) }
+}
