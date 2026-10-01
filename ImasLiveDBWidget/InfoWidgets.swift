@@ -20,18 +20,6 @@ private func shortDate(_ s: String) -> String {
     return f.string(from: d)
 }
 
-/// hex 文字列 → Color。失敗時は fallback。
-private func hexColor(_ hex: String?, fallback: Color = .pink) -> Color {
-    guard let hex, hex.count >= 6 else { return fallback }
-    let raw = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
-    guard let v = UInt64(raw.prefix(6), radix: 16) else { return fallback }
-    return Color(
-        red: Double((v >> 16) & 0xff) / 255,
-        green: Double((v >> 8) & 0xff) / 255,
-        blue: Double(v & 0xff) / 255
-    )
-}
-
 // MARK: - 次のライブウィジェット
 
 struct NextLiveEntry: TimelineEntry {
@@ -70,58 +58,27 @@ struct NextLiveWidgetView: View {
 
     var body: some View {
         if let info = entry.info {
-            let accent = hexColor(info.brandColorHex, fallback: .pink)
+            let accent = ImasWidgetColor.accent(info.brandColorHex)
             let days = info.daysUntilFirstShow(from: entry.date)
-            ZStack(alignment: .bottomLeading) {
-                LinearGradient(
-                    colors: [accent.opacity(0.85), accent.opacity(0.5)],
-                    startPoint: .topLeading, endPoint: .bottomTrailing
-                )
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("次のライブ", systemImage: "music.mic")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                    Spacer(minLength: 0)
+            ImasWidgetScaffold(alignment: .bottomLeading, accent: accent) {
+                VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
+                    ImasWidgetEyebrow(systemImage: "music.mic", text: "次のライブ")
                     Text(info.eventName)
-                        .font(.system(size: family == .systemSmall ? 13 : 15, weight: .bold))
-                        .foregroundStyle(.white)
+                        .imasWidgetText(.title(compact: family == .systemSmall))
                         .lineLimit(family == .systemSmall ? 2 : 3)
-                    HStack(spacing: 4) {
+                    HStack(spacing: ImasWidgetSpace.gapTight) {
                         if let d = days {
-                            Text(d == 0 ? "今日！" : "あと\(d)日")
-                                .font(.system(size: 12, weight: .black))
-                                .foregroundStyle(.white)
+                            ImasWidgetMetric(text: d == 0 ? "今日！" : "あと\(d)日", size: 13)
                         }
-                        Text(shortDate(info.firstDate))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.85))
+                        Text(shortDate(info.firstDate)).imasWidgetText(.meta)
                     }
                 }
-                .padding(12)
             }
             .widgetURL(URL(string: "imaslivedb://events/\(info.eventId)"))
         } else {
-            NextLivePlaceholder()
-        }
-    }
-}
-
-struct NextLivePlaceholder: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.gray.opacity(0.4), Color.gray.opacity(0.2)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            VStack(spacing: 6) {
-                Image(systemName: "music.mic")
-                    .font(.title2)
-                Text("次のライブ情報なし")
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
+            ImasWidgetScaffold(alignment: .center) {
+                ImasWidgetPlaceholder(systemImage: "music.mic", text: "次のライブ情報なし")
             }
-            .foregroundStyle(.secondary)
-            .padding(8)
         }
     }
 }
@@ -132,7 +89,7 @@ struct NextLiveWidget: Widget {
             NextLiveWidgetView(entry: entry)
                 // 省スペースのウィジェットはアクセシビリティ特大でレイアウトが破綻するため上限クランプ。
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) { ImasWidgetColor.paper }
         }
         .configurationDisplayName("次のライブ")
         .description("直近のライブまでのカウントダウンを表示します。")
@@ -187,66 +144,33 @@ struct TodaySongWidgetView: View {
 
     var body: some View {
         if let info = entry.info {
-            let accent = hexColor(info.brandColorHex, fallback: .purple)
-            HStack(spacing: 10) {
-                // ジャケ写 (artworkUrl は mzstatic CDN 等の外部 URL なのでウィジェットでは
-                // Data 読み込み済みのものだけ表示し、無ければシステムアイコンで代替)
-                Group {
-                    if let data = entry.artworkData, let ui = UIImage(data: data) {
-                        Image(uiImage: ui)
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        ZStack {
-                            accent.opacity(0.3)
-                            Image(systemName: "music.note")
-                                .font(.title2)
-                                .foregroundStyle(accent)
+            let accent = ImasWidgetColor.accent(info.brandColorHex)
+            ImasWidgetScaffold(alignment: .leading) {
+                HStack(spacing: ImasWidgetSpace.gapLoose) {
+                    // ジャケ写 (artworkUrl は mzstatic CDN 等の外部 URL なのでウィジェットでは
+                    // Data 読み込み済みのものだけ表示し、無ければ紙の面 + 音符で代替)
+                    ImasWidgetArtwork(
+                        image: entry.artworkData.flatMap(UIImage.init(data:)),
+                        size: family == .systemSmall ? 50 : 60
+                    )
+
+                    VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
+                        ImasWidgetEyebrow(systemImage: "music.quarternote.3", text: "今日の1曲", accent: accent)
+                        Text(info.title)
+                            .imasWidgetText(.title(compact: family == .systemSmall))
+                            .lineLimit(2)
+                        if let label = info.artistLabel, !label.isEmpty {
+                            Text(label).imasWidgetText(.meta).lineLimit(1)
                         }
                     }
+                    if family != .systemSmall { Spacer(minLength: 0) }
                 }
-                .frame(width: family == .systemSmall ? 50 : 60, height: family == .systemSmall ? 50 : 60)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Label("今日の1曲", systemImage: "music.quarternote.3")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(accent)
-                    Text(info.title)
-                        .font(.system(size: family == .systemSmall ? 12 : 14, weight: .bold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                    if let label = info.artistLabel, !label.isEmpty {
-                        Text(label)
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                if family != .systemSmall { Spacer(minLength: 0) }
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .widgetURL(URL(string: "imaslivedb://open"))
         } else {
-            TodaySongPlaceholder()
-        }
-    }
-}
-
-struct TodaySongPlaceholder: View {
-    var body: some View {
-        ZStack {
-            Color.clear
-            VStack(spacing: 6) {
-                Image(systemName: "music.quarternote.3")
-                    .font(.title2)
-                Text("今日の1曲を準備中")
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
+            ImasWidgetScaffold(alignment: .center) {
+                ImasWidgetPlaceholder(systemImage: "music.quarternote.3", text: "今日の1曲を準備中")
             }
-            .foregroundStyle(.secondary)
-            .padding(8)
         }
     }
 }
@@ -256,7 +180,7 @@ struct TodaySongWidget: Widget {
         StaticConfiguration(kind: "TodaySongWidget", provider: TodaySongProvider()) { entry in
             TodaySongWidgetView(entry: entry)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) { ImasWidgetColor.paper }
         }
         .configurationDisplayName("今日の1曲")
         .description("日替わりで1曲をピックして表示します。")
@@ -300,56 +224,28 @@ struct TicketDeadlineWidgetView: View {
 
     var body: some View {
         if entry.deadlines.isEmpty {
-            TicketDeadlinePlaceholder()
+            ImasWidgetScaffold(alignment: .center) {
+                ImasWidgetPlaceholder(systemImage: "ticket", text: "締切近いチケットなし")
+            }
         } else {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("チケット締切", systemImage: "ticket")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.orange)
-                ForEach(entry.deadlines.prefix(3), id: \.id) { item in
-                    HStack(spacing: 6) {
-                        Text(shortDate(item.deadline))
-                            .font(.system(size: 11, weight: .bold).monospacedDigit())
-                            .foregroundStyle(item.isAwaitingResult ? Color.secondary : Color.orange)
-                            .frame(minWidth: 32, alignment: .leading)
-                        // M3: label はコアが組んだ "{event_name} ({sale_name})"。1 件のライブに
-                        // 受付が複数あっても行が区別でき、見出しでライブ名も分かる。
-                        Text(item.displayLabel)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        // M3: 見出し「チケット締切」の下に当落発表の行が締切と見分けられずに
-                        // 混ざらないよう、当落発表の行だけ種別の語を添える。
-                        if item.isAwaitingResult, let kindLabel = item.resolvedKindLabel {
-                            Text(kindLabel)
-                                .font(.system(size: 9, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
+            ImasWidgetScaffold {
+                VStack(alignment: .leading, spacing: ImasWidgetSpace.gap) {
+                    ImasWidgetEyebrow(systemImage: "ticket", text: "チケット締切")
+                    ForEach(entry.deadlines.prefix(3), id: \.id) { item in
+                        ImasWidgetRow(
+                            date: shortDate(item.deadline),
+                            // M3: label はコアが組んだ "{event_name} ({sale_name})"。1 件のライブに
+                            // 受付が複数あっても行が区別でき、見出しでライブ名も分かる。
+                            title: item.displayLabel,
+                            // M3: 見出し「チケット締切」の下に当落発表の行が締切と見分けられずに
+                            // 混ざらないよう、当落発表の行だけ種別の語を添える。
+                            tag: item.isAwaitingResult ? item.resolvedKindLabel : nil,
+                            isEmphasized: !item.isAwaitingResult
+                        )
                     }
                 }
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .widgetURL(URL(string: "imaslivedb://open"))
-        }
-    }
-}
-
-struct TicketDeadlinePlaceholder: View {
-    var body: some View {
-        ZStack {
-            Color.clear
-            VStack(spacing: 6) {
-                Image(systemName: "ticket")
-                    .font(.title2)
-                Text("締切近いチケットなし")
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.secondary)
-            .padding(8)
         }
     }
 }
@@ -359,7 +255,7 @@ struct TicketDeadlineWidget: Widget {
         StaticConfiguration(kind: "TicketDeadlineWidget", provider: TicketDeadlineProvider()) { entry in
             TicketDeadlineWidgetView(entry: entry)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) { ImasWidgetColor.paper }
         }
         .configurationDisplayName("チケット締切")
         .description("チケット締切が近いイベントを最大3件表示します。")

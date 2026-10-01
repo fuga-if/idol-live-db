@@ -183,18 +183,11 @@ struct OshiLauncherWidgetView: View {
 struct OshiPlaceholder: View {
     let name: String?
     var body: some View {
-        ZStack {
-            LinearGradient(colors: [.pink.opacity(0.5), .purple.opacity(0.5)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            VStack(spacing: 6) {
-                Image(systemName: "photo.on.rectangle.angled")
-                    .font(.title2)
-                Text(name == nil ? "アプリで画像を追加" : "担当を選択")
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
-            }
-            .foregroundStyle(.white)
-            .padding(8)
+        ImasWidgetScaffold(alignment: .center) {
+            ImasWidgetPlaceholder(
+                systemImage: "photo.on.rectangle.angled",
+                text: name == nil ? "アプリで画像を追加" : "担当を選択"
+            )
         }
     }
 }
@@ -207,7 +200,7 @@ struct OshiImageWidget: Widget {
             OshiImageWidgetView(entry: entry)
                 // 画像主体の省スペースウィジェット。プレースホルダ文言の暴走を防ぐため上限クランプ。
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) { ImasWidgetColor.paper }
         }
         .configurationDisplayName("担当の画像（タップで切替）")
         .description("選んだアイドルの画像を表示。タップで次の画像に切り替わります。")
@@ -221,7 +214,7 @@ struct OshiLauncherWidget: Widget {
         AppIntentConfiguration(kind: "OshiLauncherWidget", intent: SelectOshiIntent.self, provider: OshiProvider()) { entry in
             OshiLauncherWidgetView(entry: entry)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) { ImasWidgetColor.paper }
         }
         .configurationDisplayName("担当の画像（タップでアプリ）")
         .description("選んだアイドルの画像を表示。タップでアプリを開きます。")
