@@ -102,19 +102,19 @@ struct SongSingerQuizView: View {
             QuizStageProgress(slots: plays.penlights(total: sessionLength, answering: verdict == nil),
                               caption: plays.setlistCaption(total: sessionLength),
                               streak: plays.streak, streakBrokeAt: plays.streakBrokeAt)
-                .padding(.bottom, 2)
+                .padding(.bottom, DS.sp1)
             if let verdict {
                 QuizVerdictCard(verdict: verdict).id(verdict.number)
                 QuizVerdictStats(before: scoreBefore, after: Int(tally.points), streak: plays.streak)
                 if !verdict.isCorrect { QuizVerdictFootnote() }
                 QuizStageNextButton(isLastQuestion: isLastQuestion, onNext: nextQuestion, onFinish: finish)
-                    .padding(.top, 4)
+                    .padding(.top, DS.sp2)
             } else {
                 ticket(song, question: q)
                 QuizStageChoiceGrid(choices: choices(q).map { QuizStageChoice(id: $0.id, title: $0.name) }) { choice in
                     if let idol = singers.first(where: { $0.id == choice.id }) { pick(idol, song: song) }
                 }
-                .padding(.top, 4)
+                .padding(.top, DS.sp2)
             }
         } else {
             ImasEmptyState(systemImage: "music.note", title: "出題できるソロ曲が不足しています")

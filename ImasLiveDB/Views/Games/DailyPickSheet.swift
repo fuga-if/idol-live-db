@@ -74,13 +74,7 @@ struct DailyPickSheet: View {
             .scrollContentBackground(.hidden)
             .navigationTitle(DailyPickSheet.title(for: kind))
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("閉じる") { dismiss() }
-                        .font(.imasSubhead.weight(.semibold))
-                        .tint(DS.sys)
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             // 曲とアイドルで sheet 修飾子を 2 つ重ねない。同じ View に .sheet を並べると
             // 後ろの 1 つしか効かないことがある (CalendarView でも踏んでいる落とし穴)。
             // その日出るのはどちらか一方なので、1 つの item にまとめて分岐する。
@@ -173,26 +167,26 @@ struct DailyPickSheet: View {
         @ViewBuilder labels: () -> Labels,
         onVote: @escaping () -> Void
     ) -> some View {
-        HStack(spacing: DS.sp4) {
-            ImasLeadBar(seed: seed).frame(height: 52)
-            thumbnail()
+        ImasCard(padding: DS.sp4) {
+            HStack(spacing: DS.sp4) {
+                ImasLeadBar(seed: seed).frame(height: 52)
+                thumbnail()
 
-            Button(action: onVote) {
-                HStack(spacing: DS.sp2) {
-                    VStack(alignment: .leading, spacing: DS.sp1) { labels() }
-                    Spacer(minLength: DS.sp2)
+                Button(action: onVote) {
                     HStack(spacing: DS.sp2) {
-                        Image(systemName: tagged ? "checkmark.circle.fill" : "tag")
-                        Text(tagged ? "投票済" : "タグ").font(.imasFootnote.weight(.semibold))
+                        VStack(alignment: .leading, spacing: DS.sp1) { labels() }
+                        Spacer(minLength: DS.sp2)
+                        HStack(spacing: DS.sp2) {
+                            Image(systemName: tagged ? "checkmark.circle.fill" : "tag")
+                            Text(tagged ? "投票済" : "タグ").font(.imasFootnote.weight(.semibold))
+                        }
+                        .foregroundStyle(tagged ? DS.success : ImasTheme.derive(seed: seed, scheme: .light).accent)
                     }
-                    .foregroundStyle(tagged ? DS.success : ImasTheme.derive(seed: seed, scheme: .light).accent)
+                    .contentShape(Rectangle())
                 }
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
-        .padding(DS.sp4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - Data

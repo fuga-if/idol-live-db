@@ -151,41 +151,15 @@ struct ColorMatchGameView: View {
                 ImasSectionHeader(title: "出題ブランド", tight: true)
                 Text("未選択なら全ブランドから出題")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
-                brandGrid
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
             }
 
-            let canStart = pool.count >= requiredPool
-            primaryButton("はじめる（全\(questionCount)問）") { AppAnalytics.tap("color_match_game.start"); startSession() }
-                .disabled(!canStart)
-                .opacity(canStart ? 1 : 0.5)
-        }
-    }
+            ImasCandidateCount(count: pool.count, unit: "人", minimum: requiredPool, label: "出題候補")
 
-    /// 他のクイズ (アイドル当て・ソロ曲) と共通の BrandIconCell 丸アイコングリッド。
-    /// メンバーカラーチップを並べるとそれ自体が問題のヒント(版権キャラの色)になり得るため、
-    /// 共通UIに揃えてヒント漏れも防ぐ。
-    private var brandGrid: some View {
-        let columns = [GridItem(.adaptive(minimum: 56, maximum: 80), spacing: 10)]
-        return LazyVGrid(columns: columns, alignment: .center, spacing: 10) {
-            BrandIconCell(
-                brandId: nil, label: "全て", iconText: "全", color: nil,
-                isSelected: selectedBrandIds.isEmpty
-            ) {
-                withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
+            ImasButton(title: "はじめる（全\(questionCount)問）", role: .primary, size: .large) {
+                AppAnalytics.tap("color_match_game.start"); startSession()
             }
-            ForEach(brands) { brand in
-                BrandIconCell(
-                    brandId: brand.id, label: brand.shortName,
-                    iconText: brand.iconText, color: brand.color,
-                    isSelected: selectedBrandIds.contains(brand.id)
-                ) {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        if !selectedBrandIds.insert(brand.id).inserted {
-                            selectedBrandIds.remove(brand.id)
-                        }
-                    }
-                }
-            }
+            .disabled(pool.count < requiredPool)
         }
     }
 
@@ -302,31 +276,10 @@ struct ColorMatchGameView: View {
         let out = Set(choiceHint.eliminated.map(Int.init))
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2), spacing: 10) {
             ForEach(Array(q.choices.enumerated()), id: \.offset) { i, hex in
-                let isOut = out.contains(i)
-                Button { pickChoice(hex, q) } label: {
-                    VStack(spacing: 8) {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(hexString: hex))
-                            .frame(height: 76)
-                            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(QS.line, lineWidth: 1))
-                        HStack {
-                            Text(letters[i % letters.count]).foregroundStyle(QS.faint)
-                            Spacer(minLength: 2)
-                            Text(hex.uppercased())
-                        }
-                        .font(QS.mono(11))
-                        .foregroundStyle(QS.ink)
-                        .padding(.horizontal, 4)
-                    }
-                    .padding(8)
-                    .background(QS.panel, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(QS.line, lineWidth: 1))
-                    .contentShape(Rectangle())
+                ImasStageColorSwatch(hex: hex, letter: letters[i % letters.count], style: .choice,
+                                     isEliminated: out.contains(i)) {
+                    pickChoice(hex, q)
                 }
-                .buttonStyle(QuizPressStyle())
-                .disabled(isOut)
-                .opacity(isOut ? 0.18 : 1)
-                .accessibilityLabel("色 \(letters[i % letters.count]) \(hex)")
             }
         }
     }
@@ -371,24 +324,9 @@ struct ColorMatchGameView: View {
     /// 答え合わせの一枚。全員当てたら生成りのカード、外したら暗いカード。
     private func roundVerdict(_ j: ColorMatchJudgement) -> some View {
         let cleared = j.score == j.outOf
-        return HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: "Q.%02d — ", roundIndex + 1) + (cleared ? "PERFECT" : "RESULT"))
-                    .font(QS.mono(12)).tracking(1.4)
-                Text(cleared ? "全員正解！" : "\(j.score) / \(j.outOf) 正解")
-                    .font(QS.text(cleared ? 40 : 34, weight: .black))
-                    .lineLimit(1).minimumScaleFactor(0.6)
-            }
-            Spacer(minLength: 8)
-            Text("+\(j.score)").font(QS.num(64, weight: .black))
-        }
-        .foregroundStyle(cleared ? QS.paperInk : QS.ink)
-        .padding(.horizontal, 22).padding(.vertical, 18)
-        .background(cleared ? QS.paper : QS.panel, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .strokeBorder(cleared ? Color.clear : QS.line, lineWidth: 1))
-        .transition(.scale(scale: 0.94).combined(with: .opacity))
-        .accessibilityElement(children: .combine)
+        return ImasStagePartialVerdictCard(number: roundIndex + 1, isPerfect: cleared,
+                                           headline: cleared ? "全員正解！" : "\(j.score) / \(j.outOf) 正解",
+                                           score: Int(j.score))
     }
 
     private var ticket: some View {
@@ -413,39 +351,11 @@ struct ColorMatchGameView: View {
             ForEach(Array(round.palette.enumerated()), id: \.element) { i, hex in
                 let used = assignments.values.contains(hex)
                 let selected = selectedHex == hex
-                VStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(hexString: hex))
-                        .frame(height: 56)
-                        .overlay {
-                            if used {
-                                Image(systemName: "checkmark").font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(ColorMath.onColor(Color(hexString: hex)))
-                            }
-                        }
-                    HStack {
-                        Text(letters[i % letters.count]).foregroundStyle(QS.faint)
-                        Spacer(minLength: 2)
-                        Text(hex.uppercased())
-                    }
-                    .font(QS.mono(10))
-                    .foregroundStyle(QS.ink)
-                    .padding(.horizontal, 2)
+                ImasStageColorSwatch(hex: hex, letter: letters[i % letters.count], style: .palette,
+                                     isSelected: selected, isUsed: used) {
+                    selectedHex = selected ? nil : hex
                 }
-                .padding(6)
-                .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(selected ? QS.ink : QS.line, lineWidth: selected ? 2.5 : 1))
-                .opacity(used && !selected ? 0.45 : 1)
-                .scaleEffect(selected ? 1.03 : 1)
-                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: selected)
-                .draggable(hex) {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color(hexString: hex)).frame(width: 64, height: 44)
-                }
-                .onTapGesture { selectedHex = selected ? nil : hex }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("色 \(letters[i % letters.count]) \(hex)")
+                .draggable(hex) { Color(hexString: hex).frame(width: 64, height: 44) }
                 .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }
         }
@@ -470,8 +380,7 @@ struct ColorMatchGameView: View {
                 if let judgement, judgement.correctHexLabels.indices.contains(position) {
                     // 答え合わせでは本人のメンバーカラーを色見本 + HEX コードで明示する。
                     HStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(Color(hexString: member.color)).frame(width: 28, height: 12)
+                        ImasSwatch(hex: member.color, size: .small, isDecorative: true)
                         Text(judgement.correctHexLabels[position]).font(QS.mono(11)).foregroundStyle(QS.paperSub)
                     }
                     .padding(.top, 2)
@@ -479,25 +388,8 @@ struct ColorMatchGameView: View {
             }
             Spacer(minLength: 6)
             // 割り当てた色スロット (ドロップ/タップ対象)
-            ZStack {
-                if let assigned {
-                    Circle().fill(Color(hexString: assigned))
-                } else {
-                    Circle().strokeBorder(isTarget ? QS.paperInk : QS.paperMuted,
-                                          style: StrokeStyle(lineWidth: 2, dash: [4, 3]))
-                    Text("?").font(QS.num(18)).foregroundStyle(QS.paperSub)
-                }
-            }
-            .frame(width: 44, height: 44)
-            .overlay {
-                if judged {
-                    Image(systemName: correct ? "checkmark" : "xmark")
-                        .font(.system(size: 16, weight: .black))
-                        .foregroundStyle(assigned.map { ColorMath.onColor(Color(hexString: $0)) } ?? QS.paperInk)
-                }
-            }
-            .scaleEffect(isTarget ? 1.12 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isTarget)
+            ImasStageAssignmentTarget(assignedHex: assigned, isTargeted: isTarget,
+                                      verdict: judged ? correct : nil)
         }
         .foregroundStyle(QS.paperInk)
         .padding(.horizontal, 18).padding(.vertical, 8)
@@ -533,14 +425,6 @@ struct ColorMatchGameView: View {
             .disabled(!ready)
             .opacity(ready ? 1 : 0.45)
         }
-    }
-
-    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title).font(.imasHeadline.weight(.semibold)).foregroundStyle(DS.onSys)
-                .frame(maxWidth: .infinity).padding(.vertical, 15)
-                .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-        }.buttonStyle(.plain)
     }
 
     // MARK: - Logic

@@ -144,11 +144,7 @@ struct LyricsQuizView: View {
             if !verdict.isCorrect { QuizVerdictFootnote() }
             if phase == .loading {
                 // 次の曲の歌詞がまだ届いていない (先読みが間に合わなかった)。
-                HStack(spacing: 10) {
-                    ProgressView().tint(QS.ink)
-                    Text("次の歌詞を読み込み中…").font(QS.text(14)).foregroundStyle(QS.dim)
-                }
-                .frame(maxWidth: .infinity, minHeight: 58)
+                ImasStageInfoRow(systemImage: "text.quote", title: "次の歌詞を読み込み中…", isLoading: true)
             } else {
                 QuizStageNextButton(isLastQuestion: isLastQuestion || phase == .exhausted,
                                     onNext: nextQuestion, onFinish: finish)
@@ -173,26 +169,11 @@ struct LyricsQuizView: View {
 
     /// 「どこの歌詞だったか」を確かめる入口。押したときだけ歌詞を取りに行く。
     private func lyricsLink(song: Song, focusLineIds: [String]) -> some View {
-        Button {
+        ImasStageInfoRow(systemImage: "text.quote", title: "歌詞で出題箇所を見る",
+                         detail: "曲の歌詞を開いて、出題された行に印を付けます", showsChevron: true) {
             AppAnalytics.tap("lyrics_quiz.open_lyrics")
             lyricsSheet = .songLyrics(song, focusLineIds: focusLineIds)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "text.quote")
-                    .font(.system(size: 18, weight: .semibold)).foregroundStyle(QS.ink)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("歌詞で出題箇所を見る").font(QS.text(14, weight: .bold)).foregroundStyle(QS.ink)
-                    Text("曲の歌詞を開いて、出題された行に印を付けます").font(QS.text(11)).foregroundStyle(QS.dim)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .bold)).foregroundStyle(QS.dim)
-            }
-            .padding(.horizontal, 16).frame(minHeight: 56)
-            .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(QuizPressStyle())
         .accessibilityHint("曲の歌詞を開きます")
     }
 

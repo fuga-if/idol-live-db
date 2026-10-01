@@ -97,20 +97,20 @@ struct IdolQuizView: View {
             QuizStageProgress(slots: plays.penlights(total: sessionLength, answering: verdict == nil),
                               caption: plays.setlistCaption(total: sessionLength),
                               streak: plays.streak, streakBrokeAt: plays.streakBrokeAt)
-                .padding(.bottom, 2)
+                .padding(.bottom, DS.sp1)
             if let verdict {
                 QuizVerdictCard(verdict: verdict).id(verdict.number)
                 QuizVerdictStats(before: scoreBefore, after: Int(tally.points), streak: plays.streak)
                 if !verdict.isCorrect { QuizVerdictFootnote() }
                 QuizStageNextButton(isLastQuestion: isLastQuestion, onNext: nextQuestion, onFinish: finish)
-                    .padding(.top, 4)
+                    .padding(.top, DS.sp2)
             } else {
                 QuizValueMeter(value: Int(hint.currentValue), base: baseValue, note: meterNote)
                 ticket(q)
                 QuizStageChoiceGrid(choices: choices(q).map { QuizStageChoice(id: $0.id, title: $0.name) }) { choice in
                     if let idol = idols.first(where: { $0.id == choice.id }) { pick(idol) }
                 }
-                .padding(.top, 4)
+                .padding(.top, DS.sp2)
             }
         } else {
             ImasEmptyState(systemImage: "person.fill.questionmark", title: "出題できる候補が不足しています")
@@ -129,13 +129,14 @@ struct IdolQuizView: View {
         let hintTotal = opened.count + hint.hints.count
         return QuizTicket {
             QuizTicketHeading(label: "PROFILE", question: "このアイドルはだれ？")
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: DS.sp3), GridItem(.flexible(), spacing: DS.sp3)], spacing: DS.sp3) {
                 ForEach(free, id: \.self) { idx in
                     let f = q.facts[Int(idx)]
                     QuizTicketFactTile(label: f.label, value: f.value)
                 }
             }
-            .padding(.horizontal, 18).padding(.bottom, 12)
+            // 18 はチケット本文の内側だけの余白 (DS のスペース階段に無い値。チケットの版組)。
+            .padding(.horizontal, 18).padding(.bottom, DS.sp4)
             if hintTotal > 0 {
                 QuizTicketNotch()
                 QuizTicketHintHeader(opened: opened.count, total: hintTotal)

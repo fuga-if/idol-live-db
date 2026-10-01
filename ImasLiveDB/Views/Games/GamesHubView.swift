@@ -10,6 +10,8 @@ struct GamesHubView: View {
     @State private var resumeStore = QuizResumeStore.shared
     @State private var sortStore = SortMakerStore.shared
     @State private var tierStore = TierListStore.shared
+    /// 「再開」を押してから遷移先へ進む (ボタンと NavigationLink を入れ子にしないため)。
+    @State private var resumeTarget: QuizSuspended?
 
     /// ハブに並べるゲーム定義 (表示順)。
     private struct GameEntry {
@@ -47,6 +49,12 @@ struct GamesHubView: View {
         .scrollContentBackground(.hidden)
         .navigationTitle("クイズ・ゲーム")
         .navigationBarTitleDisplayMode(.large)
+        .navigationDestination(isPresented: Binding(
+            get: { resumeTarget != nil },
+            set: { if !$0 { resumeTarget = nil } }
+        )) {
+            if let resumeTarget { QuizResumeDestination(suspended: resumeTarget) }
+        }
         .trackScreen("games_hub")
     }
 
@@ -68,88 +76,63 @@ struct GamesHubView: View {
     }
 
     private var stageTicket: some View {
-        VStack(spacing: 0) {
-            // アプリアイコンの帯 (ペンライトの色)。
-            HStack(spacing: 0) {
-                ForEach(0..<QS.penlights.count, id: \.self) { i in QS.penlights[i] }
-            }
-            .frame(height: 6)
-
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Text("@").font(QS.text(14, weight: .black)).foregroundStyle(QS.bg)
-                        .frame(width: 22, height: 22)
-                        .background(QS.ink, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    Text("QUIZ STAGE").font(QS.mono(11)).tracking(1.3).foregroundStyle(QS.dim)
+        ImasStagePreviewCard {
+            VStack(spacing: 0) {
+                // アプリアイコンの帯 (ペンライトの色)。
+                HStack(spacing: 0) {
+                    ForEach(0..<QS.penlights.count, id: \.self) { i in QS.penlights[i] }
                 }
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("累計ポイント").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
-                        HStack(alignment: .lastTextBaseline, spacing: 6) {
-                            Text(progress.totalPoints.formatted()).font(QS.num(56))
-                                .contentTransition(.numericText())
-                            Text("pt").font(QS.text(14, weight: .bold)).foregroundStyle(QS.dim)
+                .frame(height: 6)
+
+                VStack(alignment: .leading, spacing: DS.sp4) {
+                    HStack(spacing: DS.sp3) {
+                        ImasStageWordmark(text: "@")
+                        Text("QUIZ STAGE").font(QS.mono(11)).tracking(1.3).foregroundStyle(QS.dim)
+                    }
+                    HStack(alignment: .top, spacing: DS.sp3) {
+                        ImasStageStatTile(label: "累計ポイント") {
+                            HStack(alignment: .lastTextBaseline, spacing: DS.sp2) {
+                                Text(progress.totalPoints.formatted()).font(QS.num(40))
+                                    .contentTransition(.numericText())
+                                Text("pt").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
+                            }
+                        }
+                        ImasStageStatTile(label: "プレイ回数") {
+                            Text("\(progress.totalPlays)").font(QS.num(28))
+                        }
+                        ImasStageStatTile(label: "最高グレード") {
+                            Text(topGrade?.label ?? "—").font(QS.num(28))
                         }
                     }
-                    Spacer(minLength: 8)
-                    VStack(alignment: .trailing, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Text("プレイ")
-                            Text("\(progress.totalPlays)").fontWeight(.bold).foregroundStyle(QS.ink)
-                            Text("回")
-                        }
-                        HStack(alignment: .lastTextBaseline, spacing: 4) {
-                            Text("最高グレード")
-                            Text(topGrade?.label ?? "—").font(QS.num(18)).foregroundStyle(QS.ink)
-                        }
-                    }
-                    .font(QS.text(12))
-                    .foregroundStyle(QS.dim)
                 }
-            }
-            .padding(.horizontal, 20).padding(.top, 16).padding(.bottom, 16)
+                .padding(.horizontal, DS.sp6).padding(.top, DS.sp5).padding(.bottom, DS.sp5)
 
-            // 切り取り線 (両端は一覧の背景色で欠ける)。
-            HStack(spacing: 0) {
-                UnevenRoundedRectangle(bottomTrailingRadius: 9, topTrailingRadius: 9)
-                    .fill(DS.bg).frame(width: 9, height: 18)
-                Rectangle().fill(.clear).frame(height: 1.5)
-                    .overlay(Line().stroke(QS.line, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
-                    .padding(.horizontal, 6)
-                UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 9)
-                    .fill(DS.bg).frame(width: 9, height: 18)
-            }
-            .accessibilityHidden(true)
+                // 切り取り線 (両端は一覧の背景色で欠ける)。
+                QuizTicketNotch(background: DS.bg)
 
-            resumeRow
+                resumeRow
+            }
+            .foregroundStyle(QS.ink)
         }
-        .foregroundStyle(QS.ink)
-        .background(QS.bg, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     /// チケットの下半分。中断したクイズがあれば「つづきから」、無ければ連続プレイ日数。
     @ViewBuilder
     private var resumeRow: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: DS.sp4) {
             if let s = resumeStore.latest {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text("つづきから").font(QS.text(11)).foregroundStyle(QS.dim)
                     Text("\(title(s.kind)) · " + String(format: "Q.%02d / %d", min(s.plays.count + 1, s.total), s.total))
                         .font(QS.text(15, weight: .bold)).lineLimit(1).minimumScaleFactor(0.8)
                 }
-                Spacer(minLength: 8)
-                NavigationLink {
-                    QuizResumeDestination(suspended: s)
-                } label: {
-                    Text("再開").font(QS.text(15, weight: .bold)).foregroundStyle(QS.bg)
-                        .padding(.horizontal, 20).frame(height: 44)
-                        .background(QS.ink, in: Capsule())
+                Spacer(minLength: DS.sp3)
+                QuizStagePrimaryButton(title: "再開", compact: true) {
+                    AppAnalytics.tap("games_hub.resume")
+                    resumeTarget = s
                 }
-                .buttonStyle(QuizPressStyle())
-                .simultaneousGesture(TapGesture().onEnded { AppAnalytics.tap("games_hub.resume") })
             } else {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text("連続プレイ").font(QS.text(11)).foregroundStyle(QS.dim)
                     Text(progress.displayStreak > 0 ? "\(progress.displayStreak) 日つづけて遊んでいます"
                                                     : "今日の 1 ゲームで連続記録が始まります")
@@ -159,17 +142,8 @@ struct GamesHubView: View {
             }
         }
         .foregroundStyle(QS.ink)
-        .padding(.leading, 20).padding(.trailing, 12)
+        .padding(.leading, DS.sp6).padding(.trailing, DS.sp4)
         .frame(minHeight: 68)
-    }
-
-    private struct Line: Shape {
-        func path(in rect: CGRect) -> Path {
-            var p = Path()
-            p.move(to: CGPoint(x: 0, y: rect.midY))
-            p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
-            return p
-        }
     }
 
     // MARK: - ゲーム一覧
@@ -220,59 +194,21 @@ struct GamesHubView: View {
         }
     }
 
+    // MARK: - 一覧の行 (3 種とも同じ `ImasRow` の形にまとめる)
+
     private func sortMakerRow(_ subject: SortMakerSubject) -> some View {
         let saved = sortStore.session(subject)
-        return HStack(spacing: 12) {
-            Image(systemName: subject.systemImage)
-                .font(.imasScaled(18, weight: .semibold))
-                .foregroundStyle(DS.onSys)
-                .frame(width: 40, height: 40)
-                .background(DS.sys, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(subject.title).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                Text(sortMakerBlurb(subject, saved)).font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            if let saved, !saved.isFinished {
-                Text("\(saved.replay().progressPercent)%").font(.imasCaption.weight(.semibold))
-                    .foregroundStyle(DS.ink2).monospacedDigit()
-            }
-            Image(systemName: "chevron.right")
-                .font(.imasScaled(13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
-        }
-        .padding(.horizontal, DS.sp4)
-        .frame(minHeight: 64)
-        .background(DS.surface)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        let percent = (saved.map { !$0.isFinished }) == true ? saved?.replay().progressPercent : nil
+        return hubRow(systemImage: subject.systemImage, title: subject.title,
+                      subtitle: sortMakerBlurb(subject, saved),
+                      state: percent.map { statusBlock(primary: "\($0)%") })
     }
 
     private func tierListRow(_ subject: SortMakerSubject) -> some View {
         let count = tierStore.boards(for: subject).count
-        return HStack(spacing: 12) {
-            Image(systemName: "square.stack.3d.up")
-                .font(.imasScaled(18, weight: .semibold))
-                .foregroundStyle(DS.onSys)
-                .frame(width: 40, height: 40)
-                .background(DS.sys, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(subject.tierTitle).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                Text(count > 0 ? "保存 \(count) 件" : "段に振り分けて1枚の画像に")
-                    .font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.imasScaled(13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
-        }
-        .padding(.horizontal, DS.sp4)
-        .frame(minHeight: 64)
-        .background(DS.surface)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        return hubRow(systemImage: "square.stack.3d.up", title: subject.tierTitle,
+                      subtitle: count > 0 ? "保存 \(count) 件" : "段に振り分けて1枚の画像に",
+                      state: nil)
     }
 
     private func sortMakerBlurb(_ subject: SortMakerSubject, _ saved: SortMakerSession?) -> String {
@@ -285,55 +221,47 @@ struct GamesHubView: View {
 
     private func gameRow(_ entry: GameEntry) -> some View {
         let rec = progress.record(for: entry.kind)
-        return HStack(spacing: 12) {
-            icon(entry)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.title).font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                Text(entry.blurb).font(.imasFootnote).foregroundStyle(DS.ink3).lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 1) {
-                if let s = resumeStore.suspended(entry.kind) {
-                    Text("プレイ中").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink2)
-                    Text(String(format: "Q.%02d", min(s.plays.count + 1, s.total))).font(.imasCaption2).foregroundStyle(DS.ink3)
-                } else if rec.hasPlayed, let grade = bestGrade(entry.kind) {
-                    Text(grade.label).font(QS.num(22)).foregroundStyle(DS.ink)
-                    Text(bestLabel(entry.kind, rec)).font(.imasCaption2).foregroundStyle(DS.ink3)
-                } else {
-                    Text("未プレイ").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
-                }
-            }
-            Image(systemName: "chevron.right")
-                .font(.imasScaled(13, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+        let state: AnyView?
+        if let s = resumeStore.suspended(entry.kind) {
+            state = statusBlock(primary: "プレイ中", secondary: String(format: "Q.%02d", min(s.plays.count + 1, s.total)))
+        } else if rec.hasPlayed, let grade = bestGrade(entry.kind) {
+            state = statusBlock(primary: grade.label, secondary: bestLabel(entry.kind, rec), primaryFont: QS.num(22))
+        } else {
+            state = statusBlock(primary: "未プレイ")
         }
-        .padding(.horizontal, DS.sp4)
-        .frame(minHeight: 64)
-        .background(DS.surface)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
+        return hubRow(systemImage: entry.systemImage,
+                      customIcon: entry.kind == .colorMatch ? AnyView(ImasStageColorGridIcon()) : nil,
+                      title: entry.title, subtitle: entry.blurb, state: state)
     }
 
-    /// 暗いステージ色のアイコン。メンバーカラーだけ色の 2×2 にする。
-    @ViewBuilder
-    private func icon(_ entry: GameEntry) -> some View {
-        if entry.kind == .colorMatch {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 3), GridItem(.flexible(), spacing: 3)], spacing: 3) {
-                ForEach([0, 4, 2, 3], id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 4, style: .continuous).fill(QS.penlight(i)).frame(height: 9)
+    /// 行の右に出す状態 (プレイ中・自己ベスト・進み具合)。1〜2 行、色は灰。
+    private func statusBlock(primary: String, secondary: String? = nil, primaryFont: Font = .imasCaption.weight(.semibold)) -> AnyView {
+        AnyView(
+            VStack(alignment: .trailing, spacing: DS.sp1) {
+                Text(primary).font(primaryFont).foregroundStyle(DS.ink2)
+                if let secondary {
+                    Text(secondary).font(.imasCaption2).foregroundStyle(DS.ink3)
                 }
             }
-            .padding(9)
-            .frame(width: 40, height: 40)
-            .background(QS.bg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        } else {
-            Image(systemName: entry.systemImage)
-                .font(.imasScaled(18, weight: .semibold))
-                .foregroundStyle(QS.ink)
-                .frame(width: 40, height: 40)
-                .background(QS.bg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
+        )
+    }
+
+    /// ゲーム・ソートメーカー・ティアー表、3 つの入口が同じ行の形になるようにまとめたもの。
+    /// 記号は地を敷かず (`ImasIconTile`)、右は自己ベスト・進み具合などの状態と矢印。
+    private func hubRow(systemImage: String, customIcon: AnyView? = nil, title: String, subtitle: String,
+                        state: AnyView?) -> some View {
+        ImasRow(
+            title: title,
+            subtitle: subtitle,
+            leading: customIcon.map { ImasRowLeading.custom($0, width: 40) } ?? .icon(systemImage, tone: .solid),
+            trailing: .custom(AnyView(
+                HStack(spacing: DS.Space.gap) {
+                    state
+                    ImasRowChevron()
+                }
+            )),
+            density: .regular
+        )
     }
 
     /// 最高記録の表示文字列。色合わせは正答率%、クイズ系は獲得ポイント。

@@ -342,18 +342,22 @@ struct QuizTicket<Content: View>: View {
     }
 }
 
-/// チケットの切り取り線 (両端がステージ色の半円で欠ける)。
+/// チケットの切り取り線 (両端が周りの地色の半円で欠ける)。
 struct QuizTicketNotch: View {
+    /// 両端の半円の色。実際のステージ画面 (常に暗い) は既定の `QS.bg` のまま、
+    /// 明暗が切り替わる地の上にチケットを置く画面 (ハブのチケットなど) は呼び出し側から渡す。
+    var background: Color = QS.bg
+
     var body: some View {
         HStack(spacing: 0) {
             UnevenRoundedRectangle(bottomTrailingRadius: 9, topTrailingRadius: 9)
-                .fill(QS.bg).frame(width: 9, height: 18)
+                .fill(background).frame(width: 9, height: 18)
             Line()
                 .stroke(QS.paperDash, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                 .frame(height: 1.5)
                 .padding(.horizontal, 8)
             UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 9)
-                .fill(QS.bg).frame(width: 9, height: 18)
+                .fill(background).frame(width: 9, height: 18)
         }
         .frame(height: 18)
         .accessibilityHidden(true)
@@ -555,20 +559,11 @@ struct QuizStageChoiceGrid: View {
                     .contentShape(Rectangle())
                     .opacity(isOut ? 0.35 : 1)
                 }
-                .buttonStyle(QuizPressStyle())
+                .buttonStyle(.imasPress)
                 .disabled(isOut)
                 .animation(.easeInOut(duration: 0.2), value: isOut)
             }
         }
-    }
-}
-
-/// 押している間だけ少し沈む。
-struct QuizPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -745,27 +740,17 @@ struct QuizVerdictStats: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            tile(label: "スコア") {
+            ImasStageStatTile(label: "スコア") {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(before)").font(QS.num(20)).foregroundStyle(QS.faint)
                     Image(systemName: "arrow.right").font(.system(size: 11, weight: .bold)).foregroundStyle(QS.faint)
                     Text("\(after)").font(QS.num(30))
                 }
             }
-            tile(label: "連続正解") {
+            ImasStageStatTile(label: "連続正解") {
                 Text("\(streak)").font(QS.num(30))
             }
         }
-    }
-
-    private func tile<V: View>(label: String, @ViewBuilder value: () -> V) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
-            value().foregroundStyle(QS.ink)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14).padding(.vertical, 12)
-        .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -774,20 +759,27 @@ struct QuizStagePrimaryButton: View {
     let title: String
     var systemImage: String? = nil
     var trailingArrow = false
+    /// 行の中などに収める小さい形 (高さ 44・横幅は中身なり)。既定は画面いっぱいの大ボタン。
+    var compact: Bool = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                if let systemImage { Image(systemName: systemImage).font(.system(size: 16, weight: .bold)) }
-                Text(title).font(QS.text(18, weight: .black))
-                if trailingArrow { Image(systemName: "arrow.right").font(.system(size: 16, weight: .bold)) }
+            HStack(spacing: compact ? 6 : 10) {
+                if let systemImage {
+                    Image(systemName: systemImage).font(.system(size: compact ? 13 : 16, weight: .bold))
+                }
+                Text(title).font(compact ? QS.text(15, weight: .bold) : QS.text(18, weight: .black))
+                if trailingArrow {
+                    Image(systemName: "arrow.right").font(.system(size: compact ? 13 : 16, weight: .bold))
+                }
             }
             .foregroundStyle(QS.bg)
-            .frame(maxWidth: .infinity, minHeight: 58)
-            .background(QS.ink, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, compact ? 20 : 0)
+            .frame(maxWidth: compact ? nil : .infinity, minHeight: compact ? 44 : 58)
+            .background(QS.ink, in: RoundedRectangle(cornerRadius: compact ? 14 : 18, style: .continuous))
         }
-        .buttonStyle(QuizPressStyle())
+        .buttonStyle(.imasPress)
     }
 }
 
@@ -803,7 +795,7 @@ struct QuizStageSecondaryButton: View {
                 .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(QS.line, lineWidth: 1))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(QuizPressStyle())
+        .buttonStyle(.imasPress)
     }
 }
 
@@ -901,18 +893,9 @@ struct QuizStageResultView: View {
     }
 
     private var bestStamp: some View {
-        VStack(spacing: 1) {
-            Text("自己ベスト更新").font(QS.text(13, weight: .black))
-            if let previousBest {
-                Text("\(previousBest) → \(result.points)").font(QS.mono(11))
-            }
-        }
-        .foregroundStyle(QS.stamp)
-        .padding(.horizontal, 10).padding(.vertical, 4)
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(QS.stamp, lineWidth: 2))
-        .rotationEffect(.degrees(-5))
-        .scaleEffect(appeared ? 1 : 1.8)
-        .opacity(appeared ? 1 : 0)
+        ImasStageBadgeStamp(title: "自己ベスト更新",
+                           detail: previousBest.map { "\($0) → \(result.points)" },
+                           appeared: appeared)
     }
 
     /// グレードの目安 (正答率の閾値はコアの `QuizGrade::from_rate` と同じ)。
@@ -1097,18 +1080,8 @@ extension GameProgressStore {
 /// 不正解のあとに添える一言。
 struct QuizVerdictFootnote: View {
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: 18, weight: .semibold)).foregroundStyle(QS.dim)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("この問題は結果画面から見直せます").font(QS.text(13, weight: .bold)).foregroundStyle(QS.ink)
-                Text("次に正解すると連続記録がまた始まります").font(QS.text(11)).foregroundStyle(QS.dim)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .background(QS.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .accessibilityElement(children: .combine)
+        ImasStageInfoRow(systemImage: "arrow.counterclockwise", title: "この問題は結果画面から見直せます",
+                         detail: "次に正解すると連続記録がまた始まります")
     }
 }
 
@@ -1169,7 +1142,7 @@ struct QuizTicketHintTile: View {
                     .strokeBorder(QS.paperMuted, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])))
                 .contentShape(Rectangle())
             }
-            .buttonStyle(QuizPressStyle())
+            .buttonStyle(.imasPress)
             .accessibilityLabel("\(title)のヒントを開く。\(cost)点下がります")
         case .open(let value):
             VStack(spacing: 0) {

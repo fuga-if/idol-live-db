@@ -200,13 +200,9 @@ struct SetlistQuizView: View {
             Text(q.performers.map(\.name).joined(separator: "、"))
                 .font(QS.text(14, weight: .bold)).foregroundStyle(QS.paperInk)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 4) {
-                ForEach(Array(q.performers.prefix(16).enumerated()), id: \.offset) { i, p in
-                    Capsule().fill(p.color.map { Color(hexString: $0, default: QS.penlight(i)) } ?? QS.penlight(i))
-                        .frame(width: 8, height: 20)
-                }
-            }
-            .accessibilityHidden(true)
+            ImasStagePenlightBars(colors: q.performers.prefix(16).enumerated().map { i, p in
+                p.color.map { Color(hexString: $0, default: QS.penlight(i)) } ?? QS.penlight(i)
+            })
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
