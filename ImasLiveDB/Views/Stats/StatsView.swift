@@ -47,22 +47,17 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp7) {
-                    collectionSummarySection
-                    brandProgressSection
-                    catchChanceSection
-                    uncollectedSection
-                    latestSection
-                    heatSection
-                    songPlayRankingSection
-                    castShowRankingSection
-                    brandSongSection
-                }
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp6)
+            ImasPage {
+                collectionSummarySection
+                brandProgressSection
+                catchChanceSection
+                uncollectedSection
+                latestSection
+                heatSection
+                songPlayRankingSection
+                castShowRankingSection
+                brandSongSection
             }
-            .background(DS.bg.ignoresSafeArea())
             .navigationTitle("回収ダッシュボード")
             .task { await loadStats() }
             .sheet(item: $selectedSong) { song in
@@ -84,39 +79,25 @@ struct StatsView: View {
     // MARK: - 回収サマリー (全体リング + シェア導線)
 
     private var collectionSummarySection: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
-            ImasSectionHeader(title: "あなたの回収率", tight: true)
-            HStack(spacing: DS.sp5) {
-                CollectionRing(
-                    fraction: overallTotal > 0 ? Double(overallCollected) / Double(overallTotal) : 0,
-                    seed: nil
-                )
-                .frame(width: 92, height: 92)
-
-                VStack(alignment: .leading, spacing: DS.sp3) {
-                    HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                        Text("\(overallCollected)")
-                            .font(.imasDisplay(30, weight: .bold))
-                            .foregroundStyle(DS.ink)
-                        Text("/ \(overallTotal)曲")
-                            .font(.imasDisplay(15))
-                            .foregroundStyle(DS.ink2)
+        ImasSection("あなたの回収率", style: .small) {
+            ImasCard {
+                HStack(spacing: DS.Space.card) {
+                    ImasProgressRing(fraction: overallTotal > 0 ? Double(overallCollected) / Double(overallTotal) : 0,
+                                      size: 92)
+                    VStack(alignment: .leading, spacing: DS.Space.gap) {
+                        ImasBoard(cells: [
+                            .init(value: "\(overallCollected) / \(overallTotal)", unit: "曲", label: "現地ライブで聴けた曲"),
+                        ])
+                        Button {
+                            showCollectionShare = true
+                        } label: {
+                            ImasChip(text: "カードでシェア", systemImage: "square.and.arrow.up", style: .selected)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    Text("現地ライブで聴けた曲")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                    Button {
-                        showCollectionShare = true
-                    } label: {
-                        ImasChip(text: "カードでシェア", systemImage: "square.and.arrow.up", style: .selected)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, DS.sp1)
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
             }
-            .padding(DS.sp5)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         }
     }
 
@@ -126,20 +107,19 @@ struct StatsView: View {
     private var brandProgressSection: some View {
         let rows = brandProgress.filter { $0.total > 0 }
         if !rows.isEmpty {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "ブランド別の回収率", tight: true)
-                VStack(spacing: 0) {
-                    ForEach(rows) { item in
-                        ImasStatBar(
-                            label: item.shortName,
-                            value: "\(item.collected)/\(item.total)",
-                            percent: item.fraction * 100,
-                            seed: item.color
-                        )
+            ImasSection("ブランド別の回収率", style: .small) {
+                ImasCard {
+                    VStack(spacing: 0) {
+                        ForEach(rows) { item in
+                            ImasStatBar(
+                                label: item.shortName,
+                                value: "\(item.collected)/\(item.total)",
+                                percent: item.fraction * 100,
+                                seed: item.color
+                            )
+                        }
                     }
                 }
-                .padding(.horizontal, DS.sp4)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
         }
     }
@@ -149,101 +129,63 @@ struct StatsView: View {
     @ViewBuilder
     private var catchChanceSection: some View {
         if !catchChances.isEmpty {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "この公演で聴けるかも", tight: true)
-                VStack(spacing: DS.sp3) {
+            ImasSection("この公演で聴けるかも", style: .small) {
+                VStack(spacing: DS.Space.gap) {
                     ForEach(catchChances) { chance in
-                        Button {
-                            selectedShow = chance.show
-                        } label: {
-                            catchChanceCard(chance)
-                        }
-                        .buttonStyle(.plain)
+                        ImasTicket(
+                            label: abbreviateEventNames ? chance.eventShortName : chance.eventName,
+                            imprint: nil,
+                            title: chance.show.name,
+                            metaImprint: mastheadDate(date: chance.show.date),
+                            meta: (chance.show.venue?.isEmpty == false) ? chance.show.venue : nil,
+                            brand: chance.brandColor,
+                            countdown: .init(prefix: "未回収", value: "\(chance.likelyCount)", unit: "SONGS"),
+                            onOpen: { selectedShow = chance.show }
+                        )
                     }
                 }
             }
         }
-    }
-
-    private func catchChanceCard(_ chance: UpcomingCatchChance) -> some View {
-        HStack(spacing: DS.sp4) {
-            ImasLeadBar(seed: chance.brandColor)
-                .frame(maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                Text("\(displayDate(chance.show.date)) ・ \(abbreviateEventNames ? chance.eventShortName : chance.eventName)")
-                    .font(.imasDisplay(12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                    .lineLimit(1)
-                Text(chance.show.name)
-                    .font(.imasHeadline.weight(.bold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                if let venue = chance.show.venue, !venue.isEmpty {
-                    Label {
-                        Text(venue)
-                    } icon: {
-                        Image(systemName: "mappin.and.ellipse")
-                    }
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .labelStyle(.titleAndIcon)
-                }
-            }
-            Spacer(minLength: 0)
-            VStack(spacing: DS.sp1) {
-                ImasMetricBadge(value: "\(chance.likelyCount)", unit: "曲", seed: chance.brandColor)
-                Text("過去に披露")
-                    .font(.imasScaled( 10, weight: .medium))
-                    .foregroundStyle(DS.ink3)
-            }
-        }
-        .padding(DS.sp5)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - 未回収曲
 
     @ViewBuilder
     private var uncollectedSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
-            HStack(alignment: .firstTextBaseline) {
-                ImasSectionHeader(title: "まだ生で聴けていない曲", tight: true)
-                Spacer(minLength: 12)
-                if uncollectedScope == .myPick && myPickTotal > 0 {
-                    Text("担当 \(myPickCollected)/\(myPickTotal)")
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(DS.ink3)
-                }
-            }
+        ImasSection(
+            "まだ生で聴けていない曲",
+            count: (uncollectedScope == .myPick && myPickTotal > 0) ? "担当 \(myPickCollected)/\(myPickTotal)" : nil,
+            style: .small
+        ) {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                scopePicker
+                    .onChange(of: uncollectedScope) { _, _ in applyUncollectedScope() }
 
-            scopePicker
-                .onChange(of: uncollectedScope) { _, _ in applyUncollectedScope() }
-
-            if isLoadingDashboard {
-                ImasInlineLoading()
-                    .padding(.vertical, DS.sp6)
-            } else if uncollectedSongs.isEmpty {
-                ImasEmptyState(
-                    systemImage: "checkmark.seal",
-                    title: uncollectedScope == .myPick ? "担当曲はコンプリート！" : "未回収曲はありません",
-                    message: uncollectedScope == .myPick
-                        ? "参加ライブを記録すると、担当のオリ曲の回収状況がここに出ます。"
-                        : "参加ライブを記録すると、未回収曲がここに並びます。"
-                )
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            } else {
-                ImasCardList {
+                if isLoadingDashboard {
+                    ImasInlineLoading()
+                } else if uncollectedSongs.isEmpty {
+                    ImasCard {
+                        ImasEmptyState(
+                            systemImage: "checkmark.seal",
+                            title: uncollectedScope == .myPick ? "担当曲はコンプリート！" : "未回収曲はありません",
+                            message: uncollectedScope == .myPick
+                                ? "参加ライブを記録すると、担当のオリ曲の回収状況がここに出ます。"
+                                : "参加ライブを記録すると、未回収曲がここに並びます。"
+                        )
+                    }
+                } else {
                     let shown = Array(uncollectedSongs.prefix(30))
-                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
+                    ImasCardList(shown) { item in
                         Button {
                             selectedSong = item.song
                         } label: {
-                            uncollectedRow(item)
+                            ImasSongRow(
+                                song: item.song,
+                                subtitle: brandShortName(for: item.song.brandId),
+                                trailing: .custom(AnyView(frequencyBadge(item)))
+                            )
                         }
-                        .buttonStyle(.plain)
-                        if index < shown.count - 1 {
-                            ImasRowDivider(inset: 70)
-                        }
+                        .buttonStyle(.imasRow)
                     }
                 }
             }
@@ -258,56 +200,18 @@ struct StatsView: View {
         return ImasSegmented(labels: ["担当のオリ曲", "全体"], selection: binding)
     }
 
-    private func uncollectedRow(_ item: UncollectedSong) -> some View {
-        HStack(spacing: DS.sp4) {
-            ImasArtwork(
-                title: item.song.title,
-                seed: BrandColors.hex(for: item.song.brandId),
-                size: 44,
-                imageURL: artworkURL(item.song.artworkUrl)
-            )
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(item.song.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                Text(brandShortName(for: item.song.brandId) ?? "")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            frequencyBadge(item)
-        }
-        .padding(.horizontal, 14).padding(.vertical, 9)
-        .background(DS.surface)
-    }
-
-    /// 披露頻度バッジ。 定番=warning, ときどき=neutral, レア/未披露=muted。
+    /// 披露頻度バッジ。 定番=attention(墨の線)、ときどき=neutral(灰)、レア/未披露=negative(薄字)。
     private func frequencyBadge(_ item: UncollectedSong) -> some View {
-        let fg: Color
-        let bg: Color
+        let kind: ImasBadge.Kind
         switch item.frequency {
-        case .staple:
-            fg = DS.warning
-            bg = DS.warning.opacity(0.14)
-        case .sometimes:
-            fg = DS.ink2
-            bg = DS.fill
-        case .rare, .never:
-            fg = DS.ink3
-            bg = DS.fill
+        case .staple: kind = .attention
+        case .sometimes: kind = .neutral
+        case .rare, .never: kind = .negative
         }
-        return VStack(alignment: .trailing, spacing: DS.sp1) {
-            Text(item.frequencyLabel)
-                .font(.imasScaled( 11, weight: .semibold))
-                .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp1)
-                .foregroundStyle(fg)
-                .background(bg, in: Capsule())
+        return VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
+            ImasBadge(text: item.frequencyLabel, kind: kind)
             if item.playCount > 0 {
-                Text("\(item.playCount)回披露")
-                    .font(.imasScaled( 10, weight: .medium))
-                    .foregroundStyle(DS.ink3)
+                ImasMetric(value: "\(item.playCount)", unit: "回披露", size: .small)
             }
         }
     }
@@ -317,8 +221,7 @@ struct StatsView: View {
     @ViewBuilder
     private var latestSection: some View {
         if let show = latestShow {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "最新の動き", tight: true)
+            ImasSection("最新の動き", style: .small) {
                 NavigationLink {
                     SetlistView(show: show)
                 } label: {
@@ -336,87 +239,59 @@ struct StatsView: View {
             if latestShowSongCount > 0 { parts.append("セトリ \(latestShowSongCount)曲") }
             return parts.joined(separator: " ・ ")
         }()
-        return HStack(spacing: DS.sp4) {
-            ImasLeadBar(seed: latestShowBrandColor)
-                .frame(maxHeight: .infinity)
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                Text("最新公演 ・ \(displayDate(show.date))")
-                    .font(.imasDisplay(12, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                Text(show.name)
-                    .font(.imasHeadline.weight(.bold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                if !venueLine.isEmpty {
-                    Label {
-                        Text(venueLine)
-                    } icon: {
-                        Image(systemName: "mappin.and.ellipse")
-                    }
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .labelStyle(.titleAndIcon)
-                }
-                HStack {
-                    ImasChip(text: "セトリを見る", systemImage: "music.note.list",
-                             style: .themed, seed: latestShowBrandColor)
-                }
-                .padding(.top, DS.sp1)
-            }
-            Spacer(minLength: 0)
+        return ImasShowRow(
+            date: show.date,
+            title: show.name,
+            subtitle: venueLine.isEmpty ? nil : venueLine,
+            brandHex: latestShowBrandColor
+        ) {
+            ImasChip(text: "セトリを見る", systemImage: "music.note.list", style: .themed, seed: latestShowBrandColor)
         }
-        .padding(DS.sp5)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
     }
 
     // MARK: - コミュニティの熱量 (お気に入りランキング ♥)
 
     @ViewBuilder
     private var heatSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
-            ImasSectionHeader(title: "コミュニティの熱量", tight: true)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
+        ImasSection("コミュニティの熱量", style: .small) {
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                ImasChipRow {
                     brandFilterChip(label: "すべて", brandId: nil)
                     ForEach(brands) { brand in
                         brandFilterChip(label: brand.shortName, brandId: brand.id, seed: brand.color)
                     }
                 }
-                .padding(.horizontal, DS.sp1)
-            }
 
-            if isLoadingFavorites {
-                HStack {
-                    ImasLoadingState()
-                }
-                .padding(.vertical, DS.sp6)
-            } else if favoritesRanking.isEmpty {
-                ImasEmptyState(
-                    systemImage: "heart",
-                    title: "まだデータがありません",
-                    message: "お気に入り登録が増えるとここにランキングが表示されます。"
-                )
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            } else {
-                ImasCardList {
-                    ForEach(Array(favoritesRanking.enumerated()), id: \.element.id) { index, entry in
-                        Button {
-                            Task { selectedSong = try? await AppContainer.shared.songReading.song(id: entry.songId) }
-                        } label: {
-                            ImasRankingRow(
-                                rank: index + 1,
-                                lead: .artwork(title: entry.title, imageURL: artworkURL(entry.artworkUrl)),
-                                title: entry.title,
-                                sub: brandShortName(for: entry.brandId),
-                                metric: heatMetric(entry.count),
-                                unit: "♥",
-                                brand: brandHex(for: entry.brandId)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        if index < favoritesRanking.count - 1 {
-                            ImasRowDivider(inset: 52)
+                if isLoadingFavorites {
+                    ImasInlineLoading()
+                } else if favoritesRanking.isEmpty {
+                    ImasCard {
+                        ImasEmptyState(
+                            systemImage: "heart",
+                            title: "まだデータがありません",
+                            message: "お気に入り登録が増えるとここにランキングが表示されます。"
+                        )
+                    }
+                } else {
+                    ImasCardList {
+                        ForEach(Array(favoritesRanking.enumerated()), id: \.element.id) { index, entry in
+                            Button {
+                                Task { selectedSong = try? await AppContainer.shared.songReading.song(id: entry.songId) }
+                            } label: {
+                                ImasRankingRow(
+                                    rank: index + 1,
+                                    lead: .artwork(title: entry.title, imageURL: artworkURL(entry.artworkUrl)),
+                                    title: entry.title,
+                                    sub: brandShortName(for: entry.brandId),
+                                    metric: heatMetric(entry.count),
+                                    unit: "♥",
+                                    brand: brandHex(for: entry.brandId)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            if index < favoritesRanking.count - 1 {
+                                ImasRowDivider(inset: 52)
+                            }
                         }
                     }
                 }
@@ -430,8 +305,7 @@ struct StatsView: View {
     @ViewBuilder
     private var songPlayRankingSection: some View {
         if !songPlayCounts.isEmpty {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "活動量 ・ 披露回数", tight: true)
+            ImasSection("活動量 ・ 披露回数", style: .small) {
                 ImasCardList {
                     ForEach(Array(songPlayCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
@@ -457,8 +331,7 @@ struct StatsView: View {
     @ViewBuilder
     private var castShowRankingSection: some View {
         if !castShowCounts.isEmpty {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "活動量 ・ 出演回数", tight: true)
+            ImasSection("活動量 ・ 出演回数", style: .small) {
                 ImasCardList {
                     ForEach(Array(castShowCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
@@ -483,20 +356,19 @@ struct StatsView: View {
     private var brandSongSection: some View {
         if !brandCounts.isEmpty {
             let maxCount = brandCounts.map(\.songCount).max() ?? 1
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                ImasSectionHeader(title: "マスタ規模 ・ ブランド別楽曲数", tight: true)
-                VStack(spacing: 0) {
-                    ForEach(brandCounts) { item in
-                        ImasStatBar(
-                            label: item.shortName,
-                            value: "\(item.songCount)",
-                            percent: maxCount > 0 ? Double(item.songCount) / Double(maxCount) * 100 : 0,
-                            seed: item.color
-                        )
+            ImasSection("マスタ規模 ・ ブランド別楽曲数", style: .small) {
+                ImasCard {
+                    VStack(spacing: 0) {
+                        ForEach(brandCounts) { item in
+                            ImasStatBar(
+                                label: item.shortName,
+                                value: "\(item.songCount)",
+                                percent: maxCount > 0 ? Double(item.songCount) / Double(maxCount) * 100 : 0,
+                                seed: item.color
+                            )
+                        }
                     }
                 }
-                .padding(.horizontal, DS.sp4)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
         }
     }
@@ -539,14 +411,6 @@ struct StatsView: View {
         let f = NumberFormatter()
         f.numberStyle = .decimal
         return f.string(from: NSNumber(value: count)) ?? "\(count)"
-    }
-
-    /// "2026-06-04" → "6/4" 表示用。失敗時は元文字列。
-    private func displayDate(_ raw: String) -> String {
-        let comps = raw.split(separator: "-")
-        guard comps.count >= 3,
-              let m = Int(comps[1]), let d = Int(comps[2]) else { return raw }
-        return "\(m)/\(d)"
     }
 
     // MARK: - Loading
@@ -610,31 +474,5 @@ struct StatsView: View {
         isLoadingFavorites = true
         favoritesRanking = (try? await CommunityAPI.shared.favoritesRanking(brandId: favoriteBrandId, limit: 20)) ?? []
         isLoadingFavorites = false
-    }
-}
-
-// MARK: - 回収リング (進捗ドーナツ)
-
-/// 回収率を表す円弧プログレス。 トラック + アクセント色の弧 + 中央% 表示。
-private struct CollectionRing: View {
-    /// 0.0–1.0。
-    let fraction: Double
-    var seed: String?
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        let clamped = min(1, max(0, fraction))
-        ZStack {
-            Circle()
-                .stroke(DS.fill, lineWidth: 10)
-            Circle()
-                .trim(from: 0, to: clamped)
-                .stroke(t.accent, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Text("\(Int((clamped * 100).rounded()))%")
-                .font(.imasDisplay(20, weight: .bold))
-                .foregroundStyle(DS.ink)
-        }
     }
 }
