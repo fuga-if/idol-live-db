@@ -167,12 +167,6 @@ private struct VenuePage: View {
                 }
                 .imasTheme(seed: Sample.haruka)
             }
-            ImasSection("参加の印", style: .small, footer: "参加した公演は半券に穴。行の場所を取らない。回収は印にせず事実の札 (初回収) で出す。") {
-                HStack(alignment: .bottom, spacing: DS.Space.section) {
-                    ImasPunchHole()
-                    ImasPunchHole(size: .small)
-                }
-            }
             ImasSection("切り取り線", style: .small) {
                 ImasPerforation()
             }
@@ -207,7 +201,7 @@ private struct VenueRowsPage: View {
                                 subtitle: "配信 · ASOBI STAGE", brand: "#656a75",
                                 badges: [.init(text: "配信", kind: .neutral)])
                     ImasStubRow(date: ImasStubDate("2026-09-23"), title: "学園アイドルマスター LIVE TOUR -標- 岩手公演 DAY2",
-                                subtitle: "トーサイクラシックホール岩手", brand: Sample.gakuen, isPunched: true,
+                                subtitle: "トーサイクラシックホール岩手", brand: Sample.gakuen,
                                 badges: [.init(text: "参加", kind: .positive)])
                     ImasStubRow(date: ImasStubDate("2024-08"), title: "日付が月までの公演", subtitle: "会場未定")
                 }
@@ -901,7 +895,7 @@ private struct ListTemplatePage: View {
             }
             ImasListSection("ライブ") {
                 ImasShowRow(date: "2025-12-13", title: "DAY1", subtitle: "京セラドーム大阪 · 17:00 開演",
-                            brandHex: Sample.as765, isPunched: true, badges: [.init(text: "参加", kind: .positive)])
+                            brandHex: Sample.as765, badges: [.init(text: "参加", kind: .positive)])
                 ImasShowRow(date: "2025-12-14", title: "DAY2", subtitle: "京セラドーム大阪 · 16:00 開演",
                             brandHex: Sample.as765)
             }
