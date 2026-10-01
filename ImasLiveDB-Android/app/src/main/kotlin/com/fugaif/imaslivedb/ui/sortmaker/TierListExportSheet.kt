@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
+import com.fugaif.imaslivedb.di.AppModule
 import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
@@ -229,12 +230,20 @@ private fun shareText(board: TierListBoard, items: Map<String, SortMakerItem>): 
 )
 
 /** 段に載っている曲のジャケを小さく読む (数百枚でも重くならない大きさ、同時 8 枚まで)。 */
+/**
+ * 段に載っているものの絵を小さく読む。曲はジャケ、アイドルはアプリ内で出しているのと
+ * 同じアイコン (利用者が取り込んだ画像)。アイコンが無いアイドルはモノグラムのまま。
+ */
 private suspend fun loadThumbnails(context: Context, board: TierListBoard, items: Map<String, SortMakerItem>): Map<String, ImageBitmap> {
-    val targets = board.itemIds.mapNotNull { id ->
+    val imageStore = AppModule.from(context).customImageStore
+    val targets: List<Pair<String, Any>> = board.itemIds.mapNotNull { id ->
         if (board.tierIndexOf(id) == null) return@mapNotNull null
-        val song = (items[id] as? SortMakerItem.SongItem)?.song ?: return@mapNotNull null
-        val url = song.artworkUrl?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-        id to url
+        when (val item = items[id]) {
+            is SortMakerItem.SongItem ->
+                item.song.artworkUrl?.takeIf { it.isNotBlank() }?.let { id to ShareCardArtwork.highResolution(it) }
+            is SortMakerItem.IdolItem -> imageStore.primaryImageFile(item.idol.id)?.let { id to it }
+            else -> null
+        }
     }
     if (targets.isEmpty()) return emptyMap()
     val semaphore = Semaphore(8)
@@ -247,9 +256,9 @@ private suspend fun loadThumbnails(context: Context, board: TierListBoard, items
     }
 }
 
-private suspend fun loadThumbnail(context: Context, url: String): ImageBitmap? {
+private suspend fun loadThumbnail(context: Context, data: Any): ImageBitmap? {
     val request = ImageRequest.Builder(context)
-        .data(ShareCardArtwork.highResolution(url))
+        .data(data)
         .size(144, 144)
         .allowHardware(false)
         .build()
@@ -393,6 +402,14 @@ private fun ExportVisual(id: String, items: Map<String, SortMakerItem>, thumbnai
         }
         is SortMakerItem.IdolItem -> {
             val palette = rememberShareCardPalette(seed = item.idol.color)
+            val icon = thumbnails[id]
+            if (icon != null) {
+                Image(
+                    bitmap = icon, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(CELL).clip(CircleShape).border(2.dp, palette.accent, CircleShape)
+                )
+                return
+            }
             val shortName = item.idol.shortName
             Box(
                 Modifier

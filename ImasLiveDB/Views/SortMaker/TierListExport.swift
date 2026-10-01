@@ -112,12 +112,18 @@ struct TierListExportSheet: View {
         image = renderer.uiImage
     }
 
-    /// 段に載っている曲のジャケを小さく読む (数百枚でも重くならない大きさ)。
+    /// 段に載っているものの絵を小さく読む (数百枚でも重くならない大きさ)。
+    /// 曲はジャケ、アイドルはアプリ内で出しているのと同じアイコン (利用者が設定した画像)。
+    /// アイコンが無いアイドルはモノグラムのまま。
     private func loadThumbnails() async -> [String: UIImage] {
+        let imageService = CustomImageService.shared
         let targets: [(String, URL)] = board.itemIds.compactMap { id in
-            guard board.tierIndex(of: id) != nil, case .song(let song)? = items[id],
-                  let url = song.artworkUrl.flatMap(URL.safeHTTP(string:)) else { return nil }
-            return (id, url)
+            guard board.tierIndex(of: id) != nil else { return nil }
+            switch items[id] {
+            case .song(let song): return song.artworkUrl.flatMap(URL.safeHTTP(string:)).map { (id, $0) }
+            case .idol(let idol): return imageService.imageURL(for: idol.id).map { (id, $0) }
+            case nil: return nil
+            }
         }
         return await withTaskGroup(of: (String, UIImage?).self) { group in
             var result: [String: UIImage] = [:]
@@ -138,6 +144,18 @@ struct TierListExportSheet: View {
     }
 
     private static func thumbnail(_ url: URL) async -> UIImage? {
+        // 端末内の画像 (アイドルのアイコン) はその場で縮める。
+        if url.isFileURL {
+            guard let image = UIImage(contentsOfFile: url.path) else { return nil }
+            let side: CGFloat = 144
+            let scale = side / min(image.size.width, image.size.height)
+            let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                image.draw(in: CGRect(origin: .zero, size: size))
+            }
+        }
         let request = ImageRequest(url: url, processors: [.resize(size: CGSize(width: 144, height: 144), unit: .pixels)])
         do {
             return try await ImagePipeline.shared.image(for: request)
@@ -172,7 +190,7 @@ struct TierListExportSheet: View {
 ///
 /// ImageRenderer で焼く固定キャンバスなので、色は固定色、文字は固定 pt
 /// (アプリの文字サイズ倍率がかかると枠からあふれる。共有カードと同じ扱い)。
-/// 版権の都合でアイドルの絵は載せず、メンバーカラーのモノグラムにする。
+/// アイドルはアプリ内と同じアイコン (利用者が設定した画像) を、無ければメンバーカラーのモノグラムを載せる。
 struct TierListBoardImage: View {
     let board: TierListBoard
     let items: [String: SortMakerItem]
@@ -284,6 +302,12 @@ struct TierListBoardImage: View {
                             .padding(4)
                     )
             }
+        case .idol(let idol) where thumbnails[id] != nil:
+            Image(uiImage: thumbnails[id]!)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(ShareCardPalette(seed: idol.color).accent, lineWidth: 2))
         case .idol(let idol):
             let palette = ShareCardPalette(seed: idol.color)
             Circle()
