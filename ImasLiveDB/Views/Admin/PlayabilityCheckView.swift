@@ -39,7 +39,7 @@ struct PlayabilityCheckView: View {
                 }
                 .pickerStyle(.segmented)
                 Text("レート制限で DecodingError が出たら並列度を 2 に落として再実行してください。")
-                    .font(.caption).foregroundStyle(DS.ink2)
+                    .font(.imasCaption).foregroundStyle(DS.ink2)
             }
             Section {
                 Button {
@@ -53,11 +53,11 @@ struct PlayabilityCheckView: View {
                     VStack(alignment: .leading, spacing: DS.sp2) {
                         ProgressView(value: Double(processed), total: Double(totalCount))
                         Text("\(processed) / \(totalCount) (再生不可 \(unplayable.count))")
-                            .font(.caption).foregroundStyle(DS.ink2)
+                            .font(.imasCaption).foregroundStyle(DS.ink2)
                     }
                 }
                 if let errorMessage {
-                    Text(errorMessage).foregroundStyle(.red).font(.caption)
+                    Text(errorMessage).foregroundStyle(DS.danger).font(.imasCaption)
                 }
             }
 
@@ -74,7 +74,7 @@ struct PlayabilityCheckView: View {
                             ProgressView(value: Double(altProcessed), total: Double(altTotal))
                             let hits = altRows.filter { $0.candidateAppleMusicId != nil }.count
                             Text("\(altProcessed) / \(altTotal) (代替見つかった: \(hits))")
-                                .font(.caption).foregroundStyle(DS.ink2)
+                                .font(.imasCaption).foregroundStyle(DS.ink2)
                         }
                     }
                     if let altJsonURL {
@@ -96,14 +96,14 @@ struct PlayabilityCheckView: View {
                         VStack(alignment: .leading, spacing: DS.sp1) {
                             Text(row.title).font(.subheadline.weight(.semibold))
                             HStack(spacing: DS.sp3) {
-                                Text(row.brandId).font(.caption.monospaced()).foregroundStyle(.blue)
+                                Text(row.brandId).font(.imasCaption.monospaced()).foregroundStyle(DS.ink2)
                                 Text("amid: \(row.appleMusicId)").font(.caption.monospaced())
-                                if let d = row.catalogDurationSec { Text("cat \(d)s").font(.caption) }
-                                if let d = row.dbDurationSec { Text("db \(d)s").font(.caption) }
+                                if let d = row.catalogDurationSec { Text("cat \(d)s").font(.imasCaption) }
+                                if let d = row.dbDurationSec { Text("db \(d)s").font(.imasCaption) }
                             }
                             .foregroundStyle(DS.ink2)
                             if let err = row.error {
-                                Text(err).font(.caption2).foregroundStyle(.red).lineLimit(2)
+                                Text(err).font(.imasCaption2).foregroundStyle(DS.danger).lineLimit(2)
                             }
                         }
                         .padding(.vertical, DS.sp1)

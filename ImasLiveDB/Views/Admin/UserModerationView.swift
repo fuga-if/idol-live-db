@@ -27,7 +27,6 @@ struct UserModerationView: View {
     @State private var serverDisplayName: String?
     @State private var isLoading = false
     @State private var loadError: String?
-    @Environment(\.colorScheme) private var scheme
 
     // revert フロー
     @State private var alsoBan = true
@@ -77,14 +76,10 @@ struct UserModerationView: View {
         } message: {
             Text(resultMessage ?? "")
         }
-        .alert("エラー", isPresented: Binding(
-            get: { actionError != nil },
-            set: { if !$0 { actionError = nil } }
-        )) {
-            Button("OK") { actionError = nil }
-        } message: {
-            Text(actionError ?? "")
-        }
+        .imasErrorAlert("操作できませんでした", message: Binding(
+            get: { actionError },
+            set: { actionError = $0 }
+        ))
         .trackScreen("user_moderation")
     }
 
@@ -93,7 +88,7 @@ struct UserModerationView: View {
     @ViewBuilder
     private var summarySection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(serverDisplayName ?? displayName ?? "ユーザー")
                     .font(.imasHeadline)
                 Text("ID: …\(userIdSuffix)")
@@ -101,9 +96,7 @@ struct UserModerationView: View {
                     .foregroundStyle(DS.ink2)
                     .textSelection(.enabled)
                 if didBan {
-                    Label("BAN 済み", systemImage: "nosign")
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(.red)
+                    ImasBadge(text: "BAN 済み", kind: .negative, systemImage: "nosign")
                 }
             }
             .padding(.vertical, DS.sp1)
@@ -121,47 +114,35 @@ struct UserModerationView: View {
         Section {
             Toggle("取り消しと同時に BAN する", isOn: $alsoBan)
 
-            Button {
+            ImasButton(title: "取り消し対象をプレビュー", systemImage: "list.bullet.rectangle", role: .secondary,
+                      isLoading: isPreviewing) {
                 AppAnalytics.tap("user_moderation.preview_revert")
                 Task { await runPreview() }
-            } label: {
-                HStack {
-                    Label("取り消し対象をプレビュー", systemImage: "list.bullet.rectangle")
-                    if isPreviewing {
-                        Spacer()
-                        ProgressView()
-                    }
-                }
             }
             .disabled(isPreviewing || isExecuting)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, DS.Space.rowH)
+            .padding(.vertical, DS.Space.gapTight)
 
-            Button(role: .destructive) {
+            ImasButton(title: "全編集を取り消す", systemImage: "arrow.uturn.backward.circle", role: .destructive,
+                      isLoading: isExecuting) {
                 AppAnalytics.tap("user_moderation.revert_tap")
                 showExecuteConfirm = true
-            } label: {
-                HStack {
-                    Label("全編集を取り消す", systemImage: "arrow.uturn.backward.circle")
-                    if isExecuting {
-                        Spacer()
-                        ProgressView()
-                    }
-                }
             }
             .disabled(isExecuting || isPreviewing || total == 0)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, DS.Space.rowH)
+            .padding(.vertical, DS.Space.gapTight)
 
-            Button(role: .destructive) {
+            ImasButton(title: didBan ? "BAN 済み" : "BAN のみ (書き込み遮断)", systemImage: "nosign", role: .destructive,
+                      isLoading: isBanning) {
                 AppAnalytics.tap("user_moderation.ban_only")
                 Task { await banOnly() }
-            } label: {
-                HStack {
-                    Label(didBan ? "BAN 済み" : "BAN のみ (書き込み遮断)", systemImage: "nosign")
-                    if isBanning {
-                        Spacer()
-                        ProgressView()
-                    }
-                }
             }
             .disabled(isBanning || didBan)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, DS.Space.rowH)
+            .padding(.vertical, DS.Space.gapTight)
         } header: {
             Text("モデレーション")
         } footer: {
@@ -175,27 +156,15 @@ struct UserModerationView: View {
     private func previewSection(_ p: UserRevertResult) -> some View {
         Section {
             revertCounts(p)
+                .listRowInsets(EdgeInsets())
             ForEach(p.items.prefix(50)) { item in
-                HStack(spacing: 10) {
-                    Image(systemName: outcomeIcon(item.outcome))
-                        .font(.imasCaption)
-                        .foregroundStyle(item.outcome.color)
-                        .frame(width: 22)
-                    VStack(alignment: .leading, spacing: DS.sp1) {
-                        Text("編集 #\(item.batchId)")
-                            .font(.imasSubhead.monospacedDigit())
-                        if let reason = item.reason, !reason.isEmpty {
-                            Text(reason)
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                                .lineLimit(1)
-                        }
-                    }
-                    Spacer()
-                    Text(item.outcome.label)
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(item.outcome.color)
-                }
+                ImasRecordRow(
+                    systemImage: outcomeIcon(item.outcome),
+                    tone: outcomeTone(item.outcome),
+                    title: "編集 #\(item.batchId)",
+                    subtitle: (item.reason?.isEmpty == false) ? item.reason : nil,
+                    trailing: .badge(ImasBadge(text: item.outcome.label, kind: outcomeBadgeKind(item.outcome)))
+                )
             }
         } header: {
             Text(isPreviewSnapshot ? "取り消しプレビュー (未実行)" : "取り消し結果")
@@ -208,28 +177,29 @@ struct UserModerationView: View {
         return "shield.lefthalf.filled" // 保護スキップ系
     }
 
+    /// 結果ごとの記号の色味 (`ImasIconTile.Tone`)。「失敗」だけ目立たせ、残りは色で分けない。
+    private func outcomeTone(_ outcome: RevertOutcome) -> ImasIconTile.Tone {
+        if outcome.isFailed { return .negative }
+        if outcome.isReverted { return .positive }
+        return .neutral
+    }
+
+    /// 結果ラベルの札の種類。巻き戻し/失敗/スキップを色でなく文字で見分ける。
+    private func outcomeBadgeKind(_ outcome: RevertOutcome) -> ImasBadge.Kind {
+        if outcome.isFailed { return .negative }
+        if outcome.isReverted { return .positive }
+        return .neutral
+    }
+
     @ViewBuilder
     private func revertCounts(_ p: UserRevertResult) -> some View {
         // スキップ = 競合保護 (skipped) + 既 revert (alreadyReverted)。どちらも巻き戻しを
         // 安全に見送ったケースなので 1 つの「スキップ」にまとめて見せる。
-        HStack(spacing: DS.sp5) {
-            countPill("巻き戻し", p.reverted, .green)
-            countPill("スキップ", p.skipped + p.alreadyReverted, .secondary)
-            countPill("失敗", p.failed, .red)
+        ImasStatGrid(columns: 3) {
+            ImasStatTile(value: "\(p.reverted)", label: "巻き戻し")
+            ImasStatTile(value: "\(p.skipped + p.alreadyReverted)", label: "スキップ")
+            ImasStatTile(value: "\(p.failed)", label: "失敗")
         }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func countPill(_ label: String, _ value: Int, _ color: Color) -> some View {
-        VStack(spacing: DS.sp1) {
-            Text("\(value)")
-                .font(.imasTitle3.monospacedDigit())
-                .foregroundStyle(color)
-            Text(label)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Edits list
@@ -250,33 +220,14 @@ struct UserModerationView: View {
             } else {
                 let times = EditFeedFormat.relativeTimes(edits.map { ($0.id, $0.createdDate) })
                 ForEach(edits) { edit in
-                    HStack(spacing: 10) {
-                        Image(systemName: EditFeedFormat.recordTypeIcon(edit.recordType))
-                            .font(.imasCallout)
-                            .foregroundStyle(EditFeedFormat.recordTypeDesign(edit.recordType, scheme: scheme).color)
-                            .frame(width: 24)
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            HStack(spacing: 6) {
-                                Text(EditFeedFormat.recordTypeLabel(edit.recordType))
-                                    .font(.imasSubhead)
-                                    .lineLimit(1)
-                                if edit.opCount > 1 {
-                                    Text("\(edit.opCount)件")
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
-                            Text(times[edit.id] ?? "")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                        }
-                        Spacer()
-                        if edit.reverted {
-                            Text("差戻し済み")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                        }
-                    }
+                    ImasRecordRow(
+                        leading: .icon(EditFeedFormat.recordTypeIcon(edit.recordType), tone: .themed, seed: edit.recordType),
+                        title: edit.opCount > 1
+                            ? "\(EditFeedFormat.recordTypeLabel(edit.recordType)) (\(edit.opCount)件)"
+                            : EditFeedFormat.recordTypeLabel(edit.recordType),
+                        subtitle: times[edit.id] ?? "",
+                        badges: edit.reverted ? [ImasBadgeSpec(text: "差戻し済み", kind: .negative)] : []
+                    )
                 }
             }
         }
