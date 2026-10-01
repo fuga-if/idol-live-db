@@ -19,9 +19,11 @@
 pub mod assistant;
 pub mod browse;
 pub mod lookup;
+pub mod persona;
 pub mod personal;
 pub mod predict;
 pub mod scope;
+pub mod timeline;
 pub mod vocab;
 
 use crate::domain::snapshot::Snapshot;

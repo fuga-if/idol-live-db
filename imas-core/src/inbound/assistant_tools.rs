@@ -2,7 +2,7 @@
 //! 中身は agent::tools::assistant。アプリは JSON を受け渡すだけ。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::agent::tools::{assistant, personal};
+use crate::agent::tools::{assistant, persona, personal, timeline};
 
 /// 公演 1 件の参加マーク (アプリのユーザー DB から射影して渡す)。
 #[derive(Debug, Clone, uniffi::Record)]
@@ -10,6 +10,23 @@ pub struct AssistantAttendedShow {
     pub show_id: String,
     /// "live" (現地) / "stream" (配信)。
     pub attendance: String,
+}
+
+/// キャラ同士のタイムラインを 1 回生成するリクエストの材料。
+#[derive(Debug, Clone, uniffi::Record)]
+pub struct AssistantTimelineRequest {
+    pub instructions: String,
+    /// input に入れる利用者発言 1 件ぶんの本文。
+    pub input: String,
+    /// Responses API の `text.format` (JSON)。
+    pub text_format_json: String,
+    pub cast_ids: Vec<String>,
+}
+
+/// タイムラインの投稿にリプライしたときの input 本文。
+#[uniffi::export]
+pub fn assistant_timeline_reply_input(post_author: String, post_text: String, user_text: String) -> String {
+    timeline::reply_input(&post_author, &post_text, &user_text)
 }
 
 /// Responses API の `instructions` に渡す指示文。
@@ -52,11 +69,44 @@ impl SnapshotStore {
             .into_iter()
             .map(|m| personal::AttendedShow { show_id: m.show_id, attendance: m.attendance })
             .collect();
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or(0);
-        let today = crate::domain::jst_day::jst_today(now);
-        Ok(assistant::call(&snap, &marks, &name, &arguments_json, &today))
+        Ok(assistant::call(&snap, &marks, &name, &arguments_json, &today_jst()))
     }
+
+    /// キャラとのトークの指示文。知らないアイドルなら None。
+    pub fn assistant_talk_instructions(&self, idol_id: String) -> Result<Option<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(persona::talk_instructions(&snap, &idol_id, &today_jst()).ok())
+    }
+
+    /// キャラ同士のタイムラインの生成リクエスト。`seed` は呼ぶたびに変える (顔ぶれが変わる)。
+    pub fn assistant_timeline_request(
+        &self,
+        oshi_ids: Vec<String>,
+        previous_posts: Vec<String>,
+        seed: u64,
+    ) -> Result<AssistantTimelineRequest, SnapshotError> {
+        let snap = self.current()?;
+        let req = timeline::request(&snap, &today_jst(), &oshi_ids, &previous_posts, seed);
+        Ok(AssistantTimelineRequest {
+            instructions: req.instructions,
+            input: req.input,
+            text_format_json: req.text_format.to_string(),
+            cast_ids: req.cast_ids,
+        })
+    }
+
+    /// タイムラインの投稿へのリプライに、そのキャラが返すときの指示文。知らないアイドルなら None。
+    pub fn assistant_timeline_reply_instructions(&self, idol_id: String) -> Result<Option<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(timeline::reply_instructions(&snap, &idol_id, &today_jst()).ok())
+    }
+}
+
+/// 呼んだ時刻の JST の日付 (今後 / 過去の切り分けと、指示文の「今日」)。
+fn today_jst() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    crate::domain::jst_day::jst_today(now)
 }
