@@ -10,7 +10,7 @@ import SwiftUI
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
     case venue, venueRows, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor,
-         feedback, setlist, list, form, setup
+         feedback, setlist, list, form, setup, community, chat, stage
 
     var id: String { rawValue }
 
@@ -34,6 +34,9 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
         case .list: return "一覧の型"
         case .form: return "編集シートの型"
         case .setup: return "ゲームの設定・読みもの"
+        case .community: return "コミュニティ (タグ・記録)"
+        case .chat: return "AI チャット"
+        case .stage: return "あそぶ (ステージ)"
         }
     }
 }
@@ -72,6 +75,9 @@ struct DesignCatalogPageView: View {
             case .list: ListTemplatePage()
             case .form: FormTemplatePage()
             case .setup: SetupPage()
+            case .community: CommunityPage()
+            case .chat: ChatPage()
+            case .stage: StagePage()
             }
         }
         .navigationTitle(page.title)
@@ -1211,6 +1217,250 @@ private struct SetupPage: View {
             }
             ImasButton(title: "はじめる", size: .large) {}
         }
+    }
+}
+
+// MARK: - コミュニティ (タグ・記録)
+
+private struct CommunityPage: View {
+    @State private var tagColor = "#FF8C42"
+
+    var body: some View {
+        ImasPage {
+            ImasSection("タグ詳細の頭", style: .small) {
+                ImasCard {
+                    ImasTagHeaderCard(name: "夏に聴きたい曲", colorHex: "#FF8C42", categoryLabel: "雰囲気",
+                                      description: "海・花火・浴衣が似合う曲。")
+                }
+            }
+            ImasSection("タグ詳細の頭 (説明なし・色なし)", style: .small) {
+                ImasCard {
+                    ImasTagHeaderCard(name: "ソロ曲好き", categoryLabel: "好み")
+                }
+            }
+            ImasSection("タグの色を選ぶ", style: .small) {
+                ImasCard { ImasColorPicker(selectedHex: $tagColor) }
+            }
+            ImasSection("色そのものを見せる丸", style: .small, footer: "タグの色・ペンライトの色そのもの (導出を通さない数少ない部品)。読み上げは色名。") {
+                HStack(alignment: .center, spacing: DS.Space.gapLoose) {
+                    ImasSwatch(hex: "#FF6B6B", size: .dot)
+                    ImasSwatch(hex: "#4D96FF", size: .small)
+                    ImasSwatch(hex: "#1DD1A1", size: .large, isSelected: true)
+                    ImasSwatch(hex: "#9B5DE5", size: .large)
+                }
+            }
+            ImasSection("順位の小さい札 (文中に差し込む)", style: .small, footer: "行の先頭いっぱいに置く大きな順位は ImasRankNumber。こちらは名前と同じ行に添える小さい版。") {
+                ImasCard {
+                    VStack(alignment: .leading, spacing: DS.Space.gap) {
+                        HStack(spacing: DS.Space.gap) {
+                            ImasRankBadge(rank: 1)
+                            Text("天海春香").imasText(.rowTitle)
+                            Spacer(minLength: 0)
+                            Text("42票").imasText(.meta)
+                        }
+                        HStack(spacing: DS.Space.gap) {
+                            ImasRankBadge(rank: 12)
+                            Text("萩原雪歩").imasText(.rowTitle)
+                            Spacer(minLength: 0)
+                            Text("3票").imasText(.meta)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - AI チャット
+
+private struct ChatPage: View {
+    @State private var input = ""
+
+    private func aiAvatar(seed: String? = nil) -> some View {
+        ImasAvatar(label: "AI", seed: seed, size: 30, reservesPickRing: false)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: DS.Space.card) {
+                    ImasChatBubble(role: .assistant, content: .text("どんな曲を探していますか？")) { aiAvatar() }
+                    ImasChatBubble(role: .user, content: .text("夏に聴きたいアップテンポな曲"))
+                    ImasChatToolChip(label: "曲を検索中…")
+                    ImasChatBubble(role: .assistant, content: .streaming("候補が")) { aiAvatar() }
+                    ImasChatBubble(role: .assistant, content: .failed(message: nil, onRetry: {})) { aiAvatar() }
+                    ImasChatBubble(role: .assistant, content: .text("学マスの新曲だよ！"), partnerName: "藤田ことね", seed: Sample.saki) {
+                        aiAvatar(seed: Sample.saki)
+                    }
+                }
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.gapLoose)
+                .padding(.bottom, DS.Space.gap)
+            }
+            ImasChatComposer(text: $input, placeholder: "質問を入力", isRunning: false, canSend: !input.isEmpty,
+                             onSend: {}, onStop: {}) {
+                Text("1 日 10 回まで利用できます。").imasText(.note)
+            }
+        }
+        .background(DS.bg)
+    }
+}
+
+// MARK: - あそぶ (ステージ)
+
+private struct StagePage: View {
+    private func stageLabel(_ text: String) -> some View {
+        Text(text).font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: DS.Space.section) {
+                VStack(alignment: .leading, spacing: DS.Space.section) {
+                    ImasSection("表彰台・対戦の結果", style: .small, footer: "ImasPodium・ImasVersusBadge・imasAccentCard は地が紙面のまま (QS の固定色は使わない)。ソートメーカー・ティアー表の結果で使う。") {
+                        ImasPodium(entries: [
+                            .init(id: "1", rank: 1, title: "天海春香", seed: Sample.haruka,
+                                  visual: AnyView(ImasAvatar(label: "春香", seed: Sample.haruka, size: 64)), action: {}),
+                            .init(id: "2", rank: 2, title: "如月千早", seed: Sample.chihaya,
+                                  visual: AnyView(ImasAvatar(label: "千早", seed: Sample.chihaya, size: 52)), action: {}),
+                            .init(id: "3", rank: 3, title: "星井美希", seed: Sample.miki,
+                                  visual: AnyView(ImasAvatar(label: "美希", seed: Sample.miki, size: 52)), action: {}),
+                        ])
+                    }
+                    ImasSection("対戦カードの間・選べるカードの縁", style: .small) {
+                        VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                            HStack(spacing: 12) {
+                                ImasAvatar(label: "春香", seed: Sample.haruka, size: 44)
+                                ImasVersusBadge()
+                                ImasAvatar(label: "千早", seed: Sample.chihaya, size: 44)
+                            }
+                            HStack(spacing: DS.Space.gap) {
+                                VStack(spacing: 4) {
+                                    Text("対戦相手").imasText(.rowLabel)
+                                    Text("765AS").imasText(.meta)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, DS.Space.gap)
+                                .imasAccentCard(seed: Sample.haruka, isSelected: true, style: .card)
+                                Text("学マス").imasText(.chip)
+                                    .padding(.horizontal, 12)
+                                    .frame(minHeight: DS.Size.chip)
+                                    .imasAccentCard(brand: Sample.gakuen, isSelected: false, style: .chip)
+                            }
+                        }
+                    }
+                    ImasSection("ハブからステージへの入口", style: .small, footer: "ImasStageWordmark・ImasStagePreviewCard は QS の固定色のまま、明るい一覧に埋め込む窓。") {
+                        ImasStagePreviewCard {
+                            HStack(spacing: 10) {
+                                ImasStageWordmark(text: "Q")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("QUIZ STAGE").font(QS.mono(11)).foregroundStyle(QS.dim)
+                                    Text("歌詞クイズ Q.04 / 10").font(QS.text(13, weight: .bold)).foregroundStyle(QS.ink)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(16)
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Space.screen)
+
+                VStack(alignment: .leading, spacing: 20) {
+                    stageLabel("メンバーカラークイズ")
+                    HStack(spacing: 10) {
+                        ImasStageColorSwatch(hex: "#E54B4D", letter: "A", style: .choice, isSelected: true) {}
+                        ImasStageColorSwatch(hex: "#3A8EE6", letter: "B", style: .choice) {}
+                        ImasStageColorSwatch(hex: "#7A5AE0", letter: "C", style: .choice, isEliminated: true) {}
+                    }
+                    HStack(spacing: 10) {
+                        ImasStageColorSwatch(hex: "#F2C12E", style: .palette)
+                        ImasStageColorSwatch(hex: "#3FB27F", style: .palette, isUsed: true)
+                        ImasStageAssignmentTarget(assignedHex: nil)
+                        ImasStageAssignmentTarget(assignedHex: "#E54B4D", verdict: true)
+                        ImasStageAssignmentTarget(assignedHex: "#3A8EE6", verdict: false)
+                        ImasStageColorGridIcon()
+                    }
+
+                    stageLabel("再生中の表示・案内行")
+                    ImasStageEqualizer(columns: 20, rows: 4, dotSize: 8)
+                    ImasStageInfoRow(systemImage: "info.circle", title: "正解すると次の問題に進みます", detail: "残り 12 問", showsChevron: true) {}
+                    ImasStageInfoRow(systemImage: "arrow.clockwise", title: "次の問題を読み込み中", isLoading: true)
+
+                    stageLabel("判定カード")
+                    ImasStagePartialVerdictCard(number: 4, isPerfect: true, headline: "全員正解！", score: 120)
+                    ImasStagePartialVerdictCard(number: 5, isPerfect: false, headline: "2 / 3 正解", score: 60)
+
+                    stageLabel("再生・操作のボタン")
+                    HStack(spacing: 12) {
+                        ImasStageIconTileButton(systemImage: "arrow.counterclockwise", label: "もう一度") {}
+                        ImasStagePlaybackControl(isPlaying: false, onTap: {}, onHoldBegin: {}, onHoldEnd: {})
+                        ImasStagePlaybackControl(isPlaying: true, onTap: {}, onHoldBegin: {}, onHoldEnd: {})
+                    }
+                    HStack(spacing: 20) {
+                        ImasStagePlaybackControl(isPlaying: false, style: .circle, onTap: {}, onHoldBegin: {}, onHoldEnd: {})
+                        ImasStageCircleButton(label: "!", size: 88) {}
+                    }
+
+                    stageLabel("進捗・数・達成")
+                    VStack(alignment: .leading, spacing: 10) {
+                        ImasStageProgressBar(fraction: 0.6)
+                        ImasStageProgressBar(fraction: 0.92, isUrgent: true)
+                    }
+                    HStack(spacing: 10) {
+                        ImasStageStatTile(label: "SCORE") {
+                            Text("820").font(QS.num(26)).foregroundStyle(QS.ink)
+                        }
+                        ImasStageStatTile(label: "ハイスコア") {
+                            Text("755").font(QS.num(26)).foregroundStyle(QS.ink)
+                        } trailing: {
+                            ImasStageBadgeStamp(title: "自己ベスト更新", detail: "700 → 755")
+                        }
+                    }
+                    HStack(spacing: 20) {
+                        ImasStageScoreChip(colorHex: Sample.haruka, name: "春香P", score: 420)
+                        ImasStageScoreChip(colorHex: Sample.chihaya, name: "千早P", score: 380)
+                    }
+
+                    stageLabel("聴取中・判定中・正誤")
+                    HStack(spacing: 16) {
+                        ImasStagePenlightBars(colors: [Color(hexString: Sample.haruka), Color(hexString: Sample.chihaya),
+                                                       Color(hexString: Sample.miki)])
+                        HStack(spacing: 8) {
+                            ImasStagePulse()
+                            Text("聴取中").font(QS.text(12, weight: .semibold)).foregroundStyle(QS.dim)
+                        }
+                    }
+                    ImasStagePanel {
+                        Text("判定中…").font(QS.text(13, weight: .bold)).foregroundStyle(QS.ink)
+                    }
+                    HStack(spacing: 24) {
+                        ImasStageRushFlash(isCorrect: true)
+                        ImasStageRushFlash(isCorrect: false)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 110)
+
+                    stageLabel("1 対 1 対戦の結果")
+                    ImasStageVersusResult(
+                        winnerColorHex: Sample.haruka, headline: "春香P の勝ち！",
+                        players: (.init(name: "春香P", colorHex: Sample.haruka, score: 820),
+                                  .init(name: "千早P", colorHex: Sample.chihaya, score: 640))
+                    ) {
+                        ImasStageIconTileButton(systemImage: "arrow.counterclockwise", label: "もう一度") {}
+                        ImasStageIconTileButton(systemImage: "square.and.arrow.up", label: "シェア") {}
+                    }
+                    .frame(height: 260)
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(QS.bg)
+                .environment(\.colorScheme, .dark)
+            }
+            .padding(.top, DS.Space.gapLoose)
+            .padding(.bottom, DS.Space.section)
+        }
+        .background(DS.paper)
+        .environment(\.imasBackdrop, .paper)
     }
 }
 #endif

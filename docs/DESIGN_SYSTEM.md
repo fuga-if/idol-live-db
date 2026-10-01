@@ -365,6 +365,20 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasPointList`** アイコン付きの箇条書き。順序を持たない特徴・利点の列挙 (ログイン誘導の案内など)。番号が付く `ImasStepList` との違いは、順番に意味が無いこと。
 - **使わない** 一覧の絞り込み条件の列挙 → `ImasFilterBar` / 区画の補足 1 行 → `ImasNote`。
 
+### 6.11 `ImasTagHeaderCard` タグ詳細の頭
+- **用途** 曲・アイドル・ユニットのタグ詳細で共通の頭 (§2.2 の「頭」のタグ版)。
+- **構成** 色の丸 (`ImasSwatch`、色が無ければ出さない) + 名前 + カテゴリの札 (任意) + 説明文 (無ければ「説明なし」)。
+- **状態** カテゴリは「色で意味を分けない」のですべて同じ `.neutral` の札にする。
+- **置き換えるもの** 曲・アイドル・ユニットのタグ詳細 3 画面がそれぞれ手書きしていた、カテゴリごとに色を塗り分ける一字一句同一のコード。
+
+### 6.12 AI チャットの部品 `ImasChatBubble` / `ImasChatComposer` / `ImasChatToolChip`
+- **用途** ChatGPT 連携の質問チャット・将来のキャラクターとのトークで共通して使う会話画面の部品。
+- **`ImasChatBubble`** 発言 1 つ。相手 (AI・キャラ) は左、自分は右。相手は通常文 (`.text`) / 生成中 (`.streaming`、空文字なら点滅ドット) / 失敗 (`.failed`、「もう一度」の `ImasNotice`) の 3 状態。
+  相手に実体色 (`seed`) を渡すと吹き出しの地がその色に薄く染まる (キャラとのトーク)。`avatar`/`partnerName` を渡すと相手側にアイコンと名前を添える。
+- **`ImasChatComposer`** 入力欄。複数行のテキストフィールドと、送信⇄停止を切り替える丸い記号ボタン (`isRunning` で切り替え、`canSend` で送信を無効化)。`footer` に利用プランの注記などを添えられる。
+- **`ImasChatToolChip`** ツール実行中であることを示す小さな札 (「曲を検索中…」)。生成中の吹き出しの上に置く。
+- **使わない** 通常の一覧・詳細の会話以外の表示 → 他の行・カード部品。
+
 ---
 
 ## 7. 入力
@@ -584,6 +598,40 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **イントロドンもこのステージに揃える** (イントロドン専用の左上だけ丸い角・独自の押し心地・独自の進捗バーはやめる)。
 - 設定画面は通常の画面: `ImasSetupHeader` (記号 + 題 + 説明) → `ImasBrandPicker` → 区画 → `ImasCandidateCount` (候補の数) → 足りないとき `ImasNotice(.warning)` → 画面の下に `ImasButton(.primary, .large)`「はじめる」。
   `ImasCandidateCount` は数えている間 `isLoading: true` でくるくる + `loadingText` を出し、数えられなかったときは `count: nil` (「—」) に一言 (`note`) を添える。
+
+### 12.1 部品化された汎用パーツ (`ImasLiveDB/DesignSystem/Components/Stage/`)
+上の表はゲーム画面全体の組み方の指針で、実装名は画面ごとの `QuizStage*` 等。そこから複数のゲームで使う見た目だけを
+`Imas` 接頭の部品として DesignSystem に昇格したものが以下 (固定色は `QS.*`、ライト/ダークで反転させない)。
+
+| 部品 | 用途 |
+|---|---|
+| `ImasStageColorSwatch` | 色そのものを選択肢として見せる (メンバーカラークイズの 4 択候補 `.choice` / 並べる元の色パレット `.palette`。使用済み・ヒントで消えた状態を持つ) |
+| `ImasStageAssignmentTarget` | 色を割り当てる的。未割り当ては点線の丸に「?」、判定後は ✓ / ✗ |
+| `ImasStageColorGridIcon` | 4 色のミニ格子アイコン (ハブの「メンバーカラー合わせ」入口) |
+| `ImasStageEqualizer` | 「再生中」を示す音楽ビジュアライザー (N 列 × M 行のバーが明滅)。イントロドンの専用実装を昇格 |
+| `ImasStageInfoRow` | 「記号 + 2 行文 (+ 矢印)」の案内行。押せる (別画面・リンク) か案内だけか、記号の代わりにくるくる (`isLoading`) も選べる |
+| `ImasStagePartialVerdictCard` | 部分点のある判定カード (「全員中 N 人正解」)。満点 = 生成りのカード、一部正解 = ステージ地色 |
+| `ImasStageIconTileButton` | 記号 + 1 行ラベルの操作タイル (もう一度・次の曲)。実線の枠 |
+| `ImasStagePlaybackControl` | 「タップ=続きから」「長押し=流し続ける」の 2 段ジェスチャー再生操作。点線枠のタイル (`.tile`) か中央ストリップ向けの丸 (`.circle`) |
+| `ImasStageCircleButton` | ステージ中央に置く大きな単発操作ボタン (直径可変。早押しの「!」) |
+| `ImasStageProgressBar` | ペンライトが 20 本を超える・総数が決まらないときの進捗の線。`isUrgent` で残りわずかを朱に |
+| `ImasStageStatTile` | 「ラベル + 大きな数字」のタイル。単値・対比・右の付随バッジ (`trailing`) のどれでも使える |
+| `ImasStageBadgeStamp` | 「自己ベスト更新」のような達成を知らせる回転ラベル (旧値 → 新値の併記つき) |
+| `ImasStageScoreChip` | 多人数対戦中の軽量スコア表示 (色ドット + 名前 + 点数) |
+| `ImasStageVersusResult` | 1 対 1 対戦の最終結果 (勝者の色の見出し + 2 人分のスコア + 操作) |
+| `ImasStageRushFlash` | 正誤を知らせる大きな ○ / × の一瞬のフラッシュ (ラッシュ系クイズ) |
+| `ImasStagePenlightBars` | 歌唱メンバーの色を細い棒で並べる (セトリ当てクイズの歌唱メンバー欄) |
+| `ImasStagePulse` | 「聴取中」のような継続状態を示す点滅ドット |
+| `ImasStagePanel` | `QS.panel` の面に中身を乗せる汎用カード (音声判定の状態表示など) |
+| `ImasStageWordmark` | ink 塗りの角丸四角に文字 1〜2 字 (ハブの QUIZ STAGE チケットの「@」) |
+| `ImasStagePreviewCard` | `QS.bg` の色でカードの形に切り抜く。明るい一覧の中に埋め込むステージのプレビュー (ハブの QUIZ STAGE チケットの外枠)。これと `ImasStageWordmark` だけは地が紙面の中に置く前提 |
+
+### 12.2 表彰台・対戦の結果 (地は紙面のまま)
+ソートメーカー・ティアー表の「結果」画面は遊ぶ画面と違って暗いステージにしない (結果は記録として見返すもの)。
+
+- **`ImasPodium`** 1〜3 位を強調する表彰台。1 位を中央に大きく、2・3 位を横に並べる。各枠の中身 (`visual`) は呼び出し側が組む (アイコン・ジャケなど)。
+- **`ImasVersusBadge`** 対戦カードの間に置く「VS」の丸い印 (墨の塗り)。
+- **`imasAccentCard(seed:brand:isSelected:style:)`** 実体色の面をまとう選べるカードの修飾子。`.card` (常に紙面、上に実体色の帯、選んだときだけ太い縁。対戦カード) / `.chip` (選んだときだけ実体色を薄く塗って縁取る。ティアー表のチップ)。
 
 ---
 
