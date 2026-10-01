@@ -1,0 +1,78 @@
+{
+ "title": "SideM 3rdLIVE TOUR の催し名・公演名に残った括弧を消す (#184 #185 #186 #189 #190 #191 #194 #195 #196)",
+ "source": "derived: 名前の末尾に対になる括弧の無い「（」「）」だけが残っていた。投稿 #184 ほか。同じ壊れ方の仙台公演もあわせて直す",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tour_glorious_stge_仙台公演",
+   "fields": {
+    "name": "THE IDOLM@STER SideM 3rdLIVE TOUR 〜GLORIOUS ST@GE!〜 仙台公演"
+   },
+   "note": "末尾の全角括弧「（」の残骸を除去"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tour_glorious_stge_幕張公演",
+   "fields": {
+    "name": "THE IDOLM@STER SideM 3rdLIVE TOUR 〜GLORIOUS ST@GE!〜 幕張公演"
+   },
+   "note": "末尾の全角括弧「（」の残骸を除去"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolmster_sidem_3rdlive_tourglorious_stge_静岡公演",
+   "fields": {
+    "name": "THE IDOLM@STER SideM 3rdLIVE TOUR～GLORIOUS ST@GE!～ 静岡公演"
+   },
+   "note": "末尾の全角括弧「（」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0417",
+   "fields": {
+    "name": "1日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0418",
+   "fields": {
+    "name": "2日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0420",
+   "fields": {
+    "name": "1日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0421",
+   "fields": {
+    "name": "2日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0433",
+   "fields": {
+    "name": "1日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L0434",
+   "fields": {
+    "name": "2日目"
+   },
+   "note": "末尾の全角括弧「）」の残骸を除去"
+  }
+ ]
+}

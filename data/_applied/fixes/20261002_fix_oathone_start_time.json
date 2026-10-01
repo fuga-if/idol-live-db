@@ -1,0 +1,22 @@
+{
+ "title": "如月千早武道館単独公演「OathONE」の開演時刻 (#192)",
+ "source": "https://idolmaster-official.jp/news/01_16247.html",
+ "fixes": [
+  {
+   "table": "shows",
+   "id": "sh_L1225",
+   "fields": {
+    "start_time": "17:00"
+   },
+   "note": "公演日時「2026年1月24日（土）16:00開場／17:00開演」"
+  },
+  {
+   "table": "shows",
+   "id": "sh_L1226",
+   "fields": {
+    "start_time": "16:00"
+   },
+   "note": "公演日時「2026年1月25日（日）15:00開場／16:00開演 ※追加公演」"
+  }
+ ]
+}

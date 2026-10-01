@@ -1775,6 +1775,7 @@ INSERT INTO "events" VALUES('ev_アイドルマスター6911時の回13時の回
 INSERT INTO "events" VALUES('ev_アイドルマスター_ミリオンライブ_シアターデイズ_10周年記念ライブ','ml','アイドルマスター ミリオンライブ！ シアターデイズ 10周年記念ライブ','anniversary',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_765_production_×_961_production_idol_ultimate_once_and_for_all','765as','765 PRODUCTION × 961 PRODUCTION IDOL ULTIMATE ONCE AND FOR ALL','live',0,0,'live',NULL,NULL,NULL,'961',NULL,NULL);
 INSERT INTO "events" VALUES('ev_灯里愛夏_birthday_online_live_2026','876','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','birthday',1,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
+INSERT INTO "events" VALUES('ev_レトラ_birthday_online_live_2026','876','レトラ BIRTHDAY ONLINE LIVE 2026','birthday',1,0,'live',NULL,NULL,'https://asobistage.asobistore.jp/event/valiv_bd2026_letora/ticket',NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_project_imas_valiv_producer_meeting_2024_from_now_on','876','PROJECT IM@S vα-liv PRODUCER MEETING 2024 -FROM NOW ON!!!-','live',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_283_production_live_performance_noctchill','sc','283 Production LIVE Performance noctchill','live',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
 INSERT INTO "events" VALUES('ev_athome_xr_live_apple_of_my_アイ','cg','ATHOME xR LIVE Apple of my アイ','live',0,0,'live',NULL,NULL,NULL,NULL,NULL,NULL);
@@ -86219,6 +86220,9 @@ INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_水嶋咲','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_卯月巻緒','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_8','sidem_アスランbbⅱ世','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_レトラ_birthday_online_live_2026_1','876_上水流宇宙','member');
 CREATE TABLE show_tickets (
   id TEXT PRIMARY KEY NOT NULL,
   show_id TEXT NOT NULL,
@@ -86471,23 +86475,6 @@ INSERT INTO "show_tickets" VALUES('tkt_sh_L0068_live_seat_b66323','sh_L0068','li
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0069_live_ticket_3924c4','sh_L0069','live','スタンディング',7000,0,'当日ドリンク代別途500円 / 出典: https://columbia.jp/idolmaster/news/110617.html',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0070_live_ticket_3924c4','sh_L0070','live','スタンディング',7000,0,'当日ドリンク代別途500円 / 出典: https://columbia.jp/idolmaster/news/110429.html',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0070_live_seat_b66323','sh_L0070','live','指定席',7000,0,'当日ドリンク代別途500円 / 出典: https://columbia.jp/idolmaster/news/110429.html',2);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L0897_stream_general_cfda88','sh_L0897','stream','一般視聴チケット',4000,0,'出典: https://asobistage.asobistore.jp/event/valiv_the_last_statement/ticket',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1062_live_general_f6f762','sh_L1062','live','現地一般チケット',9800,0,'Zepp DiverCity TOKYO、1Fスタンディング/2F着席指定、ワンドリンク代600円別途 / 出典: https://idolmaster-official.jp/va-liv/event/1st_live',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1062_stream_archive_stream_2c0139','sh_L1062','stream','アーカイブ配信チケット',3800,0,'出典: https://idolmaster-official.jp/va-liv/event/1st_live',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1105_stream_stream_b0edc4','sh_L1105','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_manaka/ticket',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1153_stream_stream_b0edc4','sh_L1153','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_cosmo/ticket',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1186_stream_stream_b0edc4','sh_L1186','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_letora/ticket',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_上水流宇宙_birthday_online_live_2026_1_stream_stream_b0edc4','sh_上水流宇宙_birthday_online_live_2026_1','stream','配信',5000,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2026_cosmo/ticket',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1238_live_seat_general_5d6982','sh_L1238','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY1 / 出典: https://idolmaster-official.jp/news/01_17958',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1238_stream_stream_010cf6','sh_L1238','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY1 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1239_live_seat_general_5d6982','sh_L1239','live','全席指定 一般チケット',8600,0,'876 PRODUCTION FES. DAY2(完売) / 出典: https://idolmaster-official.jp/news/01_17958',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1239_stream_stream_010cf6','sh_L1239','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY2 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1240_live_seat_general_5d6982','sh_L1240','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY3 昼公演 / 出典: https://idolmaster-official.jp/news/01_17958',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1240_stream_stream_010cf6','sh_L1240','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY3 昼公演 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1241_live_seat_general_5d6982','sh_L1241','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY3 夜公演 / 出典: https://idolmaster-official.jp/news/01_17958',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_L1241_stream_stream_010cf6','sh_L1241','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY3 夜公演 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_灯里愛夏_birthday_online_live_2026_1_stream_stream_b0edc4','sh_灯里愛夏_birthday_online_live_2026_1','stream','配信',5000,0,'機能利用料込 / 出典: https://idolmaster-official.jp/news/01_19896.html',1);
-INSERT INTO "show_tickets" VALUES('tkt_sh_灯里愛夏_birthday_online_live_2026_1_live_viewing_lv_b0aa52','sh_灯里愛夏_birthday_online_live_2026_1','live_viewing','限定グッズ付き現地ライブビューイング',9000,0,'ユナイテッド・シネマ アクアシティお台場。限定グッズ付き / 出典: https://idolmaster-official.jp/news/01_19896.html',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0993_live_expo_area_general_day1_3afc85','sh_L0993','live','EXPO AREA一般入場チケットDAY1',5000,0,'アイマスエキスポ EXPO AREA内エキスポステージでの公開ステージ(ヴイアラSPソロステージ＜灯里愛夏＞)。専用チケットは無くEXPO AREA入場チケットのみで観覧可 / 出典: https://idolmaster-official.jp/live_event/master_expo/area/expo.php',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0992_live_expo_area_general_day1_3afc85','sh_L0992','live','EXPO AREA一般入場チケットDAY1',5000,0,'アイマスエキスポ EXPO AREA内エキスポステージでの公開ステージ(ヴイアラSPソロステージ＜上水流宇宙＞)。専用チケットは無くEXPO AREA入場チケットのみで観覧可 / 出典: https://idolmaster-official.jp/live_event/master_expo/area/expo.php',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0991_live_expo_area_general_day1_3afc85','sh_L0991','live','EXPO AREA一般入場チケットDAY1',5000,0,'アイマスエキスポ EXPO AREA内エキスポステージでの公開ステージ(ヴイアラSPソロステージ＜レトラ＞)。専用チケットは無くEXPO AREA入場チケットのみで観覧可 / 出典: https://idolmaster-official.jp/live_event/master_expo/area/expo.php',1);
@@ -87505,6 +87492,25 @@ INSERT INTO "show_tickets" VALUES('tkt_sh_L0286_live_seat_5cd289','sh_L0286','li
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0285_live_seat_5cd289','sh_L0285','live','全席指定',6800,0,'出典: https://www.lantis.jp/sidem/1stlive/ticket.html',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0272_live_seat_5cd289','sh_L0272','live','全席指定',4800,0,'出典: https://idolmaster.jp/blog/?p=15172',1);
 INSERT INTO "show_tickets" VALUES('tkt_sh_L0271_live_seat_5cd289','sh_L0271','live','全席指定',4800,0,'出典: https://idolmaster.jp/blog/?p=15172',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L0897_stream_general_cfda88','sh_L0897','stream','一般視聴チケット',4000,0,'出典: https://asobistage.asobistore.jp/event/valiv_the_last_statement/ticket',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1062_live_general_f6f762','sh_L1062','live','現地一般チケット',9800,0,'Zepp DiverCity TOKYO、1Fスタンディング/2F着席指定、ワンドリンク代600円別途 / 出典: https://idolmaster-official.jp/va-liv/event/1st_live',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1062_stream_archive_stream_2c0139','sh_L1062','stream','アーカイブ配信チケット',3800,0,'出典: https://idolmaster-official.jp/va-liv/event/1st_live',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1105_stream_stream_b0edc4','sh_L1105','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_manaka/ticket',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1153_stream_stream_b0edc4','sh_L1153','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_cosmo/ticket',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1186_stream_stream_b0edc4','sh_L1186','stream','配信',4700,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2025_letora/ticket',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_上水流宇宙_birthday_online_live_2026_1_stream_stream_b0edc4','sh_上水流宇宙_birthday_online_live_2026_1','stream','配信',5000,0,'出典: https://asobistage.asobistore.jp/event/valiv_bd2026_cosmo/ticket',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1238_live_seat_general_5d6982','sh_L1238','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY1 / 出典: https://idolmaster-official.jp/news/01_17958',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1238_stream_stream_010cf6','sh_L1238','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY1 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1239_live_seat_general_5d6982','sh_L1239','live','全席指定 一般チケット',8600,0,'876 PRODUCTION FES. DAY2(完売) / 出典: https://idolmaster-official.jp/news/01_17958',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1239_stream_stream_010cf6','sh_L1239','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY2 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1240_live_seat_general_5d6982','sh_L1240','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY3 昼公演 / 出典: https://idolmaster-official.jp/news/01_17958',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1240_stream_stream_010cf6','sh_L1240','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY3 昼公演 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1241_live_seat_general_5d6982','sh_L1241','live','全席指定 一般チケット',9800,0,'876 PRODUCTION FES. DAY3 夜公演 / 出典: https://idolmaster-official.jp/news/01_17958',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_L1241_stream_stream_010cf6','sh_L1241','stream','配信チケット',4500,0,'876 PRODUCTION FES. DAY3 夜公演 / 出典: https://idolmaster-official.jp/va-liv/event/876profes',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_灯里愛夏_birthday_online_live_2026_1_stream_stream_b0edc4','sh_灯里愛夏_birthday_online_live_2026_1','stream','配信',5000,0,'機能利用料込 / 出典: https://idolmaster-official.jp/news/01_19896.html',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_灯里愛夏_birthday_online_live_2026_1_live_viewing_lv_b0aa52','sh_灯里愛夏_birthday_online_live_2026_1','live_viewing','限定グッズ付き現地ライブビューイング',9000,0,'ユナイテッド・シネマ アクアシティお台場。限定グッズ付き / 出典: https://idolmaster-official.jp/news/01_19896.html',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_レトラ_birthday_online_live_2026_1_stream_stream_b0edc4','sh_レトラ_birthday_online_live_2026_1','stream','配信',5000,0,'機能利用料込 / 出典: https://idolmaster-official.jp/news/01_20045.html',1);
+INSERT INTO "show_tickets" VALUES('tkt_sh_レトラ_birthday_online_live_2026_1_live_viewing_lv_b0aa52','sh_レトラ_birthday_online_live_2026_1','live_viewing','限定グッズ付き現地ライブビューイング',9000,0,'ユナイテッド・シネマ アクアシティお台場。限定グッズ付き / 出典: https://idolmaster-official.jp/news/01_20045.html',1);
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT);
 INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast',NULL,NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0003','ev_アイドルマスター6911時の回13時の回15時30分の回','アイドルマスター6/9（11時の回、13時の回、15時30分の回）','2005-02-19','千葉・幕張メッセ国際展示場',NULL,NULL,1,'cast','venue_幕張メッセ','国際展示場',NULL,NULL);
@@ -88730,6 +88736,7 @@ INSERT INTO "shows" VALUES('sh_L0004','ev_web番組今井麻美と中村繪里�
 INSERT INTO "shows" VALUES('sh_L0002','ev_web番組今井麻美と中村繪里子のprestarスペシャル_アイドルマスターロケテ記念今年もお世話になりましたプリスタープチライブ','Web番組「今井麻美と中村繪里子のPreStar」スペシャル アイドルマスターロケテ記念＆今年もお世話になりましたプリスタープチライブ','2004-12-27','都内某所',NULL,NULL,1,'cast',NULL,NULL,'itv24.com（インターネットTV局・生放送）','online');
 INSERT INTO "shows" VALUES('sh_L0011B','ev_xbox_live_the_party_26回最終回','Xbox Live The Party 26回(最終回)','2006-12-29',NULL,NULL,NULL,1,'cast',NULL,NULL,'InterFM（生放送）','online');
 INSERT INTO "shows" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','ev_灯里愛夏_birthday_online_live_2026','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','2026-10-28','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,NULL,0,'cast',NULL,NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_レトラ_birthday_online_live_2026_1','ev_レトラ_birthday_online_live_2026','レトラ BIRTHDAY ONLINE LIVE 2026','2026-11-11','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,'19:00',0,'cast',NULL,NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_1','ev_project_imas_valiv_producer_meeting_2024_from_now_on','昼の部','2024-09-28','東京・GARDEN 新木場FACTORY',NULL,'14:30',1,'cast',NULL,NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','ev_project_imas_valiv_producer_meeting_2024_from_now_on','夜の部','2024-09-28','東京・GARDEN 新木場FACTORY',NULL,'18:30',2,'cast',NULL,NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_283_production_live_performance_noctchill_1','ev_283_production_live_performance_noctchill','ただ眩しかった','2027-03-27','ゼビオアリーナ仙台',NULL,NULL,0,'cast',NULL,NULL,NULL,NULL);
