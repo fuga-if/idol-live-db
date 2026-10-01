@@ -14,7 +14,7 @@ struct ExpenseEditorView: View {
 
     @State private var date = Date()
     @State private var category: ExpenseCategory = .ticket
-    @State private var amountText = ""
+    @State private var amount: Int?
     @State private var note = ""
     @State private var showId: String?
     @State private var eventId: String?
@@ -23,9 +23,8 @@ struct ExpenseEditorView: View {
     @State private var isSaving = false
 
     private var categories: [ExpenseCategoryInfo] { expenseCategories() }
-    private var amount: Int64 { Int64(amountText.filter(\.isNumber)) ?? 0 }
     private var dateText: String { Self.dateFormatter.string(from: date) }
-    private var validation: ExpenseInputError? { validateExpense(date: dateText, amount: amount) }
+    private var validation: ExpenseInputError? { validateExpense(date: dateText, amount: Int64(amount ?? 0)) }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -36,83 +35,78 @@ struct ExpenseEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("金額") {
-                    HStack {
-                        Text("¥").foregroundStyle(DS.ink2)
-                        TextField("0", text: $amountText)
-                            .keyboardType(.numberPad)
-                            .font(.imasDisplay(24, weight: .bold))
-                            .monospacedDigit()
-                    }
-                    if let error = validation, !amountText.isEmpty || error == .badDate {
-                        Text(message(for: error))
-                            .font(.imasCaption).foregroundStyle(DS.danger)
-                    }
+            ImasFormPage {
+                ImasFormCard {
+                    ImasFormAmount(label: "金額", imprint: "AMOUNT", systemImage: "yensign.circle", amount: $amount)
+                }
+                if let error = validation, amount != nil || error == .badDate {
+                    Text(message(for: error)).imasText(.note, color: DS.danger)
                 }
 
-                Section("費目") {
-                    // 並びはコアが決める。画面ごとに並べ替えない。
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.sp2), count: 3),
-                              spacing: DS.sp2) {
-                        ForEach(categories, id: \.key) { info in
-                            ImasFilterChip(text: info.label, isSelected: info.category == category) {
-                                category = info.category
+                ImasFormCard {
+                    ImasFormField(label: "費目", imprint: "CATEGORY") {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DS.Space.gap), count: 3),
+                                  spacing: DS.Space.gap) {
+                            // 並びはコアが決める。画面ごとに並べ替えない。
+                            ForEach(categories, id: \.key) { info in
+                                ImasFilterChip(text: info.label, isSelected: info.category == category) {
+                                    category = info.category
+                                }
                             }
                         }
                     }
-                    .padding(.vertical, DS.sp2)
                 }
 
-                Section("日付") {
-                    DatePicker("日付", selection: $date, displayedComponents: .date)
-                        .datePickerStyle(.compact)
+                ImasFormCard {
+                    ImasFormField(label: "日付", imprint: "DATE") {
+                        DatePicker("日付", selection: $date, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                    }
                 }
 
-                Section {
-                    Button {
-                        showPicker = true
-                    } label: {
-                        HStack {
-                            Text(linkedLabel).foregroundStyle(showId == nil ? DS.ink2 : DS.ink)
-                            Spacer()
-                            ImasRowChevron()
+                ImasFormCard {
+                    ImasFormField(label: "公演", imprint: "SHOW") {
+                        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                            Button {
+                                showPicker = true
+                            } label: {
+                                HStack {
+                                    Text(linkedLabel).imasText(.value, color: showId == nil ? DS.ink2 : DS.ink)
+                                    Spacer()
+                                    ImasRowChevron()
+                                }
+                            }
+                            if showId != nil {
+                                Button {
+                                    showId = nil
+                                    eventId = nil
+                                } label: {
+                                    Text("公演との紐づけを外す").imasText(.note, color: DS.danger)
+                                }
+                            }
                         }
                     }
-                    if showId != nil {
-                        Button("公演との紐づけを外す", role: .destructive) {
-                            showId = nil
-                            eventId = nil
-                        }
-                    }
-                } header: {
-                    Text("公演")
-                } footer: {
-                    Text("紐づけると「この遠征でいくら使ったか」が出ます。課金やグッズの通販は紐づけなくて構いません。")
                 }
+                ImasNote("紐づけると「この遠征でいくら使ったか」が出ます。課金やグッズの通販は紐づけなくて構いません。")
 
-                Section("メモ") {
-                    TextField("任意", text: $note, axis: .vertical).lineLimit(1...3)
+                ImasFormCard {
+                    ImasFormTextArea(label: "メモ", imprint: "NOTE", text: $note, prompt: "任意")
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
             .navigationTitle(expense == nil ? "支出を足す" : "支出を直す")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { Task { await save() } }.disabled(validation != nil || isSaving)
-                }
-            }
+            .imasSheetToolbar(.edit(
+                canSave: validation == nil && !isSaving,
+                onCancel: { dismiss() },
+                onSave: { Task { await save() } }
+            ))
             .sheet(isPresented: $showPicker) {
                 LedgerShowPicker(options: showOptions) { option in
                     showId = option?.id
                     eventId = option?.eventId
                     // 日付を入れ直していなければ公演の日に合わせる (遠征費は当日が大半)。
-                    if let option, expense == nil, amountText.isEmpty,
+                    if let option, expense == nil, amount == nil,
                        let parsed = Self.dateFormatter.date(from: option.date) {
                         date = parsed
                     }
@@ -141,7 +135,7 @@ struct ExpenseEditorView: View {
         guard let expense else { return }
         if let parsed = Self.dateFormatter.date(from: expense.date) { date = parsed }
         category = expense.categoryValue
-        amountText = String(expense.amount)
+        amount = Int(expense.amount)
         note = expense.note ?? ""
         showId = expense.showId
         eventId = expense.eventId
@@ -154,12 +148,12 @@ struct ExpenseEditorView: View {
     private func save() async {
         guard validation == nil, !isSaving else { return }
         var saved = expense ?? Expense.make(
-            date: dateText, category: category, amount: amount,
+            date: dateText, category: category, amount: Int64(amount ?? 0),
             showId: showId, eventId: eventId, note: note
         )
         saved.date = dateText
         saved.category = expenseCategoryKey(category: category)
-        saved.amount = amount
+        saved.amount = Int64(amount ?? 0)
         saved.showId = showId
         saved.eventId = eventId
         saved.note = note.isEmpty ? nil : note
@@ -187,42 +181,31 @@ struct LedgerShowPicker: View {
     var body: some View {
         NavigationStack {
             List {
-                Button("公演に紐づけない") { onPick(nil) }
-                    .plainRow(background: DS.surface)
-                if options.isEmpty {
-                    ImasEmptyState(
-                        systemImage: "music.mic",
-                        title: "参加した公演がありません",
-                        message: "ライブに「参加」を付けると、ここに並びます。"
-                    )
-                    .plainRow(background: DS.bg)
-                }
-                ForEach(shown) { option in
-                    Button {
-                        onPick(option)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(option.label).font(.imasBody).foregroundStyle(DS.ink).lineLimit(2)
-                            Text(option.date).font(.imasCaption).foregroundStyle(DS.ink3)
-                        }
+                ImasListSection {
+                    ImasActionRow(title: "公演に紐づけない", systemImage: "xmark.circle") { onPick(nil) }
+                    if options.isEmpty {
+                        ImasEmptyState(
+                            systemImage: "music.mic",
+                            title: "参加した公演がありません",
+                            message: "ライブに「参加」を付けると、ここに並びます。"
+                        )
                     }
-                    .buttonStyle(.plain)
-                    .listRowInsets(EdgeInsets(top: DS.sp3, leading: DS.sp5,
-                                              bottom: DS.sp3, trailing: DS.sp5))
-                    .listRowBackground(DS.surface)
+                    ForEach(shown) { option in
+                        Button {
+                            onPick(option)
+                        } label: {
+                            ImasRow(title: option.label, subtitle: option.date, titleRole: .rowLabel)
+                        }
+                        .buttonStyle(.imasRow)
+                    }
                 }
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .listStyle(.insetGrouped)
+            .imasForm()
             .searchable(text: $query, prompt: "公演を探す")
             .navigationTitle("公演を選ぶ")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
         }
     }
 }

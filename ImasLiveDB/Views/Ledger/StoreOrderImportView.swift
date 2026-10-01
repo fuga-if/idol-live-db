@@ -31,21 +31,18 @@ struct StoreOrderImportView: View {
 
     var body: some View {
         NavigationStack {
-            List {
+            ImasFormPage {
                 if drafts.isEmpty {
-                    guideSection
-                    pasteSection
+                    guideCard
+                    pasteCard
                 } else {
                     ForEach($drafts) { $draft in
-                        orderSection($draft)
+                        orderCard($draft)
                     }
-                    Section {
-                        Button("別の明細を貼り直す") { reset() }
-                    }
+                    Button("別の明細を貼り直す") { reset() }
+                        .buttonStyle(.imas(.plain, size: .medium))
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
             .navigationTitle("アソビストアの明細")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -53,6 +50,7 @@ struct StoreOrderImportView: View {
                     Button("キャンセル") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    // 件数を文言に出す (「記録」だけの DS 既定より、今いくつ記録されるかが分かる方が要る)。
                     Button(planned.isEmpty ? "記録" : "\(planned.count)件を記録") {
                         Task { await save() }
                     }
@@ -82,149 +80,123 @@ struct StoreOrderImportView: View {
     // MARK: - 案内
 
     /// 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。
-    private var guideSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: DS.sp4) {
-                step(1, "アソビストアの購入履歴を開く")
-                if let url = URL(string: asobiOrderHistoryUrl()) {
-                    Link(destination: url) {
-                        Label("購入履歴を開く", systemImage: "arrow.up.right.square")
-                            .font(.imasFootnote.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.capsule)
-                    .padding(.leading, 28)
-                }
-                step(2, "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする")
-                step(3, "下の「ペースト」を押す")
+    private var guideCard: some View {
+        ImasFormCard {
+            VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                Text("取り込み方").imasText(.sectionLabel)
+                ImasStepList(steps: [
+                    .init(title: "アソビストアの購入履歴を開く") {
+                        if let url = URL(string: asobiOrderHistoryUrl()) {
+                            Link(destination: url) {
+                                Label("購入履歴を開く", systemImage: "arrow.up.right.square")
+                                    .font(.imasFootnote.weight(.semibold))
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                        }
+                    },
+                    .init(title: "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする"),
+                    .init(title: "下の「ペースト」を押す"),
+                ])
             }
-            .padding(.vertical, DS.sp2)
-        } header: {
-            Text("取り込み方")
-        } footer: {
-            Text("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
-        }
-    }
-
-    private func step(_ number: Int, _ text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
-            Text("\(number)")
-                .font(.imasCaption.weight(.bold)).foregroundStyle(DS.ink2)
-                .frame(width: 20, height: 20)
-                .background(DS.fill, in: Circle())
-            Text(text).font(.imasFootnote).foregroundStyle(DS.ink)
         }
     }
 
     // MARK: - 貼り付け
 
-    private var pasteSection: some View {
-        Section {
-            PasteButton(payloadType: String.self) { strings in
-                let pasted = strings.joined(separator: "\n")
-                Task { @MainActor in text = pasted }
-            }
-            .labelStyle(.titleAndIcon)
-            .buttonBorderShape(.capsule)
-            .padding(.vertical, DS.sp2)
-
-            TextEditor(text: $text)
-                .font(.imasFootnote)
-                .frame(minHeight: 120)
-                .overlay(alignment: .topLeading) {
-                    if text.isEmpty {
-                        Text("または、ここに直接貼り付け")
-                            .font(.imasFootnote).foregroundStyle(DS.ink3)
-                            .padding(.top, 8).padding(.leading, 5)
-                            .allowsHitTesting(false)
+    private var pasteCard: some View {
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasFormCard {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    PasteButton(payloadType: String.self) { strings in
+                        let pasted = strings.joined(separator: "\n")
+                        Task { @MainActor in text = pasted }
                     }
+                    .labelStyle(.titleAndIcon)
+                    .buttonBorderShape(.capsule)
+
+                    ImasFormTextArea(label: "貼り付け", imprint: "PASTE", text: $text, prompt: "ここに直接貼り付け")
                 }
-        } header: {
-            Text("貼り付け")
-        } footer: {
+            }
             if !text.isEmpty {
                 Text("注文を読み取れませんでした。購入履歴は表の見出しの行から、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。")
-                    .foregroundStyle(DS.danger)
+                    .imasText(.note, color: DS.danger)
             } else {
-                Text("送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。")
+                ImasNote("送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。")
             }
         }
     }
 
     // MARK: - 注文
 
-    private func orderSection(_ draft: Binding<DraftOrder>) -> some View {
+    private func orderCard(_ draft: Binding<DraftOrder>) -> some View {
         let order = draft.wrappedValue.order
-        return Section {
-            Toggle(isOn: draft.include) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(formatYen(amount: order.paidTotal))
-                        .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).monospacedDigit()
-                    if order.alreadyRecorded {
-                        Text("この注文は記録済みです")
-                            .font(.imasCaption).foregroundStyle(DS.danger)
+        return VStack(alignment: .leading, spacing: DS.Space.header) {
+            Text("\(longDate(order.date))　\(order.store)").imasText(.sectionLabel)
+            ImasFormCard {
+                VStack(alignment: .leading, spacing: DS.Space.rowGap) {
+                    Toggle(isOn: draft.include) {
+                        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                            Text(formatYen(amount: order.paidTotal))
+                                .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).monospacedDigit()
+                            if order.alreadyRecorded {
+                                Text("この注文は記録済みです").imasText(.note, color: DS.danger)
+                            }
+                            if order.hasUnreadItems {
+                                Text("読み取れなかった品目があります。額は合計に含めています").imasText(.note, color: DS.danger)
+                            }
+                        }
                     }
-                    if order.hasUnreadItems {
-                        Text("読み取れなかった品目があります。額は合計に含めています")
-                            .font(.imasCaption).foregroundStyle(DS.danger)
-                    }
-                }
-            }
 
-            if draft.wrappedValue.include {
-                ForEach(draft.order.items.indices, id: \.self) { index in
-                    itemRow(draft.order.items[index])
+                    if draft.wrappedValue.include {
+                        ForEach(draft.order.items.indices, id: \.self) { index in
+                            itemRow(draft.order.items[index])
+                        }
+                        if order.adjustment != 0 {
+                            adjustmentRow(order)
+                        }
+                        showRow(draft.wrappedValue)
+                    }
                 }
-                if order.adjustment != 0 {
-                    adjustmentRow(order)
-                }
-                showRow(draft.wrappedValue)
             }
-        } header: {
-            Text("\(longDate(order.date))　\(order.store)")
-        } footer: {
             if !order.orderNumber.isEmpty {
-                Text("注文番号 \(order.orderNumber)")
+                ImasNote("注文番号 \(order.orderNumber)")
             }
         }
     }
 
     private func itemRow(_ item: Binding<StoreOrderItem>) -> some View {
         let value = item.wrappedValue
-        return HStack(alignment: .top, spacing: DS.sp3) {
+        return HStack(alignment: .top, spacing: DS.Space.gap) {
             Button {
                 item.included.wrappedValue.toggle()
             } label: {
-                Image(systemName: value.included ? "checkmark.circle.fill" : "circle")
-                    .font(.imasBody)
-                    .foregroundStyle(value.included ? DS.ink : DS.ink3)
+                ImasSelectionMark(isSelected: value.included)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(value.included ? "記録から外す" : "記録に含める")
 
-            VStack(alignment: .leading, spacing: DS.sp1) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(value.name)
                     .font(.imasFootnote)
                     .foregroundStyle(value.included ? DS.ink : DS.ink3)
                     .lineLimit(3)
-                HStack(spacing: DS.sp2) {
+                HStack(spacing: DS.Space.gap) {
                     Menu {
                         ForEach(categories, id: \.key) { info in
                             Button(info.label) { item.category.wrappedValue = info.category }
                         }
                     } label: {
-                        HStack(spacing: 2) {
-                            Text(expenseCategoryLabel(category: value.category))
-                            Image(systemName: "chevron.up.chevron.down").imageScale(.small)
+                        HStack(spacing: DS.Space.gapTight) {
+                            Text(expenseCategoryLabel(category: value.category)).imasText(.value, color: DS.ink2)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .imageScale(.small)
+                                .foregroundStyle(DS.ink3)
                         }
-                        .font(.imasCaption.weight(.bold))
-                        .padding(.horizontal, DS.sp3).padding(.vertical, 2)
-                        .background(DS.fill, in: Capsule())
-                        .foregroundStyle(DS.ink2)
                     }
                     .disabled(!value.included)
                     .accessibilityLabel("費目: \(expenseCategoryLabel(category: value.category))")
-                    Spacer(minLength: 4)
+                    Spacer(minLength: DS.Space.gapTight)
                     Text(value.quantity > 1
                          ? "\(value.quantity)点 \(formatYen(amount: value.subtotal))"
                          : formatYen(amount: value.subtotal))
@@ -235,12 +207,11 @@ struct StoreOrderImportView: View {
                 }
             }
         }
-        .padding(.vertical, DS.sp1)
     }
 
     private func adjustmentRow(_ order: StoreOrder) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(order.hasUnreadItems ? "その他の品目・送料など"
                      : order.adjustment > 0 ? "送料・手数料" : "ポイント・値引き")
                     .font(.imasFootnote).foregroundStyle(DS.ink)
@@ -276,7 +247,7 @@ struct StoreOrderImportView: View {
             Text(formatYen(amount: planned.reduce(0) { $0 + $1.amount }))
                 .font(.imasBody.weight(.bold)).foregroundStyle(DS.ink).monospacedDigit()
         }
-        .padding(.horizontal, DS.sp5).padding(.vertical, DS.sp4)
+        .padding(.horizontal, DS.Space.screen).padding(.vertical, DS.Space.gap)
         .background(.bar)
     }
 
@@ -338,4 +309,3 @@ private struct DraftOrder: Identifiable {
 private struct PickingTarget: Identifiable {
     let id: Int
 }
-

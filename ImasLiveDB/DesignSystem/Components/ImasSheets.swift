@@ -25,6 +25,8 @@ enum ImasSheetToolbarKind {
     case select(canFinish: Bool = true, onCancel: () -> Void, onFinish: () -> Void)
     /// 読むだけ。右 = 閉じる。
     case read(onClose: () -> Void)
+    /// 後で答えてよい問いかけ (チケット代の記録など)。左 = あとで、右 = 記録する (§16)。
+    case prompt(canRecord: Bool = true, onLater: () -> Void, onRecord: () -> Void)
 }
 
 extension View {
@@ -49,6 +51,11 @@ extension View {
                 }
             case let .read(onClose):
                 ToolbarItem(placement: .confirmationAction) { ImasSheetButton(title: "閉じる", role: .close, action: onClose) }
+            case let .prompt(canRecord, onLater, onRecord):
+                ToolbarItem(placement: .cancellationAction) { ImasSheetButton(title: "あとで", role: .cancel, action: onLater) }
+                ToolbarItem(placement: .confirmationAction) {
+                    ImasSheetButton(title: "記録する", role: .confirm, action: onRecord).disabled(!canRecord)
+                }
             }
         }
     }
@@ -263,7 +270,7 @@ struct ImasListSummary<Sort: Hashable>: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            ImasMetric(value: count.formatted(), unit: unit, size: .small)
+            ImasMetric(value: "\(count)", unit: unit, size: .small)
             Spacer(minLength: DS.Space.gap)
             if let sortSelection, !sortOptions.isEmpty {
                 Menu {
@@ -291,10 +298,18 @@ struct ImasListSummary<Sort: Hashable>: View {
                             .strokeBorder(DS.line, lineWidth: 1)
                     }
                 }
+                .accessibilityLabel(sortAccessibilityLabel(sortSelection, sortAscending))
             }
         }
         .padding(.horizontal, DS.Space.screen)
         .padding(.vertical, DS.Space.gapTight)
+    }
+
+    /// 「並び替え: 〇〇順、昇順/降順」。方向トグルを渡していない画面では軸名だけ読む。
+    private func sortAccessibilityLabel(_ selection: Binding<Sort>, _ ascending: Binding<Bool>?) -> String {
+        let base = "並び替え: \(sortLabel(selection.wrappedValue))"
+        guard let ascending else { return base }
+        return "\(base)、\(ascending.wrappedValue ? "昇順" : "降順")"
     }
 }
 

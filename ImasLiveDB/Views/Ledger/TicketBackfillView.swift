@@ -76,8 +76,7 @@ struct TicketBackfillView: View {
                     Text("券種が複数ある公演は、選んだものだけ記録します。金額はあとから明細で直せます。")
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
+            .imasForm()
             .navigationTitle("チケット代を取り込む")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -110,7 +109,7 @@ struct TicketBackfillView: View {
 
     private func rowView(_ row: TicketBackfillRow) -> some View {
         let chosen = selection[row.id]
-        return HStack(spacing: DS.sp4) {
+        return HStack(spacing: DS.Space.gap) {
             Button {
                 if chosen != nil {
                     selection[row.id] = nil
@@ -118,22 +117,20 @@ struct TicketBackfillView: View {
                     selection[row.id] = only
                 }
             } label: {
-                Image(systemName: chosen != nil ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(chosen != nil ? DS.ink : DS.ink3)
+                ImasSelectionMark(isSelected: chosen != nil)
             }
             .buttonStyle(.plain)
             // 券種が複数あって未選択のときは、丸を押しても選べない (下のメニューで選ぶ)。
             .disabled(chosen == nil && row.item.preselected == nil)
             .accessibilityLabel(chosen != nil ? "記録しない" : "記録する")
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(row.option.label)
                     .font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(2)
                 Text("\(row.option.date)・\(ticketKindLabel(kind: row.item.kind))")
                     .font(.imasCaption).foregroundStyle(DS.ink3)
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: DS.Space.gap)
             if row.item.tickets.count > 1 {
                 Menu {
                     ForEach(row.item.tickets, id: \.id) { ticket in
@@ -157,7 +154,7 @@ struct TicketBackfillView: View {
                     .multilineTextAlignment(.trailing)
             }
         }
-        .padding(.vertical, DS.sp2)
+        .padding(.vertical, DS.Space.gapTight)
     }
 
     private func label(_ ticket: ShowTicket) -> String {

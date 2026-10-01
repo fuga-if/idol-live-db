@@ -66,7 +66,7 @@ struct LedgerView: View {
                     bucketSections
                 }
             } else {
-                ImasInlineLoading().padding(.vertical, DS.sp8).plainRow(background: DS.bg)
+                ImasInlineLoading().padding(.vertical, DS.Space.section).plainRow(background: DS.bg)
             }
         }
         .listStyle(.plain)
@@ -122,44 +122,44 @@ struct LedgerView: View {
     // MARK: - 要約
 
     private var summarySection: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             ImasSectionHeader(title: "使った額", tight: true)
-            VStack(alignment: .leading, spacing: DS.sp3) {
-                HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                    Text(formatYen(amount: summary.total))
-                        .font(.imasDisplay(30, weight: .bold)).foregroundStyle(DS.ink)
-                    Text("\(summary.count)件")
-                        .font(.imasDisplay(15)).foregroundStyle(DS.ink2)
-                }
-                HStack(spacing: DS.sp5) {
-                    metric("遠征費", formatYen(amount: summary.travelTotal))
-                    if summary.showCount > 0 {
-                        metric("1公演あたり", formatYen(amount: summary.averagePerShow))
-                        metric("公演数", "\(summary.showCount)")
+            ImasCard {
+                VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                    HStack(alignment: .firstTextBaseline, spacing: DS.Space.gapTight) {
+                        Text(formatYen(amount: summary.total))
+                            .font(.imasDisplay(30, weight: .bold)).foregroundStyle(DS.ink)
+                        Text("\(summary.count)件")
+                            .font(.imasDisplay(15)).foregroundStyle(DS.ink2)
+                    }
+                    HStack(spacing: DS.Space.section) {
+                        metric("遠征費", formatYen(amount: summary.travelTotal))
+                        if summary.showCount > 0 {
+                            metric("1公演あたり", formatYen(amount: summary.averagePerShow))
+                            metric("公演数", "\(summary.showCount)")
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(DS.sp5)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
 
             if !summary.byCategory.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(summary.byCategory, id: \.label) { row in
-                        ImasStatBar(label: row.label,
-                                    value: formatYen(amount: row.total),
-                                    percent: Double(row.percent),
-                                    valueWidth: 76)
+                ImasCard {
+                    VStack(spacing: 0) {
+                        ForEach(summary.byCategory, id: \.label) { row in
+                            ImasStatBar(label: row.label,
+                                        value: formatYen(amount: row.total),
+                                        percent: Double(row.percent),
+                                        valueWidth: 76)
+                        }
                     }
                 }
-                .padding(.horizontal, DS.sp4)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
             }
         }
     }
 
     private func metric(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
             Text(label).font(.imasCaption).foregroundStyle(DS.ink3)
             Text(value).font(.imasFootnote.weight(.bold)).foregroundStyle(DS.ink)
         }
@@ -168,54 +168,37 @@ struct LedgerView: View {
     // MARK: - 過去の参加の取り込み
 
     private var backfillBanner: some View {
-        Button {
+        ImasTicketRow(
+            title: "過去の参加からチケット代を取り込む",
+            subtitle: "チケット代が未記録の公演が\(backfillRows.count)件あります"
+        ) {
             showingBackfill = true
-        } label: {
-            HStack(spacing: DS.sp4) {
-                Image(systemName: "ticket").foregroundStyle(DS.ink2)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("過去の参加からチケット代を取り込む")
-                        .font(.imasFootnote.weight(.semibold)).foregroundStyle(DS.ink)
-                    Text("チケット代が未記録の公演が\(backfillRows.count)件あります")
-                        .font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right").font(.imasCaption).foregroundStyle(DS.ink3)
-            }
-            .padding(DS.sp5)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, DS.Space.screen)
     }
 
     // MARK: - 絞り込み
 
     private var controlSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             ImasSegmented(labels: Self.periodLabels, selection: $periodIndex)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    ImasFilterChip(text: "全期間", isSelected: yearFilter.isEmpty) { yearFilter = "" }
-                    ForEach(years, id: \.self) { year in
-                        ImasFilterChip(text: "\(year)年", isSelected: yearFilter == year) {
-                            yearFilter = yearFilter == year ? "" : year
-                        }
+                .padding(.horizontal, DS.Space.screen)
+            ImasChipRow {
+                ImasFilterChip(text: "全期間", isSelected: yearFilter.isEmpty) { yearFilter = "" }
+                ForEach(years, id: \.self) { year in
+                    ImasFilterChip(text: "\(year)年", isSelected: yearFilter == year) {
+                        yearFilter = yearFilter == year ? "" : year
                     }
                 }
-                .padding(.vertical, DS.sp1)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: DS.sp3) {
-                    ImasFilterChip(text: "すべて", isSelected: linkage == .all) { linkage = .all }
-                    ImasFilterChip(text: "公演あり", isSelected: linkage == .linkedOnly) {
-                        linkage = linkage == .linkedOnly ? .all : .linkedOnly
-                    }
-                    ImasFilterChip(text: "公演なし", isSelected: linkage == .unlinkedOnly) {
-                        linkage = linkage == .unlinkedOnly ? .all : .unlinkedOnly
-                    }
+            ImasChipRow {
+                ImasFilterChip(text: "すべて", isSelected: linkage == .all) { linkage = .all }
+                ImasFilterChip(text: "公演あり", isSelected: linkage == .linkedOnly) {
+                    linkage = linkage == .linkedOnly ? .all : .linkedOnly
                 }
-                .padding(.vertical, DS.sp1)
+                ImasFilterChip(text: "公演なし", isSelected: linkage == .unlinkedOnly) {
+                    linkage = linkage == .unlinkedOnly ? .all : .unlinkedOnly
+                }
             }
         }
     }
@@ -236,7 +219,7 @@ struct LedgerView: View {
             Section {
                 ForEach(entries(in: bucket, byId: byId), id: \.id) { expense in
                     row(expense)
-                        .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                        .listRowInsets(EdgeInsets(top: 0, leading: DS.Space.screen, bottom: 0, trailing: DS.Space.screen))
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
                         .swipeActions(edge: .trailing) {
@@ -248,12 +231,12 @@ struct LedgerView: View {
             } header: {
                 HStack(alignment: .firstTextBaseline) {
                     Text(bucket.label).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
-                    Spacer(minLength: 12)
+                    Spacer(minLength: DS.Space.gap)
                     Text(formatYen(amount: bucket.total))
                         .font(.imasCaption.weight(.bold)).foregroundStyle(DS.ink2)
                 }
-                .padding(.vertical, DS.sp2)
-                .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
+                .padding(.vertical, DS.Space.gapTight)
+                .listRowInsets(EdgeInsets(top: 0, leading: DS.Space.screen, bottom: 0, trailing: DS.Space.screen))
                 .listRowBackground(DS.bg)
             }
         }
@@ -272,36 +255,26 @@ struct LedgerView: View {
     }
 
     private func row(_ expense: Expense) -> some View {
-        Button {
+        let categoryLabel = expenseCategoryLabel(category: expense.categoryValue)
+        // 公演名かメモ。両方あれば公演名 (どの遠征の支出かが先に要る)。無ければ費目を題にする。
+        let detail = expense.showId.flatMap { showLabels[$0] } ?? expense.note
+        let title = (detail?.isEmpty == false ? detail : nil) ?? categoryLabel
+        return Button {
             editing = ExpenseEditorTarget(expense: expense)
         } label: {
-            HStack(spacing: DS.sp4) {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: DS.sp2) {
-                        Text(expenseCategoryLabel(category: expense.categoryValue))
-                            .font(.imasCaption.weight(.bold))
-                            .padding(.horizontal, DS.sp3).padding(.vertical, 2)
-                            .background(DS.fill, in: Capsule())
-                            .foregroundStyle(DS.ink2)
-                        Text(shortDate(expense.date))
-                            .font(.imasCaption).foregroundStyle(DS.ink3)
-                    }
-                    // 公演名かメモ。両方あれば公演名 (どの遠征の支出かが先に要る)。
-                    if let label = expense.showId.flatMap({ showLabels[$0] }) ?? expense.note,
-                       !label.isEmpty {
-                        Text(label)
-                            .font(.imasFootnote).foregroundStyle(DS.ink2).lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 8)
-                Text(formatYen(amount: expense.amount))
-                    .font(.imasBody.weight(.semibold)).foregroundStyle(DS.ink)
-                    .monospacedDigit()
-            }
-            .padding(.vertical, DS.sp3)
-            .contentShape(Rectangle())
+            ImasRecordRow(
+                title: title,
+                subtitle: shortDate(expense.date),
+                badges: [ImasBadgeSpec(text: categoryLabel, kind: .neutral)],
+                trailing: .custom(AnyView(
+                    Text(formatYen(amount: expense.amount))
+                        .font(.imasBody.weight(.semibold))
+                        .foregroundStyle(DS.ink)
+                        .monospacedDigit()
+                ))
+            ) { EmptyView() }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.imasRow)
     }
 
     private func shortDate(_ date: String) -> String {

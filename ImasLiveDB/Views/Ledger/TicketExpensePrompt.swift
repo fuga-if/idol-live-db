@@ -136,84 +136,58 @@ private struct TicketExpenseSheet: View {
     let onSave: (ShowTicket, Int64) -> Void
 
     @State private var selected: ShowTicket?
-    @State private var amountText = ""
+    @State private var amount: Int?
 
     private var ticket: ShowTicket? { selected ?? request.tickets.first }
-    private var amount: Int64 { Int64(amountText.filter(\.isNumber)) ?? 0 }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Text(request.showLabel)
-                        .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                    Text("\(ticketKindLabel(kind: request.kind))で参加")
-                        .font(.imasCaption).foregroundStyle(DS.ink2)
+            ImasFormPage {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    Text(request.showLabel).imasText(.sectionTitle)
+                    Text("\(ticketKindLabel(kind: request.kind))で参加").imasText(.note)
                 }
 
-                Section("券種") {
+                ImasFormCard {
                     ForEach(request.tickets, id: \.id) { candidate in
-                        Button {
-                            selected = candidate
-                            amountText = String(candidate.price)
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(candidate.name).foregroundStyle(DS.ink)
-                                    if candidate.isEstimate {
-                                        Text("推定").font(.imasCaption).foregroundStyle(DS.ink3)
-                                    }
-                                }
-                                Spacer()
+                        ImasSelectableRow(
+                            title: candidate.name,
+                            subtitle: candidate.isEstimate ? "推定" : nil,
+                            trailing: .custom(AnyView(
                                 Text(formatYen(amount: candidate.price))
-                                    .foregroundStyle(DS.ink2).monospacedDigit()
-                                if candidate.id == ticket?.id {
-                                    Image(systemName: "checkmark").foregroundStyle(DS.ink2)
-                                }
-                            }
-                            // 行全体を的にする。文字の上しか押せないと、選んだつもりで
-                            // 初期値のまま記録される (実機で踏んだ)。
-                            .contentShape(Rectangle())
+                                    .imasText(.value, color: DS.ink2)
+                                    .monospacedDigit()
+                            )),
+                            isSelected: candidate.id == ticket?.id,
+                            isSingle: true
+                        ) {
+                            selected = candidate
+                            amount = Int(candidate.price)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
 
-                Section {
-                    HStack {
-                        Text("¥").foregroundStyle(DS.ink2)
-                        TextField("0", text: $amountText)
-                            .keyboardType(.numberPad)
-                            .monospacedDigit()
-                    }
-                } header: {
-                    Text("記録する金額")
-                } footer: {
-                    Text("手数料や先行の差額を含めたいときは、ここで直してください。")
+                ImasFormCard {
+                    ImasFormAmount(label: "記録する金額", imprint: "AMOUNT", systemImage: "yensign.circle", amount: $amount)
                 }
+                ImasNote("手数料や先行の差額を含めたいときは、ここで直してください。")
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg.ignoresSafeArea())
             .navigationTitle("チケット代を記録")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("あとで") { dismiss() }
+            .imasSheetToolbar(.prompt(
+                canRecord: (amount ?? 0) > 0,
+                onLater: { dismiss() },
+                onRecord: {
+                    if let ticket { onSave(ticket, Int64(amount ?? 0)) }
+                    dismiss()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("記録する") {
-                        if let ticket { onSave(ticket, amount) }
-                        dismiss()
-                    }
-                    .disabled(amount <= 0)
-                }
-            }
+            ))
             .onAppear {
-                if amountText.isEmpty, let first = request.tickets.first {
+                if amount == nil, let first = request.tickets.first {
                     // 候補が 1 つなら決め打ちでよい。複数あるときも先頭 (公式の表記順)
                     // を初期値にして、選び直せるようにする。
                     selected = request.tickets.count == 1 ? first : nil
-                    amountText = String(first.price)
+                    amount = Int(first.price)
                 }
             }
         }
