@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Vocab
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankBadge
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.VocabularyTerm
 
@@ -80,27 +81,13 @@ fun unitTagCategoryColor(category: String?): Color = when (category) {
     else -> DS.ink2
 }
 
-/** 人気ランキングの順位バッジ。上位3つはメダル色 (金/銀/銅)。iOS TagRankBadge の移植。 */
+/**
+ * 人気ランキングの順位の札 (iOS `TagRankBadge` → DS `ImasRankBadge`)。
+ * 色で順位を飾らない (メダル色の塗り分けはしない。1〜3 位は墨の太字、それ以降は灰)。
+ */
 @Composable
 fun TagRankBadge(rank: Int) {
-    val medal = when (rank) {
-        1 -> Color(0xFFE8A800)
-        2 -> Color(0xFFA8B0B8)
-        3 -> Color(0xFFCC8033)
-        else -> null
-    }
-    val textColor = medal ?: DS.ink2
-    val bg = (medal ?: DS.ink3).copy(alpha = 0.16f)
-    Text(
-        "$rank",
-        color = textColor,
-        fontWeight = FontWeight.Bold,
-        fontSize = 12.sp,
-        modifier = Modifier
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(999.dp))
-            .background(bg)
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    )
+    ImasRankBadge(rank)
 }
 
 /** カテゴリ選択チップ。TagCreateSheet/TagEditSheet 共通 (色チップ・タグチップと同じ見た目に統一)。 */

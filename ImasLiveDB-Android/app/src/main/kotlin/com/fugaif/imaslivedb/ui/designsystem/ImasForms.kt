@@ -371,10 +371,10 @@ fun ImasFormTextArea(
 /** 見た目の文字の数 (絵文字や結合文字も 1 つ。iOS の `String.count` と同じ数え方)。 */
 internal fun graphemeCount(text: String): Int {
     if (text.isEmpty()) return 0
-    val it = BreakIterator.getCharacterInstance()
-    it.setText(text)
+    val iterator = BreakIterator.getCharacterInstance()
+    iterator.setText(text)
     var n = 0
-    while (it.next() != BreakIterator.DONE) n++
+    while (iterator.next() != BreakIterator.DONE) n++
     return n
 }
 
