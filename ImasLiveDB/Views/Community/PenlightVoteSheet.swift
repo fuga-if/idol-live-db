@@ -15,14 +15,11 @@ struct PenlightVoteSheet: View {
         NavigationStack {
             Group {
                 if isLoading {
-                    ProgressView("読み込み中…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ImasLoadingState()
                 } else {
                     List {
                         Section {
-                            Text("ペンライトの色を選んで投票してください。複数選択できます。")
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
+                            ImasNote("ペンライトの色を選んで投票してください。複数選択できます。")
                         }
                         .listRowBackground(DS.surface)
                         .listRowSeparatorTint(DS.sep)
@@ -39,8 +36,8 @@ struct PenlightVoteSheet: View {
                             .listRowSeparatorTint(DS.sep)
                         }
 
-                        Section("カラーを選択") {
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: DS.sp4) {
+                        ImasListSection("カラーを選択") {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 80))], spacing: DS.Space.card) {
                                 ForEach(palette.filter { $0.colorHex != nil }) { entry in
                                     if let hex = entry.colorHex {
                                         PenlightColorChip(
@@ -57,19 +54,13 @@ struct PenlightVoteSheet: View {
                                     }
                                 }
                             }
-                            .padding(.vertical, DS.sp3)
+                            .padding(.vertical, DS.Space.rowV)
                         }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
 
                         if !selectedColors.isEmpty {
-                            Section("選択中のセット") {
+                            ImasListSection("選択中のセット") {
                                 PenlightColorBar(colors: Array(selectedColors).map(\.rawValue).sorted(), height: 32)
-                                    .cornerRadius(6)
                             }
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
                         }
                     }
                     .listStyle(.plain)
@@ -79,36 +70,15 @@ struct PenlightVoteSheet: View {
             }
             .navigationTitle("ペンライトカラーを投票")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        AppAnalytics.tap("penlight_vote.submit")
-                        Task { await vote() }
-                    } label: {
-                        if isSending {
-                            ProgressView()
-                        } else {
-                            Text("投票する")
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    .disabled(selectedColors.isEmpty || isSending)
-                }
-            }
+            .imasSheetToolbar(.submit(canSubmit: !selectedColors.isEmpty && !isSending, onCancel: { dismiss() }, onSubmit: {
+                AppAnalytics.tap("penlight_vote.submit")
+                Task { await vote() }
+            }))
             .task { await loadPalette() }
-            .alert("投票エラー", isPresented: Binding(
-                get: { alertError != nil },
-                set: { if !$0 { alertError = nil } }
-            )) {
-                Button("OK") { alertError = nil }
-            } message: {
-                if let err = alertError {
-                    Text(err.errorDescription ?? "不明なエラーが発生しました")
-                }
-            }
+            .imasErrorAlert("投票できませんでした", message: Binding(
+                get: { alertError?.errorDescription ?? (alertError != nil ? "不明なエラーが発生しました" : nil) },
+                set: { if $0 == nil { alertError = nil } }
+            ))
             .trackScreen("penlight_vote")
         }
     }
@@ -157,38 +127,17 @@ private struct PenlightColorChip: View {
             AppAnalytics.tap("penlight_vote.color_toggle")
             onTap()
         } label: {
-            VStack(spacing: DS.sp2) {
+            VStack(spacing: DS.Space.gapTight) {
                 ZStack(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(hexColor: hexColor))
-                        .frame(height: 44)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(
-                                    isSelected ? DS.sys : DS.sep,
-                                    lineWidth: isSelected ? 3 : 1
-                                )
-                        )
+                    ImasSwatch(hex: hexColor.rawValue, size: .large, isSelected: isSelected)
                     if entry.note != nil {
+                        // 任意の色の上に乗る記号なので、WCAG 計算で読める側の色を選ぶ。
                         Image(systemName: "info.circle.fill")
-                            .font(.imasCaption2)
-                            .foregroundStyle(.white.opacity(0.9))
-                            .shadow(radius: 1)
-                            .padding(DS.sp2)
+                            .imasText(.meta, color: ColorMath.onColor(Color(hexColor: hexColor)))
                             .onTapGesture { showNote.toggle() }
                     }
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.imasTitle3)
-                            .foregroundStyle(.white)
-                            .shadow(radius: 2)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
                 }
-                Text(entry.name)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
+                Text(entry.name).imasText(.meta)
             }
         }
         .buttonStyle(.plain)
@@ -196,10 +145,7 @@ private struct PenlightColorChip: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .popover(isPresented: $showNote) {
             if let note = entry.note {
-                Text(note)
-                    .font(.imasCaption)
-                    .padding()
-                    .presentationCompactAdaptation(.popover)
+                Text(note).imasText(.body).padding().presentationCompactAdaptation(.popover)
             }
         }
     }

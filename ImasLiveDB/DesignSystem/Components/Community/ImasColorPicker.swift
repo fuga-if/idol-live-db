@@ -41,14 +41,14 @@ struct ImasColorPicker: View {
             LazyVGrid(columns: columns, spacing: DS.Space.gap) {
                 // 「なし」(色をクリア)
                 Button { selectedHex = "" } label: {
-                    swatch(hex: nil, selected: selectedHex.isEmpty)
+                    noneSwatch(selected: selectedHex.isEmpty)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("色なし")
 
                 ForEach(Self.presets, id: \.self) { hex in
                     Button { selectedHex = hex } label: {
-                        swatch(hex: hex, selected: isSelected(hex))
+                        ImasSwatch(hex: hex, size: .large, isSelected: isSelected(hex))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("カラー: \(ColorAccessibilityName.of(hex))")
@@ -64,16 +64,11 @@ struct ImasColorPicker: View {
         }
     }
 
-    /// 色の丸。選んだ色には墨の輪、「なし」はスラッシュ。
-    @ViewBuilder
-    private func swatch(hex: String?, selected: Bool) -> some View {
+    /// 「なし」の丸。スラッシュの記号で色が無いことを示す。
+    private func noneSwatch(selected: Bool) -> some View {
         ZStack {
-            if let hex {
-                Circle().fill(Color(hexString: hex))
-            } else {
-                Circle().fill(DS.fill)
-                Image(systemName: "slash.circle").font(.imasCaption).foregroundStyle(DS.ink2)
-            }
+            Circle().fill(DS.fill)
+            Image(systemName: "slash.circle").font(.imasCaption).foregroundStyle(DS.ink2)
         }
         .frame(width: ImasSwatch.Size.large.rawValue, height: ImasSwatch.Size.large.rawValue)
         .overlay(Circle().strokeBorder(selected ? DS.ink : DS.sep, lineWidth: selected ? 2.5 : 0.5))

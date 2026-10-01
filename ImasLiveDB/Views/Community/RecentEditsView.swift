@@ -43,7 +43,7 @@ struct RecentEditsView: View {
     var body: some View {
         let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
         return ScrollView {
-            LazyVStack(spacing: 10) {
+            LazyVStack(spacing: DS.Space.gapLoose) {
                 ForEach(entries) { entry in
                     EditFeedCard(
                         entry: entry,
@@ -74,9 +74,7 @@ struct RecentEditsView: View {
         .navigationTitle(mineOnly ? "自分の編集" : "最近の編集")
         .overlay {
             if isLoading && entries.isEmpty {
-                ProgressView("読み込み中...")
-                    .padding(DS.sp7)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                ImasLoadingState()
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
                     systemImage: "square.and.pencil",
@@ -100,14 +98,10 @@ struct RecentEditsView: View {
         .navigationDestination(item: $historyTarget) { target in
             EditHistoryView(recordType: target.recordType, recordName: target.recordName, title: target.title)
         }
-        .alert("エラー", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .imasErrorAlert("通信に失敗しました", message: Binding(
+            get: { errorMessage },
+            set: { errorMessage = $0 }
+        ))
         .trackScreen("recent_edits")
     }
 
@@ -306,108 +300,63 @@ private struct EditFeedCard: View {
     let onToggleGood: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            // 上半分タップで該当ページ (該当ページが無いレコードは変更履歴) へ。
-            Button(action: onOpen) {
-                HStack(alignment: .top, spacing: DS.sp4) {
-                    EditRecordIcon(recordType: entry.recordType)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        // editor + op バッジ + 相対時刻
-                        HStack(spacing: 6) {
-                            Text(entry.editorDisplayLabel)
-                                .font(.imasSubhead.weight(.semibold))
-                                .lineLimit(1)
-                            EditOpBadge(op: entry.op)
-                            Spacer(minLength: 4)
-                            Text(timeLabel)
-                                .font(.imasCaption2)
-                                .foregroundStyle(DS.ink2)
-                        }
-
-                        // 対象タイトル(何を) — どの曲/公演かを明示。
-                        HStack(spacing: 6) {
-                            Text(recordTitle ?? EditFeedFormat.recordTypeLabel(entry.recordType))
-                                .font(.imasSubhead.weight(.semibold))
-                                .foregroundStyle(DS.ink)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.leading)
-                            Image(systemName: "chevron.right")
-                                .font(.imasCaption2.weight(.semibold))
-                                .foregroundStyle(DS.ink3)
-                        }
-
+        ImasCard(padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                // 上半分タップで該当ページ (該当ページが無いレコードは変更履歴) へ。
+                Button(action: onOpen) {
+                    ImasRecordRow(
+                        leading: .icon(EditFeedFormat.recordTypeIcon(entry.recordType), tone: .themed, seed: entry.recordType),
+                        title: recordTitle ?? EditFeedFormat.recordTypeLabel(entry.recordType),
+                        subtitle: "\(entry.editorDisplayLabel) · \(timeLabel)",
+                        badges: [ImasBadgeSpec(text: EditFeedFormat.opLabel(entry.op), kind: EditFeedFormat.opBadgeKind(entry.op))],
+                        trailing: .chevron
+                    ) {
                         // summary (どうした — 機械生成の変更概要)
                         if let summary = entry.summary, !summary.isEmpty {
-                            Text(summary)
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.leading)
+                            Text(summary).imasText(.note)
                         }
                     }
                 }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+                .buttonStyle(.imasRow)
 
-            goodRow
+                goodRow
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.bottom, DS.Space.rowV)
+            }
         }
-        .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
     private var goodRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: DS.Space.gap) {
             if isOwn {
-                Label("あなたの編集", systemImage: "person.fill")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
+                Label("あなたの編集", systemImage: "person.fill").imasText(.note)
             } else {
-                Button {
+                ImasFilterChip(
+                    text: goodCount > 0 ? "\(goodCount)" : "Good",
+                    systemImage: gooded ? "hands.clap.fill" : "hands.clap",
+                    isSelected: gooded
+                ) {
                     AppAnalytics.tap("recent_edits.toggle_good")
                     onToggleGood()
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: gooded ? "hands.clap.fill" : "hands.clap")
-                        Text(goodCount > 0 ? "\(goodCount)" : "Good")
-                            .font(.imasCaption.weight(.semibold))
-                    }
-                    .foregroundStyle(gooded ? AnyShapeStyle(DS.pick) : AnyShapeStyle(DS.ink2))
-                    .padding(.horizontal, DS.sp4)
-                    .padding(.vertical, 6)
-                    .background(
-                        (gooded ? DS.pick : DS.ink3).opacity(0.12),
-                        in: Capsule()
-                    )
                 }
-                .buttonStyle(.plain)
                 .accessibilityLabel(gooded ? "Good を取り消す" : "Good を付ける")
             }
 
             if isOwn, goodCount > 0 {
-                Label("\(goodCount)", systemImage: "hands.clap.fill")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.pick)
+                Label("\(goodCount)", systemImage: "hands.clap.fill").imasText(.note, color: DS.pick)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: DS.Space.gapTight)
 
             // 該当ページに飛べる時は、差分を見る導線を別途用意 (カード本体=ページ遷移のため)。
             if hasDestination {
-                Button {
+                ImasButton(title: "変更履歴", systemImage: "clock.arrow.circlepath", role: .plain, size: .small) {
                     AppAnalytics.tap("recent_edits.open_history")
                     onOpenHistory()
-                } label: {
-                    Label("変更履歴", systemImage: "clock.arrow.circlepath")
-                        .font(.imasCaption.weight(.semibold))
-                        .foregroundStyle(DS.ink2)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .padding(.top, DS.sp1)
     }
 }
 
@@ -423,42 +372,6 @@ struct EditHistoryTarget: Identifiable, Hashable {
         self.recordType = entry.recordType
         self.recordName = entry.recordName
         self.title = title
-    }
-}
-
-// MARK: - Record type icon
-
-private struct EditRecordIcon: View {
-    let recordType: String
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
-        Circle()
-            .fill(design.color.opacity(0.15))
-            .frame(width: 40, height: 40)
-            .overlay {
-                Image(systemName: design.icon)
-                    .font(.imasScaled( 16, weight: .medium))
-                    .foregroundStyle(design.color)
-            }
-            .accessibilityHidden(true)
-    }
-}
-
-// MARK: - Op badge
-
-private struct EditOpBadge: View {
-    let op: String
-
-    var body: some View {
-        let (label, color) = EditFeedFormat.opDesign(op)
-        Text(label)
-            .font(.imasCaption2.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 7)
-            .padding(.vertical, DS.sp1)
-            .background(color.opacity(0.15), in: Capsule())
     }
 }
 
@@ -514,6 +427,14 @@ enum EditFeedFormat {
         case "snapshot":          return ("セトリ更新", .teal)
         default:                  return (op, DS.ink3)
         }
+    }
+
+    static func opLabel(_ op: String) -> String { opDesign(op).label }
+
+    /// `ImasBadge` の種類。操作ごとに色を変えず (§10.1)、文字で区別する。差し戻しだけは
+    /// 「取り消された記録」として `ImasBadge` が元々持つ `.negative` (灰の薄字) に当てる。
+    static func opBadgeKind(_ op: String) -> ImasBadge.Kind {
+        op == "revert" ? .negative : .neutral
     }
 
     /// 「たった今」「N分前」「N時間前」「N日前」、1 か月以上前は JST の日付。言い回しはコアの

@@ -38,36 +38,9 @@ struct EventSearchPickerView: View {
                         onSelect(event)
                         dismiss()
                     } label: {
-                        HStack(spacing: DS.sp4) {
-                            Circle()
-                                .fill(DS.fill)
-                                .frame(width: 36, height: 36)
-                                .overlay {
-                                    Image(systemName: "calendar")
-                                        .foregroundStyle(DS.sys)
-                                        .font(.imasCaption)
-                                }
-
-                            VStack(alignment: .leading, spacing: DS.sp1) {
-                                Text(eventDisplayName(event.name))
-                                    .font(.imasSubhead)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(DS.ink)
-                                if let brandId = event.brandId {
-                                    Text(brandId)
-                                        .font(.imasCaption2)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
-
-                            Spacer()
-
-                            ImasRowChevron()
-                        }
+                        ImasEventRow(event: event, subtitle: event.brandId)
                     }
-                    .accessibilityLabel(event.name)
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
+                    .buttonStyle(.plain)
                 }
             }
             .listStyle(.plain)
@@ -78,7 +51,8 @@ struct EventSearchPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel("キャンセル")
                 }
             }
             .onChange(of: query) { _, newValue in

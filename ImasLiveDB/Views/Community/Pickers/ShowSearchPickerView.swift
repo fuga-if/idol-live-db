@@ -38,42 +38,10 @@ struct ShowSearchPickerView: View {
                         onSelect(show)
                         dismiss()
                     } label: {
-                        HStack(spacing: DS.sp4) {
-                            Circle()
-                                .fill(DS.fill)
-                                .frame(width: 36, height: 36)
-                                .overlay {
-                                    Image(systemName: "ticket")
-                                        .foregroundStyle(DS.sys)
-                                        .font(.imasCaption)
-                                }
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(eventDisplayName(show.eventName))
-                                    .font(.imasSubhead)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(DS.ink)
-                                HStack(spacing: DS.sp3) {
-                                    Text(show.name)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                    Text("·")
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink3)
-                                    Text(show.date.prefix(10).description)
-                                        .font(.imasCaption)
-                                        .foregroundStyle(DS.ink2)
-                                }
-                            }
-
-                            Spacer()
-
-                            ImasRowChevron()
-                        }
+                        ImasShowRow(date: String(show.date.prefix(10)), title: show.name,
+                                   subtitle: eventDisplayName(show.eventName))
                     }
-                    .accessibilityLabel("\(show.eventName) \(show.name)")
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
+                    .buttonStyle(.plain)
                 }
             }
             .listStyle(.plain)
@@ -84,7 +52,8 @@ struct ShowSearchPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("キャンセル") { dismiss() }
+                    Button { dismiss() } label: { Image(systemName: "xmark") }
+                        .accessibilityLabel("キャンセル")
                 }
             }
             .onChange(of: query) { _, newValue in

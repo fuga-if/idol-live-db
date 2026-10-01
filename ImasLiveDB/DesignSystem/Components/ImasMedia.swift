@@ -365,15 +365,35 @@ struct ImasSwatch: View {
     }
 
     let hex: String?
-    var size: Size = .small
+    private let diameter: CGFloat
+    private let showsRing: Bool
     /// 名前が隣に書いてあり、色名を読み上げなくてよいとき。
     var isDecorative: Bool = false
+    /// 選んだ色の丸に墨の輪を付ける (色のグリッドから選ぶ画面)。
+    var isSelected: Bool = false
+
+    init(hex: String?, size: Size = .small, isDecorative: Bool = false, isSelected: Bool = false) {
+        self.hex = hex
+        self.diameter = size.rawValue
+        self.showsRing = size != .dot
+        self.isDecorative = isDecorative
+        self.isSelected = isSelected
+    }
+
+    /// 既定の 3 段階に無い寸法が要るとき (他画面の既存の大きさに揃える移行期など)。
+    init(hex: String?, diameter: CGFloat, isDecorative: Bool = false, isSelected: Bool = false) {
+        self.hex = hex
+        self.diameter = diameter
+        self.showsRing = diameter > Size.dot.rawValue
+        self.isDecorative = isDecorative
+        self.isSelected = isSelected
+    }
 
     var body: some View {
         Circle()
             .fill(Color(hexString: hex))
-            .overlay(Circle().strokeBorder(DS.sep, lineWidth: size == .dot ? 0 : 0.5))
-            .frame(width: size.rawValue, height: size.rawValue)
+            .overlay(Circle().strokeBorder(isSelected ? DS.ink : DS.sep, lineWidth: isSelected ? 2.5 : (showsRing ? 0.5 : 0)))
+            .frame(width: diameter, height: diameter)
             .accessibilityElement()
             .accessibilityLabel(isDecorative ? "" : "カラー: \(ColorAccessibilityName.of(hex))")
             .accessibilityHidden(isDecorative)
