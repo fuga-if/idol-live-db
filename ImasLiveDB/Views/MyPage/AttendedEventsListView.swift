@@ -53,26 +53,20 @@ struct AttendedEventsListView: View {
     var body: some View {
         VStack(spacing: 0) {
             ImasTabs(labels: segmentLabels, selection: $filterIndex)
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp3)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gap)
 
             List {
-                Section {
+                ImasListSection("\(filteredEvents.count)件") {
                     ForEach(filteredEvents) { ew in
                         NavigationLink(value: ew.event) {
-                            EventNameRow(event: ew.event, subtitle: ew.dateRange, showsChevron: false)
+                            ImasEventRow(event: ew.event, date: ew.firstDate, subtitle: ew.dateRange)
                         }
-                        .listRowBackground(DS.surface)
-                        .listRowSeparatorTint(DS.sep)
                     }
-                } header: {
-                    Text("\(filteredEvents.count)件")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
                 }
             }
             .listStyle(.plain)
-            .scrollContentBackground(.hidden)
+            .imasForm()
             .overlay {
                 if filteredEvents.isEmpty {
                     ImasEmptyState(

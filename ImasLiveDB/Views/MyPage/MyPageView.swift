@@ -126,15 +126,10 @@ struct MyPageView: View {
             upperSections
             lowerSections
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(DS.bg)
+        .listStyle(.insetGrouped)
+        .imasForm()
         .navigationTitle("設定")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("閉じる") { dismiss() }
-            }
-        }
+        .imasSheetToolbar(.read(onClose: { dismiss() }))
         .task { await loadAll() }
         .onChange(of: syncEngine.state) {
             if case .completed = syncEngine.state {
@@ -204,14 +199,7 @@ struct MyPageView: View {
             } message: {
                 Text("コミュニティ投稿で表示される名前です (\(InputLimits.max(.displayName))文字以内)")
             }
-            .alert("表示名の保存に失敗", isPresented: Binding(
-                get: { nameErrorMessage != nil },
-                set: { if !$0 { nameErrorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) { nameErrorMessage = nil }
-            } message: {
-                Text(nameErrorMessage ?? "")
-            }
+            .imasErrorAlert("表示名を変更できませんでした", message: $nameErrorMessage)
             .alert("ユーザーをモデレーション", isPresented: $showModerationPrompt) {
                 TextField("ユーザー ID", text: $moderationUserIdInput)
                     .textInputAutocapitalization(.never)
@@ -233,38 +221,16 @@ struct MyPageView: View {
                     UserModerationView(userId: target.id)
                 }
             }
-            .alert("アカウントを削除しますか?", isPresented: $showDeleteAccountConfirm) {
-                Button("削除する", role: .destructive) {
-                    Task { await performAccountDeletion() }
-                }
-                Button("キャンセル", role: .cancel) {}
-            } message: {
-                Text("サーバー上のあなたの編集・Good・予想・ユーザー情報がすべて削除され、サインアウトされます。この操作は取り消せません。")
+            .imasConfirmDestructive(
+                "アカウントを削除しますか？",
+                isPresented: $showDeleteAccountConfirm,
+                message: "サーバー上のあなたの編集・Good・予想・ユーザー情報がすべて削除され、サインアウトされます。この操作は取り消せません。"
+            ) {
+                Task { await performAccountDeletion() }
             }
-            .alert("削除に失敗しました", isPresented: Binding(
-                get: { deleteAccountErrorMessage != nil },
-                set: { if !$0 { deleteAccountErrorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) { deleteAccountErrorMessage = nil }
-            } message: {
-                Text(deleteAccountErrorMessage ?? "")
-            }
-            .alert("引き継ぎコードの発行に失敗しました", isPresented: Binding(
-                get: { transferCodeErrorMessage != nil },
-                set: { if !$0 { transferCodeErrorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) { transferCodeErrorMessage = nil }
-            } message: {
-                Text(transferCodeErrorMessage ?? "")
-            }
-            .alert("バックアップの保存に失敗しました", isPresented: Binding(
-                get: { exportErrorMessage != nil },
-                set: { if !$0 { exportErrorMessage = nil } }
-            )) {
-                Button("OK", role: .cancel) { exportErrorMessage = nil }
-            } message: {
-                Text(exportErrorMessage ?? "")
-            }
+            .imasErrorAlert("削除に失敗しました", message: $deleteAccountErrorMessage)
+            .imasErrorAlert("引き継ぎコードを発行できませんでした", message: $transferCodeErrorMessage)
+            .imasErrorAlert("バックアップを保存できませんでした", message: $exportErrorMessage)
             .fileImporter(isPresented: $showBackupFileImporter, allowedContentTypes: [.json]) { result in
                 switch result {
                 case .success(let url):
@@ -287,18 +253,7 @@ struct MyPageView: View {
             } message: {
                 Text(importErrorMessage ?? importResultMessage ?? "")
             }
-            .overlay {
-                if importer.isImporting {
-                    VStack(spacing: DS.sp5) {
-                        ProgressView(value: importer.progress)
-                            .frame(width: 200)
-                        Text(importer.statusMessage)
-                            .font(.imasCaption)
-                    }
-                    .padding(DS.sp7)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                }
-            }
+            .imasSavingOverlay(importer.isImporting, label: importer.statusMessage, progress: importer.progress)
         }
         .trackScreen("my_page")
     }
@@ -307,65 +262,53 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var accountSection: some View {
-        Section("アカウント") {
-            if AuthService.shared.isSignedIn {
-                HStack {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.imasTitle2)
-                        .foregroundStyle(DS.ink2)
-                    VStack(alignment: .leading, spacing: DS.sp1) {
-                        HStack(spacing: 6) {
-                            Text(AuthService.shared.userName ?? "ユーザー")
-                                .font(.imasHeadline)
-                            Button {
-                                AppAnalytics.tap("my_page.edit_name")
-                                editingName = AuthService.shared.userName ?? ""
-                                showEditName = true
-                            } label: {
-                                Image(systemName: "pencil.circle")
-                                    .font(.imasCallout)
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel("表示名を変更")
-                        }
-                        if let email = AuthService.shared.userEmail {
-                            Text(email)
-                                .font(.imasCaption)
-                                .foregroundStyle(DS.ink2)
-                        }
-                        #if DEBUG
-                        if let uid = AuthService.shared.userId {
-                            Text("ID: \(uid)")
-                                .font(.imasCaption2.monospaced())
-                                .foregroundStyle(DS.ink3)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .textSelection(.enabled)
-                        }
-                        #endif
-                    }
+        if AuthService.shared.isSignedIn {
+            ImasListSection {
+                ImasPass(
+                    leftImprint: "ACCOUNT",
+                    rightImprint: "ログイン中",
+                    title: AuthService.shared.userName ?? "ユーザー",
+                    subtitle: "コミュニティで表示される名前"
+                ) {
+                    AppAnalytics.tap("my_page.edit_name")
+                    editingName = AuthService.shared.userName ?? ""
+                    showEditName = true
                 }
-                Button("ログアウト", role: .destructive) {
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+
+                if let email = AuthService.shared.userEmail {
+                    ImasValueRow(key: "メールアドレス", value: email)
+                }
+                #if DEBUG
+                if let uid = AuthService.shared.userId {
+                    ImasValueRow(key: "ID", value: uid, monospaced: true)
+                }
+                #endif
+            }
+            ImasListSection {
+                ImasActionRow(title: "ログアウト", kind: .destructive) {
                     AppAnalytics.tap("my_page.logout")
                     AuthService.shared.signOut()
                 }
-                Button("アカウントを削除", role: .destructive) {
+                ImasActionRow(title: "アカウントを削除", kind: .destructive) {
                     AppAnalytics.tap("my_page.delete_account")
                     showDeleteAccountConfirm = true
                 }
                 .disabled(isDeletingAccount)
-            } else {
-                VStack(spacing: DS.sp3) {
+            }
+        } else {
+            ImasListSection {
+                VStack(spacing: DS.Space.gap) {
                     Text("ログインするとライブ・セトリ・楽曲データの編集や Good ができます")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                        .imasText(.note)
+                        .multilineTextAlignment(.center)
                     AppleSignInButton()
                 }
-                .padding(.vertical, DS.sp2)
+                .padding(.vertical, DS.Space.gap)
+                .frame(maxWidth: .infinity)
             }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Admin Section (モデレーション)
@@ -374,26 +317,21 @@ struct MyPageView: View {
     /// admin は対象ユーザー ID を直接指定してモデレーション画面 (履歴確認 / BAN / 一括取り消し) を開く。
     @ViewBuilder
     private var adminSection: some View {
-        Section {
-            Button {
+        ImasListSection(
+            "管理者",
+            footer: "対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消し、 全曲のサブスク再生可否チェック等を行います。"
+        ) {
+            ImasActionRow(title: "ユーザーをモデレーション", systemImage: "person.badge.shield.checkmark") {
                 AppAnalytics.tap("my_page.admin_moderation")
                 moderationUserIdInput = ""
                 showModerationPrompt = true
-            } label: {
-                Label("ユーザーをモデレーション", systemImage: "person.badge.shield.checkmark")
             }
             NavigationLink {
                 PlayabilityCheckView()
             } label: {
-                Label("再生可否チェック (Apple Music)", systemImage: "music.note.list")
+                ImasNavRow(title: "再生可否チェック (Apple Music)", systemImage: "music.note.list")
             }
-        } header: {
-            Text("管理者")
-        } footer: {
-            Text("対象ユーザー ID を指定して編集履歴の確認・BAN・一括取り消し、 全曲のサブスク再生可否チェック等を行います。")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Settings Section
@@ -415,248 +353,210 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var helpSection: some View {
-        Section {
-            Button {
+        ImasListSection {
+            ImasActionRow(title: "使い方を見る", systemImage: "questionmark.circle.fill") {
                 AppAnalytics.tap("my_page.open_help")
                 showHelp = true
-            } label: {
-                Label("使い方を見る", systemImage: "questionmark.circle.fill")
             }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     /// Sign in with ChatGPT の試作。ChatGPT Plus / Pro のプランで AI を呼ぶ。
     @ViewBuilder
     private var chatGPTPlanSection: some View {
-        Section {
+        ImasListSection {
             NavigationLink {
                 ChatGPTPlanLabView()
             } label: {
-                HStack {
-                    Label("ChatGPT 連携 (試作)", systemImage: "sparkles")
-                    Spacer()
-                    Text(ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT")
-                        .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-                }
+                ImasNavRow(
+                    title: "ChatGPT 連携 (試作)",
+                    systemImage: "sparkles",
+                    value: ChatGPTPlanSession.shared.isSignedIn ? "連携中" : "Continue with ChatGPT"
+                )
             }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     @ViewBuilder
     private var generalSettingsSection: some View {
-        Section("設定") {
-            Picker("デフォルトブランド", selection: $defaultBrandId) {
-                Text("すべて").tag("")
-                ForEach(vm.brands) { brand in
-                    Text(brand.shortName).tag(brand.id)
-                }
+        ImasListSection("表示") {
+            ImasMenuRow(
+                title: "デフォルトブランド",
+                systemImage: "square.grid.2x2",
+                options: [""] + vm.brands.map(\.id),
+                selection: $defaultBrandId
+            ) { id in
+                id.isEmpty ? "すべて" : (vm.brands.first { $0.id == id }?.shortName ?? id)
             }
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                Text("文字サイズ")
+
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                Text("文字サイズ").imasText(.rowLabel)
                 ImasSegmented(labels: Self.textScaleLabels, selection: textScaleIndex)
-            }
-            // プレビュー: 選んだサイズで実際の見え方を即確認できる (設定画面のラベル自体は
-            // システム既定フォントなので変化しないため、ここで反映後の文字を見せる)。
-            VStack(alignment: .leading, spacing: 3) {
-                Text("プレビュー")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-                Text("Timeless Shooting Star")
-                    .font(.imasScaled(16, weight: .semibold))
-                    .foregroundStyle(DS.ink)
-                Text("ストレイライト ・ 全員")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
-            }
-            .padding(.vertical, DS.sp1)
-
-            // 選択肢はコアが出す (順も文言もアプリ 1 本)。
-            Picker("セトリの歌唱者", selection: $performerNameRaw) {
-                ForEach(PerformerNamePref.options, id: \.raw) { option in
-                    Text(option.label).tag(option.raw)
+                // プレビュー: 選んだサイズで実際の見え方を即確認できる (設定画面のラベル自体は
+                // システム既定フォントなので変化しないため、ここで反映後の文字を見せる)。
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    Text("プレビュー").imasText(.rowSubtitle)
+                    Text("Timeless Shooting Star").imasText(.rowTitle)
+                    Text("ストレイライト ・ 全員").imasText(.rowSubtitle)
                 }
+                .padding(.top, DS.Space.gapTight)
             }
-            // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
-            Text(
-                Self.performerNameSample
-                    .displayName(PerformerNamePref.mode(performerNameRaw), isCharacterLive: false)
-                    .joined
-            )
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
+            .padding(.vertical, DS.Space.gapTight)
 
-            Toggle("ライブ名を省略表示", isOn: $abbreviateEventNames)
-            // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
-            Text(eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"))
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                // 選択肢はコアが出す (順も文言もアプリ 1 本)。
+                ImasMenuRow(
+                    title: "セトリの歌唱者",
+                    systemImage: "person.2",
+                    options: PerformerNamePref.options.map(\.raw),
+                    selection: $performerNameRaw
+                ) { raw in
+                    PerformerNamePref.options.first { $0.raw == raw }?.label ?? raw
+                }
+                // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
+                Text(
+                    Self.performerNameSample
+                        .displayName(PerformerNamePref.mode(performerNameRaw), isCharacterLive: false)
+                        .joined
+                )
+                .imasText(.meta)
+                .padding(.horizontal, DS.Space.rowH)
+            }
+
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                ImasToggleRow(title: "ライブ名を省略表示", isOn: $abbreviateEventNames)
+                // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
+                Text(eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"))
+                    .imasText(.meta)
+                    .padding(.horizontal, DS.Space.rowH)
+            }
 
             // 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (×で隠した後ここで戻せる)。
-            Toggle("曲一覧にイントロドン導線を表示", isOn: Binding(
-                get: { !introDonBarHidden },
-                set: { introDonBarHidden = !$0 }
-            ))
+            ImasToggleRow(
+                title: "曲一覧にイントロドン導線を表示",
+                isOn: Binding(
+                    get: { !introDonBarHidden },
+                    set: { introDonBarHidden = !$0 }
+                )
+            )
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     @ViewBuilder
     private var collectionSettingsSection: some View {
-        Section {
-            Toggle("配信参加も回収に含める", isOn: $includeStreamInCollection)
+        ImasListSection(
+            "披露回収",
+            footer: "回収はリアルライブ(ライブ/フェス)の現地参加のみが対象です。配信でしか観られない方は、配信参加も回収に含められます。"
+        ) {
+            ImasToggleRow(title: "配信参加も回収に含める", isOn: $includeStreamInCollection)
                 .onChange(of: includeStreamInCollection) {
                     UserMarkService.shared.refreshAutoCollected()
                 }
-        } header: {
-            Text("披露回収")
-        } footer: {
-            Text("回収はリアルライブ(ライブ/フェス)の現地参加のみが対象です。配信でしか観られない方は、配信参加も回収に含められます。")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     /// 習熟度の段階。ラベルの好みは人によるので、既定 (聞いた / 覚えた / 完璧) を
     /// 触れるようにしてある。保存は序数なのでラベルを直しても記録は壊れない。
     @ViewBuilder
     private var masterySection: some View {
-        Section {
+        ImasListSection(
+            "習熟度",
+            footer: "段の数と名前を変えられます。段を減らすと、その段の曲は 1 つ下に移ります (記録は消えません)。"
+        ) {
             NavigationLink {
                 MasteryScaleSettingsView()
             } label: {
-                HStack {
-                    Label("習熟度の段階", systemImage: "chart.bar")
-                    Spacer()
-                    Text(UserMarkService.shared.scale.labels.joined(separator: " / "))
-                        .font(.imasCaption).foregroundStyle(DS.ink3).lineLimit(1)
-                }
+                ImasNavRow(title: "習熟度の段階", systemImage: "chart.bar",
+                           value: UserMarkService.shared.scale.labels.joined(separator: " / "))
             }
-        } header: {
-            Text("習熟度")
-        } footer: {
-            Text("段の数と名前を変えられます。段を減らすと、その段の曲は 1 つ下に移ります (記録は消えません)。")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     @ViewBuilder
     private var themeSection: some View {
-        Section {
-            Toggle("担当の色をテーマに使う", isOn: $useOshiColor)
+        ImasListSection(
+            "テーマ",
+            footer: "ONにすると、選んだ担当のイメージカラーがアプリ全体のアクセントカラーになります。"
+        ) {
+            ImasToggleRow(title: "担当の色をテーマに使う", isOn: $useOshiColor)
             if useOshiColor {
                 if vm.pickIdols.isEmpty {
-                    Text("アイドル詳細で担当(推し)に設定すると、ここで色を選べます。")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                    ImasNote("アイドル詳細で担当(推し)に設定すると、ここで色を選べます。")
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.vertical, DS.Space.gapTight)
                 } else {
-                    Picker("テーマにする担当", selection: $themeOshiIdolId) {
-                        ForEach(vm.pickIdols) { idol in
-                            HStack(spacing: DS.sp3) {
-                                Circle()
-                                    .fill(Color(hexString: idol.color))
-                                    .frame(width: 14, height: 14)
-                                Text(idol.name)
-                            }
-                            .tag(idol.id)
-                        }
+                    ImasMenuRow(
+                        title: "テーマにする担当",
+                        options: vm.pickIdols.map(\.id),
+                        selection: $themeOshiIdolId
+                    ) { id in
+                        vm.pickIdols.first { $0.id == id }?.name ?? id
                     }
                 }
             }
-        } header: {
-            Text("テーマ")
-        } footer: {
-            Text("ONにすると、選んだ担当のイメージカラーがアプリ全体のアクセントカラーになります。")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
         .onChange(of: useOshiColor) { syncThemeColor() }
         .onChange(of: themeOshiIdolId) { syncThemeColor() }
     }
 
     @ViewBuilder
     private var imageImportSection: some View {
-        Section {
-            Button {
+        ImasListSection(
+            "画像インポート",
+            footer: "型紙 JSON をダウンロード → URL を埋めて GitHub Gist 等にアップ → そのファイル URL をインポートに貼り付け。既存画像は上書きされます。"
+        ) {
+            ImasActionRow(title: "キャラクター画像をインポート", systemImage: "photo.on.rectangle.angled") {
                 AppAnalytics.tap("my_page.image_import")
                 showImageImport = true
-            } label: {
-                Label("キャラクター画像をインポート", systemImage: "photo.on.rectangle.angled")
             }
             if let url = vm.idolTemplateURL {
                 ShareLink(item: url) {
-                    Label("型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                    ImasNavRow(title: "型紙 JSON をダウンロード (アイドル)", systemImage: "square.and.arrow.down")
                 }
             }
 
-            Button {
+            ImasActionRow(title: "ブランド画像をインポート", systemImage: "tag") {
                 AppAnalytics.tap("my_page.brand_image_import")
                 showBrandImageImport = true
-            } label: {
-                Label("ブランド画像をインポート", systemImage: "tag")
             }
             if let url = vm.brandTemplateURL {
                 ShareLink(item: url) {
-                    Label("型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                    ImasNavRow(title: "型紙 JSON をダウンロード (ブランド)", systemImage: "square.and.arrow.down")
                 }
             }
 
-            Button {
+            ImasActionRow(title: "ユニット画像をインポート", systemImage: "person.3") {
                 AppAnalytics.tap("my_page.unit_image_import")
                 showUnitImageImport = true
-            } label: {
-                Label("ユニット画像をインポート", systemImage: "person.3")
             }
             if let url = vm.unitTemplateURL {
                 ShareLink(item: url) {
-                    Label("型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                    ImasNavRow(title: "型紙 JSON をダウンロード (ユニット)", systemImage: "square.and.arrow.down")
                 }
             }
 
             if importer.importedCount > 0 || importer.failedCount > 0 {
-                Text(importer.statusMessage)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink2)
+                Text(importer.statusMessage).imasText(.note)
             }
             if !importer.failures.isEmpty {
                 DisclosureGroup {
                     ForEach(importer.failures) { f in
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(f.key).font(.imasCaption).bold()
-                            Text(f.reason).font(.imasCaption2).foregroundStyle(DS.ink2)
+                        VStack(alignment: .leading, spacing: DS.Space.gapTight / 2) {
+                            Text(f.key).imasText(.note)
+                            Text(f.reason).imasText(.meta)
                         }
                     }
                 } label: {
                     Label("失敗内訳 (\(importer.failures.count) 件)", systemImage: "exclamationmark.triangle")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.warning)
+                        .imasText(.note, color: DS.warning)
                 }
             }
 
-            Button(role: .destructive) {
+            ImasActionRow(title: "カスタム画像を全削除", systemImage: "trash", kind: .destructive) {
                 AppAnalytics.tap("my_page.clear_images")
                 Task { await importer.clearAllImages() }
-            } label: {
-                Label("カスタム画像を全削除", systemImage: "trash")
             }
-        } header: {
-            Text("画像インポート")
-        } footer: {
-            Text("型紙 JSON をダウンロード → URL を埋めて GitHub Gist 等にアップ → そのファイル URL をインポートに貼り付け。既存画像は上書きされます。")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Notification Section
@@ -670,10 +570,14 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var notificationSection: some View {
-        Section {
+        ImasListSection(
+            "通知",
+            footer: (notifAuthStatus == .authorized || notifAuthStatus == .provisional)
+                ? "お気に入りまたは参加マークしたイベントにライブ前・チケット通知を送ります。" : nil
+        ) {
             switch notifAuthStatus {
             case .notDetermined, .denied:
-                Button {
+                ImasActionRow(title: "通知を許可する", systemImage: "bell.badge") {
                     AppAnalytics.tap("my_page.request_notification")
                     Task {
                         let granted = await NotificationService.shared.requestAuthorization()
@@ -684,33 +588,23 @@ struct MyPageView: View {
                             notifAuthStatus = .denied
                         }
                     }
-                } label: {
-                    Label("通知を許可する", systemImage: "bell.badge")
                 }
                 if notifAuthStatus == .denied {
-                    Text("通知が拒否されています。設定アプリから許可してください。")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.warning)
+                    ImasNote("通知が拒否されています。設定アプリから許可してください。")
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.vertical, DS.Space.gapTight)
                 }
             default:
-                Toggle("担当アイドルの誕生日", isOn: $notifOshiBirthday)
+                ImasToggleRow(title: "担当アイドルの誕生日", isOn: $notifOshiBirthday)
                     .onChange(of: notifOshiBirthday) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
-                Toggle("ライブ1週間前", isOn: $notifLiveWeek)
+                ImasToggleRow(title: "ライブ1週間前", isOn: $notifLiveWeek)
                     .onChange(of: notifLiveWeek) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
-                Toggle("チケット締切・当落通知", isOn: $notifTicket)
+                ImasToggleRow(title: "チケット締切・当落通知", isOn: $notifTicket)
                     .onChange(of: notifTicket) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
-                Toggle("月曜が近いことを知らせる (日曜 20:00)", isOn: $notifMonday)
+                ImasToggleRow(title: "月曜が近いことを知らせる (日曜 20:00)", isOn: $notifMonday)
                     .onChange(of: notifMonday) { _, isOn in rescheduleNotifications(turnedOn: isOn) }
             }
-        } header: {
-            Text("通知")
-        } footer: {
-            if notifAuthStatus == .authorized || notifAuthStatus == .provisional {
-                Text("お気に入りまたは参加マークしたイベントにライブ前・チケット通知を送ります。")
-            }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
         .task {
             notifAuthStatus = await NotificationService.shared.authorizationStatus()
         }
@@ -720,66 +614,46 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var dataSyncSection: some View {
-        Section("データ同期") {
-            HStack {
-                Image(systemName: syncStateIcon)
-                    .foregroundStyle(syncStateColor)
-                Text(syncEngine.state.description)
-                    .font(.imasSubhead)
-                if isSyncing {
-                    Spacer()
-                    ProgressView()
-                }
-            }
+        ImasListSection("データ同期") {
+            ImasNavRow(title: syncEngine.state.description, systemImage: syncStateIcon,
+                       iconTone: syncStateTone, isLoading: isSyncing)
 
-            Button {
+            ImasActionRow(title: "差分更新", systemImage: "arrow.triangle.2.circlepath") {
                 AppAnalytics.tap("my_page.sync_incremental")
                 Task { await syncEngine.performIncrementalSync(database: database) }
-            } label: {
-                Label("差分更新", systemImage: "arrow.triangle.2.circlepath")
             }
             .disabled(isSyncing)
 
-            Button {
+            ImasActionRow(title: "全データ同期", systemImage: "arrow.clockwise.icloud") {
                 AppAnalytics.tap("my_page.sync_full")
                 Task { await syncEngine.performFullSync(database: database) }
-            } label: {
-                Label("全データ同期", systemImage: "arrow.clockwise.icloud")
             }
             .disabled(isSyncing)
 
             #if DEBUG
-            LabeledContent("スキーマバージョン", value: vm.schemaVersion)
-            LabeledContent("データバージョン", value: vm.dataVersion)
+            ImasValueRow(key: "スキーマバージョン", value: vm.schemaVersion)
+            ImasValueRow(key: "データバージョン", value: vm.dataVersion)
 
             if let summary = syncEngine.lastSyncSummary {
                 DisclosureGroup {
-                    LabeledContent("modifiedSince", value: summary.modifiedSinceLabel)
-                        .font(.imasCaption2)
-                    LabeledContent("総取得件数", value: "\(summary.totalFetched)")
-                        .font(.imasCaption2)
+                    ImasValueRow(key: "modifiedSince", value: summary.modifiedSinceLabel)
+                    ImasValueRow(key: "総取得件数", value: "\(summary.totalFetched)")
                     if summary.fetchedByType.isEmpty {
-                        Text("(各 RecordType 0 件)")
-                            .font(.imasCaption2)
-                            .foregroundStyle(DS.ink2)
+                        ImasNote("(各 RecordType 0 件)")
                     } else {
                         ForEach(summary.fetchedByType.sorted { $0.key < $1.key }, id: \.key) { (k, v) in
-                            LabeledContent(k, value: "\(v)")
-                                .font(.imasCaption2)
+                            ImasValueRow(key: k, value: "\(v)")
                         }
                     }
                 } label: {
-                    Label("直近同期サマリ", systemImage: "list.bullet.rectangle")
-                        .font(.imasCaption)
+                    Label("直近同期サマリ", systemImage: "list.bullet.rectangle").imasText(.note)
                 }
             }
             #endif
 
             #if DEBUG
             DisclosureGroup {
-                LabeledContent("reseed 結果", value: AppDatabase.lastReseedStatus)
-                    .font(.imasCaption2)
-                    .textSelection(.enabled)
+                ImasValueRow(key: "reseed 結果", value: AppDatabase.lastReseedStatus, copyable: true)
                     .contextMenu {
                         Button {
                             UIPasteboard.general.string = AppDatabase.lastReseedStatus
@@ -788,152 +662,132 @@ struct MyPageView: View {
                         }
                     }
             } label: {
-                Label("診断", systemImage: "stethoscope")
-                    .font(.imasCaption)
+                Label("診断", systemImage: "stethoscope").imasText(.note)
             }
             #endif
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Data Backup Section
 
     @ViewBuilder
     private var dataBackupSection: some View {
-        Section {
+        ImasListSection(
+            "バックアップ",
+            footer: "担当/お気に入りはiCloudで自動バックアップされていますが、これは投票履歴・端末IDも含めた手動バックアップです。機種変更やAndroid版への移行、iCloudが使えない場合にご利用ください。同一端末からの復元でない場合は「端末IDも引き継ぐ」はオフのままにしてください。引き継ぎコードの発行・復元にはログインが必要です。ファイル保存はログイン不要です。"
+        ) {
             if let code = transferCode {
-                VStack(alignment: .leading, spacing: DS.sp2) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
                     Text(code)
-                        .font(.imasScaled(28, weight: .bold, design: .monospaced))
+                        .font(ImasNumeralSize.date.font)
+                        .foregroundStyle(DS.ink)
                         .textSelection(.enabled)
                     if let expiresAt = transferCodeExpiresAt {
                         Text("24時間有効・1回のみ使用可能です (期限: \(expiresAt.formatted(date: .abbreviated, time: .shortened)))")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink2)
+                            .imasText(.meta)
                     }
                     Button {
                         UIPasteboard.general.string = code
                     } label: {
                         Label("コピー", systemImage: "doc.on.doc")
                     }
-                    .font(.imasCaption)
+                    .buttonStyle(.imas(.secondary, size: .small))
                 }
-                .padding(.vertical, DS.sp2)
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.gap)
             }
-            Button {
+            ImasActionRow(title: isCreatingTransferCode ? "発行中…" : "引き継ぎコードを発行する", systemImage: "arrow.up.doc") {
                 AppAnalytics.tap("my_page.backup_create_transfer_code")
                 Task { await createTransferCode() }
-            } label: {
-                if isCreatingTransferCode {
-                    HStack {
-                        ProgressView()
-                        Text("発行中...")
-                    }
-                } else {
-                    Label("引き継ぎコードを発行する", systemImage: "arrow.up.doc")
-                }
             }
             .disabled(isCreatingTransferCode)
 
-            HStack {
+            HStack(spacing: DS.Space.gap) {
                 TextField("引き継ぎコード", text: $importCodeInput)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                Button {
+                ImasButton(title: "復元", role: .secondary, size: .small, isLoading: isImportingByCode) {
                     AppAnalytics.tap("my_page.backup_import_by_code")
                     Task { await importByCode() }
-                } label: {
-                    if isImportingByCode {
-                        ProgressView()
-                    } else {
-                        Text("復元")
-                    }
                 }
                 .disabled(isImportingByCode || importCodeInput.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+            .padding(.horizontal, DS.Space.rowH)
+            .padding(.vertical, DS.Space.gapTight)
+            .frame(minHeight: DS.Size.touch)
 
-            Button {
+            ImasActionRow(title: "ファイルに保存する", systemImage: "square.and.arrow.up") {
                 AppAnalytics.tap("my_page.backup_export_file")
                 exportBackupFile()
-            } label: {
-                Label("ファイルに保存する", systemImage: "square.and.arrow.up")
             }
             if let url = backupFileURL {
                 ShareLink(item: url) {
-                    Label("バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square")
-                        .font(.imasCaption)
-                        .foregroundStyle(DS.ink2)
+                    ImasNavRow(title: "バックアップファイルを共有", systemImage: "square.and.arrow.up.on.square")
                 }
             }
 
-            Button {
+            ImasActionRow(title: "ファイルから復元する", systemImage: "square.and.arrow.down") {
                 AppAnalytics.tap("my_page.backup_import_file")
                 showBackupFileImporter = true
-            } label: {
-                Label("ファイルから復元する", systemImage: "square.and.arrow.down")
             }
 
-            Toggle("復元時に端末IDも引き継ぐ(上級者向け・通常はOFF)", isOn: $restoreDeviceIdOnImport)
-        } header: {
-            Text("バックアップ")
-        } footer: {
-            Text("担当/お気に入りはiCloudで自動バックアップされていますが、これは投票履歴・端末IDも含めた手動バックアップです。機種変更やAndroid版への移行、iCloudが使えない場合にご利用ください。同一端末からの復元でない場合は「端末IDも引き継ぐ」はオフのままにしてください。引き継ぎコードの発行・復元にはログインが必要です。ファイル保存はログイン不要です。")
+            ImasToggleRow(title: "復元時に端末IDも引き継ぐ(上級者向け・通常はOFF)", isOn: $restoreDeviceIdOnImport)
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Data Stats Section
 
     @ViewBuilder
     private func dataStatsSection(_ stats: DatabaseStats) -> some View {
-        Section("データ統計") {
-            LabeledContent("楽曲数", value: "\(stats.songCount)曲")
-            LabeledContent("アイドル数", value: "\(stats.idolCount)人")
-            LabeledContent("イベント数", value: "\(stats.eventCount)件")
-            LabeledContent("公演数", value: "\(stats.showCount)公演")
+        ImasListSection("データ統計") {
+            ImasValueRow(key: "楽曲数", value: "\(stats.songCount)曲")
+            ImasValueRow(key: "アイドル数", value: "\(stats.idolCount)人")
+            ImasValueRow(key: "イベント数", value: "\(stats.eventCount)件")
+            ImasValueRow(key: "公演数", value: "\(stats.showCount)公演")
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - App Info Section
 
     @ViewBuilder
     private var appInfoSection: some View {
-        Section("アプリ情報") {
-            NavigationLink("アプリについて") {
+        ImasListSection("アプリ情報") {
+            NavigationLink {
                 AboutView()
+            } label: {
+                ImasNavRow(title: "アプリについて")
             }
-            NavigationLink("プライバシーポリシー") {
+            NavigationLink {
                 PrivacyPolicyView()
+            } label: {
+                ImasNavRow(title: "プライバシーポリシー")
             }
-            NavigationLink("利用規約") {
+            NavigationLink {
                 TermsOfServiceView()
+            } label: {
+                ImasNavRow(title: "利用規約")
             }
-            NavigationLink("サポート") {
+            NavigationLink {
                 SupportView()
+            } label: {
+                ImasNavRow(title: "サポート")
             }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Credits Section
 
     @ViewBuilder
     private var creditsSection: some View {
-        Section("クレジット") {
+        ImasListSection("クレジット") {
             Text("本アプリは非公式のファンメイドアプリです。")
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink2)
+                .imasText(.note)
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.gapTight)
             if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                LabeledContent("アプリバージョン", value: version)
+                ImasValueRow(key: "アプリバージョン", value: version)
             }
         }
-        .listRowBackground(DS.surface)
-        .listRowSeparatorTint(DS.sep)
     }
 
     // MARK: - Sync State UI Helpers
@@ -950,13 +804,13 @@ struct MyPageView: View {
         }
     }
 
-    private var syncStateColor: Color {
+    private var syncStateTone: ImasIconTile.Tone {
         switch syncEngine.state {
-        case .idle: return DS.ink2
-        case .syncing: return DS.sys
-        case .completed: return DS.success
+        case .idle: return .neutral
+        case .syncing: return .solid
+        case .completed: return .positive
         case .error:
-            return syncEngine.state == .requiresFullResync ? .orange : .red
+            return syncEngine.state == .requiresFullResync ? .attention : .negative
         }
     }
 

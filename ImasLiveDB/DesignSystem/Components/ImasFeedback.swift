@@ -262,13 +262,19 @@ struct ImasSignInPrompt: View {
 
 extension View {
     /// 保存・送信中に画面を覆う。下の操作を止め、何をしているかを 1 語で出す。
-    func imasSavingOverlay(_ isSaving: Bool, label: String = "保存中") -> some View {
+    /// `progress` を渡すと (0〜1)、くるくるの代わりに進み具合のバーを出す
+    /// (画像の一括インポートなど、割合が意味を持つ処理向け)。
+    func imasSavingOverlay(_ isSaving: Bool, label: String = "保存中", progress: Double? = nil) -> some View {
         overlay {
             if isSaving {
                 ZStack {
                     Color.black.opacity(0.25).ignoresSafeArea()
                     VStack(spacing: DS.Space.gapLoose) {
-                        ProgressView().controlSize(.large)
+                        if let progress {
+                            ProgressView(value: progress).frame(width: 160)
+                        } else {
+                            ProgressView().controlSize(.large)
+                        }
                         Text(label).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
                     }
                     .padding(.horizontal, 32)

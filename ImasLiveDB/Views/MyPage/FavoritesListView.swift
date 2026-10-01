@@ -28,8 +28,8 @@ struct FavoritesListView: View {
     var body: some View {
         VStack(spacing: 0) {
             ImasTabs(labels: Tab.allCases.map(\.label), selection: $section)
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp3)
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gap)
 
             content
         }
@@ -51,73 +51,53 @@ struct FavoritesListView: View {
                 emptyState(icon: "music.note", title: "お気に入りの曲がありません")
             } else {
                 List {
-                    Section {
+                    ImasListSection("\(songs.count)曲") {
                         ForEach(songs) { song in
                             // Button でラップすると内側のジャケ写プレビュー再生タップが
                             // 吸われるため、行全体は onTapGesture で遷移を受ける。
-                            SongTitleRow(song: song, showsChevron: false)
+                            ImasSongRow(song: song, density: .compact)
                                 .contentShape(Rectangle())
                                 .onTapGesture { sheetDestination = .song(song) }
-                                .listRowBackground(DS.surface)
-                                .listRowSeparatorTint(DS.sep)
                         }
-                    } header: {
-                        Text("\(songs.count)曲").font(.imasCaption).foregroundStyle(DS.ink2)
                     }
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .imasForm()
             }
         case .idol:
             if idols.isEmpty {
                 emptyState(icon: "person.fill", title: "お気に入りのアイドルがいません")
             } else {
                 List {
-                    Section {
+                    ImasListSection("\(idols.count)人") {
                         ForEach(idols) { idol in
-                            Button { sheetDestination = .idol(idol) } label: {
-                                HStack(spacing: DS.sp3) {
-                                    IdolAvatarView(idol: idol, size: 36)
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text(idol.name).font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                                        if let cv = VoiceActorDirectory.shared.current(for: idol.id), !cv.isEmpty {
-                                            Text("CV: \(cv)").font(.imasCaption).foregroundStyle(DS.ink3)
-                                        }
-                                    }
-                                    Spacer(minLength: 0)
-                                }
-                                .padding(.vertical, DS.sp2)
+                            Button {
+                                sheetDestination = .idol(idol)
+                            } label: {
+                                ImasIdolRow(idol: idol, subtitle: VoiceActorDirectory.shared.current(for: idol.id).flatMap { $0.isEmpty ? nil : "CV: \($0)" })
                             }
-                            .buttonStyle(.plain)
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
+                            .buttonStyle(.imasRow)
                         }
-                    } header: {
-                        Text("\(idols.count)人").font(.imasCaption).foregroundStyle(DS.ink2)
                     }
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .imasForm()
             }
         case .event:
             if events.isEmpty {
                 emptyState(icon: "music.mic", title: "お気に入りのライブがありません")
             } else {
                 List {
-                    Section {
+                    ImasListSection("\(events.count)件") {
                         ForEach(events) { ew in
                             NavigationLink(value: ew.event) {
-                                EventNameRow(event: ew.event, subtitle: ew.dateRange, showsChevron: false)
+                                ImasEventRow(event: ew.event, date: ew.firstDate, subtitle: ew.dateRange)
                             }
-                            .listRowBackground(DS.surface)
-                            .listRowSeparatorTint(DS.sep)
                         }
-                    } header: {
-                        Text("\(events.count)件").font(.imasCaption).foregroundStyle(DS.ink2)
                     }
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                .imasForm()
             }
         }
     }

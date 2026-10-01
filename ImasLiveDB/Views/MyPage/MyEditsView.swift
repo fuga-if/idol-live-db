@@ -30,7 +30,7 @@ struct MyEditsView: View {
     var body: some View {
         let times = EditFeedFormat.relativeTimes(entries.map { ($0.id, $0.createdDate) })
         return ScrollView {
-            LazyVStack(spacing: 10) {
+            LazyVStack(spacing: DS.Space.gap) {
                 ForEach(entries) { entry in
                     MyEditRow(
                         entry: entry,
@@ -46,8 +46,8 @@ struct MyEditsView: View {
                     ImasInlineLoading()
                 }
             }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp4)
+            .padding(.horizontal, DS.Space.screen)
+            .padding(.vertical, DS.Space.gapLoose)
         }
         .background(DS.bg)
         .navigationTitle("自分の編集")
@@ -55,9 +55,7 @@ struct MyEditsView: View {
         .trackScreen("my_edits")
         .overlay {
             if isLoading && entries.isEmpty {
-                ProgressView("読み込み中...")
-                    .padding(DS.sp7)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                ImasLoadingState()
             } else if entries.isEmpty && !isLoading {
                 ImasEmptyState(
                     systemImage: "square.and.pencil",
@@ -86,14 +84,7 @@ struct MyEditsView: View {
         } message: { target in
             Text(revertMessage(for: target))
         }
-        .alert("エラー", isPresented: Binding(
-            get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
-        )) {
-            Button("OK") { errorMessage = nil }
-        } message: {
-            Text(errorMessage ?? "")
-        }
+        .imasErrorAlert("操作に失敗しました", message: $errorMessage)
     }
 
     // MARK: - State resolution
@@ -199,37 +190,29 @@ private struct MyEditRow: View {
     let onRevert: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: DS.sp4) {
-            EditTypeIcon(recordType: entry.recordType)
+        ImasCard {
+            HStack(alignment: .top, spacing: DS.Space.rowGap) {
+                EditTypeIcon(recordType: entry.recordType)
 
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    OpBadge(op: entry.op)
-                    if isReverted {
-                        Text("差戻し済み")
-                            .font(.imasCaption2.weight(.semibold))
-                            .foregroundStyle(DS.ink2)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, DS.sp1)
-                            .background(DS.fill, in: Capsule())
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    HStack(spacing: DS.Space.gapTight) {
+                        OpBadge(op: entry.op)
+                        if isReverted {
+                            ImasBadge(text: "差戻し済み", kind: .negative)
+                        }
+                        Spacer(minLength: DS.Space.gapTight)
+                        Text(timeLabel).imasText(.meta)
                     }
-                    Spacer(minLength: 4)
-                    Text(timeLabel)
-                        .font(.imasCaption2)
-                        .foregroundStyle(DS.ink2)
+
+                    Text(entry.summary ?? EditFeedFormat.recordTypeLabel(entry.recordType))
+                        .imasText(.rowLabel, color: isReverted ? DS.ink2 : DS.ink)
+                        .strikethrough(isReverted, color: DS.ink2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    footer
                 }
-
-                Text(entry.summary ?? EditFeedFormat.recordTypeLabel(entry.recordType))
-                    .font(.imasSubhead)
-                    .foregroundStyle(isReverted ? AnyShapeStyle(DS.ink2) : AnyShapeStyle(DS.ink))
-                    .strikethrough(isReverted, color: DS.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                footer
             }
         }
-        .padding(14)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD))
     }
 
     @ViewBuilder
@@ -237,61 +220,48 @@ private struct MyEditRow: View {
         HStack {
             if entry.goodCount > 0 {
                 Label("\(entry.goodCount)", systemImage: "hands.clap.fill")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.pick)
+                    .imasText(.note, color: DS.pick)
             }
             Spacer()
-            if isReverting {
-                ProgressView()
-            } else if entry.isRevertable && !isReverted {
-                Button(role: .destructive) {
+            if entry.isRevertable && !isReverted {
+                ImasButton(title: "取り消す", systemImage: "arrow.uturn.backward",
+                           role: .destructive, size: .small, isLoading: isReverting) {
                     AppAnalytics.tap("my_edits.revert")
                     onRevert()
-                } label: {
-                    Label("取り消す", systemImage: "arrow.uturn.backward")
-                        .font(.imasCaption.weight(.semibold))
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(DS.danger)
             }
         }
-        .padding(.top, DS.sp1)
     }
 }
 
 // MARK: - Shared small components
 
-/// record_type のアイコンチップ (RecentEditsView の EditRecordIcon と同一の見た目)。
+/// record_type のアイコン (RecentEditsView・EditHistoryView と共有)。地は敷かず記号だけ。
 struct EditTypeIcon: View {
     let recordType: String
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         let design = EditFeedFormat.recordTypeDesign(recordType, scheme: scheme)
-        Circle()
-            .fill(design.color.opacity(0.15))
-            .frame(width: 40, height: 40)
-            .overlay {
-                Image(systemName: design.icon)
-                    .font(.imasScaled( 16, weight: .medium))
-                    .foregroundStyle(design.color)
-            }
-            .accessibilityHidden(true)
+        ImasIconTile(systemImage: design.icon, size: .s44, tone: .themed,
+                     seed: ColorMath.hexString(from: design.color))
     }
 }
 
-/// op バッジ (RecentEditsView の EditOpBadge と同一の見た目)。
+/// op バッジ (RecentEditsView・EditHistoryView と共有)。色で種別を分けず、文字で言う。
 struct OpBadge: View {
     let op: String
 
     var body: some View {
-        let (label, color) = EditFeedFormat.opDesign(op)
-        Text(label)
-            .font(.imasCaption2.weight(.semibold))
-            .foregroundStyle(color)
-            .padding(.horizontal, 7)
-            .padding(.vertical, DS.sp1)
-            .background(color.opacity(0.15), in: Capsule())
+        let (label, _) = EditFeedFormat.opDesign(op)
+        ImasBadge(text: label, kind: kind)
+    }
+
+    private var kind: ImasBadge.Kind {
+        switch op {
+        case "delete": return .attention
+        case "revert": return .negative
+        default: return .neutral
+        }
     }
 }
