@@ -432,7 +432,7 @@ private fun DataSyncSection() {
 
 @Composable
 private fun SettingsSectionTitle(title: String) {
-    com.fugaif.imaslivedb.ui.components.ImasSectionHeader(title = title, tight = true)
+    com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader(title = title, tight = true)
 }
 
 /**

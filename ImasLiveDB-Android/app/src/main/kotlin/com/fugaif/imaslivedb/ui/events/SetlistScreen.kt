@@ -87,10 +87,10 @@ import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.GradientHeader
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
-import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
-import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.components.ImasTagChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasTagChip
 import com.fugaif.imaslivedb.ui.components.PerformerChip
 import com.fugaif.imaslivedb.ui.edit.SetlistEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind

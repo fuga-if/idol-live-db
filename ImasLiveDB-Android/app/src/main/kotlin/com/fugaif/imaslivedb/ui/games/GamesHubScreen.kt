@@ -60,8 +60,8 @@ import com.fugaif.imaslivedb.data.games.hasPlayed
 import com.fugaif.imaslivedb.data.games.totalPlays
 import com.fugaif.imaslivedb.data.games.totalPoints
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasListContainer
-import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasListContainer
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.GameRecord

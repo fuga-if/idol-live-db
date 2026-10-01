@@ -1,7 +1,7 @@
 package com.fugaif.imaslivedb.ui.songs
 
-import com.fugaif.imaslivedb.ui.components.ReadableWidth
-import com.fugaif.imaslivedb.ui.components.ReadableContentWidth
+import com.fugaif.imaslivedb.ui.designsystem.ReadableWidth
+import com.fugaif.imaslivedb.ui.designsystem.ReadableContentWidth
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.clickable
@@ -69,7 +69,7 @@ import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
 import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
-import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.components.SongRowMatch

@@ -57,10 +57,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
-import com.fugaif.imaslivedb.ui.components.ImasListContainer
-import com.fugaif.imaslivedb.ui.components.ImasMetricBadge
-import com.fugaif.imaslivedb.ui.components.ImasRankingRow
-import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasListContainer
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetricBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankingRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatBar
 import com.fugaif.imaslivedb.ui.components.ImasStatTile

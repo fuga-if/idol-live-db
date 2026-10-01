@@ -38,8 +38,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.components.ImasTagChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasTagChip
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.CostumeEventRecord
 import uniffi.imas_core.CostumeRecord

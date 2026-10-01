@@ -1,6 +1,6 @@
 package com.fugaif.imaslivedb.ui.events
 
-import com.fugaif.imaslivedb.ui.components.ReadableWidth
+import com.fugaif.imaslivedb.ui.designsystem.ReadableWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

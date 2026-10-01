@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.components
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,40 +59,6 @@ import com.fugaif.imaslivedb.ui.theme.ImasRainbow
 // SF Symbol は ImageVector へ、Nuke は Coil へ置換。色は ImasTheme(seed) から導出。
 // =============================================================================
 
-/** セクション見出し (タイトル + 件数 + すべて見る)。tight で小さめサブ見出し。 */
-@Composable
-fun ImasSectionHeader(
-    title: String,
-    count: String? = null,
-    tight: Boolean = false,
-    onSeeAll: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    /** [onSeeAll] の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。 */
-    seeAllTitle: String = "すべて見る"
-) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (tight) {
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-        } else {
-            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            if (count != null) {
-                Text(count, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3,
-                    modifier = Modifier.padding(start = 8.dp))
-            }
-        }
-        Box(Modifier.weight(1f))
-        if (onSeeAll != null) {
-            Row(Modifier.clickable(onClick = onSeeAll), verticalAlignment = Alignment.CenterVertically) {
-                Text(seeAllTitle, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink2, modifier = Modifier.size(16.dp))
-            }
-        }
-    }
-}
-
 /** 活動サマリの統計タイル (アイコン + 値 + 単位 + ラベル)。 */
 @Composable
 fun ImasStatTile(
@@ -132,17 +99,6 @@ fun ImasStatTile(
     }
 }
 
-/** メトリクスバッジ (値 + 単位、accent 色)。 */
-@Composable
-fun ImasMetricBadge(value: String, unit: String = "", emphasized: Boolean = true, seed: String? = null) {
-    val t = imasTheme(seed, null)
-    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (emphasized) t.accent else DS.ink2)
-        if (unit.isNotEmpty()) Text(unit, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-            color = if (emphasized) t.accent else DS.ink2, modifier = Modifier.padding(bottom = 1.dp))
-    }
-}
-
 /** 横棒の統計バー (ラベル + バー + 値)。 */
 @Composable
 fun ImasStatBar(label: String, value: String, percent: Double, seed: String? = null, brand: String? = null) {
@@ -161,31 +117,6 @@ fun ImasStatBar(label: String, value: String, percent: Double, seed: String? = n
                 .clip(RoundedCornerShape(4.dp)).background(t.accent))
         }
         Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2, modifier = Modifier.width(44.dp), textAlign = TextAlign.End)
-    }
-}
-
-/** ランキング行 (順位 + lead(ジャケ/アバター) + タイトル + サブ + メトリクス)。 */
-@Composable
-fun ImasRankingRow(
-    rank: Int, title: String, metric: String, unit: String = "回",
-    sub: String? = null, seed: String? = null, brand: String? = null,
-    onClick: (() -> Unit)? = null, lead: @Composable () -> Unit
-) {
-    val t = imasThemeForBrand(seed, brand)
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .background(DS.surface).padding(horizontal = 14.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("$rank", fontSize = 17.sp, fontWeight = FontWeight.Bold,
-            color = if (rank <= 3) t.accent else DS.ink3, modifier = Modifier.width(26.dp))
-        lead()
-        Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (sub != null) Text(sub, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        ImasMetricBadge(value = metric, unit = unit, seed = seed)
     }
 }
 
@@ -214,74 +145,6 @@ fun ImasSegmented(
             }
         }
     }
-}
-
-/**
- * よみ / CV / 会場 等の key-value 行。
- *
- * [copyable] が true (既定) なら長押しで値をコピーできる。この行は
- * 「外部で検索したり貼りたくなる値」の表示に使われるので、コピーは画面ごとに
- * 付け外しするものではなく既定の性質にする (iOS の ImasLabeledRow と 1:1)。
- * 呼び出し側で別の長押しメニューを出す行だけ false にする。
- */
-@Composable
-fun ImasLabeledRow(
-    key: String,
-    value: String,
-    showSwatch: Boolean = false,
-    mono: Boolean = false,
-    tappable: Boolean = false,
-    copyable: Boolean = true,
-    seed: String? = null,
-    brand: String? = null,
-    onClick: (() -> Unit)? = null
-) {
-    val t = imasThemeForBrand(seed, brand)
-    val row: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .background(DS.surface)
-                .padding(horizontal = 16.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(key, fontSize = 15.sp, color = DS.ink2)
-            Box(Modifier.weight(1f))
-            if (showSwatch) Box(Modifier.size(16.dp).clip(CircleShape).background(t.accent))
-            Text(
-                value,
-                fontSize = 15.sp,
-                color = if (tappable) t.accent else DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End
-            )
-            if (tappable) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = t.accent, modifier = Modifier.size(13.dp))
-        }
-    }
-
-    if (copyable) {
-        // 省略表示 (Ellipsis) されていても原文 (value) を渡すので全文がコピーできる。
-        Copyable(
-            items = listOf(CopyItem("${key}をコピー", value)),
-            modifier = Modifier.fillMaxWidth(),
-            onClick = onClick,
-            content = row
-        )
-    } else {
-        Box(
-            Modifier.fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-        ) { row() }
-    }
-}
-
-/** カード風の角丸リストコンテナ (行は呼び出し側で Divider を挟んで並べる)。 */
-@Composable
-fun ImasListContainer(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-    ) { content() }
 }
 
 /** 空状態 (任意で投稿アクション)。 */
@@ -313,28 +176,6 @@ fun ImasEmptyState(
                 Text(actionTitle)
             }
         }
-    }
-}
-
-/** 役割/種別を示す小さめのピルバッジ (主演・ゲスト・ユニット名等)。 */
-@Composable
-fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outlined: Boolean = false) {
-    val t = imasThemeForBrand(seed, brand)
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .then(
-                if (outlined) Modifier.border(1.dp, t.accent, RoundedCornerShape(999.dp))
-                else Modifier.background(t.accent)
-            )
-            .padding(horizontal = 9.dp, vertical = 3.dp)
-    ) {
-        Text(
-            text,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (outlined) t.accent else t.onAccent
-        )
     }
 }
 
