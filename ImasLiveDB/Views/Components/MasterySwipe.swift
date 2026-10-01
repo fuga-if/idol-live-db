@@ -87,19 +87,22 @@ struct MasteryChip: View {
         if level == 0 && !showsUnset {
             EmptyView()
         } else {
+            // 段階ごとに色が変わる唯一の札 (習熟度固有の正当な例外。DS §10.1 の「色で意味を
+            // 分けない」は分類の札の話で、ここは量の段階そのものを色相で見せる)。
+            // 角丸は `ImasBadge` と同じ `DS.rTag` に揃え、札の仲間だと分かるようにする。
             Text(scale.shortLabel(level))
-                .font(.imasScaled(10, weight: .bold))
+                .font(ImasTextRole.badge.font)
                 .lineLimit(1)
                 .padding(.horizontal, DS.sp3)
                 .padding(.vertical, DS.sp1 + 1)
                 .foregroundStyle(MasteryPalette.ink(level: level, steps: scale.steps))
                 .background {
                     if level == 0 {
-                        RoundedRectangle(cornerRadius: DS.rXS, style: .continuous)
+                        RoundedRectangle(cornerRadius: DS.rTag, style: .continuous)
                             .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
                             .foregroundStyle(DS.ink3)
                     } else {
-                        RoundedRectangle(cornerRadius: DS.rXS, style: .continuous)
+                        RoundedRectangle(cornerRadius: DS.rTag, style: .continuous)
                             .fill(MasteryPalette.fill(level: level, steps: scale.steps))
                     }
                 }

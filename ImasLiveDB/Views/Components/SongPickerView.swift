@@ -35,24 +35,16 @@ struct SongPickerView: View {
                             onPick(song)
                             dismiss()
                         } label: {
-                            VStack(alignment: .leading, spacing: DS.sp1) {
-                                Text(song.title)
-                                Text(song.id)
-                                    .font(.imasCaption2)
-                                    .foregroundStyle(DS.ink3)
-                            }
+                            ImasRow(title: song.title, subtitle: song.id)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.imasRow)
                     }
+                    .imasList()
                 }
             }
             .navigationTitle("曲を選択")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("閉じる") { dismiss() }
-                }
-            }
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
             .searchable(text: $query, prompt: "曲名で検索")
             .task {
                 do {

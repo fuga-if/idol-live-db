@@ -63,7 +63,7 @@ struct NowPlayingBarView: View {
 
     private func barContent(_ bar: NowPlayingBar) -> some View {
         VStack(spacing: 0) {
-            Rectangle().fill(DS.sep).frame(height: 0.5)
+            ImasRowDivider()
 
             HStack(spacing: DS.sp3) {
                 ArtworkImageView(
@@ -74,7 +74,7 @@ struct NowPlayingBarView: View {
                     seed: BrandColors.hex(for: model.song?.brandId)
                 )
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(bar.title)
                         .font(.imasSubhead.weight(.medium))
                         .foregroundStyle(DS.ink)
@@ -84,24 +84,22 @@ struct NowPlayingBarView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
+                ImasIconButton(
+                    systemImage: bar.isPlaying ? "pause.fill" : "play.fill",
+                    label: bar.isPlaying ? "一時停止" : "再生",
+                    size: .regular,
+                    style: .plain
+                ) {
                     // stop ではなく pause。stop は曲ごと手放すのでバーが消えてしまう。
                     if bar.isPlaying {
                         MusicKitService.shared.pause()
                     } else {
                         MusicKitService.shared.resume()
                     }
-                } label: {
-                    Image(systemName: bar.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.imasTitle3)
-                        .foregroundStyle(DS.ink)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
                 }
-                .accessibilityLabel(bar.isPlaying ? "一時停止" : "再生")
             }
             .padding(.horizontal, DS.sp4)
-            .padding(.vertical, 6)
+            .padding(.vertical, DS.sp3)
         }
         .background(.bar)
         .contentShape(Rectangle())
@@ -125,7 +123,7 @@ struct NowPlayingBarView: View {
     @ViewBuilder
     private func subtitleLine(_ bar: NowPlayingBar) -> some View {
         if bar.subtitle != nil || bar.previewMark != nil {
-            HStack(spacing: 4) {
+            HStack(spacing: DS.Space.gapTight) {
                 if let subtitle = bar.subtitle {
                     Text(subtitle).lineLimit(1)
                 }
