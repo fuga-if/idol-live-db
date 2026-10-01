@@ -132,14 +132,15 @@ struct MonthCalendarView: View {
                 let x = CGFloat(band.startCol) * (cellW + colSpacing)
                 let w = CGFloat(band.endCol - band.startCol) * (cellW + colSpacing) + cellW
                 Text(band.roundLeading ? "受付 \(band.name)" : " ")
-                    .font(.imasScaled( 8, weight: .semibold))
-                    .foregroundStyle(ColorMath.onColor(ticketAccent))
+                    .imasText(.micro, color: ColorMath.onColor(ticketAccent))
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .padding(.horizontal, 3)
+                    .padding(.horizontal, DS.sp1)
                     .frame(width: w, height: MonthGridMetric.bandHeight, alignment: .leading)
                     .background(
                         ticketAccent,
+                        // 複数日にまたがる受付帯の、連続区間の両端だけを丸める形。DS の角丸トークンは
+                        // 四隅一律が前提で「先頭/末尾だけ」を表せないため、月グリッドの固定要素として残す。
                         in: UnevenRoundedRectangle(
                             topLeadingRadius: band.roundLeading ? 2 : 0,
                             bottomLeadingRadius: band.roundLeading ? 2 : 0,
@@ -155,34 +156,26 @@ struct MonthCalendarView: View {
 
     private var monthHeader: some View {
         HStack {
-            navButton(systemImage: "chevron.left") { advanceMonth(-1) }
+            navButton(systemImage: "chevron.left", label: "前の月") { advanceMonth(-1) }
             Spacer()
             Text(monthTitle)
                 .font(.imasDisplay(17, weight: .bold))
                 .foregroundStyle(DS.ink)
             Spacer()
-            navButton(systemImage: "chevron.right") { advanceMonth(1) }
+            navButton(systemImage: "chevron.right", label: "次の月") { advanceMonth(1) }
         }
         .padding(.horizontal, DS.sp2)
     }
 
-    private func navButton(systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.imasScaled( 15, weight: .semibold))
-                .foregroundStyle(DS.ink2)
-                .frame(width: 34, height: 34)
-                .background(DS.fill, in: Circle())
-        }
-        .buttonStyle(.plain)
+    private func navButton(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        ImasIconButton(systemImage: systemImage, label: label, size: .small, style: .tinted, action: action)
     }
 
     private var weekdayHeader: some View {
         HStack(spacing: Layout.columnSpacing) {
             ForEach(weekdaySymbols, id: \.self) { day in
                 Text(day)
-                    .font(.imasScaled( 11, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
+                    .imasText(.badge, color: DS.ink3)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -270,16 +263,6 @@ private struct DayCell: View {
         return DS.ink
     }
 
-    @ViewBuilder private var cellBackground: some View {
-        if isToday {
-            Circle().fill(DS.sys)
-        } else if isSelected {
-            Circle().strokeBorder(DS.sys, lineWidth: 1.5)
-        } else {
-            Color.clear
-        }
-    }
-
     /// 単日バーに使うエントリ。受付期間帯は overlay で描くのでここからは除外する。
     private var barEntries: [CalendarEntry] {
         entries
@@ -304,8 +287,7 @@ private struct DayCell: View {
         let plan = barPlan
         VStack(spacing: MonthGridMetric.zoneSpacing) {
             ZStack {
-                cellBackground
-                    .frame(width: MonthGridMetric.numberZoneHeight, height: MonthGridMetric.numberZoneHeight)
+                ImasDateMark(isToday: isToday, isSelected: isSelected, size: MonthGridMetric.numberZoneHeight)
                 Text("\(dayNumber)")
                     .font(.imasDisplay(13, weight: isToday ? .bold : .medium))
                     .minimumScaleFactor(0.7)
@@ -319,8 +301,7 @@ private struct DayCell: View {
                 }
                 if plan.overflow > 0 {
                     Text("+\(plan.overflow)")
-                        .font(.imasScaled( 8, weight: .semibold))
-                        .foregroundStyle(DS.ink3)
+                        .imasText(.micro)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(height: MonthGridMetric.overflowHeight)
                         .padding(.horizontal, DS.sp1)
@@ -332,6 +313,8 @@ private struct DayCell: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
+        // 日付セルの選択ハイライト地。`ImasDateMark` は丸 (今日/選択の印) 専用で、
+        // セル全体を塗るこの背景とは別物のため、角丸はトークン (DS.rSM) のままここに残す。
         .background(
             RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)
                 .fill(isSelected && !isToday ? DS.fill : Color.clear)
@@ -372,13 +355,13 @@ struct CalendarEntryBar: View {
 
     var body: some View {
         Text(label)
-            .font(.imasScaled( 8, weight: .semibold))
-            .foregroundStyle(entry.accentInk(scheme: scheme))
+            .imasText(.micro, color: entry.accentInk(scheme: scheme))
             .lineLimit(1)
             .truncationMode(.tail)
             .padding(.horizontal, DS.sp1)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: height)
+            // 色帯そのものの小さい角丸は、月グリッド/週ビューの固定要素として形を残す (GAPS.md §7)。
             .background(entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 2, style: .continuous))
     }
 }

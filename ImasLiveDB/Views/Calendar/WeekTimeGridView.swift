@@ -88,26 +88,19 @@ struct WeekTimeGridView: View {
 
     private var weekHeader: some View {
         HStack {
-            navButton(systemImage: "chevron.left") { advanceWeek(-1) }
+            navButton(systemImage: "chevron.left", label: "前の週") { advanceWeek(-1) }
             Spacer()
             Text(weekRangeTitle)
                 .font(.imasDisplay(15, weight: .bold))
                 .foregroundStyle(DS.ink)
             Spacer()
-            navButton(systemImage: "chevron.right") { advanceWeek(1) }
+            navButton(systemImage: "chevron.right", label: "次の週") { advanceWeek(1) }
         }
         .padding(.horizontal, DS.sp2)
     }
 
-    private func navButton(systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.imasScaled( 15, weight: .semibold))
-                .foregroundStyle(DS.ink2)
-                .frame(width: 34, height: 34)
-                .background(DS.fill, in: Circle())
-        }
-        .buttonStyle(.plain)
+    private func navButton(systemImage: String, label: String, action: @escaping () -> Void) -> some View {
+        ImasIconButton(systemImage: systemImage, label: label, size: .small, style: .tinted, action: action)
     }
 
     private func advanceWeek(_ delta: Int) {
@@ -142,14 +135,9 @@ struct WeekTimeGridView: View {
                 let isSelected = cal.isDate(date, inSameDayAs: selectedDate)
                 VStack(spacing: DS.sp1) {
                     Text(weekdaySymbols[idx])
-                        .font(.imasScaled( 10, weight: .semibold))
-                        .foregroundStyle(isToday ? DS.ink : DS.ink3)
+                        .imasText(.badge, color: isToday ? DS.ink : DS.ink3)
                     ZStack {
-                        if isToday {
-                            Circle().fill(DS.sys)
-                        } else if isSelected {
-                            Circle().strokeBorder(DS.sys, lineWidth: 1.5)
-                        }
+                        ImasDateMark(isToday: isToday, isSelected: isSelected, size: 28)
                         Text("\(cal.component(.day, from: date))")
                             .font(.imasDisplay(14, weight: isToday ? .bold : .medium))
                             .minimumScaleFactor(0.7)
@@ -191,14 +179,14 @@ struct WeekTimeGridView: View {
                     onSelectEntry(band.entry)
                 } label: {
                     Text("受付 \(band.name)")
-                        .font(.imasScaled( 10, weight: .semibold))
-                        .foregroundStyle(ColorMath.onColor(ticketAccent))
+                        .imasText(.micro, color: ColorMath.onColor(ticketAccent))
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .padding(.horizontal, 6)
+                        .padding(.horizontal, DS.sp3)
                         .frame(width: max(0, w - 2), height: h, alignment: .leading)
                         .background(
                             ticketAccent,
+                            // 色帯そのものの小さい角丸は、週ビューの固定要素として形を残す (GAPS.md §7)。
                             in: UnevenRoundedRectangle(
                                 topLeadingRadius: band.roundLeading ? 4 : 0,
                                 bottomLeadingRadius: band.roundLeading ? 4 : 0,
@@ -225,8 +213,7 @@ struct WeekTimeGridView: View {
     private func allDayLane(dayWidth: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
             Text("終日")
-                .font(.imasScaled( 9, weight: .semibold))
-                .foregroundStyle(DS.ink3)
+                .imasText(.micro)
                 .frame(width: Metric.gutterWidth)
             ForEach(weekDays, id: \.self) { date in
                 allDayCell(for: date)
@@ -262,7 +249,7 @@ struct WeekTimeGridView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 1)
+        .padding(.horizontal, DS.sp1)
     }
 
     // MARK: - 時間グリッド
@@ -333,6 +320,8 @@ struct WeekTimeGridView: View {
                 let comps = cal.dateComponents([.hour, .minute], from: context.date)
                 let minutes = (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
                 if minutes >= Metric.startHour * 60 && minutes <= Metric.endHour * 60 {
+                    // 「今」を指す時刻カーソル (丸+線)。週の時間割だけの一品もので、
+                    // ほかで再利用する概念が無いためここに残す。
                     HStack(spacing: 0) {
                         Circle().fill(DS.danger).frame(width: 7, height: 7)
                         Rectangle().fill(DS.danger).frame(height: 1.5)
@@ -368,16 +357,11 @@ struct WeekTimeGridView: View {
                 Button {
                     onShowDay(date)
                 } label: {
-                    Text("+\(item.count)")
-                        .font(.imasDisplay(9, weight: .bold))
-                        .foregroundStyle(DS.onSys)
-                        .padding(.horizontal, DS.sp2)
-                        .padding(.vertical, DS.sp1)
-                        .background(DS.sys, in: Capsule())
+                    ImasBadge(text: "+\(item.count)", kind: .planned)
                 }
                 .buttonStyle(.plain)
                 .offset(
-                    x: originX + dayWidth - 22,
+                    x: originX + dayWidth - 30,
                     y: yPosition(forMinutes: item.startMinutes) + 2
                 )
             }
@@ -388,17 +372,18 @@ struct WeekTimeGridView: View {
         Button {
             onSelectEntry(block.entry)
         } label: {
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(blockTitle(block.entry))
-                    .font(.imasScaled( 10, weight: .semibold))
+                    .imasText(.micro, color: block.entry.accentInk(scheme: scheme))
                     .lineLimit(2)
                 Text(timeLabel(forMinutes: block.startMinutes))
                     .font(.imasDisplay(9, weight: .medium))
+                    .foregroundStyle(block.entry.accentInk(scheme: scheme))
                     .opacity(0.85)
             }
-            .foregroundStyle(block.entry.accentInk(scheme: scheme))
             .padding(DS.sp2)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // 色帯そのものの小さい角丸は、週ビューの固定要素として形を残す (GAPS.md §7)。
             .background(block.entry.accentColor(scheme: scheme), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .contentShape(Rectangle())
         }

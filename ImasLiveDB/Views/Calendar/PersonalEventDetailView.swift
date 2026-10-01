@@ -7,23 +7,29 @@ struct PersonalEventDetailView: View {
     let event: PersonalCalendarEvent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            infoRows
-            Spacer(minLength: 0)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                infoRows
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(DS.bg)
+            .navigationBarTitleDisplayMode(.inline)
+            .imasSheetToolbar(.read(onClose: { dismiss() }))
+            .trackScreen("personal_event")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DS.bg)
-        .trackScreen("personal_event")
     }
+
+    /// マイ予定はカレンダーの色をそのまま使う (DB 由来の実体色ではないため)。
+    private var eventColorHex: String { ColorMath.hexString(from: event.color) }
 
     // MARK: - ヘッダー
 
     private var header: some View {
         HStack(alignment: .top, spacing: DS.sp3) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(event.color)
-                .frame(width: 4, height: 44)
+            ImasLeadBar(seed: eventColorHex)
+                .frame(height: 44)
             VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(event.title)
                     .font(.imasTitle3.weight(.bold))
@@ -33,14 +39,7 @@ struct PersonalEventDetailView: View {
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
             }
-            Spacer(minLength: DS.sp2)
-            Button { dismiss() } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.imasScaled( 22))
-                    .foregroundStyle(DS.ink2)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("閉じる")
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, DS.sp6)
         .padding(.top, DS.sp6)
@@ -51,27 +50,25 @@ struct PersonalEventDetailView: View {
     // MARK: - 情報行
 
     private var infoRows: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            infoRow(systemImage: "clock", title: "日時", value: dateRangeText)
-            ImasRowDivider(inset: 48)
-            infoRow(systemImage: "calendar", title: "カレンダー", value: event.calendarTitle)
-            if let location = event.location {
+        ImasCard(padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                infoRow(systemImage: "clock", title: "日時", value: dateRangeText)
                 ImasRowDivider(inset: 48)
-                infoRow(systemImage: "mappin.and.ellipse", title: "場所", value: location)
+                infoRow(systemImage: "calendar", title: "カレンダー", value: event.calendarTitle)
+                if let location = event.location {
+                    ImasRowDivider(inset: 48)
+                    infoRow(systemImage: "mappin.and.ellipse", title: "場所", value: location)
+                }
             }
+            .padding(.vertical, DS.sp2)
         }
-        .padding(.vertical, DS.sp2)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
         .padding(.horizontal, DS.sp5)
         .padding(.top, DS.sp4)
     }
 
     private func infoRow(systemImage: String, title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
-            Image(systemName: systemImage)
-                .font(.imasScaled( 15, weight: .semibold))
-                .foregroundStyle(event.color)
-                .frame(width: 28)
+            ImasIconTile(systemImage: systemImage, size: .s28, tone: .themed, seed: eventColorHex)
             VStack(alignment: .leading, spacing: DS.sp1) {
                 Text(title)
                     .font(.imasCaption)

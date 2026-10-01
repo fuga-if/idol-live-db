@@ -37,9 +37,6 @@ struct CalendarView: View {
     @State private var isLoading = false
     @State private var showPersonalPermissionAlert = false
     @State private var personalErrorMessage: String?
-    /// chip 列のスクロール状態 (エッジフェード判定用)
-    @State private var chipContentFrame: CGRect = .zero
-    @State private var chipViewportWidth: CGFloat = 0
 
     private let calendar = Calendar.current
     private let today = Calendar.current.startOfDay(for: Date())
@@ -280,91 +277,30 @@ struct CalendarView: View {
 
     private var topBar: some View {
         HStack(spacing: DS.sp3) {
-            // カテゴリ chip (収まらない分は横スクロール + エッジフェードで「続きがある」ことを示す)
+            // カテゴリ chip (収まらない分は横スクロール + エッジフェードで「続きがある」ことを示す)。
+            // `ImasChipRow` 自身が左右の画面マージンを持つので、ここでは外側の水平 padding を敷かない。
             chipScroller
             Spacer(minLength: DS.sp2)
             // 月/週 切替
             ImasSegmented(labels: ["月", "週"], selection: $displayMode)
                 .frame(width: 80)
+                .padding(.trailing, DS.Space.screen)
         }
-        .padding(.horizontal, DS.sp5)
         .padding(.vertical, DS.sp3)
     }
 
-    /// chip 列の横スクロール。スクロール位置と内容幅を測り、
-    /// 「先に続きがある」側だけグラデーションでフェードさせる。
-    /// 先頭にいる時は leading フェードを消すので、初期表示で先頭 chip が欠けて見えることはない。
+    /// chip 列の横スクロール。隠れている側だけグラデーションでフェードして「続きがある」ことを示す
+    /// (`ImasChipRow(fades: true)`)。先頭にいる時は leading フェードを消すので、
+    /// 初期表示で先頭 chip が欠けて見えることはない。
     private var chipScroller: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DS.sp3) {
-                CalendarFilterChip(label: "公演", systemImage: "music.mic", color: Color(hexString: "#3E6DD6"), isOn: $showShows)
-                CalendarFilterChip(label: "リリース", systemImage: "opticaldisc", color: DS.warning, isOn: $showReleases)
-                CalendarFilterChip(label: "誕生日", systemImage: "gift", color: DS.pick, isOn: $showBirthdays)
-                CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: DS.pick, isOn: $showStaffBirthdays)
-                CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: DS.sys, isOn: $showAnniversaries)
-                CalendarFilterChip(label: "チケット", systemImage: "ticket", color: DS.danger, isOn: $showTickets)
-                CalendarFilterChip(label: "マイ予定", systemImage: "person.crop.circle", color: DS.sys, isOn: $showPersonal)
-            }
-            .onGeometryChange(for: CGRect.self) { proxy in
-                proxy.frame(in: .named(ChipScroll.coordinateSpace))
-            } action: { frame in
-                chipContentFrame = frame
-            }
-        }
-        .coordinateSpace(name: ChipScroll.coordinateSpace)
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: { width in
-            chipViewportWidth = width
-        }
-        .mask(chipFadeMask)
-        // 次の chip が完全に画面外でフェードに掛かるピクセルが無い場合でも
-        // 「先がある」と分かるよう、小さな chevron を端に重ねる
-        .overlay(alignment: .trailing) {
-            if showsTrailingChipFade {
-                Image(systemName: "chevron.compact.right")
-                    .font(.imasScaled( 14, weight: .semibold))
-                    .foregroundStyle(DS.ink3)
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.15), value: showsLeadingChipFade)
-        .animation(.easeInOut(duration: 0.15), value: showsTrailingChipFade)
-    }
-
-    private enum ChipScroll {
-        static let coordinateSpace = "calendarChipScroll"
-        /// フェード帯の幅
-        static let fadeWidth: CGFloat = 18
-        /// 端判定の許容誤差
-        static let edgeTolerance: CGFloat = 2
-    }
-
-    /// 左端より先に chip が隠れているか (スクロール済みか)
-    private var showsLeadingChipFade: Bool {
-        chipContentFrame.minX < -ChipScroll.edgeTolerance
-    }
-
-    /// 右端より先に chip が隠れているか
-    private var showsTrailingChipFade: Bool {
-        chipContentFrame.maxX > chipViewportWidth + ChipScroll.edgeTolerance
-    }
-
-    /// 続きがある側だけ透明に落とすアルファマスク (色は不可視なので固定黒で問題ない)。
-    private var chipFadeMask: some View {
-        HStack(spacing: 0) {
-            LinearGradient(
-                colors: [.black.opacity(showsLeadingChipFade ? 0 : 1), .black],
-                startPoint: .leading, endPoint: .trailing
-            )
-            .frame(width: ChipScroll.fadeWidth)
-            Rectangle().fill(.black)
-            LinearGradient(
-                colors: [.black, .black.opacity(showsTrailingChipFade ? 0 : 1)],
-                startPoint: .leading, endPoint: .trailing
-            )
-            .frame(width: ChipScroll.fadeWidth)
+        ImasChipRow(fades: true) {
+            CalendarFilterChip(label: "公演", systemImage: "music.mic", seed: CalendarEntry.ThemeSeed.show, isOn: $showShows)
+            CalendarFilterChip(label: "リリース", systemImage: "opticaldisc", color: DS.warning, isOn: $showReleases)
+            CalendarFilterChip(label: "誕生日", systemImage: "gift", color: DS.pick, isOn: $showBirthdays)
+            CalendarFilterChip(label: "事務員", systemImage: "person.text.rectangle", color: DS.pick, isOn: $showStaffBirthdays)
+            CalendarFilterChip(label: "記念日", systemImage: "sparkles", color: DS.sys, isOn: $showAnniversaries)
+            CalendarFilterChip(label: "チケット", systemImage: "ticket", color: DS.danger, isOn: $showTickets)
+            CalendarFilterChip(label: "マイ予定", systemImage: "person.crop.circle", color: DS.sys, isOn: $showPersonal)
         }
     }
 
@@ -596,7 +532,8 @@ private struct DaySheet: Identifiable {
 private struct CalendarFilterChip: View {
     let label: String
     let systemImage: String
-    let color: Color
+    var color: Color? = nil
+    var seed: String? = nil
     @Binding var isOn: Bool
 
     var body: some View {
@@ -604,6 +541,7 @@ private struct CalendarFilterChip: View {
             text: label,
             systemImage: systemImage,
             isSelected: isOn,
+            seed: seed,
             color: color
         ) { isOn.toggle() }
         .accessibilityLabel(label)

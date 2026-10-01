@@ -5,6 +5,8 @@ extension CalendarEntry {
     /// `ImasTheme.derive(seed:scheme:)` 経由で導出するための固定シード
     /// (生の SwiftUI システムカラーではなく DS の導出エンジンを通す)。
     enum ThemeSeed {
+        /// 公演 (絞り込み chip の代表色。iOS system blue 相当)。
+        static let show = "#3E6DD6"
         /// 事務員誕生日 (iOS system pink 相当)。
         static let staffBirthday = "#FF2D55"
         /// ブランド記念日 (iOS system teal 相当)。

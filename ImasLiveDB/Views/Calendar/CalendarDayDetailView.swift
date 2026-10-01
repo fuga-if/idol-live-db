@@ -4,10 +4,9 @@ import UIKit
 
 /// 選択日の予定 1 行。スケジュール画面のインラインリストと、
 /// 日詳細 sheet (`CalendarDayDetailView`) の双方で共有する。
-/// 公演 / CDリリース / 誕生日 を ImasLeadBar + アイコン/アバター + タイトル/サブ で描画する。
+/// 公演 / CDリリース / 誕生日 を `ImasRow` (記号/アバター + タイトル/サブ) で描画する。
 struct DayEntryRow: View {
     @Environment(AppDatabase.self) private var database
-    @Environment(\.colorScheme) private var scheme
     let entry: CalendarEntry
     /// タップ時に親へ詳細遷移先を通知する。親が sheet / nav で受ける。
     let onSelect: (DetailDestination) -> Void
@@ -98,36 +97,11 @@ struct DayEntryRow: View {
 
     // MARK: - Row variants
 
-    /// 行の共通シェル: リードバー + リーディング (アイコン/アバター) + タイトル/サブ + 末尾。
-    private func rowShell<Leading: View, Trailing: View>(
-        seed: String?,
-        title: String,
-        subtitle: String?,
-        @ViewBuilder leading: () -> Leading,
-        @ViewBuilder trailing: () -> Trailing
-    ) -> some View {
-        HStack(spacing: DS.sp3) {
-            ImasLeadBar(seed: seed)
-                .frame(height: 36)
-            leading()
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                        .lineLimit(1)
-                }
-            }
-            Spacer(minLength: DS.sp2)
-            trailing()
-        }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .contentShape(Rectangle())
+    /// 行の共通シェル。帯は敷かず、先頭の記号/アバター自体を実体の色で点ける
+    /// (`ImasRowLeading.icon(seed:brand:)` / `.avatar`)。
+    private func rowShell(leading: ImasRowLeading, title: String, subtitle: String?,
+                          trailing: ImasRowTrailing = .chevron) -> some View {
+        ImasRow(title: title, subtitle: subtitle, leading: leading, trailing: trailing, density: .compact)
     }
 
     private func showRow(_ row: CalendarShowRow) -> some View {
@@ -136,11 +110,9 @@ struct DayEntryRow: View {
             .filter { !$0.isEmpty }
             .joined(separator: " ・ ")
         return rowShell(
-            seed: row.brandColor,
+            leading: .icon("music.mic", tone: .themed, seed: row.brandColor),
             title: row.eventName,
-            subtitle: sub.isEmpty ? nil : sub,
-            leading: { ShowIconAvatar(seed: row.brandColor) },
-            trailing: { chevron }
+            subtitle: sub.isEmpty ? nil : sub
         )
     }
 
@@ -148,40 +120,26 @@ struct DayEntryRow: View {
         let title = songs.count == 1
             ? songs[0].title
             : "\(songs.count)曲リリース: \(songs[0].title) 他"
-        return rowShell(
-            seed: nil,
-            title: title,
-            subtitle: "CDリリース",
-            leading: { ReleaseIconAvatar() },
-            trailing: { chevron }
-        )
+        return rowShell(leading: .icon("opticaldisc.fill", tone: .attention), title: title, subtitle: "CDリリース")
     }
 
     private func birthdayRow(idol: Idol) -> some View {
         rowShell(
-            seed: idol.color,
+            leading: .avatar(label: idol.shortName, seed: idol.color,
+                             imageURL: CustomImageService.shared.imageURL(for: idol.id)),
             title: "\(idol.name) 誕生日",
             subtitle: idol.birthdayDisplay,
-            leading: { IdolAvatarView(idol: idol, size: 36) },
-            trailing: { BirthdayGiftChip(seed: idol.color) }
+            trailing: .custom(AnyView(ImasIconTile(systemImage: "gift.fill", size: .s28, tone: .themed, seed: idol.color)))
         )
     }
 
     /// 事務員 (音無小鳥・千川ちひろ 等) の誕生日行。アイドル詳細を持たないので非タップ。
     private func staffBirthdayRow(staff: Staff) -> some View {
         rowShell(
-            seed: nil,
+            leading: .icon("person.text.rectangle.fill", tone: .themed, seed: CalendarEntry.ThemeSeed.staffBirthday),
             title: "\(staff.name) 誕生日",
             subtitle: staff.role,
-            leading: {
-                let t = ImasTheme.derive(seed: CalendarEntry.ThemeSeed.staffBirthday, scheme: scheme)
-                Image(systemName: "person.text.rectangle.fill")
-                    .font(.imasScaled(16, weight: .semibold))
-                    .foregroundStyle(t.chipText)
-                    .frame(width: 36, height: 36)
-                    .background(t.chipBg, in: Circle())
-            },
-            trailing: { BirthdayGiftChip(seed: nil) }
+            trailing: .custom(AnyView(ImasIconTile(systemImage: "gift.fill", size: .s28, tone: .themed)))
         )
     }
 
@@ -202,18 +160,10 @@ struct DayEntryRow: View {
         }
         let subtitle = "\(ann.date.prefix(4)) 起点"
         return rowShell(
-            seed: nil,
+            leading: .icon(icon, tone: .themed, seed: CalendarEntry.ThemeSeed.anniversary),
             title: title,
             subtitle: subtitle,
-            leading: {
-                let t = ImasTheme.derive(seed: CalendarEntry.ThemeSeed.anniversary, scheme: scheme)
-                Image(systemName: icon)
-                    .font(.imasScaled(16, weight: .semibold))
-                    .foregroundStyle(t.chipText)
-                    .frame(width: 36, height: 36)
-                    .background(t.chipBg, in: Circle())
-            },
-            trailing: { EmptyView() }
+            trailing: .none
         )
     }
 
@@ -221,11 +171,9 @@ struct DayEntryRow: View {
     private func ticketPeriodRow(_ row: TicketPeriodRow) -> some View {
         let range = [Self.md(row.start), Self.md(row.end)].compactMap { $0 }.joined(separator: " 〜 ")
         return rowShell(
-            seed: nil,
+            leading: .icon("calendar.badge.clock", tone: .themed, seed: CalendarEntry.ThemeSeed.ticket),
             title: "\(Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
-            subtitle: "\(row.saleName)" + (range.isEmpty ? "" : "  \(range)"),
-            leading: { TicketIconAvatar(systemImage: "calendar.badge.clock", color: ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent) },
-            trailing: { chevron }
+            subtitle: "\(row.saleName)" + (range.isEmpty ? "" : "  \(range)")
         )
     }
 
@@ -236,60 +184,31 @@ struct DayEntryRow: View {
         return "\(m)/\(d)"
     }
 
-    /// チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。
+    /// チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。申込締切だけ朱 (緊急)。
     private func ticketRow(_ row: TicketCalendarRow) -> some View {
-        let color: Color = row.kind == .deadline ? DS.danger : ImasTheme.derive(seed: CalendarEntry.ThemeSeed.ticket, scheme: scheme).accent
         let subtitle: String
         switch row.kind {
         case .start: subtitle = row.saleName
         case .deadline: subtitle = "\(row.saleName) ・ 申込締切"
         case .lottery: subtitle = "\(row.saleName) ・ 当落発表"
         }
-        return rowShell(
-            seed: nil,
-            title: "\(row.kind.label) ・ \(row.eventName)",
-            subtitle: subtitle,
-            leading: { TicketIconAvatar(systemImage: row.kind.icon, color: color) },
-            trailing: { chevron }
-        )
+        let leading: ImasRowLeading = row.kind == .deadline
+            ? .icon(row.kind.icon, tone: .negative)
+            : .icon(row.kind.icon, tone: .themed, seed: CalendarEntry.ThemeSeed.ticket)
+        return rowShell(leading: leading, title: "\(row.kind.label) ・ \(row.eventName)", subtitle: subtitle)
     }
 
-    /// 端末カレンダー由来のマイ予定行。リードバーはカレンダー色をそのまま使う。
+    /// 端末カレンダー由来のマイ予定行。記号はカレンダーの色をそのまま点ける。
     private func personalRow(event: PersonalCalendarEvent) -> some View {
         let timeText = event.isAllDay
             ? "終日"
             : "\(event.start.formatted(date: .omitted, time: .shortened)) 〜 \(event.end.formatted(date: .omitted, time: .shortened))"
-        return HStack(spacing: DS.sp3) {
-            RoundedRectangle(cornerRadius: 2, style: .continuous)
-                .fill(event.color)
-                .frame(width: 3, height: 36)
-            Image(systemName: "calendar")
-                .font(.imasScaled( 16, weight: .semibold))
-                .foregroundStyle(event.color)
-                .frame(width: 36, height: 36)
-                .background(event.color.opacity(0.16), in: Circle())
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(event.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-                Text("\(timeText) ・ \(event.calendarTitle)")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink2)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: DS.sp2)
-            chevron
-        }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .contentShape(Rectangle())
+        return rowShell(
+            leading: .icon("calendar", tone: .themed, seed: ColorMath.hexString(from: event.color)),
+            title: event.title,
+            subtitle: "\(timeText) ・ \(event.calendarTitle)"
+        )
     }
-
-    private var chevron: some View {
-        ImasRowChevron()
-    }
-
 }
 
 // MARK: - 日詳細 sheet (detent プレゼン用に保持。共有行 DayEntryRow を再利用)
@@ -523,11 +442,10 @@ struct CalendarDayDetailView: View {
     }
 
     private func summaryBadge(count: Int, systemImage: String, color: Color) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: systemImage).font(.imasScaled( 12, weight: .semibold))
-            Text("\(count)").font(.imasDisplay(13, weight: .semibold))
+        HStack(spacing: DS.Space.gapTight) {
+            Image(systemName: systemImage).imasText(.badge, color: color)
+            Text("\(count)").font(.imasDisplay(13, weight: .semibold)).foregroundStyle(color)
         }
-        .foregroundStyle(color)
     }
 }
 
@@ -550,57 +468,6 @@ private struct ExportResultAlert: Identifiable {
     let target: CalendarShowEntry?
 }
 
-// MARK: - Row leading / trailing accents
-
-/// 公演アイコン (テーマ chip 面 + mic)。
-private struct ShowIconAvatar: View {
-    var seed: String?
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        Image(systemName: "music.mic")
-            .font(.imasScaled( 16, weight: .semibold))
-            .foregroundStyle(t.chipText)
-            .frame(width: 36, height: 36)
-            .background(t.chipBg, in: Circle())
-    }
-}
-
-/// リリースアイコン (橙基調)。
-private struct ReleaseIconAvatar: View {
-    var body: some View {
-        Image(systemName: "opticaldisc.fill")
-            .font(.imasScaled( 16, weight: .semibold))
-            .foregroundStyle(DS.warning)
-            .frame(width: 36, height: 36)
-            .background(DS.warning.opacity(0.16), in: Circle())
-    }
-}
-
-/// チケットアイコン (締切=赤 / 当落=藍)。
-private struct TicketIconAvatar: View {
-    let systemImage: String
-    let color: Color
-    var body: some View {
-        Image(systemName: systemImage)
-            .font(.imasScaled( 15, weight: .semibold))
-            .foregroundStyle(color)
-            .frame(width: 36, height: 36)
-            .background(color.opacity(0.16), in: Circle())
-    }
-}
-
-/// 誕生日末尾のギフトチップ (アイドル色テーマ)。
-private struct BirthdayGiftChip: View {
-    var seed: String?
-    @Environment(\.colorScheme) private var scheme
-    var body: some View {
-        let t = ImasTheme.derive(seed: seed, scheme: scheme)
-        Image(systemName: "gift.fill")
-            .font(.imasScaled( 12, weight: .semibold))
-            .foregroundStyle(t.chipText)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 7)
-            .background(t.chipBg, in: Capsule())
-    }
-}
+// 記号の装飾 (旧 ShowIconAvatar / ReleaseIconAvatar / TicketIconAvatar / BirthdayGiftChip) は
+// `ImasRowLeading.icon(seed:brand:)` / `ImasIconTile` に置き換えて `DayEntryRow` に統合した
+// (地を敷いた色付き丸は「記号を淡い色の四角に入れない」原則に反するため)。
