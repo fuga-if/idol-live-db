@@ -55,10 +55,10 @@
 **用途** タブ直下の一覧、絞り込み一覧、検索結果。1 種類のもの (曲・ライブ・アイドル・ユニット・タグ) が多数並ぶ。
 
 **上から順に**
-1. ナビバー。タブ直下は大きいタイトル、push 先は標準。左=設定 (`ImasToolbarItem.settings`、タブ直下のみ)。右=`imasListToolbar` (絞り込み・追加・その他)。名前で絞る欄はナビバーの中の `ImasSearchField`。
+1. ナビバー。タブ直下は大きいタイトル、push 先は標準。左=設定 (`SettingsToolbarButton`、タブ直下のみ)。右=`standardListToolbar` (絞り込み・追加・その他)。名前で絞る欄はナビバーの中の `ImasSearchField`。記号のボタンは `ImasToolbarButton` (数の札は朱)。
 2. `ImasFilterBar` — 効いている絞り込みを `ImasRemovableChip` で横に 1 段。何も効いていなければ出さない。
 3. `ImasListSummary` — 「2,051 件」と並び順メニュー。
-4. 本体 — `List(.plain)` + `ImasListSection` (見出しは年・ブランド・五十音などの区切り)。行は実体ごとの行 (§5)。
+4. 本体 — `List(.plain)` + `ImasListSection` (見出しは年・ブランド・五十音などの区切り。年・月は `ImasDateHeader`)。行は実体ごとの行 (§5)。ライブ・公演は半券の行 (`ImasEventRow` / `ImasShowRow`)。
 5. 状態 — `ImasStateContainer` が出し分ける。初回=スケルトン、0 件=空状態、絞り込み 0 件=「見つかりません」+解除ボタン、失敗=再試行。
 
 **器** `List`。参加・習熟度のスワイプは List でしか動かない。
@@ -69,9 +69,10 @@
 **用途** 1 つのものの詳細 (曲・アイドル・ユニット・ライブ・公演・タグ・お題・衣装・会場)。シートでも push でも同じ形。
 
 **上から順に**
-1. ナビバー。タイトルはインラインで中央 (実体の名前)。右=`ImasToolbarItem.share` と `.more`。シートのときは閉じる (`ImasToolbarItem.close`)。
-2. `ImasHero` — そのものの顔。画像・名前・要点・主操作 1 つ。地は実体色の `heroSurface`。
-3. `ImasMarkBar` — 担当・お気に入り・参加・メモ・座席のうち、その実体に付けられるものだけ。
+1. ナビバー。タイトルはインラインで中央 (実体の名前)。右=共有とその他 (`ImasToolbarButton`)。シートのときは閉じる (`.imasSheetToolbar(.read)`、× の記号)。
+2. 頭 — そのものの顔。曲は `ImasHero(layout: .centered)` に浮かせた大きいジャケ (`ImasArtwork(isElevated: true)`)、アイドルは `ImasIdolHeader` (名札と電光掲示板)、
+   ライブ・公演は頭の印字 (`ImasMasthead`) + 題 + 会場と日付。地は紙面のまま。色の地 (`heroSurface`) は使わない。主操作は 1 つ。
+3. `ImasMarkBar` — 担当・お気に入り・参加・メモ・座席のうち、その実体に付けられるものだけ (丸いパンチ)。主操作 (出演ライブ・試聴・セトリ予想) は `isAction` の墨の丸で同じ帯に置ける。数は `ImasBoard`。
 4. `ImasTabs` — 中身の切り替え 2〜4 個。ヒーローを越えると上に貼り付く。
 5. タブの中身 — `ImasSection` を縦に並べる。
 
@@ -82,14 +83,15 @@
 
 ### 2.3 ハブ `HubScreen`
 **用途** プロデュース、クイズ・ゲーム、マイページの最上段。奥の画面への入口を並べる。
-**上から順に** ナビバー (大きいタイトル) → 主役のカード (`ImasFeatureCard`、担当・次のライブ・開催中のお題など 1〜3 枚) → 入口の区画 (`ImasEntryCard` の並び、または `ImasCardList` + `ImasNavRow`) → 記録 (`ImasStatGrid`)。
+**上から順に** ナビバー (大きいタイトル、上に `ImasMasthead`) → 主役 (担当は入場証 `ImasPass`、参加予定は `ImasTicketStack` / `ImasTicket`、開催中のお題は `ImasFeatureCard`) → 入口の区画 (`ImasEntryCard` の並び、または `ImasCardList` + `ImasNavRow`) → 記録 (`ImasBoard` / `ImasStatGrid`)。
 **やらない** 入口ごとに別のグラデーション / カードの横幅を中身に合わせる (横幅はいつも画面いっぱい)。
 
 ### 2.4 編集シート `FormSheet`
 **用途** 作る・直す (ライブ・公演・受付・曲・アイドル・支出・タグ・お題・補足・参考動画・セトリ)。
 **組み方**
-- `NavigationStack` + `Form` に `.imasForm()`。タイトルは「〇〇を追加」「〇〇を編集」。
-- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=キャンセル、右=保存 (みんなに見えるもので「送信」にするときは `.submit`)。iOS 26 は OS のガラスのボタン (確定は白黒の塗り)、iOS 17/18 は文字のボタンで出る。
+- 申込書: `NavigationStack` + `ImasFormPage` に `ImasFormCard` (欄の間は切り取り線) と欄 (`ImasFormTextField`・`ImasFormTextArea`・`ImasFormLink`・`ImasFormToggle`・`ImasFormAmount`・自由な中身は `ImasFormField`)。大きな選択は `ImasChoiceCards`。
+  対象の公演はチケット (`ImasTicket`) で頭に置く。OS の `Form` + `.imasForm()` で組んでよいのは項目の多い設定寄りのシートだけ。タイトルは「〇〇を追加」「〇〇を編集」。
+- ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=×、右=✓ の記号だけ (文字のボタンを書かない。読み上げは「キャンセル」「保存」)。みんなに見えるものは `.submit`。iOS 26 は OS のガラスの丸 (確定は塗り)、iOS 17/18 は記号のボタン。
 - 保存中は `.imasSavingOverlay(isSaving, label: "保存中")`、失敗は `.imasErrorAlert($error)`、書きかけを閉じるときは `.imasDiscardConfirmation(isDirty:)`。
 - 入力は §7 の入力行だけで組む。削除は最後の区画に `ImasActionRow(.destructive)` を 1 つ置き、確認を出す。
 
@@ -102,7 +104,7 @@
 **唯一の正** アイドルは `IdolPickerView`、ユニットは `UnitMultiPickerView`、曲は `SongSearchPickerView`。同じ役割のピッカーを新しく作らない。
 
 ### 2.6 絞り込みシート `FilterSheet`
-**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
+**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、ブランドは `ImasBrandPicker` (チップ。ロゴを読み込んだブランドはロゴ)、並び順などの切り替えは `ImasSegmented`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
 **やらない** 絞り込み条件を 1 画面に 2 か所 / 一覧の中にリセットの区画。
 
 ### 2.7 設定 `SettingsScreen`
@@ -222,13 +224,16 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **構成** 先頭=ユニットのアバター 40。題=ユニット名。副題=メンバー (3 人まで + 「ほか N 人」)。
 - **置き換えるもの** `UnitRowView`、`UnitNameRow`。
 
-### 5.4 `ImasEventRow` ライブ
-- **構成** 先頭=リードバー (ブランド色、合同は複数色の縞)。題=ライブ名 (2 行まで)。副題=日付 (`2026年11月7日(土)〜8日(日)`)・会場。下段=参加予定などの札。
+### 5.4 `ImasEventRow` ライブ (半券の行)
+- **構成** 半券の形 (`ImasStubRow`)。左の半券=初日 (`NOV` / `07` / `SAT`、土日は色)、切り取り線、右=ライブ名 (3 行まで)・会場と期間 (前にブランドのペンライト)・札 (参加予定は墨の塗り `.planned`、配信は線)。
+  参加した公演があれば半券の角に穴 (`isPunched`)。行の間は空けて地を透かし、区切り線は出さない。右に引くと参加の登録 (`.imasSwipe`)。
+- **日付** `ImasStubDate("2026-11-07")` (月の略号と曜日はコアの `ticketStubDate`)。年月だけ・年だけの日付も作らずに出す。
 - **置き換えるもの** `ImasLeadRow` のイベント用途、`EventNameRow`、`FilteredShowsView` の行。
 
-### 5.5 `ImasShowRow` 公演
-- **構成** 先頭=リードバー。題=公演名 (DAY1 など)。副題=日付・会場・開演時刻。末尾=参加の札 / `.chevron`。
-- **置き換えるもの** イベント詳細の公演行、`DayEntryRow` の公演。
+### 5.5 `ImasShowRow` 公演 (半券の行)
+- **構成** `ImasEventRow` と同じ半券。題=公演名 (DAY1 など)。副題=開演・会場・出演者数。参加した公演は穴。
+- **置き換えるもの** イベント詳細の公演行、`DayEntryRow` の公演、曲の披露履歴の行。
+- **半券の形の短い行** `ImasTicketRow` — 記号・切り取り線・題と補足・右に〆切 (朱の〆と等幅の日時、迫っていれば朱)。チケットの受付・未記録のチケット代の取り込みなど「紙で持つもの」。
 
 ### 5.6 `ImasSetlistRow` セトリの 1 曲
 - **構成** 先頭=曲順 (`M01` は 15pt 等幅、MC・幕間は札)。題=曲名。副題=歌唱者 (`ImasPerformerChip` を折り返す、6 人を超えたら「全員」や人数)。下段=札 (ユニット・全員・カバー・一部・主演・ゲスト) と事実 (初披露・N 回目・回収)。
@@ -304,9 +309,22 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
   (記号 + 名前 + 補足 + 矢印)。記号の格子 (アイコンを四角に入れて 4 列) にはしない。
 
 ### 6.6 格子のセル
-- `ImasIdolCell` — アバター 56 + 名前 (2 行まで)。4 列。
+- `ImasIdolCell` — アイドルの名札。上の帯が担当色、名前とよみ。担当は帯と枠が点き右上に ♥。写真を設定した子は名前の前に写真。`ImasIdolGrid` で 3 列。
+  ピッカーでは `isSelected` で選択の印。文字を入れた色の丸 (判子のアイコン) は使わない。モデルからは `ImasIdolCell(idol:isPick:)`。
 - `ImasArtworkCell` — ジャケ + 曲名/アルバム名。3 列。
-- `ImasBrandCell` — ブランドのアイコン 48 + 名前。ゲームの設定・絞り込みのブランド選び。
+- ブランドの選び方は格子にせず `ImasBrandPicker` (チップ)。
+
+### 6.7 会場の部品
+- **`ImasTicket`** 紙のチケット。次のライブ・次の出演・記録する公演。上に印字の目印 (`ADMIT ONE · 参加予定`、前にペンライト)、題、日付と会場。
+  右の半券にカウントダウン (`あと 37 DAYS`、切り取り線と半円の切り欠き)。紙はダークでも明るい (`DS.ticket`)。押すとその公演へ。
+- **`ImasTicketStack`** 参加予定のチケットの束。いちばん上を大きく、後ろの 2 枚は端だけ。横に払うと次のチケットが上に来る。
+- **`ImasBoard`** 電光掲示板。記録の数を 2〜4 個、暗い板に細長い数字で。上の行は印字 (`STATS` / `2005 — 2026`)。ライトでもダークでも板は暗い。
+- **`ImasPass`** 入場証。上の帯が実体の色でストラップの穴、名前を大きく。右に `ImasPassStats` (回収・参加の数) など。担当・アカウント。
+- **`ImasIdolHeader`** アイドル詳細の頭。名札 (色の帯・印字・名前・よみと CV・担当の ♥) と、下につなげた電光掲示板。
+- **`ImasMasthead`** 画面の頭の印字の行 (`PRODUCE · 2026.10.01 THU`)。大きな題の上。日付は `mastheadDate(date:)`。
+- **`ImasDateHeader`** 年・月の区切り (細長い大きな数字 + 印字)。終わった区切りは薄く。
+- **`ImasPerforation`** 切り取り線。チケットの半券の境目、申込書の欄の間、セトリの紙の行の間 (`ImasCardList(style: .sheet)`)。
+- **`ImasPriceList`** 料金表 (暗い板に「種類 … ¥ 数字」)。
 
 ---
 
@@ -350,11 +368,21 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 ### 8.3 `ImasSelectionMark`
 - 複数選択 = ○ と塗りの ✓、1 つ選択 = ✓ だけ (OS の選択の形)。色は実体の `accent` (無ければ墨)。
 
-### 8.4 印 `ImasMarkBar` / `ImasMarkTile`
+### 8.4 印 `ImasMarkBar` / `ImasMarkTile` / `ImasMarkButton`
 - **印の種類** 担当 (♥) / お気に入り (★) / 参加 (✓) / 所有 / メモ / 座席。
-- **`ImasMarkBar`** 詳細の頭の下に、印を 1 本の帯 (面・高さ 56) に等幅で並べる。印の間は細い縦線。
-- **`ImasMarkTile`** 印 1 つ (記号 + 名前)。OFF = 墨の線の記号、ON = 記号が実体の色で点く。タイルは塗らない。
+- **`ImasMarkBar`** 詳細の頭の下に、丸いパンチを横に並べる (左寄せ、曲の詳細は中央寄せ `alignment: .center`)。
+- **`ImasMarkTile`** 印 1 つ (直径 50 の丸 + 名前)。OFF = 線の丸に墨の記号、ON = 丸が実体の色で塗られて点く (影が付き、押すと手応え)。
+  `isAction: true` は印でなく操作 (出演ライブ・試聴・セトリ予想) で、墨で塗った丸。
+- **`ImasMarkButton`** 行の末尾で印を付け外しする記号のボタン (`ImasRowTrailing.mark(.pick / .favorite, isOn:action:)`)。
 - **置き換えるもの** `UserMarkBar` の中身、アイドル詳細のヒーローのピル型トグル、`MyPickToggleButton`、`EventReleasesSection` の所有トグル。
+
+### 8.5 指の操作 `.imasSwipe` / `.imasTabSwipe`
+- **行を引く** `.imasSwipe(leading:trailing:)`。右に引く (先頭側) = 記録を付ける (参加 `.attend` 朱・参加予定 `.plan` 墨)、
+  左に引く (末尾側) = 手元に置く (お気に入り `.favorite`・メモ `.memo`・予想 `.predict`・削除 `.delete`)。色と記号は種類が決める。
+  選択肢を 3 つ以上並べるとき (現地 / 配信 / LV) は `showsIcon: false` で文字だけ。
+- **横に払う** `.imasTabSwipe(selection:options:)` で中身を払ってタブを替える (縦のスクロールは邪魔しない)。チケットの束も払ってめくる。
+- **長押し** OS の `.contextMenu(menuItems:preview:)` (コピー・共有・開く)。
+- **手応え** 印を押す・選ぶ・切り替えるときは部品が触覚を返す (`sensoryFeedback`)。画面で足さない。
 
 ---
 
