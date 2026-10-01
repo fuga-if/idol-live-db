@@ -11,6 +11,8 @@ struct ChatGPTPlanLabView: View {
     @AppStorage("chatgpt_plan.browser_mode") private var browserModeRaw = ChatGPTPlanBrowser.Mode.authSession.rawValue
     @State private var signInError: String?
     @State private var signOutNote: String?
+    @AppStorage(CharacterFeatures.enabledKey) private var characterFeatures = false
+    @State private var confirmCharacterFeatures = false
 
     private var browserMode: Binding<ChatGPTPlanBrowser.Mode> {
         Binding(
@@ -25,6 +27,7 @@ struct ChatGPTPlanLabView: View {
             if session.isSignedIn, !session.canUsePlan {
                 planDisabledSection
             }
+            characterSection
             if !session.log.isEmpty || signInError != nil {
                 logSection
             }
@@ -129,6 +132,30 @@ struct ChatGPTPlanLabView: View {
         }
         .buttonStyle(.plain)
         .disabled(session.isSigningIn)
+    }
+
+    /// キャラとのトーク・タイムライン。既定 OFF のオプトイン。有効にする前に非公式であることを確かめる。
+    @ViewBuilder
+    private var characterSection: some View {
+        Section {
+            Toggle("キャラとのトーク・タイムライン", isOn: Binding(
+                get: { characterFeatures },
+                set: { on in
+                    if on { confirmCharacterFeatures = true } else { characterFeatures = false }
+                }
+            ))
+        } header: {
+            Text("キャラ機能 (試作)")
+        } footer: {
+            Text("好きなアイドルとメッセージでおしゃべりしたり、アイドルどうしの SNS 風のやりとりを見たりできます。\(CharacterFeatures.disclaimer) 使うと ChatGPT のプランの利用量を消費します。")
+        }
+        .listRowBackground(DS.surface)
+        .alert("キャラ機能を有効にしますか？", isPresented: $confirmCharacterFeatures) {
+            Button("有効にする") { characterFeatures = true }
+            Button("やめる", role: .cancel) {}
+        } message: {
+            Text("アイドルの発言はすべて \(CharacterFeatures.disclaimer) 会話は端末内に保存されます。")
+        }
     }
 
     @ViewBuilder
