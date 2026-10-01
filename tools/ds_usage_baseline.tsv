@@ -14,6 +14,8 @@ ImasLiveDB/Views/Calendar/WeekTimeGridView.swift	11
 ImasLiveDB/Views/CallGuideDashboard/CallGuideDashboardView.swift	3
 ImasLiveDB/Views/ChatGPTPlan/AssistantChatComponents.swift	14
 ImasLiveDB/Views/ChatGPTPlan/AssistantChatView.swift	1
+ImasLiveDB/Views/ChatGPTPlan/CharacterTalkViews.swift	4
+ImasLiveDB/Views/ChatGPTPlan/CharacterTimelineView.swift	10
 ImasLiveDB/Views/ChatGPTPlan/ChatGPTPlanLabView.swift	3
 ImasLiveDB/Views/Community/Components/PrimaryActionButton.swift	4
 ImasLiveDB/Views/Community/Components/SectionCard.swift	3

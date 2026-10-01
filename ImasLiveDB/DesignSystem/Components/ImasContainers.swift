@@ -24,6 +24,8 @@ struct ImasSectionHeader: View {
 
     let title: String
     var count: String? = nil
+    /// 見出しの横の英字の印字 (「PLAY」「42 SONGS」)。大きい見出しにだけ付ける。
+    var imprint: String? = nil
     var seeAll: (() -> Void)? = nil
     /// seeAll の文言。行き先が「一覧の全件」でないとき (例: ほかのお題) に替える。
     var seeAllTitle: String = "すべて見る"
@@ -39,10 +41,11 @@ struct ImasSectionHeader: View {
         self.style = tight ? .small : .large
     }
 
-    init(_ title: String, count: String? = nil, style: Style = .large, seeAllTitle: String = "すべて見る",
-         seeAll: (() -> Void)? = nil) {
+    init(_ title: String, count: String? = nil, imprint: String? = nil, style: Style = .large,
+         seeAllTitle: String = "すべて見る", seeAll: (() -> Void)? = nil) {
         self.title = title
         self.count = count
+        self.imprint = imprint
         self.seeAll = seeAll
         self.seeAllTitle = seeAllTitle
         self.style = style
@@ -57,6 +60,9 @@ struct ImasSectionHeader: View {
                 Text(count)
                     .font(style == .large ? ImasNumeralSize.small.font : .imasCaption)
                     .foregroundStyle(DS.ink3)
+            }
+            if let imprint, style == .large {
+                Text(imprint).imasText(.imprint).foregroundStyle(DS.ink3).lineLimit(1)
             }
             Spacer(minLength: DS.Space.gapLoose)
             if let seeAll {
@@ -82,15 +88,18 @@ struct ImasSectionHeader: View {
 struct ImasSection<Content: View>: View {
     var title: String? = nil
     var count: String? = nil
+    var imprint: String? = nil
     var style: ImasSectionHeader.Style = .large
     var footer: String? = nil
     var seeAll: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
-    init(_ title: String? = nil, count: String? = nil, style: ImasSectionHeader.Style = .large,
-         footer: String? = nil, seeAll: (() -> Void)? = nil, @ViewBuilder content: () -> Content) {
+    init(_ title: String? = nil, count: String? = nil, imprint: String? = nil,
+         style: ImasSectionHeader.Style = .large, footer: String? = nil, seeAll: (() -> Void)? = nil,
+         @ViewBuilder content: () -> Content) {
         self.title = title
         self.count = count
+        self.imprint = imprint
         self.style = style
         self.footer = footer
         self.seeAll = seeAll
@@ -100,7 +109,7 @@ struct ImasSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let title {
-                ImasSectionHeader(title, count: count, style: style, seeAll: seeAll)
+                ImasSectionHeader(title, count: count, imprint: imprint, style: style, seeAll: seeAll)
                     .padding(.horizontal, style == .small ? DS.Space.rowH : 0)
                     .padding(.bottom, DS.Space.header)
             }
@@ -115,7 +124,7 @@ struct ImasSection<Content: View>: View {
     }
 }
 
-/// 区画を縦に並べる画面の本体 (詳細・ハブ・ダッシュボード)。白い紙面・左右の余白・区画どうしの
+/// 区画を縦に並べる画面の本体 (詳細・ハブ・ダッシュボード)。地・左右の余白・区画どうしの
 /// 間隔・広い画面での本文幅を持つ。中の部品には「紙面の上」(`.paper`) を伝える。
 struct ImasPage<Content: View>: View {
     @ViewBuilder var content: Content
@@ -155,18 +164,17 @@ struct ImasCard<Content: View>: View {
     @Environment(\.imasBackdrop) private var backdrop
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(padding)
-            .background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-    }
-
-    private var radius: CGFloat { style == .inset ? DS.rInner : DS.rCard }
-
-    private var fill: Color {
-        switch style {
-        case .standard, .tinted: return DS.surface(on: backdrop)
-        case .inset: return backdrop == .paper ? DS.paper : DS.surface2
+        if style == .inset {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(padding)
+                .background(DS.surface2, in: RoundedRectangle(cornerRadius: DS.rInner, style: .continuous))
+        } else {
+            content
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(padding)
+                .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+                .imasSurfaceEdge(cornerRadius: DS.rCard)
         }
     }
 }
@@ -198,6 +206,7 @@ struct ImasCardList<Content: View>: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+                .imasSurfaceEdge(cornerRadius: DS.rCard)
         case .plain:
             VStack(alignment: .leading, spacing: 0) { content }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -246,5 +255,32 @@ struct ImasRowDivider: View {
             .frame(height: 1 / displayScale)
             .padding(.leading, inset)
             .accessibilityHidden(true)
+    }
+}
+
+// MARK: - 面の縁
+
+extension View {
+    /// 面の縁。ライトはロビーの紙が浮くような薄い影、ダークは客席の暗がりで面が溶けないよう細い線。
+    func imasSurfaceEdge(cornerRadius: CGFloat) -> some View {
+        modifier(ImasSurfaceEdge(cornerRadius: cornerRadius))
+    }
+}
+
+private struct ImasSurfaceEdge: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+
+    func body(content: Content) -> some View {
+        if scheme == .dark {
+            content.overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(DS.sep, lineWidth: 1)
+            )
+        } else {
+            content
+                .shadow(color: DS.ink.opacity(0.04), radius: 0, y: 1)
+                .shadow(color: DS.ink.opacity(0.06), radius: 9, y: 6)
+        }
     }
 }

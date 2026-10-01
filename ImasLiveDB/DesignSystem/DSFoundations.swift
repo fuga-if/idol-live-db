@@ -11,14 +11,11 @@ import UIKit
 // MARK: - 面の角丸
 
 extension DS {
-    /// カードの角丸。OS の表 (inset grouped) と同じ値にする。
+    /// カードの角丸。チケットや入場証と同じ、紙を切り抜いた程度の丸み。
     ///
-    /// iOS 26 で OS の表の角が 26pt に丸くなり (iOS 17/18 は 10pt)、自前のカード (14pt) が
-    /// フォームや設定と並ぶと形が揃わなくなった。OS の値に合わせれば、どの版でも同じ形に見える。
-    /// 値は iOS 26.4 シミュレータで表の角を実測 (26.2pt) して決めた。
-    static var rCard: CGFloat {
-        if #available(iOS 26, *) { return 26 } else { return 10 }
-    }
+    /// 以前は OS の表 (iOS 26 で 26pt) に揃えていたが、「会場とチケット」では面を紙として
+    /// 見せるので、OS の表より角を立てる。OS の表 (設定) と同じ画面に並べることはしない。
+    static var rCard: CGFloat { 18 }
 
     /// カードの中に入れる面の角丸。外の角丸から内側の余白を引いて同心円にする。
     static var rInner: CGFloat { max(6, rCard - Space.card) }
@@ -40,14 +37,15 @@ extension DS {
 
 // MARK: - 地
 
-/// 部品が置かれている地。面の色をこれで決める (紙面の上は灰の面、灰の地の上は白い面)。
+/// 部品が置かれている地。
 ///
-/// 一覧・詳細・ハブは白い紙面 (`ImasPage` が `.paper` を流す)。フォーム・設定は OS の灰の地。
-/// 同じカードを両方に置いても面が地に溶けないよう、部品は地から色を引く。
+/// 「会場とチケット」では地は 1 種類 (ロビーの生成り / 客席の闇) で、面はどこでも `DS.surface`。
+/// 一覧・詳細・ハブ (`ImasPage`) とフォーム・設定 (`imasForm()`) の区別は残しておく
+/// (面の影や線の出し方を地ごとに変えたくなったときの受け口)。
 enum ImasBackdrop {
-    /// 白い紙面 (ダークは黒)。
+    /// 一覧・詳細・ハブの地。
     case paper
-    /// OS の表の灰の地 (`DS.bg`)。部品を移していない画面もこちら。
+    /// フォーム・設定の地。
     case grouped
 }
 
@@ -63,9 +61,9 @@ extension EnvironmentValues {
 }
 
 extension DS {
-    /// 地の上に置く面の色。
+    /// 地の上に置く面の色。どの地でも同じ面 (生成りの紙 / 客席の暗い面)。
     static func surface(on backdrop: ImasBackdrop) -> Color {
-        backdrop == .paper ? DS.panel : DS.surface
+        DS.surface
     }
 }
 
@@ -152,6 +150,9 @@ enum ImasTextRole {
     case badge
     /// チップの文字 (14pt 中太)。
     case chip
+    /// 英字の印字 (10.5pt 等幅・大文字・字間)。チケットの「ADMIT ONE」、見出しの横の「PLAY」、
+    /// 頭の「PRODUCE · 2026.10.01 THU」。日本語の見出しと並べて、印刷物の手触りを出す。
+    case imprint
 
     var font: Font {
         switch self {
@@ -170,6 +171,7 @@ enum ImasTextRole {
         case .eyebrow: return .imasCaption.weight(.bold)
         case .badge: return .imasCaption2.weight(.bold)
         case .chip: return .imasScaled(14, weight: .semibold)
+        case .imprint: return .imasMono(10.5, weight: .medium)
         }
     }
 
@@ -179,23 +181,34 @@ enum ImasTextRole {
         case .heroTitle, .sectionTitle, .cardTitle, .rowTitle, .rowLabel, .body, .value: return DS.ink
         case .sectionLabel, .rowSubtitle, .note, .chip: return DS.ink2
         case .meta: return DS.ink3
-        case .eyebrow, .badge: return DS.ink2
+        case .eyebrow, .badge, .imprint: return DS.ink2
         }
     }
 }
 
 extension View {
     /// 文字の役割を当てる (書体 + 既定の色)。部品の中で使う。
+    /// 印字 (`.imprint`) は大文字にして字間を空ける。
     func imasText(_ role: ImasTextRole) -> some View {
-        font(role.font).foregroundStyle(role.color)
+        font(role.font)
+            .foregroundStyle(role.color)
+            .textCase(role == .imprint ? .uppercase : nil)
+            .tracking(role == .imprint ? 0.6 : 0)
     }
 }
 
 // MARK: - 数字
 
 /// 数字の書体の大きさ。ゲームのステージ (`QS.num`) と同じ「細長い太字・等幅」の系統。
+/// 会場の電光掲示板とチケットの日付の数字。数字はこれだけで組む (本文の書体で大きくしない)。
 enum ImasNumeralSize {
-    /// 統計タイル・回収率 (30pt)。
+    /// 大きいチケットのカウントダウン (76pt)。画面に 1 つだけ。
+    case poster
+    /// チケットの半券のカウントダウン・月の見出し (54pt)。
+    case countdown
+    /// 半券の日付・年の見出し (28pt)。
+    case date
+    /// 統計タイル・回収率・掲示板 (30pt)。
     case large
     /// 行の末尾の票・確率・回数 (20pt)。
     case medium
@@ -205,6 +218,9 @@ enum ImasNumeralSize {
     var font: Font {
         switch self {
         // 大きい数字はステージと同じ compressed。小さい数字は詰まりすぎないよう condensed。
+        case .poster: return Font.imasScaled(76, weight: .black).width(.compressed).monospacedDigit()
+        case .countdown: return Font.imasScaled(54, weight: .black).width(.compressed).monospacedDigit()
+        case .date: return Font.imasScaled(28, weight: .heavy).width(.compressed).monospacedDigit()
         case .large: return Font.imasScaled(30, weight: .heavy).width(.compressed).monospacedDigit()
         case .medium: return Font.imasScaled(20, weight: .bold).width(.condensed).monospacedDigit()
         case .small: return Font.imasScaled(15, weight: .semibold).width(.condensed).monospacedDigit()
@@ -214,7 +230,8 @@ enum ImasNumeralSize {
     /// 単位の書体。
     var unitFont: Font {
         switch self {
-        case .large: return .imasFootnote.weight(.semibold)
+        case .poster, .countdown: return .imasMono(10.5, weight: .medium)
+        case .date, .large: return .imasFootnote.weight(.semibold)
         case .medium: return .imasCaption.weight(.semibold)
         case .small: return .imasCaption2.weight(.semibold)
         }
@@ -248,25 +265,24 @@ extension ButtonStyle where Self == ImasPressStyle {
 
 // MARK: - ペンライト
 
-/// 色の目印。名前・見出しの前に置く短い縦の棒。
+/// 色の目印。名前・見出しの前に置く小さな点。
 ///
-/// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この棒 (と帯・選んだ印) だけで見せる。
-/// 白い紙面に黒い文字、色はライブ会場のペンライトのように小さく強く光らせる。
+/// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
+/// ライトは点の周りに淡い輪、ダークは客席のペンライトのように光る。
 struct ImasPenlight: View {
     enum Size {
-        /// 13pt の文字の前 (歌唱者・チップ)。
+        /// 13pt の文字の前 (歌唱者・チップ)。並べて人数を見せるときも。
         case small
         /// 15〜16pt の文字の前 (目印・行)。
         case regular
         /// 見出し・ヒーローの前。
         case large
 
-        var width: CGFloat { self == .large ? 4 : 3 }
-        var height: CGFloat {
+        var diameter: CGFloat {
             switch self {
-            case .small: return 11
-            case .regular: return 14
-            case .large: return 20
+            case .small: return 6
+            case .regular: return 7
+            case .large: return 10
             }
         }
     }
@@ -274,12 +290,21 @@ struct ImasPenlight: View {
     let color: Color
     var size: Size = .regular
 
+    @Environment(\.colorScheme) private var scheme
     @ScaledMetric(relativeTo: .footnote) private var scale: CGFloat = 1
 
     var body: some View {
-        RoundedRectangle(cornerRadius: size.width / 2, style: .continuous)
+        let d = size.diameter * scale
+        Circle()
             .fill(color)
-            .frame(width: size.width, height: size.height * scale)
+            .frame(width: d, height: d)
+            .background {
+                if scheme == .dark {
+                    Circle().fill(color).blur(radius: 3.5).opacity(0.9)
+                } else {
+                    Circle().fill(color.opacity(0.22)).padding(-2)
+                }
+            }
             .accessibilityHidden(true)
     }
 }

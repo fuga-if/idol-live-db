@@ -26,6 +26,9 @@ enum ImasRowLeading {
     case icon(String, tone: ImasIconTile.Tone = .themed)
     /// 曲順・番号 (等幅)。
     case number(String)
+    /// 曲順 + ジャケ (セトリ)。回収した曲はジャケに判子。
+    case numberedArtwork(number: String, title: String, seed: String? = nil, brand: String? = nil,
+                         imageURL: URL? = nil, isCollected: Bool = false)
     /// 順位。1〜3 位は実体色。
     case rank(Int)
     /// 選択の印 (ピッカー)。
@@ -136,6 +139,7 @@ struct ImasRow<Detail: View>: View {
     private var rowAlignment: VerticalAlignment {
         switch leading {
         case .number, .rank: return .firstTextBaseline
+        case .numberedArtwork: return .top
         default: return .center
         }
     }
@@ -192,6 +196,15 @@ struct ImasRow<Detail: View>: View {
                 .font(ImasNumeralSize.small.font)
                 .foregroundStyle(DS.ink3)
                 .frame(width: 30, alignment: .trailing)
+        case let .numberedArtwork(number, title, seed, brand, url, isCollected):
+            HStack(alignment: .top, spacing: 10) {
+                Text(number)
+                    .font(.imasMono(11.5, weight: .bold))
+                    .foregroundStyle(DS.ink2)
+                    .frame(width: 24, alignment: .trailing)
+                    .padding(.top, 2)
+                ImasArtwork(title: title, seed: seed, brand: brand, size: 44, imageURL: url, isCollected: isCollected)
+            }
         case let .rank(rank):
             ImasRankNumber(rank: rank)
         case let .selection(isOn, single):
@@ -211,6 +224,7 @@ struct ImasRow<Detail: View>: View {
         case .artwork: return density.artworkSize
         case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30
+        case .numberedArtwork: return 24 + 10 + 44
         case .rank: return ImasRankNumber.width
         case .selection: return 24
         case let .custom(_, width): return width

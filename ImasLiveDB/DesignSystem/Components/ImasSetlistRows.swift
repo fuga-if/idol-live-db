@@ -3,7 +3,8 @@ import SwiftUI
 // =============================================================================
 // セトリと予想の行 (docs/DESIGN_SYSTEM.md §5.6・§5.8)
 //
-// ImasSetlistRow  セトリの 1 曲。曲順・曲名・歌唱者・役割の札・事実 (初披露・回収)。
+// ImasSetlistRow  セトリの 1 曲。曲順・ジャケ・曲名・歌唱者・役割の札・事実 (初披露・回収)。
+//                 回収した曲はジャケの角に小さな判子 (場所を取らない)。
 // ImasForecastRow 予想・機械予測の 1 曲。順位・ジャケ・曲名・根拠・確率 (または票)。
 //                 推測なので確率は「%」付きで出し、事実の行 (セトリ) と同じ札を使わない。
 //
@@ -23,9 +24,14 @@ struct ImasPerformer: Identifiable, Hashable {
 // MARK: - セトリの 1 曲
 
 struct ImasSetlistRow: View {
-    /// 曲順 (「M01」)。MC・幕間は nil にして `interlude` を渡す。
+    /// 曲順 (「01」)。MC・幕間は nil にして `interlude` を渡す。
     var number: String?
     let title: String
+    /// ジャケ。無い曲は灰の面に音符。
+    var artworkURL: URL? = nil
+    /// ジャケが無いときの色の手がかり (曲の実体)。
+    var seed: String? = nil
+    var brand: String? = nil
     var performers: [ImasPerformer] = []
     /// 歌唱者が多いとき (全体曲) に名前の代わりに出す要約 (「全員」「13 人」)。
     var performerSummary: String? = nil
@@ -38,29 +44,49 @@ struct ImasSetlistRow: View {
     /// 歌唱者の名前を何人まで並べるか。超えたら要約に替える。
     var performerLimit: Int = 6
 
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         ImasRow(
             title: title,
-            leading: .number(number ?? ""),
-            trailing: isCollected ? .custom(AnyView(collectedMark)) : .none
+            leading: .numberedArtwork(number: number ?? "", title: title, seed: seed, brand: brand,
+                                      imageURL: artworkURL, isCollected: isCollected)
         ) {
             if !performers.isEmpty || performerSummary != nil {
                 performerLine
             }
             if !badges.isEmpty || !facts.isEmpty {
-                HStack(spacing: DS.Space.gapTight) {
+                HStack(spacing: 6) {
                     ForEach(badges) { b in ImasBadge(text: b.text, kind: b.kind, seed: b.seed) }
-                    if !facts.isEmpty {
-                        Text(facts.joined(separator: " · ")).imasText(.meta)
+                    ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                        Text(fact)
+                            .font(fact == Self.firstPerformance ? .imasCaption.weight(.heavy) : .imasCaption)
+                            .foregroundStyle(fact == Self.firstPerformance ? DS.ink : DS.ink2)
                     }
                 }
             }
         }
     }
 
+    /// 事実のうち、墨で強める言葉。
+    static let firstPerformance = "初披露"
+
+    /// 歌唱者。人数が多いときは名前の代わりにペンライトを並べて人数を添える (全体曲)。
     @ViewBuilder private var performerLine: some View {
-        if let performerSummary, performers.count > performerLimit || performers.isEmpty {
-            Text(performerSummary).imasText(.rowSubtitle)
+        if performers.count > performerLimit || (performers.isEmpty && performerSummary != nil) {
+            HStack(spacing: 6) {
+                if !performers.isEmpty {
+                    HStack(spacing: 3) {
+                        ForEach(performers.prefix(24)) { p in
+                            ImasPenlight(color: p.color == nil ? DS.ink3
+                                         : ImasTheme.derive(seed: p.color, brand: nil, scheme: scheme).penlight,
+                                         size: .small)
+                        }
+                    }
+                    .accessibilityHidden(true)
+                }
+                Text(performerSummary ?? "\(performers.count) 人").imasText(.rowSubtitle)
+            }
         } else {
             FlowLayout(spacing: 10) {
                 ForEach(performers) { p in
@@ -68,13 +94,6 @@ struct ImasSetlistRow: View {
                 }
             }
         }
-    }
-
-    private var collectedMark: some View {
-        Image(systemName: "checkmark")
-            .font(.imasScaled(15, weight: .bold))
-            .foregroundStyle(DS.ink)
-            .accessibilityLabel("回収済み")
     }
 }
 

@@ -100,12 +100,14 @@ struct ImasAvatar: View {
 // MARK: - ジャケ
 
 /// 曲のジャケ。実画像があれば表示、無ければ灰の面 + 音符。
+/// 回収した曲 (`isCollected`) は角に小さな判子 (`ImasStampMark`) を押す。
 struct ImasArtwork: View {
     let title: String
     var seed: String?
     var brand: String? = nil
     var size: CGFloat = 48
     var imageURL: URL? = nil
+    var isCollected: Bool = false
 
     @Environment(\.imasTheme) private var envTheme
     @Environment(\.colorScheme) private var scheme
@@ -136,7 +138,16 @@ struct ImasArtwork: View {
             RoundedRectangle(cornerRadius: DS.rArtwork(size), style: .continuous)
                 .strokeBorder(DS.sep, lineWidth: 0.5)
         )
-        .accessibilityLabel(title)
+        .overlay(alignment: .bottomTrailing) {
+            if isCollected {
+                // 小さいジャケ (行) は角からはみ出させ、大きいジャケ (棚) は角の内側に押す。
+                let stamp = max(16, min(24, size * 0.42))
+                ImasStampMark(diameter: stamp)
+                    .offset(x: size < 80 ? 6 : -6, y: size < 80 ? 6 : -6)
+                    .accessibilityHidden(true)
+            }
+        }
+        .accessibilityLabel(isCollected ? "\(title)、回収済み" : title)
     }
 
     /// ジャケが無い曲。色の面に曲名を書くと「作った絵」に見えるので、OS の音楽アプリと同じく

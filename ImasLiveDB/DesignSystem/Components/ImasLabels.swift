@@ -5,8 +5,9 @@ import SwiftUI
 //
 // ImasBadge   状態の札 (押せない)。セトリの役割・参加済・受付中・NEW など。
 //             高さ 20 の角の小さい四角 (角丸 4)、11pt 太字。押せるものには使わない。
-//             色で意味を分けない: 灰 (分類) / 墨 (自分の記録・主演) / 赤 (新着) / 線 (注意) の 4 つだけ。
+//             色で意味を分けない: 線 (分類) / 墨 (予定・主演) / 朱の線 (済んだ記録) / 朱 (新着) だけ。
 //             札ごとに色を変えると淡い色の札が並ぶ「よくある見た目」になる。意味は文字が言う。
+//             チケットの印字のように、塗らずに細い線で囲むのが基本。
 // ImasMetric  数字 + 単位。数字はステージと同じ「細長い太字・等幅」。
 // =============================================================================
 
@@ -26,8 +27,10 @@ struct ImasBadge: View {
         /// ゲスト (線)。
         case guest
         // 状態
-        /// 参加済・当選・回収 (墨。自分の記録)。
+        /// 参加済・当選・回収 (朱の線。判子を押した記録)。
         case positive
+        /// 参加予定・チケットあり (墨の塗り。手元にある券)。
+        case planned
         /// 受付中・締切間近・下書き (墨の線)。
         case attention
         /// 落選・中止・差し戻し (灰の薄字)。
@@ -69,12 +72,13 @@ struct ImasBadge: View {
 
     private func style(_ t: ImasTheme) -> (bg: Color, fg: Color, stroke: Color?) {
         switch kind {
-        case .unit, .all, .cover, .partial, .neutral: return (DS.fill, DS.ink2, nil)
-        case .lead, .positive: return (DS.sys, DS.onSys, nil)
-        case .new: return (DS.danger, .white, nil)
+        case .unit, .all, .cover, .partial, .neutral: return (.clear, DS.ink2, DS.line)
+        case .lead, .planned: return (DS.sys, DS.onSys, nil)
+        case .positive: return (.clear, DS.stamp, DS.stamp)
+        case .new: return (DS.stamp, .white, nil)
         case .attention: return (.clear, DS.ink, DS.ink)
         case .guest: return (.clear, DS.ink2, DS.line)
-        case .negative: return (DS.fill, DS.ink3, nil)
+        case .negative: return (.clear, DS.ink3, DS.sep)
         case .themed:
             let c: Color = t.isNeutral ? DS.ink : t.accent
             return (.clear, c, c.opacity(0.55))

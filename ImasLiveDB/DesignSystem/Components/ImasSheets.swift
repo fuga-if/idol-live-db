@@ -3,8 +3,8 @@ import SwiftUI
 // =============================================================================
 // シート・フォーム・一覧のまわり (docs/DESIGN_SYSTEM.md §2.1・§2.4〜§2.7・§16)
 //
-// .imasSheetToolbar(_:)       シートのボタンの置き場所と文言を 1 か所で決める。
-//                             iOS 26 は OS のガラスのボタン (確定は塗り)、17/18 は文字のボタン。
+// .imasSheetToolbar(_:)       シートのボタンの置き場所を 1 か所で決める。文字は書かず × と ✓ の記号
+//                             (iOS 26 は OS のガラスの丸、17/18 は記号のボタン)。読み上げは言葉で。
 // .imasForm()                 編集シート・設定の Form / List(.insetGrouped) の体裁。
 // .imasDiscardConfirmation    書きかけを閉じるときの確認。
 // ImasListSection             List・Form の区画 (見出し・補足を DS の形で)。
@@ -54,7 +54,8 @@ extension View {
     }
 }
 
-/// シートのボタン 1 つ。iOS 26 はロールを付けて OS のガラスのボタンにする (確定は塗り)。
+/// シートのボタン 1 つ。文字は書かず記号 (× / ✓) だけ。`title` は読み上げに使う。
+/// iOS 26 はロールを付けた OS のガラスの丸 (確定は塗り)、17/18 は記号のボタン。
 private struct ImasSheetButton: View {
     enum Role { case cancel, confirm, close }
     let title: String
@@ -63,10 +64,14 @@ private struct ImasSheetButton: View {
 
     var body: some View {
         if #available(iOS 26, *) {
-            Button(title, role: buttonRole, action: action)
+            Button(role: buttonRole, action: action)
+                .accessibilityLabel(title)
         } else {
-            Button(title, action: action)
-                .fontWeight(role == .confirm ? .bold : .regular)
+            Button(action: action) {
+                Image(systemName: role == .confirm ? "checkmark" : "xmark")
+                    .font(.imasScaled(17, weight: role == .confirm ? .bold : .semibold))
+            }
+            .accessibilityLabel(title)
         }
     }
 

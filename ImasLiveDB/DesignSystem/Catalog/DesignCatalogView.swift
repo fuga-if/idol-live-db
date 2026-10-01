@@ -9,13 +9,15 @@ import SwiftUI
 // =============================================================================
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
-    case buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor, feedback, setlist,
-         list, form, setup
+    case venue, application, buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor,
+         feedback, setlist, list, form, setup
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .venue: return "会場の部品 (チケット・掲示板・印)"
+        case .application: return "申込書 (編集シートの欄)"
         case .buttons: return "ボタン"
         case .chips: return "チップ・札・数字"
         case .rows: return "行 (実体)"
@@ -51,6 +53,8 @@ struct DesignCatalogPageView: View {
     var body: some View {
         Group {
             switch page {
+            case .venue: VenuePage()
+            case .application: ApplicationFormPage()
             case .buttons: ButtonsPage()
             case .chips: ChipsPage()
             case .rows: EntityRowsPage()
@@ -101,6 +105,109 @@ private enum Sample {
         static let shirube = url("Music211/v4/d2/d0/d1/d2d0d166-6d01-5ba1-1bb3-ac7afe4f04a6/PA00185909_0_222005_jacket.jpg")
         static let fightingMyWay = url("Music221/v4/33/4e/9c/334e9c4b-6ae8-55b2-7d1f-e6ab30fb2d9b/PA00153099_0_191075_jacket.jpg")
         static let hajime = url("Music211/v4/e5/ca/75/e5ca7591-dac2-60fa-348c-4a850f219c68/PA00153098_0_191078_jacket.jpg")
+    }
+}
+
+// MARK: - 会場の部品
+
+private struct VenuePage: View {
+    @State private var pick = true
+    @State private var favorite = false
+
+    var body: some View {
+        ImasPage {
+            ImasSection("頭の印字", style: .small) {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    ImasMasthead("PRODUCE", "2026.10.01 THU")
+                    Text("プロデュース").font(.imasHeading(34, weight: .heavy)).foregroundStyle(DS.ink)
+                }
+            }
+            ImasSection("チケット", style: .small, footer: "次のライブ・次の出演。右の半券にカウントダウン。紙はダークでも明るい。") {
+                VStack(spacing: DS.Space.gapLoose) {
+                    ImasTicket(label: "参加予定",
+                               title: "学園アイドルマスター LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)",
+                               metaImprint: "11.07 SAT", meta: "DAY1 · Kアリーナ横浜",
+                               brand: Sample.gakuen,
+                               countdown: .init(value: "37"))
+                    ImasTicket(label: "次の出演", imprint: "NEXT STAGE",
+                               title: "765 PRODUCTION × 961 PRODUCTION IDOL ULTIMATE ONCE AND FOR ALL",
+                               metaImprint: "2027.07.25 SUN", meta: "第三公演 · 京王アリーナ TOKYO",
+                               seed: Sample.haruka,
+                               countdown: .init(value: "297"))
+                    ImasTicket(label: "DAY2", imprint: "09.23 WED",
+                               title: "学園アイドルマスター LIVE TOUR -標- 岩手公演",
+                               brand: Sample.gakuen)
+                }
+            }
+            ImasSection("電光掲示板", style: .small, footer: "記録や出演の数。ライトでもダークでも板は暗い。") {
+                ImasBoard(title: "STATS", trailing: "2005 — 2026", cells: [
+                    .init(value: "189", unit: "公演", label: "出演"),
+                    .init(value: "42", unit: "曲", label: "歌唱した曲"),
+                    .init(value: "12", unit: "公演", label: "一緒に参加"),
+                ])
+            }
+            ImasSection("印", style: .small, footer: "担当・お気に入り・メモは丸いパンチ。押すと実体の色で点く。操作 (出演ライブ) は墨の丸。") {
+                ImasMarkBar {
+                    ImasMarkTile(systemImage: "heart.fill", label: "担当", isOn: pick) { pick.toggle() }
+                    ImasMarkTile(systemImage: favorite ? "star.fill" : "star", label: "お気に入り", isOn: favorite) { favorite.toggle() }
+                    ImasMarkTile(systemImage: "note.text", label: "メモ", isOn: false) {}
+                    ImasMarkTile(systemImage: "music.mic", label: "出演ライブ", isOn: false, isAction: true) {}
+                }
+                .imasTheme(seed: Sample.haruka)
+            }
+            ImasSection("回収・参加の印", style: .small, footer: "回収した曲はジャケの角に小さな判子。参加した公演は半券に穴。どちらも行の場所を取らない。") {
+                HStack(alignment: .bottom, spacing: DS.Space.section) {
+                    ImasArtwork(title: "標", seed: Sample.gakuen, size: 44, imageURL: Sample.Art.shirube, isCollected: true)
+                    ImasArtwork(title: "Fighting My Way", seed: Sample.saki, size: 52, imageURL: Sample.Art.fightingMyWay, isCollected: true)
+                    ImasArtwork(title: "初", seed: Sample.gakuen, size: 96, imageURL: Sample.Art.hajime, isCollected: true)
+                    VStack(spacing: DS.Space.gap) {
+                        ImasPunchHole()
+                        ImasPunchHole(size: .small)
+                    }
+                }
+            }
+            ImasSection("切り取り線", style: .small) {
+                ImasPerforation()
+            }
+        }
+    }
+}
+
+// MARK: - 申込書
+
+private struct ApplicationFormPage: View {
+    enum How: Hashable { case venue, stream, viewing }
+    @State private var how: How = .venue
+    @State private var seat = "1階 C列 24番"
+    @State private var price: Int? = 9900
+    @State private var notify = true
+    @State private var memo = ""
+    @State private var url = "htps://example"
+
+    var body: some View {
+        ImasFormPage {
+            ImasTicket(label: "DAY2", imprint: "09.23 WED",
+                       title: "学園アイドルマスター LIVE TOUR -標- 岩手公演",
+                       brand: Sample.gakuen)
+            ImasSection("参加のしかた", style: .small) {
+                ImasChoiceCards(choices: [
+                    .init(value: How.venue, title: "現地", systemImage: "chair"),
+                    .init(value: How.stream, title: "配信", systemImage: "dot.radiowaves.left.and.right"),
+                    .init(value: How.viewing, title: "LV", systemImage: "film"),
+                ], selection: $how)
+            }
+            ImasFormCard {
+                ImasFormTextField(label: "席", imprint: "SEAT", systemImage: "chair", text: $seat)
+                ImasFormAmount(label: "チケット代", amount: $price, note: "一般 指定席")
+                ImasFormLink(label: "会場", imprint: "VENUE", systemImage: "mappin", value: "トーサイクラシックホール岩手") {}
+                ImasFormTextField(label: "特設ページ", imprint: "URL", systemImage: "link", text: $url,
+                                  error: "URL の形になっていません", keyboard: .URL)
+                ImasFormToggle(label: "通知", imprint: "NOTIFY", systemImage: "bell", title: "開演 1 時間前に知らせる", isOn: $notify)
+                ImasFormTextArea(label: "メモ", text: $memo, prompt: "座席・同行者・感想など")
+            }
+            ImasNote("チケット代は収支に入ります。この端末にだけ保存されます。")
+            ImasButton(title: "この記録を削除", systemImage: "trash", role: .destructive, size: .large) {}
+        }
     }
 }
 

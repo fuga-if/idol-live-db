@@ -7,10 +7,10 @@ import SwiftUI
 //               曲は大きいジャケを中央に (`.centered`)、アイドル・ユニット・ライブ・公演は
 //               アイコンを左・名前を右に (`.leading`)。同じ種類のものはいつも同じ形。
 //               `.color` は地を実体の色で塗る (担当の顔など、色そのものを主役にする所)。
-// ImasMarkBar   担当・お気に入り・参加・メモ・座席の印を 1 本の帯に並べる。
-// ImasMarkTile  印 1 つ。ON は記号が実体の色で点く (タイルを塗らない)。
-// ImasTabs      詳細・一覧の中の表示の切り替え。文字 + 下線。
-// ImasSegmented フォーム・設定の中で値を 1 つ選ぶ (OS の segmented control)。
+// ImasMarkBar   担当・お気に入り・参加・メモ・座席の印を横に並べる。
+// ImasMarkTile  印 1 つ。丸いパンチ。ON は実体の色で塗られて点く (押すと判子の手応え)。
+// ImasTabs      詳細・一覧の中の表示の切り替え。太い文字 + 実体の色の下線。
+// ImasSegmented フォーム・設定の中で値を 1 つ選ぶ。墨で塗った札が動く。
 // =============================================================================
 
 /// 詳細の頭の地。
@@ -153,60 +153,71 @@ private struct HeroButtonStyle: ButtonStyle {
 
 // MARK: - 印
 
-/// 印 (`ImasMarkTile`) を 1 本の帯に並べる。帯は地の上の面、印の間は細い縦線。
+/// 印 (`ImasMarkTile`) を横に並べる。主操作 (出演ライブ・試聴) を右端に置くときは `trailing`。
 struct ImasMarkBar<Content: View>: View {
+    var alignment: HorizontalAlignment = .leading
     @ViewBuilder var content: Content
 
-    @Environment(\.imasBackdrop) private var backdrop
-    @Environment(\.displayScale) private var displayScale
-
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: DS.rControl(56), style: .continuous)
-        HStack(spacing: 0) { content }
-            // 各印は左に縦線を引く。1 つ目の線 (帯の左端) だけを隠す。
-            .mask { Rectangle().padding(.leading, 1 / displayScale) }
-            .background(DS.surface(on: backdrop), in: shape)
-            .clipShape(shape)
+        HStack(alignment: .top, spacing: 14) {
+            if alignment == .center { Spacer(minLength: 0) }
+            content
+            Spacer(minLength: 0)
+        }
     }
 }
 
-/// 担当・お気に入り・参加・メモ・座席の印 1 つ。`ImasMarkBar` の中に等幅で並べる。
-/// OFF = 墨の線の記号、ON = 記号が実体の色で点く (ペンライトが点くように)。
+/// 担当・お気に入り・参加・メモ・座席の印 1 つ。丸いパンチと名前。
+/// OFF = 線の丸に墨の記号、ON = 丸が実体の色で塗られて点く (ペンライトが点くように)。
+/// `isAction` は印でなく操作 (出演ライブ・試聴) で、墨で塗った丸にする。
 struct ImasMarkTile: View {
     let systemImage: String
     let label: String
     let isOn: Bool
+    var isAction: Bool = false
     var accessibilityText: String? = nil
     let action: () -> Void
 
     @Environment(\.imasTheme) private var theme
-    @Environment(\.displayScale) private var displayScale
+    @ScaledMetric(relativeTo: .body) private var diameter: CGFloat = 50
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 5) {
                 Image(systemName: systemImage)
-                    .font(.imasScaled(19, weight: isOn ? .semibold : .regular))
-                    .foregroundStyle(isOn ? theme.penlight : DS.ink)
+                    .font(.imasScaled(19, weight: isOn || isAction ? .semibold : .regular))
+                    .foregroundStyle(iconColor)
                     .symbolEffect(.bounce, value: isOn)
-                    .frame(height: 22)
+                    .frame(width: diameter, height: diameter)
+                    .background {
+                        if isOn || isAction {
+                            Circle().fill(fill)
+                                .shadow(color: isOn ? fill.opacity(0.45) : .clear, radius: 7, y: 4)
+                        } else {
+                            Circle().strokeBorder(DS.line, lineWidth: 1.5)
+                        }
+                    }
                 Text(label)
-                    .font(.imasCaption.weight(.semibold))
+                    .font(.imasCaption2.weight(.semibold))
                     .foregroundStyle(isOn ? DS.ink : DS.ink2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .frame(minWidth: diameter)
             .contentShape(Rectangle())
         }
-        .buttonStyle(ImasRowButtonStyle())
-        .overlay(alignment: .leading) {
-            Rectangle().fill(DS.sep).frame(width: 1 / displayScale).padding(.vertical, 12)
-        }
-        .sensoryFeedback(.impact(weight: .light), trigger: isOn)
+        .buttonStyle(.imasPress)
+        .sensoryFeedback(.impact(weight: .medium), trigger: isOn)
         .accessibilityLabel(accessibilityText ?? label)
         .accessibilityAddTraits(isOn ? .isSelected : [])
         .animation(.imasStandard, value: isOn)
+    }
+
+    private var fill: Color { isAction ? DS.sys : theme.penlight }
+    private var iconColor: Color {
+        if isAction { return DS.onSys }
+        if isOn { return theme.isNeutral ? DS.onSys : theme.onAccent }
+        return DS.ink
     }
 }
 
@@ -247,15 +258,16 @@ struct ImasTabs<Selection: Hashable>: View {
                         withAnimation(.imasStandard) { selection = option }
                     } label: {
                         Text(label(option))
-                            .font(.imasHeading(16, weight: .bold))
+                            .font(.imasHeading(16, weight: .heavy))
                             .foregroundStyle(on ? DS.ink : DS.ink3)
                             .lineLimit(1)
-                            .padding(.vertical, 11)
+                            .padding(.vertical, 12)
                             .overlay(alignment: .bottom) {
                                 if on {
-                                    Rectangle()
+                                    Capsule()
                                         .fill(t.penlight)
-                                        .frame(height: 2)
+                                        .frame(height: 3)
+                                        .shadow(color: scheme == .dark ? t.penlight : .clear, radius: 5)
                                         .matchedGeometryEffect(id: "underline", in: namespace)
                                 }
                             }
@@ -282,12 +294,15 @@ extension ImasTabs where Selection == Int {
 
 // MARK: - 値を 1 つ選ぶ (フォーム)
 
-/// フォーム・設定の中で値を 1 つ選ぶ (期間・表示の単位・文字の大きさ)。OS の segmented control。
-/// 画面の中身を切り替えるなら `ImasTabs`。
+/// フォーム・設定の中で値を 1 つ選ぶ (期間・表示の単位・文字の大きさ)。
+/// 薄い溝の上を、墨で塗った札が選んだ値へ動く。画面の中身を切り替えるなら `ImasTabs`。
 struct ImasSegmented<Selection: Hashable>: View {
     let options: [Selection]
     @Binding var selection: Selection
     let label: (Selection) -> String
+
+    @Namespace private var namespace
+    @ScaledMetric(relativeTo: .subheadline) private var height: CGFloat = 34
 
     init(options: [Selection], selection: Binding<Selection>, seed: String? = nil, brand: String? = nil,
          label: @escaping (Selection) -> String) {
@@ -297,13 +312,33 @@ struct ImasSegmented<Selection: Hashable>: View {
     }
 
     var body: some View {
-        Picker("", selection: $selection) {
+        HStack(spacing: 0) {
             ForEach(options, id: \.self) { option in
-                Text(label(option)).tag(option)
+                let on = option == selection
+                Button {
+                    withAnimation(.imasStandard) { selection = option }
+                } label: {
+                    Text(label(option))
+                        .font(.imasSubhead.weight(on ? .bold : .semibold))
+                        .foregroundStyle(on ? DS.onSys : DS.ink2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity, minHeight: height)
+                        .background {
+                            if on {
+                                RoundedRectangle(cornerRadius: DS.rControl(height) - 2, style: .continuous)
+                                    .fill(DS.sys)
+                                    .matchedGeometryEffect(id: "segment", in: namespace)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+        .padding(3)
+        .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rControl(height + 6), style: .continuous))
         .sensoryFeedback(.selection, trigger: selection)
     }
 }

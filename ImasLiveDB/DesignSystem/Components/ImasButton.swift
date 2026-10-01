@@ -17,7 +17,7 @@ import SwiftUI
 enum ImasButtonRole {
     /// 画面で一番大事な操作。塗り。
     case primary
-    /// 主の隣・単独の操作。淡い地。
+    /// 主の隣・単独の操作。墨の線。
     case secondary
     /// 補助の操作。地なしの文字だけ。
     case plain
@@ -43,9 +43,9 @@ enum ImasButtonSize {
 
     var font: Font {
         switch self {
-        case .large: return .imasHeading(16, weight: .semibold)
-        case .medium: return .imasHeading(15, weight: .semibold)
-        case .small: return .imasHeading(13, weight: .semibold)
+        case .large: return .imasHeading(16, weight: .bold)
+        case .medium: return .imasHeading(15, weight: .bold)
+        case .small: return .imasHeading(13, weight: .bold)
         }
     }
 
@@ -90,6 +90,7 @@ struct ImasButtonStyle: ButtonStyle {
             .frame(maxWidth: (fillsWidth ?? (size == .large)) ? .infinity : nil)
             .frame(minHeight: size.height)
             .background(colors.bg, in: shape)
+            .overlay { if let stroke = colors.stroke { shape.strokeBorder(stroke, lineWidth: 1.5) } }
             .contentShape(shape)
             .opacity(isEnabled ? 1 : 0.45)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
@@ -97,12 +98,12 @@ struct ImasButtonStyle: ButtonStyle {
             .animation(.imasStandard, value: configuration.isPressed)
     }
 
-    private func colors() -> (bg: Color, fg: Color) {
+    private func colors() -> (bg: Color, fg: Color, stroke: Color?) {
         switch role {
-        case .primary: return (DS.sys, DS.onSys)
-        case .secondary: return (DS.fill, DS.ink)
-        case .plain: return (.clear, DS.ink)
-        case .destructive: return (DS.fill, DS.danger)
+        case .primary: return (DS.sys, DS.onSys, nil)
+        case .secondary: return (.clear, DS.ink, DS.ink)
+        case .plain: return (.clear, DS.ink, nil)
+        case .destructive: return (.clear, DS.danger, DS.danger.opacity(0.45))
         }
     }
 }
