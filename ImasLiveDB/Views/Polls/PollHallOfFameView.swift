@@ -88,32 +88,12 @@ private struct HallOfFameRow: View {
     @State private var resolvedUnit: Unit?
 
     var body: some View {
-        HStack(spacing: DS.sp3) {
-            Image(systemName: "crown.fill")
-                .font(.imasCallout)
-                .foregroundStyle(
-                    LinearGradient(colors: [DS.warning, .yellow],
-                                   startPoint: .top, endPoint: .bottom)
-                )
-                .frame(width: 30, alignment: .center)
-
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                Text(result.title)
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            ImasAwardChip(title: result.title, rank: 1)
+            HStack(spacing: DS.Space.rowGap) {
                 entityView
-            }
-
-            Spacer(minLength: 8)
-
-            VStack(alignment: .trailing, spacing: DS.sp2) {
-                Text("優勝")
-                    .font(.imasCaption.weight(.bold))
-                    .foregroundStyle(DS.warning)
-                Text("\(result.voteCount)票")
-                    .font(.imasCaption.monospacedDigit())
-                    .foregroundStyle(DS.ink3)
+                Spacer(minLength: DS.Space.gap)
+                Text("\(result.voteCount)票").imasText(.meta)
             }
         }
         .padding(.horizontal, DS.sp4)

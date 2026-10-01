@@ -70,21 +70,15 @@ struct PollListView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(value: PollRoute.hallOfFame) {
                         Image(systemName: "crown.fill")
-                            .foregroundStyle(DS.warning)
                     }
                     .accessibilityLabel("殿堂を見る")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     if AuthService.shared.isSignedIn {
-                        Button {
+                        ImasToolbarButton(systemImage: "plus", label: "お題を作成") {
                             AppAnalytics.tap("poll_list.create")
                             showCreateSheet = true
-                        } label: {
-                            Image(systemName: "plus")
                         }
-                        .accessibilityLabel("お題を作成")
-                    } else {
-                        EmptyView()
                     }
                 }
             }
@@ -138,17 +132,10 @@ struct PollListView: View {
 
 private struct PollRowView: View {
     let poll: Poll
-    @Environment(\.colorScheme) private var scheme
 
     @State private var topSong: Song?
     @State private var topIdol: Idol?
     @State private var topUnit: Unit?
-
-    /// 曲/アイドルで安定して塗り分けるアクセント (両者に固有色は無いので categoryKey 由来)。
-    /// 1位の実写が引ければそちらを優先するので、これは無投票時のフォールバックのみで使う。
-    private var accent: Color {
-        ImasTheme.derive(categoryKey: poll.targetType.rawValue, scheme: scheme).accent
-    }
 
     @ViewBuilder
     private var scopeBadge: some View {
@@ -157,23 +144,17 @@ private struct PollRowView: View {
         }
     }
 
-    /// 先頭サムネイル。1位が解決できていれば曲ジャケ/アイドル写真の「実写」、
-    /// まだ無投票 (topEntityId なし) ならジャンルアイコンにフォールバックする。
-    @ViewBuilder
-    private var thumbnail: some View {
+    /// 先頭の行の組み方。1位が解決できていれば曲ジャケ/アイドル・ユニットのアイコン (写真か判子) の
+    /// 「実写」、まだ無投票 (topEntityId なし) なら対象の種類を示す記号にフォールバックする。
+    private var leading: ImasRowLeading {
         if poll.targetType == .song, let topSong {
-            ImasArtwork(title: topSong.title, size: 42, imageURL: topSong.artworkUrl.flatMap(URL.init))
+            return .artwork(title: topSong.title, imageURL: topSong.artworkUrl.flatMap(URL.init(string:)))
         } else if poll.targetType == .idol, let topIdol {
-            IdolAvatarView(idol: topIdol, size: 42)
+            return .custom(AnyView(IdolAvatarView(idol: topIdol, size: 42)), width: 42)
         } else if poll.targetType == .unit, let topUnit {
-            UnitAvatarView(unit: topUnit, size: 42)
-        } else {
-            Image(systemName: thumbnailFallbackIcon)
-                .font(.imasTitle3)
-                .foregroundStyle(ColorMath.onColor(accent))
-                .frame(width: 42, height: 42)
-                .background(accent.gradient, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            return .custom(AnyView(UnitAvatarView(unit: topUnit, size: 42)), width: 42)
         }
+        return .icon(thumbnailFallbackIcon, tone: .themed, seed: poll.targetType.rawValue)
     }
 
     private var thumbnailFallbackIcon: String {
@@ -185,33 +166,15 @@ private struct PollRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: DS.sp3) {
-            thumbnail
-
-            VStack(alignment: .leading, spacing: DS.sp2) {
-                Text(poll.title)
-                    .font(.imasSubhead.weight(.semibold))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(2)
-
-                HStack(spacing: DS.sp2) {
-                    scopeBadge
-                    Text(poll.statusLabel)
-                        .font(.imasCaption)
-                        .foregroundStyle(poll.isActive ? DS.success : DS.ink3)
-                    if let totalVotes = poll.totalVotes, totalVotes > 0 {
-                        Text("計\(totalVotes)票")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
-                    }
+        ImasRow(title: poll.title, leading: leading, trailing: .chevron) {
+            HStack(spacing: DS.Space.gapTight) {
+                scopeBadge
+                ImasBadge(text: poll.statusLabel, kind: poll.isActive ? .attention : .neutral)
+                if let totalVotes = poll.totalVotes, totalVotes > 0 {
+                    Text("計\(totalVotes)票").imasText(.meta)
                 }
             }
-            Spacer(minLength: 8)
-            ImasRowChevron()
         }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
-        .contentShape(Rectangle())
         .task { await resolveTopEntity() }
     }
 

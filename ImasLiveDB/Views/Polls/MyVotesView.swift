@@ -44,30 +44,22 @@ struct MyVotesView: View {
                                 Button {
                                     sheetDestination = choice.destination
                                 } label: {
-                                    HStack(spacing: DS.sp2) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(DS.success)
-                                        Text(choice.label)
-                                            .font(.imasSubhead.weight(.semibold))
-                                            .foregroundStyle(DS.ink)
-                                            .lineLimit(2)
-                                        Spacer(minLength: 0)
-                                    }
-                                    .padding(.vertical, DS.sp1)
+                                    ImasRow(
+                                        title: choice.label,
+                                        leading: .icon("checkmark.circle.fill", tone: .positive),
+                                        density: .compact,
+                                        titleRole: .rowLabel
+                                    )
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(.imasRow)
                                 .disabled(choice.destination == nil)
                             }
                         } header: {
                             NavigationLink(value: PollRoute.detail(entry.poll.id)) {
-                                HStack {
-                                    Text(entry.poll.title).textCase(nil)
-                                        .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink)
-                                    Spacer()
-                                    Text(entry.poll.statusLabel).font(.imasCaption).foregroundStyle(DS.ink2)
-                                }
+                                ImasSectionHeader(entry.poll.title, count: entry.poll.statusLabel, style: .small)
                             }
                             .buttonStyle(.plain)
+                            .textCase(nil)
                         }
                     }
                 }

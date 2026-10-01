@@ -58,80 +58,66 @@ struct PollCreateSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: DS.sp6) {
-                    Text("お題を作って、みんなに推しを投票してもらおう。期間中は誰でも\(CommunityVoteLimit.perTarget)票まで投票できます。")
-                        .font(.imasFootnote)
-                        .foregroundStyle(DS.ink2)
-                        .fixedSize(horizontal: false, vertical: true)
+            ImasFormPage {
+                ImasNote("お題を作って、みんなに推しを投票してもらおう。期間中は誰でも\(CommunityVoteLimit.perTarget)票まで投票できます。")
 
-                    fieldSection(header: "タイトル", counter: InputLimits.counter(.pollTitle, title, separator: "/", unit: "")) {
-                        TextField("例: 夏に聴きたい曲は？", text: $title, axis: .vertical)
-                            .font(.imasSubhead)
-                            .foregroundStyle(DS.ink)
-                            .lineLimit(1...3)
-                            .onChange(of: title) { _, new in
-                                let clamped = InputLimits.clamp(.pollTitle, new)
-                                if clamped != new { title = clamped }
-                            }
-                    }
-
-                    fieldSection(header: "説明（任意）", counter: InputLimits.counter(.pollDescription, description, separator: "/", unit: "")) {
-                        TextField("補足やルールがあれば（任意）", text: $description, axis: .vertical)
-                            .font(.imasSubhead)
-                            .foregroundStyle(DS.ink)
-                            .lineLimit(2...5)
-                            .onChange(of: description) { _, new in
-                                let clamped = InputLimits.clamp(.pollDescription, new)
-                                if clamped != new { description = clamped }
-                            }
-                    }
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        ImasSectionHeader(title: "投票対象", tight: true)
-                        HStack(spacing: DS.sp3) {
-                            targetCard(.song, icon: "music.note", label: "曲")
-                            targetCard(.idol, icon: "person.fill", label: "アイドル")
-                            targetCard(.unit, icon: "person.3.fill", label: "ユニット")
+                ImasFormCard {
+                    ImasFormField(label: "タイトル", imprint: "TITLE") {
+                        VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
+                            TextField("例: 夏に聴きたい曲は？", text: $title, axis: .vertical)
+                                .lineLimit(1...3)
+                                .onChange(of: title) { _, new in
+                                    let clamped = InputLimits.clamp(.pollTitle, new)
+                                    if clamped != new { title = clamped }
+                                }
+                            Text(InputLimits.counter(.pollTitle, title, separator: "/", unit: ""))
+                                .font(.imasCaption.monospacedDigit())
+                                .foregroundStyle(DS.ink3)
                         }
                     }
-
-                    scopeSection
-
-                    VStack(alignment: .leading, spacing: DS.sp3) {
-                        ImasSectionHeader(title: "募集期間", tight: true)
-                        ImasSegmented(labels: dayOptions.map { "\($0)日間" }, selection: $dayIndex)
-                    }
-
-                    if let msg = errorMessage {
-                        Label(msg, systemImage: "exclamationmark.triangle.fill")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.danger)
-                            .fixedSize(horizontal: false, vertical: true)
+                    ImasFormField(label: "説明（任意）", imprint: "DESCRIPTION", systemImage: "text.alignleft") {
+                        VStack(alignment: .trailing, spacing: DS.Space.gapTight) {
+                            TextField("補足やルールがあれば（任意）", text: $description, axis: .vertical)
+                                .font(.imasBody)
+                                .lineLimit(2...5)
+                                .onChange(of: description) { _, new in
+                                    let clamped = InputLimits.clamp(.pollDescription, new)
+                                    if clamped != new { description = clamped }
+                                }
+                            Text(InputLimits.counter(.pollDescription, description, separator: "/", unit: ""))
+                                .font(.imasCaption.monospacedDigit())
+                                .foregroundStyle(DS.ink3)
+                        }
                     }
                 }
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp4)
-                .padding(.bottom, DS.sp7)
+
+                VStack(alignment: .leading, spacing: DS.Space.header) {
+                    ImasSectionHeader("投票対象", style: .small)
+                    ImasChoiceCards(choices: [
+                        .init(value: PollTargetType.song, title: "曲", systemImage: "music.note"),
+                        .init(value: PollTargetType.idol, title: "アイドル", systemImage: "person.fill"),
+                        .init(value: PollTargetType.unit, title: "ユニット", systemImage: "person.3.fill"),
+                    ], selection: $targetType)
+                }
+
+                scopeSection
+
+                VStack(alignment: .leading, spacing: DS.Space.header) {
+                    ImasSectionHeader("募集期間", style: .small)
+                    ImasSegmented(labels: dayOptions.map { "\($0)日間" }, selection: $dayIndex)
+                }
+
+                if let msg = errorMessage {
+                    ImasNotice(kind: .error, message: msg)
+                }
             }
-            .background(DS.bg.ignoresSafeArea())
-            .scrollContentBackground(.hidden)
             .navigationTitle("お題を投稿")
             .navigationBarTitleDisplayMode(.inline)
             .trackScreen("poll_create")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("キャンセル") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("作成") {
-                        AppAnalytics.tap("poll_create.submit")
-                        Task { await submit() }
-                    }
-                    .disabled(!canSubmit)
-                    .fontWeight(.semibold)
-                }
-            }
+            .imasSheetToolbar(.submit(canSubmit: canSubmit, onCancel: { dismiss() }, onSubmit: {
+                AppAnalytics.tap("poll_create.submit")
+                Task { await submit() }
+            }))
             .task {
                 async let brandsTask = AppContainer.shared.brandReading.brands()
                 async let idolsTask = AppContainer.shared.idolReading.idols(brandId: nil)
@@ -163,60 +149,16 @@ struct PollCreateSheet: View {
         }
     }
 
-    // MARK: - Pieces
-
-    @ViewBuilder
-    private func fieldSection<Content: View>(
-        header: String, counter: String, @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: header, tight: true)
-            ImasCardList {
-                content()
-                    .padding(.horizontal, DS.sp4)
-                    .padding(.vertical, DS.sp3)
-            }
-            Text(counter)
-                .font(.imasCaption)
-                .foregroundStyle(DS.ink3)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-        }
-    }
-
-    private func targetCard(_ type: PollTargetType, icon: String, label: String) -> some View {
-        let on = targetType == type
-        return Button { targetType = type } label: {
-            VStack(spacing: DS.sp2) {
-                Image(systemName: icon).font(.imasScaled( 22, weight: .semibold))
-                Text(label).font(.imasSubhead.weight(.semibold))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.sp4)
-            .foregroundStyle(on ? DS.sys : DS.ink2)
-            .background(
-                on ? DS.sys.opacity(0.12) : DS.surface,
-                in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                    .strokeBorder(on ? DS.sys : DS.sep, lineWidth: on ? 1.5 : 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     // MARK: - スコープ選択
 
     private var scopeSection: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasSectionHeader(title: "投票候補", tight: true)
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasSectionHeader("投票候補", style: .small)
             ImasSegmented(labels: ["全て", "ブランド限定", "候補指定"], selection: $scopeIndex)
 
             switch scope {
             case .all:
-                Text("全\(targetLabel)から自由に投票できます。")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink3)
+                ImasNote("全\(targetLabel)から自由に投票できます。")
             case .brand:
                 brandScopePicker
             case .manual:
@@ -226,116 +168,80 @@ struct PollCreateSheet: View {
     }
 
     private var brandScopePicker: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            Text("チェックしたブランドの\(targetLabel)だけが候補になります。複数選択可。")
-                .font(.imasFootnote)
-                .foregroundStyle(DS.ink3)
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasNote("チェックしたブランドの\(targetLabel)だけが候補になります。複数選択可。")
 
-            BrandGridPicker(brands: brands, selectedBrandIds: $selectedBrandIds)
-                .padding(.vertical, DS.sp2)
-                .padding(.horizontal, DS.sp3)
-                .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                        .strokeBorder(DS.sep, lineWidth: 1)
-                )
+            ImasCard {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds, includesAll: false)
+            }
 
             if selectedBrandIds.isEmpty {
-                Label("1つ以上選択してください", systemImage: "info.circle")
-                    .font(.imasCaption)
-                    .foregroundStyle(DS.ink3)
+                ImasNote("1つ以上選択してください", systemImage: "info.circle")
             }
         }
     }
 
     private var manualScopePicker: some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
             HStack {
-                Text("候補は2件以上必要です。")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink3)
+                ImasNote("候補は2件以上必要です。")
                 Spacer()
                 Text("\(manualCount)件選択中")
-                    .font(.imasCaption.weight(.semibold))
-                    .foregroundStyle(manualCount >= 2 ? DS.ink2 : DS.danger)
+                    .imasText(.meta, color: manualCount >= 2 ? DS.ink2 : DS.danger)
             }
 
             ImasCardList {
-                VStack(spacing: 0) {
-                    switch targetType {
-                    case .song:
-                        ForEach(Array(selectedSongs.enumerated()), id: \.element.id) { idx, song in
-                            manualRow(label: song.title, subtitle: song.titleKana) {
-                                selectedSongs.remove(at: idx)
-                            }
-                            if idx < selectedSongs.count - 1 { ImasRowDivider() }
-                        }
-                    case .idol:
-                        ForEach(Array(selectedIdols.enumerated()), id: \.element.id) { idx, idol in
-                            manualRow(label: idol.name, subtitle: idol.nameKana) {
-                                selectedIdols.remove(at: idx)
-                            }
-                            if idx < selectedIdols.count - 1 { ImasRowDivider() }
-                        }
-                    case .unit:
-                        ForEach(Array(selectedUnits.enumerated()), id: \.element.id) { idx, unit in
-                            manualRow(label: unit.displayName, subtitle: nil) {
-                                selectedUnits.remove(at: idx)
-                            }
-                            if idx < selectedUnits.count - 1 { ImasRowDivider() }
+                switch targetType {
+                case .song:
+                    ForEach(Array(selectedSongs.enumerated()), id: \.element.id) { idx, song in
+                        if idx > 0 { ImasRowDivider() }
+                        manualRow(label: song.title, subtitle: song.titleKana) {
+                            selectedSongs.remove(at: idx)
                         }
                     }
+                case .idol:
+                    ForEach(Array(selectedIdols.enumerated()), id: \.element.id) { idx, idol in
+                        if idx > 0 { ImasRowDivider() }
+                        manualRow(label: idol.name, subtitle: idol.nameKana) {
+                            selectedIdols.remove(at: idx)
+                        }
+                    }
+                case .unit:
+                    ForEach(Array(selectedUnits.enumerated()), id: \.element.id) { idx, unit in
+                        if idx > 0 { ImasRowDivider() }
+                        manualRow(label: unit.displayName, subtitle: nil) {
+                            selectedUnits.remove(at: idx)
+                        }
+                    }
+                }
 
-                    if manualCount == 0 {
-                        Text("「候補を追加」から選んでください")
-                            .font(.imasFootnote)
-                            .foregroundStyle(DS.ink3)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, DS.sp4)
-                    }
+                if manualCount == 0 {
+                    ImasEmptyState(.empty, title: "「候補を追加」から選んでください")
                 }
             }
 
-            Button {
+            ImasActionRow(title: "候補を追加", systemImage: "plus.circle.fill") {
                 AppAnalytics.tap("poll_create.add_manual_candidate")
                 switch targetType {
                 case .song: showSongPicker = true
                 case .idol: showIdolPicker = true
                 case .unit: showUnitPicker = true
                 }
-            } label: {
-                Label("候補を追加", systemImage: "plus.circle.fill")
-                    .font(.imasSubhead.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DS.sp3)
-                    .foregroundStyle(DS.sys)
-                    .background(
-                        DS.sys.opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous)
-                    )
             }
-            .buttonStyle(.plain)
         }
     }
 
     private func manualRow(label: String, subtitle: String?, onRemove: @escaping () -> Void) -> some View {
-        HStack(spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text(label).font(.imasSubhead).foregroundStyle(DS.ink)
-                if let s = subtitle, !s.isEmpty {
-                    Text(s).font(.imasCaption).foregroundStyle(DS.ink3)
-                }
-            }
-            Spacer()
-            Button(action: onRemove) {
-                Image(systemName: "minus.circle.fill")
-                    .font(.imasTitle3)
-                    .foregroundStyle(DS.danger)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, DS.sp4)
-        .padding(.vertical, DS.sp3)
+        ImasRow(
+            title: label,
+            subtitle: subtitle,
+            trailing: .custom(AnyView(
+                ImasIconButton(systemImage: "minus.circle.fill", label: "候補から外す", size: .small, style: .plain,
+                               action: onRemove)
+            )),
+            density: .compact,
+            titleRole: .rowLabel
+        )
     }
 
     private var idolPickerSheet: some View {
