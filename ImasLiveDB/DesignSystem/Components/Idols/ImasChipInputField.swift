@@ -14,6 +14,8 @@ struct ImasChipInputField: View {
     /// 文字数の上限。超えた分は切り詰める。
     var limit: Int? = nil
     var isEnabled: Bool = true
+    /// 追加ボタンの読み上げ (「マイタグを追加」等)。記号だけのボタンなので必須。
+    var submitAccessibilityLabel: String
     let onSubmit: () -> Void
 
     var body: some View {
@@ -36,6 +38,7 @@ struct ImasChipInputField: View {
             }
             .buttonStyle(.plain)
             .disabled(!isEnabled)
+            .accessibilityLabel(submitAccessibilityLabel)
         }
     }
 }

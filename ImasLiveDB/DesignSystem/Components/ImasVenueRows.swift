@@ -148,7 +148,9 @@ struct ImasStubRow<Detail: View>: View {
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel([spokenDate ?? [date.top, date.big, date.bottom].joined(separator: " "),
-                             title, subtitle, isPunched ? "参加済み" : nil].compactMap { $0 }.joined(separator: "、"))
+                             title, subtitle,
+                             badges.isEmpty ? nil : badges.map(\.text).joined(separator: "、"),
+                             isPunched ? "参加済み" : nil].compactMap { $0 }.joined(separator: "、"))
         .listRowInsets(EdgeInsets(top: 4, leading: DS.Space.screen, bottom: 4, trailing: DS.Space.screen))
         .listRowSeparator(.hidden)
         .listRowBackground(Color.clear)
