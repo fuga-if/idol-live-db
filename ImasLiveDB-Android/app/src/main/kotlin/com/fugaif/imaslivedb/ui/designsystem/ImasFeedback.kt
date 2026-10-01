@@ -378,16 +378,29 @@ fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・
  * 保存・送信中に画面を覆う (iOS `.imasSavingOverlay`)。下の操作を止め、何をしているかを 1 語で出す。
  * 画面の Box の最後に置く。[progress] を渡すと (0〜1)、くるくるの代わりに進み具合の線を出す
  * (画像の一括取り込みなど、割合が意味を持つ処理向け)。
+ *
+ * @param blocksInteraction false で地を暗くせず、箱だけ浮かせる (長く走る一括処理の間も後ろの一覧を
+ *   触れたままにしたいとき。既定 (true) は地を暗くして止める)。
  */
 @Composable
-fun ImasSavingOverlay(isSaving: Boolean, label: String = "保存中", progress: Double? = null) {
+fun ImasSavingOverlay(
+    isSaving: Boolean,
+    label: String = "保存中",
+    progress: Double? = null,
+    blocksInteraction: Boolean = true
+) {
     AnimatedVisibility(visible = isSaving, enter = fadeIn(), exit = fadeOut()) {
         Box(
-            Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.25f))
-                // 下の操作を止める (押しても何もしない)。
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
+            if (blocksInteraction) {
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.25f))
+                    // 下の操作を止める (押しても何もしない)。
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
+            } else {
+                // 地を暗くせず、箱だけ浮かせる (後ろの一覧は触れたまま)。
+                Modifier.fillMaxSize()
+            },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -434,6 +447,9 @@ fun ImasErrorAlert(message: String?, onDismiss: () -> Unit, title: String = "保
 /**
  * 消す前の確認 (iOS `.imasConfirmDestructive`)。題は「〇〇を削除しますか？」、破壊のボタンは「削除」(朱)。
  * [isPresented] が true の間だけ出る。
+ *
+ * @param style iOS の出し方の区別 (下からの確認 / 中央のアラート)。Android はどちらも中央のダイアログ
+ *   (Android で取り消せない操作を確かめる標準の形)。呼び出しの形を iOS と揃えるために受ける。
  */
 @Composable
 fun ImasConfirmDestructive(
@@ -443,7 +459,8 @@ fun ImasConfirmDestructive(
     onConfirm: () -> Unit,
     actionTitle: String = "削除",
     message: String? = null,
-    dismissTitle: String = "キャンセル"
+    dismissTitle: String = "キャンセル",
+    @Suppress("UNUSED_PARAMETER") style: ImasConfirmDestructiveStyle = ImasConfirmDestructiveStyle.CONFIRMATION_DIALOG
 ) {
     if (!isPresented) return
     AlertDialog(
@@ -461,4 +478,19 @@ fun ImasConfirmDestructive(
         titleContentColor = DS.ink,
         textContentColor = DS.ink2
     )
+}
+
+/** 消す前の確認の出し方 (iOS `ImasConfirmDestructiveStyle`)。 */
+enum class ImasConfirmDestructiveStyle {
+    /** 既定。iOS は下からの確認シート (操作系の一覧の削除など、軽い取り消し)。 */
+    CONFIRMATION_DIALOG,
+
+    /** iOS は中央のアラート (アカウント削除など、取り消せない重い操作)。 */
+    ALERT
+}
+
+/** 行の末尾などに置く小さなくるくる (iOS `ImasInlineSpinner`)。画面のコードで素の進捗の丸を書かない。 */
+@Composable
+fun ImasInlineSpinner(modifier: Modifier = Modifier) {
+    CircularProgressIndicator(modifier = modifier.size(18.dp), color = DS.ink2, strokeWidth = 2.dp)
 }

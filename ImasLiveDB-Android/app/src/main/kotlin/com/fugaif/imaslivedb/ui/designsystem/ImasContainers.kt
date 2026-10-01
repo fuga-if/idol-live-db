@@ -98,6 +98,7 @@ enum class ImasSectionHeaderStyle {
  * @param imprint 見出しの横の英字の印字 (「PLAY」「42 SONGS」)。大きい見出しにだけ付ける。
  * @param seed 見出しの前のペンライトの色 hex (ブランドごと・アイドルごとの区切り)。[brand] はブランド ID。
  * @param actionTitle 見出しの右の、その場で何かを始める操作 (「＋ タグ」「▶ 動画」)。[onSeeAll] と同時には出さない。
+ * @param titleLineLimit 見出しの行数。利用者が書いた題 (お題のタイトルなど) を見出しに流用するときは切らないよう増やす。
  */
 @Composable
 fun ImasSectionHeader(
@@ -114,7 +115,8 @@ fun ImasSectionHeader(
     actionTitle: String? = null,
     actionIcon: ImageVector? = null,
     onAction: (() -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+    contentPadding: PaddingValues = PaddingValues(horizontal = DS.Space.screen, vertical = DS.Space.gap),
+    titleLineLimit: Int = 2
 ) {
     val large = style == ImasSectionHeaderStyle.LARGE
     Row(
@@ -144,7 +146,7 @@ fun ImasSectionHeader(
                 title,
                 style = role.style,
                 color = role.color,
-                maxLines = 2,
+                maxLines = titleLineLimit,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .alignByBaseline()

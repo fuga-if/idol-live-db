@@ -248,3 +248,25 @@ fun ImasStepList(steps: List<ImasStep>, modifier: Modifier = Modifier, startInde
         }
     }
 }
+
+// MARK: - 箇条書き (手順でない点)
+
+/** 箇条書きの 1 点 (iOS `ImasPointList.Point`)。 */
+@Immutable
+data class ImasPoint(val icon: ImageVector, val text: String)
+
+/**
+ * 記号付きの箇条書き (iOS `ImasPointList`)。`ImasStepList` は番号が付くため「手順」に見える。
+ * 順序を持たない特徴・利点の列挙 (ログインの誘いの案内など) はこちらを使う。
+ */
+@Composable
+fun ImasPointList(points: List<ImasPoint>, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
+        points.forEach { point ->
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top) {
+                Icon(point.icon, contentDescription = null, tint = DS.sys, modifier = Modifier.size(20.dp))
+                Text(point.text, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}

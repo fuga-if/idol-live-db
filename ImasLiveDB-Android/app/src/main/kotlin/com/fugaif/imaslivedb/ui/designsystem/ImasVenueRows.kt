@@ -169,6 +169,9 @@ data class ImasStubDate(
  * @param rainbow 合同ライブ等、単色で表せないとき、ペンライトを虹色にする。
  * @param spokenDate 読み上げの日付 (コアの `spokenDate(date)`、「2026年11月7日 土曜日」)。無ければ日付欄をそのまま読む。
  * @param showsChevron 別画面へ進む矢印 (押して詳細へ行く一覧)。
+ * @param detailAccessibilityLabel [detail] に自由な見た目 (チップのボタンなど) を渡したとき、読み上げにも足したい文言
+ *   (題・副題・札だけでは伝わらない操作「セトリを見る」など)。
+ * @param subtitleLineLimit 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 にする。
  */
 @Composable
 fun ImasStubRow(
@@ -184,6 +187,8 @@ fun ImasStubRow(
     rainbow: Boolean = false,
     spokenDate: String? = null,
     showsChevron: Boolean = false,
+    detailAccessibilityLabel: String? = null,
+    subtitleLineLimit: Int = 1,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     // iOS の @ScaledMetric(relativeTo: .body) 62。文字の大きさに合わせて半券も広げる。
@@ -196,7 +201,8 @@ fun ImasStubRow(
         title,
         subtitle,
         badges.takeIf { it.isNotEmpty() }?.joinToString("、") { it.text },
-        if (isPunched) "参加済み" else null
+        if (isPunched) "参加済み" else null,
+        detailAccessibilityLabel
     ).joinToString("、")
     val shape = ImasTicketShape(12.dp, ImasTicketShape.Cut.VerticalFromLeading(stubWidth + 1.dp), notchRadius = 6.dp)
     Row(
@@ -251,7 +257,7 @@ fun ImasStubRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (penlight != null) ImasPenlight(color = penlight, size = ImasPenlightSize.SMALL, rainbow = rainbow)
                     if (subtitle != null) {
-                        Text(subtitle, style = ImasType.text(12.sp), color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(subtitle, style = ImasType.text(12.sp), color = DS.ink2, maxLines = subtitleLineLimit, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

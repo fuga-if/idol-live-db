@@ -176,6 +176,8 @@ fun ImasUnitRow(
  * @param date 初日 (`yyyy-MM-dd`)。半券の日付欄に出す。null なら横棒。
  * @param subtitle 会場・期間 (「Kアリーナ横浜 · 〜 11/8 (日)」)。
  * @param rainbow 合同ライブ (複数ブランド名義) は単色で表せないので、ペンライトを虹色にする。
+ * @param detailAccessibilityLabel [detail] の見た目 (チップのボタンなど) に添える読み上げ。
+ * @param subtitleLineLimit 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 にする。
  */
 @Composable
 fun ImasEventRow(
@@ -188,6 +190,8 @@ fun ImasEventRow(
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     rainbow: Boolean = false,
     showsChevron: Boolean = false,
+    detailAccessibilityLabel: String? = null,
+    subtitleLineLimit: Int = 1,
     onClick: (() -> Unit)? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -208,6 +212,8 @@ fun ImasEventRow(
             rainbow = rainbow,
             spokenDate = spoken,
             showsChevron = showsChevron,
+            detailAccessibilityLabel = detailAccessibilityLabel,
+            subtitleLineLimit = subtitleLineLimit,
             detail = detail
         )
     }
@@ -235,6 +241,7 @@ fun ImasShowRow(
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     rainbow: Boolean = false,
     showsChevron: Boolean = false,
+    subtitleLineLimit: Int = 1,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     val spoken = remember(date) { spokenDate(date) }
@@ -250,6 +257,7 @@ fun ImasShowRow(
         rainbow = rainbow,
         spokenDate = spoken,
         showsChevron = showsChevron,
+        subtitleLineLimit = subtitleLineLimit,
         detail = detail
     )
 }

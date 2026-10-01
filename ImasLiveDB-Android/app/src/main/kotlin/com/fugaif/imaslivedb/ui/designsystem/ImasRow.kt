@@ -57,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -892,7 +893,11 @@ enum class ImasActionRowKind {
     DESTRUCTIVE
 }
 
-/** 行の形のボタン (iOS `ImasActionRow`。「＋ 曲を追加」「このライブを削除」)。 */
+/**
+ * 行の形のボタン (iOS `ImasActionRow`。「＋ 曲を追加」「このライブを削除」)。
+ *
+ * @param isLoading 処理中。記号をくるくるに替え、押せなくする (発行・送信など時間のかかる操作)。
+ */
 @Composable
 fun ImasActionRow(
     title: String,
@@ -900,20 +905,24 @@ fun ImasActionRow(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     kind: ImasActionRowKind = ImasActionRowKind.STANDARD,
-    position: ImasRowPosition? = null
+    position: ImasRowPosition? = null,
+    isLoading: Boolean = false
 ) {
     val color = if (kind == ImasActionRowKind.DESTRUCTIVE) DS.danger else DS.ink
     Row(
         modifier
             .fillMaxWidth()
             .imasRowTopDivider(DS.Space.rowH, position ?: LocalImasRowPosition.current)
-            .imasRowPress(onClick = onClick)
+            .imasRowPress(enabled = !isLoading, onClick = onClick)
+            .then(if (isLoading) Modifier.semantics { stateDescription = "処理中" } else Modifier)
             .heightIn(min = DS.Size.touch)
             .padding(horizontal = DS.Space.rowH),
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (icon != null) {
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = DS.ink2, strokeWidth = 2.dp)
+        } else if (icon != null) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(with(LocalDensity.current) { 18.sp.toDp() }))
         }
         Text(title, style = ImasTextRole.ROW_LABEL.style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
