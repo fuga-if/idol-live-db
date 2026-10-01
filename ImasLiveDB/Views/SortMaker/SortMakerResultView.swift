@@ -55,7 +55,7 @@ struct SortMakerResultView: View {
     private var podium: some View {
         ImasPodium(entries: rows.prefix(3).map { row in
             ImasPodium.Entry(id: row.item.id, rank: row.rank, title: row.item.title, subtitle: row.item.subtitle,
-                             seed: row.item.seed, brand: row.item.brandId,
+                             seed: row.item.seed, brand: BrandColors.hex(for: row.item.brandId),
                              visual: AnyView(SortMakerVisual(item: row.item, size: row.rank == 1 ? 150 : 96))) {
                 detail = row.item.detail
             }
@@ -127,15 +127,28 @@ struct SortMakerRankingList: View {
         if rows.isEmpty {
             ImasEmptyState(systemImage: "list.number", title: "まだ順位はありません")
         } else {
-            ImasCardList(rows, id: \.item.id) { row in
-                let content = ImasRow(title: row.item.title, subtitle: row.item.subtitle,
-                                      leading: .custom(AnyView(leadingVisual(row)), width: 78))
-                if let onSelect {
-                    Button { onSelect(row.item) } label: { content }.buttonStyle(.imasRow)
-                } else {
-                    content
+            // 全順位 (数百行) を一度に展開しうるので、ここだけは ImasCardList (eager) ではなく
+            // LazyVStack にする。でないと数百件ぶんのジャケ読み込みが一斉に走る。
+            LazyVStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.item.id) { i, row in
+                    if i > 0 { ImasRowDivider(inset: 106) }
+                    rowView(row)
                 }
             }
+            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private func rowView(_ row: (rank: Int, item: SortMakerItem)) -> some View {
+        let content = ImasRow(title: row.item.title, subtitle: row.item.subtitle,
+                              leading: .custom(AnyView(leadingVisual(row)), width: 78))
+            .accessibilityElement(children: .combine)
+        if let onSelect {
+            Button { onSelect(row.item) } label: { content }.buttonStyle(.imasRow)
+        } else {
+            content
         }
     }
 
