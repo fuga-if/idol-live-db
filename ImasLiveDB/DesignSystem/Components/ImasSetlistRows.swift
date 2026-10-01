@@ -241,18 +241,19 @@ struct ImasForecastRow: View {
     var isMine: Bool = false
     /// 「予想する」の押し場所。nil なら出さない (機械予測)。
     var onVote: (() -> Void)? = nil
+    /// 投票ボタンの文言 (お題の投票は「投票する」、予想は既定の「予想する」)。
+    var voteLabel: String = "予想する"
+    var votedLabel: String = "予想した"
 
     var body: some View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
                 .padding(.top, 10)
             if let avatar {
-                if let url = avatar.imageURL {
-                    ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40, imageURL: url,
-                               reservesPickRing: false)
-                } else {
-                    ImasLeadBar(seed: avatar.seed, brand: brand).frame(height: 36)
-                }
+                // アイドル・ユニットの候補は写真があれば写真、無ければ ImasAvatar 自身の判子
+                // (アイコンを消さない。以前はここで帯だけに落としていた)。
+                ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40,
+                           imageURL: avatar.imageURL, reservesPickRing: false)
             } else {
                 ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
             }
@@ -272,7 +273,7 @@ struct ImasForecastRow: View {
                     .padding(.top, 2)
                 if let onVote {
                     Button(action: onVote) {
-                        Label(isMine ? "予想した" : "予想する", systemImage: isMine ? "checkmark" : "hand.thumbsup")
+                        Label(isMine ? votedLabel : voteLabel, systemImage: isMine ? "checkmark" : "hand.thumbsup")
                     }
                     .buttonStyle(.imas(isMine ? .primary : .secondary, size: .small))
                     .padding(.top, 2)
