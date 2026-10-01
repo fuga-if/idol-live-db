@@ -290,6 +290,8 @@ struct ImasPenlight: View {
 
     let color: Color
     var size: Size = .regular
+    /// 合同ライブなど、単色で表せない目印は虹色にする。
+    var rainbow: Bool = false
 
     @Environment(\.colorScheme) private var scheme
     @ScaledMetric(relativeTo: .footnote) private var scale: CGFloat = 1
@@ -297,7 +299,9 @@ struct ImasPenlight: View {
     var body: some View {
         let d = size.diameter * scale
         Circle()
-            .fill(color)
+            .fill(rainbow
+                  ? AnyShapeStyle(LinearGradient(colors: QS.penlights, startPoint: .top, endPoint: .bottom))
+                  : AnyShapeStyle(color))
             .frame(width: d, height: d)
             .background {
                 if scheme == .dark {

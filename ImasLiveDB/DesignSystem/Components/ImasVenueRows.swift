@@ -72,6 +72,8 @@ struct ImasStubRow<Detail: View>: View {
     var isPunched: Bool = false
     var badges: [ImasBadgeSpec] = []
     var emphasis: ImasRowEmphasis = .normal
+    /// 合同ライブ等、単色で表せないとき、ペンライトを虹色にする。
+    var rainbow: Bool = false
     /// 読み上げの日付 (「2026年11月7日 土曜日」)。無ければ日付欄をそのまま読む。
     var spokenDate: String? = nil
     @ViewBuilder var detail: Detail
@@ -116,7 +118,7 @@ struct ImasStubRow<Detail: View>: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
                     HStack(spacing: 6) {
-                        if let penlight { ImasPenlight(color: penlight, size: .small) }
+                        if let penlight { ImasPenlight(color: penlight, size: .small, rainbow: rainbow) }
                         Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
                     }
                 }
@@ -146,9 +148,9 @@ struct ImasStubRow<Detail: View>: View {
 extension ImasStubRow where Detail == EmptyView {
     init(date: ImasStubDate, title: String, subtitle: String? = nil, seed: String? = nil, brand: String? = nil,
          isPunched: Bool = false, badges: [ImasBadgeSpec] = [], emphasis: ImasRowEmphasis = .normal,
-         spokenDate: String? = nil) {
+         rainbow: Bool = false, spokenDate: String? = nil) {
         self.init(date: date, title: title, subtitle: subtitle, seed: seed, brand: brand, isPunched: isPunched,
-                  badges: badges, emphasis: emphasis, spokenDate: spokenDate) { EmptyView() }
+                  badges: badges, emphasis: emphasis, rainbow: rainbow, spokenDate: spokenDate) { EmptyView() }
     }
 }
 
@@ -368,18 +370,27 @@ struct ImasTicketStack: View {
 
 // MARK: - アイドル詳細の頭
 
-/// アイドル詳細の頭。名札 (色の帯・名前・よみと CV・担当の印) と、その下につなげた電光掲示板。
-struct ImasIdolHeader: View {
+/// アイドル詳細の頭。名札 (色の帯・アイコン・名前・よみと CV・担当の印) と、その下につなげた電光掲示板。
+/// アイコンはいつも出す (写真があれば写真、無ければ判子)。右下には写真を選ぶ口 (`ImasIconBadge`) などを重ねる。
+struct ImasIdolHeader<IconAccessory: View>: View {
     /// 名札の上の印字 (ブランド名)。
     var imprint: String
+    /// 印字を押したとき (ブランドで絞ったアイドル一覧へ)。nil なら押せない。
+    var onImprintTap: (() -> Void)? = nil
     let name: String
     var subtitle: String? = nil
     var seed: String? = nil
     var brand: String? = nil
+    /// 判子に入れる短い名前。nil なら `name`。
+    var iconLabel: String? = nil
     var imageURL: URL? = nil
     let isPick: Bool
     var onTogglePick: (() -> Void)? = nil
+    /// 名前を長押ししたときのコピー (名前・よみ・CV)。
+    var copyItems: [CopyItem] = []
     var stats: [ImasBoard.Cell] = []
+    /// アイコンの右下に重ねるもの (写真を選ぶ口)。
+    @ViewBuilder var iconAccessory: IconAccessory
 
     @Environment(\.colorScheme) private var scheme
 
@@ -390,13 +401,14 @@ struct ImasIdolHeader: View {
             HStack(spacing: 0) {
                 Rectangle().fill(t.isNeutral ? DS.sys : t.accent).frame(width: 8)
                 HStack(spacing: DS.Space.gapLoose) {
-                    if let imageURL {
-                        ImasAvatar(label: name, seed: seed, brand: brand, size: 52, isPick: isPick, imageURL: imageURL)
-                    }
+                    ImasAvatar(label: iconLabel ?? name, seed: seed, brand: brand, size: 72, isPick: isPick,
+                               imageURL: imageURL)
+                        .overlay(alignment: .bottomTrailing) { iconAccessory }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(imprint).imasText(.imprint, color: DS.ink3).lineLimit(1)
+                        imprintView
                         Text(name).font(.imasHeading(28, weight: .heavy)).foregroundStyle(DS.ink)
-                            .lineLimit(1).minimumScaleFactor(0.7)
+                            .lineLimit(2).minimumScaleFactor(0.7)
+                            .imasCopyable(copyItems)
                         if let subtitle {
                             Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(2)
                         }
@@ -435,21 +447,49 @@ struct ImasIdolHeader: View {
         .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .imasSurfaceEdge(cornerRadius: DS.rCard)
     }
+
+    @ViewBuilder private var imprintView: some View {
+        if let onImprintTap {
+            Button(action: onImprintTap) {
+                Text(imprint).imasText(.imprint, color: DS.ink2).lineLimit(1)
+            }
+            .buttonStyle(.imasPress)
+            .accessibilityHint("このブランドのアイドルを見る")
+        } else {
+            Text(imprint).imasText(.imprint, color: DS.ink3).lineLimit(1)
+        }
+    }
+}
+
+extension ImasIdolHeader where IconAccessory == EmptyView {
+    init(imprint: String, onImprintTap: (() -> Void)? = nil, name: String, subtitle: String? = nil,
+         seed: String? = nil, brand: String? = nil, iconLabel: String? = nil, imageURL: URL? = nil,
+         isPick: Bool, onTogglePick: (() -> Void)? = nil, copyItems: [CopyItem] = [],
+         stats: [ImasBoard.Cell] = []) {
+        self.init(imprint: imprint, onImprintTap: onImprintTap, name: name, subtitle: subtitle, seed: seed,
+                  brand: brand, iconLabel: iconLabel, imageURL: imageURL, isPick: isPick,
+                  onTogglePick: onTogglePick, copyItems: copyItems, stats: stats) { EmptyView() }
+    }
 }
 
 // MARK: - アイドルの名札 (格子)
 
-/// アイドルの名札。格子に 3 列で並べる。上の帯が担当色、名前と よみ。
-/// 担当は帯と枠が色で点き、右上に ♥。写真を設定した子は名前の前に写真。
+/// アイドルの名札。格子に並べる (iPhone は 4 列)。上の帯が担当色、その下にアイコン (写真か判子)・名前・並べ替えの値。
+/// 担当はアイコンの輪が二重になる。選ぶ格子 (ピッカー) では枠が点き、右上に選択の印。
 struct ImasIdolCell: View {
     let name: String
     var kana: String? = nil
     var seed: String? = nil
     var brand: String? = nil
+    /// 判子に入れる短い名前。nil なら `name`。
+    var iconLabel: String? = nil
     var imageURL: URL? = nil
     var isPick: Bool = false
+    /// 並べ替えの値 (「158cm」「17歳」)。何順に並んでいるかを名札から読めるようにする。nil なら出さない。
+    var metric: String? = nil
     /// 選ぶ格子 (ピッカー) のときの選択。nil なら選択の印を出さない。
     var isSelected: Bool? = nil
+    var iconSize: CGFloat = 52
 
     @Environment(\.colorScheme) private var scheme
 
@@ -457,53 +497,50 @@ struct ImasIdolCell: View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         let band = t.isNeutral ? DS.sys : t.accent
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle().fill(band).frame(height: 6)
-            HStack(spacing: 6) {
-                if let imageURL {
-                    ImasAvatar(label: name, seed: seed, brand: brand, size: 26, imageURL: imageURL, reservesPickRing: false)
+        VStack(spacing: 0) {
+            Rectangle().fill(band).frame(height: 5)
+            VStack(spacing: 4) {
+                ImasAvatar(label: iconLabel ?? name, seed: seed, brand: brand, size: iconSize, isPick: isPick,
+                           imageURL: imageURL)
+                Text(name).font(.imasHeading(12.5, weight: .heavy)).foregroundStyle(DS.ink)
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                if let kana {
+                    Text(kana).font(.imasCaption2).foregroundStyle(DS.ink3).lineLimit(1).minimumScaleFactor(0.7)
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name).font(.imasHeading(14, weight: .heavy)).foregroundStyle(DS.ink)
-                        .lineLimit(1).minimumScaleFactor(0.7)
-                    if let kana {
-                        Text(kana).font(.imasCaption2).foregroundStyle(DS.ink3).lineLimit(1).minimumScaleFactor(0.8)
-                    }
+                if let metric {
+                    Text(metric).font(.imasMono(10.5, weight: .semibold)).foregroundStyle(DS.ink3).lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 6)
+            .padding(.top, 7)
+            .padding(.bottom, 9)
+            .frame(maxWidth: .infinity)
         }
         .background(DS.surface, in: shape)
         .clipShape(shape)
         .overlay {
-            if isPick || isSelected == true {
+            if isSelected == true {
                 shape.strokeBorder(t.isNeutral ? DS.ink : t.penlight, lineWidth: 2)
             }
         }
         .overlay(alignment: .topTrailing) {
             if let isSelected {
                 ImasSelectionMark(isSelected: isSelected, seed: seed, brand: brand, size: 18)
-                    .padding(6)
-            } else if isPick {
-                Image(systemName: "heart.fill")
-                    .font(.imasScaled(11, weight: .bold))
-                    .foregroundStyle(t.isNeutral ? DS.pick : t.penlight)
-                    .padding(.top, 13)
-                    .padding(.trailing, 8)
+                    .padding(.top, 9)
+                    .padding(.trailing, 5)
             }
         }
         .imasSurfaceEdge(cornerRadius: 10)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel([name, isPick ? "担当" : nil].compactMap { $0 }.joined(separator: "、"))
+        .accessibilityLabel([name, isPick ? "担当" : nil, metric].compactMap { $0 }.joined(separator: "、"))
         .accessibilityAddTraits(isSelected == true ? .isSelected : [])
     }
 }
 
-/// 名札の格子 (3 列)。
+/// 名札の格子 (iPhone は 4 列、iPad は画面で 6 列を渡す)。
 struct ImasIdolGrid<Content: View>: View {
-    var columns: Int = 3
+    var columns: Int = 4
     @ViewBuilder var content: Content
 
     var body: some View {

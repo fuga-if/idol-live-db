@@ -19,6 +19,10 @@ struct ImasPerformer: Identifiable, Hashable {
     var color: String?
     /// 欠席 (オリメンだがこの公演に出ない)。
     var isAbsent: Bool = false
+    /// 判子に入れる短い名前 (アイドルの略称)。アイドルでない人 (アイドル情報の無い歌唱者) は nil。
+    var iconLabel: String? = nil
+    /// 設定した写真。
+    var imageURL: URL? = nil
 }
 
 // MARK: - セトリの 1 曲
@@ -43,16 +47,33 @@ struct ImasSetlistRow: View {
     var isCollected: Bool = false
     /// 歌唱者の名前を何人まで並べるか。超えたら要約に替える。
     var performerLimit: Int = 6
+    /// ジャケの代わりに渡す試聴可能なジャケなど。渡すと `artworkURL` より優先する
+    /// (曲順はそのまま左に置く)。DesignSystem はプレイヤー等のアプリサービスを知らないので、
+    /// その配線は画面側が済ませたビューを渡す。
+    var customArtwork: AnyView? = nil
+    /// 曲名を押せるようにする (曲の詳細などへ)。nil なら押せない文字のまま。
+    var onSelectTitle: (() -> Void)? = nil
+    /// 歌唱者の表示を画面側で組みたいとき (アバターの束など)。渡すと `performers`/`performerSummary` より優先する。
+    var performersOverride: AnyView? = nil
+    /// 担当 (マイピック) の強調。行の左端に細い帯を立てる。
+    var highlightsPick: Bool = false
+    /// 行の末尾 (Good ボタンなど)。
+    var trailing: ImasRowTrailing = .none
+    /// この披露についての事実を、軸 (披露・回収) ごとにまとめたもの。詳細表示のときだけ渡る。
+    /// 軸の分け方・ラベル・順・強さ (`tone`) は imas-core (`SetlistRowMetaRecord`) が決める。
+    var noteGroups: [SetlistRowNoteGroupRecord] = []
 
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         ImasRow(
             title: title,
-            leading: .numberedArtwork(number: number ?? "", title: title, seed: seed, brand: brand,
-                                      imageURL: artworkURL, isCollected: isCollected)
+            leading: leadingView,
+            trailing: trailing
         ) {
-            if !performers.isEmpty || performerSummary != nil {
+            if let performersOverride {
+                performersOverride
+            } else if !performers.isEmpty || performerSummary != nil {
                 performerLine
             }
             if !badges.isEmpty || !facts.isEmpty {
@@ -65,7 +86,35 @@ struct ImasSetlistRow: View {
                     }
                 }
             }
+            if !noteGroups.isEmpty {
+                noteGroupsBlock
+            }
         }
+        .overlay(alignment: .leading) {
+            if highlightsPick {
+                RoundedRectangle(cornerRadius: DS.Size.leadBar / 2, style: .continuous)
+                    .fill(DS.pick.opacity(0.7))
+                    .frame(width: DS.Size.leadBar)
+                    .padding(.vertical, DS.Space.gap)
+            }
+        }
+    }
+
+    /// 曲順 + ジャケの先頭。曲名は押せるときだけボタンにする (読み上げの題はそのまま行が持つ)。
+    private var leadingView: ImasRowLeading {
+        guard let customArtwork else {
+            return .numberedArtwork(number: number ?? "", title: title, seed: seed, brand: brand,
+                                    imageURL: artworkURL, isCollected: isCollected)
+        }
+        let combined = HStack(alignment: .top, spacing: 10) {
+            Text(number ?? "")
+                .font(.imasMono(11.5, weight: .bold))
+                .foregroundStyle(DS.ink2)
+                .frame(width: 24, alignment: .trailing)
+                .padding(.top, 2)
+            customArtwork
+        }
+        return .custom(AnyView(combined), width: 24 + 10 + 44)
     }
 
     /// 事実のうち、墨で強める言葉。
@@ -93,6 +142,65 @@ struct ImasSetlistRow: View {
                     ImasPerformerChip(name: p.name, seed: p.color, isAbsent: p.isAbsent)
                 }
             }
+        }
+    }
+
+    /// **この披露についての事実**の段。軸の名前を固定幅で左に置き、値を右に流す
+    /// (丸い札を並べると「・」繋ぎの 1 行になって構造が消えるため)。
+    private var noteGroupsBlock: some View {
+        let accent = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).accent
+        return VStack(alignment: .leading, spacing: 3) {
+            Rectangle()
+                .fill(DS.sep)
+                .frame(height: 0.5)
+                .padding(.top, 3)
+                .padding(.bottom, 2)
+            ForEach(noteGroups, id: \.label) { group in
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(group.label)
+                        .font(.imasCaption2)
+                        .kerning(0.4)
+                        .foregroundStyle(DS.ink3)
+                        .frame(width: 26, alignment: .leading)
+                    Self.notesText(group.notes, accent: accent)
+                        .font(.imasCaption)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    /// 1 つの軸の値を 1 本の `Text` に連結する。折り返しは文として扱われ、語の途中で割れない。
+    private static func notesText(_ notes: [SetlistRowNoteRecord], accent: Color) -> Text {
+        notes.enumerated().reduce(Text("")) { acc, pair in
+            let (index, note) = pair
+            return acc + (index == 0 ? Text("") : Text("  ")) + noteText(note, accent: accent)
+        }
+    }
+
+    /// 事実 1 つの見え方。**判断はしない** — core が付けた `tone` に対応表を当てるだけ。
+    /// 色だけで意味を分けると、色が見分けづらい人には全部同じ文字列に見える。
+    /// 自分の記録 (回収 / 未回収) には印を付けて、色に頼らず分かるようにする。
+    private static func noteText(_ note: SetlistRowNoteRecord, accent: Color) -> Text {
+        switch note.tone {
+        case .value:
+            return Text(note.text).font(.imasCaption.weight(.medium)).foregroundColor(DS.ink)
+        case .detail:
+            return Text(note.text).foregroundColor(DS.ink3)
+        case .debut:
+            return Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(accent)
+        case .mine:
+            return Text(Image(systemName: "checkmark"))
+                .font(.imasCaption2.weight(.semibold))
+                .foregroundColor(DS.successInk)
+                + Text(" ")
+                + Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(DS.successInk)
+        case .missing:
+            return Text(Image(systemName: "circle.dotted"))
+                .font(.imasCaption2)
+                .foregroundColor(DS.ink3)
+                + Text(" ")
+                + Text(note.text).foregroundColor(DS.ink2)
         }
     }
 }
