@@ -86,12 +86,12 @@ import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.edit.SongEditScreen
 import com.fugaif.imaslivedb.ui.edit.SongNoteEditScreen
 import com.fugaif.imaslivedb.ui.edit.VideoEditSheet
-import com.fugaif.imaslivedb.ui.components.ImasArtwork
-import com.fugaif.imaslivedb.ui.components.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
 import com.fugaif.imaslivedb.ui.components.ImasLabeledRow
-import com.fugaif.imaslivedb.ui.components.ImasLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasSegmented
 import com.fugaif.imaslivedb.ui.components.ImasStatTile

@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.components
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row

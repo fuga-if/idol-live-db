@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.components
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,151 +57,6 @@ import com.fugaif.imaslivedb.ui.theme.ImasRainbow
 // ImasLiveDB — 共通コンポーネント (iOS DesignSystem/ImasComponents.swift の 1:1 移植)
 // SF Symbol は ImageVector へ、Nuke は Coil へ置換。色は ImasTheme(seed) から導出。
 // =============================================================================
-
-/**
- * ユーザーが端末に取り込んだカスタム画像 (プライマリ 1 枚) を返す。無ければ null。
- *
- * [CustomImageStore.galleryVersion] を購読しているので、追加・削除・アイコン変更を
- * したその場でアバターが差し替わる (iOS が `galleryVersion` を読んで再描画するのと同じ)。
- * 参照解決自体はメモリキャッシュ済みの manifest を見るだけで、描画中にディスクは読まない。
- */
-@Composable
-fun rememberCustomImage(entityId: String?, kind: GalleryKind = GalleryKind.IDOL): java.io.File? {
-    if (entityId == null) return null
-    val store = AppModule.from(LocalContext.current).customImageStore
-    val version by store.galleryVersion.collectAsState()
-    return remember(entityId, kind, version) { store.primaryImageFile(entityId, kind) }
-}
-
-/**
- * アイドル等の円形アバター。画像があれば表示、無ければ tint 面 + モノグラム。
- *
- * [entityId] を渡すと、ユーザーが取り込んだカスタム画像 (あれば) を [imageUrl] より優先して出す。
- * 「誰の」画像かはこの id でしか引けないので、アイドル/ユニットのアバターには必ず渡すこと。
- */
-@Composable
-fun ImasAvatar(
-    label: String,
-    seed: String? = null,
-    brand: String? = null,
-    size: Dp = 40.dp,
-    isPick: Boolean = false,
-    imageUrl: String? = null,
-    entityId: String? = null,
-    entityKind: GalleryKind = GalleryKind.IDOL
-) {
-    val t = imasThemeForBrand(seed, brand)
-    // ローカル取り込み画像が最優先。File のまま渡せば Coil が file:// として読む。
-    val model: Any? = rememberCustomImage(entityId, entityKind) ?: imageUrl
-    // 占有スペースは isPick に関わらず常に一定 (担当リング分の size + 11.dp) にする。
-    // isPick で外形が変わると一覧/グリッド/詳細でレイアウトが崩れるため (リングは中央に重ねて描画するのみ)。
-    Box(
-        modifier = Modifier.size(size + 11.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isPick) {
-            Box(Modifier.size(size + 11.dp).clip(CircleShape).background(t.gradTo))
-            Box(Modifier.size(size + 7.dp).clip(CircleShape).background(t.accent))
-            Box(Modifier.size(size + 4.dp).clip(CircleShape).background(DS.surface))
-        }
-        Box(
-            modifier = Modifier.size(size).clip(CircleShape)
-                .border(1.5.dp, t.ring, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            if (model != null) {
-                SubcomposeAsyncImage(
-                    model = model, contentDescription = label,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.size(size).clip(CircleShape),
-                    loading = { Monogram(label, t, size) },
-                    error = { Monogram(label, t, size) }
-                )
-            } else {
-                Monogram(label, t, size)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Monogram(label: String, t: ImasTheme, size: Dp) {
-    Box(Modifier.size(size).background(t.tint), contentAlignment = Alignment.Center) {
-        Text(
-            label.take(2),
-            color = t.accent,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = (size.value * 0.40).sp,
-            maxLines = 1
-        )
-    }
-}
-
-/** 楽曲ジャケット。画像があれば表示、無ければ accent 面 + 中央に曲名。 */
-@Composable
-fun ImasArtwork(
-    title: String,
-    seed: String? = null,
-    brand: String? = null,
-    size: Dp = 56.dp,
-    imageUrl: String? = null
-) {
-    val t = imasThemeForBrand(seed, brand)
-    val radius = maxOf(8.dp, size * 0.16f)
-    Box(
-        modifier = Modifier.size(size).clip(RoundedCornerShape(radius)),
-        contentAlignment = Alignment.Center
-    ) {
-        if (imageUrl != null) {
-            SubcomposeAsyncImage(
-                model = imageUrl, contentDescription = title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(size),
-                loading = { ArtworkFallback(title, t, size) },
-                error = { ArtworkFallback(title, t, size) }
-            )
-        } else {
-            ArtworkFallback(title, t, size)
-        }
-    }
-}
-
-@Composable
-private fun ArtworkFallback(title: String, t: ImasTheme, size: Dp) {
-    Box(Modifier.size(size).background(t.accent).padding(size * 0.12f), contentAlignment = Alignment.Center) {
-        Text(
-            title, color = t.onAccent, fontWeight = FontWeight.Bold,
-            fontSize = maxOf(9f, size.value * 0.13f).sp,
-            textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-/**
- * 一覧の控えめなエンティティ色マーカー (行頭の細い縦バー)。
- *
- * [seedHex] はエンティティ固有色。[brandId] はマスタのブランド色へ解決し ([BrandColors])、
- * seedが無い場合のフォールバックとして使う。
- */
-@Composable
-fun ImasLeadBar(
-    seedHex: String? = null,
-    brandId: String? = null,
-    height: Dp = 40.dp,
-    rainbow: Boolean = false
-) {
-    val background = if (rainbow) {
-        // 合同ライブの虹は、ペンライトと同じアプリアイコンの帯の色 (iOS は `QS.penlights`)。
-        androidx.compose.ui.graphics.Brush.verticalGradient(ImasRainbow)
-    } else {
-        val t = imasThemeForBrand(seedHex, brandId)
-        androidx.compose.ui.graphics.SolidColor(t.bar)
-    }
-    Box(
-        modifier = Modifier.size(width = 3.dp, height = height)
-            .clip(RoundedCornerShape(2.dp)).background(background)
-    )
-}
 
 /** セクション見出し (タイトル + 件数 + すべて見る)。tight で小さめサブ見出し。 */
 @Composable
@@ -418,42 +274,6 @@ fun ImasLabeledRow(
     }
 }
 
-/** チップのスタイル (iOS ImasChipStyle の移植)。 */
-enum class ImasChipStyle { THEMED, SELECTED, NEUTRAL }
-
-/** アイコン + テキストのカプセルチップ。style で配色を切替 (テーマ色/accent反転/中立)。 */
-@Composable
-fun ImasChip(
-    text: String,
-    icon: ImageVector? = null,
-    style: ImasChipStyle = ImasChipStyle.NEUTRAL,
-    seed: String? = null,
-    brand: String? = null,
-    /** 実体色そのもの (ブランド色 Color 等)。指定すると seed/brand より優先する。 */
-    color: Color? = null,
-    onClick: (() -> Unit)? = null
-) {
-    val t = if (color != null) imasTheme(color)
-            else imasThemeForBrand(seed, brand)
-    val (bg, fg) = when (style) {
-        ImasChipStyle.THEMED -> t.chipBg to t.chipText
-        ImasChipStyle.SELECTED -> t.accent to t.onAccent
-        ImasChipStyle.NEUTRAL -> DS.fill to DS.ink2
-    }
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(bg)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 13.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
-        Text(text, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
 /** カード風の角丸リストコンテナ (行は呼び出し側で Divider を挟んで並べる)。 */
 @Composable
 fun ImasListContainer(content: @Composable () -> Unit) {
@@ -514,36 +334,6 @@ fun ImasTagChip(text: String, seed: String? = null, brand: String? = null, outli
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = if (outlined) t.accent else t.onAccent
-        )
-    }
-}
-
-/** 「投票の優勝経験」バッジ。1位は王冠+金塗り、2〜3位はロゼット+アウトライン。iOS ImasAwardChip の移植。 */
-@Composable
-fun ImasAwardChip(title: String, rank: Int) {
-    val isWinner = rank == 1
-    val rankLabel = if (isWinner) "優勝" else "第${rank}位"
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (isWinner) DS.warning else DS.warning.copy(alpha = 0.14f))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Icon(
-            if (isWinner) Icons.Filled.EmojiEvents else Icons.Filled.WorkspacePremium,
-            contentDescription = null,
-            tint = if (isWinner) Color.White else DS.warning,
-            modifier = Modifier.size(14.dp)
-        )
-        Text(
-            "$title $rankLabel",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isWinner) Color.White else DS.warning,
-            modifier = Modifier.padding(start = 4.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
         )
     }
 }

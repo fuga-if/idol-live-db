@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
-import com.fugaif.imaslivedb.ui.components.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
 import com.fugaif.imaslivedb.ui.theme.imasTheme

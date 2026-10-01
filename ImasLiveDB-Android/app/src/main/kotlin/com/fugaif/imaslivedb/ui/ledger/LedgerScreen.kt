@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
-import com.fugaif.imaslivedb.ui.components.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.ImasStatBar
 import com.fugaif.imaslivedb.ui.components.ImasSegmented

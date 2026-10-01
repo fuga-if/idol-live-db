@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.AlbumSummary
 import com.fugaif.imaslivedb.data.model.SeriesSummary
-import com.fugaif.imaslivedb.ui.components.ImasArtwork
+import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
 

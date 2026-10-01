@@ -28,9 +28,9 @@ import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.UserMark
-import com.fugaif.imaslivedb.ui.components.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
-import com.fugaif.imaslivedb.ui.components.ImasLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.components.MarkToggleAction
 import com.fugaif.imaslivedb.ui.events.eventTypeLabel
 import com.fugaif.imaslivedb.ui.theme.DS

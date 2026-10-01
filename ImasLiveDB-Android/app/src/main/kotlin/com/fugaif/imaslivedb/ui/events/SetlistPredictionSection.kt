@@ -46,7 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.auth.canEdit
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
-import com.fugaif.imaslivedb.ui.components.ImasArtwork
+import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
 import com.fugaif.imaslivedb.ui.polls.SongPollCandidatePicker
 import com.fugaif.imaslivedb.ui.theme.DS

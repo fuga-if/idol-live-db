@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.ui.components.*
+import com.fugaif.imaslivedb.ui.designsystem.*
 import com.fugaif.imaslivedb.ui.theme.*
 import uniffi.imas_core.MasteryBulkScope
 import uniffi.imas_core.MasteryGroup

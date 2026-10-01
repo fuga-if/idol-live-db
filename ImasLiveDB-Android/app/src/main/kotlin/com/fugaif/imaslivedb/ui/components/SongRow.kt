@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.components
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

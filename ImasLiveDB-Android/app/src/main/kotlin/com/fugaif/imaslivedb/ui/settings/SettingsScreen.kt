@@ -89,7 +89,7 @@ import com.fugaif.imaslivedb.ui.theme.hexToColor
 import com.fugaif.imaslivedb.ui.theme.joined
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Spacer
-import com.fugaif.imaslivedb.ui.components.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.theme.MasteryPalette
 import com.fugaif.imaslivedb.ui.theme.MasteryScale
 import uniffi.imas_core.InputField

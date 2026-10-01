@@ -66,9 +66,9 @@ import com.fugaif.imaslivedb.data.model.SongWithArtists
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.ImasEmptyState
-import com.fugaif.imaslivedb.ui.components.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.ImasListSkeleton
-import com.fugaif.imaslivedb.ui.components.ImasRemovableChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
 import com.fugaif.imaslivedb.ui.components.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.components.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow

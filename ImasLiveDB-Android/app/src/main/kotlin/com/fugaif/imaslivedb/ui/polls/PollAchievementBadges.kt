@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasAwardChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasAwardChip
 
 /**
  * 指定エンティティ(曲/アイドル)が「みんなの投票」の終了お題で取った順位をバッジ表示する。

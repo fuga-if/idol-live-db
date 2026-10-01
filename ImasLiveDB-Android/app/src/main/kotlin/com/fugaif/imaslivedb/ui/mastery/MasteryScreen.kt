@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.*
+import com.fugaif.imaslivedb.ui.designsystem.*
 import com.fugaif.imaslivedb.ui.theme.*
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.MasteryAxis
