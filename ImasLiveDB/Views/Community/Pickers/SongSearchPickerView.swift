@@ -166,26 +166,25 @@ struct SongSearchPickerView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("キャンセル") { dismiss() }
+            Button { dismiss() } label: { Image(systemName: "xmark") }
+                .accessibilityLabel("キャンセル")
         }
         if showsFilterButton {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showFilter = true } label: {
-                    Image(systemName: isFilterActive
-                        ? "line.3.horizontal.decrease.circle.fill"
-                        : "line.3.horizontal.decrease.circle")
-                }
-                .accessibilityLabel("フィルター")
+                ImasToolbarButton(
+                    systemImage: isFilterActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle",
+                    label: "フィルター"
+                ) { showFilter = true }
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button(selected.isEmpty ? "追加" : "追加 (\(selected.count))") {
+            Button {
                 AppAnalytics.tap("song_search_picker.submit")
                 onSubmit(selected)
                 dismiss()
-            }
+            } label: { Image(systemName: "checkmark") }
             .disabled(selected.isEmpty)
-            .fontWeight(.semibold)
+            .accessibilityLabel(selected.isEmpty ? "追加" : "追加 (\(selected.count)件)")
         }
     }
 
@@ -210,9 +209,9 @@ struct SongSearchPickerView: View {
                     message: query.isEmpty ? "右上のフィルターか曲名で絞り込めます" : "「\(query)」に一致する楽曲がありません"
                 )
                 if tagFilterError {
-                    Text("タグ絞り込みの取得に失敗しました。電波状況をご確認ください。")
-                        .font(.imasCaption).foregroundStyle(DS.warning)
-                        .padding(.top, DS.sp3)
+                    ImasNotice(kind: .warning, message: "タグ絞り込みの取得に失敗しました。電波状況をご確認ください。")
+                        .padding(.horizontal, DS.Space.screen)
+                        .padding(.top, DS.Space.gap)
                 }
                 Spacer()
             }
@@ -225,21 +224,19 @@ struct SongSearchPickerView: View {
         List {
             if tagFilterError {
                 Section {
-                    Label("タグ絞り込みの取得に失敗しました (表示中の結果には未反映です)", systemImage: "exclamationmark.triangle")
-                        .font(.imasCaption).foregroundStyle(DS.warning)
+                    ImasNotice(kind: .warning, message: "タグ絞り込みの取得に失敗しました (表示中の結果には未反映です)")
                 }
-                .listRowBackground(DS.surface)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
-            Section {
+            ImasListSection(selected.isEmpty ? "\(results.count)曲" : "\(results.count)曲 ・ \(selected.count)曲選択中") {
                 ForEach(results) { item in
                     let isOn = selected.contains { $0.id == item.song.id }
                     Button {
                         toggle(item.song)
                     } label: {
-                        HStack(spacing: DS.sp3) {
-                            Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                                .font(.imasTitle3)
-                                .foregroundStyle(isOn ? DS.pick : DS.ink3)
+                        HStack(spacing: DS.Space.gap) {
+                            ImasSelectionMark(isSelected: isOn)
                             SongRowView(item: item)
                         }
                     }
@@ -248,9 +245,6 @@ struct SongSearchPickerView: View {
                     .listRowBackground(isOn ? DS.fill : DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }
-            } header: {
-                Text(selected.isEmpty ? "\(results.count)曲" : "\(results.count)曲 ・ \(selected.count)曲選択中")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
             }
         }
         .listStyle(.plain)
@@ -466,7 +460,7 @@ private struct SongPickerFilterSheet: View {
 
                 Section("曲タイプ") {
                     songTypePicker
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: DS.Space.header, leading: 0, bottom: DS.Space.header, trailing: 0))
                 }
 
                 Section("アイドル") {
@@ -477,13 +471,9 @@ private struct SongPickerFilterSheet: View {
                             if selectedIdolIds.isEmpty {
                                 Text("選択なし").foregroundStyle(DS.ink2)
                             } else {
-                                FlowLayout(spacing: DS.sp2) {
+                                ImasChipFlow {
                                     ForEach(selectedIdolNames, id: \.self) { name in
-                                        Text(name)
-                                            .font(.imasCaption)
-                                            .padding(.horizontal, DS.sp3).padding(.vertical, DS.sp2)
-                                            .background(DS.fill)
-                                            .clipShape(Capsule())
+                                        ImasChip(text: name, style: .neutral)
                                     }
                                 }
                             }
@@ -515,31 +505,22 @@ private struct SongPickerFilterSheet: View {
                     }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(DS.bg)
-            .navigationTitle("フィルター / 並び順")
-            .navigationBarTitleDisplayMode(.inline)
+            .imasFilterSheetChrome()
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("リセット") {
-                        brandIds.removeAll()
-                        sortOrder = .titleKana
-                        excludeLiveOnly = false
-                        includeRemixes = false
-                        castOriginalOnly = false
-                        songwriterText = ""
-                        songType = nil
-                        selectedIdolIds.removeAll()
-                        selectedSeriesGroup = nil
-                        selectedCdSeries = nil
-                        myMarkFilter = SongMyMarkFilter()
-                        selectedTags.removeAll()
-                    }
-                    .disabled(!isAnyFilterActive)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("完了") { dismiss() }.fontWeight(.semibold)
-                }
+                filterSheetToolbar(analyticsPrefix: "song_search_picker.filter", canReset: isAnyFilterActive, onReset: {
+                    brandIds.removeAll()
+                    sortOrder = .titleKana
+                    excludeLiveOnly = false
+                    includeRemixes = false
+                    castOriginalOnly = false
+                    songwriterText = ""
+                    songType = nil
+                    selectedIdolIds.removeAll()
+                    selectedSeriesGroup = nil
+                    selectedCdSeries = nil
+                    myMarkFilter = SongMyMarkFilter()
+                    selectedTags.removeAll()
+                }, onApply: { dismiss() })
             }
             .sheet(isPresented: $showIdolPicker) {
                 IdolPickerView(
@@ -557,13 +538,11 @@ private struct SongPickerFilterSheet: View {
     }
 
     private var songTypePicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                songTypeChip(value: nil, label: "全て")
-                // 絞り込みは今までどおり先頭の 3 種 (ソロ / ユニット / 全体曲)。語はコアの vocabulary。
-                ForEach(Vocab.table.songTypes.prefix(3), id: \.value) { term in
-                    songTypeChip(value: term.value, label: term.shortLabel)
-                }
+        ImasChipRow {
+            songTypeChip(value: nil, label: "全て")
+            // 絞り込みは今までどおり先頭の 3 種 (ソロ / ユニット / 全体曲)。語はコアの vocabulary。
+            ForEach(Vocab.table.songTypes.prefix(3), id: \.value) { term in
+                songTypeChip(value: term.value, label: term.shortLabel)
             }
         }
     }
