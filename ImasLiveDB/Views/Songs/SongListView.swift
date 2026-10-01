@@ -387,9 +387,10 @@ struct SongListView: View {
         ImasSuggestionBar(
             systemImage: "checkmark.circle.fill",
             title: "この範囲で出題",
-            detail: playable < 4 ? "4曲以上必要" : "\(playable)曲",
+            detail: playable < 4 ? "\(playable)曲・4曲以上必要" : "\(playable)曲",
             style: .prominent,
-            isEnabled: playable >= 4
+            isEnabled: playable >= 4,
+            showsChevron: true
         ) {
             AppAnalytics.tap("song_list.introdon_select")
             onSelectPool?(vm.displayedSongs.map(\.song), selectionRangeLabel)
@@ -411,7 +412,8 @@ struct SongListView: View {
             onDismiss: {
                 AppAnalytics.tap("song_list.introdon_hide")
                 withAnimation { introDonBarHidden = true }
-            }
+            },
+            dismissLabel: "イントロドン導線を隠す"
         )
     }
 

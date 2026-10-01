@@ -47,7 +47,8 @@ struct GenericGridView<Item: GridCardItem>: View {
                     ForEach(items) { item in
                         Button { onSelect(item) } label: {
                             ImasArtworkCell(title: item.title, subtitle: item.subtitle,
-                                            imageURL: item.artworkUrl.flatMap(URL.init))
+                                            imageURL: item.artworkUrl.flatMap(URL.init),
+                                            fallbackSystemImage: item.placeholderSystemImage)
                         }
                         .buttonStyle(.imasPress)
                     }

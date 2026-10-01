@@ -263,6 +263,10 @@ struct ImasRow<Detail: View>: View {
         switch leading {
         case .artwork: return density.artworkSize
         case .numberedArtwork: return 44
+        // `.custom` は呼び出し側がジャケ等を直書きした先頭 (例: 試聴対応の ImasSongRow)。
+        // 渡された `width` がその面の一辺 (正方形) なので、帯もそれに揃える。
+        // 揃えないと試聴対応の行だけ帯が既定の 36pt のまま浮いてばらつく。
+        case let .custom(_, width): return width
         default: return 36
         }
     }

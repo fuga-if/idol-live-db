@@ -26,9 +26,13 @@ struct ImasSuggestionBar: View {
     var detail: String? = nil
     var style: Style = .subtle
     var isEnabled: Bool = true
+    /// 右端に `>` を出す (押すと別画面/別の設定へ進む導線であることを示す)。
+    var showsChevron: Bool = false
     let action: () -> Void
     /// 右端の閉じる記号。渡すと表示し、押すとこれを呼ぶ (提案そのものを隠す)。
+    /// `label` を渡すと読み上げを差し替える (既定「提案を閉じる」)。
     var onDismiss: (() -> Void)? = nil
+    var dismissLabel: String = "提案を閉じる"
 
     var body: some View {
         HStack(spacing: 0) {
@@ -40,6 +44,12 @@ struct ImasSuggestionBar: View {
                         Text(detail).font(.imasFootnote).foregroundStyle(detailColor).lineLimit(1)
                     }
                     Spacer(minLength: DS.Space.gap)
+                    if showsChevron {
+                        // 行の `ImasRowChevron` は固定の薄灰 (List の明地が前提)。
+                        // このバーは `.prominent` で地そのものが実体色になるので、
+                        // 他の文字と同じ色を継がせる (下の `.foregroundStyle(titleColor)`)。
+                        Image(systemName: "chevron.right").font(.imasScaled(13, weight: .bold))
+                    }
                 }
                 .foregroundStyle(titleColor)
                 .padding(.horizontal, DS.Space.screen)
@@ -60,7 +70,7 @@ struct ImasSuggestionBar: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("提案を閉じる")
+                .accessibilityLabel(dismissLabel)
             }
         }
         .background(background)

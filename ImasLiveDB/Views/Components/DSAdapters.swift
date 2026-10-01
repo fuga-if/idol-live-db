@@ -20,9 +20,9 @@ extension ImasBrandPicker.Option {
 extension ImasBrandPicker {
     /// ブランドの並びから組む。
     @MainActor init(brands: [Brand], selection: Binding<Set<String>>, includesAll: Bool = true,
-                    allowsMultiple: Bool = true) {
+                    allLabel: String = "すべて", allowsMultiple: Bool = true) {
         self.init(options: brands.map { ImasBrandPicker.Option(brand: $0) }, selection: selection,
-                  includesAll: includesAll, allowsMultiple: allowsMultiple)
+                  includesAll: includesAll, allLabel: allLabel, allowsMultiple: allowsMultiple)
     }
 }
 

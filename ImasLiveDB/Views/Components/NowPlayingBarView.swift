@@ -73,6 +73,9 @@ struct NowPlayingBarView: View {
                     // seed は色 hex。ブランド ID をそのまま渡すと色として読まれる (P5-04)。
                     seed: BrandColors.hex(for: model.song?.brandId)
                 )
+                // 右の Text(bar.title) と `.accessibilityElement(children: .combine)` で
+                // 一つに合わさるので、ジャケ側の読み上げ (曲名) は隠して二重読みを防ぐ。
+                .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: DS.sp1) {
                     Text(bar.title)

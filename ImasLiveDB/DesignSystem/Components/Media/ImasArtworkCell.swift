@@ -18,13 +18,18 @@ struct ImasArtworkCell: View {
     var seed: String? = nil
     var brand: String? = nil
     var imageURL: URL? = nil
+    /// 画像が無いときの記号 (実体ごとに違う。例: シリーズは円盤の束)。
+    var fallbackSystemImage: String = "music.note"
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapTight + 2) {
             GeometryReader { geo in
-                ImasArtwork(title: title, seed: seed, brand: brand, size: geo.size.width, imageURL: imageURL)
+                ImasArtwork(title: title, seed: seed, brand: brand, size: geo.size.width, imageURL: imageURL,
+                           fallbackSystemImage: fallbackSystemImage)
             }
             .aspectRatio(1, contentMode: .fit)
+            // 下の題で同じ曲名/アルバム名を読むので、ジャケ自体は読み上げから隠す (二重読み防止)。
+            .accessibilityHidden(true)
             Text(title)
                 .imasText(.rowLabel)
                 .multilineTextAlignment(.leading)

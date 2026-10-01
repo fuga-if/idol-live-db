@@ -143,9 +143,18 @@ struct SongRowView: View {
             // 率として出すと 0% で回収し損ねたように読める。
             return .metric("0", unit: "回")
         case .collectRate(let collected, let total):
+            // 率だけだと「1回のうち1回」も「12回のうち12回」も 100% で並んでしまい、
+            // どちらが重いのか読めない。分母の実数 (/ N回) を添える。
             let rate = Int((Double(collected) / Double(total) * 100).rounded())
-            return .metric("\(rate)%", unit: "\(total)回")
+            return .custom(AnyView(collectRateLabel(rate: rate, total: total)))
         }
+    }
+
+    private func collectRateLabel(rate: Int, total: Int) -> some View {
+        Label("\(rate)% / \(total)回", systemImage: "music.mic")
+            .labelStyle(.titleAndIcon)
+            .imasText(.meta)
+            .lineLimit(1)
     }
 
     // MARK: - 歌唱者 + ユニット/演者ラベル
@@ -154,7 +163,8 @@ struct SongRowView: View {
     private var performerLine: some View {
         if !item.performerIdols.isEmpty {
             HStack(spacing: DS.Space.gap) {
-                ImasAvatarStack(people: item.performerIdols.map(Self.performer), maxVisible: 4, size: 22)
+                ImasAvatarStack(people: item.performerIdols.map(Self.performer), maxVisible: 4, size: 22,
+                                accessibilityMode: .count(label: "出演者"))
                 Text(highlighted(performerText, in: .performer)).imasText(.rowSubtitle)
             }
         } else if !item.artistNames.isEmpty {

@@ -568,12 +568,14 @@ struct ImasBrandPicker: View {
     let options: [Option]
     @Binding var selection: Set<String>
     var includesAll: Bool = true
+    /// 「全部選んでいない」チップの文言。画面ごとの言葉づかいに合わせて渡せる (既定「すべて」)。
+    var allLabel: String = "すべて"
     var allowsMultiple: Bool = true
 
     var body: some View {
         ImasChipFlow {
             if includesAll {
-                ImasFilterChip(text: "すべて", isSelected: selection.isEmpty) {
+                ImasFilterChip(text: allLabel, isSelected: selection.isEmpty) {
                     selection = []
                 }
             }

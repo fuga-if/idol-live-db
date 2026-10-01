@@ -131,11 +131,20 @@ struct ImasIconBadge: View {
 /// 歌唱者・出演者のアイコンを少しずつ重ねて並べる (同じ集団の合図)。
 /// 入り切らない人数は列の最後に「+N」の丸。この丸は人ではなく注記なので、重ねずに少し離して置く。
 struct ImasAvatarStack: View {
+    /// 読み上げの形。
+    enum AccessibilityMode {
+        /// 全員の名前を「、」で繋いで読む (既定。セトリの歌唱者など少人数向け)。
+        case names
+        /// 「<label> N名」で読む (全体曲など大人数の行で、毎行全員を読ませないため)。
+        case count(label: String)
+    }
+
     let people: [ImasPerformer]
     var maxVisible: Int = 5
     var size: CGFloat = 26
     /// 押したとき (歌唱者の一覧を開く)。nil なら押せない (親の行のタップに通す)。
     var onTap: (() -> Void)? = nil
+    var accessibilityMode: AccessibilityMode = .names
 
     var body: some View {
         if let onTap {
@@ -166,7 +175,14 @@ struct ImasAvatarStack: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(people.map(\.name).joined(separator: "、"))
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        switch accessibilityMode {
+        case .names: return people.map(\.name).joined(separator: "、")
+        case .count(let label): return "\(label) \(people.count)名"
+        }
     }
 }
 
@@ -218,6 +234,20 @@ struct ImasArtwork: View {
         (seed != nil || brand != nil) ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) : envTheme
     }
 
+    /// 曲名 + 回収済みの読み上げ。試聴の記号はここに積まず `accessibilityLabel`/`Value` に分ける
+    /// (「どの曲か」と「いま鳴っているか」は別の情報なので、値の方だけ状態が変わる)。
+    private var baseAccessibilityLabel: String {
+        isCollected ? "\(title)、回収済み" : title
+    }
+
+    private var previewAccessibilityLabel: String {
+        previewURL != nil ? "\(baseAccessibilityLabel)を試聴" : baseAccessibilityLabel
+    }
+
+    private var previewAccessibilityValue: String {
+        previewURL != nil ? (isPreviewing ? "再生中" : "停止中") : ""
+    }
+
     private func core(_ t: ImasTheme) -> some View {
         Group {
             if let imageURL {
@@ -266,17 +296,37 @@ struct ImasArtwork: View {
                 .accessibilityHidden(true)
             }
         }
-        .accessibilityLabel(isCollected ? "\(title)、回収済み" : title)
+        .accessibilityLabel(previewAccessibilityLabel)
+        .accessibilityValue(previewAccessibilityValue)
     }
 
-    /// ジャケが無い曲。色の面に曲名を書くと「作った絵」に見えるので、OS の音楽アプリと同じく
-    /// 灰の面に音符だけを置く。
+    /// ジャケが無い曲。ブランド色 (`seed`/`brand`) が分かるときは実体色の面 + 曲名にする
+    /// (合同ライブで曲ごとのブランドが色で分かるのはこれだけが頼りなので、灰に潰さない)。
+    /// 色が分からない実体 (アルバム・シリーズの格子など `seed`/`brand` を渡さない呼び出し) は
+    /// OS の音楽アプリと同じ灰の面 + 記号のまま。
     private func fallback(_ t: ImasTheme) -> some View {
         ZStack {
-            DS.fill
-            Image(systemName: fallbackSystemImage)
-                .font(.imasScaled(max(10, size * 0.32), weight: .regular))
-                .foregroundStyle(DS.ink3)
+            if seed != nil || brand != nil {
+                t.accent
+                if !title.isEmpty {
+                    Text(title)
+                        .font(.imasScaled(max(9, size * 0.13), weight: .bold))
+                        .foregroundStyle(t.onAccent)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.6)
+                        .padding(size * 0.12)
+                } else {
+                    Image(systemName: fallbackSystemImage)
+                        .font(.imasScaled(size * 0.4))
+                        .foregroundStyle(t.onAccent.opacity(0.85))
+                }
+            } else {
+                DS.fill
+                Image(systemName: fallbackSystemImage)
+                    .font(.imasScaled(max(10, size * 0.32), weight: .regular))
+                    .foregroundStyle(DS.ink3)
+            }
         }
     }
 }

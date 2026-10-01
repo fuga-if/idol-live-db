@@ -54,7 +54,7 @@ struct BrandFilterSection: View {
 
     var body: some View {
         ImasListSection("ブランド", footer: "複数選択可能") {
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds, allLabel: "全て")
                 .padding(.horizontal, DS.Space.rowH)
                 .padding(.vertical, DS.Space.gap)
         }
@@ -118,7 +118,7 @@ struct BrandIconCell: View {
     @ViewBuilder
     private var iconView: some View {
         if let url = customImageURL, let uiImage = UIImage(contentsOfFile: url.path) {
-            // ブランドロゴは横長のロックアップも来る。 .fit だと両端が切れて
+            // ブランドロゴは横長のロックアップも来る。 .fill だと両端が切れて
             // 判別できなくなるので .fit で円の中に収める (下地はブランド色)。
             // 配布しているブランド画像は「円 + 四隅透過」なので余白なしでちょうど収まる。
             // 下地の円は、ユーザーが独自に横長画像を入れたときに絵が浮かないための保険。
