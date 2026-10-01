@@ -25,16 +25,20 @@ enum ChatGPTPlanAuth {
     struct PendingAttempt: Sendable {
         let clientID: String
         let isNewRegistration: Bool
+        /// プラン利用を外した後に許可し直すとき。保存済み client_id の再認可は同意画面を
+        /// 飛ばすので、`prompt=consent` で出させないと scope を足せない。
+        let forceConsent: Bool
         let state: String
         let nonce: String
         let codeVerifier: String
         let redirectURI: String
     }
 
-    static func newAttempt(savedClientID: String?, redirectURI: String) -> PendingAttempt {
+    static func newAttempt(savedClientID: String?, redirectURI: String, forceConsent: Bool = false) -> PendingAttempt {
         PendingAttempt(
             clientID: savedClientID ?? dynamicClientID,
             isNewRegistration: savedClientID == nil,
+            forceConsent: forceConsent && savedClientID != nil,
             state: randomURLSafe(32),
             nonce: randomURLSafe(32),
             codeVerifier: randomURLSafe(64),
@@ -66,6 +70,7 @@ enum ChatGPTPlanAuth {
         } else {
             if let idTokenHint { items.append(.init(name: "id_token_hint", value: idTokenHint)) }
             if let loginHint { items.append(.init(name: "login_hint", value: loginHint)) }
+            if attempt.forceConsent { items.append(.init(name: "prompt", value: "consent")) }
         }
         var components = URLComponents(url: authorizeEndpoint, resolvingAgainstBaseURL: false)!
         // URLQueryItem は `+` や `@` を素通しするので、値を自前で符号化する。
@@ -93,6 +98,9 @@ enum ChatGPTPlanAuth {
         case tokenEndpoint(status: Int, body: String)
         case idToken(String)
         case planScopeMissing([String])
+        case notSignedIn
+        case noRefreshToken
+        case differentAccount
 
         var errorDescription: String? {
             switch self {
@@ -114,6 +122,12 @@ enum ChatGPTPlanAuth {
                 "ID トークンの検証に失敗しました: \(reason)"
             case .planScopeMissing(let scopes):
                 "ChatGPT プランの利用が許可されていません (scope: \(scopes.joined(separator: " ")))"
+            case .notSignedIn:
+                "ChatGPT にサインインしていません"
+            case .noRefreshToken:
+                "更新用のトークンがありません。サインインし直してください"
+            case .differentAccount:
+                "前回と別の ChatGPT アカウントでサインインされました。別のアカウントを使うときは「別のアカウントで登録」から入ってください"
             }
         }
     }

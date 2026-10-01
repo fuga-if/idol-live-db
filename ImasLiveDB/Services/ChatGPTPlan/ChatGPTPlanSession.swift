@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// Sign in with ChatGPT のサインイン状態と資格情報 (試作)。
 ///
@@ -30,6 +31,8 @@ final class ChatGPTPlanSession {
         static let hostID = "chatgpt_plan.host_id"
         static let registration = "chatgpt_plan.registration"
         static let tokens = "chatgpt_plan.tokens"
+        /// 初回登録で発行されたが、交換・検証まで済んでいない client_id。
+        static let pendingClientID = "chatgpt_plan.pending_client_id"
     }
 
     private(set) var registration: Registration?
@@ -60,13 +63,40 @@ final class ChatGPTPlanSession {
 
     // MARK: - サインイン
 
-    func signIn(mode: ChatGPTPlanBrowser.Mode) async throws {
+    enum Intent {
+        /// 保存済みの登録があればそれで入る。無ければ新規登録。
+        case signIn
+        /// 外したプラン利用の許可を、同意画面を出して取り直す。
+        case enablePlan
+        /// 今の登録を使わず、別のアカウントとして新規登録する。
+        case newAccount
+    }
+
+    func signIn(mode: ChatGPTPlanBrowser.Mode, intent: Intent = .signIn) async throws {
         guard !isSigningIn else { return }
         isSigningIn = true
         defer { isSigningIn = false }
         log.removeAll()
 
+        // ログイン中にメールの確認コードを見に行くとアプリが裏に回る。その間も待ち受けが
+        // 生きているよう、callback を受けるまでバックグラウンド実行を延ばしておく。
+        let background = UIApplication.shared.beginBackgroundTask(withName: "chatgpt-plan.signin")
+        defer { UIApplication.shared.endBackgroundTask(background) }
+
+        // 登録途中で落ちた client_id があれば、新規登録を重ねずにそれで再認可する。
+        let reusableClientID: String? = switch intent {
+        case .newAccount: nil
+        case .signIn, .enablePlan: registration?.clientID ?? KeychainStore.get(Key.pendingClientID)
+        }
+        let isSameRegistration = reusableClientID != nil && reusableClientID == registration?.clientID
+
         let server = LoopbackCallbackServer()
+        let attempt = ChatGPTPlanAuth.newAttempt(
+            savedClientID: reusableClientID,
+            redirectURI: server.redirectURI,
+            forceConsent: intent == .enablePlan
+        )
+        server.expectedState = attempt.state
         activeServer = server
         defer {
             server.stop()
@@ -75,14 +105,14 @@ final class ChatGPTPlanSession {
         try await server.start()
         note("127.0.0.1:\(server.port) で待ち受け開始")
 
-        let attempt = ChatGPTPlanAuth.newAttempt(savedClientID: registration?.clientID, redirectURI: server.redirectURI)
         let url = ChatGPTPlanAuth.authorizeURL(
             for: attempt,
             hostID: hostID,
-            idTokenHint: tokens?.idToken,
-            loginHint: registration?.email
+            idTokenHint: isSameRegistration ? tokens?.idToken : nil,
+            loginHint: isSameRegistration ? registration?.email : nil
         )
         note(attempt.isNewRegistration ? "初回登録 (dynamic_agent_client)" : "再認可 (\(attempt.clientID))")
+        if attempt.forceConsent { note("同意画面を出して許可を取り直す") }
 
         guard browser.open(url, mode: mode, onUserCancel: { server.stop() }) else {
             throw LoopbackCallbackServer.ServerError.listenerFailed("ブラウザを開けませんでした")
@@ -102,22 +132,40 @@ final class ChatGPTPlanSession {
 
         let result = try ChatGPTPlanAuth.parseCallback(callback, attempt: attempt)
         note("発行済み client_id: \(result.issuedClientID)")
+        if attempt.isNewRegistration {
+            // 交換や検証で落ちても、発行された ID は次の試行で使い回す (連携アプリを増やさない)。
+            KeychainStore.set(result.issuedClientID, forKey: Key.pendingClientID)
+        }
 
         let response = try await ChatGPTPlanAuth.exchange(code: result.code, clientID: result.issuedClientID, attempt: attempt)
         note("トークン交換 OK")
 
         guard let idToken = response.idToken else { throw ChatGPTPlanAuth.AuthError.idToken("ID トークンが返りませんでした") }
         let claims = try ChatGPTPlanAuth.validateIDToken(idToken, clientID: result.issuedClientID, nonce: attempt.nonce)
-        if !attempt.isNewRegistration, let registration, registration.subject != claims.subject {
-            // 再認可で別アカウントが返ったら、既存の登録を上書きしない。
-            throw ChatGPTPlanAuth.AuthError.idToken("前回と別のアカウントでサインインされました")
+        if isSameRegistration, let registration, registration.subject != claims.subject {
+            // 再認可で別アカウントが返ったら、既存の登録を上書きせず、受け取ったものは失効させる。
+            if let refreshToken = response.refreshToken {
+                try? await ChatGPTPlanAuth.revoke(refreshToken: refreshToken, clientID: result.issuedClientID)
+            }
+            throw ChatGPTPlanAuth.AuthError.differentAccount
         }
         note("ID トークン検証 OK (\(claims.email ?? claims.subject))")
 
+        // 別アカウントに切り替えるなら、前のアカウントのセッションは閉じておく。
+        if !isSameRegistration, let oldRefresh = tokens?.refreshToken, let oldClient = registration?.clientID {
+            try? await ChatGPTPlanAuth.revoke(refreshToken: oldRefresh, clientID: oldClient)
+        }
+
         let newRegistration = Registration(clientID: result.issuedClientID, subject: claims.subject, email: claims.email)
-        let newTokens = Self.tokens(from: response, keepingIDToken: idToken, previousRefresh: nil)
+        let newTokens = Self.tokens(
+            from: response,
+            idToken: idToken,
+            refreshToken: nil,
+            scopes: result.callbackScope.map(Self.splitScopes) ?? []
+        )
         save(registration: newRegistration)
         save(tokens: newTokens)
+        KeychainStore.delete(key: Key.pendingClientID)
         note("scope: \(newTokens.scopes.joined(separator: " "))")
         if !canUsePlan {
             note("chatgpt.tokens.use.direct が付与されていません")
@@ -133,7 +181,7 @@ final class ChatGPTPlanSession {
 
     /// 期限 5 分前を切っていたら更新してから返す。更新は直列化する (refresh_token は使い捨て)。
     func validAccessToken() async throws -> String {
-        guard let tokens else { throw ChatGPTPlanAuth.AuthError.idToken("サインインしていません") }
+        guard let tokens else { throw ChatGPTPlanAuth.AuthError.notSignedIn }
         if tokens.expiresAt.timeIntervalSinceNow > 300 { return tokens.accessToken }
         return try await refresh().accessToken
     }
@@ -142,21 +190,24 @@ final class ChatGPTPlanSession {
     func refresh() async throws -> Tokens {
         if let refreshTask { return try await refreshTask.value }
         guard let current = tokens, let refreshToken = current.refreshToken, let clientID = registration?.clientID else {
-            throw ChatGPTPlanAuth.AuthError.idToken("更新用のトークンがありません")
+            throw ChatGPTPlanAuth.AuthError.noRefreshToken
         }
         let task = Task { () throws -> Tokens in
             let response = try await ChatGPTPlanAuth.refresh(refreshToken: refreshToken, clientID: clientID)
-            return Self.tokens(from: response, keepingIDToken: current.idToken, previousRefresh: refreshToken)
+            // 更新の応答は scope を省くことがある。省かれたら付与範囲は前のまま。
+            return Self.tokens(from: response, idToken: current.idToken, refreshToken: refreshToken, scopes: current.scopes)
         }
         refreshTask = task
         defer { refreshTask = nil }
         do {
             let renewed = try await task.value
+            // 待っている間にサインアウトや別のサインインが入ったら、古いものを書き戻さない。
+            guard tokens?.refreshToken == refreshToken else { throw ChatGPTPlanAuth.AuthError.notSignedIn }
             save(tokens: renewed)
             return renewed
         } catch let ChatGPTPlanAuth.AuthError.tokenEndpoint(status, body) where Self.isUnusableRefresh(body) {
             // 使えない refresh_token は消して、同じ client_id でサインインし直してもらう。
-            clearTokens()
+            if tokens?.refreshToken == refreshToken { clearTokens() }
             throw ChatGPTPlanAuth.AuthError.tokenEndpoint(status: status, body: body)
         }
     }
@@ -167,6 +218,8 @@ final class ChatGPTPlanSession {
     /// - Returns: リモートの失効を確認できたか。
     @discardableResult
     func signOut() async -> Bool {
+        // 更新中なら差し替わった後の refresh_token を失効させる。
+        _ = try? await refreshTask?.value
         var revoked = false
         if let refreshToken = tokens?.refreshToken, let clientID = registration?.clientID {
             revoked = (try? await ChatGPTPlanAuth.revoke(refreshToken: refreshToken, clientID: clientID)) != nil
@@ -177,15 +230,20 @@ final class ChatGPTPlanSession {
 
     // MARK: - 保存
 
-    private static func tokens(from response: ChatGPTPlanAuth.TokenResponse, keepingIDToken idToken: String?, previousRefresh: String?) -> Tokens {
+    /// 応答に無い項目は引数の値 (直前のもの) を引き継ぐ。
+    private static func tokens(from response: ChatGPTPlanAuth.TokenResponse, idToken: String?, refreshToken: String?, scopes: [String]) -> Tokens {
         Tokens(
             accessToken: response.accessToken,
-            refreshToken: response.refreshToken ?? previousRefresh,
+            refreshToken: response.refreshToken ?? refreshToken,
             idToken: response.idToken ?? idToken,
             tokenType: response.tokenType ?? "Bearer",
-            scopes: (response.scope ?? "").split(separator: " ").map(String.init).sorted(),
+            scopes: response.scope.map(splitScopes) ?? scopes,
             expiresAt: Date().addingTimeInterval(response.expiresIn ?? 3600)
         )
+    }
+
+    private static func splitScopes(_ scope: String) -> [String] {
+        scope.split(separator: " ").map(String.init).sorted()
     }
 
     private static func isUnusableRefresh(_ body: String) -> Bool {

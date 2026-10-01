@@ -401,7 +401,10 @@ struct MyPageView: View {
     @ViewBuilder
     private var settingsSection: some View {
         helpSection
+        #if DEBUG
+        // 試作。リリースビルドには出さない。
         chatGPTPlanSection
+        #endif
         generalSettingsSection
         collectionSettingsSection
         masterySection

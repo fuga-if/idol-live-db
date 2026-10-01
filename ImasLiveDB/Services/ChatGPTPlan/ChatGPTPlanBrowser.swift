@@ -26,6 +26,8 @@ final class ChatGPTPlanBrowser: NSObject {
     private var safari: SFSafariViewController?
     private var onUserCancel: (() -> Void)?
     private var closingByApp = false
+    private var sessionCounter = 0
+    private var currentSessionID = 0
 
     /// - Parameter onUserCancel: 利用者がブラウザを閉じたとき (アプリから閉じたときは呼ばない)。
     func open(_ url: URL, mode: Mode, onUserCancel: @escaping () -> Void) -> Bool {
@@ -33,12 +35,16 @@ final class ChatGPTPlanBrowser: NSObject {
         closingByApp = false
         switch mode {
         case .authSession:
+            // 前の試行の完了通知が後から届いても、今のセッションを壊さないよう番号で見分ける。
+            sessionCounter += 1
+            let sessionID = sessionCounter
+            currentSessionID = sessionID
             // 横取り用のスキームは実際には使わない (callback はループバックで受ける)。
             let session = ASWebAuthenticationSession(
                 url: url,
                 callbackURLScheme: "imaslivedb-chatgpt-unused"
             ) { [weak self] _, _ in
-                Task { @MainActor in self?.browserDidClose() }
+                Task { @MainActor in self?.authSessionDidComplete(id: sessionID) }
             }
             // ChatGPT に Safari でログイン済みならその Cookie を使いたいので ephemeral にしない。
             session.prefersEphemeralWebBrowserSession = false
@@ -63,6 +69,11 @@ final class ChatGPTPlanBrowser: NSObject {
         safari?.dismiss(animated: true)
         safari = nil
         onUserCancel = nil
+    }
+
+    private func authSessionDidComplete(id: Int) {
+        guard id == currentSessionID else { return }
+        browserDidClose()
     }
 
     private func browserDidClose() {

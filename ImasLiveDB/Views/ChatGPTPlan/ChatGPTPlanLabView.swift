@@ -97,6 +97,10 @@ struct ChatGPTPlanLabView: View {
                         .font(.imasCaption)
                         .foregroundStyle(DS.ink2)
                     continueButton
+                    if session.registration != nil, !session.isSigningIn {
+                        Button("別のアカウントで登録") { startSignIn(.newAccount) }
+                            .font(.imasCaption)
+                    }
                     if session.isSigningIn {
                         Button("中止", role: .cancel) { session.cancelSignIn() }
                             .font(.imasCaption)
@@ -126,15 +130,7 @@ struct ChatGPTPlanLabView: View {
 
     private var continueButton: some View {
         Button {
-            signInError = nil
-            signOutNote = nil
-            Task {
-                do {
-                    try await session.signIn(mode: browserMode.wrappedValue)
-                } catch {
-                    signInError = error.localizedDescription
-                }
-            }
+            startSignIn(.signIn)
         } label: {
             HStack(spacing: DS.sp3) {
                 if session.isSigningIn {
@@ -203,9 +199,11 @@ struct ChatGPTPlanLabView: View {
     @ViewBuilder
     private var planDisabledSection: some View {
         Section {
-            Text("このサインインには ChatGPT プランの利用許可 (chatgpt.tokens.use.direct) が含まれていません。サインアウトしてもう一度許可してください。")
+            Text("このサインインには ChatGPT プランの利用許可 (chatgpt.tokens.use.direct) が含まれていません。")
                 .font(.imasCaption)
                 .foregroundStyle(DS.ink2)
+            Button("ChatGPT プランの利用を許可する") { startSignIn(.enablePlan) }
+                .disabled(session.isSigningIn)
         }
         .listRowBackground(DS.surface)
     }
@@ -226,6 +224,20 @@ struct ChatGPTPlanLabView: View {
     }
 
     // MARK: - 処理
+
+    private func startSignIn(_ intent: ChatGPTPlanSession.Intent) {
+        signInError = nil
+        signOutNote = nil
+        Task {
+            do {
+                try await session.signIn(mode: browserMode.wrappedValue, intent: intent)
+                models = []
+                if session.canUsePlan { await loadModels() }
+            } catch {
+                signInError = error.localizedDescription
+            }
+        }
+    }
 
     private func loadModels() async {
         modelsError = nil
@@ -257,6 +269,8 @@ struct ChatGPTPlanLabView: View {
                     case .completed: completed = true
                     }
                 }
+                // 止めたときはストリームがエラー無しで終わるので、ここで拾う。
+                if Task.isCancelled { outputError = "止めました" }
             } catch is CancellationError {
                 outputError = "止めました"
             } catch {

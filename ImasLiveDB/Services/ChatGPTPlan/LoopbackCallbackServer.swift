@@ -24,6 +24,9 @@ final class LoopbackCallbackServer: @unchecked Sendable {
     }
 
     let port: UInt16
+    /// この値の state を持つ callback だけを受け取る。違うもの (古い試行など) には 400 を返して待ち続ける。
+    /// `start()` の前に設定する。
+    var expectedState: String?
     var redirectURI: String { "http://127.0.0.1:\(port)\(Self.callbackPath)" }
 
     private let queue = DispatchQueue(label: "chatgpt-plan.loopback")
@@ -131,6 +134,12 @@ final class LoopbackCallbackServer: @unchecked Sendable {
 
         guard parts.first == "GET", let components, components.path == Self.callbackPath else {
             send(status: "404 Not Found", body: "Not Found", on: connection)
+            return
+        }
+
+        let state = components.queryItems?.first { $0.name == "state" }?.value
+        if let expectedState, state != expectedState {
+            send(status: "400 Bad Request", body: "state mismatch", on: connection)
             return
         }
 
