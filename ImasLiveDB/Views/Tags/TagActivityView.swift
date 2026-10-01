@@ -63,7 +63,7 @@ struct TagActivityView: View {
     }
 
     private var domainPicker: some View {
-        ImasSegmented(labels: ["曲", "アイドル"], selection: $domainTab)
+        ImasTabs(labels: ["曲", "アイドル"], selection: $domainTab)
     }
 
     // MARK: - 伸びてるタグ

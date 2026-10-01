@@ -8,29 +8,32 @@ import SwiftUI
 //           ImasRemovableChip 押すと外れる。効いている絞り込み・選んだもの
 // 使わない  状態を示す小さい札 (参加済・ユニット・NEW) → ImasBadge /
 //           操作のボタン → ImasButton
-// 構成      [先頭 (記号・色の点・アバター、任意)] [文言] [× (Removable のみ)]
-// 寸法      高さ 32 のカプセル、文字 14pt 中太、左右 12。画面で大きさを変えない。
-// 状態      未選択 (灰の地) / 選択 (実体色の塗り) / 押下 / 無効 (薄く)
-// 色        seed / brand / color を渡せばその色、何も渡さなければ環境の実体色 (`.imasTheme`)。
+// 構成      [先頭 (ペンライト・記号・画像、任意)] [文言] [× (Removable のみ)]
+// 寸法      高さ 32、角丸 8 の四角 (カプセルにしない)、文字 14pt 中太、左右 12。
+// 状態      未選択 (線) / 選択 (墨の塗り。ペンライトはそのまま光る) / 押下 / 無効 (薄く)
+// 色        地は墨と灰だけ。アイドル・ブランドの色は先頭のペンライトに出す。
+//           淡い色の地 (v1) は使わない。
 // =============================================================================
 
 /// チップの先頭に置けるもの。
 enum ImasChipLeading {
     /// SF Symbols の記号。
     case symbol(String)
-    /// 色の点 (アイドル・ブランドの色)。
+    /// ペンライト (アイドル・ブランドの色)。
     case dot
-    /// 小さいアバター (歌唱メンバーの予想など)。
+    /// 画像 (アイドルの画像を設定してあるとき)。画像が無ければペンライト。
     case avatar(label: String, imageURL: URL? = nil)
 }
 
 enum ImasChipStyle {
-    /// 実体色の淡い地。情報の札に色を付けたいとき。
+    /// 線 + ペンライト。実体に属する情報 (ブランド・ユニット)。
     case themed
-    /// 実体色の塗り。選んだもの。
+    /// 墨の塗り。選んだもの。
     case selected
-    /// 灰の地。
+    /// 灰の地。目立たせない情報。
     case neutral
+    /// 線だけ。押すとその画面へ行くチップ (最近見た・関連) と、選んでいない切り替え。
+    case outlined
 }
 
 /// 情報の小さな札 (押せない)。押せるようにするなら `ImasFilterChip`。
@@ -52,18 +55,28 @@ struct ImasChip: View {
 
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: color, env: envTheme, scheme: scheme)
-        let (bg, fg) = ImasChipColors.colors(style: style, theme: t)
+        let c = ImasChipColors.colors(style: style)
+        let shape = RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
+        let lead = leading ?? systemImage.map(ImasChipLeading.symbol) ?? (style == .themed ? .dot : nil)
         HStack(spacing: 6) {
-            ImasChipLeadingView(leading: leading ?? systemImage.map(ImasChipLeading.symbol), theme: t, onFill: style == .selected)
+            ImasChipLeadingView(
+                leading: lead,
+                penlight: style == .selected
+                    ? ImasChipColors.penlightOnInk(seed: seed, brand: brand, color: color, fallback: t, scheme: scheme)
+                    : t.penlight
+            )
             Text(text)
                 .font(ImasTextRole.chip.font)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 12)
+        .padding(.leading, lead == nil ? 12 : 10)
+        .padding(.trailing, 12)
         .frame(minHeight: DS.Size.chip)
         .frame(maxWidth: fillsWidth ? .infinity : nil)
-        .foregroundStyle(fg)
-        .background(bg, in: Capsule())
+        .foregroundStyle(c.fg)
+        .background(c.bg, in: shape)
+        .overlay { if let stroke = c.stroke { shape.strokeBorder(stroke, lineWidth: 1) } }
+        .contentShape(shape)
     }
 }
 
@@ -88,7 +101,7 @@ struct ImasFilterChip: View {
             ImasChip(
                 text: text,
                 systemImage: systemImage,
-                style: isSelected ? .selected : .neutral,
+                style: isSelected ? .selected : .outlined,
                 seed: seed,
                 brand: brand,
                 color: color,
@@ -117,20 +130,23 @@ struct ImasRemovableChip: View {
 
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
-        let accent: Color = t.isNeutral ? DS.sys : t.accent
+        let shape = RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
+        // 色のある絞り込み (ブランド・アイドル) は何も渡さなくてもペンライトを出す。
+        let lead = leading ?? ((seed != nil || brand != nil) ? .dot : nil)
         Button(action: onRemove) {
             HStack(spacing: 6) {
-                ImasChipLeadingView(leading: leading, theme: t, onFill: false)
+                ImasChipLeadingView(leading: lead, penlight: t.penlight)
                 Text(text).font(ImasTextRole.chip.font).lineLimit(1)
                 Image(systemName: "xmark")
                     .font(.imasScaled(10, weight: .bold))
-                    .opacity(0.8)
+                    .foregroundStyle(DS.ink2)
             }
-            .padding(.leading, 12)
+            .padding(.leading, lead == nil ? 12 : 10)
             .padding(.trailing, 10)
             .frame(minHeight: DS.Size.chip)
-            .foregroundStyle(accent)
-            .background(accent.opacity(0.14), in: Capsule())
+            .foregroundStyle(DS.ink)
+            .background(DS.fill, in: shape)
+            .contentShape(shape)
         }
         .buttonStyle(.imasPress)
         .accessibilityLabel("\(text) を外す")
@@ -199,7 +215,7 @@ struct ImasSelectionMark: View {
 
 // MARK: - 受賞の札
 
-/// 「みんなの投票」終了お題での順位。優勝 = 金の塗り、入賞 (2〜3 位) = 金の淡い地。
+/// 「みんなの投票」終了お題での順位。優勝 = 墨の塗り + 金の冠、入賞 (2〜3 位) = 線 + 金の記章。
 /// チップと同じ寸法で、曲詳細・アイドル詳細のヒーローに並べる。
 struct ImasAwardChip: View {
     let title: String
@@ -209,17 +225,20 @@ struct ImasAwardChip: View {
     private var rankLabel: String { isWinner ? "優勝" : "第\(rank)位" }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
         HStack(spacing: 6) {
             Image(systemName: isWinner ? "crown.fill" : "rosette")
                 .font(.imasScaled(12, weight: .semibold))
+                .foregroundStyle(DS.favorite)
             Text("\(title) \(rankLabel)")
                 .font(ImasTextRole.chip.font)
                 .lineLimit(1)
         }
         .padding(.horizontal, 12)
         .frame(minHeight: DS.Size.chip)
-        .foregroundStyle(isWinner ? ColorMath.onColor(DS.favorite) : DS.warning)
-        .background(isWinner ? AnyShapeStyle(DS.favorite) : AnyShapeStyle(DS.favorite.opacity(0.16)), in: Capsule())
+        .foregroundStyle(isWinner ? DS.onSys : DS.ink)
+        .background(isWinner ? DS.sys : Color.clear, in: shape)
+        .overlay { if !isWinner { shape.strokeBorder(DS.line, lineWidth: 1) } }
         .accessibilityLabel("\(title) で\(rankLabel)")
     }
 }
@@ -229,25 +248,24 @@ struct ImasAwardChip: View {
 /// チップの先頭。
 private struct ImasChipLeadingView: View {
     let leading: ImasChipLeading?
-    let theme: ImasTheme
-    /// 塗りの上に置くか (色の点は塗りと同じ色で消えるので白黒の輪にする)。
-    let onFill: Bool
+    /// ペンライトの色 (墨の塗りの上では明るい側の色)。
+    let penlight: Color
 
     var body: some View {
         switch leading {
         case .none:
             EmptyView()
         case .symbol(let name):
-            Image(systemName: name).font(.imasScaled(13, weight: .semibold))
+            Image(systemName: name).font(.imasScaled(12, weight: .semibold))
         case .dot:
-            Circle()
-                .fill(onFill ? theme.onAccent : theme.dot)
-                .frame(width: 8, height: 8)
-                .accessibilityHidden(true)
+            ImasPenlight(color: penlight, size: .small)
         case .avatar(let label, let url):
-            ImasAvatar(label: label, seed: nil, size: 20, imageURL: url, reservesPickRing: false)
-                .environment(\.imasTheme, theme)
-                .padding(.leading, -6)
+            if let url {
+                ImasAvatar(label: label, seed: nil, size: 20, imageURL: url, reservesPickRing: false)
+                    .padding(.leading, -4)
+            } else {
+                ImasPenlight(color: penlight, size: .small)
+            }
         }
     }
 }
@@ -260,11 +278,22 @@ enum ImasChipColors {
         return env
     }
 
-    static func colors(style: ImasChipStyle, theme t: ImasTheme) -> (bg: Color, fg: Color) {
+    /// 墨の塗り (選択) の上のペンライト。塗りは画面と逆の明るさなので、逆の明るさ用の色を引く
+    /// (ライトの紺は黒い塗りの上で沈む)。
+    static func penlightOnInk(seed: String?, brand: String?, color: Color?, fallback: ImasTheme,
+                              scheme: ColorScheme) -> Color {
+        let inverse: ColorScheme = scheme == .dark ? .light : .dark
+        if let color { return ImasTheme.derive(colorSeed: color, scheme: inverse).penlight }
+        if seed != nil || brand != nil { return ImasTheme.derive(seed: seed, brand: brand, scheme: inverse).penlight }
+        return fallback.isNeutral ? DS.onSys : fallback.penlight
+    }
+
+    static func colors(style: ImasChipStyle) -> (bg: Color, fg: Color, stroke: Color?) {
         switch style {
-        case .themed: return t.isNeutral ? (DS.fill, DS.ink2) : (t.chipBg, t.chipText)
-        case .selected: return (t.actionFill, t.onActionFill)
-        case .neutral: return (DS.fill, DS.ink2)
+        case .themed: return (.clear, DS.ink, DS.line)
+        case .selected: return (DS.sys, DS.onSys, nil)
+        case .neutral: return (DS.fill, DS.ink2, nil)
+        case .outlined: return (.clear, DS.ink, DS.line)
         }
     }
 }

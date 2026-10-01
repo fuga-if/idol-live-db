@@ -207,7 +207,7 @@ struct MasteryView: View {
             // 群が数百件並んで用を成さないので、シートの中に畳んではいけない。
             brandChips
 
-            ImasSegmented(labels: Self.axisLabels, selection: $axisIndex)
+            ImasTabs(labels: Self.axisLabels, selection: $axisIndex)
 
             NameFilterField(prompt: "\(Self.axisLabels[axisIndex])名で絞り込み", text: $nameFilter)
 

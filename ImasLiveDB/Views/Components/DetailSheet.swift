@@ -568,7 +568,7 @@ struct SongSheetContent: View {
     // MARK: - Segmented
 
     private var segmentBar: some View {
-        ImasSegmented(options: SongDetailTab.available, selection: $tab, seed: songSeed) { $0.label }
+        ImasTabs(options: SongDetailTab.available, selection: $tab, seed: songSeed) { $0.label }
     }
 
     // MARK: - Tab: 情報・歌唱

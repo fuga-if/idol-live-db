@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // =============================================================================
 // 意味で引く決まり (docs/DESIGN_SYSTEM.md §4・§9・§10)
@@ -22,11 +23,50 @@ extension DS {
     /// カードの中に入れる面の角丸。外の角丸から内側の余白を引いて同心円にする。
     static var rInner: CGFloat { max(6, rCard - Space.card) }
 
-    /// 記号を入れる角丸四角 (`ImasIconTile`) の角丸。大きさに対する比率で、アプリアイコンに近い形。
+    /// 札の角丸。札は「印刷された小さな見出し」なので、ほぼ角のある四角にする。
+    /// カプセルにすると、淡い色の丸い札が並ぶ「よくある見た目」になる (v1 の反省)。
+    static let rTag: CGFloat = 4
+
+    /// 押せる部品 (ボタン・切り替え・入口) の角丸。高さに比例させる (50→12, 40→10, 32→8)。
+    /// 中身の部品はカプセルにしない。カプセルは OS の枠 (タブバー・ツールバー) だけが使う形。
+    static func rControl(_ height: CGFloat) -> CGFloat { (height * 0.24).rounded() }
+
+    /// 記号を入れる角丸四角の角丸。設定の行の頭など、OS の形に合わせる所だけで使う。
     static func rIconTile(_ size: CGFloat) -> CGFloat { (size * 0.28).rounded() }
 
-    /// ジャケットの角丸。大きさに対する比率 (小さいジャケでも角が潰れないよう下限 6)。
-    static func rArtwork(_ size: CGFloat) -> CGFloat { max(6, (size * 0.18).rounded()) }
+    /// ジャケの角丸。CD のジャケは角のある四角なので小さく (下限 3・上限 10)。
+    static func rArtwork(_ size: CGFloat) -> CGFloat { min(10, max(3, (size * 0.08).rounded())) }
+}
+
+// MARK: - 地
+
+/// 部品が置かれている地。面の色をこれで決める (紙面の上は灰の面、灰の地の上は白い面)。
+///
+/// 一覧・詳細・ハブは白い紙面 (`ImasPage` が `.paper` を流す)。フォーム・設定は OS の灰の地。
+/// 同じカードを両方に置いても面が地に溶けないよう、部品は地から色を引く。
+enum ImasBackdrop {
+    /// 白い紙面 (ダークは黒)。
+    case paper
+    /// OS の表の灰の地 (`DS.bg`)。部品を移していない画面もこちら。
+    case grouped
+}
+
+private struct ImasBackdropKey: EnvironmentKey {
+    static let defaultValue: ImasBackdrop = .grouped
+}
+
+extension EnvironmentValues {
+    var imasBackdrop: ImasBackdrop {
+        get { self[ImasBackdropKey.self] }
+        set { self[ImasBackdropKey.self] = newValue }
+    }
+}
+
+extension DS {
+    /// 地の上に置く面の色。
+    static func surface(on backdrop: ImasBackdrop) -> Color {
+        backdrop == .paper ? DS.panel : DS.surface
+    }
 }
 
 // MARK: - 意味のある余白
@@ -84,13 +124,13 @@ extension DS {
 /// 値は iOS の文字の段 (`Font.imas*`) から選んでいる。Dynamic Type とアプリ内の
 /// 文字サイズ倍率の両方に追従する。
 enum ImasTextRole {
-    /// 詳細の頭の名前 (28pt 太字)。
+    /// 詳細の頭の名前 (30pt 極太・詰め組み)。
     case heroTitle
-    /// 区画の見出し・大 (20pt 太字)。詳細とハブの区画。
+    /// 区画の見出し・大 (20pt 太字・詰め組み)。詳細とハブの区画。
     case sectionTitle
     /// 区画の見出し・小 (13pt 中太・灰)。一覧・設定・フォーム・カードの中の小分け。
     case sectionLabel
-    /// カードの題 (17pt 太字)。
+    /// カードの題 (19pt 太字・詰め組み)。
     case cardTitle
     /// 行の題 (16pt 中太)。曲・アイドル・ライブなど「もの」の名前。
     case rowTitle
@@ -115,10 +155,11 @@ enum ImasTextRole {
 
     var font: Font {
         switch self {
-        case .heroTitle: return .imasTitle1
-        case .sectionTitle: return .imasTitle3.weight(.bold)
+        // 見出しは かなを詰めて組む (`imasHeading`)。本文・行は詰めない。
+        case .heroTitle: return .imasHeading(30, weight: .heavy)
+        case .sectionTitle: return .imasHeading(20, weight: .bold)
         case .sectionLabel: return .imasFootnote.weight(.semibold)
-        case .cardTitle: return .imasHeadline.weight(.bold)
+        case .cardTitle: return .imasHeading(19, weight: .bold)
         case .rowTitle: return .imasCallout.weight(.semibold)
         case .rowLabel: return .imasCallout
         case .rowSubtitle: return .imasFootnote
@@ -205,6 +246,63 @@ extension ButtonStyle where Self == ImasPressStyle {
     static var imasPress: ImasPressStyle { ImasPressStyle() }
 }
 
+// MARK: - ペンライト
+
+/// 色の目印。名前・見出しの前に置く短い縦の棒。
+///
+/// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この棒 (と帯・選んだ印) だけで見せる。
+/// 白い紙面に黒い文字、色はライブ会場のペンライトのように小さく強く光らせる。
+struct ImasPenlight: View {
+    enum Size {
+        /// 13pt の文字の前 (歌唱者・チップ)。
+        case small
+        /// 15〜16pt の文字の前 (目印・行)。
+        case regular
+        /// 見出し・ヒーローの前。
+        case large
+
+        var width: CGFloat { self == .large ? 4 : 3 }
+        var height: CGFloat {
+            switch self {
+            case .small: return 11
+            case .regular: return 14
+            case .large: return 20
+            }
+        }
+    }
+
+    let color: Color
+    var size: Size = .regular
+
+    @ScaledMetric(relativeTo: .footnote) private var scale: CGFloat = 1
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size.width / 2, style: .continuous)
+            .fill(color)
+            .frame(width: size.width, height: size.height * scale)
+            .accessibilityHidden(true)
+    }
+}
+
+// MARK: - OS の枠
+
+/// ナビバーなど OS の枠の見た目。起動時に 1 回だけかける。
+enum ImasChrome {
+    /// ナビバーの題を詰め組みにする (「プロデュース」「スケジュール」のかなが間延びしないように)。
+    /// 大きさと太さは OS の既定のまま、Dynamic Type の段に合わせて拡大する。
+    @MainActor static func apply() {
+        let bar = UINavigationBar.appearance()
+        bar.largeTitleTextAttributes = [
+            .font: UIFontMetrics(forTextStyle: .largeTitle)
+                .scaledFont(for: Font.imasProportionalUIFont(34, weight: .bold)),
+        ]
+        bar.titleTextAttributes = [
+            .font: UIFontMetrics(forTextStyle: .headline)
+                .scaledFont(for: Font.imasProportionalUIFont(17, weight: .semibold)),
+        ]
+    }
+}
+
 // MARK: - 実体の色が環境にあるか
 
 extension ImasTheme {
@@ -212,4 +310,6 @@ extension ImasTheme {
     var actionFill: Color { isNeutral ? DS.sys : accent }
     /// `actionFill` の上の文字色。
     var onActionFill: Color { isNeutral ? DS.onSys : onAccent }
+    /// ペンライトの色。実体の色が無ければ墨。
+    var penlight: Color { isNeutral ? DS.ink : dot }
 }

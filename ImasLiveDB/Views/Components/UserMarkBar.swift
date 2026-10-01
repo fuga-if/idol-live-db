@@ -1,8 +1,7 @@
 import SwiftUI
 
 /// 参加 / お気に入り / メモ / 座席 のマーキングバー。
-/// デザインシステムの `cbar`/`cact` に準拠: 各マークを「面カード + チップ色のアイコン枠 + ラベル」で表現し、
-/// ON のときはエンティティ色のアクセントをまとう。
+/// 見た目は DesignSystem の `ImasMarkBar` (1 本の帯) + `ImasMarkTile` (ON は記号が実体の色で点く)。
 struct UserMarkBar: View {
     let entity: UserMarkEntity
     let entityId: String
@@ -35,7 +34,7 @@ struct UserMarkBar: View {
     var body: some View {
         // seed / brand を渡されたらその色、無ければ画面の実体色 (`.imasTheme`) を使う。
         let t = (seed != nil || brand != nil) ? ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) : envTheme
-        HStack(spacing: DS.Space.gap) {
+        ImasMarkBar {
             ForEach(visibleKinds, id: \.self) { kind in
                 cell(for: kind, theme: t)
             }

@@ -27,7 +27,7 @@ struct FavoritesListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ImasSegmented(labels: Tab.allCases.map(\.label), selection: $section)
+            ImasTabs(labels: Tab.allCases.map(\.label), selection: $section)
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
 

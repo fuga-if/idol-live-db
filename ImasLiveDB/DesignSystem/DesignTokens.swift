@@ -1,3 +1,4 @@
+import CoreText
 import SwiftUI
 import UIKit
 
@@ -17,6 +18,14 @@ enum DS {
     static let ink       = solid(light: 0x1C1C1E, dark: 0xFFFFFF)
     static let ink2      = rgba(light: (60, 60, 67, 0.62), dark: (235, 235, 245, 0.62))
     static let ink3      = rgba(light: (60, 60, 67, 0.34), dark: (235, 235, 245, 0.32))
+
+    // MARK: - 紙面 (docs/DESIGN_SYSTEM.md §4)
+    /// 一覧・詳細・ハブの地。白い紙 (ダークは黒)。色の付いた地は敷かない。
+    static let paper     = solid(light: 0xFFFFFF, dark: 0x000000)
+    /// 紙面の上に置く面 (主役のカード・行のまとまり・記録)。
+    static let panel     = solid(light: 0xF2F2F7, dark: 0x1C1C1E)
+    /// 線で形を取る部品 (切り替え・札・入口) の輪郭。区切り線 (`sep`) より一段濃い。
+    static let line      = rgba(light: (60, 60, 67, 0.24), dark: (235, 235, 245, 0.24))
 
     // MARK: - セマンティック
     static let success   = solid(light: 0x2FA84F, dark: 0x34D364)
@@ -85,11 +94,12 @@ extension Font {
         _ size: CGFloat,
         relativeTo style: UIFont.TextStyle,
         weight: UIFont.Weight,
-        design: UIFontDescriptor.SystemDesign = .default
+        design: UIFontDescriptor.SystemDesign = .default,
+        proportional: Bool = false
     ) -> Font {
         let pointSize = size * imasTextScale
         let base = UIFont.systemFont(ofSize: pointSize, weight: weight)
-        let uiFont: UIFont
+        var uiFont: UIFont
         if design == .default {
             uiFont = base
         } else if let descriptor = base.fontDescriptor.withDesign(design) {
@@ -97,7 +107,36 @@ extension Font {
         } else {
             uiFont = base
         }
+        if proportional {
+            // かなの詰め (palt)。見出しの「プロデュース」「セトリを予想する」のような
+            // かな・カナの続く行が、等幅の全角送りだと間延びして素人っぽく見える。
+            // 本文は読みやすさのために等幅のまま (詰めるのは見出しだけ)。
+            let descriptor = uiFont.fontDescriptor.addingAttributes([
+                .featureSettings: [[
+                    UIFontDescriptor.FeatureKey.type: kTextSpacingType,
+                    UIFontDescriptor.FeatureKey.selector: kAltProportionalTextSelector,
+                ]],
+            ])
+            uiFont = UIFont(descriptor: descriptor, size: pointSize)
+        }
         return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: uiFont))
+    }
+
+    /// かなを詰めた (palt) UIKit の書体。OS の枠 (ナビバーの題) に渡すとき用。
+    static func imasProportionalUIFont(_ size: CGFloat, weight: UIFont.Weight) -> UIFont {
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        let descriptor = base.fontDescriptor.addingAttributes([
+            .featureSettings: [[
+                UIFontDescriptor.FeatureKey.type: kTextSpacingType,
+                UIFontDescriptor.FeatureKey.selector: kAltProportionalTextSelector,
+            ]],
+        ])
+        return UIFont(descriptor: descriptor, size: size)
+    }
+
+    /// 見出しの書体。かなを詰めて組む (palt)。題・見出し・カードの題・ヒーローの名前に使う。
+    static func imasHeading(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight), proportional: true)
     }
 
     /// 数値・順位・日付・英字ラベル用の「ディスプレイ」フォント。等幅数字付き。

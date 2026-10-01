@@ -5,12 +5,13 @@ import SwiftUI
 // =============================================================================
 // 画像と印 (docs/DESIGN_SYSTEM.md §10.3)
 //
-// ImasAvatar       アイドル。画像が無ければモノグラム、担当は二重輪。
-// ImasArtwork      曲のジャケ。画像が無ければブランド色の面 + 曲名。
-// ImasIconTile     記号を淡い実体色の角丸四角に入れる (行の先頭・統計・空状態・入口)。
+// ImasAvatar       アイドルの画像 (設定してあるときだけ)。画像が無いアイドルに丸を出さない
+//                  (頭文字の丸は中身の無い飾り)。行は `ImasRow` が帯に替える。
+// ImasArtwork      曲のジャケ。角のある四角。画像が無ければ灰の面 + 音符。
+// ImasIconTile     記号 1 つ。地を敷かない (記号を淡い色の四角に入れない)。
 // ImasSwatch       色の丸 (タグの色・ペンライトの色)。読み上げは色名。
-// ImasLeadBar      ライブ・公演の行頭の細い帯。
-// ImasPerformerChip 歌唱者 1 人 (色の点 + 名前)。欠席は薄字 + 取り消し線。
+// ImasLeadBar      ライブ・公演・アイドルの行頭の細い帯。
+// ImasPerformerChip 歌唱者 1 人 (ペンライト + 名前)。欠席は薄字 + 取り消し線。
 //
 // 色は seed / brand を渡せばその色、渡さなければ環境の実体色 (`.imasTheme`)。
 // =============================================================================
@@ -89,7 +90,7 @@ struct ImasAvatar: View {
 
 // MARK: - ジャケ
 
-/// 曲のジャケ。実画像があれば表示、無ければ実体色の面 + 中央に曲名。
+/// 曲のジャケ。実画像があれば表示、無ければ灰の面 + 音符。
 struct ImasArtwork: View {
     let title: String
     var seed: String?
@@ -129,23 +130,22 @@ struct ImasArtwork: View {
         .accessibilityLabel(title)
     }
 
+    /// ジャケが無い曲。色の面に曲名を書くと「作った絵」に見えるので、OS の音楽アプリと同じく
+    /// 灰の面に音符だけを置く。
     private func fallback(_ t: ImasTheme) -> some View {
         ZStack {
-            t.accent
-            Text(title)
-                .font(.imasScaled(max(9, size * 0.13), weight: .bold))
-                .foregroundStyle(t.onAccent)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .minimumScaleFactor(0.6)
-                .padding(size * 0.12)
+            DS.fill
+            Image(systemName: "music.note")
+                .font(.imasScaled(max(10, size * 0.32), weight: .regular))
+                .foregroundStyle(DS.ink3)
         }
     }
 }
 
 // MARK: - 記号の札
 
-/// 記号を淡い実体色の角丸四角に入れる。行の先頭・統計タイル・空状態・入口カードで同じ形にする。
+/// 記号 1 つ。行の先頭・空状態・入口で同じ大きさにする。地は敷かない
+/// (記号を淡い色の角丸四角に入れると、どのアプリにもある見た目になる)。
 struct ImasIconTile: View {
     enum Size: CGFloat {
         /// 統計タイル。
@@ -161,21 +161,21 @@ struct ImasIconTile: View {
 
         var iconFont: Font {
             switch self {
-            case .s28: return .imasScaled(14, weight: .semibold)
-            case .s32: return .imasScaled(15, weight: .semibold)
-            case .s36: return .imasScaled(16, weight: .semibold)
-            case .s44: return .imasScaled(20, weight: .regular)
-            case .s56: return .imasScaled(26, weight: .regular)
+            case .s28: return .imasScaled(17, weight: .regular)
+            case .s32: return .imasScaled(19, weight: .regular)
+            case .s36: return .imasScaled(21, weight: .regular)
+            case .s44: return .imasScaled(24, weight: .light)
+            case .s56: return .imasScaled(34, weight: .ultraLight)
             }
         }
     }
 
     enum Tone {
-        /// 実体色の淡い地 (既定)。
+        /// 実体の色 (無ければ墨)。
         case themed
         /// 灰。
         case neutral
-        /// 実体色の塗り (アプリの機能を示すアイコン)。
+        /// 墨。
         case solid
         case positive, attention, negative
     }
@@ -191,23 +191,22 @@ struct ImasIconTile: View {
 
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
-        let c = colors(t)
         Image(systemName: systemImage)
             .font(size.iconFont)
-            .foregroundStyle(c.fg)
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(color(t))
             .frame(width: size.rawValue, height: size.rawValue)
-            .background(c.bg, in: RoundedRectangle(cornerRadius: DS.rIconTile(size.rawValue), style: .continuous))
             .accessibilityHidden(true)
     }
 
-    private func colors(_ t: ImasTheme) -> (bg: Color, fg: Color) {
+    private func color(_ t: ImasTheme) -> Color {
         switch tone {
-        case .themed: return t.isNeutral ? (DS.fill, DS.ink2) : (t.chipBg, t.chipText)
-        case .neutral: return (DS.fill, DS.ink2)
-        case .solid: return (t.actionFill, t.onActionFill)
-        case .positive: return (DS.success.opacity(0.16), DS.successInk)
-        case .attention: return (DS.warning.opacity(0.16), DS.warning)
-        case .negative: return (DS.danger.opacity(0.14), DS.danger)
+        case .themed: return t.isNeutral ? DS.ink : t.accent
+        case .neutral: return DS.ink2
+        case .solid: return DS.ink
+        case .positive: return DS.successInk
+        case .attention: return DS.warning
+        case .negative: return DS.danger
         }
     }
 }
@@ -266,19 +265,22 @@ struct ImasLeadBar: View {
 
 // MARK: - 歌唱者
 
-/// 歌唱者 1 人。色の点 + 名前。欠席は薄字 + 取り消し線。
+/// 歌唱者 1 人。ペンライト + 名前。欠席は薄字 + 取り消し線。
 /// セトリの行・予想の根拠・出演者の一覧で使う。名前は 1 人単位で折り返す。
 struct ImasPerformerChip: View {
     let name: String
     var seed: String? = nil
     var isAbsent: Bool = false
 
+    @Environment(\.colorScheme) private var scheme
+
     var body: some View {
         HStack(spacing: 5) {
-            Circle()
-                .fill(Color(hexString: seed, default: DS.ink3))
-                .frame(width: 7, height: 7)
-                .opacity(isAbsent ? 0.4 : 1)
+            ImasPenlight(
+                color: seed == nil ? DS.ink3 : ImasTheme.derive(seed: seed, brand: nil, scheme: scheme).penlight,
+                size: .small
+            )
+            .opacity(isAbsent ? 0.35 : 1)
             Text(name)
                 .font(.imasFootnote)
                 .strikethrough(isAbsent, color: DS.ink3)

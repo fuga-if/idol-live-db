@@ -65,6 +65,7 @@ struct ContentView: View {
     init(incomingURL: Binding<URL?> = .constant(nil)) {
         _incomingURL = incomingURL
         UITabBar.appearance().tintColor = .label
+        ImasChrome.apply()
     }
 
     var body: some View {

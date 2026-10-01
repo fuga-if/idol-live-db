@@ -89,6 +89,17 @@ extension View {
             .scrollContentBackground(.hidden)
             .background(DS.bg)
             .listRowSeparatorTint(DS.sep)
+            .environment(\.imasBackdrop, .grouped)
+    }
+
+    /// 曲・ライブ・アイドルなど「もの」の一覧 (List) の体裁。白い紙面に行を並べ、線は本文の頭から。
+    func imasList() -> some View {
+        self
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(DS.paper)
+            .listRowSeparatorTint(DS.sep)
+            .environment(\.imasBackdrop, .paper)
     }
 
     /// 書きかけのまま閉じようとしたときに確かめる。閉じる操作を `attempt` で包んで使う。
@@ -171,10 +182,12 @@ struct ImasListSection<Content: View>: View {
         self.content = content()
     }
 
+    @Environment(\.imasBackdrop) private var backdrop
+
     var body: some View {
         Section {
             content
-                .listRowBackground(DS.surface)
+                .listRowBackground(backdrop == .paper ? DS.paper : DS.surface)
                 .listRowSeparatorTint(DS.sep)
         } header: {
             if let title {
@@ -244,10 +257,13 @@ struct ImasListSummary<Sort: Hashable>: View {
                         Text(sortLabel(sortSelection.wrappedValue))
                     }
                     .font(.imasFootnote.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
+                    .foregroundStyle(DS.ink)
                     .padding(.horizontal, 12)
                     .frame(minHeight: DS.Size.chip)
-                    .background(DS.fill, in: Capsule())
+                    .overlay {
+                        RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
+                            .strokeBorder(DS.line, lineWidth: 1)
+                    }
                 }
             }
         }

@@ -161,7 +161,7 @@ struct EventListView: View {
                 // (`eventAttendanceSwipe`) は List の行にしか効かず、ScrollView + LazyVStack
                 // に付けても無言で消える (習熟度画面で一度踏んだ罠と同じ)。
                 List {
-                    ImasSegmented(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
+                    ImasTabs(labels: ["今後の予定", "開催済み"], selection: $timeFilter)
                         .padding(.horizontal, DS.sp5)
                         .padding(.top, 6)
                         .listRowInsets(EdgeInsets())

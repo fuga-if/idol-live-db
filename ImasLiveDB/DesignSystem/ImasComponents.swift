@@ -59,7 +59,7 @@ struct ImasMetricBadge: View {
 
 // MARK: - 順位の行
 
-/// 順位 + ジャケ/アバター + 題 + 数。1〜3 位は実体色。
+/// 順位 + ジャケ/画像 + 題 + 数。1〜3 位は墨、4 位から灰。
 struct ImasRankingRow: View {
     enum Lead { case artwork(title: String, imageURL: URL?), avatar(label: String, imageURL: URL?) }
     let rank: Int
@@ -76,7 +76,13 @@ struct ImasRankingRow: View {
             ImasRankNumber(rank: rank)
             switch lead {
             case let .artwork(title, url): ImasArtwork(title: title, seed: seed, brand: brand, size: 44, imageURL: url)
-            case let .avatar(label, url): ImasAvatar(label: label, seed: seed, brand: brand, size: 40, imageURL: url, reservesPickRing: false)
+            case let .avatar(label, url):
+                // 画像の無いアイドルに頭文字の丸を出さない。色はリードバーで見せる。
+                if let url {
+                    ImasAvatar(label: label, seed: seed, brand: brand, size: 40, imageURL: url, reservesPickRing: false)
+                } else {
+                    ImasLeadBar(seed: seed, brand: brand).frame(height: 36)
+                }
             }
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(title).imasText(.rowTitle).lineLimit(1)

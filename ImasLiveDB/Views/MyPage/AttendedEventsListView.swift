@@ -52,7 +52,7 @@ struct AttendedEventsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ImasSegmented(labels: segmentLabels, selection: $filterIndex)
+            ImasTabs(labels: segmentLabels, selection: $filterIndex)
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
 

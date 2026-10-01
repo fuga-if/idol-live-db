@@ -120,7 +120,7 @@ struct EventDetailView: View {
                     .padding(.top, DS.sp3)
                 }
 
-                ImasSegmented(
+                ImasTabs(
                     labels: ["公演・セトリ", "出演", "情報"],
                     selection: $segment,
                     seed: seed,

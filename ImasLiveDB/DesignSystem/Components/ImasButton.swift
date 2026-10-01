@@ -6,11 +6,12 @@ import SwiftUI
 // 用途      押して何かを起こすもの。画面の主な操作・カードの操作・行の中の小さい操作。
 // 使わない  選択の切り替え → ImasFilterChip / 印 (担当・参加) → ImasMarkToggle /
 //           別の画面への入口 → ImasNavRow・ImasEntryCard
-// 構成      [記号 (任意)] [文言]、形はカプセル
+// 構成      [記号 (任意)] [文言]、形は角丸の四角 (50→12, 40→10, 32→8)。カプセルにしない。
 // 種類      役割 primary / secondary / plain / destructive × 大きさ large / medium / small
 // 状態      通常 / 押下 (0.97 に縮む) / 無効 (薄く) / 読み込み中 (文言の代わりにくるくる)
 //
-// 主ボタンは 1 画面に 1 つ。色は環境の実体色 (`.imasTheme`) から引き、実体の無い画面では白黒。
+// 主ボタンは 1 画面に 1 つ。色は墨 (ライトは黒・ダークは白) で、アイドルの画面でも変えない。
+// アイドル・ブランドの色はペンライト・帯・選んだ印に出す (塗りのボタンを色で塗らない)。
 // =============================================================================
 
 enum ImasButtonRole {
@@ -42,9 +43,9 @@ enum ImasButtonSize {
 
     var font: Font {
         switch self {
-        case .large: return .imasHeadline.weight(.bold)
-        case .medium: return .imasSubhead.weight(.bold)
-        case .small: return .imasFootnote.weight(.bold)
+        case .large: return .imasHeading(16, weight: .semibold)
+        case .medium: return .imasHeading(15, weight: .semibold)
+        case .small: return .imasHeading(13, weight: .semibold)
         }
     }
 
@@ -59,10 +60,12 @@ enum ImasButtonSize {
     var horizontalPadding: CGFloat {
         switch self {
         case .large: return 24
-        case .medium: return 18
+        case .medium: return 16
         case .small: return 12
         }
     }
+
+    var cornerRadius: CGFloat { DS.rControl(height) }
 }
 
 /// `.buttonStyle(.imas(...))` で使う見た目。文言と記号は `Label` / `Text` で渡す。
@@ -72,11 +75,11 @@ struct ImasButtonStyle: ButtonStyle {
     /// 横幅いっぱいに広げる。`large` は既定で広げる。
     var fillsWidth: Bool? = nil
 
-    @Environment(\.imasTheme) private var theme
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         let colors = colors()
+        let shape = RoundedRectangle(cornerRadius: size.cornerRadius, style: .continuous)
         configuration.label
             .labelStyle(ImasButtonLabelStyle(size: size))
             .font(size.font)
@@ -86,8 +89,8 @@ struct ImasButtonStyle: ButtonStyle {
             .padding(.horizontal, role == .plain ? 0 : size.horizontalPadding)
             .frame(maxWidth: (fillsWidth ?? (size == .large)) ? .infinity : nil)
             .frame(minHeight: size.height)
-            .background(colors.bg, in: Capsule())
-            .contentShape(Capsule())
+            .background(colors.bg, in: shape)
+            .contentShape(shape)
             .opacity(isEnabled ? 1 : 0.45)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.85 : 1)
@@ -96,14 +99,10 @@ struct ImasButtonStyle: ButtonStyle {
 
     private func colors() -> (bg: Color, fg: Color) {
         switch role {
-        case .primary:
-            return (theme.actionFill, theme.onActionFill)
-        case .secondary:
-            return theme.isNeutral ? (DS.fill, DS.ink) : (theme.chipBg, theme.chipText)
-        case .plain:
-            return (.clear, theme.isNeutral ? DS.ink : theme.accent)
-        case .destructive:
-            return (DS.fill, DS.danger)
+        case .primary: return (DS.sys, DS.onSys)
+        case .secondary: return (DS.fill, DS.ink)
+        case .plain: return (.clear, DS.ink)
+        case .destructive: return (DS.fill, DS.danger)
         }
     }
 }
@@ -137,14 +136,12 @@ struct ImasButton: View {
     var isLoading: Bool = false
     let action: () -> Void
 
-    @Environment(\.imasTheme) private var theme
-
     var body: some View {
         Button(action: action) {
             ZStack {
                 label.opacity(isLoading ? 0 : 1)
                 if isLoading {
-                    ProgressView().controlSize(.small).tint(role == .primary ? theme.onActionFill : DS.ink2)
+                    ProgressView().controlSize(.small).tint(role == .primary ? DS.onSys : DS.ink2)
                 }
             }
         }
@@ -166,7 +163,7 @@ struct ImasButton: View {
 // MARK: - 記号だけのボタン
 
 /// 記号だけの丸いボタン。月の送り・再生など、文言が無くても分かる操作。
-/// 読み上げ用の `label` は必ず渡す。
+/// 読み上げ用の `label` は必ず渡す。丸は OS のツールバーの記号ボタンと同じ形 (中身のボタンで丸いのはこれだけ)。
 struct ImasIconButton: View {
     enum Size {
         /// 32 の丸。行・カードの中。
@@ -181,7 +178,7 @@ struct ImasIconButton: View {
     enum Style {
         /// 灰の地 (既定)。
         case tinted
-        /// 実体色の塗り (再生など、その画面の主の操作)。
+        /// 墨の塗り (再生など、その画面の主の操作)。
         case filled
         /// 地なし。
         case plain
@@ -192,8 +189,6 @@ struct ImasIconButton: View {
     var size: Size = .regular
     var style: Style = .tinted
     let action: () -> Void
-
-    @Environment(\.imasTheme) private var theme
 
     var body: some View {
         Button(action: action) {
@@ -212,7 +207,7 @@ struct ImasIconButton: View {
     private var bg: Color {
         switch style {
         case .tinted: return DS.fill
-        case .filled: return theme.actionFill
+        case .filled: return DS.sys
         case .plain: return .clear
         }
     }
@@ -220,7 +215,7 @@ struct ImasIconButton: View {
     private var fg: Color {
         switch style {
         case .tinted: return DS.ink
-        case .filled: return theme.onActionFill
+        case .filled: return DS.onSys
         case .plain: return DS.ink2
         }
     }

@@ -18,16 +18,17 @@ struct ImasSetupHeader: View {
     var message: String? = nil
 
     var body: some View {
-        HStack(alignment: .top, spacing: DS.Space.gapLoose + 2) {
-            ImasIconTile(systemImage: systemImage, size: .s44, tone: .solid)
-            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-                Text(title).imasText(.cardTitle)
-                if let message {
-                    Text(message).imasText(.note).fixedSize(horizontal: false, vertical: true)
-                }
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            Image(systemName: systemImage)
+                .font(.imasScaled(28, weight: .light))
+                .foregroundStyle(DS.ink)
+                .accessibilityHidden(true)
+            Text(title).imasText(.heroTitle)
+            if let message {
+                Text(message).imasText(.note).fixedSize(horizontal: false, vertical: true)
             }
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -54,9 +55,11 @@ struct ImasCandidateCount: View {
         }
         .padding(.horizontal, DS.Space.rowH)
         .frame(minHeight: DS.Size.touch + 4)
-        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .accessibilityElement(children: .combine)
     }
+
+    @Environment(\.imasBackdrop) private var backdrop
 
     private var isShort: Bool {
         guard let count, let minimum else { return false }
@@ -66,7 +69,7 @@ struct ImasCandidateCount: View {
 
 // MARK: - 段階のメーター
 
-/// 段階のメーター。`value` 段まで実体色で塗る (習熟度・クイズの点数)。
+/// 段階のメーター。`value` 段まで実体の色 (無ければ墨) で塗る (習熟度・クイズの点数)。
 struct ImasMeter: View {
     let value: Int
     let total: Int
@@ -74,10 +77,10 @@ struct ImasMeter: View {
     @Environment(\.imasTheme) private var theme
 
     var body: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 2) {
             ForEach(0..<max(total, 1), id: \.self) { i in
-                Capsule()
-                    .fill(i < value ? (theme.isNeutral ? DS.sys : theme.accent) : DS.fill)
+                Rectangle()
+                    .fill(i < value ? theme.penlight : DS.fill)
                     .frame(height: 6)
             }
         }

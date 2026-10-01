@@ -152,7 +152,7 @@ struct IdolListView: View {
 
     /// 一覧タブ (アイドル/ユニット)。ナビゲーションタイトル下・検索バー上に固定表示する。
     private var listTabBar: some View {
-        ImasSegmented(labels: ["アイドル", "ユニット"], selection: $listTab)
+        ImasTabs(labels: ["アイドル", "ユニット"], selection: $listTab)
             .padding(.horizontal, DS.sp5)
             .padding(.top, DS.sp3)
             .padding(.bottom, DS.sp2)
@@ -441,7 +441,7 @@ struct IdolListView: View {
     @ViewBuilder
     private var searchTargetBar: some View {
         if !searchText.isEmpty, vm.searchCounts != nil {
-            ImasSegmented(
+            ImasTabs(
                 options: IdolSearchTarget.allCases,
                 selection: Binding(get: { searchTarget }, set: { selectSearchTarget($0) })
             ) { target in "\(target.rawValue) \(count(for: target))" }

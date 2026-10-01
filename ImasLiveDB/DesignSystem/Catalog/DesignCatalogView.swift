@@ -9,7 +9,8 @@ import SwiftUI
 // =============================================================================
 
 enum DesignCatalogPage: String, CaseIterable, Identifiable {
-    case buttons, chips, rows, rows2, sections, heroSong, heroIdol, hub, feedback, setlist, list, form, setup
+    case buttons, chips, rows, rows2, sections, heroSong, heroIdol, heroIdolColor, hub, hubColor, feedback, setlist,
+         list, form, setup
 
     var id: String { rawValue }
 
@@ -22,7 +23,9 @@ enum DesignCatalogPage: String, CaseIterable, Identifiable {
         case .sections: return "区画・面・お知らせ"
         case .heroSong: return "詳細の頭 (曲)"
         case .heroIdol: return "詳細の頭 (アイドル)"
+        case .heroIdolColor: return "詳細の頭 (アイドル・色の面)"
         case .hub: return "ハブ"
+        case .hubColor: return "ハブ (担当を色の面で)"
         case .feedback: return "状態・メーター"
         case .setlist: return "セトリと予想"
         case .list: return "一覧の型"
@@ -54,8 +57,10 @@ struct DesignCatalogPageView: View {
             case .rows2: ValueRowsPage()
             case .sections: SectionsPage()
             case .heroSong: SongHeroPage()
-            case .heroIdol: IdolHeroPage()
-            case .hub: HubPage()
+            case .heroIdol: IdolHeroPage(surface: .paper)
+            case .heroIdolColor: IdolHeroPage(surface: .color)
+            case .hub: HubPage(oshiSurface: .panel)
+            case .hubColor: HubPage(oshiSurface: .color)
             case .feedback: FeedbackPage()
             case .setlist: SetlistPage()
             case .list: ListTemplatePage()
@@ -84,6 +89,19 @@ private enum Sample {
     static let cg = "#2681c8"
     static let ml = "#ffc30b"
     static let gakuen = "#f39800"
+
+    /// 見本のジャケ (実際の配信の画像)。
+    enum Art {
+        private static func url(_ s: String) -> URL? { URL(string: "https://is1-ssl.mzstatic.com/image/thumb/\(s)/600x600bb.jpg") }
+        static let idolmaster = url("Music116/v4/2c/67/8d/2c678df3-f929-6bad-8c66-bef3c669c7e8/4540774158782.jpg")
+        static let ready = url("Music122/v4/9e/37/0b/9e370bf4-b073-c6f9-18b1-dc4c6a4160e6/COCX-38070.jpg")
+        static let jealousy = url("Music116/v4/96/80/64/96806435-086e-04ad-f2ad-eed5cf9db9ed/PA00114560_0_162943_jacket.jpg")
+        static let thankYou = url("Music126/v4/ec/bc/da/ecbcdafa-f3cb-f967-6b96-e75ee8272493/4540774250431.jpg")
+        static let onegai = url("Music124/v4/c0/0c/9a/c00c9ad7-b952-dd1d-4bc9-d38f9f343ccd/COCC_16718.jpg")
+        static let shirube = url("Music211/v4/d2/d0/d1/d2d0d166-6d01-5ba1-1bb3-ac7afe4f04a6/PA00185909_0_222005_jacket.jpg")
+        static let fightingMyWay = url("Music221/v4/33/4e/9c/334e9c4b-6ae8-55b2-7d1f-e6ab30fb2d9b/PA00153099_0_191075_jacket.jpg")
+        static let hajime = url("Music211/v4/e5/ca/75/e5ca7591-dac2-60fa-348c-4a850f219c68/PA00153098_0_191078_jacket.jpg")
+    }
 }
 
 // MARK: - ボタン
@@ -91,7 +109,7 @@ private enum Sample {
 private struct ButtonsPage: View {
     var body: some View {
         ImasPage {
-            ImasSection("主ボタン (大)", style: .small, footer: "画面で一番大事な操作。1 画面に 1 つ。実体の無い画面では白黒。") {
+            ImasSection("主ボタン (大)", style: .small, footer: "画面で一番大事な操作。1 画面に 1 つ。色は墨で、アイドルの画面でも変えない。") {
                 VStack(spacing: DS.Space.gap) {
                     ImasButton(title: "はじめる", size: .large) {}
                     ImasButton(title: "セトリを予想", systemImage: "sparkles", size: .large) {}
@@ -161,13 +179,14 @@ private struct ChipsPage: View {
                     ImasFilterChip(text: "学マス", isSelected: brand == "gakuen", brand: Sample.gakuen, leading: .dot) { brand = "gakuen" }
                 }
             }
-            ImasSection("歌唱メンバーの予想 (アバター付き)", style: .small) {
+            ImasSection("歌唱メンバーの予想 (ペンライト付き)", style: .small) {
                 ImasChipFlow {
                     ForEach([("haruka", "天海春香", "春香", Sample.haruka), ("chihaya", "如月千早", "千早", Sample.chihaya),
                              ("miki", "星井美希", "美希", Sample.miki), ("makoto", "菊地真", "真", Sample.makoto),
                              ("yayoi", "高槻やよい", "やよい", Sample.yayoi)], id: \.0) { id, name, short, color in
                         ImasFilterChip(text: name, isSelected: picked.contains(id), seed: color,
                                        leading: .avatar(label: short)) {
+                            // 画像が無いのでペンライトになる
                             if picked.contains(id) { picked.remove(id) } else { picked.insert(id) }
                         }
                     }
@@ -215,37 +234,37 @@ private struct EntityRowsPage: View {
     var body: some View {
         ImasPage {
             ImasSection("曲", count: "3曲", style: .large) {
-                ImasCardList {
+                ImasCardList(style: .plain) {
                     ImasRow(title: "THE IDOLM@STER", subtitle: "765PRO ALLSTARS",
-                            leading: .artwork(title: "THE IDOLM@STER", brand: Sample.as765),
-                            trailing: .metric("89", unit: "回")) {
+                            leading: .artwork(title: "THE IDOLM@STER", brand: Sample.as765, imageURL: Sample.Art.idolmaster),
+                            trailing: .metric("89", unit: "回", emphasized: true)) {
                         HStack(spacing: DS.Space.gapTight) {
                             Text("2005年7月26日").imasText(.meta)
                             ImasBadge(text: "回収 3", kind: .positive, systemImage: "checkmark")
                         }
                     }
                     ImasRow(title: "Thank You!", subtitle: "MILLIONSTARS",
-                            leading: .artwork(title: "Thank You!", brand: Sample.ml),
-                            trailing: .metric("74", unit: "回"))
+                            leading: .artwork(title: "Thank You!", brand: Sample.ml, imageURL: Sample.Art.thankYou),
+                            trailing: .metric("74", unit: "回", emphasized: true))
                         .environment(\.imasRowPosition, .following)
                     ImasRow(title: "お願い！シンデレラ", subtitle: "CINDERELLA GIRLS",
-                            leading: .artwork(title: "お願い！シンデレラ", brand: Sample.cg),
-                            trailing: .metric("120", unit: "回"))
+                            leading: .artwork(title: "お願い！シンデレラ", brand: Sample.cg, imageURL: Sample.Art.onegai),
+                            trailing: .metric("120", unit: "回", emphasized: true))
                         .environment(\.imasRowPosition, .following)
                 }
             }
             ImasSection("アイドル", style: .large) {
-                ImasCardList {
+                ImasCardList(style: .plain) {
                     ImasRow(title: "天海春香", subtitle: "765AS · CV 中村繪里子",
                             leading: .avatar(label: "春香", seed: Sample.haruka, isPick: true),
-                            trailing: .custom(AnyView(Image(systemName: "heart.fill").foregroundStyle(DS.pick))))
+                            trailing: .badge(ImasBadge(text: "担当", kind: .lead)))
                     ImasRow(title: "如月千早", subtitle: "765AS · CV 今井麻美",
                             leading: .avatar(label: "千早", seed: Sample.chihaya))
                         .environment(\.imasRowPosition, .following)
                 }
             }
             ImasSection("ライブ・公演", style: .large) {
-                ImasCardList {
+                ImasCardList(style: .plain) {
                     ImasRow(title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)", subtitle: "11月7日(土)〜8日(日) · Kアリーナ横浜",
                             leading: .bar(brand: Sample.gakuen), trailing: .chevron) {
                         ImasBadge(text: "参加予定", kind: .attention)
@@ -327,11 +346,12 @@ private struct SectionsPage: View {
                     }
                 }
             }
-            ImasSection("実体色のカード (tinted)") {
-                ImasCard(style: .tinted) {
-                    Text("担当・次の出演など、その実体が主役のときだけ").imasText(.body)
+            ImasSection("行のまとまり (面)", style: .small) {
+                ImasCardList {
+                    ImasNavRow(title: "クイズ・ゲーム", systemImage: "gamecontroller")
+                    ImasNavRow(title: "みんなの投票", systemImage: "chart.bar.doc.horizontal")
+                        .environment(\.imasRowPosition, .following)
                 }
-                .imasTheme(seed: Sample.kanade)
             }
             ImasSection("お知らせの帯", style: .small) {
                 VStack(spacing: DS.Space.gap) {
@@ -353,115 +373,140 @@ private struct SongHeroPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 0) {
-                ImasHero(layout: .centered, eyebrow: "765AS", title: "THE IDOLM@STER",
+            VStack(alignment: .leading, spacing: 0) {
+                ImasHero(layout: .centered, eyebrow: "765PRO ALLSTARS", title: "THE IDOLM@STER",
                          subtitle: "天海春香 / 如月千早 / 星井美希 / 菊地真 / 高槻やよい",
-                         primary: .init(title: "再生", systemImage: "play.fill") {}) {
-                    ImasArtwork(title: "THE IDOLM@STER", size: 168)
+                         primary: .init(title: "Apple Music で再生", systemImage: "play.fill") {}) {
+                    ImasArtwork(title: "THE IDOLM@STER", size: 200, imageURL: Sample.Art.idolmaster)
                 } facts: {
                     HStack(spacing: DS.Space.gapTight) {
                         ImasBadge(text: "全体曲", kind: .all)
-                        ImasBadge(text: "KAMISABI 収録", kind: .themed)
+                        ImasBadge(text: "2005年7月26日", kind: .neutral)
                     }
                 }
-                HStack(spacing: DS.Space.gap) {
+                ImasMarkBar {
                     ImasMarkTile(systemImage: favorite ? "star.fill" : "star", label: "お気に入り", isOn: favorite) { favorite.toggle() }
                     ImasMarkTile(systemImage: "note.text", label: "メモ", isOn: false) {}
-                    ImasMarkTile(systemImage: "checkmark.seal", label: "習熟度", isOn: true) {}
+                    ImasMarkTile(systemImage: "checkmark.seal.fill", label: "習熟度", isOn: true) {}
                 }
                 .padding(.horizontal, DS.Space.screen)
-                .padding(.bottom, DS.Space.card)
-                .background(ImasThemeBackground())
-                ImasSegmented(labels: ["情報", "歌詞", "披露履歴", "みんな"], selection: $tab)
-                    .padding(DS.Space.screen)
-                VStack(spacing: DS.Space.section) {
-                    ImasStatGrid {
-                        ImasStatTile(systemImage: "music.mic", value: "89", unit: "回", label: "披露回数")
-                        ImasStatTile(systemImage: "checkmark.seal.fill", value: "3", unit: "公演", label: "現地回収", tappable: true)
-                    }
-                }
-                .padding(.horizontal, DS.Space.screen)
-            }
-        }
-        .background(DS.bg)
-        .imasTheme(seed: nil, brand: Sample.as765)
-    }
-}
-
-private struct IdolHeroPage: View {
-    @State private var tab = 0
-    @State private var pick = true
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ImasHero(layout: .leading, eyebrow: "765AS", title: "天海春香", subtitle: "CV 中村繪里子",
-                         primary: .init(title: "出演ライブ", systemImage: "music.mic") {}) {
-                    ImasAvatar(label: "春香", size: 88, isPick: pick)
-                }
-                HStack(spacing: DS.Space.gap) {
-                    ImasMarkTile(systemImage: pick ? "heart.fill" : "heart", label: "担当", isOn: pick) { pick.toggle() }
-                    ImasMarkTile(systemImage: "star", label: "お気に入り", isOn: false) {}
-                    ImasMarkTile(systemImage: "note.text", label: "メモ", isOn: false) {}
-                }
-                .padding(.horizontal, DS.Space.screen)
-                .padding(.bottom, DS.Space.card)
-                .background(ImasThemeBackground())
-                ImasSegmented(labels: ["ライブ", "楽曲", "プロフィール", "みんな"], selection: $tab)
-                    .padding(DS.Space.screen)
+                .padding(.bottom, DS.Space.section)
+                ImasTabs(labels: ["情報", "歌詞", "披露履歴", "みんな"], selection: $tab)
+                    .padding(.horizontal, DS.Space.screen)
                 VStack(alignment: .leading, spacing: DS.Space.section) {
-                    ImasFeatureCard(eyebrow: "次の出演 · 11月28日(土)", title: "15th ANNIVERSARY PARTY!!!! ~ for your ONE ~",
-                                    subtitle: "Kアリーナ横浜 · DAY1", seed: Sample.haruka)
-                    ImasSection("ライブ歌唱曲", count: "42曲") {
-                        ImasCardList {
-                            ImasRow(title: "THE IDOLM@STER", leading: .artwork(title: "THE IDOLM@STER", brand: Sample.as765),
-                                    trailing: .metric("71", unit: "回"), density: .compact)
-                            ImasRow(title: "READY!!", leading: .artwork(title: "READY!!", brand: Sample.as765),
-                                    trailing: .metric("56", unit: "回"), density: .compact)
+                    ImasStatGrid(columns: 3) {
+                        ImasStatTile(value: "89", unit: "回", label: "披露")
+                        ImasStatTile(value: "3", unit: "公演", label: "現地で回収", tappable: true)
+                        ImasStatTile(value: "2005", unit: "年", label: "初披露")
+                    }
+                    ImasSection("最近の披露", count: "89回") {
+                        ImasCardList(style: .plain) {
+                            ImasRow(title: "M@STERS OF IDOL WORLD 2025", subtitle: "12月13日(土) · 京セラドーム大阪",
+                                    leading: .bar(rainbow: true), trailing: .value("M24"), density: .compact)
+                            ImasRow(title: "765PRO ALLSTARS LIVE 20th", subtitle: "7月26日(土) · 横浜アリーナ",
+                                    leading: .bar(brand: Sample.as765), trailing: .value("M01"), density: .compact)
                                 .environment(\.imasRowPosition, .following)
                         }
                     }
                 }
                 .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.card)
             }
         }
-        .background(DS.bg)
-        .imasTheme(seed: Sample.haruka)
+        .background(DS.paper)
+        .environment(\.imasBackdrop, .paper)
+        .imasTheme(seed: nil, brand: Sample.as765)
     }
 }
 
-/// 頭の地 (実体色) をタイルの段にも続ける。
-private struct ImasThemeBackground: View {
-    @Environment(\.imasTheme) private var theme
-    var body: some View { theme.isNeutral ? DS.bg : theme.heroSurface }
+private struct IdolHeroPage: View {
+    let surface: ImasHero<EmptyView, EmptyView>.Surface
+    @State private var tab = 0
+    @State private var pick = true
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ImasHero(layout: .leading, surface: surface, eyebrow: "765PRO ALLSTARS", title: "天海春香",
+                         subtitle: "あまみ はるか · CV 中村繪里子",
+                         primary: .init(title: "出演ライブ", systemImage: "music.mic") {}) {
+                    EmptyView()
+                }
+                ImasMarkBar {
+                    ImasMarkTile(systemImage: pick ? "heart.fill" : "heart", label: "担当", isOn: pick) { pick.toggle() }
+                    ImasMarkTile(systemImage: "star", label: "お気に入り", isOn: false) {}
+                    ImasMarkTile(systemImage: "note.text", label: "メモ", isOn: false) {}
+                }
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, surface == .color ? DS.Space.card : 0)
+                .padding(.bottom, DS.Space.section)
+                ImasTabs(labels: ["ライブ", "楽曲", "プロフィール", "みんな"], selection: $tab)
+                    .padding(.horizontal, DS.Space.screen)
+                VStack(alignment: .leading, spacing: DS.Space.section) {
+                    ImasFeatureCard(eyebrow: "次の出演", title: "15th ANNIVERSARY PARTY!!!! ~ for your ONE ~",
+                                    subtitle: "11月28日(土) · Kアリーナ横浜 · DAY1", seed: Sample.haruka,
+                                    metric: .init(prefix: "あと", value: "58", unit: "日"), onOpen: {})
+                    ImasStatGrid(columns: 3) {
+                        ImasStatTile(value: "189", unit: "公演", label: "出演")
+                        ImasStatTile(value: "42", unit: "曲", label: "歌唱した曲")
+                        ImasStatTile(value: "12", unit: "公演", label: "一緒に参加", tappable: true)
+                    }
+                    ImasSection("ライブ歌唱曲", count: "42曲", seeAll: {}) {
+                        ImasCardList(style: .plain) {
+                            ImasRow(title: "THE IDOLM@STER", leading: .artwork(title: "THE IDOLM@STER", brand: Sample.as765, imageURL: Sample.Art.idolmaster),
+                                    trailing: .metric("71", unit: "回", emphasized: true), density: .compact)
+                            ImasRow(title: "READY!!", leading: .artwork(title: "READY!!", brand: Sample.as765, imageURL: Sample.Art.ready),
+                                    trailing: .metric("56", unit: "回", emphasized: true), density: .compact)
+                                .environment(\.imasRowPosition, .following)
+                            ImasRow(title: "太陽のジェラシー", leading: .artwork(title: "太陽のジェラシー", brand: Sample.as765, imageURL: Sample.Art.jealousy),
+                                    trailing: .metric("48", unit: "回", emphasized: true), density: .compact)
+                                .environment(\.imasRowPosition, .following)
+                        }
+                    }
+                }
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.top, DS.Space.card)
+            }
+        }
+        .background(DS.paper)
+        .environment(\.imasBackdrop, .paper)
+        .imasTheme(seed: Sample.haruka)
+    }
 }
 
 // MARK: - ハブ
 
 private struct HubPage: View {
+    let oshiSurface: ImasFeatureCard<EmptyView>.Surface
+
     var body: some View {
         ImasPage {
-            ImasFeatureCard(eyebrow: "担当", title: "花海咲季", subtitle: "学マス · CV 長月あおい", seed: Sample.saki,
-                            primary: .init(title: "出演ライブ", systemImage: "music.mic") {},
-                            secondary: .init(title: "詳細") {}) {
-                ImasAvatar(label: "咲季", size: 64, isPick: true)
-            }
-            ImasFeatureCard(eyebrow: "参加予定 · あと 37 日", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)",
+            ImasFeatureCard(eyebrow: "担当", title: "花海咲季", subtitle: "学マス · CV 長月あおい",
+                            seed: Sample.saki, surface: oshiSurface, onOpen: {})
+            ImasFeatureCard(eyebrow: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL)",
                             subtitle: "11月7日(土) · DAY1", brand: Sample.gakuen,
-                            primary: .init(title: "セトリを予想", systemImage: "sparkles") {},
+                            metric: .init(prefix: "あと", value: "37", unit: "日"),
+                            primary: .init(title: "セトリを予想する") {},
                             secondary: .init(title: "コールを見る") {})
-            ImasSection("あそぶ") {
-                VStack(spacing: DS.Space.gap) {
-                    ImasEntryCard(systemImage: "gamecontroller.fill", title: "クイズ・ゲーム", preview: "つづきから: 歌詞クイズ Q.02")
-                    ImasEntryCard(systemImage: "chart.bar.doc.horizontal", title: "みんなの投票", preview: "ハロウィンの日、仮装して事務所に来そうなアイドルは？")
-                }
+            ImasFeatureCard(eyebrow: "お題", title: "お化け屋敷に一緒に行きたいアイドルは？",
+                            subtitle: "42票 · 21候補", metric: .init(prefix: "あと", value: "28", unit: "日"),
+                            primary: .init(title: "投票する") {}, secondary: .init(title: "ほかのお題") {})
+            ImasShortcutGroup("あそぶ") {
+                ImasShortcutTile(systemImage: "play.fill", label: "つづきから", detail: "歌詞クイズ Q.02")
+                ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン")
+                ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ")
+                ImasShortcutTile(systemImage: "gamecontroller", label: "すべてのゲーム")
             }
-            ImasSection("記録") {
-                ImasStatGrid {
-                    ImasStatTile(systemImage: "music.mic", value: "24", unit: "公演", label: "参加したライブ", tappable: true)
-                    ImasStatTile(systemImage: "checkmark.seal.fill", value: "39", unit: "曲", label: "現地回収", tappable: true)
-                    ImasStatTile(systemImage: "yensign", value: "184,300", unit: "円", label: "今年の収支")
-                    ImasStatTile(systemImage: "star.fill", value: "112", unit: "件", label: "お気に入り")
+            ImasSection("あなたの記録") {
+                ImasStatGrid(columns: 4) {
+                    ImasStatTile(value: "24", label: "参加ライブ", tappable: true)
+                    ImasStatTile(value: "3", label: "予想", tappable: true)
+                    ImasStatTile(value: "112", label: "お気に入り", tappable: true)
+                    ImasStatTile(value: "12", label: "投稿", tappable: true)
+                    ImasStatTile(value: "5", label: "投票", tappable: true)
+                    ImasStatTile(value: "39", label: "回収", tappable: true)
+                    ImasStatTile(value: "18", label: "習熟度", tappable: true)
+                    ImasStatTile(value: "¥184,300", label: "収支", tappable: true)
                 }
             }
         }
@@ -507,7 +552,7 @@ private struct SetlistPage: View {
     var body: some View {
         ImasPage {
             ImasSection("セトリ", count: "24曲") {
-                ImasCardList {
+                ImasCardList(style: .plain) {
                     ImasSetlistRow(number: "M01", title: "THE IDOLM@STER",
                                    performers: [.init(id: "a", name: "天海春香", color: Sample.haruka),
                                                 .init(id: "b", name: "如月千早", color: Sample.chihaya),
@@ -515,7 +560,7 @@ private struct SetlistPage: View {
                                    badges: [.init(text: "全員", kind: .all)], facts: ["初披露"], isCollected: true)
                     ImasSetlistRow(number: "M02", title: "細氷",
                                    performers: [.init(id: "b", name: "如月千早", color: Sample.chihaya)],
-                                   badges: [.init(text: "ソロ", kind: .unit, seed: Sample.chihaya)], facts: ["12 回目"])
+                                   badges: [.init(text: "ソロ", kind: .unit)], facts: ["12 回目"])
                         .environment(\.imasRowPosition, .following)
                     ImasSetlistRow(number: "M03", title: "Thank You!", performerSummary: "MILLIONSTARS 13 人",
                                    badges: [.init(text: "カバー", kind: .cover)], facts: ["未回収"])
@@ -523,23 +568,23 @@ private struct SetlistPage: View {
                 }
             }
             ImasSection("機械予測", footer: "過去のセトリと出演者から計算した確率です。") {
-                ImasCardList {
-                    ImasForecastRow(rank: 1, title: "標", brand: Sample.gakuen, measure: .probability(0.82),
+                ImasCardList(style: .plain) {
+                    ImasForecastRow(rank: 1, title: "標", artworkURL: Sample.Art.shirube, brand: Sample.gakuen, measure: .probability(0.82),
                                     reasonLabel: "オリメン",
                                     performers: [.init(id: "s", name: "花海咲季", color: Sample.saki),
                                                  .init(id: "t", name: "月村手毬", color: "#3D5BA8"),
                                                  .init(id: "k", name: "藤田ことね", color: "#F5C900", isAbsent: true)])
-                    ImasForecastRow(rank: 2, title: "Fighting My Way", brand: Sample.gakuen, measure: .probability(0.64),
+                    ImasForecastRow(rank: 2, title: "Fighting My Way", artworkURL: Sample.Art.fightingMyWay, brand: Sample.gakuen, measure: .probability(0.64),
                                     reasonLabel: "理由", reason: "ソロの代表曲")
                         .environment(\.imasRowPosition, .following)
                 }
                 .imasTheme(seed: nil, brand: Sample.gakuen)
             }
             ImasSection("みんなの予想", count: "11票") {
-                ImasCardList {
-                    ImasForecastRow(rank: 1, title: "標", brand: Sample.gakuen, measure: .votes(5, share: 1),
+                ImasCardList(style: .plain) {
+                    ImasForecastRow(rank: 1, title: "標", artworkURL: Sample.Art.shirube, brand: Sample.gakuen, measure: .votes(5, share: 1),
                                     isMine: voted.contains(1)) { toggle(1) }
-                    ImasForecastRow(rank: 2, title: "初", brand: Sample.gakuen, measure: .votes(3, share: 0.6),
+                    ImasForecastRow(rank: 2, title: "初", artworkURL: Sample.Art.hajime, brand: Sample.gakuen, measure: .votes(3, share: 0.6),
                                     isMine: voted.contains(2)) { toggle(2) }
                         .environment(\.imasRowPosition, .following)
                 }
@@ -572,15 +617,15 @@ private struct ListTemplatePage: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             ImasListSection("2005年") {
-                ImasSongRow(title: "THE IDOLM@STER", subtitle: "765PRO ALLSTARS", brandHex: Sample.as765,
-                            trailing: .metric("89", unit: "回")) {
+                ImasSongRow(title: "THE IDOLM@STER", subtitle: "765PRO ALLSTARS", artworkURL: Sample.Art.idolmaster,
+                            brandHex: Sample.as765, trailing: .metric("89", unit: "回", emphasized: true)) {
                     HStack(spacing: DS.Space.gapTight) {
                         Text("7月26日").imasText(.meta)
                         ImasBadge(text: "回収 3", kind: .positive, systemImage: "checkmark")
                     }
                 }
-                ImasSongRow(title: "READY!!", subtitle: "765PRO ALLSTARS", brandHex: Sample.as765,
-                            trailing: .metric("56", unit: "回")) { EmptyView() }
+                ImasSongRow(title: "READY!!", subtitle: "765PRO ALLSTARS", artworkURL: Sample.Art.ready,
+                            brandHex: Sample.as765, trailing: .metric("56", unit: "回", emphasized: true)) { EmptyView() }
             }
             ImasListSection("ライブ") {
                 ImasShowRow(title: "DAY1", subtitle: "12月13日(土) · 京セラドーム大阪 · 17:00 開演", rainbow: true,
@@ -588,8 +633,7 @@ private struct ListTemplatePage: View {
                 ImasShowRow(title: "DAY2", subtitle: "12月14日(日) · 京セラドーム大阪 · 16:00 開演", rainbow: true)
             }
         }
-        .listStyle(.plain)
-        .imasForm()
+        .imasList()
     }
 }
 

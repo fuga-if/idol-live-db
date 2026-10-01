@@ -283,7 +283,7 @@ struct IdolDetailView: View {
     }
 
     private var segmentedBar: some View {
-        ImasSegmented(
+        ImasTabs(
             labels: ["ライブ", "楽曲", "プロフィール", "コミュニティ"],
             selection: $segment,
             seed: seed,

@@ -35,7 +35,7 @@ struct PollListView: View {
         // 親 (ProduceTabView) の NavigationStack 内に push される前提。
         // 自前 NavigationStack を持つとネストして、詳細 push 時に空画面がフラッシュするため持たない。
         VStack(spacing: 0) {
-                ImasSegmented(labels: ["開催中", "終了"], selection: $segmentIndex)
+                ImasTabs(labels: ["開催中", "終了"], selection: $segmentIndex)
                     .padding(.horizontal, DS.sp5)
                     .padding(.vertical, DS.sp3)
 

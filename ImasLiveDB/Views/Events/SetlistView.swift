@@ -378,7 +378,7 @@ struct SetlistView: View {
             // 予想と実セトリが両方あるときは内部タブで切替 (実セトリ確定後も予想を見られる)。
             if isFutureShow && !setlist.isEmpty {
                 Section {
-                    ImasSegmented(labels: ["セットリスト", "予想"], selection: $contentTab, seed: showBrandHex)
+                    ImasTabs(labels: ["セットリスト", "予想"], selection: $contentTab, seed: showBrandHex)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
                         .listRowSeparator(.hidden)

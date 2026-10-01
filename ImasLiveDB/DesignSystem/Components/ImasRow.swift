@@ -16,13 +16,13 @@ import SwiftUI
 /// 行の先頭に置けるもの。
 enum ImasRowLeading {
     case none
-    /// ライブ・公演のリードバー。
+    /// ライブ・公演・アイドルのリードバー (実体の色の細い帯)。
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
-    /// アイドルのアバター (40)。
+    /// アイドルの画像 (40)。画像が無ければリードバーにする (頭文字の丸は出さない)。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
     /// 曲のジャケ (48、compact は 40)。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
-    /// 記号の札 (32)。
+    /// 記号 (幅 28、地なし)。
     case icon(String, tone: ImasIconTile.Tone = .themed)
     /// 曲順・番号 (等幅)。
     case number(String)
@@ -107,10 +107,10 @@ struct ImasRow<Detail: View>: View {
     var body: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: DS.Space.gap))
-            : AnyLayout(HStackLayout(alignment: .center, spacing: DS.Space.rowGap))
+            : AnyLayout(HStackLayout(alignment: rowAlignment, spacing: DS.Space.rowGap))
 
         layout {
-            HStack(alignment: .center, spacing: DS.Space.rowGap) {
+            HStack(alignment: rowAlignment, spacing: DS.Space.rowGap) {
                 leadingView
                 textColumn
                     .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
@@ -130,6 +130,14 @@ struct ImasRow<Detail: View>: View {
         }
         // 余白は行が持つので、List・Form の中では List の余白を消す (二重に入らないように)。
         .listRowInsets(EdgeInsets())
+    }
+
+    /// 曲順・順位は題の 1 行目に揃える (セトリの紙と同じ)。ほかは行の中央。
+    private var rowAlignment: VerticalAlignment {
+        switch leading {
+        case .number, .rank: return .firstTextBaseline
+        default: return .center
+        }
     }
 
     // MARK: 本文
@@ -168,11 +176,16 @@ struct ImasRow<Detail: View>: View {
             ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
                 .frame(height: 36)
         case let .avatar(label, seed, brand, url, isPick):
-            ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
+            if let url {
+                ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
+            } else {
+                ImasLeadBar(seed: seed, brand: brand)
+                    .frame(height: 36)
+            }
         case let .artwork(title, seed, brand, url):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
         case let .icon(name, tone):
-            ImasIconTile(systemImage: name, size: .s32, tone: tone)
+            ImasIconTile(systemImage: name, size: .s28, tone: tone)
         case let .number(text):
             Text(text)
                 .font(ImasNumeralSize.small.font)
@@ -192,9 +205,10 @@ struct ImasRow<Detail: View>: View {
         switch leading {
         case .none: return 0
         case .bar: return DS.Size.leadBar
-        case .avatar: return density.avatarSize + ImasAvatar.ringPadding * 2
+        case let .avatar(_, _, _, url, _):
+            return url == nil ? DS.Size.leadBar : density.avatarSize + ImasAvatar.ringPadding * 2
         case .artwork: return density.artworkSize
-        case .icon: return ImasIconTile.Size.s32.rawValue
+        case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30
         case .rank: return ImasRankNumber.width
         case .selection: return 24
@@ -255,17 +269,15 @@ struct ImasRowChevron: View {
     }
 }
 
-/// 順位の数字。1〜3 位は実体色、それ以外は薄灰。
+/// 順位の数字。1〜3 位は墨、それ以外は薄灰 (色で順位を飾らない)。
 struct ImasRankNumber: View {
     let rank: Int
     static let width: CGFloat = 28
 
-    @Environment(\.imasTheme) private var theme
-
     var body: some View {
         Text("\(rank)")
-            .font(Font.imasScaled(18, weight: .heavy).width(.condensed).monospacedDigit())
-            .foregroundStyle(rank <= 3 ? (theme.isNeutral ? DS.ink : theme.accent) : DS.ink3)
+            .font(Font.imasScaled(20, weight: .heavy).width(.compressed).monospacedDigit())
+            .foregroundStyle(rank <= 3 ? DS.ink : DS.ink3)
             .frame(width: Self.width)
             .accessibilityLabel("\(rank)位")
     }
@@ -288,18 +300,18 @@ extension ButtonStyle where Self == ImasRowButtonStyle {
 // MARK: - カードに行を並べる
 
 extension ImasCardList {
-    /// 行をカードに入れ、2 行目以降の上に区切り線を引く (線は行が本文の頭から引く)。
+    /// 行を並べ、2 行目以降の上に区切り線を引く (線は行が本文の頭から引く)。
     init<Data: RandomAccessCollection, ID: Hashable, Row: View>(
-        _ data: Data, id: KeyPath<Data.Element, ID>,
+        _ data: Data, id: KeyPath<Data.Element, ID>, style: Style = .panel,
         @ViewBuilder row: @escaping (Data.Element) -> Row
     ) where Content == ImasCardListRows<Data, ID, Row> {
-        self.init { ImasCardListRows(data: data, id: id, row: row) }
+        self.init(style: style) { ImasCardListRows(data: data, id: id, row: row) }
     }
 
     init<Data: RandomAccessCollection, Row: View>(
-        _ data: Data, @ViewBuilder row: @escaping (Data.Element) -> Row
+        _ data: Data, style: Style = .panel, @ViewBuilder row: @escaping (Data.Element) -> Row
     ) where Data.Element: Identifiable, Content == ImasCardListRows<Data, Data.Element.ID, Row> {
-        self.init { ImasCardListRows(data: data, id: \.id, row: row) }
+        self.init(style: style) { ImasCardListRows(data: data, id: \.id, row: row) }
     }
 }
 
@@ -324,7 +336,7 @@ struct ImasCardListRows<Data: RandomAccessCollection, ID: Hashable, Row: View>: 
 struct ImasValueRow: View {
     let key: String
     let value: String
-    /// 値が押せる (別画面へ行く・外へ飛ぶ) とき。値を実体色にして矢印を出す。
+    /// 値が押せる (別画面へ行く・外へ飛ぶ) とき。矢印を出す (値の色は変えない)。
     var isLink: Bool = false
     /// 長い値を開閉できるようにする (省略されているときだけ開閉が出る)。
     var expandable: Bool = false
@@ -332,7 +344,6 @@ struct ImasValueRow: View {
     var monospaced: Bool = false
     var copyable: Bool = true
 
-    @Environment(\.imasTheme) private var theme
     @Environment(\.imasRowPosition) private var position
     @State private var expanded = false
     @State private var isTruncated = false
@@ -348,7 +359,7 @@ struct ImasValueRow: View {
             Spacer(minLength: DS.Space.rowGap)
             Text(value)
                 .font(monospaced ? ImasTextRole.value.font.monospacedDigit() : ImasTextRole.value.font)
-                .foregroundStyle(isLink ? (theme.isNeutral ? DS.ink : theme.accent) : DS.ink)
+                .foregroundStyle(DS.ink)
                 .lineLimit(expandable && expanded ? nil : 1)
                 .multilineTextAlignment(.trailing)
                 .background(TruncationProbe(text: value, isTruncated: $isTruncated, enabled: expandable))
@@ -413,8 +424,10 @@ struct ImasNavRow: View {
     let title: String
     var subtitle: String? = nil
     var systemImage: String? = nil
-    var iconTone: ImasIconTile.Tone = .neutral
+    var iconTone: ImasIconTile.Tone = .solid
     var value: String? = nil
+    /// 押してから外へ飛ぶまでの待ち。矢印をくるくるに替える。
+    var isLoading: Bool = false
 
     var body: some View {
         ImasRow(
@@ -426,7 +439,11 @@ struct ImasNavRow: View {
                     if let value {
                         Text(value).imasText(.value).foregroundStyle(DS.ink2).lineLimit(1)
                     }
-                    ImasRowChevron()
+                    if isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        ImasRowChevron()
+                    }
                 }
             )),
             density: .compact,
@@ -467,7 +484,6 @@ struct ImasActionRow: View {
     var kind: Kind = .standard
     let action: () -> Void
 
-    @Environment(\.imasTheme) private var theme
     @Environment(\.imasRowPosition) private var position
 
     var body: some View {
@@ -478,7 +494,7 @@ struct ImasActionRow: View {
                 Spacer(minLength: 0)
             }
             .font(ImasTextRole.rowLabel.font)
-            .foregroundStyle(kind == .destructive ? DS.danger : (theme.isNeutral ? DS.ink : theme.accent))
+            .foregroundStyle(kind == .destructive ? DS.danger : DS.ink)
             .padding(.horizontal, DS.Space.rowH)
             .frame(maxWidth: .infinity, minHeight: DS.Size.touch, alignment: .leading)
             .contentShape(Rectangle())

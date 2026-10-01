@@ -88,8 +88,11 @@ struct ImasEmptyState: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ImasIconTile(systemImage: systemImage, size: .s56, tone: .themed, seed: seed, brand: brand)
-                .padding(.bottom, DS.Space.gapLoose + 2)
+            Image(systemName: systemImage)
+                .font(.imasScaled(32, weight: .light))
+                .foregroundStyle(DS.ink3)
+                .accessibilityHidden(true)
+                .padding(.bottom, DS.Space.gapLoose)
             Text(title)
                 .imasText(.cardTitle)
                 .multilineTextAlignment(.center)
@@ -183,15 +186,9 @@ struct ImasNotice: View {
             }
         }
 
-        var fill: Color {
-            switch self {
-            case .info: return DS.fill
-            case .warning: return DS.warning.opacity(0.12)
-            case .error: return DS.danger.opacity(0.10)
-            case .success: return DS.success.opacity(0.12)
-            }
-        }
     }
+
+    @Environment(\.imasBackdrop) private var backdrop
 
     let kind: Kind
     var title: String? = nil
@@ -222,7 +219,8 @@ struct ImasNotice: View {
             Spacer(minLength: 0)
         }
         .padding(DS.Space.gapLoose + 2)
-        .background(kind.fill, in: RoundedRectangle(cornerRadius: DS.rInner + 4, style: .continuous))
+        // 地は面の色。意味の色は記号だけに出す (色の地も、カードの縁の色の帯も敷かない)。
+        .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rControl(50), style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -233,6 +231,7 @@ struct ImasNotice: View {
 struct ImasSignInPrompt: View {
     var message: String = "投稿・投票にはログインが必要です"
     @State private var showLogin = false
+    @Environment(\.imasBackdrop) private var backdrop
 
     var body: some View {
         if !AuthService.shared.isSignedIn {
@@ -253,7 +252,7 @@ struct ImasSignInPrompt: View {
             }
             .padding(.horizontal, DS.Space.rowH)
             .padding(.vertical, DS.Space.gapLoose)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+            .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
             .sheet(isPresented: $showLogin) { LoginToEditSheet() }
         }
     }

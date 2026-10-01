@@ -119,7 +119,7 @@ struct UnitDetailView: View {
     }
 
     private var segmentedBar: some View {
-        ImasSegmented(
+        ImasTabs(
             labels: ["楽曲", "メンバー", "コミュニティ"],
             selection: $segment,
             seed: nil,

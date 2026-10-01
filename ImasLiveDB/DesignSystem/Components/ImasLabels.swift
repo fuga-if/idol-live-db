@@ -4,37 +4,39 @@ import SwiftUI
 // 札と数字 (docs/DESIGN_SYSTEM.md §10.1・§10.2)
 //
 // ImasBadge   状態の札 (押せない)。セトリの役割・参加済・受付中・NEW など。
-//             高さ 20 のカプセル、11pt 太字。押せるものには使わない (押せるならチップ)。
+//             高さ 20 の角の小さい四角 (角丸 4)、11pt 太字。押せるものには使わない。
+//             色で意味を分けない: 灰 (分類) / 墨 (自分の記録・主演) / 赤 (新着) / 線 (注意) の 4 つだけ。
+//             札ごとに色を変えると淡い色の札が並ぶ「よくある見た目」になる。意味は文字が言う。
 // ImasMetric  数字 + 単位。数字はステージと同じ「細長い太字・等幅」。
 // =============================================================================
 
 struct ImasBadge: View {
     enum Kind: Hashable {
-        // セトリの役割
-        /// ユニット曲 (実体色の淡い地)。
+        // セトリの役割 (分類なので灰)
+        /// ユニット曲。
         case unit
-        /// 全員 (灰)。
+        /// 全員。
         case all
-        /// カバー (担当色の系統)。
+        /// カバー。
         case cover
-        /// 一部のメンバー (注意色)。
+        /// 一部のメンバー。
         case partial
-        /// 主演 (実体色の塗り)。
+        /// 主演 (墨)。
         case lead
-        /// ゲスト (線だけ)。
+        /// ゲスト (線)。
         case guest
         // 状態
-        /// 参加済・当選・回収。
+        /// 参加済・当選・回収 (墨。自分の記録)。
         case positive
-        /// 受付中・締切間近・下書き。
+        /// 受付中・締切間近・下書き (墨の線)。
         case attention
-        /// 落選・中止・差し戻し。
+        /// 落選・中止・差し戻し (灰の薄字)。
         case negative
-        /// 終了・未定・配信・LV。
+        /// 終了・未定・配信・LV (灰)。
         case neutral
-        /// 新着 (実体色の塗り)。
+        /// 新着 (赤)。
         case new
-        /// 実体色の淡い札 (タグの票数など、色で所属を示したい数)。
+        /// 実体の色の線 (タグの票数など、色で所属を示したい数)。
         case themed
     }
 
@@ -50,31 +52,32 @@ struct ImasBadge: View {
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
         let s = style(t)
+        let shape = RoundedRectangle(cornerRadius: DS.rTag, style: .continuous)
         HStack(spacing: 3) {
             if let systemImage {
-                Image(systemName: systemImage).font(.imasScaled(9, weight: .bold))
+                Image(systemName: systemImage).font(.imasScaled(9, weight: .heavy))
             }
             Text(text).font(ImasTextRole.badge.font).monospacedDigit()
         }
         .lineLimit(1)
-        .padding(.horizontal, 7)
+        .padding(.horizontal, 6)
         .frame(minHeight: DS.Size.badge)
         .foregroundStyle(s.fg)
-        .background(s.bg, in: Capsule())
-        .overlay { if let stroke = s.stroke { Capsule().strokeBorder(stroke, lineWidth: 1) } }
+        .background(s.bg, in: shape)
+        .overlay { if let stroke = s.stroke { shape.strokeBorder(stroke, lineWidth: 1) } }
     }
 
     private func style(_ t: ImasTheme) -> (bg: Color, fg: Color, stroke: Color?) {
-        let accent: Color = t.isNeutral ? DS.sys : t.accent
         switch kind {
-        case .unit, .themed: return (accent.opacity(0.13), accent, nil)
-        case .all, .neutral: return (DS.fill, DS.ink2, nil)
-        case .cover: return (DS.pick.opacity(0.14), DS.pick, nil)
-        case .partial, .attention: return (DS.warning.opacity(0.16), DS.warning, nil)
-        case .lead, .new: return (t.actionFill, t.onActionFill, nil)
-        case .guest: return (.clear, DS.ink2, DS.ink3)
-        case .positive: return (DS.success.opacity(0.16), DS.successInk, nil)
-        case .negative: return (DS.danger.opacity(0.14), DS.danger, nil)
+        case .unit, .all, .cover, .partial, .neutral: return (DS.fill, DS.ink2, nil)
+        case .lead, .positive: return (DS.sys, DS.onSys, nil)
+        case .new: return (DS.danger, .white, nil)
+        case .attention: return (.clear, DS.ink, DS.ink)
+        case .guest: return (.clear, DS.ink2, DS.line)
+        case .negative: return (DS.fill, DS.ink3, nil)
+        case .themed:
+            let c: Color = t.isNeutral ? DS.ink : t.accent
+            return (.clear, c, c.opacity(0.55))
         }
     }
 }
@@ -84,16 +87,14 @@ struct ImasMetric: View {
     let value: String
     var unit: String? = nil
     var size: ImasNumeralSize = .medium
-    /// 実体色で強調する (1〜3 位など特別な少数だけ)。
+    /// 強調する (1〜3 位・0 でない値など)。強調は墨、そうでなければ灰。色では飾らない。
     var emphasized: Bool = false
-
-    @Environment(\.imasTheme) private var theme
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             Text(value)
                 .font(size.font)
-                .foregroundStyle(emphasized ? (theme.isNeutral ? DS.ink : theme.accent) : DS.ink)
+                .foregroundStyle(emphasized || size == .large ? DS.ink : DS.ink2)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             if let unit, !unit.isEmpty {
@@ -117,13 +118,13 @@ struct ImasProportionLine: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(DS.fill)
-                Capsule()
-                    .fill(theme.isNeutral ? DS.ink3 : theme.bar)
-                    .frame(width: max(3, geo.size.width * min(1, max(0, fraction))))
+                Rectangle().fill(DS.fill)
+                Rectangle()
+                    .fill(theme.isNeutral ? DS.ink : theme.bar)
+                    .frame(width: max(2, geo.size.width * min(1, max(0, fraction))))
             }
         }
-        .frame(height: 3)
+        .frame(height: 2)
         .accessibilityHidden(true)
     }
 }

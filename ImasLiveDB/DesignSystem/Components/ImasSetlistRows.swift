@@ -71,9 +71,9 @@ struct ImasSetlistRow: View {
     }
 
     private var collectedMark: some View {
-        Image(systemName: "checkmark.circle.fill")
-            .font(.imasScaled(18, weight: .semibold))
-            .foregroundStyle(DS.success)
+        Image(systemName: "checkmark")
+            .font(.imasScaled(15, weight: .bold))
+            .foregroundStyle(DS.ink)
             .accessibilityLabel("回収済み")
     }
 }
@@ -116,8 +116,8 @@ struct ImasForecastRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
-                .padding(.top, 12)
-            ImasArtwork(title: title, seed: nil, brand: brand, size: 48, imageURL: artworkURL)
+                .padding(.top, 10)
+            ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
                     Text(title)

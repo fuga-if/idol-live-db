@@ -6,7 +6,8 @@ import SwiftUI
 // ImasSection        見出し + 中身 + 補足文。ScrollView の画面で縦に並べる単位。
 // ImasSectionHeader  見出し。大 (詳細・ハブ) と小 (一覧・設定・フォーム・カードの中)。
 // ImasCard           行でない中身を 1 枚の面にまとめる。
-// ImasCardList       行をカードに入れる (区切り線は行が持つ)。
+// ImasCardList       行を並べる。紙面にそのまま並べる (plain) か、面に入れる (panel)。
+//                    区切り線は行が持つ。
 // ImasNote           補足文。囲まない。
 // ImasRowDivider     行の間の線。行の部品が使う (画面では書かない)。
 // =============================================================================
@@ -54,9 +55,8 @@ struct ImasSectionHeader: View {
                 .lineLimit(2)
             if let count {
                 Text(count)
-                    .font(style == .large ? .imasFootnote.weight(.semibold) : .imasCaption)
+                    .font(style == .large ? ImasNumeralSize.small.font : .imasCaption)
                     .foregroundStyle(DS.ink3)
-                    .monospacedDigit()
             }
             Spacer(minLength: DS.Space.gapLoose)
             if let seeAll {
@@ -115,8 +115,8 @@ struct ImasSection<Content: View>: View {
     }
 }
 
-/// 区画を縦に並べる画面の本体 (詳細・ハブ・ダッシュボード)。背景・左右の余白・区画どうしの間隔・
-/// 広い画面での本文幅を持つ。
+/// 区画を縦に並べる画面の本体 (詳細・ハブ・ダッシュボード)。白い紙面・左右の余白・区画どうしの
+/// 間隔・広い画面での本文幅を持つ。中の部品には「紙面の上」(`.paper`) を伝える。
 struct ImasPage<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -129,7 +129,8 @@ struct ImasPage<Content: View>: View {
             .padding(.top, DS.Space.gapLoose)
             .padding(.bottom, DS.Space.section)
         }
-        .background(DS.bg)
+        .background(DS.paper)
+        .environment(\.imasBackdrop, .paper)
         .readableContentMargins()
     }
 }
@@ -139,11 +140,11 @@ struct ImasPage<Content: View>: View {
 /// 行でない中身を 1 枚の面にまとめる。
 struct ImasCard<Content: View>: View {
     enum Style {
-        /// 白 (ダークは濃灰) の面。
+        /// 地の上の面 (紙面なら灰、灰の地なら白)。
         case standard
-        /// 実体色のごく薄い地 (`heroSurface`)。次の出演・担当など、その実体の主役。
+        /// 旧名。色の地は敷かなくなったので `standard` と同じ。
         case tinted
-        /// カードの中の囲み (`surface2`)。
+        /// カードの中の囲み (面の中の、地と同じ色の窓)。
         case inset
     }
 
@@ -151,7 +152,7 @@ struct ImasCard<Content: View>: View {
     var padding: CGFloat = DS.Space.card
     @ViewBuilder var content: Content
 
-    @Environment(\.imasTheme) private var theme
+    @Environment(\.imasBackdrop) private var backdrop
 
     var body: some View {
         content
@@ -164,22 +165,44 @@ struct ImasCard<Content: View>: View {
 
     private var fill: Color {
         switch style {
-        case .standard: return DS.surface
-        case .tinted: return theme.isNeutral ? DS.surface : theme.heroSurface
-        case .inset: return DS.surface2
+        case .standard, .tinted: return DS.surface(on: backdrop)
+        case .inset: return backdrop == .paper ? DS.paper : DS.surface2
         }
     }
 }
 
-/// 行をカードに入れる。中の行は左揃え・幅いっぱい。区切り線は行の部品が持つ。
+/// 行を並べる。中の行は左揃え・幅いっぱい。区切り線は行の部品が持つ。
 struct ImasCardList<Content: View>: View {
+    enum Style {
+        /// 面に入れる (紙面なら灰の面、灰の地なら白い面)。入口・設定・カードの中の短い一覧。
+        case panel
+        /// 紙面にそのまま並べる。行は画面の端から端まで、線は本文の頭から右の端まで。
+        /// 曲・ライブ・アイドルなど「もの」の一覧 (`ImasPage` の中でだけ使う)。
+        case plain
+    }
+
+    var style: Style = .panel
     @ViewBuilder var content: Content
 
+    @Environment(\.imasBackdrop) private var backdrop
+
+    init(style: Style = .panel, @ViewBuilder content: () -> Content) {
+        self.style = style
+        self.content = content()
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) { content }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
-            .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        switch style {
+        case .panel:
+            VStack(alignment: .leading, spacing: 0) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        case .plain:
+            VStack(alignment: .leading, spacing: 0) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, -DS.Space.screen)
+        }
     }
 }
 
