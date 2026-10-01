@@ -51,7 +51,7 @@ struct UnitTagDetailView: View {
                 }
 
                 if !detail.units.isEmpty {
-                    ImasListSection(title: "「\(detail.tag.name)」なユニットランキング（\(detail.units.count)組）") {
+                    ImasListSection("「\(detail.tag.name)」なユニットランキング（\(detail.units.count)組）") {
                         ForEach(Array(detail.units.enumerated()), id: \.element.id) { idx, entry in
                             unitRankRow(entry: entry, rank: idx + 1)
                         }

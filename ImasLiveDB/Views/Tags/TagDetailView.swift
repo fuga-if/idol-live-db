@@ -52,7 +52,7 @@ struct TagDetailView: View {
                 // 付いた曲セクション
                 if !detail.songs.isEmpty {
                     // 「このタグが一番多く付いた曲」ランキング (票数降順)。順位バッジ + 票数。
-                    ImasListSection(title: "「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
+                    ImasListSection("「\(detail.tag.name)」な曲ランキング（\(detail.songs.count)曲）") {
                         ForEach(Array(detail.songs.enumerated()), id: \.element.id) { idx, entry in
                             songRankRow(entry: entry, rank: idx + 1)
                         }

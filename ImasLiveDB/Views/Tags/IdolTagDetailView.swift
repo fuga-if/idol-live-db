@@ -51,7 +51,7 @@ struct IdolTagDetailView: View {
                 }
 
                 if !detail.idols.isEmpty {
-                    ImasListSection(title: "「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
+                    ImasListSection("「\(detail.tag.name)」なアイドルランキング（\(detail.idols.count)人）") {
                         ForEach(Array(detail.idols.enumerated()), id: \.element.id) { idx, entry in
                             idolRankRow(entry: entry, rank: idx + 1)
                         }

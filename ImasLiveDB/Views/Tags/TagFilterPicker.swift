@@ -32,7 +32,7 @@ struct TagFilterPicker: View {
         NavigationStack {
             List {
                 if !selected.isEmpty {
-                    ImasListSection(title: "選択中 (\(selected.count)) — すべてを含む曲に絞り込み") {
+                    ImasListSection("選択中 (\(selected.count)) — すべてを含む曲に絞り込み") {
                         ImasChipRow {
                             ForEach(selected) { tag in
                                 ImasRemovableChip(text: tag.name, seed: tag.color?.rawValue) { toggle(tag) }
@@ -42,7 +42,7 @@ struct TagFilterPicker: View {
                     }
                     .listRowInsets(EdgeInsets())
                 }
-                ImasListSection(title: query.isEmpty ? "人気タグランキング" : "検索結果") {
+                ImasListSection(query.isEmpty ? "人気タグランキング" : "検索結果") {
                     if isLoading {
                         ImasInlineLoading()
                             .listRowBackground(Color.clear)
