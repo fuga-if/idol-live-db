@@ -51,223 +51,138 @@ struct SongFilterView: View {
         NavigationStack {
             List {
                 // 表示形式
-                Section("表示形式") {
-                    Picker("表示", selection: $listMode) {
-                        Label("楽曲", systemImage: "music.note.list").tag(SongListMode.songs)
-                        Label("アルバム", systemImage: "square.grid.2x2").tag(SongListMode.albums)
-                        Label("シリーズ", systemImage: "rectangle.stack").tag(SongListMode.series)
+                ImasListSection("表示形式") {
+                    ImasSegmented(options: SongListMode.allCases, selection: $listMode) { mode in
+                        switch mode {
+                        case .songs: "楽曲"
+                        case .albums: "アルバム"
+                        case .series: "シリーズ"
+                        }
                     }
-                    .pickerStyle(.segmented)
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.vertical, DS.Space.gap)
 
                     if listMode == .songs {
-                        Picker("現地回収", selection: $collectFilter) {
-                            ForEach(SongCollectFilter.allCases, id: \.rawValue) { c in
-                                Text(c.rawValue).tag(c)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        ImasSegmented(options: SongCollectFilter.allCases, selection: $collectFilter) { $0.rawValue }
+                            .padding(.horizontal, DS.Space.rowH)
+                            .padding(.vertical, DS.Space.gap)
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 if listMode == .songs {
-                    Section {
-                        Toggle(isOn: $myMarkFilter.requireMyPick) {
-                            Label("担当アイドルの曲のみ", systemImage: "heart.fill")
-                                .foregroundStyle(DS.pick)
-                        }
-                        Toggle(isOn: $myMarkFilter.requireFavorite) {
-                            Label("お気に入りのみ", systemImage: "star.fill")
-                                .foregroundStyle(DS.favorite)
-                        }
-                        Toggle(isOn: $myMarkFilter.requireNote) {
-                            Label("メモがある曲のみ", systemImage: "note.text")
-                                .foregroundStyle(DS.warning)
-                        }
-                    } header: {
-                        Text("マイマーク")
-                    } footer: {
-                        Text("チェック ON で AND 条件絞り込み")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
+                    ImasListSection("マイマーク", footer: "チェック ON で AND 条件絞り込み") {
+                        ImasToggleRow(title: "担当アイドルの曲のみ", systemImage: "heart.fill", isOn: $myMarkFilter.requireMyPick)
+                        ImasToggleRow(title: "お気に入りのみ", systemImage: "star.fill", isOn: $myMarkFilter.requireFavorite)
+                        ImasToggleRow(title: "メモがある曲のみ", systemImage: "note.text", isOn: $myMarkFilter.requireNote)
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                 }
 
                 if listMode == .songs, LyricsFeature.isAvailable {
-                    Section {
-                        Toggle(isOn: $callGuideOnly) {
-                            Label("コールガイドがある曲のみ", systemImage: "hands.clap.fill")
-                        }
-                    } header: {
-                        Text("コールガイド")
-                    } footer: {
-                        Text("歌詞の行にコール・手拍子が書き込まれている曲だけを表示します (通信が必要)。")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
+                    ImasListSection("コールガイド",
+                                    footer: "歌詞の行にコール・手拍子が書き込まれている曲だけを表示します (通信が必要)。") {
+                        ImasToggleRow(title: "コールガイドがある曲のみ", systemImage: "hands.clap.fill", isOn: $callGuideOnly)
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                 }
 
                 // ソート
-                Section("並び順") {
-                    Picker("ソート", selection: $sortOrder) {
-                        ForEach(SongSortOrder.allCases, id: \.rawValue) { order in
-                            Text(order.rawValue).tag(order)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    // 方向 toggle (Binding<Bool> に橋渡し: nil なら sortOrder の default を表示値とする)
-                    Picker("方向", selection: Binding(
-                        get: { sortAscending ?? sortOrder.defaultAscending },
-                        set: { sortAscending = $0 }
-                    )) {
-                        Label("昇順", systemImage: "arrow.up").tag(true)
-                        Label("降順", systemImage: "arrow.down").tag(false)
-                    }
-                    .pickerStyle(.segmented)
+                ImasListSection("並び順") {
+                    ImasMenuRow(title: "並び順", options: SongSortOrder.allCases, selection: $sortOrder) { $0.rawValue }
+                    sortDirectionRow
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // ブランド
                 BrandFilterSection(brands: brands, selectedBrandIds: $selectedBrandIds)
 
-                Section {
-                    Toggle(isOn: $excludeLiveOnly) {
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            Text("ライブ限定曲を隠す")
-                            Text("セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON")
-                                .font(.imasCaption).foregroundStyle(DS.ink3)
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-
-                    Toggle(isOn: $showOtherBrand) {
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            Text("「その他」を表示")
-                            Text("歌枠で歌っただけのカバー等。既定では隠しています")
-                                .font(.imasCaption).foregroundStyle(DS.ink3)
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                ImasListSection {
+                    ImasToggleRow(title: "ライブ限定曲を隠す",
+                                 subtitle: "セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON",
+                                 isOn: $excludeLiveOnly)
+                    ImasToggleRow(title: "「その他」を表示",
+                                 subtitle: "歌枠で歌っただけのカバー等。既定では隠しています",
+                                 isOn: $showOtherBrand)
                 }
 
                 if listMode == .songs {
-                    Section {
-                        Toggle(isOn: $kamisabiOnly) {
-                            // 収録はカタログの事実、所持 (UserMarkKind.owned) はユーザーのマーク。
-                            // 別物なので同じ記号 (shippingbox) を流用しない。
-                            Label("KAMISABI収録曲のみ", systemImage: "suit.club.fill")
-                        }
-                    } header: {
-                        Text("KAMISABI")
-                    } footer: {
-                        Text("音楽カードゲーム「KAMISABI」にカードが収録されている曲だけを表示します。")
-                            .font(.imasCaption)
-                            .foregroundStyle(DS.ink3)
+                    ImasListSection("KAMISABI",
+                                    footer: "音楽カードゲーム「KAMISABI」にカードが収録されている曲だけを表示します。") {
+                        // 収録はカタログの事実、所持 (UserMarkKind.owned) はユーザーのマーク。
+                        // 別物なので同じ記号 (shippingbox) を流用しない。
+                        ImasToggleRow(title: "KAMISABI収録曲のみ", systemImage: "suit.club.fill", isOn: $kamisabiOnly)
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                 }
 
                 // 曲タイプ
-                Section("曲タイプ") {
+                ImasListSection("曲タイプ") {
                     songTypePicker
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.vertical, DS.Space.gap)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // アイドル選択
-                Section("アイドル") {
+                ImasListSection("アイドル") {
                     Button {
                         showIdolPicker = true
                     } label: {
-                        HStack {
+                        HStack(alignment: .top, spacing: DS.Space.rowGap) {
                             if selectedIdolIds.isEmpty {
-                                Text("選択なし")
-                                    .foregroundStyle(DS.ink2)
+                                Text("選択なし").imasText(.value, color: DS.ink2)
                             } else {
-                                let names = selectedIdolNames
-                                FlowLayout(spacing: DS.sp2) {
-                                    ForEach(names, id: \.self) { name in
-                                        Text(name)
-                                            .font(.imasCaption)
-                                            .padding(.horizontal, DS.sp3)
-                                            .padding(.vertical, DS.sp2)
-                                            .background(DS.fill)
-                                            .clipShape(Capsule())
+                                ImasChipFlow {
+                                    ForEach(selectedIdolNames, id: \.self) { name in
+                                        ImasChip(text: name, style: .neutral)
                                     }
                                 }
                             }
-                            Spacer()
+                            Spacer(minLength: DS.Space.gap)
                             ImasRowChevron()
                         }
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.vertical, DS.Space.rowV)
+                        .frame(minHeight: DS.Size.touch)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.imasRow)
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // 作詞・作曲・編曲
-                Section("作詞 / 作曲 / 編曲者") {
-                    TextField("名前を入力", text: $songwriterText)
-                        .textFieldStyle(.plain)
+                ImasListSection("作詞 / 作曲 / 編曲者") {
+                    ImasTextFieldRow(title: "名前", text: $songwriterText, prompt: "名前を入力")
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // シリーズ (series_group: LTF / BRILLI@NT WING 等)
-                Section("シリーズ") {
+                ImasListSection("シリーズ") {
                     NavigationLink {
                         ListPickerView(title: "シリーズ", items: seriesGroupList, selected: $selectedSeriesGroup)
                     } label: {
-                        Text(selectedSeriesGroup ?? "選択なし")
-                            .foregroundStyle(selectedSeriesGroup == nil ? DS.ink2 : DS.ink)
+                        ImasNavRow(title: "シリーズ", value: selectedSeriesGroup ?? "選択なし")
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // CDシリーズ
-                Section("CDシリーズ") {
+                ImasListSection("CDシリーズ") {
                     NavigationLink {
                         ListPickerView(title: "CDシリーズ", items: cdSeriesList, selected: $selectedCdSeries)
                     } label: {
-                        Text(selectedCdSeries ?? "選択なし")
-                            .foregroundStyle(selectedCdSeries == nil ? DS.ink2 : DS.ink)
+                        ImasNavRow(title: "CDシリーズ", value: selectedCdSeries ?? "選択なし")
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // ライブ名
-                Section("ライブで絞込") {
+                ImasListSection("ライブで絞込") {
                     NavigationLink {
                         ListPickerView(title: "ライブ", items: eventNames, selected: $selectedEventName)
                     } label: {
-                        Text(selectedEventName ?? "選択なし")
-                            .foregroundStyle(selectedEventName == nil ? DS.ink2 : DS.ink)
+                        ImasNavRow(title: "ライブ", value: selectedEventName ?? "選択なし")
                     }
                 }
-                .listRowBackground(DS.surface)
-                .listRowSeparatorTint(DS.sep)
 
                 // リセット
                 if hasActiveFilters {
-                    Section {
-                        Button(role: .destructive) {
+                    ImasListSection {
+                        ImasActionRow(title: "すべてリセット", systemImage: "arrow.counterclockwise", kind: .destructive) {
                             resetAll()
-                        } label: {
-                            Label("すべてリセット", systemImage: "arrow.counterclockwise")
                         }
                     }
-                    .listRowBackground(DS.surface)
-                    .listRowSeparatorTint(DS.sep)
                 }
             }
             .imasFilterSheetChrome()
@@ -296,28 +211,37 @@ struct SongFilterView: View {
         }
     }
 
+    /// 並び順の方向 (昇順・降順)。
+    private var sortDirectionRow: some View {
+        HStack {
+            Text("方向").imasText(.rowLabel)
+            Spacer(minLength: DS.Space.gap)
+            ImasSegmented(options: [true, false], selection: Binding(
+                get: { sortAscending ?? sortOrder.defaultAscending },
+                set: { sortAscending = $0 }
+            )) { $0 ? "昇順" : "降順" }
+        }
+        .padding(.horizontal, DS.Space.rowH)
+        .padding(.vertical, DS.Space.rowVCompact)
+        .frame(minHeight: DS.Size.touch)
+    }
+
     // MARK: - Song Type Picker
 
     private var songTypePicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                songTypeChip(value: nil, label: "全て")
-                // 絞り込みは今までどおり先頭の 3 種 (ソロ / ユニット / 全体曲)。語はコアの vocabulary。
-                ForEach(Vocab.table.songTypes.prefix(3), id: \.value) { term in
-                    songTypeChip(value: term.value, label: term.shortLabel)
-                }
+        ImasChipRow {
+            songTypeChip(value: nil, label: "全て")
+            // 絞り込みは今までどおり先頭の 3 種 (ソロ / ユニット / 全体曲)。語はコアの vocabulary。
+            ForEach(Vocab.table.songTypes.prefix(3), id: \.value) { term in
+                songTypeChip(value: term.value, label: term.shortLabel)
             }
         }
     }
 
     private func songTypeChip(value: String?, label: String) -> some View {
-        let isSelected = selectedSongType == value
-        return Button {
+        ImasFilterChip(text: label, isSelected: selectedSongType == value) {
             selectedSongType = value
-        } label: {
-            ImasChip(text: label, style: isSelected ? .selected : .neutral)
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Helpers

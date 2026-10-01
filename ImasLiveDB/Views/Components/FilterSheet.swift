@@ -6,6 +6,9 @@ import SwiftUI
 /// ブランドを丸アイコンの格子で選ぶ素のグリッド。 List/Form/ScrollView いずれでも置ける。
 /// 「全て」セルの有無は `includeAllOption` で切り替える (絞り込み画面では出し、
 /// 投票候補のブランド限定では出さない＝必ず1つは選ばせる)。
+///
+/// ⚠️ このファイルの中では使わない (`BrandFilterSection` は `ImasBrandPicker` へ移行済み)。
+/// 定義そのものは他画面 (ゲームの設定画面など) がまだ呼んでいるため残す。
 struct BrandGridPicker: View {
     let brands: [Brand]
     /// 空集合 = `includeAllOption` 時は全ブランド対象、それ以外は未選択。 複数選択は OR (= IN) で結合。
@@ -43,19 +46,17 @@ struct BrandGridPicker: View {
     }
 }
 
+/// ブランド絞り込みの区画。見た目は `ImasBrandPicker` (チップを折り返して並べる)。
 struct BrandFilterSection: View {
     let brands: [Brand]
     /// 空集合 = 全ブランド対象。 複数選択は OR (= IN) で結合される。
     @Binding var selectedBrandIds: Set<String>
 
     var body: some View {
-        Section {
-            BrandGridPicker(brands: brands, selectedBrandIds: $selectedBrandIds, includeAllOption: true)
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-        } header: {
-            Text("ブランド")
-        } footer: {
-            Text("複数選択可能").font(.imasCaption2).foregroundStyle(DS.ink3)
+        ImasListSection("ブランド", footer: "複数選択可能") {
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.gap)
         }
     }
 }
@@ -63,6 +64,9 @@ struct BrandFilterSection: View {
 /// ブランド 1 件分。CustomImageService に画像があれば優先表示し、無ければ
 /// ブランドカラー円 + 短いテキスト (765 / ミリ 等) を fallback として描画する。
 /// 版権上、公式ロゴは使わずユーザー側で gist 経由 import した画像を使う。
+///
+/// ⚠️ このファイルの中では使わない (`BrandFilterSection` は `ImasBrandPicker` へ移行済み)。
+/// 定義そのものは他画面 (ゲームの設定画面など) がまだ呼んでいるため残す。
 struct BrandIconCell: View {
     let brandId: String?
     let label: String
@@ -114,7 +118,7 @@ struct BrandIconCell: View {
     @ViewBuilder
     private var iconView: some View {
         if let url = customImageURL, let uiImage = UIImage(contentsOfFile: url.path) {
-            // ブランドロゴは横長のロックアップも来る。 .fill だと両端が切れて
+            // ブランドロゴは横長のロックアップも来る。 .fit だと両端が切れて
             // 判別できなくなるので .fit で円の中に収める (下地はブランド色)。
             // 配布しているブランド画像は「円 + 四隅透過」なので余白なしでちょうど収まる。
             // 下地の円は、ユーザーが独自に横長画像を入れたときに絵が浮かないための保険。
@@ -185,22 +189,19 @@ struct EventFilterSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section {
+                ImasListSection("会場", footer: "その会場で公演があったライブに絞ります") {
                     NavigationLink {
                         VenuePickerView(directory: venueDirectory, selected: $localVenue)
                     } label: {
-                        Text(selectedVenueLabel)
-                            .foregroundStyle(localVenue == nil ? DS.ink2 : DS.ink)
+                        ImasNavRow(title: "会場", value: selectedVenueLabel)
                     }
-                } header: {
-                    Text("会場")
-                } footer: {
-                    Text("その会場で公演があったライブに絞ります")
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
 
-                Section {
+                ImasListSection("種別", footer: localExcluded.isEmpty
+                                ? "全て表示中"
+                                : "除外: \(localExcluded.map(\.displayLabel).sorted().joined(separator: " / "))") {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: DS.sp3)], spacing: DS.sp3) {
                         ForEach(EventKind.allCases, id: \.rawValue) { kind in
                             EventKindChip(
@@ -215,18 +216,11 @@ struct EventFilterSheet: View {
                             }
                         }
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                } header: {
-                    Text("種別")
-                } footer: {
-                    if localExcluded.isEmpty {
-                        Text("全て表示中")
-                    } else {
-                        Text("除外: \(localExcluded.map(\.displayLabel).sorted().joined(separator: " / "))")
-                    }
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.vertical, DS.Space.gap)
                 }
 
-                Section("参加状態") {
+                ImasListSection("参加状態") {
                     ImasSegmented(options: ["all", "attended", "not_attended"], selection: $localAttendance) {
                         switch $0 {
                         case "attended": "参加済み"
@@ -234,25 +228,18 @@ struct EventFilterSheet: View {
                         default: "すべて"
                         }
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.vertical, DS.Space.gap)
                 }
 
-                Section("マイマーク") {
-                    Toggle(isOn: $localFavorite) {
-                        Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(DS.favorite)
-                    }
-                    Toggle(isOn: $localNote) {
-                        Label("メモがあるイベントのみ", systemImage: "note.text")
-                            .foregroundStyle(DS.warning)
-                    }
+                ImasListSection("マイマーク") {
+                    ImasToggleRow(title: "お気に入りのみ", systemImage: "star.fill", isOn: $localFavorite)
+                    ImasToggleRow(title: "メモがあるイベントのみ", systemImage: "note.text", isOn: $localNote)
                 }
 
-                Section("表示設定") {
-                    Toggle("セトリ情報がないイベントも表示", isOn: $localShowEmpty)
-                        .tint(DS.success)
+                ImasListSection("表示設定") {
+                    ImasToggleRow(title: "セトリ情報がないイベントも表示", isOn: $localShowEmpty)
                 }
-
             }
             .imasFilterSheetChrome()
             .toolbar {
@@ -389,38 +376,22 @@ struct IdolFilterSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("表示形式") {
+                ImasListSection("表示形式") {
                     ImasSegmented(options: IdolDisplayMode.allCases, selection: $localDisplayMode) { $0.rawValue }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .padding(.horizontal, DS.Space.rowH)
+                        .padding(.vertical, DS.Space.gap)
 
                     // アイドル名表示のとき、CV 名を別行で併記するか。CV 名表示中は CV がタイトルなので無効。
-                    Toggle("CV名を併記", isOn: $localShowCV)
+                    ImasToggleRow(title: "CV名を併記", isOn: $localShowCV)
                         .disabled(localDisplayMode == .cvName)
                 }
 
-                Section {
-                    Picker("並び順", selection: $localSortOrder) {
-                        ForEach(IdolSortOrder.allCases, id: \.rawValue) { order in
-                            Text(order.rawValue).tag(order)
-                        }
+                ImasListSection("並び順", footer: localSortOrder.keepsBrandGrouping
+                                ? nil : "ブランドの区切りを外して通しで並べます") {
+                    ImasMenuRow(title: "並び順", options: IdolSortOrder.allCases, selection: $localSortOrder) {
+                        $0.rawValue
                     }
-                    .pickerStyle(.menu)
-
-                    // 方向 toggle (nil なら並び順ごとの既定を表示値にする)
-                    Picker("方向", selection: Binding(
-                        get: { localSortAscending ?? localSortOrder.defaultAscending },
-                        set: { localSortAscending = $0 }
-                    )) {
-                        Label(localSortOrder.ascendingLabel, systemImage: "arrow.up").tag(true)
-                        Label(localSortOrder.descendingLabel, systemImage: "arrow.down").tag(false)
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text("並び順")
-                } footer: {
-                    if !localSortOrder.keepsBrandGrouping {
-                        Text("ブランドの区切りを外して通しで並べます")
-                    }
+                    sortDirectionRow
                 }
 
                 BrandFilterSection(brands: brands, selectedBrandIds: $localBrandIds)
@@ -433,33 +404,21 @@ struct IdolFilterSheet: View {
                     }
 
                 if !attributesForBrand.isEmpty {
-                    Section("属性") {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
-                                attributeChip(value: nil, label: "全て")
-                                ForEach(attributesForBrand, id: \.value) { item in
-                                    attributeChip(value: item.value, label: item.label)
-                                }
+                    ImasListSection("属性") {
+                        ImasChipRow {
+                            attributeChip(value: nil, label: "全て")
+                            ForEach(attributesForBrand, id: \.value) { item in
+                                attributeChip(value: item.value, label: item.label)
                             }
                         }
                     }
                 }
 
-                Section("マイマーク") {
-                    Toggle(isOn: $localMyPick) {
-                        Label("担当のみ", systemImage: "heart.fill")
-                            .foregroundStyle(DS.pick)
-                    }
-                    Toggle(isOn: $localFavorite) {
-                        Label("お気に入りのみ", systemImage: "star.fill")
-                            .foregroundStyle(DS.favorite)
-                    }
-                    Toggle(isOn: $localNote) {
-                        Label("メモがあるアイドルのみ", systemImage: "note.text")
-                            .foregroundStyle(DS.warning)
-                    }
+                ImasListSection("マイマーク") {
+                    ImasToggleRow(title: "担当のみ", systemImage: "heart.fill", isOn: $localMyPick)
+                    ImasToggleRow(title: "お気に入りのみ", systemImage: "star.fill", isOn: $localFavorite)
+                    ImasToggleRow(title: "メモがあるアイドルのみ", systemImage: "note.text", isOn: $localNote)
                 }
-
             }
             .imasFilterSheetChrome()
             .toolbar {
@@ -489,6 +448,22 @@ struct IdolFilterSheet: View {
             }
             .trackScreen("idol_filter_sheet")
         }
+    }
+
+    /// 並び順の方向 (昇順・降順)。軸ごとに文言が違う (「高い順」「低い順」等) ので
+    /// 軸の既定文言をそのままセグメントのラベルに使う。
+    private var sortDirectionRow: some View {
+        HStack {
+            Text("方向").imasText(.rowLabel)
+            Spacer(minLength: DS.Space.gap)
+            ImasSegmented(options: [true, false], selection: Binding(
+                get: { localSortAscending ?? localSortOrder.defaultAscending },
+                set: { localSortAscending = $0 }
+            )) { $0 ? localSortOrder.ascendingLabel : localSortOrder.descendingLabel }
+        }
+        .padding(.horizontal, DS.Space.rowH)
+        .padding(.vertical, DS.Space.rowVCompact)
+        .frame(minHeight: DS.Size.touch)
     }
 
     private var hasActiveFilters: Bool {
@@ -550,24 +525,21 @@ struct TagFilterSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("カテゴリ") {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: DS.sp3) {
-                            ForEach(categories, id: \.value) { cat in
-                                categoryChip(value: cat.value, label: cat.label)
-                            }
+                ImasListSection("カテゴリ") {
+                    ImasChipRow {
+                        ForEach(categories, id: \.value) { cat in
+                            categoryChip(value: cat.value, label: cat.label)
                         }
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
 
-                Section("並び順") {
+                ImasListSection("並び順") {
                     ImasSegmented(options: sortOptions.map(\.value), selection: $localSort) { value in
                         sortOptions.first { $0.value == value }?.label ?? value
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.vertical, DS.Space.gap)
                 }
-
             }
             .imasFilterSheetChrome()
             .toolbar {
