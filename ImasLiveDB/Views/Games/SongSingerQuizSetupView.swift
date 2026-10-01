@@ -25,11 +25,17 @@ struct SongSingerQuizSetupView: View {
         ImasPage {
             ImasSetupHeader(systemImage: "music.microphone", title: "ソロ曲クイズ",
                             message: "ソロ曲を聴いてその歌手を 4 択で当てよう")
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-            ImasCandidateCount(count: isEstimating ? nil : Int(estimate.songCount), unit: "曲", minimum: 4,
-                               label: "出題候補",
-                               secondary: .init(count: isEstimating ? nil : Int(estimate.singerCount), unit: "歌手"),
-                               note: "4択の選択肢は歌手数が基準です")
+            ImasSection("出題ブランド", style: .small, footer: "複数選択可 · 空=全ブランド対象",
+                       actionTitle: selectedBrandIds.isEmpty ? nil : "全てに戻す",
+                       onAction: selectedBrandIds.isEmpty ? nil : {
+                           withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
+                       }) {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+            }
+            ImasCandidateCount(count: Int(estimate.songCount), unit: "曲", label: "出題候補",
+                               secondary: .init(count: Int(estimate.singerCount), unit: "歌手"),
+                               note: "4択の選択肢は歌手数が基準です",
+                               isLoading: isEstimating, loadingText: "候補を計算中…")
             if !isEstimating && !canStart {
                 ImasNotice(kind: .warning,
                            message: "4 択を出すには原唱歌手が最低 4 名必要です。ブランドの選択を増やしてください。")

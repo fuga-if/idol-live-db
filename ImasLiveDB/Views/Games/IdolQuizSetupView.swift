@@ -27,9 +27,15 @@ struct IdolQuizSetupView: View {
         ImasPage {
             ImasSetupHeader(systemImage: "person.fill.questionmark", title: "アイドル当てクイズ",
                             message: "プロフィールのヒントを手がかりに誰かを 4 択で当てよう")
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-            ImasCandidateCount(count: isEstimating ? nil : estimatedCount, unit: "名", minimum: 4,
-                               label: "出題候補")
+            ImasSection("出題ブランド", style: .small, footer: "複数選択可 · 空=全ブランド対象",
+                       actionTitle: selectedBrandIds.isEmpty ? nil : "全てに戻す",
+                       onAction: selectedBrandIds.isEmpty ? nil : {
+                           withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
+                       }) {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+            }
+            ImasCandidateCount(count: estimatedCount, unit: "名", label: "出題候補",
+                               isLoading: isEstimating, loadingText: "候補を計算中…")
             if !isEstimating && !estimate.isSufficient {
                 ImasNotice(kind: .warning,
                            message: "4 択を出すにはアイドルが最低 4 名必要です。ブランドの選択を増やしてください。")

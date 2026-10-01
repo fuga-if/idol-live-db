@@ -73,12 +73,19 @@ struct LyricsQuizSetupView: View {
             ImasSetupHeader(systemImage: "text.quote", title: "歌詞クイズ",
                             message: "歌詞のワンフレーズから、曲名や続きを 4 択で当てよう")
             modeSection
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-            ImasCandidateCount(count: (isLoading || publishedIds == nil) ? nil : Int(estimate.songCount),
-                               unit: "曲", label: "出題候補", note: "歌詞を掲載している曲から出題します")
+            ImasSection("出題ブランド", style: .small, footer: "複数選択可 · 空=全ブランド対象",
+                       actionTitle: selectedBrandIds.isEmpty ? nil : "全てに戻す",
+                       onAction: selectedBrandIds.isEmpty ? nil : {
+                           withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
+                       }) {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+            }
+            ImasCandidateCount(count: publishedIds == nil ? nil : Int(estimate.songCount),
+                               unit: "曲", label: "出題候補", note: "歌詞を掲載している曲から出題します",
+                               isLoading: isLoading, loadingText: "歌詞のある曲を確認中…")
             if !isLoading && loadFailed {
                 ImasNotice(kind: .error, message: "歌詞のある曲を確認できませんでした。歌詞クイズは通信が必要です。",
-                           actionTitle: "再試行") { Task { await load() } }
+                           actionTitle: "再試行", actionSystemImage: "arrow.clockwise") { Task { await load() } }
             } else if !isLoading && !estimate.isSufficient {
                 ImasNotice(kind: .warning,
                            message: "4 択を出すには歌詞のある曲が最低 \(lyricsQuizMinimumPool()) 曲必要です。ブランドの選択を増やしてください。")
@@ -111,18 +118,21 @@ struct LyricsQuizSetupView: View {
     // MARK: - 形式
 
     private var modeSection: some View {
-        ImasChoiceCards(
-            choices: LyricsQuizModeSetting.allCases.map {
-                .init(value: $0, title: $0.label, systemImage: $0.systemImage, subtitle: $0.blurb)
-            },
-            selection: Binding(
-                get: { mode },
-                set: { newValue in
-                    AppAnalytics.tap("lyrics_quiz_setup.mode_\(newValue.rawValue)")
-                    mode = newValue
-                }
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasSectionHeader(title: "出題形式", tight: true)
+            ImasChoiceCards(
+                choices: LyricsQuizModeSetting.allCases.map {
+                    .init(value: $0, title: $0.label, systemImage: $0.systemImage, subtitle: $0.blurb)
+                },
+                selection: Binding(
+                    get: { mode },
+                    set: { newValue in
+                        AppAnalytics.tap("lyrics_quiz_setup.mode_\(newValue.rawValue)")
+                        mode = newValue
+                    }
+                )
             )
-        )
+        }
     }
 
     // MARK: - Data

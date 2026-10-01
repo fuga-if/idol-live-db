@@ -22,9 +22,16 @@ struct SetlistQuizSetupView: View {
         ImasPage {
             ImasSetupHeader(systemImage: "list.number", title: "セトリ当て",
                             message: "公演のセトリの空欄に入る曲を 4 択で当てよう")
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-            ImasCandidateCount(count: isEstimating ? nil : Int(estimate.showCount), unit: "公演", minimum: 1,
-                               label: "出題候補", note: "セトリが 6 曲以上ある公演から出します")
+            ImasSection("出題ブランド", style: .small, footer: "複数選択可 · 空=全ブランド対象",
+                       actionTitle: selectedBrandIds.isEmpty ? nil : "全てに戻す",
+                       onAction: selectedBrandIds.isEmpty ? nil : {
+                           withAnimation(.easeInOut(duration: 0.15)) { selectedBrandIds = [] }
+                       }) {
+                ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
+            }
+            ImasCandidateCount(count: Int(estimate.showCount), unit: "公演", label: "出題候補",
+                               note: "セトリが 6 曲以上ある公演から出します",
+                               isLoading: isEstimating, loadingText: "候補を計算中…")
             if !isEstimating && !canStart {
                 ImasNotice(kind: .warning,
                            message: "このブランドには出題できる公演がありません。ブランドの選択を増やしてください。")

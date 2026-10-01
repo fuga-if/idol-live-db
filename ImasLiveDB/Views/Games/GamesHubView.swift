@@ -89,20 +89,33 @@ struct GamesHubView: View {
                         ImasStageWordmark(text: "@")
                         Text("QUIZ STAGE").font(QS.mono(11)).tracking(1.3).foregroundStyle(QS.dim)
                     }
-                    HStack(alignment: .top, spacing: DS.sp3) {
-                        ImasStageStatTile(label: "累計ポイント") {
+                    // 累計ポイントは桁が伸びる (4桁以上) ので、3枚の等幅タイルに詰めると
+                    // 393pt 幅でも折り返す。左に大きく・右はプレイ回数/最高グレードを縦に積む。
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: DS.sp1) {
+                            Text("累計ポイント").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
                             HStack(alignment: .lastTextBaseline, spacing: DS.sp2) {
-                                Text(progress.totalPoints.formatted()).font(QS.num(40))
+                                Text(progress.totalPoints.formatted()).font(QS.num(48))
                                     .contentTransition(.numericText())
-                                Text("pt").font(QS.text(12, weight: .bold)).foregroundStyle(QS.dim)
+                                    .lineLimit(1).minimumScaleFactor(0.5)
+                                Text("pt").font(QS.text(13, weight: .bold)).foregroundStyle(QS.dim)
                             }
                         }
-                        ImasStageStatTile(label: "プレイ回数") {
-                            Text("\(progress.totalPlays)").font(QS.num(28))
+                        Spacer(minLength: DS.sp3)
+                        VStack(alignment: .trailing, spacing: DS.sp2) {
+                            HStack(spacing: DS.sp2) {
+                                Text("プレイ")
+                                Text("\(progress.totalPlays)").fontWeight(.bold).foregroundStyle(QS.ink)
+                                Text("回")
+                            }
+                            HStack(alignment: .lastTextBaseline, spacing: DS.sp2) {
+                                Text("最高グレード")
+                                Text(topGrade?.label ?? "—").font(QS.num(18)).foregroundStyle(QS.ink)
+                            }
                         }
-                        ImasStageStatTile(label: "最高グレード") {
-                            Text(topGrade?.label ?? "—").font(QS.num(28))
-                        }
+                        .font(QS.text(12))
+                        .foregroundStyle(QS.dim)
+                        .lineLimit(1).minimumScaleFactor(0.8)
                     }
                 }
                 .padding(.horizontal, DS.sp6).padding(.top, DS.sp5).padding(.bottom, DS.sp5)
