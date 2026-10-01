@@ -153,6 +153,9 @@ enum ImasTextRole {
     /// 英字の印字 (10.5pt 等幅・大文字・字間)。チケットの「ADMIT ONE」、見出しの横の「PLAY」、
     /// 頭の「PRODUCE · 2026.10.01 THU」。日本語の見出しと並べて、印刷物の手触りを出す。
     case imprint
+    /// 目一杯小さい札 (8pt 太字)。月カレンダーの単日バー・受付帯・あふれ件数「+n」など、
+    /// 枠の高さが決まっていて文字を詰め込むしかない場所専用 (一般の文字サイズには使わない)。
+    case micro
 
     var font: Font {
         switch self {
@@ -172,6 +175,7 @@ enum ImasTextRole {
         case .badge: return .imasCaption2.weight(.bold)
         case .chip: return .imasScaled(14, weight: .semibold)
         case .imprint: return .imasMono(10.5, weight: .medium)
+        case .micro: return .imasScaled(8, weight: .semibold)
         }
     }
 
@@ -180,7 +184,7 @@ enum ImasTextRole {
         switch self {
         case .heroTitle, .sectionTitle, .cardTitle, .rowTitle, .rowLabel, .body, .value: return DS.ink
         case .sectionLabel, .rowSubtitle, .note, .chip: return DS.ink2
-        case .meta: return DS.ink3
+        case .meta, .micro: return DS.ink3
         case .eyebrow, .badge, .imprint: return DS.ink2
         }
     }

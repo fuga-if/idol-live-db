@@ -42,6 +42,8 @@ struct ImasHero<Media: View, Facts: View>: View {
     var surface: Surface = .paper
     /// 名前の上の小さい見出し (ブランド・種類)。前にペンライトが付く。
     var eyebrow: String? = nil
+    /// 見出しを押したとき (ブランドで絞った一覧など)。nil なら押せない。
+    var onEyebrowTap: (() -> Void)? = nil
     let title: String
     /// 名前の下 (CV・歌唱者・日付と会場)。
     var subtitle: String? = nil
@@ -92,12 +94,17 @@ struct ImasHero<Media: View, Facts: View>: View {
     private func texts(alignment: HorizontalAlignment) -> some View {
         VStack(alignment: alignment, spacing: 6) {
             if let eyebrow {
-                HStack(spacing: 7) {
+                let row = HStack(spacing: 7) {
                     ImasPenlight(color: onColor ? theme.onAccent : theme.penlight, size: .regular)
                     Text(eyebrow)
                         .font(.imasFootnote.weight(.bold))
                         .foregroundStyle(ink2)
                         .lineLimit(1)
+                }
+                if let onEyebrowTap {
+                    Button(action: onEyebrowTap) { row }.buttonStyle(.plain)
+                } else {
+                    row
                 }
             }
             Text(title)
@@ -121,10 +128,11 @@ struct ImasHero<Media: View, Facts: View>: View {
 }
 
 extension ImasHero where Facts == EmptyView {
-    init(layout: Layout = .leading, surface: Surface = .paper, eyebrow: String? = nil, title: String,
+    init(layout: Layout = .leading, surface: Surface = .paper, eyebrow: String? = nil,
+         onEyebrowTap: (() -> Void)? = nil, title: String,
          subtitle: String? = nil, primary: Action? = nil, @ViewBuilder media: () -> Media) {
-        self.init(layout: layout, surface: surface, eyebrow: eyebrow, title: title, subtitle: subtitle,
-                  primary: primary, media: media, facts: { EmptyView() })
+        self.init(layout: layout, surface: surface, eyebrow: eyebrow, onEyebrowTap: onEyebrowTap, title: title,
+                  subtitle: subtitle, primary: primary, media: media, facts: { EmptyView() })
     }
 }
 

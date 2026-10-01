@@ -158,16 +158,67 @@ struct ImasRemovableChip: View {
 
 // MARK: - 並べ方
 
+/// `ImasChipRow` の端の透かしの寸法 (総称型の中には static な値を置けないので外に出す)。
+private enum ImasChipRowFade {
+    static let coordinateSpace = "imasChipRowFade"
+    static let width: CGFloat = 18
+    static let tolerance: CGFloat = 2
+}
+
 /// チップを 1 段で横に並べ、はみ出したら横にスクロールする。2 段以上にはしない。
+/// `fades: true` で、隠れている側の端をグラデーションで透かして「続きがある」ことを示す
+/// (先に続きがある側だけ小さい chevron も重ねる。カテゴリの絞り込み列などで使う)。
 struct ImasChipRow<Content: View>: View {
+    var fades: Bool = false
     @ViewBuilder var content: Content
 
+    @State private var contentFrame: CGRect = .zero
+    @State private var viewportWidth: CGFloat = 0
+
+    private var showsLeading: Bool { contentFrame.minX < -ImasChipRowFade.tolerance }
+    private var showsTrailing: Bool { contentFrame.maxX > viewportWidth + ImasChipRowFade.tolerance }
+
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let scroller = ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: DS.Space.gap) { content }
                 .padding(.horizontal, DS.Space.screen)
+                .onGeometryChange(for: CGRect.self) { proxy in
+                    proxy.frame(in: .named(ImasChipRowFade.coordinateSpace))
+                } action: { contentFrame = $0 }
         }
         .scrollClipDisabled()
+        .coordinateSpace(name: ImasChipRowFade.coordinateSpace)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { viewportWidth = $0 }
+
+        if fades {
+            scroller
+                .mask(fadeMask)
+                .overlay(alignment: .trailing) {
+                    if showsTrailing {
+                        Image(systemName: "chevron.compact.right")
+                            .imasText(.meta)
+                            .allowsHitTesting(false)
+                            .transition(.opacity)
+                    }
+                }
+                .animation(.imasStandard, value: showsLeading)
+                .animation(.imasStandard, value: showsTrailing)
+        } else {
+            scroller
+        }
+    }
+
+    /// 続きがある側だけ透明に落とすアルファマスク (色は不可視なので固定黒で問題ない)。
+    private var fadeMask: some View {
+        HStack(spacing: 0) {
+            LinearGradient(colors: [.black.opacity(showsLeading ? 0 : 1), .black],
+                           startPoint: .leading, endPoint: .trailing)
+                .frame(width: ImasChipRowFade.width)
+            Rectangle().fill(.black)
+            LinearGradient(colors: [.black, .black.opacity(showsTrailing ? 0 : 1)],
+                           startPoint: .leading, endPoint: .trailing)
+                .frame(width: ImasChipRowFade.width)
+        }
     }
 }
 
