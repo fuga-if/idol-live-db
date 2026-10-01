@@ -66,7 +66,8 @@ struct ImasRankingRow: View {
     let lead: Lead
     let title: String
     var sub: String? = nil
-    let metric: String
+    /// 並べ替えの根拠の数。根拠を出さない順位 (自分の並べ替えの結果) は nil。
+    var metric: String? = nil
     var unit: String = "回"
     var seed: String? = nil
     var brand: String? = nil
@@ -89,7 +90,9 @@ struct ImasRankingRow: View {
                 if let sub { Text(sub).imasText(.rowSubtitle).lineLimit(1) }
             }
             Spacer(minLength: DS.Space.gap)
-            ImasMetric(value: metric, unit: unit, size: .medium, emphasized: rank <= 3)
+            if let metric {
+                ImasMetric(value: metric, unit: unit, size: .medium, emphasized: rank <= 3)
+            }
         }
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.rowVCompact)

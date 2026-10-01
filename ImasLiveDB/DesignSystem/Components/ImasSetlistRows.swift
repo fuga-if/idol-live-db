@@ -120,6 +120,8 @@ struct ImasForecastRow: View {
     var artworkURL: URL? = nil
     /// ジャケが無いときの面の色 (曲のブランド色 hex)。
     var brand: String? = nil
+    /// 曲でなくアイドル・ユニットの予想 (お題の投票) のとき。写真があれば写真、無ければ色の帯。
+    var avatar: (label: String, imageURL: URL?, seed: String?)? = nil
     let measure: Measure
     /// 根拠の見出し (「オリメン」「理由」)。
     var reasonLabel: String? = nil
@@ -136,7 +138,16 @@ struct ImasForecastRow: View {
         HStack(alignment: .top, spacing: DS.Space.rowGap) {
             ImasRankNumber(rank: rank)
                 .padding(.top, 10)
-            ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
+            if let avatar {
+                if let url = avatar.imageURL {
+                    ImasAvatar(label: avatar.label, seed: avatar.seed, brand: brand, size: 40, imageURL: url,
+                               reservesPickRing: false)
+                } else {
+                    ImasLeadBar(seed: avatar.seed, brand: brand).frame(height: 36)
+                }
+            } else {
+                ImasArtwork(title: title, seed: nil, brand: brand, size: 44, imageURL: artworkURL)
+            }
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
                     Text(title)

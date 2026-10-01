@@ -50,6 +50,8 @@ enum ImasRowTrailing {
     case badge(ImasBadge)
     /// スイッチ。
     case toggle(Binding<Bool>)
+    /// 印 (担当・お気に入り) をその場で付け外しする記号のボタン。
+    case mark(ImasMarkKind, isOn: Bool, action: () -> Void)
     /// 部品の外で作った末尾 (「予想する」ボタン・印のボタンなど)。
     case custom(AnyView)
 }
@@ -264,7 +266,9 @@ struct ImasRow<Detail: View>: View {
         case let .badge(badge):
             badge
         case let .toggle(binding):
-            Toggle("", isOn: binding).labelsHidden()
+            Toggle("", isOn: binding).labelsHidden().tint(DS.switchOn)
+        case let .mark(kind, isOn, action):
+            ImasMarkButton(kind: kind, isOn: isOn, action: action)
         case let .custom(view):
             view
         }
@@ -637,5 +641,62 @@ struct ImasActionRow: View {
         }
         .buttonStyle(.imasRow)
         .listRowInsets(EdgeInsets())
+    }
+}
+
+// MARK: - 印のボタン
+
+/// 行や頭で付け外しする印の種類。記号と読み上げを決める。
+enum ImasMarkKind {
+    /// 担当 (♥)。
+    case pick
+    /// お気に入り (★)。
+    case favorite
+
+    func systemImage(isOn: Bool) -> String {
+        switch self {
+        case .pick: return isOn ? "heart.fill" : "heart"
+        case .favorite: return isOn ? "star.fill" : "star"
+        }
+    }
+
+    func accessibilityLabel(isOn: Bool) -> String {
+        switch self {
+        case .pick: return isOn ? "担当から外す" : "担当にする"
+        case .favorite: return isOn ? "お気に入りから外す" : "お気に入りにする"
+        }
+    }
+}
+
+/// 印 (担当・お気に入り) をその場で付け外しする記号のボタン。押せる所は 44pt。
+/// ON は実体の色で点き (無ければ墨)、OFF は薄い墨の線の記号。押すと手応えを返す。
+struct ImasMarkButton: View {
+    let kind: ImasMarkKind
+    let isOn: Bool
+    var seed: String? = nil
+    var brand: String? = nil
+    let action: () -> Void
+
+    @Environment(\.imasTheme) private var envTheme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
+        Button(action: action) {
+            Image(systemName: kind.systemImage(isOn: isOn))
+                .font(.imasScaled(18, weight: isOn ? .semibold : .regular))
+                .foregroundStyle(isOn ? onColor(t) : DS.ink3)
+                .symbolEffect(.bounce, value: isOn)
+                .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .sensoryFeedback(.impact(weight: .light), trigger: isOn)
+        .accessibilityLabel(kind.accessibilityLabel(isOn: isOn))
+    }
+
+    private func onColor(_ t: ImasTheme) -> Color {
+        if t.isNeutral { return kind == .pick ? DS.pick : DS.favorite }
+        return kind == .pick ? t.penlight : DS.favorite
     }
 }
