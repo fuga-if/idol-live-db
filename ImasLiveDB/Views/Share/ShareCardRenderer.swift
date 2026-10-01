@@ -199,8 +199,14 @@ struct ShareCardActionPane<Card: View>: View {
         VStack(spacing: DS.sp5) {
             ShareCardPreview(size: cardSize) { card(cardSize) }
 
-            ImasButton(title: "シェアする", systemImage: "square.and.arrow.up", role: .primary, size: .large,
-                       isLoading: isPreparingCard) {
+            // 準備中は題そのものを「画像を準備中…」にして `.disabled` で押せなくする
+            // (ImasButton の isLoading は文言をくるくるに差し替えるだけなので、
+            // 「準備中」を読み上げさせたいここでは使わない)。
+            ImasButton(
+                title: isPreparingCard ? "画像を準備中…" : "シェアする",
+                systemImage: isPreparingCard ? nil : "square.and.arrow.up",
+                role: .primary, size: .large
+            ) {
                 AppAnalytics.tap("share_card.share")
                 guard let image = ShareCardRenderer.render(card(cardSize)) else {
                     logger.error("share_card_render_failed: ImageRenderer returned nil")
@@ -209,6 +215,7 @@ struct ShareCardActionPane<Card: View>: View {
                 }
                 SystemShare.present(items: [ShareCardImageSource(image)])
             }
+            .disabled(isPreparingCard)
         }
         .alert("シェア画像の生成に失敗しました", isPresented: $showRenderError) {
             Button("OK") {}

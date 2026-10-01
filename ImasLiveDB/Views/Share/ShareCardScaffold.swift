@@ -315,6 +315,12 @@ struct SoloShareScaffold<Content: View>: View {
 /// `.photo`/`.solo` と同じ near-black の地に、[差し色の印字バー + 大見出し + 補足 1 行] の見出しと
 /// 右上の透かしを乗せ、本文 (表彰台・段ごとの行) は呼び出し側が自由に組む。グラデは使わない。
 ///
+/// 地と透かしは中身に `.background` で敷く (ZStack の兄弟にしない)。透かしは右上に固定の
+/// 540pt 角で円を描く装飾なので、ZStack の兄弟のままだと「中身なり」の高さを決めるとき
+/// この 540pt 自体が高さの下限になってしまう (段の少ないティアー表の下に余白が伸びる不具合)。
+/// `.background` ならホスト (中身の VStack) の確定後のサイズに合わせて敷かれるだけなので、
+/// 高さの決定には関与しない。
+///
 /// ティアー表の書き出しのように件数で縦に伸びる画像は `height: nil` を渡す
 /// (`Spacer` が最小 22pt に収まり、固定キャンバスでは残りを埋めて下端にフッターを揃える)。
 struct PosterShareScaffold<Content: View>: View {
@@ -335,20 +341,17 @@ struct PosterShareScaffold<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            ShareInk.nearBlack
-            watermark
-            VStack(alignment: .leading, spacing: 0) {
-                header
-                content
-                Spacer(minLength: 22)
-                ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))
-            }
-            .padding(.horizontal, 36)
-            .padding(.top, 32)
-            .padding(.bottom, 28)
+        VStack(alignment: .leading, spacing: 0) {
+            header
+            content
+            Spacer(minLength: 22)
+            ShareCardFooter(ink: .white.opacity(0.62), rule: .white.opacity(0.16))
         }
+        .padding(.horizontal, 36)
+        .padding(.top, 32)
+        .padding(.bottom, 28)
         .frame(width: width, height: height)
+        .background { ZStack { ShareInk.nearBlack; watermark } }
         .clipped()
     }
 

@@ -64,13 +64,13 @@ struct NextLiveWidgetView: View {
                 VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
                     ImasWidgetEyebrow(systemImage: "music.mic", text: "次のライブ")
                     Text(info.eventName)
-                        .imasWidgetText(.title(compact: family == .systemSmall))
+                        .imasWidgetText(.title(size: family == .systemSmall ? 13 : 15))
                         .lineLimit(family == .systemSmall ? 2 : 3)
                     HStack(spacing: ImasWidgetSpace.gapTight) {
                         if let d = days {
                             ImasWidgetMetric(text: d == 0 ? "今日！" : "あと\(d)日", size: 13)
                         }
-                        Text(shortDate(info.firstDate)).imasWidgetText(.meta)
+                        Text(shortDate(info.firstDate)).imasWidgetText(.meta(size: 11))
                     }
                 }
             }
@@ -142,34 +142,49 @@ struct TodaySongWidgetView: View {
     var entry: TodaySongEntry
     @Environment(\.widgetFamily) private var family
 
+    private var artwork: UIImage? { entry.artworkData.flatMap(UIImage.init(data:)) }
+
     var body: some View {
         if let info = entry.info {
-            let accent = ImasWidgetColor.accent(info.brandColorHex)
             ImasWidgetScaffold(alignment: .leading) {
-                HStack(spacing: ImasWidgetSpace.gapLoose) {
-                    // ジャケ写 (artworkUrl は mzstatic CDN 等の外部 URL なのでウィジェットでは
-                    // Data 読み込み済みのものだけ表示し、無ければ紙の面 + 音符で代替)
-                    ImasWidgetArtwork(
-                        image: entry.artworkData.flatMap(UIImage.init(data:)),
-                        size: family == .systemSmall ? 50 : 60
-                    )
-
+                // small は横幅が狭く、ジャケの隣に見出し+題+アーティストを詰めると
+                // 見出しが 1 文字ずつ折り返る。見出しは横並びの外 (全幅の上の段) に出す。
+                if family == .systemSmall {
                     VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
-                        ImasWidgetEyebrow(systemImage: "music.quarternote.3", text: "今日の1曲", accent: accent)
-                        Text(info.title)
-                            .imasWidgetText(.title(compact: family == .systemSmall))
-                            .lineLimit(2)
-                        if let label = info.artistLabel, !label.isEmpty {
-                            Text(label).imasWidgetText(.meta).lineLimit(1)
+                        ImasWidgetEyebrow(systemImage: "music.quarternote.3", text: "今日の1曲")
+                        HStack(spacing: ImasWidgetSpace.gapLoose) {
+                            ImasWidgetArtwork(image: artwork, size: 50)
+                            songText(info, titleSize: 12)
                         }
                     }
-                    if family != .systemSmall { Spacer(minLength: 0) }
+                } else {
+                    HStack(spacing: ImasWidgetSpace.gapLoose) {
+                        ImasWidgetArtwork(image: artwork, size: 60)
+                        VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
+                            ImasWidgetEyebrow(systemImage: "music.quarternote.3", text: "今日の1曲")
+                            songText(info, titleSize: 14)
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
             }
             .widgetURL(URL(string: "imaslivedb://open"))
         } else {
             ImasWidgetScaffold(alignment: .center) {
                 ImasWidgetPlaceholder(systemImage: "music.quarternote.3", text: "今日の1曲を準備中")
+            }
+        }
+    }
+
+    /// 曲名 + アーティスト名。ジャケの隣に置く列 (small/medium どちらからも使う)。
+    @ViewBuilder
+    private func songText(_ info: TodaySongInfo, titleSize: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
+            Text(info.title)
+                .imasWidgetText(.title(size: titleSize))
+                .lineLimit(2)
+            if let label = info.artistLabel, !label.isEmpty {
+                Text(label).imasWidgetText(.meta(size: 10)).lineLimit(1)
             }
         }
     }

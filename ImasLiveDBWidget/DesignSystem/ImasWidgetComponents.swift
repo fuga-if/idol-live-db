@@ -13,7 +13,7 @@ import UIKit
 //
 // ImasWidgetColor        DS.* と同じ値のライト/ダーク色 + hex 文字列からの差し色。
 // ImasWidgetSpace        役割で引く余白 (DS.Space の小さな部分集合)。
-// ImasWidgetTextRole     文字の役割 (題・補足)。画面に生のフォントサイズを書かせない。
+// ImasWidgetTextRole     文字の役割 (題・補足)。太さ・色を役割で決め、大きさだけ呼び出し側が渡す。
 // ImasWidgetScaffold      紙の余白と全面への引き伸ばし。左端に差し色の帯を 1 本だけ足せる。
 // ImasWidgetEyebrow       記号 + 文言の目印 (「次のライブ」「今日の1曲」)。差し色の点を 1 つ添えられる。
 // ImasWidgetMetric        強調する数字 (「あと37日」「今日!」)。細長い太字の等幅。
@@ -26,20 +26,22 @@ import UIKit
 enum ImasWidgetSpace {
     static let gapTight: CGFloat = 4
     static let gap: CGFloat = 8
-    static let gapLoose: CGFloat = 12
+    /// ジャケと文字列の間 (今日の1曲)。
+    static let gapLoose: CGFloat = 10
 }
 
-/// ウィジェットの文字の役割。部品はこの名前で書体と色を引く (画面に生のフォントサイズを書かせない)。
+/// ウィジェットの文字の役割。部品はこの名前で太さ・色を引く (画面に生の `.font(.system(` を書かせない)。
+/// 大きさは呼び出し側がウィジェットごとに決める (次のライブ・今日の1曲・small/medium で寸法が違うため)。
 enum ImasWidgetTextRole {
-    /// 題 (イベント名・曲名)。small ファミリーでは少し詰める。
-    case title(compact: Bool)
+    /// 題 (イベント名・曲名)。
+    case title(size: CGFloat)
     /// 補足 (日付・アーティスト名)。
-    case meta
+    case meta(size: CGFloat)
 
     var font: Font {
         switch self {
-        case .title(let compact): return .system(size: compact ? 13 : 15, weight: .bold)
-        case .meta: return .system(size: 11)
+        case .title(let size): return .system(size: size, weight: .bold)
+        case .meta(let size): return .system(size: size)
         }
     }
     var color: Color {
@@ -207,6 +209,8 @@ struct ImasWidgetArtwork: View {
 }
 
 /// 情報なし・未設定の状態。細い記号 1 つ + 文言 (DS の `ImasEmptyState` のウィジェット版)。
+/// 文字サイズに追従する OS の文字の段 (`.title2`/`.caption2`) を使う
+/// (上限は呼び出し側の `.dynamicTypeSize(...xxxLarge)` が決める)。
 struct ImasWidgetPlaceholder: View {
     let systemImage: String
     let text: String
@@ -214,9 +218,9 @@ struct ImasWidgetPlaceholder: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .ultraLight))
+                .font(.title2)
             Text(text)
-                .font(.system(size: 11))
+                .font(.caption2)
                 .multilineTextAlignment(.center)
         }
         .foregroundStyle(ImasWidgetColor.ink3)
