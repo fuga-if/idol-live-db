@@ -91,10 +91,13 @@ mod tests {
     #[test]
     fn ffi_surface_smoke() {
         let store = crate::test_support::bundle_store();
-        // Bundle DB に受付は無いので空・None を確かめるだけ。
-        let event_id = store.latest_show().unwrap().unwrap().event_id;
-        assert!(store.ticket_sales_for_event(event_id.clone(), 0).unwrap().is_empty());
-        assert!(store.ticket_sale_spotlight(event_id, 0).unwrap().is_none());
-        assert!(store.ticket_sale_deadlines(0, 5).unwrap().is_empty());
+        // 実データの受付は日々増減するので、件数ではなく「締切に出た受付がそのイベントの
+        // 一覧にも出る」ことだけを確かめる (Bundle に受付が無ければ全部空で通る)。
+        let deadlines = store.ticket_sale_deadlines(0, 5).unwrap();
+        assert!(deadlines.len() <= 5);
+        let Some(first) = deadlines.first() else { return };
+        let sales = store.ticket_sales_for_event(first.event_id.clone(), 0).unwrap();
+        assert!(sales.iter().any(|s| s.id == first.sale_id));
+        assert!(store.ticket_sale_spotlight(first.event_id.clone(), 0).unwrap().is_some());
     }
 }
