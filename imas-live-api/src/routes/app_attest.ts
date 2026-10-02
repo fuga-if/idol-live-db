@@ -126,6 +126,8 @@ function isCommunityRead(path: string, method: string): boolean {
   // コールガイドの整備状況。歌詞本文もコール本文も含まない件数・日時・表示名だけの
   // 集計なので、歌詞の枠 (認証必須・no-store) ではなくこちら側に置く。
   if (path === "/calls/dashboard") return true;
+  // コールガイド・タイミングがある曲の id (曲 id と真偽だけ)。同じく本文を含まない集計。
+  if (path === "/lyrics/annotations") return true;
   return false;
 }
 
