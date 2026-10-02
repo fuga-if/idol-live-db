@@ -48,6 +48,22 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
+    private struct LyricLikeResponse: Decodable { let likeCount: Int }
+
+    func setLyricLike(songId: String, lineId: String, liked: Bool) async throws -> Int {
+        do {
+            let res: LyricLikeResponse = try await client.request(
+                liked ? "PUT" : "DELETE",
+                path: "/songs/\(songId)/lyric-likes/\(lineId)",
+                authorized: true
+            )
+            return res.likeCount
+        } catch {
+            logger.warning("lyric_like_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
     /// コールガイドの整備状況 (`GET /calls/dashboard`)。
     ///
     /// **`authorized: false` で投げること。** `Authorization` を付けると Worker 側の
@@ -76,6 +92,10 @@ struct FakeCallGuideWriting: CallGuideWriting {
     func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws {
         try? await Task.sleep(for: .milliseconds(300))
         logger.debug("fake_lyric_timings_put song=\(songId, privacy: .public) lines=\(lines.count)")
+    }
+
+    func setLyricLike(songId: String, lineId: String, liked: Bool) async throws -> Int {
+        liked ? 1 : 0
     }
 }
 

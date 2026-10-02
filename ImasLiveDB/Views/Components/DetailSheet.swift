@@ -635,7 +635,17 @@ struct SongSheetContent: View {
             isPlaying: player.isPlayingFull(songId: songId),
             positionMs: { player.nowPlayingSongId == songId ? player.fullPlaybackPositionMs : nil },
             startFull: { await startFullForLyrics() },
+            durationMs: { player.nowPlayingSongId == songId ? player.fullPlaybackDurationMs : nil },
             seek: { player.seekFull(toMs: $0) },
+            playFrom: { ms in
+                let loaded = player.isFullPlayback && player.nowPlayingSongId == songId
+                if !loaded {
+                    guard await startFullForLyrics() else { return }
+                } else if !player.isPlaying {
+                    player.resume()
+                }
+                player.seekFull(toMs: ms)
+            },
             scrollTo: { lyricsScrollTarget = $0 }
         )
     }

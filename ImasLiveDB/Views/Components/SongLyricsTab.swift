@@ -33,8 +33,12 @@ struct SongLyricsTab: View {
         var positionMs: () -> Int? = { nil }
         /// 記録のためにこの曲のフル再生を始める。始められなければ false (未契約など)。
         var startFull: () async -> Bool = { false }
+        /// 曲の長さ (ms)。フル再生していなければ nil。
+        var durationMs: () -> Int? = { nil }
         /// 再生位置を動かす。
         var seek: (Int) -> Void = { _ in }
+        /// その位置から鳴らす。フル再生していなければ始めてから動かす (シークバーのタップ)。
+        var playFrom: (Int) async -> Void = { _ in }
         /// その行を画面の中ほどへ寄せる。
         var scrollTo: (String) -> Void = { _ in }
     }
@@ -75,6 +79,8 @@ struct SongLyricsTab: View {
     @State private var recordUnavailable = false
     /// ダブルタップの手応え (付け外しのたびに増やす)。
     @State private var likeToken = 0
+    /// 付け外しの後にサーバが返した行の人数 (みんなの分)。歌詞を取り直すまでこちらを優先する。
+    @State private var likeCounts: [String: Int] = [:]
 
     private var markService: UserMarkService { UserMarkService.shared }
 
@@ -223,6 +229,7 @@ struct SongLyricsTab: View {
     @ViewBuilder
     private func viewingBody(_ lyrics: Lyrics) -> some View {
         legend(lyrics)
+        likeHeatBar(lyrics)
         let likes = markService.lyricLikes(songId: song.id)
         if likes.isEmpty {
             // 付け方は見ただけでは分からないので、1 つも付いていない曲でだけ添える。
@@ -691,7 +698,8 @@ struct SongLyricsTab: View {
 
     // MARK: - ここ好き
 
-    /// 行の「ここ好き」を付け外しする。端末に残すのは行 ID だけ (本文は残さない)。
+    /// 行の「ここ好き」を付け外しする。自分の印は端末に行 ID だけ残し (本文は残さない)、
+    /// ログインしていればみんなの人数にも足す。送れなくても自分の印は残す。
     private func toggleLike(_ line: LyricLine) {
         AppAnalytics.tap("lyric_like.toggle")
         do {
@@ -699,6 +707,57 @@ struct SongLyricsTab: View {
             likeToken += 1
         } catch {
             LocalWriteFailure.report(error, action: "ここ好きの記録")
+            return
+        }
+        guard AuthService.shared.isSignedIn else { return }
+        let liked = markService.lyricLikes(songId: song.id).contains(line.id)
+        let songId = song.id
+        Task {
+            if let count = try? await AppContainer.shared.callGuideWriting
+                .setLyricLike(songId: songId, lineId: line.id, liked: liked) {
+                likeCounts[line.id] = count
+            }
+        }
+    }
+
+    // MARK: - ここ好きの山
+
+    /// みんなの「ここ好き」を曲の時間軸の山にしたシークバー。タップした位置から鳴らす。
+    ///
+    /// 山を立てるには行の時刻が要る (記録の無い曲では出さない)。山がまだ無くても、
+    /// フル再生中ならシークバーとして出す。
+    @ViewBuilder
+    private func likeHeatBar(_ lyrics: Lyrics) -> some View {
+        let starts = starts(lyrics)
+        if recorder == nil, editor == nil, lyricHasTiming(starts: starts) {
+            let counts = lyrics.lines.map { UInt32(max(0, likeCounts[$0.id] ?? $0.likeCount)) }
+            let lastStart = starts.compactMap { $0 }.max() ?? 0
+            let duration = playback.durationMs()
+                ?? song.durationSec.map { $0 * 1000 }
+                ?? Int(lastStart) + 8000
+            let heat = lyricLikeHeat(starts: starts, counts: counts,
+                                     durationMs: Int64(duration), buckets: 60)
+            if playback.isFullLoaded || !heat.levels.isEmpty {
+                VStack(alignment: .leading, spacing: DS.sp1) {
+                    if !heat.levels.isEmpty {
+                        Text("みんなのここ好き").imasText(.meta)
+                    }
+                    // 進みの線だけを周期で描き直す。
+                    TimelineView(.periodic(from: .now, by: 0.5)) { _ in
+                        ImasLikeHeatSeekBar(
+                            levels: heat.levels,
+                            progress: playback.isFullLoaded
+                                ? playback.positionMs().map { Double($0) / Double(duration) } : nil,
+                            peak: heat.peakMs.map { Double($0) / Double(duration) },
+                            seed: seed
+                        ) { fraction in
+                            AppAnalytics.tap("lyric_like.heat_seek")
+                            Task { await playback.playFrom(Int(fraction * Double(duration))) }
+                        }
+                    }
+                }
+                .padding(.bottom, DS.sp4)
+            }
         }
     }
 

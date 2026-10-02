@@ -211,6 +211,13 @@ final class MusicKitService {
         return Int((musicPlayer.playbackTime * 1000).rounded())
     }
 
+    /// フル再生している曲の長さ (ミリ秒)。分からなければ nil。
+    var fullPlaybackDurationMs: Int? {
+        guard isFullPlayback, case .song(let song)? = musicPlayer.queue.currentEntry?.item,
+              let duration = song.duration else { return nil }
+        return Int((duration * 1000).rounded())
+    }
+
     /// フル再生の位置を動かす (タイミング記録の巻き戻し)。フル再生中でなければ何もしない。
     func seekFull(toMs ms: Int) {
         guard isFullPlayback else { return }

@@ -224,11 +224,13 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
     /// この行に紐づくコール。**配列順が表示順**なので並べ替えないこと
     /// (同一アンカーに複数のコールが並ぶことがある)。
     var calls: [LyricCall]
+    /// この行に「ここ好き」と言った人数 (みんなの分)。古い Worker は返さないので 0。
+    var likeCount: Int = 0
 }
 
 extension LyricLine {
     private enum CodingKeys: String, CodingKey {
-        case id, ord, kind, text, section, startMs, clap, calls
+        case id, ord, kind, text, section, startMs, clap, calls, likeCount
     }
 
     /// `clap` / `calls` は後から足したフィールドなので、返さない Worker でも壊れない。
@@ -246,7 +248,8 @@ extension LyricLine {
             startMs: try c.decodeIfPresent(Int.self, forKey: .startMs),
             clap: (try? c.decodeIfPresent(String.self, forKey: .clap)).flatMap { $0 }
                 .flatMap(LyricClap.init(rawValue:)),
-            calls: (try? c.decodeIfPresent([LyricCall].self, forKey: .calls)).flatMap { $0 } ?? []
+            calls: (try? c.decodeIfPresent([LyricCall].self, forKey: .calls)).flatMap { $0 } ?? [],
+            likeCount: (try? c.decodeIfPresent(Int.self, forKey: .likeCount)).flatMap { $0 } ?? 0
         )
     }
 }

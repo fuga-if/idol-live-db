@@ -88,3 +88,67 @@ struct ImasLyricTimeLabel: View {
         return String(format: "%d:%02d.%d", tenths / 600, (tenths / 10) % 60, tenths % 10)
     }
 }
+
+// MARK: - ここ好きの山つきシークバー
+
+/// 曲の時間軸に「ここ好き」の山を立てたシークバー (YouTube の「最も再生された部分」の歌詞版)。
+///
+/// 山は細い縦棒の並び。再生済みの側は曲の色、まだの側は墨の薄い色。いちばん好かれている
+/// 地点 (おすすめ) の上に小さなハートを置く。光らせない・ぼかさない。
+/// タップした位置へ動かす (`onSeek` は 0〜1 の割合)。
+struct ImasLikeHeatSeekBar: View {
+    @Environment(\.colorScheme) private var scheme
+    /// 区間ごとの高さ (0〜1)。空なら山を出さず線だけ。
+    let levels: [Float]
+    /// 今の位置 (0〜1)。再生していなければ nil (進みの色を付けない)。
+    let progress: Double?
+    /// おすすめ地点 (0〜1)。
+    let peak: Double?
+    let seed: String?
+    let onSeek: (Double) -> Void
+
+    private let height: CGFloat = 36
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: seed, scheme: scheme)
+        GeometryReader { geo in
+            let width = geo.size.width
+            ZStack(alignment: .bottomLeading) {
+                if levels.isEmpty {
+                    Rectangle().fill(DS.sep).frame(height: 2)
+                } else {
+                    HStack(alignment: .bottom, spacing: 1) {
+                        ForEach(levels.indices, id: \.self) { i in
+                            let played = progress.map { Double(i) / Double(levels.count) < $0 } ?? false
+                            Rectangle()
+                                .fill(played ? t.accent : DS.ink3.opacity(0.35))
+                                .frame(height: max(2, CGFloat(levels[i]) * (height - 10)))
+                        }
+                    }
+                }
+                if let progress {
+                    Rectangle().fill(DS.ink)
+                        .frame(width: 2, height: height - 4)
+                        .offset(x: max(0, min(width - 2, width * progress - 1)))
+                }
+                if let peak {
+                    Image(systemName: UserMarkKind.lyricLikes.activeIcon)
+                        .font(.imasScaled(9, weight: .bold))
+                        .foregroundStyle(t.accent)
+                        .position(x: max(5, min(width - 5, width * peak)), y: 4)
+                }
+            }
+            .frame(width: width, height: height, alignment: .bottomLeading)
+            .contentShape(Rectangle())
+            // なぞりではなくタップ。歌詞の縦スクロールの途中で指が乗っても飛ばないように。
+            .onTapGesture(coordinateSpace: .local) { location in
+                onSeek(max(0, min(1, location.x / max(width, 1))))
+            }
+        }
+        .frame(height: height)
+        .accessibilityElement()
+        .accessibilityLabel("ここ好きの多い場所")
+        .accessibilityValue(peak.map { "おすすめは \(Int($0 * 100))% の位置" } ?? "")
+        .accessibilityAction(named: "おすすめ地点から再生") { if let peak { onSeek(peak) } }
+    }
+}
