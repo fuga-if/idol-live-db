@@ -1,20 +1,18 @@
 package com.fugaif.imaslivedb.ui.ledger
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,15 +29,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormAmount
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -68,92 +76,89 @@ fun ExpenseEditorSheet(
 ) {
     var dateText by rememberSaveable { mutableStateOf(expense?.date ?: DATE_FORMAT.format(Instant.now().atZone(ZoneOffset.UTC))) }
     var category by remember { mutableStateOf(expense?.categoryValue ?: ExpenseCategory.TICKET) }
-    var amountText by rememberSaveable { mutableStateOf(expense?.amount?.toString() ?: "") }
+    var amount by rememberSaveable { mutableStateOf(expense?.amount?.toInt()) }
     var note by rememberSaveable { mutableStateOf(expense?.note ?: "") }
     var showId by rememberSaveable { mutableStateOf(expense?.showId) }
     var eventId by rememberSaveable { mutableStateOf(expense?.eventId) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showShowPicker by remember { mutableStateOf(false) }
 
-    val amount = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
-    val validation = validateExpense(dateText, amount)
+    val validation = validateExpense(dateText, (amount ?: 0).toLong())
+
+    fun save() {
+        if (validation != null) return
+        val saved = expense?.copy(
+            date = dateText, category = expenseCategoryKey(category), amount = (amount ?: 0).toLong(),
+            showId = showId, eventId = eventId, note = note.ifEmpty { null }
+        ) ?: Expense.make(dateText, category, (amount ?: 0).toLong(), showId, eventId, note)
+        onSave(saved)
+    }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text(
-                if (expense == null) "支出を足す" else "支出を直す",
-                fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
+            ImasSheetToolbar(
+                ImasSheetToolbarKind.Edit(canSave = validation == null, onCancel = onDismiss, onSave = ::save),
+                title = if (expense == null) "支出を足す" else "支出を直す"
             )
-            Spacer(Modifier.height(16.dp))
 
-            Text("金額", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { amountText = it.filter(Char::isDigit) },
-                placeholder = { Text("0") },
-                leadingIcon = { Text("¥", color = DS.ink2) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            if (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE) {
-                Text(message(validation), fontSize = 12.sp, color = DS.danger, modifier = Modifier.padding(top = 4.dp))
-            }
-            Spacer(Modifier.height(16.dp))
-
-            Text("費目", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            CategoryGrid(selected = category, onSelect = { category = it })
-            Spacer(Modifier.height(16.dp))
-
-            Text("日付", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(DS.fill)
-                    .clickable { showDatePicker = true }.padding(horizontal = 14.dp, vertical = 12.dp)
+            Column(
+                Modifier.padding(horizontal = DS.Space.screen),
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
             ) {
-                Text(dateText, fontSize = 15.sp, color = DS.ink)
-            }
-            Spacer(Modifier.height(16.dp))
+                ImasFormCard {
+                    ImasFormAmount(label = "金額", imprint = "AMOUNT", icon = Icons.Filled.AttachMoney, amount = amount, onAmountChange = { amount = it })
+                }
+                if (amount != null && (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE)) {
+                    Text(message(validation), style = ImasTextRole.NOTE.style, color = DS.danger)
+                }
 
-            Text("公演", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(DS.fill)
-                    .clickable { showShowPicker = true }.padding(horizontal = 14.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                val label = showOptions.firstOrNull { it.id == showId }?.label ?: "公演に紐づけない"
-                Text(label, fontSize = 15.sp, color = if (showId == null) DS.ink2 else DS.ink)
-            }
-            Text(
-                "紐づけると「この遠征でいくら使ったか」が出ます。課金やグッズの通販は紐づけなくて構いません。",
-                fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp)
-            )
-            Spacer(Modifier.height(16.dp))
+                ImasFormCard {
+                    ImasFormField(label = "費目", imprint = "CATEGORY") {
+                        CategoryGrid(selected = category, onSelect = { category = it })
+                    }
+                }
 
-            Text("メモ", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(
-                value = note, onValueChange = { note = it }, placeholder = { Text("任意") },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(Modifier.height(20.dp))
+                ImasFormCard {
+                    ImasFormField(label = "日付", imprint = "DATE") {
+                        Row(
+                            Modifier.fillMaxWidth().imasRowPress(onClick = { showDatePicker = true }),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(dateText)
+                            ImasRowChevron()
+                        }
+                    }
+                }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("キャンセル") }
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        val saved = expense?.copy(
-                            date = dateText, category = expenseCategoryKey(category), amount = amount,
-                            showId = showId, eventId = eventId, note = note.ifEmpty { null }
-                        ) ?: Expense.make(dateText, category, amount, showId, eventId, note)
-                        onSave(saved)
-                    },
-                    enabled = validation == null
-                ) { Text("保存") }
+                ImasFormCard {
+                    ImasFormField(label = "公演", imprint = "SHOW") {
+                        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                            val label = showOptions.firstOrNull { it.id == showId }?.label ?: "公演に紐づけない"
+                            Row(
+                                Modifier.fillMaxWidth().imasRowPress(onClick = { showShowPicker = true }),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(label, color = if (showId == null) DS.ink2 else DS.ink)
+                                ImasRowChevron()
+                            }
+                            if (showId != null) {
+                                Text(
+                                    "公演との紐づけを外す",
+                                    style = ImasTextRole.NOTE.style,
+                                    color = DS.danger,
+                                    modifier = Modifier.clickable { showId = null; eventId = null }
+                                )
+                            }
+                        }
+                    }
+                }
+                ImasNote("紐づけると「この遠征でいくら使ったか」が出ます。課金やグッズの通販は紐づけなくて構いません。")
+
+                ImasFormCard {
+                    ImasFormTextArea(label = "メモ", imprint = "NOTE", text = note, onTextChange = { note = it }, prompt = "任意")
+                }
             }
         }
     }
@@ -184,7 +189,7 @@ fun ExpenseEditorSheet(
                 showId = option?.id
                 eventId = option?.eventId
                 // 日付を入れ直していなければ公演の日に合わせる (遠征費は当日が大半)。
-                if (option != null && expense == null && amountText.isEmpty()) dateText = option.date
+                if (option != null && expense == null && amount == null) dateText = option.date
                 showShowPicker = false
             },
             onDismiss = { showShowPicker = false }
@@ -196,9 +201,9 @@ fun ExpenseEditorSheet(
 private fun CategoryGrid(selected: ExpenseCategory, onSelect: (ExpenseCategory) -> Unit) {
     // 並びはコアが決める。画面ごとに並べ替えない。
     val categories = remember { expenseCategories() }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         categories.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 row.forEach { info ->
                     ImasFilterChip(info.label, info.category == selected, { onSelect(info.category) })
                 }
@@ -229,35 +234,32 @@ internal fun LedgerShowPickerSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("公演を選ぶ", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.fillMaxWidth()) {
+            ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = onDismiss), title = "公演を選ぶ")
             OutlinedTextField(
                 value = query, onValueChange = { query = it }, placeholder = { Text("公演を探す") },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
-            Spacer(Modifier.height(8.dp))
-            LazyColumn(Modifier.height(360.dp)) {
+            LazyColumn(Modifier.padding(bottom = DS.Space.section)) {
                 item {
-                    Text(
-                        "公演に紐づけない", fontSize = 15.sp, color = DS.ink,
-                        modifier = Modifier.fillMaxWidth().clickable { onPick(null) }.padding(vertical = 12.dp)
-                    )
-                }
-                if (options.isEmpty()) {
-                    item {
-                        Text(
-                            "参加した公演がありません。ライブに「参加」を付けると、ここに並びます。",
-                            fontSize = 13.sp, color = DS.ink3, modifier = Modifier.padding(vertical = 12.dp)
-                        )
-                    }
-                }
-                items(shown, key = { it.id }) { option ->
-                    Column(
-                        Modifier.fillMaxWidth().clickable { onPick(option) }.padding(vertical = 10.dp)
-                    ) {
-                        Text(option.label, fontSize = 15.sp, color = DS.ink, maxLines = 2)
-                        Text(option.date, fontSize = 12.sp, color = DS.ink3)
+                    ImasListSection {
+                        ImasActionRow(title = "公演に紐づけない", icon = Icons.Filled.Close, onClick = { onPick(null) })
+                        if (options.isEmpty()) {
+                            ImasEmptyState(
+                                icon = Icons.Filled.Mic,
+                                title = "参加した公演がありません",
+                                message = "ライブに「参加」を付けると、ここに並びます。"
+                            )
+                        }
+                        shown.forEach { option ->
+                            ImasRow(
+                                title = option.label,
+                                subtitle = option.date,
+                                titleRole = ImasTextRole.ROW_LABEL,
+                                modifier = Modifier.imasRowPress(onClick = { onPick(option) })
+                            )
+                        }
                     }
                 }
             }

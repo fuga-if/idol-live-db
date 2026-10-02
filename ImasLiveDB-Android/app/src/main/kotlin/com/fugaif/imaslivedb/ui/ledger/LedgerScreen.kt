@@ -1,8 +1,6 @@
 package com.fugaif.imaslivedb.ui.ledger
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,20 +11,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -40,20 +33,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Expense
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasStatBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasRecordRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasStatBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasTicketRow
 import com.fugaif.imaslivedb.ui.mastery.MasterySwipeRow
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasType
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import uniffi.imas_core.LedgerBucket
 import uniffi.imas_core.LedgerLinkage
 import uniffi.imas_core.expenseCategoryLabel
@@ -83,7 +87,7 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("収支", fontWeight = FontWeight.Bold) },
+                title = { Text("収支") },
                 actions = {
                     // 入口は + 1 つ。何を足すかをメニューで選ぶ (アイコンを並べると意味が伝わらない)。iOS と対。
                     Box {
@@ -108,9 +112,7 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
         }
     ) { padding ->
         if (state.isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            ImasLoadingState(modifier = Modifier.padding(padding))
         } else {
             LazyColumn(Modifier.fillMaxSize().padding(padding)) {
                 item { SummarySection(state) }
@@ -145,13 +147,13 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
                             }
                             if (index < rows.size - 1) {
                                 item(key = "${expense.id}_div") {
-                                    HorizontalDivider(Modifier.padding(start = 16.dp), color = DS.sep)
+                                    ImasRowDivider(inset = DS.Space.rowH, modifier = Modifier.background(DS.surface))
                                 }
                             }
                         }
                     }
                 }
-                item { Spacer(Modifier.height(24.dp)) }
+                item { Spacer(Modifier.height(DS.Space.section)) }
             }
         }
     }
@@ -185,20 +187,13 @@ fun LedgerScreen(viewModel: LedgerViewModel = viewModel()) {
 
 @Composable
 private fun BackfillBanner(count: Int, onClick: () -> Unit) {
-    Row(
-        Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp).fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp)).background(DS.surface).clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(Icons.Filled.ConfirmationNumber, contentDescription = null, tint = DS.ink2)
-        Column(Modifier.weight(1f)) {
-            Text("過去の参加からチケット代を取り込む", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Text("チケット代が未記録の公演が${count}件あります", fontSize = 12.sp, color = DS.ink3)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3)
-    }
+    ImasTicketRow(
+        title = "過去の参加からチケット代を取り込む",
+        icon = Icons.Filled.ConfirmationNumber,
+        subtitle = "チケット代が未記録の公演が${count}件あります",
+        onClick = onClick,
+        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
+    )
 }
 
 /** シートの対象。expense が null なら新規作成。 */
@@ -207,115 +202,95 @@ private data class EditorTarget(val expense: Expense?)
 @Composable
 private fun SummarySection(state: LedgerUiState) {
     val s = state.summary
-    Column {
-        ImasSectionHeader("使った額", tight = true)
-        Column(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface).padding(16.dp),
-        ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(formatYen(s.total), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                Text(
-                    "  ${s.count}件", fontSize = 15.sp, color = DS.ink2,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-            }
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Metric("遠征費", formatYen(s.travelTotal))
-                if (s.showCount > 0u) {
-                    Metric("1公演あたり", formatYen(s.averagePerShow))
-                    Metric("公演数", "${s.showCount}")
+    ImasSection("使った額", style = ImasSectionHeaderStyle.SMALL) {
+        ImasCard {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                ImasMetric(value = formatYen(s.total), unit = "${s.count}件", size = ImasNumeralSize.LARGE, emphasized = true)
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.section)) {
+                    Metric("遠征費", formatYen(s.travelTotal))
+                    if (s.showCount > 0u) {
+                        Metric("1公演あたり", formatYen(s.averagePerShow))
+                        Metric("公演数", "${s.showCount}")
+                    }
                 }
             }
         }
         if (s.byCategory.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            Column(
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-            ) {
-                s.byCategory.forEach { row ->
-                    ImasStatBar(row.label, formatYen(row.total), row.percent.toDouble())
+            ImasCard {
+                Column {
+                    s.byCategory.forEach { row ->
+                        ImasStatBar(
+                            label = row.label,
+                            value = formatYen(row.total),
+                            percent = row.percent.toDouble(),
+                            valueWidth = 76.dp,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp, vertical = DS.Space.gap)
+                        )
+                    }
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
     }
 }
 
 @Composable
 private fun Metric(label: String, value: String) {
-    Column {
-        Text(label, fontSize = 12.sp, color = DS.ink3)
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        Text(label, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+        Text(value, style = ImasType.text(13.sp, FontWeight.Bold), color = DS.ink)
     }
 }
 
 @Composable
 private fun ControlsSection(state: LedgerUiState, vm: LedgerViewModel) {
-    Column {
-        ImasSegmented(PERIOD_LABELS, state.periodIndex, vm::setPeriodIndex, Modifier.padding(horizontal = 16.dp))
-        Spacer(Modifier.height(10.dp))
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+        ImasSegmented(PERIOD_LABELS, state.periodIndex, vm::setPeriodIndex, Modifier.padding(horizontal = DS.Space.screen))
+        ImasChipRow {
             ImasFilterChip("全期間", state.yearFilter.isEmpty(), { vm.setYearFilter("") })
             state.years.forEach { year ->
                 ImasFilterChip("${year}年", state.yearFilter == year, { vm.setYearFilter(year) })
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        ImasChipRow {
             ImasFilterChip("すべて", state.linkage == LedgerLinkage.ALL, { vm.setLinkage(LedgerLinkage.ALL) })
             ImasFilterChip("公演あり", state.linkage == LedgerLinkage.LINKED_ONLY, { vm.setLinkage(LedgerLinkage.LINKED_ONLY) })
             ImasFilterChip("公演なし", state.linkage == LedgerLinkage.UNLINKED_ONLY, { vm.setLinkage(LedgerLinkage.UNLINKED_ONLY) })
         }
-        Spacer(Modifier.height(4.dp))
     }
 }
 
 @Composable
 private fun BucketHeader(bucket: LedgerBucket) {
     Row(
-        Modifier.fillMaxWidth().background(DS.bg).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().background(DS.bg).padding(horizontal = DS.Space.screen, vertical = DS.Space.header),
         verticalAlignment = Alignment.Bottom
     ) {
-        Text(bucket.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+        Text(bucket.label, style = ImasType.text(15.sp, FontWeight.Bold), color = DS.ink)
         Spacer(Modifier.weight(1f))
-        Text(formatYen(bucket.total), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DS.ink2)
+        Text(formatYen(bucket.total), style = ImasTextRole.META.style.copy(fontWeight = FontWeight.Bold), color = ImasTextRole.META.color)
     }
 }
 
 @Composable
 private fun ExpenseRow(expense: Expense, showLabel: String?, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().background(DS.surface).clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    // 費目・日付は常に出す (題にする)。公演名かメモは、あるときだけ下にもう1行足す
+    // (無ければ何も足さない。費目を題の代わりに使うような分岐は作らない)。
+    val detail = showLabel ?: expense.note
+    ImasRecordRow(
+        title = expenseCategoryLabel(expense.categoryValue),
+        subtitle = shortDate(expense.date),
+        trailing = ImasRowTrailing.Custom {
+            Text(
+                formatYen(expense.amount),
+                style = ImasType.text(17.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
+                color = DS.ink
+            )
+        },
+        modifier = Modifier.background(DS.surface).imasRowPress(onClick = onClick)
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    expenseCategoryLabel(expense.categoryValue), fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                    color = DS.ink2,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).background(DS.fill)
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-                Text(shortDate(expense.date), fontSize = 11.sp, color = DS.ink3)
-            }
-            // 公演名かメモ。両方あれば公演名 (どの遠征の支出かが先に要る)。
-            val subLabel = showLabel ?: expense.note
-            if (!subLabel.isNullOrEmpty()) {
-                Text(subLabel, fontSize = 13.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+        if (!detail.isNullOrEmpty()) {
+            Text(detail, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
         }
-        Text(formatYen(expense.amount), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
     }
 }
 
