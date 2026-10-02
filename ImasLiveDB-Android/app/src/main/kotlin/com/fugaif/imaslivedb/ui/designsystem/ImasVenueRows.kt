@@ -170,6 +170,7 @@ data class ImasStubDate(
  * @param showsChevron 別画面へ進む矢印 (押して詳細へ行く一覧)。
  * @param detailAccessibilityLabel [detail] に自由な見た目 (チップのボタンなど) を渡したとき、読み上げにも足したい文言
  *   (題・副題・札だけでは伝わらない操作「セトリを見る」など)。
+ * @param subtitleIcon 副題の前に置く小さな記号 (会場なら場所の印など)。
  * @param subtitleLineLimit 副題の行数。既定は 1 行。会場 + 補足などで長い行は 2 にする。
  */
 @Composable
@@ -178,6 +179,7 @@ fun ImasStubRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleIcon: ImageVector? = null,
     seed: String? = null,
     brand: String? = null,
     badges: List<ImasBadgeSpec> = emptyList(),
@@ -252,6 +254,9 @@ fun ImasStubRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (penlight != null) ImasPenlight(color = penlight, size = ImasPenlightSize.SMALL, rainbow = rainbow)
                     if (subtitle != null) {
+                        if (subtitleIcon != null) {
+                            Icon(subtitleIcon, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(12.dp))
+                        }
                         Text(subtitle, style = ImasType.text(12.sp), color = DS.ink2, maxLines = subtitleLineLimit, overflow = TextOverflow.Ellipsis)
                     }
                 }

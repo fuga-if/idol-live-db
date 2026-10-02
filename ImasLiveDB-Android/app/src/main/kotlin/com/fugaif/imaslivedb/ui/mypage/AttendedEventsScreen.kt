@@ -142,7 +142,7 @@ fun AttendedEventsScreen(
                 Box(Modifier.fillMaxSize()) {
                     ImasFormBackdrop(modifier = Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            ImasListSection("${filteredEvents.size}件") {
+                            ImasListSection(if (filteredEvents.isEmpty()) null else "${filteredEvents.size}件") {
                                 filteredEvents.forEach { ew ->
                                     ImasEventRow(
                                         event = ew.event,

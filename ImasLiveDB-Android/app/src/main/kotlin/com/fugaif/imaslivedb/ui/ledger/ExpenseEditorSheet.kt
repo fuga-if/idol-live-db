@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.ledger
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -108,7 +107,7 @@ fun ExpenseEditorSheet(
                 ImasFormCard {
                     ImasFormAmount(label = "金額", imprint = "AMOUNT", icon = Icons.Filled.AttachMoney, amount = amount, onAmountChange = { amount = it })
                 }
-                if (amount != null && (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE)) {
+                if (validation == ExpenseInputError.NOT_POSITIVE || validation == ExpenseInputError.TOO_LARGE) {
                     Text(message(validation), style = ImasTextRole.NOTE.style, color = DS.danger)
                 }
 
@@ -142,14 +141,6 @@ fun ExpenseEditorSheet(
                             ) {
                                 Text(label, color = if (showId == null) DS.ink2 else DS.ink)
                                 ImasRowChevron()
-                            }
-                            if (showId != null) {
-                                Text(
-                                    "公演との紐づけを外す",
-                                    style = ImasTextRole.NOTE.style,
-                                    color = DS.danger,
-                                    modifier = Modifier.clickable { showId = null; eventId = null }
-                                )
                             }
                         }
                     }
@@ -248,8 +239,7 @@ internal fun LedgerShowPickerSheet(
                         if (options.isEmpty()) {
                             ImasEmptyState(
                                 icon = Icons.Filled.Mic,
-                                title = "参加した公演がありません",
-                                message = "ライブに「参加」を付けると、ここに並びます。"
+                                title = "参加した公演がありません。ライブに「参加」を付けると、ここに並びます。"
                             )
                         }
                         shown.forEach { option ->

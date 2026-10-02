@@ -231,7 +231,10 @@ fun ImasEventRow(
  * @param date 公演の日 (`yyyy-MM-dd`)。読み上げはコアの `spokenDate` (「2026年11月7日 土曜日」)。
  * @param title 公演名 (DAY1 など)。
  * @param subtitle 開演・会場・出演者数。
+ * @param subtitleIcon [subtitle] の前に置く小さな記号 (会場なら場所の印など)。
  * @param brand ブランド ID (iOS の `brandHex`)。[seed] は色 hex で直に渡すとき。
+ * @param detailAccessibilityLabel [detail] に自由な見た目 (チップのボタンなど) を渡したとき、読み上げにも足したい文言
+ *   (題・副題・札だけでは伝わらない操作「セトリを見る」など)。
  */
 @Composable
 fun ImasShowRow(
@@ -239,6 +242,7 @@ fun ImasShowRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleIcon: ImageVector? = null,
     brand: String? = null,
     seed: String? = null,
     badges: List<ImasBadgeSpec> = emptyList(),
@@ -246,6 +250,7 @@ fun ImasShowRow(
     rainbow: Boolean = false,
     showsChevron: Boolean = false,
     subtitleLineLimit: Int = 1,
+    detailAccessibilityLabel: String? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     val spoken = remember(date) { spokenDate(date) }
@@ -254,6 +259,7 @@ fun ImasShowRow(
         title = title,
         modifier = modifier,
         subtitle = subtitle,
+        subtitleIcon = subtitleIcon,
         seed = seed,
         brand = brand,
         badges = badges,
@@ -262,6 +268,7 @@ fun ImasShowRow(
         spokenDate = spoken,
         showsChevron = showsChevron,
         subtitleLineLimit = subtitleLineLimit,
+        detailAccessibilityLabel = detailAccessibilityLabel,
         detail = detail
     )
 }

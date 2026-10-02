@@ -29,6 +29,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFormAmount
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
@@ -158,7 +160,7 @@ private fun TicketExpenseSheet(
         Column(Modifier.fillMaxWidth().padding(bottom = DS.Space.section)) {
             ImasSheetToolbar(
                 ImasSheetToolbarKind.Prompt(
-                    canRecord = (amount ?: 0) > 0,
+                    canRecord = ticket != null && (amount ?: 0) > 0,
                     onLater = onDismiss,
                     onRecord = { ticket?.let { onSave(it, (amount ?: 0).toLong()) } }
                 ),
@@ -174,20 +176,22 @@ private fun TicketExpenseSheet(
                     Text("${ticketKindLabel(request.kind)}で参加", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
                 }
 
-                ImasCardList(items = request.tickets, key = { it.id }) { candidate ->
-                    ImasSelectableRow(
-                        title = candidate.name,
-                        subtitle = if (candidate.isEstimate) "推定" else null,
-                        trailing = ImasRowTrailing.Custom {
-                            Text(formatYen(candidate.price), style = ImasTextRole.VALUE.style, color = DS.ink2)
-                        },
-                        isSelected = candidate.id == ticket?.id,
-                        isSingle = true,
-                        onClick = {
-                            selected = candidate
-                            amount = candidate.price.toInt()
-                        }
-                    )
+                ImasSection("券種", style = ImasSectionHeaderStyle.SMALL) {
+                    ImasCardList(items = request.tickets, key = { it.id }) { candidate ->
+                        ImasSelectableRow(
+                            title = candidate.name,
+                            subtitle = if (candidate.isEstimate) "推定" else null,
+                            trailing = ImasRowTrailing.Custom {
+                                Text(formatYen(candidate.price), style = ImasTextRole.VALUE.style, color = DS.ink2)
+                            },
+                            isSelected = candidate.id == ticket?.id,
+                            isSingle = true,
+                            onClick = {
+                                selected = candidate
+                                amount = candidate.price.toInt()
+                            }
+                        )
+                    }
                 }
 
                 ImasFormCard {

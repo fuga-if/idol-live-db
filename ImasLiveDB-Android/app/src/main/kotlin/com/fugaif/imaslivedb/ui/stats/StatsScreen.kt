@@ -343,7 +343,6 @@ private fun UncollectedSection(
                 else -> ImasCardList(items = songs.take(30)) { item ->
                     ImasSongRow(
                         title = item.song.title,
-                        subtitle = brandShortName(brands, item.song.brandId),
                         artworkUrl = item.song.artworkUrl,
                         brand = item.song.brandId,
                         trailing = ImasRowTrailing.Custom { FrequencyBadge(item) },
@@ -384,9 +383,11 @@ private fun LatestSection(show: com.fugaif.imaslivedb.data.model.Show, songCount
             title = show.name,
             modifier = Modifier.imasRowPress(onClick = onClick),
             subtitle = venueLine.ifEmpty { null },
+            subtitleIcon = Icons.Filled.LocationOn,
             seed = brandColor,
             badges = listOf(ImasBadgeSpec("最新公演", kind = ImasBadgeKind.NEUTRAL)),
-            subtitleLineLimit = 2
+            subtitleLineLimit = 2,
+            detailAccessibilityLabel = "セトリを見る"
         ) {
             ImasChip(text = "セトリを見る", icon = Icons.Filled.MusicNote, style = ImasChipStyle.THEMED, seed = brandColor)
         }
@@ -440,10 +441,6 @@ private fun HeatSection(
 /** "1280" → "1,280" のような桁区切り。 */
 private fun heatMetric(count: Int): String =
     "%,d".format(count)
-
-/** ブランド ID から略称を引く (未回収曲の副題)。 */
-private fun brandShortName(brands: List<com.fugaif.imaslivedb.data.model.Brand>, brandId: String?): String? =
-    brandId?.let { id -> brands.firstOrNull { it.id == id }?.shortName }
 
 /** "2026-06-04" → "6/4" 表示用。失敗時は元文字列。 */
 private fun displayDate(raw: String): String {
