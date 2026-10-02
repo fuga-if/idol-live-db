@@ -1,26 +1,16 @@
 package com.fugaif.imaslivedb.ui.tags
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,11 +21,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasContentState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasSkeletonKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasStateContainer
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatchSize
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
@@ -70,65 +76,75 @@ fun TagFilterSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 560.dp).padding(bottom = 16.dp)) {
-            Text(
-                "タグで絞り込み", fontSize = 20.sp, color = DS.ink,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        Column(Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 560.dp)) {
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Select(onCancel = onDismiss, onFinish = { onDone(selected); onDismiss() }),
+                title = "タグで絞り込み"
             )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("タグ名で検索") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            ImasSearchField(
+                prompt = "タグ名で検索",
+                text = query,
+                onTextChange = { query = it },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
             if (selected.isNotEmpty()) {
-                Text(
-                    "選択中 (${selected.size}) — すべてを含む曲に絞り込み",
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-                Text(
-                    selected.joinToString(" ＋ ") { it.name },
-                    fontSize = 12.sp, color = DS.ink2,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(top = 8.dp))
-            }
-            when {
-                isLoading -> Box(Modifier.fillMaxWidth().padding(32.dp)) { CircularProgressIndicator() }
-                tags.isEmpty() -> Text(
-                    "タグがありません", color = DS.ink2,
-                    modifier = Modifier.fillMaxWidth().padding(32.dp)
-                )
-                else -> LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-                    itemsIndexed(tags, key = { _, tag -> tag.id }) { idx, tag ->
-                        val isSelected = selected.any { it.id == tag.id }
-                        val rank = if (query.isEmpty()) idx + 1 else null
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().clickable { toggle(tag) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            if (rank != null) TagRankBadge(rank)
-                            TagColorDot(tag.color)
-                            Text(tag.name, fontSize = 15.sp, color = DS.ink, modifier = Modifier.weight(1f))
-                            if (tag.totalUses > 0) Text("${tag.totalUses}曲", fontSize = 12.sp, color = DS.ink2)
-                            if (isSelected) {
-                                Icon(Icons.Filled.Check, contentDescription = null, tint = DS.pick)
-                            }
+                ImasListSection(title = "選択中 (${selected.size}) — すべてを含む曲に絞り込み") {
+                    ImasChipRow {
+                        selected.forEach { tag ->
+                            ImasRemovableChip(text = tag.name, onRemove = { toggle(tag) }, seed = tag.color)
                         }
                     }
                 }
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            val state = when {
+                isLoading -> ImasContentState.Loading
+                tags.isEmpty() -> ImasContentState.Empty
+                else -> ImasContentState.Loaded
+            }
+            ImasStateContainer(
+                state = state,
+                modifier = Modifier.weight(1f),
+                skeleton = ImasSkeletonKind.List(rows = 6),
+                empty = { ImasEmptyState(ImasEmptyStateKind.EMPTY, title = "タグがありません") }
             ) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
-                Button(onClick = { onDone(selected); onDismiss() }, modifier = Modifier.weight(1f)) { Text("完了") }
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    itemsIndexed(tags, key = { _, tag -> tag.id }) { idx, tag ->
+                        val rank = if (query.isEmpty()) idx + 1 else null
+                        Column(Modifier.fillMaxWidth()) {
+                            TagFilterRow(
+                                tag = tag,
+                                rank = rank,
+                                isSelected = selected.any { it.id == tag.id },
+                                onClick = { toggle(tag) }
+                            )
+                            if (idx < tags.lastIndex) ImasRowDivider(inset = DS.Space.rowH)
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+/** タグ候補 1 行。検索していない時は人気順そのものなので順位の札を出す。 */
+@Composable
+private fun TagFilterRow(tag: CommunityApi.CommunityTag, rank: Int?, isSelected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (rank != null) ImasRankBadge(rank)
+        ImasSelectableRow(
+            title = tag.name,
+            isSelected = isSelected,
+            onClick = onClick,
+            modifier = Modifier.weight(1f),
+            leading = tag.color?.let { hex ->
+                ImasRowLeading.Custom(width = ImasSwatchSize.SMALL.diameter) { ImasSwatch(hex, size = ImasSwatchSize.SMALL) }
+            } ?: ImasRowLeading.None,
+            trailing = if (tag.totalUses > 0) ImasRowTrailing.Value("${tag.totalUses}曲") else ImasRowTrailing.None,
+            seed = tag.color
+        )
     }
 }

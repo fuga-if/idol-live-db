@@ -282,6 +282,9 @@ private fun rememberFieldValue(text: String): androidx.compose.runtime.MutableSt
  * 1 行の入力の欄 (iOS `ImasFormTextField`)。
  *
  * @param isTitle 題の欄 (ライブ名など) は大きく組み、長いときは折り返す。
+ * @param limit 文字数の上限。渡すと入力の下に「N / 上限」を出し、超えたら朱にする
+ *   (タグ名など、短い 1 行の値で上限を示したい欄)。
+ * @param count 数え方を呼び出し側が決めるとき。null なら見た目の文字数 ([graphemeCount])。
  */
 @Composable
 fun ImasFormTextField(
@@ -294,23 +297,31 @@ fun ImasFormTextField(
     prompt: String? = null,
     error: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
-    isTitle: Boolean = false
+    isTitle: Boolean = false,
+    limit: Int? = null,
+    count: Int? = null
 ) {
     var field by rememberFieldValue(text)
     ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon, error = error) {
-        FormInput(
-            value = field,
-            onValueChange = {
-                field = it
-                if (it.text != text) onTextChange(it.text)
-            },
-            prompt = prompt ?: label,
-            style = if (isTitle) ImasType.heading(22.sp, FontWeight.ExtraBold) else ImasType.heading(17.sp, FontWeight.Bold),
-            label = label,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = !isTitle,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done)
-        )
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+            FormInput(
+                value = field,
+                onValueChange = {
+                    field = it
+                    if (it.text != text) onTextChange(it.text)
+                },
+                prompt = prompt ?: label,
+                style = if (isTitle) ImasType.heading(22.sp, FontWeight.ExtraBold) else ImasType.heading(17.sp, FontWeight.Bold),
+                label = label,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = !isTitle,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done)
+            )
+            if (limit != null) {
+                val n = count ?: graphemeCount(text)
+                Text("$n / $limit", style = ImasType.mono(11.sp), color = if (n > limit) DS.danger else DS.ink3)
+            }
+        }
     }
 }
 

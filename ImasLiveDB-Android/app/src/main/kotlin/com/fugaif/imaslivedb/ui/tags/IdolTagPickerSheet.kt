@@ -1,31 +1,12 @@
 package com.fugaif.imaslivedb.ui.tags
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,22 +15,31 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
 /**
  * アイドルへのタグ追加ピッカー。SongTagPickerSheet と同じ見た目・操作感 (タグは曲と共有のマスタ)。
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdolTagPickerSheet(
     idolId: String,
@@ -80,92 +70,76 @@ fun IdolTagPickerSheet(
         isLoading = false
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 320.dp).verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    fun submit() {
+        errorMessage = null
+        val module = AppModule.from(context)
+        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
+        // BAN 済みは何も起きない (押せる導線自体が出ていない)。
+        module.authService.state.value.startCommunityEdit(
+            promptLogin = {
+                errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
+            }
         ) {
-            Text("タグを追加", fontSize = 20.sp, color = DS.ink)
-
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("タグを検索 / 新規作成") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (trimmedQuery.isNotEmpty() && !exactMatchExists) {
-                TextButton(onClick = { showCreateSheet = true }) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("「$trimmedQuery」を作成")
+            isApplying = true
+            scope.launch {
+                val api = module.communityApi
+                val ok = runCatching { api.applyIdolTags(idolId, selected.toList()) }.getOrNull()
+                isApplying = false
+                if (ok != null) {
+                    onApplied()
+                    onDismiss()
+                } else {
+                    errorMessage = "タグの追加に失敗しました"
                 }
             }
+        }
+    }
 
-            Text(
-                if (trimmedQuery.isEmpty()) "よく使われるタグ" else "候補",
-                fontSize = 12.sp, color = DS.ink2
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(Modifier.fillMaxWidth()) {
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Submit(
+                    canSubmit = selected.isNotEmpty() && !isApplying,
+                    isSubmitting = isApplying,
+                    onCancel = onDismiss,
+                    onSubmit = ::submit
+                ),
+                title = "タグを追加"
             )
+            ImasFormPage {
+                ImasSearchField(prompt = "タグを検索 / 新規作成", text = query, onTextChange = { query = it })
 
-            when {
-                isLoading -> Box(Modifier.fillMaxWidth().padding(16.dp)) { CircularProgressIndicator() }
-                tags.isEmpty() -> Text("タグが見つかりません", fontSize = 13.sp, color = DS.ink3)
-                else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    tags.forEach { tag ->
-                        val applied = alreadyAppliedTagIds.contains(tag.id)
-                        val on = applied || selected.contains(tag.id)
-                        IdolPickerTagChip(tag = tag, on = on, applied = applied, onClick = {
-                            selected = if (selected.contains(tag.id)) selected - tag.id else selected + tag.id
-                        })
+                if (trimmedQuery.isNotEmpty() && !exactMatchExists) {
+                    ImasCardList {
+                        ImasActionRow(title = "「$trimmedQuery」を作成", icon = Icons.Filled.Add, onClick = { showCreateSheet = true })
                     }
                 }
-            }
 
-            TextButton(onClick = { showCreateSheet = true }) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text("色やカテゴリを付けて新規作成")
-            }
-
-            if (errorMessage != null) {
-                Text(errorMessage!!, color = DS.danger, fontSize = 13.sp)
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
-                Button(
-                    onClick = {
-                        errorMessage = null
-                        val module = AppModule.from(context)
-                        // 権限判定はコア (edit_permission_rules) に集約。未ログインは誘導、
-                        // BAN 済みは何も起きない (押せる導線自体が出ていない)。
-                        module.authService.state.value.startCommunityEdit(
-                            promptLogin = {
-                                errorMessage = "タグの追加にはサインインが必要です(設定画面からサインインしてください)"
-                            }
-                        ) {
-                            isApplying = true
-                            scope.launch {
-                                val api = module.communityApi
-                                val ok = runCatching { api.applyIdolTags(idolId, selected.toList()) }.getOrNull()
-                                isApplying = false
-                                if (ok != null) {
-                                    onApplied()
-                                    onDismiss()
-                                } else {
-                                    errorMessage = "タグの追加に失敗しました"
-                                }
+                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
+                    ImasSectionHeader(title = if (trimmedQuery.isEmpty()) "よく使われるタグ" else "候補", style = ImasSectionHeaderStyle.SMALL)
+                    when {
+                        isLoading -> ImasInlineLoading()
+                        tags.isEmpty() -> ImasNote("タグが見つかりません")
+                        else -> ImasChipFlow {
+                            tags.forEach { tag ->
+                                val applied = alreadyAppliedTagIds.contains(tag.id)
+                                TagSelectChip(
+                                    tag = tag,
+                                    isApplied = applied,
+                                    isSelected = selected.contains(tag.id),
+                                    onClick = {
+                                        selected = if (selected.contains(tag.id)) selected - tag.id else selected + tag.id
+                                    }
+                                )
                             }
                         }
-                    },
-                    enabled = selected.isNotEmpty() && !isApplying,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (isApplying) {
-                        CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                    } else {
-                        Text("追加")
                     }
+                }
+
+                ImasActionRow(title = "色やカテゴリを付けて新規作成", icon = Icons.Filled.Add, onClick = { showCreateSheet = true })
+
+                if (errorMessage != null) {
+                    ImasNotice(kind = ImasNoticeKind.ERROR, message = errorMessage)
                 }
             }
         }
@@ -181,26 +155,5 @@ fun IdolTagPickerSheet(
                 selected = selected + newTag.id
             }
         )
-    }
-}
-
-@Composable
-private fun IdolPickerTagChip(tag: CommunityApi.CommunityTag, on: Boolean, applied: Boolean, onClick: () -> Unit) {
-    val bg = if (on) DS.pick.copy(alpha = 0.18f) else DS.fill
-    val fg = if (on) DS.pick else DS.ink2
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(bg)
-            .clickable(enabled = !applied, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        if (on) Icon(Icons.Filled.Check, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
-        Text(tag.name, fontSize = 13.sp, color = fg)
-        if (tag.totalUses > 0) {
-            Text(" ${tag.totalUses}", fontSize = 11.sp, color = DS.ink3)
-        }
     }
 }

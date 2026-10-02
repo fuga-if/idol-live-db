@@ -1,6 +1,6 @@
 package com.fugaif.imaslivedb.ui.tags
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,14 +14,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Sort
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -37,14 +34,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasContentState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasListBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSkeletonKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasStateContainer
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatchSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasToolbarButton
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 private val SORT_OPTIONS = listOf("popular" to "人気", "recent" to "新着", "name" to "名前")
 
@@ -76,12 +88,10 @@ fun TagListScreen(
                 },
                 actions = {
                     Box {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.Filled.Sort, contentDescription = "並び順")
-                        }
+                        ImasToolbarButton(icon = Icons.Filled.Sort, label = "並び順", onClick = { showSortMenu = true })
                         DropdownMenu(expanded = showSortMenu, onDismissRequest = { showSortMenu = false }) {
                             SORT_OPTIONS.forEach { (value, label) ->
-                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                DropdownMenuItem(text = { Text(label, color = DS.ink) }, onClick = {
                                     viewModel.setSort(value)
                                     showSortMenu = false
                                 })
@@ -89,58 +99,62 @@ fun TagListScreen(
                         }
                     }
                     Box {
-                        BadgedBox(badge = {
-                            if (uiState.activeFilterCount > 0) Badge { Text("${uiState.activeFilterCount}") }
-                        }) {
-                            IconButton(onClick = { showCategoryMenu = true }) {
-                                Icon(Icons.Filled.FilterList, contentDescription = "カテゴリで絞り込み")
-                            }
-                        }
+                        ImasToolbarButton(
+                            icon = Icons.Filled.FilterList,
+                            label = "カテゴリで絞り込み",
+                            badge = uiState.activeFilterCount,
+                            onClick = { showCategoryMenu = true }
+                        )
                         DropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                             TAG_CATEGORIES.forEach { (value, label) ->
-                                DropdownMenuItem(text = { Text(label) }, onClick = {
+                                DropdownMenuItem(text = { Text(label, color = DS.ink) }, onClick = {
                                     viewModel.setCategory(value)
                                     showCategoryMenu = false
                                 })
                             }
                         }
                     }
-                    IconButton(onClick = { showCreateSheet = true }) {
-                        Icon(Icons.Filled.Add, contentDescription = "新規タグ作成")
-                    }
+                    ImasToolbarButton(icon = Icons.Filled.Add, label = "新規タグ作成", onClick = { showCreateSheet = true })
                 }
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            NameFilterField(
-                prompt = "タグ名で絞り込み",
-                value = uiState.nameFilter,
-                onValueChange = { viewModel.setNameFilter(it) }
-            )
-            val tags = uiState.visibleTags
-            Box(Modifier.fillMaxSize()) {
-                when {
-                    uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    tags.isEmpty() -> Text(
+        ImasListBackdrop(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize()) {
+                NameFilterField(
+                    prompt = "タグ名で絞り込み",
+                    value = uiState.nameFilter,
+                    onValueChange = { viewModel.setNameFilter(it) }
+                )
+                val tags = uiState.visibleTags
+                val state = when {
+                    uiState.isLoading -> ImasContentState.Loading
+                    tags.isEmpty() -> ImasContentState.Empty
+                    else -> ImasContentState.Loaded
+                }
+                ImasStateContainer(
+                    state = state,
+                    modifier = Modifier.fillMaxSize(),
+                    skeleton = ImasSkeletonKind.List(),
+                    empty = {
                         // 「まだ 1 つも無い」と「絞り込んで 0 件」を言い分ける。
                         if (uiState.nameFilter.isEmpty()) {
-                            "タグはまだありません"
+                            ImasEmptyState(icon = Icons.Filled.Sell, title = "タグはまだありません")
                         } else {
-                            "「${uiState.nameFilter}」に一致するタグがありません"
-                        },
-                        color = DS.ink2,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                    else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            ImasEmptyState(
+                                ImasEmptyStateKind.NO_RESULTS,
+                                title = "「${uiState.nameFilter}」に一致するタグがありません"
+                            )
+                        }
+                    }
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
                         itemsIndexed(tags, key = { _, tag -> tag.id }) { idx, tag ->
                             val rank = if (uiState.sort == "popular") idx + 1 else null
-                            TagListRow(
-                                tag = tag, rank = rank,
-                                modifier = Modifier.fillMaxWidth().clickable { onTagClick(tag.id) }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                            )
-                            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                            Column(Modifier.fillMaxWidth()) {
+                                TagListRow(tag = tag, rank = rank, onClick = { onTagClick(tag.id) })
+                                if (idx < tags.lastIndex) ImasRowDivider(inset = DS.Space.rowH)
+                            }
                         }
                     }
                 }
@@ -156,29 +170,37 @@ fun TagListScreen(
     }
 }
 
+/** タグ 1 件の行 (人気ソート時だけ先頭に小さい順位の札)。 */
 @Composable
-private fun TagListRow(tag: CommunityApi.CommunityTag, rank: Int?, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (rank != null) TagRankBadge(rank)
-            TagColorDot(tag.color)
-            Text(tag.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            if (!tag.category.isNullOrEmpty()) {
-                Text(
-                    tagCategoryLabel(tag.category), fontSize = 11.sp, color = DS.ink2,
-                    modifier = Modifier.padding(horizontal = 2.dp)
-                )
-            }
-            Box(Modifier.weight(1f))
-            if (tag.totalUses > 0) {
-                Text("${tag.totalUses}曲", fontSize = 12.sp, color = DS.ink2)
-            }
-        }
-        if (!tag.description.isNullOrEmpty()) {
-            Text(
-                tag.description, fontSize = 12.sp, color = DS.ink2, maxLines = 1,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
-            )
-        }
+private fun TagListRow(tag: CommunityApi.CommunityTag, rank: Int?, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(DS.surface)
+            .imasRowPress(onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (rank != null) ImasRankBadge(rank)
+        ImasRow(
+            title = tag.name,
+            modifier = Modifier.weight(1f),
+            subtitle = tag.description?.takeIf { it.isNotEmpty() },
+            leading = tag.color?.let { hex ->
+                ImasRowLeading.Custom(width = ImasSwatchSize.SMALL.diameter) { ImasSwatch(hex, size = ImasSwatchSize.SMALL) }
+            } ?: ImasRowLeading.None,
+            trailing = ImasRowTrailing.Custom {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
+                    if (!tag.category.isNullOrEmpty()) {
+                        ImasBadge(tagCategoryLabel(tag.category), kind = ImasBadgeKind.NEUTRAL)
+                    }
+                    if (tag.totalUses > 0) {
+                        Text("${tag.totalUses}曲", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+                    }
+                }
+            },
+            density = ImasRowDensity.COMPACT,
+            titleAccessibilityLabel = "タグ: ${tag.name}"
+        )
     }
 }

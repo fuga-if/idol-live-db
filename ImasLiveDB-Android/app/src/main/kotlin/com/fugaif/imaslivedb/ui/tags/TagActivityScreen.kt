@@ -1,26 +1,18 @@
 package com.fugaif.imaslivedb.ui.tags
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -35,10 +27,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
@@ -46,10 +39,25 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasLazyPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasRecordRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatchSize
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import uniffi.imas_core.relativeTimes
 
 private enum class ActivityTab(val label: String) {
@@ -83,7 +91,7 @@ fun TagActivityScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("タグの動き", fontWeight = FontWeight.Bold) },
+                title = { Text("タグの動き") },
                 navigationIcon = {
                     // サイドバーの根として開いたときは戻る先が無いので出さない。
                     onBack?.let { back ->
@@ -95,88 +103,101 @@ fun TagActivityScreen(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
-            val activity = uiState.activity
-            when {
-                uiState.isLoading && activity == null -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                activity == null || (activity.trendingTags.isEmpty() && activity.risingEntities.isEmpty() && activity.recent.isEmpty()) -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        ImasEmptyState(icon = Icons.Filled.LocalFireDepartment, title = "まだ動きがありません")
-                    }
-                }
-                else -> {
-                    val trends = activity.trendingTags.filter { it.domain == selectedDomain }
-                    val rises = activity.risingEntities.filter { it.domain == selectedDomain }
-                    val events = activity.recent.filter { it.domain == selectedDomain }
-                    // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引き、一覧が変わるまで使い回す。
-                    val times = remember(events) { relativeTimes(events.map { it.createdAtMs }, System.currentTimeMillis()) }
+        val activity = uiState.activity
+        if (uiState.isLoading && activity == null) {
+            Box(Modifier.fillMaxSize().padding(padding)) { ImasLoadingState() }
+        } else if (activity == null || (activity.trendingTags.isEmpty() && activity.risingEntities.isEmpty() && activity.recent.isEmpty())) {
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                ImasEmptyState(
+                    icon = Icons.Filled.LocalFireDepartment,
+                    title = "まだ動きがありません",
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        } else {
+            val trends = activity.trendingTags.filter { it.domain == selectedDomain }
+            val rises = activity.risingEntities.filter { it.domain == selectedDomain }
+            val events = activity.recent.filter { it.domain == selectedDomain }
+            // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引き、一覧が変わるまで使い回す。
+            val times = remember(events) { relativeTimes(events.map { it.createdAtMs }, System.currentTimeMillis()) }
 
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+            ImasLazyPage(modifier = Modifier.fillMaxSize().padding(padding)) {
+                item {
+                    ImasSegmented(
+                        labels = tabs.map { it.label },
+                        selection = tabIndex,
+                        onSelect = { tabIndex = it }
+                    )
+                }
+
+                if (trends.isEmpty() && rises.isEmpty() && events.isEmpty()) {
+                    item {
+                        ImasEmptyState(
+                            icon = Icons.Filled.LocalFireDepartment,
+                            title = "まだ動きがありません",
+                            message = if (selectedDomain == CommunityApi.TagActivityDomain.SONG) {
+                                "曲にタグを付けると、ここに反映されます。"
+                            } else {
+                                "アイドルにタグを付けると、ここに反映されます。"
+                            }
+                        )
+                    }
+                } else {
+                    if (trends.isNotEmpty()) {
                         item {
-                            ImasSegmented(
-                                labels = tabs.map { it.label },
-                                selection = tabIndex,
-                                onSelect = { tabIndex = it },
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
-                            )
+                            ImasSection(title = "伸びてるタグ", style = ImasSectionHeaderStyle.SMALL) {
+                                ImasCardList(style = ImasCardListStyle.PANEL) {
+                                    trends.forEachIndexed { idx, trend ->
+                                        if (idx > 0) ImasRowDivider(inset = DS.sp4)
+                                        TrendRow(trend, rank = idx + 1) {
+                                            if (selectedDomain == CommunityApi.TagActivityDomain.SONG) {
+                                                onSongTagClick(trend.tagId)
+                                            } else {
+                                                onIdolTagClick(trend.tagId)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
-
-                        if (trends.isEmpty() && rises.isEmpty() && events.isEmpty()) {
-                            item {
-                                ImasEmptyState(
-                                    icon = Icons.Filled.LocalFireDepartment,
-                                    title = "まだ動きがありません",
-                                    message = if (selectedDomain == CommunityApi.TagActivityDomain.SONG) {
-                                        "曲にタグを付けると、ここに反映されます。"
-                                    } else {
-                                        "アイドルにタグを付けると、ここに反映されます。"
-                                    }
-                                )
-                            }
-                        } else {
-                            if (trends.isNotEmpty()) {
-                                item { ImasSectionHeader(title = "伸びてるタグ", tight = true) }
-                                itemsIndexedWithDivider(trends) { idx, trend ->
-                                    TrendRow(trend, rank = idx + 1) {
-                                        if (selectedDomain == CommunityApi.TagActivityDomain.SONG) {
-                                            onSongTagClick(trend.tagId)
-                                        } else {
-                                            onIdolTagClick(trend.tagId)
-                                        }
+                    }
+                    if (rises.isNotEmpty()) {
+                        item {
+                            ImasSection(title = "タグが急増中", style = ImasSectionHeaderStyle.SMALL) {
+                                ImasCardList(style = ImasCardListStyle.PANEL) {
+                                    rises.forEachIndexed { idx, rise ->
+                                        if (idx > 0) ImasRowDivider(inset = DS.sp4)
+                                        RiseRow(
+                                            rise = rise,
+                                            song = uiState.songs[rise.entityId],
+                                            idol = uiState.idols[rise.entityId],
+                                            onClick = {
+                                                if (rise.domain == CommunityApi.TagActivityDomain.SONG) onSongClick(rise.entityId)
+                                                else onIdolClick(rise.entityId)
+                                            }
+                                        )
                                     }
                                 }
                             }
-                            if (rises.isNotEmpty()) {
-                                item { ImasSectionHeader(title = "タグが急増中", tight = true) }
-                                itemsIndexedWithDivider(rises) { _, rise ->
-                                    RiseRow(
-                                        rise = rise,
-                                        song = uiState.songs[rise.entityId],
-                                        idol = uiState.idols[rise.entityId],
-                                        onClick = {
-                                            if (rise.domain == CommunityApi.TagActivityDomain.SONG) onSongClick(rise.entityId)
-                                            else onIdolClick(rise.entityId)
-                                        }
-                                    )
-                                }
-                            }
-                            if (events.isNotEmpty()) {
-                                item { ImasSectionHeader(title = "最近つけられたタグ", tight = true) }
-                                itemsIndexedWithDivider(events) { index, event ->
-                                    RecentRow(
-                                        event = event,
-                                        timeText = times.getOrElse(index) { "" },
-                                        song = uiState.songs[event.entityId],
-                                        idol = uiState.idols[event.entityId],
-                                        onClick = {
-                                            if (event.domain == CommunityApi.TagActivityDomain.SONG) onSongClick(event.entityId)
-                                            else onIdolClick(event.entityId)
-                                        }
-                                    )
+                        }
+                    }
+                    if (events.isNotEmpty()) {
+                        item {
+                            ImasSection(title = "最近つけられたタグ", style = ImasSectionHeaderStyle.SMALL) {
+                                ImasCardList(style = ImasCardListStyle.PANEL) {
+                                    events.forEachIndexed { index, event ->
+                                        if (index > 0) ImasRowDivider(inset = DS.sp4)
+                                        RecentRow(
+                                            event = event,
+                                            timeText = times.getOrElse(index) { "" },
+                                            song = uiState.songs[event.entityId],
+                                            idol = uiState.idols[event.entityId],
+                                            onClick = {
+                                                if (event.domain == CommunityApi.TagActivityDomain.SONG) onSongClick(event.entityId)
+                                                else onIdolClick(event.entityId)
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -187,42 +208,26 @@ fun TagActivityScreen(
     }
 }
 
-private fun <T> androidx.compose.foundation.lazy.LazyListScope.itemsIndexedWithDivider(
-    list: List<T>,
-    content: @Composable (Int, T) -> Unit
-) {
-    items(list.size) { idx ->
-        content(idx, list[idx])
-        if (idx < list.size - 1) {
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-        }
-    }
-}
-
 @Composable
 private fun TrendRow(trend: CommunityApi.TagActivityTrend, rank: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        TagRankBadge(rank)
-        TagColorDot(trend.tagColor, size = 10.dp)
-        Text(
-            trend.tagName,
-            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = DS.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        ImasRankBadge(rank)
+        ImasRecordRow(
+            title = trend.tagName,
+            modifier = Modifier.weight(1f).imasRowPress(onClick = onClick),
+            leading = trend.tagColor?.let { hex ->
+                ImasRowLeading.Custom(width = ImasSwatchSize.DOT.diameter) { ImasSwatch(hex, size = ImasSwatchSize.DOT) }
+            },
+            trailing = ImasRowTrailing.Custom {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                        Text("直近${trend.recentCount}件", style = ImasTextRole.ROW_SUBTITLE.style, color = DS.ink)
+                        Text("累計${trend.totalCount}", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+                    }
+                    ImasRowChevron()
+                }
+            }
         )
-        Column(horizontalAlignment = Alignment.End) {
-            Text("直近${trend.recentCount}件", style = androidx.compose.material3.MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Text("累計${trend.totalCount}", style = androidx.compose.material3.MaterialTheme.typography.labelSmall, color = DS.ink3)
-        }
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.height(16.dp))
     }
 }
 
@@ -234,37 +239,29 @@ private fun RiseRow(
     onClick: () -> Unit
 ) {
     val resolved = if (rise.domain == CommunityApi.TagActivityDomain.SONG) song != null else idol != null
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(enabled = resolved, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        EntityLead(domain = rise.domain, song = song, idol = idol)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                entityName(rise.domain, song, idol),
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = DS.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                "「${rise.tagName}」",
-                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-                color = DS.ink2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+    ImasRecordRow(
+        title = entityName(rise.domain, song, idol),
+        modifier = Modifier
+            .fillMaxWidth()
+            .imasRowPress(enabled = resolved, onClick = onClick)
+            .alpha(if (resolved) 1f else 0.45f),
+        leading = ImasRowLeading.Custom(width = 40.dp) { EntityLead(domain = rise.domain, song = song, idol = idol) },
+        subtitle = "「${rise.tagName}」",
+        trailing = ImasRowTrailing.Custom {
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.ArrowUpward,
+                        contentDescription = null,
+                        tint = DS.favorite,
+                        modifier = Modifier.size(with(LocalDensity.current) { 11.sp.toDp() })
+                    )
+                    Text("${rise.recentCount}件", style = ImasTextRole.BADGE.style, color = DS.favorite)
+                }
+                ImasRowChevron()
+            }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            Icon(Icons.Filled.ArrowUpward, contentDescription = null, tint = DS.favorite, modifier = Modifier.height(14.dp))
-            Text("${rise.recentCount}件", style = androidx.compose.material3.MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = DS.favorite)
-        }
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.height(16.dp))
-    }
+    )
 }
 
 @Composable
@@ -276,33 +273,16 @@ private fun RecentRow(
     onClick: () -> Unit
 ) {
     val resolved = if (event.domain == CommunityApi.TagActivityDomain.SONG) song != null else idol != null
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(enabled = resolved, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        EntityLead(domain = event.domain, song = song, idol = idol)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                entityName(event.domain, song, idol),
-                style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = DS.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                "「${event.tagName}」タグが付きました",
-                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-                color = DS.ink2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Text(timeText, style = androidx.compose.material3.MaterialTheme.typography.labelSmall, color = DS.ink3)
-    }
+    ImasRecordRow(
+        title = entityName(event.domain, song, idol),
+        modifier = Modifier
+            .fillMaxWidth()
+            .imasRowPress(enabled = resolved, onClick = onClick)
+            .alpha(if (resolved) 1f else 0.45f),
+        leading = ImasRowLeading.Custom(width = 40.dp) { EntityLead(domain = event.domain, song = song, idol = idol) },
+        subtitle = "「${event.tagName}」タグが付きました",
+        trailing = ImasRowTrailing.Value(timeText)
+    )
 }
 
 @Composable
