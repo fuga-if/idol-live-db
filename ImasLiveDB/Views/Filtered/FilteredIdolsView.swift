@@ -20,7 +20,7 @@ struct FilteredIdolsView: View {
                 )
             } else {
                 List {
-                    ImasListSummary<Int>(count: idols.count, unit: "人")
+                    ImasListSummary(count: idols.count, unit: "人")
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(DS.bg)
                         .listRowSeparator(.hidden)

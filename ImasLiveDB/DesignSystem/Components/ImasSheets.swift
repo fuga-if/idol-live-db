@@ -366,6 +366,14 @@ struct ImasListSummary<Sort: Hashable>: View {
     }
 }
 
+extension ImasListSummary where Sort == Never {
+    /// 並べ替えの無い一覧 (件数だけ)。型引数を書かずに `ImasListSummary(count:unit:)` と呼べるようにする。
+    init(count: Int, unit: String = "件") {
+        // 並べ替えの引数を 1 つ明示して、この init 自身ではなく既定の init を呼ぶ。
+        self.init(count: count, unit: unit, sortOptions: [])
+    }
+}
+
 // MARK: - 選んだもの
 
 /// 複数選択のシートの下に、選んだものを外せるチップで並べる。

@@ -21,7 +21,7 @@ struct FilteredEventsView: View {
                 )
             } else {
                 List {
-                    ImasListSummary<Int>(count: eventsWithDate.count, unit: "件")
+                    ImasListSummary(count: eventsWithDate.count, unit: "件")
                         .listRowInsets(EdgeInsets())
                         .listRowBackground(DS.bg)
                         .listRowSeparator(.hidden)

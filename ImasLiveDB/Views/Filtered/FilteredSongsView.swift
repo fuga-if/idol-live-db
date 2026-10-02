@@ -39,7 +39,7 @@ struct FilteredSongsView: View {
 
     private var standardList: some View {
         List {
-            ImasListSummary<Int>(count: songs.count, unit: "曲")
+            ImasListSummary(count: songs.count, unit: "曲")
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(DS.bg)
                 .listRowSeparator(.hidden)
@@ -57,7 +57,7 @@ struct FilteredSongsView: View {
 
     private var creatorList: some View {
         List {
-            ImasListSummary<Int>(count: songsWithRoles.count, unit: "曲")
+            ImasListSummary(count: songsWithRoles.count, unit: "曲")
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(DS.bg)
                 .listRowSeparator(.hidden)
