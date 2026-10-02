@@ -1,34 +1,17 @@
 package com.fugaif.imaslivedb.ui.schedule
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.CalReleaseRow
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.data.model.TicketCalendarRow
@@ -36,14 +19,19 @@ import com.fugaif.imaslivedb.data.model.TicketDateKind
 import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.data.repository.CalendarShowDetail
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
-import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.brandColor
-import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 /**
  * 選択日の予定 1 行。スケジュール画面のインラインリストと日詳細シートで共有する
- * (iOS `DayEntryRow` と同じ位置づけ)。
+ * (iOS `DayEntryRow` と同じ位置づけ)。記号 (`ImasRowLeading.Icon`) 自体を種別の色で点け、
+ * 行頭に別立ての色の帯は敷かない (iOS と同じ構成。iOS にある記念日アイコンの出し分け・
+ * 誕生日の gift アイコン・公演のスワイプは Android に無い機能なので足さない)。
  *
  * [trailing] は行末に足す操作 (日詳細シートの「セトリ」「カレンダーに追加」)。
  * インラインリストでは渡さないので、既存の見え方は変わらない。
@@ -59,46 +47,49 @@ internal fun CalendarEntryRow(
     trailing: (@Composable () -> Unit)? = null
 ) {
     when (entry) {
-        is CalendarEntry.Show -> EntryRow(
-            accent = ShowColor,
-            label = AppPreferences.eventDisplayName(entry.row.eventName),
-            // 公演名・開始時刻・会場を 1 行に畳む (iOS の showRow と同じ並び)。
-            title = listOfNotNull(
+        is CalendarEntry.Show -> {
+            // 公演名・開始時刻・会場を副題に畳む (iOS の showRow と同じ並び)。
+            val sub = listOfNotNull(
                 entry.row.showName.takeIf { it.isNotBlank() },
                 showDetail?.startTime,
                 showDetail?.venue
-            ).joinToString(" ・ ").ifEmpty { entry.row.eventName },
-            brand = brandColor(entry.row.brandId),
-            trailing = trailing,
-            onClick = { onNavigateToShow(entry.row.showId) }
-        )
+            ).joinToString(" ・ ")
+            EntryRow(
+                icon = Icons.Filled.Mic,
+                brand = entry.row.brandId,
+                title = AppPreferences.eventDisplayName(entry.row.eventName),
+                subtitle = sub.ifEmpty { null },
+                trailing = trailing,
+                onClick = { onNavigateToShow(entry.row.showId) }
+            )
+        }
 
         is CalendarEntry.Birthday -> EntryRow(
-            accent = BirthdayColor,
-            label = "誕生日",
-            title = entry.row.name,
-            brand = brandColor(entry.row.brandId),
+            icon = Icons.Filled.CardGiftcard,
+            // CalBirthdayRow はアイドル本人の色を運んでいないので、お気に入りの印と同じ桃で点ける。
+            seed = null,
+            tone = ImasIconTileTone.THEMED,
+            title = "${entry.row.name} 誕生日",
             trailing = trailing,
             onClick = { onNavigateToIdol(entry.row.id) }
         )
 
-        is CalendarEntry.Release -> ReleaseRows(entry.songs, onNavigateToSong)
+        is CalendarEntry.Release -> ReleaseRows(entry.songs, trailing, onNavigateToSong)
 
-        is CalendarEntry.StaffBirthday -> IconEntryRow(
-            accent = StaffColor,
+        is CalendarEntry.StaffBirthday -> EntryRow(
             icon = Icons.Filled.Person,
-            label = "${entry.row.name} 誕生日",
-            sub = entry.row.role ?: "",
-            brand = brandColor(entry.row.brandId),
+            seed = CalendarThemeSeed.STAFF_BIRTHDAY,
+            title = "${entry.row.name} 誕生日",
+            subtitle = entry.row.role,
             trailing = trailing
         )
 
-        is CalendarEntry.Anniversary -> IconEntryRow(
-            accent = AnniversaryColor,
+        is CalendarEntry.Anniversary -> EntryRow(
             icon = Icons.Filled.AutoAwesome,
-            label = if (entry.years == 0) "${entry.row.label} (初日)" else "${entry.years}周年 ・ ${entry.row.label}",
-            sub = "${entry.row.date.take(4)} 起点",
-            brand = brandColor(entry.row.brandId),
+            seed = CalendarThemeSeed.ANNIVERSARY,
+            title = if (entry.years == 0) "${entry.row.label} (初日)" else "${entry.years}周年 ・ ${entry.row.label}",
+            subtitle = "${entry.row.date.take(4)} 起点",
+            showsChevron = false,
             trailing = trailing
         )
 
@@ -112,23 +103,22 @@ internal fun CalendarEntryRow(
 /** チケット日程行 (受付開始 / 申込締切 / 当落発表)。タップで親イベント詳細へ。 */
 @Composable
 private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)?, onClick: () -> Unit) {
-    IconEntryRow(
-        // 申込締切は「その日までにやること」なので緊急色、それ以外はチケット系の藍 (iOS と同じ)。
-        accent = if (row.kind == TicketDateKind.DEADLINE) DS.danger else TicketColor,
+    EntryRow(
         icon = when (row.kind) {
             TicketDateKind.DEADLINE -> Icons.Filled.ConfirmationNumber
             TicketDateKind.LOTTERY -> Icons.Filled.MailOutline
             TicketDateKind.START -> Icons.Filled.DateRange
         },
+        // 申込締切は「その日までにやること」なので緊急の記号色、それ以外はチケット系の藍 (iOS と同じ)。
+        seed = if (row.kind == TicketDateKind.DEADLINE) null else CalendarThemeSeed.TICKET,
+        tone = if (row.kind == TicketDateKind.DEADLINE) ImasIconTileTone.NEGATIVE else ImasIconTileTone.THEMED,
         // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
-        label = "${row.kind.label} ・ ${row.label}",
-        sub = when (row.kind) {
+        title = "${row.kind.label} ・ ${row.label}",
+        subtitle = when (row.kind) {
             TicketDateKind.DEADLINE -> "チケット申込の締切"
             TicketDateKind.LOTTERY -> "チケット当落発表"
             TicketDateKind.START -> "チケット受付開始"
         },
-        // コアが JOIN 済みの brand の color hex をそのまま使う (brand_id は返らない)。
-        brand = row.brandColor?.let(::hexToColor) ?: Color.Gray,
         trailing = trailing,
         onClick = onClick
     )
@@ -142,82 +132,57 @@ private fun TicketPeriodRowView(
     onClick: () -> Unit
 ) {
     val range = listOfNotNull(monthDay(row.start), monthDay(row.end)).joinToString(" 〜 ")
-    IconEntryRow(
-        accent = TicketColor,
+    EntryRow(
         icon = Icons.Filled.DateRange,
-        label = "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
-        sub = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
-        brand = row.brandColor?.let(::hexToColor) ?: Color.Gray,
+        seed = CalendarThemeSeed.TICKET,
+        title = "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
+        subtitle = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
         trailing = trailing,
         onClick = onClick
     )
 }
 
-/** アイコン付きエントリ行 (事務員誕生日・記念日・チケットなど、リード画像を持たないエントリ用)。 */
+/**
+ * 予定 1 行の共通シェル (iOS `DayEntryRow.rowShell` = `ImasRow(density: .compact)`)。
+ * [seed] / [brand] は記号を点ける色の手がかり (渡さなければ墨)。
+ */
 @Composable
-private fun IconEntryRow(
-    accent: Color,
+private fun EntryRow(
     icon: ImageVector,
-    label: String,
-    sub: String,
-    brand: Color,
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    seed: String? = null,
+    brand: String? = null,
+    tone: ImasIconTileTone = ImasIconTileTone.THEMED,
+    showsChevron: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
-    val base = Modifier.fillMaxWidth()
-    Row(
-        modifier = (if (onClick != null) base.clickable(onClick = onClick) else base)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))
-        Spacer(Modifier.size(12.dp))
-        Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, maxLines = 2)
-            if (sub.isNotEmpty()) {
-                Text(sub, style = MaterialTheme.typography.labelSmall, color = DS.ink2, maxLines = 1)
-            }
-        }
-        trailing?.invoke()
-    }
+    ImasRow(
+        title = title,
+        modifier = modifier.then(if (onClick != null) Modifier.imasRowPress(onClick = onClick) else Modifier),
+        subtitle = subtitle,
+        leading = ImasRowLeading.Icon(icon, tone = tone, seed = seed, brand = brand),
+        trailing = when {
+            trailing != null -> ImasRowTrailing.Custom(trailing)
+            showsChevron && onClick != null -> ImasRowTrailing.Chevron
+            else -> ImasRowTrailing.None
+        },
+        density = ImasRowDensity.COMPACT
+    )
 }
 
 @Composable
-private fun EntryRow(
-    accent: Color,
-    label: String,
-    title: String,
-    brand: Color,
-    trailing: (@Composable () -> Unit)? = null,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(width = 4.dp, height = 36.dp).clip(RoundedCornerShape(2.dp)).background(brand))
-        Spacer(Modifier.size(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = accent, fontWeight = FontWeight.Bold)
-            Text(title, style = MaterialTheme.typography.bodyMedium, color = DS.ink, maxLines = 2)
-        }
-        trailing?.invoke()
-    }
-}
-
-@Composable
-private fun ReleaseRows(rows: List<CalReleaseRow>, onSong: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-        rows.forEach { song ->
-            EntryRow(
-                accent = ReleaseColor,
-                label = "リリース",
-                title = song.title,
-                brand = brandColor(song.brandId),
-                onClick = { onSong(song.id) }
-            )
-        }
+private fun ReleaseRows(rows: List<CalReleaseRow>, trailing: (@Composable () -> Unit)?, onSong: (String) -> Unit) {
+    rows.forEach { song ->
+        EntryRow(
+            icon = Icons.Filled.Album,
+            tone = ImasIconTileTone.ATTENTION,
+            title = song.title,
+            subtitle = "リリース",
+            trailing = trailing,
+            onClick = { onSong(song.id) }
+        )
     }
 }

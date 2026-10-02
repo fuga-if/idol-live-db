@@ -39,7 +39,7 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
  * 生の hex や `DS.sys`/`DS.pick` の流用ではなく、色エンジン ([imasTheme]) に通して
  * 現在のモード (ライト/ダーク) に合った濃さ・コントラストにする。
  */
-private object CalendarThemeSeed {
+internal object CalendarThemeSeed {
     /** 公演 (フィルタチップ代表色。iOS system blue 相当)。 */
     const val SHOW = "#3E6DD6"
 
