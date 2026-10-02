@@ -31,8 +31,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,7 +99,7 @@ fun MasterEditScaffold(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             ImasFormPage(content = content)
-            ImasSavingOverlay(isSaving)
+            ImasSavingOverlay(isSaving, label = "保存中…")
         }
     }
 }
@@ -134,20 +136,32 @@ fun EditTextField(
     isError: Boolean = false,
     supportingText: String? = null
 ) {
+    // isError を欄まで渡さないと、見出しが朱にならずスクリーンリーダーにも誤りが伝わらない
+    // (前の OutlinedTextField.isError は枠の色とアクセシビリティの両方を兼ねていた)。
+    val errorModifier = if (isError) {
+        Modifier.semantics { error(supportingText ?: "入力エラー") }
+    } else {
+        Modifier
+    }
     Column(Modifier.fillMaxWidth()) {
         if (singleLine) {
             ImasFormTextField(
                 label = label,
                 text = value,
                 onTextChange = onValueChange,
-                keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text
+                keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text,
+                isError = isError,
+                modifier = errorModifier
             )
         } else {
             ImasFormTextArea(
                 label = label,
                 text = value,
                 onTextChange = onValueChange,
-                prompt = label
+                prompt = label,
+                imprint = null,
+                icon = null,
+                modifier = errorModifier
             )
         }
         if (supportingText != null) {
@@ -220,7 +234,7 @@ fun EditStepperRow(label: String, value: Int, range: IntRange, onValueChange: (I
                 "$value",
                 style = ImasNumeralSize.MEDIUM.style,
                 color = DS.ink,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).semantics { contentDescription = "$label: $value" }
             )
             TextButton(onClick = { onValueChange((value - 1).coerceIn(range)) }) { Text("−") }
             TextButton(onClick = { onValueChange((value + 1).coerceIn(range)) }) { Text("＋") }
@@ -243,7 +257,13 @@ fun EditNavRow(label: String, value: String?, placeholder: String, onClick: () -
 @Composable
 fun EditReadonlyRow(label: String, value: String) {
     ImasFormField(label = label) {
-        Text(value, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            value,
+            color = DS.ink3,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { contentDescription = "$label: $value" }
+        )
     }
 }
 
