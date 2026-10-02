@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -588,17 +589,21 @@ fun ImasLeadBar(
  * セトリの行・予想の根拠・出演者の一覧で使う。名前は 1 人単位で折り返す。
  *
  * @param seed アイドルのイメージカラー hex。無ければ薄い墨の点。
+ * @param secondary 名前の下にもう 1 行添える副の表記 (役名・別名義など。渡した画面だけで使う)。
  */
 @Composable
 fun ImasPerformerChip(
     name: String,
     modifier: Modifier = Modifier,
     seed: String? = null,
-    isAbsent: Boolean = false
+    isAbsent: Boolean = false,
+    secondary: String? = null
 ) {
     val penlight = if (seed == null) DS.ink3 else imasThemeForBrand(seed, null).penlight
     Row(
-        modifier.clearAndSetSemantics { contentDescription = if (isAbsent) "$name 欠席" else name },
+        modifier.clearAndSetSemantics {
+            contentDescription = listOfNotNull(name, secondary).joinToString("、") + if (isAbsent) " 欠席" else ""
+        },
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -607,13 +612,34 @@ fun ImasPerformerChip(
             size = ImasPenlightSize.SMALL,
             modifier = Modifier.alpha(if (isAbsent) 0.35f else 1f)
         )
-        Text(
-            name,
-            style = ImasType.text(13.sp),
-            color = if (isAbsent) DS.ink3 else DS.ink2,
-            textDecoration = if (isAbsent) TextDecoration.LineThrough else null,
-            maxLines = 1,
-            softWrap = false
-        )
+        if (secondary != null) {
+            Column {
+                Text(
+                    name,
+                    style = ImasType.text(13.sp),
+                    color = if (isAbsent) DS.ink3 else DS.ink2,
+                    textDecoration = if (isAbsent) TextDecoration.LineThrough else null,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Text(
+                    secondary,
+                    style = ImasType.text(10.sp),
+                    color = DS.ink3,
+                    textDecoration = if (isAbsent) TextDecoration.LineThrough else null,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+        } else {
+            Text(
+                name,
+                style = ImasType.text(13.sp),
+                color = if (isAbsent) DS.ink3 else DS.ink2,
+                textDecoration = if (isAbsent) TextDecoration.LineThrough else null,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
     }
 }

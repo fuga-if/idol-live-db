@@ -3,18 +3,14 @@ package com.fugaif.imaslivedb.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import uniffi.imas_core.NowPlayingBar as NowPlayingBarData
 import uniffi.imas_core.NowPlayingKind
 
@@ -69,22 +69,22 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
     val current = bar ?: return
 
     Column(modifier = Modifier.fillMaxWidth().background(DS.surface)) {
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
+        ImasRowDivider()
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onSongClick(current.songId) }
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
         ) {
             ArtworkImage(url = current.artworkUrl, size = 40.dp, songTitle = current.title)
 
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     current.title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
+                    style = ImasType.text(15.sp, FontWeight.Medium),
                     color = DS.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -92,17 +92,15 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
                 SubtitleLine(current)
             }
 
-            IconButton(onClick = {
-                // stop ではなく pause。stop は曲ごと手放すのでバーが消えてしまう。
-                if (current.isPlaying) AudioPreviewManager.pause() else AudioPreviewManager.resume()
-            }) {
-                Icon(
-                    if (current.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (current.isPlaying) "一時停止" else "再生",
-                    tint = DS.ink,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            ImasIconButton(
+                icon = if (current.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                label = if (current.isPlaying) "一時停止" else "再生",
+                style = ImasIconButtonStyle.PLAIN,
+                onClick = {
+                    // stop ではなく pause。stop は曲ごと手放すのでバーが消えてしまう。
+                    if (current.isPlaying) AudioPreviewManager.pause() else AudioPreviewManager.resume()
+                }
+            )
         }
     }
 }
@@ -119,11 +117,12 @@ private fun SubtitleLine(bar: NowPlayingBarData) {
     val mark = bar.previewMark
     if (subtitle == null && mark == null) return
 
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+    val style = ImasType.text(12.sp)
+    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
         if (subtitle != null) {
             Text(
                 subtitle,
-                fontSize = 12.sp,
+                style = style,
                 color = DS.ink3,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -131,8 +130,8 @@ private fun SubtitleLine(bar: NowPlayingBarData) {
             )
         }
         if (mark != null) {
-            if (subtitle != null) Text("·", fontSize = 12.sp, color = DS.ink3)
-            Text(mark, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
+            if (subtitle != null) Text("·", style = style, color = DS.ink3)
+            Text(mark, style = style, color = DS.ink3, maxLines = 1)
         }
     }
 }

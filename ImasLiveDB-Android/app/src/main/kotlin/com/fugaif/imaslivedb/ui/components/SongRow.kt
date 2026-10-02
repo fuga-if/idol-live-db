@@ -1,13 +1,9 @@
 package com.fugaif.imaslivedb.ui.components
 
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Favorite
@@ -15,14 +11,23 @@ import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSongRow
 import com.fugaif.imaslivedb.ui.songs.SongSearchMode
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.MasteryScale
 import com.fugaif.imaslivedb.ui.mastery.MasteryChip
 
@@ -43,15 +48,16 @@ data class SongRowMatch(
 )
 
 /**
- * 楽曲一覧の行。iOS SongRowView 構成: ImasLeadBar(ブランド) + ImasArtwork(プレビュー対応) +
- * 曲名(+タグ票数バッジ) + 歌唱者/ユニット + マイマーク行(担当/現地回収)。
+ * 楽曲一覧の行。DS の [ImasSongRow] (§5.1) で組む: 先頭=ジャケ (ブランドの色の帯つき・試聴対応)、
+ * 題=曲名 (絞り込みで当たった所に色を敷く)、副題=歌唱者/ユニット (同じく当たった所に色を敷く)、
+ * 下段=作家の絞り込み理由・マイマーク行 (リリース日・担当♥・習熟度・現地回収✓N)。
+ *
+ * タグ票数はジャケ横ではなく行の末尾の札に出す (`ImasRowTrailing.Badge`。DS §10.1 の
+ * 置き換え先どおり「タグの票数」は `.themed` の線の札)。
  *
  * ★お気に入りトグルは行から撤去済み (2026-09、iOS と同じ)。一覧で毎行トグルできても
  * 実際にはほとんど使われず、行の情報密度だけが上がっていた。お気に入り自体は
  * 曲詳細のボタン・お気に入り一覧・絞り込みに残しているので機能は消えていない。
- *
- * 絞り込み中は [searchMatch] を渡すと、当たった箇所に色を敷き、スコープに応じて
- * 「なぜこの行が出ているか」の補足 (当たった歌唱者を先頭に / 当たった作家の役割行) を出す。
  *
  * メモ(hasNote)は Android にメモ編集 UI が無いため対象外 (iOS のみ)。
  */
@@ -78,73 +84,48 @@ fun SongRow(
     onEditMastery: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    // 長押しで曲名などをコピーできるようにする (正式な曲名で外部検索したい用途)。
-    Copyable(
-        items = listOf(
+    val playback by AudioPreviewManager.playbackState.collectAsState()
+    val isPreviewing = previewUrl != null && songId != null && playback.isPlaying(songId)
+
+    val titleNeedle = searchMatch.needleFor(SongSearchMode.TITLE)
+    val performerNeedle = searchMatch.needleFor(SongSearchMode.PERFORMER)
+    val creatorNeedle = searchMatch.needleFor(SongSearchMode.CREATOR)
+    // アイドルで絞っているときは当たった 1 人を先頭に出す。連名をそのまま出すと
+    // 当たった名前が右端で切れて、当たった理由が行から消える。
+    val sub = artistNames.ifEmpty { unitName ?: "" }
+    val performerText = performerNeedle?.let { searchMatch?.detail } ?: sub
+
+    ImasSongRow(
+        title = title,
+        attributedTitle = rememberHighlighted(title, titleNeedle),
+        attributedSubtitle = performerText.takeIf { it.isNotEmpty() }?.let { rememberHighlighted(it, performerNeedle) },
+        artworkUrl = artworkUrl,
+        brand = brandId,
+        showsBrandBar = true,
+        previewUrl = previewUrl,
+        isPreviewing = isPreviewing,
+        onPreviewTap = { if (previewUrl != null && songId != null) AudioPreviewManager.togglePreview(previewUrl, songId) },
+        trailing = if (tagVoteCount != null) {
+            ImasRowTrailing.Badge(text = "$tagVoteCount", kind = ImasBadgeKind.THEMED, icon = Icons.Filled.Sell)
+        } else {
+            ImasRowTrailing.None
+        },
+        copyItems = listOf(
             CopyItem("曲名をコピー", title),
-            CopyItem("歌唱者をコピー", artistNames.ifEmpty { unitName }),
+            CopyItem("歌唱者をコピー", artistNames.ifEmpty { unitName })
         ),
         actions = onEditMastery?.let { listOf(RowAction("習熟度を変える", it)) } ?: emptyList(),
-        modifier = modifier.fillMaxWidth()
-    ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-    ) {
-        ImasLeadBar(brandId = brandId, height = 44.dp)
-        ArtworkImage(url = artworkUrl, size = 44.dp, previewUrl = previewUrl, songTitle = title, songId = songId)
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = rememberHighlighted(title, searchMatch.needleFor(SongSearchMode.TITLE)),
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                if (tagVoteCount != null) {
-                    TagVoteBadge(count = tagVoteCount)
-                }
-            }
-            val performerNeedle = searchMatch.needleFor(SongSearchMode.PERFORMER)
-            val sub = artistNames.ifEmpty { unitName ?: "" }
-            // アイドルで絞っているときは当たった 1 人を先頭に出す。連名をそのまま出すと
-            // 当たった名前が右端で切れて、当たった理由が行から消える。
-            val performerText = performerNeedle?.let { searchMatch?.detail } ?: sub
-            if (performerText.isNotEmpty()) {
-                Text(
-                    text = rememberHighlighted(performerText, performerNeedle),
-                    fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
-            }
-            CreatorLine(
-                needle = searchMatch.needleFor(SongSearchMode.CREATOR),
-                text = searchMatch?.detail
-            )
+        modifier = modifier,
+        detail = {
+            CreatorLine(needle = creatorNeedle, text = searchMatch?.detail)
             if (releaseDate != null || isMyPick || (collectedCount ?: 0) > 0 || masteryLevel > 0u) {
-                MarkRow(releaseDate = releaseDate, isMyPick = isMyPick, collectedCount = collectedCount,
-                        masteryLevel = masteryLevel, masteryScale = masteryScale)
+                MarkRow(
+                    releaseDate = releaseDate, isMyPick = isMyPick, collectedCount = collectedCount,
+                    masteryLevel = masteryLevel, masteryScale = masteryScale
+                )
             }
         }
-    }
-}
-}
-
-@Composable
-private fun TagVoteBadge(count: Int) {
-    androidx.compose.material3.Surface(
-        shape = CircleShape,
-        color = DS.favorite.copy(alpha = 0.14f)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Icon(imageVector = Icons.Filled.Sell, contentDescription = null, tint = DS.favorite, modifier = Modifier.size(11.dp))
-            Text(text = "$count", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DS.favorite)
-        }
-    }
+    )
 }
 
 /**
@@ -152,40 +133,44 @@ private fun TagVoteBadge(count: Int) {
  * 普段の一覧には要らない情報なので、当たった理由を見せる必要があるときにだけ増やす。
  */
 @Composable
-private fun CreatorLine(needle: String?, text: String?) {
+private fun ColumnScope.CreatorLine(needle: String?, text: String?) {
     if (needle == null || text == null) return
     Text(
         text = rememberHighlighted(text, needle),
-        fontSize = 11.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis
+        style = ImasTextRole.META.style,
+        color = DS.ink3,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
     )
 }
 
 /** マイマーク行 (リリース日 / 担当♥ / 現地回収✓)。iOS SongRowView.markRow 相当。 */
 @Composable
-private fun MarkRow(
+private fun ColumnScope.MarkRow(
     releaseDate: String?, isMyPick: Boolean, collectedCount: Int?,
     masteryLevel: UByte = 0u, masteryScale: MasteryScale = MasteryScale.standard,
 ) {
+    val iconSize = with(LocalDensity.current) { 11.sp.toDp() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
     ) {
         if (!releaseDate.isNullOrEmpty()) {
-            Text(text = releaseDate, fontSize = 11.sp, color = DS.ink3)
+            ImasText(releaseDate, ImasTextRole.META)
         }
         if (isMyPick) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Icon(imageVector = Icons.Filled.Favorite, contentDescription = null, tint = DS.pick, modifier = Modifier.size(11.dp))
-                Text(text = "担当", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.pick)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                Icon(imageVector = Icons.Filled.Favorite, contentDescription = null, tint = DS.pick, modifier = Modifier.size(iconSize))
+                ImasText("担当", ImasTextRole.EYEBROW, color = DS.pick)
             }
         }
         if (masteryLevel > 0u) {
             MasteryChip(masteryLevel, masteryScale)
         }
         if ((collectedCount ?: 0) > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = DS.success, modifier = Modifier.size(11.dp))
-                Text(text = "$collectedCount", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DS.success)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = DS.success, modifier = Modifier.size(iconSize))
+                ImasMetric("$collectedCount", size = ImasNumeralSize.SMALL, emphasized = true, color = DS.success)
             }
         }
     }

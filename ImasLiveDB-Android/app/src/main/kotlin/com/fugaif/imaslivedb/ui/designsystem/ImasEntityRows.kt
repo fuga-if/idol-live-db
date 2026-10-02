@@ -13,6 +13,7 @@ import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.ui.components.CopyItem
+import com.fugaif.imaslivedb.ui.components.RowAction
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.spokenDate
@@ -42,6 +43,8 @@ import uniffi.imas_core.spokenDate
  * @param showsBrandBar 行頭にブランドの色の帯を立てる (楽曲一覧)。
  * @param previewUrl 試聴できる音源。渡すとジャケのタップが行のタップと別に試聴を切り替える ([onPreviewTap])。
  * @param copyItems 長押しでコピーできる項目 (曲名・よみ・歌唱者など)。空なら長押しを付けない。
+ * @param attributedSubtitle 副題の代わりに強調付きの文字 (絞り込みで当たった歌唱者に色を敷くなど)。
+ * @param actions 長押しメニューに足す、コピー以外の操作 (行から直に習熟度を変えるなど)。
  */
 @Composable
 fun ImasSongRow(
@@ -59,7 +62,9 @@ fun ImasSongRow(
     density: ImasRowDensity = ImasRowDensity.REGULAR,
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     attributedTitle: AnnotatedString? = null,
+    attributedSubtitle: AnnotatedString? = null,
     copyItems: List<CopyItem> = emptyList(),
+    actions: List<RowAction> = emptyList(),
     onClick: (() -> Unit)? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -92,10 +97,11 @@ fun ImasSongRow(
             emphasis = emphasis,
             titleLineLimit = if (density == ImasRowDensity.COMPACT) 1 else 2,
             attributedTitle = attributedTitle,
+            attributedSubtitle = attributedSubtitle,
             detail = detail
         )
     }
-    ImasCopyableRow(items = copyItems, modifier = modifier.fillMaxWidth(), onClick = onClick, content = row)
+    ImasCopyableRow(items = copyItems, modifier = modifier.fillMaxWidth(), onClick = onClick, actions = actions, content = row)
 }
 
 // MARK: - アイドル

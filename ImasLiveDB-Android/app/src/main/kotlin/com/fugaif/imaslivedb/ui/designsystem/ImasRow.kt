@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.components.Copyable
+import com.fugaif.imaslivedb.ui.components.RowAction
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasMotion
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
@@ -232,6 +233,7 @@ private const val AccessibilityFontScale = 1.6f
  * @param titleLineLimit 題の行数。
  * @param subtitleLineLimit 副題の行数。既定は 1 行 (値を添えるだけの行)。説明文が長い行は 2。
  * @param attributedTitle 題の代わりに強調付きの文字 (絞り込みで当たった所に色を敷くなど)。
+ * @param attributedSubtitle 副題の代わりに強調付きの文字 ([attributedTitle] の副題版。渡すと [subtitle] より優先)。
  * @param titleRole 題の書体。もの (曲・アイドル・ライブ) は ROW_TITLE、操作・設定は ROW_LABEL。
  * @param onSelectTitle 題だけを押せるようにする (行の他の場所にも別の押せる物があるとき)。
  * @param titleAccessibilityLabel 題の読み上げを見た目と変えたいとき (「タグ: 〇〇」など前置きを足す)。
@@ -252,6 +254,7 @@ fun ImasRow(
     titleLineLimit: Int = 2,
     subtitleLineLimit: Int = 1,
     attributedTitle: AnnotatedString? = null,
+    attributedSubtitle: AnnotatedString? = null,
     titleRole: ImasTextRole = ImasTextRole.ROW_TITLE,
     onSelectTitle: (() -> Unit)? = null,
     titleAccessibilityLabel: String? = null,
@@ -296,7 +299,15 @@ fun ImasRow(
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
             ) {
                 ImasRowTitle(title, attributedTitle, titleRole, emphasis, titleLineLimit, onSelectTitle, titleAccessibilityLabel)
-                if (!subtitle.isNullOrEmpty()) {
+                if (attributedSubtitle != null) {
+                    Text(
+                        attributedSubtitle,
+                        style = ImasTextRole.ROW_SUBTITLE.style,
+                        color = if (emphasis == ImasRowEmphasis.DIMMED) DS.ink3 else DS.ink2,
+                        maxLines = subtitleLineLimit,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else if (!subtitle.isNullOrEmpty()) {
                     Text(
                         subtitle,
                         style = ImasTextRole.ROW_SUBTITLE.style,
@@ -479,6 +490,7 @@ internal fun ImasCopyableRow(
     items: List<CopyItem>,
     modifier: Modifier,
     onClick: (() -> Unit)?,
+    actions: List<RowAction> = emptyList(),
     content: @Composable () -> Unit
 ) {
     val source = remember { MutableInteractionSource() }
@@ -487,6 +499,7 @@ internal fun ImasCopyableRow(
         items = items,
         modifier = modifier.background(if (pressed && onClick != null) DS.fill else Color.Transparent),
         onClick = onClick,
+        actions = actions,
         interactionSource = source,
         indication = null,
         content = content
