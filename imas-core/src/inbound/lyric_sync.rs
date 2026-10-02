@@ -44,3 +44,15 @@ pub fn lyric_like_heat(starts: Vec<Option<i64>>, counts: Vec<u32>, duration_ms: 
 pub fn lyric_line_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<LyricSpan> {
     d::line_spans(&starts, duration_ms)
 }
+
+/// コールの帯 (時刻順、次のコールまで・最長 3 秒)。タイミング編集のコールの段に使う。
+#[uniffi::export]
+pub fn lyric_call_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<LyricSpan> {
+    d::call_spans(&starts, duration_ms)
+}
+
+/// いま出すコールの添字 (`starts` はコールを曲の順に並べた開始 ms)。間が空いたら `None`。
+#[uniffi::export]
+pub fn lyric_active_call(starts: Vec<Option<i64>>, position_ms: i64) -> Option<u32> {
+    d::active_call(&starts, position_ms)
+}

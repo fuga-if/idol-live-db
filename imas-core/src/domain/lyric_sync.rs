@@ -101,6 +101,27 @@ pub struct LyricSpan {
     pub end_ms: i64,
 }
 
+/// コール 1 つが続くとみなす長さの上限。コールは短いので、次のコールまで伸ばすと
+/// 間奏の間ずっと出っぱなしになる。
+const CALL_SPAN_MAX_MS: i64 = 3_000;
+
+/// コールの帯。行と同じく時刻順で、長さは次のコールまで (最長 3 秒)。
+pub fn call_spans(starts: &[Option<i64>], duration_ms: i64) -> Vec<LyricSpan> {
+    line_spans(starts, duration_ms)
+        .into_iter()
+        .map(|sp| LyricSpan { end_ms: sp.end_ms.min(sp.start_ms + CALL_SPAN_MAX_MS), ..sp })
+        .collect()
+}
+
+/// いま出すコールの添字。帯 ([`call_spans`]) の中にいるときだけ。間が空いたら `None`。
+pub fn active_call(starts: &[Option<i64>], position_ms: i64) -> Option<u32> {
+    call_spans(starts, 0)
+        .into_iter()
+        .filter(|sp| sp.start_ms <= position_ms && position_ms < sp.end_ms)
+        .last()
+        .map(|sp| sp.index)
+}
+
 /// 時刻のある行を時刻順に並べ、それぞれの帯 (始まり〜次の行の始まり) にする。
 /// 曲の長さが分からなければ `duration_ms <= 0` で渡す (切らない)。
 pub fn line_spans(starts: &[Option<i64>], duration_ms: i64) -> Vec<LyricSpan> {
@@ -259,5 +280,16 @@ mod tests {
             LyricSpan { index: 0, start_ms: 5000, end_ms: 9000 },
         ]);
         assert_eq!(line_spans(&[Some(0)], 0)[0].end_ms, 8000);
+    }
+
+    #[test]
+    fn calls_are_short_and_disappear_in_gaps() {
+        let starts = [Some(1000), Some(2000), Some(10_000)];
+        let spans = call_spans(&starts, 0);
+        assert_eq!(spans[1].end_ms, 5000);
+        assert_eq!(active_call(&starts, 1500), Some(0));
+        assert_eq!(active_call(&starts, 4000), Some(1));
+        assert_eq!(active_call(&starts, 6000), None);
+        assert_eq!(active_call(&starts, 500), None);
     }
 }
