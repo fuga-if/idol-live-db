@@ -379,9 +379,14 @@ private struct ImasSurfaceEdge: ViewModifier {
                     .strokeBorder(DS.sep, lineWidth: 1)
             )
         } else {
-            content
-                .shadow(color: DS.ink.opacity(0.04), radius: 0, y: 1)
-                .shadow(color: DS.ink.opacity(0.06), radius: 9, y: 6)
+            // 影は中身ではなく下に敷いた面の形に落とす。中身 (文字・ジャケ・行) に影を付けると、
+            // 描き直しのたびに中身ぜんぶの形から影を作り直すので、長い一覧のスクロールが重くなる。
+            content.background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(DS.surface)
+                    .shadow(color: DS.ink.opacity(0.04), radius: 0, y: 1)
+                    .shadow(color: DS.ink.opacity(0.06), radius: 9, y: 6)
+            }
         }
     }
 }
