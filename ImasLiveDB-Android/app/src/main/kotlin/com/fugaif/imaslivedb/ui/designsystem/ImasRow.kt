@@ -829,7 +829,7 @@ fun <T> ImasMenuRow(
                         { ImasSwatch(hex = seedOf(option), size = ImasSwatchSize.DOT, isDecorative = true) }
                     },
                     trailingIcon = if (option == selection) {
-                        { Icon(Icons.Filled.Check, contentDescription = null, tint = DS.ink) }
+                        { Icon(Icons.Filled.Check, contentDescription = "選択中", tint = DS.ink) }
                     } else null,
                     onClick = {
                         open = false
