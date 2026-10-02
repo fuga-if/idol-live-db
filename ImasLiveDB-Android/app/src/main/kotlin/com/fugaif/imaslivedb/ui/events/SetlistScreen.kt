@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.events
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,11 +12,14 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -37,6 +41,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,6 +80,7 @@ import com.fugaif.imaslivedb.data.auth.canEdit
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.AttendanceType
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistRow
@@ -83,6 +90,7 @@ import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.components.PerformerChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatarStack
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
@@ -90,7 +98,11 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPerformer
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.edit.SetlistEditScreen
@@ -116,7 +128,9 @@ import uniffi.imas_core.ticketKindLabel
 import uniffi.imas_core.ticketPriceRanges
 import uniffi.imas_core.ticketsForKind
 import com.fugaif.imaslivedb.ui.theme.displayName
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.joined
 
 /** 公演の画面の内部タブ。セットリスト (未来の公演でまだ無ければ出さない)・予想 (未来だけ)・情報。 */
 private enum class ShowTab(val label: String) {
@@ -521,6 +535,7 @@ private fun LazyListScope.setlistTabContent(
                             item = item,
                             displayNumber = index + 1,
                             performers = performers,
+                            idolsById = uiState.idolsById,
                             unitNames = meta?.unitNames.orEmpty(),
                             isFullCast = meta?.isFullCast == true,
                             lineup = meta?.lineup,
@@ -659,7 +674,15 @@ private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: S
         modifier = Modifier.padding(top = 1.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        ImasRowDivider(modifier = Modifier.padding(bottom = 2.dp))
+        // 行の境目の切り取り線とは別物 (前と同じ 0.5dp の一本線)。ImasRowDivider は
+        // 周りの ImasCardList(SHEET) の切り取り線スタイルを継いでしまい、行の境目と見分けが付かない。
+        Box(
+            Modifier
+                .padding(bottom = 2.dp)
+                .fillMaxWidth()
+                .height(0.5.dp)
+                .background(DS.sep)
+        )
         noteGroups.forEach { group ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // 軸ラベル。固定幅・字間を少し開けて沈める (本文と張り合わない)。
@@ -912,6 +935,8 @@ private fun SetlistItemRow(
     item: SetlistRow,
     displayNumber: Int,
     performers: List<PerformerRow>,
+    /** 歌唱者のアイコン (写真か判子) に要る略称・実体。id → Idol。 */
+    idolsById: Map<String, Idol>,
     /**
      * ユニット名の札に出す名前。**どのユニット名を出すかはコアが決める**
      * (その披露の名義 → 曲の名義 → 顔ぶれ推論)。空なら札を出さない。
@@ -947,6 +972,20 @@ private fun SetlistItemRow(
     // 長押し → 感想カード (曲名 + コメントのシェア画像) を作る。
     // 曲名タップは従来どおり曲詳細なので、行そのものの長押しに逃がしている。
     var showCommentShare by remember { mutableStateOf(false) }
+    // 歌唱者のアイコンを重ねた束を押したときに開く一覧 (人ごとの遷移はここから)。
+    var showPerformersSheet by remember { mutableStateOf(false) }
+    // セトリ・DS の「歌唱者はアイコンを重ねる」の素 (写真か判子。略称は Idol.shortName)。
+    val rowPerformers = remember(performers, idolsById, performerName, isCharacterLive) {
+        performers.map { p ->
+            ImasPerformer(
+                id = p.id,
+                name = p.displayName(performerName, isCharacterLive).joined(),
+                color = p.idolColor,
+                iconLabel = p.idolId?.let { idolsById[it]?.shortName },
+                entityId = p.idolId
+            )
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -1010,20 +1049,30 @@ private fun SetlistItemRow(
                 }
             }
 
-            // Performer chips in FlowRow
+            // 歌唱者。アイドルが分かる人がいればアイコンを重ねて見せる (ユーザーの決まり
+            // 「セトリの歌唱者はアイコンを重ねる」。iOS ImasSetlistRow/PerformerLine と同じ出し方)。
+            // 重ねた束は人ごとに押せないので、タップで一覧を開いて個別の遷移はそこに残す。
             if (performers.isNotEmpty()) {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    performers.forEach { performer ->
-                        PerformerChip(
-                            name = performer.displayName(performerName, isCharacterLive),
-                            idolColorHex = performer.idolColor,
-                            modifier = Modifier.clickable(enabled = performer.idolId != null) {
-                                performer.idolId?.let { onIdolClick(it) }
-                            }
-                        )
+                if (rowPerformers.any { it.iconLabel != null || it.imageUrl != null || it.entityId != null }) {
+                    ImasAvatarStack(
+                        people = rowPerformers,
+                        onTap = { showPerformersSheet = true }
+                    )
+                } else {
+                    // アイドルに結び付かない歌唱者だけの行 (アイコンの手がかりが無い)。前と同じ名前チップ。
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        performers.forEach { performer ->
+                            PerformerChip(
+                                name = performer.displayName(performerName, isCharacterLive),
+                                idolColorHex = performer.idolColor,
+                                modifier = Modifier.clickable(enabled = performer.idolId != null) {
+                                    performer.idolId?.let { onIdolClick(it) }
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1053,6 +1102,67 @@ private fun SetlistItemRow(
             artworkUrl = item.artworkUrl,
             onDismiss = { showCommentShare = false }
         )
+    }
+    if (showPerformersSheet) {
+        PerformerListSheet(
+            songTitle = item.songTitle,
+            performers = performers,
+            idolsById = idolsById,
+            performerName = performerName,
+            isCharacterLive = isCharacterLive,
+            onSelectIdol = { idolId ->
+                showPerformersSheet = false
+                onIdolClick(idolId)
+            },
+            onDismiss = { showPerformersSheet = false }
+        )
+    }
+}
+
+/**
+ * 歌唱者の一覧シート (iOS `PerformerDetailSheet`)。アイコンの束は人数ぶん重なって個別に押せないので、
+ * ここから名前を選んで個別のアイドル詳細へ遷移する (人ごとの遷移はこの一覧に残す)。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PerformerListSheet(
+    songTitle: String,
+    performers: List<PerformerRow>,
+    idolsById: Map<String, Idol>,
+    performerName: PerformerNameMode,
+    isCharacterLive: Boolean,
+    onSelectIdol: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
+        ) {
+            ImasText("$songTitle / 出演者 ${performers.size}名", role = ImasTextRole.CARD_TITLE)
+            ImasCardList(items = performers, key = { it.id }) { performer ->
+                val name = performer.displayName(performerName, isCharacterLive)
+                val idol = performer.idolId?.let { idolsById[it] }
+                ImasRow(
+                    title = name.primary,
+                    subtitle = name.secondary,
+                    leading = ImasRowLeading.Avatar(
+                        label = idol?.shortName ?: name.primary,
+                        seed = performer.idolColor,
+                        entityId = performer.idolId
+                    ),
+                    trailing = ImasRowTrailing.Chevron,
+                    titleLineLimit = 1,
+                    modifier = Modifier.imasRowPress(enabled = performer.idolId != null) {
+                        performer.idolId?.let(onSelectIdol)
+                    }
+                )
+            }
+        }
     }
 }
 

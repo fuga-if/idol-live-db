@@ -12,6 +12,7 @@ import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.community.SetlistLikeService
 import com.fugaif.imaslivedb.data.local.localWrite
 import com.fugaif.imaslivedb.data.model.AttendanceType
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.model.SetlistRow
 import com.fugaif.imaslivedb.data.model.Show
@@ -49,6 +50,12 @@ data class SetlistUiState(
     val brandId: String? = null,
     val setlist: List<SetlistRow> = emptyList(),
     val performersByItemId: Map<String, List<PerformerRow>> = emptyMap(),
+    /**
+     * 歌唱者のアイドル実体 (id → Idol)。セトリの行がアイコンの束 (写真か判子) を出すための
+     * 略称 ([Idol.shortName]) を引く。歌唱者の判定・表示名そのものはコア/[PerformerRow] が正で、
+     * ここはアイコン描画に要る実体を添えるだけ。
+     */
+    val idolsById: Map<String, Idol> = emptyMap(),
     /**
      * この公演の券種 (マスタ・生の行)。「どんな価格の券があったか」を出す。
      * 絞り込み・並び・価格帯の判断は画面側で共有コア (`ticketsForKind` 等) へ委ねる。
@@ -187,6 +194,13 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
         val setlist = events.fetchSetlist(showId)
         // 曲ごとのグループ化と並びは共有コア (showSetlistPerformers) が持つ。
         val performersByItemId = events.fetchPerformersByItem(showId)
+        // 歌唱者のアイコン (写真か判子) に要る略称 (Idol.shortName)。判断はしない単なる hydration。
+        val performerIdolIds = performersByItemId.values.flatten().mapNotNull { it.idolId }.distinct()
+        val idolsById = if (performerIdolIds.isEmpty()) {
+            emptyMap()
+        } else {
+            module.idolRepository.fetchIdolsByIds(performerIdolIds).associateBy { it.id }
+        }
         val tickets = module.showTicketRepository.forShow(showId)
         // 名義も「いつぶりか」も「自分の回収」も共有コアが決める。ここは受け取って配るだけ。
         // 読み直し (設定の切り替え等) が落ちても、同じ公演なら前の答えを残す
@@ -212,6 +226,7 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
             brandId = brandId,
             setlist = setlist,
             performersByItemId = performersByItemId,
+            idolsById = idolsById,
             tickets = tickets,
             rowMetaByItemId = rowMeta.rowsByItemId,
             collectionSummary = rowMeta.collection,
