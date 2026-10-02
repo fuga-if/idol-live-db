@@ -22,6 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.withTimeoutOrNull
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /** コピーする項目。label はメニュー文言、text は実際にコピーされる原文。 */
@@ -77,18 +84,25 @@ fun Copyable(
     val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
 
-    Box(
-        modifier = modifier.combinedClickable(
+    val openMenu = {
+        // コピーは画面に変化が出ないので、触覚で「入った」ことを返す。
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        expanded = true
+    }
+    // 自分では押されない (onClick が無い) ときは、長押しだけを拾ってタップは素通しする。
+    // combinedClickable を何もしない onClick で付けると、行を押せるようにした外側の clickable より
+    // 先にタップを取ってしまい、行の文字やジャケを押しても詳細へ進まなくなる (余白だけ反応する)。
+    val press = if (onClick != null) {
+        Modifier.combinedClickable(
             interactionSource = interactionSource,
             indication = indication,
-            onClick = { onClick?.invoke() },
-            onLongClick = {
-                // コピーは画面に変化が出ないので、触覚で「入った」ことを返す。
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                expanded = true
-            }
+            onClick = onClick,
+            onLongClick = openMenu
         )
-    ) {
+    } else {
+        Modifier.longPressOnly(onLongPress = openMenu)
+    }
+    Box(modifier = modifier.then(press)) {
         content()
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             valid.forEach { (label, text) ->
@@ -122,6 +136,30 @@ fun Copyable(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) = Copyable(listOf(CopyItem(label, text)), modifier, onClick, content = content)
+
+/**
+ * 長押しだけを拾う。タップ (長押しの時間より前に離した) は消費しないので、外側の clickable に届く。
+ * 長押しが成立したら、その後の動き (離す) を消費して、外側がタップとして扱わないようにする。
+ * 読み上げには長押しの操作 (「コピー」) として出す。
+ */
+private fun Modifier.longPressOnly(onLongPress: () -> Unit): Modifier = this
+    .pointerInput(onLongPress) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                waitForUpOrCancellation()
+            }
+            if (released == null) {
+                // 時間切れ = 長押し。離すまでの動きを消費し、外側にタップを渡さない。
+                onLongPress()
+                do {
+                    val event = awaitPointerEvent()
+                    event.changes.forEach { it.consume() }
+                } while (event.changes.any { it.pressed })
+            }
+        }
+    }
+    .semantics { onLongClick(label = "コピー") { onLongPress(); true } }
 
 private fun copyToClipboard(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
