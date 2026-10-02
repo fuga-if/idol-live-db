@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -37,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import java.util.Locale
 
@@ -219,9 +219,7 @@ fun CollectionShareSheet(collected: Int, total: Int, onDismiss: () -> Unit) {
     ShareCardSheet(title = "回収率をシェア", onDismiss = onDismiss) {
         val current = stats
         if (current == null) {
-            Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            ImasInlineLoading()
         } else {
             ShareCardActionPane(fileNamePrefix = "collection") { size ->
                 CollectionShareCard(stats = current, size = size)
