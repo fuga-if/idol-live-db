@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.polls
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,17 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -29,15 +24,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasAwardChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 /**
  * 殿堂 — 終了したお題の優勝曲/アイドル/ユニットを並べる。iOS PollHallOfFameView の移植。
@@ -57,17 +59,17 @@ fun PollHallOfFameScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("殿堂", fontWeight = FontWeight.Bold) },
+                title = { Text("殿堂") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 }
             )
         }
     ) { padding ->
-        // 空状態・エラーは画面中央に据える (ImasEmptyState は modifier を取らないので Box 側で寄せる)。
+        // 空状態・エラーは画面中央に据える。
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
             when {
-                state.isLoading -> CircularProgressIndicator()
+                state.isLoading -> ImasLoadingState()
                 state.loadError != null -> ImasEmptyState(
                     icon = Icons.Filled.ErrorOutline,
                     title = "読み込みに失敗しました",
@@ -82,18 +84,20 @@ fun PollHallOfFameScreen(
                 )
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     // 同じ対象が複数のお題で優勝しうるので、キーは entityId ではなく pollId。
-                    items(state.rows, key = { it.result.pollId }) { row ->
-                        HallOfFameRowView(
-                            row = row,
-                            onClick = {
-                                when (row.result.targetType) {
-                                    "idol" -> onIdolClick(row.result.entityId)
-                                    "unit" -> onUnitClick(row.result.entityId)
-                                    else -> onSongClick(row.result.entityId)
+                    itemsIndexed(state.rows, key = { _, row -> row.result.pollId }) { idx, row ->
+                        Column(Modifier.fillMaxWidth()) {
+                            HallOfFameRowView(
+                                row = row,
+                                onClick = {
+                                    when (row.result.targetType) {
+                                        "idol" -> onIdolClick(row.result.entityId)
+                                        "unit" -> onUnitClick(row.result.entityId)
+                                        else -> onSongClick(row.result.entityId)
+                                    }
                                 }
-                            }
-                        )
-                        HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                            )
+                            if (idx < state.rows.lastIndex) ImasRowDivider(inset = DS.Space.rowH)
+                        }
                     }
                 }
             }
@@ -103,43 +107,28 @@ fun PollHallOfFameScreen(
 
 @Composable
 private fun HallOfFameRowView(row: HallOfFameRow, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .imasRowPress(onClick = onClick)
+            .padding(vertical = DS.Space.gapTight),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
     ) {
-        // 曲はジャケ写、アイドル/ユニットはモノグラム。「実写優先」の一覧デザインに揃える。
-        if (row.result.targetType == "song") {
-            ImasArtwork(title = row.displayName, size = 44.dp, imageUrl = row.artworkUrl)
-        } else {
-            ImasAvatar(label = row.displayName, seed = row.seed, brand = row.brandId, size = 44.dp)
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                row.result.title, fontSize = 12.sp, color = DS.ink3,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                row.displayName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-        }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Filled.EmojiEvents, contentDescription = null,
-                    tint = DS.warning, modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    "優勝", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DS.warning,
-                    modifier = Modifier.padding(start = 3.dp)
-                )
-            }
-            Text("${row.result.voteCount}票", fontSize = 12.sp, color = DS.ink3)
-        }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
-            tint = DS.ink3, modifier = Modifier.size(16.dp)
+        ImasAwardChip(title = row.result.title, rank = 1)
+        ImasRow(
+            title = row.displayName,
+            leading = if (row.result.targetType == "song") {
+                ImasRowLeading.Artwork(title = row.displayName, imageUrl = row.artworkUrl)
+            } else {
+                ImasRowLeading.Avatar(label = row.displayName, seed = row.seed, brand = row.brandId)
+            },
+            trailing = ImasRowTrailing.Custom {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                    ImasMetric(value = "${row.result.voteCount}", unit = "票")
+                    ImasRowChevron()
+                }
+            },
+            density = ImasRowDensity.COMPACT
         )
     }
 }

@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.fugaif.imaslivedb.data.community.CommunityApi
+import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.data.model.ImasUnit
+import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +18,11 @@ data class PollDetailUiState(
     val isLoading: Boolean = true,
     val detail: CommunityApi.PollDetail? = null,
     val entityNames: Map<String, String> = emptyMap(),
+    // ランキングの行をジャケ/アイコン付きの実体行 (ImasForecastRow) で出すための解決済み実体。
+    // targetType ごとに 1 つだけ埋まる (他は空)。
+    val songsById: Map<String, Song> = emptyMap(),
+    val idolsById: Map<String, Idol> = emptyMap(),
+    val unitsById: Map<String, ImasUnit> = emptyMap(),
     val isDeleting: Boolean = false,
     val deleteError: String? = null
 )
@@ -47,8 +55,19 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
             _uiState.value = _uiState.value.copy(isLoading = false)
             return
         }
-        val names = resolveNames(detail.targetType, detail.entries.map { it.entityId })
-        _uiState.value = PollDetailUiState(isLoading = false, detail = detail, entityNames = names)
+        val ids = detail.entries.map { it.entityId }
+        val names = resolveNames(detail.targetType, ids)
+        val songs = if (detail.targetType == "song") songRepo.fetchSongsByIds(ids).associateBy { it.id } else emptyMap()
+        val idols = if (detail.targetType == "idol") ids.mapNotNull { idolRepo.fetchIdol(it) }.associateBy { it.id } else emptyMap()
+        val units = if (detail.targetType == "unit") unitRepo.fetchUnitsByIds(ids).associateBy { it.id } else emptyMap()
+        _uiState.value = PollDetailUiState(
+            isLoading = false,
+            detail = detail,
+            entityNames = names,
+            songsById = songs,
+            idolsById = idols,
+            unitsById = units
+        )
     }
 
     private suspend fun resolveNames(targetType: String, ids: List<String>): Map<String, String> =
@@ -144,10 +163,22 @@ class PollDetailViewModel(app: Application) : AndroidViewModel(app) {
         entries.sortByDescending { it.voteCount }
         val names = if (_uiState.value.entityNames.containsKey(entityId)) _uiState.value.entityNames
         else _uiState.value.entityNames + (entityId to resolveOneName(detail.targetType, entityId))
+        // ピッカーから足した新しい候補は、ジャケ/アイコン描画のための実体もあわせて解決する。
+        var songs = _uiState.value.songsById
+        var idols = _uiState.value.idolsById
+        var units = _uiState.value.unitsById
+        when (detail.targetType) {
+            "song" -> if (!songs.containsKey(entityId)) songRepo.fetchSong(entityId)?.let { songs = songs + (entityId to it) }
+            "idol" -> if (!idols.containsKey(entityId)) idolRepo.fetchIdol(entityId)?.let { idols = idols + (entityId to it) }
+            "unit" -> if (!units.containsKey(entityId)) unitRepo.fetchUnit(entityId)?.let { units = units + (entityId to it) }
+        }
 
         _uiState.value = _uiState.value.copy(
             detail = detail.copy(entries = entries, myVoteCount = result.myVoteCount, totalVotes = entries.sumOf { it.voteCount }),
-            entityNames = names
+            entityNames = names,
+            songsById = songs,
+            idolsById = idols,
+            unitsById = units
         )
     }
 }

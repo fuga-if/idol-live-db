@@ -1,16 +1,14 @@
 package com.fugaif.imaslivedb.ui.polls
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,19 +21,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,22 +37,35 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.SongWithArtists
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
-import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
+import com.fugaif.imaslivedb.ui.designsystem.ImasArtworkCell
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextFieldRow
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasPress
 
 private enum class SongPickerDisplayMode { GRID, LIST }
 
@@ -124,28 +128,43 @@ fun SongPollCandidatePicker(
         selection = if (selection.contains(song.song.id)) selection - song.song.id else selection + song.song.id
     }
 
+    fun confirm() {
+        // 選択は選択肢の表示順 (ブランド順 → 一覧の並び) で返す。
+        // 何を入れて何を取り消すか・残りの票数での打ち切りはコア (planVoteSelection)。
+        val ordered = state.brands
+            .flatMap { brand -> state.songs.filter { it.song.brandId == brand.id } }
+            .map { it.song.id }
+            .filter { it in selection }
+        onConfirm(ordered + (selection - ordered.toSet()))
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "楽曲を選択 (${selection.size})",
-                    fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                    modifier = Modifier.weight(1f)
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Select(
+                    canFinish = (selection - alreadySelected).isNotEmpty(),
+                    onCancel = onDismiss,
+                    onFinish = ::confirm
+                ),
+                title = "楽曲を選択 (${selection.size})"
+            )
+            Row(Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen), horizontalArrangement = Arrangement.End) {
+                ImasIconButton(
+                    icon = Icons.Filled.FilterList,
+                    label = "詳細検索",
+                    size = ImasIconButtonSize.SMALL,
+                    style = if (showAdvanced) ImasIconButtonStyle.TINTED else ImasIconButtonStyle.PLAIN,
+                    onClick = { showAdvanced = !showAdvanced }
                 )
-                IconButton(onClick = { showAdvanced = !showAdvanced }) {
-                    Icon(Icons.Filled.FilterList, contentDescription = "詳細検索", tint = if (showAdvanced) DS.pick else DS.ink2)
-                }
-                IconButton(onClick = {
-                    displayMode = if (displayMode == SongPickerDisplayMode.GRID) SongPickerDisplayMode.LIST else SongPickerDisplayMode.GRID
-                }) {
-                    Icon(
-                        if (displayMode == SongPickerDisplayMode.GRID) Icons.Filled.ViewList else Icons.Filled.GridView,
-                        contentDescription = if (displayMode == SongPickerDisplayMode.GRID) "リスト表示" else "グリッド表示"
-                    )
-                }
+                ImasIconButton(
+                    icon = if (displayMode == SongPickerDisplayMode.GRID) Icons.Filled.ViewList else Icons.Filled.GridView,
+                    label = if (displayMode == SongPickerDisplayMode.GRID) "リスト表示" else "グリッド表示",
+                    size = ImasIconButtonSize.SMALL,
+                    style = ImasIconButtonStyle.PLAIN,
+                    onClick = {
+                        displayMode = if (displayMode == SongPickerDisplayMode.GRID) SongPickerDisplayMode.LIST else SongPickerDisplayMode.GRID
+                    }
+                )
             }
 
             if (brandOptions.size > 1) {
@@ -156,31 +175,23 @@ fun SongPollCandidatePicker(
                 )
             }
 
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("曲名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "クリア") }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            ImasSearchField(
+                prompt = "曲名で検索",
+                text = query,
+                onTextChange = { query = it },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
 
             if (showAdvanced) {
-                OutlinedTextField(
-                    value = songwriter,
-                    onValueChange = { songwriter = it },
-                    placeholder = { Text("作詞・作曲・編曲者で検索") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ImasTextFieldRow(
+                    title = "作詞・作曲・編曲者",
+                    text = songwriter,
+                    onTextChange = { songwriter = it },
+                    modifier = Modifier.padding(horizontal = DS.Space.screen)
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
+                    horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
                 ) {
                     // 絞り込みは先頭の 3 種 (ソロ / ユニット / 全体曲)。語はコアの vocabulary。
                     Vocab.table.songTypes.take(3).forEach { term ->
@@ -189,9 +200,8 @@ fun SongPollCandidatePicker(
                     }
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     ImasFilterChip(
                         label = if (selectedTags.isEmpty()) "タグで絞り込み" else selectedTags.joinToString(" ＋ ") { it.name },
@@ -202,32 +212,28 @@ fun SongPollCandidatePicker(
             }
 
             if (overRemaining) {
-                Text(
-                    "残り${remaining}曲まで選べます (現在+${newlyAddedCount}曲)",
-                    fontSize = 12.sp, color = DS.danger,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                ImasNotice(
+                    kind = ImasNoticeKind.WARNING,
+                    message = "残り${remaining}曲まで選べます (現在+${newlyAddedCount}曲)",
+                    modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
                 )
             }
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) { ImasLoadingState() }
             } else if (filtered.isEmpty()) {
-                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    Text("該当する曲がありません", fontSize = 13.sp, color = DS.ink3)
+                Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                    ImasEmptyState(ImasEmptyStateKind.NO_RESULTS, title = "該当する曲がありません")
                 }
             } else if (displayMode == SongPickerDisplayMode.GRID) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = DS.Space.gap),
+                    contentPadding = PaddingValues(vertical = DS.Space.gap)
                 ) {
                     grouped.forEach { (brand, songs) ->
                         item(key = "h_${brand.id}", span = { GridItemSpan(maxLineSpan) }) {
-                            Text(
-                                "${brand.shortName} (${songs.size})",
-                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DS.ink2,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
-                            )
+                            ImasSectionHeader(title = "${brand.shortName} (${songs.size})", style = ImasSectionHeaderStyle.SMALL)
                         }
                         lazyGridItems(songs, key = { it.song.id }) { entry ->
                             SongGridCell(entry = entry, isSelected = selection.contains(entry.song.id)) { toggle(entry) }
@@ -238,37 +244,23 @@ fun SongPollCandidatePicker(
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     grouped.forEach { (brand, songs) ->
                         item(key = "h_${brand.id}") {
-                            Text(
-                                "${brand.shortName} (${songs.size})",
-                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DS.ink2,
-                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                            ImasSectionHeader(
+                                title = "${brand.shortName} (${songs.size})",
+                                style = ImasSectionHeaderStyle.SMALL,
+                                contentPadding = PaddingValues(horizontal = DS.Space.screen, vertical = DS.Space.header)
                             )
                         }
                         lazyColumnItems(songs, key = { it.song.id }) { entry ->
-                            SongListRow(entry = entry, isSelected = selection.contains(entry.song.id)) { toggle(entry) }
+                            ImasSelectableRow(
+                                title = entry.song.title,
+                                subtitle = entry.artistNames.takeIf { it.isNotEmpty() },
+                                isSelected = selection.contains(entry.song.id),
+                                onClick = { toggle(entry) },
+                                leading = ImasRowLeading.Artwork(title = entry.song.title, brand = entry.song.brandId, imageUrl = entry.song.artworkUrl)
+                            )
                         }
                     }
                 }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
-                Button(
-                    onClick = {
-                        // 選択は選択肢の表示順 (ブランド順 → 一覧の並び) で返す。
-                        // 何を入れて何を取り消すか・残りの票数での打ち切りはコア (planVoteSelection)。
-                        val ordered = state.brands
-                            .flatMap { brand -> state.songs.filter { it.song.brandId == brand.id } }
-                            .map { it.song.id }
-                            .filter { it in selection }
-                        onConfirm(ordered + (selection - ordered.toSet()))
-                    },
-                    enabled = (selection - alreadySelected).isNotEmpty(),
-                    modifier = Modifier.weight(1f)
-                ) { Text("決定") }
             }
         }
     }
@@ -282,51 +274,20 @@ fun SongPollCandidatePicker(
     }
 }
 
+/** ジャケの格子セル + 選択の印 (ImasArtworkCell に選択印は無いので、ここで重ねる)。 */
 @Composable
 private fun SongGridCell(entry: SongWithArtists, isSelected: Boolean, onClick: () -> Unit) {
     val song = entry.song
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(6.dp).clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(contentAlignment = Alignment.BottomEnd) {
-            Box(modifier = Modifier.background(if (isSelected) DS.fill else Color.Transparent, CircleShape)) {
-                ImasArtwork(title = song.title, seed = null, brand = song.brandId, size = 56.dp, imageUrl = song.artworkUrl)
-            }
-            Icon(
-                if (isSelected) Icons.Filled.CheckCircle else Icons.Filled.Circle,
-                contentDescription = null,
-                tint = if (isSelected) DS.success else DS.ink3,
-                modifier = Modifier.size(16.dp).background(DS.bg, CircleShape)
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            song.title, fontSize = 11.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Composable
-private fun SongListRow(entry: SongWithArtists, isSelected: Boolean, onClick: () -> Unit) {
-    val song = entry.song
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImasArtwork(title = song.title, seed = null, brand = song.brandId, size = 40.dp, imageUrl = song.artworkUrl)
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (entry.artistNames.isNotEmpty()) {
-                Text(entry.artistNames, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
+    Box(Modifier.fillMaxWidth().padding(DS.Space.gapTight).imasPress(onClick = onClick)) {
+        ImasArtworkCell(title = song.title, brand = song.brandId, imageUrl = song.artworkUrl)
         Icon(
             if (isSelected) Icons.Filled.CheckCircle else Icons.Filled.Circle,
             contentDescription = null,
-            tint = if (isSelected) DS.success else DS.ink3
+            tint = if (isSelected) DS.success else DS.ink3,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(16.dp)
+                .background(DS.bg, CircleShape)
         )
     }
 }

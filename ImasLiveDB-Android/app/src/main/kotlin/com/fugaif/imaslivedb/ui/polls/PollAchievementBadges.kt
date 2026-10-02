@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.polls
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -19,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAwardChip
+import com.fugaif.imaslivedb.ui.theme.imasPress
 
 /**
  * 指定エンティティ(曲/アイドル)が「みんなの投票」の終了お題で取った順位をバッジ表示する。
@@ -44,7 +44,7 @@ fun PollAchievementBadges(entityId: String, onOpenPoll: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         achievements.forEach { a ->
-            Box(modifier = Modifier.clickable { onOpenPoll(a.pollId) }) {
+            Box(modifier = Modifier.imasPress { onOpenPoll(a.pollId) }) {
                 ImasAwardChip(title = a.title, rank = a.rank)
             }
         }

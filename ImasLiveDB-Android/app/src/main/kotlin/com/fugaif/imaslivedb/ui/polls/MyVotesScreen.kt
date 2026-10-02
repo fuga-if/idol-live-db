@@ -1,23 +1,15 @@
 package com.fugaif.imaslivedb.ui.polls
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HowToVote
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,14 +21,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 
 /**
  * 自分が投票したお題の履歴。プロデュースタブ「投票」タイル → ここに飛ぶ。iOS MyVotesView の移植。
@@ -54,7 +48,7 @@ fun MyVotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("マイ投票", fontWeight = FontWeight.Bold) },
+                title = { Text("マイ投票") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 }
@@ -63,7 +57,7 @@ fun MyVotesScreen(
     ) { padding ->
         when {
             state.isLoading && state.entries.isEmpty() -> {
-                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { ImasLoadingState() }
             }
             state.entries.isEmpty() -> {
                 Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -77,41 +71,21 @@ fun MyVotesScreen(
             else -> {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    contentPadding = PaddingValues(vertical = DS.Space.gap)
                 ) {
                     items(state.entries, key = { it.poll.id }) { entry ->
-                        MyVoteEntryCard(entry)
+                        ImasListSection(title = entry.poll.title, count = entry.poll.statusLabel) {
+                            entry.choices.forEach { choice ->
+                                ImasRow(
+                                    title = choice.label,
+                                    leading = ImasRowLeading.Icon(Icons.Filled.CheckCircle, tone = ImasIconTileTone.POSITIVE),
+                                    density = ImasRowDensity.COMPACT,
+                                    titleRole = ImasTextRole.ROW_LABEL,
+                                    titleLineLimit = 2
+                                )
+                            }
+                        }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MyVoteEntryCard(entry: MyVoteEntry) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                entry.poll.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
-            )
-            Text(entry.poll.statusLabel, fontSize = 12.sp, color = if (entry.poll.isActive) DS.success else DS.ink3)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            entry.choices.forEach { choice ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DS.success, modifier = Modifier.size(18.dp))
-                    Text(
-                        choice.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp)
-                    )
                 }
             }
         }
