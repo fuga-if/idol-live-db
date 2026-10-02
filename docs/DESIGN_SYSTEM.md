@@ -465,6 +465,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **用途** 一覧の頭に「2,051 件」と並び順メニューを 1 行で出す (§2.1)。
 - **構成** 左=件数 (`ImasMetric`)。右=並び順メニュー (軸名 + 矢印の記号)。
 - **状態** `sortAscending` (Binding) を渡すと、メニューに「方向」(昇順・降順) の項目が増え、ボタンの矢印もその向きになる。渡さなければ軸の切り替えだけ (双方向の矢印)。
+  並べ替えの無い一覧は `ImasListSummary(count:unit:)` (件数だけ。型引数は要らない)。
 - **置き換えるもの** 一覧ごとに自前で組んでいた件数 + 並び替えメニューの行。
 
 ---
@@ -637,6 +638,20 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasVersusBadge`** 対戦カードの間に置く「VS」の丸い印 (墨の塗り)。
 - **`imasAccentCard(seed:brand:isSelected:style:)`** 実体色の面をまとう選べるカードの修飾子。`.card` (常に紙面、上に実体色の帯、選んだときだけ太い縁。対戦カード) / `.chip` (選んだときだけ実体色を薄く塗って縁取る。ティアー表のチップ)。
 
+### 12.3 ティアー表 (`ImasTierList.swift`。地は紙面のまま)
+- **用途** ティアー表の編集画面。段に振り分けた曲・アイドルを並べ、選んで (またはつかんで) 段へ移す。
+- **使わない場面** 順位 (→ `ImasRankingRow`)・段階の記録 (→ `ImasLevelCell`)・書き出す画像 (→ 共有画像 §13)。
+- **構成**
+  - `ImasTierHeader` 表の名前 + 振り分けの進み。押すと名前と段の編集を開く (鉛筆の記号)。
+  - `ImasTierBoard` 段を縦に積む枠 (段の間は 2pt の隙間、外を角丸で切る)。
+  - `ImasTierRow` 1 段。左に段の色の札、右に置いたものの面 (最小高 72)。
+  - `ImasTierItems` 段の中 (`.flow` 回り込み) と未分類 (`.grid` 見えている分だけ描く格子)。空のときは 1 行の文。
+  - `ImasTierChip` 置く 1 枚 (ジャケかアイコン 52 + 名前 1 行)。
+  - `ImasTierLabel` 段の色の札。`.row` (行の頭) / `.button` (移す先) / `.swatch` (編集の色見本)。2 文字以下は大きく、長い名前は小さく 2 行まで。
+  - `ImasTierMoveBar` 選んでいる間だけ下に出す「〇〇をどこへ？」の帯 (段のボタンを 6 列で折り返し + 未分類へ)。
+- **状態** 何かを選んでいるときだけ、札と面が「ここへ移す」の押し先になる (`isTarget`)。選んだ 1 枚は段の色の地と枠で浮く。
+- **色** 段ごとのシード (`TierDef.colorSeed`) を色エンジンに通した `accent` / `onAccent`。
+
 ---
 
 ## 13. 共有画像 (印刷物)
@@ -691,6 +706,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | AI と話す | `ImasChatBubble` / `ImasChatComposer` |
 | 手順・特徴を示す | `ImasStepList` / `ImasPointList` |
 | ゲームの表彰台・対戦結果を見せる | `ImasPodium` / `ImasStageVersusResult` |
+| ティアー表を組む | `ImasTierBoard` + `ImasTierRow` / `ImasTierChip` / `ImasTierMoveBar` |
 
 ---
 

@@ -21,7 +21,6 @@ struct TierListView: View {
     @State private var unplacedQuery = ""
     /// 未分類の検索用カタログ。照合規則はコア (`text_search_index`)。項目を読み込んだ時に 1 回組む。
     @State private var catalog: TextSearchCatalog?
-    @Environment(\.colorScheme) private var scheme
 
     init(board: TierListBoard) {
         self.subject = board.subject
@@ -32,18 +31,17 @@ struct TierListView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.sp4) {
                 titleHeader
-                VStack(spacing: 2) {
+                ImasTierBoard {
                     ForEach(board.tiers) { tier in
                         tierRow(tier)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
                 ImasButton(title: "段を編集", systemImage: "slider.horizontal.3", role: .secondary, size: .medium, fillsWidth: true) {
                     showEdit = true
                 }
                 unplacedSection
                 Text("タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。変えるたびに端末に保存されます。")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
+                    .imasText(.meta)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(DS.sp5)
@@ -120,55 +118,29 @@ struct TierListView: View {
     }
 
     private var titleHeader: some View {
-        Button {
+        ImasTierHeader(
+            title: board.displayTitle,
+            subtitle: "\(board.scopeLabel) · \(board.placedCount) / \(board.itemIds.count) 振り分け済み"
+        ) {
             showEdit = true
-        } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: DS.sp2) {
-                    Text(board.displayTitle)
-                        .font(.imasTitle3.weight(.bold)).foregroundStyle(DS.ink)
-                        .multilineTextAlignment(.leading)
-                    Image(systemName: "pencil")
-                        .font(.imasScaled(13, weight: .semibold)).foregroundStyle(DS.ink3)
-                }
-                Text("\(board.scopeLabel) · \(board.placedCount) / \(board.itemIds.count) 振り分け済み")
-                    .font(.imasCaption).foregroundStyle(DS.ink3)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .accessibilityHint("名前と段を編集")
     }
 
     // MARK: - 段
 
     private func tierRow(_ tier: TierDef) -> some View {
-        let theme = ImasTheme.derive(seed: tier.colorSeed, scheme: scheme)
         let ids = board.ids(inTier: tier.id)
-        return HStack(alignment: .top, spacing: 0) {
-            Button {
-                if let id = selectedId { move(id, to: tier.id) }
-            } label: {
-                TierLabelText(label: tier.label, large: 24, small: 14)
-                    .padding(.horizontal, 4)
-                    .foregroundStyle(theme.onAccent)
-                    .frame(width: 60)
-                    .frame(maxHeight: .infinity)
-                    .background(theme.accent)
-            }
-            .buttonStyle(.plain)
-            .disabled(selectedId == nil)
-            .accessibilityLabel("\(tier.label) \(ids.count)件")
-            .accessibilityHint(selectedId == nil ? "" : "選んだものをここへ移す")
-
-            itemsFlow(ids, emptyText: selectedId == nil ? nil : "ここへ移す")
-                .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
-                .background(DS.surface)
-                .contentShape(Rectangle())
-                .onTapGesture { if let id = selectedId { move(id, to: tier.id) } }
+        return ImasTierRow(
+            label: tier.label,
+            seed: tier.colorSeed,
+            isTarget: selectedId != nil,
+            accessibilityLabel: "\(tier.label) \(ids.count)件"
+        ) {
+            if let id = selectedId { move(id, to: tier.id) }
+        } content: {
+            ImasTierItems(ids: ids, layout: .flow, emptyText: selectedId == nil ? nil : "ここへ移す") { chip($0) }
         }
-        .fixedSize(horizontal: false, vertical: true)
         .dropDestination(for: String.self) { dropped, _ in
             // 他のアプリから運ばれた文字列は受けない。
             guard let id = dropped.first, board.itemIds.contains(id) else { return false }
@@ -190,17 +162,13 @@ struct TierListView: View {
         let total = board.unplacedIds.count
         let ids = visibleUnplacedIds
         return VStack(alignment: .leading, spacing: DS.sp3) {
-            HStack {
-                Text("未分類").font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink)
-                Text(unplacedQuery.isEmpty ? "\(total)" : "\(ids.count) / \(total)")
-                    .font(.imasCaption).foregroundStyle(DS.ink3).monospacedDigit()
-                Spacer()
-            }
+            ImasSectionHeader("未分類", count: unplacedQuery.isEmpty ? "\(total)" : "\(ids.count) / \(total)", style: .small)
             if total > 12 {
                 ImasNameFilterField(prompt: subject == .song ? "曲名・歌唱で絞り込み" : "名前で絞り込み", text: $unplacedQuery)
             }
             ImasCard(padding: 0) {
-                unplacedGrid(ids, emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil))
+                ImasTierItems(ids: ids, layout: .grid,
+                              emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil)) { chip($0) }
                     .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
             }
             .contentShape(Rectangle())
@@ -210,39 +178,6 @@ struct TierListView: View {
                 move(id, to: nil)
                 return true
             }
-        }
-    }
-
-    @ViewBuilder
-    private func itemsFlow(_ ids: [String], emptyText: String?) -> some View {
-        if ids.isEmpty {
-            Text(emptyText ?? "")
-                .font(.imasCaption).foregroundStyle(DS.ink3)
-                .padding(DS.sp4)
-        } else {
-            FlowLayout(spacing: 6) {
-                ForEach(ids, id: \.self) { id in
-                    chip(id)
-                }
-            }
-            .padding(6)
-        }
-    }
-
-    /// 未分類は数千件になりうる (全曲) ので、見えている分だけ描く格子にする。
-    @ViewBuilder
-    private func unplacedGrid(_ ids: [String], emptyText: String?) -> some View {
-        if ids.isEmpty {
-            Text(emptyText ?? "")
-                .font(.imasCaption).foregroundStyle(DS.ink3)
-                .padding(DS.sp4)
-        } else {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 66), spacing: 6)], alignment: .leading, spacing: 6) {
-                ForEach(ids, id: \.self) { id in
-                    chip(id)
-                }
-            }
-            .padding(6)
         }
     }
 
@@ -264,42 +199,13 @@ struct TierListView: View {
     // MARK: - 移すバー
 
     private func moveBar(_ item: SortMakerItem) -> some View {
-        // 段は最大 10。6 個ずつ折り返す (1 行に詰めると押せない幅になる)。
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: min(6, board.tiers.count + 1))
-        return VStack(alignment: .leading, spacing: DS.sp3) {
-            HStack {
-                Text("「\(item.title)」をどこへ？")
-                    .font(.imasSubhead.weight(.semibold)).foregroundStyle(DS.ink).lineLimit(1)
-                Spacer(minLength: DS.sp2)
-                Button("やめる") { selectedId = nil }
-                    .font(.imasSubhead).foregroundStyle(DS.ink2)
-            }
-            LazyVGrid(columns: columns, spacing: 6) {
-                ForEach(board.tiers) { tier in
-                    let theme = ImasTheme.derive(seed: tier.colorSeed, scheme: scheme)
-                    Button { move(item.id, to: tier.id) } label: {
-                        TierLabelText(label: tier.label, large: 18, small: 11)
-                            .padding(.horizontal, 2)
-                            .foregroundStyle(theme.onAccent)
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .background(theme.accent, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-                Button { move(item.id, to: nil) } label: {
-                    Image(systemName: "tray")
-                        .font(.imasScaled(16, weight: .semibold))
-                        .foregroundStyle(DS.ink2)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("未分類へ")
-            }
-        }
-        .padding(.horizontal, DS.sp5)
-        .padding(.vertical, DS.sp3)
-        .background(.bar)
+        ImasTierMoveBar(
+            title: "「\(item.title)」をどこへ？",
+            tiers: board.tiers.map { .init(id: $0.id, label: $0.label, seed: $0.colorSeed) },
+            onCancel: { selectedId = nil },
+            onMove: { move(item.id, to: $0) },
+            onUnplace: { move(item.id, to: nil) }
+        )
     }
 
     /// チップのタップ。何か選んでいて別のチップを押したら、そのチップの段へ移す
@@ -329,59 +235,25 @@ struct TierListView: View {
     }
 }
 
-/// 段の名前。短い名前 (S / 神) は大きく、長い名前は小さくして 2 行まで。
-struct TierLabelText: View {
-    let label: String
-    let large: CGFloat
-    let small: CGFloat
-
-    var body: some View {
-        Text(label)
-            .font(.imasScaled(label.count <= 2 ? large : small, weight: .black))
-            .multilineTextAlignment(.center)
-            .lineLimit(2)
-            .minimumScaleFactor(0.6)
-    }
-}
-
-/// ティアー表の 1 枚 (ジャケ / アイコン + 名前)。
+/// ティアー表の 1 枚 (ジャケ / アイコン + 名前)。項目のモデルから `ImasTierChip` を組む。
 struct TierListChip: View {
     let item: SortMakerItem?
     let isSelected: Bool
 
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
-        let theme = ImasTheme.derive(seed: item?.seed, brand: BrandColors.hex(for: item?.brandId), scheme: scheme)
-        VStack(spacing: 3) {
-            Group {
-                switch item {
-                case .song(let song):
-                    ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: 52,
-                                     songTitle: song.title, songId: song.id)
-                        .allowsHitTesting(false)
-                case .idol(let idol):
-                    IdolAvatarView(idol: idol, size: 52, reservesPickRing: false)
-                case nil:
-                    ImasArtwork(title: "?", size: 52)
-                }
+        ImasTierChip(title: item?.title ?? "", seed: item?.seed, brand: BrandColors.hex(for: item?.brandId),
+                     isSelected: isSelected, accessibilityTitle: item == nil ? "不明" : nil) { size in
+            switch item {
+            case .song(let song):
+                ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: size,
+                                 songTitle: song.title, songId: song.id)
+                    .allowsHitTesting(false)
+            case .idol(let idol):
+                IdolAvatarView(idol: idol, size: size, reservesPickRing: false)
+            case nil:
+                ImasArtwork(title: "?", size: size)
             }
-            Text(item?.title ?? "")
-                .font(.imasCaption2).foregroundStyle(DS.ink2)
-                .lineLimit(1)
-                .frame(width: 60)
         }
-        .padding(3)
-        .background(isSelected ? theme.tint : .clear, in: RoundedRectangle(cornerRadius: DS.rSM, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)
-                .stroke(theme.accent, lineWidth: isSelected ? 2.5 : 0)
-        )
-        .scaleEffect(isSelected ? 1.06 : 1)
-        .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(item?.title ?? "不明")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -391,7 +263,6 @@ struct TierListEditSheet: View {
     let onSave: (_ title: String?, _ tiers: [TierDef]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var scheme
     @State private var title: String
     @State private var tiers: [TierDef]
 
@@ -427,14 +298,10 @@ struct TierListEditSheet: View {
                 Section {
                     ForEach($tiers) { $tier in
                         HStack(spacing: DS.sp3) {
-                            let theme = ImasTheme.derive(seed: tier.colorSeed, scheme: scheme)
                             Button {
                                 tier.colorSeed = tierListCycleColor(current: tier.colorSeed)
                             } label: {
-                                TierLabelText(label: tier.label.isEmpty ? "?" : tier.label, large: 16, small: 10)
-                                    .foregroundStyle(theme.onAccent)
-                                    .frame(width: 48, height: 34)
-                                    .background(theme.accent, in: RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+                                ImasTierLabel(label: tier.label.isEmpty ? "?" : tier.label, seed: tier.colorSeed, style: .swatch)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("色を変える")

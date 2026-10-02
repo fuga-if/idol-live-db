@@ -1333,6 +1333,44 @@ private struct StagePage: View {
                                   visual: AnyView(ImasAvatar(label: "美希", seed: Sample.miki, size: 52)), action: {}),
                         ])
                     }
+                    ImasSection("ティアー表", style: .small, footer: "ImasTierHeader・ImasTierBoard・ImasTierRow・ImasTierItems・ImasTierChip・ImasTierLabel・ImasTierMoveBar。段の色は段ごとのシード。選んでいる間だけ札と面が移し先になる。") {
+                        VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                            ImasTierHeader(title: "765PRO ALLSTARS のティアー表", subtitle: "アイドル · 3 / 13 振り分け済み") {}
+                            ImasTierBoard {
+                                ImasTierRow(label: "S", seed: "#E5484D", isTarget: true, accessibilityLabel: "S 2件") {} content: {
+                                    ImasTierItems(ids: ["春香", "千早"], layout: .flow, emptyText: "ここへ移す") { name in
+                                        ImasTierChip(title: name, seed: name == "春香" ? Sample.haruka : Sample.chihaya,
+                                                     isSelected: name == "千早") { size in
+                                            ImasAvatar(label: name, seed: name == "春香" ? Sample.haruka : Sample.chihaya,
+                                                       size: size, reservesPickRing: false)
+                                        }
+                                    }
+                                }
+                                ImasTierRow(label: "神曲", seed: "#F5A524", isTarget: true, accessibilityLabel: "神曲 1件") {} content: {
+                                    ImasTierItems(ids: ["美希"], layout: .flow) { name in
+                                        ImasTierChip(title: name, seed: Sample.miki, isSelected: false) { size in
+                                            ImasAvatar(label: name, seed: Sample.miki, size: size, reservesPickRing: false)
+                                        }
+                                    }
+                                }
+                                ImasTierRow(label: "B", seed: "#3E9B5F", isTarget: true, accessibilityLabel: "B 0件") {} content: {
+                                    ImasTierItems(ids: [String](), layout: .flow, emptyText: "ここへ移す") { _ in EmptyView() }
+                                }
+                            }
+                            HStack(spacing: DS.Space.gap) {
+                                ImasTierLabel(label: "S", seed: "#E5484D", style: .swatch)
+                                ImasTierLabel(label: "神曲", seed: "#F5A524", style: .swatch)
+                                ImasTierLabel(label: "?", seed: "#3E9B5F", style: .swatch)
+                            }
+                            ImasTierMoveBar(
+                                title: "「如月千早」をどこへ？",
+                                tiers: [.init(id: "s", label: "S", seed: "#E5484D"),
+                                        .init(id: "g", label: "神曲", seed: "#F5A524"),
+                                        .init(id: "b", label: "B", seed: "#3E9B5F")],
+                                onCancel: {}, onMove: { _ in }, onUnplace: {}
+                            )
+                        }
+                    }
                     ImasSection("対戦カードの間・選べるカードの縁", style: .small) {
                         VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
                             HStack(spacing: 12) {
