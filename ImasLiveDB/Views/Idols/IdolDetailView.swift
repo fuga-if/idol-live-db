@@ -66,12 +66,16 @@ struct IdolDetailView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
+                // 名札と印は一緒にスクロールし、タブだけを上に貼り付ける
+                // (名札ごと貼り付けると画面の半分が動かず、シートを畳むときも重い)。
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    heroHeader
                     Section {
                         segmentBody(for: segment)
                             .padding(.bottom, DS.sp7)
                     } header: {
-                        fixedHeader
+                        segmentedBar
+                            .background(DS.bg)
                             .id("idol_detail_top")
                     }
                 }
@@ -114,14 +118,13 @@ struct IdolDetailView: View {
 
     // MARK: - Fixed header (hero + segmented)
 
-    private var fixedHeader: some View {
-        VStack(spacing: 0) {
+    private var heroHeader: some View {
+        VStack(spacing: DS.Space.gap) {
             heroView
             UserMarkBar(entity: .idol, entityId: idol.id, kinds: [.favorite, .note], seed: seed, brand: brandColor)
                 .padding(.horizontal, DS.Space.screen)
-                .padding(.bottom, DS.Space.gap)
-            segmentedBar
         }
+        .padding(.bottom, DS.Space.gap)
         .background(DS.bg)
     }
 
@@ -208,7 +211,7 @@ struct IdolDetailView: View {
 
     @ViewBuilder
     private var liveBody: some View {
-        VStack(spacing: DS.sp6) {
+        LazyVStack(spacing: DS.sp6) {
             if let next = nextShow {
                 upcomingCard(next).padding(.horizontal, DS.sp5)
             }

@@ -423,7 +423,16 @@ struct ImasIdolHeader<IconAccessory: View>: View {
                             .lineLimit(2).minimumScaleFactor(0.7)
                             .imasCopyable(copyItems)
                         if let subtitle {
-                            Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(2)
+                            // 1 行に入らないときは「 · 」の区切りで行を分ける (日付の途中で折り返さない)。
+                            ViewThatFits(in: .horizontal) {
+                                Text(subtitle).lineLimit(1)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    ForEach(Array(subtitle.components(separatedBy: " · ").enumerated()), id: \.offset) { _, part in
+                                        Text(part).lineLimit(1).minimumScaleFactor(0.8)
+                                    }
+                                }
+                            }
+                            .font(.imasCaption).foregroundStyle(DS.ink2)
                         }
                     }
                 }
@@ -452,7 +461,9 @@ struct ImasIdolHeader<IconAccessory: View>: View {
             .fixedSize(horizontal: false, vertical: true)
             .background(DS.surface)
             if !stats.isEmpty {
+                // 電光掲示板は角の丸い板なので、名札と接する上の角は板の色で埋めて四角くつなげる。
                 ImasBoard(cells: stats)
+                    .background(DS.board)
                     .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: DS.rCard, bottomTrailingRadius: DS.rCard,
                                                       style: .continuous))
             }
