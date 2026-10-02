@@ -137,13 +137,13 @@ private fun ShowAttendanceRow(
         verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-            ImasText(show.name, role = ImasTextRole.ROW_LABEL, maxLines = 1)
+            ImasText(show.name, role = ImasTextRole.ROW_LABEL)
             val sub = listOfNotNull(
                 show.venue?.takeIf { it.isNotBlank() },
                 show.date.takeIf { it.isNotBlank() }
             ).joinToString(" ・ ")
             if (sub.isNotEmpty()) {
-                ImasText(sub, role = ImasTextRole.META, maxLines = 1)
+                ImasText(sub, role = ImasTextRole.META)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
