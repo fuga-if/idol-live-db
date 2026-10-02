@@ -350,6 +350,7 @@ private fun SearchModeChip(uiState: SongListUiState, viewModel: SongListViewMode
         ImasScopeChip(
             label = uiState.searchMode.label(uiState.listMode),
             enabled = switchable,
+            onClickLabel = "検索対象を切り替え",
             onClick = { expanded = true }
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

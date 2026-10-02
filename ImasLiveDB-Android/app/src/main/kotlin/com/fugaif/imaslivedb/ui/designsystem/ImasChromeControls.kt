@@ -258,7 +258,13 @@ fun ImasSearchField(
  * メニューの開閉は呼び出し側が持つ (何を並べるかは画面ごとに違うため)。
  */
 @Composable
-fun ImasScopeChip(label: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+fun ImasScopeChip(
+    label: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    onClick: () -> Unit
+) {
     Surface(shape = CircleShape, color = DS.fill, modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -267,7 +273,7 @@ fun ImasScopeChip(label: String, modifier: Modifier = Modifier, enabled: Boolean
                     contentDescription = label
                     if (enabled) {
                         role = Role.Button
-                        onClick { onClick(); true }
+                        onClick(label = onClickLabel) { onClick(); true }
                     }
                 }
                 .then(if (enabled) Modifier.imasPress(onClick = onClick) else Modifier)
