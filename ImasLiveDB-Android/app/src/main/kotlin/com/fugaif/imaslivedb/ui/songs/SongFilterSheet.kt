@@ -1,30 +1,16 @@
 package com.fugaif.imaslivedb.ui.songs
 
 import android.app.Application
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,9 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -48,11 +31,19 @@ import com.fugaif.imaslivedb.data.model.SongSearchFilter
 import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
-import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextFieldRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -93,12 +84,14 @@ class SongFilterOptionsViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 /**
- * 曲一覧のフィルタシート (iOS `SongFilterView` の移植)。
+ * 曲一覧のフィルタシート (iOS `SongFilterView` の移植)。地は `ModalBottomSheet` のまま
+ * (iOS の NavigationStack+List に当たる Android の慣習は `ModalBottomSheet` + `ImasListSection` の
+ * 組み合わせ。`ui/mastery/MasteryScreen.kt` の絞り込みシートと同じ組み方)。
  *
  * 編集中の値はすべてこのシートのローカル状態に持ち、「適用」でまとめて返す。
  * 触るたびに一覧を引き直さないのは、条件を 2〜3 個いじる間ずっと再取得が走るのを避けるため。
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongFilterSheet(
     currentFilter: SongSearchFilter,
@@ -145,6 +138,48 @@ fun SongFilterSheet(
         options.idols.filter { idolIds.contains(it.id) }.map { it.name }
     }
 
+    fun resetAll() {
+        listMode = SongListMode.SONGS
+        selectedSort = SONG_LIST_DEFAULT_SORT
+        sortAscending = null
+        brandIds = emptySet()
+        idolIds = emptySet()
+        songwriter = ""
+        seriesGroup = null
+        cdSeries = null
+        liveName = null
+        songType = null
+        includeRemixes = false
+        excludeLiveOnly = true
+        kamisabiOnly = false
+        showOtherBrand = false
+        collectFilter = SongCollectFilter.ALL
+        myMarkFilter = SongMyMarkFilter()
+    }
+
+    fun apply() {
+        onApply(
+            currentFilter.copy(
+                brandIds = brandIds,
+                idolIds = idolIds.takeIf { it.isNotEmpty() }?.toList(),
+                songwriter = songwriter.ifBlank { null },
+                seriesGroup = seriesGroup,
+                cdSeries = cdSeries,
+                liveName = liveName,
+                songType = songType,
+                includeRemixes = includeRemixes,
+                excludeLiveOnly = excludeLiveOnly,
+                kamisabiOnly = kamisabiOnly
+            ),
+            selectedSort,
+            sortAscending,
+            showOtherBrand,
+            collectFilter,
+            myMarkFilter,
+            listMode
+        )
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         when (page) {
             FilterPage.IDOLS -> IdolMultiPickerPage(
@@ -176,266 +211,159 @@ fun SongFilterSheet(
                 onBack = { page = FilterPage.MAIN },
                 onSelect = { liveName = it; page = FilterPage.MAIN }
             )
-            FilterPage.MAIN -> Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 32.dp)
-            ) {
-                Text(
-                    text = "フィルター・並び替え",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-
-                HorizontalDivider()
+            FilterPage.MAIN -> Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                // 左=リセット・右=適用はこの帯にだけ置く (DS §2.6)。
+                ImasFilterSheetToolbar(canReset = true, onReset = ::resetAll, onApply = ::apply, title = "フィルタ・並び替え")
 
                 // 表示形式
-                SectionLabel("表示形式")
-                ImasSegmented(
-                    labels = listOf("楽曲", "アルバム", "シリーズ"),
-                    selection = SongListMode.entries.indexOf(listMode),
-                    onSelect = { listMode = SongListMode.entries[it] },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                )
+                ImasListSection("表示形式") {
+                    ImasSegmented(
+                        labels = listOf("楽曲", "アルバム", "シリーズ"),
+                        selection = SongListMode.entries.indexOf(listMode),
+                        onSelect = { listMode = SongListMode.entries[it] },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                    )
+                }
 
                 // 楽曲表示にしか効かない条件は、表示形式がアルバム/シリーズのときは出さない
                 // (集計カードには回収もマイマークも掛からないので、出すと効かない設定になる)。
                 val songsMode = listMode == SongListMode.SONGS
 
                 if (songsMode) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    HorizontalDivider()
-
                     // 現地回収
-                    SectionLabel("現地回収")
-                    ChipRow {
-                        SongCollectFilter.entries.forEach { cf ->
-                            ImasFilterChip(
-                                label = cf.label,
-                                selected = collectFilter == cf,
-                                onClick = { collectFilter = cf }
-                            )
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    // マイマーク (AND 条件)
-                    SectionLabel("マイマーク")
-                    SwitchRow(
-                        title = "担当アイドルの曲のみ",
-                        subtitle = "担当アイドルが歌唱者にいる曲だけ表示",
-                        checked = myMarkFilter.requireMyPick,
-                        tint = DS.pick,
-                        onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireMyPick = it) }
-                    )
-                    SwitchRow(
-                        title = "お気に入りのみ",
-                        checked = myMarkFilter.requireFavorite,
-                        tint = DS.favorite,
-                        onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireFavorite = it) }
-                    )
-                    SwitchRow(
-                        title = "メモがある曲のみ",
-                        checked = myMarkFilter.requireNote,
-                        tint = DS.warning,
-                        onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireNote = it) }
-                    )
-                    // 上の 3 つ全体にかかる注記。1 つのトグルの subtitle に置くと
-                    // 「その項目だけが AND」と読めてしまう (iOS はセクションの footer)。
-                    Text(
-                        "チェック ON で AND 条件絞り込み",
-                        fontSize = 11.sp,
-                        color = DS.ink3,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                    )
-
-                    HorizontalDivider()
-
-                    // 並び順
-                    SectionLabel("並び順")
-                    ChipRow {
-                        SongSortOrder.entries.forEach { order ->
-                            ImasFilterChip(
-                                label = order.label,
-                                selected = selectedSort == order,
-                                onClick = {
-                                    // 並び順を変えたら方向は新しい並び順の既定へ戻す
-                                    // (「多い順」のまま五十音順に切り替わると ん から始まって驚く)。
-                                    if (selectedSort != order) sortAscending = null
-                                    selectedSort = order
-                                }
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ChipRow {
-                        ImasFilterChip(label = "既定", selected = sortAscending == null, onClick = { sortAscending = null })
-                        ImasFilterChip(label = "昇順", selected = sortAscending == true, onClick = { sortAscending = true })
-                        ImasFilterChip(label = "降順", selected = sortAscending == false, onClick = { sortAscending = false })
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                HorizontalDivider()
-
-                // ブランド (複数選択 = OR)
-                SectionLabel("ブランド")
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ImasFilterChip(label = "全て", selected = brandIds.isEmpty(), onClick = { brandIds = emptySet() })
-                    options.brands.forEach { brand ->
-                        ImasFilterChip(
-                            label = brand.shortName,
-                            selected = brandIds.contains(brand.id),
-                            tintColor = brandColor(brand.id),
-                            onClick = {
-                                brandIds =
-                                    if (brandIds.contains(brand.id)) brandIds - brand.id else brandIds + brand.id
+                    ImasListSection("現地回収") {
+                        ImasChipFlow(Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+                            SongCollectFilter.entries.forEach { cf ->
+                                ImasFilterChip(label = cf.label, selected = collectFilter == cf, onClick = { collectFilter = cf })
                             }
+                        }
+                    }
+
+                    // マイマーク (AND 条件)。アイコンは今の Android の SwitchRow に無かったので足さない
+                    // (iOS は heart.fill 等を付けるが、見た目の移し替えだけに留める)。
+                    ImasListSection("マイマーク", footer = "チェック ON で AND 条件絞り込み") {
+                        ImasToggleRow(
+                            title = "担当アイドルの曲のみ",
+                            subtitle = "担当アイドルが歌唱者にいる曲だけ表示",
+                            isOn = myMarkFilter.requireMyPick,
+                            onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireMyPick = it) }
+                        )
+                        ImasToggleRow(
+                            title = "お気に入りのみ",
+                            isOn = myMarkFilter.requireFavorite,
+                            onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireFavorite = it) }
+                        )
+                        ImasToggleRow(
+                            title = "メモがある曲のみ",
+                            isOn = myMarkFilter.requireNote,
+                            onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireNote = it) }
                         )
                     }
+
+                    // 並び順
+                    ImasListSection("並び順") {
+                        ImasMenuRow(
+                            title = "並び順",
+                            options = SongSortOrder.entries,
+                            selection = selectedSort,
+                            onSelect = {
+                                // 並び順を変えたら方向は新しい並び順の既定へ戻す
+                                // (「多い順」のまま五十音順に切り替わると ん から始まって驚く)。
+                                if (selectedSort != it) sortAscending = null
+                                selectedSort = it
+                            },
+                            label = { it.label }
+                        )
+                        SortDirectionRow(sortAscending = sortAscending, onChange = { sortAscending = it })
+                    }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
 
-                if (songsMode) {
-                    HorizontalDivider()
+                // ブランド (複数選択 = OR)
+                ImasListSection("ブランド") {
+                    ImasBrandPicker(
+                        brands = options.brands,
+                        selection = brandIds,
+                        onSelectionChange = { brandIds = it },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                    )
+                }
 
-                    SwitchRow(
+                ImasListSection {
+                    ImasToggleRow(
                         title = "ライブ限定曲を隠す",
                         subtitle = "セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON",
-                        checked = excludeLiveOnly,
+                        isOn = excludeLiveOnly,
                         onCheckedChange = { excludeLiveOnly = it }
                     )
-                    SwitchRow(
+                    ImasToggleRow(
                         title = "「その他」を表示",
                         subtitle = "歌枠で歌っただけのカバー等。既定では隠しています",
-                        checked = showOtherBrand,
+                        isOn = showOtherBrand,
                         onCheckedChange = { showOtherBrand = it }
                     )
-                    SwitchRow(
-                        title = "リミックスを含む",
-                        subtitle = "アレンジ・リミックス曲を表示",
-                        checked = includeRemixes,
-                        onCheckedChange = { includeRemixes = it }
-                    )
-                    SwitchRow(
-                        title = "KAMISABI収録のみ",
-                        subtitle = "音楽カードゲーム KAMISABI にカードがある曲だけ表示",
-                        checked = kamisabiOnly,
-                        onCheckedChange = { kamisabiOnly = it }
-                    )
+                }
 
-                    HorizontalDivider()
+                if (songsMode) {
+                    ImasListSection {
+                        ImasToggleRow(
+                            title = "リミックスを含む",
+                            subtitle = "アレンジ・リミックス曲を表示",
+                            isOn = includeRemixes,
+                            onCheckedChange = { includeRemixes = it }
+                        )
+                    }
+
+                    ImasListSection(footer = "音楽カードゲーム KAMISABI にカードがある曲だけ表示します。") {
+                        ImasToggleRow(
+                            title = "KAMISABI収録のみ",
+                            isOn = kamisabiOnly,
+                            onCheckedChange = { kamisabiOnly = it }
+                        )
+                    }
 
                     // 曲タイプ
-                    SectionLabel("曲タイプ")
-                    ChipRow {
-                        ImasFilterChip(label = "全て", selected = songType == null, onClick = { songType = null })
-                        SONG_TYPES.forEach { (value, label) ->
-                            ImasFilterChip(
-                                label = label,
-                                selected = songType == value,
-                                onClick = { songType = if (songType == value) null else value }
-                            )
+                    ImasListSection("曲タイプ") {
+                        ImasChipFlow(Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+                            ImasFilterChip(label = "全て", selected = songType == null, onClick = { songType = null })
+                            SONG_TYPES.forEach { (value, label) ->
+                                ImasFilterChip(
+                                    label = label,
+                                    selected = songType == value,
+                                    onClick = { songType = if (songType == value) null else value }
+                                )
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    HorizontalDivider()
 
                     // アイドル (複数選択)
-                    PickerRow(
-                        label = "アイドル",
-                        value = if (selectedIdolNames.isEmpty()) {
-                            null
-                        } else {
-                            // 全員ぶん並べると行が伸びるので、3 人までは名前・それ以上は人数。
-                            if (selectedIdolNames.size <= 3) {
+                    ImasListSection("アイドル") {
+                        ImasNavRow(
+                            title = "アイドル",
+                            value = if (selectedIdolNames.isEmpty()) {
+                                "選択なし"
+                            } else if (selectedIdolNames.size <= 3) {
+                                // 全員ぶん並べると行が伸びるので、3 人までは名前・それ以上は人数。
                                 selectedIdolNames.joinToString("・")
                             } else {
                                 "${selectedIdolNames.take(2).joinToString("・")} 他${selectedIdolNames.size - 2}人"
-                            }
-                        },
-                        onClick = { page = FilterPage.IDOLS }
-                    )
+                            },
+                            onClick = { page = FilterPage.IDOLS }
+                        )
+                    }
 
                     // 作詞 / 作曲 / 編曲
-                    SectionLabel("作詞 / 作曲 / 編曲者")
-                    NameFilterField(
-                        prompt = "名前を入力",
-                        value = songwriter,
-                        onValueChange = { songwriter = it }
-                    )
-
-                    HorizontalDivider()
-
-                    PickerRow(label = "シリーズ", value = seriesGroup, onClick = { page = FilterPage.SERIES })
-                    PickerRow(label = "CDシリーズ", value = cdSeries, onClick = { page = FilterPage.CD_SERIES })
-                    PickerRow(label = "ライブで絞込", value = liveName, onClick = { page = FilterPage.LIVE })
-                }
-
-                HorizontalDivider()
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = {
-                            listMode = SongListMode.SONGS
-                            selectedSort = SONG_LIST_DEFAULT_SORT
-                            sortAscending = null
-                            brandIds = emptySet()
-                            idolIds = emptySet()
-                            songwriter = ""
-                            seriesGroup = null
-                            cdSeries = null
-                            liveName = null
-                            songType = null
-                            includeRemixes = false
-                            excludeLiveOnly = true
-                            kamisabiOnly = false
-                            showOtherBrand = false
-                            collectFilter = SongCollectFilter.ALL
-                            myMarkFilter = SongMyMarkFilter()
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("リセット")
+                    ImasListSection("作詞 / 作曲 / 編曲者") {
+                        ImasTextFieldRow(title = "名前", text = songwriter, onTextChange = { songwriter = it }, prompt = "名前を入力")
                     }
-                    Button(
-                        onClick = {
-                            onApply(
-                                currentFilter.copy(
-                                    brandIds = brandIds,
-                                    idolIds = idolIds.takeIf { it.isNotEmpty() }?.toList(),
-                                    songwriter = songwriter.ifBlank { null },
-                                    seriesGroup = seriesGroup,
-                                    cdSeries = cdSeries,
-                                    liveName = liveName,
-                                    songType = songType,
-                                    includeRemixes = includeRemixes,
-                                    excludeLiveOnly = excludeLiveOnly,
-                                    kamisabiOnly = kamisabiOnly
-                                ),
-                                selectedSort,
-                                sortAscending,
-                                showOtherBrand,
-                                collectFilter,
-                                myMarkFilter,
-                                listMode
-                            )
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("適用")
+
+                    ImasListSection("シリーズ") {
+                        ImasNavRow(title = "シリーズ", value = seriesGroup ?: "選択なし", onClick = { page = FilterPage.SERIES })
+                    }
+                    ImasListSection("CDシリーズ") {
+                        ImasNavRow(title = "CDシリーズ", value = cdSeries ?: "選択なし", onClick = { page = FilterPage.CD_SERIES })
+                    }
+                    ImasListSection("ライブで絞込") {
+                        ImasNavRow(title = "ライブ", value = liveName ?: "選択なし", onClick = { page = FilterPage.LIVE })
                     }
                 }
             }
@@ -443,87 +371,19 @@ fun SongFilterSheet(
     }
 }
 
+/** 並び順の方向 (既定・昇順・降順)。「既定」は Android だけの 3 つ目の選択肢 (null = その並び順自身の既定)。 */
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-    )
-}
-
-/**
- * チップ置き場。セクションごとに同じ余白で並べる。
- * 並び順のように 5 個並ぶ列があるので、はみ出したら折り返す (横スクロールにすると
- * 端のチップが隠れて「並び順が 3 つしかない」ように見える)。
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ChipRow(content: @Composable () -> Unit) {
-    FlowRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        content()
-    }
-}
-
-/** 選択ページへ降りる行。選択中はその値を、未選択なら「選択なし」を出す。 */
-@Composable
-private fun PickerRow(label: String, value: String?, onClick: () -> Unit) {
+private fun SortDirectionRow(sortAscending: Boolean?, onChange: (Boolean?) -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = DS.Size.touch).padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowVCompact),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = DS.ink)
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = value ?: "選択なし",
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (value == null) DS.ink3 else DS.ink2,
-            maxLines = 1
-        )
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = DS.ink3)
-    }
-    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-}
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    subtitle: String? = null,
-    checked: Boolean,
-    tint: Color? = null,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyMedium)
-            if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-            }
+        ImasText("方向", ImasTextRole.ROW_LABEL, modifier = Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            ImasFilterChip(label = "既定", selected = sortAscending == null, onClick = { onChange(null) })
+            ImasFilterChip(label = "昇順", selected = sortAscending == true, onClick = { onChange(true) })
+            ImasFilterChip(label = "降順", selected = sortAscending == false, onClick = { onChange(false) })
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = if (tint != null) {
-                SwitchDefaults.colors(checkedTrackColor = tint, checkedThumbColor = DS.surface)
-            } else {
-                SwitchDefaults.colors()
-            }
-        )
     }
 }
 
