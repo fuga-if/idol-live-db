@@ -5,37 +5,26 @@ import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -48,7 +37,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,12 +57,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,9 +71,28 @@ import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierBoard
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierChipMediaSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierItems
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierItemsLayout
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierLabel
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierLabelStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierMoveBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierSpec
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -108,6 +111,7 @@ import uniffi.imas_core.tierListTitleMaxChars
 // ティアー表の編集画面。iOS TierListView.swift の移植。
 // タップで選ぶ → 下のバーで段を押す、が主な操作 (長押しドラッグは iOS のみ・Android は省略)。
 // 1 回動かすたびに端末へ保存する (一覧から何枚でも開き直せる)。
+// 見た目の部品は ui/designsystem/ImasTierList.kt (iOS ImasTierList.swift と同名・同役目)。
 // =============================================================================
 
 data class TierListUiState(
@@ -224,31 +228,21 @@ fun TierListScreen(
         val s = state
         Box(Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
             if (s == null || !s.isLoaded) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                ImasLoadingState()
             } else {
                 Column(Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(DS.sp5),
+                        verticalArrangement = Arrangement.spacedBy(DS.sp4)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showEdit = true },
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(s.board.displayTitle, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                                Icon(Icons.Filled.Edit, contentDescription = "名前と段を編集", tint = DS.ink3, modifier = Modifier.size(15.dp))
-                            }
-                            Text(
-                                "${s.board.scopeLabel} · ${s.board.placedCount} / ${s.board.itemIds.size} 振り分け済み",
-                                fontSize = 12.sp, color = DS.ink3
-                            )
-                        }
+                        ImasTierHeader(
+                            title = s.board.displayTitle,
+                            subtitle = "${s.board.scopeLabel} · ${s.board.placedCount} / ${s.board.itemIds.size} 振り分け済み",
+                            onEdit = { showEdit = true }
+                        )
                         // チップのタップ。何か選んでいて別のチップを押したら、そのチップの段
                         // (未分類なら未分類) へ移す (段の中はチップで埋まるので、行の余白を
                         // 押せと言っても押せない)。
@@ -261,36 +255,28 @@ fun TierListScreen(
                                 selectedId = if (selectedId == id) null else id
                             }
                         }
-                        Column(
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
+                        ImasTierBoard {
                             s.board.tiers.forEach { tier ->
-                                TierRow(
-                                    tier = tier,
-                                    ids = s.board.idsInTier(tier.id),
-                                    items = s.items,
-                                    selectedId = selectedId,
-                                    onSelect = tapChip,
-                                    onItemDetail = onItemClick,
-                                    onRowClick = { selectedId?.let { viewModel.move(it, tier.id); selectedId = null } }
-                                )
+                                val ids = s.board.idsInTier(tier.id)
+                                ImasTierRow(
+                                    label = tier.label,
+                                    seed = tier.colorSeed,
+                                    isTarget = selectedId != null,
+                                    accessibilityLabel = "${tier.label} ${ids.size}件",
+                                    onMoveHere = { selectedId?.let { viewModel.move(it, tier.id); selectedId = null } }
+                                ) {
+                                    ImasTierItems(
+                                        ids = ids,
+                                        emptyText = if (selectedId != null) "ここへ移す" else null
+                                    ) { id -> TierListChip(item = s.items[id], isSelected = selectedId == id, onClick = { tapChip(id) }, onLongClick = { s.items[id]?.let(onItemClick) }) }
+                                }
                             }
                         }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(DS.fill)
-                                .clickable { showEdit = true }
-                                .padding(vertical = 10.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.Edit, null, tint = DS.ink2, modifier = Modifier.size(14.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("段を編集", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-                        }
+                        ImasButton(
+                            title = "段を編集", onClick = { showEdit = true },
+                            icon = Icons.Filled.Edit, role = ImasButtonRole.SECONDARY,
+                            size = ImasButtonSize.MEDIUM, fillsWidth = true
+                        )
                         UnplacedSection(
                             ids = s.board.unplacedIds,
                             items = s.items,
@@ -300,9 +286,9 @@ fun TierListScreen(
                             onItemDetail = onItemClick,
                             onRowClick = { selectedId?.let { viewModel.move(it, null); selectedId = null } }
                         )
-                        Text(
+                        ImasText(
                             "タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。変えるたびに端末に保存されます。",
-                            fontSize = 12.sp, color = DS.ink3
+                            ImasTextRole.META
                         )
                     }
                     AnimatedVisibility(
@@ -313,9 +299,9 @@ fun TierListScreen(
                         val id = selectedId
                         val item = id?.let { s.items[it] }
                         if (id != null) {
-                            MoveBar(
-                                title = item?.title ?: "",
-                                tiers = s.board.tiers,
+                            ImasTierMoveBar(
+                                title = "「${item?.title ?: ""}」をどこへ？",
+                                tiers = s.board.tiers.map { ImasTierSpec(it.id, it.label, it.colorSeed) },
                                 onCancel = { selectedId = null },
                                 onMove = { tierId -> viewModel.move(id, tierId); selectedId = null },
                                 onUnplace = { viewModel.move(id, null); selectedId = null }
@@ -334,11 +320,11 @@ fun TierListScreen(
             confirmButton = {
                 Text(
                     "未分類に戻す", color = DS.warning,
-                    modifier = Modifier.clickable { confirmReset = false; viewModel.resetAllUnplaced() }.padding(12.dp)
+                    modifier = Modifier.clickable { confirmReset = false; viewModel.resetAllUnplaced() }.padding(DS.sp4)
                 )
             },
             dismissButton = {
-                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmReset = false }.padding(12.dp))
+                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmReset = false }.padding(DS.sp4))
             }
         )
     }
@@ -360,61 +346,6 @@ fun TierListScreen(
     }
 }
 
-// MARK: - 段の行
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun TierRow(
-    tier: TierDef,
-    ids: List<String>,
-    items: Map<String, SortMakerItem>,
-    selectedId: String?,
-    onSelect: (String) -> Unit,
-    onItemDetail: (SortMakerItem) -> Unit,
-    onRowClick: () -> Unit
-) {
-    val theme = imasTheme(seed = tier.colorSeed, brand = null)
-    // 札を行の高さいっぱいに伸ばす (中身が 2 段に折り返しても色が途切れないように)。
-    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        Box(
-            modifier = Modifier
-                .width(60.dp)
-                .fillMaxHeight()
-                .background(theme.accent)
-                // 段の札ボタンは何か選んでいるときだけ有効 (押しても行き先が無いため)。
-                .clickable(enabled = selectedId != null, onClick = onRowClick),
-            contentAlignment = Alignment.Center
-        ) {
-            TierLabelText(label = tier.label, large = 24.sp, small = 14.sp, color = theme.onAccent, modifier = Modifier.padding(horizontal = 4.dp))
-        }
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .background(DS.surface)
-                .clickable(onClick = onRowClick)
-        ) {
-            ItemsFlow(
-                ids = ids,
-                items = items,
-                selectedId = selectedId,
-                emptyText = if (selectedId != null) "ここへ移す" else null,
-                onSelect = onSelect,
-                onItemDetail = onItemDetail
-            )
-        }
-    }
-}
-
-/** 段の名前。短い名前 (S / 神) は大きく、長い名前は小さくして 2 行まで。 */
-@Composable
-private fun TierLabelText(label: String, large: androidx.compose.ui.unit.TextUnit, small: androidx.compose.ui.unit.TextUnit, color: Color, modifier: Modifier = Modifier) {
-    Text(
-        label, fontSize = if (label.length <= 2) large else small, fontWeight = FontWeight.Black,
-        color = color, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-    )
-}
-
 @Composable
 private fun UnplacedSection(
     ids: List<String>,
@@ -434,188 +365,62 @@ private fun UnplacedSection(
             else -> emptyList()
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("未分類", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Spacer(Modifier.width(6.dp))
-            Text(if (query.isBlank()) "${ids.size}" else "${visible.size} / ${ids.size}", fontSize = 12.sp, color = DS.ink3)
-        }
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+        ImasSectionHeader(
+            "未分類",
+            count = if (query.isBlank()) "${ids.size}" else "${visible.size} / ${ids.size}",
+            tight = true,
+            contentPadding = PaddingValues(0.dp)
+        )
         if (ids.size > 12) {
             NameFilterField(
                 prompt = if (items.values.firstOrNull() is SortMakerItem.IdolItem) "名前で絞り込み" else "曲名・歌唱で絞り込み",
                 value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth()
             )
         }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(DS.surface)
-                .clickable(onClick = onRowClick)
-        ) {
-            if (visible.size > 60) {
-                // 数が多いときは見えている分だけ描く格子 (枠の中でスクロール)。
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(66.dp),
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).padding(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items(visible, key = { it }) { id ->
-                        val item = items[id]
-                        TierListChip(
-                            item = item,
-                            isSelected = selectedId == id,
-                            onClick = { onSelect(id) },
-                            onLongClick = { item?.let { onItemDetail(it) } }
-                        )
-                    }
-                }
-            } else {
-                ItemsFlow(
-                    ids = visible,
-                    items = items,
-                    selectedId = selectedId,
-                    emptyText = when {
-                        ids.isEmpty() -> "全部振り分けました"
-                        visible.isEmpty() -> "当てはまるものがありません"
-                        hasSelection -> "ここへ移す"
-                        else -> null
-                    },
-                    onSelect = onSelect,
-                    onItemDetail = onItemDetail
-                )
-            }
+        ImasCard(padding = 0.dp) {
+            // 数が多いときは見えている分だけ描く格子 (枠の中でスクロール)。iOS の LazyVGrid は常に
+            // 遅延描画だが、Compose の FlowRow は遅延しないので、ここだけ件数で切り替える
+            // (全曲 (数千件) を回り込みで一度に組むと開いた瞬間に固まる)。
+            val layout = if (visible.size > 60) ImasTierItemsLayout.GRID else ImasTierItemsLayout.FLOW
+            ImasTierItems(
+                ids = visible,
+                layout = layout,
+                emptyText = when {
+                    ids.isEmpty() -> "全部振り分けました"
+                    visible.isEmpty() -> "当てはまるものがありません"
+                    hasSelection -> "ここへ移す"
+                    else -> null
+                },
+                modifier = Modifier
+                    .heightIn(min = 72.dp)
+                    .clickable(onClick = onRowClick)
+            ) { id -> TierListChip(item = items[id], isSelected = selectedId == id, onClick = { onSelect(id) }, onLongClick = { items[id]?.let(onItemDetail) }) }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+/** ティアー表の 1 枚。項目のモデル ([SortMakerItem]) から [ImasTierChip] を組む。 */
 @Composable
-private fun ItemsFlow(
-    ids: List<String>,
-    items: Map<String, SortMakerItem>,
-    selectedId: String?,
-    emptyText: String?,
-    onSelect: (String) -> Unit,
-    onItemDetail: (SortMakerItem) -> Unit
-) {
-    if (ids.isEmpty()) {
-        Box(Modifier.padding(16.dp)) {
-            Text(emptyText ?: "", fontSize = 12.sp, color = DS.ink3)
-        }
-        return
-    }
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        ids.forEach { id ->
-            val item = items[id]
-            TierListChip(
-                item = item,
-                isSelected = selectedId == id,
-                onClick = { onSelect(id) },
-                onLongClick = { item?.let { onItemDetail(it) } }
-            )
-        }
-    }
-}
-
-/** ティアー表の 1 枚 (ジャケ / アイコン + 名前)。 */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun TierListChip(
+private fun TierListChip(
     item: SortMakerItem?,
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
-    val theme = imasTheme(item?.seed, BrandColors.hex(item?.brandId))
-    val scale by animateFloatAsState(if (isSelected) 1.06f else 1f, label = "tierChipScale")
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = Modifier
-            .scale(scale)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (isSelected) theme.tint else Color.Transparent)
-            .then(if (isSelected) Modifier.border2(theme) else Modifier)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(3.dp)
-    ) {
+    ImasTierChip(
+        title = item?.title ?: "",
+        seed = item?.seed,
+        brand = BrandColors.hex(item?.brandId),
+        isSelected = isSelected,
+        accessibilityTitle = if (item == null) "不明" else null,
+        onClick = onClick,
+        onLongClick = onLongClick
+    ) { size ->
         when (item) {
-            is SortMakerItem.SongItem -> ImasArtwork(title = item.song.title, imageUrl = item.song.artworkUrl, size = 52.dp)
-            is SortMakerItem.IdolItem -> ImasAvatar(label = item.idol.shortName, seed = item.idol.color, brand = item.idol.brandId, size = 52.dp, entityId = item.idol.id)
-            null -> ImasArtwork(title = "?", size = 52.dp)
-        }
-        Text(
-            item?.title ?: "", fontSize = 10.sp, color = DS.ink2, maxLines = 1,
-            overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 60.dp)
-        )
-    }
-}
-
-private fun Modifier.border2(theme: ImasTheme): Modifier =
-    this.border(2.5.dp, theme.accent, RoundedCornerShape(10.dp))
-
-// MARK: - 移すバー
-
-@Composable
-private fun MoveBar(
-    title: String,
-    tiers: List<TierDef>,
-    onCancel: () -> Unit,
-    onMove: (String) -> Unit,
-    onUnplace: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().background(DS.surface).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "「$title」をどこへ？", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
-            )
-            Text("やめる", fontSize = 15.sp, color = DS.ink2, modifier = Modifier.clickable(onClick = onCancel).padding(4.dp))
-        }
-        // 段は最大 10。6 列で折り返す (1 行に詰めると押せない幅になる)。
-        val columns = minOf(6, tiers.size + 1)
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(columns),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth().height((44.dp + 6.dp) * ((tiers.size) / columns + 1))
-        ) {
-            items(tiers) { tier ->
-                val theme = imasTheme(seed = tier.colorSeed, brand = null)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(theme.accent)
-                        .clickable { onMove(tier.id) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    TierLabelText(label = tier.label, large = 18.sp, small = 11.sp, color = theme.onAccent, modifier = Modifier.padding(horizontal = 2.dp))
-                }
-            }
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(DS.fill)
-                        .clickable(onClick = onUnplace),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Filled.Inbox, contentDescription = "未分類へ", tint = DS.ink2, modifier = Modifier.size(18.dp))
-                }
-            }
+            is SortMakerItem.SongItem -> ImasArtwork(title = item.song.title, imageUrl = item.song.artworkUrl, size = size)
+            is SortMakerItem.IdolItem -> ImasAvatar(label = item.idol.shortName, seed = item.idol.color, brand = item.idol.brandId, size = size, entityId = item.idol.id)
+            null -> ImasArtwork(title = "?", size = size)
         }
     }
 }
@@ -652,17 +457,17 @@ private fun TierListEditSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = DS.sp5)
+                .padding(bottom = DS.sp7),
+            verticalArrangement = Arrangement.spacedBy(DS.sp6)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Text("キャンセル", fontSize = 15.sp, color = DS.ink2, modifier = Modifier.clickable(onClick = onDismiss))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = DS.sp2)) {
+                Text("キャンセル", style = ImasType.text(15.sp), color = DS.ink2, modifier = Modifier.clickable(onClick = onDismiss))
                 Spacer(Modifier.weight(1f))
-                Text("名前と段を編集", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                ImasText("名前と段を編集", ImasTextRole.CARD_TITLE)
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "保存", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = accent,
+                    "保存", style = ImasType.text(15.sp, FontWeight.SemiBold), color = accent,
                     modifier = Modifier.clickable {
                         // 名前の整え方 (空白・改行・上限) はコアの規則。空の段名はその位置の既定名にする。
                         val cleaned = tiers.mapIndexed { i, t ->
@@ -675,8 +480,8 @@ private fun TierListEditSheet(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("表の名前", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+            Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                ImasText("表の名前", ImasTextRole.SECTION_LABEL, color = DS.ink3)
                 OutlinedTextField(
                     value = title,
                     onValueChange = { v -> title = if (v.length > titleMax) v.take(titleMax) else v },
@@ -684,24 +489,19 @@ private fun TierListEditSheet(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("画像の見出しになります。空にすると「${board.defaultTitle}」に戻ります。", fontSize = 12.sp, color = DS.ink3)
+                ImasText("画像の見出しになります。空にすると「${board.defaultTitle}」に戻ります。", ImasTextRole.META)
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("段 (${tiers.size} / $maxTiers)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+            Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                ImasText("段 (${tiers.size} / $maxTiers)", ImasTextRole.SECTION_LABEL, color = DS.ink3)
                 tiers.forEachIndexed { i, tier ->
-                    val theme = imasTheme(seed = tier.colorSeed, brand = null)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
                         Box(
-                            modifier = Modifier
-                                .clickable { tiers = tiers.toMutableList().also { it[i] = it[i].copy(colorSeed = tierListCycleColor(it[i].colorSeed)) } }
-                                .width(48.dp)
-                                .height(34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(theme.accent),
-                            contentAlignment = Alignment.Center
+                            modifier = Modifier.clickable {
+                                tiers = tiers.toMutableList().also { it[i] = it[i].copy(colorSeed = tierListCycleColor(it[i].colorSeed)) }
+                            }
                         ) {
-                            TierLabelText(label = tier.label.ifEmpty { "?" }, large = 16.sp, small = 10.sp, color = theme.onAccent)
+                            ImasTierLabel(label = tier.label.ifEmpty { "?" }, seed = tier.colorSeed, style = ImasTierLabelStyle.SWATCH)
                         }
                         OutlinedTextField(
                             value = tier.label,
@@ -730,27 +530,21 @@ private fun TierListEditSheet(
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (tiers.size < maxTiers) DS.fill else DS.fill.copy(alpha = 0.4f))
-                        .clickable(enabled = tiers.size < maxTiers) {
-                            val newTier = tierListNewTier(tiers.size.toUInt(), tiers.map { it.colorSeed })
-                            tiers = tiers + TierDef(label = newTier.label, colorSeed = newTier.colorSeed)
-                        }
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        "段を追加", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                        color = if (tiers.size < maxTiers) DS.ink else DS.ink3
-                    )
-                }
-                Text(
+                ImasButton(
+                    title = "段を追加",
+                    onClick = {
+                        val newTier = tierListNewTier(tiers.size.toUInt(), tiers.map { it.colorSeed })
+                        tiers = tiers + TierDef(label = newTier.label, colorSeed = newTier.colorSeed)
+                    },
+                    role = ImasButtonRole.SECONDARY,
+                    size = ImasButtonSize.MEDIUM,
+                    fillsWidth = true,
+                    enabled = tiers.size < maxTiers
+                )
+                ImasText(
                     "色の札をタップすると色が変わります。名前は${labelMax}文字まで (「神」「沼」「好き」など)。上下の矢印で並べ替え、ゴミ箱で削除できます。" +
                         if (removedWithItems > 0) "\n削除する段にいる $removedWithItems 件は未分類に戻ります。" else "",
-                    fontSize = 12.sp, color = DS.ink3
+                    ImasTextRole.META
                 )
             }
         }
