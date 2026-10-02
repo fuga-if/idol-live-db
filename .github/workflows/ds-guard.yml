@@ -1,7 +1,7 @@
 name: Design System Guard
 
 # 画面のコードに色・文字の大きさ・余白・角丸の数字や形を直接書いていないかを見る
-# (docs/DESIGN_SYSTEM.md §15)。今ある手書きは tools/ds_usage_baseline.tsv に載せてあり、
+# (docs/DESIGN_SYSTEM.md §15。iOS と Android)。今ある手書きは tools/ds_usage_baseline.tsv に載せてあり、
 # 増えたときだけ落とす。減らしたら `bash tools/check_ds_usage.sh --update` で基準を下げる。
 on:
   push:
@@ -9,12 +9,16 @@ on:
     paths:
       - 'ImasLiveDB/Views/**'
       - 'ImasLiveDB/App/**'
+      - 'ImasLiveDBWidget/**'
+      - 'ImasLiveDB-Android/app/src/main/kotlin/**'
       - 'tools/check_ds_usage.sh'
       - 'tools/ds_usage_baseline.tsv'
   pull_request:
     paths:
       - 'ImasLiveDB/Views/**'
       - 'ImasLiveDB/App/**'
+      - 'ImasLiveDBWidget/**'
+      - 'ImasLiveDB-Android/app/src/main/kotlin/**'
       - 'tools/check_ds_usage.sh'
       - 'tools/ds_usage_baseline.tsv'
   workflow_dispatch:

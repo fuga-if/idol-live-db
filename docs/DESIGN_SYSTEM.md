@@ -721,15 +721,25 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 4. Android の `ui/designsystem/` に同じ名前・同じ見た目で足す。
 5. この文書に 1 節足し、早見表に 1 行足す。
 
-`tools/check_ds_usage.sh` が止めるもの (`DesignSystem/`・`Stage`・`ShareCard` の中は除く)。
-今ある手書き (2026-10-01 時点 135 ファイル・1,137 行) は `tools/ds_usage_baseline.tsv` に載せてあり、
+`tools/check_ds_usage.sh` が止めるもの (`DesignSystem/`・`Stage`・`ShareCard` の中は除く)。iOS と Android を同じ決まりで見る。
+今ある手書きは `tools/ds_usage_baseline.tsv` に載せてあり、
 **ファイルごとに増えたときだけ** CI (`.github/workflows/ds-guard.yml`) で落ちる。画面を部品に移して減ったら
 `bash tools/check_ds_usage.sh --update` で基準を下げる。該当行は `--list <file>` で出る。
+
+iOS (`ImasLiveDB/Views`・`App`・ウィジェット):
 - `cornerRadius:` に数字、`.padding(` / `spacing:` に数字、`.font(.imasScaled(` / `.font(.system(` / `.font(.caption)` 等の直書き
 - `Color(red:` / `Color(hex` / `.white` / `.black` / `Color.accentColor` / `.foregroundStyle(.secondary)`
 - `Capsule()` / `RoundedRectangle(` の直書き (形は部品が持つ)
 - `.alert("エラー"` (→ `.imasErrorAlert`)、`ProgressView()` の直書き (→ 状態の部品)
 - `Divider()` の直書き (→ 行が持つ区切り線)
+
+Android (`ui`・`widget`。`ui/designsystem`・`ui/theme`・`ui/share`・クイズのステージの定義・ウィジェットの `WidgetTheme` は除く):
+- `Color(0x` / `Color.White` などの素の色、`MaterialTheme.colorScheme` / `.typography` / `.shapes` (→ `DS.*`・`ImasType`)
+- `14.sp` などの sp の数字・その場の `TextStyle(`
+- `padding(` / `PaddingValues(` / `spacedBy(` / `Spacer(` に dp の数字
+- `RoundedCornerShape(` / `CircleShape` / 影 / グラデーションの直書き (形は部品が持つ)
+- `HorizontalDivider(` / `CircularProgressIndicator(` の直書き、`Text("エラー")` (→ `ImasErrorAlert`)
+- Material の見た目の部品 `Card(` / `FilterChip(` / `Button(` / `TextButton(` / `Switch(` ほか (→ `ImasCard`・`ImasChip`・`ImasButton`・`ImasSwitch`)
 
 ---
 

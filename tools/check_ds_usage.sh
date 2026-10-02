@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # 画面のコードに「その場限りの見た目」を書いていないかのチェック (docs/DESIGN_SYSTEM.md §15)。
 #
-# 画面 (ImasLiveDB/Views・App・ウィジェット) は DesignSystem の部品だけで組む。色・文字の大きさ・余白・
-# 角丸の数字や、形 (Capsule / RoundedRectangle / Circle)・影・グラデーション・素の色の名前・
-# 素の ProgressView / Divider を書いたら止める。
+# 画面は DesignSystem の部品だけで組む。色・文字の大きさ・余白・角丸の数字や、形・影・グラデーション・
+# 素の色の名前・素の進捗や区切り線を書いたら止める。iOS と Android を同じ決まりで見る。
+#   iOS:     ImasLiveDB/Views・App・ウィジェット (Capsule / RoundedRectangle / Circle・ProgressView / Divider ほか)
+#   Android: ui・widget (RoundedCornerShape / CircleShape・sp と dp の数字・Material の見た目の部品ほか)
 #
 # 今ある手書きは tools/ds_usage_baseline.tsv に「ファイルごとの行数」として載せてあり、
 # **増えたときだけ** 落とす (移した分だけ減らしていく。減ったら --update で書き直す)。
@@ -12,13 +13,14 @@
 #   bash tools/check_ds_usage.sh --update   # 基準を今の数に書き直す (減らしたとき)
 #   bash tools/check_ds_usage.sh --list <file>  # そのファイルの該当行を出す
 #
-# 対象外: DesignSystem/ (部品の中身)、共有画像 (固定キャンバスなので固定 pt を許す)、
-#         クイズのステージの配色定義、部品カタログ。
+# 対象外: DesignSystem/ (部品の中身)、配色の定義 (Android の ui/theme・ウィジェットの WidgetTheme)、
+#         共有画像 (固定キャンバスなので固定 pt を許す)、クイズのステージの配色定義、部品カタログ。
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 BASELINE="tools/ds_usage_baseline.tsv"
 
+# ---- iOS (Swift) ----
 # 1 行に 1 つでも当たればその行を数える。
 PATTERN='cornerRadius: *[0-9]'
 PATTERN+='|\.padding\(([^)]*, *)?[0-9]+(\.[0-9]+)?\)'
@@ -36,16 +38,53 @@ PATTERN+='|"checkmark\.circle\.fill" *: *"circle"'
 
 EXCLUDE='/DesignSystem/|/Views/Share/|ShareCard|QuizStage\.swift|TierListExport\.swift|DesignCatalog'
 
+# ---- Android (Kotlin) ----
+ANDROID_ROOT='ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb'
+# 色: hex・成分からの色・素の色の名前・Material の配色/書体/形のトークン (DS.* と ImasType から引く)
+KT_PATTERN='Color\(0x|Color\((red|green|blue) *=|Color\.(hsv|hsl)\('
+KT_PATTERN+='|Color\.(White|Black|Red|Green|Blue|Yellow|Gray|Cyan|Magenta|LightGray|DarkGray)([^A-Za-z]|$)'
+KT_PATTERN+='|MaterialTheme\.(colorScheme|typography|shapes)'
+# 文字: sp の数字・その場の TextStyle
+KT_PATTERN+='|[0-9]\.sp([^A-Za-z]|$)|TextStyle\('
+# 余白: padding / contentPadding / spacedBy / Spacer に dp の数字
+KT_PATTERN+='|padding\([^)]*[0-9]\.dp|PaddingValues\([^)]*[0-9]\.dp'
+KT_PATTERN+='|spacedBy\( *[0-9]+(\.[0-9]+)?\.dp|Spacer\(.*(height|width|size)\( *[0-9]+(\.[0-9]+)?\.dp'
+# 形・影・グラデーション (部品が持つもの)
+KT_PATTERN+='|RoundedCornerShape\(|CircleShape|CutCornerShape\(|cornerRadius\( *[0-9]'
+KT_PATTERN+='|\.shadow\(|[Ee]levation *= *[1-9]|Brush\.(linear|radial|sweep|horizontal|vertical)Gradient'
+# 素の区切り線・進捗・「エラー」だけの題 (→ 行が持つ区切り線・状態の部品・ImasErrorAlert)
+KT_PATTERN+='|(^|[^A-Za-z])(HorizontalDivider|VerticalDivider|Divider|CircularProgressIndicator|LinearProgressIndicator)\('
+KT_PATTERN+='|Text\("エラー"\)'
+# Material の見た目の部品 (同じ役目の部品がある: ImasCard・ImasChip・ImasButton・ImasSwitch)
+KT_PATTERN+='|(^|[^A-Za-z.])(Card|ElevatedCard|OutlinedCard|FilterChip|AssistChip|InputChip|SuggestionChip|Button|TextButton|OutlinedButton|FilledTonalButton|ElevatedButton|Switch)\('
+
+KT_EXCLUDE='/ui/designsystem/|/ui/theme/|/ui/share/|ShareCard|TierListExportSheet\.kt|/ui/games/QuizStage\.kt|/widget/WidgetTheme\.kt'
+
 files() {
-    find ImasLiveDB/Views ImasLiveDB/App ImasLiveDBWidget -name '*.swift' | grep -Ev "$EXCLUDE" | sort
+    {
+        find ImasLiveDB/Views ImasLiveDB/App ImasLiveDBWidget -name '*.swift' | grep -Ev "$EXCLUDE"
+        find "$ANDROID_ROOT/ui" "$ANDROID_ROOT/widget" -name '*.kt' | grep -Ev "$KT_EXCLUDE"
+    } | sort
+}
+
+pattern_for() {
+    case "$1" in
+        *.kt) echo "$KT_PATTERN" ;;
+        *) echo "$PATTERN" ;;
+    esac
+}
+
+# 該当行 (行番号つき)。import の行は使っている所ではないので数えない。
+matches() {
+    grep -nE "$(pattern_for "$1")" "$1" | grep -vE '^[0-9]+:import ' || true
 }
 
 count_file() {
-    grep -cE "$PATTERN" "$1" || true
+    matches "$1" | grep -c . || true
 }
 
 if [[ "${1:-}" == "--list" ]]; then
-    grep -nE "$PATTERN" "$2" || true
+    matches "$2"
     exit 0
 fi
 
@@ -73,7 +112,7 @@ while read -r f; do
     base=${base:-0}
     if [[ "$n" -gt "$base" ]]; then
         echo "❌ $f: 手書きの見た目が $base 行 → $n 行に増えました" >&2
-        grep -nE "$PATTERN" "$f" | sed 's/^/    /' >&2
+        matches "$f" | sed 's/^/    /' >&2
         failed=1
     fi
 done < <(files)
