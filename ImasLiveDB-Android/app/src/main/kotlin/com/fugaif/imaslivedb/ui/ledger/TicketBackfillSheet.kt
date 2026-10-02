@@ -15,15 +15,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,6 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,7 +41,11 @@ import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectionMark
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import java.time.LocalDate
 import uniffi.imas_core.ExpenseCategory
 import uniffi.imas_core.ShowTicket
@@ -123,12 +125,12 @@ fun TicketBackfillSheet(
     var saving by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("チケット代を取り込む", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(horizontal = DS.Space.screen).padding(bottom = DS.Space.section)) {
+            Text("チケット代を取り込む", style = ImasType.heading(17.sp, FontWeight.Bold), color = DS.ink)
+            Spacer(Modifier.height(DS.Space.card))
+            val shape = RoundedCornerShape(DS.rCard)
             LazyColumn(
-                Modifier.fillMaxWidth().heightIn(max = 480.dp)
-                    .background(DS.surface, RoundedCornerShape(10.dp))
+                Modifier.fillMaxWidth().heightIn(max = 480.dp).clip(shape).background(DS.surface, shape)
             ) {
                 items(rows, key = { it.id }) { row ->
                     BackfillRow(
@@ -138,17 +140,14 @@ fun TicketBackfillSheet(
                             if (ticket == null) selection.remove(row.id) else selection[row.id] = ticket
                         }
                     )
-                    if (row != rows.last()) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 14.dp))
+                    if (row != rows.last()) ImasRowDivider(inset = DS.Space.rowH)
                 }
             }
-            Text(
-                "券種が複数ある公演は、選んだものだけ記録します。金額はあとから明細で直せます。",
-                fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp)
-            )
-            Spacer(Modifier.height(20.dp))
+            ImasNote("券種が複数ある公演は、選んだものだけ記録します。金額はあとから明細で直せます。")
+            Spacer(Modifier.height(DS.Space.gapLoose))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("キャンセル") }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(DS.Space.gap))
                 Button(
                     onClick = {
                         saving = true
@@ -167,27 +166,27 @@ private fun BackfillRow(row: TicketBackfillRow, chosen: ShowTicket?, onChoose: (
     // 券種が複数あって未選択のときは、丸を押しても選べない (右のメニューで選ぶ)。
     val toggleEnabled = chosen != null || row.item.preselected != null
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap)
     ) {
-        Icon(
-            if (chosen != null) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-            contentDescription = if (chosen != null) "記録しない" else "記録する",
-            tint = if (chosen != null) DS.ink else DS.ink3,
-            modifier = Modifier.clickable(enabled = toggleEnabled) {
-                onChoose(if (chosen != null) null else row.item.preselected)
-            }
-        )
+        Box(
+            Modifier
+                .clickable(enabled = toggleEnabled) { onChoose(if (chosen != null) null else row.item.preselected) }
+                .semantics { contentDescription = if (chosen != null) "記録しない" else "記録する" }
+        ) {
+            ImasSelectionMark(isSelected = chosen != null)
+        }
         Column(Modifier.weight(1f)) {
-            Text(row.option.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 2)
-            Text("${row.option.date}・${ticketKindLabel(row.item.kind)}", fontSize = 11.sp, color = DS.ink3)
+            Text(row.option.label, style = ImasType.text(13.sp, FontWeight.SemiBold), color = DS.ink, maxLines = 2)
+            Text("${row.option.date}・${ticketKindLabel(row.item.kind)}", style = ImasType.text(11.sp), color = DS.ink3)
         }
         if (row.item.tickets.size > 1) {
             Box {
                 Text(
                     chosen?.let(::ticketLabel) ?: "券種を選ぶ",
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End,
+                    style = ImasType.text(12.sp, FontWeight.SemiBold),
+                    textAlign = TextAlign.End,
                     color = if (chosen != null) DS.ink else DS.ink2,
                     modifier = Modifier.clickable { menuOpen = true }
                 )
@@ -209,7 +208,7 @@ private fun BackfillRow(row: TicketBackfillRow, chosen: ShowTicket?, onChoose: (
         } else {
             row.item.tickets.firstOrNull()?.let { ticket ->
                 Text(
-                    ticketLabel(ticket), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    ticketLabel(ticket), style = ImasType.text(12.sp, FontWeight.SemiBold),
                     textAlign = TextAlign.End, color = if (chosen != null) DS.ink else DS.ink3
                 )
             }
