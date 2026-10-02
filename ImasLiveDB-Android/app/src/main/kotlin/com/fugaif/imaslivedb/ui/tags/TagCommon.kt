@@ -60,10 +60,10 @@ fun TagSelectChip(tag: CommunityApi.CommunityTag, isApplied: Boolean, isSelected
         isSelected -> Icons.Filled.CheckCircle
         else -> Icons.Filled.Add
     }
-    // 使用数はチップ本文に畳む (曲詳細のタグ表示と同じ見せ方に揃える)。
-    val label = if (tag.totalUses > 0) "${tag.name} ${tag.totalUses}" else tag.name
     ImasFilterChip(
-        label = label,
+        label = tag.name,
+        // 件数は名前と同じ本文に畳まない (名前が長い時に件数ごと省略されて消えるため)。
+        count = if (tag.totalUses > 0) "${tag.totalUses}" else null,
         selected = isApplied || isSelected,
         onClick = onClick,
         tintColor = tag.color?.let { hexToColor(it) },

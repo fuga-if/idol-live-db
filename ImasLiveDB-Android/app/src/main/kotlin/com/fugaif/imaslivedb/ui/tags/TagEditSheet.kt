@@ -84,26 +84,26 @@ fun TagEditSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth()) {
             ImasSheetToolbar(
-                kind = ImasSheetToolbarKind.Edit(canSave = !isSaving, onCancel = onDismiss, onSave = ::submit),
+                kind = ImasSheetToolbarKind.Edit(canSave = !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = ::submit),
                 title = "「${tag.name}」を編集"
             )
             ImasFormPage {
                 ImasFormCard {
                     ImasFormTextArea(
-                        label = "説明文（任意）",
+                        label = "説明文",
                         text = description,
                         onTextChange = { description = inputClamp(InputField.TAG_DESCRIPTION, it) },
-                        prompt = "説明文（任意）",
+                        prompt = "説明文",
                         imprint = "DESCRIPTION"
                     )
-                    ImasFormField(label = "カテゴリ（任意）", imprint = "CATEGORY") {
+                    ImasFormField(label = "カテゴリ", imprint = "CATEGORY") {
                         ImasChipFlow {
                             categoryOptions.forEach { (value, label) ->
                                 ImasFilterChip(label = label, selected = category == value, onClick = { category = value })
                             }
                         }
                     }
-                    ImasFormField(label = "色（任意）", imprint = "COLOR") {
+                    ImasFormField(label = "色", imprint = "COLOR") {
                         TagColorPicker(selectedHex = color, onSelect = { color = it })
                     }
                 }

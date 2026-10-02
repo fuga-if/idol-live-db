@@ -121,34 +121,37 @@ fun TagCreateSheet(
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth()) {
             ImasSheetToolbar(
-                kind = ImasSheetToolbarKind.Edit(canSave = isValid && !isSaving, onCancel = onDismiss, onSave = ::submit),
+                kind = ImasSheetToolbarKind.Edit(canSave = isValid && !isSaving, isSaving = isSaving, onCancel = onDismiss, onSave = ::submit),
                 title = "新規タグ作成"
             )
             ImasFormPage {
                 ImasFormCard {
                     ImasFormTextField(
-                        label = "タグ名",
+                        label = "タグ名(1〜${nameLimit}文字)",
                         text = name,
                         onTextChange = { name = inputClamp(InputField.TAG_NAME, it) },
                         imprint = "NAME",
                         limit = nameLimit.toInt(),
-                        count = inputLength(InputField.TAG_NAME, name).toInt()
+                        count = inputLength(InputField.TAG_NAME, name).toInt(),
+                        countUnit = "文字",
+                        // 前と同じく、空白だけ (name.isNotEmpty() だが trim 後は無効) の時だけ赤くする。
+                        isError = name.isNotEmpty() && !isValid
                     )
                     ImasFormTextArea(
-                        label = "説明文（任意）",
+                        label = "説明文(任意)",
                         text = description,
                         onTextChange = { description = inputClamp(InputField.TAG_DESCRIPTION, it) },
-                        prompt = "説明文（任意）",
+                        prompt = "説明文(任意)",
                         imprint = "DESCRIPTION"
                     )
-                    ImasFormField(label = "カテゴリ（任意）", imprint = "CATEGORY") {
+                    ImasFormField(label = "カテゴリ(任意)", imprint = "CATEGORY") {
                         ImasChipFlow {
                             categoryOptions.forEach { (value, label) ->
                                 ImasFilterChip(label = label, selected = category == value, onClick = { category = value })
                             }
                         }
                     }
-                    ImasFormField(label = "色（任意）", imprint = "COLOR") {
+                    ImasFormField(label = "色(任意)", imprint = "COLOR") {
                         TagColorPicker(selectedHex = color, onSelect = { color = it })
                     }
                 }

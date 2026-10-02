@@ -184,6 +184,8 @@ private fun TagListRow(tag: CommunityApi.CommunityTag, rank: Int?, onClick: () -
         if (rank != null) ImasRankBadge(rank)
         ImasRow(
             title = tag.name,
+            // 前は行数制限なし。
+            titleLineLimit = Int.MAX_VALUE,
             modifier = Modifier.weight(1f),
             subtitle = tag.description?.takeIf { it.isNotEmpty() },
             leading = tag.color?.let { hex ->
