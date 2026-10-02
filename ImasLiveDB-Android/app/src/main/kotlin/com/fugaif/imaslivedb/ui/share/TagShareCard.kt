@@ -2,7 +2,6 @@ package com.fugaif.imaslivedb.ui.share
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,8 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 
 // =============================================================================
@@ -184,14 +188,19 @@ fun TagShareCompletionPane(
         modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-            .padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = DS.Space.screen)
+            .padding(bottom = DS.sp7),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DS.success, modifier = Modifier.size(40.dp))
-        Text("タグを付けました！", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        Text("せっかくなのでカードでシェアしませんか？", fontSize = 13.sp, color = DS.ink2)
+        Icon(
+            Icons.Filled.CheckCircle,
+            contentDescription = null,
+            tint = DS.success,
+            modifier = Modifier.size(with(LocalDensity.current) { 40.sp.toDp() })
+        )
+        Text("タグを付けました！", style = ImasTextRole.CARD_TITLE.style, color = ImasTextRole.CARD_TITLE.color)
+        Text("せっかくなのでカードでシェアしませんか？", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
 
         if (current != null) {
             ShareCardActionPane(
@@ -206,17 +215,12 @@ fun TagShareCompletionPane(
             ShareCardPlaceholder()
         }
 
-        Text(
-            "閉じる",
-            fontSize = 15.sp,
-            color = DS.ink2,
-            modifier = Modifier.clickable(onClick = onClose).padding(8.dp)
-        )
+        ImasButton(title = "閉じる", onClick = onClose, role = ImasButtonRole.PLAIN, size = ImasButtonSize.MEDIUM)
     }
 }
 
 /** 角丸のプレースホルダ (曲メタ待ちの間だけ出す)。 */
 @Composable
 private fun ShareCardPlaceholder() {
-    Box(Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(18.dp)).background(DS.surface))
+    Box(Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(DS.rLG)).background(DS.surface))
 }
