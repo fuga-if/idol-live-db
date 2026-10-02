@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.fugaif.imaslivedb.ui.designsystem.ImasFitText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.AppDestination
@@ -79,7 +81,16 @@ fun BottomNavBar(
                 selected = current == item.destination,
                 onClick = { onSelect(item.destination) },
                 icon = { Icon(imageVector = item.destination.icon, contentDescription = item.label) },
-                label = { Text(text = item.label) },
+                // 1 行に収める (「スケジュール」「プロデュース」が 2 行に割れないように)。
+                // 幅が足りない端末・大きい文字では縮めて収める。
+                label = {
+                    ImasFitText(
+                        item.label,
+                        style = ImasTextRole.META.style,
+                        color = LocalContentColor.current,
+                        minScale = 0.75f
+                    )
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = DS.ink,
                     selectedTextColor = DS.ink,

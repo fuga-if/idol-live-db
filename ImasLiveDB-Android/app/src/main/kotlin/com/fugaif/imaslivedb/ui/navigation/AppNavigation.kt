@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import uniffi.imas_core.AppDestination
@@ -90,6 +91,8 @@ import com.fugaif.imaslivedb.ui.tags.TagListScreen
 import com.fugaif.imaslivedb.ui.tags.UnitTagDetailScreen
 import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ScaffoldDefaults
 
 /**
  * 回収した楽曲一覧のルート。件数が端末ローカルのマークから毎回導出されるので、
@@ -133,12 +136,17 @@ fun AppNavigation() {
         if (wide) {
             AppSidebar(sections = sections, current = current, onSelect = { current = it })
         }
+        // ステージ (タブバーを隠すゲームの画面) は会場の地を画面の端まで敷く。システムバーの分の
+        // 余白は画面の側が取る (QuizStageScaffold・イントロドン)。それ以外は外枠が空ける。
+        val stage = BottomBarVisibility.isHidden
         Scaffold(
+            contentWindowInsets = if (stage) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
             bottomBar = {
                 // 再生中バーはナビゲーションバーの真上。鳴っている間だけ出る。
                 // タップした曲は「楽曲」タブの詳細で開く (どのタブから鳴らしても行き先は同じ)。
+                // ステージの間は出さない (イントロの出題曲の名前とジャケが見えてしまう)。
                 Column {
-                    NowPlayingBar(onSongClick = { songId ->
+                    if (!stage) NowPlayingBar(onSongClick = { songId ->
                         current = AppDestination.SONGS
                         navControllers.getValue(AppDestination.SONGS)
                             .navigate(NavRoutes.SongDetail.createRoute(songId))
@@ -149,7 +157,9 @@ fun AppNavigation() {
                 }
             }
         ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
+            // 余白を消費したことも中へ伝える。伝えないと、各画面の Scaffold / TopAppBar が
+            // ステータスバーの高さをもう一度空け、題の上に空の帯ができる (二重の余白)。
+            Box(modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)) {
                 // 行き先ごとに NavHost を持つので戻る履歴は独立。表示中の 1 つだけ組む。
                 DestinationNavHost(current, navControllers.getValue(current))
             }
