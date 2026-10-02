@@ -1,8 +1,6 @@
 package com.fugaif.imaslivedb.ui.edit
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,25 +10,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,13 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -60,7 +44,24 @@ import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.SetlistRow
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -390,34 +391,30 @@ fun SetlistEditScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("セトリ編集", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "キャンセル") }
-                },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            if (state.rows.isEmpty() && state.initialItemIds.isNotEmpty()) {
-                                showClearConfirm = true
-                            } else {
-                                viewModel.save()
-                            }
-                        },
-                        enabled = !state.isSaving
-                    ) { Text("保存", fontWeight = FontWeight.SemiBold) }
-                }
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Edit(
+                    canSave = !state.isSaving,
+                    onCancel = onDismiss,
+                    onSave = {
+                        if (state.rows.isEmpty() && state.initialItemIds.isNotEmpty()) {
+                            showClearConfirm = true
+                        } else {
+                            viewModel.save()
+                        }
+                    }
+                ),
+                title = "セトリ編集"
             )
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                ImasLoadingState()
             } else {
                 Column(Modifier.fillMaxSize()) {
-                    Text(
-                        "$eventName ・ ${show.name}", fontSize = 13.sp, color = DS.ink2,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                    ImasNote(
+                        "$eventName ・ ${show.name}",
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
                     )
                     LazyColumn(modifier = Modifier.fillMaxSize().weight(1f)) {
                         items(state.rows, key = { it.rowId }) { row ->
@@ -435,80 +432,38 @@ fun SetlistEditScreen(
                             )
                         }
                         item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth()
-                                    .clickable { songPickerForRow = NEW_ROW_MARKER }
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ImasFormCard(
+                                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
                             ) {
-                                Icon(Icons.Filled.AddCircle, contentDescription = null, tint = DS.pick)
-                                Text("曲を追加", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.pick)
+                                ImasActionRow(
+                                    title = "曲を追加",
+                                    onClick = { songPickerForRow = NEW_ROW_MARKER },
+                                    icon = Icons.Filled.AddCircle
+                                )
                             }
                         }
                     }
                 }
             }
 
-            if (state.isSaving) {
-                Box(Modifier.fillMaxSize().background(DS.bg.copy(alpha = 0.5f)), contentAlignment = Alignment.Center) {
-                    Column(
-                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(DS.surface).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator()
-                        Text("保存中…", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 8.dp))
-                    }
-                }
-            }
+            ImasSavingOverlay(state.isSaving)
         }
     }
 
-    if (state.errorMessage != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
-            confirmButton = { TextButton(onClick = { viewModel.clearError() }) { Text("OK") } },
-            title = { Text("エラー") },
-            text = { Text(state.errorMessage ?: "") }
-        )
+    state.errorMessage?.let { EditErrorDialog(it) { viewModel.clearError() } }
+
+    requestedOutcome?.let { outcome ->
+        EditRequestSentDialog(outcome.issueUrl) { requestedOutcome = null; onSaved() }
     }
 
-    if (requestedOutcome != null) {
-        val issueUrl = requestedOutcome?.issueUrl
-        val uriHandler = LocalUriHandler.current
-        AlertDialog(
-            onDismissRequest = { requestedOutcome = null; onSaved() },
-            title = { Text("編集リクエストを送信しました") },
-            text = {
-                Column {
-                    Text("この編集はすぐには反映されず、承認後に反映されます。")
-                    if (issueUrl != null) {
-                        Text(
-                            "進捗を見る",
-                            color = DS.pick,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(issueUrl) }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { requestedOutcome = null; onSaved() }) { Text("OK") }
-            }
-        )
-    }
-
-    if (showClearConfirm) {
-        AlertDialog(
-            onDismissRequest = { showClearConfirm = false },
-            title = { Text("セトリを全削除しますか?") },
-            text = { Text("この公演のセトリ ${state.initialItemIds.size} 件をすべて削除します。この操作は取り消せません。") },
-            confirmButton = {
-                TextButton(onClick = { showClearConfirm = false; viewModel.save() }) { Text("削除する") }
-            },
-            dismissButton = { TextButton(onClick = { showClearConfirm = false }) { Text("キャンセル") } }
-        )
-    }
+    ImasConfirmDestructive(
+        title = "セトリを全削除しますか?",
+        isPresented = showClearConfirm,
+        onDismiss = { showClearConfirm = false },
+        onConfirm = { viewModel.save() },
+        actionTitle = "削除する",
+        message = "この公演のセトリ ${state.initialItemIds.size} 件をすべて削除します。この操作は取り消せません。"
+    )
 
     if (songPickerForRow != null) {
         SongPickerSheet(
@@ -567,67 +522,52 @@ private fun SetlistEditRowView(
     onMoveDown: () -> Unit,
     onRemove: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(DS.surface)
-            .padding(12.dp)
+    ImasFormCard(
+        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                modifier = Modifier.weight(1f).clickable(onClick = onPickSong),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Filled.MusicNote, contentDescription = null, tint = DS.ink2)
-                Text(
-                    row.songTitle,
-                    fontSize = 15.sp,
-                    color = if (row.songId.isEmpty()) DS.ink2 else DS.ink,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ImasRow(
+                    title = row.songTitle,
+                    modifier = Modifier.weight(1f).imasRowPress(onClick = onPickSong),
+                    leading = ImasRowLeading.Icon(Icons.Filled.MusicNote, tone = ImasIconTileTone.NEUTRAL),
+                    trailing = ImasRowTrailing.Chevron,
+                    density = ImasRowDensity.COMPACT,
+                    emphasis = if (row.songId.isEmpty()) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
+                    titleLineLimit = 2,
+                    titleRole = ImasTextRole.ROW_LABEL
                 )
+                IconButton(onClick = onMoveUp, enabled = !isFirst) {
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "上へ")
+                }
+                IconButton(onClick = onMoveDown, enabled = !isLast) {
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "下へ")
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Filled.Close, contentDescription = "削除", tint = DS.danger)
+                }
             }
-            IconButton(onClick = onMoveUp, enabled = !isFirst) {
-                Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "上へ")
-            }
-            IconButton(onClick = onMoveDown, enabled = !isLast) {
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "下へ")
-            }
-            IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Close, contentDescription = "削除", tint = DS.danger)
-            }
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            sections.forEach { label ->
-                val selected = (row.section ?: "本編") == label
-                FilterChip(
-                    selected = selected,
-                    onClick = { onSectionChange(if (label == "本編") null else label) },
-                    label = { Text(label, fontSize = 12.sp) }
-                )
-            }
-        }
+            ImasSegmented(
+                labels = sections,
+                selection = sections.indexOf(row.section ?: "本編").coerceAtLeast(0),
+                onSelect = { index -> onSectionChange(sections[index].takeUnless { it == "本編" }) }
+            )
 
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onPickCasts).padding(top = 8.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = DS.ink2)
-            if (row.castIds.isEmpty()) {
-                Text("(出演者なし — タップで追加)", fontSize = 13.sp, color = DS.ink2)
-            } else {
-                Text(
-                    row.castIds.mapNotNull { idolById[it]?.name }.sorted().joinToString(" / "),
-                    fontSize = 13.sp, color = DS.ink
-                )
-            }
+            ImasRow(
+                title = if (row.castIds.isEmpty()) {
+                    "(出演者なし — タップで追加)"
+                } else {
+                    row.castIds.mapNotNull { idolById[it]?.name }.sorted().joinToString(" / ")
+                },
+                modifier = Modifier.imasRowPress(onClick = onPickCasts),
+                leading = ImasRowLeading.Icon(Icons.Filled.Person, tone = ImasIconTileTone.NEUTRAL),
+                trailing = ImasRowTrailing.Chevron,
+                density = ImasRowDensity.COMPACT,
+                emphasis = if (row.castIds.isEmpty()) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
+                titleLineLimit = 99,
+                titleRole = ImasTextRole.ROW_LABEL
+            )
         }
     }
 }
