@@ -30,6 +30,8 @@ final class MusicKitService {
     /// ジャケと名義が出る。再生中バーの引き当てもここを使う。
     private(set) var nowPlayingSongId: String?
     private(set) var isFullPlayback = false
+    /// フル再生で ApplicationMusicPlayer に曲を積んだか (止めるときに queue を解放する必要があるか)。
+    @ObservationIgnored private var usedApplicationPlayer = false
 
     /// この曲が今このアプリで鳴っているか。
     ///
@@ -152,17 +154,25 @@ final class MusicKitService {
                 Task { @MainActor in self?.stop() }
             }
 
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback)
-                try AVAudioSession.sharedInstance().setActive(true)
-            } catch {
-                Logger.musickit.error("avaudiosession_setup_failed: \(error.localizedDescription)")
-            }
-
-            player?.play()
+            // 押した印は先に切り替える (音の準備を待たせない)。
             isPlaying = true
             isFullPlayback = false
             nowPlayingSongId = songId
+            // 音声セッションの設定は重い (主スレッドで呼ぶと押してから印が変わるまで固まる) ので外で。
+            let player = self.player
+            Task.detached(priority: .userInitiated) {
+                do {
+                    try AVAudioSession.sharedInstance().setCategory(.playback)
+                    try AVAudioSession.sharedInstance().setActive(true)
+                } catch {
+                    Logger.musickit.error("avaudiosession_setup_failed: \(error.localizedDescription)")
+                }
+                // 準備の間に止められたり別の曲に替わっていたら鳴らさない。
+                await MainActor.run { [weak self] in
+                    guard let self, let player, self.player === player, self.isPlaying else { return }
+                    player.play()
+                }
+            }
         }
     }
 
@@ -182,6 +192,7 @@ final class MusicKitService {
             player.queue = [song]
             try await player.play()
             await MainActor.run {
+                self.usedApplicationPlayer = true
                 self.isPlaying = true
                 self.isFullPlayback = true
                 self.nowPlayingSongId = songId
@@ -235,7 +246,11 @@ final class MusicKitService {
         // MusicPlayer と OS 上で同一キューを共有する。 ここで pause だけで queue を残すと、
         // 次に IntroDon (MPMusicPlayer 経路) が setQueue を打っても残骸 queue が干渉して
         // .stopped 固着する事例があった。 必ず stop で queue を解放する。
-        musicPlayer.stop()
+        // ApplicationMusicPlayer の stop は OS とのやり取りで重いので、フル再生を使ったときだけ。
+        if usedApplicationPlayer || isFullPlayback {
+            musicPlayer.stop()
+            usedApplicationPlayer = false
+        }
         isPlaying = false
         isFullPlayback = false
         nowPlayingSongId = nil
