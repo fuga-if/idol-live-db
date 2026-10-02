@@ -2,7 +2,6 @@ package com.fugaif.imaslivedb.ui.sortmaker
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -129,7 +128,7 @@ fun SortMakerResultScreen(
 @Composable
 private fun Podium(rows: List<Pair<Int, SortMakerItem>>, onClick: (SortMakerItem) -> Unit) {
     if (rows.isEmpty()) return
-    val entries = rows.take(3).map { (rank, item) ->
+    val entries = rows.take(3).mapIndexed { index, (rank, item) ->
         ImasPodiumEntry(
             id = item.id,
             rank = rank,
@@ -137,7 +136,9 @@ private fun Podium(rows: List<Pair<Int, SortMakerItem>>, onClick: (SortMakerItem
             subtitle = item.subtitle,
             seed = item.seed,
             brand = item.brandId,
-            visual = { PodiumVisual(item, size = if (rank == 1) 150.dp else 96.dp) },
+            // 絵の大きさは順位の数値でなく並びの位置で決める (先頭だけ大きい)。
+            // 同率 1 位が複数いると rank は全部 1 になり、全員分大きい絵が半幅の札に入って潰れるため。
+            visual = { PodiumVisual(item, size = if (index == 0) 150.dp else 96.dp) },
             onClick = { onClick(item) }
         )
     }
@@ -179,26 +180,23 @@ private fun Actions(
             size = ImasButtonSize.LARGE,
             fillsWidth = true
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(DS.sp3), modifier = Modifier.fillMaxWidth()) {
-            ImasButton(
-                title = "最後の1戦をやり直す",
-                onClick = onUndoLast,
-                icon = Icons.AutoMirrored.Filled.Undo,
-                role = ImasButtonRole.SECONDARY,
-                size = ImasButtonSize.LARGE,
-                fillsWidth = true,
-                enabled = canUndo,
-                modifier = Modifier.weight(1f)
-            )
-            ImasButton(
-                title = "もう一度",
-                onClick = onPlayAgain,
-                icon = Icons.Filled.Refresh,
-                role = ImasButtonRole.SECONDARY,
-                size = ImasButtonSize.LARGE,
-                fillsWidth = true,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        // 半幅の Row だと「最後の1戦をやり直す」が 360dp 幅の端末で切れるため、縦に積んで全幅にする。
+        ImasButton(
+            title = "最後の1戦をやり直す",
+            onClick = onUndoLast,
+            icon = Icons.AutoMirrored.Filled.Undo,
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.LARGE,
+            fillsWidth = true,
+            enabled = canUndo
+        )
+        ImasButton(
+            title = "もう一度",
+            onClick = onPlayAgain,
+            icon = Icons.Filled.Refresh,
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.LARGE,
+            fillsWidth = true
+        )
     }
 }
