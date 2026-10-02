@@ -44,8 +44,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -419,7 +421,11 @@ private fun ProgressHeader(model: SortMakerPlayViewModel, state: SortMakerPlayUi
             Spacer(Modifier.weight(1f))
             ImasText("残り約${state.shownRemaining}戦 · ${state.shownPercent}%", ImasTextRole.META)
         }
-        ImasProgressBar(fraction = state.shownPercent.toDouble() / 100)
+        // ImasProgressBar 自身が「P パーセント」を読み上げるため、横の文字と二重に読まれる。
+        // 割合はここで文字でも出しているので、棒の読み上げは止める。
+        Box(Modifier.clearAndSetSemantics {}) {
+            ImasProgressBar(fraction = state.shownPercent.toDouble() / 100)
+        }
     }
 }
 
@@ -491,10 +497,11 @@ fun SortMakerCard(
                     item?.title ?: "（見つかりません）",
                     ImasTextRole.ROW_TITLE,
                     textAlign = TextAlign.Center,
-                    maxLines = 3
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
                 item?.subtitle?.let {
-                    ImasText(it, ImasTextRole.META, textAlign = TextAlign.Center, maxLines = 2)
+                    ImasText(it, ImasTextRole.META, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
