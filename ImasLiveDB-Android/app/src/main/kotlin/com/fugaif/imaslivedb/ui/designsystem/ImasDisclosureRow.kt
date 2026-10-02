@@ -40,8 +40,9 @@ import com.fugaif.imaslivedb.ui.theme.imasRowPress
  * 開閉トグルの行 (iOS `ImasDisclosureRow`)。題 + 件数 + 開閉の矢印。
  * 読み上げは「題 件数」、押したときの操作は「開く / 畳む」。
  *
- * @param subtitle 題の下の副題 (任意、2 行まで)。渡すと題を [ImasTextRole.ROW_TITLE] の太さにする
+ * @param subtitle 題の下の副題 (任意、既定 2 行まで)。渡すと題を [ImasTextRole.ROW_TITLE] の太さにする
  *   (ヘルプのカテゴリ行など、一覧の「もの」に近い行向け)。
+ * @param subtitleLineLimit [subtitle] の行数 (切れてしまう長い説明では `Int.MAX_VALUE` を渡す)。
  * @param icon 先頭の記号 (任意)。渡すと [ImasIconTileSize.S28] の記号タイルを置く
  *   (本来は別画面へ進む一覧で使う行を、戻る操作を増やさないその場の開閉に転用する画面向け)。
  */
@@ -53,6 +54,7 @@ fun ImasDisclosureRow(
     modifier: Modifier = Modifier,
     count: String? = null,
     subtitle: String? = null,
+    subtitleLineLimit: Int = 2,
     icon: ImageVector? = null,
     iconTone: ImasIconTileTone = ImasIconTileTone.THEMED,
     seed: String? = null
@@ -87,7 +89,7 @@ fun ImasDisclosureRow(
                     subtitle,
                     style = ImasTextRole.ROW_SUBTITLE.style,
                     color = ImasTextRole.ROW_SUBTITLE.color,
-                    maxLines = 2,
+                    maxLines = subtitleLineLimit,
                     modifier = Modifier.clearAndSetSemantics { }
                 )
             }

@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +41,7 @@ fun InfoScreenScaffold(title: String, onBack: () -> Unit, content: @Composable (
             TopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Filled.Close, contentDescription = "閉じる") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る") }
                 }
             )
         }
@@ -206,7 +206,13 @@ fun OssLicensesScreen(onBack: () -> Unit) {
                 )
                 ImasListSection {
                     OSS_LICENSES.forEach { (name, owner, license) ->
-                        ImasNavRow(title = name, subtitle = "$owner ・ $license", showsChevron = false, subtitleLineLimit = 2)
+                        ImasNavRow(
+                            title = name,
+                            subtitle = "$owner ・ $license",
+                            showsChevron = false,
+                            titleLineLimit = Int.MAX_VALUE,
+                            subtitleLineLimit = Int.MAX_VALUE
+                        )
                     }
                 }
             }

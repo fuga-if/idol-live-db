@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,12 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -44,7 +44,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * ヘルプ (使い方カタログ)。iOS `Views/Help/HelpView.swift` の移植。
@@ -275,7 +274,7 @@ fun HelpScreen(onBack: () -> Unit) {
                 title = { Text("使い方") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.Close, contentDescription = "閉じる")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 }
             )
@@ -311,11 +310,11 @@ fun HelpScreen(onBack: () -> Unit) {
 @Composable
 private fun HelpSectionDisclosure(section: HelpSection) {
     var expanded by remember { mutableStateOf(false) }
-    val theme = imasTheme(section.tint)
     Column(Modifier.fillMaxSize()) {
         ImasDisclosureRow(
             title = section.title,
             subtitle = section.summary,
+            subtitleLineLimit = Int.MAX_VALUE,
             icon = section.icon,
             iconTone = ImasIconTileTone.THEMED,
             seed = section.tint,
@@ -324,16 +323,15 @@ private fun HelpSectionDisclosure(section: HelpSection) {
         )
         if (expanded) {
             Column(
-                Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV),
+                Modifier
+                    .clickable { expanded = !expanded }
+                    .padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV),
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
             ) {
                 section.body.forEach { item ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = theme.accent)
-                        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-                            Text(item.label, style = ImasTextRole.ROW_TITLE.style, color = ImasTextRole.ROW_TITLE.color)
-                            Text(item.detail, style = ImasTextRole.ROW_SUBTITLE.style, color = ImasTextRole.ROW_SUBTITLE.color)
-                        }
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                        Text(item.label, style = ImasTextRole.ROW_TITLE.style, color = ImasTextRole.ROW_TITLE.color)
+                        Text(item.detail, style = ImasTextRole.ROW_SUBTITLE.style, color = ImasTextRole.ROW_SUBTITLE.color)
                     }
                 }
             }

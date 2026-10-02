@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -69,7 +69,7 @@ fun InboxScreen(onBack: () -> Unit, onOpenWidgetHowTo: (() -> Unit)? = null) {
                 title = { Text("お知らせ") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.Close, contentDescription = "閉じる")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                     }
                 },
                 actions = {
@@ -119,7 +119,7 @@ private fun AnnouncementRow(item: Announcement, unread: Boolean, onClick: () -> 
         } else {
             ImasRowTrailing.None
         },
-        subtitleLineLimit = 2,
+        subtitleLineLimit = Int.MAX_VALUE,
         titleRole = ImasTextRole.ROW_TITLE,
         modifier = Modifier.imasRowPress(onClick = onClick)
     ) {
@@ -141,10 +141,10 @@ private fun AnnouncementDetail(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("お知らせ") },
+                    title = { Text(item.title) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Filled.Close, contentDescription = "閉じる")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                         }
                     }
                 )
@@ -159,7 +159,7 @@ private fun AnnouncementDetail(
                 ImasProse(blocks = item.body.map { ImasProseBlock.Paragraph(it) })
                 if (item.link == AnnouncementLink.WIDGET_HOW_TO && onOpenWidgetHowTo != null) {
                     ImasButton(
-                        title = "使い方を見る",
+                        title = "ウィジェットの使い方を見る",
                         onClick = onOpenWidgetHowTo,
                         icon = Icons.AutoMirrored.Filled.ArrowForward,
                         role = ImasButtonRole.PRIMARY,

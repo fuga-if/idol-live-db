@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.mypage
 
 import android.app.Application
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,14 +36,13 @@ import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasSongRow
+import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasEventRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIdolRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
-import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,7 +139,16 @@ private fun SongsTab(songs: List<Song>, onClick: (String) -> Unit) {
         sectionTitle = "${songs.size}曲"
     ) {
         songs.forEach { song ->
-            ImasSongRow(song = song, density = ImasRowDensity.COMPACT, onClick = { onClick(song.id) })
+            SongRow(
+                title = song.title,
+                songId = song.id,
+                artistNames = "",
+                unitName = song.unitName,
+                artworkUrl = song.artworkUrl,
+                previewUrl = song.previewUrl,
+                brandId = song.brandId,
+                modifier = Modifier.clickable { onClick(song.id) }
+            )
         }
     }
 }

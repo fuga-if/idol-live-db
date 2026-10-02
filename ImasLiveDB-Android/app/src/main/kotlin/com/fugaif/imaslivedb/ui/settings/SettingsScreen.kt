@@ -1015,7 +1015,8 @@ private fun OshiThemeSection(viewModel: SettingsViewModel, state: SettingsUiStat
                     AppPreferences.setOshiIdolId(it.id)
                     viewModel.syncOshiTheme()
                 },
-                label = { it.name }
+                label = { it.name },
+                optionSeed = { it.color }
             )
         }
     }
