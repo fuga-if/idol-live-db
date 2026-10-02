@@ -12,6 +12,7 @@ import SwiftUI
 /// ⚠️ 歌詞の本文にテキスト選択・コピー・共有の口を付けないこと (`SongLyricsTab` 冒頭)。
 struct LyricsPlayerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
 
     let song: Song
     let seed: String?
@@ -31,6 +32,9 @@ struct LyricsPlayerView: View {
     @State private var startFailed = false
 
     private var starts: [Int64?] { lyrics.lines.map { $0.startMs.map(Int64.init) } }
+    /// 曲の順に並べたコール。時刻が 1 つでもあれば、歌詞と並べてコールの段を流す。
+    private var allCalls: [LyricCall] { lyrics.lines.flatMap(\.calls) }
+    private var callStarts: [Int64?] { allCalls.map { $0.startMs.map(Int64.init) } }
     private var hasTiming: Bool { lyricHasTiming(starts: starts) }
 
     var body: some View {
@@ -148,6 +152,7 @@ struct LyricsPlayerView: View {
             : LyricLikeHeat(levels: [], peakMs: nil)
         let position = positionMs ?? 0
         return VStack(spacing: DS.sp3) {
+            callLane(position: position)
             ImasLikeHeatSeekBar(
                 levels: heat.levels,
                 progress: playback.isFullLoaded ? Double(position) / Double(duration) : nil,
@@ -179,6 +184,43 @@ struct LyricsPlayerView: View {
                     playback.seek(min(duration, position + 10_000))
                 }
             }
+        }
+    }
+
+    /// 歌詞と並べて流すコールの段。いま出すコールを大きく、無い間は次のコールを薄く出す。
+    @ViewBuilder
+    private func callLane(position: Int) -> some View {
+        let calls = allCalls
+        let starts = callStarts
+        if starts.contains(where: { $0 != nil }) {
+            let theme = ImasTheme.derive(seed: seed, scheme: scheme)
+            let current = lyricActiveCall(starts: starts, positionMs: Int64(position)).map(Int.init)
+            let next = starts.enumerated()
+                .filter { ($0.element ?? -1) > Int64(position) }
+                .min { ($0.element ?? 0) < ($1.element ?? 0) }?.offset
+            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+                Image(systemName: "megaphone.fill")
+                    .foregroundStyle(current != nil ? theme.accent : DS.ink3)
+                    .accessibilityHidden(true)
+                if let current {
+                    Text(calls[current].text)
+                        .font(.imasHeading(24, weight: .heavy))
+                        .foregroundStyle(calls[current].emphasis.color(accent: theme.accent))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                } else if let next {
+                    Text("次 " + calls[next].text)
+                        .imasText(.rowLabel, color: DS.ink3)
+                        .lineLimit(1)
+                } else {
+                    Text("—").imasText(.rowLabel, color: DS.ink3)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(minHeight: 34)
+            .animation(.easeOut(duration: 0.15), value: current)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(current.map { "コール \(calls[$0].text)" } ?? "コールなし")
         }
     }
 

@@ -110,7 +110,12 @@ private struct HarnessSongDetailReading: SongDetailReading {
         if timed, let base = lyrics {
             let lines = base.lines.enumerated().map { i, l in
                 LyricLine(id: l.id, ord: l.ord, kind: l.kind, text: l.text, section: l.section,
-                          startMs: l.kind == .blank ? nil : i * 2500, clap: l.clap, calls: l.calls,
+                          startMs: l.kind == .blank ? nil : i * 2500, clap: l.clap,
+                          calls: l.calls.enumerated().map { k, c in
+                              var call = c
+                              call.startMs = i * 2500 + 1200 + k * 400
+                              return call
+                          },
                           likeCount: [0, 1, 2, 5, 9, 4, 1, 0, 3, 6][i % 10])
             }
             lyrics = Lyrics(songId: base.songId, source: base.source, updatedAt: base.updatedAt,

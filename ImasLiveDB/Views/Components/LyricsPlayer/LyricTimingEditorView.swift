@@ -39,6 +39,13 @@ struct LyricTimingEditorView: View {
             header
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
+            if recorder.hasCalls {
+                ImasTabs(options: [LyricTimingRecorder.Lane.lines, .calls],
+                         selection: Binding(get: { recorder.lane }, set: { recorder.lane = $0 }),
+                         seed: seed) { $0 == .lines ? "歌詞" : "コール" }
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.bottom, DS.sp3)
+            }
             nowAndNext
                 .padding(.horizontal, DS.sp5)
             Spacer(minLength: DS.sp4)
@@ -101,7 +108,54 @@ struct LyricTimingEditorView: View {
         lyricActiveLine(starts: recorder.startsForCore, positionMs: Int64(shownMs)).map(Int.init)
     }
 
+    /// 曲の順に並べたコール (ぶら下がる行の添字つき)。recorder.callIds と同じ並び。
+    private var allCalls: [(call: LyricCall, line: Int)] {
+        lyrics.lines.enumerated().flatMap { i, line in line.calls.map { ($0, i) } }
+    }
+
+    @ViewBuilder
     private var nowAndNext: some View {
+        if recorder.lane == .calls {
+            callsNowAndNext
+        } else {
+            linesNowAndNext
+        }
+    }
+
+    /// コールの段: いま出すコールと、次に記録するコール (どの行のコールかも添える)。
+    private var callsNowAndNext: some View {
+        let calls = allCalls
+        let current = lyricActiveCall(starts: recorder.callStartsForCore, positionMs: Int64(shownMs)).map(Int.init)
+        return VStack(alignment: .leading, spacing: DS.sp4) {
+            if startFailed {
+                ImasNote("記録には Apple Music でのフル再生が必要です。", systemImage: "music.note")
+            }
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text("いまのコール").imasText(.eyebrow)
+                ImasPlayerLyricLine(text: current.map { calls[$0].call.text } ?? "—", isCurrent: true, seed: seed)
+                    .lineLimit(2)
+            }
+            if let next = recorder.callCursor {
+                VStack(alignment: .leading, spacing: DS.sp2) {
+                    Text("次に記録するコール").imasText(.eyebrow)
+                    ForEach(next..<min(calls.count, next + 3), id: \.self) { index in
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(lyrics.lines[calls[index].line].text).imasText(.meta).lineLimit(1)
+                            ImasPlayerLyricLine(text: calls[index].call.text, isCurrent: index == next, seed: seed)
+                                .lineLimit(1)
+                        }
+                        .opacity(index == next ? 1 : 0.7)
+                    }
+                }
+            } else {
+                ImasNote("最後のコールまで記録しました。タイムラインの下の段で前後に寄せられます。",
+                         systemImage: "checkmark")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var linesNowAndNext: some View {
         VStack(alignment: .leading, spacing: DS.sp4) {
             if startFailed {
                 ImasNote("記録には Apple Music でのフル再生が必要です。", systemImage: "music.note")
@@ -151,8 +205,13 @@ struct LyricTimingEditorView: View {
             ImasTimingTimeline.Block(id: lyrics.lines[Int(sp.index)].id, startMs: Int(sp.startMs),
                                      endMs: Int(sp.endMs), label: lyrics.lines[Int(sp.index)].text)
         }
+        let calls = allCalls
+        let callBlocks = lyricCallSpans(starts: recorder.callStartsForCore, durationMs: Int64(duration)).map { sp in
+            ImasTimingTimeline.Block(id: calls[Int(sp.index)].call.id, startMs: Int(sp.startMs),
+                                     endMs: Int(sp.endMs), label: calls[Int(sp.index)].call.text)
+        }
         return ImasTimingTimeline(
-            blocks: blocks, playheadMs: shownMs, selectedId: selectedId, seed: seed,
+            blocks: blocks, callBlocks: callBlocks, playheadMs: shownMs, selectedId: selectedId, seed: seed,
             onScrub: { scrubMs = $0 },
             onScrubEnd: { ms in
                 scrubMs = nil
@@ -160,7 +219,7 @@ struct LyricTimingEditorView: View {
                 playback.seek(ms)
             },
             onSelect: { id in selectedId = selectedId == id ? nil : id },
-            onMoveStart: { id, ms in recorder.adjust(lineId: id, toMs: ms) }
+            onMoveStart: { id, ms in recorder.adjust(id: id, toMs: ms) }
         )
     }
 
@@ -171,13 +230,13 @@ struct LyricTimingEditorView: View {
                 ImasLyricTimeLabel(ms: start, isEmphasized: true)
                 Spacer(minLength: 0)
                 ImasButton(title: "-0.1秒", role: .secondary, size: .small) {
-                    recorder.nudge(lineId: id, byMs: -100)
+                    recorder.nudge(id: id, byMs: -100)
                 }
                 ImasButton(title: "+0.1秒", role: .secondary, size: .small) {
-                    recorder.nudge(lineId: id, byMs: 100)
+                    recorder.nudge(id: id, byMs: 100)
                 }
                 ImasIconButton(systemImage: "arrow.right.to.line", label: "再生位置に合わせる", size: .small) {
-                    recorder.adjust(lineId: id, toMs: playheadMs)
+                    recorder.adjust(id: id, toMs: playheadMs)
                 }
                 ImasIconButton(systemImage: "play.fill", label: "この行から再生", size: .small) {
                     playback.seek(max(0, start - 1500))
@@ -207,13 +266,14 @@ struct LyricTimingEditorView: View {
     }
 
     private var recordButton: some View {
-        ImasButton(title: recorder.cursor == nil ? "最後まで記録しました" : "歌い出しで押す",
+        ImasButton(title: recorder.laneCursor == nil ? "最後まで記録しました"
+                   : recorder.lane == .lines ? "歌い出しで押す" : "コールの頭で押す",
                    systemImage: "hand.tap.fill", role: .primary, size: .large, fillsWidth: true) {
             guard let ms = playback.positionMs() else { return }
             recorder.recordNext(positionMs: ms)
             recordToken += 1
         }
-        .disabled(recorder.cursor == nil || !playback.isFullLoaded)
+        .disabled(recorder.laneCursor == nil || !playback.isFullLoaded)
     }
 
     // MARK: -

@@ -34,12 +34,13 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
-    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws {
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line],
+                            calls: [LyricTimingPayload.Line]) async throws {
         do {
             try await client.requestVoid(
                 "PUT",
                 path: "/songs/\(songId)/timings",
-                body: LyricTimingPayload(lines: lines),
+                body: LyricTimingPayload(lines: lines, calls: calls),
                 authorized: true
             )
         } catch {
@@ -89,7 +90,8 @@ struct FakeCallGuideWriting: CallGuideWriting {
         logger.debug("fake_call_guide_put song=\(songId, privacy: .public) lines=\(lines.count)")
     }
 
-    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws {
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line],
+                            calls: [LyricTimingPayload.Line]) async throws {
         try? await Task.sleep(for: .milliseconds(300))
         logger.debug("fake_lyric_timings_put song=\(songId, privacy: .public) lines=\(lines.count)")
     }

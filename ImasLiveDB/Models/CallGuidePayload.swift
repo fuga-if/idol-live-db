@@ -76,6 +76,8 @@ extension CallGuidePayload.Call {
 /// PUT は曲全体の全置換で、載せなかった行は「記録なし」に戻る。
 struct LyricTimingPayload: Encodable, Sendable {
     let lines: [Line]
+    /// コールの再生位置 (id はコールの id)。行と同じ形。
+    let calls: [Line]
 
     struct Line: Encodable, Sendable {
         let id: String

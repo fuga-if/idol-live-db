@@ -186,6 +186,7 @@ struct ImasPlayerLyricLine: View {
 // MARK: - タイミング編集のタイムライン
 
 /// 横長のタイムライン (動画編集アプリの並び)。再生位置は真ん中に固定し、帯の方が流れる。
+/// 段は 2 本: 上が歌詞の行、下がコール (コールが無い曲では 1 本)。
 ///
 /// - 地を横になぞる … 再生位置を動かす (`onScrub` が動いている間、`onScrubEnd` が離したとき)
 /// - 帯をタップ … その行を選ぶ
@@ -200,6 +201,8 @@ struct ImasTimingTimeline: View {
 
     @Environment(\.colorScheme) private var scheme
     let blocks: [Block]
+    /// コールの段。空なら段ごと出さない。
+    var callBlocks: [Block] = []
     let playheadMs: Int
     let selectedId: String?
     let seed: String?
@@ -214,6 +217,10 @@ struct ImasTimingTimeline: View {
 
     private let rulerHeight: CGFloat = 20
     private let blockHeight: CGFloat = 48
+    private let callHeight: CGFloat = 34
+    private var totalHeight: CGFloat {
+        rulerHeight + blockHeight + 8 + (callBlocks.isEmpty ? 0 : callHeight + 4)
+    }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, scheme: scheme)
@@ -226,17 +233,25 @@ struct ImasTimingTimeline: View {
                     let left = x(b.startMs)
                     let width = max(6, x(b.endMs) - left - 2)
                     if left + width > -40 && left < w + 40 {
-                        block(b, width: width, theme: t)
+                        block(b, width: width, height: blockHeight, theme: t)
                             .offset(x: left, y: rulerHeight + 4)
+                    }
+                }
+                ForEach(callBlocks) { b in
+                    let left = x(b.startMs)
+                    let width = max(6, x(b.endMs) - left - 2)
+                    if left + width > -40 && left < w + 40 {
+                        block(b, width: width, height: callHeight, theme: t)
+                            .offset(x: left, y: rulerHeight + blockHeight + 8)
                     }
                 }
                 // 再生位置 (真ん中に固定)。
                 Rectangle().fill(DS.ink)
-                    .frame(width: 2, height: rulerHeight + blockHeight + 8)
+                    .frame(width: 2, height: totalHeight)
                     .offset(x: w / 2 - 1)
                     .allowsHitTesting(false)
             }
-            .frame(width: w, height: rulerHeight + blockHeight + 8, alignment: .topLeading)
+            .frame(width: w, height: totalHeight, alignment: .topLeading)
             .clipped()
             .contentShape(Rectangle())
             .gesture(
@@ -253,7 +268,7 @@ struct ImasTimingTimeline: View {
                     }
             )
         }
-        .frame(height: rulerHeight + blockHeight + 8)
+        .frame(height: totalHeight)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("タイミングのタイムライン")
     }
@@ -280,7 +295,7 @@ struct ImasTimingTimeline: View {
         .allowsHitTesting(false)
     }
 
-    private func block(_ b: Block, width: CGFloat, theme t: ImasTheme) -> some View {
+    private func block(_ b: Block, width: CGFloat, height blockHeight: CGFloat, theme t: ImasTheme) -> some View {
         let selected = b.id == selectedId
         return ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)

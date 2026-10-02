@@ -16,7 +16,8 @@ protocol CallGuideWriting: Sendable {
     /// 歌詞行の再生位置を置き換える (`PUT /songs/{song_id}/timings`)。曲全体の全置換。
     ///
     /// ⚠️ 歌詞本文は送らない (`LyricTimingPayload` の注記参照)。
-    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line],
+                            calls: [LyricTimingPayload.Line]) async throws
 
     /// 歌詞行の「ここ好き」を付け外しする (`PUT|DELETE /songs/{id}/lyric-likes/{line_id}`)。
     /// - Returns: 付け外し後のその行の人数 (みんなの分)。

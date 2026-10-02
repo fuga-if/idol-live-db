@@ -160,6 +160,8 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
     var timing: CallTiming = .after
     /// 歌詞が編集されてアンカーがズレた印。編集画面で目立たせる。
     var stale: Bool?
+    /// コールを出す再生位置 (ms)。タイミング編集で記録する。無ければ nil。
+    var startMs: Int? = nil
 
     /// ズレの印。**幅ゼロのアンカーは対象外**にする。
     ///
@@ -185,7 +187,7 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
 
 extension LyricCall {
     private enum CodingKeys: String, CodingKey {
-        case id, start, end, anchorText, text, emphasis, timing, stale
+        case id, start, end, anchorText, text, emphasis, timing, stale, startMs
     }
 
     /// 欠けたフィールドに耐える。Worker とアプリの配信タイミングがズレても、
@@ -202,7 +204,8 @@ extension LyricCall {
             text: try c.decodeIfPresent(String.self, forKey: .text) ?? "",
             emphasis: try c.decodeIfPresent(CallEmphasis.self, forKey: .emphasis) ?? .normal,
             timing: try c.decodeIfPresent(CallTiming.self, forKey: .timing) ?? .after,
-            stale: try c.decodeIfPresent(Bool.self, forKey: .stale)
+            stale: try c.decodeIfPresent(Bool.self, forKey: .stale),
+            startMs: (try? c.decodeIfPresent(Int.self, forKey: .startMs)).flatMap { $0 }
         )
     }
 }
