@@ -273,7 +273,7 @@ extension ButtonStyle where Self == ImasPressStyle {
 /// 色の目印。名前・見出しの前に置く小さな点。
 ///
 /// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
-/// 点の周りに淡い輪 (ぼかして光らせない。ぼんやり光る表現は使わない)。
+/// 平らな点だけ (輪も光も付けない。ぼんやり光って見えるため)。
 struct ImasPenlight: View {
     enum Size {
         /// 13pt の文字の前 (歌唱者・チップ)。並べて人数を見せるときも。
@@ -307,9 +307,6 @@ struct ImasPenlight: View {
                   ? AnyShapeStyle(ImasStripes.vertical(QS.penlights))
                   : AnyShapeStyle(color))
             .frame(width: d, height: d)
-            .background {
-                Circle().fill(color.opacity(scheme == .dark ? 0.32 : 0.22)).padding(-2)
-            }
             .accessibilityHidden(true)
     }
 }
