@@ -95,7 +95,6 @@ struct ImasHero<Media: View, Facts: View>: View {
         VStack(alignment: alignment, spacing: 6) {
             if let eyebrow {
                 let row = HStack(spacing: 7) {
-                    ImasPenlight(color: onColor ? theme.onAccent : theme.penlight, size: .regular)
                     Text(eyebrow)
                         .font(.imasFootnote.weight(.bold))
                         .foregroundStyle(ink2)

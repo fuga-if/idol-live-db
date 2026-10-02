@@ -266,16 +266,6 @@ private fun PerformerLine(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (performers.isNotEmpty()) {
-                Row(Modifier.clearAndSetSemantics { }, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    performers.take(24).forEach { p ->
-                        ImasPenlight(
-                            color = if (p.color == null) DS.ink3 else imasThemeForBrand(p.color, null).penlight,
-                            size = ImasPenlightSize.SMALL
-                        )
-                    }
-                }
-            }
             Text(summary ?: "${performers.size} 人", style = ImasTextRole.ROW_SUBTITLE.style, color = DS.ink2)
         }
         else -> FlowRow(

@@ -75,11 +75,6 @@ struct ImasSectionHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
-            if seed != nil || brand != nil {
-                ImasPenlight(color: ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).penlight,
-                             size: style == .large ? .regular : .small)
-                    .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 1 }
-            }
             Text(title)
                 .imasText(style == .large ? .sectionTitle : .sectionLabel)
                 .lineLimit(titleLineLimit)

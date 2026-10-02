@@ -141,9 +141,6 @@ private struct FeatureCardBody<Media: View>: View {
                 HStack(alignment: .firstTextBaseline, spacing: DS.Space.gap) {
                     if let eyebrow {
                         HStack(spacing: 7) {
-                            if eyebrowPenlight {
-                                ImasPenlight(color: onColor ? theme.onAccent : theme.penlight, size: .regular)
-                            }
                             Text(eyebrow)
                                 .font(ImasTextRole.eyebrow.font)
                                 .foregroundStyle(ink2)
@@ -352,11 +349,8 @@ struct ImasStatBar: View {
     var body: some View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         HStack(spacing: DS.Space.gapLoose) {
-            HStack(spacing: 7) {
-                ImasPenlight(color: t.penlight, size: .small)
-                Text(label).font(.imasFootnote).foregroundStyle(DS.ink).lineLimit(1)
-            }
-            .frame(width: 92, alignment: .leading)
+            Text(label).font(.imasFootnote).foregroundStyle(DS.ink).lineLimit(1)
+                .frame(width: 92, alignment: .leading)
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Rectangle().fill(DS.fill)

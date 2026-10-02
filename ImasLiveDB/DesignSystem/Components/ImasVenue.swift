@@ -126,7 +126,6 @@ struct ImasTicket: View {
         let content = HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
-                    if let penlight { ImasPenlight(color: penlight, size: .regular).environment(\.colorScheme, .light) }
                     Text([imprint, label].compactMap { $0 }.joined(separator: " · "))
                         .imasText(.imprint, color: DS.ticketSub)
                         .lineLimit(1)

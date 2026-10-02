@@ -160,7 +160,6 @@ fun ImasHero(
                     horizontalArrangement = Arrangement.spacedBy(7.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ImasPenlight(color = if (onColor) theme.onAccent else theme.penlight, size = ImasPenlightSize.REGULAR)
                     Text(eyebrow, style = ImasType.text(13.sp, FontWeight.Bold), color = ink2, maxLines = 1)
                 }
             }

@@ -153,19 +153,7 @@ struct ImasSetlistRow: View {
         if performers.contains(where: { $0.iconLabel != nil || $0.imageURL != nil }) {
             ImasAvatarStack(people: performers, maxVisible: 5, size: avatarSize, onTap: onSelectPerformers)
         } else if performers.count > performerLimit || (performers.isEmpty && performerSummary != nil) {
-            HStack(spacing: 6) {
-                if !performers.isEmpty {
-                    HStack(spacing: 3) {
-                        ForEach(performers.prefix(24)) { p in
-                            ImasPenlight(color: p.color == nil ? DS.ink3
-                                         : ImasTheme.derive(seed: p.color, brand: nil, scheme: scheme).penlight,
-                                         size: .small)
-                        }
-                    }
-                    .accessibilityHidden(true)
-                }
-                Text(performerSummary ?? "\(performers.count) 人").imasText(.rowSubtitle)
-            }
+            Text(performerSummary ?? "\(performers.count) 人").imasText(.rowSubtitle)
         } else {
             FlowLayout(spacing: 10) {
                 ForEach(performers) { p in

@@ -314,7 +314,8 @@ private struct ImasChipLeadingView: View {
         case .symbol(let name):
             Image(systemName: name).font(.imasScaled(12, weight: .semibold))
         case .dot:
-            ImasPenlight(color: penlight, size: .small)
+            // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
+            EmptyView()
         case .avatar(let label, let url):
             // 写真があれば写真、無ければ判子 (アイコンは消さない)。
             ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
@@ -330,7 +331,7 @@ private struct ImasChipLeadingView: View {
                     .padding(.leading, -3)
                     .accessibilityHidden(true)
             } else {
-                ImasPenlight(color: penlight, size: .small)
+                EmptyView()
             }
         }
     }

@@ -475,11 +475,6 @@ struct ImasPerformerChip: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            ImasPenlight(
-                color: seed == nil ? DS.ink3 : ImasTheme.derive(seed: seed, brand: nil, scheme: scheme).penlight,
-                size: .small
-            )
-            .opacity(isAbsent ? 0.35 : 1)
             Text(name)
                 .font(.imasFootnote)
                 .strikethrough(isAbsent, color: DS.ink3)

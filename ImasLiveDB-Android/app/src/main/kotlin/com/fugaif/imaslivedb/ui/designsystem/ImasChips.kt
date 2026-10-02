@@ -497,7 +497,8 @@ private fun ImasChipLeadingView(leading: ImasChipLeading?, theme: ImasTheme, pen
             val s = with(LocalDensity.current) { 13.sp.toDp() }
             Icon(leading.icon, contentDescription = null, tint = tint, modifier = Modifier.size(s))
         }
-        ImasChipLeading.Dot -> ImasPenlight(color = penlight, size = ImasPenlightSize.SMALL)
+        // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
+        ImasChipLeading.Dot -> Unit
         is ImasChipLeading.Avatar -> {
             // 写真があれば写真、無ければ判子 (アイコンは消さない)。
             CompositionLocalProvider(LocalImasTheme provides theme) {
@@ -522,8 +523,6 @@ private fun ImasChipLeadingView(leading: ImasChipLeading?, theme: ImasTheme, pen
                         .size(20.dp)
                         .clip(CircleShape)
                 )
-            } else {
-                ImasPenlight(color = penlight, size = ImasPenlightSize.SMALL)
             }
         }
     }

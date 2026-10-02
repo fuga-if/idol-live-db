@@ -622,11 +622,6 @@ fun ImasPerformerChip(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasPenlight(
-            color = penlight,
-            size = ImasPenlightSize.SMALL,
-            modifier = Modifier.alpha(if (isAbsent) 0.35f else 1f)
-        )
         if (secondary != null) {
             Column {
                 Text(

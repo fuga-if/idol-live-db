@@ -257,11 +257,6 @@ fun ImasTicket(
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (penlight != null) {
-                    CompositionLocalProvider(LocalImasColors provides ImasColorsLight) {
-                        ImasPenlight(color = penlight, size = ImasPenlightSize.REGULAR)
-                    }
-                }
                 Text(
                     listOfNotNull(imprint, label).joinToString(" · "),
                     style = ImasTextRole.IMPRINT.style,

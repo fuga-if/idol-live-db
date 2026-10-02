@@ -168,9 +168,6 @@ fun ImasFeatureCard(
                                 horizontalArrangement = Arrangement.spacedBy(7.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (eyebrowPenlight) {
-                                    ImasPenlight(color = if (onColor) theme.onAccent else theme.penlight, size = ImasPenlightSize.REGULAR)
-                                }
                                 Text(eyebrow, style = ImasTextRole.EYEBROW.style, color = ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
@@ -425,7 +422,6 @@ fun ImasStatBar(
             horizontalArrangement = Arrangement.spacedBy(7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ImasPenlight(color = t.penlight, size = ImasPenlightSize.SMALL)
             Text(label, style = ImasType.text(13.sp), color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(

@@ -132,15 +132,6 @@ fun ImasSectionHeader(
                 .semantics(mergeDescendants = true) { heading() },
             horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
-            if (seed != null || brand != null) {
-                val onePx = 1
-                ImasPenlight(
-                    color = imasThemeForBrand(seed, brand).penlight,
-                    size = if (large) ImasPenlightSize.REGULAR else ImasPenlightSize.SMALL,
-                    // 点の下端を文字のベースラインの 1 つ上に揃える (iOS `.alignmentGuide(.firstTextBaseline)`)。
-                    modifier = Modifier.alignBy { it.measuredHeight + onePx }
-                )
-            }
             val role = if (large) ImasTextRole.SECTION_TITLE else ImasTextRole.SECTION_LABEL
             Text(
                 title,

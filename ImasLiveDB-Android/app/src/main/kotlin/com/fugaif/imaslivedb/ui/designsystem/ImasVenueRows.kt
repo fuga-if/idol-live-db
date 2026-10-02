@@ -237,6 +237,10 @@ fun ImasStubRow(
         }
         // 切り取り線の分 (drawBehind で引く)。
         Spacer(Modifier.width(2.dp))
+        // 実体 (ブランド) の色は行頭の帯で示す (点は幅を取るだけなので使わない)。
+        if (penlight != null) {
+            ImasLeadBar(seedHex = seed, brandId = brand, height = 36.dp, rainbow = rainbow, modifier = Modifier.padding(start = 10.dp))
+        }
         Column(
             Modifier
                 .weight(1f)
@@ -252,7 +256,6 @@ fun ImasStubRow(
             )
             if (penlight != null || subtitle != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (penlight != null) ImasPenlight(color = penlight, size = ImasPenlightSize.SMALL, rainbow = rainbow)
                     if (subtitle != null) {
                         if (subtitleIcon != null) {
                             Icon(subtitleIcon, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(12.dp))

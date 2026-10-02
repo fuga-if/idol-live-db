@@ -87,11 +87,6 @@ struct ImasStubRow<Detail: View>: View {
     @Environment(\.colorScheme) private var scheme
     @ScaledMetric(relativeTo: .body) private var stubWidth: CGFloat = 62
 
-    private var penlight: Color? {
-        guard seed != nil || brand != nil else { return nil }
-        return ImasTheme.derive(seed: seed, brand: brand, scheme: scheme).penlight
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 3) {
@@ -113,20 +108,20 @@ struct ImasStubRow<Detail: View>: View {
             .padding(.vertical, 10)
             ImasPerforation(axis: .vertical, color: DS.perforation, lineWidth: 2)
                 .padding(.vertical, 8)
+            // 実体 (ブランド) の色は行頭の帯で示す (点は幅を取るだけなので使わない)。
+            if seed != nil || brand != nil {
+                ImasLeadBar(seed: seed, brand: brand, rainbow: rainbow)
+                    .padding(.vertical, 12)
+                    .padding(.leading, 10)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.imasHeading(14.5, weight: .heavy))
                     .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                // 色の帯は副題の有無によらずいつも出す (実体の色を常に示す)。
-                if penlight != nil || subtitle != nil {
-                    HStack(spacing: 6) {
-                        if let penlight { ImasPenlight(color: penlight, size: .small, rainbow: rainbow) }
-                        if let subtitle {
-                            Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(subtitleLineLimit)
-                        }
-                    }
+                if let subtitle {
+                    Text(subtitle).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(subtitleLineLimit)
                 }
                 if !badges.isEmpty {
                     HStack(spacing: 6) {
