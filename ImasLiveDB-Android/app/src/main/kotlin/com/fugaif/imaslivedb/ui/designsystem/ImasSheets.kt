@@ -163,7 +163,15 @@ fun ImasSheetToolbar(kind: ImasSheetToolbarKind, modifier: Modifier = Modifier, 
         when (kind) {
             is ImasSheetToolbarKind.Edit -> {
                 leading = { SheetButton("キャンセル", SheetButtonRole.CANCEL, onClick = kind.onCancel) }
-                trailing = { SheetButton("保存", SheetButtonRole.CONFIRM, enabled = kind.canSave, onClick = kind.onSave) }
+                trailing = {
+                    SheetButton(
+                        "保存",
+                        SheetButtonRole.CONFIRM,
+                        enabled = kind.canSave && !kind.isSaving,
+                        isLoading = kind.isSaving,
+                        onClick = kind.onSave
+                    )
+                }
             }
             is ImasSheetToolbarKind.Submit -> {
                 leading = { SheetButton("キャンセル", SheetButtonRole.CANCEL, onClick = kind.onCancel) }
