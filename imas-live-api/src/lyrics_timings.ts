@@ -12,7 +12,7 @@
 export const MAX_START_MS = 20 * 60 * 1000;
 
 export type TimingsResult =
-  | { ok: true; timings: Map<string, number | null> }
+  | { ok: true; timings: Map<string, number | null>; callTimings: Map<string, number | null> | null }
   | { ok: false; error: string };
 
 /**
@@ -21,30 +21,48 @@ export type TimingsResult =
  * ボディ: `{ lines: [{ id, startMs }] }`。PUT = 曲全体の全置換で、ボディに無い行は null に戻る。
  * `knownIds` はその曲の既存行 ID。知らない ID は 400 (行の追加・本文の改変はできない)。
  */
-export function validateTimingsBody(body: unknown, knownIds: ReadonlySet<string>): TimingsResult {
+export function validateTimingsBody(
+  body: unknown,
+  knownIds: ReadonlySet<string>,
+  knownCallIds: ReadonlySet<string> = new Set()
+): TimingsResult {
   if (!body || typeof body !== "object") return { ok: false, error: "body must be an object" };
-  const { lines } = body as Record<string, unknown>;
-  if (!Array.isArray(lines)) return { ok: false, error: "lines must be an array" };
-  if (lines.length > knownIds.size) return { ok: false, error: "too many lines" };
+  const { lines, calls } = body as Record<string, unknown>;
+  const timings = parseEntries(lines, knownIds, "lines");
+  if (typeof timings === "string") return { ok: false, error: timings };
+  // calls は省略可 (古いアプリはコールの時刻を送らない)。省略ならコールの時刻には触れない。
+  if (calls === undefined || calls === null) return { ok: true, timings, callTimings: null };
+  const callTimings = parseEntries(calls, knownCallIds, "calls");
+  if (typeof callTimings === "string") return { ok: false, error: callTimings };
+  return { ok: true, timings, callTimings };
+}
 
+/** `[{ id, startMs }]` を id → startMs にする。問題があればエラー文。 */
+function parseEntries(
+  entries: unknown,
+  knownIds: ReadonlySet<string>,
+  name: string
+): Map<string, number | null> | string {
+  if (!Array.isArray(entries)) return `${name} must be an array`;
+  if (entries.length > knownIds.size) return `too many ${name}`;
   const timings = new Map<string, number | null>();
-  for (const raw of lines) {
-    if (!raw || typeof raw !== "object") return { ok: false, error: "line must be an object" };
+  for (const raw of entries) {
+    if (!raw || typeof raw !== "object") return `${name} entry must be an object`;
     // iOS の APIClient はキーを snake_case にして送る (startMs → start_ms)。両方を受ける。
     const r = raw as Record<string, unknown>;
     const id = r.id;
     const startMs = r.startMs !== undefined ? r.startMs : r.start_ms;
-    if (typeof id !== "string" || !knownIds.has(id)) return { ok: false, error: "unknown line id" };
-    if (timings.has(id)) return { ok: false, error: "duplicate line id" };
+    if (typeof id !== "string" || !knownIds.has(id)) return `unknown id in ${name}`;
+    if (timings.has(id)) return `duplicate id in ${name}`;
     if (startMs === null || startMs === undefined) {
       timings.set(id, null);
       continue;
     }
     if (typeof startMs !== "number" || !Number.isInteger(startMs) ||
         startMs < 0 || startMs > MAX_START_MS) {
-      return { ok: false, error: "startMs must be an integer in range" };
+      return "startMs must be an integer in range";
     }
     timings.set(id, startMs);
   }
-  return { ok: true, timings };
+  return timings;
 }

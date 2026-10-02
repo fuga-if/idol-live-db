@@ -93,6 +93,7 @@ describe("PUT /songs/:id/timings", () => {
     expect(JSON.parse(body)).toEqual({
       songId: "cg_song",
       lines: [{ id: "ll_1", startMs: 4321 }, { id: "ll_2", startMs: null }],
+      calls: [{ id: "cl_1", startMs: null }],
     });
     const saved = JSON.parse(written()!);
     expect(saved[0]).toMatchObject({ text: "きみのこえ", clap: "ppph", calls: [CALL], start_ms: 4321 });
@@ -104,6 +105,19 @@ describe("PUT /songs/:id/timings", () => {
   it("知らない行 id は 400", async () => {
     const { r } = responder();
     const res = await handleLyricsTimings(put(stubD1(r), { lines: [{ id: "ll_x", startMs: 1 }] }));
+    expect(res?.status).toBe(400);
+  });
+
+  it("calls を送るとコールの時刻も書き、省略すればコールには触れない", async () => {
+    const { r, written } = responder();
+    let res = await handleLyricsTimings(put(stubD1(r), {
+      lines: [{ id: "ll_1", startMs: 1000 }],
+      calls: [{ id: "cl_1", start_ms: 2500 }],
+    }));
+    expect(res?.status).toBe(200);
+    expect(JSON.parse(written()!)[0].calls[0]).toMatchObject({ id: "cl_1", text: "ハイ！", startMs: 2500 });
+
+    res = await handleLyricsTimings(put(stubD1(r), { lines: [], calls: [{ id: "cl_x", startMs: 1 }] }));
     expect(res?.status).toBe(400);
   });
 });

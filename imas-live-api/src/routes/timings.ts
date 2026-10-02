@@ -42,7 +42,8 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
 
   const existing = parseLines(header.lines_json);
   const body = await request.json().catch(() => null);
-  const result = validateTimingsBody(body, new Set(existing.map((l) => l.id)));
+  const callIds = new Set(existing.flatMap((l) => (l.calls ?? []).map((c) => c.id)));
+  const result = validateTimingsBody(body, new Set(existing.map((l) => l.id)), callIds);
   if (!result.ok) return error(result.error, 400);
 
   // コール・タグ・マスタ編集と共有の "edit" 枠。検証を済ませてから消費する。
@@ -53,7 +54,15 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
     // migration 0027 が書いた行はキーが startMs。新しい値は start_ms に寄せ、古いキーは落とす
     // (残すと buildLyricsPayload の `start_ms ?? startMs` で null に戻したつもりの値が蘇る)。
     const { startMs: _legacy, ...rest } = line;
-    return { ...rest, start_ms: result.timings.get(line.id) ?? null };
+    const calls = result.callTimings
+      ? (line.calls ?? []).map((call) => {
+          // ボディに無いコールは記録なしに戻す (行と同じく全置換)。
+          const { startMs: _old, ...callRest } = call;
+          const ms = result.callTimings!.get(call.id) ?? null;
+          return ms === null ? callRest : { ...callRest, startMs: ms };
+        })
+      : line.calls;
+    return { ...rest, start_ms: result.timings.get(line.id) ?? null, ...(calls ? { calls } : {}) };
   });
   const nextJson = JSON.stringify(nextLines);
   if (nextJson !== header.lines_json) {
@@ -64,7 +73,11 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
   }
 
   return json(
-    { songId, lines: nextLines.map((l) => ({ id: l.id, startMs: l.start_ms })) },
+    {
+      songId,
+      lines: nextLines.map((l) => ({ id: l.id, startMs: l.start_ms })),
+      calls: nextLines.flatMap((l) => (l.calls ?? []).map((c) => ({ id: c.id, startMs: c.startMs ?? null }))),
+    },
     200,
     NO_STORE
   );

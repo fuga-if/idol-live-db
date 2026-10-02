@@ -61,6 +61,11 @@ export interface LyricCall {
   timing: CallTiming;
   /** 歌詞編集でアンカーがズレた印。編集画面で「要再設定」を出すため。false のときは省略する。 */
   stale?: boolean;
+  /**
+   * コールを出す再生位置 (ms)。PUT /songs/:id/timings だけが書く (routes/timings.ts)。
+   * コールの保存・歌詞の差し替えでは id ごとに引き継ぐ (消さない)。
+   */
+  startMs?: number | null;
 }
 
 /** 1 行ぶんのコール注釈。lines_json の各行に直接埋め込まれる。 */
@@ -348,6 +353,7 @@ export function carryOverAnnotation(
             : "after",
       // stale は false のとき省略する (歌詞を直して元に戻したら印も消える)。
       ...(stale ? { stale: true } : {}),
+      ...(typeof raw.startMs === "number" ? { startMs: raw.startMs } : {}),
     });
   }
 

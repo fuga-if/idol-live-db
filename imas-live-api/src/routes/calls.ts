@@ -112,13 +112,24 @@ export async function handleLyricsCalls(ctx: RouteContext): Promise<Response | n
   if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
   const byId = new Map(result.lines.map((l) => [l.id, l]));
+  // コールの再生位置は PUT /songs/:id/timings が書く。コールの保存では id ごとに引き継ぐ
+  // (検証は本文・範囲・文言しか通さないので、引き継がないと編集のたびに時刻が消える)。
+  const callStartById = new Map<string, number>();
+  for (const line of existing) {
+    for (const call of line.calls ?? []) {
+      if (typeof call.startMs === "number") callStartById.set(call.id, call.startMs);
+    }
+  }
   const nextLines: LyricLineRow[] = existing.map((line) => {
     const annotation = byId.get(line.id);
     return {
       ...line,
       // ボディに現れない行はコール無しに戻す (PUT = 全置換)。
       clap: annotation?.clap ?? null,
-      calls: annotation?.calls ?? [],
+      calls: (annotation?.calls ?? []).map((call) => {
+        const startMs = callStartById.get(call.id);
+        return startMs === undefined ? call : { ...call, startMs };
+      }),
     };
   });
 

@@ -312,3 +312,16 @@ describe("PUT /songs/:id/calls — 統計と履歴", () => {
     expect(sqlOf(stub)).toMatch(/UPDATE song_lyrics SET lines_json/);
   });
 });
+
+describe("PUT /songs/:id/calls — コールの再生位置", () => {
+  it("コールを保存し直しても、同じ id のコールの startMs は消えない", async () => {
+    const timed = [{ ...SAVED_LINES[0], calls: [{ ...SAVED_LINES[0].calls[0], startMs: 4200 }] }];
+    const stub = stubD1(responder({ header: { ...HEADER, lines_json: JSON.stringify(timed) } }));
+    const body = { lines: [{ id: LINE_ID, clap: "back_beat",
+      calls: [{ id: "cl_existing", start: 0, end: 5, anchorText: "きみのこえ", text: "ハイ！ハイ！ハイ！", timing: "after" }] }] };
+    const res = (await save(put(stub, body)))!;
+    expect(res.status).toBe(200);
+    const saved = (await res.json()) as any;
+    expect(saved.lines[0].calls[0]).toMatchObject({ id: "cl_existing", text: "ハイ！ハイ！ハイ！", startMs: 4200 });
+  });
+});
