@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -312,17 +313,19 @@ fun ImasMarkTile(
     )
     val line = DS.line
     val haptics = rememberImasHaptics()
-    // ON/OFF が変わった瞬間に記号が弾み、判子の手応えを返す (iOS `.symbolEffect(.bounce)`・`.sensoryFeedback`)。
+    val scope = rememberCoroutineScope()
+    // 記号が弾み、判子の手応えを返すのは「押した瞬間」だけ (iOS `.symbolEffect(.bounce)`・
+    // `.sensoryFeedback`)。以前は isOn の変化そのものを見ていたため、読み込みで値が後から
+    // 変わっただけでも (触っていなくても) 弾んで鳴っていた。ほかの呼び出しでの見え方・
+    // 手応えは変えない (押したときは今までどおり弾んで鳴る)。
     val bounce = remember { Animatable(1f) }
-    var first by remember { mutableStateOf(true) }
-    LaunchedEffect(isOn) {
-        if (first) {
-            first = false
-        } else {
-            haptics.impactMedium()
+    val tap: () -> Unit = {
+        haptics.impactMedium()
+        scope.launch {
             bounce.snapTo(1.2f)
             bounce.animateTo(1f, ImasMotion.standard())
         }
+        onClick()
     }
     val spoken = accessibilityText ?: label
     Column(
@@ -331,10 +334,10 @@ fun ImasMarkTile(
                 contentDescription = spoken
                 role = Role.Button
                 selected = isOn
-                onClick { onClick(); true }
+                onClick { tap(); true }
             }
             .widthIn(min = diameter)
-            .imasPress(onClick = onClick),
+            .imasPress(onClick = tap),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
