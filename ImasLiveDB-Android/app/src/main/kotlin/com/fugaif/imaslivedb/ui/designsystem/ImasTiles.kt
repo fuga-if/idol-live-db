@@ -73,7 +73,7 @@ import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import com.fugaif.imaslivedb.ui.theme.penlight
-import kotlin.math.roundToInt
+import uniffi.imas_core.progressPercent
 
 // =============================================================================
 // カード・数・メーター・入口 (docs/DESIGN_SYSTEM.md §6.3〜§6.5・§10.4)。iOS `ImasTiles.swift` の移植。
@@ -465,7 +465,8 @@ fun ImasProgressRing(
 ) {
     val t = ImasChipColors.theme(seed, brand, null)
     val clamped = fraction.coerceIn(0.0, 1.0)
-    val pct = (clamped * 100).roundToInt()
+    // % は切り捨て (100% は全部終わったときだけ)。規則はコア (`progress_percent`)。
+    val pct = progressPercent(clamped).toInt()
     val track = DS.fill
     val bar = if (t.isNeutral) DS.ink else t.bar
     val fontSize = with(LocalDensity.current) { (size * 0.26f).toSp() }

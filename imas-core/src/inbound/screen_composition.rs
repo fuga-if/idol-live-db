@@ -21,6 +21,13 @@ pub fn idol_profile_rows_from_source(source: IdolProfileSource) -> Vec<ScreenRow
     crate::domain::idol_queries::idol_profile_rows_from_source(&source)
 }
 
+/// 進み具合 (0〜1) を見せる % (0〜100) にする。切り捨てで、100% は全部終わったときだけ
+/// ([`crate::domain::screen_composition::progress_percent`])。輪の文字と読み上げはこれを使う。
+#[uniffi::export]
+pub fn progress_percent(fraction: f64) -> u32 {
+    crate::domain::screen_composition::progress_percent(fraction)
+}
+
 /// セトリの表示モードの選択肢一式 (順・保存値・文言)。
 ///
 /// **これを並べるだけにする。** 3 モードの文言を各 OS の enum に書き写すと、

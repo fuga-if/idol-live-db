@@ -803,3 +803,46 @@ mod tests {
         }
     }
 }
+
+/// 進み具合 (0〜1) を、見せる % (0〜100 の整数) にする。両 OS の輪 (ImasProgressRing) の文字と読み上げに使う。
+///
+/// **四捨五入しない。** 2118/2128 (99.53%) を「100%」と出すと、まだ 10 曲残っているのに終わったように
+/// 見える。切り捨てにして、100% は全部終わったときだけにする。浮動小数の誤差 (0.29 × 100 = 28.999…) で
+/// 1 つ下に落ちないよう、ごく小さな幅を足してから切り捨てる。
+pub fn progress_percent(fraction: f64) -> u32 {
+    if !fraction.is_finite() || fraction <= 0.0 {
+        return 0;
+    }
+    if fraction >= 1.0 {
+        return 100;
+    }
+    ((fraction * 100.0 + 1e-9).floor() as u32).min(99)
+}
+
+#[cfg(test)]
+mod progress_percent_tests {
+    use super::progress_percent;
+
+    #[test]
+    fn never_rounds_up_to_complete() {
+        assert_eq!(progress_percent(2118.0 / 2128.0), 99);
+        assert_eq!(progress_percent(0.9999), 99);
+        assert_eq!(progress_percent(1.0), 100);
+    }
+
+    #[test]
+    fn float_error_does_not_drop_a_point() {
+        assert_eq!(progress_percent(0.29), 29);
+        assert_eq!(progress_percent(0.57), 57);
+        assert_eq!(progress_percent(29.0 / 100.0), 29);
+    }
+
+    #[test]
+    fn clamps_and_handles_odd_input() {
+        assert_eq!(progress_percent(-0.5), 0);
+        assert_eq!(progress_percent(0.0), 0);
+        assert_eq!(progress_percent(1.5), 100);
+        assert_eq!(progress_percent(f64::NAN), 0);
+        assert_eq!(progress_percent(0.004), 0);
+    }
+}

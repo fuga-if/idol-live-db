@@ -393,19 +393,21 @@ struct ImasProgressRing: View {
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
         let clamped = min(1, max(0, fraction))
+        // % は切り捨て (100% は全部終わったときだけ)。規則はコア (`progress_percent`)。
+        let percent = progressPercent(fraction: clamped)
         ZStack {
             Circle().stroke(DS.fill, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: clamped)
                 .stroke(t.isNeutral ? DS.ink : t.bar, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
                 .rotationEffect(.degrees(-90))
-            Text("\(Int((clamped * 100).rounded()))%")
+            Text("\(percent)%")
                 .font(Font.imasScaled(size * 0.26, weight: .heavy).width(.compressed).monospacedDigit())
                 .foregroundStyle(DS.ink)
         }
         .frame(width: size, height: size)
         .accessibilityElement()
-        .accessibilityLabel("\(Int((clamped * 100).rounded()))パーセント")
+        .accessibilityLabel("\(percent)パーセント")
     }
 }
 
