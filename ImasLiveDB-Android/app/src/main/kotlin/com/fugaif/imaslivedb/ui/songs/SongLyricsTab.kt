@@ -396,7 +396,7 @@ private fun SectionMarker(text: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.weight(1f).height(1.dp).background(DS.sep))
-        ImasText(text, ImasTextRole.EYEBROW, modifier = Modifier.weight(0f, fill = false))
+        ImasText(text, ImasTextRole.EYEBROW)
         Box(Modifier.weight(1f).height(1.dp).background(DS.sep))
     }
 }
