@@ -1,22 +1,16 @@
 package com.fugaif.imaslivedb.ui.units
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -24,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,13 +36,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
@@ -57,17 +48,29 @@ import com.fugaif.imaslivedb.data.community.CommunityApi
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.ImasSongRow
+import com.fugaif.imaslivedb.ui.components.UnitGridSection
+import com.fugaif.imaslivedb.ui.components.CopyItem
+import com.fugaif.imaslivedb.ui.components.Copyable
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasHero
+import com.fugaif.imaslivedb.ui.designsystem.ImasHeroLayout
+import com.fugaif.imaslivedb.ui.designsystem.ImasIdolRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSignInPrompt
+import com.fugaif.imaslivedb.ui.designsystem.ImasUnitAvatar
 import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
-import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.polls.PollAchievementBadges
 import com.fugaif.imaslivedb.ui.tags.UnitTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
-import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 /**
  * ユニット詳細。iOS 構造: hero(ユニット名) → [楽曲/メンバー/コミュニティ] セグメント。
@@ -93,7 +96,6 @@ fun UnitDetailScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
     val unit = state.unit
-    val t = imasThemeForBrand(null, unit?.brandId)
     var segment by rememberSaveable(unitId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
@@ -133,7 +135,7 @@ fun UnitDetailScreen(
             }
         } else {
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-                Hero(unit, t)
+                Hero(unit)
                 ImasSegmented(
                     labels = listOf("楽曲", "メンバー", "コミュニティ"),
                     selection = segment, onSelect = { segment = it },
@@ -189,62 +191,63 @@ fun UnitDetailScreen(
     }
 }
 
+/** 頭 (iOS `ImasHero(layout: .leading)` + `ImasUnitAvatar`)。長押しでユニット名・別名をコピーできる。 */
 @Composable
-private fun Hero(unit: ImasUnit, t: ImasTheme) {
-    Column(
-        modifier = Modifier.fillMaxWidth().background(t.heroSurface).padding(vertical = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+private fun Hero(unit: ImasUnit) {
+    Copyable(
+        items = listOf(CopyItem("ユニット名をコピー", unit.displayName), CopyItem("別名をコピー", unit.nameAlt)),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(unit.displayName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink, textAlign = TextAlign.Center)
+        ImasHero(title = unit.displayName, layout = ImasHeroLayout.LEADING) {
+            ImasUnitAvatar(unit, size = 72.dp)
+        }
     }
 }
 
 @Composable
 private fun SongsBody(state: UnitDetailUiState, onSongClick: (String) -> Unit) {
-    Column(modifier = Modifier.padding(top = 12.dp)) {
+    Column(modifier = Modifier.padding(top = DS.Space.gapTight)) {
         if (state.songs.isEmpty()) {
             ImasEmptyState(icon = Icons.Filled.MusicNote, title = "楽曲がありません")
         } else {
-            ImasSectionHeader("楽曲", count = "${state.songs.size}")
-            state.songs.forEach { song ->
-                SongRow(
-                    title = song.title, songId = song.id, artistNames = song.singerLabel ?: "", unitName = song.unitName,
-                    artworkUrl = song.artworkUrl, previewUrl = song.previewUrl, brandId = song.brandId,
-                    modifier = Modifier.clickable { onSongClick(song.id) }.padding(horizontal = 16.dp)
+            ImasSectionHeader("楽曲", count = "${state.songs.size}", tight = true)
+            ImasCardList(
+                items = state.songs,
+                modifier = Modifier.padding(horizontal = DS.Space.screen),
+                key = { it.id }
+            ) { song ->
+                ImasSongRow(
+                    song = song,
+                    subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                    showsBrandBar = true,
+                    density = ImasRowDensity.COMPACT,
+                    onClick = { onSongClick(song.id) }
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+/** メンバー一覧。iOS `UnitDetailView.membersBody` と同じく `ImasIdolRow` の行 (担当は Android では未算出)。 */
 @Composable
 private fun MembersBody(state: UnitDetailUiState, onIdolClick: (String) -> Unit) {
-    Column(modifier = Modifier.padding(top = 12.dp)) {
+    Column(modifier = Modifier.padding(top = DS.Space.gapTight)) {
         if (state.members.isEmpty()) {
             ImasEmptyState(icon = Icons.Filled.Groups, title = "メンバー情報がありません")
         } else {
-            ImasSectionHeader("メンバー", count = "${state.members.size}")
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                state.members.forEach { idol ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(72.dp).clickable { onIdolClick(idol.id) }
-                    ) {
-                        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
-                        Text(idol.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
-                            textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 6.dp))
-                        idol.currentVoiceActor?.let { cv ->
-                            Text(cv, fontSize = 10.sp, color = DS.ink3, textAlign = TextAlign.Center,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
+            ImasSectionHeader("メンバー", count = "${state.members.size}", tight = true)
+            ImasCardList(
+                items = state.members,
+                modifier = Modifier.padding(horizontal = DS.Space.screen),
+                key = { it.id }
+            ) { idol ->
+                ImasIdolRow(
+                    idol = idol,
+                    subtitle = idol.currentVoiceActor,
+                    trailing = ImasRowTrailing.Chevron,
+                    density = ImasRowDensity.COMPACT,
+                    modifier = Modifier.imasRowPress(onClick = { onIdolClick(idol.id) })
+                )
             }
         }
     }
@@ -271,84 +274,41 @@ private fun CommunityBody(
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (再コンポーズごとに
     // EditPermissionRules を RustBuffer へ詰め直して JNA を跨がないため)。
     val canEditHere = remember(authState) { authState.showEditAffordance }
-    val needsLogin = remember(authState) { authState.shouldPromptLogin }
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section)) {
         PollAchievementBadges(entityId = unitId, onOpenPoll = onPollClick)
-        if (needsLogin) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp)
-            ) {
-                Text("タグ付け・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
-            }
-        }
+        ImasSignInPrompt(
+            modifier = Modifier.padding(horizontal = DS.Space.screen),
+            message = "タグ付け・投票にはログインが必要です"
+        )
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("タグ", count = "${tags.size}", modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
-                    }
-                }
-            }
+            ImasSectionHeader(
+                "タグ", count = "${tags.size}",
+                actionTitle = if (canEditHere) "タグ" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onOpenTagPicker else null
+            )
             if (tags.isEmpty()) {
-                Text("タグはまだありません", fontSize = 13.sp, color = DS.ink3,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+                ImasEmptyState(icon = Icons.Filled.Sell, title = "タグはまだありません")
             } else {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                ImasChipFlow(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)) {
                     tags.forEach { tag ->
-                        val bg = if (tag.mine) DS.pick.copy(alpha = 0.18f) else DS.fill
-                        val fg = if (tag.mine) DS.pick else DS.ink
-                        Row(
-                            modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
-                                // タップは投票トグル、長押しでタグ詳細 (アイドルタグのチップと同じ作法)。
-                                .combinedClickable(
-                                    onClick = { onToggleTag(tag) },
-                                    onLongClick = { onTagDetailClick(tag.id) }
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(tag.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = fg)
-                            if (tag.voteCount > 0) {
-                                Text(" ${tag.voteCount}", fontSize = 12.sp, color = DS.ink3)
-                            }
-                        }
+                        val label = if (tag.voteCount > 0) "${tag.name} ${tag.voteCount}" else tag.name
+                        ImasChip(
+                            text = label,
+                            style = if (tag.mine) ImasChipStyle.SELECTED else ImasChipStyle.THEMED,
+                            // タップは投票トグル、長押しでタグ詳細 (アイドルタグのチップと同じ作法)。
+                            modifier = Modifier.combinedClickable(
+                                onClick = { onToggleTag(tag) },
+                                onLongClick = { onTagDetailClick(tag.id) }
+                            )
+                        )
                     }
                 }
             }
         }
         // タグが似ているユニット (このユニットが好きな人にはこのユニットも, サーバ算出)
         if (similarUnits.isNotEmpty()) {
-            Column {
-                ImasSectionHeader("タグが似ているユニット", count = "${similarUnits.size}")
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    similarUnits.forEach { unit ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.width(64.dp).clickable { onUnitClick(unit.id) }
-                        ) {
-                            ImasAvatar(label = unit.name, seed = unit.id, brand = unit.brandId, size = 52.dp)
-                            Text(unit.name, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
-                                textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 6.dp))
-                            val shared = similarSharedTags[unit.id]
-                            if (shared != null) {
-                                Text("タグ${shared}個一致", fontSize = 10.sp, color = DS.ink3, textAlign = TextAlign.Center,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-            }
+            UnitGridSection("タグが似ているユニット", similarUnits, onUnitClick, badge = similarSharedTags)
         }
     }
 }
