@@ -79,6 +79,82 @@ pub fn toggle_like(stored: Option<&str>, line_id: &str) -> Option<String> {
     }
 }
 
+/// 「ここ好き」の山 (シークバーに重ねる)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct LyricLikeHeat {
+    /// 曲を等分した各区間の高さ (0.0〜1.0)。山が無ければ空。
+    pub levels: Vec<f32>,
+    /// いちばん好かれている行の歌い出し (ms)。おすすめ地点。
+    pub peak_ms: Option<i64>,
+}
+
+/// 最後の行がどこまで続くとみなすか (次の行が無いので長さが分からない)。
+const LAST_LINE_SPAN_MS: i64 = 8_000;
+
+/// 行ごとの「ここ好き」人数を、曲の時間軸の山にする。
+///
+/// 区間の高さは「その時刻に歌われている行の人数」。行の長さで割らない —
+/// 長い行ほど薄まると、好かれているのに山が低く見える。隣と平して角を取り、最大で割る。
+/// 時刻の無い行の人数は置き場所が無いので数えない。
+pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, buckets: u32) -> LyricLikeHeat {
+    let empty = LyricLikeHeat { levels: vec![], peak_ms: None };
+    if duration_ms <= 0 || buckets == 0 {
+        return empty;
+    }
+    // 時刻のある行を時刻順に。
+    let mut timed: Vec<(i64, u32)> = starts
+        .iter()
+        .zip(counts.iter().chain(std::iter::repeat(&0)))
+        .filter_map(|(s, c)| s.map(|s| (s, *c)))
+        .collect();
+    timed.sort_by_key(|(s, _)| *s);
+    if timed.iter().all(|(_, c)| *c == 0) {
+        return empty;
+    }
+    let n = buckets as usize;
+    let mut raw = vec![0f32; n];
+    for (i, (start, count)) in timed.iter().enumerate() {
+        if *count == 0 {
+            continue;
+        }
+        let end = timed
+            .get(i + 1)
+            .map(|(s, _)| *s)
+            .unwrap_or(start + LAST_LINE_SPAN_MS)
+            .min(duration_ms);
+        if end <= *start {
+            continue;
+        }
+        let from = ((*start as f64 / duration_ms as f64) * n as f64).floor().max(0.0) as usize;
+        let to = ((end as f64 / duration_ms as f64) * n as f64).ceil() as usize;
+        for b in raw.iter_mut().take(to.min(n)).skip(from.min(n)) {
+            *b = b.max(*count as f32);
+        }
+    }
+    let smoothed: Vec<f32> = (0..n)
+        .map(|i| {
+            let prev = if i > 0 { raw[i - 1] } else { raw[i] };
+            let next = if i + 1 < n { raw[i + 1] } else { raw[i] };
+            (prev + 2.0 * raw[i] + next) / 4.0
+        })
+        .collect();
+    let max = smoothed.iter().cloned().fold(0f32, f32::max);
+    if max <= 0.0 {
+        return empty;
+    }
+    // おすすめ地点: 人数が最大の行 (同数なら早い方) の歌い出し。
+    let peak_ms = timed
+        .iter()
+        .filter(|(s, _)| *s < duration_ms)
+        .fold(None::<(i64, u32)>, |best, &(s, c)| match best {
+            Some((_, bc)) if bc >= c => best,
+            _ if c > 0 => Some((s, c)),
+            _ => best,
+        })
+        .map(|(s, _)| s);
+    LyricLikeHeat { levels: smoothed.iter().map(|v| v / max).collect(), peak_ms }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,5 +206,26 @@ mod tests {
         assert_eq!(toggle_like(Some("ll_2"), "ll_2"), None);
         // 区切りを含む id は入れない (並びが壊れる)。
         assert_eq!(toggle_like(None, "a,b"), None);
+    }
+
+    #[test]
+    fn like_heat_puts_peak_on_most_liked_line() {
+        // 0-10s: 1 人 / 10-20s: 3 人 / 20s-: 時刻なしの行は数えない。
+        let starts = [Some(0), Some(10_000), None];
+        let counts = [1, 3, 9];
+        let heat = like_heat(&starts, &counts, 40_000, 4);
+        assert_eq!(heat.peak_ms, Some(10_000));
+        assert_eq!(heat.levels.len(), 4);
+        let top = heat.levels.iter().cloned().fold(0f32, f32::max);
+        assert!((top - 1.0).abs() < 1e-6);
+        assert_eq!(heat.levels.iter().position(|v| *v == top), Some(1));
+        // 最後の行の後ろ (18s 以降) は低い。
+        assert!(heat.levels[3] < heat.levels[1]);
+    }
+
+    #[test]
+    fn like_heat_empty_without_likes_or_duration() {
+        assert_eq!(like_heat(&[Some(0)], &[0], 10_000, 8).levels, Vec::<f32>::new());
+        assert_eq!(like_heat(&[Some(0)], &[2], 0, 8).peak_ms, None);
     }
 }
