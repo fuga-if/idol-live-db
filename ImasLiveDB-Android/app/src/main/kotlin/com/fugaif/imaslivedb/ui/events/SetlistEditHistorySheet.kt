@@ -107,8 +107,7 @@ fun SetlistEditHistorySheet(showId: String, showName: String, onDismiss: () -> U
 @Composable
 private fun HistoryRow(h: EditApi.RecordHistoryEntry, time: String) {
     val badges = buildList {
-        add(ImasBadgeSpec(opLabel(h.op), kind = if (h.op == "revert") ImasBadgeKind.NEGATIVE else ImasBadgeKind.NEUTRAL))
-        if (h.reverted) add(ImasBadgeSpec("差戻し済み", kind = ImasBadgeKind.NEGATIVE))
+        if (h.reverted) add(ImasBadgeSpec("(差戻し済み)", kind = ImasBadgeKind.NEGATIVE))
     }
     ImasCard {
         ImasRecordRow(
