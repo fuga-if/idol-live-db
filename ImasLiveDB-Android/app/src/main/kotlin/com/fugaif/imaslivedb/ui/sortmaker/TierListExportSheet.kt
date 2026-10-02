@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,11 +31,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -52,10 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -69,20 +64,27 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.ImageBitmap
 import com.fugaif.imaslivedb.data.games.TierDef
 import com.fugaif.imaslivedb.data.games.TierListBoard
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.share.PosterShareScaffold
 import com.fugaif.imaslivedb.ui.share.SHARE_CARD_SCALE
 import com.fugaif.imaslivedb.ui.share.ShareCardArtwork
 import com.fugaif.imaslivedb.ui.share.ShareCardFiles
-import com.fugaif.imaslivedb.ui.share.ShareCardFooter
 import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
-import com.fugaif.imaslivedb.ui.share.ShareInk
 import com.fugaif.imaslivedb.ui.share.SocialShare
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.share.rememberShareCardPalette
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
-import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.async
@@ -140,79 +142,64 @@ fun TierListExportSheet(
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = DS.bg) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("画像にする", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.weight(1f))
-                Text("閉じる", fontSize = 15.sp, color = DS.ink2, modifier = Modifier.clickable(onClick = onDismiss).padding(4.dp))
-            }
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = DS.Space.screen).padding(bottom = DS.sp7), verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+            ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = onDismiss), title = "画像にする")
 
             val bmp = bitmap
             if (bmp != null) {
                 Image(
                     bitmap = bmp.asImageBitmap(), contentDescription = null, contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(DS.rMD))
                 )
             } else {
                 Column(
                     modifier = Modifier.fillMaxWidth().height(320.dp),
                     verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    CircularProgressIndicator()
-                    Spacer(Modifier.height(12.dp))
-                    Text("画像を作っています…", fontSize = 12.sp, color = DS.ink3)
+                    ImasInlineLoading()
+                    ImasText("画像を作っています…", role = ImasTextRole.META)
                 }
             }
 
             if (board.unplacedIds.isNotEmpty()) {
-                Text("未分類の ${board.unplacedIds.size} 件は画像に入りません。", fontSize = 12.sp, color = DS.ink3)
+                ImasNote("未分類の ${board.unplacedIds.size} 件は画像に入りません。")
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                val accent = imasTheme(null, null).accent
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (bmp != null) accent else accent.copy(alpha = 0.4f))
-                        .clickable(enabled = bmp != null) {
-                            scope.launch {
-                                val b = bitmap ?: return@launch
-                                when (ShareCardFiles.saveToPictures(context, b, "tier_list")) {
-                                    ShareCardSaveResult.Saved -> saveMessage = "写真に保存しました"
-                                    ShareCardSaveResult.Failed -> saveMessage = "保存できませんでした。もう一度試してください。"
-                                    ShareCardSaveResult.NeedsDocumentPicker -> saveMessage = "写真に保存しました"
-                                }
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), modifier = Modifier.fillMaxWidth()) {
+                ImasButton(
+                    title = "写真に保存",
+                    onClick = {
+                        scope.launch {
+                            val b = bitmap ?: return@launch
+                            when (ShareCardFiles.saveToPictures(context, b, "tier_list")) {
+                                ShareCardSaveResult.Saved -> saveMessage = "写真に保存しました"
+                                ShareCardSaveResult.Failed -> saveMessage = "保存できませんでした。もう一度試してください。"
+                                ShareCardSaveResult.NeedsDocumentPicker -> saveMessage = "写真に保存しました"
                             }
                         }
-                        .padding(vertical = 14.dp),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.Download, null, tint = DS.surface, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("写真に保存", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.surface)
-                }
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DS.fill)
-                        .clickable(enabled = bmp != null) {
-                            scope.launch { bitmap?.let { ShareCardFiles.share(context, it, "tier_list") } }
-                        }
-                        .padding(vertical = 14.dp),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.Share, null, tint = DS.ink, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("シェア", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                }
+                    },
+                    icon = Icons.Filled.Download,
+                    role = ImasButtonRole.PRIMARY,
+                    size = ImasButtonSize.LARGE,
+                    enabled = bmp != null,
+                    modifier = Modifier.weight(1f)
+                )
+                ImasButton(
+                    title = "シェア",
+                    onClick = { scope.launch { bitmap?.let { ShareCardFiles.share(context, it, "tier_list") } } },
+                    icon = Icons.Filled.Share,
+                    role = ImasButtonRole.SECONDARY,
+                    size = ImasButtonSize.LARGE,
+                    enabled = bmp != null,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            Text(
-                "テキストでシェア", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                modifier = Modifier.clickable {
-                    SocialShare.shareText(context, shareText(board, items))
-                }.padding(vertical = 6.dp)
+            ImasButton(
+                title = "テキストでシェア",
+                onClick = { SocialShare.shareText(context, shareText(board, items)) },
+                role = ImasButtonRole.PLAIN,
+                size = ImasButtonSize.MEDIUM
             )
         }
     }
@@ -221,7 +208,7 @@ fun TierListExportSheet(
         AlertDialog(
             onDismissRequest = { saveMessage = null },
             title = { Text(saveMessage ?: "") },
-            confirmButton = { Text("OK", modifier = Modifier.clickable { saveMessage = null }.padding(12.dp)) }
+            confirmButton = { TextButton(onClick = { saveMessage = null }) { Text("OK") } }
         )
     }
 }
@@ -319,14 +306,16 @@ private fun TierListBoardImage(board: TierListBoard, items: Map<String, SortMake
 
 @Composable
 private fun TierListBoardImageBody(board: TierListBoard, items: Map<String, SortMakerItem>, thumbnails: Map<String, ImageBitmap>) {
-    Column(
-        modifier = Modifier
-            .width(540.dp)
-            .background(ShareInk.nearBlack)
-            .padding(horizontal = 24.dp)
-            .padding(top = 28.dp, bottom = 22.dp)
+    val palette = rememberShareCardPalette(seed = board.tiers.firstOrNull()?.colorSeed)
+    PosterShareScaffold(
+        palette = palette,
+        width = 540.dp,
+        height = null,
+        kicker = "TIER LIST",
+        title = board.displayTitle,
+        titleSize = 32.sp,
+        subtitle = board.scopeLabel
     ) {
-        ExportHeader(board)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -336,25 +325,6 @@ private fun TierListBoardImageBody(board: TierListBoard, items: Map<String, Sort
         ) {
             board.tiers.forEach { tier -> ExportRow(tier, board, items, thumbnails) }
         }
-        Box(Modifier.padding(top = 22.dp)) {
-            ShareCardFooter(ink = Color.White.copy(alpha = 0.62f), rule = Color.White.copy(alpha = 0.16f))
-        }
-    }
-}
-
-@Composable
-private fun ExportHeader(board: TierListBoard) {
-    val accent = rememberShareCardPalette(seed = board.tiers.firstOrNull()?.colorSeed).accent
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(Modifier.width(18.dp).height(3.dp).background(accent))
-            Text("TIER LIST", fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, color = Color.White.copy(alpha = 0.75f))
-        }
-        Text(
-            board.displayTitle, fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color.White,
-            maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp)
-        )
-        Text(board.scopeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.55f), maxLines = 1)
     }
 }
 
