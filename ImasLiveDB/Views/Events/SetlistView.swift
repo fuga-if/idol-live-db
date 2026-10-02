@@ -20,14 +20,26 @@ struct SetlistView: View {
     /// 非 nil なら遷移は自前 sheet ではなく共有 path への push にする (sheet 多重化回避)。
     /// nil の時 (タブ内 standalone) は従来どおり自前 sheet。
     var navigate: ((DetailDestination) -> Void)? = nil
-    /// 予想/実セトリ両方ある時の内部タブ (0=セットリスト / 1=予想)。
-    /// 「次のライブ」の「セトリを予想」からは 1 で開く。
-    @State private var contentTab: Int
+    /// 公演の画面の内部タブ。セットリスト (未来の公演でまだ無ければ出さない)・予想 (未来の公演だけ)・情報。
+    private enum ShowTab: Hashable {
+        case setlist, prediction, info
+
+        var label: String {
+            switch self {
+            case .setlist: "セットリスト"
+            case .prediction: "予想"
+            case .info: "情報"
+            }
+        }
+    }
+
+    /// 選んでいるタブ。「次のライブ」の「セトリを予想」からは予想で開く。
+    @State private var selectedTab: ShowTab
 
     init(show: Show, navigate: ((DetailDestination) -> Void)? = nil, opensPrediction: Bool = false) {
         self.show = show
         self.navigate = navigate
-        _contentTab = State(initialValue: opensPrediction ? 1 : 0)
+        _selectedTab = State(initialValue: opensPrediction ? .prediction : .setlist)
     }
     /// 読み込み (単位ごとに失敗を独立させてある)。表示は下の同じ名前の値から読む。
     @State private var model = SetlistViewModel()
@@ -284,171 +296,62 @@ struct SetlistView: View {
         return rows
     }
 
+    /// 出すタブ。セトリのある公演・過去の公演はセットリスト、未来の公演は予想、どの公演にも情報。
+    private var tabs: [ShowTab] {
+        var tabs: [ShowTab] = []
+        if !setlist.isEmpty || !isFutureShow { tabs.append(.setlist) }
+        if isFutureShow { tabs.append(.prediction) }
+        tabs.append(.info)
+        return tabs
+    }
+
+    /// いま中身を出すタブ。選んでいたタブが出せないとき (未来の公演でセトリがまだ無い等) は先頭。
+    /// シンプル表示はタブを畳むので、情報ではなくセトリ (無ければ予想) を出す。
+    private var currentTab: ShowTab {
+        let candidates = simpleMode ? tabs.filter { $0 != .info } : tabs
+        return candidates.contains(selectedTab) ? selectedTab : (candidates.first ?? .setlist)
+    }
+
+    private var tabSelection: Binding<Int> {
+        Binding(
+            get: { tabs.firstIndex(of: currentTab) ?? 0 },
+            set: { index in
+                if tabs.indices.contains(index) { selectedTab = tabs[index] }
+            }
+        )
+    }
+
     var body: some View {
         List {
-            // 上の階層 (ブランド → イベント) へのパンくず + 公演名 大見出し。
-            // ナビの戻るは「どこから来たか」しか辿れない (深リンクや検索から直接開くと
-            // 戻り先が無い)。この画面がライブの木のどこに居るのかを示して、
-            // 上の階層へ直接行けるようにする。
-            Section {
-                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-                    breadcrumb
-                    Text(show.name)
-                        .imasText(.heroTitle)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
-            }
+            heroSection
 
-            // シンプル表示では会場カードとマークバーを畳み、 会場・日付だけの 1 行にする。
-            // ここが 280pt 前後あり、 残したままだと 20 曲超のセトリが 1 枚のスクショに
-            // 収まらない (シンプル表示を作った意味が無くなる)。
-            if simpleMode {
-                Section {
-                    ImasNote([venueDirectory.displayName(for: show), show.date]
-                        .compactMap { $0 }.joined(separator: " ・ "))
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
-                        .listRowSeparator(.hidden)
-                }
-            }
-
-            // 会場 / 日付 カード
             if !simpleMode {
-            Section {
-                ImasCardList {
-                    // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
-                    if let venueLabel = venueDirectory.displayName(for: show) {
-                        if let vid = show.venueId {
-                            Button { go(.filteredShows(.venue(vid))) } label: {
-                                ImasValueRow(key: "会場", value: venueLabel, isLink: true)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            ImasValueRow(key: "会場", value: venueLabel)
-                        }
-                        ImasRowDivider(inset: 16)
-                    }
-                    // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
-                    if let cap = venueDirectory.capacity(for: show) {
-                        ImasValueRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", monospaced: true)
-                        ImasRowDivider(inset: 16)
-                    }
-                    if let stream = show.streamPlatform, !stream.isEmpty {
-                        ImasValueRow(key: "配信", value: stream)
-                        ImasRowDivider(inset: 16)
-                    }
-                    Button { go(.filteredShows(.date(show.date))) } label: {
-                        ImasValueRow(key: "日付", value: show.date, isLink: true)
-                    }
-                    .buttonStyle(.plain)
+                Section {
+                    UserMarkBar(
+                        entity: .show,
+                        entityId: show.id,
+                        kinds: [.attended, .favorite, .note, .seat],
+                        seed: showBrandHex,
+                        onAttendedTap: { showAttendanceDialog = true },
+                        attendedIsOn: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil
+                    )
+                    .id(attendanceVersion)
                 }
                 .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
-            }
+                .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 8, trailing: 16))
 
-            if !tickets.isEmpty {
                 Section {
-                    ImasSectionHeader("チケット", style: .small)
-                    ImasPriceList(rows: priceRows)
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
-                .listRowSeparator(.hidden)
-            }
-
-            Section {
-                UserMarkBar(
-                    entity: .show,
-                    entityId: show.id,
-                    kinds: [.attended, .favorite, .note, .seat],
-                    seed: showBrandHex,
-                    onAttendedTap: { showAttendanceDialog = true },
-                    attendedIsOn: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil
-                )
-                .id(attendanceVersion)
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 8, trailing: 16))
-            }
-
-            // 予想と実セトリが両方あるときは内部タブで切替 (実セトリ確定後も予想を見られる)。
-            if isFutureShow && !setlist.isEmpty {
-                Section {
-                    ImasTabs(labels: ["セットリスト", "予想"], selection: $contentTab, seed: showBrandHex)
+                    ImasTabs(labels: tabs.map(\.label), selection: tabSelection, seed: showBrandHex)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
                         .listRowSeparator(.hidden)
                 }
             }
 
-            // 予想: 未来公演で、(実セトリ未登録) または (両方ありで予想タブ選択時)。
-            if isFutureShow && (setlist.isEmpty || contentTab == 1) {
-                SetlistPredictionView(
-                    showId: show.id,
-                    showName: show.name,
-                    seed: showBrandHex,
-                    presentSongPicker: { onSelect in
-                        songPicker = SongPickerRequest(showId: show.id, onSelect: onSelect)
-                    }
-                )
-                .environment(database)
-            }
-
-            if setlist.isEmpty {
-                Section {
-                    ImasEmptyState(
-                        systemImage: isFutureShow ? "calendar.badge.clock" : "music.note.list",
-                        title: isFutureShow ? "公演前です" : "セトリ未登録",
-                        message: isFutureShow
-                            ? "セトリは公演後に登録されます"
-                            : "このライブのセトリはまだ登録されていません。ログインして編集に参加できます",
-                        actionTitle: (isFutureShow || !EditPermission.showEditAffordance) ? nil : "セトリを追加",
-                        action: (isFutureShow || !EditPermission.showEditAffordance) ? nil : { startEdit() },
-                        seed: showBrandHex
-                    )
-                }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-            }
-
-            // 良かった曲に投票しよう Note / 未ログインはログイン導線 (実セトリ表示中のみ)。
-            // シンプル表示では出さない。 投票導線はシンプル表示に 👍 自体が無いので意味が無く、
-            // スクショに誘導文が写り込むだけになる。
-            if !simpleMode && !setlist.isEmpty && !(isFutureShow && contentTab == 1) {
-                Section {
-                    Group {
-                        if AuthService.shared.isSignedIn {
-                            ImasNote("良かったと思った曲に 👍 で投票しよう！", systemImage: "hand.thumbsup.fill")
-                        } else {
-                            ImasSignInPrompt(message: "👍 で投票するにはログインが必要です")
-                        }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 16))
-                    .listRowSeparator(.hidden)
-                }
-            }
-
-            collectionSummarySection
-
-            // 実セトリ: 両方ありで予想タブ選択中は隠す。それ以外は表示。
-            ForEach((isFutureShow && !setlist.isEmpty && contentTab == 1) ? [] : sections) { section in
-                Section(header: ImasSectionHeader(section.sectionName, style: .small).textCase(nil)) {
-                    // セクションの曲を 1 枚の紙にまとめ、切り取り線で区切る (セトリ・申込書と同じ紙面)。
-                    ImasCardList(style: .sheet) {
-                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
-                            if index > 0 { ImasRowDivider(inset: simpleMode ? 34 : 66) }
-                            setlistRow(item: item, index: index)
-                        }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 16, trailing: 16))
-                    .listRowSeparator(.hidden)
-                }
+            switch currentTab {
+            case .setlist: setlistContent
+            case .prediction: predictionContent
+            case .info: infoContent
             }
         }
         .navigationTitle("セットリスト")
@@ -589,14 +492,174 @@ struct SetlistView: View {
         attendanceVersion &+= 1
     }
 
+    // MARK: - 頭
+
+    /// 上の階層 (ブランド → イベント) へのパンくず + 公演名の大見出し + 会場と日付の 1 行。
+    /// ナビの戻るは「どこから来たか」しか辿れない (深リンクや検索から直接開くと
+    /// 戻り先が無い)。この画面がライブの木のどこに居るのかを示して、
+    /// 上の階層へ直接行けるようにする。会場の詳しいこと (キャパ・配信) とチケットは情報タブ。
+    @ViewBuilder
+    private var heroSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                breadcrumb
+                Text(show.name)
+                    .imasText(.heroTitle)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+        }
+        Section {
+            ImasNote([venueDirectory.displayName(for: show), show.date]
+                .compactMap { $0 }.joined(separator: " ・ "))
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 6, trailing: 16))
+                .listRowSeparator(.hidden)
+        }
+    }
+
+    // MARK: - セットリスト
+
+    @ViewBuilder
+    private var setlistContent: some View {
+        if setlist.isEmpty {
+            Section {
+                ImasEmptyState(
+                    systemImage: "music.note.list",
+                    title: "セトリ未登録",
+                    message: "このライブのセトリはまだ登録されていません。ログインして編集に参加できます",
+                    actionTitle: EditPermission.showEditAffordance ? "セトリを追加" : nil,
+                    action: EditPermission.showEditAffordance ? { startEdit() } : nil,
+                    seed: showBrandHex
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        } else {
+            // 良かった曲に投票しよう Note / 未ログインはログイン導線。
+            // シンプル表示では出さない。 投票導線はシンプル表示に 👍 自体が無いので意味が無く、
+            // スクショに誘導文が写り込むだけになる。
+            if !simpleMode {
+                Section {
+                    Group {
+                        if AuthService.shared.isSignedIn {
+                            ImasNote("良かったと思った曲に 👍 で投票しよう！", systemImage: "hand.thumbsup.fill")
+                        } else {
+                            ImasSignInPrompt(message: "👍 で投票するにはログインが必要です")
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 0, trailing: 16))
+                    .listRowSeparator(.hidden)
+                }
+            }
+
+            collectionSummarySection
+
+            ForEach(sections) { section in
+                Section(header: ImasSectionHeader(section.sectionName, style: .small).textCase(nil)) {
+                    // セクションの曲を 1 枚の紙にまとめ、切り取り線で区切る (セトリ・申込書と同じ紙面)。
+                    ImasCardList(style: .sheet) {
+                        ForEach(Array(section.items.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { ImasRowDivider(inset: simpleMode ? 34 : 66) }
+                            setlistRow(item: item, index: index)
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 16, trailing: 16))
+                    .listRowSeparator(.hidden)
+                }
+            }
+        }
+    }
+
+    // MARK: - 予想
+
+    /// 未来の公演の予想。セトリがまだ無ければ「公演前です」も添える。
+    @ViewBuilder
+    private var predictionContent: some View {
+        SetlistPredictionView(
+            showId: show.id,
+            showName: show.name,
+            seed: showBrandHex,
+            presentSongPicker: { onSelect in
+                songPicker = SongPickerRequest(showId: show.id, onSelect: onSelect)
+            }
+        )
+        .environment(database)
+
+        if setlist.isEmpty {
+            Section {
+                ImasEmptyState(
+                    systemImage: "calendar.badge.clock",
+                    title: "公演前です",
+                    message: "セトリは公演後に登録されます",
+                    seed: showBrandHex
+                )
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
+        }
+    }
+
+    // MARK: - 情報
+
+    /// 会場・キャパ・配信・日付と、チケットの価格。
+    @ViewBuilder
+    private var infoContent: some View {
+        Section {
+            ImasCardList {
+                // 会場は ID で持つ。表示は公演日時点の名前 (改名前の公演は当時名)。
+                if let venueLabel = venueDirectory.displayName(for: show) {
+                    if let vid = show.venueId {
+                        Button { go(.filteredShows(.venue(vid))) } label: {
+                            ImasValueRow(key: "会場", value: venueLabel, isLink: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        ImasValueRow(key: "会場", value: venueLabel)
+                    }
+                    ImasRowDivider(inset: 16)
+                }
+                // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
+                if let cap = venueDirectory.capacity(for: show) {
+                    ImasValueRow(key: "キャパ", value: "\(cap.formatted(.number.grouping(.automatic)))人", monospaced: true)
+                    ImasRowDivider(inset: 16)
+                }
+                if let stream = show.streamPlatform, !stream.isEmpty {
+                    ImasValueRow(key: "配信", value: stream)
+                    ImasRowDivider(inset: 16)
+                }
+                Button { go(.filteredShows(.date(show.date))) } label: {
+                    ImasValueRow(key: "日付", value: show.date, isLink: true)
+                }
+                .buttonStyle(.plain)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+        }
+
+        if !tickets.isEmpty {
+            Section {
+                ImasSectionHeader("チケット", style: .small)
+                ImasPriceList(rows: priceRows)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 0, trailing: 16))
+            .listRowSeparator(.hidden)
+        }
+    }
+
     /// 自分の回収の要約。セトリの真上に置いて、この下の並びの読み方を先に言う。
     ///
     /// **文言も出す/出さないも imas-core が決める** (`collectionSummary` が nil なら
     /// 何も出さない)。ここが持つのは「参加した公演は済んだ記録の札」という見た目だけ。
     @ViewBuilder
     private var collectionSummarySection: some View {
-        if let summary = collectionSummary, !setlist.isEmpty,
-           !(isFutureShow && contentTab == 1) {
+        if let summary = collectionSummary, !setlist.isEmpty {
             Section {
                 // 札 (ImasBadge) は 1 行の短い値向けで、長い文だと大きい文字設定で切れる。
                 // ここは文なので折り返す ImasNote を使う。
