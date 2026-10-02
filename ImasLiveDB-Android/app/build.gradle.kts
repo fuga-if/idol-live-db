@@ -14,6 +14,13 @@ plugins {
 // 未設定でもアプリは起動する: 初回は db/master.sql から生成した seed DB を投入するので
 // (generate<Variant>SeedDb タスク + SeedImporter)、コントリビューターは token 無しで完動できる。
 // token は「リリース版で CloudKit から最新差分を取る」ためだけに使う (未設定なら同期スキップ)。
+// MusicKit for Android の AAR (app/libs/*.aar) があるときだけ src/withSdk を入れる。
+// AAR は Apple Developer から各自が落とす再配布不可の配布物で git に入れない (*.aar は .gitignore 済み)。
+// 無いビルド (CI・コントリビューター) では Apple Music の再生だけが無効になる
+// (player/MusicKitBridge.createOrNull が null を返す)。イントロドンの Android 版と同じ作り。
+val musicKitAars = fileTree("libs") { include("*.aar") }
+val hasMusicKit = !musicKitAars.isEmpty
+
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
@@ -99,6 +106,9 @@ android {
     }
 
     sourceSets {
+        getByName("main") {
+            if (hasMusicKit) java.srcDir("src/withSdk/kotlin")
+        }
         // Room の確定スキーマ (app/schemas) を JVM ユニットテストから読める assets に載せる。
         // MigrationTestHelper は assets の `<DB クラス名>/<版>.json` から旧版の DB を組み立てる。
         // test ソースセットの assets は AGP がユニットテストに渡さない (Robolectric が見るのは
@@ -186,6 +196,13 @@ dependencies {
     // 素の jar は JVM ユニットテスト (jna.library.path のホスト dylib をロード)。
     implementation(variantOf(libs.jna) { artifactType("aar") })
     testImplementation(libs.jna)
+
+    // MusicKit for Android (AAR を置いたときだけ。上の hasMusicKit)。
+    implementation(musicKitAars)
+    // 認証 AAR の資源が AppCompat のテーマを参照する。AAR が無いビルドでは要らない。
+    if (hasMusicKit) implementation(libs.androidx.appcompat)
+    // Apple Music のサインインを開くアプリ内ブラウザ (Custom Tabs)。1.8.0 は既存の依存を動かさない版。
+    implementation(libs.androidx.browser)
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)

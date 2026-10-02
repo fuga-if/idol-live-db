@@ -18,6 +18,9 @@ class ImasLiveDBApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         appModule = AppModule.from(this)
+        // Apple Music の再生器は「いま前に出ている Activity」を Activity のライフサイクルで覚える。
+        // 歌詞を開いた時点で初めて作ると最初の Activity を取り逃がすので、起動時に作っておく。
+        appModule.lyricsPlayback
         // プレイヤーは初めて鳴らすときに作る。ここでは Context を渡すだけ。
         AudioPreviewManager.init(this)
     }

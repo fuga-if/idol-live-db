@@ -1,4 +1,8 @@
 [versions]
+# Custom Tabs (Apple Music のサインイン)。1.9 以降は core/activity/stdlib を持ち上げるので 1.8.0。
+browser = "1.8.0"
+# MusicKit for Android の認証 AAR が AppCompat のテーマを参照する (使わない画面だが資源の解決に要る)。
+appcompat = "1.7.0"
 # SDK
 compileSdk = "35"
 minSdk = "26"
@@ -41,6 +45,8 @@ jna = "5.17.0"
 robolectric = "4.14.1"
 
 [libraries]
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 # JNA: @aar は実機/エミュ用、素の jar は JVM ユニットテスト用
 jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 # AndroidX Core

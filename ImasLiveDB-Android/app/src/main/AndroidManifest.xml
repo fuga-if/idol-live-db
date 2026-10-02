@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
 
@@ -39,6 +40,36 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Apple Music のサインイン (アプリ内ブラウザ) から戻る口。Worker の /music-auth の面が
+          終わったら imaslivedb://music-auth へ飛ばす。トークンは URL に載らない
+          (player/AppleMusicLyricsPlayback が Worker に一度だけ取りに行く)。
+        -->
+        <activity
+            android:name=".player.MusicAuthReturnActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="imaslivedb" android:host="music-auth" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          MusicKit for Android の認証画面は使わない (端末の Apple Music にサインイン済みだと
+          結果が返らない不具合 FB24754184。サインインはアプリ内ブラウザで通す)。
+          AAR が持ち込む画面と口を畳む。AAR が無いビルドでは何も起きない。
+        -->
+        <activity
+            android:name="com.apple.android.sdk.authentication.SDKUriHandlerActivity"
+            tools:node="remove" />
+        <activity
+            android:name="com.apple.android.sdk.authentication.StartAuthenticationActivity"
+            tools:node="remove" />
 
         <!--
           シェアカード画像の受け渡し口。

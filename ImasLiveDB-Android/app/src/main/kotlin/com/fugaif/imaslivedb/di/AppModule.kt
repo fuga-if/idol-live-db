@@ -125,6 +125,16 @@ class AppModule private constructor(context: Context) {
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }
     val communityApi: CommunityApi by lazy { CommunityApi(workerHttpClient) }
+    /** 歌詞の追従・記録の再生 (Apple Music のフル再生)。 */
+    val lyricsPlayback: com.fugaif.imaslivedb.player.LyricsPlayback by lazy {
+        com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
+            appContext as android.app.Application, workerHttpClient
+        )
+    }
+    /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。Android は NexTone 管理曲だけ返る。 */
+    val lyricsApi: com.fugaif.imaslivedb.data.lyrics.LyricsApi by lazy {
+        com.fugaif.imaslivedb.data.lyrics.LyricsApi(workerHttpClient)
+    }
     val editApi: EditApi by lazy { EditApi(workerHttpClient, authService) }
     val setlistLikeService: SetlistLikeService by lazy { SetlistLikeService(workerHttpClient) }
     /** Discord のロール受け取り (認可 URL の発行)。 */
