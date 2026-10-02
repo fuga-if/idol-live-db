@@ -153,6 +153,18 @@ class UserMarkRepository(
         }
     }
 
+    /** その曲で「ここ好き」を付けた歌詞行の ID (本文は持たない)。 */
+    suspend fun lyricLikes(songId: String): Set<String> =
+        uniffi.imas_core.lyricLikesParse(dao.mark(UserMark.SONG, songId, UserMark.LYRIC_LIKES)?.textValue).toSet()
+
+    /** 行の「ここ好き」を付け外しし、付いた後なら true を返す。並べ方・消し方はコア。 */
+    suspend fun toggleLyricLike(songId: String, lineId: String): Boolean {
+        val stored = dao.mark(UserMark.SONG, songId, UserMark.LYRIC_LIKES)?.textValue
+        val next = uniffi.imas_core.lyricLikesToggle(stored, lineId)
+        setText(UserMark.SONG, songId, UserMark.LYRIC_LIKES, next)
+        return uniffi.imas_core.lyricLikesParse(next).contains(lineId)
+    }
+
     /** 与えた公演のうち参加マークが付いているものの id。 */
     suspend fun attendedShowIds(showIds: List<String>): Set<String> =
         if (showIds.isEmpty()) emptySet()

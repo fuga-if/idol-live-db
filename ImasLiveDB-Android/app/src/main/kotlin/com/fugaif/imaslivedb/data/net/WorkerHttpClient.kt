@@ -115,6 +115,8 @@ class WorkerHttpClient(
         val headers = buildMap {
             put("Content-Type", "application/json")
             put("X-Device-Id", DeviceIdentity.get(appContext))
+            // 歌詞は Android では NexTone 管理曲だけ返る (Worker の lyricsAllowedForClient)。
+            put("X-Client-Platform", "android")
             token?.let { put("Authorization", "Bearer $it") }
         }
         return transport.execute(WorkerRequest(method, BASE_URL + path, headers, body?.toString()))

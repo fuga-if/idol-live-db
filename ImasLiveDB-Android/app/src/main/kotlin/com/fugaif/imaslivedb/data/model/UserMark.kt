@@ -35,6 +35,9 @@ data class UserMark(
         const val OWNED = "owned"         // 所持 (KAMISABI カード等の収集物)
         /** 楽曲の習熟度。text_value に序数 "1".."8" を入れる (ラベルは設定側)。 */
         const val MASTERY = "mastery"
+        /** 歌詞の「ここ好き」。曲 1 行の text_value に行 ID の並び (並べ方はコアの lyricLikesToggle)。
+         *  歌詞本文は入れない (JASRAC / NexTone 許諾の条件)。iOS と同じ kind 名。 */
+        const val LYRIC_LIKES = "lyricLikes"
     }
 }
 

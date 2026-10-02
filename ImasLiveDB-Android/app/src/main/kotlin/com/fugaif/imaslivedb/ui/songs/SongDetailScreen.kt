@@ -136,8 +136,9 @@ import uniffi.imas_core.splitCreditNames
 
 /**
  * 楽曲詳細。iOS の `SongSheetContent` (D2: ジャケ左 + 題・歌唱者・配信日を先に読ませる頭、
- * `ImasBoard` の数、`ImasTabs` 3 タブ [情報・歌唱/披露履歴/コミュニティ]) の組み方を 1:1 で写す。
- * 歌詞タブは JASRAC 許諾の都合で iOS 限定 (Android にはそもそも歌詞取得が無い) なので載せない。
+ * `ImasBoard` の数、`ImasTabs` 4 タブ [情報・歌唱/披露履歴/コミュニティ/歌詞]) の組み方を 1:1 で写す。
+ * 歌詞タブは Android も NexTone 管理曲 (許諾取得済み) だけ表示できる ([SongLyricsTab] 参照)。
+ * JASRAC 管理曲は Worker が 451 (NotLicensed) を返すので、そこだけ iOS と見せ方が分かれる。
  *
  * 関連楽曲/似ているタグ楽曲のタップ、タグタップでのタグ詳細表示は、
  * AppNavigation.kt の NavHost を経由せず画面内のローカル状態で完結させている
@@ -290,7 +291,8 @@ fun SongDetailScreen(
                 onUnitClick = onUnitClick,
                 onPollClick = onPollClick,
                 onFilteredSongsClick = onFilteredSongsClick,
-                onEditNote = if (canEditHere) ({ startCommunityEdit { showNoteEdit = true } }) else null
+                onEditNote = if (canEditHere) ({ startCommunityEdit { showNoteEdit = true } }) else null,
+                onLoadLyrics = viewModel::loadLyrics
             )
         }
     }
@@ -405,11 +407,18 @@ private fun SongSheetContent(
     onUnitClick: (String) -> Unit,
     onPollClick: (String) -> Unit,
     onFilteredSongsClick: (String, String) -> Unit,
-    onEditNote: (() -> Unit)?
+    onEditNote: (() -> Unit)?,
+    onLoadLyrics: () -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色 (brand は各部品に別途渡す)。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
+
+    // 歌詞タブを初めて開いたとき (または曲を切り替えて戻ってきたとき) に取りに行く。
+    // iOS は曲詳細の束ね取得に同梱されるが、Android にその経路が無いので遅延取得。
+    LaunchedEffect(segment, song.id) {
+        if (segment == 3 && state.lyrics == null && !state.isLyricsLoading) onLoadLyrics()
+    }
 
     val scroll = rememberScrollState()
     Column(modifier = modifier.verticalScroll(scroll)) {
@@ -419,7 +428,7 @@ private fun SongSheetContent(
             modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
         )
         ImasTabs(
-            labels = listOf("情報・歌唱", "披露履歴", "コミュニティ"),
+            labels = listOf("情報・歌唱", "披露履歴", "コミュニティ", "歌詞"),
             selection = segment, onSelect = { segment = it },
             seed = seed, brand = song.brandId,
             modifier = imasResetScrollOnTabChange(scroll, segment).fillMaxWidth().padding(horizontal = DS.sp5)
@@ -435,12 +444,25 @@ private fun SongSheetContent(
                 state.performanceHistory, state.performanceEvidence, seed, song.brandId,
                 onShowClick, onSongClick, onIdolClick
             )
-            else -> CommunityTab(
+            2 -> CommunityTab(
                 state, seed, song.brandId, authState, onSongClick,
                 onToggleTag, onOpenTagPicker, onTagDetailClick,
                 onCreateVideo, onEditVideo,
                 onOpenPenlightVote, onPollClick
             )
+            else -> {
+                val artistLine = when {
+                    state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
+                    !song.singerLabel.isNullOrEmpty() -> song.singerLabel
+                    !song.unitName.isNullOrEmpty() -> song.unitName
+                    else -> null
+                }
+                SongLyricsTab(
+                    song = song, seed = seed, artistLine = artistLine,
+                    lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
+                    onReload = onLoadLyrics
+                )
+            }
         }
         Box(Modifier.size(DS.sp9))
     }

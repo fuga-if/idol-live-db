@@ -56,7 +56,10 @@ data class SongDetailUiState(
      * (`SnapshotStore.kamisabiCompletion` / [SongRepository.fetchKamisabiCompletion])
      * なので、ここでは受け取った値をそのまま持つだけで加工しない。
      */
-    val kamisabiCompletion: KamisabiCompletion? = null
+    val kamisabiCompletion: KamisabiCompletion? = null,
+    /** 歌詞タブの取得結果。歌詞タブを一度開くまでは null (束ね取得に同梱せず遅延取得)。 */
+    val lyrics: com.fugaif.imaslivedb.data.lyrics.LyricsResult? = null,
+    val isLyricsLoading: Boolean = false
 )
 
 class SongDetailViewModel : ViewModel() {
@@ -219,6 +222,23 @@ class SongDetailViewModel : ViewModel() {
     fun onPenlightVoted() {
         val songId = currentSongId ?: return
         viewModelScope.launch { loadCommunity(songId) }
+    }
+
+    /**
+     * 歌詞タブを初めて開いたとき (または再試行・保存後) に呼ぶ。iOS は曲詳細の束ね取得に
+     * 同梱されて届くが、Android にその経路が無いので歌詞タブを開いたタイミングで
+     * 個別に取りに行く ([LyricsApi.lyrics] は 1 リクエスト 1 曲、許諾の条件通り)。
+     */
+    fun loadLyrics() {
+        val songId = currentSongId ?: return
+        val module = appModule ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLyricsLoading = true)
+            val result = module.lyricsApi.lyrics(songId)
+            if (currentSongId == songId) {
+                _uiState.value = _uiState.value.copy(lyrics = result, isLyricsLoading = false)
+            }
+        }
     }
 
     private companion object {
