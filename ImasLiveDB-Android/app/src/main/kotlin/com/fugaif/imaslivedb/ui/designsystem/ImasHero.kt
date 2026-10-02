@@ -502,13 +502,18 @@ fun ImasTabs(
  *
  * 引数の並び (labels・selection・onSelect・modifier) は Android の今の呼び出しの形のまま。
  * [selection] が範囲の外 (-1 など) なら札を出さない。
+ *
+ * @param captions [labels] と同じ並びの 2 行目 (「1:1」の下に「正方形」のような補足)。
+ *   null (既定) なら今まで通り 1 行。シェア画像の比率トグルのように、値と説明を両方
+ *   見せたいときだけ渡す (既存の呼び出しはすべてこの引数を省略するので見た目は変わらない)。
  */
 @Composable
 fun ImasSegmented(
     labels: List<String>,
     selection: Int,
     onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    captions: List<String>? = null
 ) {
     val height: Dp = with(LocalDensity.current) { 34.sp.toDp() }
     val haptics = rememberImasHaptics()
@@ -554,13 +559,35 @@ fun ImasSegmented(
                     .semantics { selected = on },
                 contentAlignment = Alignment.Center
             ) {
-                ImasFitText(
-                    text,
-                    style = ImasType.text(15.sp, if (on) FontWeight.Bold else FontWeight.SemiBold),
-                    color = if (on) DS.onSys else DS.ink2,
-                    minScale = 0.8f,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
+                val caption = captions?.getOrNull(i)
+                if (caption != null) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                    ) {
+                        ImasFitText(
+                            text,
+                            style = ImasType.text(13.sp, if (on) FontWeight.Bold else FontWeight.SemiBold),
+                            color = if (on) DS.onSys else DS.ink2,
+                            minScale = 0.8f
+                        )
+                        ImasFitText(
+                            caption,
+                            style = ImasType.text(10.sp),
+                            color = if (on) DS.onSys.copy(alpha = 0.7f) else DS.ink3,
+                            minScale = 0.8f
+                        )
+                    }
+                } else {
+                    ImasFitText(
+                        text,
+                        style = ImasType.text(15.sp, if (on) FontWeight.Bold else FontWeight.SemiBold),
+                        color = if (on) DS.onSys else DS.ink2,
+                        minScale = 0.8f,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
             }
         }
     }

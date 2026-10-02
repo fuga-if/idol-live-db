@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -45,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -52,11 +52,21 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasFitText
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.imasTheme
@@ -300,6 +310,99 @@ fun SoloShareScaffold(
     }
 }
 
+// MARK: - ランキング・ティアー表の骨格 (暗地 + 大見出し + 透かし + フッター)
+
+/**
+ * ランキング・ティアー表カードの共通骨格 (iOS `PosterShareScaffold`。docs/DESIGN_SYSTEM.md §13 `.poster`)。
+ * `.photo`/`.solo` と同じ near-black の地に、[差し色の印字バー + 大見出し + 補足 1 行] の見出しと
+ * 右上の透かしを乗せ、本文 (表彰台・段ごとの行) は呼び出し側が自由に組む。グラデは使わない。
+ *
+ * 地と透かしは [Modifier.drawBehind] で描く (サイズを持つ兄弟コンポーネントにしない)。兄弟にすると
+ * 「中身なり」の高さを決めるときに透かしの正方形の一辺がそのまま高さの下限になり、段の少ない
+ * ティアー表の下に余白が伸びてしまう (iOS 版の `PosterShareScaffold` が踏んだのと同じ不具合)。
+ * `drawBehind` ならホスト (中身の Column) の確定後のサイズに合わせて描かれるだけなので、
+ * 高さの決定には関与しない。
+ *
+ * ティアー表の書き出しのように件数で縦に伸びる画像は [height] に null を渡す
+ * (下のフッターまでの間を最小 22dp の空きで詰める。固定キャンバスでは残りを埋めて
+ * 下端にフッターを揃える)。
+ */
+@Composable
+fun PosterShareScaffold(
+    palette: ShareCardPalette,
+    width: Dp,
+    height: Dp?,
+    kicker: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    trailingKicker: String? = null,
+    titleSize: TextUnit = 50.sp,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier
+            .then(if (height != null) Modifier.size(width, height) else Modifier.width(width))
+            .drawBehind {
+                drawRect(ShareInk.nearBlack)
+                val w = width.toPx()
+                val anchor = (height ?: width).toPx()
+                val cx = w * 0.92f
+                val cy = anchor * 0.18f
+                val stroke = Stroke(1.5.dp.toPx())
+                drawCircle(Color.White.copy(alpha = 0.06f), radius = w / 2f, center = Offset(cx, cy), style = stroke)
+                drawCircle(palette.accent.copy(alpha = 0.16f), radius = w * 0.3335f, center = Offset(cx, cy), style = stroke)
+            }
+            .padding(horizontal = 36.dp)
+            .padding(top = 32.dp, bottom = 28.dp)
+    ) {
+        PosterHeader(palette = palette, kicker = kicker, trailingKicker = trailingKicker, title = title, titleSize = titleSize, subtitle = subtitle)
+        content()
+        if (height != null) {
+            Spacer(Modifier.weight(1f).heightIn(min = 22.dp))
+        } else {
+            Spacer(Modifier.height(22.dp))
+        }
+        ShareCardFooter(ink = Color.White.copy(alpha = 0.62f), rule = Color.White.copy(alpha = 0.16f))
+    }
+}
+
+@Composable
+private fun PosterHeader(
+    palette: ShareCardPalette,
+    kicker: String,
+    trailingKicker: String?,
+    title: String,
+    titleSize: TextUnit,
+    subtitle: String?
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(18.dp).height(3.dp).background(palette.accent))
+            Spacer(Modifier.width(8.dp))
+            Text(kicker, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (trailingKicker != null) {
+                Spacer(Modifier.weight(1f))
+                Text(
+                    trailingKicker, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace,
+                    letterSpacing = 2.4.sp, color = Color.White.copy(alpha = 0.45f), maxLines = 1
+                )
+            }
+        }
+        ImasFitText(
+            title,
+            style = TextStyle(fontSize = titleSize, fontWeight = FontWeight.Black),
+            color = Color.White,
+            maxLines = 2,
+            minScale = 0.6f,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+        if (subtitle != null) {
+            Text(subtitle, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
 // =============================================================================
 // プレビュー + 比率切替 + 共有/保存ボタン (各エントリポイント共通のガワ)
 // =============================================================================
@@ -349,7 +452,7 @@ fun ShareCardActionPane(
         Box(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(DS.rLG))
         ) {
             ShareCardCanvas(size = ratio.size, capture = capture) { card(ratio.size) }
         }
@@ -359,126 +462,74 @@ fun ShareCardActionPane(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            ShareCardButton(
-                label = if (isPreparingCard) "画像を準備中…" else "シェアする",
-                icon = Icons.Filled.Share,
-                filled = true,
-                enabled = !isPreparingCard && !isBusy,
-                loading = isPreparingCard || isBusy,
-                modifier = Modifier.weight(1f)
-            ) {
-                scope.launch {
-                    isBusy = true
-                    val bitmap = capture.toBitmap()
-                    isBusy = false
-                    if (bitmap == null) {
-                        Toast.makeText(context, "シェア画像の生成に失敗しました", Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
-                    ShareCardFiles.share(context, bitmap, fileNamePrefix, shareText)
-                }
-            }
-
-            ShareCardButton(
-                label = "保存",
-                icon = Icons.Filled.Download,
-                filled = false,
-                enabled = !isPreparingCard && !isBusy,
-                loading = false,
-                modifier = Modifier.weight(1f)
-            ) {
-                scope.launch {
-                    isBusy = true
-                    val bitmap = capture.toBitmap()
-                    isBusy = false
-                    if (bitmap == null) {
-                        Toast.makeText(context, "シェア画像の生成に失敗しました", Toast.LENGTH_SHORT).show()
-                        return@launch
-                    }
-                    when (ShareCardFiles.saveToPictures(context, bitmap, fileNamePrefix)) {
-                        ShareCardSaveResult.Saved ->
-                            Toast.makeText(context, "ピクチャに保存しました", Toast.LENGTH_SHORT).show()
-                        ShareCardSaveResult.NeedsDocumentPicker -> {
-                            pendingSave = bitmap
-                            documentPicker.launch(ShareCardFiles.fileName(fileNamePrefix))
+            ImasButton(
+                title = if (isPreparingCard) "画像を準備中…" else "シェアする",
+                onClick = {
+                    scope.launch {
+                        isBusy = true
+                        val bitmap = capture.toBitmap()
+                        isBusy = false
+                        if (bitmap == null) {
+                            Toast.makeText(context, "シェア画像の生成に失敗しました", Toast.LENGTH_SHORT).show()
+                            return@launch
                         }
-                        ShareCardSaveResult.Failed ->
-                            Toast.makeText(context, "保存に失敗しました", Toast.LENGTH_SHORT).show()
+                        ShareCardFiles.share(context, bitmap, fileNamePrefix, shareText)
                     }
-                }
-            }
+                },
+                icon = if (isPreparingCard) null else Icons.Filled.Share,
+                role = ImasButtonRole.PRIMARY,
+                size = ImasButtonSize.LARGE,
+                enabled = !isPreparingCard && !isBusy,
+                isLoading = isBusy,
+                modifier = Modifier.weight(1f)
+            )
+
+            ImasButton(
+                title = "保存",
+                onClick = {
+                    scope.launch {
+                        isBusy = true
+                        val bitmap = capture.toBitmap()
+                        isBusy = false
+                        if (bitmap == null) {
+                            Toast.makeText(context, "シェア画像の生成に失敗しました", Toast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+                        when (ShareCardFiles.saveToPictures(context, bitmap, fileNamePrefix)) {
+                            ShareCardSaveResult.Saved ->
+                                Toast.makeText(context, "ピクチャに保存しました", Toast.LENGTH_SHORT).show()
+                            ShareCardSaveResult.NeedsDocumentPicker -> {
+                                pendingSave = bitmap
+                                documentPicker.launch(ShareCardFiles.fileName(fileNamePrefix))
+                            }
+                            ShareCardSaveResult.Failed ->
+                                Toast.makeText(context, "保存に失敗しました", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                icon = Icons.Filled.Download,
+                role = ImasButtonRole.SECONDARY,
+                size = ImasButtonSize.LARGE,
+                enabled = !isPreparingCard && !isBusy,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
 
-/** 1:1 / 4:5 / 9:16 の切替。選択中だけ塗る素直なセグメント。 */
+/** 1:1 / 4:5 / 9:16 の切替 (`ImasSegmented`。2 行目に用途の一言を添える)。 */
 @Composable
 private fun RatioSwitcher(
     ratios: List<ShareCardRatio>,
     selected: ShareCardRatio,
     onSelect: (ShareCardRatio) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(DS.fill)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        ratios.forEach { item ->
-            val on = item == selected
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (on) DS.surface2 else Color.Transparent)
-                    .clickable { onSelect(item) }
-                    .padding(vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    item.label,
-                    fontSize = 13.sp,
-                    fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
-                    color = if (on) DS.ink else DS.ink2
-                )
-                Text(item.caption, fontSize = 10.sp, color = DS.ink3)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShareCardButton(
-    label: String,
-    icon: ImageVector,
-    filled: Boolean,
-    enabled: Boolean,
-    loading: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val accent = imasTheme(seed = null, brand = null).accent
-    val bg = if (filled) accent else DS.fill
-    val fg = if (filled) Color.White else DS.ink
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(if (enabled) bg else bg.copy(alpha = 0.4f))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 14.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = fg)
-        } else {
-            Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(16.dp))
-        }
-        Spacer(Modifier.width(8.dp))
-        Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = fg)
-    }
+    ImasSegmented(
+        labels = ratios.map { it.label },
+        captions = ratios.map { it.caption },
+        selection = ratios.indexOf(selected),
+        onSelect = { onSelect(ratios[it]) }
+    )
 }
 
 /**
@@ -501,23 +552,11 @@ fun ShareCardSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = DS.Space.screen)
+                .padding(bottom = DS.sp7),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                Spacer(Modifier.weight(1f))
-                Text(
-                    "閉じる",
-                    fontSize = 15.sp,
-                    color = DS.ink2,
-                    modifier = Modifier.clickable(onClick = onDismiss).padding(4.dp)
-                )
-            }
+            ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = onDismiss), title = title)
             content()
         }
     }
