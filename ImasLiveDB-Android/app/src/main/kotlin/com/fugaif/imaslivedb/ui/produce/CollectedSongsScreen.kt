@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.produce
 
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasText
 import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -98,7 +100,10 @@ fun CollectedSongsScreen(
                                 showsBrandBar = true,
                                 density = ImasRowDensity.COMPACT,
                                 onClick = { onSongClick(song.id) }
-                            )
+                            ) {
+                                // 配信日 (前の Android と同じく下段に)。
+                                song.releaseDate?.takeIf { it.isNotEmpty() }?.let { ImasText(it, ImasTextRole.META) }
+                            }
                         }
                     }
                 }

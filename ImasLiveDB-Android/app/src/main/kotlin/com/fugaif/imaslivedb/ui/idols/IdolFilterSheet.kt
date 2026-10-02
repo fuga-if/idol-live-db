@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.idols
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
@@ -77,8 +75,9 @@ fun IdolFilterSheet(
     // 属性チップは単一ブランド選択時のみ (ブランド共通のサブ属性が無いため)。
     val attributesForBrand = brandIds.singleOrNull()?.let { IDOL_BRAND_ATTRIBUTES[it] } ?: emptyList()
 
+    // リセットは絞り込みと並び順だけ戻す (表示形式と CV名併記は表示の好みなので残す。前の Android と同じ)。
     val hasActiveFilters = brandIds.isNotEmpty() || attribute != null ||
-        displayMode != IdolDisplayMode.IDOL_NAME || requireMyPick || requireFavorite || requireNote ||
+        requireMyPick || requireFavorite || requireNote ||
         sortOrder != IdolSortOrder.OFFICIAL || sortAscending != null
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
@@ -94,8 +93,6 @@ fun IdolFilterSheet(
                     onReset = {
                         brandIds = emptySet()
                         attribute = null
-                        displayMode = IdolDisplayMode.IDOL_NAME
-                        showCV = false
                         requireMyPick = false
                         requireFavorite = false
                         requireNote = false
@@ -104,6 +101,7 @@ fun IdolFilterSheet(
                     },
                     onApply = {
                         onApply(brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote, sortOrder, sortAscending)
+                        onDismiss()
                     },
                     title = "フィルタ"
                 )
@@ -115,15 +113,14 @@ fun IdolFilterSheet(
                         onSelect = { displayMode = if (it == 1) IdolDisplayMode.CV_NAME else IdolDisplayMode.IDOL_NAME },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
                     )
-                    // CV名表示中は併記の意味が無いので、押せなくして薄く示す (Android の今の動きのまま)。
-                    Box(Modifier.alpha(if (displayMode == IdolDisplayMode.IDOL_NAME) 1f else 0.45f)) {
-                        ImasToggleRow(
-                            title = "CV名を併記",
-                            subtitle = "アイドル名表示中、CV名を別行で表示する",
-                            isOn = showCV,
-                            onCheckedChange = { if (displayMode == IdolDisplayMode.IDOL_NAME) showCV = it }
-                        )
-                    }
+                    // CV名表示中は併記の意味が無いので押せなくする。
+                    ImasToggleRow(
+                        title = "CV名を併記",
+                        subtitle = "アイドル名表示中、CV名を別行で表示する",
+                        isOn = showCV,
+                        onCheckedChange = { showCV = it },
+                        enabled = displayMode == IdolDisplayMode.IDOL_NAME
+                    )
                 }
 
                 ImasListSection(
@@ -150,9 +147,10 @@ fun IdolFilterSheet(
                     )
                 }
 
-                ImasListSection(title = "ブランド", footer = "複数選択可能") {
+                ImasListSection(title = "ブランド") {
                     ImasBrandPicker(
                         brands = brands,
+                        includesAll = false,
                         selection = brandIds,
                         onSelectionChange = { brandIds = it; attribute = null },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)

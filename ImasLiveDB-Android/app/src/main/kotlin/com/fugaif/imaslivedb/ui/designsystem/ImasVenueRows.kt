@@ -545,6 +545,7 @@ private fun TicketStackEdge(text: String, depth: Int) {
  * @param entityId 渡すと端末に取り込んだ写真を引く。
  * @param onTogglePick 担当の印を押したとき。null なら担当の欄を出さない。
  * @param copyItems 名前を長押ししたときのコピー (名前・よみ・CV)。
+ * @param onIconTap アイコン本体を押したとき (写真を選ぶなど)。null なら押せない。
  */
 @Composable
 fun ImasIdolHeader(
@@ -562,7 +563,9 @@ fun ImasIdolHeader(
     onTogglePick: (() -> Unit)? = null,
     copyItems: List<CopyItem> = emptyList(),
     stats: List<ImasBoardCell> = emptyList(),
-    iconAccessory: (@Composable BoxScope.() -> Unit)? = null
+    iconAccessory: (@Composable BoxScope.() -> Unit)? = null,
+    onIconTap: (() -> Unit)? = null,
+    iconTapLabel: String? = null
 ) {
     val t = imasThemeForBrand(seed, brand)
     val color = if (t.isNeutral) DS.ink else t.penlight
@@ -601,7 +604,8 @@ fun ImasIdolHeader(
                         size = 72.dp,
                         isPick = isPick,
                         imageUrl = imageUrl,
-                        entityId = entityId
+                        entityId = entityId,
+                        modifier = if (onIconTap != null) Modifier.clickable(onClickLabel = iconTapLabel, onClick = onIconTap) else Modifier
                     )
                     iconAccessory?.let { Box(Modifier.align(Alignment.BottomEnd)) { it() } }
                 }
@@ -659,8 +663,8 @@ private fun PickColumn(isPick: Boolean, color: Color, onClick: () -> Unit) {
         Modifier
             .width(64.dp)
             .fillMaxHeight()
-            .imasPress(onClickLabel = if (isPick) "担当から外す" else "担当にする", onClick = onClick)
-            .clearAndSetSemantics { contentDescription = if (isPick) "担当から外す" else "担当にする" },
+            .imasPress(onClickLabel = if (isPick) "担当解除" else "担当に追加", onClick = onClick)
+            .clearAndSetSemantics { contentDescription = if (isPick) "担当解除" else "担当に追加" },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
     ) {

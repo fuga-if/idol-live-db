@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import uniffi.imas_core.groupIndicesByYearDesc
+import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
+import androidx.compose.material.icons.filled.LocationOn
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -78,7 +81,6 @@ import com.fugaif.imaslivedb.data.image.CustomImageStore
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
@@ -113,7 +115,6 @@ import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.filtered.IdolFilterKind
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
-import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasThemeProvider
@@ -122,7 +123,6 @@ import kotlinx.coroutines.launch
 import uniffi.imas_core.IdolProfileSource
 import uniffi.imas_core.RowAction
 import uniffi.imas_core.RowStyle
-import uniffi.imas_core.dateLabel
 import uniffi.imas_core.idolProfileRowsFromSource
 import java.io.File
 import com.fugaif.imaslivedb.data.local.localWrite
@@ -335,7 +335,7 @@ private fun CommunityBody(
         Column {
             ImasSectionHeader(
                 "タグ", count = "${tags.size}",
-                actionTitle = if (canEditHere) "タグ" else null,
+                actionTitle = if (canEditHere) "タグを追加" else null,
                 actionIcon = if (canEditHere) Icons.Filled.Add else null,
                 onAction = if (canEditHere) onOpenTagPicker else null
             )
@@ -344,9 +344,10 @@ private fun CommunityBody(
             } else {
                 ImasChipFlow(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)) {
                     tags.forEach { tag ->
-                        val label = if (tag.voteCount > 0) "${tag.name} ${tag.voteCount}" else tag.name
                         ImasChip(
-                            text = label,
+                            text = tag.name,
+                            // 票数は名前と別に出す (名前が長くても票数は省略されない)。
+                            count = if (tag.voteCount > 0) "${tag.voteCount}" else null,
                             style = if (tag.mine) ImasChipStyle.SELECTED else ImasChipStyle.THEMED,
                             seed = seed, brand = brand,
                             // タップは投票トグル、長押しでタグ詳細。
@@ -401,6 +402,8 @@ private fun Hero(idol: Idol, brandShortName: String?, castShowCount: Int, perfor
             brand = idol.brandId,
             iconLabel = idol.shortName,
             entityId = idol.id,
+            onIconTap = pickAvatar,
+            iconTapLabel = "アイコン写真を変更",
             onTogglePick = {
                 scope.launch { localWrite("担当の切り替え") { marks.toggle(UserMark.IDOL, idol.id, UserMark.PICK) }?.let { pick = it } }
             },
@@ -412,10 +415,10 @@ private fun Hero(idol: Idol, brandShortName: String?, castShowCount: Int, perfor
             iconAccessory = {
                 ImasIconBadge(
                     icon = Icons.Filled.PhotoCamera,
-                    label = "写真を選ぶ",
+                    label = "アイコン写真を変更",
                     seed = idol.color,
                     brand = idol.brandId,
-                    modifier = Modifier.imasRowPress(onClickLabel = "写真を選ぶ", onClick = pickAvatar)
+                    modifier = Modifier.imasRowPress(onClickLabel = "アイコン写真を変更", onClick = pickAvatar)
                 )
             }
         )
@@ -459,9 +462,10 @@ private fun LiveBody(
             ImasTicket(
                 label = "次の出演",
                 imprint = null,
-                title = AppPreferences.eventDisplayName(next.eventName),
-                metaImprint = dateLabel(next.date, JstDay.today()),
+                title = next.eventName,
+                metaImprint = monthDay(next.date),
                 meta = listOfNotNull(next.venue, next.showName).filter { it.isNotEmpty() }.joinToString(" ・ "),
+                metaIcon = Icons.Filled.LocationOn,
                 seed = idol.color,
                 brand = idol.brandId,
                 modifier = Modifier.padding(horizontal = DS.Space.screen),
@@ -480,6 +484,7 @@ private fun LiveBody(
                         song = item.song,
                         subtitle = item.song.singerLabel?.takeIf { it.isNotEmpty() } ?: item.song.unitName,
                         density = ImasRowDensity.COMPACT,
+                        playsPreview = false,
                         onClick = { onSongHistory(item.song.id) }
                     ) {
                         if (item.performCount != null) ImasMetric("${item.performCount}", unit = "回", size = ImasNumeralSize.SMALL)
@@ -490,14 +495,18 @@ private fun LiveBody(
         if (state.castShows.isNotEmpty()) {
             Column {
                 ImasSectionHeader("出演履歴", count = "${state.castShows.size}", tight = true)
+                // 年ごとに区切る (行の日付の札は月日だけなので、年は見出しで示す)。区切り方はコア。
+                val yearGroups = remember(state.castShows) { groupIndicesByYearDesc(state.castShows.map { it.date }) }
+                yearGroups.forEach { group ->
+                ImasDateHeader(big = group.label, modifier = Modifier.padding(horizontal = DS.Space.screen))
                 ImasCardList(
-                    items = state.castShows,
+                    items = group.indices.map { state.castShows[it.toInt()] },
                     modifier = Modifier.padding(horizontal = DS.Space.screen),
                     key = { it.showId }
                 ) { row ->
                     ImasShowRow(
                         date = row.date,
-                        title = AppPreferences.eventDisplayName(row.eventName),
+                        title = row.eventName,
                         subtitle = listOf(row.venue, row.showName).mapNotNull { it?.takeIf { s -> s.isNotEmpty() } }.joinToString(" ・ "),
                         seed = idol.color,
                         brand = idol.brandId,
@@ -506,6 +515,7 @@ private fun LiveBody(
                             else emptyList(),
                         modifier = Modifier.imasRowPress(onClick = { onShow(row.showId) })
                     )
+                }
                 }
             }
         }
@@ -574,6 +584,7 @@ private fun SongsBody(state: IdolDetailUiState, idol: Idol, onUnit: (String) -> 
                         song = song,
                         subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
                         density = ImasRowDensity.COMPACT,
+                        playsPreview = false,
                         onClick = { onSong(song.id) }
                     )
                 }
@@ -855,3 +866,11 @@ private fun GalleryThumb(
     }
 }
 
+/** "2026-06-21" → "6/21" */
+private fun monthDay(date: String): String {
+    val parts = date.take(10).split("-")
+    if (parts.size != 3) return date
+    val m = parts[1].toIntOrNull() ?: return date
+    val d = parts[2].toIntOrNull() ?: return date
+    return "$m/$d"
+}

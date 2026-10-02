@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.schedule
 
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -302,7 +304,9 @@ private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Uni
         title = "${date.monthValue}月${date.dayOfMonth}日",
         value = if (count > 0) "$count 件" else null,
         showsChevron = count > 0,
-        onClick = onOpenSheet
+        onClick = onOpenSheet,
+        // 押すと何が開くかを読み上げる (前の Android の「この日の詳細」)。
+        modifier = if (count > 0) Modifier.semantics { onClick(label = "この日の詳細") { onOpenSheet(); true } } else Modifier
     )
 }
 

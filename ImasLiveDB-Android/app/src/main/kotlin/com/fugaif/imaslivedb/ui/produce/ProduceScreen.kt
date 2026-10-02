@@ -47,7 +47,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.games.QuizSuspended
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
@@ -73,7 +72,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import uniffi.imas_core.dateLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,6 +149,8 @@ fun ProduceScreen(
                         title = poll.title,
                         eyebrow = "お題",
                         subtitle = "${poll.totalVotes}票 · ${poll.entryCount}候補 · ${poll.remainingLabel}",
+                        // カード全体で詳細へ (前の Android と同じ)。
+                        onOpen = { onNavigateToPollDetail(poll.id) },
                         primary = ImasFeatureAction(title = "投票する", icon = Icons.Filled.ThumbUp) {
                             onNavigateToPollDetail(poll.id)
                         }
@@ -262,7 +262,7 @@ private fun NextLiveCard(next: NextLive, seed: String?, onPredict: () -> Unit) {
             label = next.statusLabel,
             imprint = null,
             title = AppPreferences.eventDisplayName(next.event.name),
-            metaImprint = dateLabel(next.show.date, JstDay.today()),
+            metaImprint = next.show.date.take(10),
             meta = next.show.name.takeIf { it.isNotEmpty() && it != next.event.name },
             seed = seed,
             brand = next.event.brandId,

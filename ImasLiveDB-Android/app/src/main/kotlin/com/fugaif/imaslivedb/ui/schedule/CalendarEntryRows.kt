@@ -19,6 +19,7 @@ import com.fugaif.imaslivedb.data.model.TicketDateKind
 import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.data.repository.CalendarShowDetail
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeadBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
@@ -57,6 +58,7 @@ internal fun CalendarEntryRow(
             EntryRow(
                 icon = Icons.Filled.Mic,
                 brand = entry.row.brandId,
+                leadBar = ImasRowLeadBar(brand = entry.row.brandId),
                 title = AppPreferences.eventDisplayName(entry.row.eventName),
                 subtitle = sub.ifEmpty { null },
                 trailing = trailing,
@@ -66,10 +68,12 @@ internal fun CalendarEntryRow(
 
         is CalendarEntry.Birthday -> EntryRow(
             icon = Icons.Filled.CardGiftcard,
-            // CalBirthdayRow はアイドル本人の色を運んでいないので、お気に入りの印と同じ桃で点ける。
-            seed = null,
+            // CalBirthdayRow はアイドル本人の色を運んでいないので、誕生日の桃で点ける (前の Android と同じ)。
+            seed = CalendarThemeSeed.STAFF_BIRTHDAY,
             tone = ImasIconTileTone.THEMED,
-            title = "${entry.row.name} 誕生日",
+            leadBar = ImasRowLeadBar(brand = entry.row.brandId),
+            title = entry.row.name,
+            subtitle = "誕生日",
             trailing = trailing,
             onClick = { onNavigateToIdol(entry.row.id) }
         )
@@ -79,6 +83,7 @@ internal fun CalendarEntryRow(
         is CalendarEntry.StaffBirthday -> EntryRow(
             icon = Icons.Filled.Person,
             seed = CalendarThemeSeed.STAFF_BIRTHDAY,
+            leadBar = ImasRowLeadBar(brand = entry.row.brandId),
             title = "${entry.row.name} 誕生日",
             subtitle = entry.row.role,
             trailing = trailing
@@ -87,6 +92,7 @@ internal fun CalendarEntryRow(
         is CalendarEntry.Anniversary -> EntryRow(
             icon = Icons.Filled.AutoAwesome,
             seed = CalendarThemeSeed.ANNIVERSARY,
+            leadBar = ImasRowLeadBar(brand = entry.row.brandId),
             title = if (entry.years == 0) "${entry.row.label} (初日)" else "${entry.years}周年 ・ ${entry.row.label}",
             subtitle = "${entry.row.date.take(4)} 起点",
             showsChevron = false,
@@ -112,6 +118,8 @@ private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)
         // 申込締切は「その日までにやること」なので緊急の記号色、それ以外はチケット系の藍 (iOS と同じ)。
         seed = if (row.kind == TicketDateKind.DEADLINE) null else CalendarThemeSeed.TICKET,
         tone = if (row.kind == TicketDateKind.DEADLINE) ImasIconTileTone.NEGATIVE else ImasIconTileTone.THEMED,
+        // コアが JOIN 済みの brand の色 (brand_id は返らない)。
+        leadBar = ImasRowLeadBar(seed = row.brandColor),
         // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
         title = "${row.kind.label} ・ ${row.label}",
         subtitle = when (row.kind) {
@@ -135,6 +143,7 @@ private fun TicketPeriodRowView(
     EntryRow(
         icon = Icons.Filled.DateRange,
         seed = CalendarThemeSeed.TICKET,
+        leadBar = ImasRowLeadBar(seed = row.brandColor),
         title = "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
         subtitle = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
         trailing = trailing,
@@ -155,6 +164,7 @@ private fun EntryRow(
     seed: String? = null,
     brand: String? = null,
     tone: ImasIconTileTone = ImasIconTileTone.THEMED,
+    leadBar: ImasRowLeadBar? = null,
     showsChevron: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null
@@ -164,6 +174,7 @@ private fun EntryRow(
         modifier = modifier.then(if (onClick != null) Modifier.imasRowPress(onClick = onClick) else Modifier),
         subtitle = subtitle,
         leading = ImasRowLeading.Icon(icon, tone = tone, seed = seed, brand = brand),
+        leadBar = leadBar,
         trailing = when {
             trailing != null -> ImasRowTrailing.Custom(trailing)
             showsChevron && onClick != null -> ImasRowTrailing.Chevron
@@ -179,6 +190,7 @@ private fun ReleaseRows(rows: List<CalReleaseRow>, trailing: (@Composable () -> 
         EntryRow(
             icon = Icons.Filled.Album,
             tone = ImasIconTileTone.ATTENTION,
+            leadBar = ImasRowLeadBar(brand = song.brandId),
             title = song.title,
             subtitle = "リリース",
             trailing = trailing,

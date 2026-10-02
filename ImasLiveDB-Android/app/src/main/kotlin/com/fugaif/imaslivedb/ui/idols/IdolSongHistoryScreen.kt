@@ -1,5 +1,9 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import com.fugaif.imaslivedb.ui.theme.DS
+import androidx.compose.runtime.remember
+import uniffi.imas_core.groupIndicesByYearDesc
+import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
 import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -93,15 +97,21 @@ fun IdolSongHistoryScreen(
                 // 副題からは外す (下段に重複させない)。題は Android の今の表示名設定 (eventDisplayName) のまま。
                 else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     ImasSectionHeader(title = "披露履歴", count = "${state.history.size}", tight = true)
-                    ImasCardList(items = state.history, style = ImasCardListStyle.PLAIN, key = { it.showId }) { row ->
+                    // 年ごとに区切る (半券の日付は月日だけなので、年は見出しで示す)。区切り方はコア。
+                    val yearGroups = remember(state.history) { groupIndicesByYearDesc(state.history.map { it.date }) }
+                    yearGroups.forEach { group ->
+                    ImasDateHeader(big = group.label, modifier = Modifier.padding(horizontal = DS.Space.screen))
+                    ImasCardList(items = group.indices.map { state.history[it.toInt()] }, style = ImasCardListStyle.PLAIN, key = { it.showId }) { row ->
                         ImasShowRow(
                             date = row.date,
                             title = AppPreferences.eventDisplayName(row.eventName),
                             subtitle = listOfNotNull(row.venue, row.showName).filter { it.isNotEmpty() }.joinToString(" ・ "),
                             seed = idol?.color,
                             brand = idol?.brandId,
+                            showsChevron = true,
                             modifier = Modifier.imasRowPress(onClick = { onShowClick(row.showId) })
                         )
+                    }
                     }
                 }
             }

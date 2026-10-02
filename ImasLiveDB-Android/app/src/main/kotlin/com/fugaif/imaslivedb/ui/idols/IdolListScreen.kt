@@ -1,5 +1,12 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -134,8 +141,8 @@ fun IdolListScreen(
         }
     }
 
-    // 身長順・年齢順などブランドを跨ぐ並びのときだけの「通し」見出し (題のみ。件数は各表示側で添える)。
-    val flatHeader = if (state.sortOrder.keepsBrandGrouping) null else "${state.sortOrder.label}順"
+    // 身長順・年齢順などブランドを跨ぐ並びのときだけの「通し」見出し (「身長順 ・ N人」)。
+    val flatHeader = if (state.sortOrder.keepsBrandGrouping) null else "${state.sortOrder.label}順 ・ ${filteredIdols.size}人"
 
     fun displayName(idol: Idol): String =
         if (state.displayMode == IdolDisplayMode.CV_NAME) (state.castNames[idol.id] ?: idol.name) else idol.name
@@ -274,7 +281,6 @@ fun IdolListScreen(
                                 item(key = "flat_header") {
                                     ImasSectionHeader(
                                         title = flatHeader,
-                                        count = "${filteredIdols.size}人",
                                         style = ImasSectionHeaderStyle.SMALL
                                     )
                                 }
@@ -348,6 +354,14 @@ private fun BrandSectionHeader(brand: Brand, count: Int, expanded: Boolean, onTo
     Row(
         modifier = Modifier.fillMaxWidth()
             .imasRowPress(onClickLabel = if (expanded) "折りたたむ" else "展開", onClick = onToggle)
+            // 「ブランド名 人数」と開閉を 1 つの押せる項目として読ませる (前の Android と同じ)。
+            .clearAndSetSemantics {
+                contentDescription = "${brand.shortName} $count"
+                stateDescription = if (expanded) "展開中" else "折りたたみ中"
+                role = Role.Button
+                heading()
+                onClick(label = if (expanded) "折りたたむ" else "展開") { onToggle(); true }
+            }
             .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -442,7 +456,6 @@ private fun IdolGrid(
                 item(key = "flat_header", span = { GridItemSpan(maxLineSpan) }) {
                     ImasSectionHeader(
                         title = flatHeader,
-                        count = "${flatIdols.size}人",
                         style = ImasSectionHeaderStyle.SMALL
                     )
                 }

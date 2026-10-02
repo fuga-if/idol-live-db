@@ -1,5 +1,12 @@
 package com.fugaif.imaslivedb.ui.units
 
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -183,6 +190,14 @@ private fun BrandSectionHeader(brand: Brand, count: Int, expanded: Boolean, onTo
     Row(
         modifier = Modifier.fillMaxWidth()
             .imasRowPress(onClickLabel = if (expanded) "折りたたむ" else "展開", onClick = onToggle)
+            // 「ブランド名 人数」と開閉を 1 つの押せる項目として読ませる (前の Android と同じ)。
+            .clearAndSetSemantics {
+                contentDescription = "${brand.shortName} $count"
+                stateDescription = if (expanded) "展開中" else "折りたたみ中"
+                role = Role.Button
+                heading()
+                onClick(label = if (expanded) "折りたたむ" else "展開") { onToggle(); true }
+            }
             .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {

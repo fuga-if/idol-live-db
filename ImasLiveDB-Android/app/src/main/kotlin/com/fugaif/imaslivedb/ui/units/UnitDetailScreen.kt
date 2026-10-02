@@ -281,7 +281,7 @@ private fun CommunityBody(
         Column {
             ImasSectionHeader(
                 "タグ", count = "${tags.size}",
-                actionTitle = if (canEditHere) "タグ" else null,
+                actionTitle = if (canEditHere) "タグを追加" else null,
                 actionIcon = if (canEditHere) Icons.Filled.Add else null,
                 onAction = if (canEditHere) onOpenTagPicker else null
             )
@@ -290,9 +290,10 @@ private fun CommunityBody(
             } else {
                 ImasChipFlow(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)) {
                     tags.forEach { tag ->
-                        val label = if (tag.voteCount > 0) "${tag.name} ${tag.voteCount}" else tag.name
                         ImasChip(
-                            text = label,
+                            text = tag.name,
+                            // 票数は名前と別に出す (名前が長くても票数は省略されない)。
+                            count = if (tag.voteCount > 0) "${tag.voteCount}" else null,
                             style = if (tag.mine) ImasChipStyle.SELECTED else ImasChipStyle.THEMED,
                             // タップは投票トグル、長押しでタグ詳細 (アイドルタグのチップと同じ作法)。
                             modifier = Modifier.combinedClickable(
@@ -306,7 +307,7 @@ private fun CommunityBody(
         }
         // タグが似ているユニット (このユニットが好きな人にはこのユニットも, サーバ算出)
         if (similarUnits.isNotEmpty()) {
-            UnitGridSection("タグが似ているユニット", similarUnits, onUnitClick, badge = similarSharedTags)
+            UnitGridSection("タグが似ているユニット", similarUnits, onUnitClick)
         }
     }
 }

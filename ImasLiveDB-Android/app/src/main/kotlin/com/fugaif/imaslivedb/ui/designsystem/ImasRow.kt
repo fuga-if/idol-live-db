@@ -51,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
@@ -722,12 +723,15 @@ fun ImasToggleRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: ImageVector? = null,
-    position: ImasRowPosition? = null
+    position: ImasRowPosition? = null,
+    enabled: Boolean = true
 ) {
     val haptics = rememberImasHaptics()
     ImasRow(
         title = title,
-        modifier = modifier.toggleable(value = isOn, role = Role.Switch) {
+        modifier = modifier
+            .alpha(if (enabled) 1f else 0.45f)
+            .toggleable(value = isOn, enabled = enabled, role = Role.Switch) {
             haptics.selection()
             onCheckedChange(it)
         },
@@ -989,7 +993,7 @@ enum class ImasMarkKind {
 
     /** 読み上げ (押したら何が起きるか)。 */
     fun accessibilityLabel(isOn: Boolean): String = when (this) {
-        PICK -> if (isOn) "担当から外す" else "担当にする"
+        PICK -> if (isOn) "担当解除" else "担当に追加"
         FAVORITE -> if (isOn) "お気に入りから外す" else "お気に入りにする"
         OWNED -> if (isOn) "所有から外す" else "所有を記録"
     }
