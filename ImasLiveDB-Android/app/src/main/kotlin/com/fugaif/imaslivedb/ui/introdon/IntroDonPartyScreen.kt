@@ -15,13 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -52,12 +49,19 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
-import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasStagePlaybackControl
+import com.fugaif.imaslivedb.ui.designsystem.ImasStagePlaybackStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageScoreChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageVersusPlayer
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageVersusResult
+import com.fugaif.imaslivedb.ui.navigation.BottomBarVisibility
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
+import com.fugaif.imaslivedb.ui.theme.ImasDarkNavigationBar
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.QS
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import com.fugaif.imaslivedb.ui.theme.imasPress
 import kotlinx.coroutines.CancellationException
@@ -260,25 +264,31 @@ fun IntroDonPartyScreen(
 
     DisposableEffect(Unit) { onDispose { viewModel.stopAndCleanup() } }
 
-    Box(Modifier.fillMaxSize().background(DS.bg)) {
-        when (state.phase) {
-            PartyPhase.LOADING -> LoadingOverlay(state.errorMessage, onExit)
-            PartyPhase.FINISHED -> FinishedOverlay(state, onReplay = { viewModel.generateQuestions() }, onExit = onExit)
-            else -> SplitLayout(state, viewModel)
+    // 対戦中もソロ戦と同じく、ライト/ダークで反転しない暗いステージに固定する
+    // (docs/DESIGN_SYSTEM.md §12。iOS `IntroPartyGameView` と同じ組み方)。
+    BottomBarVisibility.Hide()
+    ImasDarkNavigationBar()
+    ImasAlwaysDark {
+        Box(Modifier.fillMaxSize().background(QS.bg)) {
+            when (state.phase) {
+                PartyPhase.LOADING -> LoadingOverlay(state.errorMessage, onExit)
+                PartyPhase.FINISHED -> FinishedOverlay(state, onReplay = { viewModel.generateQuestions() }, onExit = onExit)
+                else -> SplitLayout(state, viewModel)
+            }
+
+            IconButton(onClick = { showExitDialog = true }, modifier = Modifier.padding(DS.Space.gapTight)) {
+                Icon(Icons.Filled.Close, "終了", tint = QS.dim)
+            }
         }
 
-        IconButton(onClick = { showExitDialog = true }, modifier = Modifier.padding(DS.Space.gapTight)) {
-            Icon(Icons.Filled.Close, "終了", tint = DS.ink2)
-        }
+        ImasConfirmDestructive(
+            title = "対戦を終了しますか？",
+            isPresented = showExitDialog,
+            onDismiss = { showExitDialog = false },
+            onConfirm = onExit,
+            actionTitle = "終了"
+        )
     }
-
-    ImasConfirmDestructive(
-        title = "対戦を終了しますか？",
-        isPresented = showExitDialog,
-        onDismiss = { showExitDialog = false },
-        onConfirm = onExit,
-        actionTitle = "終了"
-    )
 }
 
 @Composable
@@ -315,11 +325,11 @@ private fun PlayerHalf(index: Int, rotationDeg: Float, state: IntroDonPartyUiSta
 
     val bg = when {
         state.phase == PartyPhase.BUZZED && state.buzzedPlayer == index -> color.copy(alpha = 0.18f)
-        state.phase == PartyPhase.BUZZED -> DS.bg
-        state.phase == PartyPhase.REVEALED -> if (state.lastCorrect && state.lastAnswerer == index) DS.success.copy(alpha = 0.22f) else DS.surface
-        // 押せない側 (脱落・出題前) は iOS と同じく、モードに関係なく暗い面にする。上に載る「OUT」と
-        // プレイヤー名は白抜きなので、ライトの紙の面だと消える。DS で常に暗いのは電光掲示板の板。
-        else -> if (buzzable) color else DS.board
+        state.phase == PartyPhase.BUZZED -> QS.bg
+        state.phase == PartyPhase.REVEALED -> if (state.lastCorrect && state.lastAnswerer == index) DS.success.copy(alpha = 0.22f) else QS.panel
+        // 押せない側 (脱落・出題前) は iOS と同じく、常に暗いステージの面にする。上に載る「OUT」と
+        // プレイヤー名は白抜きなので、紙の面だと消える。
+        else -> if (buzzable) color else QS.raised
     }
 
     Box(
@@ -331,7 +341,7 @@ private fun PlayerHalf(index: Int, rotationDeg: Float, state: IntroDonPartyUiSta
         Box(Modifier.graphicsLayer(rotationZ = rotationDeg)) {
             when {
                 state.phase == PartyPhase.BUZZED && state.buzzedPlayer == index -> AnswerChoices(index, state, viewModel)
-                state.phase == PartyPhase.BUZZED -> ImasText("相手が回答中…", ImasTextRole.ROW_LABEL, color = DS.ink3)
+                state.phase == PartyPhase.BUZZED -> ImasText("相手が回答中…", ImasTextRole.ROW_LABEL, color = QS.faint)
                 state.phase == PartyPhase.REVEALED -> RevealHalfContent(index, state)
                 else -> BuzzContent(player, color, eliminated)
             }
@@ -344,9 +354,9 @@ private fun BuzzContent(player: PartyPlayer, backgroundColor: androidx.compose.u
     val bigIconSize = with(LocalDensity.current) { 30.sp.toDp() }
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         if (eliminated) {
-            // 脱落時の地は常に暗い DS.board (iOS と同じ)。文字はその板の専用インク。
-            Icon(Icons.Filled.Cancel, null, tint = DS.boardDim, modifier = Modifier.size(bigIconSize))
-            ImasText("OUT", ImasTextRole.CARD_TITLE, color = DS.boardDim)
+            // 脱落時の地は常に暗いステージの面 (iOS と同じ)。文字はその上の控えめなインク。
+            Icon(Icons.Filled.Cancel, null, tint = QS.dim, modifier = Modifier.size(bigIconSize))
+            ImasText("OUT", ImasTextRole.CARD_TITLE, color = QS.dim)
         } else {
             val onColor = ImasTheme.onColor(backgroundColor)
             ImasText(player.name, ImasTextRole.HERO_TITLE, color = onColor)
@@ -397,8 +407,8 @@ private fun RevealHalfContent(index: Int, state: IntroDonPartyUiState) {
             verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
             modifier = Modifier.padding(horizontal = DS.Space.rowH)
         ) {
-            ImasText("正解", ImasTextRole.META, color = DS.ink3)
-            ImasText(q.title, ImasTextRole.ROW_LABEL, color = DS.ink, textAlign = TextAlign.Center, maxLines = 2)
+            ImasText("正解", ImasTextRole.META, color = QS.faint)
+            ImasText(q.title, ImasTextRole.ROW_LABEL, color = QS.ink, textAlign = TextAlign.Center, maxLines = 2)
         }
     }
 }
@@ -406,14 +416,14 @@ private fun RevealHalfContent(index: Int, state: IntroDonPartyUiState) {
 @Composable
 private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyViewModel) {
     Column(
-        modifier = Modifier.fillMaxWidth().height(DS.Size.touch * 3).background(DS.surface).padding(horizontal = DS.Space.rowGap),
+        modifier = Modifier.fillMaxWidth().height(DS.Size.touch * 3).background(QS.panel).padding(horizontal = DS.Space.rowGap),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
-            ScoreChip(0, state)
-            ImasText("${(state.currentIndex + 1).coerceAtMost(state.totalRounds)} / ${state.totalRounds}", ImasTextRole.META, color = DS.ink3)
-            ScoreChip(1, state)
+            ImasStageScoreChip(colorHex = partyPlayers[0].colorHex, name = partyPlayers[0].name, score = state.scores[0])
+            ImasText("${(state.currentIndex + 1).coerceAtMost(state.totalRounds)} / ${state.totalRounds}", ImasTextRole.META, color = QS.faint)
+            ImasStageScoreChip(colorHex = partyPlayers[1].colorHex, name = partyPlayers[1].name, score = state.scores[1])
         }
         when (state.phase) {
             PartyPhase.REVEALED -> {
@@ -429,7 +439,7 @@ private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyVie
             PartyPhase.BUZZED -> ImasText(
                 "早押し成立！回答してください",
                 ImasTextRole.ROW_SUBTITLE,
-                color = DS.ink,
+                color = QS.ink,
                 modifier = Modifier.padding(top = DS.Space.gap)
             )
             else -> Row(
@@ -437,7 +447,16 @@ private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyVie
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = DS.Space.gap)
             ) {
-                PlayButton(state, viewModel)
+                // タップ = 頭から再生、長押し = 流し続ける (iOS `playButton` と同じ ImasStagePlaybackControl)。
+                ImasStagePlaybackControl(
+                    isPlaying = state.isPlayingIntro,
+                    style = ImasStagePlaybackStyle.CIRCLE,
+                    pausedLabel = "頭から再生",
+                    accessibilityHintText = "タップで頭から再生します。長押しの間は流し続けます",
+                    onTap = { viewModel.replayIntro() },
+                    onHoldBegin = { viewModel.continueHeld() },
+                    onHoldEnd = { viewModel.pauseHeld() }
+                )
                 ImasButton(title = "わからない", onClick = { viewModel.giveUp() }, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL)
             }
         }
@@ -445,64 +464,15 @@ private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyVie
 }
 
 @Composable
-private fun PlayButton(state: IntroDonPartyUiState, viewModel: IntroDonPartyViewModel) {
-    val glyphSize = with(LocalDensity.current) { 15.sp.toDp() }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-        Box(
-            modifier = Modifier
-                .size(DS.Size.touch)
-                .background(if (state.isPlayingIntro) DS.ink else DS.fill, CircleShape)
-                .imasPress(onClick = { viewModel.replayIntro() }),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                if (state.isPlayingIntro) Icons.Filled.MusicNote else Icons.Filled.PlayArrow, null,
-                tint = if (state.isPlayingIntro) DS.bg else DS.ink,
-                modifier = Modifier.size(glyphSize)
-            )
-        }
-        ImasText("タップでもう一度", ImasTextRole.META)
-    }
-}
-
-@Composable
-private fun ScoreChip(index: Int, state: IntroDonPartyUiState) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-        Box(Modifier.size(DS.Space.gapLoose).background(hexToColor(partyPlayers[index].colorHex), CircleShape))
-        ImasText(partyPlayers[index].name, ImasTextRole.SECTION_LABEL)
-        ImasMetric(value = "${state.scores[index]}", size = ImasNumeralSize.MEDIUM, emphasized = true)
-    }
-}
-
-@Composable
 private fun FinishedOverlay(state: IntroDonPartyUiState, onReplay: () -> Unit, onExit: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = DS.Space.section),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(DS.Space.section, Alignment.CenterVertically)
+    val winner = state.winner
+    ImasStageVersusResult(
+        winnerColorHex = winner?.let { partyPlayers[it].colorHex },
+        headline = winner?.let { "${partyPlayers[it].name} の勝ち！" } ?: "引き分け",
+        players = ImasStageVersusPlayer(partyPlayers[0].name, partyPlayers[0].colorHex, state.scores[0]) to
+            ImasStageVersusPlayer(partyPlayers[1].name, partyPlayers[1].colorHex, state.scores[1])
     ) {
-        val winner = state.winner
-        if (winner != null) {
-            ImasText("${partyPlayers[winner].name} の勝ち！", ImasTextRole.HERO_TITLE, color = hexToColor(partyPlayers[winner].colorHex))
-        } else {
-            ImasText("引き分け", ImasTextRole.HERO_TITLE)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Bottom) {
-            FinalScore(0, state)
-            ImasText("vs", ImasTextRole.ROW_SUBTITLE, color = DS.ink3)
-            FinalScore(1, state)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap), modifier = Modifier.fillMaxWidth()) {
-            ImasButton(title = "もう一度", onClick = onReplay, role = ImasButtonRole.PRIMARY, size = ImasButtonSize.LARGE, fillsWidth = true)
-            ImasButton(title = "退出", onClick = onExit, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.LARGE, fillsWidth = true)
-        }
-    }
-}
-
-@Composable
-private fun FinalScore(index: Int, state: IntroDonPartyUiState) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-        ImasText(partyPlayers[index].name, ImasTextRole.ROW_SUBTITLE, color = hexToColor(partyPlayers[index].colorHex))
-        ImasMetric(value = "${state.scores[index]}", size = ImasNumeralSize.LARGE, emphasized = true)
+        ImasButton(title = "もう一度", onClick = onReplay, role = ImasButtonRole.PRIMARY, size = ImasButtonSize.LARGE, fillsWidth = true)
+        ImasButton(title = "退出", onClick = onExit, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.LARGE, fillsWidth = true)
     }
 }
