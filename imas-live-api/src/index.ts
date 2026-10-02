@@ -17,6 +17,7 @@ import { handleLyricsTimings } from "./routes/timings";
 import { handleLyricLikes } from "./routes/lyric_likes";
 import { handleLyricStructure } from "./routes/lyric_structure";
 import { handleMusicToken } from "./routes/music_token";
+import { handleMusicAuth } from "./routes/music_auth";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleTransfer } from "./routes/transfer";
 import { handleDiscord } from "./routes/discord";
@@ -210,6 +211,10 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
       "DELETE /songs/:song_id/lyric-likes/:line_id",
       "POST /songs/:song_id/lyric-structure",
       "GET /music-token",
+      "POST /music-auth/start",
+      "GET /music-auth",
+      "POST /music-auth/deposit",
+      "GET /music-auth/take",
       "POST /discord/link",
       "POST /discord/interactions",
     ],
@@ -256,6 +261,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   handleLyricStructure,
   // Apple Music のデベロッパトークン (Android の MusicKit 再生用、GET /music-token)。
   handleMusicToken,
+  // Android の Apple Music サインイン (ブラウザで取ったトークンの受け渡し)。
+  handleMusicAuth,
   // GET /calls/dashboard — 整備状況 (件数・日時・表示名だけ)。
   // ⚠️ 歌詞本文もコール本文もアンカー文字列も含めない。含めた瞬間に、認証不要 =
   //    edgeCacheEligible の公開キャッシュに歌詞の断片が載る (routes/calls.ts 冒頭)。

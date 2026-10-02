@@ -124,7 +124,7 @@ const DEFAULT_IP_LIMITS: IpRateLimits = { perMinute: IP_RATE_LIMIT_PER_MINUTE };
  *   feed      … 編集フィード (GET /edits)
  *   community … 端末集計の書き込み (お気に入り・ペンライト・タグ)
  */
-export type IpRateScope = "lyrics" | "feed" | "community" | "music_token";
+export type IpRateScope = "lyrics" | "feed" | "community" | "music_token" | "music_auth";
 
 export interface IpRateCheck {
   allowed: boolean;

@@ -53,6 +53,14 @@ const EVERY_RUN: CronTask[] = [
         .run(),
   },
   {
+    name: "music_auth",
+    // 取りに来なかった Apple Music のサインインの受け渡し (routes/music_auth.ts、寿命 10 分)。
+    run: (env) =>
+      env.DB.prepare("DELETE FROM music_auth WHERE created_at < ?")
+        .bind(Date.now() - 10 * 60 * 1000)
+        .run(),
+  },
+  {
     name: "discord_oauth_states",
     // 期限切れの Discord / GitHub の OAuth state (routes/discord.ts)。
     run: (env) =>
