@@ -56,6 +56,10 @@ describe("validateTimingsBody", () => {
     const r = validateTimingsBody({ lines: [{ id: "a", startMs: 1200 }, { id: "b", startMs: null }] }, ids);
     expect(r.ok && [...r.timings]).toEqual([["a", 1200], ["b", null]]);
   });
+  it("snake_case (iOS の送信形) も受ける", () => {
+    const r = validateTimingsBody({ lines: [{ id: "a", start_ms: 5 }] }, ids);
+    expect(r.ok && r.timings.get("a")).toBe(5);
+  });
   it("知らない行・重複・範囲外・小数を弾く", () => {
     expect(validateTimingsBody({ lines: [{ id: "x", startMs: 1 }] }, ids).ok).toBe(false);
     expect(validateTimingsBody({ lines: [{ id: "a", startMs: 1 }, { id: "a", startMs: 2 }] }, ids).ok).toBe(false);

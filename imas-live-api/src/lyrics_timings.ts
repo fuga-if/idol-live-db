@@ -30,7 +30,10 @@ export function validateTimingsBody(body: unknown, knownIds: ReadonlySet<string>
   const timings = new Map<string, number | null>();
   for (const raw of lines) {
     if (!raw || typeof raw !== "object") return { ok: false, error: "line must be an object" };
-    const { id, startMs } = raw as Record<string, unknown>;
+    // iOS の APIClient はキーを snake_case にして送る (startMs → start_ms)。両方を受ける。
+    const r = raw as Record<string, unknown>;
+    const id = r.id;
+    const startMs = r.startMs !== undefined ? r.startMs : r.start_ms;
     if (typeof id !== "string" || !knownIds.has(id)) return { ok: false, error: "unknown line id" };
     if (timings.has(id)) return { ok: false, error: "duplicate line id" };
     if (startMs === null || startMs === undefined) {
