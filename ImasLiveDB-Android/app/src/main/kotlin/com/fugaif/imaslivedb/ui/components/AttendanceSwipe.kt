@@ -3,6 +3,8 @@ package com.fugaif.imaslivedb.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -187,6 +189,7 @@ private fun AttendancePickerSheet(
                     ImasActionRow(
                         title = "参加を取り消す",
                         onClick = { onSelect(null) },
+                        icon = Icons.Filled.Cancel,
                         kind = ImasActionRowKind.DESTRUCTIVE
                     )
                 }
