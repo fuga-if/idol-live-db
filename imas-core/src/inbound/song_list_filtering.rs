@@ -37,6 +37,7 @@ mod tests {
             my_pick_song_ids: vec![],
             tag_song_ids: None,
             call_guide_song_ids: None,
+            lyric_timing_song_ids: None,
             rank_by_tag_votes: false,
             tag_vote_counts: HashMap::new(),
         };

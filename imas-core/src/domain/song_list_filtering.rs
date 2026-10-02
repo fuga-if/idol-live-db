@@ -58,6 +58,10 @@ pub struct SongListFilterCriteria {
     /// 一覧が丸ごと消える。「絞り込まない」と「該当 0 件」は別物で、オフラインで
     /// 理由の分からない空一覧を出さないための区別。
     pub call_guide_song_ids: Option<Vec<String>>,
+    /// 歌詞のタイミング (行の再生位置) がある曲の song_id 集合 (None = この絞り込みなし)。
+    /// `call_guide_song_ids` と同じ流儀 (取得に失敗したら None。空の Vec は「該当 0 件」)。
+    #[uniffi(default = None)]
+    pub lyric_timing_song_ids: Option<Vec<String>>,
     /// 単一タグ絞り込み + デフォルト並びの時に「そのタグの票数」降順へ並べ替えるか。
     pub rank_by_tag_votes: bool,
     /// song_id → 票数。載っていない曲は 0 票扱い。
@@ -82,6 +86,10 @@ pub fn filter_song_list(entries: &[SongListFilterEntry], criteria: &SongListFilt
         .call_guide_song_ids
         .as_ref()
         .map(|ids| ids.iter().map(String::as_str).collect());
+    let lyric_timing_ids: Option<HashSet<&str>> = criteria
+        .lyric_timing_song_ids
+        .as_ref()
+        .map(|ids| ids.iter().map(String::as_str).collect());
 
     let mut results: Vec<u32> = entries
         .iter()
@@ -99,6 +107,7 @@ pub fn filter_song_list(entries: &[SongListFilterEntry], criteria: &SongListFilt
                 && (!criteria.require_my_pick || my_picks.contains(id))
                 && tag_ids.as_ref().is_none_or(|t| t.contains(id))
                 && call_guide_ids.as_ref().is_none_or(|c| c.contains(id))
+                && lyric_timing_ids.as_ref().is_none_or(|c| c.contains(id))
         })
         .map(|(i, _)| i as u32)
         .collect();
@@ -150,6 +159,7 @@ mod tests {
             my_pick_song_ids: vec![],
             tag_song_ids: None,
             call_guide_song_ids: None,
+            lyric_timing_song_ids: None,
             rank_by_tag_votes: false,
             tag_vote_counts: HashMap::new(),
         }
@@ -310,5 +320,14 @@ mod tests {
         ctx.tag_vote_counts =
             HashMap::from([("a".into(), 2), ("b".into(), 7), ("c".into(), 2), ("d".into(), 99)]);
         assert_eq!(picked_ids(&s, &filter_song_list(&s, &ctx)), vec_of(&["b", "a", "c"]));
+    }
+
+    #[test]
+    fn lyric_timing_set_is_anded_like_call_guide() {
+        let entries = vec![entry("a", None), entry("b", None), entry("c", None)];
+        let mut ctx = criteria(SongCollectMode::All);
+        ctx.call_guide_song_ids = Some(vec_of(&["a", "b"]));
+        ctx.lyric_timing_song_ids = Some(vec_of(&["b", "c"]));
+        assert_eq!(filter_song_list(&entries, &ctx), vec![1]);
     }
 }
