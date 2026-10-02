@@ -1,53 +1,42 @@
 package com.fugaif.imaslivedb.ui.idols
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.alpha
 import com.fugaif.imaslivedb.data.model.Brand
+import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.brandColor
 
 /**
  * アイドル一覧のフィルタシート。iOS `IdolFilterSheet` の移植:
- * 表示形式(名前/CV名 + CV併記) + ブランド複数選択 + 属性(単一ブランド選択時のみ) + マイマーク3種。
+ * 表示形式(名前/CV名 + CV併記) + 並び順 + ブランド複数選択 + 属性(単一ブランド選択時のみ) + マイマーク3種。
+ *
+ * 見た目は `EventFilterSheet` と同じ体裁 (`ImasFilterSheetToolbar` + `ImasListSection` の区画)。
+ * リセットはツールバーにだけ置き、画面末尾には置かない (DESIGN_SYSTEM.md §2.6)。
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IdolFilterSheet(
     brands: List<Brand>,
@@ -84,190 +73,109 @@ fun IdolFilterSheet(
     var requireNote by remember { mutableStateOf(currentRequireNote) }
     var sortOrder by remember { mutableStateOf(currentSortOrder) }
     var sortAscending by remember { mutableStateOf(currentSortAscending) }
-    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     // 属性チップは単一ブランド選択時のみ (ブランド共通のサブ属性が無いため)。
     val attributesForBrand = brandIds.singleOrNull()?.let { IDOL_BRAND_ATTRIBUTES[it] } ?: emptyList()
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(
-            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)
-        ) {
-            Text(
-                "フィルタ",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = DS.ink,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-            HorizontalDivider(color = DS.sep)
+    val hasActiveFilters = brandIds.isNotEmpty() || attribute != null ||
+        displayMode != IdolDisplayMode.IDOL_NAME || requireMyPick || requireFavorite || requireNote ||
+        sortOrder != IdolSortOrder.OFFICIAL || sortAscending != null
 
-            SectionLabel("表示形式")
-            ImasSegmented(
-                labels = listOf("アイドル名", "CV名"),
-                selection = if (displayMode == IdolDisplayMode.CV_NAME) 1 else 0,
-                onSelect = { displayMode = if (it == 1) IdolDisplayMode.CV_NAME else IdolDisplayMode.IDOL_NAME },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-            )
-            SwitchRow(
-                title = "CV名を併記",
-                subtitle = "アイドル名表示中、CV名を別行で表示する",
-                checked = showCV,
-                enabled = displayMode == IdolDisplayMode.IDOL_NAME,
-                onCheckedChange = { showCV = it }
-            )
-
-            HorizontalDivider(color = DS.sep)
-            SectionLabel("並び順")
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                OutlinedButton(onClick = { sortMenuExpanded = true }) {
-                    Text(sortOrder.label, color = DS.ink)
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = DS.ink2)
-                }
-                DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                    IdolSortOrder.entries.forEach { order ->
-                        DropdownMenuItem(
-                            text = { Text(order.label) },
-                            onClick = {
-                                sortOrder = order
-                                // 並び順を変えたら方向は新しい並び順の既定に戻す
-                                // (「高い順」のまま誕生日に切り替わると 12月からになって驚くため)。
-                                sortAscending = null
-                                sortMenuExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-            ImasSegmented(
-                labels = listOf(sortOrder.ascendingLabel, sortOrder.descendingLabel),
-                selection = if (sortAscending ?: sortOrder.defaultAscending) 0 else 1,
-                onSelect = { sortAscending = it == 0 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            if (!sortOrder.keepsBrandGrouping) {
-                Text(
-                    "ブランドの区切りを外して通しで並べます",
-                    fontSize = 12.sp,
-                    color = DS.ink3,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
-
-            HorizontalDivider(color = DS.sep)
-            SectionLabel("ブランド")
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
+        ImasFormBackdrop(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = DS.sp8)
             ) {
-                brands.forEach { brand ->
-                    ImasFilterChip(
-                        label = brand.shortName,
-                        selected = brandIds.contains(brand.id),
-                        tintColor = brandColor(brand.id),
-                        onClick = {
-                            brandIds = if (brandIds.contains(brand.id)) {
-                                brandIds - brand.id
-                            } else {
-                                brandIds + brand.id
-                            }
-                            attribute = null
-                        }
-                    )
-                }
-            }
-
-            if (attributesForBrand.isNotEmpty()) {
-                HorizontalDivider(color = DS.sep)
-                SectionLabel("属性")
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ImasFilterChip(label = "全て", selected = attribute == null, onClick = { attribute = null })
-                    attributesForBrand.forEach { (value, label) ->
-                        ImasFilterChip(label = label, selected = attribute == value, onClick = { attribute = value })
-                    }
-                }
-            }
-
-            HorizontalDivider(color = DS.sep)
-            SectionLabel("マイマーク")
-            SwitchRow(title = "担当のみ", checked = requireMyPick, onCheckedChange = { requireMyPick = it }, tint = DS.pick)
-            SwitchRow(title = "お気に入りのみ", checked = requireFavorite, onCheckedChange = { requireFavorite = it }, tint = DS.favorite)
-            SwitchRow(title = "メモがあるアイドルのみ", checked = requireNote, onCheckedChange = { requireNote = it })
-
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = DS.sep)
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = {
+                ImasFilterSheetToolbar(
+                    canReset = hasActiveFilters,
+                    onReset = {
                         brandIds = emptySet()
                         attribute = null
+                        displayMode = IdolDisplayMode.IDOL_NAME
+                        showCV = false
                         requireMyPick = false
                         requireFavorite = false
                         requireNote = false
                         sortOrder = IdolSortOrder.OFFICIAL
                         sortAscending = null
                     },
-                    modifier = Modifier.weight(1f)
-                ) { Text("リセット") }
-                Button(
-                    onClick = {
+                    onApply = {
                         onApply(brandIds, attribute, displayMode, showCV, requireMyPick, requireFavorite, requireNote, sortOrder, sortAscending)
-                        onDismiss()
                     },
-                    modifier = Modifier.weight(1f)
-                ) { Text("適用") }
+                    title = "フィルタ"
+                )
+
+                ImasListSection(title = "表示形式") {
+                    ImasSegmented(
+                        labels = listOf("アイドル名", "CV名"),
+                        selection = if (displayMode == IdolDisplayMode.CV_NAME) 1 else 0,
+                        onSelect = { displayMode = if (it == 1) IdolDisplayMode.CV_NAME else IdolDisplayMode.IDOL_NAME },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                    )
+                    // CV名表示中は併記の意味が無いので、押せなくして薄く示す (Android の今の動きのまま)。
+                    Box(Modifier.alpha(if (displayMode == IdolDisplayMode.IDOL_NAME) 1f else 0.45f)) {
+                        ImasToggleRow(
+                            title = "CV名を併記",
+                            subtitle = "アイドル名表示中、CV名を別行で表示する",
+                            isOn = showCV,
+                            onCheckedChange = { if (displayMode == IdolDisplayMode.IDOL_NAME) showCV = it }
+                        )
+                    }
+                }
+
+                ImasListSection(
+                    title = "並び順",
+                    footer = if (sortOrder.keepsBrandGrouping) null else "ブランドの区切りを外して通しで並べます"
+                ) {
+                    ImasMenuRow(
+                        title = "並び順",
+                        options = IdolSortOrder.entries,
+                        selection = sortOrder,
+                        onSelect = {
+                            sortOrder = it
+                            // 並び順を変えたら方向は新しい並び順の既定に戻す
+                            // (「高い順」のまま誕生日に切り替わると 12月からになって驚くため)。
+                            sortAscending = null
+                        },
+                        label = { it.label }
+                    )
+                    ImasSegmented(
+                        labels = listOf(sortOrder.ascendingLabel, sortOrder.descendingLabel),
+                        selection = if (sortAscending ?: sortOrder.defaultAscending) 0 else 1,
+                        onSelect = { sortAscending = it == 0 },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                    )
+                }
+
+                ImasListSection(title = "ブランド", footer = "複数選択可能") {
+                    ImasBrandPicker(
+                        brands = brands,
+                        selection = brandIds,
+                        onSelectionChange = { brandIds = it; attribute = null },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                    )
+                }
+
+                if (attributesForBrand.isNotEmpty()) {
+                    ImasListSection(title = "属性") {
+                        ImasChipFlow(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+                            ImasFilterChip(label = "全て", selected = attribute == null, onClick = { attribute = null })
+                            attributesForBrand.forEach { (value, label) ->
+                                ImasFilterChip(label = label, selected = attribute == value, onClick = { attribute = value })
+                            }
+                        }
+                    }
+                }
+
+                ImasListSection(title = "マイマーク") {
+                    ImasToggleRow(title = "担当のみ", isOn = requireMyPick, onCheckedChange = { requireMyPick = it })
+                    ImasToggleRow(title = "お気に入りのみ", isOn = requireFavorite, onCheckedChange = { requireFavorite = it })
+                    ImasToggleRow(title = "メモがあるアイドルのみ", isOn = requireNote, onCheckedChange = { requireNote = it })
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
-}
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    subtitle: String? = null,
-    checked: Boolean,
-    enabled: Boolean = true,
-    tint: androidx.compose.ui.graphics.Color? = null,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, color = if (enabled) DS.ink else DS.ink3)
-            if (subtitle != null) {
-                Text(subtitle, fontSize = 12.sp, color = DS.ink3)
-            }
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            enabled = enabled,
-            colors = if (tint != null) {
-                SwitchDefaults.colors(checkedTrackColor = tint, checkedThumbColor = DS.surface)
-            } else {
-                SwitchDefaults.colors()
-            }
-        )
     }
 }
