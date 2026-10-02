@@ -332,7 +332,7 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - 活動量 ・ 出演回数 (人)
+    // MARK: - 活動量 ・ 出演回数 (公演)
 
     @ViewBuilder
     private var castShowRankingSection: some View {
@@ -345,7 +345,7 @@ struct StatsView: View {
                             lead: .avatar(label: monogram(item.name), imageURL: nil),
                             title: item.name,
                             metric: "\(item.showCount)",
-                            unit: "人"
+                            unit: "公演"
                         )
                         if index < castShowCounts.count - 1 {
                             ImasRowDivider(inset: 52)

@@ -87,15 +87,18 @@ pub struct YearlyShowCountRecord {
 ///
 /// ```sql
 /// SELECT b.id, b.short_name, b.color, COUNT(s.id) AS song_count
-/// FROM brands b LEFT JOIN songs s ON b.id = s.brand_id
+/// FROM brands b LEFT JOIN songs s ON b.id = s.brand_id AND s.parent_song_id IS NULL
 /// GROUP BY b.id ORDER BY b.sort_order
 /// ```
 ///
 /// LEFT JOIN + GROUP BY を「songs 1 回走査で加算」に置き換える。brand_id が NULL、
 /// または brands に無い id を指す曲はどのブランドにも数えない (JOIN 不成立と同じ)。
+///
+/// 親のある曲 (`parent_song_id` あり: カバー・別バージョン・M@STER VERSION など) は数えない。
+/// 1 曲が版の数だけ数えられて、版の多いブランドが実際より大きく見えるため (2026-10-02 ユーザー指定)。
 pub fn brand_song_counts(snap: &Snapshot) -> Vec<BrandSongCountRecord> {
     let mut counts = vec![0u32; snap.brands.len()];
-    for song in &snap.songs {
+    for song in snap.songs.iter().filter(|s| s.parent_song_id.is_none()) {
         if let Some(&bi) = song.brand_id.as_deref().and_then(|id| snap.brand_index_by_id.get(id)) {
             counts[bi as usize] += 1;
         }
@@ -336,7 +339,7 @@ mod tests {
     fn sql_brand_song_counts(db: &Connection) -> Vec<BrandSongCountRecord> {
         db.prepare(
             "SELECT b.id, b.short_name, b.color, COUNT(s.id) AS song_count
-             FROM brands b LEFT JOIN songs s ON b.id = s.brand_id
+             FROM brands b LEFT JOIN songs s ON b.id = s.brand_id AND s.parent_song_id IS NULL
              GROUP BY b.id ORDER BY b.sort_order",
         )
         .unwrap()
