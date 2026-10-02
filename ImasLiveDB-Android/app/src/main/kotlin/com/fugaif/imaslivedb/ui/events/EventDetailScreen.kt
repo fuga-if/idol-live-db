@@ -577,7 +577,7 @@ private fun LazyListScope.castSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
                 ) {
-                    DayHeader(index, show, Modifier.weight(1f, fill = false))
+                    DayHeader(index, show, Modifier.weight(1f, fill = true))
                     ImasText("${group.idols.size}名", role = ImasTextRole.META)
                 }
             } else {
@@ -681,7 +681,7 @@ private fun AvatarGrid(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
             ) {
-                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 52.dp)
+                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 52.dp, entityId = idol.id)
                 if (chipKind != null && !chipText.isNullOrEmpty()) {
                     ImasBadge(chipText, kind = chipKind, seed = seed, brand = brand)
                 }
