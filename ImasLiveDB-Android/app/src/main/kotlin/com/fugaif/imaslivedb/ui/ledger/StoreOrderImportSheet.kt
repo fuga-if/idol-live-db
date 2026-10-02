@@ -1,6 +1,5 @@
 package com.fugaif.imaslivedb.ui.ledger
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,25 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.outlined.Circle
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -46,23 +40,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectionMark
+import com.fugaif.imaslivedb.ui.designsystem.ImasStep
+import com.fugaif.imaslivedb.ui.designsystem.ImasStepList
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwitch
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import java.time.LocalDate
 import uniffi.imas_core.StoreExpenseDraft
 import uniffi.imas_core.StoreOrder
 import uniffi.imas_core.StoreOrderItem
 import uniffi.imas_core.StoreShowCandidate
+import uniffi.imas_core.asobiOrderHistoryUrl
 import uniffi.imas_core.expenseCategories
 import uniffi.imas_core.expenseCategoryLabel
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.parseStoreOrders
-import uniffi.imas_core.asobiOrderHistoryUrl
 import uniffi.imas_core.storeOrderExpenses
 
 /** 画面で直せる注文 1 件 (含めるか・紐づけ先・品目ごとの費目と含めるか)。iOS `DraftOrder` と対。 */
@@ -117,36 +123,43 @@ fun StoreOrderImportSheet(
         containerColor = DS.bg,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("アソビストアの明細", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(horizontal = DS.Space.screen).padding(bottom = DS.Space.section)) {
+            Text("アソビストアの明細", style = ImasType.heading(17.sp, FontWeight.Bold), color = DS.ink)
+            Spacer(Modifier.height(DS.Space.card))
 
-            if (drafts.isEmpty()) Column(Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState())) {
-                GuideSection()
-                Spacer(Modifier.height(20.dp))
-                Text("貼り付け", fontSize = 12.sp, color = DS.ink2)
-                Spacer(Modifier.height(6.dp))
-                OutlinedButton(onClick = { clipboard.getText()?.text?.let(::parse) }) {
-                    Icon(Icons.Filled.ContentPaste, contentDescription = null)
-                    Spacer(Modifier.width(6.dp))
-                    Text("ペースト")
+            if (drafts.isEmpty()) {
+                Column(
+                    Modifier.heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(DS.Space.header)
+                ) {
+                    GuideCard()
+                    ImasNote("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
+                    ImasFormCard {
+                        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                            OutlinedButton(onClick = { clipboard.getText()?.text?.let(::parse) }) {
+                                Icon(Icons.Filled.ContentPaste, contentDescription = null)
+                                Spacer(Modifier.width(DS.Space.gapTight))
+                                Text("ペースト")
+                            }
+                            ImasFormTextArea(
+                                label = "貼り付け",
+                                imprint = "PASTE",
+                                text = text,
+                                onTextChange = ::parse,
+                                prompt = "または、ここに直接貼り付け"
+                            )
+                        }
+                    }
+                    Text(
+                        if (text.isNotEmpty()) {
+                            "注文を読み取れませんでした。購入履歴は表の見出しの行から、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
+                        } else {
+                            "送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。"
+                        },
+                        style = ImasTextRole.NOTE.style,
+                        color = if (text.isNotEmpty()) DS.danger else ImasTextRole.NOTE.color
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = text, onValueChange = ::parse,
-                    placeholder = { Text("または、ここに直接貼り付け") },
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
-                )
-                Text(
-                    if (text.isNotEmpty()) {
-                        "注文を読み取れませんでした。購入履歴は表の見出しの行から、メールは「【注文番号】」から「【お買上金額】」までが入るように貼ってください。"
-                    } else {
-                        "送料やポイントの値引きも含めて、実際に払った額で記録します。チケット代は公演の参加から記録するので、チケットは最初から外してあります。"
-                    },
-                    fontSize = 11.sp, color = if (text.isNotEmpty()) DS.danger else DS.ink3,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
             } else {
                 LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
                     drafts.forEachIndexed { index, draft ->
@@ -165,19 +178,22 @@ fun StoreOrderImportSheet(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(DS.Space.gapLoose))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 if (planned.isNotEmpty()) {
                     Column(Modifier.weight(1f)) {
-                        Text("記録する額", fontSize = 12.sp, color = DS.ink2)
-                        Text(formatYen(planned.sumOf { it.amount }), fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold, color = DS.ink)
+                        Text("記録する額", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+                        Text(
+                            formatYen(planned.sumOf { it.amount }),
+                            style = ImasType.heading(17.sp, FontWeight.Bold),
+                            color = DS.ink
+                        )
                     }
                 } else {
                     Spacer(Modifier.weight(1f))
                 }
                 TextButton(onClick = onDismiss) { Text("キャンセル") }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(DS.Space.gap))
                 Button(
                     onClick = {
                         saving = true
@@ -203,38 +219,30 @@ fun StoreOrderImportSheet(
     }
 }
 
-/** 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。iOS `guideSection` と対。 */
+/** 手順の案内。購入履歴一覧の表をコピーするのが一番手早い (1 画面で全注文が出る)。iOS `guideCard` と対。 */
 @Composable
-private fun GuideSection() {
+private fun GuideCard() {
     val uriHandler = LocalUriHandler.current
-    Text("取り込み方", fontSize = 12.sp, color = DS.ink2)
-    Spacer(Modifier.height(6.dp))
-    Column(
-        Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        GuideStep(1, "アソビストアの購入履歴を開く")
-        OutlinedButton(onClick = { uriHandler.openUri(asobiOrderHistoryUrl()) }, modifier = Modifier.padding(start = 30.dp)) {
-            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
-            Spacer(Modifier.width(6.dp))
-            Text("購入履歴を開く")
+    ImasFormCard {
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+            Text("取り込み方", style = ImasTextRole.SECTION_LABEL.style, color = ImasTextRole.SECTION_LABEL.color)
+            ImasStepList(
+                steps = listOf(
+                    ImasStep(
+                        title = "アソビストアの購入履歴を開く",
+                        media = {
+                            OutlinedButton(onClick = { uriHandler.openUri(asobiOrderHistoryUrl()) }) {
+                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                                Spacer(Modifier.width(DS.Space.gapTight))
+                                Text("購入履歴を開く")
+                            }
+                        }
+                    ),
+                    ImasStep(title = "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする"),
+                    ImasStep(title = "下の「ペースト」を押す")
+                )
+            )
         }
-        GuideStep(2, "「購入履歴一覧」の表を、見出しから最後の行まで選んでコピーする")
-        GuideStep(3, "下の「ペースト」を押す")
-    }
-    Text(
-        "「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。",
-        fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp)
-    )
-}
-
-@Composable
-private fun GuideStep(number: Int, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.width(20.dp).height(20.dp).background(DS.fill, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-            Text("$number", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DS.ink2)
-        }
-        Text(text, fontSize = 13.sp, color = DS.ink)
     }
 }
 
@@ -246,61 +254,45 @@ private fun OrderCard(
     onPickShow: () -> Unit,
 ) {
     val order = draft.order
-    Column(Modifier.padding(bottom = 16.dp)) {
-        Text("${longDate(order.date)}　${order.store}", fontSize = 12.sp, color = DS.ink2,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp))
-        Column(Modifier.fillMaxWidth().background(DS.surface, RoundedCornerShape(10.dp))) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(formatYen(order.paidTotal), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                    if (order.alreadyRecorded) {
-                        Text("この注文は記録済みです", fontSize = 12.sp, color = DS.danger)
-                    }
-                    if (order.hasUnreadItems) {
-                        Text("読み取れなかった品目があります。額は合計に含めています", fontSize = 12.sp, color = DS.danger)
-                    }
-                }
-                Switch(checked = draft.include, onCheckedChange = { onChange(draft.copy(include = it)) })
-            }
-            if (draft.include) {
-                order.items.forEachIndexed { i, item ->
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 14.dp))
-                    ItemRow(item) { updated ->
-                        onChange(draft.copy(order = order.copy(items = order.items.toMutableList().also { it[i] = updated })))
-                    }
-                }
-                if (order.adjustment != 0L) {
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 14.dp))
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                when {
-                                    order.hasUnreadItems -> "その他の品目・送料など"
-                                    order.adjustment > 0 -> "送料・手数料"
-                                    else -> "ポイント・値引き"
-                                },
-                                fontSize = 13.sp, color = DS.ink
-                            )
-                            Text("一番多い費目に含めて記録します", fontSize = 11.sp, color = DS.ink3)
+    Column(Modifier.padding(bottom = DS.Space.card), verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
+        Text(
+            "${longDate(order.date)}　${order.store}",
+            style = ImasTextRole.SECTION_LABEL.style,
+            color = ImasTextRole.SECTION_LABEL.color
+        )
+        ImasFormCard {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                        Text(
+                            formatYen(order.paidTotal),
+                            style = ImasType.text(17.sp, FontWeight.Bold).copy(fontFeatureSettings = "tnum"),
+                            color = DS.ink
+                        )
+                        if (order.alreadyRecorded) {
+                            Text("この注文は記録済みです", style = ImasTextRole.NOTE.style, color = DS.danger)
                         }
-                        Text((if (order.adjustment > 0) "+" else "") + formatYen(order.adjustment),
-                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+                        if (order.hasUnreadItems) {
+                            Text("読み取れなかった品目があります。額は合計に含めています", style = ImasTextRole.NOTE.style, color = DS.danger)
+                        }
                     }
+                    ImasSwitch(checked = draft.include, onCheckedChange = { onChange(draft.copy(include = it)) })
                 }
-                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 14.dp))
-                Row(Modifier.fillMaxWidth().clickable(onClick = onPickShow).padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text(showLabel ?: "公演に紐づけない", fontSize = 13.sp,
-                        color = if (showLabel == null) DS.ink2 else DS.ink, maxLines = 2, modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3)
+                if (draft.include) {
+                    order.items.forEachIndexed { i, item ->
+                        ItemRow(item) { updated ->
+                            onChange(draft.copy(order = order.copy(items = order.items.toMutableList().also { it[i] = updated })))
+                        }
+                    }
+                    if (order.adjustment != 0L) {
+                        AdjustmentRow(order)
+                    }
+                    ShowRow(showLabel, onPickShow)
                 }
             }
         }
         if (order.orderNumber.isNotEmpty()) {
-            Text("注文番号 ${order.orderNumber}", fontSize = 11.sp, color = DS.ink3,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+            ImasNote("注文番号 ${order.orderNumber}")
         }
     }
 }
@@ -309,47 +301,100 @@ private fun OrderCard(
 private fun ItemRow(item: StoreOrderItem, onChange: (StoreOrderItem) -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     val categories = remember { expenseCategories() }
-    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(
-            if (item.included) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-            contentDescription = if (item.included) "記録から外す" else "記録に含める",
-            tint = if (item.included) DS.ink else DS.ink3,
-            modifier = Modifier.clickable { onChange(item.copy(included = !item.included)) }
-        )
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
+    ) {
+        Box(
+            Modifier
+                .clickable(onClickLabel = if (item.included) "記録から外す" else "記録に含める") {
+                    onChange(item.copy(included = !item.included))
+                }
+                .semantics { contentDescription = if (item.included) "記録から外す" else "記録に含める" }
+        ) {
+            ImasSelectionMark(isSelected = item.included)
+        }
         Column(Modifier.weight(1f)) {
-            Text(item.name, fontSize = 13.sp, color = if (item.included) DS.ink else DS.ink3, maxLines = 3)
-            Spacer(Modifier.height(4.dp))
+            Text(
+                item.name,
+                style = ImasType.text(13.sp),
+                color = if (item.included) DS.ink else DS.ink3,
+                maxLines = 3
+            )
+            Spacer(Modifier.height(DS.Space.gapTight))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    Row(
-                        Modifier.background(DS.fill, RoundedCornerShape(50))
-                            .clickable(enabled = item.included) { menuOpen = true }
-                            .padding(start = 10.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(expenseCategoryLabel(item.category), fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold, color = DS.ink2)
-                        Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = DS.ink2)
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        categories.forEach { info ->
-                            DropdownMenuItem(
-                                text = { Text(info.label) },
-                                onClick = { onChange(item.copy(category = info.category)); menuOpen = false }
-                            )
-                        }
+                Row(
+                    Modifier.clickable(enabled = item.included) { menuOpen = true },
+                    horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(expenseCategoryLabel(item.category), style = ImasTextRole.VALUE.style, color = DS.ink2)
+                    Icon(
+                        Icons.Filled.UnfoldMore,
+                        contentDescription = "費目: ${expenseCategoryLabel(item.category)}",
+                        tint = DS.ink3
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    categories.forEach { info ->
+                        DropdownMenuItem(
+                            text = { Text(info.label) },
+                            onClick = { onChange(item.copy(category = info.category)); menuOpen = false }
+                        )
                     }
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
                     if (item.quantity > 1u) "${item.quantity}点 ${formatYen(item.subtotal)}" else formatYen(item.subtotal),
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    style = ImasType.text(13.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
                     color = if (item.included) DS.ink else DS.ink3,
                     textDecoration = if (item.included) null else TextDecoration.LineThrough
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AdjustmentRow(order: StoreOrder) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+            Text(
+                when {
+                    order.hasUnreadItems -> "その他の品目・送料など"
+                    order.adjustment > 0 -> "送料・手数料"
+                    else -> "ポイント・値引き"
+                },
+                style = ImasType.text(13.sp),
+                color = DS.ink
+            )
+            Text("一番多い費目に含めて記録します", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+        }
+        Text(
+            (if (order.adjustment > 0) "+" else "") + formatYen(order.adjustment),
+            style = ImasType.text(13.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
+            color = DS.ink2
+        )
+    }
+}
+
+@Composable
+private fun ShowRow(showLabel: String?, onPickShow: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onPickShow),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
+    ) {
+        Icon(Icons.Filled.Mic, contentDescription = null, tint = DS.ink3)
+        Text(
+            showLabel ?: "公演に紐づけない",
+            style = ImasType.text(13.sp),
+            color = if (showLabel == null) DS.ink2 else DS.ink,
+            maxLines = 2,
+            modifier = Modifier.weight(1f)
+        )
+        ImasRowChevron()
     }
 }
 
