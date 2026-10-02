@@ -1,10 +1,6 @@
 package com.fugaif.imaslivedb.ui.edit
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,8 +12,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.edit.putClearable
 import com.fugaif.imaslivedb.data.model.Brand
@@ -26,6 +20,9 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -297,26 +294,23 @@ fun SongEditScreen(
                 "誤紐付けの修正",
                 footer = "誤紐付けで他の曲が再生されるときに使う。サブスク未配信の曲はクリアすべき。"
             ) {
-                TextButton(
+                ImasActionRow(
+                    title = "Apple Music 関連を全て空にする",
+                    kind = ImasActionRowKind.DESTRUCTIVE,
                     onClick = {
                         appleMusicId = ""
                         appleMusicAlbumId = ""
                         artworkUrl = ""
                         previewUrl = ""
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Apple Music 関連を全て空にする", color = DS.danger)
-                }
+                    }
+                )
             }
         }
 
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            Text(
-                "保存すると、この編集は「最近の編集」に記録されます。",
-                fontSize = 11.sp, color = DS.ink3
-            )
-        }
+        ImasNote(
+            "保存すると、この編集は「最近の編集」に記録されます。",
+            modifier = Modifier.padding(horizontal = DS.Space.screen)
+        )
     }
 
     if (showArtistPicker) {
