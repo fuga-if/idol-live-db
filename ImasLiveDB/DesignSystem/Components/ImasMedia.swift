@@ -14,6 +14,8 @@ import SwiftUI
 // ImasSwatch       色の丸 (タグの色・ペンライトの色)。読み上げは色名。
 // ImasLeadBar      ライブ・公演・アイドルの行頭の細い帯。
 // ImasPerformerChip 歌唱者 1 人 (ペンライト + 名前)。欠席は薄字 + 取り消し線。
+// ImasVideoThumbnail 参考動画のサムネ (16:9・角丸・真ん中に再生の記号)。読めなければ灰の面。
+// ImasPenlightColorBar ペンライトの色の組を横並びの帯で (等分・角丸)。読み上げは色名の文 (コアが組む)。
 //
 // 色は seed / brand を渡せばその色、渡さなければ環境の実体色 (`.imasTheme`)。
 // =============================================================================
@@ -487,5 +489,64 @@ struct ImasPerformerChip: View {
         .fixedSize()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(isAbsent ? "\(name) 欠席" : name)
+    }
+}
+
+// MARK: - 動画のサムネ
+
+/// 参考動画のサムネ。16:9 に切って角を丸め、真ん中に再生の記号を重ねる。
+/// 大きいサムネが無い動画は `fallbackURL` (小さいサムネ) に落とす。どちらも読めなければ灰の面。
+struct ImasVideoThumbnail: View {
+    let url: URL?
+    var fallbackURL: URL? = nil
+
+    var body: some View {
+        ZStack {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } else if state.error != nil {
+                    LazyImage(url: fallbackURL) { fallback in
+                        if let image = fallback.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Rectangle().fill(DS.surface2)
+                        }
+                    }
+                } else {
+                    Rectangle().fill(DS.surface2)
+                }
+            }
+            .aspectRatio(16.0 / 9.0, contentMode: .fill)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+            Image(systemName: "play.circle.fill")
+                .font(.imasScaled(46))
+                .foregroundStyle(.white.opacity(0.94))
+                .shadow(color: .black.opacity(0.35), radius: 5)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - ペンライトの色の組
+
+/// ペンライトの色の組を横並びの帯で見せる (色ごとに等分・角丸)。
+/// 読み上げの文 (「ペンライト: 2色 ピンク、白」) はコアが組む。
+struct ImasPenlightColorBar: View {
+    /// 色の hex。並び順のまま左から塗る。
+    let colors: [String]
+    var height: CGFloat = 20
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(colors.enumerated()), id: \.offset) { _, hex in
+                Rectangle().fill(Color(hexString: hex, default: DS.ink3))
+            }
+        }
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(penlightAccessibilityLabel(hexes: colors))
     }
 }

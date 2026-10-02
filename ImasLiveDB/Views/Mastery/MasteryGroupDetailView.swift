@@ -241,8 +241,7 @@ struct MasteryGroupDetailView: View {
             if marks.isAutoCollected(songId: song.id) {
                 // 現地で聴いた曲。既存の一覧と同じ ✓ の意味で揃える。
                 Image(systemName: "checkmark")
-                    .font(.imasScaled(11, weight: .semibold))
-                    .foregroundStyle(DS.success)
+                    .imasText(.badge, color: DS.success)
                     .accessibilityLabel("現地で聴いた")
             }
             stageChip(song: song, level: level)
@@ -322,17 +321,7 @@ struct MasteryGroupDetailView: View {
     @ViewBuilder
     private var undoBar: some View {
         if let u = undo {
-            HStack(spacing: DS.sp4) {
-                Text(u.label).font(.imasFootnote).lineLimit(1)
-                Spacer()
-                Button("元に戻す") { revert(u) }.font(.imasFootnote.weight(.bold))
-            }
-            .padding(.horizontal, DS.sp5)
-            .padding(.vertical, DS.sp4)
-            .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
-            .foregroundStyle(DS.onSys)
-            .padding(.horizontal, DS.sp5)
-            .padding(.bottom, DS.sp4)
+            ImasUndoBar(label: u.label) { revert(u) }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .task(id: u.label) {
                 try? await Task.sleep(for: .seconds(6))

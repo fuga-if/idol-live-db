@@ -179,32 +179,8 @@ struct SongCommunityTab: View {
     }
 
     private func videoThumbnail(_ ref: YouTubeVideoRef) -> some View {
-        ZStack {
-            LazyImage(url: ref.thumbnailUrl.flatMap(URL.init(string:))) { state in
-                if let image = state.image {
-                    image.resizable().aspectRatio(contentMode: .fill)
-                } else if state.error != nil {
-                    // maxresdefault が無い動画は mqdefault にフォールバック。
-                    LazyImage(url: ref.fallbackThumbnailUrl.flatMap(URL.init(string:))) { fb in
-                        if let image = fb.image {
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } else {
-                            Rectangle().fill(DS.surface2)
-                        }
-                    }
-                } else {
-                    Rectangle().fill(DS.surface2)
-                }
-            }
-            .aspectRatio(16.0 / 9.0, contentMode: .fill)
-            .frame(maxWidth: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
-            Image(systemName: "play.circle.fill")
-                .font(.imasScaled( 46))
-                .foregroundStyle(.white.opacity(0.94))
-                .shadow(color: .black.opacity(0.35), radius: 5)
-        }
-        .contentShape(Rectangle())
+        ImasVideoThumbnail(url: ref.thumbnailUrl.flatMap(URL.init(string:)),
+                           fallbackURL: ref.fallbackThumbnailUrl.flatMap(URL.init(string:)))
     }
 
     // MARK: - ペンライト投票
@@ -238,8 +214,7 @@ struct SongCommunityTab: View {
         let isMine = myKey == set.key
         return VStack(spacing: DS.Space.gap) {
             HStack(spacing: DS.sp3) {
-                PenlightColorBar(colors: set.colors.map(\.rawValue), height: 22)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.rXS, style: .continuous))
+                ImasPenlightColorBar(colors: set.colors.map(\.rawValue), height: 22)
                     .frame(maxWidth: 120)
                 if isMine {
                     Text("自分の投票").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.pick)

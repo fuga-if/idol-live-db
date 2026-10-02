@@ -9,6 +9,7 @@ import SwiftUI
 // ImasEmptyState      何もない・見つからない・読めなかった・ログインが要る。
 // ImasNotice          読まないと困ること (始められない・失敗した・オフライン)。囲む。
 // ImasSignInPrompt    区画の中の「ログインが必要です」。
+// ImasUndoBar         まとめて変えた直後に下に出す「〇〇しました ・ 元に戻す」の帯。
 // .imasSavingOverlay  保存・送信中。
 // .imasErrorAlert     操作の失敗。
 // .imasConfirmDestructive 消す前の確認。
@@ -290,6 +291,30 @@ struct ImasSignInPrompt: View {
             .buttonStyle(.plain)
             .sheet(isPresented: $showLogin) { LoginToEditSheet() }
         }
+    }
+}
+
+// MARK: - 取り消しの帯
+
+/// まとめて変えた直後に画面の下に出す取り消しの帯 (墨の地に何をしたかと「元に戻す」)。
+/// 出し入れ (いつ消すか・動き) は呼び出し側が持つ。
+struct ImasUndoBar: View {
+    let label: String
+    var actionTitle: String = "元に戻す"
+    let onUndo: () -> Void
+
+    var body: some View {
+        HStack(spacing: DS.Space.gapLoose) {
+            Text(label).font(.imasFootnote).lineLimit(1)
+            Spacer()
+            Button(actionTitle, action: onUndo).font(.imasFootnote.weight(.bold))
+        }
+        .padding(.horizontal, DS.sp5)
+        .padding(.vertical, DS.sp4)
+        .background(DS.sys, in: RoundedRectangle(cornerRadius: DS.rMD, style: .continuous))
+        .foregroundStyle(DS.onSys)
+        .padding(.horizontal, DS.sp5)
+        .padding(.bottom, DS.sp4)
     }
 }
 

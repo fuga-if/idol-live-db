@@ -61,7 +61,7 @@ struct PenlightVoteSheet: View {
 
                         if !selectedColors.isEmpty {
                             ImasListSection("選択中のセット") {
-                                PenlightColorBar(colors: Array(selectedColors).map(\.rawValue).sorted(), height: 32)
+                                ImasPenlightColorBar(colors: Array(selectedColors).map(\.rawValue).sorted(), height: 32)
                             }
                         }
                     }

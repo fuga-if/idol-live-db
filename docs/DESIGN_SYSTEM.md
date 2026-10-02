@@ -543,6 +543,8 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasIconTile` | 28 / 32 / 36 / 44 / 56 | 記号 1 つ。**地を敷かない** (記号を淡い色の四角に入れない)。ハブの入口・記録の数では実体の色、設定の行では墨。**記号は減らさない** (目印として読まれている) |
 | `ImasSwatch` | 8 (点) / 16 / 28 | 色そのものを見せる丸 (タグの色)。読み上げは色名 |
 | `ImasPerformerChip` | 高さ 24 | 歌唱者 1 人 (ペンライト + 名前)。欠席は薄字 + 取り消し線 |
+| `ImasVideoThumbnail` | 幅いっぱい・16:9 | 参考動画のサムネ。角丸で切り、真ん中に再生の記号。大きいサムネが無ければ小さいサムネ、どちらも無ければ灰の面 |
+| `ImasPenlightColorBar` | 高さ 20〜32 | ペンライトの色の組を色ごとに等分した帯 (角丸)。読み上げは色名の文 (コアが組む) |
 
 ### 10.4 メーター
 | 部品 | 用途 |
@@ -573,6 +575,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 補足 | `ImasNote` | 囲まない灰色の文 |
 | 操作の失敗 | `.imasErrorAlert($error)` | 何ができなかったか + 理由 |
 | 消す前の確認 | `.imasConfirmDestructive` | 「〇〇を削除しますか？」/「削除」「キャンセル」 |
+| まとめて変えた直後 | `ImasUndoBar` | 何をしたか 1 行 +「元に戻す」(墨の地・画面の下)。いつ消すかは呼び出し側 |
 
 - `ImasStateContainer(state:)` が読み込み・空・失敗・中身を出し分ける。画面で `if isLoading { ProgressView() }` を書かない。
 - `ImasNotice` と `ImasNote` の使い分け: 読まなくても困らない説明は `ImasNote`。読まないと困る (候補が足りなくて始められない、取得に失敗した、オフライン) ときだけ `ImasNotice`。

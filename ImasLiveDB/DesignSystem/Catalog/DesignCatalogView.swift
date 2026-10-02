@@ -954,6 +954,9 @@ private struct FeedbackPage: View {
                                actionTitle: "絞り込みを解除", action: {})
             }
             ImasSignInPrompt(message: "セトリ予想の投票にはログインが必要です")
+            ImasSection("取り消しの帯", style: .small, footer: "ImasUndoBar。まとめて変えた直後に下に出す。いつ消すか・動きは呼び出し側。") {
+                ImasUndoBar(label: "12曲を「完璧」に") {}
+            }
             ImasSection("画面全体の読み込み中", style: .small) {
                 HStack(spacing: DS.Space.card) {
                     ImasCard { ImasLoadingState().frame(height: 100) }
@@ -1254,6 +1257,15 @@ private struct CommunityPage: View {
                     ImasSwatch(hex: "#1DD1A1", size: .large, isSelected: true)
                     ImasSwatch(hex: "#9B5DE5", size: .large)
                 }
+            }
+            ImasSection("ペンライトの色の組", style: .small, footer: "ImasPenlightColorBar。色ごとに等分した帯。読み上げは色名の文 (コアが組む)。") {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    ImasPenlightColorBar(colors: ["#FF6B6B", "#FFFFFF"], height: 22).frame(maxWidth: 120)
+                    ImasPenlightColorBar(colors: ["#4D96FF", "#1DD1A1", "#9B5DE5"], height: 32)
+                }
+            }
+            ImasSection("参考動画のサムネ", style: .small, footer: "ImasVideoThumbnail。16:9・角丸・再生の記号。読めなければ灰の面。") {
+                ImasVideoThumbnail(url: nil).frame(maxWidth: 240)
             }
             ImasSection("順位の小さい札 (文中に差し込む)", style: .small, footer: "行の先頭いっぱいに置く大きな順位は ImasRankNumber。こちらは名前と同じ行に添える小さい版。") {
                 ImasCard {
