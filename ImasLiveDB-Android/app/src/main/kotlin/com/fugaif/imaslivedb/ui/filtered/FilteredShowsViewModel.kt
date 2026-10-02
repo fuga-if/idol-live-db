@@ -17,6 +17,8 @@ import uniffi.imas_core.groupIndicesByYearDesc
 /** 一覧に出す公演 1 行ぶんの表示値。整形はすべて ViewModel 側で済ませる。 */
 data class FilteredShowRowUi(
     val showId: String,
+    /** 半券の日付欄 (`yyyy-MM-dd`)。年は見出しにあるので [subtitle] には含めない。 */
+    val date: String,
     val title: String,
     val subtitle: String,
     val brandId: String?,
@@ -86,6 +88,7 @@ class FilteredShowsViewModel(
                         val event = eventWithDate?.event
                         FilteredShowRowUi(
                             showId = show.id,
+                            date = show.date,
                             title = event?.name?.let { AppPreferences.eventDisplayName(it) } ?: show.name,
                             subtitle = subtitle(show, directory, showsVenueInRow),
                             brandId = event?.brandId,
@@ -114,11 +117,9 @@ class FilteredShowsViewModel(
         else -> value
     }
 
-    /** 「07/25 ・ DAY2 ・ メインアリーナ」。年は見出しにあるので月日だけ出す。 */
+    /** 「DAY2 ・ メインアリーナ」。日付は半券の日付欄にあるのでここには出さない。 */
     private fun subtitle(show: Show, directory: VenueDirectory, showsVenueInRow: Boolean): String {
         val parts = mutableListOf<String>()
-        val ymd = show.date.split("-")
-        parts.add(if (ymd.size >= 3) "${ymd[1]}/${ymd[2]}" else show.date)
         if (show.name.isNotEmpty()) parts.add(show.name)
         val venue = directory.displayName(show) ?: show.venue
         if (showsVenueInRow && !venue.isNullOrEmpty()) {

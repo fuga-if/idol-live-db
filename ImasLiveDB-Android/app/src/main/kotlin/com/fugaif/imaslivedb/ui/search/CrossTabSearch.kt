@@ -1,28 +1,22 @@
 package com.fugaif.imaslivedb.ui.search
 
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.core.SnapshotUnavailableException
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import androidx.compose.runtime.mutableIntStateOf
 
 /**
@@ -107,17 +101,10 @@ fun CrossTabCountChips(query: String, from: TopLevelTab) {
     }
     if (suggestions.isEmpty()) return
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    ImasChipRow(modifier = Modifier.padding(vertical = DS.Space.gapTight)) {
         // 上のスコープ列と同じ形の見出し。見出しが無いと、同じ見た目のチップ列が
         // 2 段あるだけになり、「絞り込む対象を変える」のか「別の画面へ移る」のかが読めない。
-        Text("別のタブ", fontSize = 12.sp, color = DS.ink3)
+        ImasText("別のタブ", role = ImasTextRole.NOTE)
         suggestions.forEach { (tab, n) ->
             ImasFilterChip(label = "${tab.label}に $n", selected = false, onClick = {
                 CrossTabSearch.hand(query, tab)

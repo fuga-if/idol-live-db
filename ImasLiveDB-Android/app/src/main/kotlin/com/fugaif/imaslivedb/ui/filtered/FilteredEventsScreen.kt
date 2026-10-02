@@ -9,9 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -20,13 +18,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 
 /**
  * 「◯◯のライブ」「N年のライブ」の一覧 (iOS `FilteredEventsView` の移植)。
@@ -64,13 +61,12 @@ fun FilteredEventsScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                state.isLoading -> ImasLoadingState()
                 state.events.isEmpty() -> FilteredEmptyState(Icons.Filled.Mic, "ライブが見つかりません")
                 else -> LazyColumn(Modifier.fillMaxSize()) {
-                    item(key = "count") { FilteredCountHeader("${state.events.size}件") }
+                    item(key = "count") { ImasListSummary<Nothing>(count = state.events.size) }
                     items(state.events, key = { it.event.id }) { item ->
                         FilteredEventRow(item) { onEventClick(item.event.id) }
-                        HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
             }

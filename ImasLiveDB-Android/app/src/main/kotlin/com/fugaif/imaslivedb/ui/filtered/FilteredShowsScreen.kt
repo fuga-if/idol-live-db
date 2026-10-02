@@ -9,9 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -20,21 +18,21 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
  * 「この会場での公演」「この日の公演」の一覧 (iOS `FilteredShowsView` の移植)。
  *
- * 会場での一覧は数年ぶんが並ぶので年で束ねる。見出しはライブ一覧と同じ [ImasSectionHeader]
- * (tight) を使う — 同じ「年の区切り」が画面ごとに別の見た目になると、束ね方が違うように見える。
+ * 会場での一覧は数年ぶんが並ぶので年で束ねる。見出しはライブ一覧と同じ [ImasDateHeader] を使う
+ * — 同じ「年の区切り」が画面ごとに別の見た目になると、束ね方が違うように見える。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,25 +64,25 @@ fun FilteredShowsScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                state.isLoading -> ImasLoadingState()
                 state.groups.isEmpty() -> FilteredEmptyState(Icons.Filled.ConfirmationNumber, "公演が見つかりません")
                 else -> LazyColumn(Modifier.fillMaxSize()) {
-                    item(key = "count") { FilteredCountHeader("${state.showCount}公演") }
+                    item(key = "count") { ImasListSummary<Nothing>(count = state.showCount, unit = "公演") }
                     state.groups.forEach { group ->
                         item(key = "year_${group.label}") {
-                            ImasSectionHeader(title = group.label, tight = true)
+                            ImasDateHeader(big = group.label, modifier = Modifier.padding(horizontal = DS.Space.screen))
                         }
                         items(group.rows, key = { it.showId }) { row ->
                             // 行の右スワイプで参加登録 (ライブ一覧・イベント詳細の公演一覧と同じ規則)。
                             AttendanceSwipeRow(showId = row.showId, showName = row.title) {
                                 FilteredShowRow(
+                                    date = row.date,
                                     title = row.title,
                                     subtitle = row.subtitle,
                                     brandId = row.brandId,
                                     rainbow = row.rainbow
                                 ) { onShowClick(row.showId) }
                             }
-                            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
                         }
                     }
                 }
