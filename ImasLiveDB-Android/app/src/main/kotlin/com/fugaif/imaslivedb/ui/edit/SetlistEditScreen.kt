@@ -54,7 +54,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
-import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
@@ -446,7 +445,7 @@ fun SetlistEditScreen(
                 }
             }
 
-            ImasSavingOverlay(state.isSaving)
+            ImasSavingOverlay(state.isSaving, label = "保存中…")
         }
     }
 
@@ -531,7 +530,6 @@ private fun SetlistEditRowView(
                     title = row.songTitle,
                     modifier = Modifier.weight(1f).imasRowPress(onClick = onPickSong),
                     leading = ImasRowLeading.Icon(Icons.Filled.MusicNote, tone = ImasIconTileTone.NEUTRAL),
-                    trailing = ImasRowTrailing.Chevron,
                     density = ImasRowDensity.COMPACT,
                     emphasis = if (row.songId.isEmpty()) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
                     titleLineLimit = 2,
@@ -550,7 +548,9 @@ private fun SetlistEditRowView(
 
             ImasSegmented(
                 labels = sections,
-                selection = sections.indexOf(row.section ?: "本編").coerceAtLeast(0),
+                // 4 択以外の値は -1 のまま渡す (coerceAtLeast(0) で「本編」扱いにすると、
+                // 実際には本編ではないのに「本編」をタップしても選択済み扱いで反応しなくなる)。
+                selection = sections.indexOf(row.section ?: "本編"),
                 onSelect = { index -> onSectionChange(sections[index].takeUnless { it == "本編" }) }
             )
 
@@ -562,7 +562,6 @@ private fun SetlistEditRowView(
                 },
                 modifier = Modifier.imasRowPress(onClick = onPickCasts),
                 leading = ImasRowLeading.Icon(Icons.Filled.Person, tone = ImasIconTileTone.NEUTRAL),
-                trailing = ImasRowTrailing.Chevron,
                 density = ImasRowDensity.COMPACT,
                 emphasis = if (row.castIds.isEmpty()) ImasRowEmphasis.DIMMED else ImasRowEmphasis.NORMAL,
                 titleLineLimit = 99,
