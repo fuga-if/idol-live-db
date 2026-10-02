@@ -1,22 +1,10 @@
 package com.fugaif.imaslivedb.ui.events
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,13 +12,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasDisclosureRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasTagChip
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import uniffi.imas_core.EventCostumeRecord
 import uniffi.imas_core.EventCostumesRecord
 
@@ -53,41 +48,30 @@ fun EventCostumesSection(
     val total = costumes.shared.size + costumes.individual.size
     if (total == 0) return
     var individualExpanded by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.padding(bottom = 8.dp).fillMaxWidth()) {
-        ImasSectionHeader(title = "衣装 ・ $total 着", tight = true)
-        Column(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-        ) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        ImasSectionHeader(
+            title = "衣装",
+            count = "$total 着",
+            tight = true,
+            modifier = Modifier.padding(horizontal = DS.Space.screen)
+        )
+        ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
             costumes.shared.forEachIndexed { index, entry ->
-                if (index > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                if (index > 0) ImasRowDivider(inset = DS.Space.screen)
                 CostumeRow(entry, individual = false, brand = brand) { onCostumeClick(entry.costume.id) }
             }
             if (costumes.individual.isNotEmpty()) {
-                if (costumes.shared.isNotEmpty()) {
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                }
-                Row(
-                    Modifier.fillMaxWidth()
-                        .clickable { individualExpanded = !individualExpanded }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("個別衣装", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                    Text("${costumes.individual.size} 着", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f))
-                    Icon(
-                        if (individualExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (individualExpanded) "畳む" else "開く",
-                        tint = DS.ink3, modifier = Modifier.size(20.dp)
-                    )
-                }
-                AnimatedVisibility(visible = individualExpanded) {
-                    Column {
-                        costumes.individual.forEach { entry ->
-                            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                            CostumeRow(entry, individual = true, brand = brand) { onCostumeClick(entry.costume.id) }
-                        }
+                if (costumes.shared.isNotEmpty()) ImasRowDivider(inset = DS.Space.screen)
+                ImasDisclosureRow(
+                    title = "個別衣装",
+                    count = "${costumes.individual.size} 着",
+                    isExpanded = individualExpanded,
+                    onToggle = { individualExpanded = !individualExpanded }
+                )
+                if (individualExpanded) {
+                    costumes.individual.forEach { entry ->
+                        ImasRowDivider(inset = DS.Space.screen)
+                        CostumeRow(entry, individual = true, brand = brand) { onCostumeClick(entry.costume.id) }
                     }
                 }
             }
@@ -96,34 +80,30 @@ fun EventCostumesSection(
 }
 
 /**
- * 衣装 1 着の行。個別衣装は「誰の衣装か」を名前の上に小さく出す
+ * 衣装 1 着の行。個別衣装は「誰の衣装か」を副題に出す
  * (39 人ぶん並ぶので、人で探せるようにする)。
  */
 @Composable
 private fun CostumeRow(entry: EventCostumeRecord, individual: Boolean, brand: String?, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            if (individual) {
-                entry.costume.attribution?.let { Text(it, fontSize = 12.sp, color = DS.ink2) }
+    ImasRow(
+        title = entry.costume.name,
+        modifier = Modifier.imasRowPress(onClick = onClick),
+        subtitle = if (individual) entry.costume.attribution else null,
+        trailing = ImasRowTrailing.Custom {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                entry.wornInLabel?.let { ImasText(it, ImasTextRole.META, maxLines = 1) }
+                ImasRowChevron()
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    entry.costume.name, fontSize = 15.sp, color = DS.ink,
-                    fontWeight = if (individual) FontWeight.Normal else FontWeight.SemiBold
-                )
-                if (!individual) {
-                    entry.costume.attribution?.let { ImasTagChip(text = it, brand = brand) }
-                }
+        },
+        density = ImasRowDensity.COMPACT,
+        titleRole = ImasTextRole.ROW_LABEL,
+        detail = {
+            if (!individual) {
+                entry.costume.attribution?.let { ImasBadge(text = it, kind = ImasBadgeKind.UNIT, brand = brand) }
             }
         }
-        entry.wornInLabel?.let { Text(it, fontSize = 12.sp, color = DS.ink2, maxLines = 1) }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
-            tint = DS.ink3, modifier = Modifier.size(18.dp)
-        )
-    }
+    )
 }
