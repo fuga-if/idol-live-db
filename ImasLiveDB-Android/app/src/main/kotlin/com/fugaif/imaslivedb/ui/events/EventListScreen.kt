@@ -38,23 +38,26 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.designsystem.ImasEventRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBarItem
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.EventAttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubDate
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.data.model.JstDay
+import uniffi.imas_core.spokenDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -161,7 +164,11 @@ fun EventListScreen(
                     label = uiState.venueDirectory.venue(uiState.venue)?.name ?: "会場",
                     selected = uiState.venue != null,
                     onClick = { showVenuePicker = true },
-                    icon = Icons.Filled.Place
+                    icon = Icons.Filled.Place,
+                    onClear = if (uiState.venue != null) {
+                        { viewModel.selectVenue(context, null) }
+                    } else null,
+                    clearContentDescription = "会場絞り込みを解除"
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 ImasText("${uiState.filteredCount}件", role = ImasTextRole.NOTE, color = DS.ink2)
@@ -202,13 +209,19 @@ fun EventListScreen(
                                     eventId = ew.event.id,
                                     brand = ew.event.brandId
                                 ) {
-                                    ImasEventRow(
-                                        event = ew.event,
-                                        modifier = Modifier.padding(horizontal = DS.Space.screen),
-                                        date = ew.firstDate,
+                                    // 一覧は常に正式名 (ImasEventRow の「ライブ名を省略表示」設定を
+                                    // 通さない。長押しの「ライブ名をコピー」も前に無いので付けない)。
+                                    val spoken = remember(ew.firstDate) { ew.firstDate?.let { spokenDate(it) } }
+                                    ImasStubRow(
+                                        date = ew.firstDate?.let { ImasStubDate(it) } ?: ImasStubDate.Unknown,
+                                        title = ew.event.name,
+                                        modifier = Modifier
+                                            .padding(horizontal = DS.Space.screen)
+                                            .imasRowPress(onClick = { onEventClick(ew.event.id) }),
                                         subtitle = ew.dateRange,
+                                        brand = ew.event.brandId,
                                         rainbow = ew.isJoint,
-                                        onClick = { onEventClick(ew.event.id) }
+                                        spokenDate = spoken
                                     )
                                 }
                             }
@@ -232,7 +245,6 @@ private fun ActiveFilterChipRow(
     onClearVenue: () -> Unit
 ) {
     val brandNames = remember(uiState.brands) { uiState.brands.associate { it.id to it.shortName } }
-    val brandColors = remember(uiState.brands) { uiState.brands.associate { it.id to it.color } }
 
     val items = buildList {
         if (uiState.appliedSearchText.isNotEmpty()) {
@@ -240,7 +252,7 @@ private fun ActiveFilterChipRow(
         }
         // 並びは選択順でなくソート済みで固定する。押すたびにチップが入れ替わると押し損ねる。
         uiState.selectedBrandIds.sorted().forEach { id ->
-            add(ImasFilterBarItem(id = "brand_$id", title = brandNames[id] ?: id, seed = brandColors[id], onRemove = { viewModel.toggleBrand(id) }))
+            add(ImasFilterBarItem(id = "brand_$id", title = brandNames[id] ?: id, onRemove = { viewModel.toggleBrand(id) }))
         }
         uiState.excludedKinds.sorted().forEach { kind ->
             add(ImasFilterBarItem(id = "kind_$kind", title = "除外: ${eventKindLabel(kind)}", onRemove = { viewModel.removeExcludedKind(kind) }))
