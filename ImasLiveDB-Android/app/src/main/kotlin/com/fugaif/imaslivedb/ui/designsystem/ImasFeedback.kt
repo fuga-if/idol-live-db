@@ -330,9 +330,16 @@ fun ImasNotice(
  * 区画の中の「〇〇にはログインが必要です」(iOS `ImasSignInPrompt`)。ログインしていれば何も出さない。
  * カード全体が押せる (「ログイン」だけの小さい押し場所にはしない)。押すとログイン
  * (Google の Credential Manager のシート) を始める (`CommunityLoginPromptDialog` と同じ入口)。
+ *
+ * @param buttonTitle ボタンの文言 (読み上げの動詞もこれに揃える)。呼び出しによって
+ *   「Googleでログイン」等、前の画面の文言に合わせたい時に渡す。
  */
 @Composable
-fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・投票にはログインが必要です") {
+fun ImasSignInPrompt(
+    modifier: Modifier = Modifier,
+    message: String = "投稿・投票にはログインが必要です",
+    buttonTitle: String = "ログイン"
+) {
     val context = LocalContext.current
     val auth = remember(context) { AppModule.from(context).authService }
     val state by auth.state.collectAsState()
@@ -343,7 +350,7 @@ fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・
     Row(
         modifier
             .fillMaxWidth()
-            .imasPress(onClickLabel = "ログイン", onClick = signIn)
+            .imasPress(onClickLabel = buttonTitle, onClick = signIn)
             .background(DS.surface, RoundedCornerShape(DS.rCard))
             .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapLoose),
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
@@ -363,7 +370,7 @@ fun ImasSignInPrompt(modifier: Modifier = Modifier, message: String = "投稿・
         )
         // 見た目だけ。押すのはカード全体 (入れ子の押し場所にしない)。
         ImasButton(
-            title = "ログイン",
+            title = buttonTitle,
             onClick = signIn,
             role = ImasButtonRole.PRIMARY,
             size = ImasButtonSize.SMALL,

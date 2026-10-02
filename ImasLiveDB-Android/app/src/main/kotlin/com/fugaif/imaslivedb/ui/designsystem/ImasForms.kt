@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -188,9 +189,13 @@ fun ImasFormField(
     imprint: String? = null,
     icon: ImageVector? = null,
     error: String? = null,
+    // 文言を足さずに欄だけ朱にしたい時 (空白だけの必須欄など)。error と立てても良いが、
+    // 別に文を出したくない呼び出しのために分けている。
+    isError: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val perforation = DS.perforation
+    val labelColor = if (isError) DS.danger else DS.ink2
     Column(
         modifier
             .fillMaxWidth()
@@ -208,17 +213,19 @@ fun ImasFormField(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
-            Modifier.clearAndSetSemantics { },
+            // 見出しとして読ませる (前は clearAndSetSemantics で丸ごと消えていて、スワイプ閲覧でも
+            // 見出し単位の移動でも読まれなかった)。見た目は変えない。
+            Modifier.semantics(mergeDescendants = true) { heading() },
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(with(LocalDensity.current) { 12.sp.toDp() }))
+                Icon(icon, contentDescription = null, tint = labelColor, modifier = Modifier.size(with(LocalDensity.current) { 12.sp.toDp() }))
             }
             Text(
                 listOfNotNull(imprint, label).joinToString(" · "),
                 style = ImasTextRole.IMPRINT.style,
-                color = DS.ink2,
+                color = labelColor,
                 maxLines = 1
             )
         }
@@ -285,6 +292,8 @@ private fun rememberFieldValue(text: String): androidx.compose.runtime.MutableSt
  * @param limit 文字数の上限。渡すと入力の下に「N / 上限」を出し、超えたら朱にする
  *   (タグ名など、短い 1 行の値で上限を示したい欄)。
  * @param count 数え方を呼び出し側が決めるとき。null なら見た目の文字数 ([graphemeCount])。
+ * @param countUnit 「N / 上限」の後に付ける単位 (「文字」等)。既定は無し (今の呼び出しのまま)。
+ * @param isError 文言を足さずに欄・文字数を朱にしたい時 (空白だけの必須欄など)。
  */
 @Composable
 fun ImasFormTextField(
@@ -296,13 +305,15 @@ fun ImasFormTextField(
     icon: ImageVector? = null,
     prompt: String? = null,
     error: String? = null,
+    isError: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
     isTitle: Boolean = false,
     limit: Int? = null,
-    count: Int? = null
+    count: Int? = null,
+    countUnit: String = ""
 ) {
     var field by rememberFieldValue(text)
-    ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon, error = error) {
+    ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon, error = error, isError = isError) {
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
             FormInput(
                 value = field,
@@ -319,7 +330,11 @@ fun ImasFormTextField(
             )
             if (limit != null) {
                 val n = count ?: graphemeCount(text)
-                Text("$n / $limit", style = ImasType.mono(11.sp), color = if (n > limit) DS.danger else DS.ink3)
+                Text(
+                    "$n / $limit$countUnit",
+                    style = ImasType.mono(11.sp),
+                    color = if (n > limit || isError) DS.danger else DS.ink3
+                )
             }
         }
     }
@@ -330,6 +345,7 @@ fun ImasFormTextField(
  *
  * @param limit 文字数の上限。渡すと「N / 上限」を右下に出し、超えたら朱にする。
  * @param count 数え方を呼び出し側が決めるとき (サーバと同じ数え方はコアの `inputLength`)。null なら文字の数。
+ * @param countUnit 「N / 上限」の後に付ける単位 (「文字」等)。既定は無し (今の呼び出しのまま)。
  * @param autofocus 開いたら自動でキーボードを出す (返信シートなど、すぐ打ち始めてほしい欄)。
  */
 @Composable
@@ -343,6 +359,7 @@ fun ImasFormTextArea(
     icon: ImageVector? = Icons.AutoMirrored.Outlined.Notes,
     limit: Int? = null,
     count: Int? = null,
+    countUnit: String = "",
     autofocus: Boolean = false
 ) {
     var field by rememberFieldValue(text)
@@ -370,7 +387,7 @@ fun ImasFormTextArea(
             if (limit != null) {
                 val n = count ?: graphemeCount(text)
                 Text(
-                    "$n / $limit",
+                    "$n / $limit$countUnit",
                     style = ImasType.mono(11.sp),
                     color = if (n > limit) DS.danger else DS.ink3
                 )
@@ -480,10 +497,13 @@ fun ImasFormAmount(
     note: String? = null
 ) {
     var field by remember { mutableStateOf(formatAmount(amount).let { TextFieldValue(it, TextRange(it.length)) }) }
+    // 32bit Int に収まらない数字 (2,147,483,648 以上) を打ち続けているとき。欄の数字は残したまま文言で知らせる。
+    var isTooLarge by remember { mutableStateOf(false) }
     // 外から amount が変わったら欄を追わせる。自分の入力で既に揃っているときは書き直さない。
     LaunchedEffect(amount) {
         val formatted = formatAmount(amount)
         if (formatted != field.text) field = TextFieldValue(formatted, TextRange(formatted.length))
+        isTooLarge = false
     }
     val focus = remember { FocusRequester() }
     val style = ImasNumeralSize.LARGE.style
@@ -491,7 +511,14 @@ fun ImasFormAmount(
     val density = LocalDensity.current
     // 数字の幅だけの欄にする (iOS `.fixedSize()`)。空なら「0」の幅。
     val width: Dp = with(density) { measurer.measure(field.text.ifEmpty { "0" }, style).size.width.toDp() } + 2.dp
-    ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon) {
+    ImasFormField(
+        label = label,
+        modifier = modifier,
+        imprint = imprint,
+        icon = icon,
+        error = if (isTooLarge) "桁が多すぎます" else null,
+        isError = isTooLarge
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -507,9 +534,16 @@ fun ImasFormAmount(
                 onValueChange = { next ->
                     val digits = next.text.filter(Char::isDigit)
                     val parsed = digits.toIntOrNull()
-                    val formatted = formatAmount(parsed)
-                    field = TextFieldValue(formatted, TextRange(formatted.length))
-                    if (parsed != amount) onAmountChange(parsed)
+                    if (parsed == null && digits.isNotEmpty()) {
+                        // 桁あふれ: 確定済みの amount は動かさず、打った数字だけそのまま見せる。
+                        isTooLarge = true
+                        field = TextFieldValue(digits, TextRange(digits.length))
+                    } else {
+                        isTooLarge = false
+                        val formatted = formatAmount(parsed)
+                        field = TextFieldValue(formatted, TextRange(formatted.length))
+                        if (parsed != amount) onAmountChange(parsed)
+                    }
                 },
                 prompt = "0",
                 style = style,

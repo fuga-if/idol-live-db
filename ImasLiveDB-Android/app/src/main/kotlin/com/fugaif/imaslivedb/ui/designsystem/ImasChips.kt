@@ -126,8 +126,12 @@ enum class ImasChipStyle {
  * @param color 実体色そのもの (ユーザーが選んだタグ色等)。seed/brand より優先し、素の色を塗らずに
  *   WCAG の計算を通す (どんな明るさでも文字が読める側に倒れる)。
  * @param fillsWidth 格子の中で幅を揃えたいとき true。
+ * @param count 本文の後に添える件数 (「5」等)。本文だけを省略し、件数は折り返さず必ず最後まで出す
+ *   (タグの使用数など、本文が長い時に件数ごと消えないように)。
  * @param onClick 押して行く先 (最近見た・関連)。iOS の `ImasChip` は押せないが、Android の今の呼び出し
  *   (アイドル詳細の属性・年表のブランド) が押して進むので受けておく。新しく押せるチップを作るなら [ImasFilterChip]。
+ * @param trailing 末尾に置くもの (チップの文字色 [ImasChipColors.Colors.fg] が渡る)。
+ *   選んでいる間だけ解除の口を出すチップ ([ImasFilterChip] の `onClear`) で使う。
  */
 @Composable
 fun ImasChip(
@@ -140,6 +144,8 @@ fun ImasChip(
     color: Color? = null,
     fillsWidth: Boolean = false,
     leading: ImasChipLeading? = null,
+    count: String? = null,
+    trailing: (@Composable (tint: Color) -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     val t = ImasChipColors.theme(seed, brand, color)
@@ -154,18 +160,24 @@ fun ImasChip(
             .then(if (fillsWidth) Modifier.fillMaxWidth() else Modifier)
             .background(c.bg, shape)
             .then(if (c.stroke != null) Modifier.border(1.dp, c.stroke, shape) else Modifier)
-            .padding(start = if (lead == null) 12.dp else 10.dp, end = 12.dp),
+            .padding(start = if (lead == null) 12.dp else 10.dp, end = if (trailing == null) 12.dp else 10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp, if (fillsWidth) Alignment.CenterHorizontally else Alignment.Start),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ImasChipLeadingView(lead, t, penlight, c.fg)
         Text(
             text,
+            // count がある時だけ本文を縮める側に回す (件数は縮めない。無い時は今まで通り)。
+            modifier = if (count != null) Modifier.weight(1f, fill = false) else Modifier,
             style = ImasTextRole.CHIP.style,
             color = c.fg,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+        if (count != null) {
+            Text(count, style = ImasTextRole.CHIP.style, color = c.fg, maxLines = 1)
+        }
+        trailing?.invoke(c.fg)
     }
 }
 
@@ -182,6 +194,10 @@ fun ImasChip(
  *
  * @param tintColor 実体色そのもの (iOS の `color`)。
  * @param icon 先頭の記号 (iOS の `systemImage`)。
+ * @param onClear 渡すと末尾に解除の口 (×) を出す (押すと別の選び方 (ピッカー) を開くチップで、
+ *   選んでいる間だけその場で解除したいとき。例: 会場チップ)。選んでいないときは呼び出し側で null を渡す。
+ * @param clearContentDescription 解除の口の読み上げ。省略すると「[label] を解除」。
+ * @param count 本文の後に添える件数。[label] だけを省略し、件数は必ず最後まで出す (タグの使用数等)。
  */
 @Composable
 fun ImasFilterChip(
@@ -200,13 +216,33 @@ fun ImasFilterChip(
     onClickLabel: String? = null,
     // 見た目の文字 (件数だけ等) だけでは本文の読み上げが意味を持たない時に渡す
     // (例: 「5」だけでなく「Good を取り消す、5件」と読ませる)。指定すると行の読み上げをこれで差し替える。
-    contentDescription: String? = null
+    contentDescription: String? = null,
+    onClear: (() -> Unit)? = null,
+    clearContentDescription: String? = null,
+    count: String? = null
 ) {
     val haptics = rememberImasHaptics()
     val hinted = seed != null || brand != null || tintColor != null
     val lead = leading ?: if (icon == null && hinted && !ImasChipColors.theme(seed, brand, tintColor).isNeutral) {
         ImasChipLeading.Dot
     } else null
+    // 型を先に決めておかないと (if 式の分岐から推論させると)、Compose コンパイラが
+    // このラムダを @Composable と認識できないことがある。
+    val clearTrailing: (@Composable (Color) -> Unit)? = if (onClear == null) {
+        null
+    } else {
+        { tint: Color ->
+            val xSize = with(LocalDensity.current) { 18.sp.toDp() }
+            Icon(
+                Icons.Filled.Close,
+                contentDescription = clearContentDescription ?: "$label を解除",
+                tint = tint,
+                modifier = Modifier
+                    .size(xSize)
+                    .imasPress(onClick = onClear)
+            )
+        }
+    }
     ImasChip(
         text = label,
         modifier = modifier
@@ -231,7 +267,9 @@ fun ImasFilterChip(
         brand = brand,
         color = tintColor,
         fillsWidth = fillsWidth,
-        leading = lead
+        leading = lead,
+        count = count,
+        trailing = clearTrailing
     )
 }
 
@@ -430,12 +468,20 @@ fun ImasAwardChip(title: String, rank: Int, modifier: Modifier = Modifier) {
             tint = DS.favorite,
             modifier = Modifier.size(iconSize)
         )
+        // 題だけ省略する (「優勝」「第N位」の札が長い題と一緒に切れて消えないように)。
         Text(
-            "$title $rankLabel",
+            title,
+            modifier = Modifier.weight(1f, fill = false),
             style = ImasTextRole.CHIP.style,
             color = if (isWinner) DS.onSys else DS.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            rankLabel,
+            style = ImasTextRole.CHIP.style,
+            color = if (isWinner) DS.onSys else DS.ink,
+            maxLines = 1
         )
     }
 }

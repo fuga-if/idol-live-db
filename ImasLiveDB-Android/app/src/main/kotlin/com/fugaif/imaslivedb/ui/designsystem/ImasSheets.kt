@@ -95,8 +95,16 @@ import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 
 /** シートの種類 (iOS `ImasSheetToolbarKind`)。種類ごとに左右のボタンの意味が決まっている (§16)。 */
 sealed interface ImasSheetToolbarKind {
-    /** 編集・追加。左 = キャンセル、右 = 保存。 */
-    data class Edit(val canSave: Boolean = true, val onCancel: () -> Unit, val onSave: () -> Unit) : ImasSheetToolbarKind
+    /**
+     * 編集・追加。左 = キャンセル、右 = 保存。
+     * [isSaving] の間は保存の記号の代わりにくるくるを出し、連打できないようにする ([Submit] と同じ扱い)。
+     */
+    data class Edit(
+        val canSave: Boolean = true,
+        val isSaving: Boolean = false,
+        val onCancel: () -> Unit,
+        val onSave: () -> Unit
+    ) : ImasSheetToolbarKind
 
     /**
      * 投稿・投票・修正リクエスト (みんなに見える)。左 = キャンセル、右 = 送信。

@@ -440,9 +440,12 @@ fun <T> ImasCardList(
 /**
  * 区画の下の補足文 (iOS `ImasNote`)。灰色の小さい文で、囲まない。
  * 読まないと困ること (始められない・失敗した) は `ImasNotice` にする。
+ *
+ * @param color 既定は灰色。欄の値が足りない等、その場の文言だけ朱にしたい時に渡す
+ *   (「1つ以上選択してください」等。banner にするほどではない軽い検証の注意)。
  */
 @Composable
-fun ImasNote(text: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+fun ImasNote(text: String, modifier: Modifier = Modifier, icon: ImageVector? = null, color: Color = ImasTextRole.NOTE.color) {
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -451,13 +454,13 @@ fun ImasNote(text: String, modifier: Modifier = Modifier, icon: ImageVector? = n
             Icon(
                 icon,
                 contentDescription = null,
-                tint = ImasTextRole.NOTE.color,
+                tint = color,
                 modifier = Modifier
                     .padding(top = 2.dp)
                     .size(with(LocalDensity.current) { 13.sp.toDp() })
             )
         }
-        Text(text, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+        Text(text, style = ImasTextRole.NOTE.style, color = color)
     }
 }
 
