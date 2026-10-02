@@ -953,7 +953,7 @@ private fun CommunityTab(
         Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasSectionHeader(
                 "タグ", count = "${state.tags.size}",
-                actionTitle = if (canEditHere) "タグ" else null,
+                actionTitle = if (canEditHere) "タグを追加" else null,
                 actionIcon = if (canEditHere) Icons.Filled.Add else null,
                 onAction = if (canEditHere) onOpenTagPicker else null
             )
@@ -981,28 +981,6 @@ private fun CommunityTab(
         if (state.similarTagSongs.isNotEmpty()) {
             RelatedSongsSection("この曲が好きな人にはこれも", state.similarTagSongs, seed, brand, state.similarSharedTags, onSongClick)
         }
-        // 参考動画 (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
-        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
-            ImasSectionHeader(
-                "参考動画", count = "${state.songVideos.size}",
-                actionTitle = if (canEditHere) "動画" else null,
-                actionIcon = if (canEditHere) Icons.Filled.Add else null,
-                onAction = if (canEditHere) onCreateVideo else null
-            )
-            if (state.songVideos.isEmpty()) {
-                ImasEmptyState(Icons.Filled.OndemandVideo, "参考動画はまだありません",
-                    "ライブ映像などの参考動画を共有しませんか？", seed = seed, brand = brand)
-            } else {
-                // id とサムネイルの URL はコアが読む (一覧で 1 回)。
-                val refs = remember(state.songVideos) { youtubeVideoRefs(state.songVideos.map { it.youtubeUrl }) }
-                ImasCardList {
-                    state.songVideos.forEachIndexed { index, video ->
-                        if (index > 0) ImasRowDivider(inset = DS.sp5)
-                        VideoRow(video, refs.getOrNull(index), canEditHere, onEditVideo) { openUrl(context, video.youtubeUrl) }
-                    }
-                }
-            }
-        }
         // ペンライト投票 (集計系・Worker D1)
         Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasSectionHeader(
@@ -1022,7 +1000,28 @@ private fun CommunityTab(
                         PenlightRow(ps)
                     }
                 }
-                ImasNote("この曲のペンライト色 ・ ${state.penlight?.totalVotes ?: 0}票")
+            }
+        }
+        // 参考動画 (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+            ImasSectionHeader(
+                "参考動画", count = "${state.songVideos.size}",
+                actionTitle = if (canEditHere) "参考動画を追加" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onCreateVideo else null
+            )
+            if (state.songVideos.isEmpty()) {
+                ImasEmptyState(Icons.Filled.OndemandVideo, "参考動画はまだありません",
+                    "ライブ映像などの参考動画を共有しませんか？", seed = seed, brand = brand)
+            } else {
+                // id とサムネイルの URL はコアが読む (一覧で 1 回)。
+                val refs = remember(state.songVideos) { youtubeVideoRefs(state.songVideos.map { it.youtubeUrl }) }
+                ImasCardList {
+                    state.songVideos.forEachIndexed { index, video ->
+                        if (index > 0) ImasRowDivider(inset = DS.sp5)
+                        VideoRow(video, refs.getOrNull(index), canEditHere, onEditVideo) { openUrl(context, video.youtubeUrl) }
+                    }
+                }
             }
         }
     }
@@ -1098,7 +1097,7 @@ private fun PenlightRow(set: com.fugaif.imaslivedb.data.community.CommunityApi.P
             }
         }
         Box(Modifier.weight(1f))
-        com.fugaif.imaslivedb.ui.designsystem.ImasMetric("${set.count}", unit = "票", size = com.fugaif.imaslivedb.ui.theme.ImasNumeralSize.SMALL)
+        com.fugaif.imaslivedb.ui.designsystem.ImasMetric("${set.count}", size = com.fugaif.imaslivedb.ui.theme.ImasNumeralSize.SMALL)
     }
 }
 
