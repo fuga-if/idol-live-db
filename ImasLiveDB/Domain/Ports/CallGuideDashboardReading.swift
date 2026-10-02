@@ -35,20 +35,6 @@ struct CallGuideDashboard: Decodable, Sendable, Equatable {
     let taggedWithoutCalls: [String]
     /// 「コール曲」タグ側の内訳。タグが未作成/削除済みなら nil。
     let callTag: CallGuideTagStatus?
-    /// 歌詞のタイミング (行の再生位置) がある曲 (updated_at 降順)。**サーバ上限 200 件**。
-    /// 古い Worker・エッジに残った古い応答には無いので Optional。
-    var songsWithTimings: [LyricTimingSongSummary]? = nil
-}
-
-/// 歌詞のタイミングがある曲 1 件ぶんのメタデータ (時刻も歌詞も含まない)。
-struct LyricTimingSongSummary: Decodable, Sendable, Equatable {
-    let songId: String
-    /// 時刻の入った行の数。
-    let timedLines: Int
-    /// 時刻の入ったコールの数。
-    let timedCalls: Int
-    let updatedAt: Int
-    let updatedBy: String
 }
 
 /// コールガイドがある曲 1 件ぶんのメタデータ。

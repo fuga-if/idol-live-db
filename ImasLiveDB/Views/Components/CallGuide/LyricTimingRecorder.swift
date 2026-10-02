@@ -195,6 +195,8 @@ final class LyricTimingRecorder: Identifiable {
         let calls = zip(callIds, callStarts).map { LyricTimingPayload.Line(id: $0, startMs: $1) }
         do {
             try await writer.updateLyricTimings(songId: songId, lines: lines, calls: calls)
+            // 曲一覧の「タイミングがある曲のみ」に、取り直しを待たずに載せる。
+            await LyricAnnotationStore.shared.mark(songId: songId, .timings, starts.contains { $0 != nil })
             saveState = .idle
             return true
         } catch {

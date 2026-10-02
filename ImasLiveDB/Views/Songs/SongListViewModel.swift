@@ -99,13 +99,9 @@ final class SongListViewModel {
     /// タグ側と同じく、失敗時は絞り込みを適用せず本フラグだけ立てる。
     private(set) var callGuideFilterError = false
     /// 集合がサーバ上限 (200 件) で打ち切られているか。
-    /// 打ち切られていると「コールガイドがある曲」を名乗りながら 201 曲目以降が落ちるので、
-    /// 黙って絞らず画面で断る (件数が合わない理由をユーザーが自分で説明できるように)。
-    private(set) var callGuideFilterTruncated = false
     /// 歌詞のタイミングがある曲の song_id 集合 (nil = この絞り込みなし)。解決の仕方はコールガイドと同じ。
     private(set) var lyricTimingSongIds: Set<String>?
     private(set) var lyricTimingFilterError = false
-    private(set) var lyricTimingFilterTruncated = false
     private var currentLyricTimingResolveId = UUID()
     /// `resolveCallGuideFilter` の世代。`await` の間にトグルが動いていたら古い応答は捨てる。
     private var currentCallGuideResolveId = UUID()
@@ -127,17 +123,16 @@ final class SongListViewModel {
     private var fuzzyGeneration: UUID = UUID()
 
     private let songReading: any SongReading
-    /// コールガイド絞り込みの母集合を引くポート。既存のタグ絞り込みが `CommunityAPI.shared` を
-    /// 直叩きしているのに対し、こちらは注入にしてフェイクを差せるようにしてある。
-    private let callGuideDashboard: any CallGuideDashboardReading
+    /// コールガイド・タイミング絞り込みの母集合 (端末に覚えた印)。注入にしてフェイクを差せるようにしてある。
+    private let annotations: any LyricAnnotationProviding
     private var markService: UserMarkService { UserMarkService.shared }
 
     nonisolated init(
         songReading: any SongReading = AppContainer.shared.songReading,
-        callGuideDashboard: any CallGuideDashboardReading = AppContainer.shared.callGuideDashboardReading
+        annotations: any LyricAnnotationProviding = LyricAnnotationStore.shared
     ) {
         self.songReading = songReading
-        self.callGuideDashboard = callGuideDashboard
+        self.annotations = annotations
     }
 
     @discardableResult
@@ -428,25 +423,22 @@ final class SongListViewModel {
 
     /// 「コールガイドがある曲のみ」の song_id 集合を解決する。
     ///
-    /// 失敗規約は `resolveTagFilter` と同じ: **取得に失敗したら絞り込みを適用しない**
-    /// (`callGuideSongIds` を触らず `callGuideFilterError` だけ立てる)。オフラインで
-    /// 一覧を誤って空にしないため。
+    /// 母集合は端末に覚えた印 (`LyricAnnotationStore`。古ければ取り直す)。失敗規約は
+    /// `resolveTagFilter` と同じ: **取得に失敗したら絞り込みを適用しない**
+    /// (`callGuideSongIds` を触らず `callGuideFilterError` だけ立てる)。オフラインで一覧を誤って空にしないため。
     func resolveCallGuideFilter(_ enabled: Bool) async {
         let resolveId = UUID()
         currentCallGuideResolveId = resolveId
         guard enabled else {
             callGuideSongIds = nil
             callGuideFilterError = false
-            callGuideFilterTruncated = false
             return
         }
         do {
-            let dashboard = try await callGuideDashboard.callGuideDashboard()
-            // 通信中にトグルが OFF に戻って (or 押し直されて) いたら、この結果は stale。
-            // 適用すると、解除したはずの絞り込みが遅れて復活する。
+            let ids = try await annotations.songIds(.calls)
+            // 取得中にトグルが OFF に戻って (or 押し直されて) いたら、この結果は stale。
             guard currentCallGuideResolveId == resolveId else { return }
-            callGuideSongIds = Set(dashboard.songsWithCalls.map(\.songId))
-            callGuideFilterTruncated = dashboard.songsWithCalls.count >= Self.callGuideServerLimit
+            callGuideSongIds = ids
             callGuideFilterError = false
         } catch {
             guard currentCallGuideResolveId == resolveId else { return }
@@ -454,32 +446,25 @@ final class SongListViewModel {
         }
     }
 
-    /// 「歌詞のタイミングがある曲のみ」の song_id 集合を解決する。規約は `resolveCallGuideFilter` と同じ
-    /// (取得に失敗したら絞り込みを適用しない。オフラインで一覧を誤って空にしないため)。
+    /// 「歌詞のタイミングがある曲のみ」の song_id 集合を解決する。規約は `resolveCallGuideFilter` と同じ。
     func resolveLyricTimingFilter(_ enabled: Bool) async {
         let resolveId = UUID()
         currentLyricTimingResolveId = resolveId
         guard enabled else {
             lyricTimingSongIds = nil
             lyricTimingFilterError = false
-            lyricTimingFilterTruncated = false
             return
         }
         do {
-            let dashboard = try await callGuideDashboard.callGuideDashboard()
+            let ids = try await annotations.songIds(.timings)
             guard currentLyricTimingResolveId == resolveId else { return }
-            let songs = dashboard.songsWithTimings ?? []
-            lyricTimingSongIds = Set(songs.map(\.songId))
-            lyricTimingFilterTruncated = songs.count >= Self.callGuideServerLimit
+            lyricTimingSongIds = ids
             lyricTimingFilterError = false
         } catch {
             guard currentLyricTimingResolveId == resolveId else { return }
             lyricTimingFilterError = true
         }
     }
-
-    /// `GET /calls/dashboard` の `songsWithCalls` のサーバ上限。ポートの DTO コメント参照。
-    private static let callGuideServerLimit = 200
 }
 
 /// SongListView の現在の UI 状態を、データ取得に必要な純粋値へまとめたリクエスト。

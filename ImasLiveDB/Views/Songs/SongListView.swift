@@ -455,19 +455,9 @@ struct SongListView: View {
             ImasNotice(kind: .warning, message: "歌詞のタイミングの情報を取得できませんでした。表示中の一覧にはタイミング条件が反映されていません。")
                 .padding(.horizontal, DS.Space.screen)
                 .padding(.vertical, DS.Space.gapTight)
-        } else if lyricTimingOnly && listMode == .songs && vm.lyricTimingFilterTruncated {
-            ImasNotice(kind: .info, message: "タイミングが最近更新された 200 曲で絞り込んでいます。")
-                .padding(.horizontal, DS.Space.screen)
-                .padding(.vertical, DS.Space.gapTight)
         }
         if vm.callGuideFilterError {
             ImasNotice(kind: .warning, message: "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
-                .padding(.horizontal, DS.Space.screen)
-                .padding(.vertical, DS.Space.gapTight)
-        } else if callGuideOnly && listMode == .songs && vm.callGuideFilterTruncated {
-            // サーバは 200 件で打ち切る。201 曲目以降が黙って消えるのではなく、
-            // 「何で絞っているか」を名乗る。
-            ImasNotice(kind: .info, message: "最近更新された 200 曲で絞り込んでいます。")
                 .padding(.horizontal, DS.Space.screen)
                 .padding(.vertical, DS.Space.gapTight)
         }

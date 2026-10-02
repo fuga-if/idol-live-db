@@ -75,6 +75,14 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
+    /// コールガイド・タイミングがある曲の id を 1 ページ (`GET /lyrics/annotations`)。
+    /// 認証不要・エッジキャッシュに載る口なので `authorized: false`。
+    func lyricAnnotations(after: String?, limit: Int) async throws -> LyricAnnotationsPage {
+        var query = ["limit": String(limit)]
+        if let after { query["after"] = after }
+        return try await client.request("GET", path: "/lyrics/annotations", query: query, authorized: false)
+    }
+
     /// コールガイドの整備状況 (`GET /calls/dashboard`)。
     ///
     /// **`authorized: false` で投げること。** `Authorization` を付けると Worker 側の
@@ -89,6 +97,7 @@ actor CallGuideAPI: CallGuideWriting {
 /// (このエンドポイント自体は本文を返さないが、経路を分けると次の実装者が
 /// `APIClient.shared` を使い始める入口になる)。
 extension CallGuideAPI: CallGuideDashboardReading {}
+extension CallGuideAPI: LyricAnnotationReading {}
 
 #if DEBUG
 /// サーバ未実装でも編集の動線を確認するためのフェイク。保存した内容はどこにも残さない。

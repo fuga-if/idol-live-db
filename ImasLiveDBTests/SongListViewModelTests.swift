@@ -1,84 +1,130 @@
 import XCTest
 @testable import ImasLiveDB
 
-/// `SongListViewModel` のコールガイド絞り込み解決の単体テスト。
-/// フェイクは `CallGuideDashboardViewModelTests.swift` の `Stub*` を共有する。
+/// 端末に覚えた印のスタブ。
+final class StubLyricAnnotations: LyricAnnotationProviding, @unchecked Sendable {
+    var calls: Set<String> = []
+    var timings: Set<String> = []
+    var shouldThrow = false
+    /// n 回目の呼び出しが応答を返す直前に走るフック (世代ガードの検証用)。
+    var beforeReturn: [Int: @MainActor () async -> Void] = [:]
+    private(set) var callCount = 0
+
+    enum StubError: Error { case boom }
+
+    func songIds(_ kind: LyricAnnotationKind) async throws -> Set<String> {
+        callCount += 1
+        let call = callCount
+        if let hook = beforeReturn[call] { await hook() }
+        if shouldThrow { throw StubError.boom }
+        return kind == .calls ? calls : timings
+    }
+}
+
+/// `SongListViewModel` のコールガイド・タイミング絞り込み解決の単体テスト。
 @MainActor
 final class SongListViewModelTests: XCTestCase {
 
-    private func summary(_ id: String) -> CallGuideSongSummary {
-        CallGuideSongSummary(songId: id, callLines: 4, callCount: 10, updatedAt: 0, updatedBy: "匿名")
+    private func makeVM(calls: Set<String> = [], timings: Set<String> = []) -> (SongListViewModel, StubLyricAnnotations) {
+        let port = StubLyricAnnotations()
+        port.calls = calls
+        port.timings = timings
+        return (SongListViewModel(songReading: StubSongReading(), annotations: port), port)
     }
 
-    private func makeVM(_ ids: [String]) -> (SongListViewModel, StubCallGuideDashboardReading) {
-        let port = StubCallGuideDashboardReading()
-        port.dashboardToReturn = CallGuideDashboard(
-            generatedAt: 0, songsWithCalls: ids.map(summary), recentEdits: [],
-            taggedWithoutCalls: [], callTag: nil)
-        return (SongListViewModel(songReading: StubSongReading(), callGuideDashboard: port), port)
-    }
-
-    /// I6: 有効化で `songsWithCalls` の id 集合になる。
     func testResolveEnabledBuildsIdSet() async {
-        let (vm, port) = makeVM(["s1", "s2"])
-
+        let (vm, port) = makeVM(calls: ["s1", "s2"])
         await vm.resolveCallGuideFilter(true)
-
         XCTAssertEqual(vm.callGuideSongIds, ["s1", "s2"])
         XCTAssertFalse(vm.callGuideFilterError)
-        XCTAssertFalse(vm.callGuideFilterTruncated)
         XCTAssertEqual(port.callCount, 1)
     }
 
-    /// H-1: 集合がサーバ上限 (200) に達していたら打ち切りとして画面で断れるようにする。
-    func testTruncatedSetRaisesFlag() async {
-        let (vm, _) = makeVM((0 ..< 200).map { "s\($0)" })
-
-        await vm.resolveCallGuideFilter(true)
-
-        XCTAssertTrue(vm.callGuideFilterTruncated)
-        XCTAssertEqual(vm.callGuideSongIds?.count, 200)
+    func testTimingFilterUsesTimingSet() async {
+        let (vm, _) = makeVM(calls: ["s1"], timings: ["s9"])
+        await vm.resolveLyricTimingFilter(true)
+        XCTAssertEqual(vm.lyricTimingSongIds, ["s9"])
     }
 
-    /// M-1: 通信中にトグルが OFF に戻ったら、遅れて届いた成功応答で絞り込みを復活させない。
+    /// 取得中にトグルが OFF に戻ったら、遅れて届いた応答で絞り込みを復活させない。
     func testStaleResolveDoesNotRestoreClearedFilter() async {
-        let port = StubCallGuideDashboardReading()
-        port.dashboardToReturn = CallGuideDashboard(
-            generatedAt: 0, songsWithCalls: [summary("s1")], recentEdits: [],
-            taggedWithoutCalls: [], callTag: nil)
-        let vm = SongListViewModel(songReading: StubSongReading(), callGuideDashboard: port)
-        // 応答を返す前にトグルが OFF に戻る (解除は通信しないので世代だけが進む)。
+        let (vm, port) = makeVM(calls: ["s1"])
         port.beforeReturn[1] = { [weak vm] in await vm?.resolveCallGuideFilter(false) }
-
         await vm.resolveCallGuideFilter(true)
-
         XCTAssertNil(vm.callGuideSongIds, "解除したはずの絞り込みが遅れて復活してはいけない")
         XCTAssertFalse(vm.callGuideFilterError)
     }
 
-    /// I7: 無効化で nil に戻る (絞り込み解除)。通信もしない。
-    func testResolveDisabledClearsSet() async {
-        let (vm, port) = makeVM(["s1"])
+    func testResolveDisabledClearsSetWithoutFetching() async {
+        let (vm, port) = makeVM(calls: ["s1"])
         await vm.resolveCallGuideFilter(true)
-
         await vm.resolveCallGuideFilter(false)
-
         XCTAssertNil(vm.callGuideSongIds)
-        XCTAssertFalse(vm.callGuideFilterError)
-        XCTAssertFalse(vm.callGuideFilterTruncated)
-        XCTAssertEqual(port.callCount, 1, "解除で通信してはいけない")
+        XCTAssertEqual(port.callCount, 1, "解除で取りに行ってはいけない")
     }
 
-    /// I8: 失敗時はフラグだけ立て、既存の集合を変更しない
-    /// (オフラインで一覧を誤って空にしないため。タグ絞り込みと同じ失敗規約)。
+    /// 失敗時はフラグだけ立て、既存の集合を変更しない (オフラインで一覧を誤って空にしない)。
     func testResolveFailureKeepsPreviousSet() async {
-        let (vm, port) = makeVM(["s1"])
+        let (vm, port) = makeVM(calls: ["s1"])
         await vm.resolveCallGuideFilter(true)
         port.shouldThrow = true
-
         await vm.resolveCallGuideFilter(true)
-
         XCTAssertTrue(vm.callGuideFilterError)
         XCTAssertEqual(vm.callGuideSongIds, ["s1"])
+    }
+}
+
+/// ページを返すスタブ。
+final class StubAnnotationReader: LyricAnnotationReading, @unchecked Sendable {
+    var pages: [String: LyricAnnotationsPage] = [:]
+    var shouldThrow = false
+    private(set) var requests: [String?] = []
+
+    func lyricAnnotations(after: String?, limit: Int) async throws -> LyricAnnotationsPage {
+        requests.append(after)
+        if shouldThrow { throw StubLyricAnnotations.StubError.boom }
+        return pages[after ?? ""] ?? LyricAnnotationsPage(songs: [], next: nil)
+    }
+}
+
+/// `LyricAnnotationStore`: 全ページを辿って覚え、古くなるまでは取りに行かない。
+final class LyricAnnotationStoreTests: XCTestCase {
+    private func defaults() -> String { "test_\(UUID().uuidString)" }
+
+    func testFetchesAllPagesAndCaches() async throws {
+        let reader = StubAnnotationReader()
+        reader.pages[""] = LyricAnnotationsPage(
+            songs: [.init(songId: "a", calls: true, timings: false)], next: "a")
+        reader.pages["a"] = LyricAnnotationsPage(
+            songs: [.init(songId: "b", calls: true, timings: true)], next: nil)
+        let store = LyricAnnotationStore(reader: reader, suiteName: defaults(), key: "k")
+
+        let calls = try await store.songIds(.calls)
+        let timings = try await store.songIds(.timings)
+
+        XCTAssertEqual(calls, ["a", "b"])
+        XCTAssertEqual(timings, ["b"])
+        XCTAssertEqual(reader.requests, [nil, "a"], "2 回目は覚えた分を使い、取りに行かない")
+    }
+
+    func testFallsBackToCacheWhenRefreshFails() async throws {
+        let reader = StubAnnotationReader()
+        reader.pages[""] = LyricAnnotationsPage(songs: [.init(songId: "a", calls: true, timings: false)], next: nil)
+        let d = defaults()
+        _ = try await LyricAnnotationStore(reader: reader, suiteName: d, key: "k").songIds(.calls)
+        // 古くなった扱い (maxAge 0) で取り直しに失敗しても、覚えた分で答える。
+        reader.shouldThrow = true
+        let stale = LyricAnnotationStore(reader: reader, suiteName: d, key: "k", maxAge: 0)
+        let calls = try await stale.songIds(.calls)
+        XCTAssertEqual(calls, ["a"])
+    }
+
+    func testMarkAddsWithoutRefetch() async throws {
+        let reader = StubAnnotationReader()
+        let store = LyricAnnotationStore(reader: reader, suiteName: defaults(), key: "k")
+        _ = try await store.songIds(.timings)
+        await store.mark(songId: "z", .timings, true)
+        let timings = try await store.songIds(.timings)
+        XCTAssertEqual(timings, ["z"])
     }
 }

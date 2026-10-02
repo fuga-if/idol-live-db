@@ -410,6 +410,9 @@ struct SongLyricsTab: View {
             if case .failed(let message) = editor.saveState { saveErrorMessage = message }
             return
         }
+        // 曲一覧の「コールガイドがある曲のみ」に、取り直しを待たずに載せる (外したなら外す)。
+        let hasCalls = editor.lines.contains { !$0.calls.isEmpty || $0.clap != nil }
+        await LyricAnnotationStore.shared.mark(songId: song.id, .calls, hasCalls)
         // サーバが id を付け直したり stale を再計算したりするので、保存後は取り直す。
         self.editor = nil
         reanchorTarget = nil
