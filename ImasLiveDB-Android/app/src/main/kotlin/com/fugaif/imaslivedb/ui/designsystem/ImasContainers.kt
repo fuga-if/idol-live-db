@@ -214,6 +214,7 @@ fun ImasSectionHeader(
  * 小さい見出しと補足文は、面の中の行の文字に揃えて左右に行の余白を空ける。
  *
  * @param actionTitle 見出しの右の、その場で何かを始める操作 ([seeAll] と同時には出さない)。
+ * @param seeAllTitle [seeAll] の文言。既定は「すべて見る」(「ほかのお題」などその場に合わせた言い方を渡せる)。
  */
 @Composable
 fun ImasSection(
@@ -224,6 +225,7 @@ fun ImasSection(
     style: ImasSectionHeaderStyle = ImasSectionHeaderStyle.LARGE,
     footer: String? = null,
     seeAll: (() -> Unit)? = null,
+    seeAllTitle: String = "すべて見る",
     actionTitle: String? = null,
     actionIcon: ImageVector? = null,
     onAction: (() -> Unit)? = null,
@@ -236,6 +238,7 @@ fun ImasSection(
                 title = title,
                 count = count,
                 onSeeAll = seeAll,
+                seeAllTitle = seeAllTitle,
                 style = style,
                 imprint = imprint,
                 actionTitle = actionTitle,

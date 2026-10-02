@@ -345,6 +345,7 @@ fun ImasTicketRow(
  *
  * @param leftImprint 帯の左の印字 (「PRODUCER PASS」)。[rightImprint] は右 (「担当」)。
  * @param seed 帯の色 hex。[brand] はブランド ID。どちらも無ければ墨の帯。
+ * @param media 名前の左 (顔写真・判子。`ImasAvatar` など)。
  * @param trailing 名前の右 (数・矢印。`ImasPassStats` など)。
  */
 @Composable
@@ -357,6 +358,7 @@ fun ImasPass(
     seed: String? = null,
     brand: String? = null,
     onOpen: (() -> Unit)? = null,
+    media: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null
 ) {
     val t = imasThemeForBrand(seed, brand)
@@ -405,6 +407,7 @@ fun ImasPass(
             horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
             verticalAlignment = Alignment.Bottom
         ) {
+            media?.invoke()
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 ImasFitText(title, style = ImasType.heading(28.sp, FontWeight.ExtraBold), color = DS.ink, maxLines = 2, minScale = 0.8f)
                 if (subtitle != null) {
