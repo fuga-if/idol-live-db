@@ -5,6 +5,11 @@
 
 export interface Env {
   DB: D1Database;
+  /** Apple Music のデベロッパトークンの署名鍵 (`.p8` の中身)。`wrangler secret put` で入れる。
+   *  無ければ GET /music-token は 503 (Android は Apple Music に繋げないだけ)。 */
+  APPLE_MUSIC_PRIVATE_KEY?: string;
+  APPLE_MUSIC_KEY_ID?: string;
+  APPLE_MUSIC_TEAM_ID?: string;
   APPLE_BUNDLE_ID: string;
   CLOUDKIT_KEY_ID: string;
   CLOUDKIT_PRIVATE_KEY: string;

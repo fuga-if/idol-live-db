@@ -125,7 +125,7 @@ async function loadLyrics(
   // 未公開 (draft) は admin にだけ返す。許諾が下りるまでの開発プレビュー用。
   // ビルド種別では判定しない (クライアントの自己申告は信用できない)。
   // admin の判定 (users の読み取り) は行が draft のときだけにする。公開済みの曲では要らない。
-  const row = await fetchPublishedLyrics(env.DB, songId, true);
+  const row = await fetchPublishedLyrics(env.DB, songId, true, request);
   const lyrics =
     row && (row.status === "published" || (await checkIsAdmin(env, uid))) ? row : null;
   // 単体エンドポイントと同じく、歌詞を実際に返したときだけ枠を消費し、利用ログを出す
