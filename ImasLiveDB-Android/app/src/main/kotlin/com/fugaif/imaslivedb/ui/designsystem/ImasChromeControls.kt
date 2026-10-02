@@ -16,10 +16,12 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -59,6 +61,7 @@ import com.fugaif.imaslivedb.ui.theme.imasPress
 //
 // ImasToolbarButton    ナビバーの記号のボタン。読み上げは言葉で。数の札 (絞り込みの件数) を付けられる。
 // ImasSearchField      ナビバーの中に収める 1 行の絞り込み欄 (一覧の頭)。
+// ImasScopeChip        ImasSearchField の頭に差す小さな切り替えの札 (検索対象の変更など)。押せないときは文言だけ。
 // ImasNameFilterField  絞り込みシートの頭の「名前で絞り込み」欄。
 // =============================================================================
 
@@ -246,5 +249,44 @@ fun ImasSearchField(
                 .background(DS.fill, CircleShape)
                 .padding(horizontal = DS.sp4)
         )
+    }
+}
+
+/**
+ * [ImasSearchField] の頭に差す小さな切り替えの札 (iOS の searchModeChip 相当)。
+ * 押せるときは文言 + 下向き矢印の丸いカプセル、押せない (切り替え先が無い) ときは文言だけにする。
+ * メニューの開閉は呼び出し側が持つ (何を並べるかは画面ごとに違うため)。
+ */
+@Composable
+fun ImasScopeChip(label: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    Surface(shape = CircleShape, color = DS.fill, modifier = modifier) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clearAndSetSemantics {
+                    contentDescription = label
+                    if (enabled) {
+                        role = Role.Button
+                        onClick { onClick(); true }
+                    }
+                }
+                .then(if (enabled) Modifier.imasPress(onClick = onClick) else Modifier)
+                .padding(
+                    start = DS.sp3,
+                    end = if (enabled) DS.sp1 else DS.sp3,
+                    top = DS.sp2,
+                    bottom = DS.sp2
+                )
+        ) {
+            Text(label, style = ImasType.text(13.sp, FontWeight.Medium), color = DS.ink2, maxLines = 1)
+            if (enabled) {
+                Icon(
+                    Icons.Filled.ArrowDropDown,
+                    contentDescription = null,
+                    tint = DS.ink2,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
     }
 }

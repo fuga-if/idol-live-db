@@ -1,46 +1,22 @@
 package com.fugaif.imaslivedb.ui.songs
 
 import com.fugaif.imaslivedb.ui.designsystem.ReadableWidth
-import com.fugaif.imaslivedb.ui.designsystem.ReadableContentWidth
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -50,10 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -65,11 +39,20 @@ import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.SongWithArtists
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBarItem
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
-import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasScopeChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasToolbarButton
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.components.SongRowMatch
@@ -77,6 +60,8 @@ import com.fugaif.imaslivedb.ui.edit.SongEditScreen
 import com.fugaif.imaslivedb.ui.mastery.MasteryLevelPickerSheet
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
@@ -112,45 +97,29 @@ fun SongListScreen(
                 actions = {
                     // BAN 済みには導線自体を出さない。未ログインはゲートがログイン誘導へ回す。
                     if (canEditHere) {
-                        IconButton(onClick = {
-                            authState.startCommunityEdit(
-                                promptLogin = { showLoginPrompt = true },
-                                present = { showSongCreate = true }
-                            )
-                        }) {
-                            Icon(Icons.Filled.Add, contentDescription = "曲を追加")
-                        }
-                    }
-                    BadgedBox(
-                        badge = {
-                            if (uiState.selectedTags.isNotEmpty()) {
-                                Badge { Text("${uiState.selectedTags.size}") }
+                        ImasToolbarButton(
+                            icon = Icons.Filled.Add,
+                            label = "曲を追加",
+                            onClick = {
+                                authState.startCommunityEdit(
+                                    promptLogin = { showLoginPrompt = true },
+                                    present = { showSongCreate = true }
+                                )
                             }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        IconButton(onClick = { showTagFilter = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.Sell,
-                                contentDescription = "タグで絞り込み"
-                            )
-                        }
+                        )
                     }
-                    BadgedBox(
-                        badge = {
-                            if (uiState.filterBadgeCount > 0) {
-                                Badge { Text("${uiState.filterBadgeCount}") }
-                            }
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        IconButton(onClick = { showFilter = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.FilterList,
-                                contentDescription = "フィルター"
-                            )
-                        }
-                    }
+                    ImasToolbarButton(
+                        icon = Icons.Filled.Sell,
+                        label = "タグで絞り込み",
+                        badge = uiState.selectedTags.size,
+                        onClick = { showTagFilter = true }
+                    )
+                    ImasToolbarButton(
+                        icon = Icons.Filled.FilterList,
+                        label = "フィルター",
+                        badge = uiState.filterBadgeCount,
+                        onClick = { showFilter = true }
+                    )
                 }
             )
         }
@@ -160,27 +129,15 @@ fun SongListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Search bar
-            SearchBar(
-                inputField = {
-                    SearchBarDefaults.InputField(
-                        query = uiState.searchText,
-                        onQueryChange = { viewModel.setSearchText(it) },
-                        onSearch = {},
-                        expanded = false,
-                        onExpandedChange = {},
-                        // 何を絞るかは頭のチップが示すので、プレースホルダは動詞だけでいい。
-                        // 「曲名 曲名で検索」と二重に書くと狭い欄が余計に読みにくくなる。
-                        placeholder = { Text("絞り込み") },
-                        leadingIcon = { SearchModeChip(uiState = uiState, viewModel = viewModel) }
-                    )
-                },
-                expanded = false,
-                onExpandedChange = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {}
+            ImasSearchField(
+                // 何を絞るかは頭の札が示すので、プレースホルダは動詞だけでいい。
+                // 「曲名 曲名で検索」と二重に書くと狭い欄が余計に読みにくくなる。
+                prompt = "絞り込み",
+                text = uiState.searchText,
+                onTextChange = { viewModel.setSearchText(it) },
+                leading = { SearchModeChip(uiState = uiState, viewModel = viewModel) },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
+            )
 
             ScopeSuggestionBar(uiState = uiState, viewModel = viewModel)
             // 同じ語がアイドル・ライブに何件あるか (虫眼鏡を畳んだ代わりの導線)。
@@ -190,43 +147,32 @@ fun SongListScreen(
                 CrossTabSearch.take(TopLevelTab.Songs)?.let { viewModel.setSearchText(it) }
             }
 
-            RemovableFilterChipRow(uiState = uiState, viewModel = viewModel)
+            ImasFilterBar(items = filterBarItems(uiState, viewModel))
 
             TagFilterErrorBanner(visible = uiState.tagFilterError)
             KamisabiCompletionBanner(uiState = uiState)
 
-            // Count + sort control (件数 / 並び替え)。並び替えはその場のメニューで切り替える。
+            // 件数 / 並び替え。並び替えはその場のメニューで切り替える。
             // フィルタシートを開かせると、並びだけ変えたい時に絞り込み全体を掻き分けることになる。
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // 下の一覧 (ReadableWidth) と左右を揃える。
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = ReadableContentWidth)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    // 画面に並んでいる行数。あいまい候補も見えている以上、数から外さない。
-                    text = when (uiState.listMode) {
-                        SongListMode.SONGS -> "${uiState.songs.size + uiState.fuzzySongs.size}件"
-                        SongListMode.ALBUMS -> "${uiState.albums.size}枚"
-                        SongListMode.SERIES -> "${uiState.series.size}シリーズ"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DS.ink2
-                )
-                SortMenu(
-                    sortOrder = uiState.sortOrder,
-                    ascending = uiState.sortAscending ?: uiState.sortOrder.defaultAscending,
-                    onSortOrder = viewModel::setSortOrder,
-                    onAscending = viewModel::setSortAscending
-                )
-            }
-
-            HorizontalDivider()
+            ImasListSummary(
+                count = when (uiState.listMode) {
+                    SongListMode.SONGS -> uiState.songs.size + uiState.fuzzySongs.size
+                    SongListMode.ALBUMS -> uiState.albums.size
+                    SongListMode.SERIES -> uiState.series.size
+                },
+                unit = when (uiState.listMode) {
+                    SongListMode.SONGS -> "件"
+                    SongListMode.ALBUMS -> "枚"
+                    SongListMode.SERIES -> "シリーズ"
+                },
+                sortOptions = SongSortOrder.entries,
+                sortSelection = uiState.sortOrder,
+                onSortChange = viewModel::setSortOrder,
+                sortLabel = { it.label },
+                sortAscending = uiState.sortAscending ?: uiState.sortOrder.defaultAscending,
+                onSortAscendingChange = viewModel::setSortAscending
+            )
+            ImasRowDivider()
 
             if (uiState.isLoading) {
                 ImasListSkeleton(rows = 12, thumb = SkeletonThumb.Square)
@@ -380,18 +326,19 @@ private fun SongListRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSongClick(item.song.id) }
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
     )
-    HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
+    // 68dp = 画面の余白 + 行頭のジャケ写の幅ぶん (SongRow 自身の余白と揃える)。
+    ImasRowDivider(inset = DS.sp5 + 52.dp)
 }
 
 /**
- * 検索欄の頭に差す 曲名 / アイドル / 作詞作曲 の切り替えチップ (iOS `searchModeChip` 相当)。
+ * 検索欄の頭に差す 曲名 / アイドル / 作詞作曲 の切り替えの札 (iOS `searchModeChip` 相当)。
  *
- * 全幅のセグメントにすると行を 1 本余分に食う。入力欄の中のチップなら、
+ * 全幅のセグメントにすると行を 1 本余分に食う。入力欄の中の札なら、
  * いま何を探しているかを見せたまま 1 行に収まる。
  *
- * アルバム/シリーズ表示では絞る対象が集計名で固定なので、押せないラベルとして出す
+ * アルバム/シリーズ表示では絞る対象が集計名で固定なので、押せない札として出す
  * (「アイドル」を選べてしまうと、選んでもアルバム名しか絞られず嘘になる)。
  */
 @Composable
@@ -399,32 +346,12 @@ private fun SearchModeChip(uiState: SongListUiState, viewModel: SongListViewMode
     val switchable = uiState.listMode == SongListMode.SONGS
     var expanded by remember { mutableStateOf(false) }
 
-    Surface(
-        shape = CircleShape,
-        color = DS.fill,
-        modifier = Modifier.padding(end = 4.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clickable(enabled = switchable) { expanded = true }
-                .padding(start = 10.dp, end = if (switchable) 2.dp else 10.dp, top = 4.dp, bottom = 4.dp)
-        ) {
-            Text(
-                text = uiState.searchMode.label(uiState.listMode),
-                style = MaterialTheme.typography.labelMedium,
-                color = DS.ink2,
-                maxLines = 1
-            )
-            if (switchable) {
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = "検索対象を切り替え",
-                    tint = DS.ink2,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
+    Box {
+        ImasScopeChip(
+            label = uiState.searchMode.label(uiState.listMode),
+            enabled = switchable,
+            onClick = { expanded = true }
+        )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             SongSearchMode.entries.forEach { mode ->
                 DropdownMenuItem(
@@ -440,7 +367,7 @@ private fun SearchModeChip(uiState: SongListUiState, viewModel: SongListViewMode
 }
 
 /**
- * 「ほかのスコープにも当たりがある」ことを知らせる行 (iOS `scopeSuggestionBar` 相当)。
+ * 「ほかのスコープにも当たりがある」ことを知らせる札の列 (iOS `scopeSuggestionBar` 相当)。
  *
  * スコープを混ぜないので結果は常に 1 種類ぶんで、「曲名だけで絞りたかったのに」も
  * 「どれで引っかかったか分からない」も起きない。代わりに見落とす恐れがあるので、
@@ -449,16 +376,9 @@ private fun SearchModeChip(uiState: SongListUiState, viewModel: SongListViewMode
 @Composable
 private fun ScopeSuggestionBar(uiState: SongListUiState, viewModel: SongListViewModel) {
     if (uiState.otherScopeCounts.isEmpty()) return
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("ほかに", style = MaterialTheme.typography.bodySmall, color = DS.ink3)
-        // 並びは enum の宣言順で固定する。件数順にすると打鍵のたびにチップが入れ替わって押し損ねる。
+    ImasChipRow(modifier = Modifier.padding(vertical = DS.Space.gapTight)) {
+        ImasText("ほかに", ImasTextRole.META, color = DS.ink3)
+        // 並びは enum の宣言順で固定する。件数順にすると打鍵のたびに札が入れ替わって押し損ねる。
         SongSearchMode.entries.forEach { mode ->
             val count = uiState.otherScopeCounts[mode] ?: return@forEach
             ImasFilterChip(
@@ -471,7 +391,7 @@ private fun ScopeSuggestionBar(uiState: SongListUiState, viewModel: SongListView
 }
 
 /**
- * タグ絞り込みの取得に失敗した (オフライン等) ことを知らせるバナー。
+ * タグ絞り込みの取得に失敗した (オフライン等) ことを知らせる札。
  *
  * 「タグに合致する曲が 0 件」との誤読を避けるため、VM は失敗時に一覧を空にせず
  * 絞り込み自体を見送る。ここでその状態を明示する。
@@ -479,23 +399,11 @@ private fun ScopeSuggestionBar(uiState: SongListUiState, viewModel: SongListView
 @Composable
 private fun TagFilterErrorBanner(visible: Boolean) {
     if (!visible) return
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Warning,
-            contentDescription = null,
-            tint = DS.warning,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = "タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。",
-            style = MaterialTheme.typography.bodySmall,
-            color = DS.ink2
-        )
-    }
+    ImasNotice(
+        kind = ImasNoticeKind.WARNING,
+        message = "タグ絞り込みの取得に失敗しました。表示中の一覧にはタグ条件が反映されていません。",
+        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.note)
+    )
 }
 
 /**
@@ -514,106 +422,82 @@ private fun KamisabiCompletionBanner(uiState: SongListUiState) {
     ) {
         return
     }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = kamisabiCompletionLabel(completion),
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-            color = DS.ink2
-        )
-    }
+    ImasText(
+        kamisabiCompletionLabel(completion),
+        ImasTextRole.SECTION_LABEL,
+        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
+    )
 }
 
 /**
- * 適用中フィルタの removable チップ列 (iOS SongListView.removableFilterBar 相当)。
- * マイマーク / 回収 / シートで選んだ絞り込み / 選択中タグ を横スクロールで一覧し、× で個別解除する。
+ * 適用中フィルタの removable な札の並び (iOS SongListView.removableFilterBar 相当)。
+ * マイマーク / 回収 / シートで選んだ絞り込み / 選択中タグ を [ImasFilterBar] で横に並べ、× で個別解除する。
+ * 何も効いていなければ空のリストを返し、[ImasFilterBar] 自身が何も出さない。
  */
-@Composable
-private fun RemovableFilterChipRow(uiState: SongListUiState, viewModel: SongListViewModel) {
+private fun filterBarItems(uiState: SongListUiState, viewModel: SongListViewModel): List<ImasFilterBarItem> {
     val filter = uiState.filter
     // 検索語と同じ軸の条件は、打った語に上書きされている間だけ出さない
-    // (VM の withSearch を参照。入力欄とチップに違う値が並ぶのを避ける)。
+    // (VM の withSearch を参照。入力欄と札に違う値が並ぶのを避ける)。
     val searching = uiState.searchText.isNotEmpty()
     val idolOverridden = searching && uiState.searchMode == SongSearchMode.PERFORMER
     val songwriterOverridden = searching && uiState.searchMode == SongSearchMode.CREATOR
-    val hasChips = uiState.myMarkFilter.isActive ||
-        uiState.collectFilter != SongCollectFilter.ALL ||
-        uiState.selectedTags.isNotEmpty() ||
-        !filter.seriesGroup.isNullOrEmpty() ||
-        !filter.cdSeries.isNullOrEmpty() ||
-        !filter.liveName.isNullOrEmpty() ||
-        (!filter.songwriter.isNullOrEmpty() && !songwriterOverridden) ||
-        filter.songType != null ||
-        filter.kamisabiOnly ||
-        (!filter.idolIds.isNullOrEmpty() && !idolOverridden)
-    if (!hasChips) return
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    return buildList {
         if (uiState.myMarkFilter.requireMyPick) {
-            ImasRemovableChip(text = "担当", onRemove = viewModel::clearMyPickFilter)
+            add(ImasFilterBarItem(id = "myPick", title = "担当", onRemove = viewModel::clearMyPickFilter))
         }
         if (uiState.myMarkFilter.requireFavorite) {
-            ImasRemovableChip(text = "お気に入り", onRemove = viewModel::clearFavoriteFilter)
+            add(ImasFilterBarItem(id = "favorite", title = "お気に入り", onRemove = viewModel::clearFavoriteFilter))
         }
         if (uiState.myMarkFilter.requireNote) {
-            ImasRemovableChip(text = "メモあり", onRemove = viewModel::clearNoteFilter)
+            add(ImasFilterBarItem(id = "note", title = "メモあり", onRemove = viewModel::clearNoteFilter))
         }
         when (uiState.collectFilter) {
-            SongCollectFilter.COLLECTED -> ImasRemovableChip(text = "現地回収済", onRemove = viewModel::clearCollectFilter)
-            SongCollectFilter.UNCOLLECTED -> ImasRemovableChip(text = "未回収", onRemove = viewModel::clearCollectFilter)
+            SongCollectFilter.COLLECTED ->
+                add(ImasFilterBarItem(id = "collect", title = "現地回収済", onRemove = viewModel::clearCollectFilter))
+            SongCollectFilter.UNCOLLECTED ->
+                add(ImasFilterBarItem(id = "collect", title = "未回収", onRemove = viewModel::clearCollectFilter))
             SongCollectFilter.ALL -> {}
         }
         filter.idolIds?.takeIf { it.isNotEmpty() && !idolOverridden }?.let { ids ->
-            // 名前の引き当てはフィルタシート側にしか無いので、チップは人数で出す。
-            ImasRemovableChip(
-                text = "アイドル ${ids.size}人",
-                onRemove = { viewModel.clearFilterField { f -> f.copy(idolIds = null) } }
+            // 名前の引き当てはフィルタシート側にしか無いので、札は人数で出す。
+            add(
+                ImasFilterBarItem(
+                    id = "idols",
+                    title = "アイドル ${ids.size}人",
+                    onRemove = { viewModel.clearFilterField { f -> f.copy(idolIds = null) } }
+                )
             )
         }
         filter.songType?.let { type ->
-            ImasRemovableChip(
-                text = songTypeLabel(type),
-                onRemove = { viewModel.clearFilterField { f -> f.copy(songType = null) } }
+            add(
+                ImasFilterBarItem(
+                    id = "songType",
+                    title = songTypeLabel(type),
+                    onRemove = { viewModel.clearFilterField { f -> f.copy(songType = null) } }
+                )
             )
         }
         if (filter.kamisabiOnly) {
-            ImasRemovableChip(
-                text = "KAMISABI収録",
-                onRemove = { viewModel.clearFilterField { f -> f.copy(kamisabiOnly = false) } }
+            add(
+                ImasFilterBarItem(
+                    id = "kamisabi",
+                    title = "KAMISABI収録",
+                    onRemove = { viewModel.clearFilterField { f -> f.copy(kamisabiOnly = false) } }
+                )
             )
         }
         filter.seriesGroup?.takeIf { it.isNotEmpty() }?.let { value ->
-            ImasRemovableChip(
-                text = value,
-                onRemove = { viewModel.clearFilterField { f -> f.copy(seriesGroup = null) } }
-            )
+            add(ImasFilterBarItem(id = "series", title = value, onRemove = { viewModel.clearFilterField { f -> f.copy(seriesGroup = null) } }))
         }
         filter.cdSeries?.takeIf { it.isNotEmpty() }?.let { value ->
-            ImasRemovableChip(
-                text = value,
-                onRemove = { viewModel.clearFilterField { f -> f.copy(cdSeries = null) } }
-            )
+            add(ImasFilterBarItem(id = "cdSeries", title = value, onRemove = { viewModel.clearFilterField { f -> f.copy(cdSeries = null) } }))
         }
         filter.liveName?.takeIf { it.isNotEmpty() }?.let { value ->
-            ImasRemovableChip(
-                text = value,
-                onRemove = { viewModel.clearFilterField { f -> f.copy(liveName = null) } }
-            )
+            add(ImasFilterBarItem(id = "live", title = value, onRemove = { viewModel.clearFilterField { f -> f.copy(liveName = null) } }))
         }
         filter.songwriter?.takeIf { it.isNotEmpty() && !songwriterOverridden }?.let { value ->
-            ImasRemovableChip(
-                text = value,
-                onRemove = { viewModel.clearFilterField { f -> f.copy(songwriter = null) } }
-            )
+            add(ImasFilterBarItem(id = "songwriter", title = value, onRemove = { viewModel.clearFilterField { f -> f.copy(songwriter = null) } }))
         }
         uiState.selectedTags.forEach { tag ->
             val label = if (uiState.selectedTags.size == 1) {
@@ -622,67 +506,7 @@ private fun RemovableFilterChipRow(uiState: SongListUiState, viewModel: SongList
             } else {
                 tag.name
             }
-            ImasRemovableChip(text = label, onRemove = { viewModel.removeTag(tag) })
-        }
-    }
-}
-
-/** 件数行の並び替えメニュー (軸 + 方向)。iOS SongListView.countSortBar の Menu と同じ構成。 */
-@Composable
-private fun SortMenu(
-    sortOrder: SongSortOrder,
-    ascending: Boolean,
-    onSortOrder: (SongSortOrder) -> Unit,
-    onAscending: (Boolean) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Row(
-            modifier = Modifier
-                .clickable { expanded = true }
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Icon(
-                imageVector = if (ascending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
-                contentDescription = null,
-                tint = DS.ink2,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(text = sortOrder.label, style = MaterialTheme.typography.bodySmall, color = DS.ink)
-            Icon(
-                imageVector = Icons.Filled.ArrowDropDown,
-                contentDescription = "並び替え",
-                tint = DS.ink2
-            )
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            SongSortOrder.entries.forEach { order ->
-                DropdownMenuItem(
-                    text = { Text(order.label) },
-                    leadingIcon = {
-                        if (order == sortOrder) Icon(Icons.Filled.Check, contentDescription = "選択中")
-                    },
-                    onClick = {
-                        expanded = false
-                        onSortOrder(order)
-                    }
-                )
-            }
-            HorizontalDivider()
-            listOf(true to "昇順", false to "降順").forEach { (value, label) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    leadingIcon = {
-                        if (value == ascending) Icon(Icons.Filled.Check, contentDescription = "選択中")
-                    },
-                    onClick = {
-                        expanded = false
-                        onAscending(value)
-                    }
-                )
-            }
+            add(ImasFilterBarItem(id = "tag_${tag.name}", title = label, onRemove = { viewModel.removeTag(tag) }))
         }
     }
 }
