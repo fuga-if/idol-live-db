@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
@@ -32,7 +30,6 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -46,7 +43,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,16 +67,22 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageCircleButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasStageEqualizer
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageIconTileButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasStagePlaybackControl
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageProgressBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasStageRushFlash
+import com.fugaif.imaslivedb.ui.navigation.BottomBarVisibility
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.share.IntroDonShareSheet
 import com.fugaif.imaslivedb.ui.share.IntroShareLine
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasAlwaysDark
+import com.fugaif.imaslivedb.ui.theme.ImasDarkNavigationBar
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
-import com.fugaif.imaslivedb.ui.theme.ImasType
-import com.fugaif.imaslivedb.ui.theme.imasPress
+import com.fugaif.imaslivedb.ui.theme.QS
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -391,32 +393,39 @@ fun IntroDonGameScreen(
 
     DisposableEffect(Unit) { onDispose { viewModel.onCleared_public() } }
 
-    Box(Modifier.fillMaxSize().background(DS.bg)) {
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { showExitDialog = true }) {
-                    Icon(Icons.Filled.Close, "終了", tint = DS.ink2)
+    // ゲーム中だけはライト/ダークで反転しない暗いステージに固定する (docs/DESIGN_SYSTEM.md §12)。
+    // iOS の `.environment(\.colorScheme, .dark)` + `.toolbar(.hidden, for: .tabBar)` 相当
+    // (QuizStageScaffold と同じ組み方)。
+    BottomBarVisibility.Hide()
+    ImasDarkNavigationBar()
+    ImasAlwaysDark {
+        Box(Modifier.fillMaxSize().background(QS.bg)) {
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { showExitDialog = true }) {
+                        Icon(Icons.Filled.Close, "終了", tint = QS.dim)
+                    }
+                }
+
+                when (state.phase) {
+                    IntroDonPhase.LOADING -> LoadingBody(state.errorMessage, onExit)
+                    IntroDonPhase.FINISHED -> IntroDonResultBody(settings, state, onReplay = { viewModel.restart() }, onExit = onExit)
+                    else -> GameBody(settings, state, viewModel)
                 }
             }
-
-            when (state.phase) {
-                IntroDonPhase.LOADING -> LoadingBody(state.errorMessage, onExit)
-                IntroDonPhase.FINISHED -> IntroDonResultBody(settings, state, onReplay = { viewModel.restart() }, onExit = onExit)
-                else -> GameBody(settings, state, viewModel)
-            }
         }
-    }
 
-    ImasConfirmDestructive(
-        title = "ゲームを終了しますか？",
-        isPresented = showExitDialog,
-        onDismiss = { showExitDialog = false },
-        onConfirm = onExit,
-        actionTitle = "終了"
-    )
+        ImasConfirmDestructive(
+            title = "ゲームを終了しますか？",
+            isPresented = showExitDialog,
+            onDismiss = { showExitDialog = false },
+            onConfirm = onExit,
+            actionTitle = "終了"
+        )
+    }
 }
 
 @Composable
@@ -442,11 +451,11 @@ private fun GameBody(settings: IntroDonSettings, state: IntroDonGameUiState, vie
 
     Column(Modifier.fillMaxSize().padding(horizontal = DS.Space.gapLoose)) {
         HeaderBar(settings, state)
-        RushProgressBar(
-            progress = if (isRush) {
-                if (settings.rushTimeLimitSec > 0) state.rushRemainingMs.toFloat() / (settings.rushTimeLimitSec * 1000f) else 0f
+        ImasStageProgressBar(
+            fraction = if (isRush) {
+                if (settings.rushTimeLimitSec > 0) state.rushRemainingMs.toDouble() / (settings.rushTimeLimitSec * 1000.0) else 0.0
             } else {
-                if (state.totalCount > 0) state.currentIndex.toFloat() / state.totalCount else 0f
+                if (state.totalCount > 0) state.currentIndex.toDouble() / state.totalCount else 0.0
             },
             isUrgent = isRush && state.rushRemainingMs <= 10_000,
             modifier = Modifier.padding(vertical = DS.Space.gap)
@@ -462,25 +471,6 @@ private fun GameBody(settings: IntroDonSettings, state: IntroDonGameUiState, vie
     }
 }
 
-/** ラッシュの残り時間・通常の出題進捗の細い線。残りわずかは朱 (iOS `ImasStageProgressBar` 相当・DS 版)。 */
-@Composable
-private fun RushProgressBar(progress: Float, isUrgent: Boolean, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(DS.rPill)
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(DS.sp2)
-            .background(DS.fill, shape)
-    ) {
-        Box(
-            Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                .background(if (isUrgent) DS.danger else DS.sys, shape)
-        )
-    }
-}
-
 @Composable
 private fun HeaderBar(settings: IntroDonSettings, state: IntroDonGameUiState) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -490,10 +480,10 @@ private fun HeaderBar(settings: IntroDonSettings, state: IntroDonGameUiState) {
             Pill(
                 icon = Icons.Filled.Timer,
                 text = String.format("%d:%02d", secs / 60, secs % 60),
-                color = if (urgent) DS.danger else DS.ink
+                color = if (urgent) DS.danger else QS.ink
             )
         } else {
-            Pill(icon = null, text = "${state.currentIndex + 1} / ${state.totalCount}", color = DS.ink2, monochrome = true)
+            Pill(icon = null, text = "${state.currentIndex + 1} / ${state.totalCount}", color = QS.dim, monochrome = true)
         }
 
         if (settings.mode == IntroDonMode.ALL_SONGS) {
@@ -514,7 +504,7 @@ private fun HeaderBar(settings: IntroDonSettings, state: IntroDonGameUiState) {
         Spacer(Modifier.weight(1f))
 
         if (state.combo >= 2) {
-            val color = if (state.combo >= 8) DS.pick else if (state.combo >= 5) DS.favorite else DS.ink
+            val color = if (state.combo >= 8) DS.pick else if (state.combo >= 5) DS.favorite else QS.ink
             Pill(icon = Icons.Filled.LocalFireDepartment, text = "×${state.combo}", color = color, modifier = Modifier.padding(end = DS.Space.gap))
         }
 
@@ -528,13 +518,13 @@ private fun Pill(icon: ImageVector?, text: String, color: Color, modifier: Modif
     val iconSize = with(LocalDensity.current) { 12.sp.toDp() }
     Row(
         modifier = modifier
-            .background(if (monochrome) DS.surface else color.copy(alpha = 0.14f), shape)
+            .background(if (monochrome) QS.panel else color.copy(alpha = 0.14f), shape)
             .padding(horizontal = DS.Space.gap, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
     ) {
         if (icon != null) Icon(icon, null, tint = color, modifier = Modifier.size(iconSize))
-        ImasText(text, ImasTextRole.ROW_LABEL, color = if (monochrome) DS.ink2 else color)
+        ImasText(text, ImasTextRole.ROW_LABEL, color = if (monochrome) QS.dim else color)
     }
 }
 
@@ -547,8 +537,8 @@ private fun RoundBody(settings: IntroDonSettings, state: IntroDonGameUiState, vi
         if (isFast) {
             val glyphSize = with(LocalDensity.current) { 24.sp.toDp() }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                Icon(Icons.Filled.MusicNote, null, tint = DS.ink, modifier = Modifier.size(glyphSize))
-                ImasText("曲名は？", ImasTextRole.EYEBROW, color = DS.ink2)
+                Icon(Icons.Filled.MusicNote, null, tint = QS.ink, modifier = Modifier.size(glyphSize))
+                ImasText("曲名は？", ImasTextRole.EYEBROW, color = QS.dim)
             }
         } else if (state.phase == IntroDonPhase.PLAYING) {
             ImasStageEqualizer(
@@ -556,21 +546,21 @@ private fun RoundBody(settings: IntroDonSettings, state: IntroDonGameUiState, vi
                 rows = 5,
                 dotSize = with(LocalDensity.current) { 7.sp.toDp() },
                 spacing = DS.sp1,
-                color = DS.ink,
+                color = QS.ink,
                 isAnimating = state.isPlayingIntro,
                 modifier = Modifier.padding(vertical = DS.Space.gap)
             )
         } else {
-            ImasText("曲名を選んでください", ImasTextRole.ROW_LABEL, color = DS.ink2)
+            ImasText("曲名を選んでください", ImasTextRole.ROW_LABEL, color = QS.dim)
         }
 
         if (!isFast) {
             val canBuzz = state.phase == IntroDonPhase.PLAYING
-            BuzzButton(enabled = canBuzz, onClick = viewModel::buzzToAnswer)
+            ImasStageCircleButton(label = "!", size = DS.Size.touch * 3, onClick = viewModel::buzzToAnswer, isEnabled = canBuzz)
             ImasText(
                 if (state.phase == IntroDonPhase.PLAYING) "わかったらタップ" else "",
                 ImasTextRole.META,
-                color = DS.ink2
+                color = QS.dim
             )
         }
 
@@ -596,23 +586,6 @@ private fun RoundBody(settings: IntroDonSettings, state: IntroDonGameUiState, vi
 }
 
 @Composable
-private fun BuzzButton(enabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(DS.Size.touch * 3)
-            .background(if (enabled) DS.ink else DS.surface, CircleShape)
-            .imasPress(enabled = enabled, onClick = onClick, onClickLabel = "早押し"),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            "!",
-            style = ImasType.heading(44.sp, FontWeight.Black),
-            color = if (enabled) DS.bg else DS.ink3
-        )
-    }
-}
-
-@Composable
 private fun FlashEffect(tick: Int, correct: Boolean) {
     var visible by remember(tick) { mutableStateOf(true) }
     LaunchedEffect(tick) {
@@ -622,41 +595,34 @@ private fun FlashEffect(tick: Int, correct: Boolean) {
     if (visible) ImasStageRushFlash(isCorrect = correct)
 }
 
+/**
+ * もう一度 / 続きから (長押しで流し続ける) / 次の曲。iOS `controlsRow` と同じ 3 枚のタイルに揃える
+ * (ステージの部品 `ImasStageIconTileButton` / `ImasStagePlaybackControl`)。
+ */
 @Composable
 private fun ControlsRow(state: IntroDonGameUiState, viewModel: IntroDonGameViewModel) {
-    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.section), verticalAlignment = Alignment.CenterVertically) {
-        ControlButton(icon = Icons.Filled.Replay, label = "もう一度") { viewModel.replayIntro() }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp2),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ImasStageIconTileButton(
+            icon = Icons.Filled.Replay, label = "もう一度",
+            onClick = { viewModel.replayIntro() }, modifier = Modifier.weight(1f)
+        )
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-            val glyphSize = with(LocalDensity.current) { 17.sp.toDp() }
-            Box(
-                modifier = Modifier
-                    .size(DS.Size.touch + DS.sp2)
-                    .background(if (state.isPlayingIntro) DS.ink else DS.surface, CircleShape)
-                    .imasPress(onClick = { viewModel.continueForDuration() }),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (state.isPlayingIntro) Icons.Filled.MusicNote else Icons.Filled.PlayArrow,
-                    null, tint = if (state.isPlayingIntro) DS.bg else DS.ink, modifier = Modifier.size(glyphSize)
-                )
-            }
-            ImasText(if (state.isPlayingIntro) "再生中" else "続きから", ImasTextRole.MICRO, color = DS.ink3)
-        }
+        ImasStagePlaybackControl(
+            isPlaying = state.isPlayingIntro,
+            onTap = { viewModel.continueForDuration() },
+            onHoldBegin = { viewModel.continueHeld() },
+            onHoldEnd = { viewModel.pauseHeld() },
+            modifier = Modifier.weight(1f)
+        )
 
-        ControlButton(icon = Icons.Filled.SkipNext, label = "次の曲") { viewModel.skipQuestion() }
-    }
-}
-
-@Composable
-private fun ControlButton(icon: ImageVector, label: String, onClick: () -> Unit) {
-    val glyphSize = with(LocalDensity.current) { 16.sp.toDp() }
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-        Box(
-            modifier = Modifier.size(DS.Size.touch + DS.sp2).background(DS.surface, CircleShape).imasPress(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) { Icon(icon, null, tint = DS.ink2, modifier = Modifier.size(glyphSize)) }
-        ImasText(label, ImasTextRole.MICRO, color = DS.ink3)
+        ImasStageIconTileButton(
+            icon = Icons.Filled.SkipNext, label = "次の曲",
+            onClick = { viewModel.skipQuestion() }, modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -721,15 +687,15 @@ private fun IntroDonResultBody(
             ) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                     ImasMetric(value = "${state.score}", size = ImasNumeralSize.POSTER, emphasized = true)
-                    ImasText("/ $answered", ImasTextRole.CARD_TITLE, color = DS.ink3)
+                    ImasText("/ $answered", ImasTextRole.CARD_TITLE, color = QS.faint)
                 }
-                ImasText("正答率 $percentage%", ImasTextRole.ROW_LABEL, color = DS.ink2)
+                ImasText("正答率 $percentage%", ImasTextRole.ROW_LABEL, color = QS.dim)
                 if (settings.mode == IntroDonMode.ALL_SONGS) {
                     val secs = (state.elapsedMs / 1000).toInt()
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                         val iconSize = with(LocalDensity.current) { 14.sp.toDp() }
-                        Icon(Icons.Filled.AccessTime, null, tint = DS.ink, modifier = Modifier.size(iconSize))
-                        ImasText(String.format("%d:%02d", secs / 60, secs % 60), ImasTextRole.ROW_LABEL, color = DS.ink)
+                        Icon(Icons.Filled.AccessTime, null, tint = QS.ink, modifier = Modifier.size(iconSize))
+                        ImasText(String.format("%d:%02d", secs / 60, secs % 60), ImasTextRole.ROW_LABEL, color = QS.ink)
                     }
                 }
                 GradeBadge(percentage)
@@ -788,7 +754,7 @@ private fun GradeBadge(percentage: Int) {
     val (label, color) = when {
         percentage == 100 -> "パーフェクト! 🎵" to DS.favorite
         percentage >= 80 -> "すごい！" to DS.success
-        percentage >= 60 -> "なかなか！" to DS.ink
+        percentage >= 60 -> "なかなか！" to QS.ink
         percentage >= 40 -> "もう少し！" to DS.warning
         else -> "練習あるのみ！" to DS.danger
     }
@@ -812,7 +778,7 @@ private fun BestBanner(text: String, tag: String) {
     ) {
         val iconSize = with(LocalDensity.current) { 16.sp.toDp() }
         Icon(Icons.Filled.WorkspacePremium, null, tint = DS.favorite, modifier = Modifier.size(iconSize))
-        ImasText(text, ImasTextRole.ROW_LABEL, color = DS.ink, modifier = Modifier.padding(start = DS.Space.gapLoose).weight(1f))
+        ImasText(text, ImasTextRole.ROW_LABEL, color = QS.ink, modifier = Modifier.padding(start = DS.Space.gapLoose).weight(1f))
         ImasText(tag, ImasTextRole.BADGE, color = DS.favorite)
     }
 }
@@ -824,7 +790,7 @@ private fun RecordRow(index: Int, record: IntroDonAnswerRecord) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
     ) {
-        ImasText("${index + 1}", ImasTextRole.META, color = DS.ink3)
+        ImasText("${index + 1}", ImasTextRole.META, color = QS.faint)
         val iconSize = with(LocalDensity.current) { 16.sp.toDp() }
         Icon(
             if (record.correct) Icons.Filled.CheckCircle else Icons.Filled.Cancel, null,
@@ -833,7 +799,7 @@ private fun RecordRow(index: Int, record: IntroDonAnswerRecord) {
         Column(Modifier.weight(1f)) {
             ImasText(record.title, ImasTextRole.ROW_LABEL, maxLines = 1)
             if (!record.correct) {
-                ImasText(record.selectedTitle?.let { "回答: $it" } ?: "スキップ", ImasTextRole.META, color = DS.ink3, maxLines = 1)
+                ImasText(record.selectedTitle?.let { "回答: $it" } ?: "スキップ", ImasTextRole.META, color = QS.faint, maxLines = 1)
             }
         }
     }

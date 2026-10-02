@@ -32,6 +32,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.QS
 import com.fugaif.imaslivedb.ui.theme.imasPress
 import kotlinx.coroutines.delay
 
@@ -120,12 +121,12 @@ fun IntroDonAnswerReveal(choices: List<String>, correctTitle: String, selectedTi
             val tint = when {
                 isCorrect -> DS.success
                 wasSelected -> DS.danger
-                else -> DS.ink2
+                else -> QS.dim
             }
             val background = when {
                 isCorrect -> DS.success.copy(alpha = 0.15f)
                 wasSelected -> DS.danger.copy(alpha = 0.12f)
-                else -> DS.fill
+                else -> QS.raised
             }
             val icon = when {
                 isCorrect -> Icons.Filled.CheckCircle
