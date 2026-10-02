@@ -16,7 +16,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.SharePayload
 import uniffi.imas_core.sharePayloadPlainText
@@ -123,12 +124,10 @@ fun SocialShareMenu(
 fun SocialShareIconButton(
     payload: SharePayload,
     contentDescription: String = "シェア",
-    tint: Color = DS.ink2
+    style: ImasIconButtonStyle = ImasIconButtonStyle.PLAIN
 ) {
     SocialShareMenu(payload) { onClick ->
-        IconButton(onClick = onClick) {
-            Icon(Icons.Filled.Share, contentDescription = contentDescription, tint = tint)
-        }
+        ImasIconButton(icon = Icons.Filled.Share, label = contentDescription, onClick = onClick, style = style)
     }
 }
 
