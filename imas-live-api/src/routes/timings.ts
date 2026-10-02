@@ -62,7 +62,15 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
           return ms === null ? callRest : { ...callRest, startMs: ms };
         })
       : line.calls;
-    return { ...rest, start_ms: result.timings.get(line.id) ?? null, ...(calls ? { calls } : {}) };
+    // 被せの指定はボディに layer があった行だけ書き換える (古いアプリは送らない)。
+    const { layer: oldLayer, ...base } = rest;
+    const layer = result.layers.has(line.id) ? result.layers.get(line.id) : oldLayer;
+    return {
+      ...base,
+      start_ms: result.timings.get(line.id) ?? null,
+      ...(layer ? { layer } : {}),
+      ...(calls ? { calls } : {}),
+    };
   });
   const nextJson = JSON.stringify(nextLines);
   if (nextJson !== header.lines_json) {

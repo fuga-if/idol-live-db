@@ -412,6 +412,8 @@ export interface LyricLineRow {
   // D1 の行読み取り 1 回に収めるという lines_json の存在理由が壊れる。
   clap?: ClapKind | null;
   calls?: LyricCall[];
+  /** 被せの指定 ("overlay" / "main")。無ければアプリが括弧で決める。PUT /songs/:id/timings が書く。 */
+  layer?: "overlay" | "main";
 }
 
 /**
@@ -464,6 +466,8 @@ export function buildLyricsPayload(
       calls: l.calls ?? [],
       // 「ここ好き」の人数 (routes/lyric_likes.ts)。行 ID が消えた分は自然に落ちる。
       likeCount: likes[l.id] ?? 0,
+      // 被せの指定。無ければ null (アプリが括弧で決める)。
+      layer: l.layer ?? null,
     })),
   };
 }
@@ -940,6 +944,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         section: line.section ?? null,
         // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
         start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
+        ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
         clap: annotation.clap,
         calls: annotation.calls,
       };

@@ -12,7 +12,13 @@
 export const MAX_START_MS = 20 * 60 * 1000;
 
 export type TimingsResult =
-  | { ok: true; timings: Map<string, number | null>; callTimings: Map<string, number | null> | null }
+  | {
+      ok: true;
+      timings: Map<string, number | null>;
+      callTimings: Map<string, number | null> | null;
+      /** 行の被せ指定。ボディの行に layer キーがあったものだけ (null = 指定を外す)。 */
+      layers: Map<string, "overlay" | "main" | null>;
+    }
   | { ok: false; error: string };
 
 /**
@@ -30,11 +36,20 @@ export function validateTimingsBody(
   const { lines, calls } = body as Record<string, unknown>;
   const timings = parseEntries(lines, knownIds, "lines");
   if (typeof timings === "string") return { ok: false, error: timings };
+  const layers = new Map<string, "overlay" | "main" | null>();
+  for (const raw of lines as Record<string, unknown>[]) {
+    if (!("layer" in raw)) continue;
+    const layer = raw.layer;
+    if (layer !== null && layer !== "overlay" && layer !== "main") {
+      return { ok: false, error: "layer must be overlay, main or null" };
+    }
+    layers.set(raw.id as string, layer);
+  }
   // calls は省略可 (古いアプリはコールの時刻を送らない)。省略ならコールの時刻には触れない。
-  if (calls === undefined || calls === null) return { ok: true, timings, callTimings: null };
+  if (calls === undefined || calls === null) return { ok: true, timings, callTimings: null, layers };
   const callTimings = parseEntries(calls, knownCallIds, "calls");
   if (typeof callTimings === "string") return { ok: false, error: callTimings };
-  return { ok: true, timings, callTimings };
+  return { ok: true, timings, callTimings, layers };
 }
 
 /** `[{ id, startMs }]` を id → startMs にする。問題があればエラー文。 */

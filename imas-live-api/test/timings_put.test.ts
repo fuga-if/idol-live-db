@@ -120,4 +120,17 @@ describe("PUT /songs/:id/timings", () => {
     res = await handleLyricsTimings(put(stubD1(r), { lines: [], calls: [{ id: "cl_x", startMs: 1 }] }));
     expect(res?.status).toBe(400);
   });
+
+  it("行の被せ指定 (layer) を書き、送らなかった行の指定は残す", async () => {
+    const { r, written } = responder();
+    const res = await handleLyricsTimings(put(stubD1(r), {
+      lines: [{ id: "ll_1", startMs: 1000, layer: "overlay" }, { id: "ll_2", startMs: 2000 }],
+    }));
+    expect(res?.status).toBe(200);
+    const saved = JSON.parse(written()!);
+    expect(saved[0].layer).toBe("overlay");
+    expect(saved[1]).not.toHaveProperty("layer");
+    const bad = await handleLyricsTimings(put(stubD1(r), { lines: [{ id: "ll_1", startMs: 1, layer: "x" }] }));
+    expect(bad?.status).toBe(400);
+  });
 });
