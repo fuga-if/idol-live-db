@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricSpan};
+pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricOverlaySplit, LyricSpan};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -55,4 +55,28 @@ pub fn lyric_call_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<Lyric
 #[uniffi::export]
 pub fn lyric_active_call(starts: Vec<Option<i64>>, position_ms: i64) -> Option<u32> {
     d::active_call(&starts, position_ms)
+}
+
+/// 行の本文を括弧の外 (メイン) と中 (被せ) に分ける。歌詞プレイヤーの 2 段目に使う。
+#[uniffi::export]
+pub fn lyric_overlay_split(text: String) -> LyricOverlaySplit {
+    d::split_overlay(&text)
+}
+
+/// 被せの行か (`layer` は保存された指定 `overlay` / `main`、無ければ括弧で決める)。
+#[uniffi::export]
+pub fn lyric_is_overlay_line(text: String, layer: Option<String>) -> bool {
+    d::is_overlay_line(&text, layer.as_deref())
+}
+
+/// いま光らせる被せの行の添字 (`starts` は被せの行だけ時刻、他は None)。
+#[uniffi::export]
+pub fn lyric_active_overlay(starts: Vec<Option<i64>>, position_ms: i64) -> Option<u32> {
+    d::active_overlay(&starts, position_ms)
+}
+
+/// 被せの行の帯 (タイミング編集の被せの段)。
+#[uniffi::export]
+pub fn lyric_overlay_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<LyricSpan> {
+    d::overlay_spans(&starts, duration_ms)
 }

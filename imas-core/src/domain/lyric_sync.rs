@@ -101,16 +101,109 @@ pub struct LyricSpan {
     pub end_ms: i64,
 }
 
+/// 被せの行 1 本が続くとみなす長さの上限 (次の被せが来なければここで消す)。
+const OVERLAY_SPAN_MAX_MS: i64 = 6_000;
+
+/// 行の本文を「メイン」と「被せ」(括弧の中) に分けたもの。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct LyricOverlaySplit {
+    /// 括弧の外。行まるごと括弧なら空。
+    pub main: String,
+    /// 括弧の中 (括弧は外す)。複数あれば全角空白で繋ぐ。無ければ `None`。
+    pub overlay: Option<String>,
+}
+
+fn is_open(c: char) -> bool {
+    c == '(' || c == '（'
+}
+fn is_close(c: char) -> bool {
+    c == ')' || c == '）'
+}
+
+/// 行の本文を、括弧の外 (メイン) と中 (被せ) に分ける。
+///
+/// 歌詞の括弧は被せ・追いかけ・コーラスの印 (「夢を（夢を）」)。括弧の対応が取れない行は
+/// 分けない (記号として括弧を使っている行を壊さない)。
+pub fn split_overlay(text: &str) -> LyricOverlaySplit {
+    let unsplit = LyricOverlaySplit { main: text.to_string(), overlay: None };
+    let mut depth = 0usize;
+    let mut main = String::new();
+    let mut parts: Vec<String> = vec![];
+    let mut current = String::new();
+    for c in text.chars() {
+        if is_open(c) {
+            if depth > 0 {
+                current.push(c);
+            }
+            depth += 1;
+        } else if is_close(c) {
+            if depth == 0 {
+                return unsplit;
+            }
+            depth -= 1;
+            if depth == 0 {
+                let part = current.trim().to_string();
+                if !part.is_empty() {
+                    parts.push(part);
+                }
+                current.clear();
+            } else {
+                current.push(c);
+            }
+        } else if depth > 0 {
+            current.push(c);
+        } else {
+            main.push(c);
+        }
+    }
+    if depth != 0 || parts.is_empty() {
+        return unsplit;
+    }
+    LyricOverlaySplit { main: main.trim().to_string(), overlay: Some(parts.join("\u{3000}")) }
+}
+
+/// 被せの行か。指定 (`layer` = `"overlay"` / `"main"`) があればそれに従い、
+/// 無ければ「行まるごと括弧」なら被せとみなす。
+pub fn is_overlay_line(text: &str, layer: Option<&str>) -> bool {
+    match layer {
+        Some("overlay") => true,
+        Some("main") => false,
+        _ => {
+            let split = split_overlay(text);
+            split.overlay.is_some() && split.main.is_empty()
+        }
+    }
+}
+
+/// いま光らせる被せの行の添字 (`starts` は被せの行だけ時刻を入れ、他は `None`)。
+pub fn active_overlay(starts: &[Option<i64>], position_ms: i64) -> Option<u32> {
+    capped_spans(starts, 0, OVERLAY_SPAN_MAX_MS)
+        .into_iter()
+        .filter(|sp| sp.start_ms <= position_ms && position_ms < sp.end_ms)
+        .last()
+        .map(|sp| sp.index)
+}
+
+/// 帯の長さを `cap_ms` で切ったもの (コール・被せ)。
+fn capped_spans(starts: &[Option<i64>], duration_ms: i64, cap_ms: i64) -> Vec<LyricSpan> {
+    line_spans(starts, duration_ms)
+        .into_iter()
+        .map(|sp| LyricSpan { end_ms: sp.end_ms.min(sp.start_ms + cap_ms), ..sp })
+        .collect()
+}
+
+/// 被せの行の帯 (タイミング編集の被せの段)。
+pub fn overlay_spans(starts: &[Option<i64>], duration_ms: i64) -> Vec<LyricSpan> {
+    capped_spans(starts, duration_ms, OVERLAY_SPAN_MAX_MS)
+}
+
 /// コール 1 つが続くとみなす長さの上限。コールは短いので、次のコールまで伸ばすと
 /// 間奏の間ずっと出っぱなしになる。
 const CALL_SPAN_MAX_MS: i64 = 3_000;
 
 /// コールの帯。行と同じく時刻順で、長さは次のコールまで (最長 3 秒)。
 pub fn call_spans(starts: &[Option<i64>], duration_ms: i64) -> Vec<LyricSpan> {
-    line_spans(starts, duration_ms)
-        .into_iter()
-        .map(|sp| LyricSpan { end_ms: sp.end_ms.min(sp.start_ms + CALL_SPAN_MAX_MS), ..sp })
-        .collect()
+    capped_spans(starts, duration_ms, CALL_SPAN_MAX_MS)
 }
 
 /// いま出すコールの添字。帯 ([`call_spans`]) の中にいるときだけ。間が空いたら `None`。
@@ -291,5 +384,32 @@ mod tests {
         assert_eq!(active_call(&starts, 4000), Some(1));
         assert_eq!(active_call(&starts, 6000), None);
         assert_eq!(active_call(&starts, 500), None);
+    }
+
+    #[test]
+    fn split_overlay_cases() {
+        let s = split_overlay("夢を（夢を）見てた(Yeah)");
+        assert_eq!(s.main, "夢を見てた");
+        assert_eq!(s.overlay.as_deref(), Some("夢を\u{3000}Yeah"));
+        assert_eq!(split_overlay("（ラララ）").main, "");
+        // 対応が取れない括弧は分けない。
+        assert_eq!(split_overlay("笑顔)").overlay, None);
+        assert_eq!(split_overlay("(笑顔").overlay, None);
+        assert_eq!(split_overlay("括弧なし").overlay, None);
+    }
+
+    #[test]
+    fn overlay_line_rule_and_override() {
+        assert!(is_overlay_line("（ラララ）", None));
+        assert!(!is_overlay_line("夢を（夢を）", None));
+        assert!(!is_overlay_line("（ラララ）", Some("main")));
+        assert!(is_overlay_line("ふつうの行", Some("overlay")));
+    }
+
+    #[test]
+    fn overlay_disappears_after_cap() {
+        let starts = [None, Some(1000), None];
+        assert_eq!(active_overlay(&starts, 1500), Some(1));
+        assert_eq!(active_overlay(&starts, 8000), None);
     }
 }
