@@ -118,8 +118,8 @@ fun ShowSearchPickerSheet(
                         ImasShowRow(
                             date = show.date.take(10),
                             title = show.eventName,
-                            subtitle = show.name,
-                            showsChevron = true,
+                            subtitle = "${show.name} ・ ${show.date.take(10)}",
+                            showsChevron = false,
                             subtitleLineLimit = Int.MAX_VALUE,
                             modifier = Modifier.imasRowPress(onClick = { onSelect(show) })
                         )
