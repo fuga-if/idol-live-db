@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -168,7 +169,9 @@ fun ImasTierRow(
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit
 ) {
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+    // 札を行の高さいっぱいに伸ばす (スクロールの中では fillMaxHeight だけでは伸びないので、
+    // 行の高さを中身の高さに決めてから札に満たさせる。iOS の fixedSize(vertical:) と同じ)。
+    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
         ImasTierLabel(
             label, seed, ImasTierLabelStyle.ROW,
             modifier = Modifier
@@ -202,7 +205,7 @@ enum class ImasTierItemsLayout {
 /** 段の中・未分類の並び。空のときは 1 行の文 ([emptyText]、null なら何も出さない)。 */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun <T> ImasTierItems(
+fun <T : Any> ImasTierItems(
     ids: List<T>,
     layout: ImasTierItemsLayout = ImasTierItemsLayout.FLOW,
     emptyText: String? = null,
@@ -210,7 +213,8 @@ fun <T> ImasTierItems(
     cell: @Composable (T) -> Unit
 ) {
     if (ids.isEmpty()) {
-        ImasText(emptyText ?: "", ImasTextRole.META, modifier = modifier.padding(DS.sp4))
+        // 幅いっぱいにする (未分類の空の面を押して「未分類へ戻す」ときの押し先が文字の幅だけにならないように)。
+        ImasText(emptyText ?: "", ImasTextRole.META, modifier = modifier.fillMaxWidth().padding(DS.sp4))
         return
     }
     when (layout) {
@@ -219,12 +223,14 @@ fun <T> ImasTierItems(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) { ids.forEach { cell(it) } }
+        // 縦スクロールの画面の中に置くので高さの上限が要る (上限が無いと高さ無限で測られて落ちる)。
+        // 上限の中は格子が自分でスクロールし、見えている分だけ描く。
         ImasTierItemsLayout.GRID -> LazyVerticalGrid(
             columns = GridCells.Adaptive(66.dp),
-            modifier = modifier.fillMaxWidth().padding(6.dp),
+            modifier = modifier.fillMaxWidth().heightIn(max = 420.dp).padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) { items(ids) { cell(it) } }
+        ) { items(ids, key = { it }) { cell(it) } }
     }
 }
 
@@ -259,7 +265,8 @@ fun ImasTierChip(
             .scale(scaleValue)
             .clip(shape)
             .background(if (isSelected) theme.tint else Color.Transparent)
-            .border(if (isSelected) 2.5.dp else 0.dp, theme.accent, shape)
+            // 0.dp の枠は 1px の線として描かれるので、選んでいないときは枠ごと付けない。
+            .then(if (isSelected) Modifier.border(2.5.dp, theme.accent, shape) else Modifier)
             .then(
                 if (onClick != null) Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick) else Modifier
             )
