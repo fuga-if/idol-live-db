@@ -3,39 +3,20 @@ package com.fugaif.imaslivedb.ui.sortmaker
 import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.ui.text.style.TextOverflow
-import com.fugaif.imaslivedb.ui.designsystem.ImasListContainer
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -47,11 +28,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,11 +42,31 @@ import com.fugaif.imaslivedb.data.games.TierListBoard
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasProgressBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSetupHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
+import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
 import com.fugaif.imaslivedb.ui.games.GameBrandFilterGrid
 import com.fugaif.imaslivedb.ui.songs.IdolMultiPickerPage
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -265,16 +263,8 @@ fun SortMakerSetupScreen(
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(DS.bg)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            HeaderCard(subject, purpose)
+        ImasPage(modifier = Modifier.padding(padding)) {
+            Header(subject, purpose)
             if (purpose == SortMakerPurpose.SORT) {
                 savedSession?.let { saved -> SavedCard(saved) { onPlay(saved) } }
             } else if (boardsForSubject.isNotEmpty()) {
@@ -300,48 +290,20 @@ fun SortMakerSetupScreen(
         }
     }
 
-    if (confirmRestart) {
-        AlertDialog(
-            onDismissRequest = { confirmRestart = false },
-            title = {
-                Text(if (savedSession?.isFinished == true) "前回の結果を消して新しく始めますか？" else "前回の続きを消して最初から始めますか？")
-            },
-            confirmButton = {
-                Text(
-                    "最初から始める",
-                    color = DS.warning,
-                    modifier = Modifier
-                        .clickable {
-                            confirmRestart = false
-                            onPlay(viewModel.start())
-                        }
-                        .padding(12.dp)
-                )
-            },
-            dismissButton = {
-                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { confirmRestart = false }.padding(12.dp))
-            }
-        )
-    }
+    ImasConfirmDestructive(
+        title = if (savedSession?.isFinished == true) "前回の結果を消して新しく始めますか？" else "前回の続きを消して最初から始めますか？",
+        isPresented = confirmRestart,
+        onDismiss = { confirmRestart = false },
+        onConfirm = { onPlay(viewModel.start()) },
+        actionTitle = "最初から始める"
+    )
 
     deletingBoard?.let { board ->
-        AlertDialog(
-            onDismissRequest = { deletingBoard = null },
-            title = { Text("「${board.displayTitle}」を削除しますか？") },
-            confirmButton = {
-                Text(
-                    "削除", color = DS.warning,
-                    modifier = Modifier
-                        .clickable {
-                            AppModule.from(context).tierListStore.delete(board.id)
-                            deletingBoard = null
-                        }
-                        .padding(12.dp)
-                )
-            },
-            dismissButton = {
-                Text("キャンセル", color = DS.ink2, modifier = Modifier.clickable { deletingBoard = null }.padding(12.dp))
-            }
+        ImasConfirmDestructive(
+            title = "「${board.displayTitle}」を削除しますか？",
+            isPresented = true,
+            onDismiss = { deletingBoard = null },
+            onConfirm = { AppModule.from(context).tierListStore.delete(board.id) }
         )
     }
 
@@ -374,31 +336,15 @@ private fun rememberCoroutineScopeCompat() = androidx.compose.runtime.rememberCo
 // MARK: - ヘッダ
 
 @Composable
-private fun HeaderCard(subject: SortMakerSubject, purpose: SortMakerPurpose) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(imasTheme(null, null).accent),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(if (purpose == SortMakerPurpose.SORT) Icons.Filled.SwapHoriz else Icons.Filled.Layers, null, tint = DS.surface)
-        }
-        Column {
-            Text(
-                if (purpose == SortMakerPurpose.SORT) "2つから好きな方を選ぶだけ" else "段に振り分けて1枚の画像に",
-                fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink
-            )
-            Text(
-                if (purpose == SortMakerPurpose.SORT)
-                    "対戦を重ねると、あなたの${if (subject == SortMakerSubject.SONG) "好きな曲" else "好きなアイドル"}ランキングができあがります。途中でやめても続きから遊べます。"
-                else
-                    "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。",
-                fontSize = 12.sp, color = DS.ink3
-            )
-        }
-    }
+private fun Header(subject: SortMakerSubject, purpose: SortMakerPurpose) {
+    ImasSetupHeader(
+        icon = if (purpose == SortMakerPurpose.SORT) Icons.Filled.SwapHoriz else Icons.Filled.Layers,
+        title = if (purpose == SortMakerPurpose.SORT) "2つから好きな方を選ぶだけ" else "段に振り分けて1枚の画像に",
+        message = if (purpose == SortMakerPurpose.SORT)
+            "対戦を重ねると、あなたの${if (subject == SortMakerSubject.SONG) "好きな曲" else "好きなアイドル"}ランキングができあがります。途中でやめても続きから遊べます。"
+        else
+            "選んだ対象がぜんぶ未分類に並びます。段の数・名前・色は自由に変えられ、何枚でも端末に保存できます。"
+    )
 }
 
 // MARK: - つづきから / 前回の結果
@@ -406,47 +352,21 @@ private fun HeaderCard(subject: SortMakerSubject, purpose: SortMakerPurpose) {
 @Composable
 private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
     val stateResult = remember(s) { s.replay() }
-    Box(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(if (s.isFinished) "前回の結果" else "つづきから", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
+    ImasCard {
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.sp4), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+                ImasText(if (s.isFinished) "前回の結果" else "つづきから", ImasTextRole.META)
                 if (s.isFinished) {
-                    Text(
-                        s.topNames.firstOrNull()?.let { "1位 $it" } ?: s.scopeLabel,
-                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 1
-                    )
+                    ImasText(s.topNames.firstOrNull()?.let { "1位 $it" } ?: s.scopeLabel, ImasTextRole.ROW_TITLE, maxLines = 1)
                 } else {
-                    Text(
-                        "${stateResult.progressPercent}% · ${stateResult.answered}戦 済み",
-                        fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink
-                    )
+                    ImasText("${stateResult.progressPercent}% · ${stateResult.answered}戦 済み", ImasTextRole.ROW_TITLE)
                 }
-                Text(s.scopeLabel, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
+                ImasText(s.scopeLabel, ImasTextRole.META, maxLines = 1)
+                if (!s.isFinished) {
+                    ImasProgressBar(fraction = stateResult.progressPercent.toDouble() / 100, modifier = Modifier.padding(top = DS.Space.gapTight))
+                }
             }
-            val accent = imasTheme(null, null).accent
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(accent)
-                    .clickable(onClick = onOpen)
-                    .padding(horizontal = 20.dp, vertical = 10.dp)
-            ) {
-                Text(if (s.isFinished) "見る" else "再開", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.surface)
-            }
-        }
-        if (!s.isFinished) {
-            LinearProgressIndicator(
-                progress = { stateResult.progressPercent.toFloat() / 100f },
-                modifier = Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter),
-                color = imasTheme(null, null).accent,
-                trackColor = DS.fill
-            )
+            ImasButton(title = if (s.isFinished) "見る" else "再開", onClick = onOpen, role = ImasButtonRole.PRIMARY, size = ImasButtonSize.MEDIUM)
         }
     }
 }
@@ -456,37 +376,18 @@ private fun SavedCard(s: SortMakerSession, onOpen: () -> Unit) {
 @Composable
 private fun SavedBoardsSection(boards: List<TierListBoard>, onOpen: (TierListBoard) -> Unit, onRequestDelete: (TierListBoard) -> Unit) {
     val fmt = remember { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault()) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ImasSectionHeader(title = "保存したティアー表", count = "${boards.size}")
-        ImasListContainer {
+    ImasSection(title = "保存したティアー表", count = "${boards.size}", footer = "長押しで削除できます。") {
+        ImasCardList(style = ImasCardListStyle.PANEL) {
             boards.forEachIndexed { i, b ->
-                if (i > 0) {
-                    Box(Modifier.fillMaxWidth().background(DS.surface).padding(start = 16.dp)) {
-                        Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep))
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 60.dp)
-                        .background(DS.surface)
-                        .combinedClickable(onClick = { onOpen(b) }, onLongClick = { onRequestDelete(b) })
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(b.displayTitle, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(
-                            "${b.placedCount} / ${b.itemIds.size} 振り分け済み · ${fmt.format(java.util.Date(b.savedAt))}",
-                            fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(18.dp))
-                }
+                if (i > 0) ImasRowDivider(inset = DS.sp4)
+                ImasRow(
+                    title = b.displayTitle,
+                    subtitle = "${b.placedCount} / ${b.itemIds.size} 振り分け済み · ${fmt.format(java.util.Date(b.savedAt))}",
+                    trailing = ImasRowTrailing.Chevron,
+                    modifier = Modifier.combinedClickable(onClick = { onOpen(b) }, onLongClick = { onRequestDelete(b) })
+                )
             }
         }
-        Text("長押しで削除できます。", fontSize = 12.sp, color = DS.ink3)
     }
 }
 
@@ -518,7 +419,7 @@ private fun SongSection(
     onClearIdols: () -> Unit
 ) {
     Section(title = "曲の種類", note = null) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp5)) {
             val options = SortMakerSongType.entries.toList()
             ImasSegmented(
                 labels = options.map { it.label },
@@ -526,32 +427,16 @@ private fun SongSection(
                 onSelect = { onSongTypeChange(options[it]) }
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenIdolPicker),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("歌っているアイドルで絞る", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                    Text(
-                        if (state.scope.idolIds.isEmpty()) "指定なし" else state.pickedIdols.joinToString("、") { it.name },
-                        fontSize = 12.sp, color = DS.ink3, maxLines = 1
-                    )
-                }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
-            }
+            ImasNavRow(
+                title = "歌っているアイドルで絞る",
+                subtitle = if (state.scope.idolIds.isEmpty()) "指定なし" else state.pickedIdols.joinToString("、") { it.name },
+                onClick = onOpenIdolPicker
+            )
             if (state.scope.idolIds.isNotEmpty()) {
-                Text(
-                    "アイドルの指定を外す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = imasTheme(null, null).accent,
-                    modifier = Modifier.clickable(onClick = onClearIdols)
-                )
+                ImasButton(title = "アイドルの指定を外す", onClick = onClearIdols, role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL)
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text("リミックス・別バージョンも入れる", fontSize = 15.sp, color = DS.ink, modifier = Modifier.weight(1f))
-                Switch(checked = state.scope.includeRemixes, onCheckedChange = onRemixesChange)
-            }
+            ImasToggleRow(title = "リミックス・別バージョンも入れる", isOn = state.scope.includeRemixes, onCheckedChange = onRemixesChange)
         }
     }
 }
@@ -577,31 +462,16 @@ private fun DepthSection(depth: SortMakerDepth, onChange: (SortMakerDepth) -> Un
 
 @Composable
 private fun Summary(state: SortMakerSetupUiState, subject: SortMakerSubject, purpose: SortMakerPurpose) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            Column {
-                Text("対象", fontSize = 12.sp, color = DS.ink3)
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(if (state.isLoading) "…" else "${state.candidates.size}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                    Text(subject.counter, fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(start = 2.dp, bottom = 2.dp))
-                }
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.note)) {
+        ImasStatGrid(columns = if (purpose == SortMakerPurpose.SORT) 2 else 1) {
+            ImasStatTile(icon = null, value = if (state.isLoading) "…" else "${state.candidates.size}", label = "対象", unit = subject.counter)
             if (purpose == SortMakerPurpose.SORT) {
-                Column {
-                    Text("対戦の目安", fontSize = 12.sp, color = DS.ink3)
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(if (state.isLoading) "…" else "約${state.estimate}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                        Text("戦", fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(start = 2.dp, bottom = 2.dp))
-                    }
-                }
+                ImasStatTile(icon = null, value = if (state.isLoading) "…" else "約${state.estimate}", label = "対戦の目安", unit = "戦")
             }
         }
         val hint = hintFor(state, subject, purpose)
         if (!state.isLoading && hint != null) {
-            Text(hint, fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(horizontal = 4.dp))
+            ImasNote(hint)
         }
     }
 }
@@ -626,39 +496,29 @@ private fun hintFor(state: SortMakerSetupUiState, subject: SortMakerSubject, pur
 
 @Composable
 private fun StartBar(canStart: Boolean, purpose: SortMakerPurpose, onStart: () -> Unit) {
-    val accent = imasTheme(null, null).accent
-    Box(
-        modifier = Modifier.fillMaxWidth().background(DS.bg).padding(horizontal = 16.dp, vertical = 12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(if (canStart) accent else accent.copy(alpha = 0.4f))
-                .clickable(enabled = canStart, onClick = onStart)
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                if (purpose == SortMakerPurpose.SORT) "はじめる" else "ティアー表をつくる",
-                fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.surface
-            )
-        }
-    }
+    ImasButton(
+        title = if (purpose == SortMakerPurpose.SORT) "はじめる" else "ティアー表をつくる",
+        onClick = onStart,
+        role = ImasButtonRole.PRIMARY,
+        size = ImasButtonSize.LARGE,
+        enabled = canStart,
+        modifier = Modifier
+            .padding(horizontal = DS.sp5, vertical = DS.sp3)
+            .background(DS.bg)
+    )
 }
 
 // MARK: - 部品
 
 @Composable
 private fun Section(title: String, note: String?, content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(DS.surface).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            if (note != null) Text(note, fontSize = 12.sp, color = DS.ink3)
+    ImasCard {
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+                ImasText(title, ImasTextRole.VALUE)
+                if (note != null) ImasNote(note)
+            }
+            content()
         }
-        content()
     }
 }

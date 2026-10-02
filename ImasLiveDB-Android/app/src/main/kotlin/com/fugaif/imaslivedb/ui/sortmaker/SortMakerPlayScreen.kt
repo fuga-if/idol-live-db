@@ -3,33 +3,25 @@ package com.fugaif.imaslivedb.ui.sortmaker
 import android.content.Context
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,15 +42,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,10 +56,26 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasProgressBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasRankNumber
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasVersusBadge
+import com.fugaif.imaslivedb.ui.designsystem.imasAccentCard
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.imasTheme
-import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -252,9 +256,7 @@ fun SortMakerPlayScreen(
         Box(Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
             val s = state
             when {
-                s == null || !s.isLoaded -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                }
+                s == null || !s.isLoaded -> ImasLoadingState()
                 s.coreState.isFinished -> {
                     SortMakerResultScreen(
                         model = viewModel,
@@ -274,16 +276,20 @@ fun SortMakerPlayScreen(
     if (showProvisional) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
         ModalBottomSheet(onDismissRequest = { showProvisional = false }, sheetState = sheetState, containerColor = DS.bg) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("いまの順位", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { showProvisional = false }) { Icon(Icons.Filled.Close, "閉じる", tint = DS.ink2) }
-                }
-                Text(
+            Column(Modifier.fillMaxWidth()) {
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { showProvisional = false }), title = "いまの順位")
+                ImasNote(
                     "ここまでの対戦で並んだ分だけの暫定順位です。",
-                    fontSize = 12.sp, color = DS.ink3
+                    modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp3)
                 )
-                SortMakerRankingList(rows = viewModel.rankedItems(), onSelect = null, modifier = Modifier.verticalScroll(rememberScrollState()))
+                SortMakerRankingList(
+                    rows = viewModel.rankedItems(),
+                    onSelect = null,
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = DS.sp5)
+                        .padding(bottom = DS.sp5)
+                )
             }
         }
     }
@@ -296,11 +302,11 @@ fun SortMakerPlayScreen(
  * カード内側 12.dp×2) を引いた残りを 2 枚に割り、64〜148.dp に収める
  * (375pt 幅の端末でもカードがはみ出さないように)。
  */
-private val SCREEN_HORIZONTAL_PADDING = 16.dp
-private val INTER_CARD_SPACING = 16.dp
-private val CARD_INNER_HORIZONTAL_PADDING = 12.dp
-private val CARD_TOP_INSET = 34.dp // カード上端からジャケ/アイコン上端まで (上余白20 + 帯4 + 間隔10)
-private val VS_BADGE_RADIUS = 18.dp
+private val SCREEN_HORIZONTAL_PADDING = DS.sp5 // 16dp
+private val INTER_CARD_SPACING = DS.sp5 // 16dp
+private val CARD_INNER_HORIZONTAL_PADDING = DS.sp4 // 12dp
+private val CARD_TOP_INSET = DS.sp6 // カード上端からジャケ/アイコン上端まで (内側の上パディング。帯は imasAccentCard の装飾でレイアウトを消費しない)
+private val VS_BADGE_RADIUS = 18.dp // ImasVersusBadge の直径 (36dp) の半分
 
 @Composable
 private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerPlayUiState) {
@@ -320,19 +326,18 @@ private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerP
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = SCREEN_HORIZONTAL_PADDING)
-                    .padding(top = 12.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .padding(top = DS.sp4, bottom = DS.sp4),
+                verticalArrangement = Arrangement.spacedBy(DS.sp6)
             ) {
                 ProgressHeader(model, state)
                 if (state.missingCount > 0) {
-                    Text(
-                        "対象のうち ${state.missingCount} 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。",
-                        fontSize = 12.sp, color = DS.ink3
-                    )
+                    ImasNote("対象のうち ${state.missingCount} 件がデータの更新で見つからなくなりました。気になるときは設定から作り直してください。")
                 }
-                Text(
-                    "どっちが好き？", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                ImasText(
+                    "どっちが好き？",
+                    ImasTextRole.SECTION_TITLE,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 val pair = state.coreState.pair
                 if (pair != null) {
@@ -375,7 +380,7 @@ private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerP
                                 }
                             }
                         }
-                        VsBadge(Modifier.align(Alignment.TopCenter).padding(top = CARD_TOP_INSET + visual / 2 - VS_BADGE_RADIUS))
+                        ImasVersusBadge(Modifier.align(Alignment.TopCenter).padding(top = CARD_TOP_INSET + visual / 2 - VS_BADGE_RADIUS))
                     }
                 }
             }
@@ -398,7 +403,7 @@ private fun SortMakerBattleView(model: SortMakerPlayViewModel, state: SortMakerP
                 }
             },
             tieDisabled = picked != null,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp3)
         )
     }
 }
@@ -408,38 +413,13 @@ private fun rememberCoroutineScopeCompat() = androidx.compose.runtime.rememberCo
 
 @Composable
 private fun ProgressHeader(model: SortMakerPlayViewModel, state: SortMakerPlayUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("第${model.round}戦", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            ImasText("第${model.round}戦", ImasTextRole.ROW_TITLE)
             Spacer(Modifier.weight(1f))
-            Text(
-                "残り約${state.shownRemaining}戦 · ${state.shownPercent}%",
-                fontSize = 12.sp, color = DS.ink3
-            )
+            ImasText("残り約${state.shownRemaining}戦 · ${state.shownPercent}%", ImasTextRole.META)
         }
-        val progress by animateFloatAsState(targetValue = state.shownPercent.toFloat() / 100f, label = "sortMakerProgress")
-        Box(Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(DS.fill)) {
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress.coerceIn(0.02f, 1f))
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(imasTheme(null, null).accent)
-            )
-        }
-    }
-}
-
-@Composable
-private fun VsBadge(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(imasTheme(null, null).accent),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("VS", fontSize = 13.sp, fontWeight = FontWeight.Black, color = DS.surface)
+        ImasProgressBar(fraction = state.shownPercent.toDouble() / 100)
     }
 }
 
@@ -451,35 +431,27 @@ private fun BottomBar(
     tieDisabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(DS.surface)
-                .clickable(enabled = canUndo, onClick = onUndo)
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.AutoMirrored.Filled.Undo, null, tint = if (canUndo) DS.ink else DS.ink3, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.size(6.dp))
-            Text("1つ戻る", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (canUndo) DS.ink else DS.ink3)
-        }
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(DS.surface)
-                .clickable(enabled = !tieDisabled, onClick = onTie)
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Filled.Equalizer, null, tint = DS.ink, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.size(6.dp))
-            Text("引き分け", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-        }
+    Row(horizontalArrangement = Arrangement.spacedBy(DS.sp4), modifier = modifier.fillMaxWidth()) {
+        ImasButton(
+            title = "1つ戻る",
+            onClick = onUndo,
+            icon = Icons.AutoMirrored.Filled.Undo,
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.MEDIUM,
+            fillsWidth = true,
+            enabled = canUndo,
+            modifier = Modifier.weight(1f)
+        )
+        ImasButton(
+            title = "引き分け",
+            onClick = onTie,
+            icon = Icons.Filled.Equalizer,
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.MEDIUM,
+            fillsWidth = true,
+            enabled = !tieDisabled,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -495,40 +467,34 @@ fun SortMakerCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val theme = imasThemeForBrand(item?.seed, item?.brandId)
     val scaleTarget = if (isPicked) 1.03f else if (isDimmed) 0.97f else 1f
     val scale by animateFloatAsState(scaleTarget, label = "sortMakerCardScale")
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(DS.sp3)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .scale(scale)
                 .alpha(if (isDimmed) 0.5f else 1f)
-                .clip(RoundedCornerShape(18.dp))
-                .background(DS.surface)
-                .then(
-                    if (isPicked || isTied) Modifier.border(3.dp, theme.accent, RoundedCornerShape(18.dp))
-                    else Modifier
-                )
+                .imasAccentCard(seed = item?.seed, brand = item?.brandId, isSelected = isPicked || isTied)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 20.dp),
+                .padding(horizontal = CARD_INNER_HORIZONTAL_PADDING, vertical = CARD_TOP_INSET),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(DS.sp4)
         ) {
-            Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(theme.accent))
             CardVisual(item, visualSize)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+                ImasText(
                     item?.title ?: "（見つかりません）",
-                    fontSize = 16.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                    textAlign = TextAlign.Center, maxLines = 3, overflow = TextOverflow.Ellipsis
+                    ImasTextRole.ROW_TITLE,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3
                 )
                 item?.subtitle?.let {
-                    Text(it, fontSize = 12.sp, color = DS.ink3, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    ImasText(it, ImasTextRole.META, textAlign = TextAlign.Center, maxLines = 2)
                 }
             }
         }
@@ -553,20 +519,15 @@ private fun PreviewButton(item: SortMakerItem?) {
     if (song != null && !url.isNullOrEmpty()) {
         val playback by AudioPreviewManager.playbackState.collectAsState()
         val playing = playback.isPlaying(song.id)
-        Row(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(DS.fill)
-                .clickable { AudioPreviewManager.togglePreview(url, song.id) }
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, tint = DS.ink2, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.size(4.dp))
-            Text(if (playing) "停止" else "試聴", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-        }
+        ImasButton(
+            title = if (playing) "停止" else "試聴",
+            onClick = { AudioPreviewManager.togglePreview(url, song.id) },
+            icon = if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.SMALL
+        )
     } else {
-        Box(Modifier.height(28.dp))
+        Box(Modifier.height(ImasButtonSize.SMALL.height))
     }
 }
 
@@ -581,34 +542,24 @@ fun SortMakerRankingList(
         ImasEmptyState(icon = Icons.Filled.FormatListNumbered, title = "まだ順位はありません")
         return
     }
-    Column(
-        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface)
-    ) {
-        rows.forEachIndexed { i, (rank, item) ->
-            if (i > 0) Box(Modifier.fillMaxWidth().padding(start = 84.dp)) { Box(Modifier.fillMaxWidth().height(0.5.dp).background(DS.sep)) }
-            RankingRow(rank, item, onSelect)
-        }
+    ImasCardList(items = rows, modifier = modifier, style = ImasCardListStyle.PANEL, key = { it.second.id }) { (rank, item) ->
+        RankingRow(rank, item, onSelect)
     }
 }
 
 @Composable
 private fun RankingRow(rank: Int, item: SortMakerItem, onSelect: ((SortMakerItem) -> Unit)?) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onSelect != null) Modifier.clickable { onSelect(item) } else Modifier)
-            .padding(horizontal = 16.dp)
-            .height(60.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text("$rank", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink2, modifier = Modifier.width(28.dp), textAlign = TextAlign.End)
-        RankingThumb(item)
-        Column(Modifier.weight(1f)) {
-            Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            item.subtitle?.let { Text(it, fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        }
-    }
+    ImasRow(
+        title = item.title,
+        subtitle = item.subtitle,
+        leading = ImasRowLeading.Custom(width = 78.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalAlignment = Alignment.CenterVertically) {
+                ImasRankNumber(rank)
+                RankingThumb(item)
+            }
+        },
+        modifier = if (onSelect != null) Modifier.imasRowPress(onClick = { onSelect(item) }) else Modifier
+    )
 }
 
 @Composable
