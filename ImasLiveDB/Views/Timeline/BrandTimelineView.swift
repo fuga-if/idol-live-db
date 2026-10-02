@@ -766,11 +766,17 @@ private struct TimelineBarView: View {
         return min(max(offset, 0), max(placed.barWidth - (barThickness - 1), 0))
     }
 
-    private var accessibilityLabel: String {
+    /// 書式は作るのが重いので 1 つを使い回す (帯ごと・描き直しのたびに作らない)。
+    private static let monthFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = TimelineDateParser.calendar
         formatter.timeZone = TimelineDateParser.calendar.timeZone
         formatter.dateFormat = "yyyy年M月"
+        return formatter
+    }()
+
+    private var accessibilityLabel: String {
+        let formatter = Self.monthFormatter
         let from = formatter.string(from: placed.bar.start)
         let to = formatter.string(from: placed.bar.end)
         let period = from == to ? from : "\(from)〜\(to)"

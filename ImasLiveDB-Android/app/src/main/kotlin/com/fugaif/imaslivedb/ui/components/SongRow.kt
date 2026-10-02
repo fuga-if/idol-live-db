@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.components
 
+import androidx.compose.runtime.remember
 import uniffi.imas_core.songCreditLabel
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ColumnScope
@@ -96,7 +97,7 @@ fun SongRow(
     // アイドルで絞っているときは当たった 1 人を先頭に出す。連名をそのまま出すと
     // 当たった名前が右端で切れて、当たった理由が行から消える。
     // 名義はユニット名 → 名義 → 個人名の並び (規則はコア)。
-    val sub = songCreditLabel(unitName, singerLabel, artistNames)
+    val sub = remember(unitName, singerLabel, artistNames) { songCreditLabel(unitName, singerLabel, artistNames) }
     val performerText = performerNeedle?.let { searchMatch?.detail } ?: sub
 
     ImasSongRow(

@@ -80,10 +80,17 @@ struct SongRowView: View {
 
     /// 行に出す名義。全体曲は個人名を連ねると行を埋めるので、ユニット名・名義を先に出す。
     private var displayLabel: String {
-        // ユニット名 → 名義 (singer_label) → 個人名の並び。規則はコア。
+        // ユニット名 → 名義 (singer_label) → 個人名の並び。規則はコア。曲ごとに 1 回だけ引く
+        // (行は描き直しのたびに評価されるので、毎回コアを呼ばない)。
+        if let hit = Self.labelCache[song.id] { return hit }
         let names = item.artistNames.isEmpty ? item.performerIdols.map(\.name).joined(separator: "・") : item.artistNames
-        return songCreditLabel(unitName: song.unitName, singerLabel: song.singerLabel, artistNames: names)
+        let label = songCreditLabel(unitName: song.unitName, singerLabel: song.singerLabel, artistNames: names)
+        Self.labelCache[song.id] = label
+        return label
     }
+
+    /// 曲 id → 名義。曲のマスタが変わるのは同期のときだけで、そのときは起動し直すまで古くても害は小さい。
+    @MainActor private static var labelCache: [String: String] = [:]
 
     var body: some View {
         ImasSongRow(

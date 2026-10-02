@@ -471,10 +471,15 @@ struct ProduceTabView: View {
     // MARK: - Helpers
 
     private func numberString(_ value: Int) -> String {
+        Self.decimal.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    /// 書式は作るのが重いので 1 つを使い回す (描き直しのたびに作らない)。
+    private static let decimal: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
-        return f.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
+        return f
+    }()
 
     /// 最近見た項目を local カタログから解決して詳細シートを開く。見つからなければ何もしない。
     private func openRecent(_ item: RecentItem) async {

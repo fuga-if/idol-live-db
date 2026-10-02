@@ -413,10 +413,15 @@ struct StatsView: View {
 
     /// "1280" → "1,280" のような桁区切り。
     private func heatMetric(_ count: Int) -> String {
+        Self.decimal.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    /// 書式は作るのが重いので 1 つを使い回す (描き直しのたびに作らない)。
+    private static let decimal: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
-        return f.string(from: NSNumber(value: count)) ?? "\(count)"
-    }
+        return f
+    }()
 
     // MARK: - Loading
 
