@@ -1,16 +1,13 @@
 package com.fugaif.imaslivedb.ui.events
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -21,21 +18,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasRecordRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import uniffi.imas_core.relativeTimes
 
 /**
  * この公演のセトリの変更履歴。iOS の `EditHistoryView(recordType: "ShowSetlist", …)` にあたる。
+ * 見た目は DesignSystem の `ImasRecordRow` (iOS の簡易版と同じ構成: 題=操作の種類・
+ * 副題=編集者・末尾=相対時刻・札=差戻し済みの印・下段=変更された項目名)。
  *
  * セトリ編集は 1 曲ずつではなく **公演単位のスナップショット** (`ShowSetlist`) として
  * 履歴化されるので、record_name は showId。曲行 (`SetlistItem`) を引くと編集 1 回が
@@ -57,66 +65,75 @@ fun SetlistEditHistorySheet(showId: String, showName: String, onDismiss: () -> U
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
-            Text("セトリの編集履歴", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
             Text(
-                showName, fontSize = 12.sp, color = DS.ink2,
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(bottom = 8.dp)
+                "セトリの編集履歴",
+                style = ImasType.heading(17.sp, FontWeight.Bold),
+                color = DS.ink
+            )
+            ImasText(
+                showName,
+                role = ImasTextRole.NOTE,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             val entries = history
             when {
-                error != null -> Text(error.orEmpty(), fontSize = 13.sp, color = DS.danger)
-                entries == null -> Box(
-                    Modifier.fillMaxWidth().padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator() }
-                entries.isEmpty() -> Text(
-                    "まだ編集されていません", fontSize = 13.sp, color = DS.ink2,
-                    modifier = Modifier.padding(16.dp)
+                error != null -> ImasNotice(kind = ImasNoticeKind.ERROR, message = error)
+                entries == null -> ImasInlineLoading()
+                entries.isEmpty() -> ImasEmptyState(
+                    icon = Icons.Filled.History,
+                    title = "まだ編集されていません"
                 )
                 else -> {
                     // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引く。
                     val times = remember(entries) { relativeTimes(entries.map { it.createdAt }, System.currentTimeMillis()) }
                     entries.forEachIndexed { i, h ->
-                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                val (label, color) = opDesign(h.op)
-                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color)
-                                Text(times[i], fontSize = 11.sp, color = DS.ink3)
-                                if (h.reverted) Text("(差戻し済み)", fontSize = 11.sp, color = DS.ink3)
-                            }
-                            if (h.changedFields.isNotEmpty()) {
-                                Text(h.changedFields.joinToString(", "), fontSize = 12.sp, color = DS.ink2)
-                            }
-                            h.editorName?.let { Text(it, fontSize = 11.sp, color = DS.ink3) }
-                        }
+                        HistoryRow(h, times[i])
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun HistoryRow(h: EditApi.RecordHistoryEntry, time: String) {
+    val badges = buildList {
+        add(ImasBadgeSpec(opLabel(h.op), kind = if (h.op == "revert") ImasBadgeKind.NEGATIVE else ImasBadgeKind.NEUTRAL))
+        if (h.reverted) add(ImasBadgeSpec("差戻し済み", kind = ImasBadgeKind.NEGATIVE))
+    }
+    ImasCard {
+        ImasRecordRow(
+            title = opLabel(h.op),
+            subtitle = h.editorName,
+            badges = badges,
+            trailing = ImasRowTrailing.Value(time)
+        ) {
+            if (h.changedFields.isNotEmpty()) {
+                ImasText(h.changedFields.joinToString(", "), role = ImasTextRole.META)
+            }
         }
     }
 }
 
 /**
- * 操作種別のラベルと色。「最近の編集」画面の同名の表と同じ対応にしてある
+ * 操作種別のラベル。「最近の編集」画面の同名の表と同じ対応にしてある
  * (向こうは private なので参照できない — 表を足すときは両方直すこと)。
+ * 色は操作ごとに変えない (§10.1)。差し戻しだけ `ImasBadgeKind.NEGATIVE` に当てる (iOS `EditFeedFormat.opBadgeKind` と同じ)。
  */
-@Composable
-private fun opDesign(op: String): Pair<String, Color> = when (op) {
-    "create" -> "追加" to DS.success
-    "update", "replace" -> "更新" to Color(0xFF4A90D9)
-    "delete" -> "削除" to DS.danger
-    "revert" -> "差戻し" to DS.warning
-    "snapshot" -> "セトリ更新" to Color(0xFF2FB8A8)
-    else -> op to DS.ink3
+private fun opLabel(op: String): String = when (op) {
+    "create" -> "追加"
+    "update", "replace" -> "更新"
+    "delete" -> "削除"
+    "revert" -> "差戻し"
+    "snapshot" -> "セトリ更新"
+    else -> op
 }
-
