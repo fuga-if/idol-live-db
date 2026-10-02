@@ -1,9 +1,5 @@
 package com.fugaif.imaslivedb.ui.schedule
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -13,24 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -41,17 +29,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import java.time.LocalDate
 
 /**
@@ -176,13 +168,10 @@ private fun openEntry(
 @Composable
 private fun FilterBar(state: CalendarUiState, viewModel: CalendarViewModel) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        ImasChipRow(modifier = Modifier.weight(1f), contentPadding = DS.Space.gapLoose) {
             CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
             CalFilterChip("リリース", ReleaseColor, state.showReleases) { viewModel.toggleReleases() }
             CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
@@ -195,7 +184,7 @@ private fun FilterBar(state: CalendarUiState, viewModel: CalendarViewModel) {
             selection = if (state.weekMode) 1 else 0,
             onSelect = { index -> if ((index == 1) != state.weekMode) viewModel.toggleWeekMode() },
             // 高さは中身に任せる (固定するとアプリ内の文字サイズ倍率でラベルが切れる)。
-            modifier = Modifier.padding(start = 8.dp).width(78.dp)
+            modifier = Modifier.padding(start = DS.Space.gap, end = DS.Space.gapLoose).width(78.dp)
         )
     }
 }
@@ -209,13 +198,7 @@ private fun MonthNavRow(title: String, onPrev: () -> Unit, onNext: () -> Unit) {
         IconButton(onClick = onPrev) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "前の月")
         }
-        Text(
-            title,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
+        ImasText(title, ImasTextRole.SECTION_TITLE, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         IconButton(onClick = onNext) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "次の月")
         }
@@ -224,13 +207,13 @@ private fun MonthNavRow(title: String, onPrev: () -> Unit, onNext: () -> Unit) {
 
 @Composable
 private fun WeekdayHeader() {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.gapTight)) {
         listOf("日", "月", "火", "水", "木", "金", "土").forEachIndexed { i, d ->
-            Text(
+            ImasText(
                 d,
+                ImasTextRole.SECTION_LABEL,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.labelSmall,
                 color = when (i) { 0 -> BirthdayColor; 6 -> ShowColor; else -> DS.ink2 }
             )
         }
@@ -299,12 +282,11 @@ private fun MonthPane(
                 }
                 if (selectedDate != null && entries.isEmpty()) {
                     item {
-                        Text(
+                        ImasText(
                             "この日の記録はありません",
+                            ImasTextRole.NOTE,
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
-                            textAlign = TextAlign.Center,
-                            color = DS.ink3,
-                            style = MaterialTheme.typography.bodyMedium
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -313,36 +295,18 @@ private fun MonthPane(
     }
 }
 
-/** 選択日の小見出し。タップで日詳細シート (種別サマリと直行ボタン) を開く。 */
+/** 選択日の小見出し。タップで日詳細シート (種別サマリと直行ボタン) を開く (DS §5.10 `ImasNavRow`)。 */
 @Composable
 private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpenSheet)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            "${date.monthValue}月${date.dayOfMonth}日",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = DS.ink2,
-            modifier = Modifier.weight(1f)
-        )
-        if (count > 0) {
-            Text("$count 件", fontSize = 12.sp, color = DS.ink3)
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "この日の詳細",
-                tint = DS.ink3,
-                modifier = Modifier.size(18.dp)
-            )
-        }
-    }
+    ImasNavRow(
+        title = "${date.monthValue}月${date.dayOfMonth}日",
+        value = if (count > 0) "$count 件" else null,
+        showsChevron = count > 0,
+        onClick = onOpenSheet
+    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** カテゴリの絞り込みチップ。先頭のペンライトに種別の代表色を点ける (DS §8.2 `ImasFilterChip`)。 */
 @Composable
 private fun CalFilterChip(
     label: String,
@@ -350,15 +314,11 @@ private fun CalFilterChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    FilterChip(
+    ImasFilterChip(
+        label = label,
         selected = selected,
         onClick = onClick,
-        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-        leadingIcon = {
-            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = DS.surface2
-        )
+        tintColor = color,
+        leading = ImasChipLeading.Dot
     )
 }
