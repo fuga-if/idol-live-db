@@ -24,7 +24,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -145,11 +144,19 @@ fun Copyable(
 private fun Modifier.longPressOnly(onLongPress: () -> Unit): Modifier = this
     .pointerInput(onLongPress) {
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false)
-            val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                waitForUpOrCancellation()
+            val down = awaitFirstDown(requireUnconsumed = false)
+            // 時間内に「離した・指が動いた (スクロール)・ほかに取られた」なら長押しではない。
+            // 以前は waitForUpOrCancellation の null (スクロールに取られた) と時間切れを区別できず、
+            // 一覧をスクロールしただけで長押しのメニューが開いていた。
+            val ended = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                while (true) {
+                    val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                    if (!change.pressed || change.isConsumed) break
+                    if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) break
+                }
+                true
             }
-            if (released == null) {
+            if (ended == null) {
                 // 時間切れ = 長押し。離すまでの動きを消費し、外側にタップを渡さない。
                 onLongPress()
                 do {
