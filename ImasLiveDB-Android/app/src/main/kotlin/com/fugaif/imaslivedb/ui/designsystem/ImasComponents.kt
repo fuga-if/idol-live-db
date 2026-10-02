@@ -149,6 +149,8 @@ fun ImasTagChip(
  * @param tappable 値が押せる。値を実体の色にし、矢印を出す ([showChevron] の既定)。
  * @param expandable 押すと省略を解除して全文を改行表示する (特技など長文向け)。値が 1 行に収まっている
  *   行ではトグルも押す動作も出さない (押しても何も起きない行を作らない)。
+ * @param position `ImasCardList(items)` に包んで並べるときの位置。渡すと 2 行目以降の上に区切り線を引く
+ *   (既定 null は [LocalImasRowPosition] を見るので、今までどおり単独で置く呼び出しは変わらない)。
  */
 @Composable
 fun ImasLabeledRow(
@@ -162,7 +164,8 @@ fun ImasLabeledRow(
     brand: String? = null,
     onClick: (() -> Unit)? = null,
     showChevron: Boolean = tappable,
-    expandable: Boolean = false
+    expandable: Boolean = false,
+    position: ImasRowPosition? = null
 ) {
     val t = imasThemeForBrand(seed, brand)
     var expanded by rememberSaveable(key, value) { mutableStateOf(false) }
@@ -173,6 +176,7 @@ fun ImasLabeledRow(
         Row(
             Modifier
                 .fillMaxWidth()
+                .imasRowTopDivider(DS.Space.rowH, position ?: LocalImasRowPosition.current)
                 .background(DS.surface)
                 .heightIn(min = DS.Size.touch)
                 .padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),

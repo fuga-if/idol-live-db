@@ -5,23 +5,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,18 +29,16 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -86,32 +79,50 @@ import com.fugaif.imaslivedb.data.image.CustomImageStore
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.CastShowRow
 import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.data.model.ImasUnit
-import com.fugaif.imaslivedb.data.model.Song
+import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
+import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.edit.IdolEditScreen
 import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
-import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
+import com.fugaif.imaslivedb.ui.components.ImasSongRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
+import com.fugaif.imaslivedb.ui.designsystem.ImasBoardCell
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasDisclosureRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasIdolHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
-import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
-import com.fugaif.imaslivedb.ui.designsystem.ImasChip
-import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasShowRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSignInPrompt
+import com.fugaif.imaslivedb.ui.components.PersonalTagsSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.filtered.IdolFilterKind
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
-import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasThemeProvider
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import kotlinx.coroutines.launch
 import uniffi.imas_core.IdolProfileSource
 import uniffi.imas_core.RowAction
 import uniffi.imas_core.RowStyle
+import uniffi.imas_core.dateLabel
 import uniffi.imas_core.idolProfileRowsFromSource
 import java.io.File
 import com.fugaif.imaslivedb.data.local.localWrite
@@ -158,7 +169,6 @@ fun IdolDetailScreen(
     // 一般ユーザーは修正リクエスト止まりで反映されないため、ここに入ることはない。
     var editedIdol by remember(idolId) { mutableStateOf<Idol?>(null) }
     val idol = editedIdol ?: state.idol
-    val t = imasThemeForBrand(idol?.color, idol?.brandId)
     var segment by rememberSaveable(idolId) { mutableIntStateOf(0) }
     var showTagPicker by rememberSaveable { mutableStateOf(false) }
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
@@ -214,7 +224,7 @@ fun IdolDetailScreen(
             }
         } else {
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-                Hero(idol, state.brand?.shortName, t)
+                Hero(idol, state.brand?.shortName, state.castShows.size, state.performedSongs.size)
                 ImasSegmented(
                     labels = listOf("ライブ", "楽曲・ユニット", "プロフィール", "コミュニティ"),
                     selection = segment, onSelect = { segment = it },
@@ -229,6 +239,8 @@ fun IdolDetailScreen(
                     else -> Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         CommunityBody(
                             idolId = idol.id,
+                            seed = idol.color,
+                            brand = idol.brandId,
                             tags = state.tags,
                             authState = authState,
                             similarTagIdols = state.similarTagIdols,
@@ -300,6 +312,9 @@ fun IdolDetailScreen(
 @Composable
 private fun CommunityBody(
     idolId: String,
+    /** タグチップのペンライトの色 (このアイドル本人の色)。 */
+    seed: String?,
+    brand: String?,
     tags: List<CommunityApi.IdolTag>,
     authState: AuthState,
     similarTagIdols: List<Idol>,
@@ -313,53 +328,35 @@ private fun CommunityBody(
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (再コンポーズごとに
     // EditPermissionRules を RustBuffer へ詰め直して JNA を跨がないため)。
     val canEditHere = remember(authState) { authState.showEditAffordance }
-    val needsLogin = remember(authState) { authState.shouldPromptLogin }
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section)) {
         com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = idolId, onOpenPoll = onPollClick)
-        if (needsLogin) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("タグ付け・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
-            }
-        }
+        ImasSignInPrompt(
+            modifier = Modifier.padding(horizontal = DS.Space.screen),
+            message = "タグ付け・投票にはログインが必要です"
+        )
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("タグ", count = "${tags.size}", modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
-                    }
-                }
-            }
+            ImasSectionHeader(
+                "タグ", count = "${tags.size}",
+                actionTitle = if (canEditHere) "タグ" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onOpenTagPicker else null
+            )
             if (tags.isEmpty()) {
-                Text("タグはまだありません", fontSize = 13.sp, color = DS.ink3,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+                ImasEmptyState(icon = Icons.Filled.Sell, title = "タグはまだありません")
             } else {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                ImasChipFlow(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)) {
                     tags.forEach { tag ->
-                        val bg = if (tag.mine) DS.pick.copy(alpha = 0.18f) else DS.fill
-                        val fg = if (tag.mine) DS.pick else DS.ink
-                        Row(
-                            modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
-                                .combinedClickable(
-                                    onClick = { onToggleTag(tag) },
-                                    onLongClick = { onTagDetailClick(tag.id) }
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(tag.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = fg)
-                            if (tag.voteCount > 0) {
-                                Text(" ${tag.voteCount}", fontSize = 12.sp, color = DS.ink3)
-                            }
-                        }
+                        val label = if (tag.voteCount > 0) "${tag.name} ${tag.voteCount}" else tag.name
+                        ImasChip(
+                            text = label,
+                            style = if (tag.mine) ImasChipStyle.SELECTED else ImasChipStyle.THEMED,
+                            seed = seed, brand = brand,
+                            // タップは投票トグル、長押しでタグ詳細。
+                            modifier = Modifier.combinedClickable(
+                                onClick = { onToggleTag(tag) },
+                                onLongClick = { onTagDetailClick(tag.id) }
+                            )
+                        )
                     }
                 }
             }
@@ -372,7 +369,7 @@ private fun CommunityBody(
 }
 
 @Composable
-private fun Hero(idol: Idol, brandShortName: String?, t: ImasTheme) {
+private fun Hero(idol: Idol, brandShortName: String?, castShowCount: Int, performedSongCount: Int) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val marks = AppModule.from(context).userMarkRepository
@@ -392,57 +389,53 @@ private fun Hero(idol: Idol, brandShortName: String?, t: ImasTheme) {
             }
         }
     }
-    Column(
-        modifier = Modifier.fillMaxWidth().background(t.heroSurface).padding(top = 16.dp, bottom = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Box(contentAlignment = Alignment.BottomEnd) {
-            Box(Modifier.clickable(onClick = pickAvatar)) {
-                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 72.dp,
-                    isPick = pick, entityId = idol.id)
-            }
-            // 「押せる」ことが分かるカメラバッジ (iOS の PhotosPicker バッジと対)。
-            Box(
-                modifier = Modifier.size(26.dp).clip(CircleShape).background(t.accent)
-                    .clickable(onClick = pickAvatar),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Filled.PhotoCamera, contentDescription = "アイコン写真を変更",
-                    tint = t.onAccent, modifier = Modifier.size(14.dp))
-            }
-        }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(idol.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            if (!brandShortName.isNullOrEmpty()) {
-                Text(brandShortName, fontSize = 13.sp, color = DS.ink2)
-            }
+    Column(Modifier.fillMaxWidth()) {
+        // 名札の頭 (iOS `ImasIdolHeader`)。アイコンはいつも出し (写真か判子)、右下に写真を選ぶ口、
+        // 右に担当の ♥。印字 (ブランド名) の上、電光掲示板に出演・歌唱曲の数。
+        ImasIdolHeader(
+            imprint = brandShortName ?: "",
+            name = idol.name,
+            isPick = pick,
+            modifier = Modifier.padding(horizontal = DS.Space.screen).padding(top = DS.Space.gapLoose),
             // 現任の声優 (iOS と同じく今の 1 人)。選び方はコア。
-            idol.currentVoiceActor?.let { name -> "CV $name" }?.let { cv ->
-                Text(cv, fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            HeroToggle("担当", pick, DS.pick, t) {
+            subtitle = idol.currentVoiceActor?.let { "CV $it" },
+            seed = idol.color,
+            brand = idol.brandId,
+            iconLabel = idol.shortName,
+            entityId = idol.id,
+            onTogglePick = {
                 scope.launch { localWrite("担当の切り替え") { marks.toggle(UserMark.IDOL, idol.id, UserMark.PICK) }?.let { pick = it } }
+            },
+            copyItems = listOf(CopyItem("アイドル名をコピー", idol.name), CopyItem("よみをコピー", idol.nameKana)),
+            stats = listOf(
+                ImasBoardCell(value = "${castShowCount}", label = "出演"),
+                ImasBoardCell(value = "${performedSongCount}", label = "歌唱曲")
+            ),
+            iconAccessory = {
+                ImasIconBadge(
+                    icon = Icons.Filled.PhotoCamera,
+                    label = "写真を選ぶ",
+                    seed = idol.color,
+                    brand = idol.brandId,
+                    modifier = Modifier.imasRowPress(onClickLabel = "写真を選ぶ", onClick = pickAvatar)
+                )
             }
-            HeroToggle("お気に入り", fav, DS.favorite, t) {
-                scope.launch { localWrite("お気に入りの切り替え") { marks.toggle(UserMark.IDOL, idol.id, UserMark.FAVORITE) }?.let { fav = it } }
+        )
+        // お気に入りは印のバー (担当は名札側の ♥ に既にある)。iOS `UserMarkBar(kinds: [.favorite, .note])` の
+        // うちメモは Android に入力 UI が無いため対象外。
+        ImasThemeProvider(seed = idol.color, brand = idol.brandId) {
+            ImasMarkBar(modifier = Modifier.padding(horizontal = DS.Space.screen).padding(top = DS.Space.gap, bottom = DS.Space.gap)) {
+                ImasMarkTile(
+                    icon = Icons.Filled.Star,
+                    label = "お気に入り",
+                    isOn = fav,
+                    accessibilityText = "お気に入り",
+                    onClick = {
+                        scope.launch { localWrite("お気に入りの切り替え") { marks.toggle(UserMark.IDOL, idol.id, UserMark.FAVORITE) }?.let { fav = it } }
+                    }
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun HeroToggle(label: String, on: Boolean, activeColor: Color, t: ImasTheme, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.clip(RoundedCornerShape(999.dp))
-            .then(if (on) Modifier.background(activeColor) else Modifier.border(1.dp, DS.sep, RoundedCornerShape(999.dp)))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (on) Color.White else DS.ink2)
     }
 }
 
@@ -462,47 +455,60 @@ private fun LiveBody(
             "このアイドルのライブ出演・歌唱記録はまだ登録されていません。", seed = idol.color, brand = idol.brandId)
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section / 2)) {
+        // 次の出演。紙のチケットで見せる (iOS `ImasTicket` と同じ)。
         state.nextShow?.let { next ->
-            UpcomingCard(next, idol, onClick = onShow, modifier = Modifier.padding(horizontal = 16.dp))
+            ImasTicket(
+                label = "次の出演",
+                imprint = null,
+                title = AppPreferences.eventDisplayName(next.eventName),
+                metaImprint = dateLabel(next.date, JstDay.today()),
+                meta = listOfNotNull(next.venue, next.showName).filter { it.isNotEmpty() }.joinToString(" ・ "),
+                seed = idol.color,
+                brand = idol.brandId,
+                modifier = Modifier.padding(horizontal = DS.Space.screen),
+                onOpen = { onShow(next.showId) }
+            )
         }
         if (state.performedSongs.isNotEmpty()) {
             Column {
                 ImasSectionHeader("ライブ歌唱曲", count = "${state.performedSongs.size}", tight = true)
-                state.performedSongs.forEach { item ->
-                    SongRow(item.song, idol.color, performCount = item.performCount) { onSongHistory(item.song.id) }
+                ImasCardList(
+                    items = state.performedSongs,
+                    modifier = Modifier.padding(horizontal = DS.Space.screen),
+                    key = { it.song.id }
+                ) { item ->
+                    ImasSongRow(
+                        song = item.song,
+                        subtitle = item.song.singerLabel?.takeIf { it.isNotEmpty() } ?: item.song.unitName,
+                        density = ImasRowDensity.COMPACT,
+                        onClick = { onSongHistory(item.song.id) }
+                    ) {
+                        if (item.performCount != null) ImasMetric("${item.performCount}", unit = "回", size = ImasNumeralSize.SMALL)
+                    }
                 }
             }
         }
         if (state.castShows.isNotEmpty()) {
             Column {
                 ImasSectionHeader("出演履歴", count = "${state.castShows.size}", tight = true)
-                state.castShows.forEach { ShowRow(it, idol) { onShow(it.showId) } }
-            }
-        }
-    }
-}
-
-/** 次の出演カード。今日以降で最も近い公演 (state.nextShow) をタップで公演詳細へ。 */
-@Composable
-private fun UpcomingCard(row: CastShowRow, idol: Idol, onClick: (String) -> Unit, modifier: Modifier = Modifier) {
-    val t = imasThemeForBrand(idol.color, idol.brandId)
-    Row(
-        modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min)
-            .clip(RoundedCornerShape(14.dp))
-            .background(t.heroSurface)
-            .clickable { onClick(row.showId) }
-    ) {
-        Box(Modifier.width(4.dp).fillMaxHeight().background(t.accent))
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("次の出演 ・ ${monthDay(row.date)}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = t.accent)
-            Text(row.eventName, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Filled.LocationOn, null, tint = DS.ink2, modifier = Modifier.size(12.dp))
-                Text(
-                    listOfNotNull(row.venue, row.showName).filter { it.isNotEmpty() }.joinToString(" ・ "),
-                    fontSize = 13.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis
-                )
+                ImasCardList(
+                    items = state.castShows,
+                    modifier = Modifier.padding(horizontal = DS.Space.screen),
+                    key = { it.showId }
+                ) { row ->
+                    ImasShowRow(
+                        date = row.date,
+                        title = AppPreferences.eventDisplayName(row.eventName),
+                        subtitle = listOf(row.venue, row.showName).mapNotNull { it?.takeIf { s -> s.isNotEmpty() } }.joinToString(" ・ "),
+                        seed = idol.color,
+                        brand = idol.brandId,
+                        badges = if (row.isLead) listOf(ImasBadgeSpec("主演", kind = ImasBadgeKind.LEAD))
+                            else if (row.isGuest) listOf(ImasBadgeSpec("ゲスト", kind = ImasBadgeKind.GUEST))
+                            else emptyList(),
+                        modifier = Modifier.imasRowPress(onClick = { onShow(row.showId) })
+                    )
+                }
             }
         }
     }
@@ -521,40 +527,30 @@ private fun SongsBody(state: IdolDetailUiState, idol: Idol, onUnit: (String) -> 
     // 全体曲→カバー→その他の固定順・0 件節なしで返すので、初期値 0 がそのまま
     // 「曲がある最初の枠」になる。
     var selectedSongSectionIndex by rememberSaveable(idol.id) { mutableStateOf(0) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section / 2)) {
         if (state.unitsWithSongs.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 ImasSectionHeader("所属ユニット", count = "${state.unitsWithSongs.size}", tight = true)
-                FlowRow(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    state.unitsWithSongs.forEach { unit -> UnitChip(unit, idol) { onUnit(unit.id) } }
+                ImasChipFlow(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
+                    state.unitsWithSongs.forEach { unit ->
+                        ImasChip(text = unit.displayName, style = ImasChipStyle.THEMED, seed = idol.color, brand = idol.brandId, onClick = { onUnit(unit.id) })
+                    }
                 }
             }
         }
         if (state.unitsWithoutSongs.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { showEmptyUnits = !showEmptyUnits },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("曲なしユニット", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-                    Text("${state.unitsWithoutSongs.size}", fontSize = 12.sp, color = DS.ink3)
-                    Box(Modifier.weight(1f))
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap), modifier = Modifier.padding(horizontal = DS.Space.screen)) {
+                ImasDisclosureRow(
+                    title = "曲なしユニット",
+                    isExpanded = showEmptyUnits,
+                    onToggle = { showEmptyUnits = !showEmptyUnits },
+                    count = "${state.unitsWithoutSongs.size}"
+                )
                 if (showEmptyUnits) {
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        state.unitsWithoutSongs.forEach { unit -> UnitChip(unit, idol) { onUnit(unit.id) } }
+                    ImasChipFlow {
+                        state.unitsWithoutSongs.forEach { unit ->
+                            ImasChip(text = unit.displayName, style = ImasChipStyle.THEMED, seed = idol.color, brand = idol.brandId, onClick = { onUnit(unit.id) })
+                        }
                     }
                 }
             }
@@ -562,33 +558,30 @@ private fun SongsBody(state: IdolDetailUiState, idol: Idol, onUnit: (String) -> 
         if (state.originalSongSections.isNotEmpty()) {
             // 枠が 1 つしか無いときは小タブを出さず一覧だけを出す。
             val safeIndex = selectedSongSectionIndex.coerceIn(0, state.originalSongSections.lastIndex)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 if (state.originalSongSections.size > 1) {
                     ImasSegmented(
                         labels = state.originalSongSections.map { "${it.shortHeading} ${it.songs.size}" },
                         selection = safeIndex,
                         onSelect = { selectedSongSectionIndex = it },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)
                     )
                 }
-                state.originalSongSections[safeIndex].songs.forEach { song ->
-                    SongRow(song, idol.color) { onSong(song.id) }
+                ImasCardList(
+                    items = state.originalSongSections[safeIndex].songs,
+                    modifier = Modifier.padding(horizontal = DS.Space.screen),
+                    key = { it.id }
+                ) { song ->
+                    ImasSongRow(
+                        song = song,
+                        subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                        density = ImasRowDensity.COMPACT,
+                        onClick = { onSong(song.id) }
+                    )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun UnitChip(unit: ImasUnit, idol: Idol, onClick: () -> Unit) {
-    val t = imasThemeForBrand(idol.color, idol.brandId)
-    Text(
-        unit.displayName,
-        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.chipText,
-        modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(t.chipBg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
-    )
 }
 
 @Composable
@@ -626,7 +619,9 @@ private fun ProfileBody(
     }
     Column {
         ImasSectionHeader("プロフィール", tight = true)
-        rows.forEach { row ->
+        // ImasLabeledRow に位置 (position) を渡さなければ ImasCardList(items) が 2 行目以降の
+        // 区切り線を自動で引く (ImasValueRow と同じ仕組みを足した。DESIGN_SYSTEM.md §15)。
+        ImasCardList(items = rows, modifier = Modifier.padding(horizontal = DS.Space.screen), key = { it.label }) { row ->
             val action = row.action
             // コアが返すのは「何をしたいか」の種類だけ。実行はこちらの責務。
             // when は網羅にしてある — コアが操作を増やしたらここがコンパイルエラーで気付ける。
@@ -654,7 +649,6 @@ private fun ProfileBody(
                 tappable = action is RowAction.FilterByBirthMonth,
                 seed = idol.color, brand = idol.brandId, onClick = onClick
             )
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
         idol.description?.takeIf { it.isNotEmpty() }?.let { desc ->
             Text(desc, fontSize = 14.sp, color = DS.ink2, modifier = Modifier.padding(16.dp))
@@ -760,14 +754,10 @@ private fun GallerySection(idolId: String) {
     }
 
     Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ImasSectionHeader("ギャラリー", count = "${files.size}", tight = true, modifier = Modifier.weight(1f))
-            TextButton(onClick = addImages) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(16.dp))
-                Text("追加", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = DS.ink2,
-                    modifier = Modifier.padding(start = 4.dp))
-            }
-        }
+        ImasSectionHeader(
+            "ギャラリー", count = "${files.size}", tight = true,
+            actionTitle = "追加", actionIcon = Icons.Filled.Add, onAction = addImages
+        )
         if (files.isEmpty()) {
             Text(
                 "画像を追加すると、先頭の1枚がアイコンになります。画像はこの端末の中だけに保存され、どこにも送信されません。",
@@ -867,64 +857,3 @@ private fun GalleryThumb(
     }
 }
 
-/**
- * アイドル詳細内の楽曲行 (ライブ歌唱曲 / 楽曲原曲)。★お気に入りトグルは行から撤去済み
- * (2026-09、iOS `IdolDetailView.songRow` と同じ)。お気に入り自体は曲詳細のボタン・
- * お気に入り一覧・絞り込みに残しているので機能は消えていない。
- */
-@Composable
-private fun SongRow(song: Song, seed: String?, performCount: Int? = null, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImasArtwork(title = song.title, seed = seed, brand = song.brandId, size = 44.dp, imageUrl = song.artworkUrl)
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val sub = song.singerLabel ?: song.unitName
-            if (!sub.isNullOrEmpty()) Text(sub, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (performCount != null) {
-                Text("${performCount}回", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShowRow(row: CastShowRow, idol: Idol, onClick: () -> Unit) {
-    val t = imasThemeForBrand(idol.color, idol.brandId)
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(row.eventName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (row.isLead) {
-                    RoleTag("主演", t)
-                } else if (row.isGuest) {
-                    RoleTag("ゲスト", t)
-                }
-            }
-            Text(listOf(row.date, row.venue, row.showName).mapNotNull { it?.takeIf { s -> s.isNotEmpty() } }.joinToString(" ・ "),
-                fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-private fun RoleTag(text: String, t: ImasTheme) {
-    Text(
-        text, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = t.chipText,
-        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(t.chipBg).padding(horizontal = 6.dp, vertical = 2.dp)
-    )
-}
-
-/** "2026-06-21" → "6/21" */
-private fun monthDay(date: String): String {
-    val parts = date.split("-")
-    if (parts.size != 3) return date
-    val m = parts[1].toIntOrNull() ?: return date
-    val d = parts[2].toIntOrNull() ?: return date
-    return "$m/$d"
-}
