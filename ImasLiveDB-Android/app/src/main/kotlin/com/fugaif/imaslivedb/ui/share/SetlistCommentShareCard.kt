@@ -1,12 +1,14 @@
 package com.fugaif.imaslivedb.ui.share
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,12 +17,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 
 // =============================================================================
 // 機能 3: セトリコメントカード
@@ -120,15 +126,16 @@ fun SetlistCommentComposeSheet(
     val displayComment = comment.trim().ifEmpty { "ここに感想が入ります" }
 
     ShareCardSheet(title = "感想カードを作る", onDismiss = onDismiss) {
-        Text("この曲の感想", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-        OutlinedTextField(
-            value = comment,
-            onValueChange = { comment = it },
-            placeholder = { Text("最高だった！ 泣いた…など") },
-            minLines = 3,
-            maxLines = 6,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            ImasText("この曲の感想", role = ImasTextRole.SECTION_LABEL, color = DS.ink3)
+            ImasCard {
+                CommentField(
+                    text = comment,
+                    onTextChange = { comment = it },
+                    prompt = "最高だった！ 泣いた…など"
+                )
+            }
+        }
 
         ShareCardActionPane(
             isPreparingCard = artwork.isPreparing,
@@ -144,5 +151,27 @@ fun SetlistCommentComposeSheet(
                 size = size
             )
         }
+    }
+}
+
+/**
+ * 感想の自由入力 (飾りの無い複数行欄)。[ImasCard] の中に置くので枠は持たず、
+ * 空のときだけ誘いの文を薄灰で出す (iOS の `TextField(_:text:axis:.vertical)` と同じ、枠なしの地)。
+ */
+@Composable
+private fun CommentField(text: String, onTextChange: (String) -> Unit, prompt: String) {
+    Box {
+        if (text.isEmpty()) {
+            Text(prompt, style = ImasTextRole.BODY.style, color = DS.ink3)
+        }
+        BasicTextField(
+            value = text,
+            onValueChange = onTextChange,
+            textStyle = ImasTextRole.BODY.style.copy(color = DS.ink),
+            cursorBrush = SolidColor(DS.ink),
+            minLines = 3,
+            maxLines = 6,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
