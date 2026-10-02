@@ -45,6 +45,8 @@ import java.time.LocalDate
  * (iOS `MonthGridMetric` と同値)。
  */
 private object MonthGridMetric {
+    /** 1 週に描く受付期間の帯の段数の上限 (溢れた帯は日の "+n" に数える)。 */
+    const val MAX_BAND_LANES = 1
     /** 日番号ゾーン (今日サークル) の高さ。 */
     val numberZone = 26.dp
     /** 日番号ゾーンと帯ゾーンの間隔。 */
@@ -135,9 +137,12 @@ private fun WeekRow(
     onShowDay: (LocalDate) -> Unit
 ) {
     // 帯詰めはコアへの FFI を挟むので、週と読み込み結果が変わらない限り引き直さない。
-    val bands = remember(weekDays.first(), state.byDate, state.showTickets) {
-        if (state.showTickets) packPeriodBands(weekDays, state.byDate) else emptyList()
+    // マスの高さは決まっているので帯は MAX_BAND_LANES 段まで。溢れた帯はその日の "+n" に数える。
+    val monthBands = remember(weekDays.first(), state.byDate, state.showTickets) {
+        if (state.showTickets) packMonthPeriodBands(weekDays, state.byDate, MonthGridMetric.MAX_BAND_LANES)
+        else MonthWeekBands(emptyList(), List(7) { 0 })
     }
+    val bands = monthBands.bands
     val lanes = laneCount(bands)
     val bandInset = MonthGridMetric.bandSlot * lanes
 
@@ -145,8 +150,9 @@ private fun WeekRow(
         val cellWidth = (maxWidth - MonthGridMetric.columnSpacing * (MonthGridMetric.COLUMNS - 1)) /
             MonthGridMetric.COLUMNS
         Row(horizontalArrangement = Arrangement.spacedBy(MonthGridMetric.columnSpacing)) {
-            weekDays.forEach { date ->
+            weekDays.forEachIndexed { col, date ->
                 DayCell(
+                    hiddenBands = monthBands.hiddenPerCol.getOrElse(col) { 0 },
                     state = state,
                     date = date,
                     width = cellWidth,
@@ -230,7 +236,8 @@ private fun DayCell(
     height: Dp,
     bandInset: Dp,
     onSelect: () -> Unit,
-    onShowDay: () -> Unit
+    onShowDay: () -> Unit,
+    hiddenBands: Int = 0
 ) {
     val isToday = date == state.today
     val isSelected = date == state.selectedDate
@@ -238,7 +245,9 @@ private fun DayCell(
 
     // 受付期間は帯で描くのでバーからは外す (iOS `barEntries` と同じ)。
     val bars = state.entriesOn(date).filterNot { it is CalendarEntry.TicketPeriod }
-    val plan = barPlan(bars.size, height, bandInset)
+    // 描けなかった受付期間の帯も "+n" に含める (その日を開けば全部見える)。
+    val plan = barPlan(bars.size, height, bandInset, hiddenBands)
+    val overflow = plan.overflow
 
     Column(
         modifier = Modifier
@@ -279,9 +288,9 @@ private fun DayCell(
             bars.take(plan.visible).forEach { entry ->
                 CalendarEntryBar(entry = entry, height = MonthGridMetric.barHeight)
             }
-            if (plan.overflow > 0) {
+            if (overflow > 0) {
                 Text(
-                    "+${plan.overflow}",
+                    "+$overflow",
                     style = ImasTextRole.MICRO.style,
                     color = DS.ink3,
                     modifier = Modifier
@@ -301,13 +310,14 @@ private data class BarPlan(val visible: Int, val overflow: Int)
  * バーゾーンの利用可能高 (帯ぶんを差し引いた残り) から表示本数を決める。
  * 1 本も入らないときも必ず "+n" だけは出す — 「その日は空」と誤読させないため。
  */
-private fun barPlan(count: Int, cellHeight: Dp, bandInset: Dp): BarPlan {
-    if (count <= 0) return BarPlan(0, 0)
+private fun barPlan(count: Int, cellHeight: Dp, bandInset: Dp, hidden: Int = 0): BarPlan {
+    if (count <= 0) return BarPlan(0, hidden)
     val zone = (cellHeight - MonthGridMetric.bandTop - bandInset).coerceAtLeast(0.dp)
     val all = MonthGridMetric.barHeight * count + MonthGridMetric.barSpacing * (count - 1)
-    if (all <= zone) return BarPlan(count, 0)
+    if (all <= zone && hidden == 0) return BarPlan(count, 0)
+    // "+n" の行ぶんを空けてから入る本数を数える (帯が溢れた日はバーが全部入っても "+n" が要る)。
     val slot = MonthGridMetric.barHeight + MonthGridMetric.barSpacing
     val fit = ((zone - MonthGridMetric.overflowHeight) / slot).toInt()
-    val visible = fit.coerceIn(0, count - 1)
-    return BarPlan(visible, count - visible)
+    val visible = fit.coerceIn(0, if (hidden > 0) count else count - 1)
+    return BarPlan(visible, count - visible + hidden)
 }

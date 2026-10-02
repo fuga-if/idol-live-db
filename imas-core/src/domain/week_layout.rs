@@ -164,9 +164,58 @@ pub fn period_bands(week_start: &str, periods: &[PeriodSpanInput]) -> Vec<Period
     bands
 }
 
+/// 月の格子の 1 週ぶんの帯。描く帯と、段が溢れて描けない帯の日ごとの数。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct MonthPeriodBands {
+    /// `max_lanes` 段までに収まる帯。
+    pub bands: Vec<PeriodBandPlacement>,
+    /// 列 (0〜6) ごとの、描けなかった帯の数。日のマスの `+n` に足す。
+    pub hidden_per_col: Vec<u32>,
+}
+
+/// 月の格子は 1 マスの高さが決まっているので、帯は `max_lanes` 段まで。
+/// 受付期間が同時にいくつも重なる時期に、帯がマスを突き抜けて隣の週まで塗りつぶさないように、
+/// 溢れた帯は描かずに日ごとの件数として返す (その日を開けば一覧で全部見える)。
+pub fn month_period_bands(week_start: &str, periods: &[PeriodSpanInput], max_lanes: u32) -> MonthPeriodBands {
+    let mut hidden_per_col = vec![0u32; 7];
+    let mut bands = Vec::new();
+    for band in period_bands(week_start, periods) {
+        if band.lane < max_lanes {
+            bands.push(band);
+        } else {
+            for col in band.start_col..=band.end_col {
+                hidden_per_col[col as usize] += 1;
+            }
+        }
+    }
+    MonthPeriodBands { bands, hidden_per_col }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn month_bands_cap_lanes_and_count_hidden_per_day() {
+        let span = |id: &str, s: &str, e: &str| PeriodSpanInput { id: id.into(), start: s.into(), end: e.into() };
+        // 2026-09-27 (日) 始まりの週に 3 本が全部重なる。
+        let periods = vec![
+            span("a", "2026-09-20", "2026-10-10"),
+            span("b", "2026-09-28", "2026-09-30"),
+            span("c", "2026-09-29", "2026-10-01"),
+        ];
+        let got = month_period_bands("2026-09-27", &periods, 2);
+        assert_eq!(got.bands.iter().map(|b| b.id.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
+        assert_eq!(got.hidden_per_col, vec![0, 0, 1, 1, 1, 0, 0]);
+    }
+
+    #[test]
+    fn month_bands_without_overflow_hide_nothing() {
+        let periods = vec![PeriodSpanInput { id: "a".into(), start: "2026-09-28".into(), end: "2026-09-29".into() }];
+        let got = month_period_bands("2026-09-27", &periods, 2);
+        assert_eq!(got.bands.len(), 1);
+        assert_eq!(got.hidden_per_col, vec![0; 7]);
+    }
 
     fn b(start: u32, end: u32) -> TimedBlockInput {
         TimedBlockInput { start_minutes: start, end_minutes: end }

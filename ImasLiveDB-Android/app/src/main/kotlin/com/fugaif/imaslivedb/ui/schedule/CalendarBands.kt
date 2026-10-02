@@ -3,6 +3,8 @@ package com.fugaif.imaslivedb.ui.schedule
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import java.time.LocalDate
 import uniffi.imas_core.PeriodSpanInput
+import uniffi.imas_core.PeriodBandPlacement
+import uniffi.imas_core.monthPeriodBands
 import uniffi.imas_core.weekPeriodBands
 
 /**
@@ -35,11 +37,33 @@ fun packPeriodBands(
     val weekStart = weekDays.firstOrNull() ?: return emptyList()
     val periods = weekDays.flatMap { byDate[it].orEmpty() }.filterIsInstance<CalendarEntry.TicketPeriod>()
     if (periods.isEmpty()) return emptyList()
-    val entryById = periods.associateBy { it.row.eventId }
-    return weekPeriodBands(
+    return weekPeriodBands(weekStart.toString(), periods.map { PeriodSpanInput(it.row.eventId, it.row.start, it.row.end) })
+        .toBands(periods)
+}
+
+/** 月の格子の 1 週ぶん: [maxLanes] 段までの帯と、溢れて描かない帯の列ごとの数 (日のマスの "+n" に足す)。段の詰め方はコア。 */
+data class MonthWeekBands(val bands: List<CalendarPeriodBand>, val hiddenPerCol: List<Int>)
+
+fun packMonthPeriodBands(
+    weekDays: List<LocalDate>,
+    byDate: Map<LocalDate, List<CalendarEntry>>,
+    maxLanes: Int
+): MonthWeekBands {
+    val none = MonthWeekBands(emptyList(), List(7) { 0 })
+    val weekStart = weekDays.firstOrNull() ?: return none
+    val periods = weekDays.flatMap { byDate[it].orEmpty() }.filterIsInstance<CalendarEntry.TicketPeriod>()
+    if (periods.isEmpty()) return none
+    val result = monthPeriodBands(
         weekStart.toString(),
-        periods.map { PeriodSpanInput(it.row.eventId, it.row.start, it.row.end) }
-    ).mapNotNull { band ->
+        periods.map { PeriodSpanInput(it.row.eventId, it.row.start, it.row.end) },
+        maxLanes.toUInt()
+    )
+    return MonthWeekBands(result.bands.toBands(periods), result.hiddenPerCol.map { it.toInt() })
+}
+
+private fun List<PeriodBandPlacement>.toBands(periods: List<CalendarEntry.TicketPeriod>): List<CalendarPeriodBand> {
+    val entryById = periods.associateBy { it.row.eventId }
+    return mapNotNull { band ->
         val entry = entryById[band.id] ?: return@mapNotNull null
         CalendarPeriodBand(
             id = band.id,

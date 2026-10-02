@@ -328,6 +328,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_vote_limit_per_target,
     uniffi_imas_core_checksum_func_votes_remaining,
     uniffi_imas_core_checksum_func_week_period_bands,
+    uniffi_imas_core_checksum_func_month_period_bands,
     uniffi_imas_core_checksum_func_week_timed_layout,
     uniffi_imas_core_checksum_func_weighted_sample_indices,
     uniffi_imas_core_checksum_func_year_range_display,

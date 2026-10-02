@@ -74,7 +74,17 @@ extension CalendarPeriodBand {
         entriesByDate: [Date: [CalendarEntry]],
         calendar: Calendar
     ) -> [CalendarPeriodBand] {
-        guard let firstDay = weekDays.first else { return [] }
+        place(weekDays: weekDays, entriesByDate: entriesByDate, calendar: calendar, maxLanes: nil).bands
+    }
+
+    private static func place(
+        weekDays: [Date],
+        entriesByDate: [Date: [CalendarEntry]],
+        calendar: Calendar,
+        maxLanes: Int?
+    ) -> (bands: [CalendarPeriodBand], hiddenPerCol: [Int]) {
+        let none = Array(repeating: 0, count: 7)
+        guard let firstDay = weekDays.first else { return ([], none) }
         var entryById: [String: (entry: CalendarEntry, name: String)] = [:]
         var spans: [PeriodSpanInput] = []
         for date in weekDays {
@@ -88,12 +98,8 @@ extension CalendarPeriodBand {
                 spans.append(PeriodSpanInput(id: row.saleId, start: row.start, end: row.end))
             }
         }
-        guard !spans.isEmpty else { return [] }
-        // 週の頭の日付は、グリッドを組んだ calendar の年月日から作る。JST に直すと、
-        // JST より東の端末で前日に落ちて帯が 1 列ずれる。
-        let parts = calendar.dateComponents([.year, .month, .day], from: firstDay)
-        let weekStart = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
-        return weekPeriodBands(weekStart: weekStart, periods: spans).compactMap { band in
+        guard !spans.isEmpty else { return ([], none) }
+        func make(_ band: PeriodBandPlacement) -> CalendarPeriodBand? {
             guard let found = entryById[band.id] else { return nil }
             return CalendarPeriodBand(
                 id: band.id, entry: found.entry, name: found.name,
@@ -101,6 +107,26 @@ extension CalendarPeriodBand {
                 roundLeading: band.roundLeading, roundTrailing: band.roundTrailing,
                 lane: Int(band.lane))
         }
+        // 週の頭の日付は、グリッドを組んだ calendar の年月日から作る。JST に直すと、
+        // JST より東の端末で前日に落ちて帯が 1 列ずれる。
+        let parts = calendar.dateComponents([.year, .month, .day], from: firstDay)
+        let weekStart = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+        if let maxLanes {
+            // 月の格子: 段の上限つき。溢れた帯は列ごとの数として返す (日の "+n" に足す)。
+            let month = monthPeriodBands(weekStart: weekStart, periods: spans, maxLanes: UInt32(maxLanes))
+            return (month.bands.compactMap { make($0) }, month.hiddenPerCol.map { Int($0) })
+        }
+        return (weekPeriodBands(weekStart: weekStart, periods: spans).compactMap { make($0) }, none)
+    }
+
+    /// 月の格子の 1 週ぶん: `maxLanes` 段までの帯と、溢れて描かない帯の列ごとの数。段の詰め方はコア。
+    static func packMonth(
+        weekDays: [Date],
+        entriesByDate: [Date: [CalendarEntry]],
+        calendar: Calendar,
+        maxLanes: Int
+    ) -> (bands: [CalendarPeriodBand], hiddenPerCol: [Int]) {
+        place(weekDays: weekDays, entriesByDate: entriesByDate, calendar: calendar, maxLanes: maxLanes)
     }
 
     /// 帯リストが占めるレーン数 (0 = 帯なし)。

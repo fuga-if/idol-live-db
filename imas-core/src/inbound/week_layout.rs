@@ -2,7 +2,7 @@
 //! 規則は [`crate::domain::week_layout`] と [`crate::domain::relative_time`]。
 
 use crate::domain::week_layout::{
-    self as domain, PeriodBandPlacement, PeriodSpanInput, TimedBlockInput, TimedLayout,
+    self as domain, MonthPeriodBands, PeriodBandPlacement, PeriodSpanInput, TimedBlockInput, TimedLayout,
 };
 
 /// `HH:MM` → 0:00 からの経過分。壊れた値・範囲外は `None`。
@@ -27,6 +27,12 @@ pub fn week_timed_layout(blocks: Vec<TimedBlockInput>) -> TimedLayout {
 #[uniffi::export]
 pub fn week_period_bands(week_start: String, periods: Vec<PeriodSpanInput>) -> Vec<PeriodBandPlacement> {
     domain::period_bands(&week_start, &periods)
+}
+
+/// 月の格子の 1 週ぶんの帯 (`max_lanes` 段まで + 溢れた帯の日ごとの数)。週ごとに 1 回。
+#[uniffi::export]
+pub fn month_period_bands(week_start: String, periods: Vec<PeriodSpanInput>, max_lanes: u32) -> MonthPeriodBands {
+    domain::month_period_bands(&week_start, &periods, max_lanes)
 }
 
 /// 投稿・編集の相対時刻 (`たった今` / `3分前` / `2時間前` / `5日前` / `2026/9/3`)。

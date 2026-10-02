@@ -53,18 +53,22 @@ struct MonthCalendarView: View {
         VStack(spacing: Layout.rowSpacing) {
             ForEach(0..<Layout.rowCount, id: \.self) { row in
                 let weekDays = weekSlice(days, row: row)
-                let bands = CalendarPeriodBand.pack(
+                // マスの高さは決まっているので帯は maxBandLanes 段まで。溢れた帯はその日の "+n" に数える。
+                let packed = CalendarPeriodBand.packMonth(
                     weekDays: weekDays,
                     entriesByDate: entriesByDate,
-                    calendar: Calendar.current
+                    calendar: Calendar.current,
+                    maxLanes: MonthGridMetric.maxBandLanes
                 )
+                let bands = packed.bands
                 let laneCount = CalendarPeriodBand.laneCount(of: bands)
                 let bandInset = CGFloat(laneCount) * MonthGridMetric.bandSlot
                 HStack(spacing: Layout.columnSpacing) {
                     ForEach(0..<Layout.columnCount, id: \.self) { column in
                         let index = row * Layout.columnCount + column
                         if days.indices.contains(index) {
-                            dayCell(for: days[index], height: cellHeight, bandInset: bandInset)
+                            dayCell(for: days[index], height: cellHeight, bandInset: bandInset,
+                                    hiddenBands: packed.hiddenPerCol.indices.contains(column) ? packed.hiddenPerCol[column] : 0)
                         } else {
                             Color.clear.frame(maxWidth: .infinity)
                         }
@@ -98,7 +102,7 @@ struct MonthCalendarView: View {
         )
     }
 
-    private func dayCell(for date: Date, height: CGFloat, bandInset: CGFloat) -> some View {
+    private func dayCell(for date: Date, height: CGFloat, bandInset: CGFloat, hiddenBands: Int) -> some View {
         DayCell(
             date: date,
             entries: entriesByDate[Calendar.current.startOfDay(for: date)] ?? [],
@@ -106,7 +110,8 @@ struct MonthCalendarView: View {
             isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate),
             isToday: Calendar.current.isDate(date, inSameDayAs: today),
             height: height,
-            bandInset: bandInset
+            bandInset: bandInset,
+            hiddenBands: hiddenBands
         )
         .contentShape(Rectangle())
         .onTapGesture {
@@ -228,6 +233,8 @@ private enum MonthGridMetric {
     static let barSpacing: CGFloat = 2
     /// "+n" 行の高さ
     static let overflowHeight: CGFloat = 10
+    /// 1 週に描く受付期間の帯の段数の上限 (溢れた帯は日の "+n" に数える)
+    static let maxBandLanes = 1
     /// 受付期間帯 1 本の高さ
     static let bandHeight: CGFloat = 11
     /// 帯 1 レーンぶんの縦送り
@@ -252,6 +259,8 @@ private struct DayCell: View {
     let height: CGFloat
     /// 受付期間帯のために上部へ確保する高さ (この週のレーン数ぶん)
     let bandInset: CGFloat
+    /// 段が溢れて描かなかった受付期間の帯の数 ("+n" に含める)
+    var hiddenBands: Int = 0
 
     private var dayNumber: Int {
         Calendar.current.component(.day, from: date)
@@ -273,14 +282,15 @@ private struct DayCell: View {
     /// バーゾーンの利用可能高 (帯ぶんを差し引く) から (表示本数, "+n" の n) を決める。
     private var barPlan: (visible: Int, overflow: Int) {
         let count = barEntries.count
-        guard count > 0 else { return (0, 0) }
+        guard count > 0 else { return (0, hiddenBands) }
         let zone = max(0, height - MonthGridMetric.bandTop - bandInset)
         let allHeight = CGFloat(count) * MonthGridMetric.barHeight + CGFloat(count - 1) * MonthGridMetric.barSpacing
-        if allHeight <= zone { return (count, 0) }
+        if allHeight <= zone && hiddenBands == 0 { return (count, 0) }
+        // "+n" の行ぶんを空けてから入る本数を数える (帯が溢れた日はバーが全部入っても "+n" が要る)。
         let slot = MonthGridMetric.barHeight + MonthGridMetric.barSpacing
         let fit = Int((zone - MonthGridMetric.overflowHeight) / slot)
-        let visible = max(0, min(count - 1, fit))
-        return (visible, count - visible)
+        let visible = max(0, min(hiddenBands > 0 ? count : count - 1, fit))
+        return (visible, count - visible + hiddenBands)
     }
 
     var body: some View {
