@@ -1172,21 +1172,6 @@ fun QuizStageScaffold(
 }
 
 
-/** 出題できないとき (ステージ色)。 */
-@Composable
-fun QuizStageEmpty(icon: ImageVector, title: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp, horizontal = 24.dp)
-    ) {
-        Box(
-            Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(QS.panel),
-            contentAlignment = Alignment.Center
-        ) { Icon(icon, contentDescription = null, tint = QS.dim, modifier = Modifier.size(28.dp)) }
-        Text(title, style = QS.text(17, FontWeight.Bold), color = QS.ink, textAlign = TextAlign.Center)
-    }
-}
 
 // MARK: - 曲ものチケット (ソロ曲・セトリ当て・メンバーカラー 4 択)
 

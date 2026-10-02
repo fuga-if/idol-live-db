@@ -50,6 +50,7 @@ import uniffi.imas_core.songSingerQuizAnswer
 import uniffi.imas_core.songSingerQuizHintState
 import uniffi.imas_core.songSingerQuizSession
 import uniffi.imas_core.songSingerQuizSessionResult
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.theme.QS
 
@@ -377,7 +378,7 @@ fun SongSingerQuizScreen(
                     }
                 }
             }
-            else -> QuizStageEmpty(Icons.Filled.MusicNote, "出題できるソロ曲が不足しています")
+            else -> ImasEmptyState(Icons.Filled.MusicNote, "出題できるソロ曲が不足しています")
         }
     }
 }

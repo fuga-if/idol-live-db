@@ -58,7 +58,9 @@ import uniffi.imas_core.setlistQuizAnswer
 import uniffi.imas_core.setlistQuizHintState
 import uniffi.imas_core.setlistQuizSessionResult
 import uniffi.imas_core.setlistSectionLabel
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasStagePenlightBars
 import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
@@ -307,7 +309,7 @@ fun SetlistQuizScreen(
                     ) { viewModel.pick(it.id) }
                 }
             }
-            else -> QuizStageEmpty(Icons.Filled.FormatListNumbered, "出題できる公演がありません")
+            else -> ImasEmptyState(Icons.Filled.FormatListNumbered, "出題できる公演がありません")
         }
     }
 }
@@ -439,11 +441,7 @@ private fun SetlistPerformers(q: SetlistQuizQuestion) {
     ) {
         Text("歌唱メンバー", style = QS.text(11, FontWeight.Bold), color = QS.paperSub)
         Text(q.performers.joinToString("、") { it.name }, style = QS.text(14, FontWeight.Bold), color = QS.paperInk)
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            q.performers.take(16).forEachIndexed { i, p ->
-                Box(Modifier.size(width = 8.dp, height = 20.dp).clip(RoundedCornerShape(4.dp)).background(qsColor(p.color, QS.penlight(i))))
-            }
-        }
+        ImasStagePenlightBars(colors = q.performers.take(16).mapIndexed { i, p -> qsColor(p.color, QS.penlight(i)) })
     }
 }
 

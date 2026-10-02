@@ -31,6 +31,7 @@ import com.fugaif.imaslivedb.data.games.streak
 import com.fugaif.imaslivedb.data.games.streakBrokeAt
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.theme.QS
 import kotlin.random.Random
@@ -332,7 +333,7 @@ fun IdolQuizScreen(
                     }
                 }
             }
-            else -> QuizStageEmpty(Icons.Filled.PersonSearch, "出題できる候補が不足しています")
+            else -> ImasEmptyState(Icons.Filled.PersonSearch, "出題できる候補が不足しています")
         }
     }
 }
