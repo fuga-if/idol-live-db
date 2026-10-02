@@ -4,10 +4,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -69,14 +67,12 @@ fun MasteryGroupDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(group.label, fontWeight = FontWeight.Bold, maxLines = 1) },
+                title = { ImasText(group.label, ImasTextRole.ROW_TITLE, maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 },
                 actions = {
-                    IconButton(onClick = { showBulk = true }) {
-                        Icon(Icons.Filled.MoreHoriz, "まとめて変える")
-                    }
+                    ImasToolbarButton(Icons.Filled.MoreHoriz, "まとめて変える", onClick = { showBulk = true })
                 }
             )
         }
@@ -85,30 +81,22 @@ fun MasteryGroupDetailScreen(
             item {
                 Column {
                     ImasSectionHeader("このグループの習熟度", tight = true)
-                    Row(
-                        Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp)).background(DS.surface).padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        MasteryRing(group.percent.toInt() / 100.0, Modifier.size(92.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text("${group.setCount}",
-                                     fontSize = 30.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                                Text(" / ${group.total}曲", fontSize = 15.sp, color = DS.ink2)
+                    ImasCard(modifier = Modifier.padding(horizontal = DS.sp5)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(DS.sp5),
+                        ) {
+                            ImasProgressRing(group.percent.toInt() / 100.0)
+                            Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                                ImasMetric("${group.setCount}", unit = "/ ${group.total}曲", size = ImasNumeralSize.LARGE, emphasized = true)
+                                ImasText("段階を付けた曲", ImasTextRole.NOTE)
+                                ImasText("${scale.label(scale.steps)} ${group.doneCount} 曲", ImasTextRole.EYEBROW, color = DS.ink3)
                             }
-                            Text("段階を付けた曲", fontSize = 13.sp, color = DS.ink2)
-                            Text("${scale.label(scale.steps)} ${group.doneCount} 曲",
-                                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(DS.sp4))
 
-                    Row(
-                        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
+                    ImasChipRow {
                         if (heardUnset > 0) {
                             ImasFilterChip("聴いたのに未設定 $heardUnset", heardOnly, {
                                 heardOnly = !heardOnly
@@ -125,7 +113,7 @@ fun MasteryGroupDetailScreen(
                             })
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(DS.sp4))
                     ImasSectionHeader("収録曲",
                         count = if (levelFilter == null && !heardOnly) "${songs.size}曲"
                                 else "${shown.size} / ${songs.size}曲",
@@ -154,7 +142,7 @@ fun MasteryGroupDetailScreen(
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = DS.sep)
                 }
             }
-            item { Spacer(Modifier.height(24.dp)) }
+            item { Spacer(Modifier.height(DS.sp7)) }
         }
     }
 
@@ -187,15 +175,15 @@ private fun SongMasteryRow(
     Row(
         Modifier.fillMaxWidth().background(DS.surface)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = DS.sp5, vertical = DS.sp3),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp4),
     ) {
         ImasArtwork(title = song.title, brand = song.brandId, size = 36.dp, imageUrl = song.artworkUrl)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(song.title, fontSize = 15.sp, color = DS.ink, maxLines = 1)
+            ImasText(song.title, ImasTextRole.ROW_LABEL, maxLines = 1)
             val sub = song.unitName ?: song.singerLabel
-            if (!sub.isNullOrEmpty()) Text(sub, fontSize = 12.sp, color = DS.ink2, maxLines = 1)
+            if (!sub.isNullOrEmpty()) ImasText(sub, ImasTextRole.META, maxLines = 1)
         }
         if (collected) {
             // 現地で聴いた曲。既存の一覧と同じ ✓ の意味で揃える。
@@ -204,7 +192,7 @@ private fun SongMasteryRow(
         // チップだけを別の的にする。最上段では上がらない (連打で記録が飛ばないのはコアの規則)。
         Box(
             Modifier.combinedClickable(onClick = onCycle, onLongClick = onLongClick)
-                .padding(start = 4.dp, top = 6.dp, bottom = 6.dp)
+                .padding(start = DS.sp2, top = DS.sp3, bottom = DS.sp3)
         ) {
             MasteryChip(level, scale, showsUnset = true)
         }
@@ -216,20 +204,19 @@ private fun SongMasteryRow(
 fun MasteryLevelPickerSheet(title: String, current: UByte, scale: MasteryScale,
                             onPick: (UByte) -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(horizontal = DS.sp5).padding(bottom = DS.sp7)) {
+            ImasText(title, ImasTextRole.CARD_TITLE, maxLines = 2)
+            Spacer(Modifier.height(DS.sp4))
             for (i in 0..scale.steps.toInt()) {
                 val level = i.toUByte()
                 Row(
-                    Modifier.fillMaxWidth().clickable { onPick(level) }.padding(vertical = 12.dp),
+                    Modifier.fillMaxWidth().clickable { onPick(level) }.padding(vertical = DS.sp4),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(DS.sp4),
                 ) {
-                    Box(Modifier.size(14.dp).clip(RoundedCornerShape(4.dp))
+                    Box(Modifier.size(14.dp).clip(RoundedCornerShape(DS.rTag))
                             .background(MasteryPalette.fill(level, scale.steps)))
-                    Text(scale.label(level), fontSize = 15.sp, color = DS.ink)
-                    Spacer(Modifier.weight(1f))
+                    ImasText(scale.label(level), ImasTextRole.VALUE, modifier = Modifier.weight(1f))
                     if (level == current) Icon(Icons.Filled.Check, null, tint = DS.ink2)
                 }
             }
@@ -243,23 +230,21 @@ private fun BulkSheet(group: MasteryGroup, scale: MasteryScale,
                       onPick: (MasteryBulkScope, UByte) -> Unit, onDismiss: () -> Unit) {
     val unset = group.levelCounts.firstOrNull()?.toInt() ?: 0
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
+        Column(Modifier.padding(horizontal = DS.sp5).padding(bottom = DS.sp7)) {
             if (unset > 0) {
-                Text("未設定の $unset 曲だけ", fontSize = 12.sp, color = DS.ink2)
-                Spacer(Modifier.height(6.dp))
-                Row(Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ImasText("未設定の $unset 曲だけ", ImasTextRole.META)
+                Spacer(Modifier.height(DS.sp2))
+                ImasChipRow(contentPadding = 0.dp) {
                     for (i in 1..scale.steps.toInt()) {
                         ImasFilterChip(scale.label(i.toUByte()), false,
                             { onPick(MasteryBulkScope.UNSET_ONLY, i.toUByte()) })
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(DS.sp5))
             }
-            Text("この ${group.total} 曲すべて", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ImasText("この ${group.total} 曲すべて", ImasTextRole.META)
+            Spacer(Modifier.height(DS.sp2))
+            ImasChipRow(contentPadding = 0.dp) {
                 for (i in 1..scale.steps.toInt()) {
                     ImasFilterChip(scale.label(i.toUByte()), false,
                         { onPick(MasteryBulkScope.ALL, i.toUByte()) })
@@ -277,9 +262,9 @@ fun MasteryChip(level: UByte, scale: MasteryScale, showsUnset: Boolean = false) 
     val bg = MasteryPalette.fill(level, scale.steps)
     Text(
         scale.shortLabel(level),
-        fontSize = 10.sp, fontWeight = FontWeight.Bold,
+        style = ImasType.text(10.sp, FontWeight.Bold),
         color = MasteryPalette.ink(level, scale.steps),
-        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(bg)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+        modifier = Modifier.clip(RoundedCornerShape(DS.rTag)).background(bg)
+            .padding(horizontal = DS.sp3, vertical = 3.dp),
     )
 }

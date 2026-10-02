@@ -14,9 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasType
 
 /**
  * 行のスワイプで段階を変えるラッパ (iOS `MasterySwipeActions` の移植)。
@@ -67,11 +67,11 @@ fun MasterySwipeRow(
             Box(
                 Modifier.fillMaxSize()
                     .background(if (toStart) startColor else endColor)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = DS.sp6),
                 contentAlignment = if (toStart) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
                 Text(if (toStart) startLabel else endLabel,
-                     fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                     style = ImasType.text(13.sp, FontWeight.Bold), color = DS.ink)
             }
         },
     ) {

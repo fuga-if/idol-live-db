@@ -4,13 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
@@ -18,12 +15,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.ui.components.*
 import com.fugaif.imaslivedb.ui.designsystem.*
@@ -92,18 +85,18 @@ fun MasteryScreen(
             TopAppBar(
                 title = { Text("習熟度", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { showFilter = true }) {
-                        Icon(Icons.Filled.FilterList, "フィルタ",
-                             tint = if (state.isFilterActive) DS.ink else DS.ink2)
-                    }
+                    ImasToolbarButton(
+                        icon = Icons.Filled.FilterList,
+                        label = "フィルタ",
+                        onClick = { showFilter = true },
+                        tint = if (state.isFilterActive) DS.ink else DS.ink2
+                    )
                 }
             )
         }
     ) { padding ->
         if (state.isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            ImasLoadingState(Modifier.padding(padding))
         } else {
             LazyColumn(Modifier.fillMaxSize().padding(padding)) {
                 item { SummarySection(state) }
@@ -122,7 +115,7 @@ fun MasteryScreen(
                                  onLongClick = { bulkTarget = group })
                     }
                     if (index < state.groups.size - 1) {
-                        HorizontalDivider(Modifier.padding(start = 16.dp), color = DS.sep)
+                        HorizontalDivider(Modifier.padding(start = DS.sp5), color = DS.sep)
                     }
                 }
                 if (state.groups.isEmpty()) {
@@ -131,7 +124,7 @@ fun MasteryScreen(
                                        "絞り込みを緩めてください。")
                     }
                 }
-                item { Spacer(Modifier.height(24.dp)) }
+                item { Spacer(Modifier.height(DS.sp7)) }
             }
         }
     }
@@ -162,24 +155,24 @@ private fun UnsetBulkSheet(group: MasteryGroup, scale: MasteryScale,
                            onPick: (UByte) -> Unit, onDismiss: () -> Unit) {
     val unset = group.levels.count { it.toInt() == 0 }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text(group.label, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2)
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(horizontal = DS.sp5).padding(bottom = DS.sp7)) {
+            ImasText(group.label, ImasTextRole.CARD_TITLE, maxLines = 2)
+            Spacer(Modifier.height(DS.sp4))
             if (unset == 0) {
-                Text("全部に段階が付いています", fontSize = 13.sp, color = DS.ink2)
+                ImasText("全部に段階が付いています", ImasTextRole.ROW_SUBTITLE)
             } else {
-                Text("未設定の $unset 曲だけ", fontSize = 12.sp, color = DS.ink2)
-                Spacer(Modifier.height(6.dp))
+                ImasText("未設定の $unset 曲だけ", ImasTextRole.META)
+                Spacer(Modifier.height(DS.sp2))
                 for (i in scale.steps.toInt() downTo 1) {
                     val level = i.toUByte()
                     Row(
-                        Modifier.fillMaxWidth().clickable { onPick(level) }.padding(vertical = 12.dp),
+                        Modifier.fillMaxWidth().clickable { onPick(level) }.padding(vertical = DS.sp4),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(DS.sp4),
                     ) {
-                        Box(Modifier.size(14.dp).clip(RoundedCornerShape(4.dp))
+                        Box(Modifier.size(14.dp).clip(RoundedCornerShape(DS.rTag))
                                 .background(MasteryPalette.fill(level, scale.steps)))
-                        Text(scale.label(level), fontSize = 15.sp, color = DS.ink)
+                        ImasText(scale.label(level), ImasTextRole.VALUE)
                     }
                 }
             }
@@ -192,35 +185,33 @@ private fun SummarySection(state: MasteryUiState) {
     val s = state.summary
     Column {
         ImasSectionHeader("あなたの習熟度", tight = true)
-        Row(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface).padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            MasteryRing(s.percent.toInt() / 100.0, Modifier.size(92.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text("${s.setCount}", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                    Text(" / ${s.total}曲", fontSize = 15.sp, color = DS.ink2)
+        ImasCard(modifier = Modifier.padding(horizontal = DS.sp5)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DS.sp5),
+            ) {
+                ImasProgressRing(s.percent.toInt() / 100.0)
+                Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+                    ImasMetric("${s.setCount}", unit = "/ ${s.total}曲", size = ImasNumeralSize.LARGE, emphasized = true)
+                    ImasText("段階を付けた曲", ImasTextRole.NOTE)
+                    ImasText("${state.scale.label(state.scale.steps)} ${s.doneCount} 曲", ImasTextRole.EYEBROW, color = DS.ink3)
                 }
-                Text("段階を付けた曲", fontSize = 13.sp, color = DS.ink2)
-                Text("${state.scale.label(state.scale.steps)} ${s.doneCount} 曲",
-                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
             }
         }
-        Spacer(Modifier.height(12.dp))
-        ImasListContainer {
-            Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                       .clip(RoundedCornerShape(14.dp)).background(DS.surface)) {
+        Spacer(Modifier.height(DS.sp4))
+        ImasCard(modifier = Modifier.padding(horizontal = DS.sp5), padding = 0.dp) {
+            Column(Modifier.padding(horizontal = DS.sp4)) {
                 for (level in state.scale.steps.toInt() downTo 1) {
                     val c = state.stageCounts.getOrElse(level - 1) { 0 }
-                    ImasStatBar(state.scale.label(level.toUByte()), "$c",
-                                c * 100.0 / maxOf(state.scopedCount, 1))
+                    ImasStatBar(
+                        state.scale.label(level.toUByte()), "$c",
+                        c * 100.0 / maxOf(state.scopedCount, 1),
+                        contentPadding = PaddingValues(vertical = DS.Space.gap)
+                    )
                 }
             }
         }
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(DS.sp6))
     }
 }
 
@@ -231,26 +222,24 @@ private fun GroupHeader(state: MasteryUiState, vm: MasteryViewModel) {
 
         // ブランドは**常に見える位置**に置く。この一覧はブランドで絞らないと
         // 群が数百件並んで用を成さないので、シートの中に畳んではいけない。
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        ImasChipRow {
             ImasFilterChip("全て", state.brandIds.isEmpty(), { vm.clearBrands() })
             state.brands.forEach { b ->
                 ImasFilterChip(b.shortName, state.brandIds.contains(b.id),
                                { vm.toggleBrand(b.id) }, brand = b.id)
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(DS.sp3))
 
         ImasSegmented(AXIS_LABELS, AXES.indexOf(state.axis), { vm.setAxis(AXES[it]) },
-                      Modifier.padding(horizontal = 16.dp))
-        Spacer(Modifier.height(8.dp))
+                      Modifier.padding(horizontal = DS.sp5))
+        Spacer(Modifier.height(DS.sp3))
 
-        NameFilterField("${AXIS_LABELS[AXES.indexOf(state.axis)]}名で絞り込み",
-                        state.nameFilter, vm::setNameFilter,
-                        Modifier.padding(horizontal = 16.dp))
-        Spacer(Modifier.height(8.dp))
+        NameFilterField(
+            prompt = "${AXIS_LABELS[AXES.indexOf(state.axis)]}名で絞り込み",
+            value = state.nameFilter,
+            onValueChange = vm::setNameFilter
+        )
     }
 }
 
@@ -266,14 +255,14 @@ private fun GroupRow(g: MasteryGroup, state: MasteryUiState,
     Row(
         Modifier.fillMaxWidth().background(DS.surface)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = DS.sp5, vertical = DS.sp3),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp4),
     ) {
         ImasLeadBar(height = 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(g.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 2)
-            Text(subtitle(g, state), fontSize = 12.sp, color = DS.ink2, maxLines = 1)
+            ImasText(g.label, ImasTextRole.ROW_TITLE, maxLines = 2)
+            ImasText(subtitle(g, state), ImasTextRole.ROW_SUBTITLE, maxLines = 1)
         }
         ImasMetricBadge("${g.percent}", "%", emphasized = g.percent > 0u)
     }
@@ -292,77 +281,36 @@ private fun subtitle(g: MasteryGroup, state: MasteryUiState): String {
     return parts.joinToString(" ・ ")
 }
 
-/** 全体の進み具合のリング。回収率の CollectionRing と同じ寸法・描き方。 */
-@Composable
-fun MasteryRing(fraction: Double, modifier: Modifier = Modifier) {
-    val t = imasTheme(null, null)
-    val clamped = fraction.coerceIn(0.0, 1.0)
-    Box(modifier, contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(
-            progress = { 1f }, modifier = Modifier.fillMaxSize(),
-            color = DS.fill, strokeWidth = 10.dp, trackColor = Color.Transparent,
-        )
-        CircularProgressIndicator(
-            progress = { clamped.toFloat() }, modifier = Modifier.fillMaxSize(),
-            color = t.accent, strokeWidth = 10.dp, trackColor = Color.Transparent,
-        )
-        Text("${(clamped * 100).toInt()}%", fontSize = 18.sp,
-             fontWeight = FontWeight.Bold, color = DS.ink)
-    }
-}
-
-/** 名前絞り込み (iOS NameFilterField の移植)。虫眼鏡ではなくフィルタのアイコン。 */
-@Composable
-fun NameFilterField(prompt: String, text: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(DS.fill)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(Icons.Filled.FilterList, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
-        Box(Modifier.weight(1f)) {
-            if (text.isEmpty()) Text(prompt, fontSize = 15.sp, color = DS.ink3)
-            BasicTextField(
-                value = text, onValueChange = onChange, singleLine = true,
-                textStyle = TextStyle(fontSize = 15.sp, color = DS.ink),
-                cursorBrush = SolidColor(DS.ink),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MasteryFilterSheet(state: MasteryUiState, vm: MasteryViewModel, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("フィルタ", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { vm.resetFilters() }, enabled = state.isFilterActive) {
-                    Text("リセット")
-                }
-            }
-            Spacer(Modifier.height(12.dp))
+        Column(Modifier.padding(bottom = DS.sp7)) {
+            ImasFilterSheetToolbar(
+                canReset = state.isFilterActive,
+                onReset = { vm.resetFilters() },
+                onApply = onDismiss
+            )
+            Spacer(Modifier.height(DS.sp4))
 
-            Text("進み具合", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(horizontal = DS.sp5)) {
+                ImasText("進み具合", ImasTextRole.SECTION_LABEL)
+                Spacer(Modifier.height(DS.sp2))
+            }
+            ImasChipRow {
                 listOf(MasteryProgressFilter.ALL, MasteryProgressFilter.HEARD_BUT_UNSET,
                        MasteryProgressFilter.HAS_UNSET, MasteryProgressFilter.UNTOUCHED,
                        MasteryProgressFilter.COMPLETE).forEach { v ->
                     ImasFilterChip(progressLabel(v), state.progress == v, { vm.setProgress(v) })
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(DS.sp5))
 
-            Text("並び", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            Row(Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(horizontal = DS.sp5)) {
+                ImasText("並び", ImasTextRole.SECTION_LABEL)
+                Spacer(Modifier.height(DS.sp2))
+            }
+            ImasChipRow {
                 listOf(MasteryGroupSort.SONG_COUNT, MasteryGroupSort.PROGRESS_ASC,
                        MasteryGroupSort.PROGRESS_DESC, MasteryGroupSort.NAME).forEach { v ->
                     ImasFilterChip(sortLabel(v), state.sort == v, { vm.setSort(v) })
