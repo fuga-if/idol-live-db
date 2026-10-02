@@ -1,27 +1,14 @@
 package com.fugaif.imaslivedb.ui.ledger
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,18 +18,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.local.localWrite
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.repository.AttendanceMarkedEvent
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormAmount
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -158,83 +149,57 @@ private fun TicketExpenseSheet(
     var selected by remember(request) {
         mutableStateOf(if (request.tickets.size == 1) request.tickets.first() else null)
     }
-    var amountText by remember(request) {
-        mutableStateOf(request.tickets.firstOrNull()?.price?.toString().orEmpty())
+    var amount by remember(request) {
+        mutableStateOf(request.tickets.firstOrNull()?.price?.toInt())
     }
     val ticket = selected ?: request.tickets.firstOrNull()
-    val amount = amountText.filter { it.isDigit() }.toLongOrNull() ?: 0L
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("チケット代を記録", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Spacer(Modifier.height(4.dp))
-            Text(request.showLabel, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 2)
-            Text(
-                "${ticketKindLabel(request.kind)}で参加",
-                fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp)
+        Column(Modifier.fillMaxWidth().padding(bottom = DS.Space.section)) {
+            ImasSheetToolbar(
+                ImasSheetToolbarKind.Prompt(
+                    canRecord = (amount ?: 0) > 0,
+                    onLater = onDismiss,
+                    onRecord = { ticket?.let { onSave(it, (amount ?: 0).toLong()) } }
+                ),
+                title = "チケット代を記録"
             )
-            Spacer(Modifier.height(16.dp))
 
-            Text("券種", fontSize = 12.sp, color = DS.ink2)
             Column(
-                Modifier.padding(top = 6.dp).fillMaxWidth()
-                    .background(DS.fill, RoundedCornerShape(10.dp))
+                Modifier.padding(horizontal = DS.Space.screen),
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
             ) {
-                request.tickets.forEachIndexed { index, candidate ->
-                    if (index > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 14.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                            .clickable {
-                                selected = candidate
-                                amountText = candidate.price.toString()
-                            }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(candidate.name, fontSize = 15.sp, color = DS.ink)
-                            if (candidate.isEstimate) {
-                                Text("推定", fontSize = 11.sp, color = DS.ink3)
-                            }
-                        }
-                        Text(
-                            formatYen(candidate.price), fontSize = 14.sp, color = DS.ink2,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        if (candidate.id == ticket?.id) {
-                            Icon(Icons.Filled.Check, contentDescription = null, tint = DS.ink2)
-                        }
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                    Text(request.showLabel, style = ImasTextRole.SECTION_TITLE.style, color = ImasTextRole.SECTION_TITLE.color)
+                    Text("${ticketKindLabel(request.kind)}で参加", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
                 }
-            }
-            Spacer(Modifier.height(16.dp))
 
-            Text("記録する金額", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(
-                value = amountText,
-                onValueChange = { amountText = it.filter(Char::isDigit) },
-                placeholder = { Text("0") },
-                leadingIcon = { Text("¥", color = DS.ink2) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                "手数料や先行の差額を含めたいときは、ここで直してください。",
-                fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp)
-            )
-            Spacer(Modifier.height(20.dp))
+                ImasCardList(items = request.tickets, key = { it.id }) { candidate ->
+                    ImasSelectableRow(
+                        title = candidate.name,
+                        subtitle = if (candidate.isEstimate) "推定" else null,
+                        trailing = ImasRowTrailing.Custom {
+                            Text(formatYen(candidate.price), style = ImasTextRole.VALUE.style, color = DS.ink2)
+                        },
+                        isSelected = candidate.id == ticket?.id,
+                        isSingle = true,
+                        onClick = {
+                            selected = candidate
+                            amount = candidate.price.toInt()
+                        }
+                    )
+                }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("あとで") }
-                Spacer(Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        ticket?.let { onSave(it, amount) }
-                    },
-                    enabled = ticket != null && amount > 0
-                ) { Text("記録する") }
+                ImasFormCard {
+                    ImasFormAmount(
+                        label = "記録する金額",
+                        imprint = "AMOUNT",
+                        icon = Icons.Filled.AttachMoney,
+                        amount = amount,
+                        onAmountChange = { amount = it }
+                    )
+                }
+                ImasNote("手数料や先行の差額を含めたいときは、ここで直してください。")
             }
         }
     }
