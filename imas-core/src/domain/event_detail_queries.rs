@@ -356,7 +356,7 @@ pub struct EventAttendanceRecord {
     pub lead_by_show: HashMap<String, Vec<String>>,
     /// show_id → cast_role='guest' の idol_id 集合。
     pub guest_by_show: HashMap<String, Vec<String>>,
-    /// 出演状況の塊 (`全日` / `DAY1・DAY3 のみ` / `欠席`、単日公演は `出演` / `欠席`)。
+    /// 出演者の塊。複数日は日付ごと (`DAY1` / `DAY2` … / `欠席`)、単日公演は `出演` / `欠席`。
     /// 並びは表に出す順。画面はこれを並べるだけにする ([`attendance_groups`])。
     pub groups: Vec<AttendanceGroupRecord>,
     /// 出演者を覆うユニット (そのイベントで歌唱されたユニットだけ・大きい順に貪欲に)。
@@ -396,59 +396,65 @@ fn event_covering_unit_ids(
         .collect()
 }
 
-/// 出演状況の塊 1 つ。
+/// 出演者の塊 1 つ。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct AttendanceGroupRecord {
     pub label: String,
     /// 母集団の並び (sort_order 順) のまま。
     pub idol_ids: Vec<String>,
+    /// 日付ごとの塊ならその公演の id (見出しに日付と公演名を出すため)。
+    /// 公演に結びつかない塊 (単日公演の `出演`・`欠席`) は None。
+    pub show_id: Option<String>,
 }
 
-/// 出演状況を塊に分ける (両 OS の `EventAttendance.grouped()` から移したもの)。
+/// 出演者を塊に分ける。
 ///
-/// - 全公演に出た人は `全日` (単日公演なら `出演`)、どれにも出ていない人は `欠席`
-/// - 一部だけの人は、出た公演の名前 (複数日なら `DAY1` など、単日なら公演名) を `・` で
-///   繋いで `… のみ`
-/// - 並び: `全日` → 一部 (出始めた日が早い順、同じなら出た日数の少ない順) → `欠席`。
-///   それでも並びが同じ塊 (`DAY1・DAY2 のみ` と `DAY1・DAY3 のみ`) は、母集団の並びで
-///   先に現れた方を先にする (iOS は安定でない並べ替えで、起動ごとに入れ替わりえた)。
+/// - 複数日のイベントは **日付ごと**: 公演の並び (date, sort_order 順) に `DAY1` / `DAY2` …
+///   の塊を作り、その日に出た人を入れる (何日も出た人は出た日の塊すべてに入る)。
+///   出た人のいない日 (出席が未登録の日) は塊を作らない。
+/// - 単日公演は `出演` の塊 1 つ。
+/// - どの公演にも出ていない人は最後に `欠席`。
+/// - 塊の中は母集団の並び (sort_order 順) のまま。
 pub fn attendance_groups(
     brand_idol_ids: &[String],
     shows: &[ShowRecord],
     presence_by_show: &HashMap<String, Vec<String>>,
 ) -> Vec<AttendanceGroupRecord> {
-    let total = shows.len();
-    let mut attended_by_idol: HashMap<&str, Vec<usize>> = HashMap::new();
-    for (index, show) in shows.iter().enumerate() {
-        for idol in presence_by_show.get(&show.id).into_iter().flatten() {
-            attended_by_idol.entry(idol.as_str()).or_default().push(index);
-        }
-    }
-    let show_label = |index: usize| {
-        if total > 1 { format!("DAY{}", index + 1) } else { shows[index].name.clone() }
+    let present_on = |show: &ShowRecord| -> HashSet<&str> {
+        presence_by_show.get(&show.id).into_iter().flatten().map(String::as_str).collect()
     };
-    let mut buckets: Vec<(usize, String, Vec<String>)> = Vec::new();
-    for idol in brand_idol_ids {
-        let attended = attended_by_idol.get(idol.as_str()).map(Vec::as_slice).unwrap_or_default();
-        let (order, label) = if attended.is_empty() {
-            (999, "欠席".to_string())
-        } else if attended.len() == total {
-            (0, if total > 1 { "全日" } else { "出演" }.to_string())
-        } else {
-            let names: Vec<String> = attended.iter().map(|&i| show_label(i)).collect();
-            let first = attended.iter().copied().min().unwrap_or(0);
-            (100 + first * 10 + attended.len(), format!("{} のみ", names.join("・")))
-        };
-        match buckets.iter_mut().find(|(_, l, _)| *l == label) {
-            Some((_, _, ids)) => ids.push(idol.clone()),
-            None => buckets.push((order, label, vec![idol.clone()])),
+    let in_population_order = |present: &HashSet<&str>| -> Vec<String> {
+        brand_idol_ids.iter().filter(|id| present.contains(id.as_str())).cloned().collect()
+    };
+    let mut groups = Vec::new();
+    let mut anywhere: HashSet<&str> = HashSet::new();
+    if shows.len() > 1 {
+        for (index, show) in shows.iter().enumerate() {
+            let present = present_on(show);
+            anywhere.extend(present.iter().copied());
+            let idol_ids = in_population_order(&present);
+            if !idol_ids.is_empty() {
+                groups.push(AttendanceGroupRecord {
+                    label: format!("DAY{}", index + 1),
+                    idol_ids,
+                    show_id: Some(show.id.clone()),
+                });
+            }
+        }
+    } else if let Some(show) = shows.first() {
+        let present = present_on(show);
+        anywhere.extend(present.iter().copied());
+        let idol_ids = in_population_order(&present);
+        if !idol_ids.is_empty() {
+            groups.push(AttendanceGroupRecord { label: "出演".to_string(), idol_ids, show_id: None });
         }
     }
-    buckets.sort_by_key(|(order, _, _)| *order);
-    buckets
-        .into_iter()
-        .map(|(_, label, idol_ids)| AttendanceGroupRecord { label, idol_ids })
-        .collect()
+    let absent: Vec<String> =
+        brand_idol_ids.iter().filter(|id| !anywhere.contains(id.as_str())).cloned().collect();
+    if !absent.is_empty() {
+        groups.push(AttendanceGroupRecord { label: "欠席".to_string(), idol_ids: absent, show_id: None });
+    }
+    groups
 }
 
 /// ライブ円盤 1 行 (iOS `EventRelease`)。
@@ -1197,54 +1203,66 @@ mod attendance_group_tests {
         idols: &[&str],
         shows: &[ShowRecord],
         presence: &[(&str, &[&str])],
-    ) -> Vec<(String, Vec<String>)> {
+    ) -> Vec<(String, Vec<String>, Option<String>)> {
         let presence: HashMap<String, Vec<String>> =
             presence.iter().map(|(s, p)| (s.to_string(), ids(p))).collect();
         attendance_groups(&ids(idols), shows, &presence)
             .into_iter()
-            .map(|g| (g.label, g.idol_ids))
+            .map(|g| (g.label, g.idol_ids, g.show_id))
             .collect()
     }
 
-    /// 両 OS の `EventAttendance.grouped()` と同じ塊と並び。
+    /// 複数日は日付ごと。何日も出た人は出た日の塊すべてに入り、どこにも出ていない人は最後に欠席。
     #[test]
-    fn multi_day_groups_all_days_partial_then_absent() {
+    fn multi_day_groups_by_day_then_absent() {
         let shows = [show("d1", "DAY1 公演"), show("d2", "DAY2 公演"), show("d3", "DAY3 公演")];
         let groups = groups_of(
             &["a", "b", "c", "d", "e"],
             &shows,
-            &[("d1", &["a", "b", "c"]), ("d2", &["a", "d"]), ("d3", &["a", "c"])],
+            &[("d1", &["c", "a", "b"]), ("d2", &["a", "d"]), ("d3", &["a", "c"])],
         );
         assert_eq!(
             groups,
             vec![
-                ("全日".to_string(), ids(&["a"])),
-                ("DAY1 のみ".to_string(), ids(&["b"])),
-                ("DAY1・DAY3 のみ".to_string(), ids(&["c"])),
-                ("DAY2 のみ".to_string(), ids(&["d"])),
-                ("欠席".to_string(), ids(&["e"])),
+                ("DAY1".to_string(), ids(&["a", "b", "c"]), Some("d1".to_string())),
+                ("DAY2".to_string(), ids(&["a", "d"]), Some("d2".to_string())),
+                ("DAY3".to_string(), ids(&["a", "c"]), Some("d3".to_string())),
+                ("欠席".to_string(), ids(&["e"]), None),
+            ]
+        );
+    }
+
+    /// 出席が未登録の日は塊を作らない (空の見出しを出さない)。母集団の外の人は数えない。
+    #[test]
+    fn days_without_anyone_are_skipped() {
+        let shows = [show("d1", "1"), show("d2", "2")];
+        let groups = groups_of(&["x", "y"], &shows, &[("d2", &["y", "guest"])]);
+        assert_eq!(
+            groups,
+            vec![
+                ("DAY2".to_string(), ids(&["y"]), Some("d2".to_string())),
+                ("欠席".to_string(), ids(&["x"]), None),
             ]
         );
     }
 
     #[test]
-    fn single_day_says_appeared_and_uses_the_show_name() {
+    fn single_day_says_appeared() {
         let shows = [show("s", "昼公演")];
         let groups = groups_of(&["a", "b"], &shows, &[("s", &["a"])]);
-        assert_eq!(groups, vec![("出演".to_string(), ids(&["a"])), ("欠席".to_string(), ids(&["b"]))]);
+        assert_eq!(
+            groups,
+            vec![("出演".to_string(), ids(&["a"]), None), ("欠席".to_string(), ids(&["b"]), None)]
+        );
     }
 
-    /// 並びの値が同じ塊 (`DAY1・DAY2 のみ` と `DAY1・DAY3 のみ`) は、母集団で先に出た方が先。
+    /// 全員が出ていれば欠席の塊は作らない。
     #[test]
-    fn ties_keep_the_order_of_first_appearance() {
-        let shows = [show("d1", "1"), show("d2", "2"), show("d3", "3")];
-        let groups = groups_of(
-            &["x", "y"],
-            &shows,
-            &[("d1", &["x", "y"]), ("d2", &["y"]), ("d3", &["x"])],
-        );
-        let labels: Vec<&str> = groups.iter().map(|(l, _)| l.as_str()).collect();
-        assert_eq!(labels, ["DAY1・DAY3 のみ", "DAY1・DAY2 のみ"]);
+    fn no_absent_group_when_everyone_appeared() {
+        let shows = [show("d1", "1"), show("d2", "2")];
+        let groups = groups_of(&["x", "y"], &shows, &[("d1", &["x"]), ("d2", &["y"])]);
+        let labels: Vec<&str> = groups.iter().map(|(l, _, _)| l.as_str()).collect();
+        assert_eq!(labels, ["DAY1", "DAY2"]);
     }
 }
 

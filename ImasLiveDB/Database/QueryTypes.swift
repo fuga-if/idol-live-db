@@ -746,12 +746,14 @@ struct EventAttendance: Sendable {
         return brandIdols.filter { ids.contains($0.id) }
     }
 
-    /// 出演状況の塊 (「全日」「DAY1・DAY3 のみ」「欠席」、単日公演は「出演」「欠席」)。
+    /// 出演者の塊。複数日は日付ごと (「DAY1」「DAY2」…)、単日公演は「出演」、どこにも出ていない人は「欠席」。
     /// 塊の切り方・見出し・並びはコア (`EventAttendanceRecord.groups`)。
     struct Group: Identifiable {
         let id: String
         let label: String
         let idols: [Idol]
+        /// 日付ごとの塊ならその公演 (見出しに日付と公演名を出す)。「出演」「欠席」は nil。
+        var showId: String? = nil
     }
 
     var groups: [Group] = []

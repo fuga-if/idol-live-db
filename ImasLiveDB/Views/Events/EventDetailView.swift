@@ -641,7 +641,7 @@ private struct AttendancePanel: View {
                 }
             }
 
-            // 2) DAY 別の個別アイドル一覧
+            // 2) 日付ごとの出演者 (複数日は DAY ごと、単日は「出演」) と欠席
             ForEach(groups) { group in
                 groupView(group: group)
             }
@@ -753,10 +753,19 @@ private struct AttendancePanel: View {
         }
     }
 
+    /// 塊 1 つ。日付ごとの塊は主演・ゲストと同じ DAY の見出し (札 + 日付 + 公演名) に人数を添える。
     @ViewBuilder
     private func groupView(group: EventAttendance.Group) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.gap) {
-            ImasSectionHeader(group.label, count: "\(group.idols.count)名", style: .small)
+            if let showId = group.showId,
+               let index = attendance.shows.firstIndex(where: { $0.id == showId }) {
+                HStack(alignment: .firstTextBaseline, spacing: DS.Space.gapTight) {
+                    dayHeader(index: index, show: attendance.shows[index])
+                    Text("\(group.idols.count)名").imasText(.meta)
+                }
+            } else {
+                ImasSectionHeader(group.label, count: "\(group.idols.count)名", style: .small)
+            }
             ImasCard {
                 avatarGrid(idols: group.idols, isAbsent: { _ in group.label == "欠席" })
             }

@@ -100,7 +100,8 @@ struct CoreEventRepository: EventReading {
                 groups: record.groups.map { group in
                     EventAttendance.Group(
                         id: group.label, label: group.label,
-                        idols: group.idolIds.compactMap { idolById[$0] })
+                        idols: group.idolIds.compactMap { idolById[$0] },
+                        showId: group.showId)
                 },
                 coveringUnitIds: record.coveringUnitIds
             )
