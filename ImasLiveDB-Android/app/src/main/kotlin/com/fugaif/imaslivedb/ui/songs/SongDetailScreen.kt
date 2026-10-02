@@ -817,8 +817,8 @@ private fun NoteEntry(note: String?, seed: String?, brandId: String?, onEdit: ((
  * 「披露履歴」タブ。総披露 / 初披露 / 最終披露、披露実績から出した歌唱者と共起曲、
  * そして公演ごとの履歴一覧。
  *
- * 節の並びは「集計 → 集計 → 集計 → 生ログ」。人気曲の履歴は 100 行を超えるので、
- * 要約を先に置かないと集計まで辿り着けない (iOS の SongHistoryTab と同じ並び)。
+ * 節の並びは「数の要約 → 公演の一覧 → 歌った人 → 同じ公演の曲」。開いて最初に見たいのは
+ * どのライブで歌われたかなので、一覧を要約のすぐ下に置く (iOS の SongHistoryTab と同じ並び)。
  */
 @Composable
 private fun HistoryTab(
@@ -846,9 +846,6 @@ private fun HistoryTab(
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
         }
-        // 披露実績がまだ 1 度も無い曲でだけ中身が空になり、節ごと消える。
-        SingersSection(evidence.singers, onIdolClick)
-        CoOccurringSection(evidence.coOccurring, seed, brand, onSongClick)
         Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
             ImasCardList {
@@ -865,6 +862,9 @@ private fun HistoryTab(
                 }
             }
         }
+        // 披露実績がまだ 1 度も無い曲でだけ中身が空になり、節ごと消える。
+        SingersSection(evidence.singers, onIdolClick)
+        CoOccurringSection(evidence.coOccurring, seed, brand, onSongClick)
     }
 }
 
