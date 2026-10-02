@@ -82,14 +82,18 @@ struct LyricTimingPayload: Encodable, Sendable {
     struct Line: Encodable, Sendable {
         let id: String
         let startMs: Int?
+        /// 被せの指定。`sendsLayer` が false (コール) ならキーごと送らない。
+        var layer: String? = nil
+        var sendsLayer = false
 
-        private enum CodingKeys: String, CodingKey { case id, startMs }
+        private enum CodingKeys: String, CodingKey { case id, startMs, layer }
 
         /// 記録を消した行も明示的に null で送る (キーごと消すと意図が読めない)。
         func encode(to encoder: any Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(id, forKey: .id)
             try c.encode(startMs, forKey: .startMs)
+            if sendsLayer { try c.encode(layer, forKey: .layer) }
         }
     }
 }

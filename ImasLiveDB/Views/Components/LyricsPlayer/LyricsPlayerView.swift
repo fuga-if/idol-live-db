@@ -27,11 +27,17 @@ struct LyricsPlayerView: View {
 
     @State private var positionMs: Int?
     @State private var activeLineId: String?
+    /// いま光らせる被せの行。
+    @State private var activeOverlayId: String?
     @State private var followPausedUntil: Date = .distantPast
     @State private var likeToken = 0
     @State private var startFailed = false
 
     private var starts: [Int64?] { lyrics.lines.map { $0.startMs.map(Int64.init) } }
+    /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られない)。
+    private var mainStarts: [Int64?] { lyrics.lines.map { $0.isOverlay ? nil : $0.startMs.map(Int64.init) } }
+    /// 被せの行だけに時刻を入れた並び。
+    private var overlayStarts: [Int64?] { lyrics.lines.map { $0.isOverlay ? $0.startMs.map(Int64.init) : nil } }
     /// 曲の順に並べたコール。時刻が 1 つでもあれば、歌詞と並べてコールの段を流す。
     private var allCalls: [LyricCall] { lyrics.lines.flatMap(\.calls) }
     private var callStarts: [Int64?] { allCalls.map { $0.startMs.map(Int64.init) } }
@@ -119,8 +125,20 @@ struct LyricsPlayerView: View {
             Color.clear.frame(height: DS.sp2)
         case .lyric, .marker:
             VStack(alignment: .leading, spacing: DS.sp1) {
-                ImasPlayerLyricLine(text: line.text, isCurrent: !hasTiming || line.id == activeLineId,
-                                    isMarker: line.kind == .marker, isLiked: isLiked, seed: seed)
+                if line.isOverlay {
+                    // 行まるごとの被せ。メインとは別に、自分の時刻で光る 2 段目。
+                    ImasPlayerOverlayLine(text: lyricOverlaySplit(text: line.text).overlay ?? line.text,
+                                          isCurrent: !hasTiming || line.id == activeOverlayId, seed: seed)
+                } else {
+                    // 行の中の括弧 (追いかけ) は本文から外して、すぐ下に 2 段目として重ねる。
+                    let split = lyricOverlaySplit(text: line.text)
+                    let isCurrent = !hasTiming || line.id == activeLineId
+                    ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
+                                        isMarker: line.kind == .marker, isLiked: isLiked, seed: seed)
+                    if let overlay = split.overlay, !split.main.isEmpty {
+                        ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
+                    }
+                }
                 if !line.calls.isEmpty {
                     CallGuideCallRows(calls: line.calls, anchorIndexes: nil)
                 }
@@ -236,9 +254,12 @@ struct LyricsPlayerView: View {
         while !Task.isCancelled {
             if let ms = playback.positionMs() {
                 if ms != positionMs { positionMs = ms }
-                let index = lyricActiveLine(starts: starts, positionMs: Int64(ms)).map(Int.init)
+                let index = lyricActiveLine(starts: mainStarts, positionMs: Int64(ms)).map(Int.init)
                 let id = index.map { lyrics.lines[$0].id }
                 if id != activeLineId { activeLineId = id }
+                let overlay = lyricActiveOverlay(starts: overlayStarts, positionMs: Int64(ms))
+                    .map { lyrics.lines[Int($0)].id }
+                if overlay != activeOverlayId { activeOverlayId = overlay }
             }
             try? await Task.sleep(for: .milliseconds(150))
         }

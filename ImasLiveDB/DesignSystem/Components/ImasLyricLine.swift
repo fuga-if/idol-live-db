@@ -186,7 +186,7 @@ struct ImasPlayerLyricLine: View {
 // MARK: - タイミング編集のタイムライン
 
 /// 横長のタイムライン (動画編集アプリの並び)。再生位置は真ん中に固定し、帯の方が流れる。
-/// 段は 2 本: 上が歌詞の行、下がコール (コールが無い曲では 1 本)。
+/// 段は上が歌詞の行。その下に細い段 (被せ・コール) を並べられる (空の段は出さない)。
 ///
 /// - 地を横になぞる … 再生位置を動かす (`onScrub` が動いている間、`onScrubEnd` が離したとき)
 /// - 帯をタップ … その行を選ぶ
@@ -201,8 +201,8 @@ struct ImasTimingTimeline: View {
 
     @Environment(\.colorScheme) private var scheme
     let blocks: [Block]
-    /// コールの段。空なら段ごと出さない。
-    var callBlocks: [Block] = []
+    /// 下に並べる細い段 (被せ・コール)。空の段は出さない。
+    var subLanes: [[Block]] = []
     let playheadMs: Int
     let selectedId: String?
     let seed: String?
@@ -218,8 +218,9 @@ struct ImasTimingTimeline: View {
     private let rulerHeight: CGFloat = 20
     private let blockHeight: CGFloat = 48
     private let callHeight: CGFloat = 34
+    private var visibleSubLanes: [[Block]] { subLanes.filter { !$0.isEmpty } }
     private var totalHeight: CGFloat {
-        rulerHeight + blockHeight + 8 + (callBlocks.isEmpty ? 0 : callHeight + 4)
+        rulerHeight + blockHeight + 8 + CGFloat(visibleSubLanes.count) * (callHeight + 4)
     }
 
     var body: some View {
@@ -237,12 +238,14 @@ struct ImasTimingTimeline: View {
                             .offset(x: left, y: rulerHeight + 4)
                     }
                 }
-                ForEach(callBlocks) { b in
-                    let left = x(b.startMs)
-                    let width = max(6, x(b.endMs) - left - 2)
-                    if left + width > -40 && left < w + 40 {
-                        block(b, width: width, height: callHeight, theme: t)
-                            .offset(x: left, y: rulerHeight + blockHeight + 8)
+                ForEach(Array(visibleSubLanes.enumerated()), id: \.offset) { lane, lanesBlocks in
+                    ForEach(lanesBlocks) { b in
+                        let left = x(b.startMs)
+                        let width = max(6, x(b.endMs) - left - 2)
+                        if left + width > -40 && left < w + 40 {
+                            block(b, width: width, height: callHeight, theme: t)
+                                .offset(x: left, y: rulerHeight + blockHeight + 8 + CGFloat(lane) * (callHeight + 4))
+                        }
                     }
                 }
                 // 再生位置 (真ん中に固定)。
@@ -331,5 +334,36 @@ struct ImasTimingTimeline: View {
         .onTapGesture { onSelect(b.id) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+// MARK: - 歌詞プレイヤーの被せ (2 段目)
+
+/// 被せ・追いかけ・コーラス (歌詞の括弧の中) を、メインの行の下に重ねる 2 段目。
+/// メインより小さく、左に細い罫を引いて「重なっている層」だと分かるようにする。
+/// 光っている間 (`isCurrent`) は墨、それ以外は薄く。光らせない・ぼかさない。
+struct ImasPlayerOverlayLine: View {
+    @Environment(\.colorScheme) private var scheme
+    let text: String
+    let isCurrent: Bool
+    let seed: String?
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: seed, scheme: scheme)
+        HStack(alignment: .top, spacing: DS.sp2) {
+            Rectangle()
+                .fill(isCurrent ? t.accent : DS.sep)
+                .frame(width: 2)
+            // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
+            Text(text)
+                .font(.imasHeading(19, weight: .bold))
+                .foregroundStyle(isCurrent ? DS.ink2 : DS.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.leading, DS.sp4)
+        .animation(.easeOut(duration: 0.2), value: isCurrent)
+        .accessibilityLabel("被せ \(text)")
     }
 }

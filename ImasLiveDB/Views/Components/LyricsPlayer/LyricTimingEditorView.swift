@@ -104,8 +104,24 @@ struct LyricTimingEditorView: View {
 
     private var shownMs: Int { scrubMs ?? playheadMs }
 
+    /// 被せの行か (指定があればそれ、無ければ括弧で決める。判定はコア)。
+    private func isOverlay(_ index: Int) -> Bool {
+        let line = lyrics.lines[index]
+        return line.kind != .blank && lyricIsOverlayLine(text: line.text, layer: recorder.layers[index])
+    }
+
+    /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られないように)。
+    private var mainStarts: [Int64?] {
+        recorder.startsForCore.enumerated().map { isOverlay($0.offset) ? nil : $0.element }
+    }
+
+    /// 被せの行だけに時刻を入れた並び。
+    private var overlayStarts: [Int64?] {
+        recorder.startsForCore.enumerated().map { isOverlay($0.offset) ? $0.element : nil }
+    }
+
     private var currentIndex: Int? {
-        lyricActiveLine(starts: recorder.startsForCore, positionMs: Int64(shownMs)).map(Int.init)
+        lyricActiveLine(starts: mainStarts, positionMs: Int64(shownMs)).map(Int.init)
     }
 
     /// 曲の順に並べたコール (ぶら下がる行の添字つき)。recorder.callIds と同じ並び。
@@ -200,7 +216,11 @@ struct LyricTimingEditorView: View {
     // MARK: - タイムライン
 
     private var timeline: some View {
-        let spans = lyricLineSpans(starts: recorder.startsForCore, durationMs: Int64(duration))
+        let spans = lyricLineSpans(starts: mainStarts, durationMs: Int64(duration))
+        let overlayBlocks = lyricOverlaySpans(starts: overlayStarts, durationMs: Int64(duration)).map { sp in
+            ImasTimingTimeline.Block(id: lyrics.lines[Int(sp.index)].id, startMs: Int(sp.startMs),
+                                     endMs: Int(sp.endMs), label: lyrics.lines[Int(sp.index)].text)
+        }
         let blocks = spans.map { sp in
             ImasTimingTimeline.Block(id: lyrics.lines[Int(sp.index)].id, startMs: Int(sp.startMs),
                                      endMs: Int(sp.endMs), label: lyrics.lines[Int(sp.index)].text)
@@ -211,7 +231,7 @@ struct LyricTimingEditorView: View {
                                      endMs: Int(sp.endMs), label: calls[Int(sp.index)].call.text)
         }
         return ImasTimingTimeline(
-            blocks: blocks, callBlocks: callBlocks, playheadMs: shownMs, selectedId: selectedId, seed: seed,
+            blocks: blocks, subLanes: [overlayBlocks, callBlocks], playheadMs: shownMs, selectedId: selectedId, seed: seed,
             onScrub: { scrubMs = $0 },
             onScrubEnd: { ms in
                 scrubMs = nil
@@ -228,6 +248,14 @@ struct LyricTimingEditorView: View {
         if let id = selectedId, let start = recorder.start(for: id) {
             HStack(spacing: DS.sp2) {
                 ImasLyricTimeLabel(ms: start, isEmphasized: true)
+                if let index = lyrics.lines.firstIndex(where: { $0.id == id }) {
+                    // 被せ ⇄ メインの切り替え。括弧だけでは決めきれない行を人が決める。
+                    let overlay = isOverlay(index)
+                    ImasIconButton(systemImage: overlay ? "square.stack.fill" : "square.stack",
+                                   label: overlay ? "メインに戻す" : "被せにする", size: .small) {
+                        recorder.setOverlay(lineId: id, !overlay)
+                    }
+                }
                 Spacer(minLength: 0)
                 ImasButton(title: "-0.1秒", role: .secondary, size: .small) {
                     recorder.nudge(id: id, byMs: -100)

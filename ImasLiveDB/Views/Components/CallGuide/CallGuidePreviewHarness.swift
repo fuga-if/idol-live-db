@@ -109,7 +109,11 @@ private struct HarnessSongDetailReading: SongDetailReading {
         var lyrics = try await FakeLyricsReading().lyrics(songId: songId)
         if timed, let base = lyrics {
             let lines = base.lines.enumerated().map { i, l in
-                LyricLine(id: l.id, ord: l.ord, kind: l.kind, text: l.text, section: l.section,
+                // 被せの見え方の確認用: 行の中の括弧 (追いかけ) と、行まるごと括弧の被せ行。
+                let text = l.kind != .lyric ? l.text
+                    : i % 6 == 3 ? "（ダミーの被せ行）"
+                    : i % 4 == 1 ? l.text + "（追いかけ）" : l.text
+                return LyricLine(id: l.id, ord: l.ord, kind: l.kind, text: text, section: l.section,
                           startMs: l.kind == .blank ? nil : i * 2500, clap: l.clap,
                           calls: l.calls.enumerated().map { k, c in
                               var call = c

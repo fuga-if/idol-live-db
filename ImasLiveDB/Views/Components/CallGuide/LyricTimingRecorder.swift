@@ -36,6 +36,9 @@ final class LyricTimingRecorder: Identifiable {
     private(set) var starts: [Int?]
     /// 曲の順の各コールの開始 ms。
     private(set) var callStarts: [Int?]
+    /// 表示順の各行の被せ指定 ("overlay" / "main" / nil = 括弧で決める)。
+    private(set) var layers: [String?]
+    private let originalLayers: [String?]
     /// いま記録している段。
     var lane: Lane = .lines
     /// 次に記録する行 / コールの添字。最後まで記録したら nil。
@@ -61,6 +64,9 @@ final class LyricTimingRecorder: Identifiable {
         let starts = lyrics.lines.map(\.startMs)
         self.starts = starts
         self.originalStarts = starts
+        let layers = lyrics.lines.map(\.layer)
+        self.layers = layers
+        self.originalLayers = layers
         let calls = lyrics.lines.enumerated().flatMap { i, line in line.calls.map { (i, $0) } }
         self.callIds = calls.map(\.1.id)
         self.callLineIndexes = calls.map(\.0)
@@ -85,7 +91,19 @@ final class LyricTimingRecorder: Identifiable {
         return candidate ?? first
     }
 
-    var isDirty: Bool { starts != originalStarts || callStarts != originalCallStarts }
+    var isDirty: Bool {
+        starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers
+    }
+
+    /// 行の被せ指定を切り替える (被せ ⇄ メイン)。括弧の判定より指定が勝つ。
+    func setOverlay(lineId: String, _ overlay: Bool) {
+        guard let i = lineIds.firstIndex(of: lineId) else { return }
+        layers[i] = overlay ? "overlay" : "main"
+    }
+
+    func layer(for lineId: String) -> String? {
+        lineIds.firstIndex(of: lineId).flatMap { layers[$0] }
+    }
     var canUndo: Bool { !history.isEmpty }
     var hasCalls: Bool { !callIds.isEmpty }
     var cursorLineId: String? { cursor.map { lineIds[$0] } }
@@ -171,7 +189,9 @@ final class LyricTimingRecorder: Identifiable {
     func save() async -> Bool {
         guard saveState != .saving else { return false }
         saveState = .saving
-        let lines = zip(lineIds, starts).map { LyricTimingPayload.Line(id: $0, startMs: $1) }
+        let lines = lineIds.indices.map {
+            LyricTimingPayload.Line(id: lineIds[$0], startMs: starts[$0], layer: layers[$0], sendsLayer: true)
+        }
         let calls = zip(callIds, callStarts).map { LyricTimingPayload.Line(id: $0, startMs: $1) }
         do {
             try await writer.updateLyricTimings(songId: songId, lines: lines, calls: calls)
