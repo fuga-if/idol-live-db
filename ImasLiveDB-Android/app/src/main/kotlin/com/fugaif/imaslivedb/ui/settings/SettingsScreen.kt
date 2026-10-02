@@ -13,45 +13,45 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.QuestionAnswer
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SupportAgent
+import androidx.compose.material.icons.filled.Vaccines
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -64,7 +64,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -73,25 +72,45 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.notification.NotificationCategory
 import com.fugaif.imaslivedb.data.notification.NotificationPrefs
 import com.fugaif.imaslivedb.data.notification.NotificationScheduler
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
-import coil3.compose.AsyncImage
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPass
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasType
+import com.fugaif.imaslivedb.ui.theme.MasteryPalette
+import com.fugaif.imaslivedb.ui.theme.MasteryScale
 import com.fugaif.imaslivedb.ui.theme.PerformerNamePref
 import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.hexToColor
 import com.fugaif.imaslivedb.ui.theme.joined
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.Spacer
-import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
-import com.fugaif.imaslivedb.ui.theme.MasteryPalette
-import com.fugaif.imaslivedb.ui.theme.MasteryScale
 import uniffi.imas_core.InputField
 import uniffi.imas_core.inputIsAcceptable
 import uniffi.imas_core.inputLimitMax
@@ -115,167 +134,155 @@ fun SettingsScreen(
         }
     ) { innerPadding ->
         if (state.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            ImasLoadingState(modifier = Modifier.padding(innerPadding))
             return@Scaffold
         }
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // アプリヘッダ (アイコン + バージョン)。最初に目に入る位置で「何のアプリの、
-            // どのビルドか」が分かるようにしておく (不具合報告のときに聞き返さずに済む)。
-            item { AppHeader() }
+        ImasFormBackdrop(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                // アプリヘッダ (アイコン + バージョン)。最初に目に入る位置で「何のアプリの、
+                // どのビルドか」が分かるようにしておく (不具合報告のときに聞き返さずに済む)。
+                item { AppHeader() }
 
-            // アカウント (投票に必要)
-            item {
-                SettingsSectionTitle("アカウント")
-                AccountSection()
-                HorizontalDivider()
-            }
+                // アカウント (投票に必要)
+                item { ImasListSection("アカウント") { AccountSection() } }
 
-            // フィルタ設定
-            item {
-                SettingsSectionTitle("フィルタ設定")
-                DefaultBrandPicker(
-                    brands = state.brands,
-                    selectedBrandId = state.defaultBrandId,
-                    onBrandSelected = { viewModel.setDefaultBrand(it) }
-                )
-                HorizontalDivider()
-            }
-
-            // 表示 (文字サイズ・ライブ名の省略)
-            item {
-                SettingsSectionTitle("表示")
-                DisplaySettingsSection()
-                HorizontalDivider()
-            }
-
-            // 習熟度の段階 (ラベルの好みは人によるので触れるようにする)
-            item {
-                SettingsSectionTitle("習熟度")
-                MasteryScaleSection()
-                HorizontalDivider()
-            }
-
-            // 披露回収の対象
-            item {
-                SettingsSectionTitle("披露回収")
-                CollectionSettingsSection()
-                HorizontalDivider()
-            }
-
-            // テーマ (担当カラー)
-            item {
-                SettingsSectionTitle("テーマ")
-                OshiThemeSection(viewModel, state)
-                HorizontalDivider()
-            }
-
-            // 通知
-            item {
-                SettingsSectionTitle("通知")
-                NotificationSection()
-                HorizontalDivider()
-            }
-
-            // データ
-            item {
-                SettingsSectionTitle("データ")
-                SettingsInfoRow("スキーマバージョン", state.schemaVersion)
-                SettingsInfoRow("データバージョン", state.dataVersion)
-                DataSyncSection()
-                HorizontalDivider()
-            }
-
-            // バックアップ
-            item {
-                SettingsSectionTitle("バックアップ")
-                BackupSection()
-                HorizontalDivider()
-            }
-
-            // キャラクター画像 (端末ローカル)
-            item {
-                SettingsSectionTitle("キャラクター画像")
-                ImageImportSection()
-                HorizontalDivider()
-            }
-
-            // データ統計
-            state.databaseStats?.let { stats ->
+                // フィルタ設定
                 item {
-                    SettingsSectionTitle("データ統計")
-                    SettingsInfoRow("楽曲数", "${stats.songCount}曲")
-                    SettingsInfoRow("アイドル数", "${stats.idolCount}人")
-                    SettingsInfoRow("イベント数", "${stats.eventCount}件")
-                    SettingsInfoRow("公演数", "${stats.showCount}公演")
-                    HorizontalDivider()
-                }
-            }
-
-            // クレジット
-            item {
-                SettingsSectionTitle("クレジット")
-                CreditText("本アプリは株式会社バンダイナムコエンターテインメント様とは一切関係のない非公式ファンメイドアプリです。")
-                CreditText("アイドルのプロフィール(CV/カラー等): im@sparql (https://sparql.crssnky.xyz/imas/)")
-                CreditText("楽曲・ライブ等のデータ参照元: アイマスDB (https://imas-db.jp/)")
-                CreditText("楽曲・ライブセトリのデータ参照元: music765plus (https://music765plus.com/)")
-                CreditText("アイドルのイメージカラー: imas-palette (https://github.com/arrow2nd/imas-palette)")
-                CreditText("※各情報源のデータは独自に集計・整形して利用しています")
-                val version = try {
-                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                } catch (_: PackageManager.NameNotFoundException) {
-                    null
-                }
-                version?.let { SettingsInfoRow("アプリバージョン", it) }
-                HorizontalDivider()
-            }
-
-            // アプリ情報
-            item {
-                SettingsSectionTitle("アプリ情報")
-                SettingsNavRow("使い方") { infoScreen = SettingsInfoScreen.HELP }
-                SettingsNavRow("お知らせ") { infoScreen = SettingsInfoScreen.INBOX }
-                SettingsNavRow("プライバシーポリシー") { infoScreen = SettingsInfoScreen.PRIVACY }
-                SettingsNavRow("利用規約") { infoScreen = SettingsInfoScreen.TERMS }
-                SettingsNavRow("サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
-                SettingsNavRow("オープンソースライセンス") { infoScreen = SettingsInfoScreen.LICENSES }
-                SettingsNavRow("開発をサポートする") {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/fugaapp")))
-                }
-                SettingsNavRow("アプリを評価する") {
-                    val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")).apply {
-                        setPackage("com.android.vending")
-                    }
-                    try {
-                        context.startActivity(marketIntent)
-                    } catch (_: Exception) {
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")
-                            )
+                    ImasListSection("フィルタ設定") {
+                        DefaultBrandPicker(
+                            brands = state.brands,
+                            selectedBrandId = state.defaultBrandId,
+                            onBrandSelected = { viewModel.setDefaultBrand(it) }
                         )
                     }
                 }
-                HorizontalDivider()
-            }
 
-            // 開発者
-            item {
-                SettingsSectionTitle("開発者")
-                DeveloperSection()
-                HorizontalDivider()
+                // 表示 (文字サイズ・ライブ名の省略)
+                item { ImasListSection("表示") { DisplaySettingsSection() } }
+
+                // 習熟度の段階 (ラベルの好みは人によるので触れるようにする)
+                item {
+                    ImasListSection(
+                        "習熟度",
+                        footer = "下から順に積み上がります。段を減らすと、その段の曲は 1 つ下に移ります (記録は消えません)。" +
+                            "どのラベルも 4 文字以内にしておくと一覧で切れません。"
+                    ) { MasteryScaleSection() }
+                }
+
+                // 披露回収の対象
+                item {
+                    ImasListSection(
+                        "披露回収",
+                        footer = "回収はリアルライブ (ライブ/フェス) の現地参加のみが対象です。" +
+                            "配信でしか観られない方は、配信参加も回収に含められます。"
+                    ) { CollectionSettingsSection() }
+                }
+
+                // テーマ (担当カラー)
+                item {
+                    ImasListSection(
+                        "テーマ",
+                        footer = "ON にすると、選んだ担当のイメージカラーがアプリ全体のアクセントカラーになります。"
+                    ) { OshiThemeSection(viewModel, state) }
+                }
+
+                // 通知
+                item { ImasListSection("通知") { NotificationSection() } }
+
+                // データ
+                item {
+                    ImasListSection("データ") {
+                        ImasValueRow(key = "スキーマバージョン", value = state.schemaVersion)
+                        ImasValueRow(key = "データバージョン", value = state.dataVersion)
+                        DataSyncSection()
+                    }
+                }
+
+                // バックアップ
+                item {
+                    ImasListSection(
+                        "バックアップ",
+                        footer = "機種変更やアプリの再インストール時に、お気に入り・担当・投票履歴を引き継げます"
+                    ) { BackupSection() }
+                }
+
+                // キャラクター画像 (端末ローカル)
+                item {
+                    ImasListSection(
+                        "キャラクター画像",
+                        footer = "「名前 → 画像URL」の JSON を指定すると、アイコン画像をまとめて取り込めます。" +
+                            "画像はこの端末の中だけに保存され、サーバーには送信されません。"
+                    ) { ImageImportSection() }
+                }
+
+                // データ統計
+                state.databaseStats?.let { stats ->
+                    item {
+                        ImasListSection("データ統計") {
+                            ImasValueRow(key = "楽曲数", value = "${stats.songCount}曲")
+                            ImasValueRow(key = "アイドル数", value = "${stats.idolCount}人")
+                            ImasValueRow(key = "イベント数", value = "${stats.eventCount}件")
+                            ImasValueRow(key = "公演数", value = "${stats.showCount}公演")
+                        }
+                    }
+                }
+
+                // クレジット
+                item {
+                    val version = try {
+                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                    } catch (_: PackageManager.NameNotFoundException) {
+                        null
+                    }
+                    ImasListSection("クレジット") {
+                        Column(
+                            Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+                            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                        ) {
+                            CreditText("本アプリは株式会社バンダイナムコエンターテインメント様とは一切関係のない非公式ファンメイドアプリです。")
+                            CreditText("アイドルのプロフィール(CV/カラー等): im@sparql (https://sparql.crssnky.xyz/imas/)")
+                            CreditText("楽曲・ライブ等のデータ参照元: アイマスDB (https://imas-db.jp/)")
+                            CreditText("楽曲・ライブセトリのデータ参照元: music765plus (https://music765plus.com/)")
+                            CreditText("アイドルのイメージカラー: imas-palette (https://github.com/arrow2nd/imas-palette)")
+                            CreditText("※各情報源のデータは独自に集計・整形して利用しています")
+                        }
+                        version?.let { ImasValueRow(key = "アプリバージョン", value = it) }
+                    }
+                }
+
+                // アプリ情報
+                item {
+                    ImasListSection("アプリ情報") {
+                        ImasNavRow(title = "使い方") { infoScreen = SettingsInfoScreen.HELP }
+                        ImasNavRow(title = "お知らせ") { infoScreen = SettingsInfoScreen.INBOX }
+                        ImasNavRow(title = "プライバシーポリシー") { infoScreen = SettingsInfoScreen.PRIVACY }
+                        ImasNavRow(title = "利用規約") { infoScreen = SettingsInfoScreen.TERMS }
+                        ImasNavRow(title = "サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
+                        ImasNavRow(title = "オープンソースライセンス") { infoScreen = SettingsInfoScreen.LICENSES }
+                        ImasNavRow(title = "開発をサポートする", icon = Icons.Filled.Favorite, iconTone = ImasIconTileTone.NEUTRAL) {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/fugaapp")))
+                        }
+                        ImasNavRow(title = "アプリを評価する", icon = Icons.Filled.Star, iconTone = ImasIconTileTone.NEUTRAL) {
+                            val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")).apply {
+                                setPackage("com.android.vending")
+                            }
+                            try {
+                                context.startActivity(marketIntent)
+                            } catch (_: Exception) {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}")
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 開発者
+                item { ImasListSection("開発者", footer = "非公式のファンメイドアプリです。データの誤りや要望は GitHub Issue からお知らせください。") { DeveloperSection() } }
             }
         }
     }
@@ -322,74 +329,27 @@ fun SettingsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DefaultBrandPicker(
     brands: List<com.fugaif.imaslivedb.data.model.Brand>,
     selectedBrandId: String,
     onBrandSelected: (String?) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val allItems = listOf(null to "すべて") + brands.map { it.id to it.shortName }
-    val selectedLabel = brands.find { it.id == selectedBrandId }?.shortName ?: "すべて"
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        OutlinedTextField(
-            value = selectedLabel,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("デフォルトブランド") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            allItems.forEach { (id, label) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    onClick = {
-                        onBrandSelected(id)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsNavRow(label: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+    val selection = selectedBrandId.ifEmpty { null }
+    ImasMenuRow(
+        title = "デフォルトブランド",
+        icon = Icons.Filled.GridView,
+        options = listOf(null) + brands.map { it.id },
+        selection = selection,
+        onSelect = onBrandSelected,
+        label = { id -> id?.let { bid -> brands.firstOrNull { it.id == bid }?.shortName ?: bid } ?: "すべて" }
+    )
 }
 
 /**
  * データ同期の状態表示と手動実行 (iOS `MyPageView.dataSyncSection` と対)。
  *
- * 起動時の同期は増分で、増分では**サーバ側で消えたレコードを落とせない**
+ * 起動時の同期は増分で、増分では**サーバー側で消えたレコードを落とせない**
  * (孤児掃除はフル実行でしか走らない)。表示がおかしくなったときにユーザー自身が
  * 取り直せる口が要る。FAQ の「同期に失敗する」は以前からこの導線を案内していたが、
  * Android には実物が無く行き止まりになっていた。
@@ -401,38 +361,20 @@ private fun DataSyncSection() {
     val state by engine.state.collectAsState()
     val syncing = state is CloudKitSyncEngine.SyncState.Syncing
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text(
-            text = when (val s = state) {
-                is CloudKitSyncEngine.SyncState.Idle -> "待機中"
-                is CloudKitSyncEngine.SyncState.Syncing -> "同期中 (${s.step}/${s.total}) ${s.label}"
-                is CloudKitSyncEngine.SyncState.Completed -> "完了 (${s.fetched}件)"
-                is CloudKitSyncEngine.SyncState.Error -> "失敗: ${s.message}"
-            },
-            fontSize = 13.sp, color = DS.ink2, modifier = Modifier.weight(1f)
-        )
-        if (syncing) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DS.sys)
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        TextButton(onClick = { engine.requestSync() }, enabled = !syncing) {
-            Text("差分更新")
-        }
-        TextButton(onClick = { engine.requestFullSync() }, enabled = !syncing) {
-            Text("全データ同期")
-        }
-    }
-}
-
-@Composable
-private fun SettingsSectionTitle(title: String) {
-    com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader(title = title, tight = true)
+    ImasRow(
+        title = when (val s = state) {
+            is CloudKitSyncEngine.SyncState.Idle -> "待機中"
+            is CloudKitSyncEngine.SyncState.Syncing -> "同期中 (${s.step}/${s.total}) ${s.label}"
+            is CloudKitSyncEngine.SyncState.Completed -> "完了 (${s.fetched}件)"
+            is CloudKitSyncEngine.SyncState.Error -> "失敗: ${s.message}"
+        },
+        titleRole = ImasTextRole.ROW_LABEL,
+        trailing = if (syncing) {
+            ImasRowTrailing.Custom { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DS.sys) }
+        } else ImasRowTrailing.None
+    )
+    ImasActionRow(title = "差分更新", icon = Icons.Filled.CloudSync, isLoading = syncing, onClick = { engine.requestSync() })
+    ImasActionRow(title = "全データ同期", icon = Icons.Filled.CloudSync, isLoading = syncing, onClick = { engine.requestFullSync() })
 }
 
 /**
@@ -450,38 +392,45 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        if (authState.isSignedIn) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    authState.displayName?.takeIf { it.isNotBlank() } ?: "ログイン済み",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                IconButton(onClick = viewModel::startEditingName) {
-                    Icon(Icons.Filled.Edit, contentDescription = "表示名を変更", modifier = Modifier.size(18.dp))
+    if (authState.isSignedIn) {
+        Box(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+            ImasPass(
+                leftImprint = "ACCOUNT",
+                rightImprint = "ログイン中",
+                title = authState.displayName?.takeIf { it.isNotBlank() } ?: "ログイン済み",
+                subtitle = "コミュニティで表示される名前"
+            ) {
+                androidx.compose.material3.IconButton(onClick = viewModel::startEditingName) {
+                    androidx.compose.material3.Icon(Icons.Filled.Edit, contentDescription = "表示名を変更")
                 }
             }
-            OutlinedButton(
-                onClick = viewModel::signOut,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) { Text("ログアウト") }
-            Button(
-                onClick = { showDeleteConfirm = true },
-                enabled = !state.isDeleting,
-                colors = ButtonDefaults.buttonColors(containerColor = DS.danger),
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) { Text(if (state.isDeleting) "削除中..." else "アカウントを削除") }
-        } else {
+        }
+        ImasActionRow(title = "ログアウト", kind = ImasActionRowKind.DESTRUCTIVE, onClick = viewModel::signOut)
+        ImasActionRow(
+            title = if (state.isDeleting) "削除中..." else "アカウントを削除",
+            kind = ImasActionRowKind.DESTRUCTIVE,
+            isLoading = state.isDeleting,
+            onClick = { showDeleteConfirm = true }
+        )
+    } else {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapLoose),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
+        ) {
             Text(
                 "投票 (お題) にはログインが必要です",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = ImasTextRole.NOTE.style,
+                color = ImasTextRole.NOTE.color,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            Button(
+            ImasButton(
+                title = "Googleでログイン",
                 onClick = { scope.launch { authService.signIn(context) } },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) { Text("Googleでログイン") }
+                role = ImasButtonRole.PRIMARY,
+                size = ImasButtonSize.LARGE,
+                fillsWidth = true
+            )
         }
     }
 
@@ -500,7 +449,7 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
                         value = editingName,
                         onValueChange = viewModel::setEditingName,
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(top = DS.Space.gap)
                     )
                 }
             },
@@ -550,28 +499,6 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
     }
 }
 
-@Composable
-private fun SettingsInfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-}
-
 // =============================================================================
 // キャラクター画像の一括インポート (iOS MyPageView.imageImportSection と対)
 // 取り込んだ画像は端末内 (filesDir) にだけ置く。サーバにも CloudKit にも送らない。
@@ -593,66 +520,59 @@ private fun ImageImportSection(viewModel: ImageImportViewModel = viewModel()) {
         if (uri != null) viewModel.saveTemplate(templateTarget, uri)
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            "「名前 → 画像URL」の JSON を指定すると、アイコン画像をまとめて取り込めます。" +
-                "画像はこの端末の中だけに保存され、サーバーには送信されません。",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+    ImageImportTarget.entries.forEach { target ->
+        ImasActionRow(
+            title = "${target.label}画像をインポート",
+            icon = Icons.Filled.PhotoLibrary,
+            isLoading = state.isImporting,
+            onClick = { urlTarget = target; urlText = "" }
         )
-
-        ImageImportTarget.entries.forEach { target ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { urlTarget = target; urlText = "" },
-                    enabled = !state.isImporting,
-                    modifier = Modifier.weight(1f)
-                ) { Text("${target.label}画像をインポート") }
-                TextButton(
-                    onClick = {
-                        templateTarget = target
-                        saveTemplateLauncher.launch(target.templateFileName)
-                    }
-                ) { Text("型紙", fontSize = 13.sp) }
+        ImasActionRow(
+            title = "型紙",
+            icon = Icons.Filled.FileDownload,
+            onClick = {
+                templateTarget = target
+                saveTemplateLauncher.launch(target.templateFileName)
             }
-        }
-
-        if (state.isImporting) {
-            LinearProgressIndicator(
-                progress = { state.progress },
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-            )
-        }
-        if (state.statusMessage.isNotEmpty()) {
-            Text(
-                state.statusMessage, fontSize = 13.sp, color = DS.ink2,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-        // 失敗内訳は「名前が DB に無い」等ユーザーが型紙を直せる情報なので、件数だけでなく中身も出す。
-        if (state.failures.isNotEmpty()) {
-            Column(modifier = Modifier.padding(top = 4.dp)) {
-                Text("失敗内訳 (${state.failures.size} 件)", fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold, color = DS.warning)
-                state.failures.take(MAX_SHOWN_FAILURES).forEach { failure ->
-                    Text("${failure.key}: ${failure.reason}", fontSize = 11.sp, color = DS.ink3)
-                }
-                if (state.failures.size > MAX_SHOWN_FAILURES) {
-                    Text("ほか ${state.failures.size - MAX_SHOWN_FAILURES} 件", fontSize = 11.sp, color = DS.ink3)
-                }
-            }
-        }
-
-        TextButton(
-            onClick = { showClearConfirm = true },
-            enabled = !state.isImporting,
-            modifier = Modifier.padding(top = 4.dp)
-        ) { Text("カスタム画像をすべて削除", color = DS.danger) }
+        )
     }
+
+    if (state.isImporting) {
+        Box(Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { state.progress },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+    if (state.statusMessage.isNotEmpty()) {
+        Box(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight)) {
+            Text(state.statusMessage, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+        }
+    }
+    // 失敗内訳は「名前が DB に無い」等ユーザーが型紙を直せる情報なので、件数だけでなく中身も出す。
+    if (state.failures.isNotEmpty()) {
+        Column(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight)) {
+            Text(
+                "失敗内訳 (${state.failures.size} 件)",
+                style = ImasType.text(12.sp, androidx.compose.ui.text.font.FontWeight.SemiBold),
+                color = DS.warning
+            )
+            state.failures.take(MAX_SHOWN_FAILURES).forEach { failure ->
+                Text("${failure.key}: ${failure.reason}", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+            }
+            if (state.failures.size > MAX_SHOWN_FAILURES) {
+                Text("ほか ${state.failures.size - MAX_SHOWN_FAILURES} 件", style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+            }
+        }
+    }
+
+    ImasActionRow(
+        title = "カスタム画像をすべて削除",
+        kind = ImasActionRowKind.DESTRUCTIVE,
+        isLoading = state.isImporting,
+        onClick = { showClearConfirm = true }
+    )
 
     urlTarget?.let { target ->
         AlertDialog(
@@ -670,7 +590,7 @@ private fun ImageImportSection(viewModel: ImageImportViewModel = viewModel()) {
                         onValueChange = { urlText = it },
                         label = { Text("JSON の URL") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(top = DS.Space.gap)
                     )
                 }
             },
@@ -708,12 +628,7 @@ private const val MAX_SHOWN_FAILURES = 20
 
 @Composable
 private fun CreditText(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
+    Text(text = text, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
 }
 
 /**
@@ -741,91 +656,80 @@ private fun BackupSection(viewModel: BackupViewModel = viewModel()) {
         if (uri != null) viewModel.importFrom(uri, restoreDeviceId)
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            "機種変更やアプリの再インストール時に、お気に入り・担当・投票履歴を引き継げます",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    // 引き継ぎコード発行
+    ImasActionRow(
+        title = if (state.isCreatingCode) "発行中..." else "引き継ぎコードを発行する",
+        icon = Icons.Filled.FileUpload,
+        isLoading = state.isCreatingCode,
+        onClick = { viewModel.createTransferCode() }
+    )
 
-        // 引き継ぎコード発行
-        Button(
-            onClick = { viewModel.createTransferCode() },
-            enabled = !state.isCreatingCode,
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-        ) { Text(if (state.isCreatingCode) "発行中..." else "引き継ぎコードを発行する") }
-
-        state.transferCode?.let { result ->
-            val clipboardManager = remember(context) {
-                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .combinedClickable(
-                        onClick = {},
-                        onLongClick = {
-                            clipboardManager.setPrimaryClip(ClipData.newPlainText("transfer_code", result.code))
-                        }
-                    )
-            ) {
-                Text(
-                    result.code,
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-                Text(
-                    "長押しでコピー・24時間有効・1回のみ使用可能です",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
+    state.transferCode?.let { result ->
+        val clipboardManager = remember(context) {
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        clipboardManager.setPrimaryClip(ClipData.newPlainText("transfer_code", result.code))
+                    }
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+        ) {
+            Text(result.code, style = ImasType.heading(28.sp, androidx.compose.ui.text.font.FontWeight.Bold), color = DS.ink)
+            Text(
+                "長押しでコピー・24時間有効・1回のみ使用可能です",
+                style = ImasTextRole.NOTE.style,
+                color = ImasTextRole.NOTE.color,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    }
 
-        // 引き継ぎコードで復元
+    // 引き継ぎコードで復元
+    Column(Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
         OutlinedTextField(
             value = state.codeInput,
             onValueChange = viewModel::setCodeInput,
             singleLine = true,
             label = { Text("引き継ぎコード") },
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-        )
-        Button(
-            onClick = { viewModel.restoreFromTransferCode(restoreDeviceId) },
-            enabled = !state.isRestoringCode && state.codeInput.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        ) { Text(if (state.isRestoringCode) "復元中..." else "引き継ぎコードで復元する") }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-        // ファイルエクスポート/インポート
-        OutlinedButton(
-            onClick = { exportLauncher.launch("imas-live-backup.json") },
-            enabled = !state.isExporting,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(if (state.isExporting) "書き出し中..." else "ファイルに保存する") }
-        OutlinedButton(
-            onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-            enabled = !state.isImportingFile,
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-        ) { Text(if (state.isImportingFile) "読み込み中..." else "ファイルから復元する") }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-        ) {
-            Checkbox(checked = restoreDeviceId, onCheckedChange = { restoreDeviceId = it })
-            Text(
-                "復元時に端末IDも引き継ぐ (上級者向け・通常はオフ)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        )
+        ImasButton(
+            title = if (state.isRestoringCode) "復元中..." else "引き継ぎコードで復元する",
+            onClick = { viewModel.restoreFromTransferCode(restoreDeviceId) },
+            role = ImasButtonRole.SECONDARY,
+            isLoading = state.isRestoringCode,
+            enabled = !state.isRestoringCode && state.codeInput.isNotBlank(),
+            fillsWidth = true,
+            modifier = Modifier.padding(top = DS.Space.gap)
+        )
     }
+
+    // ファイルエクスポート/インポート
+    ImasActionRow(
+        title = if (state.isExporting) "書き出し中..." else "ファイルに保存する",
+        icon = Icons.Filled.Backup,
+        isLoading = state.isExporting,
+        onClick = { exportLauncher.launch("imas-live-backup.json") }
+    )
+    ImasActionRow(
+        title = if (state.isImportingFile) "読み込み中..." else "ファイルから復元する",
+        icon = Icons.Filled.FileDownload,
+        isLoading = state.isImportingFile,
+        onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
+    )
+
+    ImasToggleRow(
+        title = "復元時に端末IDも引き継ぐ (上級者向け・通常はオフ)",
+        isOn = restoreDeviceId,
+        onCheckedChange = { restoreDeviceId = it }
+    )
 
     state.transferError?.let { message ->
         AlertDialog(
@@ -894,24 +798,25 @@ private fun NotificationSection() {
     }
 
     if (!enabled) {
-        SettingsNavRow("通知を許可する") {
-            // Android 13+ はランタイム権限のダイアログ。ただし 2 回拒否済みだと
-            // ダイアログが出ずに即 denied で返るので、その場合は下の導線に切り替える。
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            } else {
-                // 12 以下に POST_NOTIFICATIONS は無い。切られている = システム設定側なので直接飛ばす。
-                context.startActivity(appNotificationSettingsIntent(context))
+        ImasActionRow(
+            title = "通知を許可する",
+            icon = Icons.Filled.NotificationsActive,
+            onClick = {
+                // Android 13+ はランタイム権限のダイアログ。ただし 2 回拒否済みだと
+                // ダイアログが出ずに即 denied で返るので、その場合は下の導線に切り替える。
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    // 12 以下に POST_NOTIFICATIONS は無い。切られている = システム設定側なので直接飛ばす。
+                    context.startActivity(appNotificationSettingsIntent(context))
+                }
             }
-        }
+        )
         if (permissionDenied) {
-            Text(
-                "通知が拒否されています。システムの通知設定から許可してください。",
-                style = MaterialTheme.typography.bodySmall,
-                color = DS.warning,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            SettingsNavRow("システムの通知設定を開く") {
+            Box(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
+                Text("通知が拒否されています。システムの通知設定から許可してください。", style = ImasTextRole.NOTE.style, color = DS.warning)
+            }
+            ImasNavRow(title = "システムの通知設定を開く") {
                 context.startActivity(appNotificationSettingsIntent(context))
             }
         }
@@ -922,12 +827,7 @@ private fun NotificationSection() {
     NotificationToggleRow("ライブ1週間前", prefs, NotificationCategory.LIVE_WEEK, scope)
     NotificationToggleRow("チケット締切・当落通知", prefs, NotificationCategory.TICKET, scope)
     NotificationToggleRow("月曜が近いことを知らせる (日曜 20:00)", prefs, NotificationCategory.MONDAY, scope)
-    Text(
-        "お気に入りまたは参加マークしたイベントにライブ前・チケット通知を送ります。",
-        style = MaterialTheme.typography.bodySmall,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
+    ImasNote("お気に入りまたは参加マークしたイベントにライブ前・チケット通知を送ります。")
 }
 
 @Composable
@@ -939,32 +839,22 @@ private fun NotificationToggleRow(
 ) {
     val context = LocalContext.current
     var checked by remember(category) { mutableStateOf(prefs.isEnabled(category)) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked,
-            onCheckedChange = { value ->
-                checked = value
-                prefs.setEnabled(category, value)
-                // 設定を変えたら即座に予定表を作り直す (iOS の onChange と同じ)。
-                // OFF にしたときは、予定表を作れなくても予約を消す (OFF にした通知を鳴らさない)。
-                val reason = if (value) {
-                    NotificationScheduler.RescheduleReason.REFRESH
-                } else {
-                    NotificationScheduler.RescheduleReason.SETTING_TURNED_OFF
-                }
-                scope.launch { NotificationScheduler.rescheduleAll(context.applicationContext, reason) }
-            },
-            // システムクロムは無彩 (DS の方針)。色はエンティティ側からしか出さない。
-            colors = SwitchDefaults.colors(checkedTrackColor = DS.sys, checkedThumbColor = DS.onSys)
-        )
-    }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+    ImasToggleRow(
+        title = label,
+        isOn = checked,
+        onCheckedChange = { value ->
+            checked = value
+            prefs.setEnabled(category, value)
+            // 設定を変えたら即座に予定表を作り直す (iOS の onChange と同じ)。
+            // OFF にしたときは、予定表を作れなくても予約を消す (OFF にした通知を鳴らさない)。
+            val reason = if (value) {
+                NotificationScheduler.RescheduleReason.REFRESH
+            } else {
+                NotificationScheduler.RescheduleReason.SETTING_TURNED_OFF
+            }
+            scope.launch { NotificationScheduler.rescheduleAll(context.applicationContext, reason) }
+        }
+    )
 }
 
 /** このアプリの通知設定画面。チャンネル単位の音量・重要度もここから触れる。 */
@@ -993,22 +883,22 @@ private fun AppHeader() {
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapLoose),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
     ) {
         // アダプティブアイコン (XML) なので painterResource ではなく Coil で描く。
         AsyncImage(
             model = com.fugaif.imaslivedb.R.mipmap.ic_launcher,
             contentDescription = null,
-            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DS.rArtwork(56.dp)))
         )
         Column {
-            Text("アイドルライブDB", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+            Text("アイドルライブDB", style = ImasTextRole.CARD_TITLE.style, color = ImasTextRole.CARD_TITLE.color)
             Text(
                 if (versionCode != null) "バージョン $versionName (Build $versionCode)" else "バージョン $versionName",
-                fontSize = 12.sp,
-                color = DS.ink2
+                style = ImasTextRole.META.style,
+                color = ImasTextRole.META.color
             )
         }
     }
@@ -1026,8 +916,11 @@ private val performerNameSample = PerformerRow(
 /** 文字サイズ・歌唱者の名前・ライブ名の省略。どれも変更が即座にアプリ全体へ効く。 */
 @Composable
 private fun DisplaySettingsSection() {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("文字サイズ", style = MaterialTheme.typography.bodyMedium, color = DS.ink)
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
+    ) {
+        Text("文字サイズ", style = ImasTextRole.ROW_LABEL.style, color = ImasTextRole.ROW_LABEL.color)
         ImasSegmented(
             labels = AppPreferences.textScaleLabels,
             // 保存値が選択肢に無い (将来値を足した/減らした) 場合は「中」に倒す。
@@ -1038,21 +931,19 @@ private fun DisplaySettingsSection() {
         )
         // プレビュー: この設定画面の文字自体も倍率が効くので、実データ風の文字で
         // 「一覧がどう見えるか」を確かめられるようにする。
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text("プレビュー", fontSize = 11.sp, color = DS.ink2)
-            Text("Timeless Shooting Star", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Text("ストレイライト ・ 全員", fontSize = 11.sp, color = DS.ink2)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight), modifier = Modifier.padding(top = DS.Space.gapTight)) {
+            Text("プレビュー", style = ImasTextRole.ROW_SUBTITLE.style, color = ImasTextRole.ROW_SUBTITLE.color)
+            Text("Timeless Shooting Star", style = ImasTextRole.ROW_TITLE.style, color = ImasTextRole.ROW_TITLE.color)
+            Text("ストレイライト ・ 全員", style = ImasTextRole.ROW_SUBTITLE.style, color = ImasTextRole.ROW_SUBTITLE.color)
         }
-        Text(
-            "OS のフォントサイズ設定に掛け合わせた倍率です。",
-            style = MaterialTheme.typography.bodySmall,
-            color = DS.ink2
-        )
+        Text("OS のフォントサイズ設定に掛け合わせた倍率です。", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
     }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("セトリの歌唱者", style = MaterialTheme.typography.bodyMedium, color = DS.ink)
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
+    ) {
+        Text("セトリの歌唱者", style = ImasTextRole.ROW_LABEL.style, color = ImasTextRole.ROW_LABEL.color)
         // 選択肢はコアが出す (順も文言もアプリ 1 本)。
         val options = PerformerNamePref.options
         ImasSegmented(
@@ -1065,41 +956,34 @@ private fun DisplaySettingsSection() {
         // 設定値で見え方が変わるサンプル。声優ライブの 1 人分をそのまま出す。
         Text(
             performerNameSample.displayName(AppPreferences.performerName, isCharacterLive = false).joined(),
-            style = MaterialTheme.typography.bodySmall,
-            color = DS.ink2
+            style = ImasTextRole.META.style,
+            color = ImasTextRole.META.color
         )
     }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
-    SettingsToggleRow(
-        label = "ライブ名を省略表示",
-        checked = AppPreferences.abbreviateEventNames,
+    ImasToggleRow(
+        title = "ライブ名を省略表示",
+        isOn = AppPreferences.abbreviateEventNames,
         onCheckedChange = { AppPreferences.setAbbreviateEventNames(it) }
     )
     // 設定値で見え方が変わるサンプル。ON なら作品名プレフィックスを省く。
-    Text(
-        AppPreferences.eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"),
-        style = MaterialTheme.typography.bodySmall,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-    )
+    Box(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight)) {
+        Text(
+            AppPreferences.eventDisplayName("THE IDOLM@STER SHINY COLORS 3rdLIVE TOUR"),
+            style = ImasTextRole.META.style,
+            color = ImasTextRole.META.color
+        )
+    }
 }
 
 /** 回収の対象に配信参加を含めるか。切り替えると次の集計から新しい条件で数え直される。 */
 @Composable
 private fun CollectionSettingsSection() {
     val context = LocalContext.current
-    SettingsToggleRow(
-        label = "配信参加も回収に含める",
-        checked = AppPreferences.includeStreamInCollection,
+    ImasToggleRow(
+        title = "配信参加も回収に含める",
+        isOn = AppPreferences.includeStreamInCollection,
         onCheckedChange = { AppPreferences.setIncludeStreamInCollection(context, it) }
-    )
-    Text(
-        "回収はリアルライブ (ライブ/フェス) の現地参加のみが対象です。" +
-            "配信でしか観られない方は、配信参加も回収に含められます。",
-        style = MaterialTheme.typography.bodySmall,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
 
@@ -1107,9 +991,10 @@ private fun CollectionSettingsSection() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun OshiThemeSection(viewModel: SettingsViewModel, state: SettingsUiState) {
-    SettingsToggleRow(
-        label = "担当の色をテーマに使う",
-        checked = AppPreferences.useOshiColor,
+    ImasToggleRow(
+        title = "担当の色をテーマに使う",
+        icon = Icons.Filled.Palette,
+        isOn = AppPreferences.useOshiColor,
         onCheckedChange = {
             AppPreferences.setUseOshiColor(it)
             // ON にした直後は担当が 1 人も選ばれていないことがある。解決はコアに任せる。
@@ -1119,103 +1004,32 @@ private fun OshiThemeSection(viewModel: SettingsViewModel, state: SettingsUiStat
 
     if (AppPreferences.useOshiColor) {
         if (state.pickIdols.isEmpty()) {
-            Text(
-                "アイドル詳細で担当 (推し) に設定すると、ここで色を選べます。",
-                style = MaterialTheme.typography.bodySmall,
-                color = DS.ink2,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            ImasNote("アイドル詳細で担当 (推し) に設定すると、ここで色を選べます。")
         } else {
-            var expanded by remember { mutableStateOf(false) }
             val selected = state.pickIdols.find { it.id == AppPreferences.oshiIdolId }
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                OutlinedTextField(
-                    value = selected?.name ?: "未選択",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("テーマにする担当") },
-                    leadingIcon = {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    selected?.color?.let(::hexToColor) ?: DS.ink3
-                                )
-                        )
-                    },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
-                )
-                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    state.pickIdols.forEach { idol ->
-                        DropdownMenuItem(
-                            text = { Text(idol.name) },
-                            leadingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(idol.color?.let(::hexToColor) ?: DS.ink3)
-                                )
-                            },
-                            onClick = {
-                                AppPreferences.setOshiIdolId(idol.id)
-                                viewModel.syncOshiTheme()
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
+            ImasMenuRow(
+                title = "テーマにする担当",
+                options = state.pickIdols,
+                selection = selected ?: state.pickIdols.first(),
+                onSelect = {
+                    AppPreferences.setOshiIdolId(it.id)
+                    viewModel.syncOshiTheme()
+                },
+                label = { it.name }
+            )
         }
     }
-    Text(
-        "ON にすると、選んだ担当のイメージカラーがアプリ全体のアクセントカラーになります。",
-        style = MaterialTheme.typography.bodySmall,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
 }
 
 /** 開発者と、その公開リポジトリへの導線。 */
 @Composable
 private fun DeveloperSection() {
     val context = LocalContext.current
-    SettingsInfoRow("開発", "fuga-if")
-    SettingsNavRow("GitHub (fuga-if)") {
+    ImasValueRow(key = "開発", value = "fuga-if")
+    ImasNavRow(title = "GitHub (fuga-if)") {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/fuga-if")))
     }
-    Text(
-        "非公式のファンメイドアプリです。データの誤りや要望は GitHub Issue からお知らせください。",
-        style = MaterialTheme.typography.bodySmall,
-        color = DS.ink2,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-    )
 }
-
-/** ラベル + スイッチの 1 行。通知セクションの行と見た目を揃える。 */
-@Composable
-private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = DS.ink, modifier = Modifier.weight(1f))
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            // システムクロムは無彩 (DS の方針)。色はエンティティ側からしか出さない。
-            colors = SwitchDefaults.colors(checkedTrackColor = DS.sys, checkedThumbColor = DS.onSys)
-        )
-    }
-    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-}
-
 
 /**
  * 習熟度の段階。段数とラベルを決める。
@@ -1229,10 +1043,10 @@ private fun MasteryScaleSection() {
     var labels by remember { mutableStateOf(AppPreferences.masteryScale.labels) }
 
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             MasteryScale.presets.forEach { (name, preset) ->
                 ImasFilterChip(name, labels == preset.labels, {
                     labels = preset.labels
@@ -1243,12 +1057,13 @@ private fun MasteryScaleSection() {
         labels.forEachIndexed { index, label ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap)
             ) {
                 Box(
-                    Modifier.size(14.dp).clip(RoundedCornerShape(4.dp))
-                        .background(MasteryPalette.fill((index + 1).toUByte(),
-                                                        labels.size.toUByte()))
+                    Modifier.size(14.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(DS.rTag))
+                        .background(
+                            MasteryPalette.fill((index + 1).toUByte(), labels.size.toUByte())
+                        )
                 )
                 OutlinedTextField(
                     value = label,
@@ -1268,11 +1083,11 @@ private fun MasteryScaleSection() {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             if (labels.size < 8) {
                 TextButton(onClick = { labels = labels + "" }) { Text("段を追加") }
             }
-            Spacer(Modifier.weight(1f))
+            Box(Modifier.weight(1f))
             TextButton(
                 onClick = { AppPreferences.setMasteryLabels(labels) },
                 enabled = labels.all { it.isNotBlank() } &&
@@ -1280,11 +1095,5 @@ private fun MasteryScaleSection() {
                     labels != AppPreferences.masteryScale.labels,
             ) { Text("この段階にする") }
         }
-        Text(
-            "下から順に積み上がります。段を減らすと、その段の曲は 1 つ下に移ります (記録は消えません)。" +
-                "どのラベルも 4 文字以内にしておくと一覧で切れません。",
-            style = MaterialTheme.typography.bodySmall,
-            color = DS.ink2
-        )
     }
 }
