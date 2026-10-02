@@ -30,7 +30,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
@@ -43,6 +42,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.games.QuizSetupBrandSection
+import com.fugaif.imaslivedb.ui.games.QuizSetupInsufficientBanner
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -164,26 +165,10 @@ fun IntroDonSetupScreen(
                 ModeSection(state.mode, viewModel::setMode)
             }
 
-            ImasSection(
-                title = "出題範囲",
-                count = "ブランドで絞る",
-                style = ImasSectionHeaderStyle.SMALL,
-                footer = "複数選択可 · 空=全ブランド対象"
-            ) {
-                ImasBrandPicker(
-                    brands = state.brands,
-                    selection = state.selectedBrandIds,
-                    onSelectionChange = { next ->
-                        // ViewModel は toggle/clear の粒度しか持たないので、差分を見て既存の口を呼ぶ。
-                        if (next.isEmpty()) {
-                            viewModel.clearBrands()
-                        } else {
-                            (next - state.selectedBrandIds).forEach { viewModel.toggleBrand(it) }
-                            (state.selectedBrandIds - next).forEach { viewModel.toggleBrand(it) }
-                        }
-                    }
-                )
-            }
+            QuizSetupBrandSection(
+                brands = state.brands, selectedBrandIds = state.selectedBrandIds,
+                onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
+            )
 
             when (state.mode) {
                 IntroDonMode.NORMAL, IntroDonMode.PARTY -> ImasSection(title = "問題数", style = ImasSectionHeaderStyle.SMALL) {
@@ -208,15 +193,12 @@ fun IntroDonSetupScreen(
             ImasCandidateCount(
                 count = state.estimatedCount,
                 label = "出題候補",
-                minimum = 4,
                 isLoading = state.isEstimating,
-                loadingText = "候補を計算中…",
-                note = if (!state.isEstimating && state.estimatedCount < 4) {
-                    "出題するにはプレビュー付きの曲が最低4曲必要です。ブランドの選択を増やしてください。"
-                } else {
-                    null
-                }
+                loadingText = "候補を計算中…"
             )
+            if (!state.isEstimating && state.estimatedCount < 4) {
+                QuizSetupInsufficientBanner("出題するにはプレビュー付きの曲が最低 4 曲必要です。ブランドの選択を増やしてください。")
+            }
 
             ImasButton(
                 title = "スタート",
@@ -277,7 +259,10 @@ private fun DurationSection(selectedMs: Long, onSelect: (Long) -> Unit) {
             choices = durations.map { (label, ms) -> ImasChoice(value = ms, title = label, subtitle = if (ms < 1000) "超イントロ" else "再生") },
             selection = selectedMs,
             onSelect = onSelect,
-            style = ImasChoiceCardsStyle.NUMERAL
+            style = ImasChoiceCardsStyle.NUMERAL,
+            // スライダーが同じ selectedMs を連続して動かすため、既定の「値が変わるたび」の
+            // 触覚だと動かすたびに鳴ってしまう。札を押した時だけ鳴らす。
+            hapticsOnExternalChange = false
         )
 
         // 細かく秒数を決めるスライダー (0.2〜10秒)。超イントロ (1秒未満) も自由に。

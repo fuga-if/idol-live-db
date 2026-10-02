@@ -554,6 +554,10 @@ data class ImasChoice<T>(
 /**
  * 大きな札から 1 つ選ぶ (iOS `ImasChoiceCards`。参加のしかた・遊び方の種類)。
  * 選んだ札は紙の面に墨の縁で囲み、右上に ✓。
+ *
+ * @param hapticsOnExternalChange 既定は true (選択値が変わるたびに触覚、札を押した時も含む)。
+ * スライダーなど部品の外から [selection] が連続して変わる画面では false を渡し、
+ * 札を押した時だけ触覚を鳴らす (値が動くたびに鳴るのを防ぐ)。
  */
 @Composable
 fun <T> ImasChoiceCards(
@@ -561,19 +565,26 @@ fun <T> ImasChoiceCards(
     selection: T,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
-    style: ImasChoiceCardsStyle = ImasChoiceCardsStyle.GRID
+    style: ImasChoiceCardsStyle = ImasChoiceCardsStyle.GRID,
+    hapticsOnExternalChange: Boolean = true
 ) {
     val haptics = rememberImasHaptics()
-    var last by remember { mutableStateOf(selection) }
-    LaunchedEffect(selection) {
-        if (selection != last) {
-            last = selection
-            haptics.selection()
+    if (hapticsOnExternalChange) {
+        var last by remember { mutableStateOf(selection) }
+        LaunchedEffect(selection) {
+            if (selection != last) {
+                last = selection
+                haptics.selection()
+            }
         }
     }
     val density = LocalDensity.current
     val height = with(density) { 76.sp.toDp() }
     val rowHeight = with(density) { 56.sp.toDp() }
+    val onCardSelect: (T) -> Unit = { value ->
+        if (!hapticsOnExternalChange) haptics.selection()
+        onSelect(value)
+    }
     when (style) {
         ImasChoiceCardsStyle.GRID, ImasChoiceCardsStyle.NUMERAL -> Row(
             modifier.fillMaxWidth(),
@@ -581,12 +592,12 @@ fun <T> ImasChoiceCards(
             verticalAlignment = Alignment.CenterVertically
         ) {
             choices.forEach { choice ->
-                ChoiceCard(choice, choice.value == selection, style, height, Modifier.weight(1f)) { onSelect(choice.value) }
+                ChoiceCard(choice, choice.value == selection, style, height, Modifier.weight(1f)) { onCardSelect(choice.value) }
             }
         }
         ImasChoiceCardsStyle.ROW -> Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             choices.forEach { choice ->
-                ChoiceCard(choice, choice.value == selection, style, rowHeight, Modifier.fillMaxWidth()) { onSelect(choice.value) }
+                ChoiceCard(choice, choice.value == selection, style, rowHeight, Modifier.fillMaxWidth()) { onCardSelect(choice.value) }
             }
         }
     }
