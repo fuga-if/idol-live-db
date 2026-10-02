@@ -213,6 +213,8 @@ struct ImasRow<Detail: View>: View {
         .font(titleRole.font)
         .foregroundStyle(emphasis == .dimmed ? DS.ink3 : DS.ink)
         .lineLimit(titleLineLimit)
+        // Button の label の中では折り返した行が中央に寄るので、左寄せを明示する。
+        .multilineTextAlignment(.leading)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityLabel(titleAccessibilityLabel ?? title)
 
