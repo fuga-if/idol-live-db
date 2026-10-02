@@ -154,7 +154,7 @@ private fun OshiConfigureScreen(
 
                 candidates.isEmpty() -> ImasEmptyState(
                     kind = ImasEmptyStateKind.EMPTY,
-                    title = "表示できるアイドルがいません",
+                    title = "表示できるアイドルがいません。",
                     message = "アプリのアイドル詳細から画像を取り込むと、ここに並びます。",
                     modifier = Modifier.weight(1f)
                 )

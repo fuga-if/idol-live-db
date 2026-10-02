@@ -18,6 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -162,7 +165,8 @@ fun SetlistCommentComposeSheet(
 private fun CommentField(text: String, onTextChange: (String) -> Unit, prompt: String) {
     Box {
         if (text.isEmpty()) {
-            Text(prompt, style = ImasTextRole.BODY.style, color = DS.ink3)
+            // 読み上げは欄の名前として読ませる (誘いの文を欄と切り離された別の文として読ませない)。
+            Text(prompt, style = ImasTextRole.BODY.style, color = DS.ink3, modifier = Modifier.clearAndSetSemantics {})
         }
         BasicTextField(
             value = text,
@@ -171,7 +175,7 @@ private fun CommentField(text: String, onTextChange: (String) -> Unit, prompt: S
             cursorBrush = SolidColor(DS.ink),
             minLines = 3,
             maxLines = 6,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = prompt }
         )
     }
 }

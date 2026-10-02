@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -132,6 +133,7 @@ private fun ChromeField(
     val style: TextStyle = ImasType.text(15.sp)
     val ink = DS.ink
     val iconSize = with(LocalDensity.current) { 15.sp.toDp() }
+    val keyboard = LocalSoftwareKeyboardController.current
     Row(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
@@ -151,7 +153,8 @@ private fun ChromeField(
             textStyle = style.copy(color = ink),
             singleLine = true,
             keyboardOptions = KeyboardOptions(autoCorrectEnabled = false, imeAction = imeAction),
-            keyboardActions = KeyboardActions(onAny = { onSubmit() }),
+            // 確定したらキーボードを閉じる (検索キーを押しても閉じないと、一覧が隠れたままになる)。
+            keyboardActions = KeyboardActions(onAny = { onSubmit(); keyboard?.hide() }),
             cursorBrush = SolidColor(ink),
             decorationBox = { inner ->
                 Box(contentAlignment = Alignment.CenterStart) {
