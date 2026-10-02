@@ -98,6 +98,9 @@ import uniffi.imas_core.IntroScore
 import uniffi.imas_core.introQuestionCount
 import uniffi.imas_core.introScoreAfterAnswer
 import uniffi.imas_core.shareIntroDonText
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import com.fugaif.imaslivedb.ui.designsystem.imasRowTopDivider
 
 // =============================================================================
 // イントロドン本編 (ノーマル/ラッシュ/全曲チャレンジ)。iOS IntroGameView + IntroGameSession
@@ -399,7 +402,8 @@ fun IntroDonGameScreen(
     BottomBarVisibility.Hide()
     ImasDarkNavigationBar()
     ImasAlwaysDark {
-        Box(Modifier.fillMaxSize().background(QS.bg)) {
+        // 地は画面の端まで敷き、中身はシステムバー (上のステータスバー・下のナビゲーションバー) を避ける。
+        Box(Modifier.fillMaxSize().background(QS.bg).systemBarsPadding()) {
             Column(Modifier.fillMaxSize()) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap),
@@ -642,7 +646,11 @@ private fun RevealedBody(state: IntroDonGameUiState, viewModel: IntroDonGameView
             )
         }
 
-        ImasArtwork(title = q.title, brand = q.brandId, imageUrl = q.artworkUrl, size = 72.dp)
+        // 曲名はすぐ下の見出しが読むので、ジャケは読ませない (二重に読まれる)。
+        ImasArtwork(
+            title = q.title, brand = q.brandId, imageUrl = q.artworkUrl, size = 72.dp,
+            modifier = Modifier.clearAndSetSemantics { }
+        )
 
         ImasText(q.title, ImasTextRole.HERO_TITLE, textAlign = TextAlign.Center)
 
@@ -786,7 +794,11 @@ private fun BestBanner(text: String, tag: String) {
 @Composable
 private fun RecordRow(index: Int, record: IntroDonAnswerRecord) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+        modifier = Modifier
+            .fillMaxWidth()
+            // 2 行目から上に区切り線 (カードの中の行と同じ。位置は ImasCardList が渡す)。
+            .imasRowTopDivider(DS.Space.rowH)
+            .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
     ) {

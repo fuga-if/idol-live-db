@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uniffi.imas_core.IntroSessionKind
 import uniffi.imas_core.introQuestionCount
+import androidx.compose.foundation.layout.systemBarsPadding
 
 // =============================================================================
 // パーティ対戦 (1台2人・分割画面・早押し)。iOS IntroPartySession + IntroPartyGameView の移植。
@@ -269,7 +270,8 @@ fun IntroDonPartyScreen(
     BottomBarVisibility.Hide()
     ImasDarkNavigationBar()
     ImasAlwaysDark {
-        Box(Modifier.fillMaxSize().background(QS.bg)) {
+        // 地は画面の端まで敷き、中身はシステムバー (上のステータスバー・下のナビゲーションバー) を避ける。
+        Box(Modifier.fillMaxSize().background(QS.bg).systemBarsPadding()) {
             when (state.phase) {
                 PartyPhase.LOADING -> LoadingOverlay(state.errorMessage, onExit)
                 PartyPhase.FINISHED -> FinishedOverlay(state, onReplay = { viewModel.generateQuestions() }, onExit = onExit)
