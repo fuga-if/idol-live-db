@@ -124,7 +124,13 @@ fun PollsScreen(
             ) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     if (!authState.isSignedIn) {
-                        item { ImasSignInPrompt(message = "投票にはログインが必要です", modifier = Modifier.padding(DS.Space.screen)) }
+                        item {
+                            ImasSignInPrompt(
+                                message = "投票にはログインが必要です",
+                                buttonTitle = "Googleでログイン",
+                                modifier = Modifier.padding(DS.Space.screen)
+                            )
+                        }
                     }
                     itemsIndexed(state.cards, key = { _, c -> c.poll.id }) { idx, card ->
                         PollRow(
@@ -159,6 +165,8 @@ private fun PollRow(
     val poll = card.poll
     ImasRow(
         title = poll.title,
+        // 前は行数制限なし (利用者が付けたお題名を途中で切らない)。
+        titleLineLimit = Int.MAX_VALUE,
         modifier = Modifier.fillMaxWidth().imasRowPress(onClick = onClick),
         position = position,
         trailing = ImasRowTrailing.Custom {

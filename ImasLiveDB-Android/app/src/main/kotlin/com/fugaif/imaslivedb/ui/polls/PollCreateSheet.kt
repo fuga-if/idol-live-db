@@ -128,7 +128,8 @@ fun PollCreateSheet(
                         imprint = "TITLE",
                         prompt = "例: 夏に聴きたい曲は？",
                         limit = inputLimitMax(InputField.POLL_TITLE).toInt(),
-                        count = inputLength(InputField.POLL_TITLE, title).toInt()
+                        count = inputLength(InputField.POLL_TITLE, title).toInt(),
+                        countUnit = "文字"
                     )
                     ImasFormTextArea(
                         label = "説明(任意)",
@@ -137,7 +138,8 @@ fun PollCreateSheet(
                         prompt = "補足やルールがあれば",
                         imprint = "DESCRIPTION",
                         limit = inputLimitMax(InputField.POLL_DESCRIPTION).toInt(),
-                        count = inputLength(InputField.POLL_DESCRIPTION, description).toInt()
+                        count = inputLength(InputField.POLL_DESCRIPTION, description).toInt(),
+                        countUnit = "文字"
                     )
                 }
 
@@ -162,7 +164,7 @@ fun PollCreateSheet(
                             ImasNote("全${targetNoun}から自由に投票できます。")
 
                         CommunityApi.PollCandidateScope.BRAND -> Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                            ImasNote("チェックしたブランドの${targetNoun}だけが候補になります。複数選択可。")
+                            ImasNote("選んだブランドの${targetNoun}だけが候補になります。複数選択可。")
                             ImasBrandPicker(
                                 brands = state.brands,
                                 selection = selectedBrandIds,
@@ -170,7 +172,7 @@ fun PollCreateSheet(
                                 includesAll = false
                             )
                             if (selectedBrandIds.isEmpty()) {
-                                ImasNote("1つ以上選択してください")
+                                ImasNote("1つ以上選択してください", color = DS.danger)
                             }
                         }
 

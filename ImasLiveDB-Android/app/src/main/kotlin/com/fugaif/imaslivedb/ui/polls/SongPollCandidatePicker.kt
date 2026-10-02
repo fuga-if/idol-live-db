@@ -187,6 +187,7 @@ fun SongPollCandidatePicker(
                     title = "作詞・作曲・編曲者",
                     text = songwriter,
                     onTextChange = { songwriter = it },
+                    prompt = "作詞・作曲・編曲者で検索",
                     modifier = Modifier.padding(horizontal = DS.Space.screen)
                 )
                 Row(

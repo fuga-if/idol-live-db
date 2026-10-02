@@ -137,7 +137,7 @@ fun PollDetailScreen(
                 Text("${detail.totalVotes}票 ・ ${detail.entries.size}件の候補", style = ImasTextRole.META.style, color = DS.ink3)
 
                 if (!authState.isSignedIn) {
-                    ImasSignInPrompt(message = "投票にはログインが必要です")
+                    ImasSignInPrompt(message = "投票にはログインが必要です", buttonTitle = "Googleでログイン")
                 }
 
                 if (detail.entries.isEmpty()) {
