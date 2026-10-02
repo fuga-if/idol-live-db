@@ -71,7 +71,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick as semanticsOnClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -835,7 +839,14 @@ private fun StatTile(label: String, modifier: Modifier, value: @Composable () ->
     }
 }
 
-/** 生成りの大きなボタン (次の問題へ / もう一度)。 */
+/**
+ * 生成りの大きなボタン (次の問題へ / もう一度)。
+ *
+ * @param compact 全幅でない小さい版 (iOS `QuizStagePrimaryButton(compact: true)`)。
+ *   QUIZ STAGE チケットの「再開」など、ステージ色のまま中身の幅だけ取りたい所で使う。
+ * @param accessibilityLabel 読み上げの文言 (省略時は [title])。「再開」のように文字だけでは
+ *   何を再開するか分からない所で、呼び出し側がより具体的な文言を渡せる。
+ */
 @Composable
 fun QuizStagePrimaryButton(
     title: String,
@@ -843,22 +854,33 @@ fun QuizStagePrimaryButton(
     icon: ImageVector? = null,
     trailingArrow: Boolean = false,
     enabled: Boolean = true,
+    compact: Boolean = false,
+    accessibilityLabel: String? = null,
     onClick: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp, Alignment.CenterHorizontally),
         modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 58.dp)
+            .then(if (compact) Modifier else Modifier.fillMaxWidth())
+            .heightIn(min = if (compact) 44.dp else 58.dp)
             .alpha(if (enabled) 1f else 0.45f)
             .quizPress(enabled = enabled, onClick = onClick)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(if (compact) 14.dp else 18.dp))
             .background(QS.ink)
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = if (compact) 20.dp else 12.dp)
+            .clearAndSetSemantics {
+                contentDescription = accessibilityLabel ?: title
+                role = Role.Button
+                if (enabled) semanticsOnClick(label = null) { onClick(); true }
+            }
     ) {
         icon?.let { Icon(it, contentDescription = null, tint = QS.bg, modifier = Modifier.size(18.dp)) }
-        Text(title, style = QS.text(18, FontWeight.Black), color = QS.bg, maxLines = 1)
+        Text(
+            title,
+            style = if (compact) QS.text(15, FontWeight.Bold) else QS.text(18, FontWeight.Black),
+            color = QS.bg, maxLines = 1
+        )
         if (trailingArrow) {
             Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = QS.bg, modifier = Modifier.size(18.dp))
         }

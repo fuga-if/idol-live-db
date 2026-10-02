@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -324,21 +323,13 @@ private fun ResumeRow(s: QuizSuspended, onResume: (GameKind) -> Unit) {
                 QS.text(15, FontWeight.Bold), QS.ink, minScale = 0.8f
             )
         }
-        // 「再開」ボタン: ステージ固定色のカプセル。iOS `QuizStagePrimaryButton(compact: true)` に相当するが
-        // Android の QuizStagePrimaryButton (QuizStage.kt、担当外) はいつも全幅専用のため、
-        // チケット内の小さい丸ボタンはここだけ手書きのまま残す (詳細はチームへの報告を参照)。
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .height(DS.Size.touch)
-                .clip(CircleShape)
-                .background(QS.ink)
-                .quizPress { onResume(s.kind) }
-                .padding(horizontal = DS.sp6)
-                .semantics { contentDescription = "$title を再開" }
-        ) {
-            Text("再開", style = QS.text(15, FontWeight.Bold), color = QS.bg)
-        }
+        // 「再開」ボタン: ステージ固定色の小さい版 (iOS `QuizStagePrimaryButton(compact: true)` と同じ部品)。
+        QuizStagePrimaryButton(
+            title = "再開",
+            compact = true,
+            accessibilityLabel = "$title を再開",
+            onClick = { onResume(s.kind) }
+        )
     }
 }
 
