@@ -1,23 +1,15 @@
 package com.fugaif.imaslivedb.ui.events
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -29,19 +21,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Venue
 import com.fugaif.imaslivedb.data.model.VenueDirectory
-import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.components.NameFilterField
-import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasListBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import uniffi.imas_core.VenueAreaEntry
 import uniffi.imas_core.groupVenuesByArea
 
 /**
- * 会場を 1 つ選ぶピッカー (iOS `VenuePickerView` の移植)。
+ * 会場を 1 つ選ぶピッカー (iOS `VenuePickerView` の移植)。見た目は DesignSystem の
+ * `ImasSelectableRow` (選択の印) + `ImasSectionHeader` (都道府県の見出し)。
  *
  * 会場は **ID で選ぶ**。名前で持つと改名 (武蔵野の森総合スポーツプラザ →
  * 京王アリーナTOKYO) や表記揺れで絞り込みが外れてしまうため。
@@ -72,59 +69,62 @@ fun VenuePickerSheet(
             .map { group -> group.label to group.indices.map { filtered[it.toInt()] } }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
-            Text(
-                "会場",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                color = DS.ink,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-            NameFilterField(
-                prompt = "会場を絞り込み",
-                value = query,
-                onValueChange = { query = it }
-            )
-            HorizontalDivider(color = DS.sep)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
+        ImasListBackdrop(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
+            Column(Modifier.fillMaxWidth()) {
+                Text(
+                    "会場",
+                    style = ImasType.heading(17.sp, FontWeight.Bold),
+                    color = DS.ink,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                )
+                NameFilterField(
+                    prompt = "会場を絞り込み",
+                    value = query,
+                    onValueChange = { query = it }
+                )
 
-            if (filtered.isEmpty()) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                    ImasEmptyState(
-                        icon = Icons.Filled.Search,
-                        title = "見つかりません",
-                        message = "「$query」に一致する会場がありません"
-                    )
-                }
-                return@Column
-            }
-
-            LazyColumn(Modifier.fillMaxWidth()) {
-                item {
-                    VenueRow(label = "選択なし", subtitle = null, isSelected = selected == null, muted = true) {
-                        onSelect(null)
-                        onDismiss()
-                    }
-                }
-                grouped.forEach { (area, venues) ->
-                    item(key = "h_$area") {
-                        Text(
-                            area,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = DS.ink2,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                if (filtered.isEmpty()) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                        ImasEmptyState(
+                            icon = Icons.Filled.Search,
+                            title = "見つかりません",
+                            message = "「$query」に一致する会場がありません"
                         )
                     }
-                    items(venues, key = { it.id }) { venue ->
-                        VenueRow(
-                            label = venue.name,
-                            subtitle = venueSubtitle(venue),
-                            isSelected = selected == venue.id,
-                            muted = false
-                        ) {
-                            onSelect(venue.id)
-                            onDismiss()
+                    return@Column
+                }
+
+                LazyColumn(Modifier.fillMaxWidth()) {
+                    item {
+                        ImasSelectableRow(
+                            title = "選択なし",
+                            isSelected = selected == null,
+                            isSingle = true,
+                            position = ImasRowPosition.FIRST,
+                            onClick = {
+                                onSelect(null)
+                                onDismiss()
+                            }
+                        )
+                    }
+                    grouped.forEach { (area, venues) ->
+                        item(key = "h_$area") {
+                            ImasSectionHeader(title = area, tight = true)
+                        }
+                        itemsIndexed(venues, key = { _, v -> v.id }) { index, venue ->
+                            ImasSelectableRow(
+                                title = venue.name,
+                                subtitle = venueSubtitle(venue),
+                                isSelected = selected == venue.id,
+                                isSingle = true,
+                                position = if (index == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING,
+                                onClick = {
+                                    onSelect(venue.id)
+                                    onDismiss()
+                                }
+                            )
                         }
                     }
                 }
@@ -140,34 +140,4 @@ private fun venueSubtitle(venue: Venue): String? {
         venue.aliasList.firstOrNull()?.let { add("旧: $it") }
     }
     return parts.joinToString(" ・ ").ifEmpty { null }
-}
-
-@Composable
-private fun VenueRow(
-    label: String,
-    subtitle: String?,
-    isSelected: Boolean,
-    muted: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DS.surface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(label, fontSize = 15.sp, color = if (muted) DS.ink2 else DS.ink)
-            if (subtitle != null) {
-                Text(subtitle, fontSize = 12.sp, color = DS.ink3, maxLines = 1)
-            }
-        }
-        if (isSelected) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = DS.sys, modifier = Modifier.size(18.dp))
-        }
-    }
-    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
 }
