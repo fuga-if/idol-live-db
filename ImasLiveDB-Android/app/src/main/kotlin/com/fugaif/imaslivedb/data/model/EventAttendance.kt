@@ -28,15 +28,27 @@ data class EventAttendance(
 
     val isFullAttendance: Boolean = brandIdols.isNotEmpty() && absentIdols.isEmpty()
 
-    data class Group(val id: String, val label: String, val idols: List<Idol>)
+    data class Group(
+        val id: String,
+        val label: String,
+        val idols: List<Idol>,
+        /** 日付ごとの塊ならその公演 (見出しに日付と公演名を出す)。「出演」「欠席」は null。 */
+        val showId: String? = null
+    )
 
     /**
-     * 「全日 / DAYn のみ / 欠席」の塊 (単日公演は「出演 / 欠席」)。塊の切り方・見出し・並びは
-     * コア (`EventAttendanceRecord.groups`)。ここは id を [brandIdols] の実体に引き直すだけ。
+     * 出演者の塊。複数日は日付ごと (`DAY1`/`DAY2`…)、単日公演は `出演`、どこにも出ていない人は
+     * 最後に `欠席`。塊の切り方・見出し・並びはコア (`EventAttendanceRecord.groups`)。
+     * ここは id を [brandIdols] の実体に引き直すだけ。
      */
     val groups: List<Group> = brandIdols.associateBy { it.id }.let { byId ->
         groupRecords.map { record ->
-            Group(id = record.label, label = record.label, idols = record.idolIds.mapNotNull { byId[it] })
+            Group(
+                id = record.label,
+                label = record.label,
+                idols = record.idolIds.mapNotNull { byId[it] },
+                showId = record.showId
+            )
         }
     }
 }

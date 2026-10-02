@@ -1,7 +1,5 @@
 package com.fugaif.imaslivedb.ui.events
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,29 +13,29 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -56,15 +54,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -80,32 +73,49 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasShowRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
-import com.fugaif.imaslivedb.ui.designsystem.ImasTagChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.edit.EventEditScreen
 import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.edit.ShowEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasPenlight
+import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasThemeProvider
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.penlight
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import com.fugaif.imaslivedb.ui.share.SocialShare
 import uniffi.imas_core.shareEventText
 import uniffi.imas_core.AttendanceState
+import uniffi.imas_core.TicketSaleStage
 import com.fugaif.imaslivedb.data.local.localWrite
 
 /**
  * イベント詳細。iOS EventDetailView の構成を 1:1 で写す。
- * hero(アクセントバー + イベント名 + お気に入り/参加 + 参加予定チップ) の下を
- * ImasSegmented で [公演・セトリ][出演][情報] に切り替える。
+ * hero(ペンライト + イベント名 + 会場・日付 + 参加/お気に入りの印 + 参加予定チップ) の下を
+ * ImasTabs で [公演・セトリ][出演][情報] に切り替える。
  *
  * 披露ユニット表示 (unit 被覆判定) は Setlist 側の担当範囲と重複するため対象外。
  * BD/DVD所有チェックは Android に event_releases の同期が無いため対象外。
@@ -236,16 +246,11 @@ fun EventDetailScreen(
         }
     ) { innerPadding ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
-            }
+            ImasLoadingState(Modifier.fillMaxSize().padding(innerPadding))
         } else {
             Column(Modifier.fillMaxSize().padding(innerPadding)) {
                 Hero(
-                    state = uiState, t = t, favOn = favOn, attendOn = attendOn,
+                    state = uiState, t = t, favOn = favOn, attendOn = attendOn, seed = seed, brand = brand,
                     onFavToggle = {
                         scope.launch {
                             localWrite("お気に入りの切り替え") { marks.toggle(UserMark.EVENT, eventId, UserMark.FAVORITE) }
@@ -254,11 +259,13 @@ fun EventDetailScreen(
                     },
                     onAttendToggle = { showAttendanceSheet = true }
                 )
-                ImasSegmented(
+                ImasTabs(
                     labels = listOf("公演・セトリ", "出演", "情報"),
                     selection = segment,
                     onSelect = { segment = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
+                    seed = seed,
+                    brand = brand,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
                 )
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     when (segment) {
@@ -365,83 +372,51 @@ private fun Hero(
     t: ImasTheme,
     favOn: Boolean,
     attendOn: Boolean,
+    seed: String?,
+    brand: String?,
     onFavToggle: () -> Unit,
     onAttendToggle: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)
-    ) {
-        val barModifier = Modifier.width(44.dp).height(6.dp).clip(RoundedCornerShape(50.dp))
-        if (state.isJoint) {
-            Box(
-                barModifier.background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color(0xFFFF0000), Color(0xFFFFA500), Color(0xFFFFFF00),
-                            Color(0xFF00FF00), Color(0xFF0000FF), Color(0xFF800080)
-                        )
-                    )
-                )
-            )
-        } else {
-            Box(barModifier.background(t.accent))
-        }
-        Spacer(Modifier.height(10.dp))
-        Text(state.eventName, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)) {
+        // 合同ライブは単色で表せないので虹色 (前と同じ目印)。
+        ImasPenlight(color = t.penlight, size = ImasPenlightSize.LARGE, rainbow = state.isJoint)
+        ImasText(
+            state.eventName,
+            role = ImasTextRole.HERO_TITLE,
+            modifier = Modifier.padding(top = DS.Space.gapTight)
+        )
         val subLine = state.hero?.subLine.orEmpty()
-        if (subLine.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.CalendarMonth, null, tint = DS.ink2, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(subLine, fontSize = 13.sp, color = DS.ink2)
-                if (state.isJoint) Text(" ・ 合同", fontSize = 13.sp, color = t.accent)
-            }
+        val heroSub = if (state.isJoint && subLine.isNotEmpty()) "$subLine ・ 合同" else subLine
+        if (heroSub.isNotEmpty()) {
+            ImasNote(heroSub, icon = Icons.Filled.CalendarMonth, modifier = Modifier.padding(top = DS.Space.gapTight))
         }
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            HeroToggle("お気に入り", favOn, DS.favorite, onFavToggle)
-            HeroToggle("参加", attendOn, t.accent, onAttendToggle)
+        Spacer(Modifier.height(DS.Space.gap))
+        ImasThemeProvider(seed = seed, brand = brand) {
+            ImasMarkBar {
+                ImasMarkTile(
+                    icon = if (favOn) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    label = "お気に入り",
+                    isOn = favOn,
+                    onClick = onFavToggle
+                )
+                ImasMarkTile(
+                    icon = Icons.Filled.HowToReg,
+                    label = "参加",
+                    isOn = attendOn,
+                    onClick = onAttendToggle
+                )
+            }
         }
         // 参加の札 (参加予定・あと N 日 / 参加済み) の判定と文言はコア。
         state.hero?.attendance?.takeIf { it.state != AttendanceState.NONE }?.let { attendance ->
             val planned = attendance.state == AttendanceState.PLANNED
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                    .background(if (planned) t.accent else DS.fill)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    if (planned) Icons.Filled.Schedule else Icons.Filled.CheckCircle,
-                    contentDescription = null,
-                    tint = if (planned) t.onAccent else DS.ink2,
-                    modifier = Modifier.size(13.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    attendance.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (planned) t.onAccent else DS.ink2
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroToggle(label: String, on: Boolean, activeColor: Color, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.clip(RoundedCornerShape(999.dp))
-            .then(
-                if (on) Modifier.background(activeColor)
-                else Modifier.background(DS.fill)
+            ImasBadge(
+                text = attendance.label,
+                kind = if (planned) ImasBadgeKind.PLANNED else ImasBadgeKind.POSITIVE,
+                icon = if (planned) Icons.Filled.Schedule else Icons.Filled.CheckCircle,
+                modifier = Modifier.padding(top = DS.Space.gap)
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = if (on) DS.onSys else DS.ink2)
+        }
     }
 }
 
@@ -457,7 +432,7 @@ private fun LazyListScope.showsSection(
     onShowHistory: (Show) -> Unit,
     onAttendanceChange: () -> Unit
 ) {
-    item { ImasSectionHeader(title = "公演 ・ ${state.shows.size} 公演 → セトリへ", tight = true) }
+    item { ImasSectionHeader(title = "公演", count = "${state.shows.size} 公演 → セトリへ", tight = true) }
     if (state.shows.isEmpty()) {
         item {
             ImasEmptyState(
@@ -478,7 +453,6 @@ private fun LazyListScope.showsSection(
                     onClick = { onShowClick(show.id) }
                 )
             }
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
 }
@@ -498,27 +472,25 @@ private fun ShowRow(
     // 行タップはこれまで通りセトリへ。編集/履歴は ⋯ に畳んで誤爆を避ける。
     var menuOpen by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(start = 16.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasLeadBar(seedHex = seed ?: brand, height = 36.dp, rainbow = rainbow)
-        Column(Modifier.weight(1f)) {
-            Text(
-                show.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                listOfNotNull(show.venue, show.date).joinToString(" ・ "),
-                fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
+        ImasShowRow(
+            date = show.date,
+            title = show.name,
+            modifier = Modifier.weight(1f).imasRowPress(onClick = onClick),
+            subtitle = listOfNotNull(show.venue, show.date).joinToString(" ・ "),
+            brand = brand,
+            seed = seed,
+            rainbow = rainbow,
+            showsChevron = true
+        )
         Box {
             IconButton(onClick = { menuOpen = true }) {
-                Icon(Icons.Filled.MoreVert, contentDescription = "公演の操作", tint = DS.ink3,
-                    modifier = Modifier.size(18.dp))
+                Icon(
+                    Icons.Filled.MoreVert, contentDescription = "公演の操作", tint = DS.ink3,
+                    modifier = Modifier.size(18.dp)
+                )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 if (canEdit) {
@@ -557,38 +529,66 @@ private fun LazyListScope.castSection(
         return
     }
 
+    // ImasSectionHeader は左右の余白を自分で持つので、見出しを含む Column には重ねて
+    // padding を足さない (足すと二重になる)。見出しの下に置く中身の側だけ screen 幅を与える。
     if (attendance.leadIdols.isNotEmpty()) {
         item {
-            Column {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 ImasSectionHeader(
-                    title = if (attendance.leadIdols.size > 1) "主演 ・ ${attendance.leadIdols.size}名" else "主演",
+                    title = "主演",
+                    count = if (attendance.leadIdols.size > 1) "${attendance.leadIdols.size}名" else null,
                     tight = true
                 )
-                RoleSection(attendance, attendance.leadByShow, attendance.leadIdols, "主演", seed, brand, onIdolClick)
+                RoleSection(
+                    attendance, attendance.leadByShow, attendance.leadIdols, ImasBadgeKind.LEAD, "主演", seed, brand, onIdolClick,
+                    modifier = Modifier.padding(horizontal = DS.Space.screen)
+                )
             }
         }
     }
     if (attendance.guestIdols.isNotEmpty()) {
         item {
-            Column {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                 ImasSectionHeader(
-                    title = if (attendance.guestIdols.size > 1) "ゲスト ・ ${attendance.guestIdols.size}名" else "ゲスト",
+                    title = "ゲスト",
+                    count = if (attendance.guestIdols.size > 1) "${attendance.guestIdols.size}名" else null,
                     tight = true
                 )
-                RoleSection(attendance, attendance.guestByShow, attendance.guestIdols, "ゲスト", seed, brand, onIdolClick)
+                RoleSection(
+                    attendance, attendance.guestByShow, attendance.guestIdols, ImasBadgeKind.GUEST, "ゲスト", seed, brand, onIdolClick,
+                    modifier = Modifier.padding(horizontal = DS.Space.screen)
+                )
             }
         }
     }
     if (attendance.isFullAttendance) {
-        item { FullAttendanceBanner(attendance) }
+        item { FullAttendanceBanner(attendance, Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen)) }
     }
+    // 出演者の塊。複数日は日付ごと (DAY の見出し)、単日は「出演」、最後に「欠席」。
+    // 塊の切り方・並びはコア (attendance_groups)。日付ごとの塊だけ、主演・ゲストと同じ
+    // DAY の見出し (札 + 日付 + 公演名) にして人数を添える。
     items(attendance.groups, key = { it.id }) { group ->
-        Column {
-            ImasSectionHeader(title = "${group.label} ・ ${group.idols.size}名", tight = true)
-            AvatarGrid(
-                idols = group.idols, chipText = null, seed = seed, brand = brand,
-                onClick = onIdolClick, dim = { group.label == "欠席" }
-            )
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            val show = group.showId?.let { id -> attendance.shows.firstOrNull { it.id == id } }
+            if (show != null) {
+                val index = attendance.shows.indexOf(show)
+                Row(
+                    modifier = Modifier.padding(horizontal = DS.Space.screen),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                ) {
+                    DayHeader(index, show, Modifier.weight(1f, fill = false))
+                    ImasText("${group.idols.size}名", role = ImasTextRole.META)
+                }
+            } else {
+                ImasSectionHeader(title = group.label, count = "${group.idols.size}名", tight = true)
+            }
+            ImasCard(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
+                AvatarGrid(
+                    idols = group.idols, chipKind = null, chipText = null, seed = seed, brand = brand,
+                    onClick = onIdolClick, dim = { group.label == "欠席" }
+                )
+            }
         }
     }
 }
@@ -598,45 +598,47 @@ private fun RoleSection(
     attendance: EventAttendance,
     byShow: Map<String, Set<String>>,
     allIdols: List<Idol>,
+    chipKind: ImasBadgeKind,
     chipText: String,
     seed: String?,
     brand: String?,
-    onIdolClick: (String) -> Unit
+    onIdolClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val t = imasThemeForBrand(seed, brand)
     if (attendance.shows.size > 1) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(DS.Space.card)) {
             attendance.shows.forEachIndexed { idx, show ->
                 val ids = byShow[show.id] ?: emptySet()
                 val dayIdols = allIdols.filter { it.id in ids }
                 if (dayIdols.isNotEmpty()) {
-                    Column {
-                        DayHeader(idx, show, t)
-                        AvatarGrid(dayIdols, chipText, seed, brand, onIdolClick)
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                        DayHeader(idx, show)
+                        ImasCard {
+                            AvatarGrid(dayIdols, chipKind, chipText, seed, brand, onIdolClick)
+                        }
                     }
                 }
             }
         }
     } else {
-        AvatarGrid(allIdols, chipText, seed, brand, onIdolClick)
+        ImasCard(modifier = modifier) {
+            AvatarGrid(allIdols, chipKind, chipText, seed, brand, onIdolClick)
+        }
     }
 }
 
+/** DAY 見出し: 「DAYn」札 (墨塗り) + 日付(M/D(曜)) + 公演名。 */
 @Composable
-private fun DayHeader(index: Int, show: Show, t: ImasTheme) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 6.dp)) {
-        Text(
-            "DAY${index + 1}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = t.onAccent,
-            modifier = Modifier.clip(RoundedCornerShape(50.dp)).background(t.accent)
-                .padding(horizontal = 8.dp, vertical = 3.dp)
-        )
-        shortDate(show.date)?.let {
-            Spacer(Modifier.width(6.dp))
-            Text(it, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = DS.ink2)
-        }
+private fun DayHeader(index: Int, show: Show, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+    ) {
+        ImasBadge(text = "DAY${index + 1}", kind = ImasBadgeKind.LEAD)
+        shortDate(show.date)?.let { ImasText(it, role = ImasTextRole.META) }
         if (show.name.isNotEmpty() && show.name != "DAY${index + 1}") {
-            Spacer(Modifier.width(6.dp))
-            Text(show.name, fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            ImasText(show.name, role = ImasTextRole.META, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -649,16 +651,14 @@ private fun shortDate(ymd: String): String? {
 }
 
 @Composable
-private fun FullAttendanceBanner(attendance: EventAttendance) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(Icons.Filled.AutoAwesome, null, tint = DS.warning, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text("全員集合！", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, modifier = Modifier.weight(1f))
-        Text("${attendance.brandIdols.size}/${attendance.brandIdols.size} 名", fontSize = 13.sp, color = DS.ink2)
+private fun FullAttendanceBanner(attendance: EventAttendance, modifier: Modifier = Modifier) {
+    ImasCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = DS.warning, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(DS.Space.gap))
+            ImasText("全員集合！", role = ImasTextRole.CARD_TITLE, modifier = Modifier.weight(1f))
+            ImasText("${attendance.brandIdols.size}/${attendance.brandIdols.size} 名", role = ImasTextRole.NOTE)
+        }
     }
 }
 
@@ -666,24 +666,27 @@ private fun FullAttendanceBanner(attendance: EventAttendance) {
 @Composable
 private fun AvatarGrid(
     idols: List<Idol>,
+    chipKind: ImasBadgeKind?,
     chipText: String?,
     seed: String?,
     brand: String?,
     onClick: (String) -> Unit,
     dim: (Idol) -> Boolean = { false }
 ) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(DS.Space.card), verticalArrangement = Arrangement.spacedBy(DS.Space.card)) {
         idols.forEach { idol ->
             val faded = dim(idol)
             Column(
                 modifier = Modifier.width(64.dp).clickable { onClick(idol.id) }.alpha(if (faded) 0.45f else 1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
             ) {
                 ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 52.dp)
-                if (!chipText.isNullOrEmpty()) ImasTagChip(chipText, seed = seed, brand = brand)
-                Text(
-                    idol.shortName, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
+                if (chipKind != null && !chipText.isNullOrEmpty()) {
+                    ImasBadge(chipText, kind = chipKind, seed = seed, brand = brand)
+                }
+                ImasText(
+                    idol.shortName, role = ImasTextRole.META, color = DS.ink,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
             }
@@ -718,55 +721,54 @@ private fun LazyListScope.infoSection(
 
 @Composable
 private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ImasStatTile(Icons.Filled.Mic, "${stats.showCount}", "公演", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-            ImasStatTile(Icons.Filled.LibraryMusic, "${stats.totalSongs}", "曲（延べ）", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ImasStatTile(Icons.Filled.MusicNote, "${stats.uniqueSongs}", "ユニーク曲", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-            ImasStatTile(Icons.Filled.Groups, "${stats.castCount}", "キャスト", seed = seed, brand = brand, modifier = Modifier.weight(1f))
-        }
+    ImasStatGrid(modifier = Modifier.padding(horizontal = DS.Space.screen), columns = 2) {
+        ImasStatTile(Icons.Filled.Mic, "${stats.showCount}", "公演", seed = seed, brand = brand)
+        ImasStatTile(Icons.Filled.LibraryMusic, "${stats.totalSongs}", "曲（延べ）", seed = seed, brand = brand)
+        ImasStatTile(Icons.Filled.MusicNote, "${stats.uniqueSongs}", "ユニーク曲", seed = seed, brand = brand)
+        ImasStatTile(Icons.Filled.Groups, "${stats.castCount}", "キャスト", seed = seed, brand = brand)
     }
 }
 
 @Composable
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
-    val t = imasThemeForBrand(seed, brand)
     val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
+        // ImasSectionHeader は左右の余白を自分で持つので、追加の padding は付けない (二重になる)。
         ImasSectionHeader(title = "チケット情報", tight = true)
-        Column(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-        ) {
+        ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
             var shown = false
             state.ticketSales.forEach { sale ->
-                if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                if (shown) ImasRowDivider(inset = DS.Space.rowH)
                 TicketSaleRow(sale, seed, brand)
                 shown = true
             }
             state.ticketUrl?.let { url ->
-                if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { uriHandler.openUri(url) }
-                        .padding(horizontal = 16.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Filled.ConfirmationNumber, null, tint = t.accent, modifier = Modifier.size(16.dp))
-                    Text("公式チケットページを開く", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = t.accent)
-                }
+                if (shown) ImasRowDivider(inset = DS.Space.rowH)
+                TicketUrlRow(url, seed, brand) { uriHandler.openUri(url) }
                 shown = true
             }
             if (!hasAny) {
-                Text(
-                    "チケット情報は未登録です", fontSize = 13.sp, color = DS.ink3,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp)
+                ImasNote(
+                    "チケット情報は未登録です",
+                    modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowVCompact)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TicketUrlRow(url: String, seed: String?, brand: String?, onClick: () -> Unit) {
+    val t = imasThemeForBrand(seed, brand)
+    Row(
+        Modifier.fillMaxWidth().imasRowPress(onClick = onClick)
+            .padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowVCompact),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
+    ) {
+        Icon(Icons.Filled.ConfirmationNumber, contentDescription = null, tint = t.accent, modifier = Modifier.size(16.dp))
+        ImasText("公式チケットページを開く", role = ImasTextRole.ROW_LABEL, color = t.accent)
     }
 }
 
@@ -779,29 +781,42 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
 private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
     val t = imasThemeForBrand(seed, brand)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 11.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(sale.kindLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = t.accent)
-            Text(sale.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(Modifier.weight(1f))
-            Text(sale.stageLabel, fontSize = 12.sp, color = DS.ink2)
+    Column(
+        Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowVCompact),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+            // 段階 (受付中・結果待ち・受付前・終了) は状態なので札に、種別 (最速先行・一般 等) は
+            // 添え字にする (§10.1: 札は状態を表す)。stage は今回 Android の binding に加わった値。
+            ImasBadge(sale.stageLabel, kind = stageBadgeKind(sale.stage))
+            ImasText(sale.name, role = ImasTextRole.ROW_LABEL, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            ImasText(sale.kindLabel, role = ImasTextRole.META)
         }
         if (sale.showLabels.isNotEmpty()) {
-            Text(sale.showLabels.joinToString(" / "), fontSize = 12.sp, color = DS.ink3, modifier = Modifier.padding(top = 2.dp))
+            ImasText(sale.showLabels.joinToString(" / "), role = ImasTextRole.META)
         }
-        sale.periodLabel?.let { Text(it, fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 4.dp)) }
-        sale.resultLabel?.let { Text("当落発表 $it", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp)) }
+        sale.periodLabel?.let { ImasText(it, role = ImasTextRole.NOTE) }
+        sale.resultLabel?.let { ImasText("当落発表 $it", role = ImasTextRole.NOTE) }
         sale.url?.let { url ->
             Row(
-                modifier = Modifier.padding(top = 6.dp).clickable { uriHandler.openUri(url) },
+                modifier = Modifier.imasRowPress(onClick = { uriHandler.openUri(url) }),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
             ) {
-                Icon(Icons.Filled.ConfirmationNumber, null, tint = t.accent, modifier = Modifier.size(14.dp))
-                Text("申込ページを開く", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = t.accent)
+                Icon(Icons.Filled.ConfirmationNumber, contentDescription = null, tint = t.accent, modifier = Modifier.size(14.dp))
+                ImasText("申込ページを開く", role = ImasTextRole.NOTE, color = t.accent)
             }
         }
     }
+}
+
+/**
+ * 段階の札の種類。受付中/結果待ちは「墨の線」(§10.1 `.attention` が受付中を例示)、
+ * 受付前/終了は「灰」(`.neutral` が終了・未定を例示)。色の数を増やさない (iOS と同じ対応)。
+ */
+private fun stageBadgeKind(stage: TicketSaleStage): ImasBadgeKind = when (stage) {
+    TicketSaleStage.OPEN, TicketSaleStage.AWAITING_RESULT -> ImasBadgeKind.ATTENTION
+    TicketSaleStage.UPCOMING, TicketSaleStage.ENDED -> ImasBadgeKind.NEUTRAL
 }
 
 @Composable
@@ -812,12 +827,10 @@ private fun MetaSection(
     brandId: String?,
     onFilteredEventsClick: (String, String) -> Unit
 ) {
-    Column(
-        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-    ) {
+    ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
         var shown = false
         state.brandShortName?.let { name ->
+            if (shown) ImasRowDivider(inset = DS.Space.rowH)
             // brand_id がまだ解決できていない間は押せない普通の行にしておく
             // (押せる見た目だけ出して何も起きない方が悪い)。
             ImasLabeledRow(
@@ -828,7 +841,7 @@ private fun MetaSection(
             shown = true
         }
         firstShowYear(state)?.let { year ->
-            if (shown) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+            if (shown) ImasRowDivider(inset = DS.Space.rowH)
             ImasLabeledRow(
                 key = "年度", value = "${year}年", seed = seed, brand = brand,
                 tappable = true,
