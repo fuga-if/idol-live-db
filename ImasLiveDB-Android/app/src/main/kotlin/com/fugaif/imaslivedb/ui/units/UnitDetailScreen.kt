@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.units
 
+import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -132,12 +133,14 @@ fun UnitDetailScreen(
         } else if (state.isLoading || unit == null) {
             ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))
         } else {
-            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+            val scroll = rememberScrollState()
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll)) {
                 Hero(unit)
                 ImasSegmented(
                     labels = listOf("楽曲", "メンバー", "コミュニティ"),
                     selection = segment, onSelect = { segment = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier = imasResetScrollOnTabChange(scroll, segment)
+                        .fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 when (segment) {
                     0 -> SongsBody(state, onNavigateToSongDetail)

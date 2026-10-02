@@ -1,5 +1,8 @@
 package com.fugaif.imaslivedb.ui.events
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -284,7 +287,22 @@ fun SetlistScreen(
             val candidates = if (simpleMode) tabs.filter { it != ShowTab.INFO } else tabs
             val currentTab = if (selectedTab in candidates) selectedTab else candidates.firstOrNull() ?: ShowTab.SETLIST
 
+            val listState = rememberLazyListState()
+            // タブの見出しが何番目の行か (見えている間に覚えておく。上へ流れると見える行から消えるため)。
+            var tabsIndex by remember { mutableIntStateOf(-1) }
+            LaunchedEffect(listState) {
+                snapshotFlow { listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == "tabs" }?.index }
+                    .collect { if (it != null) tabsIndex = it }
+            }
+            // タブを替えたら、前のタブで下まで流していても次のタブは頭 (タブの見出しの下) から見せる。
+            LaunchedEffect(currentTab) {
+                val idx = tabsIndex
+                if (idx >= 0 && (idx < listState.firstVisibleItemIndex ||
+                        (idx == listState.firstVisibleItemIndex && listState.firstVisibleItemScrollOffset > 0))
+                ) listState.scrollToItem(idx)
+            }
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)

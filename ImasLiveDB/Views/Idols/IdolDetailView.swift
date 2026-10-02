@@ -63,6 +63,8 @@ struct IdolDetailView: View {
 
     // MARK: - Body
 
+    @State private var tabsScrolledPast = false
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -70,21 +72,26 @@ struct IdolDetailView: View {
                 // (名札ごと貼り付けると画面の半分が動かず、シートを畳むときも重い)。
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
                     heroHeader
+                    // タブの見出しの直前の印 (見出しは上に貼り付くので、流れたかはこの印で見る)。
+                    Color.clear.frame(height: 0)
+                        .id("idol_detail_top")
+                        .imasTracksScrolledPast(in: "idol_detail_scroll", $tabsScrolledPast)
                     Section {
                         segmentBody(for: segment)
                             .padding(.bottom, DS.sp7)
                     } header: {
                         segmentedBar
                             .background(DS.bg)
-                            .id("idol_detail_top")
                     }
                 }
             }
             // タブ切替時にスクロールを先頭へリセット。
             // 共通 ScrollView を使っているとタブ間で offset が引き継がれてしまうため、
             // 切り替え時にヒーロー直下へ戻す (アニメーション無しで即時)。
+            .coordinateSpace(name: "idol_detail_scroll")
             .onChange(of: segment) { _, _ in
-                proxy.scrollTo("idol_detail_top", anchor: .top)
+                // 前のタブで下まで流していたら、次のタブは頭 (タブの見出しの下) から見せる。
+                if tabsScrolledPast { proxy.scrollTo("idol_detail_top", anchor: .top) }
             }
         }
         .background(DS.bg)

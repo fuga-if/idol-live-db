@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import uniffi.imas_core.groupIndicesByYearDesc
 import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
 import androidx.compose.material.icons.filled.LocationOn
@@ -221,12 +222,14 @@ fun IdolDetailScreen(
         if (state.isLoading || idol == null) {
             ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))
         } else {
-            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+            val scroll = rememberScrollState()
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(scroll)) {
                 Hero(idol, state.brand?.shortName, state.castShows.size, state.performedSongs.size)
                 ImasSegmented(
                     labels = listOf("ライブ", "楽曲・ユニット", "プロフィール", "コミュニティ"),
                     selection = segment, onSelect = { segment = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                    modifier = imasResetScrollOnTabChange(scroll, segment)
+                        .fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
                 )
                 when (segment) {
                     0 -> LiveBody(state, idol, onNavigateToShowDetail) { songId ->

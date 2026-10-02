@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -410,7 +411,8 @@ private fun SongSheetContent(
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
 
-    Column(modifier = modifier.verticalScroll(rememberScrollState())) {
+    val scroll = rememberScrollState()
+    Column(modifier = modifier.verticalScroll(scroll)) {
         Hero(song, state, seed, onToggleFavorite, onToggleCardOwned)
         ImasBoard(
             cells = boardCells(state),
@@ -420,7 +422,7 @@ private fun SongSheetContent(
             labels = listOf("情報・歌唱", "披露履歴", "コミュニティ"),
             selection = segment, onSelect = { segment = it },
             seed = seed, brand = song.brandId,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = DS.sp5)
+            modifier = imasResetScrollOnTabChange(scroll, segment).fillMaxWidth().padding(horizontal = DS.sp5)
         )
         when (segment) {
             0 -> InfoTab(

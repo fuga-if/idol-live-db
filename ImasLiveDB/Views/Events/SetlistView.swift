@@ -35,6 +35,7 @@ struct SetlistView: View {
 
     /// 選んでいるタブ。「次のライブ」の「セトリを予想」からは予想で開く。
     @State private var selectedTab: ShowTab
+    @State private var tabsScrolledPast = false
 
     init(show: Show, navigate: ((DetailDestination) -> Void)? = nil, opensPrediction: Bool = false) {
         self.show = show
@@ -322,6 +323,7 @@ struct SetlistView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         List {
             heroSection
 
@@ -342,6 +344,8 @@ struct SetlistView: View {
 
                 Section {
                     ImasTabs(labels: tabs.map(\.label), selection: tabSelection, seed: showBrandHex)
+                        .id("show_tabs")
+                        .imasTracksScrolledPast(in: "show_scroll", $tabsScrolledPast)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
                         .listRowSeparator(.hidden)
@@ -353,6 +357,12 @@ struct SetlistView: View {
             case .prediction: predictionContent
             case .info: infoContent
             }
+        }
+        .coordinateSpace(name: "show_scroll")
+        // 前のタブで下まで流していたら、次のタブは頭 (タブの見出しの下) から見せる。
+        .onChange(of: selectedTab) { _, _ in
+            if tabsScrolledPast { proxy.scrollTo("show_tabs", anchor: .top) }
+        }
         }
         .navigationTitle("セットリスト")
         .listStyle(.plain)

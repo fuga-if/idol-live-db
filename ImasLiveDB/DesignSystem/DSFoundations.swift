@@ -379,3 +379,14 @@ extension View {
         }
     }
 }
+
+// MARK: - タブを切り替えたときのスクロール
+
+extension View {
+    /// 印を付けた位置 (タブの見出しの直前) が、スクロールで画面の上より上へ流れているか。
+    /// タブを切り替えたとき、前のタブのスクロール位置のまま次のタブの途中が出ないよう、
+    /// 流れていればタブの見出しまで戻す判断に使う ([space] はスクロール面の名前付き座標空間)。
+    func imasTracksScrolledPast(in space: String, _ passed: Binding<Bool>) -> some View {
+        onGeometryChange(for: Bool.self) { $0.frame(in: .named(space)).minY < -1 } action: { passed.wrappedValue = $0 }
+    }
+}

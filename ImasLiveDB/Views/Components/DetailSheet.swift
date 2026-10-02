@@ -271,6 +271,10 @@ struct SongSheetContent: View {
         return vm.brand?.color
     }
 
+    private static let tabsAnchor = "song_detail_tabs"
+    private static let scrollSpace = "song_detail_scroll"
+    @State private var tabsScrolledPast = false
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -286,6 +290,8 @@ struct SongSheetContent: View {
                         .padding(.horizontal, DS.sp5)
                         .padding(.top, DS.sp4)
                         .padding(.bottom, DS.sp1)
+                        .id(Self.tabsAnchor)
+                        .imasTracksScrolledPast(in: Self.scrollSpace, $tabsScrolledPast)
 
                     switch tab.resolved {
                     case .info: infoTab
@@ -297,7 +303,12 @@ struct SongSheetContent: View {
                     Color.clear.frame(height: DS.sp9)
                 }
             }
+            .coordinateSpace(name: Self.scrollSpace)
             .onChange(of: vm.lyrics) { _, lyrics in scrollToFocus(lyrics, proxy: proxy) }
+            // タブを替えたら、前のタブで下まで流していても次のタブは頭 (タブの見出しの下) から見せる。
+            .onChange(of: tab) { _, _ in
+                if tabsScrolledPast { proxy.scrollTo(Self.tabsAnchor, anchor: .top) }
+            }
         }
         .background(DS.bg)
         .navigationTitle(song.title)

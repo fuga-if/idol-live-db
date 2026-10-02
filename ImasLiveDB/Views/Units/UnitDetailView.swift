@@ -41,21 +41,31 @@ struct UnitDetailView: View {
 
     // MARK: - Body
 
+    @State private var tabsScrolledPast = false
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
+                // 名札は一緒にスクロールし、タブだけを上に貼り付ける (アイドル詳細と同じ)。
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    heroView
+                        .background(DS.bg)
+                    Color.clear.frame(height: 0)
+                        .id("unit_detail_top")
+                        .imasTracksScrolledPast(in: "unit_detail_scroll", $tabsScrolledPast)
                     Section {
                         segmentBody(for: segment)
                             .padding(.bottom, DS.sp7)
                     } header: {
-                        fixedHeader
-                            .id("unit_detail_top")
+                        segmentedBar
+                            .background(DS.bg)
                     }
                 }
             }
+            .coordinateSpace(name: "unit_detail_scroll")
             .onChange(of: segment) { _, _ in
-                proxy.scrollTo("unit_detail_top", anchor: .top)
+                // 前のタブで下まで流していたら、次のタブは頭 (タブの見出しの下) から見せる。
+                if tabsScrolledPast { proxy.scrollTo("unit_detail_top", anchor: .top) }
             }
         }
         .background(DS.bg)
@@ -71,14 +81,6 @@ struct UnitDetailView: View {
     }
 
     // MARK: - Fixed header (hero + segmented)
-
-    private var fixedHeader: some View {
-        VStack(spacing: 0) {
-            heroView
-            segmentedBar
-        }
-        .background(DS.bg)
-    }
 
     private var heroView: some View {
         ImasHero(
