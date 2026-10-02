@@ -82,12 +82,24 @@ final class CustomImageService {
 
     private func writeManifest(_ entries: [GalleryImageMeta], for entityId: String, kind: GalleryKind = .idol) {
         try? Data(galleryManifestEncode(entries: entries).utf8).write(to: manifestURL(entityId, kind: kind))
+        primaryCache.removeAll()
     }
 
+    /// 代表画像の URL の覚え (種別 + id → URL)。一覧の行がアイコンを描くたびに引くので、
+    /// フォルダの読み出しと manifest の読み込みを毎回しないよう覚えておく。並びを書き換えたら捨てる。
+    @ObservationIgnored private var primaryCache: [String: URL?] = [:]
+
     /// 代表(プライマリ)画像 URL。アプリ内アバター・通知・ゲームはこれを使う (読み取り互換)。
+    ///
+    /// 一覧の行 (曲の歌唱者・セトリ・アイドル) から 1 行に何人分も呼ばれる。写真の無い人は
+    /// ディスクに触らず返し、ある人も一度引いたら覚えておく (主スレッドで毎回フォルダを読むと一覧が重くなる)。
     func imageURL(for idolId: String, kind: GalleryKind = .idol) -> URL? {
-        guard let first = manifest(idolId, kind: kind).first else { return nil }
-        return idolFolder(idolId, kind: kind).appendingPathComponent(first.name)
+        guard idsWithImages(for: kind).contains(idolId) else { return nil }
+        let key = "\(kind.directoryName)/\(idolId)"
+        if let hit = primaryCache[key] { return hit }
+        let url = manifest(idolId, kind: kind).first.map { idolFolder(idolId, kind: kind).appendingPathComponent($0.name) }
+        primaryCache[key] = url
+        return url
     }
 
     /// ギャラリー全画像 URL (順序付き、先頭=プライマリ)。
