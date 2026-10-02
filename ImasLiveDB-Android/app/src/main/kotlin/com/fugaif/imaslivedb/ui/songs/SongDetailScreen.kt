@@ -24,22 +24,20 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.OndemandVideo
+import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -54,14 +52,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,7 +65,6 @@ import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.CoOccurringSong
-import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongVideo
@@ -86,22 +79,53 @@ import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.edit.SongEditScreen
 import com.fugaif.imaslivedb.ui.edit.SongNoteEditScreen
 import com.fugaif.imaslivedb.ui.edit.VideoEditSheet
-import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasBoard
+import com.fugaif.imaslivedb.ui.designsystem.ImasBoardCell
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEntryCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasHero
+import com.fugaif.imaslivedb.ui.designsystem.ImasHeroLayout
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasIdolRow
 import com.fugaif.imaslivedb.ui.components.IdolGridSection
-import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSignInPrompt
+import com.fugaif.imaslivedb.ui.designsystem.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
+import com.fugaif.imaslivedb.ui.designsystem.ImasToolbarButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
 import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.tags.TagDetailScreen
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasPenlight
+import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.penlight
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.youtubeVideoRefs
 import uniffi.imas_core.kamisabiCardLabel
@@ -110,8 +134,9 @@ import uniffi.imas_core.shortYearMonth
 import uniffi.imas_core.splitCreditNames
 
 /**
- * 楽曲詳細。iOS の SongSheetContent (大ジャケ hero + ImasSegmented 3 タブ
- * [情報・歌唱/披露履歴/コミュニティ]) の構成を 1:1 で写す。
+ * 楽曲詳細。iOS の `SongSheetContent` (D2: ジャケ左 + 題・歌唱者・配信日を先に読ませる頭、
+ * `ImasBoard` の数、`ImasTabs` 3 タブ [情報・歌唱/披露履歴/コミュニティ]) の組み方を 1:1 で写す。
+ * 歌詞タブは JASRAC 許諾の都合で iOS 限定 (Android にはそもそも歌詞取得が無い) なので載せない。
  *
  * 関連楽曲/似ているタグ楽曲のタップ、タグタップでのタグ詳細表示は、
  * AppNavigation.kt の NavHost を経由せず画面内のローカル状態で完結させている
@@ -185,15 +210,11 @@ fun SongDetailScreen(
             TopAppBar(
                 title = { Text(uiState.song?.title ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
-                    }
+                    ImasToolbarButton(icon = Icons.AutoMirrored.Filled.ArrowBack, label = "戻る", onClick = onBack)
                 },
                 actions = {
                     val song = uiState.song
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "その他")
-                    }
+                    ImasToolbarButton(icon = Icons.Filled.MoreVert, label = "その他", onClick = { showMenu = true })
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                         DropdownMenuItem(
                             text = { Text("歌詞を見る") },
@@ -244,9 +265,7 @@ fun SongDetailScreen(
     ) { padding ->
         val song = uiState.song
         if (uiState.isLoading || song == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))
         } else {
             SongSheetContent(
                 state = uiState, song = song,
@@ -356,6 +375,14 @@ private fun openUrl(context: android.content.Context, url: String) {
     }
 }
 
+/** songs.song_type の生値 → 表示ラベル。曲一覧の絞り込みチップと絞り込み一覧のタイトルも同じラベルを出す。 */
+internal fun songTypeLabel(songType: String): String = Vocab.songType(songType)?.shortLabel ?: songType
+
+private fun formatDuration(sec: Int?): String? {
+    if (sec == null || sec <= 0) return null
+    return "%d:%02d".format(sec / 60, sec % 60)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SongSheetContent(
@@ -379,24 +406,27 @@ private fun SongSheetContent(
     onFilteredSongsClick: (String, String) -> Unit,
     onEditNote: (() -> Unit)?
 ) {
-    // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色。
+    // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色 (brand は各部品に別途渡す)。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
-    val t = imasThemeForBrand(seed, song.brandId)
     var segment by rememberSaveable(song.id) { mutableIntStateOf(0) }
 
     Column(modifier = modifier.verticalScroll(rememberScrollState())) {
-        Hero(song, state.originalArtists, state.isFavorite, t, onToggleFavorite)
-        ImasSegmented(
+        Hero(song, state, seed, onToggleFavorite, onToggleCardOwned)
+        ImasBoard(
+            cells = boardCells(state),
+            modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
+        )
+        ImasTabs(
             labels = listOf("情報・歌唱", "披露履歴", "コミュニティ"),
             selection = segment, onSelect = { segment = it },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+            seed = seed, brand = song.brandId,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = DS.sp5)
         )
         when (segment) {
             0 -> InfoTab(
                 song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick,
                 onRegisterAttendance = { segment = 1 },
                 onFilteredSongsClick = onFilteredSongsClick,
-                onToggleCardOwned = onToggleCardOwned,
                 onEditNote = onEditNote
             )
             1 -> HistoryTab(
@@ -410,114 +440,120 @@ private fun SongSheetContent(
                 onOpenPenlightVote, onPollClick
             )
         }
-        Box(Modifier.size(24.dp))
+        Box(Modifier.size(DS.sp9))
     }
 }
 
-@Composable
-private fun Hero(
-    song: Song,
-    originalArtists: List<Idol>,
-    isFavorite: Boolean,
-    t: ImasTheme,
-    onToggleFavorite: () -> Unit
-) {
-    val artistLine = when {
-        originalArtists.isNotEmpty() -> originalArtists.joinToString(" / ") { it.name }
-        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-        !song.unitName.isNullOrEmpty() -> song.unitName
-        else -> null
+/** 披露・回収・最終披露 (今ある数をそのまま電光掲示板で)。 */
+private fun boardCells(state: SongDetailUiState): List<ImasBoardCell> = buildList {
+    add(ImasBoardCell(value = "${state.performanceHistory.size}", unit = "回", label = "披露"))
+    if (state.collectedShows.isNotEmpty()) {
+        add(ImasBoardCell(value = "${state.collectedShows.size}", unit = "公演", label = "回収"))
     }
-    val playbackState by AudioPreviewManager.playbackState.collectAsState()
-    val isPreviewing = playbackState.isPlaying(song.id)
-    Column(
-        modifier = Modifier.fillMaxWidth().background(t.heroSurface).padding(top = 16.dp, bottom = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ArtworkImage(url = song.artworkUrl, size = 168.dp, previewUrl = song.previewUrl, songTitle = song.title, songId = song.id)
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(song.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (artistLine != null) {
-                Text(artistLine, fontSize = 15.sp, color = DS.ink2, textAlign = TextAlign.Center,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
-            }
-            // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。どのタブでも曲の位置づけが分かるよう、
-            // 曲名・歌唱者のすぐ下に 1 文で添える (iOS の Hero と同じ位置)。無い曲は何も出さない。
-            song.note?.takeIf { it.isNotBlank() }?.let { note ->
-                Text(note, fontSize = 13.sp, color = DS.ink2, textAlign = TextAlign.Center,
-                    maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
-            }
-            if (song.hasKamisabiCard) {
-                // 語はコアの kamisabiCardLabel() をそのまま出す。iOS / Web と語がバラバラだった
-                // (RedTeam M-6) ので、ここで新しい文言を作らない。
-                Text(
-                    kamisabiCardLabel(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = t.onAccent,
-                    modifier = Modifier.padding(top = 6.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(t.accent)
-                        .padding(horizontal = 10.dp, vertical = 3.dp)
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            val canPlay = !song.previewUrl.isNullOrEmpty()
-            Row(
-                modifier = Modifier.weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (canPlay) t.accent else t.accent.copy(alpha = 0.5f))
-                    .then(if (canPlay) Modifier.clickable {
-                        AudioPreviewManager.togglePreview(song.previewUrl!!, song.id)
-                    } else Modifier)
-                    .padding(vertical = 11.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    if (isPreviewing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                    contentDescription = null, tint = t.onAccent, modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    if (isPreviewing) "停止" else "再生", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                    color = t.onAccent, modifier = Modifier.padding(start = 6.dp)
-                )
-            }
-            Row(
-                modifier = Modifier.weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(t.chipBg)
-                    .clickable(onClick = onToggleFavorite)
-                    .padding(vertical = 11.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Filled.Star, contentDescription = null,
-                    tint = if (isFavorite) DS.favorite else t.accent, modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    if (isFavorite) "お気に入り済み" else "お気に入り", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (isFavorite) DS.favorite else t.accent, modifier = Modifier.padding(start = 6.dp)
-                )
-            }
-        }
+    // 並び順を仮定せず、日付の最大値を直接取る (配信順が将来変わっても壊れない)。
+    state.performanceHistory.maxOfOrNull { it.date }?.let { last ->
+        add(ImasBoardCell(value = shortYearMonth(date = last), label = "最終披露"))
     }
 }
 
 /**
- * songs.song_type の生値 → 表示ラベル。
- * 曲一覧の絞り込みチップと絞り込み一覧のタイトルも同じラベルを出すので internal で共有する
- * (画面ごとに書き直すと、同じ生値が二通りの日本語で出る)。
+ * 頭 (iOS `SongSheetContent.hero` / D2)。ジャケを左に置き、右に種類・題・歌唱者・配信日を
+ * 先に読ませる。地は常に紙面 (色の地 `heroSurface` は使わない。DS §6.9)。
  */
-internal fun songTypeLabel(songType: String): String = Vocab.songType(songType)?.shortLabel ?: songType
+@Composable
+private fun Hero(
+    song: Song,
+    state: SongDetailUiState,
+    seed: String?,
+    onToggleFavorite: () -> Unit,
+    onToggleCardOwned: () -> Unit
+) {
+    val artistLine = when {
+        state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
+        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
+        !song.unitName.isNullOrEmpty() -> song.unitName
+        else -> null
+    }
+    val typeLabel = song.songType.takeIf { it.isNotEmpty() && it != "unknown" }?.let { songTypeLabel(it) }
+    val eyebrow = listOfNotNull(typeLabel, state.brand?.shortName).joinToString(" ・ ").ifEmpty { null }
+    val releaseMeta = listOfNotNull(
+        song.releaseDate?.takeIf { it.isNotEmpty() },
+        formatDuration(song.durationSec)
+    ).joinToString(" ・ ").ifEmpty { null }
+    val note = song.note?.takeIf { it.isNotBlank() }
+    val playbackState by AudioPreviewManager.playbackState.collectAsState()
+    val isPreviewing = playbackState.isPlaying(song.id)
+    val canPlay = !song.previewUrl.isNullOrEmpty()
+    val isCardOwned = state.isCardOwned
 
-private fun formatDuration(sec: Int?): String? {
-    if (sec == null || sec <= 0) return null
-    return "%d:%02d".format(sec / 60, sec % 60)
+    ImasHero(
+        title = song.title,
+        layout = ImasHeroLayout.LEADING,
+        eyebrow = eyebrow,
+        media = {
+            ArtworkImage(
+                url = song.artworkUrl, size = 116.dp, previewUrl = song.previewUrl,
+                songTitle = song.title, songId = song.id, seed = seed, brand = song.brandId
+            )
+        },
+        facts = {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                if (artistLine != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                        ImasPenlight(color = imasThemeForBrand(seed, song.brandId).penlight, size = ImasPenlightSize.SMALL)
+                        ImasText(artistLine, ImasTextRole.ROW_SUBTITLE)
+                    }
+                }
+                if (releaseMeta != null) {
+                    ImasText(releaseMeta, ImasTextRole.IMPRINT, color = DS.ink3)
+                }
+                // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。どのタブでも曲の位置づけが分かるよう、
+                // 曲名・歌唱者のすぐ下に 1 文で添える (iOS の Hero と同じ位置)。無い曲は何も出さない。
+                if (note != null) {
+                    ImasText(note, ImasTextRole.NOTE, maxLines = 3)
+                }
+                if (song.hasKamisabiCard) {
+                    ImasChip(text = kamisabiCardLabel(), style = ImasChipStyle.THEMED, seed = seed, brand = song.brandId)
+                }
+            }
+        }
+    )
+
+    // 再生 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す。
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp3),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ImasButton(
+            title = if (isPreviewing) "停止" else "再生",
+            onClick = { if (canPlay) AudioPreviewManager.togglePreview(song.previewUrl!!, song.id) },
+            icon = if (isPreviewing) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+            role = ImasButtonRole.PRIMARY,
+            size = ImasButtonSize.LARGE,
+            enabled = canPlay,
+            modifier = Modifier.weight(1f)
+        )
+        ImasMarkButton(kind = ImasMarkKind.FAVORITE, isOn = state.isFavorite, onClick = onToggleFavorite)
+        // KAMISABI (音楽カードゲーム) 収録曲のときだけ、カード所持のトグルを出す。
+        // 未収録曲にトグルを出すと「持っていない」のか「そもそも対象外」なのか読み取れなくなる。
+        if (song.hasKamisabiCard) {
+            ImasMarkTile(
+                icon = if (isCardOwned) Icons.Filled.Inventory2 else Icons.Outlined.Inventory2,
+                label = "カード所持",
+                isOn = isCardOwned,
+                onClick = onToggleCardOwned,
+                accessibilityText = if (isCardOwned) "カード所持済み" else "カード所持を記録"
+            )
+        }
+    }
+    // 分母はブランド (商品) 単位。KAMISABI は ML/SideM/シャニの別商品なので合算しない。
+    // 言い回しも kamisabiCompletionLabel() をそのまま出す (「枚」ではなく「曲」で数える)。
+    if (song.hasKamisabiCard) {
+        state.kamisabiCompletion?.let { completion ->
+            ImasNote(kamisabiCompletionLabel(completion), modifier = Modifier.padding(horizontal = DS.sp5))
+        }
+    }
 }
 
 @Composable
@@ -531,7 +567,6 @@ private fun InfoTab(
     onShowClick: (String) -> Unit,
     onRegisterAttendance: () -> Unit,
     onFilteredSongsClick: (String, String) -> Unit,
-    onToggleCardOwned: () -> Unit,
     onEditNote: (() -> Unit)?
 ) {
     val artistLine = when {
@@ -540,118 +575,90 @@ private fun InfoTab(
         !song.unitName.isNullOrEmpty() -> song.unitName
         else -> null
     }
-    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // 披露統計
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4),
+        verticalArrangement = Arrangement.spacedBy(DS.sp5)
+    ) {
+        // 披露 / 現地回収
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
                 ImasStatTile(Icons.Filled.Mic, "${state.performanceHistory.size}", "披露回数", unit = "回",
                     seed = seed, brand = song.brandId, modifier = Modifier.weight(1f))
                 ImasStatTile(Icons.Filled.CheckCircle, "${state.collectedShows.size}", "現地回収", unit = "公演",
                     seed = seed, brand = song.brandId, modifier = Modifier.weight(1f))
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(DS.fill)
-                    .clickable(onClick = onRegisterAttendance)
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(16.dp))
-                Text("参加ライブを登録して現地回収", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                    modifier = Modifier.padding(start = 6.dp))
-            }
+            ImasButton(
+                title = "参加ライブを登録して現地回収",
+                onClick = onRegisterAttendance,
+                icon = Icons.Filled.Add,
+                role = ImasButtonRole.SECONDARY,
+                size = ImasButtonSize.MEDIUM,
+                fillsWidth = true
+            )
             if (state.collectedShows.isNotEmpty()) {
-                Column(Modifier.padding(horizontal = 16.dp)) {
+                ImasCardList {
                     state.collectedShows.forEachIndexed { idx, show ->
-                        if (idx > 0) HorizontalDivider(color = DS.sep)
-                        Row(
-                            modifier = Modifier.fillMaxWidth().clickable { onShowClick(show.id) }
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = DS.success, modifier = Modifier.size(16.dp))
-                            Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                Text(AppPreferences.eventDisplayName(show.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(listOf(show.name, show.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
-                                    fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
+                        if (idx > 0) ImasRowDivider(inset = DS.sp5)
+                        ImasRow(
+                            title = AppPreferences.eventDisplayName(show.eventName),
+                            subtitle = listOf(show.name, show.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
+                            leading = ImasRowLeading.Icon(Icons.Filled.CheckCircle, tone = ImasIconTileTone.POSITIVE),
+                            trailing = ImasRowTrailing.Chevron,
+                            density = ImasRowDensity.COMPACT,
+                            modifier = Modifier.imasRowClick { onShowClick(show.id) }
+                        )
                     }
                 }
-            }
-        }
-        // KAMISABI カード所持 (収録曲のみ)
-        if (song.hasKamisabiCard) {
-            Column {
-                ImasSectionHeader("KAMISABIカード", tight = true)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("カード所持", fontSize = 15.sp, color = DS.ink)
-                        // 分母はこの曲のブランド (商品) 単位。KAMISABI は ML/SideM/シャニの
-                        // 別商品なので合算しない (RedTeam H-3/H-4)。言い回しも
-                        // kamisabiCompletionLabel() をそのまま出す (「枚」ではなく「曲」で数える)。
-                        state.kamisabiCompletion?.let { completion ->
-                            Text(kamisabiCompletionLabel(completion), fontSize = 12.sp, color = DS.ink2)
-                        }
-                    }
-                    Switch(checked = state.isCardOwned, onCheckedChange = { onToggleCardOwned() })
-                }
-                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
             }
         }
         // 楽曲情報
-        Column {
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasSectionHeader("楽曲情報", tight = true)
-            // 「よみ」は検索で使う値。画面に出しておかないと、間違っていても
-            // 「この曲が出てこない」としか思われず直しようがない (機械生成ぶんが混ざっている)。
-            InfoRow("よみ", song.titleKana)
-            InfoRow("アーティスト", artistLine)
-            // 以降、値そのものが「同じ条件の曲の集合」を指す行は一覧へ抜けられるようにする。
-            // ここが唯一の入口の条件もある (シリーズや作家は一覧の絞り込み UI に無い)。
-            state.brand?.let { brand ->
-                FilterRow("ブランド", brand.shortName, seed, song.brandId) {
-                    onFilteredSongsClick(SongFilterKind.BRAND, brand.id)
+            val rows = buildList<@Composable () -> Unit> {
+                // 「よみ」は検索で使う値。画面に出しておかないと、間違っていても
+                // 「この曲が出てこない」としか思われず直しようがない (機械生成ぶんが混ざっている)。
+                song.titleKana?.takeIf { it.isNotEmpty() }?.let { v -> add { FieldRow(key = "よみ", value = v) } }
+                artistLine?.takeIf { it.isNotEmpty() }?.let { v -> add { FieldRow(key = "アーティスト", value = v) } }
+                // 以降、値そのものが「同じ条件の曲の集合」を指す行は一覧へ抜けられるようにする。
+                // ここが唯一の入口の条件もある (シリーズや作家は一覧の絞り込み UI に無い)。
+                state.brand?.let { brand ->
+                    add { FieldRow(key = "ブランド", value = brand.shortName, onClick = { onFilteredSongsClick(SongFilterKind.BRAND, brand.id) }) }
+                }
+                if (song.songType.isNotEmpty() && song.songType != "unknown") {
+                    add { FieldRow(key = "タイプ", value = songTypeLabel(song.songType), onClick = { onFilteredSongsClick(SongFilterKind.SONG_TYPE, song.songType) }) }
+                }
+                // 「YYYY-...」から年だけ取れたときにリリース年の一覧へ。年が読めない表記
+                // (未定・年だけ等) は押せない普通の行に落とす — 行き先が作れないため。
+                val releaseYear = song.releaseDate?.take(4)?.takeIf { it.length == 4 && it.toIntOrNull() != null }
+                song.releaseDate?.takeIf { it.isNotEmpty() }?.let { date ->
+                    if (releaseYear != null) {
+                        add { FieldRow(key = "リリース日", value = date, onClick = { onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, releaseYear) }) }
+                    } else {
+                        add { FieldRow(key = "リリース日", value = date) }
+                    }
+                }
+                formatDuration(song.durationSec)?.let { v -> add { FieldRow(key = "再生時間", value = v) } }
+                // クレジットは 1 欄に複数名が入るので、行ごとではなく名前ごとに押せるようにする。
+                // 欄の割り方はコア (splitCreditNames) が唯一の正。
+                song.composer?.let { v -> add { CreditRow("作曲", v, seed, song.brandId, onFilteredSongsClick) } }
+                song.lyricist?.let { v -> add { CreditRow("作詞", v, seed, song.brandId, onFilteredSongsClick) } }
+                song.arranger?.let { v -> add { CreditRow("編曲", v, seed, song.brandId, onFilteredSongsClick) } }
+                song.seriesGroup?.takeIf { it.isNotEmpty() }?.let { series ->
+                    add { FieldRow(key = "シリーズ", value = series, onClick = { onFilteredSongsClick(SongFilterKind.SERIES_GROUP, series) }) }
+                }
+                song.cdSeries?.takeIf { it.isNotEmpty() }?.let { cdSeries ->
+                    add { FieldRow(key = "CDシリーズ", value = cdSeries, onClick = { onFilteredSongsClick(SongFilterKind.CD_SERIES, cdSeries) }) }
+                }
+                song.cdTitle?.takeIf { it.isNotEmpty() }?.let { v -> add { FieldRow(key = "収録", value = v) } }
+                state.unit?.let { unit ->
+                    add { FieldRow(key = "ユニット", value = unit.name, onClick = { onUnitClick(unit.id) }) }
                 }
             }
-            if (song.songType.isNotEmpty() && song.songType != "unknown") {
-                FilterRow("タイプ", songTypeLabel(song.songType), seed, song.brandId) {
-                    onFilteredSongsClick(SongFilterKind.SONG_TYPE, song.songType)
+            ImasCardList {
+                rows.forEachIndexed { idx, row ->
+                    if (idx > 0) ImasRowDivider(inset = DS.sp5)
+                    row()
                 }
-            }
-            // 「YYYY-...」から年だけ取れたときにリリース年の一覧へ。年が読めない表記
-            // (未定・年だけ等) は押せない普通の行に落とす — 行き先が作れないため。
-            val releaseYear = song.releaseDate?.take(4)?.takeIf { it.length == 4 && it.toIntOrNull() != null }
-            if (releaseYear != null) {
-                FilterRow("リリース日", song.releaseDate, seed, song.brandId) {
-                    onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, releaseYear)
-                }
-            } else {
-                InfoRow("リリース日", song.releaseDate)
-            }
-            InfoRow("再生時間", formatDuration(song.durationSec))
-            // クレジットは 1 欄に複数名が入るので、行ごとではなく名前ごとに押せるようにする。
-            CreditRow("作曲", song.composer, seed, song.brandId, onFilteredSongsClick)
-            CreditRow("作詞", song.lyricist, seed, song.brandId, onFilteredSongsClick)
-            CreditRow("編曲", song.arranger, seed, song.brandId, onFilteredSongsClick)
-            song.seriesGroup?.takeIf { it.isNotEmpty() }?.let { series ->
-                FilterRow("シリーズ", series, seed, song.brandId) {
-                    onFilteredSongsClick(SongFilterKind.SERIES_GROUP, series)
-                }
-            }
-            song.cdSeries?.takeIf { it.isNotEmpty() }?.let { cdSeries ->
-                FilterRow("CDシリーズ", cdSeries, seed, song.brandId) {
-                    onFilteredSongsClick(SongFilterKind.CD_SERIES, cdSeries)
-                }
-            }
-            InfoRow("収録", song.cdTitle)
-            if (state.unit != null) {
-                ImasLabeledRow(key = "ユニット", value = state.unit.name, tappable = true, seed = seed, brand = song.brandId,
-                    onClick = { onUnitClick(state.unit.id) })
-                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
             }
             // 補足の入口。補足は利用者の投稿で増やしたいので、楽曲情報のすぐ下に置く (iOS と同じ)。
             // 補足がある曲は本文は Hero に出ているので「直す」だけ、無い曲は何を書くかの例を添える。
@@ -673,14 +680,12 @@ private fun InfoTab(
 }
 
 /**
- * 値が「同じ条件の曲の集合」を指す行。押すと絞り込み一覧へ抜ける。
- * 押せる見た目 (accent 文字 + 矢印) は tappable が出す。
+ * 値だけの「項目: 値」行。値が押せる (他画面へ抜ける) ときだけ [onClick] を渡す。
+ * 名前を `ImasRow` (DS の行の素の形) と分けているのは、同じファイルで両方使うため。
  */
 @Composable
-private fun FilterRow(key: String, value: String?, seed: String?, brand: String?, onClick: () -> Unit) {
-    if (value.isNullOrEmpty()) return
-    ImasLabeledRow(key = key, value = value, tappable = true, seed = seed, brand = brand, onClick = onClick)
-    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+private fun FieldRow(key: String, value: String, onClick: (() -> Unit)? = null) {
+    ImasValueRow(key = key, value = value, isLink = onClick != null, onClick = onClick)
 }
 
 /**
@@ -689,55 +694,48 @@ private fun FilterRow(key: String, value: String?, seed: String?, brand: String?
  *
  * 欄の割り方はコア (`splitCreditNames`) が唯一の正 — 括弧の外は 5 種類の区切りで割り、
  * 括弧の中は `・` と `、` だけで割る (`,` `/` は社名の一部)。ここで書き直すと
- * 一覧側の突き合わせ (コアの songsByCreator) とずれて、同じ人が
- * 二通りに分かれるか一覧が 0 件になる。
+ * 一覧側の突き合わせ (コアの songsByCreator) とずれて、同じ人が二通りに分かれるか一覧が 0 件になる。
+ * 複数名が独立してタップできる行は `ImasValueRow` では表現できないため据え置き
+ * (寸法だけ DS のトークンに揃える)。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CreditRow(
     key: String,
-    value: String?,
+    value: String,
     seed: String?,
     brand: String?,
     onFilteredSongsClick: (String, String) -> Unit
 ) {
-    if (value.isNullOrEmpty()) return
     // 空白だけの断片 (欄が "/" だけ等) は人名ではないので落とす。ルート引数が空になると
     // 行き先のパスが組み立たず、押した瞬間に落ちる。
     val names = remember(value) { splitCreditNames(value).filter { it.isNotBlank() } }
     if (names.isEmpty()) return
     val t = imasThemeForBrand(seed, brand)
     Row(
-        modifier = Modifier.fillMaxWidth().background(DS.surface).padding(horizontal = 16.dp, vertical = 11.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap)
     ) {
-        Text(key, fontSize = 15.sp, color = DS.ink2)
+        ImasText(key, ImasTextRole.VALUE, color = DS.ink2)
         Box(Modifier.weight(1f))
         // 名前は右寄せで「A / B」と並べる。区切りの "/" は押せない (人ではないので)。
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
+            verticalArrangement = Arrangement.spacedBy(DS.sp1)
         ) {
             names.forEachIndexed { index, name ->
-                if (index > 0) Text("/", fontSize = 15.sp, color = DS.ink3)
-                Text(
-                    name, fontSize = 15.sp, color = t.accent,
+                if (index > 0) ImasText("/", ImasTextRole.VALUE, color = DS.ink3)
+                ImasText(
+                    name, ImasTextRole.VALUE, color = t.accent,
                     modifier = Modifier.clickable { onFilteredSongsClick(SongFilterKind.CREATOR, name) }
                 )
             }
         }
     }
-    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
 }
 
-@Composable
-private fun InfoRow(key: String, value: String?) {
-    if (value.isNullOrEmpty()) return
-    ImasLabeledRow(key = key, value = value)
-    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-}
-
+/** 関連 / おすすめ楽曲の一覧節。「関連楽曲」(ローカル算出)・「この曲が好きな人にはこれも」(タグ類似) が同じ見た目を使う。 */
 @Composable
 private fun RelatedSongsSection(
     title: String,
@@ -747,209 +745,72 @@ private fun RelatedSongsSection(
     badge: Map<String, Int>?,
     onSongClick: (String) -> Unit
 ) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
         ImasSectionHeader(title, count = "${songs.size}")
-        Column(Modifier.padding(horizontal = 16.dp)) {
+        ImasCardList {
             songs.forEachIndexed { idx, s ->
-                if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 44.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSongClick(s.id) }.padding(vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ImasArtwork(title = s.title, seed = seed, brand = brand, size = 44.dp, imageUrl = s.artworkUrl)
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(s.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val sub = s.singerLabel ?: s.unitName
-                        if (!sub.isNullOrEmpty()) {
-                            Text(sub, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    val b = badge?.get(s.id)
-                    if (b != null) {
-                        Text("タグ${b}個一致", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3,
-                            modifier = Modifier.padding(end = 4.dp))
-                    }
-                }
+                if (idx > 0) ImasRowDivider(inset = DS.sp5 + 44.dp)
+                RelatedSongRow(s, seed, brand, badge?.get(s.id), onClick = { onSongClick(s.id) })
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+/** 関連/おすすめ楽曲・共起曲が共有する行の見た目 (iOS `RelatedSongRow`)。見た目は DS の [ImasSongRow]。 */
 @Composable
-private fun CommunityTab(
-    state: SongDetailUiState, seed: String?, brand: String?, authState: AuthState,
-    onSongClick: (String) -> Unit,
-    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
-    onOpenTagPicker: () -> Unit,
-    onTagDetailClick: (String) -> Unit,
-    onCreateVideo: () -> Unit,
-    onEditVideo: (SongVideo) -> Unit,
-    onOpenPenlightVote: () -> Unit,
-    onPollClick: (String) -> Unit
-) {
-    val context = LocalContext.current
-    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。
-    // extension property は毎回 EditPermissionRules を RustBuffer に詰めて JNA を跨ぐので、
-    // 参考動画 1 件ごと・再コンポーズごとに呼ぶと (要素数ぶんの FFI) スクロール中ずっと積み上がる。
-    val canEditHere = remember(authState) { authState.showEditAffordance }
-    val needsLogin = remember(authState) { authState.shouldPromptLogin }
-    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        state.song?.let { song ->
-            com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = song.id, onOpenPoll = onPollClick)
-        }
-        if (needsLogin) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(DS.fill).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("タグ・動画・投票にはログインが必要です", fontSize = 12.5.sp, color = DS.ink2)
+private fun RelatedSongRow(song: Song, seed: String?, brand: String?, badge: Int?, subtitle: String? = null, onClick: () -> Unit) {
+    ImasSongRow(
+        title = song.title,
+        subtitle = subtitle ?: (song.singerLabel ?: song.unitName),
+        artworkUrl = song.artworkUrl,
+        seed = seed,
+        brand = brand,
+        density = ImasRowDensity.COMPACT,
+        trailing = if (badge != null) {
+            ImasRowTrailing.Custom {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
+                    ImasText("タグ${badge}個一致", ImasTextRole.META)
+                    com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron()
+                }
             }
-        }
-        // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル、長押しでタグ詳細、+ で全タグから追加。
-        Column {
+        } else {
+            ImasRowTrailing.Chevron
+        },
+        onClick = onClick
+    )
+}
+
+/** 楽曲情報の下の補足 (iOS `SongInfoTab.noteEntry` と同じ見た目と文言)。 */
+@Composable
+private fun NoteEntry(note: String?, seed: String?, brandId: String?, onEdit: (() -> Unit)?) {
+    val t = imasThemeForBrand(seed, brandId)
+    if (note != null) {
+        // ある曲は本文が主役。直す導線は見出しの右に小さく添える (iOS SongInfoTab と同じ)。
+        ImasCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("タグ", count = "${state.tags.size}", modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onOpenTagPicker, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "タグを追加", tint = DS.ink2)
-                    }
+                ImasText("この曲の補足", ImasTextRole.SECTION_LABEL, modifier = Modifier.weight(1f))
+                if (onEdit != null) {
+                    ImasText(
+                        "直す", ImasTextRole.EYEBROW, color = t.accent,
+                        modifier = Modifier.clickable(onClick = onEdit)
+                    )
                 }
             }
-            if (state.tags.isEmpty()) {
-                Text("タグはまだありません", fontSize = 13.sp, color = DS.ink3,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
-            } else {
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    state.tags.forEach { tag ->
-                        val bg = if (tag.mine) DS.pick.copy(alpha = 0.18f) else DS.fill
-                        val fg = if (tag.mine) DS.pick else DS.ink
-                        Row(
-                            modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(bg)
-                                .combinedClickable(
-                                    onClick = { onToggleTag(tag) },
-                                    onLongClick = { onTagDetailClick(tag.id) }
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(tag.name, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = fg)
-                            if (tag.voteCount > 0) {
-                                Text(" ${tag.voteCount}", fontSize = 12.sp, color = DS.ink3)
-                            }
-                        }
-                    }
-                }
+            SelectionContainer {
+                ImasText(note, ImasTextRole.VALUE, modifier = Modifier.padding(top = DS.Space.gapTight))
             }
         }
-        // この曲が好きな人にはこれも (タグが似ている楽曲, サーバ算出)
-        if (state.similarTagSongs.isNotEmpty()) {
-            RelatedSongsSection("この曲が好きな人にはこれも", state.similarTagSongs, seed, brand, state.similarSharedTags, onSongClick)
-        }
-        // ペンライト投票 (集計系・Worker D1)
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("ペンライト", count = state.penlight?.totalVotes?.let { "${it}票" }, modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onOpenPenlightVote, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "投票する", tint = DS.ink2)
-                    }
-                }
-            }
-            val sets = state.penlight?.topSets ?: emptyList()
-            if (sets.isEmpty()) {
-                ImasEmptyState(Icons.Filled.Star, "まだ投票がありません",
-                    "あなたが思うこの曲のペンライト色を投票しませんか？", seed = seed, brand = brand)
-            } else {
-                sets.take(5).forEach { ps ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        ps.colors.take(4).forEach { hex ->
-                            Box(Modifier.size(20.dp).clip(RoundedCornerShape(5.dp))
-                                .background(hexToColor(hex)))
-                        }
-                        Box(Modifier.weight(1f))
-                        Text("${ps.count}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-                    }
-                }
-            }
-        }
-        // 参考動画 (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ImasSectionHeader("参考動画", count = "${state.songVideos.size}", modifier = Modifier.weight(1f))
-                if (canEditHere) {
-                    IconButton(onClick = onCreateVideo, modifier = Modifier.padding(end = 8.dp)) {
-                        Icon(Icons.Filled.Add, contentDescription = "参考動画を追加", tint = DS.ink2)
-                    }
-                }
-            }
-            if (state.songVideos.isEmpty()) {
-                ImasEmptyState(Icons.Filled.OndemandVideo, "参考動画はまだありません",
-                    "ライブ映像などの参考動画を共有しませんか？", seed = seed, brand = brand)
-            } else {
-                // id とサムネイルの URL はコアが読む (一覧で 1 回)。
-                val refs = remember(state.songVideos) { youtubeVideoRefs(state.songVideos.map { it.youtubeUrl }) }
-                state.songVideos.forEachIndexed { index, video ->
-                    val ref = refs.getOrNull(index)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            openUrl(context, video.youtubeUrl)
-                        }.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(Modifier.size(56.dp).clip(RoundedCornerShape(9.dp)).background(DS.fill), contentAlignment = Alignment.Center) {
-                            ref?.thumbnailUrl?.let { thumbnail ->
-                                // 高解像度 (maxresdefault) が無い動画は mqdefault に落とす (iOS と同じ)。
-                                SubcomposeAsyncImage(
-                                    model = thumbnail,
-                                    contentDescription = video.videoTitle,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(9.dp)),
-                                    error = {
-                                        ref.fallbackThumbnailUrl?.let { fallback ->
-                                            SubcomposeAsyncImage(
-                                                model = fallback,
-                                                contentDescription = video.videoTitle,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(9.dp))
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                            Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(22.dp))
-                        }
-                        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                            Text(video.videoTitle ?: video.youtubeUrl, fontSize = 15.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            if (!video.note.isNullOrEmpty()) {
-                                Text(video.note, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            if (!video.authorDisplayName.isNullOrEmpty()) {
-                                Text("投稿者: ${video.authorDisplayName}", fontSize = 11.sp, color = DS.ink3)
-                            }
-                        }
-                        if (canEditHere) {
-                            IconButton(onClick = { onEditVideo(video) }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Filled.Edit, contentDescription = "参考動画を編集", tint = DS.ink2,
-                                    modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
-                }
-            }
-        }
+        return
     }
+    if (onEdit == null) return
+    ImasEntryCard(
+        icon = Icons.Filled.Edit,
+        title = "補足を書く",
+        preview = "「◯周年記念楽曲」「アニメ◯話の挿入歌」など、この曲の由来を 1 文で",
+        seed = seed,
+        brand = brandId,
+        onClick = onEdit
+    )
 }
 
 /**
@@ -971,15 +832,16 @@ private fun HistoryTab(
 ) {
     if (history.isEmpty()) {
         ImasEmptyState(Icons.Filled.MusicNote, "披露履歴はまだありません",
-            "この曲がライブで披露されると、ここに記録されます。", seed = seed, brand = brand)
+            "この曲がライブで披露されると、ここに記録されます。", seed = seed, brand = brand,
+            modifier = Modifier.padding(top = DS.sp4))
         return
     }
-    Column(modifier = Modifier.padding(top = 8.dp)) {
+    Column(
+        modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4),
+        verticalArrangement = Arrangement.spacedBy(DS.sp5)
+    ) {
         val sortedByDateAsc = history.sortedBy { it.date }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
             ImasStatTile(Icons.Filled.Mic, "${history.size}", "総披露", unit = "回", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.first().date), "初披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
             ImasStatTile(Icons.Filled.CalendarMonth, shortYearMonth(date = sortedByDateAsc.last().date), "最終披露", seed = seed, brand = brand, modifier = Modifier.weight(1f))
@@ -987,59 +849,46 @@ private fun HistoryTab(
         // 披露実績がまだ 1 度も無い曲でだけ中身が空になり、節ごと消える。
         SingersSection(evidence.singers, onIdolClick)
         CoOccurringSection(evidence.coOccurring, seed, brand, onSongClick)
-        ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
-        history.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable { onShowClick(row.showId) }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ImasLeadBar(seedHex = seed, brandId = brand, height = 34.dp)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(AppPreferences.eventDisplayName(row.eventName), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(listOf(row.showName, row.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
-                        fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+            ImasSectionHeader("ライブ披露履歴", count = "${history.size}回", tight = true)
+            ImasCardList {
+                history.forEachIndexed { idx, row ->
+                    if (idx > 0) ImasRowDivider(inset = DS.sp4)
+                    ImasRow(
+                        title = AppPreferences.eventDisplayName(row.eventName),
+                        subtitle = listOf(row.showName, row.date).filter { it.isNotEmpty() }.joinToString(" ・ "),
+                        leading = ImasRowLeading.Bar(seed = seed, brand = brand),
+                        trailing = ImasRowTrailing.Chevron,
+                        density = ImasRowDensity.COMPACT,
+                        modifier = Modifier.imasRowClick { onShowClick(row.showId) }
+                    )
                 }
             }
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
         }
     }
 }
 
 /**
- * 「この曲を歌った人」。歌った回数の多い順。
- *
- * 副題が根拠。「よく歌う人」ではなく「何回歌ったか」を出す
- * (回数を隠して傾向だけ書くと、外れたときに嘘になる)。
+ * 「この曲を歌った人」。歌った回数の多い順。副題が根拠 (「よく歌う人」ではなく「何回歌ったか」)。
+ * 先頭のアイコンは歌唱者本人の色 ([ImasIdolRow] が `idol.color`/`idol.brandId` を直に読む)。
  */
 @Composable
-private fun SingersSection(
-    rows: List<SongSingerTally>,
-    onIdolClick: (String) -> Unit
-) {
+private fun SingersSection(rows: List<SongSingerTally>, onIdolClick: (String) -> Unit) {
     if (rows.isEmpty()) return
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
         ImasSectionHeader("この曲を歌った人", tight = true)
         // 分母 (全 N 回) は上のサマリタイル「総披露」と同じ数え方。同じ画面に単位の違う
         // 数字 (共起節は公演数) が並ぶので、どちらなのかを言っておく。
-        EvidenceNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
-        Column(Modifier.padding(horizontal = 16.dp)) {
+        ImasNote("セトリに残っている歌唱の集計です。分母は上の「総披露」と同じ回数です。")
+        ImasCardList {
             rows.forEachIndexed { idx, row ->
-                if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 48.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onIdolClick(row.idol.id) }
-                        .padding(vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ImasAvatar(label = row.idol.shortName, seed = row.idol.color, brand = row.idol.brandId, size = 36.dp)
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(row.idol.name, fontSize = 15.sp, color = DS.ink,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${row.times}回 ／ 全${row.total}回", fontSize = 12.sp, color = DS.ink2,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
+                if (idx > 0) ImasRowDivider(inset = DS.sp5 + 36.dp)
+                ImasIdolRow(
+                    idol = row.idol,
+                    subtitle = "${row.times}回 ／ 全${row.total}回",
+                    density = ImasRowDensity.COMPACT,
+                    onClick = { onIdolClick(row.idol.id) }
+                )
             }
         }
     }
@@ -1047,97 +896,212 @@ private fun SingersSection(
 
 /**
  * 「同じ公演で歌われた曲」。一緒に来た**公演数**の多い順。
- *
- * 行の形は [RelatedSongsSection] と同じだが、副題は歌唱表記ではなく**根拠の回数**。
- * この行が並んでいる理由そのものが回数なので、歌唱表記よりそちらを副題の位置に置く。
+ * 行の形は [RelatedSongRow] と同じだが、副題は歌唱表記ではなく**根拠の回数**。
  */
 @Composable
-private fun CoOccurringSection(
-    rows: List<CoOccurringSong>,
-    seed: String?,
-    brand: String?,
-    onSongClick: (String) -> Unit
-) {
+private fun CoOccurringSection(rows: List<CoOccurringSong>, seed: String?, brand: String?, onSongClick: (String) -> Unit) {
     if (rows.isEmpty()) return
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
         ImasSectionHeader("同じ公演で歌われた曲", tight = true)
         // ⚠️ ここだけ単位が「公演」。1 公演で 2 回演奏されても 1 と数えるため、相手の曲を
-        // 開いた先の「総披露 N 回」(セトリ行数) より小さい数になる (同梱 master で 48 曲が
-        // このズレを持つ。例: 初 = 39 公演 / 64 回)。単位を書かないと「どちらが本当の回数か」
-        // が読み手に判断できない。
-        EvidenceNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
-        Column(Modifier.padding(horizontal = 16.dp)) {
+        // 開いた先の「総披露 N 回」(セトリ行数) より小さい数になる。単位を書かないと
+        // 「どちらが本当の回数か」が読み手に判断できない。
+        ImasNote("同じ公演に両方あった公演数です (1 公演で 2 回歌っても 1 公演)。次のライブで一緒に来るとは限りません。")
+        ImasCardList {
             rows.forEachIndexed { idx, row ->
-                if (idx > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 56.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSongClick(row.song.id) }
-                        .padding(vertical = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ImasArtwork(title = row.song.title, seed = seed, brand = brand, size = 44.dp,
-                        imageUrl = row.song.artworkUrl)
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(row.song.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        // 分母まで出す。12/15 (ほぼ必ず一緒) と 12/300 (たまたま) は別物で、
-                        // 回数だけだと読み手が区別できない。単位は「回」ではなく「公演」
-                        // (歌唱者行の「全 N 回」= セトリ行数とは別の数え方なので語を分ける)。
-                        Text("いっしょに${row.together}公演 ／ 全${row.performances}公演",
-                            fontSize = 12.sp, color = DS.ink2,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (idx > 0) ImasRowDivider(inset = DS.sp5 + 44.dp)
+                RelatedSongRow(
+                    song = row.song, seed = seed, brand = brand, badge = null,
+                    subtitle = "いっしょに${row.together}公演 ／ 全${row.performances}公演",
+                    onClick = { onSongClick(row.song.id) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@Composable
+private fun CommunityTab(
+    state: SongDetailUiState, seed: String?, brand: String?, authState: AuthState,
+    onSongClick: (String) -> Unit,
+    onToggleTag: (com.fugaif.imaslivedb.data.community.CommunityApi.SongTag) -> Unit,
+    onOpenTagPicker: () -> Unit,
+    onTagDetailClick: (String) -> Unit,
+    onCreateVideo: () -> Unit,
+    onEditVideo: (SongVideo) -> Unit,
+    onOpenPenlightVote: () -> Unit,
+    onPollClick: (String) -> Unit
+) {
+    val context = LocalContext.current
+    // 権限フラグは認証状態が変わった時だけコアへ問い合わせる。
+    val canEditHere = remember(authState) { authState.showEditAffordance }
+    val needsLogin = remember(authState) { authState.shouldPromptLogin }
+    Column(
+        modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4),
+        verticalArrangement = Arrangement.spacedBy(DS.sp5)
+    ) {
+        state.song?.let { song ->
+            com.fugaif.imaslivedb.ui.polls.PollAchievementBadges(entityId = song.id, onOpenPoll = onPollClick)
+        }
+        // shouldPromptLogin は BAN 済みを「無反応」に倒す (iOS の .ignore と同じ)。
+        // ImasSignInPrompt 自身の isSignedIn チェックはこのゲートの内側でだけ働く。
+        if (needsLogin) {
+            ImasSignInPrompt(message = "タグ・動画・投票にはログインが必要です")
+        }
+        // タグ (集計系コミュニティ・Worker D1)。タップで自分の投票をトグル、長押しでタグ詳細、+ で全タグから追加。
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+            ImasSectionHeader(
+                "タグ", count = "${state.tags.size}",
+                actionTitle = if (canEditHere) "タグ" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onOpenTagPicker else null
+            )
+            if (state.tags.isEmpty()) {
+                ImasEmptyState(Icons.Filled.Sell, "タグはまだありません", seed = seed, brand = brand)
+            } else {
+                com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow {
+                    state.tags.forEach { tag ->
+                        val label = if (tag.voteCount > 0) "${tag.name} ${tag.voteCount}" else tag.name
+                        ImasChip(
+                            text = label,
+                            style = if (tag.mine) ImasChipStyle.SELECTED else ImasChipStyle.THEMED,
+                            seed = seed,
+                            brand = brand,
+                            modifier = Modifier.combinedClickable(
+                                onClick = { onToggleTag(tag) },
+                                onLongClick = { onTagDetailClick(tag.id) }
+                            )
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-/** 集計の但し書き。回数だけ並べると「予想」と読まれうるので、過去の実績だと明示する。 */
-@Composable
-private fun EvidenceNote(text: String) {
-    Text(text, fontSize = 12.sp, color = DS.ink3,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp))
-}
-
-/** 楽曲情報の下の補足 (iOS `SongInfoTab.noteEntry` と同じ見た目と文言)。 */
-@Composable
-private fun NoteEntry(note: String?, seed: String?, brandId: String?, onEdit: (() -> Unit)?) {
-    val t = imasThemeForBrand(seed, brandId)
-    if (note != null) {
-        // ある曲は本文が主役。直す導線は見出しの右に小さく添える (iOS SongInfoTab と同じ)。
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp)
-                .clip(RoundedCornerShape(12.dp)).background(DS.fill)
-                .padding(horizontal = 16.dp, vertical = 11.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("この曲の補足", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                    modifier = Modifier.weight(1f))
-                if (onEdit != null) {
-                    Text("直す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = t.accent,
-                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onEdit)
-                            .padding(horizontal = 6.dp, vertical = 2.dp))
+        // この曲が好きな人にはこれも (タグが似ている楽曲, サーバ算出)
+        if (state.similarTagSongs.isNotEmpty()) {
+            RelatedSongsSection("この曲が好きな人にはこれも", state.similarTagSongs, seed, brand, state.similarSharedTags, onSongClick)
+        }
+        // 参考動画 (構造化コミュニティ・CloudKit 直書き。POST /edits 経由で全ユーザーが投稿/編集可能)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+            ImasSectionHeader(
+                "参考動画", count = "${state.songVideos.size}",
+                actionTitle = if (canEditHere) "動画" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onCreateVideo else null
+            )
+            if (state.songVideos.isEmpty()) {
+                ImasEmptyState(Icons.Filled.OndemandVideo, "参考動画はまだありません",
+                    "ライブ映像などの参考動画を共有しませんか？", seed = seed, brand = brand)
+            } else {
+                // id とサムネイルの URL はコアが読む (一覧で 1 回)。
+                val refs = remember(state.songVideos) { youtubeVideoRefs(state.songVideos.map { it.youtubeUrl }) }
+                ImasCardList {
+                    state.songVideos.forEachIndexed { index, video ->
+                        if (index > 0) ImasRowDivider(inset = DS.sp5)
+                        VideoRow(video, refs.getOrNull(index), canEditHere, onEditVideo) { openUrl(context, video.youtubeUrl) }
+                    }
                 }
             }
-            SelectionContainer {
-                Text(note, fontSize = 15.sp, color = DS.ink, modifier = Modifier.padding(top = 4.dp))
-            }
         }
-        return
-    }
-    if (onEdit == null) return
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp)
-            .clip(RoundedCornerShape(12.dp)).background(DS.fill)
-            .clickable(onClick = onEdit)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(Icons.Filled.Edit, contentDescription = null, tint = t.accent, modifier = Modifier.size(16.dp))
-        Column(Modifier.weight(1f).padding(start = 10.dp)) {
-            Text("補足を書く", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Text("「◯周年記念楽曲」「アニメ◯話の挿入歌」など、この曲の由来を 1 文で",
-                fontSize = 12.sp, color = DS.ink2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        // ペンライト投票 (集計系・Worker D1)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+            ImasSectionHeader(
+                "ペンライト", count = state.penlight?.totalVotes?.let { "${it}票" },
+                actionTitle = if (canEditHere) "投票する" else null,
+                actionIcon = if (canEditHere) Icons.Filled.Add else null,
+                onAction = if (canEditHere) onOpenPenlightVote else null
+            )
+            val sets = state.penlight?.topSets ?: emptyList()
+            if (sets.isEmpty()) {
+                ImasEmptyState(Icons.Filled.Star, "まだ投票がありません",
+                    "あなたが思うこの曲のペンライト色を投票しませんか？", seed = seed, brand = brand)
+            } else {
+                ImasCardList {
+                    sets.take(5).forEachIndexed { idx, ps ->
+                        if (idx > 0) ImasRowDivider(inset = DS.sp5)
+                        PenlightRow(ps)
+                    }
+                }
+                ImasNote("この曲のペンライト色 ・ ${state.penlight?.totalVotes ?: 0}票")
+            }
         }
     }
 }
+
+@Composable
+private fun VideoRow(
+    video: SongVideo,
+    ref: uniffi.imas_core.YouTubeVideoRef?,
+    canEditHere: Boolean,
+    onEditVideo: (SongVideo) -> Unit,
+    onOpenVideo: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenVideo).padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(56.dp).clip(RoundedCornerShape(DS.rSM)).background(DS.fill),
+            contentAlignment = Alignment.Center
+        ) {
+            ref?.thumbnailUrl?.let { thumbnail ->
+                // 高解像度 (maxresdefault) が無い動画は mqdefault に落とす (iOS と同じ)。
+                SubcomposeAsyncImage(
+                    model = thumbnail,
+                    contentDescription = video.videoTitle,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DS.rSM)),
+                    error = {
+                        ref.fallbackThumbnailUrl?.let { fallback ->
+                            SubcomposeAsyncImage(
+                                model = fallback,
+                                contentDescription = video.videoTitle,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DS.rSM))
+                            )
+                        }
+                    }
+                )
+            }
+            // 下の写真は何色か分からないので、記号は実体色でなく固定の白にする
+            // (ImasMediaBadge と同じ考え方。写真の上に乗せる記号だけの例外)。
+            androidx.compose.material3.Icon(
+                Icons.Filled.PlayArrow, contentDescription = null,
+                tint = androidx.compose.ui.graphics.Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Column(Modifier.weight(1f).padding(start = DS.Space.rowGap), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+            ImasText(video.videoTitle ?: video.youtubeUrl, ImasTextRole.VALUE, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            video.note?.takeIf { it.isNotEmpty() }?.let { note -> ImasText(note, ImasTextRole.META, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            video.authorDisplayName?.takeIf { it.isNotEmpty() }?.let { author -> ImasText("投稿者: $author", ImasTextRole.META, color = DS.ink3) }
+        }
+        if (canEditHere) {
+            ImasIconButton(
+                icon = Icons.Filled.Edit, label = "参考動画を編集", size = ImasIconButtonSize.SMALL,
+                style = ImasIconButtonStyle.PLAIN, onClick = { onEditVideo(video) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PenlightRow(set: com.fugaif.imaslivedb.data.community.CommunityApi.PenlightSet) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowVCompact),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(DS.sp3)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.sp1)) {
+            set.colors.take(4).forEach { hex ->
+                Box(Modifier.size(20.dp).clip(RoundedCornerShape(DS.rXS)).background(hexToColor(hex)))
+            }
+        }
+        Box(Modifier.weight(1f))
+        com.fugaif.imaslivedb.ui.designsystem.ImasMetric("${set.count}", unit = "票", size = com.fugaif.imaslivedb.ui.theme.ImasNumeralSize.SMALL)
+    }
+}
+
+/** 行の全体を押せるようにする (`ImasNavRow` 等が内部で使うのと同じ押し心地)。 */
+@Composable
+private fun Modifier.imasRowClick(onClick: () -> Unit): Modifier = imasRowPress(onClick = onClick)
