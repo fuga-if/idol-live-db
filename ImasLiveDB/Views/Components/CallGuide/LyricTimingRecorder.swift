@@ -11,7 +11,7 @@ import OSLog
 /// 「次にタップする行」の決め方はコア (`lyricNextRecordable`) が持つ。
 @Observable
 @MainActor
-final class LyricTimingRecorder {
+final class LyricTimingRecorder: Identifiable {
     enum SaveState: Equatable {
         case idle
         case saving
@@ -32,6 +32,9 @@ final class LyricTimingRecorder {
     private let original: [Int?]
     /// 取り消し用。記録 1 回ごとに「どの行が・前は何だったか・カーソルはどこだったか」を積む。
     private var history: [(index: Int, previous: Int?, cursor: Int?)] = []
+    /// 直前の履歴が「微調整」か。同じ行を続けて寄せている間は 1 回の取り消しにまとめる
+    /// (つまみをなぞると 1 秒に何十回も値が変わるので、1 つずつ戻させない)。
+    private var lastWasAdjust = false
     private let writer: any CallGuideWriting
 
     init(lyrics: Lyrics, songId: String,
@@ -43,7 +46,14 @@ final class LyricTimingRecorder {
         self.starts = starts
         self.original = starts
         self.writer = writer
-        self.cursor = lyricNextRecordable(kinds: kinds, after: nil).map(Int.init)
+        // 記録の途中から続けられるよう、まだ時刻の無い最初の行から始める。全部あれば先頭から。
+        let kinds = self.kinds
+        var candidate = lyricNextRecordable(kinds: kinds, after: nil).map(Int.init)
+        let first = candidate
+        while let index = candidate, starts[index] != nil {
+            candidate = lyricNextRecordable(kinds: kinds, after: UInt32(index)).map(Int.init)
+        }
+        self.cursor = candidate ?? first
     }
 
     var isDirty: Bool { starts != original }
@@ -65,13 +75,40 @@ final class LyricTimingRecorder {
     func record(lineId: String, positionMs: Int) {
         guard let index = lineIds.firstIndex(of: lineId), isRecordable(lineId) else { return }
         history.append((index, starts[index], cursor))
+        lastWasAdjust = false
         starts[index] = positionMs
         cursor = lyricNextRecordable(kinds: kinds, after: UInt32(index)).map(Int.init)
     }
 
+    /// 次の行 (カーソル) の歌い出しを今の再生位置で記録する (大きい記録ボタン)。
+    func recordNext(positionMs: Int) {
+        guard let id = cursorLineId else { return }
+        record(lineId: id, positionMs: positionMs)
+    }
+
+    /// 行の歌い出しを指定の時刻にする (つまみ・微調整)。カーソルは動かさない。
+    func adjust(lineId: String, toMs ms: Int) {
+        guard let index = lineIds.firstIndex(of: lineId), isRecordable(lineId) else { return }
+        if !(lastWasAdjust && history.last?.index == index) {
+            history.append((index, starts[index], cursor))
+        }
+        starts[index] = max(0, ms)
+        lastWasAdjust = true
+    }
+
+    /// 行の歌い出しを前後に寄せる (-0.1 秒 / +0.1 秒)。記録の無い行は動かさない。
+    func nudge(lineId: String, byMs delta: Int) {
+        guard let current = start(for: lineId) else { return }
+        adjust(lineId: lineId, toMs: current + delta)
+    }
+
+    /// 表示順の各行の開始 ms (コアに渡す形)。
+    var startsForCore: [Int64?] { starts.map { $0.map(Int64.init) } }
+
     /// 直前の記録を取り消す (カーソルも戻す)。
     func undo() {
         guard let last = history.popLast() else { return }
+        lastWasAdjust = false
         starts[last.index] = last.previous
         cursor = last.cursor
     }

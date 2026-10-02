@@ -1,0 +1,49 @@
+import Foundation
+
+/// 再生との連動。プレイヤーとスクロールは親 (`SongSheetContent`) が持つ。
+///
+/// 追従・記録はフル再生 (Apple Music) だけ。30 秒試聴は曲のどこを切り出したか
+/// 分からないので、行の時刻と突き合わせられない。
+struct LyricsPlayback {
+    /// この曲がフル尺で読み込まれているか (一時停止中も含む)。
+    var isFullLoaded = false
+    /// この曲がフル尺で鳴っているか。
+    var isPlaying = false
+    /// 今の再生位置 (ms)。フル再生でなければ nil。周期で読む。
+    var positionMs: () -> Int? = { nil }
+    /// 記録のためにこの曲のフル再生を始める。始められなければ false (未契約など)。
+    var startFull: () async -> Bool = { false }
+    /// 曲の長さ (ms)。フル再生していなければ nil。
+    var durationMs: () -> Int? = { nil }
+    /// 再生位置を動かす。
+    var seek: (Int) -> Void = { _ in }
+    /// その位置から鳴らす。フル再生していなければ始めてから動かす (シークバーのタップ)。
+    var playFrom: (Int) async -> Void = { _ in }
+    /// 再生 / 一時停止を切り替える。
+    var togglePlay: () -> Void = {}
+    /// その行を画面の中ほどへ寄せる。
+    var scrollTo: (String) -> Void = { _ in }
+}
+
+/// 歌詞行の「ここ好き」の付け外し。歌詞タブと歌詞プレイヤーで同じ動きにするための 1 か所。
+///
+/// 自分の印は端末に行 ID だけ残し (本文は残さない)、ログインしていればみんなの人数にも足す。
+/// 送れなくても自分の印は残す。
+@MainActor
+enum LyricLikeAction {
+    /// - Returns: 付け外し後のその行の人数 (送れたときだけ)。端末への書き込みに失敗したら nil。
+    static func toggle(songId: String, lineId: String) async -> Int? {
+        AppAnalytics.tap("lyric_like.toggle")
+        let marks = UserMarkService.shared
+        do {
+            try marks.toggleLyricLike(songId: songId, lineId: lineId)
+        } catch {
+            LocalWriteFailure.report(error, action: "ここ好きの記録")
+            return nil
+        }
+        guard AuthService.shared.isSignedIn else { return nil }
+        let liked = marks.lyricLikes(songId: songId).contains(lineId)
+        return try? await AppContainer.shared.callGuideWriting
+            .setLyricLike(songId: songId, lineId: lineId, liked: liked)
+    }
+}

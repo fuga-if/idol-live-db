@@ -22,8 +22,10 @@ struct CallGuidePreviewHarness: View {
         case sheet
         /// 再生への追従 (ダミーの時刻を振り、起動からの経過時間を再生位置とみなす)。
         case sync
-        /// タイミング記録モード。
+        /// タイミング編集。
         case record
+        /// 歌詞プレイヤー (sync と同じダミーの時刻)。
+        case player
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -41,11 +43,11 @@ struct CallGuidePreviewHarness: View {
     init(mode: Mode) {
         self.mode = mode
         _vm = State(initialValue: DetailSheetViewModel(
-            songDetailReading: HarnessSongDetailReading(timed: mode == .sync)))
+            songDetailReading: HarnessSongDetailReading(timed: mode != .view && mode != .edit && mode != .sheet)))
     }
 
     private var fakePlayback: SongLyricsTab.Playback {
-        guard mode == .sync || mode == .record else { return .init() }
+        guard mode == .sync || mode == .record || mode == .player else { return .init() }
         let startedAt = startedAt
         return .init(isFullLoaded: true, isPlaying: true,
                      positionMs: { Int(Date().timeIntervalSince(startedAt) * 1000) },
@@ -58,12 +60,13 @@ struct CallGuidePreviewHarness: View {
     var body: some View {
         Group {
             switch mode {
-            case .view, .edit, .sync, .record:
+            case .view, .edit, .sync, .record, .player:
                 ScrollViewReader { proxy in
                     ScrollView {
                         SongLyricsTab(song: Self.sampleSong, seed: nil, vm: vm, playback: fakePlayback,
                                       reload: {}, debugStartsEditing: mode == .edit,
-                                      debugStartsRecording: mode == .record)
+                                      debugStartsRecording: mode == .record,
+                                      debugStartsPlayer: mode == .player)
                             .padding(.bottom, DS.sp8)
                     }
                     .onChange(of: scrollTarget) { _, id in

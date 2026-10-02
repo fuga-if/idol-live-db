@@ -152,3 +152,169 @@ struct ImasLikeHeatSeekBar: View {
         .accessibilityAction(named: "おすすめ地点から再生") { if let peak { onSeek(peak) } }
     }
 }
+
+// MARK: - 歌詞プレイヤーの 1 行
+
+/// 歌詞プレイヤーの 1 行。今の行は大きく墨で、それ以外は小さく薄く (Apple Music の歌詞と同じ読ませ方)。
+/// 大きさは文字の大きさではなく縮尺で変える — 行の折り返しが変わると、今の行が替わるたびに
+/// 全体が跳ねるため。光らせない・ぼかさない。
+struct ImasPlayerLyricLine: View {
+    let text: String
+    let isCurrent: Bool
+    /// 構成マーカー (「間奏」等)。本文より控えめに出す。
+    var isMarker = false
+    var isLiked = false
+    let seed: String?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+            // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと (歌詞の取り出し口になる)。
+            Text(text)
+                .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
+                .foregroundStyle(isCurrent ? DS.ink : DS.ink3)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if isLiked { ImasLyricLikeMark(seed: seed) }
+        }
+        .scaleEffect(isCurrent ? 1 : 0.86, anchor: .leading)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isCurrent)
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
+    }
+}
+
+// MARK: - タイミング編集のタイムライン
+
+/// 横長のタイムライン (動画編集アプリの並び)。再生位置は真ん中に固定し、帯の方が流れる。
+///
+/// - 地を横になぞる … 再生位置を動かす (`onScrub` が動いている間、`onScrubEnd` が離したとき)
+/// - 帯をタップ … その行を選ぶ
+/// - 選んだ帯の頭をなぞる … その行の歌い出しを動かす (`onMoveStart`)
+struct ImasTimingTimeline: View {
+    struct Block: Identifiable, Equatable {
+        let id: String
+        let startMs: Int
+        let endMs: Int
+        let label: String
+    }
+
+    @Environment(\.colorScheme) private var scheme
+    let blocks: [Block]
+    let playheadMs: Int
+    let selectedId: String?
+    let seed: String?
+    var pointsPerSecond: CGFloat = 70
+    let onScrub: (Int) -> Void
+    let onScrubEnd: (Int) -> Void
+    let onSelect: (String) -> Void
+    let onMoveStart: (String, Int) -> Void
+
+    @State private var scrubFrom: Int?
+    @State private var moveFrom: Int?
+
+    private let rulerHeight: CGFloat = 20
+    private let blockHeight: CGFloat = 48
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: seed, scheme: scheme)
+        GeometryReader { geo in
+            let w = geo.size.width
+            let x: (Int) -> CGFloat = { ms in w / 2 + CGFloat(ms - playheadMs) / 1000 * pointsPerSecond }
+            ZStack(alignment: .topLeading) {
+                ruler(width: w, x: x)
+                ForEach(blocks) { b in
+                    let left = x(b.startMs)
+                    let width = max(6, x(b.endMs) - left - 2)
+                    if left + width > -40 && left < w + 40 {
+                        block(b, width: width, theme: t)
+                            .offset(x: left, y: rulerHeight + 4)
+                    }
+                }
+                // 再生位置 (真ん中に固定)。
+                Rectangle().fill(DS.ink)
+                    .frame(width: 2, height: rulerHeight + blockHeight + 8)
+                    .offset(x: w / 2 - 1)
+                    .allowsHitTesting(false)
+            }
+            .frame(width: w, height: rulerHeight + blockHeight + 8, alignment: .topLeading)
+            .clipped()
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { v in
+                        let from = scrubFrom ?? playheadMs
+                        if scrubFrom == nil { scrubFrom = from }
+                        onScrub(max(0, from - Int(v.translation.width / pointsPerSecond * 1000)))
+                    }
+                    .onEnded { v in
+                        let from = scrubFrom ?? playheadMs
+                        scrubFrom = nil
+                        onScrubEnd(max(0, from - Int(v.translation.width / pointsPerSecond * 1000)))
+                    }
+            )
+        }
+        .frame(height: rulerHeight + blockHeight + 8)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("タイミングのタイムライン")
+    }
+
+    /// 1 秒ごとの目盛り、5 秒ごとに時刻。
+    private func ruler(width w: CGFloat, x: @escaping (Int) -> CGFloat) -> some View {
+        let visible = Int(w / pointsPerSecond) + 2
+        let firstSecond = max(0, playheadMs / 1000 - visible / 2)
+        return ZStack(alignment: .topLeading) {
+            ForEach(firstSecond...(firstSecond + visible), id: \.self) { s in
+                let major = s % 5 == 0
+                VStack(alignment: .leading, spacing: 0) {
+                    Rectangle().fill(major ? DS.ink2 : DS.sep).frame(width: 1, height: major ? 10 : 6)
+                    if major {
+                        Text(String(format: "%d:%02d", s / 60, s % 60))
+                            .imasText(.imprint, color: DS.ink3)
+                            .fixedSize()
+                    }
+                }
+                .offset(x: x(s * 1000))
+            }
+        }
+        .frame(height: rulerHeight, alignment: .topLeading)
+        .allowsHitTesting(false)
+    }
+
+    private func block(_ b: Block, width: CGFloat, theme t: ImasTheme) -> some View {
+        let selected = b.id == selectedId
+        return ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)
+                .fill(selected ? t.accent.opacity(scheme == .dark ? 0.32 : 0.2) : DS.fill)
+            RoundedRectangle(cornerRadius: DS.rSM, style: .continuous)
+                .strokeBorder(selected ? t.accent : DS.sep, lineWidth: selected ? 2 : 1)
+            Text(b.label)
+                .imasText(.meta, color: selected ? DS.ink : DS.ink2)
+                .lineLimit(1)
+                .padding(.leading, DS.sp3)
+                .padding(.trailing, DS.sp1)
+            if selected {
+                // 歌い出しのつまみ。なぞって前後に動かす。
+                Capsule().fill(t.accent)
+                    .frame(width: 6, height: blockHeight - 12)
+                    .padding(.leading, 2)
+                    .frame(width: 28, height: blockHeight, alignment: .leading)
+                    .contentShape(Rectangle())
+                    .highPriorityGesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { v in
+                                let from = moveFrom ?? b.startMs
+                                if moveFrom == nil { moveFrom = from }
+                                onMoveStart(b.id, max(0, from + Int(v.translation.width / pointsPerSecond * 1000)))
+                            }
+                            .onEnded { _ in moveFrom = nil }
+                    )
+                    .accessibilityLabel("歌い出しのつまみ")
+            }
+        }
+        .frame(width: width, height: blockHeight)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect(b.id) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+    }
+}

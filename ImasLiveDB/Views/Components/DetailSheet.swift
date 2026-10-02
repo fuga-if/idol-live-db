@@ -646,6 +646,9 @@ struct SongSheetContent: View {
                 }
                 player.seekFull(toMs: ms)
             },
+            togglePlay: {
+                if player.isPlaying { player.pause() } else { player.resume() }
+            },
             scrollTo: { lyricsScrollTarget = $0 }
         )
     }

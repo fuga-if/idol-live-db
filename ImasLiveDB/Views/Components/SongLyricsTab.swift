@@ -20,28 +20,7 @@ import SwiftUI
 /// - 共有 / 画像化 (`ShareCardScaffold`) にも繋がない。
 /// - コールの保存で歌詞本文を送らない (`CallGuidePayload`)。
 struct SongLyricsTab: View {
-    /// 再生との連動。プレイヤーとスクロールは親 (`SongSheetContent`) が持つ。
-    ///
-    /// 追従・記録はフル再生 (Apple Music) だけ。30 秒試聴は曲のどこを切り出したか
-    /// 分からないので、行の時刻と突き合わせられない。
-    struct Playback {
-        /// この曲がフル尺で読み込まれているか (一時停止中も含む)。
-        var isFullLoaded = false
-        /// この曲がフル尺で鳴っているか。
-        var isPlaying = false
-        /// 今の再生位置 (ms)。フル再生でなければ nil。周期で読む。
-        var positionMs: () -> Int? = { nil }
-        /// 記録のためにこの曲のフル再生を始める。始められなければ false (未契約など)。
-        var startFull: () async -> Bool = { false }
-        /// 曲の長さ (ms)。フル再生していなければ nil。
-        var durationMs: () -> Int? = { nil }
-        /// 再生位置を動かす。
-        var seek: (Int) -> Void = { _ in }
-        /// その位置から鳴らす。フル再生していなければ始めてから動かす (シークバーのタップ)。
-        var playFrom: (Int) async -> Void = { _ in }
-        /// その行を画面の中ほどへ寄せる。
-        var scrollTo: (String) -> Void = { _ in }
-    }
+    typealias Playback = LyricsPlayback
 
     @Environment(\.colorScheme) private var scheme
 
@@ -59,8 +38,10 @@ struct SongLyricsTab: View {
     /// スクリーンショット検証用に、歌詞が届いた時点で編集モードに入る (DEBUG ビルドのみ)。
     /// `CallGuidePreviewHarness` からしか渡らない。Release ビルドにはこの口自体が存在しない。
     var debugStartsEditing = false
-    /// 同じく、歌詞が届いた時点でタイミング記録モードに入る (DEBUG のみ)。
+    /// 同じく、歌詞が届いた時点でタイミング編集を開く (DEBUG のみ)。
     var debugStartsRecording = false
+    /// 同じく、歌詞が届いた時点で歌詞プレイヤーを開く (DEBUG のみ)。
+    var debugStartsPlayer = false
     #endif
 
     /// 非 nil = 編集モード。編集中の状態はここが持つ (元の `Lyrics` は不変)。
@@ -71,8 +52,10 @@ struct SongLyricsTab: View {
     /// 選択待ち状態をまとめて解除するための合図 (シートを閉じた後など)。
     @State private var selectionResetToken = 0
     @State private var saveErrorMessage: String?
-    /// 非 nil = タイミング記録モード。
+    /// 非 nil = タイミング編集を開いている。
     @State private var recorder: LyricTimingRecorder?
+    /// 歌詞プレイヤーを開いている。
+    @State private var showsPlayer = false
     /// 再生に追従している今の行。
     @State private var activeLineId: String?
     /// 記録を始められなかったときの案内。
@@ -129,8 +112,22 @@ struct SongLyricsTab: View {
         .onChange(of: activeLineId) { _, id in
             if let id, recorder == nil { playback.scrollTo(id) }
         }
-        .onChange(of: recorder?.cursorLineId) { _, id in
-            if let id { playback.scrollTo(id) }
+        .fullScreenCover(item: $recorder) { recorder in
+            if let lyrics = vm.lyrics {
+                LyricTimingEditorView(song: song, seed: seed, lyrics: lyrics, playback: playback,
+                                      recorder: recorder, onSaved: reload)
+            }
+        }
+        .fullScreenCover(isPresented: $showsPlayer) {
+            if let lyrics = vm.lyrics {
+                LyricsPlayerView(song: song, seed: seed, artistLine: vm.artistLine(for: song),
+                                 artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
+                                 lyrics: lyrics, playback: playback, likeCounts: $likeCounts,
+                                 onEditTimings: {
+                                     showsPlayer = false
+                                     Task { await beginRecording(lyrics) }
+                                 })
+            }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
         #if DEBUG
@@ -145,6 +142,7 @@ struct SongLyricsTab: View {
         if debugStartsRecording, recorder == nil {
             recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
         }
+        if debugStartsPlayer, !showsPlayer { showsPlayer = true }
         guard debugStartsEditing, editor == nil else { return }
         editor = CallGuideEditorModel(lyrics: lyrics, songId: song.id)
     }
@@ -172,10 +170,7 @@ struct SongLyricsTab: View {
                         .padding(.horizontal, DS.sp1)
                 }
                 editBar(lyrics)
-                if let recorder {
-                    recordingBar(recorder)
-                    card { recordingBody(lyrics, recorder) }
-                } else if let editor {
+                if let editor {
                     editingBanner
                     staleSection(editor)
                     card { editingBody(editor) }
@@ -360,8 +355,13 @@ struct SongLyricsTab: View {
                         reanchorTarget = nil
                     }
                     saveButton(editor)
-                } else if recorder == nil {
-                    ImasIconButton(systemImage: "metronome", label: "タイミングを記録",
+                } else {
+                    ImasIconButton(systemImage: "music.note.list", label: "歌詞プレイヤー",
+                                   size: .small) {
+                        AppAnalytics.tap("lyrics_player.open")
+                        showsPlayer = true
+                    }
+                    ImasIconButton(systemImage: "metronome", label: "タイミングを編集",
                                    size: .small) {
                         AppAnalytics.tap("lyric_timing.begin_record")
                         Task { await beginRecording(lyrics) }
@@ -606,7 +606,7 @@ struct SongLyricsTab: View {
         }
     }
 
-    /// 記録モードに入る。この曲がフル尺で読み込まれていなければ頭から鳴らす。
+    /// タイミング編集を開く。この曲がフル尺で読み込まれていなければ頭から鳴らす。
     private func beginRecording(_ lyrics: Lyrics) async {
         if !playback.isFullLoaded {
             guard await playback.startFull() else {
@@ -614,107 +614,16 @@ struct SongLyricsTab: View {
                 return
             }
         }
-        activeLineId = nil
         recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
-    }
-
-    /// 記録中の操作。再生位置・巻き戻し・取り消し・やめる・保存。
-    private func recordingBar(_ recorder: LyricTimingRecorder) -> some View {
-        VStack(alignment: .leading, spacing: DS.sp3) {
-            ImasNote("歌い出しに合わせて、印の付いた行をタップします。違う行をタップするとその行から記録し直せます。",
-                     systemImage: "metronome")
-            HStack(spacing: DS.sp2) {
-                // 周期で描き直すのは時刻の文字だけ (歌詞全体を 10 回/秒描き直さない)。
-                TimelineView(.periodic(from: .now, by: 0.1)) { _ in
-                    ImasLyricTimeLabel(ms: playback.positionMs(), isEmphasized: true)
-                }
-                Spacer(minLength: 0)
-                ImasIconButton(systemImage: "gobackward.5", label: "5 秒戻す", size: .small) {
-                    playback.seek(max(0, (playback.positionMs() ?? 0) - 5000))
-                }
-                ImasIconButton(systemImage: "arrow.uturn.backward", label: "取り消す", size: .small) {
-                    recorder.undo()
-                }
-                .disabled(!recorder.canUndo)
-                ImasIconButton(systemImage: "xmark", label: "記録をやめる", size: .small) {
-                    self.recorder = nil
-                }
-                ImasButton(title: "保存", role: .primary, size: .small,
-                           isLoading: recorder.saveState == .saving) {
-                    AppAnalytics.tap("lyric_timing.save")
-                    Task { await saveTimings(recorder) }
-                }
-                .disabled(!recorder.isDirty || recorder.saveState == .saving)
-            }
-        }
-        .padding(.horizontal, DS.sp1)
-    }
-
-    private func saveTimings(_ recorder: LyricTimingRecorder) async {
-        guard await recorder.save() else {
-            if case .failed(let message) = recorder.saveState { saveErrorMessage = message }
-            return
-        }
-        self.recorder = nil
-        reload()
-    }
-
-    @ViewBuilder
-    private func recordingBody(_ lyrics: Lyrics, _ recorder: LyricTimingRecorder) -> some View {
-        ForEach(lyrics.lines) { line in
-            recordingRow(line, recorder)
-                .imasLyricLine(line.id == recorder.cursorLineId ? .cursor : .normal, seed: seed)
-                .id(line.id)
-        }
-    }
-
-    @ViewBuilder
-    private func recordingRow(_ line: LyricLine, _ recorder: LyricTimingRecorder) -> some View {
-        if recorder.isRecordable(line.id) {
-            let ms = recorder.start(for: line.id)
-            Button {
-                guard let position = playback.positionMs() else { return }
-                recorder.record(lineId: line.id, positionMs: position)
-            } label: {
-                HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
-                    ImasLyricTimeLabel(ms: ms, isEmphasized: line.id == recorder.cursorLineId)
-                    // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
-                    Text(line.text)
-                        .imasText(line.kind == .marker ? .meta : .body)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.vertical, DS.sp2)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.imasPress)
-            .sensoryFeedback(.selection, trigger: ms)
-            .accessibilityHint("今の再生位置をこの行の歌い出しにします")
-        } else {
-            Color.clear.frame(height: DS.sp3)
-        }
     }
 
     // MARK: - ここ好き
 
-    /// 行の「ここ好き」を付け外しする。自分の印は端末に行 ID だけ残し (本文は残さない)、
-    /// ログインしていればみんなの人数にも足す。送れなくても自分の印は残す。
+    /// 行の「ここ好き」を付け外しする (中身は `LyricLikeAction`、歌詞プレイヤーと同じ)。
     private func toggleLike(_ line: LyricLine) {
-        AppAnalytics.tap("lyric_like.toggle")
-        do {
-            try markService.toggleLyricLike(songId: song.id, lineId: line.id)
-            likeToken += 1
-        } catch {
-            LocalWriteFailure.report(error, action: "ここ好きの記録")
-            return
-        }
-        guard AuthService.shared.isSignedIn else { return }
-        let liked = markService.lyricLikes(songId: song.id).contains(line.id)
-        let songId = song.id
+        likeToken += 1
         Task {
-            if let count = try? await AppContainer.shared.callGuideWriting
-                .setLyricLike(songId: songId, lineId: line.id, liked: liked) {
+            if let count = await LyricLikeAction.toggle(songId: song.id, lineId: line.id) {
                 likeCounts[line.id] = count
             }
         }
