@@ -313,6 +313,12 @@ object DS {
     /** ジャケの角丸。CD のジャケは角のある四角なので小さく (下限 3・上限 10)。 */
     fun rArtwork(size: Dp): Dp = (size.value * 0.08f).roundToInt().coerceIn(3, 10).dp
 
+    /**
+     * アプリアイコン (設定の頭など) の角丸。[rArtwork] は正方形の一辺から比例で出すが、
+     * アプリアイコンは OS のアダプティブアイコンに寄せた丸みを保ちたいので、サイズによらず固定にする。
+     */
+    val rAppIcon: Dp = rMD
+
     /** 広い画面 (タブレット) で一覧の本文が伸びきらない幅。Web の本文段と揃える (iOS と同じ値)。 */
     val readableContentWidth: Dp = 880.dp
 

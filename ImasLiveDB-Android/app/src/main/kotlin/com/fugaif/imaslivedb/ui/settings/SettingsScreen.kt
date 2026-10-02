@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.GridView
@@ -40,7 +39,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.QuestionAnswer
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.Vaccines
 import androidx.compose.material3.AlertDialog
@@ -94,7 +92,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
-import com.fugaif.imaslivedb.ui.designsystem.ImasPass
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
@@ -260,10 +257,10 @@ fun SettingsScreen(
                         ImasNavRow(title = "利用規約") { infoScreen = SettingsInfoScreen.TERMS }
                         ImasNavRow(title = "サポート") { infoScreen = SettingsInfoScreen.SUPPORT }
                         ImasNavRow(title = "オープンソースライセンス") { infoScreen = SettingsInfoScreen.LICENSES }
-                        ImasNavRow(title = "開発をサポートする", icon = Icons.Filled.Favorite, iconTone = ImasIconTileTone.NEUTRAL) {
+                        ImasNavRow(title = "開発をサポートする") {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://ko-fi.com/fugaapp")))
                         }
-                        ImasNavRow(title = "アプリを評価する", icon = Icons.Filled.Star, iconTone = ImasIconTileTone.NEUTRAL) {
+                        ImasNavRow(title = "アプリを評価する") {
                             val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")).apply {
                                 setPackage("com.android.vending")
                             }
@@ -369,6 +366,7 @@ private fun DataSyncSection() {
             is CloudKitSyncEngine.SyncState.Error -> "失敗: ${s.message}"
         },
         titleRole = ImasTextRole.ROW_LABEL,
+        titleLineLimit = Int.MAX_VALUE,
         trailing = if (syncing) {
             ImasRowTrailing.Custom { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = DS.sys) }
         } else ImasRowTrailing.None
@@ -393,18 +391,16 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (authState.isSignedIn) {
-        Box(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)) {
-            ImasPass(
-                leftImprint = "ACCOUNT",
-                rightImprint = "ログイン中",
-                title = authState.displayName?.takeIf { it.isNotBlank() } ?: "ログイン済み",
-                subtitle = "コミュニティで表示される名前"
-            ) {
+        ImasRow(
+            title = authState.displayName?.takeIf { it.isNotBlank() } ?: "ログイン済み",
+            titleRole = ImasTextRole.ROW_LABEL,
+            titleLineLimit = Int.MAX_VALUE,
+            trailing = ImasRowTrailing.Custom {
                 androidx.compose.material3.IconButton(onClick = viewModel::startEditingName) {
                     androidx.compose.material3.Icon(Icons.Filled.Edit, contentDescription = "表示名を変更")
                 }
             }
-        }
+        )
         ImasActionRow(title = "ログアウト", kind = ImasActionRowKind.DESTRUCTIVE, onClick = viewModel::signOut)
         ImasActionRow(
             title = if (state.isDeleting) "削除中..." else "アカウントを削除",
@@ -525,12 +521,9 @@ private fun ImageImportSection(viewModel: ImageImportViewModel = viewModel()) {
             title = "${target.label}画像をインポート",
             icon = Icons.Filled.PhotoLibrary,
             isLoading = state.isImporting,
-            onClick = { urlTarget = target; urlText = "" }
-        )
-        ImasActionRow(
-            title = "型紙",
-            icon = Icons.Filled.FileDownload,
-            onClick = {
+            onClick = { urlTarget = target; urlText = "" },
+            secondaryLabel = "型紙",
+            onSecondaryClick = {
                 templateTarget = target
                 saveTemplateLauncher.launch(target.templateFileName)
             }
@@ -891,7 +884,7 @@ private fun AppHeader() {
         AsyncImage(
             model = com.fugaif.imaslivedb.R.mipmap.ic_launcher,
             contentDescription = null,
-            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DS.rArtwork(56.dp)))
+            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(DS.rAppIcon))
         )
         Column {
             Text("アイドルライブDB", style = ImasTextRole.CARD_TITLE.style, color = ImasTextRole.CARD_TITLE.color)

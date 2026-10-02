@@ -929,7 +929,10 @@ fun ImasActionRow(
     icon: ImageVector? = null,
     kind: ImasActionRowKind = ImasActionRowKind.STANDARD,
     position: ImasRowPosition? = null,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    /** 行の末尾に置く、もう 1 つ別の小さな文字の操作 (「型紙」など)。[onSecondaryClick] とセットで渡す。 */
+    secondaryLabel: String? = null,
+    onSecondaryClick: (() -> Unit)? = null
 ) {
     val color = if (kind == ImasActionRowKind.DESTRUCTIVE) DS.danger else DS.ink
     Row(
@@ -950,6 +953,17 @@ fun ImasActionRow(
         }
         Text(title, style = ImasTextRole.ROW_LABEL.style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer(Modifier.weight(1f))
+        if (secondaryLabel != null && onSecondaryClick != null) {
+            Text(
+                secondaryLabel,
+                style = ImasTextRole.VALUE.style,
+                color = DS.sys,
+                maxLines = 1,
+                modifier = Modifier
+                    .imasRowPress(onClickLabel = secondaryLabel, onClick = onSecondaryClick)
+                    .padding(horizontal = DS.Space.gapTight, vertical = DS.Space.gapTight)
+            )
+        }
     }
 }
 
