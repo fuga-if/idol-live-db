@@ -24,6 +24,7 @@ import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.brandColor
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 // =============================================================================
 // カレンダーの色とラベル (iOS `CalendarEntry+Display.swift` に対応)。
@@ -33,16 +34,40 @@ import com.fugaif.imaslivedb.ui.theme.brandColor
 // 区別しているため (青一色にすると帯にした意味が薄い)。
 // =============================================================================
 
-/** 公演。フィルタチップの色 (帯自体はブランド色を使う)。 */
-val ShowColor = Color(0xFF3E6DD6)
-// DS トークン由来の 4 色は、現在のモードを合成から引く (`DS` と同じ形の @Composable プロパティ)。
+/**
+ * 固有色を持たない種別の帯・チップ色を導くための固定シード (iOS `CalendarEntry.ThemeSeed` と同じ値)。
+ * 生の hex や `DS.sys`/`DS.pick` の流用ではなく、色エンジン ([imasTheme]) に通して
+ * 現在のモード (ライト/ダーク) に合った濃さ・コントラストにする。
+ */
+private object CalendarThemeSeed {
+    /** 公演 (フィルタチップ代表色。iOS system blue 相当)。 */
+    const val SHOW = "#3E6DD6"
+
+    /** 事務員誕生日 (iOS system pink 相当)。 */
+    const val STAFF_BIRTHDAY = "#FF2D55"
+
+    /** ブランド記念日 (iOS system teal 相当)。 */
+    const val ANNIVERSARY = "#30B0C7"
+
+    /** チケット関連 (受付期間・当落発表。iOS system indigo 相当)。 */
+    const val TICKET = "#5856D6"
+}
+
+/** 公演。フィルタチップの色 (帯自体は [CalendarEntry.accentColor] でブランド色を使う)。 */
+val ShowColor: Color @Composable @ReadOnlyComposable get() = imasTheme(CalendarThemeSeed.SHOW).accent
+
+// DS トークン由来の 2 色 (リリース・誕生日) は、現在のモードを合成から引く (`DS` と同じ形の @Composable プロパティ)。
 val ReleaseColor: Color @Composable @ReadOnlyComposable get() = DS.warning
 val BirthdayColor: Color @Composable @ReadOnlyComposable get() = DS.pick
-val StaffColor: Color @Composable @ReadOnlyComposable get() = DS.pick
-val AnniversaryColor: Color @Composable @ReadOnlyComposable get() = DS.sys
 
-/** チケット系 (受付期間・当落発表)。公演(青)・リリース(橙)・誕生日(桃) と被らない藍 (iOS と同じ色域)。 */
-val TicketColor = Color(0xFF5856D6)
+/** 事務員誕生日。固有色が無いので色エンジン導出のピンク (iOS と同じシード、アイドル誕生日の桃とは別シード)。 */
+val StaffColor: Color @Composable @ReadOnlyComposable get() = imasTheme(CalendarThemeSeed.STAFF_BIRTHDAY).accent
+
+/** 記念日。公演(青)・リリース(橙)・誕生日(桃)と被らない色エンジン導出のティール。 */
+val AnniversaryColor: Color @Composable @ReadOnlyComposable get() = imasTheme(CalendarThemeSeed.ANNIVERSARY).accent
+
+/** チケット系 (受付期間・当落発表)。公演(青)・リリース(橙)・誕生日(桃) と被らない色エンジン導出の藍。 */
+val TicketColor: Color @Composable @ReadOnlyComposable get() = imasTheme(CalendarThemeSeed.TICKET).accent
 
 /**
  * 帯・ブロックの地色。
