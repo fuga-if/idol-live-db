@@ -1,24 +1,14 @@
 package com.fugaif.imaslivedb.ui.games
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.core.SnapshotStoreProvider
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import uniffi.imas_core.IdolQuizIdolRef
 import uniffi.imas_core.quizSessionLength
-import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 // =============================================================================
 // 4 択クイズ系 (アイドル当て / ソロ曲) のコアへの受け渡しと、出題設定画面の共通ボタン。
@@ -97,19 +87,21 @@ fun idolQuizRefs(idols: List<Idol>, castNames: Map<String, String>): List<IdolQu
 fun hasVoiceActorData(refs: List<IdolQuizIdolRef>): Boolean =
     refs.any { !it.voiceActor.isNullOrEmpty() }
 
-/** 出題設定画面の主ボタン (スタート / はじめる)。ゲーム中はステージの [QuizStagePrimaryButton] を使う。 */
+/**
+ * 出題設定画面の主ボタン (スタート / はじめる)。ゲーム中はステージの [QuizStagePrimaryButton] を使う。
+ * iOS 側の `ImasButton(title:, systemImage: "play.fill", role: .primary, size: .large)` に相当するが、
+ * Android はもともと記号を出していなかったので `icon` は渡さない (今ある要素だけを DS 部品に差し替える)。
+ *
+ * @param enabled 候補不足・推計未確定などで開始できない間は `false` (ImasButton 自体が薄く表示し、押せなくする)。
+ */
 @Composable
-fun QuizPrimaryButton(title: String, onClick: () -> Unit) {
-    val t = imasTheme(null, null)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(t.accent)
-            .clickable(onClick = onClick)
-            .padding(vertical = 14.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = t.onAccent)
-    }
+fun QuizPrimaryButton(title: String, enabled: Boolean = true, onClick: () -> Unit) {
+    ImasButton(
+        title = title,
+        onClick = onClick,
+        role = ImasButtonRole.PRIMARY,
+        size = ImasButtonSize.LARGE,
+        fillsWidth = true,
+        enabled = enabled
+    )
 }

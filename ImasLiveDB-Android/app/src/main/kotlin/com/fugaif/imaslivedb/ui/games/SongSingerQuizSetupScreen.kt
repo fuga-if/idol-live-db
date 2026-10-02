@@ -2,13 +2,7 @@ package com.fugaif.imaslivedb.ui.games
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
@@ -22,15 +16,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasCandidateCount
+import com.fugaif.imaslivedb.ui.designsystem.ImasCandidateMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasSetupHeader
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -131,31 +128,29 @@ fun SongSingerQuizSetupScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            QuizSetupHeaderCard(
-                icon = Icons.Filled.MusicNote, title = "ソロ曲クイズ",
-                subtitle = "ソロ曲を聴いてその歌手を 4 択で当てよう"
+        ImasPage(modifier = Modifier.padding(padding)) {
+            ImasSetupHeader(
+                icon = Icons.Filled.MusicNote,
+                title = "ソロ曲クイズ",
+                message = "ソロ曲を聴いてその歌手を 4 択で当てよう"
             )
             QuizSetupBrandSection(
                 brands = state.brands, selectedBrandIds = state.selectedBrandIds,
                 onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
             )
-            QuizSetupCountRow(isEstimating = state.isEstimating) {
-                Column {
-                    Text(
-                        "出題候補: ${state.estimatedSongs} 曲 / ${state.estimatedSingers} 歌手",
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink
-                    )
-                    Text("4択の選択肢は歌手数が基準です", fontSize = 12.sp, color = DS.ink3)
-                }
-            }
+            ImasCandidateCount(
+                count = state.estimatedSongs, unit = "曲", label = "出題候補",
+                secondary = ImasCandidateMetric(count = state.estimatedSingers, unit = "歌手"),
+                note = "4択の選択肢は歌手数が基準です",
+                isLoading = state.isEstimating, loadingText = "候補を計算中…"
+            )
             if (!state.isEstimating && !state.canStart) {
-                QuizSetupInsufficientBanner("4 択を出すには原唱歌手が最低 4 名必要です。ブランドの選択を増やしてください。")
+                ImasNotice(
+                    kind = ImasNoticeKind.WARNING,
+                    message = "4 択を出すには原唱歌手が最低 4 名必要です。ブランドの選択を増やしてください。"
+                )
             }
-            QuizPrimaryButton(title = "スタート") { if (state.canStart) onStart(state.selectedBrandIds) }
+            QuizPrimaryButton(title = "スタート", enabled = state.canStart) { onStart(state.selectedBrandIds) }
         }
     }
 }

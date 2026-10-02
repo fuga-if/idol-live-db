@@ -2,13 +2,7 @@ package com.fugaif.imaslivedb.ui.games
 
 import android.app.Application
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -22,15 +16,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasCandidateCount
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasSetupHeader
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -134,31 +130,28 @@ fun SetlistQuizSetupScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            QuizSetupHeaderCard(
-                icon = Icons.Filled.FormatListNumbered, title = "セトリ当て",
-                subtitle = "公演のセトリの空欄に入る曲を 4 択で当てよう"
+        ImasPage(modifier = Modifier.padding(padding)) {
+            ImasSetupHeader(
+                icon = Icons.Filled.FormatListNumbered,
+                title = "セトリ当て",
+                message = "公演のセトリの空欄に入る曲を 4 択で当てよう"
             )
             QuizSetupBrandSection(
                 brands = state.brands, selectedBrandIds = state.selectedBrandIds,
                 onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
             )
-            QuizSetupCountRow(isEstimating = state.isEstimating) {
-                Column {
-                    Text(
-                        "出題候補: ${state.showCount} 公演",
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink
-                    )
-                    Text("セトリが 6 曲以上ある公演から出します", fontSize = 12.sp, color = DS.ink3)
-                }
-            }
+            ImasCandidateCount(
+                count = state.showCount, unit = "公演", label = "出題候補",
+                note = "セトリが 6 曲以上ある公演から出します",
+                isLoading = state.isEstimating, loadingText = "候補を計算中…"
+            )
             if (!state.isEstimating && !state.canStart) {
-                QuizSetupInsufficientBanner("このブランドには出題できる公演がありません。ブランドの選択を増やしてください。")
+                ImasNotice(
+                    kind = ImasNoticeKind.WARNING,
+                    message = "このブランドには出題できる公演がありません。ブランドの選択を増やしてください。"
+                )
             }
-            QuizPrimaryButton(title = "スタート") { if (state.canStart) onStart(state.selectedBrandIds) }
+            QuizPrimaryButton(title = "スタート", enabled = state.canStart) { onStart(state.selectedBrandIds) }
         }
     }
 }

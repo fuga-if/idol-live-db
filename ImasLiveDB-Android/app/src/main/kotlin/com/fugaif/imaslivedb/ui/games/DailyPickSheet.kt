@@ -1,10 +1,9 @@
 package com.fugaif.imaslivedb.ui.games
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,11 +12,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -30,12 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.DailyPick
 import com.fugaif.imaslivedb.data.model.Idol
@@ -43,10 +37,14 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.tags.IdolTagPickerSheet
 import com.fugaif.imaslivedb.ui.tags.SongTagPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import uniffi.imas_core.DailyPickKind
 
@@ -124,13 +122,12 @@ fun DailyPickSheet(
         // タップがシステム側に吸われてボタンが押せなくなる (実際に押せなかった)。
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = DS.sp6, end = DS.Space.gap, top = DS.sp4),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = if (kind == DailyPickKind.SONG) "今日の1曲" else "今日のアイドル",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = ImasTextRole.HERO_TITLE.style,
                     color = DS.ink,
                     modifier = Modifier.weight(1f)
                 )
@@ -140,14 +137,15 @@ fun DailyPickSheet(
             }
 
             if (loading) {
+                // 読み込み中は一覧ごと非表示にする (今の Android の条件のまま)。くるくるだけ共有部品に差し替える。
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DS.sys)
+                    ImasInlineLoading(tint = DS.sys)
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)
+                    modifier = Modifier.fillMaxSize().padding(horizontal = DS.sp6),
+                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
+                    contentPadding = PaddingValues(bottom = DS.sp7)
                 ) {
                     item {
                         Text(
@@ -156,8 +154,8 @@ fun DailyPickSheet(
                             } else {
                                 "各ブランドから今日のアイドルをピックしました。性格でも髪型でも口ぐせでも、思いついたタグを付けて投票しよう（複数OK・同じタグは人数が貯まります）。"
                             },
-                            fontSize = 13.sp, color = DS.ink2,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            style = ImasTextRole.NOTE.style, color = DS.ink2,
+                            modifier = Modifier.padding(vertical = DS.Space.gap)
                         )
                     }
                     if (kind == DailyPickKind.SONG) {
@@ -231,37 +229,35 @@ private fun PickCard(
     thumbnail: @Composable () -> Unit
 ) {
     val accent = imasTheme(seed).accent
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(DS.surface)
-            .clickable(onClick = onVote)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ImasLeadBar(seedHex = seed, height = 52.dp)
-        thumbnail()
-        Column(modifier = Modifier.weight(1f)) {
-            Text(brandLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-            Text(
-                title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                maxLines = 2, overflow = TextOverflow.Ellipsis
-            )
-            if (!subtitle.isNullOrEmpty()) {
-                Text(subtitle, fontSize = 11.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    // カードの面・角丸は ImasCard (DS.surface + DS.rCard) に任せ、カード全体を押せるようにするのは
+    // 押し込み効果つきの imasPress (iOS ImasCard + Button 相当)。
+    ImasCard(modifier = Modifier.imasPress(onClick = onVote)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap)
+        ) {
+            ImasLeadBar(seedHex = seed, height = 52.dp)
+            thumbnail()
+            Column(modifier = Modifier.weight(1f)) {
+                Text(brandLabel, style = ImasTextRole.BADGE.style, color = DS.ink3)
+                Text(
+                    title, style = ImasTextRole.ROW_TITLE.style, color = DS.ink,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis
+                )
+                if (!subtitle.isNullOrEmpty()) {
+                    Text(subtitle, style = ImasTextRole.META.style, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (tagged) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = DS.success, modifier = Modifier.size(18.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                if (tagged) {
+                    Icon(Icons.Default.Check, contentDescription = null, tint = DS.success, modifier = Modifier.size(18.dp))
+                }
+                Text(
+                    if (tagged) "投票済" else "タグ",
+                    style = ImasTextRole.SECTION_LABEL.style,
+                    color = if (tagged) DS.success else accent
+                )
             }
-            Text(
-                if (tagged) "投票済" else "タグ",
-                fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                color = if (tagged) DS.success else accent
-            )
         }
     }
 }

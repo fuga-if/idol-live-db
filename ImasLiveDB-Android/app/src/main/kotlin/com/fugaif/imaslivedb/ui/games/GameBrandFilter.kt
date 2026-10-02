@@ -9,12 +9,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
  * ゲーム/クイズ出題ブランドの複数選択チップ (「全て」+ 各ブランド)。
  * 選択なし = 全ブランド対象。iOS BrandIconCell グリッドの簡易版 (円形アイコンではなくチップ)。
+ *
+ * 呼び出し側は共有アダプタ [com.fugaif.imaslivedb.ui.components.ImasBrandPicker] に移行済み
+ * (ロゴ画像にも対応する)。この定義自体は旧い部品として残してある (呼び出し側が無くなっても消さない)。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -28,8 +32,8 @@ fun GameBrandFilterGrid(
     val neutralAccent = imasTheme(null, null).accent
     FlowRow(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
     ) {
         ImasFilterChip(
             label = "全て",
