@@ -50,6 +50,7 @@ import uniffi.imas_core.songSingerQuizAnswer
 import uniffi.imas_core.songSingerQuizHintState
 import uniffi.imas_core.songSingerQuizSession
 import uniffi.imas_core.songSingerQuizSessionResult
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
@@ -348,7 +349,7 @@ fun SongSingerQuizScreen(
         }
     ) {
         when {
-            state.isLoading -> QuizStageLoading()
+            state.isLoading -> ImasInlineLoading(tint = QS.ink)
             result != null -> QuizStageResultView(
                 result = result, isNewBest = state.isNewBest, previousBest = state.previousBest,
                 slots = state.plays.penlights(total = result.questions.toInt(), answering = false),

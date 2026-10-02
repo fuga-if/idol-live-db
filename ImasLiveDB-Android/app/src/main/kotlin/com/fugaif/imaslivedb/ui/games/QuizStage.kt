@@ -1171,13 +1171,6 @@ fun QuizStageScaffold(
     }
 }
 
-/** 読み込み中 (ステージ色)。 */
-@Composable
-fun QuizStageLoading() {
-    Box(Modifier.fillMaxWidth().padding(top = 60.dp), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = QS.ink)
-    }
-}
 
 /** 出題できないとき (ステージ色)。 */
 @Composable

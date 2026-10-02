@@ -65,8 +65,17 @@ import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageAssignmentTarget
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageColorSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasStageColorSwatchStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasStagePartialVerdictCard
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -510,9 +519,7 @@ fun ColorMatchGameScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             if (state.isLoading) {
-                Box(Modifier.fillMaxWidth().padding(top = 60.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ImasInlineLoading()
             } else {
                 ColorMatchSetup(state, viewModel)
             }
@@ -522,42 +529,52 @@ fun ColorMatchGameScreen(
 
 @Composable
 private fun ColorMatchSetup(state: ColorMatchUiState, viewModel: ColorMatchViewModel) {
-    Text(
-        "出題ブランドを選んで、似た色のメンバーの色を当てよう。",
-        fontSize = 13.sp, color = DS.ink2
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("遊び方", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+    ImasText("出題ブランドを選んで、似た色のメンバーの色を当てよう。", ImasTextRole.NOTE)
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+        ImasText("遊び方", ImasTextRole.SECTION_LABEL)
         ImasSegmented(labels = PLAY_MODE_LABELS, selection = state.playMode, onSelect = { viewModel.setPlayMode(it) })
-        Text(
+        ImasText(
             if (state.isChoiceMode) "名前を見て、その子のイメージカラーを 4 色から選ぶ"
             else "何人かの名前に、色をタップで割り当てる",
-            fontSize = 12.sp, color = DS.ink3
+            ImasTextRole.META
         )
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("難易度", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+        ImasText("難易度", ImasTextRole.SECTION_LABEL)
         ImasSegmented(labels = LEVEL_LABELS, selection = state.difficulty, onSelect = { viewModel.setDifficulty(it) })
     }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("問題数", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp3)) {
+        ImasText("問題数", ImasTextRole.SECTION_LABEL)
         val idx = QUESTION_COUNT_OPTIONS.indexOf(state.questionCount).coerceAtLeast(0)
         ImasSegmented(
             labels = QUESTION_COUNT_OPTIONS.map { "${it}問" }, selection = idx,
             onSelect = { viewModel.setQuestionCount(QUESTION_COUNT_OPTIONS[it]) }
         )
     }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("出題ブランド", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2)
-        Text("未選択なら全ブランドから出題", fontSize = 12.sp, color = DS.ink3)
-        GameBrandFilterGrid(
-            brands = state.brands, selectedBrandIds = state.selectedBrandIds,
-            onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
+        ImasText("出題ブランド", ImasTextRole.SECTION_LABEL)
+        ImasText("未選択なら全ブランドから出題", ImasTextRole.META)
+        com.fugaif.imaslivedb.ui.components.ImasBrandPicker(
+            brands = state.brands, selection = state.selectedBrandIds,
+            onSelectionChange = { next ->
+                // ViewModel は toggle/clear の粒度しか持たないので、差分を見て既存の口を呼ぶ
+                // (ImasBrandPicker は選択の集合をまとめて返すため)。
+                if (next.isEmpty()) {
+                    viewModel.clearBrands()
+                } else {
+                    (next - state.selectedBrandIds).forEach { viewModel.toggleBrand(it) }
+                    (state.selectedBrandIds - next).forEach { viewModel.toggleBrand(it) }
+                }
+            }
         )
     }
-    Box(Modifier.alpha(if (state.canStart) 1f else 0.5f)) {
-        QuizPrimaryButton(title = "はじめる（全${state.questionCount}問）") { if (state.canStart) viewModel.startSession() }
-    }
+    ImasButton(
+        title = "はじめる（全${state.questionCount}問）",
+        onClick = { viewModel.startSession() },
+        size = ImasButtonSize.LARGE,
+        fillsWidth = true,
+        enabled = state.canStart
+    )
 }
 
 // MARK: - ゲーム (ステージ)
@@ -709,31 +726,14 @@ private fun ChoiceSwatches(q: ColorQuizQuestion, hint: ColorQuizHintState, onPic
         q.choices.withIndex().chunked(2).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEach { (i, hex) ->
-                    val isOut = i in out
-                    val alpha by animateFloatAsState(if (isOut) 0.18f else 1f, label = "swatch")
-                    val letter = SWATCH_LETTERS[i % SWATCH_LETTERS.size]
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .alpha(alpha)
-                            .quizPress(enabled = !isOut) { onPick(hex) }
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(QS.panel)
-                            .border(1.dp, QS.line, RoundedCornerShape(18.dp))
-                            .padding(8.dp)
-                            .semantics { contentDescription = "色 $letter $hex" }
-                    ) {
-                        Box(
-                            Modifier.fillMaxWidth().height(76.dp).clip(RoundedCornerShape(12.dp))
-                                .background(qsColor(hex, QS.line)).border(1.dp, QS.line, RoundedCornerShape(12.dp))
-                        )
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                            Text(letter, style = QS.mono(11), color = QS.faint)
-                            Spacer(Modifier.weight(1f))
-                            Text(hex.uppercase(), style = QS.mono(11), color = QS.ink)
-                        }
-                    }
+                    ImasStageColorSwatch(
+                        hex = hex,
+                        letter = SWATCH_LETTERS[i % SWATCH_LETTERS.size],
+                        style = ImasStageColorSwatchStyle.CHOICE,
+                        isEliminated = i in out,
+                        onClick = { onPick(hex) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 if (row.size < 2) Spacer(Modifier.weight(1f))
             }
@@ -747,28 +747,12 @@ private fun ChoiceSwatches(q: ColorQuizQuestion, hint: ColorQuizHintState, onPic
 @Composable
 private fun RoundVerdict(j: ColorMatchJudgement, roundIndex: Int) {
     val cleared = j.score == j.outOf
-    val fg = if (cleared) QS.paperInk else QS.ink
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(if (cleared) QS.paper else QS.panel)
-            .then(if (cleared) Modifier else Modifier.border(1.dp, QS.line, RoundedCornerShape(24.dp)))
-            .padding(horizontal = 22.dp, vertical = 18.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-            Text(
-                "Q.${twoDigits(roundIndex + 1)} — " + (if (cleared) "PERFECT" else "RESULT"),
-                style = QS.mono(12, 1.4f), color = fg
-            )
-            QSFitText(
-                if (cleared) "全員正解！" else "${j.score} / ${j.outOf} 正解",
-                QS.text(if (cleared) 40 else 34, FontWeight.Black), fg
-            )
-        }
-        Text("+${j.score}", style = QS.num(64, FontWeight.Black), color = fg)
-    }
+    ImasStagePartialVerdictCard(
+        number = roundIndex + 1,
+        isPerfect = cleared,
+        headline = if (cleared) "全員正解！" else "${j.score} / ${j.outOf} 正解",
+        score = j.score.toInt()
+    )
 }
 
 @Composable
@@ -798,10 +782,6 @@ private fun MemberRow(member: ColorMatchIdol, position: Int, state: ColorMatchUi
     val hexLabel = state.judgement?.correctHexLabels?.getOrNull(position)
     // 色を選んでいる間は、割り当て先の候補として丸を強調する (iOS のドロップ先のハイライト相当)。
     val isTarget = !state.judged && state.selectedHex != null
-    val slotScale by animateFloatAsState(
-        if (isTarget && assigned == null) 1.06f else 1f,
-        spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMedium), label = "slot"
-    )
     Column(Modifier.fillMaxWidth()) {
         if (position > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(QS.paperLine))
         Row(
@@ -841,26 +821,11 @@ private fun MemberRow(member: ColorMatchIdol, position: Int, state: ColorMatchUi
                 }
             }
             // 割り当てた色スロット (タップ対象)
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(44.dp)
-                    .graphicsLayer { scaleX = slotScale; scaleY = slotScale }
-                    .then(
-                        if (assigned != null) Modifier.clip(CircleShape).background(qsColor(assigned, QS.paperMuted))
-                        else Modifier.dashedBorder(if (isTarget) QS.paperInk else QS.paperMuted, 2.dp, 22.dp, dash = 4.dp, gap = 3.dp)
-                    )
-            ) {
-                if (state.judged) {
-                    Icon(
-                        if (correct) Icons.Filled.Check else Icons.Filled.Close, contentDescription = if (correct) "正解" else "不正解",
-                        tint = assigned?.let { ImasTheme.onColor(qsColor(it, QS.paperMuted)) } ?: QS.paperInk,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else if (assigned == null) {
-                    Text("?", style = QS.num(18), color = QS.paperSub)
-                }
-            }
+            ImasStageAssignmentTarget(
+                assignedHex = assigned,
+                isTargeted = isTarget && assigned == null,
+                verdict = if (state.judged) correct else null
+            )
         }
     }
 }
@@ -874,39 +839,15 @@ private fun MatchPalette(state: ColorMatchUiState, viewModel: ColorMatchViewMode
                 row.forEach { (i, hex) ->
                     val used = hex in state.assignments.values
                     val selected = state.selectedHex == hex
-                    val scale by animateFloatAsState(
-                        if (selected) 1.03f else 1f,
-                        spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMedium), label = "chip"
+                    ImasStageColorSwatch(
+                        hex = hex,
+                        letter = SWATCH_LETTERS[i % SWATCH_LETTERS.size],
+                        style = ImasStageColorSwatchStyle.PALETTE,
+                        isSelected = selected,
+                        isUsed = used,
+                        onClick = { viewModel.selectHex(hex) },
+                        modifier = Modifier.weight(1f)
                     )
-                    val letter = SWATCH_LETTERS[i % SWATCH_LETTERS.size]
-                    val swatch = qsColor(hex, QS.line)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
-                            .alpha(if (used && !selected) 0.45f else 1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(QS.panel)
-                            .border(if (selected) 2.5.dp else 1.dp, if (selected) QS.ink else QS.line, RoundedCornerShape(16.dp))
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                viewModel.selectHex(hex)
-                            }
-                            .padding(6.dp)
-                            .semantics { contentDescription = "色 $letter $hex" + if (selected) " 選択中" else "" }
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(10.dp)).background(swatch)
-                        ) {
-                            if (used) Icon(Icons.Filled.Check, contentDescription = null, tint = ImasTheme.onColor(swatch), modifier = Modifier.size(18.dp))
-                        }
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
-                            Text(letter, style = QS.mono(10), color = QS.faint)
-                            Spacer(Modifier.weight(1f).width(2.dp))
-                            Text(hex.uppercase(), style = QS.mono(10), color = QS.ink)
-                        }
-                    }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }

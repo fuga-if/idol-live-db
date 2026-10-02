@@ -31,6 +31,8 @@ import com.fugaif.imaslivedb.data.games.streak
 import com.fugaif.imaslivedb.data.games.streakBrokeAt
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.theme.QS
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -296,7 +298,7 @@ fun IdolQuizScreen(
         }
     ) {
         when {
-            state.isLoading -> QuizStageLoading()
+            state.isLoading -> ImasInlineLoading(tint = QS.ink)
             result != null -> QuizStageResultView(
                 result = result, isNewBest = state.isNewBest, previousBest = state.previousBest,
                 slots = state.plays.penlights(total = result.questions.toInt(), answering = false),

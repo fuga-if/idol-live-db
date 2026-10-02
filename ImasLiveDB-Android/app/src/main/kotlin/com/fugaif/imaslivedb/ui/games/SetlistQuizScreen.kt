@@ -58,6 +58,7 @@ import uniffi.imas_core.setlistQuizAnswer
 import uniffi.imas_core.setlistQuizHintState
 import uniffi.imas_core.setlistQuizSessionResult
 import uniffi.imas_core.setlistSectionLabel
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.theme.QS
 
 // =============================================================================
@@ -276,7 +277,7 @@ fun SetlistQuizScreen(
         }
     ) {
         when {
-            state.isLoading -> QuizStageLoading()
+            state.isLoading -> ImasInlineLoading(tint = QS.ink)
             result != null -> QuizStageResultView(
                 result = result, isNewBest = state.isNewBest, previousBest = state.previousBest,
                 slots = state.plays.penlights(total = result.questions.toInt(), answering = false),
