@@ -1,5 +1,9 @@
 package com.fugaif.imaslivedb.ui.produce
 
+import androidx.compose.runtime.remember
+import com.fugaif.imaslivedb.ui.navigation.icon
+import com.fugaif.imaslivedb.ui.navigation.LocalOpenDestination
+import uniffi.imas_core.appNavigationSectionsWithTabs
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -304,6 +308,20 @@ private fun ShortcutsSection(
     onNavigateToTimeline: (String?) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.section)) {
+        // タブバーから外した主な画面 (並べ方はコア)。
+        val tabKeys = AppPreferences.tabBarKeys
+        val others = remember(tabKeys) {
+            appNavigationSectionsWithTabs(lyricsAvailable = false, assistantAvailable = false, tabKeys = tabKeys)
+                .firstOrNull { it.title == "そのほか" }?.items.orEmpty()
+        }
+        if (others.isNotEmpty()) {
+            val open = LocalOpenDestination.current
+            ImasShortcutGroup("そのほか") {
+                others.forEach { item ->
+                    ImasShortcutTile(icon = item.destination.icon, label = item.label, onClick = { open(item.destination) })
+                }
+            }
+        }
         ImasShortcutGroup("あそぶ") {
             if (resume != null) {
                 ImasShortcutTile(

@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.navigation
 
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -62,6 +63,7 @@ val AppDestination.icon: ImageVector
         AppDestination.COMMUNITY_ACTIVITY -> Icons.Filled.People
         AppDestination.TAG_ACTIVITY -> Icons.Filled.Whatshot
         AppDestination.GAMES -> Icons.Filled.SportsEsports
+        AppDestination.ASSISTANT -> Icons.Filled.AutoAwesome
     }
 
 /**

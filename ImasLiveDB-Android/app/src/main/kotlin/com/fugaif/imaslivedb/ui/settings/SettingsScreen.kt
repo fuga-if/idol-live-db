@@ -158,6 +158,9 @@ fun SettingsScreen(
                 // 表示 (文字サイズ・ライブ名の省略)
                 item { ImasListSection("表示") { DisplaySettingsSection() } }
 
+                // 下のタブバー (載せる画面と並び)
+                item { TabBarSettingsSection() }
+
                 // 習熟度の段階 (ラベルの好みは人によるので触れるようにする)
                 item {
                     ImasListSection(

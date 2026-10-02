@@ -1,12 +1,15 @@
 package com.fugaif.imaslivedb.ui.navigation
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import uniffi.imas_core.AppDestination
-import uniffi.imas_core.appNavigationSections
+import uniffi.imas_core.appNavigationSectionsWithTabs
+import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -112,11 +115,21 @@ private const val WIDE_SCREEN_MIN_DP = 600
 @Composable
 fun AppNavigation() {
     var current by rememberSaveable { mutableStateOf(AppDestination.SCHEDULE) }
-    // 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。
-    // Android には歌詞 (コールガイド) が無いので lyricsAvailable = false。
-    val sections = remember { appNavigationSections(lyricsAvailable = false) }
+    // 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。タブバーの並びは設定で選ぶ。
+    // Android には歌詞 (コールガイド) と AI チャットが無いので両方 false。
+    val tabKeys = AppPreferences.tabBarKeys
+    val sections = remember(tabKeys) {
+        appNavigationSectionsWithTabs(lyricsAvailable = false, assistantAvailable = false, tabKeys = tabKeys)
+    }
     val tabItems = remember(sections) { sections.flatMap { it.items }.filter { it.inTabBar } }
     val wide = LocalConfiguration.current.screenWidthDp >= WIDE_SCREEN_MIN_DP
+    // 最初の画面 (スケジュール) や今いる画面をタブから外したら、タブバーの先頭か、
+    // 外した画面の入口があるプロデュースへ。
+    LaunchedEffect(tabItems) {
+        if (!wide && tabItems.none { it.destination == current }) {
+            current = if (current == AppDestination.SCHEDULE) tabItems.first().destination else AppDestination.PRODUCE
+        }
+    }
     // 狭くなったら (画面分割など) サイドバーだけの行き先から、同じ画面の入口がある
     // プロデュースへ戻す。iOS の AdaptiveRootTabs と同じ規則。
     LaunchedEffect(wide) {
@@ -126,7 +139,9 @@ fun AppNavigation() {
     // 一覧が `CrossTabSearch.take()` で拾う。generation を鍵にするのは、同じタブへ
     // 続けて渡したときも気づけるようにするため。
     LaunchedEffect(CrossTabSearch.generation) {
-        CrossTabSearch.target?.let { current = it.destination }
+        CrossTabSearch.target?.let { t ->
+            current = if (wide || tabItems.any { it.destination == t.destination }) t.destination else AppDestination.PRODUCE
+        }
     }
 
     // One NavController per destination to maintain independent back stacks
@@ -160,8 +175,15 @@ fun AppNavigation() {
             // 余白を消費したことも中へ伝える。伝えないと、各画面の Scaffold / TopAppBar が
             // ステータスバーの高さをもう一度空け、題の上に空の帯ができる (二重の余白)。
             Box(modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)) {
+                // タブから外した画面をプロデュースの「そのほか」から開いたとき、根で戻るとプロデュースへ帰る。
+                val offTab = !wide && tabItems.none { it.destination == current }
+                BackHandler(enabled = offTab && navControllers.getValue(current).previousBackStackEntry == null) {
+                    current = AppDestination.PRODUCE
+                }
                 // 行き先ごとに NavHost を持つので戻る履歴は独立。表示中の 1 つだけ組む。
-                DestinationNavHost(current, navControllers.getValue(current))
+                CompositionLocalProvider(LocalOpenDestination provides { current = it }) {
+                    DestinationNavHost(current, navControllers.getValue(current))
+                }
             }
         }
     }
@@ -188,6 +210,8 @@ private fun DestinationNavHost(destination: AppDestination, navController: NavHo
         AppDestination.GAMES -> TabNavHost(navController, NavRoutes.GamesHub.route) { produceNavGraph(navController) }
         // Android には歌詞が無いのでコアがこの行き先を返さない。
         AppDestination.CALL_GUIDE -> Unit
+        // Android には AI チャットが無いのでコアがこの行き先を返さない。
+        AppDestination.ASSISTANT -> Unit
     }
 }
 

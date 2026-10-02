@@ -38,6 +38,8 @@ object AppPreferences {
     private const val KEY_THEME_USE_OSHI_COLOR = "theme_use_oshi_color"
     private const val KEY_THEME_OSHI_IDOL_ID = "theme_oshi_idol_id"
     private const val KEY_THEME_OSHI_COLOR = "theme_oshi_color"
+    /** 下のタブバーの並び (行き先の計測キーをカンマで繋ぐ。空なら既定)。iOS と同じキー。 */
+    private const val KEY_TAB_BAR_ORDER = "tab_bar_order"
 
     /**
      * 文字サイズの選択肢 (極小 / 小 / 中 / 大 / 特大)。iOS `MyPageView.textScaleOptions` と同値。
@@ -61,6 +63,7 @@ object AppPreferences {
     private var oshiColorHexState by mutableStateOf("")
     private var performerNameRawState by mutableStateOf(PerformerNamePref.defaultRaw)
     private var masteryLabelsState by mutableStateOf(MasteryScale.defaultLabels)
+    private var tabBarOrderState by mutableStateOf("")
 
     /**
      * アプリ内の文字サイズ倍率。OS のフォントサイズ設定に**乗算**で重ねる追加倍率で、
@@ -111,8 +114,18 @@ object AppPreferences {
             ?.split(LABEL_SEPARATOR)?.filter { it.isNotBlank() }
             ?.takeIf { it.isNotEmpty() }
             ?: MasteryScale.defaultLabels
+        tabBarOrderState = p.getString(KEY_TAB_BAR_ORDER, "").orEmpty()
 
         pushCollectionScope(context)
+    }
+
+    /** 下のタブバーの並び (行き先の計測キー)。空なら既定。整え方はコア (`normalizeTabBarKeys`)。 */
+    val tabBarKeys: List<String> get() = tabBarOrderState.split(",").filter { it.isNotBlank() }
+
+    fun setTabBarKeys(keys: List<String>) {
+        val raw = keys.joinToString(",")
+        tabBarOrderState = raw
+        prefs?.edit()?.putString(KEY_TAB_BAR_ORDER, raw)?.apply()
     }
 
     /** 習熟度の段階。保存は序数なので、ここを変えても付けた記録は壊れない。 */
