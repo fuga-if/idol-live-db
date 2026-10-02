@@ -132,7 +132,6 @@ private fun ShowRow(show: CostumeShowRecord, onClick: () -> Unit) {
             }
         },
         density = ImasRowDensity.COMPACT,
-        titleLineLimit = 1,
         titleRole = ImasTextRole.ROW_LABEL,
         detail = {
             show.songsLabel?.let { ImasText(it, ImasTextRole.META) }
