@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.EditCalendar
@@ -23,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,12 +31,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import java.time.LocalDate
 
 /**
@@ -70,11 +73,10 @@ fun DayDetailSheet(
         DayHeader(date = date, entries = entries)
         HorizontalDivider(color = DS.sep)
         if (entries.isEmpty()) {
-            Text(
-                "この日はライブ・リリース・誕生日の記録がありません",
-                modifier = Modifier.fillMaxWidth().padding(32.dp),
-                color = DS.ink3,
-                fontSize = 14.sp
+            ImasEmptyState(
+                icon = Icons.Filled.CalendarMonth,
+                title = "イベントなし",
+                message = "この日はライブ・リリース・誕生日の記録がありません"
             )
         } else {
             LazyColumn(
@@ -147,14 +149,9 @@ private fun DayHeader(date: LocalDate, entries: List<CalendarEntry>) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "${date.year}年${date.monthValue}月${date.dayOfMonth}日",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = DS.ink
-            )
+            ImasText("${date.year}年${date.monthValue}月${date.dayOfMonth}日", ImasTextRole.SECTION_TITLE)
             if (entries.isNotEmpty()) {
-                Text("${entries.size}件のイベント", fontSize = 12.sp, color = DS.ink2)
+                ImasText("${entries.size}件のイベント", ImasTextRole.META, color = DS.ink2)
             }
         }
         SummaryBadges(entries)
@@ -186,6 +183,6 @@ private fun SummaryBadges(entries: List<CalendarEntry>) {
 private fun SummaryBadge(count: Int, icon: ImageVector, color: Color) {
     Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
-        Text("$count", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = color)
+        ImasMetric("$count", size = ImasNumeralSize.SMALL, color = color)
     }
 }
