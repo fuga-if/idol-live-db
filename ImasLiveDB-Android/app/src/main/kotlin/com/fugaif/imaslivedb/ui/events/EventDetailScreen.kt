@@ -378,13 +378,8 @@ private fun Hero(
     onAttendToggle: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)) {
-        // 合同ライブは単色で表せないので虹色 (前と同じ目印)。
-        ImasPenlight(color = t.penlight, size = ImasPenlightSize.LARGE, rainbow = state.isJoint)
-        ImasText(
-            state.eventName,
-            role = ImasTextRole.HERO_TITLE,
-            modifier = Modifier.padding(top = DS.Space.gapTight)
-        )
+        // 色の点は何も伝えないので置かない (合同は下の行の「合同」で示す)。
+        ImasText(state.eventName, role = ImasTextRole.HERO_TITLE)
         val subLine = state.hero?.subLine.orEmpty()
         val heroSub = if (state.isJoint && subLine.isNotEmpty()) "$subLine ・ 合同" else subLine
         if (heroSub.isNotEmpty()) {
@@ -480,9 +475,7 @@ private fun ShowRow(
             title = show.name,
             modifier = Modifier.weight(1f).imasRowPress(onClick = onClick),
             subtitle = listOfNotNull(show.venue, show.date).joinToString(" ・ "),
-            brand = brand,
-            seed = seed,
-            rainbow = rainbow,
+            // 色の点は付けない (このライブの公演はみな同じブランドで、点は何も伝えない)。
             showsChevron = true
         )
         Box {

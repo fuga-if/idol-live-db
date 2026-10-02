@@ -86,9 +86,10 @@ struct EventDetailView: View {
         return isJoint ? "\(sub) ・ 合同" : sub
     }
 
-    /// 頭の印字。合同ライブは虹色のペンライトだけで示すので、ここに「合同」等は重ねない。
+    /// 頭の印字 (ブランド名)。合同ライブは下の行の「合同」で示すので出さない。
+    /// 「LIVE」や色の点は、どのライブでも同じで何も伝えないので置かない。
     private var mastheadItems: [String] {
-        isJoint ? ["LIVE"] : ["LIVE", vm.brand?.shortName ?? ""].filter { !$0.isEmpty }
+        isJoint ? [] : [vm.brand?.shortName ?? ""].filter { !$0.isEmpty }
     }
 
     var body: some View {
@@ -97,9 +98,7 @@ struct EventDetailView: View {
             // 常時固定: 頭 + UserMarkBar + 内部セグメント
             VStack(spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: DS.Space.gap) {
-                        // 合同ライブは単色で表せないので虹色 (前と同じ目印)。
-                        ImasPenlight(color: t.penlight, size: .regular, rainbow: isJoint)
+                    if !mastheadItems.isEmpty {
                         ImasMasthead(items: mastheadItems)
                     }
                     Text(event.name)
@@ -298,8 +297,7 @@ struct EventDetailView: View {
                 date: show.date,
                 title: show.name,
                 subtitle: [show.venue, show.date].compactMap { $0 }.joined(separator: " ・ "),
-                brandHex: brandSeed,
-                rainbow: isJoint,
+                // 色の点は付けない (このライブの公演はみな同じブランドで、点は何も伝えない)。
                 showsChevron: true
             )
         }

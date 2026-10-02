@@ -501,10 +501,8 @@ private fun Hero(
         facts = {
             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                 if (artistLine != null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-                        ImasPenlight(color = imasThemeForBrand(seed, song.brandId).penlight, size = ImasPenlightSize.SMALL)
-                        ImasText(artistLine, ImasTextRole.ROW_SUBTITLE)
-                    }
+                    // 色の点は付けない (名前の横の点は何も伝えない)。
+                    ImasText(artistLine, ImasTextRole.ROW_SUBTITLE)
                 }
                 if (releaseMeta != null) {
                     ImasText(releaseMeta, ImasTextRole.IMPRINT, color = DS.ink3)

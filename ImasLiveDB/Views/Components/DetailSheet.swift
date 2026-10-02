@@ -467,15 +467,10 @@ struct SongSheetContent: View {
 
     /// 歌唱者を「/」で繋いだ 1 行。全体曲は 10 人を超えることがあり、`ImasPerformerChip`
     /// (1 行固定・fixedSize) に入れると画面全体が横に広がって崩れる (原唱 4 人以上の曲は
-    /// 605 曲ある)。ペンライト + 複数行に折り返せる Text にする。
+    /// 605 曲ある)。複数行に折り返せる Text にする。
     private func artistLineView(_ artistLine: String) -> some View {
-        HStack(alignment: .top, spacing: DS.Space.gapTight) {
-            ImasPenlight(
-                color: songSeed == nil ? DS.ink3 : ImasTheme.derive(seed: songSeed, brand: nil, scheme: scheme).penlight,
-                size: .small
-            )
-            Text(artistLine).imasText(.rowSubtitle).lineLimit(2)
-        }
+        // 色の点は付けない (名前の横の点は何も伝えない)。
+        Text(artistLine).imasText(.rowSubtitle).lineLimit(2)
     }
 
     /// 再生 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す
