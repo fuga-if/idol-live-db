@@ -1,34 +1,24 @@
 package com.fugaif.imaslivedb.ui.units
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,22 +28,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.ImasUnit
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasGridSkeleton
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasUnitAvatar
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.designsystem.ImasUnitCell
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import uniffi.imas_core.TextSearchCatalog
 
@@ -168,8 +163,10 @@ fun UnitListBody(
                                 BrandSectionHeader(brand, units.size, !collapsed) { viewModel.toggleBrandCollapse(brand.id) }
                             }
                             if (!collapsed) {
-                                items(units, key = { it.id }) { unit ->
-                                    UnitRow(unit = unit, onClick = { onNavigateToUnitDetail(unit.id) })
+                                item(key = "c_${brand.id}") {
+                                    ImasCardList(items = units, key = { it.id }) { unit ->
+                                        UnitRow(unit = unit, onClick = { onNavigateToUnitDetail(unit.id) })
+                                    }
                                 }
                             }
                         }
@@ -180,37 +177,43 @@ fun UnitListBody(
     }
 }
 
+/** ブランドの区切り見出し (iOS `BrandSectionHeader` + 開閉シェブロン)。見た目は [ImasSectionHeader] (小)。 */
 @Composable
 private fun BrandSectionHeader(brand: Brand, count: Int, expanded: Boolean, onToggle: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
-            .background(DS.bg).padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth()
+            .imasRowPress(onClickLabel = if (expanded) "折りたたむ" else "展開", onClick = onToggle)
+            .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(brand.shortName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        Text(" $count", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-        Box(Modifier.weight(1f))
-        Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-            contentDescription = if (expanded) "折りたたむ" else "展開", tint = DS.ink2)
+        ImasSectionHeader(
+            title = brand.shortName,
+            count = "$count",
+            seed = brand.color,
+            style = ImasSectionHeaderStyle.SMALL,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(0.dp)
+        )
+        Icon(
+            if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = null,
+            tint = DS.ink2
+        )
     }
 }
 
+/** ユニットの行。先頭にブランドの色の帯を立てるのは Android だけの要素 (iOS の `ImasUnitRow` 単体には無い)。 */
 @Composable
 private fun UnitRow(unit: ImasUnit, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImasLeadBar(brandId = unit.brandId, height = 36.dp)
-        Box(Modifier.padding(start = 8.dp)) {
-            ImasAvatar(label = unit.name, seed = unit.id, brand = unit.brandId, size = 40.dp)
-        }
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(unit.displayName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
-    }
+    val size = ImasRowDensity.REGULAR.avatarSize
+    ImasRow(
+        title = unit.displayName,
+        leading = ImasRowLeading.Custom(width = size) { ImasUnitAvatar(unit, size = size) },
+        leadBar = ImasRowLeadBar(brand = unit.brandId),
+        trailing = ImasRowTrailing.Chevron,
+        titleLineLimit = 1,
+        modifier = Modifier.imasRowPress(onClick = onClick)
+    )
 }
 
 /** ブランド見出しを full-span アイテムとして挟んだ単一 LazyVerticalGrid (`IdolGrid` と同型)。 */
@@ -226,7 +229,9 @@ private fun UnitGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(vertical = DS.Space.gap, horizontal = DS.Space.screen),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
     ) {
         visibleBrands.forEach { brand ->
             val units = groupedByBrand[brand.id] ?: emptyList()
@@ -239,23 +244,9 @@ private fun UnitGrid(
             }
             if (!collapsed) {
                 items(units, key = { it.id }) { unit ->
-                    UnitGridCell(unit = unit, onClick = { onSelect(unit) })
+                    ImasUnitCell(unit = unit, modifier = Modifier.imasRowPress(onClick = { onSelect(unit) }))
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun UnitGridCell(unit: ImasUnit, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(onClickLabel = unit.displayName, role = Role.Button, onClick = onClick)
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ImasAvatar(label = unit.name, seed = unit.id, brand = unit.brandId, size = 60.dp)
-        Text(unit.displayName, fontSize = 12.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 2.dp))
     }
 }
