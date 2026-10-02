@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import java.time.LocalDate
 
@@ -164,7 +165,6 @@ private fun WeekRow(
                 y = MonthGridMetric.bandTop + MonthGridMetric.bandSlot * band.lane,
                 width = step * (band.endCol - band.startCol) + cellWidth,
                 height = MonthGridMetric.bandHeight,
-                fontSize = 8.sp,
                 // 帯は週をまたぐので、この週で帯が始まる列の日を開く。
                 onClick = { onShowDay(weekDays[band.startCol]) }
             )
@@ -180,7 +180,6 @@ private fun PeriodBandView(
     y: Dp,
     width: Dp,
     height: Dp,
-    fontSize: androidx.compose.ui.unit.TextUnit,
     onClick: () -> Unit
 ) {
     val accent = TicketColor
@@ -207,9 +206,8 @@ private fun PeriodBandView(
         if (band.roundLeading) {
             Text(
                 "受付 ${band.name}",
+                style = ImasTextRole.MICRO.style,
                 color = ImasTheme.onColor(accent),
-                fontSize = fontSize,
-                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -284,8 +282,7 @@ private fun DayCell(
             if (plan.overflow > 0) {
                 Text(
                     "+${plan.overflow}",
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    style = ImasTextRole.MICRO.style,
                     color = DS.ink3,
                     modifier = Modifier
                         .fillMaxWidth()

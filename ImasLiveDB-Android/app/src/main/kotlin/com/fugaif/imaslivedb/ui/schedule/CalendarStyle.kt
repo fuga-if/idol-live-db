@@ -13,16 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.data.model.TicketDateKind
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 
@@ -114,12 +113,16 @@ fun CalendarEntry.barLabel(): String = when (this) {
 /**
  * 1 エントリの色帯。月グリッドの日セルと週ビューの終日レーンで共有する
  * (iOS `CalendarEntryBar` と 1:1)。
+ *
+ * 文字は DESIGN_SYSTEM.md §10.2 が名指しする「月カレンダーの単日バー」の例外枠
+ * (`ImasTextRole.MICRO`、8pt 太字) を土台にする。週ビューは枠がわずかに広いので
+ * [fontSize] で大きさだけ上書きできるようにしてある (太さ・字間は MICRO のまま)。
  */
 @Composable
 fun CalendarEntryBar(
     entry: CalendarEntry,
     height: Dp = 11.dp,
-    fontSize: androidx.compose.ui.unit.TextUnit = 8.sp,
+    fontSize: androidx.compose.ui.unit.TextUnit = ImasTextRole.MICRO.style.fontSize,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -133,9 +136,8 @@ fun CalendarEntryBar(
     ) {
         Text(
             entry.barLabel(),
+            style = ImasTextRole.MICRO.style.copy(fontSize = fontSize),
             color = entry.accentInk(),
-            fontSize = fontSize,
-            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
