@@ -207,14 +207,11 @@ enum class ImasPenlightSize(val diameter: Dp) {
     LARGE(10.dp)
 }
 
-/** ダークの光の滲みのぼかし半径 (iOS の `.blur(radius: 3.5)`)。 */
-private val PenlightGlowBlur = 3.5.dp
-
 /**
  * 色の目印。名前・見出しの前に置く小さな点。iOS `ImasPenlight` の移植。
  *
  * アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
- * ライトは点の周りに淡い輪、ダークは客席のペンライトのように光る。
+ * 点の周りに淡い輪 (ぼかして光らせない。ぼんやり光る表現は使わない)。
  * 読み上げには出さない (飾り。色の意味は隣の名前が言う)。
  *
  * @param color 点の色。実体の色は `imasTheme(...).penlight` から引く (hex を直接書かない)。
@@ -237,44 +234,27 @@ fun ImasPenlight(
             .drawWithCache {
                 // `size` は引数 (点の大きさの段) と名前が重なるので、描く面の大きさは this から引く。
                 val radius = this.size.minDimension / 2f
-                val fill = if (rainbow) Brush.verticalGradient(ImasRainbow) else SolidColor(color)
-                if (dark) {
-                    val (glow, reach) = penlightGlow(color, radius, PenlightGlowBlur.toPx())
-                    onDrawBehind {
-                        drawCircle(glow, radius = reach)
-                        drawCircle(fill, radius = radius)
-                    }
-                } else {
-                    val halo = color.copy(alpha = color.alpha * 0.22f)
-                    val haloRadius = radius + 2.dp.toPx()
-                    onDrawBehind {
-                        drawCircle(halo, radius = haloRadius)
-                        drawCircle(fill, radius = radius)
-                    }
+                val fill = if (rainbow) imasStripesVertical(ImasRainbow, this.size.height) else SolidColor(color)
+                val halo = color.copy(alpha = color.alpha * if (dark) 0.32f else 0.22f)
+                val haloRadius = radius + 2.dp.toPx()
+                onDrawBehind {
+                    drawCircle(halo, radius = haloRadius)
+                    drawCircle(fill, radius = radius)
                 }
             }
     )
 }
 
 /**
- * ダークの光の滲みの塗りと届く半径 (iOS は同じ大きさの円を `.blur(radius: 3.5).opacity(0.9)` で敷く)。
- *
- * Compose のぼかし (`Modifier.blur`) は Android 12 未満で効かないので、ぼかした円の濃さの広がりを
- * 放射状のグラデーションで描く。円 (半径 r) をガウスぼかし (σ) した広がりは、分散 σ² + r²/4 の
- * ガウス分布でよく近似でき、中心の濃さは r² / (2(σ² + r²/4))。3 標準偏差でほぼ消えるので、そこまで描く。
+ * 単色で表せない目印 (合同ライブ) の虹色。色は溶かさず、くっきり区切った縞にする
+ * (ぼんやり移ろうグラデーションは使わない。iOS `ImasStripes`)。[height] は塗る高さ (px)。
  */
-private fun penlightGlow(color: Color, radius: Float, sigma: Float): Pair<Brush, Float> {
-    val variance = sigma * sigma + radius * radius / 4f
-    val peak = (radius * radius / (2f * variance)).coerceAtMost(1f) * 0.9f
-    val reach = 3f * sqrt(variance)
-    // 位置 t (0 = 中心, 1 = reach) の濃さは exp(-(3t)²/2)。
-    val stops = PenlightGlowStops.map { t ->
-        t to color.copy(alpha = color.alpha * peak * exp(-4.5f * t * t))
-    }.toTypedArray()
-    return Brush.radialGradient(*stops, radius = reach) to reach
+fun imasStripesVertical(colors: List<Color>, height: Float): Brush {
+    if (colors.isEmpty()) return SolidColor(Color.Transparent)
+    val n = colors.size.toFloat()
+    val stops = colors.flatMapIndexed { i, c -> listOf(i / n to c, (i + 1) / n to c) }.toTypedArray()
+    return Brush.verticalGradient(*stops, startY = 0f, endY = height)
 }
-
-private val PenlightGlowStops = listOf(0f, 0.2f, 0.4f, 0.6f, 0.8f, 1f)
 
 // MARK: - 実体の色が環境にあるか
 

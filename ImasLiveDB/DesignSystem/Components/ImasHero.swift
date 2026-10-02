@@ -200,7 +200,6 @@ struct ImasMarkTile: View {
                     .background {
                         if isOn || isAction {
                             Circle().fill(fill)
-                                .shadow(color: isOn ? fill.opacity(0.45) : .clear, radius: 7, y: 4)
                         } else {
                             Circle().strokeBorder(DS.line, lineWidth: 1.5)
                         }
@@ -275,7 +274,6 @@ struct ImasTabs<Selection: Hashable>: View {
                                     Capsule()
                                         .fill(t.penlight)
                                         .frame(height: 3)
-                                        .shadow(color: scheme == .dark ? t.penlight : .clear, radius: 5)
                                         .matchedGeometryEffect(id: "underline", in: namespace)
                                 }
                             }

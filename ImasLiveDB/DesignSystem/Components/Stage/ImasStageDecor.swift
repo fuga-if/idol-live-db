@@ -68,7 +68,6 @@ struct ImasStageRushFlash: View {
         Image(systemName: isCorrect ? "circle" : "xmark")
             .font(.system(size: 96, weight: .heavy))
             .foregroundStyle(isCorrect ? DS.success : DS.danger)
-            .shadow(color: (isCorrect ? DS.success : DS.danger).opacity(0.5), radius: 16)
             .transition(.scale(scale: 0.6).combined(with: .opacity))
             .allowsHitTesting(false)
     }

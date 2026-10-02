@@ -38,13 +38,8 @@ struct LyricsQuizMosaicBackground: View {
                 .opacity(images.isEmpty ? 0.55 : 0.95)
             }
             .overlay {
-                LinearGradient(stops: [
-                    .init(color: .black.opacity(0.35), location: 0),
-                    .init(color: .black.opacity(0.15), location: 0.18),
-                    .init(color: .black.opacity(0.62), location: 0.42),
-                    .init(color: .black.opacity(0.9), location: 0.7),
-                    .init(color: .black.opacity(0.96), location: 1),
-                ], startPoint: .top, endPoint: .bottom)
+                // 文字を読ませる平らな暗幕 (グラデーションは使わない)。
+                Color.black.opacity(0.72)
             }
         .clipped()
     }

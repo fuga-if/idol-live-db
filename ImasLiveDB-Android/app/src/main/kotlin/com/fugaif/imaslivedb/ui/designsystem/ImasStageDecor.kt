@@ -125,13 +125,6 @@ fun ImasStageRushFlash(isCorrect: Boolean, modifier: Modifier = Modifier) {
                 scaleY = s
                 alpha = appear.value
             }
-            .drawBehind {
-                // 記号のまわりの光 (iOS `.shadow(radius: 16)`)。
-                drawCircle(
-                    Brush.radialGradient(listOf(color.copy(alpha = 0.35f), Color.Transparent), center, size.minDimension * 0.6f),
-                    radius = size.minDimension * 0.6f
-                )
-            }
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center
     ) {

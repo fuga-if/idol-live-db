@@ -273,7 +273,7 @@ extension ButtonStyle where Self == ImasPressStyle {
 /// 色の目印。名前・見出しの前に置く小さな点。
 ///
 /// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
-/// ライトは点の周りに淡い輪、ダークは客席のペンライトのように光る。
+/// 点の周りに淡い輪 (ぼかして光らせない。ぼんやり光る表現は使わない)。
 struct ImasPenlight: View {
     enum Size {
         /// 13pt の文字の前 (歌唱者・チップ)。並べて人数を見せるときも。
@@ -304,15 +304,11 @@ struct ImasPenlight: View {
         let d = size.diameter * scale
         Circle()
             .fill(rainbow
-                  ? AnyShapeStyle(LinearGradient(colors: QS.penlights, startPoint: .top, endPoint: .bottom))
+                  ? AnyShapeStyle(ImasStripes.vertical(QS.penlights))
                   : AnyShapeStyle(color))
             .frame(width: d, height: d)
             .background {
-                if scheme == .dark {
-                    Circle().fill(color).blur(radius: 3.5).opacity(0.9)
-                } else {
-                    Circle().fill(color.opacity(0.22)).padding(-2)
-                }
+                Circle().fill(color.opacity(scheme == .dark ? 0.32 : 0.22)).padding(-2)
             }
             .accessibilityHidden(true)
     }
@@ -346,4 +342,26 @@ extension ImasTheme {
     var onActionFill: Color { isNeutral ? DS.onSys : onAccent }
     /// ペンライトの色。実体の色が無ければ墨。
     var penlight: Color { isNeutral ? DS.ink : dot }
+}
+
+// MARK: - 縞 (虹色)
+
+/// 単色で表せない目印 (合同ライブ) の虹色。色は溶かさず、くっきり区切った縞にする
+/// (ぼんやり移ろうグラデーションは使わない)。
+enum ImasStripes {
+    static func vertical(_ colors: [Color]) -> LinearGradient {
+        LinearGradient(stops: stops(colors), startPoint: .top, endPoint: .bottom)
+    }
+
+    static func horizontal(_ colors: [Color]) -> LinearGradient {
+        LinearGradient(stops: stops(colors), startPoint: .leading, endPoint: .trailing)
+    }
+
+    private static func stops(_ colors: [Color]) -> [Gradient.Stop] {
+        guard !colors.isEmpty else { return [] }
+        let n = CGFloat(colors.count)
+        return colors.enumerated().flatMap { i, c in
+            [Gradient.Stop(color: c, location: CGFloat(i) / n), Gradient.Stop(color: c, location: CGFloat(i + 1) / n)]
+        }
+    }
 }

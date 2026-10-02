@@ -351,10 +351,6 @@ private fun PenlightStick(slot: QuizPenlight, modifier: Modifier) {
     val lit = slot is QuizPenlight.Lit
     Box(
         modifier = modifier
-            .then(
-                if (lit) Modifier.shadow(6.dp, StickShape, clip = false, ambientColor = fill, spotColor = fill)
-                else Modifier
-            )
             .clip(StickShape)
             .background(fill)
             .then(

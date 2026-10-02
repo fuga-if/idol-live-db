@@ -150,40 +150,14 @@ fun QuizShareCard(
 
 @Composable
 private fun ShareBackdrop(artworks: List<ImageBitmap>) {
-    if (artworks.isEmpty()) {
-        // ペンライトの色をうっすら 2 灯。
-        Box(
-            Modifier.fillMaxSize().drawBehind {
-                drawRect(
-                    Brush.radialGradient(
-                        listOf(QS.penlight(0).copy(alpha = 0.22f), Color.Transparent),
-                        center = Offset.Zero, radius = 380.dp.toPx()
-                    )
-                )
-                drawRect(
-                    Brush.radialGradient(
-                        listOf(QS.penlight(4).copy(alpha = 0.18f), Color.Transparent),
-                        center = Offset(size.width, 0f), radius = 350.dp.toPx()
-                    )
-                )
-            }
-        )
-    } else {
+    // 地は平らに塗る (ぼんやりした光・グラデーションは使わない)。
+    if (artworks.isNotEmpty()) {
         // 遊んだ曲のジャケットを斜めのモザイクで上に敷き、下へ向かって消す。
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(320.dp)
-                .graphicsLayer { alpha = 0.7f; compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    drawRect(
-                        Brush.verticalGradient(
-                            listOf(Color.Black.copy(alpha = 0.9f), Color.Black.copy(alpha = 0.5f), Color.Transparent)
-                        ),
-                        blendMode = BlendMode.DstIn
-                    )
-                }
+                .graphicsLayer { alpha = 0.35f }
         ) {
             QuizShareMosaic(artworks)
         }
@@ -231,15 +205,8 @@ private fun QuizShareMosaic(images: List<ImageBitmap>) {
             }
         }
         Box(
-            Modifier.fillMaxSize().background(
-                Brush.verticalGradient(
-                    0f to Color.Black.copy(alpha = 0.35f),
-                    0.18f to Color.Black.copy(alpha = 0.15f),
-                    0.42f to Color.Black.copy(alpha = 0.62f),
-                    0.7f to Color.Black.copy(alpha = 0.9f),
-                    1f to Color.Black.copy(alpha = 0.96f)
-                )
-            )
+            // 文字を読ませる平らな暗幕 (グラデーションは使わない)。
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.72f))
         )
     }
 }

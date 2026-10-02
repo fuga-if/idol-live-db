@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.designsystem
 
+import com.fugaif.imaslivedb.ui.theme.imasStripesVertical
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -583,13 +585,14 @@ fun ImasLeadBar(
     rainbow: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val fill = if (rainbow) Brush.verticalGradient(ImasRainbow) else SolidColor(imasThemeForBrand(seedHex, brandId).bar)
+    val solid = imasThemeForBrand(seedHex, brandId).bar
     Box(
         modifier
             .width(DS.Size.leadBar)
             .then(if (height != null) Modifier.height(height) else Modifier.fillMaxHeight())
             .clip(RoundedCornerShape(DS.Size.leadBar / 2))
-            .background(fill)
+            // 虹色はくっきり区切った縞 (溶かさない)。
+            .drawBehind { drawRect(if (rainbow) imasStripesVertical(ImasRainbow, size.height) else SolidColor(solid)) }
             .clearAndSetSemantics { }
     )
 }

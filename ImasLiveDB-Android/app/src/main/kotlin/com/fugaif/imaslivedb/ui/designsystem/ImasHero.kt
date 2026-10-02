@@ -346,8 +346,7 @@ fun ImasMarkTile(
                 .size(diameter)
                 .then(
                     when {
-                        isOn -> Modifier.imasSoftShadow(CircleShape, fill = fill, color = fill.copy(alpha = 0.45f), blur = 7.dp, offsetY = 4.dp)
-                        isAction -> Modifier.background(fill, CircleShape)
+                        isOn || isAction -> Modifier.background(fill, CircleShape)
                         else -> Modifier.border(1.5.dp, line, CircleShape)
                     }
                 ),
@@ -440,16 +439,8 @@ fun <T> ImasTabs(
                         val h = 3.dp.toPx()
                         val top = size.height - h
                         val r = h / 2
-                        if (dark) {
-                            // ダークでは下線が光る (iOS `.shadow(color: penlight, radius: 5)`)。
-                            drawIntoCanvas { canvas ->
-                                val paint = Paint().apply { color = underline }
-                                paint.asFrameworkPaint().setShadowLayer(5.dp.toPx(), 0f, 0f, underline.toArgb())
-                                canvas.drawRoundRect(x.value, top, x.value + w.value, size.height, r, r, paint)
-                            }
-                        } else {
-                            drawRoundRect(underline, Offset(x.value, top), Size(w.value, h), CornerRadius(r, r))
-                        }
+                        // 下線は平らな線 (光らせない)。
+                        drawRoundRect(underline, Offset(x.value, top), Size(w.value, h), CornerRadius(r, r))
                     }
                 },
             horizontalArrangement = Arrangement.spacedBy(22.dp)

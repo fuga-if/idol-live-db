@@ -70,19 +70,6 @@ fun IntroResultShareCard(
             .fillMaxSize()
             .background(ShareInk.nearBlack)
     ) {
-        // 上方向からの淡いピンクの光。iOS の RadialGradient (endRadius 720pt) と同じ広がり。
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(DS.pick.copy(alpha = 0.20f), Color.Transparent),
-                        center = Offset(size.widthUnits * SHARE_CARD_SCALE / 2f, 0f),
-                        radius = 360f * SHARE_CARD_SCALE
-                    )
-                )
-        )
-
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             // ヘッダ
             Column(

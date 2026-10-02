@@ -202,7 +202,7 @@ struct QuizPenlightRow: View {
     private func stick(_ slot: QuizPenlight) -> some View {
         switch slot {
         case .lit(let color):
-            shape.fill(color).shadow(color: color.opacity(0.55), radius: 6)
+            shape.fill(color)
         case .miss:
             shape.fill(QS.missFill)
                 .overlay(Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(QS.faint))

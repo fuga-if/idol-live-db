@@ -455,7 +455,7 @@ struct ImasLeadBar: View {
         let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
         RoundedRectangle(cornerRadius: DS.Size.leadBar / 2, style: .continuous)
             .fill(rainbow
-                  ? AnyShapeStyle(LinearGradient(colors: QS.penlights, startPoint: .top, endPoint: .bottom))
+                  ? AnyShapeStyle(ImasStripes.vertical(QS.penlights))
                   : AnyShapeStyle(t.bar))
             .frame(width: DS.Size.leadBar)
             .accessibilityHidden(true)

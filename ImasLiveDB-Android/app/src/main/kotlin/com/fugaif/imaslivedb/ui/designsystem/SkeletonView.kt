@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.designsystem
 
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -43,38 +45,22 @@ import com.fugaif.imaslivedb.ui.theme.DS
 // =============================================================================
 
 /**
- * 左→右に光沢を流すスケルトン用シマーをコンテナ全体に重ねる。iOS の ImasShimmer と対の実装。
+ * スケルトンの読み込み中の印。光沢を流さず (ぼんやり光る表現は使わない)、塗りの濃さを静かに上下させる。
+ * iOS の imasShimmer と対の実装。
  */
 @Composable
 private fun shimmerOverlay(content: @Composable () -> Unit) {
-    val t = rememberInfiniteTransition(label = "shimmer")
-    val p by t.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+    val t = rememberInfiniteTransition(label = "skeleton")
+    val alpha by t.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.55f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "p"
+        label = "alpha"
     )
-    Box(
-        Modifier.drawWithContent {
-            drawContent()
-            val w = size.width
-            val center = (p * 2f - 0.5f) * w
-            val band = w * 0.4f
-            // 加算で重ねる (iOS の `.blendMode(.plusLighter)` と同じ)。ふつうの重ね方だと、ライトの明るい地では
-            // 白 12% がほとんど足されず、光が流れていないように見える。
-            drawRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.12f), Color.Transparent),
-                    start = Offset(center - band, 0f),
-                    end = Offset(center + band, size.height)
-                ),
-                blendMode = BlendMode.Plus
-            )
-        }
-    ) { content() }
+    Box(Modifier.graphicsLayer { this.alpha = alpha }) { content() }
 }
 
 /** プレースホルダの角丸ブロック。 */

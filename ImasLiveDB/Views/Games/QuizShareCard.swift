@@ -81,17 +81,11 @@ struct QuizShareCard: View {
     private var backdrop: some View {
         ZStack(alignment: .top) {
             QS.bg
-            if artworks.isEmpty {
-                RadialGradient(colors: [QS.penlight(0).opacity(0.22), .clear],
-                               center: .topLeading, startRadius: 0, endRadius: 760)
-                RadialGradient(colors: [QS.penlight(4).opacity(0.18), .clear],
-                               center: .topTrailing, startRadius: 0, endRadius: 700)
-            } else {
+            // 地は平らに塗る (ぼんやりした光・グラデーションは使わない)。
+            if !artworks.isEmpty {
                 LyricsQuizMosaicBackground(images: artworks)
                     .frame(height: 640)
-                    .mask(LinearGradient(colors: [.black.opacity(0.9), .black.opacity(0.5), .clear],
-                                         startPoint: .top, endPoint: .bottom))
-                    .opacity(0.7)
+                    .opacity(0.35)
             }
         }
     }
@@ -129,7 +123,6 @@ struct QuizShareCard: View {
                     Capsule()
                         .fill(row.isCorrect ? color(row, i) : QS.missFill)
                         .overlay(Capsule().strokeBorder(row.isCorrect ? .clear : QS.line, lineWidth: 2))
-                        .shadow(color: row.isCorrect ? color(row, i).opacity(0.7) : .clear, radius: 14)
                         .frame(maxWidth: 40)
                         .frame(height: 96)
                 }

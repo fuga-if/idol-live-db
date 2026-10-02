@@ -2,33 +2,22 @@ import SwiftUI
 
 // MARK: - Shimmer
 
-/// 左→右に光沢を流すスケルトン用シマー。コンテナ全体に1回かけて使う (要素ごとに付けない)。
+/// スケルトンの読み込み中の印。光沢を流さず (ぼんやり光る表現は使わない)、塗りの濃さを静かに上下させる。
 private struct ShimmerModifier: ViewModifier {
-    @State private var x: CGFloat = -1
+    @State private var dim = false
     func body(content: Content) -> some View {
         content
-            .overlay(
-                GeometryReader { geo in
-                    LinearGradient(
-                        colors: [.clear, Color.white.opacity(0.13), .clear],
-                        startPoint: .leading, endPoint: .trailing
-                    )
-                    .frame(width: geo.size.width * 0.5)
-                    .offset(x: x * geo.size.width)
-                }
-                .blendMode(.plusLighter)
-                .allowsHitTesting(false)
-            )
+            .opacity(dim ? 0.55 : 1)
             .onAppear {
-                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
-                    x = 1.6
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    dim = true
                 }
             }
     }
 }
 
 extension View {
-    /// スケルトン全体に光沢スイープを重ねる。
+    /// スケルトン全体の濃さを静かに上下させる。
     func imasShimmer() -> some View { modifier(ShimmerModifier()) }
 }
 
