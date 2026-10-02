@@ -100,6 +100,21 @@ extension ImasTheme {
         }
     }
 
+    /// 担当色をアプリ全体の tint に差すときの色。Android の `withOshiAccent` と同じ判断。
+    ///
+    /// tint はボタンの地だけでなく、ツールバーのボタン・リンク・入力欄のカーソルの「文字の色」として
+    /// 紙の上にも載る。アクセントは明度の幅を絞っただけなので、ライトの紙の上では黄色系が読めない
+    /// (1.1:1 まで落ちる)。いちばんコントラストの取りにくい面 (`surface2`。ライトでは最も暗く、
+    /// ダークでは最も明るい) に対して本文と同じ 4.5:1 になるまで明度を寄せる。判断はコアの
+    /// `ensure_contrast` (足りていれば元の色のまま)。無効な hex はコアがニュートラルへ倒すので、
+    /// そのときは nil (= 既定の tint) を返す (設定 ON なのに色が灰色に化ける、を避ける)。
+    static func appTint(hex: String, scheme: ColorScheme) -> Color? {
+        let theme = derive(hex: hex, dark: scheme == .dark)
+        guard !theme.isNeutral else { return nil }
+        return ColorMath.ensureContrast(theme.accent, over: DS.surface2, scheme: scheme,
+                                        minRatio: ColorMath.minTextContrast)
+    }
+
     // MARK: メモ化 (描画側の事情。コアは持たない)
 
     /// 導出結果のメモ。一覧では全行の avatar/chip が同じ少数の色を何度も導出するうえ、
@@ -223,6 +238,22 @@ enum ColorMath {
     private static let onColorLock = NSLock()
     nonisolated(unsafe) private static var onColorCache: [ThemeRgb: Color] = [:]
 
+    /// 文字として面に載せる色のコントラスト (WCAG AA の本文。コアの `DEFAULT_MIN_CONTRAST_RATIO` と同じ)。
+    static let minTextContrast = 4.5
+
+    /// `foreground` を `background` に対して `minRatio` 以上のコントラストまで明度を寄せる
+    /// (コアの `ensure_contrast`。足りていれば元の色のまま)。
+    ///
+    /// 動的色は `scheme` の配色で解決してから渡す。body の評価中は `UITraitCollection.current` が
+    /// その画面の配色を指している保証が無く、解決前の色を渡すと片方の配色の答えになるため。
+    static func ensureContrast(_ foreground: Color, over background: Color, scheme: ColorScheme,
+                               minRatio: Double) -> Color {
+        let traits = UITraitCollection(userInterfaceStyle: scheme == .dark ? .dark : .light)
+        return Color(themeEnsureContrast(foreground: foreground.themeRgb(resolvedWith: traits),
+                                         background: background.themeRgb(resolvedWith: traits),
+                                         minRatio: minRatio))
+    }
+
     /// SwiftUI `Color` → `#rrggbb` (現在のトレイトで解決した sRGB 値)。
     /// コアの入口が hex なので、`Color` を 8bit hex に書き下すところまでがブリッジの仕事。
     static func hexString(from color: Color) -> String {
@@ -248,6 +279,13 @@ extension Color {
     fileprivate var themeRgb: ThemeRgb {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return ThemeRgb(r: Double(r), g: Double(g), b: Double(b))
+    }
+
+    /// 指定のトレイトで解決した sRGB 成分 (0.0–1.0)。配色が分かっている場面で、現在のトレイトに頼らない形。
+    fileprivate func themeRgb(resolvedWith traits: UITraitCollection) -> ThemeRgb {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a)
         return ThemeRgb(r: Double(r), g: Double(g), b: Double(b))
     }
 }

@@ -48,11 +48,13 @@ struct ContentView: View {
     @Environment(CloudKitSyncEngine.self) private var syncEngine
     /// レビュー依頼。OS が出すかどうかを決めるので、呼んでも出ないことがある。
     @Environment(\.requestReview) private var requestReview
+    @Environment(\.colorScheme) private var colorScheme
 
     /// アプリ全体のアクセント tint。担当テーマ有効時のみ色を返し、無効時は nil
-    /// (= 既定の AccentColor アセットにフォールバック)。
+    /// (= 既定の AccentColor アセットにフォールバック)。生の担当色ではなく、紙の上で
+    /// 文字として読める色に寄せたもの (`ImasTheme.appTint`)。
     private var themeTint: Color? {
-        themeOshiColorHex.isEmpty ? nil : Color(hexString: themeOshiColorHex)
+        themeOshiColorHex.isEmpty ? nil : ImasTheme.appTint(hex: themeOshiColorHex, scheme: colorScheme)
     }
 
     /// 届いたリンク。アプリのルートが受けて渡してくる (受け口は 1 つ)。開いたら nil に戻す。
