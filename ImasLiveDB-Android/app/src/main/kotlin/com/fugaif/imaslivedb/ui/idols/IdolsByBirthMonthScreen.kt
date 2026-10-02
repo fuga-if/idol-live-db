@@ -1,23 +1,17 @@
 package com.fugaif.imaslivedb.ui.idols
 
 import android.app.Application
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -29,15 +23,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fugaif.imaslivedb.data.model.Idol
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasIdolRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 /**
  * 誕生月で絞ったアイドル一覧。アイドル詳細のプロフィール「誕生日」行から開く。
@@ -80,45 +75,21 @@ fun IdolsByBirthMonthScreen(
                 state.idols.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ImasEmptyState(icon = Icons.Filled.Person, title = "アイドルが見つかりません")
                 }
-                else -> LazyColumn(Modifier.fillMaxSize()) {
-                    item(key = "count") {
-                        Text(
-                            "${state.idols.size}人",
-                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                // iOS `FilteredIdolsView(criterion: .birthMonth)` と同じ中身 (ImasListSummary + ImasIdolRow)。
+                // よみの併記は Android だけの要素 (iOS 版はアイドル名のみ) なので subtitle として残す。
+                else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    ImasListSummary<Unit>(count = state.idols.size, unit = "人")
+                    ImasCardList(items = state.idols, style = ImasCardListStyle.PLAIN, key = { it.id }) { idol ->
+                        ImasIdolRow(
+                            idol = idol,
+                            subtitle = idol.nameKana?.takeIf { it.isNotEmpty() },
+                            trailing = ImasRowTrailing.Chevron,
+                            density = ImasRowDensity.COMPACT,
+                            modifier = Modifier.imasRowPress(onClick = { onIdolClick(idol.id) })
                         )
-                    }
-                    items(state.idols, key = { it.id }) { idol ->
-                        IdolNameRow(idol) { onIdolClick(idol.id) }
-                        HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
             }
         }
-    }
-}
-
-/** iOS `IdolNameRow` と同じ並び (アバター + 名前 + よみ + シェブロン)。 */
-@Composable
-private fun IdolNameRow(idol: Idol, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(
-                idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            idol.nameKana?.takeIf { it.isNotEmpty() }?.let {
-                Text(it, fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
-            tint = DS.ink3, modifier = Modifier.size(16.dp)
-        )
     }
 }
