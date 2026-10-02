@@ -1,53 +1,52 @@
 package com.fugaif.imaslivedb.ui.introdon
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.ListAlt
-import androidx.compose.material.icons.filled.AllInclusive
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.games.QuizSetupBrandSection
-import com.fugaif.imaslivedb.ui.games.QuizSetupCountRow
-import com.fugaif.imaslivedb.ui.games.QuizSetupInsufficientBanner
+import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCandidateCount
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoice
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCards
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCardsStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -130,8 +129,15 @@ class IntroDonSetupViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun estimatePool() {
         _uiState.value = _uiState.value.copy(isEstimating = true)
-        val pool = songRepository.fetchIntroDonSongs(_uiState.value.selectedBrandIds)
-        _uiState.value = _uiState.value.copy(estimatedCount = pool.size, isEstimating = false)
+        try {
+            val pool = songRepository.fetchIntroDonSongs(_uiState.value.selectedBrandIds)
+            _uiState.value = _uiState.value.copy(estimatedCount = pool.size, isEstimating = false)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // 失敗しても「候補を計算中…」のまま止まらないようにする (0 件扱いにして理由を note で出す)。
+            _uiState.value = _uiState.value.copy(estimatedCount = 0, isEstimating = false)
+        }
     }
 }
 
@@ -148,59 +154,80 @@ fun IntroDonSetupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("設定", fontWeight = FontWeight.Bold) },
+                title = { Text("設定") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") } }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                IntroDonSectionLabel(text = "モード")
+        ImasPage(modifier = Modifier.padding(padding)) {
+            ImasSection(title = "モード", style = ImasSectionHeaderStyle.SMALL) {
                 ModeSection(state.mode, viewModel::setMode)
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                IntroDonSectionLabel(text = "出題範囲", hint = "ブランドで絞る")
-                QuizSetupBrandSection(
-                    brands = state.brands, selectedBrandIds = state.selectedBrandIds,
-                    onToggle = viewModel::toggleBrand, onClearAll = viewModel::clearBrands
+            ImasSection(
+                title = "出題範囲",
+                count = "ブランドで絞る",
+                style = ImasSectionHeaderStyle.SMALL,
+                footer = "複数選択可 · 空=全ブランド対象"
+            ) {
+                ImasBrandPicker(
+                    brands = state.brands,
+                    selection = state.selectedBrandIds,
+                    onSelectionChange = { next ->
+                        // ViewModel は toggle/clear の粒度しか持たないので、差分を見て既存の口を呼ぶ。
+                        if (next.isEmpty()) {
+                            viewModel.clearBrands()
+                        } else {
+                            (next - state.selectedBrandIds).forEach { viewModel.toggleBrand(it) }
+                            (state.selectedBrandIds - next).forEach { viewModel.toggleBrand(it) }
+                        }
+                    }
                 )
             }
 
             when (state.mode) {
-                IntroDonMode.NORMAL, IntroDonMode.PARTY -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IntroDonSectionLabel(text = "問題数")
+                IntroDonMode.NORMAL, IntroDonMode.PARTY -> ImasSection(title = "問題数", style = ImasSectionHeaderStyle.SMALL) {
                     CountSection(state.questionCount, viewModel::setQuestionCount)
                 }
-                IntroDonMode.RUSH -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IntroDonSectionLabel(text = "制限時間")
+                IntroDonMode.RUSH -> ImasSection(title = "制限時間", style = ImasSectionHeaderStyle.SMALL) {
                     RushTimeSection(state.rushTimeLimitSec, viewModel::setRushTimeLimit)
                 }
-                IntroDonMode.ALL_SONGS -> AllSongsNote()
+                IntroDonMode.ALL_SONGS -> ImasNotice(
+                    kind = ImasNoticeKind.INFO,
+                    message = "選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。",
+                    icon = Icons.Filled.AllInclusive
+                )
             }
 
             if (state.mode == IntroDonMode.NORMAL || state.mode == IntroDonMode.PARTY) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IntroDonSectionLabel(text = "難易度 (イントロ再生時間)")
+                ImasSection(title = "難易度 (イントロ再生時間)", style = ImasSectionHeaderStyle.SMALL) {
                     DurationSection(state.introDurationMs, viewModel::setIntroDuration)
                 }
             }
 
-            QuizSetupCountRow(isEstimating = state.isEstimating) {
-                Text("出題候補: ${state.estimatedCount} 曲", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            }
-            if (!state.isEstimating && state.estimatedCount < 4) {
-                QuizSetupInsufficientBanner("出題するにはプレビュー付きの曲が最低 4 曲必要です。ブランドの選択を増やしてください。")
-            }
+            ImasCandidateCount(
+                count = state.estimatedCount,
+                label = "出題候補",
+                minimum = 4,
+                isLoading = state.isEstimating,
+                loadingText = "候補を計算中…",
+                note = if (!state.isEstimating && state.estimatedCount < 4) {
+                    "出題するにはプレビュー付きの曲が最低4曲必要です。ブランドの選択を増やしてください。"
+                } else {
+                    null
+                }
+            )
 
-            IntroDonActionButton(title = "スタート", enabled = state.canStart) {
-                if (state.mode == IntroDonMode.PARTY) onStartParty(state.toSettings()) else onStartGame(state.toSettings())
-            }
-
-            Spacer(Modifier.height(8.dp))
+            ImasButton(
+                title = "スタート",
+                onClick = {
+                    if (state.mode == IntroDonMode.PARTY) onStartParty(state.toSettings()) else onStartGame(state.toSettings())
+                },
+                role = ImasButtonRole.PRIMARY,
+                size = ImasButtonSize.LARGE,
+                fillsWidth = true,
+                enabled = state.canStart
+            )
         }
     }
 }
@@ -213,103 +240,67 @@ private fun ModeSection(selected: IntroDonMode, onSelect: (IntroDonMode) -> Unit
         IntroDonMode.ALL_SONGS to Icons.Filled.AllInclusive,
         IntroDonMode.PARTY to Icons.Filled.Group
     )
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        IntroDonMode.entries.forEach { mode ->
-            val isSelected = mode == selected
-            val accent = introDonAccent()
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (isSelected) accent else DS.surface)
-                    .clickable { onSelect(mode) }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    icons.getValue(mode), null,
-                    tint = if (isSelected) androidx.compose.ui.graphics.Color.White else accent,
-                    modifier = Modifier.size(20.dp)
-                )
-                Column(Modifier.weight(1f)) {
-                    Text(mode.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isSelected) androidx.compose.ui.graphics.Color.White else DS.ink)
-                    Text(mode.icon, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.8f) else DS.ink3)
-                }
-                if (isSelected) Icon(Icons.Filled.CheckCircle, null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
+    ImasChoiceCards(
+        choices = IntroDonMode.entries.map { mode ->
+            ImasChoice(value = mode, title = mode.label, icon = icons.getValue(mode), subtitle = mode.icon)
+        },
+        selection = selected,
+        onSelect = onSelect,
+        style = ImasChoiceCardsStyle.ROW
+    )
 }
 
 @Composable
 private fun CountSection(selected: Int, onSelect: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        questionCounts.forEach { n ->
-            SegmentButton(primary = "$n", secondary = "問", selected = selected == n, modifier = Modifier.weight(1f)) { onSelect(n) }
-        }
-    }
+    ImasChoiceCards(
+        choices = questionCounts.map { n -> ImasChoice(value = n, title = "$n", subtitle = "問") },
+        selection = selected,
+        onSelect = onSelect,
+        style = ImasChoiceCardsStyle.NUMERAL
+    )
 }
 
 @Composable
 private fun RushTimeSection(selectedSec: Int, onSelect: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        rushTimes.forEach { sec ->
-            SegmentButton(primary = "$sec", secondary = "秒", selected = selectedSec == sec, modifier = Modifier.weight(1f)) { onSelect(sec) }
-        }
-    }
+    ImasChoiceCards(
+        choices = rushTimes.map { sec -> ImasChoice(value = sec, title = "$sec", subtitle = "秒") },
+        selection = selectedSec,
+        onSelect = onSelect,
+        style = ImasChoiceCardsStyle.NUMERAL
+    )
 }
 
 @Composable
 private fun DurationSection(selectedMs: Long, onSelect: (Long) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            durations.forEach { (label, ms) ->
-                SegmentButton(primary = label, secondary = if (ms < 1000) "超イントロ" else "再生", selected = selectedMs == ms, modifier = Modifier.weight(1f)) { onSelect(ms) }
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+        ImasChoiceCards(
+            choices = durations.map { (label, ms) -> ImasChoice(value = ms, title = label, subtitle = if (ms < 1000) "超イントロ" else "再生") },
+            selection = selectedMs,
+            onSelect = onSelect,
+            style = ImasChoiceCardsStyle.NUMERAL
+        )
+
+        // 細かく秒数を決めるスライダー (0.2〜10秒)。超イントロ (1秒未満) も自由に。
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
+                ImasText(
                     if (selectedMs < 1000) "超イントロ" else "再生時間",
-                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (selectedMs < 1000) DS.favorite else DS.ink2, modifier = Modifier.weight(1f)
+                    ImasTextRole.META,
+                    color = if (selectedMs < 1000) DS.favorite else DS.ink2,
+                    modifier = Modifier.weight(1f)
                 )
-                Text(String.format("%.1f秒", selectedMs / 1000.0), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DS.ink)
+                ImasText(String.format("%.1f秒", selectedMs / 1000.0), ImasTextRole.VALUE)
             }
             Slider(
                 value = (selectedMs / 100).toFloat(),
                 onValueChange = { onSelect((it.toLong().coerceIn(2, 100)) * 100) },
-                valueRange = 2f..100f
+                valueRange = 2f..100f,
+                colors = SliderDefaults.colors(
+                    thumbColor = DS.favorite,
+                    activeTrackColor = DS.favorite,
+                    inactiveTrackColor = DS.fill
+                )
             )
         }
-    }
-}
-
-@Composable
-private fun AllSongsNote() {
-    Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.favorite.copy(alpha = 0.08f)).padding(14.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Icon(Icons.Filled.AllInclusive, null, tint = DS.favorite, modifier = Modifier.size(16.dp))
-        Text("選択した出題範囲の全曲を出し切るまで挑戦。タイムと正答率を競います。", fontSize = 12.sp, color = DS.ink2)
-    }
-}
-
-@Composable
-private fun SegmentButton(primary: String, secondary: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val accent = introDonAccent()
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (selected) accent else DS.surface)
-            .clickable(onClick = onClick)
-            .padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(primary, fontSize = 20.sp, fontWeight = FontWeight.Black, color = if (selected) androidx.compose.ui.graphics.Color.White else DS.ink)
-        Text(secondary, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (selected) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f) else DS.ink3)
     }
 }

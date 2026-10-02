@@ -7,45 +7,35 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -54,8 +44,23 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.hexToColor
+import com.fugaif.imaslivedb.ui.theme.imasPress
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -113,16 +118,23 @@ class IntroDonPartyViewModel(app: Application, private val settings: IntroDonSet
     fun generateQuestions() {
         viewModelScope.launch {
             _uiState.value = IntroDonPartyUiState(phase = PartyPhase.LOADING)
-            val pool = songRepository.fetchIntroDonSongs(settings.selectedBrandIds)
-            // 始められるか (4 曲の門) と何問出すかはコア。
-            val count = introQuestionCount(IntroSessionKind.STANDARD, pool.size.toUInt(), settings.questionCount.toUInt())
-            if (count == null) {
+            try {
+                val pool = songRepository.fetchIntroDonSongs(settings.selectedBrandIds)
+                // 始められるか (4 曲の門) と何問出すかはコア。
+                val count = introQuestionCount(IntroSessionKind.STANDARD, pool.size.toUInt(), settings.questionCount.toUInt())
+                if (count == null) {
+                    _uiState.value = _uiState.value.copy(errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。")
+                    return@launch
+                }
+                val questions = buildIntroDonQuestions(pool, count.toInt())
+                _uiState.value = IntroDonPartyUiState(phase = PartyPhase.PLAYING, questions = questions)
+                playCurrentQuestion()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 失敗しても「問題を生成中…」のまま止まらないようにする。
                 _uiState.value = _uiState.value.copy(errorMessage = "対象の曲が見つかりませんでした。ブランドを増やしてお試しください。")
-                return@launch
             }
-            val questions = buildIntroDonQuestions(pool, count.toInt())
-            _uiState.value = IntroDonPartyUiState(phase = PartyPhase.PLAYING, questions = questions)
-            playCurrentQuestion()
         }
     }
 
@@ -255,32 +267,32 @@ fun IntroDonPartyScreen(
             else -> SplitLayout(state, viewModel)
         }
 
-        IconButton(onClick = { showExitDialog = true }, modifier = Modifier.padding(8.dp)) {
+        IconButton(onClick = { showExitDialog = true }, modifier = Modifier.padding(DS.Space.gapTight)) {
             Icon(Icons.Filled.Close, "終了", tint = DS.ink2)
         }
     }
 
-    if (showExitDialog) {
-        AlertDialog(
-            onDismissRequest = { showExitDialog = false },
-            title = { Text("対戦を終了しますか？") },
-            confirmButton = { TextButton(onClick = { showExitDialog = false; onExit() }) { Text("終了") } },
-            dismissButton = { TextButton(onClick = { showExitDialog = false }) { Text("キャンセル") } }
-        )
-    }
+    ImasConfirmDestructive(
+        title = "対戦を終了しますか？",
+        isPresented = showExitDialog,
+        onDismiss = { showExitDialog = false },
+        onConfirm = onExit,
+        actionTitle = "終了"
+    )
 }
 
 @Composable
 private fun LoadingOverlay(errorMessage: String?, onExit: () -> Unit) {
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (errorMessage != null) {
-            Text(errorMessage, color = DS.danger, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
-            Spacer(Modifier.height(16.dp))
-            TextButton(onClick = onExit) { Text("戻る") }
+            ImasEmptyState(
+                kind = ImasEmptyStateKind.FAILED,
+                title = errorMessage,
+                actionTitle = "戻る",
+                onAction = onExit
+            )
         } else {
-            CircularProgressIndicator(color = DS.ink2)
-            Spacer(Modifier.height(16.dp))
-            Text("問題を生成中...", color = DS.ink2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            ImasLoadingState(title = "問題を生成中...")
         }
     }
 }
@@ -319,23 +331,26 @@ private fun PlayerHalf(index: Int, rotationDeg: Float, state: IntroDonPartyUiSta
         Box(Modifier.graphicsLayer(rotationZ = rotationDeg)) {
             when {
                 state.phase == PartyPhase.BUZZED && state.buzzedPlayer == index -> AnswerChoices(index, state, viewModel)
-                state.phase == PartyPhase.BUZZED -> Text("相手が回答中…", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+                state.phase == PartyPhase.BUZZED -> ImasText("相手が回答中…", ImasTextRole.ROW_LABEL, color = DS.ink3)
                 state.phase == PartyPhase.REVEALED -> RevealHalfContent(index, state)
-                else -> BuzzContent(player, eliminated)
+                else -> BuzzContent(player, color, eliminated)
             }
         }
     }
 }
 
 @Composable
-private fun BuzzContent(player: PartyPlayer, eliminated: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun BuzzContent(player: PartyPlayer, backgroundColor: androidx.compose.ui.graphics.Color, eliminated: Boolean) {
+    val bigIconSize = with(LocalDensity.current) { 30.sp.toDp() }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         if (eliminated) {
-            Icon(Icons.Filled.Cancel, null, tint = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.35f), modifier = Modifier.size(30.dp))
-            Text("OUT", fontSize = 16.sp, fontWeight = FontWeight.Black, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.4f))
+            // 脱落時の地は常に暗い DS.board (iOS と同じ)。文字はその板の専用インク。
+            Icon(Icons.Filled.Cancel, null, tint = DS.boardDim, modifier = Modifier.size(bigIconSize))
+            ImasText("OUT", ImasTextRole.CARD_TITLE, color = DS.boardDim)
         } else {
-            Text(player.name, fontSize = 40.sp, fontWeight = FontWeight.Black, color = androidx.compose.ui.graphics.Color.White)
-            Text("タップで早押し！", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f))
+            val onColor = ImasTheme.onColor(backgroundColor)
+            ImasText(player.name, ImasTextRole.HERO_TITLE, color = onColor)
+            ImasText("タップで早押し！", ImasTextRole.ROW_LABEL, color = onColor)
         }
     }
 }
@@ -343,25 +358,24 @@ private fun BuzzContent(player: PartyPlayer, eliminated: Boolean) {
 @Composable
 private fun AnswerChoices(index: Int, state: IntroDonPartyUiState, viewModel: IntroDonPartyViewModel) {
     val q = state.currentQuestion ?: return
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(horizontal = 20.dp)) {
-        Text("${partyPlayers[index].name} 回答中", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DS.ink2)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gap),
+        modifier = Modifier.padding(horizontal = DS.Space.screen)
+    ) {
+        ImasText("${partyPlayers[index].name} 回答中", ImasTextRole.SECTION_LABEL)
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(120.dp)
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gap),
+            modifier = Modifier.height(DS.Size.touch * 3)
         ) {
             items(q.choices) { title ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DS.surface)
-                        .clickable { viewModel.submitAnswer(index, title) }
-                        .padding(horizontal = 6.dp, vertical = 14.dp),
-                    contentAlignment = Alignment.Center
+                ImasCard(
+                    modifier = Modifier.fillMaxWidth().imasPress(onClick = { viewModel.submitAnswer(index, title) }),
+                    padding = DS.Space.gap
                 ) {
-                    Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = DS.ink, textAlign = TextAlign.Center, maxLines = 2)
+                    ImasText(title, ImasTextRole.ROW_LABEL, textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.fillMaxWidth())
                 }
             }
         }
@@ -371,15 +385,20 @@ private fun AnswerChoices(index: Int, state: IntroDonPartyUiState, viewModel: In
 @Composable
 private fun RevealHalfContent(index: Int, state: IntroDonPartyUiState) {
     if (state.lastCorrect && state.lastAnswerer == index) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Filled.CheckCircle, null, tint = DS.success, modifier = Modifier.size(28.dp))
-            Text("正解！ +1", fontSize = 16.sp, fontWeight = FontWeight.Black, color = DS.success)
+        val iconSize = with(LocalDensity.current) { 28.sp.toDp() }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+            Icon(Icons.Filled.CheckCircle, null, tint = DS.success, modifier = Modifier.size(iconSize))
+            ImasText("正解！ +1", ImasTextRole.CARD_TITLE, color = DS.success)
         }
     } else {
         val q = state.currentQuestion ?: return
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text("正解", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
-            Text(q.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink, textAlign = TextAlign.Center, maxLines = 2)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
+            modifier = Modifier.padding(horizontal = DS.Space.rowH)
+        ) {
+            ImasText("正解", ImasTextRole.META, color = DS.ink3)
+            ImasText(q.title, ImasTextRole.ROW_LABEL, color = DS.ink, textAlign = TextAlign.Center, maxLines = 2)
         }
     }
 }
@@ -387,35 +406,39 @@ private fun RevealHalfContent(index: Int, state: IntroDonPartyUiState) {
 @Composable
 private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyViewModel) {
     Column(
-        modifier = Modifier.fillMaxWidth().height(132.dp).background(DS.surface).padding(horizontal = 12.dp),
+        modifier = Modifier.fillMaxWidth().height(DS.Size.touch * 3).background(DS.surface).padding(horizontal = DS.Space.rowGap),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
             ScoreChip(0, state)
-            Text("${(state.currentIndex + 1).coerceAtMost(state.totalRounds)} / ${state.totalRounds}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+            ImasText("${(state.currentIndex + 1).coerceAtMost(state.totalRounds)} / ${state.totalRounds}", ImasTextRole.META, color = DS.ink3)
             ScoreChip(1, state)
         }
-        Spacer(Modifier.height(8.dp))
         when (state.phase) {
             PartyPhase.REVEALED -> {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(introDonAccent())
-                        .clickable { viewModel.nextRound() }
-                        .padding(horizontal = 22.dp, vertical = 10.dp)
-                ) {
-                    val isLast = state.currentIndex + 1 >= state.totalRounds
-                    Text(if (isLast) "結果を見る" else "次のラウンドへ", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
-                }
+                val isLast = state.currentIndex + 1 >= state.totalRounds
+                ImasButton(
+                    title = if (isLast) "結果を見る" else "次のラウンドへ",
+                    onClick = { viewModel.nextRound() },
+                    role = ImasButtonRole.PRIMARY,
+                    size = ImasButtonSize.SMALL,
+                    modifier = Modifier.padding(top = DS.Space.gap)
+                )
             }
-            PartyPhase.BUZZED -> Text("早押し成立！回答してください", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = introDonAccent())
-            else -> Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            PartyPhase.BUZZED -> ImasText(
+                "早押し成立！回答してください",
+                ImasTextRole.ROW_SUBTITLE,
+                color = DS.ink,
+                modifier = Modifier.padding(top = DS.Space.gap)
+            )
+            else -> Row(
+                horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = DS.Space.gap)
+            ) {
                 PlayButton(state, viewModel)
-                Box(
-                    modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(DS.fill).clickable { viewModel.giveUp() }.padding(horizontal = 14.dp, vertical = 9.dp)
-                ) { Text("わからない", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3) }
+                ImasButton(title = "わからない", onClick = { viewModel.giveUp() }, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL)
             }
         }
     }
@@ -423,66 +446,63 @@ private fun CenterStrip(state: IntroDonPartyUiState, viewModel: IntroDonPartyVie
 
 @Composable
 private fun PlayButton(state: IntroDonPartyUiState, viewModel: IntroDonPartyViewModel) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val glyphSize = with(LocalDensity.current) { 15.sp.toDp() }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(if (state.isPlayingIntro) introDonAccent() else DS.fill)
-                .clickable { viewModel.replayIntro() },
+                .size(DS.Size.touch)
+                .background(if (state.isPlayingIntro) DS.ink else DS.fill, CircleShape)
+                .imasPress(onClick = { viewModel.replayIntro() }),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 if (state.isPlayingIntro) Icons.Filled.MusicNote else Icons.Filled.PlayArrow, null,
-                tint = if (state.isPlayingIntro) DS.ink else introDonAccent(), modifier = Modifier.size(15.dp)
+                tint = if (state.isPlayingIntro) DS.bg else DS.ink,
+                modifier = Modifier.size(glyphSize)
             )
         }
-        Text("タップでもう一度", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
+        ImasText("タップでもう一度", ImasTextRole.META)
     }
 }
 
 @Composable
 private fun ScoreChip(index: Int, state: IntroDonPartyUiState) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(10.dp).clip(CircleShape).background(hexToColor(partyPlayers[index].colorHex)))
-        Text(partyPlayers[index].name, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DS.ink2)
-        Text("${state.scores[index]}", fontSize = 18.sp, fontWeight = FontWeight.Black, color = DS.ink)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        Box(Modifier.size(DS.Space.gapLoose).background(hexToColor(partyPlayers[index].colorHex), CircleShape))
+        ImasText(partyPlayers[index].name, ImasTextRole.SECTION_LABEL)
+        ImasMetric(value = "${state.scores[index]}", size = ImasNumeralSize.MEDIUM, emphasized = true)
     }
 }
 
 @Composable
 private fun FinishedOverlay(state: IntroDonPartyUiState, onReplay: () -> Unit, onExit: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 40.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = DS.Space.section),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(DS.Space.section, Alignment.CenterVertically)
     ) {
         val winner = state.winner
         if (winner != null) {
-            Text("${partyPlayers[winner].name} の勝ち！", fontSize = 28.sp, fontWeight = FontWeight.Black, color = hexToColor(partyPlayers[winner].colorHex))
+            ImasText("${partyPlayers[winner].name} の勝ち！", ImasTextRole.HERO_TITLE, color = hexToColor(partyPlayers[winner].colorHex))
         } else {
-            Text("引き分け", fontSize = 28.sp, fontWeight = FontWeight.Black, color = DS.ink)
+            ImasText("引き分け", ImasTextRole.HERO_TITLE)
         }
-        Spacer(Modifier.height(20.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Bottom) {
+        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Bottom) {
             FinalScore(0, state)
-            Text("vs", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DS.ink3)
+            ImasText("vs", ImasTextRole.ROW_SUBTITLE, color = DS.ink3)
             FinalScore(1, state)
         }
-        Spacer(Modifier.height(24.dp))
-        IntroDonActionButton(title = "もう一度") { onReplay() }
-        Spacer(Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(DS.surface).clickable(onClick = onExit).padding(vertical = 13.dp),
-            horizontalArrangement = Arrangement.Center
-        ) { Text("退出", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2) }
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap), modifier = Modifier.fillMaxWidth()) {
+            ImasButton(title = "もう一度", onClick = onReplay, role = ImasButtonRole.PRIMARY, size = ImasButtonSize.LARGE, fillsWidth = true)
+            ImasButton(title = "退出", onClick = onExit, role = ImasButtonRole.SECONDARY, size = ImasButtonSize.LARGE, fillsWidth = true)
+        }
     }
 }
 
 @Composable
 private fun FinalScore(index: Int, state: IntroDonPartyUiState) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(partyPlayers[index].name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = hexToColor(partyPlayers[index].colorHex))
-        Text("${state.scores[index]}", fontSize = 44.sp, fontWeight = FontWeight.Black, color = DS.ink)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        ImasText(partyPlayers[index].name, ImasTextRole.ROW_SUBTITLE, color = hexToColor(partyPlayers[index].colorHex))
+        ImasMetric(value = "${state.scores[index]}", size = ImasNumeralSize.LARGE, emphasized = true)
     }
 }
