@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.ui.idols
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,15 +63,30 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.CopyItem
+import com.fugaif.imaslivedb.ui.components.Copyable
+import com.fugaif.imaslivedb.ui.components.ImasIdolCell
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasGridSkeleton
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasMarkKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import com.fugaif.imaslivedb.ui.units.UnitListBody
 import com.fugaif.imaslivedb.ui.units.UnitListMode
@@ -118,11 +134,8 @@ fun IdolListScreen(
         }
     }
 
-    val flatHeader = if (state.sortOrder.keepsBrandGrouping) {
-        null
-    } else {
-        "${state.sortOrder.label}順 ・ ${filteredIdols.size}人"
-    }
+    // 身長順・年齢順などブランドを跨ぐ並びのときだけの「通し」見出し (題のみ。件数は各表示側で添える)。
+    val flatHeader = if (state.sortOrder.keepsBrandGrouping) null else "${state.sortOrder.label}順"
 
     fun displayName(idol: Idol): String =
         if (state.displayMode == IdolDisplayMode.CV_NAME) (state.castNames[idol.id] ?: idol.name) else idol.name
@@ -259,12 +272,10 @@ fun IdolListScreen(
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             if (flatHeader != null) {
                                 item(key = "flat_header") {
-                                    Text(
-                                        flatHeader,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = DS.ink2,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    ImasSectionHeader(
+                                        title = flatHeader,
+                                        count = "${filteredIdols.size}人",
+                                        style = ImasSectionHeaderStyle.SMALL
                                     )
                                 }
                                 items(filteredIdols, key = { it.id }) { idol ->
@@ -331,18 +342,28 @@ fun IdolListScreen(
     }
 }
 
+/** ブランドの区切り見出し (iOS `BrandSectionHeader` + 開閉シェブロン)。見た目は [ImasSectionHeader] (小)。 */
 @Composable
 private fun BrandSectionHeader(brand: Brand, count: Int, expanded: Boolean, onToggle: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
-            .background(DS.bg).padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth()
+            .imasRowPress(onClickLabel = if (expanded) "折りたたむ" else "展開", onClick = onToggle)
+            .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(brand.shortName, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-        Text(" $count", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3)
-        Box(Modifier.weight(1f))
-        Icon(if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-            contentDescription = if (expanded) "折りたたむ" else "展開", tint = DS.ink2)
+        ImasSectionHeader(
+            title = brand.shortName,
+            count = "$count",
+            seed = brand.color,
+            style = ImasSectionHeaderStyle.SMALL,
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(0.dp)
+        )
+        Icon(
+            if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            contentDescription = null,
+            tint = DS.ink2
+        )
     }
 }
 
@@ -350,6 +371,10 @@ private fun BrandSectionHeader(brand: Brand, count: Int, expanded: Boolean, onTo
  * アイドル一覧の行。★お気に入りトグルは行から撤去済み (2026-09、iOS と同じ)。
  * お気に入り自体は詳細画面のボタン・お気に入り一覧・絞り込みに残しているので
  * 機能は消えていない。グリッド表示は元々お気に入りを出していないので変更なし。
+ *
+ * 表示形式 (アイドル名/CV名) で主題が入れ替わるため `ImasIdolRow` ではなく `ImasRow` を直接組む
+ * (題を常にアイドル名に固定する `ImasIdolRow` では表現できない。iOS `IdolListView.idolRow` と同じ判断)。
+ * 先頭のブランド色の帯は Android だけの要素 (iOS 版には無い) なのでそのまま残す。
  */
 @Composable
 private fun IdolRow(
@@ -363,57 +388,31 @@ private fun IdolRow(
     onClick: () -> Unit,
     onToggleMyPick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Copyable(
+        items = listOf(CopyItem("アイドル名をコピー", idol.name), CopyItem("よみをコピー", idol.nameKana)),
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick
     ) {
-        ImasLeadBar(seedHex = idol.color, brandId = idol.brandId, height = 36.dp)
-        Box(Modifier.padding(start = 8.dp)) {
-            // entityId を渡すと、ユーザーが取り込んだ画像があればモノグラムの代わりにそれが出る。
-            ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp,
-                isPick = isPick, entityId = idol.id)
+        ImasRow(
+            title = displayName,
+            subtitle = secondary?.takeIf { it.isNotEmpty() },
+            leading = ImasRowLeading.Avatar(
+                label = idol.shortName, seed = idol.color, brand = idol.brandId,
+                isPick = isPick, entityId = idol.id
+            ),
+            leadBar = ImasRowLeadBar(seed = idol.color, brand = idol.brandId),
+            trailing = ImasRowTrailing.Custom {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                    // 何順で並んでいるか行から読めるようにする並べ替えの根拠 (公式順/五十音順では null)。
+                    if (metric != null) ImasMetric(metric, size = ImasNumeralSize.MEDIUM)
+                    ImasMarkButton(ImasMarkKind.PICK, isOn = isPick, seed = idol.color, brand = idol.brandId, onClick = onToggleMyPick)
+                    ImasRowChevron()
+                }
+            },
+            titleLineLimit = 1
+        ) {
+            if (cvLine != null) ImasText(cvLine, ImasTextRole.META)
         }
-        Column(Modifier.weight(1f).padding(start = 12.dp)) {
-            Text(displayName, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
-            secondary?.takeIf { it.isNotEmpty() }?.let {
-                Text(it, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            cvLine?.let {
-                Text(it, fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        if (metric != null) {
-            Text(
-                metric,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = imasThemeForBrand(idol.color, idol.brandId).accent,
-                modifier = Modifier.padding(end = 4.dp)
-            )
-        }
-        MarkIconButton(active = isPick, activeIcon = Icons.Filled.Favorite, inactiveIcon = Icons.Filled.FavoriteBorder,
-            tint = DS.pick, contentDescription = if (isPick) "担当解除" else "担当に追加", onClick = onToggleMyPick)
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = DS.ink3, modifier = Modifier.size(16.dp))
-    }
-}
-
-@Composable
-private fun MarkIconButton(
-    active: Boolean,
-    activeIcon: ImageVector,
-    inactiveIcon: ImageVector,
-    tint: Color,
-    contentDescription: String,
-    onClick: () -> Unit
-) {
-    IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) {
-        Icon(
-            if (active) activeIcon else inactiveIcon,
-            contentDescription = contentDescription,
-            tint = if (active) tint else DS.ink3,
-            modifier = Modifier.size(18.dp)
-        )
     }
 }
 
@@ -436,17 +435,15 @@ private fun IdolGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(vertical = DS.Space.gap)
     ) {
         if (flatIdols.isNotEmpty()) {
             if (flatHeader != null) {
                 item(key = "flat_header", span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        flatHeader,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = DS.ink2,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    ImasSectionHeader(
+                        title = flatHeader,
+                        count = "${flatIdols.size}人",
+                        style = ImasSectionHeaderStyle.SMALL
                     )
                 }
             }
@@ -484,27 +481,26 @@ private fun IdolGrid(
     }
 }
 
+/**
+ * アイドル一覧の名札セル (DS §6.6 `ImasIdolCell`)。
+ * [isFavorite] は呼び出し側 (`IdolGrid`) から渡され続けている既存の引数で、現状どちらの表示にも使わない
+ * (元のセルも使っていなかった。配線だけ残し、呼び出し側は変えない)。
+ */
 @Composable
 private fun IdolGridCell(
     idol: Idol,
     isPick: Boolean,
-    isFavorite: Boolean,
+    @Suppress("UNUSED_PARAMETER") isFavorite: Boolean,
     /** 並び替えのキー値 (「17歳」「158cm」等)。何順に並んでいるかセルから読めるように出す。 */
     metric: String? = null,
     onClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 60.dp,
-            isPick = isPick, entityId = idol.id)
-        Text(idol.name, fontSize = 12.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 2.dp))
-        if (metric != null) {
-            Text(metric, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink3, maxLines = 1)
-        }
-    }
+    ImasIdolCell(
+        idol = idol,
+        isPick = isPick,
+        metric = metric,
+        modifier = Modifier.imasRowPress(onClickLabel = idol.name, onClick = onClick)
+    )
 }
 
 /** 切替先ごとの件数。 */
