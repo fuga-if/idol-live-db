@@ -1,24 +1,33 @@
 import SwiftUI
 
-/// ChatGPT プランで DB に質問するチャット (試作)。メイン画面のナビゲーションバー右上から開く。
+/// ChatGPT プランで DB に質問するチャット (試作)。タブバーに載せるか、プロデュースの「そのほか」から開く。
 ///
 /// ツール (曲・公演・セトリ・参戦記録の読み取り) はコアの MCP と同じツール面。
 /// 会話は端末内に保存し、毎回 input に積み直す (store: false)。
 struct AssistantChatView: View {
+    /// シートで開くときだけ閉じるを出す (タブバーに載せたときは出さない)。
+    var showsClose = true
     @Environment(\.dismiss) private var dismiss
     private var session: ChatGPTPlanSession { .shared }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if session.isSignedIn, session.canUsePlan {
-                    AssistantHome()
-                } else {
-                    AssistantSignInGate()
-                        .background(DS.bg.ignoresSafeArea())
-                }
+            if showsClose {
+                content.imasSheetToolbar(.read(onClose: { dismiss() }))
+            } else {
+                content
             }
-            .imasSheetToolbar(.read(onClose: { dismiss() }))
+        }
+    }
+
+    private var content: some View {
+        Group {
+            if session.isSignedIn, session.canUsePlan {
+                AssistantHome()
+            } else {
+                AssistantSignInGate()
+                    .background(DS.bg.ignoresSafeArea())
+            }
         }
     }
 }

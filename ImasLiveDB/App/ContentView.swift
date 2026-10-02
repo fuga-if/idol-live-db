@@ -16,8 +16,10 @@ struct ContentView: View {
         }
         return .schedule
     }()
+    /// 下のタブバーの並び (設定で選ぶ)。空なら既定。
+    @AppStorage(TabBarSettings.storageKey) private var tabBarOrder: String = ""
     /// 行き先の一覧 (並び・見出し・タブバーに載るか) はコアが決める。
-    private let navSections = appNavigationSections(lyricsAvailable: LyricsFeature.isAvailable)
+    private var navSections: [NavSection] { TabBarSettings.sections(tabBarOrder) }
     private var primaryItems: [NavItem] { navSections.flatMap(\.items).filter(\.inTabBar) }
     /// サイドバーだけに出る見出し。狭い画面ではタブバーに載らない。
     private var secondarySections: [NavSection] { navSections.filter { $0.title != nil } }
@@ -95,7 +97,7 @@ struct ContentView: View {
         // 「他のタブに N 件」を押されたら、そのタブへ移る。語の受け渡しは
         // 移った先の一覧が `CrossTabSearch.take(for:)` で拾う。
         .onChange(of: crossTab.target) { _, target in
-            if let target { selection = target.destination }
+            if let target { select(target.destination) }
         }
         .environment(\.imasTextScale, textScale)
         // アプリ既定フォントを imas (スケール対応) にする。これで明示フォント未指定の Text や
@@ -152,6 +154,15 @@ struct ContentView: View {
     private var rootTabs: some View {
         if #available(iOS 18, *) {
             AdaptiveRootTabs(selection: $selection, primary: primaryItems, secondary: secondarySections)
+                // タブバーから今いる画面を外したら、外した画面の入口があるプロデュースへ。
+                .onAppear {
+                    // 最初の画面 (スケジュール) をタブから外していたら、タブバーの先頭で開く。
+                    if !primaryItems.contains(where: { $0.destination == selection }),
+                       let first = primaryItems.first { selection = first.destination }
+                }
+                .onChange(of: tabBarOrder) { _, _ in
+                    if !primaryItems.contains(where: { $0.destination == selection }) { selection = .produce }
+                }
         } else {
             TabView(selection: $selection) {
                 ForEach(primaryItems, id: \.destination) { item in
@@ -179,10 +190,11 @@ struct ContentView: View {
         guard let link = DeeplinkRouter.parse(url) else { return }
         // 着地タブは対象の住所に合わせる (イベント/公演=ライブ、お題=プロデュース)。
         // シートを閉じた後に「元居た場所」として自然な一覧が残るようにする。
-        selection = switch link {
+        let landing: AppDestination = switch link {
         case .poll: .produce
         default: .events
         }
+        select(landing)
         let destination: DetailDestination?
         do {
             destination = try DeeplinkRouter.destination(for: link, database: database)
@@ -208,6 +220,11 @@ struct ContentView: View {
         }
     }
 
+    /// 行き先を選ぶ。タブバーから外した行き先なら、外した画面の入口があるプロデュースへ。
+    private func select(_ destination: AppDestination) {
+        selection = primaryItems.contains(where: { $0.destination == destination }) ? destination : .produce
+    }
+
     /// 未提示の deeplink 遷移先があれば sheet で提示する。提示失敗 (他 modal との競合)
     /// に備え、pending の消化は提示自体ではなく sheet content の onAppear で行う。
     private func presentPendingDeeplink() {
@@ -229,8 +246,8 @@ struct SettingsToolbarButton: View {
     }
 }
 
-/// 行き先 1 つぶんの画面。タブバーでもサイドバーでも同じものを出す。
-private struct DestinationScreen: View {
+/// 行き先 1 つぶんの画面。タブバーでもサイドバーでも、プロデュースの「そのほか」でも同じものを出す。
+struct DestinationScreen: View {
     let destination: AppDestination
 
     var body: some View {
@@ -253,6 +270,7 @@ private struct DestinationScreen: View {
         case .communityActivity: NavigationStack { RecentEditsView() }.bottomBarsInset()
         case .tagActivity: NavigationStack { TagActivityView() }.bottomBarsInset()
         case .games: NavigationStack { GamesHubView() }.bottomBarsInset()
+        case .assistant: AssistantChatView(showsClose: false).bottomBarsInset()
         }
     }
 }

@@ -51,10 +51,7 @@ func standardListToolbar<SearchField: View>(
     ToolbarItem(placement: .topBarTrailing) {
         FilterBarButton(activeCount: filterBadge, action: onFilter)
     }
-    // 試作の AI チャット (開発ビルド / TestFlight だけ)。
-    if ChatGPTPlanSession.isPrototypeVisible {
-        ToolbarItem(placement: .topBarTrailing) { AssistantToolbarButton() }
-    }
+    // AI チャットはここに置かない (どの一覧でも上に居座るため)。タブバーに載せるか、プロデュースの「そのほか」から開く。
     if menuActions.count == 1, let only = menuActions.first {
         ToolbarItem(placement: .topBarTrailing) {
             Button(action: only.action) {

@@ -46,6 +46,15 @@ struct ProduceTabView: View {
     @State private var inboxStore = AnnouncementStore.shared
     /// Discord ロール受け取り: 認可 URL を発行してもらっている間 true (二度押し防止 + くるくる)。
     @State private var isLinkingDiscord = false
+    /// タブバーの並び (外した画面は「そのほか」に出す)。
+    @AppStorage(TabBarSettings.storageKey) private var tabBarOrder: String = ""
+    /// 「そのほか」から開いた画面。
+    @State private var otherDestination: AppDestination?
+
+    /// タブバーから外した主な画面と AI チャット (並べ方はコア)。
+    private var otherItems: [NavItem] {
+        TabBarSettings.sections(tabBarOrder).first { $0.title == "そのほか" }?.items ?? []
+    }
     @State private var discordErrorMessage: String?
     @Environment(\.openURL) private var openURL
 
@@ -102,6 +111,10 @@ struct ProduceTabView: View {
             // みんなの投票 (PollListView) は自前スタックを持たず、ここ(親の1スタック)に
             // 遷移先を登録する。これで「一覧→詳細」の2階層目を同じスタック上に push できる。
             .navigationDestination(for: PollRoute.self) { PollRouteView(route: $0) }
+            // タブバーから外した画面はシートで開く (画面ごと自前のナビゲーションを持つため、押し込まない)。
+            .sheet(item: $otherDestination) { dest in
+                DestinationScreen(destination: dest)
+            }
             .sheet(item: $sheetDestination) { dest in
                 DetailSheetView(destination: dest)
                     .environment(database)
@@ -344,6 +357,16 @@ struct ProduceTabView: View {
 
     private var shortcutSection: some View {
         VStack(spacing: DS.Space.section) {
+            if !otherItems.isEmpty {
+                ImasShortcutGroup("そのほか") {
+                    ForEach(otherItems, id: \.analyticsKey) { item in
+                        Button { otherDestination = item.destination } label: {
+                            ImasShortcutTile(systemImage: item.destination.systemImage, label: item.label, seed: pickBrandSeed)
+                        }
+                    }
+                }
+            }
+
             ImasShortcutGroup("あそぶ") {
                 if let s = resumeStore.latest {
                     NavigationLink {

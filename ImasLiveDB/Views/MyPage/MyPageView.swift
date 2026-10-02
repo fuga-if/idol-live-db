@@ -391,6 +391,12 @@ struct MyPageView: View {
     @ViewBuilder
     private var generalSettingsSection: some View {
         ImasListSection("設定") {
+            NavigationLink {
+                TabBarSettingsView()
+            } label: {
+                ImasNavRow(title: "タブバー", systemImage: "dock.rectangle", showsChevron: false)
+            }
+
             ImasMenuRow(
                 title: "デフォルトブランド",
                 systemImage: "square.grid.2x2",
