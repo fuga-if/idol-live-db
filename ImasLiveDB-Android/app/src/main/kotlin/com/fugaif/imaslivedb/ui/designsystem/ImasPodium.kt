@@ -84,7 +84,8 @@ fun ImasPodium(entries: List<ImasPodiumEntry>, modifier: Modifier = Modifier) {
 private fun PodiumCard(entry: ImasPodiumEntry, large: Boolean, modifier: Modifier) {
     val theme = imasThemeForBrand(entry.seed, entry.brand)
     val shape = RoundedCornerShape(DS.rCard)
-    val spoken = "${entry.rank}位 ${entry.title}"
+    // 副題 (歌唱名義 / CV) があれば読み上げにも足す (無ければ順位・題だけ)。
+    val spoken = listOfNotNull("${entry.rank}位 ${entry.title}", entry.subtitle).joinToString(" ")
     Column(
         modifier
             .clearAndSetSemantics {
