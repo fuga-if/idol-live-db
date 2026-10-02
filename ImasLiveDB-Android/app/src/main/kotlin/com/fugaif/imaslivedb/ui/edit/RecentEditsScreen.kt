@@ -1,7 +1,5 @@
 package com.fugaif.imaslivedb.ui.edit
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,17 +7,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
@@ -29,9 +27,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Undo
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -52,14 +46,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -69,9 +58,38 @@ import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
+import com.fugaif.imaslivedb.ui.designsystem.ImasContentState
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRecordRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasStateContainer
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import kotlinx.coroutines.launch
 import uniffi.imas_core.relativeTimes
 
@@ -83,6 +101,9 @@ import uniffi.imas_core.relativeTimes
  * admin 限定。一般ユーザーがここから編集すると `POST /edit-requests` で GitHub issue 化され、
  * このフィードには載らない (CloudKit 未反映のため)。フィードに載るのは admin の直接編集と
  * コミュニティ投稿 (参考動画。別画面) のみ。
+ *
+ * 「取り消す」(revert) は iOS のオープン編集初期から残る Android 独自の導線 (自分の編集タブのみ)。
+ * iOS 版 RecentEditsView には無いが、既存機能なのでそのまま残す。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +136,7 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
         topBar = {
             Column {
                 TopAppBar(
-                    title = { Text(if (tab == 1) "自分の編集" else "最近の編集", fontWeight = FontWeight.Bold) },
+                    title = { Text(if (tab == 1) "自分の編集" else "最近の編集") },
                     navigationIcon = {
                         // サイドバーの根として開いたときは戻る先が無いので出さない。
                         onBack?.let { back ->
@@ -127,7 +148,7 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
                     labels = listOf("みんなの編集", "自分の編集"),
                     selection = tab,
                     onSelect = { tab = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
                 )
             }
         },
@@ -140,59 +161,68 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
                     }
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("編集を提案", modifier = Modifier.padding(start = 6.dp))
+                    Text("編集を提案", modifier = Modifier.padding(start = DS.Space.gapTight))
                 }
             }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             if (tab == 1 && needsLogin) {
-                Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Spacer(Modifier.height(40.dp))
-                    ImasEmptyState(Icons.Filled.Person, "ログインが必要です", "自分の編集履歴を見るにはログインしてください。")
-                    Button(onClick = ::signIn, modifier = Modifier.fillMaxWidth()) { Text("Googleでログイン") }
-                }
-            } else if (state.isLoading && state.entries.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else if (state.entries.isEmpty()) {
-                Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     ImasEmptyState(
-                        icon = Icons.Filled.EditNote,
-                        title = "まだ編集がありません",
-                        message = if (tab == 1) "ライブ・楽曲・セトリを編集すると、ここに履歴が残ります。"
-                        else "誰かがデータを編集すると、ここに新着順で表示されます。"
+                        icon = Icons.Filled.Person,
+                        title = "ログインが必要です",
+                        message = "自分の編集履歴を見るにはログインしてください。",
+                        actionTitle = "Googleでログイン",
+                        onAction = ::signIn
                     )
                 }
             } else {
-                // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引く (行ごとに呼ばない)。
-                val times = remember(state.entries) {
-                    relativeTimes(state.entries.map { it.createdAt }, System.currentTimeMillis())
+                val contentState = when {
+                    state.isLoading && state.entries.isEmpty() -> ImasContentState.Loading
+                    state.entries.isEmpty() -> ImasContentState.Empty
+                    else -> ImasContentState.Loaded
                 }
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    itemsIndexed(state.entries, key = { _, entry -> entry.batchId }) { index, entry ->
-                        val (gooded, goodCount) = viewModel.goodState(entry)
-                        EditFeedCard(
-                            timeText = times.getOrElse(index) { "" },
-                            entry = entry,
-                            gooded = gooded,
-                            goodCount = goodCount,
-                            recordTitle = state.recordTitles[entry.batchId],
-                            showRevertAction = tab == 1,
-                            isReverted = viewModel.isReverted(entry),
-                            isReverting = state.revertingId == entry.batchId,
-                            onToggleGood = { viewModel.toggleGood(entry) },
-                            onOpenHistory = { historyEntry = entry },
-                            onRevertRequest = { revertTarget = entry }
-                        )
-                        if (index >= state.entries.size - 3) {
-                            LaunchedEffect(entry.batchId) { viewModel.loadMore() }
+                ImasStateContainer(
+                    state = contentState,
+                    modifier = Modifier.fillMaxSize(),
+                    empty = {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            ImasEmptyState(
+                                icon = Icons.Filled.EditNote,
+                                title = "まだ編集がありません",
+                                message = if (tab == 1) "ライブ・楽曲・セトリを編集すると、ここに履歴が残ります。"
+                                else "誰かがデータを編集すると、ここに新着順で表示されます。"
+                            )
                         }
                     }
-                    if (state.isLoadingMore) {
-                        item {
-                            Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                ) {
+                    // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引く (行ごとに呼ばない)。
+                    val times = remember(state.entries) {
+                        relativeTimes(state.entries.map { it.createdAt }, System.currentTimeMillis())
+                    }
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        itemsIndexed(state.entries, key = { _, entry -> entry.batchId }) { index, entry ->
+                            val (gooded, goodCount) = viewModel.goodState(entry)
+                            EditFeedCard(
+                                timeText = times.getOrElse(index) { "" },
+                                entry = entry,
+                                gooded = gooded,
+                                goodCount = goodCount,
+                                recordTitle = state.recordTitles[entry.batchId],
+                                showRevertAction = tab == 1,
+                                isReverted = viewModel.isReverted(entry),
+                                isReverting = state.revertingId == entry.batchId,
+                                onToggleGood = { viewModel.toggleGood(entry) },
+                                onOpenHistory = { historyEntry = entry },
+                                onRevertRequest = { revertTarget = entry }
+                            )
+                            if (index >= state.entries.size - 3) {
+                                LaunchedEffect(entry.batchId) { viewModel.loadMore() }
                             }
+                        }
+                        if (state.isLoadingMore) {
+                            item { ImasInlineLoading() }
                         }
                     }
                 }
@@ -200,24 +230,12 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
         }
     }
 
-    if (state.errorMessage != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
-            confirmButton = { TextButton(onClick = { viewModel.clearError() }) { Text("OK") } },
-            title = { Text("エラー") },
-            text = { Text(state.errorMessage ?: "") }
-        )
-    }
+    ImasErrorAlert(message = state.errorMessage, onDismiss = { viewModel.clearError() }, title = "エラー")
 
     if (state.showLoginPrompt) {
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissLoginPrompt() },
-            title = { Text("ログインが必要です") },
-            text = { Text("編集の提案や Good にはログインが必要です。") },
-            confirmButton = {
-                TextButton(onClick = { viewModel.dismissLoginPrompt(); signIn() }) { Text("Googleでログイン") }
-            },
-            dismissButton = { TextButton(onClick = { viewModel.dismissLoginPrompt() }) { Text("キャンセル") } }
+        CommunityLoginPromptDialog(
+            message = "編集の提案や Good にはログインが必要です。",
+            onDismiss = { viewModel.dismissLoginPrompt() }
         )
     }
 
@@ -291,26 +309,18 @@ fun RecentEditsScreen(onBack: (() -> Unit)?, viewModel: RecentEditsViewModel = v
     }
 
     val currentRevertTarget = revertTarget
-    if (currentRevertTarget != null) {
-        AlertDialog(
-            onDismissRequest = { revertTarget = null },
-            title = { Text("この編集を取り消しますか？") },
-            text = {
-                val label = currentRevertTarget.summary
-                    ?: EditFeedFormat.recordTypeLabel(currentRevertTarget.recordType)
-                Text("「$label」を編集前の状態に戻します。この操作も履歴に記録されます。")
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.revert(currentRevertTarget)
-                    revertTarget = null
-                }) { Text("取り消す", color = DS.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { revertTarget = null }) { Text("やめる") }
-            }
-        )
-    }
+    ImasConfirmDestructive(
+        title = "この編集を取り消しますか？",
+        isPresented = currentRevertTarget != null,
+        onDismiss = { revertTarget = null },
+        onConfirm = { currentRevertTarget?.let { viewModel.revert(it) }; revertTarget = null },
+        actionTitle = "取り消す",
+        message = currentRevertTarget?.let { t ->
+            val label = t.summary ?: EditFeedFormat.recordTypeLabel(t.recordType)
+            "「$label」を編集前の状態に戻します。この操作も履歴に記録されます。"
+        },
+        dismissTitle = "やめる"
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -323,61 +333,36 @@ private fun ProposeEditTypeSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
-            Text(
-                "編集の種類を選択", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
-            )
-            ProposeEditTypeRow(
-                icon = Icons.Filled.QueueMusic,
-                title = "セトリを編集",
-                subtitle = "公演の楽曲・出演者の追加/修正/削除",
-                onClick = onPickSetlist
-            )
-            ProposeEditTypeRow(
-                icon = Icons.Filled.MusicNote,
-                title = "曲を追加",
-                subtitle = "まだ登録されていない楽曲を作る",
-                onClick = onPickNewSong
-            )
-            ProposeEditTypeRow(
-                icon = Icons.Filled.Event,
-                title = "ライブを追加",
-                subtitle = "まだ登録されていないライブ・イベントを作る",
-                onClick = onPickNewEvent
-            )
-            // 既存レコードの修正はそれぞれの詳細画面が入口 (どれを直すのか選ばせる画面を
-            // ここに二重で作らない)。公演の追加も親ライブが決まっていないと作れない。
-            Text(
-                "既存の楽曲・アイドル・ライブの修正、公演の追加は、それぞれの詳細画面から行えます。",
-                fontSize = 11.sp, color = DS.ink3,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProposeEditTypeRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier.height(40.dp).background(DS.fill, CircleShape).padding(horizontal = 10.dp),
-            contentAlignment = Alignment.Center
-        ) { Icon(icon, contentDescription = null, tint = DS.ink2) }
-        Column {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Text(subtitle, fontSize = 12.sp, color = DS.ink2)
+        Column(Modifier.fillMaxWidth().padding(bottom = DS.Space.section)) {
+            ImasSheetToolbar(kind = ImasSheetToolbarKind.Read(onClose = onDismiss), title = "編集の種類を選択")
+            Column(Modifier.padding(horizontal = DS.Space.rowH), verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                ImasCardList(style = ImasCardListStyle.PANEL) {
+                    ImasRecordRow(
+                        title = "セトリを編集",
+                        subtitle = "公演の楽曲・出演者の追加/修正/削除",
+                        icon = Icons.Filled.QueueMusic,
+                        tone = ImasIconTileTone.NEUTRAL,
+                        modifier = Modifier.imasRowPress(onClick = onPickSetlist)
+                    )
+                    ImasRecordRow(
+                        title = "曲を追加",
+                        subtitle = "まだ登録されていない楽曲を作る",
+                        icon = Icons.Filled.MusicNote,
+                        tone = ImasIconTileTone.NEUTRAL,
+                        modifier = Modifier.imasRowPress(onClick = onPickNewSong)
+                    )
+                    ImasRecordRow(
+                        title = "ライブを追加",
+                        subtitle = "まだ登録されていないライブ・イベントを作る",
+                        icon = Icons.Filled.Event,
+                        tone = ImasIconTileTone.NEUTRAL,
+                        modifier = Modifier.imasRowPress(onClick = onPickNewEvent)
+                    )
+                }
+                // 既存レコードの修正はそれぞれの詳細画面が入口 (どれを直すのか選ばせる画面を
+                // ここに二重で作らない)。公演の追加も親ライブが決まっていないと作れない。
+                ImasNote("既存の楽曲・アイドル・ライブの修正、公演の追加は、それぞれの詳細画面から行えます。")
+            }
         }
     }
 }
@@ -407,38 +392,53 @@ fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> 
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Text("変更履歴", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            Text(
+        Column(Modifier.fillMaxWidth().heightIn(min = 200.dp)) {
+            ImasSheetToolbar(kind = ImasSheetToolbarKind.Read(onClose = onDismiss), title = "変更履歴")
+            ImasNote(
                 EditFeedFormat.recordTypeLabel(recordType),
-                fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight)
             )
-            when {
-                error != null -> Text(error ?: "", color = DS.danger, fontSize = 13.sp)
-                history == null -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            val currentHistory = history
+            val state = when {
+                error != null -> ImasContentState.Failed(error)
+                currentHistory == null -> ImasContentState.Loading
+                currentHistory.isEmpty() -> ImasContentState.Empty
+                else -> ImasContentState.Loaded
+            }
+            ImasStateContainer(
+                state = state,
+                empty = { ImasEmptyState(ImasEmptyStateKind.EMPTY, title = "履歴がありません") }
+            ) {
+                // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引き、一覧が変わるまで使い回す。
+                val times = remember(currentHistory) {
+                    relativeTimes(currentHistory!!.map { it.createdAt }, System.currentTimeMillis())
                 }
-                history!!.isEmpty() -> Text("履歴がありません", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(16.dp))
-                else -> {
-                    // 相対時刻の言い回しはコア。一覧ぶんを 1 回で引き、一覧が変わるまで使い回す。
-                    val times = remember(history) { relativeTimes(history!!.map { it.createdAt }, System.currentTimeMillis()) }
-                    history!!.forEachIndexed { i, h ->
-                        Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                val (label, color) = EditFeedFormat.opDesign(h.op)
-                                Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color)
-                                Text(times[i], fontSize = 11.sp, color = DS.ink3)
-                                if (h.reverted) Text("(差戻し済み)", fontSize = 11.sp, color = DS.ink3)
-                            }
-                            if (h.changedFields.isNotEmpty()) {
-                                Text(h.changedFields.joinToString(", "), fontSize = 12.sp, color = DS.ink2)
-                            }
-                            h.editorName?.let { Text(it, fontSize = 11.sp, color = DS.ink3) }
-                        }
+                Column(Modifier.verticalScroll(rememberScrollState())) {
+                    ImasListSection {
+                        currentHistory!!.forEachIndexed { i, h -> HistoryRow(h, times.getOrElse(i) { "" }) }
                     }
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.heightIn(min = DS.Space.section))
+        }
+    }
+}
+
+@Composable
+private fun HistoryRow(entry: EditApi.RecordHistoryEntry, timeText: String) {
+    val badges = buildList {
+        add(ImasBadgeSpec(EditFeedFormat.opLabel(entry.op), EditFeedFormat.opBadgeKind(entry.op)))
+        if (entry.reverted) add(ImasBadgeSpec("差戻し済み", ImasBadgeKind.NEGATIVE))
+    }
+    ImasRecordRow(
+        title = EditFeedFormat.historyTitle(entry.op),
+        icon = Icons.Filled.Edit,
+        subtitle = entry.editorName,
+        badges = badges,
+        trailing = ImasRowTrailing.Value(timeText)
+    ) {
+        if (entry.changedFields.isNotEmpty()) {
+            Text(entry.changedFields.joinToString(", "), style = ImasTextRole.NOTE.style, color = DS.ink2)
         }
     }
 }
@@ -457,140 +457,99 @@ private fun EditFeedCard(
     onOpenHistory: () -> Unit,
     onRevertRequest: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(DS.surface)
-            .clickable(onClick = onOpenHistory)
-            .padding(14.dp)
+    ImasCard(
+        modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
+        padding = 0.dp
     ) {
-        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            val design = EditFeedFormat.recordTypeDesign(entry.recordType)
-            Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(design.second.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) { Icon(design.first, contentDescription = null, tint = design.second) }
-
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(entry.editorDisplayLabel, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    OpBadge(entry.op)
-                    if (showRevertAction && isReverted) {
-                        Text(
-                            "差戻し済み", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-                            modifier = Modifier.clip(RoundedCornerShape(50)).background(DS.fill)
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text(timeText, fontSize = 11.sp, color = DS.ink2)
+        ImasRecordRow(
+            modifier = Modifier.imasRowPress(onClick = onOpenHistory),
+            leading = ImasRowLeading.Icon(EditFeedFormat.recordTypeIcon(entry.recordType), tone = ImasIconTileTone.THEMED, seed = entry.recordType),
+            title = recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType),
+            titleLineLimit = Int.MAX_VALUE,
+            subtitle = entry.editorDisplayLabel,
+            badges = buildList {
+                add(ImasBadgeSpec(EditFeedFormat.opLabel(entry.op), EditFeedFormat.opBadgeKind(entry.op)))
+                if (showRevertAction && isReverted) add(ImasBadgeSpec("差戻し済み", ImasBadgeKind.NEGATIVE))
+            },
+            trailing = ImasRowTrailing.Custom {
+                Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
+                    Text(timeText, style = ImasTextRole.META.style, color = DS.ink2)
+                    ImasRowChevron()
                 }
-                Text(
-                    recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType),
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-                    color = if (showRevertAction && isReverted) DS.ink2 else DS.ink,
-                    textDecoration = if (showRevertAction && isReverted) TextDecoration.LineThrough else null,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-                if (!entry.summary.isNullOrEmpty()) {
-                    Text(entry.summary, fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp))
-                }
+            }
+        ) {
+            if (!entry.summary.isNullOrEmpty()) {
+                Text(entry.summary, style = ImasTextRole.NOTE.style, color = DS.ink2)
             }
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
             if (showRevertAction) {
                 if (entry.goodCount > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Favorite, contentDescription = null, tint = DS.pick, modifier = Modifier.size(14.dp))
-                        Text("${entry.goodCount}", fontSize = 12.sp, color = DS.pick, modifier = Modifier.padding(start = 4.dp))
-                    }
+                    ImasBadge(text = "${entry.goodCount}", icon = Icons.Filled.Favorite, kind = ImasBadgeKind.NEUTRAL)
                 }
                 Spacer(Modifier.weight(1f))
-                when {
-                    isReverting -> CircularProgressIndicator(modifier = Modifier.size(16.dp))
-                    entry.isRevertable && !isReverted -> {
-                        Row(
-                            modifier = Modifier.clip(RoundedCornerShape(50))
-                                .background(DS.danger.copy(alpha = 0.12f))
-                                .clickable(onClick = onRevertRequest)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.Undo, contentDescription = null, tint = DS.danger, modifier = Modifier.size(14.dp))
-                            Text("取り消す", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.danger,
-                                modifier = Modifier.padding(start = 5.dp))
-                        }
-                    }
+                if (isReverting || (entry.isRevertable && !isReverted)) {
+                    ImasButton(
+                        title = "取り消す",
+                        onClick = onRevertRequest,
+                        icon = Icons.Filled.Undo,
+                        role = ImasButtonRole.DESTRUCTIVE,
+                        size = ImasButtonSize.SMALL,
+                        isLoading = isReverting,
+                        enabled = !isReverting
+                    )
                 }
             } else {
                 if (entry.isOwnEdit) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Person, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(14.dp))
-                        Text("あなたの編集", fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
-                    }
+                    ImasBadge(text = "あなたの編集", icon = Icons.Filled.Person, kind = ImasBadgeKind.NEUTRAL)
                 } else {
-                    Row(
-                        modifier = Modifier.clip(RoundedCornerShape(50))
-                            .background((if (gooded) DS.pick else DS.ink2).copy(alpha = 0.12f))
-                            .clickable(onClick = onToggleGood)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            if (gooded) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (gooded) "Good を取り消す" else "Good を付ける",
-                            tint = if (gooded) DS.pick else DS.ink2,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            if (goodCount > 0) "$goodCount" else "Good",
-                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-                            color = if (gooded) DS.pick else DS.ink2,
-                            modifier = Modifier.padding(start = 5.dp)
-                        )
-                    }
+                    ImasFilterChip(
+                        label = if (goodCount > 0) "$goodCount" else "Good",
+                        selected = gooded,
+                        icon = if (gooded) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        onClick = onToggleGood,
+                        onClickLabel = if (gooded) "Good を取り消す" else "Good を付ける"
+                    )
                 }
                 Spacer(Modifier.weight(1f))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.History, contentDescription = null, tint = DS.ink3, modifier = Modifier.size(13.dp))
-                    Text("変更履歴", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2, modifier = Modifier.padding(start = 4.dp))
-                }
+                ImasButton(
+                    title = "変更履歴",
+                    onClick = onOpenHistory,
+                    icon = Icons.Filled.History,
+                    role = ImasButtonRole.PLAIN,
+                    size = ImasButtonSize.SMALL
+                )
             }
         }
     }
 }
 
-@Composable
-private fun OpBadge(op: String) {
-    val (label, color) = EditFeedFormat.opDesign(op)
-    Text(
-        label, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color,
-        modifier = Modifier.clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 7.dp, vertical = 2.dp)
-    )
-}
-
-/** record_type / op の表示メタ + 相対時刻整形。iOS `EditFeedFormat` の移植。 */
-// 色は DS トークン (現在のモードで決まる) なので、色を返す表だけ @Composable。
+/** record_type / op の表示メタ + 相対時刻整形。iOS `EditFeedFormat` の移植。
+ *
+ * 色は分類キー (record_type) から `ImasRowLeading.Icon(tone = THEMED, seed = ...)` が安定導出する
+ * ([ImasTheme.derive] 経由、iOS `ImasTheme.derive(categoryKey:)` と同じ仕組み) ため、ここでは
+ * アイコン・ラベルの対応表だけを持つ (手書きの色パレットは持たない)。
+ *
+ * op の札も iOS 本体と同じ方針 (§10.1: 操作は色でなく文字で区別する) に合わせ、差戻しだけ
+ * `NEGATIVE` (灰) にする。旧実装にあった op ごとの色分け (追加=緑/更新=青/削除=赤 等) は
+ * iOS 側でも実際には使われていない (`opDesign` は死んだコード) ため、ここでは持ち越さない。
+ */
 private object EditFeedFormat {
-    @Composable
-    fun recordTypeDesign(type: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, Color> = when (type) {
-        "Event" -> Icons.Filled.Event to Color(0xFF9C6ADE)
-        "Show" -> Icons.Filled.MusicNote to Color(0xFF6A7FDE)
-        "Song" -> Icons.Filled.MusicNote to DS.pick
-        "Idol" -> Icons.Filled.Person to Color(0xFF4A90D9)
-        "SetlistItem", "ShowSetlist" -> Icons.Filled.QueueMusic to Color(0xFF2FB8A8)
-        "SetlistPerformer" -> Icons.AutoMirrored.Filled.List to Color(0xFF2FB8A8)
-        "SongArtist" -> Icons.Filled.MusicNote to DS.success
-        "ShowCast" -> Icons.Filled.Person to DS.warning
-        else -> Icons.Filled.EditNote to DS.ink3
+    fun recordTypeIcon(type: String): ImageVector = when (type) {
+        "Event" -> Icons.Filled.Event
+        "Show" -> Icons.Filled.MusicNote
+        "Song" -> Icons.Filled.MusicNote
+        "Idol" -> Icons.Filled.Person
+        "SetlistItem", "ShowSetlist" -> Icons.Filled.QueueMusic
+        "SetlistPerformer" -> Icons.AutoMirrored.Filled.List
+        "SongArtist" -> Icons.Filled.MusicNote
+        "ShowCast" -> Icons.Filled.Person
+        else -> Icons.Filled.EditNote
     }
 
     fun recordTypeLabel(type: String): String = when (type) {
@@ -607,13 +566,26 @@ private object EditFeedFormat {
         else -> type
     }
 
-    @Composable
-    fun opDesign(op: String): Pair<String, Color> = when (op) {
-        "create" -> "追加" to DS.success
-        "update", "replace" -> "更新" to Color(0xFF4A90D9)
-        "delete" -> "削除" to DS.danger
-        "revert" -> "差戻し" to DS.warning
-        "snapshot" -> "セトリ更新" to Color(0xFF2FB8A8)
-        else -> op to DS.ink3
+    fun opLabel(op: String): String = when (op) {
+        "create" -> "追加"
+        "update", "replace" -> "更新"
+        "delete" -> "削除"
+        "revert" -> "差戻し"
+        "snapshot" -> "セトリ更新"
+        else -> op
+    }
+
+    /** 差し戻しだけ「取り消された記録」として `NEGATIVE` (灰の薄字) に当てる。 */
+    fun opBadgeKind(op: String): ImasBadgeKind = if (op == "revert") ImasBadgeKind.NEGATIVE else ImasBadgeKind.NEUTRAL
+
+    /**
+     * 変更履歴 1 行の見出し文 (iOS `EditHistoryView.HistoryRow.title` と同じ言い回し)。
+     * op の短い札 ([opLabel]) は別途 badges に出すので、ここは何が起きたかの文にする。
+     */
+    fun historyTitle(op: String): String = when (op) {
+        "create" -> "新規追加されました"
+        "delete" -> "削除されました"
+        "snapshot" -> "セットリスト全体が更新されました"
+        else -> "内容が更新されました"
     }
 }

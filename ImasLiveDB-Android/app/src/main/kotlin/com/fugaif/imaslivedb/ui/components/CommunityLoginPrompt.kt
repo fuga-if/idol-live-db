@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
 
 /**
@@ -37,8 +38,11 @@ fun CommunityLoginPromptDialog(
                 // signIn はアカウント選択シートを出すため Activity context が要る
                 // (AppModule が握る application context ではなく LocalContext を渡す)。
                 scope.launch { AppModule.from(context).authService.signIn(context) }
-            }) { Text("Googleでログイン") }
+            }) { Text("Googleでログイン", color = DS.ink) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル", color = DS.ink2) } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
     )
 }
