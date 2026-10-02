@@ -184,7 +184,11 @@ data class IdolSongSection(
 data class CastShowCount(
     @ColumnInfo(name = "id") val id: String,
     @ColumnInfo(name = "name") val name: String,
-    @ColumnInfo(name = "show_count") val showCount: Int
+    @ColumnInfo(name = "show_count") val showCount: Int,
+    /** アイコン (判子) の短い名前・色・ブランド。コアの経路だけが埋める。 */
+    val shortName: String? = null,
+    val color: String? = null,
+    val brandId: String? = null
 )
 
 // MARK: - Stats Query Results

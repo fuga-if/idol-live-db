@@ -30,7 +30,7 @@
 //! 解決し、`branded_song_ids` (母集合) と突き合わせる (iOS StatsView / CollectionShareCard)。
 
 use crate::domain::short_year_month::ymd_components;
-use crate::domain::snapshot::Snapshot;
+use crate::domain::snapshot::{idol_short_name, Snapshot};
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
 
@@ -69,6 +69,11 @@ pub struct CastShowCountRecord {
     pub id: String,
     pub name: String,
     pub show_count: u32,
+    /// アイコン (判子) に入れる短い名前 (`idol_short_name`)。
+    pub short_name: String,
+    /// アイドルの色 (判子の色)。
+    pub color: Option<String>,
+    pub brand_id: Option<String>,
 }
 
 /// 年別公演数 1 行 (iOS `YearlyShowCount`)。
@@ -201,7 +206,14 @@ pub fn cast_show_count_ranking_in(
         .into_iter()
         .map(|(ii, count)| {
             let idol = &snap.idols[ii as usize];
-            CastShowCountRecord { id: idol.id.clone(), name: idol.name.clone(), show_count: count }
+            CastShowCountRecord {
+                id: idol.id.clone(),
+                name: idol.name.clone(),
+                show_count: count,
+                short_name: idol_short_name(&idol.name, idol.given_name.as_deref(), idol.nickname.as_deref()).to_string(),
+                color: idol.color.clone(),
+                brand_id: idol.brand_id.clone(),
+            }
         })
         .collect()
 }
@@ -383,16 +395,22 @@ mod tests {
 
     fn sql_cast_show_count_ranking(db: &Connection, limit: i64) -> Vec<CastShowCountRecord> {
         db.prepare(
-            "SELECT i.id, i.name, COUNT(DISTINCT sc.show_id) AS show_count
+            "SELECT i.id, i.name, COUNT(DISTINCT sc.show_id) AS show_count, i.given_name, i.nickname, i.color, i.brand_id
              FROM idols i JOIN show_cast sc ON i.id = sc.idol_id
              GROUP BY i.id ORDER BY show_count DESC LIMIT ?",
         )
         .unwrap()
         .query_map([limit], |r| {
+            let name: String = r.get(1)?;
+            let given: Option<String> = r.get(3)?;
+            let nick: Option<String> = r.get(4)?;
             Ok(CastShowCountRecord {
                 id: r.get(0)?,
-                name: r.get(1)?,
+                short_name: idol_short_name(&name, given.as_deref(), nick.as_deref()).to_string(),
+                name,
                 show_count: r.get::<_, i64>(2)? as u32,
+                color: r.get(5)?,
+                brand_id: r.get(6)?,
             })
         })
         .unwrap()

@@ -109,7 +109,12 @@ class IdolRepository(
     suspend fun fetchIdolShowCountRanking(limit: Int = 20): List<CastShowCount> =
         snapshots.query { store ->
             store.castShowCountRanking(limit.toUInt())
-                .map { CastShowCount(id = it.id, name = it.name, showCount = it.showCount.toInt()) }
+                .map {
+                    CastShowCount(
+                        id = it.id, name = it.name, showCount = it.showCount.toInt(),
+                        shortName = it.shortName, color = it.color, brandId = it.brandId
+                    )
+                }
         }
 
     /** ライブ歌唱曲 (実演記録) + 披露回数。 */

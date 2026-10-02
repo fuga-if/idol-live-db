@@ -342,10 +342,13 @@ struct StatsView: View {
                     ForEach(Array(castShowCounts.enumerated()), id: \.offset) { index, item in
                         ImasRankingRow(
                             rank: index + 1,
-                            lead: .avatar(label: monogram(item.name), imageURL: nil),
+                            // アイコンは写真か判子 (担当色)。ほかの画面と同じ。
+                            lead: .avatar(label: item.shortName ?? item.name,
+                                          imageURL: CustomImageService.shared.imageURL(for: item.id)),
                             title: item.name,
                             metric: "\(item.showCount)",
-                            unit: "公演"
+                            unit: "公演",
+                            seed: item.color
                         )
                         if index < castShowCounts.count - 1 {
                             ImasRowDivider(inset: 52)
@@ -406,10 +409,6 @@ struct StatsView: View {
     private func artworkURL(_ raw: String?) -> URL? {
         guard let raw, !raw.isEmpty else { return nil }
         return URL(string: raw)
-    }
-
-    private func monogram(_ name: String) -> String {
-        String(name.trimmingCharacters(in: .whitespaces).prefix(1))
     }
 
     /// "1280" → "1,280" のような桁区切り。

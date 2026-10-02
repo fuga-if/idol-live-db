@@ -193,6 +193,9 @@ struct CastShowCount: Codable, FetchableRecord, Identifiable, Sendable {
     var id: String
     var name: String
     var showCount: Int
+    /// アイコン (判子) の短い名前と色。コアの経路だけが埋める。
+    var shortName: String? = nil
+    var color: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name

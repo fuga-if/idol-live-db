@@ -312,7 +312,9 @@ enum CoreRecordMapping {
         CastShowCount(
             id: record.id,
             name: record.name,
-            showCount: Int(record.showCount)
+            showCount: Int(record.showCount),
+            shortName: record.shortName,
+            color: record.color
         )
     }
 

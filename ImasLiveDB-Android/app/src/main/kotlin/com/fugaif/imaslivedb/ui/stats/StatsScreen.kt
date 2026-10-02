@@ -180,8 +180,9 @@ fun StatsScreen(viewModel: StatsViewModel = viewModel()) {
                 if (state.castShowCounts.isNotEmpty()) {
                     ImasSection("活動量 ・ 出演回数", style = ImasSectionHeaderStyle.SMALL) {
                         ImasCardList(items = state.castShowCounts.withIndex().toList(), key = { it.index }) { (index, c) ->
-                            ImasRankingRow(rank = index + 1, title = c.name, metric = "${c.showCount}", unit = "公演") {
-                                ImasAvatar(label = c.name, size = 44.dp)
+                            ImasRankingRow(rank = index + 1, title = c.name, metric = "${c.showCount}", unit = "公演", seed = c.color, brand = c.brandId) {
+                                // アイコンは写真か判子 (担当色)。ほかの画面と同じ。
+                                ImasAvatar(label = c.shortName ?: c.name, seed = c.color, brand = c.brandId, size = 44.dp, entityId = c.id)
                             }
                         }
                     }
