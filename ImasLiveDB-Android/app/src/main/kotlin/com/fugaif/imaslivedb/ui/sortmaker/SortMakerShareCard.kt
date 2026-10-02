@@ -1,19 +1,14 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.TextSnippet
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,29 +26,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.share.PosterShareScaffold
 import com.fugaif.imaslivedb.ui.share.ShareCardActionPane
 import com.fugaif.imaslivedb.ui.share.ShareCardArtwork
-import com.fugaif.imaslivedb.ui.share.ShareCardFooter
 import com.fugaif.imaslivedb.ui.share.ShareCardRatio
 import com.fugaif.imaslivedb.ui.share.ShareCardSheet
 import com.fugaif.imaslivedb.ui.share.ShareCardSize
-import com.fugaif.imaslivedb.ui.share.ShareInk
 import com.fugaif.imaslivedb.ui.share.SocialShare
 import com.fugaif.imaslivedb.ui.share.rememberShareCardPalette
-import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.SortMakerShareRow
 import uniffi.imas_core.sortMakerShareText
 
@@ -104,19 +96,13 @@ fun SortMakerShareSheet(
                 SortMakerShareCard(subject = subject, scopeLabel = scopeLabel, rows = rows, artworks = artworks, size = size)
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(DS.fill)
-                    .clickable { SocialShare.shareText(context, shareText) }
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(Icons.Filled.TextSnippet, null, tint = DS.ink, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("テキストでシェア", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            }
+            ImasButton(
+                title = "テキストでシェア",
+                onClick = { SocialShare.shareText(context, shareText) },
+                icon = Icons.Filled.TextSnippet,
+                role = ImasButtonRole.SECONDARY,
+                size = ImasButtonSize.MEDIUM
+            )
         }
     }
 }
@@ -141,56 +127,22 @@ private fun SortMakerShareCard(
 ) {
     val podium = rows.take(3)
     val rest = rows.drop(3).take(7)
-    val accent = rememberShareCardPalette(seed = rows.firstOrNull()?.second?.seed).accent
+    val palette = rememberShareCardPalette(seed = rows.firstOrNull()?.second?.seed)
 
-    Box(
-        Modifier
-            .size(size.widthUnits.dp, size.heightUnits.dp)
-            .background(ShareInk.nearBlack)
+    PosterShareScaffold(
+        palette = palette,
+        width = size.widthUnits.dp,
+        height = size.heightUnits.dp,
+        kicker = subject.title,
+        trailingKicker = "RESULT",
+        title = if (rows.size >= 10) "MY BEST 10" else "MY BEST ${rows.size}",
+        subtitle = scopeLabel
     ) {
-        Watermark(accent = accent, size = size)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 36.dp, vertical = 0.dp)
-                .padding(top = 32.dp, bottom = 28.dp)
-        ) {
-            Header(subject = subject, scopeLabel = scopeLabel, resultCount = rows.size, accent = accent)
-            PodiumRow(podium = podium, accent = accent, artworks = artworks, modifier = Modifier.fillMaxWidth().padding(top = 22.dp))
-            if (rest.isNotEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(top = 18.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
-                RestGrid(rest = rest, modifier = Modifier.padding(top = 14.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            ShareCardFooter(ink = Color.White.copy(alpha = 0.62f), rule = Color.White.copy(alpha = 0.16f))
+        PodiumRow(podium = podium, accent = palette.accent, artworks = artworks, modifier = Modifier.fillMaxWidth().padding(top = 22.dp))
+        if (rest.isNotEmpty()) {
+            Box(Modifier.fillMaxWidth().padding(top = 18.dp).height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+            RestGrid(rest = rest, modifier = Modifier.padding(top = 14.dp))
         }
-    }
-}
-
-// MARK: - 見出し
-
-@Composable
-private fun Header(subject: SortMakerSubject, scopeLabel: String, resultCount: Int, accent: Color) {
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(18.dp).height(3.dp).background(accent))
-            Spacer(Modifier.width(8.dp))
-            Text(subject.title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f))
-            Spacer(Modifier.weight(1f, fill = true))
-            Text(
-                "RESULT", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace,
-                letterSpacing = 2.4.sp, color = Color.White.copy(alpha = 0.45f)
-            )
-        }
-        Text(
-            if (resultCount >= 10) "MY BEST 10" else "MY BEST $resultCount",
-            fontSize = 50.sp, fontWeight = FontWeight.Black, color = Color.White,
-            modifier = Modifier.padding(top = 6.dp)
-        )
-        Text(
-            scopeLabel, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.55f),
-            maxLines = 1, overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
@@ -302,18 +254,5 @@ private fun RestColumn(items: List<Pair<Int, SortMakerItem>>, modifier: Modifier
                 )
             }
         }
-    }
-}
-
-/** 右上に覗く淡い同心円 1 つ (他の共有カードと同じ透かし)。 */
-@Composable
-private fun Watermark(accent: Color, size: ShareCardSize) {
-    val innerAccent = accent
-    Canvas(Modifier.fillMaxSize()) {
-        val cx = this.size.width * 0.92f
-        val cy = this.size.height * 0.18f
-        val stroke = Stroke(1.5.dp.toPx())
-        drawCircle(Color.White.copy(alpha = 0.06f), radius = this.size.width / 2f, center = Offset(cx, cy), style = stroke)
-        drawCircle(innerAccent.copy(alpha = 0.16f), radius = this.size.width * 0.3335f, center = Offset(cx, cy), style = stroke)
     }
 }
