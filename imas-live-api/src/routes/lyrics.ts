@@ -440,9 +440,10 @@ export function logLyricsRead(songId: string): void {
 /** iOS と合意済みの応答形状。キーは camelCase、updatedAt は秒 epoch。 */
 export function buildLyricsPayload(
   songId: string,
-  header: { source: string | null; updated_at: string | null },
+  header: { source: string | null; updated_at: string | null; likes_json?: string | null },
   lines: LyricLineRow[]
 ) {
+  const likes = parseLikeCounts(header.likes_json ?? null);
   return {
     songId,
     source: header.source,
@@ -461,8 +462,26 @@ export function buildLyricsPayload(
       // 0027 以前から在る行では clap: null / calls: [] になる。
       clap: l.clap ?? null,
       calls: l.calls ?? [],
+      // 「ここ好き」の人数 (routes/lyric_likes.ts)。行 ID が消えた分は自然に落ちる。
+      likeCount: likes[l.id] ?? 0,
     })),
   };
+}
+
+/** song_lyrics.likes_json ({行ID: 人数}) を読む。壊れていれば空。 */
+export function parseLikeCounts(likesJson: string | null): Record<string, number> {
+  if (!likesJson) return {};
+  try {
+    const parsed = JSON.parse(likesJson);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === "number" && Number.isInteger(v) && v > 0) out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -501,12 +520,12 @@ export async function fetchPublishedLyrics(
 ): Promise<(ReturnType<typeof buildLyricsPayload> & { status: string }) | null> {
   const header = await db
     .prepare(
-      `SELECT source, updated_at, lines_json, status FROM song_lyrics
+      `SELECT source, updated_at, lines_json, status, likes_json FROM song_lyrics
         WHERE song_id = ? AND (status = 'published' OR ?)`
     )
     .bind(songId, includeDraft ? 1 : 0)
     .first<{ source: string | null; updated_at: string; lines_json: string | null;
-             status: string }>();
+             status: string; likes_json: string | null }>();
   if (!header) return null;
   // 行は同じ 1 行に JSON で入っているので、追加の読み取りは発生しない。
   return { ...buildLyricsPayload(songId, header, parseLines(header.lines_json)),
@@ -742,11 +761,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // ⚠️ ビルド種別 (DEBUG) では判定しない。クライアントの自己申告は信用できず、
     //    Release ビルドを改変されると防げないので、サーバ側の権限で切る。
     const header = await env.DB.prepare(
-      `SELECT source, updated_at, lines_json, status FROM song_lyrics WHERE song_id = ?`
+      `SELECT source, updated_at, lines_json, status, likes_json FROM song_lyrics WHERE song_id = ?`
     )
       .bind(songId)
       .first<{ source: string | null; updated_at: string; lines_json: string | null;
-               status: string }>();
+               status: string; likes_json: string | null }>();
     if (!header) return error("lyrics not found", 404);
     // 未公開 (draft) は admin にだけ返す。未認証は当然 admin ではないので 404。
     if (header.status !== "published" && !(user && (await checkIsAdmin(env, user.uid)))) {

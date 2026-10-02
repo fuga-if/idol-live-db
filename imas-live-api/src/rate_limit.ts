@@ -59,6 +59,8 @@ const LIMITS = {
   // discord_link: POST /discord/link (Discord の認可 URL の発行)。条件を満たしたあとの
   // 押し直しや、認可画面での戻る・やり直しを見込んで少し余裕を持たせる。
   discord_link: 20,
+  // lyric_like: 歌詞行の「ここ好き」の付け外し。聴きながら何度も押すので緩め。
+  lyric_like: 500,
 } as const satisfies Record<string, number>;
 
 /** 日次枠の種類。LIMITS に無い名前は型で弾く (知らない名前に黙って既定値を当てない)。 */

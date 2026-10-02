@@ -4,6 +4,7 @@
 //   DELETE /users/me              — 退会 (アカウントに紐づく個人データの削除)
 //   GET    /users/:user_id/badges — 貢献バッジ
 
+import { lyricLikesAccountDeletionStatements } from "./lyric_likes";
 import { getAuthUser } from "../auth";
 import { fetchBadges } from "../badges";
 import { checkRateLimit } from "../rate_limit";
@@ -105,6 +106,8 @@ export async function handleUsers(ctx: RouteContext): Promise<Response | null> {
         .bind(uid),
       env.DB.prepare("DELETE FROM poll_votes WHERE user_id = ?").bind(uid),
       env.DB.prepare("DELETE FROM setlist_song_likes WHERE user_id = ?").bind(uid),
+      // 歌詞行の「ここ好き」。人数 (likes_json) を本人抜きで数え直してから消す。
+      ...lyricLikesAccountDeletionStatements(env.DB, uid),
 
       // Good は本人が付けた分と、本人の編集が受け取った分の双方を削除する。
       // edit_batch を消す前に、それを参照する edit_good を先に消す (FK)。
