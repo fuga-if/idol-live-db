@@ -118,7 +118,7 @@ fun EventFilterSheet(
                 )
 
                 // ブランド (複数選択 = OR。合同ライブは joint_brand_ids 側も見る)
-                ImasListSection(title = "ブランド", footer = "複数選択可能") {
+                ImasListSection(title = "ブランド") {
                     ImasBrandPicker(
                         brands = brands,
                         selection = brandIds,
