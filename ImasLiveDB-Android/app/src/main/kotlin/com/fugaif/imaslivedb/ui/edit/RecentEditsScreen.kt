@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Favorite
@@ -48,6 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -427,12 +429,10 @@ fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> 
 @Composable
 private fun HistoryRow(entry: EditApi.RecordHistoryEntry, timeText: String) {
     val badges = buildList {
-        add(ImasBadgeSpec(EditFeedFormat.opLabel(entry.op), EditFeedFormat.opBadgeKind(entry.op)))
-        if (entry.reverted) add(ImasBadgeSpec("差戻し済み", ImasBadgeKind.NEGATIVE))
+        if (entry.reverted) add(ImasBadgeSpec("(差戻し済み)", ImasBadgeKind.NEGATIVE))
     }
     ImasRecordRow(
-        title = EditFeedFormat.historyTitle(entry.op),
-        icon = Icons.Filled.Edit,
+        title = EditFeedFormat.opLabel(entry.op),
         subtitle = entry.editorName,
         badges = badges,
         trailing = ImasRowTrailing.Value(timeText)
@@ -461,10 +461,15 @@ private fun EditFeedCard(
         modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight),
         padding = 0.dp
     ) {
+        val revertedTitle = showRevertAction && isReverted
+        val titleText = recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType)
         ImasRecordRow(
             modifier = Modifier.imasRowPress(onClick = onOpenHistory),
-            leading = ImasRowLeading.Icon(EditFeedFormat.recordTypeIcon(entry.recordType), tone = ImasIconTileTone.THEMED, seed = entry.recordType),
-            title = recordTitle ?: EditFeedFormat.recordTypeLabel(entry.recordType),
+            leading = ImasRowLeading.Icon(EditFeedFormat.recordTypeIcon(entry.recordType), tone = ImasIconTileTone.THEMED, categoryKey = entry.recordType),
+            title = titleText,
+            attributedTitle = if (revertedTitle) {
+                AnnotatedString(titleText, spanStyle = SpanStyle(color = DS.ink2, textDecoration = TextDecoration.LineThrough))
+            } else null,
             titleLineLimit = Int.MAX_VALUE,
             subtitle = entry.editorDisplayLabel,
             badges = buildList {
@@ -513,7 +518,11 @@ private fun EditFeedCard(
                         selected = gooded,
                         icon = if (gooded) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         onClick = onToggleGood,
-                        onClickLabel = if (gooded) "Good を取り消す" else "Good を付ける"
+                        onClickLabel = if (gooded) "Good を取り消す" else "Good を付ける",
+                        contentDescription = buildString {
+                            append(if (gooded) "Good を取り消す" else "Good を付ける")
+                            if (goodCount > 0) append("、$goodCount 件")
+                        }
                     )
                 }
                 Spacer(Modifier.weight(1f))
@@ -531,8 +540,8 @@ private fun EditFeedCard(
 
 /** record_type / op の表示メタ + 相対時刻整形。iOS `EditFeedFormat` の移植。
  *
- * 色は分類キー (record_type) から `ImasRowLeading.Icon(tone = THEMED, seed = ...)` が安定導出する
- * ([ImasTheme.derive] 経由、iOS `ImasTheme.derive(categoryKey:)` と同じ仕組み) ため、ここでは
+ * 色は分類キー (record_type) から `ImasRowLeading.Icon(tone = THEMED, categoryKey = ...)` が安定導出する
+ * ([ImasTheme.forCategoryKey] 経由、iOS `ImasTheme.derive(categoryKey:)` と同じ仕組み) ため、ここでは
  * アイコン・ラベルの対応表だけを持つ (手書きの色パレットは持たない)。
  *
  * op の札も iOS 本体と同じ方針 (§10.1: 操作は色でなく文字で区別する) に合わせ、差戻しだけ
@@ -577,15 +586,4 @@ private object EditFeedFormat {
 
     /** 差し戻しだけ「取り消された記録」として `NEGATIVE` (灰の薄字) に当てる。 */
     fun opBadgeKind(op: String): ImasBadgeKind = if (op == "revert") ImasBadgeKind.NEGATIVE else ImasBadgeKind.NEUTRAL
-
-    /**
-     * 変更履歴 1 行の見出し文 (iOS `EditHistoryView.HistoryRow.title` と同じ言い回し)。
-     * op の短い札 ([opLabel]) は別途 badges に出すので、ここは何が起きたかの文にする。
-     */
-    fun historyTitle(op: String): String = when (op) {
-        "create" -> "新規追加されました"
-        "delete" -> "削除されました"
-        "snapshot" -> "セットリスト全体が更新されました"
-        else -> "内容が更新されました"
-    }
 }

@@ -290,6 +290,8 @@ fun ImasRecordRow(
     subtitle: String? = null,
     badges: List<ImasBadgeSpec> = emptyList(),
     trailing: ImasRowTrailing = ImasRowTrailing.None,
+    /** 取り消し線・色替えなど、題の見た目を部分的に変えたいとき (差し戻し済みの対象名等)。 */
+    attributedTitle: AnnotatedString? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     ImasRow(
@@ -298,7 +300,8 @@ fun ImasRecordRow(
         subtitle = subtitle,
         leading = leading ?: icon?.let { ImasRowLeading.Icon(it, tone = tone) } ?: ImasRowLeading.None,
         trailing = trailing,
-        titleLineLimit = titleLineLimit
+        titleLineLimit = titleLineLimit,
+        attributedTitle = attributedTitle
     ) {
         if (badges.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {

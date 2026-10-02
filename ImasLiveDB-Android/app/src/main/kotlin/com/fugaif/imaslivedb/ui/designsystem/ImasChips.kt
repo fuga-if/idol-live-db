@@ -197,7 +197,10 @@ fun ImasFilterChip(
     isDisabled: Boolean = false,
     leading: ImasChipLeading? = null,
     // 見た目の文字 (label) と読み上げの動詞が食い違う時だけ渡す (例: 「Good」始点だが「Good を付ける」と読む)。
-    onClickLabel: String? = null
+    onClickLabel: String? = null,
+    // 見た目の文字 (件数だけ等) だけでは本文の読み上げが意味を持たない時に渡す
+    // (例: 「5」だけでなく「Good を取り消す、5件」と読ませる)。指定すると行の読み上げをこれで差し替える。
+    contentDescription: String? = null
 ) {
     val haptics = rememberImasHaptics()
     val hinted = seed != null || brand != null || tintColor != null
@@ -212,7 +215,16 @@ fun ImasFilterChip(
                 onClick()
             }
             .alpha(if (isDisabled) 0.45f else 1f)
-            .semantics { this.selected = selected },
+            .then(
+                if (contentDescription != null) {
+                    Modifier.clearAndSetSemantics {
+                        this.contentDescription = contentDescription
+                        this.selected = selected
+                    }
+                } else {
+                    Modifier.semantics { this.selected = selected }
+                }
+            ),
         icon = icon,
         style = if (selected) ImasChipStyle.SELECTED else ImasChipStyle.OUTLINED,
         seed = seed,

@@ -122,12 +122,17 @@ sealed interface ImasRowLeading {
         val imageUrl: String? = null
     ) : ImasRowLeading
 
-    /** 記号 (幅 28、地なし)。seed / brand を渡すとその実体の色で点く (予定の種類・ブランド)。 */
+    /**
+     * 記号 (幅 28、地なし)。seed / brand を渡すとその実体の色で点く (予定の種類・ブランド)。
+     * 実体の色を持たない分類 (record_type 等) で塗り分けたいときは [categoryKey] を渡す
+     * ([seed]/[brand] より優先、`ImasTheme.forCategoryKey` で導出)。
+     */
     data class Icon(
         val icon: ImageVector,
         val tone: ImasIconTileTone = ImasIconTileTone.THEMED,
         val seed: String? = null,
-        val brand: String? = null
+        val brand: String? = null,
+        val categoryKey: String? = null
     ) : ImasRowLeading
 
     /** 曲順・番号 (等幅)。 */
@@ -416,7 +421,8 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
             size = ImasIconTileSize.S28,
             tone = leading.tone,
             seed = leading.seed,
-            brand = leading.brand
+            brand = leading.brand,
+            categoryKey = leading.categoryKey
         )
         is ImasRowLeading.Number -> Text(
             leading.text,
@@ -785,7 +791,8 @@ fun <T> ImasMenuRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: ImageVector? = null,
-    position: ImasRowPosition? = null
+    position: ImasRowPosition? = null,
+    optionSeed: ((T) -> String?)? = null
 ) {
     var open by remember { mutableStateOf(false) }
     val haptics = rememberImasHaptics()
@@ -797,6 +804,9 @@ fun <T> ImasMenuRow(
             leading = icon?.let { ImasRowLeading.Icon(it, tone = ImasIconTileTone.NEUTRAL) } ?: ImasRowLeading.None,
             trailing = ImasRowTrailing.Custom {
                 Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight), verticalAlignment = Alignment.CenterVertically) {
+                    if (optionSeed != null) {
+                        ImasSwatch(hex = optionSeed(selection), size = ImasSwatchSize.DOT, isDecorative = true)
+                    }
                     Text(label(selection), style = ImasTextRole.VALUE.style, color = DS.ink2, maxLines = 1)
                     Icon(
                         Icons.Filled.UnfoldMore,
@@ -815,6 +825,9 @@ fun <T> ImasMenuRow(
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(label(option), color = DS.ink) },
+                    leadingIcon = optionSeed?.let { seedOf ->
+                        { ImasSwatch(hex = seedOf(option), size = ImasSwatchSize.DOT, isDecorative = true) }
+                    },
                     trailingIcon = if (option == selection) {
                         { Icon(Icons.Filled.Check, contentDescription = null, tint = DS.ink) }
                     } else null,

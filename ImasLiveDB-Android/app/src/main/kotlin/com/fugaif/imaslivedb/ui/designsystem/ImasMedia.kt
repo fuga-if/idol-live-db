@@ -472,6 +472,10 @@ enum class ImasIconTileTone {
 /**
  * 記号 1 つ (iOS `ImasIconTile`)。行の先頭・空状態・入口で同じ大きさにする。地は敷かない
  * (記号を淡い色の角丸四角に入れると、どのアプリにもある見た目になる)。**記号は減らさない** (目印として読まれている)。
+ *
+ * @param categoryKey 実体の色 hex を持たない分類 (record_type 等) で塗り分けたいときの分類キー。
+ *   [seed]/[brand] の代わりに `ImasTheme.forCategoryKey` で導出する (iOS `derive(categoryKey:)` と同じ)。
+ *   指定すると [seed]/[brand] は無視する。
  */
 @Composable
 fun ImasIconTile(
@@ -480,9 +484,14 @@ fun ImasIconTile(
     size: ImasIconTileSize = ImasIconTileSize.S32,
     tone: ImasIconTileTone = ImasIconTileTone.THEMED,
     seed: String? = null,
-    brand: String? = null
+    brand: String? = null,
+    categoryKey: String? = null
 ) {
-    val t = ImasChipColors.theme(seed, brand, null)
+    val t = if (categoryKey != null) {
+        ImasTheme.forCategoryKey(categoryKey, LocalImasColors.current.dark)
+    } else {
+        ImasChipColors.theme(seed, brand, null)
+    }
     val color = when (tone) {
         ImasIconTileTone.THEMED -> if (t.isNeutral) DS.ink else t.accent
         ImasIconTileTone.NEUTRAL -> DS.ink2
