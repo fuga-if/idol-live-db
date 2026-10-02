@@ -1,35 +1,25 @@
 package com.fugaif.imaslivedb.ui.edit
 
 import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,27 +27,46 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.KeyboardOptions
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.edit.friendlyMessage
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormLink
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextField
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 // =============================================================================
 // マスタ編集フォームの共通部品。iOS の各 *EditView (SongEditView / IdolEditView /
 // EventEditView / ShowEditView) が SwiftUI の Form + toolbar で共有していた見た目と
 // 振る舞いを、Compose 側で 1 箇所にまとめたもの。
 //
-// 新しい UI 言語は持ち込まない: 枠は SetlistEditScreen (Scaffold + TopAppBar +
-// 保存中オーバーレイ + AlertDialog) を、入力欄は VideoEditSheet (OutlinedTextField +
-// 補足文) をそのまま踏襲する。
+// 中身は DesignSystem の「申込書」部品 (docs/DESIGN_SYSTEM.md §2.4) だけで組む:
+// ImasFormPage (本体) / ImasFormCard (区画の紙) / ImasFormField 系 (欄) /
+// ImasSheetToolbar (×・✓) / ImasSavingOverlay (保存中) / ImasErrorAlert (失敗)。
+// 公開関数のシグネチャ (関数名・引数・型) は呼び出し側 (Idol/Song/Event/Show/TicketSale
+// の各 EditScreen) に合わせて一切変えていない。変わるのは内部の組み方だけ。
 // =============================================================================
 
 /**
@@ -80,65 +89,35 @@ fun MasterEditScaffold(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onCancel) { Icon(Icons.Filled.Close, "キャンセル") }
-                },
-                actions = {
-                    TextButton(onClick = onSave, enabled = canSave && !isSaving) {
-                        Text("保存", fontWeight = FontWeight.SemiBold)
-                    }
-                }
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Edit(canSave = canSave && !isSaving, onCancel = onCancel, onSave = onSave),
+                title = title
             )
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
-            Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                content = content
-            )
-            if (isSaving) {
-                // 保存中は全面を覆って二重送信を止める (iOS の savingOverlay と同じ役割)。
-                Box(
-                    Modifier.fillMaxSize().background(DS.bg.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(DS.surface).padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator()
-                        Text("保存中…", fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 8.dp))
-                    }
-                }
-            }
+            ImasFormPage(content = content)
+            ImasSavingOverlay(isSaving)
         }
     }
 }
 
-/** Form の 1 セクション。iOS の `Section(header:footer:)` 相当。 */
+/** Form の 1 セクション。iOS の `Section(header:footer:)` 相当。中身は 1 枚の紙 ([ImasFormCard]) にまとめる。 */
 @Composable
 fun EditSection(
     title: String,
     footer: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Text(
-            title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink2,
-            modifier = Modifier.padding(bottom = 6.dp)
+    Column(Modifier.fillMaxWidth()) {
+        ImasSectionHeader(
+            title,
+            style = ImasSectionHeaderStyle.SMALL,
+            contentPadding = PaddingValues(bottom = DS.Space.header)
         )
-        Column(
-            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                .background(DS.surface).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            content = content
-        )
+        ImasFormCard(content = content)
         if (footer != null) {
-            Text(footer, fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 6.dp))
+            ImasNote(footer, Modifier.padding(top = DS.Space.note))
         }
     }
 }
@@ -151,26 +130,44 @@ fun EditTextField(
     onValueChange: (String) -> Unit,
     numeric: Boolean = false,
     singleLine: Boolean = true,
-    minLines: Int = 1,
+    @Suppress("UNUSED_PARAMETER") minLines: Int = 1,
     isError: Boolean = false,
     supportingText: String? = null
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        singleLine = singleLine,
-        minLines = minLines,
-        isError = isError,
-        supportingText = supportingText?.let { { Text(it, fontSize = 11.sp) } },
-        keyboardOptions = if (numeric) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
-        modifier = Modifier.fillMaxWidth()
-    )
+    Column(Modifier.fillMaxWidth()) {
+        if (singleLine) {
+            ImasFormTextField(
+                label = label,
+                text = value,
+                onTextChange = onValueChange,
+                keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text
+            )
+        } else {
+            ImasFormTextArea(
+                label = label,
+                text = value,
+                onTextChange = onValueChange,
+                prompt = label
+            )
+        }
+        if (supportingText != null) {
+            Text(
+                supportingText,
+                style = ImasTextRole.NOTE.style,
+                color = if (isError) DS.danger else ImasTextRole.NOTE.color,
+                modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapTight)
+            )
+        }
+    }
 }
 
 /**
  * 選択肢から 1 つ選ぶ行 (iOS の `Picker`)。
  * `options` は (内部値, 表示ラベル)。未選択を許す場合は空文字の選択肢を先頭に入れておく。
+ *
+ * ブランド・種別など選択肢数が呼び出し側ごとに大きく異なる (数個〜数十個) 共通部品なので、
+ * 大きな札 ([com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCards]) ではなく、タップでその場に
+ * 選択肢一覧を開く形 ([DropdownMenu] は OS 標準なのでそのまま使う) を保つ。
  */
 @Composable
 fun EditDropdownField(
@@ -182,17 +179,26 @@ fun EditDropdownField(
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = options.firstOrNull { it.first == selected }?.second ?: selected
     Box(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable { expanded = true }.padding(vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+        ImasFormField(
+            label = label,
+            modifier = Modifier
+                .clearAndSetSemantics {
+                    contentDescription = "$label、$selectedLabel"
+                    role = Role.Button
+                    onClick { expanded = true; true }
+                }
+                .imasRowPress(onClick = { expanded = true })
         ) {
-            Text(label, fontSize = 15.sp, color = DS.ink2)
-            Box(Modifier.weight(1f))
-            Text(
-                selectedLabel, fontSize = 15.sp, color = DS.ink,
-                maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = DS.ink3)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    selectedLabel,
+                    color = DS.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = DS.ink3)
+            }
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (value, optionLabel) ->
@@ -208,57 +214,43 @@ fun EditDropdownField(
 /** 整数を ± で刻む行 (iOS の `Stepper`)。並び順のように範囲が決まっている値に使う。 */
 @Composable
 fun EditStepperRow(label: String, value: Int, range: IntRange, onValueChange: (Int) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text("$label: $value", fontSize = 15.sp, color = DS.ink, modifier = Modifier.weight(1f))
-        TextButton(onClick = { onValueChange((value - 1).coerceIn(range)) }) { Text("−", fontSize = 18.sp) }
-        TextButton(onClick = { onValueChange((value + 1).coerceIn(range)) }) { Text("＋", fontSize = 18.sp) }
+    ImasFormField(label = label) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "$value",
+                style = ImasNumeralSize.MEDIUM.style,
+                color = DS.ink,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = { onValueChange((value - 1).coerceIn(range)) }) { Text("−") }
+            TextButton(onClick = { onValueChange((value + 1).coerceIn(range)) }) { Text("＋") }
+        }
     }
 }
 
 /** タップで別画面/シートを開く行 (iOS の Button + chevron 行)。未選択時は placeholder を薄く出す。 */
 @Composable
 fun EditNavRow(label: String, value: String?, placeholder: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(label, fontSize = 12.sp, color = DS.ink2)
-            Text(
-                value?.takeIf { it.isNotEmpty() } ?: placeholder,
-                fontSize = 15.sp,
-                color = if (value.isNullOrEmpty()) DS.ink3 else DS.ink
-            )
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3)
-    }
+    ImasFormLink(
+        label = label,
+        value = value?.takeIf { it.isNotEmpty() },
+        onClick = onClick,
+        placeholder = placeholder
+    )
 }
 
 /** 編集できない値を見せるだけの行 (レコード ID など)。 */
 @Composable
 fun EditReadonlyRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, fontSize = 15.sp, color = DS.ink2)
-        Box(Modifier.weight(1f))
-        Text(value, fontSize = 13.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    ImasFormField(label = label) {
+        Text(value, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 /** 保存に失敗した時のダイアログ (iOS の `.alert("エラー")`)。 */
 @Composable
 fun EditErrorDialog(message: String, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
-        title = { Text("エラー") },
-        text = { Text(message) }
-    )
+    ImasErrorAlert(message = message, onDismiss = onDismiss, title = "エラー")
 }
 
 /**
@@ -279,7 +271,7 @@ fun EditRequestSentDialog(issueUrl: String?, onDismiss: () -> Unit) {
                         "進捗を見る",
                         color = DS.pick,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 8.dp).clickable { uriHandler.openUri(issueUrl) }
+                        modifier = Modifier.padding(top = DS.Space.gapTight).clickable { uriHandler.openUri(issueUrl) }
                     )
                 }
             }
