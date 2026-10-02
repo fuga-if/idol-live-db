@@ -65,6 +65,16 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
+    func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws {
+        do {
+            try await client.requestVoid("POST", path: "/songs/\(songId)/lyric-structure",
+                                         body: change, authorized: true)
+        } catch {
+            logger.warning("lyric_structure_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
     /// コールガイドの整備状況 (`GET /calls/dashboard`)。
     ///
     /// **`authorized: false` で投げること。** `Authorization` を付けると Worker 側の
@@ -98,6 +108,10 @@ struct FakeCallGuideWriting: CallGuideWriting {
 
     func setLyricLike(songId: String, lineId: String, liked: Bool) async throws -> Int {
         liked ? 1 : 0
+    }
+
+    func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws {
+        try? await Task.sleep(for: .milliseconds(200))
     }
 }
 

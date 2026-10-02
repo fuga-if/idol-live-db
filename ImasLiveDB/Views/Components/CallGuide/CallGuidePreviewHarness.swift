@@ -26,6 +26,8 @@ struct CallGuidePreviewHarness: View {
         case record
         /// 歌詞プレイヤー (sync と同じダミーの時刻)。
         case player
+        /// 行の区切りの編集 (くっつける / 切り離す)。
+        case structure
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -60,13 +62,14 @@ struct CallGuidePreviewHarness: View {
     var body: some View {
         Group {
             switch mode {
-            case .view, .edit, .sync, .record, .player:
+            case .view, .edit, .sync, .record, .player, .structure:
                 ScrollViewReader { proxy in
                     ScrollView {
                         SongLyricsTab(song: Self.sampleSong, seed: nil, vm: vm, playback: fakePlayback,
                                       reload: {}, debugStartsEditing: mode == .edit,
                                       debugStartsRecording: mode == .record,
-                                      debugStartsPlayer: mode == .player)
+                                      debugStartsPlayer: mode == .player,
+                                      debugStartsStructure: mode == .structure)
                             .padding(.bottom, DS.sp8)
                     }
                     .onChange(of: scrollTarget) { _, id in

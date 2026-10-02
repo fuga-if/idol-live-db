@@ -42,6 +42,8 @@ struct SongLyricsTab: View {
     var debugStartsRecording = false
     /// 同じく、歌詞が届いた時点で歌詞プレイヤーを開く (DEBUG のみ)。
     var debugStartsPlayer = false
+    /// 同じく、歌詞が届いた時点で行の区切りの編集に入る (DEBUG のみ)。
+    var debugStartsStructure = false
     #endif
 
     /// 非 nil = 編集モード。編集中の状態はここが持つ (元の `Lyrics` は不変)。
@@ -56,6 +58,10 @@ struct SongLyricsTab: View {
     @State private var recorder: LyricTimingRecorder?
     /// 歌詞プレイヤーを開いている。
     @State private var showsPlayer = false
+    /// 行の区切りを編集している (くっつける / 切り離す)。
+    @State private var isEditingStructure = false
+    /// 区切りの変更を送っている行 (二度押しを止める)。
+    @State private var structureBusyLineId: String?
     /// 再生に追従している今の行。
     @State private var activeLineId: String?
     /// 記録を始められなかったときの案内。
@@ -143,6 +149,7 @@ struct SongLyricsTab: View {
             recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
         }
         if debugStartsPlayer, !showsPlayer { showsPlayer = true }
+        if debugStartsStructure { isEditingStructure = true }
         guard debugStartsEditing, editor == nil else { return }
         editor = CallGuideEditorModel(lyrics: lyrics, songId: song.id)
     }
@@ -170,7 +177,12 @@ struct SongLyricsTab: View {
                         .padding(.horizontal, DS.sp1)
                 }
                 editBar(lyrics)
-                if let editor {
+                if isEditingStructure {
+                    ImasNote("語をタップすると、その語の前で行を切り離します。行の右下の鎖のボタンで次の行とくっつけます。歌詞の文字は変わりません。",
+                             systemImage: "scissors")
+                        .padding(.horizontal, DS.sp1)
+                    card { structureBody(lyrics) }
+                } else if let editor {
                     editingBanner
                     staleSection(editor)
                     card { editingBody(editor) }
@@ -349,13 +361,21 @@ struct SongLyricsTab: View {
         if canEdit {
             HStack(spacing: DS.sp3) {
                 Spacer(minLength: 0)
-                if let editor {
+                if isEditingStructure {
+                    ImasButton(title: "区切りの編集を終了", role: .plain, size: .small) {
+                        isEditingStructure = false
+                    }
+                } else if let editor {
                     ImasButton(title: "編集を終了", role: .plain, size: .small) {
                         self.editor = nil
                         reanchorTarget = nil
                     }
                     saveButton(editor)
                 } else {
+                    ImasIconButton(systemImage: "scissors", label: "行の区切りを編集", size: .small) {
+                        AppAnalytics.tap("lyric_structure.begin_edit")
+                        isEditingStructure = true
+                    }
                     ImasIconButton(systemImage: "music.note.list", label: "歌詞プレイヤー",
                                    size: .small) {
                         AppAnalytics.tap("lyrics_player.open")
@@ -615,6 +635,65 @@ struct SongLyricsTab: View {
             }
         }
         recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+    }
+
+    // MARK: - 行の区切り (くっつける / 切り離す)
+
+    @ViewBuilder
+    private func structureBody(_ lyrics: Lyrics) -> some View {
+        ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { index, line in
+            switch line.kind {
+            case .lyric:
+                VStack(alignment: .leading, spacing: DS.sp1) {
+                    // 語をタップ → その語の前で切る。行頭の語は切れないので何もしない。
+                    CallGuideSelectableLine(
+                        text: line.text, highlights: [],
+                        onSelect: { start, _, _ in
+                            guard start > 0 else { return }
+                            Task { await changeStructure(line.id, .split(lineId: line.id, at: start)) }
+                        }
+                    )
+                    .opacity(structureBusyLineId == line.id ? 0.4 : 1)
+                    if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
+                        HStack {
+                            Spacer(minLength: 0)
+                            Menu {
+                                ForEach(LyricStructurePayload.Joiner.allCases, id: \.self) { joiner in
+                                    Button(joiner.label) {
+                                        Task { await changeStructure(line.id, .merge(lineId: line.id, joiner: joiner)) }
+                                    }
+                                }
+                            } label: {
+                                Label("次の行とくっつける", systemImage: "link")
+                                    .labelStyle(.iconOnly)
+                                    .imasText(.meta)
+                                    .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+                                    .contentShape(Rectangle())
+                            }
+                            .disabled(structureBusyLineId != nil)
+                        }
+                    }
+                }
+            case .marker:
+                marker(line.text)
+            case .blank:
+                Color.clear.frame(height: DS.sp5)
+            }
+        }
+    }
+
+    /// 区切りの変更を送り、歌詞を取り直す。文字は変わらない (行 ID と位置だけを送る)。
+    private func changeStructure(_ lineId: String, _ change: LyricStructurePayload) async {
+        guard structureBusyLineId == nil else { return }
+        AppAnalytics.tap("lyric_structure.\(change.op)")
+        structureBusyLineId = lineId
+        defer { structureBusyLineId = nil }
+        do {
+            try await AppContainer.shared.callGuideWriting.editLyricStructure(songId: song.id, change)
+            reload()
+        } catch {
+            saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 
     // MARK: - ここ好き

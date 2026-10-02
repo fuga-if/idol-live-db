@@ -105,9 +105,16 @@ struct ImasLikeHeatSeekBar: View {
     /// おすすめ地点 (0〜1)。
     let peak: Double?
     let seed: String?
+    /// なぞって位置を選べるか。縦にスクロールする面の中ではタップだけにする
+    /// (なぞりを受けると、スクロールの途中で指が乗ったときに飛んでしまう)。
+    var allowsScrub = false
     let onSeek: (Double) -> Void
 
     private let height: CGFloat = 36
+    /// なぞっている間の位置 (0〜1)。離したらそこへ動かす。
+    @State private var scrubFraction: Double?
+
+    private var shownProgress: Double? { scrubFraction ?? progress }
 
     var body: some View {
         let t = ImasTheme.derive(seed: seed, scheme: scheme)
@@ -119,14 +126,14 @@ struct ImasLikeHeatSeekBar: View {
                 } else {
                     HStack(alignment: .bottom, spacing: 1) {
                         ForEach(levels.indices, id: \.self) { i in
-                            let played = progress.map { Double(i) / Double(levels.count) < $0 } ?? false
+                            let played = shownProgress.map { Double(i) / Double(levels.count) < $0 } ?? false
                             Rectangle()
                                 .fill(played ? t.accent : DS.ink3.opacity(0.35))
                                 .frame(height: max(2, CGFloat(levels[i]) * (height - 10)))
                         }
                     }
                 }
-                if let progress {
+                if let progress = shownProgress {
                     Rectangle().fill(DS.ink)
                         .frame(width: 2, height: height - 4)
                         .offset(x: max(0, min(width - 2, width * progress - 1)))
@@ -140,7 +147,7 @@ struct ImasLikeHeatSeekBar: View {
             }
             .frame(width: width, height: height, alignment: .bottomLeading)
             .contentShape(Rectangle())
-            // なぞりではなくタップ。歌詞の縦スクロールの途中で指が乗っても飛ばないように。
+            .gesture(scrubGesture(width: width), including: allowsScrub ? .all : .none)
             .onTapGesture(coordinateSpace: .local) { location in
                 onSeek(max(0, min(1, location.x / max(width, 1))))
             }
@@ -150,6 +157,16 @@ struct ImasLikeHeatSeekBar: View {
         .accessibilityLabel("ここ好きの多い場所")
         .accessibilityValue(peak.map { "おすすめは \(Int($0 * 100))% の位置" } ?? "")
         .accessibilityAction(named: "おすすめ地点から再生") { if let peak { onSeek(peak) } }
+    }
+
+    private func scrubGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 2)
+            .onChanged { v in scrubFraction = max(0, min(1, v.location.x / max(width, 1))) }
+            .onEnded { v in
+                let fraction = max(0, min(1, v.location.x / max(width, 1)))
+                scrubFraction = nil
+                onSeek(fraction)
+            }
     }
 }
 

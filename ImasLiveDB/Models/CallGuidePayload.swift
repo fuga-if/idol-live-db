@@ -97,3 +97,37 @@ struct LyricTimingPayload: Encodable, Sendable {
         }
     }
 }
+
+/// `POST /songs/{song_id}/lyric-structure` のリクエストボディ。歌詞の行の区切りだけを動かす。
+///
+/// ⚠️ 歌詞の文字は送らない (行 ID と位置だけ)。サーバは文字を書き換えない。
+struct LyricStructurePayload: Encodable, Sendable {
+    enum Joiner: String, Sendable, CaseIterable {
+        case none = ""
+        case half = " "
+        case full = "　"
+
+        var label: String {
+            switch self {
+            case .none: return "空白なしでくっつける"
+            case .half: return "半角空白でくっつける"
+            case .full: return "全角空白でくっつける"
+            }
+        }
+    }
+
+    let op: String
+    let lineId: String
+    var joiner: String?
+    var at: Int?
+
+    /// 行と次の行を 1 行にする。
+    static func merge(lineId: String, joiner: Joiner) -> Self {
+        Self(op: "merge", lineId: lineId, joiner: joiner.rawValue)
+    }
+
+    /// 行をスカラー位置 `at` の前で 2 行に分ける。
+    static func split(lineId: String, at: Int) -> Self {
+        Self(op: "split", lineId: lineId, at: at)
+    }
+}

@@ -22,4 +22,7 @@ protocol CallGuideWriting: Sendable {
     /// 歌詞行の「ここ好き」を付け外しする (`PUT|DELETE /songs/{id}/lyric-likes/{line_id}`)。
     /// - Returns: 付け外し後のその行の人数 (みんなの分)。
     func setLyricLike(songId: String, lineId: String, liked: Bool) async throws -> Int
+
+    /// 歌詞の行をくっつける / 切り離す (`POST /songs/{id}/lyric-structure`)。文字は変わらない。
+    func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws
 }

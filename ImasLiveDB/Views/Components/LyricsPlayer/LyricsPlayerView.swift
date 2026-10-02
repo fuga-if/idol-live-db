@@ -175,7 +175,8 @@ struct LyricsPlayerView: View {
                 levels: heat.levels,
                 progress: playback.isFullLoaded ? Double(position) / Double(duration) : nil,
                 peak: heat.peakMs.map { Double($0) / Double(duration) },
-                seed: seed
+                seed: seed,
+                allowsScrub: true
             ) { fraction in
                 AppAnalytics.tap("lyrics_player.heat_seek")
                 followPausedUntil = .distantPast
