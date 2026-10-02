@@ -6,44 +6,34 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyStateKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasListBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
-import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import com.fugaif.imaslivedb.ui.components.searchFiltered
 
@@ -144,45 +134,37 @@ private fun OshiConfigureScreen(
 ) {
     var query by remember { mutableStateOf("") }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = DS.bg) {
+    ImasListBackdrop(Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             Text(
                 text = "担当を選ぶ",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = DS.ink,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp)
+                style = ImasTextRole.HERO_TITLE.style,
+                color = ImasTextRole.HERO_TITLE.color,
+                modifier = Modifier.padding(horizontal = DS.Space.screen).padding(top = DS.Space.gap)
             )
             Text(
                 text = "ウィジェットに出すアイドルを選びます。画像を取り込んであるアイドルが並びます。",
-                fontSize = 13.sp,
-                color = DS.ink2,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                style = ImasTextRole.NOTE.style,
+                color = ImasTextRole.NOTE.color,
+                modifier = Modifier.padding(horizontal = DS.Space.screen).padding(vertical = DS.Space.header)
             )
 
             when {
-                candidates == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = DS.sys)
-                }
+                candidates == null -> ImasLoadingState(modifier = Modifier.weight(1f))
 
-                candidates.isEmpty() -> Box(
-                    modifier = Modifier.fillMaxSize().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "表示できるアイドルがいません。\nアプリのアイドル詳細から画像を取り込むと、ここに並びます。",
-                        fontSize = 14.sp,
-                        color = DS.ink2
-                    )
-                }
+                candidates.isEmpty() -> ImasEmptyState(
+                    kind = ImasEmptyStateKind.EMPTY,
+                    title = "表示できるアイドルがいません",
+                    message = "アプリのアイドル詳細から画像を取り込むと、ここに並びます。",
+                    modifier = Modifier.weight(1f)
+                )
 
                 else -> {
-                    TextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        singleLine = true,
-                        placeholder = { Text("名前・ブランドで絞り込む", fontSize = 14.sp) },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp)
+                    ImasSearchField(
+                        prompt = "名前・ブランドで絞り込む",
+                        text = query,
+                        onTextChange = { query = it },
+                        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
                     )
                     OshiCandidateList(
                         candidates = searchFiltered(candidates, query) {
@@ -204,66 +186,30 @@ private fun OshiCandidateList(
     selectedId: String?,
     onPick: (OshiCandidate) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
         itemsIndexed(candidates, key = { _, candidate -> candidate.idolId }) { index, candidate ->
             // 並びはブランド順なので、直前の行とブランドが変わったところが区切り。
             if (candidates.getOrNull(index - 1)?.brandId != candidate.brandId) {
-                BrandHeader(candidate)
+                ImasSectionHeader(
+                    title = candidate.brandShortName.orEmpty(),
+                    tight = true,
+                    seed = candidate.brandColorHex,
+                    brand = candidate.brandId
+                )
             }
-            OshiRow(
-                candidate = candidate,
-                selected = candidate.idolId == selectedId,
-                onPick = { onPick(candidate) }
+            ImasSelectableRow(
+                title = candidate.name,
+                isSelected = candidate.idolId == selectedId,
+                isSingle = true,
+                leading = ImasRowLeading.Avatar(
+                    label = candidate.name,
+                    seed = candidate.colorHex,
+                    brand = candidate.brandId,
+                    entityId = candidate.idolId
+                ),
+                onClick = { onPick(candidate) }
             )
         }
     }
 }
-
-@Composable
-private fun BrandHeader(candidate: OshiCandidate) {
-    val theme = imasTheme(seed = candidate.brandColorHex, brand = null)
-    Text(
-        text = candidate.brandShortName.orEmpty(),
-        fontSize = 12.sp,
-        fontWeight = FontWeight.Bold,
-        color = theme.accent,
-        modifier = Modifier.padding(start = 8.dp, top = 16.dp, bottom = 4.dp)
-    )
-}
-
-@Composable
-private fun OshiRow(candidate: OshiCandidate, selected: Boolean, onPick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onPick).padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        ImasAvatar(
-            label = candidate.name,
-            seed = candidate.colorHex,
-            brand = candidate.brandId,
-            size = 44.dp,
-            entityId = candidate.idolId
-        )
-        Text(
-            text = candidate.name,
-            fontSize = 15.sp,
-            color = DS.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
-        )
-        if (selected) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = "選択中",
-                tint = DS.sys,
-                modifier = Modifier.size(20.dp).padding(end = 4.dp)
-            )
-        }
-    }
-}
-
 
