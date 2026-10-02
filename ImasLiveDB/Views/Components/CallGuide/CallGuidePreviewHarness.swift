@@ -20,6 +20,10 @@ struct CallGuidePreviewHarness: View {
         case edit
         /// コール入力シート単体。
         case sheet
+        /// 再生への追従 (ダミーの時刻を振り、起動からの経過時間を再生位置とみなす)。
+        case sync
+        /// タイミング記録モード。
+        case record
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -29,16 +33,42 @@ struct CallGuidePreviewHarness: View {
 
     let mode: Mode
 
-    @State private var vm = DetailSheetViewModel(songDetailReading: HarnessSongDetailReading())
+    @State private var vm: DetailSheetViewModel
+    /// 追従・記録の確認用の擬似プレイヤー。起動からの経過時間を再生位置とみなす。
+    @State private var startedAt = Date()
+    @State private var scrollTarget: String?
+
+    init(mode: Mode) {
+        self.mode = mode
+        _vm = State(initialValue: DetailSheetViewModel(
+            songDetailReading: HarnessSongDetailReading(timed: mode == .sync)))
+    }
+
+    private var fakePlayback: SongLyricsTab.Playback {
+        guard mode == .sync || mode == .record else { return .init() }
+        let startedAt = startedAt
+        return .init(isFullLoaded: true, isPlaying: true,
+                     positionMs: { Int(Date().timeIntervalSince(startedAt) * 1000) },
+                     startFull: { true },
+                     seek: { _ in },
+                     scrollTo: { scrollTarget = $0 })
+    }
 
     var body: some View {
         Group {
             switch mode {
-            case .view, .edit:
-                ScrollView {
-                    SongLyricsTab(song: Self.sampleSong, seed: nil, vm: vm, reload: {},
-                                  debugStartsEditing: mode == .edit)
-                        .padding(.bottom, DS.sp8)
+            case .view, .edit, .sync, .record:
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        SongLyricsTab(song: Self.sampleSong, seed: nil, vm: vm, playback: fakePlayback,
+                                      reload: {}, debugStartsEditing: mode == .edit,
+                                      debugStartsRecording: mode == .record)
+                            .padding(.bottom, DS.sp8)
+                    }
+                    .onChange(of: scrollTarget) { _, id in
+                        guard let id else { return }
+                        withAnimation { proxy.scrollTo(id, anchor: .center) }
+                    }
                 }
                 .background(DS.bg)
             case .sheet:
@@ -68,9 +98,20 @@ struct CallGuidePreviewHarness: View {
 
 /// ネットワークを一切叩かず、ダミー歌詞だけを返す読み取り (ハーネス専用)。
 private struct HarnessSongDetailReading: SongDetailReading {
+    /// 行に 2.5 秒おきのダミー時刻を振る (追従の確認用)。
+    var timed = false
+
     func songDetail(songId: String) async throws -> SongDetailBundle {
-        SongDetailBundle(songId: songId, tags: nil, similar: nil, penlight: nil,
-                         lyrics: try await FakeLyricsReading().lyrics(songId: songId))
+        var lyrics = try await FakeLyricsReading().lyrics(songId: songId)
+        if timed, let base = lyrics {
+            let lines = base.lines.enumerated().map { i, l in
+                LyricLine(id: l.id, ord: l.ord, kind: l.kind, text: l.text, section: l.section,
+                          startMs: l.kind == .blank ? nil : i * 2500, clap: l.clap, calls: l.calls)
+            }
+            lyrics = Lyrics(songId: base.songId, source: base.source, updatedAt: base.updatedAt,
+                            lines: lines, status: base.status)
+        }
+        return SongDetailBundle(songId: songId, tags: nil, similar: nil, penlight: nil, lyrics: lyrics)
     }
 }
 #endif

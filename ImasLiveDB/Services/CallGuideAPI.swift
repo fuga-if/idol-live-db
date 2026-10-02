@@ -34,6 +34,20 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws {
+        do {
+            try await client.requestVoid(
+                "PUT",
+                path: "/songs/\(songId)/timings",
+                body: LyricTimingPayload(lines: lines),
+                authorized: true
+            )
+        } catch {
+            logger.warning("lyric_timings_put_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
     /// コールガイドの整備状況 (`GET /calls/dashboard`)。
     ///
     /// **`authorized: false` で投げること。** `Authorization` を付けると Worker 側の
@@ -57,6 +71,11 @@ struct FakeCallGuideWriting: CallGuideWriting {
     func updateCallGuide(songId: String, lines: [CallGuidePayload.Line]) async throws {
         try? await Task.sleep(for: .milliseconds(300))
         logger.debug("fake_call_guide_put song=\(songId, privacy: .public) lines=\(lines.count)")
+    }
+
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws {
+        try? await Task.sleep(for: .milliseconds(300))
+        logger.debug("fake_lyric_timings_put song=\(songId, privacy: .public) lines=\(lines.count)")
     }
 }
 

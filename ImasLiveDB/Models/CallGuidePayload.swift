@@ -69,3 +69,25 @@ extension CallGuidePayload.Call {
         )
     }
 }
+
+/// `PUT /songs/{song_id}/timings` のリクエストボディ。歌詞行の再生位置だけを送る。
+///
+/// ⚠️ ここにも行の本文を足さないこと (`CallGuidePayload` と同じ理由)。
+/// PUT は曲全体の全置換で、載せなかった行は「記録なし」に戻る。
+struct LyricTimingPayload: Encodable, Sendable {
+    let lines: [Line]
+
+    struct Line: Encodable, Sendable {
+        let id: String
+        let startMs: Int?
+
+        private enum CodingKeys: String, CodingKey { case id, startMs }
+
+        /// 記録を消した行も明示的に null で送る (キーごと消すと意図が読めない)。
+        func encode(to encoder: any Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(id, forKey: .id)
+            try c.encode(startMs, forKey: .startMs)
+        }
+    }
+}

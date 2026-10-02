@@ -202,6 +202,21 @@ final class MusicKitService {
         }
     }
 
+    /// フル再生の再生位置 (ミリ秒)。フル再生していなければ nil。
+    ///
+    /// 歌詞の追従・タイミング記録が周期で読む。観測対象ではない (OS のプレイヤーの値をその場で引く)。
+    /// 30 秒試聴は曲のどこを切り出したか分からないので返さない。
+    var fullPlaybackPositionMs: Int? {
+        guard isFullPlayback, nowPlayingSongId != nil else { return nil }
+        return Int((musicPlayer.playbackTime * 1000).rounded())
+    }
+
+    /// フル再生の位置を動かす (タイミング記録の巻き戻し)。フル再生中でなければ何もしない。
+    func seekFull(toMs ms: Int) {
+        guard isFullPlayback else { return }
+        musicPlayer.playbackTime = TimeInterval(max(0, ms)) / 1000
+    }
+
     /// 一時停止。曲は手放さず、音だけ止める。
     ///
     /// `stop()` と分けているのは、**再生中バーを残したまま止めたい**から。

@@ -249,6 +249,29 @@ final class UserMarkService {
         scheduleBackup()
     }
 
+    // MARK: - 歌詞の「ここ好き」
+
+    /// その曲で「ここ好き」を付けた歌詞行の ID。本文は持たない (行 ID だけ)。
+    func lyricLikes(songId: String) -> Set<String> {
+        _ = version
+        do {
+            let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
+            return Set(lyricLikesParse(stored: stored))
+        } catch {
+            logger.error("fetchUserMark(lyricLikes) failed: id=\(songId) error=\(error.localizedDescription)")
+            return []
+        }
+    }
+
+    /// 行の「ここ好き」を付け外しする。並べ方・消し方はコア (`lyricLikesToggle`)。
+    func toggleLyricLike(songId: String, lineId: String) throws {
+        let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
+        let next = lyricLikesToggle(stored: stored, lineId: lineId)
+        try db.upsertUserMarkText(entity: .song, id: songId, kind: .lyricLikes, text: next)
+        version &+= 1
+        scheduleBackup()
+    }
+
     /// 座席メモ (公演単位)。 空/空白なら nil で消す。
     func seat(entity: UserMarkEntity, id: String) -> String? {
         _ = version

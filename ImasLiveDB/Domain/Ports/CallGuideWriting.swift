@@ -12,4 +12,9 @@ protocol CallGuideWriting: Sendable {
     ///
     /// ⚠️ 歌詞本文は送らない (`CallGuidePayload` の注記参照)。
     func updateCallGuide(songId: String, lines: [CallGuidePayload.Line]) async throws
+
+    /// 歌詞行の再生位置を置き換える (`PUT /songs/{song_id}/timings`)。曲全体の全置換。
+    ///
+    /// ⚠️ 歌詞本文は送らない (`LyricTimingPayload` の注記参照)。
+    func updateLyricTimings(songId: String, lines: [LyricTimingPayload.Line]) async throws
 }

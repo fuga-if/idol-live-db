@@ -48,6 +48,9 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
     /// 楽曲の習熟度 (段階)。`text_value` に序数 "0".."8" を入れる。
     /// bool 系マークと違って**順序がある**ので、ラベルはユーザー設定から引く。
     case mastery
+    /// 歌詞の「ここ好き」。曲 1 行の `text_value` に**行 ID の並び**を入れる (並べ方はコアの
+    /// `lyricLikesToggle`)。歌詞本文は入れない (JASRAC 許諾の条件、`Models/Lyrics.swift` 冒頭)。
+    case lyricLikes
 
     var label: String {
         switch self {
@@ -59,6 +62,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .seat:      return "座席"
         case .owned:     return "所有"
         case .mastery:   return "習熟度"
+        case .lyricLikes: return "ここ好き"
         }
     }
 
@@ -74,6 +78,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         // 円盤専用の見た目 (opticaldisc) から「所有物」を表す中立なアイコンに変更。
         case .owned:     return "shippingbox"
         case .mastery:   return "chart.bar"
+        case .lyricLikes: return "heart"
         }
     }
 
@@ -87,6 +92,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .seat:      return "chair.fill"
         case .owned:     return "shippingbox.fill"
         case .mastery:   return "chart.bar.fill"
+        case .lyricLikes: return "heart.fill"
         }
     }
 
@@ -100,6 +106,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .seat:      return .teal
         case .owned:     return .purple
         case .mastery:   return .indigo
+        case .lyricLikes: return .pink
         }
     }
 
@@ -116,6 +123,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         // バックアップ (機種変・再インストール復元用) はそのまま効く。
         case .owned:     return [.release, .song]
         case .mastery:   return [.song]
+        case .lyricLikes: return [.song]
         }
     }
 }

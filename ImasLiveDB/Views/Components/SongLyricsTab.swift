@@ -20,6 +20,25 @@ import SwiftUI
 /// - 共有 / 画像化 (`ShareCardScaffold`) にも繋がない。
 /// - コールの保存で歌詞本文を送らない (`CallGuidePayload`)。
 struct SongLyricsTab: View {
+    /// 再生との連動。プレイヤーとスクロールは親 (`SongSheetContent`) が持つ。
+    ///
+    /// 追従・記録はフル再生 (Apple Music) だけ。30 秒試聴は曲のどこを切り出したか
+    /// 分からないので、行の時刻と突き合わせられない。
+    struct Playback {
+        /// この曲がフル尺で読み込まれているか (一時停止中も含む)。
+        var isFullLoaded = false
+        /// この曲がフル尺で鳴っているか。
+        var isPlaying = false
+        /// 今の再生位置 (ms)。フル再生でなければ nil。周期で読む。
+        var positionMs: () -> Int? = { nil }
+        /// 記録のためにこの曲のフル再生を始める。始められなければ false (未契約など)。
+        var startFull: () async -> Bool = { false }
+        /// 再生位置を動かす。
+        var seek: (Int) -> Void = { _ in }
+        /// その行を画面の中ほどへ寄せる。
+        var scrollTo: (String) -> Void = { _ in }
+    }
+
     @Environment(\.colorScheme) private var scheme
 
     let song: Song
@@ -28,6 +47,7 @@ struct SongLyricsTab: View {
     let vm: DetailSheetViewModel
     /// 色を敷いて示す行 (歌詞クイズの出題箇所)。スクロールは親 (`SongSheetContent`) が行 id で行う。
     var focusLineIds: Set<String> = []
+    var playback = Playback()
     /// 通信失敗時の再試行 (束ね取得のやり直し)。
     let reload: () -> Void
 
@@ -35,6 +55,8 @@ struct SongLyricsTab: View {
     /// スクリーンショット検証用に、歌詞が届いた時点で編集モードに入る (DEBUG ビルドのみ)。
     /// `CallGuidePreviewHarness` からしか渡らない。Release ビルドにはこの口自体が存在しない。
     var debugStartsEditing = false
+    /// 同じく、歌詞が届いた時点でタイミング記録モードに入る (DEBUG のみ)。
+    var debugStartsRecording = false
     #endif
 
     /// 非 nil = 編集モード。編集中の状態はここが持つ (元の `Lyrics` は不変)。
@@ -45,6 +67,16 @@ struct SongLyricsTab: View {
     /// 選択待ち状態をまとめて解除するための合図 (シートを閉じた後など)。
     @State private var selectionResetToken = 0
     @State private var saveErrorMessage: String?
+    /// 非 nil = タイミング記録モード。
+    @State private var recorder: LyricTimingRecorder?
+    /// 再生に追従している今の行。
+    @State private var activeLineId: String?
+    /// 記録を始められなかったときの案内。
+    @State private var recordUnavailable = false
+    /// ダブルタップの手応え (付け外しのたびに増やす)。
+    @State private var likeToken = 0
+
+    private var markService: UserMarkService { UserMarkService.shared }
 
     private struct ReanchorTarget: Equatable {
         let lineId: String
@@ -81,6 +113,20 @@ struct SongLyricsTab: View {
         } message: {
             Text(saveErrorMessage ?? "")
         }
+        .alert("タイミングを記録できません", isPresented: $recordUnavailable) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("記録には Apple Music でのフル再生が必要です。")
+        }
+        // 再生位置を読みに行くのは、追従か記録で使うときだけ。
+        .task(id: followKey) { await followPlayback() }
+        .onChange(of: activeLineId) { _, id in
+            if let id, recorder == nil { playback.scrollTo(id) }
+        }
+        .onChange(of: recorder?.cursorLineId) { _, id in
+            if let id { playback.scrollTo(id) }
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
         #if DEBUG
         .onChange(of: vm.lyrics) { _, lyrics in beginDebugEditingIfNeeded(lyrics) }
         .onAppear { beginDebugEditingIfNeeded(vm.lyrics) }
@@ -89,7 +135,11 @@ struct SongLyricsTab: View {
 
     #if DEBUG
     private func beginDebugEditingIfNeeded(_ lyrics: Lyrics?) {
-        guard debugStartsEditing, editor == nil, let lyrics else { return }
+        guard let lyrics else { return }
+        if debugStartsRecording, recorder == nil {
+            recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+        }
+        guard debugStartsEditing, editor == nil else { return }
         editor = CallGuideEditorModel(lyrics: lyrics, songId: song.id)
     }
     #endif
@@ -116,7 +166,10 @@ struct SongLyricsTab: View {
                         .padding(.horizontal, DS.sp1)
                 }
                 editBar(lyrics)
-                if let editor {
+                if let recorder {
+                    recordingBar(recorder)
+                    card { recordingBody(lyrics, recorder) }
+                } else if let editor {
                     editingBanner
                     staleSection(editor)
                     card { editingBody(editor) }
@@ -170,10 +223,17 @@ struct SongLyricsTab: View {
     @ViewBuilder
     private func viewingBody(_ lyrics: Lyrics) -> some View {
         legend(lyrics)
+        let likes = markService.lyricLikes(songId: song.id)
+        if likes.isEmpty {
+            // 付け方は見ただけでは分からないので、1 つも付いていない曲でだけ添える。
+            ImasNote("好きな行をダブルタップで「ここ好き」", systemImage: "hand.tap")
+                .padding(.bottom, DS.sp3)
+        }
         let firstFocus = lyrics.lines.first { focusLineIds.contains($0.id) }?.id
         ForEach(lyrics.lines) { line in
             if line.id == firstFocus { focusCaption }
-            viewingRow(line)
+            viewingRow(line, isLiked: likes.contains(line.id))
+                .imasLyricLine(line.id == activeLineId ? .current : .normal, seed: seed)
                 .modifier(FocusedLineStyle(isFocused: focusLineIds.contains(line.id), seed: seed))
                 .id(line.id)
         }
@@ -203,10 +263,10 @@ struct SongLyricsTab: View {
     }
 
     @ViewBuilder
-    private func viewingRow(_ line: LyricLine) -> some View {
+    private func viewingRow(_ line: LyricLine, isLiked: Bool) -> some View {
         switch line.kind {
         case .lyric:
-            HStack(alignment: .top, spacing: 0) {
+            HStack(alignment: .top, spacing: DS.sp2) {
                 CallGuideClapGlyph(clap: line.clap)
                     .padding(.top, 4)
                 VStack(alignment: .leading, spacing: 0) {
@@ -221,8 +281,15 @@ struct SongLyricsTab: View {
                         CallGuideCallRows(calls: line.calls, anchorIndexes: anchorIndexes(for: line))
                     }
                 }
+                if isLiked {
+                    ImasLyricLikeMark(seed: seed).padding(.top, DS.sp1)
+                }
             }
             .padding(.vertical, 3)
+            // 行のどこをダブルタップしても付け外しできるように、余白も当たりにする。
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) { toggleLike(line) }
+            .accessibilityAction(named: isLiked ? "ここ好きを外す" : "ここ好き") { toggleLike(line) }
         case .marker:
             VStack(alignment: .leading, spacing: 0) {
                 marker(line.text)
@@ -286,7 +353,12 @@ struct SongLyricsTab: View {
                         reanchorTarget = nil
                     }
                     saveButton(editor)
-                } else {
+                } else if recorder == nil {
+                    ImasIconButton(systemImage: "metronome", label: "タイミングを記録",
+                                   size: .small) {
+                        AppAnalytics.tap("lyric_timing.begin_record")
+                        Task { await beginRecording(lyrics) }
+                    }
                     ImasButton(title: lyrics.hasCalls ? "コールを編集" : "コールを付ける",
                               systemImage: "square.and.pencil", role: .secondary, size: .small) {
                         AppAnalytics.tap("call_guide.begin_edit")
@@ -491,6 +563,143 @@ struct SongLyricsTab: View {
                            emphasis: emphasis, timing: timing)
         }
         selectionResetToken += 1
+    }
+
+    // MARK: - 再生との連動 (追従・タイミング記録)
+
+    /// 表示順の各行の開始 ms。
+    private func starts(_ lyrics: Lyrics) -> [Int64?] {
+        lyrics.lines.map { $0.startMs.map(Int64.init) }
+    }
+
+    /// 今の行に追従するか。フル再生中で、記録が足りていて、編集・記録をしていないときだけ
+    /// (記録中は「次の行」の印と紛れるので今の行は出さない)。
+    private var followsPlayback: Bool {
+        guard playback.isFullLoaded, editor == nil, recorder == nil, let lyrics = vm.lyrics else { return false }
+        return lyricHasTiming(starts: starts(lyrics))
+    }
+
+    /// 再生位置を読む周期処理を張り直す鍵。追従しないなら読まない。
+    private var followKey: String { "\(followsPlayback)|\(vm.lyrics?.updatedAt ?? 0)" }
+
+    /// フル再生の位置を周期で読み、今の行を出す。
+    private func followPlayback() async {
+        guard followsPlayback, let lyrics = vm.lyrics else {
+            activeLineId = nil
+            return
+        }
+        let starts = starts(lyrics)
+        while !Task.isCancelled {
+            if let ms = playback.positionMs() {
+                let index = lyricActiveLine(starts: starts, positionMs: Int64(ms)).map(Int.init)
+                let id = index.map { lyrics.lines[$0].id }
+                if id != activeLineId { activeLineId = id }
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+    }
+
+    /// 記録モードに入る。この曲がフル尺で読み込まれていなければ頭から鳴らす。
+    private func beginRecording(_ lyrics: Lyrics) async {
+        if !playback.isFullLoaded {
+            guard await playback.startFull() else {
+                recordUnavailable = true
+                return
+            }
+        }
+        activeLineId = nil
+        recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+    }
+
+    /// 記録中の操作。再生位置・巻き戻し・取り消し・やめる・保存。
+    private func recordingBar(_ recorder: LyricTimingRecorder) -> some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            ImasNote("歌い出しに合わせて、印の付いた行をタップします。違う行をタップするとその行から記録し直せます。",
+                     systemImage: "metronome")
+            HStack(spacing: DS.sp2) {
+                // 周期で描き直すのは時刻の文字だけ (歌詞全体を 10 回/秒描き直さない)。
+                TimelineView(.periodic(from: .now, by: 0.1)) { _ in
+                    ImasLyricTimeLabel(ms: playback.positionMs(), isEmphasized: true)
+                }
+                Spacer(minLength: 0)
+                ImasIconButton(systemImage: "gobackward.5", label: "5 秒戻す", size: .small) {
+                    playback.seek(max(0, (playback.positionMs() ?? 0) - 5000))
+                }
+                ImasIconButton(systemImage: "arrow.uturn.backward", label: "取り消す", size: .small) {
+                    recorder.undo()
+                }
+                .disabled(!recorder.canUndo)
+                ImasIconButton(systemImage: "xmark", label: "記録をやめる", size: .small) {
+                    self.recorder = nil
+                }
+                ImasButton(title: "保存", role: .primary, size: .small,
+                           isLoading: recorder.saveState == .saving) {
+                    AppAnalytics.tap("lyric_timing.save")
+                    Task { await saveTimings(recorder) }
+                }
+                .disabled(!recorder.isDirty || recorder.saveState == .saving)
+            }
+        }
+        .padding(.horizontal, DS.sp1)
+    }
+
+    private func saveTimings(_ recorder: LyricTimingRecorder) async {
+        guard await recorder.save() else {
+            if case .failed(let message) = recorder.saveState { saveErrorMessage = message }
+            return
+        }
+        self.recorder = nil
+        reload()
+    }
+
+    @ViewBuilder
+    private func recordingBody(_ lyrics: Lyrics, _ recorder: LyricTimingRecorder) -> some View {
+        ForEach(lyrics.lines) { line in
+            recordingRow(line, recorder)
+                .imasLyricLine(line.id == recorder.cursorLineId ? .cursor : .normal, seed: seed)
+                .id(line.id)
+        }
+    }
+
+    @ViewBuilder
+    private func recordingRow(_ line: LyricLine, _ recorder: LyricTimingRecorder) -> some View {
+        if recorder.isRecordable(line.id) {
+            let ms = recorder.start(for: line.id)
+            Button {
+                guard let position = playback.positionMs() else { return }
+                recorder.record(lineId: line.id, positionMs: position)
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
+                    ImasLyricTimeLabel(ms: ms, isEmphasized: line.id == recorder.cursorLineId)
+                    // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
+                    Text(line.text)
+                        .imasText(line.kind == .marker ? .meta : .body)
+                        .lineSpacing(5)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.vertical, DS.sp2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.imasPress)
+            .sensoryFeedback(.selection, trigger: ms)
+            .accessibilityHint("今の再生位置をこの行の歌い出しにします")
+        } else {
+            Color.clear.frame(height: DS.sp3)
+        }
+    }
+
+    // MARK: - ここ好き
+
+    /// 行の「ここ好き」を付け外しする。端末に残すのは行 ID だけ (本文は残さない)。
+    private func toggleLike(_ line: LyricLine) {
+        AppAnalytics.tap("lyric_like.toggle")
+        do {
+            try markService.toggleLyricLike(songId: song.id, lineId: line.id)
+            likeToken += 1
+        } catch {
+            LocalWriteFailure.report(error, action: "ここ好きの記録")
+        }
     }
 
     // MARK: - アンカーの見せ方

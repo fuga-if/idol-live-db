@@ -228,6 +228,10 @@ struct SongSheetContent: View {
     @State private var tab: SongDetailTab
     /// 出題箇所へのスクロールは 1 回だけ (読み直しや編集のたびに引き戻さない)。
     @State private var didScrollToFocus = false
+    /// 歌詞タブが寄せてほしい行 (再生への追従・タイミング記録の次の行)。
+    @State private var lyricsScrollTarget: String?
+    /// 指でスクロールしている間と直後は追従で引き戻さない (Apple Music の歌詞と同じ)。
+    @State private var lyricsFollowPausedUntil: Date = .distantPast
     /// 補足シート。補足は利用者の投稿が主な入口なので、楽曲編集とは別の軽い導線にしている。
     @State private var showNoteEditor = false
     /// 未ログインで補足の導線を押した時のログイン誘導。
@@ -305,6 +309,11 @@ struct SongSheetContent: View {
             }
             .coordinateSpace(name: Self.scrollSpace)
             .onChange(of: vm.lyrics) { _, lyrics in scrollToFocus(lyrics, proxy: proxy) }
+            .onChange(of: lyricsScrollTarget) { _, target in
+                guard let target, tab.resolved == .lyrics, Date() >= lyricsFollowPausedUntil else { return }
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(target, anchor: .center) }
+            }
+            .modifier(PausesFollowWhileScrolling(until: $lyricsFollowPausedUntil))
             // タブを替えたら、前のタブで下まで流していても次のタブは頭 (タブの見出しの下) から見せる。
             .onChange(of: tab) { _, _ in
                 if tabsScrolledPast { proxy.scrollTo(Self.tabsAnchor, anchor: .top) }
@@ -611,9 +620,37 @@ struct SongSheetContent: View {
     /// 歌詞は束ね取得 (`/songs/{id}/detail`) に同梱されるので、常時読み込みでも
     /// リクエストは増えない。中身は `SongLyricsTab` (VM を読むだけ)。
     private var lyricsTab: some View {
-        SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus)) {
+        SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
+                      playback: lyricsPlayback) {
             Task { await vm.loadServerData(song: song) }
         }
+    }
+
+    /// 歌詞タブとプレイヤーの繋ぎ。追従・記録はフル再生だけ (試聴は位置を突き合わせられない)。
+    private var lyricsPlayback: SongLyricsTab.Playback {
+        let player = MusicKitService.shared
+        let songId = song.id
+        return SongLyricsTab.Playback(
+            isFullLoaded: player.isFullPlayback && player.nowPlayingSongId == songId,
+            isPlaying: player.isPlayingFull(songId: songId),
+            positionMs: { player.nowPlayingSongId == songId ? player.fullPlaybackPositionMs : nil },
+            startFull: { await startFullForLyrics() },
+            seek: { player.seekFull(toMs: $0) },
+            scrollTo: { lyricsScrollTarget = $0 }
+        )
+    }
+
+    /// タイミング記録のためにフル再生を始める。未契約・Apple Music に無い曲は false。
+    /// 試聴へは落とさない (`playFull` と違い、位置を突き合わせられない再生は意味が無い)。
+    private func startFullForLyrics() async -> Bool {
+        guard let info = vm.artworkInfo, info.musicKitId != nil else { return false }
+        let player = MusicKitService.shared
+        if !player.hasAppleMusicSubscription {
+            await player.requestAuthorization()
+            guard player.hasAppleMusicSubscription else { return false }
+        }
+        await player.playFull(songInfo: info, songId: song.id)
+        return player.isFullPlayback && player.nowPlayingSongId == song.id
     }
 
     // MARK: - Tab: 披露履歴
@@ -673,5 +710,23 @@ struct SongSheetContent: View {
         }
         let encoded = song.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         return URL(string: "https://www.uta-net.com/search/?Keyword=\(encoded)") ?? URL(string: "https://www.uta-net.com")!
+    }
+}
+
+/// 指でスクロールしている間と離して数秒は、歌詞の追従で引き戻さない。
+/// スクロールの段階が取れるのは iOS 18 から。17 では常に追従する。
+private struct PausesFollowWhileScrolling: ViewModifier {
+    @Binding var until: Date
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollPhaseChange { _, phase in
+                if phase == .interacting || phase == .decelerating {
+                    until = Date().addingTimeInterval(4)
+                }
+            }
+        } else {
+            content
+        }
     }
 }
