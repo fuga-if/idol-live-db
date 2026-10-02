@@ -1,7 +1,6 @@
 package com.fugaif.imaslivedb.ui.events
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,14 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
@@ -26,6 +24,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
@@ -35,7 +34,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
@@ -85,13 +82,17 @@ import com.fugaif.imaslivedb.data.model.ShowTicket
 import com.fugaif.imaslivedb.data.model.VenueDirectory
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
-import com.fugaif.imaslivedb.ui.components.GradientHeader
+import com.fugaif.imaslivedb.ui.components.PerformerChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasTagChip
-import com.fugaif.imaslivedb.ui.components.PerformerChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.edit.SetlistEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
@@ -99,6 +100,8 @@ import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import uniffi.imas_core.PerformerNameMode
 import uniffi.imas_core.RowNoteTone
 import uniffi.imas_core.Lineup
@@ -112,9 +115,13 @@ import uniffi.imas_core.formatYen
 import uniffi.imas_core.ticketKindLabel
 import uniffi.imas_core.ticketPriceRanges
 import uniffi.imas_core.ticketsForKind
-import com.fugaif.imaslivedb.ui.theme.brandColor
 import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.imasTheme
+
+/** 公演の画面の内部タブ。セットリスト (未来の公演でまだ無ければ出さない)・予想 (未来だけ)・情報。 */
+private enum class ShowTab(val label: String) {
+    SETLIST("セットリスト"), PREDICTION("予想"), INFO("情報")
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -171,8 +178,10 @@ fun SetlistScreen(
     }
 
     var menuOpen by remember { mutableStateOf(false) }
-    // 未来の公演で予想と実セトリが両方あるときの内部タブ (0 = セットリスト, 1 = 予想)。
-    var contentTab by rememberSaveable(showId) { mutableStateOf(if (opensPrediction) 1 else 0) }
+    // 公演の画面の内部タブ。「次のライブ」の「セトリを予想」からは予想で開く。
+    var selectedTab by rememberSaveable(showId) {
+        mutableStateOf(if (opensPrediction) ShowTab.PREDICTION else ShowTab.SETLIST)
+    }
     var showAttendanceDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
@@ -247,19 +256,35 @@ fun SetlistScreen(
             // 公演前か。「今日」は JST 固定 (JstDay) — 端末ローカルの TZ で判定すると
             // 海外にいるユーザーだけ 1 日ずれる。
             val isFuture = uiState.show?.date?.let { JstDay.isTodayOrLater(it) } ?: false
-            // 予想タブを開いている間は、実セトリ側 (投票の一言・回収の要約・曲の行) を出さない。
-            val showingPrediction = isFuture && hasSetlist && contentTab == 1
+
+            // 出すタブ。セトリのある公演・過去の公演はセットリスト、未来の公演は予想、どの公演にも情報。
+            val tabs = remember(hasSetlist, isFuture) {
+                buildList {
+                    if (hasSetlist || !isFuture) add(ShowTab.SETLIST)
+                    if (isFuture) add(ShowTab.PREDICTION)
+                    add(ShowTab.INFO)
+                }
+            }
+            // いま中身を出すタブ。選んでいたタブが出せないとき (未来の公演でセトリがまだ無い等) は先頭。
+            // シンプル表示はタブ自体を畳むので、情報ではなくセットリスト (無ければ予想) を出す。
+            val candidates = if (simpleMode) tabs.filter { it != ShowTab.INFO } else tabs
+            val currentTab = if (selectedTab in candidates) selectedTab else candidates.firstOrNull() ?: ShowTab.SETLIST
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                item {
+                item(key = "head") {
                     // 上の階層 (ブランド → イベント) へのパンくず。ナビの戻るは「どこから来たか」
                     // しか辿れない (深リンクや検索から直接開くと戻り先が無い)。この画面がライブの
                     // 木のどこに居るのかを示して、上の階層へ直接行けるようにする。
                     // 現在地 (公演) はすぐ下の大見出しが言うので、ここには出さない。
-                    val breadcrumb: @Composable () -> Unit = {
+                    // 会場の詳しいこと (キャパ・配信) とチケットは情報タブへ。
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap),
+                        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                    ) {
                         uiState.show?.eventId?.let { eventId ->
                             if (uiState.eventName.isNotEmpty()) {
                                 SetlistBreadcrumb(
@@ -275,183 +300,93 @@ fun SetlistScreen(
                                 )
                             }
                         }
-                    }
-                    if (simpleMode) {
-                        // シンプル表示ではヒーローと会場カードを畳み、会場・日付の 1 行に落とす。
-                        // ここが 250dp 前後あり、残したままだと 20 曲超のセトリが 1 枚の
-                        // スクショに収まらない (シンプル表示を作った意味が無くなる)。
-                        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
-                            breadcrumb()
-                            Text(
-                                uiState.show?.name ?: "",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = DS.ink
-                            )
-                            uiState.show?.let { show ->
-                                val sub = listOfNotNull(
-                                    uiState.venues.displayName(show) ?: show.venue?.takeIf { it.isNotBlank() },
-                                    show.date.takeIf { it.isNotBlank() }
-                                ).joinToString(" ・ ")
-                                if (sub.isNotEmpty()) {
-                                    Text(sub, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-                                }
-                            }
-                        }
-                    } else {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            GradientHeader(color = brandColor(uiState.brandId), height = 88.dp)
-                            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 32.dp, bottom = 8.dp)) {
-                                breadcrumb()
-                                Text(
-                                    uiState.show?.name ?: "",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DS.ink
-                                )
-                                uiState.show?.date?.let { d ->
-                                    Text(d, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-                                }
+                        ImasText(uiState.show?.name ?: "", role = ImasTextRole.HERO_TITLE)
+                        uiState.show?.let { show ->
+                            val sub = listOfNotNull(
+                                uiState.venues.displayName(show) ?: show.venue?.takeIf { it.isNotBlank() },
+                                show.date.takeIf { it.isNotBlank() }
+                            ).joinToString(" ・ ")
+                            if (sub.isNotEmpty()) {
+                                ImasNote(sub, modifier = Modifier.padding(top = 2.dp))
                             }
                         }
                     }
                 }
+
                 if (!simpleMode) {
-                    uiState.show?.let { show ->
-                        item(key = "venue_date") {
-                            VenueDateCard(
-                                show = show,
-                                venues = uiState.venues,
-                                brandId = uiState.brandId,
-                                onFilteredShowsClick = onFilteredShowsClick
-                            )
+                    item(key = "mark_bar") {
+                        UserMarkBar(
+                            attendedLabel = marks.attendance?.let { "参加 (${it.label})" } ?: "参加",
+                            attendedOn = marks.attendance != null,
+                            onAttendedClick = { showAttendanceDialog = true },
+                            favoriteOn = marks.favoriteOn,
+                            onFavoriteClick = viewModel::toggleFavorite,
+                            note = marks.note,
+                            onNoteChange = viewModel::setNote,
+                            seat = marks.seat,
+                            onSeatChange = viewModel::setSeat,
+                            seed = seedHex,
+                            modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+                        )
+                    }
+                    item(key = "tabs") {
+                        ImasTabs(
+                            labels = tabs.map { it.label },
+                            selection = tabs.indexOf(currentTab).coerceAtLeast(0),
+                            onSelect = { index -> tabs.getOrNull(index)?.let { selectedTab = it } },
+                            seed = seedHex,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+                        )
+                    }
+                }
+
+                when (currentTab) {
+                    ShowTab.SETLIST -> setlistTabContent(
+                        uiState = uiState,
+                        hasSetlist = hasSetlist,
+                        simpleMode = simpleMode,
+                        isSignedIn = isSignedIn,
+                        onLoginClick = viewModel::requestLogin,
+                        canShowEditActions = canShowEditActions,
+                        seedHex = seedHex,
+                        onStartEdit = { startEdit() },
+                        performerName = performerName,
+                        isCharacterLive = isCharacterLive,
+                        likes = likes,
+                        viewModel = viewModel,
+                        onSongClick = onSongClick,
+                        onIdolClick = onIdolClick
+                    )
+                    ShowTab.PREDICTION -> {
+                        item(key = "prediction") {
+                            SetlistPredictionSection(showId = showId, seed = seedHex)
+                        }
+                        if (!hasSetlist) {
+                            item(key = "prediction_empty") {
+                                ImasEmptyState(
+                                    icon = Icons.Filled.Schedule,
+                                    title = "公演前です",
+                                    message = "セトリは公演後に登録されます",
+                                    seed = seedHex
+                                )
+                            }
+                        }
+                    }
+                    ShowTab.INFO -> {
+                        uiState.show?.let { show ->
+                            item(key = "venue_date") {
+                                VenueDateCard(
+                                    show = show,
+                                    venues = uiState.venues,
+                                    brandId = uiState.brandId,
+                                    onFilteredShowsClick = onFilteredShowsClick
+                                )
+                            }
                         }
                         if (uiState.tickets.isNotEmpty()) {
                             item(key = "tickets") {
                                 TicketCard(tickets = uiState.tickets, brandId = uiState.brandId)
                             }
-                        }
-                        item(key = "mark_bar") {
-                            UserMarkBar(
-                                attendedLabel = marks.attendance?.let { "参加 (${it.label})" } ?: "参加",
-                                attendedOn = marks.attendance != null,
-                                onAttendedClick = { showAttendanceDialog = true },
-                                favoriteOn = marks.favoriteOn,
-                                onFavoriteClick = viewModel::toggleFavorite,
-                                note = marks.note,
-                                onNoteChange = viewModel::setNote,
-                                seat = marks.seat,
-                                onSeatChange = viewModel::setSeat,
-                                seed = seedHex,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                            )
-                        }
-                    }
-                }
-
-                // 予想と実セトリが両方あるときは内部タブで切り替える (実セトリが入った後も予想を見られる)。
-                if (isFuture && hasSetlist) {
-                    item(key = "content_tab") {
-                        ImasSegmented(
-                            labels = listOf("セットリスト", "予想"),
-                            selection = contentTab,
-                            onSelect = { contentTab = it },
-                            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp)
-                        )
-                    }
-                }
-
-                // 予想: 未来の公演で、実セトリが未登録か、予想タブを選んでいるとき (iOS と同じ)。
-                if (isFuture && (!hasSetlist || contentTab == 1)) {
-                    item(key = "prediction") {
-                        SetlistPredictionSection(showId = showId, seed = seedHex)
-                    }
-                }
-
-                if (!hasSetlist) {
-                    item(key = "empty") {
-                        // 公演前かどうかで文言と導線を変える。
-                        // 未来の公演に「セトリを追加」を出しても、まだ書ける中身が無い。
-                        val canAdd = canShowEditActions && !isFuture
-                        ImasEmptyState(
-                            icon = Icons.Filled.MusicNote,
-                            title = if (isFuture) "公演前です" else "セトリ未登録",
-                            message = if (isFuture) "セトリは公演後に登録されます"
-                            else "このライブのセトリはまだ登録されていません。ログインして編集に参加できます",
-                            seed = seedHex,
-                            actionTitle = if (canAdd) "セトリを追加" else null,
-                            onAction = if (canAdd) ({ startEdit() }) else null
-                        )
-                    }
-                }
-
-                // 投票導線。シンプル表示では出さない — 行に 👍 自体が無く、
-                // スクショに誘導文が写り込むだけになる。
-                if (hasSetlist && !simpleMode && !showingPrediction) {
-                    item(key = "vote_note") {
-                        VoteHintRow(isSignedIn = isSignedIn, onLoginClick = viewModel::requestLogin)
-                    }
-                }
-
-                // 自分の回収の要約。セトリの真上に置いて、この下の並びの読み方を先に言う。
-                // 出すかどうかも文言も共有コアが決める (null なら何も出さない)。
-                uiState.collectionSummary?.takeIf { !showingPrediction }?.let { summary ->
-                    item(key = "collection_summary") {
-                        CollectionSummaryRow(summary = summary)
-                    }
-                }
-
-                (if (showingPrediction) emptyList() else uiState.sections).forEachIndexed { sectionIndex, section ->
-                    // 同じ見出しが 2 度来ても鍵がぶつからないよう、塊の順番を鍵にする。
-                    stickyHeader(key = "section_$sectionIndex") {
-                        Surface(
-                            color = DS.surface2,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = section.sectionName,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = DS.ink2,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-
-                    section.items.forEachIndexed { index, item ->
-                        item(key = item.id) {
-                            val performers = uiState.performersByItemId[item.id] ?: emptyList()
-                            val meta = uiState.rowMetaByItemId[item.id]
-                            if (simpleMode) {
-                                SetlistSimpleRow(
-                                    item = item,
-                                    displayNumber = index + 1,
-                                    performerLabel = meta?.performerLabel.orEmpty(),
-                                    brandHex = BrandColors.hex(item.songBrandId) ?: seedHex,
-                                    onClick = { onSongClick(item.songId) }
-                                )
-                            } else {
-                                SetlistItemRow(
-                                    item = item,
-                                    displayNumber = index + 1,
-                                    performers = performers,
-                                    unitNames = meta?.unitNames.orEmpty(),
-                                    isFullCast = meta?.isFullCast == true,
-                                    lineup = meta?.lineup,
-                                    noteGroups = meta?.noteGroups.orEmpty(),
-                                    performerName = performerName,
-                                    isCharacterLive = isCharacterLive,
-                                    showName = uiState.show?.name,
-                                    showDate = uiState.show?.date,
-                                    // 感想カードの差し色。公演のブランドカラーを hex で渡す
-                                    // (ブランド ID のままだと色エンジンがニュートラルへ落ちる)。
-                                    seed = seedHex,
-                                    likeEntry = likes[item.songId],
-                                    onToggleLike = { viewModel.toggleLike(item.songId) },
-                                    onSongClick = { onSongClick(item.songId) },
-                                    onIdolClick = { idolId -> onIdolClick(idolId) }
-                                )
-                            }
-                            HorizontalDivider(modifier = Modifier.padding(start = if (simpleMode) 38.dp else 72.dp))
                         }
                     }
                 }
@@ -501,6 +436,111 @@ fun SetlistScreen(
             showName = uiState.show?.name.orEmpty(),
             onDismiss = { showHistorySheet = false }
         )
+    }
+}
+
+/**
+ * セットリストタブの中身: 👍 の案内 (シンプル表示では出さない) → 自分の回収の要約 →
+ * セトリ本体 (未登録なら「セトリ未登録」の空状態)。
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun LazyListScope.setlistTabContent(
+    uiState: SetlistUiState,
+    hasSetlist: Boolean,
+    simpleMode: Boolean,
+    isSignedIn: Boolean,
+    onLoginClick: () -> Unit,
+    canShowEditActions: Boolean,
+    seedHex: String?,
+    onStartEdit: () -> Unit,
+    performerName: PerformerNameMode,
+    isCharacterLive: Boolean,
+    likes: Map<String, SetlistLikeService.LikeEntry>,
+    viewModel: SetlistViewModel,
+    onSongClick: (String) -> Unit,
+    onIdolClick: (String) -> Unit
+) {
+    if (!hasSetlist) {
+        item(key = "empty") {
+            // セットリストタブは過去の公演かセトリのある公演だけに出るので、ここに来る時点で
+            // 必ず過去の公演 (未来でセトリ未登録なら予想タブに回る)。
+            ImasEmptyState(
+                icon = Icons.Filled.MusicNote,
+                title = "セトリ未登録",
+                message = "このライブのセトリはまだ登録されていません。ログインして編集に参加できます",
+                seed = seedHex,
+                actionTitle = if (canShowEditActions) "セトリを追加" else null,
+                onAction = if (canShowEditActions) onStartEdit else null
+            )
+        }
+        return
+    }
+
+    // 投票導線。シンプル表示では出さない — 行に 👍 自体が無く、スクショに誘導文が写り込むだけになる。
+    if (!simpleMode) {
+        item(key = "vote_note") {
+            VoteHintRow(isSignedIn = isSignedIn, onLoginClick = onLoginClick)
+        }
+    }
+
+    // 自分の回収の要約。セトリの真上に置いて、この下の並びの読み方を先に言う。
+    // 出すかどうかも文言も共有コアが決める (null なら何も出さない)。
+    uiState.collectionSummary?.let { summary ->
+        item(key = "collection_summary") {
+            CollectionSummaryRow(summary = summary)
+        }
+    }
+
+    uiState.sections.forEachIndexed { sectionIndex, section ->
+        // 同じ見出しが 2 度来ても鍵がぶつからないよう、塊の順番を鍵にする。
+        stickyHeader(key = "section_$sectionIndex") {
+            Surface(color = DS.surface2, modifier = Modifier.fillMaxWidth()) {
+                ImasSectionHeader(title = section.sectionName, tight = true)
+            }
+        }
+        item(key = "section_items_$sectionIndex") {
+            // セクションの曲を 1 枚の紙にまとめ、切り取り線で区切る (セトリ・申込書と同じ紙面)。
+            ImasCardList(
+                style = ImasCardListStyle.SHEET,
+                modifier = Modifier.padding(horizontal = DS.Space.screen)
+            ) {
+                section.items.forEachIndexed { index, item ->
+                    if (index > 0) ImasRowDivider(inset = if (simpleMode) 38.dp else 72.dp)
+                    val performers = uiState.performersByItemId[item.id] ?: emptyList()
+                    val meta = uiState.rowMetaByItemId[item.id]
+                    if (simpleMode) {
+                        SetlistSimpleRow(
+                            item = item,
+                            displayNumber = index + 1,
+                            performerLabel = meta?.performerLabel.orEmpty(),
+                            brandHex = BrandColors.hex(item.songBrandId) ?: seedHex,
+                            onClick = { onSongClick(item.songId) }
+                        )
+                    } else {
+                        SetlistItemRow(
+                            item = item,
+                            displayNumber = index + 1,
+                            performers = performers,
+                            unitNames = meta?.unitNames.orEmpty(),
+                            isFullCast = meta?.isFullCast == true,
+                            lineup = meta?.lineup,
+                            noteGroups = meta?.noteGroups.orEmpty(),
+                            performerName = performerName,
+                            isCharacterLive = isCharacterLive,
+                            showName = uiState.show?.name,
+                            showDate = uiState.show?.date,
+                            // 感想カードの差し色。公演のブランドカラーを hex で渡す
+                            // (ブランド ID のままだと色エンジンがニュートラルへ落ちる)。
+                            seed = seedHex,
+                            likeEntry = likes[item.songId],
+                            onToggleLike = { viewModel.toggleLike(item.songId) },
+                            onSongClick = { onSongClick(item.songId) },
+                            onIdolClick = { idolId -> onIdolClick(idolId) }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -587,22 +627,14 @@ private fun SetlistBreadcrumb(
 /** 「👍 で投票しよう」の案内 (未ログインならログイン導線)。 */
 @Composable
 private fun VoteHintRow(isSignedIn: Boolean, onLoginClick: () -> Unit) {
-    Row(
+    ImasNote(
+        text = if (isSignedIn) "良かったと思った曲に 👍 で投票しよう！" else "👍 で投票するにはログインが必要です",
+        icon = Icons.Filled.ThumbUp,
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isSignedIn) Modifier else Modifier.clickable(onClick = onLoginClick))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(Icons.Filled.ThumbUp, contentDescription = null, tint = DS.pick, modifier = Modifier.size(14.dp))
-        Text(
-            if (isSignedIn) "良かったと思った曲に 👍 で投票しよう！"
-            else "👍 で投票するにはログインが必要です",
-            style = MaterialTheme.typography.bodySmall,
-            color = DS.ink2
-        )
-    }
+            .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
+    )
 }
 
 /**
@@ -627,7 +659,7 @@ private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: S
         modifier = Modifier.padding(top = 1.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        HorizontalDivider(color = DS.sep, thickness = 0.5.dp, modifier = Modifier.padding(bottom = 2.dp))
+        ImasRowDivider(modifier = Modifier.padding(bottom = 2.dp))
         noteGroups.forEach { group ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // 軸ラベル。固定幅・字間を少し開けて沈める (本文と張り合わない)。
@@ -704,44 +736,29 @@ private const val MISSING_MARK_ID = "missing_mark"
 /**
  * 公演の頭に出す「自分の回収」の要約 (「この公演で 12 曲回収・初回収 4 曲」
  * 「このセトリに未回収 7 曲」)。**出すかどうかも文言も共有コアが決める** — ここは
- * `summary.attended` でアイコンと色を選ぶだけ (文言を組み立てない)。
+ * `summary.attended` でアイコンを選ぶだけ (文言を組み立てない)。
+ *
+ * 札 (`ImasBadge`) は 1 行の短い値向けで、長い文だと大きい文字設定で切れる。
+ * ここは文なので折り返す `ImasNote` を使う (iOS 版と同じ判断)。
  */
 @Composable
 private fun CollectionSummaryRow(summary: ShowCollectionRecord) {
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = if (summary.attended) DS.success.copy(alpha = 0.10f) else DS.fill,
+    ImasNote(
+        text = summary.label,
+        icon = if (summary.attended) Icons.Filled.Verified else Icons.Outlined.RadioButtonUnchecked,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        ) {
-            Icon(
-                imageVector = if (summary.attended) Icons.Filled.Verified else Icons.Outlined.RadioButtonUnchecked,
-                contentDescription = null,
-                tint = if (summary.attended) DS.success else DS.ink3,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = summary.label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (summary.attended) DS.ink else DS.ink2
-            )
-        }
-    }
+            .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
+    )
 }
 
 /**
- * 会場 / 日付のカード。どちらも「同じ条件の公演」への入口になる。
+ * 会場 / キャパ / 配信 / 日付 のカード。会場と日付は「同じ条件の公演」への入口になる。
  *
  * 会場は ID で持つ (表記ゆれで同じ会場が分断されないように) ので、ID を持たない古い公演では
  * 押せない普通の行に落とす — 生の会場文字列でも引けはするが、押した先が表記ゆれで
  * 分断された一部だけになり、「この会場での公演」という約束を守れないため。
+ * キャパはホール指定があればホール側を優先 ([VenueDirectory.capacity])。
  */
 @Composable
 private fun VenueDateCard(
@@ -750,10 +767,8 @@ private fun VenueDateCard(
     brandId: String?,
     onFilteredShowsClick: (String, String) -> Unit
 ) {
-    Column(
-        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-    ) {
+    ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
+        var shown = false
         val venueId = show.venueId?.takeIf { it.isNotEmpty() }
         val venueLabel = venues.displayName(show) ?: show.venue
         if (!venueLabel.isNullOrEmpty()) {
@@ -762,9 +777,21 @@ private fun VenueDateCard(
                 tappable = venueId != null,
                 onClick = venueId?.let { id -> { onFilteredShowsClick(ShowFilterKind.VENUE, id) } }
             )
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+            shown = true
+        }
+        // キャパが分かる会場では規模も出す (ホール指定があればホール側を優先)。
+        venues.capacity(show)?.let { cap ->
+            if (shown) ImasRowDivider(inset = DS.Space.rowH)
+            ImasLabeledRow(key = "キャパ", value = "%,d人".format(cap), mono = true, brand = brandId)
+            shown = true
+        }
+        show.streamPlatform?.takeIf { it.isNotBlank() }?.let { stream ->
+            if (shown) ImasRowDivider(inset = DS.Space.rowH)
+            ImasLabeledRow(key = "配信", value = stream, brand = brandId)
+            shown = true
         }
         if (show.date.isNotEmpty()) {
+            if (shown) ImasRowDivider(inset = DS.Space.rowH)
             ImasLabeledRow(
                 key = "日付", value = show.date, brand = brandId, tappable = true,
                 onClick = { onFilteredShowsClick(ShowFilterKind.DATE, show.date) }
@@ -774,7 +801,7 @@ private fun VenueDateCard(
 }
 
 /**
- * この公演のチケット価格。iOS `SetlistView` のチケットセクションと対。
+ * この公演のチケット価格。iOS `SetlistView` の情報タブのチケット区画と対。
  *
  * 券種の絞り込み・並び・価格帯・推定の札は共有コア (`domain/ticket_prices.rs`) が
  * 一本で決める。ここは受け取ったものをそのまま並べるだけ。
@@ -783,14 +810,14 @@ private fun VenueDateCard(
 private fun TicketCard(tickets: List<ShowTicket>, brandId: String?) {
     val coreTickets = remember(tickets) { tickets.map { it.toCore() } }
     val ranges = remember(coreTickets) { ticketPriceRanges(coreTickets) }
-    Column(Modifier.padding(bottom = 8.dp).fillMaxWidth()) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = DS.Space.gap),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+    ) {
         ImasSectionHeader(title = "チケット", tight = true)
-        Column(
-            Modifier.padding(horizontal = 16.dp).fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp)).background(DS.surface)
-        ) {
+        ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
             ranges.forEachIndexed { rangeIndex, range ->
-                if (rangeIndex > 0) HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                if (rangeIndex > 0) ImasRowDivider(inset = DS.Space.rowH)
                 val kindTickets = ticketsForKind(coreTickets, range.kind)
                 // 券種が 1 つだけの形態は帯を出さない (「配信 ¥6,500」が 2 行並んで、
                 // 同じ数字を 2 回読ませることになる)。
@@ -804,10 +831,7 @@ private fun TicketCard(tickets: List<ShowTicket>, brandId: String?) {
                 }
                 kindTickets.forEachIndexed { index, ticket ->
                     if (showsBand || index > 0) {
-                        HorizontalDivider(
-                            color = DS.sep,
-                            modifier = Modifier.padding(start = if (showsBand) 32.dp else 16.dp)
-                        )
+                        ImasRowDivider(inset = if (showsBand) DS.Space.rowH + 16.dp else DS.Space.rowH)
                     }
                     ImasLabeledRow(
                         key = if (showsBand) {
@@ -980,8 +1004,9 @@ private fun SetlistItemRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    lineup?.let { LineupChip(it) }
-                    tagNames.forEach { name -> RowTagChip(text = name, color = DS.sys) }
+                    lineup?.let { ImasBadge(it.label, kind = it.kind.toBadgeKind()) }
+                    val tagKind = if (unitNames.isNotEmpty()) ImasBadgeKind.UNIT else ImasBadgeKind.ALL
+                    tagNames.forEach { name -> ImasBadge(name, kind = tagKind) }
                 }
             }
 
@@ -1031,28 +1056,11 @@ private fun SetlistItemRow(
     }
 }
 
-/** 行の札 (ユニット名・全員・オリメン)。色だけ変えて同じ形で並べる。 */
-@Composable
-private fun RowTagChip(text: String, color: Color) {
-    Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.1f)) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-        )
-    }
-}
-
-/** オリメンの札。色は種類だけで分ける (文言はコア。iOS の ImasTagChip の出し分けと同じ)。 */
-@Composable
-private fun LineupChip(note: SetlistLineupNote) {
-    val color = when (note.kind) {
-        Lineup.ORIGINAL, Lineup.ORIGINAL_PLUS -> DS.sys
-        Lineup.PARTIAL -> DS.warning
-        Lineup.COVER -> DS.pick
-    }
-    RowTagChip(text = note.label, color = color)
+/** オリメンの札の色区分。`ImasBadgeKind.ALL/COVER/PARTIAL` は iOS 版の対応と同じ (色では分けない)。 */
+private fun Lineup.toBadgeKind(): ImasBadgeKind = when (this) {
+    Lineup.ORIGINAL, Lineup.ORIGINAL_PLUS -> ImasBadgeKind.ALL
+    Lineup.PARTIAL -> ImasBadgeKind.PARTIAL
+    Lineup.COVER -> ImasBadgeKind.COVER
 }
 
 /**
