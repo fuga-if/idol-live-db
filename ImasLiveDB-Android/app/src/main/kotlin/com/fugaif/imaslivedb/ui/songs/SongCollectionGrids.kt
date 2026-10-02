@@ -1,31 +1,22 @@
 package com.fugaif.imaslivedb.ui.songs
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.AlbumSummary
 import com.fugaif.imaslivedb.data.model.SeriesSummary
-import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
+import com.fugaif.imaslivedb.ui.designsystem.ImasArtworkCell
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasPress
 
 /**
  * 曲一覧の「アルバム」表示 (iOS `AlbumGridView`)。CD シリーズ単位のカードを並べる。
@@ -38,12 +29,12 @@ fun AlbumGrid(albums: List<AlbumSummary>, onSelect: (AlbumSummary) -> Unit) {
         return
     }
     SummaryGrid(items = albums, key = { it.cdSeries }) { album ->
-        SummaryCard(
+        ImasArtworkCell(
             title = album.cdSeries,
             subtitle = listOfNotNull("${album.songCount}曲", album.yearDisplay).joinToString(" / "),
-            artworkUrl = album.artworkUrl,
-            brandId = album.brandIds.firstOrNull(),
-            onClick = { onSelect(album) }
+            brand = album.brandIds.firstOrNull(),
+            imageUrl = album.artworkUrl,
+            modifier = Modifier.imasPress { onSelect(album) }
         )
     }
 }
@@ -58,12 +49,12 @@ fun SeriesGrid(series: List<SeriesSummary>, onSelect: (SeriesSummary) -> Unit) {
         return
     }
     SummaryGrid(items = series, key = { it.name }) { s ->
-        SummaryCard(
+        ImasArtworkCell(
             title = s.name,
             subtitle = listOfNotNull("${s.cdCount}枚 / ${s.songCount}曲", s.yearDisplay).joinToString(" · "),
-            artworkUrl = s.artworkUrl,
-            brandId = s.brandIds.firstOrNull(),
-            onClick = { onSelect(s) }
+            brand = s.brandIds.firstOrNull(),
+            imageUrl = s.artworkUrl,
+            modifier = Modifier.imasPress { onSelect(s) }
         )
     }
 }
@@ -78,46 +69,10 @@ private fun <T> SummaryGrid(
         // カード幅を固定列数でなく最小幅で決める。端末幅と文字サイズで 2〜3 列に落ち着く。
         columns = GridCells.Adaptive(minSize = 150.dp),
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(DS.Space.screen),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
+        verticalArrangement = Arrangement.spacedBy(DS.Space.screen)
     ) {
         items(items, key = key) { card(it) }
-    }
-}
-
-/** ジャケット + 名前 + 副題のカード 1 枚 (iOS `GridCardView` 相当)。 */
-@Composable
-private fun SummaryCard(
-    title: String,
-    subtitle: String,
-    artworkUrl: String?,
-    brandId: String?,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        horizontalAlignment = Alignment.Start
-    ) {
-        // ImasArtwork は Dp 指定の正方形しか描けない。列幅は端末幅で変わるので、
-        // 実測した幅をそのまま辺の長さとして渡してカードいっぱいに敷く。
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            ImasArtwork(
-                title = title,
-                brand = brandId,
-                size = maxWidth,
-                imageUrl = artworkUrl
-            )
-        }
-        Text(
-            text = title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = DS.ink,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 6.dp)
-        )
-        Text(text = subtitle, fontSize = 11.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
