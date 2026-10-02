@@ -1,40 +1,22 @@
 package com.fugaif.imaslivedb.ui.edit
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as lazyGridItems
 import androidx.compose.foundation.lazy.items as lazyColumnItems
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Circle
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,14 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -60,15 +35,27 @@ import com.fugaif.imaslivedb.data.model.ShowWithEventName
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.BrandFilterChips
 import com.fugaif.imaslivedb.ui.components.BrandFilterItem
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.ImasIdolCell
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasSearchField
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasShowRow
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.imasPress
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemePrewarm
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
 import uniffi.imas_core.PickedSongRecord
 
 // ---------------------------------------------------------------------------
@@ -90,7 +77,10 @@ class ShowPickerViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-/** iOS `ShowSearchPickerView` の移植。公演名 / イベント名で検索し、公演 1 件を選ぶ。 */
+/**
+ * iOS `ShowSearchPickerView` の移植。公演名 / イベント名で検索し、公演 1 件を選ぶ。
+ * 選んだ瞬間に閉じる 1 択ピッカーなので、ツールバーは × だけ (docs/DESIGN_SYSTEM.md §2.5)。
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShowSearchPickerSheet(
@@ -109,22 +99,12 @@ fun ShowSearchPickerSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
-            Text(
-                "公演を選択", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("公演名・イベント名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "クリア") }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            ImasSheetToolbar(kind = ImasSheetToolbarKind.Read(onClose = onDismiss), title = "公演を選択")
+            ImasSearchField(
+                prompt = "公演名・イベント名で検索",
+                text = query,
+                onTextChange = { query = it },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
             if (results.isEmpty()) {
                 ImasEmptyState(
@@ -135,24 +115,14 @@ fun ShowSearchPickerSheet(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     lazyColumnItems(results, key = { it.id }) { show ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable { onSelect(show) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(DS.fill),
-                                contentAlignment = Alignment.Center
-                            ) { Icon(Icons.Filled.ConfirmationNumber, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(18.dp)) }
-                            Column(Modifier.weight(1f)) {
-                                Text(show.eventName, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = DS.ink,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text("${show.name} ・ ${show.date.take(10)}", fontSize = 12.sp, color = DS.ink2,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
+                        ImasShowRow(
+                            date = show.date.take(10),
+                            title = show.eventName,
+                            subtitle = show.name,
+                            showsChevron = true,
+                            subtitleLineLimit = Int.MAX_VALUE,
+                            modifier = Modifier.imasRowPress(onClick = { onSelect(show) })
+                        )
                     }
                 }
             }
@@ -194,42 +164,26 @@ fun SongPickerSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.9f)) {
-            Text(
-                "曲を選択", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("曲名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "クリア") }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            ImasSheetToolbar(kind = ImasSheetToolbarKind.Read(onClose = onDismiss), title = "曲を選択")
+            ImasSearchField(
+                prompt = "曲名で検索",
+                text = query,
+                onTextChange = { query = it },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
             if (songs == null) {
-                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ImasLoadingState(Modifier.weight(1f))
             } else if (results.isEmpty()) {
                 ImasEmptyState(Icons.Filled.MusicNote, "見つかりません", "「$query」に一致する楽曲がありません")
             } else {
                 LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     lazyColumnItems(results, key = { it.id }) { song ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable { onSelect(song) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(Icons.Filled.MusicNote, contentDescription = null, tint = DS.ink2)
-                            Text(song.title, fontSize = 15.sp, color = DS.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        }
+                        ImasRow(
+                            title = song.title,
+                            leading = ImasRowLeading.Icon(Icons.Filled.MusicNote, tone = ImasIconTileTone.NEUTRAL),
+                            titleLineLimit = 2,
+                            modifier = Modifier.imasRowPress(onClick = { onSelect(song) })
+                        )
                     }
                 }
             }
@@ -267,6 +221,7 @@ class IdolMultiSelectViewModel(app: Application) : AndroidViewModel(app) {
  *
  * セトリ 1 行の出演者と、曲の歌唱アイドル (SongArtist role=original) の両方で使うので、
  * 見出しだけ [title] で差し替える。中身は同じ母集団・同じ絞り込みでよい。
+ * 複数選択シートなのでツールバーは左 = キャンセル、右 = 完了 (docs/DESIGN_SYSTEM.md §2.5)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -310,80 +265,43 @@ fun IdolMultiSelectSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(modifier = Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
-            Text(
-                "$title (${current.size})",
-                fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            ImasSheetToolbar(
+                kind = ImasSheetToolbarKind.Select(canFinish = true, onCancel = onDismiss, onFinish = { onConfirm(current) }),
+                title = "$title (${current.size})"
             )
             BrandFilterChips(
                 brands = state.brands.map { BrandFilterItem(it.id, it.shortName) },
                 selectedBrandId = selectedBrandId,
                 onBrandSelected = { selectedBrandId = it }
             )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text("アイドル名で検索") },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) { Icon(Icons.Filled.Clear, contentDescription = "クリア") }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            ImasSearchField(
+                prompt = "アイドル名で検索",
+                text = query,
+                onTextChange = { query = it },
+                modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
             if (state.isLoading) {
-                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                ImasLoadingState(Modifier.weight(1f))
             } else {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
-                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 12.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = DS.Space.gap),
+                    contentPadding = PaddingValues(vertical = DS.Space.gap)
                 ) {
                     grouped.forEach { (brand, idols) ->
                         item(key = "h_${brand.id}", span = { GridItemSpan(maxLineSpan) }) {
-                            Text(
-                                "${brand.shortName} (${idols.size})",
-                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = DS.ink2,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
-                            )
+                            ImasSectionHeader(title = "${brand.shortName} (${idols.size})", style = ImasSectionHeaderStyle.SMALL)
                         }
                         lazyGridItems(idols, key = { it.id }) { idol ->
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(6.dp).clickable { toggle(idol) },
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Box(contentAlignment = Alignment.BottomEnd) {
-                                    Box(modifier = Modifier.background(
-                                        if (current.contains(idol.id)) DS.fill else androidx.compose.ui.graphics.Color.Transparent,
-                                        CircleShape
-                                    )) {
-                                        ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 56.dp)
-                                    }
-                                    Icon(
-                                        if (current.contains(idol.id)) Icons.Filled.CheckCircle else Icons.Filled.Circle,
-                                        contentDescription = null,
-                                        tint = if (current.contains(idol.id)) DS.success else DS.ink3,
-                                        modifier = Modifier.size(16.dp).background(DS.bg, CircleShape)
-                                    )
-                                }
-                                Text(
-                                    idol.name, fontSize = 11.sp, color = DS.ink, maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                            ImasIdolCell(
+                                idol = idol,
+                                isPick = false,
+                                isSelected = current.contains(idol.id),
+                                modifier = Modifier.padding(DS.Space.gapTight).imasPress { toggle(idol) }
+                            )
                         }
                     }
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("キャンセル") }
-                Button(onClick = { onConfirm(current) }, modifier = Modifier.weight(1f)) { Text("決定") }
             }
         }
     }
