@@ -17,6 +17,7 @@ pub mod ticket_sales;
 pub mod mastery;
 pub mod song_list_queries;
 pub mod song_tag_queries;
+pub mod song_credit_label;
 pub mod song_detail_queries;
 pub mod idol_song_queries;
 pub mod idol_queries;

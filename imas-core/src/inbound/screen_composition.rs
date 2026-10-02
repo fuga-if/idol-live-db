@@ -71,3 +71,9 @@ mod tests {
         assert_eq!(idol_profile_rows(input.clone()), rows(&input));
     }
 }
+
+/// 曲の一覧の行に出す名義 (ユニット名 → 名義 → 個人名の並び)。規則は `domain::song_credit_label`。
+#[uniffi::export]
+pub fn song_credit_label(unit_name: Option<String>, singer_label: Option<String>, artist_names: String) -> String {
+    crate::domain::song_credit_label::song_credit_label(unit_name.as_deref(), singer_label.as_deref(), &artist_names)
+}

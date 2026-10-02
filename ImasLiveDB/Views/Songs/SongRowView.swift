@@ -78,22 +78,11 @@ struct SongRowView: View {
         MusicKitService.shared.isPlaying(songId: song.id)
     }
 
-    /// 表示用ラベル: ユニット名/全体名 (あれば) を優先、無ければアイドル個別名連結。
-    /// - song.unitName が DB にあればそれ
-    /// - artistNames が "MILLIONSTARS（...）" 形式ならカッコ前を抜き出し (全体曲・ユニット名カッコ表記対応)
-    /// - 落ちる場合は performerIdols の名前を「・」で繋ぐ
+    /// 行に出す名義。全体曲は個人名を連ねると行を埋めるので、ユニット名・名義を先に出す。
     private var displayLabel: String {
-        if let unit = song.unitName, !unit.isEmpty { return unit }
-        let label = item.artistNames
-        if !label.isEmpty {
-            for sep in ["（", "("] {
-                if let idx = label.firstIndex(of: Character(sep)) {
-                    let prefix = label[..<idx].trimmingCharacters(in: .whitespaces)
-                    if !prefix.isEmpty { return prefix }
-                }
-            }
-        }
-        return item.performerIdols.map(\.name).joined(separator: "・")
+        // ユニット名 → 名義 (singer_label) → 個人名の並び。規則はコア。
+        let names = item.artistNames.isEmpty ? item.performerIdols.map(\.name).joined(separator: "・") : item.artistNames
+        return songCreditLabel(unitName: song.unitName, singerLabel: song.singerLabel, artistNames: names)
     }
 
     var body: some View {

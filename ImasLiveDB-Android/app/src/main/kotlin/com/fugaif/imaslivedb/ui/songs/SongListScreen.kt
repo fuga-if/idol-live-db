@@ -309,6 +309,7 @@ private fun SongListRow(
     SongRow(
         title = item.song.title, songId = item.song.id,
         artistNames = item.artistNames,
+        singerLabel = item.song.singerLabel,
         unitName = item.song.unitName,
         artworkUrl = item.song.artworkUrl,
         previewUrl = item.song.previewUrl,
