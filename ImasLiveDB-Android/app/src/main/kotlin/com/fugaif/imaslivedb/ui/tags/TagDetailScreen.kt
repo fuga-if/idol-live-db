@@ -28,13 +28,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Song
-import com.fugaif.imaslivedb.ui.designsystem.ImasArtwork
+import com.fugaif.imaslivedb.ui.components.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
@@ -44,7 +44,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasRankBadge
-import com.fugaif.imaslivedb.ui.designsystem.ImasRankingRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowEmphasis
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
@@ -133,17 +132,21 @@ fun TagDetailScreen(
                                 )
                             }
                         }
-                        if (uiState.songs.isNotEmpty()) {
-                            item {
-                                ImasListSection(title = "「${tag.name}」な曲ランキング（${uiState.songs.size}曲）") {
+                        item {
+                            // 見出しは曲が 0 件でも出す (前の版と同じ)。
+                            ImasListSection(title = "「${tag.name}」な曲ランキング (${uiState.songs.size}曲)") {
+                                if (uiState.songs.isEmpty()) {
+                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いた曲はありません")
+                                } else {
                                     uiState.songs.forEachIndexed { idx, row -> SongRankRow(row, idx + 1, onSongClick) }
                                 }
                             }
-                        } else {
-                            item {
-                                ImasListSection {
-                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いた曲はありません")
-                                }
+                        }
+                    } else if (uiState.songs.isEmpty()) {
+                        // タグの読み込みに失敗 (tag が null) した時も、前と同じ案内を出す (真っ白にしない)。
+                        item {
+                            ImasListSection {
+                                ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いた曲はありません")
                             }
                         }
                     }
@@ -192,16 +195,20 @@ fun TagDetailScreen(
 private fun SongRankRow(row: TagSongRankRow, rank: Int, onSongClick: (String) -> Unit) {
     val song: Song? = row.song
     if (song != null) {
-        ImasRankingRow(
-            rank = rank,
-            title = song.title,
-            metric = "${row.voteCount}",
-            unit = "票",
-            sub = song.singerLabel,
-            brand = song.brandId,
-            onClick = { onSongClick(song.id) }
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
         ) {
-            ImasArtwork(title = song.title, brand = song.brandId, size = 44.dp, imageUrl = song.artworkUrl)
+            ImasRankBadge(rank)
+            ImasSongRow(
+                song = song,
+                modifier = Modifier.weight(1f),
+                subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                showsBrandBar = true,
+                trailing = ImasRowTrailing.Metric("${row.voteCount}", unit = "票"),
+                onClick = { onSongClick(song.id) }
+            )
         }
     } else {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {

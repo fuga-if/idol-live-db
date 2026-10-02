@@ -132,17 +132,21 @@ fun IdolTagDetailScreen(
                                 )
                             }
                         }
-                        if (uiState.idols.isNotEmpty()) {
-                            item {
-                                ImasListSection(title = "「${tag.name}」なアイドルランキング（${uiState.idols.size}人）") {
+                        item {
+                            // 見出しは 0 人でも出す (前の版と同じ)。
+                            ImasListSection(title = "「${tag.name}」なアイドルランキング (${uiState.idols.size}人)") {
+                                if (uiState.idols.isEmpty()) {
+                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたアイドルはいません")
+                                } else {
                                     uiState.idols.forEachIndexed { idx, row -> IdolRankRow(row, idx + 1, onIdolClick) }
                                 }
                             }
-                        } else {
-                            item {
-                                ImasListSection {
-                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたアイドルはいません")
-                                }
+                        }
+                    } else if (uiState.idols.isEmpty()) {
+                        // タグの読み込みに失敗 (tag が null) した時も、前と同じ案内を出す (真っ白にしない)。
+                        item {
+                            ImasListSection {
+                                ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたアイドルはいません")
                             }
                         }
                     }

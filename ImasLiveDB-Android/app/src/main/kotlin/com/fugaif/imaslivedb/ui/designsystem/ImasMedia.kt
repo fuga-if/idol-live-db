@@ -180,9 +180,12 @@ fun ImasAvatar(
     }
 }
 
-/** 判子。名前はアイコンの大きさに対して決める (文字の大きさの設定で丸からはみ出さないよう固定)。 */
+/**
+ * 判子。名前はアイコンの大きさに対して決める (文字の大きさの設定で丸からはみ出さないよう固定)。
+ * [ImasAvatar] 専用ではなく、`ImasUnitAvatar` (ユニットの名前入りの判子) からも呼ぶ。
+ */
 @Composable
-private fun AvatarSeal(label: String, t: ImasTheme, size: Dp) {
+fun AvatarSeal(label: String, t: ImasTheme, size: Dp) {
     // dp → sp に直してから文字にするので、文字の大きさの設定に関わらず丸に対して同じ割合になる。
     val fontSize = with(LocalDensity.current) { (size * 0.34f).toSp() }
     Box(

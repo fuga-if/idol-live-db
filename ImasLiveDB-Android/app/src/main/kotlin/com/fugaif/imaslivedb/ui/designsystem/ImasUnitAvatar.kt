@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +50,8 @@ private fun unitTheme(unit: ImasUnit): ImasTheme =
 
 /**
  * ユニットの円形アイコン (iOS `ImasUnitAvatar`)。取り込んだ画像があれば画像 (ロゴは横長が多いので
- * 切らずに収める)、無ければブランドの色の地 + 人の集まりの記号。
+ * 切らずに収める)、無ければ名前入りの判子 (アイドルの [ImasAvatar] と同じ形。アイコンは写真の有無で
+ * 消さない。汎用の記号には倒さない)。
  */
 @Composable
 fun ImasUnitAvatar(unit: ImasUnit, modifier: Modifier = Modifier, size: Dp = 36.dp) {
@@ -77,19 +75,17 @@ fun ImasUnitAvatar(unit: ImasUnit, modifier: Modifier = Modifier, size: Dp = 36.
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(size * 0.04f),
-                error = { UnitFallback(t, size) }
+                error = { UnitFallback(unit, t, size) }
             )
         } else {
-            UnitFallback(t, size)
+            UnitFallback(unit, t, size)
         }
     }
 }
 
 @Composable
-private fun UnitFallback(t: ImasTheme, size: Dp) {
-    Box(Modifier.fillMaxSize().background(t.tint), contentAlignment = Alignment.Center) {
-        Icon(Icons.Filled.Groups, contentDescription = null, tint = t.accent, modifier = Modifier.size(size * 0.5f))
-    }
+private fun UnitFallback(unit: ImasUnit, t: ImasTheme, size: Dp) {
+    AvatarSeal(unit.name, t, size)
 }
 
 /**

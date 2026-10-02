@@ -132,17 +132,21 @@ fun UnitTagDetailScreen(
                                 )
                             }
                         }
-                        if (uiState.units.isNotEmpty()) {
-                            item {
-                                ImasListSection(title = "「${tag.name}」なユニットランキング（${uiState.units.size}組）") {
+                        item {
+                            // 見出しは 0 組でも出す (前の版と同じ)。
+                            ImasListSection(title = "「${tag.name}」なユニットランキング (${uiState.units.size}組)") {
+                                if (uiState.units.isEmpty()) {
+                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたユニットはいません")
+                                } else {
                                     uiState.units.forEachIndexed { idx, row -> UnitRankRow(row, idx + 1, onUnitClick) }
                                 }
                             }
-                        } else {
-                            item {
-                                ImasListSection {
-                                    ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたユニットはいません")
-                                }
+                        }
+                    } else if (uiState.units.isEmpty()) {
+                        // タグの読み込みに失敗 (tag が null) した時も、前と同じ案内を出す (真っ白にしない)。
+                        item {
+                            ImasListSection {
+                                ImasEmptyState(icon = Icons.Filled.Sell, title = "まだこのタグが付いたユニットはいません")
                             }
                         }
                     }
