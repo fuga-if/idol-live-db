@@ -102,6 +102,11 @@ final class SongListViewModel {
     /// 打ち切られていると「コールガイドがある曲」を名乗りながら 201 曲目以降が落ちるので、
     /// 黙って絞らず画面で断る (件数が合わない理由をユーザーが自分で説明できるように)。
     private(set) var callGuideFilterTruncated = false
+    /// 歌詞のタイミングがある曲の song_id 集合 (nil = この絞り込みなし)。解決の仕方はコールガイドと同じ。
+    private(set) var lyricTimingSongIds: Set<String>?
+    private(set) var lyricTimingFilterError = false
+    private(set) var lyricTimingFilterTruncated = false
+    private var currentLyricTimingResolveId = UUID()
     /// `resolveCallGuideFilter` の世代。`await` の間にトグルが動いていたら古い応答は捨てる。
     private var currentCallGuideResolveId = UUID()
 
@@ -226,6 +231,7 @@ final class SongListViewModel {
         // 集合 AND なので、要求が下りていない (`callGuideOnly == false`) ときや
         // 解決に失敗したときは nil のまま = 絞り込みなし。
         if request.callGuideOnly { ctx.callGuideSongIds = callGuideSongIds }
+        if request.lyricTimingOnly { ctx.lyricTimingSongIds = lyricTimingSongIds }
         return ctx
     }
 
@@ -448,6 +454,30 @@ final class SongListViewModel {
         }
     }
 
+    /// 「歌詞のタイミングがある曲のみ」の song_id 集合を解決する。規約は `resolveCallGuideFilter` と同じ
+    /// (取得に失敗したら絞り込みを適用しない。オフラインで一覧を誤って空にしないため)。
+    func resolveLyricTimingFilter(_ enabled: Bool) async {
+        let resolveId = UUID()
+        currentLyricTimingResolveId = resolveId
+        guard enabled else {
+            lyricTimingSongIds = nil
+            lyricTimingFilterError = false
+            lyricTimingFilterTruncated = false
+            return
+        }
+        do {
+            let dashboard = try await callGuideDashboard.callGuideDashboard()
+            guard currentLyricTimingResolveId == resolveId else { return }
+            let songs = dashboard.songsWithTimings ?? []
+            lyricTimingSongIds = Set(songs.map(\.songId))
+            lyricTimingFilterTruncated = songs.count >= Self.callGuideServerLimit
+            lyricTimingFilterError = false
+        } catch {
+            guard currentLyricTimingResolveId == resolveId else { return }
+            lyricTimingFilterError = true
+        }
+    }
+
     /// `GET /calls/dashboard` の `songsWithCalls` のサーバ上限。ポートの DTO コメント参照。
     private static let callGuideServerLimit = 200
 }
@@ -465,6 +495,8 @@ struct SongListRequest {
     var selectedTagCount: Int
     /// 「コールガイドがある曲のみ」が要求されているか。集合の解決自体は VM が持つ。
     var callGuideOnly: Bool = false
+    /// 「歌詞のタイミングがある曲のみ」が要求されているか。集合の解決は VM が持つ。
+    var lyricTimingOnly: Bool = false
     /// 「KAMISABI 収録曲のみ」が要求されているか。判定はコアに渡すだけ。
     var kamisabiOnly: Bool = false
     var searchText: String

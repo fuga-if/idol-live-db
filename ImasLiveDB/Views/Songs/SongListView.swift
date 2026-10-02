@@ -101,6 +101,8 @@ struct SongListView: View {
     /// ⚠️ `@AppStorage` にしないこと。通信が要る絞り込みが起動直後から効いていると、
     /// オフライン起動時に理由の分からない空一覧になる。
     @State private var callGuideOnly = false
+    /// 「歌詞のタイミングがある曲のみ」(再生に合わせて歌詞を追える曲)。`callGuideOnly` と同じ理由で保存しない。
+    @State private var lyricTimingOnly = false
     @State private var showTagPicker = false
     @State private var showIntroDon = false
     /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
@@ -126,6 +128,7 @@ struct SongListView: View {
             myMarkFilter: myMarkFilter,
             selectedTagCount: selectedTags.count,
             callGuideOnly: callGuideOnly,
+            lyricTimingOnly: lyricTimingOnly,
             kamisabiOnly: kamisabiOnly,
             // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
             // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
@@ -229,6 +232,7 @@ struct SongListView: View {
                         showOtherBrand: $showOtherBrand,
                         excludeLiveOnly: $excludeLiveOnly,
                         callGuideOnly: $callGuideOnly,
+                        lyricTimingOnly: $lyricTimingOnly,
                         kamisabiOnly: $kamisabiOnly
                     )
                     .environment(database)
@@ -275,6 +279,12 @@ struct SongListView: View {
                 .onChange(of: callGuideOnly) { _, enabled in
                     Task {
                         await vm.resolveCallGuideFilter(enabled)
+                        reload()
+                    }
+                }
+                .onChange(of: lyricTimingOnly) { _, enabled in
+                    Task {
+                        await vm.resolveLyricTimingFilter(enabled)
                         reload()
                     }
                 }
@@ -441,6 +451,15 @@ struct SongListView: View {
     /// タグ側と同じく、失敗時は絞り込みを適用しないので一覧は絞られていない。
     @ViewBuilder
     private var callGuideFilterErrorBanner: some View {
+        if vm.lyricTimingFilterError {
+            ImasNotice(kind: .warning, message: "歌詞のタイミングの情報を取得できませんでした。表示中の一覧にはタイミング条件が反映されていません。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
+        } else if lyricTimingOnly && listMode == .songs && vm.lyricTimingFilterTruncated {
+            ImasNotice(kind: .info, message: "タイミングが最近更新された 200 曲で絞り込んでいます。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
+        }
         if vm.callGuideFilterError {
             ImasNotice(kind: .warning, message: "コールガイドの情報を取得できませんでした。表示中の一覧にはコールガイド条件が反映されていません。")
                 .padding(.horizontal, DS.Space.screen)
@@ -506,6 +525,10 @@ struct SongListView: View {
         if callGuideOnly, listMode == .songs {
             // 解除の後始末 (集合を捨てて引き直す) は `onChange(of: callGuideOnly)` が担う。
             chips.append(.init(id: "call_guide", label: "コールガイドあり") { callGuideOnly = false })
+        }
+        if lyricTimingOnly, listMode == .songs {
+            // 解除の後始末は `onChange(of: lyricTimingOnly)` が担う。
+            chips.append(.init(id: "lyric_timing", label: "タイミングあり") { lyricTimingOnly = false })
         }
         if kamisabiOnly, listMode == .songs {
             // 解除の後始末 (再読み込み) は `onChange(of: kamisabiOnly)` が担う。
@@ -635,6 +658,7 @@ struct SongListView: View {
         // ここでは触らない。結果として reload は 2 回走るが、どちらも同じ条件で同じ一覧を
         // 引き直すだけなので実害は無い (解除の後始末を 2 箇所に書く方が壊れやすい)。
         callGuideOnly = false
+        lyricTimingOnly = false
         kamisabiOnly = false
         Task {
             await vm.resolveTagFilter([])
@@ -660,6 +684,7 @@ struct SongListView: View {
         if collectFilter != .all { count += 1 }
         if !selectedTags.isEmpty { count += 1 }
         if callGuideOnly, listMode == .songs { count += 1 }
+        if lyricTimingOnly, listMode == .songs { count += 1 }
         if kamisabiOnly, listMode == .songs { count += 1 }
         count += myMarkFilter.activeCount
         return count
