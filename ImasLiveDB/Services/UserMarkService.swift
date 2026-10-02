@@ -10,8 +10,42 @@ final class UserMarkService {
     static let shared = UserMarkService()
 
     private let db: AppDatabase
-    /// SwiftUI 再描画トリガ。bool/note を読む View は依存登録、書き込み時に bump する。
-    private var version: Int = 0
+    /// SwiftUI 再描画トリガ。読む View は依存登録、書き込み時に bump する。
+    /// **実体の種類ごとに分ける** (1 本だと、曲の習熟度を 1 つ変えただけでアイドル一覧・ライブ一覧の
+    /// 全行まで描き直しになる)。習熟度・ここ好きも別。
+    private var songVersion = 0
+    private var idolVersion = 0
+    private var eventVersion = 0
+    private var showVersion = 0
+    private var releaseVersion = 0
+    private var masteryVersion = 0
+    private var lyricLikeVersion = 0
+
+    private func observe(_ entity: UserMarkEntity) {
+        switch entity {
+        case .song: _ = songVersion
+        case .idol: _ = idolVersion
+        case .event: _ = eventVersion
+        case .show: _ = showVersion
+        case .release: _ = releaseVersion
+        }
+    }
+
+    private func bump(_ entity: UserMarkEntity) {
+        switch entity {
+        case .song: songVersion &+= 1
+        case .idol: idolVersion &+= 1
+        case .event: eventVersion &+= 1
+        case .show: showVersion &+= 1
+        case .release: releaseVersion &+= 1
+        }
+    }
+
+    private func bumpAll() {
+        UserMarkEntity.allCases.forEach(bump)
+        masteryVersion &+= 1
+        lyricLikeVersion &+= 1
+    }
 
     /// 変更のたびに増える番号。**重い集計を `.task(id:)` で回す画面が依存に混ぜる**ための口。
     ///
@@ -19,7 +53,9 @@ final class UserMarkService {
     /// ヒートマップのように「2,000 曲を射影して FFI に渡す」画面が body の中で集計すると、
     /// 無関係なマーク変更や 1 打鍵ごとに全部やり直しになる。値だけ取り出して
     /// `.task(id:)` の鍵に混ぜれば、**本当に変わったときだけ**組み直せる。
-    var changeToken: Int { version }
+    var changeToken: Int {
+        songVersion &+ idolVersion &+ eventVersion &+ showVersion &+ releaseVersion &+ masteryVersion &+ lyricLikeVersion
+    }
 
     /// bool 系マーク (collected/favorite/myPick/attended) のインメモリ集合。
     /// キーは "entity|kind|id"。一覧の各行トグルが body 評価のたびに同期 SQLite を引いて
@@ -46,7 +82,7 @@ final class UserMarkService {
             self?.reloadBoolMarks()
             self?.reloadMastery()
             self?.refreshAutoCollected()
-            self?.version &+= 1
+            self?.bumpAll()
         }
         // 起動時に保留中のファボ送信をリトライ
         PendingCommunityActions.shared.flushPendingFavorites()
@@ -95,7 +131,7 @@ final class UserMarkService {
         reloadBoolMarks()
         reloadMastery()
         refreshAutoCollected()
-        version &+= 1
+        bumpAll()
     }
 
     /// 全 bool 系マークを DB から読み直してメモリ集合を再構築する (起動時に1回)。
@@ -117,7 +153,7 @@ final class UserMarkService {
     }
 
     func bool(_ kind: UserMarkKind, entity: UserMarkEntity, id: String) -> Bool {
-        _ = version
+        observe(entity)
         return boolMarks.contains(Self.markKey(entity, kind, id))
     }
 
@@ -132,7 +168,7 @@ final class UserMarkService {
         if kind == .favorite && entity == .song {
             Task { await PendingCommunityActions.shared.send(songId: id, value: value) }
         }
-        version &+= 1
+        bump(entity)
         scheduleBackup()
     }
 
@@ -169,7 +205,7 @@ final class UserMarkService {
     }
 
     func mastery(songId: String) -> UInt8 {
-        _ = version
+        _ = masteryVersion
         return masteryById[songId] ?? 0
     }
 
@@ -183,7 +219,7 @@ final class UserMarkService {
             try db.upsertUserMarkText(entity: .song, id: songId, kind: .mastery, text: String(clamped))
             masteryById[songId] = clamped
         }
-        version &+= 1
+        masteryVersion &+= 1
         scheduleBackup()
     }
 
@@ -197,7 +233,7 @@ final class UserMarkService {
             try db.upsertUserMarkText(entity: .song, id: id, kind: .mastery, text: text)
             if clamped == 0 { masteryById.removeValue(forKey: id) } else { masteryById[id] = clamped }
         }
-        version &+= 1
+        masteryVersion &+= 1
         scheduleBackup()
     }
 
@@ -219,12 +255,12 @@ final class UserMarkService {
             }
             scheduleBackup()
         }
-        version &+= 1
+        masteryVersion &+= 1
     }
 
     /// 段階ごとの曲数 (設定画面の右に出す数字)。index 0 が LV.1。
     func masteryCounts() -> [Int] {
-        _ = version
+        _ = masteryVersion
         var counts = [Int](repeating: 0, count: Int(scale.steps))
         for level in masteryById.values {
             let i = Int(level) - 1
@@ -234,7 +270,7 @@ final class UserMarkService {
     }
 
     func note(entity: UserMarkEntity, id: String) -> String? {
-        _ = version
+        observe(entity)
         do {
             return (try db.fetchUserMark(entity: entity, id: id, kind: .note))?.textValue
         } catch {
@@ -245,7 +281,7 @@ final class UserMarkService {
 
     func setNote(entity: UserMarkEntity, id: String, text: String?) throws {
         try db.upsertUserMarkNote(entity: entity, id: id, text: text)
-        version &+= 1
+        bump(entity)
         scheduleBackup()
     }
 
@@ -253,7 +289,7 @@ final class UserMarkService {
 
     /// その曲で「ここ好き」を付けた歌詞行の ID。本文は持たない (行 ID だけ)。
     func lyricLikes(songId: String) -> Set<String> {
-        _ = version
+        _ = lyricLikeVersion
         do {
             let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
             return Set(lyricLikesParse(stored: stored))
@@ -268,13 +304,13 @@ final class UserMarkService {
         let stored = try db.fetchUserMark(entity: .song, id: songId, kind: .lyricLikes)?.textValue
         let next = lyricLikesToggle(stored: stored, lineId: lineId)
         try db.upsertUserMarkText(entity: .song, id: songId, kind: .lyricLikes, text: next)
-        version &+= 1
+        lyricLikeVersion &+= 1
         scheduleBackup()
     }
 
     /// 座席メモ (公演単位)。 空/空白なら nil で消す。
     func seat(entity: UserMarkEntity, id: String) -> String? {
-        _ = version
+        observe(entity)
         do {
             return (try db.fetchUserMark(entity: entity, id: id, kind: .seat))?.textValue
         } catch {
@@ -287,7 +323,7 @@ final class UserMarkService {
         let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines)
         try db.upsertUserMarkText(entity: entity, id: id, kind: .seat,
                                   text: (trimmed?.isEmpty ?? true) ? nil : trimmed)
-        version &+= 1
+        bump(entity)
         scheduleBackup()
     }
 
@@ -296,7 +332,7 @@ final class UserMarkService {
     /// 公演の参加種別。.attended 行の bool_value=参加有無、text_value=種別("live"/"stream")。
     /// nil = 不参加。旧来の bool だけの参加 (text なし) は現地(live)扱い。
     func attendance(entity: UserMarkEntity, id: String) -> AttendanceType? {
-        _ = version
+        observe(entity)
         guard let mark = try? db.fetchUserMark(entity: entity, id: id, kind: .attended),
               mark.boolValue else { return nil }
         return AttendanceType(rawValue: mark.textValue ?? "") ?? .live
@@ -320,12 +356,12 @@ final class UserMarkService {
             )
         }
         refreshAutoCollected()
-        version &+= 1
+        bump(entity)
         scheduleBackup()
     }
 
     func allMarked(kind: UserMarkKind, entity: UserMarkEntity) -> [String] {
-        _ = version
+        observe(entity)
         do {
             return try db.fetchMarkedEntityIds(entity: entity, kind: kind)
         } catch {
@@ -338,7 +374,7 @@ final class UserMarkService {
 
     /// attended ライブのセトリから自動判定した「回収済み」かどうか
     func isAutoCollected(songId: String) -> Bool {
-        _ = version
+        _ = showVersion; _ = eventVersion
         return collectedIds.contains(songId)
     }
 
@@ -354,7 +390,7 @@ final class UserMarkService {
 
     /// 自動回収済み song_id の全セット（SongListView フィルタ用）
     func autoCollectedSongIds() -> Set<String> {
-        _ = version
+        _ = showVersion; _ = eventVersion
         return collectedIds
     }
 

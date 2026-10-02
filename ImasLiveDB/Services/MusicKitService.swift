@@ -22,13 +22,13 @@ private final class Boxed<T>: @unchecked Sendable {
 final class MusicKitService {
     private(set) var authorizationStatus: MusicAuthorization.Status = .notDetermined
     private(set) var hasAppleMusicSubscription: Bool = false
-    private(set) var isPlaying = false
+    private(set) var isPlaying = false { didSet { syncPlayFlags() } }
     /// 鳴っている曲の `songs.id`。
     ///
     /// **曲名で持ってはいけない。** 「私はアイドル♡ (M@STER VERSION)」のように
     /// 同名で歌唱者の違う録音が実在するので、曲名で同一性を見ると別バージョンの
     /// ジャケと名義が出る。再生中バーの引き当てもここを使う。
-    private(set) var nowPlayingSongId: String?
+    private(set) var nowPlayingSongId: String? { didSet { syncPlayFlags() } }
     private(set) var isFullPlayback = false
     /// フル再生で ApplicationMusicPlayer に曲を積んだか (止めるときに queue を解放する必要があるか)。
     @ObservationIgnored private var usedApplicationPlayer = false
@@ -40,6 +40,27 @@ final class MusicKitService {
     /// ここ 1 箇所に持つ。
     func isPlaying(songId: String) -> Bool {
         isPlaying && nowPlayingSongId == songId
+    }
+
+    /// 一覧の行が「自分の曲が鳴っているか」だけを見るための印 (曲ごとに 1 つ)。
+    ///
+    /// 行が `isPlaying(songId:)` を読むと、どの曲の再生を始めても止めても**見えている全行**が
+    /// 描き直しになる (全行が同じ `isPlaying` / `nowPlayingSongId` に依存するため)。
+    /// 曲ごとの印を読めば、変わった曲 (止めた曲と鳴らした曲) の行だけが描き直される。
+    func playFlag(songId: String) -> SongPlayFlag {
+        if let hit = playFlags[songId] { return hit }
+        let flag = SongPlayFlag(isPlaying: isPlaying(songId: songId))
+        playFlags[songId] = flag
+        return flag
+    }
+
+    @ObservationIgnored private var playFlags: [String: SongPlayFlag] = [:]
+
+    private func syncPlayFlags() {
+        for (id, flag) in playFlags {
+            let on = isPlaying && nowPlayingSongId == id
+            if flag.isPlaying != on { flag.isPlaying = on }
+        }
     }
 
     /// この曲がフル尺 (Apple Music のカタログ再生) で鳴っているか。
@@ -303,4 +324,11 @@ final class MusicKitService {
         }
     }
 
+}
+
+/// 曲 1 つぶんの「鳴っているか」の印 (`MusicKitService.playFlag(songId:)`)。
+@Observable @MainActor
+final class SongPlayFlag {
+    fileprivate(set) var isPlaying: Bool
+    init(isPlaying: Bool) { self.isPlaying = isPlaying }
 }

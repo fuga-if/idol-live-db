@@ -75,7 +75,8 @@ struct SongRowView: View {
     }
 
     private var isCurrentlyPlaying: Bool {
-        MusicKitService.shared.isPlaying(songId: song.id)
+        // 曲ごとの印を読む (全体の再生状態を読むと、どの曲の再生でも全行が描き直しになる)。
+        MusicKitService.shared.playFlag(songId: song.id).isPlaying
     }
 
     /// 行に出す名義。全体曲は個人名を連ねると行を埋めるので、ユニット名・名義を先に出す。

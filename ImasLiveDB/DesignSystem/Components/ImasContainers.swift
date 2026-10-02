@@ -247,7 +247,8 @@ struct ImasCardList<Content: View>: View {
     var body: some View {
         switch style {
         case .panel, .sheet:
-            VStack(alignment: .leading, spacing: 0) { content }
+            // 行は見えてから組む (アイドル一覧の並べ替えでは全員が 1 枚のカードに入るため)。
+            LazyVStack(alignment: .leading, spacing: 0) { content }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .environment(\.imasDividerStyle, style == .sheet ? .perforated : .hairline)
                 .background(DS.surface(on: backdrop), in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
