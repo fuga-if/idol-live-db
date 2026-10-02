@@ -1,32 +1,24 @@
 package com.fugaif.imaslivedb.ui.events
 
 import com.fugaif.imaslivedb.ui.designsystem.ReadableWidth
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
@@ -41,19 +33,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.EventWithDateRange
+import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasEventRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterBarItem
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.components.EventAttendanceSwipeRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSkeleton
-import com.fugaif.imaslivedb.ui.designsystem.ImasRemovableChip
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasText
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.navigation.TopLevelTab
 import com.fugaif.imaslivedb.ui.search.CrossTabCountChips
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
@@ -110,7 +106,7 @@ fun EventListScreen(
                         badge = {
                             if (uiState.activeFilterCount > 0) Badge { Text("${uiState.activeFilterCount}") }
                         },
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = DS.Space.gap)
                     ) {
                         IconButton(onClick = { showFilterSheet = true }) {
                             Icon(Icons.Filled.FilterList, contentDescription = "フィルター")
@@ -121,11 +117,11 @@ fun EventListScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
-            ImasSegmented(
+            ImasTabs(
                 labels = listOf("今後の予定", "開催済み"),
                 selection = uiState.timeFilter,
                 onSelect = { viewModel.selectTimeFilter(it) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
             )
 
             // 一覧そのものを絞る欄。虫眼鏡のシート (横断検索) だと結果がそこで完結してしまい、
@@ -158,45 +154,18 @@ fun EventListScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilterChip(
+                ImasFilterChip(
+                    label = uiState.venueDirectory.venue(uiState.venue)?.name ?: "会場",
                     selected = uiState.venue != null,
                     onClick = { showVenuePicker = true },
-                    label = {
-                        Text(
-                            uiState.venueDirectory.venue(uiState.venue)?.name ?: "会場",
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.Place, contentDescription = null)
-                    },
-                    trailingIcon = if (uiState.venue != null) {
-                        {
-                            Icon(
-                                imageVector = Icons.Filled.Clear,
-                                contentDescription = "会場絞り込みを解除",
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clickable { viewModel.selectVenue(context, null) }
-                            )
-                        }
-                    } else {
-                        null
-                    }
+                    icon = Icons.Filled.Place
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    text = "${uiState.filteredCount}件",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = DS.ink2
-                )
+                ImasText("${uiState.filteredCount}件", role = ImasTextRole.NOTE, color = DS.ink2)
             }
-
-            HorizontalDivider()
 
             if (uiState.isLoading) {
                 ImasListSkeleton(rows = 10, thumb = SkeletonThumb.None)
@@ -213,10 +182,18 @@ fun EventListScreen(
             } else {
                 // 広い画面では本文幅を抑える (iOS の readableContentMargins と対)。
                 ReadableWidth { readable ->
-                    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = readable) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = readable,
+                        verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
+                    ) {
                         uiState.groupedByYear.forEach { group ->
                             stickyHeader(key = group.year) {
-                                YearSectionHeader(year = group.year)
+                                ImasDateHeader(
+                                    big = group.year,
+                                    isPast = uiState.timeFilter == 1,
+                                    modifier = Modifier.padding(horizontal = DS.Space.screen)
+                                )
                             }
                             items(group.events, key = { it.event.id }) { ew ->
                                 // 行の右スワイプで参加登録 (イベントは公演を複数束ねるので、
@@ -225,12 +202,15 @@ fun EventListScreen(
                                     eventId = ew.event.id,
                                     brand = ew.event.brandId
                                 ) {
-                                    EventRow(
-                                        eventWithDate = ew,
+                                    ImasEventRow(
+                                        event = ew.event,
+                                        modifier = Modifier.padding(horizontal = DS.Space.screen),
+                                        date = ew.firstDate,
+                                        subtitle = ew.dateRange,
+                                        rainbow = ew.isJoint,
                                         onClick = { onEventClick(ew.event.id) }
                                     )
                                 }
-                                HorizontalDivider(modifier = Modifier.padding(start = 72.dp))
                             }
                         }
                     }
@@ -242,8 +222,8 @@ fun EventListScreen(
 
 /**
  * 適用中フィルタの removable チップ列 (iOS EventListView.activeFilterChips 相当)。
- * ブランド / 除外種別 / 参加状態 / お気に入り / メモ / 空イベント / 会場 / 検索語 を
- * 横スクロールで一覧し、× で個別解除する。
+ * ブランド / 除外種別 / 参加状態 / お気に入り / メモ / 空イベント / 配信除外 / 会場 / 検索語 を
+ * 横スクロールで一覧し、× で個別解除する。見た目は DesignSystem の `ImasFilterBar`。
  */
 @Composable
 private fun ActiveFilterChipRow(
@@ -251,119 +231,41 @@ private fun ActiveFilterChipRow(
     viewModel: EventListViewModel,
     onClearVenue: () -> Unit
 ) {
-    val hasChips = uiState.selectedBrandIds.isNotEmpty() ||
-        uiState.excludedKinds.isNotEmpty() ||
-        uiState.attendanceFilter != "all" ||
-        uiState.requireFavorite ||
-        uiState.requireNote ||
-        uiState.showEmptyEvents ||
-        uiState.hideStreaming ||
-        uiState.venue != null ||
-        uiState.appliedSearchText.isNotEmpty()
-    if (!hasChips) return
-
     val brandNames = remember(uiState.brands) { uiState.brands.associate { it.id to it.shortName } }
+    val brandColors = remember(uiState.brands) { uiState.brands.associate { it.id to it.color } }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    val items = buildList {
         if (uiState.appliedSearchText.isNotEmpty()) {
-            ImasRemovableChip(
-                text = "「${uiState.appliedSearchText}」",
-                onRemove = viewModel::clearSearchText
-            )
+            add(ImasFilterBarItem(id = "search", title = "「${uiState.appliedSearchText}」", onRemove = viewModel::clearSearchText))
         }
         // 並びは選択順でなくソート済みで固定する。押すたびにチップが入れ替わると押し損ねる。
         uiState.selectedBrandIds.sorted().forEach { id ->
-            ImasRemovableChip(
-                text = brandNames[id] ?: id,
-                onRemove = { viewModel.toggleBrand(id) }
-            )
+            add(ImasFilterBarItem(id = "brand_$id", title = brandNames[id] ?: id, seed = brandColors[id], onRemove = { viewModel.toggleBrand(id) }))
         }
         uiState.excludedKinds.sorted().forEach { kind ->
-            ImasRemovableChip(
-                text = "除外: ${eventKindLabel(kind)}",
-                onRemove = { viewModel.removeExcludedKind(kind) }
-            )
+            add(ImasFilterBarItem(id = "kind_$kind", title = "除外: ${eventKindLabel(kind)}", onRemove = { viewModel.removeExcludedKind(kind) }))
         }
         when (uiState.attendanceFilter) {
-            "attended" -> ImasRemovableChip(text = "参加済み", onRemove = viewModel::clearAttendanceFilter)
-            "not_attended" -> ImasRemovableChip(text = "未参加", onRemove = viewModel::clearAttendanceFilter)
-            else -> {}
+            "attended" -> add(ImasFilterBarItem(id = "attendance", title = "参加済み", onRemove = viewModel::clearAttendanceFilter))
+            "not_attended" -> add(ImasFilterBarItem(id = "attendance", title = "未参加", onRemove = viewModel::clearAttendanceFilter))
         }
         if (uiState.requireFavorite) {
-            ImasRemovableChip(text = "お気に入り", onRemove = viewModel::clearFavoriteFilter)
+            add(ImasFilterBarItem(id = "favorite", title = "お気に入り", onRemove = viewModel::clearFavoriteFilter))
         }
         if (uiState.requireNote) {
-            ImasRemovableChip(text = "メモあり", onRemove = viewModel::clearNoteFilter)
+            add(ImasFilterBarItem(id = "note", title = "メモあり", onRemove = viewModel::clearNoteFilter))
         }
         if (uiState.showEmptyEvents) {
-            ImasRemovableChip(text = "空イベントも表示", onRemove = viewModel::clearShowEmptyEvents)
+            add(ImasFilterBarItem(id = "empty", title = "空イベントも表示", onRemove = viewModel::clearShowEmptyEvents))
         }
         if (uiState.hideStreaming) {
-            ImasRemovableChip(text = "配信を除く", onRemove = viewModel::toggleHideStreaming)
+            add(ImasFilterBarItem(id = "stream", title = "配信を除く", onRemove = viewModel::toggleHideStreaming))
         }
         uiState.venue?.let { venueId ->
-            ImasRemovableChip(
-                text = uiState.venueDirectory.venue(venueId)?.name ?: venueId,
-                onRemove = onClearVenue
-            )
+            add(ImasFilterBarItem(id = "venue", title = uiState.venueDirectory.venue(venueId)?.name ?: venueId, onRemove = onClearVenue))
         }
     }
-}
 
-@Composable
-private fun YearSectionHeader(year: String) {
-    Text(
-        text = year,
-        style = MaterialTheme.typography.labelLarge,
-        color = DS.ink2,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-    )
-}
-
-/**
- * ライブ一覧の 1 行。ブランド色のリードバー + ライブ名 + 日付レンジ。
- * 参加登録は行のスワイプ ([EventAttendanceSwipeRow]) から。
- *
- * ★お気に入りトグルは行から撤去済み (2026-09、iOS と同じ)。お気に入り自体は
- * 詳細画面・お気に入り一覧・絞り込みに残るので機能は消えていない。
- */
-@Composable
-private fun EventRow(
-    eventWithDate: EventWithDateRange,
-    onClick: () -> Unit
-) {
-    val event = eventWithDate.event
-    val isJoint = eventWithDate.isJoint
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        ImasLeadBar(brandId = event.brandId, height = 38.dp, rainbow = isJoint)
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = event.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = DS.ink,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-            )
-            eventWithDate.dateRange?.let { d ->
-                Text(text = d, style = MaterialTheme.typography.bodySmall, color = DS.ink2)
-            }
-        }
-    }
+    // ImasFilterBar は内部の ImasChipRow が左右の余白を自分で持つ (ここで足すと二重になる)。
+    ImasFilterBar(items = items)
 }
