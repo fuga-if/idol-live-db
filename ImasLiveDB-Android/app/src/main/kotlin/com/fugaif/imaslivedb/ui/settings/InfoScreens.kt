@@ -1,16 +1,13 @@
 package com.fugaif.imaslivedb.ui.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,16 +16,22 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasProse
+import com.fugaif.imaslivedb.ui.designsystem.ImasProseBlock
 import com.fugaif.imaslivedb.ui.theme.DS
 
 /**
- * プライバシーポリシー / 利用規約 / サポート。iOS `Views/About` 配下の各 swift ファイルの移植。
+ * プライバシーポリシー / 利用規約 / サポート / オープンソースライセンス。
+ * iOS `Views/About` 配下の各 swift ファイルの移植 (オープンソースライセンスのみ Android 固有)。
  * `NavRoutes`/`AppNavigation` は他画面監査と競合するため触らず、`SettingsScreen` から
  * フルスクリーン `Dialog` として開く (`RecentEditsScreen.SetlistEditScreen` と同じパターン)。
+ * 本文 (規約・プライバシーポリシー) は一字も変えず、見出し・箇条書きへの組み替えだけ行う。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,150 +39,152 @@ fun InfoScreenScaffold(title: String, onBack: () -> Unit, content: @Composable (
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title, fontWeight = FontWeight.Bold) },
+                title = { Text(title) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                    IconButton(onClick = onBack) { Icon(Icons.Filled.Close, contentDescription = "閉じる") }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             content()
         }
     }
 }
 
-@Composable
-private fun InfoSection(title: String, content: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-        Text(content, fontSize = 15.sp, color = DS.ink2)
-    }
-}
-
-@Composable
-private fun LastUpdated() {
-    Text("最終更新日: 2026年4月23日", fontSize = 12.sp, color = DS.ink3)
-}
+private const val LAST_UPDATED = "最終更新日: 2026年4月23日"
 
 @Composable
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
     InfoScreenScaffold(title = "プライバシーポリシー", onBack = onBack) {
-        InfoSection(
-            "アプリの概要",
-            "本アプリ（ImasLiveDB）は、アイドルマスターシリーズのライブ・セットリスト情報を管理・閲覧するための非公式ファンメイドアプリです。株式会社バンダイナムコエンターテインメントをはじめとする権利者とは一切関係ありません。"
-        )
-        InfoSection(
-            "収集するデータ",
-            "・端末識別子（UUID）: 端末内にのみ保存される匿名の識別子です。個人情報と紐付けることはありません。\n" +
-                "・アプリ設定: デフォルトブランドなどの設定は端末内のみに保存されます。\n" +
-                "・アカウント情報: コミュニティ機能を利用する場合、Google アカウントによるログインが必要です。投稿したセットリスト・修正提案などのコンテンツはサーバーに保存・公開されます。"
-        )
-        InfoSection(
-            "サードパーティサービス",
-            "・Cloudflare Workers: アプリの API 通信先として利用しています。\n" +
-                "・Google Sign-In: ログイン認証に利用しています。"
-        )
-        InfoSection(
-            "データの共有",
-            "コミュニティ機能で投稿したコンテンツ（セットリスト報告・修正提案など）は他のユーザーに公開されます。投稿内容に個人情報を含めないようご注意ください。"
-        )
-        InfoSection(
-            "ユーザーの権利",
-            "アカウントおよび投稿データの削除は、設定画面の「アカウントを削除」からいつでも行えます。個別のお問い合わせは GitHub Issue にてご連絡ください。"
-        )
-        InfoSection(
-            "連絡先",
-            "プライバシーに関するお問い合わせ・データ削除依頼は下記 GitHub Issue からお願いします。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new"
-        )
-        LastUpdated()
+        ImasPage {
+            ImasProse(
+                blocks = listOf(
+                    ImasProseBlock.Heading("アプリの概要"),
+                    ImasProseBlock.Paragraph(
+                        "本アプリ（ImasLiveDB）は、アイドルマスターシリーズのライブ・セットリスト情報を管理・閲覧するための非公式ファンメイドアプリです。株式会社バンダイナムコエンターテインメントをはじめとする権利者とは一切関係ありません。"
+                    ),
+                    ImasProseBlock.Heading("収集するデータ"),
+                    ImasProseBlock.Bullets(
+                        listOf(
+                            "端末識別子（UUID）: 端末内にのみ保存される匿名の識別子です。個人情報と紐付けることはありません。",
+                            "アプリ設定: デフォルトブランドなどの設定は端末内のみに保存されます。",
+                            "アカウント情報: コミュニティ機能を利用する場合、Google アカウントによるログインが必要です。投稿したセットリスト・修正提案などのコンテンツはサーバーに保存・公開されます。"
+                        )
+                    ),
+                    ImasProseBlock.Heading("サードパーティサービス"),
+                    ImasProseBlock.Bullets(
+                        listOf(
+                            "Cloudflare Workers: アプリの API 通信先として利用しています。",
+                            "Google Sign-In: ログイン認証に利用しています。"
+                        )
+                    ),
+                    ImasProseBlock.Heading("データの共有"),
+                    ImasProseBlock.Paragraph(
+                        "コミュニティ機能で投稿したコンテンツ（セットリスト報告・修正提案など）は他のユーザーに公開されます。投稿内容に個人情報を含めないようご注意ください。"
+                    ),
+                    ImasProseBlock.Heading("ユーザーの権利"),
+                    ImasProseBlock.Paragraph(
+                        "アカウントおよび投稿データの削除は、設定画面の「アカウントを削除」からいつでも行えます。個別のお問い合わせは GitHub Issue にてご連絡ください。"
+                    ),
+                    ImasProseBlock.Heading("連絡先"),
+                    ImasProseBlock.Paragraph(
+                        "プライバシーに関するお問い合わせ・データ削除依頼は下記 GitHub Issue からお願いします。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new"
+                    ),
+                    ImasProseBlock.Note(LAST_UPDATED)
+                )
+            )
+        }
     }
 }
 
 @Composable
 fun TermsOfServiceScreen(onBack: () -> Unit) {
     InfoScreenScaffold(title = "利用規約", onBack = onBack) {
-        InfoSection(
-            "免責・権利表記",
-            "本アプリは非公式のファン制作アプリです。株式会社バンダイナムコエンターテインメント、株式会社バンダイナムコミュージックライブ、その他アイドルマスターシリーズに関わる権利者とは一切関係ありません。"
-        )
-        InfoSection(
-            "知的財産権",
-            "アイドルマスターシリーズおよび関連するキャラクター・楽曲・ロゴ・イラスト等の著作権・商標権はすべて各権利者に帰属します。本アプリはこれらを無断で使用・複製・配布しません。"
-        )
-        InfoSection(
-            "使用している素材について",
-            "・ジャケット画像: 公式配信ストアの正式 API 経由で取得したもののみを表示しています。\n" +
-                "・歌詞: 使用していません。\n" +
-                "・キャラクターイラスト: 使用していません。\n" +
-                "・公式ロゴ: 使用していません。"
-        )
-        InfoSection(
-            "ユーザー投稿コンテンツ",
-            "コミュニティ機能への投稿（セットリスト情報・修正提案など）は、ユーザー自身の責任において行ってください。投稿コンテンツに起因する問題について、開発者は責任を負いません。"
-        )
-        InfoSection(
-            "投稿コンテンツのライセンス",
-            "ユーザーが投稿したコンテンツはサーバーに保存され、本アプリを利用する他のユーザーに公開されます。投稿することで、当該コンテンツをアプリ内で表示・利用することに同意したものとみなします。"
-        )
-        InfoSection(
-            "禁止事項",
-            "以下の行為を禁止します。\n" +
-                "・他者の著作権・商標権・プライバシーを侵害するコンテンツの投稿\n" +
-                "・他のユーザーへの嫌がらせ・誹謗中傷\n" +
-                "・スパムや虚偽情報の投稿\n" +
-                "・本アプリのシステムへの不正アクセス・改ざん"
-        )
-        InfoSection(
-            "サービスの変更・停止",
-            "開発者は予告なくアプリの機能変更・サービス停止を行う場合があります。これによって生じた損害について開発者は責任を負いません。"
-        )
-        InfoSection(
-            "連絡先",
-            "ご意見・不具合報告は GitHub Issue にてご連絡ください。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new"
-        )
-        LastUpdated()
+        ImasPage {
+            ImasProse(
+                blocks = listOf(
+                    ImasProseBlock.Heading("免責・権利表記"),
+                    ImasProseBlock.Paragraph(
+                        "本アプリは非公式のファン制作アプリです。株式会社バンダイナムコエンターテインメント、株式会社バンダイナムコミュージックライブ、その他アイドルマスターシリーズに関わる権利者とは一切関係ありません。"
+                    ),
+                    ImasProseBlock.Heading("知的財産権"),
+                    ImasProseBlock.Paragraph(
+                        "アイドルマスターシリーズおよび関連するキャラクター・楽曲・ロゴ・イラスト等の著作権・商標権はすべて各権利者に帰属します。本アプリはこれらを無断で使用・複製・配布しません。"
+                    ),
+                    ImasProseBlock.Heading("使用している素材について"),
+                    ImasProseBlock.Bullets(
+                        listOf(
+                            "ジャケット画像: 公式配信ストアの正式 API 経由で取得したもののみを表示しています。",
+                            "歌詞: 使用していません。",
+                            "キャラクターイラスト: 使用していません。",
+                            "公式ロゴ: 使用していません。"
+                        )
+                    ),
+                    ImasProseBlock.Heading("ユーザー投稿コンテンツ"),
+                    ImasProseBlock.Paragraph(
+                        "コミュニティ機能への投稿（セットリスト情報・修正提案など）は、ユーザー自身の責任において行ってください。投稿コンテンツに起因する問題について、開発者は責任を負いません。"
+                    ),
+                    ImasProseBlock.Heading("投稿コンテンツのライセンス"),
+                    ImasProseBlock.Paragraph(
+                        "ユーザーが投稿したコンテンツはサーバーに保存され、本アプリを利用する他のユーザーに公開されます。投稿することで、当該コンテンツをアプリ内で表示・利用することに同意したものとみなします。"
+                    ),
+                    ImasProseBlock.Heading("禁止事項"),
+                    ImasProseBlock.Paragraph("以下の行為を禁止します。"),
+                    ImasProseBlock.Bullets(
+                        listOf(
+                            "他者の著作権・商標権・プライバシーを侵害するコンテンツの投稿",
+                            "他のユーザーへの嫌がらせ・誹謗中傷",
+                            "スパムや虚偽情報の投稿",
+                            "本アプリのシステムへの不正アクセス・改ざん"
+                        )
+                    ),
+                    ImasProseBlock.Heading("サービスの変更・停止"),
+                    ImasProseBlock.Paragraph(
+                        "開発者は予告なくアプリの機能変更・サービス停止を行う場合があります。これによって生じた損害について開発者は責任を負いません。"
+                    ),
+                    ImasProseBlock.Heading("連絡先"),
+                    ImasProseBlock.Paragraph(
+                        "ご意見・不具合報告は GitHub Issue にてご連絡ください。\nhttps://github.com/fuga-if/imas-live-privacy/issues/new"
+                    ),
+                    ImasProseBlock.Note(LAST_UPDATED)
+                )
+            )
+        }
     }
 }
 
 @Composable
 fun SupportScreen(onBack: () -> Unit, onOpenGithubIssue: () -> Unit) {
     InfoScreenScaffold(title = "サポート", onBack = onBack) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("フィードバック・バグ報告", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            Row(
-                modifier = Modifier.clickable(onClick = onOpenGithubIssue),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, tint = Color(0xFF4A90D9))
-                Text("GitHub Issue で報告する", fontSize = 15.sp, color = Color(0xFF4A90D9))
+        ImasFormBackdrop(modifier = Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                ImasListSection("フィードバック・バグ報告") {
+                    ImasActionRow(
+                        title = "GitHub Issue で報告する",
+                        onClick = onOpenGithubIssue,
+                        icon = Icons.AutoMirrored.Filled.OpenInNew
+                    )
+                }
+                ImasListSection("よくある質問") {
+                    ImasProse(
+                        blocks = SUPPORT_FAQS.flatMap { (q, a) ->
+                            listOf(ImasProseBlock.Heading("Q. $q"), ImasProseBlock.Paragraph("A. $a"))
+                        },
+                        modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV)
+                    )
+                }
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text("よくある質問", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-            FaqItem("データが古い・間違っている", "GitHub Issue または コミュニティ機能の「修正提案」からご報告ください。確認後に反映します。")
-            FaqItem("ジャケット画像が表示されない", "配信ストアのデータベースに登録されていない楽曲は画像が表示されません。")
-            FaqItem("同期に失敗する", "通信環境をご確認のうえ、設定画面から「全データ同期」をお試しください。")
-            FaqItem("アプリが公式アプリではないのですか?", "はい、本アプリは非公式のファンメイドアプリです。バンダイナムコエンターテインメント等とは一切関係ありません。")
         }
     }
 }
 
-@Composable
-private fun FaqItem(question: String, answer: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Q. $question", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-        Text("A. $answer", fontSize = 15.sp, color = DS.ink2)
-    }
-}
+private val SUPPORT_FAQS = listOf(
+    "データが古い・間違っている" to "GitHub Issue または コミュニティ機能の「修正提案」からご報告ください。確認後に反映します。",
+    "ジャケット画像が表示されない" to "配信ストアのデータベースに登録されていない楽曲は画像が表示されません。",
+    "同期に失敗する" to "通信環境をご確認のうえ、設定画面から「全データ同期」をお試しください。",
+    "アプリが公式アプリではないのですか?" to "はい、本アプリは非公式のファンメイドアプリです。バンダイナムコエンターテインメント等とは一切関係ありません。"
+)
 
 /**
  * オープンソースライセンス一覧 (iOS `MyPageView` の OSS ライセンス節に対応)。
@@ -192,37 +197,36 @@ private fun FaqItem(question: String, answer: String) {
 @Composable
 fun OssLicensesScreen(onBack: () -> Unit) {
     InfoScreenScaffold(title = "オープンソースライセンス", onBack = onBack) {
-        Text(
-            "本アプリは以下のオープンソースソフトウェアを利用しています。各ライセンスの全文は" +
-                "それぞれのプロジェクトの配布物に含まれます。",
-            fontSize = 13.sp,
-            color = DS.ink2
-        )
-        LicenseItem("AndroidX (Core / Lifecycle / Activity / Navigation / Security / Credentials)", "Google", APACHE_2)
-        LicenseItem("Jetpack Compose (UI / Material 3 / Material Icons)", "Google", APACHE_2)
-        LicenseItem("Room", "Google", APACHE_2)
-        LicenseItem("Glance (App Widget)", "Google", APACHE_2)
-        LicenseItem("Media3 / ExoPlayer", "Google", APACHE_2)
-        LicenseItem("Google Identity Services (googleid)", "Google", APACHE_2)
-        LicenseItem("Coil", "Coil Contributors", APACHE_2)
-        LicenseItem("OkHttp", "Square, Inc.", APACHE_2)
-        LicenseItem("Kotlin / kotlinx.coroutines", "JetBrains", APACHE_2)
-        // JNA だけライセンスが違う。UniFFI が生成するバインディングが要求する実行時依存。
-        LicenseItem("JNA (Java Native Access)", "JNA Contributors", "Apache License 2.0 / LGPL 2.1 のデュアルライセンス")
-        LicenseItem(
-            "imas-core",
-            "本アプリの一部 (Rust)",
-            "iOS 版と共有する自作のコアライブラリです。外部ライセンスはありません。"
-        )
+        ImasFormBackdrop(modifier = Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                ImasNote(
+                    "本アプリは以下のオープンソースソフトウェアを利用しています。各ライセンスの全文は" +
+                        "それぞれのプロジェクトの配布物に含まれます。",
+                    modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+                )
+                ImasListSection {
+                    OSS_LICENSES.forEach { (name, owner, license) ->
+                        ImasNavRow(title = name, subtitle = "$owner ・ $license", showsChevron = false, subtitleLineLimit = 2)
+                    }
+                }
+            }
+        }
     }
 }
 
 private const val APACHE_2 = "Apache License 2.0"
 
-@Composable
-private fun LicenseItem(name: String, owner: String, license: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-        Text("$owner ・ $license", fontSize = 12.sp, color = DS.ink2)
-    }
-}
+private val OSS_LICENSES = listOf(
+    Triple("AndroidX (Core / Lifecycle / Activity / Navigation / Security / Credentials)", "Google", APACHE_2),
+    Triple("Jetpack Compose (UI / Material 3 / Material Icons)", "Google", APACHE_2),
+    Triple("Room", "Google", APACHE_2),
+    Triple("Glance (App Widget)", "Google", APACHE_2),
+    Triple("Media3 / ExoPlayer", "Google", APACHE_2),
+    Triple("Google Identity Services (googleid)", "Google", APACHE_2),
+    Triple("Coil", "Coil Contributors", APACHE_2),
+    Triple("OkHttp", "Square, Inc.", APACHE_2),
+    Triple("Kotlin / kotlinx.coroutines", "JetBrains", APACHE_2),
+    // JNA だけライセンスが違う。UniFFI が生成するバインディングが要求する実行時依存。
+    Triple("JNA (Java Native Access)", "JNA Contributors", "Apache License 2.0 / LGPL 2.1 のデュアルライセンス"),
+    Triple("imas-core", "本アプリの一部 (Rust)", "iOS 版と共有する自作のコアライブラリです。外部ライセンスはありません。")
+)

@@ -1,30 +1,21 @@
 package com.fugaif.imaslivedb.ui.settings
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Mic
@@ -40,21 +31,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.fugaif.imaslivedb.ui.designsystem.ImasDisclosureRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 
 /**
@@ -71,6 +60,9 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
  *
  * アイコンだけは SF Symbol → Material Icons の対応を人が決めている。
  * 色 (tint) は iOS と同じ hex を渡し、`ImasTheme.derive` で両 OS 同じトークンに導出する。
+ *
+ * iOS は各カテゴリを別画面へ遷移して見せるが、Android は戻る操作が増えるので
+ * その場で開閉する形にしている (既存の意図的な差。押し戻さない)。
  */
 data class HelpSection(
     val icon: ImageVector,
@@ -278,74 +270,70 @@ object HelpCatalog {
 @Composable
 fun HelpScreen(onBack: () -> Unit) {
     Scaffold(
-        containerColor = DS.bg,
         topBar = {
             TopAppBar(
-                title = { Text("使い方", fontWeight = FontWeight.Bold) },
+                title = { Text("使い方") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.Filled.Close, contentDescription = "閉じる")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DS.bg, titleContentColor = DS.ink, navigationIconContentColor = DS.ink
-                )
+                }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            item {
-                Column(modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
-                    Text("アイドルライブDB の使い方", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                    Text(
-                        "各カテゴリで「こんなことができる」を一覧で紹介しています。気になる項目から覗いてみてください。",
-                        fontSize = 13.sp, color = DS.ink2, modifier = Modifier.padding(top = 4.dp)
-                    )
+        ImasFormBackdrop(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                ImasListSection {
+                    Column(
+                        Modifier.padding(vertical = DS.Space.gapTight),
+                        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                    ) {
+                        Text("アイドルライブDB の使い方", style = ImasTextRole.CARD_TITLE.style, color = ImasTextRole.CARD_TITLE.color)
+                        Text(
+                            "各カテゴリで「こんなことができる」を一覧で紹介しています。気になる項目から覗いてみてください。",
+                            style = ImasTextRole.ROW_SUBTITLE.style,
+                            color = ImasTextRole.ROW_SUBTITLE.color
+                        )
+                    }
+                }
+                ImasListSection {
+                    HelpCatalog.sections.forEach { section -> HelpSectionDisclosure(section) }
                 }
             }
-            items(HelpCatalog.sections, key = { it.title }) { section -> HelpSectionCard(section) }
         }
     }
 }
 
-/** 見出しをタップで開閉する 1 カテゴリ。iOS は遷移だが、Android は戻る操作が増えるので開閉にした。 */
+/**
+ * 1 機能カテゴリ。見出しをタップで開閉する (§5.15 `ImasDisclosureRow`)。
+ * iOS は遷移だが、Android は戻る操作が増えるのでその場の開閉にしている (既存の意図的な差)。
+ */
 @Composable
-private fun HelpSectionCard(section: HelpSection) {
+private fun HelpSectionDisclosure(section: HelpSection) {
     var expanded by remember { mutableStateOf(false) }
     val theme = imasTheme(section.tint)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(DS.surface)
-            .clickable { expanded = !expanded }
-            .animateContentSize()
-            .padding(14.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(
-                section.icon, contentDescription = null, tint = theme.accent,
-                modifier = Modifier.size(36.dp).clip(CircleShape).background(theme.bar.copy(alpha = 0.18f)).padding(7.dp)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(section.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-                Text(section.summary, fontSize = 12.sp, color = DS.ink2)
-            }
-            Icon(
-                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null, tint = DS.ink3
-            )
-        }
+    Column(Modifier.fillMaxSize()) {
+        ImasDisclosureRow(
+            title = section.title,
+            subtitle = section.summary,
+            icon = section.icon,
+            iconTone = ImasIconTileTone.THEMED,
+            seed = section.tint,
+            isExpanded = expanded,
+            onToggle = { expanded = !expanded }
+        )
         if (expanded) {
-            Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV),
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
+            ) {
                 section.body.forEach { item ->
-                    Column {
-                        Text(item.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = DS.ink)
-                        Text(item.detail, fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = theme.accent)
+                        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                            Text(item.label, style = ImasTextRole.ROW_TITLE.style, color = ImasTextRole.ROW_TITLE.color)
+                            Text(item.detail, style = ImasTextRole.ROW_SUBTITLE.style, color = ImasTextRole.ROW_SUBTITLE.color)
+                        }
                     }
                 }
             }

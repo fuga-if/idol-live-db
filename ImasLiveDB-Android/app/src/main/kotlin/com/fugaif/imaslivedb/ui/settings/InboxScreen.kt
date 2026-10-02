@@ -1,24 +1,14 @@
 package com.fugaif.imaslivedb.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,22 +16,33 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasProse
+import com.fugaif.imaslivedb.ui.designsystem.ImasProseBlock
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwatchSize
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 
 /**
  * お知らせ受信箱。iOS `Views/Settings/InboxView.swift` の移植。
@@ -60,37 +61,39 @@ fun InboxScreen(onBack: () -> Unit, onOpenWidgetHowTo: (() -> Unit)? = null) {
     var opened by remember { mutableStateOf<Announcement?>(null) }
 
     val readIds = remember(generation) { AnnouncementCatalog.all.filter { store.isRead(it.id) }.map { it.id }.toSet() }
+    val unreadCount = AnnouncementCatalog.all.size - readIds.size
 
     Scaffold(
-        containerColor = DS.bg,
         topBar = {
             TopAppBar(
-                title = { Text("お知らせ", fontWeight = FontWeight.Bold) },
+                title = { Text("お知らせ") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.Filled.Close, contentDescription = "閉じる")
                     }
                 },
                 actions = {
-                    TextButton(onClick = { store.markAllRead(); generation++ }) { Text("すべて既読") }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DS.bg, titleContentColor = DS.ink,
-                    navigationIconContentColor = DS.ink, actionIconContentColor = DS.sys
-                )
+                    TextButton(onClick = { store.markAllRead(); generation++ }, enabled = unreadCount > 0) {
+                        Text("すべて既読")
+                    }
+                }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(AnnouncementCatalog.all, key = { it.id }) { item ->
-                AnnouncementRow(item, unread = item.id !in readIds) {
-                    store.markRead(item.id)
-                    generation++
-                    opened = item
+        ImasFormBackdrop(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (AnnouncementCatalog.all.isEmpty()) {
+                ImasEmptyState(icon = Icons.Outlined.NotificationsOff, title = "お知らせはありません")
+            } else {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                    ImasListSection {
+                        AnnouncementCatalog.all.forEach { item ->
+                            AnnouncementRow(item, unread = item.id !in readIds) {
+                                store.markRead(item.id)
+                                generation++
+                                opened = item
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -107,31 +110,20 @@ fun InboxScreen(onBack: () -> Unit, onOpenWidgetHowTo: (() -> Unit)? = null) {
 
 @Composable
 private fun AnnouncementRow(item: Announcement, unread: Boolean, onClick: () -> Unit) {
-    val theme = imasTheme(item.tint)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(DS.surface)
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ImasRow(
+        title = item.title,
+        subtitle = item.summary,
+        leading = ImasRowLeading.Icon(item.icon, tone = ImasIconTileTone.THEMED, seed = item.tint),
+        trailing = if (unread) {
+            ImasRowTrailing.Custom { ImasSwatch(hex = item.tint, size = ImasSwatchSize.DOT, isDecorative = true) }
+        } else {
+            ImasRowTrailing.None
+        },
+        subtitleLineLimit = 2,
+        titleRole = ImasTextRole.ROW_TITLE,
+        modifier = Modifier.imasRowPress(onClick = onClick)
     ) {
-        Icon(
-            item.icon, contentDescription = null, tint = theme.accent,
-            modifier = Modifier.size(36.dp).clip(CircleShape).background(theme.bar.copy(alpha = 0.18f)).padding(7.dp)
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (unread) {
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(theme.accent))
-                }
-                Text(item.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = DS.ink)
-            }
-            Text(item.summary, fontSize = 12.sp, color = DS.ink2, modifier = Modifier.padding(top = 2.dp))
-            Text(item.date, fontSize = 11.sp, color = DS.ink3, modifier = Modifier.padding(top = 4.dp))
-        }
+        Text(item.date, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
     }
 }
 
@@ -147,33 +139,32 @@ private fun AnnouncementDetail(
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Scaffold(
-            containerColor = DS.bg,
             topBar = {
                 TopAppBar(
-                    title = { Text(item.title, fontWeight = FontWeight.Bold, fontSize = 17.sp) },
+                    title = { Text("お知らせ") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                            Icon(Icons.Filled.Close, contentDescription = "閉じる")
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = DS.bg, titleContentColor = DS.ink, navigationIconContentColor = DS.ink
-                    )
+                    }
                 )
             }
         ) { padding ->
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(item.date, fontSize = 12.sp, color = DS.ink3)
-                item.body.forEach { paragraph ->
-                    Text(paragraph, fontSize = 14.sp, color = DS.ink, lineHeight = 22.sp)
+            ImasPage(modifier = Modifier.padding(padding)) {
+                ImasIconTile(item.icon, size = ImasIconTileSize.S56, tone = ImasIconTileTone.THEMED, seed = item.tint)
+                Column {
+                    Text(item.title, style = ImasTextRole.SECTION_TITLE.style, color = ImasTextRole.SECTION_TITLE.color)
+                    Text(item.date, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
                 }
+                ImasProse(blocks = item.body.map { ImasProseBlock.Paragraph(it) })
                 if (item.link == AnnouncementLink.WIDGET_HOW_TO && onOpenWidgetHowTo != null) {
-                    TextButton(onClick = onOpenWidgetHowTo) { Text("ウィジェットの使い方を見る") }
+                    ImasButton(
+                        title = "使い方を見る",
+                        onClick = onOpenWidgetHowTo,
+                        icon = Icons.AutoMirrored.Filled.ArrowForward,
+                        role = ImasButtonRole.PRIMARY,
+                        size = ImasButtonSize.LARGE
+                    )
                 }
             }
         }
