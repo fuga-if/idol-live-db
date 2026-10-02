@@ -1,24 +1,17 @@
 package com.fugaif.imaslivedb.ui.mypage
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EventBusy
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -33,10 +26,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -46,8 +35,11 @@ import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.repository.AttendedEventTypeSets
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasEventRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -127,7 +119,7 @@ fun AttendedEventsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("参加したライブ", fontWeight = FontWeight.Bold) },
+                title = { Text("参加したライブ") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
@@ -136,52 +128,43 @@ fun AttendedEventsScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
-            ImasSegmented(
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            ImasTabs(
                 labels = filters.map { it.label },
                 selection = safeIndex,
                 onSelect = { filterIndex = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
             )
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (filteredEvents.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ImasEmptyState(
-                        icon = Icons.Filled.EventBusy,
-                        title = when (filter) {
-                            AttendanceFilter.STREAM -> "配信参加のライブがありません"
-                            AttendanceFilter.LIVE_VIEWING -> "ライブビューイング参加のライブがありません"
-                            else -> "現地参加のライブがありません"
-                        }
-                    )
-                }
+                ImasLoadingState()
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
-                    items(filteredEvents, key = { it.event.id }) { ew ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable { onEventClick(ew.event.id) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp)
-                        ) {
-                            ImasLeadBar(brandId = ew.event.brandId, height = 38.dp, rainbow = ew.isJoint)
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    text = ew.event.name,
-                                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis
-                                )
-                                ew.dateRange?.let { d ->
-                                    Text(text = d, fontSize = 12.sp, color = DS.ink2)
+                Box(Modifier.fillMaxSize()) {
+                    ImasFormBackdrop(modifier = Modifier.fillMaxSize()) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                            ImasListSection("${filteredEvents.size}件") {
+                                filteredEvents.forEach { ew ->
+                                    ImasEventRow(
+                                        event = ew.event,
+                                        date = ew.firstDate,
+                                        subtitle = ew.dateRange,
+                                        rainbow = ew.isJoint,
+                                        onClick = { onEventClick(ew.event.id) }
+                                    )
                                 }
                             }
                         }
-                        HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+                    }
+                    if (filteredEvents.isEmpty()) {
+                        ImasEmptyState(
+                            icon = Icons.Filled.EventBusy,
+                            title = when (filter) {
+                                AttendanceFilter.STREAM -> "配信参加のライブがありません"
+                                AttendanceFilter.LIVE_VIEWING -> "ライブビューイング参加のライブがありません"
+                                else -> "現地参加のライブがありません"
+                            },
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     }
                 }
             }

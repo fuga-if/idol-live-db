@@ -1,23 +1,18 @@
 package com.fugaif.imaslivedb.ui.mypage
 
 import android.app.Application
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -31,10 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -43,11 +35,15 @@ import com.fugaif.imaslivedb.data.model.EventWithDateRange
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.components.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
-import com.fugaif.imaslivedb.ui.designsystem.ImasLeadBar
-import com.fugaif.imaslivedb.ui.components.SongRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasEventRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasIdolRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -104,7 +100,7 @@ fun FavoritesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("お気に入り", fontWeight = FontWeight.Bold) },
+                title = { Text("お気に入り") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
@@ -113,18 +109,16 @@ fun FavoritesScreen(
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
-            ImasSegmented(
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            ImasTabs(
                 labels = tabs.map { it.label },
                 selection = tabIndex,
                 onSelect = { tabIndex = it },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
             )
 
             if (state.isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                ImasLoadingState()
             } else {
                 when (tabs[tabIndex]) {
                     FavoritesTab.SONG -> SongsTab(state.songs, onNavigateToSong)
@@ -138,85 +132,69 @@ fun FavoritesScreen(
 
 @Composable
 private fun SongsTab(songs: List<Song>, onClick: (String) -> Unit) {
-    if (songs.isEmpty()) {
-        EmptyBox { ImasEmptyState(icon = Icons.Filled.MusicNote, title = "お気に入りの曲がありません") }
-        return
-    }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
-        items(songs, key = { it.id }) { song ->
-            SongRow(
-                title = song.title, songId = song.id,
-                artistNames = "",
-                unitName = song.unitName,
-                artworkUrl = song.artworkUrl,
-                previewUrl = song.previewUrl,
-                brandId = song.brandId,
-                modifier = Modifier.clickable { onClick(song.id) }.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+    EntityListSection(
+        isEmpty = songs.isEmpty(),
+        emptyIcon = Icons.Filled.MusicNote,
+        emptyTitle = "お気に入りの曲がありません",
+        sectionTitle = "${songs.size}曲"
+    ) {
+        songs.forEach { song ->
+            ImasSongRow(song = song, density = ImasRowDensity.COMPACT, onClick = { onClick(song.id) })
         }
     }
 }
 
 @Composable
 private fun IdolsTab(idols: List<Idol>, onClick: (String) -> Unit) {
-    if (idols.isEmpty()) {
-        EmptyBox { ImasEmptyState(icon = Icons.Filled.Person, title = "お気に入りのアイドルがいません") }
-        return
-    }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
-        items(idols, key = { it.id }) { idol ->
-            Box(modifier = Modifier.clickable { onClick(idol.id) }) {
-                androidx.compose.foundation.layout.Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 40.dp)
-                    Column(Modifier.padding(start = 12.dp)) {
-                        Text(idol.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        idol.nameKana?.takeIf { it.isNotEmpty() }?.let {
-                            Text(it, fontSize = 12.sp, color = DS.ink3, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            }
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+    EntityListSection(
+        isEmpty = idols.isEmpty(),
+        emptyIcon = Icons.Filled.Person,
+        emptyTitle = "お気に入りのアイドルがいません",
+        sectionTitle = "${idols.size}人"
+    ) {
+        idols.forEach { idol ->
+            ImasIdolRow(
+                idol = idol,
+                subtitle = idol.nameKana?.takeIf { it.isNotEmpty() },
+                onClick = { onClick(idol.id) }
+            )
         }
     }
 }
 
 @Composable
 private fun EventsTab(events: List<EventWithDateRange>) {
-    if (events.isEmpty()) {
-        EmptyBox { ImasEmptyState(icon = Icons.Filled.MusicNote, title = "お気に入りのライブがありません") }
-        return
-    }
-    LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 4.dp)) {
-        items(events, key = { it.event.id }) { ew ->
-            androidx.compose.foundation.layout.Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                ImasLeadBar(brandId = ew.event.brandId, height = 38.dp, rainbow = ew.isJoint)
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = ew.event.name,
-                        fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = DS.ink,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis
-                    )
-                    ew.dateRange?.let { d ->
-                        Text(text = d, fontSize = 12.sp, color = DS.ink2)
-                    }
-                }
-            }
-            HorizontalDivider(color = DS.sep, modifier = Modifier.padding(start = 16.dp))
+    // iOS は行から詳細へ飛べるが、Android はこの画面に遷移先 (onNavigateToEvent) が無い既存の形。
+    // 無い導線を足さず、表示のみ移植する。
+    EntityListSection(
+        isEmpty = events.isEmpty(),
+        emptyIcon = Icons.Filled.MusicNote,
+        emptyTitle = "お気に入りのライブがありません",
+        sectionTitle = "${events.size}件"
+    ) {
+        events.forEach { ew ->
+            ImasEventRow(event = ew.event, date = ew.firstDate, subtitle = ew.dateRange, rainbow = ew.isJoint)
         }
     }
 }
 
 @Composable
-private fun EmptyBox(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
+private fun EntityListSection(
+    isEmpty: Boolean,
+    emptyIcon: ImageVector,
+    emptyTitle: String,
+    sectionTitle: String,
+    rows: @Composable () -> Unit
+) {
+    if (isEmpty) {
+        Box(Modifier.fillMaxSize()) {
+            ImasEmptyState(icon = emptyIcon, title = emptyTitle, modifier = Modifier.align(Alignment.Center))
+        }
+        return
+    }
+    ImasFormBackdrop(modifier = Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            ImasListSection(sectionTitle) { rows() }
+        }
+    }
 }
