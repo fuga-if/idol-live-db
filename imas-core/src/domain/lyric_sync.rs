@@ -91,6 +91,37 @@ pub struct LyricLikeHeat {
 /// 最後の行がどこまで続くとみなすか (次の行が無いので長さが分からない)。
 const LAST_LINE_SPAN_MS: i64 = 8_000;
 
+/// 時刻のある行 1 本ぶんの帯 (タイミング編集のタイムライン・ここ好きの山の土台)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct LyricSpan {
+    /// 表示順の添字。
+    pub index: u32,
+    pub start_ms: i64,
+    /// 次の行の始まり (最後の行は始まり + 8 秒、曲の長さで切る)。
+    pub end_ms: i64,
+}
+
+/// 時刻のある行を時刻順に並べ、それぞれの帯 (始まり〜次の行の始まり) にする。
+/// 曲の長さが分からなければ `duration_ms <= 0` で渡す (切らない)。
+pub fn line_spans(starts: &[Option<i64>], duration_ms: i64) -> Vec<LyricSpan> {
+    let mut timed: Vec<(i64, usize)> = starts
+        .iter()
+        .enumerate()
+        .filter_map(|(i, s)| s.map(|s| (s, i)))
+        .collect();
+    timed.sort();
+    (0..timed.len())
+        .map(|k| {
+            let (start, index) = timed[k];
+            let mut end = timed.get(k + 1).map(|(s, _)| *s).unwrap_or(start + LAST_LINE_SPAN_MS);
+            if duration_ms > 0 {
+                end = end.min(duration_ms);
+            }
+            LyricSpan { index: index as u32, start_ms: start, end_ms: end.max(start) }
+        })
+        .collect()
+}
+
 /// 行ごとの「ここ好き」人数を、曲の時間軸の山にする。
 ///
 /// 区間の高さは「その時刻に歌われている行の人数」。行の長さで割らない —
@@ -101,34 +132,22 @@ pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, bucke
     if duration_ms <= 0 || buckets == 0 {
         return empty;
     }
-    // 時刻のある行を時刻順に。
-    let mut timed: Vec<(i64, u32)> = starts
-        .iter()
-        .zip(counts.iter().chain(std::iter::repeat(&0)))
-        .filter_map(|(s, c)| s.map(|s| (s, *c)))
-        .collect();
-    timed.sort_by_key(|(s, _)| *s);
-    if timed.iter().all(|(_, c)| *c == 0) {
+    let spans = line_spans(starts, duration_ms);
+    let count_of = |i: u32| counts.get(i as usize).copied().unwrap_or(0);
+    if spans.iter().all(|sp| count_of(sp.index) == 0) {
         return empty;
     }
     let n = buckets as usize;
     let mut raw = vec![0f32; n];
-    for (i, (start, count)) in timed.iter().enumerate() {
-        if *count == 0 {
+    for sp in &spans {
+        let count = count_of(sp.index);
+        if count == 0 || sp.end_ms <= sp.start_ms {
             continue;
         }
-        let end = timed
-            .get(i + 1)
-            .map(|(s, _)| *s)
-            .unwrap_or(start + LAST_LINE_SPAN_MS)
-            .min(duration_ms);
-        if end <= *start {
-            continue;
-        }
-        let from = ((*start as f64 / duration_ms as f64) * n as f64).floor().max(0.0) as usize;
-        let to = ((end as f64 / duration_ms as f64) * n as f64).ceil() as usize;
+        let from = ((sp.start_ms as f64 / duration_ms as f64) * n as f64).floor().max(0.0) as usize;
+        let to = ((sp.end_ms as f64 / duration_ms as f64) * n as f64).ceil() as usize;
         for b in raw.iter_mut().take(to.min(n)).skip(from.min(n)) {
-            *b = b.max(*count as f32);
+            *b = b.max(count as f32);
         }
     }
     let smoothed: Vec<f32> = (0..n)
@@ -143,13 +162,16 @@ pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, bucke
         return empty;
     }
     // おすすめ地点: 人数が最大の行 (同数なら早い方) の歌い出し。
-    let peak_ms = timed
+    let peak_ms = spans
         .iter()
-        .filter(|(s, _)| *s < duration_ms)
-        .fold(None::<(i64, u32)>, |best, &(s, c)| match best {
-            Some((_, bc)) if bc >= c => best,
-            _ if c > 0 => Some((s, c)),
-            _ => best,
+        .filter(|sp| sp.start_ms < duration_ms)
+        .fold(None::<(i64, u32)>, |best, sp| {
+            let c = count_of(sp.index);
+            match best {
+                Some((_, bc)) if bc >= c => best,
+                _ if c > 0 => Some((sp.start_ms, c)),
+                _ => best,
+            }
         })
         .map(|(s, _)| s);
     LyricLikeHeat { levels: smoothed.iter().map(|v| v / max).collect(), peak_ms }
@@ -227,5 +249,15 @@ mod tests {
     fn like_heat_empty_without_likes_or_duration() {
         assert_eq!(like_heat(&[Some(0)], &[0], 10_000, 8).levels, Vec::<f32>::new());
         assert_eq!(like_heat(&[Some(0)], &[2], 0, 8).peak_ms, None);
+    }
+
+    #[test]
+    fn line_spans_sorted_by_time_and_capped() {
+        let spans = line_spans(&[Some(5000), None, Some(1000)], 9000);
+        assert_eq!(spans, vec![
+            LyricSpan { index: 2, start_ms: 1000, end_ms: 5000 },
+            LyricSpan { index: 0, start_ms: 5000, end_ms: 9000 },
+        ]);
+        assert_eq!(line_spans(&[Some(0)], 0)[0].end_ms, 8000);
     }
 }

@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::LyricLikeHeat;
+pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricSpan};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -37,4 +37,10 @@ pub fn lyric_likes_toggle(stored: Option<String>, line_id: String) -> Option<Str
 #[uniffi::export]
 pub fn lyric_like_heat(starts: Vec<Option<i64>>, counts: Vec<u32>, duration_ms: i64, buckets: u32) -> LyricLikeHeat {
     d::like_heat(&starts, &counts, duration_ms, buckets)
+}
+
+/// 時刻のある行の帯 (始まり〜次の行の始まり)、時刻順。タイミング編集のタイムラインに使う。
+#[uniffi::export]
+pub fn lyric_line_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<LyricSpan> {
+    d::line_spans(&starts, duration_ms)
 }
