@@ -245,6 +245,14 @@ interface CallStatsRow {
   updated_by_name: string | null;
 }
 
+interface TimingStatsRow {
+  song_id: string;
+  timed_lines: number;
+  timed_calls: number;
+  updated_at: string | null;
+  updated_by_name: string | null;
+}
+
 interface CallHistoryRow {
   id: number;
   song_id: string;
@@ -274,7 +282,7 @@ export async function handleCallsDashboard(ctx: RouteContext): Promise<Response 
     .bind(CALL_TAG_NAME)
     .first<{ id: string; name: string }>();
 
-  const [statsRows, historyRows, taggedRows] = await Promise.all([
+  const [statsRows, historyRows, taggedRows, timingRows] = await Promise.all([
     // ① コールガイドのある曲。表示名は users を LEFT JOIN してマスクする (生 uid は返さない)。
     env.DB.prepare(
       `SELECT s.song_id, s.call_lines, s.call_count, s.updated_at,
@@ -317,6 +325,19 @@ export async function handleCallsDashboard(ctx: RouteContext): Promise<Response 
           .bind(tag.id, DASHBOARD_TAGGED_SCAN_LIMIT)
           .all<TaggedRow>()
       : Promise.resolve({ results: [] as TaggedRow[] }),
+
+    // ④ タイミング (行・コールの再生位置) がある曲。歌詞の追従ができる曲の一覧。
+    env.DB.prepare(
+      `SELECT t.song_id, t.timed_lines, t.timed_calls, t.updated_at,
+              u.display_name AS updated_by_name
+         FROM song_timing_stats t
+         LEFT JOIN users u ON u.id = t.updated_by_uid
+        WHERE t.timed_lines > 0
+        ORDER BY t.updated_at DESC
+        LIMIT ?`
+    )
+      .bind(DASHBOARD_SONGS_LIMIT)
+      .all<TimingStatsRow>(),
   ]);
 
   const tagged = taggedRows.results ?? [];
@@ -357,6 +378,14 @@ export async function handleCallsDashboard(ctx: RouteContext): Promise<Response 
             { callLines: r.call_lines_after, callCount: r.call_count_after }
           ),
         })),
+      // タイミングがある曲 (曲一覧の「タイミングがある曲のみ」の母集合)。本文・時刻は含まない。
+      songsWithTimings: (timingRows.results ?? []).map((r) => ({
+        songId: r.song_id,
+        timedLines: r.timed_lines,
+        timedCalls: r.timed_calls,
+        updatedAt: sqliteTimestampToEpochSeconds(r.updated_at),
+        updatedBy: maskDisplayName(r.updated_by_name),
+      })),
       taggedWithoutCalls: todo,
       callTag: tag
         ? {

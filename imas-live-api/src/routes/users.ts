@@ -138,6 +138,8 @@ export async function handleUsers(ctx: RouteContext): Promise<Response | null> {
       // 本人のコール編集履歴を消す。コールそのもの (lines_json) は消さない —
       // タグ・投票集計と同じ「みんなの共有データ」であって個人データではないため。
       env.DB.prepare("DELETE FROM call_edit_history WHERE user_id = ?").bind(uid),
+      env.DB.prepare("DELETE FROM timing_edit_history WHERE user_id = ?").bind(uid),
+      env.DB.prepare("UPDATE song_timing_stats SET updated_by_uid = NULL WHERE updated_by_uid = ?").bind(uid),
       // 「最後にコールを書いた人」の参照だけ外す (表示は「匿名」に落ちる)。
       env.DB
         .prepare("UPDATE song_call_stats SET updated_by_uid = NULL WHERE updated_by_uid = ?")

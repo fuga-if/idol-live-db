@@ -75,9 +75,23 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
   const nextJson = JSON.stringify(nextLines);
   if (nextJson !== header.lines_json) {
     // updated_at は動かさない。歌詞の更新時刻は本文・コールの変化を表す。
-    await env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?")
-      .bind(nextJson, songId)
-      .run();
+    // 整備状況 (タイミングがある曲の一覧) と編集の記録 (Discord の更新通知) も同じ batch で書く。
+    const before = countTimings(existing);
+    const after = countTimings(nextLines);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?").bind(nextJson, songId),
+      env.DB.prepare(
+        `INSERT INTO song_timing_stats (song_id, timed_lines, timed_calls, updated_at, updated_by_uid)
+         VALUES (?, ?, ?, datetime('now'), ?)
+         ON CONFLICT(song_id) DO UPDATE SET timed_lines = excluded.timed_lines,
+           timed_calls = excluded.timed_calls, updated_at = excluded.updated_at,
+           updated_by_uid = excluded.updated_by_uid`
+      ).bind(songId, after.lines, after.calls, authUser.uid),
+      env.DB.prepare(
+        `INSERT INTO timing_edit_history (song_id, user_id, timed_lines_before, timed_lines_after)
+         VALUES (?, ?, ?, ?)`
+      ).bind(songId, authUser.uid, before.lines, after.lines),
+    ]);
   }
 
   return json(
@@ -89,4 +103,15 @@ export async function handleLyricsTimings(ctx: RouteContext): Promise<Response |
     200,
     NO_STORE
   );
+}
+
+/** 時刻の入った行とコールの数 (整備状況)。 */
+export function countTimings(lines: LyricLineRow[]): { lines: number; calls: number } {
+  let timedLines = 0;
+  let timedCalls = 0;
+  for (const l of lines) {
+    if (typeof (l.start_ms ?? l.startMs) === "number") timedLines += 1;
+    for (const c of l.calls ?? []) if (typeof c.startMs === "number") timedCalls += 1;
+  }
+  return { lines: timedLines, calls: timedCalls };
 }

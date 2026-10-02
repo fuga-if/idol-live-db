@@ -126,6 +126,11 @@ const DAILY: CronTask[] = [
     // 無限に積むと荒らしで肥大しうるため 180 日で切る。
     run: (env) => env.DB.prepare("DELETE FROM call_edit_history WHERE at < datetime('now', '-180 days')").run(),
   },
+  {
+    name: "timing_edit_history",
+    // 歌詞のタイミングの編集の記録 (Discord の更新通知用)。読むのは直近だけなので古い行は消す。
+    run: (env) => env.DB.prepare("DELETE FROM timing_edit_history WHERE at < datetime('now', '-180 days')").run(),
+  },
   { name: "song_tag_counts", run: refreshTagCounts },
 ];
 

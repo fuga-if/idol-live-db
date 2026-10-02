@@ -197,6 +197,7 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
     "edits", "edit_batch", "summary", "source = 'app' AND cloudkit_ok = 1"
   );
   const calls = source<{ song_id: string }>("calls", "call_edit_history", "song_id");
+  const timings = source<{ song_id: string }>("timings", "timing_edit_history", "song_id");
   const songTags = source<{ target: string; tag_id: string }>("song_tags", "device_song_tag", "song_id AS target, tag_id");
   const idolTags = source<{ target: string; tag_id: string }>("idol_tags", "device_idol_tag", "idol_id AS target, tag_id");
   const unitTags = source<{ target: string; tag_id: string }>("unit_tags", "device_unit_tag", "unit_id AS target, tag_id");
@@ -204,7 +205,7 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   const newIdolTags = source<{ name: string }>("idol_tag_master", "idol_tag_master", "name", "status = 'active'");
   const newUnitTags = source<{ name: string }>("unit_tag_master", "unit_tag_master", "name", "status = 'active'");
   const polls = source<{ title: string }>("polls", "polls", "title", "status = 'active'");
-  const sources: Source<any>[] = [edits, calls, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
+  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
 
   const cursorRows = await env.DB.prepare("SELECT source, last_rowid FROM discord_digest_cursors").all<{
     source: string;
@@ -278,12 +279,14 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
 
   // 名前とジャケ写は CloudKit から 1 回でまとめて引く。
   const callSongIds = [...new Set((calls.rows ?? []).map((r) => r.song_id))];
+  const timingSongIds = [...new Set((timings.rows ?? []).map((r) => r.song_id))];
   const taggedSongIds = [...songTagged.keys()];
   const idolIds = [...idolTagged.keys()];
   const unitIds = [...unitTagged.keys()];
   const info = await lookupNames(env, [
     ...new Set([
       ...callSongIds.slice(0, LIST_LIMIT),
+      ...timingSongIds.slice(0, LIST_LIMIT),
       ...taggedSongIds.slice(0, EMBED_LIMIT + LIST_LIMIT),
       ...idolIds.slice(0, LIST_LIMIT),
       ...unitIds.slice(0, LIST_LIMIT),
@@ -298,6 +301,14 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
       .slice(0, LIST_LIMIT)
       .map((id) => link(nameOf(id), `${WEB_BASE}/songs/${encodeURIComponent(id)}/`));
     lines.push(`🎤 **コールガイド** ${names.join("、")}${moreSuffix(callSongIds.length)}`);
+  }
+
+  // 歌詞のタイミング (行・コールの再生位置): 曲名と Web の曲ページ。
+  if (timingSongIds.length) {
+    const names = timingSongIds
+      .slice(0, LIST_LIMIT)
+      .map((id) => link(nameOf(id), `${WEB_BASE}/songs/${encodeURIComponent(id)}/`));
+    lines.push(`⏱️ **歌詞のタイミング** ${names.join("、")}${moreSuffix(timingSongIds.length)}`);
   }
 
   // 曲のタグ付け: 曲ごとに埋め込み (曲名・付いたタグ・ジャケ写)。入りきらない分は本文に名前だけ。

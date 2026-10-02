@@ -115,7 +115,8 @@ describe("GET /calls/dashboard — 歌詞を漏らさない (最重要)", () => 
     // ホワイトリストとの完全一致にしておけば、**何を足しても**ここで必ず止まる。
     const { body } = await get();
     expect(Object.keys(body).sort()).toEqual(
-      ["callTag", "generatedAt", "recentEdits", "songsWithCalls", "taggedWithoutCalls"].sort()
+      // songsWithTimings (2026-10 追加): 曲 id・件数・日時・マスク済み表示名だけ (歌詞も時刻も含まない)。
+      ["callTag", "generatedAt", "recentEdits", "songsWithCalls", "songsWithTimings", "taggedWithoutCalls"].sort()
     );
     expect(Object.keys(body.songsWithCalls[0]).sort()).toEqual(
       ["callCount", "callLines", "songId", "updatedAt", "updatedBy"].sort()
