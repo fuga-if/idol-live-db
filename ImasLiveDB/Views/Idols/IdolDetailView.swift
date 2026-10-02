@@ -417,7 +417,7 @@ struct IdolDetailView: View {
     private var communityBody: some View {
         VStack(spacing: DS.sp5) {
             PollAchievementBadges(entityId: idol.id)
-            InlineLoginPrompt(message: "タグ付け・投票にはログインが必要です", seed: seed)
+            ImasSignInPrompt(message: "タグ付け・投票にはログインが必要です")
             communityIdolTags
             personalIdolTags
             if !similarTagIdols.isEmpty { communitySimilarIdols }

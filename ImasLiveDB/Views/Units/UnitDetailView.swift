@@ -241,7 +241,7 @@ struct UnitDetailView: View {
     private var communityBody: some View {
         VStack(spacing: DS.sp5) {
             PollAchievementBadges(entityId: unit.id)
-            InlineLoginPrompt(message: "タグ付け・投票にはログインが必要です", seed: nil)
+            ImasSignInPrompt(message: "タグ付け・投票にはログインが必要です")
             communityUnitTags
             personalUnitTags
             if !similarTagUnits.isEmpty { communitySimilarUnits }
