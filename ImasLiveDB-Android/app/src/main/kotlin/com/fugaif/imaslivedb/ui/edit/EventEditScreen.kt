@@ -1,16 +1,7 @@
 package com.fugaif.imaslivedb.ui.edit
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,11 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.LocalContext
@@ -34,7 +21,13 @@ import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import kotlinx.coroutines.launch
 import uniffi.imas_core.TicketSale
 
@@ -174,14 +167,13 @@ fun EventEditScreen(
         if (original != null) {
             EditSection("チケット受付", footer = "受付ごとの日程・当落・申込リンクは各行から編集します。") {
                 if (ticketSales.isEmpty()) {
-                    Text("受付は未登録です", fontSize = 13.sp, color = DS.ink3)
+                    ImasNote("受付は未登録です")
                 } else {
-                    ticketSales.forEachIndexed { index, sale ->
-                        if (index > 0) HorizontalDivider(color = DS.sep)
+                    ticketSales.forEach { sale ->
                         TicketSaleSummaryRow(sale, onClick = { editingSale = sale })
                     }
                 }
-                TextButton(onClick = { creatingSale = true }) { Text("+ 受付を追加") }
+                ImasActionRow(title = "受付を追加", onClick = { creatingSale = true }, icon = Icons.Filled.Add)
             }
         }
     }
@@ -221,22 +213,14 @@ fun EventEditScreen(
 /** チケット受付 1 件の要約行 (種別・段階・期間)。タップで編集を開く。 */
 @Composable
 private fun TicketSaleSummaryRow(sale: TicketSale, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                "${sale.kindLabel} ・ ${sale.name}",
-                fontSize = 15.sp, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                listOfNotNull(sale.stageLabel, sale.periodLabel).joinToString(" ・ "),
-                fontSize = 12.sp, color = DS.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis
-            )
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = DS.ink3)
-    }
+    ImasRow(
+        title = "${sale.kindLabel} ・ ${sale.name}",
+        modifier = Modifier.imasRowPress(onClick = onClick),
+        subtitle = listOfNotNull(sale.stageLabel, sale.periodLabel).joinToString(" ・ "),
+        trailing = ImasRowTrailing.Chevron,
+        density = ImasRowDensity.COMPACT,
+        titleRole = ImasTextRole.ROW_LABEL
+    )
 }
 
 /** 新規作成時の土台。フォームで埋める列以外は既定値にする。 */
