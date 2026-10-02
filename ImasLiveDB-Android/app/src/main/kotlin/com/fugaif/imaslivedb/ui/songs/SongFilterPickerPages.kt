@@ -22,6 +22,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasToolbarButton
@@ -116,7 +117,7 @@ fun IdolMultiPickerPage(
         NameFilterField(prompt = "アイドル名で絞り込み", value = query, onValueChange = { query = it })
         if (selected.isNotEmpty()) {
             ImasCardList {
-                ImasSelectableRow(title = "選択をすべて解除", isSelected = false, onClick = onClear)
+                ImasActionRow(title = "選択をすべて解除", onClick = onClear)
             }
         }
         LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
