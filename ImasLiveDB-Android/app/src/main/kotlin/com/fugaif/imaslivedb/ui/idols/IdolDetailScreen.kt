@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -101,6 +100,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasIdolHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasMarkBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasMarkTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
@@ -219,9 +219,7 @@ fun IdolDetailScreen(
         }
     ) { padding ->
         if (state.isLoading || idol == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))
         } else {
             Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
                 Hero(idol, state.brand?.shortName, state.castShows.size, state.performedSongs.size)
