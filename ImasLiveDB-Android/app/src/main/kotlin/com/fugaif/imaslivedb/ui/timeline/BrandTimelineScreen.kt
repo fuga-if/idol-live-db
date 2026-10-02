@@ -5,20 +5,14 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ZoomOutMap
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +31,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -54,13 +47,14 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
-import com.fugaif.imaslivedb.ui.designsystem.ImasChip
-import com.fugaif.imaslivedb.ui.designsystem.ImasChipStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
+import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
+import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasColors
@@ -224,15 +218,14 @@ fun BrandTimelineScreen(
                 selectedBrandId = state.selectedBrandId,
                 onSelect = { viewModel.select(it) }
             )
-            HorizontalDivider(color = DS.sep)
+            ImasRowDivider()
 
             Box(Modifier.fillMaxSize()) {
                 // 分岐の判定用。描画そのものは planState を直に読むので、
                 // ズーム中はリコンポーズを挟まず再描画だけで済む。
                 val hasPlan = plan != null
                 when {
-                    state.isLoading && !hasPlan ->
-                        CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    state.isLoading && !hasPlan -> ImasLoadingState()
                     !hasPlan -> ImasEmptyState(
                         icon = Icons.Filled.BarChart,
                         title = "年表を描けるデータがありません",
@@ -290,23 +283,12 @@ private fun BrandBar(
     selectedBrandId: String?,
     onSelect: (String?) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DS.surface)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ImasChip(
-            text = "全ブランド",
-            style = if (selectedBrandId == null) ImasChipStyle.SELECTED else ImasChipStyle.NEUTRAL,
-            onClick = { onSelect(null) }
-        )
+    ImasChipRow(modifier = Modifier.background(DS.surface).padding(vertical = DS.Space.gapTight)) {
+        ImasFilterChip(label = "全ブランド", selected = selectedBrandId == null, onClick = { onSelect(null) })
         brands.forEach { brand ->
-            ImasChip(
-                text = brand.shortName,
-                style = if (selectedBrandId == brand.id) ImasChipStyle.SELECTED else ImasChipStyle.NEUTRAL,
+            ImasFilterChip(
+                label = brand.shortName,
+                selected = selectedBrandId == brand.id,
                 seed = brand.color,
                 onClick = { onSelect(brand.id) }
             )
