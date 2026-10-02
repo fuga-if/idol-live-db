@@ -237,7 +237,7 @@ struct EventDetailView: View {
                 Task { await vm.reloadHero(eventId: event.id) }
             }
         }
-        .task { await vm.loadData(event: event) }
+        .imasLoadAfterTransition { await vm.loadData(event: event) }
         .onAppear { RecentsService.shared.record(kind: .event, id: event.id, name: event.name) }
         .trackScreen("event_detail")
     }

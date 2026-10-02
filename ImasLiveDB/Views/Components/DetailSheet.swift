@@ -370,7 +370,7 @@ struct SongSheetContent: View {
         .sheet(isPresented: $showCommunityLoginPrompt) {
             LoginToEditSheet()
         }
-        .task { await vm.loadData(song: song) }
+        .imasLoadAfterTransition { await vm.loadData(song: song) }
         .onChange(of: tab) { _, newTab in
             // 旧「歌詞を見る」は別画面だったので screen として計測できていた。
             // タブ化に伴い、どのタブが見られているかはここで拾う。

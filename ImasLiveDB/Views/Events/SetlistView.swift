@@ -461,7 +461,7 @@ struct SetlistView: View {
                 ? "プレイリスト作成中… \(playlistProgress.current)/\(playlistProgress.total)"
                 : "プレイリスト作成中…"
         )
-        .task { await loadSetlist() }
+        .imasLoadAfterTransition { await loadSetlist() }
         // 参加の付け外しと「配信も回収に含める」設定で回収の札と要約が変わるので、
         // それも鍵に含める (表示モードと歌唱者の設定と同じ扱い)。
         .task(

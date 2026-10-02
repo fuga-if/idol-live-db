@@ -112,7 +112,7 @@ struct IdolDetailView: View {
                 selectedPhoto = nil
             }
         }
-        .task { await vm.loadDetails(idol: idol) }
+        .imasLoadAfterTransition { await vm.loadDetails(idol: idol) }
         .trackScreen("idol_detail")
     }
 

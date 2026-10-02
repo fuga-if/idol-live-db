@@ -66,7 +66,7 @@ struct UnitDetailView: View {
             DetailSheetView(destination: dest)
                 .environment(database)
         }
-        .task { await vm.loadDetails(unit: unit) }
+        .imasLoadAfterTransition { await vm.loadDetails(unit: unit) }
         .trackScreen("unit_detail")
     }
 

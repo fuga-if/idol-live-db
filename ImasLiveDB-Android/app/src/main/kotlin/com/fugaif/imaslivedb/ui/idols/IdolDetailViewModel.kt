@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.idols
 
+import com.fugaif.imaslivedb.ui.theme.ImasMotion
+import kotlinx.coroutines.delay
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -59,6 +61,7 @@ class IdolDetailViewModel(app: Application, private val idolId: String) : Androi
 
     private fun load() {
         viewModelScope.launch {
+            delay(ImasMotion.LOAD_AFTER_TRANSITION_MS)
             val idol = repo.fetchIdol(idolId) ?: return@launch
             val brand = repo.fetchBrand(idol.brandId)
             val originalSongSections = songRepo.fetchIdolOriginalSongSections(idolId)

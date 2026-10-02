@@ -320,6 +320,12 @@ val imasEnvTheme: ImasTheme
 object ImasMotion {
     /** 選択・開閉など、状態が切り替わるときの標準の動き。 */
     fun <T> standard(): AnimationSpec<T> = spring(dampingRatio = 0.86f, stiffness = 800f)
+
+    /**
+     * 画面の読み込みを始めるまでの待ち (押し込みの動きが終わってから。iOS `imasLoadAfterTransition`)。
+     * 動きの最中に重い読み込みと再描画が重なると、出る動きがカクつく (中身は読み込み中の表示で先に出す)。
+     */
+    const val LOAD_AFTER_TRANSITION_MS = 380L
 }
 
 // MARK: - 押し心地

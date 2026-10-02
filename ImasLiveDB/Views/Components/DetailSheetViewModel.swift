@@ -88,18 +88,27 @@ final class DetailSheetViewModel {
     /// 楽曲メタ/歌唱者/披露履歴/回収公演/関連曲 + ブランド + ジャケ情報を取得し、
     /// 続けてコミュニティ系 (ペンライト/タグ/類似曲) も読む。
     func loadData(song: Song) async {
+        // 読んだ値はまとめて入れる (1 つずつ入れると、そのたびに画面を組み直して重い)。
         do {
-            history = try await songReading.songPerformanceHistory(songId: song.id)
-            originalArtists = try await songReading.songArtists(songId: song.id, role: "original")
-            performerArtists = try await songReading.songArtists(songId: song.id, role: "performer")
+            let history = try await songReading.songPerformanceHistory(songId: song.id)
+            let originalArtists = try await songReading.songArtists(songId: song.id, role: "original")
+            let performerArtists = try await songReading.songArtists(songId: song.id, role: "performer")
+            var brand: Brand?
             if let brandId = song.brandId {
-                let brands = try await brandReading.brands()
-                brand = brands.first { $0.id == brandId }
+                brand = try await brandReading.brands().first { $0.id == brandId }
             }
-            songVideos = try await songReading.songVideos(songId: song.id)
-            collectedShows = try await songReading.collectedShows(for: song.id)
-            relatedSongs = try await songReading.relatedSongs(to: song, limit: 8)
-            variantSongs = try await songReading.variantSongs(of: song)
+            let songVideos = try await songReading.songVideos(songId: song.id)
+            let collectedShows = try await songReading.collectedShows(for: song.id)
+            let relatedSongs = try await songReading.relatedSongs(to: song, limit: 8)
+            let variantSongs = try await songReading.variantSongs(of: song)
+            self.history = history
+            self.originalArtists = originalArtists
+            self.performerArtists = performerArtists
+            if brand != nil { self.brand = brand }
+            self.songVideos = songVideos
+            self.collectedShows = collectedShows
+            self.relatedSongs = relatedSongs
+            self.variantSongs = variantSongs
         } catch {
             Logger.database.error("load_failed song_details: \(error.localizedDescription)")
         }

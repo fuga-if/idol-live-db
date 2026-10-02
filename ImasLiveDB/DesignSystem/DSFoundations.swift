@@ -365,3 +365,17 @@ enum ImasStripes {
         }
     }
 }
+
+// MARK: - 遷移の後に読み込む
+
+extension View {
+    /// 画面の読み込みを、押し込み・シートの出る動きが終わってから始める。
+    /// 動きの最中に重い読み込みと再描画が重なると、出る動きがカクつく (中身は読み込み中の表示で先に出す)。
+    func imasLoadAfterTransition(_ action: @escaping @Sendable () async -> Void) -> some View {
+        task {
+            try? await Task.sleep(for: .milliseconds(380))
+            guard !Task.isCancelled else { return }
+            await action()
+        }
+    }
+}

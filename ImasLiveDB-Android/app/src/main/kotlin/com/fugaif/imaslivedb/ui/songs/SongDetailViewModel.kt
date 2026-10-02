@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import com.fugaif.imaslivedb.ui.theme.ImasMotion
+import kotlinx.coroutines.delay
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -69,6 +71,7 @@ class SongDetailViewModel : ViewModel() {
     fun load(context: Context, songId: String) {
         currentSongId = songId
         viewModelScope.launch {
+            delay(ImasMotion.LOAD_AFTER_TRANSITION_MS)
             val module = AppModule.from(context)
             appModule = module
             api = module.communityApi

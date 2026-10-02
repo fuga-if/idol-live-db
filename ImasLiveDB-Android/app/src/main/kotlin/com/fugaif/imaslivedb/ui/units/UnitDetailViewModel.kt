@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.units
 
+import com.fugaif.imaslivedb.ui.theme.ImasMotion
+import kotlinx.coroutines.delay
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -47,6 +49,7 @@ class UnitDetailViewModel(app: Application, private val unitId: String) : Androi
 
     private fun load() {
         viewModelScope.launch {
+            delay(ImasMotion.LOAD_AFTER_TRANSITION_MS)
             _uiState.value = _uiState.value.copy(isLoading = true, loadError = null)
             try {
                 val unit = unitRepo.fetchUnit(unitId)
