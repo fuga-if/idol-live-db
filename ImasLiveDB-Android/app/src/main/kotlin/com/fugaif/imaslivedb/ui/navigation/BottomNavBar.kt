@@ -21,10 +21,11 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.AppDestination
 import uniffi.imas_core.NavItem
 import uniffi.imas_core.NavSection
@@ -59,20 +62,31 @@ val AppDestination.icon: ImageVector
         AppDestination.GAMES -> Icons.Filled.SportsEsports
     }
 
-/** 狭い画面の下のタブバー。載せるのはコアが `inTabBar` とした行き先だけ。 */
+/**
+ * 狭い画面の下のタブバー。載せるのはコアが `inTabBar` とした行き先だけ。
+ * アプリの枠は墨 (iOS は `UITabBar.appearance().tintColor = .label` と同じ無彩の方針。
+ * 色はブランド・実体側だけが持つので、タブの選択状態に色は差さない)。
+ */
 @Composable
 fun BottomNavBar(
     items: List<NavItem>,
     current: AppDestination,
     onSelect: (AppDestination) -> Unit
 ) {
-    NavigationBar {
+    NavigationBar(containerColor = DS.surface) {
         items.forEach { item ->
             NavigationBarItem(
                 selected = current == item.destination,
                 onClick = { onSelect(item.destination) },
                 icon = { Icon(imageVector = item.destination.icon, contentDescription = item.label) },
-                label = { Text(text = item.label) }
+                label = { Text(text = item.label) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = DS.ink,
+                    selectedTextColor = DS.ink,
+                    indicatorColor = DS.fill,
+                    unselectedIconColor = DS.ink3,
+                    unselectedTextColor = DS.ink3
+                )
             )
         }
     }
@@ -88,20 +102,20 @@ fun AppSidebar(
     current: AppDestination,
     onSelect: (AppDestination) -> Unit
 ) {
-    PermanentDrawerSheet(modifier = Modifier.width(240.dp)) {
+    PermanentDrawerSheet(modifier = Modifier.width(240.dp), drawerContainerColor = DS.surface) {
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp, vertical = 16.dp)
+                .padding(horizontal = DS.Space.screen, vertical = DS.Space.card)
         ) {
             sections.forEach { section ->
                 section.title?.let { title ->
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(DS.Space.gapLoose))
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 4.dp)
+                        style = ImasTextRole.SECTION_LABEL.style,
+                        color = ImasTextRole.SECTION_LABEL.color,
+                        modifier = Modifier.padding(start = DS.Space.rowH, bottom = DS.Space.gapTight)
                     )
                 }
                 section.items.forEach { item ->
@@ -109,7 +123,14 @@ fun AppSidebar(
                         label = { Text(item.label) },
                         icon = { Icon(item.destination.icon, contentDescription = null) },
                         selected = current == item.destination,
-                        onClick = { onSelect(item.destination) }
+                        onClick = { onSelect(item.destination) },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = DS.fill,
+                            selectedIconColor = DS.ink,
+                            selectedTextColor = DS.ink,
+                            unselectedIconColor = DS.ink2,
+                            unselectedTextColor = DS.ink2
+                        )
                     )
                 }
             }
