@@ -1,23 +1,11 @@
 package com.fugaif.imaslivedb.ui.components
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,31 +14,38 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.local.localWrite
 import com.fugaif.imaslivedb.data.model.AttendanceType
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipe
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeAction
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeKind
 import com.fugaif.imaslivedb.ui.events.EventAttendanceSheet
-import com.fugaif.imaslivedb.ui.mastery.MasterySwipeRow
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.ImasType
 import kotlinx.coroutines.launch
 
 /**
  * 公演の行をスワイプすると出る参加登録アクション (iOS `AttendanceSwipeActions` の移植)。
+ * 指の操作は DesignSystem の `ImasSwipe` (右に引く = 記録を付ける。`ImasSwipeKind.ATTEND`)。
  *
  * 選択肢と取り消しの出し分けは [AttendanceType.options] を呼ぶだけ。これは SetlistScreen の
  * 参加確認ダイアログ (`AttendanceDialog`) が使う規則と同じもので、ここで新しい判定を
  * 書き足すと、ダイアログ版とスワイプ版で規則が二重管理になる。
  *
- * Compose の [androidx.compose.material3.SwipeToDismissBox] は向きしか区別できないので、
- * iOS のように現地/配信/LV のボタンをスワイプ直下に並べられない。右スワイプでシートを開き、
+ * 現地/配信/LV の 3 択を swipe のボタンに直接並べると実機の幅を超える (iOS は文字だけにして
+ * しのいでいるが、取消を含め 4 択は Android の行幅でも苦しい)。右に引くとまずシートを開き、
  * そこで形態を選ぶ (習熟度画面の群一覧が右スワイプでシートを出しているのと同じ作り)。
  * 左スワイプは使わない — 端から引くと OS の「戻る」に取られて画面ごと閉じる
  * (エミュで実測済み)。取り消しはシートの中に置く。
@@ -73,10 +68,14 @@ fun AttendanceSwipeRow(
 
     LaunchedEffect(showId) { current = marks.attendance(UserMark.SHOW, showId) }
 
-    MasterySwipeRow(
-        onStart = { showSheet = true },
-        startLabel = current?.let { "${it.label}で参加中" } ?: "参加を登録",
-        startColor = DS.success,
+    ImasSwipe(
+        leading = listOf(
+            ImasSwipeAction(
+                kind = ImasSwipeKind.ATTEND,
+                title = current?.let { "${it.label}で参加中" } ?: "参加を登録",
+                action = { showSheet = true }
+            )
+        )
     ) {
         content()
     }
@@ -120,15 +119,19 @@ fun EventAttendanceSwipeRow(
     var shows by remember(eventId) { mutableStateOf<List<Show>>(emptyList()) }
     var showSheet by remember { mutableStateOf(false) }
 
-    MasterySwipeRow(
-        onStart = {
-            scope.launch {
-                shows = eventRepository.fetchShows(eventId)
-                showSheet = true
-            }
-        },
-        startLabel = "参加を登録",
-        startColor = DS.success,
+    ImasSwipe(
+        leading = listOf(
+            ImasSwipeAction(
+                kind = ImasSwipeKind.ATTEND,
+                title = "参加を登録",
+                action = {
+                    scope.launch {
+                        shows = eventRepository.fetchShows(eventId)
+                        showSheet = true
+                    }
+                }
+            )
+        )
     ) {
         content()
     }
@@ -160,45 +163,32 @@ private fun AttendancePickerSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
-        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text(
-                showName ?: "この公演への参加",
-                fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DS.ink, maxLines = 2
-            )
-            Spacer(Modifier.height(4.dp))
-            Text("参加形態を選ぶ", fontSize = 12.sp, color = DS.ink2)
-            Spacer(Modifier.height(8.dp))
-            AttendanceType.options().forEach { type ->
-                val on = current == type
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(if (on) null else type) }
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        if (on) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
-                        contentDescription = null,
-                        tint = if (on) DS.success else DS.ink3,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        "${type.label}で参加",
-                        fontSize = 15.sp,
-                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                        color = DS.ink
-                    )
+        ImasFormBackdrop(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth().padding(bottom = DS.Space.section)) {
+                Text(
+                    showName ?: "この公演への参加",
+                    style = ImasType.heading(17.sp, FontWeight.Bold),
+                    color = DS.ink,
+                    maxLines = 2,
+                    modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+                )
+                ImasListSection(footer = "参加形態を選ぶ") {
+                    AttendanceType.options().forEach { type ->
+                        val on = current == type
+                        ImasSelectableRow(
+                            title = "${type.label}で参加",
+                            isSelected = on,
+                            isSingle = true,
+                            onClick = { onSelect(if (on) null else type) }
+                        )
+                    }
                 }
-            }
-            if (current != null) {
-                HorizontalDivider(color = DS.sep, modifier = Modifier.padding(vertical = 4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(null) }.padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(Icons.Filled.Cancel, contentDescription = null, tint = DS.danger, modifier = Modifier.size(20.dp))
-                    Text("参加を取り消す", fontSize = 15.sp, color = DS.danger)
+                if (current != null) {
+                    ImasActionRow(
+                        title = "参加を取り消す",
+                        onClick = { onSelect(null) },
+                        kind = ImasActionRowKind.DESTRUCTIVE
+                    )
                 }
             }
         }
