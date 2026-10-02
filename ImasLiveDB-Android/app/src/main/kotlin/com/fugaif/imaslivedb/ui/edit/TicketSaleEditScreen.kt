@@ -1,17 +1,5 @@
 package com.fugaif.imaslivedb.ui.edit
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,17 +8,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.edit.EditApi
 import com.fugaif.imaslivedb.data.edit.putClearable
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
+import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import kotlinx.coroutines.launch
 import uniffi.imas_core.TicketSale
 import uniffi.imas_core.TicketSaleDraft
@@ -235,13 +223,13 @@ fun TicketSaleEditScreen(
             footer = "選択が無ければ全公演が対象になります。"
         ) {
             if (shows.isEmpty()) {
-                Text("この公演の一覧を読み込めませんでした", fontSize = 12.sp, color = DS.ink3)
+                ImasNote("この公演の一覧を読み込めませんでした")
             } else {
                 shows.forEach { show ->
-                    ShowCheckRow(
-                        show = show,
-                        checked = selectedShowIds.contains(show.id),
-                        onToggle = {
+                    ImasSelectableRow(
+                        title = "${show.name} ・ ${show.date.take(10)}",
+                        isSelected = selectedShowIds.contains(show.id),
+                        onClick = {
                             selectedShowIds = if (selectedShowIds.contains(show.id)) {
                                 selectedShowIds - show.id
                             } else {
@@ -270,9 +258,11 @@ fun TicketSaleEditScreen(
         }
         if (!isCreate) {
             EditSection("削除") {
-                TextButton(onClick = { showDeleteConfirm = true }) {
-                    Text("この受付を削除", color = DS.danger)
-                }
+                ImasActionRow(
+                    title = "この受付を削除",
+                    onClick = { showDeleteConfirm = true },
+                    kind = ImasActionRowKind.DESTRUCTIVE
+                )
             }
         }
     }
@@ -283,32 +273,12 @@ fun TicketSaleEditScreen(
         EditRequestSentDialog(requestedIssueUrl) { requestSent = false; onDismiss() }
     }
 
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("受付を削除しますか？") },
-            text = { Text("この操作は取り消せません。") },
-            confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; delete() }) { Text("削除", color = DS.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("キャンセル") }
-            }
-        )
-    }
-}
-
-@Composable
-private fun ShowCheckRow(show: Show, checked: Boolean, onToggle: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (checked) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = DS.pick, modifier = Modifier.padding(end = 8.dp))
-        } else {
-            Spacer(Modifier.padding(end = 8.dp).size(24.dp))
-        }
-        Text("${show.name} ・ ${show.date.take(10)}", color = DS.ink)
-    }
+    ImasConfirmDestructive(
+        title = "受付を削除しますか？",
+        isPresented = showDeleteConfirm,
+        onDismiss = { showDeleteConfirm = false },
+        onConfirm = ::delete,
+        actionTitle = "削除",
+        message = "この操作は取り消せません。"
+    )
 }
