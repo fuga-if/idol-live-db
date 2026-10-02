@@ -32,6 +32,7 @@ import com.fugaif.imaslivedb.data.model.SongSortOrder
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
+import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterSheetToolbar
@@ -39,7 +40,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
-import com.fugaif.imaslivedb.ui.designsystem.ImasTextFieldRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -213,7 +213,7 @@ fun SongFilterSheet(
             )
             FilterPage.MAIN -> Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 // 左=リセット・右=適用はこの帯にだけ置く (DS §2.6)。
-                ImasFilterSheetToolbar(canReset = true, onReset = ::resetAll, onApply = ::apply, title = "フィルタ・並び替え")
+                ImasFilterSheetToolbar(canReset = true, onReset = ::resetAll, onApply = ::apply, title = "フィルター・並び替え")
 
                 // 表示形式
                 ImasListSection("表示形式") {
@@ -288,22 +288,24 @@ fun SongFilterSheet(
                     )
                 }
 
-                ImasListSection {
-                    ImasToggleRow(
-                        title = "ライブ限定曲を隠す",
-                        subtitle = "セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON",
-                        isOn = excludeLiveOnly,
-                        onCheckedChange = { excludeLiveOnly = it }
-                    )
-                    ImasToggleRow(
-                        title = "「その他」を表示",
-                        subtitle = "歌枠で歌っただけのカバー等。既定では隠しています",
-                        isOn = showOtherBrand,
-                        onCheckedChange = { showOtherBrand = it }
-                    )
-                }
-
+                // 楽曲表示にしか効かない設定なので、アルバム/シリーズ表示では出さない
+                // (出しても効かない設定に見えてしまう。songsMode の条件は表示形式の節を参照)。
                 if (songsMode) {
+                    ImasListSection {
+                        ImasToggleRow(
+                            title = "ライブ限定曲を隠す",
+                            subtitle = "セトリにしか無い曲(カバー等)を一覧から隠します。既定 ON",
+                            isOn = excludeLiveOnly,
+                            onCheckedChange = { excludeLiveOnly = it }
+                        )
+                        ImasToggleRow(
+                            title = "「その他」を表示",
+                            subtitle = "歌枠で歌っただけのカバー等。既定では隠しています",
+                            isOn = showOtherBrand,
+                            onCheckedChange = { showOtherBrand = it }
+                        )
+                    }
+
                     ImasListSection {
                         ImasToggleRow(
                             title = "リミックスを含む",
@@ -313,9 +315,10 @@ fun SongFilterSheet(
                         )
                     }
 
-                    ImasListSection(footer = "音楽カードゲーム KAMISABI にカードがある曲だけ表示します。") {
+                    ImasListSection {
                         ImasToggleRow(
                             title = "KAMISABI収録のみ",
+                            subtitle = "音楽カードゲーム KAMISABI にカードがある曲だけ表示",
                             isOn = kamisabiOnly,
                             onCheckedChange = { kamisabiOnly = it }
                         )
@@ -353,7 +356,11 @@ fun SongFilterSheet(
 
                     // 作詞 / 作曲 / 編曲
                     ImasListSection("作詞 / 作曲 / 編曲者") {
-                        ImasTextFieldRow(title = "名前", text = songwriter, onTextChange = { songwriter = it }, prompt = "名前を入力")
+                        NameFilterField(
+                            prompt = "名前を入力",
+                            value = songwriter,
+                            onValueChange = { songwriter = it }
+                        )
                     }
 
                     ImasListSection("シリーズ") {
@@ -363,7 +370,7 @@ fun SongFilterSheet(
                         ImasNavRow(title = "CDシリーズ", value = cdSeries ?: "選択なし", onClick = { page = FilterPage.CD_SERIES })
                     }
                     ImasListSection("ライブで絞込") {
-                        ImasNavRow(title = "ライブ", value = liveName ?: "選択なし", onClick = { page = FilterPage.LIVE })
+                        ImasNavRow(title = "ライブで絞込", value = liveName ?: "選択なし", onClick = { page = FilterPage.LIVE })
                     }
                 }
             }
