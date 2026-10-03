@@ -27,6 +27,6 @@ class RowMetaCacheTest {
         itemId = itemId, performerLabel = null, unitNames = emptyList(), isFullCast = false,
         ordinal = 1u, ordinalLabel = "", isFirstPerformance = false, previousDate = null,
         sinceLabel = null, noteGroups = emptyList(), sectionHeading = heading, startsSection = true,
-        lineup = null
+        lineup = null, performerNotes = emptyList()
     )
 }

@@ -21,7 +21,7 @@
 //!   実際の遷移は各OSが自分の navigation で行う)
 
 use crate::domain::collection_gap::{collection_interval_label, CollectionGap};
-use crate::domain::performance_gap::{OriginalSingers, PerformanceGap};
+use crate::domain::performance_gap::{OriginalSingerOrdinal, OriginalSingers, PerformanceGap};
 
 // =============================================================================
 // セトリをどれだけ詳しく出すか
@@ -214,61 +214,162 @@ pub fn setlist_public_note_groups(
     groups
 }
 
-/// 「歌唱」の軸: 歌った原唱者 (オリメン) にとって何回目か。
+/// 「歌唱」の軸: **誰がオリメンか**、オリメンにとって何回目か、**誰が初めて歌ったか**。
 ///
 /// ```text
 /// 披露   11 回目
-/// 歌唱   オリメン 4 回目
+/// 歌唱   オリメン 未来・静香 4 回目   翼 初歌唱
 /// ```
 ///
 /// 曲の通算回数はカバーや別ユニットの歌唱でも増えるので、「オリメンとしては何回目か」を
-/// 別の段で添える。**通算と同じ数しか言えない行では出さない** (全部オリメンが歌ってきた曲で
-/// 毎行 2 段になると、珍しくない行まで重くなる)。
+/// 別の段で添える。
+///
+/// **オリメンの名前を出す行** — 歌唱者にオリメンでない人が混ざる・オリメンの一部だけが歌う行
+/// (札が `オリメン+α` / `オリメン 4/5` の行)。札は数しか言わないので、顔ぶれのうち誰が
+/// オリメンかは名前で示す。最初の値の頭に `オリメン` と添える (`オリメン 未来・静香 4 回目`)。
+/// 曲が初披露なら回数は言わない (`オリメン 未来・静香`。初披露は「披露」の段が言う)。
+///
+/// **それ以外の行** (歌唱者が全員オリメン) は、通算と同じ数しか言えないなら出さない
+/// (全部オリメンが歌ってきた曲で毎行 2 段になると、珍しくない行まで重くなる)。
 ///
 /// - 原唱者全員が歌い、全員が同じ回数 … `オリメン 4 回目` (ソロ曲は `本人 4 回目`)
 /// - 歌った原唱者が [`NAMED_SINGERS_MAX`] 人まで … 回数ごとに名前をまとめる
 ///   (`フレデリカ・愛海 4 回目` `雫 3 回目`)。初めてなら `初歌唱` (初披露と同じ強さ)
 /// - それより多い (全体曲など) … 名前を並べると 1 行に収まらないので幅で言う
 ///   (`オリメン 5〜8 回目`)
+///
+/// **オリメンでない人の初歌唱** (新メンバーが受け継いだ・カバーで初めて歌った) は、
+/// 曲が初披露でなければ最後に添える (`翼・美希 初歌唱`、多ければ `5 人 初歌唱`)。
+/// 初披露の曲では全員が初めてなので言わない。
 pub fn setlist_singer_note_group(
     performance: &PerformanceGap,
     singers: &OriginalSingers,
 ) -> Option<SetlistRowNoteGroupRecord> {
     let sung = &singers.sung;
-    if sung.is_empty() || sung.iter().all(|s| s.ordinal == performance.ordinal) {
-        return None;
-    }
-    let note = |subject: &str, ordinal: u32| {
-        if ordinal <= 1 {
-            SetlistRowNoteRecord::new(&format!("{subject} {FIRST_SINGING_NOTE}"), RowNoteTone::Debut)
-        } else {
-            SetlistRowNoteRecord::new(&format!("{subject} {ordinal} 回目"), RowNoteTone::Value)
-        }
+    let names_originals = !sung.is_empty()
+        && sung.len() <= NAMED_SINGERS_MAX
+        && (singers.others_count > 0 || sung.len() < singers.original_count);
+    let mut notes = if names_originals {
+        named_original_notes(performance, sung)
+    } else {
+        original_count_notes(performance, singers)
     };
+    if !performance.is_first {
+        notes.extend(first_time_others_note(&singers.first_time_others));
+    }
+    (!notes.is_empty()).then(|| SetlistRowNoteGroupRecord { label: SINGER_AXIS.to_string(), notes })
+}
+
+/// 回数 1 つぶんの値。1 回目は `初歌唱` (初披露と同じ強さ)。
+fn singer_ordinal_note(subject: &str, ordinal: u32) -> SetlistRowNoteRecord {
+    if ordinal <= 1 {
+        SetlistRowNoteRecord::new(&format!("{subject} {FIRST_SINGING_NOTE}"), RowNoteTone::Debut)
+    } else {
+        SetlistRowNoteRecord::new(&format!("{subject} {ordinal} 回目"), RowNoteTone::Value)
+    }
+}
+
+/// 回数ごとに名前をまとめる。並びは原唱者の並び (最初に出てきた回数から)。
+fn ordinal_buckets(sung: &[OriginalSingerOrdinal]) -> Vec<(u32, Vec<&str>)> {
+    let mut buckets: Vec<(u32, Vec<&str>)> = Vec::new();
+    for s in sung {
+        match buckets.iter_mut().find(|(o, _)| *o == s.ordinal) {
+            Some((_, names)) => names.push(&s.name),
+            None => buckets.push((s.ordinal, vec![&s.name])),
+        }
+    }
+    buckets
+}
+
+/// オリメンの名前を出す行の値。最初の値の頭に `オリメン` を添える。
+fn named_original_notes(
+    performance: &PerformanceGap,
+    sung: &[OriginalSingerOrdinal],
+) -> Vec<SetlistRowNoteRecord> {
+    if performance.is_first {
+        let names: Vec<&str> = sung.iter().map(|s| s.name.as_str()).collect();
+        return vec![SetlistRowNoteRecord::new(
+            &format!("{ALL_ORIGINALS} {}", names.join("・")),
+            RowNoteTone::Value,
+        )];
+    }
+    ordinal_buckets(sung)
+        .iter()
+        .enumerate()
+        .map(|(i, (o, names))| {
+            let names = names.join("・");
+            let subject = if i == 0 { format!("{ALL_ORIGINALS} {names}") } else { names };
+            singer_ordinal_note(&subject, *o)
+        })
+        .collect()
+}
+
+/// 歌唱者が全員オリメンの行 (と、名前を並べきれない行) の値。
+/// 通算と同じ数しか言えないなら何も言わない。
+fn original_count_notes(
+    performance: &PerformanceGap,
+    singers: &OriginalSingers,
+) -> Vec<SetlistRowNoteRecord> {
+    let sung = &singers.sung;
+    if sung.is_empty() || sung.iter().all(|s| s.ordinal == performance.ordinal) {
+        return Vec::new();
+    }
     let min = sung.iter().map(|s| s.ordinal).min().unwrap_or(0);
     let max = sung.iter().map(|s| s.ordinal).max().unwrap_or(0);
-    let notes = if sung.len() == singers.original_count && min == max {
+    if sung.len() == singers.original_count && min == max {
         let subject = if singers.original_count == 1 { SOLO_ORIGINAL } else { ALL_ORIGINALS };
-        vec![note(subject, min)]
+        vec![singer_ordinal_note(subject, min)]
     } else if sung.len() <= NAMED_SINGERS_MAX {
-        // 回数ごとに名前をまとめる。並びは原唱者の並び (最初に出てきた回数から)。
-        let mut buckets: Vec<(u32, Vec<&str>)> = Vec::new();
-        for s in sung {
-            match buckets.iter_mut().find(|(o, _)| *o == s.ordinal) {
-                Some((_, names)) => names.push(&s.name),
-                None => buckets.push((s.ordinal, vec![&s.name])),
-            }
-        }
-        buckets.iter().map(|(o, names)| note(&names.join("・"), *o)).collect()
+        ordinal_buckets(sung)
+            .iter()
+            .map(|(o, names)| singer_ordinal_note(&names.join("・"), *o))
+            .collect()
     } else if min == max {
-        vec![note(ALL_ORIGINALS, min)]
+        vec![singer_ordinal_note(ALL_ORIGINALS, min)]
     } else {
         vec![SetlistRowNoteRecord::new(
             &format!("{ALL_ORIGINALS} {min}〜{max} 回目"),
             RowNoteTone::Value,
         )]
+    }
+}
+
+/// オリメンでない人の初歌唱。名前が多ければ人数で言う。
+fn first_time_others_note(names: &[String]) -> Option<SetlistRowNoteRecord> {
+    if names.is_empty() {
+        return None;
+    }
+    let subject = if names.len() <= NAMED_SINGERS_MAX {
+        names.join("・")
+    } else {
+        format!("{} 人", names.len())
     };
-    Some(SetlistRowNoteGroupRecord { label: SINGER_AXIS.to_string(), notes })
+    Some(SetlistRowNoteRecord::new(&format!("{subject} {FIRST_SINGING_NOTE}"), RowNoteTone::Debut))
+}
+
+/// 歌唱者 1 人ぶんの札 (歌唱者の一覧で名前の横に並べる)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SetlistPerformerNoteRecord {
+    pub idol_id: String,
+    /// `オリメン` (`Value`) と `初歌唱` (`Debut`)。どちらでもなければ空。
+    pub notes: Vec<SetlistRowNoteRecord>,
+}
+
+/// 歌唱者 1 人ぶんの札。**「歌唱」の段と同じ言葉・同じ強さ**で、オリメンか・初めて歌ったか。
+/// 曲が初披露なら全員が初めてなので `初歌唱` は付けない (「披露」の段が言う)。
+pub fn setlist_performer_notes(
+    is_original: bool,
+    ordinal: u32,
+    performance: &PerformanceGap,
+) -> Vec<SetlistRowNoteRecord> {
+    let mut notes = Vec::new();
+    if is_original {
+        notes.push(SetlistRowNoteRecord::new(ALL_ORIGINALS, RowNoteTone::Value));
+    }
+    if ordinal <= 1 && !performance.is_first {
+        notes.push(SetlistRowNoteRecord::new(FIRST_SINGING_NOTE, RowNoteTone::Debut));
+    }
+    notes
 }
 
 /// 「歌唱」の軸で名前を並べる上限。これを超えると回数の幅で言う。
@@ -510,7 +611,7 @@ mod setlist_row_note_tests {
 
     // ---- 歌唱 (オリメンにとって何回目か) ----
 
-    use crate::domain::performance_gap::OriginalSingerOrdinal;
+
 
     fn singers(original_count: usize, sung: &[(&str, u32)]) -> OriginalSingers {
         OriginalSingers {
@@ -519,7 +620,16 @@ mod setlist_row_note_tests {
                 .iter()
                 .map(|&(name, ordinal)| OriginalSingerOrdinal { name: name.to_string(), ordinal })
                 .collect(),
+            others_count: 0,
+            first_time_others: Vec::new(),
         }
+    }
+
+    /// オリメンでない歌唱者を足す (`first` はそのうち初めて歌った人)。
+    fn with_others(mut s: OriginalSingers, count: usize, first: &[&str]) -> OriginalSingers {
+        s.others_count = count;
+        s.first_time_others = first.iter().map(|n| n.to_string()).collect();
+        s
     }
 
     fn singer_axis(total: u32, s: &OriginalSingers) -> Option<(Vec<String>, Vec<RowNoteTone>)> {
@@ -552,20 +662,86 @@ mod setlist_row_note_tests {
         );
     }
 
-    /// 一部だけなら回数ごとに名前をまとめる (原唱者の並びのまま)。
+    /// 一部だけなら、誰がオリメンかを名前で言い、回数ごとにまとめる (原唱者の並びのまま)。
     #[test]
     fn 一部なら回数ごとに名前をまとめる() {
         assert_eq!(
             singer_axis(6, &singers(5, &[("友紀", 3), ("愛海", 3)])),
-            Some((vec!["友紀・愛海 3 回目".to_string()], vec![RowNoteTone::Value]))
+            Some((vec!["オリメン 友紀・愛海 3 回目".to_string()], vec![RowNoteTone::Value]))
         );
         assert_eq!(
             singer_axis(9, &singers(5, &[("フレデリカ", 4), ("雫", 1), ("愛海", 4)])),
             Some((
-                vec!["フレデリカ・愛海 4 回目".to_string(), "雫 初歌唱".to_string()],
+                vec!["オリメン フレデリカ・愛海 4 回目".to_string(), "雫 初歌唱".to_string()],
                 vec![RowNoteTone::Value, RowNoteTone::Debut]
             ))
         );
+    }
+
+    /// オリメン+α の行は、通算と同じ回数でも誰がオリメンかを言う (札は数しか言わない)。
+    #[test]
+    fn オリメン以外が混ざる行はオリメンの名前を出す() {
+        let s = with_others(singers(2, &[("千早", 4), ("美希", 4)]), 1, &[]);
+        assert_eq!(
+            singer_axis(4, &s),
+            Some((vec!["オリメン 千早・美希 4 回目".to_string()], vec![RowNoteTone::Value]))
+        );
+        // 曲が初披露なら回数は言わず、名前だけ。
+        assert_eq!(
+            singer_axis(1, &s),
+            Some((vec!["オリメン 千早・美希".to_string()], vec![RowNoteTone::Value]))
+        );
+    }
+
+    /// オリメンでない人の初歌唱は最後に添える。初披露の曲では全員初めてなので言わない。
+    #[test]
+    fn オリメンでない人の初歌唱を添える() {
+        let s = with_others(singers(2, &[("千早", 4), ("美希", 4)]), 2, &["翼", "静香"]);
+        assert_eq!(
+            singer_axis(4, &s),
+            Some((
+                vec!["オリメン 千早・美希 4 回目".to_string(), "翼・静香 初歌唱".to_string()],
+                vec![RowNoteTone::Value, RowNoteTone::Debut]
+            ))
+        );
+        // カバー (オリメン不在) でも初歌唱は言う。
+        let cover = with_others(singers(5, &[]), 2, &["翼", "静香"]);
+        assert_eq!(
+            singer_axis(11, &cover),
+            Some((vec!["翼・静香 初歌唱".to_string()], vec![RowNoteTone::Debut]))
+        );
+        // 多ければ人数で。
+        let many = with_others(singers(5, &[]), 5, &["a", "b", "c", "d", "e"]);
+        assert_eq!(
+            singer_axis(11, &many),
+            Some((vec!["5 人 初歌唱".to_string()], vec![RowNoteTone::Debut]))
+        );
+        let first = with_others(singers(5, &[]), 2, &["翼", "静香"]);
+        assert_eq!(singer_axis(1, &first), None, "初披露の曲では言わない");
+    }
+
+    /// 歌唱者の一覧の札: オリメンと初歌唱。初披露の曲では初歌唱を付けない。
+    #[test]
+    fn 歌唱者の札はオリメンと初歌唱() {
+        let texts = |is_original, ordinal, total: u32| {
+            let mut performance = gap(total == 1, "", None);
+            performance.ordinal = total;
+            setlist_performer_notes(is_original, ordinal, &performance)
+                .into_iter()
+                .map(|n| (n.text, n.tone))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(texts(true, 4, 6), vec![("オリメン".to_string(), RowNoteTone::Value)]);
+        assert_eq!(
+            texts(true, 1, 6),
+            vec![
+                ("オリメン".to_string(), RowNoteTone::Value),
+                ("初歌唱".to_string(), RowNoteTone::Debut)
+            ]
+        );
+        assert_eq!(texts(false, 1, 6), vec![("初歌唱".to_string(), RowNoteTone::Debut)]);
+        assert_eq!(texts(false, 3, 6), vec![]);
+        assert_eq!(texts(false, 1, 1), vec![], "初披露の曲では初歌唱を付けない");
     }
 
     /// 名前が多すぎる (全体曲など) ときは幅で言う。1 行に収まらない名前の列は読めない。

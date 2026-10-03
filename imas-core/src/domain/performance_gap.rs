@@ -175,37 +175,84 @@ pub struct OriginalSingers {
     pub original_count: usize,
     /// この披露で歌った原唱者 (原唱者の並び順)。歌った原唱者がいなければ空。
     pub sung: Vec<OriginalSingerOrdinal>,
+    /// この披露で歌った、原唱者でない人の数。いれば「誰がオリメンか」は顔ぶれから読めない。
+    pub others_count: usize,
+    /// 原唱者でない歌唱者のうち、この披露で**初めてその曲を歌った人**の短い名 (歌唱者の並び順)。
+    /// 新メンバーが既存曲を受け継いだ・カバーで初めて歌った、の類。
+    pub first_time_others: Vec<String>,
 }
 
-/// その披露 (`setlist_items` の添字) で歌った原唱者それぞれの、その時点での回数。
-/// 数える世界は [`performance_gap`] と同じ (上映会は入らない・同日は公演順)。
-pub fn original_singers(snap: &Snapshot, item: u32) -> OriginalSingers {
-    let row = &snap.setlist_items[item as usize];
+/// 歌唱者 1 人ぶんの、オリメンか・初めて歌ったか。セトリ行の歌唱者の並び順で返す。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RowSinger {
+    /// スナップショットの idol 添字。
+    pub idol: u32,
+    pub is_original: bool,
+    /// この披露がその人にとって何回目か (1 = 初めて歌った)。
+    pub ordinal: u32,
+}
+
+/// その曲の原唱者 (重複を除いた原唱者の並び)。
+fn original_idols(snap: &Snapshot, song: u32) -> Vec<u32> {
     let mut seen = HashSet::new();
-    let originals: Vec<u32> = snap.artists_by_song[row.song as usize]
+    snap.artists_by_song[song as usize]
         .iter()
         .filter(|l| l.role == "original")
         .map(|l| l.idol)
         .filter(|&idol| seen.insert(idol))
-        .collect();
-    let performers = &snap.performers_by_item[item as usize];
+        .collect()
+}
+
+/// その人がその披露の時点までにその曲を歌った回数 (その披露を含む)。
+fn singer_ordinal(snap: &Snapshot, item: u32, idol: u32) -> u32 {
+    let row = &snap.setlist_items[item as usize];
     let key = chronological_key(snap, item);
-    let history = &snap.setlist_items_by_song[row.song as usize];
+    snap.setlist_items_by_song[row.song as usize]
+        .iter()
+        .filter(|&&i| {
+            chronological_key(snap, i) <= key && snap.performers_by_item[i as usize].contains(&idol)
+        })
+        .count() as u32
+}
+
+/// その披露の歌唱者 1 人ずつの、オリメンか・何回目か (歌唱者の並び順)。
+/// 数える世界は [`performance_gap`] と同じ (上映会は入らない・同日は公演順)。
+pub fn row_singers(snap: &Snapshot, item: u32) -> Vec<RowSinger> {
+    let row = &snap.setlist_items[item as usize];
+    let originals = original_idols(snap, row.song);
+    let mut seen = HashSet::new();
+    snap.performers_by_item[item as usize]
+        .iter()
+        .copied()
+        .filter(|&idol| seen.insert(idol))
+        .map(|idol| RowSinger {
+            idol,
+            is_original: originals.contains(&idol),
+            ordinal: singer_ordinal(snap, item, idol),
+        })
+        .collect()
+}
+
+/// その披露 (`setlist_items` の添字) で歌った原唱者それぞれの、その時点での回数と、
+/// 原唱者でない歌唱者のうち初めて歌った人。
+/// 数える世界は [`performance_gap`] と同じ (上映会は入らない・同日は公演順)。
+pub fn original_singers(snap: &Snapshot, item: u32) -> OriginalSingers {
+    let row = &snap.setlist_items[item as usize];
+    let originals = original_idols(snap, row.song);
+    let singers = row_singers(snap, item);
+    let name = |idol: u32| snap.idols[idol as usize].short_name().to_string();
     let sung = originals
         .iter()
-        .filter(|idol| performers.contains(idol))
-        .map(|&idol| OriginalSingerOrdinal {
-            name: snap.idols[idol as usize].short_name().to_string(),
-            ordinal: history
-                .iter()
-                .filter(|&&i| {
-                    chronological_key(snap, i) <= key
-                        && snap.performers_by_item[i as usize].contains(&idol)
-                })
-                .count() as u32,
-        })
+        .filter_map(|&idol| singers.iter().find(|s| s.idol == idol))
+        .map(|s| OriginalSingerOrdinal { name: name(s.idol), ordinal: s.ordinal })
         .collect();
-    OriginalSingers { original_count: originals.len(), sung }
+    let others: Vec<&RowSinger> = singers.iter().filter(|s| !s.is_original).collect();
+    OriginalSingers {
+        original_count: originals.len(),
+        sung,
+        others_count: others.len(),
+        first_time_others: others.iter().filter(|s| s.ordinal <= 1).map(|s| name(s.idol)).collect(),
+    }
 }
 
 /// 古い順に並べるキー。同じ日の昼夜は `shows.sort_order` → セトリ内の `position` の順。

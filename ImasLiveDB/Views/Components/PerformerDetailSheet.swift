@@ -8,6 +8,9 @@ struct PerformerDetailSheet: View {
     /// 突き合わせ直していた (2 本が食い違い得る不変条件を人が守る必要があり、
     /// 人数分の線形探索も走っていた)。組むのは呼び出し側の仕事。
     let performers: [ResolvedPerformer]
+    /// idol_id → その人の札 (`オリメン` / `初歌唱`)。付けるか・言葉・強さは imas-core
+    /// (`SetlistRowMetaRecord.performerNotes`)。札の無い人は入っていない。
+    var notesByIdolId: [String: [SetlistRowNoteRecord]] = [:]
     let navigate: (DetailDestination) -> Void
 
     @State private var imageService = CustomImageService.shared
@@ -30,7 +33,11 @@ struct PerformerDetailSheet: View {
                                             imageURL: imageService.imageURL(for: performer.idol.id)),
                             trailing: .chevron,
                             titleLineLimit: 1
-                        )
+                        ) {
+                            if let notes = notesByIdolId[performer.idol.id], !notes.isEmpty {
+                                ImasNoteBadges(notes: notes)
+                            }
+                        }
                     }
                     .buttonStyle(.imasRow)
                 }

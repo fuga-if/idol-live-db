@@ -307,7 +307,15 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
 }
 
 /**
- * 1 つの軸の値を 1 本の文字に連結する。折り返しは文として扱われ、語の途中で割れない。
+ * 値 1 つを途中で折り返さない文字列にする (iOS `ImasSetlistRow.unbreakable`)。空白は改行しない空白に、
+ * 字と字の間は単語結合子で繋ぐ (日本語は字の間でも折り返せるため、空白だけでは足りない)。
+ * 「13 / 人 初歌唱」のように値の途中で割れると読めない。1 行に収まらない長さのときは、それでも折り返す。
+ */
+internal fun unbreakableNote(text: String): String =
+    text.map { if (it == ' ') "\u00A0" else it.toString() }.joinToString("\u2060")
+
+/**
+ * 1 つの軸の値を 1 本の文字に連結する。折り返すのは値と値の間だけ ([unbreakableNote])。
  * 事実 1 つの見え方は **判断しない** — コアが付けた [RowNoteTone] に対応表を当てるだけ。
  * 色だけで意味を分けず、自分の記録 (回収 / 未回収) には印を付ける。
  */
@@ -321,18 +329,18 @@ private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier
         notes.forEachIndexed { index, note ->
             if (index > 0) append("  ")
             when (note.tone) {
-                RowNoteTone.VALUE -> withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Medium)) { append(note.text) }
-                RowNoteTone.DETAIL -> withStyle(SpanStyle(color = ink3)) { append(note.text) }
-                RowNoteTone.DEBUT -> withStyle(SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) { append(note.text) }
+                RowNoteTone.VALUE -> withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Medium)) { append(unbreakableNote(note.text)) }
+                RowNoteTone.DETAIL -> withStyle(SpanStyle(color = ink3)) { append(unbreakableNote(note.text)) }
+                RowNoteTone.DEBUT -> withStyle(SpanStyle(color = accent, fontWeight = FontWeight.Bold)) { append(unbreakableNote(note.text)) }
                 RowNoteTone.MINE -> {
                     appendInlineContent(MineMarkId, "✓")
                     append(" ")
-                    withStyle(SpanStyle(color = mine, fontWeight = FontWeight.SemiBold)) { append(note.text) }
+                    withStyle(SpanStyle(color = mine, fontWeight = FontWeight.SemiBold)) { append(unbreakableNote(note.text)) }
                 }
                 RowNoteTone.MISSING -> {
                     appendInlineContent(MissingMarkId, "○")
                     append(" ")
-                    withStyle(SpanStyle(color = ink2)) { append(note.text) }
+                    withStyle(SpanStyle(color = ink2)) { append(unbreakableNote(note.text)) }
                 }
             }
         }
@@ -607,6 +615,32 @@ private fun ReasonLine(label: String?, reason: String?, performers: List<ImasPer
                 modifier = Modifier
                     .weight(1f)
                     .alignByBaseline()
+            )
+        }
+    }
+}
+
+/**
+ * 1 人ぶんの事実の札 (歌唱者の一覧で名前の下に並べる `オリメン` / `初歌唱`。iOS `ImasNoteBadges`)。
+ * **言葉も強さ (`tone`) も共有コアが決める** — ここは強さに札の見え方を当てるだけ。
+ * 初歌唱 (`DEBUT`) は墨の線で囲んで、灰の地のオリメンの札より先に目に入るようにする。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ImasNoteBadges(notes: List<SetlistRowNoteRecord>, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        notes.forEach { note ->
+            ImasBadge(
+                note.text,
+                kind = when (note.tone) {
+                    RowNoteTone.DEBUT -> ImasBadgeKind.ATTENTION
+                    RowNoteTone.MINE -> ImasBadgeKind.POSITIVE
+                    RowNoteTone.VALUE, RowNoteTone.DETAIL, RowNoteTone.MISSING -> ImasBadgeKind.NEUTRAL
+                }
             )
         }
     }

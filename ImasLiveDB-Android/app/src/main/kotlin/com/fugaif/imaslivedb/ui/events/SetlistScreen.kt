@@ -96,6 +96,8 @@ import com.fugaif.imaslivedb.ui.components.PerformerChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatarStack
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoteBadges
+import com.fugaif.imaslivedb.ui.designsystem.unbreakableNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
@@ -121,6 +123,7 @@ import uniffi.imas_core.PerformerNameMode
 import uniffi.imas_core.RowNoteTone
 import uniffi.imas_core.Lineup
 import uniffi.imas_core.SetlistLineupNote
+import uniffi.imas_core.SetlistPerformerNoteRecord
 import uniffi.imas_core.SetlistRowNoteGroupRecord
 import uniffi.imas_core.SetlistRowNoteRecord
 import uniffi.imas_core.setlistDisplayModeIsCompact
@@ -557,6 +560,7 @@ private fun LazyListScope.setlistTabContent(
                             unitNames = meta?.unitNames.orEmpty(),
                             isFullCast = meta?.isFullCast == true,
                             lineup = meta?.lineup,
+                            performerNotes = meta?.performerNotes.orEmpty(),
                             noteGroups = meta?.noteGroups.orEmpty(),
                             performerName = performerName,
                             isCharacterLive = isCharacterLive,
@@ -731,20 +735,20 @@ private fun NoteGroupValues(notes: List<SetlistRowNoteRecord>, accent: Color, mo
             if (index > 0) append("  ")
             when (note.tone) {
                 RowNoteTone.VALUE ->
-                    withStyle(SpanStyle(color = DS.ink, fontWeight = FontWeight.Medium)) { append(note.text) }
+                    withStyle(SpanStyle(color = DS.ink, fontWeight = FontWeight.Medium)) { append(unbreakableNote(note.text)) }
                 RowNoteTone.DETAIL ->
-                    withStyle(SpanStyle(color = DS.ink3)) { append(note.text) }
+                    withStyle(SpanStyle(color = DS.ink3)) { append(unbreakableNote(note.text)) }
                 RowNoteTone.DEBUT ->
-                    withStyle(SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) { append(note.text) }
+                    withStyle(SpanStyle(color = accent, fontWeight = FontWeight.Bold)) { append(unbreakableNote(note.text)) }
                 RowNoteTone.MINE -> {
                     appendInlineContent(MINE_MARK_ID, "[v]")
                     append(" ")
-                    withStyle(SpanStyle(color = DS.success, fontWeight = FontWeight.SemiBold)) { append(note.text) }
+                    withStyle(SpanStyle(color = DS.success, fontWeight = FontWeight.SemiBold)) { append(unbreakableNote(note.text)) }
                 }
                 RowNoteTone.MISSING -> {
                     appendInlineContent(MISSING_MARK_ID, "[o]")
                     append(" ")
-                    withStyle(SpanStyle(color = DS.ink2)) { append(note.text) }
+                    withStyle(SpanStyle(color = DS.ink2)) { append(unbreakableNote(note.text)) }
                 }
             }
         }
@@ -968,6 +972,11 @@ private fun SetlistItemRow(
      */
     lineup: SetlistLineupNote?,
     /**
+     * 歌唱者 1 人ずつの札 (`オリメン` / `初歌唱`)。歌唱者の一覧シートで名前の下に出す。
+     * 付けるか・言葉は共有コア (`SetlistRowMetaRecord.performerNotes`)。
+     */
+    performerNotes: List<SetlistPerformerNoteRecord> = emptyList(),
+    /**
      * この披露についての事実を、軸 (`披露` / `回収`) ごとにまとめたもの。
      * **軸の分け方も、ラベルも、順も、どれを強く見せるか (`tone`) も共有コアが決める**
      * ので、ここは受け取った順に並べるだけ。詳細表示以外では必ず空で来る。
@@ -1126,6 +1135,7 @@ private fun SetlistItemRow(
             songTitle = item.songTitle,
             performers = performers,
             idolsById = idolsById,
+            notesByIdolId = performerNotes.associate { it.idolId to it.notes },
             performerName = performerName,
             isCharacterLive = isCharacterLive,
             onSelectIdol = { idolId ->
@@ -1147,6 +1157,8 @@ private fun PerformerListSheet(
     songTitle: String,
     performers: List<PerformerRow>,
     idolsById: Map<String, Idol>,
+    /** idol_id → その人の札 (`オリメン` / `初歌唱`)。付けるか・言葉・強さは共有コア。 */
+    notesByIdolId: Map<String, List<SetlistRowNoteRecord>>,
     performerName: PerformerNameMode,
     isCharacterLive: Boolean,
     onSelectIdol: (String) -> Unit,
@@ -1165,6 +1177,7 @@ private fun PerformerListSheet(
             ImasCardList(items = performers, key = { it.id }) { performer ->
                 val name = performer.displayName(performerName, isCharacterLive)
                 val idol = performer.idolId?.let { idolsById[it] }
+                val notes = performer.idolId?.let { notesByIdolId[it] }.orEmpty()
                 ImasRow(
                     title = name.primary,
                     subtitle = name.secondary,
@@ -1177,7 +1190,8 @@ private fun PerformerListSheet(
                     titleLineLimit = 1,
                     modifier = Modifier.imasRowPress(enabled = performer.idolId != null) {
                         performer.idolId?.let(onSelectIdol)
-                    }
+                    },
+                    detail = if (notes.isNotEmpty()) ({ ImasNoteBadges(notes) }) else null
                 )
             }
         }

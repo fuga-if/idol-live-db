@@ -22,11 +22,13 @@ use crate::domain::collection_gap::{
     attended_real_live_shows, collection_gap, is_real_live, show_collection_summary, CollectionGap,
     ShowCollectionRecord,
 };
-use crate::domain::performance_gap::{is_performance, original_singers, performance_gap};
+use crate::domain::performance_gap::{
+    is_performance, original_singers, performance_gap, row_singers,
+};
 use crate::domain::performer_label::{setlist_performer_label, SetlistNaming};
 use crate::domain::screen_composition::{
-    setlist_public_note_groups, setlist_row_note_groups, SetlistDisplayMode,
-    SetlistRowNoteGroupRecord,
+    setlist_performer_notes, setlist_public_note_groups, setlist_row_note_groups,
+    SetlistDisplayMode, SetlistPerformerNoteRecord, SetlistRowNoteGroupRecord,
 };
 use crate::domain::setlist_lineup::{row_lineup, RowLineup, SetlistLineupNote};
 use crate::domain::setlist_sections::row_sections;
@@ -76,6 +78,9 @@ pub struct SetlistRowMetaRecord {
     /// 付けない行 (判定できない・ソロ曲を本人が歌う・全員曲の部分一致) は `None`。
     /// 規則も文言も [`crate::domain::setlist_lineup`] (Web と同じ)。
     pub lineup: Option<SetlistLineupNote>,
+    /// 歌唱者 1 人ずつの札 (`オリメン` / `初歌唱`)。歌唱者の一覧で名前の横に並べる。
+    /// 札の無い人は入らない。上映会の行 (披露ではない) は空。表示モードに関係なく入る。
+    pub performer_notes: Vec<SetlistPerformerNoteRecord>,
 }
 
 /// 公演 1 つぶんの添え物ひとまとめ。
@@ -193,8 +198,23 @@ pub fn setlist_row_meta(
             let gap = performance_gap(snap, item);
             let mine = collection_gap(snap, item, &attended);
             // 上映会の行は披露ではないので、世の中から見た軸 (披露・歌唱) を持たない。
-            let public = if is_performance(snap, item) {
+            let performance = is_performance(snap, item);
+            let public = if performance {
                 setlist_public_note_groups(&gap, &original_singers(snap, item))
+            } else {
+                Vec::new()
+            };
+            let performer_notes = if performance {
+                row_singers(snap, item)
+                    .into_iter()
+                    .filter_map(|s| {
+                        let notes = setlist_performer_notes(s.is_original, s.ordinal, &gap);
+                        (!notes.is_empty()).then(|| SetlistPerformerNoteRecord {
+                            idol_id: snap.idols[s.idol as usize].id.clone(),
+                            notes,
+                        })
+                    })
+                    .collect()
             } else {
                 Vec::new()
             };
@@ -218,6 +238,7 @@ pub fn setlist_row_meta(
                 section_heading: section.heading,
                 starts_section: section.starts,
                 lineup,
+                performer_notes,
             }
         })
         .collect();
@@ -318,7 +339,7 @@ mod tests {
             .map(|g| (g.label.as_str(), g.notes.iter().map(|n| n.text.as_str()).collect()))
             .collect();
         assert_eq!(axes[0], ("披露", vec!["6 回目", "3 か月ぶり"]));
-        assert_eq!(axes[1], ("歌唱", vec!["友紀・愛海 3 回目"]));
+        assert_eq!(axes[1], ("歌唱", vec!["オリメン 友紀・愛海 3 回目"]));
     }
 
     /// 依頼の実例。エミリー スチュアートと徳川まつりの 2 人が歌うが、

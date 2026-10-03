@@ -26,6 +26,9 @@ struct SetlistRowView: View {
     /// オリメンの札 (`オリメン` / `オリメン+α` / `オリメン 4/5` / `オリメン不在`)。
     /// 付けるか・文言はコア (`SetlistRowMetaRecord.lineup`) が決める。nil = 付けない。
     var lineup: SetlistLineupNote? = nil
+    /// 歌唱者 1 人ずつの札 (`オリメン` / `初歌唱`)。歌唱者の一覧シートで名前の下に出す。
+    /// 付けるか・言葉はコア (`SetlistRowMetaRecord.performerNotes`)。
+    var performerNotes: [SetlistPerformerNoteRecord] = []
     /// 担当アイドル ID。 performer に含まれていれば担当認知 (アバターの二重輪) に委ねる。
     var myPickIdolIds: Set<String> = []
     /// 公演 ID (post-vote like で使う)。
@@ -241,7 +244,9 @@ struct SetlistRowView: View {
         .sheet(isPresented: $showPerformersSheet) {
             PerformerDetailSheet(
                 songTitle: item.songTitle,
-                performers: resolvedPerformers
+                performers: resolvedPerformers,
+                notesByIdolId: Dictionary(performerNotes.map { ($0.idolId, $0.notes) },
+                                          uniquingKeysWith: { first, _ in first })
             ) { dest in
                 showPerformersSheet = false
                 go(dest)

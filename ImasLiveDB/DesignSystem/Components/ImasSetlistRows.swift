@@ -188,12 +188,20 @@ struct ImasSetlistRow: View {
         }
     }
 
-    /// 1 つの軸の値を 1 本の `Text` に連結する。折り返しは文として扱われ、語の途中で割れない。
+    /// 1 つの軸の値を 1 本の `Text` に連結する。折り返すのは値と値の間だけ
+    /// (値の中は `unbreakable` で繋ぐ。「13 / 人 初歌唱」のように値の途中で割れると読めない)。
     private static func notesText(_ notes: [SetlistRowNoteRecord], accent: Color) -> Text {
         notes.enumerated().reduce(Text("")) { acc, pair in
             let (index, note) = pair
             return acc + (index == 0 ? Text("") : Text("  ")) + noteText(note, accent: accent)
         }
+    }
+
+    /// 値 1 つを途中で折り返さない文字列にする。空白は改行しない空白に、字と字の間は
+    /// 単語結合子で繋ぐ (日本語は字の間でも折り返せるため、空白だけでは足りない)。
+    /// 1 行に収まらない長さのときは、OS がそれでも折り返す。
+    static func unbreakable(_ text: String) -> String {
+        text.map { $0 == " " ? "\u{00A0}" : String($0) }.joined(separator: "\u{2060}")
     }
 
     /// 事実 1 つの見え方。**判断はしない** — core が付けた `tone` に対応表を当てるだけ。
@@ -202,23 +210,47 @@ struct ImasSetlistRow: View {
     private static func noteText(_ note: SetlistRowNoteRecord, accent: Color) -> Text {
         switch note.tone {
         case .value:
-            return Text(note.text).font(.imasCaption.weight(.medium)).foregroundColor(DS.ink)
+            return Text(unbreakable(note.text)).font(.imasCaption.weight(.medium)).foregroundColor(DS.ink)
         case .detail:
-            return Text(note.text).foregroundColor(DS.ink3)
+            return Text(unbreakable(note.text)).foregroundColor(DS.ink3)
         case .debut:
-            return Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(accent)
+            // 初披露・初歌唱。行でいちばん珍しい事実なので、太字 + 曲の色で一番強く出す。
+            return Text(unbreakable(note.text)).font(.imasCaption.weight(.bold)).foregroundColor(accent)
         case .mine:
             return Text(Image(systemName: "checkmark"))
                 .font(.imasCaption2.weight(.semibold))
                 .foregroundColor(DS.successInk)
                 + Text(" ")
-                + Text(note.text).font(.imasCaption.weight(.semibold)).foregroundColor(DS.successInk)
+                + Text(unbreakable(note.text)).font(.imasCaption.weight(.semibold)).foregroundColor(DS.successInk)
         case .missing:
             return Text(Image(systemName: "circle.dotted"))
                 .font(.imasCaption2)
                 .foregroundColor(DS.ink3)
                 + Text(" ")
-                + Text(note.text).foregroundColor(DS.ink2)
+                + Text(unbreakable(note.text)).foregroundColor(DS.ink2)
+        }
+    }
+}
+
+/// 1 人ぶんの事実の札 (歌唱者の一覧で名前の下に並べる `オリメン` / `初歌唱`)。
+/// **言葉も強さ (`tone`) も imas-core が決める** — ここは強さに札の見え方を当てるだけ。
+/// 初歌唱 (`debut`) は墨の線で囲んで、灰の地のオリメンの札より先に目に入るようにする。
+struct ImasNoteBadges: View {
+    let notes: [SetlistRowNoteRecord]
+
+    var body: some View {
+        FlowLayout(spacing: 6) {
+            ForEach(Array(notes.enumerated()), id: \.offset) { _, note in
+                ImasBadge(text: note.text, kind: Self.kind(note.tone))
+            }
+        }
+    }
+
+    private static func kind(_ tone: RowNoteTone) -> ImasBadge.Kind {
+        switch tone {
+        case .debut: .attention
+        case .mine: .positive
+        case .value, .detail, .missing: .neutral
         }
     }
 }

@@ -175,6 +175,7 @@ struct SetlistView: View {
                 performerName: performerName,
                 isCharacterLive: show.isCharacterLive,
                 lineup: meta?.lineup,
+                performerNotes: meta?.performerNotes ?? [],
                 myPickIdolIds: myPickIdolIds,
                 showId: show.id,
                 showName: shareName,
