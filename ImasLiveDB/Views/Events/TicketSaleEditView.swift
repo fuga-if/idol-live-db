@@ -75,7 +75,7 @@ struct TicketSaleEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original {
-                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true)
                     }
                     ImasTextFieldRow(title: "受付名 (例: 最速先行抽選)", text: $name)
                     ImasMenuRow(title: "種別", options: Self.kinds, selection: $kind, label: kindLabel)

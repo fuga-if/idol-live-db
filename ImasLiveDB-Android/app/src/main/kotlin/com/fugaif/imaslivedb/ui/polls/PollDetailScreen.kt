@@ -36,7 +36,6 @@ import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
-import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
@@ -277,11 +276,6 @@ private fun PollEntryRow(
     val previewUrl = if (targetType == "song") safeHttp(song?.previewUrl) else null
     val playback by AudioPreviewManager.playbackState.collectAsState()
     val isPreviewing = previewUrl != null && song != null && playback.isPlaying(song.id)
-    val copyItems = when (targetType) {
-        "song" -> song?.let { listOf(CopyItem("曲名をコピー", it.title), CopyItem("よみをコピー", it.titleKana), CopyItem("歌唱者をコピー", it.singerLabel)) }
-        "idol" -> idol?.let { listOf(CopyItem("アイドル名をコピー", it.name), CopyItem("よみをコピー", it.nameKana)) }
-        else -> null
-    } ?: emptyList()
     val share = if (totalVotes > 0) entry.voteCount.toDouble() / totalVotes else 0.0
     // 未投票だが残票が無い (この候補にはこれ以上投票できない)。
     val voteDisabled = !entry.mine && remaining <= 0
@@ -306,7 +300,6 @@ private fun PollEntryRow(
         votedLabel = "投票済み",
         voteAccessibilityLabel = "投票",
         votedAccessibilityLabel = "投票を取消",
-        voteDisabled = voteDisabled,
-        copyItems = copyItems
+        voteDisabled = voteDisabled
     )
 }

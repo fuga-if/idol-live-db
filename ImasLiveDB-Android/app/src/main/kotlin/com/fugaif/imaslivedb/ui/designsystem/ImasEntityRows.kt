@@ -12,8 +12,6 @@ import androidx.compose.ui.text.AnnotatedString
 import com.fugaif.imaslivedb.data.model.Event
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ImasUnit
-import com.fugaif.imaslivedb.ui.components.CopyItem
-import com.fugaif.imaslivedb.ui.components.RowAction
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.spokenDate
@@ -42,9 +40,7 @@ import uniffi.imas_core.spokenDate
  * @param brand ジャケが無いときの面とリードバーの色 (ブランド ID。iOS の `brandHex`)。[seed] は色 hex で直に渡すとき。
  * @param showsBrandBar 行頭にブランドの色の帯を立てる (楽曲一覧)。
  * @param previewUrl 試聴できる音源。渡すとジャケのタップが行のタップと別に試聴を切り替える ([onPreviewTap])。
- * @param copyItems 長押しでコピーできる項目 (曲名・よみ・歌唱者など)。空なら長押しを付けない。
  * @param attributedSubtitle 副題の代わりに強調付きの文字 (絞り込みで当たった歌唱者に色を敷くなど)。
- * @param actions 長押しメニューに足す、コピー以外の操作 (行から直に習熟度を変えるなど)。
  */
 @Composable
 fun ImasSongRow(
@@ -63,8 +59,6 @@ fun ImasSongRow(
     emphasis: ImasRowEmphasis = ImasRowEmphasis.NORMAL,
     attributedTitle: AnnotatedString? = null,
     attributedSubtitle: AnnotatedString? = null,
-    copyItems: List<CopyItem> = emptyList(),
-    actions: List<RowAction> = emptyList(),
     onClick: (() -> Unit)? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -101,14 +95,13 @@ fun ImasSongRow(
             detail = detail
         )
     }
-    ImasCopyableRow(items = copyItems, modifier = modifier.fillMaxWidth(), onClick = onClick, actions = actions, content = row)
+    ImasPressableRow(modifier = modifier.fillMaxWidth(), onClick = onClick, content = row)
 }
 
 // MARK: - アイドル
 
 /**
  * アイドルの行 (iOS `ImasIdolRow`)。先頭はアイコン (写真、無ければ略称の判子。担当は二重の輪)。
- * 長押しで名前とよみをコピーできる。
  *
  * @param subtitle 既定はブランドの略称など (呼び出し側が組む)。
  * @param brand アイドル本人の色が無いときのブランド ID。null なら [Idol.brandId]。
@@ -125,11 +118,7 @@ fun ImasIdolRow(
     onClick: (() -> Unit)? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
-    ImasCopyableRow(
-        items = listOf(CopyItem("アイドル名をコピー", idol.name), CopyItem("よみをコピー", idol.nameKana)),
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
+    ImasPressableRow(modifier = modifier.fillMaxWidth(), onClick = onClick) {
         ImasRow(
             title = idol.name,
             subtitle = subtitle,
@@ -177,7 +166,7 @@ fun ImasUnitRow(
 
 /**
  * ライブ 1 件の行 (iOS `ImasEventRow`)。半券の形 (左に初日、右にライブ名と日付・会場)。
- * 題はライブ名の作品名を省いた形 (設定に従う)、長押しで正式名称をコピー。
+ * 題はライブ名の作品名を省いた形 (設定に従う)。
  *
  * @param date 初日 (`yyyy-MM-dd`)。半券の日付欄に出す。null なら横棒。
  * @param subtitle 会場・期間 (「Kアリーナ横浜 · 〜 11/8 (日)」)。
@@ -201,11 +190,7 @@ fun ImasEventRow(
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     val spoken = remember(date) { date?.let { spokenDate(it) } }
-    ImasCopyableRow(
-        items = listOf(CopyItem("ライブ名をコピー", event.name)),
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
+    ImasPressableRow(modifier = modifier.fillMaxWidth(), onClick = onClick) {
         ImasStubRow(
             date = date?.let { ImasStubDate(it) } ?: ImasStubDate.Unknown,
             title = AppPreferences.eventDisplayName(event.name),

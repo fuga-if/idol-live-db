@@ -420,7 +420,7 @@ struct ImasCardListRows<Data: RandomAccessCollection, ID: Hashable, Row: View>: 
 
 // MARK: - 項目と値の行
 
-/// 「項目: 値」の行 (よみ・CV・会場・キャパ・価格)。長押しで値をコピーできる。
+/// 「項目: 値」の行 (よみ・CV・会場・キャパ・価格)。
 struct ImasValueRow: View {
     let key: String
     let value: String
@@ -430,7 +430,9 @@ struct ImasValueRow: View {
     var expandable: Bool = false
     /// 数字を等幅にする。
     var monospaced: Bool = false
-    var copyable: Bool = true
+    /// 長押しで値をコピーできるようにする (既定は付けない)。一覧や情報の行に長押しのメニューを付けると
+    /// スクロールの邪魔になるので、開発者向けの診断の値のように取り出す用途がはっきりした行だけで使う。
+    var copyable: Bool = false
 
     @Environment(\.imasRowPosition) private var position
     @State private var expanded = false

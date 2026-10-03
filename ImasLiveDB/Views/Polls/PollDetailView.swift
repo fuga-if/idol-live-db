@@ -476,22 +476,6 @@ private struct PollEntryRow: View {
     }
 
     /// 長押しでコピーできる項目 (曲名・よみ・歌唱者 / アイドル名・よみ)。ユニットは前どおり無し。
-    private var copyItems: [CopyItem] {
-        switch targetType {
-        case .song:
-            guard let resolvedSong else { return [] }
-            return [CopyItem("曲名をコピー", resolvedSong.title, key: "song_title"),
-                    CopyItem("よみをコピー", resolvedSong.titleKana, key: "kana"),
-                    CopyItem("歌唱者をコピー", resolvedSong.singerLabel, key: "artists")]
-        case .idol:
-            guard let resolvedIdol else { return [] }
-            return [CopyItem("アイドル名をコピー", resolvedIdol.name, key: "idol_name"),
-                    CopyItem("よみをコピー", resolvedIdol.nameKana, key: "kana")]
-        case .unit:
-            return []
-        }
-    }
-
     var body: some View {
         ImasForecastRow(
             rank: rank,
@@ -522,7 +506,6 @@ private struct PollEntryRow: View {
             voteDisabled: voteDisabled || lockedByOther,
             isVoteLoading: isBusy,
             showsChevron: true,
-            copyItems: copyItems,
             combineAccessibility: false
         )
         // Button でラップすると内側のジャケ写プレビュー再生タップが吸われてしまう

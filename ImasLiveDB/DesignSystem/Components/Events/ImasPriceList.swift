@@ -20,8 +20,6 @@ struct ImasPriceList: View {
         var note: String? = nil
         /// 価格帯の内訳行 (少し下げて小さく出す)。
         var indented: Bool = false
-        /// 長押しで「〈券種〉をコピー」を出す。
-        var copyable: Bool = true
     }
 
     var title: String? = nil
@@ -69,6 +67,5 @@ struct ImasPriceList: View {
         .padding(.trailing, 14)
         .padding(.vertical, row.indented ? 10 : 12)
         .accessibilityElement(children: .combine)
-        .imasCopyable(row.copyable ? [CopyItem("\(row.label)をコピー", row.amount, key: "labeled_row")] : [])
     }
 }

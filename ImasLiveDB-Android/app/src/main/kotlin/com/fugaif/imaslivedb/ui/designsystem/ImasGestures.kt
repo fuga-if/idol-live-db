@@ -137,6 +137,7 @@ enum class ImasSwipeKind {
  *
  * @param showsIcon 記号を出すか。操作が 3 つ以上並ぶと幅が足りず記号だけが残って読めなくなるので、
  *   選択肢を並べるとき (現地 / 配信 / LV) は文字だけにする。
+ * @param tint 地の色を種類の色から替える (習熟度の段のように、段ごとの色そのものが意味を持つときだけ)。
  */
 @Immutable
 class ImasSwipeAction(
@@ -144,6 +145,7 @@ class ImasSwipeAction(
     val title: String,
     val id: String = title,
     val showsIcon: Boolean = true,
+    val tint: Color? = null,
     val action: () -> Unit
 )
 
@@ -350,7 +352,7 @@ private fun SwipeButtons(
 
 @Composable
 private fun SwipeButton(action: ImasSwipeAction, modifier: Modifier, enabled: Boolean, onClick: () -> Unit) {
-    val tint = action.kind.tint
+    val tint = action.tint ?: action.kind.tint
     val fg = imasTheme(tint).onAccent
     Box(
         modifier

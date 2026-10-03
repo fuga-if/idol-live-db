@@ -1,5 +1,9 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import com.fugaif.imaslivedb.ui.theme.MasteryPalette
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeAction
+import com.fugaif.imaslivedb.ui.designsystem.ImasSwipe
 import com.fugaif.imaslivedb.ui.designsystem.ReadableWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -57,7 +61,6 @@ import com.fugaif.imaslivedb.ui.designsystem.SkeletonThumb
 import com.fugaif.imaslivedb.ui.components.SongRow
 import com.fugaif.imaslivedb.ui.components.SongRowMatch
 import com.fugaif.imaslivedb.ui.edit.SongEditScreen
-import com.fugaif.imaslivedb.ui.mastery.MasteryLevelPickerSheet
 import com.fugaif.imaslivedb.ui.tags.TagFilterSheet
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -83,7 +86,6 @@ fun SongListScreen(
     var showSongCreate by remember { mutableStateOf(false) }
     var showLoginPrompt by remember { mutableStateOf(false) }
     // 長押しで習熟度を付け替える対象の曲 (null = ピッカーを出さない)。
-    var masteryTarget by remember { mutableStateOf<SongWithArtists?>(null) }
     val authState by AppModule.from(context).authService.state.collectAsState()
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
     val canEditHere = remember(authState) { authState.showEditAffordance }
@@ -204,7 +206,7 @@ fun SongListScreen(
                 ReadableWidth { readable ->
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = readable) {
                         items(uiState.songs, key = { it.song.id }) { item ->
-                            SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick, onEditMastery = { masteryTarget = it })
+                            SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick)
                         }
                         if (uiState.fuzzySongs.isNotEmpty()) {
                             item {
@@ -215,7 +217,7 @@ fun SongListScreen(
                             // key を分けるのは、同じ曲が両方に出た時に LazyColumn が落ちないため
                             // (VM 側で重複は除いているが、key の衝突は例外になるので保険をかける)。
                             items(uiState.fuzzySongs, key = { "fuzzy_${it.song.id}" }) { item ->
-                                SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick, onEditMastery = { masteryTarget = it })
+                                SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick)
                             }
                         }
                     }
@@ -270,21 +272,6 @@ fun SongListScreen(
         }
     }
 
-    // 行の長押しメニューから開く段階ピッカー。習熟度画面まで戻らずに付けられないと、
-    // 一覧を眺めながら順に付けていく作業が続かない。
-    masteryTarget?.let { target ->
-        MasteryLevelPickerSheet(
-            title = target.song.title,
-            current = uiState.masteryLevels[target.song.id] ?: 0u,
-            scale = uiState.masteryScale,
-            onPick = { level ->
-                viewModel.setMastery(target.song.id, level)
-                masteryTarget = null
-            },
-            onDismiss = { masteryTarget = null }
-        )
-    }
-
     if (showLoginPrompt) {
         CommunityLoginPromptDialog(
             message = "楽曲の追加にはログインが必要です。",
@@ -303,9 +290,28 @@ private fun SongListRow(
     uiState: SongListUiState,
     matchDetail: String?,
     viewModel: SongListViewModel,
-    onSongClick: (String) -> Unit,
-    onEditMastery: (SongWithArtists) -> Unit
+    onSongClick: (String) -> Unit
 ) {
+    // 行を引いて習熟度を付ける (iOS `MasterySwipeActions` と同じ)。左に引くと段が並び、最上段が
+    // 画面の端 (指の届く位置) に来る。右に引くと「未設定」に戻す。長押しのメニューは一覧に付けない
+    // (スクロールの途中の指を長押しと取り違え、一覧を流す邪魔になるため)。
+    val scale = uiState.masteryScale
+    val levels = remember(scale) { (1..scale.steps.toInt()).map { it.toUByte() } }
+    ImasSwipe(
+        leading = listOf(
+            ImasSwipeAction(kind = ImasSwipeKind.UNDO, title = "未設定") { viewModel.setMastery(item.song.id, 0u) }
+        ),
+        trailing = levels.map { level ->
+            ImasSwipeAction(
+                kind = ImasSwipeKind.MEMO,
+                title = scale.swipeLabel(level),
+                id = "mastery_$level",
+                showsIcon = false,
+                tint = MasteryPalette.fill(level, scale.steps)
+            ) { viewModel.setMastery(item.song.id, level) }
+        },
+        allowsFullSwipe = false
+    ) {
     SongRow(
         title = item.song.title, songId = item.song.id,
         artistNames = item.artistNames,
@@ -323,12 +329,12 @@ private fun SongListRow(
         // 何で絞っているかを行に渡す。当たった箇所に色が敷かれ、スコープに応じた補足が出る。
         searchMatch = uiState.searchText.takeIf { it.isNotEmpty() }
             ?.let { SongRowMatch(text = it, scope = uiState.searchMode, detail = matchDetail) },
-        onEditMastery = { onEditMastery(item) },
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSongClick(item.song.id) }
             .padding(horizontal = DS.Space.screen, vertical = DS.Space.gapTight)
     )
+    }
     // 68dp = 画面の余白 + 行頭のジャケ写の幅ぶん (SongRow 自身の余白と揃える)。
     ImasRowDivider(inset = DS.sp5 + 52.dp)
 }

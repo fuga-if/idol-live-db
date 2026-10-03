@@ -457,7 +457,6 @@ struct SongSheetContent: View {
                     Text(note)
                         .imasText(.note)
                         .lineLimit(3)
-                        .imasCopyable([CopyItem("補足をコピー", note, key: "song_note")])
                 }
                 // KAMISABI (音楽カードゲーム) 収録曲のときだけ、その札をチップで出す。
                 // 語 (`kamisabiCardLabel()` = 「KAMISABI 収録」) はコアが決めるので手書きしない。

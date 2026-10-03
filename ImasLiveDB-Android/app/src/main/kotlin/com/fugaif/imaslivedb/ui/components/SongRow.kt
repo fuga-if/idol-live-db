@@ -84,8 +84,6 @@ fun SongRow(
     masteryScale: MasteryScale = MasteryScale.standard,
     tagVoteCount: Int? = null,
     searchMatch: SongRowMatch? = null,
-    /** 渡すと長押しメニューに「習熟度を変える」が出る (行から直に段階を付けるため)。 */
-    onEditMastery: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val playback by AudioPreviewManager.playbackState.collectAsState()
@@ -115,11 +113,6 @@ fun SongRow(
         } else {
             ImasRowTrailing.None
         },
-        copyItems = listOf(
-            CopyItem("曲名をコピー", title),
-            CopyItem("歌唱者をコピー", artistNames.ifEmpty { unitName })
-        ),
-        actions = onEditMastery?.let { listOf(RowAction("習熟度を変える", it)) } ?: emptyList(),
         modifier = modifier,
         detail = {
             CreatorLine(needle = creatorNeedle, text = searchMatch?.detail)

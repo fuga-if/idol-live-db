@@ -69,9 +69,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.ui.components.CopyItem
-import com.fugaif.imaslivedb.ui.components.Copyable
-import com.fugaif.imaslivedb.ui.components.RowAction
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasMotion
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
@@ -486,31 +483,30 @@ private fun ImasRowTrailingView(trailing: ImasRowTrailing) {
     }
 }
 
-// MARK: - 長押しでコピー
+// MARK: - 押して進む行の包み
 
 /**
- * 長押しでコピー (+ 押して進む) できる行の包み (iOS の行に `.imasCopyable` を付けた形)。
- * 押している間は面が沈む (波紋は出さない)。コピーする物が無ければ長押しは付けない。
+ * 押して進む行の包み。押している間は面が沈む (波紋は出さない)。
+ *
+ * 一覧の行には長押しのメニュー (コピーなど) を付けない。スクロールの途中の指を長押しと取り違えて
+ * メニューが開き、一覧を流す邪魔になるため (2026-10-03 ユーザー判断)。名前のコピーは詳細画面の頭にだけ残す。
  */
 @Composable
-internal fun ImasCopyableRow(
-    items: List<CopyItem>,
+internal fun ImasPressableRow(
     modifier: Modifier,
     onClick: (() -> Unit)?,
-    actions: List<RowAction> = emptyList(),
     content: @Composable () -> Unit
 ) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    Copyable(
-        items = items,
-        modifier = modifier.background(if (pressed && onClick != null) DS.fill else Color.Transparent),
-        onClick = onClick,
-        actions = actions,
-        interactionSource = source,
-        indication = null,
-        content = content
-    )
+    Box(
+        modifier
+            .background(if (pressed && onClick != null) DS.fill else Color.Transparent)
+            .then(
+                if (onClick != null) Modifier.clickable(interactionSource = source, indication = null, onClick = onClick)
+                else Modifier
+            )
+    ) { content() }
 }
 
 // MARK: - 行の中の小物
@@ -573,7 +569,7 @@ fun ImasSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier
 // MARK: - 項目と値の行
 
 /**
- * 「項目: 値」の行 (iOS `ImasValueRow`。よみ・CV・会場・キャパ・価格)。長押しで値をコピーできる。
+ * 「項目: 値」の行 (iOS `ImasValueRow`。よみ・CV・会場・キャパ・価格)。
  *
  * @param isLink 値が押せる (別画面へ行く・外へ飛ぶ) とき。矢印を出す (値の色は変えない)。行き先は [onClick]。
  * @param expandable 長い値を開閉できるようにする (省略されているときだけ開閉が出る)。
@@ -587,7 +583,6 @@ fun ImasValueRow(
     isLink: Boolean = false,
     expandable: Boolean = false,
     monospaced: Boolean = false,
-    copyable: Boolean = true,
     position: ImasRowPosition? = null,
     onClick: (() -> Unit)? = null
 ) {
@@ -643,13 +638,7 @@ fun ImasValueRow(
         showsToggle -> ({ expanded = !expanded })
         else -> onClick
     }
-    // 省略されている値も原文 (value) を渡すので、全文がコピーできる。
-    ImasCopyableRow(
-        items = if (copyable) listOf(CopyItem("${key}をコピー", value)) else emptyList(),
-        modifier = modifier.fillMaxWidth(),
-        onClick = tap,
-        content = row
-    )
+    ImasPressableRow(modifier = modifier.fillMaxWidth(), onClick = tap, content = row)
 }
 
 // MARK: - 入口・設定の行

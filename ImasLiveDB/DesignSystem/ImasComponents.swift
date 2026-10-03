@@ -110,7 +110,6 @@ struct ImasLabeledRow: View {
     /// タップで省略を解除して全文を改行表示する (特技など長文向け)。値が 1 行に収まって
     /// いる行ではトグルもタップ操作も出さない (押しても何も起きない行を作らない)。
     var expandable: Bool = false
-    var copyable: Bool = true
     var seed: String? = nil
     var brand: String? = nil
     @Environment(\.colorScheme) private var scheme
@@ -151,14 +150,10 @@ struct ImasLabeledRow: View {
         .background(DS.surface)
         .contentShape(Rectangle())
 
-        // 省略されている値も原文 (`value`) を渡すので、全文がコピーできる。
-        let copyableRow = row.imasCopyable(
-            copyable ? [CopyItem("\(key)をコピー", value, key: "labeled_row")] : [])
-
         if showsToggle {
-            copyableRow.onTapGesture { withAnimation(.imasStandard) { expanded.toggle() } }
+            row.onTapGesture { withAnimation(.imasStandard) { expanded.toggle() } }
         } else {
-            copyableRow
+            row
         }
     }
 }

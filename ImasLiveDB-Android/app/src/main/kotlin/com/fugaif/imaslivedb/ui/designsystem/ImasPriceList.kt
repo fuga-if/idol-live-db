@@ -19,7 +19,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -39,7 +38,6 @@ import com.fugaif.imaslivedb.ui.theme.ImasType
  * @param amount 金額。コアが整形済みの文字列 (「¥9,800」「¥5,500〜¥13,200」)。
  * @param note 薄く添える注記 (「推定含む」)。
  * @param indented 価格帯の内訳行 (少し下げて小さく出す)。
- * @param copyable 長押しで「〈券種〉をコピー」を出す。
  */
 @Immutable
 data class ImasPriceRow(
@@ -47,8 +45,7 @@ data class ImasPriceRow(
     val label: String,
     val amount: String,
     val note: String? = null,
-    val indented: Boolean = false,
-    val copyable: Boolean = true
+    val indented: Boolean = false
 )
 
 /** 料金表 (iOS `ImasPriceList`)。暗い板に券種と金額を並べる。板はライトでもダークでも暗い。 */
@@ -87,11 +84,7 @@ fun ImasPriceList(rows: List<ImasPriceRow>, modifier: Modifier = Modifier, title
 
 @Composable
 private fun PriceRow(row: ImasPriceRow) {
-    ImasCopyableRow(
-        items = if (row.copyable) listOf(CopyItem("${row.label}をコピー", row.amount)) else emptyList(),
-        modifier = Modifier.fillMaxWidth(),
-        onClick = null
-    ) {
+    ImasPressableRow(modifier = Modifier.fillMaxWidth(), onClick = null) {
         Row(
             Modifier
                 .fillMaxWidth()

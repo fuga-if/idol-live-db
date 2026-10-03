@@ -24,6 +24,12 @@ data class MasteryScale(val labels: List<String>) {
         return labels.getOrNull(i) ?: "LV.$level"
     }
 
+    /** 行を引いたときのボタンの名前 (4 文字まで。iOS `swipeLabel`)。 */
+    fun swipeLabel(level: UByte): String {
+        val full = label(level)
+        return if (full.length <= 4) full else full.take(4)
+    }
+
     /** 一覧のチップに出す短い名前。 */
     fun shortLabel(level: UByte): String {
         val full = label(level)

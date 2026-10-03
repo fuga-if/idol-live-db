@@ -70,8 +70,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
-import com.fugaif.imaslivedb.ui.components.CopyItem
-import com.fugaif.imaslivedb.ui.components.Copyable
 import com.fugaif.imaslivedb.ui.components.ImasIdolCell
 import com.fugaif.imaslivedb.ui.components.NameFilterField
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
@@ -402,11 +400,7 @@ private fun IdolRow(
     onClick: () -> Unit,
     onToggleMyPick: () -> Unit
 ) {
-    Copyable(
-        items = listOf(CopyItem("アイドル名をコピー", idol.name), CopyItem("よみをコピー", idol.nameKana)),
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
+    Box(Modifier.fillMaxWidth().imasRowPress(onClick = onClick)) {
         ImasRow(
             title = displayName,
             subtitle = secondary?.takeIf { it.isNotEmpty() },

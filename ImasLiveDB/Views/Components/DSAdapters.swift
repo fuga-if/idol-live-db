@@ -41,14 +41,6 @@ extension ImasSongRow {
         return (previewURL, isPreviewing, onPreviewTap)
     }
 
-    /// 曲の長押しコピー (曲名・よみ・歌唱者)。`song:` から組む行はいつもこれを持つ。
-    private static func copyItems(for song: Song) -> [CopyItem] {
-        [
-            CopyItem("曲名をコピー", song.title, key: "song_title"),
-            CopyItem("よみをコピー", song.titleKana, key: "kana"),
-            CopyItem("歌唱者をコピー", song.singerLabel, key: "artists"),
-        ]
-    }
 }
 
 extension ImasSongRow where Detail == EmptyView {
@@ -72,7 +64,6 @@ extension ImasSongRow where Detail == EmptyView {
             trailing: trailing,
             density: density,
             emphasis: emphasis,
-            copyItems: Self.copyItems(for: song),
             detail: { EmptyView() }
         )
     }
@@ -97,7 +88,6 @@ extension ImasSongRow {
             trailing: trailing,
             density: density,
             emphasis: emphasis,
-            copyItems: Self.copyItems(for: song),
             detail: detail
         )
     }

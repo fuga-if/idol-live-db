@@ -121,11 +121,6 @@ struct SongRowView: View {
                 }
             }
         }
-        .imasCopyable([
-            CopyItem("曲名をコピー", song.title, key: "song_title"),
-            CopyItem("よみをコピー", song.titleKana, key: "kana"),
-            CopyItem("歌唱者をコピー", item.artistNames, key: "artists"),
-        ])
     }
 
     // MARK: - 並び順の根拠 (行の末尾)

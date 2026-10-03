@@ -63,7 +63,7 @@ struct ShowEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original = mode.original {
-                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true)
                     }
                     ImasTextFieldRow(title: "公演名", text: $name)
                     ImasTextFieldRow(title: "日付 (YYYY-MM-DD)", text: $date)

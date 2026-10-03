@@ -31,7 +31,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
@@ -144,7 +143,6 @@ fun ImasTagChip(
 /**
  * 旧い呼び方の「項目: 値」の行 (iOS `ImasLabeledRow`)。見た目は [ImasValueRow] と同じ寸法で、面を敷く。
  *
- * [copyable] が true (既定) なら長押しで値をコピーできる (外部で検索したり貼りたくなる値の行なので既定の性質)。
  *
  * @param tappable 値が押せる。値を実体の色にし、矢印を出す ([showChevron] の既定)。
  * @param expandable 押すと省略を解除して全文を改行表示する (特技など長文向け)。値が 1 行に収まっている
@@ -159,7 +157,6 @@ fun ImasLabeledRow(
     showSwatch: Boolean = false,
     mono: Boolean = false,
     tappable: Boolean = false,
-    copyable: Boolean = true,
     seed: String? = null,
     brand: String? = null,
     onClick: (() -> Unit)? = null,
@@ -213,13 +210,7 @@ fun ImasLabeledRow(
         }
     }
     val tap: (() -> Unit)? = if (showsToggle) ({ expanded = !expanded }) else onClick
-    // 省略表示されていても原文 (value) を渡すので全文がコピーできる。
-    ImasCopyableRow(
-        items = if (copyable) listOf(CopyItem("${key}をコピー", value)) else emptyList(),
-        modifier = Modifier.fillMaxWidth(),
-        onClick = tap,
-        content = row
-    )
+    ImasPressableRow(modifier = Modifier.fillMaxWidth(), onClick = tap, content = row)
 }
 
 // MARK: - 行のまとまり (→ ImasCardList)

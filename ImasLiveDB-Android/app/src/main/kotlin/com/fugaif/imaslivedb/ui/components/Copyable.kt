@@ -34,18 +34,11 @@ import com.fugaif.imaslivedb.ui.theme.DS
 data class CopyItem(val label: String, val text: String?)
 
 /**
- * 長押しメニューに足す、コピー以外の操作。
- *
- * 行の長押しは既にコピーが取っているので、行から直に何かを変えたい画面
- * (曲一覧から習熟度を付ける等) は別のジェスチャを生やさずここに足す。
- */
-data class RowAction(val label: String, val onSelect: () -> Unit)
-
-/**
  * 名前・曲名などを長押しでコピーできるようにするラッパ (iOS `imasCopyable` の移植)。
  *
  * 「正式な曲名で外部検索したい」「アイドル名をそのまま貼りたい」といった用途で、
- * 一覧・詳細のどこからでも原文を取り出せるようにする。
+ * 詳細画面の頭の名前から原文を取り出せるようにする。一覧の行には付けない
+ * (スクロールの途中の指を長押しと取り違えてメニューが開き、一覧を流す邪魔になるため)。
  *
  * タップ (詳細へ遷移) と共存させたいので、長押しでメニューを出す形にしている。
  * 表示が省略されていても **原文** を渡すこと。
@@ -56,7 +49,6 @@ fun Copyable(
     items: List<CopyItem>,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    actions: List<RowAction> = emptyList(),
     // 押したときの見え方。デザインシステムの行は波紋を出さず面を沈めるので、
     // 押下の状態 (interactionSource) を受け取り、波紋 (indication) を消せるようにする。
     interactionSource: MutableInteractionSource? = null,
@@ -66,7 +58,7 @@ fun Copyable(
     val valid = items.mapNotNull { item ->
         item.text?.trim()?.takeIf { it.isNotEmpty() }?.let { item.label to it }
     }
-    if (valid.isEmpty() && actions.isEmpty()) {
+    if (valid.isEmpty()) {
         // コピーする物が無くても、押せる行は押せるままにする。
         val click = if (onClick != null) {
             Modifier.clickable(
@@ -109,15 +101,6 @@ fun Copyable(
                     text = { Text(label, color = DS.ink) },
                     onClick = {
                         copyToClipboard(context, label, text)
-                        expanded = false
-                    }
-                )
-            }
-            actions.forEach { action ->
-                DropdownMenuItem(
-                    text = { Text(action.label, color = DS.ink) },
-                    onClick = {
-                        action.onSelect()
                         expanded = false
                     }
                 )

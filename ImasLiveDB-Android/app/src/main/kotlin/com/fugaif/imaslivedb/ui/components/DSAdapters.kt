@@ -74,19 +74,12 @@ private fun safeHttp(url: String?): String? {
     return url.takeIf { (scheme == "https" || scheme == "http") && !uri.host.isNullOrEmpty() }
 }
 
-/** 曲の長押しコピー (曲名・よみ・歌唱者)。曲のデータから組む行はいつもこれを持つ。 */
-private fun songCopyItems(song: Song): List<CopyItem> = listOf(
-    CopyItem("曲名をコピー", song.title),
-    CopyItem("よみをコピー", song.titleKana),
-    CopyItem("歌唱者をコピー", song.singerLabel)
-)
-
 /**
  * 曲のデータから組む (iOS `ImasSongRow(song:)`)。副題は既定でユニット名 (無ければ歌唱者の表記)。
- * ジャケの試聴と長押しコピーを自動で持つ (楽曲一覧の行と同じ配線)。
+ * ジャケの試聴を自動で持つ (楽曲一覧の行と同じ配線)。
  *
  * @param playsPreview false で試聴だけ切る (ジャケを押しても行全体のタップが効く。集計の行など、
- *   ジャケを押すたびに詳細が開いてほしい画面で使う)。長押しコピーは残る。
+ *   ジャケを押すたびに詳細が開いてほしい画面で使う)。
  * @param detail 下段 (札・日付)。
  */
 @Composable
@@ -117,7 +110,6 @@ fun ImasSongRow(
         trailing = trailing,
         density = density,
         emphasis = emphasis,
-        copyItems = songCopyItems(song),
         onClick = onClick,
         detail = detail
     )

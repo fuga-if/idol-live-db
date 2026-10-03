@@ -47,7 +47,7 @@ struct IdolEditView: View {
         NavigationStack {
             Form {
                 ImasListSection("名前") {
-                    ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
+                    ImasValueRow(key: "ID", value: original.id, expandable: true)
                     ImasTextFieldRow(title: "名前", text: $name)
                     ImasTextFieldRow(title: "カナ", text: $nameKana)
                     ImasTextFieldRow(title: "ローマ字", text: $nameRomaji)

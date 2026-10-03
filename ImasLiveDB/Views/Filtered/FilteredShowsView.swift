@@ -100,10 +100,6 @@ struct FilteredShowsView: View {
             rainbow: !(event?.jointBrandIdList.isEmpty ?? true),
             showsChevron: true
         )
-        .imasCopyable([
-            CopyItem("ライブ名をコピー", event?.name, key: "event_name"),
-            CopyItem("公演名をコピー", show.name, key: "show_name"),
-        ])
     }
 
     /// 「DAY2 · メインアリーナ」。 年は見出し、月日は半券の日付欄にあるので、ここは公演名と会場だけ。

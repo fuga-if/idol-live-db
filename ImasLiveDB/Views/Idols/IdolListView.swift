@@ -512,7 +512,5 @@ struct IdolListView: View {
                 Text(cvLine).imasText(.meta)
             }
         }
-        .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
-                       CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
 }

@@ -36,9 +36,6 @@ struct ImasSongRow<Detail: View>: View {
     var emphasis: ImasRowEmphasis = .normal
     /// 絞り込みで当たった所に色を敷いた曲名。
     var attributedTitle: AttributedString? = nil
-    /// 長押しでコピーできる項目 (曲名・よみ・歌唱者など)。空なら長押しメニュー自体を付けない
-    /// (`imasCopyable` 側の既定動作)。`song:` から組む行はここに自動で入る。
-    var copyItems: [CopyItem] = []
     @ViewBuilder var detail: Detail
 
     var body: some View {
@@ -54,7 +51,6 @@ struct ImasSongRow<Detail: View>: View {
             attributedTitle: attributedTitle,
             detail: { detail }
         )
-        .imasCopyable(copyItems)
     }
 
     /// 試聴に対応する呼び出しだけ、ジャケを `ImasArtwork` 直書きに差し替えて試聴の口を足す
@@ -101,8 +97,6 @@ struct ImasIdolRow<Detail: View>: View {
             titleLineLimit: 1,
             detail: { detail }
         )
-        .imasCopyable([CopyItem("アイドル名をコピー", idol.name, key: "idol_name"),
-                       CopyItem("よみをコピー", idol.nameKana, key: "kana")])
     }
 }
 
@@ -161,7 +155,6 @@ struct ImasEventRow<Detail: View>: View {
                     brand: BrandColors.hex(for: event.brandId), badges: badges,
                     emphasis: emphasis, rainbow: rainbow, showsChevron: showsChevron,
                     subtitleLineLimit: subtitleLineLimit) { detail }
-            .imasCopyable(event.name, label: "ライブ名をコピー", key: "event_name")
     }
 }
 

@@ -105,7 +105,7 @@ struct SongEditView: View {
             Form {
                 ImasListSection("基本情報") {
                     if let original = mode.original {
-                        ImasValueRow(key: "ID", value: original.id, expandable: true, copyable: false)
+                        ImasValueRow(key: "ID", value: original.id, expandable: true)
                     }
                     ImasTextFieldRow(title: "タイトル", text: $title)
                     ImasTextFieldRow(title: "タイトル (カナ)", text: $titleKana)

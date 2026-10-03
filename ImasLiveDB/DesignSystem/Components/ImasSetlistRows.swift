@@ -295,8 +295,6 @@ struct ImasForecastRow: View {
     var isVoteLoading: Bool = false
     /// 別画面へ進む矢印。行のタップで遷移するときに出す。
     var showsChevron: Bool = false
-    /// 長押しでコピーできる項目 (曲名・よみなど)。空なら長押しメニュー自体を付けない。
-    var copyItems: [CopyItem] = []
     /// 行の読み上げを 1 つに合成してよいか。押せるもの (予想・投票のボタン、開く中身) を持つ行は
     /// この値に関わらず合成しない (合成すると中のボタンを読み上げから押せず、行のダブルタップで投票が走る)。
     /// `false` にすると押せるものが無くても要素を分ける (呼び出し側が行に「詳細を開く」操作を足すとき)。
@@ -366,7 +364,6 @@ struct ImasForecastRow: View {
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.rowV)
         .contentShape(Rectangle())
-        .imasCopyable(copyItems)
     }
 
     @ViewBuilder private var leadingView: some View {

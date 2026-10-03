@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.ImasUnit
-import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasPenlight
@@ -396,13 +395,12 @@ data class ImasForecastAvatar(
  * @param voteDisabled 投票ボタンだけを無効にする (他の行の処理中など)。[isVoteDisabled] と違い予想済みの取り消しも止める (お題の投票)。
  * @param isVoteLoading 投票/取消の通信中 ([isVoting] と同じ。お題の投票が使う呼び名)。
  * @param showsChevron 別画面へ進む矢印。行のタップで遷移するときに出す。
- * @param copyItems 長押しでコピーできる項目 (曲名・よみなど)。空なら長押しを付けない。
  * @param combineAccessibility 行の読み上げを 1 つにまとめてよいか。押せるもの (予想・投票のボタン、開く中身) を持つ行は
  *   この値に関わらずまとめない (まとめると中のボタンを読み上げから押せない)。false なら押せるものが無くても分ける
  *   (呼び出し側が行に「詳細を開く」の読み上げの操作を足すとき)。
  * @param accessory 「予想する」の横に並べる補助の操作 (歌唱メンバー予想の開閉など)。
  * @param expansion 行の下に開く中身 (歌唱メンバー予想)。
- * @param onClick 行のタップ (詳細を開く)。長押しのコピーと両立させるため、行の部品が受ける (Android だけ)。
+ * @param onClick 行のタップ (詳細を開く)。押している間の沈みを行の部品が出す (Android だけ)。
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -435,7 +433,6 @@ fun ImasForecastRow(
     voteDisabled: Boolean = false,
     isVoteLoading: Boolean = false,
     showsChevron: Boolean = false,
-    copyItems: List<CopyItem> = emptyList(),
     combineAccessibility: Boolean = true,
     accessory: (@Composable () -> Unit)? = null,
     expansion: (@Composable () -> Unit)? = null,
@@ -571,7 +568,7 @@ fun ImasForecastRow(
             }
         }
     }
-    ImasCopyableRow(items = copyItems, modifier = modifier.fillMaxWidth(), onClick = onClick, content = row)
+    ImasPressableRow(modifier = modifier.fillMaxWidth(), onClick = onClick, content = row)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
