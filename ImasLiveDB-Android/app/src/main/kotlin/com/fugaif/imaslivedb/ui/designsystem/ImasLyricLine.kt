@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
@@ -306,6 +307,40 @@ fun ImasPlayerOverlayLine(text: String, isCurrent: Boolean, seed: String?, modif
             modifier = Modifier.weight(1f)
         )
     }
+}
+
+// MARK: - パート分け (誰が歌うか)
+
+/**
+ * 歌唱者の担当色を並べた縞 (iOS `ImasPartStripe`)。4dp 幅、並び順に上から積む。
+ * 行頭 (クラップ記号の横) に置き、誰が歌う行かを色だけでも伝える。
+ */
+@Composable
+fun ImasPartStripe(colors: List<String>, modifier: Modifier = Modifier) {
+    Column(modifier.width(4.dp).fillMaxHeight()) {
+        colors.forEach { hex ->
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(imasTheme(seed = hex).accent)
+            )
+        }
+    }
+}
+
+/** 行の下に添える歌唱者の名前 (「春香・千早」。iOS `ImasPartNames`)。帯の色だけに頼らず言葉でも出す。 */
+@Composable
+fun ImasPartNames(names: List<String>, modifier: Modifier = Modifier) {
+    if (names.isEmpty()) return
+    Text(
+        names.joinToString("・"),
+        style = ImasType.text(12.sp),
+        color = DS.ink2,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier.semantics { contentDescription = "歌唱 ${names.joinToString("、")}" }
+    )
 }
 
 // MARK: - 手拍子記号 (コール表)

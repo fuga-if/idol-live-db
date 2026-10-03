@@ -35,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.IntrinsicSize
 import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricLine
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
+import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
@@ -49,6 +51,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
+import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerOverlayLine
 import com.fugaif.imaslivedb.ui.designsystem.imasLyricClock
@@ -86,7 +90,8 @@ fun LyricsPlayerScreen(
     likeCounts: Map<String, Int>,
     onLikeCountChanged: (String, Int) -> Unit,
     onEditTimings: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    cast: LyricPartCast = LyricPartCast.EMPTY
 ) {
     val module = AppModule.from(LocalContext.current)
     val playback = module.lyricsPlayback
@@ -190,7 +195,7 @@ fun LyricsPlayerScreen(
                 LyricsPlayerRow(
                     line = line, hasTiming = hasTiming, isLiked = likes.contains(line.id),
                     isActive = line.id == activeLineId, isOverlayActive = line.id == activeOverlayId,
-                    seed = seed,
+                    seed = seed, cast = cast,
                     onTap = {
                         val start = line.startMs ?: return@LyricsPlayerRow
                         scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek(start) }
@@ -250,6 +255,7 @@ private fun LyricsPlayerRow(
     isActive: Boolean,
     isOverlayActive: Boolean,
     seed: String?,
+    cast: LyricPartCast,
     onTap: () -> Unit,
     onDoubleTap: () -> Unit
 ) {
@@ -258,28 +264,34 @@ private fun LyricsPlayerRow(
         return
     }
     val isCurrent = !hasTiming || isActive
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .padding(vertical = DS.sp1)
-            .combinedClickable(onClick = onTap, onDoubleClick = onDoubleTap)
+            .combinedClickable(onClick = onTap, onDoubleClick = onDoubleTap),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp3)
     ) {
-        if (line.isOverlay) {
-            val overlay = lyricOverlaySplit(line.text).overlay ?: line.text
-            ImasPlayerOverlayLine(text = overlay, isCurrent = !hasTiming || isOverlayActive, seed = seed)
-        } else {
-            val split = lyricOverlaySplit(line.text)
-            ImasPlayerLyricLine(
-                text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
-                isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked, seed = seed
-            )
-            val overlayText = split.overlay
-            if (overlayText != null && split.main.isNotEmpty()) {
-                ImasPlayerOverlayLine(text = overlayText, isCurrent = isCurrent, seed = seed)
+        if (line.singers.isNotEmpty()) ImasPartStripe(colors = cast.colors(line.singers))
+        Column(Modifier.weight(1f)) {
+            if (line.isOverlay) {
+                val overlay = lyricOverlaySplit(line.text).overlay ?: line.text
+                ImasPlayerOverlayLine(text = overlay, isCurrent = !hasTiming || isOverlayActive, seed = seed)
+            } else {
+                val split = lyricOverlaySplit(line.text)
+                ImasPlayerLyricLine(
+                    text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
+                    isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked, seed = seed
+                )
+                val overlayText = split.overlay
+                if (overlayText != null && split.main.isNotEmpty()) {
+                    ImasPlayerOverlayLine(text = overlayText, isCurrent = isCurrent, seed = seed)
+                }
             }
-        }
-        if (line.calls.isNotEmpty()) {
-            ImasCallRows(calls = line.calls, anchorIndexes = null)
+            ImasPartNames(names = cast.names(line.singers))
+            if (line.calls.isNotEmpty()) {
+                ImasCallRows(calls = line.calls, anchorIndexes = null)
+            }
         }
     }
 }

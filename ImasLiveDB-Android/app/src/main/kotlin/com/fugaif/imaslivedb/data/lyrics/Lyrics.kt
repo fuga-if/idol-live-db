@@ -103,6 +103,8 @@ data class LyricLine(
     val likeCount: Int,
     /** 被せの指定 ("overlay" / "main")。null なら括弧で決める (コアの lyricIsOverlayLine)。 */
     val layer: String?,
+    /** パート分け: この行を歌うアイドルの id。空ならまだ分けていない。 */
+    val singers: List<String> = emptyList(),
 ) {
     /** 被せの行か (歌詞プレイヤーで 2 段目に出す行)。判定はコア。 */
     val isOverlay: Boolean
@@ -120,6 +122,7 @@ data class LyricLine(
             calls = o.optJSONArray("calls").objects().map(LyricCall::parse),
             likeCount = o.optInt("likeCount", 0),
             layer = o.optStringOrNull("layer"),
+            singers = o.optJSONArray("singers").objectsAsStrings(),
         )
     }
 }
@@ -172,3 +175,6 @@ private fun JSONObject.optIntOrNull(key: String): Int? =
 
 private fun JSONArray?.objects(): List<JSONObject> =
     if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }
+
+private fun JSONArray?.objectsAsStrings(): List<String> =
+    if (this == null) emptyList() else (0 until length()).mapNotNull { optString(it, null) }

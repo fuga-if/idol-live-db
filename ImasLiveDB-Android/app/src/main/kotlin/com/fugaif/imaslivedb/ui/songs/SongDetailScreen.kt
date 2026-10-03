@@ -458,7 +458,7 @@ private fun SongSheetContent(
                 SongLyricsTab(
                     song = song, seed = seed, artistLine = artistLine,
                     lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
-                    onReload = onLoadLyrics
+                    onReload = onLoadLyrics, originalArtists = state.originalArtists
                 )
             }
         }

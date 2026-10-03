@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,9 +18,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speed
@@ -53,11 +57,15 @@ import com.fugaif.imaslivedb.data.lyrics.CallEmphasis
 import com.fugaif.imaslivedb.data.lyrics.LyricJoiner
 import com.fugaif.imaslivedb.data.lyrics.LyricLine
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
+import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
 import com.fugaif.imaslivedb.data.lyrics.LyricsResult
 import com.fugaif.imaslivedb.data.lyrics.StructureChange
+import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.player.LyricsSession
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
@@ -78,6 +86,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLikeMark
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
+import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.lyricColor
 import com.fugaif.imaslivedb.ui.lyrics.LyricTimingEditorScreen
 import com.fugaif.imaslivedb.ui.lyrics.LyricTimingRecorder
@@ -117,6 +127,7 @@ fun SongLyricsTab(
     lyricsResult: LyricsResult?,
     isLyricsLoading: Boolean,
     onReload: () -> Unit,
+    originalArtists: List<Idol> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -136,11 +147,33 @@ fun SongLyricsTab(
     var likes by remember { mutableStateOf(setOf<String>()) }
     var likeCounts by remember { mutableStateOf(mapOf<String, Int>()) }
     var heatTick by remember { mutableStateOf(0) }
+    // 非 null = パート分けを編集している (行 ID → 歌唱者のアイドル id)。
+    var partsDraft by remember { mutableStateOf<Map<String, List<String>>?>(null) }
+    // パート分けの「筆」= いま付けている歌唱者。行をタップするとこの人を付け外しする。
+    var partsBrush by remember { mutableStateOf<String?>(null) }
+    var partsSaving by remember { mutableStateOf(false) }
 
     val lyrics = (lyricsResult as? LyricsResult.Loaded)?.lyrics
     val playback = module.lyricsPlayback
+    val partCast = remember(originalArtists) { LyricPartCast(originalArtists) }
+
+    fun currentParts(l: Lyrics): Map<String, List<String>> =
+        l.lines.filter { it.singers.isNotEmpty() }.associate { it.id to it.singers }
 
     LaunchedEffect(song.id) { likes = module.userMarkRepository.lyricLikes(song.id) }
+
+    // フル再生中の曲なら、再生中バーから今の行・歌詞プレイヤーを出せるよう預ける (メモリだけ)。
+    val loadedSongId by playback.loadedSongId.collectAsState()
+    LaunchedEffect(song.id, lyrics?.updatedAt, loadedSongId, partCast) {
+        if (lyrics != null && loadedSongId == song.id) {
+            LyricsSession.register(
+                LyricsSession.Entry(
+                    song = song, seed = seed, artistLine = artistLine,
+                    artworkUrl = song.artworkUrl, lyrics = lyrics, cast = partCast
+                )
+            )
+        }
+    }
 
     // ここ好きの山のシークバーの進み (0.5 秒ごと)。再生中だけ描き直せば足りるが、
     // 判定を複雑にしないため常時軽く回す (iOS `TimelineView(.periodic(from:by:))` と同じ意図)。
@@ -200,6 +233,32 @@ fun SongLyricsTab(
         }
     }
 
+    // 筆の人をその行に付け外しする。並びは原唱者の並びに揃える (帯の縞の順を決めておく)。
+    fun togglePart(lineId: String) {
+        val brush = partsBrush ?: return
+        val draft = partsDraft ?: return
+        var singers = draft[lineId] ?: emptyList()
+        singers = if (brush in singers) singers - brush else singers + brush
+        singers = partCast.ordered(singers)
+        partsDraft = if (singers.isEmpty()) draft - lineId else draft + (lineId to singers)
+    }
+
+    suspend fun saveParts(current: Lyrics) {
+        val draft = partsDraft ?: return
+        partsSaving = true
+        try {
+            val lines = current.lines.mapNotNull { line -> draft[line.id]?.let { line.id to it } }
+            module.lyricsApi.saveParts(song.id, lines)
+            partsDraft = null
+            partsBrush = null
+            onReload()
+        } catch (e: Exception) {
+            structureError = e.message ?: "保存できませんでした"
+        } finally {
+            partsSaving = false
+        }
+    }
+
     Column(modifier.padding(top = DS.sp4).padding(horizontal = DS.sp5)) {
         when {
             isLyricsLoading || lyricsResult == null -> ImasInlineLoading()
@@ -225,34 +284,57 @@ fun SongLyricsTab(
                         modifier = Modifier.padding(bottom = DS.sp2)
                     )
                 }
+                val draft = partsDraft
                 EditBar(
                     canEdit = canEdit, isEditingStructure = isEditingStructure,
+                    hasOriginalArtists = originalArtists.isNotEmpty(),
+                    partsDraft = draft, partsSaving = partsSaving,
+                    partsUnchanged = draft != null && draft == currentParts(lyrics),
                     onToggleStructureEdit = { isEditingStructure = !isEditingStructure },
                     onOpenPlayer = { showPlayer = true },
-                    onBeginRecording = { scope.launch { beginRecording(lyrics) } }
+                    onBeginRecording = { scope.launch { beginRecording(lyrics) } },
+                    onBeginParts = {
+                        partsDraft = currentParts(lyrics)
+                        partsBrush = originalArtists.firstOrNull()?.id
+                    },
+                    onCancelParts = { partsDraft = null; partsBrush = null },
+                    onSaveParts = { scope.launch { saveParts(lyrics) } }
                 )
-                if (isEditingStructure) {
-                    ImasNote(
-                        "語をタップすると、その語の前で行を切り離します。行の右下の鎖のボタンで次の行とくっつけます。歌詞の文字は変わりません。",
-                        modifier = Modifier.padding(vertical = DS.sp2)
-                    )
-                    LyricsCard(song.title, artistLine) {
-                        StructureBody(
-                            lyrics = lyrics, busyLineId = structureBusyLineId,
-                            menuLineId = structureMenuLineId,
-                            onOpenMenu = { structureMenuLineId = it },
-                            onCloseMenu = { structureMenuLineId = null },
-                            onSplit = { lineId, at -> changeStructure(lineId, StructureChange.Split(lineId, at)) },
-                            onMerge = { lineId, joiner -> changeStructure(lineId, StructureChange.Merge(lineId, joiner)) }
+                when {
+                    draft != null -> {
+                        ImasNote(
+                            "歌う人を選んでから、歌詞の行をタップします。もう一度タップすると外れます。",
+                            modifier = Modifier.padding(vertical = DS.sp2)
                         )
+                        PartsBrushBar(artists = originalArtists, brush = partsBrush, onSelect = { partsBrush = it })
+                        LyricsCard(song.title, artistLine) {
+                            PartsBody(lyrics = lyrics, draft = draft, cast = partCast, onToggle = ::togglePart)
+                        }
                     }
-                } else {
-                    LyricsCard(song.title, artistLine) {
-                        ViewingBody(
-                            lyrics = lyrics, seed = seed, likes = likes, activeLineId = activeLineId,
-                            heatTick = heatTick, song = song,
-                            onToggleLike = ::toggleLike
+                    isEditingStructure -> {
+                        ImasNote(
+                            "語をタップすると、その語の前で行を切り離します。行の右下の鎖のボタンで次の行とくっつけます。歌詞の文字は変わりません。",
+                            modifier = Modifier.padding(vertical = DS.sp2)
                         )
+                        LyricsCard(song.title, artistLine) {
+                            StructureBody(
+                                lyrics = lyrics, busyLineId = structureBusyLineId,
+                                menuLineId = structureMenuLineId,
+                                onOpenMenu = { structureMenuLineId = it },
+                                onCloseMenu = { structureMenuLineId = null },
+                                onSplit = { lineId, at -> changeStructure(lineId, StructureChange.Split(lineId, at)) },
+                                onMerge = { lineId, joiner -> changeStructure(lineId, StructureChange.Merge(lineId, joiner)) }
+                            )
+                        }
+                    }
+                    else -> {
+                        LyricsCard(song.title, artistLine) {
+                            ViewingBody(
+                                lyrics = lyrics, seed = seed, likes = likes, activeLineId = activeLineId,
+                                heatTick = heatTick, song = song, cast = partCast,
+                                onToggleLike = ::toggleLike
+                            )
+                        }
                     }
                 }
                 if (!lyrics.source.isNullOrEmpty()) {
@@ -269,7 +351,7 @@ fun SongLyricsTab(
                 song = song, seed = seed, artistLine = artistLine, lyrics = lyrics,
                 likeCounts = likeCounts, onLikeCountChanged = { id, count -> likeCounts = likeCounts + (id to count) },
                 onEditTimings = { showPlayer = false; scope.launch { beginRecording(lyrics) } },
-                onClose = { showPlayer = false }
+                onClose = { showPlayer = false }, cast = partCast
             )
         }
     }
@@ -302,19 +384,99 @@ private fun LyricsCard(title: String, artistLine: String?, content: @Composable 
 private fun EditBar(
     canEdit: Boolean,
     isEditingStructure: Boolean,
+    hasOriginalArtists: Boolean,
+    partsDraft: Map<String, List<String>>?,
+    partsSaving: Boolean,
+    partsUnchanged: Boolean,
     onToggleStructureEdit: () -> Unit,
     onOpenPlayer: () -> Unit,
-    onBeginRecording: () -> Unit
+    onBeginRecording: () -> Unit,
+    onBeginParts: () -> Unit,
+    onCancelParts: () -> Unit,
+    onSaveParts: () -> Unit
 ) {
     if (!canEdit) return
     Row(Modifier.fillMaxWidth().padding(bottom = DS.sp2), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
         Spacer(Modifier.weight(1f))
-        if (isEditingStructure) {
-            ImasButton(title = "区切りの編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
-        } else {
-            ImasIconButton(icon = Icons.Filled.ContentCut, label = "行の区切りを編集", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
-            ImasIconButton(icon = Icons.Filled.QueueMusic, label = "歌詞プレイヤー", size = ImasIconButtonSize.SMALL, onClick = onOpenPlayer)
-            ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
+        when {
+            partsDraft != null -> {
+                ImasButton(title = "やめる", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onCancelParts)
+                ImasButton(
+                    title = "保存", role = ImasButtonRole.PRIMARY, size = ImasButtonSize.SMALL,
+                    isLoading = partsSaving, enabled = !partsSaving && !partsUnchanged, onClick = onSaveParts
+                )
+            }
+            isEditingStructure -> {
+                ImasButton(title = "区切りの編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
+            }
+            else -> {
+                if (hasOriginalArtists) {
+                    ImasIconButton(icon = Icons.Filled.Group, label = "パート分け", size = ImasIconButtonSize.SMALL, onClick = onBeginParts)
+                }
+                ImasIconButton(icon = Icons.Filled.ContentCut, label = "行の区切りを編集", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
+                ImasIconButton(icon = Icons.Filled.QueueMusic, label = "歌詞プレイヤー", size = ImasIconButtonSize.SMALL, onClick = onOpenPlayer)
+                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
+            }
+        }
+    }
+}
+
+// MARK: - パート分け (誰が歌うか)
+
+/** 筆 (歌唱者) を選ぶ帯。原唱者のアイコンを並べ、選んだ人に輪を付ける。 */
+@Composable
+private fun PartsBrushBar(artists: List<Idol>, brush: String?, onSelect: (String) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = DS.sp2),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp2)
+    ) {
+        artists.forEach { idol ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .padding(vertical = DS.sp1)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(idol.id) }
+            ) {
+                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 36.dp, isPick = brush == idol.id, entityId = idol.id)
+                Text(
+                    idol.shortName,
+                    style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.META.style,
+                    color = if (brush == idol.id) DS.ink else DS.ink3,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PartsBody(lyrics: Lyrics, draft: Map<String, List<String>>, cast: LyricPartCast, onToggle: (String) -> Unit) {
+    lyrics.lines.forEach { line ->
+        when (line.kind) {
+            LyricLineKind.LYRIC -> {
+                val singers = draft[line.id] ?: emptyList()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onToggle(line.id) }
+                        .padding(vertical = DS.sp2),
+                    horizontalArrangement = Arrangement.spacedBy(DS.sp2),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    ImasPartStripe(colors = cast.colors(singers))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            line.text,
+                            style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
+                            color = DS.ink
+                        )
+                        ImasPartNames(names = cast.names(singers))
+                    }
+                }
+            }
+            LyricLineKind.MARKER -> SectionMarker(line.text)
+            LyricLineKind.BLANK -> Spacer(Modifier.height(DS.sp3))
         }
     }
 }
@@ -330,6 +492,7 @@ private fun ViewingBody(
     activeLineId: String?,
     heatTick: Int,
     song: Song,
+    cast: LyricPartCast,
     onToggleLike: (LyricLine) -> Unit
 ) {
     val emphases = lyrics.usedEmphases
@@ -346,25 +509,27 @@ private fun ViewingBody(
     lyrics.lines.forEach { line ->
         val state = if (line.id == activeLineId) ImasLyricLineState.CURRENT else ImasLyricLineState.NORMAL
         ImasLyricLineRow(state = state, seed = seed) {
-            ViewingRow(line = line, isLiked = likes.contains(line.id), accent = theme.accent, onToggleLike = onToggleLike)
+            ViewingRow(line = line, isLiked = likes.contains(line.id), accent = theme.accent, cast = cast, onToggleLike = onToggleLike)
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, onToggleLike: (LyricLine) -> Unit) {
+private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: LyricPartCast, onToggleLike: (LyricLine) -> Unit) {
     when (line.kind) {
         LyricLineKind.LYRIC -> {
             Row(
                 Modifier
                     .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
                     .padding(vertical = DS.sp1)
                     .combinedClickable(onClick = {}, onDoubleClick = { onToggleLike(line) }),
                 horizontalArrangement = Arrangement.spacedBy(DS.sp2),
                 verticalAlignment = Alignment.Top
             ) {
                 ImasClapGlyph(clap = line.clap, modifier = Modifier.padding(top = DS.sp1))
+                if (line.singers.isNotEmpty()) ImasPartStripe(colors = cast.colors(line.singers))
                 Column(Modifier.weight(1f)) {
                     // ⚠️ ここに SelectionContainer / テキストコピーの口を足さないこと。
                     Text(
@@ -372,6 +537,7 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, onToggl
                         style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
                         color = DS.ink
                     )
+                    ImasPartNames(names = cast.names(line.singers))
                     if (line.calls.isNotEmpty()) ImasCallRows(calls = line.calls, anchorIndexes = anchorIndexesFor(line))
                 }
                 if (isLiked) ImasLyricLikeMark(seed = null, modifier = Modifier.padding(top = DS.sp1))

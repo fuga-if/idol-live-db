@@ -64,6 +64,20 @@ class LyricsApi(private val client: WorkerHttpClient) {
         JSONObject(res.body ?: "{}").optInt("likeCount", 0)
     }
 
+    /**
+     * 行ごとの歌唱者 (アイドル id) を保存する (PUT /songs/:id/parts。全置換で、
+     * 載せなかった行のパートは消える)。歌詞本文は送らない。
+     */
+    suspend fun saveParts(songId: String, lines: List<Pair<String, List<String>>>) = withContext(Dispatchers.IO) {
+        val body = JSONObject().put(
+            "lines",
+            JSONArray(lines.map { (id, singers) ->
+                JSONObject().put("id", id).put("singers", JSONArray(singers))
+            })
+        )
+        check(client.request("PUT", "/songs/${seg(songId)}/parts", body), "パート分けを保存できませんでした")
+    }
+
     /** 行をくっつける / 切り離す (POST /songs/:id/lyric-structure)。文字は変わらない。 */
     suspend fun editStructure(songId: String, change: StructureChange) = withContext(Dispatchers.IO) {
         val body = when (change) {
