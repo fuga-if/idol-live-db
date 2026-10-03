@@ -14,12 +14,13 @@
 /// - `added_votes`: 追加された投票履歴の件数。
 /// - `added_personal_tags`: 追加されたマイタグの件数 (0 なら文面に出さない)。
 /// - `added_expenses`: 追加された収支の件数 (0 なら文面に出さない)。
+/// - `added_playlists`: 追加されたプレイリストの件数 (0 なら文面に出さない)。
 /// - `skipped_marks`: 形式不正で取り込めなかった件数 (0 なら出さない)。
 /// - `device_id_restored`: 端末 ID まで復元したか。
 ///
 /// 件数を i64 で受けるのは Swift の `Int` / Kotlin の `Int` をロス無く受けるため
 /// (実データは非負だが、境界で変換エラーを起こさないことを優先する)。
-pub fn backup_import_summary(added_marks: i64, added_votes: i64, added_personal_tags: i64, added_expenses: i64, skipped_marks: i64, device_id_restored: bool, ) -> String {
+pub fn backup_import_summary(added_marks: i64, added_votes: i64, added_personal_tags: i64, added_expenses: i64, added_playlists: i64, skipped_marks: i64, device_id_restored: bool, ) -> String {
     // 担当/お気に入りと投票履歴は復元の主目的なので 0 件でも必ず出す
     // (「0 件だった」ことにも意味がある: 全部重複していた等)。
     let mut message = format!(
@@ -30,6 +31,9 @@ pub fn backup_import_summary(added_marks: i64, added_votes: i64, added_personal_
     }
     if added_expenses > 0 {
         message.push_str(&format!("\n収支を {added_expenses} 件 追加しました。"));
+    }
+    if added_playlists > 0 {
+        message.push_str(&format!("\nプレイリストを {added_playlists} 件 追加しました。"));
     }
     if skipped_marks > 0 {
         message.push_str(&format!("\n({skipped_marks} 件は形式不正のためスキップされました)"));
@@ -48,10 +52,10 @@ mod tests {
     #[test]
     fn expenses_line_appears_only_when_positive() {
         assert_eq!(
-            backup_import_summary(1, 0, 0, 4, 0, false),
+            backup_import_summary(1, 0, 0, 4, 0, 0, false),
             "担当/お気に入り等を 1 件、投票履歴を 0 件 追加しました。\n収支を 4 件 追加しました。"
         );
-        assert!(!backup_import_summary(1, 0, 0, 0, 0, false).contains("収支"));
+        assert!(!backup_import_summary(1, 0, 0, 0, 0, 0, false).contains("収支"));
     }
 
     /// 0 件の項目は文面に出さない (ノイズを増やさない)。
@@ -59,7 +63,7 @@ mod tests {
     #[test]
     fn omits_zero_sections_with_nonzero_base() {
         assert_eq!(
-            backup_import_summary(3, 2, 0, 0, 0, false),
+            backup_import_summary(3, 2, 0, 0, 0, 0, false),
             "担当/お気に入り等を 3 件、投票履歴を 2 件 追加しました。"
         );
     }
@@ -72,11 +76,11 @@ mod tests {
                         マイタグを 5 件 追加しました。\n\
                         (6 件は形式不正のためスキップされました)\n\
                         端末IDも復元しました。";
-        assert_eq!(backup_import_summary(12, 34, 5, 0, 6, true), expected);
+        assert_eq!(backup_import_summary(12, 34, 5, 0, 0, 6, true), expected);
         // 決定性: 同値入力の再呼び出しで文面が揺れない。
         assert_eq!(
-            backup_import_summary(12, 34, 5, 0, 6, true),
-            backup_import_summary(12, 34, 5, 0, 6, true)
+            backup_import_summary(12, 34, 5, 0, 0, 6, true),
+            backup_import_summary(12, 34, 5, 0, 0, 6, true)
         );
     }
 }

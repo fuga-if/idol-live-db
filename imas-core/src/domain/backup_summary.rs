@@ -127,6 +127,20 @@ pub struct BackupExpenseRecord {
     pub updated_at: String,
 }
 
+/// プレイリスト 1 つ (`playlists` + `playlist_items`)。曲は id の並びだけ。
+///
+/// 同一性は id (UUID)。取り込みは「ローカルに無い id のプレイリストを足すだけ」で、
+/// 既にあるプレイリストの曲を足したり並べ替えたりはしない (非破壊)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct BackupPlaylistRecord {
+    pub id: String,
+    pub name: String,
+    pub created_at: String,
+    pub updated_at: String,
+    /// 並び順の曲の id。
+    pub song_ids: Vec<String>,
+}
+
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
 #[derive(uniffi::Record, Clone, Debug)]
 pub struct BackupExportInput {
@@ -140,6 +154,8 @@ pub struct BackupExportInput {
     pub poll_votes: Vec<BackupPollVoteRecord>,
     pub personal_tags: Vec<BackupPersonalTagRecord>,
     pub expenses: Vec<BackupExpenseRecord>,
+    #[uniffi(default)]
+    pub playlists: Vec<BackupPlaylistRecord>,
 }
 
 /// 書き出し結果。`envelope_json` をそのままファイル/引き継ぎコードにすればよい。
@@ -179,6 +195,9 @@ pub struct BackupLocalState {
     pub poll_votes: Vec<BackupPollVoteRecord>,
     /// 既にある収支の id。同じ id は入れ直さない (二重計上を防ぐ)。
     pub expense_ids: Vec<String>,
+    /// 既にあるプレイリストの id。
+    #[uniffi(default)]
+    pub playlist_ids: Vec<String>,
 }
 
 /// envelope を検証して取り出したメタ情報 (取り込み前のプレビュー用)。
@@ -196,6 +215,7 @@ pub struct BackupEnvelopeInfo {
     pub vote_count: i64,
     pub personal_tag_count: i64,
     pub expense_count: i64,
+    pub playlist_count: i64,
     /// 形式不正で捨てた要素数 (marks / votes / personalTags の合計)。
     /// `backup_import_summary` の `skipped_marks` に渡す値。
     pub skipped_entries: i64,
@@ -211,10 +231,12 @@ pub struct BackupImportPlan {
     pub poll_votes_to_add: Vec<BackupPollVoteRecord>,
     pub personal_tags_to_insert: Vec<BackupPersonalTagRecord>,
     pub expenses_to_insert: Vec<BackupExpenseRecord>,
+    pub playlists_to_insert: Vec<BackupPlaylistRecord>,
     pub added_marks: i64,
     pub added_votes: i64,
     pub added_personal_tags: i64,
     pub added_expenses: i64,
+    pub added_playlists: i64,
     /// 端末 ID を復元してよいか (要求されていて、かつ payload の deviceId が非空)。
     pub restore_device_id: bool,
 }
@@ -382,14 +404,39 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
         .collect::<Vec<_>>()
         .join(",");
 
+    let playlists = input
+        .playlists
+        .iter()
+        .map(|p| {
+            let songs = p.song_ids.iter().map(|id| json_string_literal(id)).collect::<Vec<_>>().join(",");
+            format!(
+                "{{\"createdAt\":{},\"id\":{},\"name\":{},\"songIds\":[{}],\"updatedAt\":{}}}",
+                json_string_literal(&p.created_at),
+                json_string_literal(&p.id),
+                json_string_literal(&p.name),
+                songs,
+                json_string_literal(&p.updated_at),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+
+    // プレイリストが無ければキーごと出さない (プレイリストを知らない版と同じ payload のまま)。
+    let playlists_field = if input.playlists.is_empty() {
+        String::new()
+    } else {
+        format!(",\"playlists\":[{playlists}]")
+    };
+
     format!(
-        "{{\"appVersion\":{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{},\"personalTags\":[{}],\"platform\":{},\"pollVotes\":[{}],\"schemaVersion\":{},\"userMarks\":[{}]}}",
+        "{{\"appVersion\":{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{},\"personalTags\":[{}],\"platform\":{}{},\"pollVotes\":[{}],\"schemaVersion\":{},\"userMarks\":[{}]}}",
         json_string_literal(&input.app_version),
         json_string_literal(&input.device_id),
         expenses,
         json_string_literal(&input.exported_at),
         tags,
         json_string_literal(&input.platform),
+        playlists_field,
         vote_items,
         BACKUP_SCHEMA_VERSION,
         marks,
@@ -433,6 +480,7 @@ struct ParsedBackup {
     votes: Vec<BackupPollVoteRecord>,
     tags: Vec<BackupPersonalTagRecord>,
     expenses: Vec<BackupExpenseRecord>,
+    playlists: Vec<BackupPlaylistRecord>,
 }
 
 /// envelope を検証し、中身の件数とメタ情報だけを返す (書き込み前のプレビュー用)。
@@ -527,10 +575,20 @@ pub fn plan_backup_import(
         }
     }
 
+    // プレイリストも id で見る。既にあるプレイリストの中身には触らない。
+    let mut seen_playlists: HashSet<String> = local.playlist_ids.iter().cloned().collect();
+    let mut playlists_to_insert = Vec::new();
+    for playlist in parsed.playlists {
+        if seen_playlists.insert(playlist.id.clone()) {
+            playlists_to_insert.push(playlist);
+        }
+    }
+
     let added_marks = marks_to_insert.len() as i64;
     let added_personal_tags = personal_tags_to_insert.len() as i64;
     let added_votes: i64 = poll_votes_to_add.iter().map(|v| v.entity_ids.len() as i64).sum();
     let added_expenses = expenses_to_insert.len() as i64;
+    let added_playlists = playlists_to_insert.len() as i64;
     let restore_device_id = restore_device_id && !parsed.info.device_id.is_empty();
 
     Ok(BackupImportPlan {
@@ -539,10 +597,12 @@ pub fn plan_backup_import(
         poll_votes_to_add,
         personal_tags_to_insert,
         expenses_to_insert,
+        playlists_to_insert,
         added_marks,
         added_votes,
         added_personal_tags,
         added_expenses,
+        added_playlists,
         restore_device_id,
     })
 }
@@ -584,6 +644,8 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
     // expenses も同じ。**版は上げない**ので、収支を知らない版のアプリでも
     // このキーを黙って無視して残りを取り込める (逆向きも同じ)。
     let expenses = parse_array(payload.get("expenses"), &mut skipped, parse_expense);
+    // playlists も版を上げずに足した項目。無ければ空。
+    let playlists = parse_array(payload.get("playlists"), &mut skipped, parse_playlist);
 
     Ok(ParsedBackup {
         info: BackupEnvelopeInfo {
@@ -597,12 +659,14 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
             vote_count: votes.len() as i64,
             personal_tag_count: tags.len() as i64,
             expense_count: expenses.len() as i64,
+            playlist_count: playlists.len() as i64,
             skipped_entries: skipped,
         },
         marks,
         votes,
         tags,
         expenses,
+        playlists,
     })
 }
 
@@ -682,6 +746,21 @@ fn parse_expense(value: &serde_json::Value) -> Option<BackupExpenseRecord> {
         event_id: optional_field(object, "eventId"),
         note: optional_field(object, "note"),
         updated_at: string_field(object, "updatedAt")?,
+    })
+}
+
+fn parse_playlist(value: &serde_json::Value) -> Option<BackupPlaylistRecord> {
+    let object = value.as_object()?;
+    let mut song_ids = Vec::new();
+    for item in object.get("songIds")?.as_array()? {
+        song_ids.push(item.as_str()?.to_string());
+    }
+    Some(BackupPlaylistRecord {
+        id: string_field(object, "id")?,
+        name: string_field(object, "name")?,
+        created_at: string_field(object, "createdAt")?,
+        updated_at: string_field(object, "updatedAt")?,
+        song_ids,
     })
 }
 
@@ -788,7 +867,39 @@ mod tests {
             poll_votes: vec![vote("poll_1", &["b", "a"])],
             personal_tags: vec![tag("song_1", "神曲")],
             expenses: vec![expense("exp_1", 9_000)],
+            playlists: vec![],
         }
+    }
+
+    fn playlist(id: &str, songs: &[&str]) -> BackupPlaylistRecord {
+        BackupPlaylistRecord {
+            id: id.to_string(),
+            name: "遠征の行き".to_string(),
+            created_at: "2026-10-03T00:00:00Z".to_string(),
+            updated_at: "2026-10-03T00:00:00Z".to_string(),
+            song_ids: songs.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    /// プレイリストは id で重複を見て、ローカルに無いものだけ足す。曲の並びは保つ。
+    #[test]
+    fn playlists_round_trip_and_skip_existing_ids() {
+        let mut input = export_input();
+        input.playlists = vec![playlist("pl_1", &["b", "a"]), playlist("pl_2", &["c"])];
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        let local = BackupLocalState { playlist_ids: vec!["pl_2".to_string()], ..BackupLocalState::default() };
+        let plan = plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical)
+            .expect("読める");
+        assert_eq!(plan.info.playlist_count, 2);
+        assert_eq!(plan.added_playlists, 1);
+        assert_eq!(plan.playlists_to_insert, vec![playlist("pl_1", &["b", "a"])]);
+    }
+
+    /// プレイリストが無ければ payload にキーを出さない (知らない版と同じ中身のまま)。
+    #[test]
+    fn empty_playlists_are_omitted_from_payload() {
+        let doc = build_backup_envelope(&export_input(), BackupKindDialect::Canonical);
+        assert!(!doc.payload_json.contains("playlists"));
     }
 
     fn expense(id: &str, amount: i64) -> BackupExpenseRecord {
