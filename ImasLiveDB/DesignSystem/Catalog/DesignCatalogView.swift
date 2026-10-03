@@ -176,6 +176,22 @@ private struct VenuePage: View {
                     .init(id: "stream-sub", label: "会場による内訳あり", amount: "推定含む", indented: true),
                 ])
             }
+            ImasSection("帯の時間軸", style: .small, footer: "チケット受付の期間。受付中は墨の塗り、受付前は墨の線、締切後は灰。開いた端は刻み。") {
+                let scale = ImasTimelineScale(
+                    ticks: [.init(at: 0, label: "9/1"), .init(at: 0.25, label: "9/8"), .init(at: 0.5, label: "9/15"), .init(at: 0.75, label: "9/22")],
+                    today: 0.42,
+                    shows: [.init(at: 0.93, label: "DAY1")]
+                )
+                ImasCard {
+                    VStack(alignment: .leading, spacing: DS.Space.gap) {
+                        ImasTimelineAxis(scale: scale)
+                        ImasTimelineTrack(scale: scale, bar: .init(start: 0.02, end: 0.2, style: .past), result: 0.26)
+                        ImasTimelineTrack(scale: scale, bar: .init(start: 0.3, end: 0.55, style: .active), result: 0.6, resultPending: true)
+                        ImasTimelineTrack(scale: scale, bar: .init(start: 0.62, end: 0.93, endOpen: true, style: .ahead))
+                    }
+                }
+                ImasTimelineLegend()
+            }
             ImasSection("印", style: .small, footer: "担当・お気に入り・メモは丸いパンチ。押すと実体の色で点く。操作 (出演ライブ) は墨の丸。") {
                 ImasMarkBar {
                     ImasMarkTile(systemImage: "heart.fill", label: "担当", isOn: pick) { pick.toggle() }

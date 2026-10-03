@@ -1,7 +1,9 @@
 //! チケット受付の FFI 面。ロジックは domain::ticket_sales。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::domain::ticket_sales::{self as sales, TicketSale, TicketSaleDeadline, TicketSaleDraft, TicketSaleIssue, TicketSaleKind};
+use crate::domain::ticket_sales::{
+    self as sales, TicketSale, TicketSaleDeadline, TicketSaleDraft, TicketSaleIssue, TicketSaleKind, TicketSaleTimeline,
+};
 
 #[uniffi::export]
 impl SnapshotStore {
@@ -23,6 +25,16 @@ impl SnapshotStore {
     ) -> Result<Option<TicketSale>, SnapshotError> {
         let snap = self.current()?;
         Ok(sales::spotlight(&snap, &event_id, now_epoch_seconds))
+    }
+
+    /// イベントの受付を帯の時間軸 (ガント) に並べたもの。受付が無ければ `None`。
+    pub fn ticket_sale_timeline(
+        &self,
+        event_id: String,
+        now_epoch_seconds: i64,
+    ) -> Result<Option<TicketSaleTimeline>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(sales::timeline_for_event(&snap, &event_id, now_epoch_seconds))
     }
 
     /// 全イベント横断の締切一覧 (ウィジェット・通知の材料)。近い順、上限 `limit` 件。

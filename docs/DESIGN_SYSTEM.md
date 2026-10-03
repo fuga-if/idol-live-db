@@ -347,6 +347,9 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasDateHeader`** 年・月の区切り (細長い大きな数字 + 印字)。終わった区切りは薄く。
 - **`ImasPerforation`** 切り取り線。チケットの半券の境目、申込書の欄の間、セトリの紙の行の間 (`ImasCardList(style: .sheet)`)。
 - **`ImasPriceList`** 料金表 (暗い板に「種類 … ¥ 数字」)。
+- **`ImasTimelineAxis` / `ImasTimelineTrack` / `ImasTimelineLegend`** 帯の時間軸 (ガント)。1 つのライブのチケット受付を同じ軸の横の帯で並べる。
+  上に日付の目盛と朱の「今日」、行ごとに帯・当落の◆・公演日の点線・今日の朱の線、カードの下に凡例。帯は受付中 = 墨の塗り・受付前 = 墨の線・締切後 = 灰の塗り
+  (色で段階を分けない)。開始・締切が未登録の端は閉じずに刻みで描く。角は丸めない。軸の位置 (0〜1) は imas-core (`ticketSaleTimeline`) が計算して渡す。
 
 ### 6.8 `ImasSuggestionBar` 提案バー
 - **用途** 一覧の絞り込み結果から「この範囲でイントロドンを始める」のような、その場限りの単発の提案を 1 本の全幅バーで出す。
@@ -698,6 +701,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 試聴する (ジャケをタップ) | `ImasArtwork` (`previewURL`) |
 | 行・区画の中身をその場で開閉する | `ImasDisclosureRow` |
 | 料金表を見せる | `ImasPriceList` |
+| 期間を同じ時間軸に並べる (チケット受付) | `ImasTimelineAxis` + `ImasTimelineTrack` + `ImasTimelineLegend` |
 | セトリに Good を付ける | `ImasLikeButton` |
 | ユニットを並べる・名札を見せる | `ImasUnitAvatar` / `ImasUnitCell` |
 | 日付に印を付ける (カレンダー) | `ImasDateMark` |

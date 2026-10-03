@@ -127,6 +127,12 @@ struct CoreEventRepository: EventReading {
         }
     }
 
+    func ticketSaleTimeline(eventId: String) async throws -> TicketSaleTimeline? {
+        try await snapshot.withStore { store in
+            try store.ticketSaleTimeline(eventId: eventId, nowEpochSeconds: JSTDay.nowEpochSeconds())
+        }
+    }
+
     func ticketSaleSpotlight(eventId: String) async throws -> TicketSale? {
         try await snapshot.withStore { store in
             try store.ticketSaleSpotlight(eventId: eventId, nowEpochSeconds: JSTDay.nowEpochSeconds())

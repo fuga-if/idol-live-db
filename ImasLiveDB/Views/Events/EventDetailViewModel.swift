@@ -21,8 +21,10 @@ final class EventDetailViewModel {
     private(set) var attendedShowIds: Set<String> = []
     /// ヒーロー (開催期間・会場・今後か・参加の札)。コアが組む。参加を付け替えたら組み直す。
     private(set) var hero: EventHeroRecord?
-    /// チケット受付一覧 (段階・並び・表示文字列は共有コアが決め切って返す)。
-    private(set) var ticketSales: [TicketSale] = []
+    /// チケット受付を帯の時間軸に並べたもの (段階・並び・表示文字列・軸の位置は共有コアが決め切って返す)。
+    private(set) var ticketTimeline: TicketSaleTimeline?
+    /// チケット受付一覧 (帯の行の並びそのまま)。
+    var ticketSales: [TicketSale] { ticketTimeline?.rows.map(\.sale) ?? [] }
     /// このイベントで着られた衣装 (共通・個別)。分け方も並びも imas-core。
     private(set) var costumes: EventCostumesRecord?
 
@@ -54,7 +56,7 @@ final class EventDetailViewModel {
             }
             attendance = try await eventReading.eventAttendance(eventId: event.id)
             unitIndex = try await unitReading.unitIndex()
-            ticketSales = try await eventReading.ticketSales(eventId: event.id)
+            ticketTimeline = try await eventReading.ticketSaleTimeline(eventId: event.id)
         } catch {
             Logger.database.error("load_failed event_detail: \(error.localizedDescription)")
         }
@@ -69,7 +71,7 @@ final class EventDetailViewModel {
     /// チケット受付の追加・編集・削除の後に呼ぶ (他は変わっていないので全体は読み直さない)。
     func reloadTicketSales(eventId: String) async {
         do {
-            ticketSales = try await eventReading.ticketSales(eventId: eventId)
+            ticketTimeline = try await eventReading.ticketSaleTimeline(eventId: eventId)
         } catch {
             Logger.database.error("load_failed ticket_sales: \(error.localizedDescription)")
         }

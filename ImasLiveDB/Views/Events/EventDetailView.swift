@@ -406,11 +406,40 @@ struct EventDetailView: View {
                             .padding(.vertical, DS.Space.rowVCompact)
                     }
                     .padding(.horizontal, DS.Space.screen)
-                } else {
+                } else if let timeline = vm.ticketTimeline {
+                    let scale = timelineScale(timeline)
+                    // 全受付を 1 枚の帯の表に重ねて「いつ何が受付中か」を一目で見せ、
+                    // 期間・当落・対象・申込リンクの詳細はその下の一覧に並べる。
+                    ImasCard {
+                        VStack(alignment: .leading, spacing: DS.Space.gap) {
+                            ImasTimelineAxis(scale: scale)
+                            ForEach(timeline.rows, id: \.sale.id) { row in
+                                ImasTimelineLane(
+                                    title: row.sale.name,
+                                    trailing: row.sale.stageLabel,
+                                    scale: scale,
+                                    bar: row.span.map { span in
+                                        ImasTimelineBar(
+                                            start: span.start,
+                                            end: span.end,
+                                            startOpen: span.startOpen,
+                                            endOpen: span.endOpen,
+                                            style: timelineBarStyle(row.sale.stage)
+                                        )
+                                    },
+                                    result: row.resultAt,
+                                    resultPending: row.sale.stage != .ended
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, DS.Space.screen)
+                    ImasTimelineLegend()
+                        .padding(.horizontal, DS.Space.screen)
                     ImasCardList {
-                        ForEach(Array(vm.ticketSales.enumerated()), id: \.element.id) { index, sale in
+                        ForEach(Array(timeline.rows.enumerated()), id: \.element.sale.id) { index, row in
                             if index > 0 { ImasRowDivider(inset: DS.Space.rowH) }
-                            ticketSaleRow(sale)
+                            ticketSaleRow(row.sale)
                         }
                     }
                     .padding(.horizontal, DS.Space.screen)
@@ -485,6 +514,23 @@ struct EventDetailView: View {
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.gap)
         .contentShape(Rectangle())
+    }
+
+    private func timelineScale(_ timeline: TicketSaleTimeline) -> ImasTimelineScale {
+        ImasTimelineScale(
+            ticks: timeline.ticks.map { ImasTimelineMark(at: $0.at, label: $0.label) },
+            today: timeline.today,
+            shows: timeline.shows.map { ImasTimelineMark(at: $0.at, label: $0.label) }
+        )
+    }
+
+    /// 帯の見え方。受付中は墨の塗り、受付前は墨の線、締切後 (結果待ち・終了) は灰。
+    private func timelineBarStyle(_ stage: TicketSaleStage) -> ImasTimelineBar.Style {
+        switch stage {
+        case .open: return .active
+        case .upcoming: return .ahead
+        case .awaitingResult, .ended: return .past
+        }
     }
 
     /// 段階の札の種類。受付中/結果待ちは「墨の線」(§10.1 `.attention` が受付中を例示)、
