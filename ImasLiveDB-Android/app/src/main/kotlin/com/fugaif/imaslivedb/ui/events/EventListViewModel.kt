@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import uniffi.imas_core.OpenTicketSale
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -61,7 +62,12 @@ data class EventListUiState(
      * 1 回だけ計算して載せる (iOS EventListViewModel の groupedByYear / filteredCount と同じ形)。
      */
     val groupedByYear: List<YearGroup> = emptyList(),
-    val filteredCount: Int = 0
+    val filteredCount: Int = 0,
+    /**
+     * いま受付中の受付のうち、絞り込み (今後/開催済みは問わない) に残ったライブのもの。締切の近い順。
+     * 配信チケットのように開催後も受け付けるものがあるので時系列のタブでは切らない (iOS と同じ)。
+     */
+    val openSales: List<OpenTicketSale> = emptyList()
 ) {
     /** ツールバーのフィルタバッジ件数 (iOS EventListView.activeFilterCount と同じ数え方)。 */
     val activeFilterCount: Int
@@ -84,6 +90,7 @@ class EventListViewModel : ViewModel() {
     // (載せると Compose 側から母集合を触れてしまい、行ごとの再計算を招く)。
     private var eventsWithDate: List<EventWithDateRange> = emptyList()
     private var venueEventIds: Set<String> = emptySet()
+    private var allOpenSales: List<OpenTicketSale> = emptyList()
 
     // マーク由来の id 集合 (参加/お気に入り/メモ)。母集合と同じく画面には出さない。
     private var attendedEventIds: Set<String> = emptySet()
@@ -105,6 +112,7 @@ class EventListViewModel : ViewModel() {
         viewModelScope.launch {
             val module = AppModule.from(context)
             eventsWithDate = module.eventRepository.fetchEventsWithFirstDate()
+            allOpenSales = module.eventRepository.fetchOpenTicketSales()
             val brands = module.statsRepository.fetchBrands()
             val directory = module.eventRepository.fetchVenueDirectory()
             loadMarkSets(context)
@@ -290,9 +298,11 @@ class EventListViewModel : ViewModel() {
             // (docs/DATA_PIPELINE.md「配信の軸」)。
             excludeBroadcast = state.hideStreaming
         )
+        var filteredIds: Set<String> = emptySet()
         val groups = withContext(Dispatchers.Default) {
             // 純粋関数だが FFI は呼び元スレッドをブロックするので UI スレッドから外す。
             var filtered = filterEvents(source, criteria)
+            filteredIds = filtered.map { it.event.id }.toSet()
             if (!state.showEmptyEvents) {
                 // 公演が 1 つも無いイベント (= 初回公演日が無い) を落とす。コアの
                 // eventsWithFirstDate は include_empty で同じことをするが、この一覧の母集合は
@@ -305,6 +315,7 @@ class EventListViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(
             groupedByYear = groups,
             filteredCount = groups.sumOf { it.events.size },
+            openSales = allOpenSales.filter { it.sale.eventId in filteredIds },
             // 表示データと同じ copy で降ろすことで、スケルトン→一覧の遷移を原子的にする。
             // 母集合の読込前に走った rebuild では降ろさない (空状態の誤表示になるため)。
             isLoading = !sourceLoaded

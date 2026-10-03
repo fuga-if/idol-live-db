@@ -108,6 +108,18 @@ pub enum TicketSaleDeadlineKind {
     AwaitingResult,
 }
 
+/// ライブ一覧の「受付中」の 1 行。受付の射影に、締切までの残りの文字列を添える。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct OpenTicketSale {
+    pub sale: TicketSale,
+    /// ライブのブランド色 (行頭の帯)。
+    pub brand_color: Option<String>,
+    /// `"10/12 (月) 23:59 締切"`。締切が実・暗黙とも無ければ `None`。
+    pub deadline_label: Option<String>,
+    /// `"今日まで"` / `"明日まで"` / `"あと 8 日"`。締切が無ければ `None`。
+    pub remaining_label: Option<String>,
+}
+
 /// ウィジェット・通知の「締切一覧」用の 1 行。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct TicketSaleDeadline {
@@ -592,6 +604,42 @@ pub fn deadlines(snap: &Snapshot, now_epoch_seconds: i64, limit: u32) -> Vec<Tic
     rows.into_iter().take(limit as usize).map(|r| r.record).collect()
 }
 
+/// 全ライブ横断の「いま受付中」の受付 (ライブ一覧の頭に出す)。締切の近い順、締切の無いものは最後。
+///
+/// 締切は [`effective_deadline`] (無ければ対象公演の最終日) の意味で揃える。
+pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale> {
+    let today = now_naive(now_epoch_seconds).date();
+    let mut rows: Vec<((bool, NaiveDateTime), OpenTicketSale)> = Vec::new();
+    for (ei, event) in snap.events.iter().enumerate() {
+        for &si in &snap.ticket_sales_by_event[ei] {
+            let row = &snap.ticket_sales[si as usize];
+            let sale = to_ticket_sale(snap, event, ei as u32, row, now_epoch_seconds);
+            if sale.stage != TicketSaleStage::Open {
+                continue;
+            }
+            let deadline = effective_deadline(snap, ei as u32, &row.show_ids, row.ends_at.as_deref());
+            let key = deadline.map_or((true, far_future()), |m| (false, upper_bound(m)));
+            let remaining_label = deadline.map(|(date, _)| match (date - today).num_days() {
+                d if d <= 0 => "今日まで".to_string(),
+                1 => "明日まで".to_string(),
+                d => format!("あと {d} 日"),
+            });
+            let brand_color = event.brand_id.as_deref().and_then(|b| snap.brand(b)).and_then(|b| b.color.clone());
+            rows.push((
+                key,
+                OpenTicketSale {
+                    deadline_label: deadline.map(|(d, t)| format!("{} 締切", moment_label(d, t))),
+                    remaining_label,
+                    brand_color,
+                    sale,
+                },
+            ));
+        }
+    }
+    rows.sort_by(|a, b| (a.0, a.1.sale.event_name.as_str(), a.1.sale.id.as_str()).cmp(&(b.0, b.1.sale.event_name.as_str(), b.1.sale.id.as_str())));
+    rows.into_iter().map(|(_, r)| r).collect()
+}
+
 fn to_ticket_sale(
     snap: &Snapshot,
     event: &Event,
@@ -766,6 +814,29 @@ mod tests {
             .and_utc()
             .timestamp()
             - 9 * 3600
+    }
+
+    // ---- 受付中の一覧 ----
+
+    #[test]
+    fn open_sales_lists_only_open_sales_across_events_nearest_deadline_first() {
+        let events = vec![event("e1", "10th LIVE", Some("cg")), event("e2", "11th LIVE", None)];
+        let shows = vec![show("sh1", 0, "10th LIVE", "2026-05-10"), show("sh2", 1, "11th LIVE", "2026-06-10")];
+        let sales = vec![
+            row("a", 0, vec![], TicketSaleKind::Lottery, "先行", Some("2026-04-01"), Some("2026-04-20 23:59"), None, 0),
+            row("b", 1, vec![], TicketSaleKind::FirstCome, "一般", Some("2026-04-01"), Some("2026-04-11"), None, 0),
+            row("c", 1, vec![], TicketSaleKind::Resale, "リセール", Some("2026-04-01"), None, None, 1),
+            row("d", 0, vec![], TicketSaleKind::Lottery, "終わった", Some("2026-03-01"), Some("2026-03-05"), None, 1),
+            row("e", 0, vec![], TicketSaleKind::Lottery, "まだ", Some("2026-04-30"), Some("2026-05-01"), None, 2),
+        ];
+        let snap = test_snapshot(events, shows, sales);
+        let open = open_sales(&snap, epoch(2026, 4, 10, 12, 0));
+        assert_eq!(open.iter().map(|o| o.sale.id.as_str()).collect::<Vec<_>>(), vec!["b", "a", "c"]);
+        assert_eq!(open[0].remaining_label.as_deref(), Some("明日まで"));
+        assert_eq!(open[0].deadline_label.as_deref(), Some("4/11 (土) 締切"));
+        assert_eq!(open[1].remaining_label.as_deref(), Some("あと 10 日"));
+        assert_eq!(open[1].brand_color.as_deref(), Some("#ff69b4"));
+        assert_eq!(open[2].remaining_label.as_deref(), Some("あと 61 日"), "締切が無ければ対象公演の最終日");
     }
 
     // ---- 日時の解釈 ----

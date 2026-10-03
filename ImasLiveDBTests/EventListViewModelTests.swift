@@ -34,6 +34,7 @@ final class EventListViewModelTests: XCTestCase {
         func eventsByIds(_ ids: [String]) async throws -> [EventWithDate] { [] }
         func eventReleases(eventId: String) async throws -> [EventRelease] { [] }
         func ticketSales(eventId: String) async throws -> [TicketSale] { [] }
+        func openTicketSales() async throws -> [OpenTicketSale] { [] }
         func ticketSaleSpotlight(eventId: String) async throws -> TicketSale? { nil }
     }
 

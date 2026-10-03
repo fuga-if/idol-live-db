@@ -58,6 +58,19 @@ import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.data.model.JstDay
 import uniffi.imas_core.spokenDate
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasDisclosureRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import androidx.compose.runtime.saveable.rememberSaveable
+import uniffi.imas_core.OpenTicketSale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -194,6 +207,15 @@ fun EventListScreen(
                         contentPadding = readable,
                         verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
                     ) {
+                        if (uiState.timeFilter == 0 && uiState.openSales.isNotEmpty()) {
+                            item(key = "open_sales") {
+                                OpenSalesSection(
+                                    sales = uiState.openSales,
+                                    onEventClick = onEventClick,
+                                    modifier = Modifier.padding(horizontal = DS.Space.screen)
+                                )
+                            }
+                        }
                         uiState.groupedByYear.forEach { group ->
                             stickyHeader(key = group.year) {
                                 ImasDateHeader(
@@ -281,3 +303,42 @@ private fun ActiveFilterChipRow(
     // ImasFilterBar は内部の ImasChipRow が左右の余白を自分で持つ (ここで足すと二重になる)。
     ImasFilterBar(items = items)
 }
+
+/** 畳んだときに出す受付中の件数 (iOS `openSalesCollapsedLimit`)。 */
+private const val OPEN_SALES_COLLAPSED_LIMIT = 3
+
+/**
+ * 受付中のチケット: 全ライブ横断の「いま申し込める」受付を締切の近い順に (iOS `openSalesSection`)。
+ * 押すとそのライブの詳細へ (受付の詳細・申込リンクはそこにある)。
+ */
+@Composable
+private fun OpenSalesSection(sales: List<OpenTicketSale>, onEventClick: (String) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val shown = if (expanded) sales else sales.take(OPEN_SALES_COLLAPSED_LIMIT)
+    ImasSection("受付中のチケット", modifier = modifier, count = "${sales.size}件", style = ImasSectionHeaderStyle.SMALL) {
+        ImasCardList {
+            shown.forEachIndexed { index, open ->
+                ImasRow(
+                    title = open.sale.eventName,
+                    modifier = Modifier.imasRowPress(onClick = { onEventClick(open.sale.eventId) }),
+                    subtitle = listOfNotNull(open.sale.name, open.deadlineLabel).joinToString(" ・ "),
+                    leading = ImasRowLeading.Bar(seed = open.brandColor),
+                    trailing = open.remainingLabel?.let { ImasRowTrailing.Badge(it, ImasBadgeKind.ATTENTION) } ?: ImasRowTrailing.None,
+                    density = ImasRowDensity.COMPACT,
+                    subtitleLineLimit = 2,
+                    position = if (index == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING
+                )
+            }
+            if (sales.size > OPEN_SALES_COLLAPSED_LIMIT) {
+                ImasRowDivider(inset = DS.Space.rowH)
+                ImasDisclosureRow(
+                    title = if (expanded) "畳む" else "ほかの受付",
+                    isExpanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    count = if (expanded) null else "${sales.size - OPEN_SALES_COLLAPSED_LIMIT}件"
+                )
+            }
+        }
+    }
+}
+

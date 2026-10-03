@@ -33,6 +33,8 @@ struct EventListView: View {
     /// 伴うこの一覧はその振動で描画が破綻し、スクロールすると主スレッドが戻らなくなる。
     /// 変換が落ち着くまで作り直しを待たせてこの振動自体を消す。
     @State private var appliedSearchText = ""
+    /// 受付中のチケットの欄を全部開いているか (畳んでいるときは締切の近い数件だけ)。
+    @State private var openSalesExpanded = false
     /// 新規イベント作成 sheet。
     @State private var showEventCreate = false
     /// 未ログイン時のログイン誘導 sheet。ログイン後に新規作成を再開する。
@@ -153,6 +155,47 @@ struct EventListView: View {
         EventListQuery(filter: filterContext, upcoming: timeFilter == 0, todayKey: todayKey)
     }
 
+    /// 畳んだときに出す受付中の件数。
+    private static let openSalesCollapsedLimit = 3
+
+    /// 受付中のチケット: 全ライブ横断の「いま申し込める」受付を締切の近い順に。
+    /// 押すとそのライブの詳細へ (受付の詳細・申込リンクはそこにある)。
+    @ViewBuilder
+    private var openSalesSection: some View {
+        let sales = vm.openSales
+        let shown = openSalesExpanded ? sales : Array(sales.prefix(Self.openSalesCollapsedLimit))
+        ImasSection("受付中のチケット", count: "\(sales.count)件", style: .small) {
+            ImasCardList {
+                ForEach(Array(shown.enumerated()), id: \.element.sale.id) { index, open in
+                    Button {
+                        if let event = vm.eventsWithDate.first(where: { $0.event.id == open.sale.eventId })?.event {
+                            navPath.append(event)
+                        }
+                    } label: {
+                        ImasRow(
+                            title: open.sale.eventName,
+                            subtitle: [open.sale.name, open.deadlineLabel].compactMap { $0 }.joined(separator: " ・ "),
+                            leading: .bar(seed: open.brandColor),
+                            trailing: open.remainingLabel.map { .badge(ImasBadge(text: $0, kind: .attention)) } ?? .none,
+                            density: .compact,
+                            subtitleLineLimit: 2
+                        )
+                    }
+                    .buttonStyle(.imasRow)
+                    .environment(\.imasRowPosition, index == 0 ? .first : .following)
+                }
+                if sales.count > Self.openSalesCollapsedLimit {
+                    ImasRowDivider(inset: DS.Space.rowH)
+                    ImasDisclosureRow(
+                        title: openSalesExpanded ? "畳む" : "ほかの受付",
+                        count: openSalesExpanded ? nil : "\(sales.count - Self.openSalesCollapsedLimit)件",
+                        isExpanded: $openSalesExpanded
+                    )
+                }
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack(path: $navPath) {
             VStack(spacing: 0) {
@@ -178,6 +221,15 @@ struct EventListView: View {
 
                     if vm.isLoading {
                         ImasListSkeleton(rows: 10, thumb: .none)
+                            .padding(.horizontal, DS.Space.screen)
+                            .padding(.top, DS.Space.gap)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(DS.bg)
+                            .listRowSeparator(.hidden)
+                    }
+
+                    if timeFilter == 0, !vm.isLoading, !vm.openSales.isEmpty {
+                        openSalesSection
                             .padding(.horizontal, DS.Space.screen)
                             .padding(.top, DS.Space.gap)
                             .listRowInsets(EdgeInsets())

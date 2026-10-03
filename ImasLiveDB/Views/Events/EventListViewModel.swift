@@ -21,6 +21,11 @@ final class EventListViewModel {
     // 絞り込み + 年グルーピング済みの派生結果
     private(set) var filteredCount: Int = 0
     private(set) var groupedByYear: [YearGroup] = []
+    /// いま受付中の受付のうち、絞り込み (ブランド・種別・検索など。今後/開催済みは問わない) に
+    /// 残ったライブのもの。締切の近い順。配信チケットのように開催後も受け付けるものがあるので
+    /// 時系列のタブでは切らない。
+    private(set) var openSales: [OpenTicketSale] = []
+    private var allOpenSales: [OpenTicketSale] = []
 
     private let eventReading: any EventReading
     private let brandReading: any BrandReading
@@ -48,6 +53,7 @@ final class EventListViewModel {
                 kinds: Vocab.table.eventKinds.compactMap { EventKind(rawValue: $0.value) }
             )
             brands = try await brandReading.brands()
+            allOpenSales = try await eventReading.openTicketSales()
             await rebuild(query: query)
         } catch {
             Logger.database.error("load_failed events: \(error.localizedDescription)")
@@ -66,6 +72,8 @@ final class EventListViewModel {
             filter.venueEventIds = (try? await showReading.eventIdsAtVenue(filter.venue)) ?? []
         }
         let filtered = filterEvents(eventsWithDate, filter)
+        let filteredIds = Set(filtered.map(\.event.id))
+        openSales = allOpenSales.filter { filteredIds.contains($0.sale.eventId) }
         let groups = groupEventsByYear(filtered, upcoming: query.upcoming, todayKey: query.todayKey)
         filteredCount = groups.reduce(0) { $0 + $1.events.count }
         groupedByYear = groups
