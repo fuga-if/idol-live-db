@@ -46,6 +46,25 @@ interface LyricsPlayback {
      * 必要ならサインインの画面を出す。
      */
     suspend fun startFull(songId: String, appleMusicId: String): Boolean
+
+    /**
+     * 曲を順に積んでフル再生する (プレイリスト)。iOS `MusicKitService.playQueue` と対。
+     * Apple Music に無い曲は飛ばす。始められなければ false。
+     *
+     * @param entries 積む順の `songs.id` と Apple Music の id。
+     * @param startAt `entries` の何番目から鳴らすか。その曲が Apple Music に無ければ、次に鳴らせる曲から。
+     */
+    suspend fun startQueue(entries: List<Pair<String, String>>, startAt: Int): Boolean
+
+    /** 曲を順に積んで鳴らしているか (曲送りのボタンを出すか)。 */
+    val hasQueue: StateFlow<Boolean>
+    /** 積んだ曲の次があるか。 */
+    val canSkipNext: StateFlow<Boolean>
+    /** 次の曲へ。 */
+    fun skipNext()
+    /** 前の曲へ (少し進んでいれば今の曲の頭へ)。 */
+    fun skipPrevious()
+
     fun seek(ms: Int)
     fun togglePlay()
     fun stop()
@@ -62,6 +81,11 @@ object NoLyricsPlayback : LyricsPlayback {
     override fun positionMs(): Int? = null
     override fun durationMs(): Int? = null
     override suspend fun startFull(songId: String, appleMusicId: String): Boolean = false
+    override suspend fun startQueue(entries: List<Pair<String, String>>, startAt: Int): Boolean = false
+    override val hasQueue: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+    override val canSkipNext: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+    override fun skipNext() {}
+    override fun skipPrevious() {}
     override fun seek(ms: Int) {}
     override fun togglePlay() {}
     override fun stop() {}

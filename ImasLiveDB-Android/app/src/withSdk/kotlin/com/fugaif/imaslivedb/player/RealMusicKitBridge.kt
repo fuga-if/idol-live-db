@@ -27,6 +27,7 @@ class RealMusicKitBridge : MusicKitBridge {
     private val sdkHandler = Handler(Looper.getMainLooper())
     private var onPlaying: (Boolean) -> Unit = {}
     private var onFailedNow: (String) -> Unit = {}
+    private var onCurrentItem: (String?) -> Unit = {}
 
     override fun load(
         activity: Activity,
@@ -36,6 +37,45 @@ class RealMusicKitBridge : MusicKitBridge {
         onPlayingChanged: (Boolean) -> Unit,
         onFailed: (String) -> Unit,
     ) {
+        onCurrentItem = {}
+        val player = prepare(activity, developerToken, musicUserToken, onPlayingChanged, onFailed)
+        val queue = CatalogPlaybackQueueItemProvider.Builder()
+            .items(MediaItemType.SONG, catalogId)
+            .build()
+        player.prepare(queue, true)
+    }
+
+    override fun loadQueue(
+        activity: Activity,
+        developerToken: String,
+        musicUserToken: String,
+        catalogIds: List<String>,
+        startIndex: Int,
+        onPlayingChanged: (Boolean) -> Unit,
+        onCurrentItemChanged: (String?) -> Unit,
+        onFailed: (String) -> Unit,
+    ) {
+        onCurrentItem = onCurrentItemChanged
+        val player = prepare(activity, developerToken, musicUserToken, onPlayingChanged, onFailed)
+        val queue = CatalogPlaybackQueueItemProvider.Builder()
+            .items(MediaItemType.SONG, *catalogIds.toTypedArray())
+            .startItemIndex(startIndex.coerceIn(0, maxOf(0, catalogIds.size - 1)))
+            .build()
+        player.prepare(queue, true)
+    }
+
+    override fun canSkipToNext(): Boolean = controller?.canSkipToNextItem() == true
+    override fun skipToNext() { controller?.skipToNextItem() }
+    override fun skipToPrevious() { controller?.skipToPreviousItem() }
+
+    /** トークンが替わったら再生器を作り直し ([load] / [loadQueue] で共通)。 */
+    private fun prepare(
+        activity: Activity,
+        developerToken: String,
+        musicUserToken: String,
+        onPlayingChanged: (Boolean) -> Unit,
+        onFailed: (String) -> Unit,
+    ): MediaPlayerController {
         onPlaying = onPlayingChanged
         onFailedNow = onFailed
         // 先にネイティブを読ませる。createLocalController が内部で呼ぶ FairPlay の JNI に
@@ -48,11 +88,7 @@ class RealMusicKitBridge : MusicKitBridge {
             controller = null
             tokens = developerToken to musicUserToken
         }
-        val player = controller ?: create(activity, developerToken, musicUserToken).also { controller = it }
-        val queue = CatalogPlaybackQueueItemProvider.Builder()
-            .items(MediaItemType.SONG, catalogId)
-            .build()
-        player.prepare(queue, true)
+        return controller ?: create(activity, developerToken, musicUserToken).also { controller = it }
     }
 
     private fun create(activity: Activity, developerToken: String, userToken: String): MediaPlayerController {
@@ -68,7 +104,11 @@ class RealMusicKitBridge : MusicKitBridge {
             }
             override fun onPlaybackStateUpdated(c: MediaPlayerController) = Unit
             override fun onBufferingStateChanged(c: MediaPlayerController, buffering: Boolean) = Unit
-            override fun onCurrentItemChanged(c: MediaPlayerController, prev: PlayerQueueItem?, next: PlayerQueueItem?) = Unit
+            override fun onCurrentItemChanged(c: MediaPlayerController, prev: PlayerQueueItem?, next: PlayerQueueItem?) {
+                // getSubscriptionStoreId() がカタログ (Apple Music) の id。曲送り・SDK 側の
+                // 操作 (通知のメディア操作等) どちらで変わっても、ここから songId へ逆引きできる。
+                onCurrentItem(next?.item?.subscriptionStoreId)
+            }
             override fun onItemEnded(c: MediaPlayerController, item: PlayerQueueItem, at: Long) = Unit
             override fun onMetadataUpdated(c: MediaPlayerController, item: PlayerQueueItem) = Unit
             override fun onPlaybackQueueChanged(c: MediaPlayerController, items: List<PlayerQueueItem>) = Unit

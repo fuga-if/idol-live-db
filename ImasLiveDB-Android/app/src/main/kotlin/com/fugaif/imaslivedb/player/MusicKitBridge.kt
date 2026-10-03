@@ -25,6 +25,32 @@ interface MusicKitBridge {
         onFailed: (String) -> Unit,
     )
 
+    /**
+     * カタログ ID を順に積んで鳴らす (プレイリスト)。SDK がネイティブに持つ複数曲キュー
+     * ([com.apple.android.music.playback.controller.MediaPlayerController.skipToNextItem] 等) を使う。
+     *
+     * @param catalogIds 積む順。
+     * @param startIndex 何番目から鳴らすか。
+     * @param onCurrentItemChanged 今鳴っている曲のカタログ ID (曲送り・SDK 側の操作で変わったとき)。
+     */
+    fun loadQueue(
+        activity: Activity,
+        developerToken: String,
+        musicUserToken: String,
+        catalogIds: List<String>,
+        startIndex: Int,
+        onPlayingChanged: (Boolean) -> Unit,
+        onCurrentItemChanged: (String?) -> Unit,
+        onFailed: (String) -> Unit,
+    )
+
+    /** 積んだ曲の次があるか (曲送りのボタンを出すか)。 */
+    fun canSkipToNext(): Boolean
+    /** 次の曲へ。 */
+    fun skipToNext()
+    /** 前の曲へ (SDK のネイティブキュー内移動。頭出しにするかの判断は呼び出し側が [seek] で行う)。 */
+    fun skipToPrevious()
+
     /** 今の再生位置 (ms)。積んでいなければ null。 */
     fun positionMs(): Long?
     /** 曲の長さ (ms)。分からなければ null。 */

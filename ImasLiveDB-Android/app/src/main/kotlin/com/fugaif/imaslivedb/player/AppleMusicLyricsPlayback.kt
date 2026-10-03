@@ -21,6 +21,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.lang.ref.WeakReference
+import uniffi.imas_core.playQueueNextIndex
+import uniffi.imas_core.playQueuePreviousIndex
 
 /**
  * Apple Music のフル再生 (MusicKit for Android) による [LyricsPlayback]。
@@ -50,6 +52,25 @@ class AppleMusicLyricsPlayback(
     private val _isPlaying = MutableStateFlow(false)
     override val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    /** 曲送りで積んだ `songs.id` の並び (積んでいなければ空)。iOS `queueSongIds` と対。 */
+    private var queueSongIds: List<String> = emptyList()
+    /** カタログ id → songId (曲送りで SDK から戻る id をこちらの songId に逆引きする)。 */
+    private var queueSongIdByCatalogId: Map<String, String> = emptyMap()
+    /** いま鳴っている曲が [queueSongIds] の何番目か。 */
+    private var queueIndex: Int? = null
+
+    private val _hasQueue = MutableStateFlow(false)
+    override val hasQueue: StateFlow<Boolean> = _hasQueue.asStateFlow()
+    private val _canSkipNext = MutableStateFlow(false)
+    override val canSkipNext: StateFlow<Boolean> = _canSkipNext.asStateFlow()
+
+    private fun refreshQueueFlags() {
+        val index = queueIndex
+        _hasQueue.value = queueSongIds.size > 1
+        _canSkipNext.value = index != null &&
+            playQueueNextIndex(index.toUInt(), queueSongIds.size.toUInt()) != null
+    }
+
     private val _appleMusicState = MutableStateFlow(
         when {
             bridge == null -> AppleMusicState.UNAVAILABLE
@@ -64,6 +85,8 @@ class AppleMusicLyricsPlayback(
     private var pendingCode: String? = null
     /** サインインのために待たせている曲 (songId, appleMusicId)。サインインを終えたら鳴らす。 */
     private var pendingStart: Pair<String, String>? = null
+    /** サインインのために待たせていたプレイリスト曲送り。サインインを終えたら鳴らす。 */
+    private var pendingQueueStart: Pair<List<Pair<String, String>>, Int>? = null
     private var developerToken: Pair<String, Long>? = null
 
     init {
@@ -105,6 +128,11 @@ class AppleMusicLyricsPlayback(
             if (_appleMusicState.value != AppleMusicState.SIGNING_IN) beginSignIn(activity)
             return false
         }
+        // 単曲なので曲送りの対象ではない (キュー状態をリセット)。
+        queueSongIds = emptyList()
+        queueSongIdByCatalogId = emptyMap()
+        queueIndex = null
+        refreshQueueFlags()
         bridge.load(activity, devToken, userToken, appleMusicId,
             onPlayingChanged = { _isPlaying.value = it },
             onFailed = { message ->
@@ -114,6 +142,63 @@ class AppleMusicLyricsPlayback(
             })
         _loadedSongId.value = songId
         return true
+    }
+
+    override suspend fun startQueue(entries: List<Pair<String, String>>, startAt: Int): Boolean {
+        val bridge = bridge ?: return false
+        // Apple Music に無い曲は飛ばす。押した曲がその中に無ければ、その後ろで最初に鳴らせる曲から。
+        val playable = entries.filter { it.second.isNotEmpty() }
+        if (playable.isEmpty()) return false
+        val start = (startAt until entries.size)
+            .firstNotNullOfOrNull { i -> playable.indexOfFirst { it.first == entries[i].first }.takeIf { it >= 0 } }
+            ?: 0
+        val activity = resumed?.get() ?: return false
+        val devToken = developerToken() ?: return false
+        val userToken = userToken()
+        if (userToken == null) {
+            pendingQueueStart = playable to start
+            if (_appleMusicState.value != AppleMusicState.SIGNING_IN) beginSignIn(activity)
+            return false
+        }
+        queueSongIds = playable.map { it.first }
+        queueSongIdByCatalogId = playable.associate { it.second to it.first }
+        queueIndex = start
+        refreshQueueFlags()
+        bridge.loadQueue(
+            activity, devToken, userToken, playable.map { it.second }, start,
+            onPlayingChanged = { _isPlaying.value = it },
+            onCurrentItemChanged = { catalogId ->
+                val songId = catalogId?.let { queueSongIdByCatalogId[it] } ?: return@loadQueue
+                if (songId != _loadedSongId.value) {
+                    _loadedSongId.value = songId
+                    queueIndex = queueSongIds.indexOf(songId).takeIf { it >= 0 }
+                    refreshQueueFlags()
+                }
+            },
+            onFailed = { message ->
+                Log.w(TAG, message)
+                _isPlaying.value = false
+                _loadedSongId.value = null
+            }
+        )
+        _loadedSongId.value = playable[start].first
+        return true
+    }
+
+    override fun skipNext() {
+        if (!_canSkipNext.value) return
+        bridge?.skipToNext()
+    }
+
+    override fun skipPrevious() {
+        val bridge = bridge ?: return
+        val index = queueIndex ?: return
+        val target = playQueuePreviousIndex(index.toUInt(), (positionMs() ?: 0).toLong())
+        if (target.toInt() == index) {
+            bridge.seek(0)
+        } else {
+            bridge.skipToPrevious()
+        }
     }
 
     override fun signIn() {
@@ -132,6 +217,10 @@ class AppleMusicLyricsPlayback(
         bridge?.pause()
         _loadedSongId.value = null
         _isPlaying.value = false
+        queueSongIds = emptyList()
+        queueSongIdByCatalogId = emptyMap()
+        queueIndex = null
+        refreshQueueFlags()
     }
 
     // ---- トークン ----
@@ -215,6 +304,10 @@ class AppleMusicLyricsPlayback(
                 pendingStart?.let { (songId, appleMusicId) ->
                     pendingStart = null
                     startFull(songId, appleMusicId)
+                }
+                pendingQueueStart?.let { (entries, startAt) ->
+                    pendingQueueStart = null
+                    startQueue(entries, startAt)
                 }
                 return
             }
