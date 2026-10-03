@@ -1,0 +1,16 @@
+{
+ "title": "アマテラスの歌唱者に秋月律子を足す (#201)",
+ "author": "Claude (triage-fix-requests)",
+ "source": "https://columbia.jp/prod-info/COCC-17213/",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_アマテラス",
+   "fields": {
+    "singer_label": "萩原雪歩、三浦あずさ、四条貴音、秋月律子"
+   },
+   "add_original_singers": ["765as_四条貴音", "765as_秋月律子"],
+   "note": "THE IDOLM@STER PLATINUM MASTER 03 アマテラス (COCC-17213) の商品ページで「1.アマテラス(M@STER VERSION) 歌：萩原雪歩、三浦あずさ、四条貴音、秋月律子」。原唱者に四条貴音・秋月律子が欠けていたので足す。"
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+ "title": "xR LIVE REVIVAL (2026-12-12・13 オリックス劇場) を追加",
+ "author": "Claude (daily-data-crawl)",
+ "source": ["https://idolmaster-official.jp/news/01_20062", "https://idolmaster-official.jp/live_events/xr_revival2026"],
+ "note": "2026-10-03 発表。765 と シンデレラの xR ライブの再演 4 公演。12/12 は菊地 真・萩原 雪歩 twin live “はんげつであえたら” (2024-03) の再演 3 公演、12/13 は Pop'n ToyBox!! (2026-08) の夕方公演の再演。声優の出演なし。公式の特設が 1 つなので 1 イベント (765as 主・cg 合同) にした。",
+ "events": [
+  {
+   "id": "ev_xr_live_revival",
+   "brand_id": "765as",
+   "joint_brand_ids": "cg",
+   "name": "xR LIVE REVIVAL",
+   "name_kana": "えっくすあーるらいぶりばいばる",
+   "event_type": "live",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "ticket_url": "https://idolmaster-official.jp/live_events/xr_revival2026",
+   "shows": [
+    {"id": "sh_xr_live_revival_1", "name": "菊地 真・萩原 雪歩 twin live “はんげつであえたら” [～友藍～]", "date": "2026-12-12", "venue": "オリックス劇場", "venue_id": "venue_オリックス劇場", "start_time": "12:00", "performer_type": "cast", "sort_order": 0},
+    {"id": "sh_xr_live_revival_2", "name": "菊地 真・萩原 雪歩 twin live “はんげつであえたら” [～悲藍～]", "date": "2026-12-12", "venue": "オリックス劇場", "venue_id": "venue_オリックス劇場", "start_time": "15:30", "performer_type": "cast", "sort_order": 1},
+    {"id": "sh_xr_live_revival_3", "name": "菊地 真・萩原 雪歩 twin live “はんげつであえたら” [～純藍～]", "date": "2026-12-12", "venue": "オリックス劇場", "venue_id": "venue_オリックス劇場", "start_time": "19:00", "performer_type": "cast", "sort_order": 2},
+    {"id": "sh_xr_live_revival_4", "name": "Pop’n ToyBox!! もういっかい！ [夕方公演]", "date": "2026-12-13", "venue": "オリックス劇場", "venue_id": "venue_オリックス劇場", "start_time": "16:00", "performer_type": "cast", "sort_order": 3}
+   ]
+  }
+ ]
+}

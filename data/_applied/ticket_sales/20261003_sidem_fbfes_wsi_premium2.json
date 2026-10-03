@@ -1,0 +1,30 @@
+{
+ "title": "F＠NTASTIC BATTLE FES ～Wanna step in～ アソビストアプレミアム会員2次先行",
+ "source": "https://idolmaster-official.jp/news/01_20039",
+ "ticket_sales": [
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員2次先行(SP席)",
+   "starts_at": "2026-10-02 12:00",
+   "ends_at": "2026-10-12 23:59",
+   "result_at": "2026-10-23 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/126b89b5-a21d-4482-9f12-21b526012d76",
+   "note": "お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年10月23日13:00〜10月27日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20039",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "kind": "lottery",
+   "name": "アソビストアプレミアム会員2次先行(S席・A席)",
+   "starts_at": "2026-10-02 12:00",
+   "ends_at": "2026-10-12 23:59",
+   "result_at": "2026-10-23 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/5534967b-a12c-40b7-94b0-d5c3f91035be",
+   "note": "お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年10月23日13:00〜10月27日23:59。",
+   "source_url": "https://idolmaster-official.jp/news/01_20039",
+   "sort_order": 3
+  }
+ ]
+}
