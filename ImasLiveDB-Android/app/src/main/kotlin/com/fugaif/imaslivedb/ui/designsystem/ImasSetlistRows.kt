@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
@@ -289,13 +290,7 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                 .background(DS.sep)
         )
         groups.forEach { group ->
-            // 「13 人 初歌唱」のように人数でしか言えない段は、押すと歌唱者の一覧 (1 人ずつの札つき) を開く。
-            // 押せるかは共有コアが決める (`opensPerformers`)。押せる段は末尾に矢印を添える。
-            val open = onSelectPerformers?.takeIf { group.opensPerformers }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = if (open != null) Modifier.imasPress(onClickLabel = "歌唱者の一覧を開く", onClick = open) else Modifier
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     group.label,
                     style = ImasType.text(11.sp).copy(letterSpacing = 0.4.sp),
@@ -304,8 +299,12 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                         .width(26.dp)
                         .alignByBaseline()
                 )
-                NotesText(group.notes, accent, Modifier.weight(1f).alignByBaseline(), opens = open != null)
+                NotesText(group.notes, accent, Modifier.weight(1f).alignByBaseline())
             }
+        // 誰が・誰がいないかは歌唱者の一覧で見せる。入口は段ごとでなくボタン 1 つ (iOS と同じ)。
+        if (onSelectPerformers != null && groups.any { it.opensPerformers }) {
+            ImasNoteGroupsDetailButton(onSelectPerformers)
+        }
         }
     }
 }
@@ -329,7 +328,7 @@ internal fun unbreakableNote(text: String): String = buildString {
  * 色だけで意味を分けず、自分の記録 (回収 / 未回収) には印を付ける。
  */
 @Composable
-private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier: Modifier, opens: Boolean = false) {
+private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier: Modifier) {
     val ink = DS.ink
     val ink2 = DS.ink2
     val ink3 = DS.ink3
@@ -353,7 +352,6 @@ private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier
                 }
             }
         }
-        if (opens) withStyle(SpanStyle(color = ink3, fontWeight = FontWeight.SemiBold)) { append(" ›") }
     }
     Text(
         text,
@@ -654,4 +652,20 @@ fun ImasNoteBadges(notes: List<SetlistRowNoteRecord>, modifier: Modifier = Modif
             )
         }
     }
+}
+
+/**
+ * 事実の段の下に 1 つだけ置く「詳しく」(歌唱者の一覧を開く。iOS `ImasSetlistRow.noteGroupsBlock`)。
+ * 段の名前の幅ぶん下げて、値の頭に揃える。置くかはコアが決める (どれかの段が `opensPerformers`)。
+ */
+@Composable
+fun ImasNoteGroupsDetailButton(onClick: () -> Unit) {
+    ImasButton(
+        title = "詳しく",
+        onClick = onClick,
+        icon = Icons.Outlined.People,
+        role = ImasButtonRole.PLAIN,
+        size = ImasButtonSize.SMALL,
+        modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+    )
 }

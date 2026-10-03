@@ -97,6 +97,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasAvatarStack
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasNoteBadges
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoteGroupsDetailButton
 import com.fugaif.imaslivedb.ui.designsystem.unbreakableNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
@@ -117,7 +118,6 @@ import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
 import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
-import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -716,16 +716,7 @@ private fun NoteGroupsBlock(
                 .background(DS.sep)
         )
         noteGroups.forEach { group ->
-            // 「13 人 初歌唱」のように人数でしか言えない段は、押すと歌唱者の一覧 (1 人ずつの札つき) を開く。
-            // 押せるかは共有コアが決める (`opensPerformers`)。押せる段は末尾に矢印を添える。
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = if (group.opensPerformers) {
-                    Modifier.imasPress(onClickLabel = "歌唱者の一覧を開く", onClick = onOpenPerformers)
-                } else {
-                    Modifier
-                }
-            ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // 軸ラベル。固定幅・字間を少し開けて沈める (本文と張り合わない)。
                 Text(
                     text = group.label,
@@ -734,8 +725,13 @@ private fun NoteGroupsBlock(
                     color = DS.ink3,
                     modifier = Modifier.width(26.dp)
                 )
-                NoteGroupValues(notes = group.notes, accent = accent, modifier = Modifier.weight(1f), opens = group.opensPerformers)
+                NoteGroupValues(notes = group.notes, accent = accent, modifier = Modifier.weight(1f))
             }
+        // 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。段ごとに矢印を付けると
+        // 同じ一覧への入口が並ぶので、ボタンを 1 つだけ置く。置くかは共有コアが決める (`opensPerformers`)。
+        if (noteGroups.any { it.opensPerformers }) {
+            ImasNoteGroupsDetailButton(onOpenPerformers)
+        }
         }
     }
 }
@@ -751,8 +747,7 @@ private fun NoteGroupsBlock(
 private fun NoteGroupValues(
     notes: List<SetlistRowNoteRecord>,
     accent: Color,
-    modifier: Modifier = Modifier,
-    opens: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     val text = buildAnnotatedString {
         notes.forEachIndexed { index, note ->
@@ -776,7 +771,6 @@ private fun NoteGroupValues(
                 }
             }
         }
-        if (opens) withStyle(SpanStyle(color = DS.ink3, fontWeight = FontWeight.SemiBold)) { append(" ›") }
     }
     Text(
         text = text,

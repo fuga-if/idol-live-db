@@ -174,33 +174,29 @@ struct ImasSetlistRow: View {
                 .padding(.top, 3)
                 .padding(.bottom, 2)
             ForEach(noteGroups, id: \.label) { group in
-                // 「13 人 初歌唱」のように人数でしか言えない段は、押すと歌唱者の一覧 (1 人ずつの札つき) を開く。
-                // 押せるかはコアが決める (`opensPerformers`)。押せる段は末尾に矢印を添える。
-                if group.opensPerformers, let onSelectPerformers {
-                    Button(action: onSelectPerformers) {
-                        noteGroupLine(group, accent: accent, opens: true)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
+                noteGroupLine(group, accent: accent)
+            }
+            // 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。
+            // 段ごとに矢印を付けると同じ一覧への入口が並ぶので、ボタンを 1 つだけ置く。
+            // 置くかはコアが決める (どれかの段が `opensPerformers`)。
+            if let onSelectPerformers, noteGroups.contains(where: \.opensPerformers) {
+                ImasButton(title: "詳しく", systemImage: "person.2", role: .plain, size: .small, action: onSelectPerformers)
+                    .padding(.leading, 36)
+                    .padding(.top, 2)
                     .accessibilityHint("歌唱者の一覧を開く")
-                } else {
-                    noteGroupLine(group, accent: accent, opens: false)
-                }
             }
         }
     }
 
     /// 軸 1 本 (名前 + 値)。
-    private func noteGroupLine(_ group: SetlistRowNoteGroupRecord, accent: Color, opens: Bool) -> some View {
+    private func noteGroupLine(_ group: SetlistRowNoteGroupRecord, accent: Color) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(group.label)
                 .font(.imasCaption2)
                 .kerning(0.4)
                 .foregroundStyle(DS.ink3)
                 .frame(width: 26, alignment: .leading)
-            (Self.notesText(group.notes, accent: accent)
-                + (opens ? Text(" ") + Text(Image(systemName: "chevron.right"))
-                    .font(.imasCaption2.weight(.semibold)).foregroundColor(DS.ink3) : Text("")))
+            Self.notesText(group.notes, accent: accent)
                 .font(.imasCaption)
                 .fixedSize(horizontal: false, vertical: true)
         }
