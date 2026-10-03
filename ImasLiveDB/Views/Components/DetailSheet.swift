@@ -219,6 +219,7 @@ struct SongSheetContent: View {
     @State private var showLoginPrompt = false
     @State private var showPenlightVoteSheet = false
     @State private var showTagPicker = false
+    @State private var showsAddToPlaylist = false
     // 参考動画 (SongVideo) オープン編集 (確定契約 §4)。
     /// 参考動画投稿/編集シート。nil=非表示, .create=新規, .edit(video)=編集。
     @State private var videoSheet: SongCommunityEditTarget<SongVideo>?
@@ -379,6 +380,7 @@ struct SongSheetContent: View {
                 Task { await vm.loadPenlightVotes(song: song) }
             }
         }
+        .sheet(isPresented: $showsAddToPlaylist) { AddToPlaylistSheet(song: song) }
         .sheet(isPresented: $showTagPicker) {
             SongTagPicker(songId: song.id, song: SongWithArtists(song: song, artistNames: song.singerLabel ?? "", performerIdols: vm.originalArtists)) {
                 Task { await vm.loadSongTags(song: song) }
@@ -506,6 +508,11 @@ struct SongSheetContent: View {
                 toggleFavorite()
             }
             .id(markVersion)
+
+            ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", style: .plain) {
+                AppAnalytics.tap("song_detail.add_to_playlist")
+                showsAddToPlaylist = true
+            }
 
             // KAMISABI (音楽カードゲーム) 収録曲のときだけ、カード所持のトグルを出す。
             // 未収録曲にトグルを出すと「持っていない」のか「そもそも対象外」なのか

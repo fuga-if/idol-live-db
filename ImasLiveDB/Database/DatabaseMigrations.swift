@@ -1061,6 +1061,24 @@ enum DatabaseMigrations {
                           columns: ["event_id"], ifNotExists: true)
         }
 
+        // v37: プレイリスト。**端末ローカル唯一データ** (expenses と同じ扱い、破壊的な移行はしない)。
+        // 曲は id だけで持つ (曲名・歌詞は持たない)。並びは position の昇順、同じ曲は 1 回だけ。
+        // 並べ替え・足し方の規則は domain/play_queue.rs。
+        migrator.registerMigration("v37_playlists") { db in
+            try db.create(table: "playlists", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("created_at", .text).notNull()
+                t.column("updated_at", .text).notNull()
+            }
+            try db.create(table: "playlist_items", ifNotExists: true) { t in
+                t.column("playlist_id", .text).notNull()
+                t.column("song_id", .text).notNull()
+                t.column("position", .integer).notNull()
+                t.primaryKey(["playlist_id", "song_id"])
+            }
+        }
+
         return migrator
     }
 }

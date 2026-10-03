@@ -60,6 +60,8 @@ struct SongLyricsTab: View {
     @State private var recorder: LyricTimingRecorder?
     /// 歌詞プレイヤーを開いている。
     @State private var showsPlayer = false
+    /// 開いたプレイヤーが、いま鳴っている曲に付いていく方か (プレイリストの途中で開いたとき)。
+    @State private var playerFollowsQueue = false
     /// 行の区切りを編集している (くっつける / 切り離す)。
     @State private var isEditingStructure = false
     /// 非 nil = パート分けを編集している (行 ID → 歌唱者のアイドル id)。
@@ -141,7 +143,13 @@ struct SongLyricsTab: View {
             }
         }
         .fullScreenCover(isPresented: $showsPlayer) {
-            if let lyrics = vm.lyrics {
+            if playerFollowsQueue {
+                // 曲を順に鳴らしている最中は、曲送りで替わった曲にも付いていく方を開く。
+                NowPlayingLyricsPlayerView { nowSong in
+                    showsPlayer = false
+                    if nowSong.id == song.id, let lyrics = vm.lyrics { Task { await beginRecording(lyrics) } }
+                }
+            } else if let lyrics = vm.lyrics {
                 LyricsPlayerView(song: song, seed: seed, artistLine: vm.artistLine(for: song),
                                  artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
                                  lyrics: lyrics, playback: playback, likeCounts: $likeCounts,
@@ -430,6 +438,8 @@ struct SongLyricsTab: View {
                     ImasIconButton(systemImage: "music.note.list", label: "歌詞プレイヤー",
                                    size: .small) {
                         AppAnalytics.tap("lyrics_player.open")
+                        playerFollowsQueue = MusicKitService.shared.hasQueue
+                            && MusicKitService.shared.nowPlayingSongId == song.id
                         showsPlayer = true
                     }
                     ImasIconButton(systemImage: "metronome", label: "タイミングを編集",

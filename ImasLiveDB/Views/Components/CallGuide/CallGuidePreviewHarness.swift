@@ -30,6 +30,8 @@ struct CallGuidePreviewHarness: View {
         case structure
         /// パート分け (歌唱者は DB の実在曲から引く。歌詞はダミー)。
         case parts
+        /// プレイリスト (見本のプレイリストを 1 つ作って開く。端末 DB に書く)。
+        case playlist
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -43,6 +45,7 @@ struct CallGuidePreviewHarness: View {
     /// 追従・記録の確認用の擬似プレイヤー。起動からの経過時間を再生位置とみなす。
     @State private var startedAt = Date()
     @State private var scrollTarget: String?
+    @State private var playlistPath = NavigationPath()
 
     init(mode: Mode) {
         self.mode = mode
@@ -81,6 +84,18 @@ struct CallGuidePreviewHarness: View {
                     }
                 }
                 .background(DS.bg)
+            case .playlist:
+                NavigationStack(path: $playlistPath) { PlaylistsView() }
+                    .task {
+                        let store = AppContainer.shared.playlists
+                        if (try? await store.summaries())?.isEmpty ?? true,
+                           let p = try? await store.create(name: "見本のプレイリスト") {
+                            try? await store.setSongIds(playlistId: p.id,
+                                                        songIds: ["765as_colorful_days", "765as_99_nights", "765as_123"])
+                        }
+                        // 中身の見え方も確かめられるよう、先頭のプレイリストを開いておく。
+                        if let first = try? await store.summaries().first { playlistPath.append(first.playlist) }
+                    }
             case .sheet:
                 CallEditorSheet(
                     request: .init(lineId: "ll_5", start: 0, end: 3,

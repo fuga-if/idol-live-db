@@ -35,6 +35,8 @@ final class NowPlayingModel {
             kind: service.nowPlayingKind,
             isPlaying: service.isPlaying
         )
+        // バーを先に出してから、その曲の歌詞を取りに行く (曲送りで替わった曲にも付いてくる)。
+        if service.isFullPlayback { await LyricsSession.shared.follow(songId: songId) }
     }
 }
 
@@ -49,7 +51,6 @@ struct NowPlayingBarView: View {
     private var model: NowPlayingModel { NowPlayingModel.shared }
     @State private var destination: DetailDestination?
     @State private var showsLyricsPlayer = false
-    @State private var likeCounts: [String: Int] = [:]
     /// 鳴っている曲の歌詞 (歌詞タブが預けたとき)。あれば今の行を出し、タップで歌詞プレイヤーを開く。
     private var lyricsEntry: LyricsSession.Entry? {
         LyricsSession.shared.entry(forSongId: model.bar?.songId)
@@ -68,21 +69,10 @@ struct NowPlayingBarView: View {
         .animation(.easeInOut(duration: 0.2), value: model.bar?.songId)
         .sheet(item: $destination) { DetailSheetView(destination: $0) }
         .fullScreenCover(isPresented: $showsLyricsPlayer) {
-            if let entry = lyricsEntry {
-                LyricsPlayerView(song: entry.song, seed: entry.seed, artistLine: entry.artistLine,
-                                 artworkURL: entry.artworkURL, lyrics: entry.lyrics,
-                                 playback: .appleMusic(songId: entry.song.id, startFull: {
-                                     // バーが出ている = もう読み込まれている。止まっていれば鳴らし直すだけ。
-                                     MusicKitService.shared.resume()
-                                     return MusicKitService.shared.nowPlayingSongId == entry.song.id
-                                 }),
-                                 likeCounts: $likeCounts,
-                                 onEditTimings: {
-                                     // 編集は曲の詳細の歌詞タブから (記録の画面はそちらが持つ)。
-                                     showsLyricsPlayer = false
-                                     destination = .song(entry.song)
-                                 },
-                                 cast: entry.cast)
+            NowPlayingLyricsPlayerView { song in
+                // 編集は曲の詳細の歌詞タブから (記録の画面はそちらが持つ)。
+                showsLyricsPlayer = false
+                destination = .song(song)
             }
         }
     }
@@ -117,6 +107,11 @@ struct NowPlayingBarView: View {
 
                 Spacer(minLength: 0)
 
+                if MusicKitService.shared.hasQueue {
+                    ImasIconButton(systemImage: "backward.fill", label: "前の曲", size: .regular, style: .plain) {
+                        MusicKitService.shared.skipToPrevious()
+                    }
+                }
                 ImasIconButton(
                     systemImage: bar.isPlaying ? "pause.fill" : "play.fill",
                     label: bar.isPlaying ? "一時停止" : "再生",
@@ -130,6 +125,12 @@ struct NowPlayingBarView: View {
                         MusicKitService.shared.resume()
                     }
                 }
+                if MusicKitService.shared.hasQueue {
+                    ImasIconButton(systemImage: "forward.fill", label: "次の曲", size: .regular, style: .plain) {
+                        MusicKitService.shared.skipToNext()
+                    }
+                    .disabled(!MusicKitService.shared.canSkipToNext)
+                }
             }
             .padding(.horizontal, DS.sp4)
             .padding(.vertical, DS.sp3)
@@ -137,7 +138,7 @@ struct NowPlayingBarView: View {
         .background(.bar)
         .contentShape(Rectangle())
         .onTapGesture {
-            if lyricsEntry != nil {
+            if lyricsEntry != nil || MusicKitService.shared.hasQueue {
                 AppAnalytics.tap("now_playing.open_lyrics_player")
                 showsLyricsPlayer = true
             } else {

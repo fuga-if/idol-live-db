@@ -122,6 +122,7 @@ final class AppContainer: Sendable {
 
     /// 家計簿 (端末にだけある支出) の読み書きの実装 (GRDB / 共有 AppDatabase)。
     let ledgerReading: any LedgerReading = GRDBLedgerRepository(database: .shared)
+    let playlists: any PlaylistStoring = GRDBPlaylistRepository(database: .shared)
     let ledgerWriting: any LedgerWriting = GRDBLedgerRepository(database: .shared)
 
     /// 曲詳細のサーバ側データ (タグ / 類似曲 / ペンライト / 歌詞) 読み取りの実装。

@@ -23,6 +23,12 @@ struct LyricsPlayback {
     var togglePlay: () -> Void = {}
     /// その行を画面の中ほどへ寄せる。
     var scrollTo: (String) -> Void = { _ in }
+    /// 曲を順に積んで鳴らしているか (プレイリスト)。曲送りのボタンを出す。
+    var hasQueue = false
+    var canSkipNext = false
+    var skipNext: () -> Void = {}
+    /// 前の曲へ (少し進んでいれば今の曲の頭へ)。
+    var skipPrevious: () -> Void = {}
 }
 
 extension LyricsPlayback {
@@ -53,7 +59,11 @@ extension LyricsPlayback {
             togglePlay: {
                 if player.isPlaying { player.pause() } else { player.resume() }
             },
-            scrollTo: scrollTo
+            scrollTo: scrollTo,
+            hasQueue: player.hasQueue && player.nowPlayingSongId == songId,
+            canSkipNext: player.canSkipToNext,
+            skipNext: { player.skipToNext() },
+            skipPrevious: { player.skipToPrevious() }
         )
     }
 }

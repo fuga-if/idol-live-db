@@ -197,7 +197,13 @@ struct LyricsPlayerView: View {
                 Spacer()
                 Text("-" + Self.clock(max(0, duration - position))).imasText(.imprint, color: DS.ink3)
             }
-            HStack(spacing: DS.sp8) {
+            HStack(spacing: playback.hasQueue ? DS.sp5 : DS.sp8) {
+                if playback.hasQueue {
+                    ImasIconButton(systemImage: "backward.fill", label: "前の曲", style: .plain) {
+                        AppAnalytics.tap("lyrics_player.skip_previous")
+                        playback.skipPrevious()
+                    }
+                }
                 ImasIconButton(systemImage: "gobackward.10", label: "10 秒戻す") {
                     playback.seek(max(0, position - 10_000))
                 }
@@ -211,6 +217,13 @@ struct LyricsPlayerView: View {
                 }
                 ImasIconButton(systemImage: "goforward.10", label: "10 秒進める") {
                     playback.seek(min(duration, position + 10_000))
+                }
+                if playback.hasQueue {
+                    ImasIconButton(systemImage: "forward.fill", label: "次の曲", style: .plain) {
+                        AppAnalytics.tap("lyrics_player.skip_next")
+                        playback.skipNext()
+                    }
+                    .disabled(!playback.canSkipNext)
                 }
             }
         }

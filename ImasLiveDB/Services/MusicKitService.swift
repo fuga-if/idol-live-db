@@ -1,4 +1,5 @@
 import AVFoundation
+import Combine
 import Foundation
 import MediaPlayer
 import os
@@ -32,6 +33,14 @@ final class MusicKitService {
     private(set) var isFullPlayback = false
     /// フル再生で ApplicationMusicPlayer に曲を積んだか (止めるときに queue を解放する必要があるか)。
     @ObservationIgnored private var usedApplicationPlayer = false
+
+    /// フル再生で積んだ曲の `songs.id` (積んだ順)。1 曲だけ鳴らしたときは 1 つ。
+    private(set) var queueSongIds: [String] = []
+    /// いま鳴っている曲が `queueSongIds` の何番目か。
+    private(set) var queueIndex: Int?
+    /// 積んだ Apple Music の id → `songs.id`。曲が替わったときに引き当てる。
+    @ObservationIgnored private var songIdByMusicKitId: [MusicItemID: String] = [:]
+    @ObservationIgnored private var playerObservers: Set<AnyCancellable> = []
 
     /// この曲が今このアプリで鳴っているか。
     ///
@@ -200,27 +209,98 @@ final class MusicKitService {
     /// フル再生（Apple Musicサブスクユーザーのみ）
     nonisolated func playFull(songInfo: MusicKitSongInfo, songId: String) async {
         guard let musicKitId = songInfo.musicKitId else { return }
+        await playQueue([(songId: songId, appleMusicId: musicKitId.rawValue)], startAt: 0)
+    }
+
+    /// 曲を順に積んでフル再生する (プレイリスト)。Apple Music に無い曲は飛ばす。
+    ///
+    /// - Parameters:
+    ///   - entries: 積む順の `songs.id` と Apple Music の id。
+    ///   - startAt: `entries` の何番目から鳴らすか。その曲が Apple Music に無ければ、次に鳴らせる曲から。
+    nonisolated func playQueue(_ entries: [(songId: String, appleMusicId: String)], startAt: Int) async {
+        guard !entries.isEmpty else { return }
         await stop()
 
         do {
-            let request = MusicCatalogResourceRequest<MusicKit.Song>(
-                matching: \.id, equalTo: musicKitId
-            )
+            let ids = entries.map { MusicItemID($0.appleMusicId) }
+            let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, memberOf: ids)
             let response = try await request.response()
-            guard let song = response.items.first else { return }
+            let byId = Dictionary(response.items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            // 応答の並びは保証されないので、積む順は entries に合わせる。
+            let playable = entries.enumerated().compactMap { offset, entry in
+                byId[MusicItemID(entry.appleMusicId)].map { (offset: offset, songId: entry.songId, song: $0) }
+            }
+            guard let start = playable.firstIndex(where: { $0.offset >= startAt }) ?? playable.indices.first
+            else { return }
 
             let player = ApplicationMusicPlayer.shared
-            player.queue = [song]
+            player.queue = ApplicationMusicPlayer.Queue(for: playable.map(\.song), startingAt: playable[start].song)
             try await player.play()
+            let songIds = playable.map(\.songId)
+            let map = Dictionary(playable.map { ($0.song.id, $0.songId) }, uniquingKeysWith: { first, _ in first })
             await MainActor.run {
                 self.usedApplicationPlayer = true
+                self.queueSongIds = songIds
+                self.songIdByMusicKitId = map
+                self.queueIndex = start
                 self.isPlaying = true
                 self.isFullPlayback = true
-                self.nowPlayingSongId = songId
+                self.nowPlayingSongId = songIds[start]
+                self.observePlayer()
             }
         } catch {
             Logger.musickit.error("playback_failed: \(error.localizedDescription)")
         }
+    }
+
+    /// 積んだ曲の次があるか / 前があるか (曲送りのボタンを出すか)。
+    var canSkipToNext: Bool {
+        guard isFullPlayback, let queueIndex else { return false }
+        return playQueueNextIndex(index: UInt32(queueIndex), len: UInt32(queueSongIds.count)) != nil
+    }
+    var hasQueue: Bool { isFullPlayback && queueSongIds.count > 1 }
+
+    /// 次の曲へ。
+    func skipToNext() {
+        guard canSkipToNext else { return }
+        Task { @MainActor in try? await ApplicationMusicPlayer.shared.skipToNextEntry() }
+    }
+
+    /// 前の曲へ。少し進んでいれば今の曲の頭へ戻す (どちらにするかはコア)。
+    func skipToPrevious() {
+        guard isFullPlayback, let queueIndex else { return }
+        let target = playQueuePreviousIndex(index: UInt32(queueIndex), positionMs: Int64(fullPlaybackPositionMs ?? 0))
+        if Int(target) == queueIndex {
+            musicPlayer.playbackTime = 0
+        } else {
+            Task { @MainActor in try? await ApplicationMusicPlayer.shared.skipToPreviousEntry() }
+        }
+    }
+
+    /// OS のプレイヤーの状態をこちらへ写す (曲が替わった・ロック画面やイヤホンで止めた)。
+    /// 一度だけ繋ぐ。`objectWillChange` は変わる直前に来るので、次の周回で読む。
+    private func observePlayer() {
+        guard playerObservers.isEmpty else { return }
+        let player = ApplicationMusicPlayer.shared
+        player.queue.objectWillChange
+            .merge(with: player.state.objectWillChange)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.syncFromPlayer() }
+            }
+            .store(in: &playerObservers)
+    }
+
+    private func syncFromPlayer() {
+        guard isFullPlayback else { return }
+        let player = ApplicationMusicPlayer.shared
+        if case .song(let song)? = player.queue.currentEntry?.item,
+           let songId = songIdByMusicKitId[song.id], songId != nowPlayingSongId {
+            nowPlayingSongId = songId
+            queueIndex = queueSongIds.firstIndex(of: songId)
+        }
+        let playing = player.state.playbackStatus == .playing
+        if playing != isPlaying { isPlaying = playing }
     }
 
     /// フル再生の再生位置 (ミリ秒)。フル再生していなければ nil。
@@ -297,6 +377,9 @@ final class MusicKitService {
         isPlaying = false
         isFullPlayback = false
         nowPlayingSongId = nil
+        queueSongIds = []
+        queueIndex = nil
+        songIdByMusicKitId = [:]
     }
 
     // MARK: - Search

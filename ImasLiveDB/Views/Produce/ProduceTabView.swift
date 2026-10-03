@@ -236,12 +236,20 @@ struct ProduceTabView: View {
                     ImasStatTile(systemImage: "yensign.circle.fill", value: formatYen(amount: ledgerTotal), label: "収支", seed: pickBrandSeed, tappable: true)
                 }
             }
+            Button {
+                if NavThrottle.allow() { navPath.append(ActivityRoute.playlists) }
+            } label: {
+                ImasNavRow(title: "プレイリスト", subtitle: "曲を並べて Apple Music で続けて聴く",
+                           systemImage: "music.note.list")
+            }
+            .buttonStyle(.imasRow)
         }
     }
 
     /// あなたの活動タイルの遷移先。値ベース push にして二重 push をスロットルで防ぐ。
     enum ActivityRoute: Hashable {
         case attendedEvents, myPredictions, favorites, myVotes, myContributions, collectedSongs, mastery, ledger
+        case playlists
     }
 
     @ViewBuilder
@@ -255,6 +263,7 @@ struct ProduceTabView: View {
         case .collectedSongs: songListDestination(ids: collectedSongIds, title: "回収した楽曲")
         case .mastery: MasteryView().environment(database)
         case .ledger: LedgerView().environment(database)
+        case .playlists: PlaylistsView()
         }
     }
 

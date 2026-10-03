@@ -45,4 +45,28 @@ final class LyricsSession {
         if entry?.song.id != songId { entry = nil }
         LyricsLiveActivityController.shared.sync()
     }
+
+    /// 曲送り・プレイリストで曲が替わったとき、その曲の歌詞を自分で取りに行く
+    /// (歌詞タブを開いていなくても、再生中バー・プレイヤー・ロック画面が付いてくるように)。
+    /// 1 曲 1 リクエスト。取れなければ (未ログイン・歌詞なし) 何も預からない。
+    func follow(songId: String?) async {
+        guard let songId, entry?.song.id != songId, loadingSongId != songId else { return }
+        loadingSongId = songId
+        defer { if loadingSongId == songId { loadingSongId = nil } }
+        let container = AppContainer.shared
+        guard let song = try? await container.songReading.song(id: songId),
+              let lyrics = try? await LyricsAPI.shared.lyrics(songId: songId)
+        else { return }
+        let artists = (try? await container.songReading.songArtists(songId: songId, role: "original")) ?? []
+        // 曲詳細と同じ差し色: 原唱者が 1 人ならその人の色、他はブランドの色。
+        let seed = artists.count == 1 ? artists.first?.color : BrandColors.hex(for: song.brandId)
+        let artistLine = artists.isEmpty ? (song.singerLabel ?? song.unitName)
+            : artists.map(\.name).joined(separator: " / ")
+        let artwork = await MusicKitService.shared.fetchSongInfo(appleMusicId: song.appleMusicId)?.artworkURL
+            ?? song.artworkUrl.flatMap(URL.init(string:))
+        register(.init(song: song, seed: seed, artistLine: artistLine, artworkURL: artwork,
+                       lyrics: lyrics, cast: LyricPartCast(artists: artists)))
+    }
+
+    @ObservationIgnored private var loadingSongId: String?
 }
