@@ -31,6 +31,7 @@ final class LyricsSession {
         let player = MusicKitService.shared
         guard player.isFullPlayback, player.nowPlayingSongId == entry.song.id else { return }
         self.entry = entry
+        LyricsLiveActivityController.shared.sync()
     }
 
     /// 鳴っている曲の歌詞。鳴っていなければ nil。
@@ -42,5 +43,6 @@ final class LyricsSession {
     /// 鳴っている曲が変わったら手放す。
     func release(unlessSongId songId: String?) {
         if entry?.song.id != songId { entry = nil }
+        LyricsLiveActivityController.shared.sync()
     }
 }

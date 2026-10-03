@@ -28,6 +28,8 @@ enum ImasWidgetSpace {
     static let gap: CGFloat = 8
     /// ジャケと文字列の間 (今日の1曲)。
     static let gapLoose: CGFloat = 10
+    /// ライブアクティビティ (ロック画面) の内側の余白。
+    static let activityInset: CGFloat = 16
 }
 
 /// ウィジェットの文字の役割。部品はこの名前で太さ・色を引く (画面に生の `.font(.system(` を書かせない)。
@@ -37,17 +39,26 @@ enum ImasWidgetTextRole {
     case title(size: CGFloat)
     /// 補足 (日付・アーティスト名)。
     case meta(size: CGFloat)
+    /// さらに控えめ (次に来る行)。
+    case dim(size: CGFloat)
+    /// Dynamic Island の題。島の地は常に黒なので、明暗の設定に関わらず白。
+    case islandTitle(size: CGFloat)
+    /// Dynamic Island の補足。
+    case islandMeta(size: CGFloat)
 
     var font: Font {
         switch self {
-        case .title(let size): return .system(size: size, weight: .bold)
-        case .meta(let size): return .system(size: size)
+        case .title(let size), .islandTitle(let size): return .system(size: size, weight: .bold)
+        case .meta(let size), .dim(let size), .islandMeta(let size): return .system(size: size)
         }
     }
     var color: Color {
         switch self {
         case .title: return ImasWidgetColor.ink
         case .meta: return ImasWidgetColor.ink2
+        case .dim: return ImasWidgetColor.ink3
+        case .islandTitle: return .white
+        case .islandMeta: return Color(white: 1, opacity: 0.6)
         }
     }
 }

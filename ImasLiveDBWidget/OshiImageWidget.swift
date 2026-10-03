@@ -231,5 +231,6 @@ struct ImasLiveDBWidgetBundle: WidgetBundle {
         NextLiveWidget()
         TodaySongWidget()
         TicketDeadlineWidget()
+        LyricsLiveActivity()
     }
 }
