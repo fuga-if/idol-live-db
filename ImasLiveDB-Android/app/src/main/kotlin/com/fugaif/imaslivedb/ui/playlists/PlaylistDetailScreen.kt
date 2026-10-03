@@ -37,7 +37,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -53,8 +52,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSummary
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextInputDialog
 import com.fugaif.imaslivedb.ui.components.ImasSongRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -179,7 +180,7 @@ fun PlaylistDetailScreen(
                     val unplayable = PlaylistPlayback.unplayableCount(state.songs)
                     LazyColumn(Modifier.fillMaxSize()) {
                         item {
-                            Column(Modifier.padding(16.dp)) {
+                            Column(Modifier.padding(DS.Space.card)) {
                                 ImasButton(
                                     title = "再生",
                                     icon = Icons.Filled.PlayArrow,
@@ -191,10 +192,10 @@ fun PlaylistDetailScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 if (playFailed) {
-                                    ImasNote("プレイリストの再生には Apple Music の契約が要ります。", modifier = Modifier.padding(top = 8.dp))
+                                    ImasNote("プレイリストの再生には Apple Music の契約が要ります。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                                 if (unplayable > 0) {
-                                    ImasNote("Apple Music に無い $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = 8.dp))
+                                    ImasNote("Apple Music に無い $unplayable 曲は飛ばします。", modifier = Modifier.padding(top = DS.Space.header))
                                 }
                             }
                         }
@@ -210,7 +211,7 @@ fun PlaylistDetailScreen(
                                 onRemove = { viewModel.remove(song.id) }
                             )
                         }
-                        item { Spacer(Modifier.height(24.dp)) }
+                        item { Spacer(Modifier.height(DS.Space.section)) }
                     }
                 }
             }
@@ -218,7 +219,7 @@ fun PlaylistDetailScreen(
     }
 
     if (isRenaming) {
-        PlaylistNameDialog(
+        ImasTextInputDialog(
             title = "名前を変える",
             confirmLabel = "変える",
             initialValue = state.playlist?.name.orEmpty(),

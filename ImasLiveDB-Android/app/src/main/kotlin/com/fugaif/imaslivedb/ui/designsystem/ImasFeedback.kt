@@ -35,8 +35,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -479,6 +481,42 @@ fun ImasConfirmDestructive(
                 onDismiss()
                 onConfirm()
             }) { Text(actionTitle, color = DS.danger) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
+ * 1 行の名前を入れてもらうダイアログ (新規作成・名前の変更。プレイリストの名付け等)。
+ * iOS の `.alert("…", isPresented:) { TextField… }` と同じ役目。
+ */
+@Composable
+fun ImasTextInputDialog(
+    title: String,
+    confirmLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    initialValue: String = "",
+    label: String = "名前",
+    dismissTitle: String = "やめる"
+) {
+    var text by remember(title) { mutableStateOf(initialValue) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(label) },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) { Text(confirmLabel) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
         containerColor = DS.surface,

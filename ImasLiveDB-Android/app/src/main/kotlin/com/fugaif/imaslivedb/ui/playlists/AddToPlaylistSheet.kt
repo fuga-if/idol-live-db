@@ -2,16 +2,11 @@ package com.fugaif.imaslivedb.ui.playlists
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,15 +14,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.PlaylistSummary
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextInputDialog
 import kotlinx.coroutines.launch
 
 /**
@@ -60,17 +56,8 @@ fun AddToPlaylistSheet(song: Song, onDismiss: () -> Unit) {
     }
 
     Surface {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Column(Modifier.fillMaxWidth()) {
-                androidx.compose.foundation.layout.Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("プレイリストに追加", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Filled.Close, contentDescription = "閉じる") }
-                }
-            }
+        Column(Modifier.fillMaxWidth()) {
+            ImasSheetToolbar(kind = ImasSheetToolbarKind.Read(onClose = onDismiss), title = "プレイリストに追加")
             LazyColumn(Modifier.fillMaxWidth()) {
                 item {
                     ImasNavRow(
@@ -95,7 +82,7 @@ fun AddToPlaylistSheet(song: Song, onDismiss: () -> Unit) {
     }
 
     if (isNaming) {
-        PlaylistNameDialog(
+        ImasTextInputDialog(
             title = "新しいプレイリスト",
             confirmLabel = "作って足す",
             onDismiss = { isNaming = false },
