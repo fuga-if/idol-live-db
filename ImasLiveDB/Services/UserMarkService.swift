@@ -18,6 +18,7 @@ final class UserMarkService {
     private var eventVersion = 0
     private var showVersion = 0
     private var releaseVersion = 0
+    private var ticketSaleVersion = 0
     private var masteryVersion = 0
     private var lyricLikeVersion = 0
 
@@ -28,6 +29,7 @@ final class UserMarkService {
         case .event: _ = eventVersion
         case .show: _ = showVersion
         case .release: _ = releaseVersion
+        case .ticketSale: _ = ticketSaleVersion
         }
     }
 
@@ -38,6 +40,7 @@ final class UserMarkService {
         case .event: eventVersion &+= 1
         case .show: showVersion &+= 1
         case .release: releaseVersion &+= 1
+        case .ticketSale: ticketSaleVersion &+= 1
         }
     }
 
@@ -282,6 +285,23 @@ final class UserMarkService {
     func setNote(entity: UserMarkEntity, id: String, text: String?) throws {
         try db.upsertUserMarkNote(entity: entity, id: id, text: text)
         bump(entity)
+        scheduleBackup()
+    }
+
+    // MARK: - チケット受付への申込
+
+    /// その受付への自分の申込の記録。記録なし・知らない保存値は nil。
+    func ticketApplication(saleId: String) -> TicketApplication? {
+        observe(.ticketSale)
+        let stored = try? db.fetchUserMark(entity: .ticketSale, id: saleId, kind: .application)?.textValue
+        return ticketApplicationFromRaw(raw: stored ?? nil)
+    }
+
+    /// 申込の記録を付ける。nil で外す (行ごと消す)。
+    func setTicketApplication(saleId: String, _ application: TicketApplication?) throws {
+        try db.upsertUserMarkText(entity: .ticketSale, id: saleId, kind: .application,
+                                  text: application.map { ticketApplicationRaw(application: $0) })
+        bump(.ticketSale)
         scheduleBackup()
     }
 

@@ -10,6 +10,8 @@ enum UserMarkEntity: String, Codable, CaseIterable, Sendable {
     case event
     case show
     case release  // 映像円盤 (event_releases)
+    /// チケット受付 (ticket_sales)。自分の申込の記録 (`.application`) だけを付ける。
+    case ticketSale = "ticket_sale"
 }
 
 // MARK: - AttendanceType
@@ -51,6 +53,9 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
     /// 歌詞の「ここ好き」。曲 1 行の `text_value` に**行 ID の並び**を入れる (並べ方はコアの
     /// `lyricLikesToggle`)。歌詞本文は入れない (JASRAC 許諾の条件、`Models/Lyrics.swift` 冒頭)。
     case lyricLikes
+    /// チケット受付への申込の記録。`text_value` に保存値 ("applied" / "won" / "lost")。
+    /// 保存値・表示文字列・選べる段階はコア (`ticketApplication*`)。
+    case application
 
     var label: String {
         switch self {
@@ -63,6 +68,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .owned:     return "所有"
         case .mastery:   return "習熟度"
         case .lyricLikes: return "ここ好き"
+        case .application: return "申込"
         }
     }
 
@@ -79,6 +85,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .owned:     return "shippingbox"
         case .mastery:   return "chart.bar"
         case .lyricLikes: return "heart"
+        case .application: return "ticket"
         }
     }
 
@@ -93,6 +100,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .owned:     return "shippingbox.fill"
         case .mastery:   return "chart.bar.fill"
         case .lyricLikes: return "heart.fill"
+        case .application: return "ticket.fill"
         }
     }
 
@@ -107,6 +115,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .owned:     return .purple
         case .mastery:   return .indigo
         case .lyricLikes: return .pink
+        case .application: return .primary
         }
     }
 
@@ -124,6 +133,7 @@ enum UserMarkKind: String, Codable, CaseIterable, Sendable {
         case .owned:     return [.release, .song]
         case .mastery:   return [.song]
         case .lyricLikes: return [.song]
+        case .application: return [.ticketSale]
         }
     }
 }

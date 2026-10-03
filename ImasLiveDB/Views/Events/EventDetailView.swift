@@ -448,9 +448,14 @@ struct EventDetailView: View {
     /// どの `Button` の外にも置く。
     @ViewBuilder
     private func ticketSaleRow(_ sale: TicketSale) -> some View {
+        let application = UserMarkService.shared.ticketApplication(saleId: sale.id)
         VStack(alignment: .leading, spacing: DS.Space.gapTight) {
             HStack(alignment: .firstTextBaseline, spacing: DS.Space.gapTight) {
                 ImasBadge(text: sale.stageLabel, kind: stageBadgeKind(sale.stage))
+                if let application {
+                    ImasBadge(text: ticketApplicationLabel(kind: sale.kind, application: application),
+                              kind: ticketApplicationBadgeKind(application))
+                }
                 Text(sale.kindLabel).imasText(.meta)
                 Spacer()
                 if EditPermission.showEditAffordance {
@@ -481,10 +486,60 @@ struct EventDetailView: View {
                     .imasText(.note, color: seedAccent)
                 }
             }
+            ticketApplicationMenu(sale, current: application)
         }
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.gap)
         .contentShape(Rectangle())
+    }
+
+    /// 自分の申込の記録を付ける口。選べる段階 (当選・落選は当落発表の日から) はコアが決める。
+    /// 端末にだけ残る本人の記録なので、ログインは要らない。
+    private func ticketApplicationMenu(_ sale: TicketSale, current: TicketApplication?) -> some View {
+        let choices = ticketApplicationChoices(
+            kind: sale.kind, stage: sale.stage, resultAt: sale.resultAt, nowEpochSeconds: JSTDay.nowEpochSeconds()
+        )
+        return Menu {
+            ForEach(choices, id: \.self) { choice in
+                Button {
+                    setTicketApplication(sale, choice)
+                } label: {
+                    if choice == current {
+                        Label(ticketApplicationLabel(kind: sale.kind, application: choice), systemImage: "checkmark")
+                    } else {
+                        Text(ticketApplicationLabel(kind: sale.kind, application: choice))
+                    }
+                }
+            }
+            if current != nil {
+                Button("記録を外す", role: .destructive) { setTicketApplication(sale, nil) }
+            }
+        } label: {
+            HStack(spacing: DS.Space.gapTight) {
+                Image(systemName: current == nil ? "ticket" : "ticket.fill").font(ImasTextRole.note.font)
+                Text(current == nil ? "申込を記録" : "記録を変える")
+            }
+            .imasText(.note, color: seedAccent)
+        }
+        .sensoryFeedback(.selection, trigger: current)
+    }
+
+    private func setTicketApplication(_ sale: TicketSale, _ application: TicketApplication?) {
+        do {
+            try UserMarkService.shared.setTicketApplication(saleId: sale.id, application)
+        } catch {
+            Logger.database.error("save_failed ticket_application: \(error.localizedDescription)")
+        }
+    }
+
+    /// 申込の記録の札。当選は自分の記録の塗り (§10.1 `.positive` が当選を例示)、落選は薄字、
+    /// 申込済みは結果を待つ灰の線。
+    private func ticketApplicationBadgeKind(_ application: TicketApplication) -> ImasBadge.Kind {
+        switch application {
+        case .applied: return .guest
+        case .won: return .positive
+        case .lost: return .negative
+        }
     }
 
     /// 段階の札の種類。受付中/結果待ちは「墨の線」(§10.1 `.attention` が受付中を例示)、

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Groups
@@ -109,6 +110,10 @@ import uniffi.imas_core.shareEventText
 import uniffi.imas_core.AttendanceState
 import uniffi.imas_core.TicketSaleStage
 import com.fugaif.imaslivedb.data.local.localWrite
+import java.time.Instant
+import uniffi.imas_core.ticketApplicationChoices
+import uniffi.imas_core.ticketApplicationLabel
+import uniffi.imas_core.TicketApplication
 
 /**
  * イベント詳細。iOS EventDetailView の構成を 1:1 で写す。
@@ -723,6 +728,12 @@ private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
 @Composable
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val marks = remember { AppModule.from(context).userMarkRepository }
+    val scope = rememberCoroutineScope()
+    // 自分の申込の記録 (端末ローカル)。付け替えたらその場で読み直す。
+    var applications by remember { mutableStateOf<Map<String, TicketApplication>>(emptyMap()) }
+    LaunchedEffect(state.ticketSales) { applications = marks.ticketApplications() }
     val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
         // ImasSectionHeader は左右の余白を自分で持つので、追加の padding は付けない (二重になる)。
@@ -731,7 +742,12 @@ private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: S
             var shown = false
             state.ticketSales.forEach { sale ->
                 if (shown) ImasRowDivider(inset = DS.Space.rowH)
-                TicketSaleRow(sale, seed, brand)
+                TicketSaleRow(sale, seed, brand, applications[sale.id]) { next ->
+                    scope.launch {
+                        marks.setTicketApplication(sale.id, next)
+                        applications = marks.ticketApplications()
+                    }
+                }
                 shown = true
             }
             state.ticketUrl?.let { url ->
@@ -769,7 +785,13 @@ private fun TicketUrlRow(url: String, seed: String?, brand: String?, onClick: ()
  * ものをそのまま出す (画面で組み立て直さない)。
  */
 @Composable
-private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, brand: String?) {
+private fun TicketSaleRow(
+    sale: uniffi.imas_core.TicketSale,
+    seed: String?,
+    brand: String?,
+    application: TicketApplication?,
+    onSetApplication: (TicketApplication?) -> Unit
+) {
     val uriHandler = LocalUriHandler.current
     val t = imasThemeForBrand(seed, brand)
     Column(
@@ -780,6 +802,7 @@ private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, bran
             // 段階 (受付中・結果待ち・受付前・終了) は状態なので札に、種別 (最速先行・一般 等) は
             // 添え字にする (§10.1: 札は状態を表す)。stage は今回 Android の binding に加わった値。
             ImasBadge(sale.stageLabel, kind = stageBadgeKind(sale.stage))
+            application?.let { ImasBadge(ticketApplicationLabel(sale.kind, it), kind = ticketApplicationBadgeKind(it)) }
             ImasText(sale.name, role = ImasTextRole.ROW_LABEL, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             ImasText(sale.kindLabel, role = ImasTextRole.META)
         }
@@ -798,7 +821,59 @@ private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, bran
                 ImasText("申込ページを開く", role = ImasTextRole.NOTE, color = t.accent)
             }
         }
+        TicketApplicationMenu(sale, application, t.accent, onSetApplication)
     }
+}
+
+/**
+ * 自分の申込の記録を付ける口 (iOS `ticketApplicationMenu`)。選べる段階 (当選・落選は当落発表の日から) は
+ * コアが決める。端末にだけ残る本人の記録なので、ログインは要らない。
+ */
+@Composable
+private fun TicketApplicationMenu(
+    sale: uniffi.imas_core.TicketSale,
+    current: TicketApplication?,
+    accent: androidx.compose.ui.graphics.Color,
+    onSet: (TicketApplication?) -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    val choices = remember(sale, open) {
+        ticketApplicationChoices(sale.kind, sale.stage, sale.resultAt, Instant.now().epochSecond)
+    }
+    Box {
+        Row(
+            modifier = Modifier.imasRowPress(onClick = { open = true }),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+        ) {
+            Icon(Icons.Filled.ConfirmationNumber, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+            ImasText(if (current == null) "申込を記録" else "記録を変える", role = ImasTextRole.NOTE, color = accent)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            choices.forEach { choice ->
+                DropdownMenuItem(
+                    text = { Text(ticketApplicationLabel(sale.kind, choice), color = DS.ink) },
+                    trailingIcon = if (choice == current) {
+                        { Icon(Icons.Filled.Check, contentDescription = null, tint = DS.ink) }
+                    } else null,
+                    onClick = { open = false; onSet(choice) }
+                )
+            }
+            if (current != null) {
+                DropdownMenuItem(
+                    text = { Text("記録を外す", color = DS.danger) },
+                    onClick = { open = false; onSet(null) }
+                )
+            }
+        }
+    }
+}
+
+/** 申込の記録の札 (iOS と同じ対応)。当選は自分の記録の塗り、落選は薄字、申込済みは灰の線。 */
+private fun ticketApplicationBadgeKind(application: TicketApplication): ImasBadgeKind = when (application) {
+    TicketApplication.APPLIED -> ImasBadgeKind.GUEST
+    TicketApplication.WON -> ImasBadgeKind.POSITIVE
+    TicketApplication.LOST -> ImasBadgeKind.NEGATIVE
 }
 
 /**

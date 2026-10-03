@@ -176,7 +176,7 @@ struct EventListView: View {
                             title: open.sale.eventName,
                             subtitle: [open.sale.name, open.deadlineLabel].compactMap { $0 }.joined(separator: " ・ "),
                             leading: .bar(seed: open.brandColor),
-                            trailing: open.remainingLabel.map { .badge(ImasBadge(text: $0, kind: .attention)) } ?? .none,
+                            trailing: openSaleTrailing(open),
                             density: .compact,
                             subtitleLineLimit: 2
                         )
@@ -194,6 +194,14 @@ struct EventListView: View {
                 }
             }
         }
+    }
+
+    /// 受付中の行の末尾。申し込み済みなら締切より記録を見せる (もう急ぐ必要がない)。
+    private func openSaleTrailing(_ open: OpenTicketSale) -> ImasRowTrailing {
+        if let application = UserMarkService.shared.ticketApplication(saleId: open.sale.id) {
+            return .badge(ImasBadge(text: ticketApplicationLabel(kind: open.sale.kind, application: application), kind: .guest))
+        }
+        return open.remainingLabel.map { .badge(ImasBadge(text: $0, kind: .attention)) } ?? .none
     }
 
     var body: some View {

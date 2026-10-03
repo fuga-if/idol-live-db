@@ -108,6 +108,18 @@ pub enum TicketSaleDeadlineKind {
     AwaitingResult,
 }
 
+/// 自分の申込の記録 (端末ローカル。`user_marks` の entity_type = `ticket_sale`、kind = `application`、
+/// text_value にこの保存値)。マスタではなく本人の記録なので、受付の行とは別に持つ。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum TicketApplication {
+    /// 申し込んだ (先着・当日券では「買えた」)。
+    Applied,
+    /// 当選。
+    Won,
+    /// 落選。
+    Lost,
+}
+
 /// ライブ一覧の「受付中」の 1 行。受付の射影に、締切までの残りの文字列を添える。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct OpenTicketSale {
@@ -640,6 +652,67 @@ pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale
     rows.into_iter().map(|(_, r)| r).collect()
 }
 
+// ---------------------------------------------------------------------------
+// 申込の記録
+// ---------------------------------------------------------------------------
+
+pub fn ticket_application_raw(a: TicketApplication) -> String {
+    match a {
+        TicketApplication::Applied => "applied",
+        TicketApplication::Won => "won",
+        TicketApplication::Lost => "lost",
+    }
+    .to_string()
+}
+
+/// 保存値 → 記録。知らない値・空は `None` (記録なし扱い。捏造しない)。
+pub fn ticket_application_from_raw(raw: Option<&str>) -> Option<TicketApplication> {
+    match raw.map(str::trim)? {
+        "applied" => Some(TicketApplication::Applied),
+        "won" => Some(TicketApplication::Won),
+        "lost" => Some(TicketApplication::Lost),
+        _ => None,
+    }
+}
+
+/// 抽選がある受付か (当選・落選を付ける意味があるか)。先着・当日券は申し込めた = 買えた。
+fn has_draw(kind: TicketSaleKind) -> bool {
+    matches!(kind, TicketSaleKind::Lottery | TicketSaleKind::Resale)
+}
+
+/// 記録の表示文字列。先着・当日券の「申込済み」は「購入済み」と言う。
+pub fn ticket_application_label(kind: TicketSaleKind, a: TicketApplication) -> String {
+    match a {
+        TicketApplication::Applied if has_draw(kind) => "申込済み",
+        TicketApplication::Applied => "購入済み",
+        TicketApplication::Won => "当選",
+        TicketApplication::Lost => "落選",
+    }
+    .to_string()
+}
+
+/// いま選べる記録。「申込済み」はいつでも。当選・落選は抽選のある受付だけで、当落発表の日
+/// (その日の 00:00) から。当落の日が未登録なら締切を過ぎてから (結果待ち・終了の段階)。
+pub fn ticket_application_choices(
+    kind: TicketSaleKind,
+    stage: TicketSaleStage,
+    result_at: Option<&str>,
+    now_epoch_seconds: i64,
+) -> Vec<TicketApplication> {
+    let mut choices = vec![TicketApplication::Applied];
+    if !has_draw(kind) {
+        return choices;
+    }
+    let result_reached = match result_at.and_then(parse_sale_moment) {
+        Some(r) => now_naive(now_epoch_seconds) >= r.0.and_hms_opt(0, 0, 0).expect("有効な時刻"),
+        None => matches!(stage, TicketSaleStage::AwaitingResult | TicketSaleStage::Ended),
+    };
+    if result_reached {
+        choices.extend([TicketApplication::Won, TicketApplication::Lost]);
+    }
+    choices
+}
+
 fn to_ticket_sale(
     snap: &Snapshot,
     event: &Event,
@@ -837,6 +910,35 @@ mod tests {
         assert_eq!(open[1].remaining_label.as_deref(), Some("あと 10 日"));
         assert_eq!(open[1].brand_color.as_deref(), Some("#ff69b4"));
         assert_eq!(open[2].remaining_label.as_deref(), Some("あと 61 日"), "締切が無ければ対象公演の最終日");
+    }
+
+    // ---- 申込の記録 ----
+
+    #[test]
+    fn application_raw_round_trips_and_unknown_is_none() {
+        for a in [TicketApplication::Applied, TicketApplication::Won, TicketApplication::Lost] {
+            assert_eq!(ticket_application_from_raw(Some(&ticket_application_raw(a))), Some(a));
+        }
+        assert_eq!(ticket_application_from_raw(Some("maybe")), None);
+        assert_eq!(ticket_application_from_raw(None), None);
+    }
+
+    #[test]
+    fn won_and_lost_become_choosable_on_the_result_day() {
+        use TicketApplication::*;
+        let result = Some("2026-04-15 18:00");
+        let before = ticket_application_choices(TicketSaleKind::Lottery, TicketSaleStage::AwaitingResult, result, epoch(2026, 4, 14, 23, 0));
+        assert_eq!(before, vec![Applied], "発表の前日はまだ申込済みだけ");
+        let on_day = ticket_application_choices(TicketSaleKind::Lottery, TicketSaleStage::AwaitingResult, result, epoch(2026, 4, 15, 9, 0));
+        assert_eq!(on_day, vec![Applied, Won, Lost], "発表の日は時刻前でも付けられる");
+        let no_result_open = ticket_application_choices(TicketSaleKind::Resale, TicketSaleStage::Open, None, 0);
+        assert_eq!(no_result_open, vec![Applied]);
+        let no_result_ended = ticket_application_choices(TicketSaleKind::Resale, TicketSaleStage::Ended, None, 0);
+        assert_eq!(no_result_ended, vec![Applied, Won, Lost], "当落日が無ければ締切後から");
+        let first_come = ticket_application_choices(TicketSaleKind::FirstCome, TicketSaleStage::Ended, None, 0);
+        assert_eq!(first_come, vec![Applied], "先着に当落は無い");
+        assert_eq!(ticket_application_label(TicketSaleKind::FirstCome, Applied), "購入済み");
+        assert_eq!(ticket_application_label(TicketSaleKind::Lottery, Applied), "申込済み");
     }
 
     // ---- 日時の解釈 ----

@@ -1,7 +1,7 @@
 //! チケット受付の FFI 面。ロジックは domain::ticket_sales。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::domain::ticket_sales::{self as sales, TicketSale, TicketSaleDeadline, TicketSaleDraft, TicketSaleIssue, TicketSaleKind, OpenTicketSale};
+use crate::domain::ticket_sales::{self as sales, TicketSale, TicketSaleDeadline, TicketSaleDraft, TicketSaleIssue, TicketSaleKind, OpenTicketSale, TicketApplication, TicketSaleStage};
 
 #[uniffi::export]
 impl SnapshotStore {
@@ -58,6 +58,35 @@ pub fn ticket_sale_issue_message(issue: TicketSaleIssue) -> String {
 #[uniffi::export]
 pub fn normalize_ticket_sale_moment(input: String) -> Option<String> {
     sales::normalize_moment(&input)
+}
+
+/// 申込の記録の保存値 (`user_marks.text_value`)。
+#[uniffi::export]
+pub fn ticket_application_raw(application: TicketApplication) -> String {
+    sales::ticket_application_raw(application)
+}
+
+/// 保存値 → 申込の記録。知らない値・空は `None`。
+#[uniffi::export]
+pub fn ticket_application_from_raw(raw: Option<String>) -> Option<TicketApplication> {
+    sales::ticket_application_from_raw(raw.as_deref())
+}
+
+/// 申込の記録の表示文字列 (先着・当日券の申込済みは「購入済み」)。
+#[uniffi::export]
+pub fn ticket_application_label(kind: TicketSaleKind, application: TicketApplication) -> String {
+    sales::ticket_application_label(kind, application)
+}
+
+/// いま選べる申込の記録 (当選・落選は抽選のある受付で当落発表の日から)。
+#[uniffi::export]
+pub fn ticket_application_choices(
+    kind: TicketSaleKind,
+    stage: TicketSaleStage,
+    result_at: Option<String>,
+    now_epoch_seconds: i64,
+) -> Vec<TicketApplication> {
+    sales::ticket_application_choices(kind, stage, result_at.as_deref(), now_epoch_seconds)
 }
 
 /// 受付種別の保存値。

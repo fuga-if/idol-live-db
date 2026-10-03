@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import uniffi.imas_core.BackupUserMarkRecord
 import uniffi.imas_core.backupMeaningfulMarkIndices
 import java.time.Instant
+import uniffi.imas_core.ticketApplicationRaw
+import uniffi.imas_core.ticketApplicationFromRaw
+import uniffi.imas_core.TicketApplication
 
 /** 参加が付いた (取り消しではない) 直後の通知。iOS `.attendanceMarked` 通知と対。 */
 data class AttendanceMarkedEvent(val showId: String, val type: AttendanceType)
@@ -152,6 +155,18 @@ class UserMarkRepository(
             dao.upsert(UserMark(type, id, kind, true, trimmed, Instant.now().toString()))
         }
     }
+
+    // ---- チケット受付への申込 ----
+
+    /** 受付ごとの自分の申込の記録 (記録の無い受付は入らない)。保存値の解釈はコア。 */
+    suspend fun ticketApplications(): Map<String, TicketApplication> =
+        meaningful(dao.marksOf(UserMark.TICKET_SALE, UserMark.APPLICATION))
+            .mapNotNull { row -> ticketApplicationFromRaw(row.textValue)?.let { row.entityId to it } }
+            .toMap()
+
+    /** 申込の記録を付ける。null で外す (行ごと消す)。 */
+    suspend fun setTicketApplication(saleId: String, application: TicketApplication?) =
+        setText(UserMark.TICKET_SALE, saleId, UserMark.APPLICATION, application?.let { ticketApplicationRaw(it) })
 
     /** その曲で「ここ好き」を付けた歌詞行の ID (本文は持たない)。 */
     suspend fun lyricLikes(songId: String): Set<String> =

@@ -71,6 +71,12 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import androidx.compose.runtime.saveable.rememberSaveable
 import uniffi.imas_core.OpenTicketSale
+import uniffi.imas_core.ticketApplicationLabel
+import uniffi.imas_core.TicketApplication
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -314,6 +320,14 @@ private const val OPEN_SALES_COLLAPSED_LIMIT = 3
 @Composable
 private fun OpenSalesSection(sales: List<OpenTicketSale>, onEventClick: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    var applications by remember { mutableStateOf<Map<String, TicketApplication>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(sales) { applications = AppModule.from(context).userMarkRepository.ticketApplications() }
+    // 詳細で記録を付け替えて戻ってきたときに読み直す (戻るだけでは sales が変わらない)。
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        scope.launch { applications = AppModule.from(context).userMarkRepository.ticketApplications() }
+    }
     val shown = if (expanded) sales else sales.take(OPEN_SALES_COLLAPSED_LIMIT)
     ImasSection("受付中のチケット", modifier = modifier, count = "${sales.size}件", style = ImasSectionHeaderStyle.SMALL) {
         ImasCardList {
@@ -323,7 +337,9 @@ private fun OpenSalesSection(sales: List<OpenTicketSale>, onEventClick: (String)
                     modifier = Modifier.imasRowPress(onClick = { onEventClick(open.sale.eventId) }),
                     subtitle = listOfNotNull(open.sale.name, open.deadlineLabel).joinToString(" ・ "),
                     leading = ImasRowLeading.Bar(seed = open.brandColor),
-                    trailing = open.remainingLabel?.let { ImasRowTrailing.Badge(it, ImasBadgeKind.ATTENTION) } ?: ImasRowTrailing.None,
+                    // 申し込み済みなら締切より記録を見せる (もう急ぐ必要がない。iOS と同じ)。
+                    trailing = applications[open.sale.id]?.let { ImasRowTrailing.Badge(ticketApplicationLabel(open.sale.kind, it), ImasBadgeKind.GUEST) }
+                        ?: open.remainingLabel?.let { ImasRowTrailing.Badge(it, ImasBadgeKind.ATTENTION) } ?: ImasRowTrailing.None,
                     density = ImasRowDensity.COMPACT,
                     subtitleLineLimit = 2,
                     position = if (index == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING
