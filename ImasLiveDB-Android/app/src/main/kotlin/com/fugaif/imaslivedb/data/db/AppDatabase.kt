@@ -14,6 +14,7 @@ import com.fugaif.imaslivedb.data.db.dao.ShowTicketDao
 import com.fugaif.imaslivedb.data.db.dao.IdolDao
 import com.fugaif.imaslivedb.data.db.dao.MetaDao
 import com.fugaif.imaslivedb.data.db.dao.PersonalTagDao
+import com.fugaif.imaslivedb.data.db.dao.PlaylistDao
 import com.fugaif.imaslivedb.data.db.dao.SearchDao
 import com.fugaif.imaslivedb.data.db.dao.SetlistDao
 import com.fugaif.imaslivedb.data.db.dao.ShowDao
@@ -40,6 +41,8 @@ import com.fugaif.imaslivedb.data.model.IdolVoiceActor
 import com.fugaif.imaslivedb.data.model.ImasUnit
 import com.fugaif.imaslivedb.data.model.Meta
 import com.fugaif.imaslivedb.data.model.PersonalTag
+import com.fugaif.imaslivedb.data.model.Playlist
+import com.fugaif.imaslivedb.data.model.PlaylistItem
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.Show
@@ -82,9 +85,11 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Expense::class,
         ShowTicket::class,
         IdolVoiceActor::class,
-        TicketSale::class
+        TicketSale::class,
+        Playlist::class,
+        PlaylistItem::class
     ],
-    version = 23,
+    version = 24,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -107,6 +112,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun personalTagDao(): PersonalTagDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun showTicketDao(): ShowTicketDao
+    abstract fun playlistDao(): PlaylistDao
 
     companion object {
         @Volatile
@@ -569,12 +575,37 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v24: プレイリスト (playlists / playlist_items) を足す。iOS の v37_playlists と対。
+         * **端末ローカル唯一データ**なので、expenses (v16→v17) と同じく FK を宣言しない
+         * (他のマスタ表と違い親子とも端末ローカルなので壊れる心配はないが、揃えておく)。
+         */
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS playlists (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "name TEXT NOT NULL, " +
+                        "created_at TEXT NOT NULL, " +
+                        "updated_at TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS playlist_items (" +
+                        "playlist_id TEXT NOT NULL, " +
+                        "song_id TEXT NOT NULL, " +
+                        "position INTEGER NOT NULL, " +
+                        "PRIMARY KEY(playlist_id, song_id))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS idx_playlist_items_playlist ON playlist_items(playlist_id)")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
-            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23
+            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
         )
     }
 }

@@ -120,6 +120,9 @@ class AppModule private constructor(context: Context) {
     }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val expenseRepository: ExpenseRepository by lazy { ExpenseRepository(database) }
+    val playlistRepository: com.fugaif.imaslivedb.data.repository.PlaylistRepository by lazy {
+        com.fugaif.imaslivedb.data.repository.PlaylistRepository(database)
+    }
     val showTicketRepository: ShowTicketRepository by lazy { ShowTicketRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */

@@ -8,9 +8,11 @@ import com.fugaif.imaslivedb.data.community.LocalPollVoteLog
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.model.PersonalTag
+import com.fugaif.imaslivedb.data.model.Playlist
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.ExpenseRepository
 import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
+import com.fugaif.imaslivedb.data.repository.PlaylistRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import uniffi.imas_core.BackupExpenseRecord
 import uniffi.imas_core.BackupExportInput
@@ -19,6 +21,7 @@ import uniffi.imas_core.BackupKindDialect
 import uniffi.imas_core.BackupLocalState
 import uniffi.imas_core.BackupMarkKey
 import uniffi.imas_core.BackupPersonalTagRecord
+import uniffi.imas_core.BackupPlaylistRecord
 import uniffi.imas_core.BackupPollVoteRecord
 import uniffi.imas_core.BackupTagKey
 import uniffi.imas_core.BackupUserMarkRecord
@@ -35,6 +38,7 @@ data class BackupImportResult(
     val addedVotes: Int,
     val addedPersonalTags: Int,
     val addedExpenses: Int,
+    val addedPlaylists: Int,
     val deviceIdRestored: Boolean,
     val skippedMarks: Int
 )
@@ -63,7 +67,8 @@ object BackupExportImportService {
         userMarkRepository: UserMarkRepository,
         pollVoteLog: LocalPollVoteLog,
         personalTagRepository: PersonalTagRepository,
-        expenseRepository: ExpenseRepository
+        expenseRepository: ExpenseRepository,
+        playlistRepository: PlaylistRepository
     ): String {
         val input = BackupExportInput(
             // OS 時刻・端末 ID・アプリ版はコアが取らない規約なのでここで渡す。
@@ -84,6 +89,10 @@ object BackupExportImportService {
             // 収支も端末にしか無いデータなので、機種変で置いていかない。
             expenses = expenseRepository.getAll().map {
                 BackupExpenseRecord(it.id, it.date, it.category, it.amount, it.showId, it.eventId, it.note, it.updatedAt)
+            },
+            // プレイリストも端末ローカル唯一データ。
+            playlists = playlistRepository.allForBackup().map { (playlist, songIds) ->
+                BackupPlaylistRecord(playlist.id, playlist.name, playlist.createdAt, playlist.updatedAt, songIds)
             }
         )
         return buildBackupEnvelope(input, BackupKindDialect.ANDROID).envelopeJson
@@ -101,6 +110,7 @@ object BackupExportImportService {
         pollVoteLog: LocalPollVoteLog,
         personalTagRepository: PersonalTagRepository,
         expenseRepository: ExpenseRepository,
+        playlistRepository: PlaylistRepository,
         restoreDeviceId: Boolean
     ): BackupImportResult {
         val local = BackupLocalState(
@@ -114,7 +124,9 @@ object BackupExportImportService {
                 BackupPollVoteRecord(pollId, entityIds.toList())
             },
             // 収支は id (UUID) で重複を見る。同じ id を 2 回入れると帳簿の額が倍になる。
-            expenseIds = expenseRepository.allIds()
+            expenseIds = expenseRepository.allIds(),
+            // プレイリストも id で重複を見る。
+            playlistIds = playlistRepository.allIds()
         )
 
         val plan = try {
@@ -145,6 +157,13 @@ object BackupExportImportService {
                 }
             )
         }
+        // プレイリストは playlist_items も一緒に書くので expenses 等とは別のトランザクションに分けず、
+        // repository 内で 1 件ずつ Room の @Transaction にする (DAO.insertIfAbsent)。
+        val addedPlaylists = playlistRepository.restoreIfAbsent(
+            plan.playlistsToInsert.map {
+                Playlist(it.id, it.name, it.createdAt, it.updatedAt) to it.songIds
+            }
+        )
         pollVoteLog.mergeIfAbsent(plan.pollVotesToAdd.associate { it.pollId to it.entityIds.toSet() })
         if (plan.restoreDeviceId) DeviceIdentity.restore(context, plan.info.deviceId)
 
@@ -154,8 +173,9 @@ object BackupExportImportService {
             addedPersonalTags = plan.addedPersonalTags.toInt(),
             // 件数は書き込み側の戻り値を正とする (「入っていないのに入ったと言う」事故が起きない)。
             addedExpenses = addedExpenses,
+            addedPlaylists = addedPlaylists,
             deviceIdRestored = plan.restoreDeviceId,
-            // コアは marks 以外 (投票・マイタグ・収支) の壊れた要素も数える。旧実装は marks だけ
+            // コアは marks 以外 (投票・マイタグ・収支・プレイリスト) の壊れた要素も数える。旧実装は marks だけ
             // 数えていたので、壊れたファイルでの表示件数がその分だけ増えることがある。
             skippedMarks = plan.info.skippedEntries.toInt()
         )

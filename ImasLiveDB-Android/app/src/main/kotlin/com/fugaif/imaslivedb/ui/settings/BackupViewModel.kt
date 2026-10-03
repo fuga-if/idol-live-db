@@ -141,6 +141,7 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
         addedVotes = result.addedVotes.toLong(),
         addedPersonalTags = result.addedPersonalTags.toLong(),
         addedExpenses = result.addedExpenses.toLong(),
+        addedPlaylists = result.addedPlaylists.toLong(),
         skippedMarks = result.skippedMarks.toLong(),
         deviceIdRestored = result.deviceIdRestored
     )
@@ -148,12 +149,12 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun exportJson(): String =
         BackupExportImportService.buildEnvelopeJson(
             getApplication(), module.userMarkRepository, module.localPollVoteLog,
-            module.personalTagRepository, module.expenseRepository
+            module.personalTagRepository, module.expenseRepository, module.playlistRepository
         )
 
     private suspend fun importJson(json: String, restoreDeviceId: Boolean): BackupImportResult =
         BackupExportImportService.importEnvelopeJson(
             getApplication(), json, module.database, module.userMarkRepository, module.localPollVoteLog,
-            module.personalTagRepository, module.expenseRepository, restoreDeviceId
+            module.personalTagRepository, module.expenseRepository, module.playlistRepository, restoreDeviceId
         )
 }
