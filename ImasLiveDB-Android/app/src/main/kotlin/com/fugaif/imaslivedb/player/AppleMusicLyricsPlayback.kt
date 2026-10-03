@@ -50,8 +50,20 @@ class AppleMusicLyricsPlayback(
     private val _isPlaying = MutableStateFlow(false)
     override val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _appleMusicState = MutableStateFlow(
+        when {
+            bridge == null -> AppleMusicState.UNAVAILABLE
+            app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_USER_TOKEN, null) == null ->
+                AppleMusicState.SIGNED_OUT
+            else -> AppleMusicState.READY
+        }
+    )
+    override val appleMusicState: StateFlow<AppleMusicState> = _appleMusicState.asStateFlow()
+
     /** ブラウザでサインインしている最中の合言葉。戻ってきたら取りに行く。 */
     private var pendingCode: String? = null
+    /** サインインのために待たせている曲 (songId, appleMusicId)。サインインを終えたら鳴らす。 */
+    private var pendingStart: Pair<String, String>? = null
     private var developerToken: Pair<String, Long>? = null
 
     init {
@@ -87,8 +99,10 @@ class AppleMusicLyricsPlayback(
         val devToken = developerToken() ?: return false
         val userToken = userToken()
         if (userToken == null) {
-            // まだ繋いでいない。ブラウザでサインインしてもらい、戻ってきたら取りに行く。
-            beginSignIn(activity)
+            // まだ繋いでいない。鳴らそうとしたその場でサインインの画面を出し、
+            // 戻ってきたらこの曲を鳴らし始める (もう一度押させない)。
+            pendingStart = songId to appleMusicId
+            if (_appleMusicState.value != AppleMusicState.SIGNING_IN) beginSignIn(activity)
             return false
         }
         bridge.load(activity, devToken, userToken, appleMusicId,
@@ -100,6 +114,11 @@ class AppleMusicLyricsPlayback(
             })
         _loadedSongId.value = songId
         return true
+    }
+
+    override fun signIn() {
+        val activity = resumed?.get() ?: return
+        scope.launch { beginSignIn(activity) }
     }
 
     override fun seek(ms: Int) { bridge?.seek(ms.toLong()) }
@@ -147,8 +166,12 @@ class AppleMusicLyricsPlayback(
             } catch (e: IOException) {
                 null
             }
-        } ?: return
+        } ?: run {
+            _appleMusicState.value = AppleMusicState.SIGNED_OUT
+            return
+        }
         pendingCode = code
+        _appleMusicState.value = AppleMusicState.SIGNING_IN
         // アプリ内ブラウザ (Custom Tabs) で開く。MusicKit for Android の認証は端末の Apple Music の
         // 状態に引きずられて返らないので、ブラウザ側 (MusicKit JS) で通す。埋め込み WebView は
         // Apple が弾くので使わない。サインインの面なので、出先 (タイトル) を見せる。
@@ -173,17 +196,32 @@ class AppleMusicLyricsPlayback(
                 }
             } ?: return
             val (status, body) = result
-            if (status == 404 || status == 410) { pendingCode = null; return }
+            if (status == 404 || status == 410) {
+                pendingCode = null
+                _appleMusicState.value = AppleMusicState.SIGNED_OUT
+                return
+            }
             val o = JSONObject(body)
             if (o.optBoolean("ready")) {
-                o.optString("token").takeIf { it.isNotEmpty() }?.let {
-                    prefs().edit().putString(KEY_USER_TOKEN, it).apply()
-                }
+                val token = o.optString("token").takeIf { it.isNotEmpty() }
                 pendingCode = null
+                if (token == null) {
+                    _appleMusicState.value = AppleMusicState.SIGNED_OUT
+                    return
+                }
+                prefs().edit().putString(KEY_USER_TOKEN, token).apply()
+                _appleMusicState.value = AppleMusicState.READY
+                // サインインのために待たせていた曲を鳴らし始める。
+                pendingStart?.let { (songId, appleMusicId) ->
+                    pendingStart = null
+                    startFull(songId, appleMusicId)
+                }
                 return
             }
             delay(1_000)
         }
+        // ブラウザでまだ終えていない (戻ってきただけ)。もう一度開けるようにしておく。
+        _appleMusicState.value = AppleMusicState.SIGNED_OUT
     }
 
     private companion object {

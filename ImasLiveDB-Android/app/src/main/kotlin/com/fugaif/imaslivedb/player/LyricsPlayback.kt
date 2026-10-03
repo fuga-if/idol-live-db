@@ -11,7 +11,24 @@ import kotlinx.coroutines.flow.StateFlow
  * 実装は [AppleMusicLyricsPlayback] (MusicKit for Android)。SDK の AAR が無いビルドや、
  * Apple Music に繋げない端末では [isAvailable] が false で、画面は「再生できない」と出す。
  */
+/** Apple Music に繋がっているか (画面が「サインイン」の案内を出すかを決める)。 */
+enum class AppleMusicState {
+    /** この端末・このビルドでは鳴らせない (SDK の AAR が無い等)。 */
+    UNAVAILABLE,
+    /** まだサインインしていない。 */
+    SIGNED_OUT,
+    /** アプリ内ブラウザでサインインしている最中。戻ってくると鳴り始める。 */
+    SIGNING_IN,
+    /** 鳴らせる。 */
+    READY,
+}
+
 interface LyricsPlayback {
+    /** Apple Music に繋がっているか。 */
+    val appleMusicState: StateFlow<AppleMusicState>
+    /** アプリ内ブラウザで Apple Music にサインインする。終えて戻ると、頼まれていた曲を鳴らし始める。 */
+    fun signIn()
+
     /** Apple Music で鳴らせる状態か (SDK・トークン・サインインが揃っている)。 */
     val isAvailable: StateFlow<Boolean>
     /** 今フル尺で読み込んでいる曲の songs.id (一時停止中も含む)。無ければ null。 */
@@ -36,6 +53,9 @@ interface LyricsPlayback {
 
 /** 再生できない環境の実装 (SDK の AAR が無いビルド等)。画面は「Apple Music で再生できません」と出す。 */
 object NoLyricsPlayback : LyricsPlayback {
+    override val appleMusicState: StateFlow<AppleMusicState> =
+        kotlinx.coroutines.flow.MutableStateFlow(AppleMusicState.UNAVAILABLE)
+    override fun signIn() {}
     override val isAvailable: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
     override val loadedSongId: StateFlow<String?> = kotlinx.coroutines.flow.MutableStateFlow(null)
     override val isPlaying: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)

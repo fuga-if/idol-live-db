@@ -106,6 +106,7 @@ fun LyricsPlayerScreen(
     val hasTiming = remember(starts) { lyricHasTiming(starts) }
     val loadedSongId by playback.loadedSongId.collectAsState()
     val isPlaying by playback.isPlaying.collectAsState()
+    val appleMusic by playback.appleMusicState.collectAsState()
     val isFullLoaded = loadedSongId == song.id
 
     LaunchedEffect(song.id) {
@@ -179,8 +180,10 @@ fun LyricsPlayerScreen(
                         ImasButton(title = "タイミングを記録する", onClick = onEditTimings, role = ImasButtonRole.SECONDARY)
                     }
                 }
-                if (startFailed) {
-                    ImasNote("再生には Apple Music でのフル再生が必要です。", modifier = Modifier.padding(vertical = DS.sp2))
+                AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn, modifier = Modifier.padding(vertical = DS.sp2))
+                // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+                if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
+                    ImasNote("この曲は Apple Music で鳴らせませんでした。", modifier = Modifier.padding(vertical = DS.sp2))
                 }
             }
             itemsIndexed(lyrics.lines) { _, line ->

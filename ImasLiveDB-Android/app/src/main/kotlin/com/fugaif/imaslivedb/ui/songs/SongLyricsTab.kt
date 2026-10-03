@@ -176,9 +176,11 @@ fun SongLyricsTab(
     }
 
     suspend fun beginRecording(current: Lyrics) {
-        if (playback.loadedSongId.value != song.id) {
-            val ok = playback.startFull(song.id, song.appleMusicId ?: "")
-            if (!ok) { recordUnavailable = true; return }
+        // 鳴らせない端末だけは開かない。未サインインなら、編集画面がサインインの案内を出し、
+        // サインインの画面も鳴らそうとした時点で自動で開く (戻ると鳴り始める)。
+        if (playback.appleMusicState.value == com.fugaif.imaslivedb.player.AppleMusicState.UNAVAILABLE) {
+            recordUnavailable = true
+            return
         }
         recorder = LyricTimingRecorder(current, song.id)
     }

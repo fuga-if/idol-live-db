@@ -173,7 +173,12 @@ fun LyricTimingEditorScreen(
 
         // 今の行/コールと、次に記録するもの。
         Column(Modifier.fillMaxWidth().padding(horizontal = DS.sp5), verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
-            if (startFailed) ImasNote("記録には Apple Music でのフル再生が必要です。")
+            val appleMusic by playback.appleMusicState.collectAsState()
+            AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn)
+            // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+            if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
+                ImasNote("この曲は Apple Music で鳴らせませんでした。")
+            }
             if (recorder.lane == LyricTimingRecorder.Lane.CALLS) {
                 val current = lyricActiveCall(recorder.callStartsForCore, shownMs.toLong())?.toInt()
                 Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
