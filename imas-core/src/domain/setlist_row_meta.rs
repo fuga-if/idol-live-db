@@ -80,6 +80,8 @@ pub struct SetlistRowMetaRecord {
     pub lineup: Option<SetlistLineupNote>,
     /// 歌唱者 1 人ずつの札 (`オリメン` / `初歌唱`)。歌唱者の一覧で名前の横に並べる。
     /// 札の無い人は入らない。上映会の行 (披露ではない) は空。表示モードに関係なく入る。
+    /// **並びは一覧で先に出す順** — 初歌唱の人 → オリメン (それぞれ歌唱者の並び順)。
+    /// 一覧はこの順で頭に寄せ、札の無い人を元の順で後ろに続ける。
     pub performer_notes: Vec<SetlistPerformerNoteRecord>,
 }
 
@@ -214,10 +216,15 @@ pub fn setlist_row_meta(
                             notes,
                         })
                     })
-                    .collect()
+                    .collect::<Vec<_>>()
             } else {
                 Vec::new()
             };
+            let mut performer_notes = performer_notes;
+            // 初歌唱の人を先頭に (安定ソートなので同じ組の中は歌唱者の並びのまま)。
+            performer_notes.sort_by_key(|p| {
+                !p.notes.iter().any(|n| n.tone == crate::domain::screen_composition::RowNoteTone::Debut)
+            });
             // 参加記録を 1 件も付けていない人に「未回収」を並べても情報にならないので、
             // そのときは回収の対象でない催しと同じ扱いにして自分の事実を伏せる。
             let note_groups =
@@ -340,6 +347,29 @@ mod tests {
             .collect();
         assert_eq!(axes[0], ("披露", vec!["6 回目", "3 か月ぶり"]));
         assert_eq!(axes[1], ("歌唱", vec!["オリメン 友紀・愛海 3 回目"]));
+    }
+
+    /// 依頼の実例。デレ 10th MEMORIAL DAY1 の『とどけ！アイドル』は「N 人 初歌唱」としか
+    /// 言えないので、歌唱の段は押して一覧を開ける。一覧の札は初歌唱の N 人が先頭に並ぶ。
+    #[test]
+    fn 初歌唱の人数は押して誰か分かる() {
+        let snap = bundle_snapshot();
+        let rows =
+            rows_of(snap, "sh_L1149", PerformerNameMode::IdolOnly, SetlistDisplayMode::Detailed);
+        let (row, count) = rows
+            .iter()
+            .find_map(|r| {
+                let note = r.note_groups.iter().flat_map(|g| &g.notes).find(|n| n.text.ends_with(" 人 初歌唱"))?;
+                Some((r, note.text.split(' ').next()?.parse::<usize>().ok()?))
+            })
+            .expect("人数で言う初歌唱の行");
+        let singer = row.note_groups.iter().find(|g| g.label == "歌唱").unwrap();
+        assert!(singer.opens_performers, "歌唱の段は押せる");
+        assert!(row.note_groups.iter().filter(|g| g.label != "歌唱").all(|g| !g.opens_performers));
+        let debut = |p: &SetlistPerformerNoteRecord| p.notes.iter().any(|n| n.tone == RowNoteTone::Debut);
+        let firsts = row.performer_notes.iter().take_while(|p| debut(p)).count();
+        assert_eq!(firsts, count, "初歌唱の人が先頭に、段の人数と同じだけ");
+        assert!(row.performer_notes[firsts..].iter().all(|p| !debut(p)));
     }
 
     /// 依頼の実例。エミリー スチュアートと徳川まつりの 2 人が歌うが、

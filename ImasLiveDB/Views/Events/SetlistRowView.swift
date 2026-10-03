@@ -79,6 +79,18 @@ struct SetlistRowView: View {
         }
     }
 
+    /// 歌唱者の一覧に並べる順。札のある人をコアの順 (初歌唱 → オリメン) で頭に寄せ、
+    /// 札の無い人は元の並びで後ろに続ける (「13 人 初歌唱」を押して開いたとき、その 13 人が先頭に来る)。
+    private var sheetPerformers: [ResolvedPerformer] {
+        let rank = Dictionary(performerNotes.enumerated().map { ($1.idolId, $0) },
+                              uniquingKeysWith: { first, _ in first })
+        return resolvedPerformers.enumerated()
+            .sorted { a, b in
+                (rank[a.element.idol.id] ?? Int.max, a.offset) < (rank[b.element.idol.id] ?? Int.max, b.offset)
+            }
+            .map(\.element)
+    }
+
     /// `ImasSetlistRow`/`ImasAvatarStack` に渡す形。アイドルが分かる人は判子の略称と写真を持たせ、
     /// アイコンを出せるようにする (アイコンを消さない)。
     private var rowPerformers: [ImasPerformer] {
@@ -244,7 +256,7 @@ struct SetlistRowView: View {
         .sheet(isPresented: $showPerformersSheet) {
             PerformerDetailSheet(
                 songTitle: item.songTitle,
-                performers: resolvedPerformers,
+                performers: sheetPerformers,
                 notesByIdolId: Dictionary(performerNotes.map { ($0.idolId, $0.notes) },
                                           uniquingKeysWith: { first, _ in first })
             ) { dest in

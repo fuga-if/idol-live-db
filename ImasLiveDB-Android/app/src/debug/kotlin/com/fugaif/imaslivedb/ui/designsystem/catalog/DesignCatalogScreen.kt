@@ -1731,9 +1731,10 @@ private fun SetlistPage() {
                     noteGroups = listOf(
                         SetlistRowNoteGroupRecord(
                             "披露",
-                            listOf(SetlistRowNoteRecord("3回目", RowNoteTone.VALUE), SetlistRowNoteRecord("1年ぶり", RowNoteTone.DETAIL))
+                            listOf(SetlistRowNoteRecord("3回目", RowNoteTone.VALUE), SetlistRowNoteRecord("1年ぶり", RowNoteTone.DETAIL)),
+                            false
                         ),
-                        SetlistRowNoteGroupRecord("回収", listOf(SetlistRowNoteRecord("未回収", RowNoteTone.MISSING)))
+                        SetlistRowNoteGroupRecord("回収", listOf(SetlistRowNoteRecord("未回収", RowNoteTone.MISSING)), false)
                     ),
                     note = "この公演だけアレンジ違い",
                     position = ImasRowPosition.FOLLOWING

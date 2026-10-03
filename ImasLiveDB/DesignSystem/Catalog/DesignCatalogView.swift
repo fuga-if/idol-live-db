@@ -1056,8 +1056,8 @@ private struct SetlistPage: View {
                     ImasSetlistRow(number: "04", title: "ジャケの無い曲", brand: Sample.ml,
                                    performers: [.init(id: "d", name: "田中琴葉", color: Sample.kotoha)],
                                    noteGroups: [
-                                       .init(label: "披露", notes: [.init(text: "3回目", tone: .value), .init(text: "1年ぶり", tone: .detail)]),
-                                       .init(label: "回収", notes: [.init(text: "未回収", tone: .missing)]),
+                                       .init(label: "披露", notes: [.init(text: "3回目", tone: .value), .init(text: "1年ぶり", tone: .detail)], opensPerformers: false),
+                                       .init(label: "回収", notes: [.init(text: "未回収", tone: .missing)], opensPerformers: false),
                                    ],
                                    note: "この公演だけアレンジ違い")
                         .environment(\.imasRowPosition, .following)

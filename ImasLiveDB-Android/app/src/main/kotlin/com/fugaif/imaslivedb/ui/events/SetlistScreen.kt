@@ -115,6 +115,7 @@ import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.filtered.ShowFilterKind
 import com.fugaif.imaslivedb.ui.share.SetlistCommentComposeSheet
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
+import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -689,7 +690,11 @@ private fun VoteHintRow(isSignedIn: Boolean, onLoginClick: () -> Unit) {
  * すべて共有コアが決める (`setlist_row_note_groups`) — ここは並べるだけ。
  */
 @Composable
-private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: String?) {
+private fun NoteGroupsBlock(
+    noteGroups: List<SetlistRowNoteGroupRecord>,
+    seed: String?,
+    onOpenPerformers: () -> Unit
+) {
     if (noteGroups.isEmpty()) return
     val accent = imasTheme(seed, null).accent
     Column(
@@ -706,7 +711,16 @@ private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: S
                 .background(DS.sep)
         )
         noteGroups.forEach { group ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // 「13 人 初歌唱」のように人数でしか言えない段は、押すと歌唱者の一覧 (1 人ずつの札つき) を開く。
+            // 押せるかは共有コアが決める (`opensPerformers`)。押せる段は末尾に矢印を添える。
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = if (group.opensPerformers) {
+                    Modifier.imasPress(onClickLabel = "歌唱者の一覧を開く", onClick = onOpenPerformers)
+                } else {
+                    Modifier
+                }
+            ) {
                 // 軸ラベル。固定幅・字間を少し開けて沈める (本文と張り合わない)。
                 Text(
                     text = group.label,
@@ -715,7 +729,7 @@ private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: S
                     color = DS.ink3,
                     modifier = Modifier.width(26.dp)
                 )
-                NoteGroupValues(notes = group.notes, accent = accent, modifier = Modifier.weight(1f))
+                NoteGroupValues(notes = group.notes, accent = accent, modifier = Modifier.weight(1f), opens = group.opensPerformers)
             }
         }
     }
@@ -729,7 +743,12 @@ private fun NoteGroupsBlock(noteGroups: List<SetlistRowNoteGroupRecord>, seed: S
  * 意味を持たせず、自分の記録 (`MINE` / `MISSING`) には印 (チェック / 点線の丸) を添える。
  */
 @Composable
-private fun NoteGroupValues(notes: List<SetlistRowNoteRecord>, accent: Color, modifier: Modifier = Modifier) {
+private fun NoteGroupValues(
+    notes: List<SetlistRowNoteRecord>,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    opens: Boolean = false
+) {
     val text = buildAnnotatedString {
         notes.forEachIndexed { index, note ->
             if (index > 0) append("  ")
@@ -752,6 +771,7 @@ private fun NoteGroupValues(notes: List<SetlistRowNoteRecord>, accent: Color, mo
                 }
             }
         }
+        if (opens) withStyle(SpanStyle(color = DS.ink3, fontWeight = FontWeight.SemiBold)) { append(" ›") }
     }
     Text(
         text = text,
@@ -1105,7 +1125,7 @@ private fun SetlistItemRow(
             }
 
             // 「この披露はどうだったか」(披露の履歴・自分の回収) の段。
-            NoteGroupsBlock(noteGroups = noteGroups, seed = seed)
+            NoteGroupsBlock(noteGroups = noteGroups, seed = seed, onOpenPerformers = { showPerformersSheet = true })
 
             // Notes
             if (item.notes != null) {
@@ -1136,6 +1156,9 @@ private fun SetlistItemRow(
             performers = performers,
             idolsById = idolsById,
             notesByIdolId = performerNotes.associate { it.idolId to it.notes },
+            // 札のある人をコアの順 (初歌唱 → オリメン) で頭に寄せ、札の無い人は元の並びで続ける
+            // (「13 人 初歌唱」を押して開いたとき、その 13 人が先頭に来る。iOS `sheetPerformers`)。
+            noteOrder = performerNotes.mapIndexed { i, n -> n.idolId to i }.toMap(),
             performerName = performerName,
             isCharacterLive = isCharacterLive,
             onSelectIdol = { idolId ->
@@ -1159,6 +1182,8 @@ private fun PerformerListSheet(
     idolsById: Map<String, Idol>,
     /** idol_id → その人の札 (`オリメン` / `初歌唱`)。付けるか・言葉・強さは共有コア。 */
     notesByIdolId: Map<String, List<SetlistRowNoteRecord>>,
+    /** idol_id → 一覧で先に出す順。入っていない人は元の並びで後ろ。 */
+    noteOrder: Map<String, Int>,
     performerName: PerformerNameMode,
     isCharacterLive: Boolean,
     onSelectIdol: (String) -> Unit,
@@ -1174,7 +1199,10 @@ private fun PerformerListSheet(
             verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
             ImasText("$songTitle / 出演者 ${performers.size}名", role = ImasTextRole.CARD_TITLE)
-            ImasCardList(items = performers, key = { it.id }) { performer ->
+            val ordered = remember(performers, noteOrder) {
+                performers.sortedBy { p -> p.idolId?.let { noteOrder[it] } ?: Int.MAX_VALUE }
+            }
+            ImasCardList(items = ordered, key = { it.id }) { performer ->
                 val name = performer.displayName(performerName, isCharacterLive)
                 val idol = performer.idolId?.let { idolsById[it] }
                 val notes = performer.idolId?.let { notesByIdolId[it] }.orEmpty()

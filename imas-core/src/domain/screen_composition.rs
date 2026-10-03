@@ -199,6 +199,7 @@ pub fn setlist_row_note_groups(
         groups.push(SetlistRowNoteGroupRecord {
             label: COLLECTION_AXIS.to_string(),
             notes: mine_notes,
+            opens_performers: false,
         });
     }
     groups
@@ -257,7 +258,12 @@ pub fn setlist_singer_note_group(
     if !performance.is_first {
         notes.extend(first_time_others_note(&singers.first_time_others));
     }
-    (!notes.is_empty()).then(|| SetlistRowNoteGroupRecord { label: SINGER_AXIS.to_string(), notes })
+    // 「13 人 初歌唱」だけでは誰か分からないので、この段は押すと歌唱者の一覧を開く。
+    (!notes.is_empty()).then(|| SetlistRowNoteGroupRecord {
+        label: SINGER_AXIS.to_string(),
+        notes,
+        opens_performers: true,
+    })
 }
 
 /// 回数 1 つぶんの値。1 回目は `初歌唱` (初披露と同じ強さ)。
@@ -383,6 +389,7 @@ pub fn setlist_performance_note_group(performance: &PerformanceGap) -> SetlistRo
     SetlistRowNoteGroupRecord {
         label: PERFORMANCE_AXIS.to_string(),
         notes: performance_notes(performance),
+        opens_performers: false,
     }
 }
 
@@ -474,6 +481,9 @@ pub struct SetlistRowNoteGroupRecord {
     /// 行の左に出す軸の名前 (`披露` / `回収`)。
     pub label: String,
     pub notes: Vec<SetlistRowNoteRecord>,
+    /// 押すと歌唱者の一覧 (1 人ずつのオリメン・初歌唱の札つき) を開く段か。
+    /// `歌唱` の段だけ (「13 人 初歌唱」の 13 人が誰かを一覧で見せる)。
+    pub opens_performers: bool,
 }
 
 impl SetlistRowNoteRecord {

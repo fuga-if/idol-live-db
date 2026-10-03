@@ -222,7 +222,7 @@ fun ImasSetlistRow(
                 }
             }
             if (noteGroups.isNotEmpty()) {
-                NoteGroupsBlock(noteGroups, imasThemeForBrand(seed, brand).accent)
+                NoteGroupsBlock(noteGroups, imasThemeForBrand(seed, brand).accent, onSelectPerformers)
             }
             if (note != null) {
                 Text(note, style = ImasTextRole.NOTE.style.copy(fontStyle = FontStyle.Italic), color = ImasTextRole.NOTE.color)
@@ -279,7 +279,7 @@ private fun PerformerLine(
  * (丸い札を並べると「・」繋ぎの 1 行になって構造が消えるため)。
  */
 @Composable
-private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Color) {
+private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Color, onSelectPerformers: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Box(
             Modifier
@@ -289,7 +289,13 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                 .background(DS.sep)
         )
         groups.forEach { group ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // 「13 人 初歌唱」のように人数でしか言えない段は、押すと歌唱者の一覧 (1 人ずつの札つき) を開く。
+            // 押せるかは共有コアが決める (`opensPerformers`)。押せる段は末尾に矢印を添える。
+            val open = onSelectPerformers?.takeIf { group.opensPerformers }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = if (open != null) Modifier.imasPress(onClickLabel = "歌唱者の一覧を開く", onClick = open) else Modifier
+            ) {
                 Text(
                     group.label,
                     style = ImasType.text(11.sp).copy(letterSpacing = 0.4.sp),
@@ -298,7 +304,7 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                         .width(26.dp)
                         .alignByBaseline()
                 )
-                NotesText(group.notes, accent, Modifier.weight(1f).alignByBaseline())
+                NotesText(group.notes, accent, Modifier.weight(1f).alignByBaseline(), opens = open != null)
             }
         }
     }
@@ -318,7 +324,7 @@ internal fun unbreakableNote(text: String): String =
  * 色だけで意味を分けず、自分の記録 (回収 / 未回収) には印を付ける。
  */
 @Composable
-private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier: Modifier) {
+private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier: Modifier, opens: Boolean = false) {
     val ink = DS.ink
     val ink2 = DS.ink2
     val ink3 = DS.ink3
@@ -342,6 +348,7 @@ private fun NotesText(notes: List<SetlistRowNoteRecord>, accent: Color, modifier
                 }
             }
         }
+        if (opens) withStyle(SpanStyle(color = ink3, fontWeight = FontWeight.SemiBold)) { append(" ›") }
     }
     Text(
         text,
