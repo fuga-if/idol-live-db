@@ -27,7 +27,7 @@ use crate::domain::performance_gap::{
 };
 use crate::domain::performer_label::{setlist_performer_label, SetlistNaming};
 use crate::domain::screen_composition::{
-    setlist_performer_notes, setlist_public_note_groups, setlist_row_note_groups,
+    setlist_original_note_group, setlist_performer_notes, setlist_public_note_groups, setlist_row_note_groups,
     SetlistDisplayMode, SetlistPerformerNoteRecord, SetlistRowNoteGroupRecord,
 };
 use crate::domain::setlist_lineup::{row_lineup, RowLineup, SetlistLineupNote};
@@ -202,7 +202,14 @@ pub fn setlist_row_meta(
             // 上映会の行は披露ではないので、世の中から見た軸 (披露・歌唱) を持たない。
             let performance = is_performance(snap, item);
             let public = if performance {
-                setlist_public_note_groups(&gap, &original_singers(snap, item))
+                let singers = original_singers(snap, item);
+                let mut groups = setlist_public_note_groups(&gap, &singers);
+                // 本来のオリメン (今はアプリだけ。Web の公演ページはこの段を出していない)。
+                // 「披露」のすぐ下、「歌唱」の上に置く: 本来は誰の曲か → 誰が歌ったか の順に読ませる。
+                if let Some(original) = setlist_original_note_group(&singers) {
+                    groups.insert(1, original);
+                }
+                groups
             } else {
                 Vec::new()
             };
@@ -346,7 +353,9 @@ mod tests {
             .map(|g| (g.label.as_str(), g.notes.iter().map(|n| n.text.as_str()).collect()))
             .collect();
         assert_eq!(axes[0], ("披露", vec!["6 回目", "3 か月ぶり"]));
-        assert_eq!(axes[1], ("歌唱", vec!["オリメン 友紀・愛海 3 回目"]));
+        // オリメン 5 人のうち 2 人しか歌っていないので、本来のオリメンを「原唱」の段で全員出す。
+        assert_eq!(axes[1], ("原唱", vec!["比奈・雫・友紀・フレデリカ・愛海", "不在 比奈・雫・フレデリカ"]));
+        assert_eq!(axes[2], ("歌唱", vec!["オリメン 友紀・愛海 3 回目"]));
     }
 
     /// 依頼の実例。デレ 10th MEMORIAL DAY1 の『とどけ！アイドル』は「N 人 初歌唱」としか

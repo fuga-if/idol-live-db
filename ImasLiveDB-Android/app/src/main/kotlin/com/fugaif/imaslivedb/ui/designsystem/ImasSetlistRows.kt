@@ -315,8 +315,13 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
  * 字と字の間は単語結合子で繋ぐ (日本語は字の間でも折り返せるため、空白だけでは足りない)。
  * 「13 / 人 初歌唱」のように値の途中で割れると読めない。1 行に収まらない長さのときは、それでも折り返す。
  */
-internal fun unbreakableNote(text: String): String =
-    text.map { if (it == ' ') "\u00A0" else it.toString() }.joinToString("\u2060")
+internal fun unbreakableNote(text: String): String = buildString {
+    // 名前の並び (`咲耶・摩美々・…`) は「・」の後ろでだけ折り返せるようにする (名前の途中で割らない)。
+    text.forEachIndexed { i, ch ->
+        if (i > 0 && !endsWith('・')) append('\u2060')
+        append(if (ch == ' ') '\u00A0' else ch)
+    }
+}
 
 /**
  * 1 つの軸の値を 1 本の文字に連結する。折り返すのは値と値の間だけ ([unbreakableNote])。

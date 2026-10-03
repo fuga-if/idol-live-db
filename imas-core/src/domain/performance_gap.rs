@@ -175,6 +175,8 @@ pub struct OriginalSingers {
     pub original_count: usize,
     /// この披露で歌った原唱者 (原唱者の並び順)。歌った原唱者がいなければ空。
     pub sung: Vec<OriginalSingerOrdinal>,
+    /// 原唱者全員の短い名 (原唱者の並び順。この披露で歌ったかを問わない)。
+    pub original_names: Vec<String>,
     /// この披露で歌った、原唱者でない人の数。いれば「誰がオリメンか」は顔ぶれから読めない。
     pub others_count: usize,
     /// 原唱者でない歌唱者のうち、この披露で**初めてその曲を歌った人**の短い名 (歌唱者の並び順)。
@@ -249,6 +251,7 @@ pub fn original_singers(snap: &Snapshot, item: u32) -> OriginalSingers {
     let others: Vec<&RowSinger> = singers.iter().filter(|s| !s.is_original).collect();
     OriginalSingers {
         original_count: originals.len(),
+        original_names: originals.iter().map(|&idol| name(idol)).collect(),
         sung,
         others_count: others.len(),
         first_time_others: others.iter().filter(|s| s.ordinal <= 1).map(|s| name(s.idol)).collect(),

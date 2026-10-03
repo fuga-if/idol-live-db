@@ -215,6 +215,47 @@ pub fn setlist_public_note_groups(
     groups
 }
 
+/// 「原唱」の軸: **本来のオリメンは誰か** (この行で歌ったかを問わない)。
+///
+/// ```text
+/// 原唱   春香・千早・美希
+/// 歌唱   翼・静香 初歌唱
+/// ```
+///
+/// `オリメン不在` / `オリメン 1/3` の札は数しか言わず、「歌唱」の段は歌った人しか言わないので、
+/// **オリメンが欠けている行** (歌った原唱者が原唱者より少ない) だけに、原唱者全員の名前を出す。
+/// 全員揃っている行は「歌唱」の段と札で足りるので出さない。
+///
+/// 全体曲のように原唱者が [`ORIGINALS_NAMED_MAX`] 人を超える曲は、名前を並べても読めないので出さない
+/// (その曲の原唱はブランドの全員で、欠けているのは当たり前)。
+pub fn setlist_original_note_group(singers: &OriginalSingers) -> Option<SetlistRowNoteGroupRecord> {
+    let names = &singers.original_names;
+    if names.is_empty() || singers.sung.len() >= names.len() || names.len() > ORIGINALS_NAMED_MAX {
+        return None;
+    }
+    let mut notes = vec![SetlistRowNoteRecord::new(&names.join("・"), RowNoteTone::Value)];
+    // 一部だけ歌った行は、誰が歌っていないかを補足で言う (札の「オリメン 4/5」の 1 人が誰か)。
+    // 誰も歌っていない行は札 (`オリメン不在`) が言うので繰り返さない。
+    if !singers.sung.is_empty() {
+        let missing: Vec<&str> = names
+            .iter()
+            .filter(|n| !singers.sung.iter().any(|s| &s.name == *n))
+            .map(String::as_str)
+            .collect();
+        notes.push(SetlistRowNoteRecord::new(
+            &format!("{ABSENT_ORIGINALS} {}", missing.join("・")),
+            RowNoteTone::Detail,
+        ));
+    }
+    Some(SetlistRowNoteGroupRecord { label: ORIGINAL_AXIS.to_string(), notes, opens_performers: false })
+}
+
+/// 「原唱」の段で、この行で歌っていないオリメンの前に置く言葉 (札の `オリメン不在` と同じ「不在」)。
+pub const ABSENT_ORIGINALS: &str = "不在";
+
+/// 「原唱」の段で名前を並べる上限 (ユニット曲の人数まで)。これを超える曲 (全体曲) は段ごと出さない。
+pub const ORIGINALS_NAMED_MAX: usize = 6;
+
 /// 「歌唱」の軸: **誰がオリメンか**、オリメンにとって何回目か、**誰が初めて歌ったか**。
 ///
 /// ```text
@@ -439,6 +480,8 @@ fn collection_notes(is_real_live: bool, mine: &CollectionGap) -> Vec<SetlistRowN
 pub const PERFORMANCE_AXIS: &str = "披露";
 pub const COLLECTION_AXIS: &str = "回収";
 pub const SINGER_AXIS: &str = "歌唱";
+/// 本来のオリメン (原唱者) の段。
+pub const ORIGINAL_AXIS: &str = "原唱";
 
 /// 「歌唱」の軸の主語。原唱者全員が揃って同じ回数のとき。
 pub const ALL_ORIGINALS: &str = "オリメン";
@@ -632,6 +675,7 @@ mod setlist_row_note_tests {
                 .collect(),
             others_count: 0,
             first_time_others: Vec::new(),
+            original_names: (0..original_count).map(|i| format!("o{i}")).collect(),
         }
     }
 
@@ -728,6 +772,31 @@ mod setlist_row_note_tests {
         );
         let first = with_others(singers(5, &[]), 2, &["翼", "静香"]);
         assert_eq!(singer_axis(1, &first), None, "初披露の曲では言わない");
+    }
+
+    /// 原唱の段: オリメンが欠けている行だけ、原唱者全員の名前。揃っている行と全体曲は出さない。
+    #[test]
+    fn 欠けている行だけ本来のオリメンを出す() {
+        let named = |n: usize, sung: &[(&str, u32)]| {
+            let mut s = singers(n, sung);
+            s.original_names = ["春香", "千早", "美希", "雪歩", "やよい", "真", "伊織"][..n]
+                .iter()
+                .map(|x| x.to_string())
+                .collect();
+            setlist_original_note_group(&s).map(|g| {
+                assert_eq!(g.label, "原唱");
+                g.notes.iter().map(|n| n.text.clone()).collect::<Vec<_>>()
+            })
+        };
+        assert_eq!(named(3, &[]), Some(vec!["春香・千早・美希".to_string()]), "カバー");
+        assert_eq!(
+            named(3, &[("千早", 4)]),
+            Some(vec!["春香・千早・美希".to_string(), "不在 春香・美希".to_string()]),
+            "一部なら歌っていない人を補足で"
+        );
+        assert_eq!(named(1, &[]), Some(vec!["春香".to_string()]), "ソロ曲のカバー");
+        assert_eq!(named(2, &[("春香", 4), ("千早", 4)]), None, "揃っている");
+        assert_eq!(named(7, &[("春香", 4)]), None, "全体曲は並べない");
     }
 
     /// 歌唱者の一覧の札: オリメンと初歌唱。初披露の曲では初歌唱を付けない。

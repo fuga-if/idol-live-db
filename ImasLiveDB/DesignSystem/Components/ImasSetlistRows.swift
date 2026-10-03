@@ -217,9 +217,15 @@ struct ImasSetlistRow: View {
 
     /// 値 1 つを途中で折り返さない文字列にする。空白は改行しない空白に、字と字の間は
     /// 単語結合子で繋ぐ (日本語は字の間でも折り返せるため、空白だけでは足りない)。
-    /// 1 行に収まらない長さのときは、OS がそれでも折り返す。
+    /// 名前の並び (`咲耶・摩美々・…`) は「・」の後ろでだけ折り返せるようにする (名前の途中で割らない)。
+    /// それでも 1 行に収まらない長さのときは、OS が折り返す。
     static func unbreakable(_ text: String) -> String {
-        text.map { $0 == " " ? "\u{00A0}" : String($0) }.joined(separator: "\u{2060}")
+        var out = ""
+        for (i, ch) in text.enumerated() {
+            if i > 0, !out.hasSuffix("・") { out += "\u{2060}" }
+            out += ch == " " ? "\u{00A0}" : String(ch)
+        }
+        return out
     }
 
     /// 事実 1 つの見え方。**判断はしない** — core が付けた `tone` に対応表を当てるだけ。
