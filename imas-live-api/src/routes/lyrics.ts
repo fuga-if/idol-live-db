@@ -414,6 +414,8 @@ export interface LyricLineRow {
   calls?: LyricCall[];
   /** 被せの指定 ("overlay" / "main")。無ければアプリが括弧で決める。PUT /songs/:id/timings が書く。 */
   layer?: "overlay" | "main";
+  /** パート分け: この行を歌うアイドルの id。PUT /songs/:id/parts が書く。 */
+  singers?: string[];
 }
 
 /**
@@ -468,6 +470,8 @@ export function buildLyricsPayload(
       likeCount: likes[l.id] ?? 0,
       // 被せの指定。無ければ null (アプリが括弧で決める)。
       layer: l.layer ?? null,
+      // パート分け (この行を歌うアイドルの id)。無ければ空。
+      singers: l.singers ?? [],
     })),
   };
 }
@@ -966,6 +970,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
         start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
         ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
+        ...(existing[i]?.singers?.length ? { singers: existing[i]!.singers } : {}),
         clap: annotation.clap,
         calls: annotation.calls,
       };

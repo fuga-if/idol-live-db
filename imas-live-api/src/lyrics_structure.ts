@@ -100,6 +100,8 @@ export function applyStructureOp(
     const second: LyricLineRow = {
       id: newId(), ord: 0, kind: "lyric", text: tail, section: line.section,
       start_ms: null, clap: null, calls: tailCalls,
+      // パートは切り離した後ろの行も同じ人が歌う (1 行を割っただけなので)。
+      ...(line.singers?.length ? { singers: [...line.singers] } : {}),
     };
     next = [...lines.slice(0, i), first, second, ...lines.slice(i + 1)];
   }
