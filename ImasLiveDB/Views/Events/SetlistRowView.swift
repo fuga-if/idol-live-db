@@ -29,6 +29,9 @@ struct SetlistRowView: View {
     /// 歌唱者 1 人ずつの札 (`オリメン` / `初歌唱`)。歌唱者の一覧シートで名前の下に出す。
     /// 付けるか・言葉はコア (`SetlistRowMetaRecord.performerNotes`)。
     var performerNotes: [SetlistPerformerNoteRecord] = []
+    /// この行で歌っていないオリメンと、その見出し。歌唱者の一覧シートの下に並べる (コアが決める)。
+    var absentOriginals: [SetlistAbsentOriginalRecord] = []
+    var absentHeading: String = ""
     /// 担当アイドル ID。 performer に含まれていれば担当認知 (アバターの二重輪) に委ねる。
     var myPickIdolIds: Set<String> = []
     /// 公演 ID (post-vote like で使う)。
@@ -258,7 +261,9 @@ struct SetlistRowView: View {
                 songTitle: item.songTitle,
                 performers: sheetPerformers,
                 notesByIdolId: Dictionary(performerNotes.map { ($0.idolId, $0.notes) },
-                                          uniquingKeysWith: { first, _ in first })
+                                          uniquingKeysWith: { first, _ in first }),
+                absentOriginals: absentOriginals,
+                absentHeading: absentHeading
             ) { dest in
                 showPerformersSheet = false
                 go(dest)

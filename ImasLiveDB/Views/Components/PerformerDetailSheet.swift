@@ -15,6 +15,10 @@ struct PerformerDetailSheet: View {
     /// idol_id → その人の札 (`オリメン` / `初歌唱`)。付けるか・言葉・強さは imas-core
     /// (`SetlistRowMetaRecord.performerNotes`)。札の無い人は入っていない。
     var notesByIdolId: [String: [SetlistRowNoteRecord]] = [:]
+    /// この行で歌っていないオリメン。一覧の下に `absentHeading` の見出しで並べる (行には書かない)。
+    /// 出すか・誰か・見出しの言葉は imas-core (`SetlistRowMetaRecord.absentOriginals`)。
+    var absentOriginals: [SetlistAbsentOriginalRecord] = []
+    var absentHeading: String = ""
     let navigate: (DetailDestination) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -26,6 +30,9 @@ struct PerformerDetailSheet: View {
                 header
                 ImasCardList(performers, style: .sheet) { performer in
                     row(performer)
+                }
+                if !absentOriginals.isEmpty {
+                    absentSection
                 }
             }
             .navigationTitle("歌唱者")
@@ -44,6 +51,34 @@ struct PerformerDetailSheet: View {
             Text(songTitle)
                 .imasText(.sectionTitle)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// 歌っていないオリメン。歌唱者と同じ紙に並べ、見出しで分ける。
+    private var absentSection: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            Text(absentHeading).imasText(.sectionLabel)
+            ImasCardList(absentOriginals, id: \.idolId, style: .sheet) { original in
+                Button {
+                    AppAnalytics.tap("performer_detail.select_absent_original")
+                    Task {
+                        // 一覧の行は id と名前しか持たないので、押してからアイドルを引く。
+                        if let idol = try? await AppContainer.shared.idolReading.idol(id: original.idolId) {
+                            navigate(.idol(idol))
+                        }
+                    }
+                } label: {
+                    ImasRow(
+                        title: original.name,
+                        leading: .avatar(label: original.shortName, seed: original.color,
+                                        imageURL: imageService.imageURL(for: original.idolId)),
+                        trailing: .chevron,
+                        density: .compact,
+                        titleLineLimit: 1
+                    )
+                }
+                .buttonStyle(.imasRow)
+            }
         }
     }
 

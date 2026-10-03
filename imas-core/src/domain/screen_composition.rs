@@ -215,7 +215,8 @@ pub fn setlist_public_note_groups(
     groups
 }
 
-/// 「原唱」の軸: **本来のオリメンは誰か** (この行で歌ったかを問わない)。
+/// 「原唱」の軸: **本来のオリメンは誰か** (この行で歌ったかを問わない)。押すと歌唱者の一覧を開き、
+/// その下に歌っていないオリメンが並ぶ ([`SetlistRowMetaRecord::absent_originals`])。
 ///
 /// ```text
 /// 原唱   春香・千早・美希
@@ -233,25 +234,16 @@ pub fn setlist_original_note_group(singers: &OriginalSingers) -> Option<SetlistR
     if names.is_empty() || singers.sung.len() >= names.len() || names.len() > ORIGINALS_NAMED_MAX {
         return None;
     }
-    let mut notes = vec![SetlistRowNoteRecord::new(&names.join("・"), RowNoteTone::Value)];
-    // 一部だけ歌った行は、誰が歌っていないかを補足で言う (札の「オリメン 4/5」の 1 人が誰か)。
-    // 誰も歌っていない行は札 (`オリメン不在`) が言うので繰り返さない。
-    if !singers.sung.is_empty() {
-        let missing: Vec<&str> = names
-            .iter()
-            .filter(|n| !singers.sung.iter().any(|s| &s.name == *n))
-            .map(String::as_str)
-            .collect();
-        notes.push(SetlistRowNoteRecord::new(
-            &format!("{ABSENT_ORIGINALS} {}", missing.join("・")),
-            RowNoteTone::Detail,
-        ));
-    }
-    Some(SetlistRowNoteGroupRecord { label: ORIGINAL_AXIS.to_string(), notes, opens_performers: false })
+    // 誰が歌っていないかは行に書かず、押して開く歌唱者の一覧で見せる (一覧の下に「歌っていないオリメン」)。
+    Some(SetlistRowNoteGroupRecord {
+        label: ORIGINAL_AXIS.to_string(),
+        notes: vec![SetlistRowNoteRecord::new(&names.join("・"), RowNoteTone::Value)],
+        opens_performers: true,
+    })
 }
 
-/// 「原唱」の段で、この行で歌っていないオリメンの前に置く言葉 (札の `オリメン不在` と同じ「不在」)。
-pub const ABSENT_ORIGINALS: &str = "不在";
+/// 歌唱者の一覧の下に並べる「この行で歌っていないオリメン」の見出し。
+pub const ABSENT_ORIGINALS_HEADING: &str = "歌っていないオリメン";
 
 /// 「原唱」の段で名前を並べる上限 (ユニット曲の人数まで)。これを超える曲 (全体曲) は段ごと出さない。
 pub const ORIGINALS_NAMED_MAX: usize = 6;
@@ -525,7 +517,7 @@ pub struct SetlistRowNoteGroupRecord {
     pub label: String,
     pub notes: Vec<SetlistRowNoteRecord>,
     /// 押すと歌唱者の一覧 (1 人ずつのオリメン・初歌唱の札つき) を開く段か。
-    /// `歌唱` の段だけ (「13 人 初歌唱」の 13 人が誰かを一覧で見せる)。
+    /// `歌唱` (「13 人 初歌唱」の 13 人が誰か) と `原唱` (誰が歌っていないか) の段。
     pub opens_performers: bool,
 }
 
@@ -791,8 +783,8 @@ mod setlist_row_note_tests {
         assert_eq!(named(3, &[]), Some(vec!["春香・千早・美希".to_string()]), "カバー");
         assert_eq!(
             named(3, &[("千早", 4)]),
-            Some(vec!["春香・千早・美希".to_string(), "不在 春香・美希".to_string()]),
-            "一部なら歌っていない人を補足で"
+            Some(vec!["春香・千早・美希".to_string()]),
+            "一部でも名前だけ (歌っていない人は一覧で見せる)"
         );
         assert_eq!(named(1, &[]), Some(vec!["春香".to_string()]), "ソロ曲のカバー");
         assert_eq!(named(2, &[("春香", 4), ("千早", 4)]), None, "揃っている");

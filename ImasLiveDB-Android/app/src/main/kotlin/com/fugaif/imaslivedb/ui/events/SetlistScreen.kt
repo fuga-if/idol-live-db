@@ -125,6 +125,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import uniffi.imas_core.PerformerNameMode
 import uniffi.imas_core.RowNoteTone
 import uniffi.imas_core.Lineup
+import uniffi.imas_core.SetlistAbsentOriginalRecord
 import uniffi.imas_core.SetlistLineupNote
 import uniffi.imas_core.SetlistPerformerNoteRecord
 import uniffi.imas_core.SetlistRowNoteGroupRecord
@@ -564,6 +565,8 @@ private fun LazyListScope.setlistTabContent(
                             isFullCast = meta?.isFullCast == true,
                             lineup = meta?.lineup,
                             performerNotes = meta?.performerNotes.orEmpty(),
+                            absentOriginals = meta?.absentOriginals.orEmpty(),
+                            absentHeading = meta?.absentOriginalsHeading.orEmpty(),
                             noteGroups = meta?.noteGroups.orEmpty(),
                             performerName = performerName,
                             isCharacterLive = isCharacterLive,
@@ -998,6 +1001,9 @@ private fun SetlistItemRow(
      * 付けるか・言葉は共有コア (`SetlistRowMetaRecord.performerNotes`)。
      */
     performerNotes: List<SetlistPerformerNoteRecord> = emptyList(),
+    /** この行で歌っていないオリメンと見出し。歌唱者の一覧シートの下に並べる (共有コアが決める)。 */
+    absentOriginals: List<SetlistAbsentOriginalRecord> = emptyList(),
+    absentHeading: String = "",
     /**
      * この披露についての事実を、軸 (`披露` / `回収`) ごとにまとめたもの。
      * **軸の分け方も、ラベルも、順も、どれを強く見せるか (`tone`) も共有コアが決める**
@@ -1161,6 +1167,8 @@ private fun SetlistItemRow(
             // 札のある人をコアの順 (初歌唱 → オリメン) で頭に寄せ、札の無い人は元の並びで続ける
             // (「13 人 初歌唱」を押して開いたとき、その 13 人が先頭に来る。iOS `sheetPerformers`)。
             noteOrder = performerNotes.mapIndexed { i, n -> n.idolId to i }.toMap(),
+            absentOriginals = absentOriginals,
+            absentHeading = absentHeading,
             performerName = performerName,
             isCharacterLive = isCharacterLive,
             onSelectIdol = { idolId ->
@@ -1186,6 +1194,9 @@ private fun PerformerListSheet(
     notesByIdolId: Map<String, List<SetlistRowNoteRecord>>,
     /** idol_id → 一覧で先に出す順。入っていない人は元の並びで後ろ。 */
     noteOrder: Map<String, Int>,
+    /** この行で歌っていないオリメン。一覧の下に [absentHeading] の見出しで並べる (行には書かない)。 */
+    absentOriginals: List<SetlistAbsentOriginalRecord>,
+    absentHeading: String,
     performerName: PerformerNameMode,
     isCharacterLive: Boolean,
     onSelectIdol: (String) -> Unit,
@@ -1229,6 +1240,24 @@ private fun PerformerListSheet(
                     },
                     detail = if (notes.isNotEmpty()) ({ ImasNoteBadges(notes) }) else null
                 )
+            }
+            // 歌っていないオリメン。歌唱者と同じ紙に並べ、見出しで分ける (iOS `absentSection`)。
+            if (absentOriginals.isNotEmpty()) {
+                ImasText(absentHeading, role = ImasTextRole.SECTION_LABEL)
+                ImasCardList(items = absentOriginals, key = { it.idolId }, style = ImasCardListStyle.SHEET) { original ->
+                    ImasRow(
+                        title = original.name,
+                        leading = ImasRowLeading.Avatar(
+                            label = original.shortName,
+                            seed = original.color,
+                            entityId = original.idolId
+                        ),
+                        trailing = ImasRowTrailing.Chevron,
+                        density = ImasRowDensity.COMPACT,
+                        titleLineLimit = 1,
+                        modifier = Modifier.imasRowPress { onSelectIdol(original.idolId) }
+                    )
+                }
             }
         }
     }

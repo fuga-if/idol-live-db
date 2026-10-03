@@ -27,7 +27,7 @@ use crate::domain::performance_gap::{
 };
 use crate::domain::performer_label::{setlist_performer_label, SetlistNaming};
 use crate::domain::screen_composition::{
-    setlist_original_note_group, setlist_performer_notes, setlist_public_note_groups, setlist_row_note_groups,
+    setlist_original_note_group, setlist_performer_notes, ABSENT_ORIGINALS_HEADING, ORIGINAL_AXIS, setlist_public_note_groups, setlist_row_note_groups,
     SetlistDisplayMode, SetlistPerformerNoteRecord, SetlistRowNoteGroupRecord,
 };
 use crate::domain::setlist_lineup::{row_lineup, RowLineup, SetlistLineupNote};
@@ -83,6 +83,22 @@ pub struct SetlistRowMetaRecord {
     /// **並びは一覧で先に出す順** — 初歌唱の人 → オリメン (それぞれ歌唱者の並び順)。
     /// 一覧はこの順で頭に寄せ、札の無い人を元の順で後ろに続ける。
     pub performer_notes: Vec<SetlistPerformerNoteRecord>,
+    /// この行で歌っていないオリメン (原唱者の並び順)。歌唱者の一覧の下に
+    /// `absent_originals_heading` の見出しで並べる。「原唱」の段を出す行 (オリメンが欠けていて、
+    /// 原唱者が [`crate::domain::screen_composition::ORIGINALS_NAMED_MAX`] 人まで) だけ入る。
+    pub absent_originals: Vec<SetlistAbsentOriginalRecord>,
+    /// `absent_originals` の見出し (`歌っていないオリメン`)。
+    pub absent_originals_heading: String,
+}
+
+/// この行で歌っていないオリメン 1 人。歌唱者の一覧の行に要るものだけ (押すとアイドル詳細へ)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SetlistAbsentOriginalRecord {
+    pub idol_id: String,
+    pub name: String,
+    /// 判子に入れる略称。
+    pub short_name: String,
+    pub color: Option<String>,
 }
 
 /// 公演 1 つぶんの添え物ひとまとめ。
@@ -213,6 +229,23 @@ pub fn setlist_row_meta(
             } else {
                 Vec::new()
             };
+            // 「原唱」の段を出す行だけ、歌っていないオリメンを一覧の下に並べる (行には書かない)。
+            let absent_originals: Vec<SetlistAbsentOriginalRecord> = if performance
+                && public.iter().any(|g| g.label == ORIGINAL_AXIS)
+            {
+                snap.song_artists(&song.id, Some("original"))
+                    .into_iter()
+                    .filter(|idol| !performer_ids.contains(idol.id.as_str()))
+                    .map(|idol| SetlistAbsentOriginalRecord {
+                        idol_id: idol.id.clone(),
+                        name: idol.name.clone(),
+                        short_name: idol.short_name().to_string(),
+                        color: idol.color.clone(),
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            };
             let performer_notes = if performance {
                 row_singers(snap, item)
                     .into_iter()
@@ -253,6 +286,8 @@ pub fn setlist_row_meta(
                 starts_section: section.starts,
                 lineup,
                 performer_notes,
+                absent_originals,
+                absent_originals_heading: ABSENT_ORIGINALS_HEADING.to_string(),
             }
         })
         .collect();
@@ -354,7 +389,10 @@ mod tests {
             .collect();
         assert_eq!(axes[0], ("披露", vec!["6 回目", "3 か月ぶり"]));
         // オリメン 5 人のうち 2 人しか歌っていないので、本来のオリメンを「原唱」の段で全員出す。
-        assert_eq!(axes[1], ("原唱", vec!["比奈・雫・友紀・フレデリカ・愛海", "不在 比奈・雫・フレデリカ"]));
+        assert_eq!(axes[1], ("原唱", vec!["比奈・雫・友紀・フレデリカ・愛海"]));
+        // 歌っていない 3 人は行に書かず、一覧の下に並べる。
+        assert_eq!(meta.absent_originals.iter().map(|a| a.short_name.as_str()).collect::<Vec<_>>(), vec!["比奈", "雫", "フレデリカ"]);
+        assert_eq!(meta.absent_originals_heading, "歌っていないオリメン");
         assert_eq!(axes[2], ("歌唱", vec!["オリメン 友紀・愛海 3 回目"]));
     }
 
@@ -374,7 +412,12 @@ mod tests {
             .expect("人数で言う初歌唱の行");
         let singer = row.note_groups.iter().find(|g| g.label == "歌唱").unwrap();
         assert!(singer.opens_performers, "歌唱の段は押せる");
-        assert!(row.note_groups.iter().filter(|g| g.label != "歌唱").all(|g| !g.opens_performers));
+        // 押して一覧を開くのは歌唱と原唱の段だけ (披露・回収は押せない)。
+        assert!(row
+            .note_groups
+            .iter()
+            .filter(|g| g.label != "歌唱" && g.label != "原唱")
+            .all(|g| !g.opens_performers));
         let debut = |p: &SetlistPerformerNoteRecord| p.notes.iter().any(|n| n.tone == RowNoteTone::Debut);
         let firsts = row.performer_notes.iter().take_while(|p| debut(p)).count();
         assert_eq!(firsts, count, "初歌唱の人が先頭に、段の人数と同じだけ");
