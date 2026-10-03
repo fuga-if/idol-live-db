@@ -25,6 +25,39 @@ struct LyricsPlayback {
     var scrollTo: (String) -> Void = { _ in }
 }
 
+extension LyricsPlayback {
+    /// Apple Music (`MusicKitService`) で鳴らす繋ぎ。歌詞タブと再生中バーで同じものを使う。
+    ///
+    /// - Parameter startFull: この曲のフル再生を始める。始められなければ false。
+    @MainActor
+    static func appleMusic(songId: String,
+                           startFull: @escaping () async -> Bool,
+                           scrollTo: @escaping (String) -> Void = { _ in }) -> LyricsPlayback {
+        let player = MusicKitService.shared
+        return LyricsPlayback(
+            isFullLoaded: player.isFullPlayback && player.nowPlayingSongId == songId,
+            isPlaying: player.isPlayingFull(songId: songId),
+            positionMs: { player.nowPlayingSongId == songId ? player.fullPlaybackPositionMs : nil },
+            startFull: startFull,
+            durationMs: { player.nowPlayingSongId == songId ? player.fullPlaybackDurationMs : nil },
+            seek: { player.seekFull(toMs: $0) },
+            playFrom: { ms in
+                let loaded = player.isFullPlayback && player.nowPlayingSongId == songId
+                if !loaded {
+                    guard await startFull() else { return }
+                } else if !player.isPlaying {
+                    player.resume()
+                }
+                player.seekFull(toMs: ms)
+            },
+            togglePlay: {
+                if player.isPlaying { player.pause() } else { player.resume() }
+            },
+            scrollTo: scrollTo
+        )
+    }
+}
+
 /// 歌詞行の「ここ好き」の付け外し。歌詞タブと歌詞プレイヤーで同じ動きにするための 1 か所。
 ///
 /// 自分の印は端末に行 ID だけ残し (本文は残さない)、ログインしていればみんなの人数にも足す。

@@ -98,6 +98,15 @@ struct SongLyricsTab: View {
         }
         .padding(.top, DS.sp4)
         .padding(.horizontal, DS.sp5)
+        // フル再生中の曲なら、再生中バーから今の行・歌詞プレイヤーを出せるよう預ける (メモリだけ)。
+        .task(id: SessionKey(playback: MusicKitService.shared.playbackKey, lyrics: vm.lyrics,
+                             artists: vm.originalArtists.map(\.id))) {
+            guard let lyrics = vm.lyrics else { return }
+            LyricsSession.shared.register(.init(
+                song: song, seed: seed, artistLine: vm.artistLine(for: song),
+                artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
+                lyrics: lyrics, cast: partCast))
+        }
         .sheet(item: $callRequest) { request in
             CallEditorSheet(
                 request: request,
@@ -139,7 +148,8 @@ struct SongLyricsTab: View {
                                  onEditTimings: {
                                      showsPlayer = false
                                      Task { await beginRecording(lyrics) }
-                                 })
+                                 },
+                                 cast: partCast)
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
@@ -304,7 +314,7 @@ struct SongLyricsTab: View {
                 CallGuideClapGlyph(clap: line.clap)
                     .padding(.top, 4)
                 if !line.singers.isEmpty {
-                    ImasPartStripe(colors: partColors(line.singers))
+                    ImasPartStripe(colors: partCast.colors(line.singers))
                 }
                 VStack(alignment: .leading, spacing: 0) {
                     // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
@@ -314,7 +324,7 @@ struct SongLyricsTab: View {
                         .lineSpacing(5)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    ImasPartNames(names: partNames(line.singers))
+                    ImasPartNames(names: partCast.names(line.singers))
                     if !line.calls.isEmpty {
                         CallGuideCallRows(calls: line.calls, anchorIndexes: anchorIndexes(for: line))
                     }
@@ -681,20 +691,17 @@ struct SongLyricsTab: View {
         recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
     }
 
+    /// 再生中バーへ預け直す契機 (再生状態・歌詞・原唱者のどれかが変わったとき)。
+    private struct SessionKey: Equatable {
+        let playback: String
+        let lyrics: Lyrics?
+        let artists: [String]
+    }
+
     // MARK: - パート分け (誰が歌うか)
 
-    /// 原唱者を id で引く (帯の色・名前に使う)。原唱者にいない id は出さない。
-    private var artistsById: [String: Idol] {
-        Dictionary(vm.originalArtists.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-    }
-
-    private func partColors(_ ids: [String]) -> [String] {
-        ids.compactMap { artistsById[$0]?.color }
-    }
-
-    private func partNames(_ ids: [String]) -> [String] {
-        ids.compactMap { artistsById[$0]?.shortName }
-    }
+    /// 帯の色・名前を原唱者から引く表。
+    private var partCast: LyricPartCast { LyricPartCast(artists: vm.originalArtists) }
 
     private func currentParts(_ lyrics: Lyrics) -> [String: [String]] {
         Dictionary(lyrics.lines.filter { !$0.singers.isEmpty }.map { ($0.id, $0.singers) },
@@ -738,14 +745,14 @@ struct SongLyricsTab: View {
                     togglePart(line.id)
                 } label: {
                     HStack(alignment: .top, spacing: DS.sp2) {
-                        ImasPartStripe(colors: partColors(singers))
+                        ImasPartStripe(colors: partCast.colors(singers))
                         VStack(alignment: .leading, spacing: DS.sp1) {
                             // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
                             Text(line.text)
                                 .imasText(.body)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            ImasPartNames(names: partNames(singers))
+                            ImasPartNames(names: partCast.names(singers))
                         }
                     }
                     .padding(.vertical, DS.sp2)
@@ -766,8 +773,7 @@ struct SongLyricsTab: View {
         guard let brush = partsBrush, var draft = partsDraft else { return }
         var singers = draft[lineId] ?? []
         if let i = singers.firstIndex(of: brush) { singers.remove(at: i) } else { singers.append(brush) }
-        let order = vm.originalArtists.map(\.id)
-        singers.sort { (order.firstIndex(of: $0) ?? .max) < (order.firstIndex(of: $1) ?? .max) }
+        singers = partCast.ordered(singers)
         draft[lineId] = singers.isEmpty ? nil : singers
         partsDraft = draft
     }

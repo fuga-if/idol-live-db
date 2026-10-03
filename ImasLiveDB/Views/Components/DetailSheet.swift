@@ -627,29 +627,9 @@ struct SongSheetContent: View {
 
     /// 歌詞タブとプレイヤーの繋ぎ。追従・記録はフル再生だけ (試聴は位置を突き合わせられない)。
     private var lyricsPlayback: SongLyricsTab.Playback {
-        let player = MusicKitService.shared
-        let songId = song.id
-        return SongLyricsTab.Playback(
-            isFullLoaded: player.isFullPlayback && player.nowPlayingSongId == songId,
-            isPlaying: player.isPlayingFull(songId: songId),
-            positionMs: { player.nowPlayingSongId == songId ? player.fullPlaybackPositionMs : nil },
-            startFull: { await startFullForLyrics() },
-            durationMs: { player.nowPlayingSongId == songId ? player.fullPlaybackDurationMs : nil },
-            seek: { player.seekFull(toMs: $0) },
-            playFrom: { ms in
-                let loaded = player.isFullPlayback && player.nowPlayingSongId == songId
-                if !loaded {
-                    guard await startFullForLyrics() else { return }
-                } else if !player.isPlaying {
-                    player.resume()
-                }
-                player.seekFull(toMs: ms)
-            },
-            togglePlay: {
-                if player.isPlaying { player.pause() } else { player.resume() }
-            },
-            scrollTo: { lyricsScrollTarget = $0 }
-        )
+        .appleMusic(songId: song.id,
+                    startFull: { await startFullForLyrics() },
+                    scrollTo: { lyricsScrollTarget = $0 })
     }
 
     /// タイミング記録のためにフル再生を始める。未契約・Apple Music に無い曲は false。

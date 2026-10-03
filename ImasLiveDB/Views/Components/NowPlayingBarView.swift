@@ -19,6 +19,8 @@ final class NowPlayingModel {
     /// 再生状態が変わったときに呼ぶ。`MusicKitService.playbackKey` を鍵にする。
     func refresh() async {
         let service = MusicKitService.shared
+        // フル再生でない (試聴・停止) なら歌詞は手放す。追従はフル再生だけ。
+        LyricsSession.shared.release(unlessSongId: service.isFullPlayback ? service.nowPlayingSongId : nil)
         guard let songId = service.nowPlayingSongId else {
             bar = nil
             song = nil
@@ -46,6 +48,12 @@ final class NowPlayingModel {
 struct NowPlayingBarView: View {
     private var model: NowPlayingModel { NowPlayingModel.shared }
     @State private var destination: DetailDestination?
+    @State private var showsLyricsPlayer = false
+    @State private var likeCounts: [String: Int] = [:]
+    /// 鳴っている曲の歌詞 (歌詞タブが預けたとき)。あれば今の行を出し、タップで歌詞プレイヤーを開く。
+    private var lyricsEntry: LyricsSession.Entry? {
+        LyricsSession.shared.entry(forSongId: model.bar?.songId)
+    }
 
     /// ジャケの一辺。Apple Music のミニプレイヤーとほぼ同じ大きさ。
     private static let artworkSize: CGFloat = 40
@@ -59,6 +67,24 @@ struct NowPlayingBarView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: model.bar?.songId)
         .sheet(item: $destination) { DetailSheetView(destination: $0) }
+        .fullScreenCover(isPresented: $showsLyricsPlayer) {
+            if let entry = lyricsEntry {
+                LyricsPlayerView(song: entry.song, seed: entry.seed, artistLine: entry.artistLine,
+                                 artworkURL: entry.artworkURL, lyrics: entry.lyrics,
+                                 playback: .appleMusic(songId: entry.song.id, startFull: {
+                                     // バーが出ている = もう読み込まれている。止まっていれば鳴らし直すだけ。
+                                     MusicKitService.shared.resume()
+                                     return MusicKitService.shared.nowPlayingSongId == entry.song.id
+                                 }),
+                                 likeCounts: $likeCounts,
+                                 onEditTimings: {
+                                     // 編集は曲の詳細の歌詞タブから (記録の画面はそちらが持つ)。
+                                     showsLyricsPlayer = false
+                                     destination = .song(entry.song)
+                                 },
+                                 cast: entry.cast)
+            }
+        }
     }
 
     private func barContent(_ bar: NowPlayingBar) -> some View {
@@ -82,7 +108,11 @@ struct NowPlayingBarView: View {
                         .font(.imasSubhead.weight(.medium))
                         .foregroundStyle(DS.ink)
                         .lineLimit(1)
-                    subtitleLine(bar)
+                    if let entry = lyricsEntry, lyricHasTiming(starts: entry.lyrics.lines.map { $0.startMs.map(Int64.init) }) {
+                        NowPlayingLyricLine(entry: entry) { subtitleLine(bar) }
+                    } else {
+                        subtitleLine(bar)
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -106,7 +136,14 @@ struct NowPlayingBarView: View {
         }
         .background(.bar)
         .contentShape(Rectangle())
-        .onTapGesture { destination = model.song.map(DetailDestination.song) }
+        .onTapGesture {
+            if lyricsEntry != nil {
+                AppAnalytics.tap("now_playing.open_lyrics_player")
+                showsLyricsPlayer = true
+            } else {
+                destination = model.song.map(DetailDestination.song)
+            }
+        }
         // 下に払うと曲を手放してバーごと消す。一時停止では消えないので、
         // 「もう聴かない」を伝える手段がこれしかない (Apple Music と同じ)。
         .gesture(
@@ -114,7 +151,7 @@ struct NowPlayingBarView: View {
                 .onEnded { if $0.translation.height > 24 { MusicKitService.shared.stop() } }
         )
         .accessibilityElement(children: .combine)
-        .accessibilityHint("曲の詳細を開く。下に払うと閉じる")
+        .accessibilityHint(lyricsEntry != nil ? "歌詞プレイヤーを開く。下に払うと閉じる" : "曲の詳細を開く。下に払うと閉じる")
         .accessibilityAction(named: "閉じる") { MusicKitService.shared.stop() }
     }
 
@@ -137,6 +174,46 @@ struct NowPlayingBarView: View {
             }
             .font(.imasCaption)
             .foregroundStyle(DS.ink3)
+        }
+    }
+}
+
+/// 再生中バーの 2 行目に出す、いま歌われている行 (と歌う人の帯)。
+///
+/// 位置は周期で読む (バーは画面に出続けるので、行の切り替わりより少し細かく)。
+/// 最初の行の前 (イントロ) は `fallback` (名義) を出す。
+///
+/// ⚠️ 歌詞の本文を出すので、選択・コピーの口を付けないこと。
+private struct NowPlayingLyricLine<Fallback: View>: View {
+    let entry: LyricsSession.Entry
+    @ViewBuilder let fallback: () -> Fallback
+
+    /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られない)。
+    private var mainStarts: [Int64?] {
+        entry.lyrics.lines.map { $0.isOverlay ? nil : $0.startMs.map(Int64.init) }
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.25)) { _ in
+            let line = MusicKitService.shared.fullPlaybackPositionMs.flatMap { ms in
+                lyricActiveLine(starts: mainStarts, positionMs: Int64(ms)).map { entry.lyrics.lines[Int($0)] }
+            }
+            if let line, line.kind == .lyric {
+                let split = lyricOverlaySplit(text: line.text)
+                HStack(spacing: DS.sp2) {
+                    if !line.singers.isEmpty {
+                        ImasPartStripe(colors: entry.cast.colors(line.singers)).frame(height: 14)
+                    }
+                    Text(split.main.isEmpty ? line.text : split.main)
+                        .imasText(.meta, color: DS.ink2)
+                        .lineLimit(1)
+                }
+                .id(line.id)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: line.id)
+            } else {
+                fallback()
+            }
         }
     }
 }

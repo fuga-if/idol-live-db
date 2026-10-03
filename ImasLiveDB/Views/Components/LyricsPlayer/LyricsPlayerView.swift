@@ -24,6 +24,8 @@ struct LyricsPlayerView: View {
     @Binding var likeCounts: [String: Int]
     /// タイミング編集を開く。
     let onEditTimings: () -> Void
+    /// パート分けの色・名前を引く表 (原唱者)。
+    var cast: LyricPartCast = .empty
 
     @State private var positionMs: Int?
     @State private var activeLineId: String?
@@ -124,24 +126,9 @@ struct LyricsPlayerView: View {
         case .blank:
             Color.clear.frame(height: DS.sp2)
         case .lyric, .marker:
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                if line.isOverlay {
-                    // 行まるごとの被せ。メインとは別に、自分の時刻で光る 2 段目。
-                    ImasPlayerOverlayLine(text: lyricOverlaySplit(text: line.text).overlay ?? line.text,
-                                          isCurrent: !hasTiming || line.id == activeOverlayId, seed: seed)
-                } else {
-                    // 行の中の括弧 (追いかけ) は本文から外して、すぐ下に 2 段目として重ねる。
-                    let split = lyricOverlaySplit(text: line.text)
-                    let isCurrent = !hasTiming || line.id == activeLineId
-                    ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
-                                        isMarker: line.kind == .marker, isLiked: isLiked, seed: seed)
-                    if let overlay = split.overlay, !split.main.isEmpty {
-                        ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
-                    }
-                }
-                if !line.calls.isEmpty {
-                    CallGuideCallRows(calls: line.calls, anchorIndexes: nil)
-                }
+            HStack(alignment: .top, spacing: DS.sp3) {
+                if !line.singers.isEmpty { ImasPartStripe(colors: cast.colors(line.singers)) }
+                rowBody(line, isLiked: isLiked)
             }
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { like(line) }
@@ -152,6 +139,29 @@ struct LyricsPlayerView: View {
                 Task { await playback.playFrom(start) }
             }
             .accessibilityAction(named: isLiked ? "ここ好きを外す" : "ここ好き") { like(line) }
+        }
+    }
+
+    private func rowBody(_ line: LyricLine, isLiked: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DS.sp1) {
+            if line.isOverlay {
+                // 行まるごとの被せ。メインとは別に、自分の時刻で光る 2 段目。
+                ImasPlayerOverlayLine(text: lyricOverlaySplit(text: line.text).overlay ?? line.text,
+                                      isCurrent: !hasTiming || line.id == activeOverlayId, seed: seed)
+            } else {
+                // 行の中の括弧 (追いかけ) は本文から外して、すぐ下に 2 段目として重ねる。
+                let split = lyricOverlaySplit(text: line.text)
+                let isCurrent = !hasTiming || line.id == activeLineId
+                ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
+                                    isMarker: line.kind == .marker, isLiked: isLiked, seed: seed)
+                if let overlay = split.overlay, !split.main.isEmpty {
+                    ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
+                }
+            }
+            ImasPartNames(names: cast.names(line.singers))
+            if !line.calls.isEmpty {
+                CallGuideCallRows(calls: line.calls, anchorIndexes: nil)
+            }
         }
     }
 
