@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay10
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -112,6 +114,8 @@ fun LyricsPlayerScreen(
     val loadedSongId by playback.loadedSongId.collectAsState()
     val isPlaying by playback.isPlaying.collectAsState()
     val appleMusic by playback.appleMusicState.collectAsState()
+    val hasQueue by playback.hasQueue.collectAsState()
+    val canSkipNext by playback.canSkipNext.collectAsState()
     val isFullLoaded = loadedSongId == song.id
 
     LaunchedEffect(song.id) {
@@ -229,6 +233,9 @@ fun LyricsPlayerScreen(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp8), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
+                if (hasQueue) {
+                    ImasIconButton(icon = Icons.Filled.SkipPrevious, label = "前の曲", onClick = { playback.skipPrevious() })
+                }
                 ImasIconButton(icon = Icons.Filled.Replay10, label = "10 秒戻す", onClick = { playback.seek(maxOf(0, (positionMs ?: 0) - 10_000)) })
                 ImasIconButton(
                     icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
@@ -240,6 +247,9 @@ fun LyricsPlayerScreen(
                     }
                 )
                 ImasIconButton(icon = Icons.Filled.Forward10, label = "10 秒進める", onClick = { playback.seek(minOf(durationMs, (positionMs ?: 0) + 10_000)) })
+                if (hasQueue) {
+                    ImasIconButton(icon = Icons.Filled.SkipNext, label = "次の曲", enabled = canSkipNext, onClick = { playback.skipNext() })
+                }
                 Spacer(Modifier.weight(1f))
             }
         }

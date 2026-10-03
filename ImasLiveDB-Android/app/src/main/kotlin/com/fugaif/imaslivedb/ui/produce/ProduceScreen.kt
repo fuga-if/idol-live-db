@@ -73,6 +73,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -104,6 +105,7 @@ fun ProduceScreen(
     onResumeQuiz: (GameKind) -> Unit,
     /** 「次のライブ」→ その公演のセトリ画面を予想タブで。 */
     onPredictSetlist: (String) -> Unit,
+    onNavigateToPlaylists: () -> Unit,
     viewModel: ProduceViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -190,7 +192,8 @@ fun ProduceScreen(
                 onVotesClick = onNavigateToMyVotes,
                 onCollectedClick = onNavigateToCollectedSongs,
                 onMasteryClick = onNavigateToMastery,
-                onLedgerClick = onNavigateToLedger
+                onLedgerClick = onNavigateToLedger,
+                onPlaylistsClick = onNavigateToPlaylists
             )
 
             RecentsSection(
@@ -378,7 +381,8 @@ private fun ActivitySection(
     onVotesClick: () -> Unit,
     onCollectedClick: () -> Unit,
     onMasteryClick: () -> Unit,
-    onLedgerClick: () -> Unit
+    onLedgerClick: () -> Unit,
+    onPlaylistsClick: () -> Unit
 ) {
     val tiles = listOf(
         ActivityTile(Icons.Filled.Mic, "${state.attendedCount}", "参加ライブ", onAttendedClick),
@@ -403,6 +407,13 @@ private fun ActivitySection(
                 )
             }
         }
+        ImasNavRow(
+            title = "プレイリスト",
+            subtitle = "曲を並べて Apple Music で続けて聴く",
+            icon = Icons.Filled.MusicNote,
+            seed = state.pickSeed,
+            onClick = onPlaylistsClick
+        )
     }
 }
 

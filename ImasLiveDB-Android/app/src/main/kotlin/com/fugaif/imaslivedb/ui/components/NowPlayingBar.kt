@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,15 +81,22 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
     // Apple Music のフル再生が読み込まれていれば、そちらを優先する (歌詞タブがそのとき
     // LyricsSession に預けていれば、今の行も出す)。試聴は 30 秒の切り出しで行の時刻と
     // 突き合わせられないので、フル再生とは別の経路のまま。
-    val lyricsPlayback = AppModule.from(context).lyricsPlayback
+    val module = AppModule.from(context)
+    val lyricsPlayback = module.lyricsPlayback
     val loadedSongId by lyricsPlayback.loadedSongId.collectAsState()
     val isFullPlaying by lyricsPlayback.isPlaying.collectAsState()
+    val hasQueue by lyricsPlayback.hasQueue.collectAsState()
+    val canSkipNext by lyricsPlayback.canSkipNext.collectAsState()
     val sessionEntry by LyricsSession.state.collectAsState()
     var showsLyricsPlayer by remember { mutableStateOf(false) }
     var likeCounts by remember { mutableStateOf(mapOf<String, Int>()) }
 
-    // 鳴っている曲が変わったら (止めたら) 歌詞を手放す。
-    LaunchedEffect(loadedSongId) { LyricsSession.release(unlessSongId = loadedSongId) }
+    // 鳴っている曲が変わったら (止めたら) 歌詞を手放す。曲送り・プレイリストで替わったときは
+    // 自分で取りに行く (歌詞タブを開いていなくてもバーが付いてくるように)。
+    LaunchedEffect(loadedSongId) {
+        LyricsSession.release(unlessSongId = loadedSongId)
+        LyricsSession.follow(loadedSongId, module.songRepository, module.lyricsApi)
+    }
 
     val fullEntry = loadedSongId?.let { id -> sessionEntry?.takeIf { it.song.id == id } }
 
@@ -113,12 +122,29 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
                         ))
                     }
                 }
+                if (hasQueue) {
+                    ImasIconButton(
+                        icon = Icons.Filled.SkipPrevious,
+                        label = "前の曲",
+                        style = ImasIconButtonStyle.PLAIN,
+                        onClick = { lyricsPlayback.skipPrevious() }
+                    )
+                }
                 ImasIconButton(
                     icon = if (isFullPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     label = if (isFullPlaying) "一時停止" else "再生",
                     style = ImasIconButtonStyle.PLAIN,
                     onClick = { lyricsPlayback.togglePlay() }
                 )
+                if (hasQueue) {
+                    ImasIconButton(
+                        icon = Icons.Filled.SkipNext,
+                        label = "次の曲",
+                        style = ImasIconButtonStyle.PLAIN,
+                        enabled = canSkipNext,
+                        onClick = { lyricsPlayback.skipNext() }
+                    )
+                }
             }
         }
         if (showsLyricsPlayer) {

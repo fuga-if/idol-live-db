@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
@@ -173,6 +174,7 @@ fun SongDetailScreen(
     var showNoteEdit by remember { mutableStateOf(false) }
     var showRecordHistory by remember { mutableStateOf(false) }
     var showVideoSheet by remember { mutableStateOf(false) }
+    var showAddToPlaylist by remember { mutableStateOf(false) }
     var editingVideo by remember { mutableStateOf<SongVideo?>(null) }
     // 曲そのものを編集した後は VM を素直に読み直す。ViewModel はこの画面の担当範囲外なので
     // 差分反映のための API を足さず、再読込のきっかけだけ画面側で持つ。
@@ -290,7 +292,8 @@ fun SongDetailScreen(
                 onPollClick = onPollClick,
                 onFilteredSongsClick = onFilteredSongsClick,
                 onEditNote = if (canEditHere) ({ startCommunityEdit { showNoteEdit = true } }) else null,
-                onLoadLyrics = viewModel::loadLyrics
+                onLoadLyrics = viewModel::loadLyrics,
+                onAddToPlaylist = { showAddToPlaylist = true }
             )
         }
     }
@@ -361,6 +364,15 @@ fun SongDetailScreen(
     if (showLoginPrompt) {
         CommunityLoginPromptDialog(onDismiss = { showLoginPrompt = false })
     }
+
+    if (showAddToPlaylist && editingSong != null) {
+        Dialog(onDismissRequest = { showAddToPlaylist = false }) {
+            com.fugaif.imaslivedb.ui.playlists.AddToPlaylistSheet(
+                song = editingSong,
+                onDismiss = { showAddToPlaylist = false }
+            )
+        }
+    }
 }
 
 private fun lyricsUrl(song: Song?): String {
@@ -406,7 +418,8 @@ private fun SongSheetContent(
     onPollClick: (String) -> Unit,
     onFilteredSongsClick: (String, String) -> Unit,
     onEditNote: (() -> Unit)?,
-    onLoadLyrics: () -> Unit
+    onLoadLyrics: () -> Unit,
+    onAddToPlaylist: () -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色 (brand は各部品に別途渡す)。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -420,7 +433,7 @@ private fun SongSheetContent(
 
     val scroll = rememberScrollState()
     Column(modifier = modifier.verticalScroll(scroll)) {
-        Hero(song, state, seed, onToggleFavorite, onToggleCardOwned)
+        Hero(song, state, seed, onToggleFavorite, onToggleCardOwned, onAddToPlaylist)
         ImasBoard(
             cells = boardCells(state),
             modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
@@ -488,7 +501,8 @@ private fun Hero(
     state: SongDetailUiState,
     seed: String?,
     onToggleFavorite: () -> Unit,
-    onToggleCardOwned: () -> Unit
+    onToggleCardOwned: () -> Unit,
+    onAddToPlaylist: () -> Unit
 ) {
     val artistLine = when {
         state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
@@ -555,6 +569,12 @@ private fun Hero(
             modifier = Modifier.weight(1f)
         )
         ImasMarkButton(kind = ImasMarkKind.FAVORITE, isOn = state.isFavorite, onClick = onToggleFavorite)
+        ImasIconButton(
+            icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+            label = "プレイリストに追加",
+            style = ImasIconButtonStyle.PLAIN,
+            onClick = onAddToPlaylist
+        )
         // KAMISABI (音楽カードゲーム) 収録曲のときだけ、カード所持のトグルを出す。
         // 未収録曲にトグルを出すと「持っていない」のか「そもそも対象外」なのか読み取れなくなる。
         if (song.hasKamisabiCard) {

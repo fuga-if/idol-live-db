@@ -76,6 +76,8 @@ import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
 import com.fugaif.imaslivedb.ui.polls.PollHallOfFameScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.ledger.LedgerScreen
+import com.fugaif.imaslivedb.ui.playlists.PlaylistDetailScreen
+import com.fugaif.imaslivedb.ui.playlists.PlaylistsScreen
 import com.fugaif.imaslivedb.ui.mastery.MasteryScreen
 import com.fugaif.imaslivedb.ui.produce.CollectedSongsScreen
 import com.fugaif.imaslivedb.ui.produce.ProduceScreen
@@ -318,7 +320,21 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToIntroDon = { navController.navigate(NavRoutes.IntroDonHome.route) },
             onNavigateToSetlistQuizSetup = { navController.navigate(NavRoutes.GamesSetlistQuizSetup.route) },
             onResumeQuiz = { navController.navigate(NavRoutes.GamesResume.createRoute(it)) },
-            onPredictSetlist = { navController.navigate(NavRoutes.Setlist.createRoute(it, predict = true)) }
+            onPredictSetlist = { navController.navigate(NavRoutes.Setlist.createRoute(it, predict = true)) },
+            onNavigateToPlaylists = { navController.navigate(NavRoutes.Playlists.route) }
+        )
+    }
+    composable(NavRoutes.Playlists.route) {
+        PlaylistsScreen(
+            onBack = { navController.popBackStack() },
+            onPlaylistClick = { navController.navigate(NavRoutes.PlaylistDetail.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.PlaylistDetail.ROUTE) { backStackEntry ->
+        val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
+        PlaylistDetailScreen(
+            playlistId = playlistId,
+            onBack = { navController.popBackStack() }
         )
     }
     composable(ROUTE_COLLECTED_SONGS) {
