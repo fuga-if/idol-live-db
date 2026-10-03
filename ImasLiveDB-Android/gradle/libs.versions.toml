@@ -4,12 +4,12 @@ browser = "1.8.0"
 # MusicKit for Android の認証 AAR が AppCompat のテーマを参照する (使わない画面だが資源の解決に要る)。
 appcompat = "1.7.0"
 # SDK
-compileSdk = "35"
+compileSdk = "36"
 minSdk = "26"
-targetSdk = "35"
+targetSdk = "36"
 
 # Build tools
-agp = "8.8.0"
+agp = "8.9.1"
 kotlin = "2.1.0"
 ksp = "2.1.0-1.0.29"
 
@@ -42,7 +42,7 @@ securityCrypto = "1.1.0-alpha06"
 jna = "5.17.0"
 
 # Room DAO を JVM ユニットテストから叩くための Android フレームワークシム
-robolectric = "4.14.1"
+robolectric = "4.16"
 
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
