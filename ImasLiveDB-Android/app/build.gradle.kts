@@ -43,6 +43,9 @@ ksp {
 android {
     namespace = "com.fugaif.imaslivedb"
     compileSdk = libs.versions.compileSdk.get().toInt()
+    // release のシンボル表 (debugSymbolLevel) を抜くのに使う NDK。AGP の既定版が入っていないと
+    // 抜き出しが黙って空になり、Play に「デバッグシンボルが無い」と言われる。
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         // 公開時の Play パッケージ ID = 所有ドメイン fugaapp.site の逆DNSで一本化。
@@ -50,7 +53,7 @@ android {
         applicationId = "site.fugaapp.imaslivedb"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 7
+        versionCode = 8
         versionName = "2.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -85,6 +88,8 @@ android {
                 "proguard-rules.pro"
             )
             if (hasReleaseSigning) signingConfig = signingConfigs.getByName("release")
+            // libimas_core.so のシンボル表を AAB に同梱し、Play の Vitals でネイティブのクラッシュを読めるようにする。
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
         }
         debug {
             isMinifyEnabled = false

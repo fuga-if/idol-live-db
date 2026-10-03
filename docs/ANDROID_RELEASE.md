@@ -26,6 +26,9 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
    ```
    Kotlin デーモンの既定ヒープ (2GB) だと R8 前の Compose コンパイルで OutOfMemory になることがある。
    出力は `app/build/outputs/bundle/release/app-release.aab`。`jarsigner -verify` で署名を確かめる。
+   ネイティブのシンボル表は `debugSymbolLevel = SYMBOL_TABLE` で AAB に同梱される
+   (`unzip -l` で `BUNDLE-METADATA/com.android.tools.build.debugsymbols/` があるか確かめる)。
+   `ndkVersion` の NDK が入っていないと黙って空になる。上げた後のバンドルにシンボルを API で足すことはできない (400)。
 5. リリースノートを書く。Play Console と同じ形で、1 言語 500 字まで (スクリプトが超過を弾く):
    ```
    <ja-JP>
