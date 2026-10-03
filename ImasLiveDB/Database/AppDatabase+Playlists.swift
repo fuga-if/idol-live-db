@@ -58,6 +58,32 @@ extension AppDatabase {
         }
     }
 
+    /// バックアップ用。プレイリストと曲の並びを全部。
+    func allPlaylistsForBackup() throws -> [(playlist: Playlist, songIds: [String])] {
+        try dbQueue.read { db in
+            try Playlist.fetchAll(db).map { ($0, try Self.songIds(db, playlistId: $0.id)) }
+        }
+    }
+
+    /// バックアップからの非破壊復元: ローカルに無い id のプレイリストだけ足す。
+    /// 既にある id は**触らない** (中身を混ぜたり並びを変えたりしない)。
+    @discardableResult
+    func restorePlaylistsIfAbsent(_ playlists: [(playlist: Playlist, songIds: [String])]) throws -> Int {
+        try dbQueue.write { db in
+            var inserted = 0
+            for (playlist, songIds) in playlists where try !playlist.exists(db) {
+                try playlist.insert(db)
+                for (position, songId) in songIds.enumerated() {
+                    try db.execute(
+                        sql: "INSERT OR IGNORE INTO playlist_items (playlist_id, song_id, position) VALUES (?, ?, ?)",
+                        arguments: [playlist.id, songId, position])
+                }
+                inserted += 1
+            }
+            return inserted
+        }
+    }
+
     private static func songIds(_ db: Database, playlistId: String) throws -> [String] {
         try String.fetchAll(db, sql: "SELECT song_id FROM playlist_items WHERE playlist_id = ? ORDER BY position",
                             arguments: [playlistId])

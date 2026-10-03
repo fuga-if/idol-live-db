@@ -935,6 +935,7 @@ struct MyPageView: View {
                 addedVotes: result.addedVotes,
                 addedPersonalTags: result.addedPersonalTags,
                 addedExpenses: result.addedExpenses,
+                addedPlaylists: result.addedPlaylists,
                 skippedMarks: result.skippedMarks,
                 deviceIdRestored: result.deviceIdRestored
             )

@@ -49,6 +49,7 @@ struct BackupImportResult {
     var addedVotes: Int
     var addedPersonalTags: Int
     var addedExpenses: Int
+    var addedPlaylists: Int
     var deviceIdRestored: Bool
     var skippedMarks: Int
 }
@@ -103,6 +104,12 @@ enum BackupExportImportService {
             )
         }
 
+        // プレイリストも端末にしか無い。曲は id の並びだけ運ぶ。
+        let playlists = try database.allPlaylistsForBackup().map {
+            BackupPlaylistRecord(id: $0.playlist.id, name: $0.playlist.name, createdAt: $0.playlist.createdAt,
+                                 updatedAt: $0.playlist.updatedAt, songIds: $0.songIds)
+        }
+
         // 時刻・アプリ版・端末 ID は OS からしか分からないので引数で渡す (共有コアは時刻を取らない)。
         let input = BackupExportInput(
             exportedAt: ISO8601DateFormatter().string(from: Date()),
@@ -112,7 +119,8 @@ enum BackupExportImportService {
             userMarks: marks,
             pollVotes: votes,
             personalTags: personalTags,
-            expenses: expenses
+            expenses: expenses,
+            playlists: playlists
         )
         // iOS の kind 表記 (UserMarkKind.rawValue) がそのまま JSON の canonical 表記。
         return buildBackupEnvelope(input: input, dialect: .canonical).envelopeJson
@@ -177,7 +185,8 @@ enum BackupExportImportService {
                 BackupPollVoteRecord(pollId: $0.pollId, entityIds: $0.entityIds)
             },
             // 収支は id (UUID) で重複を見る。同じ id を 2 回入れると帳簿の額が倍になる。
-            expenseIds: try database.allExpenseIds()
+            expenseIds: try database.allExpenseIds(),
+            playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id)
         )
 
         let plan: BackupImportPlan
@@ -227,6 +236,10 @@ enum BackupExportImportService {
         let addedVotes = LocalPollVoteLog.shared.mergeIfAbsent(votes)
         let addedPersonalTags = try database.restorePersonalTagsIfAbsent(personalTags)
         let addedExpenses = try database.restoreExpensesIfAbsent(expensesToInsert)
+        let addedPlaylists = try database.restorePlaylistsIfAbsent(plan.playlistsToInsert.map {
+            (playlist: Playlist(id: $0.id, name: $0.name, createdAt: $0.createdAt, updatedAt: $0.updatedAt),
+             songIds: $0.songIds)
+        })
 
         if plan.restoreDeviceId {
             DeviceIdentity.restore(plan.info.deviceId)
@@ -241,6 +254,7 @@ enum BackupExportImportService {
             addedVotes: addedVotes,
             addedPersonalTags: addedPersonalTags,
             addedExpenses: addedExpenses,
+            addedPlaylists: addedPlaylists,
             deviceIdRestored: plan.restoreDeviceId,
             skippedMarks: Int(plan.info.skippedEntries)
         )
