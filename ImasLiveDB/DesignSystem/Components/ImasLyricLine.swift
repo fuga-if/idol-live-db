@@ -384,3 +384,37 @@ struct ImasPlayerOverlayLine: View {
         .accessibilityLabel("被せ \(text)")
     }
 }
+
+// MARK: - パート分け (誰が歌うか)
+
+/// 行の頭に立てる歌唱者の帯。担当色を縦に縞で並べる (複数人なら人数ぶんの縞。虹は縞で出す決まり)。
+/// 歌唱者が付いていない行では幅だけ取って何も描かない (行の頭が揃うように)。
+struct ImasPartStripe: View {
+    /// 歌唱者の担当色 (hex)。並び順に上から縞にする。
+    let colors: [String]
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(colors.enumerated()), id: \.offset) { _, hex in
+                Rectangle().fill(ImasTheme.derive(seed: hex, scheme: scheme).accent)
+            }
+        }
+        .frame(width: 4)
+        .accessibilityHidden(true)
+    }
+}
+
+/// 行の下に添える歌唱者の名前 (「春香・千早」)。帯の色だけに頼らず、言葉でも出す。
+struct ImasPartNames: View {
+    let names: [String]
+
+    var body: some View {
+        if !names.isEmpty {
+            Text(names.joined(separator: "・"))
+                .imasText(.meta, color: DS.ink2)
+                .lineLimit(2)
+                .accessibilityLabel("歌唱 \(names.joined(separator: "、"))")
+        }
+    }
+}

@@ -131,3 +131,14 @@ struct LyricStructurePayload: Encodable, Sendable {
         Self(op: "split", lineId: lineId, at: at)
     }
 }
+
+/// `PUT /songs/{song_id}/parts` のリクエストボディ。行ごとの歌唱者 (アイドル id) だけを送る。
+///
+/// ⚠️ 歌詞本文は送らない。PUT は全置換で、載せなかった行のパートは消える。
+struct LyricPartsPayload: Encodable, Sendable {
+    struct Line: Encodable, Sendable {
+        let id: String
+        let singers: [String]
+    }
+    let lines: [Line]
+}

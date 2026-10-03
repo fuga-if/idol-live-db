@@ -231,6 +231,8 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
     var likeCount: Int = 0
     /// 被せの指定 ("overlay" / "main")。nil なら括弧で決める (コアの `lyricIsOverlayLine`)。
     var layer: String? = nil
+    /// パート分け: この行を歌うアイドルの id。空ならまだ分けていない。
+    var singers: [String] = []
 
     /// 被せの行か (歌詞プレイヤーで 2 段目に出す行)。
     var isOverlay: Bool { kind != .blank && lyricIsOverlayLine(text: text, layer: layer) }
@@ -238,7 +240,7 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
 
 extension LyricLine {
     private enum CodingKeys: String, CodingKey {
-        case id, ord, kind, text, section, startMs, clap, calls, likeCount, layer
+        case id, ord, kind, text, section, startMs, clap, calls, likeCount, layer, singers
     }
 
     /// `clap` / `calls` は後から足したフィールドなので、返さない Worker でも壊れない。
@@ -258,7 +260,8 @@ extension LyricLine {
                 .flatMap(LyricClap.init(rawValue:)),
             calls: (try? c.decodeIfPresent([LyricCall].self, forKey: .calls)).flatMap { $0 } ?? [],
             likeCount: (try? c.decodeIfPresent(Int.self, forKey: .likeCount)).flatMap { $0 } ?? 0,
-            layer: (try? c.decodeIfPresent(String.self, forKey: .layer)).flatMap { $0 }
+            layer: (try? c.decodeIfPresent(String.self, forKey: .layer)).flatMap { $0 },
+            singers: (try? c.decodeIfPresent([String].self, forKey: .singers)).flatMap { $0 } ?? []
         )
     }
 }

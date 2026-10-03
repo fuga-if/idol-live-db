@@ -23,6 +23,9 @@ protocol CallGuideWriting: Sendable {
     /// - Returns: 付け外し後のその行の人数 (みんなの分)。
     func setLyricLike(songId: String, lineId: String, liked: Bool) async throws -> Int
 
+    /// 歌詞行のパート分け (誰が歌うか) を置き換える (`PUT /songs/{id}/parts`)。曲全体の全置換。
+    func updateLyricParts(songId: String, lines: [LyricPartsPayload.Line]) async throws
+
     /// 歌詞の行をくっつける / 切り離す (`POST /songs/{id}/lyric-structure`)。文字は変わらない。
     func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws
 }

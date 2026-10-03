@@ -44,6 +44,8 @@ struct SongLyricsTab: View {
     var debugStartsPlayer = false
     /// 同じく、歌詞が届いた時点で行の区切りの編集に入る (DEBUG のみ)。
     var debugStartsStructure = false
+    /// 同じく、歌詞が届いた時点でパート分けに入る (DEBUG のみ)。
+    var debugStartsParts = false
     #endif
 
     /// 非 nil = 編集モード。編集中の状態はここが持つ (元の `Lyrics` は不変)。
@@ -60,6 +62,11 @@ struct SongLyricsTab: View {
     @State private var showsPlayer = false
     /// 行の区切りを編集している (くっつける / 切り離す)。
     @State private var isEditingStructure = false
+    /// 非 nil = パート分けを編集している (行 ID → 歌唱者のアイドル id)。
+    @State private var partsDraft: [String: [String]]?
+    /// パート分けの「筆」= いま付けている歌唱者。行をタップするとこの人を付け外しする。
+    @State private var partsBrush: String?
+    @State private var partsSaving = false
     /// 区切りの変更を送っている行 (二度押しを止める)。
     @State private var structureBusyLineId: String?
     /// 再生に追従している今の行。
@@ -150,6 +157,16 @@ struct SongLyricsTab: View {
         }
         if debugStartsPlayer, !showsPlayer { showsPlayer = true }
         if debugStartsStructure { isEditingStructure = true }
+        if debugStartsParts, partsDraft == nil, !vm.originalArtists.isEmpty {
+            // 塗った後の見え方を確かめられるよう、行ごとに 1 人 / 2 人 / 全員を順に振っておく。
+            let ids = vm.originalArtists.map(\.id)
+            var draft = currentParts(lyrics)
+            for (i, line) in lyrics.lines.enumerated() where line.kind == .lyric {
+                draft[line.id] = Array(ids.prefix(i % 3 + 1))
+            }
+            partsDraft = draft
+            partsBrush = vm.originalArtists.first?.id
+        }
         guard debugStartsEditing, editor == nil else { return }
         editor = CallGuideEditorModel(lyrics: lyrics, songId: song.id)
     }
@@ -177,7 +194,10 @@ struct SongLyricsTab: View {
                         .padding(.horizontal, DS.sp1)
                 }
                 editBar(lyrics)
-                if isEditingStructure {
+                if let draft = partsDraft {
+                    partsBar
+                    card { partsBody(lyrics, draft) }
+                } else if isEditingStructure {
                     ImasNote("語をタップすると、その語の前で行を切り離します。行の右下の鎖のボタンで次の行とくっつけます。歌詞の文字は変わりません。",
                              systemImage: "scissors")
                         .padding(.horizontal, DS.sp1)
@@ -283,6 +303,9 @@ struct SongLyricsTab: View {
             HStack(alignment: .top, spacing: DS.sp2) {
                 CallGuideClapGlyph(clap: line.clap)
                     .padding(.top, 4)
+                if !line.singers.isEmpty {
+                    ImasPartStripe(colors: partColors(line.singers))
+                }
                 VStack(alignment: .leading, spacing: 0) {
                     // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
                     Text(CallGuideText.attributed(line.text, highlights: highlights(for: line)))
@@ -291,6 +314,7 @@ struct SongLyricsTab: View {
                         .lineSpacing(5)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    ImasPartNames(names: partNames(line.singers))
                     if !line.calls.isEmpty {
                         CallGuideCallRows(calls: line.calls, anchorIndexes: anchorIndexes(for: line))
                     }
@@ -361,7 +385,17 @@ struct SongLyricsTab: View {
         if canEdit {
             HStack(spacing: DS.sp3) {
                 Spacer(minLength: 0)
-                if isEditingStructure {
+                if partsDraft != nil {
+                    ImasButton(title: "やめる", role: .plain, size: .small) {
+                        partsDraft = nil
+                        partsBrush = nil
+                    }
+                    ImasButton(title: "保存", role: .primary, size: .small, isLoading: partsSaving) {
+                        AppAnalytics.tap("lyric_parts.save")
+                        Task { await saveParts(lyrics) }
+                    }
+                    .disabled(partsSaving || partsDraft == currentParts(lyrics))
+                } else if isEditingStructure {
                     ImasButton(title: "区切りの編集を終了", role: .plain, size: .small) {
                         isEditingStructure = false
                     }
@@ -372,6 +406,13 @@ struct SongLyricsTab: View {
                     }
                     saveButton(editor)
                 } else {
+                    if !vm.originalArtists.isEmpty {
+                        ImasIconButton(systemImage: "person.2.fill", label: "パート分け", size: .small) {
+                            AppAnalytics.tap("lyric_parts.begin_edit")
+                            partsDraft = currentParts(lyrics)
+                            partsBrush = vm.originalArtists.first?.id
+                        }
+                    }
                     ImasIconButton(systemImage: "scissors", label: "行の区切りを編集", size: .small) {
                         AppAnalytics.tap("lyric_structure.begin_edit")
                         isEditingStructure = true
@@ -638,6 +679,114 @@ struct SongLyricsTab: View {
             }
         }
         recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+    }
+
+    // MARK: - パート分け (誰が歌うか)
+
+    /// 原唱者を id で引く (帯の色・名前に使う)。原唱者にいない id は出さない。
+    private var artistsById: [String: Idol] {
+        Dictionary(vm.originalArtists.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    private func partColors(_ ids: [String]) -> [String] {
+        ids.compactMap { artistsById[$0]?.color }
+    }
+
+    private func partNames(_ ids: [String]) -> [String] {
+        ids.compactMap { artistsById[$0]?.shortName }
+    }
+
+    private func currentParts(_ lyrics: Lyrics) -> [String: [String]] {
+        Dictionary(lyrics.lines.filter { !$0.singers.isEmpty }.map { ($0.id, $0.singers) },
+                   uniquingKeysWith: { first, _ in first })
+    }
+
+    /// 筆 (歌唱者) を選ぶ帯。原唱者のアイコンを並べ、選んだ人に輪を付ける。
+    private var partsBar: some View {
+        VStack(alignment: .leading, spacing: DS.sp2) {
+            ImasNote("歌う人を選んでから、歌詞の行をタップします。もう一度タップすると外れます。", systemImage: "hand.tap")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.sp2) {
+                    ForEach(vm.originalArtists, id: \.id) { idol in
+                        Button {
+                            partsBrush = idol.id
+                        } label: {
+                            VStack(spacing: DS.sp1) {
+                                IdolAvatarView(idol: idol, size: 36, isPick: partsBrush == idol.id)
+                                Text(idol.shortName)
+                                    .imasText(.meta, color: partsBrush == idol.id ? DS.ink : DS.ink3)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.imasPress)
+                        .accessibilityAddTraits(partsBrush == idol.id ? .isSelected : [])
+                    }
+                }
+                .padding(.horizontal, DS.sp1)
+            }
+        }
+        .padding(.horizontal, DS.sp1)
+    }
+
+    @ViewBuilder
+    private func partsBody(_ lyrics: Lyrics, _ draft: [String: [String]]) -> some View {
+        ForEach(lyrics.lines) { line in
+            switch line.kind {
+            case .lyric:
+                let singers = draft[line.id] ?? []
+                Button {
+                    togglePart(line.id)
+                } label: {
+                    HStack(alignment: .top, spacing: DS.sp2) {
+                        ImasPartStripe(colors: partColors(singers))
+                        VStack(alignment: .leading, spacing: DS.sp1) {
+                            // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
+                            Text(line.text)
+                                .imasText(.body)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            ImasPartNames(names: partNames(singers))
+                        }
+                    }
+                    .padding(.vertical, DS.sp2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.imasPress)
+                .sensoryFeedback(.selection, trigger: singers)
+            case .marker:
+                marker(line.text)
+            case .blank:
+                Color.clear.frame(height: DS.sp3)
+            }
+        }
+    }
+
+    /// 筆の人をその行に付け外しする。並びは原唱者の並びに揃える (帯の縞の順を決めておく)。
+    private func togglePart(_ lineId: String) {
+        guard let brush = partsBrush, var draft = partsDraft else { return }
+        var singers = draft[lineId] ?? []
+        if let i = singers.firstIndex(of: brush) { singers.remove(at: i) } else { singers.append(brush) }
+        let order = vm.originalArtists.map(\.id)
+        singers.sort { (order.firstIndex(of: $0) ?? .max) < (order.firstIndex(of: $1) ?? .max) }
+        draft[lineId] = singers.isEmpty ? nil : singers
+        partsDraft = draft
+    }
+
+    private func saveParts(_ lyrics: Lyrics) async {
+        guard let draft = partsDraft else { return }
+        partsSaving = true
+        defer { partsSaving = false }
+        let lines = lyrics.lines.compactMap { line in
+            draft[line.id].map { LyricPartsPayload.Line(id: line.id, singers: $0) }
+        }
+        do {
+            try await AppContainer.shared.callGuideWriting.updateLyricParts(songId: song.id, lines: lines)
+            partsDraft = nil
+            partsBrush = nil
+            reload()
+        } catch {
+            saveErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 
     // MARK: - 行の区切り (くっつける / 切り離す)

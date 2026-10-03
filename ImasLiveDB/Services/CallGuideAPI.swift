@@ -65,6 +65,16 @@ actor CallGuideAPI: CallGuideWriting {
         }
     }
 
+    func updateLyricParts(songId: String, lines: [LyricPartsPayload.Line]) async throws {
+        do {
+            try await client.requestVoid("PUT", path: "/songs/\(songId)/parts",
+                                         body: LyricPartsPayload(lines: lines), authorized: true)
+        } catch {
+            logger.warning("lyric_parts_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
     func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws {
         do {
             try await client.requestVoid("POST", path: "/songs/\(songId)/lyric-structure",
@@ -120,6 +130,10 @@ struct FakeCallGuideWriting: CallGuideWriting {
     }
 
     func editLyricStructure(songId: String, _ change: LyricStructurePayload) async throws {
+        try? await Task.sleep(for: .milliseconds(200))
+    }
+
+    func updateLyricParts(songId: String, lines: [LyricPartsPayload.Line]) async throws {
         try? await Task.sleep(for: .milliseconds(200))
     }
 }

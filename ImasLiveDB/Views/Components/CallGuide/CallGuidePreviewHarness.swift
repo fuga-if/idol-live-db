@@ -28,6 +28,8 @@ struct CallGuidePreviewHarness: View {
         case player
         /// 行の区切りの編集 (くっつける / 切り離す)。
         case structure
+        /// パート分け (歌唱者は DB の実在曲から引く。歌詞はダミー)。
+        case parts
     }
 
     /// 環境変数で指定されたモード。未指定なら nil (通常起動)。
@@ -62,14 +64,15 @@ struct CallGuidePreviewHarness: View {
     var body: some View {
         Group {
             switch mode {
-            case .view, .edit, .sync, .record, .player, .structure:
+            case .view, .edit, .sync, .record, .player, .structure, .parts:
                 ScrollViewReader { proxy in
                     ScrollView {
                         SongLyricsTab(song: Self.sampleSong, seed: nil, vm: vm, playback: fakePlayback,
                                       reload: {}, debugStartsEditing: mode == .edit,
                                       debugStartsRecording: mode == .record,
                                       debugStartsPlayer: mode == .player,
-                                      debugStartsStructure: mode == .structure)
+                                      debugStartsStructure: mode == .structure,
+                                      debugStartsParts: mode == .parts)
                             .padding(.bottom, DS.sp8)
                     }
                     .onChange(of: scrollTarget) { _, id in
@@ -89,7 +92,18 @@ struct CallGuidePreviewHarness: View {
                 )
             }
         }
-        .task { await vm.loadServerData(song: Self.sampleSong) }
+        .task {
+            // パート分けは歌唱者が要るので、先に DB の実在曲から引いておく (歌詞より先に揃える)。
+            if mode == .parts { await vm.loadData(song: Self.partsArtistSource) }
+            await vm.loadServerData(song: Self.sampleSong)
+        }
+    }
+
+    /// パート分けの確認で歌唱者だけ借りる実在曲 (原唱者 3 人)。
+    static var partsArtistSource: Song {
+        var song = sampleSong
+        song.id = "765as_colorful_days"
+        return song
     }
 
     /// 表示確認用のダミー楽曲 (DB を引かずに済ませる)。
