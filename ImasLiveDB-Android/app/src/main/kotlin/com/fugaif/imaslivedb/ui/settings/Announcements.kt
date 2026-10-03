@@ -6,7 +6,10 @@ import androidx.compose.material.icons.filled.Abc
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
@@ -44,6 +47,37 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
+            id = "v2.3.0_ledger_mastery_quiz",
+            date = "2026-09-28",
+            title = "収支・習熟度・セトリ当てクイズを追加しました",
+            summary = "チケット代などの収支、曲ごとの覚え具合、セトリ当てクイズが使えます。",
+            body = listOf(
+                "収支 (家計簿): チケット代・交通費・宿代・グッズ代などを記録して、月別・年別の合計と費目ごとの内訳を出せます。公演に紐づけると「この遠征でいくら使ったか」「1 公演あたり」も分かります。参加を付けたときにチケット代を確認して記録でき、過去の参加からまとめて取り込むこともできます。",
+                "習熟度: 曲ごとの覚え具合を、シリーズやユニット別に付けて見られます。段階の数と呼び名は設定で決められます。",
+                "クイズ: 公演のセトリの空欄に入る曲を当てるセトリ当てクイズを足しました。「つづきから」と、結果のシェア画像も付いています。",
+                "セトリの表示を「シンプル / 普通 / 詳細」から選べるようになりました。詳細では自分の回収 (初回収・回収 3 回目・未回収) が行に出ます。ライブ一覧の行をスワイプすると、その場で参加を登録できます。",
+            ),
+            icon = Icons.Filled.AutoAwesome,
+            tint = "#ED8C4D",
+            link = null
+        ),
+        Announcement(
+            id = "v2.3.0_setlist_gap",
+            date = "2026-09-20",
+            title = "セトリに「何年ぶり」が出るようになりました",
+            summary = "その曲が前にいつ歌われたかを、セットリストの行にそのまま出します。",
+            body = listOf(
+                "セットリストの各行に「初披露」「3 年 10 か月ぶり」が出るようになりました。久しぶりに来た曲がその場で分かります。",
+                "数えるのは「その公演の時点で何年ぶりだったか」です。昔のライブを開いたときも、当時の間隔が出ます。1 か月未満の間隔は「12 日ぶり」のように日数で出します (昼夜公演のような同じ日の披露には出しません)。",
+                "配信だけのライブと MV 上映会は、披露回数・いつぶり・回収に数えないようにしました。",
+                "歌った人の名義の出し方も直しました。これまでは歌った顔ぶれがユニットの人数とぴったり合うと、その曲がユニット名義でなくてもユニット名を出していました。ユニットとして歌った曲と、たまたま同じ顔ぶれで歌った曲を取り違えなくなります。ユニット名の表記の誤り (「315 ALLSTARS」→「315 STARS」など) もあわせて直しています。",
+                "ライブに種別が付きました。周年ライブ・オーケストラ・他社イベント・リリースイベント・バースデーライブなどで見分けられます。",
+            ),
+            icon = Icons.Filled.History,
+            tint = "#6199EB",
+            link = null
+        ),
+        Announcement(
             id = "20260906_call_response_retired",
             date = "2026-09-06",
             title = "「コーレス」の投稿を終了しました",
@@ -54,6 +88,21 @@ object AnnouncementCatalog {
             ),
             icon = Icons.Filled.Info,
             tint = "#F28C4D",
+            link = null
+        ),
+        Announcement(
+            id = "v2.2.0_lyrics",
+            date = "2026-09-03",
+            title = "歌詞が読めるようになりました",
+            summary = "JASRAC の許諾を受けて、2,128 曲の歌詞を掲載しました。",
+            body = listOf(
+                "曲の詳細に「歌詞」が増えました。2,128 曲ぶんあります。JASRAC の許諾 (第J260943703号) を受けて掲載しています。",
+                "歌詞の表示にはログインが必要です。許諾の条件で「まとめてダウンロードできない形」で配信することになっているため、1 曲ずつの取得になっていて、端末にも残りません。",
+                "カバー曲と、アイマス以外の曲 (合同ライブで披露されたもの) には歌詞を付けていません。",
+                "アルストロメリアの「Bloomy!」が曲一覧に出てこない不具合を直しました。電音部の同名曲の別バージョンとして登録されてしまい、派生曲として隠されていました。「Fly High!」も同じ形で隠れていたので直しています。",
+            ),
+            icon = Icons.Filled.FormatQuote,
+            tint = "#D18C59",
             link = null
         ),
         Announcement(
