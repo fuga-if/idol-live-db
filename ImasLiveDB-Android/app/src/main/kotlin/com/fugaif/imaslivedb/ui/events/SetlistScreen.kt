@@ -100,6 +100,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNoteBadges
 import com.fugaif.imaslivedb.ui.designsystem.unbreakableNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasMasthead
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLabeledRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
@@ -1198,11 +1200,16 @@ private fun PerformerListSheet(
                 .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
             verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
-            ImasText("$songTitle / 出演者 ${performers.size}名", role = ImasTextRole.CARD_TITLE)
+            // 頭: 印字 (何の一覧か・何人か) と曲名 (iOS `PerformerDetailSheet.header`)。
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                ImasMasthead("SINGERS", "${performers.size} 名")
+                ImasText(songTitle, role = ImasTextRole.SECTION_TITLE)
+            }
             val ordered = remember(performers, noteOrder) {
                 performers.sortedBy { p -> p.idolId?.let { noteOrder[it] } ?: Int.MAX_VALUE }
             }
-            ImasCardList(items = ordered, key = { it.id }) { performer ->
+            // 刷られた紙 (行の間は切り取り線)。セトリと同じ紙で並べる。
+            ImasCardList(items = ordered, key = { it.id }, style = ImasCardListStyle.SHEET) { performer ->
                 val name = performer.displayName(performerName, isCharacterLive)
                 val idol = performer.idolId?.let { idolsById[it] }
                 val notes = performer.idolId?.let { notesByIdolId[it] }.orEmpty()
@@ -1215,6 +1222,7 @@ private fun PerformerListSheet(
                         entityId = performer.idolId
                     ),
                     trailing = ImasRowTrailing.Chevron,
+                    density = ImasRowDensity.COMPACT,
                     titleLineLimit = 1,
                     modifier = Modifier.imasRowPress(enabled = performer.idolId != null) {
                         performer.idolId?.let(onSelectIdol)
