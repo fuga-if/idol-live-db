@@ -600,7 +600,7 @@ struct ImasBrandPicker: View {
             }
             ForEach(options) { option in
                 ImasFilterChip(text: option.label, isSelected: selection.contains(option.id), brand: option.color,
-                               leading: option.logoURL.map { .logo($0) } ?? .dot) {
+                               leading: option.logoURL.map { .logo($0) }) {
                     toggle(option.id)
                 }
             }

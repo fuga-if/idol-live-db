@@ -78,8 +78,6 @@ import com.fugaif.imaslivedb.ui.components.Copyable
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasMotion
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
-import com.fugaif.imaslivedb.ui.theme.ImasPenlight
-import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
 import com.fugaif.imaslivedb.ui.theme.imasPress
@@ -847,7 +845,7 @@ fun ImasBrandPicker(
                 selected = option.id in selection,
                 onClick = { toggle(option.id) },
                 seed = option.color,
-                leading = option.logo?.let { ImasChipLeading.Logo(it) } ?: ImasChipLeading.Dot
+                leading = option.logo?.let { ImasChipLeading.Logo(it) }
             )
         }
     }

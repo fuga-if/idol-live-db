@@ -61,8 +61,6 @@ import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasColorsLight
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
-import com.fugaif.imaslivedb.ui.theme.ImasPenlight
-import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.ImasType

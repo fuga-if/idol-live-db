@@ -948,10 +948,10 @@ private fun ChipsPage() {
         ImasSection("絞り込み (押すと切り替わる)", style = Small) {
             ImasChipFlow {
                 ImasFilterChip("すべて", brand == "all", { brand = "all" })
-                ImasFilterChip("765AS", brand == "765as", { brand = "765as" }, seed = Sample.as765, leading = ImasChipLeading.Dot)
-                ImasFilterChip("デレマス", brand == "cg", { brand = "cg" }, seed = Sample.cg, leading = ImasChipLeading.Dot)
-                ImasFilterChip("ミリオン", brand == "ml", { brand = "ml" }, seed = Sample.ml, leading = ImasChipLeading.Dot)
-                ImasFilterChip("学マス", brand == "gakuen", { brand = "gakuen" }, seed = Sample.gakuen, leading = ImasChipLeading.Dot)
+                ImasFilterChip("765AS", brand == "765as", { brand = "765as" }, seed = Sample.as765)
+                ImasFilterChip("デレマス", brand == "cg", { brand = "cg" }, seed = Sample.cg)
+                ImasFilterChip("ミリオン", brand == "ml", { brand = "ml" }, seed = Sample.ml)
+                ImasFilterChip("学マス", brand == "gakuen", { brand = "gakuen" }, seed = Sample.gakuen)
             }
         }
         ImasSection("歌唱メンバーの予想 (写真が無ければ判子)", style = Small) {
@@ -980,6 +980,13 @@ private fun ChipsPage() {
                 ImasChip("全体曲")
                 ImasChip("765AS", style = ImasChipStyle.THEMED, seed = Sample.as765)
                 ImasAwardChip("夏に聴きたい曲", 1)
+            }
+        }
+        ImasSection("凡例 (色そのものが中身のときだけ色見本)", style = Small) {
+            ImasChipFlow {
+                ImasChip("通常", leading = ImasChipLeading.Swatch(DS.ink))
+                ImasChip("おこのみで", leading = ImasChipLeading.Swatch(DS.success))
+                ImasChip("演者要望", leading = ImasChipLeading.Swatch(DS.danger))
             }
         }
         ImasSection("状態の札 (押せない)", style = Small) {

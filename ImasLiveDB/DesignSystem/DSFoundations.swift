@@ -268,49 +268,6 @@ extension ButtonStyle where Self == ImasPressStyle {
     static var imasPress: ImasPressStyle { ImasPressStyle() }
 }
 
-// MARK: - ペンライト
-
-/// 色の目印。名前・見出しの前に置く小さな点。
-///
-/// アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
-/// 平らな点だけ (輪も光も付けない。ぼんやり光って見えるため)。
-struct ImasPenlight: View {
-    enum Size {
-        /// 13pt の文字の前 (歌唱者・チップ)。並べて人数を見せるときも。
-        case small
-        /// 15〜16pt の文字の前 (目印・行)。
-        case regular
-        /// 見出し・ヒーローの前。
-        case large
-
-        var diameter: CGFloat {
-            switch self {
-            case .small: return 6
-            case .regular: return 7
-            case .large: return 10
-            }
-        }
-    }
-
-    let color: Color
-    var size: Size = .regular
-    /// 合同ライブなど、単色で表せない目印は虹色にする。
-    var rainbow: Bool = false
-
-    @Environment(\.colorScheme) private var scheme
-    @ScaledMetric(relativeTo: .footnote) private var scale: CGFloat = 1
-
-    var body: some View {
-        let d = size.diameter * scale
-        Circle()
-            .fill(rainbow
-                  ? AnyShapeStyle(ImasStripes.vertical(QS.penlights))
-                  : AnyShapeStyle(color))
-            .frame(width: d, height: d)
-            .accessibilityHidden(true)
-    }
-}
-
 // MARK: - OS の枠
 
 /// ナビバーなど OS の枠の見た目。起動時に 1 回だけかける。

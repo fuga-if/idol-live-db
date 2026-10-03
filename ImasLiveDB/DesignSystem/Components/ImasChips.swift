@@ -8,27 +8,36 @@ import SwiftUI
 //           ImasRemovableChip 押すと外れる。効いている絞り込み・選んだもの
 // 使わない  状態を示す小さい札 (参加済・ユニット・NEW) → ImasBadge /
 //           操作のボタン → ImasButton
-// 構成      [先頭 (ペンライト・記号・アイコン、任意)] [文言] [× (Removable のみ)]
+// 構成      [先頭 (記号・アイコン・ロゴ・色見本、任意)] [文言] [× (Removable のみ)]
 // 寸法      高さ 32、角丸 8 の四角 (カプセルにしない)、文字 14pt 中太、左右 12。
-// 状態      未選択 (線) / 選択 (墨の塗り。ペンライトはそのまま光る) / 押下 / 無効 (薄く)
-// 色        地は墨と灰だけ。アイドル・ブランドの色は先頭のペンライトに出す。
-//           淡い色の地 (v1) は使わない。
+// 状態      未選択 (線) / 選択 (墨の塗り) / 押下 / 無効 (薄く)
+// 色        地は墨と灰だけ。名前の前に色の点を置かない (幅を取るだけで、名前が何かを言っている)。
+//           色そのものが中身のとき (コールの凡例) だけ先頭に色見本 (.swatch)。淡い色の地 (v1) は使わない。
 // =============================================================================
 
 /// チップの先頭に置けるもの。
 enum ImasChipLeading {
     /// SF Symbols の記号。
     case symbol(String)
-    /// ペンライト (アイドル・ブランドの色)。
+    /// 以前のペンライト (色の点)。今は何も描かない (幅を取るだけで、名前が何かを言っている)。
+    /// 色そのものが中身のときは `.swatch`。
     case dot
+    /// 色見本。色そのものが中身のとき (コールの凡例: この色 = この強さ) だけ使う。
+    case swatch(Color)
     /// アイドルのアイコン (22)。写真があれば写真、無ければ判子。
     case avatar(label: String, imageURL: URL? = nil)
     /// 読み込んだブランドのロゴ (端末の中のファイル、20 の丸)。
     case logo(URL)
+
+    /// 描くものがある先頭だけ (`.dot` は何も描かないので、無いのと同じに扱って左右の余白を揃える)。
+    fileprivate var drawn: ImasChipLeading? {
+        if case .dot = self { return nil }
+        return self
+    }
 }
 
 enum ImasChipStyle {
-    /// 線 + ペンライト。実体に属する情報 (ブランド・ユニット)。
+    /// 線。実体に属する情報 (ブランド・ユニット・タグ)。
     case themed
     /// 墨の塗り。選んだもの。
     case selected
@@ -59,15 +68,9 @@ struct ImasChip: View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: color, env: envTheme, scheme: scheme)
         let c = ImasChipColors.colors(style: style)
         let shape = RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
-        let lead = leading ?? systemImage.map(ImasChipLeading.symbol) ?? (style == .themed ? .dot : nil)
+        let lead = (leading ?? systemImage.map(ImasChipLeading.symbol))?.drawn
         HStack(spacing: 6) {
-            ImasChipLeadingView(
-                leading: lead,
-                theme: t,
-                penlight: style == .selected
-                    ? ImasChipColors.penlightOnInk(seed: seed, brand: brand, color: color, fallback: t, scheme: scheme)
-                    : t.penlight
-            )
+            ImasChipLeadingView(leading: lead, theme: t)
             Text(text)
                 .font(ImasTextRole.chip.font)
                 .lineLimit(1)
@@ -134,11 +137,10 @@ struct ImasRemovableChip: View {
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
         let shape = RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous)
-        // 色のある絞り込み (ブランド・アイドル) は何も渡さなくてもペンライトを出す。
-        let lead = leading ?? ((seed != nil || brand != nil) ? .dot : nil)
+        let lead = leading?.drawn
         Button(action: onRemove) {
             HStack(spacing: 6) {
-                ImasChipLeadingView(leading: lead, theme: t, penlight: t.penlight)
+                ImasChipLeadingView(leading: lead, theme: t)
                 Text(text).font(ImasTextRole.chip.font).lineLimit(1)
                 Image(systemName: "xmark")
                     .font(.imasScaled(10, weight: .bold))
@@ -304,18 +306,23 @@ private struct ImasChipLeadingView: View {
     let leading: ImasChipLeading?
     /// アイコンの色 (チップの実体の色)。
     let theme: ImasTheme
-    /// ペンライトの色 (墨の塗りの上では明るい側の色)。
-    let penlight: Color
+
+    /// 色見本の直径。文字の大きさの設定に合わせて大きくする。
+    @ScaledMetric(relativeTo: .footnote) private var swatchDiameter: CGFloat = 8
 
     var body: some View {
         switch leading {
-        case .none:
+        case .none, .dot:
+            // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
             EmptyView()
         case .symbol(let name):
             Image(systemName: name).font(.imasScaled(12, weight: .semibold))
-        case .dot:
-            // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
-            EmptyView()
+        case .swatch(let color):
+            // 凡例の色。意味は隣の文言が言うので読み上げない。
+            Circle()
+                .fill(color)
+                .frame(width: swatchDiameter, height: swatchDiameter)
+                .accessibilityHidden(true)
         case .avatar(let label, let url):
             // 写真があれば写真、無ければ判子 (アイコンは消さない)。
             ImasAvatar(label: label, seed: nil, size: 22, imageURL: url, reservesPickRing: false)
@@ -343,16 +350,6 @@ enum ImasChipColors {
         if let color { return ImasTheme.derive(colorSeed: color, scheme: scheme) }
         if seed != nil || brand != nil { return ImasTheme.derive(seed: seed, brand: brand, scheme: scheme) }
         return env
-    }
-
-    /// 墨の塗り (選択) の上のペンライト。塗りは画面と逆の明るさなので、逆の明るさ用の色を引く
-    /// (ライトの紺は黒い塗りの上で沈む)。
-    static func penlightOnInk(seed: String?, brand: String?, color: Color?, fallback: ImasTheme,
-                              scheme: ColorScheme) -> Color {
-        let inverse: ColorScheme = scheme == .dark ? .light : .dark
-        if let color { return ImasTheme.derive(colorSeed: color, scheme: inverse).penlight }
-        if seed != nil || brand != nil { return ImasTheme.derive(seed: seed, brand: brand, scheme: inverse).penlight }
-        return fallback.isNeutral ? DS.onSys : fallback.penlight
     }
 
     static func colors(style: ImasChipStyle) -> (bg: Color, fg: Color, stroke: Color?) {

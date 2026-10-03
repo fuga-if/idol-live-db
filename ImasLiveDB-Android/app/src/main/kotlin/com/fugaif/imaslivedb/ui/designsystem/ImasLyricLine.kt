@@ -420,7 +420,7 @@ fun ImasCallLegend(
         verticalArrangement = Arrangement.spacedBy(DS.sp2)
     ) {
         emphases.forEach { emphasis ->
-            ImasChip(text = emphasis.label, style = ImasChipStyle.NEUTRAL, color = emphasis.lyricColor(theme.accent), leading = ImasChipLeading.Dot)
+            ImasChip(text = emphasis.label, style = ImasChipStyle.NEUTRAL, leading = ImasChipLeading.Swatch(emphasis.lyricColor(theme.accent)))
         }
         claps.forEach { clap ->
             ImasChip(text = "${clap.symbol} ${clap.label}", style = ImasChipStyle.NEUTRAL)

@@ -94,8 +94,6 @@ import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
 import com.fugaif.imaslivedb.ui.edit.ShowEditScreen
 import com.fugaif.imaslivedb.ui.filtered.EventFilterKind
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasPenlight
-import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme

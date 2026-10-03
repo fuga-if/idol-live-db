@@ -56,8 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasPenlight
-import com.fugaif.imaslivedb.ui.theme.ImasPenlightSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import com.fugaif.imaslivedb.ui.theme.LocalImasColors
@@ -77,10 +75,11 @@ import java.io.File
 //           ImasFilterChip    押すと選択が切り替わる。絞り込み・カテゴリ・歌唱メンバーの予想
 //           ImasRemovableChip 押すと外れる。効いている絞り込み・選んだもの
 // 使わない  状態を示す小さい札 (参加済・ユニット・NEW) → ImasBadge / 操作のボタン → ImasButton
-// 構成      [先頭 (ペンライト・記号・アイコン、任意)] [文言] [× (Removable のみ)]
+// 構成      [先頭 (記号・アイコン・ロゴ・色見本、任意)] [文言] [× (Removable のみ)]
 // 寸法      高さ 32、角丸 8 の四角 (カプセルにしない)、文字 14 中太、左右 12。
-// 状態      未選択 (線) / 選択 (墨の塗り。ペンライトはそのまま光る) / 押下 / 無効 (薄く)
-// 色        地は墨と灰だけ。アイドル・ブランドの色は先頭のペンライトに出す。淡い色の地 (v1) は使わない。
+// 状態      未選択 (線) / 選択 (墨の塗り) / 押下 / 無効 (薄く)
+// 色        地は墨と灰だけ。名前の前に色の点を置かない (幅を取るだけで、名前が何かを言っている)。
+//           色そのものが中身のとき (コールの凡例) だけ先頭に色見本 (Swatch)。淡い色の地 (v1) は使わない。
 //
 // 色の手がかりは Android の決まりで `seed` = 色 hex、`brand` = ブランド ID (色はマスタから引く)。
 // =============================================================================
@@ -91,8 +90,14 @@ sealed interface ImasChipLeading {
     /** 記号。 */
     data class Symbol(val icon: ImageVector) : ImasChipLeading
 
-    /** ペンライト (アイドル・ブランドの色)。 */
+    /**
+     * 以前のペンライト (色の点)。今は何も描かない (幅を取るだけで、名前が何かを言っている)。
+     * 色そのものが中身のときは [Swatch]。
+     */
     data object Dot : ImasChipLeading
+
+    /** 色見本。色そのものが中身のとき (コールの凡例: この色 = この強さ) だけ使う。 */
+    data class Swatch(val color: Color) : ImasChipLeading
 
     /**
      * アイドルのアイコン (22)。写真があれば写真、無ければ判子。
@@ -106,7 +111,7 @@ sealed interface ImasChipLeading {
 
 /** チップの見え方 (iOS `ImasChipStyle`)。 */
 enum class ImasChipStyle {
-    /** 線 + ペンライト。実体に属する情報 (ブランド・ユニット)。 */
+    /** 線。実体に属する情報 (ブランド・ユニット・タグ)。 */
     THEMED,
 
     /** 墨の塗り。選んだもの。 */
@@ -151,8 +156,7 @@ fun ImasChip(
     val t = ImasChipColors.theme(seed, brand, color)
     val c = ImasChipColors.colors(style)
     val shape = RoundedCornerShape(DS.rControl(DS.Size.chip))
-    val lead = leading ?: icon?.let { ImasChipLeading.Symbol(it) } ?: if (style == ImasChipStyle.THEMED) ImasChipLeading.Dot else null
-    val penlight = if (style == ImasChipStyle.SELECTED) ImasChipColors.penlightOnInk(seed, brand, color, t) else t.penlight
+    val lead = (leading ?: icon?.let { ImasChipLeading.Symbol(it) }).drawn()
     Row(
         modifier
             .then(if (onClick != null) Modifier.imasPress(onClick = onClick) else Modifier)
@@ -164,7 +168,7 @@ fun ImasChip(
         horizontalArrangement = Arrangement.spacedBy(6.dp, if (fillsWidth) Alignment.CenterHorizontally else Alignment.Start),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasChipLeadingView(lead, t, penlight, c.fg)
+        ImasChipLeadingView(lead, t, c.fg)
         Text(
             text,
             // count がある時だけ本文を縮める側に回す (件数は縮めない。無い時は今まで通り)。
@@ -187,10 +191,6 @@ fun ImasChip(
  *
  * 引数の名前は Android の今の呼び出しに合わせる (iOS の `text` / `isSelected` / `action` が
  * [label] / [selected] / [onClick])。
- *
- * 色の手がかり (seed / brand / tintColor) を渡して先頭を指定しないときは、先頭にペンライトを出す
- * (iOS は `leading: .dot` を明示する。Android の今のブランドのチップは色だけを渡していて、
- * 何もしないと選んだときの色が消えるため)。色の無いもの (ニュートラル) には出さない。
  *
  * @param tintColor 実体色そのもの (iOS の `color`)。
  * @param icon 先頭の記号 (iOS の `systemImage`)。
@@ -222,10 +222,7 @@ fun ImasFilterChip(
     count: String? = null
 ) {
     val haptics = rememberImasHaptics()
-    val hinted = seed != null || brand != null || tintColor != null
-    val lead = leading ?: if (icon == null && hinted && !ImasChipColors.theme(seed, brand, tintColor).isNeutral) {
-        ImasChipLeading.Dot
-    } else null
+    val lead = leading
     // 型を先に決めておかないと (if 式の分岐から推論させると)、Compose コンパイラが
     // このラムダを @Composable と認識できないことがある。
     val clearTrailing: (@Composable (Color) -> Unit)? = if (onClear == null) {
@@ -275,7 +272,6 @@ fun ImasFilterChip(
 
 /**
  * 押すと外れるチップ (iOS `ImasRemovableChip`)。効いている絞り込み・選んだものを見せて、その場で外させる。
- * 色のある絞り込み (seed / brand を渡したもの) は何も渡さなくてもペンライトを出す。
  */
 @Composable
 fun ImasRemovableChip(
@@ -288,7 +284,7 @@ fun ImasRemovableChip(
 ) {
     val t = ImasChipColors.theme(seed, brand, null)
     val shape = RoundedCornerShape(DS.rControl(DS.Size.chip))
-    val lead = leading ?: if (seed != null || brand != null) ImasChipLeading.Dot else null
+    val lead = leading.drawn()
     val xSize = with(LocalDensity.current) { 11.sp.toDp() }
     Row(
         modifier
@@ -300,7 +296,7 @@ fun ImasRemovableChip(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        ImasChipLeadingView(lead, t, t.penlight, DS.ink)
+        ImasChipLeadingView(lead, t, DS.ink)
         Text(text, style = ImasTextRole.CHIP.style, color = DS.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Icon(Icons.Filled.Close, contentDescription = null, tint = DS.ink2, modifier = Modifier.size(xSize))
     }
@@ -488,17 +484,24 @@ fun ImasAwardChip(title: String, rank: Int, modifier: Modifier = Modifier) {
 
 // MARK: - 内部
 
+/** 描くものがある先頭だけ ([ImasChipLeading.Dot] は何も描かないので、無いのと同じに扱って左右の余白を揃える)。 */
+private fun ImasChipLeading?.drawn(): ImasChipLeading? = takeUnless { it == ImasChipLeading.Dot }
+
 /** チップの先頭。 */
 @Composable
-private fun ImasChipLeadingView(leading: ImasChipLeading?, theme: ImasTheme, penlight: Color, tint: Color) {
+private fun ImasChipLeadingView(leading: ImasChipLeading?, theme: ImasTheme, tint: Color) {
     when (leading) {
-        null -> Unit
+        // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
+        null, ImasChipLeading.Dot -> Unit
         is ImasChipLeading.Symbol -> {
             val s = with(LocalDensity.current) { 13.sp.toDp() }
             Icon(leading.icon, contentDescription = null, tint = tint, modifier = Modifier.size(s))
         }
-        // 色の点は出さない (幅を取るだけで、名前が何かを言っている)。
-        ImasChipLeading.Dot -> Unit
+        is ImasChipLeading.Swatch -> {
+            // 凡例の色。意味は隣の文言が言うので読み上げない (文字の大きさの設定に合わせて大きくする)。
+            val d = with(LocalDensity.current) { 8.sp.toDp() }
+            Box(Modifier.size(d).background(leading.color, CircleShape))
+        }
         is ImasChipLeading.Avatar -> {
             // 写真があれば写真、無ければ判子 (アイコンは消さない)。
             CompositionLocalProvider(LocalImasTheme provides theme) {
@@ -541,22 +544,6 @@ object ImasChipColors {
         color != null -> imasTheme(color)
         seed != null || brand != null -> imasThemeForBrand(seed, brand)
         else -> imasEnvTheme
-    }
-
-    /**
-     * 墨の塗り (選択) の上のペンライト。塗りは画面と逆の明るさなので、逆の明るさ用の色を引く
-     * (ライトの紺は黒い塗りの上で沈む)。
-     */
-    @Composable
-    @ReadOnlyComposable
-    fun penlightOnInk(seed: String?, brand: String?, color: Color?, fallback: ImasTheme): Color {
-        val inverse = !LocalImasColors.current.dark
-        val t = when {
-            color != null -> ImasTheme.derive(color, inverse)
-            seed != null || brand != null -> ImasTheme.forBrand(seed, brand, inverse)
-            else -> return if (fallback.isNeutral) DS.onSys else fallback.penlight
-        }
-        return if (t.isNeutral) DS.onSys else t.dot
     }
 
     /** 見え方ごとの地・文字・線。 */

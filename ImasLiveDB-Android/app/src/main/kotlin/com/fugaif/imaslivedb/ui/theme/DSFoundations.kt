@@ -195,50 +195,6 @@ val ImasRainbow: List<Color> = listOf(
     Color(0xFF3A8EE6), Color(0xFF7A5AE0), Color(0xFFD65DB1)
 )
 
-/** ペンライトの点の大きさ。 */
-enum class ImasPenlightSize(val diameter: Dp) {
-    /** 13sp の文字の前 (歌唱者・チップ)。並べて人数を見せるときも。 */
-    SMALL(6.dp),
-
-    /** 15〜16sp の文字の前 (目印・行)。 */
-    REGULAR(7.dp),
-
-    /** 見出し・ヒーローの前。 */
-    LARGE(10.dp)
-}
-
-/**
- * 色の目印。名前・見出しの前に置く小さな点。iOS `ImasPenlight` の移植。
- *
- * アイドル・ブランドの色は、文字の後ろに淡く敷かず、この点 (と帯・選んだ印) だけで見せる。
- * 平らな点だけ (輪も光も付けない。ぼんやり光って見えるため)。
- * 読み上げには出さない (飾り。色の意味は隣の名前が言う)。
- *
- * @param color 点の色。実体の色は `imasTheme(...).penlight` から引く (hex を直接書かない)。
- * @param rainbow 合同ライブなど、単色で表せない目印は虹色にする (輪と光は [color] のまま)。
- */
-@Composable
-fun ImasPenlight(
-    color: Color,
-    modifier: Modifier = Modifier,
-    size: ImasPenlightSize = ImasPenlightSize.REGULAR,
-    rainbow: Boolean = false
-) {
-    // iOS の @ScaledMetric(relativeTo: .footnote) と同じく、文字の大きさの設定に合わせて点も大きくする
-    // (dp ではなく sp で測ると、端末の文字サイズとアプリ内の倍率の両方が掛かる)。
-    val diameter = with(LocalDensity.current) { size.diameter.value.sp.toDp() }
-    Box(
-        modifier
-            .size(diameter)
-            .drawWithCache {
-                // `size` は引数 (点の大きさの段) と名前が重なるので、描く面の大きさは this から引く。
-                val radius = this.size.minDimension / 2f
-                val fill = if (rainbow) imasStripesVertical(ImasRainbow, this.size.height) else SolidColor(color)
-                onDrawBehind { drawCircle(fill, radius = radius) }
-            }
-    )
-}
-
 /**
  * 単色で表せない目印 (合同ライブ) の虹色。色は溶かさず、くっきり区切った縞にする
  * (ぼんやり移ろうグラデーションは使わない。iOS `ImasStripes`)。[height] は塗る高さ (px)。

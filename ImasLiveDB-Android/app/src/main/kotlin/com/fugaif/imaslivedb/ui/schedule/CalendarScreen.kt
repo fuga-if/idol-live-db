@@ -17,6 +17,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,7 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
-import com.fugaif.imaslivedb.ui.designsystem.ImasChipLeading
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
@@ -174,12 +180,12 @@ private fun FilterBar(state: CalendarUiState, viewModel: CalendarViewModel) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         ImasChipRow(modifier = Modifier.weight(1f), contentPadding = DS.Space.gapLoose) {
-            CalFilterChip("公演", ShowColor, state.showShows) { viewModel.toggleShows() }
-            CalFilterChip("リリース", ReleaseColor, state.showReleases) { viewModel.toggleReleases() }
-            CalFilterChip("誕生日", BirthdayColor, state.showBirthdays) { viewModel.toggleBirthdays() }
-            CalFilterChip("事務員", StaffColor, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
-            CalFilterChip("記念日", AnniversaryColor, state.showAnniversaries) { viewModel.toggleAnniversaries() }
-            CalFilterChip("チケット", TicketColor, state.showTickets) { viewModel.toggleTickets() }
+            CalFilterChip("公演", Icons.Filled.Mic, state.showShows) { viewModel.toggleShows() }
+            CalFilterChip("リリース", Icons.Filled.Album, state.showReleases) { viewModel.toggleReleases() }
+            CalFilterChip("誕生日", Icons.Filled.CardGiftcard, state.showBirthdays) { viewModel.toggleBirthdays() }
+            CalFilterChip("事務員", Icons.Filled.Badge, state.showStaffBirthdays) { viewModel.toggleStaffBirthdays() }
+            CalFilterChip("記念日", Icons.Filled.AutoAwesome, state.showAnniversaries) { viewModel.toggleAnniversaries() }
+            CalFilterChip("チケット", Icons.Filled.ConfirmationNumber, state.showTickets) { viewModel.toggleTickets() }
         }
         ImasSegmented(
             labels = listOf("月", "週"),
@@ -310,11 +316,11 @@ private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Uni
     )
 }
 
-/** カテゴリの絞り込みチップ。先頭のペンライトに種別の代表色を点ける (DS §8.2 `ImasFilterChip`)。 */
+/** カテゴリの絞り込みチップ。先頭に種別の記号 (iOS `CalendarFilterChip` と同じ。DS §8.2 `ImasFilterChip`)。 */
 @Composable
 private fun CalFilterChip(
     label: String,
-    color: androidx.compose.ui.graphics.Color,
+    icon: ImageVector,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -322,7 +328,6 @@ private fun CalFilterChip(
         label = label,
         selected = selected,
         onClick = onClick,
-        tintColor = color,
-        leading = ImasChipLeading.Dot
+        icon = icon
     )
 }

@@ -191,7 +191,7 @@ struct CallGuideLegend: View {
         if !isEmpty {
             FlowLayout(spacing: DS.sp2, lineSpacing: DS.sp2) {
                 ForEach(emphases, id: \.self) { emphasis in
-                    legendItem(dot: emphasis.color(accent: theme.accent), text: emphasis.label)
+                    legendItem(swatch: emphasis.color(accent: theme.accent), text: emphasis.label)
                 }
                 ForEach(claps, id: \.self) { clap in
                     legendItem(symbol: clap.symbol, text: clap.label)
@@ -203,10 +203,11 @@ struct CallGuideLegend: View {
         }
     }
 
-    /// 凡例 1 件。ドット (強調度の色) か記号 + 文言を `ImasChip` で (押せない情報の札)。
-    private func legendItem(dot: Color? = nil, symbol: String? = nil, text: String) -> some View {
+    /// 凡例 1 件。色見本 (強調度の色) か記号 + 文言を `ImasChip` で (押せない情報の札)。
+    /// 色見本は凡例そのものなので外さない (名前の前の飾りの点とは違い、色が中身)。
+    private func legendItem(swatch: Color? = nil, symbol: String? = nil, text: String) -> some View {
         let label = [symbol, text].compactMap { $0 }.joined(separator: " ")
-        return ImasChip(text: label, style: .neutral, color: dot, leading: dot != nil ? .dot : nil)
+        return ImasChip(text: label, style: .neutral, leading: swatch.map { .swatch($0) })
     }
 }
 
