@@ -108,13 +108,6 @@ import com.fugaif.imaslivedb.ui.share.SocialShare
 import uniffi.imas_core.shareEventText
 import uniffi.imas_core.AttendanceState
 import uniffi.imas_core.TicketSaleStage
-import uniffi.imas_core.TicketSaleTimeline
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineAxis
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineBar
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineLegend
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineMark
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineScale
-import com.fugaif.imaslivedb.ui.designsystem.ImasTimelineLane
 import com.fugaif.imaslivedb.data.local.localWrite
 
 /**
@@ -705,7 +698,7 @@ private fun LazyListScope.infoSection(
     state.stats?.let { stats ->
         item { StatsGrid(stats, seed, brand) }
     }
-    if (state.ticketTimeline != null || state.ticketUrl != null || state.isFutureEvent) {
+    if (state.ticketSales.isNotEmpty() || state.ticketUrl != null || state.isFutureEvent) {
         item { TicketInfoSection(state, seed, brand) }
     }
     // 衣装。行は衣装単位で、押すとイベントをまたいだ着用公演へ。
@@ -730,39 +723,15 @@ private fun StatsGrid(stats: EventStats, seed: String?, brand: String?) {
 @Composable
 private fun TicketInfoSection(state: EventDetailUiState, seed: String?, brand: String?) {
     val uriHandler = LocalUriHandler.current
-    val timeline = state.ticketTimeline
-    val hasAny = timeline != null || state.ticketUrl != null
+    val hasAny = state.ticketSales.isNotEmpty() || state.ticketUrl != null
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
         // ImasSectionHeader は左右の余白を自分で持つので、追加の padding は付けない (二重になる)。
         ImasSectionHeader(title = "チケット情報", tight = true)
-        // 全受付を 1 枚の帯の表に重ねて「いつ何が受付中か」を一目で見せ、
-        // 期間・当落・対象・申込リンクの詳細はその下の一覧に並べる (iOS と同じ組み方)。
-        if (timeline != null) {
-            val scale = timelineScale(timeline)
-            ImasCard(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
-                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                    ImasTimelineAxis(scale)
-                    timeline.rows.forEach { row ->
-                        ImasTimelineLane(
-                            title = row.sale.name,
-                            trailing = row.sale.stageLabel,
-                            scale = scale,
-                            bar = row.span?.let { span ->
-                                ImasTimelineBar(span.start, span.end, span.startOpen, span.endOpen, timelineBarStyle(row.sale.stage))
-                            },
-                            result = row.resultAt,
-                            resultPending = row.sale.stage != TicketSaleStage.ENDED
-                        )
-                    }
-                }
-            }
-            ImasTimelineLegend(Modifier.padding(horizontal = DS.Space.screen))
-        }
         ImasCardList(modifier = Modifier.padding(horizontal = DS.Space.screen)) {
             var shown = false
-            timeline?.rows?.forEach { row ->
+            state.ticketSales.forEach { sale ->
                 if (shown) ImasRowDivider(inset = DS.Space.rowH)
-                TicketSaleRow(row.sale, seed, brand)
+                TicketSaleRow(sale, seed, brand)
                 shown = true
             }
             state.ticketUrl?.let { url ->
@@ -830,19 +799,6 @@ private fun TicketSaleRow(sale: uniffi.imas_core.TicketSale, seed: String?, bran
             }
         }
     }
-}
-
-private fun timelineScale(timeline: TicketSaleTimeline) = ImasTimelineScale(
-    ticks = timeline.ticks.map { ImasTimelineMark(it.at, it.label) },
-    today = timeline.today,
-    shows = timeline.shows.map { ImasTimelineMark(it.at, it.label) }
-)
-
-/** 帯の見え方。受付中は墨の塗り、受付前は墨の線、締切後 (結果待ち・終了) は灰 (iOS と同じ対応)。 */
-private fun timelineBarStyle(stage: TicketSaleStage): ImasTimelineBar.Style = when (stage) {
-    TicketSaleStage.OPEN -> ImasTimelineBar.Style.ACTIVE
-    TicketSaleStage.UPCOMING -> ImasTimelineBar.Style.AHEAD
-    TicketSaleStage.AWAITING_RESULT, TicketSaleStage.ENDED -> ImasTimelineBar.Style.PAST
 }
 
 /**

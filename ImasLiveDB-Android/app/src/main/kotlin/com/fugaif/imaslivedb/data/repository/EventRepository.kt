@@ -38,7 +38,6 @@ import uniffi.imas_core.AttendanceMarkRecord
 import uniffi.imas_core.TimelineBarRecord
 import uniffi.imas_core.EventHeroRecord
 import uniffi.imas_core.TicketSale
-import uniffi.imas_core.TicketSaleTimeline
 import com.fugaif.imaslivedb.data.model.JstDay
 import java.time.Instant
 
@@ -371,10 +370,6 @@ class EventRepository(
         snapshots.query { store -> store.ticketSalesForEvent(eventId, Instant.now().epochSecond) }
 
     /** 一番近い注目受付 1 件 (無ければ null)。イベント詳細のヒーロー相当に使う。 */
-    /** チケット受付を帯の時間軸 (ガント) に並べたもの。受付が無ければ null (位置の計算はコア)。 */
-    suspend fun fetchTicketSaleTimeline(eventId: String): TicketSaleTimeline? =
-        snapshots.query { store -> store.ticketSaleTimeline(eventId, Instant.now().epochSecond) }
-
     suspend fun fetchTicketSaleSpotlight(eventId: String): TicketSale? =
         snapshots.query { store -> store.ticketSaleSpotlight(eventId, Instant.now().epochSecond) }
 }

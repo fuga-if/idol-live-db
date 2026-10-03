@@ -1,6 +1,7 @@
 # file	lines  (tools/check_ds_usage.sh が数えた手書きの行。減らしたら --update で書き直す)
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/AttendanceSwipe.kt	1
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/CommunityLoginPrompt.kt	2
+ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/GradientHeader.kt	1
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/NowPlayingBar.kt	2
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/PersonalTagsSection.kt	1
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/components/SongRow.kt	1

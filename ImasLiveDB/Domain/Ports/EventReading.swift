@@ -39,8 +39,6 @@ protocol EventReading: Sendable {
     func eventReleases(eventId: String) async throws -> [EventRelease]
     /// チケット受付の一覧 (段階・並び・表示文字列は共有コアが決め切って返す)。
     func ticketSales(eventId: String) async throws -> [TicketSale]
-    /// チケット受付を帯の時間軸 (ガント) に並べたもの。受付が無ければ nil (位置の計算は共有コア)。
-    func ticketSaleTimeline(eventId: String) async throws -> TicketSaleTimeline?
     /// 「今いちばん近い」注目受付 1 件 (選び方は共有コア)。
     func ticketSaleSpotlight(eventId: String) async throws -> TicketSale?
 }
