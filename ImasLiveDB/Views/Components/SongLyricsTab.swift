@@ -424,7 +424,7 @@ struct SongLyricsTab: View {
                     }
                     saveButton(editor)
                 } else {
-                    if !vm.originalArtists.isEmpty {
+                    if lyricPartsApplicable(originalArtistCount: UInt32(vm.originalArtists.count)) {
                         ImasIconButton(systemImage: "person.2.fill", label: "パート分け", size: .small) {
                             AppAnalytics.tap("lyric_parts.begin_edit")
                             partsDraft = currentParts(lyrics)
@@ -711,7 +711,11 @@ struct SongLyricsTab: View {
     // MARK: - パート分け (誰が歌うか)
 
     /// 帯の色・名前を原唱者から引く表。
-    private var partCast: LyricPartCast { LyricPartCast(artists: vm.originalArtists) }
+    /// ソロ曲 (原唱者 1 人) では空にして、帯も名前も出さない。
+    private var partCast: LyricPartCast {
+        lyricPartsApplicable(originalArtistCount: UInt32(vm.originalArtists.count))
+            ? LyricPartCast(artists: vm.originalArtists) : .empty
+    }
 
     private func currentParts(_ lyrics: Lyrics) -> [String: [String]] {
         Dictionary(lyrics.lines.filter { !$0.singers.isEmpty }.map { ($0.id, $0.singers) },

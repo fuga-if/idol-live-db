@@ -33,6 +33,11 @@ struct LyricsPlayerView: View {
     @State private var activeOverlayId: String?
     @State private var followPausedUntil: Date = .distantPast
     @State private var likeToken = 0
+    /// いま出しているコールの添字 (曲の順)。変わった瞬間に震わせる (コール練習)。
+    @State private var activeCallIndex: Int?
+    @State private var callPulse = 0
+    /// コールのタイミングで震わせるか (端末の設定。既定はオン)。
+    @AppStorage("lyrics.call_haptics") private var callHaptics = true
     @State private var startFailed = false
     @State private var showsAddToPlaylist = false
 
@@ -69,6 +74,7 @@ struct LyricsPlayerView: View {
         .task { await startIfNeeded() }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
+        .sensoryFeedback(.impact(weight: .heavy), trigger: callPulse)
         .imasTheme(seed: seed)
         .sheet(isPresented: $showsAddToPlaylist) { AddToPlaylistSheet(song: song) }
     }
@@ -251,7 +257,7 @@ struct LyricsPlayerView: View {
         let starts = callStarts
         if starts.contains(where: { $0 != nil }) {
             let theme = ImasTheme.derive(seed: seed, scheme: scheme)
-            let current = lyricActiveCall(starts: starts, positionMs: Int64(position)).map(Int.init)
+            let current = activeCallIndex
             let next = starts.enumerated()
                 .filter { ($0.element ?? -1) > Int64(position) }
                 .min { ($0.element ?? 0) < ($1.element ?? 0) }?.offset
@@ -259,9 +265,9 @@ struct LyricsPlayerView: View {
                 Image(systemName: "megaphone.fill")
                     .foregroundStyle(current != nil ? theme.accent : DS.ink3)
                     .accessibilityHidden(true)
-                if let current {
+                if let current, current < calls.count {
                     Text(calls[current].text)
-                        .font(.imasHeading(24, weight: .heavy))
+                        .font(.imasHeading(30, weight: .heavy))
                         .foregroundStyle(calls[current].emphasis.color(accent: theme.accent))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -273,8 +279,14 @@ struct LyricsPlayerView: View {
                     Text("—").imasText(.rowLabel, color: DS.ink3)
                 }
                 Spacer(minLength: 0)
+                ImasIconButton(systemImage: callHaptics ? "iphone.radiowaves.left.and.right" : "iphone.slash",
+                               label: callHaptics ? "コールで震わせる: オン" : "コールで震わせる: オフ",
+                               size: .small, style: .plain) {
+                    AppAnalytics.tap("lyrics_player.toggle_call_haptics")
+                    callHaptics.toggle()
+                }
             }
-            .frame(minHeight: 34)
+            .frame(minHeight: 40)
             .animation(.easeOut(duration: 0.15), value: current)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(current.map { "コール \(calls[$0].text)" } ?? "コールなし")
@@ -299,6 +311,12 @@ struct LyricsPlayerView: View {
                 let overlay = lyricActiveOverlay(starts: overlayStarts, positionMs: Int64(ms))
                     .map { lyrics.lines[Int($0)].id }
                 if overlay != activeOverlayId { activeOverlayId = overlay }
+                // コール練習: 次のコールに入った瞬間だけ震わせる (コールが切れたときは震わせない)。
+                let call = lyricActiveCall(starts: callStarts, positionMs: Int64(ms)).map(Int.init)
+                if call != activeCallIndex {
+                    activeCallIndex = call
+                    if call != nil, callHaptics, playback.isPlaying { callPulse += 1 }
+                }
             }
             try? await Task.sleep(for: .milliseconds(150))
         }

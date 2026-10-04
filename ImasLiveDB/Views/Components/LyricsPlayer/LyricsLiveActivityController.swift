@@ -101,9 +101,13 @@ final class LyricsLiveActivityController {
         let current = index.map { lines[$0] }.flatMap { $0.kind == .lyric ? $0 : nil }
         let next = lines[((index ?? -1) + 1)...].first { $0.kind == .lyric && !$0.isOverlay }
         let singers = current?.singers ?? []
+        let calls = lines.flatMap(\.calls)
+        let call = player.fullPlaybackPositionMs.flatMap {
+            lyricActiveCall(starts: calls.map { $0.startMs.map(Int64.init) }, positionMs: Int64($0)).map { calls[Int($0)].text }
+        }
         return .init(line: current.map(mainText), nextLine: next.map(mainText),
                      singerColors: entry.cast.colors(singers), singerNames: entry.cast.names(singers),
-                     isPlaying: player.isPlaying)
+                     call: call, isPlaying: player.isPlaying)
     }
 
     /// 行の中の括弧 (追いかけ) は外す。ロック画面は狭いので本文だけ。

@@ -65,7 +65,7 @@ final class LyricsSession {
         let artwork = await MusicKitService.shared.fetchSongInfo(appleMusicId: song.appleMusicId)?.artworkURL
             ?? song.artworkUrl.flatMap(URL.init(string:))
         register(.init(song: song, seed: seed, artistLine: artistLine, artworkURL: artwork,
-                       lyrics: lyrics, cast: LyricPartCast(artists: artists)))
+                       lyrics: lyrics, cast: lyricPartsApplicable(originalArtistCount: UInt32(artists.count)) ? LyricPartCast(artists: artists) : .empty))
     }
 
     @ObservationIgnored private var loadingSongId: String?

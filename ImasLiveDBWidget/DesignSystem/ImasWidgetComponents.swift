@@ -45,10 +45,13 @@ enum ImasWidgetTextRole {
     case islandTitle(size: CGFloat)
     /// Dynamic Island の補足。
     case islandMeta(size: CGFloat)
+    /// いま出すコール (差し色の太字)。
+    case call(size: CGFloat, hex: String?)
 
     var font: Font {
         switch self {
         case .title(let size), .islandTitle(let size): return .system(size: size, weight: .bold)
+        case .call(let size, _): return .system(size: size, weight: .heavy)
         case .meta(let size), .dim(let size), .islandMeta(let size): return .system(size: size)
         }
     }
@@ -59,6 +62,7 @@ enum ImasWidgetTextRole {
         case .dim: return ImasWidgetColor.ink3
         case .islandTitle: return .white
         case .islandMeta: return Color(white: 1, opacity: 0.6)
+        case .call(_, let hex): return ImasWidgetColor.accent(hex)
         }
     }
 }

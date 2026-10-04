@@ -26,6 +26,11 @@ struct LyricsLiveActivity: Widget {
                         LyricsPartStripe(colors: context.state.singerColors)
                         VStack(alignment: .leading, spacing: ImasWidgetSpace.gapTight) {
                             Text(context.state.line ?? "♪").imasWidgetText(.islandTitle(size: 18)).lineLimit(2)
+                            if let call = context.state.call {
+                                (Text(Image(systemName: "megaphone.fill")) + Text(" " + call))
+                                    .imasWidgetText(.call(size: 16, hex: context.attributes.seedHex))
+                                    .lineLimit(1)
+                            }
                             if let next = context.state.nextLine {
                                 Text(next).imasWidgetText(.islandMeta(size: 14)).lineLimit(1)
                             }
@@ -64,6 +69,11 @@ private struct LyricsLockScreenView: View {
                     Text(state.line ?? "♪").imasWidgetText(.title(size: 20)).lineLimit(2)
                     if !state.singerNames.isEmpty {
                         Text(state.singerNames.joined(separator: "・")).imasWidgetText(.meta(size: 12)).lineLimit(1)
+                    }
+                    if let call = state.call {
+                        (Text(Image(systemName: "megaphone.fill")) + Text(" " + call))
+                            .imasWidgetText(.call(size: 17, hex: attributes.seedHex))
+                            .lineLimit(1)
                     }
                     if let next = state.nextLine {
                         Text(next).imasWidgetText(.dim(size: 15)).lineLimit(1)
