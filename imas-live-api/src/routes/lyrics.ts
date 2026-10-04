@@ -954,19 +954,20 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   // ----------------------------------------------------------------
   // 本文: { items: [{ songId, ord, at, base? }] } (`at` は「《」のスカラー位置)。文字数は変わらない。
   // `base` があるときは括弧に戻さず、親字の頭をそこに決め直す (｜を置く)。
+  // `toRuby: true` は逆向き: `at` の括弧 （） を振り仮名にする (`base` があれば親字の頭)。
   if (path === "/admin/lyrics/ruby-revert" && request.method === "POST") {
     const subject = await authorizeLyricsWrite(request, env);
     if (!subject) return error("Unauthorized", 401);
     const body = (await request.json().catch(() => null)) as { items?: unknown } | null;
-    const items = Array.isArray(body?.items) ? (body!.items as Array<{ songId?: unknown; ord?: unknown; at?: unknown; base?: unknown }>) : [];
+    const items = Array.isArray(body?.items) ? (body!.items as Array<{ songId?: unknown; ord?: unknown; at?: unknown; base?: unknown; toRuby?: unknown }>) : [];
     if (items.length === 0 || items.length > 500) return error("items must be 1..500", 400);
-    const bySong = new Map<string, Array<{ ord: number; at: number; base?: number }>>();
+    const bySong = new Map<string, Array<{ ord: number; at: number; base?: number; toRuby: boolean }>>();
     for (const it of items) {
       if (typeof it.songId !== "string" || typeof it.ord !== "number" || typeof it.at !== "number") {
         return error("each item needs songId, ord, at", 400);
       }
       const base = typeof it.base === "number" ? it.base : undefined;
-      bySong.set(it.songId, [...(bySong.get(it.songId) ?? []), { ord: it.ord, at: it.at, base }]);
+      bySong.set(it.songId, [...(bySong.get(it.songId) ?? []), { ord: it.ord, at: it.at, base, toRuby: it.toRuby === true }]);
     }
     let reverted = 0;
     for (const [songId, targets] of bySong) {
@@ -979,9 +980,11 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         let current = line;
         // 同じ行の中は後ろから当てる (｜を置くと後ろの位置がずれるので)。
         for (const t of targets.filter((x) => x.ord === line.ord).sort((a, b) => b.at - a.at)) {
-          const op = t.base === undefined
-            ? { op: "unruby" as const, lineId: current.id, at: t.at }
-            : { op: "rubyBase" as const, lineId: current.id, at: t.at, base: t.base };
+          const op = t.toRuby
+            ? { op: "ruby" as const, lineId: current.id, at: t.at, base: t.base }
+            : t.base === undefined
+              ? { op: "unruby" as const, lineId: current.id, at: t.at }
+              : { op: "rubyBase" as const, lineId: current.id, at: t.at, base: t.base };
           const r = applyStructureOp([current], op, () => "");
           if (r.ok) { current = r.lines[0]; changed = true; reverted += 1; }
         }
