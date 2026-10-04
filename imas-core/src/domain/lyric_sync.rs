@@ -138,36 +138,35 @@ pub fn ruby_spans(text: &str) -> Vec<LyricRuby> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
     let mut segment_start = 0usize;
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i] == '《' {
-            let Some(len) = chars[i + 1..].iter().position(|&c| c == '》') else { break };
-            let close = i + 1 + len + 1;
-            let marker = chars[segment_start..i].iter().rposition(|&c| c == '｜').map(|p| segment_start + p);
-            let base_start = match marker {
-                Some(m) => m + 1,
-                None => {
-                    let mut k = i;
-                    while k > segment_start && is_ideograph(chars[k - 1]) {
-                        k -= 1;
-                    }
-                    k
-                }
-            };
-            if base_start < i && len > 0 {
-                out.push(LyricRuby {
-                    base_start: base_start as u32,
-                    base_end: i as u32,
-                    open: i as u32,
-                    close: close as u32,
-                    marker: marker.map(|m| m as u32),
-                });
-            }
-            segment_start = close;
-            i = close;
+    for j in 0..chars.len() {
+        if chars[j] != '》' {
             continue;
         }
-        i += 1;
+        // 閉じの直前の「《」(いちばん内側) と組にする。歌詞が《》を引用の記号にも使っていて
+        // 「《地球《ちきゅう》》」のように重なっても、内側だけを振り仮名として読む。
+        let Some(p) = chars[segment_start..j].iter().rposition(|&c| c == '《') else { continue };
+        let open = segment_start + p;
+        let marker = chars[segment_start..open].iter().rposition(|&c| c == '｜').map(|m| segment_start + m);
+        let base_start = match marker {
+            Some(m) => m + 1,
+            None => {
+                let mut k = open;
+                while k > segment_start && is_ideograph(chars[k - 1]) {
+                    k -= 1;
+                }
+                k
+            }
+        };
+        if base_start < open && open + 1 < j {
+            out.push(LyricRuby {
+                base_start: base_start as u32,
+                base_end: open as u32,
+                open: open as u32,
+                close: (j + 1) as u32,
+                marker: marker.map(|m| m as u32),
+            });
+            segment_start = j + 1;
+        }
     }
     out
 }
@@ -455,6 +454,12 @@ mod tests {
         assert!(ruby_spans("見本《みほん").is_empty());
         // 前の振り仮名の後ろから親字を探す
         assert_eq!(ruby_spans("一《いち》二《に》")[1].base_start, 5);
+        // 《》を引用の記号にも使っている行: 内側だけが振り仮名
+        assert_eq!(
+            ruby_spans("《地球《ちきゅう》》"),
+            vec![LyricRuby { base_start: 1, base_end: 3, open: 3, close: 9, marker: None }]
+        );
+        assert!(ruby_spans("《Kick Off！》").is_empty());
     }
 
     #[test]
