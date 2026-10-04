@@ -38,6 +38,7 @@ export interface Env {
   DISCORD_DATA_ROLE_ID?: string;          // 「データ協力」
   DISCORD_CONTRIBUTOR_ROLE_ID?: string;   // 「コントリビューター」
   DISCORD_UPDATES_CHANNEL_ID?: string;    // #更新通知
+  DISCORD_PLAYLISTS_CHANNEL_ID?: string;  // みんなのプレイリストの公開 (#更新通知 とは別の部屋)
   DISCORD_POLL_RESULTS_CHANNEL_ID?: string; // #投票結果 (アナウンスチャンネル)
   DISCORD_LIVE_CHANNEL_ID?: string;       // #ライブ実況・感想 (その日の公演ごとにスレッド)
   DISCORD_ANNOUNCE_CHANNEL_ID?: string;   // #お知らせ (App Store のリリース)

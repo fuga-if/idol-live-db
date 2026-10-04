@@ -205,8 +205,7 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   const newIdolTags = source<{ name: string }>("idol_tag_master", "idol_tag_master", "name", "status = 'active'");
   const newUnitTags = source<{ name: string }>("unit_tag_master", "unit_tag_master", "name", "status = 'active'");
   const polls = source<{ title: string }>("polls", "polls", "title", "status = 'active'");
-  const playlists = source<{ title: string }>("playlists", "community_playlists", "title", "status = 'active'");
-  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls, playlists];
+  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
 
   const cursorRows = await env.DB.prepare("SELECT source, last_rowid FROM discord_digest_cursors").all<{
     source: string;
@@ -364,10 +363,6 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
     lines.push(`🗳️ **新しいお題** ${titles.slice(0, LIST_LIMIT).join("")}${moreSuffix(titles.length)}`);
   }
 
-  if (playlists.rows?.length) {
-    const titles = playlists.rows.map((r) => `「${md(r.title)}」`);
-    lines.push(`🎶 **新しいプレイリスト** ${titles.slice(0, LIST_LIMIT).join("")}${moreSuffix(titles.length)}`);
-  }
 
   if (lines.length > 0) {
     const ok = await postChannelMessage(env as Env, env.DISCORD_UPDATES_CHANNEL_ID, {
@@ -390,4 +385,47 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
       )
     );
   }
+}
+
+const PLAYLIST_EMBED_COLOR = 0x2fb67c;
+
+/**
+ * みんなのプレイリストの公開を、#更新通知 とは別の部屋 (DISCORD_PLAYLISTS_CHANNEL_ID) に 1 つずつ埋め込みで出す。
+ * 部屋がまだ無い (未設定) 間は読み進めない (設定したときに、それまでの公開分がまとめて出る)。
+ * タイトル・ひとことは利用者が書いた文字列なので md() で記号を無効にし、メンションは止める。作者は出さない。
+ */
+export async function postPlaylistDigest(env: DigestEnv): Promise<void> {
+  if (!env.DISCORD_BOT_TOKEN) return;
+  const name = "playlists";
+  const cursor = await env.DB.prepare("SELECT last_rowid FROM discord_digest_cursors WHERE source = ?")
+    .bind(name)
+    .first<{ last_rowid: number }>();
+  if (!cursor) {
+    // 初回は今の末尾から (過去の全件を流さない)。
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO discord_digest_cursors (source, last_rowid)
+       SELECT ?, COALESCE(MAX(rowid), 0) FROM community_playlists`
+    ).bind(name).run();
+    return;
+  }
+  if (!env.DISCORD_PLAYLISTS_CHANNEL_ID) return;
+  const { results } = await env.DB.prepare(
+    `SELECT rowid AS rid, title, description, song_count FROM community_playlists
+     WHERE rowid > ? AND status = 'active' ORDER BY rowid LIMIT ${EMBED_LIMIT}`
+  ).bind(Number(cursor.last_rowid)).all<{ rid: number; title: string; description: string | null; song_count: number }>();
+  const rows = results ?? [];
+  if (rows.length === 0) return;
+  const ok = await postChannelMessage(env as Env, env.DISCORD_PLAYLISTS_CHANNEL_ID, {
+    content: `🎶 **新しいプレイリスト** ${rows.length} 件`,
+    allowed_mentions: { parse: [] },
+    embeds: rows.map((r) => ({
+      title: r.title.slice(0, 256),
+      description: [r.description ? md(r.description) : null, `${r.song_count} 曲`].filter(Boolean).join("\n").slice(0, 1000),
+      color: PLAYLIST_EMBED_COLOR,
+    })),
+  });
+  if (!ok) throw new Error("discord playlist digest post failed");
+  await env.DB.prepare("UPDATE discord_digest_cursors SET last_rowid = ? WHERE source = ?")
+    .bind(rows[rows.length - 1].rid, name)
+    .run();
 }

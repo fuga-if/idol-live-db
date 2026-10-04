@@ -8,7 +8,7 @@
 // 失敗は 1 行の JSON (event: "cron_task_failed") でログに出す。最後に失敗をまとめて投げ直すので、
 // cron の実行としても失敗が記録される。
 
-import { postDiscordDigest } from "./discord_digest";
+import { postDiscordDigest, postPlaylistDigest } from "./discord_digest";
 import { postPollResults } from "./discord_poll_results";
 import { createLiveThreads } from "./discord_live_threads";
 import { postAppRelease, postDevWeekly } from "./discord_releases";
@@ -72,6 +72,11 @@ const EVERY_RUN: CronTask[] = [
     name: "discord_digest",
     // #更新通知 へのまとめ投稿。rowid の範囲で新しい行だけ読む (discord_digest.ts)。
     run: postDiscordDigest,
+  },
+  {
+    name: "discord_playlist_digest",
+    // みんなのプレイリストの公開を専用の部屋へ (DISCORD_PLAYLISTS_CHANNEL_ID が無い間は溜めておく)。
+    run: postPlaylistDigest,
   },
   {
     name: "discord_poll_results",
