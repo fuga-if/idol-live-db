@@ -67,4 +67,22 @@ describe("振り仮名の記法", () => {
     const bad = applyStructureOp([{ ...lines[0], text: "だ（みほん）" }] as any, { op: "ruby", lineId: "a", at: 1 }, () => "x");
     expect(bad.ok).toBe(false);
   });
+
+  it("親字の頭を決め直す (｜を置く・置き直す)", () => {
+    const call = { id: "c", start: 7, end: 8, anchorText: "だ", text: "Hi" };
+    const lines = [{ id: "a", ord: 0, kind: "lyric", text: "記憶抱《イダ》だ", section: null, start_ms: null, clap: null, calls: [call] }];
+    const one = applyStructureOp(lines as any, { op: "rubyBase", lineId: "a", at: 3, base: 2 }, () => "x");
+    expect(one.ok && one.lines[0].text).toBe("記憶｜抱《イダ》だ");
+    expect(one.ok && one.lines[0].calls[0]).toMatchObject({ start: 8, end: 9, anchorText: "だ" });
+    expect(one.ok && one.lines[0].calls[0].stale).toBeUndefined();
+    // 置き直すと前の｜は外れる
+    const two = applyStructureOp((one as any).lines, { op: "rubyBase", lineId: "a", at: 4, base: 1 }, () => "x");
+    expect(two.ok && two.lines[0].text).toBe("記｜憶抱《イダ》だ");
+    // 漢字でない親字にも置ける
+    const ateji = applyStructureOp([{ ...lines[0], text: "あのSTAR《ほし》", calls: [] }] as any,
+      { op: "rubyBase", lineId: "a", at: 6, base: 2 }, () => "x");
+    expect(ateji.ok && ateji.lines[0].text).toBe("あの｜STAR《ほし》");
+    const bad = applyStructureOp(lines as any, { op: "rubyBase", lineId: "a", at: 3, base: 3 }, () => "x");
+    expect(bad.ok).toBe(false);
+  });
 });

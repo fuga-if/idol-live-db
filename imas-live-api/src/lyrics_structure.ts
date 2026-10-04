@@ -22,7 +22,10 @@ export type StructureOp =
   | { op: "split"; lineId: string; at: number }
   // 振り仮名にする / やめる。`at` は括弧 (「（」「(」) か「《」の位置。記号を入れ替えるだけで文字数は変わらない。
   | { op: "ruby"; lineId: string; at: number }
-  | { op: "unruby"; lineId: string; at: number };
+  | { op: "unruby"; lineId: string; at: number }
+  // 振り仮名の親字の頭を決め直す。`at` は「《」の位置、`base` は親字の頭の位置 (「｜」を置く)。
+  // 漢字のまとまりの一部だけに掛ける (記憶｜抱《イダ》) ときと、漢字でない親字 (｜ＳＴＡＲ《ほし》) に使う。
+  | { op: "rubyBase"; lineId: string; at: number; base: number };
 
 export type StructureResult = { ok: true; lines: LyricLineRow[] } | { ok: false; error: string };
 
@@ -48,7 +51,12 @@ export function parseStructureOp(body: unknown): StructureOp | string {
     if (typeof b.at !== "number" || !Number.isInteger(b.at)) return "at must be an integer";
     return { op: b.op, lineId, at: b.at };
   }
-  return "op must be merge, split, ruby or unruby";
+  if (b.op === "rubyBase") {
+    if (typeof b.at !== "number" || !Number.isInteger(b.at)) return "at must be an integer";
+    if (typeof b.base !== "number" || !Number.isInteger(b.base)) return "base must be an integer";
+    return { op: "rubyBase", lineId, at: b.at, base: b.base };
+  }
+  return "op must be merge, split, ruby, unruby or rubyBase";
 }
 
 /** 行の区切りを動かした後の行の並び。ord は振り直す。 */
@@ -63,7 +71,11 @@ export function applyStructureOp(
   if (line.kind !== "lyric") return { ok: false, error: "only lyric lines can be edited" };
 
   let next: LyricLineRow[];
-  if (op.op === "ruby" || op.op === "unruby") {
+  if (op.op === "rubyBase") {
+    const r = setRubyBase(line, op.at, op.base);
+    if (typeof r === "string") return { ok: false, error: r };
+    next = [...lines.slice(0, i), r, ...lines.slice(i + 1)];
+  } else if (op.op === "ruby" || op.op === "unruby") {
     const scalars = toScalars(line.text);
     const [open, close] = op.op === "ruby" ? [["（", "("], ["）", ")"]] : [["《"], ["》"]];
     if (!open.includes(scalars[op.at] ?? "")) return { ok: false, error: "at must point at an opening bracket" };
@@ -134,4 +146,34 @@ export function applyStructureOp(
     next = [...lines.slice(0, i), first, second, ...lines.slice(i + 1)];
   }
   return { ok: true, lines: next.map((l, ord) => ({ ...l, ord })) };
+}
+
+/**
+ * 「《」の親字の頭に「｜」を置く。前に置いてあった「｜」は外す。
+ * 親字は前の「》」(か行頭) より後ろで、「《」の手前に 1 文字以上。コールは文字のずれに合わせて動かす。
+ */
+function setRubyBase(line: LyricLineRow, at: number, base: number): LyricLineRow | string {
+  const scalars = toScalars(line.text);
+  if (scalars[at] !== "《") return "at must point at 《";
+  if (!scalars.slice(at + 1).includes("》")) return "the bracket must be closed";
+  const segmentStart = scalars.slice(0, at).lastIndexOf("》") + 1;
+  if (base < segmentStart || base >= at) return "base must be before 《 and after the previous ruby";
+  const oldMarker = scalars.slice(segmentStart, at).lastIndexOf("｜");
+  const removed = oldMarker >= 0 ? segmentStart + oldMarker : -1;
+  if (removed >= 0 && base > removed) base -= 1; // 外した「｜」の分だけ前に詰まる
+  const without = removed >= 0 ? [...scalars.slice(0, removed), ...scalars.slice(removed + 1)] : scalars;
+  if (without[base] === "｜") return "base must point at a character";
+  const text = [...without.slice(0, base), "｜", ...without.slice(base)].join("");
+  // 元の位置 → 新しい位置 (外した「｜」の後ろは 1 つ詰め、置いた「｜」の後ろは 1 つ送る)。
+  const move = (k: number) => {
+    const shifted = removed >= 0 && k > removed ? k - 1 : k;
+    return shifted >= base ? shifted + 1 : shifted;
+  };
+  const calls = (line.calls ?? []).map((c) => {
+    const start = move(c.start);
+    const end = Math.max(start, move(c.end));
+    const stale = scalarSlice(text, start, end) !== c.anchorText;
+    return { ...c, start, end, ...(stale ? { stale: true } : {}) };
+  });
+  return { ...line, text, calls };
 }
