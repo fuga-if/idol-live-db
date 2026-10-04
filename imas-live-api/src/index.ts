@@ -20,6 +20,7 @@ import { handleMusicToken } from "./routes/music_token";
 import { handleMusicAuth } from "./routes/music_auth";
 import { handleLyricAnnotations } from "./routes/lyric_annotations";
 import { handleLyricParts } from "./routes/parts";
+import { handleCommunityPlaylists } from "./routes/community_playlists";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleTransfer } from "./routes/transfer";
 import { handleDiscord } from "./routes/discord";
@@ -246,6 +247,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   handleAdmin,
   handleSetlistPredictions,
   handlePolls,
+  // みんなのプレイリスト (曲 id の並び・タイトル・ひとこと)。一覧と 1 つ取りは公開キャッシュ。
+  handleCommunityPlaylists,
   handleDeviceAggregates,
   handleTags,
   // 歌詞 (GET /songs/:id/lyrics・/lyrics/search・/admin/lyrics/*)。

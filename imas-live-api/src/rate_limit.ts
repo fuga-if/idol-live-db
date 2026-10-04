@@ -61,6 +61,8 @@ const LIMITS = {
   discord_link: 20,
   // lyric_like: 歌詞行の「ここ好き」の付け外し。聴きながら何度も押すので緩め。
   lyric_like: 500,
+  // playlist: みんなのプレイリストの公開・差し替え。お題より少し緩め (並べ直して出し直すので)。
+  playlist: 20,
 } as const satisfies Record<string, number>;
 
 /** 日次枠の種類。LIMITS に無い名前は型で弾く (知らない名前に黙って既定値を当てない)。 */

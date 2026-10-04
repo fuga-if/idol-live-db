@@ -105,6 +105,7 @@ export async function handleUsers(ctx: RouteContext): Promise<Response | null> {
         .prepare("DELETE FROM setlist_performer_prediction_votes WHERE user_id = ?")
         .bind(uid),
       env.DB.prepare("DELETE FROM poll_votes WHERE user_id = ?").bind(uid),
+      env.DB.prepare("DELETE FROM community_playlists WHERE created_by = ?").bind(uid),
       env.DB.prepare("DELETE FROM setlist_song_likes WHERE user_id = ?").bind(uid),
       // 歌詞行の「ここ好き」。人数 (likes_json) を本人抜きで数え直してから消す。
       ...lyricLikesAccountDeletionStatements(env.DB, uid),

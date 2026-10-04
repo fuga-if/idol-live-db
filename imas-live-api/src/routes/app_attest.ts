@@ -128,6 +128,8 @@ function isCommunityRead(path: string, method: string): boolean {
   if (path === "/calls/dashboard") return true;
   // コールガイド・タイミングがある曲の id (曲 id と真偽だけ)。同じく本文を含まない集計。
   if (path === "/lyrics/annotations") return true;
+  // みんなのプレイリスト (曲 id の並びとタイトル)。
+  if (/^\/playlists(\/|$)/.test(path)) return true;
   return false;
 }
 

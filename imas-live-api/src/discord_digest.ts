@@ -205,7 +205,8 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   const newIdolTags = source<{ name: string }>("idol_tag_master", "idol_tag_master", "name", "status = 'active'");
   const newUnitTags = source<{ name: string }>("unit_tag_master", "unit_tag_master", "name", "status = 'active'");
   const polls = source<{ title: string }>("polls", "polls", "title", "status = 'active'");
-  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
+  const playlists = source<{ title: string }>("playlists", "community_playlists", "title", "status = 'active'");
+  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls, playlists];
 
   const cursorRows = await env.DB.prepare("SELECT source, last_rowid FROM discord_digest_cursors").all<{
     source: string;
@@ -361,6 +362,11 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   if (polls.rows?.length) {
     const titles = polls.rows.map((r) => `「${md(r.title)}」`);
     lines.push(`🗳️ **新しいお題** ${titles.slice(0, LIST_LIMIT).join("")}${moreSuffix(titles.length)}`);
+  }
+
+  if (playlists.rows?.length) {
+    const titles = playlists.rows.map((r) => `「${md(r.title)}」`);
+    lines.push(`🎶 **新しいプレイリスト** ${titles.slice(0, LIST_LIMIT).join("")}${moreSuffix(titles.length)}`);
   }
 
   if (lines.length > 0) {
