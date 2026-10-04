@@ -25,7 +25,7 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         data class Failed(val message: String) : SaveState
     }
 
-    enum class Lane { LINES, CALLS }
+    enum class Lane { LINES, CALLS, PARTS }
 
     /** 表示順の行 ID。 */
     val lineIds: List<String> = lyrics.lines.map { it.id }
@@ -51,6 +51,13 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     var layers: List<String?> by mutableStateOf(lyrics.lines.map { it.layer })
         private set
     private val originalLayers: List<String?> = layers
+
+    /** 表示順の各行の歌唱者 (アイドル id)。パートの段で付け外しする。 */
+    var singers: List<List<String>> by mutableStateOf(lyrics.lines.map { it.singers })
+        private set
+    private val originalSingers: List<List<String>> = singers
+    /** パートの取り消し用 (history の PARTS と同じ順に、前の歌唱者を積む)。 */
+    private val partsUndo = ArrayDeque<List<String>>()
 
     var lane: Lane by mutableStateOf(Lane.LINES)
 
@@ -91,13 +98,48 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     val isDirty: Boolean
-        get() = starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers
+        get() = starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers ||
+            singers != originalSingers
+
+    private val partsChanged: Boolean get() = singers != originalSingers
 
     /** 行の被せ指定を切り替える (被せ ⇄ メイン)。括弧の判定より指定が勝つ。 */
     fun setOverlay(lineId: String, overlay: Boolean) {
         val i = lineIds.indexOf(lineId)
         if (i < 0) return
         layers = layers.toMutableList().also { it[i] = if (overlay) "overlay" else "main" }
+    }
+
+    /** 行の歌唱者に [idolId] を付け外しする。並びは [order] (原唱者の並び) にそろえる。 */
+    fun toggleSinger(lineId: String, idolId: String, order: List<String>) {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0 || kinds[i] != "lyric") return
+        pushPartsUndo(i)
+        var list = singers[i]
+        list = if (idolId in list) list - idolId else list + idolId
+        list = list.sortedBy { order.indexOf(it).let { idx -> if (idx < 0) Int.MAX_VALUE else idx } }
+        singers = singers.toMutableList().also { it[i] = list }
+    }
+
+    /** 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。 */
+    fun copyPreviousSingers(lineId: String) {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0) return
+        val prev = (i - 1 downTo 0).firstOrNull { kinds[it] == "lyric" } ?: return
+        pushPartsUndo(i)
+        singers = singers.toMutableList().also { it[i] = singers[prev] }
+    }
+
+    private fun pushPartsUndo(index: Int) {
+        history.addLast(HistoryEntry(Lane.PARTS, index, null, null))
+        partsUndo.addLast(singers[index])
+        lastWasAdjust = false
+    }
+
+    /** 行の歌唱者 (id で引く)。 */
+    fun singers(forLineId: String): List<String> {
+        val i = lineIds.indexOf(forLineId)
+        return if (i >= 0) singers[i] else emptyList()
     }
 
     val canUndo: Boolean get() = history.isNotEmpty()
@@ -119,7 +161,12 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     /** いま記録している段の「次」。 */
-    val laneCursor: Int? get() = if (lane == Lane.LINES) cursor else callCursor
+    val laneCursor: Int?
+        get() = when (lane) {
+            Lane.LINES -> cursor
+            Lane.CALLS -> callCursor
+            Lane.PARTS -> null
+        }
 
     /** いま記録している段の次の 1 つを、今の再生位置で記録する (大きい記録ボタン)。 */
     fun recordNext(positionMs: Int) {
@@ -136,6 +183,7 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
                 callStarts = callStarts.toMutableList().also { it[index] = positionMs }
                 callCursor = if (index + 1 < callIds.size) index + 1 else null
             }
+            Lane.PARTS -> return
         }
         lastWasAdjust = false
     }
@@ -189,6 +237,9 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
                 callStarts = callStarts.toMutableList().also { it[last.index] = last.previous }
                 callCursor = last.cursor
             }
+            Lane.PARTS -> {
+                singers = singers.toMutableList().also { it[last.index] = partsUndo.removeLastOrNull() ?: emptyList() }
+            }
         }
     }
 
@@ -199,6 +250,12 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         val calls = callIds.indices.map { TimingEntry(callIds[it], callStarts[it]) }
         return try {
             api.saveTimings(songId, lines, calls)
+            if (partsChanged) {
+                val parts = lineIds.indices.mapNotNull { i ->
+                    if (singers[i].isEmpty()) null else lineIds[i] to singers[i]
+                }
+                api.saveParts(songId, parts)
+            }
             saveState = SaveState.Idle
             true
         } catch (e: Exception) {

@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Superscript
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -107,6 +109,7 @@ import uniffi.imas_core.lyricChunks
 import uniffi.imas_core.lyricHasTiming
 import uniffi.imas_core.lyricLikeHeat
 import uniffi.imas_core.lyricPartsApplicable
+import uniffi.imas_core.lyricRubySpans
 
 /**
  * 楽曲詳細の歌詞タブ。iOS `SongLyricsTab` の移植 (= 実質コールガイド)。
@@ -332,7 +335,13 @@ fun SongLyricsTab(
                                 onOpenMenu = { structureMenuLineId = it },
                                 onCloseMenu = { structureMenuLineId = null },
                                 onSplit = { lineId, at -> changeStructure(lineId, StructureChange.Split(lineId, at)) },
-                                onMerge = { lineId, joiner -> changeStructure(lineId, StructureChange.Merge(lineId, joiner)) }
+                                onMerge = { lineId, joiner -> changeStructure(lineId, StructureChange.Merge(lineId, joiner)) },
+                                onToggleRuby = { lineId, at, isRuby ->
+                                    changeStructure(
+                                        lineId,
+                                        if (isRuby) StructureChange.Unruby(lineId, at) else StructureChange.Ruby(lineId, at)
+                                    )
+                                }
                             )
                         }
                     }
@@ -369,7 +378,7 @@ fun SongLyricsTab(
         Dialog(onDismissRequest = {}, properties = DialogProperties(usePlatformDefaultWidth = false)) {
             LyricTimingEditorScreen(
                 song = song, seed = seed, lyrics = lyrics, recorder = activeRecorder,
-                onSaved = onReload, onClose = { recorder = null }
+                onSaved = onReload, onClose = { recorder = null }, cast = partCast
             )
         }
     }
@@ -620,7 +629,8 @@ private fun StructureBody(
     onOpenMenu: (String) -> Unit,
     onCloseMenu: () -> Unit,
     onSplit: (String, Int) -> Unit,
-    onMerge: (String, LyricJoiner) -> Unit
+    onMerge: (String, LyricJoiner) -> Unit,
+    onToggleRuby: (String, Int, Boolean) -> Unit
 ) {
     lyrics.lines.forEachIndexed { index, line ->
         when (line.kind) {
@@ -640,6 +650,10 @@ private fun StructureBody(
                             )
                         }
                     }
+                    RubyToggles(
+                        line = line, busy = busyLineId != null,
+                        onToggle = { at, isRuby -> onToggleRuby(line.id, at, isRuby) }
+                    )
                     val nextIsLyric = index + 1 < lyrics.lines.size && lyrics.lines[index + 1].kind == LyricLineKind.LYRIC
                     if (nextIsLyric) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -667,6 +681,53 @@ private fun StructureBody(
         }
     }
 }
+
+/**
+ * 行の中の振り仮名 (《》) と、漢字の直後の括弧を並べて、振り仮名にする / やめるを選ばせる
+ * (iOS `SongLyricsTab.rubyToggles` の移植)。位置はスカラー (= コードポイント) のまま扱う。
+ */
+@Composable
+private fun RubyToggles(line: LyricLine, busy: Boolean, onToggle: (Int, Boolean) -> Unit) {
+    val codePoints = remember(line.text) { line.text.codePoints().toArray() }
+    val rubies = remember(line.text) { lyricRubySpans(line.text) }
+    val rubyOpens = remember(rubies) { rubies.map { it.open.toInt() }.toSet() }
+    // 括弧で書いてあり、直前が漢字のもの (振り仮名にできる候補)。
+    val candidates = remember(codePoints) {
+        codePoints.indices.filter { k ->
+            (codePoints[k] == '（'.code || codePoints[k] == '('.code) && k > 0 &&
+                Character.isIdeographic(codePoints[k - 1])
+        }
+    }
+    val items = remember(rubies, candidates, rubyOpens) {
+        (rubies.map { RubyToggleItem(it.open.toInt(), true) } +
+            candidates.filter { it !in rubyOpens }.map { RubyToggleItem(it, false) })
+            .sortedBy { it.at }
+    }
+    if (items.isEmpty()) return
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(DS.sp2)
+    ) {
+        items.forEach { item ->
+            var end = item.at + 1
+            while (end < codePoints.size &&
+                codePoints[end] != '）'.code && codePoints[end] != ')'.code && codePoints[end] != '》'.code
+            ) end++
+            val s = codePointToCharIndex(line.text, item.at + 1)
+            val e = codePointToCharIndex(line.text, end)
+            val inner = line.text.substring(s, e)
+            ImasButton(
+                title = if (item.isRuby) "「$inner」をルビにしない" else "「$inner」をルビにする",
+                icon = if (item.isRuby) Icons.Filled.TextFields else Icons.Filled.Superscript,
+                role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL,
+                enabled = !busy,
+                onClick = { onToggle(item.at, item.isRuby) }
+            )
+        }
+    }
+}
+
+private data class RubyToggleItem(val at: Int, val isRuby: Boolean)
 
 @Composable
 private fun Modifier.combinedClickableSimple(onClick: () -> Unit): Modifier =

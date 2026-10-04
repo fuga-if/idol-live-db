@@ -83,6 +83,8 @@ class LyricsApi(private val client: WorkerHttpClient) {
         val body = when (change) {
             is StructureChange.Merge -> JSONObject().put("op", "merge").put("lineId", change.lineId).put("joiner", change.joiner.raw)
             is StructureChange.Split -> JSONObject().put("op", "split").put("lineId", change.lineId).put("at", change.at)
+            is StructureChange.Ruby -> JSONObject().put("op", "ruby").put("lineId", change.lineId).put("at", change.at)
+            is StructureChange.Unruby -> JSONObject().put("op", "unruby").put("lineId", change.lineId).put("at", change.at)
         }
         check(client.request("POST", "/songs/${seg(songId)}/lyric-structure", body), "行の区切りを変えられませんでした")
     }
@@ -114,4 +116,7 @@ sealed interface StructureChange {
     data class Merge(val lineId: String, val joiner: LyricJoiner) : StructureChange
     /** `at` はスカラー位置。その位置の前で切る。 */
     data class Split(val lineId: String, val at: Int) : StructureChange
+    /** `at` は開く括弧 (（／(／《) のスカラー位置。文字数は変わらず、振り仮名にする/やめる。 */
+    data class Ruby(val lineId: String, val at: Int) : StructureChange
+    data class Unruby(val lineId: String, val at: Int) : StructureChange
 }
