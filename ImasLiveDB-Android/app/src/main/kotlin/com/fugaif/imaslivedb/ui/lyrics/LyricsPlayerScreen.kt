@@ -383,7 +383,7 @@ private fun LyricsPlayerRow(
                 ImasPlayerLyricLine(
                     text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
                     isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked,
-                    isCalled = line.calls.any { it.id == activeCallId && it.echoesLyric },
+                    isCalled = line.calls.any { it.id == activeCallId && line.echoes(it) },
                     seed = seed
                 )
                 val overlayText = split.overlay
@@ -394,7 +394,7 @@ private fun LyricsPlayerRow(
             ImasPartNames(names = cast.names(line.singers))
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは
             // 行に出さず、上の歌詞を点ける)。
-            line.calls.filter { !it.echoesLyric }.forEach { call ->
+            line.calls.filter { !line.echoes(it) }.forEach { call ->
                 ImasPlayerCallLine(
                     marker = if (call.hasAnchor) "↳" else "»",
                     text = call.text,

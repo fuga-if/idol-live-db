@@ -48,8 +48,10 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -88,6 +90,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
+import com.fugaif.imaslivedb.ui.designsystem.ImasRubyText
+import com.fugaif.imaslivedb.ui.designsystem.codePointToCharIndex
 import com.fugaif.imaslivedb.ui.designsystem.lyricColor
 import com.fugaif.imaslivedb.ui.lyrics.LyricTimingEditorScreen
 import com.fugaif.imaslivedb.ui.lyrics.LyricTimingRecorder
@@ -538,13 +542,13 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                 Column(Modifier.weight(1f)) {
                     // ⚠️ ここに SelectionContainer / テキストコピーの口を足さないこと。
                     Text(
-                        text = highlightedLyricText(line.text, highlightsFor(line, accent)),
+                        text = highlightedLyricText(line.text, highlightsFor(line, accent), rubyColor = DS.ink2),
                         style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
                         color = DS.ink
                     )
                     ImasPartNames(names = cast.names(line.singers))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
-                    val listed = line.calls.filter { !it.echoesLyric }
+                    val listed = line.calls.filter { !line.echoes(it) }
                     if (listed.isNotEmpty()) ImasCallRows(calls = listed, anchorIndexes = anchorIndexesFor(line))
                 }
                 if (isLiked) ImasLyricLikeMark(seed = null, modifier = Modifier.padding(top = DS.sp1))
@@ -696,7 +700,7 @@ private fun highlightsFor(line: LyricLine, accent: Color): List<LyricHighlight> 
         strongest[key]?.let {
             LyricHighlight(
                 it.start, it.end, it.emphasis.lyricColor(accent),
-                isEcho = line.calls.any { c -> c.start == it.start && c.end == it.end && c.echoesLyric }
+                isEcho = line.calls.any { c -> c.start == it.start && c.end == it.end && line.echoes(c) }
             )
         }
     }
@@ -717,7 +721,7 @@ private fun anchorIndexesFor(line: LyricLine): Map<String, Int>? {
     val result = mutableMapOf<String, Int>()
     var order = 0
     // 行に並べない (歌詞と同じ文字の同時) コールは番号を振る数に入れない。
-    for (call in line.calls.filter { it.hasAnchor && !it.echoesLyric }) {
+    for (call in line.calls.filter { it.hasAnchor && !line.echoes(it) }) {
         val key = "${call.start}-${call.end}"
         if (groups[key] == null) { groups[key] = order; order++ }
         result[call.id] = groups[key]!!
@@ -728,47 +732,55 @@ private fun anchorIndexesFor(line: LyricLine): Map<String, Int>? {
 private data class LyricHighlight(val start: Int, val end: Int, val color: Color, val isEcho: Boolean = false)
 
 /**
- * アンカー範囲に色を敷いた行を組み立てる (iOS `CallGuideText.attributed`)。
+ * アンカー範囲に色を敷いた行を組み立てる (iOS `CallGuideText.attributed`)。振り仮名
+ * (`《》｜`。[ImasRubyText]) は記号を外して右肩に小さく乗せる。アンカーの範囲はスカラー位置の
+ * ままなので、振り仮名の記号を跨いでいても素通りする (記号は表示されないだけ)。
  *
  * ⚠️ `start`/`end` は Unicode スカラー (= Java の codePoint) 単位。Kotlin の `String` は
  * UTF-16 なので、絵文字などサロゲートペアを含む行では文字添字への変換が必要 ([codePointToCharIndex])。
  */
-private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>): AnnotatedString {
-    if (highlights.isEmpty()) return AnnotatedString(text)
+private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>, rubyColor: Color): AnnotatedString {
     val totalScalars = text.codePointCount(0, text.length)
+    // 各スカラーがどのアンカーに入るか (重なりは先勝ち)。
+    val owner = arrayOfNulls<Int>(totalScalars)
+    var cursor = 0
+    for ((index, h) in highlights.withIndex().sortedBy { it.value.start }) {
+        val s = maxOf(h.start, cursor)
+        val e = minOf(h.end, totalScalars)
+        if (s >= e) continue
+        for (k in s until e) owner[k] = index
+        cursor = e
+    }
     return buildAnnotatedString {
-        var cursor = 0
-        for (h in highlights.sortedBy { it.start }) {
-            val s = maxOf(h.start, cursor)
-            val e = minOf(h.end, totalScalars)
-            if (s >= e) continue
-            if (s > cursor) append(text.substring(codePointToCharIndex(text, cursor), codePointToCharIndex(text, s)))
-            // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
-            withStyle(
-                SpanStyle(
-                    background = h.color.copy(alpha = if (h.isEcho) 0.32f else 0.18f),
-                    fontWeight = if (h.isEcho) FontWeight.Bold else null,
-                    textDecoration = TextDecoration.Underline
-                )
-            ) {
-                append(text.substring(codePointToCharIndex(text, s), codePointToCharIndex(text, e)))
+        for (run in ImasRubyText.runs(text)) {
+            var k = run.range.first
+            while (k <= run.range.last) {
+                val start = k
+                val current = owner[k]
+                while (k <= run.range.last && owner[k] == current) k++
+                val segmentText = text.substring(codePointToCharIndex(text, start), codePointToCharIndex(text, k))
+                val highlight = current?.let { highlights[it] }
+                if (highlight == null && !run.isRuby) {
+                    append(segmentText)
+                    continue
+                }
+                // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
+                withStyle(
+                    SpanStyle(
+                        background = highlight?.color?.copy(alpha = if (highlight.isEcho) 0.32f else 0.18f)
+                            ?: Color.Unspecified,
+                        fontWeight = if (run.isRuby || highlight?.isEcho == true) FontWeight.Bold else null,
+                        textDecoration = if (highlight != null) TextDecoration.Underline else null,
+                        fontSize = if (run.isRuby) ImasRubyText.BODY_FONT_SIZE else TextUnit.Unspecified,
+                        baselineShift = if (run.isRuby) BaselineShift.Superscript else null,
+                        color = if (run.isRuby) rubyColor else Color.Unspecified
+                    )
+                ) {
+                    append(segmentText)
+                }
             }
-            cursor = e
         }
-        val tail = codePointToCharIndex(text, cursor)
-        if (tail < text.length) append(text.substring(tail))
     }
-}
-
-private fun codePointToCharIndex(text: String, codePointIndex: Int): Int {
-    if (codePointIndex <= 0) return 0
-    var charIndex = 0
-    var count = 0
-    while (count < codePointIndex && charIndex < text.length) {
-        charIndex += Character.charCount(text.codePointAt(charIndex))
-        count++
-    }
-    return charIndex
 }
 
 // MARK: - NexTone 許諾の掲示

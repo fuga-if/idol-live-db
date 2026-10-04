@@ -41,9 +41,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.lyrics.CallEmphasis
@@ -58,6 +64,7 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import uniffi.imas_core.lyricRubySpans
 
 // =============================================================================
 // 歌詞の行の印 (docs/DESIGN_SYSTEM.md §9 の延長)。iOS `ImasLyricLine.swift` の移植。
@@ -279,7 +286,7 @@ fun ImasPlayerLyricLine(
         verticalAlignment = Alignment.Top
     ) {
         Text(
-            text,
+            ImasRubyText.attributed(text, rubyFontSize = 12.sp, rubyColor = DS.ink2),
             style = if (isMarker) ImasType.heading(17.sp, FontWeight.Bold) else ImasType.heading(28.sp, FontWeight.Black),
             color = if (isCalled) theme.accent else if (isCurrent) DS.ink else DS.ink3,
             modifier = Modifier
@@ -694,3 +701,92 @@ private fun Modifier.imasDragDelta(onChanged: (Float) -> Unit, onEnded: (Float) 
             onDragCancel = { onEnded(total); total = 0f }
         )
     }
+
+// MARK: - 振り仮名 (ルビ)
+
+/**
+ * 歌詞の振り仮名 (`見本字《みほんじ》` / `｜ダミー《だみ》`) を、記号を外して親字の右肩に小さく乗せる。
+ * どこが振り仮名かはコア (`lyricRubySpans`) が決める。被せの括弧 (`（）` `()`) はここでは触らない
+ * (iOS `ImasRubyText` の移植)。
+ *
+ * ⚠️ 歌詞の本文を扱う。組み立てた文字列を保存・共有しないこと (`data/lyrics/Lyrics.kt` 冒頭)。
+ */
+object ImasRubyText {
+    /** コール表 (歌詞タブ) での振り仮名の大きさ。本文より小さく、注釈らしい大きさに留める。 */
+    val BODY_FONT_SIZE: TextUnit = 11.sp
+
+    /** 行を「振り仮名か否か」で区切った連続範囲 (コードポイント位置)。記号 (《》｜) そのものは含めない。 */
+    data class Run(val range: IntRange, val isRuby: Boolean)
+
+    /**
+     * [text] を振り仮名の有無で区切る。コアの添字は Unicode スカラー (= コードポイント) 単位で、
+     * Kotlin の [String] は UTF-16 なので、ここではコードポイント単位の添字のまま扱い、
+     * 文字列に戻すところ ([attributed]) でだけ UTF-16 の添字に直す。
+     */
+    fun runs(text: String): List<Run> {
+        val count = text.codePointCount(0, text.length)
+        val hidden = BooleanArray(count)
+        val ruby = BooleanArray(count)
+        for (span in lyricRubySpans(text)) {
+            val open = span.open.toInt()
+            val close = span.close.toInt()
+            if (open >= close || close > count) continue
+            hidden[open] = true
+            hidden[close - 1] = true
+            span.marker?.let { m ->
+                val mi = m.toInt()
+                if (mi in 0 until count) hidden[mi] = true
+            }
+            for (k in (open + 1) until (close - 1)) ruby[k] = true
+        }
+        val out = mutableListOf<Run>()
+        var k = 0
+        while (k < count) {
+            if (hidden[k]) {
+                k++
+                continue
+            }
+            val start = k
+            val isRuby = ruby[k]
+            while (k < count && !hidden[k] && ruby[k] == isRuby) k++
+            out.add(Run(start until k, isRuby))
+        }
+        return out
+    }
+
+    /**
+     * 振り仮名の書式 (小さく・右肩・控えめな色)。[color] は呼び出し側 (Composable) が
+     * `DS.ink2` 等を解決して渡す (この関数自体は Composable ではないため、ここで直に読めない)。
+     */
+    fun rubySpanStyle(fontSize: TextUnit, color: Color): SpanStyle = SpanStyle(
+        fontSize = fontSize,
+        fontWeight = FontWeight.Bold,
+        baselineShift = BaselineShift.Superscript,
+        color = color
+    )
+
+    /** 書式を付けない本文に振り仮名だけを乗せる (歌詞プレイヤーの行)。 */
+    fun attributed(text: String, rubyFontSize: TextUnit, rubyColor: Color): AnnotatedString = buildAnnotatedString {
+        for (run in runs(text)) {
+            val s = codePointToCharIndex(text, run.range.first)
+            val e = codePointToCharIndex(text, run.range.last + 1)
+            if (run.isRuby) {
+                withStyle(rubySpanStyle(rubyFontSize, rubyColor)) { append(text.substring(s, e)) }
+            } else {
+                append(text.substring(s, e))
+            }
+        }
+    }
+}
+
+/** コードポイントの添字を Kotlin (UTF-16) の文字添字に直す。 */
+internal fun codePointToCharIndex(text: String, codePointIndex: Int): Int {
+    if (codePointIndex <= 0) return 0
+    var charIndex = 0
+    var count = 0
+    while (count < codePointIndex && charIndex < text.length) {
+        charIndex += Character.charCount(text.codePointAt(charIndex))
+        count++
+    }
+    return charIndex
+}
