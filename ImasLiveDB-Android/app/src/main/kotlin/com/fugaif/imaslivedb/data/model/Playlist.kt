@@ -22,7 +22,10 @@ data class Playlist(
     @ColumnInfo(name = "created_at")
     val createdAt: String,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: String
+    val updatedAt: String,
+    /** 公開した「みんなのプレイリスト」の id。公開していなければ null。 */
+    @ColumnInfo(name = "published_id")
+    val publishedId: String? = null
 )
 
 /**

@@ -128,6 +128,10 @@ class AppModule private constructor(context: Context) {
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }
     val communityApi: CommunityApi by lazy { CommunityApi(workerHttpClient) }
+    /** みんなのプレイリスト (公開・一覧・差し替え・取り下げ)。 */
+    val communityPlaylistApi: com.fugaif.imaslivedb.data.community.CommunityPlaylistApi by lazy {
+        com.fugaif.imaslivedb.data.community.CommunityPlaylistApi(workerHttpClient)
+    }
     /** 歌詞の追従・記録の再生 (Apple Music のフル再生)。 */
     val lyricsPlayback: com.fugaif.imaslivedb.player.LyricsPlayback by lazy {
         com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(

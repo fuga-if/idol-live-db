@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.IntrinsicSize
 import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricLine
@@ -104,6 +106,7 @@ fun LyricsPlayerScreen(
     var activeOverlayId by remember { mutableStateOf<String?>(null) }
     var startFailed by remember { mutableStateOf(false) }
     var likes by remember { mutableStateOf(setOf<String>()) }
+    var showsAddToPlaylist by remember { mutableStateOf(false) }
 
     val starts = remember(lyrics) { lyrics.lines.map { it.startMs?.toLong() } }
     val mainStarts = remember(lyrics) { lyrics.lines.map { if (it.isOverlay) null else it.startMs?.toLong() } }
@@ -169,6 +172,12 @@ fun LyricsPlayerScreen(
                 ImasText(song.title, ImasTextRole.ROW_TITLE, maxLines = 1)
                 if (!artistLine.isNullOrEmpty()) ImasText(artistLine, ImasTextRole.ROW_SUBTITLE, maxLines = 1)
             }
+            ImasIconButton(
+                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                label = "プレイリストに追加",
+                onClick = { showsAddToPlaylist = true },
+                style = ImasIconButtonStyle.PLAIN
+            )
             ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
             ImasIconButton(icon = Icons.Filled.ExpandMore, label = "閉じる", onClick = onClose, style = ImasIconButtonStyle.PLAIN)
         }
@@ -252,6 +261,15 @@ fun LyricsPlayerScreen(
                 }
                 Spacer(Modifier.weight(1f))
             }
+        }
+    }
+
+    if (showsAddToPlaylist) {
+        Dialog(onDismissRequest = { showsAddToPlaylist = false }) {
+            com.fugaif.imaslivedb.ui.playlists.AddToPlaylistSheet(
+                song = song,
+                onDismiss = { showsAddToPlaylist = false }
+            )
         }
     }
 }

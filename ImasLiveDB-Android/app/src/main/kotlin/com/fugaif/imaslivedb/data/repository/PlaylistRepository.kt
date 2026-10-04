@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.data.repository
 
+import com.fugaif.imaslivedb.data.community.CommunityPlaylistApi
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Playlist
 import com.fugaif.imaslivedb.data.model.PlaylistSummary
@@ -47,6 +48,18 @@ class PlaylistRepository(private val db: AppDatabase) {
     suspend fun append(playlistId: String, adding: List<String>) {
         val existing = dao.songIds(playlistId)
         setSongIds(playlistId, playlistAppendSongs(existing, adding))
+    }
+
+    /** 公開した「みんなのプレイリスト」の id を覚える (null で外す)。 */
+    suspend fun setPublishedId(playlistId: String, publishedId: String?) {
+        dao.setPublishedId(playlistId, publishedId)
+    }
+
+    /** みんなのプレイリストを自分のプレイリストとして保存する (端末に写す。以後は別物)。 */
+    suspend fun saveCopy(of: CommunityPlaylistApi.CommunityPlaylist): Playlist {
+        val created = create(of.title)
+        setSongIds(created.id, of.songIds)
+        return created
     }
 
     /** バックアップ用の id 一覧 (重複判定はコアが id で行う)。 */

@@ -30,6 +30,10 @@ interface PlaylistDao {
     @Query("UPDATE playlists SET updated_at = :updatedAt WHERE id = :id")
     suspend fun touch(id: String, updatedAt: String)
 
+    /** 公開した「みんなのプレイリスト」の id を覚える (null で外す)。 */
+    @Query("UPDATE playlists SET published_id = :publishedId WHERE id = :id")
+    suspend fun setPublishedId(id: String, publishedId: String?)
+
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun delete(id: String)
 

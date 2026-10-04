@@ -85,6 +85,8 @@ fun SongListScreen(
     var showTagFilter by remember { mutableStateOf(false) }
     var showSongCreate by remember { mutableStateOf(false) }
     var showLoginPrompt by remember { mutableStateOf(false) }
+    // 行の左スワイプ「プレイリスト」で足す曲 (null = シートを出さない)。
+    var playlistTarget by remember { mutableStateOf<com.fugaif.imaslivedb.data.model.Song?>(null) }
     // 長押しで習熟度を付け替える対象の曲 (null = ピッカーを出さない)。
     val authState by AppModule.from(context).authService.state.collectAsState()
     // 権限フラグは認証状態が変わった時だけコアへ問い合わせる (詳細は data/auth/EditPermission.kt)。
@@ -206,7 +208,9 @@ fun SongListScreen(
                 ReadableWidth { readable ->
                     LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = readable) {
                         items(uiState.songs, key = { it.song.id }) { item ->
-                            SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick)
+                            SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick) {
+                                playlistTarget = item.song
+                            }
                         }
                         if (uiState.fuzzySongs.isNotEmpty()) {
                             item {
@@ -217,7 +221,9 @@ fun SongListScreen(
                             // key を分けるのは、同じ曲が両方に出た時に LazyColumn が落ちないため
                             // (VM 側で重複は除いているが、key の衝突は例外になるので保険をかける)。
                             items(uiState.fuzzySongs, key = { "fuzzy_${it.song.id}" }) { item ->
-                                SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick)
+                                SongListRow(item, uiState, matchDetails[item.song.id], viewModel, onSongClick) {
+                                    playlistTarget = item.song
+                                }
                             }
                         }
                     }
@@ -278,6 +284,15 @@ fun SongListScreen(
             onDismiss = { showLoginPrompt = false }
         )
     }
+
+    playlistTarget?.let { song ->
+        Dialog(onDismissRequest = { playlistTarget = null }) {
+            com.fugaif.imaslivedb.ui.playlists.AddToPlaylistSheet(
+                song = song,
+                onDismiss = { playlistTarget = null }
+            )
+        }
+    }
 }
 
 /**
@@ -290,7 +305,8 @@ private fun SongListRow(
     uiState: SongListUiState,
     matchDetail: String?,
     viewModel: SongListViewModel,
-    onSongClick: (String) -> Unit
+    onSongClick: (String) -> Unit,
+    onAddToPlaylist: () -> Unit
 ) {
     // 行を引いて習熟度を付ける (iOS `MasterySwipeActions` と同じ)。左に引くと段が並び、最上段が
     // 画面の端 (指の届く位置) に来る。右に引くと「未設定」に戻す。長押しのメニューは一覧に付けない
@@ -299,7 +315,8 @@ private fun SongListRow(
     val levels = remember(scale) { (1..scale.steps.toInt()).map { it.toUByte() } }
     ImasSwipe(
         leading = listOf(
-            ImasSwipeAction(kind = ImasSwipeKind.UNDO, title = "未設定") { viewModel.setMastery(item.song.id, 0u) }
+            ImasSwipeAction(kind = ImasSwipeKind.UNDO, title = "未設定") { viewModel.setMastery(item.song.id, 0u) },
+            ImasSwipeAction(kind = ImasSwipeKind.PLAYLIST, title = "プレイリスト") { onAddToPlaylist() }
         ),
         trailing = levels.map { level ->
             ImasSwipeAction(

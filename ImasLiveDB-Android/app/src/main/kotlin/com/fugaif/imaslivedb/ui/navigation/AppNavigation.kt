@@ -76,6 +76,7 @@ import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
 import com.fugaif.imaslivedb.ui.polls.PollHallOfFameScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.ledger.LedgerScreen
+import com.fugaif.imaslivedb.ui.playlists.CommunityPlaylistDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.PlaylistDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.PlaylistsScreen
 import com.fugaif.imaslivedb.ui.mastery.MasteryScreen
@@ -327,12 +328,20 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     composable(NavRoutes.Playlists.route) {
         PlaylistsScreen(
             onBack = { navController.popBackStack() },
-            onPlaylistClick = { navController.navigate(NavRoutes.PlaylistDetail.createRoute(it)) }
+            onPlaylistClick = { navController.navigate(NavRoutes.PlaylistDetail.createRoute(it)) },
+            onCommunityPlaylistClick = { navController.navigate(NavRoutes.CommunityPlaylistDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.PlaylistDetail.ROUTE) { backStackEntry ->
         val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
         PlaylistDetailScreen(
+            playlistId = playlistId,
+            onBack = { navController.popBackStack() }
+        )
+    }
+    composable(NavRoutes.CommunityPlaylistDetail.ROUTE) { backStackEntry ->
+        val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
+        CommunityPlaylistDetailScreen(
             playlistId = playlistId,
             onBack = { navController.popBackStack() }
         )

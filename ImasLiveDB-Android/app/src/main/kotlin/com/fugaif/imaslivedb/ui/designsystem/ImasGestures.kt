@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -106,7 +107,10 @@ enum class ImasSwipeKind {
     UNDO,
 
     /** 削除 (朱)。 */
-    DELETE;
+    DELETE,
+
+    /** プレイリストに足す (墨)。 */
+    PLAYLIST;
 
     /** 操作の地の色。 */
     val tint: Color
@@ -117,6 +121,7 @@ enum class ImasSwipeKind {
             MEMO -> DS.ink2
             UNDO -> DS.ink3
             DELETE -> DS.danger
+            PLAYLIST -> DS.ink
         }
 
     /** 操作の記号。 */
@@ -129,6 +134,7 @@ enum class ImasSwipeKind {
             PREDICT -> Icons.Filled.AutoAwesome
             UNDO -> Icons.AutoMirrored.Filled.Undo
             DELETE -> Icons.Filled.Delete
+            PLAYLIST -> Icons.AutoMirrored.Filled.PlaylistAdd
         }
 }
 

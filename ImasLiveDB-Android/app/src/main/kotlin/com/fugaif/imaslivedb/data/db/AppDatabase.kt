@@ -89,7 +89,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Playlist::class,
         PlaylistItem::class
     ],
-    version = 24,
+    version = 25,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -600,12 +600,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v25: 端末のプレイリストと、それを公開した「みんなのプレイリスト」の id の紐づけ。
+         * 公開を差し替える・やめるときに使う。NULL = 公開していない。iOS の v38_playlists_published_id と対。
+         */
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE playlists ADD COLUMN published_id TEXT")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
-            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24
+            MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
+            MIGRATION_24_25
         )
     }
 }

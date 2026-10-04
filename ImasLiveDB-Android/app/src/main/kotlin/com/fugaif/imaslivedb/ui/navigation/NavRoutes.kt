@@ -73,6 +73,12 @@ sealed class NavRoutes(val route: String) {
             fun createRoute(playlistId: String) = "playlist_detail/$playlistId"
         }
     }
+    data class CommunityPlaylistDetail(val playlistId: String) : NavRoutes("community_playlist_detail/{playlistId}") {
+        companion object {
+            const val ROUTE = "community_playlist_detail/{playlistId}"
+            fun createRoute(playlistId: String) = "community_playlist_detail/$playlistId"
+        }
+    }
     data object Settings : NavRoutes("settings")
 
     data object Favorites : NavRoutes("favorites")

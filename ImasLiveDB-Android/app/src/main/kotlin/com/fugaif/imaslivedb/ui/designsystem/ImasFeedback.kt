@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +31,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -447,6 +450,59 @@ fun ImasErrorAlert(message: String?, onDismiss: () -> Unit, title: String = "保
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
+ * 2 つの入力欄を持つダイアログ (プレイリストの公開: タイトル + ひとこと)。
+ * iOS の `.alert("…", isPresented:) { TextField; TextField }` と同じ役目。
+ */
+@Composable
+fun ImasTwoFieldTextInputDialog(
+    title: String,
+    confirmLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit,
+    message: String? = null,
+    initialValue1: String = "",
+    initialValue2: String = "",
+    label1: String = "タイトル",
+    label2: String = "ひとこと (なくてもよい)",
+    dismissTitle: String = "やめる"
+) {
+    var text1 by remember(title) { mutableStateOf(initialValue1) }
+    var text2 by remember(title) { mutableStateOf(initialValue2) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                if (message != null) {
+                    Text(message, color = DS.ink2)
+                    Spacer(Modifier.height(12.dp))
+                }
+                OutlinedTextField(
+                    value = text1,
+                    onValueChange = { text1 = it },
+                    label = { Text(label1) },
+                    singleLine = true
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = text2,
+                    onValueChange = { text2 = it },
+                    label = { Text(label2) },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text1, text2) }, enabled = text1.isNotBlank()) { Text(confirmLabel) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
         containerColor = DS.surface,
         titleContentColor = DS.ink,
         textContentColor = DS.ink2
