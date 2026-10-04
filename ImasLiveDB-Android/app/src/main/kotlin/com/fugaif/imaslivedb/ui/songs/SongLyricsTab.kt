@@ -50,10 +50,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -92,7 +90,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
+import com.fugaif.imaslivedb.ui.designsystem.ImasRubyFlowText
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyText
+import com.fugaif.imaslivedb.ui.designsystem.RubyHighlight
 import com.fugaif.imaslivedb.ui.designsystem.codePointToCharIndex
 import com.fugaif.imaslivedb.ui.designsystem.lyricColor
 import com.fugaif.imaslivedb.ui.lyrics.LyricTimingEditorScreen
@@ -550,11 +550,22 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                 if (line.singers.isNotEmpty()) ImasPartStripe(colors = cast.colors(line.singers))
                 Column(Modifier.weight(1f)) {
                     // ⚠️ ここに SelectionContainer / テキストコピーの口を足さないこと。
-                    Text(
-                        text = highlightedLyricText(line.text, highlightsFor(line, accent), rubyColor = DS.ink2),
-                        style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
-                        color = DS.ink
-                    )
+                    val highlights = highlightsFor(line, accent)
+                    if (ImasRubyText.hasRuby(line.text)) {
+                        // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
+                        ImasRubyFlowText(
+                            text = line.text,
+                            style = ImasTextRole.BODY.style,
+                            color = DS.ink,
+                            highlightAt = rubyHighlightLookup(line.text, highlights)
+                        )
+                    } else {
+                        Text(
+                            text = highlightedLyricText(line.text, highlights),
+                            style = ImasTextRole.BODY.style,
+                            color = DS.ink
+                        )
+                    }
                     ImasPartNames(names = cast.names(line.singers))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
                     val listed = line.calls.filter { !line.echoes(it) }
@@ -793,16 +804,11 @@ private fun anchorIndexesFor(line: LyricLine): Map<String, Int>? {
 private data class LyricHighlight(val start: Int, val end: Int, val color: Color, val isEcho: Boolean = false)
 
 /**
- * アンカー範囲に色を敷いた行を組み立てる (iOS `CallGuideText.attributed`)。振り仮名
- * (`《》｜`。[ImasRubyText]) は記号を外して右肩に小さく乗せる。アンカーの範囲はスカラー位置の
- * ままなので、振り仮名の記号を跨いでいても素通りする (記号は表示されないだけ)。
- *
- * ⚠️ `start`/`end` は Unicode スカラー (= Java の codePoint) 単位。Kotlin の `String` は
- * UTF-16 なので、絵文字などサロゲートペアを含む行では文字添字への変換が必要 ([codePointToCharIndex])。
+ * 各コードポイントがどのアンカーに入るか (重なりは先勝ち)。[highlightedLyricText] と
+ * [rubyHighlightLookup] の両方で使う (iOS `CallGuideText.owners`)。
  */
-private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>, rubyColor: Color): AnnotatedString {
+private fun ownersFor(text: String, highlights: List<LyricHighlight>): Array<Int?> {
     val totalScalars = text.codePointCount(0, text.length)
-    // 各スカラーがどのアンカーに入るか (重なりは先勝ち)。
     val owner = arrayOfNulls<Int>(totalScalars)
     var cursor = 0
     for ((index, h) in highlights.withIndex().sortedBy { it.value.start }) {
@@ -812,34 +818,58 @@ private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>,
         for (k in s until e) owner[k] = index
         cursor = e
     }
+    return owner
+}
+
+/**
+ * アンカー範囲に色を敷いた行を組み立てる (iOS `CallGuideText.attributed`)。振り仮名のある行は
+ * ここを通らず [ImasRubyFlowText] (+ [rubyHighlightLookup]) で組む。
+ *
+ * ⚠️ `start`/`end` は Unicode スカラー (= Java の codePoint) 単位。Kotlin の `String` は
+ * UTF-16 なので、絵文字などサロゲートペアを含む行では文字添字への変換が必要 ([codePointToCharIndex])。
+ */
+private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>): AnnotatedString {
+    val owner = ownersFor(text, highlights)
     return buildAnnotatedString {
-        for (run in ImasRubyText.runs(text)) {
-            var k = run.range.first
-            while (k <= run.range.last) {
-                val start = k
-                val current = owner[k]
-                while (k <= run.range.last && owner[k] == current) k++
-                val segmentText = text.substring(codePointToCharIndex(text, start), codePointToCharIndex(text, k))
-                val highlight = current?.let { highlights[it] }
-                if (highlight == null && !run.isRuby) {
-                    append(segmentText)
-                    continue
-                }
-                // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
-                withStyle(
-                    SpanStyle(
-                        background = highlight?.color?.copy(alpha = if (highlight.isEcho) 0.32f else 0.18f)
-                            ?: Color.Unspecified,
-                        fontWeight = if (run.isRuby || highlight?.isEcho == true) FontWeight.Bold else null,
-                        textDecoration = if (highlight != null) TextDecoration.Underline else null,
-                        fontSize = if (run.isRuby) ImasRubyText.BODY_FONT_SIZE else TextUnit.Unspecified,
-                        baselineShift = if (run.isRuby) BaselineShift.Superscript else null,
-                        color = if (run.isRuby) rubyColor else Color.Unspecified
-                    )
-                ) {
-                    append(segmentText)
-                }
+        var k = 0
+        while (k < owner.size) {
+            val start = k
+            val current = owner[k]
+            while (k < owner.size && owner[k] == current) k++
+            val segmentText = text.substring(codePointToCharIndex(text, start), codePointToCharIndex(text, k))
+            val highlight = current?.let { highlights[it] }
+            if (highlight == null) {
+                append(segmentText)
+                continue
             }
+            // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
+            withStyle(
+                SpanStyle(
+                    background = highlight.color.copy(alpha = if (highlight.isEcho) 0.32f else 0.18f),
+                    fontWeight = if (highlight.isEcho) FontWeight.Bold else null,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
+                append(segmentText)
+            }
+        }
+    }
+}
+
+/**
+ * [ImasRubyFlowText] の `highlightAt` に渡す、コードポイント添字からアンカーの装いを引く関数
+ * (iOS `CallGuideText.rubyAttributed` の移植)。振り仮名の読みそのものには装いを付けない
+ * (呼び出し側が親字の先頭添字しか渡さないため、自然とそうなる)。
+ */
+private fun rubyHighlightLookup(text: String, highlights: List<LyricHighlight>): (Int) -> RubyHighlight? {
+    val owner = ownersFor(text, highlights)
+    return { k ->
+        owner.getOrNull(k)?.let { highlights[it] }?.let { h ->
+            RubyHighlight(
+                background = h.color.copy(alpha = if (h.isEcho) 0.32f else 0.18f),
+                bold = h.isEcho,
+                underline = true
+            )
         }
     }
 }

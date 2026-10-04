@@ -41,15 +41,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.lyrics.CallEmphasis
@@ -280,19 +274,33 @@ fun ImasPlayerLyricLine(
 ) {
     val scale by androidx.compose.animation.core.animateFloatAsState(if (isCurrent) 1f else 0.86f, label = "imasPlayerLyricLineScale")
     val theme = imasTheme(seed = seed)
+    val style = if (isMarker) ImasType.heading(17.sp, FontWeight.Bold) else ImasType.heading(28.sp, FontWeight.Black)
+    val color = if (isCalled) theme.accent else if (isCurrent) DS.ink else DS.ink3
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
         verticalAlignment = Alignment.Top
     ) {
-        Text(
-            ImasRubyText.attributed(text, rubyFontSize = 12.sp, rubyColor = DS.ink2),
-            style = if (isMarker) ImasType.heading(17.sp, FontWeight.Bold) else ImasType.heading(28.sp, FontWeight.Black),
-            color = if (isCalled) theme.accent else if (isCurrent) DS.ink else DS.ink3,
-            modifier = Modifier
-                .weight(1f)
-                .scale(scale)
-        )
+        if (ImasRubyText.hasRuby(text)) {
+            // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
+            ImasRubyFlowText(
+                text = text,
+                style = style,
+                color = color,
+                modifier = Modifier
+                    .weight(1f)
+                    .scale(scale)
+            )
+        } else {
+            Text(
+                text,
+                style = style,
+                color = color,
+                modifier = Modifier
+                    .weight(1f)
+                    .scale(scale)
+            )
+        }
         if (isLiked) ImasLyricLikeMark(seed = seed, modifier = Modifier.padding(top = DS.sp1))
     }
 }
@@ -705,78 +713,92 @@ private fun Modifier.imasDragDelta(onChanged: (Float) -> Unit, onEnded: (Float) 
 // MARK: - 振り仮名 (ルビ)
 
 /**
- * 歌詞の振り仮名 (`見本字《みほんじ》` / `｜ダミー《だみ》`) を、記号を外して親字の右肩に小さく乗せる。
+ * 振り仮名 1 文字 (塊) ぶんの装い。背景 (アンカーの敷き) ・太字・下線はコール表の行だけで使う
+ * (歌詞プレイヤーの行は付けない)。[ImasRubyFlowText.highlightAt] が親字の先頭のコードポイント
+ * 添字から引く。
+ */
+data class RubyHighlight(val background: Color? = null, val bold: Boolean = false, val underline: Boolean = false)
+
+/**
+ * 歌詞の振り仮名 (`見本字《みほんじ》` / `｜ダミー《だみ》`) を、記号を外して**親字の上**に乗せる。
  * どこが振り仮名かはコア (`lyricRubySpans`) が決める。被せの括弧 (`（）` `()`) はここでは触らない
- * (iOS `ImasRubyText` の移植)。
+ * (iOS `ImasRubyText` の移植。Compose の `Text` はルビを組めないので [ImasRubyFlowText] で自前に組む)。
  *
  * ⚠️ 歌詞の本文を扱う。組み立てた文字列を保存・共有しないこと (`data/lyrics/Lyrics.kt` 冒頭)。
  */
 object ImasRubyText {
-    /** コール表 (歌詞タブ) での振り仮名の大きさ。本文より小さく、注釈らしい大きさに留める。 */
-    val BODY_FONT_SIZE: TextUnit = 11.sp
+    /** 本文を折り返せる単位に割った 1 つ。素通しは 1 文字、振り仮名は親字ひとまとまり (折り返さない)。 */
+    sealed class Atom {
+        /** 行の中のコードポイント添字 (ハイライトを引く鍵)。 */
+        abstract val start: Int
 
-    /** 行を「振り仮名か否か」で区切った連続範囲 (コードポイント位置)。記号 (《》｜) そのものは含めない。 */
-    data class Run(val range: IntRange, val isRuby: Boolean)
+        data class Plain(val char: String, override val start: Int) : Atom()
+        data class Ruby(val base: String, val reading: String, override val start: Int) : Atom()
+    }
+
+    fun hasRuby(text: String): Boolean = lyricRubySpans(text).isNotEmpty()
 
     /**
-     * [text] を振り仮名の有無で区切る。コアの添字は Unicode スカラー (= コードポイント) 単位で、
-     * Kotlin の [String] は UTF-16 なので、ここではコードポイント単位の添字のまま扱い、
-     * 文字列に戻すところ ([attributed]) でだけ UTF-16 の添字に直す。
+     * [text] を [Atom] の並びに割る。添字はコードポイント (= コアの Unicode スカラー) 単位で扱い、
+     * 文字列に戻すところだけ UTF-16 の添字に直す ([codePointToCharIndex])。
+     *
+     * 1 つの振り仮名の親字がアンカーの境目をまたぐ (ハイライトが途中で変わる) ような稀な行は、
+     * 親字の先頭の扱いに合わせる (iOS 版もこの境目では読みを重複させる側に寄っており、厳密な
+     * 一致は求めない)。
      */
-    fun runs(text: String): List<Run> {
-        val count = text.codePointCount(0, text.length)
+    fun atoms(text: String): List<Atom> {
+        val bounds = codePointBounds(text)
+        val count = bounds.size - 1
+        val rubyIndex = IntArray(count) { -1 }
         val hidden = BooleanArray(count)
-        val ruby = BooleanArray(count)
+        val isReading = BooleanArray(count)
+        val readings = mutableListOf<String>()
         for (span in lyricRubySpans(text)) {
             val open = span.open.toInt()
             val close = span.close.toInt()
-            if (open >= close || close > count) continue
+            val baseStart = span.baseStart.toInt()
+            val baseEnd = span.baseEnd.toInt()
+            if (open >= close || close > count || baseStart > baseEnd || baseEnd > open) continue
+            val index = readings.size
+            readings.add(text.substring(bounds[open + 1], bounds[close - 1]))
+            for (k in baseStart until baseEnd) rubyIndex[k] = index
             hidden[open] = true
             hidden[close - 1] = true
-            span.marker?.let { m ->
-                val mi = m.toInt()
-                if (mi in 0 until count) hidden[mi] = true
-            }
-            for (k in (open + 1) until (close - 1)) ruby[k] = true
+            for (k in (open + 1) until (close - 1)) isReading[k] = true
+            span.marker?.let { m -> val mi = m.toInt(); if (mi in 0 until count) hidden[mi] = true }
         }
-        val out = mutableListOf<Run>()
+        val out = mutableListOf<Atom>()
         var k = 0
         while (k < count) {
-            if (hidden[k]) {
+            if (hidden[k] || isReading[k]) {
                 k++
                 continue
             }
-            val start = k
-            val isRuby = ruby[k]
-            while (k < count && !hidden[k] && ruby[k] == isRuby) k++
-            out.add(Run(start until k, isRuby))
+            if (rubyIndex[k] < 0) {
+                out.add(Atom.Plain(text.substring(bounds[k], bounds[k + 1]), k))
+                k++
+            } else {
+                val index = rubyIndex[k]
+                val start = k
+                while (k < count && rubyIndex[k] == index) k++
+                out.add(Atom.Ruby(text.substring(bounds[start], bounds[k]), readings[index], start))
+            }
         }
         return out
     }
+}
 
-    /**
-     * 振り仮名の書式 (小さく・右肩・控えめな色)。[color] は呼び出し側 (Composable) が
-     * `DS.ink2` 等を解決して渡す (この関数自体は Composable ではないため、ここで直に読めない)。
-     */
-    fun rubySpanStyle(fontSize: TextUnit, color: Color): SpanStyle = SpanStyle(
-        fontSize = fontSize,
-        fontWeight = FontWeight.Bold,
-        baselineShift = BaselineShift.Superscript,
-        color = color
-    )
-
-    /** 書式を付けない本文に振り仮名だけを乗せる (歌詞プレイヤーの行)。 */
-    fun attributed(text: String, rubyFontSize: TextUnit, rubyColor: Color): AnnotatedString = buildAnnotatedString {
-        for (run in runs(text)) {
-            val s = codePointToCharIndex(text, run.range.first)
-            val e = codePointToCharIndex(text, run.range.last + 1)
-            if (run.isRuby) {
-                withStyle(rubySpanStyle(rubyFontSize, rubyColor)) { append(text.substring(s, e)) }
-            } else {
-                append(text.substring(s, e))
-            }
-        }
+/** コードポイントごとの UTF-16 添字の境目 (`bounds[i]..bounds[i+1]` がコードポイント i の範囲)。 */
+private fun codePointBounds(text: String): IntArray {
+    val count = text.codePointCount(0, text.length)
+    val bounds = IntArray(count + 1)
+    var charIndex = 0
+    for (i in 0 until count) {
+        bounds[i] = charIndex
+        charIndex += Character.charCount(text.codePointAt(charIndex))
     }
+    bounds[count] = charIndex
+    return bounds
 }
 
 /** コードポイントの添字を Kotlin (UTF-16) の文字添字に直す。 */
@@ -789,4 +811,52 @@ internal fun codePointToCharIndex(text: String, codePointIndex: Int): Int {
         count++
     }
     return charIndex
+}
+
+/**
+ * 振り仮名のある行を、読みを親字の上に乗せて組む (iOS `ImasRubyLabel` に相当)。
+ * 折り返しが利くよう [ImasRubyText.atoms] で割った単位を [FlowRow] に流す — 素通しの文字は
+ * 1 文字ずつ、振り仮名は親字ひとまとまり。読みは親字と同じ書体・色で 0.5 倍の大きさにし、
+ * 素通しの文字の上には同じ大きさの透明な読みを置いて高さを揃える (ベースラインが揃う)。
+ *
+ * [highlightAt] はコードポイント添字 (親字・素通しの文字の先頭) からコール表のアンカーの
+ * 敷き・下線を引く (歌詞プレイヤーの行では渡さない = 無装飾)。読み自体には敷かない
+ * (iOS 版も読みはアンカーの装飾を受けない)。
+ *
+ * ⚠️ 歌詞の本文を扱う。`SelectionContainer` / コピーの口を足さないこと。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ImasRubyFlowText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+    highlightAt: ((Int) -> RubyHighlight?)? = null
+) {
+    val atoms = remember(text) { ImasRubyText.atoms(text) }
+    val readingSize = (style.fontSize.value * 0.5f).sp
+    androidx.compose.foundation.layout.FlowRow(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        atoms.forEach { atom ->
+            val highlight = highlightAt?.invoke(atom.start)
+            val baseModifier = if (highlight?.background != null) Modifier.background(highlight.background) else Modifier
+            val weight = if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
+            val decoration = if (highlight?.underline == true) androidx.compose.ui.text.style.TextDecoration.Underline else null
+            when (atom) {
+                is ImasRubyText.Atom.Plain -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // 読みと同じ書体・大きさの透明な行 (素通しの文字の上にも同じ高さを確保し、
+                    // ルビの親字とベースラインが揃うようにする)。
+                    Text("　", fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = Color.Transparent, maxLines = 1)
+                    Text(atom.char, style = style, fontWeight = weight, color = color, textDecoration = decoration, modifier = baseModifier)
+                }
+                is ImasRubyText.Atom.Ruby -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)
+                    Text(atom.base, style = style, fontWeight = weight, color = color, textDecoration = decoration, modifier = baseModifier)
+                }
+            }
+        }
+    }
 }
