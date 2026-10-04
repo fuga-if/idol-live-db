@@ -30,6 +30,20 @@ pub enum NextSongReason {
 pub struct NextSongPick {
     pub song_id: String,
     pub reason: NextSongReason,
+    /// 画面に添える理由 (「同じ公演で 12 回」「天海春香の曲」「同じブランド」)。両 OS で同じ文言にする。
+    pub label: String,
+}
+
+fn label(snap: &Snapshot, reason: &NextSongReason) -> String {
+    match reason {
+        NextSongReason::PerformedTogether { together } => format!("同じ公演で {together} 回"),
+        NextSongReason::SameSinger { idol_id } => snap
+            .idol_index_by_id
+            .get(idol_id)
+            .map(|&i| format!("{}の曲", snap.idols[i as usize].name))
+            .unwrap_or_else(|| "同じ人の曲".to_string()),
+        NextSongReason::SameBrand => "同じブランド".to_string(),
+    }
 }
 
 /// 共起の候補を見る上限 (鳴らせない曲・流した曲を飛ばしても足りる数)。
@@ -50,7 +64,8 @@ pub fn recommend_next(snap: &Snapshot, current: &str, exclude: &[String], limit:
     let mut push = |out: &mut Vec<NextSongPick>, song: u32, reason: NextSongReason| {
         let id = &snap.songs[song as usize].id;
         if out.len() < limit && playable(song) && taken.insert(id.clone()) {
-            out.push(NextSongPick { song_id: id.clone(), reason });
+            let label = label(snap, &reason);
+            out.push(NextSongPick { song_id: id.clone(), reason, label });
         }
     };
 
@@ -109,6 +124,7 @@ mod tests {
         }
         // 先頭は共起 (よく演奏される曲には必ず共起がある)。
         assert!(matches!(picks[0].reason, NextSongReason::PerformedTogether { .. }));
+        assert!(picks[0].label.starts_with("同じ公演で "));
 
         // 流した曲は外れて、次の候補が繰り上がる。
         let exclude = vec![picks[0].song_id.clone()];
