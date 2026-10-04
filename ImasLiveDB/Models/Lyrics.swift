@@ -172,12 +172,6 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
     /// 行そのものが消えた場合にコールごと落ちるのは範囲付きと同じ。
     var isStale: Bool { stale == true && hasAnchor }
 
-    /// 「同時」で、掛かっている歌詞と同じ文字のコール (一緒に歌う・叫ぶだけ)。
-    /// 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。
-    var echoesLyric: Bool {
-        hasAnchor && lyricCallEchoesLyric(anchorText: anchorText, callText: text, timing: timing.rawValue)
-    }
-
     /// 歌詞の一部に掛かる (範囲を持つ) コールか。
     ///
     /// false = 幅ゼロ。`start == end == 行の文字数` なら**行末の追っかけコール**
@@ -242,6 +236,13 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
 
     /// 被せの行か (歌詞プレイヤーで 2 段目に出す行)。
     var isOverlay: Bool { kind != .blank && lyricIsOverlayLine(text: text, layer: layer) }
+
+    /// この行のコールが、掛かっている歌詞と同じ文字か (同時、または歌詞の被せの括弧の中に掛かっている)。
+    /// 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。
+    func echoes(_ call: LyricCall) -> Bool {
+        call.hasAnchor && lyricCallEchoesLine(lineText: text, start: UInt32(call.start), end: UInt32(call.end),
+                                              callText: call.text, timing: call.timing.rawValue)
+    }
 }
 
 extension LyricLine {

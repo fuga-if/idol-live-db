@@ -184,7 +184,7 @@ struct LyricsPlayerView: View {
                 let isCurrent = !hasTiming || line.id == activeLineId
                 ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
                                     isMarker: line.kind == .marker, isLiked: isLiked,
-                                    isCalled: line.calls.contains { $0.id == activeCallId && $0.echoesLyric },
+                                    isCalled: line.calls.contains { $0.id == activeCallId && line.echoes($0) },
                                     seed: seed)
                 if let overlay = split.overlay, !split.main.isEmpty {
                     ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
@@ -192,7 +192,7 @@ struct LyricsPlayerView: View {
             }
             ImasPartNames(names: cast.names(line.singers))
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは行に出さず、上の歌詞を点ける)。
-            ForEach(line.calls.filter { !$0.echoesLyric }) { call in
+            ForEach(line.calls.filter { !line.echoes($0) }) { call in
                 ImasPlayerCallLine(marker: call.hasAnchor ? "↳" : "»", text: call.text,
                                    color: call.emphasis.color(accent: ImasTheme.derive(seed: seed, scheme: scheme).accent),
                                    isActive: call.id == activeCallId)

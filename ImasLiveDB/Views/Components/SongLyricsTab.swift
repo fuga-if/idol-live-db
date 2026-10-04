@@ -334,7 +334,7 @@ struct SongLyricsTab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ImasPartNames(names: partCast.names(line.singers))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
-                    let listed = line.calls.filter { !$0.echoesLyric }
+                    let listed = line.calls.filter { !line.echoes($0) }
                     if !listed.isEmpty {
                         CallGuideCallRows(calls: listed, anchorIndexes: anchorIndexes(for: line))
                     }
@@ -945,7 +945,7 @@ struct SongLyricsTab: View {
                 CallGuideText.Highlight(start: call.start, end: call.end,
                                         color: anchorColor(call.emphasis, theme: theme),
                                         isEcho: editor == nil && line.calls.contains {
-                                            $0.start == call.start && $0.end == call.end && $0.echoesLyric
+                                            $0.start == call.start && $0.end == call.end && line.echoes($0)
                                         })
             }
         }
@@ -983,7 +983,7 @@ struct SongLyricsTab: View {
         var result: [String: Int] = [:]
         var order = 0
         // 行に並べない (歌詞と同じ文字の同時) コールは番号を振る数に入れない。
-        for call in line.calls where call.hasAnchor && (editor != nil || !call.echoesLyric) {
+        for call in line.calls where call.hasAnchor && (editor != nil || !line.echoes(call)) {
             let key = "\(call.start)-\(call.end)"
             if groups[key] == nil {
                 groups[key] = order

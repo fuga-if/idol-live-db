@@ -66,30 +66,42 @@ enum CallGuideText {
     /// どちらの範囲かが読めなくなるため)。
     static func attributed(_ text: String, highlights: [Highlight]) -> AttributedString {
         let scalars = Array(text.unicodeScalars)
-        var result = AttributedString()
+        // 各スカラーがどのアンカーに入るか (重なりは先勝ち。後から来た重複部分は捨てる)。
+        var owner = [Int?](repeating: nil, count: scalars.count)
         var cursor = 0
-        for highlight in highlights.sorted(by: { $0.start < $1.start }) {
+        for (index, highlight) in highlights.enumerated().sorted(by: { $0.element.start < $1.element.start }) {
             let start = max(highlight.start, cursor)
             let end = min(highlight.end, scalars.count)
             guard start < end else { continue }
-            if start > cursor {
-                result += AttributedString(String(String.UnicodeScalarView(scalars[cursor..<start])))
-            }
-            var segment = AttributedString(String(String.UnicodeScalarView(scalars[start..<end])))
-            var container = AttributeContainer()
-            // 閲覧中のアンカーは本文の邪魔をしないよう薄く敷く。編集中のアンカー
-            // (シートの「アンカー」欄) は**そこが主役**なので、はっきり出す。
-            // 同じ濃さにすると、行の中のどこに掛かるのかが読み取れない。
-            container.swiftUI.backgroundColor =
-                highlight.color.opacity(highlight.isPending ? 0.55 : highlight.isEcho ? 0.32 : 0.18)
-            if highlight.isPending || highlight.isEcho { container.swiftUI.font = .imasBody.weight(.bold) }
-            container.swiftUI.underlineStyle = .single
-            segment.mergeAttributes(container)
-            result += segment
+            for k in start..<end { owner[k] = index }
             cursor = end
         }
-        if cursor < scalars.count {
-            result += AttributedString(String(String.UnicodeScalarView(scalars[cursor...])))
+        var result = AttributedString()
+        // 振り仮名 (漢字の直後の、かなだけの括弧) は括弧を外して右肩に小さく乗せる。位置はスカラーのまま。
+        for run in ImasRubyText.runs(text) {
+            var k = run.range.lowerBound
+            while k < run.range.upperBound {
+                let start = k
+                let current = owner[k]
+                while k < run.range.upperBound, owner[k] == current { k += 1 }
+                var segment = AttributedString(String(String.UnicodeScalarView(scalars[start..<k])))
+                if let current {
+                    let highlight = highlights[current]
+                    var container = AttributeContainer()
+                    // 閲覧中のアンカーは本文の邪魔をしないよう薄く敷く。編集中のアンカー
+                    // (シートの「アンカー」欄) は**そこが主役**なので、はっきり出す。
+                    // 同じ濃さにすると、行の中のどこに掛かるのかが読み取れない。
+                    container.swiftUI.backgroundColor =
+                        highlight.color.opacity(highlight.isPending ? 0.55 : highlight.isEcho ? 0.32 : 0.18)
+                    if highlight.isPending || highlight.isEcho { container.swiftUI.font = .imasBody.weight(.bold) }
+                    container.swiftUI.underlineStyle = .single
+                    segment.mergeAttributes(container)
+                }
+                if run.isRuby {
+                    segment.mergeAttributes(ImasRubyText.rubyAttributes(font: .imasCaption2, offset: 8))
+                }
+                result += segment
+            }
         }
         return result
     }

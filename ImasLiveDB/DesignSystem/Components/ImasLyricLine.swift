@@ -189,7 +189,7 @@ struct ImasPlayerLyricLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
             // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと (歌詞の取り出し口になる)。
-            Text(text)
+            Text(ImasRubyText.attributed(text, rubyFont: .imasHeading(12, weight: .bold), rubyOffset: 16))
                 .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
                 .foregroundStyle(isCalled ? ImasTheme.derive(seed: seed, scheme: scheme).accent : isCurrent ? DS.ink : DS.ink3)
                 .lineSpacing(4)
@@ -447,5 +447,63 @@ struct ImasPartNames: View {
                 .lineLimit(2)
                 .accessibilityLabel("歌唱 \(names.joined(separator: "、"))")
         }
+    }
+}
+
+// MARK: - 振り仮名 (ルビ)
+
+/// 歌詞の振り仮名 (「五輪咲（ごりん）」の括弧) を、括弧を外して親字の右肩に小さく乗せる。
+/// どの括弧が振り仮名かはコア (`lyricRubySpans`) が決める。被せの括弧はここでは触らない。
+///
+/// ⚠️ 歌詞の本文を扱う。組み立てた文字列を保存・共有しないこと (`Models/Lyrics.swift` 冒頭)。
+enum ImasRubyText {
+    /// 行を「振り仮名か否か」で区切った連続範囲 (スカラー位置)。振り仮名の括弧そのものは含めない。
+    struct Run {
+        let range: Range<Int>
+        let isRuby: Bool
+    }
+
+    static func runs(_ text: String) -> [Run] {
+        let count = text.unicodeScalars.count
+        var hidden = [Bool](repeating: false, count: count)
+        var ruby = [Bool](repeating: false, count: count)
+        for span in lyricRubySpans(text: text) {
+            let open = Int(span.open), close = Int(span.close)
+            guard open < close, close <= count else { continue }
+            hidden[open] = true
+            hidden[close - 1] = true
+            for k in (open + 1)..<(close - 1) { ruby[k] = true }
+        }
+        var out: [Run] = []
+        var k = 0
+        while k < count {
+            if hidden[k] { k += 1; continue }
+            let start = k
+            let isRuby = ruby[k]
+            while k < count, !hidden[k], ruby[k] == isRuby { k += 1 }
+            out.append(Run(range: start..<k, isRuby: isRuby))
+        }
+        return out
+    }
+
+    /// 振り仮名の書式 (小さく・右肩・控えめな色)。
+    static func rubyAttributes(font: Font, offset: CGFloat) -> AttributeContainer {
+        var c = AttributeContainer()
+        c.swiftUI.font = font
+        c.swiftUI.baselineOffset = offset
+        c.swiftUI.foregroundColor = DS.ink2
+        return c
+    }
+
+    /// 書式を付けない本文に振り仮名だけを乗せる (歌詞プレイヤーの行)。
+    static func attributed(_ text: String, rubyFont: Font, rubyOffset: CGFloat) -> AttributedString {
+        let scalars = Array(text.unicodeScalars)
+        var result = AttributedString()
+        for run in runs(text) {
+            var segment = AttributedString(String(String.UnicodeScalarView(scalars[run.range])))
+            if run.isRuby { segment.mergeAttributes(rubyAttributes(font: rubyFont, offset: rubyOffset)) }
+            result += segment
+        }
+        return result
     }
 }

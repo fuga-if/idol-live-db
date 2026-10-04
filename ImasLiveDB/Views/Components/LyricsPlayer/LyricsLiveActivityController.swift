@@ -101,10 +101,11 @@ final class LyricsLiveActivityController {
         let current = index.map { lines[$0] }.flatMap { $0.kind == .lyric ? $0 : nil }
         let next = lines[((index ?? -1) + 1)...].first { $0.kind == .lyric && !$0.isOverlay }
         let singers = current?.singers ?? []
-        let calls = lines.flatMap(\.calls)
+        let calls = lines.flatMap { line in line.calls.map { (line: line, call: $0) } }
         let call = player.fullPlaybackPositionMs.flatMap {
-            lyricActiveCall(starts: calls.map { $0.startMs.map(Int64.init) }, positionMs: Int64($0)).map {
-                calls[Int($0)].echoesLyric ? "一緒に" : calls[Int($0)].text
+            lyricActiveCall(starts: calls.map { $0.call.startMs.map(Int64.init) }, positionMs: Int64($0)).map {
+                let pair = calls[Int($0)]
+                return pair.line.echoes(pair.call) ? "一緒に" : pair.call.text
             }
         }
         return .init(line: current.map(mainText), nextLine: next.map(mainText),

@@ -221,6 +221,10 @@ struct FakeLyricsReading: LyricsReading {
             }
             add(.lyric, text, section: "A", clap: clap, calls: calls)
         }
+        // 振り仮名 (漢字の直後の、かなだけの括弧) と、歌詞の被せの括弧に同じ文字のコールを付けた行。
+        add(.lyric, "見本字（みほんじ）が並ぶダミーの行", section: "A")
+        let echoText = "ダミーの問いかけ？（もちろん！）"
+        add(.lyric, echoText, section: "A", calls: [call("c_echo", in: echoText, 10..<15, "(もちろん！)")])
         add(.blank, "")
         add(.marker, "サビ", section: "chorus")
         for i in 1...3 {
