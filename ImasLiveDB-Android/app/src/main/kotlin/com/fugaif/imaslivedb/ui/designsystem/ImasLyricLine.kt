@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -266,9 +267,12 @@ fun ImasPlayerLyricLine(
     modifier: Modifier = Modifier,
     isMarker: Boolean = false,
     isLiked: Boolean = false,
+    // いまこの行の文字を一緒に叫ぶところ (歌詞と同じ文字の同時コール)。曲の色で点ける。
+    isCalled: Boolean = false,
     seed: String? = null
 ) {
     val scale by androidx.compose.animation.core.animateFloatAsState(if (isCurrent) 1f else 0.86f, label = "imasPlayerLyricLineScale")
+    val theme = imasTheme(seed = seed)
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
@@ -277,7 +281,7 @@ fun ImasPlayerLyricLine(
         Text(
             text,
             style = if (isMarker) ImasType.heading(17.sp, FontWeight.Bold) else ImasType.heading(28.sp, FontWeight.Black),
-            color = if (isCurrent) DS.ink else DS.ink3,
+            color = if (isCalled) theme.accent else if (isCurrent) DS.ink else DS.ink3,
             modifier = Modifier
                 .weight(1f)
                 .scale(scale)
@@ -304,6 +308,50 @@ fun ImasPlayerOverlayLine(text: String, isCurrent: Boolean, seed: String?, modif
             text,
             style = ImasType.heading(19.sp, FontWeight.Bold),
             color = if (isCurrent) DS.ink2 else DS.ink3,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * 歌詞プレイヤーで行の直下に出すコール 1 つ (iOS `ImasPlayerCallLine`)。
+ * いま出すコールは大きく色で点け、他は控えめに。
+ * (下の操作面にコールの段を別に置かず、歌詞の流れの中でコールを読ませる。)
+ */
+@Composable
+fun ImasPlayerCallLine(
+    marker: String,
+    text: String,
+    /** コールの色 (強調度ごと。[CallEmphasis.lyricColor])。 */
+    color: Color,
+    isActive: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val fontSize by androidx.compose.animation.core.animateFloatAsState(
+        if (isActive) 24f else 15f, label = "imasPlayerCallLineSize"
+    )
+    Row(
+        modifier
+            .fillMaxWidth()
+            .padding(start = DS.sp3)
+            .semantics {
+                contentDescription = "コール $text"
+                selected = isActive
+            },
+        horizontalArrangement = Arrangement.spacedBy(DS.sp2),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            marker,
+            style = ImasType.text(12.sp),
+            color = DS.ink3,
+            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            modifier = Modifier.width(16.dp)
+        )
+        Text(
+            text,
+            style = ImasType.heading(fontSize.sp, if (isActive) FontWeight.Black else FontWeight.Bold),
+            color = if (isActive) color else color.copy(alpha = 0.55f),
             modifier = Modifier.weight(1f)
         )
     }

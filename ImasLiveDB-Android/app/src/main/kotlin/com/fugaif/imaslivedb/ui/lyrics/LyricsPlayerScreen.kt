@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
@@ -30,7 +29,6 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +47,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.IntrinsicSize
-import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricLine
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
 import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
@@ -59,7 +56,6 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
-import com.fugaif.imaslivedb.ui.designsystem.ImasCallRows
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
@@ -67,6 +63,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
+import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerOverlayLine
 import com.fugaif.imaslivedb.ui.designsystem.LocalImasHaze
@@ -141,6 +138,8 @@ fun LyricsPlayerScreen(
     val overlayStarts = remember(lyrics) { lyrics.lines.map { if (it.isOverlay) it.startMs?.toLong() else null } }
     val allCalls = remember(lyrics) { lyrics.lines.flatMap { it.calls } }
     val callStarts = remember(allCalls) { allCalls.map { it.startMs?.toLong() } }
+    // いま出しているコールの id (iOS `activeCallId`)。
+    val activeCallId = activeCallIndex?.let { allCalls.getOrNull(it)?.id }
     val hasTiming = remember(starts) { lyricHasTiming(starts) }
     val loadedSongId by playback.loadedSongId.collectAsState()
     val isPlaying by playback.isPlaying.collectAsState()
@@ -238,6 +237,7 @@ fun LyricsPlayerScreen(
                     LyricsPlayerRow(
                         line = line, hasTiming = hasTiming, isLiked = likes.contains(line.id),
                         isActive = line.id == activeLineId, isOverlayActive = line.id == activeOverlayId,
+                        activeCallId = activeCallId,
                         seed = seed, cast = cast,
                         onTap = {
                             val start = line.startMs ?: return@LyricsPlayerRow
@@ -264,6 +264,15 @@ fun LyricsPlayerScreen(
                     ImasText(song.title, ImasTextRole.ROW_TITLE, maxLines = 1)
                     if (!artistLine.isNullOrEmpty()) ImasText(artistLine, ImasTextRole.ROW_SUBTITLE, maxLines = 1)
                 }
+                if (allCalls.isNotEmpty()) {
+                    ImasIconButton(
+                        icon = if (callHaptics) Icons.Filled.Vibration else Icons.Filled.MobileOff,
+                        label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
+                        onClick = ::toggleCallHaptics,
+                        size = ImasIconButtonSize.SMALL,
+                        style = ImasIconButtonStyle.PLAIN
+                    )
+                }
                 ImasIconButton(
                     icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                     label = "プレイリストに追加",
@@ -285,10 +294,6 @@ fun LyricsPlayerScreen(
                     .padding(horizontal = DS.sp3, vertical = DS.sp3),
                 verticalArrangement = Arrangement.spacedBy(DS.sp3)
             ) {
-                CallLane(
-                    allCalls = allCalls, callStarts = callStarts, positionMs = positionMs ?: 0, seed = seed,
-                    callHaptics = callHaptics, onToggleCallHaptics = ::toggleCallHaptics
-                )
                 val counts = lyrics.lines.map { (likeCounts[it.id] ?: it.likeCount).coerceAtLeast(0).toUInt() }
                 val heat = if (hasTiming) lyricLikeHeat(starts, counts, durationMs.toLong(), 60u) else null
                 ImasLikeHeatSeekBar(
@@ -348,6 +353,7 @@ private fun LyricsPlayerRow(
     isLiked: Boolean,
     isActive: Boolean,
     isOverlayActive: Boolean,
+    activeCallId: String?,
     seed: String?,
     cast: LyricPartCast,
     onTap: () -> Unit,
@@ -358,6 +364,7 @@ private fun LyricsPlayerRow(
         return
     }
     val isCurrent = !hasTiming || isActive
+    val theme = imasTheme(seed = seed)
     Row(
         Modifier
             .fillMaxWidth()
@@ -375,7 +382,9 @@ private fun LyricsPlayerRow(
                 val split = lyricOverlaySplit(line.text)
                 ImasPlayerLyricLine(
                     text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
-                    isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked, seed = seed
+                    isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked,
+                    isCalled = line.calls.any { it.id == activeCallId && it.echoesLyric },
+                    seed = seed
                 )
                 val overlayText = split.overlay
                 if (overlayText != null && split.main.isNotEmpty()) {
@@ -383,52 +392,17 @@ private fun LyricsPlayerRow(
                 }
             }
             ImasPartNames(names = cast.names(line.singers))
-            // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
-            val listed = line.calls.filter { !it.echoesLyric }
-            if (listed.isNotEmpty()) {
-                ImasCallRows(calls = listed, anchorIndexes = null)
+            // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは
+            // 行に出さず、上の歌詞を点ける)。
+            line.calls.filter { !it.echoesLyric }.forEach { call ->
+                ImasPlayerCallLine(
+                    marker = if (call.hasAnchor) "↳" else "»",
+                    text = call.text,
+                    color = call.emphasis.lyricColor(theme.accent),
+                    isActive = call.id == activeCallId
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun CallLane(
-    allCalls: List<LyricCall>,
-    callStarts: List<Long?>,
-    positionMs: Int,
-    seed: String?,
-    callHaptics: Boolean,
-    onToggleCallHaptics: () -> Unit
-) {
-    if (callStarts.none { it != null }) return
-    val theme = imasTheme(seed = seed)
-    val current = lyricActiveCall(callStarts, positionMs.toLong())?.toInt()
-    val next = callStarts.withIndex().filter { (it.value ?: -1L) > positionMs.toLong() }.minByOrNull { it.value ?: 0L }?.index
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Filled.Campaign, contentDescription = null, tint = if (current != null) theme.accent else DS.ink3)
-        Box(Modifier.weight(1f)) {
-            when {
-                // 今出すコールは普段の再生でも読めるよう大きく出す (iOS `imasHeading(30)` と対)。
-                // 歌詞と同じ文字の同時コールは、文字を繰り返さず「一緒に」とだけ出す。
-                current != null -> ImasText(
-                    if (allCalls[current].echoesLyric) "一緒に" else allCalls[current].text, ImasTextRole.HERO_TITLE,
-                    color = allCalls[current].emphasis.lyricColor(theme.accent), maxLines = 1
-                )
-                next != null -> ImasText(
-                    "次 " + (if (allCalls[next].echoesLyric) "一緒に" else allCalls[next].text),
-                    ImasTextRole.ROW_LABEL, color = DS.ink3, maxLines = 1
-                )
-                else -> ImasText("—", ImasTextRole.ROW_LABEL, color = DS.ink3)
-            }
-        }
-        ImasIconButton(
-            icon = if (callHaptics) Icons.Filled.Vibration else Icons.Filled.MobileOff,
-            label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
-            size = ImasIconButtonSize.SMALL,
-            style = ImasIconButtonStyle.PLAIN,
-            onClick = onToggleCallHaptics
-        )
     }
 }
 
