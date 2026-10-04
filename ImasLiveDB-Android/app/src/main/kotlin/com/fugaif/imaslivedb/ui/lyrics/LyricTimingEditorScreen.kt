@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.runtime.Composable
@@ -132,7 +133,9 @@ fun LyricTimingEditorScreen(
     // 歌詞をなぞってから少しの間は、曲に付いていくのを止める。
     var followPausedUntil by remember { mutableStateOf(0L) }
     // パートの段の筆 (塗る歌う人)。null なら原唱者の先頭。
-    var partsBrushId by remember { mutableStateOf<String?>(null) }
+    // 筆 (塗る歌う人。複数人を一度に塗れる)。null なら原唱者の先頭 1 人。
+    var partsBrushIds by remember { mutableStateOf<List<String>?>(null) }
+    val brush = partsBrushIds ?: listOfNotNull(cast.artists.firstOrNull()?.id)
     val laneListState = rememberLazyListState()
 
     val duration = run {
@@ -157,9 +160,9 @@ fun LyricTimingEditorScreen(
         }
     val allCalls = lyrics.lines.flatMapIndexed { i, line -> line.calls.map { CallRef(it, i) } }
 
-    /** 筆の人を、行の字の範囲に塗る / 外す (範囲の字がみなその人なら外す)。規則はコア。 */
+    /** 筆の人たちを、行の字の範囲に塗る / 外す (範囲の字がみな筆の全員入りなら外す)。規則はコア。 */
     fun paint(lineId: String, start: Int, end: Int) {
-        val brush = partsBrushId ?: cast.artists.firstOrNull()?.id ?: return
+        if (brush.isEmpty()) return
         haptics.selection()
         recorder.paint(lineId, start, end, brush, cast.artists.map { it.id })
     }
@@ -370,7 +373,9 @@ fun LyricTimingEditorScreen(
         }
 
         if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
-            // 歌う人のアイコン (筆)。選んだ人で歌詞を塗る。
+            // 歌う人のアイコン (筆)。タップで筆に足す / 外す (何人でも)。「全員を選ぶ」で原唱者みんな。
+            val everyone = cast.artists.map { it.id }
+            val isEveryone = brush.toSet() == everyone.toSet()
             Column(
                 Modifier.padding(vertical = DS.sp4),
                 verticalArrangement = Arrangement.spacedBy(DS.sp3)
@@ -380,13 +385,18 @@ fun LyricTimingEditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(DS.sp3)
                 ) {
                     cast.artists.forEach { idol ->
-                        val isOn = (partsBrushId ?: cast.artists.firstOrNull()?.id) == idol.id
+                        val isOn = idol.id in brush
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() }, indication = null
-                                ) { partsBrushId = idol.id }
+                                ) {
+                                    val next = brush.toMutableList()
+                                    // 筆は 1 人は残す (空の筆では塗れない)。
+                                    if (idol.id in next) { if (next.size > 1) next.remove(idol.id) } else next.add(idol.id)
+                                    partsBrushIds = everyone.filter { it in next }
+                                }
                                 .semantics { contentDescription = "${idol.shortName}で塗る"; selected = isOn }
                         ) {
                             ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 48.dp, isPick = isOn, entityId = idol.id)
@@ -394,17 +404,23 @@ fun LyricTimingEditorScreen(
                         }
                     }
                 }
-                ImasButton(
-                    title = "前の行と同じ人にする", icon = Icons.AutoMirrored.Filled.KeyboardReturn,
-                    role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
-                    enabled = partsTargetId != null,
-                    onClick = {
-                        val id = partsTargetId ?: return@ImasButton
-                        haptics.selection()
-                        recorder.copyPreviousSingers(id)
-                    },
-                    modifier = Modifier.padding(horizontal = DS.sp5)
-                )
+                Row(Modifier.padding(horizontal = DS.sp5), horizontalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                    ImasButton(
+                        title = if (isEveryone) "1 人に戻す" else "全員を選ぶ", icon = Icons.Filled.Groups,
+                        role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
+                        onClick = { partsBrushIds = if (isEveryone) everyone.take(1) else everyone }
+                    )
+                    ImasButton(
+                        title = "前の行と同じ人にする", icon = Icons.AutoMirrored.Filled.KeyboardReturn,
+                        role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
+                        enabled = partsTargetId != null,
+                        onClick = {
+                            val id = partsTargetId ?: return@ImasButton
+                            haptics.selection()
+                            recorder.copyPreviousSingers(id)
+                        }
+                    )
+                }
             }
         } else {
             // 記録ボタン

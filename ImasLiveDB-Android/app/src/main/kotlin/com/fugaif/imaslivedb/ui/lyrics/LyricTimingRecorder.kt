@@ -121,17 +121,17 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     /**
-     * 行の字の範囲 [start]..[end] に [idolId] を塗る / 外す (範囲の字がみなその人なら外す)。
+     * 行の字の範囲 [start]..[end] に [idolIds] (筆。複数人を一度に) を塗る / 外す (範囲の字がみな筆の全員入りなら外す)。
      * 区切りは塗った結果から作り直す。並びは [order] (原唱者の並び) にそろえる。規則はコア
      * ([lyricPartPaint])。タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
      */
-    fun paint(lineId: String, start: Int, end: Int, idolId: String, order: List<String>) {
+    fun paint(lineId: String, start: Int, end: Int, idolIds: List<String>, order: List<String>) {
         val i = lineIds.indexOf(lineId)
         if (i < 0 || kinds[i] != "lyric") return
         pushPartsUndo(i)
         val painted = lyricPartPaint(
             len = lengths[i].toUInt(), singers = singers[i], breaks = breaks[i].map { it.core },
-            start = maxOf(0, start).toUInt(), end = maxOf(0, end).toUInt(), idol = idolId, order = order
+            start = maxOf(0, start).toUInt(), end = maxOf(0, end).toUInt(), idols = idolIds, order = order
         )
         singers = singers.toMutableList().also { it[i] = painted.singers }
         breaks = breaks.toMutableList().also { it[i] = painted.breaks.map(LyricLinePartBreak::of) }

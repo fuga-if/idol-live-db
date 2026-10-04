@@ -33,8 +33,8 @@ struct LyricTimingEditorView: View {
     @State private var recordToken = 0
     /// 歌詞をなぞってから少しの間は、曲に付いていくのを止める。
     @State private var followPausedUntil: Date = .distantPast
-    /// パートの段の筆 (塗る歌う人)。nil なら原唱者の先頭。
-    @State private var partsBrushId: String?
+    /// パートの段の筆 (塗る歌う人。複数人を一度に塗れる)。nil なら原唱者の先頭 1 人。
+    @State private var partsBrushIds: [String]?
 
     private var duration: Int {
         let lastStart = recorder.starts.compactMap { $0 }.max() ?? 0
@@ -275,11 +275,14 @@ struct LyricTimingEditorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// 筆の人を、行の字の範囲に塗る / 外す (範囲の字がみなその人なら外す)。規則はコア。
+    /// いまの筆 (選んでいなければ原唱者の先頭 1 人)。
+    private var brush: [String] { partsBrushIds ?? cast.artists.first.map { [$0.id] } ?? [] }
+
+    /// 筆の人たちを、行の字の範囲に塗る / 外す (範囲の字がみな筆の全員入りなら外す)。規則はコア。
     private func paint(_ lineId: String, start: Int, end: Int) {
-        guard let brush = partsBrushId ?? cast.artists.first?.id else { return }
+        guard !brush.isEmpty else { return }
         AppAnalytics.tap("lyric_timing.paint_part")
-        recorder.paint(lineId: lineId, start: start, end: end, idolId: brush, order: cast.artists.map(\.id))
+        recorder.paint(lineId: lineId, start: start, end: end, idolIds: brush, order: cast.artists.map(\.id))
         recordToken += 1
     }
 
@@ -309,15 +312,24 @@ struct LyricTimingEditorView: View {
         return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
     }
 
-    /// 歌う人のアイコン (筆)。選んだ人で歌詞を塗る。
+    /// 歌う人のアイコン (筆)。タップで筆に足す / 外す (何人でも)。「全員」で原唱者みんなを筆にする。
     private var partsBrush: some View {
-        VStack(spacing: DS.sp3) {
+        let everyone = cast.artists.map(\.id)
+        let isEveryone = Set(brush) == Set(everyone)
+        return VStack(spacing: DS.sp3) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: DS.sp3) {
                     ForEach(cast.artists, id: \.id) { idol in
-                        let isOn = (partsBrushId ?? cast.artists.first?.id) == idol.id
+                        let isOn = brush.contains(idol.id)
                         Button {
-                            partsBrushId = idol.id
+                            var next = brush
+                            if let i = next.firstIndex(of: idol.id) {
+                                // 筆は 1 人は残す (空の筆では塗れない)。
+                                if next.count > 1 { next.remove(at: i) }
+                            } else {
+                                next.append(idol.id)
+                            }
+                            partsBrushIds = cast.ordered(next)
                         } label: {
                             VStack(spacing: DS.sp1) {
                                 IdolAvatarView(idol: idol, size: 48, isPick: isOn)
@@ -331,13 +343,19 @@ struct LyricTimingEditorView: View {
                 }
                 .padding(.horizontal, DS.sp5)
             }
-            ImasButton(title: "前の行と同じ人にする", systemImage: "arrow.turn.down.right", role: .secondary,
+            HStack(spacing: DS.sp2) {
+                ImasButton(title: isEveryone ? "1 人に戻す" : "全員を選ぶ", systemImage: "person.3.fill",
+                           role: .secondary, size: .small) {
+                    partsBrushIds = isEveryone ? Array(everyone.prefix(1)) : everyone
+                }
+                ImasButton(title: "前の行と同じ人にする", systemImage: "arrow.turn.down.right", role: .secondary,
                        size: .small) {
                 guard let id = partsTargetId else { return }
                 recorder.copyPreviousSingers(lineId: id)
                 recordToken += 1
             }
             .disabled(partsTargetId == nil)
+            }
         }
     }
 

@@ -635,7 +635,8 @@ pub struct LyricPartPaint {
     pub breaks: Vec<LyricPartBreak>,
 }
 
-/// 字の範囲 `start..end` に `idol` を塗る / 外す (範囲の字がみな `idol` 入りなら外す、そうでなければ足す)。
+/// 字の範囲 `start..end` に `idols` (筆。複数人を一度に塗れる) を塗る / 外す
+/// (範囲の字がみな筆の全員入りなら外す、そうでなければ足す)。
 /// 区切りは塗った結果から作り直す (歌う人が変わる字に置く)。並びは `order` (原唱者の順) にそろえる。
 /// タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
 pub fn part_paint(
@@ -644,7 +645,7 @@ pub fn part_paint(
     breaks: &[LyricPartBreak],
     start: u32,
     end: u32,
-    idol: &str,
+    idols: &[String],
     order: &[String],
 ) -> LyricPartPaint {
     let n = len as usize;
@@ -655,14 +656,18 @@ pub fn part_paint(
             per_char[k] = seg.singers.clone();
         }
     }
-    if start < end {
-        let all_have = per_char[start..end].iter().all(|who| who.iter().any(|w| w == idol));
+    if start < end && !idols.is_empty() {
+        let all_have = per_char[start..end].iter().all(|who| idols.iter().all(|i| who.contains(i)));
         let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
         for who in &mut per_char[start..end] {
             if all_have {
-                who.retain(|w| w != idol);
-            } else if !who.iter().any(|w| w == idol) {
-                who.push(idol.to_string());
+                who.retain(|w| !idols.contains(w));
+            } else {
+                for idol in idols {
+                    if !who.contains(idol) {
+                        who.push(idol.clone());
+                    }
+                }
                 who.sort_by_key(|id| rank(id));
             }
         }
@@ -931,15 +936,20 @@ mod tests {
     fn part_paint_adds_and_removes() {
         let order: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
         // 頭 2 字だけ b を足す → 頭は a,b、2 から a
-        let p = part_paint(5, &["a".to_string()], &[], 0, 2, "b", &order);
+        let b = vec!["b".to_string()];
+        let p = part_paint(5, &["a".to_string()], &[], 0, 2, &b, &order);
         assert_eq!(p.singers, vec!["a".to_string(), "b".to_string()]);
         assert_eq!(p.breaks, vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }]);
         // 同じ範囲をもう一度で外れ、区切りも消える
-        let q = part_paint(5, &p.singers, &p.breaks, 0, 2, "b", &order);
+        let q = part_paint(5, &p.singers, &p.breaks, 0, 2, &b, &order);
         assert_eq!(q, LyricPartPaint { singers: vec!["a".to_string()], breaks: vec![] });
         // 空の行に途中だけ塗る
-        let r = part_paint(4, &[], &[], 2, 4, "a", &order);
+        let r = part_paint(4, &[], &[], 2, 4, &["a".to_string()], &order);
         assert_eq!(r, LyricPartPaint { singers: vec![], breaks: vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }] });
+        // 全員を一度に塗る → もう一度で全員外れる
+        let all = part_paint(3, &["a".to_string()], &[], 0, 3, &order, &order);
+        assert_eq!(all.singers, order);
+        assert!(part_paint(3, &all.singers, &all.breaks, 0, 3, &order, &order).singers.is_empty());
     }
 
 }
