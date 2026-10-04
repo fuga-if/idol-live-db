@@ -29,14 +29,18 @@ extension ImasBrandPicker {
 // MARK: - 曲
 
 extension ImasSongRow {
-    /// 曲の試聴 URL から、試聴の配線一式 (`previewURL`/`isPreviewing`/`onPreviewTap`) を組む。
+    /// 曲の再生ボタンの配線一式 (`previewURL`/`isPreviewing`/`onPreviewTap`) を組む。
+    /// Apple Music で鳴らせればフル尺、鳴らせなければ試聴 (`MusicKitService.toggleSong`)。
     /// 楽曲一覧の行 (`SongRowView`) と同じ配線をここ 1 箇所にまとめ、`song:` から組む
     /// 呼び出し全部 (曲名表示の統一行・お気に入り一覧・タグ詳細など) に自動で効かせる。
     @MainActor private static func previewWiring(for song: Song) -> (URL?, Bool, () -> Void) {
         let previewURL = URL.safeHTTP(string: song.previewUrl)
         let isPreviewing = MusicKitService.shared.isPlaying(songId: song.id)
-        let onPreviewTap = {
-            if let previewURL { MusicKitService.shared.togglePreview(url: previewURL, songId: song.id) }
+        let onPreviewTap: () -> Void = {
+            Task {
+                await MusicKitService.shared.toggleSong(
+                    songId: song.id, appleMusicId: song.appleMusicId, previewURL: previewURL)
+            }
         }
         return (previewURL, isPreviewing, onPreviewTap)
     }

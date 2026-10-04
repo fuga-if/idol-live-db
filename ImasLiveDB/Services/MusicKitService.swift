@@ -220,6 +220,24 @@ final class MusicKitService {
         }
     }
 
+    /// 一覧の行の再生ボタン。Apple Music で鳴らせればフル尺、鳴らせなければ試聴 (30 秒)。
+    ///
+    /// 契約の有無は最初の 1 回だけ読む (以降は `observeSubscriptionUpdates` が追う)。
+    /// 行を押すたびに読み直すと、未契約の人は押すごとに確認の往復を待たされる。
+    func toggleSong(songId: String, appleMusicId: String?, previewURL: URL?) async {
+        if isPlaying(songId: songId) {
+            stop()
+            return
+        }
+        if !isObservingSubscription { await requestAuthorization() }
+        if hasAppleMusicSubscription, let appleMusicId, !appleMusicId.isEmpty {
+            await playQueue([(songId: songId, appleMusicId: appleMusicId)], startAt: 0)
+            if isPlaying(songId: songId) { return }
+        }
+        // 未契約・配信なし・カタログから消えた曲は試聴へ落とす。
+        if let previewURL { togglePreview(url: previewURL, songId: songId) }
+    }
+
     /// フル再生（Apple Musicサブスクユーザーのみ）
     nonisolated func playFull(songInfo: MusicKitSongInfo, songId: String) async {
         guard let musicKitId = songInfo.musicKitId else { return }

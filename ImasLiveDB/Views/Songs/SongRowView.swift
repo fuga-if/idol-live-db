@@ -102,7 +102,10 @@ struct SongRowView: View {
             previewURL: previewURL,
             isPreviewing: isCurrentlyPlaying,
             onPreviewTap: {
-                if let previewURL { MusicKitService.shared.togglePreview(url: previewURL, songId: song.id) }
+                Task {
+                    await MusicKitService.shared.toggleSong(
+                        songId: song.id, appleMusicId: song.appleMusicId, previewURL: previewURL)
+                }
             },
             trailing: trailingMetric,
             attributedTitle: highlightedTitle
