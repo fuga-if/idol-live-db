@@ -174,31 +174,45 @@ struct ImasSetlistRow: View {
                 .padding(.top, 3)
                 .padding(.bottom, 2)
             ForEach(noteGroups, id: \.label) { group in
-                noteGroupLine(group, accent: accent)
-            }
-            // 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。
-            // 段ごとに矢印を付けると同じ一覧への入口が並ぶので、ボタンを 1 つだけ置く。
-            // 置くかはコアが決める (どれかの段が `opensPerformers`)。
-            if let onSelectPerformers, noteGroups.contains(where: \.opensPerformers) {
-                ImasButton(title: "詳しく", systemImage: "person.2", role: .plain, size: .small, action: onSelectPerformers)
-                    .padding(.leading, 36)
-                    .padding(.top, 2)
-                    .accessibilityHint("歌唱者の一覧を開く")
+                noteGroupLine(group, accent: accent, showsDetail: group.label == noteGroups.last?.label)
             }
         }
     }
 
-    /// 軸 1 本 (名前 + 値)。
-    private func noteGroupLine(_ group: SetlistRowNoteGroupRecord, accent: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(group.label)
-                .font(.imasCaption2)
-                .kerning(0.4)
-                .foregroundStyle(DS.ink3)
-                .frame(width: 26, alignment: .leading)
-            Self.notesText(group.notes, accent: accent)
-                .font(.imasCaption)
-                .fixedSize(horizontal: false, vertical: true)
+    /// 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。入口は段の右下に小さく 1 つだけ
+    /// (段ごとに矢印を並べない・大きなボタンにしない)。置くかはコアが決める (どれかの段が `opensPerformers`)。
+    private var detailOpener: (() -> Void)? {
+        noteGroups.contains(where: \.opensPerformers) ? onSelectPerformers : nil
+    }
+
+    /// 軸 1 本 (名前 + 値)。最後の段の右端に「詳しく」を添える。
+    private func noteGroupLine(_ group: SetlistRowNoteGroupRecord, accent: Color, showsDetail: Bool) -> some View {
+        // 軸の名前は値の 1 行目に、「詳しく」は値の最後の行に揃える。
+        HStack(alignment: .lastTextBaseline, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(group.label)
+                    .font(.imasCaption2)
+                    .kerning(0.4)
+                    .foregroundStyle(DS.ink3)
+                    .frame(width: 26, alignment: .leading)
+                Self.notesText(group.notes, accent: accent)
+                    .font(.imasCaption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if showsDetail, let open = detailOpener {
+                Button(action: open) {
+                    (Text("詳しく") + Text(" ") + Text(Image(systemName: "chevron.right")).font(.imasCaption2.weight(.semibold)))
+                        .font(.imasCaption2.weight(.medium))
+                        .foregroundStyle(DS.ink3)
+                        .padding(.vertical, 4)
+                        .padding(.leading, 8)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .fixedSize()
+                .accessibilityHint("歌唱者の一覧を開く")
+            }
         }
     }
 

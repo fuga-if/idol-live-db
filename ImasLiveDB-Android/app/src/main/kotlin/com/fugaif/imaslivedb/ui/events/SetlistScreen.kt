@@ -97,7 +97,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasAvatarStack
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasNoteBadges
-import com.fugaif.imaslivedb.ui.designsystem.ImasNoteGroupsDetailButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoteGroupsDetailLink
 import com.fugaif.imaslivedb.ui.designsystem.unbreakableNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardListStyle
@@ -715,7 +715,10 @@ private fun NoteGroupsBlock(
                 .height(0.5.dp)
                 .background(DS.sep)
         )
-        noteGroups.forEach { group ->
+        // 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。入口は最後の段の右端に
+        // 小さく 1 つだけ (段ごとに矢印を並べない・大きなボタンにしない)。置くかは共有コアが決める (`opensPerformers`)。
+        val showsDetail = noteGroups.any { it.opensPerformers }
+        noteGroups.forEachIndexed { index, group ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // 軸ラベル。固定幅・字間を少し開けて沈める (本文と張り合わない)。
                 Text(
@@ -726,12 +729,10 @@ private fun NoteGroupsBlock(
                     modifier = Modifier.width(26.dp)
                 )
                 NoteGroupValues(notes = group.notes, accent = accent, modifier = Modifier.weight(1f))
+                if (showsDetail && index == noteGroups.lastIndex) {
+                    ImasNoteGroupsDetailLink(onOpenPerformers, Modifier.align(Alignment.Bottom))
+                }
             }
-        // 「13 人 初歌唱」「原唱 …」の誰が・誰がいないかは、歌唱者の一覧で見せる。段ごとに矢印を付けると
-        // 同じ一覧への入口が並ぶので、ボタンを 1 つだけ置く。置くかは共有コアが決める (`opensPerformers`)。
-        if (noteGroups.any { it.opensPerformers }) {
-            ImasNoteGroupsDetailButton(onOpenPerformers)
-        }
         }
     }
 }

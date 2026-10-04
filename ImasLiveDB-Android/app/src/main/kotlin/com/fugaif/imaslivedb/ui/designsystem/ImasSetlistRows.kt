@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Icon
@@ -289,7 +288,9 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                 .height(0.5.dp)
                 .background(DS.sep)
         )
-        groups.forEach { group ->
+        // 誰が・誰がいないかは歌唱者の一覧で見せる。入口は最後の段の右端に小さく 1 つ (iOS と同じ)。
+        val open = onSelectPerformers?.takeIf { groups.any { it.opensPerformers } }
+        groups.forEachIndexed { index, group ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     group.label,
@@ -300,11 +301,10 @@ private fun NoteGroupsBlock(groups: List<SetlistRowNoteGroupRecord>, accent: Col
                         .alignByBaseline()
                 )
                 NotesText(group.notes, accent, Modifier.weight(1f).alignByBaseline())
+                if (open != null && index == groups.lastIndex) {
+                    ImasNoteGroupsDetailLink(open, Modifier.align(Alignment.Bottom))
+                }
             }
-        // 誰が・誰がいないかは歌唱者の一覧で見せる。入口は段ごとでなくボタン 1 つ (iOS と同じ)。
-        if (onSelectPerformers != null && groups.any { it.opensPerformers }) {
-            ImasNoteGroupsDetailButton(onSelectPerformers)
-        }
         }
     }
 }
@@ -655,17 +655,17 @@ fun ImasNoteBadges(notes: List<SetlistRowNoteRecord>, modifier: Modifier = Modif
 }
 
 /**
- * 事実の段の下に 1 つだけ置く「詳しく」(歌唱者の一覧を開く。iOS `ImasSetlistRow.noteGroupsBlock`)。
- * 段の名前の幅ぶん下げて、値の頭に揃える。置くかはコアが決める (どれかの段が `opensPerformers`)。
+ * 事実の段の右下に小さく 1 つだけ置く「詳しく ›」(歌唱者の一覧を開く。iOS `ImasSetlistRow.noteGroupLine`)。
+ * 置くかはコアが決める (どれかの段が `opensPerformers`)。大きなボタンにしない (行ごとに出るので重くなる)。
  */
 @Composable
-fun ImasNoteGroupsDetailButton(onClick: () -> Unit) {
-    ImasButton(
-        title = "詳しく",
-        onClick = onClick,
-        icon = Icons.Outlined.People,
-        role = ImasButtonRole.PLAIN,
-        size = ImasButtonSize.SMALL,
-        modifier = Modifier.padding(start = 36.dp, top = 2.dp)
+fun ImasNoteGroupsDetailLink(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        "詳しく ›",
+        style = ImasType.text(11.sp, FontWeight.Medium),
+        color = DS.ink3,
+        modifier = modifier
+            .imasPress(onClickLabel = "歌唱者の一覧を開く", onClick = onClick)
+            .padding(start = 8.dp, top = 4.dp, bottom = 4.dp)
     )
 }
