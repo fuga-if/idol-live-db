@@ -19,7 +19,8 @@
 // 理由は migrations/0026_song_lyrics.sql の先頭コメントを参照。
 // このファイルは日時文字列を JS 側で組み立てず、必ず SQL の datetime('now') で書く。
 
-import { convertLinesToRubyNotation, stripRuby, toRubyNotation } from "../lyrics_ruby";
+import { convertLinesToRubyNotation, listRuby, stripRuby, toRubyNotation } from "../lyrics_ruby";
+import { applyStructureOp } from "../lyrics_structure";
 import { getAuthUser } from "../auth";
 import { checkRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
@@ -919,6 +920,79 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       dryRun, scanned: rows.length, changedSongs, changedLines,
       next: rows.length === limit && last ? last.song_id : null,
     }, 200, NO_STORE);
+  }
+
+  // ----------------------------------------------------------------
+  // POST /admin/lyrics/ruby-list — 振り仮名 (《》) の一覧 (モデレーターのみ・見直し用)
+  // ----------------------------------------------------------------
+  // 返すのは曲 id・行の番号・親字と読みの小さな切れ端だけ (行の本文は返さない)。
+  // 一括変換で振り仮名にした所が本当に振り仮名かを、運用者が見直すために使う。
+  if (path === "/admin/lyrics/ruby-list" && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+    const body = (await request.json().catch(() => null)) as { after?: unknown; limit?: unknown } | null;
+    const after = typeof body?.after === "string" ? body.after : "";
+    const limit = typeof body?.limit === "number" ? Math.min(Math.max(1, Math.floor(body.limit)), 200) : 100;
+    const { results } = await env.DB.prepare(
+      "SELECT song_id, lines_json FROM song_lyrics WHERE song_id > ? ORDER BY song_id LIMIT ?"
+    ).bind(after, limit).all<{ song_id: string; lines_json: string | null }>();
+    const rows = results ?? [];
+    const items: Array<{ songId: string; ord: number; at: number; base: string; ruby: string }> = [];
+    for (const row of rows) {
+      for (const line of parseLines(row.lines_json)) {
+        for (const r of listRuby(line.text)) {
+          items.push({ songId: row.song_id, ord: line.ord, at: r.at, base: r.base.slice(-12), ruby: r.ruby.slice(0, 20) });
+        }
+      }
+    }
+    const last = rows[rows.length - 1];
+    return json({ items, next: rows.length === limit && last ? last.song_id : null }, 200, NO_STORE);
+  }
+
+  // ----------------------------------------------------------------
+  // POST /admin/lyrics/ruby-revert — 振り仮名 (《》) を括弧 （） に戻す (モデレーターのみ)
+  // ----------------------------------------------------------------
+  // 本文: { items: [{ songId, ord, at }] } (`at` は「《」のスカラー位置)。文字数は変わらない。
+  if (path === "/admin/lyrics/ruby-revert" && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+    const body = (await request.json().catch(() => null)) as { items?: unknown } | null;
+    const items = Array.isArray(body?.items) ? (body!.items as Array<{ songId?: unknown; ord?: unknown; at?: unknown }>) : [];
+    if (items.length === 0 || items.length > 500) return error("items must be 1..500", 400);
+    const bySong = new Map<string, Array<{ ord: number; at: number }>>();
+    for (const it of items) {
+      if (typeof it.songId !== "string" || typeof it.ord !== "number" || typeof it.at !== "number") {
+        return error("each item needs songId, ord, at", 400);
+      }
+      bySong.set(it.songId, [...(bySong.get(it.songId) ?? []), { ord: it.ord, at: it.at }]);
+    }
+    let reverted = 0;
+    for (const [songId, targets] of bySong) {
+      const row = await env.DB.prepare("SELECT lines_json FROM song_lyrics WHERE song_id = ?")
+        .bind(songId).first<{ lines_json: string | null }>();
+      if (!row) continue;
+      const lines = parseLines(row.lines_json);
+      let changed = false;
+      const next = lines.map((line) => {
+        let current = line;
+        for (const t of targets.filter((x) => x.ord === line.ord)) {
+          const r = applyStructureOp([current], { op: "unruby", lineId: current.id, at: t.at }, () => "");
+          if (r.ok) { current = r.lines[0]; changed = true; reverted += 1; }
+        }
+        return { ...current, ord: line.ord };
+      });
+      if (!changed) continue;
+      const previousBodyNorm = normalizeForSearch(
+        lines.filter((l) => l.kind === "lyric").map((l) => stripRuby(l.text)).join("\n"));
+      const nextBody = next.filter((l) => l.kind === "lyric").map((l) => stripRuby(l.text)).join("\n");
+      const nextBodyNorm = normalizeForSearch(nextBody);
+      await env.DB.prepare(
+        "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ?, updated_at = datetime('now') WHERE song_id = ?"
+      ).bind(JSON.stringify(next), nextBody, nextBodyNorm, songId).run();
+      try { await updateGramIndex(env, songId, previousBodyNorm, nextBodyNorm); }
+      catch (err) { console.error("lyrics_gram_index_update_failed", songId, err); }
+    }
+    return json({ requested: items.length, reverted }, 200, NO_STORE);
   }
 
   // ----------------------------------------------------------------

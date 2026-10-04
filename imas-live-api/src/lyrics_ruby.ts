@@ -48,3 +48,23 @@ export function convertLinesToRubyNotation<L extends RubyLine>(lines: L[]): { li
   });
   return { lines: next, changed };
 }
+
+/** 行の中の《》振り仮名 (見直し用)。`at` は「《」のスカラー位置、`base` は直前の漢字のまとまり (｜があればそこから)。 */
+export function listRuby(text: string): Array<{ at: number; base: string; ruby: string }> {
+  const chars = Array.from(text);
+  const out: Array<{ at: number; base: string; ruby: string }> = [];
+  let segmentStart = 0;
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] !== "《") continue;
+    const close = chars.indexOf("》", i + 1);
+    if (close < 0) break;
+    const marker = chars.lastIndexOf("｜", i);
+    let start = i;
+    if (marker >= segmentStart) start = marker + 1;
+    else while (start > segmentStart && new RegExp(`[${KANJI}]`, "u").test(chars[start - 1])) start--;
+    out.push({ at: i, base: chars.slice(start, i).join(""), ruby: chars.slice(i + 1, close).join("") });
+    segmentStart = close + 1;
+    i = close;
+  }
+  return out;
+}
