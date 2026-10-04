@@ -1,4 +1,6 @@
+import CoreText
 import SwiftUI
+import UIKit
 
 // =============================================================================
 // 歌詞の行の印 (docs/DESIGN_SYSTEM.md §9 の延長)
@@ -189,12 +191,23 @@ struct ImasPlayerLyricLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
             // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと (歌詞の取り出し口になる)。
-            Text(ImasRubyText.attributed(text, rubyFont: .imasHeading(12, weight: .bold), rubyOffset: 16))
-                .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
-                .foregroundStyle(isCalled ? ImasTheme.derive(seed: seed, scheme: scheme).accent : isCurrent ? DS.ink : DS.ink3)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            let color = isCalled ? ImasTheme.derive(seed: seed, scheme: scheme).accent : isCurrent ? DS.ink : DS.ink3
+            if ImasRubyText.hasRuby(text) {
+                // 振り仮名は親字の上に乗せる (Text では組めないので UILabel)。
+                ImasRubyLabel(attributed: ImasRubyText.attributed(
+                    text,
+                    font: isMarker ? Font.imasScaledUIFont(17, weight: .bold, proportional: true)
+                                   : Font.imasScaledUIFont(28, weight: .heavy, proportional: true),
+                    color: UIColor(color), lineSpacing: 4))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(text)
+                    .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
+                    .foregroundStyle(color)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if isLiked { ImasLyricLikeMark(seed: seed) }
         }
         .scaleEffect(isCurrent ? 1 : 0.86, anchor: .leading)
@@ -452,59 +465,148 @@ struct ImasPartNames: View {
 
 // MARK: - 振り仮名 (ルビ)
 
-/// 歌詞の振り仮名 (本文の記法は `五輪咲《ごりん》` / `｜ダミー《だみ》`) を、記号を外して親字の右肩に
+/// 歌詞の振り仮名 (本文の記法は `五輪咲《ごりん》` / `｜ダミー《だみ》`) を、記号を外して**親字の上**に
 /// 小さく乗せる。読み方はコア (`lyricRubySpans`) が持つ。被せの括弧はここでは触らない。
 ///
+/// SwiftUI の Text は振り仮名を組めないので、振り仮名のある行だけ UILabel (CoreText の
+/// `kCTRubyAnnotationAttributeName`) で描く (`ImasRubyLabel`)。振り仮名の無い行は今まで通り Text。
+///
 /// ⚠️ 歌詞の本文を扱う。組み立てた文字列を保存・共有しないこと (`Models/Lyrics.swift` 冒頭)。
+/// UILabel は選択もコピーもできない (できる部品に差し替えないこと)。
 enum ImasRubyText {
-    /// 行を「振り仮名か否か」で区切った連続範囲 (スカラー位置)。振り仮名の括弧そのものは含めない。
-    struct Run {
-        let range: Range<Int>
-        let isRuby: Bool
+    /// 本文の 1 スカラーの役割。
+    enum Role: Equatable {
+        /// そのまま出す文字 (`rubyIndex` があれば、その振り仮名の親字)。
+        case text(rubyIndex: Int?)
+        /// 振り仮名の読み (親字の上に乗る。本文としては出さない)。
+        case reading
+        /// 《》｜ の記号 (出さない)。
+        case hidden
     }
 
-    static func runs(_ text: String) -> [Run] {
-        let count = text.unicodeScalars.count
-        var hidden = [Bool](repeating: false, count: count)
-        var ruby = [Bool](repeating: false, count: count)
+    static func hasRuby(_ text: String) -> Bool { !lyricRubySpans(text: text).isEmpty }
+
+    /// 各スカラーの役割と、振り仮名ごとの読み。
+    static func roles(_ text: String) -> (roles: [Role], readings: [String]) {
+        let scalars = Array(text.unicodeScalars)
+        var roles = [Role](repeating: .text(rubyIndex: nil), count: scalars.count)
+        var readings: [String] = []
         for span in lyricRubySpans(text: text) {
             let open = Int(span.open), close = Int(span.close)
-            guard open < close, close <= count else { continue }
-            hidden[open] = true
-            hidden[close - 1] = true
-            if let marker = span.marker, Int(marker) < count { hidden[Int(marker)] = true }
-            for k in (open + 1)..<(close - 1) { ruby[k] = true }
+            guard open < close, close <= scalars.count, Int(span.baseEnd) <= open else { continue }
+            let index = readings.count
+            readings.append(String(String.UnicodeScalarView(scalars[(open + 1)..<(close - 1)])))
+            for k in Int(span.baseStart)..<Int(span.baseEnd) { roles[k] = .text(rubyIndex: index) }
+            roles[open] = .hidden
+            roles[close - 1] = .hidden
+            for k in (open + 1)..<(close - 1) { roles[k] = .reading }
+            if let marker = span.marker, Int(marker) < scalars.count { roles[Int(marker)] = .hidden }
         }
-        var out: [Run] = []
-        var k = 0
-        while k < count {
-            if hidden[k] { k += 1; continue }
-            let start = k
-            let isRuby = ruby[k]
-            while k < count, !hidden[k], ruby[k] == isRuby { k += 1 }
-            out.append(Run(range: start..<k, isRuby: isRuby))
-        }
-        return out
+        return (roles, readings)
     }
 
-    /// 振り仮名の書式 (小さく・右肩・控えめな色)。
-    static func rubyAttributes(font: Font, offset: CGFloat) -> AttributeContainer {
-        var c = AttributeContainer()
-        c.swiftUI.font = font
-        c.swiftUI.baselineOffset = offset
-        c.swiftUI.foregroundColor = DS.ink2
-        return c
-    }
-
-    /// 書式を付けない本文に振り仮名だけを乗せる (歌詞プレイヤーの行)。
-    static func attributed(_ text: String, rubyFont: Font, rubyOffset: CGFloat) -> AttributedString {
+    /// 振り仮名を親字の上に乗せた UILabel 用の文字列。`decorate` で範囲ごとの書式 (アンカーの地の色など) を足す
+    /// (位置は元の本文のスカラー位置)。
+    static func attributed(_ text: String, font: UIFont, color: UIColor, lineSpacing: CGFloat = 0,
+                           decorate: (Int) -> [NSAttributedString.Key: Any] = { _ in [:] }) -> NSAttributedString {
         let scalars = Array(text.unicodeScalars)
-        var result = AttributedString()
-        for run in runs(text) {
-            var segment = AttributedString(String(String.UnicodeScalarView(scalars[run.range])))
-            if run.isRuby { segment.mergeAttributes(rubyAttributes(font: rubyFont, offset: rubyOffset)) }
-            result += segment
+        let (roles, readings) = roles(text)
+        var spacing = lineSpacing
+        let paragraph = withUnsafeBytes(of: &spacing) { raw in
+            var setting = CTParagraphStyleSetting(spec: .lineSpacingAdjustment, valueSize: MemoryLayout<CGFloat>.size,
+                                                  value: raw.baseAddress!)
+            return CTParagraphStyleCreate(&setting, 1)
+        }
+        let result = NSMutableAttributedString()
+        var k = 0
+        while k < scalars.count {
+            guard case .text(let rubyIndex) = roles[k] else { k += 1; continue }
+            let start = k
+            let extra = decorate(k)
+            while k < scalars.count, roles[k] == .text(rubyIndex: rubyIndex), decorate(k).count == extra.count { k += 1 }
+            var attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String): color.cgColor,
+                NSAttributedString.Key(kCTParagraphStyleAttributeName as String): paragraph,
+            ]
+            attrs.merge(extra) { _, new in new }
+            if let rubyIndex {
+                let annotation = CTRubyAnnotationCreateWithAttributes(
+                    .auto, .auto, .before, readings[rubyIndex] as CFString,
+                    [kCTRubyAnnotationSizeFactorAttributeName: 0.5,
+                     kCTForegroundColorAttributeName: color.withAlphaComponent(0.8).cgColor] as CFDictionary)
+                attrs[NSAttributedString.Key(kCTRubyAnnotationAttributeName as String)] = annotation
+            }
+            result.append(NSAttributedString(string: String(String.UnicodeScalarView(scalars[start..<k])), attributes: attrs))
         }
         return result
+    }
+}
+
+/// 振り仮名のある歌詞の 1 行。UILabel は振り仮名を描かないので、CoreText で直接組む。
+/// 幅に合わせて折り返し、高さは中身に合わせる。アンカーの地の色 (`.backgroundColor`) も自前で敷く。
+struct ImasRubyLabel: UIViewRepresentable {
+    let attributed: NSAttributedString
+
+    func makeUIView(context: Context) -> RubyTextView { RubyTextView() }
+
+    func updateUIView(_ view: RubyTextView, context: Context) {
+        view.attributed = attributed
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: RubyTextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? UIView.layoutFittingExpandedSize.width
+        return CGSize(width: width, height: uiView.fittingHeight(width: width))
+    }
+
+    final class RubyTextView: UIView {
+        var attributed = NSAttributedString() {
+            didSet { setNeedsDisplay(); invalidateIntrinsicContentSize() }
+        }
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .clear
+            isOpaque = false
+            contentMode = .redraw
+            // ⚠️ 選択・コピーの口を付けないこと (歌詞の取り出し口になる)。
+            isUserInteractionEnabled = false
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+        func fittingHeight(width: CGFloat) -> CGFloat {
+            let setter = CTFramesetterCreateWithAttributedString(attributed)
+            let size = CTFramesetterSuggestFrameSizeWithConstraints(
+                setter, CFRange(location: 0, length: 0), nil,
+                CGSize(width: width, height: .greatestFiniteMagnitude), nil)
+            return ceil(size.height) + 2
+        }
+
+        override func draw(_ rect: CGRect) {
+            guard let context = UIGraphicsGetCurrentContext() else { return }
+            context.textMatrix = .identity
+            context.translateBy(x: 0, y: bounds.height)
+            context.scaleBy(x: 1, y: -1)
+            let setter = CTFramesetterCreateWithAttributedString(attributed)
+            let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0),
+                                                 CGPath(rect: bounds, transform: nil), nil)
+            let lines = CTFrameGetLines(frame) as? [CTLine] ?? []
+            var origins = [CGPoint](repeating: .zero, count: lines.count)
+            CTFrameGetLineOrigins(frame, CFRange(location: 0, length: 0), &origins)
+            // アンカーの地の色を、文字の下に敷く (CoreText は背景色を描かない)。
+            for (line, origin) in zip(lines, origins) {
+                for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
+                    let attrs = CTRunGetAttributes(run) as NSDictionary
+                    guard let color = attrs[NSAttributedString.Key.backgroundColor] as? UIColor else { continue }
+                    var ascent: CGFloat = 0, descent: CGFloat = 0
+                    let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), &ascent, &descent, nil)
+                    let x = CTLineGetOffsetForStringIndex(line, CTRunGetStringRange(run).location, nil)
+                    context.setFillColor(color.cgColor)
+                    context.fill(CGRect(x: origin.x + x, y: origin.y - descent, width: width, height: ascent + descent))
+                }
+            }
+            CTFrameDraw(frame, context)
+        }
     }
 }

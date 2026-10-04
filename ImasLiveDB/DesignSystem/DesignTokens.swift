@@ -160,6 +160,22 @@ extension Font {
         return Font(UIFontMetrics(forTextStyle: style).scaledFont(for: uiFont))
     }
 
+    /// `imasHeading` / `imasBody` と同じ大きさ・倍率の UIKit の書体 (振り仮名を組む UILabel に渡すとき用)。
+    static func imasScaledUIFont(_ size: CGFloat, weight: Font.Weight = .regular, proportional: Bool = false) -> UIFont {
+        let pointSize = size * imasTextScale
+        var uiFont = UIFont.systemFont(ofSize: pointSize, weight: uiWeight(weight))
+        if proportional {
+            let descriptor = uiFont.fontDescriptor.addingAttributes([
+                .featureSettings: [[
+                    UIFontDescriptor.FeatureKey.type: kTextSpacingType,
+                    UIFontDescriptor.FeatureKey.selector: kAltProportionalTextSelector,
+                ]],
+            ])
+            uiFont = UIFont(descriptor: descriptor, size: pointSize)
+        }
+        return UIFontMetrics(forTextStyle: textStyle(forSize: size)).scaledFont(for: uiFont)
+    }
+
     /// かなを詰めた (palt) UIKit の書体。OS の枠 (ナビバーの題) に渡すとき用。
     static func imasProportionalUIFont(_ size: CGFloat, weight: UIFont.Weight) -> UIFont {
         let base = UIFont.systemFont(ofSize: size, weight: weight)

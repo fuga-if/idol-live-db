@@ -328,12 +328,20 @@ struct SongLyricsTab: View {
                 }
                 VStack(alignment: .leading, spacing: 0) {
                     // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
-                    Text(CallGuideText.attributed(line.text, highlights: highlights(for: line)))
-                        .font(.imasBody)
-                        .foregroundStyle(DS.ink)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if ImasRubyText.hasRuby(line.text) {
+                        // 振り仮名は親字の上に乗せる (Text では組めないので UILabel)。
+                        ImasRubyLabel(attributed: CallGuideText.rubyAttributed(
+                            line.text, highlights: highlights(for: line),
+                            font: Font.imasScaledUIFont(17), color: UIColor(DS.ink)))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text(CallGuideText.attributed(line.text, highlights: highlights(for: line)))
+                            .font(.imasBody)
+                            .foregroundStyle(DS.ink)
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                     ImasPartNames(names: partCast.names(line.singers))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
                     let listed = line.calls.filter { !line.echoes($0) }
