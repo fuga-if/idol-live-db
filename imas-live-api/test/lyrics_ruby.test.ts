@@ -2,7 +2,7 @@
 // 本文には実在の歌詞を使わない (意味の無い文字列だけ)。
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { convertLinesToRubyNotation, stripRuby, toRubyNotation } from "../src/lyrics_ruby";
-import { applyStructureOp } from "../src/lyrics_structure";
+import { applyStructureOp, parseStructureOp } from "../src/lyrics_structure";
 import { callJson, makeEnv } from "./support/worker";
 import { exec, row } from "./support/d1";
 
@@ -84,5 +84,17 @@ describe("振り仮名の記法", () => {
     expect(ateji.ok && ateji.lines[0].text).toBe("あの｜STAR《ほし》");
     const bad = applyStructureOp(lines as any, { op: "rubyBase", lineId: "a", at: 3, base: 3 }, () => "x");
     expect(bad.ok).toBe(false);
+  });
+
+  it("括弧を振り仮名にするとき親字の頭を選べる (当て字)", () => {
+    const lines = [{ id: "a", ord: 0, kind: "lyric", text: "あのSTAR（ほし）", section: null, start_ms: null, clap: null, calls: [] }];
+    expect(applyStructureOp(lines as any, { op: "ruby", lineId: "a", at: 6 }, () => "x").ok).toBe(false);
+    const on = applyStructureOp(lines as any, { op: "ruby", lineId: "a", at: 6, base: 2 }, () => "x");
+    expect(on.ok && on.lines[0].text).toBe("あの｜STAR《ほし》");
+    // 漢字のまとまりそのものを選び直したら「｜」は外れる
+    const k = [{ ...lines[0], text: "記憶｜抱《イダ》" }];
+    const back = applyStructureOp(k as any, { op: "rubyBase", lineId: "a", at: 4, base: 0 }, () => "x");
+    expect(back.ok && back.lines[0].text).toBe("記憶抱《イダ》");
+    expect(parseStructureOp({ op: "ruby", lineId: "a", at: 1, base: 0 })).toEqual({ op: "ruby", lineId: "a", at: 1, base: 0 });
   });
 });

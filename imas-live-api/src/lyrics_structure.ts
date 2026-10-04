@@ -21,7 +21,8 @@ export type StructureOp =
   | { op: "merge"; lineId: string; joiner: "" | " " | "　" }
   | { op: "split"; lineId: string; at: number }
   // 振り仮名にする / やめる。`at` は括弧 (「（」「(」) か「《」の位置。記号を入れ替えるだけで文字数は変わらない。
-  | { op: "ruby"; lineId: string; at: number }
+  // `base` を渡すと親字の頭をそこにする (当て字・漢字のまとまりの一部)。無ければ直前の漢字のまとまり。
+  | { op: "ruby"; lineId: string; at: number; base?: number }
   | { op: "unruby"; lineId: string; at: number }
   // 振り仮名の親字の頭を決め直す。`at` は「《」の位置、`base` は親字の頭の位置 (「｜」を置く)。
   // 漢字のまとまりの一部だけに掛ける (記憶｜抱《イダ》) ときと、漢字でない親字 (｜ＳＴＡＲ《ほし》) に使う。
@@ -49,6 +50,10 @@ export function parseStructureOp(body: unknown): StructureOp | string {
   }
   if (b.op === "ruby" || b.op === "unruby") {
     if (typeof b.at !== "number" || !Number.isInteger(b.at)) return "at must be an integer";
+    if (b.op === "ruby" && b.base !== undefined && b.base !== null) {
+      if (typeof b.base !== "number" || !Number.isInteger(b.base)) return "base must be an integer";
+      return { op: "ruby", lineId, at: b.at, base: b.base };
+    }
     return { op: b.op, lineId, at: b.at };
   }
   if (b.op === "rubyBase") {
@@ -82,8 +87,8 @@ export function applyStructureOp(
     const end = scalars.findIndex((c, k) => k > op.at && close.includes(c));
     if (end < 0 || end === op.at + 1) return { ok: false, error: "the bracket must be closed and not empty" };
     if (op.op === "ruby") {
-      // 親字は直前の漢字のまとまり。漢字の直後でない括弧は振り仮名にできない (｜を足すと文字数が変わる)。
-      if (op.at === 0 || !/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ]/u.test(scalars[op.at - 1])) {
+      // 親字は直前の漢字のまとまり。漢字の直後でない括弧は親字の頭 (`base`) を選んでもらう。
+      if (op.at === 0 || (op.base === undefined && !isKanji(scalars[op.at - 1]))) {
         return { ok: false, error: "ruby must follow kanji" };
       }
       scalars[op.at] = "《"; scalars[end] = "》";
@@ -95,7 +100,13 @@ export function applyStructureOp(
     const calls = (line.calls ?? []).map((c) =>
       scalarSlice(line.text, c.start, c.end) === c.anchorText ? { ...c, anchorText: scalarSlice(text, c.start, c.end) } : c
     );
-    next = [...lines.slice(0, i), { ...line, text, calls }, ...lines.slice(i + 1)];
+    let changed: LyricLineRow = { ...line, text, calls };
+    if (op.op === "ruby" && op.base !== undefined) {
+      const r = setRubyBase(changed, op.at, op.base);
+      if (typeof r === "string") return { ok: false, error: r };
+      changed = r;
+    }
+    next = [...lines.slice(0, i), changed, ...lines.slice(i + 1)];
   } else if (op.op === "merge") {
     const following = lines[i + 1];
     if (!following || following.kind !== "lyric") {
@@ -163,6 +174,21 @@ function setRubyBase(line: LyricLineRow, at: number, base: number): LyricLineRow
   if (removed >= 0 && base > removed) base -= 1; // 外した「｜」の分だけ前に詰まる
   const without = removed >= 0 ? [...scalars.slice(0, removed), ...scalars.slice(removed + 1)] : scalars;
   if (without[base] === "｜") return "base must point at a character";
+  // 親字が直前の漢字のまとまりそのものなら「｜」は要らない (書かなくても同じに読める)。
+  const open = removed >= 0 ? at - 1 : at;
+  let natural = open;
+  while (natural > 0 && isKanji(without[natural - 1])) natural -= 1;
+  if (natural === base) {
+    if (removed < 0) return line;
+    const text = without.join("");
+    const calls = (line.calls ?? []).map((c) => {
+      const start = c.start > removed ? c.start - 1 : c.start;
+      const end = Math.max(start, c.end > removed ? c.end - 1 : c.end);
+      const stale = scalarSlice(text, start, end) !== c.anchorText;
+      return { ...c, start, end, ...(stale ? { stale: true } : {}) };
+    });
+    return { ...line, text, calls };
+  }
   const text = [...without.slice(0, base), "｜", ...without.slice(base)].join("");
   // 元の位置 → 新しい位置 (外した「｜」の後ろは 1 つ詰め、置いた「｜」の後ろは 1 つ送る)。
   const move = (k: number) => {
@@ -176,4 +202,8 @@ function setRubyBase(line: LyricLineRow, at: number, base: number): LyricLineRow
     return { ...c, start, end, ...(stale ? { stale: true } : {}) };
   });
   return { ...line, text, calls };
+}
+
+function isKanji(c: string | undefined): boolean {
+  return !!c && /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ]/u.test(c);
 }

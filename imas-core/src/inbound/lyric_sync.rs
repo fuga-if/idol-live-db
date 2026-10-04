@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricSpan};
+pub use crate::domain::lyric_sync::{LyricAside, LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricRubyChoice, LyricSpan};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -100,8 +100,20 @@ pub fn lyric_call_echoes_line(line_text: String, start: u32, end: u32, call_text
     d::call_echoes_line(&line_text, start, end, &call_text, &timing)
 }
 
-/// 行の中の振り仮名 (漢字の直後の、かなだけの括弧)。画面は親字の右肩に小さく出す。
+/// 行の中の振り仮名 (《》)。画面は親字の上に小さく出す。
 #[uniffi::export]
 pub fn lyric_ruby_spans(text: String) -> Vec<LyricRuby> {
     d::ruby_spans(&text)
+}
+
+/// 区切り編集で並べる振り仮名の候補 (いまの振り仮名と、振り仮名にできる括弧)。
+#[uniffi::export]
+pub fn lyric_ruby_choices(text: String) -> Vec<LyricRubyChoice> {
+    d::ruby_choices(&text)
+}
+
+/// 括弧で書いた脇の字の範囲 (括弧ごと)。画面は一段小さく薄く出す。
+#[uniffi::export]
+pub fn lyric_aside_spans(text: String) -> Vec<LyricAside> {
+    d::aside_spans(&text)
 }

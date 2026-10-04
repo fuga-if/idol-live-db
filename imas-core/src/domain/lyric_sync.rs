@@ -171,6 +171,125 @@ pub fn ruby_spans(text: &str) -> Vec<LyricRuby> {
     out
 }
 
+/// 行の中の「振り仮名にできる括弧」と「いまの振り仮名」1 つずつ。区切り編集の画面が並べる。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricRubyChoice {
+    /// 開きの記号 (「（」「(」か「《」) の位置。
+    pub open: u32,
+    /// いま振り仮名 (《》) か。false なら括弧。
+    pub is_ruby: bool,
+    /// 括弧の中の文字 (読み)。
+    pub reading: String,
+    /// 親字の頭に選べる位置。近い順 (1 文字、2 文字…)。空白・閉じ記号・前の振り仮名は越えない。
+    pub bases: Vec<u32>,
+    /// いまの (括弧なら既定の) 親字の頭。漢字の直後でない括弧は `None` (選んでもらう)。
+    pub base: Option<u32>,
+}
+
+/// 親字の頭に選べる候補を、遡って何文字まで出すか。
+const RUBY_BASE_CHOICES_MAX: usize = 16;
+
+fn ends_base_search(c: char) -> bool {
+    c.is_whitespace() || matches!(c, '》' | '）' | ')' | '《' | '（' | '(' | '｜' | '「' | '」' | '、' | '。')
+}
+
+/// `open` から遡って親字の頭に選べる位置 (近い順)。`skip` は飛ばす「｜」の位置。
+fn ruby_base_choices(chars: &[char], open: usize, skip: Option<usize>) -> Vec<u32> {
+    let mut out = Vec::new();
+    let mut k = open;
+    while k > 0 && out.len() < RUBY_BASE_CHOICES_MAX {
+        k -= 1;
+        if Some(k) == skip {
+            continue;
+        }
+        if ends_base_search(chars[k]) {
+            break;
+        }
+        out.push(k as u32);
+    }
+    out
+}
+
+/// 区切り編集で並べる振り仮名の候補。いまの振り仮名と、振り仮名にできる括弧 (中身があって閉じていて、
+/// 直前に文字があるもの) を位置の順に返す。漢字の直後なら漢字のまとまりを既定の親字にする。
+/// 当て字 (漢字でない親字) は `bases` から頭を選んでもらう。
+pub fn ruby_choices(text: &str) -> Vec<LyricRubyChoice> {
+    let chars: Vec<char> = text.chars().collect();
+    let rubies = ruby_spans(text);
+    let inside_ruby = |k: usize| rubies.iter().any(|r| (r.open as usize) <= k && k < r.close as usize);
+    let mut out: Vec<LyricRubyChoice> = rubies
+        .iter()
+        .map(|r| LyricRubyChoice {
+            open: r.open,
+            is_ruby: true,
+            reading: chars[r.open as usize + 1..r.close as usize - 1].iter().collect(),
+            bases: ruby_base_choices(&chars, r.open as usize, r.marker.map(|m| m as usize)),
+            base: Some(r.base_start),
+        })
+        .collect();
+    for (k, &c) in chars.iter().enumerate() {
+        if !is_open(c) || k == 0 || inside_ruby(k) {
+            continue;
+        }
+        let Some(len) = chars[k + 1..].iter().position(|&d| is_close(d) || is_open(d)) else { continue };
+        if len == 0 || !is_close(chars[k + 1 + len]) {
+            continue;
+        }
+        let bases = ruby_base_choices(&chars, k, None);
+        if bases.is_empty() {
+            continue;
+        }
+        let mut start = k;
+        while start > 0 && is_ideograph(chars[start - 1]) {
+            start -= 1;
+        }
+        out.push(LyricRubyChoice {
+            open: k as u32,
+            is_ruby: false,
+            reading: chars[k + 1..k + 1 + len].iter().collect(),
+            bases,
+            base: (start < k).then_some(start as u32),
+        });
+    }
+    out.sort_by_key(|c| c.open);
+    out
+}
+
+/// 括弧で書いた脇の字 (被せ・コーラス・歌わない字) の範囲。括弧ごと、スカラー位置で `start..end`。
+/// 画面は一段小さく薄く出す。括弧の対応が取れない行は何も返さない (記号として使っている行を壊さない)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricAside {
+    pub start: u32,
+    pub end: u32,
+}
+
+pub fn aside_spans(text: &str) -> Vec<LyricAside> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (i, &c) in chars.iter().enumerate() {
+        if is_open(c) {
+            if depth == 0 {
+                start = i;
+            }
+            depth += 1;
+        } else if is_close(c) {
+            if depth == 0 {
+                return Vec::new();
+            }
+            depth -= 1;
+            if depth == 0 {
+                out.push(LyricAside { start: start as u32, end: (i + 1) as u32 });
+            }
+        }
+    }
+    if depth != 0 {
+        return Vec::new();
+    }
+    out
+}
+
 /// 各スカラーが被せの括弧の内側か。括弧の対応が取れない行は全部 false。
 fn inside_overlay_brackets(text: &str) -> Vec<bool> {
     let chars: Vec<char> = text.chars().collect();
@@ -605,4 +724,32 @@ mod tests {
         assert_eq!(active_overlay(&starts, 1500), Some(1));
         assert_eq!(active_overlay(&starts, 8000), None);
     }
+
+    #[test]
+    fn ruby_choices_lists_rubies_and_brackets() {
+        // 記0憶1抱2《3イ4ダ5》6の7S8T9A10R11（12ほ13し14）15
+        let c = ruby_choices("記憶抱《イダ》のSTAR（ほし）");
+        assert_eq!(c.len(), 2);
+        assert_eq!(c[0], LyricRubyChoice { open: 3, is_ruby: true, reading: "イダ".into(), bases: vec![2, 1, 0], base: Some(0) });
+        assert_eq!(c[1].open, 12);
+        assert!(!c[1].is_ruby);
+        assert_eq!(c[1].reading, "ほし");
+        assert_eq!(c[1].base, None);
+        assert_eq!(c[1].bases, vec![11, 10, 9, 8, 7]); // 前の「》」は越えない
+        // 漢字の直後なら漢字のまとまりが既定、｜は候補から外す
+        let k = ruby_choices("あ｜記憶抱《イダ》 見本（みほん）");
+        assert_eq!(k[0].bases, vec![4, 3, 2, 0]);
+        assert_eq!(k[0].base, Some(2));
+        assert_eq!(k[1].base, Some(10));
+        // 中身の無い括弧・行頭の括弧は出さない
+        assert!(ruby_choices("（あ）と（）").is_empty());
+    }
+
+    #[test]
+    fn aside_spans_cover_brackets() {
+        assert_eq!(aside_spans("調子（で）いい(Hi!)"), vec![LyricAside { start: 2, end: 5 }, LyricAside { start: 7, end: 12 }]);
+        assert_eq!(aside_spans("見本《みほん》"), vec![]);
+        assert_eq!(aside_spans("壊れ（た"), vec![]);
+    }
+
 }
