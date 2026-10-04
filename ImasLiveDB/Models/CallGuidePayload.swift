@@ -120,6 +120,8 @@ struct LyricStructurePayload: Encodable, Sendable {
     let lineId: String
     var joiner: String?
     var at: Int?
+    /// 振り仮名の親字の頭 (スカラー位置)。当て字や、漢字のまとまりの一部に掛けるとき。
+    var base: Int?
 
     /// 行と次の行を 1 行にする。
     static func merge(lineId: String, joiner: Joiner) -> Self {
@@ -132,8 +134,15 @@ struct LyricStructurePayload: Encodable, Sendable {
     }
 
     /// スカラー位置 `at` の括弧を振り仮名 (《》) にする / 振り仮名をやめて括弧に戻す。文字数は変わらない。
-    static func ruby(lineId: String, at: Int) -> Self { Self(op: "ruby", lineId: lineId, at: at) }
+    /// `base` を渡すと親字の頭をそこにする (「｜」が入るので 1 文字増える)。
+    static func ruby(lineId: String, at: Int, base: Int? = nil) -> Self {
+        Self(op: "ruby", lineId: lineId, at: at, base: base)
+    }
     static func unruby(lineId: String, at: Int) -> Self { Self(op: "unruby", lineId: lineId, at: at) }
+    /// 振り仮名 (「《」が `at`) の親字の頭を `base` に決め直す。
+    static func rubyBase(lineId: String, at: Int, base: Int) -> Self {
+        Self(op: "rubyBase", lineId: lineId, at: at, base: base)
+    }
 }
 
 /// `PUT /songs/{song_id}/parts` のリクエストボディ。行ごとの歌唱者 (アイドル id) だけを送る。

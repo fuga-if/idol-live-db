@@ -40,6 +40,7 @@ struct LyricsPlayerView: View {
     @AppStorage("lyrics.call_haptics") private var callHaptics = true
     @State private var startFailed = false
     @State private var showsAddToPlaylist = false
+    @State private var showsQueue = false
 
     private var starts: [Int64?] { lyrics.lines.map { $0.startMs.map(Int64.init) } }
     /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られない)。
@@ -79,6 +80,7 @@ struct LyricsPlayerView: View {
         .sensoryFeedback(.impact(weight: .heavy), trigger: callPulse)
         .imasTheme(seed: seed)
         .sheet(isPresented: $showsAddToPlaylist) { AddToPlaylistSheet(song: song) }
+        .sheet(isPresented: $showsQueue) { PlayQueueSheet() }
     }
 
     // MARK: - 頭
@@ -184,7 +186,11 @@ struct LyricsPlayerView: View {
                 let isCurrent = !hasTiming || line.id == activeLineId
                 ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
                                     isMarker: line.kind == .marker, isLiked: isLiked,
-                                    isCalled: line.calls.contains { $0.id == activeCallId && line.echoes($0) },
+                                    echoes: line.calls.filter { line.echoes($0) }.compactMap { call in
+                                        // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
+                                        lyricMainRange(text: line.text, start: UInt32(call.start), end: UInt32(call.end))
+                                            .map { .init(start: Int($0.start), end: Int($0.end), isActive: call.id == activeCallId) }
+                                    },
                                     seed: seed)
                 if let overlay = split.overlay, !split.main.isEmpty {
                     ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
@@ -229,6 +235,14 @@ struct LyricsPlayerView: View {
             HStack {
                 Text(Self.clock(position)).imasText(.imprint, color: DS.ink3)
                 Spacer()
+                if playback.isFullLoaded {
+                    // 次に流れる曲と自動再生 (∞) は、Apple Music と同じく下の操作の並びに置く。
+                    ImasIconButton(systemImage: "list.bullet", label: "次に流れる曲", size: .small, style: .plain) {
+                        AppAnalytics.tap("lyrics_player.open_queue")
+                        showsQueue = true
+                    }
+                    Spacer()
+                }
                 Text("-" + Self.clock(max(0, duration - position))).imasText(.imprint, color: DS.ink3)
             }
             HStack(spacing: playback.hasQueue ? DS.sp5 : DS.sp8) {
@@ -260,7 +274,6 @@ struct LyricsPlayerView: View {
                     .disabled(!playback.canSkipNext)
                 }
             }
-            if playback.isFullLoaded { UpNextRow() }
         }
     }
 

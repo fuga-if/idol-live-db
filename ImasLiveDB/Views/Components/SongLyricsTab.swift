@@ -71,6 +71,8 @@ struct SongLyricsTab: View {
     @State private var partsSaving = false
     /// 区切りの変更を送っている行 (二度押しを止める)。
     @State private var structureBusyLineId: String?
+    /// 振り仮名を振る字を選んでいる候補 (選ぶダイアログを出す)。
+    @State private var rubyBasePick: RubyBasePick?
     /// 再生に追従している今の行。
     @State private var activeLineId: String?
     /// 記録を始められなかったときの案内。
@@ -120,6 +122,15 @@ struct SongLyricsTab: View {
                     { editor?.deleteCall(lineId: request.lineId, callId: call.id) }
                 }
             )
+        }
+        .confirmationDialog("「\(rubyBasePick?.choice.reading ?? "")」を振る字", isPresented: Binding(
+            get: { rubyBasePick != nil }, set: { if !$0 { rubyBasePick = nil } }
+        ), titleVisibility: .visible, presenting: rubyBasePick) { pick in
+            ForEach(pick.choice.bases, id: \.self) { base in
+                Button(base == pick.choice.base && pick.choice.isRuby ? "「\(pick.baseText(base))」(いま)" : "「\(pick.baseText(base))」") {
+                    applyRubyBase(pick, base: base)
+                }
+            }
         }
         .alert("保存できませんでした", isPresented: saveErrorBinding) {
             Button("OK", role: .cancel) { saveErrorMessage = nil }
@@ -867,39 +878,68 @@ struct SongLyricsTab: View {
         }
     }
 
-    /// 行の中の振り仮名 (《》) と、漢字の直後の括弧を並べて、振り仮名にする / やめるを選ばせる。
+    /// 行の中の振り仮名 (《》) と、振り仮名にできる括弧を並べる (候補の規則はコアの `lyricRubyChoices`)。
+    /// 親字の頭は選べる (当て字や、漢字のまとまりの一部だけに掛けるとき)。
     @ViewBuilder
     private func rubyToggles(_ line: LyricLine) -> some View {
-        let scalars = Array(line.text.unicodeScalars)
-        let rubies = lyricRubySpans(text: line.text)
-        let rubyOpens = Set(rubies.map { Int($0.open) })
-        // 括弧で書いてあり、直前が漢字のもの (振り仮名にできる候補)。
-        let candidates = scalars.indices.filter { k in
-            (scalars[k] == "（" || scalars[k] == "(") && k > 0
-                && scalars[k - 1].properties.isIdeographic
-        }
-        let items: [(at: Int, isRuby: Bool)] =
-            rubies.map { (Int($0.open), true) } + candidates.filter { !rubyOpens.contains($0) }.map { ($0, false) }
-        if !items.isEmpty {
+        let choices = lyricRubyChoices(text: line.text)
+        if !choices.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: DS.sp2) {
-                    ForEach(items.sorted { $0.at < $1.at }, id: \.at) { item in
-                        let inner = String(String.UnicodeScalarView(scalars[(item.at + 1)...].prefix {
-                            !["）", ")", "》"].contains($0)
-                        }))
-                        ImasButton(title: item.isRuby ? "「\(inner)」をルビにしない" : "「\(inner)」をルビにする",
-                                   systemImage: item.isRuby ? "textformat" : "textformat.superscript",
-                                   role: .plain, size: .small) {
-                            Task {
-                                await changeStructure(line.id, item.isRuby ? .unruby(lineId: line.id, at: item.at)
-                                                                            : .ruby(lineId: line.id, at: item.at))
+                    ForEach(choices, id: \.open) { choice in
+                        let at = Int(choice.open)
+                        if choice.isRuby {
+                            ImasButton(title: "「\(choice.reading)」をルビにしない", systemImage: "textformat",
+                                       role: .plain, size: .small) {
+                                Task { await changeStructure(line.id, .unruby(lineId: line.id, at: at)) }
                             }
+                            .disabled(structureBusyLineId != nil)
+                            if choice.bases.count > 1 {
+                                ImasButton(title: "「\(choice.reading)」を振る字を選ぶ", systemImage: "character.cursor.ibeam",
+                                           role: .plain, size: .small) {
+                                    rubyBasePick = RubyBasePick(lineId: line.id, text: line.text, choice: choice)
+                                }
+                                .disabled(structureBusyLineId != nil)
+                            }
+                        } else {
+                            ImasButton(title: "「\(choice.reading)」をルビにする", systemImage: "textformat.superscript",
+                                       role: .plain, size: .small) {
+                                // 漢字の直後なら漢字のまとまりに振る (違えば「振る字を選ぶ」で直す)。当て字は選んでもらう。
+                                if choice.base != nil {
+                                    Task { await changeStructure(line.id, .ruby(lineId: line.id, at: at)) }
+                                } else {
+                                    rubyBasePick = RubyBasePick(lineId: line.id, text: line.text, choice: choice)
+                                }
+                            }
+                            .disabled(structureBusyLineId != nil)
                         }
-                        .disabled(structureBusyLineId != nil)
                     }
                 }
             }
         }
+    }
+
+    /// 振り仮名を振る字を選んでいる最中の候補。
+    struct RubyBasePick: Identifiable {
+        let lineId: String
+        let text: String
+        let choice: LyricRubyChoice
+        var id: String { "\(lineId)#\(choice.open)" }
+
+        /// 親字の頭を `base` にしたときの親字 (｜は除く)。
+        func baseText(_ base: UInt32) -> String {
+            let scalars = Array(text.unicodeScalars)
+            return String(String.UnicodeScalarView(scalars[Int(base)..<Int(choice.open)].filter { $0 != "｜" }))
+        }
+    }
+
+    /// 振る字を選んだら送る。
+    private func applyRubyBase(_ pick: RubyBasePick, base: UInt32) {
+        let at = Int(pick.choice.open)
+        let change: LyricStructurePayload = pick.choice.isRuby
+            ? .rubyBase(lineId: pick.lineId, at: at, base: Int(base))
+            : .ruby(lineId: pick.lineId, at: at, base: Int(base))
+        Task { await changeStructure(pick.lineId, change) }
     }
 
     /// 区切りの変更を送り、歌詞を取り直す。文字は変わらない (行 ID と位置だけを送る)。

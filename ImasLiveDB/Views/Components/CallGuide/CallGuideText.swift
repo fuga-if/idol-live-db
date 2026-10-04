@@ -66,16 +66,22 @@ enum CallGuideText {
     /// `Text` の連結 (`Text(a) + Text(b)`) では背景色を付けられないので `AttributedString` を使う。
     /// 重なり合うアンカーは先勝ちで、後から来た重複部分は捨てる (両方描くと色が濁って
     /// どちらの範囲かが読めなくなるため)。
-    static func attributed(_ text: String, highlights: [Highlight]) -> AttributedString {
+    /// 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄くする (`asides: false` で止める。編集シート用)。
+    static func attributed(_ text: String, highlights: [Highlight], asides: Bool = true) -> AttributedString {
         let scalars = Array(text.unicodeScalars)
         let owner = owners(count: scalars.count, highlights: highlights)
+        let aside = asides ? ImasRubyText.asides(text) : [Bool](repeating: false, count: scalars.count)
         var result = AttributedString()
         var k = 0
         while k < scalars.count {
             let start = k
             let current = owner[k]
-            while k < scalars.count, owner[k] == current { k += 1 }
+            while k < scalars.count, owner[k] == current, aside[k] == aside[start] { k += 1 }
             var segment = AttributedString(String(String.UnicodeScalarView(scalars[start..<k])))
+            if aside[start] {
+                segment.font = .imasFootnote
+                segment.foregroundColor = DS.ink2
+            }
             if let current {
                 let highlight = highlights[current]
                 var container = AttributeContainer()
@@ -83,7 +89,9 @@ enum CallGuideText {
                 // (シートの「アンカー」欄) は**そこが主役**なので、はっきり出す。
                 // 同じ濃さにすると、行の中のどこに掛かるのかが読み取れない。
                 container.swiftUI.backgroundColor = highlight.color.opacity(opacity(highlight))
-                if highlight.isPending || highlight.isEcho { container.swiftUI.font = .imasBody.weight(.bold) }
+                if highlight.isPending || highlight.isEcho {
+                    container.swiftUI.font = (aside[start] ? Font.imasFootnote : .imasBody).weight(.bold)
+                }
                 container.swiftUI.underlineStyle = .single
                 segment.mergeAttributes(container)
             }
@@ -96,14 +104,17 @@ enum CallGuideText {
     static func rubyAttributed(_ text: String, highlights: [Highlight], font: UIFont, color: UIColor) -> NSAttributedString {
         let owner = owners(count: text.unicodeScalars.count, highlights: highlights)
         let bold = Font.imasScaledUIFont(17, weight: .bold)
-        return ImasRubyText.attributed(text, font: font, color: color, lineSpacing: 5) { k in
+        let asideBold = Font.imasScaledUIFont(13, weight: .bold)
+        let aside = ImasRubyText.asides(text)
+        return ImasRubyText.attributed(text, font: font, color: color, lineSpacing: 5,
+                                       asideFont: Font.imasScaledUIFont(13), asideColor: UIColor(DS.ink2)) { k in
             guard let index = owner[k] else { return [:] }
             let highlight = highlights[index]
             var attrs: [NSAttributedString.Key: Any] = [
                 .backgroundColor: UIColor(highlight.color.opacity(opacity(highlight))),
                 NSAttributedString.Key(kCTUnderlineStyleAttributeName as String): CTUnderlineStyle.single.rawValue,
             ]
-            if highlight.isPending || highlight.isEcho { attrs[.font] = bold }
+            if highlight.isPending || highlight.isEcho { attrs[.font] = aside[k] ? asideBold : bold }
             return attrs
         }
     }

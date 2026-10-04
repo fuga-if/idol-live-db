@@ -223,6 +223,10 @@ struct FakeLyricsReading: LyricsReading {
         }
         // 振り仮名 (《》 記法) と、歌詞の被せの括弧に同じ文字のコールを付けた行。
         add(.lyric, "見本字《みほんじ》が並ぶダミーの行", section: "A")
+        // 当て字の振り仮名と、振り仮名にできる括弧・歌わない字の括弧。
+        let echoMain = "あの｜STAR《ほし》まで見本（みほん）とダミー（で）"
+        // 「ダミー」に歌詞と同じ文字の同時コール (今の行になる前から下線で見える)。
+        add(.lyric, echoMain, section: "A", calls: [call("c_echo_main", in: echoMain, 21..<24, "ダミー", timing: .over)])
         let echoText = "ダミーの問いかけ？（もちろん！）"
         add(.lyric, echoText, section: "A", calls: [call("c_echo", in: echoText, 10..<15, "(もちろん！)")])
         add(.blank, "")

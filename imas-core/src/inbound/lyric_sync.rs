@@ -117,3 +117,10 @@ pub fn lyric_ruby_choices(text: String) -> Vec<LyricRubyChoice> {
 pub fn lyric_aside_spans(text: String) -> Vec<LyricAside> {
     d::aside_spans(&text)
 }
+
+/// 行の本文の範囲を、被せを外したメインの行 (`lyric_overlay_split` の main) の中の範囲に置き直す。
+/// まるごと括弧の中なら `None`。
+#[uniffi::export]
+pub fn lyric_main_range(text: String, start: u32, end: u32) -> Option<LyricAside> {
+    d::main_range(&text, start, end)
+}

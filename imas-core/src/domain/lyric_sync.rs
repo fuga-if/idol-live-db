@@ -189,6 +189,10 @@ pub struct LyricRubyChoice {
 /// 親字の頭に選べる候補を、遡って何文字まで出すか。
 const RUBY_BASE_CHOICES_MAX: usize = 16;
 
+fn is_kana(c: char) -> bool {
+    matches!(c, '\u{3041}'..='\u{309F}' | '\u{30A0}'..='\u{30FF}')
+}
+
 fn ends_base_search(c: char) -> bool {
     c.is_whitespace() || matches!(c, '》' | '）' | ')' | '《' | '（' | '(' | '｜' | '「' | '」' | '、' | '。')
 }
@@ -210,7 +214,7 @@ fn ruby_base_choices(chars: &[char], open: usize, skip: Option<usize>) -> Vec<u3
     out
 }
 
-/// 区切り編集で並べる振り仮名の候補。いまの振り仮名と、振り仮名にできる括弧 (中身があって閉じていて、
+/// 区切り編集で並べる振り仮名の候補。いまの振り仮名と、振り仮名にできる括弧 (中身がかなだけで閉じていて、
 /// 直前に文字があるもの) を位置の順に返す。漢字の直後なら漢字のまとまりを既定の親字にする。
 /// 当て字 (漢字でない親字) は `bases` から頭を選んでもらう。
 pub fn ruby_choices(text: &str) -> Vec<LyricRubyChoice> {
@@ -232,7 +236,8 @@ pub fn ruby_choices(text: &str) -> Vec<LyricRubyChoice> {
             continue;
         }
         let Some(len) = chars[k + 1..].iter().position(|&d| is_close(d) || is_open(d)) else { continue };
-        if len == 0 || !is_close(chars[k + 1 + len]) {
+        // 読みはかなだけ (被せ・コーラスの括弧まで候補に並べない)。
+        if len == 0 || !is_close(chars[k + 1 + len]) || !chars[k + 1..k + 1 + len].iter().all(|&d| is_kana(d)) {
             continue;
         }
         let bases = ruby_base_choices(&chars, k, None);
@@ -288,6 +293,37 @@ pub fn aside_spans(text: &str) -> Vec<LyricAside> {
         return Vec::new();
     }
     out
+}
+
+/// 行の本文の範囲 `start..end` を、`split_overlay` の `main` (括弧の外) の中の範囲に置き直す。
+/// 範囲がまるごと括弧の中 (被せ) なら `None`。括弧の対応が取れず分けない行はそのまま返す。
+/// 歌詞プレイヤーが、メインの行の中でコールの掛かる語に印を付けるのに使う。
+pub fn main_range(text: &str, start: u32, end: u32) -> Option<LyricAside> {
+    let chars: Vec<char> = text.chars().collect();
+    let (start, end) = (start as usize, (end as usize).min(chars.len()));
+    if start >= end {
+        return None;
+    }
+    if split_overlay(text).overlay.is_none() {
+        return Some(LyricAside { start: start as u32, end: end as u32 });
+    }
+    // 括弧の外に残る字だけを数える (括弧そのものと中身は main に入らない)。
+    let mut depth = 0usize;
+    let mut kept = vec![false; chars.len()];
+    for (i, &c) in chars.iter().enumerate() {
+        if is_open(c) {
+            depth += 1;
+        } else if is_close(c) {
+            depth = depth.saturating_sub(1);
+        } else if depth == 0 {
+            kept[i] = true;
+        }
+    }
+    if !kept[start..end].iter().any(|&k| k) {
+        return None;
+    }
+    let before = |k: usize| kept[..k].iter().filter(|&&x| x).count() as u32;
+    Some(LyricAside { start: before(start), end: before(end) })
 }
 
 /// 各スカラーが被せの括弧の内側か。括弧の対応が取れない行は全部 false。
@@ -743,6 +779,8 @@ mod tests {
         assert_eq!(k[1].base, Some(10));
         // 中身の無い括弧・行頭の括弧は出さない
         assert!(ruby_choices("（あ）と（）").is_empty());
+        // かな以外の混じる括弧 (被せ・コーラス) は候補にしない
+        assert!(ruby_choices("行です3(追いかけ) 夢（Hi!）").is_empty());
     }
 
     #[test]
@@ -750,6 +788,15 @@ mod tests {
         assert_eq!(aside_spans("調子（で）いい(Hi!)"), vec![LyricAside { start: 2, end: 5 }, LyricAside { start: 7, end: 12 }]);
         assert_eq!(aside_spans("見本《みほん》"), vec![]);
         assert_eq!(aside_spans("壊れ（た"), vec![]);
+    }
+
+
+    #[test]
+    fn main_range_maps_into_main_text() {
+        // 囲0い1出2す3（4追5い6）7ご8制9圧10
+        assert_eq!(main_range("囲い出す（追い）ご制圧", 8, 11), Some(LyricAside { start: 4, end: 7 }));
+        assert_eq!(main_range("囲い出す（追い）ご制圧", 5, 7), None);
+        assert_eq!(main_range("ご制圧", 0, 3), Some(LyricAside { start: 0, end: 3 }));
     }
 
 }

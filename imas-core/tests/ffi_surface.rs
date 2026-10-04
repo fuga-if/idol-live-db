@@ -183,6 +183,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_ruby_spans,
     uniffi_imas_core_checksum_func_lyric_ruby_choices,
     uniffi_imas_core_checksum_func_lyric_aside_spans,
+    uniffi_imas_core_checksum_func_lyric_main_range,
     uniffi_imas_core_checksum_func_lyrics_quiz_answer,
     uniffi_imas_core_checksum_func_lyrics_quiz_excerpt,
     uniffi_imas_core_checksum_func_lyrics_quiz_hint_state,

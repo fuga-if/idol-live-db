@@ -183,25 +183,57 @@ struct ImasPlayerLyricLine: View {
     /// 構成マーカー (「間奏」等)。本文より控えめに出す。
     var isMarker = false
     var isLiked = false
-    /// いまこの行の文字を一緒に叫ぶところ (歌詞と同じ文字の同時コール)。曲の色で点ける。
-    var isCalled = false
+    /// 歌詞と同じ文字を一緒に叫ぶところ (同時コール)。いつも曲の色の下線で印を付け、
+    /// いま叫ぶところは字ごと曲の色で点ける (今の行になる前から、どこがコールか見える)。
+    var echoes: [Echo] = []
     let seed: String?
     @Environment(\.colorScheme) private var scheme
+
+    /// 行の中のコールの掛かる語 (`text` の中のスカラー位置)。
+    struct Echo: Equatable {
+        let start: Int
+        let end: Int
+        let isActive: Bool
+    }
+
+    /// 各スカラーに掛かるコール (重なりは先勝ち)。
+    private func echoAt(_ count: Int) -> [Echo?] {
+        var out = [Echo?](repeating: nil, count: count)
+        for echo in echoes {
+            for k in max(0, echo.start)..<min(echo.end, count) where out[k] == nil { out[k] = echo }
+        }
+        return out
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
             // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと (歌詞の取り出し口になる)。
-            let color = isCalled ? ImasTheme.derive(seed: seed, scheme: scheme).accent : isCurrent ? DS.ink : DS.ink3
+            let color = isCurrent ? DS.ink : DS.ink3
+            let accent = ImasTheme.derive(seed: seed, scheme: scheme).accent
+            let marks = echoAt(text.unicodeScalars.count)
             if ImasRubyText.hasRuby(text) {
                 // 振り仮名は親字の上に乗せる (Text では組めないので UILabel)。
                 ImasRubyLabel(attributed: ImasRubyText.attributed(
                     text,
                     font: isMarker ? Font.imasScaledUIFont(17, weight: .bold, proportional: true)
                                    : Font.imasScaledUIFont(28, weight: .heavy, proportional: true),
-                    color: UIColor(color), lineSpacing: 4))
+                    color: UIColor(color), lineSpacing: 4,
+                    asideFont: Font.imasScaledUIFont(isMarker ? 14 : 20, weight: .bold, proportional: true),
+                    asideColor: UIColor(color).withAlphaComponent(0.6)) { k in
+                        guard let echo = marks[k] else { return [:] }
+                        return [
+                            NSAttributedString.Key(kCTForegroundColorAttributeName as String):
+                                UIColor(echo.isActive ? accent : color).cgColor,
+                            NSAttributedString.Key(kCTUnderlineStyleAttributeName as String): CTUnderlineStyle.thick.rawValue,
+                            NSAttributedString.Key(kCTUnderlineColorAttributeName as String): UIColor(accent).cgColor,
+                        ]
+                    })
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                Text(text)
+                // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く。
+                Text(echoMarked(ImasRubyText.asideAttributed(text, asideFont: .imasHeading(isMarker ? 14 : 20, weight: .bold),
+                                                             asideColor: color.opacity(0.6)),
+                                accent: accent))
                     .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
                     .foregroundStyle(color)
                     .lineSpacing(4)
@@ -213,6 +245,21 @@ struct ImasPlayerLyricLine: View {
         .scaleEffect(isCurrent ? 1 : 0.86, anchor: .leading)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: isCurrent)
         .accessibilityAddTraits(isCurrent ? .isSelected : [])
+    }
+
+    /// コールの掛かる語に曲の色の下線を引き、いま叫ぶところは字も曲の色にする。
+    private func echoMarked(_ base: AttributedString, accent: Color) -> AttributedString {
+        guard !echoes.isEmpty else { return base }
+        var result = base
+        let scalars = result.unicodeScalars
+        for echo in echoes {
+            guard echo.start >= 0, echo.start < echo.end, echo.end <= scalars.count else { continue }
+            let lower = scalars.index(scalars.startIndex, offsetBy: echo.start)
+            let upper = scalars.index(scalars.startIndex, offsetBy: echo.end)
+            result[lower..<upper].underlineStyle = Text.LineStyle(pattern: .solid, color: accent)
+            if echo.isActive { result[lower..<upper].foregroundColor = accent }
+        }
+        return result
     }
 }
 
@@ -486,6 +533,34 @@ enum ImasRubyText {
 
     static func hasRuby(_ text: String) -> Bool { !lyricRubySpans(text: text).isEmpty }
 
+    /// 各スカラーが括弧で書いた脇の字 (被せ・コーラス・歌わない字) か。括弧も含む。規則はコア。
+    static func asides(_ text: String) -> [Bool] {
+        var out = [Bool](repeating: false, count: text.unicodeScalars.count)
+        for span in lyricAsideSpans(text: text) {
+            for k in Int(span.start)..<min(Int(span.end), out.count) { out[k] = true }
+        }
+        return out
+    }
+
+    /// 振り仮名の無い行の Text 用。脇の字だけ一段小さく薄くする。
+    static func asideAttributed(_ text: String, asideFont: Font, asideColor: Color) -> AttributedString {
+        let scalars = Array(text.unicodeScalars)
+        let aside = asides(text)
+        var result = AttributedString()
+        var k = 0
+        while k < scalars.count {
+            let start = k
+            while k < scalars.count, aside[k] == aside[start] { k += 1 }
+            var segment = AttributedString(String(String.UnicodeScalarView(scalars[start..<k])))
+            if aside[start] {
+                segment.font = asideFont
+                segment.foregroundColor = asideColor
+            }
+            result += segment
+        }
+        return result
+    }
+
     /// 各スカラーの役割と、振り仮名ごとの読み。
     static func roles(_ text: String) -> (roles: [Role], readings: [String]) {
         let scalars = Array(text.unicodeScalars)
@@ -507,10 +582,13 @@ enum ImasRubyText {
 
     /// 振り仮名を親字の上に乗せた UILabel 用の文字列。`decorate` で範囲ごとの書式 (アンカーの地の色など) を足す
     /// (位置は元の本文のスカラー位置)。
+    /// 脇の字 (括弧) は `asideFont` / `asideColor` で一段小さく薄くする。
     static func attributed(_ text: String, font: UIFont, color: UIColor, lineSpacing: CGFloat = 0,
+                           asideFont: UIFont? = nil, asideColor: UIColor? = nil,
                            decorate: (Int) -> [NSAttributedString.Key: Any] = { _ in [:] }) -> NSAttributedString {
         let scalars = Array(text.unicodeScalars)
         let (roles, readings) = roles(text)
+        let aside = asides(text)
         var spacing = lineSpacing
         let paragraph = withUnsafeBytes(of: &spacing) { raw in
             var setting = CTParagraphStyleSetting(spec: .lineSpacingAdjustment, valueSize: MemoryLayout<CGFloat>.size,
@@ -523,10 +601,12 @@ enum ImasRubyText {
             guard case .text(let rubyIndex) = roles[k] else { k += 1; continue }
             let start = k
             let extra = decorate(k)
-            while k < scalars.count, roles[k] == .text(rubyIndex: rubyIndex), decorate(k).count == extra.count { k += 1 }
+            while k < scalars.count, roles[k] == .text(rubyIndex: rubyIndex), decorate(k).count == extra.count,
+                  aside[k] == aside[start] { k += 1 }
+            let isAside = aside[start]
             var attrs: [NSAttributedString.Key: Any] = [
-                .font: font,
-                NSAttributedString.Key(kCTForegroundColorAttributeName as String): color.cgColor,
+                .font: isAside ? (asideFont ?? font) : font,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String): (isAside ? (asideColor ?? color) : color).cgColor,
                 NSAttributedString.Key(kCTParagraphStyleAttributeName as String): paragraph,
             ]
             attrs.merge(extra) { _, new in new }

@@ -42,14 +42,16 @@ final class MusicKitService {
     @ObservationIgnored private var songIdByMusicKitId: [MusicItemID: String] = [:]
     @ObservationIgnored private var playerObservers: Set<AnyCancellable> = []
 
-    /// 積んだ曲を流し終えそうになったら「次はこれ」を足して流し続けるか (端末の設定。既定は続ける)。
-    var autoplayNext: Bool = UserDefaults.standard.object(forKey: MusicKitService.autoplayKey) as? Bool ?? true {
+    /// 積んだ曲を流し終えそうになったら「次はこれ」を足して流し続けるか (端末の設定。既定は切。
+    /// 入れ切りは「次に流れる曲」の ∞)。
+    var autoplayNext: Bool = UserDefaults.standard.object(forKey: MusicKitService.autoplayKey) as? Bool ?? false {
         didSet {
             UserDefaults.standard.set(autoplayNext, forKey: Self.autoplayKey)
             if autoplayNext { appendNextIfNeeded() }
         }
     }
-    private static let autoplayKey = "music.autoplay_next"
+    // 既定を切に変えたので鍵も替える (前の既定「入」で保存された値を引き継がない)。
+    private static let autoplayKey = "music.autoplay_next.v2"
     /// 「次はこれ」で足した曲の理由 (songs.id → 「同じ公演で 12 回」など)。
     private(set) var recommendedLabels: [String: String] = [:]
     /// この再生で流した曲 (同じ曲に戻らないよう「次はこれ」から外す)。
