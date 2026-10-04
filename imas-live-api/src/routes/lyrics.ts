@@ -19,6 +19,7 @@
 // 理由は migrations/0026_song_lyrics.sql の先頭コメントを参照。
 // このファイルは日時文字列を JS 側で組み立てず、必ず SQL の datetime('now') で書く。
 
+import { convertLinesToRubyNotation, stripRuby, toRubyNotation } from "../lyrics_ruby";
 import { getAuthUser } from "../auth";
 import { checkRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
@@ -872,6 +873,55 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   }
 
   // ----------------------------------------------------------------
+  // POST /admin/lyrics/ruby-notation — 振り仮名の括弧を《》に直す (モデレーターのみ・一度きりの移行)
+  // ----------------------------------------------------------------
+  //
+  // 歌詞サイトの本文は振り仮名も括弧で書いてあり、被せの括弧と区別が付かない。取り込み (PUT) は
+  // 直してから保存するようにしたので、それより前に入った分をここでまとめて直す。
+  // song_id 順に `limit` 曲ずつ。`dryRun` なら数えるだけ。
+  // ⚠️ 応答は件数だけ。本文・行を返さないこと (まとめ取りの口になる)。
+  if (path === "/admin/lyrics/ruby-notation" && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+    const body = (await request.json().catch(() => null)) as
+      { after?: unknown; limit?: unknown; dryRun?: unknown; dry_run?: unknown } | null;
+    const after = typeof body?.after === "string" ? body.after : "";
+    const limit = typeof body?.limit === "number" ? Math.min(Math.max(1, Math.floor(body.limit)), 200) : 100;
+    const dryRun = body?.dryRun === true || body?.dry_run === true;
+    const { results } = await env.DB.prepare(
+      "SELECT song_id, lines_json FROM song_lyrics WHERE song_id > ? ORDER BY song_id LIMIT ?"
+    ).bind(after, limit).all<{ song_id: string; lines_json: string | null }>();
+    const rows = results ?? [];
+    let changedSongs = 0;
+    let changedLines = 0;
+    for (const row of rows) {
+      const lines = parseLines(row.lines_json);
+      const converted = convertLinesToRubyNotation(lines);
+      if (converted.changed === 0) continue;
+      changedSongs += 1;
+      changedLines += converted.changed;
+      if (dryRun) continue;
+      const previousBodyNorm = normalizeForSearch(
+        lines.filter((l) => l.kind === "lyric").map((l) => stripRuby(l.text)).join("\n"));
+      const nextBody = converted.lines.filter((l) => l.kind === "lyric").map((l) => stripRuby(l.text)).join("\n");
+      const nextBodyNorm = normalizeForSearch(nextBody);
+      await env.DB.prepare(
+        "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ?, updated_at = datetime('now') WHERE song_id = ?"
+      ).bind(JSON.stringify(converted.lines), nextBody, nextBodyNorm, row.song_id).run();
+      try {
+        await updateGramIndex(env, row.song_id, previousBodyNorm, nextBodyNorm);
+      } catch (err) {
+        console.error("lyrics_gram_index_update_failed", row.song_id, err);
+      }
+    }
+    const last = rows[rows.length - 1];
+    return json({
+      dryRun, scanned: rows.length, changedSongs, changedLines,
+      next: rows.length === limit && last ? last.song_id : null,
+    }, 200, NO_STORE);
+  }
+
+  // ----------------------------------------------------------------
   // GET /admin/lyrics/quota — 掲載曲数の集計 (モデレーターのみ)
   // ----------------------------------------------------------------
   //
@@ -957,7 +1007,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     ];
 
     const nextLines: LyricLineRow[] = lines.map((line, i) => {
-      const text = line.text ?? "";
+      // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
+      const text = toRubyNotation(line.text ?? "");
       // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
       // 本文が変わってアンカーがズレたコールには stale が立つ (消さない)。
       const annotation = carryOverAnnotation(existing[i], text);
@@ -981,7 +1032,7 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     // 「間奏」で検索して全曲ヒットするような結果にしない。
     const searchBody = nextLines
       .filter((line) => line.kind === "lyric")
-      .map((line) => line.text)
+      .map((line) => stripRuby(line.text))
       .join("\n");
 
     // body_norm は表記ゆれを吸収した検索用のコピー (migrations 0031)。body と必ず同時に書く。

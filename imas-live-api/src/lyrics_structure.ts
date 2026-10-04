@@ -19,7 +19,10 @@ import { scalarLength, scalarSlice, toScalars } from "./lyrics_calls";
 
 export type StructureOp =
   | { op: "merge"; lineId: string; joiner: "" | " " | "　" }
-  | { op: "split"; lineId: string; at: number };
+  | { op: "split"; lineId: string; at: number }
+  // 振り仮名にする / やめる。`at` は括弧 (「（」「(」) か「《」の位置。記号を入れ替えるだけで文字数は変わらない。
+  | { op: "ruby"; lineId: string; at: number }
+  | { op: "unruby"; lineId: string; at: number };
 
 export type StructureResult = { ok: true; lines: LyricLineRow[] } | { ok: false; error: string };
 
@@ -41,7 +44,11 @@ export function parseStructureOp(body: unknown): StructureOp | string {
     if (typeof b.at !== "number" || !Number.isInteger(b.at)) return "at must be an integer";
     return { op: "split", lineId, at: b.at };
   }
-  return "op must be merge or split";
+  if (b.op === "ruby" || b.op === "unruby") {
+    if (typeof b.at !== "number" || !Number.isInteger(b.at)) return "at must be an integer";
+    return { op: b.op, lineId, at: b.at };
+  }
+  return "op must be merge, split, ruby or unruby";
 }
 
 /** 行の区切りを動かした後の行の並び。ord は振り直す。 */
@@ -56,7 +63,28 @@ export function applyStructureOp(
   if (line.kind !== "lyric") return { ok: false, error: "only lyric lines can be edited" };
 
   let next: LyricLineRow[];
-  if (op.op === "merge") {
+  if (op.op === "ruby" || op.op === "unruby") {
+    const scalars = toScalars(line.text);
+    const [open, close] = op.op === "ruby" ? [["（", "("], ["）", ")"]] : [["《"], ["》"]];
+    if (!open.includes(scalars[op.at] ?? "")) return { ok: false, error: "at must point at an opening bracket" };
+    const end = scalars.findIndex((c, k) => k > op.at && close.includes(c));
+    if (end < 0 || end === op.at + 1) return { ok: false, error: "the bracket must be closed and not empty" };
+    if (op.op === "ruby") {
+      // 親字は直前の漢字のまとまり。漢字の直後でない括弧は振り仮名にできない (｜を足すと文字数が変わる)。
+      if (op.at === 0 || !/[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF々〆ヶ]/u.test(scalars[op.at - 1])) {
+        return { ok: false, error: "ruby must follow kanji" };
+      }
+      scalars[op.at] = "《"; scalars[end] = "》";
+    } else {
+      scalars[op.at] = "（"; scalars[end] = "）";
+    }
+    const text = scalars.join("");
+    // 文字数は変わらないので位置はそのまま。掛かっている語の控えだけ直す。
+    const calls = (line.calls ?? []).map((c) =>
+      scalarSlice(line.text, c.start, c.end) === c.anchorText ? { ...c, anchorText: scalarSlice(text, c.start, c.end) } : c
+    );
+    next = [...lines.slice(0, i), { ...line, text, calls }, ...lines.slice(i + 1)];
+  } else if (op.op === "merge") {
     const following = lines[i + 1];
     if (!following || following.kind !== "lyric") {
       return { ok: false, error: "the next line must be a lyric line" };

@@ -10,6 +10,7 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit } from "../rate_limit";
 import { updateGramIndex } from "../lyrics_index";
 import { applyStructureOp, parseStructureOp } from "../lyrics_structure";
+import { stripRuby } from "../lyrics_ruby";
 import { normalizeForSearch, parseLines, NO_STORE } from "./lyrics";
 import type { LyricLineRow } from "./lyrics";
 import type { RouteContext } from "./context";
@@ -17,7 +18,7 @@ import { decodePathParam, requireActiveUser } from "./guards";
 
 /** 検索用の平文 (歌詞行だけを改行で繋ぐ。routes/lyrics.ts の PUT と同じ形)。 */
 function searchBody(lines: LyricLineRow[]): string {
-  return lines.filter((l) => l.kind === "lyric").map((l) => l.text).join("\n");
+  return lines.filter((l) => l.kind === "lyric").map((l) => stripRuby(l.text)).join("\n");
 }
 
 export async function handleLyricStructure(ctx: RouteContext): Promise<Response | null> {
