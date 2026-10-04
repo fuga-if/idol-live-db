@@ -14,7 +14,7 @@
 //
 // 純粋関数だけを置く (D1 も Request も触らない)。routes/lyric_structure.ts が使う。
 
-import type { LyricLineRow } from "./routes/lyrics";
+import type { LyricLineRow, LyricPartBreak } from "./routes/lyrics";
 import { scalarLength, scalarSlice, toScalars } from "./lyrics_calls";
 
 export type StructureOp =
@@ -113,8 +113,18 @@ export function applyStructureOp(
       return { ok: false, error: "the next line must be a lyric line" };
     }
     const shift = scalarLength(line.text) + scalarLength(op.joiner);
+    // パート: 後ろの行の歌う人が違えば、つなぎ目に区切りを置く。後ろの行の区切りはずらして持ってくる。
+    const lastSingers = (line.partBreaks?.length ? line.partBreaks[line.partBreaks.length - 1].singers : line.singers) ?? [];
+    const followingSingers = following.singers ?? [];
+    const breaks: LyricPartBreak[] = [
+      ...(line.partBreaks ?? []),
+      ...(sameSingers(lastSingers, followingSingers) ? [] : [{ at: shift, singers: [...followingSingers] }]),
+      ...(following.partBreaks ?? []).map((b) => ({ ...b, at: b.at + shift })),
+    ];
+    const { partBreaks: _drop, ...lineRest } = line;
     const merged: LyricLineRow = {
-      ...line,
+      ...lineRest,
+      ...(breaks.length ? { partBreaks: breaks } : {}),
       text: line.text + op.joiner + following.text,
       calls: [
         ...(line.calls ?? []),
@@ -147,12 +157,22 @@ export function applyStructureOp(
         headCalls.push({ ...c, start, end, ...(stale ? { stale: true } : {}) });
       }
     }
-    const first: LyricLineRow = { ...line, text: head, calls: headCalls };
+    // パート: 切る位置で歌っている人が後ろの行の頭を歌う。区切りは前後に振り分ける。
+    const breaks = line.partBreaks ?? [];
+    const tailSingers = [...breaks].reverse().find((b) => b.at <= tailOffset)?.singers ?? line.singers ?? [];
+    const headBreaks = breaks.filter((b) => b.at < headLength);
+    const tailBreaks = breaks
+      .filter((b) => b.at > tailOffset)
+      .map((b) => ({ ...b, at: b.at - tailOffset }));
+    const { partBreaks: _drop, ...lineRest } = line;
+    const first: LyricLineRow = {
+      ...lineRest, text: head, calls: headCalls, ...(headBreaks.length ? { partBreaks: headBreaks } : {}),
+    };
     const second: LyricLineRow = {
       id: newId(), ord: 0, kind: "lyric", text: tail, section: line.section,
       start_ms: null, clap: null, calls: tailCalls,
-      // パートは切り離した後ろの行も同じ人が歌う (1 行を割っただけなので)。
-      ...(line.singers?.length ? { singers: [...line.singers] } : {}),
+      ...(tailSingers.length ? { singers: [...tailSingers] } : {}),
+      ...(tailBreaks.length ? { partBreaks: tailBreaks } : {}),
     };
     next = [...lines.slice(0, i), first, second, ...lines.slice(i + 1)];
   }
@@ -187,7 +207,8 @@ function setRubyBase(line: LyricLineRow, at: number, base: number): LyricLineRow
       const stale = scalarSlice(text, start, end) !== c.anchorText;
       return { ...c, start, end, ...(stale ? { stale: true } : {}) };
     });
-    return { ...line, text, calls };
+    const partBreaks = line.partBreaks?.map((b) => ({ ...b, at: b.at > removed ? b.at - 1 : b.at }));
+    return { ...line, text, calls, ...(partBreaks ? { partBreaks } : {}) };
   }
   const text = [...without.slice(0, base), "｜", ...without.slice(base)].join("");
   // 元の位置 → 新しい位置 (外した「｜」の後ろは 1 つ詰め、置いた「｜」の後ろは 1 つ送る)。
@@ -201,7 +222,12 @@ function setRubyBase(line: LyricLineRow, at: number, base: number): LyricLineRow
     const stale = scalarSlice(text, start, end) !== c.anchorText;
     return { ...c, start, end, ...(stale ? { stale: true } : {}) };
   });
-  return { ...line, text, calls };
+  const partBreaks = line.partBreaks?.map((b) => ({ ...b, at: move(b.at) }));
+  return { ...line, text, calls, ...(partBreaks ? { partBreaks } : {}) };
+}
+
+function sameSingers(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
 }
 
 function isKanji(c: string | undefined): boolean {

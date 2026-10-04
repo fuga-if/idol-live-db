@@ -418,6 +418,13 @@ export interface LyricLineRow {
   layer?: "overlay" | "main";
   /** パート分け: この行を歌うアイドルの id。PUT /songs/:id/parts が書く。 */
   singers?: string[];
+  /** 行の途中で歌う人が変わるところ。`at` (スカラー位置) から後ろを `singers` が歌う。昇順。 */
+  partBreaks?: LyricPartBreak[];
+}
+
+export interface LyricPartBreak {
+  at: number;
+  singers: string[];
 }
 
 /**
@@ -474,6 +481,8 @@ export function buildLyricsPayload(
       layer: l.layer ?? null,
       // パート分け (この行を歌うアイドルの id)。無ければ空。
       singers: l.singers ?? [],
+      // 行の途中で歌う人が変わるところ。無ければ空 (行まるごと singers)。
+      partBreaks: l.partBreaks ?? [],
     })),
   };
 }
@@ -1105,6 +1114,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
         start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
         ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
         ...(existing[i]?.singers?.length ? { singers: existing[i]!.singers } : {}),
+        // 途中の区切りは文字の位置に掛かるので、本文が同じときだけ引き継ぐ。
+        ...(existing[i]?.partBreaks?.length && existing[i]!.text === text ? { partBreaks: existing[i]!.partBreaks } : {}),
         clap: annotation.clap,
         calls: annotation.calls,
       };

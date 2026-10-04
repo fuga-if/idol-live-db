@@ -34,13 +34,46 @@ describe("PUT /songs/:id/parts", () => {
   });
 
   it("知らない行・不正な id は 400、未ログインは 401", async () => {
-    expect(validatePartsBody({ lines: [{ id: "x", singers: [] }] }, new Set(["a"])).ok).toBe(false);
-    expect(validatePartsBody({ lines: [{ id: "a", singers: [1] }] }, new Set(["a"])).ok).toBe(false);
+    expect(validatePartsBody({ lines: [{ id: "x", singers: [] }] }, new Map([["a", 4]])).ok).toBe(false);
+    expect(validatePartsBody({ lines: [{ id: "a", singers: [1] }] }, new Map([["a", 4]])).ok).toBe(false);
+    // 区切りは行の中で昇順
+    const len = new Map([["a", 4]]);
+    expect(validatePartsBody({ lines: [{ id: "a", singers: [], breaks: [{ at: 4, singers: [] }] }] }, len).ok).toBe(false);
+    expect(validatePartsBody({ lines: [{ id: "a", singers: [], breaks: [{ at: 2, singers: [] }, { at: 2, singers: [] }] }] }, len).ok).toBe(false);
+    expect(validatePartsBody({ lines: [{ id: "a", singers: ["x"], breaks: [{ at: 2, singers: ["y"] }] }] }, len).ok).toBe(true);
     expect((await callJson("PUT", "/songs/s1/parts", { body: { lines: [] } })).status).toBe(401);
   });
 
   it("行を切り離すと、後ろの行も同じ歌唱者を引き継ぐ", () => {
     const r = applyStructureOp(LINES as any, { op: "split", lineId: "ll_1", at: 4 }, () => "ll_new");
     expect(r.ok && r.lines[1]).toMatchObject({ id: "ll_new", text: "一", singers: ["old"] });
+  });
+
+  it("行の途中の区切りを保存し、送らなければ残す", async () => {
+    const r = await callJson("PUT", "/songs/s1/parts", {
+      headers: await bearer(UID), body: { lines: [{ id: "ll_2", singers: ["a"], breaks: [{ at: 2, singers: ["b", "c"] }] }] },
+    });
+    expect(r.status).toBe(200);
+    expect(JSON.stringify(r.body)).not.toContain("テスト");
+    const lyrics = await callJson("GET", "/songs/s1/lyrics", { headers: await bearer(UID) });
+    expect(lyrics.body.lines[1].partBreaks).toEqual([{ at: 2, singers: ["b", "c"] }]);
+    // breaks を送らない古いアプリは区切りを消さない
+    await callJson("PUT", "/songs/s1/parts", { headers: await bearer(UID), body: { lines: [{ id: "ll_2", singers: ["z"] }] } });
+    const saved = JSON.parse((await row<{ lines_json: string }>("SELECT lines_json FROM song_lyrics WHERE song_id = 's1'"))!.lines_json);
+    expect(saved[1]).toMatchObject({ singers: ["z"], partBreaks: [{ at: 2, singers: ["b", "c"] }] });
+  });
+
+  it("行をくっつける・切り離すと区切りも付いていく", () => {
+    const lines = [
+      { id: "a", ord: 0, kind: "lyric", text: "あいう", section: null, start_ms: null, singers: ["x"], calls: [] },
+      { id: "b", ord: 1, kind: "lyric", text: "えおか", section: null, start_ms: null, singers: ["y"], partBreaks: [{ at: 1, singers: ["z"] }], calls: [] },
+    ];
+    const merged = applyStructureOp(lines as any, { op: "merge", lineId: "a", joiner: "" }, () => "n");
+    expect(merged.ok && merged.lines[0]).toMatchObject({ text: "あいうえおか", singers: ["x"],
+      partBreaks: [{ at: 3, singers: ["y"] }, { at: 4, singers: ["z"] }] });
+    const split = applyStructureOp((merged as any).lines, { op: "split", lineId: "a", at: 4 }, () => "n");
+    expect(split.ok && split.lines[0]).toMatchObject({ text: "あいうえ", partBreaks: [{ at: 3, singers: ["y"] }] });
+    expect(split.ok && split.lines[1]).toMatchObject({ text: "おか", singers: ["z"] });
+    expect(split.ok && split.lines[1].partBreaks).toBeUndefined();
   });
 });
