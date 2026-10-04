@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -281,6 +282,8 @@ fun ImasPlayerLyricLine(
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
         verticalAlignment = Alignment.Top
     ) {
+        // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す。
+        val asideStyle = ImasLyricAside.forPlayer(isMarker, color)
         if (ImasRubyText.hasRuby(text)) {
             // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
             ImasRubyFlowText(
@@ -289,11 +292,12 @@ fun ImasPlayerLyricLine(
                 color = color,
                 modifier = Modifier
                     .weight(1f)
-                    .scale(scale)
+                    .scale(scale),
+                asideStyle = asideStyle
             )
         } else {
             Text(
-                text,
+                ImasRubyText.asideAttributed(text, asideStyle = asideStyle),
                 style = style,
                 color = color,
                 modifier = Modifier
@@ -720,6 +724,27 @@ private fun Modifier.imasDragDelta(onChanged: (Float) -> Unit, onEnded: (Float) 
 data class RubyHighlight(val background: Color? = null, val bold: Boolean = false, val underline: Boolean = false)
 
 /**
+ * 括弧で書いた脇の字 (被せ・コーラス・歌わない字) を一段小さく薄くする書式 (iOS の `asideFont`/`asideColor`)。
+ * 画面には数字を渡させず、ここに決め打ちで持つ (DS のトークンから引く)。
+ */
+data class ImasAsideStyle(
+    val fontSize: androidx.compose.ui.unit.TextUnit,
+    val color: Color,
+    val weight: FontWeight? = null
+)
+
+/** [ImasAsideStyle] を場面ごとに組み立てる (歌詞タブの閲覧・歌詞プレイヤー)。 */
+object ImasLyricAside {
+    /** 歌詞タブの閲覧モード (本文 17sp → 13sp、DS.ink2)。太字にはしない。 */
+    @Composable
+    fun forViewing(): ImasAsideStyle = ImasAsideStyle(fontSize = 13.sp, color = DS.ink2)
+
+    /** 歌詞プレイヤーの行 (見出し 28 heavy / マーカー 17 bold → 20 / 14 の bold、今の色の 0.6 濃度)。 */
+    fun forPlayer(isMarker: Boolean, color: Color): ImasAsideStyle =
+        ImasAsideStyle(fontSize = (if (isMarker) 14 else 20).sp, color = color.copy(alpha = 0.6f), weight = FontWeight.Bold)
+}
+
+/**
  * 歌詞の振り仮名 (`見本字《みほんじ》` / `｜ダミー《だみ》`) を、記号を外して**親字の上**に乗せる。
  * どこが振り仮名かはコア (`lyricRubySpans`) が決める。被せの括弧 (`（）` `()`) はここでは触らない
  * (iOS `ImasRubyText` の移植。Compose の `Text` はルビを組めないので [ImasRubyFlowText] で自前に組む)。
@@ -732,11 +757,53 @@ object ImasRubyText {
         /** 行の中のコードポイント添字 (ハイライトを引く鍵)。 */
         abstract val start: Int
 
-        data class Plain(val char: String, override val start: Int) : Atom()
-        data class Ruby(val base: String, val reading: String, override val start: Int) : Atom()
+        /** 括弧で書いた脇の字 (被せ・コーラス・歌わない字) か。[Ruby] は常に false (振り仮名はこの規則の対象外)。 */
+        abstract val isAside: Boolean
+
+        data class Plain(val char: String, override val start: Int, override val isAside: Boolean = false) : Atom()
+        data class Ruby(val base: String, val reading: String, override val start: Int) : Atom() {
+            override val isAside: Boolean get() = false
+        }
     }
 
     fun hasRuby(text: String): Boolean = lyricRubySpans(text).isNotEmpty()
+
+    /** 各コードポイントが括弧で書いた脇の字 (被せ・コーラス・歌わない字) か。括弧も含む。規則はコア。 */
+    fun asides(text: String): BooleanArray {
+        val count = codePointBounds(text).size - 1
+        val out = BooleanArray(count)
+        for (span in uniffi.imas_core.lyricAsideSpans(text)) {
+            for (k in span.start.toInt() until minOf(span.end.toInt(), count)) out[k] = true
+        }
+        return out
+    }
+
+    /**
+     * 本文全体を、脇の字 (括弧) だけ [asideStyle] で小さく薄くした [AnnotatedString]。振り仮名の無い
+     * 行の `Text` 用 (iOS `ImasRubyText.asideAttributed` の移植)。
+     */
+    fun asideAttributed(text: String, asideStyle: ImasAsideStyle): androidx.compose.ui.text.AnnotatedString {
+        val bounds = codePointBounds(text)
+        val aside = asides(text)
+        return androidx.compose.ui.text.buildAnnotatedString {
+            var k = 0
+            while (k < aside.size) {
+                val start = k
+                val isAside = aside[k]
+                while (k < aside.size && aside[k] == isAside) k++
+                val segment = text.substring(bounds[start], bounds[k])
+                if (isAside) {
+                    withStyle(
+                        androidx.compose.ui.text.SpanStyle(
+                            fontSize = asideStyle.fontSize, color = asideStyle.color, fontWeight = asideStyle.weight
+                        )
+                    ) { append(segment) }
+                } else {
+                    append(segment)
+                }
+            }
+        }
+    }
 
     /**
      * [text] を [Atom] の並びに割る。添字はコードポイント (= コアの Unicode スカラー) 単位で扱い、
@@ -749,6 +816,7 @@ object ImasRubyText {
     fun atoms(text: String): List<Atom> {
         val bounds = codePointBounds(text)
         val count = bounds.size - 1
+        val aside = asides(text)
         val rubyIndex = IntArray(count) { -1 }
         val hidden = BooleanArray(count)
         val isReading = BooleanArray(count)
@@ -775,7 +843,7 @@ object ImasRubyText {
                 continue
             }
             if (rubyIndex[k] < 0) {
-                out.add(Atom.Plain(text.substring(bounds[k], bounds[k + 1]), k))
+                out.add(Atom.Plain(text.substring(bounds[k], bounds[k + 1]), k, aside[k]))
                 k++
             } else {
                 val index = rubyIndex[k]
@@ -832,7 +900,9 @@ fun ImasRubyFlowText(
     style: androidx.compose.ui.text.TextStyle,
     color: Color,
     modifier: Modifier = Modifier,
-    highlightAt: ((Int) -> RubyHighlight?)? = null
+    highlightAt: ((Int) -> RubyHighlight?)? = null,
+    /** 括弧で書いた脇の字 (被せ・歌わない字) の素通しの文字だけ、これで一段小さく薄く出す。 */
+    asideStyle: ImasAsideStyle? = null
 ) {
     val atoms = remember(text) { ImasRubyText.atoms(text) }
     val readingSize = (style.fontSize.value * 0.5f).sp
@@ -843,14 +913,20 @@ fun ImasRubyFlowText(
         atoms.forEach { atom ->
             val highlight = highlightAt?.invoke(atom.start)
             val baseModifier = if (highlight?.background != null) Modifier.background(highlight.background) else Modifier
-            val weight = if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
+            val isAside = atom.isAside && asideStyle != null
+            val weight = if (isAside) (asideStyle?.weight ?: style.fontWeight) else if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
             val decoration = if (highlight?.underline == true) androidx.compose.ui.text.style.TextDecoration.Underline else null
+            val atomColor = if (isAside) asideStyle!!.color else color
+            val atomFontSize = if (isAside) asideStyle!!.fontSize else style.fontSize
             when (atom) {
                 is ImasRubyText.Atom.Plain -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // 読みと同じ書体・大きさの透明な行 (素通しの文字の上にも同じ高さを確保し、
                     // ルビの親字とベースラインが揃うようにする)。
                     Text("　", fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = Color.Transparent, maxLines = 1)
-                    Text(atom.char, style = style, fontWeight = weight, color = color, textDecoration = decoration, modifier = baseModifier)
+                    Text(
+                        atom.char, style = style, fontWeight = weight, fontSize = atomFontSize, color = atomColor,
+                        textDecoration = decoration, modifier = baseModifier
+                    )
                 }
                 is ImasRubyText.Atom.Ruby -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)

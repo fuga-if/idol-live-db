@@ -84,7 +84,10 @@ class LyricsApi(private val client: WorkerHttpClient) {
             is StructureChange.Merge -> JSONObject().put("op", "merge").put("lineId", change.lineId).put("joiner", change.joiner.raw)
             is StructureChange.Split -> JSONObject().put("op", "split").put("lineId", change.lineId).put("at", change.at)
             is StructureChange.Ruby -> JSONObject().put("op", "ruby").put("lineId", change.lineId).put("at", change.at)
+                .apply { if (change.base != null) put("base", change.base) }
             is StructureChange.Unruby -> JSONObject().put("op", "unruby").put("lineId", change.lineId).put("at", change.at)
+            is StructureChange.RubyBase -> JSONObject().put("op", "rubyBase").put("lineId", change.lineId)
+                .put("at", change.at).put("base", change.base)
         }
         check(client.request("POST", "/songs/${seg(songId)}/lyric-structure", body), "行の区切りを変えられませんでした")
     }
@@ -116,7 +119,10 @@ sealed interface StructureChange {
     data class Merge(val lineId: String, val joiner: LyricJoiner) : StructureChange
     /** `at` はスカラー位置。その位置の前で切る。 */
     data class Split(val lineId: String, val at: Int) : StructureChange
-    /** `at` は開く括弧 (（／(／《) のスカラー位置。文字数は変わらず、振り仮名にする/やめる。 */
-    data class Ruby(val lineId: String, val at: Int) : StructureChange
+    /** `at` は開く括弧 (（／(／《) のスカラー位置。文字数は変わらず、振り仮名にする/やめる。
+     * `base` を渡すと親字の頭をそこにする (当て字・漢字のまとまりの一部)。無ければ直前の漢字のまとまり。 */
+    data class Ruby(val lineId: String, val at: Int, val base: Int? = null) : StructureChange
     data class Unruby(val lineId: String, val at: Int) : StructureChange
+    /** 振り仮名 (「《」が `at`) の親字の頭を `base` に決め直す。 */
+    data class RubyBase(val lineId: String, val at: Int, val base: Int) : StructureChange
 }

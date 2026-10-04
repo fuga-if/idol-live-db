@@ -67,6 +67,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.LyricsSession
+import com.fugaif.imaslivedb.ui.designsystem.ImasAsideStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
@@ -84,6 +85,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasLyricAside
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLikeMark
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
@@ -108,8 +110,9 @@ import uniffi.imas_core.lyricActiveLine
 import uniffi.imas_core.lyricChunks
 import uniffi.imas_core.lyricHasTiming
 import uniffi.imas_core.lyricLikeHeat
+import uniffi.imas_core.LyricRubyChoice
 import uniffi.imas_core.lyricPartsApplicable
-import uniffi.imas_core.lyricRubySpans
+import uniffi.imas_core.lyricRubyChoices
 
 /**
  * 楽曲詳細の歌詞タブ。iOS `SongLyricsTab` の移植 (= 実質コールガイド)。
@@ -341,6 +344,12 @@ fun SongLyricsTab(
                                         lineId,
                                         if (isRuby) StructureChange.Unruby(lineId, at) else StructureChange.Ruby(lineId, at)
                                     )
+                                },
+                                onRubyBase = { lineId, at, isRuby, base ->
+                                    changeStructure(
+                                        lineId,
+                                        if (isRuby) StructureChange.RubyBase(lineId, at, base) else StructureChange.Ruby(lineId, at, base)
+                                    )
                                 }
                             )
                         }
@@ -551,17 +560,20 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                 Column(Modifier.weight(1f)) {
                     // ⚠️ ここに SelectionContainer / テキストコピーの口を足さないこと。
                     val highlights = highlightsFor(line, accent)
+                    // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す (規則はコア)。
+                    val asideStyle = ImasLyricAside.forViewing()
                     if (ImasRubyText.hasRuby(line.text)) {
                         // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
                         ImasRubyFlowText(
                             text = line.text,
                             style = ImasTextRole.BODY.style,
                             color = DS.ink,
-                            highlightAt = rubyHighlightLookup(line.text, highlights)
+                            highlightAt = rubyHighlightLookup(line.text, highlights),
+                            asideStyle = asideStyle
                         )
                     } else {
                         Text(
-                            text = highlightedLyricText(line.text, highlights),
+                            text = highlightedLyricText(line.text, highlights, asideStyle),
                             style = ImasTextRole.BODY.style,
                             color = DS.ink
                         )
@@ -641,7 +653,8 @@ private fun StructureBody(
     onCloseMenu: () -> Unit,
     onSplit: (String, Int) -> Unit,
     onMerge: (String, LyricJoiner) -> Unit,
-    onToggleRuby: (String, Int, Boolean) -> Unit
+    onToggleRuby: (String, Int, Boolean) -> Unit,
+    onRubyBase: (String, Int, Boolean, Int) -> Unit
 ) {
     lyrics.lines.forEachIndexed { index, line ->
         when (line.kind) {
@@ -663,7 +676,8 @@ private fun StructureBody(
                     }
                     RubyToggles(
                         line = line, busy = busyLineId != null,
-                        onToggle = { at, isRuby -> onToggleRuby(line.id, at, isRuby) }
+                        onToggle = { at, isRuby -> onToggleRuby(line.id, at, isRuby) },
+                        onRubyBase = { at, isRuby, base -> onRubyBase(line.id, at, isRuby, base) }
                     )
                     val nextIsLyric = index + 1 < lyrics.lines.size && lyrics.lines[index + 1].kind == LyricLineKind.LYRIC
                     if (nextIsLyric) {
@@ -694,51 +708,95 @@ private fun StructureBody(
 }
 
 /**
- * 行の中の振り仮名 (《》) と、漢字の直後の括弧を並べて、振り仮名にする / やめるを選ばせる
- * (iOS `SongLyricsTab.rubyToggles` の移植)。位置はスカラー (= コードポイント) のまま扱う。
+ * 行の中の振り仮名 (《》) と、振り仮名にできる括弧を並べる (候補の規則はコアの `lyricRubyChoices`)。
+ * 親字の頭は選べる (当て字や、漢字のまとまりの一部だけに掛けるとき)。位置はスカラー (= コードポイント)
+ * のまま扱う (iOS `SongLyricsTab.rubyToggles` の移植)。
  */
 @Composable
-private fun RubyToggles(line: LyricLine, busy: Boolean, onToggle: (Int, Boolean) -> Unit) {
-    val codePoints = remember(line.text) { line.text.codePoints().toArray() }
-    val rubies = remember(line.text) { lyricRubySpans(line.text) }
-    val rubyOpens = remember(rubies) { rubies.map { it.open.toInt() }.toSet() }
-    // 括弧で書いてあり、直前が漢字のもの (振り仮名にできる候補)。
-    val candidates = remember(codePoints) {
-        codePoints.indices.filter { k ->
-            (codePoints[k] == '（'.code || codePoints[k] == '('.code) && k > 0 &&
-                Character.isIdeographic(codePoints[k - 1])
-        }
-    }
-    val items = remember(rubies, candidates, rubyOpens) {
-        (rubies.map { RubyToggleItem(it.open.toInt(), true) } +
-            candidates.filter { it !in rubyOpens }.map { RubyToggleItem(it, false) })
-            .sortedBy { it.at }
-    }
-    if (items.isEmpty()) return
+private fun RubyToggles(
+    line: LyricLine,
+    busy: Boolean,
+    onToggle: (Int, Boolean) -> Unit,
+    onRubyBase: (Int, Boolean, Int) -> Unit
+) {
+    val choices = remember(line.text) { lyricRubyChoices(line.text) }
+    if (choices.isEmpty()) return
+    // 振る字を選んでいる最中の候補の開き位置 (同時に 1 つだけ)。
+    var pickerOpen by remember { mutableStateOf<UInt?>(null) }
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(DS.sp2)
     ) {
-        items.forEach { item ->
-            var end = item.at + 1
-            while (end < codePoints.size &&
-                codePoints[end] != '）'.code && codePoints[end] != ')'.code && codePoints[end] != '》'.code
-            ) end++
-            val s = codePointToCharIndex(line.text, item.at + 1)
-            val e = codePointToCharIndex(line.text, end)
-            val inner = line.text.substring(s, e)
-            ImasButton(
-                title = if (item.isRuby) "「$inner」をルビにしない" else "「$inner」をルビにする",
-                icon = if (item.isRuby) Icons.Filled.TextFields else Icons.Filled.Superscript,
-                role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL,
-                enabled = !busy,
-                onClick = { onToggle(item.at, item.isRuby) }
+        choices.forEach { choice ->
+            val at = choice.open.toInt()
+            if (choice.isRuby) {
+                ImasButton(
+                    title = "「${choice.reading}」をルビにしない", icon = Icons.Filled.TextFields,
+                    role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, enabled = !busy,
+                    onClick = { onToggle(at, true) }
+                )
+                if (choice.bases.size > 1) {
+                    Box {
+                        ImasButton(
+                            title = "「${choice.reading}」を振る字を選ぶ", icon = Icons.Filled.Superscript,
+                            role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, enabled = !busy,
+                            onClick = { pickerOpen = choice.open }
+                        )
+                        RubyBasePickerMenu(
+                            text = line.text, choice = choice, expanded = pickerOpen == choice.open,
+                            onDismiss = { pickerOpen = null },
+                            onSelect = { base -> pickerOpen = null; onRubyBase(at, true, base.toInt()) }
+                        )
+                    }
+                }
+            } else {
+                Box {
+                    ImasButton(
+                        title = "「${choice.reading}」をルビにする", icon = Icons.Filled.Superscript,
+                        role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, enabled = !busy,
+                        onClick = {
+                            // 漢字の直後なら漢字のまとまりに振る (違えば「振る字を選ぶ」で直す)。当て字は選んでもらう。
+                            if (choice.base != null) onToggle(at, false) else pickerOpen = choice.open
+                        }
+                    )
+                    RubyBasePickerMenu(
+                        text = line.text, choice = choice, expanded = pickerOpen == choice.open,
+                        onDismiss = { pickerOpen = null },
+                        onSelect = { base -> pickerOpen = null; onRubyBase(at, false, base.toInt()) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** 「「reading」を振る字」を選ぶドロップダウン ([choice.bases] から)。いまの親字には「(いま)」を付す。 */
+@Composable
+private fun RubyBasePickerMenu(
+    text: String,
+    choice: LyricRubyChoice,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onSelect: (UInt) -> Unit
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        choice.bases.forEach { base ->
+            val label = "「${rubyBaseText(text, base, choice.open)}」"
+            val isCurrent = choice.isRuby && choice.base == base
+            DropdownMenuItem(
+                text = { Text(if (isCurrent) "$label (いま)" else label) },
+                onClick = { onSelect(base) }
             )
         }
     }
 }
 
-private data class RubyToggleItem(val at: Int, val isRuby: Boolean)
+/** 親字の頭を [base] にしたときの親字 (「｜」は除く)。 */
+private fun rubyBaseText(text: String, base: UInt, open: UInt): String {
+    val s = codePointToCharIndex(text, base.toInt())
+    val e = codePointToCharIndex(text, open.toInt())
+    return text.substring(s, e).filter { it != '｜' }
+}
 
 @Composable
 private fun Modifier.combinedClickableSimple(onClick: () -> Unit): Modifier =
@@ -828,30 +886,30 @@ private fun ownersFor(text: String, highlights: List<LyricHighlight>): Array<Int
  * ⚠️ `start`/`end` は Unicode スカラー (= Java の codePoint) 単位。Kotlin の `String` は
  * UTF-16 なので、絵文字などサロゲートペアを含む行では文字添字への変換が必要 ([codePointToCharIndex])。
  */
-private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>): AnnotatedString {
+private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>, asideStyle: ImasAsideStyle): AnnotatedString {
     val owner = ownersFor(text, highlights)
+    // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す。アンカーの敷きと両立させる。
+    val aside = ImasRubyText.asides(text)
     return buildAnnotatedString {
         var k = 0
         while (k < owner.size) {
             val start = k
             val current = owner[k]
-            while (k < owner.size && owner[k] == current) k++
+            val isAside = aside[k]
+            while (k < owner.size && owner[k] == current && aside[k] == isAside) k++
             val segmentText = text.substring(codePointToCharIndex(text, start), codePointToCharIndex(text, k))
             val highlight = current?.let { highlights[it] }
-            if (highlight == null) {
-                append(segmentText)
-                continue
-            }
-            // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
-            withStyle(
-                SpanStyle(
+            var style: SpanStyle? = if (isAside) SpanStyle(fontSize = asideStyle.fontSize, color = asideStyle.color, fontWeight = asideStyle.weight) else null
+            if (highlight != null) {
+                // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
+                val highlightStyle = SpanStyle(
                     background = highlight.color.copy(alpha = if (highlight.isEcho) 0.32f else 0.18f),
                     fontWeight = if (highlight.isEcho) FontWeight.Bold else null,
                     textDecoration = TextDecoration.Underline
                 )
-            ) {
-                append(segmentText)
+                style = style?.merge(highlightStyle) ?: highlightStyle
             }
+            if (style == null) append(segmentText) else withStyle(style) { append(segmentText) }
         }
     }
 }
