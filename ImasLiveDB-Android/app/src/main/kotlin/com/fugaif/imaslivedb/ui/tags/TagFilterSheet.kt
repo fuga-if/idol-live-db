@@ -67,7 +67,7 @@ fun TagFilterSheet(
         isLoading = true
         if (query.trim().isNotEmpty()) kotlinx.coroutines.delay(200)
         val api = AppModule.from(context).communityApi
-        tags = runCatching { api.tags(search = query.trim(), sort = "popular", limit = 100) }.getOrDefault(emptyList())
+        tags = runCatching { api.tags(search = query.trim(), sort = "popular") }.getOrDefault(emptyList())
         isLoading = false
     }
 
