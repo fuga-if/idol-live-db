@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricOverlaySplit, LyricSpan};
+pub use crate::domain::lyric_sync::{LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricSpan};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -92,4 +92,16 @@ pub fn lyric_parts_applicable(original_artist_count: u32) -> bool {
 #[uniffi::export]
 pub fn lyric_call_echoes_lyric(anchor_text: String, call_text: String, timing: String) -> bool {
     d::call_echoes_lyric(&anchor_text, &call_text, &timing)
+}
+
+/// 行の中のコールが歌詞と同じ文字か (同時、または歌詞の括弧の中に掛かっている)。`start`/`end` はスカラー位置。
+#[uniffi::export]
+pub fn lyric_call_echoes_line(line_text: String, start: u32, end: u32, call_text: String, timing: String) -> bool {
+    d::call_echoes_line(&line_text, start, end, &call_text, &timing)
+}
+
+/// 行の中の振り仮名 (漢字の直後の、かなだけの括弧)。画面は親字の右肩に小さく出す。
+#[uniffi::export]
+pub fn lyric_ruby_spans(text: String) -> Vec<LyricRuby> {
+    d::ruby_spans(&text)
 }

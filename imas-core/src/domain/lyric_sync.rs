@@ -113,6 +113,92 @@ pub struct LyricOverlaySplit {
     pub overlay: Option<String>,
 }
 
+/// 振り仮名 (ルビ) 1 つ。添字は行の中の Unicode スカラー位置。
+/// `base_start..base_end` が親字 (漢字)、`open..close` が括弧ごとの振り仮名 (`close` は閉じ括弧の次)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricRuby {
+    pub base_start: u32,
+    pub base_end: u32,
+    pub open: u32,
+    pub close: u32,
+}
+
+fn is_ideograph(c: char) -> bool {
+    matches!(c, '\u{4E00}'..='\u{9FFF}' | '\u{3400}'..='\u{4DBF}' | '\u{F900}'..='\u{FAFF}' | '々' | '〆' | 'ヶ')
+}
+
+fn is_kana(c: char) -> bool {
+    matches!(c, '\u{3041}'..='\u{309F}' | '\u{30A1}'..='\u{30FF}')
+}
+
+/// 行の中の振り仮名の括弧。歌詞サイトの本文は「五輪咲（ごりん）」のように、漢字の直後の括弧で
+/// 読みを書くことがある。被せ (「夢を（夢を）」) と見分ける規則:
+/// - 開き括弧の**直前が漢字** (空白を挟まない)
+/// - 括弧の中が**かなだけ** (空白は可、かなが 1 字以上)
+///
+/// 親字は、開き括弧の直前から遡って続く漢字のまとまり。入れ子・閉じない括弧は振り仮名にしない。
+pub fn ruby_spans(text: &str) -> Vec<LyricRuby> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if is_open(chars[i]) && i > 0 && is_ideograph(chars[i - 1]) {
+            let mut j = i + 1;
+            let mut kana = 0;
+            let mut ok = true;
+            while j < chars.len() && !is_close(chars[j]) {
+                let c = chars[j];
+                if is_kana(c) {
+                    kana += 1;
+                } else if c != ' ' && c != '\u{3000}' {
+                    ok = false;
+                    break;
+                }
+                j += 1;
+            }
+            if ok && kana > 0 && j < chars.len() {
+                let mut base_start = i - 1;
+                while base_start > 0 && is_ideograph(chars[base_start - 1]) {
+                    base_start -= 1;
+                }
+                out.push(LyricRuby { base_start: base_start as u32, base_end: i as u32, open: i as u32, close: (j + 1) as u32 });
+                i = j + 1;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+/// 各スカラーが (振り仮名でない) 括弧の内側か。括弧の対応が取れない行は全部 false。
+fn inside_overlay_brackets(text: &str) -> Vec<bool> {
+    let chars: Vec<char> = text.chars().collect();
+    let ruby = ruby_spans(text);
+    let in_ruby = |i: usize| ruby.iter().any(|r| (r.open as usize..r.close as usize).contains(&i));
+    let mut out = vec![false; chars.len()];
+    let mut depth = 0usize;
+    for (i, &c) in chars.iter().enumerate() {
+        if in_ruby(i) {
+            continue;
+        }
+        if is_open(c) {
+            depth += 1;
+        } else if is_close(c) {
+            if depth == 0 {
+                return vec![false; chars.len()];
+            }
+            depth -= 1;
+        } else if depth > 0 {
+            out[i] = true;
+        }
+    }
+    if depth != 0 {
+        return vec![false; chars.len()];
+    }
+    out
+}
+
 fn is_open(c: char) -> bool {
     c == '(' || c == '（'
 }
@@ -130,8 +216,13 @@ pub fn split_overlay(text: &str) -> LyricOverlaySplit {
     let mut main = String::new();
     let mut parts: Vec<String> = vec![];
     let mut current = String::new();
-    for c in text.chars() {
-        if is_open(c) {
+    // 振り仮名の括弧は被せではないので、そのまま本文に残す (画面が振り仮名として描く)。
+    let ruby = ruby_spans(text);
+    let in_ruby = |i: usize| ruby.iter().any(|r| (r.open as usize..r.close as usize).contains(&i));
+    for (i, c) in text.chars().enumerate() {
+        if depth == 0 && in_ruby(i) {
+            main.push(c);
+        } else if is_open(c) {
             if depth > 0 {
                 current.push(c);
             }
@@ -297,9 +388,35 @@ pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, bucke
 /// 歌詞のその部分へ印を付ける。比べるときは括弧・空白・記号・大文字小文字・カナの別・
 /// 伸ばし (ー・〜) を無視する。追っかけ (`after`) は別の文字を返すものなので対象外。
 pub fn call_echoes_lyric(anchor_text: &str, call_text: &str, timing: &str) -> bool {
-    if timing != "over" {
+    timing == "over" && same_words(anchor_text, call_text)
+}
+
+/// 行の中のコールが、掛かっている歌詞と同じ文字か。[`call_echoes_lyric`] に加えて、
+/// 掛かっている所が歌詞の (振り仮名でない) 括弧の中 = 歌詞にもう被せとして書いてある所なら、
+/// 追っかけでも同じ文字を 2 回出さない (「（勿論さ！）」に「(勿論さ！)」のコール)。
+pub fn call_echoes_line(line_text: &str, start: u32, end: u32, call_text: &str, timing: &str) -> bool {
+    let chars: Vec<char> = line_text.chars().collect();
+    let (start, end) = (start as usize, end as usize);
+    if start >= end || end > chars.len() {
         return false;
     }
+    let anchor: String = chars[start..end].iter().collect();
+    if !same_words(&anchor, call_text) {
+        return false;
+    }
+    if timing == "over" {
+        return true;
+    }
+    let inside = inside_overlay_brackets(line_text);
+    // 括弧そのものや空白を範囲に含めても、文字の部分が括弧の中にあれば被せとみなす。
+    chars[start..end]
+        .iter()
+        .enumerate()
+        .filter(|(_, c)| c.is_alphanumeric())
+        .all(|(k, _)| inside[start + k])
+}
+
+fn same_words(anchor_text: &str, call_text: &str) -> bool {
     let fold = |t: &str| -> String {
         let bytes = crate::domain::text_search_index::prepare_needle(t);
         String::from_utf8_lossy(&bytes)
@@ -328,6 +445,42 @@ mod tests {
         assert!(!call_echoes_lyric("サンプル行です", "(サンプル行です)", "after"));
         assert!(!call_echoes_lyric("サンプル", "Hi!", "over"));
         assert!(!call_echoes_lyric("", "", "over"));
+    }
+
+    #[test]
+    fn ruby_is_kana_in_brackets_right_after_kanji() {
+        // 五輪咲（ごりん）駆動
+        let r = ruby_spans("五輪咲（ごりん）駆動");
+        assert_eq!(r, vec![LyricRuby { base_start: 0, base_end: 3, open: 3, close: 8 }]);
+        // 被せ: 直前が漢字でない / 中に漢字がある
+        assert!(ruby_spans("夢を（ゆめを）").is_empty());
+        assert!(ruby_spans("光 空（勿論さ！）").is_empty());
+        assert!(ruby_spans("限界へ走る (手伸ばせ)").is_empty());
+        // 空白入りの読みも振り仮名
+        assert_eq!(ruby_spans("五輪（ごり　ん）").len(), 1);
+    }
+
+    #[test]
+    fn ruby_brackets_stay_in_main_text() {
+        let split = split_overlay("五輪咲（ごりん）駆動の100万馬力で");
+        assert_eq!(split.overlay, None);
+        let split = split_overlay("五輪咲（ごりん）駆動（追いかけ）");
+        assert_eq!(split.main, "五輪咲（ごりん）駆動");
+        assert_eq!(split.overlay.as_deref(), Some("追いかけ"));
+    }
+
+    #[test]
+    fn call_on_bracketed_lyric_with_same_words_echoes_even_after() {
+        let line = "あるかい？（勿論さ！）";
+        // 「勿論さ！」の範囲 (6..10)
+        assert!(call_echoes_line(line, 6, 10, "(勿論さ！)", "after"));
+        // 括弧ごと選んでいても同じ
+        assert!(call_echoes_line(line, 5, 11, "(勿論さ！)", "after"));
+        // 括弧の外で追っかけは別物
+        assert!(!call_echoes_line("勿論さ！", 0, 4, "(勿論さ！)", "after"));
+        assert!(call_echoes_line("勿論さ！", 0, 4, "(勿論さ！)", "over"));
+        // 振り仮名の括弧は被せではない
+        assert!(!call_echoes_line("五輪咲（ごりん）", 4, 7, "ごりん", "after"));
     }
 
     #[test]
