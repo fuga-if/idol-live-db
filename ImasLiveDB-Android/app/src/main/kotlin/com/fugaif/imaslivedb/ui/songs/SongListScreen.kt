@@ -336,6 +336,7 @@ private fun SongListRow(
         unitName = item.song.unitName,
         artworkUrl = item.song.artworkUrl,
         previewUrl = item.song.previewUrl,
+        appleMusicId = item.song.appleMusicId,
         brandId = item.song.brandId,
         releaseDate = item.song.releaseDate,
         isMyPick = uiState.myPickSongIds.contains(item.song.id),

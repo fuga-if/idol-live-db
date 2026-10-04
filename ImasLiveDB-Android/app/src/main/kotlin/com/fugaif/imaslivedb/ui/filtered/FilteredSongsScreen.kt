@@ -84,6 +84,7 @@ fun FilteredSongsScreen(
                                 unitName = song.unitName,
                                 artworkUrl = song.artworkUrl,
                                 previewUrl = song.previewUrl,
+                                appleMusicId = song.appleMusicId,
                                 brandId = song.brandId,
                                 releaseDate = song.releaseDate,
                                 modifier = Modifier.fillMaxWidth()

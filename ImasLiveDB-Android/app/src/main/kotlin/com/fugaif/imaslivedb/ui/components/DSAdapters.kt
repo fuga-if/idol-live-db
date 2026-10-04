@@ -13,7 +13,6 @@ import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.ui.designsystem.ImasBrandOption
 import com.fugaif.imaslivedb.ui.designsystem.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasIdolCell
@@ -95,8 +94,8 @@ fun ImasSongRow(
     onClick: (() -> Unit)? = null,
     detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
-    val playback by AudioPreviewManager.playbackState.collectAsState()
     val previewUrl = if (playsPreview) remember(song.previewUrl) { safeHttp(song.previewUrl) } else null
+    val play = rememberSongRowPlay(song.id, song.appleMusicId, previewUrl)
     ImasSongRow(
         title = song.title,
         modifier = modifier,
@@ -105,8 +104,8 @@ fun ImasSongRow(
         brand = song.brandId,
         showsBrandBar = showsBrandBar,
         previewUrl = previewUrl,
-        isPreviewing = previewUrl != null && playback.isPlaying(song.id),
-        onPreviewTap = { if (previewUrl != null) AudioPreviewManager.togglePreview(previewUrl, song.id) },
+        isPreviewing = previewUrl != null && play.isPlaying,
+        onPreviewTap = play.onTap,
         trailing = trailing,
         density = density,
         emphasis = emphasis,

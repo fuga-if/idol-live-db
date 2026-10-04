@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
@@ -74,6 +73,8 @@ fun SongRow(
     singerLabel: String? = null,
     artworkUrl: String? = null,
     previewUrl: String? = null,
+    /** Apple Music の id。あればフル尺で鳴らす (無ければ試聴)。 */
+    appleMusicId: String? = null,
     brandId: String? = null,
     releaseDate: String? = null,
     isMyPick: Boolean = false,
@@ -86,8 +87,7 @@ fun SongRow(
     searchMatch: SongRowMatch? = null,
     modifier: Modifier = Modifier
 ) {
-    val playback by AudioPreviewManager.playbackState.collectAsState()
-    val isPreviewing = previewUrl != null && songId != null && playback.isPlaying(songId)
+    val play = rememberSongRowPlay(songId, appleMusicId, previewUrl)
 
     val titleNeedle = searchMatch.needleFor(SongSearchMode.TITLE)
     val performerNeedle = searchMatch.needleFor(SongSearchMode.PERFORMER)
@@ -106,8 +106,8 @@ fun SongRow(
         brand = brandId,
         showsBrandBar = true,
         previewUrl = previewUrl,
-        isPreviewing = isPreviewing,
-        onPreviewTap = { if (previewUrl != null && songId != null) AudioPreviewManager.togglePreview(previewUrl, songId) },
+        isPreviewing = previewUrl != null && play.isPlaying,
+        onPreviewTap = play.onTap,
         trailing = if (tagVoteCount != null) {
             ImasRowTrailing.Badge(text = "$tagVoteCount", kind = ImasBadgeKind.THEMED, icon = Icons.Filled.Sell)
         } else {

@@ -146,6 +146,7 @@ private fun SongsTab(songs: List<Song>, onClick: (String) -> Unit) {
                 unitName = song.unitName,
                 artworkUrl = song.artworkUrl,
                 previewUrl = song.previewUrl,
+                appleMusicId = song.appleMusicId,
                 brandId = song.brandId,
                 modifier = Modifier.clickable { onClick(song.id) }
             )
