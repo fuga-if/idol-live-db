@@ -9,11 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import com.fugaif.imaslivedb.ui.theme.DS
+import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.CupertinoMaterials
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 
 // =============================================================================
 // ガラス (API 31 以降の背景ぼかし、Haze ライブラリ) は**浮いている枠だけ**に使う。
@@ -48,13 +49,20 @@ fun Modifier.imasHazeSource(): Modifier {
  *
  * @param cornerRadius 角丸。既定は浮いている枠の既定値 `DS.rXL` (iOS と同じ)。
  */
-@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun Modifier.imasFloatingChrome(cornerRadius: Dp = DS.rXL): Modifier {
     val shape = RoundedCornerShape(cornerRadius)
     val state = LocalImasHaze.current
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && state != null) {
-        clip(shape).hazeEffect(state = state, style = CupertinoMaterials.regular(containerColor = DS.surface))
+        // 紙の色を濃いめに敷き、後ろは「何かが流れている」程度にだけ透かす (iOS の imasGlassPaperFill と同じ 0.82)。
+        // 粒子 (noise) は付けない。
+        val style = HazeStyle(
+            backgroundColor = DS.surface,
+            tint = HazeTint(DS.surface.copy(alpha = 0.82f)),
+            blurRadius = 24.dp,
+            noiseFactor = 0f,
+        )
+        clip(shape).hazeEffect(state = state, style = style)
     } else {
         background(DS.surface, shape)
     }
