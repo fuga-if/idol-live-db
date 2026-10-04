@@ -185,23 +185,36 @@ actor CommunityAPI {
         return response.tag
     }
 
-    // タグ本体は軽量かつ多層キャッシュ (サーバ 60s + SWR 300s、Cloudflare エッジ、クライアント 5min) されるので、
-    // ピッカーやフィルタで全件取得する前提で上限を大きく取る。ページネーション不要。
-    func tags(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
-        let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
+    /// タグマスタ一覧 (/tags・/idol-tags・/unit-tags) を total に届くまでページを送って全件取る。
+    /// ピッカーや絞り込みは全件を並べる前提なので、件数で切ると多いプールで後ろのタグが出なくなる。
+    /// 1 ページはサーバの既定 (1000)。サーバは offset を 10000 で頭打ちにするので、ページ数にも上限を置く。
+    private func fetchAllTagPages(path: String, search: String, category: String, sort: String) async throws -> [CommunityTag] {
+        let pageSize = 1000
+        let maxPages = 10
+        var all: [CommunityTag] = []
+        for _ in 0..<maxPages {
+            var query: [String: String] = [
+                "sort": sort,
+                "limit": "\(pageSize)",
+                "offset": "\(all.count)"
+            ]
+            if !search.isEmpty { query["search"] = search }
+            if !category.isEmpty { query["category"] = category }
+            let response: TagsListResponse = try await APIClient.shared.request("GET", path: path, query: query)
+            all += response.tags
+            if response.tags.count < pageSize || all.count >= response.total { break }
+        }
+        return all
+    }
+
+    func tags(search: String = "", category: String = "", sort: String = "popular") async throws -> [CommunityTag] {
+        let cacheKey = "\(sort)|\(category)|\(search)"
         if let hit = tagsCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
             return hit.tags
         }
-        var query: [String: String] = [
-            "sort": sort,
-            "limit": "\(limit)",
-            "offset": "\(offset)"
-        ]
-        if !search.isEmpty { query["search"] = search }
-        if !category.isEmpty { query["category"] = category }
-        let response: TagsListResponse = try await APIClient.shared.request("GET", path: "/tags", query: query)
-        tagsCache[cacheKey] = (response.tags, Date())
-        return response.tags
+        let tags = try await fetchAllTagPages(path: "/tags", search: search, category: category, sort: sort)
+        tagsCache[cacheKey] = (tags, Date())
+        return tags
     }
 
     // path に渡す ID 系は全て raw のまま。 APIClient.URLComponents が path セグメントを
@@ -333,21 +346,14 @@ actor CommunityAPI {
         return response.tag
     }
 
-    func idolTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
-        let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
+    func idolTagCatalog(search: String = "", category: String = "", sort: String = "popular") async throws -> [CommunityTag] {
+        let cacheKey = "\(sort)|\(category)|\(search)"
         if let hit = idolTagCatalogCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
             return hit.tags
         }
-        var query: [String: String] = [
-            "sort": sort,
-            "limit": "\(limit)",
-            "offset": "\(offset)"
-        ]
-        if !search.isEmpty { query["search"] = search }
-        if !category.isEmpty { query["category"] = category }
-        let response: TagsListResponse = try await APIClient.shared.request("GET", path: "/idol-tags", query: query)
-        idolTagCatalogCache[cacheKey] = (response.tags, Date())
-        return response.tags
+        let tags = try await fetchAllTagPages(path: "/idol-tags", search: search, category: category, sort: sort)
+        idolTagCatalogCache[cacheKey] = (tags, Date())
+        return tags
     }
 
     func idolTagDetail(id: String) async throws -> IdolTagDetailResponse {
@@ -398,21 +404,14 @@ actor CommunityAPI {
         return response.tag
     }
 
-    func unitTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000, offset: Int = 0) async throws -> [CommunityTag] {
-        let cacheKey = "\(sort)|\(limit)|\(offset)|\(category)|\(search)"
+    func unitTagCatalog(search: String = "", category: String = "", sort: String = "popular") async throws -> [CommunityTag] {
+        let cacheKey = "\(sort)|\(category)|\(search)"
         if let hit = unitTagCatalogCache[cacheKey], Date().timeIntervalSince(hit.at) < tagsCacheTTL {
             return hit.tags
         }
-        var query: [String: String] = [
-            "sort": sort,
-            "limit": "\(limit)",
-            "offset": "\(offset)"
-        ]
-        if !search.isEmpty { query["search"] = search }
-        if !category.isEmpty { query["category"] = category }
-        let response: TagsListResponse = try await APIClient.shared.request("GET", path: "/unit-tags", query: query)
-        unitTagCatalogCache[cacheKey] = (response.tags, Date())
-        return response.tags
+        let tags = try await fetchAllTagPages(path: "/unit-tags", search: search, category: category, sort: sort)
+        unitTagCatalogCache[cacheKey] = (tags, Date())
+        return tags
     }
 
     func unitTagDetail(id: String) async throws -> UnitTagDetailResponse {

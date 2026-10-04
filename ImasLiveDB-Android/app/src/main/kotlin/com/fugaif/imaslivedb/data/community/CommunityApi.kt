@@ -247,18 +247,33 @@ class CommunityApi(private val http: WorkerHttpClient) {
         (0 until arr.length()).map { arr.getString(it) }
     }
 
-    /** GET /tags — 全タグ検索/一覧 (人気・新着・名前順)。 */
-    suspend fun tags(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
+    /**
+     * タグマスタ一覧 (/tags・/idol-tags・/unit-tags) を total に届くまでページを送って全件取る。
+     * ピッカーや絞り込みは全件を並べる前提なので、件数で切ると多いプールで後ろのタグが出なくなる。
+     * 1 ページはサーバの既定 (1000)。サーバは offset を 10000 で頭打ちにするので、ページ数にも上限を置く。
+     */
+    private suspend fun fetchAllTagPages(path: String, search: String, category: String, sort: String): List<CommunityTag> =
         withContext(Dispatchers.IO) {
-            val query = buildString {
-                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
-                if (search.isNotEmpty()) append("&search=").append(enc(search))
-                if (category.isNotEmpty()) append("&category=").append(enc(category))
+            val pageSize = 1000
+            val maxPages = 10
+            val all = mutableListOf<CommunityTag>()
+            for (page in 0 until maxPages) {
+                val query = buildString {
+                    append("?sort=").append(enc(sort)).append("&limit=").append(pageSize).append("&offset=").append(all.size)
+                    if (search.isNotEmpty()) append("&search=").append(enc(search))
+                    if (category.isNotEmpty()) append("&category=").append(enc(category))
+                }
+                val json = get("$path$query") ?: break
+                val arr = json.optJSONArray("tags") ?: JSONArray()
+                (0 until arr.length()).mapTo(all) { parseTagListItem(arr.getJSONObject(it)) }
+                if (arr.length() < pageSize || all.size >= json.optInt("total", 0)) break
             }
-            val json = get("/tags$query") ?: return@withContext emptyList()
-            val arr = json.optJSONArray("tags") ?: JSONArray()
-            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
+            all
         }
+
+    /** GET /tags — 全タグ検索/一覧 (人気・新着・名前順)。 */
+    suspend fun tags(search: String = "", category: String = "", sort: String = "popular"): List<CommunityTag> =
+        fetchAllTagPages("/tags", search, category, sort)
 
     /** POST /tags — 新規タグ作成。同名タグが既存なら 409 で既存タグが返るので、それを採用して冪等にする。 */
     suspend fun createTag(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
@@ -323,17 +338,8 @@ class CommunityApi(private val http: WorkerHttpClient) {
     // --- アイドルタグカタログ (idol_tag_master — 曲タグ (tags) とは別プール) ---
 
     /** GET /idol-tags — 全アイドルタグ検索/一覧。tags() の idol_tag_master 版。 */
-    suspend fun idolTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
-        withContext(Dispatchers.IO) {
-            val query = buildString {
-                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
-                if (search.isNotEmpty()) append("&search=").append(enc(search))
-                if (category.isNotEmpty()) append("&category=").append(enc(category))
-            }
-            val json = get("/idol-tags$query") ?: return@withContext emptyList()
-            val arr = json.optJSONArray("tags") ?: JSONArray()
-            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
-        }
+    suspend fun idolTagCatalog(search: String = "", category: String = "", sort: String = "popular"): List<CommunityTag> =
+        fetchAllTagPages("/idol-tags", search, category, sort)
 
     /** POST /idol-tags — 新規アイドルタグ作成。createTag() の idol_tag_master 版。 */
     suspend fun createIdolTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =
@@ -398,17 +404,8 @@ class CommunityApi(private val http: WorkerHttpClient) {
     // --- ユニットタグカタログ (unit_tag_master — 曲/アイドルタグとは別プール) ---
 
     /** GET /unit-tags — 全ユニットタグ検索/一覧。tags()/idolTagCatalog() の unit_tag_master 版。 */
-    suspend fun unitTagCatalog(search: String = "", category: String = "", sort: String = "popular", limit: Int = 1000): List<CommunityTag> =
-        withContext(Dispatchers.IO) {
-            val query = buildString {
-                append("?sort=").append(enc(sort)).append("&limit=").append(limit)
-                if (search.isNotEmpty()) append("&search=").append(enc(search))
-                if (category.isNotEmpty()) append("&category=").append(enc(category))
-            }
-            val json = get("/unit-tags$query") ?: return@withContext emptyList()
-            val arr = json.optJSONArray("tags") ?: JSONArray()
-            (0 until arr.length()).map { parseTagListItem(arr.getJSONObject(it)) }
-        }
+    suspend fun unitTagCatalog(search: String = "", category: String = "", sort: String = "popular"): List<CommunityTag> =
+        fetchAllTagPages("/unit-tags", search, category, sort)
 
     /** POST /unit-tags — 新規ユニットタグ作成。createIdolTagOption() の unit_tag_master 版。 */
     suspend fun createUnitTagOption(name: String, description: String? = null, category: String? = null, color: String? = null): TagCreateResult =

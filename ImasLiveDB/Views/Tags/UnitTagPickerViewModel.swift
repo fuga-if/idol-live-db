@@ -33,7 +33,7 @@ final class UnitTagPickerViewModel {
     func loadData() async {
         isLoading = true
         defer { isLoading = false }
-        async let tagResult = tagReading.unitTagCatalog(search: "", category: "", sort: "popular", limit: 1000, offset: 0)
+        async let tagResult = tagReading.unitTagCatalog(search: "", category: "", sort: "popular")
         async let unitTagResult = tagReading.unitTags(unitId: unitId)
         tags = (try? await tagResult) ?? []
         if let result = try? await unitTagResult {
@@ -54,7 +54,7 @@ final class UnitTagPickerViewModel {
     }
 
     private func search(_ searchText: String) async {
-        let result = (try? await tagReading.unitTagCatalog(search: searchText, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
+        let result = (try? await tagReading.unitTagCatalog(search: searchText, category: "", sort: "popular")) ?? []
         tags = result
     }
 

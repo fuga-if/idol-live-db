@@ -9,8 +9,8 @@ import Foundation
 protocol CommunityTagReading: Sendable {
     // MARK: - 曲タグ (tags / tag_master)
 
-    /// タグ一覧 (人気/新着/名前順、検索・カテゴリ絞り込み可)。
-    func tags(search: String, category: String, sort: String, limit: Int, offset: Int) async throws -> [CommunityTag]
+    /// タグ一覧 (人気/新着/名前順、検索・カテゴリ絞り込み可)。件数で切らずに全件返す。
+    func tags(search: String, category: String, sort: String) async throws -> [CommunityTag]
     /// タグ詳細 (付いた曲ランキングつき)。
     func tag(id: String) async throws -> TagDetailResponse
     /// タグの編集履歴。
@@ -25,7 +25,7 @@ protocol CommunityTagReading: Sendable {
     /// 指定アイドルに付いたタグ一覧 (自分が付けたタグを含む)。
     func idolTags(idolId: String) async throws -> IdolTagListResponse
     /// アイドルタグマスタ一覧。
-    func idolTagCatalog(search: String, category: String, sort: String, limit: Int, offset: Int) async throws -> [CommunityTag]
+    func idolTagCatalog(search: String, category: String, sort: String) async throws -> [CommunityTag]
     /// アイドルタグ詳細 (付いたアイドルランキングつき)。
     func idolTagDetail(id: String) async throws -> IdolTagDetailResponse
     /// アイドルタグの編集履歴。
@@ -38,7 +38,7 @@ protocol CommunityTagReading: Sendable {
     /// 指定ユニットに付いたタグ一覧 (自分が付けたタグを含む)。
     func unitTags(unitId: String) async throws -> UnitTagListResponse
     /// ユニットタグマスタ一覧。
-    func unitTagCatalog(search: String, category: String, sort: String, limit: Int, offset: Int) async throws -> [CommunityTag]
+    func unitTagCatalog(search: String, category: String, sort: String) async throws -> [CommunityTag]
     /// ユニットタグ詳細 (付いたユニットランキングつき)。
     func unitTagDetail(id: String) async throws -> UnitTagDetailResponse
     /// ユニットタグの編集履歴。

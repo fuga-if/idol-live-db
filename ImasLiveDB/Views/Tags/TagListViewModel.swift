@@ -38,7 +38,7 @@ final class TagListViewModel {
         defer { isLoading = false }
         do {
             try Task.checkCancellation()
-            let result = try await reading.tags(search: "", category: category, sort: sort, limit: 1000, offset: 0)
+            let result = try await reading.tags(search: "", category: category, sort: sort)
             try Task.checkCancellation()
             tags = result
         } catch is CancellationError {

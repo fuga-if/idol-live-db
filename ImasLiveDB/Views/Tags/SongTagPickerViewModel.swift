@@ -41,7 +41,7 @@ final class SongTagPickerViewModel {
     func loadData() async {
         isLoading = true
         defer { isLoading = false }
-        async let tagResult = tagReading.tags(search: "", category: "", sort: "popular", limit: 1000, offset: 0)
+        async let tagResult = tagReading.tags(search: "", category: "", sort: "popular")
         async let songTagResult = tagReading.songTags(songId: songId)
         tags = (try? await tagResult) ?? []
         if let result = try? await songTagResult {
@@ -62,7 +62,7 @@ final class SongTagPickerViewModel {
     }
 
     private func search(_ searchText: String) async {
-        let result = (try? await tagReading.tags(search: searchText, category: "", sort: "popular", limit: 1000, offset: 0)) ?? []
+        let result = (try? await tagReading.tags(search: searchText, category: "", sort: "popular")) ?? []
         tags = result
     }
 
