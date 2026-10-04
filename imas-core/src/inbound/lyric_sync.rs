@@ -156,3 +156,9 @@ pub fn lyric_part_paint(
 ) -> LyricPartPaint {
     d::part_paint(len, &singers, &breaks, start, end, &idols, &order)
 }
+
+/// 字の範囲から歌う人をみな外す (消しゴム)。区切りは消した結果から作り直す。
+#[uniffi::export]
+pub fn lyric_part_erase(len: u32, singers: Vec<String>, breaks: Vec<LyricPartBreak>, start: u32, end: u32) -> LyricPartPaint {
+    d::part_erase(len, &singers, &breaks, start, end)
+}

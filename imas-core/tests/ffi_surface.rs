@@ -180,6 +180,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_overlay_spans,
     uniffi_imas_core_checksum_func_lyric_overlay_split,
     uniffi_imas_core_checksum_func_lyric_parts_applicable,
+    uniffi_imas_core_checksum_func_lyric_part_erase,
     uniffi_imas_core_checksum_func_lyric_part_paint,
     uniffi_imas_core_checksum_func_lyric_part_segments,
     uniffi_imas_core_checksum_func_lyric_part_toggle_break,

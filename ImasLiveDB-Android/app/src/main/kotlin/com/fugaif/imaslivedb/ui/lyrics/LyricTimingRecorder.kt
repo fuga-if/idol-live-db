@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.lyrics.PartsLine
 import com.fugaif.imaslivedb.data.lyrics.TimingEntry
 import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricNextRecordable
+import uniffi.imas_core.lyricPartErase
 import uniffi.imas_core.lyricPartPaint
 import uniffi.imas_core.lyricPartSegments
 
@@ -135,6 +136,19 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         )
         singers = singers.toMutableList().also { it[i] = painted.singers }
         breaks = breaks.toMutableList().also { it[i] = painted.breaks.map(LyricLinePartBreak::of) }
+    }
+
+    /** 行の字の範囲 [start]..[end] から歌う人をみな外す (消しゴム)。規則はコア ([lyricPartErase])。 */
+    fun erase(lineId: String, start: Int, end: Int) {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0 || kinds[i] != "lyric") return
+        pushPartsUndo(i)
+        val erased = lyricPartErase(
+            len = lengths[i].toUInt(), singers = singers[i], breaks = breaks[i].map { it.core },
+            start = maxOf(0, start).toUInt(), end = maxOf(0, end).toUInt()
+        )
+        singers = singers.toMutableList().also { it[i] = erased.singers }
+        breaks = breaks.toMutableList().also { it[i] = erased.breaks.map(LyricLinePartBreak::of) }
     }
 
     /** 行のひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。 */

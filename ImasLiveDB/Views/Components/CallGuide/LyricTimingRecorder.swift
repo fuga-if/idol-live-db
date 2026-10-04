@@ -130,6 +130,16 @@ final class LyricTimingRecorder: Identifiable {
         if let k { breaks[i][k].singers = list } else { singers[i] = list }
     }
 
+    /// 行の字の範囲 `start..end` から歌う人をみな外す (消しゴム)。規則はコア (`lyricPartErase`)。
+    func erase(lineId: String, start: Int, end: Int) {
+        guard let i = lineIds.firstIndex(of: lineId), kinds[i] == "lyric" else { return }
+        pushPartsUndo(i)
+        let erased = lyricPartErase(len: UInt32(lengths[i]), singers: singers[i], breaks: breaks[i].map(\.core),
+                                    start: UInt32(max(0, start)), end: UInt32(max(0, end)))
+        singers[i] = erased.singers
+        breaks[i] = erased.breaks.map(LyricLinePartBreak.init)
+    }
+
     /// 行の字の範囲 `start..end` に `idolIds` (筆。複数人を一度に) を塗る / 外す (範囲の字がみな筆の全員入りなら外す)。
     /// 区切りは塗った結果から作り直す。規則はコア (`lyricPartPaint`)。
     func paint(lineId: String, start: Int, end: Int, idolIds: [String], order: [String]) {

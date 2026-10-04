@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.AutoFixNormal
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.outlined.Layers
@@ -136,6 +137,8 @@ fun LyricTimingEditorScreen(
     // 筆 (塗る歌う人。複数人を一度に塗れる)。null なら原唱者の先頭 1 人。
     var partsBrushIds by remember { mutableStateOf<List<String>?>(null) }
     val brush = partsBrushIds ?: listOfNotNull(cast.artists.firstOrNull()?.id)
+    // 消しゴムを持っているか (塗る代わりに、その字の歌う人をみな外す)。
+    var partsErasing by remember { mutableStateOf(false) }
     val laneListState = rememberLazyListState()
 
     val duration = run {
@@ -162,6 +165,11 @@ fun LyricTimingEditorScreen(
 
     /** 筆の人たちを、行の字の範囲に塗る / 外す (範囲の字がみな筆の全員入りなら外す)。規則はコア。 */
     fun paint(lineId: String, start: Int, end: Int) {
+        if (partsErasing) {
+            haptics.selection()
+            recorder.erase(lineId, start, end)
+            return
+        }
         if (brush.isEmpty()) return
         haptics.selection()
         recorder.paint(lineId, start, end, brush, cast.artists.map { it.id })
@@ -384,14 +392,30 @@ fun LyricTimingEditorScreen(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = DS.sp5),
                     horizontalArrangement = Arrangement.spacedBy(DS.sp3)
                 ) {
+                    // 消しゴム: 持っている間は、行や語をタップ・なぞると、その字の歌う人をみな外す。
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        ImasIconButton(
+                            icon = Icons.Filled.AutoFixNormal, label = "消しゴム",
+                            style = if (partsErasing) ImasIconButtonStyle.FILLED else ImasIconButtonStyle.PLAIN,
+                            onClick = { partsErasing = !partsErasing },
+                            modifier = Modifier.semantics { selected = partsErasing }
+                        )
+                        ImasText("消しゴム", ImasTextRole.META, color = if (partsErasing) DS.ink else DS.ink3, maxLines = 1)
+                    }
                     cast.artists.forEach { idol ->
-                        val isOn = idol.id in brush
+                        val isOn = !partsErasing && idol.id in brush
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() }, indication = null
                                 ) {
+                                    if (partsErasing) {
+                                        // 消しゴムから筆に持ち替える (その人 1 人の筆にする)。
+                                        partsErasing = false
+                                        partsBrushIds = listOf(idol.id)
+                                        return@clickable
+                                    }
                                     val next = brush.toMutableList()
                                     // 筆は 1 人は残す (空の筆では塗れない)。
                                     if (idol.id in next) { if (next.size > 1) next.remove(idol.id) } else next.add(idol.id)
@@ -408,7 +432,10 @@ fun LyricTimingEditorScreen(
                     ImasButton(
                         title = if (isEveryone) "1 人に戻す" else "全員を選ぶ", icon = Icons.Filled.Groups,
                         role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL,
-                        onClick = { partsBrushIds = if (isEveryone) everyone.take(1) else everyone }
+                        onClick = {
+                            partsErasing = false
+                            partsBrushIds = if (isEveryone) everyone.take(1) else everyone
+                        }
                     )
                     ImasButton(
                         title = "前の行と同じ人にする", icon = Icons.AutoMirrored.Filled.KeyboardReturn,

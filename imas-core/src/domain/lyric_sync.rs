@@ -648,6 +648,24 @@ pub fn part_paint(
     idols: &[String],
     order: &[String],
 ) -> LyricPartPaint {
+    repaint(len, singers, breaks, start, end, Some((idols, order)))
+}
+
+/// 字の範囲 `start..end` から歌う人をみな外す (消しゴム)。区切りは消した結果から作り直す。
+pub fn part_erase(len: u32, singers: &[String], breaks: &[LyricPartBreak], start: u32, end: u32) -> LyricPartPaint {
+    repaint(len, singers, breaks, start, end, None)
+}
+
+/// 字ごとの歌う人に広げて範囲を塗り直し、行の頭の歌う人と区切りに畳み直す。
+/// `brush` (筆, 原唱者の並び) があれば塗る / 外す、無ければ消しゴム (範囲の歌う人をみな外す)。
+fn repaint(
+    len: u32,
+    singers: &[String],
+    breaks: &[LyricPartBreak],
+    start: u32,
+    end: u32,
+    brush: Option<(&[String], &[String])>,
+) -> LyricPartPaint {
     let n = len as usize;
     let (start, end) = ((start as usize).min(n), (end as usize).min(n));
     let mut per_char: Vec<Vec<String>> = vec![Vec::new(); n];
@@ -656,21 +674,25 @@ pub fn part_paint(
             per_char[k] = seg.singers.clone();
         }
     }
-    if start < end && !idols.is_empty() {
-        let all_have = per_char[start..end].iter().all(|who| idols.iter().all(|i| who.contains(i)));
-        let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
-        for who in &mut per_char[start..end] {
-            if all_have {
-                who.retain(|w| !idols.contains(w));
-            } else {
-                for idol in idols {
-                    if !who.contains(idol) {
-                        who.push(idol.clone());
+    match brush {
+        None if start < end => per_char[start..end].iter_mut().for_each(Vec::clear),
+        Some((idols, order)) if start < end && !idols.is_empty() => {
+            let all_have = per_char[start..end].iter().all(|who| idols.iter().all(|i| who.contains(i)));
+            let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
+            for who in &mut per_char[start..end] {
+                if all_have {
+                    who.retain(|w| !idols.contains(w));
+                } else {
+                    for idol in idols {
+                        if !who.contains(idol) {
+                            who.push(idol.clone());
+                        }
                     }
+                    who.sort_by_key(|id| rank(id));
                 }
-                who.sort_by_key(|id| rank(id));
             }
         }
+        _ => {}
     }
     let mut out = LyricPartPaint { singers: per_char.first().cloned().unwrap_or_default(), breaks: Vec::new() };
     for k in 1..n {
@@ -950,6 +972,16 @@ mod tests {
         let all = part_paint(3, &["a".to_string()], &[], 0, 3, &order, &order);
         assert_eq!(all.singers, order);
         assert!(part_paint(3, &all.singers, &all.breaks, 0, 3, &order, &order).singers.is_empty());
+    }
+
+
+    #[test]
+    fn part_erase_clears_range() {
+        let a = vec!["a".to_string()];
+        let e = part_erase(4, &a, &[], 1, 3);
+        assert_eq!(e.singers, a);
+        assert_eq!(e.breaks, vec![LyricPartBreak { at: 1, singers: vec![] }, LyricPartBreak { at: 3, singers: a.clone() }]);
+        assert_eq!(part_erase(4, &a, &[], 0, 4), LyricPartPaint { singers: vec![], breaks: vec![] });
     }
 
 }

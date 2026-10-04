@@ -35,6 +35,8 @@ struct LyricTimingEditorView: View {
     @State private var followPausedUntil: Date = .distantPast
     /// パートの段の筆 (塗る歌う人。複数人を一度に塗れる)。nil なら原唱者の先頭 1 人。
     @State private var partsBrushIds: [String]?
+    /// 消しゴムを持っているか (塗る代わりに、その字の歌う人をみな外す)。
+    @State private var partsErasing = false
 
     private var duration: Int {
         let lastStart = recorder.starts.compactMap { $0 }.max() ?? 0
@@ -280,6 +282,12 @@ struct LyricTimingEditorView: View {
 
     /// 筆の人たちを、行の字の範囲に塗る / 外す (範囲の字がみな筆の全員入りなら外す)。規則はコア。
     private func paint(_ lineId: String, start: Int, end: Int) {
+        if partsErasing {
+            AppAnalytics.tap("lyric_timing.erase_part")
+            recorder.erase(lineId: lineId, start: start, end: end)
+            recordToken += 1
+            return
+        }
         guard !brush.isEmpty else { return }
         AppAnalytics.tap("lyric_timing.paint_part")
         recorder.paint(lineId: lineId, start: start, end: end, idolIds: brush, order: cast.artists.map(\.id))
@@ -319,9 +327,22 @@ struct LyricTimingEditorView: View {
         return VStack(spacing: DS.sp3) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: DS.sp3) {
+                    // 消しゴム: 持っている間は、行や語をタップ・なぞると、その字の歌う人をみな外す。
+                    VStack(spacing: DS.sp1) {
+                        ImasIconButton(systemImage: "eraser", label: "消しゴム",
+                                       style: partsErasing ? .filled : .plain) { partsErasing.toggle() }
+                            .accessibilityAddTraits(partsErasing ? .isSelected : [])
+                        Text("消しゴム").imasText(.meta, color: partsErasing ? DS.ink : DS.ink3)
+                    }
                     ForEach(cast.artists, id: \.id) { idol in
-                        let isOn = brush.contains(idol.id)
+                        let isOn = !partsErasing && brush.contains(idol.id)
                         Button {
+                            if partsErasing {
+                                // 消しゴムから筆に持ち替える (その人 1 人の筆にする)。
+                                partsErasing = false
+                                partsBrushIds = [idol.id]
+                                return
+                            }
                             var next = brush
                             if let i = next.firstIndex(of: idol.id) {
                                 // 筆は 1 人は残す (空の筆では塗れない)。
@@ -346,6 +367,7 @@ struct LyricTimingEditorView: View {
             HStack(spacing: DS.sp2) {
                 ImasButton(title: isEveryone ? "1 人に戻す" : "全員を選ぶ", systemImage: "person.3.fill",
                            role: .secondary, size: .small) {
+                    partsErasing = false
                     partsBrushIds = isEveryone ? Array(everyone.prefix(1)) : everyone
                 }
                 ImasButton(title: "前の行と同じ人にする", systemImage: "arrow.turn.down.right", role: .secondary,
