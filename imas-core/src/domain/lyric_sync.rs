@@ -628,6 +628,57 @@ pub fn part_toggle_break(len: u32, singers: &[String], breaks: &[LyricPartBreak]
     out
 }
 
+/// 塗り替えたあとの、行の頭の歌う人と区切り。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricPartPaint {
+    pub singers: Vec<String>,
+    pub breaks: Vec<LyricPartBreak>,
+}
+
+/// 字の範囲 `start..end` に `idol` を塗る / 外す (範囲の字がみな `idol` 入りなら外す、そうでなければ足す)。
+/// 区切りは塗った結果から作り直す (歌う人が変わる字に置く)。並びは `order` (原唱者の順) にそろえる。
+/// タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
+pub fn part_paint(
+    len: u32,
+    singers: &[String],
+    breaks: &[LyricPartBreak],
+    start: u32,
+    end: u32,
+    idol: &str,
+    order: &[String],
+) -> LyricPartPaint {
+    let n = len as usize;
+    let (start, end) = ((start as usize).min(n), (end as usize).min(n));
+    let mut per_char: Vec<Vec<String>> = vec![Vec::new(); n];
+    for seg in part_segments(len, singers, breaks) {
+        for k in seg.start as usize..seg.end as usize {
+            per_char[k] = seg.singers.clone();
+        }
+    }
+    if start < end {
+        let all_have = per_char[start..end].iter().all(|who| who.iter().any(|w| w == idol));
+        let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
+        for who in &mut per_char[start..end] {
+            if all_have {
+                who.retain(|w| w != idol);
+            } else if !who.iter().any(|w| w == idol) {
+                who.push(idol.to_string());
+                who.sort_by_key(|id| rank(id));
+            }
+        }
+    }
+    let mut out = LyricPartPaint { singers: per_char.first().cloned().unwrap_or_default(), breaks: Vec::new() };
+    for k in 1..n {
+        if per_char[k] != per_char[k - 1] {
+            out.breaks.push(LyricPartBreak { at: k as u32, singers: per_char[k].clone() });
+        }
+    }
+    if n == 0 {
+        out.singers = singers.to_vec();
+    }
+    out
+}
+
 /// 行を歌う人をぜんぶ (出てくる順、重複なし)。行の脇の色の帯と、ロック画面に出す。
 pub fn part_union(singers: &[String], breaks: &[LyricPartBreak]) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
@@ -873,6 +924,22 @@ mod tests {
         assert_eq!(part_toggle_break(6, &a, &on, 2), vec![br(4, "c")]);
         assert_eq!(part_toggle_break(6, &a, &[], 0), vec![]);
         assert_eq!(part_union(&a, &[br(2, "b"), br(4, "a")]), vec!["a".to_string(), "b".to_string()]);
+    }
+
+
+    #[test]
+    fn part_paint_adds_and_removes() {
+        let order: Vec<String> = ["a", "b"].iter().map(|s| s.to_string()).collect();
+        // 頭 2 字だけ b を足す → 頭は a,b、2 から a
+        let p = part_paint(5, &["a".to_string()], &[], 0, 2, "b", &order);
+        assert_eq!(p.singers, vec!["a".to_string(), "b".to_string()]);
+        assert_eq!(p.breaks, vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }]);
+        // 同じ範囲をもう一度で外れ、区切りも消える
+        let q = part_paint(5, &p.singers, &p.breaks, 0, 2, "b", &order);
+        assert_eq!(q, LyricPartPaint { singers: vec!["a".to_string()], breaks: vec![] });
+        // 空の行に途中だけ塗る
+        let r = part_paint(4, &[], &[], 2, 4, "a", &order);
+        assert_eq!(r, LyricPartPaint { singers: vec![], breaks: vec![LyricPartBreak { at: 2, singers: vec!["a".to_string()] }] });
     }
 
 }

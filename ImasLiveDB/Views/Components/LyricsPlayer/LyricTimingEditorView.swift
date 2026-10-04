@@ -33,8 +33,8 @@ struct LyricTimingEditorView: View {
     @State private var recordToken = 0
     /// 歌詞をなぞってから少しの間は、曲に付いていくのを止める。
     @State private var followPausedUntil: Date = .distantPast
-    /// パートの段で選んでいる字 (行の中のスカラー位置)。区切りを置く位置と、歌う人を付けるひと続きを決める。
-    @State private var partCursor: Int?
+    /// パートの段の筆 (塗る歌う人)。nil なら原唱者の先頭。
+    @State private var partsBrushId: String?
 
     private var duration: Int {
         let lastStart = recorder.starts.compactMap { $0 }.max() ?? 0
@@ -87,7 +87,6 @@ struct LyricTimingEditorView: View {
         .task { if !playback.isFullLoaded { startFailed = !(await playback.startFull()) } }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .medium), trigger: recordToken)
-        .onChange(of: partsTargetId) { partCursor = nil }
         .confirmationDialog("保存せずに閉じますか？", isPresented: $confirmDiscard, titleVisibility: .visible) {
             Button("保存せずに閉じる", role: .destructive) { dismiss() }
             Button("編集を続ける", role: .cancel) {}
@@ -175,7 +174,7 @@ struct LyricTimingEditorView: View {
                                                          : "記録には Apple Music でのフル再生が必要です。",
                                  systemImage: "music.note")
                     }
-                    Text(recorder.lane == .parts ? "行をタップして歌う人を付けます。字をタップすると、そこから歌う人を変えられます。"
+                    Text(recorder.lane == .parts ? "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
                                                  : "コールをタップして選ぶと、前後に寄せられます。")
                         .imasText(.meta, color: DS.ink3)
                     ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { index, line in
@@ -239,7 +238,8 @@ struct LyricTimingEditorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// パートの段の 1 行。タップで付ける行に選び、選んだ行は字ごとに並べて区切りを置ける。
+    /// パートの段の 1 行。歌う人 (筆) を選んでから、行をタップすると行まるごと塗る / 外す。
+    /// 選んだ行 (いま歌っている行) は語をタップ・長押しでなぞると、その字だけ塗る / 外す。
     @ViewBuilder
     private func partsLaneRow(line: LyricLine, isCurrent: Bool) -> some View {
         let segments = recorder.segments(for: line.id)
@@ -248,67 +248,39 @@ struct LyricTimingEditorView: View {
             let colors = cast.colors(segment.singers).map { UIColor(ImasTheme.derive(seed: $0, scheme: scheme).accent) }
             return colors.isEmpty ? nil : .init(start: Int(segment.start), end: Int(segment.end), colors: colors)
         }
-        HStack(alignment: .top, spacing: DS.sp3) {
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                if isTarget {
-                    partCells(line: line, segments: segments)
-                } else {
-                    Button {
-                        selectedId = line.id
-                        partCursor = nil
-                    } label: {
-                        laneText(line.text, isCurrent: isCurrent, parts: marks)
-                    }
-                    .buttonStyle(.imasPress)
+        VStack(alignment: .leading, spacing: DS.sp1) {
+            if isTarget {
+                // 塗った字には歌う人 (先頭の人) の色を敷く。語のタップ・なぞりはコール編集と同じ部品。
+                CallGuideSelectableLine(
+                    text: line.text,
+                    highlights: segments.compactMap { segment in
+                        cast.colors(segment.singers).first.map {
+                            CallGuideText.Highlight(start: Int(segment.start), end: Int(segment.end),
+                                                    color: ImasTheme.derive(seed: $0, scheme: scheme).accent)
+                        }
+                    },
+                    onSelect: { start, end, _ in paint(line.id, start: start, end: end) }
+                )
+            } else {
+                Button {
+                    selectedId = line.id
+                    paint(line.id, start: 0, end: line.text.unicodeScalars.count)
+                } label: {
+                    laneText(line.text, isCurrent: isCurrent, parts: marks)
                 }
-                ImasPartNames(groups: segments.map { cast.names($0.singers) })
+                .buttonStyle(.imasPress)
             }
+            ImasPartNames(groups: segments.map { cast.names($0.singers) })
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// 選んだ行を字ごとに並べる。タップした字が、歌う人を付けるひと続きと、区切りを置く位置になる。
-    private func partCells(line: LyricLine, segments: [LyricPartSegment]) -> some View {
-        // 振り仮名の記号と読みは字として並べない (区切りは親字と地の字にだけ置く)。
-        let roles = ImasRubyText.roles(line.text).roles
-        let cells = CallGuideText.cells(of: line.text).filter { cell in
-            guard cell.scalarStart < roles.count, case .text = roles[cell.scalarStart] else { return false }
-            return true
-        }
-        let cursor = partCursor ?? 0
-        let active = segments.first { Int($0.start) <= cursor && cursor < Int($0.end) }
-        return VStack(alignment: .leading, spacing: DS.sp2) {
-            FlowLayout(spacing: 0, lineSpacing: DS.sp1) {
-                ForEach(cells) { cell in
-                    let isBreak = segments.contains { Int($0.start) == cell.scalarStart && $0.start > 0 }
-                    let inActive = active.map { Int($0.start) <= cell.scalarStart && cell.scalarStart < Int($0.end) } ?? false
-                    let who = segments.last { Int($0.start) <= cell.scalarStart }?.singers ?? []
-                    Button { partCursor = cell.scalarStart } label: {
-                        HStack(alignment: .top, spacing: 0) {
-                            if isBreak { ImasPartBreakMark() }
-                            VStack(spacing: 0) {
-                                Text(cell.text)
-                                    .imasText(.body, color: inActive ? DS.ink : DS.ink3)
-                                    .underline(cell.scalarStart == partCursor, color: DS.ink)
-                                // 歌う人の色の線 (閲覧と同じく字の下に)。
-                                ImasPartLines(colors: cast.colors(who))
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            if let at = partCursor, at > 0 {
-                let isBreak = segments.contains { Int($0.start) == at }
-                let head = CallGuideText.slice(line.text, start: at, end: min(at + 4, line.text.unicodeScalars.count)) ?? ""
-                ImasButton(title: isBreak ? "「\(head)」の前の区切りを外す" : "「\(head)」から歌う人を変える",
-                           systemImage: isBreak ? "minus" : "scissors", role: .plain, size: .small) {
-                    AppAnalytics.tap("lyric_timing.toggle_part_break")
-                    recorder.toggleBreak(lineId: line.id, at: at)
-                    recordToken += 1
-                }
-            }
-        }
+    /// 筆の人を、行の字の範囲に塗る / 外す (範囲の字がみなその人なら外す)。規則はコア。
+    private func paint(_ lineId: String, start: Int, end: Int) {
+        guard let brush = partsBrushId ?? cast.artists.first?.id else { return }
+        AppAnalytics.tap("lyric_timing.paint_part")
+        recorder.paint(lineId: lineId, start: start, end: end, idolId: brush, order: cast.artists.map(\.id))
+        recordToken += 1
     }
 
     /// 段の中の歌詞 1 行 (振り仮名は親字の上に)。
@@ -326,12 +298,6 @@ struct LyricTimingEditorView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// 歌う人を付けるひと続きの頭 (選んだ字を含むひと続き。字を選んでいなければ行の頭)。
-    private var partsSegmentStart: Int {
-        guard let id = partsTargetId, let cursor = partCursor else { return 0 }
-        return recorder.segments(for: id).last { Int($0.start) <= cursor }.map { Int($0.start) } ?? 0
-    }
-
     // MARK: - パート (誰が歌うか)
 
     /// パートを付ける行: タイムラインで選んだ行、選んでいなければいま歌っている行。
@@ -343,22 +309,15 @@ struct LyricTimingEditorView: View {
         return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
     }
 
-    /// 歌う人のアイコン。押すといまの行 (選んだ行) に付け外しする。
+    /// 歌う人のアイコン (筆)。選んだ人で歌詞を塗る。
     private var partsBrush: some View {
         VStack(spacing: DS.sp3) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: DS.sp3) {
                     ForEach(cast.artists, id: \.id) { idol in
-                        let segment = partsTargetId.flatMap { id in
-                            recorder.segments(for: id).first { Int($0.start) == partsSegmentStart }
-                        }
-                        let isOn = segment?.singers.contains(idol.id) ?? false
+                        let isOn = (partsBrushId ?? cast.artists.first?.id) == idol.id
                         Button {
-                            guard let id = partsTargetId else { return }
-                            AppAnalytics.tap("lyric_timing.toggle_part")
-                            recorder.toggleSinger(lineId: id, segmentStart: partsSegmentStart, idolId: idol.id,
-                                                  order: cast.artists.map(\.id))
-                            recordToken += 1
+                            partsBrushId = idol.id
                         } label: {
                             VStack(spacing: DS.sp1) {
                                 IdolAvatarView(idol: idol, size: 48, isPick: isOn)
@@ -366,7 +325,7 @@ struct LyricTimingEditorView: View {
                             }
                         }
                         .buttonStyle(.imasPress)
-                        .disabled(partsTargetId == nil)
+                        .accessibilityLabel("\(idol.shortName)で塗る")
                         .accessibilityAddTraits(isOn ? .isSelected : [])
                     }
                 }

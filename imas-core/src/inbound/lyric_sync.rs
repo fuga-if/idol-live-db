@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::{LyricAside, LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricRubyChoice, LyricSpan, LyricPartBreak, LyricPartSegment};
+pub use crate::domain::lyric_sync::{LyricAside, LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricRubyChoice, LyricSpan, LyricPartBreak, LyricPartPaint, LyricPartSegment};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -141,4 +141,18 @@ pub fn lyric_part_toggle_break(len: u32, singers: Vec<String>, breaks: Vec<Lyric
 #[uniffi::export]
 pub fn lyric_part_union(singers: Vec<String>, breaks: Vec<LyricPartBreak>) -> Vec<String> {
     d::part_union(&singers, &breaks)
+}
+
+/// 字の範囲に歌う人を塗る / 外す (範囲の字がみなその人入りなら外す)。区切りは塗った結果から作り直す。
+#[uniffi::export]
+pub fn lyric_part_paint(
+    len: u32,
+    singers: Vec<String>,
+    breaks: Vec<LyricPartBreak>,
+    start: u32,
+    end: u32,
+    idol: String,
+    order: Vec<String>,
+) -> LyricPartPaint {
+    d::part_paint(len, &singers, &breaks, start, end, &idol, &order)
 }
