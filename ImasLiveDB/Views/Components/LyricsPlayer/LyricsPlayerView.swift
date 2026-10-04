@@ -159,7 +159,6 @@ struct LyricsPlayerView: View {
             Color.clear.frame(height: DS.sp2)
         case .lyric, .marker:
             HStack(alignment: .top, spacing: DS.sp3) {
-                if !line.allSingers.isEmpty { ImasPartStripe(colors: cast.colors(line.allSingers)) }
                 rowBody(line, isLiked: isLiked)
             }
             .contentShape(Rectangle())
@@ -184,13 +183,19 @@ struct LyricsPlayerView: View {
                 // 行の中の括弧 (追いかけ) は本文から外して、すぐ下に 2 段目として重ねる。
                 let split = lyricOverlaySplit(text: line.text)
                 let isCurrent = !hasTiming || line.id == activeLineId
-                ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
+                let mainText = split.main.isEmpty ? line.text : split.main
+                ImasPlayerLyricLine(text: mainText, isCurrent: isCurrent,
                                     isMarker: line.kind == .marker, isLiked: isLiked,
                                     echoes: line.calls.filter { line.echoes($0) }.compactMap { call in
                                         // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
                                         lyricMainRange(text: line.text, start: UInt32(call.start), end: UInt32(call.end))
                                             .map { .init(start: Int($0.start), end: Int($0.end), isActive: call.id == activeCallId) }
                                     },
+                                    // 歌う人は字の下に担当色の線で (被せを外した本文の位置に置き直す)。
+                                    parts: cast.marks(line, scheme: scheme, mapRange: mainText == line.text ? nil : { start, end in
+                                        lyricMainRange(text: line.text, start: UInt32(start), end: UInt32(end))
+                                            .map { (Int($0.start), Int($0.end)) }
+                                    }),
                                     seed: seed)
                 if let overlay = split.overlay, !split.main.isEmpty {
                     ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)

@@ -243,10 +243,12 @@ struct LyricTimingEditorView: View {
     @ViewBuilder
     private func partsLaneRow(line: LyricLine, isCurrent: Bool) -> some View {
         let segments = recorder.segments(for: line.id)
-        let singers = segments.flatMap(\.singers)
         let isTarget = line.id == partsTargetId
+        let marks = segments.compactMap { segment -> ImasRubyText.PartMark? in
+            let colors = cast.colors(segment.singers).map { UIColor(ImasTheme.derive(seed: $0, scheme: scheme).accent) }
+            return colors.isEmpty ? nil : .init(start: Int(segment.start), end: Int(segment.end), colors: colors)
+        }
         HStack(alignment: .top, spacing: DS.sp3) {
-            ImasPartStripe(colors: cast.colors(lyricPartUnion(singers: singers, breaks: [])))
             VStack(alignment: .leading, spacing: DS.sp1) {
                 if isTarget {
                     partCells(line: line, segments: segments)
@@ -255,7 +257,7 @@ struct LyricTimingEditorView: View {
                         selectedId = line.id
                         partCursor = nil
                     } label: {
-                        laneText(line.text, isCurrent: isCurrent)
+                        laneText(line.text, isCurrent: isCurrent, parts: marks)
                     }
                     .buttonStyle(.imasPress)
                 }
@@ -280,12 +282,17 @@ struct LyricTimingEditorView: View {
                 ForEach(cells) { cell in
                     let isBreak = segments.contains { Int($0.start) == cell.scalarStart && $0.start > 0 }
                     let inActive = active.map { Int($0.start) <= cell.scalarStart && cell.scalarStart < Int($0.end) } ?? false
+                    let who = segments.last { Int($0.start) <= cell.scalarStart }?.singers ?? []
                     Button { partCursor = cell.scalarStart } label: {
-                        HStack(spacing: 0) {
+                        HStack(alignment: .top, spacing: 0) {
                             if isBreak { ImasPartBreakMark() }
-                            Text(cell.text)
-                                .imasText(.body, color: inActive ? DS.ink : DS.ink3)
-                                .underline(cell.scalarStart == partCursor, color: DS.ink)
+                            VStack(spacing: 0) {
+                                Text(cell.text)
+                                    .imasText(.body, color: inActive ? DS.ink : DS.ink3)
+                                    .underline(cell.scalarStart == partCursor, color: DS.ink)
+                                // 歌う人の色の線 (閲覧と同じく字の下に)。
+                                ImasPartLines(colors: cast.colors(who))
+                            }
                         }
                     }
                     .buttonStyle(.plain)
@@ -306,11 +313,12 @@ struct LyricTimingEditorView: View {
 
     /// 段の中の歌詞 1 行 (振り仮名は親字の上に)。
     @ViewBuilder
-    private func laneText(_ text: String, isCurrent: Bool) -> some View {
+    private func laneText(_ text: String, isCurrent: Bool, parts: [ImasRubyText.PartMark] = []) -> some View {
         let color = isCurrent ? DS.ink : DS.ink3
         Group {
-            if ImasRubyText.hasRuby(text) {
-                ImasRubyLabel(attributed: ImasRubyText.attributed(text, font: Font.imasScaledUIFont(17), color: UIColor(color)))
+            if ImasRubyText.hasRuby(text) || !parts.isEmpty {
+                ImasRubyLabel(attributed: ImasRubyText.attributed(text, font: Font.imasScaledUIFont(17), color: UIColor(color),
+                                                                  parts: parts))
             } else {
                 Text(text).imasText(.body, color: color).fixedSize(horizontal: false, vertical: true)
             }

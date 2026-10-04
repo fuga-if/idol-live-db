@@ -338,16 +338,15 @@ struct SongLyricsTab: View {
             HStack(alignment: .top, spacing: DS.sp2) {
                 CallGuideClapGlyph(clap: line.clap)
                     .padding(.top, 4)
-                if !line.allSingers.isEmpty {
-                    ImasPartStripe(colors: partCast.colors(line.allSingers))
-                }
                 VStack(alignment: .leading, spacing: 0) {
                     // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
-                    if ImasRubyText.hasRuby(line.text) {
-                        // 振り仮名は親字の上に乗せる (Text では組めないので UILabel)。
+                    // 歌う人は字の下に担当色の線で引く (どこから歌う人が変わるかが字の上で分かる)。
+                    let parts = partCast.marks(line, scheme: scheme)
+                    if ImasRubyText.hasRuby(line.text) || !parts.isEmpty {
+                        // 振り仮名・色の線は Text では組めないので CoreText で描く。
                         ImasRubyLabel(attributed: CallGuideText.rubyAttributed(
                             line.text, highlights: highlights(for: line),
-                            font: Font.imasScaledUIFont(17), color: UIColor(DS.ink)))
+                            font: Font.imasScaledUIFont(17), color: UIColor(DS.ink), parts: parts))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
                         Text(CallGuideText.attributed(line.text, highlights: highlights(for: line)))
@@ -785,16 +784,24 @@ struct SongLyricsTab: View {
                 Button {
                     togglePart(line.id)
                 } label: {
-                    HStack(alignment: .top, spacing: DS.sp2) {
-                        ImasPartStripe(colors: partCast.colors(singers))
-                        VStack(alignment: .leading, spacing: DS.sp1) {
-                            // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
+                    // 行の途中の区切りはそのまま、行の頭の歌う人だけ塗り替える。
+                    let drafted = LyricLine(id: line.id, ord: line.ord, kind: line.kind, text: line.text,
+                                            section: line.section, startMs: line.startMs, calls: [],
+                                            singers: singers, partBreaks: line.partBreaks)
+                    let parts = partCast.marks(drafted, scheme: scheme)
+                    VStack(alignment: .leading, spacing: DS.sp1) {
+                        // ⚠️ ここにも `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
+                        if ImasRubyText.hasRuby(line.text) || !parts.isEmpty {
+                            ImasRubyLabel(attributed: ImasRubyText.attributed(
+                                line.text, font: Font.imasScaledUIFont(17), color: UIColor(DS.ink), parts: parts))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
                             Text(line.text)
                                 .imasText(.body)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            ImasPartNames(names: partCast.names(singers))
                         }
+                        ImasPartNames(groups: partCast.groups(drafted))
                     }
                     .padding(.vertical, DS.sp2)
                     .contentShape(Rectangle())

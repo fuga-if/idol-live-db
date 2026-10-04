@@ -101,13 +101,15 @@ enum CallGuideText {
     }
 
     /// 振り仮名のある行 (UILabel で描く)。アンカーの敷き方は `attributed` と同じ。
-    static func rubyAttributed(_ text: String, highlights: [Highlight], font: UIFont, color: UIColor) -> NSAttributedString {
+    static func rubyAttributed(_ text: String, highlights: [Highlight], font: UIFont, color: UIColor,
+                               parts: [ImasRubyText.PartMark] = []) -> NSAttributedString {
         let owner = owners(count: text.unicodeScalars.count, highlights: highlights)
         let bold = Font.imasScaledUIFont(17, weight: .bold)
         let asideBold = Font.imasScaledUIFont(13, weight: .bold)
         let aside = ImasRubyText.asides(text)
         return ImasRubyText.attributed(text, font: font, color: color, lineSpacing: 5,
-                                       asideFont: Font.imasScaledUIFont(13), asideColor: UIColor(DS.ink2)) { k in
+                                       asideFont: Font.imasScaledUIFont(13), asideColor: UIColor(DS.ink2),
+                                       parts: parts) { k in
             guard let index = owner[k] else { return [:] }
             let highlight = highlights[index]
             var attrs: [NSAttributedString.Key: Any] = [
