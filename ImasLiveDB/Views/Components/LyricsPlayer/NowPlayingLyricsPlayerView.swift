@@ -53,6 +53,7 @@ struct NowPlayingLyricsPlayerView: View {
                 }
                 .disabled(!player.canSkipToNext)
             }
+            UpNextRow()
         }
         .padding(DS.sp5)
         .background(DS.bg)

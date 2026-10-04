@@ -42,6 +42,20 @@ final class MusicKitService {
     @ObservationIgnored private var songIdByMusicKitId: [MusicItemID: String] = [:]
     @ObservationIgnored private var playerObservers: Set<AnyCancellable> = []
 
+    /// 積んだ曲を流し終えそうになったら「次はこれ」を足して流し続けるか (端末の設定。既定は続ける)。
+    var autoplayNext: Bool = UserDefaults.standard.object(forKey: MusicKitService.autoplayKey) as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(autoplayNext, forKey: Self.autoplayKey)
+            if autoplayNext { appendNextIfNeeded() }
+        }
+    }
+    private static let autoplayKey = "music.autoplay_next"
+    /// 「次はこれ」で足した曲の理由 (songs.id → 「同じ公演で 12 回」など)。
+    private(set) var recommendedLabels: [String: String] = [:]
+    /// この再生で流した曲 (同じ曲に戻らないよう「次はこれ」から外す)。
+    @ObservationIgnored private var playedSongIds: [String] = []
+    @ObservationIgnored private var isAppendingNext = false
+
     /// この曲が今このアプリで鳴っているか。
     ///
     /// 「`isPlaying` かつ id 一致」という同じ式が 5 画面に写経されていて、
@@ -246,7 +260,10 @@ final class MusicKitService {
                 self.isPlaying = true
                 self.isFullPlayback = true
                 self.nowPlayingSongId = songIds[start]
+                self.recommendedLabels = [:]
+                self.playedSongIds = [songIds[start]]
                 self.observePlayer()
+                self.appendNextIfNeeded()
             }
         } catch {
             Logger.musickit.error("playback_failed: \(error.localizedDescription)")
@@ -259,6 +276,44 @@ final class MusicKitService {
         return playQueueNextIndex(index: UInt32(queueIndex), len: UInt32(queueSongIds.count)) != nil
     }
     var hasQueue: Bool { isFullPlayback && queueSongIds.count > 1 }
+
+    /// 次に流れる曲と、「次はこれ」で足した曲ならその理由。
+    var upNext: (songId: String, label: String?)? {
+        guard isFullPlayback, let queueIndex, queueIndex + 1 < queueSongIds.count else { return nil }
+        let id = queueSongIds[queueIndex + 1]
+        return (id, recommendedLabels[id])
+    }
+
+    /// 今の曲が積んだ最後の曲なら、「次はこれ」を 1 曲足す (選び方はコア)。
+    /// 足すのは最後の曲に来たときだけなので、積んでいくのは常に 1 曲先まで。
+    private func appendNextIfNeeded() {
+        guard autoplayNext, isFullPlayback, !isAppendingNext, let current = nowPlayingSongId,
+              let queueIndex, queueIndex == queueSongIds.count - 1 else { return }
+        isAppendingNext = true
+        let exclude = Array((playedSongIds + queueSongIds).suffix(300))
+        Task { @MainActor in
+            defer { isAppendingNext = false }
+            let picks = (try? await AppContainer.shared.nextSongRecommending
+                .nextSongs(after: current, exclude: exclude, limit: 5)) ?? []
+            for pick in picks {
+                guard let appleMusicId = pick.song.appleMusicId, !appleMusicId.isEmpty else { continue }
+                let request = MusicCatalogResourceRequest<MusicKit.Song>(matching: \.id, equalTo: MusicItemID(appleMusicId))
+                guard let song = try? await request.response().items.first else { continue }
+                // 待っている間に止めた・別の曲を鳴らし直したなら足さない。
+                guard isFullPlayback, nowPlayingSongId == current, queueSongIds.last == current else { return }
+                do {
+                    try await ApplicationMusicPlayer.shared.queue.insert(song, position: .tail)
+                } catch {
+                    Logger.musickit.error("autoplay_insert_failed: \(error.localizedDescription)")
+                    return
+                }
+                queueSongIds.append(pick.song.id)
+                songIdByMusicKitId[song.id] = pick.song.id
+                recommendedLabels[pick.song.id] = pick.label
+                return
+            }
+        }
+    }
 
     /// 次の曲へ。
     func skipToNext() {
@@ -298,6 +353,8 @@ final class MusicKitService {
            let songId = songIdByMusicKitId[song.id], songId != nowPlayingSongId {
             nowPlayingSongId = songId
             queueIndex = queueSongIds.firstIndex(of: songId)
+            playedSongIds.append(songId)
+            appendNextIfNeeded()
         }
         let playing = player.state.playbackStatus == .playing
         if playing != isPlaying { isPlaying = playing }
@@ -380,6 +437,8 @@ final class MusicKitService {
         queueSongIds = []
         queueIndex = nil
         songIdByMusicKitId = [:]
+        recommendedLabels = [:]
+        playedSongIds = []
     }
 
     // MARK: - Search

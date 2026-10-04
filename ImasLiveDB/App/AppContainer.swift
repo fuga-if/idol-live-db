@@ -52,6 +52,7 @@ final class AppContainer: Sendable {
 
     /// 披露実績の集計 (共起曲 / 歌唱者) 読み取りの実装。
     let performanceEvidenceReading: any PerformanceEvidenceReading
+    let nextSongRecommending: any NextSongRecommending
 
     /// セトリの機械予測の読み取りの実装。
     let setlistForecastReading: any SetlistForecastReading
@@ -74,6 +75,7 @@ final class AppContainer: Sendable {
         timelineReading = CoreTimelineRepository(snapshot: snapshot)
         globalSearchReading = CoreGlobalSearchRepository(snapshot: snapshot)
         performanceEvidenceReading = CorePerformanceEvidenceRepository(snapshot: snapshot)
+        nextSongRecommending = CoreNextSongRepository(snapshot: snapshot)
         setlistForecastReading = CoreSetlistForecastRepository(snapshot: snapshot)
         setlistQuizReading = CoreSetlistQuizRepository(snapshot: snapshot)
         editFeedReading = GRDBEditFeedRepository(database: .shared, snapshot: snapshot)

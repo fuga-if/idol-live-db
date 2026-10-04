@@ -356,7 +356,7 @@ struct CoreSongRepository: SongReading {
     }
 
     /// 変換規則は `CoreRecordMapping` が正 (他スライスのアダプタと共有する)。
-    private static func song(from record: SongDetailRecord) -> Song {
+    static func song(from record: SongDetailRecord) -> Song {
         CoreRecordMapping.song(from: record)
     }
 

@@ -232,6 +232,7 @@ struct LyricsPlayerView: View {
                     .disabled(!playback.canSkipNext)
                 }
             }
+            if playback.isFullLoaded { UpNextRow() }
         }
     }
 
