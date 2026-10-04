@@ -31,6 +31,9 @@ use crate::domain::quiz_generation::QuizGrade;
 /// Universal Links を受ける imas-live-api worker のベース URL。
 const UNIVERSAL_LINK_BASE: &str = "https://imas-live-api.tokata3011.workers.dev";
 
+/// Web 出面 (静的サイト) の正規ホスト。Web エクスポータの `SITE_ORIGIN` もここを指す。
+pub const WEB_ORIGIN: &str = "https://idollivedb.fugaapp.site";
+
 /// アプリ共通のハッシュタグ。文面ごとに書き分けると片方だけ変わるので 1 か所に置く。
 pub const HASHTAG: &str = "#アイドルライブDB";
 

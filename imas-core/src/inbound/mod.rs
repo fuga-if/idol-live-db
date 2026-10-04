@@ -83,3 +83,4 @@ pub mod gallery_manifest;
 pub mod pending_favorites;
 pub mod sort_maker;
 pub mod tier_list;
+pub mod on_this_day;

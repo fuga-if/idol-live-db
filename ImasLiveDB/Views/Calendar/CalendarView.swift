@@ -32,6 +32,8 @@ struct CalendarView: View {
     /// 「今日の1曲」シート。ゲームからスケジュールタブへ導線を移設。
     @State private var showDailySong = false
     @State private var daySheet: DaySheet?
+    /// 「今日は何の日？」シート。選択日の見出しから開く。
+    @State private var onThisDayDate: OnThisDayDate?
     /// マイ予定の簡易詳細シート (DetailDestination を持たないため別経路で表示)
     @State private var personalDetail: PersonalCalendarEvent?
     @State private var isLoading = false
@@ -163,6 +165,10 @@ struct CalendarView: View {
                 )
                 .environment(database)
                 .presentationDetents([.medium, .large])
+            }
+            .sheet(item: $onThisDayDate) { item in
+                OnThisDaySheet(date: item.date)
+                    .environment(database)
             }
             // マイ予定の簡易詳細 (表示のみ・編集不可)
             .sheet(item: $personalDetail) { event in
@@ -372,7 +378,17 @@ struct CalendarView: View {
         let dateText = selectedDate.formatted(.dateTime.month().day().weekday(.short))
         let suffix = isToday ? " ・ 今日" : ""
         let countText = "\(selectedDayEntries.count)件"
-        return ImasSectionHeader(title: "\(dateText)\(suffix) ・ \(countText)", tight: true)
+        // 「何の日？」は選んだ日と同じ月日の過去の記念日・ライブ・リリース (既定の選択日は今日)。
+        return ImasSectionHeader(
+            "\(dateText)\(suffix) ・ \(countText)",
+            style: .small,
+            actionTitle: "何の日？",
+            actionSystemImage: "clock.arrow.circlepath",
+            onAction: {
+                AppAnalytics.tap("calendar.on_this_day")
+                onThisDayDate = OnThisDayDate(date: selectedDate)
+            }
+        )
     }
 
     // MARK: - 選択日のリスト（内部スクロールのみ）
@@ -523,6 +539,12 @@ struct CalendarView: View {
 
 /// 日詳細シートのプレゼン用ラッパー (Date を Identifiable にする)。
 private struct DaySheet: Identifiable {
+    let date: Date
+    var id: Date { date }
+}
+
+/// 「何の日」シートのプレゼン用ラッパー。
+private struct OnThisDayDate: Identifiable {
     let date: Date
     var id: Date { date }
 }

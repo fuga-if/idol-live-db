@@ -14,7 +14,7 @@ use crate::domain::vocabulary;
 /// `astro.config.mjs` の `site`、`robots.txt` の `Sitemap:`、
 /// `imas-live-api/wrangler.jsonc` の `ALLOWED_ORIGINS`、`web/wrangler.jsonc` の `routes`、
 /// `web/tests/no-api-exposure.test.ts` の `ALLOWED_HOSTS`。
-pub const SITE_ORIGIN: &str = "https://idollivedb.fugaapp.site";
+pub const SITE_ORIGIN: &str = crate::domain::share_text::WEB_ORIGIN;
 
 pub const SITE_NAME: &str = "アイドルライブDB";
 /// トップの大見出し。1 要素 = 1 行 (広い画面での改行位置)。

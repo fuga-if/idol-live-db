@@ -37,6 +37,21 @@ struct CoreCalendarRepository: CalendarReading {
         }
     }
 
+    func onThisDay(_ date: Date) async throws -> OnThisDayDigest {
+        try await snapshot.withStore { store in
+            let day = try store.onThisDay(day: Self.dayFormatter.string(from: date))
+            let songIds = day.releases.flatMap(\.songIds)
+            let idolIds = day.birthdays.map(\.idolId)
+            let songs = songIds.isEmpty ? [] : try CoreRecordMapping.songs(store: store, orderedIds: songIds)
+            let idols = idolIds.isEmpty ? [] : try CoreRecordMapping.idols(store: store, orderedIds: idolIds)
+            return OnThisDayDigest(
+                day: day,
+                songs: Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }),
+                idols: Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            )
+        }
+    }
+
     // MARK: - 1 レコードの実体化
 
     private func entry(

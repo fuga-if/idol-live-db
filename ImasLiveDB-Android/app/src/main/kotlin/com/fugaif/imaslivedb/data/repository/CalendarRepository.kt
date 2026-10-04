@@ -18,6 +18,7 @@ import com.fugaif.imaslivedb.data.model.TicketDateKind
 import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import uniffi.imas_core.CalendarEntryRecord
 import uniffi.imas_core.CalendarTicketKind
+import uniffi.imas_core.OnThisDay
 import java.time.LocalDate
 
 /**
@@ -50,6 +51,22 @@ class CalendarRepository(
     suspend fun fetchRange(start: LocalDate, end: LocalDate): CalendarMonthData {
         val records = snapshots.query { store -> store.calendarEntries(start.toString(), end.toString()) }
         return CalendarMonthData(hydrate(records), showDetails(records))
+    }
+
+    /**
+     * [date] と同じ月日の、過去の記念日・ライブ・リリースと誕生日 (「今日は何の日？」)。
+     * 何を拾うか・何年前か・共有文はコア。ここは行に出す曲とアイドルを実体にするだけ
+     * (iOS `CoreCalendarRepository.onThisDay` と同じ分担)。
+     */
+    suspend fun onThisDay(date: LocalDate): OnThisDayDigest {
+        val day = snapshots.query { store -> store.onThisDay(date.toString()) }
+        val songIds = day.releases.flatMap { it.songIds }
+        val idolIds = day.birthdays.map { it.idolId }
+        val songs = if (songIds.isEmpty()) emptyMap() else
+            hydrateInOrder(songIds, Song::id) { db.songDao().fetchSongsByIds(it) }.associateBy { it.id }
+        val idols = if (idolIds.isEmpty()) emptyMap() else
+            hydrateInOrder(idolIds, Idol::id) { db.idolDao().fetchIdolsByIds(it) }.associateBy { it.id }
+        return OnThisDayDigest(day, songs, idols)
     }
 
     /** コアの公演射影から、行に載らない列だけを show_id 引きのマップに落とす。 */
@@ -210,4 +227,11 @@ data class CalendarShowDetail(
     val venue: String?,
     /** ブランドカラー hex。コアが JOIN 済みの値をそのまま運ぶ。 */
     val brandColor: String?
+)
+
+/** 「今日は何の日？」の中身と、行に出す曲 (id → 曲)・誕生日のアイドル (id → アイドル)。 */
+data class OnThisDayDigest(
+    val day: OnThisDay,
+    val songs: Map<String, Song>,
+    val idols: Map<String, Idol>
 )

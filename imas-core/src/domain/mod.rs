@@ -100,6 +100,7 @@ pub mod relative_time;
 pub mod auth_rules;
 pub mod app_navigation;
 pub mod share_text;
+pub mod on_this_day;
 pub mod sync_decisions;
 pub mod screen_composition;
 

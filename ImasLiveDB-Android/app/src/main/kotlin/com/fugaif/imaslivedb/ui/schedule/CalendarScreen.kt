@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.components.AttendanceSwipeRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
@@ -90,6 +94,8 @@ fun CalendarScreen(
 
     // 日詳細シートの対象日 (null = 非表示)。
     var daySheetDate by remember { mutableStateOf<LocalDate?>(null) }
+    // 「今日は何の日？」シートの対象日 (null = 非表示)。選択日の見出しから開く。
+    var onThisDayDate by remember { mutableStateOf<LocalDate?>(null) }
 
     Scaffold(
         topBar = {
@@ -129,6 +135,7 @@ fun CalendarScreen(
                     selectedDate = selectedDate,
                     onSelectDate = { viewModel.selectDate(it) },
                     onShowDay = { daySheetDate = it },
+                    onShowOnThisDay = { onThisDayDate = it },
                     onMonthDelta = { viewModel.goToMonth(it) },
                     onNavigateToShow = onNavigateToShow,
                     onNavigateToSong = onNavigateToSong,
@@ -138,6 +145,16 @@ fun CalendarScreen(
                 )
             }
         }
+    }
+
+    onThisDayDate?.let { date ->
+        OnThisDaySheet(
+            initialDate = date,
+            onDismiss = { onThisDayDate = null },
+            onNavigateToSong = { onThisDayDate = null; onNavigateToSong(it) },
+            onNavigateToIdol = { onThisDayDate = null; onNavigateToIdol(it) },
+            onNavigateToEvent = { onThisDayDate = null; onNavigateToEvent(it) }
+        )
     }
 
     daySheetDate?.let { date ->
@@ -241,6 +258,7 @@ private fun MonthPane(
     selectedDate: LocalDate?,
     onSelectDate: (LocalDate) -> Unit,
     onShowDay: (LocalDate) -> Unit,
+    onShowOnThisDay: (LocalDate) -> Unit,
     onMonthDelta: (Long) -> Unit,
     onNavigateToShow: (String) -> Unit,
     onNavigateToSong: (String) -> Unit,
@@ -261,7 +279,12 @@ private fun MonthPane(
 
             val entries = selectedDate?.let { state.entriesOn(it) } ?: emptyList()
             if (selectedDate != null) {
-                DaySectionHeader(selectedDate, entries.size) { onShowDay(selectedDate) }
+                DaySectionHeader(
+                    selectedDate,
+                    entries.size,
+                    onOpenSheet = { onShowDay(selectedDate) },
+                    onOnThisDay = { onShowOnThisDay(selectedDate) }
+                )
             }
             LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(bottom = 16.dp)) {
                 items(entries) { entry ->
@@ -303,9 +326,27 @@ private fun MonthPane(
     }
 }
 
-/** 選択日の小見出し。タップで日詳細シート (種別サマリと直行ボタン) を開く (DS §5.10 `ImasNavRow`)。 */
+/**
+ * 選択日の小見出し。タップで日詳細シート (種別サマリと直行ボタン) を開く (DS §5.10 `ImasNavRow`)。
+ * 右に「何の日？」(選んだ日と同じ月日の過去の記念日・ライブ・リリース。iOS の見出しの文脈アクションと同じ)。
+ */
 @Composable
-private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Unit) {
+private fun DaySectionHeader(date: LocalDate, count: Int, onOpenSheet: () -> Unit, onOnThisDay: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { DayNavRow(date, count, onOpenSheet) }
+        ImasButton(
+            title = "何の日？",
+            onClick = onOnThisDay,
+            modifier = Modifier.padding(end = DS.Space.gap),
+            icon = Icons.Filled.History,
+            role = ImasButtonRole.PLAIN,
+            size = ImasButtonSize.SMALL
+        )
+    }
+}
+
+@Composable
+private fun DayNavRow(date: LocalDate, count: Int, onOpenSheet: () -> Unit) {
     ImasNavRow(
         title = "${date.monthValue}月${date.dayOfMonth}日",
         value = if (count > 0) "$count 件" else null,
