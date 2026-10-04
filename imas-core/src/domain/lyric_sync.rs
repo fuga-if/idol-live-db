@@ -291,9 +291,21 @@ pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, bucke
     LyricLikeHeat { levels: smoothed.iter().map(|v| v / max).collect(), peak_ms }
 }
 
+/// パート分け (誰が歌うか) を付ける曲か。原唱者が 2 人以上のときだけ (ソロ曲は 1 人なので要らない)。
+pub fn parts_applicable(original_artist_count: u32) -> bool {
+    original_artist_count >= 2
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parts_only_for_songs_with_two_or_more_singers() {
+        assert!(!parts_applicable(0));
+        assert!(!parts_applicable(1));
+        assert!(parts_applicable(2));
+    }
 
     #[test]
     fn active_line_picks_latest_start_not_after_position() {

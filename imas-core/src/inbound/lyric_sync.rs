@@ -80,3 +80,9 @@ pub fn lyric_active_overlay(starts: Vec<Option<i64>>, position_ms: i64) -> Optio
 pub fn lyric_overlay_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<LyricSpan> {
     d::overlay_spans(&starts, duration_ms)
 }
+
+/// パート分けを付ける曲か (原唱者が 2 人以上)。ソロ曲では入口も帯も出さない。
+#[uniffi::export]
+pub fn lyric_parts_applicable(original_artist_count: u32) -> bool {
+    d::parts_applicable(original_artist_count)
+}
