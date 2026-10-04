@@ -543,7 +543,9 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                         color = DS.ink
                     )
                     ImasPartNames(names = cast.names(line.singers))
-                    if (line.calls.isNotEmpty()) ImasCallRows(calls = line.calls, anchorIndexes = anchorIndexesFor(line))
+                    // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
+                    val listed = line.calls.filter { !it.echoesLyric }
+                    if (listed.isNotEmpty()) ImasCallRows(calls = listed, anchorIndexes = anchorIndexesFor(line))
                 }
                 if (isLiked) ImasLyricLikeMark(seed = null, modifier = Modifier.padding(top = DS.sp1))
             }
@@ -690,7 +692,14 @@ private fun highlightsFor(line: LyricLine, accent: Color): List<LyricHighlight> 
             strongest[key] = call
         }
     }
-    return order.mapNotNull { key -> strongest[key]?.let { LyricHighlight(it.start, it.end, it.emphasis.lyricColor(accent)) } }
+    return order.mapNotNull { key ->
+        strongest[key]?.let {
+            LyricHighlight(
+                it.start, it.end, it.emphasis.lyricColor(accent),
+                isEcho = line.calls.any { c -> c.start == it.start && c.end == it.end && c.echoesLyric }
+            )
+        }
+    }
 }
 
 private fun rank(emphasis: CallEmphasis): Int = when (emphasis) {
@@ -707,7 +716,8 @@ private fun anchorIndexesFor(line: LyricLine): Map<String, Int>? {
     val groups = mutableMapOf<String, Int>()
     val result = mutableMapOf<String, Int>()
     var order = 0
-    for (call in line.calls.filter { it.hasAnchor }) {
+    // 行に並べない (歌詞と同じ文字の同時) コールは番号を振る数に入れない。
+    for (call in line.calls.filter { it.hasAnchor && !it.echoesLyric }) {
         val key = "${call.start}-${call.end}"
         if (groups[key] == null) { groups[key] = order; order++ }
         result[call.id] = groups[key]!!
@@ -715,7 +725,7 @@ private fun anchorIndexesFor(line: LyricLine): Map<String, Int>? {
     return if (order > 1) result else null
 }
 
-private data class LyricHighlight(val start: Int, val end: Int, val color: Color)
+private data class LyricHighlight(val start: Int, val end: Int, val color: Color, val isEcho: Boolean = false)
 
 /**
  * アンカー範囲に色を敷いた行を組み立てる (iOS `CallGuideText.attributed`)。
@@ -733,7 +743,14 @@ private fun highlightedLyricText(text: String, highlights: List<LyricHighlight>)
             val e = minOf(h.end, totalScalars)
             if (s >= e) continue
             if (s > cursor) append(text.substring(codePointToCharIndex(text, cursor), codePointToCharIndex(text, s)))
-            withStyle(SpanStyle(background = h.color.copy(alpha = 0.18f), textDecoration = TextDecoration.Underline)) {
+            // 同時コールの「一緒に」範囲は、歌詞と同じ文字を 2 回出さない代わりにここを濃く太字にする。
+            withStyle(
+                SpanStyle(
+                    background = h.color.copy(alpha = if (h.isEcho) 0.32f else 0.18f),
+                    fontWeight = if (h.isEcho) FontWeight.Bold else null,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
                 append(text.substring(codePointToCharIndex(text, s), codePointToCharIndex(text, e)))
             }
             cursor = e

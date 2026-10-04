@@ -383,8 +383,10 @@ private fun LyricsPlayerRow(
                 }
             }
             ImasPartNames(names = cast.names(line.singers))
-            if (line.calls.isNotEmpty()) {
-                ImasCallRows(calls = line.calls, anchorIndexes = null)
+            // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
+            val listed = line.calls.filter { !it.echoesLyric }
+            if (listed.isNotEmpty()) {
+                ImasCallRows(calls = listed, anchorIndexes = null)
             }
         }
     }
@@ -408,11 +410,15 @@ private fun CallLane(
         Box(Modifier.weight(1f)) {
             when {
                 // 今出すコールは普段の再生でも読めるよう大きく出す (iOS `imasHeading(30)` と対)。
+                // 歌詞と同じ文字の同時コールは、文字を繰り返さず「一緒に」とだけ出す。
                 current != null -> ImasText(
-                    allCalls[current].text, ImasTextRole.HERO_TITLE,
+                    if (allCalls[current].echoesLyric) "一緒に" else allCalls[current].text, ImasTextRole.HERO_TITLE,
                     color = allCalls[current].emphasis.lyricColor(theme.accent), maxLines = 1
                 )
-                next != null -> ImasText("次 " + allCalls[next].text, ImasTextRole.ROW_LABEL, color = DS.ink3, maxLines = 1)
+                next != null -> ImasText(
+                    "次 " + (if (allCalls[next].echoesLyric) "一緒に" else allCalls[next].text),
+                    ImasTextRole.ROW_LABEL, color = DS.ink3, maxLines = 1
+                )
                 else -> ImasText("—", ImasTextRole.ROW_LABEL, color = DS.ink3)
             }
         }

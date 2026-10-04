@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.lyrics
 
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.imas_core.lyricCallEchoesLyric
 
 // =============================================================================
 // 歌詞モデル (メモリ専用)。iOS の Models/Lyrics.swift と 1:1。
@@ -71,6 +72,11 @@ data class LyricCall(
     /** 歌詞の一部に掛かる (範囲を持つ) コールか。false は行末の追っかけ (幅ゼロ)。 */
     val hasAnchor: Boolean get() = end > start
     val isOverlapping: Boolean get() = timing == CallTiming.OVER && hasAnchor
+
+    /** 「同時」で、掛かっている歌詞と同じ文字のコール (一緒に歌う・叫ぶだけ)。
+     * 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。 */
+    val echoesLyric: Boolean
+        get() = hasAnchor && lyricCallEchoesLyric(anchorText, text, timing.raw)
 
     companion object {
         fun parse(o: JSONObject) = LyricCall(
