@@ -179,8 +179,9 @@ struct LyricsPlayerView: View {
                 }
             }
             ImasPartNames(names: cast.names(line.singers))
-            if !line.calls.isEmpty {
-                CallGuideCallRows(calls: line.calls, anchorIndexes: nil)
+            let listed = line.calls.filter { !$0.echoesLyric }
+            if !listed.isEmpty {
+                CallGuideCallRows(calls: listed, anchorIndexes: nil)
             }
         }
     }
@@ -266,13 +267,14 @@ struct LyricsPlayerView: View {
                     .foregroundStyle(current != nil ? theme.accent : DS.ink3)
                     .accessibilityHidden(true)
                 if let current, current < calls.count {
-                    Text(calls[current].text)
+                    // 歌詞と同じ文字の同時コールは、文字を繰り返さず「一緒に」とだけ出す。
+                    Text(calls[current].echoesLyric ? "一緒に" : calls[current].text)
                         .font(.imasHeading(30, weight: .heavy))
                         .foregroundStyle(calls[current].emphasis.color(accent: theme.accent))
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 } else if let next {
-                    Text("次 " + calls[next].text)
+                    Text("次 " + (calls[next].echoesLyric ? "一緒に" : calls[next].text))
                         .imasText(.rowLabel, color: DS.ink3)
                         .lineLimit(1)
                 } else {

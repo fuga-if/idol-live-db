@@ -208,7 +208,7 @@ struct FakeLyricsReading: LyricsReading {
                 calls = [
                     call("c_2a", in: text, 0..<3, "(Fuu--!)"),
                     call("c_2b", in: text, 0..<3, "(Hi! Hi!)", .optional),
-                    call("c_2c", in: text, 7..<13, "（サンプル行です）", .normal, timing: .over),
+                    call("c_2c", in: text, 6..<13, "（サンプル行です）", .normal, timing: .over),
                     trailing("c_2d", in: text, "(Hi!) × 4"),
                 ]
             case 3:

@@ -172,6 +172,12 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
     /// 行そのものが消えた場合にコールごと落ちるのは範囲付きと同じ。
     var isStale: Bool { stale == true && hasAnchor }
 
+    /// 「同時」で、掛かっている歌詞と同じ文字のコール (一緒に歌う・叫ぶだけ)。
+    /// 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。
+    var echoesLyric: Bool {
+        hasAnchor && lyricCallEchoesLyric(anchorText: anchorText, callText: text, timing: timing.rawValue)
+    }
+
     /// 歌詞の一部に掛かる (範囲を持つ) コールか。
     ///
     /// false = 幅ゼロ。`start == end == 行の文字数` なら**行末の追っかけコール**

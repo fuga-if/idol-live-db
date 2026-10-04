@@ -103,7 +103,9 @@ final class LyricsLiveActivityController {
         let singers = current?.singers ?? []
         let calls = lines.flatMap(\.calls)
         let call = player.fullPlaybackPositionMs.flatMap {
-            lyricActiveCall(starts: calls.map { $0.startMs.map(Int64.init) }, positionMs: Int64($0)).map { calls[Int($0)].text }
+            lyricActiveCall(starts: calls.map { $0.startMs.map(Int64.init) }, positionMs: Int64($0)).map {
+                calls[Int($0)].echoesLyric ? "一緒に" : calls[Int($0)].text
+            }
         }
         return .init(line: current.map(mainText), nextLine: next.map(mainText),
                      singerColors: entry.cast.colors(singers), singerNames: entry.cast.names(singers),

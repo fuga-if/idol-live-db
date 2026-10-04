@@ -333,8 +333,10 @@ struct SongLyricsTab: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ImasPartNames(names: partCast.names(line.singers))
-                    if !line.calls.isEmpty {
-                        CallGuideCallRows(calls: line.calls, anchorIndexes: anchorIndexes(for: line))
+                    // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
+                    let listed = line.calls.filter { !$0.echoesLyric }
+                    if !listed.isEmpty {
+                        CallGuideCallRows(calls: listed, anchorIndexes: anchorIndexes(for: line))
                     }
                 }
                 if isLiked {
@@ -939,9 +941,12 @@ struct SongLyricsTab: View {
             if rank(call.emphasis) > rank(current.emphasis) { strongest[key] = call }
         }
         var result = order.compactMap { key in
-            strongest[key].map {
-                CallGuideText.Highlight(start: $0.start, end: $0.end,
-                                        color: anchorColor($0.emphasis, theme: theme))
+            strongest[key].map { call in
+                CallGuideText.Highlight(start: call.start, end: call.end,
+                                        color: anchorColor(call.emphasis, theme: theme),
+                                        isEcho: editor == nil && line.calls.contains {
+                                            $0.start == call.start && $0.end == call.end && $0.echoesLyric
+                                        })
             }
         }
         // いま編集中のアンカーを最後に重ねる。シートは `.medium` で開くので歌詞の
@@ -977,7 +982,8 @@ struct SongLyricsTab: View {
         var groups: [String: Int] = [:]
         var result: [String: Int] = [:]
         var order = 0
-        for call in line.calls where call.hasAnchor {
+        // 行に並べない (歌詞と同じ文字の同時) コールは番号を振る数に入れない。
+        for call in line.calls where call.hasAnchor && (editor != nil || !call.echoesLyric) {
             let key = "\(call.start)-\(call.end)"
             if groups[key] == nil {
                 groups[key] = order

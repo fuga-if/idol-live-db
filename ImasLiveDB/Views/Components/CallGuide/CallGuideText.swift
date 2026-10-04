@@ -55,6 +55,8 @@ enum CallGuideText {
         /// いま編集中のアンカーか。確定済みのアンカー (淡く敷く) と見分けるため、
         /// 編集中はもっと濃く出す。同じ濃さだと「どれを今いじっているか」が消える。
         var isPending: Bool = false
+        /// 歌詞と同じ文字の同時コール (一緒に叫ぶところ)。コールの行を出さない代わりに、敷く色を濃くして太字にする。
+        var isEcho: Bool = false
     }
 
     /// アンカー範囲に色を敷いた行を組み立てる。
@@ -79,8 +81,8 @@ enum CallGuideText {
             // (シートの「アンカー」欄) は**そこが主役**なので、はっきり出す。
             // 同じ濃さにすると、行の中のどこに掛かるのかが読み取れない。
             container.swiftUI.backgroundColor =
-                highlight.color.opacity(highlight.isPending ? 0.55 : 0.18)
-            if highlight.isPending { container.swiftUI.font = .imasBody.weight(.bold) }
+                highlight.color.opacity(highlight.isPending ? 0.55 : highlight.isEcho ? 0.32 : 0.18)
+            if highlight.isPending || highlight.isEcho { container.swiftUI.font = .imasBody.weight(.bold) }
             container.swiftUI.underlineStyle = .single
             segment.mergeAttributes(container)
             result += segment
