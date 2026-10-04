@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.ui.theme.BrandColors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import uniffi.imas_core.lyricPartsApplicable
 
 /**
  * いま鳴っている曲の歌詞を、再生中バー (ミニプレイヤー) から引けるように預かる所。iOS `LyricsSession` と対。
@@ -72,10 +73,12 @@ object LyricsSession {
                 !song.unitName.isNullOrEmpty() -> song.unitName
                 else -> null
             }
+            // パート分けはソロ曲 (原唱者 1 人) には出さない (imas-core `lyricPartsApplicable`)。
+            val cast = if (lyricPartsApplicable(artists.size.toUInt())) LyricPartCast(artists) else LyricPartCast.EMPTY
             register(
                 Entry(
                     song = song, seed = seed, artistLine = artistLine, artworkUrl = song.artworkUrl,
-                    lyrics = lyrics, cast = LyricPartCast(artists)
+                    lyrics = lyrics, cast = cast
                 )
             )
         } finally {

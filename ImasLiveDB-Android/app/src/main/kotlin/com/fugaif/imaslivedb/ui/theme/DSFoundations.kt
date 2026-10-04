@@ -357,6 +357,17 @@ class ImasHaptics internal constructor(private val view: View) {
             else HapticFeedbackConstants.VIRTUAL_KEY
         )
     }
+
+    /**
+     * 一番強い手応え (iOS `.impact(weight: .heavy)`)。コールに入った瞬間 (コール練習) 専用。
+     * API 30 以降は確定の手応え、それより前は長押しの手応えで代える。
+     */
+    fun impactHeavy() {
+        view.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM
+            else HapticFeedbackConstants.LONG_PRESS
+        )
+    }
 }
 
 /** 部品の中で触覚を返す口。 */

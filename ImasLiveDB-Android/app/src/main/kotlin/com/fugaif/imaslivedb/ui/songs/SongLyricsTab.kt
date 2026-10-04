@@ -102,6 +102,7 @@ import uniffi.imas_core.lyricActiveLine
 import uniffi.imas_core.lyricChunks
 import uniffi.imas_core.lyricHasTiming
 import uniffi.imas_core.lyricLikeHeat
+import uniffi.imas_core.lyricPartsApplicable
 
 /**
  * 楽曲詳細の歌詞タブ。iOS `SongLyricsTab` の移植 (= 実質コールガイド)。
@@ -155,7 +156,11 @@ fun SongLyricsTab(
 
     val lyrics = (lyricsResult as? LyricsResult.Loaded)?.lyrics
     val playback = module.lyricsPlayback
-    val partCast = remember(originalArtists) { LyricPartCast(originalArtists) }
+    // パート分けは原唱者が 2 人以上の曲だけ (ソロ曲では帯も名前も出さない。imas-core `lyricPartsApplicable`)。
+    val partsApplicable = remember(originalArtists) { lyricPartsApplicable(originalArtists.size.toUInt()) }
+    val partCast = remember(originalArtists, partsApplicable) {
+        if (partsApplicable) LyricPartCast(originalArtists) else LyricPartCast.EMPTY
+    }
 
     fun currentParts(l: Lyrics): Map<String, List<String>> =
         l.lines.filter { it.singers.isNotEmpty() }.associate { it.id to it.singers }
@@ -287,7 +292,7 @@ fun SongLyricsTab(
                 val draft = partsDraft
                 EditBar(
                     canEdit = canEdit, isEditingStructure = isEditingStructure,
-                    hasOriginalArtists = originalArtists.isNotEmpty(),
+                    showsPartsButton = partsApplicable,
                     partsDraft = draft, partsSaving = partsSaving,
                     partsUnchanged = draft != null && draft == currentParts(lyrics),
                     onToggleStructureEdit = { isEditingStructure = !isEditingStructure },
@@ -384,7 +389,7 @@ private fun LyricsCard(title: String, artistLine: String?, content: @Composable 
 private fun EditBar(
     canEdit: Boolean,
     isEditingStructure: Boolean,
-    hasOriginalArtists: Boolean,
+    showsPartsButton: Boolean,
     partsDraft: Map<String, List<String>>?,
     partsSaving: Boolean,
     partsUnchanged: Boolean,
@@ -410,7 +415,7 @@ private fun EditBar(
                 ImasButton(title = "区切りの編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
             }
             else -> {
-                if (hasOriginalArtists) {
+                if (showsPartsButton) {
                     ImasIconButton(icon = Icons.Filled.Group, label = "パート分け", size = ImasIconButtonSize.SMALL, onClick = onBeginParts)
                 }
                 ImasIconButton(icon = Icons.Filled.ContentCut, label = "行の区切りを編集", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)

@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.lyrics
 
+import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -23,10 +24,12 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MobileOff
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -58,6 +61,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasCallRows
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
@@ -74,6 +78,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasTheme
+import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -107,13 +112,26 @@ fun LyricsPlayerScreen(
     onClose: () -> Unit,
     cast: LyricPartCast = LyricPartCast.EMPTY
 ) {
-    val module = AppModule.from(LocalContext.current)
+    val context = LocalContext.current
+    val module = AppModule.from(context)
     val playback = module.lyricsPlayback
     val scope = rememberCoroutineScope()
+    val haptics = rememberImasHaptics()
 
     var positionMs by remember { mutableStateOf<Int?>(null) }
     var activeLineId by remember { mutableStateOf<String?>(null) }
     var activeOverlayId by remember { mutableStateOf<String?>(null) }
+    // いま出しているコールの添字 (曲の順)。変わった瞬間に震わせる (コール練習。iOS `LyricsPlayerView` と対)。
+    var activeCallIndex by remember { mutableStateOf<Int?>(null) }
+    // コールのタイミングで震わせるか。既定オン (iOS `@AppStorage("lyrics.call_haptics")` と同じ鍵)。
+    var callHaptics by remember {
+        mutableStateOf(context.getSharedPreferences(CALL_HAPTICS_PREFS, Context.MODE_PRIVATE).getBoolean(CALL_HAPTICS_KEY, true))
+    }
+    fun toggleCallHaptics() {
+        callHaptics = !callHaptics
+        context.getSharedPreferences(CALL_HAPTICS_PREFS, Context.MODE_PRIVATE).edit()
+            .putBoolean(CALL_HAPTICS_KEY, callHaptics).apply()
+    }
     var startFailed by remember { mutableStateOf(false) }
     var likes by remember { mutableStateOf(setOf<String>()) }
     var showsAddToPlaylist by remember { mutableStateOf(false) }
@@ -148,6 +166,12 @@ fun LyricsPlayerScreen(
                 val overlayIndex = lyricActiveOverlay(overlayStarts, ms.toLong())?.toInt()
                 val overlayId = overlayIndex?.let { lyrics.lines[it].id }
                 if (overlayId != activeOverlayId) activeOverlayId = overlayId
+                // コール練習: 次のコールに入った瞬間だけ震わせる (コールが切れたときは震わせない)。
+                val callIndex = lyricActiveCall(callStarts, ms.toLong())?.toInt()
+                if (callIndex != activeCallIndex) {
+                    activeCallIndex = callIndex
+                    if (callIndex != null && callHaptics && isPlaying) haptics.impactHeavy()
+                }
             }
             delay(150)
         }
@@ -261,7 +285,10 @@ fun LyricsPlayerScreen(
                     .padding(horizontal = DS.sp3, vertical = DS.sp3),
                 verticalArrangement = Arrangement.spacedBy(DS.sp3)
             ) {
-                CallLane(allCalls = allCalls, callStarts = callStarts, positionMs = positionMs ?: 0, seed = seed)
+                CallLane(
+                    allCalls = allCalls, callStarts = callStarts, positionMs = positionMs ?: 0, seed = seed,
+                    callHaptics = callHaptics, onToggleCallHaptics = ::toggleCallHaptics
+                )
                 val counts = lyrics.lines.map { (likeCounts[it.id] ?: it.likeCount).coerceAtLeast(0).toUInt() }
                 val heat = if (hasTiming) lyricLikeHeat(starts, counts, durationMs.toLong(), 60u) else null
                 ImasLikeHeatSeekBar(
@@ -364,17 +391,41 @@ private fun LyricsPlayerRow(
 }
 
 @Composable
-private fun CallLane(allCalls: List<LyricCall>, callStarts: List<Long?>, positionMs: Int, seed: String?) {
+private fun CallLane(
+    allCalls: List<LyricCall>,
+    callStarts: List<Long?>,
+    positionMs: Int,
+    seed: String?,
+    callHaptics: Boolean,
+    onToggleCallHaptics: () -> Unit
+) {
     if (callStarts.none { it != null }) return
     val theme = imasTheme(seed = seed)
     val current = lyricActiveCall(callStarts, positionMs.toLong())?.toInt()
     val next = callStarts.withIndex().filter { (it.value ?: -1L) > positionMs.toLong() }.minByOrNull { it.value ?: 0L }?.index
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.Campaign, contentDescription = null, tint = if (current != null) theme.accent else DS.ink3)
-        when {
-            current != null -> ImasText(allCalls[current].text, ImasTextRole.ROW_TITLE, color = allCalls[current].emphasis.lyricColor(theme.accent), maxLines = 1)
-            next != null -> ImasText("次 " + allCalls[next].text, ImasTextRole.ROW_LABEL, color = DS.ink3, maxLines = 1)
-            else -> ImasText("—", ImasTextRole.ROW_LABEL, color = DS.ink3)
+        Box(Modifier.weight(1f)) {
+            when {
+                // 今出すコールは普段の再生でも読めるよう大きく出す (iOS `imasHeading(30)` と対)。
+                current != null -> ImasText(
+                    allCalls[current].text, ImasTextRole.HERO_TITLE,
+                    color = allCalls[current].emphasis.lyricColor(theme.accent), maxLines = 1
+                )
+                next != null -> ImasText("次 " + allCalls[next].text, ImasTextRole.ROW_LABEL, color = DS.ink3, maxLines = 1)
+                else -> ImasText("—", ImasTextRole.ROW_LABEL, color = DS.ink3)
+            }
         }
+        ImasIconButton(
+            icon = if (callHaptics) Icons.Filled.Vibration else Icons.Filled.MobileOff,
+            label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
+            size = ImasIconButtonSize.SMALL,
+            style = ImasIconButtonStyle.PLAIN,
+            onClick = onToggleCallHaptics
+        )
     }
 }
+
+/** コール練習の震えの設定 (iOS `@AppStorage("lyrics.call_haptics")` と同じ鍵)。 */
+private const val CALL_HAPTICS_PREFS = "imas_settings"
+private const val CALL_HAPTICS_KEY = "lyrics.call_haptics"
