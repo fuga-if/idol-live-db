@@ -12,12 +12,14 @@ import UIKit
 final class ChatGPTPlanSession {
     static let shared = ChatGPTPlanSession()
 
-    /// 試作の導線を出すか。開発ビルドと TestFlight (レシートが sandboxReceipt) だけ。
+    /// 試作の導線を出すか。開発ビルドだけ。
+    /// 審査の端末も TestFlight と同じ sandboxReceipt になるので、レシートでは分けられない
+    /// (TestFlight に出すと審査員にも見える)。
     nonisolated static var isPrototypeVisible: Bool {
         #if DEBUG
         true
         #else
-        Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        false
         #endif
     }
 

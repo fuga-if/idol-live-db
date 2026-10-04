@@ -349,7 +349,7 @@ struct MyPageView: View {
     @ViewBuilder
     private var settingsSection: some View {
         helpSection
-        // 試作。開発ビルドと TestFlight だけに出し、App Store 版には出さない。
+        // 試作。開発ビルドだけに出す (審査の端末も TestFlight と同じレシートなので、配布ビルドには出さない)。
         if ChatGPTPlanSession.isPrototypeVisible {
             chatGPTPlanSection
         }

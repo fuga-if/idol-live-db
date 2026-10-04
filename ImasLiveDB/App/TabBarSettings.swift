@@ -5,7 +5,7 @@ import SwiftUI
 enum TabBarSettings {
     static let storageKey = "tab_bar_order"
 
-    /// AI チャットを出せるビルドか (試作。開発ビルド / TestFlight だけ)。
+    /// AI チャットを出せるビルドか (試作。開発ビルドだけ)。
     @MainActor static var assistantAvailable: Bool { ChatGPTPlanSession.isPrototypeVisible }
 
     static func keys(_ raw: String) -> [String] {
