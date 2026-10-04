@@ -24,4 +24,10 @@ extension View {
         background(DS.surface, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         #endif
     }
+
+    /// OS が描くガラス (タブバーの上の枠など) の中に薄く紙の色を敷く。ガラスだけだと後ろの文字が
+    /// 読めるほど透け、縁に後ろの色がにじむので、透けは枠の手触りだけに留める。
+    func imasGlassPaperFill() -> some View {
+        background(DS.surface.opacity(0.82), in: Capsule())
+    }
 }

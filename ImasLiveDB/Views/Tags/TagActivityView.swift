@@ -88,10 +88,22 @@ struct TagActivityView: View {
         NavigationLink {
             tagDestination(for: trend.domain, tagId: trend.tagId, tagName: trend.tagName)
         } label: {
-            HStack(spacing: DS.Space.gapTight) {
-                ImasRankBadge(rank: rank)
-                ImasRecordRow(
-                    leading: trend.tagColor.map { .custom(AnyView(ImasSwatch(hex: $0.rawValue, size: .dot)), width: 10) } ?? .none,
+            // 順位と色の点は行の頭にまとめて置く (行の外に出すとカードの縁に食い込む)。
+            // 色の無いタグでも点の幅は空けて、タグ名の頭を全行でそろえる。
+            ImasRecordRow(
+                    leading: .custom(AnyView(
+                        HStack(spacing: DS.sp2) {
+                            ImasRankBadge(rank: rank)
+                            Group {
+                                if let color = trend.tagColor {
+                                    ImasSwatch(hex: color.rawValue, size: .dot)
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                            .frame(width: 10)
+                        }
+                    ), width: 26 + DS.sp2 + 10),
                     title: trend.tagName,
                     trailing: .custom(AnyView(
                         HStack(spacing: DS.Space.gap) {
@@ -103,7 +115,6 @@ struct TagActivityView: View {
                         }
                     ))
                 )
-            }
         }
         .buttonStyle(.plain)
     }

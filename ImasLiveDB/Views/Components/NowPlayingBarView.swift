@@ -293,6 +293,7 @@ private struct NowPlayingAccessoryContent: View {
     var body: some View {
         NowPlayingBarView(placement: .accessory)
             .environment(\.nowPlayingIsInline, accessoryPlacement == .inline)
+            .imasGlassPaperFill()
     }
 }
 #endif

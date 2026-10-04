@@ -147,7 +147,10 @@ struct TagRowView: View {
             ImasRow(
                 title: tag.name,
                 subtitle: tag.description.flatMap { $0.isEmpty ? nil : String($0.prefix(40)) },
-                leading: tag.color.map { .custom(AnyView(ImasSwatch(hex: $0.rawValue, size: .small)), width: 16) } ?? .none,
+                // 色の無いタグでも幅は空けて、タグ名の頭を全行でそろえる。
+                leading: .custom(AnyView(Group {
+                    if let color = tag.color { ImasSwatch(hex: color.rawValue, size: .small) } else { Color.clear }
+                }.frame(width: 16)), width: 16),
                 trailing: .custom(AnyView(
                     HStack(spacing: DS.Space.gapTight) {
                         if let cat = tag.category {
