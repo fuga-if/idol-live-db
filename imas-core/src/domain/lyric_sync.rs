@@ -291,6 +291,26 @@ pub fn like_heat(starts: &[Option<i64>], counts: &[u32], duration_ms: i64, bucke
     LyricLikeHeat { levels: smoothed.iter().map(|v| v / max).collect(), peak_ms }
 }
 
+/// 「同時」のコールが、掛かっている歌詞と同じ文字か (一緒に歌う・叫ぶだけのコール)。
+///
+/// そういうコールは行として並べると歌詞と同じ文字が 2 回出るので、画面は行を出さずに
+/// 歌詞のその部分へ印を付ける。比べるときは括弧・空白・記号・大文字小文字・カナの別・
+/// 伸ばし (ー・〜) を無視する。追っかけ (`after`) は別の文字を返すものなので対象外。
+pub fn call_echoes_lyric(anchor_text: &str, call_text: &str, timing: &str) -> bool {
+    if timing != "over" {
+        return false;
+    }
+    let fold = |t: &str| -> String {
+        let bytes = crate::domain::text_search_index::prepare_needle(t);
+        String::from_utf8_lossy(&bytes)
+            .chars()
+            .filter(|c| c.is_alphanumeric() && !matches!(c, 'ー' | '〜' | '～'))
+            .collect()
+    };
+    let anchor = fold(anchor_text);
+    !anchor.is_empty() && anchor == fold(call_text)
+}
+
 /// パート分け (誰が歌うか) を付ける曲か。原唱者が 2 人以上のときだけ (ソロ曲は 1 人なので要らない)。
 pub fn parts_applicable(original_artist_count: u32) -> bool {
     original_artist_count >= 2
@@ -299,6 +319,16 @@ pub fn parts_applicable(original_artist_count: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn over_call_with_the_same_words_echoes_the_lyric() {
+        assert!(call_echoes_lyric("サンプル行です", "(サンプル行です)", "over"));
+        assert!(call_echoes_lyric("Let's go", "（LET'S GO！）", "over"));
+        assert!(call_echoes_lyric("ハイ", "はーい", "over"));
+        assert!(!call_echoes_lyric("サンプル行です", "(サンプル行です)", "after"));
+        assert!(!call_echoes_lyric("サンプル", "Hi!", "over"));
+        assert!(!call_echoes_lyric("", "", "over"));
+    }
 
     #[test]
     fn parts_only_for_songs_with_two_or_more_singers() {

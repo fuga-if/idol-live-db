@@ -86,3 +86,10 @@ pub fn lyric_overlay_spans(starts: Vec<Option<i64>>, duration_ms: i64) -> Vec<Ly
 pub fn lyric_parts_applicable(original_artist_count: u32) -> bool {
     d::parts_applicable(original_artist_count)
 }
+
+/// 「同時」のコールが掛かっている歌詞と同じ文字か (行を出さず、歌詞のその部分に印を付ける)。
+/// `timing` はコールの出し方 (`over` / `after`)。
+#[uniffi::export]
+pub fn lyric_call_echoes_lyric(anchor_text: String, call_text: String, timing: String) -> bool {
+    d::call_echoes_lyric(&anchor_text, &call_text, &timing)
+}
