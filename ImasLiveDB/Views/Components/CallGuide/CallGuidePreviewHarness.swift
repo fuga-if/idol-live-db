@@ -111,7 +111,7 @@ struct CallGuidePreviewHarness: View {
         }
         .task {
             // パート分けは歌唱者が要るので、先に DB の実在曲から引いておく (歌詞より先に揃える)。
-            if mode == .parts { await vm.loadData(song: Self.partsArtistSource) }
+            if mode == .parts || mode == .record { await vm.loadData(song: Self.partsArtistSource) }
             await vm.loadServerData(song: Self.sampleSong)
         }
     }

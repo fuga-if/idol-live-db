@@ -139,7 +139,7 @@ struct SongLyricsTab: View {
         .fullScreenCover(item: $recorder) { recorder in
             if let lyrics = vm.lyrics {
                 LyricTimingEditorView(song: song, seed: seed, lyrics: lyrics, playback: playback,
-                                      recorder: recorder, onSaved: reload)
+                                      recorder: recorder, onSaved: reload, cast: partCast)
             }
         }
         .fullScreenCover(isPresented: $showsPlayer) {
@@ -171,7 +171,9 @@ struct SongLyricsTab: View {
     private func beginDebugEditingIfNeeded(_ lyrics: Lyrics?) {
         guard let lyrics else { return }
         if debugStartsRecording, recorder == nil {
-            recorder = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+            let r = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
+            if ProcessInfo.processInfo.environment["TIMING_LANE"] == "parts" { r.lane = .parts }
+            recorder = r
         }
         if debugStartsPlayer, !showsPlayer { showsPlayer = true }
         if debugStartsStructure { isEditingStructure = true }

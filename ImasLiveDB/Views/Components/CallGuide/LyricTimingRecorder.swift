@@ -22,6 +22,8 @@ final class LyricTimingRecorder: Identifiable {
     enum Lane: Hashable {
         case lines
         case calls
+        /// パート分け (誰が歌うか)。聴きながら、いま歌っている行に歌う人を付ける。
+        case parts
     }
 
     let songId: String
@@ -39,6 +41,11 @@ final class LyricTimingRecorder: Identifiable {
     /// 表示順の各行の被せ指定 ("overlay" / "main" / nil = 括弧で決める)。
     private(set) var layers: [String?]
     private let originalLayers: [String?]
+    /// 表示順の各行の歌唱者 (アイドル id)。パートの段で付け外しする。
+    private(set) var singers: [[String]]
+    private let originalSingers: [[String]]
+    /// パートの取り消し用 (history の .parts と同じ順に、前の歌唱者を積む)。
+    private var partsUndo: [[String]] = []
     /// いま記録している段。
     var lane: Lane = .lines
     /// 次に記録する行 / コールの添字。最後まで記録したら nil。
@@ -67,6 +74,9 @@ final class LyricTimingRecorder: Identifiable {
         let layers = lyrics.lines.map(\.layer)
         self.layers = layers
         self.originalLayers = layers
+        let singers = lyrics.lines.map(\.singers)
+        self.singers = singers
+        self.originalSingers = singers
         let calls = lyrics.lines.enumerated().flatMap { i, line in line.calls.map { (i, $0) } }
         self.callIds = calls.map(\.1.id)
         self.callLineIndexes = calls.map(\.0)
@@ -93,6 +103,37 @@ final class LyricTimingRecorder: Identifiable {
 
     var isDirty: Bool {
         starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers
+            || singers != originalSingers
+    }
+
+    private var partsChanged: Bool { singers != originalSingers }
+
+    /// 行の歌唱者に `idolId` を付け外しする。並びは `order` (原唱者の並び) にそろえる。
+    func toggleSinger(lineId: String, idolId: String, order: [String]) {
+        guard let i = lineIds.firstIndex(of: lineId), kinds[i] == "lyric" else { return }
+        var list = singers[i]
+        pushPartsUndo(i)
+        if let k = list.firstIndex(of: idolId) { list.remove(at: k) } else { list.append(idolId) }
+        list.sort { (order.firstIndex(of: $0) ?? .max) < (order.firstIndex(of: $1) ?? .max) }
+        singers[i] = list
+    }
+
+    /// 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。
+    func copyPreviousSingers(lineId: String) {
+        guard let i = lineIds.firstIndex(of: lineId),
+              let prev = (0..<i).reversed().first(where: { kinds[$0] == "lyric" }) else { return }
+        pushPartsUndo(i)
+        singers[i] = singers[prev]
+    }
+
+    private func pushPartsUndo(_ index: Int) {
+        history.append((.parts, index, nil, nil))
+        partsUndo.append(singers[index])
+        lastWasAdjust = false
+    }
+
+    func singers(for lineId: String) -> [String] {
+        lineIds.firstIndex(of: lineId).map { singers[$0] } ?? []
     }
 
     /// 行の被せ指定を切り替える (被せ ⇄ メイン)。括弧の判定より指定が勝つ。
@@ -123,7 +164,13 @@ final class LyricTimingRecorder: Identifiable {
     }
 
     /// いま記録している段の「次」。
-    var laneCursor: Int? { lane == .lines ? cursor : callCursor }
+    var laneCursor: Int? {
+        switch lane {
+        case .lines: return cursor
+        case .calls: return callCursor
+        case .parts: return nil
+        }
+    }
 
     /// いま記録している段の次の 1 つを、今の再生位置で記録する (大きい記録ボタン)。
     func recordNext(positionMs: Int) {
@@ -138,6 +185,8 @@ final class LyricTimingRecorder: Identifiable {
             history.append((.calls, index, callStarts[index], callCursor))
             callStarts[index] = positionMs
             callCursor = index + 1 < callIds.count ? index + 1 : nil
+        case .parts:
+            return
         }
         lastWasAdjust = false
     }
@@ -183,6 +232,8 @@ final class LyricTimingRecorder: Identifiable {
         case .calls:
             callStarts[last.index] = last.previous
             callCursor = last.cursor
+        case .parts:
+            singers[last.index] = partsUndo.popLast() ?? []
         }
     }
 
@@ -195,6 +246,12 @@ final class LyricTimingRecorder: Identifiable {
         let calls = zip(callIds, callStarts).map { LyricTimingPayload.Line(id: $0, startMs: $1) }
         do {
             try await writer.updateLyricTimings(songId: songId, lines: lines, calls: calls)
+            if partsChanged {
+                let parts = lineIds.indices.compactMap { i in
+                    singers[i].isEmpty ? nil : LyricPartsPayload.Line(id: lineIds[i], singers: singers[i])
+                }
+                try await writer.updateLyricParts(songId: songId, lines: parts)
+            }
             // 曲一覧の「タイミングがある曲のみ」に、取り直しを待たずに載せる。
             await LyricAnnotationStore.shared.mark(songId: songId, .timings, starts.contains { $0 != nil })
             saveState = .idle

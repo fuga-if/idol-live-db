@@ -19,6 +19,8 @@ struct LyricTimingEditorView: View {
     @State var recorder: LyricTimingRecorder
     /// 保存できたら呼ぶ (歌詞を取り直す)。
     let onSaved: () -> Void
+    /// パートの段で選ぶ歌唱者 (原唱者)。2 人以上のときだけパートの段を出す。
+    var cast: LyricPartCast = .empty
 
     @State private var playheadMs = 0
     /// タイムラインをなぞっている間の位置。離したら再生位置をそこへ動かす。
@@ -39,12 +41,18 @@ struct LyricTimingEditorView: View {
             header
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp3)
-            if recorder.hasCalls {
-                ImasTabs(options: [LyricTimingRecorder.Lane.lines, .calls],
+            if lanes.count > 1 {
+                ImasTabs(options: lanes,
                          selection: Binding(get: { recorder.lane }, set: { recorder.lane = $0 }),
-                         seed: seed) { $0 == .lines ? "歌詞" : "コール" }
-                    .padding(.horizontal, DS.sp5)
-                    .padding(.bottom, DS.sp3)
+                         seed: seed) { lane in
+                    switch lane {
+                    case .lines: "歌詞"
+                    case .calls: "コール"
+                    case .parts: "パート"
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+                .padding(.bottom, DS.sp3)
             }
             nowAndNext
                 .padding(.horizontal, DS.sp5)
@@ -55,9 +63,14 @@ struct LyricTimingEditorView: View {
                 .padding(.top, DS.sp3)
             transport
                 .padding(.top, DS.sp4)
-            recordButton
-                .padding(.horizontal, DS.sp5)
-                .padding(.vertical, DS.sp4)
+            if recorder.lane == .parts {
+                partsBrush
+                    .padding(.vertical, DS.sp4)
+            } else {
+                recordButton
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.vertical, DS.sp4)
+            }
         }
         .background(DS.bg)
         .task { if !playback.isFullLoaded { startFailed = !(await playback.startFull()) } }
@@ -129,12 +142,89 @@ struct LyricTimingEditorView: View {
         lyrics.lines.enumerated().flatMap { i, line in line.calls.map { ($0, i) } }
     }
 
+    /// 段の並び。コールがあればコール、原唱者が 2 人以上ならパートを足す。
+    private var lanes: [LyricTimingRecorder.Lane] {
+        var result: [LyricTimingRecorder.Lane] = [.lines]
+        if recorder.hasCalls { result.append(.calls) }
+        if lyricPartsApplicable(originalArtistCount: UInt32(cast.artists.count)) { result.append(.parts) }
+        return result
+    }
+
     @ViewBuilder
     private var nowAndNext: some View {
-        if recorder.lane == .calls {
-            callsNowAndNext
-        } else {
-            linesNowAndNext
+        switch recorder.lane {
+        case .calls: callsNowAndNext
+        case .parts: partsNowAndNext
+        case .lines: linesNowAndNext
+        }
+    }
+
+    // MARK: - パート (誰が歌うか)
+
+    /// パートを付ける行: タイムラインで選んだ行、選んでいなければいま歌っている行。
+    private var partsTargetId: String? {
+        if let selectedId, lyrics.lines.contains(where: { $0.id == selectedId && $0.kind == .lyric }) {
+            return selectedId
+        }
+        // 見出し (「1番」など) には付けない。
+        return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
+    }
+
+    private var partsNowAndNext: some View {
+        VStack(alignment: .leading, spacing: DS.sp3) {
+            if startFailed {
+                ImasNote("パート分けには Apple Music でのフル再生が必要です。", systemImage: "music.note")
+            }
+            Text(selectedId == nil ? "いま歌っている行" : "選んだ行").imasText(.eyebrow)
+            if let id = partsTargetId, let line = lyrics.lines.first(where: { $0.id == id }) {
+                let singers = recorder.singers(for: id)
+                HStack(alignment: .top, spacing: DS.sp3) {
+                    ImasPartStripe(colors: cast.colors(singers))
+                    VStack(alignment: .leading, spacing: DS.sp1) {
+                        ImasPlayerLyricLine(text: line.text, isCurrent: true, seed: seed)
+                            .lineLimit(3)
+                        ImasPartNames(names: cast.names(singers))
+                    }
+                }
+            } else {
+                ImasNote("曲を流すと、いま歌っている行に歌う人を付けられます。", systemImage: "person.2")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 歌う人のアイコン。押すといまの行 (選んだ行) に付け外しする。
+    private var partsBrush: some View {
+        VStack(spacing: DS.sp3) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.sp3) {
+                    ForEach(cast.artists, id: \.id) { idol in
+                        let isOn = partsTargetId.map { recorder.singers(for: $0).contains(idol.id) } ?? false
+                        Button {
+                            guard let id = partsTargetId else { return }
+                            AppAnalytics.tap("lyric_timing.toggle_part")
+                            recorder.toggleSinger(lineId: id, idolId: idol.id, order: cast.artists.map(\.id))
+                            recordToken += 1
+                        } label: {
+                            VStack(spacing: DS.sp1) {
+                                IdolAvatarView(idol: idol, size: 48, isPick: isOn)
+                                Text(idol.shortName).imasText(.meta, color: isOn ? DS.ink : DS.ink3)
+                            }
+                        }
+                        .buttonStyle(.imasPress)
+                        .disabled(partsTargetId == nil)
+                        .accessibilityAddTraits(isOn ? .isSelected : [])
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+            }
+            ImasButton(title: "前の行と同じ人にする", systemImage: "arrow.turn.down.right", role: .secondary,
+                       size: .small) {
+                guard let id = partsTargetId else { return }
+                recorder.copyPreviousSingers(lineId: id)
+                recordToken += 1
+            }
+            .disabled(partsTargetId == nil)
         }
     }
 
