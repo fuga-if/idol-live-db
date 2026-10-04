@@ -6,22 +6,29 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Replay5
 import androidx.compose.material.icons.filled.Forward5
 import androidx.compose.material.icons.filled.PanTool
@@ -39,8 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.fugaif.imaslivedb.data.lyrics.LyricCall
+import com.fugaif.imaslivedb.data.lyrics.LyricLine
+import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
 import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
+import com.fugaif.imaslivedb.data.lyrics.LyricPartMark
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
+import com.fugaif.imaslivedb.data.lyrics.colorsAt
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
@@ -53,18 +65,25 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricTimeLabel
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPartCells
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
-import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
+import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
+import com.fugaif.imaslivedb.ui.designsystem.ImasRubyFlowText
+import com.fugaif.imaslivedb.ui.designsystem.ImasRubyText
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.designsystem.ImasTimingBlock
 import com.fugaif.imaslivedb.ui.designsystem.ImasTimingTimeline
+import com.fugaif.imaslivedb.ui.designsystem.codePointToCharIndex
+import com.fugaif.imaslivedb.ui.designsystem.lyricColor
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricActiveCall
 import uniffi.imas_core.lyricActiveLine
 import uniffi.imas_core.lyricCallSpans
@@ -73,6 +92,9 @@ import uniffi.imas_core.lyricLineSpans
 import uniffi.imas_core.lyricNextRecordable
 import uniffi.imas_core.lyricOverlaySpans
 import uniffi.imas_core.lyricPartsApplicable
+
+/** 曲の順に並べたコール 1 件と、ぶら下がる行の添字。 */
+private data class CallRef(val call: LyricCall, val line: Int)
 
 /**
  * 歌詞行とコールの時刻 (タイミング) を付ける・直す画面。iOS `LyricTimingEditorView` の移植。
@@ -106,6 +128,11 @@ fun LyricTimingEditorScreen(
     var startFailed by remember { mutableStateOf(false) }
     val isPlaying by playback.isPlaying.collectAsState()
     val loadedSongId by playback.loadedSongId.collectAsState()
+    // 歌詞をなぞってから少しの間は、曲に付いていくのを止める。
+    var followPausedUntil by remember { mutableStateOf(0L) }
+    // パートの段で選んでいる字 (行の中のコードポイント位置)。区切りを置く位置と、歌う人を付けるひと続きを決める。
+    var partCursor by remember { mutableStateOf<Int?>(null) }
+    val laneListState = rememberLazyListState()
 
     val duration = run {
         val lastStart = recorder.starts.filterNotNull().maxOrNull() ?: 0
@@ -127,8 +154,13 @@ fun LyricTimingEditorScreen(
         ?: currentIndex?.let { i ->
             lyrics.lines[i].id.takeIf { lyrics.lines[i].kind == com.fugaif.imaslivedb.data.lyrics.LyricLineKind.LYRIC }
         }
-    data class CallRef(val call: com.fugaif.imaslivedb.data.lyrics.LyricCall, val line: Int)
+    // 歌う人を付けるひと続きの頭 (選んだ字を含むひと続き。字を選んでいなければ行の頭)。
+    val partsSegmentStart: Int = partsTargetId?.let { id ->
+        partCursor?.let { cursor -> recorder.segments(id).lastOrNull { it.start.toInt() <= cursor }?.start?.toInt() }
+    } ?: 0
     val allCalls = lyrics.lines.flatMapIndexed { i, line -> line.calls.map { CallRef(it, i) } }
+
+    LaunchedEffect(partsTargetId) { partCursor = null }
 
     LaunchedEffect(Unit) {
         if (playback.loadedSongId.value != song.id) {
@@ -206,53 +238,15 @@ fun LyricTimingEditorScreen(
             )
         }
 
-        // 今の行/コールと、次に記録するもの。
-        Column(Modifier.fillMaxWidth().padding(horizontal = DS.sp5), verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
-            val appleMusic by playback.appleMusicState.collectAsState()
-            AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn)
-            // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
-            if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
-                ImasNote("この曲は Apple Music で鳴らせませんでした。")
-            }
-            if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
-                if (startFailed) {
-                    ImasNote("パート分けには Apple Music でのフル再生が必要です。")
+        val appleMusic by playback.appleMusicState.collectAsState()
+        if (recorder.lane == LyricTimingRecorder.Lane.LINES) {
+            // 今の行と、次に記録するもの。
+            Column(Modifier.fillMaxWidth().padding(horizontal = DS.sp5), verticalArrangement = Arrangement.spacedBy(DS.sp4)) {
+                AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn)
+                // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+                if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
+                    ImasNote("この曲は Apple Music で鳴らせませんでした。")
                 }
-                ImasText(if (selectedId == null) "いま歌っている行" else "選んだ行", ImasTextRole.EYEBROW)
-                val targetLine = partsTargetId?.let { id -> lyrics.lines.firstOrNull { it.id == id } }
-                if (targetLine != null) {
-                    val targetSingers = recorder.singers(targetLine.id)
-                    Row(horizontalArrangement = Arrangement.spacedBy(DS.sp3), verticalAlignment = Alignment.Top) {
-                        ImasPartStripe(colors = cast.colors(targetSingers), modifier = Modifier.height(48.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
-                            ImasPlayerLyricLine(text = targetLine.text, isCurrent = true, seed = seed)
-                            ImasPartNames(names = cast.names(targetSingers))
-                        }
-                    }
-                } else {
-                    ImasNote("曲を流すと、いま歌っている行に歌う人を付けられます。")
-                }
-            } else if (recorder.lane == LyricTimingRecorder.Lane.CALLS) {
-                val current = lyricActiveCall(recorder.callStartsForCore, shownMs.toLong())?.toInt()
-                Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
-                    ImasText("いまのコール", ImasTextRole.EYEBROW)
-                    ImasPlayerLyricLine(text = current?.let { allCalls[it].call.text } ?: "—", isCurrent = true, seed = seed)
-                }
-                val next = recorder.callCursor
-                if (next != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
-                        ImasText("次に記録するコール", ImasTextRole.EYEBROW)
-                        for (index in next until minOf(allCalls.size, next + 3)) {
-                            Column {
-                                ImasText(lyrics.lines[allCalls[index].line].text, ImasTextRole.META, maxLines = 1)
-                                ImasPlayerLyricLine(text = allCalls[index].call.text, isCurrent = index == next, seed = seed)
-                            }
-                        }
-                    }
-                } else {
-                    ImasNote("最後のコールまで記録しました。タイムラインの下の段で前後に寄せられます。")
-                }
-            } else {
                 Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
                     ImasText("いま", ImasTextRole.EYEBROW)
                     ImasPlayerLyricLine(text = currentIndex?.let { lyrics.lines[it].text } ?: "（イントロ）", isCurrent = true, seed = seed)
@@ -264,7 +258,7 @@ fun LyricTimingEditorScreen(
                         upcoming(lyrics, next).forEachIndexed { offset, index ->
                             ImasPlayerLyricLine(
                                 text = lyrics.lines[index].text, isCurrent = offset == 0,
-                                isMarker = lyrics.lines[index].kind == com.fugaif.imaslivedb.data.lyrics.LyricLineKind.MARKER, seed = seed
+                                isMarker = lyrics.lines[index].kind == LyricLineKind.MARKER, seed = seed
                             )
                         }
                     }
@@ -272,9 +266,35 @@ fun LyricTimingEditorScreen(
                     ImasNote("最後の行まで記録しました。タイムラインで帯を選ぶと前後に寄せられます。")
                 }
             }
+            Spacer(Modifier.weight(1f))
+        } else {
+            // コールとパートは、歌詞を上下に動かして入れる行を選ぶ (曲に付いていくが、なぞると止まる)。
+            Column(Modifier.fillMaxWidth().padding(horizontal = DS.sp5), verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn)
+                if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
+                    ImasNote("この曲は Apple Music で鳴らせませんでした。")
+                }
+            }
+            LaneLyricsList(
+                lyrics = lyrics,
+                recorder = recorder,
+                cast = cast,
+                seed = seed,
+                currentIndex = currentIndex,
+                allCalls = allCalls,
+                selectedId = selectedId,
+                onSelect = { selectedId = it },
+                startFailed = startFailed,
+                partCursor = partCursor,
+                onCursorChange = { partCursor = it },
+                onToggleBreak = { lineId, at -> haptics.selection(); recorder.toggleBreak(lineId, at) },
+                partsTargetId = partsTargetId,
+                listState = laneListState,
+                followPausedUntil = { followPausedUntil },
+                onUserScroll = { followPausedUntil = System.currentTimeMillis() + 4000 },
+                modifier = Modifier.weight(1f)
+            )
         }
-
-        Spacer(Modifier.weight(1f))
 
         // タイムライン
         run {
@@ -360,7 +380,10 @@ fun LyricTimingEditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(DS.sp3)
                 ) {
                     cast.artists.forEach { idol ->
-                        val isOn = partsTargetId?.let { recorder.singers(it).contains(idol.id) } ?: false
+                        val segment = partsTargetId?.let { id ->
+                            recorder.segments(id).firstOrNull { it.start.toInt() == partsSegmentStart }
+                        }
+                        val isOn = segment?.singers?.contains(idol.id) ?: false
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.clickable(
@@ -369,7 +392,7 @@ fun LyricTimingEditorScreen(
                             ) {
                                 val id = partsTargetId ?: return@clickable
                                 haptics.selection()
-                                recorder.toggleSinger(id, idol.id, cast.artists.map { it.id })
+                                recorder.toggleSinger(id, idol.id, cast.artists.map { it.id }, segmentStart = partsSegmentStart)
                             }
                         ) {
                             ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 48.dp, isPick = isOn, entityId = idol.id)
@@ -420,6 +443,190 @@ fun LyricTimingEditorScreen(
         dismissTitle = "編集を続ける"
     )
     ImasErrorAlert(message = saveError, onDismiss = { saveError = null })
+}
+
+// MARK: - コールとパートの段: 歌詞を動かして選ぶ
+
+/**
+ * コールとパートの段の中身。曲の流れに合わせて歌詞全体をスクロールし (`currentIndex` の行に追従)、
+ * 指でなぞると 4 秒止まる。iOS `LyricTimingEditorView.laneLyrics` の移植。
+ */
+@Composable
+private fun LaneLyricsList(
+    lyrics: Lyrics,
+    recorder: LyricTimingRecorder,
+    cast: LyricPartCast,
+    seed: String?,
+    currentIndex: Int?,
+    allCalls: List<CallRef>,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+    startFailed: Boolean,
+    partCursor: Int?,
+    onCursorChange: (Int) -> Unit,
+    onToggleBreak: (String, Int) -> Unit,
+    partsTargetId: String?,
+    listState: LazyListState,
+    followPausedUntil: () -> Long,
+    onUserScroll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val accent = imasTheme(seed = seed).accent
+    val isParts = recorder.lane == LyricTimingRecorder.Lane.PARTS
+
+    // 指でなぞっている間と、離して少しの間は、曲に付いていく追従を止める。
+    LaunchedEffect(listState) {
+        while (true) {
+            if (listState.isScrollInProgress) onUserScroll()
+            delay(200)
+        }
+    }
+    LaunchedEffect(currentIndex) {
+        val index = currentIndex ?: return@LaunchedEffect
+        if (System.currentTimeMillis() < followPausedUntil()) return@LaunchedEffect
+        val viewport = listState.layoutInfo.viewportSize.height
+        runCatching { listState.animateScrollToItem(index, scrollOffset = -(viewport * 0.3f).toInt()) }
+    }
+
+    LazyColumn(
+        modifier,
+        state = listState,
+        verticalArrangement = Arrangement.spacedBy(DS.sp4),
+        contentPadding = PaddingValues(horizontal = DS.sp5, vertical = DS.sp4)
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                if (startFailed) {
+                    ImasNote(if (isParts) "パート分けには Apple Music でのフル再生が必要です。" else "記録には Apple Music でのフル再生が必要です。")
+                }
+                ImasText(
+                    if (isParts) "行をタップして歌う人を付けます。字をタップすると、そこから歌う人を変えられます。"
+                    else "コールをタップして選ぶと、前後に寄せられます。",
+                    ImasTextRole.META, color = DS.ink3
+                )
+            }
+        }
+        itemsIndexed(lyrics.lines, key = { _, line -> line.id }) { index, line ->
+            val isCurrent = index == currentIndex
+            when (line.kind) {
+                LyricLineKind.BLANK -> Spacer(Modifier.height(DS.sp1))
+                LyricLineKind.MARKER -> ImasText(line.text, ImasTextRole.EYEBROW, color = DS.ink3)
+                LyricLineKind.LYRIC -> if (isParts) {
+                    PartsLaneRow(
+                        line = line, isCurrent = isCurrent, isTarget = line.id == partsTargetId,
+                        recorder = recorder, cast = cast, partCursor = partCursor,
+                        onSelectTarget = { onSelect(line.id) }, onCursorChange = onCursorChange,
+                        onToggleBreak = { at -> onToggleBreak(line.id, at) }
+                    )
+                } else {
+                    CallsLaneRow(
+                        line = line, isCurrent = isCurrent, calls = allCalls, recorder = recorder,
+                        selectedId = selectedId, onSelect = onSelect, accent = accent
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** コールの段の 1 行。行の下にコールを並べ、タップで選ぶ (タイムラインと同じ選択)。 */
+@Composable
+private fun CallsLaneRow(
+    line: LyricLine,
+    isCurrent: Boolean,
+    calls: List<CallRef>,
+    recorder: LyricTimingRecorder,
+    selectedId: String?,
+    onSelect: (String?) -> Unit,
+    accent: androidx.compose.ui.graphics.Color
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+        LaneLyricText(line.text, isCurrent)
+        line.calls.forEach { call ->
+            val order = calls.indexOfFirst { it.call.id == call.id }
+            val isNext = order >= 0 && order == recorder.callCursor
+            Row(
+                Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() }, indication = null
+                ) { onSelect(if (selectedId == call.id) null else call.id) },
+                horizontalArrangement = Arrangement.spacedBy(DS.sp2),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ImasPlayerCallLine(
+                    marker = if (call.hasAnchor) "↳" else "»",
+                    text = call.text,
+                    color = call.emphasis.lyricColor(accent),
+                    isActive = selectedId == call.id || isNext
+                )
+                if (isNext) ImasText("次に記録", ImasTextRole.META)
+                recorder.start(call.id)?.let { ms -> ImasLyricTimeLabel(ms = ms, isEmphasized = false) }
+            }
+        }
+    }
+}
+
+/** パートの段の 1 行。タップで付ける行に選び、選んだ行は字ごとに並べて区切りを置ける。 */
+@Composable
+private fun PartsLaneRow(
+    line: LyricLine,
+    isCurrent: Boolean,
+    isTarget: Boolean,
+    recorder: LyricTimingRecorder,
+    cast: LyricPartCast,
+    partCursor: Int?,
+    onSelectTarget: () -> Unit,
+    onCursorChange: (Int) -> Unit,
+    onToggleBreak: (Int) -> Unit
+) {
+    val segments: List<LyricPartSegment> = recorder.segments(line.id)
+    Column(verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+        if (isTarget) {
+            ImasPartCells(text = line.text, segments = segments, cast = cast, cursor = partCursor, onSelectCursor = onCursorChange)
+            if (partCursor != null && partCursor > 0) {
+                val isBreak = segments.any { it.start.toInt() == partCursor }
+                val totalScalars = line.text.codePointCount(0, line.text.length)
+                val head = sliceText(line.text, partCursor, minOf(partCursor + 4, totalScalars))
+                ImasButton(
+                    title = if (isBreak) "「$head」の前の区切りを外す" else "「$head」から歌う人を変える",
+                    icon = if (isBreak) Icons.Filled.Remove else Icons.Filled.ContentCut,
+                    role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL,
+                    onClick = { onToggleBreak(partCursor) }
+                )
+            }
+        } else {
+            val marks: List<LyricPartMark> = segments.mapNotNull { segment ->
+                val colors = cast.colors(segment.singers)
+                if (colors.isEmpty()) null else LyricPartMark(segment.start.toInt(), segment.end.toInt(), colors)
+            }
+            Row(
+                Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onSelectTarget)
+            ) {
+                LaneLyricText(line.text, isCurrent, parts = marks)
+            }
+        }
+        ImasPartNames(groups = segments.map { cast.names(it.singers) })
+    }
+}
+
+/** 段の中の歌詞 1 行 (振り仮名は親字の上に、歌う人は字の下の色の線で)。 */
+@Composable
+private fun LaneLyricText(text: String, isCurrent: Boolean, parts: List<LyricPartMark> = emptyList(), modifier: Modifier = Modifier) {
+    val color = if (isCurrent) DS.ink else DS.ink3
+    if (ImasRubyText.hasRuby(text) || parts.isNotEmpty()) {
+        ImasRubyFlowText(
+            text = text, style = ImasTextRole.BODY.style, color = color, modifier = modifier,
+            partsAt = { start -> parts.colorsAt(start) }
+        )
+    } else {
+        ImasText(text, ImasTextRole.BODY, color = color, modifier = modifier)
+    }
+}
+
+/** コードポイント範囲 [start, end) を切り出す (範囲外は空文字)。 */
+private fun sliceText(text: String, start: Int, end: Int): String {
+    val count = text.codePointCount(0, text.length)
+    if (start < 0 || end > count || start >= end) return ""
+    return text.substring(codePointToCharIndex(text, start), codePointToCharIndex(text, end))
 }
 
 /** 次に記録する行と、その先の記録対象 2 行の添字 (計 3 件)。 */

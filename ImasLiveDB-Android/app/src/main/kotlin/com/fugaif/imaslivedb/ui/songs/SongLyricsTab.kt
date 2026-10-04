@@ -60,6 +60,7 @@ import com.fugaif.imaslivedb.data.lyrics.LyricJoiner
 import com.fugaif.imaslivedb.data.lyrics.LyricLine
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
 import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
+import com.fugaif.imaslivedb.data.lyrics.colorsAt
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
 import com.fugaif.imaslivedb.data.lyrics.LyricsResult
 import com.fugaif.imaslivedb.data.lyrics.StructureChange
@@ -91,7 +92,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
-import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyFlowText
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyText
 import com.fugaif.imaslivedb.ui.designsystem.RubyHighlight
@@ -262,7 +262,7 @@ fun SongLyricsTab(
         val draft = partsDraft ?: return
         partsSaving = true
         try {
-            val lines = current.lines.mapNotNull { line -> draft[line.id]?.let { line.id to it } }
+            val lines = current.lines.mapNotNull { line -> draft[line.id]?.let { com.fugaif.imaslivedb.data.lyrics.PartsLine(line.id, it) } }
             module.lyricsApi.saveParts(song.id, lines)
             partsDraft = null
             partsBrush = null
@@ -482,6 +482,9 @@ private fun PartsBody(lyrics: Lyrics, draft: Map<String, List<String>>, cast: Ly
         when (line.kind) {
             LyricLineKind.LYRIC -> {
                 val singers = draft[line.id] ?: emptyList()
+                // 行の途中の区切りはそのまま、行の頭の歌う人だけ塗り替える。
+                val drafted = line.copy(singers = singers, calls = emptyList())
+                val parts = cast.marks(drafted)
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -491,14 +494,22 @@ private fun PartsBody(lyrics: Lyrics, draft: Map<String, List<String>>, cast: Ly
                     horizontalArrangement = Arrangement.spacedBy(DS.sp2),
                     verticalAlignment = Alignment.Top
                 ) {
-                    ImasPartStripe(colors = cast.colors(singers))
                     Column(Modifier.weight(1f)) {
-                        Text(
-                            line.text,
-                            style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
-                            color = DS.ink
-                        )
-                        ImasPartNames(names = cast.names(singers))
+                        if (ImasRubyText.hasRuby(line.text) || parts.isNotEmpty()) {
+                            ImasRubyFlowText(
+                                text = line.text,
+                                style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
+                                color = DS.ink,
+                                partsAt = { start -> parts.colorsAt(start) }
+                            )
+                        } else {
+                            Text(
+                                line.text,
+                                style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
+                                color = DS.ink
+                            )
+                        }
+                        ImasPartNames(groups = cast.groups(drafted))
                     }
                 }
             }
@@ -556,20 +567,22 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                 verticalAlignment = Alignment.Top
             ) {
                 ImasClapGlyph(clap = line.clap, modifier = Modifier.padding(top = DS.sp1))
-                if (line.singers.isNotEmpty()) ImasPartStripe(colors = cast.colors(line.singers))
                 Column(Modifier.weight(1f)) {
                     // ⚠️ ここに SelectionContainer / テキストコピーの口を足さないこと。
                     val highlights = highlightsFor(line, accent)
                     // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す (規則はコア)。
                     val asideStyle = ImasLyricAside.forViewing()
-                    if (ImasRubyText.hasRuby(line.text)) {
-                        // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
+                    // 歌う人は字の下に担当色の線で引く (どこから歌う人が変わるかが字の上で分かる)。
+                    val parts = cast.marks(line)
+                    if (ImasRubyText.hasRuby(line.text) || parts.isNotEmpty()) {
+                        // 振り仮名・色の線は Text では組めないので FlowRow で自前に組む。
                         ImasRubyFlowText(
                             text = line.text,
                             style = ImasTextRole.BODY.style,
                             color = DS.ink,
                             highlightAt = rubyHighlightLookup(line.text, highlights),
-                            asideStyle = asideStyle
+                            asideStyle = asideStyle,
+                            partsAt = { start -> parts.colorsAt(start) }
                         )
                     } else {
                         Text(
@@ -578,7 +591,7 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                             color = DS.ink
                         )
                     }
-                    ImasPartNames(names = cast.names(line.singers))
+                    ImasPartNames(groups = cast.groups(line))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
                     val listed = line.calls.filter { !line.echoes(it) }
                     if (listed.isNotEmpty()) ImasCallRows(calls = listed, anchorIndexes = anchorIndexesFor(line))

@@ -316,8 +316,8 @@ private fun NowPlayingLyricLine(
             horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (line.singers.isNotEmpty()) {
-                ImasPartStripe(colors = entry.cast.colors(line.singers), modifier = Modifier.height(14.dp))
+            if (line.allSingers.isNotEmpty()) {
+                ImasPartStripe(colors = entry.cast.colors(line.allSingers), modifier = Modifier.height(14.dp))
             }
             Text(
                 split.main.ifEmpty { line.text },

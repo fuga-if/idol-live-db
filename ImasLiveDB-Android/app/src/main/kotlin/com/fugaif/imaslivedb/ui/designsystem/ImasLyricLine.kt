@@ -2,6 +2,8 @@ package com.fugaif.imaslivedb.ui.designsystem
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +54,9 @@ import com.fugaif.imaslivedb.data.lyrics.CallEmphasis
 import com.fugaif.imaslivedb.data.lyrics.CallTiming
 import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricClap
+import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
+import com.fugaif.imaslivedb.data.lyrics.LyricPartMark
+import com.fugaif.imaslivedb.data.lyrics.colorsAt
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasType
 import com.fugaif.imaslivedb.ui.theme.LocalImasColors
@@ -60,6 +65,7 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricRubySpans
 
 // =============================================================================
@@ -283,6 +289,8 @@ fun ImasPlayerLyricLine(
     isLiked: Boolean = false,
     // 歌詞と同じ文字を一緒に叫ぶところ (同時コール)。
     echoes: List<ImasEcho> = emptyList(),
+    /** 歌う人の色の線 (字の下に引く)。あれば振り仮名と同じ組み方 (FlowRow) で描く。 */
+    parts: List<LyricPartMark> = emptyList(),
     seed: String? = null
 ) {
     val scale by androidx.compose.animation.core.animateFloatAsState(if (isCurrent) 1f else 0.86f, label = "imasPlayerLyricLineScale")
@@ -296,8 +304,8 @@ fun ImasPlayerLyricLine(
     ) {
         // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す。
         val asideStyle = ImasLyricAside.forPlayer(isMarker, color)
-        if (ImasRubyText.hasRuby(text)) {
-            // 振り仮名は親字の上に乗せる (Text では組めないので FlowRow で自前に組む)。
+        if (ImasRubyText.hasRuby(text) || parts.isNotEmpty()) {
+            // 振り仮名・歌う人の色の線は Text では組めないので FlowRow で自前に組む。
             ImasRubyFlowText(
                 text = text,
                 style = style,
@@ -307,7 +315,8 @@ fun ImasPlayerLyricLine(
                     .scale(scale),
                 asideStyle = asideStyle,
                 accent = theme.accent,
-                echoAt = { start -> echoAt(start, echoes) }
+                echoAt = { start -> echoAt(start, echoes) },
+                partsAt = { start -> parts.colorsAt(start) }
             )
         } else {
             ImasEchoText(
@@ -495,17 +504,68 @@ fun ImasPartStripe(colors: List<String>, modifier: Modifier = Modifier) {
     }
 }
 
+/** 色の線 1 本の太さと、線どうしの隙間、1 字の下に重ねる上限 (iOS と同じ寸法)。 */
+private val PartLineHeight = 2.5.dp
+private val PartLineGap = 1.dp
+private const val PART_LINES_MAX = 6
+
+/**
+ * 1 字の下に重ねる、歌う人の担当色の線 (歌詞タブ・歌詞プレイヤー・タイミング編集の字ごとのセルで使う)。
+ * 歌う人が分からない字には出さない。[slots] を揃えて渡すと、同じ行の中で字ごとの高さが揃う
+ * ([ImasRubyFlowText] がそろえて渡す)。
+ */
+@Composable
+fun ImasPartLines(colors: List<String>, slots: Int = colors.size, modifier: Modifier = Modifier) {
+    val n = min(slots, PART_LINES_MAX)
+    if (n <= 0) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(PartLineGap)) {
+        repeat(n) { i ->
+            val hex = colors.getOrNull(i)
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(PartLineHeight)
+                    .background(if (hex != null) imasTheme(seed = hex).accent else Color.Transparent)
+            )
+        }
+    }
+}
+
+/** 行の途中で歌う人が変わるところに立てる縦の線 (タイミング編集で字を並べたとき)。 */
+@Composable
+fun ImasPartBreakMark(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .padding(horizontal = 2.dp)
+            .width(2.dp)
+            .height(22.dp)
+            .background(DS.ink)
+            .semantics { contentDescription = "ここから歌う人が変わる" }
+    )
+}
+
 /** 行の下に添える歌唱者の名前 (「春香・千早」。iOS `ImasPartNames`)。帯の色だけに頼らず言葉でも出す。 */
 @Composable
-fun ImasPartNames(names: List<String>, modifier: Modifier = Modifier) {
-    if (names.isEmpty()) return
+fun ImasPartNames(names: List<String>, modifier: Modifier = Modifier) = ImasPartNames(groups = listOf(names), modifier = modifier)
+
+/**
+ * 行のひと続きごとの名前 (行の途中で歌う人が変わるところで分け、「→」でつなぐ)。
+ * 1 つだけなら「春香・千早」のまま。
+ */
+@JvmName("ImasPartNamesGrouped")
+@Composable
+fun ImasPartNames(groups: List<List<String>>, modifier: Modifier = Modifier) {
+    val shown = groups.filter { it.isNotEmpty() }
+    if (shown.isEmpty()) return
+    val text = shown.joinToString(" → ") { it.joinToString("・") }
+    val description = "歌唱 " + shown.joinToString("、つづいて ") { it.joinToString("、") }
     Text(
-        names.joinToString("・"),
+        text,
         style = ImasType.text(12.sp),
         color = DS.ink2,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier.semantics { contentDescription = "歌唱 ${names.joinToString("、")}" }
+        modifier = modifier.semantics { contentDescription = description }
     )
 }
 
@@ -1006,15 +1066,21 @@ fun ImasRubyFlowText(
      *  字も曲の色にする (iOS `ImasPlayerLyricLine` の同時コールの印)。 */
     accent: Color? = null,
     /** 各原子の先頭 (コードポイント位置) に掛かる同時コール。歌詞プレイヤーの行でのみ渡す。 */
-    echoAt: ((Int) -> ImasEcho?)? = null
+    echoAt: ((Int) -> ImasEcho?)? = null,
+    /** 各原子の先頭 (コードポイント位置) に掛かる、歌う人の担当色 (字の下に線で引く)。 */
+    partsAt: ((Int) -> List<String>)? = null
 ) {
     val atoms = remember(text) { ImasRubyText.atoms(text) }
     val readingSize = (style.fontSize.value * 0.5f).sp
+    // 行の中の字ごとに色の線の数が違っても、同じ行の中では高さを揃える (そろわないと字が波打つ)。
+    val partsPerAtom = partsAt?.let { fn -> atoms.map { fn(it.start) } }
+    val maxParts = partsPerAtom?.maxOfOrNull { it.size } ?: 0
     androidx.compose.foundation.layout.FlowRow(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        atoms.forEach { atom ->
+        atoms.forEachIndexed { index, atom ->
+            val parts = partsPerAtom?.getOrNull(index) ?: emptyList()
             val highlight = highlightAt?.invoke(atom.start)
             val echo = echoAt?.invoke(atom.start)
             val baseModifier = if (highlight?.background != null) Modifier.background(highlight.background) else Modifier
@@ -1049,10 +1115,63 @@ fun ImasRubyFlowText(
                         atom.char, style = style, fontWeight = weight, fontSize = atomFontSize, color = atomColor,
                         textDecoration = decoration, modifier = echoModifier
                     )
+                    if (maxParts > 0) ImasPartLines(colors = parts, slots = maxParts)
                 }
                 is ImasRubyText.Atom.Ruby -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)
                     Text(atom.base, style = style, fontWeight = weight, color = atomColor, textDecoration = decoration, modifier = echoModifier)
+                    if (maxParts > 0) ImasPartLines(colors = parts, slots = maxParts)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 行を字ごとに並べ、タップで [cursor] (コードポイント位置) を選べるようにする
+ * (タイミング編集のパートの段。iOS `LyricTimingEditorView.partCells` の移植)。
+ * 区切りのある字の前には [ImasPartBreakMark] を立て、字の下には [cast] から引いた
+ * 歌う人の担当色の線を出す (閲覧・歌詞プレイヤーと同じ見せ方)。
+ *
+ * 振り仮名の読み・記号は字として並べない ([ImasRubyText.atoms] が既に除いている)。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ImasPartCells(
+    text: String,
+    segments: List<LyricPartSegment>,
+    cast: LyricPartCast,
+    cursor: Int?,
+    onSelectCursor: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val atoms = remember(text) { ImasRubyText.atoms(text) }
+    val cur = cursor ?: 0
+    val active = segments.firstOrNull { it.start.toInt() <= cur && cur < it.end.toInt() }
+    androidx.compose.foundation.layout.FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        atoms.forEach { atom ->
+            val isBreak = segments.any { it.start.toInt() == atom.start && it.start > 0u }
+            val inActive = active?.let { atom.start >= it.start.toInt() && atom.start < it.end.toInt() } ?: false
+            val who = segments.lastOrNull { atom.start >= it.start.toInt() }?.singers ?: emptyList()
+            val label = when (atom) {
+                is ImasRubyText.Atom.Plain -> atom.char
+                is ImasRubyText.Atom.Ruby -> atom.base
+            }
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() }, indication = null
+                ) { onSelectCursor(atom.start) }
+            ) {
+                if (isBreak) ImasPartBreakMark()
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        label,
+                        style = ImasType.text(17.sp),
+                        color = if (inActive) DS.ink else DS.ink3,
+                        textDecoration = if (atom.start == cursor) androidx.compose.ui.text.style.TextDecoration.Underline else null
+                    )
+                    ImasPartLines(colors = cast.colors(who))
                 }
             }
         }

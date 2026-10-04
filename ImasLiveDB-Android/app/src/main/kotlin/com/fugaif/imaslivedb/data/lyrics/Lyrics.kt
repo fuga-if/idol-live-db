@@ -2,7 +2,11 @@ package com.fugaif.imaslivedb.data.lyrics
 
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.imas_core.LyricPartBreak
+import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricCallEchoesLine
+import uniffi.imas_core.lyricPartSegments
+import uniffi.imas_core.lyricPartUnion
 
 // =============================================================================
 // 歌詞モデル (メモリ専用)。iOS の Models/Lyrics.swift と 1:1。
@@ -106,10 +110,20 @@ data class LyricLine(
     val layer: String?,
     /** パート分け: この行を歌うアイドルの id。空ならまだ分けていない。 */
     val singers: List<String> = emptyList(),
+    /** 行の途中で歌う人が変わるところ (`at` から後ろを `singers` が歌う。昇順)。 */
+    val partBreaks: List<LyricLinePartBreak> = emptyList(),
 ) {
     /** 被せの行か (歌詞プレイヤーで 2 段目に出す行)。判定はコア。 */
     val isOverlay: Boolean
         get() = kind != LyricLineKind.BLANK && uniffi.imas_core.lyricIsOverlayLine(text, layer)
+
+    /** 行を歌う人をぜんぶ (出てくる順)。脇の色の帯・ロック画面に使う。規則はコア。 */
+    val allSingers: List<String>
+        get() = if (partBreaks.isEmpty()) singers else lyricPartUnion(singers, partBreaks.map { it.core })
+
+    /** 行を歌う人ごとのひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。 */
+    val partSegments: List<LyricPartSegment>
+        get() = lyricPartSegments(text.codePointCount(0, text.length).toUInt(), singers, partBreaks.map { it.core })
 
     /** この行のコールが、掛かっている歌詞と同じ文字か (同時、または歌詞の被せの括弧の中に掛かっている)。
      * 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。 */
@@ -129,7 +143,18 @@ data class LyricLine(
             likeCount = o.optInt("likeCount", 0),
             layer = o.optStringOrNull("layer"),
             singers = o.optJSONArray("singers").objectsAsStrings(),
+            partBreaks = o.optJSONArray("partBreaks").objects().map(LyricLinePartBreak::parse),
         )
+    }
+}
+
+/** 行の途中で歌う人が変わるところ 1 つ (`at` は本文のコードポイント位置)。 */
+data class LyricLinePartBreak(val at: Int, val singers: List<String>) {
+    val core: LyricPartBreak get() = LyricPartBreak(at.toUInt(), singers)
+
+    companion object {
+        fun of(core: LyricPartBreak) = LyricLinePartBreak(core.at.toInt(), core.singers)
+        fun parse(o: JSONObject) = LyricLinePartBreak(o.optInt("at", 0), o.optJSONArray("singers").objectsAsStrings())
     }
 }
 

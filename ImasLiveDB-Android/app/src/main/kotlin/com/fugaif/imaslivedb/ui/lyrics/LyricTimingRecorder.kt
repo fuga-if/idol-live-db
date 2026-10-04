@@ -3,10 +3,15 @@ package com.fugaif.imaslivedb.ui.lyrics
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.fugaif.imaslivedb.data.lyrics.LyricLinePartBreak
 import com.fugaif.imaslivedb.data.lyrics.Lyrics
 import com.fugaif.imaslivedb.data.lyrics.LyricsApi
+import com.fugaif.imaslivedb.data.lyrics.PartsLine
 import com.fugaif.imaslivedb.data.lyrics.TimingEntry
+import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricNextRecordable
+import uniffi.imas_core.lyricPartSegments
+import uniffi.imas_core.lyricPartToggleBreak
 
 /**
  * 歌詞行とコールの再生位置 (タイミング) を付ける・直す画面の状態。iOS `LyricTimingRecorder` の移植。
@@ -56,8 +61,14 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     var singers: List<List<String>> by mutableStateOf(lyrics.lines.map { it.singers })
         private set
     private val originalSingers: List<List<String>> = singers
-    /** パートの取り消し用 (history の PARTS と同じ順に、前の歌唱者を積む)。 */
-    private val partsUndo = ArrayDeque<List<String>>()
+    /** 表示順の各行の、途中で歌う人が変わるところ。 */
+    var breaks: List<List<LyricLinePartBreak>> by mutableStateOf(lyrics.lines.map { it.partBreaks })
+        private set
+    private val originalBreaks: List<List<LyricLinePartBreak>> = breaks
+    /** 各行の本文のコードポイント数 (区切りの位置の上限)。 */
+    private val lengths: List<Int> = lyrics.lines.map { it.text.codePointCount(0, it.text.length) }
+    /** パートの取り消し用 (history の PARTS と同じ順に、前の歌唱者と区切りを積む)。 */
+    private val partsUndo = ArrayDeque<Pair<List<String>, List<LyricLinePartBreak>>>()
 
     var lane: Lane by mutableStateOf(Lane.LINES)
 
@@ -98,10 +109,9 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     val isDirty: Boolean
-        get() = starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers ||
-            singers != originalSingers
+        get() = starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers || partsChanged
 
-    private val partsChanged: Boolean get() = singers != originalSingers
+    private val partsChanged: Boolean get() = singers != originalSingers || breaks != originalBreaks
 
     /** 行の被せ指定を切り替える (被せ ⇄ メイン)。括弧の判定より指定が勝つ。 */
     fun setOverlay(lineId: String, overlay: Boolean) {
@@ -110,15 +120,44 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         layers = layers.toMutableList().also { it[i] = if (overlay) "overlay" else "main" }
     }
 
-    /** 行の歌唱者に [idolId] を付け外しする。並びは [order] (原唱者の並び) にそろえる。 */
-    fun toggleSinger(lineId: String, idolId: String, order: List<String>) {
+    /**
+     * 行のひと続き ([segmentStart] が頭、区切りが無ければ 0 = 行まるごと) の歌唱者に [idolId] を
+     * 付け外しする。並びは [order] (原唱者の並び) にそろえる。
+     */
+    fun toggleSinger(lineId: String, idolId: String, order: List<String>, segmentStart: Int = 0) {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0 || kinds[i] != "lyric") return
+        val k = breaks[i].indexOfFirst { it.at == segmentStart }
+        if (segmentStart != 0 && k < 0) return
+        var list = if (k >= 0) breaks[i][k].singers else singers[i]
+        pushPartsUndo(i)
+        list = if (idolId in list) list - idolId else list + idolId
+        list = list.sortedBy { order.indexOf(it).let { idx -> if (idx < 0) Int.MAX_VALUE else idx } }
+        if (k >= 0) {
+            breaks = breaks.toMutableList().also { bl ->
+                bl[i] = bl[i].toMutableList().also { it[k] = it[k].copy(singers = list) }
+            }
+        } else {
+            singers = singers.toMutableList().also { it[i] = list }
+        }
+    }
+
+    /** 行のスカラー位置 [at] に、歌う人の区切りを置く / 外す (置くとその位置の人を引き継ぐ)。規則はコア。 */
+    fun toggleBreak(lineId: String, at: Int) {
         val i = lineIds.indexOf(lineId)
         if (i < 0 || kinds[i] != "lyric") return
         pushPartsUndo(i)
-        var list = singers[i]
-        list = if (idolId in list) list - idolId else list + idolId
-        list = list.sortedBy { order.indexOf(it).let { idx -> if (idx < 0) Int.MAX_VALUE else idx } }
-        singers = singers.toMutableList().also { it[i] = list }
+        val updated = lyricPartToggleBreak(
+            len = lengths[i].toUInt(), singers = singers[i], breaks = breaks[i].map { it.core }, at = at.toUInt()
+        ).map(LyricLinePartBreak::of)
+        breaks = breaks.toMutableList().also { it[i] = updated }
+    }
+
+    /** 行のひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。 */
+    fun segments(lineId: String): List<LyricPartSegment> {
+        val i = lineIds.indexOf(lineId)
+        if (i < 0) return emptyList()
+        return lyricPartSegments(lengths[i].toUInt(), singers[i], breaks[i].map { it.core })
     }
 
     /** 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。 */
@@ -127,19 +166,14 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         if (i < 0) return
         val prev = (i - 1 downTo 0).firstOrNull { kinds[it] == "lyric" } ?: return
         pushPartsUndo(i)
-        singers = singers.toMutableList().also { it[i] = singers[prev] }
+        // 前の行の終わりを歌っている人を、この行の頭に付ける。
+        singers = singers.toMutableList().also { it[i] = breaks[prev].lastOrNull()?.singers ?: singers[prev] }
     }
 
     private fun pushPartsUndo(index: Int) {
         history.addLast(HistoryEntry(Lane.PARTS, index, null, null))
-        partsUndo.addLast(singers[index])
+        partsUndo.addLast(singers[index] to breaks[index])
         lastWasAdjust = false
-    }
-
-    /** 行の歌唱者 (id で引く)。 */
-    fun singers(forLineId: String): List<String> {
-        val i = lineIds.indexOf(forLineId)
-        return if (i >= 0) singers[i] else emptyList()
     }
 
     val canUndo: Boolean get() = history.isNotEmpty()
@@ -238,7 +272,9 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
                 callCursor = last.cursor
             }
             Lane.PARTS -> {
-                singers = singers.toMutableList().also { it[last.index] = partsUndo.removeLastOrNull() ?: emptyList() }
+                val previous = partsUndo.removeLastOrNull()
+                singers = singers.toMutableList().also { it[last.index] = previous?.first ?: emptyList() }
+                breaks = breaks.toMutableList().also { it[last.index] = previous?.second ?: emptyList() }
             }
         }
     }
@@ -252,7 +288,8 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
             api.saveTimings(songId, lines, calls)
             if (partsChanged) {
                 val parts = lineIds.indices.mapNotNull { i ->
-                    if (singers[i].isEmpty()) null else lineIds[i] to singers[i]
+                    if (singers[i].isEmpty() && breaks[i].isEmpty()) null
+                    else PartsLine(lineIds[i], singers[i], breaks[i])
                 }
                 api.saveParts(songId, parts)
             }

@@ -63,7 +63,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
-import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasEcho
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
@@ -390,15 +389,19 @@ private fun LyricsPlayerRow(
             .combinedClickable(onClick = onTap, onDoubleClick = onDoubleTap),
         horizontalArrangement = Arrangement.spacedBy(DS.sp3)
     ) {
-        if (line.singers.isNotEmpty()) ImasPartStripe(colors = cast.colors(line.singers))
         Column(Modifier.weight(1f)) {
             if (line.isOverlay) {
                 val overlay = lyricOverlaySplit(line.text).overlay ?: line.text
                 ImasPlayerOverlayLine(text = overlay, isCurrent = !hasTiming || isOverlayActive, seed = seed)
             } else {
                 val split = lyricOverlaySplit(line.text)
+                val mainText = split.main.ifEmpty { line.text }
+                // 歌う人は字の下に担当色の線で (被せを外した本文の位置に置き直す)。
+                val parts = cast.marks(line, mapRange = if (mainText == line.text) null else { start, end ->
+                    lyricMainRange(line.text, start.toUInt(), end.toUInt())?.let { it.start.toInt() to it.end.toInt() }
+                })
                 ImasPlayerLyricLine(
-                    text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
+                    text = mainText, isCurrent = isCurrent,
                     isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked,
                     // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
                     echoes = line.calls.filter { line.echoes(it) }.mapNotNull { call ->
@@ -406,6 +409,7 @@ private fun LyricsPlayerRow(
                             ImasEcho(start = range.start.toInt(), end = range.end.toInt(), isActive = call.id == activeCallId)
                         }
                     },
+                    parts = parts,
                     seed = seed
                 )
                 val overlayText = split.overlay
@@ -413,7 +417,7 @@ private fun LyricsPlayerRow(
                     ImasPlayerOverlayLine(text = overlayText, isCurrent = isCurrent, seed = seed)
                 }
             }
-            ImasPartNames(names = cast.names(line.singers))
+            ImasPartNames(groups = cast.groups(line))
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは
             // 行に出さず、上の歌詞を点ける)。
             line.calls.filter { !line.echoes(it) }.forEach { call ->

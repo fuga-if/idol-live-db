@@ -65,14 +65,21 @@ class LyricsApi(private val client: WorkerHttpClient) {
     }
 
     /**
-     * 行ごとの歌唱者 (アイドル id) を保存する (PUT /songs/:id/parts。全置換で、
-     * 載せなかった行のパートは消える)。歌詞本文は送らない。
+     * 行ごとの歌唱者 (アイドル id) と、行の途中で歌う人が変わるところ ([breaks]) を保存する
+     * (PUT /songs/:id/parts。全置換で、載せなかった行のパートは消える)。[PartsLine.breaks] が
+     * null ならその行の区切りは送らない (サーバは今の区切りを残す)。歌詞本文は送らない。
      */
-    suspend fun saveParts(songId: String, lines: List<Pair<String, List<String>>>) = withContext(Dispatchers.IO) {
+    suspend fun saveParts(songId: String, lines: List<PartsLine>) = withContext(Dispatchers.IO) {
         val body = JSONObject().put(
             "lines",
-            JSONArray(lines.map { (id, singers) ->
-                JSONObject().put("id", id).put("singers", JSONArray(singers))
+            JSONArray(lines.map { line ->
+                JSONObject().put("id", line.id).put("singers", JSONArray(line.singers)).apply {
+                    line.breaks?.let { breaks ->
+                        put("breaks", JSONArray(breaks.map { b ->
+                            JSONObject().put("at", b.at).put("singers", JSONArray(b.singers))
+                        }))
+                    }
+                }
             })
         )
         check(client.request("PUT", "/songs/${seg(songId)}/parts", body), "パート分けを保存できませんでした")
@@ -98,6 +105,9 @@ class LyricsApi(private val client: WorkerHttpClient) {
 
     private fun seg(s: String) = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 }
+
+/** [LyricsApi.saveParts] に渡す行 1 つ。[breaks] が null ならその行の区切りは送らない (今の区切りを残す)。 */
+data class PartsLine(val id: String, val singers: List<String>, val breaks: List<LyricLinePartBreak>? = null)
 
 /** 行またはコール 1 つの再生位置 (と、行なら被せ指定)。 */
 data class TimingEntry(val id: String, val startMs: Int?, val layer: String? = null) {
