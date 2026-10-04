@@ -45,6 +45,10 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_constructor_textsearchcatalog_new,
     uniffi_imas_core_checksum_func_app_navigation_sections,
     uniffi_imas_core_checksum_func_app_navigation_sections_with_tabs,
+    uniffi_imas_core_checksum_func_play_queue_next_index,
+    uniffi_imas_core_checksum_func_play_queue_previous_index,
+    uniffi_imas_core_checksum_func_playlist_append_songs,
+    uniffi_imas_core_checksum_func_playlist_move_song,
     uniffi_imas_core_checksum_func_tab_bar_choices,
     uniffi_imas_core_checksum_func_normalize_tab_bar_keys,
     uniffi_imas_core_checksum_func_max_tab_bar_count,
@@ -252,6 +256,10 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_sort_maker_estimate_total,
     uniffi_imas_core_checksum_func_sort_maker_replay,
     uniffi_imas_core_checksum_func_sort_maker_share_text,
+    uniffi_imas_core_checksum_func_ticket_application_choices,
+    uniffi_imas_core_checksum_func_ticket_application_from_raw,
+    uniffi_imas_core_checksum_func_ticket_application_label,
+    uniffi_imas_core_checksum_func_ticket_application_raw,
     uniffi_imas_core_checksum_func_tier_list_assign_from_ranking,
     uniffi_imas_core_checksum_func_tier_list_cycle_color,
     uniffi_imas_core_checksum_func_tier_list_max_tiers,
@@ -417,6 +425,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_method_snapshotstore_meta_value,
     uniffi_imas_core_checksum_method_snapshotstore_notification_plan,
     uniffi_imas_core_checksum_method_snapshotstore_now_playing_bar,
+    uniffi_imas_core_checksum_method_snapshotstore_open_ticket_sales,
     uniffi_imas_core_checksum_method_snapshotstore_original_artist_ids_map,
     uniffi_imas_core_checksum_method_snapshotstore_original_song_ids_for_show_cast,
     uniffi_imas_core_checksum_method_snapshotstore_performed_unit_ids,
@@ -501,7 +510,7 @@ fn declared_checksums_match_inbound_exports() {
 
 /// UniFFI が checksum を生やすエクスポートを、inbound のソースから全部拾う。
 ///
-/// - `#[uniffi::export]` + `fn f` → `func_f`
+/// - `#[uniffi::export]` + `fn f` → `func_f` (`#[uniffi::export(default(..))]` も同じ名前)
 /// - `#[uniffi::export]` + `impl T {` → 中の `fn m` ごとに `method_t_m`。
 ///   `#[uniffi::constructor]` が付いたものは `constructor_t_m`
 ///
@@ -530,9 +539,9 @@ fn inbound_export_symbols() -> BTreeSet<String> {
                 if !line.starts_with("#[uniffi::export") {
                     continue;
                 }
-                assert_eq!(
-                    line,
-                    "#[uniffi::export]",
+                // `default(...)` は引数の既定値だけで、シンボル名は変わらない。
+                assert!(
+                    line == "#[uniffi::export]" || line.starts_with("#[uniffi::export(default("),
                     "{}: 引数付きの export はシンボル名が変わるので、このテストの読み方を足すこと",
                     path.display()
                 );
