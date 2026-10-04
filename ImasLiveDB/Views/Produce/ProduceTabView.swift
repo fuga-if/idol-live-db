@@ -263,7 +263,7 @@ struct ProduceTabView: View {
         case .collectedSongs: songListDestination(ids: collectedSongIds, title: "回収した楽曲")
         case .mastery: MasteryView().environment(database)
         case .ledger: LedgerView().environment(database)
-        case .playlists: PlaylistsView()
+        case .playlists: PlaylistsView().environment(database)
         }
     }
 

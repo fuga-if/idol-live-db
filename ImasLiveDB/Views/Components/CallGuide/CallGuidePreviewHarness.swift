@@ -86,6 +86,7 @@ struct CallGuidePreviewHarness: View {
                 .background(DS.bg)
             case .playlist:
                 NavigationStack(path: $playlistPath) { PlaylistsView() }
+                    .environment(AppDatabase.shared)
                     .task {
                         let store = AppContainer.shared.playlists
                         if (try? await store.summaries())?.isEmpty ?? true,
@@ -94,7 +95,8 @@ struct CallGuidePreviewHarness: View {
                                                         songIds: ["765as_colorful_days", "765as_99_nights", "765as_123"])
                         }
                         // 中身の見え方も確かめられるよう、先頭のプレイリストを開いておく。
-                        if let first = try? await store.summaries().first { playlistPath.append(first.playlist) }
+                        if ProcessInfo.processInfo.environment["PLAYLIST_OPEN_FIRST"] == "1",
+                           let first = try? await store.summaries().first { playlistPath.append(first.playlist) }
                     }
             case .sheet:
                 CallEditorSheet(

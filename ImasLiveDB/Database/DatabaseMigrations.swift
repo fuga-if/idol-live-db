@@ -1079,6 +1079,15 @@ enum DatabaseMigrations {
             }
         }
 
+        // v38: 端末のプレイリストと、それを公開した「みんなのプレイリスト」の id の紐づけ。
+        // 公開を差し替える・やめるときに使う。NULL = 公開していない。
+        migrator.registerMigration("v38_playlists_published_id") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(playlists)").map { $0["name"] as String? }
+            if !cols.contains("published_id") {
+                try db.execute(sql: "ALTER TABLE playlists ADD COLUMN published_id TEXT")
+            }
+        }
+
         return migrator
     }
 }

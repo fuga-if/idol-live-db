@@ -9,6 +9,8 @@ protocol PlaylistStoring: Sendable {
     func delete(id: String) async throws
     /// 曲の並びを丸ごと書き直す。
     func setSongIds(playlistId: String, songIds: [String]) async throws
+    /// 公開した「みんなのプレイリスト」の id を覚える (nil で外す)。
+    func setPublishedId(playlistId: String, publishedId: String?) async throws
 }
 
 extension PlaylistStoring {
@@ -17,5 +19,12 @@ extension PlaylistStoring {
         let existing = try await songIds(playlistId: playlistId)
         try await setSongIds(playlistId: playlistId,
                              songIds: playlistAppendSongs(existing: existing, adding: adding))
+    }
+
+    /// みんなのプレイリストを自分のプレイリストとして保存する (端末に写す。以後は別物)。
+    func saveCopy(of playlist: CommunityPlaylist) async throws -> Playlist {
+        let created = try await create(name: playlist.title)
+        try await setSongIds(playlistId: created.id, songIds: playlist.songIds)
+        return created
     }
 }

@@ -12,11 +12,14 @@ struct Playlist: Codable, FetchableRecord, PersistableRecord, Identifiable, Hash
     var name: String
     var createdAt: String
     var updatedAt: String
+    /// 公開した「みんなのプレイリスト」の id。公開していなければ nil。
+    var publishedId: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case publishedId = "published_id"
     }
 }
 

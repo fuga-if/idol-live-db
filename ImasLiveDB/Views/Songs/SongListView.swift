@@ -75,6 +75,8 @@ struct SongListView: View {
     @State private var sortAscending: Bool? = nil
     @State private var showFilter = false
     @State private var sheetDestination: DetailDestination?
+    /// 行の左スワイプ「プレイリスト」で足す曲。
+    @State private var playlistTarget: Song?
     @State private var searchText = SongListView.initialSearchText()
     /// 曲名で絞るか、歌詞で絞るか。歌詞はサーバに問い合わせる。
     @State private var searchMode: SongSearchMode = .title
@@ -239,6 +241,7 @@ struct SongListView: View {
                     .presentationDetents([.medium, .large])
                     .onDisappear { reload() }
                 }
+                .sheet(item: $playlistTarget) { AddToPlaylistSheet(song: $0) }
                 .sheet(item: $sheetDestination) { dest in
                     DetailSheetView(destination: dest)
                         .environment(database)
@@ -822,7 +825,7 @@ struct SongListView: View {
         .onTapGesture {
             sheetDestination = .song(item.song)
         }
-        .masterySwipe(songId: item.song.id)
+        .masterySwipe(songId: item.song.id) { playlistTarget = item.song }
         .listRowInsets(EdgeInsets(top: 0, leading: DS.sp5, bottom: 0, trailing: DS.sp5))
         .listRowBackground(DS.surface)
         .listRowSeparatorTint(DS.sep)

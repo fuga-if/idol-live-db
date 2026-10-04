@@ -14,4 +14,7 @@ struct GRDBPlaylistRepository: PlaylistStoring {
     func setSongIds(playlistId: String, songIds: [String]) async throws {
         try database.setPlaylistSongIds(playlistId: playlistId, songIds: songIds)
     }
+    func setPublishedId(playlistId: String, publishedId: String?) async throws {
+        try database.setPlaylistPublishedId(id: playlistId, publishedId: publishedId)
+    }
 }

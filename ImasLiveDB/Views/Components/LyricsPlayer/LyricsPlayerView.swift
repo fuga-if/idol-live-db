@@ -34,6 +34,7 @@ struct LyricsPlayerView: View {
     @State private var followPausedUntil: Date = .distantPast
     @State private var likeToken = 0
     @State private var startFailed = false
+    @State private var showsAddToPlaylist = false
 
     private var starts: [Int64?] { lyrics.lines.map { $0.startMs.map(Int64.init) } }
     /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られない)。
@@ -61,6 +62,7 @@ struct LyricsPlayerView: View {
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
         .imasTheme(seed: seed)
+        .sheet(isPresented: $showsAddToPlaylist) { AddToPlaylistSheet(song: song) }
     }
 
     // MARK: - 頭
@@ -75,6 +77,10 @@ struct LyricsPlayerView: View {
                 }
             }
             Spacer(minLength: 0)
+            ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .plain) {
+                AppAnalytics.tap("lyrics_player.add_to_playlist")
+                showsAddToPlaylist = true
+            }
             ImasIconButton(systemImage: "metronome", label: "タイミングを編集", size: .small, style: .plain) {
                 onEditTimings()
             }

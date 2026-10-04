@@ -37,6 +37,12 @@ extension AppDatabase {
         }
     }
 
+    func setPlaylistPublishedId(id: String, publishedId: String?) throws {
+        try dbQueue.write { db in
+            try db.execute(sql: "UPDATE playlists SET published_id = ? WHERE id = ?", arguments: [publishedId, id])
+        }
+    }
+
     func deletePlaylist(id: String) throws {
         try dbQueue.write { db in
             try db.execute(sql: "DELETE FROM playlist_items WHERE playlist_id = ?", arguments: [id])

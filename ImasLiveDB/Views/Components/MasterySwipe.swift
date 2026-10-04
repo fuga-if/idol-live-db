@@ -18,6 +18,8 @@ import SwiftUI
 /// (`swipeActions` を使っているのは `CalendarDayDetailView` だけ)。
 struct MasterySwipeActions: ViewModifier {
     let songId: String
+    /// 渡すと、未設定の隣に「プレイリスト」(この曲をプレイリストに足す) を出す。
+    var onAddToPlaylist: (() -> Void)? = nil
     // 既存の作法に合わせて shared を直接見る (environment には注入されていない)。
     // @Observable なので body 内で読めば変更は観測される。
     private var marks: UserMarkService { UserMarkService.shared }
@@ -40,6 +42,12 @@ struct MasterySwipeActions: ViewModifier {
                 // 行ごとにマークへ依存して一覧全体が再評価される。
                 Button(role: .destructive) { set(0) } label: {
                     Label("未設定", systemImage: "minus.circle")
+                }
+                if let onAddToPlaylist {
+                    Button { onAddToPlaylist() } label: {
+                        Label("プレイリスト", systemImage: "text.badge.plus")
+                    }
+                    .tint(DS.ink)
                 }
             }
     }
@@ -68,8 +76,8 @@ struct MasterySwipeActions: ViewModifier {
 
 extension View {
     /// 曲の行に習熟度のスワイプピッカーを付ける。
-    func masterySwipe(songId: String) -> some View {
-        modifier(MasterySwipeActions(songId: songId))
+    func masterySwipe(songId: String, onAddToPlaylist: (() -> Void)? = nil) -> some View {
+        modifier(MasterySwipeActions(songId: songId, onAddToPlaylist: onAddToPlaylist))
     }
 }
 
