@@ -10,8 +10,8 @@ import com.fugaif.imaslivedb.data.lyrics.PartsLine
 import com.fugaif.imaslivedb.data.lyrics.TimingEntry
 import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricNextRecordable
+import uniffi.imas_core.lyricPartPaint
 import uniffi.imas_core.lyricPartSegments
-import uniffi.imas_core.lyricPartToggleBreak
 
 /**
  * 歌詞行とコールの再生位置 (タイミング) を付ける・直す画面の状態。iOS `LyricTimingRecorder` の移植。
@@ -121,36 +121,20 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
     }
 
     /**
-     * 行のひと続き ([segmentStart] が頭、区切りが無ければ 0 = 行まるごと) の歌唱者に [idolId] を
-     * 付け外しする。並びは [order] (原唱者の並び) にそろえる。
+     * 行の字の範囲 [start]..[end] に [idolId] を塗る / 外す (範囲の字がみなその人なら外す)。
+     * 区切りは塗った結果から作り直す。並びは [order] (原唱者の並び) にそろえる。規則はコア
+     * ([lyricPartPaint])。タイミング編集で、歌う人を選んでから歌詞の語をタップ・なぞって塗るのに使う。
      */
-    fun toggleSinger(lineId: String, idolId: String, order: List<String>, segmentStart: Int = 0) {
-        val i = lineIds.indexOf(lineId)
-        if (i < 0 || kinds[i] != "lyric") return
-        val k = breaks[i].indexOfFirst { it.at == segmentStart }
-        if (segmentStart != 0 && k < 0) return
-        var list = if (k >= 0) breaks[i][k].singers else singers[i]
-        pushPartsUndo(i)
-        list = if (idolId in list) list - idolId else list + idolId
-        list = list.sortedBy { order.indexOf(it).let { idx -> if (idx < 0) Int.MAX_VALUE else idx } }
-        if (k >= 0) {
-            breaks = breaks.toMutableList().also { bl ->
-                bl[i] = bl[i].toMutableList().also { it[k] = it[k].copy(singers = list) }
-            }
-        } else {
-            singers = singers.toMutableList().also { it[i] = list }
-        }
-    }
-
-    /** 行のスカラー位置 [at] に、歌う人の区切りを置く / 外す (置くとその位置の人を引き継ぐ)。規則はコア。 */
-    fun toggleBreak(lineId: String, at: Int) {
+    fun paint(lineId: String, start: Int, end: Int, idolId: String, order: List<String>) {
         val i = lineIds.indexOf(lineId)
         if (i < 0 || kinds[i] != "lyric") return
         pushPartsUndo(i)
-        val updated = lyricPartToggleBreak(
-            len = lengths[i].toUInt(), singers = singers[i], breaks = breaks[i].map { it.core }, at = at.toUInt()
-        ).map(LyricLinePartBreak::of)
-        breaks = breaks.toMutableList().also { it[i] = updated }
+        val painted = lyricPartPaint(
+            len = lengths[i].toUInt(), singers = singers[i], breaks = breaks[i].map { it.core },
+            start = maxOf(0, start).toUInt(), end = maxOf(0, end).toUInt(), idol = idolId, order = order
+        )
+        singers = singers.toMutableList().also { it[i] = painted.singers }
+        breaks = breaks.toMutableList().also { it[i] = painted.breaks.map(LyricLinePartBreak::of) }
     }
 
     /** 行のひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。 */

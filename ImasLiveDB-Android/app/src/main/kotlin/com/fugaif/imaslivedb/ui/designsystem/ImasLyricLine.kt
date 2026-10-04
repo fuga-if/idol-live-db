@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -39,8 +41,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -50,11 +55,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toSize
 import com.fugaif.imaslivedb.data.lyrics.CallEmphasis
 import com.fugaif.imaslivedb.data.lyrics.CallTiming
 import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricClap
-import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
 import com.fugaif.imaslivedb.data.lyrics.LyricPartMark
 import com.fugaif.imaslivedb.data.lyrics.colorsAt
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -65,7 +70,7 @@ import com.fugaif.imaslivedb.ui.theme.imasTheme
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import uniffi.imas_core.LyricPartSegment
+import uniffi.imas_core.lyricChunkAt
 import uniffi.imas_core.lyricRubySpans
 
 // =============================================================================
@@ -531,19 +536,6 @@ fun ImasPartLines(colors: List<String>, slots: Int = colors.size, modifier: Modi
     }
 }
 
-/** 行の途中で歌う人が変わるところに立てる縦の線 (タイミング編集で字を並べたとき)。 */
-@Composable
-fun ImasPartBreakMark(modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .padding(horizontal = 2.dp)
-            .width(2.dp)
-            .height(22.dp)
-            .background(DS.ink)
-            .semantics { contentDescription = "ここから歌う人が変わる" }
-    )
-}
-
 /** 行の下に添える歌唱者の名前 (「春香・千早」。iOS `ImasPartNames`)。帯の色だけに頼らず言葉でも出す。 */
 @Composable
 fun ImasPartNames(names: List<String>, modifier: Modifier = Modifier) = ImasPartNames(groups = listOf(names), modifier = modifier)
@@ -567,6 +559,101 @@ fun ImasPartNames(groups: List<List<String>>, modifier: Modifier = Modifier) {
         overflow = TextOverflow.Ellipsis,
         modifier = modifier.semantics { contentDescription = description }
     )
+}
+
+/** [ImasPartsSelectableLine] に敷く、すでに塗ってあるひと続き ([start]..[end])。 */
+data class ImasPartsHighlight(val start: Int, val end: Int, val color: Color)
+
+/**
+ * 行を字 (コードポイント) ごとに並べ、タップ・長押しなぞりで範囲を選ぶ
+ * (タイミング編集のパートの段。iOS `CallGuideSelectableLine` の移植、選べる単位はここでは
+ * コードポイント)。
+ *
+ * - タップ … 触れた字を含む語をまとめて選ぶ (切れ目はコアの `lyricChunkAt` が決める)
+ * - 長押しからなぞる … 語をまたいだ範囲を選ぶ
+ *
+ * 選んだ範囲は [onSelect] (開始, 終了 [終了は含まない]) で返すだけで、実際に塗る/外すかは
+ * 呼び出し側 (筆の人がすでに全部入っていれば外す) が決める。
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ImasPartsSelectableLine(
+    text: String,
+    highlights: List<ImasPartsHighlight>,
+    onSelect: (Int, Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bounds = remember(text) { codePointBounds(text) }
+    val count = bounds.size - 1
+    var containerCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val cellRects = remember(text) { mutableMapOf<Int, Rect>() }
+    var dragRange by remember { mutableStateOf<IntRange?>(null) }
+    val dragColor = imasTheme(seed = null).accent
+
+    fun cellAt(point: Offset): Int? {
+        if (cellRects.isEmpty()) return null
+        cellRects.entries.firstOrNull { it.value.contains(point) }?.let { return it.key }
+        return cellRects.entries.minByOrNull { (_, r) ->
+            val dx = max(max(r.left - point.x, 0f), point.x - r.right)
+            val dy = max(max(r.top - point.y, 0f), point.y - r.bottom)
+            dx * dx + dy * dy
+        }?.key
+    }
+
+    fun commit(range: IntRange) {
+        val start = range.first.coerceIn(0, count)
+        val end = (range.last + 1).coerceIn(0, count)
+        if (start < end) onSelect(start, end)
+    }
+
+    Box(
+        modifier
+            .onGloballyPositioned { containerCoords = it }
+            .pointerInput(text) {
+                detectTapGestures(onTap = { point ->
+                    val index = cellAt(point) ?: return@detectTapGestures
+                    val chunk = lyricChunkAt(text, index.toUInt())
+                    if (chunk != null) onSelect(chunk.start.toInt(), chunk.end.toInt()) else commit(index..index)
+                })
+            }
+            .pointerInput(text) {
+                var origin: Int? = null
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { point -> origin = cellAt(point); dragRange = origin?.let { it..it } },
+                    onDrag = { change, _ ->
+                        val index = cellAt(change.position) ?: return@detectDragGesturesAfterLongPress
+                        val o = origin ?: index
+                        origin = o
+                        dragRange = min(o, index)..max(o, index)
+                    },
+                    onDragEnd = { dragRange?.let { commit(it) }; dragRange = null; origin = null },
+                    onDragCancel = { dragRange = null; origin = null }
+                )
+            }
+    ) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+            for (cp in 0 until count) {
+                val cellText = text.substring(bounds[cp], bounds[cp + 1])
+                val background = when {
+                    dragRange?.contains(cp) == true -> dragColor.copy(alpha = 0.45f)
+                    else -> highlights.lastOrNull { cp >= it.start && cp < it.end }?.color?.copy(alpha = 0.3f)
+                        ?: Color.Transparent
+                }
+                Text(
+                    cellText,
+                    style = ImasType.text(17.sp),
+                    color = DS.ink,
+                    modifier = Modifier
+                        .background(background)
+                        .onGloballyPositioned { coords ->
+                            val parent = containerCoords ?: return@onGloballyPositioned
+                            val pos = parent.localPositionOf(coords, Offset.Zero)
+                            cellRects[cp] = Rect(pos, coords.size.toSize())
+                        }
+                )
+            }
+        }
+    }
 }
 
 // MARK: - 手拍子記号 (コール表)
@@ -1121,57 +1208,6 @@ fun ImasRubyFlowText(
                     Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)
                     Text(atom.base, style = style, fontWeight = weight, color = atomColor, textDecoration = decoration, modifier = echoModifier)
                     if (maxParts > 0) ImasPartLines(colors = parts, slots = maxParts)
-                }
-            }
-        }
-    }
-}
-
-/**
- * 行を字ごとに並べ、タップで [cursor] (コードポイント位置) を選べるようにする
- * (タイミング編集のパートの段。iOS `LyricTimingEditorView.partCells` の移植)。
- * 区切りのある字の前には [ImasPartBreakMark] を立て、字の下には [cast] から引いた
- * 歌う人の担当色の線を出す (閲覧・歌詞プレイヤーと同じ見せ方)。
- *
- * 振り仮名の読み・記号は字として並べない ([ImasRubyText.atoms] が既に除いている)。
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun ImasPartCells(
-    text: String,
-    segments: List<LyricPartSegment>,
-    cast: LyricPartCast,
-    cursor: Int?,
-    onSelectCursor: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val atoms = remember(text) { ImasRubyText.atoms(text) }
-    val cur = cursor ?: 0
-    val active = segments.firstOrNull { it.start.toInt() <= cur && cur < it.end.toInt() }
-    androidx.compose.foundation.layout.FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-        atoms.forEach { atom ->
-            val isBreak = segments.any { it.start.toInt() == atom.start && it.start > 0u }
-            val inActive = active?.let { atom.start >= it.start.toInt() && atom.start < it.end.toInt() } ?: false
-            val who = segments.lastOrNull { atom.start >= it.start.toInt() }?.singers ?: emptyList()
-            val label = when (atom) {
-                is ImasRubyText.Atom.Plain -> atom.char
-                is ImasRubyText.Atom.Ruby -> atom.base
-            }
-            Row(
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() }, indication = null
-                ) { onSelectCursor(atom.start) }
-            ) {
-                if (isBreak) ImasPartBreakMark()
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        label,
-                        style = ImasType.text(17.sp),
-                        color = if (inActive) DS.ink else DS.ink3,
-                        textDecoration = if (atom.start == cursor) androidx.compose.ui.text.style.TextDecoration.Underline else null
-                    )
-                    ImasPartLines(colors = cast.colors(who))
                 }
             }
         }
