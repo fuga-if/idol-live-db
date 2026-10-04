@@ -53,18 +53,21 @@ export function convertLinesToRubyNotation<L extends RubyLine>(lines: L[]): { li
 export function listRuby(text: string): Array<{ at: number; base: string; ruby: string }> {
   const chars = Array.from(text);
   const out: Array<{ at: number; base: string; ruby: string }> = [];
+  const kanji = new RegExp(`[${KANJI}]`, "u");
   let segmentStart = 0;
-  for (let i = 0; i < chars.length; i++) {
-    if (chars[i] !== "《") continue;
-    const close = chars.indexOf("》", i + 1);
-    if (close < 0) break;
-    const marker = chars.lastIndexOf("｜", i);
-    let start = i;
+  for (let j = 0; j < chars.length; j++) {
+    if (chars[j] !== "》") continue;
+    // 閉じの直前の「《」(いちばん内側) と組にする (コアの ruby_spans と同じ読み方)。
+    const open = chars.lastIndexOf("《", j);
+    if (open < segmentStart) continue;
+    const marker = chars.lastIndexOf("｜", open);
+    let start = open;
     if (marker >= segmentStart) start = marker + 1;
-    else while (start > segmentStart && new RegExp(`[${KANJI}]`, "u").test(chars[start - 1])) start--;
-    out.push({ at: i, base: chars.slice(start, i).join(""), ruby: chars.slice(i + 1, close).join("") });
-    segmentStart = close + 1;
-    i = close;
+    else while (start > segmentStart && kanji.test(chars[start - 1])) start--;
+    if (start < open && open + 1 < j) {
+      out.push({ at: open, base: chars.slice(start, open).join(""), ruby: chars.slice(open + 1, j).join("") });
+      segmentStart = j + 1;
+    }
   }
   return out;
 }
