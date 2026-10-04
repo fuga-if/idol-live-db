@@ -47,17 +47,25 @@ struct LyricsPlayerView: View {
     private var hasTiming: Bool { lyricHasTiming(starts: starts) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp4)
-                .padding(.bottom, DS.sp3)
-            lyricsScroll
-            controls
-                .padding(.horizontal, DS.sp5)
-                .padding(.bottom, DS.sp4)
-        }
-        .background(DS.bg)
+        // 歌詞は画面いっぱいに流し、頭と下の操作はその上に浮かべる (iOS 26 は下の操作がガラスで、
+        // 後ろを流れる歌詞が透けて見える)。紙面の歌詞そのものは平らなまま。
+        lyricsScroll
+            .safeAreaInset(edge: .top, spacing: 0) {
+                header
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.top, DS.sp4)
+                    .padding(.bottom, DS.sp3)
+                    .background(DS.bg)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                controls
+                    .padding(.horizontal, DS.sp4)
+                    .padding(.vertical, DS.sp4)
+                    .imasFloatingChrome()
+                    .padding(.horizontal, DS.sp3)
+                    .padding(.bottom, DS.sp2)
+            }
+            .background(DS.bg)
         .task { await startIfNeeded() }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
@@ -77,14 +85,14 @@ struct LyricsPlayerView: View {
                 }
             }
             Spacer(minLength: 0)
-            ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .plain) {
+            ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .glass) {
                 AppAnalytics.tap("lyrics_player.add_to_playlist")
                 showsAddToPlaylist = true
             }
-            ImasIconButton(systemImage: "metronome", label: "タイミングを編集", size: .small, style: .plain) {
+            ImasIconButton(systemImage: "metronome", label: "タイミングを編集", size: .small, style: .glass) {
                 onEditTimings()
             }
-            ImasIconButton(systemImage: "chevron.down", label: "閉じる", size: .small) { dismiss() }
+            ImasIconButton(systemImage: "chevron.down", label: "閉じる", size: .small, style: .glass) { dismiss() }
         }
     }
 

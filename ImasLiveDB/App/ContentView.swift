@@ -303,6 +303,8 @@ private struct AdaptiveRootTabs: View {
         .tabViewStyle(.sidebarAdaptable)
         // 広い画面は最初からサイドバーで開く (タブバーへの切替はツールバーのボタンで残る)。
         .defaultAdaptableTabBarPlacement(.sidebar)
+        // iOS 26.1 以降の iPhone は、再生中バーをタブバーの上に浮く枠 (OS のガラス) に出す。
+        .nowPlayingTabAccessory()
         // iPad の画面分割などで狭くなったとき、サイドバーだけの行き先に居たら
         // 同じ画面の入口があるプロデュースへ戻す (空の選択を残さない)。
         .onChange(of: sizeClass) { _, newValue in

@@ -189,6 +189,11 @@ struct ImasIconButton: View {
         case filled
         /// 地なし。
         case plain
+        /// 浮いている枠の上の操作 (歌詞プレイヤーの再生ボタン群など)。iOS 26 は Liquid Glass の丸、
+        /// それより前は `tinted` と同じ。紙面の中のボタンには使わない (ガラスは枠だけ)。
+        case glass
+        /// 同じく、その枠の主の操作 (再生)。iOS 26 は墨を差したガラス、それより前は `filled`。
+        case glassProminent
     }
 
     let systemImage: String
@@ -200,6 +205,45 @@ struct ImasIconButton: View {
     let action: () -> Void
 
     var body: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *), style == .glass || style == .glassProminent {
+            glassButton
+        } else {
+            flatButton
+        }
+        #else
+        flatButton
+        #endif
+    }
+
+    #if compiler(>=6.2)
+    @available(iOS 26, *)
+    @ViewBuilder private var glassButton: some View {
+        let button = Button {
+            guard !isLoading else { return }
+            action()
+        } label: {
+            ZStack {
+                Image(systemName: systemImage).opacity(isLoading ? 0 : 1)
+                if isLoading { ProgressView().controlSize(.small) }
+            }
+            .font(size.iconFont)
+            .frame(width: size.diameter - 12, height: size.diameter - 12)
+        }
+        .buttonBorderShape(.circle)
+        .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+        .allowsHitTesting(!isLoading)
+        .accessibilityLabel(label)
+        .accessibilityValue(isLoading ? "処理中" : "")
+        if style == .glassProminent {
+            button.buttonStyle(.glassProminent).tint(DS.sys)
+        } else {
+            button.buttonStyle(.glass).tint(DS.ink)
+        }
+    }
+    #endif
+
+    private var flatButton: some View {
         Button {
             // 読み込み中は VoiceOver・スイッチコントロールからの実行も止める。
             guard !isLoading else { return }
@@ -226,16 +270,16 @@ struct ImasIconButton: View {
 
     private var bg: Color {
         switch style {
-        case .tinted: return DS.fill
-        case .filled: return DS.sys
+        case .tinted, .glass: return DS.fill
+        case .filled, .glassProminent: return DS.sys
         case .plain: return .clear
         }
     }
 
     private var fg: Color {
         switch style {
-        case .tinted: return DS.ink
-        case .filled: return DS.onSys
+        case .tinted, .glass: return DS.ink
+        case .filled, .glassProminent: return DS.onSys
         case .plain: return DS.ink2
         }
     }

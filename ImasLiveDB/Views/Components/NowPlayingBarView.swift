@@ -48,7 +48,17 @@ final class NowPlayingModel {
 /// 何を出すかの判断はコア (`imas-core` の `now_playing`) が持つ。ここは
 /// [`NowPlayingModel`] が持つ 1 枚を描くだけで、名義の組み立ても試聴の書き分けもしない。
 struct NowPlayingBarView: View {
+    enum Placement {
+        /// タブの中身の下端に差し込む帯 (iOS 25 以前・iPad のサイドバー)。
+        case inset
+        /// iOS 26 のタブバーの上に浮く枠 (`tabViewBottomAccessory`)。地は OS のガラス。
+        case accessory
+    }
+    var placement: Placement = .inset
+
     private var model: NowPlayingModel { NowPlayingModel.shared }
+    /// 枠が畳まれてタブバーの中に入ったとき (`.inline`) は、曲名と再生だけにする。
+    @Environment(\.nowPlayingIsInline) private var isInline
     @State private var destination: DetailDestination?
     @State private var showsLyricsPlayer = false
     /// 鳴っている曲の歌詞 (歌詞タブが預けたとき)。あれば今の行を出し、タップで歌詞プレイヤーを開く。
@@ -79,12 +89,12 @@ struct NowPlayingBarView: View {
 
     private func barContent(_ bar: NowPlayingBar) -> some View {
         VStack(spacing: 0) {
-            ImasRowDivider()
+            if placement == .inset { ImasRowDivider() }
 
             HStack(spacing: DS.sp3) {
                 ArtworkImageView(
                     url: bar.artworkUrl.flatMap(URL.init(string:)),
-                    size: Self.artworkSize,
+                    size: placement == .accessory ? 30 : Self.artworkSize,
                     songTitle: bar.title,
                     // seed は色 hex。ブランド ID をそのまま渡すと色として読まれる (P5-04)。
                     seed: BrandColors.hex(for: model.song?.brandId)
@@ -98,7 +108,9 @@ struct NowPlayingBarView: View {
                         .font(.imasSubhead.weight(.medium))
                         .foregroundStyle(DS.ink)
                         .lineLimit(1)
-                    if let entry = lyricsEntry, lyricHasTiming(starts: entry.lyrics.lines.map { $0.startMs.map(Int64.init) }) {
+                    if isInline {
+                        EmptyView()
+                    } else if let entry = lyricsEntry, lyricHasTiming(starts: entry.lyrics.lines.map { $0.startMs.map(Int64.init) }) {
                         NowPlayingLyricLine(entry: entry) { subtitleLine(bar) }
                     } else {
                         subtitleLine(bar)
@@ -107,7 +119,7 @@ struct NowPlayingBarView: View {
 
                 Spacer(minLength: 0)
 
-                if MusicKitService.shared.hasQueue {
+                if MusicKitService.shared.hasQueue && !isInline {
                     ImasIconButton(systemImage: "backward.fill", label: "前の曲", size: .regular, style: .plain) {
                         MusicKitService.shared.skipToPrevious()
                     }
@@ -132,10 +144,10 @@ struct NowPlayingBarView: View {
                     .disabled(!MusicKitService.shared.canSkipToNext)
                 }
             }
-            .padding(.horizontal, DS.sp4)
-            .padding(.vertical, DS.sp3)
+            .padding(.horizontal, placement == .accessory ? DS.sp3 : DS.sp4)
+            .padding(.vertical, placement == .accessory ? DS.sp1 : DS.sp3)
         }
-        .background(.bar)
+        .background(placement == .inset ? AnyShapeStyle(.bar) : AnyShapeStyle(.clear))
         .contentShape(Rectangle())
         .onTapGesture {
             if lyricsEntry != nil || MusicKitService.shared.hasQueue {
@@ -228,6 +240,71 @@ extension View {
     /// タブバー寄り (下) が再生中バー。
     func bottomBarsInset() -> some View {
         safeAreaInset(edge: .bottom, spacing: 0) { SyncStatusBar() }
-            .safeAreaInset(edge: .bottom, spacing: 0) { NowPlayingBarView() }
+            .safeAreaInset(edge: .bottom, spacing: 0) { NowPlayingInsetSlot() }
+    }
+
+    /// iOS 26.1 以降の iPhone では、再生中バーをタブバーの上に浮く枠 (OS のガラス) に出す。
+    /// タブの中身の下端の帯 (`bottomBarsInset`) は、そのとき出さない。
+    func nowPlayingTabAccessory() -> some View {
+        modifier(NowPlayingTabAccessory())
+    }
+}
+
+/// 再生中バーをタブバーの上の枠に出すか (iOS 26.1 以降・狭い画面)。帯と枠の二重出しを防ぐ判断を 1 か所に。
+private func usesNowPlayingAccessory(_ sizeClass: UserInterfaceSizeClass?) -> Bool {
+    #if compiler(>=6.2)
+    if #available(iOS 26.1, *) { return sizeClass == .compact }
+    #endif
+    return false
+}
+
+private struct NowPlayingInsetSlot: View {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    var body: some View {
+        if !usesNowPlayingAccessory(sizeClass) { NowPlayingBarView() }
+    }
+}
+
+private struct NowPlayingTabAccessory: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.1, *), usesNowPlayingAccessory(sizeClass) {
+            content
+                .tabViewBottomAccessory(isEnabled: NowPlayingModel.shared.bar != nil) {
+                    NowPlayingAccessoryContent()
+                }
+                // 下へ読み進めるとタブバーを畳み、再生中の枠がその中に入る (ミュージックアプリと同じ)。
+                .tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+}
+
+#if compiler(>=6.2)
+@available(iOS 26.1, *)
+private struct NowPlayingAccessoryContent: View {
+    @Environment(\.tabViewBottomAccessoryPlacement) private var accessoryPlacement
+    var body: some View {
+        NowPlayingBarView(placement: .accessory)
+            .environment(\.nowPlayingIsInline, accessoryPlacement == .inline)
+    }
+}
+#endif
+
+private struct NowPlayingIsInlineKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// 再生中の枠がタブバーの中に畳まれているか。
+    fileprivate var nowPlayingIsInline: Bool {
+        get { self[NowPlayingIsInlineKey.self] }
+        set { self[NowPlayingIsInlineKey.self] = newValue }
     }
 }
