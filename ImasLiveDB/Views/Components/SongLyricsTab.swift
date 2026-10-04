@@ -828,6 +828,7 @@ struct SongLyricsTab: View {
                         }
                     )
                     .opacity(structureBusyLineId == line.id ? 0.4 : 1)
+                    rubyToggles(line)
                     if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
                         HStack {
                             Spacer(minLength: 0)
@@ -852,6 +853,41 @@ struct SongLyricsTab: View {
                 marker(line.text)
             case .blank:
                 Color.clear.frame(height: DS.sp5)
+            }
+        }
+    }
+
+    /// 行の中の振り仮名 (《》) と、漢字の直後の括弧を並べて、振り仮名にする / やめるを選ばせる。
+    @ViewBuilder
+    private func rubyToggles(_ line: LyricLine) -> some View {
+        let scalars = Array(line.text.unicodeScalars)
+        let rubies = lyricRubySpans(text: line.text)
+        let rubyOpens = Set(rubies.map { Int($0.open) })
+        // 括弧で書いてあり、直前が漢字のもの (振り仮名にできる候補)。
+        let candidates = scalars.indices.filter { k in
+            (scalars[k] == "（" || scalars[k] == "(") && k > 0
+                && scalars[k - 1].properties.isIdeographic
+        }
+        let items: [(at: Int, isRuby: Bool)] =
+            rubies.map { (Int($0.open), true) } + candidates.filter { !rubyOpens.contains($0) }.map { ($0, false) }
+        if !items.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: DS.sp2) {
+                    ForEach(items.sorted { $0.at < $1.at }, id: \.at) { item in
+                        let inner = String(String.UnicodeScalarView(scalars[(item.at + 1)...].prefix {
+                            !["）", ")", "》"].contains($0)
+                        }))
+                        ImasButton(title: item.isRuby ? "「\(inner)」をルビにしない" : "「\(inner)」をルビにする",
+                                   systemImage: item.isRuby ? "textformat" : "textformat.superscript",
+                                   role: .plain, size: .small) {
+                            Task {
+                                await changeStructure(line.id, item.isRuby ? .unruby(lineId: line.id, at: item.at)
+                                                                            : .ruby(lineId: line.id, at: item.at))
+                            }
+                        }
+                        .disabled(structureBusyLineId != nil)
+                    }
+                }
             }
         }
     }

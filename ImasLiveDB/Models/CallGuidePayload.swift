@@ -130,6 +130,10 @@ struct LyricStructurePayload: Encodable, Sendable {
     static func split(lineId: String, at: Int) -> Self {
         Self(op: "split", lineId: lineId, at: at)
     }
+
+    /// スカラー位置 `at` の括弧を振り仮名 (《》) にする / 振り仮名をやめて括弧に戻す。文字数は変わらない。
+    static func ruby(lineId: String, at: Int) -> Self { Self(op: "ruby", lineId: lineId, at: at) }
+    static func unruby(lineId: String, at: Int) -> Self { Self(op: "unruby", lineId: lineId, at: at) }
 }
 
 /// `PUT /songs/{song_id}/parts` のリクエストボディ。行ごとの歌唱者 (アイドル id) だけを送る。

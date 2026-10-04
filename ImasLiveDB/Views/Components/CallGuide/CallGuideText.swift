@@ -77,7 +77,7 @@ enum CallGuideText {
             cursor = end
         }
         var result = AttributedString()
-        // 振り仮名 (漢字の直後の、かなだけの括弧) は括弧を外して右肩に小さく乗せる。位置はスカラーのまま。
+        // 振り仮名 (《》 記法) は記号を外して右肩に小さく乗せる。位置はスカラーのまま。
         for run in ImasRubyText.runs(text) {
             var k = run.range.lowerBound
             while k < run.range.upperBound {

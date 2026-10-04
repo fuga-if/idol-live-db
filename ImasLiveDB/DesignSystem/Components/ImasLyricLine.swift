@@ -452,8 +452,8 @@ struct ImasPartNames: View {
 
 // MARK: - 振り仮名 (ルビ)
 
-/// 歌詞の振り仮名 (「五輪咲（ごりん）」の括弧) を、括弧を外して親字の右肩に小さく乗せる。
-/// どの括弧が振り仮名かはコア (`lyricRubySpans`) が決める。被せの括弧はここでは触らない。
+/// 歌詞の振り仮名 (本文の記法は `五輪咲《ごりん》` / `｜ダミー《だみ》`) を、記号を外して親字の右肩に
+/// 小さく乗せる。読み方はコア (`lyricRubySpans`) が持つ。被せの括弧はここでは触らない。
 ///
 /// ⚠️ 歌詞の本文を扱う。組み立てた文字列を保存・共有しないこと (`Models/Lyrics.swift` 冒頭)。
 enum ImasRubyText {
@@ -472,6 +472,7 @@ enum ImasRubyText {
             guard open < close, close <= count else { continue }
             hidden[open] = true
             hidden[close - 1] = true
+            if let marker = span.marker, Int(marker) < count { hidden[Int(marker)] = true }
             for k in (open + 1)..<(close - 1) { ruby[k] = true }
         }
         var out: [Run] = []
