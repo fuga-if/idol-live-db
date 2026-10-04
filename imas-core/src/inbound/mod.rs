@@ -78,6 +78,7 @@ pub mod fuzzy_search;
 pub mod lyric_chunks;
 pub mod lyric_sync;
 pub mod play_queue;
+pub mod next_song;
 pub mod performance_stats;
 pub mod gallery_manifest;
 pub mod pending_favorites;
