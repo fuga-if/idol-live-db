@@ -1,9 +1,9 @@
 package com.fugaif.imaslivedb.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,7 +39,7 @@ import com.fugaif.imaslivedb.player.LyricsSession
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
-import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.imasFloatingChrome
 import com.fugaif.imaslivedb.ui.lyrics.LyricsPlayerScreen
 import com.fugaif.imaslivedb.ui.lyrics.NoLyricsFullPlayerScreen
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -61,9 +61,13 @@ import uniffi.imas_core.NowPlayingKind
  *
  * Android には Apple Music のフル尺再生が無い (`AudioPreviewManager` は 30 秒試聴だけ) ので
  * 種別は常に [NowPlayingKind.PREVIEW]。
+ *
+ * ナビゲーションバーの上に浮く枠 (iOS の `tabViewBottomAccessory` と対)。API 31 以降は
+ * [imasFloatingChrome] で後ろの中身をぼかすガラスにする ([modifier] の呼び出し元が
+ * `imasHazeSource` で中身を供えていること)。
  */
 @Composable
-fun NowPlayingBar(onSongClick: (String) -> Unit) {
+fun NowPlayingBar(onSongClick: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val playback by AudioPreviewManager.playbackState.collectAsState()
     var bar by remember { mutableStateOf<NowPlayingBarData?>(null) }
@@ -111,8 +115,7 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
     val fullEntry = loadedSongId?.let { id -> sessionEntry?.takeIf { it.song.id == id } }
 
     if (fullEntry != null) {
-        Column(modifier = Modifier.fillMaxWidth().background(DS.surface)) {
-            ImasRowDivider()
+        NowPlayingChrome(modifier) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
@@ -175,8 +178,7 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
 
     val noLyrics = noLyricsSong
     if (noLyrics != null) {
-        Column(modifier = Modifier.fillMaxWidth().background(DS.surface)) {
-            ImasRowDivider()
+        NowPlayingChrome(modifier) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
@@ -219,9 +221,7 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
 
     val current = bar ?: return
 
-    Column(modifier = Modifier.fillMaxWidth().background(DS.surface)) {
-        ImasRowDivider()
-
+    NowPlayingChrome(modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
@@ -248,6 +248,23 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
             )
         }
     }
+}
+
+/**
+ * 再生中バーの浮いている枠。ナビゲーションバーの上に小さい隙間を空けて浮く、角丸の面
+ * (iOS の `tabViewBottomAccessory` と対)。API 31 以降は [imasFloatingChrome] のガラスで、
+ * 後ろの中身 (呼び出し元が `imasHazeSource` で供えていれば) が透けて見える。
+ */
+@Composable
+private fun NowPlayingChrome(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .padding(horizontal = DS.Space.screen)
+            .padding(bottom = DS.sp2)
+            .imasFloatingChrome(),
+        content = content
+    )
 }
 
 /** 1 行目の曲名。試聴・フル再生の両方のバーで使う (ここ 1 箇所だけ手書きの文字スタイル)。 */

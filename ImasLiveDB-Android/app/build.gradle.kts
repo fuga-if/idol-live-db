@@ -231,6 +231,10 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
+    // 浮いている枠のガラス (歌詞プレイヤーの操作面・再生中バー)。iOS Liquid Glass (ImasGlass.swift) の対。
+    implementation(libs.haze)
+    implementation(libs.haze.materials)
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

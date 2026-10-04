@@ -10,7 +10,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import uniffi.imas_core.AppDestination
 import uniffi.imas_core.appNavigationSectionsWithTabs
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -32,6 +31,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fugaif.imaslivedb.ui.components.NowPlayingBar
+import com.fugaif.imaslivedb.ui.designsystem.LocalImasHaze
+import com.fugaif.imaslivedb.ui.designsystem.imasHazeSource
 import com.fugaif.imaslivedb.ui.edit.RecentEditsScreen
 import com.fugaif.imaslivedb.ui.events.CostumeShowsScreen
 import com.fugaif.imaslivedb.ui.events.EventDetailScreen
@@ -99,6 +100,7 @@ import com.fugaif.imaslivedb.ui.units.UnitDetailScreen
 import com.fugaif.imaslivedb.ui.search.CrossTabSearch
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.ScaffoldDefaults
+import dev.chrisbanes.haze.HazeState
 
 /**
  * 回収した楽曲一覧のルート。件数が端末ローカルのマークから毎回導出されるので、
@@ -160,18 +162,10 @@ fun AppNavigation() {
         Scaffold(
             contentWindowInsets = if (stage) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
             bottomBar = {
-                // 再生中バーはナビゲーションバーの真上。鳴っている間だけ出る。
-                // タップした曲は「楽曲」タブの詳細で開く (どのタブから鳴らしても行き先は同じ)。
-                // ステージの間は出さない (イントロの出題曲の名前とジャケが見えてしまう)。
-                Column {
-                    if (!stage) NowPlayingBar(onSongClick = { songId ->
-                        current = AppDestination.SONGS
-                        navControllers.getValue(AppDestination.SONGS)
-                            .navigate(NavRoutes.SongDetail.createRoute(songId))
-                    })
-                    if (!wide && !BottomBarVisibility.isHidden) {
-                        BottomNavBar(items = tabItems, current = current, onSelect = { current = it })
-                    }
+                // ナビゲーションバー本体 (地は平らなまま)。再生中バーはここに相乗りせず、
+                // 中身の上に浮く枠として下で重ねる (ステージの間は出さない)。
+                if (!wide && !BottomBarVisibility.isHidden) {
+                    BottomNavBar(items = tabItems, current = current, onSelect = { current = it })
                 }
             }
         ) { innerPadding ->
@@ -183,9 +177,29 @@ fun AppNavigation() {
                 BackHandler(enabled = offTab && navControllers.getValue(current).previousBackStackEntry == null) {
                     current = AppDestination.PRODUCE
                 }
+                // 浮いている再生中バーが後ろの中身をぼかすための器 (API 31 以降)。
+                val hazeState = remember { HazeState() }
                 // 行き先ごとに NavHost を持つので戻る履歴は独立。表示中の 1 つだけ組む。
-                CompositionLocalProvider(LocalOpenDestination provides { current = it }) {
-                    DestinationNavHost(current, navControllers.getValue(current))
+                CompositionLocalProvider(
+                    LocalOpenDestination provides { current = it },
+                    LocalImasHaze provides hazeState
+                ) {
+                    Box(Modifier.fillMaxSize().imasHazeSource()) {
+                        DestinationNavHost(current, navControllers.getValue(current))
+                    }
+                }
+                // 再生中バーはナビゲーションバーの真上に浮く枠。鳴っている間だけ出る。
+                // タップした曲は「楽曲」タブの詳細で開く (どのタブから鳴らしても行き先は同じ)。
+                // ステージの間は出さない (イントロの出題曲の名前とジャケが見えてしまう)。
+                if (!stage) {
+                    NowPlayingBar(
+                        onSongClick = { songId ->
+                            current = AppDestination.SONGS
+                            navControllers.getValue(AppDestination.SONGS)
+                                .navigate(NavRoutes.SongDetail.createRoute(songId))
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
                 }
             }
         }

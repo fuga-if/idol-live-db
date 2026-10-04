@@ -4,7 +4,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,16 +29,20 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -59,12 +65,16 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerOverlayLine
+import com.fugaif.imaslivedb.ui.designsystem.LocalImasHaze
+import com.fugaif.imaslivedb.ui.designsystem.imasFloatingChrome
+import com.fugaif.imaslivedb.ui.designsystem.imasHazeSource
 import com.fugaif.imaslivedb.ui.designsystem.imasLyricClock
 import com.fugaif.imaslivedb.ui.designsystem.lyricColor
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasTheme
+import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import uniffi.imas_core.lyricActiveCall
@@ -160,108 +170,136 @@ fun LyricsPlayerScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().background(DS.bg)) {
-        // 頭
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp4),
-            horizontalArrangement = Arrangement.spacedBy(DS.sp4),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ArtworkImage(url = song.artworkUrl, size = 52.dp, previewUrl = null, songTitle = song.title, songId = song.id, seed = seed, brand = song.brandId)
-            Column(Modifier.weight(1f)) {
-                ImasText(song.title, ImasTextRole.ROW_TITLE, maxLines = 1)
-                if (!artistLine.isNullOrEmpty()) ImasText(artistLine, ImasTextRole.ROW_SUBTITLE, maxLines = 1)
-            }
-            ImasIconButton(
-                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                label = "プレイリストに追加",
-                onClick = { showsAddToPlaylist = true },
-                style = ImasIconButtonStyle.PLAIN
-            )
-            ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
-            ImasIconButton(icon = Icons.Filled.ExpandMore, label = "閉じる", onClick = onClose, style = ImasIconButtonStyle.PLAIN)
-        }
+    // 歌詞は画面いっぱいに流し、頭と下の操作はその上に浮かべる (API 31 以降は下の操作がガラスで、
+    // 後ろを流れる歌詞が透けて見える)。紙面の歌詞そのものは平らなまま。iOS `LyricsPlayerView` と対。
+    Box(Modifier.fillMaxSize().background(DS.bg)) {
+        val hazeState = remember { HazeState() }
+        var headerHeightPx by remember { mutableIntStateOf(0) }
+        var controlsHeightPx by remember { mutableIntStateOf(0) }
+        val density = LocalDensity.current
 
-        // 歌詞
-        val listState = rememberLazyListState()
-        LaunchedEffect(activeLineId) {
-            val id = activeLineId ?: return@LaunchedEffect
-            val index = lyrics.lines.indexOfFirst { it.id == id }
-            if (index >= 0) listState.animateScrollToItem(maxOf(0, index - 1))
-        }
-        LazyColumn(Modifier.weight(1f).padding(horizontal = DS.sp5), state = listState) {
-            item {
-                if (!hasTiming) {
-                    Column(Modifier.padding(vertical = DS.sp4)) {
-                        ImasNote("この曲はまだ行の時刻が記録されていないので、追従できません。")
-                        Spacer(Modifier.height(DS.sp3))
-                        ImasButton(title = "タイミングを記録する", onClick = onEditTimings, role = ImasButtonRole.SECONDARY)
+        CompositionLocalProvider(LocalImasHaze provides hazeState) {
+            // 歌詞
+            val listState = rememberLazyListState()
+            LaunchedEffect(activeLineId) {
+                val id = activeLineId ?: return@LaunchedEffect
+                val index = lyrics.lines.indexOfFirst { it.id == id }
+                if (index >= 0) listState.animateScrollToItem(maxOf(0, index - 1))
+            }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().imasHazeSource(),
+                state = listState,
+                contentPadding = PaddingValues(
+                    start = DS.sp5,
+                    end = DS.sp5,
+                    top = with(density) { headerHeightPx.toDp() },
+                    bottom = with(density) { controlsHeightPx.toDp() } + DS.sp3
+                )
+            ) {
+                item {
+                    if (!hasTiming) {
+                        Column(Modifier.padding(vertical = DS.sp4)) {
+                            ImasNote("この曲はまだ行の時刻が記録されていないので、追従できません。")
+                            Spacer(Modifier.height(DS.sp3))
+                            ImasButton(title = "タイミングを記録する", onClick = onEditTimings, role = ImasButtonRole.SECONDARY)
+                        }
+                    }
+                    AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn, modifier = Modifier.padding(vertical = DS.sp2))
+                    // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
+                    if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
+                        ImasNote("この曲は Apple Music で鳴らせませんでした。", modifier = Modifier.padding(vertical = DS.sp2))
                     }
                 }
-                AppleMusicSignInNotice(appleMusic, onSignIn = playback::signIn, modifier = Modifier.padding(vertical = DS.sp2))
-                // 繋がっているのに始められなかった (曲が Apple Music に無い等) ときだけ出す。
-                if (startFailed && appleMusic == com.fugaif.imaslivedb.player.AppleMusicState.READY) {
-                    ImasNote("この曲は Apple Music で鳴らせませんでした。", modifier = Modifier.padding(vertical = DS.sp2))
+                itemsIndexed(lyrics.lines) { _, line ->
+                    LyricsPlayerRow(
+                        line = line, hasTiming = hasTiming, isLiked = likes.contains(line.id),
+                        isActive = line.id == activeLineId, isOverlayActive = line.id == activeOverlayId,
+                        seed = seed, cast = cast,
+                        onTap = {
+                            val start = line.startMs ?: return@LyricsPlayerRow
+                            scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek(start) }
+                        },
+                        onDoubleTap = { like(line) }
+                    )
                 }
             }
-            itemsIndexed(lyrics.lines) { _, line ->
-                LyricsPlayerRow(
-                    line = line, hasTiming = hasTiming, isLiked = likes.contains(line.id),
-                    isActive = line.id == activeLineId, isOverlayActive = line.id == activeOverlayId,
-                    seed = seed, cast = cast,
-                    onTap = {
-                        val start = line.startMs ?: return@LyricsPlayerRow
-                        scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek(start) }
-                    },
-                    onDoubleTap = { like(line) }
-                )
-            }
-            item { Spacer(Modifier.height(DS.sp8)) }
-        }
 
-        // 下の操作
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp4),
-            verticalArrangement = Arrangement.spacedBy(DS.sp3)
-        ) {
-            CallLane(allCalls = allCalls, callStarts = callStarts, positionMs = positionMs ?: 0, seed = seed)
-            val counts = lyrics.lines.map { (likeCounts[it.id] ?: it.likeCount).coerceAtLeast(0).toUInt() }
-            val heat = if (hasTiming) lyricLikeHeat(starts, counts, durationMs.toLong(), 60u) else null
-            ImasLikeHeatSeekBar(
-                levels = heat?.levels ?: emptyList(),
-                progress = if (isFullLoaded) (positionMs ?: 0).toDouble() / durationMs else null,
-                peak = heat?.peakMs?.let { it.toDouble() / durationMs },
-                seed = seed,
-                allowsScrub = true,
-                onSeek = { fraction -> scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek((fraction * durationMs).toInt()) } }
-            )
-            Row(Modifier.fillMaxWidth()) {
-                ImasText(imasLyricClock(positionMs ?: 0), ImasTextRole.IMPRINT, color = DS.ink3)
-                Spacer(Modifier.weight(1f))
-                ImasText("-" + imasLyricClock(maxOf(0, durationMs - (positionMs ?: 0))), ImasTextRole.IMPRINT, color = DS.ink3)
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp8), verticalAlignment = Alignment.CenterVertically) {
-                Spacer(Modifier.weight(1f))
-                if (hasQueue) {
-                    ImasIconButton(icon = Icons.Filled.SkipPrevious, label = "前の曲", onClick = { playback.skipPrevious() })
+            // 頭 (地は平らな実のまま。ガラスにしない)
+            Row(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { headerHeightPx = it.height }
+                    .background(DS.bg)
+                    .padding(horizontal = DS.sp5, vertical = DS.sp4),
+                horizontalArrangement = Arrangement.spacedBy(DS.sp4),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ArtworkImage(url = song.artworkUrl, size = 52.dp, previewUrl = null, songTitle = song.title, songId = song.id, seed = seed, brand = song.brandId)
+                Column(Modifier.weight(1f)) {
+                    ImasText(song.title, ImasTextRole.ROW_TITLE, maxLines = 1)
+                    if (!artistLine.isNullOrEmpty()) ImasText(artistLine, ImasTextRole.ROW_SUBTITLE, maxLines = 1)
                 }
-                ImasIconButton(icon = Icons.Filled.Replay10, label = "10 秒戻す", onClick = { playback.seek(maxOf(0, (positionMs ?: 0) - 10_000)) })
                 ImasIconButton(
-                    icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    label = if (isPlaying) "一時停止" else "再生",
-                    style = ImasIconButtonStyle.FILLED,
-                    onClick = {
-                        if (isFullLoaded) playback.togglePlay()
-                        else scope.launch { startFailed = !playback.startFull(song.id, song.appleMusicId ?: "") }
-                    }
+                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    label = "プレイリストに追加",
+                    onClick = { showsAddToPlaylist = true },
+                    style = ImasIconButtonStyle.PLAIN
                 )
-                ImasIconButton(icon = Icons.Filled.Forward10, label = "10 秒進める", onClick = { playback.seek(minOf(durationMs, (positionMs ?: 0) + 10_000)) })
-                if (hasQueue) {
-                    ImasIconButton(icon = Icons.Filled.SkipNext, label = "次の曲", enabled = canSkipNext, onClick = { playback.skipNext() })
-                }
-                Spacer(Modifier.weight(1f))
+                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
+                ImasIconButton(icon = Icons.Filled.ExpandMore, label = "閉じる", onClick = onClose, style = ImasIconButtonStyle.PLAIN)
             }
-            if (isFullLoaded) UpNextRow(playback)
+
+            // 下の操作 (浮いている枠。API 31 以降は後ろの歌詞が透けて見えるガラス)
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .onSizeChanged { controlsHeightPx = it.height }
+                    .padding(horizontal = DS.sp4, vertical = DS.sp4)
+                    .imasFloatingChrome()
+                    .padding(horizontal = DS.sp3, vertical = DS.sp3),
+                verticalArrangement = Arrangement.spacedBy(DS.sp3)
+            ) {
+                CallLane(allCalls = allCalls, callStarts = callStarts, positionMs = positionMs ?: 0, seed = seed)
+                val counts = lyrics.lines.map { (likeCounts[it.id] ?: it.likeCount).coerceAtLeast(0).toUInt() }
+                val heat = if (hasTiming) lyricLikeHeat(starts, counts, durationMs.toLong(), 60u) else null
+                ImasLikeHeatSeekBar(
+                    levels = heat?.levels ?: emptyList(),
+                    progress = if (isFullLoaded) (positionMs ?: 0).toDouble() / durationMs else null,
+                    peak = heat?.peakMs?.let { it.toDouble() / durationMs },
+                    seed = seed,
+                    allowsScrub = true,
+                    onSeek = { fraction -> scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek((fraction * durationMs).toInt()) } }
+                )
+                Row(Modifier.fillMaxWidth()) {
+                    ImasText(imasLyricClock(positionMs ?: 0), ImasTextRole.IMPRINT, color = DS.ink3)
+                    Spacer(Modifier.weight(1f))
+                    ImasText("-" + imasLyricClock(maxOf(0, durationMs - (positionMs ?: 0))), ImasTextRole.IMPRINT, color = DS.ink3)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp8), verticalAlignment = Alignment.CenterVertically) {
+                    Spacer(Modifier.weight(1f))
+                    if (hasQueue) {
+                        ImasIconButton(icon = Icons.Filled.SkipPrevious, label = "前の曲", onClick = { playback.skipPrevious() })
+                    }
+                    ImasIconButton(icon = Icons.Filled.Replay10, label = "10 秒戻す", onClick = { playback.seek(maxOf(0, (positionMs ?: 0) - 10_000)) })
+                    ImasIconButton(
+                        icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        label = if (isPlaying) "一時停止" else "再生",
+                        style = ImasIconButtonStyle.FILLED,
+                        onClick = {
+                            if (isFullLoaded) playback.togglePlay()
+                            else scope.launch { startFailed = !playback.startFull(song.id, song.appleMusicId ?: "") }
+                        }
+                    )
+                    ImasIconButton(icon = Icons.Filled.Forward10, label = "10 秒進める", onClick = { playback.seek(minOf(durationMs, (positionMs ?: 0) + 10_000)) })
+                    if (hasQueue) {
+                        ImasIconButton(icon = Icons.Filled.SkipNext, label = "次の曲", enabled = canSkipNext, onClick = { playback.skipNext() })
+                    }
+                    Spacer(Modifier.weight(1f))
+                }
+                if (isFullLoaded) UpNextRow(playback)
+            }
         }
     }
 
