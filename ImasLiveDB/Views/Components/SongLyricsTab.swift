@@ -183,7 +183,11 @@ struct SongLyricsTab: View {
         guard let lyrics else { return }
         if debugStartsRecording, recorder == nil {
             let r = LyricTimingRecorder(lyrics: lyrics, songId: song.id)
-            if ProcessInfo.processInfo.environment["TIMING_LANE"] == "parts" { r.lane = .parts }
+            switch ProcessInfo.processInfo.environment["TIMING_LANE"] {
+            case "parts": r.lane = .parts
+            case "calls": r.lane = .calls
+            default: break
+            }
             recorder = r
         }
         if debugStartsPlayer, !showsPlayer { showsPlayer = true }
@@ -334,8 +338,8 @@ struct SongLyricsTab: View {
             HStack(alignment: .top, spacing: DS.sp2) {
                 CallGuideClapGlyph(clap: line.clap)
                     .padding(.top, 4)
-                if !line.singers.isEmpty {
-                    ImasPartStripe(colors: partCast.colors(line.singers))
+                if !line.allSingers.isEmpty {
+                    ImasPartStripe(colors: partCast.colors(line.allSingers))
                 }
                 VStack(alignment: .leading, spacing: 0) {
                     // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
@@ -353,7 +357,7 @@ struct SongLyricsTab: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    ImasPartNames(names: partCast.names(line.singers))
+                    ImasPartNames(groups: partCast.groups(line))
                     // 歌詞と同じ文字の同時コールは行に並べない (歌詞のその部分を濃く敷いて示す)。
                     let listed = line.calls.filter { !line.echoes($0) }
                     if !listed.isEmpty {

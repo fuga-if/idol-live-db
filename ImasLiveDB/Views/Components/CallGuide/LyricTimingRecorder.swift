@@ -44,8 +44,13 @@ final class LyricTimingRecorder: Identifiable {
     /// 表示順の各行の歌唱者 (アイドル id)。パートの段で付け外しする。
     private(set) var singers: [[String]]
     private let originalSingers: [[String]]
-    /// パートの取り消し用 (history の .parts と同じ順に、前の歌唱者を積む)。
-    private var partsUndo: [[String]] = []
+    /// 表示順の各行の、途中で歌う人が変わるところ。
+    private(set) var breaks: [[LyricLinePartBreak]]
+    private let originalBreaks: [[LyricLinePartBreak]]
+    /// 各行の本文のスカラー数 (区切りの位置の上限)。
+    private let lengths: [Int]
+    /// パートの取り消し用 (history の .parts と同じ順に、前の歌唱者と区切りを積む)。
+    private var partsUndo: [(singers: [String], breaks: [LyricLinePartBreak])] = []
     /// いま記録している段。
     var lane: Lane = .lines
     /// 次に記録する行 / コールの添字。最後まで記録したら nil。
@@ -77,6 +82,10 @@ final class LyricTimingRecorder: Identifiable {
         let singers = lyrics.lines.map(\.singers)
         self.singers = singers
         self.originalSingers = singers
+        let breaks = lyrics.lines.map(\.partBreaks)
+        self.breaks = breaks
+        self.originalBreaks = breaks
+        self.lengths = lyrics.lines.map { $0.text.unicodeScalars.count }
         let calls = lyrics.lines.enumerated().flatMap { i, line in line.calls.map { (i, $0) } }
         self.callIds = calls.map(\.1.id)
         self.callLineIndexes = calls.map(\.0)
@@ -103,19 +112,36 @@ final class LyricTimingRecorder: Identifiable {
 
     var isDirty: Bool {
         starts != originalStarts || callStarts != originalCallStarts || layers != originalLayers
-            || singers != originalSingers
+            || partsChanged
     }
 
-    private var partsChanged: Bool { singers != originalSingers }
+    private var partsChanged: Bool { singers != originalSingers || breaks != originalBreaks }
 
-    /// 行の歌唱者に `idolId` を付け外しする。並びは `order` (原唱者の並び) にそろえる。
-    func toggleSinger(lineId: String, idolId: String, order: [String]) {
+    /// 行のひと続き (頭が `segmentStart`) の歌唱者に `idolId` を付け外しする。
+    /// 並びは `order` (原唱者の並び) にそろえる。`segmentStart` が 0 なら行の頭 (区切りが無ければ行まるごと)。
+    func toggleSinger(lineId: String, segmentStart: Int = 0, idolId: String, order: [String]) {
         guard let i = lineIds.firstIndex(of: lineId), kinds[i] == "lyric" else { return }
-        var list = singers[i]
+        let k = breaks[i].firstIndex { $0.at == segmentStart }
+        guard segmentStart == 0 || k != nil else { return }
+        var list = k.map { breaks[i][$0].singers } ?? singers[i]
         pushPartsUndo(i)
-        if let k = list.firstIndex(of: idolId) { list.remove(at: k) } else { list.append(idolId) }
+        if let j = list.firstIndex(of: idolId) { list.remove(at: j) } else { list.append(idolId) }
         list.sort { (order.firstIndex(of: $0) ?? .max) < (order.firstIndex(of: $1) ?? .max) }
-        singers[i] = list
+        if let k { breaks[i][k].singers = list } else { singers[i] = list }
+    }
+
+    /// 行のスカラー位置 `at` に、歌う人の区切りを置く / 外す (置くとその位置の人を引き継ぐ)。規則はコア。
+    func toggleBreak(lineId: String, at: Int) {
+        guard let i = lineIds.firstIndex(of: lineId), kinds[i] == "lyric" else { return }
+        pushPartsUndo(i)
+        breaks[i] = lyricPartToggleBreak(len: UInt32(lengths[i]), singers: singers[i],
+                                         breaks: breaks[i].map(\.core), at: UInt32(at)).map(LyricLinePartBreak.init)
+    }
+
+    /// 行のひと続き (区切りが無ければ行まるごと 1 つ)。
+    func segments(for lineId: String) -> [LyricPartSegment] {
+        guard let i = lineIds.firstIndex(of: lineId) else { return [] }
+        return lyricPartSegments(len: UInt32(lengths[i]), singers: singers[i], breaks: breaks[i].map(\.core))
     }
 
     /// 行の歌唱者を、ひとつ前の歌詞の行と同じにする (同じ人が続く所を 1 タップで)。
@@ -123,12 +149,13 @@ final class LyricTimingRecorder: Identifiable {
         guard let i = lineIds.firstIndex(of: lineId),
               let prev = (0..<i).reversed().first(where: { kinds[$0] == "lyric" }) else { return }
         pushPartsUndo(i)
-        singers[i] = singers[prev]
+        // 前の行の終わりを歌っている人を、この行の頭に付ける。
+        singers[i] = breaks[prev].last?.singers ?? singers[prev]
     }
 
     private func pushPartsUndo(_ index: Int) {
         history.append((.parts, index, nil, nil))
-        partsUndo.append(singers[index])
+        partsUndo.append((singers[index], breaks[index]))
         lastWasAdjust = false
     }
 
@@ -233,7 +260,9 @@ final class LyricTimingRecorder: Identifiable {
             callStarts[last.index] = last.previous
             callCursor = last.cursor
         case .parts:
-            singers[last.index] = partsUndo.popLast() ?? []
+            let previous = partsUndo.popLast()
+            singers[last.index] = previous?.singers ?? []
+            breaks[last.index] = previous?.breaks ?? []
         }
     }
 
@@ -248,7 +277,8 @@ final class LyricTimingRecorder: Identifiable {
             try await writer.updateLyricTimings(songId: songId, lines: lines, calls: calls)
             if partsChanged {
                 let parts = lineIds.indices.compactMap { i in
-                    singers[i].isEmpty ? nil : LyricPartsPayload.Line(id: lineIds[i], singers: singers[i])
+                    singers[i].isEmpty && breaks[i].isEmpty
+                        ? nil : LyricPartsPayload.Line(id: lineIds[i], singers: singers[i], breaks: breaks[i])
                 }
                 try await writer.updateLyricParts(songId: songId, lines: parts)
             }

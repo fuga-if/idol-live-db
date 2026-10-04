@@ -214,8 +214,8 @@ private struct NowPlayingLyricLine<Fallback: View>: View {
             if let line, line.kind == .lyric {
                 let split = lyricOverlaySplit(text: line.text)
                 HStack(spacing: DS.sp2) {
-                    if !line.singers.isEmpty {
-                        ImasPartStripe(colors: entry.cast.colors(line.singers)).frame(height: 14)
+                    if !line.allSingers.isEmpty {
+                        ImasPartStripe(colors: entry.cast.colors(line.allSingers)).frame(height: 14)
                     }
                     Text(split.main.isEmpty ? line.text : split.main)
                         .imasText(.meta, color: DS.ink2)

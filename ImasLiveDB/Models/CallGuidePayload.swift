@@ -152,6 +152,8 @@ struct LyricPartsPayload: Encodable, Sendable {
     struct Line: Encodable, Sendable {
         let id: String
         let singers: [String]
+        /// 行の途中の区切り。nil なら送らない (サーバは今の区切りを残す)。
+        var breaks: [LyricLinePartBreak]? = nil
     }
     let lines: [Line]
 }

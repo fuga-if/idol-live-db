@@ -1,7 +1,7 @@
 //! 歌詞と再生位置の連動・行の「ここ好き」の FFI 口。規則は domain::lyric_sync。
 
 use crate::domain::lyric_sync as d;
-pub use crate::domain::lyric_sync::{LyricAside, LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricRubyChoice, LyricSpan};
+pub use crate::domain::lyric_sync::{LyricAside, LyricLikeHeat, LyricOverlaySplit, LyricRuby, LyricRubyChoice, LyricSpan, LyricPartBreak, LyricPartSegment};
 
 /// いま歌われている行の添字 (`starts` は表示順の各行の開始 ms)。イントロ中は `None`。
 #[uniffi::export]
@@ -123,4 +123,22 @@ pub fn lyric_aside_spans(text: String) -> Vec<LyricAside> {
 #[uniffi::export]
 pub fn lyric_main_range(text: String, start: u32, end: u32) -> Option<LyricAside> {
     d::main_range(&text, start, end)
+}
+
+/// 行を歌う人ごとのひと続きに割る (`len` は本文のスカラー数)。
+#[uniffi::export]
+pub fn lyric_part_segments(len: u32, singers: Vec<String>, breaks: Vec<LyricPartBreak>) -> Vec<LyricPartSegment> {
+    d::part_segments(len, &singers, &breaks)
+}
+
+/// `at` に歌う人の区切りを置く / 外す。
+#[uniffi::export]
+pub fn lyric_part_toggle_break(len: u32, singers: Vec<String>, breaks: Vec<LyricPartBreak>, at: u32) -> Vec<LyricPartBreak> {
+    d::part_toggle_break(len, &singers, &breaks, at)
+}
+
+/// 行を歌う人をぜんぶ (出てくる順、重複なし)。
+#[uniffi::export]
+pub fn lyric_part_union(singers: Vec<String>, breaks: Vec<LyricPartBreak>) -> Vec<String> {
+    d::part_union(&singers, &breaks)
 }

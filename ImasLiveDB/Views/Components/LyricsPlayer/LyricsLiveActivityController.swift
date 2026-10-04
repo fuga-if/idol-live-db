@@ -100,7 +100,7 @@ final class LyricsLiveActivityController {
         }
         let current = index.map { lines[$0] }.flatMap { $0.kind == .lyric ? $0 : nil }
         let next = lines[((index ?? -1) + 1)...].first { $0.kind == .lyric && !$0.isOverlay }
-        let singers = current?.singers ?? []
+        let singers = current?.allSingers ?? []
         let calls = lines.flatMap { line in line.calls.map { (line: line, call: $0) } }
         let call = player.fullPlaybackPositionMs.flatMap {
             lyricActiveCall(starts: calls.map { $0.call.startMs.map(Int64.init) }, positionMs: Int64($0)).map {

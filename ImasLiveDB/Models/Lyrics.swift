@@ -233,6 +233,18 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
     var layer: String? = nil
     /// パート分け: この行を歌うアイドルの id。空ならまだ分けていない。
     var singers: [String] = []
+    /// 行の途中で歌う人が変わるところ (`at` から後ろを `singers` が歌う。昇順)。
+    var partBreaks: [LyricLinePartBreak] = []
+
+    /// 行を歌う人をぜんぶ (出てくる順)。脇の色の帯・ロック画面に使う。規則はコア。
+    var allSingers: [String] {
+        partBreaks.isEmpty ? singers : lyricPartUnion(singers: singers, breaks: partBreaks.map(\.core))
+    }
+
+    /// 行を歌う人ごとのひと続き (区切りが無ければ行まるごと 1 つ)。規則はコア。
+    var partSegments: [LyricPartSegment] {
+        lyricPartSegments(len: UInt32(text.unicodeScalars.count), singers: singers, breaks: partBreaks.map(\.core))
+    }
 
     /// 被せの行か (歌詞プレイヤーで 2 段目に出す行)。
     var isOverlay: Bool { kind != .blank && lyricIsOverlayLine(text: text, layer: layer) }
@@ -247,7 +259,7 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
 
 extension LyricLine {
     private enum CodingKeys: String, CodingKey {
-        case id, ord, kind, text, section, startMs, clap, calls, likeCount, layer, singers
+        case id, ord, kind, text, section, startMs, clap, calls, likeCount, layer, singers, partBreaks
     }
 
     /// `clap` / `calls` は後から足したフィールドなので、返さない Worker でも壊れない。
@@ -268,9 +280,20 @@ extension LyricLine {
             calls: (try? c.decodeIfPresent([LyricCall].self, forKey: .calls)).flatMap { $0 } ?? [],
             likeCount: (try? c.decodeIfPresent(Int.self, forKey: .likeCount)).flatMap { $0 } ?? 0,
             layer: (try? c.decodeIfPresent(String.self, forKey: .layer)).flatMap { $0 },
-            singers: (try? c.decodeIfPresent([String].self, forKey: .singers)).flatMap { $0 } ?? []
+            singers: (try? c.decodeIfPresent([String].self, forKey: .singers)).flatMap { $0 } ?? [],
+            partBreaks: (try? c.decodeIfPresent([LyricLinePartBreak].self, forKey: .partBreaks)).flatMap { $0 } ?? []
         )
     }
+}
+
+/// 行の途中で歌う人が変わるところ 1 つ (`at` は本文のスカラー位置)。
+struct LyricLinePartBreak: Codable, Hashable, Sendable {
+    let at: Int
+    var singers: [String]
+
+    var core: LyricPartBreak { LyricPartBreak(at: UInt32(at), singers: singers) }
+    init(at: Int, singers: [String]) { self.at = at; self.singers = singers }
+    init(_ core: LyricPartBreak) { self.init(at: Int(core.at), singers: core.singers) }
 }
 
 /// 1 曲分の歌詞。

@@ -497,15 +497,28 @@ struct ImasPartStripe: View {
 }
 
 /// 行の下に添える歌唱者の名前 (「春香・千早」)。帯の色だけに頼らず、言葉でも出す。
+/// 行の途中で歌う人が変わるところに立てる縦の線 (タイミング編集で字を並べたとき)。
+struct ImasPartBreakMark: View {
+    var body: some View {
+        Rectangle().fill(DS.ink).frame(width: 2, height: 22).padding(.horizontal, 2)
+            .accessibilityLabel("ここから歌う人が変わる")
+    }
+}
+
 struct ImasPartNames: View {
-    let names: [String]
+    /// 歌う人のひと続きごとの名前。行の途中で歌う人が変わるときは 2 つ以上 (「→」でつなぐ)。
+    let groups: [[String]]
+
+    init(names: [String]) { self.groups = [names] }
+    init(groups: [[String]]) { self.groups = groups }
 
     var body: some View {
-        if !names.isEmpty {
-            Text(names.joined(separator: "・"))
+        let shown = groups.filter { !$0.isEmpty }
+        if !shown.isEmpty {
+            Text(shown.map { $0.joined(separator: "・") }.joined(separator: " → "))
                 .imasText(.meta, color: DS.ink2)
                 .lineLimit(2)
-                .accessibilityLabel("歌唱 \(names.joined(separator: "、"))")
+                .accessibilityLabel("歌唱 \(shown.map { $0.joined(separator: "、") }.joined(separator: "、つづいて "))")
         }
     }
 }

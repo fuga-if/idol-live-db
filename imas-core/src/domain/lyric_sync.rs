@@ -579,6 +579,66 @@ pub fn parts_applicable(original_artist_count: u32) -> bool {
     original_artist_count >= 2
 }
 
+/// 行の途中で歌う人が変わるところ。`at` (行の本文のスカラー位置) から後ろを `singers` が歌う。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricPartBreak {
+    pub at: u32,
+    pub singers: Vec<String>,
+}
+
+/// 行の中の、同じ人が歌うひと続き (`start..end`)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricPartSegment {
+    pub start: u32,
+    pub end: u32,
+    pub singers: Vec<String>,
+}
+
+/// 行を歌う人ごとのひと続きに割る。行の頭は `singers`、区切りから後ろはその区切りの人。
+/// 行の外・昇順でない区切りは捨てる (保存側で弾くが、古いデータでも壊さない)。
+pub fn part_segments(len: u32, singers: &[String], breaks: &[LyricPartBreak]) -> Vec<LyricPartSegment> {
+    let mut out = vec![LyricPartSegment { start: 0, end: len, singers: singers.to_vec() }];
+    for b in breaks {
+        let last = out.last_mut().expect("never empty");
+        if b.at <= last.start || b.at >= len {
+            continue;
+        }
+        last.end = b.at;
+        out.push(LyricPartSegment { start: b.at, end: len, singers: b.singers.clone() });
+    }
+    out
+}
+
+/// `at` に区切りを置く / 外す。置くときは、その位置で歌っている人を引き継ぐ (あとで付け替える)。
+pub fn part_toggle_break(len: u32, singers: &[String], breaks: &[LyricPartBreak], at: u32) -> Vec<LyricPartBreak> {
+    if at == 0 || at >= len {
+        return breaks.to_vec();
+    }
+    if breaks.iter().any(|b| b.at == at) {
+        return breaks.iter().filter(|b| b.at != at).cloned().collect();
+    }
+    let current = part_segments(len, singers, breaks)
+        .into_iter()
+        .find(|s| s.start <= at && at < s.end)
+        .map(|s| s.singers)
+        .unwrap_or_default();
+    let mut out = breaks.to_vec();
+    out.push(LyricPartBreak { at, singers: current });
+    out.sort_by_key(|b| b.at);
+    out
+}
+
+/// 行を歌う人をぜんぶ (出てくる順、重複なし)。行の脇の色の帯と、ロック画面に出す。
+pub fn part_union(singers: &[String], breaks: &[LyricPartBreak]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for id in singers.iter().chain(breaks.iter().flat_map(|b| b.singers.iter())) {
+        if !out.contains(id) {
+            out.push(id.clone());
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -797,6 +857,22 @@ mod tests {
         assert_eq!(main_range("囲い出す（追い）ご制圧", 8, 11), Some(LyricAside { start: 4, end: 7 }));
         assert_eq!(main_range("囲い出す（追い）ご制圧", 5, 7), None);
         assert_eq!(main_range("ご制圧", 0, 3), Some(LyricAside { start: 0, end: 3 }));
+    }
+
+
+    #[test]
+    fn part_segments_and_breaks() {
+        let a = vec!["a".to_string()];
+        let br = |at: u32, who: &str| LyricPartBreak { at, singers: vec![who.to_string()] };
+        let segs = part_segments(6, &a, &[br(2, "b"), br(2, "x"), br(9, "y"), br(4, "c")]);
+        assert_eq!(segs.iter().map(|s| (s.start, s.end)).collect::<Vec<_>>(), vec![(0, 2), (2, 4), (4, 6)]);
+        assert_eq!(segs[1].singers, vec!["b".to_string()]);
+        // 置くとその位置の人を引き継ぎ、もう一度で外れる
+        let on = part_toggle_break(6, &a, &[br(4, "c")], 2);
+        assert_eq!(on, vec![br(2, "a"), br(4, "c")]);
+        assert_eq!(part_toggle_break(6, &a, &on, 2), vec![br(4, "c")]);
+        assert_eq!(part_toggle_break(6, &a, &[], 0), vec![]);
+        assert_eq!(part_union(&a, &[br(2, "b"), br(4, "a")]), vec!["a".to_string(), "b".to_string()]);
     }
 
 }

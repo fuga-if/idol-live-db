@@ -18,6 +18,10 @@ struct LyricPartCast {
 
     func colors(_ ids: [String]) -> [String] { ids.compactMap { byId[$0]?.color } }
     func names(_ ids: [String]) -> [String] { ids.compactMap { byId[$0]?.shortName } }
+    /// 行のひと続きごとの名前 (行の途中で歌う人が変わるところで分ける)。
+    func groups(_ line: LyricLine) -> [[String]] {
+        line.partBreaks.isEmpty ? [names(line.singers)] : line.partSegments.map { names($0.singers) }
+    }
 
     /// 原唱者の並びに揃える (付け外しの後に呼ぶ)。
     func ordered(_ ids: [String]) -> [String] {

@@ -159,7 +159,7 @@ struct LyricsPlayerView: View {
             Color.clear.frame(height: DS.sp2)
         case .lyric, .marker:
             HStack(alignment: .top, spacing: DS.sp3) {
-                if !line.singers.isEmpty { ImasPartStripe(colors: cast.colors(line.singers)) }
+                if !line.allSingers.isEmpty { ImasPartStripe(colors: cast.colors(line.allSingers)) }
                 rowBody(line, isLiked: isLiked)
             }
             .contentShape(Rectangle())
@@ -196,7 +196,7 @@ struct LyricsPlayerView: View {
                     ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
                 }
             }
-            ImasPartNames(names: cast.names(line.singers))
+            ImasPartNames(groups: cast.groups(line))
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは行に出さず、上の歌詞を点ける)。
             ForEach(line.calls.filter { !line.echoes($0) }) { call in
                 ImasPlayerCallLine(marker: call.hasAnchor ? "↳" : "»", text: call.text,
