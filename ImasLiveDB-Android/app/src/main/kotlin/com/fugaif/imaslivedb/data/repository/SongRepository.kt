@@ -45,6 +45,11 @@ data class SongWithRoles(
 }
 
 /**
+ * 「次はこれ」の 1 件 (曲 + 画面に添える理由)。iOS `NextSongCandidate` の移植。
+ */
+data class NextSongPickRow(val song: Song, val label: String)
+
+/**
  * 楽曲の読み取り口。
  *
  * 読み取りは共有コア (imas-core) のインメモリスナップショットが答える (SQL の代わりの経路は
@@ -384,6 +389,20 @@ class SongRepository(
         fetchSongsPreservingOrder(
             snapshots.query { store -> store.relatedSongs(song.id, limit.coerceAtLeast(0).toUInt()).map { it.id } }
         )
+
+    /**
+     * 「次はこれ」— 曲が終わったあとに流す曲を、よい順に最大 [limit] 件 (共起 → 同じ歌い手 →
+     * 同じブランド の順)。選び方はコア (`domain/next_song.rs`)。iOS `CoreNextSongRepository` と
+     * 同一経路。[exclude] はもう流した曲 (同じ曲へ戻らないよう呼び出し側が積む)。
+     */
+    suspend fun fetchNextSongPicks(songId: String, exclude: List<String>, limit: Int): List<NextSongPickRow> {
+        val picks = snapshots.query { store ->
+            store.nextSongRecommendations(songId, exclude, limit.coerceAtLeast(0).toUInt())
+        }
+        if (picks.isEmpty()) return emptyList()
+        val songsById = fetchSongsPreservingOrder(picks.map { it.songId }).associateBy { it.id }
+        return picks.mapNotNull { pick -> songsById[pick.songId]?.let { NextSongPickRow(song = it, label = pick.label) } }
+    }
 
     suspend fun fetchIdolSongs(idolId: String, role: String? = null): List<Song> {
         // idolSongRecords は一覧射影 (IdolSongRecord) を返すが、この口の戻り値は Song 実体

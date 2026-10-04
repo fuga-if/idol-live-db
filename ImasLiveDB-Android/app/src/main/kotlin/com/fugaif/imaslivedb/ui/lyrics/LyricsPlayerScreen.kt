@@ -261,6 +261,7 @@ fun LyricsPlayerScreen(
                 }
                 Spacer(Modifier.weight(1f))
             }
+            if (isFullLoaded) UpNextRow(playback)
         }
     }
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.player.LyricsSession
@@ -40,6 +41,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.ui.lyrics.LyricsPlayerScreen
+import com.fugaif.imaslivedb.ui.lyrics.NoLyricsFullPlayerScreen
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasType
 import kotlinx.coroutines.delay
@@ -90,6 +92,14 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
     val sessionEntry by LyricsSession.state.collectAsState()
     var showsLyricsPlayer by remember { mutableStateOf(false) }
     var likeCounts by remember { mutableStateOf(mapOf<String, Int>()) }
+    var showsNoLyricsPlayer by remember { mutableStateOf(false) }
+    // フル再生中だが歌詞が取れなかった曲 (歌詞タブを一度も開いていない・未ログイン等)。
+    // フル再生は続くので、曲名だけのバー + 曲送りだけの画面を出す (iOS NowPlayingLyricsPlayerView.noLyrics と対)。
+    var noLyricsSong by remember { mutableStateOf<Song?>(null) }
+    LaunchedEffect(loadedSongId, sessionEntry) {
+        val id = loadedSongId
+        noLyricsSong = if (id == null || sessionEntry?.song?.id == id) null else module.songRepository.fetchSong(id)
+    }
 
     // 鳴っている曲が変わったら (止めたら) 歌詞を手放す。曲送り・プレイリストで替わったときは
     // 自分で取りに行く (歌詞タブを開いていなくてもバーが付いてくるように)。
@@ -158,6 +168,50 @@ fun NowPlayingBar(onSongClick: (String) -> Unit) {
                     onClose = { showsLyricsPlayer = false },
                     cast = fullEntry.cast
                 )
+            }
+        }
+        return
+    }
+
+    val noLyrics = noLyricsSong
+    if (noLyrics != null) {
+        Column(modifier = Modifier.fillMaxWidth().background(DS.surface)) {
+            ImasRowDivider()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(DS.Space.rowGap),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showsNoLyricsPlayer = true }
+                    .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
+            ) {
+                ArtworkImage(url = noLyrics.artworkUrl, size = 40.dp, songTitle = noLyrics.title)
+                Column(modifier = Modifier.weight(1f)) {
+                    BarTitle(noLyrics.title)
+                }
+                if (hasQueue) {
+                    ImasIconButton(
+                        icon = Icons.Filled.SkipPrevious, label = "前の曲",
+                        style = ImasIconButtonStyle.PLAIN, onClick = { lyricsPlayback.skipPrevious() }
+                    )
+                }
+                ImasIconButton(
+                    icon = if (isFullPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    label = if (isFullPlaying) "一時停止" else "再生",
+                    style = ImasIconButtonStyle.PLAIN,
+                    onClick = { lyricsPlayback.togglePlay() }
+                )
+                if (hasQueue) {
+                    ImasIconButton(
+                        icon = Icons.Filled.SkipNext, label = "次の曲",
+                        style = ImasIconButtonStyle.PLAIN, enabled = canSkipNext, onClick = { lyricsPlayback.skipNext() }
+                    )
+                }
+            }
+        }
+        if (showsNoLyricsPlayer) {
+            Dialog(onDismissRequest = { showsNoLyricsPlayer = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+                NoLyricsFullPlayerScreen(song = noLyrics, playback = lyricsPlayback, onClose = { showsNoLyricsPlayer = false })
             }
         }
         return

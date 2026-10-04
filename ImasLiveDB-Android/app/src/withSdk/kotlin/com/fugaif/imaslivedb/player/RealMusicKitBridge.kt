@@ -29,22 +29,6 @@ class RealMusicKitBridge : MusicKitBridge {
     private var onFailedNow: (String) -> Unit = {}
     private var onCurrentItem: (String?) -> Unit = {}
 
-    override fun load(
-        activity: Activity,
-        developerToken: String,
-        musicUserToken: String,
-        catalogId: String,
-        onPlayingChanged: (Boolean) -> Unit,
-        onFailed: (String) -> Unit,
-    ) {
-        onCurrentItem = {}
-        val player = prepare(activity, developerToken, musicUserToken, onPlayingChanged, onFailed)
-        val queue = CatalogPlaybackQueueItemProvider.Builder()
-            .items(MediaItemType.SONG, catalogId)
-            .build()
-        player.prepare(queue, true)
-    }
-
     override fun loadQueue(
         activity: Activity,
         developerToken: String,
@@ -68,7 +52,25 @@ class RealMusicKitBridge : MusicKitBridge {
     override fun skipToNext() { controller?.skipToNextItem() }
     override fun skipToPrevious() { controller?.skipToPreviousItem() }
 
-    /** トークンが替わったら再生器を作り直し ([load] / [loadQueue] で共通)。 */
+    override fun canAppendToQueue(): Boolean = controller?.canAppendToPlaybackQueue() == true
+
+    /** 末尾 (今の曲数) に 1 曲積む。SDK のネイティブキューを直接伸ばすので曲の切れ目で途切れない。 */
+    override fun appendToQueue(catalogId: String): Boolean {
+        val c = controller ?: return false
+        if (!c.canAppendToPlaybackQueue()) return false
+        val item = CatalogPlaybackQueueItemProvider.Builder()
+            .items(MediaItemType.SONG, catalogId)
+            .build()
+        return try {
+            c.addQueueItems(item, c.playbackQueueItemCount)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "queue_append_failed: ${e.message}")
+            false
+        }
+    }
+
+    /** トークンが替わったら再生器を作り直す ([loadQueue] が呼ぶ)。 */
     private fun prepare(
         activity: Activity,
         developerToken: String,

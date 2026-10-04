@@ -135,7 +135,7 @@ class AppModule private constructor(context: Context) {
     /** 歌詞の追従・記録の再生 (Apple Music のフル再生)。 */
     val lyricsPlayback: com.fugaif.imaslivedb.player.LyricsPlayback by lazy {
         com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
-            appContext as android.app.Application, workerHttpClient
+            appContext as android.app.Application, workerHttpClient, songRepository
         )
     }
     /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。Android は NexTone 管理曲だけ返る。 */
