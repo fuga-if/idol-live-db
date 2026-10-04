@@ -114,74 +114,70 @@ pub struct LyricOverlaySplit {
 }
 
 /// 振り仮名 (ルビ) 1 つ。添字は行の中の Unicode スカラー位置。
-/// `base_start..base_end` が親字 (漢字)、`open..close` が括弧ごとの振り仮名 (`close` は閉じ括弧の次)。
+/// `base_start..base_end` が親字、`open` が「《」、`close` が「》」の次。
+/// `marker` は親字の頭を示す「｜」の位置 (書いてあるときだけ。画面では出さない)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct LyricRuby {
     pub base_start: u32,
     pub base_end: u32,
     pub open: u32,
     pub close: u32,
+    pub marker: Option<u32>,
 }
 
 fn is_ideograph(c: char) -> bool {
     matches!(c, '\u{4E00}'..='\u{9FFF}' | '\u{3400}'..='\u{4DBF}' | '\u{F900}'..='\u{FAFF}' | '々' | '〆' | 'ヶ')
 }
 
-fn is_kana(c: char) -> bool {
-    matches!(c, '\u{3041}'..='\u{309F}' | '\u{30A1}'..='\u{30FF}')
-}
-
-/// 行の中の振り仮名の括弧。歌詞サイトの本文は「五輪咲（ごりん）」のように、漢字の直後の括弧で
-/// 読みを書くことがある。被せ (「夢を（夢を）」) と見分ける規則:
-/// - 開き括弧の**直前が漢字** (空白を挟まない)
-/// - 括弧の中が**かなだけ** (空白は可、かなが 1 字以上)
+/// 行の中の振り仮名。本文は青空文庫と同じ記法で書く (Worker の lyrics_ruby.ts が取り込み時に直す):
+/// - `五輪咲《ごりん》` … 親字は「《」の直前から遡って続く漢字のまとまり
+/// - `｜ダミー《だみ》` … 漢字のまとまりでないときは「｜」で親字の頭を示す
 ///
-/// 親字は、開き括弧の直前から遡って続く漢字のまとまり。入れ子・閉じない括弧は振り仮名にしない。
+/// 括弧 （） () は振り仮名に使わない (被せ・コーラスの印)。閉じない「《」と、親字の無い「《」は無視する。
 pub fn ruby_spans(text: &str) -> Vec<LyricRuby> {
     let chars: Vec<char> = text.chars().collect();
     let mut out = Vec::new();
+    let mut segment_start = 0usize;
     let mut i = 0;
     while i < chars.len() {
-        if is_open(chars[i]) && i > 0 && is_ideograph(chars[i - 1]) {
-            let mut j = i + 1;
-            let mut kana = 0;
-            let mut ok = true;
-            while j < chars.len() && !is_close(chars[j]) {
-                let c = chars[j];
-                if is_kana(c) {
-                    kana += 1;
-                } else if c != ' ' && c != '\u{3000}' {
-                    ok = false;
-                    break;
+        if chars[i] == '《' {
+            let Some(len) = chars[i + 1..].iter().position(|&c| c == '》') else { break };
+            let close = i + 1 + len + 1;
+            let marker = chars[segment_start..i].iter().rposition(|&c| c == '｜').map(|p| segment_start + p);
+            let base_start = match marker {
+                Some(m) => m + 1,
+                None => {
+                    let mut k = i;
+                    while k > segment_start && is_ideograph(chars[k - 1]) {
+                        k -= 1;
+                    }
+                    k
                 }
-                j += 1;
+            };
+            if base_start < i && len > 0 {
+                out.push(LyricRuby {
+                    base_start: base_start as u32,
+                    base_end: i as u32,
+                    open: i as u32,
+                    close: close as u32,
+                    marker: marker.map(|m| m as u32),
+                });
             }
-            if ok && kana > 0 && j < chars.len() {
-                let mut base_start = i - 1;
-                while base_start > 0 && is_ideograph(chars[base_start - 1]) {
-                    base_start -= 1;
-                }
-                out.push(LyricRuby { base_start: base_start as u32, base_end: i as u32, open: i as u32, close: (j + 1) as u32 });
-                i = j + 1;
-                continue;
-            }
+            segment_start = close;
+            i = close;
+            continue;
         }
         i += 1;
     }
     out
 }
 
-/// 各スカラーが (振り仮名でない) 括弧の内側か。括弧の対応が取れない行は全部 false。
+/// 各スカラーが被せの括弧の内側か。括弧の対応が取れない行は全部 false。
 fn inside_overlay_brackets(text: &str) -> Vec<bool> {
     let chars: Vec<char> = text.chars().collect();
-    let ruby = ruby_spans(text);
-    let in_ruby = |i: usize| ruby.iter().any(|r| (r.open as usize..r.close as usize).contains(&i));
     let mut out = vec![false; chars.len()];
     let mut depth = 0usize;
     for (i, &c) in chars.iter().enumerate() {
-        if in_ruby(i) {
-            continue;
-        }
         if is_open(c) {
             depth += 1;
         } else if is_close(c) {
@@ -216,13 +212,9 @@ pub fn split_overlay(text: &str) -> LyricOverlaySplit {
     let mut main = String::new();
     let mut parts: Vec<String> = vec![];
     let mut current = String::new();
-    // 振り仮名の括弧は被せではないので、そのまま本文に残す (画面が振り仮名として描く)。
-    let ruby = ruby_spans(text);
-    let in_ruby = |i: usize| ruby.iter().any(|r| (r.open as usize..r.close as usize).contains(&i));
-    for (i, c) in text.chars().enumerate() {
-        if depth == 0 && in_ruby(i) {
-            main.push(c);
-        } else if is_open(c) {
+    // 振り仮名 (《》) は括弧ではないので本文に残る (画面が振り仮名として描く)。
+    for c in text.chars() {
+        if is_open(c) {
             if depth > 0 {
                 current.push(c);
             }
@@ -448,24 +440,27 @@ mod tests {
     }
 
     #[test]
-    fn ruby_is_kana_in_brackets_right_after_kanji() {
-        // 五輪咲（ごりん）駆動
-        let r = ruby_spans("五輪咲（ごりん）駆動");
-        assert_eq!(r, vec![LyricRuby { base_start: 0, base_end: 3, open: 3, close: 8 }]);
-        // 被せ: 直前が漢字でない / 中に漢字がある
-        assert!(ruby_spans("夢を（ゆめを）").is_empty());
-        assert!(ruby_spans("光 空（勿論さ！）").is_empty());
-        assert!(ruby_spans("限界へ走る (手伸ばせ)").is_empty());
-        // 空白入りの読みも振り仮名
-        assert_eq!(ruby_spans("五輪（ごり　ん）").len(), 1);
+    fn ruby_is_written_with_double_angle_brackets() {
+        assert_eq!(
+            ruby_spans("見本字《みほんじ》の行"),
+            vec![LyricRuby { base_start: 0, base_end: 3, open: 3, close: 9, marker: None }]
+        );
+        // ｜で親字の頭を示す
+        assert_eq!(
+            ruby_spans("あの｜ダミー《だみ》"),
+            vec![LyricRuby { base_start: 3, base_end: 6, open: 6, close: 10, marker: Some(2) }]
+        );
+        // 括弧は振り仮名ではない・閉じない《は無視
+        assert!(ruby_spans("見本（みほん）").is_empty());
+        assert!(ruby_spans("見本《みほん").is_empty());
+        // 前の振り仮名の後ろから親字を探す
+        assert_eq!(ruby_spans("一《いち》二《に》")[1].base_start, 5);
     }
 
     #[test]
-    fn ruby_brackets_stay_in_main_text() {
-        let split = split_overlay("五輪咲（ごりん）駆動の100万馬力で");
-        assert_eq!(split.overlay, None);
-        let split = split_overlay("五輪咲（ごりん）駆動（追いかけ）");
-        assert_eq!(split.main, "五輪咲（ごりん）駆動");
+    fn ruby_stays_in_main_text_and_brackets_are_overlay() {
+        let split = split_overlay("見本字《みほんじ》の行（追いかけ）");
+        assert_eq!(split.main, "見本字《みほんじ》の行");
         assert_eq!(split.overlay.as_deref(), Some("追いかけ"));
     }
 
@@ -479,8 +474,6 @@ mod tests {
         // 括弧の外で追っかけは別物
         assert!(!call_echoes_line("勿論さ！", 0, 4, "(勿論さ！)", "after"));
         assert!(call_echoes_line("勿論さ！", 0, 4, "(勿論さ！)", "over"));
-        // 振り仮名の括弧は被せではない
-        assert!(!call_echoes_line("五輪咲（ごりん）", 4, 7, "ごりん", "after"));
     }
 
     #[test]
