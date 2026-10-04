@@ -166,10 +166,6 @@ struct CalendarView: View {
                 .environment(database)
                 .presentationDetents([.medium, .large])
             }
-            .sheet(item: $onThisDayDate) { item in
-                OnThisDaySheet(date: item.date)
-                    .environment(database)
-            }
             // マイ予定の簡易詳細 (表示のみ・編集不可)
             .sheet(item: $personalDetail) { event in
                 PersonalEventDetailView(event: event)
@@ -389,6 +385,11 @@ struct CalendarView: View {
                 onThisDayDate = OnThisDayDate(date: selectedDate)
             }
         )
+        // 同じ View に .sheet を重ねると後ろの 1 つしか効かないことがあるので、見出しに付ける。
+        .sheet(item: $onThisDayDate) { item in
+            OnThisDaySheet(date: item.date)
+                .environment(database)
+        }
     }
 
     // MARK: - 選択日のリスト（内部スクロールのみ）
