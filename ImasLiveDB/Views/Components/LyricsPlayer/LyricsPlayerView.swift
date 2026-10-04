@@ -50,6 +50,8 @@ struct LyricsPlayerView: View {
     private var allCalls: [LyricCall] { lyrics.lines.flatMap(\.calls) }
     private var callStarts: [Int64?] { allCalls.map { $0.startMs.map(Int64.init) } }
     private var hasTiming: Bool { lyricHasTiming(starts: starts) }
+    /// いま出しているコールの id。
+    private var activeCallId: String? { activeCallIndex.flatMap { $0 < allCalls.count ? allCalls[$0].id : nil } }
 
     var body: some View {
         // 歌詞は画面いっぱいに流し、頭と下の操作はその上に浮かべる (iOS 26 は下の操作がガラスで、
@@ -91,6 +93,14 @@ struct LyricsPlayerView: View {
                 }
             }
             Spacer(minLength: 0)
+            if !allCalls.isEmpty {
+                ImasIconButton(systemImage: callHaptics ? "iphone.radiowaves.left.and.right" : "iphone.slash",
+                               label: callHaptics ? "コールで震わせる: オン" : "コールで震わせる: オフ",
+                               size: .small, style: .glass) {
+                    AppAnalytics.tap("lyrics_player.toggle_call_haptics")
+                    callHaptics.toggle()
+                }
+            }
             ImasIconButton(systemImage: "text.badge.plus", label: "プレイリストに追加", size: .small, style: .glass) {
                 AppAnalytics.tap("lyrics_player.add_to_playlist")
                 showsAddToPlaylist = true
@@ -173,15 +183,19 @@ struct LyricsPlayerView: View {
                 let split = lyricOverlaySplit(text: line.text)
                 let isCurrent = !hasTiming || line.id == activeLineId
                 ImasPlayerLyricLine(text: split.main.isEmpty ? line.text : split.main, isCurrent: isCurrent,
-                                    isMarker: line.kind == .marker, isLiked: isLiked, seed: seed)
+                                    isMarker: line.kind == .marker, isLiked: isLiked,
+                                    isCalled: line.calls.contains { $0.id == activeCallId && $0.echoesLyric },
+                                    seed: seed)
                 if let overlay = split.overlay, !split.main.isEmpty {
                     ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
                 }
             }
             ImasPartNames(names: cast.names(line.singers))
-            let listed = line.calls.filter { !$0.echoesLyric }
-            if !listed.isEmpty {
-                CallGuideCallRows(calls: listed, anchorIndexes: nil)
+            // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは行に出さず、上の歌詞を点ける)。
+            ForEach(line.calls.filter { !$0.echoesLyric }) { call in
+                ImasPlayerCallLine(marker: call.hasAnchor ? "↳" : "»", text: call.text,
+                                   color: call.emphasis.color(accent: ImasTheme.derive(seed: seed, scheme: scheme).accent),
+                                   isActive: call.id == activeCallId)
             }
         }
     }
@@ -201,7 +215,6 @@ struct LyricsPlayerView: View {
             : LyricLikeHeat(levels: [], peakMs: nil)
         let position = positionMs ?? 0
         return VStack(spacing: DS.sp3) {
-            callLane(position: position)
             ImasLikeHeatSeekBar(
                 levels: heat.levels,
                 progress: playback.isFullLoaded ? Double(position) / Double(duration) : nil,
@@ -248,50 +261,6 @@ struct LyricsPlayerView: View {
                 }
             }
             if playback.isFullLoaded { UpNextRow() }
-        }
-    }
-
-    /// 歌詞と並べて流すコールの段。いま出すコールを大きく、無い間は次のコールを薄く出す。
-    @ViewBuilder
-    private func callLane(position: Int) -> some View {
-        let calls = allCalls
-        let starts = callStarts
-        if starts.contains(where: { $0 != nil }) {
-            let theme = ImasTheme.derive(seed: seed, scheme: scheme)
-            let current = activeCallIndex
-            let next = starts.enumerated()
-                .filter { ($0.element ?? -1) > Int64(position) }
-                .min { ($0.element ?? 0) < ($1.element ?? 0) }?.offset
-            HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
-                Image(systemName: "megaphone.fill")
-                    .foregroundStyle(current != nil ? theme.accent : DS.ink3)
-                    .accessibilityHidden(true)
-                if let current, current < calls.count {
-                    // 歌詞と同じ文字の同時コールは、文字を繰り返さず「一緒に」とだけ出す。
-                    Text(calls[current].echoesLyric ? "一緒に" : calls[current].text)
-                        .font(.imasHeading(30, weight: .heavy))
-                        .foregroundStyle(calls[current].emphasis.color(accent: theme.accent))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                } else if let next {
-                    Text("次 " + (calls[next].echoesLyric ? "一緒に" : calls[next].text))
-                        .imasText(.rowLabel, color: DS.ink3)
-                        .lineLimit(1)
-                } else {
-                    Text("—").imasText(.rowLabel, color: DS.ink3)
-                }
-                Spacer(minLength: 0)
-                ImasIconButton(systemImage: callHaptics ? "iphone.radiowaves.left.and.right" : "iphone.slash",
-                               label: callHaptics ? "コールで震わせる: オン" : "コールで震わせる: オフ",
-                               size: .small, style: .plain) {
-                    AppAnalytics.tap("lyrics_player.toggle_call_haptics")
-                    callHaptics.toggle()
-                }
-            }
-            .frame(minHeight: 40)
-            .animation(.easeOut(duration: 0.15), value: current)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(current.map { "コール \(calls[$0].text)" } ?? "コールなし")
         }
     }
 

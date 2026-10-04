@@ -181,14 +181,17 @@ struct ImasPlayerLyricLine: View {
     /// 構成マーカー (「間奏」等)。本文より控えめに出す。
     var isMarker = false
     var isLiked = false
+    /// いまこの行の文字を一緒に叫ぶところ (歌詞と同じ文字の同時コール)。曲の色で点ける。
+    var isCalled = false
     let seed: String?
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
             // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと (歌詞の取り出し口になる)。
             Text(text)
                 .font(isMarker ? .imasHeading(17, weight: .bold) : .imasHeading(28, weight: .heavy))
-                .foregroundStyle(isCurrent ? DS.ink : DS.ink3)
+                .foregroundStyle(isCalled ? ImasTheme.derive(seed: seed, scheme: scheme).accent : isCurrent ? DS.ink : DS.ink3)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -359,6 +362,34 @@ struct ImasTimingTimeline: View {
 /// 被せ・追いかけ・コーラス (歌詞の括弧の中) を、メインの行の下に重ねる 2 段目。
 /// メインより小さく、左に細い罫を引いて「重なっている層」だと分かるようにする。
 /// 光っている間 (`isCurrent`) は墨、それ以外は薄く。光らせない・ぼかさない。
+/// 歌詞プレイヤーで行の直下に出すコール 1 つ。いま出すコールは大きく色で点け、他は控えめに。
+/// (下の操作面にコールの段を別に置かず、歌詞の流れの中でコールを読ませる。)
+struct ImasPlayerCallLine: View {
+    let marker: String
+    let text: String
+    /// コールの色 (強調度ごと。`CallEmphasis.color(accent:)`)。
+    let color: Color
+    let isActive: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: DS.sp2) {
+            Text(marker)
+                .font(.imasCaption)
+                .foregroundStyle(DS.ink3)
+                .frame(width: 16, alignment: .trailing)
+            Text(text)
+                .font(isActive ? .imasHeading(24, weight: .heavy) : .imasHeading(15, weight: .bold))
+                .foregroundStyle(isActive ? color : color.opacity(0.55))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.leading, DS.sp3)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: isActive)
+        .accessibilityLabel("コール \(text)")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
+    }
+}
+
 struct ImasPlayerOverlayLine: View {
     @Environment(\.colorScheme) private var scheme
     let text: String
