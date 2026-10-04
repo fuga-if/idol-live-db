@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
@@ -64,6 +65,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartStripe
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
+import com.fugaif.imaslivedb.ui.designsystem.ImasEcho
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerOverlayLine
 import com.fugaif.imaslivedb.ui.designsystem.LocalImasHaze
@@ -84,6 +86,7 @@ import uniffi.imas_core.lyricActiveLine
 import uniffi.imas_core.lyricActiveOverlay
 import uniffi.imas_core.lyricHasTiming
 import uniffi.imas_core.lyricLikeHeat
+import uniffi.imas_core.lyricMainRange
 import uniffi.imas_core.lyricOverlaySplit
 
 /**
@@ -132,6 +135,7 @@ fun LyricsPlayerScreen(
     var startFailed by remember { mutableStateOf(false) }
     var likes by remember { mutableStateOf(setOf<String>()) }
     var showsAddToPlaylist by remember { mutableStateOf(false) }
+    var showsQueue by remember { mutableStateOf(false) }
 
     val starts = remember(lyrics) { lyrics.lines.map { it.startMs?.toLong() } }
     val mainStarts = remember(lyrics) { lyrics.lines.map { if (it.isOverlay) null else it.startMs?.toLong() } }
@@ -304,9 +308,20 @@ fun LyricsPlayerScreen(
                     allowsScrub = true,
                     onSeek = { fraction -> scope.launch { playback.startFull(song.id, song.appleMusicId ?: ""); playback.seek((fraction * durationMs).toInt()) } }
                 )
-                Row(Modifier.fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     ImasText(imasLyricClock(positionMs ?: 0), ImasTextRole.IMPRINT, color = DS.ink3)
                     Spacer(Modifier.weight(1f))
+                    if (isFullLoaded) {
+                        // 次に流れる曲と自動再生 (∞) は、Apple Music と同じく下の操作の並びに置く。
+                        ImasIconButton(
+                            icon = Icons.AutoMirrored.Filled.List,
+                            label = "次に流れる曲",
+                            size = ImasIconButtonSize.SMALL,
+                            style = ImasIconButtonStyle.PLAIN,
+                            onClick = { showsQueue = true }
+                        )
+                        Spacer(Modifier.weight(1f))
+                    }
                     ImasText("-" + imasLyricClock(maxOf(0, durationMs - (positionMs ?: 0))), ImasTextRole.IMPRINT, color = DS.ink3)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.sp8), verticalAlignment = Alignment.CenterVertically) {
@@ -330,7 +345,6 @@ fun LyricsPlayerScreen(
                     }
                     Spacer(Modifier.weight(1f))
                 }
-                if (isFullLoaded) UpNextRow(playback)
             }
         }
     }
@@ -342,6 +356,9 @@ fun LyricsPlayerScreen(
                 onDismiss = { showsAddToPlaylist = false }
             )
         }
+    }
+    if (showsQueue) {
+        PlayQueueSheet(playback = playback, onDismiss = { showsQueue = false })
     }
 }
 
@@ -383,7 +400,12 @@ private fun LyricsPlayerRow(
                 ImasPlayerLyricLine(
                     text = split.main.ifEmpty { line.text }, isCurrent = isCurrent,
                     isMarker = line.kind == LyricLineKind.MARKER, isLiked = isLiked,
-                    isCalled = line.calls.any { it.id == activeCallId && line.echoes(it) },
+                    // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
+                    echoes = line.calls.filter { line.echoes(it) }.mapNotNull { call ->
+                        lyricMainRange(line.text, call.start.toUInt(), call.end.toUInt())?.let { range ->
+                            ImasEcho(start = range.start.toInt(), end = range.end.toInt(), isActive = call.id == activeCallId)
+                        }
+                    },
                     seed = seed
                 )
                 val overlayText = split.overlay

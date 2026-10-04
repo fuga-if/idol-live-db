@@ -65,6 +65,5 @@ fun NoLyricsFullPlayerScreen(song: Song?, playback: LyricsPlayback, onClose: () 
             }
             Spacer(Modifier.weight(1f))
         }
-        UpNextRow(playback)
     }
 }

@@ -71,13 +71,13 @@ interface LyricsPlayback {
 
     /**
      * 「次はこれ」— 積んだ最後の曲まで来たら、コアが選んだ曲 (共起 → 同じ歌い手 → 同じブランド) を
-     * 1 曲先まで足して流し続けるか (端末の設定。既定はオン)。iOS `MusicKitService.autoplayNext` と対。
+     * 1 曲先まで足して流し続けるか (端末の設定。既定は切。iOS `MusicKitService.autoplayNext` と対)。
      */
     val autoplayNext: StateFlow<Boolean>
     fun setAutoplayNext(value: Boolean)
 
-    /** 次に流れる曲の songs.id と、「次はこれ」で足した曲ならその理由。無ければ null。 */
-    val upNext: StateFlow<Pair<String, String?>?>
+    /** 積んだ曲の、いまの曲より後ろに残っている分 (songs.id と、「次はこれ」で足した曲ならその理由)。 */
+    val upcomingQueue: StateFlow<List<Pair<String, String?>>>
 }
 
 /** 再生できない環境の実装 (SDK の AAR が無いビルド等)。画面は「Apple Music で再生できません」と出す。 */
@@ -99,7 +99,7 @@ object NoLyricsPlayback : LyricsPlayback {
     override fun seek(ms: Int) {}
     override fun togglePlay() {}
     override fun stop() {}
-    override val autoplayNext: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true)
+    override val autoplayNext: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
     override fun setAutoplayNext(value: Boolean) {}
-    override val upNext: StateFlow<Pair<String, String?>?> = kotlinx.coroutines.flow.MutableStateFlow(null)
+    override val upcomingQueue: StateFlow<List<Pair<String, String?>>> = kotlinx.coroutines.flow.MutableStateFlow(emptyList())
 }

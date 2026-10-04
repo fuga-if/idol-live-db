@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -259,6 +260,17 @@ private fun Modifier.imasSeekBarDrag(onChanged: (Float) -> Unit, onEnded: (Float
 // MARK: - 歌詞プレイヤーの 1 行
 
 /**
+ * 行の中のコールの掛かる語 (`text` のコードポイント位置)。いつも曲の色の下線で印を付け、
+ * いま叫ぶところは字ごと曲の色で点ける (今の行になる前から、どこがコールか見える)。
+ * iOS `ImasPlayerLyricLine.Echo` の移植。
+ */
+data class ImasEcho(val start: Int, val end: Int, val isActive: Boolean)
+
+/** [start] (コードポイント位置) に掛かるコールを探す (重なりは先勝ち)。 */
+private fun echoAt(start: Int, echoes: List<ImasEcho>): ImasEcho? =
+    echoes.firstOrNull { start >= it.start && start < it.end }
+
+/**
  * 歌詞プレイヤーの 1 行 (iOS `ImasPlayerLyricLine`)。今の行は大きく墨、それ以外は小さく薄く。
  * 大きさは縮尺 (scale) で変える — 文字サイズで変えると行の折り返しが変わってしまうため。
  */
@@ -269,14 +281,14 @@ fun ImasPlayerLyricLine(
     modifier: Modifier = Modifier,
     isMarker: Boolean = false,
     isLiked: Boolean = false,
-    // いまこの行の文字を一緒に叫ぶところ (歌詞と同じ文字の同時コール)。曲の色で点ける。
-    isCalled: Boolean = false,
+    // 歌詞と同じ文字を一緒に叫ぶところ (同時コール)。
+    echoes: List<ImasEcho> = emptyList(),
     seed: String? = null
 ) {
     val scale by androidx.compose.animation.core.animateFloatAsState(if (isCurrent) 1f else 0.86f, label = "imasPlayerLyricLineScale")
     val theme = imasTheme(seed = seed)
     val style = if (isMarker) ImasType.heading(17.sp, FontWeight.Bold) else ImasType.heading(28.sp, FontWeight.Black)
-    val color = if (isCalled) theme.accent else if (isCurrent) DS.ink else DS.ink3
+    val color = if (isCurrent) DS.ink else DS.ink3
     Row(
         modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
@@ -293,11 +305,16 @@ fun ImasPlayerLyricLine(
                 modifier = Modifier
                     .weight(1f)
                     .scale(scale),
-                asideStyle = asideStyle
+                asideStyle = asideStyle,
+                accent = theme.accent,
+                echoAt = { start -> echoAt(start, echoes) }
             )
         } else {
-            Text(
-                ImasRubyText.asideAttributed(text, asideStyle = asideStyle),
+            ImasEchoText(
+                text = text,
+                annotated = echoMarked(ImasRubyText.asideAttributed(text, asideStyle = asideStyle), text, echoes, theme.accent),
+                echoes = echoes,
+                accent = theme.accent,
                 style = style,
                 color = color,
                 modifier = Modifier
@@ -307,6 +324,88 @@ fun ImasPlayerLyricLine(
         }
         if (isLiked) ImasLyricLikeMark(seed = seed, modifier = Modifier.padding(top = DS.sp1))
     }
+}
+
+/**
+ * コールの掛かる語に曲の色の下線を引き、いま叫ぶところは字も曲の色にする ([echoMarked] で
+ * 文字色だけ先に重ねる)。下線は文字色と別の色で引けるよう [TextLayoutResult] から範囲の矩形を
+ * 取り、文字の地に重ねて描く (Compose の `TextDecoration` は文字色と同じ色でしか引けない)。
+ */
+@Composable
+private fun ImasEchoText(
+    text: String,
+    annotated: androidx.compose.ui.text.AnnotatedString,
+    echoes: List<ImasEcho>,
+    accent: Color,
+    style: androidx.compose.ui.text.TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    if (echoes.isEmpty()) {
+        Text(annotated, style = style, color = color, modifier = modifier)
+        return
+    }
+    var layout by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    val underlineRanges = remember(text, echoes) {
+        echoes.map { codePointToCharIndex(text, it.start) until codePointToCharIndex(text, it.end) }
+            .filter { !it.isEmpty() }
+    }
+    Text(
+        annotated,
+        style = style,
+        color = color,
+        modifier = modifier.drawBehind {
+            val result = layout ?: return@drawBehind
+            val strokeWidth = 2.dp.toPx()
+            for (range in underlineRanges) {
+                drawEchoUnderline(result, range, accent, strokeWidth)
+            }
+        },
+        onTextLayout = { layout = it }
+    )
+}
+
+/** [range] (UTF-16 文字添字、半開区間) の下に [accent] の下線を引く。折り返しをまたぐ行ごとに分けて引く。 */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEchoUnderline(
+    result: androidx.compose.ui.text.TextLayoutResult,
+    range: IntRange,
+    accent: Color,
+    strokeWidth: Float
+) {
+    val length = result.layoutInput.text.length
+    val lineSegments = linkedMapOf<Int, Pair<Float, Float>>()
+    for (i in range.first until range.last + 1) {
+        if (i < 0 || i >= length) continue
+        val box = result.getBoundingBox(i)
+        val line = result.getLineForOffset(i)
+        val prev = lineSegments[line]
+        lineSegments[line] = if (prev == null) box.left to box.right else minOf(prev.first, box.left) to maxOf(prev.second, box.right)
+    }
+    for ((line, segment) in lineSegments) {
+        val y = result.getLineBottom(line) - strokeWidth
+        drawLine(color = accent, start = Offset(segment.first, y), end = Offset(segment.second, y), strokeWidth = strokeWidth)
+    }
+}
+
+/**
+ * コールの掛かる語に曲の色の文字色を重ねる (いま叫ぶところだけ)。下線は [ImasEchoText] が別に引く
+ * (文字色と違う色で引くため)。iOS `ImasPlayerLyricLine.echoMarked` の移植。
+ */
+private fun echoMarked(
+    base: androidx.compose.ui.text.AnnotatedString,
+    text: String,
+    echoes: List<ImasEcho>,
+    accent: Color
+): androidx.compose.ui.text.AnnotatedString {
+    val active = echoes.filter { it.isActive }
+    if (active.isEmpty()) return base
+    return androidx.compose.ui.text.AnnotatedString.Builder(base).apply {
+        for (echo in active) {
+            val lower = codePointToCharIndex(text, echo.start)
+            val upper = codePointToCharIndex(text, echo.end)
+            if (lower < upper) addStyle(androidx.compose.ui.text.SpanStyle(color = accent), lower, upper)
+        }
+    }.toAnnotatedString()
 }
 
 /**
@@ -902,7 +1001,12 @@ fun ImasRubyFlowText(
     modifier: Modifier = Modifier,
     highlightAt: ((Int) -> RubyHighlight?)? = null,
     /** 括弧で書いた脇の字 (被せ・歌わない字) の素通しの文字だけ、これで一段小さく薄く出す。 */
-    asideStyle: ImasAsideStyle? = null
+    asideStyle: ImasAsideStyle? = null,
+    /** 同時コールの色 (曲の色)。[echoAt] と一緒に渡すと、掛かる親字に下線を引き、いま叫ぶところは
+     *  字も曲の色にする (iOS `ImasPlayerLyricLine` の同時コールの印)。 */
+    accent: Color? = null,
+    /** 各原子の先頭 (コードポイント位置) に掛かる同時コール。歌詞プレイヤーの行でのみ渡す。 */
+    echoAt: ((Int) -> ImasEcho?)? = null
 ) {
     val atoms = remember(text) { ImasRubyText.atoms(text) }
     val readingSize = (style.fontSize.value * 0.5f).sp
@@ -912,11 +1016,29 @@ fun ImasRubyFlowText(
     ) {
         atoms.forEach { atom ->
             val highlight = highlightAt?.invoke(atom.start)
+            val echo = echoAt?.invoke(atom.start)
             val baseModifier = if (highlight?.background != null) Modifier.background(highlight.background) else Modifier
+            val echoModifier = if (echo != null && accent != null) {
+                baseModifier.drawBehind {
+                    val strokeWidth = 2.dp.toPx()
+                    drawLine(
+                        color = accent,
+                        start = Offset(0f, size.height - strokeWidth / 2),
+                        end = Offset(size.width, size.height - strokeWidth / 2),
+                        strokeWidth = strokeWidth
+                    )
+                }
+            } else {
+                baseModifier
+            }
             val isAside = atom.isAside && asideStyle != null
             val weight = if (isAside) (asideStyle?.weight ?: style.fontWeight) else if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
             val decoration = if (highlight?.underline == true) androidx.compose.ui.text.style.TextDecoration.Underline else null
-            val atomColor = if (isAside) asideStyle!!.color else color
+            val atomColor = when {
+                echo?.isActive == true && accent != null -> accent
+                isAside -> asideStyle!!.color
+                else -> color
+            }
             val atomFontSize = if (isAside) asideStyle!!.fontSize else style.fontSize
             when (atom) {
                 is ImasRubyText.Atom.Plain -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -925,12 +1047,12 @@ fun ImasRubyFlowText(
                     Text("　", fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = Color.Transparent, maxLines = 1)
                     Text(
                         atom.char, style = style, fontWeight = weight, fontSize = atomFontSize, color = atomColor,
-                        textDecoration = decoration, modifier = baseModifier
+                        textDecoration = decoration, modifier = echoModifier
                     )
                 }
                 is ImasRubyText.Atom.Ruby -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)
-                    Text(atom.base, style = style, fontWeight = weight, color = color, textDecoration = decoration, modifier = baseModifier)
+                    Text(atom.base, style = style, fontWeight = weight, color = atomColor, textDecoration = decoration, modifier = echoModifier)
                 }
             }
         }

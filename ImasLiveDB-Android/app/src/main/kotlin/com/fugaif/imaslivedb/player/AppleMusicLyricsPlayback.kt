@@ -72,7 +72,7 @@ class AppleMusicLyricsPlayback(
     private var playedSongIds: List<String> = emptyList()
     private var isAppendingNext = false
 
-    private val _autoplayNext = MutableStateFlow(prefs().getBoolean(KEY_AUTOPLAY, true))
+    private val _autoplayNext = MutableStateFlow(prefs().getBoolean(KEY_AUTOPLAY, false))
     override val autoplayNext: StateFlow<Boolean> = _autoplayNext.asStateFlow()
     override fun setAutoplayNext(value: Boolean) {
         _autoplayNext.value = value
@@ -80,19 +80,18 @@ class AppleMusicLyricsPlayback(
         if (value) appendNextIfNeeded()
     }
 
-    private val _upNext = MutableStateFlow<Pair<String, String?>?>(null)
-    override val upNext: StateFlow<Pair<String, String?>?> = _upNext.asStateFlow()
+    private val _upcomingQueue = MutableStateFlow<List<Pair<String, String?>>>(emptyList())
+    override val upcomingQueue: StateFlow<List<Pair<String, String?>>> = _upcomingQueue.asStateFlow()
 
     private fun refreshQueueFlags() {
         val index = queueIndex
         _hasQueue.value = queueSongIds.size > 1
         _canSkipNext.value = index != null &&
             playQueueNextIndex(index.toUInt(), queueSongIds.size.toUInt()) != null
-        _upNext.value = if (index != null && index + 1 < queueSongIds.size) {
-            val id = queueSongIds[index + 1]
-            id to recommendedLabels[id]
+        _upcomingQueue.value = if (index != null && index + 1 < queueSongIds.size) {
+            queueSongIds.drop(index + 1).map { it to recommendedLabels[it] }
         } else {
-            null
+            emptyList()
         }
     }
 
@@ -405,7 +404,8 @@ class AppleMusicLyricsPlayback(
         const val TAG = "AppleMusicPlayback"
         const val PREFS = "apple_music"
         const val KEY_USER_TOKEN = "musicUserToken"
-        /** 端末の設定。iOS `MusicKitService.autoplayKey` と同じキー名。 */
-        const val KEY_AUTOPLAY = "music.autoplay_next"
+        /** 端末の設定。既定を切に変えたので鍵も替える (前の既定「入」で保存された値を引き継がない)。
+         *  iOS `MusicKitService.autoplayKey` と同じキー名。 */
+        const val KEY_AUTOPLAY = "music.autoplay_next.v2"
     }
 }
