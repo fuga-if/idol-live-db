@@ -86278,6 +86278,14 @@ INSERT INTO "show_cast" VALUES('sh_xr_live_revival_4','cg_高橋礼子','member'
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_4','cg_鷹富士茄子','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_4','cg_黒川千秋','member');
 INSERT INTO "show_cast" VALUES('sh_xr_live_revival_4','cg_龍崎薫','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','765as_天海春香','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','765as_如月千早','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','765as_星井美希','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','ml_伊吹翼','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','ml_箱崎星梨花','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','ml_高山紗代子','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','ml_馬場このみ','member');
+INSERT INTO "show_cast" VALUES('sh_kimchikura_fes_26_1','ml_北上麗花','member');
 CREATE TABLE show_tickets (
   id TEXT PRIMARY KEY NOT NULL,
   show_id TEXT NOT NULL,
