@@ -454,7 +454,7 @@ pub fn card_case_sections(entries: &[CardCaseEntry]) -> Vec<CardCaseSection> {
     // (日付, 公演 id or "") → 束
     let mut groups: BTreeMap<(String, String), Vec<&CardCaseEntry>> = BTreeMap::new();
     for e in entries {
-        let received_day: String = e.received_at.chars().take(10).collect();
+        let received_day = jst_day_of(&e.received_at);
         let (date, key) = match (&e.show_id, &e.show_date) {
             (Some(id), Some(d)) if !id.is_empty() && !d.is_empty() => (d.clone(), id.clone()),
             (Some(id), _) if !id.is_empty() => (received_day, id.clone()),
@@ -658,6 +658,14 @@ fn is_host_like(s: &str) -> bool {
 // ---------------------------------------------------------------------------
 // 公演の縮め方
 // ---------------------------------------------------------------------------
+
+/// 受け取った日時 (ISO 8601) を JST の日付にする。端末は UTC で保存するので、
+/// 先頭 10 文字をそのまま使うと深夜 0〜9 時に受け取った名刺が前の日に入る。
+fn jst_day_of(received_at: &str) -> String {
+    chrono::DateTime::parse_from_rfc3339(received_at)
+        .map(|t| t.with_timezone(&crate::domain::jst_day::jst()).format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|_| received_at.chars().take(10).collect())
+}
 
 fn parse_date(s: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(s.get(..10)?, "%Y-%m-%d").ok()
@@ -1504,6 +1512,8 @@ mod tests {
                 "2026-10-05T21:00:00+09:00",
             ),
             e("3", None, "2026-10-06T12:00:00+09:00"),
+            // UTC で 10/5 17:56 = JST 10/6 02:56 → 10/6 の束
+            e("5", None, "2026-10-05T17:56:00Z"),
             e(
                 "4",
                 Some(("sh_a", "2026-09-14")),
@@ -1517,7 +1527,7 @@ mod tests {
         assert_eq!(
             shape,
             vec![
-                (None, "2026-10-06".into(), vec!["3".into()]),
+                (None, "2026-10-06".into(), vec!["3".into(), "5".into()]),
                 (
                     Some("sh_b".into()),
                     "2026-10-05".into(),
