@@ -277,19 +277,19 @@ pub fn parse_sale_moment(raw: &str) -> Option<(NaiveDate, Option<(u32, u32)>)> {
 pub(crate) type Moment = (NaiveDate, Option<(u32, u32)>);
 
 /// 開始側の既定時刻: 日付だけなら 00:00。
-fn lower_bound(m: Moment) -> NaiveDateTime {
+pub(crate) fn lower_bound(m: Moment) -> NaiveDateTime {
     let (h, mi) = m.1.unwrap_or((0, 0));
     m.0.and_hms_opt(h, mi, 0).expect("時刻は parse_sale_moment で検査済み")
 }
 
 /// 終端側の既定時刻: 日付だけなら 23:59 (その日いっぱいは有効)。
-fn upper_bound(m: Moment) -> NaiveDateTime {
+pub(crate) fn upper_bound(m: Moment) -> NaiveDateTime {
     let (h, mi) = m.1.unwrap_or((23, 59));
     m.0.and_hms_opt(h, mi, 59).expect("時刻は parse_sale_moment で検査済み")
 }
 
 /// epoch 秒 → JST の素の日時 (タイムゾーン情報を持たない比較用)。
-fn now_naive(now_epoch_seconds: i64) -> NaiveDateTime {
+pub(crate) fn now_naive(now_epoch_seconds: i64) -> NaiveDateTime {
     let utc = DateTime::from_timestamp(now_epoch_seconds, 0).unwrap_or(DateTime::UNIX_EPOCH);
     utc.with_timezone(&jst()).naive_local()
 }

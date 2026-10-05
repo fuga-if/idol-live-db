@@ -479,6 +479,9 @@ pub struct CkShowTicketRow {
     pub is_estimate: bool,
     pub note: Option<String>,
     pub sort_order: i64,
+    /// 配信のアーカイブ期間 (JST `YYYY-MM-DD HH:MM`。検査しない)。
+    pub archive_starts_at: Option<String>,
+    pub archive_ends_at: Option<String>,
 }
 
 /// ticket_sales
@@ -1084,6 +1087,8 @@ pub fn show_ticket(record: &CkRecordInput) -> Option<CkShowTicketRow> {
         is_estimate: f.bool_value("isEstimate", false),
         note: f.str("note"),
         sort_order: f.int_value("sortOrder"),
+        archive_starts_at: f.str("archiveStartsAt"),
+        archive_ends_at: f.str("archiveEndsAt"),
     })
 }
 
@@ -1327,6 +1332,8 @@ mod tests {
                 ("isEstimate", CkValue::Bool { value: true }),
                 ("note", text("見逃し 1 週間")),
                 ("sortOrder", int(2)),
+                ("archiveStartsAt", text("2026-09-28 18:00")),
+                ("archiveEndsAt", text("2026-10-05 23:59")),
             ],
         );
         let row = show_ticket(&r).unwrap();
@@ -1338,6 +1345,8 @@ mod tests {
         assert!(row.is_estimate);
         assert_eq!(row.note.as_deref(), Some("見逃し 1 週間"));
         assert_eq!(row.sort_order, 2);
+        assert_eq!(row.archive_starts_at.as_deref(), Some("2026-09-28 18:00"));
+        assert_eq!(row.archive_ends_at.as_deref(), Some("2026-10-05 23:59"));
     }
 
     /// 形態が欠けていれば現地扱い (参加形態の既定と同じ約束)。
@@ -1348,6 +1357,8 @@ mod tests {
         assert_eq!(row.kind, "live");
         assert!(!row.is_estimate);
         assert_eq!(row.sort_order, 0);
+        assert_eq!(row.archive_starts_at, None);
+        assert_eq!(row.archive_ends_at, None);
     }
 
     /// 価格が無い / 数でない行は取り込まない (0 円で入れると価格帯が静かに狂う)。

@@ -69,6 +69,8 @@ CREATE TABLE show_tickets (
             is_estimate INTEGER NOT NULL DEFAULT 0,
             note TEXT,
             sort_order INTEGER NOT NULL DEFAULT 0,
+            archive_starts_at TEXT,
+            archive_ends_at TEXT,
             FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE
         );
 CREATE TABLE shows (id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, name TEXT NOT NULL, date TEXT NOT NULL, venue TEXT, venue_city TEXT, start_time TEXT, sort_order INTEGER NOT NULL, performer_type TEXT DEFAULT 'cast', venue_id TEXT, hall TEXT, stream_platform TEXT, venue_mode TEXT);

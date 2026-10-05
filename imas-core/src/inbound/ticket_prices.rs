@@ -3,7 +3,7 @@
 //! 公演 1 つぶんの券種をまとめて渡して、選んだ結果や価格帯を受け取る。
 
 use crate::domain::ticket_prices::{
-    ShowTicket, TicketBackfillInput, TicketBackfillItem, TicketExpensePrompt, TicketInputError, TicketKind, TicketPriceRange,
+    ShowTicket, TicketArchive, TicketBackfillInput, TicketBackfillItem, TicketExpensePrompt, TicketInputError, TicketKind, TicketPriceRange,
 };
 
 #[uniffi::export]
@@ -68,6 +68,11 @@ pub fn ticket_expense_note(ticket: ShowTicket) -> String {
     crate::domain::ticket_prices::ticket_expense_note(&ticket)
 }
 
+#[uniffi::export]
+pub fn ticket_archive(ticket: ShowTicket, now_epoch_seconds: i64) -> Option<TicketArchive> {
+    crate::domain::ticket_prices::ticket_archive(&ticket, now_epoch_seconds)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -82,6 +87,8 @@ mod tests {
             is_estimate: false,
             note: None,
             sort_order: 0,
+            archive_starts_at: None,
+            archive_ends_at: None,
         }
     }
 
@@ -108,5 +115,11 @@ mod tests {
         assert_eq!(ticket_kind_from_attendance("stream".into()), TicketKind::Stream);
         assert_eq!(ticket_kind_label(TicketKind::LiveViewing), "LV");
         assert_eq!(validate_ticket("".into(), 100), Some(TicketInputError::EmptyName));
+        let mut stream = ticket("c", TicketKind::Stream, "配信", 5_500);
+        stream.archive_ends_at = Some("2026-10-05 23:59".into());
+        assert_eq!(
+            ticket_archive(stream.clone(), 0),
+            crate::domain::ticket_prices::ticket_archive(&stream, 0)
+        );
     }
 }

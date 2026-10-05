@@ -16,7 +16,10 @@
 //! 公演ごとに呼び方が違い、固定の enum にすると必ず溢れる。**形態 (現地/配信/LV) だけ
 //! を機械で扱い、席種は名前と並び順で持つ**。
 
+use chrono::{Datelike, NaiveDateTime, Timelike};
+
 use crate::domain::ledger::format_yen;
+use crate::domain::ticket_sales::{lower_bound, now_naive, parse_sale_moment, upper_bound};
 
 /// 券の形態。参加形態 (`user_marks.attended` の text_value) と同じ 3 つ。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -44,6 +47,11 @@ pub struct ShowTicket {
     pub note: Option<String>,
     /// 並び順 (公式の表記順)。同値なら価格の高い順。
     pub sort_order: i64,
+    /// 配信のアーカイブ (見逃し) が見られる期間の始まり。JST の `YYYY-MM-DD HH:MM`
+    /// (受付の `ticket_sales.starts_at` と同じ書式。日付だけなら 00:00 から)。
+    pub archive_starts_at: Option<String>,
+    /// アーカイブ期間の終わり。日付だけならその日の 23:59 まで。
+    pub archive_ends_at: Option<String>,
 }
 
 /// 価格帯の要約 (「この公演は 5,500〜13,200 円」)。
@@ -208,6 +216,70 @@ pub fn price_ranges(tickets: &[ShowTicket]) -> Vec<TicketPriceRange> {
         .collect()
 }
 
+/// アーカイブ期間の段階。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ArchiveState {
+    /// 公開前 (始まりより前)。
+    Upcoming,
+    /// いま見られる。
+    Open,
+    /// 終わった。
+    Ended,
+}
+
+/// 配信チケット 1 枚のアーカイブ期間の表示。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct TicketArchive {
+    pub state: ArchiveState,
+    /// `アーカイブ 9/28 18:00〜10/5 23:59`。始まりが無ければ `アーカイブ 〜10/5 23:59`、
+    /// 終わりが無ければ `アーカイブ 9/28 18:00〜`。
+    pub period_label: String,
+    /// 段階の札 (`公開中` / `公開前` / `終了`)。
+    pub state_label: String,
+    /// 券種行の注記にそのまま置く 1 行 (`アーカイブ 9/28 18:00〜10/5 23:59・公開中`)。
+    pub note: String,
+}
+
+/// 券種のアーカイブ期間。期間が 1 つも読めなければ `None` (書式の崩れた値を捏造して出さない)。
+///
+/// 判定は受付 ([`crate::domain::ticket_sales::sale_stage`]) と同じ約束: 日付だけの始まりは 00:00、
+/// 日付だけの終わりはその日いっぱい、両端を含む。形態は問わない (現地+配信のセット券にも付く)。
+pub fn ticket_archive(ticket: &ShowTicket, now_epoch_seconds: i64) -> Option<TicketArchive> {
+    let start = ticket.archive_starts_at.as_deref().and_then(parse_sale_moment);
+    let end = ticket.archive_ends_at.as_deref().and_then(parse_sale_moment);
+    if start.is_none() && end.is_none() {
+        return None;
+    }
+    let now = now_naive(now_epoch_seconds);
+    let state = if start.is_some_and(|s| now < lower_bound(s)) {
+        ArchiveState::Upcoming
+    } else if end.is_some_and(|e| now > upper_bound(e)) {
+        ArchiveState::Ended
+    } else {
+        ArchiveState::Open
+    };
+    let fmt = |at: NaiveDateTime, has_time: bool| {
+        if has_time {
+            format!("{}/{} {}:{:02}", at.month(), at.day(), at.hour(), at.minute())
+        } else {
+            format!("{}/{}", at.month(), at.day())
+        }
+    };
+    let period_label = format!(
+        "アーカイブ {}〜{}",
+        start.map(|s| fmt(lower_bound(s), s.1.is_some())).unwrap_or_default(),
+        end.map(|e| fmt(upper_bound(e), e.1.is_some())).unwrap_or_default(),
+    );
+    let state_label = match state {
+        ArchiveState::Upcoming => "公開前",
+        ArchiveState::Open => "公開中",
+        ArchiveState::Ended => "終了",
+    }
+    .to_string();
+    let note = format!("{period_label}・{state_label}");
+    Some(TicketArchive { state, period_label, state_label, note })
+}
+
 /// 券種の入力検査。通れば `None`。
 pub fn validate_ticket(name: &str, price: i64) -> Option<TicketInputError> {
     if name.trim().is_empty() {
@@ -268,7 +340,52 @@ mod tests {
             is_estimate: false,
             note: None,
             sort_order: sort,
+            archive_starts_at: None,
+            archive_ends_at: None,
         }
+    }
+
+    /// JST の `YYYY-MM-DD HH:MM` → epoch 秒。
+    fn jst_epoch(s: &str) -> i64 {
+        let naive = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M").unwrap();
+        naive.and_utc().timestamp() - 9 * 3600
+    }
+
+    fn archived(starts: Option<&str>, ends: Option<&str>) -> ShowTicket {
+        let mut t = ticket("s", TicketKind::Stream, "配信", 7_000, 0);
+        t.archive_starts_at = starts.map(Into::into);
+        t.archive_ends_at = ends.map(Into::into);
+        t
+    }
+
+    #[test]
+    fn archive_period_and_state() {
+        let t = archived(Some("2026-09-28 18:00"), Some("2026-10-05 23:59"));
+        let before = ticket_archive(&t, jst_epoch("2026-09-28 17:59")).unwrap();
+        assert_eq!(before.state, ArchiveState::Upcoming);
+        assert_eq!(before.period_label, "アーカイブ 9/28 18:00〜10/5 23:59");
+        assert_eq!(before.note, "アーカイブ 9/28 18:00〜10/5 23:59・公開前");
+        // 両端を含む。
+        assert_eq!(ticket_archive(&t, jst_epoch("2026-09-28 18:00")).unwrap().state, ArchiveState::Open);
+        assert_eq!(ticket_archive(&t, jst_epoch("2026-10-05 23:59")).unwrap().state, ArchiveState::Open);
+        let after = ticket_archive(&t, jst_epoch("2026-10-06 00:00")).unwrap();
+        assert_eq!(after.state, ArchiveState::Ended);
+        assert_eq!(after.state_label, "終了");
+    }
+
+    #[test]
+    fn archive_with_one_side_or_date_only() {
+        // 終わりだけ・日付だけ → その日いっぱい公開中。
+        let t = archived(None, Some("2026-10-05"));
+        let a = ticket_archive(&t, jst_epoch("2026-10-05 23:00")).unwrap();
+        assert_eq!(a.period_label, "アーカイブ 〜10/5");
+        assert_eq!(a.state, ArchiveState::Open);
+        // 始まりだけ → 終わりの無い公開中。
+        let t = archived(Some("2026-09-28 18:00"), None);
+        assert_eq!(ticket_archive(&t, jst_epoch("2027-01-01 00:00")).unwrap().period_label, "アーカイブ 9/28 18:00〜");
+        // 無い・読めない → 出さない。
+        assert!(ticket_archive(&archived(None, None), 0).is_none());
+        assert!(ticket_archive(&archived(Some("10月5日"), Some("")), 0).is_none());
     }
 
     /// 両 OS の TicketExpensePrompt から移した「聞くかどうか」。
