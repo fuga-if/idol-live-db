@@ -180,12 +180,25 @@ struct LyricsPlayerView: View {
         }
     }
 
+    /// 被せの段に引く同時コールの印 (括弧の中の位置を被せの段の位置に置き直す。規則はコア)。
+    private func overlayEchoes(_ line: LyricLine, mapped: Bool) -> [ImasPlayerLyricLine.Echo] {
+        line.calls.filter { line.echoes($0) }.compactMap { call in
+            let range = mapped
+                ? lyricOverlayRange(text: line.text, start: UInt32(call.start), end: UInt32(call.end))
+                    .map { (Int($0.start), Int($0.end)) }
+                : (call.start, call.end)
+            return range.map { .init(start: $0.0, end: $0.1, isActive: call.id == activeCallId) }
+        }
+    }
+
     private func rowBody(_ line: LyricLine, isLiked: Bool) -> some View {
         VStack(alignment: .leading, spacing: DS.sp1) {
             if line.isOverlay {
                 // 行まるごとの被せ。メインとは別に、自分の時刻で光る 2 段目。
-                ImasPlayerOverlayLine(text: lyricOverlaySplit(text: line.text).overlay ?? line.text,
-                                      isCurrent: !hasTiming || line.id == activeOverlayId, seed: seed)
+                let overlay = lyricOverlaySplit(text: line.text).overlay
+                ImasPlayerOverlayLine(text: overlay ?? line.text,
+                                      isCurrent: !hasTiming || line.id == activeOverlayId,
+                                      echoes: overlayEchoes(line, mapped: overlay != nil), seed: seed)
             } else {
                 // 行の中の括弧 (追いかけ) は本文から外して、すぐ下に 2 段目として重ねる。
                 let split = lyricOverlaySplit(text: line.text)
@@ -205,7 +218,8 @@ struct LyricsPlayerView: View {
                                     }),
                                     seed: seed)
                 if let overlay = split.overlay, !split.main.isEmpty {
-                    ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent, seed: seed)
+                    ImasPlayerOverlayLine(text: overlay, isCurrent: isCurrent,
+                                          echoes: overlayEchoes(line, mapped: true), seed: seed)
                 }
             }
             ImasPartNames(groups: cast.groups(line))

@@ -162,3 +162,9 @@ pub fn lyric_part_paint(
 pub fn lyric_part_erase(len: u32, singers: Vec<String>, breaks: Vec<LyricPartBreak>, start: u32, end: u32) -> LyricPartPaint {
     d::part_erase(len, &singers, &breaks, start, end)
 }
+
+/// 行の本文の範囲を、被せの段 (`lyric_overlay_split` の overlay) の中の範囲に置き直す。括弧の外なら `None`。
+#[uniffi::export]
+pub fn lyric_overlay_range(text: String, start: u32, end: u32) -> Option<LyricAside> {
+    d::overlay_range(&text, start, end)
+}

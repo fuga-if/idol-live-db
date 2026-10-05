@@ -295,35 +295,96 @@ pub fn aside_spans(text: &str) -> Vec<LyricAside> {
     out
 }
 
+/// 本文の各スカラーが、`split_overlay` の `main` / `overlay` のどこに入るか (どちらにも入らなければ `None`)。
+/// `split_overlay` と同じ手順で組み、前後の空白を落とした後の位置にそろえる。分けない行は `None`。
+fn overlay_positions(text: &str) -> Option<(Vec<Option<usize>>, Vec<Option<usize>>)> {
+    let chars: Vec<char> = text.chars().collect();
+    let mut main: Vec<usize> = Vec::new(); // main に入った本文の位置 (空白を落とす前)
+    let mut parts: Vec<Vec<usize>> = Vec::new();
+    let mut current: Vec<usize> = Vec::new();
+    let mut depth = 0usize;
+    for (i, &c) in chars.iter().enumerate() {
+        if is_open(c) {
+            if depth > 0 {
+                current.push(i);
+            }
+            depth += 1;
+        } else if is_close(c) {
+            if depth == 0 {
+                return None;
+            }
+            depth -= 1;
+            if depth == 0 {
+                parts.push(std::mem::take(&mut current));
+            } else {
+                current.push(i);
+            }
+        } else if depth > 0 {
+            current.push(i);
+        } else {
+            main.push(i);
+        }
+    }
+    if depth != 0 {
+        return None;
+    }
+    // 前後の空白を落とす (split_overlay の trim と同じ)。
+    let trim = |idx: &[usize]| -> Vec<usize> {
+        let s = idx.iter().position(|&k| !chars[k].is_whitespace()).unwrap_or(idx.len());
+        let e = idx.iter().rposition(|&k| !chars[k].is_whitespace()).map_or(s, |p| p + 1);
+        idx[s..e].to_vec()
+    };
+    let parts: Vec<Vec<usize>> = parts.iter().map(|p| trim(p)).filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() {
+        return None;
+    }
+    let mut main_pos = vec![None; chars.len()];
+    for (k, &i) in trim(&main).iter().enumerate() {
+        main_pos[i] = Some(k);
+    }
+    let mut overlay_pos = vec![None; chars.len()];
+    let mut base = 0usize;
+    for part in &parts {
+        for (k, &i) in part.iter().enumerate() {
+            overlay_pos[i] = Some(base + k);
+        }
+        base += part.len() + 1; // 全角空白でつなぐ
+    }
+    Some((main_pos, overlay_pos))
+}
+
+/// 位置の対応表から、範囲 `start..end` に入る字の最初と最後を取って範囲にする。
+fn mapped_range(pos: &[Option<usize>], start: usize, end: usize) -> Option<LyricAside> {
+    let hits: Vec<usize> = pos[start..end].iter().flatten().copied().collect();
+    let (first, last) = (*hits.first()?, *hits.last()?);
+    Some(LyricAside { start: first as u32, end: (last + 1) as u32 })
+}
+
 /// 行の本文の範囲 `start..end` を、`split_overlay` の `main` (括弧の外) の中の範囲に置き直す。
 /// 範囲がまるごと括弧の中 (被せ) なら `None`。括弧の対応が取れず分けない行はそのまま返す。
 /// 歌詞プレイヤーが、メインの行の中でコールの掛かる語に印を付けるのに使う。
 pub fn main_range(text: &str, start: u32, end: u32) -> Option<LyricAside> {
-    let chars: Vec<char> = text.chars().collect();
-    let (start, end) = (start as usize, (end as usize).min(chars.len()));
+    let len = text.chars().count();
+    let (start, end) = (start as usize, (end as usize).min(len));
     if start >= end {
         return None;
     }
-    if split_overlay(text).overlay.is_none() {
-        return Some(LyricAside { start: start as u32, end: end as u32 });
+    match overlay_positions(text) {
+        None => Some(LyricAside { start: start as u32, end: end as u32 }),
+        Some((main_pos, _)) => mapped_range(&main_pos, start, end),
     }
-    // 括弧の外に残る字だけを数える (括弧そのものと中身は main に入らない)。
-    let mut depth = 0usize;
-    let mut kept = vec![false; chars.len()];
-    for (i, &c) in chars.iter().enumerate() {
-        if is_open(c) {
-            depth += 1;
-        } else if is_close(c) {
-            depth = depth.saturating_sub(1);
-        } else if depth == 0 {
-            kept[i] = true;
-        }
-    }
-    if !kept[start..end].iter().any(|&k| k) {
+}
+
+/// 行の本文の範囲 `start..end` を、`split_overlay` の `overlay` (括弧の中を全角空白でつないだもの) の中の
+/// 範囲に置き直す。括弧の中に掛かっていなければ `None`。被せの段のコールの語に印を付けるのに使う。
+pub fn overlay_range(text: &str, start: u32, end: u32) -> Option<LyricAside> {
+    let len = text.chars().count();
+    let (start, end) = (start as usize, (end as usize).min(len));
+    if start >= end {
         return None;
     }
-    let before = |k: usize| kept[..k].iter().filter(|&&x| x).count() as u32;
-    Some(LyricAside { start: before(start), end: before(end) })
+    let (_, overlay_pos) = overlay_positions(text)?;
+    mapped_range(&overlay_pos, start, end)
 }
 
 /// 各スカラーが被せの括弧の内側か。括弧の対応が取れない行は全部 false。
@@ -982,6 +1043,18 @@ mod tests {
         assert_eq!(e.singers, a);
         assert_eq!(e.breaks, vec![LyricPartBreak { at: 1, singers: vec![] }, LyricPartBreak { at: 3, singers: a.clone() }]);
         assert_eq!(part_erase(4, &a, &[], 0, 4), LyricPartPaint { singers: vec![], breaks: vec![] });
+    }
+
+
+    #[test]
+    fn overlay_range_maps_into_overlay_text() {
+        // (0G1O2 3G4O5)6 → overlay "GO GO"
+        assert_eq!(overlay_range("(GO GO)", 0, 7), Some(LyricAside { start: 0, end: 5 }));
+        // 夢0を1（2夢3を4）5 と6（7Hi8）9 → overlay "夢を　Hi"
+        assert_eq!(overlay_range("夢を（夢を）と（Hi）", 7, 10), Some(LyricAside { start: 3, end: 5 }));
+        assert_eq!(overlay_range("夢を（夢を）", 0, 2), None);
+        // main の頭の空白は落ちる
+        assert_eq!(main_range(" 夢を（a）", 1, 3), Some(LyricAside { start: 0, end: 2 }));
     }
 
 }

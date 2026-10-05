@@ -178,6 +178,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_line_spans,
     uniffi_imas_core_checksum_func_lyric_next_recordable,
     uniffi_imas_core_checksum_func_lyric_overlay_spans,
+    uniffi_imas_core_checksum_func_lyric_overlay_range,
     uniffi_imas_core_checksum_func_lyric_overlay_split,
     uniffi_imas_core_checksum_func_lyric_parts_applicable,
     uniffi_imas_core_checksum_func_lyric_part_erase,

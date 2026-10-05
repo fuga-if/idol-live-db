@@ -254,6 +254,10 @@ struct ImasPlayerLyricLine: View {
 
     /// コールの掛かる語に曲の色の下線を引き、いま叫ぶところは字も曲の色にする。
     private func echoMarked(_ base: AttributedString, accent: Color) -> AttributedString {
+        Self.echoMarked(base, echoes: echoes, accent: accent)
+    }
+
+    static func echoMarked(_ base: AttributedString, echoes: [Echo], accent: Color) -> AttributedString {
         guard !echoes.isEmpty else { return base }
         var result = base
         let scalars = result.unicodeScalars
@@ -459,6 +463,8 @@ struct ImasPlayerOverlayLine: View {
     @Environment(\.colorScheme) private var scheme
     let text: String
     let isCurrent: Bool
+    /// 被せの中で、歌詞と同じ文字を一緒に叫ぶところ (同時コール)。メインの行と同じく下線で印を付ける。
+    var echoes: [ImasPlayerLyricLine.Echo] = []
     let seed: String?
 
     var body: some View {
@@ -468,7 +474,7 @@ struct ImasPlayerOverlayLine: View {
                 .fill(isCurrent ? t.accent : DS.sep)
                 .frame(width: 2)
             // ⚠️ ここに `.textSelection(.enabled)` / `.imasCopyable` を足さないこと。
-            Text(text)
+            Text(ImasPlayerLyricLine.echoMarked(AttributedString(text), echoes: echoes, accent: t.accent))
                 .font(.imasHeading(19, weight: .bold))
                 .foregroundStyle(isCurrent ? DS.ink2 : DS.ink3)
                 .fixedSize(horizontal: false, vertical: true)
