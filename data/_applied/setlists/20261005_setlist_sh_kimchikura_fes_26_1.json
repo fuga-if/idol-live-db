@@ -1,0 +1,130 @@
+{
+ "title": "KIMCHIKURA Fes '26 のセットリスト (issue #200)",
+ "author": "triage-fix-requests",
+ "source": "GitHub issue #200 (投稿内容で登録。公式のセットリスト告知は見つからず、出演者は https://idolmaster-official.jp/news/01_19061)",
+ "show_id": "sh_kimchikura_fes_26_1",
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "765as_the_idolmster",
+   "performers": [
+    "765as_星井美希",
+    "765as_如月千早",
+    "765as_天海春香"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "765as_乙女よ大志を抱け",
+   "performers": [
+    "765as_天海春香"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "765as_day_of_the_future",
+   "performers": [
+    "765as_星井美希"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "765as_目が逢う瞬間",
+   "performers": [
+    "765as_如月千早"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "765as_fate_of_the_world",
+   "performers": [
+    "765as_天海春香",
+    "765as_星井美希",
+    "765as_如月千早"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "765as_ready",
+   "performers": [
+    "765as_如月千早",
+    "765as_星井美希",
+    "765as_天海春香"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "ml_dreaming",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_馬場このみ",
+    "ml_北上麗花",
+    "ml_高山紗代子",
+    "ml_伊吹翼"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "ml_ロケットスター",
+   "performers": [
+    "ml_伊吹翼"
+   ]
+  },
+  {
+   "position": 9,
+   "song_id": "ml_夢色トレイン",
+   "performers": [
+    "ml_箱崎星梨花"
+   ]
+  },
+  {
+   "position": 10,
+   "song_id": "ml_red_zone",
+   "performers": [
+    "ml_北上麗花",
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 11,
+   "song_id": "ml_only_one_second",
+   "performers": [
+    "ml_高山紗代子"
+   ]
+  },
+  {
+   "position": 12,
+   "song_id": "ml_サマトリ_summer_trip",
+   "performers": [
+    "ml_北上麗花"
+   ]
+  },
+  {
+   "position": 13,
+   "song_id": "ml_水中キャンディ",
+   "performers": [
+    "ml_馬場このみ"
+   ]
+  },
+  {
+   "position": 14,
+   "song_id": "ml_dance_in_the_light",
+   "performers": [
+    "ml_伊吹翼",
+    "ml_箱崎星梨花",
+    "ml_高山紗代子"
+   ]
+  },
+  {
+   "position": 15,
+   "song_id": "ml_crossing",
+   "performers": [
+    "ml_箱崎星梨花",
+    "ml_馬場このみ",
+    "ml_伊吹翼",
+    "ml_北上麗花",
+    "ml_高山紗代子"
+   ]
+  }
+ ]
+}

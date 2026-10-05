@@ -1,0 +1,25 @@
+{
+ "title": "issue #202 EVERAFTER の補足 / #203 双海亜美のローマ字",
+ "author": "triage-fix-requests",
+ "source": "GitHub issue #202 #203",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_everafter",
+   "fields": {
+    "note": "デレステ 10 周年記念楽曲"
+   },
+   "source": "derived:songs.cd_series「THE IDOLM@STER CINDERELLA GIRLS STARLIGHT STAGE 10th ANNIVERSARY SONG」",
+   "note": "issue #202。公式の CD 名が STARLIGHT STAGE 10th ANNIVERSARY SONG。表記は既存の「ミリシタ 9 周年記念楽曲」に揃えた"
+  },
+  {
+   "table": "idols",
+   "id": "765as_双海亜美",
+   "fields": {
+    "name_romaji": "Futami Ami"
+   },
+   "source": "https://idollist.idolmaster-official.jp/search/detail/10009",
+   "note": "issue #203。公式名鑑の読み「ふたみ あみ」のヘボン式。投稿のうち他の項目は登録と同じ"
+  }
+ ]
+}

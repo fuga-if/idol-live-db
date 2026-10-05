@@ -1,0 +1,17 @@
+{
+ "title": "issue #132 #152 #165 #175 (アンコールの区切り・曲の読み・音無小鳥のイメージカラー)",
+ "author": "triage-fix-requests",
+ "source": "GitHub issue #132 #152 #165 #175",
+ "fixes": [
+  {"table": "setlist_items", "id": "sh_学園アイドルマスター_live_tour_-標-_福岡公演_1_0019", "fields": {"section": "アンコール"},
+   "source": "https://www.famitsu.com/article/202609/86835 / https://imas-db.jp/song/event/gakuen_shirube_fukuoka.html", "note": "issue #132。レポートでアンコール 1 曲目"},
+  {"table": "setlist_items", "id": "sh_学園アイドルマスター_live_tour_-標-_福岡公演_1_0020", "fields": {"section": "アンコール"},
+   "source": "https://www.famitsu.com/article/202609/86835 / https://imas-db.jp/song/event/gakuen_shirube_fukuoka.html", "note": "issue #132"},
+  {"table": "setlist_items", "id": "sh_the_idolm@ster_million_live_14thlive_2_0039", "fields": {"section": "二次会"},
+   "source": "https://imas-db.jp/song/event/million_14th_day2.html / https://aimasupay.hatenablog.com/entry/million14th-day2-setlist", "note": "issue #152。37・38 はアンコール (登録済み)。39 はダブルアンコールではなく二次会"},
+  {"table": "songs", "id": "ml_parade_damour", "fields": {"title_kana": "ぱらーどだむーる"},
+   "source": "GitHub issue #165 (公式の読みは見つからず投稿内容で登録)", "note": "仏語 parade の読み"},
+  {"table": "idols", "id": "765as_音無小鳥", "fields": {"color": "#FFF98E"},
+   "source": "https://imas-db.jp/misc/color.html", "note": "issue #175。ひよこ色"}
+ ]
+}
