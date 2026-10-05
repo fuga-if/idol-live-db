@@ -378,13 +378,17 @@ struct ProducerCardEditorView: View {
         return out
     }
 
+    /// 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
+    /// そのまま入れて渡す。載る中身を抜くと QR に収まるかの見積もりが実物より短くなり、
+    /// 保存できても相手が読めない名刺になる。
     private var validation: ProducerCardInputError? {
         let filled = links.filter { !$0.value.trimmingCharacters(in: .whitespaces).isEmpty }
-        let input = ProducerCardInput(
-            name: name, message: message, sinceYear: nil, oshiIdolIds: [],
-            links: filled.map { CardLink(kind: $0.kind, value: $0.value) },
-            showCount: nil, songCount: nil, nextShowId: nil, attended: [], issuedOn: JSTDay.today(),
-            nameFont: nil, qrUrl: qrUrl)
+        let rec = record ?? ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
+        var input = ProducerCardAssembler.input(card: draft, record: rec)
+        input.name = name
+        input.message = message
+        input.links = filled.map { CardLink(kind: $0.kind, value: $0.value) }
+        input.qrUrl = qrUrl
         return validateProducerCard(input: input)
     }
 
