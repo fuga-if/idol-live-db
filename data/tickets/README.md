@@ -6,8 +6,11 @@
 ## 出力の形 (TSV・ヘッダなし)
 
 ```
-show_id	kind	name	price	is_estimate	note	source_url
+show_id	kind	name	price	is_estimate	note	source_url	[archive_starts_at]	[archive_ends_at]
 ```
+
+末尾の 2 列 (`archive_starts_at` / `archive_ends_at`) は**省略できる** (7 列の行はそのまま通り、
+どちらも空になる)。
 
 | 列 | 中身 |
 |---|---|
@@ -18,6 +21,12 @@ show_id	kind	name	price	is_estimate	note	source_url
 | `is_estimate` | `0` = 公式に出ていた額、`1` = 推定 (同じツアーの他日から当てた等) |
 | `note` | 当日券・通し券・特典・有効期間など、額に添える補足 (無ければ空) |
 | `source_url` | その額が載っているページ。**行ごとに必須** |
+| `archive_starts_at` | (省略可) 配信のアーカイブ (見逃し配信) を見られる期間の始まり。JST の `YYYY-MM-DD HH:MM` (日付だけの `YYYY-MM-DD` も可。`ticket_sales.starts_at` と同じ形式) |
+| `archive_ends_at` | (省略可) 同じく期間の終わり。始まり以前にはできない |
+
+アーカイブ期間は **`kind=stream` の行にだけ**書く。出典は公式ページ (`source_url`) に載っている期間だけで、
+推測では埋めない (期間が分からなければ空のまま)。日次クロール (`tools/crawl_show_details.py`) は、
+配信の券種の行が既にあり期間の列が空のものだけ、公式ページから読んだ期間を `data/fixes/` の案として出す。
 
 ## 決め事
 

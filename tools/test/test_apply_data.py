@@ -491,6 +491,40 @@ class TicketSalesWithTableTest(PostFixture):
         self.assertTrue(any("既に存在" in p and "ts_1111" in p for p in problems))
 
 
+class ShowTicketArchiveFixesTest(PostFixture):
+    """show_tickets の fixes はアーカイブ期間の 2 列だけ、kind=stream の行にだけ。"""
+
+    def setUp(self):
+        super().setUp()
+        conn = sqlite3.connect(str(self.db))
+        for tid, kind in (("tk_live", "live"), ("tk_stream", "stream")):
+            conn.execute("INSERT INTO show_tickets (id, show_id, kind, name, price, is_estimate, sort_order)"
+                         " VALUES (?, 'sh_t', ?, 'x', 100, 0, 0)", (tid, kind))
+        conn.commit()
+        conn.close()
+
+    def problems(self, tid, **fields):
+        support.write_json(self.data / "fixes" / "post.json", {
+            "source": "https://example.com/n",
+            "fixes": [{"table": "show_tickets", "id": tid, "fields": fields}]})
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return apply_data.validate(conn)
+        finally:
+            conn.close()
+
+    def test_stream_row_period_passes(self):
+        self.assertEqual(self.problems("tk_stream", archive_starts_at="2026-09-28 18:00",
+                                       archive_ends_at="2026-10-05"), [])
+
+    def test_l4_non_stream_row_is_rejected(self):
+        self.assertTrue(any("kind=stream" in p for p in self.problems(
+            "tk_live", archive_starts_at="2026-09-28", archive_ends_at="2026-10-05")))
+
+    def test_other_columns_are_rejected(self):
+        self.assertTrue(any("直せない" in p for p in self.problems("tk_stream", price=1)))
+
+
 class TicketSalesFixesTest(PostFixture):
     """M5: data/fixes/ (table: ticket_sales) にも新規投稿と同じ 1 行検査を効かせる。"""
 

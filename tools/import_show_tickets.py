@@ -24,6 +24,7 @@ import hashlib
 import re
 import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from lib import masterdb
@@ -32,11 +33,19 @@ BUNDLE_DB = masterdb.BUNDLE_DB
 MASTER_SQL = masterdb.MASTER_SQL
 
 INSERT_TICKETS = (
-    "INSERT OR REPLACE INTO show_tickets "
-    "(id, show_id, kind, name, price, is_estimate, note, sort_order) "
-    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    "INSERT INTO show_tickets "
+    "(id, show_id, kind, name, price, is_estimate, note, sort_order, archive_starts_at, archive_ends_at) "
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+    "ON CONFLICT(id) DO UPDATE SET show_id=excluded.show_id, kind=excluded.kind, name=excluded.name, "
+    "price=excluded.price, is_estimate=excluded.is_estimate, note=excluded.note, "
+    "sort_order=excluded.sort_order, "
+    # 期間は fixes (クローラ) でも入る。期間の無い TSV の取り込み直しで消さない。
+    "archive_starts_at=COALESCE(excluded.archive_starts_at, show_tickets.archive_starts_at), "
+    "archive_ends_at=COALESCE(excluded.archive_ends_at, show_tickets.archive_ends_at)")
 
 KINDS = {"live", "stream", "live_viewing"}
+# アーカイブ視聴期間 (ticket_sales.starts_at と同じ JST の形式。日付だけも可)。
+MOMENT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$")
 # 1 枚 100 万円を超える券は無い (コアの validate_ticket と同じ上限)。
 MAX_PRICE = 1_000_000
 
@@ -56,6 +65,22 @@ def slug(text: str) -> str:
     return re.sub(r"_+", "_", out) or "ticket"
 
 
+def valid_moment(value: str) -> bool:
+    """形式が合い、実在する日時か (2026-02-30 や 24:00 は不可)。"""
+    if not MOMENT_RE.match(value):
+        return False
+    try:
+        datetime.strptime(value, "%Y-%m-%d %H:%M" if len(value) > 10 else "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
+def bound(value: str, pad: str) -> str:
+    """日付だけの値を比較用の境界時刻にそろえる。"""
+    return value if len(value) > 10 else f"{value} {pad}"
+
+
 def load(paths: list[Path], known_shows: set[str]) -> tuple[list[tuple], list[str]]:
     rows: list[tuple] = []
     errors: list[str] = []
@@ -68,10 +93,11 @@ def load(paths: list[Path], known_shows: set[str]) -> tuple[list[tuple], list[st
             if not line or line.startswith("#"):
                 continue
             parts = line.split("\t")
-            if len(parts) != 7:
-                errors.append(f"{path.name}:{lineno} 列が {len(parts)} 個 (7 個必要)")
+            if not 7 <= len(parts) <= 9:
+                errors.append(f"{path.name}:{lineno} 列が {len(parts)} 個 (7 個。アーカイブ期間つきなら 9 個)")
                 continue
-            show_id, kind, name, price_s, estimate_s, note, source = (p.strip() for p in parts)
+            show_id, kind, name, price_s, estimate_s, note, source = (p.strip() for p in parts[:7])
+            arch_start, arch_end = ((parts[i].strip() or None) if len(parts) > i else None for i in (7, 8))
 
             if show_id not in known_shows:
                 errors.append(f"{path.name}:{lineno} 知らない公演 id: {show_id}")
@@ -90,6 +116,17 @@ def load(paths: list[Path], known_shows: set[str]) -> tuple[list[tuple], list[st
                 continue
             if not source.startswith("http"):
                 errors.append(f"{path.name}:{lineno} 出典 URL が無い")
+                continue
+
+            bad = next((v for v in (arch_start, arch_end) if v and not valid_moment(v)), None)
+            if bad:
+                errors.append(f"{path.name}:{lineno} アーカイブ期間が変: {bad} (YYYY-MM-DD か YYYY-MM-DD HH:MM)")
+                continue
+            if arch_start and arch_end and bound(arch_start, "00:00") > bound(arch_end, "23:59"):
+                errors.append(f"{path.name}:{lineno} アーカイブ期間の始まりが終わりより後: {arch_start} > {arch_end}")
+                continue
+            if (arch_start or arch_end) and kind != "stream":
+                errors.append(f"{path.name}:{lineno} アーカイブ期間は kind=stream の行にだけ書く (kind={kind})")
                 continue
 
             key = (show_id, kind, name)
@@ -111,7 +148,7 @@ def load(paths: list[Path], known_shows: set[str]) -> tuple[list[tuple], list[st
             digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:6]
             rows.append((
                 f"tkt_{show_id}_{kind}_{slug(name)}"[:110] + f"_{digest}",
-                show_id, kind, name, int(price_s), int(estimate_s), note_full, seq,
+                show_id, kind, name, int(price_s), int(estimate_s), note_full, seq, arch_start, arch_end,
             ))
     return rows, errors
 

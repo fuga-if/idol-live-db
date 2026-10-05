@@ -81,6 +81,7 @@ ID_FILTER_COLUMN = {
     "costumes": "id",
     "costume_wears": "costume_id",
     "ticket_sales": "event_id",
+    "show_tickets": "id",
 }
 
 # 渡す id が「何の id か」。**列名からは決まらない** ので ID_FILTER_COLUMN とは別に持つ:
@@ -102,6 +103,8 @@ SCOPED_ID_SPACE = {
     # events / shows と同じ空間。イベント丸ごとの反映 (受付追加もセトリ追加も同じ event_id)
     # を 1 回の push にまとめられる。
     "ticket_sales": "event",
+    # 券種 1 行ずつ (fixes でアーカイブ期間を埋めるとき、全 1,300 行を送らない)。
+    "show_tickets": "show_ticket",
 }
 
 

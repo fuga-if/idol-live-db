@@ -19,6 +19,12 @@
   1 か所だけで 1 つの venue に決まるときだけ、venue_id が空の公演に venue_id (と venue_halls の hall) を入れる。
 - 価格: 「〇〇席 15,000円(税込)」を拾い、show_tickets が無い公演について import_show_tickets.py の
   TSV の形で --prices-out に書くだけ (自動では入れない。人がページと突き合わせてから取り込む)。
+- アーカイブ視聴期間: 「アーカイブ視聴期間 2026年9月28日(月)18:00～10月5日(月)23:59」のような行を読み、
+  show_tickets のうち kind='stream' で archive_starts_at/ends_at が空の行に入れる案を出す
+  (data/fixes の table: show_tickets。この 2 列だけ許可)。期間がページに 1 種類だけならイベントの全公演、
+  「DAY1」「DAY2」のように日で分かれていて公演の数と合うときはその日の公演に。割り当てが決まらない期間と、
+  配信の券種の行がまだ無い公演 (先に価格を入れる) は注記に出す。DB に入っている期間とページが違うときも注記。
+  CloudKit 本番スキーマに archiveStartsAt/archiveEndsAt を Deploy するまで、値の入った fix の push は落ちる。
 - 空の列だけを埋める。既にある値は上書きしない。標準ライブラリだけで動かす。
 """
 from __future__ import annotations
@@ -54,6 +60,14 @@ NOT_SHOW_TIME = re.compile(r"ライブビューイング|LV|配信|物販|グッ
 # 見出しだけの行か「会場：〇〇」。「会場内では…」のような注意書きは拾わない。
 VENUE_HEAD = re.compile(r"^[★■●◆・]?\s*(?:開催場所|開催会場|会場)\s*(?:[:：]\s*(.*))?$")
 PRICE = re.compile(r"(\d{1,3}(?:,\d{3})+|\d{3,6})\s*円\s*[(（]\s*税込[^)）]{0,20}[)）]")
+# アーカイブ視聴期間の見出し (「アーカイブ視聴期間」「アーカイブ配信期間」「見逃し配信期間」「視聴コメント付きアーカイブ映像視聴期間」)。
+# 見出しは「期間」「視聴」を含むものだけ (素の「見逃し配信」の次行は受付期間のことがある)。
+ARCHIVE_HEAD = re.compile(r"(?:アーカイブ[^0-9\n]{0,14}期間|見逃し配信[^0-9\n]{0,8}(?:期間|視聴))")
+# 受付・販売の期間を書く行は、アーカイブの期間として読まない (窓もそこで切る)。
+SALES_WORDS = re.compile(r"受付|抽選|販売|申込|申し込み")
+_MD = r"(?:(\d{4})\s*年\s*)?(?:(\d{1,2})\s*月\s*)?(\d{1,2})\s*日(?:\s*[(（][^)）]{1,3}[)）])?(?:\s*(\d{1,2})\s*[:：]\s*(\d{2}))?"
+ARCHIVE_RANGE = re.compile(_MD + r"\s*[～~〜\-－ー]\s*" + _MD)
+DAY_LABEL = re.compile(r"DAY\s*(\d)", re.I)
 PREFECTURE = re.compile(r"^(北海道|東京都|(?:京都|大阪)府|.{2,3}県)\s+")
 
 
@@ -138,6 +152,63 @@ def parse_prices(lines: list[str]) -> list[tuple[str, int]]:
     return out
 
 
+def _moment(y, mo, d, hh, mm) -> str | None:
+    try:
+        date = dt.date(int(y), int(mo), int(d))
+    except ValueError:
+        return None
+    return f"{date.isoformat()} {int(hh):02d}:{mm}" if hh is not None else date.isoformat()
+
+
+def _bound(value: str, pad: str) -> str:
+    """日付だけの値を比較用に境界時刻へ (apply_data の _ticket_moment_bound と同じ規則)。"""
+    return value if len(value) > 10 else f"{value} {pad}"
+
+
+def parse_archive_periods(lines: list[str]) -> list[tuple[str, str, str | None]]:
+    """(始まり, 終わり, 日のラベル) をページの順に。始まりに年が無いもの・片側しか無いものは読まない。
+
+    見出し (「アーカイブ視聴期間」等) の行とその次の 3 行までの窓にある「始まり～終わり」を**全部**拾う
+    (「DAY1：…」「DAY2：…」と並ぶ書き方)。受付・販売の語がある行で窓を切る。
+    終わりの年・月が省略されていれば始まりから補い、終わりの月が始まりより前なら翌年にする。
+    ラベルは範囲の行自身の「DAY1」から、無ければ直上の行 (範囲の行でなければ) から。
+    見出し直下の最初の範囲だけは、見出しの直前の行も見る。
+    """
+    out: list[tuple[str, str, str | None]] = []
+    for i, line in enumerate(lines):
+        head = ARCHIVE_HEAD.search(line)
+        if not head:
+            continue
+        for j in range(i, min(i + 4, len(lines))):
+            cand = lines[j]
+            if j > i and (ARCHIVE_HEAD.search(cand) or SALES_WORDS.search(cand)):
+                break
+            if j == i and SALES_WORDS.search(line):
+                break
+            for m in ARCHIVE_RANGE.finditer(cand[head.end():] if j == i else cand):
+                y1, mo1, d1, h1, mi1, y2, mo2, d2, h2, mi2 = m.groups()
+                if not (y1 and mo1):
+                    continue
+                year2 = y2 or y1
+                month2 = mo2 or mo1
+                if not y2 and int(month2) < int(mo1):
+                    year2 = str(int(y1) + 1)
+                start, end = _moment(y1, mo1, d1, h1, mi1), _moment(year2, month2, d2, h2, mi2)
+                if not start or not end or _bound(start, "00:00") > _bound(end, "23:59"):
+                    continue
+                around = [cand]
+                if j > 0 and not ARCHIVE_RANGE.search(lines[j - 1]):
+                    around.append(lines[j - 1])
+                if j <= i + 1 and i > 0:
+                    around.append(lines[i - 1])
+                label = next((x[1] for x in (DAY_LABEL.search(c) for c in around) if x), None)
+                item = (start, end, label)
+                if item not in out:
+                    out.append(item)
+    # 同じ期間をラベル無しでも繰り返している (注記など) ときは、ラベルつきの方だけ残す。
+    return [x for x in out if x[2] or not any(y[2] and y[:2] == x[:2] for y in out)]
+
+
 # ---------------------------------------------------------------------------
 # DB との突き合わせ
 # ---------------------------------------------------------------------------
@@ -151,6 +222,8 @@ class Show:
     venue: str
     venue_id: str
     has_tickets: bool
+    # kind='stream' の券: (id, archive_starts_at, archive_ends_at)。空は ''。
+    streams: list[tuple[str, str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -194,7 +267,7 @@ def match_venue(conn, index, text: str) -> tuple[str, str] | None:
 
 
 def plan_event(conn, eid, name, ticket_url, shows: list[Show], urls: list[str], pages: dict[str, list[str]],
-               index) -> EventPlan:
+               index, all_dates: list[str] | None = None) -> EventPlan:
     plan = EventPlan(eid, name, next(iter(pages), None))
     # 特設 URL
     site = special_site(urls)
@@ -248,6 +321,7 @@ def plan_event(conn, eid, name, ticket_url, shows: list[Show], urls: list[str], 
             plan.notes.append(f"会場「{venues[0]}」が venues に無い (新しい会場なら data/venues/ で足す)")
     elif todo and len(venues) > 1:
         plan.notes.append(f"会場がページに複数 ({' / '.join(venues)})。公演ごとの会場は人が見る")
+    plan_archive(plan, shows, pages, all_dates)
     # 価格の案
     no_tickets = [s for s in shows if not s.has_tickets]
     if no_tickets:
@@ -259,24 +333,94 @@ def plan_event(conn, eid, name, ticket_url, shows: list[Show], urls: list[str], 
     return plan
 
 
+def plan_archive(plan: EventPlan, shows: list[Show], pages: dict[str, list[str]],
+                 all_dates: list[str] | None = None) -> None:
+    """配信のアーカイブ視聴期間を、stream の券の空いている列に入れる案にする。
+
+    all_dates はイベントの**全**公演日 (今日より前も含む)。DAY<n> を n 番目の開催日に当てるのに使う
+    (終わった日を数から外すと DAY2 が DAY3 に入る)。
+    """
+    found: dict[tuple[str, str, str | None], str] = {}
+    for u, ls in pages.items():
+        for item in parse_archive_periods(ls):
+            found.setdefault(item, u)
+    dates = sorted(set(all_dates or [s.date for s in shows]))
+    # 終わりが公演日より前の期間は、別の公演・前回の告知のもの
+    periods = sorted(p for p in found if dates and p[1][:10] >= dates[0])
+    if not periods:
+        return
+
+    def note_unassignable():
+        plan.notes.append("アーカイブ期間が日ごとに違うか割り当てられない: " + " / ".join(
+            f"{('DAY' + lab + ' ') if lab else ''}{a}～{b}" for a, b, lab in periods) + " (人が見る)")
+
+    assign: dict[str, tuple[str, str, str]] = {}  # show id → (始まり, 終わり, 出典)
+    if all(p[2] is None for p in periods) and len({(a, b) for a, b, _ in periods}) == 1:
+        a, b, _ = periods[0]
+        assign = {s.id: (a, b, found[periods[0]]) for s in shows}
+    else:
+        # ラベルつきは、ラベルの集合がちょうど {1..開催日数} のときだけ DAY n = n 番目の開催日
+        by_label: dict[str, set[tuple[str, str]]] = {}
+        for a, b, lab in periods:
+            by_label.setdefault(lab or "", set()).add((a, b))
+        labels = set(by_label)
+        if ("" in labels or any(len(v) > 1 for v in by_label.values())
+                or labels != {str(n) for n in range(1, len(dates) + 1)}):
+            note_unassignable()
+            return
+        for a, b, lab in periods:
+            day = dates[int(lab) - 1]
+            if b[:10] < day:
+                continue
+            for s in shows:
+                if s.date == day:
+                    assign[s.id] = (a, b, found[(a, b, lab)])
+    for s in shows:
+        if s.id not in assign:
+            continue
+        a, b, src = assign[s.id]
+        if not s.streams:
+            plan.notes.append(f"{s.name} ({s.date}): アーカイブ期間 {a}～{b} はあるが配信の券種が無い (先に価格を入れる)")
+            continue
+        for tid, cur_a, cur_b in s.streams:
+            if cur_a or cur_b:
+                if (cur_a, cur_b) != (a, b):
+                    plan.notes.append(f"{tid} のアーカイブ期間が DB は {cur_a}～{cur_b}・ページは {a}～{b}")
+                continue
+            plan.fixes.append({
+                "table": "show_tickets", "id": tid,
+                "fields": {"archive_starts_at": a, "archive_ends_at": b},
+                "source": src, "note": "公式ページのアーカイブ視聴期間"})
+
+
 def upcoming_events(conn, today: str):
     rows = conn.execute(
         """SELECT e.id, e.name, e.brand_id, IFNULL(e.joint_brand_ids, ''), IFNULL(e.ticket_url, '')
            FROM events e JOIN shows s ON s.event_id = e.id
            GROUP BY e.id HAVING MAX(s.date) >= ? ORDER BY MIN(s.date)""", (today,)).fetchall()
+    # 列を足す前の古い DB でも動かす (アーカイブ期間は空として扱う)。
+    has_archive = {"archive_starts_at", "archive_ends_at"} <= {
+        r[1] for r in conn.execute("PRAGMA table_info(show_tickets)")}
+    arch_cols = "archive_starts_at, archive_ends_at" if has_archive else "NULL, NULL"
     for eid, name, brand, joint, url in rows:
-        shows = [Show(*r[:6], bool(r[6])) for r in conn.execute(
+        shows = [Show(*r[:6], bool(r[6]), [
+            (t[0], t[1] or "", t[2] or "") for t in conn.execute(
+                f"""SELECT id, {arch_cols} FROM show_tickets
+                   WHERE show_id = ? AND kind = 'stream' ORDER BY sort_order, id""", (r[0],))])
+            for r in conn.execute(
             """SELECT s.id, s.name, s.date, IFNULL(s.start_time, ''), IFNULL(s.venue, ''), IFNULL(s.venue_id, ''),
                       EXISTS (SELECT 1 FROM show_tickets t WHERE t.show_id = s.id)
-               FROM shows s WHERE s.event_id = ? AND s.date >= ? ORDER BY s.date, s.sort_order""", (eid, today))]
+               FROM shows s WHERE s.event_id = ? AND s.date >= ? ORDER BY s.date, s.sort_order""", (eid, today)).fetchall()]
         brands = [b for b in [brand, *joint.split(",")] if b]
-        yield eid, name, brands, url, shows
+        all_dates = [r[0] for r in conn.execute(
+            "SELECT DISTINCT date FROM shows WHERE event_id = ? ORDER BY date", (eid,))]
+        yield eid, name, brands, url, shows, all_dates
 
 
 def crawl(conn, today: str, cms: Cms | None, fetcher=fetch) -> list[EventPlan]:
     index = venue_index(conn)
     plans = []
-    for eid, name, brands, url, shows in upcoming_events(conn, today):
+    for eid, name, brands, url, shows, all_dates in upcoming_events(conn, today):
         dates = sorted({s.date for s in shows})
         urls = event_pages(name, brands, dates, url or None, cms)
         pages = {}
@@ -289,7 +433,7 @@ def crawl(conn, today: str, cms: Cms | None, fetcher=fetch) -> list[EventPlan]:
         if not pages:
             plans.append(EventPlan(eid, name, None, notes=["公式ページが見つからない"]))
             continue
-        plans.append(plan_event(conn, eid, name, url, shows, urls, pages, index))
+        plans.append(plan_event(conn, eid, name, url, shows, urls, pages, index, all_dates))
     return plans
 
 

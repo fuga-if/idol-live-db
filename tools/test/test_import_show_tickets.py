@@ -111,6 +111,54 @@ class ImportShowTicketsTest(unittest.TestCase):
         # 作り直しで揃えられることを言うなら、手元にしか無い行が消えることも言う。
         self.assertIn("作り直すと消える", self.output)
 
+    def test_archive_period_is_stored_and_seven_columns_stay_null(self):
+        stream = "\t".join(["sh_a", "stream", "配信", "3500", "0", "", "https://example.com/t",
+                            "2026-09-28 18:00", "2026-10-05"])
+        self.assertEqual(self.run_main(ticket_line("sh_a"), stream), 0)
+        self.assertEqual(
+            self.canonical("SELECT kind, archive_starts_at, archive_ends_at FROM show_tickets ORDER BY kind"),
+            [("live", None, None), ("stream", "2026-09-28 18:00", "2026-10-05")])
+        conn = sqlite3.connect(str(self.bundle))
+        try:
+            self.assertEqual(conn.execute("SELECT archive_ends_at FROM show_tickets WHERE kind='stream'").fetchall(),
+                             [("2026-10-05",)])
+        finally:
+            conn.close()
+
+    def test_reimport_without_period_keeps_the_existing_period(self):
+        stream7 = "\t".join(["sh_a", "stream", "配信", "3500", "0", "", "https://example.com/t"])
+        self.assertEqual(self.run_main(stream7), 0)
+        conn = sqlite3.connect(str(self.bundle))
+        conn.execute("UPDATE show_tickets SET archive_starts_at='2026-09-28', archive_ends_at='2026-10-05'")
+        conn.commit()
+        conn.close()
+        with masterdb.restored(self.master_sql) as c:
+            c.execute("UPDATE show_tickets SET archive_starts_at='2026-09-28', archive_ends_at='2026-10-05'")
+            self.master_sql.write_text(masterdb.dump_text(c), encoding="utf-8")
+        self.assertEqual(self.run_main(stream7.replace("3500", "3600")), 0)
+        want = [(3600, "2026-09-28", "2026-10-05")]
+        self.assertEqual(self.canonical("SELECT price, archive_starts_at, archive_ends_at FROM show_tickets"), want)
+        conn = sqlite3.connect(str(self.bundle))
+        try:
+            self.assertEqual(conn.execute(
+                "SELECT price, archive_starts_at, archive_ends_at FROM show_tickets").fetchall(), want)
+        finally:
+            conn.close()
+
+    def test_bad_archive_period_is_rejected(self):
+        def row(a, b, kind="stream"):
+            return "\t".join(["sh_a", kind, "配信", "3500", "0", "", "https://example.com/t", a, b])
+        before = support.sha256(self.master_sql)
+        for line, why in (
+            (row("2026/09/28", "2026-10-05"), "アーカイブ期間が変"),
+            (row("2026-02-30", "2026-03-05"), "アーカイブ期間が変"),
+            (row("2026-10-06", "2026-10-05"), "始まりが終わりより後"),
+            (row("2026-09-28", "2026-10-05", kind="live"), "kind=stream"),
+        ):
+            self.assertEqual(self.run_main(line), 1, line)
+            self.assertIn(why, self.output)
+        self.assertEqual(support.sha256(self.master_sql), before)
+
     def test_check_only_writes_nothing(self):
         before = support.sha256(self.master_sql), support.sha256(self.bundle)
         self.assertEqual(self.run_main(ticket_line("sh_a"), apply=False), 0)

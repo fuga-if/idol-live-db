@@ -80,7 +80,13 @@ KIND_TABLES = {
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {
     "idols", "songs", "events", "shows", "units", "brands", "venues", "venue_names", "creators",
-    "setlist_items", "ticket_sales",
+    "setlist_items", "ticket_sales", "show_tickets",
+}
+# 表ごとに fixes で書き換えてよい列を絞るもの (載っていない表は全列可)。
+# show_tickets は価格・券種名を fixes で直させない (価格は import_show_tickets.py の TSV で
+# 出典つきに入れる)。ここから触れるのは配信アーカイブの視聴期間だけ。
+FIX_FIELD_WHITELIST = {
+    "show_tickets": {"archive_starts_at", "archive_ends_at"},
 }
 
 TICKET_SALE_KINDS = {"lottery", "first_come", "resale", "same_day"}
@@ -597,6 +603,29 @@ def validate(conn):
                         problems.append(f"{tag}: id は変更不可")
                     elif k not in tcol:
                         problems.append(f"{tag}: '{table}' に列 '{k}' が無い")
+                    elif k not in FIX_FIELD_WHITELIST.get(table, {k}):
+                        problems.append(
+                            f"{tag}: '{table}' の '{k}' は fixes で直せない "
+                            f"(許可: {sorted(FIX_FIELD_WHITELIST[table])})")
+                # show_tickets のアーカイブ期間: 形式・実在性・前後関係 (ticket_sales の日時と同じ規則)
+                if table == "show_tickets" and rid and exists(conn, table, rid):
+                    cur = conn.execute(
+                        "SELECT archive_starts_at, archive_ends_at, kind FROM show_tickets WHERE id = ?",
+                        (rid,)).fetchone()
+                    merged = {"archive_starts_at": cur[0], "archive_ends_at": cur[1], **fields}
+                    if cur[2] != "stream" and any(fields.get(k) is not None for k in
+                                                  ("archive_starts_at", "archive_ends_at")):
+                        problems.append(f"{tag}: アーカイブ期間は kind=stream の券にだけ入れられる (kind={cur[2]})")
+                    for k in ("archive_starts_at", "archive_ends_at"):
+                        v = merged[k]
+                        if v is not None and (not isinstance(v, str) or not TICKET_MOMENT_RE.match(v)
+                                              or not _valid_ticket_moment(v)):
+                            problems.append(f"{tag}: {k} が不正 ({v!r})。YYYY-MM-DD か YYYY-MM-DD HH:MM")
+                    a, b = merged["archive_starts_at"], merged["archive_ends_at"]
+                    if (isinstance(a, str) and isinstance(b, str) and TICKET_MOMENT_RE.match(a)
+                            and TICKET_MOMENT_RE.match(b)
+                            and _ticket_moment_bound(a, "00:00") > _ticket_moment_bound(b, "23:59")):
+                        problems.append(f"{tag}: archive_starts_at が archive_ends_at より後 ({a} > {b})")
                 # M5: data/fixes/ で ticket_sales を直すときも、新規投稿と同じ 1 行検査
                 # (kind の値・日時の形式と実在性・前後関係・source_url の http・show_ids の
                 # 配列) を効かせる。今まではここが表・id・列の存在しか見ておらず、
