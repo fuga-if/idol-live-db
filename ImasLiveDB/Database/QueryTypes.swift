@@ -408,27 +408,26 @@ struct CalendarShowRow: Sendable {
     var eventKind: String?
 }
 
-/// チケット日程の種別 (カレンダーに出す受付開始 / 申込締切 / 当落発表)。
+/// チケット日程の種別 (カレンダーに出す申込締切 / 当落発表 / アーカイブ終了)。
 enum TicketDateKind: String, Sendable {
-    case start      // 受付開始 (締切が無い/開始より前の受付だけの単日点)
     case deadline   // 申込締切
     case lottery    // 当落発表
+    case archiveEnd // 配信アーカイブを見られる最後の日
 
-    /// 語はコアの vocabulary (値は ticket_sales の列名)。
+    /// 語はコアの vocabulary (値は ticket_sales の列名)。アーカイブ終了はコアの vocabulary に
+    /// 無い (ticket_sales 由来ではないため) ので、ここに直接書く。
     var label: String {
-        let column: String
         switch self {
-        case .start: column = "starts_at"
-        case .deadline: column = "ends_at"
-        case .lottery: column = "result_at"
+        case .deadline: return Vocab.ticketDate("ends_at")?.label ?? ""
+        case .lottery: return Vocab.ticketDate("result_at")?.label ?? ""
+        case .archiveEnd: return "アーカイブ終了"
         }
-        return Vocab.ticketDate(column)?.label ?? ""
     }
     var icon: String {
         switch self {
-        case .start: return "ticket"
         case .deadline: return "ticket.fill"
         case .lottery: return "envelope.open.fill"
+        case .archiveEnd: return "play.rectangle"
         }
     }
 }
@@ -449,40 +448,6 @@ struct TicketCalendarRow: Sendable {
     var label: String
 }
 
-/// カレンダーに期間を帯で出すための日跨ぎスパン。受付期間 (受付開始 → 申込締切) と、
-/// 配信のアーカイブを見られる期間の 2 種類がある (帯の描き方は同じ)。
-struct TicketPeriodRow: Sendable {
-    enum Kind: Sendable {
-        /// チケットの受付期間。
-        case sale
-        /// 配信のアーカイブ (見逃し配信) を見られる期間。
-        case archive
-    }
-
-    var eventId: String
-    var eventName: String
-    var brandColor: String?
-    var start: String     // 受付開始 YYYY-MM-DD (アーカイブなら見られる期間の始まり)
-    var end: String       // 申込締切 YYYY-MM-DD (アーカイブなら終わり)
-    var url: String?
-    /// 帯の識別子。受付は受付 id、アーカイブはライブ id と期間から組む。
-    var saleId: String
-    /// 受付名。アーカイブでは対象公演の短い名 (`DAY1・DAY2`。1 公演のライブは空)。
-    var saleName: String
-    var saleKind: String
-    /// 表示文字列 (`"{event_name} ({sale_name})"` / `"{event_name} (DAY1 アーカイブ)"`。コアが組む)。
-    var label: String
-    var kind: Kind = .sale
-
-    /// 期間の種類の短い呼び名 (`受付` / `アーカイブ`)。月セル・週の終日レーンの頭に付ける。
-    var kindLabel: String {
-        switch kind {
-        case .sale: return "受付"
-        case .archive: return "アーカイブ"
-        }
-    }
-}
-
 enum CalendarEntry: Identifiable, Hashable, Sendable {
     case show(CalendarShowRow)
     case release(date: String, songs: [Song])
@@ -495,10 +460,9 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
     case anniversary(Anniversary, occursOn: String)
     /// 端末カレンダーから取り込んだマイ予定 (アプリ内表示のみ。DB には保存しない)
     case personal(PersonalCalendarEvent)
-    /// チケット日程 (申込締切 / 当落発表)。
+    /// チケット日程 (申込締切 / 当落発表 / 配信アーカイブ終了)。チケットの受付期間そのもの
+    /// (いつからいつまで) はカレンダーに帯で引かず、チケットの画面 (`TicketBoardView`) にまとめる。
     case ticket(TicketCalendarRow)
-    /// チケット受付期間 (受付開始 → 申込締切) の日跨ぎ帯。
-    case ticketPeriod(TicketPeriodRow)
 
     // MARK: Identifiable
 
@@ -512,7 +476,6 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
         case .personal(let event): return "personal_\(event.id)"
         // sale_id ベース (1 イベントに複数受付があるとイベント id ベースの id が衝突していた)。
         case .ticket(let row): return "ticket_\(row.saleId)_\(row.kind.rawValue)"
-        case .ticketPeriod(let row): return "ticketperiod_\(row.saleId)"
         }
     }
 
@@ -543,24 +506,21 @@ enum CalendarEntry: Identifiable, Hashable, Sendable {
             return event.start.formatted(.iso8601.year().month().day().dateSeparator(.dash))
         case .ticket(let row):
             return row.date
-        case .ticketPeriod(let row):
-            return row.start
         }
     }
 
-    /// 同日内ソート順: 受付期間帯=0, ticket=1, show=2, release=3, anniversary=4, birthday=5, staffBirthday=6, personal=7
-    /// チケット系は「その日やるべきこと」なので最上段に出す。受付期間の帯は各日で
-    /// 縦位置を揃えたいので最優先 (0)。記念日はアイドル誕生日より上 (ブランド全体のトピックなので)。
+    /// 同日内ソート順: ticket=0, show=1, release=2, anniversary=3, birthday=4, staffBirthday=5, personal=6
+    /// チケット系は「その日やるべきこと」なので最上段に出す。記念日はアイドル誕生日より上
+    /// (ブランド全体のトピックなので)。
     var sortOrder: Int {
         switch self {
-        case .ticketPeriod: return 0
-        case .ticket: return 1
-        case .show: return 2
-        case .release: return 3
-        case .anniversary: return 4
-        case .birthday: return 5
-        case .staffBirthday: return 6
-        case .personal: return 7
+        case .ticket: return 0
+        case .show: return 1
+        case .release: return 2
+        case .anniversary: return 3
+        case .birthday: return 4
+        case .staffBirthday: return 5
+        case .personal: return 6
         }
     }
 }

@@ -101,6 +101,7 @@ final class SetlistViewModelTests: XCTestCase {
         func ticketSales(eventId: String) async throws -> [TicketSale] { [] }
         func openTicketSales() async throws -> [OpenTicketSale] { [] }
         func openArchives() async throws -> [OpenArchive] { [] }
+        func ticketBoard() async throws -> TicketBoard { TicketBoard(open: [], upcoming: [], awaiting: [], archives: []) }
         func ticketSaleSpotlight(eventId: String) async throws -> TicketSale? { nil }
     }
 

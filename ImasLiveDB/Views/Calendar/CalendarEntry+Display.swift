@@ -34,11 +34,8 @@ extension CalendarEntry {
         case .personal(let event):
             return event.color
         case .ticket(let row):
-            // 申込締切=赤(緊急) / 当落発表=藍。公演(ブランド色)・リリース(橙)・誕生日(桃)と被らない色域。
+            // 申込締切=赤(緊急) / 当落発表・アーカイブ終了=藍。公演(ブランド色)・リリース(橙)・誕生日(桃)と被らない色域。
             return row.kind == .deadline ? DS.danger : ImasTheme.derive(seed: ThemeSeed.ticket, scheme: scheme).accent
-        case .ticketPeriod:
-            // 受付期間の帯。チケット系の藍でまとめる。
-            return ImasTheme.derive(seed: ThemeSeed.ticket, scheme: scheme).accent
         }
     }
 
@@ -47,90 +44,5 @@ extension CalendarEntry {
     /// 白文字固定にせず WCAG コントラストで黒/白を自動選択する。
     func accentInk(scheme: ColorScheme) -> Color {
         ColorMath.onColor(accentColor(scheme: scheme))
-    }
-}
-
-// MARK: - 受付期間の連続帯 (週共有ロジック)
-
-/// 週内に描く受付期間の帯 1 本ぶん。列インデックス + レーン (縦段) を持つ純粋なレイアウト値。
-/// 月グリッドと週ビューで座標系・描画は異なるが、ここまでの算出は共通なので共有する。
-struct CalendarPeriodBand: Identifiable {
-    let id: String
-    let entry: CalendarEntry
-    let name: String
-    let startCol: Int
-    let endCol: Int
-    let roundLeading: Bool   // 受付開始がこの週内 (左端を丸める)
-    let roundTrailing: Bool  // 申込締切がこの週内 (右端を丸める)
-    var lane: Int = 0
-}
-
-extension CalendarPeriodBand {
-    /// この週 (weekDays) に重なる受付期間スパンを列範囲へ落とし込み、重ならないようレーン詰めする。
-    /// 描画は呼び出し側 (月セル / 週レーン) に任せる。列・端の丸め・レーンはコアの
-    /// `week_period_bands` (週ごとに 1 回)。
-    static func pack(
-        weekDays: [Date],
-        entriesByDate: [Date: [CalendarEntry]],
-        calendar: Calendar
-    ) -> [CalendarPeriodBand] {
-        place(weekDays: weekDays, entriesByDate: entriesByDate, calendar: calendar, maxLanes: nil).bands
-    }
-
-    private static func place(
-        weekDays: [Date],
-        entriesByDate: [Date: [CalendarEntry]],
-        calendar: Calendar,
-        maxLanes: Int?
-    ) -> (bands: [CalendarPeriodBand], hiddenPerCol: [Int]) {
-        let none = Array(repeating: 0, count: 7)
-        guard let firstDay = weekDays.first else { return ([], none) }
-        var entryById: [String: (entry: CalendarEntry, name: String)] = [:]
-        var spans: [PeriodSpanInput] = []
-        for date in weekDays {
-            for entry in entriesByDate[calendar.startOfDay(for: date)] ?? [] {
-                // sale_id ベース (1 イベントに複数受付があるとイベント id ベースの帯が潰れていた)。
-                guard case .ticketPeriod(let row) = entry, entryById[row.saleId] == nil else { continue }
-                // M2: 帯の見出しはコアが組んだ label ("{event_name} ({sale_name})") をそのまま出す。
-                // sale_name 単体だと同じブランド色の帯が汎用名 (「一般会員先行」等) ばかりになり、
-                // どのライブの受付か行の見出しで判別できなくなる。
-                entryById[row.saleId] = (entry, row.label)
-                spans.append(PeriodSpanInput(id: row.saleId, start: row.start, end: row.end))
-            }
-        }
-        guard !spans.isEmpty else { return ([], none) }
-        func make(_ band: PeriodBandPlacement) -> CalendarPeriodBand? {
-            guard let found = entryById[band.id] else { return nil }
-            return CalendarPeriodBand(
-                id: band.id, entry: found.entry, name: found.name,
-                startCol: Int(band.startCol), endCol: Int(band.endCol),
-                roundLeading: band.roundLeading, roundTrailing: band.roundTrailing,
-                lane: Int(band.lane))
-        }
-        // 週の頭の日付は、グリッドを組んだ calendar の年月日から作る。JST に直すと、
-        // JST より東の端末で前日に落ちて帯が 1 列ずれる。
-        let parts = calendar.dateComponents([.year, .month, .day], from: firstDay)
-        let weekStart = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
-        if let maxLanes {
-            // 月の格子: 段の上限つき。溢れた帯は列ごとの数として返す (日の "+n" に足す)。
-            let month = monthPeriodBands(weekStart: weekStart, periods: spans, maxLanes: UInt32(maxLanes))
-            return (month.bands.compactMap { make($0) }, month.hiddenPerCol.map { Int($0) })
-        }
-        return (weekPeriodBands(weekStart: weekStart, periods: spans).compactMap { make($0) }, none)
-    }
-
-    /// 月の格子の 1 週ぶん: `maxLanes` 段までの帯と、溢れて描かない帯の列ごとの数。段の詰め方はコア。
-    static func packMonth(
-        weekDays: [Date],
-        entriesByDate: [Date: [CalendarEntry]],
-        calendar: Calendar,
-        maxLanes: Int
-    ) -> (bands: [CalendarPeriodBand], hiddenPerCol: [Int]) {
-        place(weekDays: weekDays, entriesByDate: entriesByDate, calendar: calendar, maxLanes: maxLanes)
-    }
-
-    /// 帯リストが占めるレーン数 (0 = 帯なし)。
-    static func laneCount(of bands: [CalendarPeriodBand]) -> Int {
-        (bands.map(\.lane).max() ?? -1) + 1
     }
 }

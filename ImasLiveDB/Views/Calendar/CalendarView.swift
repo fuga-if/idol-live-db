@@ -31,6 +31,8 @@ struct CalendarView: View {
     @State private var sheetDestination: DetailDestination?
     /// 「今日の1曲」シート。ゲームからスケジュールタブへ導線を移設。
     @State private var showDailySong = false
+    /// チケットの画面 (受付中・これから受付・結果待ち・見られるアーカイブをまとめた一覧)。
+    @State private var showTicketBoard = false
     @State private var daySheet: DaySheet?
     /// 「今日は何の日？」シート。選択日の見出しから開く。
     @State private var onThisDayDate: OnThisDayDate?
@@ -64,7 +66,7 @@ struct CalendarView: View {
                 case .birthday: return showBirthdays
                 case .staffBirthday: return showStaffBirthdays
                 case .anniversary: return showAnniversaries
-                case .ticket, .ticketPeriod: return showTickets
+                case .ticket: return showTickets
                 case .personal: return false  // マイ予定は personalEntriesByDate 側で管理
                 }
             }
@@ -146,10 +148,21 @@ struct CalendarView: View {
                     .accessibilityHint("各ブランドの日替わりピックにタグを付けて投票します")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        AppAnalytics.tap("calendar.ticket_board")
+                        showTicketBoard = true
+                    } label: {
+                        Image(systemName: "ticket")
+                    }
+                    .accessibilityLabel("チケット")
                 }
             }
             .sheet(isPresented: $showDailySong) {
                 DailyPickSheet().environment(database)
+            }
+            .sheet(isPresented: $showTicketBoard) {
+                TicketBoardView()
+                    .environment(database)
             }
             .sheet(item: $sheetDestination) { dest in
                 DetailSheetView(destination: dest)
@@ -343,12 +356,6 @@ struct CalendarView: View {
                     sheetDestination = .event(event)
                 }
             }
-        case .ticketPeriod(let row):
-            Task {
-                if let event = try? await AppContainer.shared.eventReading.event(id: row.eventId) {
-                    sheetDestination = .event(event)
-                }
-            }
         }
     }
 
@@ -483,36 +490,11 @@ struct CalendarView: View {
     private func groupByDate(_ entries: [CalendarEntry], in interval: DateInterval) -> [Date: [CalendarEntry]] {
         var result: [Date: [CalendarEntry]] = [:]
         for entry in entries {
-            // 受付期間の帯は被覆する各日に複製して入れる (月セルのセグメント帯 / 週の連続帯の素)。
-            if case .ticketPeriod(let row) = entry {
-                for day in coveredDays(start: row.start, end: row.end, in: interval) {
-                    result[day, default: []].append(entry)
-                }
-                continue
-            }
             guard let date = entryDate(entry, in: interval) else { continue }
             let key = calendar.startOfDay(for: date)
             result[key, default: []].append(entry)
         }
         return result
-    }
-
-    /// [start, end] (両端含む) を interval 内にクリップした日付一覧。
-    private func coveredDays(start: String, end: String, in interval: DateInterval) -> [Date] {
-        guard let startDate = JSTDay.date(start),
-              let endDate = JSTDay.date(end),
-              endDate >= startDate else { return [] }
-        // interval.end は排他境界なので前日までを対象にする。
-        let lastInclusive = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end
-        var day = calendar.startOfDay(for: max(startDate, interval.start))
-        let last = calendar.startOfDay(for: min(endDate, lastInclusive))
-        var days: [Date] = []
-        while day <= last {
-            days.append(day)
-            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
-            day = next
-        }
-        return days
     }
 
     private func entryDate(_ entry: CalendarEntry, in interval: DateInterval) -> Date? {
@@ -529,9 +511,6 @@ struct CalendarView: View {
             return event.start
         case .ticket(let row):
             return JSTDay.date(row.date)
-        case .ticketPeriod(let row):
-            // 帯は groupByDate で被覆日へ展開済み。アンカーは開始日。
-            return JSTDay.date(row.start)
         }
     }
 }

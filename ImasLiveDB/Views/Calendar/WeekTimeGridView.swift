@@ -15,9 +15,6 @@ struct WeekTimeGridView: View {
     let onShowDay: (Date) -> Void
     @Environment(\.colorScheme) private var scheme
 
-    /// チケット受付期間帯の装飾テーマ seed (iOS system indigo 相当。CalendarDayDetailView のチケット行と揃える)。
-    private static let ticketSeed = "#5856D6"
-
     private let cal = Calendar.current
     private let today = Calendar.current.startOfDay(for: Date())
     private let weekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
@@ -75,7 +72,6 @@ struct WeekTimeGridView: View {
             VStack(spacing: DS.sp2) {
                 weekHeader
                 dayHeaderRow(dayWidth: dayWidth)
-                periodBandLane(dayWidth: dayWidth)
                 allDayLane(dayWidth: dayWidth)
                 Rectangle().fill(DS.sep).frame(height: 0.5)
                 timeGrid(dayWidth: dayWidth)
@@ -150,58 +146,6 @@ struct WeekTimeGridView: View {
                 .onTapGesture { selectedDate = cal.startOfDay(for: date) }
             }
         }
-    }
-
-    // MARK: - 受付期間の連続帯レーン (列をまたぐ)
-
-    private enum BandMetric {
-        static let height: CGFloat = 16
-        static let gap: CGFloat = 2
-    }
-
-    /// この週に重なる受付期間スパンを列範囲へ落とし込み、重ならないようレーン詰めする。
-    /// 列インデックス算出 + レーン詰めは月グリッドと共通 (CalendarPeriodBand.pack)。
-    private var weekPeriodBands: [CalendarPeriodBand] {
-        CalendarPeriodBand.pack(weekDays: weekDays, entriesByDate: entriesByDate, calendar: cal)
-    }
-
-    @ViewBuilder
-    private func periodBandLane(dayWidth: CGFloat) -> some View {
-        let bands = weekPeriodBands
-        let laneCount = CalendarPeriodBand.laneCount(of: bands)
-        let h = BandMetric.height, gap = BandMetric.gap
-        let ticketAccent = ImasTheme.derive(seed: Self.ticketSeed, scheme: scheme).accent
-        ZStack(alignment: .topLeading) {
-            ForEach(bands) { band in
-                let x = Metric.gutterWidth + CGFloat(band.startCol) * dayWidth
-                let w = CGFloat(band.endCol - band.startCol + 1) * dayWidth
-                Button {
-                    onSelectEntry(band.entry)
-                } label: {
-                    Text("受付 \(band.name)")
-                        .imasText(.micro, color: ColorMath.onColor(ticketAccent))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.horizontal, DS.sp3)
-                        .frame(width: max(0, w - 2), height: h, alignment: .leading)
-                        .background(
-                            ticketAccent,
-                            // 色帯そのものの小さい角丸は、週ビューの固定要素として形を残す (GAPS.md §7)。
-                            in: UnevenRoundedRectangle(
-                                topLeadingRadius: band.roundLeading ? 4 : 0,
-                                bottomLeadingRadius: band.roundLeading ? 4 : 0,
-                                bottomTrailingRadius: band.roundTrailing ? 4 : 0,
-                                topTrailingRadius: band.roundTrailing ? 4 : 0,
-                                style: .continuous
-                            )
-                        )
-                }
-                .buttonStyle(.plain)
-                .offset(x: x + 1, y: CGFloat(band.lane) * (h + gap))
-            }
-        }
-        .frame(height: laneCount > 0 ? CGFloat(laneCount) * (h + gap) - gap : 0, alignment: .topLeading)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - 終日 / 時刻未定レーン
@@ -399,7 +343,6 @@ struct WeekTimeGridView: View {
         case .anniversary(let ann, _): return ann.label
         case .personal(let event): return event.title
         case .ticket(let row): return "\(row.kind.label)・\(row.eventName)"
-        case .ticketPeriod(let row): return "\(row.kindLabel)・\(row.eventName)"
         }
     }
 
@@ -426,12 +369,10 @@ struct WeekTimeGridView: View {
         return (entriesByDate[key] ?? []).sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    /// 終日レーン行き: 時刻情報を持たないエントリ。受付期間の帯は列をまたぐ連続帯として
-    /// 別レイヤー (periodBands) で描くので、各日セルからは除外する。
+    /// 終日レーン行き: 時刻情報を持たないエントリ。
     private func allDayEntries(on date: Date) -> [CalendarEntry] {
         entries(on: date).filter { entry in
-            if case .ticketPeriod = entry { return false }
-            return timedMinutes(of: entry, on: date) == nil
+            timedMinutes(of: entry, on: date) == nil
         }
     }
 
@@ -456,7 +397,7 @@ struct WeekTimeGridView: View {
             // 公演の欄 (開始から 2 時間・24:00 で止める。開始時刻が無ければ終日) はコア。
             guard let block = showTimeBlock(startTime: row.show.startTime) else { return nil }
             return (Int(block.startMinutes), Int(block.endMinutes))
-        case .release, .birthday, .staffBirthday, .anniversary, .ticket, .ticketPeriod:
+        case .release, .birthday, .staffBirthday, .anniversary, .ticket:
             return nil
         case .personal(let event):
             guard !event.isAllDay else { return nil }

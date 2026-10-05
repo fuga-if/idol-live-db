@@ -43,6 +43,9 @@ protocol EventReading: Sendable {
     func openTicketSales() async throws -> [OpenTicketSale]
     /// 全ライブ横断の「いま見られるアーカイブ」(終わりの近い順・残り日数の文字列は共有コア)。
     func openArchives() async throws -> [OpenArchive]
+    /// チケットの画面 (受付中・これから受付・結果待ち・見られるアーカイブ) の一式。
+    /// 受付の期間はカレンダーに帯で引かず、ここにまとめる。
+    func ticketBoard() async throws -> TicketBoard
     /// 「今いちばん近い」注目受付 1 件 (選び方は共有コア)。
     func ticketSaleSpotlight(eventId: String) async throws -> TicketSale?
 }

@@ -176,7 +176,7 @@ struct EventListView: View {
                     } label: {
                         ImasRow(
                             title: open.sale.eventName,
-                            subtitle: [open.sale.name, open.deadlineLabel].compactMap { $0 }.joined(separator: " ・ "),
+                            subtitle: [open.nameLabel, open.deadlineLabel].compactMap { $0 }.joined(separator: " ・ "),
                             leading: .bar(seed: open.brandColor),
                             trailing: openSaleTrailing(open),
                             density: .compact,
@@ -239,11 +239,22 @@ struct EventListView: View {
     }
 
     /// 受付中の行の末尾。申し込み済みなら締切より記録を見せる (もう急ぐ必要がない)。
+    /// 席種だけ違う受付をまとめた行は、その中のどれか 1 つに記録があれば代表させる。
     private func openSaleTrailing(_ open: OpenTicketSale) -> ImasRowTrailing {
-        if let application = UserMarkService.shared.ticketApplication(saleId: open.sale.id) {
+        if let application = firstApplication(saleIds: open.saleIds) {
             return .badge(ImasBadge(text: ticketApplicationLabel(kind: open.sale.kind, application: application), kind: .guest))
         }
         return open.remainingLabel.map { .badge(ImasBadge(text: $0, kind: .attention)) } ?? .none
+    }
+
+    /// まとめた受付 id 群のうち、最初に見つかった申込記録。
+    private func firstApplication(saleIds: [String]) -> TicketApplication? {
+        for id in saleIds {
+            if let application = UserMarkService.shared.ticketApplication(saleId: id) {
+                return application
+            }
+        }
+        return nil
     }
 
     var body: some View {

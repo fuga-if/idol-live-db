@@ -81,17 +81,6 @@ struct DayEntryRow: View {
                 ticketRow(row)
             }
             .buttonStyle(.plain)
-        case .ticketPeriod(let row):
-            Button {
-                Task {
-                    if let event = try? await AppContainer.shared.eventReading.event(id: row.eventId) {
-                        onSelect(.event(event))
-                    }
-                }
-            } label: {
-                ticketPeriodRow(row)
-            }
-            .buttonStyle(.plain)
         }
     }
 
@@ -167,32 +156,14 @@ struct DayEntryRow: View {
         )
     }
 
-    /// チケット受付期間行 (受付開始〜申込締切) / 配信のアーカイブを見られる期間の行。
-    /// タップで親イベント詳細へ。
-    private func ticketPeriodRow(_ row: TicketPeriodRow) -> some View {
-        let range = [Self.md(row.start), Self.md(row.end)].compactMap { $0 }.joined(separator: " 〜 ")
-        let isArchive = row.kind == .archive
-        return rowShell(
-            leading: .icon(isArchive ? "play.rectangle" : "calendar.badge.clock", tone: .themed, seed: CalendarEntry.ThemeSeed.ticket),
-            title: "\(isArchive ? row.kindLabel : Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
-            subtitle: [row.saleName, range].filter { !$0.isEmpty }.joined(separator: "  ")
-        )
-    }
-
-    /// "2026-06-13" → "6/13"。
-    private static func md(_ ymd: String) -> String? {
-        let parts = ymd.split(separator: "-")
-        guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return nil }
-        return "\(m)/\(d)"
-    }
-
-    /// チケット日程行 (申込締切 / 当落発表)。タップで親イベント詳細へ。申込締切だけ朱 (緊急)。
+    /// チケット日程行 (申込締切 / 当落発表 / 配信アーカイブ終了)。タップで親イベント詳細へ。
+    /// 申込締切だけ朱 (緊急)。
     private func ticketRow(_ row: TicketCalendarRow) -> some View {
         let subtitle: String
         switch row.kind {
-        case .start: subtitle = row.saleName
         case .deadline: subtitle = "\(row.saleName) ・ 申込締切"
         case .lottery: subtitle = "\(row.saleName) ・ 当落発表"
+        case .archiveEnd: subtitle = row.saleName
         }
         let leading: ImasRowLeading = row.kind == .deadline
             ? .icon(row.kind.icon, tone: .negative)
@@ -415,11 +386,7 @@ struct CalendarDayDetailView: View {
             return false
         }.count
         let anniversaryCount = entries.filter { if case .anniversary = $0 { true } else { false } }.count
-        let ticketCount = entries.filter {
-            if case .ticket = $0 { return true }
-            if case .ticketPeriod = $0 { return true }
-            return false
-        }.count
+        let ticketCount = entries.filter { if case .ticket = $0 { true } else { false } }.count
         let personalCount = entries.filter { if case .personal = $0 { true } else { false } }.count
         return HStack(spacing: DS.sp3) {
             if showCount > 0 {

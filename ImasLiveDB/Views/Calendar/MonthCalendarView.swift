@@ -13,9 +13,6 @@ struct MonthCalendarView: View {
     let entriesByDate: [Date: [CalendarEntry]]
     @Environment(\.colorScheme) private var scheme
 
-    /// チケット受付期間帯の装飾テーマ seed (iOS system indigo 相当。CalendarDayDetailView のチケット行と揃える)。
-    private static let ticketSeed = "#5856D6"
-
     private let today = Calendar.current.startOfDay(for: Date())
     private let weekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
 
@@ -52,36 +49,17 @@ struct MonthCalendarView: View {
     private func grid(days: [Date], cellHeight: CGFloat) -> some View {
         VStack(spacing: Layout.rowSpacing) {
             ForEach(0..<Layout.rowCount, id: \.self) { row in
-                let weekDays = weekSlice(days, row: row)
-                // マスの高さは決まっているので帯は maxBandLanes 段まで。溢れた帯はその日の "+n" に数える。
-                let packed = CalendarPeriodBand.packMonth(
-                    weekDays: weekDays,
-                    entriesByDate: entriesByDate,
-                    calendar: Calendar.current,
-                    maxLanes: MonthGridMetric.maxBandLanes
-                )
-                let bands = packed.bands
-                let laneCount = CalendarPeriodBand.laneCount(of: bands)
-                let bandInset = CGFloat(laneCount) * MonthGridMetric.bandSlot
                 HStack(spacing: Layout.columnSpacing) {
                     ForEach(0..<Layout.columnCount, id: \.self) { column in
                         let index = row * Layout.columnCount + column
                         if days.indices.contains(index) {
-                            dayCell(for: days[index], height: cellHeight, bandInset: bandInset,
-                                    hiddenBands: packed.hiddenPerCol.indices.contains(column) ? packed.hiddenPerCol[column] : 0)
+                            dayCell(for: days[index], height: cellHeight)
                         } else {
                             Color.clear.frame(maxWidth: .infinity)
                         }
                     }
                 }
                 .frame(height: cellHeight)
-                // 受付期間などの日跨ぎ帯を、列をまたぐ 1 本の連続帯として上段に重ねる
-                // (セル間スペースも塗るのでセグメントが切れず線が繋がる)。
-                .overlay(alignment: .topLeading) {
-                    GeometryReader { geo in
-                        bandOverlay(bands, width: geo.size.width)
-                    }
-                }
             }
         }
         .contentShape(Rectangle())
@@ -102,60 +80,18 @@ struct MonthCalendarView: View {
         )
     }
 
-    private func dayCell(for date: Date, height: CGFloat, bandInset: CGFloat, hiddenBands: Int) -> some View {
+    private func dayCell(for date: Date, height: CGFloat) -> some View {
         DayCell(
             date: date,
             entries: entriesByDate[Calendar.current.startOfDay(for: date)] ?? [],
             isCurrentMonth: isCurrentMonth(date),
             isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate),
             isToday: Calendar.current.isDate(date, inSameDayAs: today),
-            height: height,
-            bandInset: bandInset,
-            hiddenBands: hiddenBands
+            height: height
         )
         .contentShape(Rectangle())
         .onTapGesture {
             selectedDate = Calendar.current.startOfDay(for: date)
-        }
-    }
-
-    /// グリッドの 1 週 (行) ぶんの日付。
-    private func weekSlice(_ days: [Date], row: Int) -> [Date] {
-        let start = row * Layout.columnCount
-        let end = min(start + Layout.columnCount, days.count)
-        guard start < end else { return [] }
-        return Array(days[start..<end])
-    }
-
-    /// 週行に重ねる連続帯。列スペースも塗って 1 本に繋げる。
-    private func bandOverlay(_ bands: [CalendarPeriodBand], width: CGFloat) -> some View {
-        let colSpacing = Layout.columnSpacing
-        let cellW = (width - colSpacing * CGFloat(Layout.columnCount - 1)) / CGFloat(Layout.columnCount)
-        let ticketAccent = ImasTheme.derive(seed: Self.ticketSeed, scheme: scheme).accent
-        return ZStack(alignment: .topLeading) {
-            ForEach(bands) { band in
-                let x = CGFloat(band.startCol) * (cellW + colSpacing)
-                let w = CGFloat(band.endCol - band.startCol) * (cellW + colSpacing) + cellW
-                Text(band.roundLeading ? "受付 \(band.name)" : " ")
-                    .imasText(.micro, color: ColorMath.onColor(ticketAccent))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .padding(.horizontal, DS.sp1)
-                    .frame(width: w, height: MonthGridMetric.bandHeight, alignment: .leading)
-                    .background(
-                        ticketAccent,
-                        // 複数日にまたがる受付帯の、連続区間の両端だけを丸める形。DS の角丸トークンは
-                        // 四隅一律が前提で「先頭/末尾だけ」を表せないため、月グリッドの固定要素として残す。
-                        in: UnevenRoundedRectangle(
-                            topLeadingRadius: band.roundLeading ? 2 : 0,
-                            bottomLeadingRadius: band.roundLeading ? 2 : 0,
-                            bottomTrailingRadius: band.roundTrailing ? 2 : 0,
-                            topTrailingRadius: band.roundTrailing ? 2 : 0,
-                            style: .continuous
-                        )
-                    )
-                    .offset(x: x, y: MonthGridMetric.bandTop + CGFloat(band.lane) * MonthGridMetric.bandSlot)
-            }
         }
     }
 
@@ -219,13 +155,13 @@ struct MonthCalendarView: View {
     }
 }
 
-// MARK: - 月グリッドの寸法 + 帯
+// MARK: - 月グリッドの寸法
 
-/// 月グリッドの縦寸法。DayCell と週行の帯オーバーレイで共有し、両者の縦位置を必ず揃える。
+/// 月グリッドの縦寸法。DayCell が割り付けたセル高からバーの表示本数を逆算するのに使う。
 private enum MonthGridMetric {
     /// 日番号ゾーン (今日サークル) の高さ
     static let numberZoneHeight: CGFloat = 26
-    /// 日番号ゾーンと帯ゾーンの間隔
+    /// 日番号ゾーンとバーゾーンの間隔
     static let zoneSpacing: CGFloat = 2
     /// 単日バー 1 本の高さ
     static let barHeight: CGFloat = 10
@@ -233,20 +169,11 @@ private enum MonthGridMetric {
     static let barSpacing: CGFloat = 2
     /// "+n" 行の高さ
     static let overflowHeight: CGFloat = 10
-    /// 1 週に描く受付期間の帯の段数の上限 (溢れた帯は日の "+n" に数える)
-    static let maxBandLanes = 1
-    /// 受付期間帯 1 本の高さ
-    static let bandHeight: CGFloat = 11
-    /// 帯 1 レーンぶんの縦送り
-    static var bandSlot: CGFloat { bandHeight + barSpacing }
-    /// 帯ゾーンの開始 Y (日番号ゾーンの直下)
-    static var bandTop: CGFloat { numberZoneHeight + zoneSpacing }
 }
 
 // MARK: - DayCell
 
-/// 月カレンダーの 1 日セル。日番号 + 単日バーを表示。受付期間の帯は週行オーバーレイ側で
-/// 描くので、上部に bandInset (週のレーン数ぶん) を空けてバーが帯と重ならないようにする。
+/// 月カレンダーの 1 日セル。日番号 + 単日バーを表示。
 /// バーの表示本数はフィットグリッドが割り付けたセル高から逆算し、
 /// 収まらない分は "+n" に集約する。
 private struct DayCell: View {
@@ -257,10 +184,6 @@ private struct DayCell: View {
     let isToday: Bool
     /// フィットグリッドが割り付けたセル高
     let height: CGFloat
-    /// 受付期間帯のために上部へ確保する高さ (この週のレーン数ぶん)
-    let bandInset: CGFloat
-    /// 段が溢れて描かなかった受付期間の帯の数 ("+n" に含める)
-    var hiddenBands: Int = 0
 
     private var dayNumber: Int {
         Calendar.current.component(.day, from: date)
@@ -272,25 +195,22 @@ private struct DayCell: View {
         return DS.ink
     }
 
-    /// 単日バーに使うエントリ。受付期間帯は overlay で描くのでここからは除外する。
     private var barEntries: [CalendarEntry] {
-        entries
-            .filter { if case .ticketPeriod = $0 { return false } else { return true } }
-            .sorted { $0.sortOrder < $1.sortOrder }
+        entries.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    /// バーゾーンの利用可能高 (帯ぶんを差し引く) から (表示本数, "+n" の n) を決める。
+    /// バーゾーンの利用可能高から (表示本数, "+n" の n) を決める。
     private var barPlan: (visible: Int, overflow: Int) {
         let count = barEntries.count
-        guard count > 0 else { return (0, hiddenBands) }
-        let zone = max(0, height - MonthGridMetric.bandTop - bandInset)
+        guard count > 0 else { return (0, 0) }
+        let zone = max(0, height - MonthGridMetric.numberZoneHeight - MonthGridMetric.zoneSpacing)
         let allHeight = CGFloat(count) * MonthGridMetric.barHeight + CGFloat(count - 1) * MonthGridMetric.barSpacing
-        if allHeight <= zone && hiddenBands == 0 { return (count, 0) }
-        // "+n" の行ぶんを空けてから入る本数を数える (帯が溢れた日はバーが全部入っても "+n" が要る)。
+        if allHeight <= zone { return (count, 0) }
+        // "+n" の行ぶんを空けてから入る本数を数える。
         let slot = MonthGridMetric.barHeight + MonthGridMetric.barSpacing
         let fit = Int((zone - MonthGridMetric.overflowHeight) / slot)
-        let visible = max(0, min(hiddenBands > 0 ? count : count - 1, fit))
-        return (visible, count - visible + hiddenBands)
+        let visible = max(0, min(count - 1, fit))
+        return (visible, count - visible)
     }
 
     var body: some View {
@@ -304,7 +224,7 @@ private struct DayCell: View {
                     .foregroundStyle(numberColor)
             }
             .frame(height: MonthGridMetric.numberZoneHeight)
-            // 単日バー (帯ぶんだけ上を空ける)
+            // 単日バー
             VStack(spacing: MonthGridMetric.barSpacing) {
                 ForEach(barEntries.prefix(plan.visible)) { entry in
                     CalendarEntryBar(entry: entry, height: MonthGridMetric.barHeight)
@@ -317,7 +237,6 @@ private struct DayCell: View {
                         .padding(.horizontal, DS.sp1)
                 }
             }
-            .padding(.top, bandInset)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .clipped()
         }
@@ -358,8 +277,6 @@ struct CalendarEntryBar: View {
             return event.title
         case .ticket(let row):
             return "\(row.kind.label)・\(row.eventName)"
-        case .ticketPeriod(let row):
-            return "\(row.kindLabel)・\(row.eventName)"
         }
     }
 

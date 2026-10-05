@@ -113,40 +113,27 @@ struct CoreCalendarRepository: CalendarReading {
                 label: label
             ))
 
-        case let .ticketPeriod(eventId, eventName, brandColor, start, end, url, saleId, saleName, saleKind, label):
-            return .ticketPeriod(TicketPeriodRow(
+        case let .archiveEnd(eventId, eventName, brandColor, date, _, showLabels, label):
+            // 配信のアーカイブを見られる最後の日。カレンダーには単日点として出し、
+            // 受付の期間そのものと同じく「チケット日程」の一種として実体化する
+            // (受付期間の帯はもう無いので、showIds は持たない)。
+            return .ticket(TicketCalendarRow(
                 eventId: eventId,
                 eventName: eventName,
                 brandColor: brandColor,
-                start: start,
-                end: end,
-                url: url,
-                saleId: saleId,
-                saleName: saleName,
-                saleKind: ticketSaleKindRaw(kind: saleKind),
-                label: label
-            ))
-
-        case let .archivePeriod(eventId, eventName, brandColor, _, showLabels, start, end, label):
-            return .ticketPeriod(TicketPeriodRow(
-                eventId: eventId,
-                eventName: eventName,
-                brandColor: brandColor,
-                start: start,
-                end: end,
+                date: date,
+                kind: .archiveEnd,
                 url: nil,
-                saleId: "archive_\(eventId)_\(start)_\(end)",
+                saleId: "archive_\(eventId)_\(date)",
                 saleName: showLabels.joined(separator: "・"),
                 saleKind: "",
-                label: label,
-                kind: .archive
+                label: label
             ))
         }
     }
 
     private static func ticketKind(from kind: CalendarTicketKind) -> TicketDateKind {
         switch kind {
-        case .start: return .start
         case .deadline: return .deadline
         case .lottery: return .lottery
         }
