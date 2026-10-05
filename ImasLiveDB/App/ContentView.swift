@@ -37,6 +37,10 @@ struct ContentView: View {
     @State private var showDeeplinkNotFound = false
     /// deeplink 解決中に DB エラーが起きた時のアラート (not found とは別事象)。
     @State private var showDeeplinkLoadFailed = false
+    /// P名刺のリンク・名刺ファイルで開く受け取りの確認。
+    @State private var incomingCard: IncomingProducerCard?
+    /// 名刺ファイルを読めなかったとき。
+    @State private var showCardFileFailed = false
 
     /// 担当(推し)カラーをアプリ全体テーマに使う設定 (MyPage で解決済みの hex)。
     /// 空 = 無効 (既定の AccentColor を使う)。
@@ -133,6 +137,14 @@ struct ContentView: View {
                 // 次の sheet dismiss 時に onDismiss → presentPendingDeeplink で復活する)。
                 .onAppear { pendingDeeplinkDestination = nil }
         }
+        .sheet(item: $incomingCard) { incoming in
+            ProducerCardReceiveSheet(incoming: incoming).environment(database)
+        }
+        .alert("名刺ファイルを開けませんでした", isPresented: $showCardFileFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("P名刺のファイルではないか、壊れています。もう一度送ってもらってください。")
+        }
         .alert("リンク先が見つかりません", isPresented: $showDeeplinkNotFound) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -188,6 +200,20 @@ struct ContentView: View {
     /// 対象外 URL は無視、未知 ID / DB エラーはアラート (クラッシュ・空白画面にしない)。
     private func handleDeeplink(_ url: URL) {
         guard let link = DeeplinkRouter.parse(url) else { return }
+        switch link {
+        case .producerCard(let payload):
+            presentIncomingCard(IncomingProducerCard(payload: payload, images: [], via: .link))
+            return
+        case .producerCardFile(let fileURL):
+            if let contents = Self.readCardFile(fileURL) {
+                presentIncomingCard(IncomingProducerCard(payload: contents.payload, images: contents.images, via: .file))
+            } else {
+                showCardFileFailed = true
+            }
+            return
+        default:
+            break
+        }
         // 着地タブは対象の住所に合わせる (イベント/公演=ライブ、お題=プロデュース)。
         // シートを閉じた後に「元居た場所」として自然な一覧が残るようにする。
         let landing: AppDestination = switch link {
@@ -218,6 +244,24 @@ struct ContentView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
             presentPendingDeeplink()
         }
+    }
+
+    /// 受け取りの確認を開く。設定のシートが開いていれば閉じてから出す (シートの上にシートを重ねない)。
+    private func presentIncomingCard(_ incoming: IncomingProducerCard) {
+        if showSettings {
+            showSettings = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { incomingCard = incoming }
+        } else {
+            incomingCard = incoming
+        }
+    }
+
+    /// 「このアプリで開く」で渡された名刺ファイルを読む (中身の検査はコア)。
+    private static func readCardFile(_ url: URL) -> CardFileContents? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return decodeCardFile(bytes: data)
     }
 
     /// 行き先を選ぶ。タブバーから外した行き先なら、外した画面の入口があるプロデュースへ。

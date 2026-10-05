@@ -195,6 +195,11 @@ struct ImasLiveDBApp: App {
             .fullScreenCover(isPresented: .constant(CallGuidePreviewHarness.envMode != nil)) {
                 CallGuidePreviewHarness(mode: CallGuidePreviewHarness.envMode ?? .view)
             }
+            // P名刺の見た目確認用 (DEBUG のみ)。PRODUCER_CARD_PREVIEW 未指定なら何も出ない。
+            .fullScreenCover(isPresented: .constant(ProducerCardPreviewHarness.envMode != nil)) {
+                ProducerCardPreviewHarness(mode: ProducerCardPreviewHarness.envMode ?? .card)
+                    .environment(appDatabase)
+            }
             #endif
     }
 }

@@ -1,0 +1,87 @@
+import Foundation
+import UIKit
+
+/// 自分の記録 (担当・参加した公演)。名刺を組むのにも、受け取った名刺との共通点にも使う。
+struct ProducerCardMyRecord: Sendable {
+    /// 担当 (アプリの担当の印)。
+    let oshiIds: [String]
+    /// 参加を付けた公演 (今後の参加予定も含む)。
+    let attended: [CardShowRef]
+    /// 回収した曲の数。
+    let songCount: Int
+
+    /// 共通点に使う「行った公演」と「次の現場」。分け方はコア。
+    var summary: CardRecordSummary {
+        producerCardRecordSummary(today: JSTDay.today(), attended: attended)
+    }
+}
+
+/// 自分の P名刺を組み立てる。名前などは端末の表、担当・記録の数はアプリの記録から毎回。
+///
+/// 何を載せるか (外した項目を落とす) だけをここで決め、名刺の形・QR の中身・公演の縮め方・
+/// 収まらない分の落とし方はコア (`encodeProducerCard`)。
+@MainActor
+enum ProducerCardAssembler {
+    static func loadMyRecord() async throws -> ProducerCardMyRecord {
+        let c = AppContainer.shared
+        let oshi = try await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)
+        let attended = try await c.producerCards.attendedShowRefs()
+        let songs = try await c.markReading.autoCollectedSongIds()
+        return ProducerCardMyRecord(oshiIds: oshi, attended: attended, songCount: songs.count)
+    }
+
+    /// 名刺の入力。外した項目は空にする。
+    static func input(card: MyProducerCard, record: ProducerCardMyRecord) -> ProducerCardInput {
+        let summary = record.summary
+        let limits = producerCardLimits()
+        return ProducerCardInput(
+            name: card.name,
+            message: card.shows(.message) ? card.message : "",
+            sinceYear: card.shows(.since) ? card.sinceYear.flatMap(UInt16.init(exactly:)) : nil,
+            oshiIdolIds: card.shows(.oshi) ? Array(record.oshiIds.prefix(Int(limits.maxOshi))) : [],
+            links: card.shows(.links) ? card.links : [],
+            showCount: card.shows(.showCount) ? summary.showCount : nil,
+            songCount: card.shows(.songCount) ? UInt32(record.songCount) : nil,
+            nextShowId: card.shows(.next) ? summary.nextShowId : nil,
+            attended: card.shows(.attended) ? summary.attendedPast : [],
+            issuedOn: JSTDay.today()
+        )
+    }
+
+    /// 自分の名刺。まだ作っていない (名前が無い) なら nil。
+    static func encode(card: MyProducerCard, record: ProducerCardMyRecord) -> EncodedProducerCard? {
+        let input = input(card: card, record: record)
+        guard validateProducerCard(input: input) == nil else { return nil }
+        return encodeProducerCard(input: input)
+    }
+
+    /// `#` の後ろ。
+    static func payload(of encoded: EncodedProducerCard) -> String {
+        producerCardPayload(card: encoded.card)
+    }
+
+    /// 自分の担当の画像 (代表の 1 枚) を送る形にする。画像を設定していない担当は入れない (判子で出る)。
+    static func myOshiImages(for card: ProducerCard) -> [CardFileImage] {
+        let images = CustomImageService.shared
+        return card.oshiIdolIds.compactMap { id in
+            guard let url = images.imageURL(for: id),
+                  let image = UIImage(contentsOfFile: url.path),
+                  let jpeg = ProducerCardFiles.jpeg(image) else { return nil }
+            return CardFileImage(idolId: id, jpeg: jpeg)
+        }
+    }
+
+    /// 自分の名刺ファイル (名刺 + 担当の画像)。
+    static func myCardFile(_ encoded: EncodedProducerCard) -> Data? {
+        encodeCardFile(payload: payload(of: encoded), images: myOshiImages(for: encoded.card))
+    }
+
+    /// 共有シートに渡す名刺ファイル (一時フォルダに名刺の名前で書く)。
+    static func writeShareFile(_ data: Data, card: ProducerCard) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("producer_card_share", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent(cardFileName(card: card))
+        try data.write(to: url, options: .atomic)
+        return url
+    }
+}

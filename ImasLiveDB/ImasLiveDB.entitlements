@@ -9,6 +9,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:imas-live-api.tokata3011.workers.dev</string>
+		<string>applinks:idollivedb.fugaapp.site</string>
 	</array>
 	<key>com.apple.developer.icloud-container-environment</key>
 	<string>Production</string>

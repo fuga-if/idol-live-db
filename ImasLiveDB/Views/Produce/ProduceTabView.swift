@@ -25,6 +25,8 @@ struct ProduceTabView: View {
     private var masteryCount: Int { userMarks.masteryCounts().reduce(0, +) }
     /// 収支の合計。タイルには金額を出す — 件数では「いくら使ったか」が読めない。
     @State private var ledgerTotal: Int64 = 0
+    /// 名刺入れの枚数。
+    @State private var cardCaseCount: Int = 0
     @State private var collectedSongIds: [String] = []
     // ローカル履歴 (投稿・投票) は @Observable で参照するだけでカウントが見える。
     @State private var voteLog = LocalPollVoteLog.shared
@@ -124,6 +126,9 @@ struct ProduceTabView: View {
                 await loadAll()
             }
             .task { await loadAll() }
+            .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in
+                Task { cardCaseCount = (try? await AppContainer.shared.producerCards.receivedCount()) ?? cardCaseCount }
+            }
             .onChange(of: syncEngine.state) {
                 if case .completed = syncEngine.state {
                     Task { await loadAll() }
@@ -168,8 +173,19 @@ struct ProduceTabView: View {
         return .init(prefix: "まもなく終了", value: "")
     }
 
-    @ViewBuilder
     private var oshiSection: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+            oshiPasses
+            // 担当の入場証を 1 枚に広げた P名刺へ (会場での名刺交換)。
+            ImasTicketRow(systemImage: "person.text.rectangle", title: "P名刺",
+                          subtitle: "担当と参加の記録を 1 枚にして、会場で交換する") {
+                if NavThrottle.allow() { navPath.append(ActivityRoute.producerCard) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var oshiPasses: some View {
         if pickIdols.isEmpty {
             ImasCard {
                 ImasEmptyState(
@@ -235,6 +251,9 @@ struct ProduceTabView: View {
                 statTileLink(route: .ledger) {
                     ImasStatTile(systemImage: "yensign.circle.fill", value: formatYen(amount: ledgerTotal), label: "収支", seed: pickBrandSeed, tappable: true)
                 }
+                statTileLink(route: .cardCase) {
+                    ImasStatTile(systemImage: "tray.full.fill", value: numberString(cardCaseCount), label: "名刺入れ", seed: pickBrandSeed, tappable: true)
+                }
             }
             Button {
                 if NavThrottle.allow() { navPath.append(ActivityRoute.playlists) }
@@ -250,6 +269,7 @@ struct ProduceTabView: View {
     enum ActivityRoute: Hashable {
         case attendedEvents, myPredictions, favorites, myVotes, myContributions, collectedSongs, mastery, ledger
         case playlists
+        case producerCard, cardCase
     }
 
     @ViewBuilder
@@ -264,6 +284,8 @@ struct ProduceTabView: View {
         case .mastery: MasteryView().environment(database)
         case .ledger: LedgerView().environment(database)
         case .playlists: PlaylistsView().environment(database)
+        case .producerCard: MyProducerCardView()
+        case .cardCase: CardCaseView()
         }
     }
 
@@ -553,6 +575,8 @@ struct ProduceTabView: View {
                              amount: $0.amount, showId: $0.showId, eventId: $0.eventId,
                              showLabel: nil, note: $0.note)
             }
+            cardCaseCount = try await AppContainer.shared.producerCards.receivedCount()
+
             ledgerTotal = buildLedgerSummary(
                 entries: expenses,
                 period: .all,

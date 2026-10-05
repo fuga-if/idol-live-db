@@ -73,7 +73,9 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_NSAppleMusicUsageDescription: "楽曲のジャケット写真の表示とプレビュー再生に使用します"
-        INFOPLIST_KEY_NSCameraUsageDescription: "セットリストの写真を撮影してOCRで曲名を認識します"
+        INFOPLIST_KEY_NSCameraUsageDescription: "セットリストの写真から曲名を読み取るときと、P名刺の QR や紙の名刺を読み取るときに使用します"
+        # P名刺の交換で、近くの iPhone に担当の画像を直接送る (MultipeerConnectivity)。
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "P名刺を交換するとき、近くの iPhone に担当の画像を直接送るために使用します"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "セットリストの写真を選択してOCRで曲名を認識します"
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "ティアー表の画像を写真に保存します"
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるために使用します"
@@ -113,6 +115,31 @@ targets:
           - CFBundleURLName: com.fugaif.ImasLiveDB
             CFBundleURLSchemes:
               - imaslivedb
+        # P名刺の近くの端末への直接の受け渡し (MultipeerConnectivity の service type "imascard")。
+        # 配列なので INFOPLIST_KEY_* では書けない。
+        NSBonjourServices:
+          - _imascard._tcp
+          - _imascard._udp
+        # 名刺ファイル (.imascard)。名乗り (拡張子・MIME・UTI) はコアの cardFileTypeInfo と同じ値。
+        # AirDrop / Quick Share で届いたファイルを「このアプリで開く」で受け取る。
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: com.fugaif.imaslivedb.card
+            UTTypeDescription: P名刺
+            UTTypeConformsTo:
+              - public.data
+              - public.content
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - imascard
+              public.mime-type:
+                - application/vnd.imaslivedb.card
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: P名刺
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.fugaif.imaslivedb.card
+        LSSupportsOpeningDocumentsInPlace: false
     entitlements:
       path: ImasLiveDB/ImasLiveDB.entitlements
       properties:
@@ -120,6 +147,8 @@ targets:
           - Default
         com.apple.developer.associated-domains:
           - applinks:imas-live-api.tokata3011.workers.dev
+          # P名刺の URL (https://idollivedb.fugaapp.site/p/#…)。AASA は Web 側 (web/public) が置く。
+          - applinks:idollivedb.fugaapp.site
         com.apple.developer.icloud-container-identifiers:
           - iCloud.com.fugaif.ImasLiveDB
         com.apple.developer.icloud-services:
