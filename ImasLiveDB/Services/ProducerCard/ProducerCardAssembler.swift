@@ -44,7 +44,9 @@ enum ProducerCardAssembler {
             songCount: card.shows(.songCount) ? UInt32(record.songCount) : nil,
             nextShowId: card.shows(.next) ? summary.nextShowId : nil,
             attended: card.shows(.attended) ? summary.attendedPast : [],
-            issuedOn: JSTDay.today()
+            issuedOn: JSTDay.today(),
+            nameFont: card.font,
+            qrUrl: card.qrUrl
         )
     }
 
@@ -67,13 +69,20 @@ enum ProducerCardAssembler {
             guard let url = images.imageURL(for: id),
                   let image = UIImage(contentsOfFile: url.path),
                   let jpeg = ProducerCardFiles.jpeg(image) else { return nil }
-            return CardFileImage(idolId: id, jpeg: jpeg)
+            return CardFileImage(idolId: id, jpeg: jpeg, kind: .oshi)
         }
     }
 
-    /// 自分の名刺ファイル (名刺 + 担当の画像)。
+    /// 自分の名刺の写真 (切り抜いた JPEG をそのまま。元の画質で渡す)。
+    static func myPhotoImage() -> CardFileImage? {
+        guard let url = ProducerCardFiles.myPhotoURL, let jpeg = try? Data(contentsOf: url) else { return nil }
+        return CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)
+    }
+
+    /// 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真)。
     static func myCardFile(_ encoded: EncodedProducerCard) -> Data? {
-        encodeCardFile(payload: payload(of: encoded), images: myOshiImages(for: encoded.card))
+        let images = myOshiImages(for: encoded.card) + [myPhotoImage()].compactMap { $0 }
+        return encodeCardFile(payload: payload(of: encoded), images: images)
     }
 
     /// 共有シートに渡す名刺ファイル (一時フォルダに名刺の名前で書く)。

@@ -43,11 +43,17 @@ enum ProducerCardDisplay {
         }
     }
 
+    /// リンクの行。自分の QR があれば先頭に「QR」として出す (押せば開く)。
     static func links(_ card: ProducerCard) -> [ImasProducerCard.Link] {
-        card.links.map { link in
-            let view = cardLinkView(link: link)
-            return ImasProducerCard.Link(label: view.label, display: view.display, url: view.url)
+        let qr = card.qrUrl.map { cardQrLinkView(url: $0) }
+        return ([qr].compactMap { $0 } + card.links.map { cardLinkView(link: $0) }).map { view in
+            ImasProducerCard.Link(label: view.label, display: view.display, url: view.url)
         }
+    }
+
+    /// 名前の書体の PostScript 名 (書体の一覧と既定はコア)。
+    static func nameFont(_ card: ProducerCard) -> String {
+        producerCardNameFont(card: card).postscriptName
     }
 
     /// 記録の数 (参加公演・回収曲・次の現場)。載っていない数は出さない。
@@ -92,15 +98,18 @@ enum ProducerCardDisplay {
             parts.append(names.count > 1 ? "\(first) ほか\(names.count - 1)人" : first)
         }
         if let shows = card.showCount { parts.append("\(shows.formatted()) 公演") }
-        if parts.isEmpty, let link = card.links.first {
-            parts.append(cardLinkView(link: link).display)
+        if parts.isEmpty, let link = links(card).first {
+            parts.append(link.display)
         }
         return parts.joined(separator: " · ")
     }
 
     /// 名刺 1 枚の View (自分の名刺・受け取った名刺で同じ部品)。
+    /// `portraitURL` は名刺の写真 (自分の名刺は端末の写真、受け取った名刺は届いた写真。QR だけで
+    /// 受け取った名刺には無い)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
-                     imageURL: (String) -> URL?, onOpenLink: ((ImasProducerCard.Link) -> Void)?,
+                     imageURL: (String) -> URL?, portraitURL: URL? = nil,
+                     onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
         return ImasProducerCard(
@@ -112,6 +121,8 @@ enum ProducerCardDisplay {
             cells: cells(card, directory: directory),
             boardTrailing: boardTrailing(card),
             photoURL: oshi.compactMap(\.imageURL).first,
+            portraitURL: portraitURL,
+            nameFont: nameFont(card),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi
         )

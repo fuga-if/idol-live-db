@@ -32,6 +32,7 @@ struct ReceivedCardDetailView: View {
                 ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: myOshi,
                     imageURL: { ProducerCardFiles.oshiImageURL(cardId: row.id, idolId: $0) },
+                    portraitURL: ProducerCardFiles.cardPhotoURL(cardId: row.id),
                     onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
                     onOpenOshi: { oshi in
                         if let idol = directory.idols[oshi.id] { sheet = .idol(idol) }
@@ -73,7 +74,7 @@ struct ReceivedCardDetailView: View {
             }
         }
         .imasConfirmDestructive("この名刺を削除しますか？", isPresented: $confirmDelete,
-                                message: "名刺入れから消えます。写真と受け取った担当の画像も消えます。") {
+                                message: "名刺入れから消えます。写真と受け取った画像も消えます。") {
             Task { await delete() }
         }
         .imasErrorAlert("名刺を直せませんでした", message: $error)

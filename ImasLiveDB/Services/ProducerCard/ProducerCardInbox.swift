@@ -39,11 +39,11 @@ enum ProducerCardInbox {
         return saved
     }
 
-    /// 後から届いた担当の画像を、しまった名刺に足す。
+    /// 後から届いた画像 (担当の画像・名刺の写真) を、しまった名刺に足す。
     static func attachImages(cardId: String, images: [CardFileImage]) {
         guard !images.isEmpty else { return }
         do {
-            try ProducerCardFiles.saveOshiImages(cardId: cardId, images: images)
+            try ProducerCardFiles.saveImages(cardId: cardId, images: images)
         } catch {
             logger.error("producer_card_image_save_failed: \(error.localizedDescription)")
         }

@@ -105,10 +105,20 @@ struct CardCaseView: View {
         let lead = content?.oshiIdolIds.compactMap { directory.idols[$0] }.first
         let brand = lead.flatMap { directory.brands[$0.brandId] }
         let shared = content.map { !Set($0.oshiIdolIds).isDisjoint(with: myOshi) } ?? false
-        let leading: ImasRowLeading = lead.map {
-            .avatar(label: $0.shortName, seed: $0.color, brand: brand?.color,
-                    imageURL: ProducerCardFiles.oshiImageURL(cardId: card.id, idolId: $0.id), isPick: true)
-        } ?? .icon(card.sourceValue == .paper ? "doc.text.image" : "person.text.rectangle", tone: .neutral)
+        let oshiIcon = lead.map {
+            ImasRowPortraitOshi(label: $0.shortName, seed: $0.color, brand: brand?.color,
+                                imageURL: ProducerCardFiles.oshiImageURL(cardId: card.id, idolId: $0.id))
+        }
+        // 名刺の写真があれば証明写真の枠 (右下に担当のアイコンを重ねる)、無ければ担当のアイコン。
+        let leading: ImasRowLeading
+        if let portrait = ProducerCardFiles.cardPhotoURL(cardId: card.id) {
+            leading = .portrait(portrait, oshi: oshiIcon)
+        } else if let oshiIcon {
+            leading = .avatar(label: oshiIcon.label, seed: oshiIcon.seed, brand: oshiIcon.brand,
+                              imageURL: oshiIcon.imageURL, isPick: true)
+        } else {
+            leading = .icon(card.sourceValue == .paper ? "doc.text.image" : "person.text.rectangle", tone: .neutral)
+        }
         var subtitle = content.map { ProducerCardDisplay.summaryLine($0, directory: directory) } ?? ""
         if card.sourceValue == .paper { subtitle = subtitle.isEmpty ? "紙の名刺" : "紙の名刺 · \(subtitle)" }
         return Button {

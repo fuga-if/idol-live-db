@@ -1,3 +1,4 @@
+import UIKit
 import GRDB
 import XCTest
 @testable import ImasLiveDB
@@ -106,6 +107,8 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.sinceYear = 2014
         mine.links = [CardLink(kind: .x, value: "fuga_p")]
         mine.hidden = [.attended]
+        mine.font = .mincho
+        mine.qrUrl = "https://lit.link/fuga"
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))
 
@@ -123,6 +126,8 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.sinceYear, 2014)
         XCTAssertEqual(restored.links, mine.links)
         XCTAssertEqual(restored.hidden, [.attended])
+        XCTAssertEqual(restored.font, .mincho)
+        XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
 
         // 2 回目は何も増えない (id で重複を弾く)。
         let again = try BackupExportImportService.importEnvelopeJSON(json, database: target, restoreDeviceId: false)
@@ -140,5 +145,98 @@ final class ProducerCardStoreTests: XCTestCase {
         let file = URL(fileURLWithPath: "/tmp/ふがPのP名刺.imascard")
         XCTAssertEqual(DeeplinkRouter.parse(file), .producerCardFile(file))
         XCTAssertNil(DeeplinkRouter.parse(URL(fileURLWithPath: "/tmp/a.json")))
+    }
+
+    // MARK: - 書体・自分の QR・写真
+
+    /// 書体と自分の QR は端末の表に入り、名刺の中身にも載る。書体を選んでいなければ既定。
+    func testMyCardFontAndQRReachTheCard() throws {
+        let db = try makeDatabase()
+        var mine = MyProducerCard.empty()
+        mine.name = "ふがP"
+        XCTAssertEqual(mine.font, cardNameFonts()[0].font, "空のキーは既定の書体")
+        mine.font = .pop
+        mine.qrUrl = normalizeCardQrUrl(raw: "lit.link/fuga")
+        try db.saveMyProducerCard(mine)
+        let loaded = try XCTUnwrap(db.myProducerCard())
+        XCTAssertEqual(loaded.nameFont, "pop")
+        XCTAssertEqual(loaded.qrUrl, "https://lit.link/fuga")
+
+        let record = ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
+        let encoded = try XCTUnwrap(ProducerCardAssembler.encode(card: loaded, record: record))
+        let back = try XCTUnwrap(decodeProducerCard(text: encoded.url))
+        XCTAssertEqual(back.nameFont, .pop)
+        XCTAssertEqual(ProducerCardDisplay.links(back).first?.label, "QR")
+        XCTAssertEqual(ProducerCardDisplay.nameFont(back), "MochiyPopOne-Regular")
+    }
+
+    /// 同梱の書体がすべて PostScript 名で引ける (Info.plist の UIAppFonts と揃っている)。
+    func testNameFontsAreBundled() {
+        for font in cardNameFonts() {
+            XCTAssertNotNil(UIFont(name: font.postscriptName, size: 20), "\(font.key) の書体が引けない")
+            XCTAssertNotNil(Bundle.main.url(forResource: font.fileStem, withExtension: "ttf"))
+        }
+    }
+
+    /// 名刺ファイルの写真は担当の画像と分けて書き、名刺の写真として引ける。
+    func testReceivedPhotoIsStoredSeparately() throws {
+        let cardId = "test-\(UUID().uuidString)"
+        defer { ProducerCardFiles.deleteAll(cardId: cardId) }
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0x01])
+        try ProducerCardFiles.saveImages(cardId: cardId, images: [
+            CardFileImage(idolId: "765_haruka", jpeg: jpeg, kind: .oshi),
+            CardFileImage(idolId: "", jpeg: jpeg, kind: .photo),
+        ])
+        XCTAssertNotNil(ProducerCardFiles.oshiImageURL(cardId: cardId, idolId: "765_haruka"))
+        XCTAssertNotNil(ProducerCardFiles.cardPhotoURL(cardId: cardId))
+        XCTAssertNil(ProducerCardFiles.oshiImageURL(cardId: cardId, idolId: ""))
+    }
+
+    /// 切り抜きは枠 (3:4) の中に収まり、写真の外にはみ出さない。
+    func testPortraitCropStaysInsideTheImage() {
+        let size = CGSize(width: 4000, height: 3000)
+        let base = ImasPortraitCrop().rect(in: size)
+        XCTAssertEqual(base.width / base.height, ImasPortraitCrop.aspect, accuracy: 0.001)
+        XCTAssertEqual(base.height, 3000, accuracy: 0.5)
+        let corner = ImasPortraitCrop(zoom: 2, center: CGPoint(x: 1, y: 1)).rect(in: size)
+        XCTAssertEqual(corner.maxX, 4000, accuracy: 0.5)
+        XCTAssertEqual(corner.maxY, 3000, accuracy: 0.5)
+        XCTAssertEqual(corner.width, base.width / 2, accuracy: 0.5)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 300)).image { _ in }
+        let rendered = ImasPortraitCrop().render(image)
+        XCTAssertEqual(rendered?.size, ImasPortraitCrop.outputSize)
+    }
+
+    /// 斜めに写った紙の名刺の四隅を見つけて平らにする。四隅が無い写真はそのまま。
+    func testRectifierFindsCardCorners() async throws {
+        let size = CGSize(width: 1500, height: 1100)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let photo = UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor.darkGray.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: 210, y: 264))
+            path.addLine(to: CGPoint(x: 1290, y: 220))
+            path.addLine(to: CGPoint(x: 1350, y: 792))
+            path.addLine(to: CGPoint(x: 150, y: 836))
+            path.close()
+            UIColor(white: 1, alpha: 1).setFill()
+            path.fill()
+        }
+        let result = await PaperCardRectifier.rectify(photo)
+        let corners = try XCTUnwrap(result.corners, "四隅が見つからない")
+        XCTAssertEqual(corners[0].x, 210 / 1500, accuracy: 0.03)
+        XCTAssertEqual(corners[0].y, 264 / 1100, accuracy: 0.03)
+        XCTAssertEqual(corners[2].x, 1350 / 1500, accuracy: 0.03)
+        XCTAssertGreaterThan(result.image.size.width / result.image.size.height, 1.5)
+
+        let plain = UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            UIColor.darkGray.setFill()
+            ctx.fill(CGRect(origin: .zero, size: size))
+        }
+        let none = await PaperCardRectifier.rectify(plain)
+        XCTAssertNil(none.corners)
+        XCTAssertEqual(none.image.size, plain.size)
     }
 }

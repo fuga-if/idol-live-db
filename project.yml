@@ -57,6 +57,10 @@ targets:
         buildPhase: resources
       - path: ImasLiveDB/PrivacyInfo.xcprivacy
         buildPhase: resources
+      # P名刺の名前の書体 (iOS / Android / Web で同じもの。作り方は tools/build_card_name_fonts.py)。
+      # 使用許諾 (SIL OFL 1.1) の全文 OFL-*.txt も一緒に同梱する。
+      - path: fonts/card-name
+        buildPhase: resources
       # imas-core (Rust) の UniFFI 生成バインディング。imas-core/build.sh が再生成する
       - path: build/imas-core/swift/imas_core.swift
         group: ImasCore
@@ -109,6 +113,13 @@ targets:
           UIImageName: LaunchLogo
           UIImageRespectsSafeAreaInsets: true
           UIColorName: LaunchBackground
+        # P名刺の名前の書体 (fonts/card-name/。名前の一覧はコアの cardNameFonts の fileStem)。
+        UIAppFonts:
+          - card_name_gothic.ttf
+          - card_name_mincho.ttf
+          - card_name_maru.ttf
+          - card_name_pop.ttf
+          - card_name_hand.ttf
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:

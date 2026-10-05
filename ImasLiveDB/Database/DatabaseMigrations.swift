@@ -1130,6 +1130,18 @@ enum DatabaseMigrations {
                           columns: ["payload"], ifNotExists: true)
         }
 
+        // v41: P名刺の名前の書体と自分の QR。書体はコアの保存のキー (`cardNameFontKey`、空は既定)。
+        // 名刺の写真は表に持たず端末のファイル (`ProducerCardFiles`)。足すだけで既存の行は変えない。
+        migrator.registerMigration("v41_producer_card_font_qr") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !cols.contains("name_font") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN name_font TEXT NOT NULL DEFAULT ''")
+            }
+            if !cols.contains("qr_url") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN qr_url TEXT")
+            }
+        }
+
         return migrator
     }
 }

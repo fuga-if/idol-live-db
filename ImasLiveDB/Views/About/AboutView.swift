@@ -69,6 +69,10 @@ struct AboutView: View {
                 JASRACLicenseNotice(placement: .about)
                 ossCredit(name: "GRDB.swift", license: "MIT License", url: "https://github.com/groue/GRDB.swift")
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")
+                // P名刺の名前の書体 (同梱。一覧はコア)。
+                ForEach(cardNameFonts(), id: \.key) { font in
+                    ossCredit(name: "\(font.familyName) (P名刺の書体)", license: font.license, url: font.sourceUrl)
+                }
             }
 
             ImasListSection(

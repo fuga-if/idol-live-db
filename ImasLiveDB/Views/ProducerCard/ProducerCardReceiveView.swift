@@ -17,6 +17,8 @@ struct ProducerCardReceiveView: View {
     @State private var directory = ProducerCardDirectory()
     @State private var images: [CardFileImage] = []
     @State private var imageURLs: [String: URL] = [:]
+    /// 届いた名刺の写真 (名刺ファイル・近くの iPhone から。QR だけなら無い)。
+    @State private var portraitURL: URL?
     @State private var show: ProducerCardShowInfo?
     @State private var showOptions: [LedgerShowOption] = []
     @State private var pickingShow = false
@@ -30,7 +32,7 @@ struct ProducerCardReceiveView: View {
             if let card {
                 ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: Set(record?.oshiIds ?? []),
-                    imageURL: { imageURLs[$0] }, onOpenLink: nil, onOpenOshi: nil)
+                    imageURL: { imageURLs[$0] }, portraitURL: portraitURL, onOpenLink: nil, onOpenOshi: nil)
                 commonSection(card)
                 ImasFormCard {
                     ImasFormLink(label: "受け取った公演", imprint: "SHOW", systemImage: "ticket",
@@ -94,11 +96,11 @@ struct ProducerCardReceiveView: View {
         if let nearby, incoming.via == .scan {
             switch nearby.phase {
             case .searching, .connected, .waiting:
-                ImasNote("近くの相手の iPhone から担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。")
+                ImasNote("近くの相手の iPhone から写真と担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。")
             case .received:
-                ImasNote(images.isEmpty ? "相手の名刺を受け取りました (担当の画像は設定されていません)。" : "担当の画像を受け取りました。")
+                ImasNote(images.isEmpty ? "相手の名刺を受け取りました (写真・担当の画像は設定されていません)。" : "写真と担当の画像を受け取りました。")
             case .notFound, .idle:
-                ImasNote("近くに相手の iPhone が見つかりませんでした。名刺は QR の中身だけで保存できます。担当の画像は、相手に「名刺ファイルで送る」で送ってもらうと届きます。")
+                ImasNote("近くに相手の iPhone が見つかりませんでした。名刺は QR の中身だけで保存できます。写真と担当の画像は、相手に「名刺ファイルで送る」で送ってもらうと届きます。")
             }
         }
     }
@@ -127,11 +129,17 @@ struct ProducerCardReceiveView: View {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var urls: [String: URL] = [:]
+        var portrait: URL?
         for (i, image) in new.enumerated() {
             let url = dir.appendingPathComponent("\(i).jpg")
-            if (try? image.jpeg.write(to: url, options: .atomic)) != nil { urls[image.idolId] = url }
+            guard (try? image.jpeg.write(to: url, options: .atomic)) != nil else { continue }
+            switch image.kind {
+            case .oshi: urls[image.idolId] = url
+            case .photo: portrait = url
+            }
         }
         imageURLs = urls
+        portraitURL = portrait
     }
 
     private func save() async {

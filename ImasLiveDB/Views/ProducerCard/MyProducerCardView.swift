@@ -19,6 +19,11 @@ struct MyProducerCardView: View {
     @State private var showingPrint = false
     @State private var showingCase = false
     @State private var shareError: String?
+    @State private var qrMode: QRMode = .exchange
+    @State private var portraitURL: URL?
+
+    /// 名刺の画面で見せる QR。自分の QR を載せていなければ交換用だけ。
+    enum QRMode: Hashable { case exchange, own }
 
     var body: some View {
         ImasPage {
@@ -26,6 +31,9 @@ struct MyProducerCardView: View {
                 ImasInlineLoading()
             } else if let encoded {
                 cardSection(encoded)
+                if let own = encoded.card.qrUrl {
+                    qrSection(encoded, own: own)
+                }
                 actionsSection
             } else {
                 ImasCard {
@@ -80,6 +88,7 @@ struct MyProducerCardView: View {
             ProducerCardDisplay.view(
                 encoded.card, directory: directory,
                 imageURL: { CustomImageService.shared.imageURL(for: $0) },
+                portraitURL: portraitURL,
                 onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
                 onOpenOshi: nil
             )
@@ -93,11 +102,26 @@ struct MyProducerCardView: View {
         }
     }
 
+    /// 交換用の QR (アプリの名刺) と自分の QR を切り替えて見せる。
+    private func qrSection(_ encoded: EncodedProducerCard, own: String) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+            ImasTabs(options: [QRMode.exchange, .own], selection: $qrMode) {
+                $0 == .exchange ? "交換用の QR" : "自分の QR"
+            }
+            switch qrMode {
+            case .exchange:
+                ImasQRCode(text: encoded.url, caption: "アプリで読むと名刺入れに入ります")
+            case .own:
+                ImasQRCode(text: own, caption: cardQrLinkView(url: own).display, label: "自分の QR コード")
+            }
+        }
+    }
+
     private var actionsSection: some View {
         ImasSection("渡す・しまう") {
             ImasCardList {
                 Button { shareCardFile() } label: {
-                    ImasNavRow(title: "名刺ファイルで送る", subtitle: "AirDrop や Quick Share で担当の画像ごと渡す",
+                    ImasNavRow(title: "名刺ファイルで送る", subtitle: "AirDrop や Quick Share で写真と担当の画像ごと渡す",
                                systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.imasRow)
@@ -139,6 +163,7 @@ struct MyProducerCardView: View {
         if let rec = try? await ProducerCardAssembler.loadMyRecord() {
             record = rec
         }
+        portraitURL = ProducerCardFiles.myPhotoURL
         if let myCard, let record, let enc = ProducerCardAssembler.encode(card: myCard, record: record) {
             encoded = enc
             directory = await ProducerCardDirectory.load(

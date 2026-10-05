@@ -121,7 +121,8 @@ enum BackupExportImportService {
         let myProducerCards = try database.myProducerCard().map {
             [BackupMyProducerCardRecord(id: $0.id, name: $0.name, message: $0.message,
                                         sinceYear: $0.sinceYear.map(Int64.init), linksJson: $0.linksJson,
-                                        hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt)]
+                                        hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
+                                        nameFont: $0.nameFont, qrUrl: $0.qrUrl)]
         } ?? []
 
         // 時刻・アプリ版・端末 ID は OS からしか分からないので引数で渡す (共有コアは時刻を取らない)。
@@ -266,7 +267,8 @@ enum BackupExportImportService {
         })
         try database.restoreMyProducerCardsIfAbsent(plan.myProducerCardsToInsert.map {
             MyProducerCard(id: $0.id, name: $0.name, message: $0.message, sinceYear: $0.sinceYear.map { Int($0) },
-                           linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt)
+                           linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
+                           nameFont: $0.nameFont, qrUrl: $0.qrUrl)
         })
 
         if plan.restoreDeviceId {
