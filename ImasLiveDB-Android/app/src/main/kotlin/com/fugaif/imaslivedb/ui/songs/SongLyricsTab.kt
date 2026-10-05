@@ -572,10 +572,10 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                     val highlights = highlightsFor(line, accent)
                     // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す (規則はコア)。
                     val asideStyle = ImasLyricAside.forViewing()
-                    // 歌う人は字の下に担当色の線で引く (どこから歌う人が変わるかが字の上で分かる)。
+                    // 歌う人は字をその担当色で塗る (何人かの所は縞。どこから歌う人が変わるかが字の上で分かる)。
                     val parts = cast.marks(line)
                     if (ImasRubyText.hasRuby(line.text) || parts.isNotEmpty()) {
-                        // 振り仮名・色の線は Text では組めないので FlowRow で自前に組む。
+                        // 振り仮名・字の塗り分けは Text では組めないので FlowRow で自前に組む。
                         ImasRubyFlowText(
                             text = line.text,
                             style = ImasTextRole.BODY.style,

@@ -642,7 +642,7 @@ private fun PartsLaneRow(
     }
 }
 
-/** 段の中の歌詞 1 行 (振り仮名は親字の上に、歌う人は字の下の色の線で)。 */
+/** 段の中の歌詞 1 行 (振り仮名は親字の上に、歌う人は字の色で)。 */
 @Composable
 private fun LaneLyricText(text: String, isCurrent: Boolean, parts: List<LyricPartMark> = emptyList(), modifier: Modifier = Modifier) {
     val color = if (isCurrent) DS.ink else DS.ink3

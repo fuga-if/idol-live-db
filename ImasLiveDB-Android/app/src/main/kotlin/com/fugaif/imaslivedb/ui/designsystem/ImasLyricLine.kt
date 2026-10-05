@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -294,7 +295,7 @@ fun ImasPlayerLyricLine(
     isLiked: Boolean = false,
     // 歌詞と同じ文字を一緒に叫ぶところ (同時コール)。
     echoes: List<ImasEcho> = emptyList(),
-    /** 歌う人の色の線 (字の下に引く)。あれば振り仮名と同じ組み方 (FlowRow) で描く。 */
+    /** 歌う人の担当色 (字をその色で塗る)。あれば振り仮名と同じ組み方 (FlowRow) で描く。 */
     parts: List<LyricPartMark> = emptyList(),
     seed: String? = null
 ) {
@@ -310,7 +311,7 @@ fun ImasPlayerLyricLine(
         // 括弧で書いた脇の字 (被せ・歌わない字) は一段小さく薄く出す。
         val asideStyle = ImasLyricAside.forPlayer(isMarker, color)
         if (ImasRubyText.hasRuby(text) || parts.isNotEmpty()) {
-            // 振り仮名・歌う人の色の線は Text では組めないので FlowRow で自前に組む。
+            // 振り仮名・歌う人の色の塗り分けは Text では組めないので FlowRow で自前に組む。
             ImasRubyFlowText(
                 text = text,
                 style = style,
@@ -321,7 +322,9 @@ fun ImasPlayerLyricLine(
                 asideStyle = asideStyle,
                 accent = theme.accent,
                 echoAt = { start -> echoAt(start, echoes) },
-                partsAt = { start -> parts.colorsAt(start) }
+                partsAt = { start -> parts.colorsAt(start) },
+                // 今の行でないときは、歌う人の色も地の字と同じく控えめにする。
+                partsAlpha = if (isCurrent) 1f else 0.45f
             )
         } else {
             ImasEchoText(
@@ -509,31 +512,22 @@ fun ImasPartStripe(colors: List<String>, modifier: Modifier = Modifier) {
     }
 }
 
-/** 色の線 1 本の太さと、線どうしの隙間、1 字の下に重ねる上限 (iOS と同じ寸法)。 */
-private val PartLineHeight = 2.5.dp
-private val PartLineGap = 1.dp
-private const val PART_LINES_MAX = 6
+/** 1 字を塗り分ける色の上限 (全体曲で全員の色を重ねると縞が細すぎて読めないので、超えた分は省く。iOS と同じ)。 */
+private const val PART_COLORS_MAX = 4
 
 /**
- * 1 字の下に重ねる、歌う人の担当色の線 (歌詞タブ・歌詞プレイヤー・タイミング編集の字ごとのセルで使う)。
- * 歌う人が分からない字には出さない。[slots] を揃えて渡すと、同じ行の中で字ごとの高さが揃う
- * ([ImasRubyFlowText] がそろえて渡す)。
+ * 何人かで歌う字を、字の中で上から歌う人の順に塗り分ける縞 (ハードな色の境目、ぼかさない・光らせない)。
+ * [Brush.verticalGradient] に同じ色を 2 度ずつ (帯の上端・下端) 置くことで、滑らかな階調を作らず
+ * くっきりした帯にする。
  */
-@Composable
-fun ImasPartLines(colors: List<String>, slots: Int = colors.size, modifier: Modifier = Modifier) {
-    val n = min(slots, PART_LINES_MAX)
-    if (n <= 0) return
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(PartLineGap)) {
-        repeat(n) { i ->
-            val hex = colors.getOrNull(i)
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(PartLineHeight)
-                    .background(if (hex != null) imasTheme(seed = hex).accent else Color.Transparent)
-            )
-        }
+private fun imasPartStripeBrush(colors: List<Color>): Brush {
+    val n = colors.size
+    val stops = mutableListOf<Pair<Float, Color>>()
+    colors.forEachIndexed { i, c ->
+        stops += (i.toFloat() / n) to c
+        stops += ((i + 1).toFloat() / n) to c
     }
+    return Brush.verticalGradient(colorStops = stops.toTypedArray())
 }
 
 /** 行の下に添える歌唱者の名前 (「春香・千早」。iOS `ImasPartNames`)。帯の色だけに頼らず言葉でも出す。 */
@@ -1154,20 +1148,19 @@ fun ImasRubyFlowText(
     accent: Color? = null,
     /** 各原子の先頭 (コードポイント位置) に掛かる同時コール。歌詞プレイヤーの行でのみ渡す。 */
     echoAt: ((Int) -> ImasEcho?)? = null,
-    /** 各原子の先頭 (コードポイント位置) に掛かる、歌う人の担当色 (字の下に線で引く)。 */
-    partsAt: ((Int) -> List<String>)? = null
+    /** 各原子の先頭 (コードポイント位置) に掛かる、歌う人の担当色 (hex)。字をその色で塗る
+     *  (1 人ならその色、何人か [PART_COLORS_MAX] までなら字の中を縞で塗り分ける)。 */
+    partsAt: ((Int) -> List<String>)? = null,
+    /** [partsAt] の色の濃さ (今の行でないときは控えめにするため、呼び出し側が渡す)。 */
+    partsAlpha: Float = 1f
 ) {
     val atoms = remember(text) { ImasRubyText.atoms(text) }
     val readingSize = (style.fontSize.value * 0.5f).sp
-    // 行の中の字ごとに色の線の数が違っても、同じ行の中では高さを揃える (そろわないと字が波打つ)。
-    val partsPerAtom = partsAt?.let { fn -> atoms.map { fn(it.start) } }
-    val maxParts = partsPerAtom?.maxOfOrNull { it.size } ?: 0
     androidx.compose.foundation.layout.FlowRow(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        atoms.forEachIndexed { index, atom ->
-            val parts = partsPerAtom?.getOrNull(index) ?: emptyList()
+        atoms.forEach { atom ->
             val highlight = highlightAt?.invoke(atom.start)
             val echo = echoAt?.invoke(atom.start)
             val baseModifier = if (highlight?.background != null) Modifier.background(highlight.background) else Modifier
@@ -1187,27 +1180,31 @@ fun ImasRubyFlowText(
             val isAside = atom.isAside && asideStyle != null
             val weight = if (isAside) (asideStyle?.weight ?: style.fontWeight) else if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
             val decoration = if (highlight?.underline == true) androidx.compose.ui.text.style.TextDecoration.Underline else null
+            val atomFontSize = if (isAside) asideStyle!!.fontSize else style.fontSize
+            // 歌う人の色で字を塗る。コール (いま叫ぶ所) が字の色を決めているところは、そちらを優先する。
+            val isEchoActive = echo?.isActive == true && accent != null
+            val partColors = if (isEchoActive || isAside) emptyList() else
+                partsAt?.invoke(atom.start)?.take(PART_COLORS_MAX)?.map { imasTheme(seed = it).accent.copy(alpha = partsAlpha) }
+                    ?: emptyList()
+            val atomBrush = if (partColors.size > 1) imasPartStripeBrush(partColors) else null
             val atomColor = when {
-                echo?.isActive == true && accent != null -> accent
+                isEchoActive -> accent!!
                 isAside -> asideStyle!!.color
+                partColors.size == 1 -> partColors[0]
                 else -> color
             }
-            val atomFontSize = if (isAside) asideStyle!!.fontSize else style.fontSize
+            val atomStyle = style.copy(fontWeight = weight, fontSize = atomFontSize, textDecoration = decoration, brush = atomBrush)
+            val resolvedColor = if (atomBrush != null) Color.Unspecified else atomColor
             when (atom) {
                 is ImasRubyText.Atom.Plain -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // 読みと同じ書体・大きさの透明な行 (素通しの文字の上にも同じ高さを確保し、
                     // ルビの親字とベースラインが揃うようにする)。
                     Text("　", fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = Color.Transparent, maxLines = 1)
-                    Text(
-                        atom.char, style = style, fontWeight = weight, fontSize = atomFontSize, color = atomColor,
-                        textDecoration = decoration, modifier = echoModifier
-                    )
-                    if (maxParts > 0) ImasPartLines(colors = parts, slots = maxParts)
+                    Text(atom.char, style = atomStyle, color = resolvedColor, modifier = echoModifier)
                 }
                 is ImasRubyText.Atom.Ruby -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(atom.reading, fontFamily = style.fontFamily, fontWeight = style.fontWeight, fontSize = readingSize, color = color, maxLines = 1)
-                    Text(atom.base, style = style, fontWeight = weight, color = atomColor, textDecoration = decoration, modifier = echoModifier)
-                    if (maxParts > 0) ImasPartLines(colors = parts, slots = maxParts)
+                    Text(atom.base, style = atomStyle, color = resolvedColor, modifier = echoModifier)
                 }
             }
         }

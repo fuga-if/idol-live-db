@@ -16,7 +16,7 @@ class LyricPartCast(val artists: List<Idol>) {
     fun names(ids: List<String>): List<String> = ids.mapNotNull { byId[it]?.shortName }
 
     /**
-     * 行の字の下に引く、歌う人の色の線 (ひと続きごと)。[mapRange] で表示する本文の中の位置に置き直す
+     * 行の字を塗る、歌う人の担当色 (ひと続きごと)。[mapRange] で表示する本文の中の位置に置き直す
      * (歌詞プレイヤーは被せの括弧を外した本文を出すので)。歌う人のいない範囲は出さない。
      */
     fun marks(line: LyricLine, mapRange: ((Int, Int) -> Pair<Int, Int>?)? = null): List<LyricPartMark> {
@@ -50,9 +50,9 @@ class LyricPartCast(val artists: List<Idol>) {
     }
 }
 
-/** 歌う人のひと続き (`start..end` は本文のコードポイント位置、`colors` は歌う人の担当色)。字の下に色の線を引く。 */
+/** 歌う人のひと続き (`start..end` は本文のコードポイント位置、`colors` は歌う人の担当色)。字をその色で塗る (何人かなら縞)。 */
 data class LyricPartMark(val start: Int, val end: Int, val colors: List<String>)
 
-/** [pos] (コードポイント位置) に掛かる色の線。 */
+/** [pos] (コードポイント位置) に掛かる歌う人の担当色。 */
 fun List<LyricPartMark>.colorsAt(pos: Int): List<String> =
     firstOrNull { pos >= it.start && pos < it.end }?.colors ?: emptyList()
