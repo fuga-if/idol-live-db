@@ -441,6 +441,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_method_snapshotstore_notification_plan,
     uniffi_imas_core_checksum_method_snapshotstore_now_playing_bar,
     uniffi_imas_core_checksum_method_snapshotstore_on_this_day,
+    uniffi_imas_core_checksum_method_snapshotstore_open_archives,
     uniffi_imas_core_checksum_method_snapshotstore_open_ticket_sales,
     uniffi_imas_core_checksum_method_snapshotstore_original_artist_ids_map,
     uniffi_imas_core_checksum_method_snapshotstore_original_song_ids_for_show_cast,

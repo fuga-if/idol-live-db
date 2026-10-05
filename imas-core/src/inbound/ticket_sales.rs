@@ -31,6 +31,15 @@ impl SnapshotStore {
         Ok(sales::open_sales(&snap, now_epoch_seconds))
     }
 
+    /// 全ライブ横断の「いま見られるアーカイブ」(ライブ一覧の頭)。終わりの近い順。
+    pub fn open_archives(
+        &self,
+        now_epoch_seconds: i64,
+    ) -> Result<Vec<crate::domain::stream_archives::OpenArchive>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(crate::domain::stream_archives::open_archives(&snap, now_epoch_seconds))
+    }
+
     /// 全イベント横断の締切一覧 (ウィジェット・通知の材料)。近い順、上限 `limit` 件。
     pub fn ticket_sale_deadlines(
         &self,

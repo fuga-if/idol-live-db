@@ -13,7 +13,7 @@ use crate::domain::snapshot::{
     Anniversary, Brand, BrandMemberLink, Costume, CostumeWear, Creator, Event, EventRelease, Idol,
     IdolBrandLink, IdolSongLink,
     IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff,
-    TicketSaleRow, Unit, Venue, VenueHall, VenueName,
+    ShowArchiveRow, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
 use crate::domain::text_search_index::TextSearchIndex;
 
@@ -48,6 +48,9 @@ pub struct RawTables {
     /// 後から足した表。古い tables.json (wasm が読む) には無いことがあるので既定値を許す。
     #[serde(default)]
     pub ticket_sales: Vec<TicketSaleRow>,
+    /// 配信のアーカイブ期間 (`show_tickets` の期間の入った行だけ)。同じく後から足した表。
+    #[serde(default)]
+    pub show_archives: Vec<ShowArchiveRow>,
     /// (song_id, idol_id, role)
     pub song_artists: Vec<(String, String, Option<String>)>,
     /// (setlist_item_id, idol_id)
@@ -82,6 +85,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         costumes,
         costume_wears,
         ticket_sales,
+        mut show_archives,
         song_artists,
         setlist_performers,
         show_cast,
@@ -404,6 +408,9 @@ pub fn build(raw: RawTables) -> Snapshot {
         });
     }
 
+    // show_archives → (show 添字, ticket_id)。読んだ経路 (DB / tables.json) に依らず並びを揃える。
+    show_archives.sort_by(|a, b| (a.show, &a.ticket_id).cmp(&(b.show, &b.ticket_id)));
+
     let setlist_item_index_by_id: HashMap<String, u32> =
         setlist_items.iter().enumerate().map(|(i, it)| (it.id.clone(), i as u32)).collect();
 
@@ -573,6 +580,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         costumes,
         costume_wears,
         ticket_sales,
+        show_archives,
         meta,
         artists_by_song,
         songs_by_idol,

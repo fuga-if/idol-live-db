@@ -436,6 +436,7 @@ mod tests {
             costumes,
             costume_wears: wears,
             ticket_sales: vec![],
+            show_archives: vec![],
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],

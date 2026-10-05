@@ -113,6 +113,23 @@ pub enum CalendarEntryRecord {
         /// 表示文字列 (`"{event_name} ({sale_name})"`、M2)。
         label: String,
     },
+    /// 配信のアーカイブ (見逃し配信) を見られる期間の日跨ぎ帯。同じライブで期間の同じ券種は
+    /// 1 本にまとめてある ([`crate::domain::stream_archives`])。
+    ArchivePeriod {
+        event_id: String,
+        event_name: String,
+        brand_color: Option<String>,
+        /// 対象の公演 (日付順)。
+        show_ids: Vec<String>,
+        /// 対象公演の短い名 (`DAY1` 等)。公演が 1 つしかないライブでは空。
+        show_labels: Vec<String>,
+        /// 見られる期間の始まり YYYY-MM-DD (始まりが未登録なら対象公演の最初の日)。
+        start: String,
+        /// 終わり YYYY-MM-DD。
+        end: String,
+        /// 表示文字列 (`"{event_name} (DAY1・DAY2 アーカイブ)"`)。
+        label: String,
+    },
 }
 
 // 同日内の表示順位 (iOS `CalendarEntry.sortOrder` と同じ数値。personal=7 はアプリ内のみ)。
@@ -147,6 +164,7 @@ pub fn calendar_entries(snap: &Snapshot, start_day: &str, end_day: &str) -> Vec<
     collect_staff_birthdays(snap, start_day, end_day, &mut keyed);
     collect_anniversaries(snap, start_day, end_day, &mut keyed);
     collect_tickets(snap, start_day, end_day, &mut keyed);
+    collect_archives(snap, start_day, end_day, &mut keyed);
     keyed.sort_by(|a, b| (a.0.as_str(), a.1).cmp(&(b.0.as_str(), b.1)));
     keyed.into_iter().map(|(_, _, entry)| entry).collect()
 }
@@ -461,6 +479,37 @@ fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Ve
     }
 }
 
+// ---- 配信のアーカイブ ----
+
+/// アーカイブの期間帯。受付期間帯と同じく帯の開始日をキーにし、同じ順位 (最上段) に置く
+/// (どちらも「その日に関わる期間」で、各日の縦位置を揃えたい)。
+fn collect_archives(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Vec<Keyed>) {
+    use crate::domain::stream_archives::{archive_windows, calendar_archive_label, window_show_labels};
+    for window in archive_windows(snap) {
+        let start = window.start.0.format("%Y-%m-%d").to_string();
+        let end = window.end.0.format("%Y-%m-%d").to_string();
+        if start.as_str() > end_day || end.as_str() < start_day {
+            continue;
+        }
+        let event = &snap.events[window.event as usize];
+        let show_labels = window_show_labels(snap, &window);
+        out.push((
+            start.clone(),
+            RANK_TICKET_PERIOD,
+            CalendarEntryRecord::ArchivePeriod {
+                event_id: event.id.clone(),
+                event_name: event.name.clone(),
+                brand_color: brand_color(snap, event.brand_id.as_deref()),
+                show_ids: window.shows.iter().map(|&si| snap.shows[si as usize].id.clone()).collect(),
+                label: calendar_archive_label(&event.name, &show_labels),
+                show_labels,
+                start,
+                end,
+            },
+        ));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -680,6 +729,14 @@ mod tests {
     // SQL 照合ではなく、手組みのスナップショット (snapshot_build::build) で仕様を固定する。
 
     fn ticket_test_snapshot(sales: Vec<crate::domain::snapshot::TicketSaleRow>) -> Snapshot {
+        archive_test_snapshot(sales, vec![], vec![])
+    }
+
+    fn archive_test_snapshot(
+        sales: Vec<crate::domain::snapshot::TicketSaleRow>,
+        shows: Vec<crate::domain::snapshot::Show>,
+        show_archives: Vec<crate::domain::snapshot::ShowArchiveRow>,
+    ) -> Snapshot {
         use crate::domain::snapshot::{Brand, Event};
         use crate::domain::snapshot_build::{build, RawTables};
         let event = |id: &str, name: &str| Event {
@@ -714,7 +771,7 @@ mod tests {
             staff: vec![],
             anniversaries: vec![],
             meta: Default::default(),
-            shows: vec![],
+            shows,
             setlist_items: vec![],
             venue_names: vec![],
             venue_halls: vec![],
@@ -723,12 +780,65 @@ mod tests {
             costumes: vec![],
             costume_wears: vec![],
             ticket_sales: sales,
+            show_archives,
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],
             unit_members: vec![],
             idol_brands: vec![],
         })
+    }
+
+    #[test]
+    fn archive_period_band_folds_same_period_tickets() {
+        use crate::domain::snapshot::{Show, ShowArchiveRow};
+        let show = |id: &str, name: &str, date: &str| Show {
+            id: id.into(),
+            event: 0,
+            name: name.into(),
+            date: date.into(),
+            venue: None,
+            venue_city: None,
+            start_time: None,
+            sort_order: 0,
+            performer_type: None,
+            venue_id: None,
+            hall: None,
+            stream_platform: None,
+            venue_mode: None,
+            has_streaming: None,
+            has_live_viewing: None,
+        };
+        let archive = |ticket_id: &str, show: u32| ShowArchiveRow {
+            ticket_id: ticket_id.into(),
+            show,
+            archive_starts_at: Some("2026-09-28 18:00".into()),
+            archive_ends_at: Some("2026-10-05 23:59".into()),
+        };
+        let snap = archive_test_snapshot(
+            vec![],
+            vec![show("s1", "10th LIVE DAY1", "2026-09-27"), show("s2", "10th LIVE DAY2", "2026-09-28")],
+            vec![archive("t1", 0), archive("t2", 1), archive("t3", 1)],
+        );
+        let bands: Vec<_> = calendar_entries(&snap, "2026-10-01", "2026-10-31")
+            .into_iter()
+            .filter(|e| matches!(e, CalendarEntryRecord::ArchivePeriod { .. }))
+            .collect();
+        assert_eq!(bands.len(), 1, "期間の同じ券種は 1 本にまとめ、表示範囲の手前から始まる帯も出す");
+        match &bands[0] {
+            CalendarEntryRecord::ArchivePeriod { start, end, show_ids, show_labels, label, brand_color, .. } => {
+                assert_eq!(start, "2026-09-28");
+                assert_eq!(end, "2026-10-05");
+                assert_eq!(show_ids, &vec!["s1".to_string(), "s2".to_string()]);
+                assert_eq!(show_labels, &vec!["DAY1".to_string(), "DAY2".to_string()]);
+                assert_eq!(label, "10th LIVE (DAY1・DAY2 アーカイブ)");
+                assert_eq!(brand_color.as_deref(), Some("#ff69b4"));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+        assert!(calendar_entries(&snap, "2026-10-06", "2026-10-31")
+            .iter()
+            .all(|e| !matches!(e, CalendarEntryRecord::ArchivePeriod { .. })));
     }
 
     fn sale_row(
@@ -1102,6 +1212,7 @@ mod tests {
             }
             CalendarEntryRecord::Ticket { date, .. } => (date.clone(), RANK_TICKET),
             CalendarEntryRecord::TicketPeriod { start, .. } => (start.clone(), RANK_TICKET_PERIOD),
+            CalendarEntryRecord::ArchivePeriod { start, .. } => (start.clone(), RANK_TICKET_PERIOD),
         }
     }
 

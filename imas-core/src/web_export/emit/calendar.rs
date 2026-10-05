@@ -219,6 +219,33 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                     ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_OPEN, event_name, theme)
                 })
             }
+            CalendarEntryRecord::ArchivePeriod { event_id, event_name, start, end, show_labels, label: band_label, .. } => {
+                let (path, theme) = event_link(&event_id);
+                let (Some(s), Some(e)) = (
+                    NaiveDate::parse_from_str(&start, "%Y-%m-%d").ok(),
+                    NaiveDate::parse_from_str(&end, "%Y-%m-%d").ok(),
+                ) else {
+                    continue;
+                };
+                // 帯の文字列はコア (`stream_archives::calendar_archive_label`) が組み切ったもの。
+                for day in s.max(first).iter_days().take_while(|d| *d <= e.min(last)) {
+                    out.bands.entry(day.to_string()).or_default().push(CalendarBand {
+                        label: band_label.clone(),
+                        theme_key: theme.clone(),
+                        starts: day == s,
+                        ends: day == e,
+                        path: path.clone(),
+                    });
+                }
+                if !(first..=last).contains(&s) {
+                    continue;
+                }
+                (start, CalendarItem {
+                    sub: (!show_labels.is_empty()).then(|| show_labels.join("・")),
+                    path,
+                    ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_ARCHIVE, event_name, theme)
+                })
+            }
         };
         out.items.entry(date).or_default().push(item);
     }

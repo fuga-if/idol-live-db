@@ -456,7 +456,7 @@ fn moment_label_from_raw(raw: &str) -> String {
     }
 }
 
-fn moment_label(date: NaiveDate, time: Option<(u32, u32)>) -> String {
+pub(crate) fn moment_label(date: NaiveDate, time: Option<(u32, u32)>) -> String {
     let day = crate::domain::date_display::short_with_weekday(&date.format("%Y-%m-%d").to_string());
     match time {
         Some((h, m)) => format!("{day} {h:02}:{m:02}"),
@@ -616,6 +616,16 @@ pub fn deadlines(snap: &Snapshot, now_epoch_seconds: i64, limit: u32) -> Vec<Tic
     rows.into_iter().take(limit as usize).map(|r| r.record).collect()
 }
 
+/// 期限までの残りの札 (`"今日まで"` / `"明日まで"` / `"あと N 日"`)。暦日で数える。
+/// 受付の締切とアーカイブの終わり ([`crate::domain::stream_archives`]) で同じ言い方にする。
+pub(crate) fn remaining_label(until: NaiveDate, today: NaiveDate) -> String {
+    match (until - today).num_days() {
+        d if d <= 0 => "今日まで".to_string(),
+        1 => "明日まで".to_string(),
+        d => format!("あと {d} 日"),
+    }
+}
+
 /// 全ライブ横断の「いま受付中」の受付 (ライブ一覧の頭に出す)。締切の近い順、締切の無いものは最後。
 ///
 /// 締切は [`effective_deadline`] (無ければ対象公演の最終日) の意味で揃える。
@@ -631,11 +641,7 @@ pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale
             }
             let deadline = effective_deadline(snap, ei as u32, &row.show_ids, row.ends_at.as_deref());
             let key = deadline.map_or((true, far_future()), |m| (false, upper_bound(m)));
-            let remaining_label = deadline.map(|(date, _)| match (date - today).num_days() {
-                d if d <= 0 => "今日まで".to_string(),
-                1 => "明日まで".to_string(),
-                d => format!("あと {d} 日"),
-            });
+            let remaining_label = deadline.map(|(date, _)| remaining_label(date, today));
             let brand_color = event.brand_id.as_deref().and_then(|b| snap.brand(b)).and_then(|b| b.color.clone());
             rows.push((
                 key,
@@ -1261,6 +1267,7 @@ mod tests {
             costumes: vec![],
             costume_wears: vec![],
             ticket_sales,
+            show_archives: vec![],
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],

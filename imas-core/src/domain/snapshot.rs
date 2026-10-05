@@ -520,6 +520,19 @@ pub struct TicketSaleRow {
     pub sort_order: i64,
 }
 
+/// 配信のアーカイブ (見逃し配信) の期間。`show_tickets` のうち `archive_starts_at` /
+/// `archive_ends_at` のどちらかが入った券種だけを持つ (価格は要らない)。`show` は shows Vec の添字。
+///
+/// 同じ公演に期間の同じ券種 (DAY1 のみ / 通し 等) が並ぶことがあるので、まとめ方は
+/// [`crate::domain::stream_archives`] が決める。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ShowArchiveRow {
+    pub ticket_id: String,
+    pub show: u32,
+    pub archive_starts_at: Option<String>,
+    pub archive_ends_at: Option<String>,
+}
+
 /// 曲→歌唱者リンク。`idol` は idols Vec の添字。
 #[derive(Debug, Clone)]
 pub struct SongArtistLink {
@@ -638,6 +651,8 @@ pub struct Snapshot {
     pub costume_wears: Vec<CostumeWear>,
     /// チケット受付。並びはテーブル出現順 (表示順は `ticket_sales_by_event`)。
     pub ticket_sales: Vec<TicketSaleRow>,
+    /// 配信のアーカイブ期間。並びは (show 添字, ticket_id)。
+    pub show_archives: Vec<ShowArchiveRow>,
     /// Documents 専用表。表が無い DB (Bundle) では空。
     pub event_releases: Vec<EventRelease>,
     /// meta 表 (key → value)。value が NULL の行は載せない

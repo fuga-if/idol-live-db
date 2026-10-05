@@ -23,7 +23,7 @@
 
 use crate::domain::snapshot::{
     Anniversary, Brand, Costume, CostumeWear, Creator, Event, EventRelease, Idol, IdolVoiceActor,
-    SetlistItem, Show, Snapshot, Song, Staff, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
+    SetlistItem, Show, ShowArchiveRow, Snapshot, Song, Staff, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
 use crate::domain::ticket_sales::ticket_sale_kind_from_raw;
 use rusqlite::{Connection, OpenFlags};
@@ -96,6 +96,7 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
     )?;
 
     let ticket_sales = load_ticket_sales(&conn, &event_index_by_id)?;
+    let show_archives = load_show_archives(&conn, &show_index_by_id)?;
 
     // 結合表は素の行のまま読む (添字への解決と索引構築は domain 側)。
     let song_artists = load_song_artists(&conn)?;
@@ -125,6 +126,7 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         costumes,
         costume_wears,
         ticket_sales,
+        show_archives,
         song_artists,
         setlist_performers,
         show_cast,
@@ -899,6 +901,46 @@ fn load_ticket_sales(
         });
     }
     Ok(sales)
+}
+
+/// 配信のアーカイブ期間 (`show_tickets` の期間の入った行だけ)。表や列が無い DB
+/// (期間の列を足す前の端末 DB) では空を返す。宙に浮いた show_id の行は捨てる。
+fn load_show_archives(
+    conn: &Connection,
+    show_index_by_id: &HashMap<String, u32>,
+) -> Result<Vec<ShowArchiveRow>, String> {
+    if !table_exists(conn, "show_tickets")? {
+        return Ok(Vec::new());
+    }
+    let cols = table_columns(conn, "show_tickets")?;
+    if !cols.contains("archive_starts_at") || !cols.contains("archive_ends_at") {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, show_id, archive_starts_at, archive_ends_at FROM show_tickets
+             WHERE COALESCE(archive_starts_at, '') <> '' OR COALESCE(archive_ends_at, '') <> ''
+             ORDER BY show_id, id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows: Vec<(String, String, Option<String>, Option<String>)> = stmt
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<_, _>>()
+        .map_err(|e| e.to_string())?;
+    let non_empty = |v: Option<String>| v.filter(|s| !s.trim().is_empty());
+    Ok(rows
+        .into_iter()
+        .filter_map(|(ticket_id, show_id, starts, ends)| {
+            let &show = show_index_by_id.get(&show_id)?;
+            Some(ShowArchiveRow {
+                ticket_id,
+                show,
+                archive_starts_at: non_empty(starts),
+                archive_ends_at: non_empty(ends),
+            })
+        })
+        .collect())
 }
 
 /// meta 表 (key → value)。value NULL の行は載せない (getValue の観測結果は行なしと同じ)。

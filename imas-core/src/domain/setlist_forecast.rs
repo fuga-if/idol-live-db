@@ -1144,6 +1144,7 @@ mod tests {
             costumes: vec![],
             costume_wears: vec![],
             ticket_sales: vec![],
+            show_archives: vec![],
             song_artists: vec![
                 original("unit", "i1"),
                 original("unit", "i2"),
