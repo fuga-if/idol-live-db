@@ -221,7 +221,10 @@ struct ImasPlayerLyricLine: View {
                                    : Font.imasScaledUIFont(28, weight: .heavy, proportional: true),
                     color: UIColor(color), lineSpacing: 4,
                     asideFont: Font.imasScaledUIFont(isMarker ? 14 : 20, weight: .bold, proportional: true),
-                    asideColor: UIColor(color).withAlphaComponent(0.6), parts: parts) { k in
+                    asideColor: UIColor(color).withAlphaComponent(0.6),
+                    // 今の行でないときは、歌う人の色も地の字と同じく控えめにする。
+                    parts: isCurrent ? parts : parts.map { .init(start: $0.start, end: $0.end,
+                                                                 colors: $0.colors.map { $0.withAlphaComponent(0.45) }) }) { k in
                         guard let echo = marks[k] else { return [:] }
                         return [
                             NSAttributedString.Key(kCTForegroundColorAttributeName as String):
@@ -499,24 +502,6 @@ struct ImasPartStripe: View {
 }
 
 /// 行の下に添える歌唱者の名前 (「春香・千早」)。帯の色だけに頼らず、言葉でも出す。
-/// 1 字の下に重ねる、歌う人の担当色の線 (タイミング編集で字を並べたとき。`ImasRubyLabel` の線と同じ寸法)。
-struct ImasPartLines: View {
-    /// 担当色 (hex)。上から歌う人の順。
-    let colors: [String]
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        VStack(spacing: ImasRubyText.partLineGap) {
-            ForEach(Array(colors.prefix(ImasRubyText.partLinesMax).enumerated()), id: \.offset) { _, hex in
-                Rectangle().fill(ImasTheme.derive(seed: hex, scheme: scheme).accent)
-                    .frame(height: ImasRubyText.partLineHeight)
-            }
-        }
-        .padding(.top, 2)
-        .accessibilityHidden(true)
-    }
-}
-
 /// 行の途中で歌う人が変わるところに立てる縦の線 (タイミング編集で字を並べたとき)。
 struct ImasPartBreakMark: View {
     var body: some View {
@@ -616,25 +601,18 @@ enum ImasRubyText {
     /// 振り仮名を親字の上に乗せた UILabel 用の文字列。`decorate` で範囲ごとの書式 (アンカーの地の色など) を足す
     /// (位置は元の本文のスカラー位置)。
     /// 脇の字 (括弧) は `asideFont` / `asideColor` で一段小さく薄くする。
-    /// 歌う人のひと続き (`start..end` は本文のスカラー位置、`colors` は歌う人の担当色)。字の下に色の線を引く。
+    /// 歌う人のひと続き (`start..end` は本文のスカラー位置、`colors` は歌う人の担当色)。字をその色で塗る
+    /// (1 人ならその色、何人かなら字の中を上から歌う人の順に縞で塗り分ける)。下線はコールの印に使うので使わない。
     struct PartMark {
         let start: Int
         let end: Int
         let colors: [UIColor]
     }
 
-    /// 歌う人の色の線を、その字の下に引くための印 (`ImasRubyLabel` が描く)。
+    /// 何人かで歌う字を縞で塗るための印 (`ImasRubyLabel` が描く)。1 人の字は文字色で塗るので付けない。
     static let partColorsKey = NSAttributedString.Key("imasPartColors")
-    /// 色の線 1 本の太さと、線どうしの隙間。
-    static let partLineHeight: CGFloat = 2.5
-    static let partLineGap: CGFloat = 1
-    /// 1 字の下に重ねる線の上限 (全体曲で全員の色を重ねると読めないので、超えた分は省く)。
-    static let partLinesMax = 6
-
-    static func partLinesHeight(_ count: Int) -> CGFloat {
-        let n = CGFloat(min(count, partLinesMax))
-        return n == 0 ? 0 : n * partLineHeight + (n - 1) * partLineGap + 3
-    }
+    /// 1 字を塗り分ける色の上限 (全体曲で全員の色を重ねると縞が細すぎて読めないので、超えた分は省く)。
+    static let partColorsMax = 4
 
     static func attributed(_ text: String, font: UIFont, color: UIColor, lineSpacing: CGFloat = 0,
                            asideFont: UIFont? = nil, asideColor: UIColor? = nil, parts: [PartMark] = [],
@@ -646,8 +624,7 @@ enum ImasRubyText {
         for (index, part) in parts.enumerated() where !part.colors.isEmpty {
             for k in max(0, part.start)..<min(part.end, scalars.count) { partAt[k] = index }
         }
-        // 色の線のぶん、行の間を空ける。
-        var spacing = lineSpacing + partLinesHeight(parts.map(\.colors.count).max() ?? 0)
+        var spacing = lineSpacing
         let paragraph = withUnsafeBytes(of: &spacing) { raw in
             var setting = CTParagraphStyleSetting(spec: .lineSpacingAdjustment, valueSize: MemoryLayout<CGFloat>.size,
                                                   value: raw.baseAddress!)
@@ -669,7 +646,18 @@ enum ImasRubyText {
                 NSAttributedString.Key(kCTParagraphStyleAttributeName as String): paragraph,
             ]
             attrs.merge(extra) { _, new in new }
-            if let index = partAt[start] { attrs[partColorsKey] = Array(parts[index].colors.prefix(partLinesMax)) }
+            // 歌う人の色で字を塗る。コール (いま叫ぶ所) が字の色を決めているところは、そちらを優先する。
+            let colorKey = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
+            if let index = partAt[start], extra[colorKey] == nil {
+                let colors = Array(parts[index].colors.prefix(partColorsMax))
+                if colors.count == 1 {
+                    attrs[colorKey] = colors[0].cgColor
+                } else {
+                    // CoreText には縞の文字色が無いので、地の描画では透明にして、上から縞を字の形に切り抜いて塗る。
+                    attrs[colorKey] = UIColor.clear.cgColor
+                    attrs[partColorsKey] = colors
+                }
+            }
             if let rubyIndex {
                 let annotation = CTRubyAnnotationCreateWithAttributes(
                     .auto, .auto, .before, readings[rubyIndex] as CFString,
@@ -715,22 +703,12 @@ struct ImasRubyLabel: UIViewRepresentable {
 
         required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
 
-        /// 最後の行の下に引く色の線のぶんの余白。
-        private var bottomInset: CGFloat {
-            var most = 0
-            attributed.enumerateAttribute(ImasRubyText.partColorsKey,
-                                          in: NSRange(location: 0, length: attributed.length)) { value, _, _ in
-                most = max(most, (value as? [UIColor])?.count ?? 0)
-            }
-            return ImasRubyText.partLinesHeight(most)
-        }
-
         func fittingHeight(width: CGFloat) -> CGFloat {
             let setter = CTFramesetterCreateWithAttributedString(attributed)
             let size = CTFramesetterSuggestFrameSizeWithConstraints(
                 setter, CFRange(location: 0, length: 0), nil,
                 CGSize(width: width, height: .greatestFiniteMagnitude), nil)
-            return ceil(size.height) + 2 + bottomInset
+            return ceil(size.height) + 2
         }
 
         override func draw(_ rect: CGRect) {
@@ -739,8 +717,7 @@ struct ImasRubyLabel: UIViewRepresentable {
             context.translateBy(x: 0, y: bounds.height)
             context.scaleBy(x: 1, y: -1)
             let setter = CTFramesetterCreateWithAttributedString(attributed)
-            let inset = bottomInset
-            let textRect = CGRect(x: 0, y: inset, width: bounds.width, height: max(0, bounds.height - inset))
+            let textRect = bounds
             let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: 0),
                                                  CGPath(rect: textRect, transform: nil), nil)
             let lines = CTFrameGetLines(frame) as? [CTLine] ?? []
@@ -758,19 +735,42 @@ struct ImasRubyLabel: UIViewRepresentable {
                         context.fill(CGRect(x: origin.x + x, y: textRect.minY + origin.y - descent,
                                             width: width, height: ascent + descent))
                     }
-                    // 歌う人の色の線を、字の下に歌う人の順に重ねる。
-                    if let colors = attrs[ImasRubyText.partColorsKey] as? [UIColor] {
-                        var y = textRect.minY + origin.y - descent - 2
-                        for color in colors {
-                            y -= ImasRubyText.partLineHeight
-                            context.setFillColor(color.cgColor)
-                            context.fill(CGRect(x: origin.x + x, y: y, width: width, height: ImasRubyText.partLineHeight))
-                            y -= ImasRubyText.partLineGap
-                        }
-                    }
                 }
             }
             CTFrameDraw(frame, context)
+            // 何人かで歌う字: 字の形で切り抜いて、上から歌う人の順に横縞で塗る。
+            for (line, origin) in zip(lines, origins) {
+                for run in CTLineGetGlyphRuns(line) as? [CTRun] ?? [] {
+                    let attrs = CTRunGetAttributes(run) as NSDictionary
+                    guard let colors = attrs[ImasRubyText.partColorsKey] as? [UIColor], !colors.isEmpty,
+                          let fontValue = attrs[kCTFontAttributeName] else { continue }
+                    let font = fontValue as! CTFont
+                    let count = CTRunGetGlyphCount(run)
+                    var glyphs = [CGGlyph](repeating: 0, count: count)
+                    var positions = [CGPoint](repeating: .zero, count: count)
+                    CTRunGetGlyphs(run, CFRange(location: 0, length: 0), &glyphs)
+                    CTRunGetPositions(run, CFRange(location: 0, length: 0), &positions)
+                    let shapes = CGMutablePath()
+                    for (glyph, position) in zip(glyphs, positions) {
+                        guard let shape = CTFontCreatePathForGlyph(font, glyph, nil) else { continue }
+                        shapes.addPath(shape, transform: CGAffineTransform(translationX: origin.x + position.x,
+                                                                           y: textRect.minY + origin.y + position.y))
+                    }
+                    var ascent: CGFloat = 0, descent: CGFloat = 0
+                    let width = CTRunGetTypographicBounds(run, CFRange(location: 0, length: 0), &ascent, &descent, nil)
+                    let x = origin.x + CTLineGetOffsetForStringIndex(line, CTRunGetStringRange(run).location, nil)
+                    let top = textRect.minY + origin.y + ascent
+                    let band = (ascent + descent) / CGFloat(colors.count)
+                    context.saveGState()
+                    context.addPath(shapes)
+                    context.clip()
+                    for (k, color) in colors.enumerated() {
+                        context.setFillColor(color.cgColor)
+                        context.fill(CGRect(x: x, y: top - band * CGFloat(k + 1), width: width, height: band))
+                    }
+                    context.restoreGState()
+                }
+            }
         }
     }
 }
