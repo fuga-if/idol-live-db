@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.ExpenseRepository
 import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.data.repository.ProducerCardRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -51,7 +52,8 @@ class BackupImportTransactionTest {
         source.expenseDao().insertAllIfAbsent(listOf(expense))
         val json = BackupExportImportService.buildEnvelopeJson(
             context, UserMarkRepository(source), LocalPollVoteLog(context),
-            PersonalTagRepository(source), ExpenseRepository(source), PlaylistRepository(source)
+            PersonalTagRepository(source), ExpenseRepository(source), PlaylistRepository(source),
+            ProducerCardRepository(source)
         )
 
         val target = database("target.sqlite")
@@ -78,7 +80,8 @@ class BackupImportTransactionTest {
     private suspend fun import(json: String, db: AppDatabase): BackupImportResult =
         BackupExportImportService.importEnvelopeJson(
             context, json, db, UserMarkRepository(db), LocalPollVoteLog(context),
-            PersonalTagRepository(db), ExpenseRepository(db), PlaylistRepository(db), restoreDeviceId = false
+            PersonalTagRepository(db), ExpenseRepository(db), PlaylistRepository(db),
+            ProducerCardRepository(db), restoreDeviceId = false
         )
 
     private fun database(name: String): AppDatabase =

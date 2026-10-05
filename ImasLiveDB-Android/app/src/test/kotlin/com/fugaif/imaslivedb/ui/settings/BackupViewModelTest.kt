@@ -12,6 +12,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.ExpenseRepository
 import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.data.repository.ProducerCardRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.delay
@@ -88,7 +89,8 @@ class BackupViewModelTest {
             source.userMarkDao().insertAll(listOf(mark))
             BackupExportImportService.buildEnvelopeJson(
                 app, UserMarkRepository(source), LocalPollVoteLog(app),
-                PersonalTagRepository(source), ExpenseRepository(source), PlaylistRepository(source)
+                PersonalTagRepository(source), ExpenseRepository(source), PlaylistRepository(source),
+            ProducerCardRepository(source)
             )
         } finally {
             source.close()

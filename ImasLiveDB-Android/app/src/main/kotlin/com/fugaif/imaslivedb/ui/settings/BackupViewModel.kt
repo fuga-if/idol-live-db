@@ -149,12 +149,14 @@ class BackupViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun exportJson(): String =
         BackupExportImportService.buildEnvelopeJson(
             getApplication(), module.userMarkRepository, module.localPollVoteLog,
-            module.personalTagRepository, module.expenseRepository, module.playlistRepository
+            module.personalTagRepository, module.expenseRepository, module.playlistRepository,
+            module.producerCardRepository
         )
 
     private suspend fun importJson(json: String, restoreDeviceId: Boolean): BackupImportResult =
         BackupExportImportService.importEnvelopeJson(
             getApplication(), json, module.database, module.userMarkRepository, module.localPollVoteLog,
-            module.personalTagRepository, module.expenseRepository, module.playlistRepository, restoreDeviceId
+            module.personalTagRepository, module.expenseRepository, module.playlistRepository,
+            module.producerCardRepository, restoreDeviceId
         )
 }

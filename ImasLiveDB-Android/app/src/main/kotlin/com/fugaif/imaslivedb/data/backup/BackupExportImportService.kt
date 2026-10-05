@@ -7,12 +7,15 @@ import com.fugaif.imaslivedb.data.community.DeviceIdentity
 import com.fugaif.imaslivedb.data.community.LocalPollVoteLog
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.Expense
+import com.fugaif.imaslivedb.data.model.MyProducerCard
+import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.Playlist
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.ExpenseRepository
 import com.fugaif.imaslivedb.data.repository.PersonalTagRepository
 import com.fugaif.imaslivedb.data.repository.PlaylistRepository
+import com.fugaif.imaslivedb.data.repository.ProducerCardRepository
 import com.fugaif.imaslivedb.data.repository.UserMarkRepository
 import uniffi.imas_core.BackupExpenseRecord
 import uniffi.imas_core.BackupExportInput
@@ -20,9 +23,11 @@ import uniffi.imas_core.BackupImportException
 import uniffi.imas_core.BackupKindDialect
 import uniffi.imas_core.BackupLocalState
 import uniffi.imas_core.BackupMarkKey
+import uniffi.imas_core.BackupMyProducerCardRecord
 import uniffi.imas_core.BackupPersonalTagRecord
 import uniffi.imas_core.BackupPlaylistRecord
 import uniffi.imas_core.BackupPollVoteRecord
+import uniffi.imas_core.BackupProducerCardRecord
 import uniffi.imas_core.BackupTagKey
 import uniffi.imas_core.BackupUserMarkRecord
 import uniffi.imas_core.backupCurrentSchemaVersion
@@ -39,6 +44,7 @@ data class BackupImportResult(
     val addedPersonalTags: Int,
     val addedExpenses: Int,
     val addedPlaylists: Int,
+    val addedProducerCards: Int = 0,
     val deviceIdRestored: Boolean,
     val skippedMarks: Int
 )
@@ -68,7 +74,8 @@ object BackupExportImportService {
         pollVoteLog: LocalPollVoteLog,
         personalTagRepository: PersonalTagRepository,
         expenseRepository: ExpenseRepository,
-        playlistRepository: PlaylistRepository
+        playlistRepository: PlaylistRepository,
+        producerCardRepository: ProducerCardRepository
     ): String {
         val input = BackupExportInput(
             // OS 時刻・端末 ID・アプリ版はコアが取らない規約なのでここで渡す。
@@ -93,6 +100,18 @@ object BackupExportImportService {
             // プレイリストも端末ローカル唯一データ。
             playlists = playlistRepository.allForBackup().map { (playlist, songIds) ->
                 BackupPlaylistRecord(playlist.id, playlist.name, playlist.createdAt, playlist.updatedAt, songIds)
+            },
+            // P名刺 (受け取った名刺と自分の名刺) も端末にしか無い。写真・担当の画像は運ばない
+            // (アイドルの画像と同じく端末の中だけ)。
+            producerCards = producerCardRepository.receivedCards().map {
+                BackupProducerCardRecord(
+                    it.id, it.payload, it.source, it.showId, it.showDate, it.memo, it.receivedAt, it.updatedAt
+                )
+            },
+            myProducerCards = listOfNotNull(producerCardRepository.myCard()).map {
+                BackupMyProducerCardRecord(
+                    it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt
+                )
             }
         )
         return buildBackupEnvelope(input, BackupKindDialect.ANDROID).envelopeJson
@@ -111,6 +130,7 @@ object BackupExportImportService {
         personalTagRepository: PersonalTagRepository,
         expenseRepository: ExpenseRepository,
         playlistRepository: PlaylistRepository,
+        producerCardRepository: ProducerCardRepository,
         restoreDeviceId: Boolean
     ): BackupImportResult {
         val local = BackupLocalState(
@@ -126,7 +146,9 @@ object BackupExportImportService {
             // 収支は id (UUID) で重複を見る。同じ id を 2 回入れると帳簿の額が倍になる。
             expenseIds = expenseRepository.allIds(),
             // プレイリストも id で重複を見る。
-            playlistIds = playlistRepository.allIds()
+            playlistIds = playlistRepository.allIds(),
+            producerCardIds = producerCardRepository.receivedIds(),
+            myProducerCardIds = listOfNotNull(producerCardRepository.myCard()?.id)
         )
 
         val plan = try {
@@ -164,6 +186,21 @@ object BackupExportImportService {
                 Playlist(it.id, it.name, it.createdAt, it.updatedAt) to it.songIds
             }
         )
+        // P名刺は id と中身で重複を見て、無いものだけ足す (メモを古いもので上書きしない)。
+        val addedProducerCards = producerCardRepository.restoreReceivedIfAbsent(
+            plan.producerCardsToInsert.map {
+                ReceivedProducerCard(
+                    it.id, it.payload, it.source, it.showId, it.showDate, it.memo, it.receivedAt, it.updatedAt
+                )
+            }
+        )
+        producerCardRepository.restoreMyCardIfAbsent(
+            plan.myProducerCardsToInsert.map {
+                MyProducerCard(
+                    it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt
+                )
+            }
+        )
         pollVoteLog.mergeIfAbsent(plan.pollVotesToAdd.associate { it.pollId to it.entityIds.toSet() })
         if (plan.restoreDeviceId) DeviceIdentity.restore(context, plan.info.deviceId)
 
@@ -174,6 +211,7 @@ object BackupExportImportService {
             // 件数は書き込み側の戻り値を正とする (「入っていないのに入ったと言う」事故が起きない)。
             addedExpenses = addedExpenses,
             addedPlaylists = addedPlaylists,
+            addedProducerCards = addedProducerCards,
             deviceIdRestored = plan.restoreDeviceId,
             // コアは marks 以外 (投票・マイタグ・収支・プレイリスト) の壊れた要素も数える。旧実装は marks だけ
             // 数えていたので、壊れたファイルでの表示件数がその分だけ増えることがある。

@@ -15,6 +15,7 @@ import com.fugaif.imaslivedb.data.db.dao.IdolDao
 import com.fugaif.imaslivedb.data.db.dao.MetaDao
 import com.fugaif.imaslivedb.data.db.dao.PersonalTagDao
 import com.fugaif.imaslivedb.data.db.dao.PlaylistDao
+import com.fugaif.imaslivedb.data.db.dao.ProducerCardDao
 import com.fugaif.imaslivedb.data.db.dao.SearchDao
 import com.fugaif.imaslivedb.data.db.dao.SetlistDao
 import com.fugaif.imaslivedb.data.db.dao.ShowDao
@@ -43,6 +44,8 @@ import com.fugaif.imaslivedb.data.model.Meta
 import com.fugaif.imaslivedb.data.model.PersonalTag
 import com.fugaif.imaslivedb.data.model.Playlist
 import com.fugaif.imaslivedb.data.model.PlaylistItem
+import com.fugaif.imaslivedb.data.model.MyProducerCard
+import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.Show
@@ -87,9 +90,11 @@ import com.fugaif.imaslivedb.data.model.UserMark
         IdolVoiceActor::class,
         TicketSale::class,
         Playlist::class,
-        PlaylistItem::class
+        PlaylistItem::class,
+        MyProducerCard::class,
+        ReceivedProducerCard::class
     ],
-    version = 26,
+    version = 27,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -113,6 +118,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun showTicketDao(): ShowTicketDao
     abstract fun playlistDao(): PlaylistDao
+    abstract fun producerCardDao(): ProducerCardDao
 
     companion object {
         @Volatile
@@ -621,13 +627,50 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v27: P名刺 (iOS v40_producer_cards と対)。**端末ローカル唯一データ** (expenses と同じ扱い)。
+         * 自分の名刺は書いた中身だけ (担当・記録の数はアプリの記録から毎回作る)。
+         * 受け取った名刺は中身 (`#` の後ろ) のまま持ち、読み解き・束ね方はコア (domain/producer_card.rs)。
+         * 写真・受け取った担当の画像は filesDir/producer_cards/ のファイル。
+         */
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS my_producer_card (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "name TEXT NOT NULL, " +
+                        "message TEXT NOT NULL DEFAULT '', " +
+                        "since_year INTEGER, " +
+                        "links_json TEXT NOT NULL DEFAULT '[]', " +
+                        "hidden_fields TEXT NOT NULL DEFAULT '', " +
+                        "updated_at TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS received_producer_cards (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "payload TEXT NOT NULL, " +
+                        "source TEXT NOT NULL DEFAULT 'app', " +
+                        "show_id TEXT, " +
+                        "show_date TEXT, " +
+                        "memo TEXT, " +
+                        "received_at TEXT NOT NULL, " +
+                        "updated_at TEXT NOT NULL)"
+                )
+                // 同じ相手を 2 回読んだときの突き合わせが全表走査にならないように。
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS idx_received_producer_cards_payload " +
+                        "ON received_producer_cards(payload)"
+                )
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14,
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
-            MIGRATION_24_25, MIGRATION_25_26
+            MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27
         )
     }
 }

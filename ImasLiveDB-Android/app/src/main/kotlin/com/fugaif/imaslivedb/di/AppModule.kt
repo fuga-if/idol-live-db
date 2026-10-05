@@ -120,6 +120,10 @@ class AppModule private constructor(context: Context) {
     }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val expenseRepository: ExpenseRepository by lazy { ExpenseRepository(database) }
+    /** P名刺 (自分の名刺と名刺入れ。端末にだけある)。 */
+    val producerCardRepository: com.fugaif.imaslivedb.data.repository.ProducerCardRepository by lazy {
+        com.fugaif.imaslivedb.data.repository.ProducerCardRepository(database)
+    }
     val playlistRepository: com.fugaif.imaslivedb.data.repository.PlaylistRepository by lazy {
         com.fugaif.imaslivedb.data.repository.PlaylistRepository(database)
     }

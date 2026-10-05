@@ -56,6 +56,33 @@ class AppDatabaseMigrationTest {
 
     @Test fun migrates21ToLatest() = assertMigrates(from = 21)
 
+    /** 直前の版。P名刺の 2 表 (MIGRATION_26_27) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates26ToLatest() = assertMigrates(from = 26)
+
+    /** v27 で足した P名刺の表は、上がってきた端末で空のまま読み書きできる (索引も作られる)。 */
+    @Test
+    fun migrating26To27CreatesProducerCardTables() {
+        val name = "producer_cards_26.sqlite"
+        helper.createDatabase(name, 26).close()
+        helper.runMigrationsAndValidate(name, 27, true, AppDatabase.MIGRATION_26_27).use { db ->
+            db.execSQL(
+                "INSERT INTO received_producer_cards (id, payload, received_at, updated_at) " +
+                    "VALUES ('c1', 'AQ', '2026-10-06T00:00:00Z', '2026-10-06T00:00:00Z')"
+            )
+            db.execSQL("INSERT INTO my_producer_card (id, name, updated_at) VALUES ('me', 'ふがP', '2026-10-06T00:00:00Z')")
+            db.query("SELECT source FROM received_producer_cards").use { c ->
+                c.moveToFirst()
+                assertEquals("既定は app", "app", c.getString(0))
+            }
+            db.query("SELECT message, links_json, hidden_fields FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertEquals(listOf("", "[]", ""), listOf(c.getString(0), c.getString(1), c.getString(2)))
+            }
+            db.query("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_received_producer_cards_payload'")
+                .use { assertEquals(1, it.count) }
+        }
+    }
+
     /**
      * v20 で足した声優の表は、上がってきた端末では空。最後に取り込んだ seed の指紋を消して、
      * 次の起動で同梱の seed から入れ直させる (版番号は残す)。
@@ -123,7 +150,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 26
+        const val LATEST = 27
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17
