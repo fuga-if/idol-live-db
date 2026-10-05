@@ -11,7 +11,7 @@
 //! (`domain::event_detail_queries::upcoming_shows` と同じ境界)。全公演を載せると
 //! この 1 ファイルが数千件規模になり、名刺ページが読むには重すぎる。
 
-use super::common::Ref;
+use super::common::{Ref, SeoBlock};
 
 web_dto! {
     pub struct CardCatalog {
@@ -29,5 +29,9 @@ web_dto! {
         pub app_open_note: String,
         /// 読み解けない名刺のときに出す文面。
         pub unreadable_text: String,
+        /// `/p/` の `<head>`。個人の名刺なので常に noindex
+        /// (`Robots::NoindexFollow`)。パンくず・JSON-LD は持たない
+        /// (どこにも位置しない、`404.html` と同じ扱い)。
+        pub seo: SeoBlock,
     }
 }
