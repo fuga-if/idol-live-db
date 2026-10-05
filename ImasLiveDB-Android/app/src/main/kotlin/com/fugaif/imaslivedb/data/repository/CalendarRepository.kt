@@ -15,7 +15,6 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.Staff
 import com.fugaif.imaslivedb.data.model.TicketCalendarRow
 import com.fugaif.imaslivedb.data.model.TicketDateKind
-import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import uniffi.imas_core.CalendarEntryRecord
 import uniffi.imas_core.CalendarTicketKind
 import uniffi.imas_core.OnThisDay
@@ -166,7 +165,6 @@ class CalendarRepository(
                         brandColor = record.brandColor,
                         date = record.date,
                         kind = when (record.kind) {
-                            CalendarTicketKind.START -> TicketDateKind.START
                             CalendarTicketKind.DEADLINE -> TicketDateKind.DEADLINE
                             CalendarTicketKind.LOTTERY -> TicketDateKind.LOTTERY
                         },
@@ -178,36 +176,19 @@ class CalendarRepository(
                     )
                 )
 
-                is CalendarEntryRecord.TicketPeriod -> CalendarEntry.TicketPeriod(
-                    date = record.start,
-                    row = TicketPeriodRow(
+                is CalendarEntryRecord.ArchiveEnd -> CalendarEntry.Ticket(
+                    date = record.date,
+                    row = TicketCalendarRow(
                         eventId = record.eventId,
                         eventName = record.eventName,
                         brandColor = record.brandColor,
-                        start = record.start,
-                        end = record.end,
-                        url = record.url,
-                        saleId = record.saleId,
-                        saleName = record.saleName,
-                        saleKind = record.saleKind,
-                        label = record.label
-                    )
-                )
-
-                is CalendarEntryRecord.ArchivePeriod -> CalendarEntry.TicketPeriod(
-                    date = record.start,
-                    row = TicketPeriodRow(
-                        eventId = record.eventId,
-                        eventName = record.eventName,
-                        brandColor = record.brandColor,
-                        start = record.start,
-                        end = record.end,
+                        date = record.date,
+                        kind = TicketDateKind.ARCHIVE_END,
                         url = null,
-                        saleId = "archive_${record.eventId}_${record.start}_${record.end}",
+                        saleId = "archive_${record.eventId}_${record.date}",
                         saleName = record.showLabels.joinToString("・"),
                         saleKind = null,
-                        label = record.label,
-                        kind = TicketPeriodRow.Kind.ARCHIVE
+                        label = record.label
                     )
                 )
             }

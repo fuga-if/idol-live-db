@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.theme.DS
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.ZoneId
@@ -60,9 +59,9 @@ import uniffi.imas_core.weekTimedLayout
 /**
  * Google カレンダー風の時間グリッド週ビュー (iOS `WeekTimeGridView` の移植)。
  *
- * 上から: 週送りヘッダ / 曜日+日付ヘッダ / 受付期間の連続帯 / 終日・時刻未定レーン /
- * 時間グリッド (縦スクロール)。列幅は (全体幅 - 時刻ガター) / 7 の固定値、時間軸も
- * 固定スケールなので、週送りやイベント数の増減でレイアウトが動かない。
+ * 上から: 週送りヘッダ / 曜日+日付ヘッダ / 終日・時刻未定レーン / 時間グリッド (縦スクロール)。
+ * 列幅は (全体幅 - 時刻ガター) / 7 の固定値、時間軸も固定スケールなので、週送りや
+ * イベント数の増減でレイアウトが動かない。
  */
 private object WeekMetric {
     /** 時間軸の表示範囲 (6:00 〜 24:00)。深夜公演は無いのでこの窓で足りる。 */
@@ -79,8 +78,6 @@ private object WeekMetric {
     /** 終日レーンに出す最大帯数 (超過分は "+n")。 */
     const val MAX_ALL_DAY_BANDS = 2
     val allDayBarHeight = 15.dp
-    val bandHeight = 16.dp
-    val bandGap = 2.dp
 }
 
 private val WeekSwipeThreshold = 50.dp
@@ -132,7 +129,6 @@ fun WeekTimeGrid(
         Column(modifier = Modifier.fillMaxSize()) {
             WeekHeader(weekDays = weekDays, onWeekDelta = onWeekDelta)
             DayHeaderRow(state = state, weekDays = weekDays, dayWidth = dayWidth, onSelectDate = onSelectDate)
-            PeriodBandLane(state = state, weekDays = weekDays, dayWidth = dayWidth, onShowDay = onShowDay)
             AllDayLane(
                 state = state,
                 weekDays = weekDays,
@@ -223,61 +219,6 @@ private fun DayHeaderRow(
                         color = if (isToday) DS.onSys else DS.ink
                     )
                 }
-            }
-        }
-    }
-}
-
-/**
- * 受付期間の連続帯レーン。列インデックス算出とレーン詰めは月グリッドと共通
- * ([packPeriodBands])。座標系だけがここ専用 (ガター幅ぶん右にずれる)。
- */
-@Composable
-private fun PeriodBandLane(
-    state: CalendarUiState,
-    weekDays: List<LocalDate>,
-    dayWidth: Dp,
-    onShowDay: (LocalDate) -> Unit
-) {
-    val bands = remember(weekDays.first(), state.byDate, state.showTickets) {
-        if (state.showTickets) packPeriodBands(weekDays, state.byDate) else emptyList()
-    }
-    val lanes = laneCount(bands)
-    if (lanes == 0) return
-    val laneHeight = WeekMetric.bandHeight + WeekMetric.bandGap
-    Box(modifier = Modifier.fillMaxWidth().height(laneHeight * lanes - WeekMetric.bandGap)) {
-        bands.forEach { band ->
-            val accent = TicketColor
-            val radius = 4.dp
-            Box(
-                modifier = Modifier
-                    .offset(
-                        x = WeekMetric.gutter + dayWidth * band.startCol + 1.dp,
-                        y = laneHeight * band.lane
-                    )
-                    .width((dayWidth * (band.endCol - band.startCol + 1) - 2.dp).coerceAtLeast(0.dp))
-                    .height(WeekMetric.bandHeight)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = if (band.roundLeading) radius else 0.dp,
-                            bottomStart = if (band.roundLeading) radius else 0.dp,
-                            topEnd = if (band.roundTrailing) radius else 0.dp,
-                            bottomEnd = if (band.roundTrailing) radius else 0.dp
-                        )
-                    )
-                    .background(accent)
-                    .clickable { onShowDay(weekDays[band.startCol]) }
-                    .padding(horizontal = 6.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    "受付 ${band.name}",
-                    color = ImasTheme.onColor(accent),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
             }
         }
     }
@@ -500,9 +441,9 @@ private fun nowMinutesJst(): Int =
 
 // ---- エントリの振り分けと重なりレイアウト ----
 
-/** 終日レーン行き: 時刻を持たないエントリ。受付期間は連続帯で描くので除外する。 */
+/** 終日レーン行き: 時刻を持たないエントリ。 */
 private fun CalendarUiState.allDayEntries(date: LocalDate): List<CalendarEntry> =
-    entriesOn(date).filter { it !is CalendarEntry.TicketPeriod && timeBlockOf(it) == null }
+    entriesOn(date).filter { timeBlockOf(it) == null }
 
 /**
  * 時間グリッド行き: 開始時刻を持つエントリをブロック化する。公演の (開始分, 終了分) は
@@ -536,7 +477,6 @@ private fun blockId(entry: CalendarEntry): String = when (entry) {
     is CalendarEntry.Anniversary -> "ann-${entry.row.id}-${entry.date}"
     // 1 つのライブに受付が複数あっても衝突しないよう、event_id ではなく sale_id を鍵にする。
     is CalendarEntry.Ticket -> "tk-${entry.row.saleId}-${entry.date}"
-    is CalendarEntry.TicketPeriod -> "tp-${entry.row.saleId}"
 }
 
 /**

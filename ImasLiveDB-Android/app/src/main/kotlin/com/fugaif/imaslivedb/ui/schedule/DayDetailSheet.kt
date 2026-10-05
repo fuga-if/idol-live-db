@@ -168,7 +168,7 @@ private fun SummaryBadges(entries: List<CalendarEntry>) {
     val releases = entries.count { it is CalendarEntry.Release }
     val birthdays = entries.count { it is CalendarEntry.Birthday || it is CalendarEntry.StaffBirthday }
     val anniversaries = entries.count { it is CalendarEntry.Anniversary }
-    val tickets = entries.count { it is CalendarEntry.Ticket || it is CalendarEntry.TicketPeriod }
+    val tickets = entries.count { it is CalendarEntry.Ticket }
 
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         if (shows > 0) SummaryBadge(shows, Icons.Filled.MusicNote, ShowColor)

@@ -75,6 +75,7 @@ fun CalendarScreen(
     onNavigateToIdol: (String) -> Unit,
     onNavigateToEvent: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToTicketBoard: () -> Unit,
     viewModel: CalendarViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -102,6 +103,9 @@ fun CalendarScreen(
             TopAppBar(
                 title = { Text("スケジュール", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onNavigateToTicketBoard) {
+                        Icon(Icons.Filled.ConfirmationNumber, contentDescription = "チケット")
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = "設定・マイ")
                     }
@@ -183,7 +187,6 @@ private fun openEntry(
         is CalendarEntry.Release -> entry.songs.firstOrNull()?.let { onNavigateToSong(it.id) }
         is CalendarEntry.Birthday -> onNavigateToIdol(entry.row.id)
         is CalendarEntry.Ticket -> onNavigateToEvent(entry.row.eventId)
-        is CalendarEntry.TicketPeriod -> onNavigateToEvent(entry.row.eventId)
         // 事務員誕生日と記念日は専用の詳細画面を持たないので遷移しない。
         is CalendarEntry.StaffBirthday, is CalendarEntry.Anniversary -> Unit
     }

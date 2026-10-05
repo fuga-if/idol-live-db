@@ -80,6 +80,7 @@ sealed class NavRoutes(val route: String) {
         }
     }
     data object Settings : NavRoutes("settings")
+    data object TicketBoard : NavRoutes("ticket_board")
 
     data object Favorites : NavRoutes("favorites")
     data object AttendedEvents : NavRoutes("attended_events")

@@ -39,6 +39,7 @@ import uniffi.imas_core.TimelineBarRecord
 import uniffi.imas_core.EventHeroRecord
 import uniffi.imas_core.OpenArchive
 import uniffi.imas_core.OpenTicketSale
+import uniffi.imas_core.TicketBoard
 import uniffi.imas_core.TicketSale
 import com.fugaif.imaslivedb.data.model.JstDay
 import java.time.Instant
@@ -379,6 +380,13 @@ class EventRepository(
     /** 全ライブ横断の「いま見られるアーカイブ」(終わりの近い順・残り日数の文字列はコア)。 */
     suspend fun fetchOpenArchives(): List<OpenArchive> =
         snapshots.query { store -> store.openArchives(Instant.now().epochSecond) }
+
+    /**
+     * チケット画面の中身 (受付中・これから受付・結果待ち・見られるアーカイブ)。
+     * 段階の振り分け・並び・文字列はすべてコアが決め切って渡すので、ここでは組み立てない。
+     */
+    suspend fun fetchTicketBoard(): TicketBoard =
+        snapshots.query { store -> store.ticketBoard(Instant.now().epochSecond) }
 
     suspend fun fetchTicketSaleSpotlight(eventId: String): TicketSale? =
         snapshots.query { store -> store.ticketSaleSpotlight(eventId, Instant.now().epochSecond) }

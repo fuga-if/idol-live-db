@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.data.model.TicketDateKind
-import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
@@ -84,7 +83,6 @@ fun CalendarEntry.accentColor(): Color = when (this) {
     is CalendarEntry.StaffBirthday -> StaffColor
     is CalendarEntry.Anniversary -> AnniversaryColor
     is CalendarEntry.Ticket -> if (row.kind == TicketDateKind.DEADLINE) DS.danger else TicketColor
-    is CalendarEntry.TicketPeriod -> TicketColor
 }
 
 /**
@@ -108,8 +106,6 @@ fun CalendarEntry.barLabel(): String = when (this) {
     is CalendarEntry.Anniversary -> row.label
     // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
     is CalendarEntry.Ticket -> "${row.kind.label}・${row.label}"
-    // アーカイブの label は「{ライブ名} (DAY1 アーカイブ)」と種類まで含むので、頭に付け足さない。
-    is CalendarEntry.TicketPeriod -> if (row.kind == TicketPeriodRow.Kind.ARCHIVE) row.label else "受付・${row.label}"
 }
 
 /**
@@ -144,13 +140,4 @@ fun CalendarEntryBar(
             overflow = TextOverflow.Ellipsis
         )
     }
-}
-
-/** "2026-06-13" → "6/13"。解釈できない値は null。 */
-fun monthDay(ymd: String): String? {
-    val parts = ymd.split("-")
-    if (parts.size != 3) return null
-    val m = parts[1].toIntOrNull() ?: return null
-    val d = parts[2].toIntOrNull() ?: return null
-    return "$m/$d"
 }

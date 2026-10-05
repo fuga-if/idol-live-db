@@ -379,13 +379,16 @@ private fun OpenSalesSection(sales: List<OpenTicketSale>, onEventClick: (String)
     ImasSection("受付中のチケット", modifier = modifier, count = "${sales.size}件", style = ImasSectionHeaderStyle.SMALL) {
         ImasCardList {
             shown.forEachIndexed { index, open ->
+                // 席種だけ違う受付は 1 行にまとめてあるので、記録は束ねた id のどれかに
+                // 付いていれば拾う (先に見つかったものを代表に出す)。
+                val application = open.saleIds.firstNotNullOfOrNull { applications[it] }
                 ImasRow(
                     title = open.sale.eventName,
                     modifier = Modifier.imasRowPress(onClick = { onEventClick(open.sale.eventId) }),
-                    subtitle = listOfNotNull(open.sale.name, open.deadlineLabel).joinToString(" ・ "),
+                    subtitle = listOfNotNull(open.nameLabel, open.deadlineLabel).joinToString(" ・ "),
                     leading = ImasRowLeading.Bar(seed = open.brandColor),
                     // 申し込み済みなら締切より記録を見せる (もう急ぐ必要がない。iOS と同じ)。
-                    trailing = applications[open.sale.id]?.let { ImasRowTrailing.Badge(ticketApplicationLabel(open.sale.kind, it), ImasBadgeKind.GUEST) }
+                    trailing = application?.let { ImasRowTrailing.Badge(ticketApplicationLabel(open.sale.kind, it), ImasBadgeKind.GUEST) }
                         ?: open.remainingLabel?.let { ImasRowTrailing.Badge(it, ImasBadgeKind.ATTENTION) } ?: ImasRowTrailing.None,
                     density = ImasRowDensity.COMPACT,
                     subtitleLineLimit = 2,

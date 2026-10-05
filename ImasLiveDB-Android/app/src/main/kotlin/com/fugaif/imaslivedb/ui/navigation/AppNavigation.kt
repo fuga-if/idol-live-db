@@ -86,6 +86,7 @@ import com.fugaif.imaslivedb.ui.produce.ProduceScreen
 import com.fugaif.imaslivedb.ui.produce.RecentsStore
 import com.fugaif.imaslivedb.ui.timeline.BrandTimelineScreen
 import com.fugaif.imaslivedb.ui.schedule.CalendarScreen
+import com.fugaif.imaslivedb.ui.schedule.TicketBoardScreen
 import com.fugaif.imaslivedb.data.repository.SearchScope
 import com.fugaif.imaslivedb.ui.settings.SettingsScreen
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
@@ -300,10 +301,17 @@ internal fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) 
             onNavigateToSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
             onNavigateToIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
             onNavigateToEvent = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) },
-            onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) }
+            onNavigateToSettings = { navController.navigate(NavRoutes.Settings.route) },
+            onNavigateToTicketBoard = { navController.navigate(NavRoutes.TicketBoard.route) }
         )
     }
     composable(NavRoutes.Settings.route) { SettingsScreen() }
+    composable(NavRoutes.TicketBoard.route) {
+        TicketBoardScreen(
+            onBack = { navController.popBackStack() },
+            onEventClick = { navController.navigate(NavRoutes.EventDetail.createRoute(it)) }
+        )
+    }
     detailRoutes(navController)
 }
 

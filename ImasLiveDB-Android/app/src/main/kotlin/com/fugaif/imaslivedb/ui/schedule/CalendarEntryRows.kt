@@ -17,8 +17,6 @@ import com.fugaif.imaslivedb.data.model.CalReleaseRow
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.data.model.TicketCalendarRow
 import com.fugaif.imaslivedb.data.model.TicketDateKind
-import com.fugaif.imaslivedb.data.model.TicketPeriodRow
-import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.data.repository.CalendarShowDetail
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeadBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
@@ -101,20 +99,18 @@ internal fun CalendarEntryRow(
         )
 
         is CalendarEntry.Ticket -> TicketRow(entry.row, trailing) { onNavigateToEvent(entry.row.eventId) }
-
-        is CalendarEntry.TicketPeriod ->
-            TicketPeriodRowView(entry.row, trailing) { onNavigateToEvent(entry.row.eventId) }
     }
 }
 
-/** チケット日程行 (受付開始 / 申込締切 / 当落発表)。タップで親イベント詳細へ。 */
+/** チケット日程行 (申込締切 / 当落発表 / 配信アーカイブ終了)。タップで親イベント詳細へ。 */
 @Composable
 private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)?, onClick: () -> Unit) {
+    val isArchiveEnd = row.kind == TicketDateKind.ARCHIVE_END
     EntryRow(
         icon = when (row.kind) {
             TicketDateKind.DEADLINE -> Icons.Filled.ConfirmationNumber
             TicketDateKind.LOTTERY -> Icons.Filled.MailOutline
-            TicketDateKind.START -> Icons.Filled.DateRange
+            TicketDateKind.ARCHIVE_END -> Icons.Filled.PlayArrow
         },
         // 申込締切は「その日までにやること」なので緊急の記号色、それ以外はチケット系の藍 (iOS と同じ)。
         seed = if (row.kind == TicketDateKind.DEADLINE) null else CalendarThemeSeed.TICKET,
@@ -122,39 +118,13 @@ private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)
         // コアが JOIN 済みの brand の色 (brand_id は返らない)。
         leadBar = ImasRowLeadBar(seed = row.brandColor),
         // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
-        title = "${row.kind.label} ・ ${row.label}",
+        title = if (isArchiveEnd) "${row.kind.label} ・ ${row.eventName}" else "${row.kind.label} ・ ${row.label}",
         subtitle = when (row.kind) {
             TicketDateKind.DEADLINE -> "チケット申込の締切"
             TicketDateKind.LOTTERY -> "チケット当落発表"
-            TicketDateKind.START -> "チケット受付開始"
+            // アーカイブの label は「{ライブ名} (DAY1 アーカイブ)」なので、対象公演は副題に回す。
+            TicketDateKind.ARCHIVE_END -> row.saleName.ifEmpty { "見逃し配信アーカイブ" }
         },
-        trailing = trailing,
-        onClick = onClick
-    )
-}
-
-/**
- * チケット受付期間行 / 配信のアーカイブを見られる期間の行。被覆する日すべてに出る
- * (受付中・公開中であることがその日に分かるように)。
- */
-@Composable
-private fun TicketPeriodRowView(
-    row: TicketPeriodRow,
-    trailing: (@Composable () -> Unit)?,
-    onClick: () -> Unit
-) {
-    val range = listOfNotNull(monthDay(row.start), monthDay(row.end)).joinToString(" 〜 ")
-    val isArchive = row.kind == TicketPeriodRow.Kind.ARCHIVE
-    EntryRow(
-        icon = if (isArchive) Icons.Filled.PlayArrow else Icons.Filled.DateRange,
-        seed = CalendarThemeSeed.TICKET,
-        leadBar = ImasRowLeadBar(seed = row.brandColor),
-        // アーカイブの label は「{ライブ名} (DAY1 アーカイブ)」なので、見出しはライブ名、
-        // 対象公演は副題に回す (iOS の日詳細と同じ)。
-        title = if (isArchive) "${row.kindLabel} ・ ${row.eventName}" else "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
-        subtitle = if (isArchive) {
-            listOf(row.saleName, range).filter { it.isNotEmpty() }.joinToString("  ")
-        } else if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
         trailing = trailing,
         onClick = onClick
     )

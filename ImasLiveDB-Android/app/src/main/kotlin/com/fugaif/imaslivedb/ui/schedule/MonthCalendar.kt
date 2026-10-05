@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -30,26 +28,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
-import com.fugaif.imaslivedb.ui.theme.ImasTheme
 import java.time.LocalDate
 
 /**
- * 月グリッドの縦寸法。日セルと週行の帯オーバーレイで共有し、両者の縦位置を必ず揃える
- * (iOS `MonthGridMetric` と同値)。
+ * 月グリッドの縦寸法。日セルで共有する (iOS `MonthGridMetric` と同値)。
  */
 private object MonthGridMetric {
-    /** 1 週に描く受付期間の帯の段数の上限 (溢れた帯は日の "+n" に数える)。 */
-    const val MAX_BAND_LANES = 1
     /** 日番号ゾーン (今日サークル) の高さ。 */
     val numberZone = 26.dp
-    /** 日番号ゾーンと帯ゾーンの間隔。 */
+    /** 日番号ゾーンとバーゾーンの間隔。 */
     val zoneSpacing = 2.dp
     /** 単日バー 1 本の高さ。 */
     val barHeight = 10.dp
@@ -57,11 +49,7 @@ private object MonthGridMetric {
     val barSpacing = 2.dp
     /** "+n" 行の高さ。 */
     val overflowHeight = 10.dp
-    /** 受付期間帯 1 本の高さ。 */
-    val bandHeight = 11.dp
-    /** 帯 1 レーンぶんの縦送り。 */
-    val bandSlot = bandHeight + barSpacing
-    /** 帯ゾーンの開始 Y (日番号ゾーンの直下)。 */
+    /** バーゾーンの開始 Y (日番号ゾーンの直下)。 */
     val bandTop = numberZone + zoneSpacing
 
     val rowSpacing = 2.dp
@@ -123,11 +111,7 @@ fun MonthCalendar(
     }
 }
 
-/**
- * 1 週 (行) ぶん。日セルを 7 つ並べ、その上に受付期間の連続帯を重ねる。
- * 帯を行のオーバーレイにするのは、セル間の隙間も塗って 1 本に繋げるため
- * (セルごとに描くとセグメントが切れて線が途切れて見える)。
- */
+/** 1 週 (行) ぶん。日セルを 7 つ並べる。 */
 @Composable
 private fun WeekRow(
     state: CalendarUiState,
@@ -136,97 +120,27 @@ private fun WeekRow(
     onSelectDate: (LocalDate) -> Unit,
     onShowDay: (LocalDate) -> Unit
 ) {
-    // 帯詰めはコアへの FFI を挟むので、週と読み込み結果が変わらない限り引き直さない。
-    // マスの高さは決まっているので帯は MAX_BAND_LANES 段まで。溢れた帯はその日の "+n" に数える。
-    val monthBands = remember(weekDays.first(), state.byDate, state.showTickets) {
-        if (state.showTickets) packMonthPeriodBands(weekDays, state.byDate, MonthGridMetric.MAX_BAND_LANES)
-        else MonthWeekBands(emptyList(), List(7) { 0 })
-    }
-    val bands = monthBands.bands
-    val lanes = laneCount(bands)
-    val bandInset = MonthGridMetric.bandSlot * lanes
-
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().height(cellHeight)) {
         val cellWidth = (maxWidth - MonthGridMetric.columnSpacing * (MonthGridMetric.COLUMNS - 1)) /
             MonthGridMetric.COLUMNS
         Row(horizontalArrangement = Arrangement.spacedBy(MonthGridMetric.columnSpacing)) {
-            weekDays.forEachIndexed { col, date ->
+            weekDays.forEach { date ->
                 DayCell(
-                    hiddenBands = monthBands.hiddenPerCol.getOrElse(col) { 0 },
                     state = state,
                     date = date,
                     width = cellWidth,
                     height = cellHeight,
-                    bandInset = bandInset,
                     onSelect = { onSelectDate(date) },
                     onShowDay = { onShowDay(date) }
                 )
             }
-        }
-        bands.forEach { band ->
-            val step = cellWidth + MonthGridMetric.columnSpacing
-            PeriodBandView(
-                band = band,
-                x = step * band.startCol,
-                y = MonthGridMetric.bandTop + MonthGridMetric.bandSlot * band.lane,
-                width = step * (band.endCol - band.startCol) + cellWidth,
-                height = MonthGridMetric.bandHeight,
-                // 帯は週をまたぐので、この週で帯が始まる列の日を開く。
-                onClick = { onShowDay(weekDays[band.startCol]) }
-            )
-        }
-    }
-}
-
-/** 受付期間の連続帯。週をまたぐ端は角を丸めないので「まだ続く」ことが見える。 */
-@Composable
-private fun PeriodBandView(
-    band: CalendarPeriodBand,
-    x: Dp,
-    y: Dp,
-    width: Dp,
-    height: Dp,
-    onClick: () -> Unit
-) {
-    val accent = TicketColor
-    val radius = 2.dp
-    Box(
-        modifier = Modifier
-            .offset(x = x, y = y)
-            .width(width)
-            .height(height)
-            .clip(
-                RoundedCornerShape(
-                    topStart = if (band.roundLeading) radius else 0.dp,
-                    bottomStart = if (band.roundLeading) radius else 0.dp,
-                    topEnd = if (band.roundTrailing) radius else 0.dp,
-                    bottomEnd = if (band.roundTrailing) radius else 0.dp
-                )
-            )
-            .background(accent)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 3.dp),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        // ラベルは受付開始の週にだけ出す。続きの週にも出すと同じ文字列が毎週並んでうるさい。
-        if (band.roundLeading) {
-            Text(
-                "受付 ${band.name}",
-                style = ImasTextRole.MICRO.style,
-                color = ImasTheme.onColor(accent),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
 
 /**
  * 月カレンダーの 1 日セル。日番号 + 単日バーを表示する。
- *
- * 受付期間の帯は週行オーバーレイ側で描くので、上部に [bandInset] (この週のレーン数ぶん) を
- * 空けてバーが帯と重ならないようにする。バーの表示本数はフィットグリッドが割り付けた
- * セル高から逆算し、収まらない分は "+n" に集約する。
+ * バーの表示本数はフィットグリッドが割り付けたセル高から逆算し、収まらない分は "+n" に集約する。
  */
 @Composable
 private fun DayCell(
@@ -234,19 +148,15 @@ private fun DayCell(
     date: LocalDate,
     width: Dp,
     height: Dp,
-    bandInset: Dp,
     onSelect: () -> Unit,
-    onShowDay: () -> Unit,
-    hiddenBands: Int = 0
+    onShowDay: () -> Unit
 ) {
     val isToday = date == state.today
     val isSelected = date == state.selectedDate
     val isCurrentMonth = date.year == state.yearMonth.year && date.monthValue == state.yearMonth.monthValue
 
-    // 受付期間は帯で描くのでバーからは外す (iOS `barEntries` と同じ)。
-    val bars = state.entriesOn(date).filterNot { it is CalendarEntry.TicketPeriod }
-    // 描けなかった受付期間の帯も "+n" に含める (その日を開けば全部見える)。
-    val plan = barPlan(bars.size, height, bandInset, hiddenBands)
+    val bars = state.entriesOn(date)
+    val plan = barPlan(bars.size, height)
     val overflow = plan.overflow
 
     Column(
@@ -282,7 +192,7 @@ private fun DayCell(
             }
         }
         Column(
-            modifier = Modifier.fillMaxWidth().padding(top = bandInset),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(MonthGridMetric.barSpacing)
         ) {
             bars.take(plan.visible).forEach { entry ->
@@ -307,17 +217,17 @@ private fun DayCell(
 private data class BarPlan(val visible: Int, val overflow: Int)
 
 /**
- * バーゾーンの利用可能高 (帯ぶんを差し引いた残り) から表示本数を決める。
+ * バーゾーンの利用可能高から表示本数を決める。
  * 1 本も入らないときも必ず "+n" だけは出す — 「その日は空」と誤読させないため。
  */
-private fun barPlan(count: Int, cellHeight: Dp, bandInset: Dp, hidden: Int = 0): BarPlan {
-    if (count <= 0) return BarPlan(0, hidden)
-    val zone = (cellHeight - MonthGridMetric.bandTop - bandInset).coerceAtLeast(0.dp)
+private fun barPlan(count: Int, cellHeight: Dp): BarPlan {
+    if (count <= 0) return BarPlan(0, 0)
+    val zone = (cellHeight - MonthGridMetric.bandTop).coerceAtLeast(0.dp)
     val all = MonthGridMetric.barHeight * count + MonthGridMetric.barSpacing * (count - 1)
-    if (all <= zone && hidden == 0) return BarPlan(count, 0)
-    // "+n" の行ぶんを空けてから入る本数を数える (帯が溢れた日はバーが全部入っても "+n" が要る)。
+    if (all <= zone) return BarPlan(count, 0)
+    // "+n" の行ぶんを空けてから入る本数を数える。
     val slot = MonthGridMetric.barHeight + MonthGridMetric.barSpacing
     val fit = ((zone - MonthGridMetric.overflowHeight) / slot).toInt()
-    val visible = fit.coerceIn(0, if (hidden > 0) count else count - 1)
-    return BarPlan(visible, count - visible + hidden)
+    val visible = fit.coerceIn(0, count - 1)
+    return BarPlan(visible, count - visible)
 }

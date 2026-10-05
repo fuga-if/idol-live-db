@@ -67,11 +67,7 @@ data class CalendarUiState(
         get() = yearMonth.atDay(1).let { it.minusDays(((it.dayOfWeek.value % 7)).toLong()) }
 }
 
-/**
- * エントリの種別 (フィルタ・日詳細リストの色分けに使う)。チケットは単日点と受付期間で同色。
- *
- * 受付期間もこの写像で TICKET になるのでフィルタチップ 1 つで両方が切れる。
- */
+/** エントリの種別 (フィルタ・日詳細リストの色分けに使う)。 */
 val CalendarEntry.category: CalendarCategory
     get() = when (this) {
         is CalendarEntry.Show -> CalendarCategory.SHOW
@@ -79,7 +75,7 @@ val CalendarEntry.category: CalendarCategory
         is CalendarEntry.Birthday -> CalendarCategory.BIRTHDAY
         is CalendarEntry.StaffBirthday -> CalendarCategory.STAFF_BIRTHDAY
         is CalendarEntry.Anniversary -> CalendarCategory.ANNIVERSARY
-        is CalendarEntry.Ticket, is CalendarEntry.TicketPeriod -> CalendarCategory.TICKET
+        is CalendarEntry.Ticket -> CalendarCategory.TICKET
     }
 
 class CalendarViewModel(app: Application) : AndroidViewModel(app) {
@@ -121,7 +117,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
      *
      * 絞り込み・年展開・並び替えはすべて共有コアが済ませているので、ここは「どの日のセルに
      * 載せるか」だけを決める (iOS `CalendarView.groupByDate` と同じ責務)。
-     * 受付期間の帯だけは被覆する各日に複製して入れる。
      */
     private fun buildByDate(
         entries: List<CalendarEntry>,
@@ -134,17 +129,6 @@ class CalendarViewModel(app: Application) : AndroidViewModel(app) {
             map.getOrPut(date) { mutableListOf() }.add(entry)
         }
         for (entry in entries) {
-            if (entry is CalendarEntry.TicketPeriod) {
-                var day = parseDate(entry.row.start) ?: continue
-                val last = parseDate(entry.row.end) ?: continue
-                if (last < day) continue
-                // 表示範囲の外へはみ出す端はここで捨てる (帯の丸めは範囲内かどうかで決まる)。
-                while (!day.isAfter(last)) {
-                    add(day, entry)
-                    day = day.plusDays(1)
-                }
-                continue
-            }
             parseDate(entry.date)?.let { add(it, entry) }
         }
         return map

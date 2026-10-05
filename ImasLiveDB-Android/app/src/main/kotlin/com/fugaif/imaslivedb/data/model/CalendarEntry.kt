@@ -12,8 +12,6 @@ sealed class CalendarEntry {
      * このエントリを日グリッドのどこに置くかを決める暦日 ("yyyy-MM-dd")。
      *
      * 誕生日・記念日は「表示範囲の年に展開した実出現日」で、起点日ではない。
-     * [TicketPeriod] だけは帯の開始日で、被覆する各日への展開は表示側が行う
-     * (iOS `CalendarView.groupByDate` と同じ分担)。
      */
     abstract val date: String
 
@@ -33,9 +31,6 @@ sealed class CalendarEntry {
         val years: Int
     ) : CalendarEntry()
 
-    /** チケット日程の単日点 (申込締切 / 当落発表)。 */
+    /** チケット日程の単日点 (申込締切 / 当落発表 / 配信アーカイブ終了)。 */
     data class Ticket(override val date: String, val row: TicketCalendarRow) : CalendarEntry()
-
-    /** チケット受付期間の日跨ぎ帯。[date] は受付開始日。 */
-    data class TicketPeriod(override val date: String, val row: TicketPeriodRow) : CalendarEntry()
 }
