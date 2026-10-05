@@ -1,0 +1,22 @@
+{
+ "title": "issue #204 KARMA の CD シリーズ / #206 Agitato の歌唱者",
+ "author": "triage-fix-requests",
+ "source": "GitHub issue #204 #206",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sidem_karma",
+   "fields": {"cd_series": "THE IDOLM@STER SideM 49 ELEMENTS -02 C.FIRST"},
+   "source": "iTunes lookup album 1731762630 (THE IDOLM@STER SideM 49 ELEMENTS -02 C.FIRST / KARMA 眉見鋭心)",
+   "note": "issue #204。シャニの Song for Prism の EP 名が誤って入っていた"
+  },
+  {
+   "table": "songs",
+   "id": "gakuen_agitato",
+   "fields": {"singer_label": "花海咲季、花海佑芽、葛城リーリヤ"},
+   "add_original_singers": ["gakuen_花海咲季", "gakuen_花海佑芽", "gakuen_葛城リーリヤ"],
+   "source": "GitHub issue #206 / tools/pending_cloudkit_deletions_agitato_20260927.tsv (2026-09-27 に原唱者を 3 人へ訂正済み)",
+   "note": "issue #206。9/27 に旧原唱者 4 行を消した際、歌唱者表記と新しい原唱者の行が入っていなかった"
+  }
+ ]
+}
