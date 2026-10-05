@@ -387,7 +387,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasChatToolChip`** ツール実行中であることを示す小さな札 (「曲を検索中…」)。生成中の吹き出しの上に置く。
 - **使わない** 通常の一覧・詳細の会話以外の表示 → 他の行・カード部品。
 
-### 6.13 `ImasProducerCard` P名刺 / `ImasQRCode` / `ImasCameraFrame`
+### 6.13 `ImasProducerCard` P名刺 / `ImasQRCode` / `ImasCameraFrame` / `ImasCardPortrait` / `ImasNameFontPicker`
 - **用途** P名刺 (会場での名刺交換)。自分の名刺・受け取った名刺・受け取りの確認で同じ部品。
 - **使わない** アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
 - **構成** 担当の入場証 (`ImasPass`) を 1 枚に広げた紙。上の帯 = 先頭の担当の色とストラップの穴 (左に `PRODUCER PASS`、右に `SINCE 2014`)、
@@ -396,7 +396,15 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **状態** 受け取った名刺で自分と同じ担当は朱の札「担当被り」(`.new` の見え方)、ほかは墨の「担当」。リンク・担当は `onOpenLink` / `onOpenOshi` を渡すと押せる。
 - **`ImasQRCode`** チケットの紙 (`DS.ticket`、ダークでも明るい) に墨で刷る QR。誤り訂正は L。下に題 (`caption`)。紙に刷る画像 (§13) にも同じ模様を使う。
 - **`ImasCameraFrame`** カメラの読み取り窓。面と同じ角丸で切り、縦長 3:4 に収める。
-- **名刺入れ** 部品は足さない。受け取った公演の半券 (`ImasStubRow`) の下に `ImasRow` (行頭の帯 = 相手の担当の色、`.avatar`、末尾に「担当被り」) を並べ、右に引くとメモ・左に引くと削除 (`.imasSwipe`)。
+- **名刺の写真** (`portraitURL`) 名前の横に証明写真の枠 (`ImasCardPortrait`、3:4・小さな角丸・紙の縁)。帯の下の担当の写真とは別物で、担当の写真の面はそのまま。
+  帯の下に大きく出す案と撮り比べ、担当の写真の場所を奪わず入場証の「顔写真」に読める方を採った (2026-10)。QR だけで受け取った名刺には無い (枠ごと出さない)。
+- **名前の書体** (`nameFont`) 同梱の書体を PostScript 名で引く (`Font.imasCardName`)。一覧・既定・表示名はコアの `cardNameFonts`。引けなければ見出しの極太。
+- **自分の QR** はリンクの行の先頭に「QR」として出す (押すと開く)。
+- **`ImasPortraitCropper`** 名刺の写真を枠に合わせる。引いて動かし、つまんで広げる (枠の外は暗く沈めず切る)。
+- **`ImasNameFontPicker`** 名前の書体の見本の札を横に並べる。引くと真ん中に来た札を選び、押しても選ぶ。札の地は紙のまま、選んだ札は墨の太い縁と ✓ (色の地のチップにしない)。
+- **`ImasCornerAdjuster`** 写真に写った紙の名刺の四隅を指で直す。丸い取っ手 4 つと四隅を結ぶ墨の線。✓ で平らにし直す。
+- **名刺入れ** 受け取った公演の半券 (`ImasStubRow`) の下に `ImasRow` (行頭の帯 = 相手の担当の色、`.avatar`、末尾に「担当被り」) を並べ、右に引くとメモ・左に引くと削除 (`.imasSwipe`)。
+  名刺の写真がある名刺は行頭を `.portrait` (証明写真の枠の右下に担当のアイコンを重ねる。担当のアイコンは消さない) にする。
 
 ---
 
@@ -728,7 +736,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 手順・特徴を示す | `ImasStepList` / `ImasPointList` |
 | ゲームの表彰台・対戦結果を見せる | `ImasPodium` / `ImasStageVersusResult` |
 | ティアー表を組む | `ImasTierBoard` + `ImasTierRow` / `ImasTierChip` / `ImasTierMoveBar` |
-| P名刺・QR を見せる | `ImasProducerCard` / `ImasQRCode` / `ImasCameraFrame` |
+| P名刺・QR を見せる | `ImasProducerCard` / `ImasQRCode` / `ImasCameraFrame` / `ImasCardPortrait` / `ImasNameFontPicker` / `ImasPortraitCropper` / `ImasCornerAdjuster` |
 
 ---
 

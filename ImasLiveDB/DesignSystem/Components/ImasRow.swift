@@ -20,6 +20,9 @@ enum ImasRowLeading {
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
     /// アイドルのアイコン (40)。写真があれば写真、無ければ判子 (`ImasAvatar` の既定の見た目)。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
+    /// P名刺の写真 (証明写真の枠) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
+    /// 担当が無ければ写真だけ。名刺入れの行。
+    case portrait(URL, oshi: ImasRowPortraitOshi? = nil)
     /// 曲のジャケ (48、compact は 40)。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
     /// 記号 (幅 28、地なし)。`seed` / `brand` を渡すとその実体の色で点く (予定の種類・ブランド)。
@@ -36,6 +39,14 @@ enum ImasRowLeading {
     /// 部品の外で作った先頭 (ゲーム・特殊な一覧のみ。増やす前に種類を足せないか考える)。
     /// `alignment` は行内の縦揃え (既定は中央。セトリの曲順+ジャケのように上揃えにしたいときに渡す)。
     case custom(AnyView, width: CGFloat, alignment: VerticalAlignment = .center)
+}
+
+/// `.portrait` の右下に重ねる担当のアイコン。
+struct ImasRowPortraitOshi {
+    let label: String
+    var seed: String? = nil
+    var brand: String? = nil
+    var imageURL: URL? = nil
 }
 
 /// 行の末尾に置けるもの。
@@ -240,6 +251,17 @@ struct ImasRow<Detail: View>: View {
         case let .avatar(label, seed, brand, url, isPick):
             // 写真があれば写真、無ければ ImasAvatar 既定の判子 (アイコンは常に出す)。
             ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
+        case let .portrait(url, oshi):
+            ZStack(alignment: .bottomTrailing) {
+                ImasCardPortrait(url: url)
+                    .frame(width: density.avatarSize * 0.9)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let oshi {
+                    ImasAvatar(label: oshi.label, seed: oshi.seed, brand: oshi.brand,
+                               size: density.avatarSize * 0.55, isPick: true, imageURL: oshi.imageURL)
+                }
+            }
+            .frame(width: portraitLeadingWidth)
         case let .artwork(title, seed, brand, url):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
         case let .icon(name, tone, seed, brand):
@@ -280,12 +302,16 @@ struct ImasRow<Detail: View>: View {
         }
     }
 
+    /// 名刺の写真の先頭の幅 (写真の枠 + 右下に重ねる担当のアイコンのはみ出し)。
+    private var portraitLeadingWidth: CGFloat { density.avatarSize * 1.2 }
+
     /// 先頭の幅 (区切り線を本文の頭に揃えるため)。
     private var leadingWidth: CGFloat {
         switch leading {
         case .none: return 0
         case .bar: return DS.Size.leadBar
         case .avatar: return density.avatarSize + ImasAvatar.ringPadding * 2
+        case .portrait: return portraitLeadingWidth
         case .artwork: return density.artworkSize
         case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30

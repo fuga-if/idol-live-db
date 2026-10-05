@@ -193,6 +193,24 @@ extension Font {
         scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight), proportional: true)
     }
 
+    /// P名刺の名前の書体。同梱の書体 (`fonts/card-name/`、一覧はコアの `cardNameFonts`) を
+    /// PostScript 名で引く。引けない (nil・未同梱) ときは見出しの書体の極太。
+    static func imasCardName(_ postScriptName: String?, size: CGFloat) -> Font {
+        let pointSize = size * imasTextScale
+        guard let postScriptName, let uiFont = UIFont(name: postScriptName, size: pointSize) else {
+            return imasHeading(size, weight: .heavy)
+        }
+        return Font(UIFontMetrics(forTextStyle: textStyle(forSize: size)).scaledFont(for: uiFont))
+    }
+
+    /// 紙に刷る画像 (固定のキャンバス) 用の名前の書体。大きさは倍率で変えない。
+    static func imasCardNameFixed(_ postScriptName: String?, size: CGFloat) -> Font {
+        guard let postScriptName, UIFont(name: postScriptName, size: size) != nil else {
+            return .system(size: size, weight: .heavy)
+        }
+        return .custom(postScriptName, fixedSize: size)
+    }
+
     /// 数値・順位・日付・英字ラベル用の「ディスプレイ」フォント。等幅数字付き。
     static func imasDisplay(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
         scaled(size, relativeTo: textStyle(forSize: size), weight: uiWeight(weight)).monospacedDigit()

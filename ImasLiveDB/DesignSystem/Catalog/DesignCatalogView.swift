@@ -255,7 +255,15 @@ private struct VenueRowsPage: View {
                         cells: [.init(value: "87", unit: "公演", label: "参加公演"), .init(value: "412", unit: "曲", label: "回収曲"),
                                 .init(value: "10/18", label: "次の現場")],
                         boardTrailing: "2014 — 2026", onOpenLink: { _ in })
-                    ImasProducerCard(name: "かるたP", links: [.init(label: "X", display: "@karuta_p", url: "https://x.com/karuta_p")])
+                    ImasProducerCard(name: "かるたP", links: [.init(label: "QR", display: "lit.link/karuta", url: "https://lit.link/karuta"),
+                                                            .init(label: "X", display: "@karuta_p", url: "https://x.com/karuta_p")],
+                                     portraitURL: URL(fileURLWithPath: "/dev/null"), nameFont: "ZenOldMincho-Black")
+                }
+            }
+            ImasSection("名刺の写真・書体", style: .small, footer: "名刺の写真は名前の横の証明写真の枠 (3:4)。書体は見本の札を横に引いて選ぶ (真ん中に来た札を選ぶ)。") {
+                VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                    ImasCardPortrait(url: nil).frame(width: 84)
+                    CatalogFontPicker()
                 }
             }
             ImasSection("QR", style: .small, footer: "チケットの紙に墨で刷る。ダークでも紙は明るい。") {
@@ -1546,3 +1554,14 @@ private struct StagePage: View {
     }
 }
 #endif
+
+/// 部品カタログの書体の札 (選んだ書体を持つための入れ物)。
+private struct CatalogFontPicker: View {
+    @State private var selection = "mincho"
+
+    var body: some View {
+        ImasNameFontPicker(
+            options: cardNameFonts().map { .init(id: $0.key, label: $0.label, postScriptName: $0.postscriptName) },
+            selection: $selection, sample: "ふがP")
+    }
+}
