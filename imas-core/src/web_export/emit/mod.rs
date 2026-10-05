@@ -12,10 +12,11 @@ pub mod glyph;
 pub mod idols;
 pub mod lists;
 pub mod places;
+pub mod producer_card;
 pub mod ranking;
-pub mod timeline;
 pub mod search;
 pub mod songs;
+pub mod timeline;
 
 use super::dto::*;
 use super::writer::Writer;
@@ -51,7 +52,14 @@ impl RouteBook {
     }
 
     /// params を取る一覧 (`key` に param の生値を入れる)。
-    fn param_listing(&mut self, kind: RouteKind, path: &str, key: &str, data: &str, in_sitemap: bool) {
+    fn param_listing(
+        &mut self,
+        kind: RouteKind,
+        path: &str,
+        key: &str,
+        data: &str,
+        in_sitemap: bool,
+    ) {
         self.routes.push(RouteEntry {
             path: path.to_string(),
             kind,
@@ -63,7 +71,15 @@ impl RouteBook {
     }
 
     /// 詳細ページ。
-    fn detail(&mut self, kind: RouteKind, path: &str, key: &str, id: &str, data: &str, in_sitemap: bool) {
+    fn detail(
+        &mut self,
+        kind: RouteKind,
+        path: &str,
+        key: &str,
+        id: &str,
+        data: &str,
+        in_sitemap: bool,
+    ) {
         self.routes.push(RouteEntry {
             path: path.to_string(),
             kind,
@@ -75,9 +91,17 @@ impl RouteBook {
     }
 
     fn finish(self) -> RoutesFile {
-        let noindex_paths =
-            self.routes.iter().filter(|r| !r.in_sitemap).map(|r| r.path.clone()).collect();
-        RoutesFile { schema_version: SCHEMA_VERSION, routes: self.routes, noindex_paths }
+        let noindex_paths = self
+            .routes
+            .iter()
+            .filter(|r| !r.in_sitemap)
+            .map(|r| r.path.clone())
+            .collect();
+        RoutesFile {
+            schema_version: SCHEMA_VERSION,
+            routes: self.routes,
+            noindex_paths,
+        }
     }
 }
 
@@ -91,17 +115,26 @@ pub fn run(args: &Args) -> Result<Stats> {
     // 1) DB を用意する。
     let (db_path, content_hash) = match (&args.sql, &args.db) {
         (Some(sql), None) => {
-            let work_db = args.work_db.clone().unwrap_or_else(|| default_work_db(&out));
+            let work_db = args
+                .work_db
+                .clone()
+                .unwrap_or_else(|| default_work_db(&out));
             restore::restore(sql, &work_db)?;
             (work_db, Some(restore::content_hash(sql)?))
         }
         (None, Some(db)) => (db.clone(), None),
-        _ => return Err(WebExportError::Args("--sql と --db のどちらか一方が要る".into())),
+        _ => {
+            return Err(WebExportError::Args(
+                "--sql と --db のどちらか一方が要る".into(),
+            ))
+        }
     };
 
-    let db_path_str =
-        db_path.to_str().ok_or_else(|| WebExportError::Db("DB パスが UTF-8 でない".into()))?;
-    let snap: Snapshot = load_snapshot(db_path_str).map_err(|e| WebExportError::Db(e.to_string()))?;
+    let db_path_str = db_path
+        .to_str()
+        .ok_or_else(|| WebExportError::Db("DB パスが UTF-8 でない".into()))?;
+    let snap: Snapshot =
+        load_snapshot(db_path_str).map_err(|e| WebExportError::Db(e.to_string()))?;
     // ブラウザへ渡す生テーブル。受け手は snapshot_build::build で索引を組み直す。
     // **派生 (逆引き索引・畳み済み索引) は配らない。**
     let raw_tables = load_raw_tables(db_path_str).map_err(|e| WebExportError::Db(e.to_string()))?;
@@ -125,12 +158,11 @@ pub fn run(args: &Args) -> Result<Stats> {
     let generated_at = format!("{today}T00:00:00Z");
 
     // コミュニティ集計 (D1 の公開用スナップショット)。無ければ空で続ける。
-    let community = load_community(community_path(args))
-        .map_err(|e| WebExportError::Db(e))?;
+    let community = load_community(community_path(args)).map_err(|e| WebExportError::Db(e))?;
 
     // コールガイドの進捗 (Worker の公開エンドポイントの写し)。無ければページごと出さない。
-    let calls = crate::web_export::calls_dashboard::load(calls_path(args))
-        .map_err(WebExportError::Db)?;
+    let calls =
+        crate::web_export::calls_dashboard::load(calls_path(args)).map_err(WebExportError::Db)?;
 
     let ctx = Ctx::new(&snap, &community, today, generated_at, content_hash);
     write_all(&ctx, &out, args.pretty, raw_tables, calls.as_ref())
@@ -148,18 +180,25 @@ fn community_path(args: &Args) -> &str {
 }
 
 fn default_work_db(out: &std::path::Path) -> PathBuf {
-    out.parent().unwrap_or(std::path::Path::new(".")).join(".cache/master-web.sqlite")
+    out.parent()
+        .unwrap_or(std::path::Path::new("."))
+        .join(".cache/master-web.sqlite")
 }
 
 fn validate_ymd(text: &str) -> Result<()> {
     let ok = text.len() == 10
         && text.as_bytes()[4] == b'-'
         && text.as_bytes()[7] == b'-'
-        && text.bytes().enumerate().all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit());
+        && text
+            .bytes()
+            .enumerate()
+            .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit());
     if ok {
         Ok(())
     } else {
-        Err(WebExportError::Args(format!("--today は YYYY-MM-DD 形式: {text}")))
+        Err(WebExportError::Args(format!(
+            "--today は YYYY-MM-DD 形式: {text}"
+        )))
     }
 }
 
@@ -170,7 +209,11 @@ pub(crate) fn performer_name_options() -> Vec<PerformerNameOptionDto> {
     let default_mode = PerformerNameMode::default_mode();
     crate::domain::event_detail_queries::performer_name_options()
         .into_iter()
-        .map(|o| PerformerNameOptionDto { is_default: o.mode == default_mode, raw: o.raw, label: o.label })
+        .map(|o| PerformerNameOptionDto {
+            is_default: o.mode == default_mode,
+            raw: o.raw,
+            label: o.label,
+        })
         .collect()
 }
 
@@ -180,7 +223,11 @@ pub(crate) fn setlist_display_options() -> Vec<SetlistDisplayOptionDto> {
     let default_mode = SetlistDisplayMode::default_mode();
     setlist_display_modes()
         .into_iter()
-        .map(|o| SetlistDisplayOptionDto { is_default: o.mode == default_mode, raw: o.raw, label: o.label })
+        .map(|o| SetlistDisplayOptionDto {
+            is_default: o.mode == default_mode,
+            raw: o.raw,
+            label: o.label,
+        })
         .collect()
 }
 
@@ -317,14 +364,49 @@ fn write_all(
     }
 
     let ids = |f: fn(&Snapshot) -> Vec<String>| f(ctx.snap);
-    write_details!(RefKind::Event, RouteKind::Event, ids(|s| s.events.iter().map(|e| e.id.clone()).collect()), |id: &String| events::event_page(ctx, id));
-    write_details!(RefKind::Show, RouteKind::Show, ids(|s| s.shows.iter().map(|x| x.id.clone()).collect()), |id: &String| events::show_page(ctx, id));
-    write_details!(RefKind::Song, RouteKind::Song, ids(|s| s.songs.iter().map(|x| x.id.clone()).collect()), |id: &String| songs::song_page(ctx, id));
-    write_details!(RefKind::Idol, RouteKind::Idol, ids(|s| s.idols.iter().map(|x| x.id.clone()).collect()), |id: &String| idols::idol_page(ctx, id));
-    write_details!(RefKind::Unit, RouteKind::Unit, ids(|s| s.units.iter().map(|x| x.id.clone()).collect()), |id: &String| idols::unit_page(ctx, id));
+    write_details!(
+        RefKind::Event,
+        RouteKind::Event,
+        ids(|s| s.events.iter().map(|e| e.id.clone()).collect()),
+        |id: &String| events::event_page(ctx, id)
+    );
+    write_details!(
+        RefKind::Show,
+        RouteKind::Show,
+        ids(|s| s.shows.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| events::show_page(ctx, id)
+    );
+    write_details!(
+        RefKind::Song,
+        RouteKind::Song,
+        ids(|s| s.songs.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| songs::song_page(ctx, id)
+    );
+    write_details!(
+        RefKind::Idol,
+        RouteKind::Idol,
+        ids(|s| s.idols.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| idols::idol_page(ctx, id)
+    );
+    write_details!(
+        RefKind::Unit,
+        RouteKind::Unit,
+        ids(|s| s.units.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| idols::unit_page(ctx, id)
+    );
     let directory = places::VenueDirectory::load(ctx);
-    write_details!(RefKind::Venue, RouteKind::Venue, ids(|s| s.venues.iter().map(|x| x.id.clone()).collect()), |id: &String| places::venue_page(ctx, id, &directory));
-    write_details!(RefKind::Brand, RouteKind::Brand, ids(|s| s.brands.iter().map(|x| x.id.clone()).collect()), |id: &String| places::brand_page(ctx, id));
+    write_details!(
+        RefKind::Venue,
+        RouteKind::Venue,
+        ids(|s| s.venues.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| places::venue_page(ctx, id, &directory)
+    );
+    write_details!(
+        RefKind::Brand,
+        RouteKind::Brand,
+        ids(|s| s.brands.iter().map(|x| x.id.clone()).collect()),
+        |id: &String| places::brand_page(ctx, id)
+    );
 
     // --- 一覧 ---
     // 一覧は「どのルートか」を作る側が知っている (Emitted が持っている) ので、
@@ -385,6 +467,11 @@ fn write_all(
 
     // 生テーブル。ブラウザ (wasm) が Snapshot を組み直すための素材。
     w.write_json("snapshot/tables.json", &shippable_tables(raw_tables))?;
+
+    // P名刺ページ (`/p/`) 用の台帳。名刺の中身は wasm が読み解くので、ここは
+    // id → 名前・色・URL の台帳だけ (ページ自体はルート台帳に載せない。中身が
+    // fragment にあるので誰にとっても同じ静的ページで、一覧に出す先がない)。
+    w.write_json("p/catalog.json", &producer_card::card_catalog(ctx))?;
 
     let counts = lists::counts(ctx);
     let home = lists::home(ctx, &upcoming, counts);

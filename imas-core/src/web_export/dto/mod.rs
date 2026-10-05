@@ -43,13 +43,14 @@ pub mod brand;
 pub mod calendar;
 pub mod calls;
 pub mod common;
-pub mod timeline;
 pub mod event;
 pub mod idol;
 pub mod index;
+pub mod producer_card;
 pub mod search;
 pub mod show;
 pub mod song;
+pub mod timeline;
 pub mod unit;
 pub mod venue;
 
@@ -57,36 +58,45 @@ pub use brand::BrandPage;
 pub use calendar::{
     CalendarDay, CalendarDayGroup, CalendarItem, CalendarItemKind, CalendarPage, CalendarWeek,
 };
-pub use common::{filter_axes, nonzero_tiles};
 pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
+pub use common::{filter_axes, nonzero_tiles};
 pub use common::{
-    mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts, Crumb,
-    DateBadge, EmptyText, FilterAxis, LinkedNote, LyricsBlock, NavLink, PenlightSetDto,
-    PerformerNameOptionDto, Ref, RefKind, SetlistDisplayOptionDto, Robots, SeoBlock, SiteMeta, SongCommunity, StatTile,
-    TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens, SCHEMA_VERSION,
+    mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts,
+    Crumb, DateBadge, EmptyText, FilterAxis, LinkedNote, LyricsBlock, NavLink, PenlightSetDto,
+    PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SetlistDisplayOptionDto, SiteMeta,
+    SongCommunity, StatTile, TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens,
+    SCHEMA_VERSION,
 };
 pub use event::{
-    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo, TicketSaleItem,
+    EventCast, EventCastMember, EventCastShow, EventPage, ReleaseInfo, ShowSummary, TicketInfo,
+    TicketSaleItem,
 };
-pub use idol::{IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, IdolSongSection, ProfileRow, VoiceActorRow};
+pub use idol::{
+    IdolPage, IdolPerformedRow, IdolShowRow, IdolSongRow, IdolSongSection, ProfileRow,
+    VoiceActorRow,
+};
 pub use index::{
-    AboutLink, AboutPage, AboutSection, BrandListItem, BrandListPage, EventListItem,
-    EventListKind, EventListPage, HomePage, Countdown, MonthSpan, IdolColumn, IdolListItem, IdolListKind, IdolListPage,
-    KanaSection, NotFoundPage, RouteEntry, RouteKind, RoutesFile, SiteEntry, SongListItem, SongListKind, SongListPage,
-    TagListItem, TagListPage, TagPage, TagSongRow,
-    UnitListItem, UnitListPage, VenueListItem, VenueListPage, YearGroup,
-    PollEntryDto, PollListPage, PollSummaryDto, RankRow, RankingPage, YearBar,
+    AboutLink, AboutPage, AboutSection, BrandListItem, BrandListPage, Countdown, EventListItem,
+    EventListKind, EventListPage, HomePage, IdolColumn, IdolListItem, IdolListKind, IdolListPage,
+    KanaSection, MonthSpan, NotFoundPage, PollEntryDto, PollListPage, PollSummaryDto, RankRow,
+    RankingPage, RouteEntry, RouteKind, RoutesFile, SiteEntry, SongListItem, SongListKind,
+    SongListPage, TagListItem, TagListPage, TagPage, TagSongRow, UnitListItem, UnitListPage,
+    VenueListItem, VenueListPage, YearBar, YearGroup,
 };
-pub use search::{FoldCase, FoldParity, SearchManifest, SearchPage, SearchRow, SearchShard, SearchShardMeta};
+pub use producer_card::CardCatalog;
+pub use search::{
+    FoldCase, FoldParity, SearchManifest, SearchPage, SearchRow, SearchShard, SearchShardMeta,
+};
 pub use show::{
-    ForecastRow, LineupNote, MissingOriginals, PerformerRef, SetlistCostume, SetlistNote, SetlistNoteGroup,
-    SetlistNoteTone, SetlistRow, SetlistSection,
-    ShowCostume, ShowForecast, ShowPage, SiblingNav,
+    ForecastRow, LineupNote, MissingOriginals, PerformerRef, SetlistCostume, SetlistNote,
+    SetlistNoteGroup, SetlistNoteTone, SetlistRow, SetlistSection, ShowCostume, ShowForecast,
+    ShowPage, SiblingNav,
 };
 pub use song::{CoOccurRow, CreditGroup, PerformanceRow, SingerRow, SongPage};
 pub use timeline::{
-    TimelineChartDto, TimelineLaneBand, TimelineLegend, TimelineLiveDot, TimelineLiveRow, TimelineMilestoneMark,
-    TimelineMilestoneRow, TimelinePage, TimelineReleaseBar, TimelineYearTick,
+    TimelineChartDto, TimelineLaneBand, TimelineLegend, TimelineLiveDot, TimelineLiveRow,
+    TimelineMilestoneMark, TimelineMilestoneRow, TimelinePage, TimelineReleaseBar,
+    TimelineYearTick,
 };
 pub use unit::UnitPage;
 pub use venue::{HallRow, VenueNameRow, VenuePage};

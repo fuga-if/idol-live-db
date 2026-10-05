@@ -32,9 +32,9 @@
 
 use crate::domain::setlist_notes::display_notes;
 use crate::domain::snapshot::Snapshot;
+use crate::domain::text_search_index::FoldedNeedle;
 use std::cmp::Reverse;
 use std::collections::{HashMap, HashSet};
-use crate::domain::text_search_index::FoldedNeedle;
 
 // =============================================================================
 // FFI 射影 Record (uniffi は型 derive のみ / ロジックはこのファイルの関数側)
@@ -229,7 +229,10 @@ pub fn performer_display_name(
     let idol = || record.idol_name.clone();
     // display_name は現任 CV (不在ならアイドル名) で解決済み。
     let cast = || record.display_name.clone();
-    let only = |primary: String| PerformerDisplayName { primary, secondary: None };
+    let only = |primary: String| PerformerDisplayName {
+        primary,
+        secondary: None,
+    };
     match mode {
         PerformerNameMode::IdolOnly => only(idol()),
         PerformerNameMode::CastOnly => only(cast()),
@@ -237,9 +240,7 @@ pub fn performer_display_name(
             primary: idol(),
             secondary: distinct_cast_name(record).map(str::to_string),
         },
-        PerformerNameMode::FollowShow => {
-            only(if is_character_live { idol() } else { cast() })
-        }
+        PerformerNameMode::FollowShow => only(if is_character_live { idol() } else { cast() }),
     }
 }
 
@@ -288,10 +289,17 @@ pub struct VenueModeOption {
 /// 会場の形態の選択肢。**並べるだけにする** — 保存値と文言を各 OS に書き写すと、
 /// 片方だけ古いまま残る。
 pub fn venue_mode_options() -> Vec<VenueModeOption> {
-    [("", "観客のいる会場"), (ONLINE_VENUE_MODE, "配信のみ (会場の舞台なし)"), (CLOSED_VENUE_MODE, "無観客")]
-        .into_iter()
-        .map(|(raw, label)| VenueModeOption { raw: raw.to_string(), label: label.to_string() })
-        .collect()
+    [
+        ("", "観客のいる会場"),
+        (ONLINE_VENUE_MODE, "配信のみ (会場の舞台なし)"),
+        (CLOSED_VENUE_MODE, "無観客"),
+    ]
+    .into_iter()
+    .map(|(raw, label)| VenueModeOption {
+        raw: raw.to_string(),
+        label: label.to_string(),
+    })
+    .collect()
 }
 
 /// 披露回数に数えない会場の形態。**会場の舞台が無いものだけ** — 無観客ライブは
@@ -421,10 +429,19 @@ pub fn attendance_groups(
     presence_by_show: &HashMap<String, Vec<String>>,
 ) -> Vec<AttendanceGroupRecord> {
     let present_on = |show: &ShowRecord| -> HashSet<&str> {
-        presence_by_show.get(&show.id).into_iter().flatten().map(String::as_str).collect()
+        presence_by_show
+            .get(&show.id)
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
+            .collect()
     };
     let in_population_order = |present: &HashSet<&str>| -> Vec<String> {
-        brand_idol_ids.iter().filter(|id| present.contains(id.as_str())).cloned().collect()
+        brand_idol_ids
+            .iter()
+            .filter(|id| present.contains(id.as_str()))
+            .cloned()
+            .collect()
     };
     let mut groups = Vec::new();
     let mut anywhere: HashSet<&str> = HashSet::new();
@@ -446,13 +463,24 @@ pub fn attendance_groups(
         anywhere.extend(present.iter().copied());
         let idol_ids = in_population_order(&present);
         if !idol_ids.is_empty() {
-            groups.push(AttendanceGroupRecord { label: "出演".to_string(), idol_ids, show_id: None });
+            groups.push(AttendanceGroupRecord {
+                label: "出演".to_string(),
+                idol_ids,
+                show_id: None,
+            });
         }
     }
-    let absent: Vec<String> =
-        brand_idol_ids.iter().filter(|id| !anywhere.contains(id.as_str())).cloned().collect();
+    let absent: Vec<String> = brand_idol_ids
+        .iter()
+        .filter(|id| !anywhere.contains(id.as_str()))
+        .cloned()
+        .collect();
     if !absent.is_empty() {
-        groups.push(AttendanceGroupRecord { label: "欠席".to_string(), idol_ids: absent, show_id: None });
+        groups.push(AttendanceGroupRecord {
+            label: "欠席".to_string(),
+            idol_ids: absent,
+            show_id: None,
+        });
     }
     groups
 }
@@ -537,7 +565,10 @@ fn idol_sort_key(snap: &Snapshot, idol: u32) -> (i64, u32) {
 fn idol_set_to_sorted_ids(snap: &Snapshot, set: &HashSet<u32>) -> Vec<String> {
     let mut indexes: Vec<u32> = set.iter().copied().collect();
     indexes.sort_by_key(|&i| idol_sort_key(snap, i));
-    indexes.into_iter().map(|i| snap.idols[i as usize].id.clone()).collect()
+    indexes
+        .into_iter()
+        .map(|i| snap.idols[i as usize].id.clone())
+        .collect()
 }
 
 /// `ORDER BY date DESC` (shows) の明示キー。SQL では同日の並びが未規定だったので
@@ -589,7 +620,9 @@ pub(crate) fn show_with_event_name_at(snap: &Snapshot, show: u32) -> ShowWithEve
 /// イベント配下の公演一覧 (iOS fetchShows(eventId:) = `.order(date, sort_order)`)。
 /// 並びは shows_by_event が前計算済み。未知 event_id は空。
 pub fn shows_by_event(snap: &Snapshot, event_id: &str) -> Vec<ShowRecord> {
-    let Some(&e) = snap.event_index_by_id.get(event_id) else { return vec![] };
+    let Some(&e) = snap.event_index_by_id.get(event_id) else {
+        return vec![];
+    };
     snap.shows_by_event[e as usize]
         .iter()
         .map(|&s| show_record_at(snap, s))
@@ -598,14 +631,18 @@ pub fn shows_by_event(snap: &Snapshot, event_id: &str) -> Vec<ShowRecord> {
 
 /// 単一公演 (iOS fetchShow(id:))。
 pub fn show_record(snap: &Snapshot, id: &str) -> Option<ShowRecord> {
-    snap.show_index_by_id.get(id).map(|&s| show_record_at(snap, s))
+    snap.show_index_by_id
+        .get(id)
+        .map(|&s| show_record_at(snap, s))
 }
 
 /// 直近公演 = 日付最大 (iOS fetchLatestShow = `ORDER BY date DESC LIMIT 1`)。
 /// SQL は同日最大が複数ある場合にどれを返すか未規定 → 前計算済み日付順の末尾
 /// (date, sort_order, 添字 が最大の公演) で決定化する。
 pub fn latest_show(snap: &Snapshot) -> Option<ShowRecord> {
-    snap.shows_in_date_order.last().map(|&s| show_record_at(snap, s))
+    snap.shows_in_date_order
+        .last()
+        .map(|&s| show_record_at(snap, s))
 }
 
 /// 会場での公演一覧 (iOS showsByVenueQuery)。
@@ -624,7 +661,10 @@ pub fn shows_at_venue(snap: &Snapshot, venue: &str) -> Vec<ShowRecord> {
     // venue_id と venue が同じ値の公演は OR の両側にヒットする (SQL では 1 行) → 重複排除。
     indexes.sort_by_key(|&s| show_date_desc_key(snap, s));
     indexes.dedup();
-    indexes.into_iter().map(|s| show_record_at(snap, s)).collect()
+    indexes
+        .into_iter()
+        .map(|s| show_record_at(snap, s))
+        .collect()
 }
 
 /// 「最近の公演」= 今日より前で日付の新しい順に `limit` 件。
@@ -649,13 +689,30 @@ pub fn recent_shows(snap: &Snapshot, today_key: &str, limit: u32) -> Vec<ShowRec
         .collect()
 }
 
+/// 「今後の公演」= 今日以降 (当日を含む) で日付の古い順。
+///
+/// [`recent_shows`] と対になる境界 (`<` today_key で過去/今後を切る。当日は今後に入る)。
+/// P名刺の「次の現場」欄は、名刺に載った `next_show_id` がこの一覧にあるときだけ
+/// 名前・URL を出す (この一覧に無ければ過去の公演とみなし、欄ごと出さない)。
+pub fn upcoming_shows(snap: &Snapshot, today_key: &str) -> Vec<ShowRecord> {
+    let order = &snap.shows_in_date_order;
+    let past_end = order.partition_point(|&s| snap.shows[s as usize].date.as_str() < today_key);
+    order[past_end..]
+        .iter()
+        .map(|&s| show_record_at(snap, s))
+        .collect()
+}
+
 /// 指定日の公演一覧 (iOS showsByDateQuery = `WHERE date = ? ORDER BY sort_order`)。
 /// 前計算済みの (date, sort_order, 添字) 順列を二分探索して該当区間をそのまま流す。
 pub fn shows_on_date(snap: &Snapshot, date: &str) -> Vec<ShowRecord> {
     let order = &snap.shows_in_date_order;
     let lower = order.partition_point(|&s| snap.shows[s as usize].date.as_str() < date);
     let upper = order.partition_point(|&s| snap.shows[s as usize].date.as_str() <= date);
-    order[lower..upper].iter().map(|&s| show_record_at(snap, s)).collect()
+    order[lower..upper]
+        .iter()
+        .map(|&s| show_record_at(snap, s))
+        .collect()
 }
 
 /// (date DESC, sort_order, 添字) の全公演順列。all/search の共通土台。
@@ -689,8 +746,7 @@ pub fn search_shows_with_event_name(
         .into_iter()
         .filter(|&s| {
             let show = &snap.shows[s as usize];
-            needle.matches(&show.name)
-                || needle.matches(&snap.events[show.event as usize].name)
+            needle.matches(&show.name) || needle.matches(&snap.events[show.event as usize].name)
         })
         .take(limit as usize)
         .map(|s| show_with_event_name_at(snap, s))
@@ -704,7 +760,9 @@ pub fn search_shows_with_event_name(
 /// 公演のセットリスト (iOS fetchSetlist = setlist_items JOIN songs、position 順)。
 /// 並びは setlist_items_by_show が前計算済み (同 position は添字で決定化)。
 pub fn setlist(snap: &Snapshot, show_id: &str) -> Vec<SetlistEntryRecord> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+    let Some(&s) = snap.show_index_by_id.get(show_id) else {
+        return vec![];
+    };
     snap.setlist_items_by_show[s as usize]
         .iter()
         .map(|&i| {
@@ -737,7 +795,9 @@ pub fn setlist_performers_by_item(
     snap: &Snapshot,
     show_id: &str,
 ) -> HashMap<String, Vec<SetlistPerformerRecord>> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return HashMap::new() };
+    let Some(&s) = snap.show_index_by_id.get(show_id) else {
+        return HashMap::new();
+    };
     let mut result: HashMap<String, Vec<SetlistPerformerRecord>> = HashMap::new();
     for &i in &snap.setlist_items_by_show[s as usize] {
         let performers = &snap.performers_by_item[i as usize];
@@ -770,7 +830,9 @@ pub fn setlist_performers_by_item(
 /// iOS の fetchShowIdolIds (Set) と fetchShowCastIdols ([Idol] sort_order 順) は
 /// 同じ show_cast の 2 表現なので 1 本に集約した。Set が欲しい側は受けてから集合化する。
 pub fn show_cast_idol_ids(snap: &Snapshot, show_id: &str) -> Vec<String> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+    let Some(&s) = snap.show_index_by_id.get(show_id) else {
+        return vec![];
+    };
     snap.cast_by_show[s as usize]
         .iter()
         .map(|link| snap.idols[link.idol as usize].id.clone())
@@ -790,13 +852,20 @@ pub fn show_presence(snap: &Snapshot, show_index: u32) -> Vec<u32> {
     let singers = snap.setlist_items_by_show[s]
         .iter()
         .flat_map(|&i| snap.performers_by_item[i as usize].iter().copied());
-    cast.chain(singers).filter(|&idol| seen.insert(idol)).collect()
+    cast.chain(singers)
+        .filter(|&idol| seen.insert(idol))
+        .collect()
 }
 
 /// [`show_presence`] を idol_id で。
 pub fn show_cast_with_performers(snap: &Snapshot, show_id: &str) -> Vec<String> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
-    show_presence(snap, s).into_iter().map(|idol| snap.idols[idol as usize].id.clone()).collect()
+    let Some(&s) = snap.show_index_by_id.get(show_id) else {
+        return vec![];
+    };
+    show_presence(snap, s)
+        .into_iter()
+        .map(|idol| snap.idols[idol as usize].id.clone())
+        .collect()
 }
 
 /// song_id → 原曲アーティスト (role='original') の idol_id 集合 (iOS fetchOriginalArtistIds)。
@@ -808,7 +877,9 @@ pub fn original_artist_ids_map(
 ) -> HashMap<String, Vec<String>> {
     let mut result = HashMap::new();
     for song_id in song_ids {
-        let Some(&s) = snap.song_index_by_id.get(song_id) else { continue };
+        let Some(&s) = snap.song_index_by_id.get(song_id) else {
+            continue;
+        };
         let ids: Vec<String> = snap.artists_by_song[s as usize]
             .iter()
             .filter(|link| link.role == "original")
@@ -825,7 +896,9 @@ pub fn original_artist_ids_map(
 /// 「この公演の出演者が歌う曲」で予想ピッカーを絞るのに使う。
 /// SQL は `SELECT DISTINCT` で並び未規定 → 曲の添字昇順 (= 読み込み順。主キー順) で決定化。
 pub fn original_song_ids_for_show_cast(snap: &Snapshot, show_id: &str) -> Vec<String> {
-    let Some(&s) = snap.show_index_by_id.get(show_id) else { return vec![] };
+    let Some(&s) = snap.show_index_by_id.get(show_id) else {
+        return vec![];
+    };
     let mut songs: HashSet<u32> = HashSet::new();
     for link in &snap.cast_by_show[s as usize] {
         for song_link in &snap.songs_by_idol[link.idol as usize] {
@@ -836,7 +909,10 @@ pub fn original_song_ids_for_show_cast(snap: &Snapshot, show_id: &str) -> Vec<St
     }
     let mut indexes: Vec<u32> = songs.into_iter().collect();
     indexes.sort_unstable();
-    indexes.into_iter().map(|i| snap.songs[i as usize].id.clone()).collect()
+    indexes
+        .into_iter()
+        .map(|i| snap.songs[i as usize].id.clone())
+        .collect()
 }
 
 // =============================================================================
@@ -883,14 +959,20 @@ pub fn venue_directory(snap: &Snapshot) -> VenueDirectoryRecord {
             capacity: h.capacity,
         })
         .collect();
-    VenueDirectoryRecord { venues, names, halls }
+    VenueDirectoryRecord {
+        venues,
+        names,
+        halls,
+    }
 }
 
 /// 指定会場 (venue_id) で公演があったイベントの id 集合 (iOS fetchEventIdsAtVenue)。
 /// SQL の `SELECT DISTINCT` は並び未規定 → 会場の公演リスト (date DESC) の初出順で決定化。
 /// 受け側は Set として扱う。
 pub fn event_ids_at_venue(snap: &Snapshot, venue_id: &str) -> Vec<String> {
-    let Some(list) = snap.shows_by_venue_id.get(venue_id) else { return vec![] };
+    let Some(list) = snap.shows_by_venue_id.get(venue_id) else {
+        return vec![];
+    };
     let mut seen: HashSet<u32> = HashSet::new();
     let mut result = Vec::new();
     for &s in list {
@@ -918,7 +1000,9 @@ pub fn venues_matching(
     let needle = FoldedNeedle::new(query);
     let mut result: HashMap<String, String> = HashMap::new();
     for event_id in event_ids {
-        let Some(&e) = snap.event_index_by_id.get(event_id) else { continue };
+        let Some(&e) = snap.event_index_by_id.get(event_id) else {
+            continue;
+        };
         // MIN(venue): 一致した venue 文字列のバイト列最小 (NULL は WHERE で除外済み)。
         let min_venue = snap.shows_by_event[e as usize]
             .iter()
@@ -1032,7 +1116,11 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
             if candidate_count >= 3 {
                 return performed.contains(&i);
             }
-            if !idol.brand_id.as_deref().is_some_and(|b| candidate_set.contains(b)) {
+            if !idol
+                .brand_id
+                .as_deref()
+                .is_some_and(|b| candidate_set.contains(b))
+            {
                 return false;
             }
             match (event_start_date, idol.debut_date.as_deref()) {
@@ -1061,8 +1149,10 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
         };
 
         // 出席 = show_presence を母集団のブランドで絞ったもの。
-        let present: HashSet<u32> =
-            show_presence(snap, s).into_iter().filter(|&idol| in_candidate_brand(idol)).collect();
+        let present: HashSet<u32> = show_presence(snap, s)
+            .into_iter()
+            .filter(|&idol| in_candidate_brand(idol))
+            .collect();
         let mut lead: Vec<String> = Vec::new();
         let mut guest: Vec<String> = Vec::new();
         for link in &snap.cast_by_show[s as usize] {
@@ -1086,7 +1176,8 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
 
     let shows: Vec<ShowRecord> = shows.iter().map(|&s| show_record_at(snap, s)).collect();
     let groups = attendance_groups(&brand_idol_ids, &shows, &presence_by_show);
-    let covering_unit_ids = event_covering_unit_ids(snap, event_id, &brand_idol_ids, &presence_by_show);
+    let covering_unit_ids =
+        event_covering_unit_ids(snap, event_id, &brand_idol_ids, &presence_by_show);
     Some(EventAttendanceRecord {
         brand_idol_ids,
         shows,
@@ -1102,7 +1193,9 @@ pub fn event_attendance(snap: &Snapshot, event_id: &str) -> Option<EventAttendan
 /// 並びは releases_by_event が前計算済み (NULL release_date は ASC の先頭)。
 /// event_releases 表の無い DB (Bundle) では常に空。
 pub fn event_releases(snap: &Snapshot, event_id: &str) -> Vec<EventReleaseRecord> {
-    let Some(&e) = snap.event_index_by_id.get(event_id) else { return vec![] };
+    let Some(&e) = snap.event_index_by_id.get(event_id) else {
+        return vec![];
+    };
     snap.releases_by_event[e as usize]
         .iter()
         .map(|&r| {
@@ -1204,8 +1297,10 @@ mod attendance_group_tests {
         shows: &[ShowRecord],
         presence: &[(&str, &[&str])],
     ) -> Vec<(String, Vec<String>, Option<String>)> {
-        let presence: HashMap<String, Vec<String>> =
-            presence.iter().map(|(s, p)| (s.to_string(), ids(p))).collect();
+        let presence: HashMap<String, Vec<String>> = presence
+            .iter()
+            .map(|(s, p)| (s.to_string(), ids(p)))
+            .collect();
         attendance_groups(&ids(idols), shows, &presence)
             .into_iter()
             .map(|g| (g.label, g.idol_ids, g.show_id))
@@ -1215,16 +1310,28 @@ mod attendance_group_tests {
     /// 複数日は日付ごと。何日も出た人は出た日の塊すべてに入り、どこにも出ていない人は最後に欠席。
     #[test]
     fn multi_day_groups_by_day_then_absent() {
-        let shows = [show("d1", "DAY1 公演"), show("d2", "DAY2 公演"), show("d3", "DAY3 公演")];
+        let shows = [
+            show("d1", "DAY1 公演"),
+            show("d2", "DAY2 公演"),
+            show("d3", "DAY3 公演"),
+        ];
         let groups = groups_of(
             &["a", "b", "c", "d", "e"],
             &shows,
-            &[("d1", &["c", "a", "b"]), ("d2", &["a", "d"]), ("d3", &["a", "c"])],
+            &[
+                ("d1", &["c", "a", "b"]),
+                ("d2", &["a", "d"]),
+                ("d3", &["a", "c"]),
+            ],
         );
         assert_eq!(
             groups,
             vec![
-                ("DAY1".to_string(), ids(&["a", "b", "c"]), Some("d1".to_string())),
+                (
+                    "DAY1".to_string(),
+                    ids(&["a", "b", "c"]),
+                    Some("d1".to_string())
+                ),
                 ("DAY2".to_string(), ids(&["a", "d"]), Some("d2".to_string())),
                 ("DAY3".to_string(), ids(&["a", "c"]), Some("d3".to_string())),
                 ("欠席".to_string(), ids(&["e"]), None),
@@ -1252,7 +1359,10 @@ mod attendance_group_tests {
         let groups = groups_of(&["a", "b"], &shows, &[("s", &["a"])]);
         assert_eq!(
             groups,
-            vec![("出演".to_string(), ids(&["a"]), None), ("欠席".to_string(), ids(&["b"]), None)]
+            vec![
+                ("出演".to_string(), ids(&["a"]), None),
+                ("欠席".to_string(), ids(&["b"]), None)
+            ]
         );
     }
 
@@ -1286,11 +1396,18 @@ mod tests {
         let unit_id = &record.covering_unit_ids[0];
         let unit = snap.unit_index_by_id[unit_id];
         let outsider = &snap.idols[snap.members_by_unit[unit as usize][0] as usize].id;
-        let population: Vec<String> =
-            record.brand_idol_ids.iter().filter(|id| *id != outsider).cloned().collect();
+        let population: Vec<String> = record
+            .brand_idol_ids
+            .iter()
+            .filter(|id| *id != outsider)
+            .cloned()
+            .collect();
         let covering =
             event_covering_unit_ids(snap, &event_id, &population, &record.presence_by_show);
-        assert!(!covering.contains(unit_id), "{event_id}: 母集団の外の {outsider} で {unit_id} が覆いに入った");
+        assert!(
+            !covering.contains(unit_id),
+            "{event_id}: 母集団の外の {outsider} で {unit_id} が覆いに入った"
+        );
     }
 
     /// sort_order が NULL のアイドルは、出席表でも一覧と同じく末尾に並ぶ (Q-07)。
@@ -1308,18 +1425,23 @@ mod tests {
         let all: HashSet<u32> = [0, 1, 2].into_iter().collect();
         assert_eq!(idol_set_to_sorted_ids(&snap, &all), vec!["a", "b", "guest"]);
     }
-    use crate::test_support::{bundle_conn, bundle_path, bundle_snapshot};
     use crate::outbound::sqlite_loader::load_snapshot;
+    use crate::test_support::{bundle_conn, bundle_path, bundle_snapshot};
     use rusqlite::Connection;
 
     /// Swift `String.likeEscaped` の写経 (テスト側で元 SQL を組むのに使う)。
     fn like_escaped(s: &str) -> String {
-        s.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+        s.replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_")
     }
 
     fn all_event_ids(db: &Connection) -> Vec<String> {
         let mut stmt = db.prepare("SELECT id FROM events").unwrap();
-        stmt.query_map([], |r| r.get(0)).unwrap().collect::<Result<_, _>>().unwrap()
+        stmt.query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap()
     }
 
     fn string_column(db: &Connection, sql: &str, params: &[&dyn rusqlite::ToSql]) -> Vec<String> {
@@ -1333,8 +1455,12 @@ mod tests {
     /// ORDER BY キーが同値の区間を集合として比較する等価判定 (song_list_queries と同じ)。
     /// SQLite のソータは同値キーの並びが未規定なので、キー列一致 + 同値区間のメンバー
     /// 一致を等価とみなす。
-    fn assert_matches_up_to_ties<T, K>(label: &str, actual: &[T], expected: &[T], key: impl Fn(&T) -> K)
-    where
+    fn assert_matches_up_to_ties<T, K>(
+        label: &str,
+        actual: &[T],
+        expected: &[T],
+        key: impl Fn(&T) -> K,
+    ) where
         T: std::hash::Hash + Eq + std::fmt::Debug,
         K: PartialEq + std::fmt::Debug,
     {
@@ -1348,7 +1474,10 @@ mod tests {
             }
             let expected_group: HashSet<&T> = expected[start..end].iter().collect();
             let actual_group: HashSet<&T> = actual[start..end].iter().collect();
-            assert_eq!(actual_group, expected_group, "{label}: キー {k:?} の同順位グループ");
+            assert_eq!(
+                actual_group, expected_group,
+                "{label}: キー {k:?} の同順位グループ"
+            );
             start = end;
         }
     }
@@ -1371,14 +1500,19 @@ mod tests {
                 "SELECT id FROM shows WHERE event_id = ? ORDER BY date, sort_order",
                 &[&event_id],
             );
-            let actual: Vec<String> =
-                shows_by_event(bundle_snapshot(), &event_id).into_iter().map(|s| s.id).collect();
+            let actual: Vec<String> = shows_by_event(bundle_snapshot(), &event_id)
+                .into_iter()
+                .map(|s| s.id)
+                .collect();
             assert_matches_up_to_ties(&format!("event {event_id}"), &actual, &expected, show_key);
             if expected.len() >= 2 {
                 checked_multi += 1;
             }
         }
-        assert!(checked_multi > 50, "複数公演イベントが十分ある前提 ({checked_multi})");
+        assert!(
+            checked_multi > 50,
+            "複数公演イベントが十分ある前提 ({checked_multi})"
+        );
         assert!(shows_by_event(bundle_snapshot(), "存在しないイベント").is_empty());
     }
 
@@ -1413,11 +1547,13 @@ mod tests {
                         venue_mode: r.get(12)?,
                         has_streaming: None,
                         has_live_viewing: None,
-                        is_character_live: r.get::<_, Option<String>>(8)?.as_deref() == Some("character"),
+                        is_character_live: r.get::<_, Option<String>>(8)?.as_deref()
+                            == Some("character"),
                     })
                 })
                 .unwrap();
-            let actual = show_record(bundle_snapshot(), &s.id).expect("スナップショットに居る show");
+            let actual =
+                show_record(bundle_snapshot(), &s.id).expect("スナップショットに居る show");
             assert_eq!(actual, expected, "show {}", s.id);
             checked += 1;
         }
@@ -1448,8 +1584,10 @@ mod tests {
                 "SELECT id FROM shows WHERE venue_id = ?1 OR venue = ?1 ORDER BY date DESC",
                 &[venue],
             );
-            let actual: Vec<String> =
-                shows_at_venue(bundle_snapshot(), venue).into_iter().map(|s| s.id).collect();
+            let actual: Vec<String> = shows_at_venue(bundle_snapshot(), venue)
+                .into_iter()
+                .map(|s| s.id)
+                .collect();
             assert!(!expected.is_empty(), "{venue} は公演を持つ前提");
             // SQL の ORDER BY は date のみ → 同日の並びは date キーで区間比較。
             assert_matches_up_to_ties(&format!("venue {venue}"), &actual, &expected, |id| {
@@ -1476,8 +1614,10 @@ mod tests {
                 "SELECT id FROM shows WHERE date = ? ORDER BY sort_order",
                 &[date],
             );
-            let actual: Vec<String> =
-                shows_on_date(bundle_snapshot(), date).into_iter().map(|s| s.id).collect();
+            let actual: Vec<String> = shows_on_date(bundle_snapshot(), date)
+                .into_iter()
+                .map(|s| s.id)
+                .collect();
             assert!(expected.len() >= 2);
             assert_matches_up_to_ties(&format!("date {date}"), &actual, &expected, |id| {
                 show_key(id).1
@@ -1518,8 +1658,10 @@ mod tests {
         assert_matches_up_to_ties("all_shows 全件", &actual, &expected, |r| r.date.clone());
         // 小さい LIMIT は同日途中で切れても日付列は必ず一致する。
         let expected_dates: Vec<String> = fetch(50).into_iter().map(|r| r.date).collect();
-        let actual_dates: Vec<String> =
-            all_shows_with_event_name(bundle_snapshot(), 50).into_iter().map(|r| r.date).collect();
+        let actual_dates: Vec<String> = all_shows_with_event_name(bundle_snapshot(), 50)
+            .into_iter()
+            .map(|r| r.date)
+            .collect();
         assert_eq!(actual_dates, expected_dates);
     }
 
@@ -1527,7 +1669,14 @@ mod tests {
     fn search_shows_with_event_name_matches_sql() {
         let db = bundle_conn();
         // 大小混在 (LIKE の ASCII 大小無視)・日本語・likeEscaped が効く '%' 入り・ゼロ件。
-        let queries = ["DAY", "day", "ミリオン", "10th", "100%", "存在しないクエリzz"];
+        let queries = [
+            "DAY",
+            "day",
+            "ミリオン",
+            "10th",
+            "100%",
+            "存在しないクエリzz",
+        ];
         for query in queries {
             let pattern = format!("%{}%", like_escaped(query));
             let expected = string_column(
@@ -1537,10 +1686,11 @@ mod tests {
                  ORDER BY s.date DESC LIMIT 1000000",
                 &[&pattern],
             );
-            let actual: Vec<String> = search_shows_with_event_name(bundle_snapshot(), query, 1_000_000)
-                .into_iter()
-                .map(|r| r.id)
-                .collect();
+            let actual: Vec<String> =
+                search_shows_with_event_name(bundle_snapshot(), query, 1_000_000)
+                    .into_iter()
+                    .map(|r| r.id)
+                    .collect();
             assert_matches_up_to_ties(&format!("query {query}"), &actual, &expected, |id| {
                 show_key(id).0
             });
@@ -1633,7 +1783,10 @@ mod tests {
                 .unwrap();
             for row in rows {
                 let (item_id, idol_id, cast_name, color, idol_name) = row.unwrap();
-                expected.entry(item_id).or_default().insert((idol_id, cast_name, color, idol_name));
+                expected
+                    .entry(item_id)
+                    .or_default()
+                    .insert((idol_id, cast_name, color, idol_name));
             }
             let actual: HashMap<String, PerformerSet> =
                 setlist_performers_by_item(bundle_snapshot(), &show.id)
@@ -1670,7 +1823,12 @@ mod tests {
             .collect();
             let actual_ordered = show_cast_idol_ids(bundle_snapshot(), &show.id);
             let actual: HashSet<String> = actual_ordered.iter().cloned().collect();
-            assert_eq!(actual.len(), actual_ordered.len(), "cast は重複しない ({})", show.id);
+            assert_eq!(
+                actual.len(),
+                actual_ordered.len(),
+                "cast は重複しない ({})",
+                show.id
+            );
             assert_eq!(actual, expected, "cast {}", show.id);
             if !expected.is_empty() {
                 checked_cast += 1;
@@ -1687,14 +1845,22 @@ mod tests {
             .into_iter()
             .collect();
             let actual_songs: HashSet<String> =
-                original_song_ids_for_show_cast(bundle_snapshot(), &show.id).into_iter().collect();
+                original_song_ids_for_show_cast(bundle_snapshot(), &show.id)
+                    .into_iter()
+                    .collect();
             assert_eq!(actual_songs, expected_songs, "original songs {}", show.id);
             if !expected_songs.is_empty() {
                 checked_songs += 1;
             }
         }
-        assert!(checked_cast > 20, "キャストつき公演のサンプル数 ({checked_cast})");
-        assert!(checked_songs > 20, "オリメン曲ありのサンプル数 ({checked_songs})");
+        assert!(
+            checked_cast > 20,
+            "キャストつき公演のサンプル数 ({checked_cast})"
+        );
+        assert!(
+            checked_songs > 20,
+            "オリメン曲ありのサンプル数 ({checked_songs})"
+        );
         assert!(show_cast_idol_ids(bundle_snapshot(), "存在しない公演").is_empty());
     }
 
@@ -1702,8 +1868,12 @@ mod tests {
     fn original_artist_ids_map_matches_sql() {
         let db = bundle_conn();
         // original あり/なし混在の実在曲 + 未知 id。
-        let mut song_ids: Vec<String> =
-            bundle_snapshot().songs.iter().step_by(7).map(|s| s.id.clone()).collect();
+        let mut song_ids: Vec<String> = bundle_snapshot()
+            .songs
+            .iter()
+            .step_by(7)
+            .map(|s| s.id.clone())
+            .collect();
         song_ids.push("存在しない曲".to_string());
         let placeholders = vec!["?"; song_ids.len()].join(",");
         let sql = format!(
@@ -1759,22 +1929,33 @@ mod tests {
                 })
                 .unwrap();
             assert_eq!(
-                (name.venue_id.clone(), name.name.clone(), name.valid_from.clone(), name.valid_to.clone()),
+                (
+                    name.venue_id.clone(),
+                    name.name.clone(),
+                    name.valid_from.clone(),
+                    name.valid_to.clone()
+                ),
                 expected,
                 "venue_name {}",
                 name.id
             );
         }
-        let sql_names: i64 =
-            db.query_row("SELECT COUNT(*) FROM venue_names", [], |r| r.get(0)).unwrap();
+        let sql_names: i64 = db
+            .query_row("SELECT COUNT(*) FROM venue_names", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(directory.names.len() as i64, sql_names);
 
-        let mut stmt =
-            db.prepare("SELECT venue_id, name, capacity FROM venue_halls WHERE id = ?").unwrap();
+        let mut stmt = db
+            .prepare("SELECT venue_id, name, capacity FROM venue_halls WHERE id = ?")
+            .unwrap();
         for hall in &directory.halls {
             let expected = stmt
                 .query_row([&hall.id], |r| {
-                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<i64>>(2)?))
+                    Ok((
+                        r.get::<_, String>(0)?,
+                        r.get::<_, String>(1)?,
+                        r.get::<_, Option<i64>>(2)?,
+                    ))
                 })
                 .unwrap();
             assert_eq!(
@@ -1784,8 +1965,9 @@ mod tests {
                 hall.id
             );
         }
-        let sql_halls: i64 =
-            db.query_row("SELECT COUNT(*) FROM venue_halls", [], |r| r.get(0)).unwrap();
+        let sql_halls: i64 = db
+            .query_row("SELECT COUNT(*) FROM venue_halls", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(directory.halls.len() as i64, sql_halls);
     }
 
@@ -1830,8 +2012,10 @@ mod tests {
             );
             // iOS は Swift lowercased() した検索語で LIKE を組む。
             let pattern = format!("%{}%", like_escaped(&query.to_lowercase()));
-            let mut args: Vec<&dyn rusqlite::ToSql> =
-                event_ids.iter().map(|id| id as &dyn rusqlite::ToSql).collect();
+            let mut args: Vec<&dyn rusqlite::ToSql> = event_ids
+                .iter()
+                .map(|id| id as &dyn rusqlite::ToSql)
+                .collect();
             args.push(&pattern);
             let mut stmt = db.prepare(&sql).unwrap();
             let expected: HashMap<String, String> = stmt
@@ -1874,7 +2058,9 @@ mod tests {
                         // NULL 既定はローダの規約 (iOS Event の decode 既定と同じ)。
                         is_streaming: r.get::<_, Option<i64>>(4)?.unwrap_or(0) != 0,
                         is_solo: r.get::<_, Option<i64>>(5)?.unwrap_or(1) != 0,
-                        kind: r.get::<_, Option<String>>(6)?.unwrap_or_else(|| "live".into()),
+                        kind: r
+                            .get::<_, Option<String>>(6)?
+                            .unwrap_or_else(|| "live".into()),
                         ticket_url: r.get(7)?,
                         joint_brand_ids: r.get(8)?,
                         has_streaming: None,
@@ -1884,7 +2070,10 @@ mod tests {
                     })
                     .map(|mut e| {
                         use crate::domain::snapshot::split_csv;
-                        e.brand_ids = e.brand_id.iter().map(String::as_str)
+                        e.brand_ids = e
+                            .brand_id
+                            .iter()
+                            .map(String::as_str)
                             .chain(split_csv(e.joint_brand_ids.as_deref()))
                             .map(str::to_string)
                             .collect();
@@ -1893,7 +2082,8 @@ mod tests {
                     })
                 })
                 .unwrap();
-            let actual = event_record(bundle_snapshot(), &event.id).expect("スナップショットに居る event");
+            let actual =
+                event_record(bundle_snapshot(), &event.id).expect("スナップショットに居る event");
             assert_eq!(actual, expected, "event {}", event.id);
             checked += 1;
         }
@@ -1937,9 +2127,15 @@ mod tests {
                 nonzero += 1;
             }
         }
-        assert!(nonzero > 100, "セトリつきイベントが十分ある前提 ({nonzero})");
+        assert!(
+            nonzero > 100,
+            "セトリつきイベントが十分ある前提 ({nonzero})"
+        );
         // 未知 id は SQL でも全ゼロになる (CTE が空) — 同じ値を返すこと。
-        assert_eq!(event_stats(bundle_snapshot(), "存在しないイベント"), EventStatsRecord::default());
+        assert_eq!(
+            event_stats(bundle_snapshot(), "存在しないイベント"),
+            EventStatsRecord::default()
+        );
     }
 
     /// fetchEventAttendanceQuery の写経を丸ごと実行し、全イベントで照合する。
@@ -2015,16 +2211,20 @@ mod tests {
                        AND (debut_date IS NULL OR debut_date <= ?)
                      ORDER BY sort_order"
                 );
-                let mut args: Vec<&dyn rusqlite::ToSql> =
-                    candidates.iter().map(|c| c as &dyn rusqlite::ToSql).collect();
+                let mut args: Vec<&dyn rusqlite::ToSql> = candidates
+                    .iter()
+                    .map(|c| c as &dyn rusqlite::ToSql)
+                    .collect();
                 args.push(start);
                 let with_debut = string_column(&db, &sql, args.as_slice());
                 let sql_all = format!(
                     "SELECT id FROM idols WHERE brand_id IN ({placeholders}) AND is_external = 0
                      ORDER BY sort_order"
                 );
-                let args_all: Vec<&dyn rusqlite::ToSql> =
-                    candidates.iter().map(|c| c as &dyn rusqlite::ToSql).collect();
+                let args_all: Vec<&dyn rusqlite::ToSql> = candidates
+                    .iter()
+                    .map(|c| c as &dyn rusqlite::ToSql)
+                    .collect();
                 if with_debut.len() != string_column(&db, &sql_all, args_all.as_slice()).len() {
                     covered_debut += 1;
                 }
@@ -2034,8 +2234,10 @@ mod tests {
                     "SELECT id FROM idols WHERE brand_id IN ({placeholders}) AND is_external = 0
                      ORDER BY sort_order"
                 );
-                let args: Vec<&dyn rusqlite::ToSql> =
-                    candidates.iter().map(|c| c as &dyn rusqlite::ToSql).collect();
+                let args: Vec<&dyn rusqlite::ToSql> = candidates
+                    .iter()
+                    .map(|c| c as &dyn rusqlite::ToSql)
+                    .collect();
                 string_column(&db, &sql, args.as_slice())
             };
             if expected_brand_idols.is_empty() {
@@ -2045,10 +2247,17 @@ mod tests {
             let actual = actual.unwrap_or_else(|| panic!("{event_id} は Some のはず"));
             covered_some += 1;
             // idols.sort_order は bundle でユニーク (引き継ぎメモ) → 逐語一致。
-            assert_eq!(actual.brand_idol_ids, expected_brand_idols, "brandIdols {event_id}");
-            let actual_show_ids: Vec<String> =
-                actual.shows.iter().map(|s| s.id.clone()).collect();
-            assert_matches_up_to_ties(&format!("shows {event_id}"), &actual_show_ids, &show_ids, show_key);
+            assert_eq!(
+                actual.brand_idol_ids, expected_brand_idols,
+                "brandIdols {event_id}"
+            );
+            let actual_show_ids: Vec<String> = actual.shows.iter().map(|s| s.id.clone()).collect();
+            assert_matches_up_to_ties(
+                &format!("shows {event_id}"),
+                &actual_show_ids,
+                &show_ids,
+                show_key,
+            );
 
             // 4) presence (歌唱 ∪ show_cast、brand 絞りあり)
             let presence_sql = format!(
@@ -2080,7 +2289,10 @@ mod tests {
                 .unwrap();
             for row in rows {
                 let (show_id, idol_id) = row.unwrap();
-                expected_presence.entry(show_id).or_default().insert(idol_id);
+                expected_presence
+                    .entry(show_id)
+                    .or_default()
+                    .insert(idol_id);
             }
             let actual_presence: HashMap<String, HashSet<String>> = actual
                 .presence_by_show
@@ -2110,18 +2322,35 @@ mod tests {
                 .unwrap();
             for row in rows {
                 let (show_id, idol_id, role) = row.unwrap();
-                let map = if role == "lead" { &mut expected_lead } else { &mut expected_guest };
+                let map = if role == "lead" {
+                    &mut expected_lead
+                } else {
+                    &mut expected_guest
+                };
                 map.entry(show_id).or_default().insert(idol_id);
             }
             let to_sets = |m: HashMap<String, Vec<String>>| -> HashMap<String, HashSet<String>> {
-                m.into_iter().map(|(k, v)| (k, v.into_iter().collect())).collect()
+                m.into_iter()
+                    .map(|(k, v)| (k, v.into_iter().collect()))
+                    .collect()
             };
-            assert_eq!(to_sets(actual.lead_by_show), expected_lead, "lead {event_id}");
-            assert_eq!(to_sets(actual.guest_by_show), expected_guest, "guest {event_id}");
+            assert_eq!(
+                to_sets(actual.lead_by_show),
+                expected_lead,
+                "lead {event_id}"
+            );
+            assert_eq!(
+                to_sets(actual.guest_by_show),
+                expected_guest,
+                "guest {event_id}"
+            );
         }
         assert!(covered_some > 100, "出席表ありイベント数 ({covered_some})");
         assert!(covered_cross >= 1, ">=3 ブランドの越境フェス分岐を踏む前提");
-        assert!(covered_debut >= 1, "debut_date 除外が効くイベントを踏む前提");
+        assert!(
+            covered_debut >= 1,
+            "debut_date 除外が効くイベントを踏む前提"
+        );
         assert!(event_attendance(bundle_snapshot(), "存在しないイベント").is_none());
     }
 
@@ -2151,7 +2380,11 @@ mod tests {
                 )
                 .unwrap();
             let event_b: String = db
-                .query_row("SELECT id FROM events WHERE id <> ? ORDER BY id LIMIT 1", [&event_a], |r| r.get(0))
+                .query_row(
+                    "SELECT id FROM events WHERE id <> ? ORDER BY id LIMIT 1",
+                    [&event_a],
+                    |r| r.get(0),
+                )
                 .unwrap();
             let show_a: String = db
                 .query_row(
@@ -2186,9 +2419,21 @@ mod tests {
                 // (id, event, show, release_date, sort_order) — 同日 sort_order 違い・
                 // NULL release_date (ASC 先頭)・DAY 別円盤・孤児 show を混ぜる。
                 ("er_box", &event_a, None, Some("2024-06-01"), 1),
-                ("er_day1", &event_a, Some(show_a.as_str()), Some("2024-06-01"), 0),
+                (
+                    "er_day1",
+                    &event_a,
+                    Some(show_a.as_str()),
+                    Some("2024-06-01"),
+                    0,
+                ),
                 ("er_tbd", &event_a, None, None, 5),
-                ("er_orphan_show", &event_a, Some("sh_削除済み公演"), Some("2023-01-01"), 2),
+                (
+                    "er_orphan_show",
+                    &event_a,
+                    Some("sh_削除済み公演"),
+                    Some("2023-01-01"),
+                    2,
+                ),
                 ("er_other", &event_b, None, Some("2020-01-01"), 0),
             ];
             for (id, event_id, show_id, date, sort_order) in rows {
@@ -2233,8 +2478,10 @@ mod tests {
                  ORDER BY release_date ASC, sort_order ASC",
                 &[event_id],
             );
-            let actual: Vec<String> =
-                event_releases(&docs_snap, event_id).into_iter().map(|r| r.id).collect();
+            let actual: Vec<String> = event_releases(&docs_snap, event_id)
+                .into_iter()
+                .map(|r| r.id)
+                .collect();
             assert!(!expected.is_empty());
             assert_eq!(actual, expected, "event {event_id}");
         }
@@ -2246,7 +2493,10 @@ mod tests {
         let day1 = releases.iter().find(|r| r.id == "er_day1").unwrap();
         assert_eq!(day1.show_id.as_deref(), Some(show_a.as_str()));
         // 孤児 event の行はどこにも現れない。
-        assert!(docs_snap.event_releases.iter().all(|r| r.id != "er_orphan_event"));
+        assert!(docs_snap
+            .event_releases
+            .iter()
+            .all(|r| r.id != "er_orphan_event"));
 
         let _ = std::fs::remove_file(&path);
     }
@@ -2262,7 +2512,8 @@ mod tests {
 
         let snap = bundle_snapshot();
         // 実データから公演のある日を 1 つ選び、その日を「今日」とみなす。
-        let today = snap.shows[snap.shows_in_date_order[snap.shows_in_date_order.len() / 2] as usize]
+        let today = snap.shows
+            [snap.shows_in_date_order[snap.shows_in_date_order.len() / 2] as usize]
             .date
             .clone();
 
@@ -2274,12 +2525,18 @@ mod tests {
             "当日の公演が「最近の公演」に混ざっている"
         );
         // 日付降順。
-        assert!(recent.windows(2).all(|w| w[0].date >= w[1].date), "日付降順でない");
+        assert!(
+            recent.windows(2).all(|w| w[0].date >= w[1].date),
+            "日付降順でない"
+        );
 
         // 当日を「今後」に入れる 2 つの規則と同じ向きであること。
         assert!(jst_is_today_or_later(today.clone(), epoch_of(&today)));
         let groups = group_events_by_year(&[Some(today.clone())], true, &today);
-        assert!(!groups.is_empty(), "group_events_by_year は当日を今後に入れるはず");
+        assert!(
+            !groups.is_empty(),
+            "group_events_by_year は当日を今後に入れるはず"
+        );
     }
 
     /// `yyyy-MM-dd` の JST 正午を epoch 秒に (境界の確認用)。

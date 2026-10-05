@@ -42,7 +42,11 @@ fn epoch() -> NaiveDate {
 // ---------------------------------------------------------------------------
 
 /// 名刺に載せられるリンクの種類。並び順は編集画面の選択肢の順。
-#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+///
+/// `serde::Serialize` は Web 出面 (wasm) が読み解いた名刺を JSON で返すために要る
+/// (TS に形式の読み解きを書かないため、wasm が `card_link_view` まで通した結果を渡す)。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum CardLinkKind {
     X,
     Bluesky,
@@ -62,7 +66,10 @@ pub struct CardLink {
 }
 
 /// 画面に出すリンク。`label` は種類の名前、`display` は右に添える値、`url` は開く先。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+///
+/// `serde::Serialize` は Web 出面 (wasm) が名刺ページ用の JSON にそのまま載せるため。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CardLinkView {
     pub kind: CardLinkKind,
     pub label: String,
