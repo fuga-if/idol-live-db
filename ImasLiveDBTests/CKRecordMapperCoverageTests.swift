@@ -180,7 +180,8 @@ final class CKRecordMapperCoverageTests: XCTestCase {
                 note: v("note"), createdAt: v("createdAt"), authorDisplayName: v("authorDisplayName"))),
             .showTicket(row: CkShowTicketRow(
                 id: v("id"), showId: v("showId"), kind: v("kind"), name: v("name"), price: 6_600,
-                isEstimate: flag, note: v("note"), sortOrder: 18)),
+                isEstimate: flag, note: v("note"), sortOrder: 18,
+                archiveStartsAt: v("archiveStartsAt"), archiveEndsAt: v("archiveEndsAt"))),
             .ticketSale(row: CkTicketSaleRow(
                 id: v("id"), eventId: v("eventId"), showIds: v("showIds"), kind: v("kind"), name: v("name"),
                 startsAt: v("startsAt"), endsAt: v("endsAt"), resultAt: v("resultAt"), url: v("url"),

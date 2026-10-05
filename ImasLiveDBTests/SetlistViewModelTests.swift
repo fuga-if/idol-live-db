@@ -129,7 +129,8 @@ final class SetlistViewModelTests: XCTestCase {
 
     private let ticket = ShowTicket(
         id: "t1", showId: "sh1", kind: .live, name: "全席指定", price: 14_000,
-        isEstimate: false, note: nil, sortOrder: 0)
+        isEstimate: false, note: nil, sortOrder: 0,
+        archiveStartsAt: nil, archiveEndsAt: nil)
 
     private func makeVM(
         shows: FakeShowReading,

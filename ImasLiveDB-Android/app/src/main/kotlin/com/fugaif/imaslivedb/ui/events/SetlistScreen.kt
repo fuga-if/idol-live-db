@@ -134,6 +134,7 @@ import uniffi.imas_core.setlistDisplayModeIsCompact
 import uniffi.imas_core.setlistDisplayModes
 import uniffi.imas_core.ShowCollectionRecord
 import uniffi.imas_core.formatYen
+import uniffi.imas_core.ticketArchive
 import uniffi.imas_core.ticketKindLabel
 import uniffi.imas_core.ticketPriceRanges
 import uniffi.imas_core.ticketsForKind
@@ -907,6 +908,17 @@ private fun TicketCard(tickets: List<ShowTicket>, brandId: String?) {
                         value = formatYen(ticket.price),
                         brand = brandId
                     )
+                    // アーカイブ視聴期間の一行 (配信券だけ。日付の解釈と文言はコアの ticketArchive)。
+                    // 公開前/公開中/終了は今の時刻で変わるので remember で固めない (iOS も描画ごとに引く)。
+                    val archive = ticketArchive(ticket, System.currentTimeMillis() / 1000)
+                    if (archive != null) {
+                        ImasNote(
+                            text = archive.note,
+                            modifier = Modifier
+                                .background(DS.surface)
+                                .padding(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.rowV)
+                        )
+                    }
                 }
             }
         }

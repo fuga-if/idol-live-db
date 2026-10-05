@@ -50,6 +50,14 @@ data class ShowTicket(
 
     @ColumnInfo(name = "sort_order", defaultValue = "0")
     val sortOrder: Long = 0,
+
+    /** 配信のアーカイブ視聴期間の始まり (JST `YYYY-MM-DD HH:MM` か日付のみ)。無ければ NULL。 */
+    @ColumnInfo(name = "archive_starts_at")
+    val archiveStartsAt: String? = null,
+
+    /** アーカイブ視聴期間の終わり (形式は [archiveStartsAt] と同じ)。 */
+    @ColumnInfo(name = "archive_ends_at")
+    val archiveEndsAt: String? = null,
 ) {
     /**
      * コアに渡す形。形態の読み替え (欠けていれば現地扱い) も含めてコアの規則
@@ -64,6 +72,8 @@ data class ShowTicket(
         price = price,
         isEstimate = isEstimate,
         note = note,
-        sortOrder = sortOrder
+        sortOrder = sortOrder,
+        archiveStartsAt = archiveStartsAt,
+        archiveEndsAt = archiveEndsAt
     )
 }

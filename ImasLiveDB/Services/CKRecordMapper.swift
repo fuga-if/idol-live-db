@@ -240,7 +240,8 @@ enum CKRecordMapper {
         return ShowTicketRecord(
             id: row.id, showId: row.showId, kind: row.kind, name: row.name,
             price: row.price, isEstimate: row.isEstimate, note: row.note,
-            sortOrder: row.sortOrder
+            sortOrder: row.sortOrder,
+            archiveStartsAt: row.archiveStartsAt, archiveEndsAt: row.archiveEndsAt
         )
     }
 

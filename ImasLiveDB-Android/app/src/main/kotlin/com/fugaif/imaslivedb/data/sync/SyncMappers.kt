@@ -314,7 +314,9 @@ object SyncMappers {
                 price = row.price,
                 isEstimate = row.isEstimate,
                 note = row.note.emptyToNull(),
-                sortOrder = row.sortOrder
+                sortOrder = row.sortOrder,
+                archiveStartsAt = row.archiveStartsAt.emptyToNull(),
+                archiveEndsAt = row.archiveEndsAt.emptyToNull()
             )
         }
 

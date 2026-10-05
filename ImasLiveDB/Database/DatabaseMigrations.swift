@@ -1088,6 +1088,19 @@ enum DatabaseMigrations {
             }
         }
 
+        // v39: show_tickets に配信 (アーカイブ) の視聴期間を足す。
+        //
+        // 同梱 master.sqlite は既にこの列を持つので、v31 と同じく確認してから冪等に足す。
+        migrator.registerMigration("v39_show_tickets_archive") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(show_tickets)").map { $0["name"] as String? }
+            if !cols.contains("archive_starts_at") {
+                try db.execute(sql: "ALTER TABLE show_tickets ADD COLUMN archive_starts_at TEXT")
+            }
+            if !cols.contains("archive_ends_at") {
+                try db.execute(sql: "ALTER TABLE show_tickets ADD COLUMN archive_ends_at TEXT")
+            }
+        }
+
         return migrator
     }
 }

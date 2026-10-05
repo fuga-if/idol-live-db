@@ -20,12 +20,18 @@ struct ShowTicketRecord: Codable, FetchableRecord, PersistableRecord, Identifiab
     var isEstimate: Bool
     var note: String?
     var sortOrder: Int64
+    /// 配信 (アーカイブ) の視聴期間。JST の `YYYY-MM-DD HH:MM` か `YYYY-MM-DD`。無ければ nil。
+    /// 公開中かどうかの判定・文言はコア (`ticketArchive`) が決める。
+    var archiveStartsAt: String?
+    var archiveEndsAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id, kind, name, price, note
         case showId = "show_id"
         case isEstimate = "is_estimate"
         case sortOrder = "sort_order"
+        case archiveStartsAt = "archive_starts_at"
+        case archiveEndsAt = "archive_ends_at"
     }
 
     enum Columns {
@@ -43,7 +49,9 @@ struct ShowTicketRecord: Codable, FetchableRecord, PersistableRecord, Identifiab
             price: price,
             isEstimate: isEstimate,
             note: note,
-            sortOrder: sortOrder
+            sortOrder: sortOrder,
+            archiveStartsAt: archiveStartsAt,
+            archiveEndsAt: archiveEndsAt
         )
     }
 }

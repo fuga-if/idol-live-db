@@ -291,8 +291,11 @@ struct SetlistView: View {
                 let label = range.count > 1
                     ? (ticket.isEstimate ? "\(ticket.name) (推定)" : ticket.name)
                     : "\(ticketKindLabel(kind: range.kind))・\(ticket.name)"
+                // 配信の視聴期間の注記 (公開中/終了などの判定と文言はコア)。
+                let archive = ticketArchive(ticket: ticket, nowEpochSeconds: Int64(Date().timeIntervalSince1970))
                 rows.append(ImasPriceList.Row(
                     id: ticket.id, label: label, amount: formatYen(amount: ticket.price),
+                    note: archive?.note,
                     indented: range.count > 1
                 ))
             }
