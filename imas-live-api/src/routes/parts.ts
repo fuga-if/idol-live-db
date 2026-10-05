@@ -120,7 +120,15 @@ export async function handleLyricParts(ctx: RouteContext): Promise<Response | nu
   });
   const nextJson = JSON.stringify(nextLines);
   if (nextJson !== header.lines_json) {
-    await env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?").bind(nextJson, songId).run();
+    // 整備状況 (曲一覧の「パート分けがある曲のみ」) も同じ batch で書く。
+    const partLines = nextLines.filter((l) => l.singers?.length || l.partBreaks?.length).length;
+    await env.DB.batch([
+      env.DB.prepare("UPDATE song_lyrics SET lines_json = ? WHERE song_id = ?").bind(nextJson, songId),
+      env.DB.prepare(
+        `INSERT INTO song_part_stats (song_id, part_lines, updated_at) VALUES (?, ?, datetime('now'))
+         ON CONFLICT(song_id) DO UPDATE SET part_lines = excluded.part_lines, updated_at = excluded.updated_at`
+      ).bind(songId, partLines),
+    ]);
   }
   return json({ songId, lines: nextLines.map((l) => ({ id: l.id, singers: l.singers ?? [], partBreaks: l.partBreaks ?? [] })) },
     200, NO_STORE);

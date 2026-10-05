@@ -28,6 +28,7 @@ describe("PUT /songs/:id/parts", () => {
     const saved = JSON.parse((await row<{ lines_json: string }>("SELECT lines_json FROM song_lyrics WHERE song_id = 's1'"))!.lines_json);
     expect(saved[0]).not.toHaveProperty("singers");
     expect(saved[1].singers).toEqual(["765as_天海春香", "765as_如月千早"]);
+    expect(await row<{ part_lines: number }>("SELECT part_lines FROM song_part_stats WHERE song_id = 's1'")).toEqual({ part_lines: 1 });
     expect(saved[0].start_ms).toBe(1000);
     const lyrics = await callJson("GET", "/songs/s1/lyrics", { headers: await bearer(UID) });
     expect(lyrics.body.lines.map((l: { singers: string[] }) => l.singers)).toEqual([[], ["765as_天海春香", "765as_如月千早"]]);
