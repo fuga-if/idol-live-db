@@ -143,3 +143,8 @@ pub fn decode_card_file(bytes: Vec<u8>) -> Option<CardFileContents> {
 pub fn card_peer_tag(payload: String) -> String {
     crate::domain::producer_card::card_peer_tag(&payload)
 }
+
+#[uniffi::export]
+pub fn card_invite_proof(payload: String) -> String {
+    crate::domain::producer_card::card_invite_proof(&payload)
+}

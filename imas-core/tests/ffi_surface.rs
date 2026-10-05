@@ -92,6 +92,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_validate_producer_card,
     uniffi_imas_core_checksum_func_card_file_name,
     uniffi_imas_core_checksum_func_card_file_type_info,
+    uniffi_imas_core_checksum_func_card_invite_proof,
     uniffi_imas_core_checksum_func_card_issued_label,
     uniffi_imas_core_checksum_func_card_link_kind_from_key,
     uniffi_imas_core_checksum_func_card_link_kind_key,

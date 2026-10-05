@@ -31,6 +31,8 @@ const MAX_MESSAGE_CHARS: u32 = 60;
 const MAX_OSHI: u32 = 5;
 const MAX_LINKS: u32 = 4;
 const MAX_LINK_VALUE_CHARS: usize = 200;
+/// アイドル・公演の id の長さの上限 (バイト)。実際の id は 50 バイト前後。
+const MAX_ID_BYTES: usize = 128;
 
 /// 日付を数える起点。アイマスのライブはこれより前に無い。
 fn epoch() -> NaiveDate {
@@ -333,6 +335,9 @@ fn card_url(card: &ProducerCard) -> String {
 /// 名刺の URL (または `#` の後ろだけ) を読み解く。名刺でなければ None。
 pub fn decode_producer_card(text: &str) -> Option<ProducerCard> {
     let payload = card_payload(text)?;
+    if payload.len() > MAX_URL_LEN {
+        return None;
+    }
     read_card(&base64url_decode(payload)?)
 }
 
@@ -807,6 +812,20 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
     if r.pos != bytes.len() || name.trim().is_empty() {
         return None;
     }
+    // 手で組んだ名刺 (QR・名刺ファイル・近くの端末から届くもの) が、アプリの作る名刺より
+    // 大きいことはない。上限を超えるものは読まない (名前が何万字の名刺を名刺入れに入れない)。
+    let too_long = char_len(&name) > MAX_NAME_CHARS as usize
+        || char_len(&message) > MAX_MESSAGE_CHARS as usize
+        || oshi_idol_ids.iter().any(|id| id.len() > MAX_ID_BYTES)
+        || links
+            .iter()
+            .any(|l| char_len(&l.value) > MAX_LINK_VALUE_CHARS)
+        || next_show_id
+            .as_ref()
+            .is_some_and(|id| id.len() > MAX_ID_BYTES);
+    if too_long {
+        return None;
+    }
     Some(ProducerCard {
         name,
         message,
@@ -1162,8 +1181,10 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
     if r.u8()? != CARD_FILE_VERSION {
         return None;
     }
-    let payload = r.str()?;
-    let card = decode_producer_card(&payload)?;
+    let raw = r.str()?;
+    let card = decode_producer_card(&raw)?;
+    // URL の形で入っていても `#` の後ろに揃える (保存・重複の判定はこの形)。
+    let payload = card_payload(&raw)?.to_string();
     let count = r.count(MAX_OSHI as usize)?;
     let mut images = Vec::with_capacity(count);
     for _ in 0..count {
@@ -1187,12 +1208,23 @@ fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<Card
     let mut out: Vec<CardFileImage> = Vec::new();
     for id in &card.oshi_idol_ids {
         if let Some(image) = images.iter().find(|i| &i.idol_id == id) {
-            if !image.jpeg.is_empty() && image.jpeg.len() <= MAX_CARD_FILE_IMAGE_BYTES {
+            // JPEG だけを通す (画像を開く側に任意の形式を渡さない)。
+            if image.jpeg.starts_with(&[0xFF, 0xD8, 0xFF])
+                && image.jpeg.len() <= MAX_CARD_FILE_IMAGE_BYTES
+            {
                 out.push(image.clone());
             }
         }
     }
     out
+}
+
+/// 近くの端末に繋ぐときの合言葉。QR を読んだ人にしか作れない値 (名乗りに出す札とは別の値)。
+/// 見せている側は、自分の名刺から同じ値を作って一致した相手の招待だけを受ける
+/// (QR を読まずに近くで名刺を集めたり、勝手に名刺を入れたりできないように)。
+pub fn card_invite_proof(payload: &str) -> String {
+    let payload = card_payload(payload).unwrap_or(payload);
+    crate::domain::sha256::sha256_hex(&format!("imascard-invite|{payload}"))
 }
 
 /// 近くの端末どうしで相手を見分ける札 (名刺の中身の SHA-256 の先頭 16 桁)。
@@ -1590,15 +1622,15 @@ mod tests {
         let images = vec![
             CardFileImage {
                 idol_id: "765_如月千早".into(),
-                jpeg: vec![1, 2, 3],
+                jpeg: vec![0xFF, 0xD8, 0xFF, 3],
             },
             CardFileImage {
                 idol_id: "961_黒井".into(),
-                jpeg: vec![9],
+                jpeg: vec![0xFF, 0xD8, 0xFF, 9],
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
-                jpeg: vec![4, 5],
+                jpeg: vec![0xFF, 0xD8, 0xFF, 5],
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
@@ -1617,7 +1649,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["765_天海春香", "765_如月千早"]
         );
-        assert_eq!(file.images[0].jpeg, vec![4, 5]);
+        assert_eq!(file.images[0].jpeg, vec![0xFF, 0xD8, 0xFF, 5]);
     }
 
     #[test]
@@ -1653,5 +1685,48 @@ mod tests {
         let payload = enc.url.split_once('#').unwrap().1;
         assert_eq!(card_peer_tag(&enc.url), card_peer_tag(payload));
         assert_eq!(card_peer_tag(payload).len(), 16);
+    }
+
+    #[test]
+    fn card_file_payload_is_normalized_from_url() {
+        let enc = encode_producer_card(&input());
+        let payload = enc.url.split_once('#').unwrap().1.to_string();
+        // URL の形のまま入れたファイルでも `#` の後ろだけを返す。
+        let mut w = Vec::new();
+        w.extend_from_slice(CARD_FILE_MAGIC);
+        w.push(CARD_FILE_VERSION);
+        put_str(&mut w, &enc.url);
+        put_varint(&mut w, 0);
+        assert_eq!(decode_card_file(&w).unwrap().payload, payload);
+    }
+
+    #[test]
+    fn non_jpeg_images_are_dropped() {
+        let enc = encode_producer_card(&input());
+        let png = CardFileImage {
+            idol_id: "765_如月千早".into(),
+            jpeg: vec![0x89, b'P', b'N', b'G'],
+        };
+        let file = decode_card_file(&encode_card_file(&enc.url, &[png]).unwrap()).unwrap();
+        assert!(file.images.is_empty());
+    }
+
+    #[test]
+    fn oversized_cards_are_not_read() {
+        let mut card = encode_producer_card(&input()).card;
+        card.name = "あ".repeat(MAX_NAME_CHARS as usize + 1);
+        assert!(decode_producer_card(&producer_card_payload(&card)).is_none());
+        let mut card = encode_producer_card(&input()).card;
+        card.oshi_idol_ids = vec!["x".repeat(MAX_ID_BYTES + 1)];
+        assert!(decode_producer_card(&producer_card_payload(&card)).is_none());
+        assert!(decode_producer_card(&"A".repeat(MAX_URL_LEN + 1)).is_none());
+    }
+
+    #[test]
+    fn invite_proof_differs_from_peer_tag() {
+        let enc = encode_producer_card(&input());
+        let payload = enc.url.split_once('#').unwrap().1;
+        assert_eq!(card_invite_proof(&enc.url), card_invite_proof(payload));
+        assert!(!card_invite_proof(payload).starts_with(&card_peer_tag(payload)));
     }
 }
