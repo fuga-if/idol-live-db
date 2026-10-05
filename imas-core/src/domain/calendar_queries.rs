@@ -41,8 +41,6 @@ use chrono::NaiveDate;
 /// 入るため、既存 Swift 型と衝突する (song_list_queries.rs の前例と同じ判断)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum CalendarTicketKind {
-    /// 受付開始 (締切が無い/開始より前の受付だけの単日点)。
-    Start,
     /// 申込締切
     Deadline,
     /// 当落発表
@@ -82,8 +80,9 @@ pub enum CalendarEntryRecord {
     StaffBirthday { staff_id: String, occurs_on: String },
     /// ブランド/アプリ記念日。occurs_on は展開後の出現日 (N 周年の当日)。
     Anniversary { anniversary_id: String, occurs_on: String },
-    /// チケット日程の単日点 (受付開始 / 申込締切 / 当落発表)。1 つの受付 (`ticket_sales` の
-    /// 1 行) につき、期間帯にならない日程がここに出る。
+    /// チケットの期限日 (申込締切 / 当落発表)。1 つの受付 (`ticket_sales` の 1 行) につき
+    /// 0〜2 点。受付の期間そのもの (いつからいつまで) はカレンダーには引かず、
+    /// チケットの画面 ([`crate::domain::ticket_sales::ticket_board`]) にまとめる。
     Ticket {
         event_id: String,
         event_name: String,
@@ -99,41 +98,25 @@ pub enum CalendarEntryRecord {
         /// `event_name` / `sale_name` から組み立て直さず、これをそのまま出す。
         label: String,
     },
-    /// チケット受付期間 (受付開始 → 申込締切) の日跨ぎ帯。
-    TicketPeriod {
+    /// 配信のアーカイブ (見逃し配信) を見られる最後の日。同じライブで期間の同じ券種は
+    /// 1 つにまとめてある ([`crate::domain::stream_archives`])。
+    ArchiveEnd {
         event_id: String,
         event_name: String,
         brand_color: Option<String>,
-        start: String,
-        end: String,
-        url: Option<String>,
-        sale_id: String,
-        sale_name: String,
-        sale_kind: crate::domain::ticket_sales::TicketSaleKind,
-        /// 表示文字列 (`"{event_name} ({sale_name})"`、M2)。
-        label: String,
-    },
-    /// 配信のアーカイブ (見逃し配信) を見られる期間の日跨ぎ帯。同じライブで期間の同じ券種は
-    /// 1 本にまとめてある ([`crate::domain::stream_archives`])。
-    ArchivePeriod {
-        event_id: String,
-        event_name: String,
-        brand_color: Option<String>,
+        /// YYYY-MM-DD
+        date: String,
         /// 対象の公演 (日付順)。
         show_ids: Vec<String>,
         /// 対象公演の短い名 (`DAY1` 等)。公演が 1 つしかないライブでは空。
         show_labels: Vec<String>,
-        /// 見られる期間の始まり YYYY-MM-DD (始まりが未登録なら対象公演の最初の日)。
-        start: String,
-        /// 終わり YYYY-MM-DD。
-        end: String,
         /// 表示文字列 (`"{event_name} (DAY1・DAY2 アーカイブ)"`)。
         label: String,
     },
 }
 
 // 同日内の表示順位 (iOS `CalendarEntry.sortOrder` と同じ数値。personal=7 はアプリ内のみ)。
-const RANK_TICKET_PERIOD: u8 = 0;
+// 0 は以前の受付期間の帯 (廃止) が使っていた。
 const RANK_TICKET: u8 = 1;
 const RANK_SHOW: u8 = 2;
 const RANK_RELEASE: u8 = 3;
@@ -405,75 +388,41 @@ fn sale_day(raw: Option<&str>) -> Option<&str> {
     is_strict_day(day).then_some(day)
 }
 
-/// チケット日程。1 つの受付 (`ticket_sales` の 1 行) につき、受付開始 + 締切が揃えば
-/// 「受付期間」を日跨ぎ帯に。締切だけなら締切を単日点に、開始だけなら開始を単日点に
-/// (どちらも無ければ何も出さない)。当落発表は常に単日点。
+/// チケットの期限日。1 つの受付 (席種だけ違う受付は束ねて 1 つ) につき、申込締切と当落発表を
+/// それぞれ単日点にする (どちらも無ければ何も出さない)。受付開始と期間の帯は出さない:
+/// 受付が何本も並ぶライブでカレンダーが帯で埋まり、公演が読めなくなるため。
 ///
 /// 走査順は `ticket_sales_by_event` (= `ticket_sales::sort_sales` と同じ並び) で、
 /// SQL 時代と同じく明示の ORDER BY は無い。同 (日付, 順位) の並びは走査順のまま残る。
 fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Vec<Keyed>) {
     for (ei, event) in snap.events.iter().enumerate() {
         let color = brand_color(snap, event.brand_id.as_deref());
-        for &si in &snap.ticket_sales_by_event[ei] {
-            let sale = &snap.ticket_sales[si as usize];
-            let sale_start = sale_day(sale.starts_at.as_deref());
-            let sale_end = sale_day(sale.ends_at.as_deref());
-            let sale_result = sale_day(sale.result_at.as_deref());
-            let label = crate::domain::ticket_sales::calendar_sale_label(&event.name, &sale.name);
-            let ticket = |date: &str, kind: CalendarTicketKind| CalendarEntryRecord::Ticket {
-                event_id: event.id.clone(),
-                event_name: event.name.clone(),
-                brand_color: color.clone(),
-                date: date.to_owned(),
-                kind,
-                url: sale.url.clone(),
-                sale_id: sale.id.clone(),
-                sale_name: sale.name.clone(),
-                sale_kind: sale.kind,
-                label: label.clone(),
-            };
-
-            match (sale_start, sale_end) {
-                // 受付開始 + 締切が揃う → 受付期間帯 (表示レンジと重なる場合のみ)。
-                (Some(start), Some(end)) if start <= end => {
-                    if start <= end_day && end >= start_day {
-                        out.push((
-                            start.to_owned(),
-                            RANK_TICKET_PERIOD,
-                            CalendarEntryRecord::TicketPeriod {
-                                event_id: event.id.clone(),
-                                event_name: event.name.clone(),
-                                brand_color: color.clone(),
-                                start: start.to_owned(),
-                                end: end.to_owned(),
-                                url: sale.url.clone(),
-                                sale_id: sale.id.clone(),
-                                sale_name: sale.name.clone(),
-                                sale_kind: sale.kind,
-                                label: label.clone(),
-                            },
-                        ));
-                    }
-                }
-                // 締切が無い (or 開始 > 締切) → 開始だけの単日点。
-                (Some(start), _) => {
-                    if in_range(start, start_day, end_day) {
-                        out.push((start.to_owned(), RANK_TICKET, ticket(start, CalendarTicketKind::Start)));
-                    }
-                }
-                // 開始が無い → 締切だけの単日点。
-                (None, Some(end)) => {
-                    if in_range(end, start_day, end_day) {
-                        out.push((end.to_owned(), RANK_TICKET, ticket(end, CalendarTicketKind::Deadline)));
-                    }
-                }
-                (None, None) => {}
-            }
-            // 当落発表は常に単日点。
-            if let Some(result) = sale_result {
-                if in_range(result, start_day, end_day) {
-                    out.push((result.to_owned(), RANK_TICKET, ticket(result, CalendarTicketKind::Lottery)));
-                }
+        // 席種だけ違う受付は 1 点にまとめる (同じ日に同じライブの点が並ばないように)。
+        for group in crate::domain::ticket_sales::sale_groups(snap, ei as u32) {
+            let sale = &snap.ticket_sales[group.members[0] as usize];
+            let label = crate::domain::ticket_sales::calendar_sale_label(&event.name, &group.name_label);
+            let points = [
+                (sale_day(sale.ends_at.as_deref()), CalendarTicketKind::Deadline),
+                (sale_day(sale.result_at.as_deref()), CalendarTicketKind::Lottery),
+            ];
+            for (day, kind) in points {
+                let Some(date) = day.filter(|d| in_range(d, start_day, end_day)) else { continue };
+                out.push((
+                    date.to_owned(),
+                    RANK_TICKET,
+                    CalendarEntryRecord::Ticket {
+                        event_id: event.id.clone(),
+                        event_name: event.name.clone(),
+                        brand_color: color.clone(),
+                        date: date.to_owned(),
+                        kind,
+                        url: sale.url.clone(),
+                        sale_id: sale.id.clone(),
+                        sale_name: group.name_label.clone(),
+                        sale_kind: sale.kind,
+                        label: label.clone(),
+                    },
+                ));
             }
         }
     }
@@ -481,30 +430,27 @@ fn collect_tickets(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Ve
 
 // ---- 配信のアーカイブ ----
 
-/// アーカイブの期間帯。受付期間帯と同じく帯の開始日をキーにし、同じ順位 (最上段) に置く
-/// (どちらも「その日に関わる期間」で、各日の縦位置を揃えたい)。
+/// アーカイブを見られる最後の日 (チケットの期限日と同じ順位)。
 fn collect_archives(snap: &Snapshot, start_day: &str, end_day: &str, out: &mut Vec<Keyed>) {
     use crate::domain::stream_archives::{archive_windows, calendar_archive_label, window_show_labels};
     for window in archive_windows(snap) {
-        let start = window.start.0.format("%Y-%m-%d").to_string();
-        let end = window.end.0.format("%Y-%m-%d").to_string();
-        if start.as_str() > end_day || end.as_str() < start_day {
+        let date = window.end.0.format("%Y-%m-%d").to_string();
+        if !in_range(&date, start_day, end_day) {
             continue;
         }
         let event = &snap.events[window.event as usize];
         let show_labels = window_show_labels(snap, &window);
         out.push((
-            start.clone(),
-            RANK_TICKET_PERIOD,
-            CalendarEntryRecord::ArchivePeriod {
+            date.clone(),
+            RANK_TICKET,
+            CalendarEntryRecord::ArchiveEnd {
                 event_id: event.id.clone(),
                 event_name: event.name.clone(),
                 brand_color: brand_color(snap, event.brand_id.as_deref()),
                 show_ids: window.shows.iter().map(|&si| snap.shows[si as usize].id.clone()).collect(),
                 label: calendar_archive_label(&event.name, &show_labels),
                 show_labels,
-                start,
-                end,
+                date,
             },
         ));
     }
@@ -790,7 +736,7 @@ mod tests {
     }
 
     #[test]
-    fn archive_period_band_folds_same_period_tickets() {
+    fn archive_end_folds_same_period_tickets() {
         use crate::domain::snapshot::{Show, ShowArchiveRow};
         let show = |id: &str, name: &str, date: &str| Show {
             id: id.into(),
@@ -820,15 +766,14 @@ mod tests {
             vec![show("s1", "10th LIVE DAY1", "2026-09-27"), show("s2", "10th LIVE DAY2", "2026-09-28")],
             vec![archive("t1", 0), archive("t2", 1), archive("t3", 1)],
         );
-        let bands: Vec<_> = calendar_entries(&snap, "2026-10-01", "2026-10-31")
+        let ends: Vec<_> = calendar_entries(&snap, "2026-10-01", "2026-10-31")
             .into_iter()
-            .filter(|e| matches!(e, CalendarEntryRecord::ArchivePeriod { .. }))
+            .filter(|e| matches!(e, CalendarEntryRecord::ArchiveEnd { .. }))
             .collect();
-        assert_eq!(bands.len(), 1, "期間の同じ券種は 1 本にまとめ、表示範囲の手前から始まる帯も出す");
-        match &bands[0] {
-            CalendarEntryRecord::ArchivePeriod { start, end, show_ids, show_labels, label, brand_color, .. } => {
-                assert_eq!(start, "2026-09-28");
-                assert_eq!(end, "2026-10-05");
+        assert_eq!(ends.len(), 1, "期間の同じ券種は 1 つにまとめ、終わりの日だけ出す");
+        match &ends[0] {
+            CalendarEntryRecord::ArchiveEnd { date, show_ids, show_labels, label, brand_color, .. } => {
+                assert_eq!(date, "2026-10-05");
                 assert_eq!(show_ids, &vec!["s1".to_string(), "s2".to_string()]);
                 assert_eq!(show_labels, &vec!["DAY1".to_string(), "DAY2".to_string()]);
                 assert_eq!(label, "10th LIVE (DAY1・DAY2 アーカイブ)");
@@ -836,9 +781,9 @@ mod tests {
             }
             other => panic!("unexpected {other:?}"),
         }
-        assert!(calendar_entries(&snap, "2026-10-06", "2026-10-31")
+        assert!(calendar_entries(&snap, "2026-09-01", "2026-10-04")
             .iter()
-            .all(|e| !matches!(e, CalendarEntryRecord::ArchivePeriod { .. })));
+            .all(|e| !matches!(e, CalendarEntryRecord::ArchiveEnd { .. })), "期間の途中の日には出さない");
     }
 
     fn sale_row(
@@ -868,21 +813,22 @@ mod tests {
     fn ticket_entries(snap: &Snapshot, start: &str, end: &str) -> Vec<CalendarEntryRecord> {
         calendar_entries(snap, start, end)
             .into_iter()
-            .filter(|e| matches!(e, CalendarEntryRecord::Ticket { .. } | CalendarEntryRecord::TicketPeriod { .. }))
+            .filter(|e| matches!(e, CalendarEntryRecord::Ticket { .. }))
             .collect()
     }
 
     #[test]
-    fn open_and_deadline_together_make_a_period_only_when_they_overlap_the_range() {
+    fn a_sale_shows_only_its_deadline_and_result_days() {
         use crate::domain::ticket_sales::TicketSaleKind;
         let snap = ticket_test_snapshot(vec![sale_row(
-            "t1", TicketSaleKind::Lottery, "先行抽選", Some("2026-04-01"), Some("2026-04-12"), None,
+            "t1", TicketSaleKind::Lottery, "先行抽選", Some("2026-04-01"), Some("2026-04-12 23:59"), Some("2026-04-20"),
         )]);
         let entries = ticket_entries(&snap, "2026-01-01", "2026-12-31");
-        assert_eq!(entries.len(), 1);
+        assert_eq!(entries.len(), 2, "締切と当落の 2 点だけ (受付開始と期間は出さない)");
         match &entries[0] {
-            CalendarEntryRecord::TicketPeriod { start, end, sale_id, sale_name, sale_kind, url, label, .. } => {
-                assert_eq!((start.as_str(), end.as_str()), ("2026-04-01", "2026-04-12"));
+            CalendarEntryRecord::Ticket { date, kind, sale_id, sale_name, sale_kind, url, label, .. } => {
+                assert_eq!(date, "2026-04-12", "時刻は落として日付で出す");
+                assert_eq!(*kind, CalendarTicketKind::Deadline);
                 assert_eq!(sale_id, "t1");
                 assert_eq!(sale_name, "先行抽選");
                 assert_eq!(*sale_kind, TicketSaleKind::Lottery);
@@ -890,69 +836,23 @@ mod tests {
                 // M2: 表示文字列はコアで組み切る (ライブ名が抜け落ちないようにする)。
                 assert_eq!(label, "10th LIVE (先行抽選)");
             }
-            other => panic!("期間帯を期待: {other:?}"),
+            other => panic!("締切の点を期待: {other:?}"),
         }
-        // 範囲外なら出ない。範囲に重なりさえすれば (両端の内側でなくても) 出る。
-        assert!(ticket_entries(&snap, "2027-01-01", "2027-12-31").is_empty());
-        assert_eq!(ticket_entries(&snap, "2026-04-05", "2026-04-05").len(), 1, "帯の途中の 1 日にも重なる");
+        assert!(matches!(
+            &entries[1],
+            CalendarEntryRecord::Ticket { date, kind: CalendarTicketKind::Lottery, .. } if date == "2026-04-20"
+        ));
+        assert!(ticket_entries(&snap, "2026-04-02", "2026-04-11").is_empty(), "受付期間の途中の日には出さない");
     }
 
     #[test]
-    fn deadline_only_is_a_single_point() {
-        use crate::domain::ticket_sales::TicketSaleKind;
-        let snap = ticket_test_snapshot(vec![sale_row(
-            "t1", TicketSaleKind::FirstCome, "一般先着", None, Some("2026-04-12"), None,
-        )]);
-        let entries = ticket_entries(&snap, "2026-01-01", "2026-12-31");
-        assert_eq!(entries.len(), 1);
-        match &entries[0] {
-            CalendarEntryRecord::Ticket { date, kind, .. } => {
-                assert_eq!(date, "2026-04-12");
-                assert_eq!(*kind, CalendarTicketKind::Deadline);
-            }
-            other => panic!("単日点を期待: {other:?}"),
-        }
-    }
-
-    #[test]
-    fn start_only_is_a_single_start_point() {
-        // 締切が無い (または開始が締切より後) 受付は、開始だけの単日点になる。
+    fn a_sale_without_deadline_or_result_has_no_point() {
+        // 受付開始だけの受付 (当日券など) はカレンダーに出さない。期間はチケットの画面で見る。
         use crate::domain::ticket_sales::TicketSaleKind;
         let snap = ticket_test_snapshot(vec![sale_row(
             "t1", TicketSaleKind::SameDay, "当日券", Some("2026-04-20"), None, None,
         )]);
-        let entries = ticket_entries(&snap, "2026-01-01", "2026-12-31");
-        assert_eq!(entries.len(), 1);
-        match &entries[0] {
-            CalendarEntryRecord::Ticket { date, kind, .. } => {
-                assert_eq!(date, "2026-04-20");
-                assert_eq!(*kind, CalendarTicketKind::Start);
-            }
-            other => panic!("開始の単日点を期待: {other:?}"),
-        }
-
-        // 開始 > 締切 (データの誤り) でも、期間帯にはせず開始の単日点に倒す。
-        let backwards = ticket_test_snapshot(vec![sale_row(
-            "t2", TicketSaleKind::Lottery, "逆転", Some("2026-05-01"), Some("2026-04-01"), None,
-        )]);
-        let entries = ticket_entries(&backwards, "2026-01-01", "2026-12-31");
-        assert_eq!(entries.len(), 1);
-        assert!(matches!(&entries[0], CalendarEntryRecord::Ticket { kind: CalendarTicketKind::Start, .. }));
-    }
-
-    #[test]
-    fn lottery_result_is_always_a_single_point_alongside_the_period() {
-        use crate::domain::ticket_sales::TicketSaleKind;
-        let snap = ticket_test_snapshot(vec![sale_row(
-            "t1", TicketSaleKind::Lottery, "先行抽選", Some("2026-04-01"), Some("2026-04-12"), Some("2026-04-20"),
-        )]);
-        let entries = ticket_entries(&snap, "2026-01-01", "2026-12-31");
-        assert_eq!(entries.len(), 2, "期間帯 + 当落発表の点");
-        assert!(entries.iter().any(|e| matches!(e, CalendarEntryRecord::TicketPeriod { .. })));
-        assert!(entries.iter().any(|e| matches!(
-            e,
-            CalendarEntryRecord::Ticket { date, kind: CalendarTicketKind::Lottery, .. } if date == "2026-04-20"
-        )));
+        assert!(ticket_entries(&snap, "2026-01-01", "2026-12-31").is_empty());
     }
 
     #[test]
@@ -970,9 +870,7 @@ mod tests {
         let sale_ids: HashSet<&str> = entries
             .iter()
             .map(|e| match e {
-                CalendarEntryRecord::Ticket { sale_id, .. } | CalendarEntryRecord::TicketPeriod { sale_id, .. } => {
-                    sale_id.as_str()
-                }
+                CalendarEntryRecord::Ticket { sale_id, .. } => sale_id.as_str(),
                 _ => unreachable!(),
             })
             .collect();
@@ -1211,8 +1109,7 @@ mod tests {
                 (origin, RANK_ANNIVERSARY)
             }
             CalendarEntryRecord::Ticket { date, .. } => (date.clone(), RANK_TICKET),
-            CalendarEntryRecord::TicketPeriod { start, .. } => (start.clone(), RANK_TICKET_PERIOD),
-            CalendarEntryRecord::ArchivePeriod { start, .. } => (start.clone(), RANK_TICKET_PERIOD),
+            CalendarEntryRecord::ArchiveEnd { date, .. } => (date.clone(), RANK_TICKET),
         }
     }
 
@@ -1247,21 +1144,7 @@ mod tests {
     fn inverted_range_yields_nothing() {
         // start > end は SQL なら空。二分探索の lo > hi で落ちないことの固定。
         let entries = calendar_entries(bundle_snapshot(), "2026-05-10", "2026-05-01");
-        assert!(entries
-            .iter()
-            .all(|e| matches!(e, CalendarEntryRecord::TicketPeriod { .. })),
-            "逆転レンジで単日系エントリは出ない (期間帯の重なり判定だけは Swift 同様に発火し得る)"
-        );
-
-        // 期間帯の重なり判定 (`start <= end_day && end >= start_day`) は逆転レンジでも
-        // 素通しなので、範囲を跨ぐ長い受付期間だけは発火しうる (上の assert が説明する挙動の実例)。
-        use crate::domain::ticket_sales::TicketSaleKind;
-        let snap = ticket_test_snapshot(vec![sale_row(
-            "t1", TicketSaleKind::Lottery, "長期受付", Some("2026-04-01"), Some("2026-06-01"), None,
-        )]);
-        let entries = ticket_entries(&snap, "2026-05-10", "2026-05-01");
-        assert_eq!(entries.len(), 1, "逆転レンジでも期間の重なり判定だけは発火する");
-        assert!(matches!(&entries[0], CalendarEntryRecord::TicketPeriod { .. }));
+        assert!(entries.is_empty());
     }
 
     #[test]

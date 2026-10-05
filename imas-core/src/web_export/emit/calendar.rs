@@ -115,11 +115,10 @@ pub fn calendar_pages(ctx: &Ctx) -> Vec<Emitted<CalendarPage>> {
     out
 }
 
-/// 日ごとの予定と、日を跨ぐ帯。
+/// 日ごとの予定。
 #[derive(Default)]
 struct MonthEntries {
     items: BTreeMap<String, Vec<CalendarItem>>,
-    bands: BTreeMap<String, Vec<CalendarBand>>,
 }
 
 fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
@@ -180,8 +179,6 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
             CalendarEntryRecord::Ticket { event_id, event_name, date, kind, sale_name, .. } => {
                 let (path, theme) = event_link(&event_id);
                 let kind_label = match kind {
-                    // 受付期間帯の開始点と同じ語 ("受付開始")。締切が無いだけで意味は同じ。
-                    CalendarTicketKind::Start => content::CALENDAR_KIND_TICKET_OPEN,
                     CalendarTicketKind::Deadline => content::CALENDAR_KIND_TICKET_DEADLINE,
                     CalendarTicketKind::Lottery => content::CALENDAR_KIND_TICKET_LOTTERY,
                 };
@@ -191,59 +188,12 @@ fn collect_month(ctx: &Ctx, first: NaiveDate, last: NaiveDate) -> MonthEntries {
                     ..CalendarItem::new(CalendarItemKind::Ticket, kind_label, event_name, theme)
                 })
             }
-            CalendarEntryRecord::TicketPeriod { event_id, event_name, start, end, sale_name, label: sale_label, .. } => {
+            CalendarEntryRecord::ArchiveEnd { event_id, event_name, date, show_labels, .. } => {
                 let (path, theme) = event_link(&event_id);
-                let (Some(s), Some(e)) = (
-                    NaiveDate::parse_from_str(&start, "%Y-%m-%d").ok(),
-                    NaiveDate::parse_from_str(&end, "%Y-%m-%d").ok(),
-                ) else {
-                    continue;
-                };
-                // M2: 帯の文字列はコア (`ticket_sales::calendar_sale_label`) が組み切ったものを
-                // そのまま出す (Web もここで組み直さない)。
-                for day in s.max(first).iter_days().take_while(|d| *d <= e.min(last)) {
-                    out.bands.entry(day.to_string()).or_default().push(CalendarBand {
-                        label: sale_label.clone(),
-                        theme_key: theme.clone(),
-                        starts: day == s,
-                        ends: day == e,
-                        path: path.clone(),
-                    });
-                }
-                if !(first..=last).contains(&s) {
-                    continue;
-                }
-                (start, CalendarItem {
-                    sub: Some(sale_name),
-                    path,
-                    ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_OPEN, event_name, theme)
-                })
-            }
-            CalendarEntryRecord::ArchivePeriod { event_id, event_name, start, end, show_labels, label: band_label, .. } => {
-                let (path, theme) = event_link(&event_id);
-                let (Some(s), Some(e)) = (
-                    NaiveDate::parse_from_str(&start, "%Y-%m-%d").ok(),
-                    NaiveDate::parse_from_str(&end, "%Y-%m-%d").ok(),
-                ) else {
-                    continue;
-                };
-                // 帯の文字列はコア (`stream_archives::calendar_archive_label`) が組み切ったもの。
-                for day in s.max(first).iter_days().take_while(|d| *d <= e.min(last)) {
-                    out.bands.entry(day.to_string()).or_default().push(CalendarBand {
-                        label: band_label.clone(),
-                        theme_key: theme.clone(),
-                        starts: day == s,
-                        ends: day == e,
-                        path: path.clone(),
-                    });
-                }
-                if !(first..=last).contains(&s) {
-                    continue;
-                }
-                (start, CalendarItem {
+                (date, CalendarItem {
                     sub: (!show_labels.is_empty()).then(|| show_labels.join("・")),
                     path,
-                    ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_ARCHIVE, event_name, theme)
+                    ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_ARCHIVE_END, event_name, theme)
                 })
             }
         };
@@ -258,7 +208,6 @@ pub fn month_grid(
     last: NaiveDate,
     today: &str,
     items: &BTreeMap<String, Vec<CalendarItem>>,
-    bands: &BTreeMap<String, Vec<CalendarBand>>,
 ) -> Vec<CalendarWeek> {
     let grid_start = first - Duration::days(i64::from(first.weekday().num_days_from_sunday()));
     let grid_end = last + Duration::days(i64::from(6 - last.weekday().num_days_from_sunday()));
@@ -275,7 +224,6 @@ pub fn month_grid(
                 items: all.iter().take(GRID_ITEMS).cloned().collect(),
                 overflow_label: (all.len() > GRID_ITEMS)
                     .then(|| content::calendar_overflow_label(all.len() - GRID_ITEMS)),
-                bands: bands.get(&date).cloned().unwrap_or_default(),
                 date,
             }
         })
@@ -302,7 +250,7 @@ fn month_page(ctx: &Ctx, index: usize, range: &MonthRange) -> Option<Emitted<Cal
     let (year, month) = year_month(key)?;
     let (first, last) = month_bounds(year, month)?;
     let entries = collect_month(ctx, first, last);
-    let weeks = month_grid(first, last, &ctx.today, &entries.items, &entries.bands);
+    let weeks = month_grid(first, last, &ctx.today, &entries.items);
     let days: Vec<CalendarDayGroup> = entries
         .items
         .into_iter()

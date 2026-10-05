@@ -123,13 +123,48 @@ pub enum TicketApplication {
 /// ライブ一覧の「受付中」の 1 行。受付の射影に、締切までの残りの文字列を添える。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct OpenTicketSale {
+    /// まとめた受付の先頭 (段階・期間・リンクの代表)。
     pub sale: TicketSale,
+    /// まとめた受付の id (席種だけ違う受付は 1 行にまとめる。[`sale_groups`])。
+    pub sale_ids: Vec<String>,
+    /// 行に出す受付名 (1 件なら受付名、まとめたら `"会員先行 (2 種)"`)。
+    pub name_label: String,
     /// ライブのブランド色 (行頭の帯)。
     pub brand_color: Option<String>,
     /// `"10/12 (月) 23:59 締切"`。締切が実・暗黙とも無ければ `None`。
     pub deadline_label: Option<String>,
     /// `"今日まで"` / `"明日まで"` / `"あと 8 日"`。締切が無ければ `None`。
     pub remaining_label: Option<String>,
+}
+
+/// チケットの画面の 1 行 (受付前・結果待ち)。受付の射影に、次の日付と残りの文字列を添える。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct TicketBoardSale {
+    /// まとめた受付の先頭。
+    pub sale: TicketSale,
+    /// まとめた受付の id ([`sale_groups`])。
+    pub sale_ids: Vec<String>,
+    /// 行に出す受付名。
+    pub name_label: String,
+    /// ライブのブランド色 (行頭の帯)。
+    pub brand_color: Option<String>,
+    /// 次の日付 (`"10/12 (月) 12:00 受付開始"` / `"10/20 (火) 当落発表"`)。
+    pub date_label: String,
+    /// `"今日"` / `"明日"` / `"あと 8 日"`。
+    pub remaining_label: String,
+}
+
+/// チケットの画面 (カレンダーから開く)。受付の期間はカレンダーに帯で引かず、ここにまとめる。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct TicketBoard {
+    /// 受付中 (締切の近い順。[`open_sales`] と同じ)。
+    pub open: Vec<OpenTicketSale>,
+    /// これから受付が始まるもの (開始の近い順)。
+    pub upcoming: Vec<TicketBoardSale>,
+    /// 締切を過ぎて当落発表を待っているもの (発表の近い順)。
+    pub awaiting: Vec<TicketBoardSale>,
+    /// いま見られる配信のアーカイブ (終わりの近い順)。
+    pub archives: Vec<crate::domain::stream_archives::OpenArchive>,
 }
 
 /// ウィジェット・通知の「締切一覧」用の 1 行。
@@ -464,6 +499,56 @@ pub(crate) fn moment_label(date: NaiveDate, time: Option<(u32, u32)>) -> String 
     }
 }
 
+/// 席種だけ違う受付の束。同じライブで種別・受付開始・締切・当落発表・対象公演がすべて同じ受付は
+/// 「同じ受付の席違い」(SP 席 / S 席、ティーン割…) とみなし、一覧・カレンダー・通知で 1 つに
+/// まとめる。イベント詳細の受付一覧は席種ごとの値段やリンクを見る場所なのでまとめない。
+pub(crate) struct SaleGroup {
+    /// `ticket_sales` の添字 (`ticket_sales_by_event` の並び)。
+    pub members: Vec<u32>,
+    pub name_label: String,
+}
+
+/// ライブ 1 つぶんの受付を束にする。並びは各束の先頭の出現順 (= `ticket_sales_by_event`)。
+pub(crate) fn sale_groups(snap: &Snapshot, event_index: u32) -> Vec<SaleGroup> {
+    let mut groups: Vec<(Vec<u32>, Vec<&str>)> = Vec::new();
+    let key = |si: u32| {
+        let r = &snap.ticket_sales[si as usize];
+        (r.kind, r.starts_at.as_deref(), r.ends_at.as_deref(), r.result_at.as_deref(), &r.show_ids)
+    };
+    for &si in &snap.ticket_sales_by_event[event_index as usize] {
+        match groups.iter_mut().find(|(members, _)| key(members[0]) == key(si)) {
+            Some((members, names)) => {
+                members.push(si);
+                names.push(&snap.ticket_sales[si as usize].name);
+            }
+            None => groups.push((vec![si], vec![&snap.ticket_sales[si as usize].name])),
+        }
+    }
+    groups
+        .into_iter()
+        .map(|(members, names)| SaleGroup { members, name_label: group_name_label(&names) })
+        .collect()
+}
+
+/// 束の受付名。1 件ならそのまま。複数なら名前の共通の頭 (区切りの括弧・空白は落とす) に
+/// 件数を添える (`"アソビストアプレミアム会員先行 (2 種)"`)。共通の頭が無ければ名前を並べる。
+pub(crate) fn group_name_label(names: &[&str]) -> String {
+    if names.len() <= 1 {
+        return names.first().map(|n| n.to_string()).unwrap_or_default();
+    }
+    let first: Vec<char> = names[0].chars().collect();
+    let common = names[1..].iter().fold(first.len(), |len, n| {
+        first.iter().zip(n.chars()).take(len).take_while(|(a, b)| **a == *b).count()
+    });
+    let prefix: String = first[..common].iter().collect();
+    let prefix = prefix.trim_end_matches(|c: char| c.is_whitespace() || "(（【[「・/／-".contains(c));
+    if prefix.chars().count() >= 2 {
+        format!("{prefix} ({} 種)", names.len())
+    } else {
+        names.join("・")
+    }
+}
+
 /// カレンダーの受付の帯・点に出す表示文字列 (M2)。iOS/Android/Web で組み方がばらけて
 /// ライブ名が抜け落ちる事故があったので、コアで決め切って渡す (Web の
 /// `"{event_name} ({sale_name})"` を正とする)。
@@ -566,8 +651,8 @@ pub fn deadlines(snap: &Snapshot, now_epoch_seconds: i64, limit: u32) -> Vec<Tic
     }
     let mut rows: Vec<Row> = Vec::new();
     for (ei, event) in snap.events.iter().enumerate() {
-        for &si in &snap.ticket_sales_by_event[ei] {
-            let row = &snap.ticket_sales[si as usize];
+        for group in sale_groups(snap, ei as u32) {
+            let row = &snap.ticket_sales[group.members[0] as usize];
             let stage = sale_stage_with_implicit_deadline(
                 snap,
                 ei as u32,
@@ -599,13 +684,13 @@ pub fn deadlines(snap: &Snapshot, now_epoch_seconds: i64, limit: u32) -> Vec<Tic
                 at: upper_bound((date, time)),
                 record: TicketSaleDeadline {
                     sale_id: row.id.clone(),
-                    sale_name: row.name.clone(),
+                    sale_name: group.name_label.clone(),
                     event_id: event.id.clone(),
                     event_name: event.name.clone(),
                     brand_color,
                     kind,
                     kind_label: deadline_kind_label(kind).to_string(),
-                    label: calendar_sale_label(&event.name, &row.name),
+                    label: calendar_sale_label(&event.name, &group.name_label),
                     deadline_day: day,
                     deadline_time: time.map(|(h, m)| format!("{h:02}:{m:02}")),
                 },
@@ -633,8 +718,8 @@ pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale
     let today = now_naive(now_epoch_seconds).date();
     let mut rows: Vec<((bool, NaiveDateTime), OpenTicketSale)> = Vec::new();
     for (ei, event) in snap.events.iter().enumerate() {
-        for &si in &snap.ticket_sales_by_event[ei] {
-            let row = &snap.ticket_sales[si as usize];
+        for group in sale_groups(snap, ei as u32) {
+            let row = &snap.ticket_sales[group.members[0] as usize];
             let sale = to_ticket_sale(snap, event, ei as u32, row, now_epoch_seconds);
             if sale.stage != TicketSaleStage::Open {
                 continue;
@@ -646,6 +731,8 @@ pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale
             rows.push((
                 key,
                 OpenTicketSale {
+                    sale_ids: group.members.iter().map(|&m| snap.ticket_sales[m as usize].id.clone()).collect(),
+                    name_label: group.name_label,
                     deadline_label: deadline.map(|(d, t)| format!("{} 締切", moment_label(d, t))),
                     remaining_label,
                     brand_color,
@@ -656,6 +743,69 @@ pub fn open_sales(snap: &Snapshot, now_epoch_seconds: i64) -> Vec<OpenTicketSale
     }
     rows.sort_by(|a, b| (a.0, a.1.sale.event_name.as_str(), a.1.sale.id.as_str()).cmp(&(b.0, b.1.sale.event_name.as_str(), b.1.sale.id.as_str())));
     rows.into_iter().map(|(_, r)| r).collect()
+}
+
+/// 次の日付までの残りの札 (`"今日"` / `"明日"` / `"あと N 日"`)。始まり・発表のように
+/// 「その日に起きる」ものに使う (締切・終わりの「〜まで」とは言い方を分ける)。
+fn days_until_label(at: NaiveDate, today: NaiveDate) -> String {
+    match (at - today).num_days() {
+        d if d <= 0 => "今日".to_string(),
+        1 => "明日".to_string(),
+        d => format!("あと {d} 日"),
+    }
+}
+
+/// チケットの画面の中身。受付中・受付前・結果待ち・見られるアーカイブの 4 つ。
+/// 段階の判定は [`sale_stage`] (受付ごとの暗黙の締切込み) と同じ。
+pub fn ticket_board(snap: &Snapshot, now_epoch_seconds: i64) -> TicketBoard {
+    let today = now_naive(now_epoch_seconds).date();
+    let mut upcoming: Vec<(NaiveDateTime, TicketBoardSale)> = Vec::new();
+    let mut awaiting: Vec<(NaiveDateTime, TicketBoardSale)> = Vec::new();
+    for (ei, event) in snap.events.iter().enumerate() {
+        for group in sale_groups(snap, ei as u32) {
+            let row = &snap.ticket_sales[group.members[0] as usize];
+            let sale = to_ticket_sale(snap, event, ei as u32, row, now_epoch_seconds);
+            let (list, moment, suffix, bound): (_, _, _, fn(Moment) -> NaiveDateTime) = match sale.stage {
+                TicketSaleStage::Upcoming => {
+                    // 開始の無い受付前 (当落だけ決まっている) は当落発表の日を出す。
+                    match row.starts_at.as_deref().and_then(parse_sale_moment) {
+                        Some(m) => (&mut upcoming, m, "受付開始", lower_bound as fn(Moment) -> NaiveDateTime),
+                        None => match row.result_at.as_deref().and_then(parse_sale_moment) {
+                            Some(m) => (&mut upcoming, m, "当落発表", upper_bound as fn(Moment) -> NaiveDateTime),
+                            None => continue,
+                        },
+                    }
+                }
+                TicketSaleStage::AwaitingResult => match row.result_at.as_deref().and_then(parse_sale_moment) {
+                    Some(m) => (&mut awaiting, m, "当落発表", upper_bound as fn(Moment) -> NaiveDateTime),
+                    None => continue,
+                },
+                TicketSaleStage::Open | TicketSaleStage::Ended => continue,
+            };
+            let brand_color = event.brand_id.as_deref().and_then(|b| snap.brand(b)).and_then(|b| b.color.clone());
+            list.push((
+                bound(moment),
+                TicketBoardSale {
+                    sale_ids: group.members.iter().map(|&m| snap.ticket_sales[m as usize].id.clone()).collect(),
+                    name_label: group.name_label,
+                    brand_color,
+                    date_label: format!("{} {suffix}", moment_label(moment.0, moment.1)),
+                    remaining_label: days_until_label(moment.0, today),
+                    sale,
+                },
+            ));
+        }
+    }
+    let finish = |mut rows: Vec<(NaiveDateTime, TicketBoardSale)>| {
+        rows.sort_by(|a, b| (a.0, a.1.sale.event_name.as_str(), a.1.sale.id.as_str()).cmp(&(b.0, b.1.sale.event_name.as_str(), b.1.sale.id.as_str())));
+        rows.into_iter().map(|(_, r)| r).collect()
+    };
+    TicketBoard {
+        open: open_sales(snap, now_epoch_seconds),
+        upcoming: finish(upcoming),
+        awaiting: finish(awaiting),
+        archives: crate::domain::stream_archives::open_archives(snap, now_epoch_seconds),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -916,6 +1066,67 @@ mod tests {
         assert_eq!(open[1].remaining_label.as_deref(), Some("あと 10 日"));
         assert_eq!(open[1].brand_color.as_deref(), Some("#ff69b4"));
         assert_eq!(open[2].remaining_label.as_deref(), Some("あと 61 日"), "締切が無ければ対象公演の最終日");
+    }
+
+    #[test]
+    fn group_name_label_keeps_common_head_and_counts() {
+        assert_eq!(group_name_label(&["一般先着"]), "一般先着");
+        assert_eq!(
+            group_name_label(&["アソビストアプレミアム会員先行", "アソビストアプレミアム会員先行【ティーン割】"]),
+            "アソビストアプレミアム会員先行 (2 種)"
+        );
+        assert_eq!(
+            group_name_label(&["会員先行(SPプロデューサーシート)", "会員先行(プロデューサーシート・全席指定)"]),
+            "会員先行 (2 種)"
+        );
+        assert_eq!(group_name_label(&["S席", "A席"]), "S席・A席", "共通の頭が短すぎれば並べる");
+    }
+
+    #[test]
+    fn same_period_seat_variants_fold_into_one_open_row() {
+        let events = vec![event("e1", "10th LIVE", None)];
+        let shows = vec![show("sh1", 0, "10th LIVE", "2026-05-10")];
+        let sales = vec![
+            row("a", 0, vec![], TicketSaleKind::Lottery, "会員先行", Some("2026-04-01"), Some("2026-04-20"), None, 0),
+            row("b", 0, vec![], TicketSaleKind::Lottery, "会員先行【ティーン割】", Some("2026-04-01"), Some("2026-04-20"), None, 1),
+            row("c", 0, vec![], TicketSaleKind::Lottery, "一般抽選", Some("2026-04-01"), Some("2026-04-25"), None, 2),
+        ];
+        let snap = test_snapshot(events, shows, sales);
+        let open = open_sales(&snap, epoch(2026, 4, 10, 12, 0));
+        assert_eq!(open.len(), 2, "締切の違う受付はまとめない");
+        assert_eq!(open[0].sale_ids, vec!["a", "b"]);
+        assert_eq!(open[0].name_label, "会員先行 (2 種)");
+        assert_eq!(open[1].sale_ids, vec!["c"]);
+        assert_eq!(open[1].name_label, "一般抽選");
+        let dl = deadlines(&snap, epoch(2026, 4, 10, 12, 0), 10);
+        assert_eq!(dl.len(), 2);
+        assert_eq!(dl[0].label, "10th LIVE (会員先行 (2 種))");
+    }
+
+    #[test]
+    fn ticket_board_splits_sales_by_stage_with_next_date() {
+        let events = vec![event("e1", "10th LIVE", Some("cg"))];
+        let shows = vec![show("sh1", 0, "10th LIVE", "2026-05-10")];
+        let sales = vec![
+            row("open", 0, vec![], TicketSaleKind::Lottery, "先行", Some("2026-04-01"), Some("2026-04-20"), Some("2026-04-25"), 0),
+            row("soon", 0, vec![], TicketSaleKind::FirstCome, "一般", Some("2026-04-11 12:00"), Some("2026-04-30"), None, 1),
+            row("later", 0, vec![], TicketSaleKind::Resale, "リセール", Some("2026-04-18"), None, None, 2),
+            row("wait", 0, vec![], TicketSaleKind::Lottery, "最速", Some("2026-03-01"), Some("2026-04-05"), Some("2026-04-10"), 3),
+            row("done", 0, vec![], TicketSaleKind::Lottery, "済み", Some("2026-03-01"), Some("2026-03-05"), Some("2026-03-08"), 4),
+        ];
+        let snap = test_snapshot(events, shows, sales);
+        let board = ticket_board(&snap, epoch(2026, 4, 10, 12, 0));
+        assert_eq!(board.open.iter().map(|o| o.sale.id.as_str()).collect::<Vec<_>>(), vec!["open"]);
+        assert_eq!(board.upcoming.iter().map(|o| o.sale.id.as_str()).collect::<Vec<_>>(), vec!["soon", "later"]);
+        assert_eq!(board.upcoming[0].date_label, "4/11 (土) 12:00 受付開始");
+        assert_eq!(board.upcoming[0].remaining_label, "明日");
+        assert_eq!(board.upcoming[1].remaining_label, "あと 8 日");
+        assert_eq!(board.awaiting.len(), 1);
+        assert_eq!(board.awaiting[0].sale.id, "wait");
+        assert_eq!(board.awaiting[0].date_label, "4/10 (金) 当落発表");
+        assert_eq!(board.awaiting[0].remaining_label, "今日");
+        assert_eq!(board.awaiting[0].brand_color.as_deref(), Some("#ff69b4"));
+        assert!(board.archives.is_empty());
     }
 
     // ---- 申込の記録 ----

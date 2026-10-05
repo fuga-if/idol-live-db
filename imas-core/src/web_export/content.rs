@@ -307,11 +307,10 @@ pub const CALENDAR_KIND_RELEASE: &str = "リリース";
 pub const CALENDAR_KIND_BIRTHDAY: &str = "誕生日";
 pub const CALENDAR_KIND_ANNIVERSARY: &str = "記念日";
 /// チケットの日程の札。語は `vocabulary::TICKET_DATES` にしか書かない (Q-08g)。
-pub const CALENDAR_KIND_TICKET_OPEN: &str = vocabulary::TICKET_DATES[0].label;
 pub const CALENDAR_KIND_TICKET_DEADLINE: &str = vocabulary::TICKET_DATES[1].label;
 pub const CALENDAR_KIND_TICKET_LOTTERY: &str = vocabulary::TICKET_DATES[2].label;
-/// 配信のアーカイブ (見逃し配信) の期間帯の始まりの日に置く札。
-pub const CALENDAR_KIND_ARCHIVE: &str = "アーカイブ";
+/// 配信のアーカイブ (見逃し配信) を見られる最後の日に置く札。
+pub const CALENDAR_KIND_ARCHIVE_END: &str = "アーカイブ終了";
 /// 件数の 1 行での「リリース曲」(予定の札は「リリース」。公演・誕生日・記念日は札と同じ語)。
 pub const CALENDAR_SUMMARY_RELEASES: &str = "リリース曲";
 

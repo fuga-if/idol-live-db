@@ -17,7 +17,6 @@ export type { AppOpen } from "./AppOpen";
 export type { BrandListItem } from "./BrandListItem";
 export type { BrandListPage } from "./BrandListPage";
 export type { BrandPage } from "./BrandPage";
-export type { CalendarBand } from "./CalendarBand";
 export type { CalendarDay } from "./CalendarDay";
 export type { CalendarDayGroup } from "./CalendarDayGroup";
 export type { CalendarItem } from "./CalendarItem";

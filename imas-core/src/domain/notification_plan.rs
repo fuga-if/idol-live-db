@@ -265,9 +265,10 @@ fn event_plans(snap: &Snapshot, event_ids: &[String], live_week: bool, ticket: b
         }
 
         if ticket {
-            for &si in &snap.ticket_sales_by_event[e as usize] {
-                let sale = &snap.ticket_sales[si as usize];
-                let sale_name = &sale.name;
+            // 席種だけ違う受付は 1 通にまとめる (同じ締切の通知が何通も来ないように)。
+            for group in crate::domain::ticket_sales::sale_groups(snap, e) {
+                let sale = &snap.ticket_sales[group.members[0] as usize];
+                let sale_name = &group.name_label;
                 // H1: ends_at が無ければ対象公演の最終日を暗黙の締切として使う (段階判定と同じ)。
                 if let Some((deadline, _)) = crate::domain::ticket_sales::effective_deadline(
                     snap,

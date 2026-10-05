@@ -55,7 +55,7 @@ pub mod venue;
 
 pub use brand::BrandPage;
 pub use calendar::{
-    CalendarBand, CalendarDay, CalendarDayGroup, CalendarItem, CalendarItemKind, CalendarPage, CalendarWeek,
+    CalendarDay, CalendarDayGroup, CalendarItem, CalendarItemKind, CalendarPage, CalendarWeek,
 };
 pub use common::{filter_axes, nonzero_tiles};
 pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};

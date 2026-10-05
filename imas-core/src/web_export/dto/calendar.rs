@@ -53,8 +53,6 @@ web_dto! {
         pub items: Vec<CalendarItem>,
         /// 枠に入り切らなかった件数の札 (`+2`)。
         pub overflow_label: Option<String>,
-        /// 日を跨ぐ帯 (チケット受付期間)。
-        pub bands: Vec<CalendarBand>,
     }
 }
 
@@ -99,19 +97,6 @@ web_dto! {
         Birthday,
         Anniversary,
         Ticket,
-    }
-}
-
-web_dto! {
-    /// 日を跨ぐ帯の 1 日ぶん。
-    #[derive(Eq)]
-    pub struct CalendarBand {
-        pub label: String,
-        pub theme_key: String,
-        /// この日が帯の始まり / 終わりか (角を丸める材料)。
-        pub starts: bool,
-        pub ends: bool,
-        pub path: Option<String>,
     }
 }
 

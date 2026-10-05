@@ -64,16 +64,6 @@ const { page } = Astro.props;
                   >
                     <time datetime={d.date}>{d.day}</time>
                   </Day>
-                  {d.bands.map((b) => (
-                    <a
-                      class:list={["cal__band", b.starts && "cal__band--start", b.ends && "cal__band--end"]}
-                      data-theme={b.themeKey}
-                      href={b.path}
-                      title={b.label}
-                    >
-                      {b.starts && <span class="cal__band-label">{b.label}</span>}
-                    </a>
-                  ))}
                   {d.items.length > 0 && (
                     <ul class="cal__items">
                       {d.items.map((i) => {

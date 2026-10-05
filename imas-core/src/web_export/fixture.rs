@@ -1307,13 +1307,6 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         path: Some("/events/ev_sample/".to_string()),
         ..CalendarItem::new(CalendarItemKind::Ticket, content::CALENDAR_KIND_TICKET_DEADLINE, "サンプルライブ", "brand:ml".to_string())
     };
-    let band = |starts: bool, ends: bool| CalendarBand {
-        label: "サンプルライブ".to_string(),
-        theme_key: "brand:ml".to_string(),
-        starts,
-        ends,
-        path: Some("/events/ev_sample/".to_string()),
-    };
     let items: BTreeMap<String, Vec<CalendarItem>> = [
         ("2026-09-01", vec![ticket()]),
         ("2026-09-03", vec![release()]),
@@ -1324,17 +1317,9 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
     .into_iter()
     .map(|(d, v)| (d.to_string(), v))
     .collect();
-    let bands: BTreeMap<String, Vec<CalendarBand>> = [
-        ("2026-09-01", vec![band(true, false)]),
-        ("2026-09-02", vec![band(false, false)]),
-        ("2026-09-03", vec![band(false, true)]),
-    ]
-    .into_iter()
-    .map(|(d, v)| (d.to_string(), v))
-    .collect();
     let first = chrono::NaiveDate::from_ymd_opt(2026, 9, 1).expect("実在する日付");
     let last = chrono::NaiveDate::from_ymd_opt(2026, 9, 30).expect("実在する日付");
-    let weeks = month_grid(first, last, "2026-09-06", &items, &bands);
+    let weeks = month_grid(first, last, "2026-09-06", &items);
     let days: Vec<CalendarDayGroup> = items
         .into_iter()
         .map(|(date, items)| CalendarDayGroup { date_badge: DateBadge::from_ymd(&date), items })

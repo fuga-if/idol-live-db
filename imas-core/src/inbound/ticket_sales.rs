@@ -31,6 +31,12 @@ impl SnapshotStore {
         Ok(sales::open_sales(&snap, now_epoch_seconds))
     }
 
+    /// チケットの画面の中身 (受付中・受付前・結果待ち・見られるアーカイブ)。
+    pub fn ticket_board(&self, now_epoch_seconds: i64) -> Result<sales::TicketBoard, SnapshotError> {
+        let snap = self.current()?;
+        Ok(sales::ticket_board(&snap, now_epoch_seconds))
+    }
+
     /// 全ライブ横断の「いま見られるアーカイブ」(ライブ一覧の頭)。終わりの近い順。
     pub fn open_archives(
         &self,

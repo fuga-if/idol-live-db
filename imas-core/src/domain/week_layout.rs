@@ -1,11 +1,9 @@
-//! カレンダーの週表示の置き方: 時刻のある予定の列割り (最大 2 列 + `+n`)、
-//! 受付期間の帯の列と段詰め (Q-08k / R-B-16)。
+//! カレンダーの週表示の置き方: 時刻のある予定の列割り (最大 2 列 + `+n`) (Q-08k / R-B-16)。
 //!
 //! 両 OS に写経されていた (iOS `WeekTimeGridView.layoutTimedBlocks` / `parseTimeMinutes` と
 //! `CalendarPeriodBand.pack`、Android `WeekTimeGrid.kt` の `layoutTimedBlocks` / `parseTimeMinutes`
 //! と帯の詰め方)。座標 (dp / pt) への換算と描画は各 OS。ここは列・段・数だけを決める。
 
-use chrono::NaiveDate;
 
 /// 公演は終了時刻を持たないので、この長さぶんの高さで置く。
 pub const DEFAULT_SHOW_DURATION_MINUTES: u32 = 120;
@@ -98,124 +96,9 @@ pub fn timed_layout(blocks: &[TimedBlockInput]) -> TimedLayout {
     TimedLayout { placements, overflow }
 }
 
-/// 受付期間 1 つ (`YYYY-MM-DD` の両端を含む)。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct PeriodSpanInput {
-    /// 帯の id (イベント id)。同じ id は最初の 1 つだけ置く。
-    pub id: String,
-    pub start: String,
-    pub end: String,
-}
-
-/// 週の中に置く帯 1 本。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct PeriodBandPlacement {
-    pub id: String,
-    /// 週の中の列 (0〜6)。週より前に始まる帯は 0、後に終わる帯は 6。
-    pub start_col: u32,
-    pub end_col: u32,
-    /// この週で始まる (左端を丸める)。
-    pub round_leading: bool,
-    /// この週で終わる (右端を丸める)。
-    pub round_trailing: bool,
-    /// 段 (0 から)。前の帯と列が重ならなければ同じ段に詰める。
-    pub lane: u32,
-}
-
-/// 週 (`week_start` から 7 日) にかかる受付期間の帯を、列と段に置く。
-/// 週にかからない帯・日付の読めない帯は置かない。段は始まりの早い順に貪欲に詰める。
-pub fn period_bands(week_start: &str, periods: &[PeriodSpanInput]) -> Vec<PeriodBandPlacement> {
-    let parse = |d: &str| NaiveDate::parse_from_str(d, "%Y-%m-%d").ok();
-    let Some(week) = parse(week_start) else { return Vec::new() };
-    let mut seen = std::collections::HashSet::new();
-    let mut bands: Vec<PeriodBandPlacement> = periods
-        .iter()
-        .filter(|p| seen.insert(p.id.as_str()))
-        .filter_map(|p| {
-            let start = (parse(&p.start)? - week).num_days();
-            let end = (parse(&p.end)? - week).num_days();
-            if end < 0 || start > 6 || end < start {
-                return None;
-            }
-            Some(PeriodBandPlacement {
-                id: p.id.clone(),
-                start_col: start.clamp(0, 6) as u32,
-                end_col: end.clamp(0, 6) as u32,
-                round_leading: start >= 0,
-                round_trailing: end <= 6,
-                lane: 0,
-            })
-        })
-        .collect();
-    bands.sort_by_key(|b| b.start_col);
-    let mut lane_ends: Vec<u32> = Vec::new();
-    for band in &mut bands {
-        match lane_ends.iter().position(|&end| end < band.start_col) {
-            Some(lane) => {
-                band.lane = lane as u32;
-                lane_ends[lane] = band.end_col;
-            }
-            None => {
-                band.lane = lane_ends.len() as u32;
-                lane_ends.push(band.end_col);
-            }
-        }
-    }
-    bands
-}
-
-/// 月の格子の 1 週ぶんの帯。描く帯と、段が溢れて描けない帯の日ごとの数。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct MonthPeriodBands {
-    /// `max_lanes` 段までに収まる帯。
-    pub bands: Vec<PeriodBandPlacement>,
-    /// 列 (0〜6) ごとの、描けなかった帯の数。日のマスの `+n` に足す。
-    pub hidden_per_col: Vec<u32>,
-}
-
-/// 月の格子は 1 マスの高さが決まっているので、帯は `max_lanes` 段まで。
-/// 受付期間が同時にいくつも重なる時期に、帯がマスを突き抜けて隣の週まで塗りつぶさないように、
-/// 溢れた帯は描かずに日ごとの件数として返す (その日を開けば一覧で全部見える)。
-pub fn month_period_bands(week_start: &str, periods: &[PeriodSpanInput], max_lanes: u32) -> MonthPeriodBands {
-    let mut hidden_per_col = vec![0u32; 7];
-    let mut bands = Vec::new();
-    for band in period_bands(week_start, periods) {
-        if band.lane < max_lanes {
-            bands.push(band);
-        } else {
-            for col in band.start_col..=band.end_col {
-                hidden_per_col[col as usize] += 1;
-            }
-        }
-    }
-    MonthPeriodBands { bands, hidden_per_col }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn month_bands_cap_lanes_and_count_hidden_per_day() {
-        let span = |id: &str, s: &str, e: &str| PeriodSpanInput { id: id.into(), start: s.into(), end: e.into() };
-        // 2026-09-27 (日) 始まりの週に 3 本が全部重なる。
-        let periods = vec![
-            span("a", "2026-09-20", "2026-10-10"),
-            span("b", "2026-09-28", "2026-09-30"),
-            span("c", "2026-09-29", "2026-10-01"),
-        ];
-        let got = month_period_bands("2026-09-27", &periods, 2);
-        assert_eq!(got.bands.iter().map(|b| b.id.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
-        assert_eq!(got.hidden_per_col, vec![0, 0, 1, 1, 1, 0, 0]);
-    }
-
-    #[test]
-    fn month_bands_without_overflow_hide_nothing() {
-        let periods = vec![PeriodSpanInput { id: "a".into(), start: "2026-09-28".into(), end: "2026-09-29".into() }];
-        let got = month_period_bands("2026-09-27", &periods, 2);
-        assert_eq!(got.bands.len(), 1);
-        assert_eq!(got.hidden_per_col, vec![0; 7]);
-    }
 
     fn b(start: u32, end: u32) -> TimedBlockInput {
         TimedBlockInput { start_minutes: start, end_minutes: end }
@@ -250,37 +133,5 @@ mod tests {
         let layout = timed_layout(&[b(600, 660), b(660, 720)]);
         assert!(layout.placements.iter().all(|p| p.lane == 0 && !p.half_width));
         assert!(layout.overflow.is_empty());
-    }
-
-    fn p(id: &str, start: &str, end: &str) -> PeriodSpanInput {
-        PeriodSpanInput { id: id.into(), start: start.into(), end: end.into() }
-    }
-
-    #[test]
-    fn bands_are_clipped_to_the_week_and_packed_into_lanes() {
-        // 2026-09-20 (日) から 7 日。
-        let bands = period_bands(
-            "2026-09-20",
-            &[
-                p("a", "2026-09-10", "2026-09-22"),
-                p("b", "2026-09-23", "2026-10-05"),
-                p("c", "2026-09-21", "2026-09-24"),
-                p("a", "2026-09-20", "2026-09-20"),
-                p("out", "2026-10-01", "2026-10-02"),
-                p("bad", "未定", "2026-09-21"),
-            ],
-        );
-        let got: Vec<(&str, u32, u32, bool, bool, u32)> = bands
-            .iter()
-            .map(|b| (b.id.as_str(), b.start_col, b.end_col, b.round_leading, b.round_trailing, b.lane))
-            .collect();
-        assert_eq!(
-            got,
-            vec![
-                ("a", 0, 2, false, true, 0),
-                ("c", 1, 4, true, true, 1),
-                ("b", 3, 6, true, false, 0),
-            ]
-        );
     }
 }
