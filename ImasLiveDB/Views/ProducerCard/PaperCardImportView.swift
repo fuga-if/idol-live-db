@@ -2,6 +2,8 @@ import PhotosUI
 import SwiftUI
 
 /// 紙の名刺を取り込む。表と裏を撮り (名刺の形に切り抜かれる)、刷られた QR を読む。
+/// 写真ライブラリから選んだ写真も、名刺の四隅を見つけて真上から撮ったように平らにして切り抜く
+/// (`PaperCardRectifier`)。四隅は指で直せる。見つからなければ写真のまま。
 ///
 /// - アプリの名刺の QR が刷られていれば、その名刺をそのまま入れる (写真も添える)。
 /// - X などのリンクの QR なら、名刺のリンクにする。
@@ -14,6 +16,9 @@ struct PaperCardImportView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var photos: [UIImage] = []
+    /// 写真ライブラリから選んだ写真の元と四隅 (書類カメラで撮ったものは nil)。`photos` と同じ並び。
+    @State private var sources: [PaperPhotoSource?] = []
+    @State private var adjusting: CornerDraft?
     @State private var photoPicks: [PhotosPickerItem] = []
     @State private var showingCamera = false
     @State private var isReading = false
@@ -62,6 +67,7 @@ struct PaperCardImportView: View {
             .fullScreenCover(isPresented: $showingCamera) {
                 PaperCardCamera(onFinish: { images in
                     showingCamera = false
+                    sources = images.map { _ in nil }
                     Task { await accept(images) }
                 }, onCancel: { showingCamera = false })
                 .ignoresSafeArea()
@@ -86,6 +92,12 @@ struct PaperCardImportView: View {
             .onChange(of: photoPicks) { _, picks in
                 Task { await loadPicks(picks) }
             }
+            .sheet(item: $adjusting) { draft in
+                PaperCardCornerSheet(image: draft.source.original,
+                                     corners: draft.source.corners ?? PaperCardRectifier.defaultCorners) { corners in
+                    Task { await applyCorners(index: draft.index, corners: corners) }
+                }
+            }
             .task { await loadDefaults() }
         }
     }
@@ -97,12 +109,26 @@ struct PaperCardImportView: View {
             ImasFormField(label: "表と裏", imprint: "PHOTO") {
                 VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
                     if !photos.isEmpty {
-                        HStack(spacing: DS.Space.gap) {
+                        HStack(alignment: .top, spacing: DS.Space.gap) {
                             ForEach(Array(photos.enumerated()), id: \.offset) { index, image in
-                                ImasCard(style: .inset, padding: 0) {
-                                    Image(uiImage: image).resizable().scaledToFit()
+                                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                                    ImasCard(style: .inset, padding: 0) {
+                                        Image(uiImage: image).resizable().scaledToFit()
+                                    }
+                                    .accessibilityLabel(index == 0 ? "表の写真" : "裏の写真")
+                                    if let source = source(at: index) {
+                                        Button {
+                                            adjusting = CornerDraft(index: index, source: source)
+                                        } label: {
+                                            Label("四隅を直す", systemImage: "crop")
+                                                .imasText(.rowLabel, color: DS.ink)
+                                        }
+                                        .buttonStyle(.plain)
+                                        if source.corners == nil {
+                                            Text("名刺の四隅が見つからないので写真のままです").imasText(.note)
+                                        }
+                                    }
                                 }
-                                .accessibilityLabel(index == 0 ? "表の写真" : "裏の写真")
                             }
                         }
                     }
@@ -193,14 +219,37 @@ struct PaperCardImportView: View {
         }
     }
 
+    /// 写真ライブラリから選んだ写真。名刺の四隅を見つけて平らにしてから読む。
     private func loadPicks(_ picks: [PhotosPickerItem]) async {
+        guard !picks.isEmpty else { return }
+        isReading = true
         var images: [UIImage] = []
-        for pick in picks {
+        var found: [PaperPhotoSource?] = []
+        for pick in picks.prefix(2) {
             if let data = try? await pick.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                images.append(image)
+                let result = await PaperCardRectifier.rectify(image)
+                images.append(result.image)
+                found.append(PaperPhotoSource(original: result.original, corners: result.corners))
             }
         }
-        if !images.isEmpty { await accept(images) }
+        isReading = false
+        photoPicks = []
+        guard !images.isEmpty else { return }
+        sources = found
+        await accept(images)
+    }
+
+    private func source(at index: Int) -> PaperPhotoSource? {
+        sources.indices.contains(index) ? sources[index] : nil
+    }
+
+    /// 四隅を直した。平らにし直して、QR を読み直す。
+    private func applyCorners(index: Int, corners: [CGPoint]) async {
+        guard let source = source(at: index), photos.indices.contains(index) else { return }
+        var images = photos
+        images[index] = PaperCardRectifier.correct(source.original, corners: corners) ?? source.original
+        sources[index] = PaperPhotoSource(original: source.original, corners: corners)
+        await accept(images)
     }
 
     /// 撮った写真から QR を拾い、名刺 / リンク / それ以外に分ける (分け方はコア)。
@@ -265,6 +314,49 @@ struct PaperCardImportView: View {
             dismiss()
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+}
+
+/// 写真ライブラリから選んだ写真の元と見つけた四隅。
+struct PaperPhotoSource {
+    let original: UIImage
+    let corners: [CGPoint]?
+}
+
+/// 四隅を直すシートに渡すもの。
+private struct CornerDraft: Identifiable {
+    let id = UUID()
+    let index: Int
+    let source: PaperPhotoSource
+}
+
+/// 紙の名刺の四隅を指で直すシート。✓ で平らにし直す。
+struct PaperCardCornerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let image: UIImage
+    let onDone: ([CGPoint]) -> Void
+    @State private var corners: [CGPoint]
+
+    init(image: UIImage, corners: [CGPoint], onDone: @escaping ([CGPoint]) -> Void) {
+        self.image = image
+        self.onDone = onDone
+        _corners = State(initialValue: corners)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ImasFormPage {
+                ImasCornerAdjuster(image: image, corners: $corners)
+                ImasNote("丸い取っ手を名刺の四隅に合わせると、真上から撮ったように平らにして切り抜きます。")
+            }
+            .navigationTitle("四隅を直す")
+            .navigationBarTitleDisplayMode(.inline)
+            .imasSheetToolbar(.edit(onCancel: { dismiss() }, onSave: {
+                onDone(corners)
+                dismiss()
+            }))
         }
     }
 }

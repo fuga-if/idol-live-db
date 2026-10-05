@@ -9,8 +9,11 @@ import SwiftUI
 ///     xcrun simctl launch <udid> com.fugaif.ImasLiveDB
 struct ProducerCardPreviewHarness: View {
     enum Mode: String {
-        case card, editor, exchange, read, receive, `case`, detail, print, paper
+        case card, editor, exchange, read, receive, `case`, detail, print, paper, crop, corners
     }
+
+    /// 自分の名刺の書体を差し替えて撮る (`PRODUCER_CARD_FONT=pop`)。
+    static var envFont: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_FONT"] }
 
     static var envMode: Mode? {
         ProcessInfo.processInfo.environment["PRODUCER_CARD_PREVIEW"].flatMap(Mode.init(rawValue:))
@@ -35,8 +38,15 @@ struct ProducerCardPreviewHarness: View {
         }
         .task {
             await Samples.seed(database)
-            firstCardId = try? await AppContainer.shared.producerCards.receivedCards().first?.id
-            samplePayload = try? await AppContainer.shared.producerCards.receivedCards().first?.payload
+            if let key = Self.envFont, var mine = try? database.myProducerCard() {
+                mine.nameFont = key
+                try? database.saveMyProducerCard(mine)
+            }
+            // 名刺の写真のある名刺を先に (写真の出方を見る)。
+            let received = (try? await AppContainer.shared.producerCards.receivedCards()) ?? []
+            let first = received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
+            firstCardId = first?.id
+            samplePayload = first?.payload
             record = try? await ProducerCardAssembler.loadMyRecord()
             if let mine = try? await AppContainer.shared.producerCards.myCard(), let record {
                 myCard = ProducerCardAssembler.encode(card: mine, record: record)
@@ -61,6 +71,12 @@ struct ProducerCardPreviewHarness: View {
         case .print:
             if let myCard { ProducerCardPrintView(card: myCard, directory: directory) }
         case .paper: PaperCardImportView()
+        case .crop:
+            CardPhotoCropSheet(image: Samples.portrait(), crop: ImasPortraitCrop(zoom: 1.4, center: CGPoint(x: 0.5, y: 0.4))) { _ in }
+        case .corners:
+            PaperCardCornerSheet(image: Samples.paperPhoto(), corners: [
+                CGPoint(x: 0.14, y: 0.24), CGPoint(x: 0.86, y: 0.2), CGPoint(x: 0.9, y: 0.72), CGPoint(x: 0.1, y: 0.76),
+            ]) { _ in }
         }
     }
 
@@ -98,17 +114,22 @@ struct ProducerCardPreviewHarness: View {
             mine.message = "現地派・Pライブ皆勤目指してます"
             mine.sinceYear = 2014
             mine.links = [CardLink(kind: .x, value: "fuga_p"), CardLink(kind: .bluesky, value: "fuga.bsky.social")]
+            mine.nameFont = "mincho"
+            mine.qrUrl = "https://lit.link/fuga"
             try? db.saveMyProducerCard(mine)
+            try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop())
 
             let refs = shows.map { CardShowRef(showId: $0.0, date: $0.1) }
-            func card(_ name: String, _ message: String, oshi: [String], shows: Int, attended: [CardShowRef]) -> String {
+            func card(_ name: String, _ message: String, oshi: [String], shows: Int, attended: [CardShowRef],
+                      font: CardNameFont? = nil) -> String {
                 producerCardPayload(card: encodeProducerCard(input: ProducerCardInput(
                     name: name, message: message, sinceYear: 2011, oshiIdolIds: oshi,
                     links: [CardLink(kind: .x, value: "\(name.lowercased())_sample")], showCount: UInt32(shows),
-                    songCount: 300, nextShowId: nil, attended: attended, issuedOn: "2026-10-05")).card)
+                    songCount: 300, nextShowId: nil, attended: attended, issuedOn: "2026-10-05",
+                    nameFont: font, qrUrl: font == nil ? nil : "https://lit.link/shirokuma")).card)
             }
             let samples: [(String, ReceivedProducerCard.Source, (String, String)?, String?)] = [
-                (card("しろくまP", "千早の歌を一生聴きたい", oshi: [idols[1]], shows: 63, attended: refs), .app, shows[0], "物販列で隣"),
+                (card("しろくまP", "千早の歌を一生聴きたい", oshi: [idols[1]], shows: 63, attended: refs, font: .maru), .app, shows[0], "物販列で隣"),
                 (card("あおいP", "", oshi: [idols[3]], shows: 21, attended: [refs[1]]), .app, shows[0], nil),
                 (card("かるたP", "", oshi: [idols[2]], shows: 0, attended: []), .paper, shows[0], nil),
                 (card("みどりP", "初現地でした", oshi: [idols[0], idols[2]], shows: 5, attended: [refs[2]]), .app, shows[2], nil),
@@ -117,6 +138,46 @@ struct ProducerCardPreviewHarness: View {
                 var row = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1, memo: s.3)
                 row.receivedAt = "2026-10-05T2\(i):00:00Z"
                 try? db.saveReceivedProducerCard(row)
+                if i == 0, let jpeg = ProducerCardFiles.jpeg(portrait(seed: 1)) {
+                    try? ProducerCardFiles.saveImages(cardId: row.id, images: [CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)])
+                }
+            }
+        }
+
+        /// 見本の写真 (人の形の記号を色の地に置いたもの)。
+        @MainActor
+        static func portrait(seed: Int = 0) -> UIImage {
+            let size = CGSize(width: 1200, height: 1500)
+            // 見本の写真の地 (写真の代わりなので DS の色ではない)。
+            let colors: [UIColor] = [UIColor(hue: 0.58, saturation: 0.35, brightness: 0.85, alpha: 1),
+                                     UIColor(hue: 0.08, saturation: 0.35, brightness: 0.9, alpha: 1)]
+            return UIGraphicsImageRenderer(size: size).image { ctx in
+                colors[seed % colors.count].setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+                let symbol = UIImage(systemName: "person.fill",
+                                     withConfiguration: UIImage.SymbolConfiguration(pointSize: 700))?
+                    .withTintColor(UIColor(white: 1, alpha: 1), renderingMode: .alwaysOriginal)
+                symbol?.draw(in: CGRect(x: 250, y: 380, width: 700, height: 760))
+            }
+        }
+
+        /// 見本の「斜めから撮った紙の名刺」。
+        @MainActor
+        static func paperPhoto() -> UIImage {
+            let size = CGSize(width: 1500, height: 1100)
+            return UIGraphicsImageRenderer(size: size).image { ctx in
+                UIColor.darkGray.setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: 210, y: 264))
+                path.addLine(to: CGPoint(x: 1290, y: 220))
+                path.addLine(to: CGPoint(x: 1350, y: 792))
+                path.addLine(to: CGPoint(x: 150, y: 836))
+                path.close()
+                UIColor(white: 1, alpha: 1).setFill()
+                path.fill()
+                ("かるたP" as NSString).draw(at: CGPoint(x: 400, y: 450),
+                                           withAttributes: [.font: UIFont.boldSystemFont(ofSize: 120)])
             }
         }
     }
