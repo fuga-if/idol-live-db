@@ -336,6 +336,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_theme_on_color,
     uniffi_imas_core_checksum_func_theme_on_color_over,
     uniffi_imas_core_checksum_func_theme_variant_hex,
+    uniffi_imas_core_checksum_func_ticket_archive,
     uniffi_imas_core_checksum_func_ticket_expense_backfill,
     uniffi_imas_core_checksum_func_ticket_expense_note,
     uniffi_imas_core_checksum_func_ticket_expense_prompt,
