@@ -14,6 +14,9 @@ struct GRDBProducerCardRepository: ProducerCardStoring {
     func receivedCard(payload: String) async throws -> ReceivedProducerCard? {
         try await database.receivedProducerCardAsync(payload: payload)
     }
+    func insertReceivedIfNew(_ card: ReceivedProducerCard) async throws -> ReceivedProducerCard {
+        try await database.insertReceivedProducerCardIfNew(card)
+    }
     func saveReceived(_ card: ReceivedProducerCard) async throws { try database.saveReceivedProducerCard(card) }
     func deleteReceived(id: String) async throws { try database.deleteReceivedProducerCard(id: id) }
     func receivedCount() async throws -> Int { try await database.receivedProducerCardCountAsync() }

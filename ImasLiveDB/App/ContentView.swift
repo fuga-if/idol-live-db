@@ -205,10 +205,12 @@ struct ContentView: View {
             presentIncomingCard(IncomingProducerCard(payload: payload, images: [], via: .link))
             return
         case .producerCardFile(let fileURL):
-            if let contents = Self.readCardFile(fileURL) {
-                presentIncomingCard(IncomingProducerCard(payload: contents.payload, images: contents.images, via: .file))
-            } else {
-                showCardFileFailed = true
+            Task {
+                if let contents = await Self.readCardFile(fileURL) {
+                    presentIncomingCard(IncomingProducerCard(payload: contents.payload, images: contents.images, via: .file))
+                } else {
+                    showCardFileFailed = true
+                }
             }
             return
         default:
@@ -247,8 +249,11 @@ struct ContentView: View {
     }
 
     /// 受け取りの確認を開く。設定のシートが開いていれば閉じてから出す (シートの上にシートを重ねない)。
+    /// 名刺交換の画面が開いていればその中で開く (AirDrop / Quick Share は交換の最中に届く)。
     private func presentIncomingCard(_ incoming: IncomingProducerCard) {
-        if showSettings {
+        if ProducerCardExchangeView.openCount > 0 {
+            NotificationCenter.default.post(name: .producerCardIncoming, object: incoming)
+        } else if showSettings {
             showSettings = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { incomingCard = incoming }
         } else {
@@ -256,12 +261,25 @@ struct ContentView: View {
         }
     }
 
-    /// 「このアプリで開く」で渡された名刺ファイルを読む (中身の検査はコア)。
-    private static func readCardFile(_ url: URL) -> CardFileContents? {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return decodeCardFile(bytes: data)
+    /// 名刺ファイルの大きさの上限 (担当 5 人の画像でも 10MB 前後)。
+    private static let maxCardFileBytes = 64 * 1024 * 1024
+
+    /// 「このアプリで開く」で渡された名刺ファイルを読む (中身の検査はコア)。読み込みはメインの外で行い、
+    /// OS が Documents/Inbox に置いた写しは読み終えたら消す (端末のバックアップに残さない)。
+    private static func readCardFile(_ url: URL) async -> CardFileContents? {
+        let limit = maxCardFileBytes
+        return await Task.detached(priority: .userInitiated) { () -> CardFileContents? in
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer {
+                if scoped { url.stopAccessingSecurityScopedResource() }
+                if url.deletingLastPathComponent().lastPathComponent == "Inbox" {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            guard size <= limit, let data = try? Data(contentsOf: url) else { return nil }
+            return decodeCardFile(bytes: data)
+        }.value
     }
 
     /// 行き先を選ぶ。タブバーから外した行き先なら、外した画面の入口があるプロデュースへ。

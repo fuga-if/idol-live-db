@@ -14,15 +14,25 @@ struct ProducerCardExchangeView: View {
 
     /// 自分の名刺。まだ作っていなければ nil (読むだけはできる。相手には送り返さない)。
     let myCard: EncodedProducerCard?
-    var initialMode: Mode = .show
 
-    @State private var mode: Mode = .show
+    /// 開いている交換の画面の数。開いている間に名刺のリンク・名刺ファイルが届いたら、
+    /// ルートのシートを重ねずにこの画面の中で受け取りの確認を開く。
+    static var openCount = 0
+
+    init(myCard: EncodedProducerCard?, initialMode: Mode = .show) {
+        self.myCard = myCard
+        _mode = State(initialValue: initialMode)
+    }
+
+    @State private var mode: Mode
     @State private var nearby = NearbyCardExchange()
     @State private var myFile: Data?
     @State private var path: [IncomingProducerCard] = []
     @State private var scanNotice: String?
     @State private var lastReceived: String?
     @State private var savedNotice: String?
+    /// 確認で ✓ を押した名刺 (中身 → 名刺入れの id)。✓ の後に近くの相手から画像が届いたら足す。
+    @State private var savedIds: [String: String] = [:]
     @State private var previousBrightness: CGFloat?
 
     var body: some View {
@@ -38,25 +48,34 @@ struct ProducerCardExchangeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .imasSheetToolbar(.read(onClose: { dismiss() }))
             .navigationDestination(for: IncomingProducerCard.self) { incoming in
-                ProducerCardReceiveView(incoming: incoming, nearby: nearby) { saved in
-                    if let saved { savedNotice = "\(saved)さんの名刺を名刺入れに入れました" }
+                ProducerCardReceiveView(incoming: incoming, nearby: incoming.via == .scan ? nearby : nil) { saved in
+                    if let saved {
+                        savedNotice = "\(saved.name)さんの名刺を名刺入れに入れました"
+                        // 近くの相手との受け渡しは、画像が届くか待ち時間が過ぎるまで続ける。
+                        savedIds[incoming.payload] = saved.id
+                        nearby.allowSending()
+                    } else if incoming.via == .scan {
+                        nearby.stop()
+                    }
                     path = []
                 }
             }
         }
         .task {
-            mode = initialMode
             myFile = myCard.flatMap(ProducerCardAssembler.myCardFile)
             apply(mode)
         }
         .onChange(of: mode) { _, new in apply(new) }
-        .onChange(of: path) { _, new in
-            // 確認から戻ったら、読む画面の名乗り (探す) をやめる。
-            if new.isEmpty, mode == .read { nearby.stop() }
-        }
+        .onAppear { Self.openCount += 1 }
         .onDisappear {
+            Self.openCount -= 1
             nearby.stop()
             restoreBrightness()
+        }
+        // 開いている間に届いた名刺のリンク・名刺ファイルは、この画面の中で受け取る。
+        .onReceive(NotificationCenter.default.publisher(for: .producerCardIncoming)) { note in
+            guard let incoming = note.object as? IncomingProducerCard else { return }
+            path = [incoming]
         }
     }
 
@@ -120,8 +139,13 @@ struct ProducerCardExchangeView: View {
             scanNotice = nil
             savedNotice = nil
             AppAnalytics.tap("producer_card.scan")
-            nearby.onReceive = nil
             nearby.startReading(payload: payload, file: myFile)
+            // ✓ の後に届いた画像は、しまった名刺に足す (✓ の前は確認の画面が受け取る)。
+            nearby.onReceive = { contents in
+                if let id = savedIds[contents.payload] {
+                    ProducerCardInbox.attachImages(cardId: id, images: contents.images)
+                }
+            }
             path = [IncomingProducerCard(payload: payload, images: [], via: .scan)]
         case .link:
             scanNotice = "P名刺の QR ではありません。紙の名刺に刷られた QR は、名刺入れの「紙の名刺を取り込む」から読めます。"
@@ -152,8 +176,8 @@ struct ProducerCardExchangeView: View {
         let record = try? await ProducerCardAssembler.loadMyRecord()
         let showId = record.flatMap { ProducerCardInbox.exchangeShowCandidates(record: $0).first }
         let infos = (try? await AppContainer.shared.producerCards.showInfos(ids: [showId].compactMap { $0 })) ?? [:]
-        _ = try? await ProducerCardInbox.store(payload: contents.payload, images: contents.images, source: .app,
-                                               show: showId.flatMap { infos[$0] })
+        guard (try? await ProducerCardInbox.store(payload: contents.payload, images: contents.images, source: .app,
+                                                  show: showId.flatMap { infos[$0] })) != nil else { return }
         lastReceived = contents.card.name
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
@@ -175,6 +199,11 @@ struct ProducerCardExchangeView: View {
         screen.brightness = previous
         previousBrightness = nil
     }
+}
+
+extension Notification.Name {
+    /// 交換の画面が開いている間に名刺のリンク・名刺ファイルが届いた (object は `IncomingProducerCard`)。
+    static let producerCardIncoming = Notification.Name("producerCardIncoming")
 }
 
 /// 受け取りの確認に渡す名刺 (QR・リンク・名刺ファイルのどれから来たか)。

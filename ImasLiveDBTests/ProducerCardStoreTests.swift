@@ -86,6 +86,17 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(try db.myProducerCard()?.name, "書き直した名前")
     }
 
+    /// 同じ相手の名刺 (中身が同じ) は、別の id で届いても 1 枚にする。
+    func testSamePayloadIsNotStoredTwice() async throws {
+        let db = try makeDatabase()
+        let first = try await db.insertReceivedProducerCardIfNew(received("c1", name: "しろくまP"))
+        let second = try await db.insertReceivedProducerCardIfNew(received("c2", name: "しろくまP"))
+        XCTAssertEqual(first.id, "c1")
+        XCTAssertEqual(second.id, "c1", "同じ中身なら既にある名刺を返す")
+        XCTAssertEqual(try db.restoreReceivedProducerCardsIfAbsent([received("c3", name: "しろくまP")]), 0)
+        XCTAssertEqual(try db.allReceivedProducerCardIds(), ["c1"])
+    }
+
     /// 書き出したバックアップを空の端末に取り込むと、名刺入れと自分の名刺が戻る。
     func testBackupRoundTripRestoresProducerCards() throws {
         let source = try makeDatabase()

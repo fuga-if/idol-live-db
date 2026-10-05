@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "producer_card")
 
 extension Notification.Name {
     /// 名刺入れが変わった (受け取った・消した・メモを書いた)。名刺入れの画面と数の札が読み直す。
@@ -15,20 +18,23 @@ enum ProducerCardInbox {
     }
 
     /// 名刺をしまう。同じ中身の名刺が既にあれば新しく足さず、その名刺に画像だけ足して返す
-    /// (同じ相手の QR を 2 回読んでも 2 枚にしない)。
+    /// (同じ相手の QR を 2 回読んでも 2 枚にしない)。`dedupe: false` は QR の無い紙の名刺
+    /// (名前だけで中身を作るので、同じ名前の別人と重ならないように常に新しく足す)。
+    /// 画像を書けなくても名刺はしまえているので、失敗は記録だけにする。
     @discardableResult
     static func store(payload: String, images: [CardFileImage], source: ReceivedProducerCard.Source,
-                      show: ProducerCardShowInfo?) async throws -> ReceivedProducerCard {
+                      show: ProducerCardShowInfo?, dedupe: Bool = true) async throws -> ReceivedProducerCard {
         let store = AppContainer.shared.producerCards
-        let saved: ReceivedProducerCard
-        if let existing = try await store.receivedCard(payload: payload) {
-            saved = existing
-        } else {
-            saved = ReceivedProducerCard.make(payload: payload, source: source,
+        let fresh = ReceivedProducerCard.make(payload: payload, source: source,
                                               showId: show?.id, showDate: show?.date)
-            try await store.saveReceived(saved)
+        let saved: ReceivedProducerCard
+        if dedupe {
+            saved = try await store.insertReceivedIfNew(fresh)
+        } else {
+            try await store.saveReceived(fresh)
+            saved = fresh
         }
-        try ProducerCardFiles.saveOshiImages(cardId: saved.id, images: images)
+        attachImages(cardId: saved.id, images: images)
         NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
         return saved
     }
@@ -36,7 +42,11 @@ enum ProducerCardInbox {
     /// 後から届いた担当の画像を、しまった名刺に足す。
     static func attachImages(cardId: String, images: [CardFileImage]) {
         guard !images.isEmpty else { return }
-        try? ProducerCardFiles.saveOshiImages(cardId: cardId, images: images)
+        do {
+            try ProducerCardFiles.saveOshiImages(cardId: cardId, images: images)
+        } catch {
+            logger.error("producer_card_image_save_failed: \(error.localizedDescription)")
+        }
         NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
     }
 

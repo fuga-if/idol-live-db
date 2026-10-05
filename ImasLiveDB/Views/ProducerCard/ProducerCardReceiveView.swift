@@ -10,8 +10,8 @@ struct ProducerCardReceiveView: View {
     let incoming: IncomingProducerCard
     /// 近くの相手から画像を受け取る口 (QR を読んだときだけ)。
     var nearby: NearbyCardExchange? = nil
-    /// 終わったとき (しまえたら相手の名前、やめたら nil)。渡さなければ画面を閉じる。
-    var onDone: ((String?) -> Void)? = nil
+    /// 終わったとき (しまえたら相手の名前と名刺入れの id、やめたら nil)。渡さなければ画面を閉じる。
+    var onDone: (((name: String, id: String)?) -> Void)? = nil
 
     @State private var record: ProducerCardMyRecord?
     @State private var directory = ProducerCardDirectory()
@@ -21,7 +21,6 @@ struct ProducerCardReceiveView: View {
     @State private var showOptions: [LedgerShowOption] = []
     @State private var pickingShow = false
     @State private var isSaving = false
-    @State private var savedId: String?
     @State private var error: String?
 
     private var card: ProducerCard? { decodeProducerCard(text: incoming.payload) }
@@ -63,7 +62,6 @@ struct ProducerCardReceiveView: View {
         .onChange(of: nearby?.received) { _, contents in
             guard let contents, contents.payload == incoming.payload else { return }
             accept(contents.images)
-            if let savedId { ProducerCardInbox.attachImages(cardId: savedId, images: contents.images) }
         }
     }
 
@@ -96,7 +94,7 @@ struct ProducerCardReceiveView: View {
         if let nearby, incoming.via == .scan {
             switch nearby.phase {
             case .searching, .connected, .waiting:
-                ImasNote("近くの相手の iPhone から担当の画像を受け取っています…")
+                ImasNote("近くの相手の iPhone から担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。")
             case .received:
                 ImasNote(images.isEmpty ? "相手の名刺を受け取りました (担当の画像は設定されていません)。" : "担当の画像を受け取りました。")
             case .notFound, .idle:
@@ -126,7 +124,7 @@ struct ProducerCardReceiveView: View {
         images = new
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("producer_card_incoming", isDirectory: true)
-            .appendingPathComponent(cardPeerTag(payload: incoming.payload), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var urls: [String: URL] = [:]
         for (i, image) in new.enumerated() {
@@ -143,10 +141,9 @@ struct ProducerCardReceiveView: View {
         do {
             let saved = try await ProducerCardInbox.store(payload: incoming.payload, images: images,
                                                           source: .app, show: show)
-            savedId = saved.id
             AppAnalytics.tap("producer_card.receive")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            if let onDone { onDone(card.name) } else { dismiss() }
+            if let onDone { onDone((card.name, saved.id)) } else { dismiss() }
         } catch {
             self.error = error.localizedDescription
         }

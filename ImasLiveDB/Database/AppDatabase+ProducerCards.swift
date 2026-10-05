@@ -77,6 +77,19 @@ extension AppDatabase {
         try dbQueue.write { db in try row.save(db) }
     }
 
+    /// 同じ中身の名刺が無ければ入れる。あればそれを返す (探すのと入れるのを 1 つの書き込みで行い、
+    /// 同時に 2 回届いても 2 枚にしない)。
+    func insertReceivedProducerCardIfNew(_ card: ReceivedProducerCard) async throws -> ReceivedProducerCard {
+        try await dbQueue.write { db in
+            if let existing = try ReceivedProducerCard
+                .filter(ReceivedProducerCard.Columns.payload == card.payload).fetchOne(db) {
+                return existing
+            }
+            try card.insert(db)
+            return card
+        }
+    }
+
     func deleteReceivedProducerCard(id: String) throws {
         _ = try dbQueue.write { db in try ReceivedProducerCard.deleteOne(db, key: id) }
     }
@@ -92,7 +105,11 @@ extension AppDatabase {
         try dbQueue.write { db in
             var inserted = 0
             for card in cards {
-                guard try ReceivedProducerCard.fetchOne(db, key: card.id) == nil else { continue }
+                // id が同じもの、または同じ相手の名刺 (中身が同じ) が既にあれば入れない
+                // (機種変の前後で同じ相手から受け取っていても 2 枚にしない)。
+                guard try ReceivedProducerCard.fetchOne(db, key: card.id) == nil,
+                      try ReceivedProducerCard.filter(ReceivedProducerCard.Columns.payload == card.payload)
+                        .fetchCount(db) == 0 else { continue }
                 try card.insert(db)
                 inserted += 1
             }

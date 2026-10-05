@@ -16,6 +16,8 @@ protocol ProducerCardStoring: Sendable {
     func receivedCard(id: String) async throws -> ReceivedProducerCard?
     /// 同じ中身の名刺が既にあればそれを返す (同じ相手を 2 回読んでも 2 枚にしない)。
     func receivedCard(payload: String) async throws -> ReceivedProducerCard?
+    /// 同じ中身の名刺が無ければ足し、あればそれを返す (探すのと足すのは 1 つの書き込み)。
+    func insertReceivedIfNew(_ card: ReceivedProducerCard) async throws -> ReceivedProducerCard
     /// 同じ id があれば上書きし、無ければ足す。
     func saveReceived(_ card: ReceivedProducerCard) async throws
     func deleteReceived(id: String) async throws
