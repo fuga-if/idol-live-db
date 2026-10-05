@@ -15,6 +15,7 @@ use imas_core::domain::song_list_queries::{song_list_indexes, SongQuery};
 use imas_core::domain::idol_list_filtering::{
     filter_idol_list, idol_list_entries, sort_idol_list, IdolListEntry, IdolQuery,
 };
+use imas_core::domain::producer_card::{card_link_view, decode_producer_card, CardLinkView};
 use imas_core::domain::{idol_queries, list_facets};
 use wasm_bindgen::prelude::*;
 
@@ -90,6 +91,73 @@ impl Query {
 
 fn to_json(value: &impl serde::Serialize) -> Result<String, JsValue> {
     serde_json::to_string(value).map_err(|e| JsValue::from_str(&format!("選択肢を組めない: {e}")))
+}
+
+// ---------------------------------------------------------------------------
+// P名刺 (`/p/`) — Snapshot を要らない、入口だけの読み解き。
+// ---------------------------------------------------------------------------
+//
+// 名刺の形式の正は `imas_core::domain::producer_card`。ここは `decode_producer_card` /
+// `card_link_view` を呼んで、ページがそのまま描ける形の JSON に詰め替えるだけ
+// (TS には読み解きの判断を 1 行も書かせない)。
+// `Query` (Snapshot 組み直し) を経由しないのは、名刺の読み解きが生テーブル
+// (10MB 級) を要らないため。名刺ページはこれだけを wasm から呼ぶ。
+
+/// 名刺の中身をそのまま描ける形にしたもの。フィールド名は JS 側で camelCase になる
+/// (`#[serde(rename_all = "camelCase")]`)。
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CardView {
+    name: String,
+    message: String,
+    since_year: Option<u16>,
+    /// `p/catalog.json` の `idols` と突き合わせる。並び順は名刺の並び順のまま。
+    oshi_idol_ids: Vec<String>,
+    /// `card_link_view` まで通した形 (label/display/url)。TS は URL を組まない。
+    links: Vec<CardLinkView>,
+    show_count: Option<u32>,
+    song_count: Option<u32>,
+    /// `p/catalog.json` の `upcomingShows` と突き合わせる。今後の公演でなければ
+    /// (台帳に無ければ) ページ側が欄ごと出さない。
+    next_show_id: Option<String>,
+    attended_count: u32,
+    attended_truncated: bool,
+    /// `"YYYY.MM.DD 時点"`。`issued_on` (`YYYY-MM-DD`、producer_card が保証する形) を
+    /// 区切りだけ変えたもの (日付の規則ではなく表記の整形なので wasm 側でやる)。
+    issued_on_display: String,
+}
+
+/// 名刺の URL (または `#` の後ろだけ) を読み解く。名刺でなければ `null`。
+#[wasm_bindgen]
+pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
+    let Some(card) = decode_producer_card(text) else {
+        return Ok(JsValue::NULL);
+    };
+    let view = CardView {
+        name: card.name,
+        message: card.message,
+        since_year: card.since_year,
+        oshi_idol_ids: card.oshi_idol_ids,
+        links: card.links.iter().map(card_link_view).collect(),
+        show_count: card.show_count,
+        song_count: card.song_count,
+        next_show_id: card.next_show_id,
+        attended_count: card.attended.len() as u32,
+        attended_truncated: card.attended_truncated,
+        issued_on_display: issued_on_display(&card.issued_on),
+    };
+    let json = to_json(&view)?;
+    Ok(JsValue::from_str(&json))
+}
+
+/// `"2026-10-06"` → `"2026.10.06 時点"`。既に `YYYY-MM-DD` である前提
+/// (`producer_card::encode_producer_card` が保証する) で、壊れていれば原文を出す。
+fn issued_on_display(issued_on: &str) -> String {
+    let parts: Vec<&str> = issued_on.split('-').collect();
+    match parts.as_slice() {
+        [y, m, d] => format!("{y}.{m}.{d} 時点"),
+        _ => issued_on.to_string(),
+    }
 }
 
 #[cfg(test)]
