@@ -108,6 +108,18 @@ function copyGeneratedAssets() {
         } else {
           logger.warn(`${tables} がありません (一覧の絞り込みが動きません)`);
         }
+
+        // P名刺 (`/p/`) の台帳。id → 名前・色・URL を引くためだけの小さな JSON で、
+        // 名刺の中身 (# の後ろ) はここに無い。island がブラウザから直接 fetch する。
+        const catalog = path.join(root, "p", "catalog.json");
+        if (fs.existsSync(catalog)) {
+          const cdest = new URL("p/", dir);
+          fs.mkdirSync(cdest, { recursive: true });
+          fs.copyFileSync(catalog, new URL("catalog.json", cdest));
+          logger.info(`p/catalog.json を配置しました (${fs.statSync(catalog).size} B)`);
+        } else {
+          logger.warn(`${catalog} がありません (/p/ が名刺を描けません)`);
+        }
       },
     },
   };
