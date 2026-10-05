@@ -1,0 +1,223 @@
+{
+ "title": "ファミソン8BIT☆アイドルマスターの再配信に合わせて apple_music_id を張り替える",
+ "author": "daily-health-check",
+ "source": "iTunes lookup country=JP 2026-10-05",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_go_my_wayワンダーモモ_ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "6761895246",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b0/7a/94/b07a9454-1fae-858f-07fc-c58d6b0e1d3f/mzaf_11267770346278303081.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895246",
+   "note": "旧 id 1677713815 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / GO MY WAY!! (『ワンダーモモ』 ファミソン8BIT MIX) / 高槻やよい & 双海亜美・真美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_labyrinth",
+   "fields": {
+    "apple_music_id": "6761895247",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/3e/f0/9c/3ef09c98-5688-923e-0e8c-b130296908c8/mzaf_410001470326652046.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895247",
+   "note": "旧 id 1677713823 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / Labyrinth (『パックマン』NEW SONG) / 高槻やよい)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_おはよう朝ご飯ドルアーガの塔ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "6761895248",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/30/9e/59/309e59f5-888b-bf6b-ff4c-6bc55238207d/mzaf_16139465051833844136.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895248",
+   "note": "旧 id 1677713826 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / おはよう!!朝ご飯 (『ドルアーガの塔』ファミソン8BIT MIX) / 高槻やよい & 双海亜美・真美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_lr",
+   "fields": {
+    "apple_music_id": "6761895249",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e3/73/a0/e373a0dc-c980-4a95-b41d-7a23d59de2a4/mzaf_15746031317730185199.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895249",
+   "note": "旧 id 1677713832 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / L<>R (『リブルラブル』NEW SONG) / 双海亜美・真美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ポジティブマッピーファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "6761895250",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c5/ca/1a/c5ca1a16-dbcb-38b8-fc7c-2a48b4d89256/mzaf_17045977384488036911.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895250",
+   "note": "旧 id 1677714167 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / ポジティブ! (『マッピー』ファミソン8BIT MIX) / 高槻やよい & 双海亜美・真美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_エージェント夜を往くhoover_acid_mix",
+   "fields": {
+    "apple_music_id": "6761895251",
+    "apple_music_album_id": "1891972843",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/b7/ec/90/b7ec9056-ca3f-87b3-88e8-c8f35a219b5c/4560248018107_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/79/df/cf/79dfcfe7-5a0a-358b-25cf-1016277c1a48/mzaf_5697420210064971197.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972843?i=6761895251",
+   "note": "旧 id 1677714180 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター01 / エージェント夜を往く (Hoover & Acid MIX) / 双海亜美・真美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_私はアイドルワルキューレの伝説ファミソン8bit_mix",
+   "fields": {
+    "apple_music_id": "1891972490",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/99/45/4d/99454d51-81a8-e1b4-72f3-51a8d0a4a82c/mzaf_3866339481962841400.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972485?i=1891972490",
+   "note": "旧 id 1677719863 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター02 / 私はアイドル (『ワルキューレの伝説』 ファミソン8BIT MIX) / 天海春香 & 星井美希)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_強い女",
+   "fields": {
+    "apple_music_id": "1891972498",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c6/96/19/c696199d-c650-74be-94b0-3af743a6d0a0/mzaf_6918360225108029634.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972485?i=1891972498",
+   "note": "旧 id 1677719997 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター02 / 強い女 (『メトロクロス』) / 天海春香)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_shooting",
+   "fields": {
+    "apple_music_id": "1891972504",
+    "apple_music_album_id": "1891972485",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6b/97/d9/6b97d97d-3137-db5a-01ad-fc914dae3798/4560248018114_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/65/92/44/6592444d-6533-1151-d257-b1d2be38a8d1/mzaf_10325636856368927613.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891972485?i=1891972504",
+   "note": "旧 id 1677720006 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター02 / Shooting!!! (『F/A』) / 星井美希)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_tower_of_adventure",
+   "fields": {
+    "apple_music_id": "1891975371",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/9d/f7/fa/9df7fa53-2e82-9b0e-f7ce-92d8b2dc210b/mzaf_579520541174464385.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891975128?i=1891975371",
+   "note": "旧 id 1677724875 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター03 / Tower of Adventure (『バベルの塔』NEW SONG) / 秋月律子)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_禁恋歌",
+   "fields": {
+    "apple_music_id": "1891975377",
+    "apple_music_album_id": "1891975128",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/c6/5a/c9/c65ac9ec-79db-c0fc-f1af-4c03869033ac/4560248018121_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b9/3a/e7/b93ae7f6-cc5e-7f2e-2ba3-7a8e3fc34eab/mzaf_2622363680389830691.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891975128?i=1891975377",
+   "note": "旧 id 1677725012 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター03 / 禁恋歌 (『源平討魔伝』NEW SONG) / 三浦あずさ)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_excavate",
+   "fields": {
+    "apple_music_id": "1891976021",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a9/26/4c/a9264c4f-c129-bc3d-5d7a-c54bd464d00f/mzaf_10003384997798826891.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891976011?i=1891976021",
+   "note": "旧 id 1677720355 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター04 / EXCAVATE (『ディグダグ』NEW SONG) / 萩原雪歩)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_ハリキリラリー",
+   "fields": {
+    "apple_music_id": "1891976024",
+    "apple_music_album_id": "1891976011",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fb/19/7c/fb197ce5-852a-0342-6af7-df17deff76fc/4560248018138_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7a/6b/1c/7a6b1c9a-daf2-f2dc-a282-e5cfcd71276a/mzaf_11007182259966555956.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891976011?i=1891976024",
+   "note": "旧 id 1677720367 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター04 / ハリキリ★ラリー (『ニューラリーX』NEW SONG) / 菊地 真)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_乙女心盗んで",
+   "fields": {
+    "apple_music_id": "1891977032",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/79/1f/82/791f820e-b4b2-ebfd-7740-2f2b644cea09/mzaf_13515745930747408112.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891977022?i=1891977032",
+   "note": "旧 id 1677719609 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター05 / 乙女心盗んで! (『マッピー』NEW SONG) / 水瀬伊織)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_fly_high",
+   "fields": {
+    "apple_music_id": "1891977035",
+    "apple_music_album_id": "1891977022",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/0f/3c/92/0f3c92d2-a610-958c-0dc4-496433778aaf/4560248018145_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/82/dc/e0/82dce0f2-87ad-aacf-0530-a93f7673eb67/mzaf_10814058184590188575.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1891977022?i=1891977035",
+   "note": "旧 id 1677719870 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター05 / Fly High ! (『ドラゴンスピリット』NEW SONG) / 如月千早)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_うれしあやかし道中記",
+   "fields": {
+    "apple_music_id": "1890367976",
+    "apple_music_album_id": "1890367598",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/35/0d/ab/350dab6a-c63f-076d-eca0-64ea4c480137/4570068325866_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/db/1d/09/db1d0971-d7e6-5ab9-2816-79d9aa570de6/mzaf_6064579203685180170.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1890367598?i=1890367976",
+   "note": "旧 id 1677728385 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター BEST ALBUM / うれし・あやかし道中記 (『妖怪道中記』NEW SONG) / 沼倉愛美)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_旅の途中で",
+   "fields": {
+    "apple_music_id": "1890368028",
+    "apple_music_album_id": "1890367598",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/35/0d/ab/350dab6a-c63f-076d-eca0-64ea4c480137/4570068325866_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/10/cd/df/10cddf81-f8ed-3cf5-1812-cd6d2a1f7320/mzaf_15774009026444433883.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1890367598?i=1890368028",
+   "note": "旧 id 1677728605 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター BEST ALBUM / 旅の途中で (『ワルキューレの伝説』NEW SONG) / Yumi Hara)"
+  },
+  {
+   "table": "songs",
+   "id": "765as_飛べスカイキッド",
+   "fields": {
+    "apple_music_id": "1890368032",
+    "apple_music_album_id": "1890367598",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/35/0d/ab/350dab6a-c63f-076d-eca0-64ea4c480137/4570068325866_Cover.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/b9/1f/2a/b91f2aac-72b2-6f61-6833-9d0b194dbc29/mzaf_6992096847442575947.plus.aac.p.m4a"
+   },
+   "source": "https://music.apple.com/jp/album/1890367598?i=1890368032",
+   "note": "旧 id 1677728613 が iTunes lookup で resultCount=0。同じ盤が新 id で再配信 (ファミソン8BIT☆アイドルマスター BEST ALBUM / 飛べ!スカイキッド (『スカイキッド』NEW SONG) / 滝田樹里)"
+  }
+ ]
+}
