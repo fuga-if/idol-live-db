@@ -98,8 +98,8 @@ enum ProducerCardDisplay {
             parts.append(names.count > 1 ? "\(first) ほか\(names.count - 1)人" : first)
         }
         if let shows = card.showCount { parts.append("\(shows.formatted()) 公演") }
-        if parts.isEmpty, let link = links(card).first {
-            parts.append(link.display)
+        if parts.isEmpty, let link = card.links.first {
+            parts.append(cardLinkView(link: link).display)
         }
         return parts.joined(separator: " · ")
     }

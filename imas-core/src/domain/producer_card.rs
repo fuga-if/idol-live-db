@@ -170,6 +170,8 @@ pub enum ProducerCardInputError {
     LinkInvalid,
     /// 自分の QR の URL の形が合わない (http(s) の URL でない・名刺の URL を入れた・長すぎる)。
     QrUrlInvalid,
+    /// 公演を外しても QR に収まらない (リンクや自分の QR が長すぎる)。
+    TooLong,
 }
 
 /// 入力の上限。編集画面の文字数の表示と入力の打ち切りに使う。
@@ -268,6 +270,14 @@ pub fn validate_producer_card(input: &ProducerCardInput) -> Option<ProducerCardI
             return Some(ProducerCardInputError::QrUrlInvalid);
         }
     }
+    // 公演は組み立てで落とせるので、公演を除いても収まるかを見る (収まらない名刺は相手が読めない)。
+    let without_shows = ProducerCardInput {
+        attended: Vec::new(),
+        ..input.clone()
+    };
+    if encode_producer_card(&without_shows).url.len() > MAX_URL_LEN {
+        return Some(ProducerCardInputError::TooLong);
+    }
     None
 }
 
@@ -282,7 +292,10 @@ pub fn producer_card_input_error_message(error: ProducerCardInputError) -> Strin
         ProducerCardInputError::TooManyLinks => format!("リンクは{MAX_LINKS}本までです"),
         ProducerCardInputError::LinkInvalid => "リンクの書き方を確かめてください".into(),
         ProducerCardInputError::QrUrlInvalid => {
-            "QR にする URL は https:// から始まるページの URL にしてください".into()
+            "QR にする URL は http:// か https:// から始まるページの URL にしてください".into()
+        }
+        ProducerCardInputError::TooLong => {
+            "名刺が長すぎて QR に収まりません。リンクか自分の QR を短くしてください".into()
         }
     }
 }
@@ -1477,7 +1490,7 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             let end = r.pos.checked_add(len)?;
             let body = r.bytes.get(r.pos..end)?;
             r.pos = end;
-            if kind == SECTION_PHOTO {
+            if kind == SECTION_PHOTO && !images.iter().any(|i| i.kind == CardFileImageKind::Photo) {
                 images.push(CardFileImage {
                     idol_id: String::new(),
                     jpeg: body.to_vec(),
@@ -2128,6 +2141,22 @@ mod tests {
         i.qr_url = Some("  ".into());
         assert_eq!(validate_producer_card(&i), None);
         assert_eq!(encode_producer_card(&i).card.qr_url, None);
+    }
+
+    #[test]
+    fn too_long_cards_are_rejected_by_validation() {
+        let mut i = input();
+        i.links = (0..4)
+            .map(|n| CardLink {
+                kind: CardLinkKind::Web,
+                value: format!("https://example.com/{n}/{}", "a".repeat(170)),
+            })
+            .collect();
+        i.qr_url = Some(format!("https://example.com/{}", "b".repeat(170)));
+        assert_eq!(
+            validate_producer_card(&i),
+            Some(ProducerCardInputError::TooLong)
+        );
     }
 
     #[test]

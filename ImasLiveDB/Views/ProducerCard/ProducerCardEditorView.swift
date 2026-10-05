@@ -102,6 +102,11 @@ struct ProducerCardEditorView: View {
 
                 if let error {
                     Text(error).imasText(.note, color: DS.danger)
+                } else if validation == .tooLong {
+                    Text(producerCardInputErrorMessage(error: .tooLong)).imasText(.note, color: DS.danger)
+                }
+                if nameFont != cardNameFonts()[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
+                    ImasNote("書体や自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                 }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
             }
@@ -403,6 +408,8 @@ struct ProducerCardEditorView: View {
         isSaving = true
         defer { isSaving = false }
         do {
+            try await onSave(draft)
+            // 名刺を保存できてから写真を書く (保存に失敗して編集をやめたとき、写真だけ変わらないように)。
             if photoDirty {
                 if let photoSource {
                     try ProducerCardFiles.saveMyPhoto(source: photoSource, crop: crop)
@@ -410,7 +417,6 @@ struct ProducerCardEditorView: View {
                     ProducerCardFiles.deleteMyPhoto()
                 }
             }
-            try await onSave(draft)
             AppAnalytics.tap("producer_card.save")
             dismiss()
         } catch {
@@ -422,6 +428,8 @@ struct ProducerCardEditorView: View {
 
     private func loadPhoto() {
         guard !photoDirty else { return }
+        // 前に開いたときの見本の一時ファイルを片付ける。
+        try? FileManager.default.removeItem(at: Self.previewFolder)
         photoSource = ProducerCardFiles.myPhotoSourceURL.flatMap { UIImage(contentsOfFile: $0.path) }
         crop = ProducerCardFiles.myPhotoCrop ?? ImasPortraitCrop()
         previewPortrait = photoSource == nil ? nil : ProducerCardFiles.myPhotoURL
@@ -439,7 +447,7 @@ struct ProducerCardEditorView: View {
     /// 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。
     private func applyCrop(image: UIImage, crop: ImasPortraitCrop) async {
         guard let rendered = crop.render(image), let jpeg = ProducerCardFiles.jpeg(rendered) else { return }
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("producer_card_edit", isDirectory: true)
+        let dir = Self.previewFolder
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("\(UUID().uuidString).jpg")
         guard (try? jpeg.write(to: url, options: .atomic)) != nil else { return }
@@ -447,6 +455,11 @@ struct ProducerCardEditorView: View {
         self.crop = crop
         previewPortrait = url
         photoDirty = true
+    }
+
+    /// 見本に出す切り抜き済みの写真の一時置き場。
+    private static var previewFolder: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("producer_card_edit", isDirectory: true)
     }
 
     private func removePhoto() {
