@@ -157,7 +157,9 @@ enum PaperCardRectifier {
     static let defaultCorners = [CGPoint(x: 0.08, y: 0.08), CGPoint(x: 0.92, y: 0.08),
                                  CGPoint(x: 0.92, y: 0.92), CGPoint(x: 0.08, y: 0.92)]
 
-    private static let context = CIContext()
+    /// CIContext はスレッドをまたいで使ってよい (Apple の文書どおり) が Sendable ではないので、
+    /// 古い Xcode の CI が並行性の検査で落とす。
+    nonisolated(unsafe) private static let context = CIContext()
 
     static func rectify(_ image: UIImage) async -> Result {
         let upright = upright(image)
