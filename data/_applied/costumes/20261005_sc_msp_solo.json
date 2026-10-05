@@ -1,0 +1,676 @@
+{
+ "costumes": [
+  {
+   "id": "cos_sc_msp_緋田美琴",
+   "brand_id": "sc",
+   "name": "イマースドルックアップ",
+   "name_kana": "いまーすどるっくあっぷ",
+   "unit_id": null,
+   "idol_id": "sc_緋田美琴",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で緋田 美琴が『Crying Diamond』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106972655194702230",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0016",
+     "idol_id": "sc_緋田美琴"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0037",
+     "idol_id": "sc_緋田美琴"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_福丸小糸",
+   "brand_id": "sc",
+   "name": "ワタシプリティコンフィデント",
+   "name_kana": "わたしぷりてぃこんふぃでんと",
+   "unit_id": null,
+   "idol_id": "sc_福丸小糸",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で福丸 小糸が『Here for you』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106942455425774074",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0020",
+     "idol_id": "sc_福丸小糸"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0041",
+     "idol_id": "sc_福丸小糸"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_黛冬優子",
+   "brand_id": "sc",
+   "name": "スペシャルオンスペシアル",
+   "name_kana": "すぺしゃるおんすぺしある",
+   "unit_id": null,
+   "idol_id": "sc_黛冬優子",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で黛 冬優子が『ガガリズム』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106912256638513496",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0018",
+     "idol_id": "sc_黛冬優子"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0039",
+     "idol_id": "sc_黛冬優子"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_大崎甜花",
+   "brand_id": "sc",
+   "name": "キャッチュードマーニ",
+   "name_kana": "きゃっちゅーどまーに",
+   "unit_id": null,
+   "idol_id": "sc_大崎甜花",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で大崎 甜花が『Odette』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106715965690089642",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0015",
+     "idol_id": "sc_大崎甜花"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0036",
+     "idol_id": "sc_大崎甜花"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_西城樹里",
+   "brand_id": "sc",
+   "name": "ストラミングブリーチ",
+   "name_kana": "すとらみんぐぶりーち",
+   "unit_id": null,
+   "idol_id": "sc_西城樹里",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で西城 樹里が『パラボラ』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106640462484496638",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0021",
+     "idol_id": "sc_西城樹里"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0042",
+     "idol_id": "sc_西城樹里"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_園田智代子",
+   "brand_id": "sc",
+   "name": "サンデーチョコデート♡",
+   "name_kana": "さんでーちょこでーと",
+   "unit_id": null,
+   "idol_id": "sc_園田智代子",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で園田 智代子が『ナイススパイス研究会』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106595168627347885",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0017",
+     "idol_id": "sc_園田智代子"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0038",
+     "idol_id": "sc_園田智代子"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_三峰結華",
+   "brand_id": "sc",
+   "name": "フィールズ・プラスチック",
+   "name_kana": "ふぃーるずぷらすちっく",
+   "unit_id": null,
+   "idol_id": "sc_三峰結華",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で三峰 結華が『最上級パンチライン』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106549869854802092",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0019",
+     "idol_id": "sc_三峰結華"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0040",
+     "idol_id": "sc_三峰結華"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_斑鳩ルカ",
+   "brand_id": "sc",
+   "name": "リガーズトゥアバンドーン",
+   "name_kana": "りがーずとぅあばんどーん",
+   "unit_id": null,
+   "idol_id": "sc_斑鳩ルカ",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で斑鳩 ルカが『HELL-O』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106353582152827299",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0037",
+     "idol_id": "sc_斑鳩ルカ"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0002",
+     "idol_id": "sc_斑鳩ルカ"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_七草にちか",
+   "brand_id": "sc",
+   "name": "リヴィングフェアリー",
+   "name_kana": "りゔぃんぐふぇありー",
+   "unit_id": null,
+   "idol_id": "sc_七草にちか",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で七草 にちかが『Unstoppable』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106278075239665689",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0038",
+     "idol_id": "sc_七草にちか"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0003",
+     "idol_id": "sc_七草にちか"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_樋口円香",
+   "brand_id": "sc",
+   "name": "ドリームオブバタフライ",
+   "name_kana": "どりーむおぶばたふらい",
+   "unit_id": null,
+   "idol_id": "sc_樋口円香",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で樋口 円香が『ダミーガール』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106232777935061218",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0039",
+     "idol_id": "sc_樋口円香"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0004",
+     "idol_id": "sc_樋口円香"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_和泉愛依",
+   "brand_id": "sc",
+   "name": "ゴーイング・ストレイト",
+   "name_kana": "ごーいんぐすとれいと",
+   "unit_id": null,
+   "idol_id": "sc_和泉愛依",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で和泉 愛依が『Hold on me』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2106187487278481762",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0036",
+     "idol_id": "sc_和泉愛依"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0001",
+     "idol_id": "sc_和泉愛依"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_小宮果穂",
+   "brand_id": "sc",
+   "name": "ハナマルサンライズ",
+   "name_kana": "はなまるさんらいず",
+   "unit_id": null,
+   "idol_id": "sc_小宮果穂",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で小宮 果穂が『ハグルマヒマワリ』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105945899927064631",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0041",
+     "idol_id": "sc_小宮果穂"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0006",
+     "idol_id": "sc_小宮果穂"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_田中摩美々",
+   "brand_id": "sc",
+   "name": "メルティアイデンティティ",
+   "name_kana": "めるてぃあいでんてぃてぃ",
+   "unit_id": null,
+   "idol_id": "sc_田中摩美々",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で田中 摩美々が『正解な不正解』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105915690792489046",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0040",
+     "idol_id": "sc_田中摩美々"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0005",
+     "idol_id": "sc_田中摩美々"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_風野灯織",
+   "brand_id": "sc",
+   "name": "スローモーヴィメント",
+   "name_kana": "すろーもーゔぃめんと",
+   "unit_id": null,
+   "idol_id": "sc_風野灯織",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で風野 灯織が『Embers glow』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105885490192757073",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0042",
+     "idol_id": "sc_風野灯織"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0007",
+     "idol_id": "sc_風野灯織"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_浅倉透",
+   "brand_id": "sc",
+   "name": "リーヴィングスターチス",
+   "name_kana": "りーゔぃんぐすたーちす",
+   "unit_id": null,
+   "idol_id": "sc_浅倉透",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で浅倉 透が『Paradox』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105855288314359951",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0028",
+     "idol_id": "sc_浅倉透"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0021",
+     "idol_id": "sc_浅倉透"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_桑山千雪",
+   "brand_id": "sc",
+   "name": "リュバン・フォー・エヴァー",
+   "name_kana": "りゅばんふぉーえゔぁー",
+   "unit_id": null,
+   "idol_id": "sc_桑山千雪",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で桑山 千雪が『Sweet Boozy』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105583509326938400",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0025",
+     "idol_id": "sc_桑山千雪"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0018",
+     "idol_id": "sc_桑山千雪"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_有栖川夏葉",
+   "brand_id": "sc",
+   "name": "アブルマドールダマスカス",
+   "name_kana": "あぶるまどーるだますかす",
+   "unit_id": null,
+   "idol_id": "sc_有栖川夏葉",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で有栖川 夏葉が『Be-witched』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105553305460183278",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0024",
+     "idol_id": "sc_有栖川夏葉"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0017",
+     "idol_id": "sc_有栖川夏葉"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_杜野凛世",
+   "brand_id": "sc",
+   "name": "トコサキノトキワ",
+   "name_kana": "とこさきのときわ",
+   "unit_id": null,
+   "idol_id": "sc_杜野凛世",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で杜野 凛世が『月とネオンと薄紅と』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105523099793866999",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0022",
+     "idol_id": "sc_杜野凛世"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0015",
+     "idol_id": "sc_杜野凛世"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_白瀬咲耶",
+   "brand_id": "sc",
+   "name": "アルフライラリペーテレ",
+   "name_kana": "あるふらいらりぺーてれ",
+   "unit_id": null,
+   "idol_id": "sc_白瀬咲耶",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で白瀬 咲耶が『Lights on me』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105492911123308593",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0027",
+     "idol_id": "sc_白瀬咲耶"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0020",
+     "idol_id": "sc_白瀬咲耶"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_月岡恋鐘",
+   "brand_id": "sc",
+   "name": "マイハート・シグナル",
+   "name_kana": "まいはーとしぐなる",
+   "unit_id": null,
+   "idol_id": "sc_月岡恋鐘",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で月岡 恋鐘が『恋するクオリア』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105221110669173057",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0026",
+     "idol_id": "sc_月岡恋鐘"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0019",
+     "idol_id": "sc_月岡恋鐘"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_八宮めぐる",
+   "brand_id": "sc",
+   "name": "フレフレハレバレ",
+   "name_kana": "ふれふれはればれ",
+   "unit_id": null,
+   "idol_id": "sc_八宮めぐる",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で八宮 めぐるが『Take Ur Time』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105190910703063520",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0023",
+     "idol_id": "sc_八宮めぐる"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0016",
+     "idol_id": "sc_八宮めぐる"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_郁田はるき",
+   "brand_id": "sc",
+   "name": "アンフィニィキャンバス",
+   "name_kana": "あんふぃにぃきゃんばす",
+   "unit_id": null,
+   "idol_id": "sc_郁田はるき",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で郁田 はるきが『HSV色空間』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105160713723670637",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0002",
+     "idol_id": "sc_郁田はるき"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0023",
+     "idol_id": "sc_郁田はるき"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_鈴木羽那",
+   "brand_id": "sc",
+   "name": "イミットイノセンシア",
+   "name_kana": "いみっといのせんしあ",
+   "unit_id": null,
+   "idol_id": "sc_鈴木羽那",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で鈴木 羽那が『Imaginary』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2105130518123835813",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0007",
+     "idol_id": "sc_鈴木羽那"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0028",
+     "idol_id": "sc_鈴木羽那"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_市川雛菜",
+   "brand_id": "sc",
+   "name": "フィジーサイダーポップ",
+   "name_kana": "ふぃじーさいだーぽっぷ",
+   "unit_id": null,
+   "idol_id": "sc_市川雛菜",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で市川 雛菜が『ハートフルデイ ハートフルミー』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2104858721415258398",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0001",
+     "idol_id": "sc_市川雛菜"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0022",
+     "idol_id": "sc_市川雛菜"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_芹沢あさひ",
+   "brand_id": "sc",
+   "name": "イフワナビーアスター",
+   "name_kana": "いふわなびーあすたー",
+   "unit_id": null,
+   "idol_id": "sc_芹沢あさひ",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で芹沢 あさひが『ワタシグラビティ』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2104828526813700398",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0005",
+     "idol_id": "sc_芹沢あさひ"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0026",
+     "idol_id": "sc_芹沢あさひ"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_大崎甘奈",
+   "brand_id": "sc",
+   "name": "チェリッシュメモリーズ",
+   "name_kana": "ちぇりっしゅめもりーず",
+   "unit_id": null,
+   "idol_id": "sc_大崎甘奈",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で大崎 甘奈が『どっちみちLOVE』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2104798326281654731",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0003",
+     "idol_id": "sc_大崎甘奈"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0024",
+     "idol_id": "sc_大崎甘奈"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_幽谷霧子",
+   "brand_id": "sc",
+   "name": "セゾンカンヴィアーレ",
+   "name_kana": "せぞんかんゔぃあーれ",
+   "unit_id": null,
+   "idol_id": "sc_幽谷霧子",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で幽谷 霧子が『カラースプレーとうさぎさん』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2104768139552547177",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0006",
+     "idol_id": "sc_幽谷霧子"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0027",
+     "idol_id": "sc_幽谷霧子"
+    }
+   ]
+  },
+  {
+   "id": "cos_sc_msp_櫻木真乃",
+   "brand_id": "sc",
+   "name": "オールマイシャイニー",
+   "name_kana": "おーるまいしゃいにー",
+   "unit_id": null,
+   "idol_id": "sc_櫻木真乃",
+   "description": "283 PRODUCTION Solo Live Collection -Master ShowPiece- で櫻木 真乃が『MAGICAL FOREST』で着た衣装",
+   "source_url": "https://x.com/shinyc_official/status/2104541647602319784",
+   "sort_order": 0,
+   "note": "公式Xの公演紹介 (曲と衣装を対で告知)。日の指定が無く、その曲は両日披露されたため両日の同じ曲に付けた",
+   "wears": [
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_1",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_1_0004",
+     "idol_id": "sc_櫻木真乃"
+    },
+    {
+     "show_id": "sh_283_production_solo_live_collection_-master_showpiece-_2",
+     "setlist_item_id": "sh_283_production_solo_live_collection_-master_showpiece-_2_0025",
+     "idol_id": "sc_櫻木真乃"
+    }
+   ]
+  }
+ ]
+}
