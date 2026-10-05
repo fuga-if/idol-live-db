@@ -169,7 +169,7 @@ struct TicketBoardView: View {
         if let application = firstApplication(saleIds: sale.saleIds) {
             return .badge(ImasBadge(text: ticketApplicationLabel(kind: sale.sale.kind, application: application), kind: .guest))
         }
-        return .badge(ImasBadge(text: sale.remainingLabel, kind: .attention))
+        return .badge(ImasBadge(text: sale.remainingLabel, kind: .neutral))
     }
 
     /// まとめた受付 id 群のうち、最初に見つかった申込記録。

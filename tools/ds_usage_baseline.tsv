@@ -33,8 +33,8 @@ ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/polls/SongPollCa
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/CalendarScreen.kt	4
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/CalendarStyle.kt	2
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/DayDetailSheet.kt	6
-ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/MonthCalendar.kt	5
-ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/WeekTimeGrid.kt	27
+ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/MonthCalendar.kt	3
+ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/schedule/WeekTimeGrid.kt	24
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/settings/InboxScreen.kt	1
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/settings/SettingsScreen.kt	26
 ImasLiveDB-Android/app/src/main/kotlin/com/fugaif/imaslivedb/ui/songs/SongDetailScreen.kt	5
@@ -49,8 +49,8 @@ ImasLiveDB/App/ContentView.swift	1
 ImasLiveDB/Views/About/JASRACLicenseNotice.swift	6
 ImasLiveDB/Views/Admin/PlayabilityCheckView.swift	2
 ImasLiveDB/Views/Calendar/CalendarEntry+Display.swift	2
-ImasLiveDB/Views/Calendar/MonthCalendarView.swift	3
-ImasLiveDB/Views/Calendar/WeekTimeGridView.swift	3
+ImasLiveDB/Views/Calendar/MonthCalendarView.swift	2
+ImasLiveDB/Views/Calendar/WeekTimeGridView.swift	2
 ImasLiveDB/Views/ChatGPTPlan/CharacterTalkViews.swift	1
 ImasLiveDB/Views/Community/PenlightVoteSheet.swift	2
 ImasLiveDB/Views/Components/CallGuide/CallEditorSheet.swift	1
