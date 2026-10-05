@@ -72,6 +72,7 @@ const FETCH_ALLOWED: Record<string, string> = {
   "src/lib/search/island.ts": "/search/",
   "src/lib/listfilter/query.ts": "/snapshot/",
   "src/components/SongLyrics.astro": "(Rust が出した sourceUrl)",
+  "src/lib/card/island.ts": "/p/catalog.json",
 };
 
 describe("実行時の通信は同一オリジンだけ", () => {
