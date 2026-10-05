@@ -25,7 +25,7 @@ packages:
 settings:
   base:
     MARKETING_VERSION: "2.4.0"
-    CURRENT_PROJECT_VERSION: "63"
+    CURRENT_PROJECT_VERSION: "64"
 
 targets:
   ImasLiveDB:
