@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -132,7 +133,10 @@ private fun TicketRow(row: TicketCalendarRow, trailing: (@Composable () -> Unit)
     )
 }
 
-/** チケット受付期間行。被覆する日すべてに出る (受付中であることがその日に分かるように)。 */
+/**
+ * チケット受付期間行 / 配信のアーカイブを見られる期間の行。被覆する日すべてに出る
+ * (受付中・公開中であることがその日に分かるように)。
+ */
 @Composable
 private fun TicketPeriodRowView(
     row: TicketPeriodRow,
@@ -140,12 +144,17 @@ private fun TicketPeriodRowView(
     onClick: () -> Unit
 ) {
     val range = listOfNotNull(monthDay(row.start), monthDay(row.end)).joinToString(" 〜 ")
+    val isArchive = row.kind == TicketPeriodRow.Kind.ARCHIVE
     EntryRow(
-        icon = Icons.Filled.DateRange,
+        icon = if (isArchive) Icons.Filled.PlayArrow else Icons.Filled.DateRange,
         seed = CalendarThemeSeed.TICKET,
         leadBar = ImasRowLeadBar(seed = row.brandColor),
-        title = "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
-        subtitle = if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
+        // アーカイブの label は「{ライブ名} (DAY1 アーカイブ)」なので、見出しはライブ名、
+        // 対象公演は副題に回す (iOS の日詳細と同じ)。
+        title = if (isArchive) "${row.kindLabel} ・ ${row.eventName}" else "${Vocab.table.ticketPeriodLabel} ・ ${row.label}",
+        subtitle = if (isArchive) {
+            listOf(row.saleName, range).filter { it.isNotEmpty() }.joinToString("  ")
+        } else if (range.isEmpty()) "チケット受付期間" else "チケット受付  $range",
         trailing = trailing,
         onClick = onClick
     )

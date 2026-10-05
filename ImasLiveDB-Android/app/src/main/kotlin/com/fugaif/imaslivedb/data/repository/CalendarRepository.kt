@@ -193,6 +193,23 @@ class CalendarRepository(
                         label = record.label
                     )
                 )
+
+                is CalendarEntryRecord.ArchivePeriod -> CalendarEntry.TicketPeriod(
+                    date = record.start,
+                    row = TicketPeriodRow(
+                        eventId = record.eventId,
+                        eventName = record.eventName,
+                        brandColor = record.brandColor,
+                        start = record.start,
+                        end = record.end,
+                        url = null,
+                        saleId = "archive_${record.eventId}_${record.start}_${record.end}",
+                        saleName = record.showLabels.joinToString("・"),
+                        saleKind = null,
+                        label = record.label,
+                        kind = TicketPeriodRow.Kind.ARCHIVE
+                    )
+                )
             }
         }
     }

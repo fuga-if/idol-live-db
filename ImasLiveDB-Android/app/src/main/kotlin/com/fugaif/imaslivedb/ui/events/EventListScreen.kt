@@ -70,6 +70,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import androidx.compose.runtime.saveable.rememberSaveable
+import uniffi.imas_core.OpenArchive
 import uniffi.imas_core.OpenTicketSale
 import uniffi.imas_core.ticketApplicationLabel
 import uniffi.imas_core.TicketApplication
@@ -222,6 +223,15 @@ fun EventListScreen(
                                 )
                             }
                         }
+                        if (uiState.timeFilter == 0 && uiState.openArchives.isNotEmpty()) {
+                            item(key = "open_archives") {
+                                OpenArchivesSection(
+                                    archives = uiState.openArchives,
+                                    onEventClick = onEventClick,
+                                    modifier = Modifier.padding(horizontal = DS.Space.screen)
+                                )
+                            }
+                        }
                         uiState.groupedByYear.forEach { group ->
                             stickyHeader(key = group.year) {
                                 ImasDateHeader(
@@ -308,6 +318,43 @@ private fun ActiveFilterChipRow(
 
     // ImasFilterBar は内部の ImasChipRow が左右の余白を自分で持つ (ここで足すと二重になる)。
     ImasFilterBar(items = items)
+}
+
+/**
+ * 見られるアーカイブ: 全ライブ横断の「いま見逃し配信が見られる」公演を終わりの近い順に
+ * (iOS `openArchivesSection`)。押すとそのライブの詳細へ (公演の価格の行に期間と配信の券種がある)。
+ */
+@Composable
+private fun OpenArchivesSection(archives: List<OpenArchive>, onEventClick: (String) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val shown = if (expanded) archives else archives.take(OPEN_SALES_COLLAPSED_LIMIT)
+    ImasSection("見られるアーカイブ", modifier = modifier, count = "${archives.size}件", style = ImasSectionHeaderStyle.SMALL) {
+        ImasCardList {
+            shown.forEachIndexed { index, archive ->
+                ImasRow(
+                    title = archive.eventName,
+                    modifier = Modifier.imasRowPress(onClick = { onEventClick(archive.eventId) }),
+                    subtitle = listOf(archive.showLabels.joinToString("・"), archive.endsLabel)
+                        .filter { it.isNotEmpty() }
+                        .joinToString(" ・ "),
+                    leading = ImasRowLeading.Bar(seed = archive.brandColor),
+                    trailing = ImasRowTrailing.Badge(archive.remainingLabel, ImasBadgeKind.ATTENTION),
+                    density = ImasRowDensity.COMPACT,
+                    subtitleLineLimit = 2,
+                    position = if (index == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING
+                )
+            }
+            if (archives.size > OPEN_SALES_COLLAPSED_LIMIT) {
+                ImasRowDivider(inset = DS.Space.rowH)
+                ImasDisclosureRow(
+                    title = if (expanded) "畳む" else "ほかのアーカイブ",
+                    isExpanded = expanded,
+                    onToggle = { expanded = !expanded },
+                    count = if (expanded) null else "${archives.size - OPEN_SALES_COLLAPSED_LIMIT}件"
+                )
+            }
+        }
+    }
 }
 
 /** 畳んだときに出す受付中の件数 (iOS `openSalesCollapsedLimit`)。 */

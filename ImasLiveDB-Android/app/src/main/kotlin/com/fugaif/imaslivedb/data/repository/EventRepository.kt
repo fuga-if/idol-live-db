@@ -37,6 +37,7 @@ import uniffi.imas_core.ShowRecord
 import uniffi.imas_core.AttendanceMarkRecord
 import uniffi.imas_core.TimelineBarRecord
 import uniffi.imas_core.EventHeroRecord
+import uniffi.imas_core.OpenArchive
 import uniffi.imas_core.OpenTicketSale
 import uniffi.imas_core.TicketSale
 import com.fugaif.imaslivedb.data.model.JstDay
@@ -374,6 +375,10 @@ class EventRepository(
     /** 全ライブ横断の「いま受付中」の受付 (締切の近い順・残り日数の文字列はコア)。 */
     suspend fun fetchOpenTicketSales(): List<OpenTicketSale> =
         snapshots.query { store -> store.openTicketSales(Instant.now().epochSecond) }
+
+    /** 全ライブ横断の「いま見られるアーカイブ」(終わりの近い順・残り日数の文字列はコア)。 */
+    suspend fun fetchOpenArchives(): List<OpenArchive> =
+        snapshots.query { store -> store.openArchives(Instant.now().epochSecond) }
 
     suspend fun fetchTicketSaleSpotlight(eventId: String): TicketSale? =
         snapshots.query { store -> store.ticketSaleSpotlight(eventId, Instant.now().epochSecond) }

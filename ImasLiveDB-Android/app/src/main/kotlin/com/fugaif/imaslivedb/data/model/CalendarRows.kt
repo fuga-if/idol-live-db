@@ -88,7 +88,10 @@ data class TicketCalendarRow(
     val label: String
 )
 
-/** カレンダー用: チケット受付期間 (受付開始 → 申込締切) の日跨ぎスパン。 */
+/**
+ * カレンダー用の日跨ぎスパン。チケットの受付期間 (受付開始 → 申込締切) と、配信のアーカイブを
+ * 見られる期間の 2 種類がある (帯の描き方は同じ。iOS `TicketPeriodRow` と同じ形)。
+ */
 data class TicketPeriodRow(
     val eventId: String,
     val eventName: String,
@@ -98,9 +101,27 @@ data class TicketPeriodRow(
     /** 申込締切 YYYY-MM-DD */
     val end: String,
     val url: String?,
+    /** 帯の識別子。受付は受付 id、アーカイブはライブ id と期間から組む。 */
     val saleId: String,
+    /** 受付名。アーカイブでは対象公演の短い名 (`DAY1・DAY2`。1 公演のライブは空)。 */
     val saleName: String,
-    val saleKind: uniffi.imas_core.TicketSaleKind,
+    /** 受付の種別。アーカイブでは null。 */
+    val saleKind: uniffi.imas_core.TicketSaleKind?,
     /** コアが組んだ表示文字列 (`"{event_name} ({sale_name})"`, M2)。 */
-    val label: String
-)
+    val label: String,
+    val kind: Kind = Kind.SALE
+) {
+    enum class Kind {
+        /** チケットの受付期間。 */
+        SALE,
+        /** 配信のアーカイブ (見逃し配信) を見られる期間。 */
+        ARCHIVE
+    }
+
+    /** 期間の種類の短い呼び名 (`受付` / `アーカイブ`)。月セル・週の終日レーンの頭に付ける。 */
+    val kindLabel: String
+        get() = when (kind) {
+            Kind.SALE -> "受付"
+            Kind.ARCHIVE -> "アーカイブ"
+        }
+}

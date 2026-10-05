@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import uniffi.imas_core.OpenArchive
 import uniffi.imas_core.OpenTicketSale
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,7 +68,12 @@ data class EventListUiState(
      * いま受付中の受付のうち、絞り込み (今後/開催済みは問わない) に残ったライブのもの。締切の近い順。
      * 配信チケットのように開催後も受け付けるものがあるので時系列のタブでは切らない (iOS と同じ)。
      */
-    val openSales: List<OpenTicketSale> = emptyList()
+    val openSales: List<OpenTicketSale> = emptyList(),
+    /**
+     * いま見られる配信のアーカイブのうち、絞り込みに残ったライブのもの。終わりの近い順。
+     * 開催後のものなので、受付と同じく時系列のタブでは切らない (iOS と同じ)。
+     */
+    val openArchives: List<OpenArchive> = emptyList()
 ) {
     /** ツールバーのフィルタバッジ件数 (iOS EventListView.activeFilterCount と同じ数え方)。 */
     val activeFilterCount: Int
@@ -91,6 +97,7 @@ class EventListViewModel : ViewModel() {
     private var eventsWithDate: List<EventWithDateRange> = emptyList()
     private var venueEventIds: Set<String> = emptySet()
     private var allOpenSales: List<OpenTicketSale> = emptyList()
+    private var allOpenArchives: List<OpenArchive> = emptyList()
 
     // マーク由来の id 集合 (参加/お気に入り/メモ)。母集合と同じく画面には出さない。
     private var attendedEventIds: Set<String> = emptySet()
@@ -113,6 +120,7 @@ class EventListViewModel : ViewModel() {
             val module = AppModule.from(context)
             eventsWithDate = module.eventRepository.fetchEventsWithFirstDate()
             allOpenSales = module.eventRepository.fetchOpenTicketSales()
+            allOpenArchives = module.eventRepository.fetchOpenArchives()
             val brands = module.statsRepository.fetchBrands()
             val directory = module.eventRepository.fetchVenueDirectory()
             loadMarkSets(context)
@@ -316,6 +324,7 @@ class EventListViewModel : ViewModel() {
             groupedByYear = groups,
             filteredCount = groups.sumOf { it.events.size },
             openSales = allOpenSales.filter { it.sale.eventId in filteredIds },
+            openArchives = allOpenArchives.filter { it.eventId in filteredIds },
             // 表示データと同じ copy で降ろすことで、スケルトン→一覧の遷移を原子的にする。
             // 母集合の読込前に走った rebuild では降ろさない (空状態の誤表示になるため)。
             isLoading = !sourceLoaded

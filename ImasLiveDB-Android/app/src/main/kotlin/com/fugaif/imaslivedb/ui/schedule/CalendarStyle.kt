@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.model.CalendarEntry
 import com.fugaif.imaslivedb.data.model.TicketDateKind
+import com.fugaif.imaslivedb.data.model.TicketPeriodRow
 import com.fugaif.imaslivedb.ui.theme.AppPreferences
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTheme
@@ -107,7 +108,8 @@ fun CalendarEntry.barLabel(): String = when (this) {
     is CalendarEntry.Anniversary -> row.label
     // ライブ名が分かるように、コアが組んだ label (`"{event_name} ({sale_name})"`) をそのまま使う (M2)。
     is CalendarEntry.Ticket -> "${row.kind.label}・${row.label}"
-    is CalendarEntry.TicketPeriod -> "受付・${row.label}"
+    // アーカイブの label は「{ライブ名} (DAY1 アーカイブ)」と種類まで含むので、頭に付け足さない。
+    is CalendarEntry.TicketPeriod -> if (row.kind == TicketPeriodRow.Kind.ARCHIVE) row.label else "受付・${row.label}"
 }
 
 /**
