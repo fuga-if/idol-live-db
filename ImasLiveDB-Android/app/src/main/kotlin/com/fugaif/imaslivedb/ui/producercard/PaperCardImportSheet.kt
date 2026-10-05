@@ -17,11 +17,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -33,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -51,6 +54,7 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasCornerAdjuster
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
@@ -79,6 +83,8 @@ import uniffi.imas_core.producerCardPayload
 
 /**
  * 紙の名刺を取り込む。iOS `PaperCardImportView` の移植。表と裏を撮り (名刺の形に切り抜かれる)、刷られた QR を読む。
+ * 写真から選んだ写真も、名刺の四隅を見つけて真上から撮ったように平らにして切り抜く
+ * (`PaperCardRectifier`)。四隅は指で直せる。見つからなければ写真のまま。
  *
  * - アプリの名刺の QR が刷られていれば、その名刺をそのまま入れる (写真も添える)。
  * - X などのリンクの QR なら、名刺のリンクにする。
@@ -95,6 +101,9 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
     val limits = remember { producerCardLimits() }
 
     var photos by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
+    // 写真から選んだ写真の元と四隅 (書類カメラで撮ったものは null)。photos と同じ並び。
+    var sources by remember { mutableStateOf<List<PaperPhotoSource?>>(emptyList()) }
+    var adjusting by remember { mutableStateOf<Int?>(null) }
     var isReading by remember { mutableStateOf(false) }
 
     /** 刷られていたアプリの名刺。 */
@@ -126,43 +135,73 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
     }
 
     /** 撮った写真から QR を拾い、名刺 / リンク / それ以外に分ける (分け方はコア)。 */
+    suspend fun read(images: List<Bitmap>) {
+        isReading = true
+        photos = images
+        val codes = PaperCardCodeReader.codes(images)
+        isReading = false
+        var foundCard: Pair<String, ProducerCard>? = null
+        val foundLinks = mutableListOf<CardLink>()
+        val others = mutableListOf<String>()
+        for (code in codes) {
+            when (val kind = classifyScannedCode(code)) {
+                is ScannedCode.Card -> if (foundCard == null) foundCard = kind.payload to kind.card
+                is ScannedCode.Link -> {
+                    val link = kind.link
+                    if (link != null && link !in foundLinks && foundLinks.size < limits.maxLinks.toInt()) {
+                        foundLinks += link
+                    } else if (link == null) {
+                        others += kind.url
+                    }
+                }
+                is ScannedCode.Text -> others += kind.text
+            }
+        }
+        appCard = foundCard
+        links = foundLinks
+        otherCodes = others
+    }
+
+    /** 書類カメラで撮った写真 (名刺の形に切り抜き済み)。 */
     fun accept(uris: List<Uri>) {
         if (uris.isEmpty()) return
         scope.launch {
             isReading = true
             val images = uris.take(2).mapNotNull { PaperCardCodeReader.loadBitmap(context, it) }
-            if (images.isEmpty()) {
-                isReading = false
-                return@launch
-            }
-            photos = images
-            val codes = PaperCardCodeReader.codes(images)
             isReading = false
-            var foundCard: Pair<String, ProducerCard>? = null
-            val foundLinks = mutableListOf<CardLink>()
-            val others = mutableListOf<String>()
-            for (code in codes) {
-                when (val kind = classifyScannedCode(code)) {
-                    is ScannedCode.Card -> if (foundCard == null) foundCard = kind.payload to kind.card
-                    is ScannedCode.Link -> {
-                        val link = kind.link
-                        if (link != null && link !in foundLinks && foundLinks.size < limits.maxLinks.toInt()) {
-                            foundLinks += link
-                        } else if (link == null) {
-                            others += kind.url
-                        }
-                    }
-                    is ScannedCode.Text -> others += kind.text
-                }
-            }
-            appCard = foundCard
-            links = foundLinks
-            otherCodes = others
+            if (images.isEmpty()) return@launch
+            sources = images.map { null }
+            read(images)
+        }
+    }
+
+    /** 写真から選んだ写真。名刺の四隅を見つけて平らにしてから読む。 */
+    fun acceptPicks(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        scope.launch {
+            isReading = true
+            val results = uris.take(2).mapNotNull { PaperCardCodeReader.loadBitmap(context, it) }
+                .map { PaperCardRectifier.rectify(it) }
+            isReading = false
+            if (results.isEmpty()) return@launch
+            sources = results.map { PaperPhotoSource(it.original, it.corners) }
+            read(results.map { it.image })
+        }
+    }
+
+    /** 四隅を直した。平らにし直して、QR を読み直す。 */
+    fun applyCorners(index: Int, corners: List<Offset>) {
+        val source = sources.getOrNull(index) ?: return
+        if (index !in photos.indices) return
+        scope.launch {
+            val flat = withContext(Dispatchers.Default) { PaperCardRectifier.correct(source.original, corners) } ?: source.original
+            sources = sources.toMutableList().also { it[index] = PaperPhotoSource(source.original, corners) }
+            read(photos.toMutableList().also { it[index] = flat })
         }
     }
 
     val openCamera = rememberPaperCardCamera(onFinish = ::accept)
-    val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(2)) { accept(it) }
+    val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(2)) { acceptPicks(it) }
 
     val trimmedName = name.trim()
     val canSave = photos.isNotEmpty() && !isSaving &&
@@ -238,21 +277,30 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
                         ImasFormField(label = "表と裏", imprint = "PHOTO") {
                             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                                 if (photos.isNotEmpty()) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.Top) {
                                         photos.forEachIndexed { index, image ->
-                                            ImasCard(
-                                                style = ImasCardStyle.INSET,
-                                                padding = DS.Space.none,
-                                                modifier = Modifier.weight(1f).semantics {
-                                                    contentDescription = if (index == 0) "表の写真" else "裏の写真"
+                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                                                ImasCard(
+                                                    style = ImasCardStyle.INSET,
+                                                    padding = DS.Space.none,
+                                                    modifier = Modifier.semantics {
+                                                        contentDescription = if (index == 0) "表の写真" else "裏の写真"
+                                                    }
+                                                ) {
+                                                    Image(
+                                                        bitmap = image.asImageBitmap(),
+                                                        contentDescription = null,
+                                                        contentScale = ContentScale.FillWidth,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
                                                 }
-                                            ) {
-                                                Image(
-                                                    bitmap = image.asImageBitmap(),
-                                                    contentDescription = null,
-                                                    contentScale = ContentScale.FillWidth,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
+                                                val source = sources.getOrNull(index)
+                                                if (source != null) {
+                                                    IconLabel(Icons.Filled.Crop, "四隅を直す") { adjusting = index }
+                                                    if (source.corners == null) {
+                                                        Text("名刺の四隅が見つからないので写真のままです", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -320,7 +368,55 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
             onDismiss = { pickingShow = false }
         )
     }
+    adjusting?.let { index ->
+        sources.getOrNull(index)?.let { source ->
+            PaperCardCornerSheet(
+                image = source.original,
+                initial = source.corners ?: PaperCardRectifier.defaultCorners,
+                onDone = { applyCorners(index, it) },
+                onDismiss = { adjusting = null }
+            )
+        }
+    }
     ImasErrorAlert(message = error, onDismiss = { error = null }, title = "名刺入れに入れられませんでした")
+}
+
+/** 写真から選んだ写真の元と見つけた四隅。 */
+private class PaperPhotoSource(val original: Bitmap, val corners: List<Offset>?)
+
+/** 紙の名刺の四隅を指で直すシート (iOS `PaperCardCornerSheet`)。✓ で平らにし直す。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PaperCardCornerSheet(
+    image: Bitmap,
+    initial: List<Offset>,
+    onDone: (List<Offset>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var corners by remember { mutableStateOf(initial) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        // 取っ手を指で動かすので、引いてもシートが下がらないようにする (× で閉じる)。
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden }),
+        containerColor = DS.bg
+    ) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
+            ImasSheetToolbar(
+                ImasSheetToolbarKind.Edit(canSave = true, isSaving = false, onCancel = onDismiss, onSave = {
+                    onDone(corners)
+                    onDismiss()
+                }),
+                title = "四隅を直す"
+            )
+            Column(
+                Modifier.padding(horizontal = DS.Space.screen),
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
+            ) {
+                ImasCornerAdjuster(image = image, corners = corners, onCornersChange = { corners = it })
+                ImasNote("丸い取っ手を名刺の四隅に合わせると、真上から撮ったように平らにして切り抜きます。")
+            }
+        }
+    }
 }
 
 @Composable
