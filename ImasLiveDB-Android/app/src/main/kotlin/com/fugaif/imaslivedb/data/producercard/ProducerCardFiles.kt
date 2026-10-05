@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.net.Uri
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -58,21 +59,28 @@ object ProducerCardFiles {
         if (images.isEmpty()) return
         folder(context, cardId).mkdirs()
         for (image in images) {
-            val target = when (image.kind) {
-                CardFileImageKind.OSHI -> oshiFile(context, cardId, image.idolId)
-                CardFileImageKind.PHOTO -> cardPhotoFile(context, cardId)
+            when (image.kind) {
+                CardFileImageKind.OSHI -> writeAtomically(oshiFile(context, cardId, image.idolId), image.jpeg)
+                CardFileImageKind.PHOTO -> writeCardPhoto(context, cardId, image.jpeg)
             }
-            writeAtomically(target, image.jpeg)
         }
     }
 
     // ---- 受け取った名刺の写真 (相手が名刺に載せた写真) ----
 
-    private fun cardPhotoFile(context: Context, cardId: String): File = File(folder(context, cardId), "card_photo.jpg")
+    /** 受け取った名刺の写真。名前は書くたびに変える (画像の読み込みの控えが前の写真を出し続けないように)。 */
+    private fun cardPhotoFile(context: Context, cardId: String): File? =
+        folder(context, cardId).listFiles()?.firstOrNull { it.name.startsWith("card_photo") && it.name.endsWith(".jpg") }
+
+    private fun writeCardPhoto(context: Context, cardId: String, jpeg: ByteArray) {
+        val name = "card_photo-${UUID.randomUUID().toString().take(8)}.jpg"
+        writeAtomically(File(folder(context, cardId), name), jpeg)
+        folder(context, cardId).listFiles()?.filter { it.name.startsWith("card_photo") && it.name != name }?.forEach { it.delete() }
+    }
 
     /** 受け取った名刺の写真 (画面の `imageUrl` に渡す形)。無ければ null。 */
     fun cardPhotoUrl(context: Context, cardId: String): String? =
-        cardPhotoFile(context, cardId).takeIf { it.exists() }?.let { Uri.fromFile(it).toString() }
+        cardPhotoFile(context, cardId)?.let { Uri.fromFile(it).toString() }
 
     // ---- 自分の名刺の写真 ----
 
@@ -96,17 +104,24 @@ object ProducerCardFiles {
         ImasPortraitCrop.fromJson(File(myFolder(context), "photo_crop.json").readText())
     }.getOrNull()
 
-    /** 自分の名刺の写真を書く (元の写真・切り抜き・切り抜いた JPEG)。 */
-    fun saveMyPhoto(context: Context, source: Bitmap, crop: ImasPortraitCrop) {
-        val cropped = crop.render(source) ?: return
-        val photo = jpeg(cropped, maxPixels = 1600) ?: return
-        val original = jpeg(source, maxPixels = 3000) ?: return
+    /**
+     * 自分の名刺の写真を書く (元の写真・切り抜き・切り抜いた JPEG)。[writeSource] = false は位置を直しただけ
+     * (元の写真が残っていれば書き直さない。書き直すたびに JPEG の画質が落ちる)。書けなければ投げる。
+     */
+    fun saveMyPhoto(context: Context, source: Bitmap, crop: ImasPortraitCrop, writeSource: Boolean = true) {
+        val cropped = crop.render(source) ?: throw IOException("名刺の写真を切り抜けませんでした")
+        val photo = jpeg(cropped, maxPixels = 1600) ?: throw IOException("名刺の写真を書き出せませんでした")
         val dir = myFolder(context).apply { mkdirs() }
-        writeAtomically(File(dir, "photo_source.jpg"), original)
+        val sourceFile = File(dir, "photo_source.jpg")
+        if (writeSource || !sourceFile.exists()) {
+            val original = jpeg(source, maxPixels = 3000) ?: throw IOException("名刺の写真を書き出せませんでした")
+            writeAtomically(sourceFile, original)
+        }
         writeAtomically(File(dir, "photo_crop.json"), crop.toJson().toByteArray())
-        val previous = myPhotoFile(context)
-        writeAtomically(File(dir, "photo-${UUID.randomUUID().toString().take(8)}.jpg"), photo)
-        previous?.delete()
+        val name = "photo-${UUID.randomUUID().toString().take(8)}.jpg"
+        writeAtomically(File(dir, name), photo)
+        // 前の写真は全部消す (途中で落ちて 2 枚残っていても、次の保存で 1 枚に戻る)。
+        dir.listFiles()?.filter { it.name.startsWith("photo-") && it.name != name }?.forEach { it.delete() }
     }
 
     fun deleteMyPhoto(context: Context) {

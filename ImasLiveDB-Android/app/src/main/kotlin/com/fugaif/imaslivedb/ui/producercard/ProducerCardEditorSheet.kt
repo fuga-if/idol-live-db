@@ -98,7 +98,6 @@ import java.util.UUID
 import kotlinx.coroutines.launch
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardLinkKind
-import uniffi.imas_core.ProducerCardInput
 import uniffi.imas_core.cardLinkKinds
 import uniffi.imas_core.normalizeCardLink
 import uniffi.imas_core.producerCardInputErrorMessage
@@ -149,6 +148,10 @@ fun ProducerCardEditorSheet(
     var photoSource by remember { mutableStateOf<Bitmap?>(null) }
     var crop by remember { mutableStateOf(ImasPortraitCrop()) }
     var photoDirty by remember { mutableStateOf(false) }
+    // 写真を選び直した (元の写真も書き直す)。位置を直しただけなら元の写真は書き直さない。
+    var photoSourceChanged by remember { mutableStateOf(false) }
+    // 切り抜きを決めて見本を作っている間は保存させない (写真が書かれずに閉じないように)。
+    var applyingCrop by remember { mutableStateOf(false) }
     var cropping by remember { mutableStateOf<CropDraft?>(null) }
     // 見本に出す切り抜き済みの写真 (✓ の前は一時ファイル)。
     var previewPortrait by remember { mutableStateOf<String?>(null) }
@@ -217,6 +220,7 @@ fun ProducerCardEditorSheet(
 
     /** 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。 */
     fun applyCrop(image: Bitmap, result: ImasPortraitCrop) {
+        applyingCrop = true
         scope.launch {
             val url = withContext(Dispatchers.IO) {
                 val jpeg = result.render(image)?.let { ProducerCardFiles.jpeg(it) } ?: return@withContext null
@@ -224,7 +228,13 @@ fun ProducerCardEditorSheet(
                 val file = File(dir, "${UUID.randomUUID()}.jpg")
                 runCatching { file.writeBytes(jpeg) }.getOrNull() ?: return@withContext null
                 Uri.fromFile(file).toString()
-            } ?: return@launch
+            }
+            applyingCrop = false
+            if (url == null) {
+                error = "写真を読み込めませんでした。"
+                return@launch
+            }
+            if (image !== photoSource) photoSourceChanged = true
             photoSource = image
             crop = result
             previewPortrait = url
@@ -246,15 +256,16 @@ fun ProducerCardEditorSheet(
     ).withLinks(filled().mapNotNull { normalizeCardLink(CardLink(it.kind, it.value)) }).withHidden(hidden)
         .copy(nameFont = nameFont, qrUrl = normalizeCardQrUrl(qrUrl))
 
+    // 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
+    // そのまま入れて渡す (載る中身を抜くと、QR に収まるかの見積もりが実物より短くなる)。
     val validation = validateProducerCard(
-        ProducerCardInput(
-            name = name, message = message, sinceYear = null, oshiIdolIds = emptyList(),
+        ProducerCardAssembler.input(draft(), record ?: ProducerCardMyRecord(emptyList(), emptyList(), 0)).copy(
+            name = name, message = message,
             links = filled().map { CardLink(it.kind, it.value) },
-            showCount = null, songCount = null, nextShowId = null, attended = emptyList(),
-            issuedOn = JstDay.today(), nameFont = null, qrUrl = qrUrl
+            qrUrl = qrUrl
         )
     )
-    val canSave = validation == null && !isSaving
+    val canSave = validation == null && !isSaving && !applyingCrop
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
         draft().font != card.font || draft().qrUrl != card.qrUrl || photoDirty
@@ -278,7 +289,7 @@ fun ProducerCardEditorSheet(
                     val source = photoSource
                     val result = crop
                     withContext(Dispatchers.IO) {
-                        if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result)
+                        if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result, writeSource = photoSourceChanged)
                         else ProducerCardFiles.deleteMyPhoto(context)
                     }
                 }

@@ -180,8 +180,9 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
         if (uris.isEmpty()) return
         scope.launch {
             isReading = true
+            // 元の写真は四隅を直すときまで持つので、長辺 2400px までに縮めてから持つ (2 枚分でメモリを使い切らない)。
             val results = uris.take(2).mapNotNull { PaperCardCodeReader.loadBitmap(context, it) }
-                .map { PaperCardRectifier.rectify(it) }
+                .map { PaperCardRectifier.rectify(PaperCardRectifier.bounded(it)) }
             isReading = false
             if (results.isEmpty()) return@launch
             sources = results.map { PaperPhotoSource(it.original, it.corners) }

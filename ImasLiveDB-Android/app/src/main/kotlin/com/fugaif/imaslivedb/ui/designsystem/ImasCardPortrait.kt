@@ -421,7 +421,7 @@ fun ImasCornerAdjuster(
                         .size(handle)
                         .background(DS.surface, CircleShape)
                         .border(2.dp, line, CircleShape)
-                        .pointerInput(index) {
+                        .pointerInput(index, wPx, hPx) {
                             // 触れたところから動かす (遊びを取らない。iOS の DragGesture(minimumDistance: 0))。
                             awaitEachGesture {
                                 val down = awaitFirstDown()

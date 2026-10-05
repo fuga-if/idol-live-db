@@ -37,6 +37,14 @@ object PaperCardRectifier {
     /** 平らにした写真の長辺の上限 (px)。 */
     private const val MAX_OUTPUT = 3000
 
+    /** 長辺 [maxPixels] までに縮めた写真 (小さければそのまま)。 */
+    fun bounded(image: Bitmap, maxPixels: Int = 2400): Bitmap {
+        val longSide = max(image.width, image.height)
+        if (longSide <= maxPixels) return image
+        val ratio = maxPixels.toFloat() / longSide
+        return Bitmap.createScaledBitmap(image, (image.width * ratio).roundToInt(), (image.height * ratio).roundToInt(), true)
+    }
+
     suspend fun rectify(image: Bitmap): Result = withContext(Dispatchers.Default) {
         val corners = runCatching { detectCorners(image) }.getOrNull()
         val flat = corners?.let { correct(image, it) }
