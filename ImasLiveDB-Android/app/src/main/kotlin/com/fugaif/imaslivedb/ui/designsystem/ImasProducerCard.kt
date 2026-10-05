@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -42,6 +44,7 @@ import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
+import com.fugaif.imaslivedb.ui.theme.cardName
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import com.google.zxing.BarcodeFormat
@@ -54,11 +57,16 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 // P名刺 (docs/DESIGN_SYSTEM.md §6.13)。iOS `ImasProducerCard.swift` の移植。
 //
 // ImasProducerCard   P名刺 1 枚。担当の入場証 (`ImasPass`) を 1 枚に広げた紙。
-//                    上の帯が担当の色でストラップの穴、担当の写真、名前を大きく、ひとこと、
+//                    上の帯が担当の色でストラップの穴、担当の写真、名前を大きく (選んだ書体で)、ひとこと、
 //                    担当の行、リンクの行、下に記録の電光掲示板 (`ImasBoard`)。
 //                    使わない場面: アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
 //                    種類: 担当の写真がある (帯の下に写真) / 無い (写真の面を出さない。担当の行の判子は必ず出す)。
+//                          名刺の写真がある (名前の横に証明写真の枠) / 無い (枠を出さない)。
 //                    状態: リンク・担当は押すと開く (`onOpenLink` / `onOpenOshi`)。渡さなければ押せない。
+// ImasCardPortrait   名刺の写真の証明写真の枠 (3:4)。名刺・名刺入れの行・編集画面で同じ枠。
+// ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
+// ImasNameFontPicker 名前の書体の見本を横に並べ、引いて (または押して) 選ぶ。
+// ImasCornerAdjuster 写真に写った紙の名刺の四隅を指で直す (書類カメラの手直しと同じ感覚)。
 // ImasCameraFrame    カメラの読み取り窓。面と同じ角丸で切り、縦長 (3:4) に収める。中身はカメラの View。
 // ImasQRCode         QR。チケットの紙 (ダークでも明るい) に墨で刷る。誤り訂正は L (中身が長いので
 //                    読み取りやすさより収まりを取る)。題 (`caption`) を下に添えられる。
@@ -102,6 +110,8 @@ data class ImasProducerCardLink(
  * @param boardTrailing 掲示板の右上の印字 (「2014 — 2026」)。
  * @param photoUrl 帯の下に大きく出す担当の写真。
  * @param photoEntityId 写真を端末に取り込んだ担当の id から引く (自分の名刺)。
+ * @param portraitUrl 名刺の写真 (自分で選んだ写真。名前の横の証明写真の枠に出す)。
+ * @param nameFamily 名前の書体 ([com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily])。null は見出しの書体。
  */
 @Composable
 fun ImasProducerCard(
@@ -115,6 +125,8 @@ fun ImasProducerCard(
     boardTrailing: String? = null,
     photoUrl: String? = null,
     photoEntityId: String? = null,
+    portraitUrl: String? = null,
+    nameFamily: FontFamily? = null,
     onOpenLink: ((ImasProducerCardLink) -> Unit)? = null,
     onOpenOshi: ((ImasProducerCardOshi) -> Unit)? = null
 ) {
@@ -173,13 +185,21 @@ fun ImasProducerCard(
             )
         }
 
-        Column(
+        Row(
             Modifier.padding(horizontal = DS.Space.card, vertical = DS.Space.gapLoose),
-            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
+            verticalAlignment = Alignment.Top
         ) {
-            ImasFitText(name, style = ImasType.heading(28.sp, FontWeight.ExtraBold), color = DS.ink, maxLines = 2, minScale = 0.8f)
-            if (!message.isNullOrEmpty()) {
-                Text(message, style = ImasTextRole.NOTE.style, color = DS.ink2)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                ImasFitText(name, style = ImasType.cardName(nameFamily, 28.sp), color = DS.ink, maxLines = 2, minScale = 0.6f)
+                if (!message.isNullOrEmpty()) {
+                    Text(message, style = ImasTextRole.NOTE.style, color = DS.ink2)
+                }
+            }
+            if (portraitUrl != null) {
+                // iOS の @ScaledMetric(relativeTo: .body) 84。
+                val portraitWidth = with(LocalDensity.current) { 84.sp.toDp() }
+                ImasCardPortrait(url = portraitUrl, label = "${name}の写真", modifier = Modifier.width(portraitWidth))
             }
         }
 
@@ -241,7 +261,13 @@ fun ImasProducerCard(
  * 誤り訂正は L。下に題 ([caption])。
  */
 @Composable
-fun ImasQRCode(text: String, modifier: Modifier = Modifier, caption: String? = null) {
+fun ImasQRCode(
+    text: String,
+    modifier: Modifier = Modifier,
+    caption: String? = null,
+    /** 読み上げの名前 (「名刺の QR コード」「自分の QR コード」)。 */
+    label: String = "名刺の QR コード"
+) {
     val matrix = remember(text) { imasQrMatrix(text) }
     val shape = RoundedCornerShape(DS.rCard)
     val ink = DS.ticketInk
@@ -257,7 +283,7 @@ fun ImasQRCode(text: String, modifier: Modifier = Modifier, caption: String? = n
             Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .semantics { contentDescription = "名刺の QR コード" }
+                .semantics { contentDescription = label }
         ) {
             if (matrix != null) drawQr(matrix, ink)
         }

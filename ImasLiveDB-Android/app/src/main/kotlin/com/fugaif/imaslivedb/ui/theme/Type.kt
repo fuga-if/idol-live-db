@@ -88,3 +88,46 @@ object ImasType {
     fun numeral(size: TextUnit, weight: FontWeight): TextStyle =
         TextStyle(fontFamily = condensedFamily, fontSize = size, fontWeight = weight, fontFeatureSettings = "tnum")
 }
+
+// =============================================================================
+// P名刺の名前の書体 (iOS `Font.imasCardName`)。
+//
+// 同梱の書体 (リポジトリの fonts/card-name/ を assets の card-name/ に足している。一覧・既定・
+// ファイル名はコアの `cardNameFonts` の `fileStem`) をファイルの名前で引く。引けない (null・未同梱)
+// ときは見出しの書体の極太。書体は 1 つの太さしか持たないので、太さは付けない (付けると擬似太字になる)。
+// =============================================================================
+
+object ImasCardNameFonts {
+    /** assets の中の置き場所。 */
+    const val ASSET_DIR = "card-name"
+
+    private val cache = HashMap<String, FontFamily>()
+    private val missing = HashSet<String>()
+
+    /** 書体のファイルの名前 (拡張子なし) から書体を引く。無ければ null。 */
+    fun family(assets: android.content.res.AssetManager, fileStem: String?): FontFamily? {
+        if (fileStem.isNullOrEmpty()) return null
+        synchronized(this) {
+            cache[fileStem]?.let { return it }
+            if (fileStem in missing) return null
+            val path = "$ASSET_DIR/$fileStem.ttf"
+            val exists = runCatching { assets.open(path).close() }.isSuccess
+            if (!exists) {
+                missing += fileStem
+                return null
+            }
+            return FontFamily(Font(path, assets)).also { cache[fileStem] = it }
+        }
+    }
+}
+
+/** 名前の書体を引く (iOS `Font.imasCardName` の書体の部分)。 */
+@androidx.compose.runtime.Composable
+fun rememberCardNameFamily(fileStem: String?): FontFamily? {
+    val assets = androidx.compose.ui.platform.LocalContext.current.assets
+    return androidx.compose.runtime.remember(fileStem) { ImasCardNameFonts.family(assets, fileStem) }
+}
+
+/** 名前の書体の段。[family] が null なら見出しの書体の極太。 */
+fun ImasType.cardName(family: FontFamily?, size: TextUnit): TextStyle =
+    family?.let { TextStyle(fontFamily = it, fontSize = size) } ?: heading(size, FontWeight.ExtraBold)

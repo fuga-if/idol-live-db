@@ -113,6 +113,10 @@ android {
     sourceSets {
         getByName("main") {
             if (hasMusicKit) java.srcDir("src/withSdk/kotlin")
+            // P名刺の名前の書体 (iOS / Android / Web で同じもの。作り方は tools/build_card_name_fonts.py)。
+            // 複製せずリポジトリの fonts/ をそのまま assets に足す (assets の card-name/ に入る)。
+            // 使用許諾 (SIL OFL 1.1) の全文 OFL-*.txt も一緒に同梱する。
+            assets.srcDir(rootProject.file("../fonts"))
         }
         // Room の確定スキーマ (app/schemas) を JVM ユニットテストから読める assets に載せる。
         // MigrationTestHelper は assets の `<DB クラス名>/<版>.json` から旧版の DB を組み立てる。

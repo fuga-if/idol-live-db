@@ -112,6 +112,12 @@ sealed interface ImasRowLeading {
         val entityId: String? = null
     ) : ImasRowLeading
 
+    /**
+     * P名刺の写真 (証明写真の枠) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
+     * 担当が無ければ写真だけ。名刺入れの行。
+     */
+    data class Portrait(val url: String, val oshi: ImasRowPortraitOshi? = null) : ImasRowLeading
+
     /** 曲のジャケ (48、COMPACT は 40)。 */
     data class Artwork(
         val title: String,
@@ -350,11 +356,23 @@ private fun rowAlignment(leading: ImasRowLeading): Alignment.Vertical? = when (l
     else -> Alignment.CenterVertically
 }
 
+/** [ImasRowLeading.Portrait] の右下に重ねる担当のアイコン。 */
+data class ImasRowPortraitOshi(
+    val label: String,
+    val seed: String? = null,
+    val brand: String? = null,
+    val imageUrl: String? = null
+)
+
+/** 名刺の写真の先頭の幅 (写真の枠 + 右下に重ねる担当のアイコンのはみ出し)。 */
+private fun portraitLeadingWidth(density: ImasRowDensity): Dp = density.avatarSize * 1.2f
+
 /** 先頭の幅 (区切り線を本文の頭に揃えるため)。 */
 private fun leadingWidth(leading: ImasRowLeading, density: ImasRowDensity): Dp = when (leading) {
     ImasRowLeading.None -> 0.dp
     is ImasRowLeading.Bar -> DS.Size.leadBar
     is ImasRowLeading.Avatar -> density.avatarSize + ImasAvatarRingPadding * 2
+    is ImasRowLeading.Portrait -> portraitLeadingWidth(density)
     is ImasRowLeading.Artwork -> density.artworkSize
     is ImasRowLeading.Icon -> ImasIconTileSize.S28.frame
     is ImasRowLeading.Number -> 30.dp
@@ -407,6 +425,16 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
             imageUrl = leading.imageUrl,
             entityId = leading.entityId
         )
+        is ImasRowLeading.Portrait -> Box(Modifier.width(portraitLeadingWidth(density))) {
+            ImasCardPortrait(url = leading.url, modifier = Modifier.width(density.avatarSize * 0.9f))
+            leading.oshi?.let { oshi ->
+                ImasAvatar(
+                    label = oshi.label, seed = oshi.seed, brand = oshi.brand,
+                    size = density.avatarSize * 0.55f, isPick = true, imageUrl = oshi.imageUrl,
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                )
+            }
+        }
         is ImasRowLeading.Artwork -> ImasArtwork(
             title = leading.title,
             seed = leading.seed,
