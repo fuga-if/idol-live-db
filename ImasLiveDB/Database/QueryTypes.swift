@@ -449,19 +449,38 @@ struct TicketCalendarRow: Sendable {
     var label: String
 }
 
-/// カレンダーに「受付期間」を帯で出すための日跨ぎスパン (受付開始 → 申込締切)。
+/// カレンダーに期間を帯で出すための日跨ぎスパン。受付期間 (受付開始 → 申込締切) と、
+/// 配信のアーカイブを見られる期間の 2 種類がある (帯の描き方は同じ)。
 struct TicketPeriodRow: Sendable {
+    enum Kind: Sendable {
+        /// チケットの受付期間。
+        case sale
+        /// 配信のアーカイブ (見逃し配信) を見られる期間。
+        case archive
+    }
+
     var eventId: String
     var eventName: String
     var brandColor: String?
-    var start: String     // 受付開始 YYYY-MM-DD
-    var end: String       // 申込締切 YYYY-MM-DD
+    var start: String     // 受付開始 YYYY-MM-DD (アーカイブなら見られる期間の始まり)
+    var end: String       // 申込締切 YYYY-MM-DD (アーカイブなら終わり)
     var url: String?
+    /// 帯の識別子。受付は受付 id、アーカイブはライブ id と期間から組む。
     var saleId: String
+    /// 受付名。アーカイブでは対象公演の短い名 (`DAY1・DAY2`。1 公演のライブは空)。
     var saleName: String
     var saleKind: String
-    /// 表示文字列 (`"{event_name} ({sale_name})"`、コアの `calendar_sale_label` が組む。M2)。
+    /// 表示文字列 (`"{event_name} ({sale_name})"` / `"{event_name} (DAY1 アーカイブ)"`。コアが組む)。
     var label: String
+    var kind: Kind = .sale
+
+    /// 期間の種類の短い呼び名 (`受付` / `アーカイブ`)。月セル・週の終日レーンの頭に付ける。
+    var kindLabel: String {
+        switch kind {
+        case .sale: return "受付"
+        case .archive: return "アーカイブ"
+        }
+    }
 }
 
 enum CalendarEntry: Identifiable, Hashable, Sendable {

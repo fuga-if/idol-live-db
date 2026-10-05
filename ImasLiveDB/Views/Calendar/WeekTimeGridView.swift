@@ -399,7 +399,7 @@ struct WeekTimeGridView: View {
         case .anniversary(let ann, _): return ann.label
         case .personal(let event): return event.title
         case .ticket(let row): return "\(row.kind.label)・\(row.eventName)"
-        case .ticketPeriod(let row): return "受付・\(row.eventName)"
+        case .ticketPeriod(let row): return "\(row.kindLabel)・\(row.eventName)"
         }
     }
 

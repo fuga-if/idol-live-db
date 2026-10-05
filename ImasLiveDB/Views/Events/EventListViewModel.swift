@@ -26,6 +26,10 @@ final class EventListViewModel {
     /// 時系列のタブでは切らない。
     private(set) var openSales: [OpenTicketSale] = []
     private var allOpenSales: [OpenTicketSale] = []
+    /// いま見られる配信のアーカイブのうち、絞り込みに残ったライブのもの。終わりの近い順。
+    /// アーカイブは開催後のものなので、受付と同じく時系列のタブでは切らない。
+    private(set) var openArchives: [OpenArchive] = []
+    private var allOpenArchives: [OpenArchive] = []
 
     private let eventReading: any EventReading
     private let brandReading: any BrandReading
@@ -54,6 +58,7 @@ final class EventListViewModel {
             )
             brands = try await brandReading.brands()
             allOpenSales = try await eventReading.openTicketSales()
+            allOpenArchives = try await eventReading.openArchives()
             await rebuild(query: query)
         } catch {
             Logger.database.error("load_failed events: \(error.localizedDescription)")
@@ -74,6 +79,7 @@ final class EventListViewModel {
         let filtered = filterEvents(eventsWithDate, filter)
         let filteredIds = Set(filtered.map(\.event.id))
         openSales = allOpenSales.filter { filteredIds.contains($0.sale.eventId) }
+        openArchives = allOpenArchives.filter { filteredIds.contains($0.eventId) }
         let groups = groupEventsByYear(filtered, upcoming: query.upcoming, todayKey: query.todayKey)
         filteredCount = groups.reduce(0) { $0 + $1.events.count }
         groupedByYear = groups

@@ -126,6 +126,21 @@ struct CoreCalendarRepository: CalendarReading {
                 saleKind: ticketSaleKindRaw(kind: saleKind),
                 label: label
             ))
+
+        case let .archivePeriod(eventId, eventName, brandColor, _, showLabels, start, end, label):
+            return .ticketPeriod(TicketPeriodRow(
+                eventId: eventId,
+                eventName: eventName,
+                brandColor: brandColor,
+                start: start,
+                end: end,
+                url: nil,
+                saleId: "archive_\(eventId)_\(start)_\(end)",
+                saleName: showLabels.joined(separator: "・"),
+                saleKind: "",
+                label: label,
+                kind: .archive
+            ))
         }
     }
 

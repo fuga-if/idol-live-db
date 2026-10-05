@@ -167,13 +167,15 @@ struct DayEntryRow: View {
         )
     }
 
-    /// チケット受付期間行 (受付開始〜申込締切)。タップで親イベント詳細へ。
+    /// チケット受付期間行 (受付開始〜申込締切) / 配信のアーカイブを見られる期間の行。
+    /// タップで親イベント詳細へ。
     private func ticketPeriodRow(_ row: TicketPeriodRow) -> some View {
         let range = [Self.md(row.start), Self.md(row.end)].compactMap { $0 }.joined(separator: " 〜 ")
+        let isArchive = row.kind == .archive
         return rowShell(
-            leading: .icon("calendar.badge.clock", tone: .themed, seed: CalendarEntry.ThemeSeed.ticket),
-            title: "\(Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
-            subtitle: "\(row.saleName)" + (range.isEmpty ? "" : "  \(range)")
+            leading: .icon(isArchive ? "play.rectangle" : "calendar.badge.clock", tone: .themed, seed: CalendarEntry.ThemeSeed.ticket),
+            title: "\(isArchive ? row.kindLabel : Vocab.table.ticketPeriodLabel) ・ \(row.eventName)",
+            subtitle: [row.saleName, range].filter { !$0.isEmpty }.joined(separator: "  ")
         )
     }
 

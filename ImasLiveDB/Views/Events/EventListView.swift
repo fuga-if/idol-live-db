@@ -35,6 +35,8 @@ struct EventListView: View {
     @State private var appliedSearchText = ""
     /// 受付中のチケットの欄を全部開いているか (畳んでいるときは締切の近い数件だけ)。
     @State private var openSalesExpanded = false
+    /// 見られるアーカイブの欄を全部開いているか。
+    @State private var openArchivesExpanded = false
     /// 新規イベント作成 sheet。
     @State private var showEventCreate = false
     /// 未ログイン時のログイン誘導 sheet。ログイン後に新規作成を再開する。
@@ -196,6 +198,46 @@ struct EventListView: View {
         }
     }
 
+    /// 見られるアーカイブ: 全ライブ横断の「いま見逃し配信が見られる」公演を終わりの近い順に。
+    /// 押すとそのライブの詳細へ (公演の価格の行に期間と配信の券種がある)。
+    @ViewBuilder
+    private var openArchivesSection: some View {
+        let archives = vm.openArchives
+        let shown = openArchivesExpanded ? archives : Array(archives.prefix(Self.openSalesCollapsedLimit))
+        ImasSection("見られるアーカイブ", count: "\(archives.count)件", style: .small) {
+            ImasCardList {
+                ForEach(Array(shown.enumerated()), id: \.element.showIds) { index, archive in
+                    Button {
+                        if let event = vm.eventsWithDate.first(where: { $0.event.id == archive.eventId })?.event {
+                            navPath.append(event)
+                        }
+                    } label: {
+                        ImasRow(
+                            title: archive.eventName,
+                            subtitle: ([archive.showLabels.joined(separator: "・")] + [archive.endsLabel])
+                                .filter { !$0.isEmpty }
+                                .joined(separator: " ・ "),
+                            leading: .bar(seed: archive.brandColor),
+                            trailing: .badge(ImasBadge(text: archive.remainingLabel, kind: .attention)),
+                            density: .compact,
+                            subtitleLineLimit: 2
+                        )
+                    }
+                    .buttonStyle(.imasRow)
+                    .environment(\.imasRowPosition, index == 0 ? .first : .following)
+                }
+                if archives.count > Self.openSalesCollapsedLimit {
+                    ImasRowDivider(inset: DS.Space.rowH)
+                    ImasDisclosureRow(
+                        title: openArchivesExpanded ? "畳む" : "ほかのアーカイブ",
+                        count: openArchivesExpanded ? nil : "\(archives.count - Self.openSalesCollapsedLimit)件",
+                        isExpanded: $openArchivesExpanded
+                    )
+                }
+            }
+        }
+    }
+
     /// 受付中の行の末尾。申し込み済みなら締切より記録を見せる (もう急ぐ必要がない)。
     private func openSaleTrailing(_ open: OpenTicketSale) -> ImasRowTrailing {
         if let application = UserMarkService.shared.ticketApplication(saleId: open.sale.id) {
@@ -238,6 +280,15 @@ struct EventListView: View {
 
                     if timeFilter == 0, !vm.isLoading, !vm.openSales.isEmpty {
                         openSalesSection
+                            .padding(.horizontal, DS.Space.screen)
+                            .padding(.top, DS.Space.gap)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(DS.bg)
+                            .listRowSeparator(.hidden)
+                    }
+
+                    if timeFilter == 0, !vm.isLoading, !vm.openArchives.isEmpty {
+                        openArchivesSection
                             .padding(.horizontal, DS.Space.screen)
                             .padding(.top, DS.Space.gap)
                             .listRowInsets(EdgeInsets())

@@ -359,7 +359,7 @@ struct CalendarEntryBar: View {
         case .ticket(let row):
             return "\(row.kind.label)・\(row.eventName)"
         case .ticketPeriod(let row):
-            return "受付・\(row.eventName)"
+            return "\(row.kindLabel)・\(row.eventName)"
         }
     }
 
