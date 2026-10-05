@@ -387,6 +387,17 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasChatToolChip`** ツール実行中であることを示す小さな札 (「曲を検索中…」)。生成中の吹き出しの上に置く。
 - **使わない** 通常の一覧・詳細の会話以外の表示 → 他の行・カード部品。
 
+### 6.13 `ImasProducerCard` P名刺 / `ImasQRCode` / `ImasCameraFrame`
+- **用途** P名刺 (会場での名刺交換)。自分の名刺・受け取った名刺・受け取りの確認で同じ部品。
+- **使わない** アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
+- **構成** 担当の入場証 (`ImasPass`) を 1 枚に広げた紙。上の帯 = 先頭の担当の色とストラップの穴 (左に `PRODUCER PASS`、右に `SINCE 2014`)、
+  帯の下に担当の写真 (あるときだけ)、名前 (大きく)・ひとこと、切り取り線、担当の行 (`ImasRow` + アイコン。写真が無ければ判子)、
+  切り取り線、リンクの行 (`ImasValueRow`)、下に記録の電光掲示板 (`ImasBoard`: 参加公演・回収曲・次の現場)。
+- **状態** 受け取った名刺で自分と同じ担当は朱の札「担当被り」(`.new` の見え方)、ほかは墨の「担当」。リンク・担当は `onOpenLink` / `onOpenOshi` を渡すと押せる。
+- **`ImasQRCode`** チケットの紙 (`DS.ticket`、ダークでも明るい) に墨で刷る QR。誤り訂正は L。下に題 (`caption`)。紙に刷る画像 (§13) にも同じ模様を使う。
+- **`ImasCameraFrame`** カメラの読み取り窓。面と同じ角丸で切り、縦長 3:4 に収める。
+- **名刺入れ** 部品は足さない。受け取った公演の半券 (`ImasStubRow`) の下に `ImasRow` (行頭の帯 = 相手の担当の色、`.avatar`、末尾に「担当被り」) を並べ、右に引くとメモ・左に引くと削除 (`.imasSwipe`)。
+
 ---
 
 ## 7. 入力
@@ -717,6 +728,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | 手順・特徴を示す | `ImasStepList` / `ImasPointList` |
 | ゲームの表彰台・対戦結果を見せる | `ImasPodium` / `ImasStageVersusResult` |
 | ティアー表を組む | `ImasTierBoard` + `ImasTierRow` / `ImasTierChip` / `ImasTierMoveBar` |
+| P名刺・QR を見せる | `ImasProducerCard` / `ImasQRCode` / `ImasCameraFrame` |
 
 ---
 

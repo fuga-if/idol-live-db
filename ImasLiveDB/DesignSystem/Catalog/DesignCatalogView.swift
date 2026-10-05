@@ -245,6 +245,25 @@ private struct VenueRowsPage: View {
                              subtitle: "コミュニティで表示される名前", onOpen: {})
                 }
             }
+            ImasSection("P名刺", style: .small, footer: "入場証を 1 枚に広げた紙。帯は先頭の担当の色。受け取った名刺で同じ担当は朱の札「担当被り」。写真が無ければ写真の面は出さない (担当の行の判子は必ず出す)。") {
+                VStack(spacing: DS.Space.gapLoose) {
+                    ImasProducerCard(
+                        sinceImprint: "SINCE 2014", name: "ふがP", message: "現地派・Pライブ皆勤目指してます",
+                        oshi: [.init(id: "a", name: "花海咲季", shortName: "咲", seed: Sample.saki, subtitle: "学マス"),
+                               .init(id: "b", name: "月村手毬", shortName: "毬", seed: Sample.chihaya, subtitle: "学マス", isShared: true)],
+                        links: [.init(label: "X", display: "@fuga_p", url: "https://x.com/fuga_p")],
+                        cells: [.init(value: "87", unit: "公演", label: "参加公演"), .init(value: "412", unit: "曲", label: "回収曲"),
+                                .init(value: "10/18", label: "次の現場")],
+                        boardTrailing: "2014 — 2026", onOpenLink: { _ in })
+                    ImasProducerCard(name: "かるたP", links: [.init(label: "X", display: "@karuta_p", url: "https://x.com/karuta_p")])
+                }
+            }
+            ImasSection("QR", style: .small, footer: "チケットの紙に墨で刷る。ダークでも紙は明るい。") {
+                ImasQRCode(text: "https://idollivedb.fugaapp.site/p/#AQ_sample", caption: "ふがP · 担当 2 · 87 公演")
+            }
+            ImasSection("カメラの窓", style: .small, footer: "読み取りのカメラを面と同じ角丸で切る。") {
+                ImasCameraFrame { DS.board }
+            }
             ImasSection("チケットの束", style: .small, footer: "横に払うと次のチケットが上に来る。") {
                 ImasTicketStack(items: [
                     .init(id: "1", ticket: ImasTicket(label: "参加予定", title: "LIVE TOUR -標- Kアリーナ横浜公演 (FINAL) DAY1",
