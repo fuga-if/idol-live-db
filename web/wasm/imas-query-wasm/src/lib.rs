@@ -15,7 +15,9 @@ use imas_core::domain::song_list_queries::{song_list_indexes, SongQuery};
 use imas_core::domain::idol_list_filtering::{
     filter_idol_list, idol_list_entries, sort_idol_list, IdolListEntry, IdolQuery,
 };
-use imas_core::domain::producer_card::{card_link_view, decode_producer_card, CardLinkView};
+use imas_core::domain::producer_card::{
+    card_link_view, card_qr_link_view, decode_producer_card, producer_card_name_font, CardLinkView,
+};
 use imas_core::domain::{idol_queries, list_facets};
 use wasm_bindgen::prelude::*;
 
@@ -125,6 +127,11 @@ struct CardView {
     /// `"YYYY.MM.DD 時点"`。`issued_on` (`YYYY-MM-DD`、producer_card が保証する形) を
     /// 区切りだけ変えたもの (日付の規則ではなく表記の整形なので wasm 側でやる)。
     issued_on_display: String,
+    /// 名前の書体のキー (`card_name_font_info().key`。既定の書体も必ず入る)。
+    /// ページは `data-font` に置き、CSS が同梱の書体 (`/fonts/card/`) を引く。
+    name_font: String,
+    /// 自分の QR (リンクの 1 本の形。題は「QR」)。無ければ `null`。
+    qr_link: Option<CardLinkView>,
 }
 
 /// 名刺の URL (または `#` の後ろだけ) を読み解く。名刺でなければ `null`。
@@ -133,6 +140,8 @@ pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
     let Some(card) = decode_producer_card(text) else {
         return Ok(JsValue::NULL);
     };
+    let name_font = producer_card_name_font(&card).key;
+    let qr_link = card.qr_url.as_deref().map(card_qr_link_view);
     let view = CardView {
         name: card.name,
         message: card.message,
@@ -145,6 +154,8 @@ pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
         attended_count: card.attended.len() as u32,
         attended_truncated: card.attended_truncated,
         issued_on_display: issued_on_display(&card.issued_on),
+        name_font,
+        qr_link,
     };
     let json = to_json(&view)?;
     Ok(JsValue::from_str(&json))

@@ -3225,6 +3225,28 @@ a.cal__day:hover {
   font-family: var(--font-display);
   font-size: var(--fs-title1);
 }
+/* 名前の書体 (名刺の中身の `nameFont`。キーの一覧の正は imas-core の card_name_fonts)。
+   書体の断片は card-fonts.css (/p/ だけが読む)。字が無ければ見出しの書体に落ちる。 */
+.meishi-card__name[data-font="gothic"] {
+  font-family: "Zen Kaku Gothic New", var(--font-display);
+  font-weight: 900;
+}
+.meishi-card__name[data-font="mincho"] {
+  font-family: "IMAS Card mincho", var(--font-display);
+  font-weight: 900;
+}
+.meishi-card__name[data-font="maru"] {
+  font-family: "IMAS Card maru", var(--font-display);
+  font-weight: 900;
+}
+.meishi-card__name[data-font="pop"] {
+  font-family: "IMAS Card pop", var(--font-display);
+  font-weight: 400;
+}
+.meishi-card__name[data-font="hand"] {
+  font-family: "IMAS Card hand", var(--font-display);
+  font-weight: 400;
+}
 .meishi-card__message {
   color: var(--ds-ink2);
 }

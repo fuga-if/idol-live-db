@@ -14,6 +14,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardFileImage
+import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardRecordSummary
 import uniffi.imas_core.CardShowRef
 import uniffi.imas_core.EncodedProducerCard
@@ -93,7 +94,7 @@ object ProducerCardAssembler {
         card.oshiIdolIds.mapNotNull { id ->
             val file = module.customImageStore.primaryImageFile(id) ?: return@mapNotNull null
             val jpeg = ProducerCardFiles.jpeg(file) ?: return@mapNotNull null
-            CardFileImage(idolId = id, jpeg = jpeg)
+            CardFileImage(idolId = id, jpeg = jpeg, kind = CardFileImageKind.OSHI)
         }
 
     /** 自分の名刺ファイル (名刺 + 担当の画像)。画像を JPEG にするのでメインの外で呼ぶ。 */

@@ -169,6 +169,12 @@ pub struct BackupMyProducerCardRecord {
     /// 名刺から外した項目のキー (カンマ区切り)。
     pub hidden_fields: String,
     pub updated_at: String,
+    /// 名前の書体のキー (`card_name_font_key`)。空は既定の書体。
+    #[uniffi(default = "")]
+    pub name_font: String,
+    /// 自分の QR の URL。
+    #[uniffi(default = None)]
+    pub qr_url: Option<String>,
 }
 
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
@@ -525,13 +531,26 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                     .since_year
                     .map(|y| format!(",\"sinceYear\":{y}"))
                     .unwrap_or_default();
+                // 書体・自分の QR は足す前の版と同じ payload になるよう、あるときだけ出す。
+                let name_font = if c.name_font.is_empty() {
+                    String::new()
+                } else {
+                    format!(",\"nameFont\":{}", json_string_literal(&c.name_font))
+                };
+                let qr_url = c
+                    .qr_url
+                    .as_deref()
+                    .map(|u| format!(",\"qrUrl\":{}", json_string_literal(u)))
+                    .unwrap_or_default();
                 format!(
-                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{},\"updatedAt\":{}}}",
+                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
                     json_string_literal(&c.hidden_fields),
                     json_string_literal(&c.id),
                     json_string_literal(&c.links_json),
                     json_string_literal(&c.message),
                     json_string_literal(&c.name),
+                    name_font,
+                    qr_url,
                     since,
                     json_string_literal(&c.updated_at),
                 )
@@ -990,6 +1009,8 @@ fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerC
         links_json: string_field(object, "linksJson")?,
         hidden_fields: string_field(object, "hiddenFields")?,
         updated_at: string_field(object, "updatedAt")?,
+        name_font: optional_field(object, "nameFont").unwrap_or_default(),
+        qr_url: optional_field(object, "qrUrl"),
     })
 }
 
@@ -1126,6 +1147,8 @@ mod tests {
             links_json: r#"[{"kind":"x","value":"fuga_p"}]"#.to_string(),
             hidden_fields: "attended".to_string(),
             updated_at: "2026-10-05T21:00:00Z".to_string(),
+            name_font: String::new(),
+            qr_url: None,
         }
     }
 
@@ -1171,6 +1194,30 @@ mod tests {
         .expect("読める");
         assert!(plan.my_producer_cards_to_insert.is_empty());
         assert_eq!(plan.added_producer_cards, 2);
+    }
+
+    /// 書体・自分の QR も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
+    #[test]
+    fn my_card_font_and_qr_round_trip() {
+        let mut input = export_input();
+        input.my_producer_cards = vec![my_card("ふがP")];
+        let plain = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        assert!(!plain.payload_json.contains("nameFont"));
+        assert!(!plain.payload_json.contains("qrUrl"));
+
+        let mut card = my_card("ふがP");
+        card.name_font = "mincho".to_string();
+        card.qr_url = Some("https://lit.link/fuga".to_string());
+        input.my_producer_cards = vec![card.clone()];
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &BackupLocalState::default(),
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(plan.my_producer_cards_to_insert, vec![card]);
     }
 
     /// 名刺が無ければ payload にキーを出さない。

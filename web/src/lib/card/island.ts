@@ -13,7 +13,7 @@
 import { decodeCard } from "./decode";
 import type { CardCatalog } from "../schema/CardCatalog";
 import type { Ref } from "../schema/Ref";
-import type { CardView } from "./types";
+import type { CardLinkView, CardView } from "./types";
 
 interface Elements {
   root: HTMLElement;
@@ -94,7 +94,7 @@ function renderOshi(el: HTMLElement, idolIds: readonly string[], idols: readonly
   return primary;
 }
 
-function renderLinks(el: HTMLElement, links: CardView["links"]): void {
+function renderLinks(el: HTMLElement, links: readonly CardLinkView[]): void {
   el.replaceChildren();
   for (const link of links) {
     const li = document.createElement("li");
@@ -137,6 +137,8 @@ function renderNext(el: HTMLElement, showId: string | null, shows: readonly Ref[
 
 function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
   e.name.textContent = card.name;
+  // 書体はキーを置くだけ (どの書体を引くかは CSS の `[data-font]`)。
+  e.name.dataset.font = card.nameFont;
 
   e.message.textContent = card.message;
   e.message.hidden = card.message.length === 0;
@@ -152,7 +154,8 @@ function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
   const primaryOshi = renderOshi(e.oshi, card.oshiIdolIds, catalog.idols);
   e.band.dataset.theme = primaryOshi?.themeKey ?? "neutral";
 
-  renderLinks(e.links, card.links);
+  // 自分の QR はリンクの先頭に「QR」として出す (アプリの名刺と同じ並び)。
+  renderLinks(e.links, card.qrLink ? [card.qrLink, ...card.links] : card.links);
 
   e.showCount.textContent = card.showCount !== null ? String(card.showCount) : "—";
   e.songCount.textContent = card.songCount !== null ? String(card.songCount) : "—";

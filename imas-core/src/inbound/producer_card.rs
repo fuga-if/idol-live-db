@@ -2,9 +2,9 @@
 
 use crate::domain::producer_card::{
     CardCaseEntry, CardCaseSection, CardCommon, CardFileContents, CardFileImage, CardFileTypeInfo,
-    CardLink, CardLinkKind, CardLinkKindInfo, CardLinkView, CardRecordSummary, CardShowRef,
-    EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
-    ProducerCardLimits, ScannedCode,
+    CardLink, CardLinkKind, CardLinkKindInfo, CardLinkView, CardNameFont, CardNameFontInfo,
+    CardRecordSummary, CardShowRef, EncodedProducerCard, ProducerCard, ProducerCardInput,
+    ProducerCardInputError, ProducerCardLimits, ScannedCode,
 };
 
 #[uniffi::export]
@@ -147,4 +147,39 @@ pub fn card_peer_tag(payload: String) -> String {
 #[uniffi::export]
 pub fn card_invite_proof(payload: String) -> String {
     crate::domain::producer_card::card_invite_proof(&payload)
+}
+
+#[uniffi::export]
+pub fn normalize_card_qr_url(raw: String) -> Option<String> {
+    crate::domain::producer_card::normalize_card_qr_url(&raw)
+}
+
+#[uniffi::export]
+pub fn card_qr_link_view(url: String) -> CardLinkView {
+    crate::domain::producer_card::card_qr_link_view(&url)
+}
+
+#[uniffi::export]
+pub fn card_name_fonts() -> Vec<CardNameFontInfo> {
+    crate::domain::producer_card::card_name_fonts()
+}
+
+#[uniffi::export]
+pub fn card_name_font_info(font: CardNameFont) -> CardNameFontInfo {
+    crate::domain::producer_card::card_name_font_info(font)
+}
+
+#[uniffi::export]
+pub fn producer_card_name_font(card: ProducerCard) -> CardNameFontInfo {
+    crate::domain::producer_card::producer_card_name_font(&card)
+}
+
+#[uniffi::export]
+pub fn card_name_font_key(font: CardNameFont) -> String {
+    crate::domain::producer_card::card_name_font_key(font)
+}
+
+#[uniffi::export]
+pub fn card_name_font_from_key(key: String) -> Option<CardNameFont> {
+    crate::domain::producer_card::card_name_font_from_key(&key)
 }
