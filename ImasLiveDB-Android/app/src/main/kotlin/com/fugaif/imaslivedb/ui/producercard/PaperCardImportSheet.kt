@@ -66,7 +66,9 @@ import com.fugaif.imaslivedb.ui.songs.IdolMultiPickerPage
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.ScannedCode
@@ -187,8 +189,10 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
                     saved = saved.copy(memo = trimmedMemo)
                     ProducerCardInbox.update(context, saved)
                 }
-                photos.zip(ProducerCardFiles.Side.entries).forEach { (image, side) ->
-                    ProducerCardFiles.savePhoto(context, image, saved.id, side)
+                withContext(Dispatchers.IO) {
+                    photos.zip(ProducerCardFiles.Side.entries).forEach { (image, side) ->
+                        ProducerCardFiles.savePhoto(context, image, saved.id, side)
+                    }
                 }
                 ProducerCardInbox.changed()
                 onDismiss()

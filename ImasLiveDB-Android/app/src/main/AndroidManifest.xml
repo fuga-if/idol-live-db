@@ -79,7 +79,9 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" />
                 <data android:host="idollivedb.fugaapp.site" />
-                <data android:pathPrefix="/p" />
+                <!-- /polls なども /p で始まるので、前方一致ではなく完全一致で受ける (中身は # の後ろ)。 -->
+                <data android:path="/p" />
+                <data android:path="/p/" />
             </intent-filter>
             <!-- imaslivedb://p#… (アプリどうしで開く形)。 -->
             <intent-filter>

@@ -117,26 +117,43 @@ fun ProducerCardExchangeSheet(
         }
     }
 
+    /** 権限を求めている最中 (結果が返るまで次を出さない)。 */
+    var requesting by remember { mutableStateOf(false) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        requesting = false
         cameraPermitted = cardCameraPermitted(context)
         applied++
     }
 
+    // カメラの権限は「読む」を開いたときに求める。権限の要求は同時に 2 つ出すと後の方が黙って捨てられるので、
+    // 開いたときの要求 (近くの端末・「読む」で開いたならカメラも) を 1 回にまとめ、終わってから次を出す。
+    var cameraAsked by remember { mutableStateOf(false) }
+    fun needsCamera() = reading && !cameraPermitted && !cameraAsked && cardCameraAvailable(context)
     LaunchedEffect(Unit) {
-        myFile = myCard?.let { ProducerCardAssembler.myCardFile(module, it) }
         // 近くの端末に渡すための権限は開いたときに 1 回だけ求める (断られても QR だけで交換できる)。
-        if (!NearbyCardPermissions.granted(context) && !permissionsAsked) {
+        val wanted = buildList {
+            if (!NearbyCardPermissions.granted(context)) addAll(NearbyCardPermissions.required())
+            if (needsCamera()) {
+                cameraAsked = true
+                add(Manifest.permission.CAMERA)
+            }
+        }
+        if (wanted.isNotEmpty() && !permissionsAsked) {
             permissionsAsked = true
-            permissions.launch(NearbyCardPermissions.required())
+            requesting = true
+            permissions.launch(wanted.toTypedArray())
         } else {
+            permissionsAsked = true
             applied++
         }
+        myFile = myCard?.let { ProducerCardAssembler.myCardFile(module, it) }
+        applied++
     }
-    // カメラの権限は「読む」を開いたときに求める。
-    var cameraAsked by remember { mutableStateOf(false) }
-    LaunchedEffect(reading) {
-        if (reading && !cameraPermitted && !cameraAsked && cardCameraAvailable(context)) {
+    LaunchedEffect(reading, applied, requesting) {
+        // 開いたときの要求が終わってから。
+        if (applied > 0 && !requesting && needsCamera()) {
             cameraAsked = true
+            requesting = true
             permissions.launch(arrayOf(Manifest.permission.CAMERA))
         }
     }
@@ -155,8 +172,15 @@ fun ProducerCardExchangeSheet(
         ProducerCardIncoming.toExchange.collect { path = it }
     }
 
+    /**
+     * 最後に読んだ中身。確認を閉じるとスキャナが作り直されるので、カメラが向いたままの同じ QR を
+     * すぐ読み直して、始めたばかりの受け渡しを止めないように、ここで覚えておく (iOS は読み取り側が覚える)。
+     */
+    var lastScan by remember { mutableStateOf<String?>(null) }
+
     fun handleScan(text: String) {
-        if (path != null) return
+        if (path != null || text == lastScan) return
+        lastScan = text
         when (val code = classifyScannedCode(text)) {
             is ScannedCode.Card -> {
                 scanNotice = null
@@ -164,7 +188,9 @@ fun ProducerCardExchangeSheet(
                 nearby.startReading(code.payload, myFile)
                 // ✓ の後に届いた画像は、しまった名刺に足す (✓ の前は確認の画面が受け取る)。
                 nearby.onReceive = { contents ->
-                    savedIds[contents.payload]?.let { ProducerCardInbox.attachImages(context, it, contents.images) }
+                    savedIds[contents.payload]?.let { id ->
+                        scope.launch { ProducerCardInbox.attachImages(context, id, contents.images) }
+                    }
                 }
                 path = IncomingProducerCard(code.payload, emptyList(), IncomingProducerCard.Via.SCAN)
             }

@@ -88,9 +88,12 @@ fun CardQRScanner(onScan: (String) -> Unit, modifier: Modifier = Modifier) {
         val mainExecutor = ContextCompat.getMainExecutor(context)
         val providerFuture = ProcessCameraProvider.getInstance(context)
         var last: String? = null
+        // カメラの準備が整う前に画面が閉じたら結び付けない (閉じた画面のカメラが点いたまま残る)。
+        var disposed = false
         var preview: Preview? = null
         var analysis: ImageAnalysis? = null
         providerFuture.addListener({
+            if (disposed) return@addListener
             val provider = runCatching { providerFuture.get() }.getOrNull() ?: return@addListener
             val p = Preview.Builder().build().also { it.surfaceProvider = previewView.surfaceProvider }
             val a = ImageAnalysis.Builder()
@@ -121,6 +124,7 @@ fun CardQRScanner(onScan: (String) -> Unit, modifier: Modifier = Modifier) {
             }.onFailure { Log.e(TAG, "card_camera_bind_failed", it) }
         }, mainExecutor)
         onDispose {
+            disposed = true
             runCatching {
                 val provider = providerFuture.get()
                 listOfNotNull(preview, analysis).forEach { provider.unbind(it) }

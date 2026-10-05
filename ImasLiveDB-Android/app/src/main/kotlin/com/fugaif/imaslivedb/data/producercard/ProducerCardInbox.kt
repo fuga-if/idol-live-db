@@ -6,7 +6,9 @@ import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.di.AppModule
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import uniffi.imas_core.CardFileImage
@@ -59,17 +61,19 @@ object ProducerCardInbox {
         return saved
     }
 
-    /** 後から届いた担当の画像を、しまった名刺に足す。 */
-    fun attachImages(context: Context, cardId: String, images: List<CardFileImage>) {
+    /** 後から届いた担当の画像を、しまった名刺に足す (数 MB を書くのでメインの外で)。 */
+    suspend fun attachImages(context: Context, cardId: String, images: List<CardFileImage>) {
         if (images.isEmpty()) return
-        runCatching { ProducerCardFiles.saveOshiImages(context, cardId, images) }
-            .onFailure { Log.e(TAG, "producer_card_image_save_failed", it) }
+        withContext(Dispatchers.IO) {
+            runCatching { ProducerCardFiles.saveOshiImages(context, cardId, images) }
+                .onFailure { Log.e(TAG, "producer_card_image_save_failed", it) }
+        }
         notifyChanged()
     }
 
     suspend fun delete(context: Context, card: ReceivedProducerCard) {
         AppModule.from(context).producerCardRepository.deleteReceived(card.id)
-        ProducerCardFiles.deleteAll(context, card.id)
+        withContext(Dispatchers.IO) { ProducerCardFiles.deleteAll(context, card.id) }
         notifyChanged()
     }
 
