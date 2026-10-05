@@ -48,6 +48,16 @@ robolectric = "4.16"
 # (1.6.0 以降は 1.8.0 を要求し、この BOM の compose-ui より新しくなって版がずれる)。
 haze = "1.5.4"
 
+# P名刺: 近くの Android どうしの受け渡し (iOS の MultipeerConnectivity の対)
+playServicesNearby = "19.3.0"
+# P名刺: QR を読むカメラ (CameraX) と、端末内で動く QR の読み取り (圏外でも動く bundled モデル)
+camerax = "1.4.1"
+mlkitBarcode = "17.3.0"
+# P名刺: 紙の名刺を撮る (名刺の形に切り抜く。iOS の書類カメラの対)
+mlkitDocumentScanner = "16.0.0-beta1"
+# P名刺: QR を刷る (誤り訂正 L。iOS の CIQRCodeGenerator の対)
+zxing = "3.5.3"
+
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
@@ -103,6 +113,15 @@ androidx-security-crypto = { group = "androidx.security", name = "security-crypt
 # 浮いている枠のガラス (ぼかし)
 haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "haze" }
+
+# P名刺
+play-services-nearby = { group = "com.google.android.gms", name = "play-services-nearby", version.ref = "playServicesNearby" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
+mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 # Test
 junit = { group = "junit", name = "junit", version = "4.13.2" }
