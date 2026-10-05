@@ -941,6 +941,263 @@ fn truncate_chars(s: &str, max: usize) -> String {
     s.chars().take(max).collect()
 }
 
+// ---------------------------------------------------------------------------
+// 自分の名刺の材料 (アプリの記録から)
+// ---------------------------------------------------------------------------
+
+/// 自分の名刺に載せる記録。参加を付けた公演を「行った公演」と「次の現場」に分ける。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardRecordSummary {
+    /// 今日までに行った公演 (日付の昇順)。共通点に使う。
+    pub attended_past: Vec<CardShowRef>,
+    /// 行った公演の数。
+    pub show_count: u32,
+    /// 今日以降でいちばん早い参加予定の公演。
+    pub next_show_id: Option<String>,
+}
+
+/// 参加を付けた公演 (今後の参加予定も混ざる) を、名刺に載せる形に分ける。
+/// 今日の公演は「行った公演」に数え、次の現場には明日以降を出す (会場で交換する日の公演が
+/// 次の現場に出ると、その日のうちに古くなる)。日付の読めない公演はどちらにも入れない。
+pub fn producer_card_record_summary(today: &str, attended: &[CardShowRef]) -> CardRecordSummary {
+    let Some(today) = parse_date(today) else {
+        return CardRecordSummary {
+            attended_past: Vec::new(),
+            show_count: 0,
+            next_show_id: None,
+        };
+    };
+    let mut past: Vec<(NaiveDate, &CardShowRef)> = Vec::new();
+    let mut next: Option<(NaiveDate, &CardShowRef)> = None;
+    let mut seen = std::collections::HashSet::new();
+    for r in attended {
+        if !seen.insert(r.show_id.as_str()) {
+            continue;
+        }
+        let Some(day) = parse_date(&r.date) else {
+            continue;
+        };
+        if day <= today {
+            past.push((day, r));
+        } else if next.is_none_or(|(d, n)| (day, &r.show_id) < (d, &n.show_id)) {
+            next = Some((day, r));
+        }
+    }
+    past.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.show_id.cmp(&b.1.show_id)));
+    CardRecordSummary {
+        show_count: past.len() as u32,
+        attended_past: past.into_iter().map(|(_, r)| r.clone()).collect(),
+        next_show_id: next.map(|(_, r)| r.show_id.clone()),
+    }
+}
+
+/// 紙に刷る名刺の日付 (`2026.10.06 時点`)。記録の数がその日のものだと分かるように刷る。
+pub fn card_issued_label(issued_on: &str) -> String {
+    match parse_date(issued_on) {
+        Some(d) => format!("{} 時点", d.format("%Y.%m.%d")),
+        None => String::new(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// リンクの保存の形 (端末の表に入れる)
+// ---------------------------------------------------------------------------
+
+/// 保存に使うリンクの種類の英字キー。ラベルを変えても保存したリンクが迷子にならない。
+pub fn card_link_kind_key(kind: CardLinkKind) -> String {
+    match kind {
+        CardLinkKind::X => "x",
+        CardLinkKind::Bluesky => "bluesky",
+        CardLinkKind::Misskey => "misskey",
+        CardLinkKind::YouTube => "youtube",
+        CardLinkKind::Instagram => "instagram",
+        CardLinkKind::TikTok => "tiktok",
+        CardLinkKind::Web => "web",
+    }
+    .into()
+}
+
+pub fn card_link_kind_from_key(key: &str) -> Option<CardLinkKind> {
+    Some(match key {
+        "x" => CardLinkKind::X,
+        "bluesky" => CardLinkKind::Bluesky,
+        "misskey" => CardLinkKind::Misskey,
+        "youtube" => CardLinkKind::YouTube,
+        "instagram" => CardLinkKind::Instagram,
+        "tiktok" => CardLinkKind::TikTok,
+        "web" => CardLinkKind::Web,
+        _ => return None,
+    })
+}
+
+/// リンクの並びを保存用の JSON (`[{"kind":"x","value":"…"}]`) にする。
+pub fn card_links_to_json(links: &[CardLink]) -> String {
+    let items: Vec<serde_json::Value> = links
+        .iter()
+        .map(|l| serde_json::json!({ "kind": card_link_kind_key(l.kind), "value": l.value }))
+        .collect();
+    serde_json::Value::Array(items).to_string()
+}
+
+/// 保存用の JSON からリンクの並びを戻す。知らない種類・壊れた要素は落とす (残りは読む)。
+pub fn card_links_from_json(json: &str) -> Vec<CardLink> {
+    let Ok(serde_json::Value::Array(items)) = serde_json::from_str::<serde_json::Value>(json)
+    else {
+        return Vec::new();
+    };
+    items
+        .iter()
+        .filter_map(|v| {
+            let kind = card_link_kind_from_key(v.get("kind")?.as_str()?)?;
+            let value = v.get("value")?.as_str()?.to_string();
+            Some(CardLink { kind, value })
+        })
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
+// 名刺ファイル (`.imascard`)
+//
+// 名刺と担当の画像を 1 つのファイルにまとめる。OS の共有 (AirDrop / Quick Share) で
+// iPhone と Android の間でも画像を元の画質のまま渡せるようにするため。
+// 近距離の直接の受け渡し (iPhone 同士) も同じ中身を流す。
+//
+//   8 byte  "IMASCARD"
+//   u8      版 (1)
+//   str     名刺の中身 (`#` の後ろ)
+//   varint  画像の数 (担当の数まで)
+//   (str 担当の id, varint バイト数, JPEG) × n
+// ---------------------------------------------------------------------------
+
+const CARD_FILE_MAGIC: &[u8; 8] = b"IMASCARD";
+const CARD_FILE_VERSION: u8 = 1;
+/// 画像 1 枚の上限。長辺 1600px 程度の JPEG なら 1MB 前後なので十分に余裕がある。
+const MAX_CARD_FILE_IMAGE_BYTES: usize = 12 * 1024 * 1024;
+
+/// 名刺ファイルの種類の名乗り。OS に登録する拡張子・MIME・UTI はここ 1 か所。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardFileTypeInfo {
+    pub extension: String,
+    pub mime_type: String,
+    pub uniform_type_identifier: String,
+}
+
+/// 名刺ファイルに入れる担当の画像 1 枚。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardFileImage {
+    pub idol_id: String,
+    pub jpeg: Vec<u8>,
+}
+
+/// 名刺ファイルを開いた中身。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardFileContents {
+    pub payload: String,
+    pub card: ProducerCard,
+    /// 名刺の担当に載っている人の画像だけ (名刺の担当の順)。
+    pub images: Vec<CardFileImage>,
+}
+
+pub fn card_file_type_info() -> CardFileTypeInfo {
+    CardFileTypeInfo {
+        extension: "imascard".into(),
+        mime_type: "application/vnd.imaslivedb.card".into(),
+        uniform_type_identifier: "com.fugaif.imaslivedb.card".into(),
+    }
+}
+
+/// 名刺ファイルの名前 (`ふがPのP名刺.imascard`)。ファイル名に使えない文字は落とす。
+pub fn card_file_name(card: &ProducerCard) -> String {
+    let name: String = card
+        .name
+        .trim()
+        .chars()
+        .filter(|c| {
+            !matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') && !c.is_control()
+        })
+        .collect();
+    let ext = card_file_type_info().extension;
+    if name.is_empty() {
+        format!("P名刺.{ext}")
+    } else {
+        format!("{name}のP名刺.{ext}")
+    }
+}
+
+/// 名刺ファイルを組み立てる。名刺の中身が読めなければ None。
+/// 名刺の担当に載っていない人の画像・空の画像・大きすぎる画像は入れない。
+pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u8>> {
+    let card = decode_producer_card(payload)?;
+    let payload = card_payload(payload)?;
+    let images = card_file_images(&card, images.to_vec());
+    let mut w = Vec::with_capacity(
+        32 + payload.len() + images.iter().map(|i| i.jpeg.len() + 48).sum::<usize>(),
+    );
+    w.extend_from_slice(CARD_FILE_MAGIC);
+    w.push(CARD_FILE_VERSION);
+    put_str(&mut w, payload);
+    put_varint(&mut w, images.len() as u64);
+    for image in &images {
+        put_str(&mut w, &image.idol_id);
+        put_varint(&mut w, image.jpeg.len() as u64);
+        w.extend_from_slice(&image.jpeg);
+    }
+    Some(w)
+}
+
+/// 名刺ファイルを開く。名刺ファイルでなければ None。
+pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
+    let body = bytes.strip_prefix(CARD_FILE_MAGIC.as_slice())?;
+    let mut r = Reader {
+        bytes: body,
+        pos: 0,
+    };
+    if r.u8()? != CARD_FILE_VERSION {
+        return None;
+    }
+    let payload = r.str()?;
+    let card = decode_producer_card(&payload)?;
+    let count = r.count(MAX_OSHI as usize)?;
+    let mut images = Vec::with_capacity(count);
+    for _ in 0..count {
+        let idol_id = r.str()?;
+        let len = r.count(MAX_CARD_FILE_IMAGE_BYTES)?;
+        let end = r.pos.checked_add(len)?;
+        let jpeg = r.bytes.get(r.pos..end)?.to_vec();
+        r.pos = end;
+        images.push(CardFileImage { idol_id, jpeg });
+    }
+    let images = card_file_images(&card, images);
+    Some(CardFileContents {
+        payload,
+        card,
+        images,
+    })
+}
+
+/// 名刺の担当に載っている人の画像だけを、名刺の担当の順に 1 人 1 枚で残す。
+fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<CardFileImage> {
+    let mut out: Vec<CardFileImage> = Vec::new();
+    for id in &card.oshi_idol_ids {
+        if let Some(image) = images.iter().find(|i| &i.idol_id == id) {
+            if !image.jpeg.is_empty() && image.jpeg.len() <= MAX_CARD_FILE_IMAGE_BYTES {
+                out.push(image.clone());
+            }
+        }
+    }
+    out
+}
+
+/// 近くの端末どうしで相手を見分ける札 (名刺の中身の SHA-256 の先頭 16 桁)。
+/// 見せている側が近くに名乗り、読んだ側は読み取った名刺から同じ札を作って探す。
+pub fn card_peer_tag(payload: &str) -> String {
+    let payload = card_payload(payload).unwrap_or(payload);
+    crate::domain::sha256::sha256_hex(payload)
+        .chars()
+        .take(16)
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1245,5 +1502,149 @@ mod tests {
         // Web (wasm) と端末で同じ値になることの固定。変えると交換済みの名刺の共通点が壊れる。
         assert_eq!(fingerprint("sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8"), 3751);
         assert_ne!(fingerprint("sh_a"), fingerprint("sh_b"));
+    }
+
+    #[test]
+    fn record_summary_splits_past_and_next() {
+        let refs = vec![
+            CardShowRef {
+                show_id: "b".into(),
+                date: "2026-10-06".into(),
+            },
+            CardShowRef {
+                show_id: "a".into(),
+                date: "2025-01-01".into(),
+            },
+            CardShowRef {
+                show_id: "z".into(),
+                date: "2026-12-01".into(),
+            },
+            CardShowRef {
+                show_id: "y".into(),
+                date: "2026-10-18".into(),
+            },
+            CardShowRef {
+                show_id: "a".into(),
+                date: "2025-01-01".into(),
+            },
+            CardShowRef {
+                show_id: "bad".into(),
+                date: "".into(),
+            },
+        ];
+        let s = producer_card_record_summary("2026-10-06", &refs);
+        assert_eq!(s.show_count, 2);
+        assert_eq!(
+            s.attended_past
+                .iter()
+                .map(|r| r.show_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "b"]
+        );
+        assert_eq!(s.next_show_id.as_deref(), Some("y"));
+        assert_eq!(producer_card_record_summary("", &refs).show_count, 0);
+    }
+
+    #[test]
+    fn issued_label_is_dotted() {
+        assert_eq!(card_issued_label("2026-10-06"), "2026.10.06 時点");
+        assert_eq!(card_issued_label(""), "");
+    }
+
+    #[test]
+    fn links_json_round_trips_and_skips_unknown() {
+        let links = vec![
+            CardLink {
+                kind: CardLinkKind::X,
+                value: "fuga_p".into(),
+            },
+            CardLink {
+                kind: CardLinkKind::Misskey,
+                value: "a@misskey.io".into(),
+            },
+        ];
+        let json = card_links_to_json(&links);
+        assert_eq!(card_links_from_json(&json), links);
+        let mixed = r#"[{"kind":"x","value":"a"},{"kind":"mastodon","value":"b"},3]"#;
+        assert_eq!(card_links_from_json(mixed).len(), 1);
+        assert!(card_links_from_json("not json").is_empty());
+        for info in card_link_kinds() {
+            assert_eq!(
+                card_link_kind_from_key(&card_link_kind_key(info.kind)),
+                Some(info.kind)
+            );
+        }
+    }
+
+    #[test]
+    fn card_file_round_trips_only_oshi_images() {
+        let enc = encode_producer_card(&input());
+        let payload = enc.url.split_once('#').unwrap().1.to_string();
+        let images = vec![
+            CardFileImage {
+                idol_id: "765_如月千早".into(),
+                jpeg: vec![1, 2, 3],
+            },
+            CardFileImage {
+                idol_id: "961_黒井".into(),
+                jpeg: vec![9],
+            },
+            CardFileImage {
+                idol_id: "765_天海春香".into(),
+                jpeg: vec![4, 5],
+            },
+            CardFileImage {
+                idol_id: "765_天海春香".into(),
+                jpeg: vec![],
+            },
+        ];
+        // URL を渡しても `#` の後ろだけを入れる。
+        let bytes = encode_card_file(&enc.url, &images).unwrap();
+        let file = decode_card_file(&bytes).unwrap();
+        assert_eq!(file.payload, payload);
+        assert_eq!(file.card, enc.card);
+        assert_eq!(
+            file.images
+                .iter()
+                .map(|i| i.idol_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["765_天海春香", "765_如月千早"]
+        );
+        assert_eq!(file.images[0].jpeg, vec![4, 5]);
+    }
+
+    #[test]
+    fn card_file_rejects_garbage() {
+        assert!(decode_card_file(b"").is_none());
+        assert!(decode_card_file(b"IMASCARD").is_none());
+        assert!(decode_card_file(b"NOTACARD\x01").is_none());
+        assert!(encode_card_file("not a card", &[]).is_none());
+        let enc = encode_producer_card(&input());
+        let bytes = encode_card_file(&enc.url, &[]).unwrap();
+        // 途中で切れたファイルは読まない。
+        let mut cut = bytes.clone();
+        cut.truncate(bytes.len() - 1);
+        assert!(decode_card_file(&cut).is_none());
+        let mut v2 = bytes.clone();
+        v2[8] = 2;
+        assert!(decode_card_file(&v2).is_none());
+    }
+
+    #[test]
+    fn card_file_name_drops_path_chars() {
+        let mut card = encode_producer_card(&input()).card;
+        assert_eq!(card_file_name(&card), "ふがPのP名刺.imascard");
+        card.name = "a/b:c".into();
+        assert_eq!(card_file_name(&card), "abcのP名刺.imascard");
+        card.name = " ".into();
+        assert_eq!(card_file_name(&card), "P名刺.imascard");
+    }
+
+    #[test]
+    fn peer_tag_is_same_for_url_and_payload() {
+        let enc = encode_producer_card(&input());
+        let payload = enc.url.split_once('#').unwrap().1;
+        assert_eq!(card_peer_tag(&enc.url), card_peer_tag(payload));
+        assert_eq!(card_peer_tag(payload).len(), 16);
     }
 }

@@ -141,6 +141,36 @@ pub struct BackupPlaylistRecord {
     pub song_ids: Vec<String>,
 }
 
+/// 受け取った P名刺 1 枚 (`received_producer_cards`)。名刺の中身は `#` の後ろのまま運ぶ。
+///
+/// 同一性は id (UUID)。写真・担当の画像は運ばない (アイドルの画像と同じく端末の中だけ)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct BackupProducerCardRecord {
+    pub id: String,
+    pub payload: String,
+    /// `"app"` (アプリの QR・名刺ファイル) / `"paper"` (紙の名刺を取り込んだもの)。
+    pub source: String,
+    pub show_id: Option<String>,
+    pub show_date: Option<String>,
+    pub memo: Option<String>,
+    pub received_at: String,
+    pub updated_at: String,
+}
+
+/// 自分の P名刺の書いた中身 (`my_producer_card`)。担当や記録の数はアプリの記録から
+/// 毎回作るので運ばない。リンクは保存の形の JSON (`card_links_to_json`) のまま。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct BackupMyProducerCardRecord {
+    pub id: String,
+    pub name: String,
+    pub message: String,
+    pub since_year: Option<i64>,
+    pub links_json: String,
+    /// 名刺から外した項目のキー (カンマ区切り)。
+    pub hidden_fields: String,
+    pub updated_at: String,
+}
+
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
 #[derive(uniffi::Record, Clone, Debug)]
 pub struct BackupExportInput {
@@ -156,6 +186,10 @@ pub struct BackupExportInput {
     pub expenses: Vec<BackupExpenseRecord>,
     #[uniffi(default)]
     pub playlists: Vec<BackupPlaylistRecord>,
+    #[uniffi(default)]
+    pub producer_cards: Vec<BackupProducerCardRecord>,
+    #[uniffi(default)]
+    pub my_producer_cards: Vec<BackupMyProducerCardRecord>,
 }
 
 /// 書き出し結果。`envelope_json` をそのままファイル/引き継ぎコードにすればよい。
@@ -198,6 +232,12 @@ pub struct BackupLocalState {
     /// 既にあるプレイリストの id。
     #[uniffi(default)]
     pub playlist_ids: Vec<String>,
+    /// 既にある受け取った名刺の id。
+    #[uniffi(default)]
+    pub producer_card_ids: Vec<String>,
+    /// 既にある自分の名刺の id。自分の名刺は 1 枚なので、あれば取り込まない。
+    #[uniffi(default)]
+    pub my_producer_card_ids: Vec<String>,
 }
 
 /// envelope を検証して取り出したメタ情報 (取り込み前のプレビュー用)。
@@ -216,6 +256,7 @@ pub struct BackupEnvelopeInfo {
     pub personal_tag_count: i64,
     pub expense_count: i64,
     pub playlist_count: i64,
+    pub producer_card_count: i64,
     /// 形式不正で捨てた要素数 (marks / votes / personalTags の合計)。
     /// `backup_import_summary` の `skipped_marks` に渡す値。
     pub skipped_entries: i64,
@@ -232,11 +273,14 @@ pub struct BackupImportPlan {
     pub personal_tags_to_insert: Vec<BackupPersonalTagRecord>,
     pub expenses_to_insert: Vec<BackupExpenseRecord>,
     pub playlists_to_insert: Vec<BackupPlaylistRecord>,
+    pub producer_cards_to_insert: Vec<BackupProducerCardRecord>,
+    pub my_producer_cards_to_insert: Vec<BackupMyProducerCardRecord>,
     pub added_marks: i64,
     pub added_votes: i64,
     pub added_personal_tags: i64,
     pub added_expenses: i64,
     pub added_playlists: i64,
+    pub added_producer_cards: i64,
     /// 端末 ID を復元してよいか (要求されていて、かつ payload の deviceId が非空)。
     pub restore_device_id: bool,
 }
@@ -313,7 +357,11 @@ pub fn build_backup_envelope(
         BACKUP_ENVELOPE_VERSION,
         json_string_literal(&payload_json),
     );
-    BackupEnvelopeDocument { payload_json, checksum, envelope_json }
+    BackupEnvelopeDocument {
+        payload_json,
+        checksum,
+        envelope_json,
+    }
 }
 
 /// payload だけを組み立てる (キー昇順・空白なし)。
@@ -356,7 +404,11 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                 .map(|id| json_string_literal(id))
                 .collect::<Vec<_>>()
                 .join(",");
-            format!("{{\"entityIds\":[{}],\"pollId\":{}}}", ids, json_string_literal(&vote.poll_id))
+            format!(
+                "{{\"entityIds\":[{}],\"pollId\":{}}}",
+                ids,
+                json_string_literal(&vote.poll_id)
+            )
         })
         .collect::<Vec<_>>()
         .join(",");
@@ -388,7 +440,9 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
             ]
             .into_iter()
             .filter_map(|(key, value)| {
-                value.as_ref().map(|v| format!(",\"{key}\":{}", json_string_literal(v)))
+                value
+                    .as_ref()
+                    .map(|v| format!(",\"{key}\":{}", json_string_literal(v)))
             })
             .collect::<String>();
             format!(
@@ -408,7 +462,12 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
         .playlists
         .iter()
         .map(|p| {
-            let songs = p.song_ids.iter().map(|id| json_string_literal(id)).collect::<Vec<_>>().join(",");
+            let songs = p
+                .song_ids
+                .iter()
+                .map(|id| json_string_literal(id))
+                .collect::<Vec<_>>()
+                .join(",");
             format!(
                 "{{\"createdAt\":{},\"id\":{},\"name\":{},\"songIds\":[{}],\"updatedAt\":{}}}",
                 json_string_literal(&p.created_at),
@@ -421,6 +480,67 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
         .collect::<Vec<_>>()
         .join(",");
 
+    // P名刺も無ければキーごと出さない (名刺を知らない版と同じ payload のまま)。
+    let producer_cards_field = if input.producer_cards.is_empty() {
+        String::new()
+    } else {
+        let items = input
+            .producer_cards
+            .iter()
+            .map(|c| {
+                let optional = [
+                    ("memo", &c.memo),
+                    ("showDate", &c.show_date),
+                    ("showId", &c.show_id),
+                ]
+                .into_iter()
+                .filter_map(|(key, value)| {
+                    value
+                        .as_ref()
+                        .map(|v| format!(",\"{key}\":{}", json_string_literal(v)))
+                })
+                .collect::<String>();
+                format!(
+                    "{{\"id\":{}{},\"payload\":{},\"receivedAt\":{},\"source\":{},\"updatedAt\":{}}}",
+                    json_string_literal(&c.id),
+                    optional,
+                    json_string_literal(&c.payload),
+                    json_string_literal(&c.received_at),
+                    json_string_literal(&c.source),
+                    json_string_literal(&c.updated_at),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(",\"producerCards\":[{items}]")
+    };
+    let my_producer_cards_field = if input.my_producer_cards.is_empty() {
+        String::new()
+    } else {
+        let items = input
+            .my_producer_cards
+            .iter()
+            .map(|c| {
+                let since = c
+                    .since_year
+                    .map(|y| format!(",\"sinceYear\":{y}"))
+                    .unwrap_or_default();
+                format!(
+                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{},\"updatedAt\":{}}}",
+                    json_string_literal(&c.hidden_fields),
+                    json_string_literal(&c.id),
+                    json_string_literal(&c.links_json),
+                    json_string_literal(&c.message),
+                    json_string_literal(&c.name),
+                    since,
+                    json_string_literal(&c.updated_at),
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        format!(",\"myProducerCards\":[{items}]")
+    };
+
     // プレイリストが無ければキーごと出さない (プレイリストを知らない版と同じ payload のまま)。
     let playlists_field = if input.playlists.is_empty() {
         String::new()
@@ -429,15 +549,17 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
     };
 
     format!(
-        "{{\"appVersion\":{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{},\"personalTags\":[{}],\"platform\":{}{},\"pollVotes\":[{}],\"schemaVersion\":{},\"userMarks\":[{}]}}",
+        "{{\"appVersion\":{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{}{},\"personalTags\":[{}],\"platform\":{}{},\"pollVotes\":[{}]{},\"schemaVersion\":{},\"userMarks\":[{}]}}",
         json_string_literal(&input.app_version),
         json_string_literal(&input.device_id),
         expenses,
         json_string_literal(&input.exported_at),
+        my_producer_cards_field,
         tags,
         json_string_literal(&input.platform),
         playlists_field,
         vote_items,
+        producer_cards_field,
         BACKUP_SCHEMA_VERSION,
         marks,
     )
@@ -481,10 +603,14 @@ struct ParsedBackup {
     tags: Vec<BackupPersonalTagRecord>,
     expenses: Vec<BackupExpenseRecord>,
     playlists: Vec<BackupPlaylistRecord>,
+    producer_cards: Vec<BackupProducerCardRecord>,
+    my_producer_cards: Vec<BackupMyProducerCardRecord>,
 }
 
 /// envelope を検証し、中身の件数とメタ情報だけを返す (書き込み前のプレビュー用)。
-pub fn inspect_backup_envelope(envelope_json: &str) -> Result<BackupEnvelopeInfo, BackupImportError> {
+pub fn inspect_backup_envelope(
+    envelope_json: &str,
+) -> Result<BackupEnvelopeInfo, BackupImportError> {
     Ok(parse_backup(envelope_json)?.info)
 }
 
@@ -507,12 +633,20 @@ pub fn plan_backup_import(
         .mark_keys
         .iter()
         .map(|k| {
-            (k.entity_type.clone(), k.entity_id.clone(), to_canonical(&k.kind, dialect))
+            (
+                k.entity_type.clone(),
+                k.entity_id.clone(),
+                to_canonical(&k.kind, dialect),
+            )
         })
         .collect();
     let mut marks_to_insert = Vec::new();
     for mark in parsed.marks {
-        let key = (mark.entity_type.clone(), mark.entity_id.clone(), mark.kind.clone());
+        let key = (
+            mark.entity_type.clone(),
+            mark.entity_id.clone(),
+            mark.kind.clone(),
+        );
         // insert が true = 既存にも計画済みにも無い。
         if seen_marks.insert(key) {
             let kind = from_canonical(&mark.kind, dialect);
@@ -523,11 +657,21 @@ pub fn plan_backup_import(
     let mut seen_tags: HashSet<(String, String, String)> = local
         .tag_keys
         .iter()
-        .map(|k| (k.entity_type.clone(), k.entity_id.clone(), k.tag_name.clone()))
+        .map(|k| {
+            (
+                k.entity_type.clone(),
+                k.entity_id.clone(),
+                k.tag_name.clone(),
+            )
+        })
         .collect();
     let mut personal_tags_to_insert = Vec::new();
     for tag in parsed.tags {
-        let key = (tag.entity_type.clone(), tag.entity_id.clone(), tag.tag_name.clone());
+        let key = (
+            tag.entity_type.clone(),
+            tag.entity_id.clone(),
+            tag.tag_name.clone(),
+        );
         if seen_tags.insert(key) {
             personal_tags_to_insert.push(tag);
         }
@@ -545,8 +689,12 @@ pub fn plan_backup_import(
     let mut delta: HashMap<String, Vec<String>> = HashMap::new();
     for vote in &parsed.votes {
         let current = owned.entry(vote.poll_id.clone()).or_default();
-        let missing: Vec<String> =
-            vote.entity_ids.iter().filter(|id| current.insert((*id).clone())).cloned().collect();
+        let missing: Vec<String> = vote
+            .entity_ids
+            .iter()
+            .filter(|id| current.insert((*id).clone()))
+            .cloned()
+            .collect();
         if missing.is_empty() {
             continue;
         }
@@ -562,7 +710,10 @@ pub fn plan_backup_import(
         .into_iter()
         .map(|poll_id| {
             let entity_ids = delta.remove(&poll_id).unwrap_or_default();
-            BackupPollVoteRecord { poll_id, entity_ids }
+            BackupPollVoteRecord {
+                poll_id,
+                entity_ids,
+            }
         })
         .collect();
 
@@ -584,11 +735,34 @@ pub fn plan_backup_import(
         }
     }
 
+    // 受け取った名刺も id で見る。メモを書き足した名刺を古いメモで上書きしない。
+    let mut seen_cards: HashSet<String> = local.producer_card_ids.iter().cloned().collect();
+    let mut producer_cards_to_insert = Vec::new();
+    for card in parsed.producer_cards {
+        if seen_cards.insert(card.id.clone()) {
+            producer_cards_to_insert.push(card);
+        }
+    }
+    // 自分の名刺は 1 枚。端末に既にあれば何も入れない (書き直した名刺を戻さない)。
+    let mut my_producer_cards_to_insert = Vec::new();
+    if local.my_producer_card_ids.is_empty() {
+        let mut seen_mine: HashSet<String> = HashSet::new();
+        for card in parsed.my_producer_cards {
+            if seen_mine.insert(card.id.clone()) {
+                my_producer_cards_to_insert.push(card);
+            }
+        }
+    }
+
     let added_marks = marks_to_insert.len() as i64;
     let added_personal_tags = personal_tags_to_insert.len() as i64;
-    let added_votes: i64 = poll_votes_to_add.iter().map(|v| v.entity_ids.len() as i64).sum();
+    let added_votes: i64 = poll_votes_to_add
+        .iter()
+        .map(|v| v.entity_ids.len() as i64)
+        .sum();
     let added_expenses = expenses_to_insert.len() as i64;
     let added_playlists = playlists_to_insert.len() as i64;
+    let added_producer_cards = producer_cards_to_insert.len() as i64;
     let restore_device_id = restore_device_id && !parsed.info.device_id.is_empty();
 
     Ok(BackupImportPlan {
@@ -598,11 +772,14 @@ pub fn plan_backup_import(
         personal_tags_to_insert,
         expenses_to_insert,
         playlists_to_insert,
+        producer_cards_to_insert,
+        my_producer_cards_to_insert,
         added_marks,
         added_votes,
         added_personal_tags,
         added_expenses,
         added_playlists,
+        added_producer_cards,
         restore_device_id,
     })
 }
@@ -611,10 +788,14 @@ pub fn plan_backup_import(
 fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> {
     let envelope: serde_json::Value =
         serde_json::from_str(envelope_json).map_err(|_| BackupImportError::MalformedFile)?;
-    let envelope = envelope.as_object().ok_or(BackupImportError::MalformedFile)?;
+    let envelope = envelope
+        .as_object()
+        .ok_or(BackupImportError::MalformedFile)?;
 
-    let payload_text = non_empty_string(envelope.get("payload")).ok_or(BackupImportError::MalformedFile)?;
-    let checksum = non_empty_string(envelope.get("checksum")).ok_or(BackupImportError::MalformedFile)?;
+    let payload_text =
+        non_empty_string(envelope.get("payload")).ok_or(BackupImportError::MalformedFile)?;
+    let checksum =
+        non_empty_string(envelope.get("checksum")).ok_or(BackupImportError::MalformedFile)?;
     // envelopeVersion は両 OS とも値を見ていない。無い/型違いを中断理由にすると
     // 検証できるはずのファイルを弾くだけなので、読めたときだけ持ち回る。
     let envelope_version = envelope.get("envelopeVersion").and_then(integral_number);
@@ -625,7 +806,9 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
 
     let payload: serde_json::Value =
         serde_json::from_str(payload_text).map_err(|_| BackupImportError::MalformedFile)?;
-    let payload = payload.as_object().ok_or(BackupImportError::MalformedFile)?;
+    let payload = payload
+        .as_object()
+        .ok_or(BackupImportError::MalformedFile)?;
 
     let schema_version = payload
         .get("schemaVersion")
@@ -633,7 +816,9 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
         .ok_or(BackupImportError::MalformedFile)?;
     // 「未来の版で作られたファイル」だけを弾く。古い版 (= 項目が少ない) は読める。
     if schema_version > BACKUP_SCHEMA_VERSION {
-        return Err(BackupImportError::UnsupportedSchemaVersion { found: schema_version });
+        return Err(BackupImportError::UnsupportedSchemaVersion {
+            found: schema_version,
+        });
     }
 
     let mut skipped: i64 = 0;
@@ -646,6 +831,17 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
     let expenses = parse_array(payload.get("expenses"), &mut skipped, parse_expense);
     // playlists も版を上げずに足した項目。無ければ空。
     let playlists = parse_array(payload.get("playlists"), &mut skipped, parse_playlist);
+    // P名刺も版を上げずに足した項目。無ければ空。
+    let producer_cards = parse_array(
+        payload.get("producerCards"),
+        &mut skipped,
+        parse_producer_card,
+    );
+    let my_producer_cards = parse_array(
+        payload.get("myProducerCards"),
+        &mut skipped,
+        parse_my_producer_card,
+    );
 
     Ok(ParsedBackup {
         info: BackupEnvelopeInfo {
@@ -660,6 +856,7 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
             personal_tag_count: tags.len() as i64,
             expense_count: expenses.len() as i64,
             playlist_count: playlists.len() as i64,
+            producer_card_count: producer_cards.len() as i64,
             skipped_entries: skipped,
         },
         marks,
@@ -667,6 +864,8 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
         tags,
         expenses,
         playlists,
+        producer_cards,
+        my_producer_cards,
     })
 }
 
@@ -719,7 +918,10 @@ fn parse_vote(value: &serde_json::Value) -> Option<BackupPollVoteRecord> {
     for item in object.get("entityIds")?.as_array()? {
         entity_ids.push(item.as_str()?.to_string());
     }
-    Some(BackupPollVoteRecord { poll_id, entity_ids })
+    Some(BackupPollVoteRecord {
+        poll_id,
+        entity_ids,
+    })
 }
 
 fn parse_tag(value: &serde_json::Value) -> Option<BackupPersonalTagRecord> {
@@ -764,6 +966,33 @@ fn parse_playlist(value: &serde_json::Value) -> Option<BackupPlaylistRecord> {
     })
 }
 
+fn parse_producer_card(value: &serde_json::Value) -> Option<BackupProducerCardRecord> {
+    let object = value.as_object()?;
+    Some(BackupProducerCardRecord {
+        id: string_field(object, "id")?,
+        payload: string_field(object, "payload")?,
+        source: string_field(object, "source")?,
+        show_id: optional_field(object, "showId"),
+        show_date: optional_field(object, "showDate"),
+        memo: optional_field(object, "memo"),
+        received_at: string_field(object, "receivedAt")?,
+        updated_at: string_field(object, "updatedAt")?,
+    })
+}
+
+fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerCardRecord> {
+    let object = value.as_object()?;
+    Some(BackupMyProducerCardRecord {
+        id: string_field(object, "id")?,
+        name: string_field(object, "name")?,
+        message: string_field(object, "message")?,
+        since_year: object.get("sinceYear").and_then(integral_number),
+        links_json: string_field(object, "linksJson")?,
+        hidden_fields: string_field(object, "hiddenFields")?,
+        updated_at: string_field(object, "updatedAt")?,
+    })
+}
+
 /// 任意の文字列列。無い/null は None、型違いも None (行は捨てない)。
 fn optional_field(
     object: &serde_json::Map<String, serde_json::Value>,
@@ -802,7 +1031,6 @@ fn integral_number(value: &serde_json::Value) -> Option<i64> {
         None
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -843,15 +1071,18 @@ mod tests {
             ..mark("x", kind)
         };
         let marks = vec![
-            mark("a", "myPick"),                                         // 0 付いている
-            unset("myPick", None),                                       // 1 外した担当
-            unset("attended", None),                                     // 2 取り消した参加
-            BackupUserMarkRecord { text_value: Some("live".into()), ..mark("b", "attended") }, // 3
-            unset("mastery", Some("3")),                                 // 4 習熟度は bool が false
-            unset("mastery", None),                                      // 5 未設定に戻した習熟度
-            unset("note", Some("")),                                     // 6 消したメモ
-            unset("note", Some("  ")),                                   // 7 空白だけのメモ
-            unset("seat", Some("アリーナ A3")),                            // 8
+            mark("a", "myPick"),     // 0 付いている
+            unset("myPick", None),   // 1 外した担当
+            unset("attended", None), // 2 取り消した参加
+            BackupUserMarkRecord {
+                text_value: Some("live".into()),
+                ..mark("b", "attended")
+            }, // 3
+            unset("mastery", Some("3")), // 4 習熟度は bool が false
+            unset("mastery", None),  // 5 未設定に戻した習熟度
+            unset("note", Some("")), // 6 消したメモ
+            unset("note", Some("  ")), // 7 空白だけのメモ
+            unset("seat", Some("アリーナ A3")), // 8
         ];
         assert_eq!(meaningful_mark_indices(&marks), vec![0, 3, 4, 8]);
         assert!(meaningful_mark_indices(&[]).is_empty());
@@ -868,7 +1099,86 @@ mod tests {
             personal_tags: vec![tag("song_1", "神曲")],
             expenses: vec![expense("exp_1", 9_000)],
             playlists: vec![],
+            producer_cards: vec![],
+            my_producer_cards: vec![],
         }
+    }
+
+    fn producer_card(id: &str, memo: Option<&str>) -> BackupProducerCardRecord {
+        BackupProducerCardRecord {
+            id: id.to_string(),
+            payload: "AQ_payload".to_string(),
+            source: "app".to_string(),
+            show_id: Some("show_1".to_string()),
+            show_date: Some("2026-10-05".to_string()),
+            memo: memo.map(|m| m.to_string()),
+            received_at: "2026-10-05T21:00:00Z".to_string(),
+            updated_at: "2026-10-05T21:00:00Z".to_string(),
+        }
+    }
+
+    fn my_card(name: &str) -> BackupMyProducerCardRecord {
+        BackupMyProducerCardRecord {
+            id: "me".to_string(),
+            name: name.to_string(),
+            message: "現地派".to_string(),
+            since_year: Some(2014),
+            links_json: r#"[{"kind":"x","value":"fuga_p"}]"#.to_string(),
+            hidden_fields: "attended".to_string(),
+            updated_at: "2026-10-05T21:00:00Z".to_string(),
+        }
+    }
+
+    /// 受け取った名刺は id で重複を見る。自分の名刺は端末にあれば入れない。
+    #[test]
+    fn producer_cards_round_trip_and_skip_existing() {
+        let mut input = export_input();
+        input.producer_cards = vec![
+            producer_card("c1", Some("物販列で隣")),
+            producer_card("c2", None),
+        ];
+        input.my_producer_cards = vec![my_card("ふがP")];
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        let local = BackupLocalState {
+            producer_card_ids: vec!["c2".to_string()],
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(plan.info.producer_card_count, 2);
+        assert_eq!(plan.added_producer_cards, 1);
+        assert_eq!(
+            plan.producer_cards_to_insert,
+            vec![producer_card("c1", Some("物販列で隣"))]
+        );
+        assert_eq!(plan.my_producer_cards_to_insert, vec![my_card("ふがP")]);
+
+        let has_mine = BackupLocalState {
+            my_producer_card_ids: vec!["me".to_string()],
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &has_mine,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert!(plan.my_producer_cards_to_insert.is_empty());
+        assert_eq!(plan.added_producer_cards, 2);
+    }
+
+    /// 名刺が無ければ payload にキーを出さない。
+    #[test]
+    fn empty_producer_cards_are_omitted_from_payload() {
+        let doc = build_backup_envelope(&export_input(), BackupKindDialect::Canonical);
+        assert!(!doc.payload_json.contains("producerCards"));
+        assert!(!doc.payload_json.contains("myProducerCards"));
     }
 
     fn playlist(id: &str, songs: &[&str]) -> BackupPlaylistRecord {
@@ -887,12 +1197,23 @@ mod tests {
         let mut input = export_input();
         input.playlists = vec![playlist("pl_1", &["b", "a"]), playlist("pl_2", &["c"])];
         let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
-        let local = BackupLocalState { playlist_ids: vec!["pl_2".to_string()], ..BackupLocalState::default() };
-        let plan = plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical)
-            .expect("読める");
+        let local = BackupLocalState {
+            playlist_ids: vec!["pl_2".to_string()],
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
         assert_eq!(plan.info.playlist_count, 2);
         assert_eq!(plan.added_playlists, 1);
-        assert_eq!(plan.playlists_to_insert, vec![playlist("pl_1", &["b", "a"])]);
+        assert_eq!(
+            plan.playlists_to_insert,
+            vec![playlist("pl_1", &["b", "a"])]
+        );
     }
 
     /// プレイリストが無ければ payload にキーを出さない (知らない版と同じ中身のまま)。
@@ -968,16 +1289,23 @@ mod tests {
             expense_ids: vec!["exp_1".to_string()],
             ..BackupLocalState::default()
         };
-        let plan =
-            plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical)
-                .expect("読める");
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
 
         assert_eq!(plan.info.expense_count, 2);
         assert_eq!(plan.added_expenses, 1);
         assert_eq!(plan.expenses_to_insert.len(), 1);
         assert_eq!(plan.expenses_to_insert[0].id, "exp_2");
         assert_eq!(plan.expenses_to_insert[0].amount, 12_000);
-        assert_eq!(plan.expenses_to_insert[0].show_id.as_deref(), Some("show_1"));
+        assert_eq!(
+            plan.expenses_to_insert[0].show_id.as_deref(),
+            Some("show_1")
+        );
     }
 
     /// 収支を知らない版が書いたファイル (expenses キーが無い) も、そのまま取り込める。
@@ -1041,9 +1369,9 @@ mod tests {
         input.poll_votes = vec![vote("a", &["b"]), vote("z", &["a", "c"])];
         let second = build_backup_envelope(&input, BackupKindDialect::Canonical);
         assert_eq!(first.envelope_json, second.envelope_json);
-        assert!(first
-            .payload_json
-            .contains(r#""pollVotes":[{"entityIds":["b"],"pollId":"a"},{"entityIds":["a","c"],"pollId":"z"}]"#));
+        assert!(first.payload_json.contains(
+            r#""pollVotes":[{"entityIds":["b"],"pollId":"a"},{"entityIds":["a","c"],"pollId":"z"}]"#
+        ));
     }
 
     /// envelope はキー昇順・2 スペース字下げ・`" : "` 区切り (Darwin の prettyPrinted 流儀)。
@@ -1106,9 +1434,13 @@ mod tests {
             }],
             ..Default::default()
         };
-        let plan =
-            plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Android)
-                .expect("読める");
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Android,
+        )
+        .expect("読める");
         assert_eq!(plan.added_marks, 1);
         assert_eq!(plan.marks_to_insert[0].entity_id, "i2");
         assert_eq!(plan.marks_to_insert[0].kind, "memo");
@@ -1119,7 +1451,12 @@ mod tests {
     #[test]
     fn rejects_non_json() {
         assert_eq!(
-            plan_backup_import("これはJSONではない", &BackupLocalState::default(), false, BackupKindDialect::Canonical),
+            plan_backup_import(
+                "これはJSONではない",
+                &BackupLocalState::default(),
+                false,
+                BackupKindDialect::Canonical
+            ),
             Err(BackupImportError::MalformedFile)
         );
     }
@@ -1166,7 +1503,10 @@ mod tests {
             json_string_literal(&doc.checksum),
             json_string_literal(&tampered)
         );
-        assert_eq!(inspect_backup_envelope(&json), Err(BackupImportError::ChecksumMismatch));
+        assert_eq!(
+            inspect_backup_envelope(&json),
+            Err(BackupImportError::ChecksumMismatch)
+        );
     }
 
     /// checksum が合っていても payload が JSON でなければ形式エラー。
@@ -1209,15 +1549,28 @@ mod tests {
             let info = inspect_backup_envelope(&json).expect("現行以下は読める");
             assert_eq!(info.schema_version, version);
             // 項目が丸ごと無い古い payload は空扱い (personalTags 追加前のファイル)。
-            assert_eq!((info.mark_count, info.vote_count, info.personal_tag_count), (0, 0, 0));
+            assert_eq!(
+                (info.mark_count, info.vote_count, info.personal_tag_count),
+                (0, 0, 0)
+            );
         }
     }
 
     /// 整数値の 1.0 は通す (iOS の NSNumber as? Int 相当)。文字列や小数は形式エラー。
     #[test]
     fn schema_version_must_be_an_integral_number() {
-        assert_eq!(inspect_backup_envelope(&envelope_of(r#"{"schemaVersion":1.0}"#)).unwrap().schema_version, 1);
-        for payload in [r#"{"schemaVersion":"1"}"#, r#"{"schemaVersion":1.5}"#, r#"{"schemaVersion":null}"#, "{}"] {
+        assert_eq!(
+            inspect_backup_envelope(&envelope_of(r#"{"schemaVersion":1.0}"#))
+                .unwrap()
+                .schema_version,
+            1
+        );
+        for payload in [
+            r#"{"schemaVersion":"1"}"#,
+            r#"{"schemaVersion":1.5}"#,
+            r#"{"schemaVersion":null}"#,
+            "{}",
+        ] {
             assert_eq!(
                 inspect_backup_envelope(&envelope_of(payload)),
                 Err(BackupImportError::MalformedFile),
@@ -1298,7 +1651,10 @@ mod tests {
         )
         .expect("壊れた要素があっても全体は中断しない");
         // iOS 原本ならこの 3 項目はすべて 0 件になっていた。
-        assert_eq!((plan.added_marks, plan.added_votes, plan.added_personal_tags), (1, 1, 1));
+        assert_eq!(
+            (plan.added_marks, plan.added_votes, plan.added_personal_tags),
+            (1, 1, 1)
+        );
         assert_eq!(plan.marks_to_insert[0].entity_id, "ok");
         assert_eq!(plan.personal_tags_to_insert[0].tag_name, "n");
         assert_eq!(plan.poll_votes_to_add[0].entity_ids, vec!["a".to_string()]);
@@ -1306,7 +1662,11 @@ mod tests {
         assert_eq!(plan.info.skipped_entries, 3);
         // 下見の件数も「読めた分」を返す。
         assert_eq!(
-            (plan.info.mark_count, plan.info.vote_count, plan.info.personal_tag_count),
+            (
+                plan.info.mark_count,
+                plan.info.vote_count,
+                plan.info.personal_tag_count
+            ),
             (1, 1, 1)
         );
     }
@@ -1316,7 +1676,10 @@ mod tests {
     fn non_array_sections_are_treated_as_empty() {
         let payload = r#"{"schemaVersion":1,"userMarks":{},"pollVotes":"x","personalTags":3}"#;
         let info = inspect_backup_envelope(&envelope_of(payload)).unwrap();
-        assert_eq!((info.mark_count, info.vote_count, info.personal_tag_count), (0, 0, 0));
+        assert_eq!(
+            (info.mark_count, info.vote_count, info.personal_tag_count),
+            (0, 0, 0)
+        );
         assert_eq!(info.skipped_entries, 0);
     }
 
@@ -1336,8 +1699,13 @@ mod tests {
             }],
             ..Default::default()
         };
-        let plan =
-            plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical).unwrap();
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .unwrap();
         assert_eq!(plan.added_marks, 1);
         assert_eq!(plan.marks_to_insert[0].entity_id, "i2");
     }
@@ -1348,7 +1716,10 @@ mod tests {
         let mut input = export_input();
         input.user_marks = vec![
             mark("i1", "myPick"),
-            BackupUserMarkRecord { updated_at: "9999".to_string(), ..mark("i1", "myPick") },
+            BackupUserMarkRecord {
+                updated_at: "9999".to_string(),
+                ..mark("i1", "myPick")
+            },
         ];
         input.personal_tags = vec![tag("s1", "神曲"), tag("s1", "神曲")];
         let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
@@ -1379,8 +1750,13 @@ mod tests {
             }],
             ..Default::default()
         };
-        let plan =
-            plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical).unwrap();
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .unwrap();
         assert_eq!(plan.added_personal_tags, 2);
     }
 
@@ -1394,8 +1770,13 @@ mod tests {
             poll_votes: vec![vote("p1", &["a"]), vote("p2", &["x"])],
             ..Default::default()
         };
-        let plan =
-            plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical).unwrap();
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &local,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .unwrap();
         assert_eq!(plan.added_votes, 2);
         assert_eq!(plan.poll_votes_to_add, vec![vote("p1", &["b", "c"])]);
     }
@@ -1430,9 +1811,14 @@ mod tests {
         let no_id = envelope_of(r#"{"schemaVersion":1}"#);
         let numeric_id = envelope_of(r#"{"schemaVersion":1,"deviceId":42}"#);
         let plan = |json: &str, restore: bool| {
-            plan_backup_import(json, &BackupLocalState::default(), restore, BackupKindDialect::Canonical)
-                .unwrap()
-                .restore_device_id
+            plan_backup_import(
+                json,
+                &BackupLocalState::default(),
+                restore,
+                BackupKindDialect::Canonical,
+            )
+            .unwrap()
+            .restore_device_id
         };
         assert!(plan(&with_id, true));
         assert!(!plan(&with_id, false));
