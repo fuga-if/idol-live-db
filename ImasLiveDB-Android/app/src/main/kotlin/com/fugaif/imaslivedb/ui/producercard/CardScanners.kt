@@ -58,6 +58,8 @@ import kotlinx.coroutines.withContext
 // rememberPaperCardCamera  紙の名刺の表裏を撮る (ML Kit の書類カメラ。名刺の形に切り抜かれる。
 //                      まだ入っていなければふつうのカメラ)。
 // PaperCardCodeReader  撮った写真から QR を拾う (ML Kit)。文字の読み取りはしない。
+// PhotoQRReader        写真に写った QR を 1 つ読む (自分の QR を写真から入れるとき)。
+// (写真から選んだ紙の名刺を平らにするのは PaperCardRectifier.kt)
 // =============================================================================
 
 private const val TAG = "producer_card"
@@ -257,6 +259,12 @@ object PaperCardCodeReader {
             }
         }.onFailure { Log.e(TAG, "paper_card_photo_load_failed", it) }.getOrNull()
     }
+}
+
+/** 写真に写った QR を読む (iOS `PhotoQRReader`。自分の QR を写真から入れるとき)。 */
+object PhotoQRReader {
+    /** 写真に写った QR の中身 (先頭の 1 つ)。無ければ null。 */
+    suspend fun firstCode(image: Bitmap): String? = PaperCardCodeReader.codes(listOf(image)).firstOrNull()
 }
 
 private suspend fun <T> Task<T>.awaitOrNull(): T? = suspendCancellableCoroutine { cont ->

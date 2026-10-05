@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,7 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
@@ -32,14 +37,19 @@ import com.fugaif.imaslivedb.ui.share.ProducerCardPrintPreview
 import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.EncodedProducerCard
 import uniffi.imas_core.cardIssuedLabel
 import uniffi.imas_core.cardLinkView
+import uniffi.imas_core.cardQrLinkView
 
 /**
  * 紙に刷る P名刺の画像 (表と裏)。iOS `ProducerCardPrintView` の移植。91×55mm の比で、
- * 印刷所に入稿できる解像度 (1638×990px) で書き出す。裏の QR はアプリの交換と同じ中身。
+ * 印刷所に入稿できる解像度 (1638×990px) で書き出す。表は選んだ書体の名前と名刺の写真。
+ * 裏の QR は既定でアプリの交換と同じ中身、自分の QR を載せていればそちらも選べる。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +61,19 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
     var exporting by remember { mutableStateOf(false) }
     val c = card.card
     val oshiNames = c.oshiIdolIds.mapNotNull { directory.idols[it]?.name }
+    var backQr by remember { mutableStateOf(BackQr.EXCHANGE) }
+    var portrait by remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(Unit) {
+        portrait = withContext(Dispatchers.IO) {
+            ProducerCardFiles.myPhotoFile(context)?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
+        }
+    }
+    val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(c))
+    // 裏の QR の中身と案内。
+    val own = if (backQr == BackQr.OWN) c.qrUrl else null
+    val backText = own ?: card.url
+    val backNote = own?.let { "読み取ると ${cardQrLinkView(it).display} が開きます。" }
+        ?: "読み取るとアプリの名刺入れに入ります。アプリが無ければ Web で開きます。"
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -70,7 +93,9 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                             sinceYear = c.sinceYear?.toInt(),
                             oshiNames = oshiNames,
                             seed = c.oshiIdolIds.firstOrNull()?.let { directory.idols[it]?.color },
-                            handle = c.links.firstOrNull()?.let { cardLinkView(it).display }
+                            handle = c.links.firstOrNull()?.let { cardLinkView(it).display },
+                            nameFamily = nameFamily,
+                            portrait = portrait
                         )
                     }
                 }
@@ -79,13 +104,24 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                     style = ImasSectionHeaderStyle.SMALL,
                     footer = "日付を刷るのは、記録の数がその時点のものだからです。書き出した画像はそのまま名刺の印刷に使えます (1638×990px)。"
                 ) {
-                    ProducerCardPrintPreview(back) {
-                        ProducerCardPrintBack(
-                            url = card.url,
-                            showCount = c.showCount?.toLong(),
-                            songCount = c.songCount?.toLong(),
-                            issuedLabel = cardIssuedLabel(c.issuedOn)
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                        if (c.qrUrl != null) {
+                            ImasSegmented(
+                                options = BackQr.entries,
+                                selection = backQr,
+                                onSelect = { backQr = it },
+                                label = { if (it == BackQr.EXCHANGE) "交換用の QR" else "自分の QR" }
+                            )
+                        }
+                        ProducerCardPrintPreview(back) {
+                            ProducerCardPrintBack(
+                                url = backText,
+                                note = backNote,
+                                showCount = c.showCount?.toLong(),
+                                songCount = c.songCount?.toLong(),
+                                issuedLabel = cardIssuedLabel(c.issuedOn)
+                            )
+                        }
                     }
                 }
                 ImasButton(
@@ -104,3 +140,6 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
         }
     }
 }
+
+/** 裏に刷る QR (既定は交換用)。 */
+private enum class BackQr { EXCHANGE, OWN }

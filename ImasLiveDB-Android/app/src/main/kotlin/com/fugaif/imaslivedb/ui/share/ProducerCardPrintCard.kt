@@ -1,6 +1,8 @@
 package com.fugaif.imaslivedb.ui.share
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -35,8 +39,9 @@ import com.fugaif.imaslivedb.ui.theme.DS
 // =============================================================================
 // 紙に刷る P名刺 (91×55mm、日本の名刺の大きさ)。iOS `ProducerCardPrintCard.swift` の移植。
 //
-// 表 = 担当色の縦の帯・明朝の名前・担当・ハンドル。印刷所の名刺テンプレにそのまま載る余白を残す。
-// 裏 = QR (アプリの交換と同じ中身)・参加公演数と回収曲数・「YYYY.MM.DD 時点」。
+// 表 = 担当色の縦の帯・選んだ書体の名前・担当・ハンドル・名刺の写真 (あれば右に証明写真)。
+//      印刷所の名刺テンプレにそのまま載る余白を残す。
+// 裏 = QR (既定はアプリの交換と同じ中身。自分の QR も選べる)・参加公演数と回収曲数・「YYYY.MM.DD 時点」。
 //
 // 固定のキャンバスに焼くので、色は固定色 (ShareInk / ShareCardPalette)、文字は固定の大きさ。
 // =============================================================================
@@ -58,6 +63,10 @@ object ProducerCardPrint {
         TextStyle(fontFamily = FontFamily.Serif, fontWeight = weight, fontSize = size.sp)
 
     fun sans(size: Float, weight: FontWeight = FontWeight.Normal) = TextStyle(fontWeight = weight, fontSize = size.sp)
+
+    /** 名前の書体 (選んだ書体。引けなければ明朝の太字)。 */
+    fun name(family: FontFamily?, size: Float) =
+        family?.let { TextStyle(fontFamily = it, fontSize = size.sp) } ?: serif(size, FontWeight.SemiBold)
 }
 
 /** 表。 */
@@ -70,7 +79,11 @@ fun ProducerCardPrintFront(
     /** 担当の色 (帯)。 */
     seed: String? = null,
     /** 右下に刷るハンドル (「@fuga_p」)。 */
-    handle: String? = null
+    handle: String? = null,
+    /** 名前の書体 (コアの書体の一覧から引いたもの)。 */
+    nameFamily: FontFamily? = null,
+    /** 名刺の写真 (右に証明写真の大きさで刷る)。 */
+    portrait: Bitmap? = null
 ) {
     val palette = rememberShareCardPalette(seed)
     Row(Modifier.fillMaxSize().background(ProducerCardPrint.paper)) {
@@ -80,37 +93,67 @@ fun ProducerCardPrintFront(
                 .fillMaxHeight()
                 .background(if (seed == null) ProducerCardPrint.ink else palette.accent)
         )
-        Column(Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 26.dp)) {
-            Text(
-                listOfNotNull("PRODUCER PASS", sinceYear?.let { "SINCE $it" }).joinToString(" · "),
-                style = ProducerCardPrint.mono(9f, tracking = 1.6f),
-                color = ProducerCardPrint.sub
-            )
-            Spacer(Modifier.weight(1f))
-            ImasFitText(
-                name,
-                style = ProducerCardPrint.serif(40f, FontWeight.SemiBold),
-                color = ProducerCardPrint.ink,
-                maxLines = 1,
-                minScale = 0.5f
-            )
-            if (oshiNames.isNotEmpty()) {
-                Text(
-                    "${oshiNames.joinToString("・")} 担当",
-                    style = ProducerCardPrint.serif(13f),
-                    color = ProducerCardPrint.ink,
-                    maxLines = 2,
-                    modifier = Modifier.padding(top = 8.dp)
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = 30.dp, vertical = 26.dp),
+            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FrontInfo(name, sinceYear, oshiNames, handle, nameFamily, Modifier.weight(1f).fillMaxHeight())
+            if (portrait != null) {
+                val shape = RoundedCornerShape(3.dp)
+                Image(
+                    bitmap = portrait.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(width = 114.dp, height = 152.dp)
+                        .clip(shape)
+                        .border(0.5.dp, ProducerCardPrint.sub.copy(alpha = 0.35f), shape)
                 )
             }
-            Spacer(Modifier.weight(1f))
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                if (handle != null) {
-                    Text(handle, style = ProducerCardPrint.mono(12f), color = ProducerCardPrint.ink, maxLines = 1)
-                }
-                Spacer(Modifier.weight(1f).width(8.dp))
-                Text("IDOL LIVE DB", style = ProducerCardPrint.mono(8f, tracking = 1.6f), color = ProducerCardPrint.sub)
+        }
+    }
+}
+
+@Composable
+private fun FrontInfo(
+    name: String,
+    sinceYear: Int?,
+    oshiNames: List<String>,
+    handle: String?,
+    nameFamily: FontFamily?,
+    modifier: Modifier
+) {
+    Column(modifier) {
+        Text(
+            listOfNotNull("PRODUCER PASS", sinceYear?.let { "SINCE $it" }).joinToString(" · "),
+            style = ProducerCardPrint.mono(9f, tracking = 1.6f),
+            color = ProducerCardPrint.sub
+        )
+        Spacer(Modifier.weight(1f))
+        ImasFitText(
+            name,
+            style = ProducerCardPrint.name(nameFamily, 40f),
+            color = ProducerCardPrint.ink,
+            maxLines = 1,
+            minScale = 0.5f
+        )
+        if (oshiNames.isNotEmpty()) {
+            Text(
+                "${oshiNames.joinToString("・")} 担当",
+                style = ProducerCardPrint.serif(13f),
+                color = ProducerCardPrint.ink,
+                maxLines = 2,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            if (handle != null) {
+                Text(handle, style = ProducerCardPrint.mono(12f), color = ProducerCardPrint.ink, maxLines = 1)
             }
+            Spacer(Modifier.weight(1f).width(8.dp))
+            Text("IDOL LIVE DB", style = ProducerCardPrint.mono(8f, tracking = 1.6f), color = ProducerCardPrint.sub)
         }
     }
 }
@@ -118,7 +161,10 @@ fun ProducerCardPrintFront(
 /** 裏。 */
 @Composable
 fun ProducerCardPrintBack(
+    /** QR にする中身 (交換用の名刺の URL か、自分の QR の URL)。 */
     url: String,
+    /** QR の横に刷る案内。 */
+    note: String = "読み取るとアプリの名刺入れに入ります。アプリが無ければ Web で開きます。",
     showCount: Long? = null,
     songCount: Long? = null,
     /** 「2026.10.06 時点」(コアの `cardIssuedLabel`)。 */
@@ -135,7 +181,7 @@ fun ProducerCardPrintBack(
             songCount?.let { Metric("$it", "回収曲") }
             Spacer(Modifier.weight(1f))
             Text(
-                "読み取るとアプリの名刺入れに入ります。アプリが無ければ Web で開きます。",
+                note,
                 style = ProducerCardPrint.sans(9f),
                 color = ProducerCardPrint.sub
             )

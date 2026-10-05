@@ -152,6 +152,7 @@ fun ReceivedCardDetailScreen(
                     ProducerCardView(
                         card = c, directory = directory, sharedWith = myOshi,
                         imageUrl = { ProducerCardFiles.oshiImageUrl(context, r.id, it) },
+                        portraitUrl = ProducerCardFiles.cardPhotoUrl(context, r.id),
                         onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } },
                         onOpenOshi = { oshi -> onOpenIdol(oshi.id) }
                     )
@@ -200,7 +201,7 @@ fun ReceivedCardDetailScreen(
         title = "この名刺を削除しますか？",
         isPresented = confirmDelete,
         onDismiss = { confirmDelete = false },
-        message = "名刺入れから消えます。写真と受け取った担当の画像も消えます。",
+        message = "名刺入れから消えます。写真と受け取った画像も消えます。",
         onConfirm = {
             confirmDelete = false
             val current = row ?: return@ImasConfirmDestructive

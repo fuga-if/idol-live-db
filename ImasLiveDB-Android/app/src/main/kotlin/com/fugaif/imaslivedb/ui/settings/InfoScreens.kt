@@ -25,6 +25,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasProse
 import com.fugaif.imaslivedb.ui.designsystem.ImasProseBlock
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.cardNameFonts
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.runtime.remember
 
 /**
  * プライバシーポリシー / 利用規約 / サポート / オープンソースライセンス。
@@ -212,6 +215,17 @@ fun OssLicensesScreen(onBack: () -> Unit) {
                             showsChevron = false,
                             titleLineLimit = Int.MAX_VALUE,
                             subtitleLineLimit = Int.MAX_VALUE
+                        )
+                    }
+                    // P名刺の名前の書体 (同梱。一覧はコア)。押すと配布元を開く。
+                    val uriHandler = LocalUriHandler.current
+                    remember { cardNameFonts() }.forEach { font ->
+                        ImasNavRow(
+                            title = "${font.familyName} (P名刺の書体)",
+                            subtitle = font.license,
+                            titleLineLimit = Int.MAX_VALUE,
+                            subtitleLineLimit = Int.MAX_VALUE,
+                            onClick = { runCatching { uriHandler.openUri(font.sourceUrl) } }
                         )
                     }
                 }

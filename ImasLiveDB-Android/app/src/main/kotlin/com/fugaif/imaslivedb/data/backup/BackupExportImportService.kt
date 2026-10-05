@@ -101,7 +101,7 @@ object BackupExportImportService {
             playlists = playlistRepository.allForBackup().map { (playlist, songIds) ->
                 BackupPlaylistRecord(playlist.id, playlist.name, playlist.createdAt, playlist.updatedAt, songIds)
             },
-            // P名刺 (受け取った名刺と自分の名刺) も端末にしか無い。写真・担当の画像は運ばない
+            // P名刺 (受け取った名刺と自分の名刺。名前の書体・自分の QR も) も端末にしか無い。写真・担当の画像は運ばない
             // (アイドルの画像と同じく端末の中だけ)。
             producerCards = producerCardRepository.receivedCards().map {
                 BackupProducerCardRecord(
@@ -110,7 +110,8 @@ object BackupExportImportService {
             },
             myProducerCards = listOfNotNull(producerCardRepository.myCard()).map {
                 BackupMyProducerCardRecord(
-                    it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt
+                    it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
+                    nameFont = it.nameFont, qrUrl = it.qrUrl
                 )
             }
         )
@@ -197,7 +198,8 @@ object BackupExportImportService {
         producerCardRepository.restoreMyCardIfAbsent(
             plan.myProducerCardsToInsert.map {
                 MyProducerCard(
-                    it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt
+                    it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt,
+                    nameFont = it.nameFont, qrUrl = it.qrUrl
                 )
             }
         )

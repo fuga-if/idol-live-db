@@ -146,7 +146,7 @@ fun ProducerCardExchangeSheet(
             permissionsAsked = true
             applied++
         }
-        myFile = myCard?.let { ProducerCardAssembler.myCardFile(module, it) }
+        myFile = myCard?.let { ProducerCardAssembler.myCardFile(context, module, it) }
         applied++
     }
     LaunchedEffect(reading, applied, requesting) {

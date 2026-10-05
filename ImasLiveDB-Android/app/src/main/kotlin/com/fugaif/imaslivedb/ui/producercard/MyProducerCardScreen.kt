@@ -32,6 +32,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
 import com.fugaif.imaslivedb.di.AppModule
@@ -47,10 +48,15 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
+import com.fugaif.imaslivedb.ui.designsystem.ImasQRCode
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.theme.DS
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.EncodedProducerCard
+import uniffi.imas_core.cardQrLinkView
 
 /**
  * 自分の P名刺。iOS `MyProducerCardView` の移植。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
@@ -77,12 +83,15 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
     var showingExchange by remember { mutableStateOf(false) }
     var showingPrint by remember { mutableStateOf(false) }
     var shareError by remember { mutableStateOf<String?>(null) }
+    var qrMode by remember { mutableStateOf(QrMode.EXCHANGE) }
+    var portraitUrl by remember { mutableStateOf<String?>(null) }
 
     suspend fun load() {
         val repo = module.producerCardRepository
         myCard = repo.myCard()
         caseCount = repo.receivedCount()
         record = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull() ?: record
+        portraitUrl = withContext(Dispatchers.IO) { ProducerCardFiles.myPhotoUrl(context) }
         val mine = myCard
         val rec = record
         val enc = if (mine != null && rec != null) ProducerCardAssembler.encode(mine, rec) else null
@@ -104,7 +113,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
     fun shareCardFile() {
         val enc = encoded ?: return
         scope.launch {
-            val data = ProducerCardAssembler.myCardFile(module, enc)
+            val data = ProducerCardAssembler.myCardFile(context, module, enc)
             if (data == null) {
                 shareError = "名刺の中身を組み立てられませんでした。"
                 return@launch
@@ -139,7 +148,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
                 enc != null -> {
                     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                         ProducerCardView(
-                            card = enc.card, directory = directory, ownImages = true,
+                            card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl,
                             onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } }
                         )
                         ImasButton(
@@ -150,10 +159,11 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
                             ImasNote("QR に収めるため、古い参加公演 ${enc.droppedShows} 件を名刺から外しています。")
                         }
                     }
+                    enc.card.qrUrl?.let { own -> QrSection(enc, own, qrMode) { qrMode = it } }
                     ImasSection("渡す・しまう") {
                         ImasCardList {
                             ImasNavRow(
-                                title = "名刺ファイルで送る", subtitle = "AirDrop や Quick Share で担当の画像ごと渡す",
+                                title = "名刺ファイルで送る", subtitle = "AirDrop や Quick Share で写真と担当の画像ごと渡す",
                                 icon = Icons.Filled.Share, position = ImasRowPosition.FIRST, onClick = ::shareCardFile
                             )
                             ImasNavRow(
@@ -190,7 +200,11 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
                 module.producerCardRepository.saveMyCard(saved)
                 load()
             },
-            onDismiss = { editing = null }
+            onDismiss = {
+                editing = null
+                // 名刺の写真は名刺を保存した後に書くので、閉じてから読み直す。
+                scope.launch { load() }
+            }
         )
     }
     if (showingExchange) {
@@ -200,4 +214,24 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
         encoded?.let { ProducerCardPrintSheet(card = it, directory = directory, onDismiss = { showingPrint = false }) }
     }
     ImasErrorAlert(message = shareError, onDismiss = { shareError = null }, title = "名刺ファイルを作れませんでした")
+}
+
+/** 名刺の画面で見せる QR。自分の QR を載せていなければ交換用だけ。 */
+private enum class QrMode { EXCHANGE, OWN }
+
+/** 交換用の QR (アプリの名刺) と自分の QR を切り替えて見せる。 */
+@Composable
+private fun QrSection(encoded: EncodedProducerCard, own: String, mode: QrMode, onMode: (QrMode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+        ImasTabs(
+            options = QrMode.entries,
+            selection = mode,
+            onSelect = onMode,
+            label = { if (it == QrMode.EXCHANGE) "交換用の QR" else "自分の QR" }
+        )
+        when (mode) {
+            QrMode.EXCHANGE -> ImasQRCode(text = encoded.url, caption = "アプリで読むと名刺入れに入ります")
+            QrMode.OWN -> ImasQRCode(text = own, caption = cardQrLinkView(own).display, label = "自分の QR コード")
+        }
+    }
 }

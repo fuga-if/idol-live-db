@@ -55,6 +55,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeadBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowLeading
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowPortraitOshi
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowTrailing
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
@@ -232,12 +233,22 @@ private fun CardCaseRow(
     val lead = content?.oshiIdolIds?.firstNotNullOfOrNull { directory.idols[it] }
     val shared = content?.oshiIdolIds?.any { it in myOshi } == true
     val paper = card.sourceValue == ReceivedProducerCard.Source.PAPER
-    val leading = lead?.let {
-        ImasRowLeading.Avatar(
+    val oshiIcon = lead?.let {
+        ImasRowPortraitOshi(
             label = it.shortName, seed = it.color, brand = it.brandId,
-            imageUrl = ProducerCardFiles.oshiImageUrl(context, card.id, it.id), isPick = true
+            imageUrl = ProducerCardFiles.oshiImageUrl(context, card.id, it.id)
         )
-    } ?: ImasRowLeading.Icon(if (paper) Icons.Filled.Description else Icons.Filled.Badge, tone = ImasIconTileTone.NEUTRAL)
+    }
+    // 名刺の写真があれば証明写真の枠 (右下に担当のアイコンを重ねる)、無ければ担当のアイコン。
+    val portrait = ProducerCardFiles.cardPhotoUrl(context, card.id)
+    val leading = when {
+        portrait != null -> ImasRowLeading.Portrait(portrait, oshiIcon)
+        oshiIcon != null -> ImasRowLeading.Avatar(
+            label = oshiIcon.label, seed = oshiIcon.seed, brand = oshiIcon.brand,
+            imageUrl = oshiIcon.imageUrl, isPick = true
+        )
+        else -> ImasRowLeading.Icon(if (paper) Icons.Filled.Description else Icons.Filled.Badge, tone = ImasIconTileTone.NEUTRAL)
+    }
     var subtitle = content?.let { ProducerCardDisplay.summaryLine(it, directory) }.orEmpty()
     if (paper) subtitle = if (subtitle.isEmpty()) "紙の名刺" else "紙の名刺 · $subtitle"
     val memo = card.memo?.takeIf { it.isNotEmpty() }

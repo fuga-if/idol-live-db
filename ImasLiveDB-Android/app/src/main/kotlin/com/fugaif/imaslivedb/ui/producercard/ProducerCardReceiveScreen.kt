@@ -57,6 +57,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardFileImage
+import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.decodeProducerCard
 import uniffi.imas_core.producerCardCommon
@@ -69,7 +70,7 @@ internal fun LedgerShowOption.toShowInfo() =
  * 受け取りの確認。相手の名刺を見せ、受け取った公演を確かめて ✓ で名刺入れへ。iOS `ProducerCardReceiveView` の移植。
  *
  * QR を読んだとき・名刺のリンク (App Links) を開いたとき・名刺ファイルを開いたときの共通の画面。
- * QR から来たときは近くの相手の端末から担当の画像が届くのを待つ (届かなくても保存できる)。
+ * QR から来たときは近くの相手の端末から写真と担当の画像が届くのを待つ (届かなくても保存できる)。
  *
  * @param nearby 近くの相手から画像を受け取る口 (QR を読んだときだけ)。
  * @param onDone 終わったとき (しまえたら相手の名前と名刺入れの id、やめたら null)。
@@ -90,6 +91,8 @@ fun ProducerCardReceiveContent(
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
     var images by remember { mutableStateOf<List<CardFileImage>>(emptyList()) }
     var imageUrls by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    // 届いた名刺の写真 (名刺ファイル・近くの端末から。QR だけなら無い)。
+    var portraitUrl by remember { mutableStateOf<String?>(null) }
     var show by remember { mutableStateOf<ProducerCardShowInfo?>(null) }
     var showOptions by remember { mutableStateOf<List<LedgerShowOption>>(emptyList()) }
     var pickingShow by remember { mutableStateOf(false) }
@@ -100,7 +103,9 @@ fun ProducerCardReceiveContent(
     suspend fun accept(new: List<CardFileImage>) {
         if (new.isEmpty()) return
         images = new
-        imageUrls = writePreviewImages(context, new)
+        val preview = writePreviewImages(context, new)
+        imageUrls = preview.oshi
+        portraitUrl = preview.portrait
     }
 
     LaunchedEffect(incoming) {
@@ -154,7 +159,7 @@ fun ProducerCardReceiveContent(
                 if (card != null) {
                     ProducerCardView(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
-                        imageUrl = { imageUrls[it] }
+                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl
                     )
                     record?.let { CommonSummary(card, it, directory) }
                     ImasFormCard {
@@ -195,11 +200,11 @@ fun ProducerCardReceiveContent(
 
 private fun nearbyNote(phase: NearbyCardExchange.Phase?, noImages: Boolean): String = when (phase) {
     NearbyCardExchange.Phase.SEARCHING, NearbyCardExchange.Phase.CONNECTED, NearbyCardExchange.Phase.WAITING ->
-        "近くの相手の Android から担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。"
+        "近くの相手の Android から写真と担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。"
     NearbyCardExchange.Phase.RECEIVED ->
-        if (noImages) "相手の名刺を受け取りました (担当の画像は設定されていません)。" else "担当の画像を受け取りました。"
+        if (noImages) "相手の名刺を受け取りました (写真・担当の画像は設定されていません)。" else "写真と担当の画像を受け取りました。"
     else ->
-        "近くに相手の Android が見つかりませんでした。名刺は QR の中身だけで保存できます。担当の画像は、相手に「名刺ファイルで送る」で送ってもらうと届きます。"
+        "近くに相手の Android が見つかりませんでした。名刺は QR の中身だけで保存できます。写真と担当の画像は、相手に「名刺ファイルで送る」で送ってもらうと届きます。"
 }
 
 /** 受け取りの確認の「あなたとの共通点」(同じ担当・同じ公演にいた回数)。共通点はコア。 */
@@ -223,15 +228,25 @@ private fun CommonSummary(card: ProducerCard, record: ProducerCardMyRecord, dire
     }
 }
 
-/** 届いた画像を一時フォルダに書き、担当の id → 画面に渡す在り処を返す。 */
-private suspend fun writePreviewImages(context: Context, images: List<CardFileImage>): Map<String, String> =
+/** 届いた画像の画面に渡す在り処 (担当の id → 担当の画像、名刺の写真)。 */
+private class PreviewImages(val oshi: Map<String, String>, val portrait: String?)
+
+/** 届いた画像を一時フォルダに書き、画面に渡す在り処を返す。 */
+private suspend fun writePreviewImages(context: Context, images: List<CardFileImage>): PreviewImages =
     withContext(Dispatchers.IO) {
         val dir = File(File(context.cacheDir, "producer_card_incoming"), UUID.randomUUID().toString()).apply { mkdirs() }
-        images.mapIndexedNotNull { i, image ->
+        val oshi = mutableMapOf<String, String>()
+        var portrait: String? = null
+        images.forEachIndexed { i, image ->
             val file = File(dir, "$i.jpg")
-            runCatching { file.writeBytes(image.jpeg) }.getOrNull() ?: return@mapIndexedNotNull null
-            image.idolId to Uri.fromFile(file).toString()
-        }.toMap()
+            runCatching { file.writeBytes(image.jpeg) }.getOrNull() ?: return@forEachIndexed
+            val url = Uri.fromFile(file).toString()
+            when (image.kind) {
+                CardFileImageKind.OSHI -> oshi[image.idolId] = url
+                CardFileImageKind.PHOTO -> portrait = url
+            }
+        }
+        PreviewImages(oshi, portrait)
     }
 
 /** 名刺のリンク・名刺ファイルを開いたときのシート (アプリのどこからでも)。iOS `ProducerCardReceiveSheet` と対。 */

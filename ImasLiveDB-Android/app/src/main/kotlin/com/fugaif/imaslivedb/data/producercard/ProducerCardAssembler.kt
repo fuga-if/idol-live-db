@@ -75,7 +75,9 @@ object ProducerCardAssembler {
             songCount = if (card.shows(ProducerCardField.SONG_COUNT)) record.songCount.toUInt() else null,
             nextShowId = if (card.shows(ProducerCardField.NEXT)) summary.nextShowId else null,
             attended = if (card.shows(ProducerCardField.ATTENDED)) summary.attendedPast else emptyList(),
-            issuedOn = JstDay.today()
+            issuedOn = JstDay.today(),
+            nameFont = card.font,
+            qrUrl = card.qrUrl
         )
     }
 
@@ -97,10 +99,17 @@ object ProducerCardAssembler {
             CardFileImage(idolId = id, jpeg = jpeg, kind = CardFileImageKind.OSHI)
         }
 
-    /** 自分の名刺ファイル (名刺 + 担当の画像)。画像を JPEG にするのでメインの外で呼ぶ。 */
-    suspend fun myCardFile(module: AppModule, encoded: EncodedProducerCard): ByteArray? =
+    /** 自分の名刺の写真 (切り抜いた JPEG をそのまま。元の画質で渡す)。 */
+    fun myPhotoImage(context: Context): CardFileImage? {
+        val jpeg = ProducerCardFiles.myPhotoFile(context)?.let { runCatching { it.readBytes() }.getOrNull() } ?: return null
+        return CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO)
+    }
+
+    /** 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真)。画像を JPEG にするのでメインの外で呼ぶ。 */
+    suspend fun myCardFile(context: Context, module: AppModule, encoded: EncodedProducerCard): ByteArray? =
         withContext(Dispatchers.Default) {
-            encodeCardFile(payload(encoded), myOshiImages(module, encoded.card))
+            val images = myOshiImages(module, encoded.card) + listOfNotNull(myPhotoImage(context))
+            encodeCardFile(payload(encoded), images)
         }
 
     /** 共有シートに渡す名刺ファイル (キャッシュに名刺の名前で書き、content:// にする)。 */

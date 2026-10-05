@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -56,8 +57,30 @@ class AppDatabaseMigrationTest {
 
     @Test fun migrates21ToLatest() = assertMigrates(from = 21)
 
-    /** 直前の版。P名刺の 2 表 (MIGRATION_26_27) を足しても、端末ローカルの行は残る。 */
+    /** P名刺の 2 表 (MIGRATION_26_27) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates26ToLatest() = assertMigrates(from = 26)
+
+    /** 直前の版。P名刺の書体と自分の QR の列 (MIGRATION_27_28) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates27ToLatest() = assertMigrates(from = 27)
+
+    /** v28 で足した列は、上がってきた端末の自分の名刺を変えない (書体は既定 = 空、自分の QR は無し)。 */
+    @Test
+    fun migrating27To28KeepsMyCardAndAddsFontAndQr() {
+        val name = "producer_card_font_27.sqlite"
+        helper.createDatabase(name, 27).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at) " +
+                    "VALUES ('me', 'ふがP', 'よろしく', '[]', 'next', '2026-10-06T00:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 28, true, AppDatabase.MIGRATION_27_28).use { db ->
+            db.query("SELECT name, message, hidden_fields, name_font, qr_url FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertEquals(listOf("ふがP", "よろしく", "next", ""), (0..3).map { c.getString(it) })
+                assertTrue("自分の QR は無し", c.isNull(4))
+            }
+        }
+    }
 
     /** v27 で足した P名刺の表は、上がってきた端末で空のまま読み書きできる (索引も作られる)。 */
     @Test
@@ -150,7 +173,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 27
+        const val LATEST = 28
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

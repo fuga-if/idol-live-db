@@ -13,7 +13,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardOshi
 import java.text.NumberFormat
 import java.util.Locale
 import uniffi.imas_core.ProducerCard
+import com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily
 import uniffi.imas_core.cardLinkView
+import uniffi.imas_core.cardQrLinkView
+import uniffi.imas_core.producerCardNameFont
 
 /**
  * 名刺を描くのに要る、端末のマスタの引き当て (担当のアイドル・ブランド・公演)。iOS `ProducerCardDirectory` と対。
@@ -68,10 +71,14 @@ object ProducerCardDisplay {
         )
     }
 
-    fun links(card: ProducerCard): List<ImasProducerCardLink> = card.links.map { link ->
-        val view = cardLinkView(link)
-        ImasProducerCardLink(label = view.label, display = view.display, url = view.url)
-    }
+    /** リンクの行。自分の QR があれば先頭に「QR」として出す (押せば開く)。 */
+    fun links(card: ProducerCard): List<ImasProducerCardLink> =
+        (listOfNotNull(card.qrUrl?.let { cardQrLinkView(it) }) + card.links.map { cardLinkView(it) }).map { view ->
+            ImasProducerCardLink(label = view.label, display = view.display, url = view.url)
+        }
+
+    /** 名前の書体のファイルの名前 (書体の一覧と既定はコア)。 */
+    fun nameFont(card: ProducerCard): String = producerCardNameFont(card).fileStem
 
     /** 記録の数 (参加公演・回収曲・次の現場)。載っていない数は出さない。 */
     fun cells(card: ProducerCard, directory: ProducerCardDirectory): List<ImasBoardCell> = buildList {
@@ -110,7 +117,10 @@ object ProducerCardDisplay {
     }
 }
 
-/** 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。 */
+/**
+ * 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。
+ * [portraitUrl] は名刺の写真 (自分の名刺は端末の写真、受け取った名刺は届いた写真。QR だけで受け取った名刺には無い)。
+ */
 @Composable
 fun ProducerCardView(
     card: ProducerCard,
@@ -119,6 +129,7 @@ fun ProducerCardView(
     sharedWith: Set<String> = emptySet(),
     ownImages: Boolean = false,
     imageUrl: (String) -> String? = { null },
+    portraitUrl: String? = null,
     onOpenLink: ((ImasProducerCardLink) -> Unit)? = null,
     onOpenOshi: ((ImasProducerCardOshi) -> Unit)? = null
 ) {
@@ -134,6 +145,8 @@ fun ProducerCardView(
         boardTrailing = ProducerCardDisplay.boardTrailing(card),
         photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
         photoEntityId = if (ownImages) firstWithImage(oshi) else null,
+        portraitUrl = portraitUrl,
+        nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card)),
         onOpenLink = onOpenLink,
         onOpenOshi = onOpenOshi
     )

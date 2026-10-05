@@ -10,4 +10,5 @@
     <exclude domain="file" path="custom_images_units/" />
     <exclude domain="file" path="custom_images_brands/" />
     <exclude domain="file" path="producer_cards/" />
+    <exclude domain="file" path="producer_card_me/" />
 </full-backup-content>

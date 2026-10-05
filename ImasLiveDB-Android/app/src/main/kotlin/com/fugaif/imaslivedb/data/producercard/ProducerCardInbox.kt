@@ -61,11 +61,11 @@ object ProducerCardInbox {
         return saved
     }
 
-    /** 後から届いた担当の画像を、しまった名刺に足す (数 MB を書くのでメインの外で)。 */
+    /** 後から届いた画像 (担当の画像・名刺の写真) を、しまった名刺に足す (数 MB を書くのでメインの外で)。 */
     suspend fun attachImages(context: Context, cardId: String, images: List<CardFileImage>) {
         if (images.isEmpty()) return
         withContext(Dispatchers.IO) {
-            runCatching { ProducerCardFiles.saveOshiImages(context, cardId, images) }
+            runCatching { ProducerCardFiles.saveImages(context, cardId, images) }
                 .onFailure { Log.e(TAG, "producer_card_image_save_failed", it) }
         }
         notifyChanged()
