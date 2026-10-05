@@ -276,7 +276,7 @@ private fun Modifier.imasSeekBarDrag(onChanged: (Float) -> Unit, onEnded: (Float
  * いま叫ぶところは字ごと曲の色で点ける (今の行になる前から、どこがコールか見える)。
  * iOS `ImasPlayerLyricLine.Echo` の移植。
  */
-data class ImasEcho(val start: Int, val end: Int, val isActive: Boolean)
+data class ImasEcho(val start: Int, val end: Int)
 
 /** [start] (コードポイント位置) に掛かるコールを探す (重なりは先勝ち)。 */
 private fun echoAt(start: Int, echoes: List<ImasEcho>): ImasEcho? =
@@ -414,15 +414,8 @@ private fun echoMarked(
     echoes: List<ImasEcho>,
     accent: Color
 ): androidx.compose.ui.text.AnnotatedString {
-    val active = echoes.filter { it.isActive }
-    if (active.isEmpty()) return base
-    return androidx.compose.ui.text.AnnotatedString.Builder(base).apply {
-        for (echo in active) {
-            val lower = codePointToCharIndex(text, echo.start)
-            val upper = codePointToCharIndex(text, echo.end)
-            if (lower < upper) addStyle(androidx.compose.ui.text.SpanStyle(color = accent), lower, upper)
-        }
-    }.toAnnotatedString()
+    // 叫ぶ瞬間に色を変えても間に合わないので、文字色は変えない (下線は ImasEchoText が常に引く)。
+    return base
 }
 
 /**
@@ -1191,14 +1184,12 @@ fun ImasRubyFlowText(
             val weight = if (isAside) (asideStyle?.weight ?: style.fontWeight) else if (highlight?.bold == true) FontWeight.Bold else style.fontWeight
             val decoration = if (highlight?.underline == true) androidx.compose.ui.text.style.TextDecoration.Underline else null
             val atomFontSize = if (isAside) asideStyle!!.fontSize else style.fontSize
-            // 歌う人の色で字を塗る。コール (いま叫ぶ所) が字の色を決めているところは、そちらを優先する。
-            val isEchoActive = echo?.isActive == true && accent != null
-            val partColors = if (isEchoActive || isAside) emptyList() else
+            // 歌う人の色で字を塗る。
+            val partColors = if (isAside) emptyList() else
                 partsAt?.invoke(atom.start)?.take(PART_COLORS_MAX)?.map { imasTheme(seed = it).accent.copy(alpha = partsAlpha) }
                     ?: emptyList()
             val atomBrush = if (partColors.size > 1) imasPartStripeBrush(partColors) else null
             val atomColor = when {
-                isEchoActive -> accent!!
                 isAside -> asideStyle!!.color
                 partColors.size == 1 -> partColors[0]
                 else -> color

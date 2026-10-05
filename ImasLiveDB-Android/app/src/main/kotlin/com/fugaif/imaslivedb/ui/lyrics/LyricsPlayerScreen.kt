@@ -417,7 +417,7 @@ private fun LyricsPlayerRow(
                     // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
                     echoes = line.calls.filter { line.echoes(it) }.mapNotNull { call ->
                         lyricMainRange(line.text, call.start.toUInt(), call.end.toUInt())?.let { range ->
-                            ImasEcho(start = range.start.toInt(), end = range.end.toInt(), isActive = call.id == activeCallId)
+                            ImasEcho(start = range.start.toInt(), end = range.end.toInt())
                         }
                     },
                     parts = parts,
@@ -459,5 +459,5 @@ private fun overlayEchoes(line: LyricLine, activeCallId: String?, mapped: Boolea
         } else {
             call.start to call.end
         }
-        range?.let { ImasEcho(start = it.first, end = it.second, isActive = call.id == activeCallId) }
+        range?.let { ImasEcho(start = it.first, end = it.second) }
     }

@@ -191,11 +191,11 @@ struct ImasPlayerLyricLine: View {
     let seed: String?
     @Environment(\.colorScheme) private var scheme
 
-    /// 行の中のコールの掛かる語 (`text` の中のスカラー位置)。
+    /// 行の中のコールの掛かる語 (`text` の中のスカラー位置)。叫ぶ瞬間に色を変えても間に合わないので、
+    /// 前もって分かるよう常に下線だけを引く。
     struct Echo: Equatable {
         let start: Int
         let end: Int
-        let isActive: Bool
     }
 
     /// 各スカラーに掛かるコール (重なりは先勝ち)。
@@ -225,10 +225,8 @@ struct ImasPlayerLyricLine: View {
                     // 今の行でないときは、歌う人の色も地の字と同じく控えめにする。
                     parts: isCurrent ? parts : parts.map { .init(start: $0.start, end: $0.end,
                                                                  colors: $0.colors.map { $0.withAlphaComponent(0.45) }) }) { k in
-                        guard let echo = marks[k] else { return [:] }
+                        guard marks[k] != nil else { return [:] }
                         return [
-                            NSAttributedString.Key(kCTForegroundColorAttributeName as String):
-                                UIColor(echo.isActive ? accent : color).cgColor,
                             NSAttributedString.Key(kCTUnderlineStyleAttributeName as String): CTUnderlineStyle.thick.rawValue,
                             NSAttributedString.Key(kCTUnderlineColorAttributeName as String): UIColor(accent).cgColor,
                         ]
@@ -266,7 +264,6 @@ struct ImasPlayerLyricLine: View {
             let lower = scalars.index(scalars.startIndex, offsetBy: echo.start)
             let upper = scalars.index(scalars.startIndex, offsetBy: echo.end)
             result[lower..<upper].underlineStyle = Text.LineStyle(pattern: .solid, color: accent)
-            if echo.isActive { result[lower..<upper].foregroundColor = accent }
         }
         return result
     }

@@ -187,7 +187,7 @@ struct LyricsPlayerView: View {
                 ? lyricOverlayRange(text: line.text, start: UInt32(call.start), end: UInt32(call.end))
                     .map { (Int($0.start), Int($0.end)) }
                 : (call.start, call.end)
-            return range.map { .init(start: $0.0, end: $0.1, isActive: call.id == activeCallId) }
+            return range.map { .init(start: $0.0, end: $0.1) }
         }
     }
 
@@ -209,7 +209,7 @@ struct LyricsPlayerView: View {
                                     echoes: line.calls.filter { line.echoes($0) }.compactMap { call in
                                         // 被せを外したメインの行の中の位置に置き直す (被せに掛かるものは印を付けない)。
                                         lyricMainRange(text: line.text, start: UInt32(call.start), end: UInt32(call.end))
-                                            .map { .init(start: Int($0.start), end: Int($0.end), isActive: call.id == activeCallId) }
+                                            .map { .init(start: Int($0.start), end: Int($0.end)) }
                                     },
                                     // 歌う人は字の下に担当色の線で (被せを外した本文の位置に置き直す)。
                                     parts: cast.marks(line, scheme: scheme, mapRange: mainText == line.text ? nil : { start, end in
