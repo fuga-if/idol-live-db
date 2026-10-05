@@ -17,7 +17,7 @@
 
 - 状態を持つ・書き込む機能全般 — 担当/お気に入り、回収記録、投票、タグ付け、ペンライト、出演者予想、コール、編集、ログイン。
 - 歌詞の掲載 (§2 で詳述)。
-- ブラウザ側 JS を使うインタラクション。唯一の例外は `/search/` のページ内検索 (フィルタ目的のナビゲーション補助)。テーマ切替 UI も作らず `prefers-color-scheme` 追従のみ。
+- ブラウザ側 JS を使うインタラクション。例外は `/search/` のページ内検索 (フィルタ目的のナビゲーション補助) と `/p/` (P名刺。中身が URL の fragment にしか無く、ビルド時に静的 HTML へ焼けないため。§8.5 参照)。テーマ切替 UI も作らず `prefers-color-scheme` 追従のみ。
 - 一覧のクライアントサイドフィルタ (ブランド切替等)。フィルタ結果は必ず別 URL の静的ページにする。
 
 各詳細ページには「アプリで開く」導線 (App Store リンク + `imaslivedb://` カスタムスキーム) を置き、参加記録・投票・歌詞・コールはアプリへ誘導する。
@@ -176,6 +176,22 @@ https://imas-live-web.tokata3011.workers.dev/
 - 索引 JSON (`web/data/search/*.json`) の `f` フィールドは、`TextSearchIndex` が持つ畳み済みフィールドをそのまま `U+0001` 区切りで連結したもの。ブラウザ側の照合は **`r.f.includes(fold(query))` の 1 行だけ**であり、スコアリングや前方一致優先などの独自ロジックを足さない。
 - 検索対象は v1 では **曲・アイドル・ライブ・会場の 4 種**。公演 (show) とユニット (unit) は対象外 (`Snapshot` に単独の検索索引が無いため。ユニット検索を足す場合は `Snapshot::unit_search` を imas-core に追加するのが筋であり、Web 都合の実装ではなく imas-core の改善として起票する — §12 O2)。
 - パリティ検証: `web/data/parity/fold.json` (実 DB の代表テキスト + 境界ケース) を `web/tests/fold.parity.test.ts` が全件流し、Rust 側の畳み込みとブラウザ側の畳み込みが一致することを固定する。
+
+### 8.5. P名刺 (`/p/`) — 2 つ目の島
+
+アプリ (iOS/Android) の P名刺を QR で交換する機能の、アプリが無い人向けの着地ページ。QR の中身は `https://idollivedb.fugaapp.site/p/#<base64url>` で、**名刺の中身 (名前・ひとこと・担当・リンク・公演数) は URL の `#` の後ろにしか無く、サーバには一切置かない** (`imas_core::domain::producer_card`。`WEB_ORIGIN` + `CARD_PATH` は同モジュールが持つ)。fragment はリクエストにすら載らないので、ビルド時の `web-export` にも Cloudflare にも見えない — つまり他の全ページと違って**この 1 ページだけは静的に焼けない**。これが `/search/` に次ぐ 2 つ目の JS 例外になっている理由。
+
+データの流れ:
+
+1. `web/src/pages/p/index.astro` はビルド時に静的な骨組み (「読み取っています…」のプレースホルダと `<noscript>` のアプリ誘導) だけを出す。
+2. ブラウザで island (`web/src/lib/card/island.ts`) が起動し、`location.hash` の `#` の後ろ (保存してある形そのもの) を wasm に渡す。
+3. 読み解き自体は `imas_core::domain::producer_card::{decode_producer_card, card_link_view}` を `wasm-bindgen` でそのまま公開した `web/wasm/imas-query-wasm` の `decode_producer_card_json` を呼ぶだけで、**TypeScript 側に URL の形・base64url・版の判断を一切書かない** (INV-1)。既存の `Query` (生テーブル 10MB を組み直す側) は経由しない — 名刺の読み解きに Snapshot は要らないので、wasm モジュールだけを取りに行く。
+4. 担当アイドル・次の現場の名前・色・URL は、名刺に入っている **id** を `p/catalog.json` (`web-export` が出す小さな台帳。全アイドルの `Ref` + 今日以降の公演の `Ref` + 「アプリで開く」の固定文字列) と突き合わせて解決する。台帳に無い id (アイドルが消えた/公演が過去になった) は欄ごと出さない。
+5. 読み解きに失敗した (版が違う・URL が壊れている) ときは `catalog.unreadableText` を出す。JS が無効なときは `<noscript>` のアプリ誘導 (App Store リンクのみ) だけが見える。
+
+`/p/` は個人の名刺なので常に `noindex` (`CardCatalog.seo.robots = NoindexFollow`。どこにも位置しないページとして `404.html` と同じ扱いでパンくず・JSON-LD を持たない)。`p/catalog.json` 自体も `_headers` で `X-Robots-Tag: noindex`。
+
+Universal Links (`web/public/.well-known/apple-app-site-association`) は `/p/*` だけを対象にした、このサイト専用の AASA (`imas-live-api/` が返す既存の AASA とは別ファイル・別ドメイン)。`appID` は `imas-live-api/src/appattest.ts` の `APP_ID` と同じ値を手で合わせてある (機械的な同期の仕組みは無い)。Android の `assetlinks.json` は、署名 SHA256 フィンガープリントがリポジトリ内に見当たらなかったため未作成 (別途取得して追加する)。
 
 ---
 
