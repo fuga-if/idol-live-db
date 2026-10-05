@@ -399,8 +399,11 @@ private fun LyricsPlayerRow(
     ) {
         Column(Modifier.weight(1f)) {
             if (line.isOverlay) {
-                val overlay = lyricOverlaySplit(line.text).overlay ?: line.text
-                ImasPlayerOverlayLine(text = overlay, isCurrent = !hasTiming || isOverlayActive, seed = seed)
+                val overlay = lyricOverlaySplit(line.text).overlay
+                ImasPlayerOverlayLine(
+                    text = overlay ?: line.text, isCurrent = !hasTiming || isOverlayActive, seed = seed,
+                    echoes = overlayEchoes(line, activeCallId, mapped = overlay != null)
+                )
             } else {
                 val split = lyricOverlaySplit(line.text)
                 val mainText = split.main.ifEmpty { line.text }
@@ -422,7 +425,10 @@ private fun LyricsPlayerRow(
                 )
                 val overlayText = split.overlay
                 if (overlayText != null && split.main.isNotEmpty()) {
-                    ImasPlayerOverlayLine(text = overlayText, isCurrent = isCurrent, seed = seed)
+                    ImasPlayerOverlayLine(
+                        text = overlayText, isCurrent = isCurrent, seed = seed,
+                        echoes = overlayEchoes(line, activeCallId, mapped = true)
+                    )
                 }
             }
             ImasPartNames(groups = cast.groups(line))
@@ -443,3 +449,15 @@ private fun LyricsPlayerRow(
 /** コール練習の震えの設定 (iOS `@AppStorage("lyrics.call_haptics")` と同じ鍵)。 */
 private const val CALL_HAPTICS_PREFS = "imas_settings"
 private const val CALL_HAPTICS_KEY = "lyrics.call_haptics"
+
+/** 被せの段に引く同時コールの印 (括弧の中の位置を被せの段の位置に置き直す。規則はコア)。iOS `overlayEchoes` と対。 */
+private fun overlayEchoes(line: LyricLine, activeCallId: String?, mapped: Boolean): List<ImasEcho> =
+    line.calls.filter { line.echoes(it) }.mapNotNull { call ->
+        val range = if (mapped) {
+            uniffi.imas_core.lyricOverlayRange(line.text, call.start.toUInt(), call.end.toUInt())
+                ?.let { it.start.toInt() to it.end.toInt() }
+        } else {
+            call.start to call.end
+        }
+        range?.let { ImasEcho(start = it.first, end = it.second, isActive = call.id == activeCallId) }
+    }

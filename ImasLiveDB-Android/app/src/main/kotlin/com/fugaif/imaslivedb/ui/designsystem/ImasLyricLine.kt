@@ -430,7 +430,14 @@ private fun echoMarked(
  * メインより小さく、左に細い罫を引いて「重なっている層」だと分かるようにする。
  */
 @Composable
-fun ImasPlayerOverlayLine(text: String, isCurrent: Boolean, seed: String?, modifier: Modifier = Modifier) {
+fun ImasPlayerOverlayLine(
+    text: String,
+    isCurrent: Boolean,
+    seed: String?,
+    modifier: Modifier = Modifier,
+    /** 被せの中で、歌詞と同じ文字を一緒に叫ぶところ (同時コール)。メインの行と同じく下線で印を付ける。 */
+    echoes: List<ImasEcho> = emptyList()
+) {
     val theme = imasTheme(seed = seed)
     Row(
         modifier
@@ -439,8 +446,11 @@ fun ImasPlayerOverlayLine(text: String, isCurrent: Boolean, seed: String?, modif
         horizontalArrangement = Arrangement.spacedBy(DS.sp2)
     ) {
         Box(Modifier.width(2.dp).fillMaxHeight().background(if (isCurrent) theme.accent else DS.sep))
-        Text(
-            text,
+        ImasEchoText(
+            text = text,
+            annotated = echoMarked(androidx.compose.ui.text.AnnotatedString(text), text, echoes, theme.accent),
+            echoes = echoes,
+            accent = theme.accent,
             style = ImasType.heading(19.sp, FontWeight.Bold),
             color = if (isCurrent) DS.ink2 else DS.ink3,
             modifier = Modifier.weight(1f)
