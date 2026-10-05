@@ -3188,3 +3188,107 @@ a.cal__day:hover {
   display: grid;
   gap: var(--sp2);
 }
+
+/* --- P名刺 (`/p/`) ---------------------------------------------------------
+   「担当の入場証を 1 枚に広げた紙」: 上に担当色の帯、名前、ひとこと、P歴、担当の並び、
+   リンク、記録 (掲示板風)、時点。帯以外はカードの地色のまま (淡い色の地のカードは
+   却下済み)。帯と本体の間は切り取り線 (--ds-line の破線) で区切る。 */
+.meishi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp6);
+}
+.meishi__status {
+  color: var(--ds-ink2);
+  font-size: var(--fs-subhead);
+}
+.meishi-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-xl);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow1);
+  overflow: clip;
+}
+.meishi-card__band {
+  block-size: 10px;
+  background: var(--accent, var(--ds-line));
+  border-block-end: 1.5px dashed var(--ds-line);
+}
+.meishi-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+  padding: var(--sp7) var(--sp6);
+}
+.meishi-card__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-title1);
+}
+.meishi-card__message {
+  color: var(--ds-ink2);
+}
+.meishi-card__since {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.meishi-card__oshi,
+.meishi-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.meishi-card__oshi a {
+  font-weight: 700;
+  color: var(--accent, var(--ds-ink));
+}
+.meishi-card__links a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp2);
+  font-size: var(--fs-footnote);
+}
+.meishi-card__link-label {
+  font-weight: 700;
+  color: var(--ds-ink2);
+}
+.meishi-card__board {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp5) var(--sp7);
+  padding-block-start: var(--sp4);
+  border-block-start: 1.5px dashed var(--ds-line);
+}
+.meishi-card__digit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meishi-card__digit-value {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-title2);
+  font-weight: 700;
+}
+.meishi-card__digit-label {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.meishi-card__next {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp2);
+  font-size: var(--fs-footnote);
+}
+.meishi-card__next-label {
+  color: var(--ds-ink2);
+}
+.meishi-card__asof {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+  text-align: end;
+}

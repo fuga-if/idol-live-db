@@ -1,0 +1,111 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { page } from "../../lib/data";
+import type { CardCatalog } from "../../lib/schema/CardCatalog";
+
+/**
+ * P名刺 (`/p/`) — このサイトで 2 つ目の、ブラウザ JS で描く島。
+ *
+ * 名刺の中身 (名前・ひとこと・担当・リンク・公演数) は、QR の URL の `#` の後ろに
+ * **全部入っていてサーバには無い** (`https://…/p/#<base64url>`。読んだ側が
+ * ブラウザだけで組み立てる形)。だから他の全ページと違って、この HTML はビルド時に
+ * 内容を焼き込めない — fragment はリクエストにすら載らないので、Cloudflare にも
+ * imas-core にも見えない。`/search/` が「ページを探すための補助」としての例外だった
+ * のと同じ理由で、ここも静的に焼けないから JS に頼る例外になる (詳細は
+ * `docs/ARCHITECTURE-web.md`)。
+ *
+ * 読み解き自体は `imas_core::domain::producer_card` を wasm にしたもの
+ * (`../../lib/card/decode.ts`) を直接呼ぶので、**ここにも island 側にも名刺の形式判断は
+ * 1 行も書かない**。担当アイドル・次の現場の名前・色・URL だけは、id から引く台帳
+ * (`p/catalog.json`。今日時点のビルドが出したもの) をこのページが静的に埋め込む。
+ */
+const catalog = page<CardCatalog>("p/catalog.json");
+---
+
+<BaseLayout seo={catalog.seo}>
+  {/*
+    既定で hidden。JS が無ければこの中は一生出ない (`<noscript>` の案内だけが見える)。
+    JS があれば island がこの 1 個の属性を外して「読み取っています…」を見せる。
+    CSS でなく HTML 属性にしてあるのは、CSP (style-src 'self') の下でもインライン
+    <style> を使わずに同じことができるため。
+  */}
+  <section class="meishi" data-meishi hidden aria-live="polite">
+    <p class="meishi__status" data-meishi-status>名刺を読み取っています…</p>
+
+    <article class="meishi-card" data-meishi-card hidden data-theme="neutral">
+      <div class="meishi-card__band" data-meishi-band aria-hidden="true"></div>
+      <div class="meishi-card__body">
+        <h1 class="meishi-card__name" data-meishi-name></h1>
+        <p class="meishi-card__message" data-meishi-message></p>
+        <p class="meishi-card__since" data-meishi-since hidden></p>
+
+        <ul class="meishi-card__oshi" data-meishi-oshi aria-label="担当"></ul>
+
+        <ul class="meishi-card__links" data-meishi-links aria-label="リンク"></ul>
+
+        <div class="meishi-card__board" data-meishi-board aria-label="記録">
+          <div class="meishi-card__digit">
+            <span class="meishi-card__digit-value" data-meishi-show-count>0</span>
+            <span class="meishi-card__digit-label">参加公演</span>
+          </div>
+          <div class="meishi-card__digit">
+            <span class="meishi-card__digit-value" data-meishi-song-count>0</span>
+            <span class="meishi-card__digit-label">回収曲</span>
+          </div>
+          <p class="meishi-card__next" data-meishi-next hidden></p>
+        </div>
+
+        <p class="meishi-card__asof" data-meishi-asof></p>
+      </div>
+    </article>
+
+    <div class="open-in-app" data-meishi-case hidden aria-label="アプリで開く">
+      <img
+        class="open-in-app__icon"
+        src="/icon-192.png"
+        alt=""
+        width="48"
+        height="48"
+        loading="lazy"
+        decoding="async"
+      />
+      <div class="open-in-app__body">
+        <p class="open-in-app__title">{catalog.appOpenTitle}</p>
+        <p class="open-in-app__note" data-meishi-case-note>{catalog.appOpenNote}</p>
+      </div>
+      <div class="open-in-app__actions">
+        <a class="btn" data-meishi-case-scheme href={catalog.appStoreUrl}>アプリで開く</a>
+        <a class="btn btn--ghost" href={catalog.appStoreUrl}>App Store</a>
+      </div>
+    </div>
+
+    <p class="meishi__status" data-meishi-unreadable hidden>{catalog.unreadableText}</p>
+  </section>
+
+  <noscript>
+    <div class="open-in-app" aria-label="アプリで開く">
+      <img
+        class="open-in-app__icon"
+        src="/icon-192.png"
+        alt=""
+        width="48"
+        height="48"
+        loading="lazy"
+        decoding="async"
+      />
+      <div class="open-in-app__body">
+        <p class="open-in-app__title">{catalog.appOpenTitle}</p>
+        <p class="open-in-app__note">
+          JavaScript が無効なため、ここでは名刺を表示できません。{catalog.appOpenNote}
+        </p>
+      </div>
+      <div class="open-in-app__actions">
+        <a class="btn" href={catalog.appStoreUrl}>App Store</a>
+      </div>
+    </div>
+  </noscript>
+</BaseLayout>
+
+<script>
+  import "../../lib/card/island";
+</script>

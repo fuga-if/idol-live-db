@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["GQ3WP34LFW.com.fugaif.ImasLiveDB"],
+        "components": [{ "/": "/p/*" }]
+      }
+    ]
+  }
+}

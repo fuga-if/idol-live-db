@@ -46,6 +46,16 @@ export function buildHeaders(meta) {
 /snapshot/*
   X-Robots-Tag: noindex
 
+# P名刺 (/p/) の台帳も記事ではない (id → 名前・色・URL の突き合わせ用)。
+/p/catalog.json
+  X-Robots-Tag: noindex
+
+# Universal Links の受け口。拡張子が無く、既定の Content-Type のままでは
+# Apple の検証 (CDN が application/json を要求する) に通らない。リダイレクトも禁止。
+/.well-known/apple-app-site-association
+  Content-Type: application/json; charset=utf-8
+  X-Robots-Tag: noindex
+
 # content-hash 付きアセットは中身が変われば必ずファイル名も変わるため immutable で安全。
 # HTML (/*) は日次再ビルドで内容が変わるので既定のまま。
 /_astro/*
