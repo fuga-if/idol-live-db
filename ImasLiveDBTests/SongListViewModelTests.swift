@@ -17,7 +17,11 @@ final class StubLyricAnnotations: LyricAnnotationProviding, @unchecked Sendable 
         let call = callCount
         if let hook = beforeReturn[call] { await hook() }
         if shouldThrow { throw StubError.boom }
-        return kind == .calls ? calls : timings
+        switch kind {
+        case .calls: return calls
+        case .timings: return timings
+        case .parts: return []
+        }
     }
 }
 

@@ -15,6 +15,7 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
     private struct Snapshot: Codable {
         var calls: Set<String>
         var timings: Set<String>
+        var parts: Set<String>
         var fetchedAt: Date
     }
 
@@ -29,7 +30,8 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
     /// - Parameter suiteName: 置き場の UserDefaults (nil = 標準)。テストは別の置き場を渡す。
     init(reader: any LyricAnnotationReading = CallGuideAPI.shared,
          suiteName: String? = nil,
-         key: String = "lyric_annotations_v1",
+         // パート分けを足したので鍵を替える (古い置き場には parts が無い)。
+         key: String = "lyric_annotations_v2",
          maxAge: TimeInterval = 60 * 60) {
         let defaults = suiteName.flatMap(UserDefaults.init(suiteName:)) ?? .standard
         self.reader = reader
@@ -54,7 +56,11 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
                 current = snapshot
             }
         }
-        return kind == .calls ? current.calls : current.timings
+        switch kind {
+        case .calls: return current.calls
+        case .timings: return current.timings
+        case .parts: return current.parts
+        }
     }
 
     /// 自分が保存した曲に印を付ける / 外す (次の取り直しを待たない)。
@@ -65,6 +71,8 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
         case (.calls, false): s.calls.remove(songId)
         case (.timings, true): s.timings.insert(songId)
         case (.timings, false): s.timings.remove(songId)
+        case (.parts, true): s.parts.insert(songId)
+        case (.parts, false): s.parts.remove(songId)
         }
         save(s)
     }
@@ -76,6 +84,7 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
         let task = Task { () throws -> Snapshot in
             var calls = Set<String>()
             var timings = Set<String>()
+            var parts = Set<String>()
             var after: String?
             // 曲数は 3,000 未満。ページの上限 (2,000) で数回。無限に回らないよう回数にも蓋。
             for _ in 0..<20 {
@@ -83,11 +92,12 @@ actor LyricAnnotationStore: LyricAnnotationProviding {
                 for song in page.songs {
                     if song.calls { calls.insert(song.songId) }
                     if song.timings { timings.insert(song.songId) }
+                    if song.parts { parts.insert(song.songId) }
                 }
                 guard let next = page.next else { break }
                 after = next
             }
-            return Snapshot(calls: calls, timings: timings, fetchedAt: Date())
+            return Snapshot(calls: calls, timings: timings, parts: parts, fetchedAt: Date())
         }
         refreshing = task
         defer { refreshing = nil }

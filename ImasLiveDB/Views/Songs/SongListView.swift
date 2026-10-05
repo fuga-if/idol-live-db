@@ -105,6 +105,7 @@ struct SongListView: View {
     @State private var callGuideOnly = false
     /// 「歌詞のタイミングがある曲のみ」(再生に合わせて歌詞を追える曲)。`callGuideOnly` と同じ理由で保存しない。
     @State private var lyricTimingOnly = false
+    @State private var partsOnly = false
     @State private var showTagPicker = false
     @State private var showIntroDon = false
     /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
@@ -131,6 +132,7 @@ struct SongListView: View {
             selectedTagCount: selectedTags.count,
             callGuideOnly: callGuideOnly,
             lyricTimingOnly: lyricTimingOnly,
+            partsOnly: partsOnly,
             kamisabiOnly: kamisabiOnly,
             // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
             // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
@@ -235,6 +237,7 @@ struct SongListView: View {
                         excludeLiveOnly: $excludeLiveOnly,
                         callGuideOnly: $callGuideOnly,
                         lyricTimingOnly: $lyricTimingOnly,
+                        partsOnly: $partsOnly,
                         kamisabiOnly: $kamisabiOnly
                     )
                     .environment(database)
@@ -288,6 +291,12 @@ struct SongListView: View {
                 .onChange(of: lyricTimingOnly) { _, enabled in
                     Task {
                         await vm.resolveLyricTimingFilter(enabled)
+                        reload()
+                    }
+                }
+                .onChange(of: partsOnly) { _, enabled in
+                    Task {
+                        await vm.resolvePartFilter(enabled)
                         reload()
                     }
                 }
@@ -454,6 +463,11 @@ struct SongListView: View {
     /// タグ側と同じく、失敗時は絞り込みを適用しないので一覧は絞られていない。
     @ViewBuilder
     private var callGuideFilterErrorBanner: some View {
+        if vm.partFilterError {
+            ImasNotice(kind: .warning, message: "パート分けの情報を取得できませんでした。表示中の一覧にはパート分けの条件が反映されていません。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
+        }
         if vm.lyricTimingFilterError {
             ImasNotice(kind: .warning, message: "歌詞のタイミングの情報を取得できませんでした。表示中の一覧にはタイミング条件が反映されていません。")
                 .padding(.horizontal, DS.Space.screen)
@@ -522,6 +536,9 @@ struct SongListView: View {
         if lyricTimingOnly, listMode == .songs {
             // 解除の後始末は `onChange(of: lyricTimingOnly)` が担う。
             chips.append(.init(id: "lyric_timing", label: "タイミングあり") { lyricTimingOnly = false })
+        }
+        if partsOnly, listMode == .songs {
+            chips.append(.init(id: "lyric_parts", label: "パート分けあり") { partsOnly = false })
         }
         if kamisabiOnly, listMode == .songs {
             // 解除の後始末 (再読み込み) は `onChange(of: kamisabiOnly)` が担う。
@@ -652,6 +669,7 @@ struct SongListView: View {
         // 引き直すだけなので実害は無い (解除の後始末を 2 箇所に書く方が壊れやすい)。
         callGuideOnly = false
         lyricTimingOnly = false
+        partsOnly = false
         kamisabiOnly = false
         Task {
             await vm.resolveTagFilter([])
@@ -678,6 +696,7 @@ struct SongListView: View {
         if !selectedTags.isEmpty { count += 1 }
         if callGuideOnly, listMode == .songs { count += 1 }
         if lyricTimingOnly, listMode == .songs { count += 1 }
+        if partsOnly, listMode == .songs { count += 1 }
         if kamisabiOnly, listMode == .songs { count += 1 }
         count += myMarkFilter.activeCount
         return count

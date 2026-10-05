@@ -103,6 +103,9 @@ final class SongListViewModel {
     private(set) var lyricTimingSongIds: Set<String>?
     private(set) var lyricTimingFilterError = false
     private var currentLyricTimingResolveId = UUID()
+    private(set) var partSongIds: Set<String>?
+    private(set) var partFilterError = false
+    private var currentPartResolveId = UUID()
     /// `resolveCallGuideFilter` の世代。`await` の間にトグルが動いていたら古い応答は捨てる。
     private var currentCallGuideResolveId = UUID()
 
@@ -227,6 +230,7 @@ final class SongListViewModel {
         // 解決に失敗したときは nil のまま = 絞り込みなし。
         if request.callGuideOnly { ctx.callGuideSongIds = callGuideSongIds }
         if request.lyricTimingOnly { ctx.lyricTimingSongIds = lyricTimingSongIds }
+        if request.partsOnly { ctx.partSongIds = partSongIds }
         return ctx
     }
 
@@ -465,6 +469,26 @@ final class SongListViewModel {
             lyricTimingFilterError = true
         }
     }
+    /// 「パート分けがある曲のみ」の song_id 集合を解決する。規約は `resolveCallGuideFilter` と同じ。
+    func resolvePartFilter(_ enabled: Bool) async {
+        let resolveId = UUID()
+        currentPartResolveId = resolveId
+        guard enabled else {
+            partSongIds = nil
+            partFilterError = false
+            return
+        }
+        do {
+            let ids = try await annotations.songIds(.parts)
+            guard currentPartResolveId == resolveId else { return }
+            partSongIds = ids
+            partFilterError = false
+        } catch {
+            guard currentPartResolveId == resolveId else { return }
+            partFilterError = true
+        }
+    }
+
 }
 
 /// SongListView の現在の UI 状態を、データ取得に必要な純粋値へまとめたリクエスト。
@@ -482,6 +506,7 @@ struct SongListRequest {
     var callGuideOnly: Bool = false
     /// 「歌詞のタイミングがある曲のみ」が要求されているか。集合の解決は VM が持つ。
     var lyricTimingOnly: Bool = false
+    var partsOnly: Bool = false
     /// 「KAMISABI 収録曲のみ」が要求されているか。判定はコアに渡すだけ。
     var kamisabiOnly: Bool = false
     var searchText: String
