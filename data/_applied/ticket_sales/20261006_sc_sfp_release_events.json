@@ -1,0 +1,66 @@
+{
+ "title": "シャニソン発売記念イベント 5 件の応募受付",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント",
+   "kind": "lottery",
+   "name": "CD初回生産分封入イベント応募券（抽選）",
+   "starts_at": "2026-03-31 12:00",
+   "ends_at": "2026-09-27 23:59",
+   "result_at": "2026-10-02 13:00",
+   "url": "https://shinycolors.lantis.jp/event/260312_1/",
+   "note": "シリアル 1 点で 1 公演 1 枚。e+ で受付",
+   "source_url": "https://shinycolors.lantis.jp/event/260312_1/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント",
+   "kind": "lottery",
+   "name": "CD初回生産分封入イベント応募券（抽選）",
+   "starts_at": "2026-06-02 12:00",
+   "ends_at": "2026-10-04 23:59",
+   "result_at": "2026-10-09 13:00",
+   "url": "https://shinycolors.lantis.jp/event/260515_1/",
+   "note": "シリアル 1 点で 1 公演 1 枚。e+ で受付",
+   "source_url": "https://shinycolors.lantis.jp/event/260515_1/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ボーダーレス_ノンストレス_oh_yeah_発売記念イベント",
+   "kind": "lottery",
+   "name": "CD初回生産分封入イベント応募券（抽選）",
+   "starts_at": "2026-03-03 12:00",
+   "ends_at": "2026-11-01 23:59",
+   "result_at": "2026-11-06 13:00",
+   "url": "https://shinycolors.lantis.jp/event/260213_1/",
+   "note": "シリアル 1 点で 1 公演 1 枚。e+ で受付",
+   "source_url": "https://shinycolors.lantis.jp/event/260213_1/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント",
+   "kind": "lottery",
+   "name": "CD初回生産分封入イベント応募券（抽選）",
+   "starts_at": "2026-04-28 12:00",
+   "ends_at": "2026-11-08 23:59",
+   "result_at": "2026-11-13 13:00",
+   "url": "https://shinycolors.lantis.jp/event/260429_1/",
+   "note": "シリアル 1 点で 1 公演 1 枚。e+ で受付",
+   "source_url": "https://shinycolors.lantis.jp/event/260429_1/",
+   "sort_order": 0
+  },
+  {
+   "event_id": "ev_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント",
+   "kind": "lottery",
+   "name": "CD初回生産分封入イベント応募券（抽選）",
+   "starts_at": "2026-06-30 12:00",
+   "ends_at": "2026-11-01 23:59",
+   "result_at": "2026-11-06 13:00",
+   "url": "https://shinycolors.lantis.jp/event/260623_1/",
+   "note": "シリアル 1 点で 1 公演 1 枚。e+ で受付",
+   "source_url": "https://shinycolors.lantis.jp/event/260623_1/",
+   "sort_order": 0
+  }
+ ]
+}

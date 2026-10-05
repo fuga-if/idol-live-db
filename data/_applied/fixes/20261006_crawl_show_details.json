@@ -1,0 +1,27 @@
+{
+ "title": "公式ページから、今後の公演の空いていた特設 URL・開演時刻・会場を埋める",
+ "author": "crawl_show_details.py",
+ "source": "https://idolmaster-official.jp/news/01_20045.html https://idolmaster-official.jp/news/01_20056.html",
+ "fixes": [
+  {
+   "table": "show_tickets",
+   "id": "tkt_sh_灯里愛夏_birthday_online_live_2026_1_stream_stream_b0edc4",
+   "fields": {
+    "archive_starts_at": "2026-10-28",
+    "archive_ends_at": "2026-11-29 23:59"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20056.html",
+   "note": "公式ページのアーカイブ視聴期間"
+  },
+  {
+   "table": "show_tickets",
+   "id": "tkt_sh_レトラ_birthday_online_live_2026_1_stream_stream_b0edc4",
+   "fields": {
+    "archive_starts_at": "2026-11-11",
+    "archive_ends_at": "2026-12-13 23:59"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20045.html",
+   "note": "公式ページのアーカイブ視聴期間"
+  }
+ ]
+}
