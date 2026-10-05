@@ -100,16 +100,22 @@ final class DatabaseMigrationTests: XCTestCase {
         try DatabaseMigrations.migrator.migrate(queue, upTo: version)
 
         let tables = try queue.read { db in try Self.localOnlyTables.filter { try db.tableExists($0) } }
+        // 移行前にあった列だけを比べる (後の版で足した列は既定値で増えるだけで、行は変わらない)。
+        let columns = try queue.read { db in
+            try Dictionary(uniqueKeysWithValues: tables.map { table in
+                (table, try db.columns(in: table).map(\.name))
+            })
+        }
         let before = try queue.write { db -> [String: [Row]] in
             try Self.insertLocalOnlyRows(db)
-            return try Self.rows(of: tables, in: db)
+            return try Self.rows(of: columns, in: db)
         }
         XCTAssertFalse(before.values.joined().isEmpty, "入れた行が無い", file: file, line: line)
 
         try DatabaseMigrations.migrator.migrate(queue)
         _ = try ensureMasterSchema(dbPath: path)
 
-        let after = try queue.read { db in try Self.rows(of: tables, in: db) }
+        let after = try queue.read { db in try Self.rows(of: columns, in: db) }
         XCTAssertEqual(after, before, "移行で端末ローカルの行が変わった", file: file, line: line)
     }
 
@@ -163,10 +169,11 @@ final class DatabaseMigrationTests: XCTestCase {
         }
     }
 
-    private static func rows(of tables: [String], in db: Database) throws -> [String: [Row]] {
+    private static func rows(of columns: [String: [String]], in db: Database) throws -> [String: [Row]] {
         var rows: [String: [Row]] = [:]
-        for table in tables {
-            rows[table] = try Row.fetchAll(db, sql: "SELECT * FROM \(table) ORDER BY 1, 2, 3")
+        for (table, names) in columns {
+            let list = names.map { "\"\($0)\"" }.joined(separator: ", ")
+            rows[table] = try Row.fetchAll(db, sql: "SELECT \(list) FROM \(table) ORDER BY 1, 2, 3")
         }
         return rows
     }
