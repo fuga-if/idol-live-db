@@ -75,6 +75,21 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_backup_meaningful_mark_indices,
     uniffi_imas_core_checksum_func_build_backup_envelope,
     uniffi_imas_core_checksum_func_build_ledger_summary,
+    uniffi_imas_core_checksum_func_card_case_sections,
+    uniffi_imas_core_checksum_func_card_exchange_show_candidates,
+    uniffi_imas_core_checksum_func_card_link_from_url,
+    uniffi_imas_core_checksum_func_card_link_kinds,
+    uniffi_imas_core_checksum_func_card_link_view,
+    uniffi_imas_core_checksum_func_classify_scanned_code,
+    uniffi_imas_core_checksum_func_decode_producer_card,
+    uniffi_imas_core_checksum_func_encode_producer_card,
+    uniffi_imas_core_checksum_func_normalize_card_link,
+    uniffi_imas_core_checksum_func_producer_card_common,
+    uniffi_imas_core_checksum_func_producer_card_input_error_message,
+    uniffi_imas_core_checksum_func_producer_card_limits,
+    uniffi_imas_core_checksum_func_producer_card_payload,
+    uniffi_imas_core_checksum_func_producer_card_url_from_payload,
+    uniffi_imas_core_checksum_func_validate_producer_card,
     uniffi_imas_core_checksum_func_build_mastery_groups,
     uniffi_imas_core_checksum_func_canonical_credit_key,
     uniffi_imas_core_checksum_func_ck_ingest_batch,
@@ -513,7 +528,11 @@ fn declared_checksums_match_inbound_exports() {
     let exported = inbound_export_symbols();
     let declared: BTreeSet<String> = DECLARED.iter().map(|s| s.to_string()).collect();
     let as_lines = |names: Vec<&String>| {
-        names.iter().map(|s| format!("    {s},")).collect::<Vec<_>>().join("\n")
+        names
+            .iter()
+            .map(|s| format!("    {s},"))
+            .collect::<Vec<_>>()
+            .join("\n")
     };
     let missing = as_lines(exported.difference(&declared).collect());
     let stale = as_lines(declared.difference(&exported).collect());
@@ -573,8 +592,13 @@ fn inbound_export_symbols() -> BTreeSet<String> {
                 }
                 let object = item
                     .strip_prefix("impl ")
-                    .and_then(|rest| rest.split(|c: char| !c.is_alphanumeric() && c != '_').next())
-                    .unwrap_or_else(|| panic!("{}: 関数でも impl でもない export: {item}", path.display()))
+                    .and_then(|rest| {
+                        rest.split(|c: char| !c.is_alphanumeric() && c != '_')
+                            .next()
+                    })
+                    .unwrap_or_else(|| {
+                        panic!("{}: 関数でも impl でもない export: {item}", path.display())
+                    })
                     .to_lowercase();
                 let mut constructor = false;
                 for member in lines.by_ref().take_while(|l| *l != "}") {
