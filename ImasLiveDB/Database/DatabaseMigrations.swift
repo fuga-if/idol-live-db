@@ -1101,6 +1101,35 @@ enum DatabaseMigrations {
             }
         }
 
+        // v40: P名刺。**端末ローカル唯一データ** (expenses と同じ扱い、破壊的な移行はしない)。
+        // 自分の名刺は書いた中身だけ (担当・記録の数はアプリの記録から毎回作る)。
+        // 受け取った名刺は中身 (`#` の後ろ) のまま持ち、読み解き・束ね方はコア (domain/producer_card.rs)。
+        // 写真・受け取った担当の画像は Documents/producer_cards/ のファイル。
+        migrator.registerMigration("v40_producer_cards") { db in
+            try db.create(table: "my_producer_card", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("name", .text).notNull()
+                t.column("message", .text).notNull().defaults(to: "")
+                t.column("since_year", .integer)
+                t.column("links_json", .text).notNull().defaults(to: "[]")
+                t.column("hidden_fields", .text).notNull().defaults(to: "")
+                t.column("updated_at", .text).notNull()
+            }
+            try db.create(table: "received_producer_cards", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("payload", .text).notNull()
+                t.column("source", .text).notNull().defaults(to: "app")
+                t.column("show_id", .text)
+                t.column("show_date", .text)
+                t.column("memo", .text)
+                t.column("received_at", .text).notNull()
+                t.column("updated_at", .text).notNull()
+            }
+            // 同じ相手を 2 回読んだときの突き合わせが全表走査にならないように。
+            try db.create(index: "idx_received_producer_cards_payload", on: "received_producer_cards",
+                          columns: ["payload"], ifNotExists: true)
+        }
+
         return migrator
     }
 }

@@ -10,7 +10,8 @@ import XCTest
 final class DatabaseMigrationTests: XCTestCase {
 
     /// 端末ローカルにしかない表。移行で 1 行も欠けてはいけない。
-    private static let localOnlyTables = ["user_marks", "personal_tags", "expenses"]
+    private static let localOnlyTables = ["user_marks", "personal_tags", "expenses",
+                                          "my_producer_card", "received_producer_cards"]
 
     /// 空の DB に全移行を当て、コアのマスタスキーマまで通ること
     /// (同梱 DB が無いときの新規インストールの経路)。
@@ -84,6 +85,11 @@ final class DatabaseMigrationTests: XCTestCase {
         try assertLocalOnlyRowsSurviveMigration(from: "v32_expenses")
     }
 
+    /// P名刺 (v40) の表がある版からでも、名刺入れと自分の名刺が残ること。
+    func testLocalOnlyRowsSurviveMigrationFromV40() throws {
+        try assertLocalOnlyRowsSurviveMigration(from: "v40_producer_cards")
+    }
+
     /// `version` まで上げた DB に、その版にある端末ローカルの表の行を入れ、
     /// 最新まで上げてコアのスキーマも当てた後に、行が 1 つも変わっていないことを確かめる。
     private func assertLocalOnlyRowsSurviveMigration(
@@ -138,6 +144,22 @@ final class DatabaseMigrationTests: XCTestCase {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                 arguments: ["exp_1", "2026-09-01", "ticket", 13_200, "sh_1", "ev_1", "S席", now])
+        }
+        if try db.tableExists("my_producer_card") {
+            try db.execute(
+                sql: """
+                    INSERT INTO my_producer_card (id, name, message, since_year, links_json, hidden_fields, updated_at)
+                    VALUES ('me', 'ふがP', '現地派', 2014, '[{"kind":"x","value":"fuga_p"}]', 'attended', ?)
+                    """,
+                arguments: [now])
+        }
+        if try db.tableExists("received_producer_cards") {
+            try db.execute(
+                sql: """
+                    INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at)
+                    VALUES ('card_1', 'AQ_payload', 'app', 'sh_1', '2026-10-05', '物販列で隣', ?, ?)
+                    """,
+                arguments: [now, now])
         }
     }
 

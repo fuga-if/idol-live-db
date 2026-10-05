@@ -8,6 +8,11 @@ enum Deeplink: Equatable {
     case show(id: String)
     /// みんなの投票のお題 (`/app/polls/{id}`)。実体はサーバ側なので local DB 解決は不要。
     case poll(id: String)
+    /// P名刺 (`https://idollivedb.fugaapp.site/p/#…` / `imaslivedb://p#…`)。中身は `#` の後ろ。
+    /// サーバに何も無いので local DB も API も引かず、受け取りの確認を開く。
+    case producerCard(payload: String)
+    /// 名刺ファイル (`.imascard`) を「このアプリで開く」で渡されたとき。
+    case producerCardFile(URL)
 }
 
 /// deeplink URL の解析と、ローカル DB を引いた遷移先 (DetailDestination) への解決。
@@ -16,6 +21,14 @@ enum DeeplinkRouter {
     /// `URL.pathComponents` / `host()` は percent-decode 済みなので
     /// `ml_kasuga_mirai` 形式の TEXT PK がそのまま得られる。
     static func parse(_ url: URL) -> Deeplink? {
+        // 名刺ファイル。拡張子・名乗りはコア (`cardFileTypeInfo`)。
+        if url.isFileURL {
+            return url.pathExtension.lowercased() == cardFileTypeInfo().extension ? .producerCardFile(url) : nil
+        }
+        // P名刺の URL。どの形を名刺と読むかはコア (`classifyScannedCode`) 一本。
+        if case .card(_, let payload) = classifyScannedCode(text: url.absoluteString) {
+            return .producerCard(payload: payload)
+        }
         if url.scheme == DeeplinkBuilder.customScheme {
             // imaslivedb://events/{id} → host="events", pathComponents=["/", "{id}"]
             guard let host = url.host() else { return nil }
@@ -57,6 +70,9 @@ enum DeeplinkRouter {
             // お題は API 側にしか存在しないので local 解決はしない。存在しない ID は
             // PollDetailView 側が「読み込みに失敗しました」を出す。
             return .poll(id: id)
+        case .producerCard, .producerCardFile:
+            // 詳細画面ではなく受け取りの確認を開く (ContentView が先に拾う)。
+            return nil
         }
     }
 }

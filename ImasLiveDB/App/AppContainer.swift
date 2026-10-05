@@ -127,6 +127,8 @@ final class AppContainer: Sendable {
     let playlists: any PlaylistStoring = GRDBPlaylistRepository(database: .shared)
     let communityPlaylists: any CommunityPlaylistStoring = CommunityPlaylistAPI()
     let ledgerWriting: any LedgerWriting = GRDBLedgerRepository(database: .shared)
+    /// P名刺 (自分の名刺と名刺入れ。端末にだけある) の読み書きの実装 (GRDB / 共有 AppDatabase)。
+    let producerCards: any ProducerCardStoring = GRDBProducerCardRepository(database: .shared)
 
     /// 曲詳細のサーバ側データ (タグ / 類似曲 / ペンライト / 歌詞) 読み取りの実装。
     /// 束ねエンドポイント 1 本で取り、未配信 Worker では旧個別エンドポイントに落ちる。

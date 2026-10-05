@@ -50,6 +50,7 @@ struct BackupImportResult {
     var addedPersonalTags: Int
     var addedExpenses: Int
     var addedPlaylists: Int
+    var addedProducerCards: Int = 0
     var deviceIdRestored: Bool
     var skippedMarks: Int
 }
@@ -110,6 +111,19 @@ enum BackupExportImportService {
                                  updatedAt: $0.playlist.updatedAt, songIds: $0.songIds)
         }
 
+        // P名刺 (受け取った名刺と自分の名刺) も端末にしか無い。写真・担当の画像は運ばない
+        // (アイドルの画像と同じく端末の中だけ)。
+        let producerCards = try database.allReceivedProducerCards().map {
+            BackupProducerCardRecord(id: $0.id, payload: $0.payload, source: $0.source,
+                                     showId: $0.showId, showDate: $0.showDate, memo: $0.memo,
+                                     receivedAt: $0.receivedAt, updatedAt: $0.updatedAt)
+        }
+        let myProducerCards = try database.myProducerCard().map {
+            [BackupMyProducerCardRecord(id: $0.id, name: $0.name, message: $0.message,
+                                        sinceYear: $0.sinceYear.map(Int64.init), linksJson: $0.linksJson,
+                                        hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt)]
+        } ?? []
+
         // 時刻・アプリ版・端末 ID は OS からしか分からないので引数で渡す (共有コアは時刻を取らない)。
         let input = BackupExportInput(
             exportedAt: ISO8601DateFormatter().string(from: Date()),
@@ -120,7 +134,9 @@ enum BackupExportImportService {
             pollVotes: votes,
             personalTags: personalTags,
             expenses: expenses,
-            playlists: playlists
+            playlists: playlists,
+            producerCards: producerCards,
+            myProducerCards: myProducerCards
         )
         // iOS の kind 表記 (UserMarkKind.rawValue) がそのまま JSON の canonical 表記。
         return buildBackupEnvelope(input: input, dialect: .canonical).envelopeJson
@@ -186,7 +202,9 @@ enum BackupExportImportService {
             },
             // 収支は id (UUID) で重複を見る。同じ id を 2 回入れると帳簿の額が倍になる。
             expenseIds: try database.allExpenseIds(),
-            playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id)
+            playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id),
+            producerCardIds: try database.allReceivedProducerCardIds(),
+            myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? []
         )
 
         let plan: BackupImportPlan
@@ -241,6 +259,16 @@ enum BackupExportImportService {
              songIds: $0.songIds)
         })
 
+        let addedProducerCards = try database.restoreReceivedProducerCardsIfAbsent(plan.producerCardsToInsert.map {
+            ReceivedProducerCard(id: $0.id, payload: $0.payload, source: $0.source, showId: $0.showId,
+                                 showDate: $0.showDate, memo: $0.memo, receivedAt: $0.receivedAt,
+                                 updatedAt: $0.updatedAt)
+        })
+        try database.restoreMyProducerCardsIfAbsent(plan.myProducerCardsToInsert.map {
+            MyProducerCard(id: $0.id, name: $0.name, message: $0.message, sinceYear: $0.sinceYear.map { Int($0) },
+                           linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt)
+        })
+
         if plan.restoreDeviceId {
             DeviceIdentity.restore(plan.info.deviceId)
         }
@@ -255,6 +283,7 @@ enum BackupExportImportService {
             addedPersonalTags: addedPersonalTags,
             addedExpenses: addedExpenses,
             addedPlaylists: addedPlaylists,
+            addedProducerCards: addedProducerCards,
             deviceIdRestored: plan.restoreDeviceId,
             skippedMarks: Int(plan.info.skippedEntries)
         )
