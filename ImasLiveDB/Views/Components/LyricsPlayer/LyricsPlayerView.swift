@@ -41,6 +41,8 @@ struct LyricsPlayerView: View {
     @State private var startFailed = false
     @State private var showsAddToPlaylist = false
     @State private var showsQueue = false
+    /// 下へ引いている量 (畳む手前で画面ごと付いてくる)。
+    @State private var pullOffset: CGFloat = 0
 
     private var starts: [Int64?] { lyrics.lines.map { $0.startMs.map(Int64.init) } }
     /// メインの行だけに時刻を入れた並び (被せの行に今の行を取られない)。
@@ -64,6 +66,7 @@ struct LyricsPlayerView: View {
                     .padding(.top, DS.sp4)
                     .padding(.bottom, DS.sp3)
                     .background(DS.bg)
+                    .modifier(PullsDownToDismiss(offset: $pullOffset) { dismiss() })
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 controls
@@ -72,8 +75,11 @@ struct LyricsPlayerView: View {
                     .imasFloatingChrome()
                     .padding(.horizontal, DS.sp3)
                     .padding(.bottom, DS.sp2)
+                    .modifier(PullsDownToDismiss(offset: $pullOffset) { dismiss() })
             }
             .background(DS.bg)
+            // 下へスワイプで畳む (頭と下の操作をつまむ。歌詞は一番上から引き下げる)。
+            .offset(y: pullOffset)
         .task { await startIfNeeded() }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .light), trigger: likeToken)
@@ -140,6 +146,7 @@ struct LyricsPlayerView: View {
                 }
             }
             .modifier(PausesLyricsFollow(until: $followPausedUntil))
+            .modifier(OverscrollDismiss { dismiss() })
         }
     }
 
@@ -337,6 +344,57 @@ struct PausesLyricsFollow: ViewModifier {
                     until = Date().addingTimeInterval(4)
                 }
             }
+        } else {
+            content
+        }
+    }
+}
+
+/// 画面を下へスワイプして畳む (頭と下の操作の上で)。指に付いて下がり、引き切るか勢いよく払うと閉じる。
+/// 横の動きが勝つとき (つまみを横になぞる等) は取らない。
+struct PullsDownToDismiss: ViewModifier {
+    @Binding var offset: CGFloat
+    let onDismiss: () -> Void
+
+    func body(content: Content) -> some View {
+        content.simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onChanged { value in
+                    guard value.translation.height > 0,
+                          value.translation.height > abs(value.translation.width) * 1.5 else { return }
+                    offset = value.translation.height
+                }
+                .onEnded { value in
+                    if offset > 140 || (offset > 40 && value.predictedEndTranslation.height > 360) {
+                        onDismiss()
+                    } else {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { offset = 0 }
+                    }
+                }
+        )
+    }
+}
+
+/// 歌詞を一番上からさらに引き下げたら畳む (Apple Music と同じ)。iOS 18 未満は何もしない。
+struct OverscrollDismiss: ViewModifier {
+    let onDismiss: () -> Void
+    @State private var isInteracting = false
+    @State private var fired = false
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content
+                .onScrollPhaseChange { _, phase in
+                    isInteracting = phase == .interacting
+                    if phase == .idle { fired = false }
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geo in
+                    geo.contentOffset.y + geo.contentInsets.top
+                } action: { _, pulled in
+                    guard isInteracting, !fired, pulled < -120 else { return }
+                    fired = true
+                    onDismiss()
+                }
         } else {
             content
         }

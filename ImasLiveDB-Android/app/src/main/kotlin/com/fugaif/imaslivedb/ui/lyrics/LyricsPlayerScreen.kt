@@ -58,6 +58,10 @@ import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.imasPullDownHandle
+import com.fugaif.imaslivedb.ui.designsystem.imasPullDownScroll
+import com.fugaif.imaslivedb.ui.designsystem.imasPullOffset
+import com.fugaif.imaslivedb.ui.designsystem.rememberImasPullDismissState
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasLikeHeatSeekBar
@@ -198,7 +202,9 @@ fun LyricsPlayerScreen(
 
     // 歌詞は画面いっぱいに流し、頭と下の操作はその上に浮かべる (API 31 以降は下の操作がガラスで、
     // 後ろを流れる歌詞が透けて見える)。紙面の歌詞そのものは平らなまま。iOS `LyricsPlayerView` と対。
-    Box(Modifier.fillMaxSize().background(DS.bg)) {
+    // 下へスワイプで畳む (頭と下の操作をつまむ。歌詞は一番上から引き下げる)。
+    val pull = rememberImasPullDismissState(onClose)
+    Box(Modifier.fillMaxSize().imasPullOffset(pull).background(DS.bg).imasPullDownScroll(pull)) {
         val hazeState = remember { HazeState() }
         var headerHeightPx by remember { mutableIntStateOf(0) }
         var controlsHeightPx by remember { mutableIntStateOf(0) }
@@ -257,6 +263,7 @@ fun LyricsPlayerScreen(
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
                     .onSizeChanged { headerHeightPx = it.height }
+                    .imasPullDownHandle(pull)
                     .background(DS.bg)
                     .padding(horizontal = DS.sp5, vertical = DS.sp4),
                 horizontalArrangement = Arrangement.spacedBy(DS.sp4),
@@ -292,6 +299,7 @@ fun LyricsPlayerScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .onSizeChanged { controlsHeightPx = it.height }
+                    .imasPullDownHandle(pull)
                     .padding(horizontal = DS.sp4, vertical = DS.sp4)
                     .imasFloatingChrome()
                     .padding(horizontal = DS.sp3, vertical = DS.sp3),

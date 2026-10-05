@@ -7,6 +7,7 @@ import SwiftUI
 struct NowPlayingLyricsPlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var likeCounts: [String: Int] = [:]
+    @State private var pullOffset: CGFloat = 0
     /// タイミング編集は曲の詳細の歌詞タブから (記録の画面はそちらが持つ)。
     let onEditTimings: (Song) -> Void
 
@@ -56,5 +57,7 @@ struct NowPlayingLyricsPlayerView: View {
         }
         .padding(DS.sp5)
         .background(DS.bg)
+        .offset(y: pullOffset)
+        .modifier(PullsDownToDismiss(offset: $pullOffset) { dismiss() })
     }
 }
