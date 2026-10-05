@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FormatListNumbered
@@ -70,6 +72,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasShortcutTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
+import com.fugaif.imaslivedb.ui.designsystem.ImasTicketRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
@@ -93,6 +96,10 @@ fun ProduceScreen(
     onNavigateToCollectedSongs: () -> Unit,
     onNavigateToMastery: () -> Unit,
     onNavigateToLedger: () -> Unit,
+    /** 自分の P名刺 (担当の入場証の下)。 */
+    onNavigateToProducerCard: () -> Unit,
+    /** 名刺入れ (記録のタイル)。 */
+    onNavigateToCardCase: () -> Unit,
     onNavigateToTimeline: (String?) -> Unit,
     onNavigateToMyContributions: () -> Unit,
     onNavigateToMyVotes: () -> Unit,
@@ -135,7 +142,16 @@ fun ProduceScreen(
         }
     ) { padding ->
         ImasPage(modifier = Modifier.padding(padding)) {
-            OshiSection(idols = state.pickedIdols, onClick = onNavigateToIdol)
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                OshiSection(idols = state.pickedIdols, onClick = onNavigateToIdol)
+                // 担当の入場証を 1 枚に広げた P名刺へ (会場での名刺交換)。
+                ImasTicketRow(
+                    title = "P名刺",
+                    icon = Icons.Filled.Badge,
+                    subtitle = "担当と参加の記録を 1 枚にして、会場で交換する",
+                    onClick = onNavigateToProducerCard
+                )
+            }
 
             state.nextLive?.let { next ->
                 ImasSection("次のライブ", style = ImasSectionHeaderStyle.SMALL) {
@@ -193,6 +209,7 @@ fun ProduceScreen(
                 onCollectedClick = onNavigateToCollectedSongs,
                 onMasteryClick = onNavigateToMastery,
                 onLedgerClick = onNavigateToLedger,
+                onCardCaseClick = onNavigateToCardCase,
                 onPlaylistsClick = onNavigateToPlaylists
             )
 
@@ -382,6 +399,7 @@ private fun ActivitySection(
     onCollectedClick: () -> Unit,
     onMasteryClick: () -> Unit,
     onLedgerClick: () -> Unit,
+    onCardCaseClick: () -> Unit,
     onPlaylistsClick: () -> Unit
 ) {
     val tiles = listOf(
@@ -392,7 +410,8 @@ private fun ActivitySection(
         ActivityTile(Icons.Filled.MusicNote, "${state.collectedCount}", "回収", onCollectedClick),
         ActivityTile(Icons.Filled.BarChart, "${state.masteryCount}", "習熟度", onMasteryClick),
         // 件数ではなく金額を出す — 「いくら使ったか」は件数では読めない。
-        ActivityTile(Icons.Filled.AttachMoney, state.ledgerTotalLabel, "収支", onLedgerClick)
+        ActivityTile(Icons.Filled.AttachMoney, state.ledgerTotalLabel, "収支", onLedgerClick),
+        ActivityTile(Icons.Filled.Inbox, "${state.cardCaseCount}", "名刺入れ", onCardCaseClick)
     )
     ImasSection("あなたの記録", style = ImasSectionHeaderStyle.SMALL) {
         ImasStatGrid(columns = 4) {

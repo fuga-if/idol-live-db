@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,6 +47,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import com.fugaif.imaslivedb.data.local.LocalWriteFailure
 import com.fugaif.imaslivedb.data.sync.LocalDataStartup
+import com.fugaif.imaslivedb.data.producercard.IncomingProducerCard
+import com.fugaif.imaslivedb.data.producercard.ProducerCardIncoming
+import com.fugaif.imaslivedb.data.producercard.ProducerCardIntent
+import com.fugaif.imaslivedb.data.producercard.ProducerCardIntents
+import com.fugaif.imaslivedb.ui.producercard.ProducerCardIncomingHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +67,8 @@ class MainActivity : ComponentActivity() {
         val boot = module.databaseBoot
         val sync = module.syncEngine
         openDatabase()
+        // P名刺のリンク・名刺ファイルで開かれた (回転などで作り直したときは二度受け取らない)。
+        if (savedInstanceState == null) handleProducerCardIntent(intent)
         setContent {
             ImasLiveDBTheme {
                 when (val bootState = boot.state.collectAsState().value) {
@@ -134,6 +142,8 @@ class MainActivity : ComponentActivity() {
                 // 一覧のスワイプ・公演の参加シート・セトリ画面と複数あるので、
                 // 出すのは**アプリのルート 1 箇所**にまとめる (iOS ContentView と同じ)。
                 TicketExpensePrompt()
+                // P名刺のリンク・名刺ファイルを開いたときの受け取りの確認 (アプリのどこからでも)。
+                ProducerCardIncomingHost()
                 // 端末にしか無いデータの書き込み失敗は、どの画面で起きてもここで知らせる。
                 LocalWriteFailureAlert()
                 if (showDailyPick) {
@@ -145,6 +155,35 @@ class MainActivity : ComponentActivity() {
             // その場でやり直せるように再試行を用意する (無限「データを準備中…」の防止)。
             val shown = loadError?.let { CloudKitSyncEngine.SyncState.Error(it) } ?: state
             SyncLoadingScreen(shown, onRetry = { retryKey++ })
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleProducerCardIntent(intent)
+    }
+
+    /**
+     * P名刺の URL・名刺ファイル (.imascard) を受け取りの確認へ渡す (iOS `ContentView.handleDeeplink`)。
+     * どの形を名刺と読むか・ファイルの中身の検査はコア。読めないファイルは知らせだけ出す。
+     */
+    private fun handleProducerCardIntent(intent: Intent?) {
+        when (val link = ProducerCardIntents.parse(intent)) {
+            is ProducerCardIntent.Card -> ProducerCardIncoming.present(
+                IncomingProducerCard(link.payload, emptyList(), IncomingProducerCard.Via.LINK)
+            )
+            is ProducerCardIntent.File -> lifecycleScope.launch {
+                val contents = ProducerCardIntents.readCardFile(this@MainActivity, link.uri)
+                if (contents != null) {
+                    ProducerCardIncoming.present(
+                        IncomingProducerCard(contents.payload, contents.images, IncomingProducerCard.Via.FILE)
+                    )
+                } else {
+                    ProducerCardIncoming.reportFileFailed()
+                }
+            }
+            null -> Unit
         }
     }
 

@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.image
 
 import android.content.Context
 import com.fugaif.imaslivedb.R
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -10,7 +11,7 @@ import org.robolectric.RuntimeEnvironment
 import org.xmlpull.v1.XmlPullParser
 
 /**
- * 取り込んだキャラクター画像は Auto Backup (クラウド) に載せない。画像のディレクトリ名を
+ * 取り込んだキャラクター画像と P名刺の写真は Auto Backup (クラウド) に載せない。画像のディレクトリ名を
  * 変えたときに、バックアップの除外だけが古い名前のまま残らないよう、ここで突き合わせる。
  */
 @RunWith(RobolectricTestRunner::class)
@@ -18,7 +19,8 @@ class BackupRulesTest {
 
     private val context: Context = RuntimeEnvironment.getApplication()
     private val imageDirectories =
-        (GalleryKind.entries.map { it.directoryName } + CustomImageStore.BRAND_DIRECTORY_NAME)
+        (GalleryKind.entries.map { it.directoryName } + CustomImageStore.BRAND_DIRECTORY_NAME +
+            ProducerCardFiles.DIRECTORY_NAME)
             .map { "$it/" }.toSet()
 
     @Test

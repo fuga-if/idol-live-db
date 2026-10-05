@@ -189,6 +189,9 @@ class UserMarkRepository(
     suspend fun pickedIdols(): List<Idol> =
         db.songDao().let { _ -> fetchIdols(dao.idsFor(UserMark.IDOL, UserMark.PICK)) }
 
+    /** 担当アイドルの ID (印を付けた新しい順)。P名刺の担当の並び (iOS `markedEntityIds(.idol, .myPick)`)。 */
+    suspend fun pickedIdolIdList(): List<String> = dao.idsFor(UserMark.IDOL, UserMark.PICK)
+
     /** 担当アイドルの ID セット (回収ダッシュボードの担当スコープ絞り込み用)。 */
     suspend fun pickedIdolIds(): Set<String> = dao.idsFor(UserMark.IDOL, UserMark.PICK).toSet()
 

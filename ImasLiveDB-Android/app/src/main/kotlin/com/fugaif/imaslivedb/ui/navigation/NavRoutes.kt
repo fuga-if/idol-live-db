@@ -66,6 +66,16 @@ sealed class NavRoutes(val route: String) {
     data object Stats : NavRoutes("stats")
     data object Mastery : NavRoutes("mastery")
     data object Ledger : NavRoutes("ledger")
+    /** 自分の P名刺 (プロデュースの担当の入場証の下から)。 */
+    data object ProducerCard : NavRoutes("producer_card")
+    /** 名刺入れ (受け取った P名刺)。 */
+    data object CardCase : NavRoutes("card_case")
+    data class ReceivedCard(val cardId: String) : NavRoutes("received_card/{cardId}") {
+        companion object {
+            const val ROUTE = "received_card/{cardId}"
+            fun createRoute(cardId: String) = "received_card/$cardId"
+        }
+    }
     data object Playlists : NavRoutes("playlists")
     data class PlaylistDetail(val playlistId: String) : NavRoutes("playlist_detail/{playlistId}") {
         companion object {

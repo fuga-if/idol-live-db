@@ -11,6 +11,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.UserMark
+import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +63,8 @@ data class ProduceUiState(
     val featuredPoll: FeaturedPoll? = null,
     /** 収支 (家計簿) の合計。金額の表記はコア (`formatYen`) 一本。 */
     val ledgerTotalLabel: String = formatYen(0),
+    /** 名刺入れの枚数。 */
+    val cardCaseCount: Int = 0,
     val isLoading: Boolean = true,
     /** Discord ロール受け取り: 認可 URL を発行してもらっている間 true (二度押し防止 + くるくる)。 */
     val isLinkingDiscord: Boolean = false,
@@ -120,6 +123,7 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
                 contributionCount = module.localContributionLog.total,
                 recents = resolveRecents(),
                 ledgerTotalLabel = formatYen(ledgerTotal),
+                cardCaseCount = module.producerCardRepository.receivedCount(),
                 isLoading = false
             )
         }
@@ -130,6 +134,15 @@ class ProduceViewModel(app: Application) : AndroidViewModel(app) {
      * Worker から 1 回限りの Discord 認可 URL をもらう。開くのは画面 (ブラウザへ渡す)。
      * ロール付与の結果は Worker のページが出すので、ここは URL を渡すところまで。
      */
+    init {
+        // 名刺入れが変わったら (受け取った・消した) 枚数だけ読み直す。
+        viewModelScope.launch {
+            ProducerCardInbox.changes.collect {
+                _uiState.value = _uiState.value.copy(cardCaseCount = module.producerCardRepository.receivedCount())
+            }
+        }
+    }
+
     fun requestDiscordLink() {
         if (_uiState.value.isLinkingDiscord) return
         _uiState.value = _uiState.value.copy(isLinkingDiscord = true, discordErrorMessage = null)

@@ -77,6 +77,9 @@ import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
 import com.fugaif.imaslivedb.ui.polls.PollHallOfFameScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.ledger.LedgerScreen
+import com.fugaif.imaslivedb.ui.producercard.CardCaseScreen
+import com.fugaif.imaslivedb.ui.producercard.MyProducerCardScreen
+import com.fugaif.imaslivedb.ui.producercard.ReceivedCardDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.CommunityPlaylistDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.PlaylistDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.PlaylistsScreen
@@ -330,6 +333,8 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onNavigateToCollectedSongs = { navController.navigate(ROUTE_COLLECTED_SONGS) },
             onNavigateToMastery = { navController.navigate(NavRoutes.Mastery.route) },
             onNavigateToLedger = { navController.navigate(NavRoutes.Ledger.route) },
+            onNavigateToProducerCard = { navController.navigate(NavRoutes.ProducerCard.route) },
+            onNavigateToCardCase = { navController.navigate(NavRoutes.CardCase.route) },
             // ブランド未指定は "all"。年表側が先頭ブランドを選ぶ (ルート引数は必須なので番人役の値)。
             onNavigateToTimeline = {
                 navController.navigate(NavRoutes.BrandTimeline.createRoute(it ?: ALL_BRANDS))
@@ -399,6 +404,27 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
         MasteryScreen(onOpenSong = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) })
     }
     composable(NavRoutes.Ledger.route) { LedgerScreen() }
+    composable(NavRoutes.ProducerCard.route) {
+        MyProducerCardScreen(
+            onBack = { navController.popBackStack() },
+            onOpenCardCase = { navController.navigate(NavRoutes.CardCase.route) }
+        )
+    }
+    composable(NavRoutes.CardCase.route) {
+        CardCaseScreen(
+            onBack = { navController.popBackStack() },
+            onOpenCard = { navController.navigate(NavRoutes.ReceivedCard.createRoute(it)) }
+        )
+    }
+    composable(NavRoutes.ReceivedCard.ROUTE) { backStackEntry ->
+        val cardId = backStackEntry.arguments?.getString("cardId") ?: return@composable
+        ReceivedCardDetailScreen(
+            cardId = cardId,
+            onBack = { navController.popBackStack() },
+            onOpenIdol = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
+            onOpenShow = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
+        )
+    }
     composable(NavRoutes.Stats.route) { StatsScreen() }
     composable(NavRoutes.Settings.route) { SettingsScreen() }
     composable(NavRoutes.Polls.route) {

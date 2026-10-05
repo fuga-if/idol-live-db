@@ -348,6 +348,8 @@ object DS {
         val gapTight: Dp = 4.dp
         /** ゆったり並べるもの同士。 */
         val gapLoose: Dp = 12.dp
+        /** 余白なし (写真を面いっぱいに敷くカードなど。iOS の `padding: 0`)。 */
+        val none: Dp = 0.dp
     }
 
     /** 部品の大きさの段 (iOS `DS.Size`)。画面からは部品の種類として選ぶ (数字は書かない)。 */
@@ -360,6 +362,8 @@ object DS {
         val badge: Dp = 20.dp
         /** リードバーの幅。 */
         val leadBar: Dp = 3.dp
+        /** フォームの中に並べる小さなアイコン (P名刺の担当。iOS の size: 26)。 */
+        val avatarSmall: Dp = 26.dp
     }
 }
 

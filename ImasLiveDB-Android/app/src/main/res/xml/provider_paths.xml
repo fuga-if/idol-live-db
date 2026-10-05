@@ -8,4 +8,8 @@
 -->
 <paths>
     <cache-path name="share_cards" path="share_cards/" />
+    <!-- P名刺の名刺ファイル (.imascard) を共有シートで渡す (ProducerCardAssembler.writeShareFile と対)。 -->
+    <cache-path name="producer_card_share" path="producer_card_share/" />
+    <!-- 紙の名刺をふつうのカメラで撮るときの受け取り先 (書類カメラが無い端末。CardScanners と対)。 -->
+    <cache-path name="paper_card_capture" path="paper_card_capture/" />
 </paths>

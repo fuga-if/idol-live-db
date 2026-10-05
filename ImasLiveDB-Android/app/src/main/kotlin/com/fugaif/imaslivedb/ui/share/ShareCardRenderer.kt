@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -153,6 +155,8 @@ fun ShareCardCanvas(
     size: ShareCardSize,
     capture: ShareCardCapture,
     modifier: Modifier = Modifier,
+    /** 論理サイズ → ピクセルの倍率。紙に刷る画像 (P名刺) は 3 倍で焼く (iOS の renderScale と同じ)。 */
+    scale: Float = SHARE_CARD_SCALE,
     card: @Composable () -> Unit
 ) {
     BoxWithConstraints(
@@ -162,14 +166,17 @@ fun ShareCardCanvas(
     ) {
         // 制約は px なので、密度を差し替えても計算がずれない。
         val available = constraints.maxWidth
-        val previewScale = if (available > 0) available.toFloat() / size.widthPx else 1f
+        val previewScale = if (available > 0) available.toFloat() / (size.widthUnits * scale) else 1f
 
         CompositionLocalProvider(
-            // ここから内側の 1.dp = SHARE_CARD_SCALE px に固定する (端末密度を無視する)。
-            LocalDensity provides Density(density = SHARE_CARD_SCALE, fontScale = 1f)
+            // ここから内側の 1.dp = scale px に固定する (端末密度を無視する)。
+            LocalDensity provides Density(density = scale, fontScale = 1f)
         ) {
             Box(
                 Modifier
+                    // 枠より大きく組むので左上に揃える (requiredSize だけだと枠の真ん中に置かれ、
+                    // 左上を原点に縮めたときに左と上がはみ出して切れる。3 倍で焼く P名刺で目立つ)。
+                    .wrapContentSize(Alignment.TopStart, unbounded = true)
                     // requiredSize は親の制約を無視するので、小さな枠の中でも実寸で組める。
                     .requiredSize(size.widthUnits.dp, size.heightUnits.dp)
                     .graphicsLayer {
@@ -243,6 +250,23 @@ object ShareCardFiles {
             if (!text.isNullOrEmpty()) putExtra(Intent.EXTRA_TEXT, text)
             // EXTRA_STREAM だけだと権限付与を拾わない受け手がいるので ClipData にも載せる。
             clipData = ClipData.newUri(context.contentResolver, "share_card", uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return runCatching {
+            context.startActivity(Intent.createChooser(intent, null).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }.onFailure { Log.e(TAG, "share_card_share_failed", it) }.isSuccess
+    }
+
+    /** 何枚かの画像をまとめて共有シートに渡す (P名刺の表と裏)。 */
+    suspend fun shareAll(context: Context, bitmaps: List<Bitmap>, prefix: String): Boolean {
+        val uris = bitmaps.mapIndexedNotNull { i, bitmap -> cacheUri(context, bitmap, fileName("${prefix}_${i + 1}")) }
+        if (uris.isEmpty()) return false
+        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "image/png"
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+            clipData = ClipData.newUri(context.contentResolver, "share_card", uris.first()).also { clip ->
+                uris.drop(1).forEach { clip.addItem(ClipData.Item(it)) }
+            }
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         return runCatching {
