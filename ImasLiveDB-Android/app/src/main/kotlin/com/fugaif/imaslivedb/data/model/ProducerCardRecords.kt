@@ -22,7 +22,7 @@ import uniffi.imas_core.profileSheetFromJson
 import uniffi.imas_core.profileSheetToJson
 
 /**
- * 自分の P名刺のうち、自分で書いた中身 (名前・ひとこと・P歴・リンク・外した項目・名前の書体・自分の QR・
+ * 自分の P名刺のうち、自分で書いた中身 (名前・ひとこと・P歴・リンク・外した項目・名刺のデザイン・自分の QR・
  * プロフィール帳の中身)。
  * 名刺の写真は表に持たず端末のファイル (`ProducerCardFiles`)。
  * **端末ローカル唯一データ** (収支と同じ扱い、破壊的な移行はしない)。iOS `MyProducerCard` と同型。
@@ -51,11 +51,11 @@ data class MyProducerCard(
     @ColumnInfo(name = "updated_at")
     val updatedAt: String,
     /**
-     * 名刺のデザインの保存のキー (`cardDesignKey`)。空は既定のデザイン。列の名前は書体を選んでいた頃の
-     * まま (書体のキーが残っていても `cardDesignFromKey` が近いデザインに読み替える)。
+     * 名刺のデザインの保存のキー (`cardDesignKey`)。空は既定のデザイン。書体を選んでいた頃の
+     * 書体のキーが残っていることもある (`cardDesignFromKey` が近いデザインに読み替える)。
      */
-    @ColumnInfo(name = "name_font", defaultValue = "")
-    val nameFont: String = "",
+    @ColumnInfo(name = "design", defaultValue = "")
+    val design: String = "",
     /** 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。 */
     @ColumnInfo(name = "qr_url")
     val qrUrl: String? = null,
@@ -66,9 +66,9 @@ data class MyProducerCard(
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
     /** 名刺のデザイン (保存のキーが空・知らないものなら既定)。 */
-    val design: CardDesign get() = cardDesignFromKey(nameFont) ?: cardDesigns().first().design
+    val cardDesign: CardDesign get() = cardDesignFromKey(design) ?: cardDesigns().first().design
 
-    fun withDesign(design: CardDesign): MyProducerCard = copy(nameFont = cardDesignKey(design))
+    fun withCardDesign(cardDesign: CardDesign): MyProducerCard = copy(design = cardDesignKey(cardDesign))
 
     val hidden: Set<ProducerCardField>
         get() = hiddenFields.split(",").mapNotNull { ProducerCardField.fromKey(it) }.toSet()

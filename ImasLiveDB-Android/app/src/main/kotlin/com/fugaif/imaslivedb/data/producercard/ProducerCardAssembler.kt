@@ -76,7 +76,7 @@ object ProducerCardAssembler {
             nextShowId = if (card.shows(ProducerCardField.NEXT)) summary.nextShowId else null,
             attended = if (card.shows(ProducerCardField.ATTENDED)) summary.attendedPast else emptyList(),
             issuedOn = JstDay.today(),
-            design = card.design,
+            design = card.cardDesign,
             qrUrl = card.qrUrl
         )
     }
@@ -105,10 +105,25 @@ object ProducerCardAssembler {
         return CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO)
     }
 
-    /** 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真)。画像を JPEG にするのでメインの外で呼ぶ。 */
+    /**
+     * 自作の名刺の画像 (表・裏。平らにした JPEG をそのまま渡す)。載せるかどうか
+     * (デザインが自作の画像の名刺だけ・裏は表があるときだけ) はコアの `encodeCardFile` が決める。
+     */
+    fun myFaceImages(context: Context): List<CardFileImage> =
+        listOf(ProducerCardFiles.Side.FRONT to CardFileImageKind.FACE_FRONT, ProducerCardFiles.Side.BACK to CardFileImageKind.FACE_BACK)
+            .mapNotNull { (side, kind) ->
+                val jpeg = ProducerCardFiles.myFaceFile(context, side)?.let { runCatching { it.readBytes() }.getOrNull() }
+                    ?: return@mapNotNull null
+                CardFileImage(idolId = "", jpeg = jpeg, kind = kind)
+            }
+
+    /**
+     * 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像)。画像を JPEG にするので
+     * メインの外で呼ぶ。近くの端末との交換も同じファイルを渡す。
+     */
     suspend fun myCardFile(context: Context, module: AppModule, encoded: EncodedProducerCard): ByteArray? =
         withContext(Dispatchers.Default) {
-            val images = myOshiImages(module, encoded.card) + listOfNotNull(myPhotoImage(context))
+            val images = myOshiImages(module, encoded.card) + listOfNotNull(myPhotoImage(context)) + myFaceImages(context)
             encodeCardFile(payload(encoded), images)
         }
 

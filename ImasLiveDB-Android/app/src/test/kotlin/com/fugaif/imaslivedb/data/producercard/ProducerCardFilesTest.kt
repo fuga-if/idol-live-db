@@ -25,6 +25,45 @@ class ProducerCardFilesTest {
     fun cleanUp() {
         ProducerCardFiles.deleteAll(context, "c1")
         ProducerCardFiles.deleteMyPhoto(context)
+        ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.FRONT)
+        ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.BACK)
+    }
+
+    /** 名刺ファイルの自作の画像 (表・裏) は受け取った名刺の顔として書き、写真とは混ぜない。表が届けば前の裏は捨てる。 */
+    @Test
+    fun receivedFaceImagesAreStored() {
+        val jpeg = byteArrayOf(-1, -40, -1, 2)
+        ProducerCardFiles.saveImages(
+            context, "c1",
+            listOf(
+                CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.FACE_FRONT),
+                CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.FACE_BACK)
+            )
+        )
+        assertNotNull(ProducerCardFiles.faceUrl(context, "c1", ProducerCardFiles.Side.FRONT))
+        assertNotNull(ProducerCardFiles.faceUrl(context, "c1", ProducerCardFiles.Side.BACK))
+        assertNull(ProducerCardFiles.cardPhotoUrl(context, "c1"))
+
+        // 裏を外して送り直した名刺 (表だけ) を受け取ると、古い裏は残らない。
+        ProducerCardFiles.saveImages(context, "c1", listOf(CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.FACE_FRONT)))
+        assertNotNull(ProducerCardFiles.faceUrl(context, "c1", ProducerCardFiles.Side.FRONT))
+        assertNull(ProducerCardFiles.faceUrl(context, "c1", ProducerCardFiles.Side.BACK))
+    }
+
+    /** 自分の自作の画像は書くたびに名前が変わり、前の画像は残らない。消すと無くなる。 */
+    @Test
+    fun myFaceIsReplacedAndRemoved() {
+        val image = Bitmap.createBitmap(91, 55, Bitmap.Config.ARGB_8888)
+        assertNull(ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT))
+        ProducerCardFiles.saveMyFace(context, image, ProducerCardFiles.Side.FRONT)
+        val first = ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)!!
+        ProducerCardFiles.saveMyFace(context, image, ProducerCardFiles.Side.FRONT)
+        val second = ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)!!
+        assertEquals(false, first.exists())
+        assertEquals(true, second.exists())
+        assertNull("裏は別", ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK))
+        ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.FRONT)
+        assertNull(ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT))
     }
 
     @Test

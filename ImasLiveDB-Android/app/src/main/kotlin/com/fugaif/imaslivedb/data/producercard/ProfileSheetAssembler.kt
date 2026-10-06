@@ -128,7 +128,7 @@ object ProfileSheetAssembler {
             oshi = oshi,
             portrait = portrait,
             qrUrl = card.qrUrl,
-            nameFont = cardDesignInfo(card.design).font.fileStem
+            nameFont = cardDesignInfo(card.cardDesign).font.fileStem
         )
     }
 

@@ -18,7 +18,8 @@ import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
 
 /**
- * 名刺入れの画像ファイル (受け取った担当の画像・名刺の写真・紙の名刺の写真) と自分の名刺の写真。
+ * 名刺入れの画像ファイル (受け取った担当の画像・名刺の写真・紙の名刺の写真・自作の名刺の画像) と、
+ * 自分の名刺の写真・自作の名刺の画像。
  * iOS `ProducerCardFiles` と対。
  *
  * 写真は**端末の中だけ** (バックアップにもクラウドにも載せない。アイドルの画像と同じ扱いで、
@@ -32,7 +33,13 @@ object ProducerCardFiles {
     /** 自分の名刺の写真の置き場所 (filesDir の下。名刺入れとは別のフォルダ。Auto Backup から外す)。 */
     const val MY_DIRECTORY_NAME = "producer_card_me"
 
-    /** 紙の名刺の写真の面。 */
+    /**
+     * 自分の自作の名刺の画像の置き場所 (filesDir の下。写真のフォルダとは別で、写真を外しても画像は残す。
+     * Auto Backup から外す)。
+     */
+    const val MY_FACE_DIRECTORY_NAME = "producer_card_face"
+
+    /** 名刺の面 (紙の名刺の写真・自作の名刺の画像)。 */
     enum class Side(val key: String) { FRONT("front"), BACK("back") }
 
     fun root(context: Context): File = File(context.filesDir, DIRECTORY_NAME)
@@ -54,19 +61,33 @@ object ProducerCardFiles {
     fun oshiImageUrl(context: Context, cardId: String, idolId: String): String? =
         oshiFile(context, cardId, idolId).takeIf { it.exists() }?.let { Uri.fromFile(it).toString() }
 
-    /** 受け取った画像 (担当の画像・名刺の写真) を書く。同じ担当の画像・写真は新しいもので置き換える。 */
+    /**
+     * 受け取った画像 (担当の画像・名刺の写真・自作の名刺の画像) を書く。同じ担当の画像・写真・面は
+     * 新しいもので置き換える。
+     */
     fun saveImages(context: Context, cardId: String, images: List<CardFileImage>) {
         if (images.isEmpty()) return
         folder(context, cardId).mkdirs()
+        // 表が届いたら前の裏は捨てる (相手が裏を外した名刺を送り直したとき、古い裏を出し続けない)。
+        if (images.any { it.kind == CardFileImageKind.FACE_FRONT }) faceFile(context, cardId, Side.BACK).delete()
         for (image in images) {
             when (image.kind) {
                 CardFileImageKind.OSHI -> writeAtomically(oshiFile(context, cardId, image.idolId), image.jpeg)
                 CardFileImageKind.PHOTO -> writeCardPhoto(context, cardId, image.jpeg)
-                // 自作の名刺の画像 (表・裏) の置き場は iOS から移植するまで書かない。
-                CardFileImageKind.FACE_FRONT, CardFileImageKind.FACE_BACK -> Unit
+                CardFileImageKind.FACE_FRONT -> writeAtomically(faceFile(context, cardId, Side.FRONT), image.jpeg)
+                CardFileImageKind.FACE_BACK -> writeAtomically(faceFile(context, cardId, Side.BACK), image.jpeg)
             }
         }
     }
+
+    // ---- 受け取った自作の名刺の画像 (相手が自分で作った名刺の表・裏) ----
+
+    private fun faceFile(context: Context, cardId: String, side: Side): File =
+        File(folder(context, cardId), "face_${side.key}.jpg")
+
+    /** 受け取った自作の名刺の画像 (画面の `imageUrl` に渡す形)。無ければ null。 */
+    fun faceUrl(context: Context, cardId: String, side: Side): String? =
+        faceFile(context, cardId, side).takeIf { it.exists() }?.let { Uri.fromFile(it).toString() }
 
     // ---- 受け取った名刺の写真 (相手が名刺に載せた写真) ----
 
@@ -132,6 +153,38 @@ object ProducerCardFiles {
 
     /** 切り抜く前の写真を開く (長辺 3200px 程度まで間引く)。 */
     fun decodeMyPhotoSource(context: Context): Bitmap? = myPhotoSourceFile(context)?.let { decodeBounded(it) }
+
+    // ---- 自分の自作の名刺の画像 ----
+
+    private fun myFaceFolder(context: Context): File = File(context.filesDir, MY_FACE_DIRECTORY_NAME)
+
+    /** その面のファイル (新しい順)。書き込みの途中で落ちて 2 枚残っても新しい方を使う。 */
+    private fun myFaceFiles(context: Context, side: Side): List<File> =
+        myFaceFolder(context).listFiles()
+            ?.filter { it.name.startsWith("${side.key}-") && it.name.endsWith(".jpg") }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+
+    /**
+     * 自作の名刺の画像 (平らにして切り抜いた後の JPEG)。名刺ファイル・近くの端末で相手にこの画質で渡る。
+     * 名前は書くたびに変える (画像の読み込みの控えが古い画像を出し続けないように)。
+     */
+    fun myFaceFile(context: Context, side: Side): File? = myFaceFiles(context, side).firstOrNull()
+
+    fun myFaceUrl(context: Context, side: Side): String? = myFaceFile(context, side)?.let { Uri.fromFile(it).toString() }
+
+    /** 自作の名刺の画像を書く (長辺 2000px まで。比率はそのまま)。書けなければ投げる。 */
+    fun saveMyFace(context: Context, image: Bitmap, side: Side) {
+        val data = jpeg(image, maxPixels = 2000, quality = 90) ?: throw IOException("自作の名刺の画像を書き出せませんでした")
+        val dir = myFaceFolder(context).apply { mkdirs() }
+        val previous = myFaceFiles(context, side)
+        writeAtomically(File(dir, "${side.key}-${UUID.randomUUID().toString().take(8)}.jpg"), data)
+        previous.forEach { it.delete() }
+    }
+
+    fun deleteMyFace(context: Context, side: Side) {
+        myFaceFiles(context, side).forEach { it.delete() }
+    }
 
     // ---- 紙の名刺の写真 ----
 

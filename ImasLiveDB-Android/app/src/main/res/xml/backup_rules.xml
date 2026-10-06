@@ -2,7 +2,7 @@
 <!--
   API 30 以下向けのレガシー Auto Backup ルール (android:fullBackupContent)。
   data_extraction_rules.xml (API 31+) の cloud-backup と同じものを除外する
-  (imas_auth_secure と、取り込んだキャラクター画像・P名刺の写真)。
+  (imas_auth_secure と、取り込んだキャラクター画像・P名刺の写真・自作の名刺の画像)。
 -->
 <full-backup-content>
     <exclude domain="sharedpref" path="imas_auth_secure.xml" />
@@ -11,4 +11,5 @@
     <exclude domain="file" path="custom_images_brands/" />
     <exclude domain="file" path="producer_cards/" />
     <exclude domain="file" path="producer_card_me/" />
+    <exclude domain="file" path="producer_card_face/" />
 </full-backup-content>

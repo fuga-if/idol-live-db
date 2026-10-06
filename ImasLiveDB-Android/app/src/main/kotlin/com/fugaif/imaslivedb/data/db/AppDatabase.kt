@@ -94,7 +94,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         MyProducerCard::class,
         ReceivedProducerCard::class
     ],
-    version = 29,
+    version = 30,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -686,6 +686,38 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v30: P名刺の「名前の書体」を「名刺のデザイン」に置き換える (iOS v43_producer_card_design と対)。
+         * 列の名前だけを変え、中身 (書体のキー) はそのまま残す (コアの `cardDesignFromKey` が近いデザインに
+         * 読み替える)。minSdk 26 の SQLite (3.18) は `RENAME COLUMN` を持たないので、表を作り直して移す。
+         * **端末ローカル唯一データ**なので、行は 1 つも落とさない。
+         */
+        val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE my_producer_card_new (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "name TEXT NOT NULL, " +
+                        "message TEXT NOT NULL DEFAULT '', " +
+                        "since_year INTEGER, " +
+                        "links_json TEXT NOT NULL DEFAULT '[]', " +
+                        "hidden_fields TEXT NOT NULL DEFAULT '', " +
+                        "updated_at TEXT NOT NULL, " +
+                        "design TEXT NOT NULL DEFAULT '', " +
+                        "qr_url TEXT, " +
+                        "profile_json TEXT NOT NULL DEFAULT '')"
+                )
+                db.execSQL(
+                    "INSERT INTO my_producer_card_new " +
+                        "(id, name, message, since_year, links_json, hidden_fields, updated_at, design, qr_url, profile_json) " +
+                        "SELECT id, name, message, since_year, links_json, hidden_fields, updated_at, name_font, qr_url, profile_json " +
+                        "FROM my_producer_card"
+                )
+                db.execSQL("DROP TABLE my_producer_card")
+                db.execSQL("ALTER TABLE my_producer_card_new RENAME TO my_producer_card")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
@@ -693,7 +725,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
             MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29
+            MIGRATION_28_29, MIGRATION_29_30
         )
     }
 }

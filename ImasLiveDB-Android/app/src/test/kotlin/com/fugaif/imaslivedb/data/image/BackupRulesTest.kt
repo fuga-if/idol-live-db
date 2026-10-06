@@ -20,7 +20,8 @@ class BackupRulesTest {
     private val context: Context = RuntimeEnvironment.getApplication()
     private val imageDirectories =
         (GalleryKind.entries.map { it.directoryName } + CustomImageStore.BRAND_DIRECTORY_NAME +
-            ProducerCardFiles.DIRECTORY_NAME + ProducerCardFiles.MY_DIRECTORY_NAME)
+            ProducerCardFiles.DIRECTORY_NAME + ProducerCardFiles.MY_DIRECTORY_NAME +
+            ProducerCardFiles.MY_FACE_DIRECTORY_NAME)
             .map { "$it/" }.toSet()
 
     @Test

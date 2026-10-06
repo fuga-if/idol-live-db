@@ -63,8 +63,40 @@ class AppDatabaseMigrationTest {
     /** P名刺の書体と自分の QR の列 (MIGRATION_27_28) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates27ToLatest() = assertMigrates(from = 27)
 
-    /** 直前の版。プロフィール帳の列 (MIGRATION_28_29) を足しても、端末ローカルの行は残る。 */
+    /** プロフィール帳の列 (MIGRATION_28_29) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates28ToLatest() = assertMigrates(from = 28)
+
+    /** 直前の版。書体の列をデザインに改める (MIGRATION_29_30) ときも、端末ローカルの行は残る。 */
+    @Test fun migrates29ToLatest() = assertMigrates(from = 29)
+
+    /**
+     * 名前の書体 (v28) を選んでいた自分の名刺は、デザイン (v30) に上げても選んだもの (書体のキー) と
+     * ほかの中身が残り、近いデザインに読み替わる (iOS testNameFontColumnBecomesDesign と対)。
+     */
+    @Test
+    fun migrating29To30RenamesNameFontToDesign() {
+        val name = "producer_card_design_29.sqlite"
+        helper.createDatabase(name, 29).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, since_year, links_json, hidden_fields, updated_at, " +
+                    "name_font, qr_url, profile_json) VALUES ('me', 'ふがP', 'よろしく', 2014, '[]', 'next', " +
+                    "'2026-10-06T00:00:00Z', 'mincho', 'https://example.com/p', '{}')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 30, true, AppDatabase.MIGRATION_29_30).use { db ->
+            db.query(
+                "SELECT name, message, since_year, hidden_fields, design, qr_url, profile_json FROM my_producer_card"
+            ).use { c ->
+                c.moveToFirst()
+                assertEquals(
+                    listOf("ふがP", "よろしく", "2014", "next", "mincho", "https://example.com/p", "{}"),
+                    (0..6).map { c.getString(it) }
+                )
+            }
+        }
+        val mine = com.fugaif.imaslivedb.data.model.MyProducerCard.empty().copy(design = "mincho")
+        assertEquals(uniffi.imas_core.CardDesign.FORMAL, mine.cardDesign)
+    }
 
     /** v29 で足した列は、上がってきた端末の自分の名刺を変えない (プロフィール帳はまだ作っていない = 空)。 */
     @Test
@@ -197,7 +229,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 29
+        const val LATEST = 30
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

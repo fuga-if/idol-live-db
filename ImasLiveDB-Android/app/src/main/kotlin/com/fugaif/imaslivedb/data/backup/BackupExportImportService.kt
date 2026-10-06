@@ -111,7 +111,7 @@ object BackupExportImportService {
             myProducerCards = listOfNotNull(producerCardRepository.myCard()).map {
                 BackupMyProducerCardRecord(
                     it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    design = it.nameFont, qrUrl = it.qrUrl, profileJson = it.profileJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
                 )
             }
         )
@@ -199,7 +199,7 @@ object BackupExportImportService {
             plan.myProducerCardsToInsert.map {
                 MyProducerCard(
                     it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    nameFont = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
                 )
             }
         )
