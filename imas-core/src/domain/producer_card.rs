@@ -1353,6 +1353,65 @@ pub fn card_issued_label(issued_on: &str) -> String {
 }
 
 // ---------------------------------------------------------------------------
+// 名刺の表 (91:55) の組み
+//
+// 名刺そのものは日本の名刺の比 (91:55) の横長の 1 枚。表に載せるのは名前・P 歴・名刺の写真・
+// 担当 (判子かアイコンを小さく並べる)・ハンドル 1 つだけで、担当の一覧・リンクの一覧・記録・
+// ひとことは名刺の外 (下) に出す。画面の名刺・紙に刷る画像・Web の名刺で同じ組みにする。
+// ---------------------------------------------------------------------------
+
+/// 名刺の表に担当を並べる枠の数。これより多い担当は、最後の枠を「+N」にして数で畳む
+/// (枠の数は変わらないので、担当の人数で名前や写真の場所が動かない)。
+pub const CARD_FACE_OSHI_SLOTS: u32 = 3;
+
+/// 名刺の表に載せるもの。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardFace {
+    /// 表に並べる担当 (名刺の並びのまま。描けない担当は除いてから数える)。
+    pub oshi_idol_ids: Vec<String>,
+    /// 表に並べきれず数で畳んだ担当の人数 (「+2」)。0 なら畳まない。
+    pub more_oshi: u32,
+    /// 表に刷るハンドル 1 つ (X があれば X、無ければ先頭のリンク)。自分の QR は裏に刷るので選ばない。
+    pub handle: Option<CardLinkView>,
+    /// 帯・印字の P 歴 (「SINCE 2014」)。
+    pub since_imprint: Option<String>,
+    /// 裏に刷る日付 (「2026.10.06 時点」)。記録の数がその日のものだと分かるように。
+    pub issued_label: String,
+}
+
+/// 名刺の表の組み。`drawable_idol_ids` は端末 (Web は台帳) が描ける担当の id
+/// (相手の方が新しいデータを持っていて手元に無いアイドルは出さない。その分は畳む数にも数えない)。
+pub fn producer_card_face(card: &ProducerCard, drawable_idol_ids: &[String]) -> CardFace {
+    let oshi: Vec<String> = card
+        .oshi_idol_ids
+        .iter()
+        .filter(|id| drawable_idol_ids.contains(id))
+        .cloned()
+        .collect();
+    let slots = CARD_FACE_OSHI_SLOTS as usize;
+    let (shown, more) = if oshi.len() <= slots {
+        (oshi, 0)
+    } else {
+        let more = (oshi.len() - (slots - 1)) as u32;
+        (oshi.into_iter().take(slots - 1).collect(), more)
+    };
+    let handle = card
+        .links
+        .iter()
+        .find(|l| l.kind == CardLinkKind::X)
+        .or_else(|| card.links.first())
+        .map(card_link_view);
+    CardFace {
+        oshi_idol_ids: shown,
+        more_oshi: more,
+        handle,
+        since_imprint: card.since_year.map(|y| format!("SINCE {y}")),
+        issued_label: card_issued_label(&card.issued_on),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // リンクの保存の形 (端末の表に入れる)
 // ---------------------------------------------------------------------------
 
@@ -1678,6 +1737,49 @@ pub fn card_peer_tag(payload: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn card_face_folds_oshi_beyond_slots() {
+        let mut card = encode_producer_card(&input()).card;
+        let ids: Vec<String> = (0..5).map(|i| format!("idol_{i}")).collect();
+        // 3 人までは全員、4 人目からは 2 人 + 「+N」。
+        card.oshi_idol_ids = ids[..3].to_vec();
+        let face = producer_card_face(&card, &ids);
+        assert_eq!(face.oshi_idol_ids, ids[..3].to_vec());
+        assert_eq!(face.more_oshi, 0);
+        card.oshi_idol_ids = ids.clone();
+        let face = producer_card_face(&card, &ids);
+        assert_eq!(face.oshi_idol_ids, ids[..2].to_vec());
+        assert_eq!(face.more_oshi, 3);
+        // 描けない担当は数えない (4 人いても描けるのが 3 人なら畳まない)。
+        let drawable = vec![ids[0].clone(), ids[2].clone(), ids[4].clone()];
+        let face = producer_card_face(&card, &drawable);
+        assert_eq!(face.oshi_idol_ids, drawable);
+        assert_eq!(face.more_oshi, 0);
+        let face = producer_card_face(&card, &[]);
+        assert!(face.oshi_idol_ids.is_empty());
+        assert_eq!(face.more_oshi, 0);
+    }
+
+    #[test]
+    fn card_face_prefers_x_handle_and_prints_since_and_date() {
+        let mut card = encode_producer_card(&input()).card;
+        card.links.reverse(); // Bluesky が先頭でも X を選ぶ。
+        let face = producer_card_face(&card, &[]);
+        assert_eq!(face.handle.map(|h| h.display), Some("@fuga_p".to_string()));
+        assert_eq!(face.since_imprint.as_deref(), Some("SINCE 2014"));
+        assert_eq!(face.issued_label, "2026.10.06 時点");
+        card.links.retain(|l| l.kind != CardLinkKind::X);
+        assert_eq!(
+            producer_card_face(&card, &[]).handle.map(|h| h.display),
+            Some("fuga.bsky.social".to_string())
+        );
+        card.links.clear();
+        card.since_year = None;
+        let face = producer_card_face(&card, &[]);
+        assert!(face.handle.is_none());
+        assert!(face.since_imprint.is_none());
+    }
 
     fn input() -> ProducerCardInput {
         ProducerCardInput {

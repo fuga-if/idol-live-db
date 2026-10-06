@@ -1,10 +1,11 @@
 //! P名刺の FFI 面。ロジックは domain::producer_card。
 
 use crate::domain::producer_card::{
-    CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFileContents,
-    CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo, CardLinkView,
-    CardNameFont, CardNameFontInfo, CardRecordSummary, CardShowRef, EncodedProducerCard,
-    ProducerCard, ProducerCardInput, ProducerCardInputError, ProducerCardLimits, ScannedCode,
+    CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFace,
+    CardFileContents, CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo,
+    CardLinkView, CardNameFont, CardNameFontInfo, CardRecordSummary, CardShowRef,
+    EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
+    ProducerCardLimits, ScannedCode,
 };
 use crate::domain::producer_card_avatar::XAvatarLookup;
 
@@ -98,6 +99,12 @@ pub fn producer_card_record_summary(
 #[uniffi::export]
 pub fn card_issued_label(issued_on: String) -> String {
     crate::domain::producer_card::card_issued_label(&issued_on)
+}
+
+/// 名刺の表 (91:55) の組み。`drawable_idol_ids` は端末が描ける担当の id。
+#[uniffi::export]
+pub fn producer_card_face(card: ProducerCard, drawable_idol_ids: Vec<String>) -> CardFace {
+    crate::domain::producer_card::producer_card_face(&card, &drawable_idol_ids)
 }
 
 #[uniffi::export]
