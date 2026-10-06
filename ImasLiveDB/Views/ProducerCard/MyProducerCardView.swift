@@ -3,7 +3,7 @@ import SwiftUI
 /// 自分の P名刺。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
 ///
 /// 担当と記録の数はアプリの記録から毎回作る (名刺の表には名前・ひとこと・リンクだけ持つ)。
-/// ここから「交換する」(QR を見せる / 読む)、名刺ファイルで送る、紙に刷る画像、名刺入れへ行く。
+/// ここから「交換する」(QR を見せる / 読む)、名刺ファイルで送る、紙に刷る画像、プロフィール帳、名刺入れへ行く。
 struct MyProducerCardView: View {
     @Environment(\.openURL) private var openURL
 
@@ -18,6 +18,7 @@ struct MyProducerCardView: View {
     @State private var showingExchange = false
     @State private var showingPrint = false
     @State private var showingCase = false
+    @State private var showingProfile = false
     @State private var shareError: String?
     @State private var qrMode: QRMode = .exchange
     @State private var portraitURL: URL?
@@ -75,6 +76,7 @@ struct MyProducerCardView: View {
             }
         }
         .navigationDestination(isPresented: $showingCase) { CardCaseView() }
+        .navigationDestination(isPresented: $showingProfile) { ProfileSheetView() }
         .imasErrorAlert("名刺ファイルを作れませんでした", message: $shareError)
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in
@@ -129,6 +131,12 @@ struct MyProducerCardView: View {
                 Button { showingPrint = true } label: {
                     ImasNavRow(title: "紙に刷る画像", subtitle: "91×55mm の名刺の表と裏を書き出す",
                                systemImage: "printer")
+                }
+                .buttonStyle(.imasRow)
+                .environment(\.imasRowPosition, .following)
+                Button { showingProfile = true } label: {
+                    ImasNavRow(title: "プロフィール帳", subtitle: "履歴書・職務経歴書の様式で、SNS に貼る自己紹介の 1 枚に",
+                               systemImage: "doc.richtext")
                 }
                 .buttonStyle(.imasRow)
                 .environment(\.imasRowPosition, .following)

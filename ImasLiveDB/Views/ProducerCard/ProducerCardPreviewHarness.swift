@@ -10,7 +10,12 @@ import SwiftUI
 struct ProducerCardPreviewHarness: View {
     enum Mode: String {
         case card, editor, exchange, read, receive, `case`, detail, print, paper, crop, corners
+        /// プロフィール帳の画面 / 編集シート / 見本の画像を全部書き出す (Documents/profile_exports/)。
+        case profile, profileEditor, profileExport
     }
+
+    /// プロフィール帳の見本の中身 (`PROFILE_FILL=many|few`、`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
+    static var envProfileFill: String { ProcessInfo.processInfo.environment["PROFILE_FILL"] ?? "many" }
 
     /// 自分の名刺の書体を差し替えて撮る (`PRODUCER_CARD_FONT=pop`)。
     static var envFont: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_FONT"] }
@@ -27,6 +32,8 @@ struct ProducerCardPreviewHarness: View {
     @State private var myCard: EncodedProducerCard?
     @State private var directory = ProducerCardDirectory()
     @State private var record: ProducerCardMyRecord?
+    @State private var profileMaterials: ProfileSheetMaterials?
+    @State private var exportedCount: Int?
 
     var body: some View {
         Group {
@@ -47,6 +54,9 @@ struct ProducerCardPreviewHarness: View {
             let first = received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
             firstCardId = first?.id
             samplePayload = first?.payload
+            if [.profile, .profileEditor, .profileExport].contains(mode) {
+                await Samples.seedProfile(database)
+            }
             record = try? await ProducerCardAssembler.loadMyRecord()
             if let mine = try? await AppContainer.shared.producerCards.myCard(), let record {
                 myCard = ProducerCardAssembler.encode(card: mine, record: record)
@@ -73,6 +83,15 @@ struct ProducerCardPreviewHarness: View {
         case .paper: PaperCardImportView()
         case .crop:
             CardPhotoCropSheet(image: Samples.portrait(), crop: ImasPortraitCrop(zoom: 1.4, center: CGPoint(x: 0.5, y: 0.4))) { _ in }
+        case .profile: NavigationStack { ProfileSheetView() }
+        case .profileEditor:
+            if let mine = try? database.myProducerCard() {
+                ProfileSheetEditorView(card: mine, materials: profileMaterials ?? .empty) { _ in }
+                    .task { profileMaterials = await ProfileSheetAssembler.load(card: mine, sheet: mine.profile) }
+            }
+        case .profileExport:
+            Text(exportedCount.map { "書き出し \($0) 枚" } ?? "書き出し中")
+                .task { exportedCount = await Samples.exportProfiles(database) }
         case .corners:
             PaperCardCornerSheet(image: Samples.paperPhoto(), corners: [
                 CGPoint(x: 0.14, y: 0.24), CGPoint(x: 0.86, y: 0.2), CGPoint(x: 0.9, y: 0.72), CGPoint(x: 0.1, y: 0.76),
@@ -142,6 +161,106 @@ struct ProducerCardPreviewHarness: View {
                     try? ProducerCardFiles.saveImages(cardId: row.id, images: [CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)])
                 }
             }
+        }
+
+        /// プロフィール帳の見本: お気に入りの曲・参加した公演を増やし、次の現場を 1 つ入れ、
+        /// 自分の名刺にプロフィール帳の中身を書く (何度呼んでも同じ)。
+        @MainActor
+        static func seedProfile(_ db: AppDatabase) async {
+            let now = "2026-10-06T00:00:00Z"
+            try? await db.dbQueue.write { d in
+                let songs = try String.fetchAll(d, sql: """
+                    SELECT id FROM songs WHERE artwork_url IS NOT NULL ORDER BY release_date DESC LIMIT 5
+                    """)
+                for id in songs {
+                    try d.execute(sql: """
+                        INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
+                        VALUES ('song', ?, 'favorite', 1, NULL, ?)
+                        """, arguments: [id, now])
+                }
+                let past = try String.fetchAll(d, sql: """
+                    SELECT id FROM shows WHERE date <= '2026-10-05' AND date >= '2014-01-01'
+                    ORDER BY date LIMIT 1 OFFSET 40
+                    """) + String.fetchAll(d, sql: """
+                    SELECT id FROM shows WHERE date <= '2026-10-05' ORDER BY date DESC LIMIT 14 OFFSET 4
+                    """)
+                let next = try String.fetchAll(d, sql: "SELECT id FROM shows WHERE date > '2026-10-06' ORDER BY date LIMIT 1")
+                for id in past + next {
+                    try d.execute(sql: """
+                        INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
+                        VALUES ('show', ?, 'attended', 1, 'live', ?)
+                        """, arguments: [id, now])
+                }
+            }
+            guard var mine = try? db.myProducerCard() else { return }
+            if let key = envFont { mine.nameFont = key }
+            mine.profile = profileSample(fill: envProfileFill, songs: (try? await AppContainer.shared.markReading
+                .markedEntityIds(entity: .song, kind: .favorite)) ?? [])
+            try? db.saveMyProducerCard(mine)
+        }
+
+        static func profileSample(fill: String, songs: [String]) -> ProfileSheet {
+            var sheet = profileSheetDefault()
+            let env = ProcessInfo.processInfo.environment
+            if env["PROFILE_STYLE"] == "career" { sheet.style = .career }
+            if env["PROFILE_SIZE"] == "story" { sheet.size = .story }
+            sheet.furigana = "ふがぴー"
+            sheet.favoriteSongIds = Array(songs.prefix(3))
+            let few: [(ProfileQuestion, String)] = [
+                (.trigger, "アニメで見たステージに心をつかまれて"),
+                (.message, "同僚募集中です。気軽に声をかけてください"),
+            ]
+            let many: [(ProfileQuestion, String)] = few + [
+                (.oshiLove, "まっすぐなところ。歌声に何度も背中を押されてきました"),
+                (.bestLive, "はじめての現地。1 曲目のイントロで泣いた"),
+                (.favoriteCall, "サビ前のクラップ"),
+                (.expedition, "夜行バスで行った西武ドーム。帰りは始発"),
+                (.landmark, "担当色のタオルを首に巻いています"),
+            ]
+            sheet.answers = (fill == "few" ? few : many).map {
+                ProfileAnswer(question: $0.0, prompt: "", text: $0.1)
+            }
+            if fill == "few" {
+                sheet.hidden = [.qr, .songs]
+            } else {
+                sheet.hidden = []
+                sheet.brandOn = ["sc"]
+            }
+            return sheet
+        }
+
+        /// 様式 × 大きさ × 書体 × 欄の多い/少ないを全部 PNG に書き出す (Documents/profile_exports/)。
+        @MainActor
+        static func exportProfiles(_ db: AppDatabase) async -> Int {
+            guard var mine = try? db.myProducerCard() else { return 0 }
+            let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("profile_exports", isDirectory: true)
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let songs = (try? await AppContainer.shared.markReading.markedEntityIds(entity: .song, kind: .favorite)) ?? []
+            var count = 0
+            for font in ["hand", "pop", "gothic"] {
+                mine.nameFont = font
+                for fill in ["many", "few"] {
+                    let base = profileSample(fill: fill, songs: songs)
+                    let materials = await ProfileSheetAssembler.load(card: mine, sheet: base)
+                    for style in [ProfileSheetStyle.resume, .career] {
+                        for size in [ProfileSheetSize.portrait, .story] {
+                            if font != "hand" && (fill == "few" || size == .story) { continue }
+                            var sheet = base
+                            sheet.style = style
+                            sheet.size = size
+                            let layout = profileSheetLayout(sheet: sheet, record: materials.record)
+                            guard let image = ProfileSheetAssembler.render(layout: layout, materials: materials),
+                                  let png = image.pngData() else { continue }
+                            let name = "\(style == .resume ? "resume" : "career")_\(size == .portrait ? "4x5" : "9x16")_\(fill)_\(font).png"
+                            try? png.write(to: dir.appendingPathComponent(name))
+                            count += 1
+                        }
+                    }
+                }
+            }
+            return count
         }
 
         /// 見本の写真 (人の形の記号を色の地に置いたもの)。
