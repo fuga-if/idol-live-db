@@ -25,6 +25,7 @@ struct LyricSubmissionSheet: View {
     @State private var ocrMessage: String?
     @State private var showGuide = false
     @State private var liveText = LiveTextCapture()
+    @State private var showLineScanner = false
 
     private var text: String { drafts.draft(for: song.id).text }
     private var agreed: Bool { drafts.draft(for: song.id).agreed }
@@ -91,6 +92,12 @@ struct LyricSubmissionSheet: View {
                 onSubmit: { AppAnalytics.tap("lyric_submission.submit"); Task { await submit() } }
             ))
             .imasSavingOverlay(isSaving || isReading, label: isReading ? "読み取り中" : "送信中")
+            .fullScreenCover(isPresented: $showLineScanner) {
+                LyricLineScannerView { lines in
+                    let songId = song.id
+                    drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: lines.joined(separator: "\n")) }
+                }
+            }
             .fullScreenCover(isPresented: $showCamera) {
                 PaperCardCamera(maxPages: 10, onFinish: { images in
                     showCamera = false
@@ -151,11 +158,21 @@ struct LyricSubmissionSheet: View {
                     }
                     .buttonStyle(.imas(.secondary, fillsWidth: true))
                 }
-                PhotosPicker(selection: $photoPicks, maxSelectionCount: 10, matching: .images) {
-                    Label("写真から読む", systemImage: "photo.on.rectangle")
+                if LyricLineScannerView.isAvailable {
+                    // 行を押した順に 1 行ずつ入れる。テキストスキャンが落とす改行を確実に入れたいとき。
+                    Button {
+                        AppAnalytics.tap("lyric_submission.line_scanner")
+                        showLineScanner = true
+                    } label: {
+                        Label("1 行ずつスキャン", systemImage: "text.line.first.and.arrowtriangle.forward")
+                    }
+                    .buttonStyle(.imas(.secondary, fillsWidth: true))
                 }
-                .buttonStyle(.imas(.secondary, fillsWidth: true))
             }
+            PhotosPicker(selection: $photoPicks, maxSelectionCount: 10, matching: .images) {
+                Label("写真から読む", systemImage: "photo.on.rectangle")
+            }
+            .buttonStyle(.imas(.secondary, fillsWidth: true))
             ImasStepList(steps: lyricOcrSteps(liveText: liveText.isAvailable).map { .init(title: $0.title, detail: $0.detail) })
                 .padding(.top, DS.Space.gapTight)
             Text("文字の読み取りは端末の中だけで行い、写真はどこにも送りません。")
