@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -139,12 +140,13 @@ class MainActivity : ComponentActivity() {
         if (ready) {
             // 起動時の日替わりピック。データが揃ってから 1 回だけ枠を消費する
             // (「今日はもう出したか」の判定と印付けはコア + GameProgressStore)。
-            var showDailyPick by remember {
+            // 回転などで作り直されても出したままにする (枠は消費済みなので、remember だと二度と出ない)。
+            var showDailyPick by rememberSaveable {
                 mutableStateOf(AppModule.from(this@MainActivity).gameProgressStore.consumeDailySheetSlot())
             }
             // 初回起動 (入れたばかり) はまず担当ブランドを選んでもらう (飛ばしても 1 度きり)。
-            // 既存のユーザーにはプロフィール帳をはじめて開いたときに出す。リンクから開いたときは出さない。
-            var showBrandSetup by remember { mutableStateOf(BrandRoleLaunchPrompt.consume(this@MainActivity, openedByLink)) }
+            // 既存のユーザーには P名刺の画像 (SNS に貼る画像) をはじめて開いたときに出す。リンクから開いたときは出さない。
+            var showBrandSetup by rememberSaveable { mutableStateOf(BrandRoleLaunchPrompt.consume(this@MainActivity, openedByLink)) }
             // オーバーレイにするのは、この上でタグピッカー (ModalBottomSheet) を開くため。
             // ボトムシートの中からボトムシートを開くと重なりとタッチ処理が壊れる。
             Box(modifier = Modifier.fillMaxSize()) {

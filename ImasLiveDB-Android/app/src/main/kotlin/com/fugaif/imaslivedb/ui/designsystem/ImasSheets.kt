@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -484,6 +486,88 @@ fun ImasListSection(
                 ImasNote(footer, Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, top = DS.Space.note))
             }
         }
+    }
+}
+
+/**
+ * 行の多い区画を LazyColumn の中に組む ([ImasListSection] の lazy 版。見出し・面・行の間の線・補足は同じ)。
+ * 何百行にもなる一覧 (お気に入りの曲など) を 1 つの項目で組むと全部を一度に組み立てるので、行ごとに項目にする。
+ * 行は [key] で見分ける (外した・並べ替えた行の状態を隣の行が引き継がないように)。
+ * 面は行ごとに切って塗り、先頭と末尾の角だけ丸める ([sectionKey] は同じ一覧の中で区画を見分ける鍵)。
+ *
+ * @param emptyContent 行が無いときに面の中に出すもの (null なら面ごと出さない)。
+ */
+fun <T> LazyListScope.imasListSectionItems(
+    sectionKey: String,
+    items: List<T>,
+    key: (T) -> Any,
+    title: String? = null,
+    count: String? = null,
+    footer: String? = null,
+    emptyContent: (@Composable () -> Unit)? = null,
+    row: @Composable (T) -> Unit
+) {
+    if (title != null) {
+        item(key = "$sectionKey#header") {
+            val paper = LocalImasBackdrop.current == ImasBackdrop.PAPER
+            if (paper) {
+                ImasSectionHeader(title, count = count, style = ImasSectionHeaderStyle.SMALL)
+            } else {
+                ImasSectionHeader(
+                    title,
+                    count = count,
+                    style = ImasSectionHeaderStyle.SMALL,
+                    modifier = Modifier.padding(top = DS.Space.gap, start = DS.Space.screen, end = DS.Space.screen),
+                    contentPadding = PaddingValues(start = DS.Space.rowH, end = DS.Space.rowH, bottom = DS.Space.header)
+                )
+            }
+        }
+    }
+    if (items.isEmpty() && emptyContent != null) {
+        item(key = "$sectionKey#empty") { LazySectionRow(first = true, last = true) { emptyContent() } }
+    }
+    itemsIndexed(items, key = { _, item -> "$sectionKey/${key(item)}" }) { index, item ->
+        LazySectionRow(first = index == 0, last = index == items.lastIndex) { row(item) }
+    }
+    item(key = "$sectionKey#footer") {
+        val paper = LocalImasBackdrop.current == ImasBackdrop.PAPER
+        when {
+            footer == null -> Spacer(Modifier.padding(bottom = if (paper) 0.dp else DS.Space.gap))
+            paper -> ImasNote(footer, Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.note))
+            else -> ImasNote(
+                footer,
+                Modifier.padding(start = DS.Space.screen + DS.Space.rowH, end = DS.Space.screen + DS.Space.rowH, top = DS.Space.note, bottom = DS.Space.gap)
+            )
+        }
+    }
+}
+
+/** lazy の区画の行 1 つ (面を塗り、先頭と末尾の角を丸め、2 行目からの上に線を引く)。 */
+@Composable
+private fun LazySectionRow(first: Boolean, last: Boolean, content: @Composable () -> Unit) {
+    val paper = LocalImasBackdrop.current == ImasBackdrop.PAPER
+    val r = if (paper) 0.dp else DS.rCard
+    val shape = RoundedCornerShape(
+        topStart = if (first) r else 0.dp, topEnd = if (first) r else 0.dp,
+        bottomStart = if (last) r else 0.dp, bottomEnd = if (last) r else 0.dp
+    )
+    val sep = DS.sep
+    val inset = DS.Space.rowH
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = if (paper) 0.dp else DS.Space.screen)
+            .clip(shape)
+            .background(if (paper) DS.paper else DS.surface)
+            .drawWithContent {
+                drawContent()
+                if (!first) {
+                    val x = inset.toPx()
+                    drawRect(sep, topLeft = Offset(x, 0f), size = Size(size.width - x, 1f))
+                }
+            }
+    ) {
+        CompositionLocalProvider(LocalImasRowPosition provides ImasRowPosition.STANDALONE) { content() }
     }
 }
 
