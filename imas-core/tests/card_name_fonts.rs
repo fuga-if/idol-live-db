@@ -6,7 +6,7 @@
 
 use std::path::PathBuf;
 
-use imas_core::domain::producer_card::{card_designs, card_name_fonts, CardNameFont};
+use imas_core::domain::producer_card::{card_designs, card_name_fonts, CardDesign, CardNameFont};
 
 fn repo() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
@@ -54,7 +54,11 @@ fn web_styles_cover_every_font_and_design() {
         }
     }
     // Web は自作の画像を持たない (QR に画像は入らない) ので、自作の画像は入場証で描く。
-    for info in card_designs().into_iter().filter(|d| !d.uses_face_image) {
+    // 既定のデザイン (入場証) は `.meishi-card` の素の組みなので、属性での上書きは要らない。
+    for info in card_designs()
+        .into_iter()
+        .filter(|d| !d.uses_face_image && d.design != CardDesign::default())
+    {
         assert!(
             components.contains(&format!("[data-design=\"{}\"]", info.key)),
             "components.css に data-design=\"{}\" が無い",
