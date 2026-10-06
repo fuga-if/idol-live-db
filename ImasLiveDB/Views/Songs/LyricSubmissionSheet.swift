@@ -155,12 +155,16 @@ struct LyricSubmissionSheet: View {
         guard !images.isEmpty else { return }
         isReading = true
         defer { isReading = false }
-        let recognized = await LyricsCardOCR.read(images)
+        let reading = await LyricsCardOCR.read(images)
+        let recognized = reading.text
         if recognized.isEmpty {
             ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
         } else {
             let songId = song.id
-            drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: recognized) }
+            drafts.update(songId) {
+                $0.text = lyricOcrAppend(draft: $0.text, recognized: recognized)
+                $0.doubtfulLines += reading.doubtfulLines
+            }
         }
     }
 
@@ -172,6 +176,13 @@ struct LyricSubmissionSheet: View {
                 Text("\(check.lineCount) 行 · \(check.charCount) / \(lyricSubmissionMaxChars()) 字")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink3)
+            }
+            let doubtful = drafts.draft(for: song.id).doubtfulLines
+            if !doubtful.isEmpty {
+                Text("読み取りに自信の無い行があります。歌詞カードと見比べてください:\n" + doubtful.prefix(12).map { "・\($0)" }.joined(separator: "\n"))
+                    .font(.imasFootnote.weight(.semibold))
+                    .foregroundStyle(DS.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(Array(check.issues.enumerated()), id: \.offset) { _, issue in
                 if issue != .empty {

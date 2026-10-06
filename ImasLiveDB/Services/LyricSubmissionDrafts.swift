@@ -12,6 +12,8 @@ final class LyricSubmissionDrafts {
     struct Draft: Equatable {
         var text = ""
         var agreed = false
+        /// 読み取りに自信の無かった行 (見直してもらうために出す)。
+        var doubtfulLines: [String] = []
     }
 
     private(set) var drafts: [String: Draft] = [:]

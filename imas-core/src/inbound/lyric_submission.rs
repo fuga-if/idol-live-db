@@ -55,3 +55,15 @@ pub fn lyric_submission_guideline() -> Vec<domain::LyricGuideBlock> {
 pub fn lyric_ocr_steps() -> Vec<crate::domain::lyric_ocr::LyricOcrStep> {
     crate::domain::lyric_ocr::steps()
 }
+
+/// 1 片の読み取り候補から 1 つ選ぶ (辞書に無い英単語が少ないもの)。見直しが要るかも返す。
+#[uniffi::export]
+pub fn lyric_ocr_pick_candidate(candidates: Vec<crate::domain::lyric_ocr::OcrCandidate>) -> crate::domain::lyric_ocr::OcrChoice {
+    crate::domain::lyric_ocr::pick_candidate(&candidates)
+}
+
+/// 綴りを確かめる英単語 (OS の辞書に通す)。
+#[uniffi::export]
+pub fn lyric_ocr_latin_words(text: String) -> Vec<String> {
+    crate::domain::lyric_ocr::latin_words(&text)
+}

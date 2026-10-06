@@ -19,6 +19,8 @@ pub struct OcrPiece {
     pub y: f64,
     pub width: f64,
     pub height: f64,
+    /// 読み取りに自信が無い片 ([`pick_candidate`] が決める)。その行を見直してほしい行として出す。
+    pub doubtful: bool,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -29,6 +31,8 @@ pub struct LyricOcrLayout {
     pub vertical: bool,
     /// ルビとして外した片の数。
     pub dropped_ruby: u32,
+    /// 読み取りに自信の無い片を含む行 (本文の並び順)。本人に見直してもらう。
+    pub doubtful_lines: Vec<String>,
 }
 
 const RUBY_RATIO: f64 = 0.62;
@@ -45,6 +49,7 @@ struct Piece<'a> {
     max_x: f64,
     max_y: f64,
     chars: usize,
+    doubtful: bool,
 }
 
 impl Piece<'_> {
@@ -119,8 +124,8 @@ fn split_blocks<'a, 'b>(pieces: Vec<&'b Piece<'a>>, vertical: bool, gutter: f64)
     buckets
 }
 
-/// 段の中の行を作る。戻り値は (行の文字列, 行送り方向の位置) の並び。
-fn build_lines(mut pieces: Vec<&Piece>, vertical: bool, median: f64) -> Vec<(String, f64)> {
+/// 段の中の行を作る。戻り値は (行の文字列, 行送り方向の位置, 自信の無い片を含むか) の並び。
+fn build_lines(mut pieces: Vec<&Piece>, vertical: bool, median: f64) -> Vec<(String, f64, bool)> {
     let tolerance = (median * LINE_TOLERANCE_CHAR_UNITS).max(f64::EPSILON);
     pieces.sort_by(|a, b| {
         let (av, bv) = (a.across(vertical), b.across(vertical));
@@ -159,19 +164,19 @@ fn build_lines(mut pieces: Vec<&Piece>, vertical: bool, median: f64) -> Vec<(Str
                 prev_end = Some(p.along_end(vertical));
             }
             let across = g.iter().map(|q| q.across(vertical)).sum::<f64>() / g.len() as f64;
-            (text, across)
+            (text, across, g.iter().any(|q| q.doubtful))
         })
         .collect()
 }
 
 /// 行送りの中央値より大きく空いた所に空行を入れて、段の行を文字列にする。
-fn join_with_paragraphs(lines: &[(String, f64)]) -> Vec<String> {
+fn join_with_paragraphs(lines: &[(String, f64, bool)]) -> Vec<String> {
     let mut pitches: Vec<f64> = lines.windows(2).map(|w| (w[1].1 - w[0].1).abs()).collect();
     pitches.sort_by(f64::total_cmp);
     // 下側の中央値。行が少ないと (2 つの間隔なら) 上側を取って切れ目を見落とすため。
     let median_pitch = pitches.get(pitches.len().saturating_sub(1) / 2).copied().unwrap_or(0.0);
     let mut out = Vec::new();
-    for (i, (text, across)) in lines.iter().enumerate() {
+    for (i, (text, across, _)) in lines.iter().enumerate() {
         if i > 0 && median_pitch > 0.0 && (across - lines[i - 1].1).abs() > median_pitch * PARAGRAPH_GAP_RATIO {
             out.push(String::new());
         }
@@ -191,11 +196,12 @@ pub fn layout(pieces: &[OcrPiece]) -> LyricOcrLayout {
             max_x: p.x + p.width,
             max_y: p.y + p.height,
             chars: p.text.trim().chars().count(),
+            doubtful: p.doubtful,
         })
         .collect();
     let vertical = detect_vertical(&parsed);
     if parsed.is_empty() {
-        return LyricOcrLayout { text: String::new(), vertical, dropped_ruby: 0 };
+        return LyricOcrLayout { text: String::new(), vertical, dropped_ruby: 0, doubtful_lines: Vec::new() };
     }
 
     let all: Vec<&Piece> = parsed.iter().collect();
@@ -208,17 +214,66 @@ pub fn layout(pieces: &[OcrPiece]) -> LyricOcrLayout {
     let body_median = median_char_size(&body, vertical);
     let gutter = (body_median * GUTTER_CHAR_UNITS).max(f64::EPSILON);
     let mut out: Vec<String> = Vec::new();
+    let mut doubtful_lines: Vec<String> = Vec::new();
     for block in split_blocks(body, vertical, gutter) {
         let lines = build_lines(block, vertical, body_median);
         if lines.is_empty() {
             continue;
         }
+        doubtful_lines.extend(lines.iter().filter(|l| l.2).map(|l| l.0.clone()));
         if !out.is_empty() {
             out.push(String::new());
         }
         out.extend(join_with_paragraphs(&lines));
     }
-    LyricOcrLayout { text: out.join("\n"), vertical, dropped_ruby: dropped }
+    LyricOcrLayout { text: out.join("\n"), vertical, dropped_ruby: dropped, doubtful_lines }
+}
+
+/// 1 片の読み取り候補 (OS の認識が返す上位いくつか)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct OcrCandidate {
+    pub text: String,
+    /// OS の認識の自信 (0〜1)。
+    pub confidence: f64,
+    /// 辞書に無い英単語の数 ([`latin_words`] を OS の綴り確認に通した結果)。
+    pub unknown_words: u32,
+}
+
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct OcrChoice {
+    pub index: u32,
+    pub doubtful: bool,
+}
+
+/// 自信がこれより低い片は見直してもらう。
+const DOUBTFUL_CONFIDENCE: f64 = 0.5;
+
+/// 候補から 1 つ選ぶ。辞書に無い英単語が少ないものを選び (a と o の見間違いのような、
+/// 言葉にならない読みを避ける)、同じなら OS の順 (自信の高い順)。選んだものに辞書に無い語が
+/// 残る、または自信が低いなら「見直してほしい」とする。字を作り出しはしない (候補から選ぶだけ)。
+pub fn pick_candidate(candidates: &[OcrCandidate]) -> OcrChoice {
+    let Some((index, best)) = candidates.iter().enumerate().min_by_key(|(i, c)| (c.unknown_words, *i)) else {
+        return OcrChoice { index: 0, doubtful: true };
+    };
+    OcrChoice { index: index as u32, doubtful: best.unknown_words > 0 || best.confidence < DOUBTFUL_CONFIDENCE }
+}
+
+/// 綴りを確かめる英単語 (2 文字以上のローマ字の並び。' を含む)。全部大文字の語 (略語・叫び) は除く。
+pub fn latin_words(text: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    for c in text.chars().chain(std::iter::once(' ')) {
+        if c.is_ascii_alphabetic() || (c == '\'' && !current.is_empty()) {
+            current.push(c);
+        } else if !current.is_empty() {
+            let word = current.trim_end_matches('\'').to_string();
+            if word.chars().count() >= 2 && !word.chars().all(|c| c.is_ascii_uppercase()) {
+                words.push(word);
+            }
+            current.clear();
+        }
+    }
+    words
 }
 
 /// 歌詞カードの読み取りの使い方の 1 手順。
@@ -264,7 +319,7 @@ mod tests {
     use super::*;
 
     fn p(text: &str, x: f64, y: f64, w: f64, h: f64) -> OcrPiece {
-        OcrPiece { text: text.into(), x, y, width: w, height: h }
+        OcrPiece { text: text.into(), x, y, width: w, height: h, doubtful: false }
     }
 
     #[test]
@@ -334,6 +389,30 @@ mod tests {
         let all = format!("{:?}", steps());
         assert_eq!(steps().len(), 3);
         assert!(all.contains("「自動」") && all.contains("見直して"));
+    }
+
+    #[test]
+    fn doubtful_pieces_are_listed_by_line() {
+        let mut pieces = vec![p("きらめく", 10.0, 10.0, 120.0, 30.0), p("ステージ", 10.0, 50.0, 120.0, 30.0)];
+        pieces[1].doubtful = true;
+        assert_eq!(layout(&pieces).doubtful_lines, vec!["ステージ".to_string()]);
+    }
+
+    #[test]
+    fn the_candidate_that_reads_as_words_wins() {
+        let c = |t: &str, conf: f64, unknown: u32| OcrCandidate { text: t.into(), confidence: conf, unknown_words: unknown };
+        // 1 位の「lovo」は辞書に無く、2 位の「love」は通る → 2 位を選び、見直し不要
+        assert_eq!(pick_candidate(&[c("lovo you", 1.0, 1), c("love you", 0.5, 0)]), OcrChoice { index: 1, doubtful: false });
+        // どれも通らないなら 1 位のまま、見直してもらう
+        assert_eq!(pick_candidate(&[c("xqz", 1.0, 1), c("xqq", 0.5, 1)]), OcrChoice { index: 0, doubtful: true });
+        // 日本語だけで自信が低い
+        assert_eq!(pick_candidate(&[c("きらめく", 0.3, 0)]), OcrChoice { index: 0, doubtful: true });
+        assert!(pick_candidate(&[]).doubtful);
+    }
+
+    #[test]
+    fn latin_words_skip_kana_short_and_all_caps() {
+        assert_eq!(latin_words("I love you さあ GO! don't a"), vec!["love", "you", "don't"]);
     }
 
     #[test]

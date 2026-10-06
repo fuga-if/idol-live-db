@@ -24,12 +24,24 @@ final class LyricsCardOCRTests: XCTestCase {
     }
 
     func testHorizontalCardIsReadTopToBottomWithParagraphBreak() async {
-        let text = await LyricsCardOCR.read([card(["きらめくステージ", "走り出そう", nil, nil, "夢のその先へ"])])
+        let text = await LyricsCardOCR.read([card(["きらめくステージ", "走り出そう", nil, nil, "夢のその先へ"])]).text
         XCTAssertEqual(text, "きらめくステージ\n走り出そう\n\n夢のその先へ")
     }
 
+    func testEnglishWordsAreReadAsWords() async {
+        let reading = await LyricsCardOCR.read([card(["I love you", "Shining stage"])])
+        XCTAssertEqual(reading.text, "I love you\nShining stage")
+        XCTAssertEqual(reading.doubtfulLines, [])
+    }
+
+    func testMixedLineKeepsJapanese() async {
+        let reading = await LyricsCardOCR.read([card(["きらめく Stage へ"])])
+        XCTAssertTrue(reading.text.contains("きらめく"), reading.text)
+        XCTAssertTrue(reading.text.contains("へ"), reading.text)
+    }
+
     func testBlankImageReadsNothing() async {
-        let text = await LyricsCardOCR.read([card([nil, nil])])
+        let text = await LyricsCardOCR.read([card([nil, nil])]).text
         XCTAssertEqual(text, "")
     }
 }
