@@ -61,3 +61,15 @@ pub fn lyric_ocr_layout(pieces: Vec<crate::domain::lyric_ocr::OcrPiece>) -> crat
 pub fn lyric_ocr_append(draft: String, recognized: String) -> String {
     crate::domain::lyric_ocr::append_to_draft(&draft, &recognized)
 }
+
+/// その曲に歌詞を投稿できるか (アイマス系ブランドの非カバー曲だけ)。
+#[uniffi::export]
+pub fn lyric_submission_allowed(brand_id: String, song_type: Option<String>, singer_label: Option<String>) -> bool {
+    domain::submission_allowed(&brand_id, song_type.as_deref(), singer_label.as_deref())
+}
+
+/// 投稿ガイドライン (読みもの画面に並べる塊)。
+#[uniffi::export]
+pub fn lyric_submission_guideline() -> Vec<domain::LyricGuideBlock> {
+    domain::guideline()
+}

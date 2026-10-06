@@ -64,12 +64,17 @@ pub enum LyricSubmissionIssue {
     CreditLines,
     /// 本文の後半が前半の繰り返しになっている (ページを 2 回貼ったときの形)。
     Doubled,
+    /// 半角カナが入っている (表記どおりではない。全角で入れてもらう)。
+    HalfwidthKana,
 }
 
 pub fn blocks_submit(issue: &LyricSubmissionIssue) -> bool {
     matches!(
         issue,
-        LyricSubmissionIssue::Empty | LyricSubmissionIssue::TooLong { .. } | LyricSubmissionIssue::TooManyLines { .. }
+        LyricSubmissionIssue::Empty
+            | LyricSubmissionIssue::TooLong { .. }
+            | LyricSubmissionIssue::TooManyLines { .. }
+            | LyricSubmissionIssue::HalfwidthKana
     )
 }
 
@@ -82,6 +87,7 @@ pub fn issue_message(issue: &LyricSubmissionIssue) -> String {
             "作詞・作曲などのクレジットは本文に入れないでください。曲の情報から出します。".into()
         }
         LyricSubmissionIssue::Doubled => "同じ歌詞が 2 回続けて入っているようです。".into(),
+        LyricSubmissionIssue::HalfwidthKana => "半角カナは使えません。全角で入力してください。".into(),
     }
 }
 
@@ -159,8 +165,60 @@ pub fn check_submission(text: &str, source: Option<LyricSourceKind>, attested_no
     if is_doubled(&lines) {
         issues.push(LyricSubmissionIssue::Doubled);
     }
+    // 半角カタカナと半角の句読点・濁点 (U+FF61〜U+FF9F)。
+    if normalized.chars().any(|c| ('\u{FF61}'..='\u{FF9F}').contains(&c)) {
+        issues.push(LyricSubmissionIssue::HalfwidthKana);
+    }
     let can_submit = source.is_some() && attested_no_copy && !issues.iter().any(blocks_submit);
     LyricSubmissionCheck { normalized, line_count, char_count, issues, can_submit }
+}
+
+/// その曲に歌詞を投稿できるか。掲載の方針 (アイマス系ブランドの非カバー曲だけ) と同じ線で切る。
+/// カバーは `song_type` だけでなく名義 (「〇〇カバー」) でも見る (song_type だけでは取りこぼす)。
+/// JASRAC・NexTone の管理と歌詞の配信の可否は、公開前に運営が確かめる。
+pub fn submission_allowed(brand_id: &str, song_type: Option<&str>, singer_label: Option<&str>) -> bool {
+    brand_id != "other" && song_type != Some("cover") && !singer_label.is_some_and(|s| s.contains("カバー"))
+}
+
+/// 投稿ガイドラインの 1 塊 (読みもの画面の見出し・段落・箇条書き・補足)。
+#[derive(uniffi::Enum, Clone, Debug, PartialEq, Eq)]
+pub enum LyricGuideBlock {
+    Heading { text: String },
+    Paragraph { text: String },
+    Bullets { items: Vec<String> },
+    Note { text: String },
+}
+
+/// 投稿ガイドライン。両 OS の読みもの画面はこれを並べるだけ。
+pub fn guideline() -> Vec<LyricGuideBlock> {
+    use LyricGuideBlock::*;
+    let h = |t: &str| Heading { text: t.into() };
+    let p = |t: &str| Paragraph { text: t.into() };
+    let b = |items: &[&str]| Bullets { items: items.iter().map(|s| s.to_string()).collect() };
+    vec![
+        h("投稿できる曲"),
+        p("アイドルマスターシリーズのオリジナル曲で、歌詞が CD の歌詞カードや公式サイトで公表されているものです。歌詞は JASRAC と NexTone の許諾のもとで配信するため、どちらかが管理していて、歌詞の配信が認められている曲に限ります。管理の状況は、公開の前に運営が確かめます。"),
+        h("投稿できないもの"),
+        b(&[
+            "歌詞サイトや、ほかのアプリ・サービスから写した歌詞",
+            "聴き取って書き起こした歌詞",
+            "歌詞が公表されていない曲 (発売前の曲を含む)",
+            "歌のない曲 (インストゥルメンタル)",
+            "歌詞の翻訳や、読み仮名だけの歌詞",
+            "替え歌、カバー曲、ほかのシリーズの曲",
+            "歌詞ではない文 (作詞・作曲などのクレジット、コール、感想)",
+        ]),
+        h("入力のしかた"),
+        b(&[
+            "CD の歌詞カードや公式の表記どおりに入力してください。記号 (… や ♡ など)、全角と半角、大文字と小文字も表記に合わせます。",
+            "半角カナは使わないでください。",
+            "行の区切りは歌詞カードに合わせ、まとまりの間には空行を 1 つ入れてください。",
+            "歌詞カードの写真やスクリーンショットから文字を読み取れます。読み取った歌詞は、表記どおりになっているか必ず見直してください。",
+            "コール・振り仮名・パート分けは本文に入れないでください。歌詞の公開後に、別に付けられます。",
+        ]),
+        h("公開まで"),
+        p("送った歌詞は、運営が歌詞カードや公式の表記と照らし合わせてから公開します。表記どおりでないもの、許諾の状況が変わった曲、このガイドラインに合わないと分かった歌詞は、直したり公開をやめたりします。"),
+    ]
 }
 
 #[cfg(test)]
@@ -219,6 +277,30 @@ mod tests {
         let c = check_submission(&format!("{half}\n\n{half}"), Some(LyricSourceKind::Booklet), true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::Doubled]);
         assert!(c.can_submit);
+    }
+
+    #[test]
+    fn halfwidth_kana_blocks_submission() {
+        let c = check_submission("ｱｲﾄﾞﾙ", Some(LyricSourceKind::Booklet), true);
+        assert_eq!(c.issues, vec![LyricSubmissionIssue::HalfwidthKana]);
+        assert!(!c.can_submit);
+        assert!(check_submission("アイドル ABC ａｂｃ", Some(LyricSourceKind::Booklet), true).can_submit);
+    }
+
+    #[test]
+    fn only_original_songs_of_the_series_accept_submissions() {
+        assert!(submission_allowed("cg", Some("unit"), Some("CINDERELLA PROJECT")));
+        assert!(!submission_allowed("other", Some("unit"), None));
+        assert!(!submission_allowed("ml", Some("cover"), None));
+        assert!(!submission_allowed("ml", Some("unit"), Some("μ'sカバー")));
+    }
+
+    #[test]
+    fn guideline_lists_what_cannot_be_posted() {
+        let g = guideline();
+        assert!(g.contains(&LyricGuideBlock::Heading { text: "投稿できないもの".into() }));
+        let all = format!("{g:?}");
+        assert!(all.contains("聴き取って書き起こした歌詞") && all.contains("歌詞サイト"));
     }
 
     #[test]

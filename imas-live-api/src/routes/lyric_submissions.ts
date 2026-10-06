@@ -52,6 +52,8 @@ export function validateSubmission(body: Readonly<Record<string, unknown>>): Sub
   }
   const normalized = normalizeLyricText(text);
   if (!normalized) return { ok: false, error: "text is empty" };
+  // 半角カナ (U+FF61〜U+FF9F) は表記どおりではないので受け付けない (コアの HalfwidthKana と同じ)。
+  if (/[\uFF61-\uFF9F]/u.test(normalized)) return { ok: false, error: "text must not contain halfwidth kana" };
   if (normalized.length > SUBMISSION_MAX_CHARS) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_CHARS}` };
   const lineCount = normalized.split("\n").length;
   if (lineCount > SUBMISSION_MAX_LINES) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_LINES} lines` };

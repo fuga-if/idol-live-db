@@ -24,6 +24,7 @@ struct LyricSubmissionSheet: View {
     @State private var photoPicks: [PhotosPickerItem] = []
     @State private var isReading = false
     @State private var ocrMessage: String?
+    @State private var showGuide = false
 
     private var check: LyricSubmissionCheck {
         lyricSubmissionCheck(text: text, source: source, attestedNoCopy: attested)
@@ -47,6 +48,11 @@ struct LyricSubmissionSheet: View {
                     }
                 }
 
+                ImasFormCard {
+                    ImasFormLink(label: "投稿ガイドライン", imprint: "GUIDE", systemImage: "book",
+                                 value: "投稿できるもの・できないもの") { showGuide = true }
+                }
+
                 VStack(alignment: .leading, spacing: DS.Space.gap) {
                     ImasSectionHeader("何を見て入力しましたか", style: .small)
                     ImasChoiceCards(choices: sourceChoices, selection: $source, style: .row)
@@ -66,12 +72,13 @@ struct LyricSubmissionSheet: View {
                                    isOn: $attested)
                 }
 
-                Text("送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。\n次のものは投稿できません: 歌詞サイトから写した歌詞、聴き取りの書き起こし、歌詞が公表されていない曲、翻訳や替え歌、歌詞ではない文 (作詞・作曲などのクレジット)。分かった時点で削除します。")
+                Text("送った歌詞は運営が確認してから公開します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .navigationTitle("歌詞を投稿")
+            .navigationDestination(isPresented: $showGuide) { LyricSubmissionGuideView() }
             .navigationBarTitleDisplayMode(.inline)
             .imasSheetToolbar(.submit(
                 canSubmit: check.canSubmit && !isSaving,

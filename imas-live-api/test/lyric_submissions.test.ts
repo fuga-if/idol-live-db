@@ -34,6 +34,7 @@ describe("POST /songs/:id/lyric-submissions", () => {
     expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: " \n " }).ok).toBe(false);
     expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "あ".repeat(8001) }).ok).toBe(false);
     expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: Array(401).fill("a").join("\n") }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "ｱｲﾄﾞﾙ" }).ok).toBe(false);
     expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "a" }).ok).toBe(true);
     expect((await callJson("POST", "/songs/s1/lyric-submissions", { body: { source_kind: "booklet", attested_no_copy: true, text: "a" } })).status).toBe(401);
   });

@@ -349,7 +349,8 @@ struct SongSheetContent: View {
                             Label("この楽曲を編集", systemImage: "pencil")
                         }
                     }
-                    if LyricsFeature.acceptsSubmissions {
+                    if LyricsFeature.acceptsSubmissions,
+                       lyricSubmissionAllowed(brandId: song.brandId ?? "", songType: song.songType, singerLabel: song.singerLabel) {
                         Button { openLyricSubmission() } label: {
                             Label("歌詞を投稿", systemImage: "text.quote")
                         }
