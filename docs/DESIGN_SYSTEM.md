@@ -457,6 +457,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasFilterField` | 絞り込みシートの「名前で絞り込み」 | 絞り込み記号 + 入力 + ⊗ |
 | `ImasTextFieldRow` | フォームの 1 行入力 | 項目名 + 入力 + 入力の下に誤りの文 (`danger` 13pt) |
 | `ImasTextAreaRow` | 複数行 (メモ・説明・補足) | プレースホルダ + 文字数 |
+| `ImasFormSelectableTextArea` | 申込書の複数行で、選んでいる範囲を使う (iOS 18 から。歌詞の読み仮名を選んだ字に付ける) | `ImasFormTextArea` と同じ見た目 + 選択の束縛 |
 | `ImasAmountField` | 金額 (収支) | 「¥」+ 等幅数字 + 桁区切り |
 | `ImasDateRow` | 日付・時刻 | OS の DatePicker (compact) |
 | `ImasColorPicker` | タグの色など | 色の丸 + 選んだ色に ✓、色名を読み上げ |

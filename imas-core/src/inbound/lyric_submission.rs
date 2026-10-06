@@ -79,3 +79,9 @@ pub fn lyric_ruby_like_lines(text: String) -> Vec<u32> {
 pub fn lyric_remove_lines(text: String, indices: Vec<u32>) -> String {
     domain::remove_lines(&text, &indices)
 }
+
+/// 選んだ範囲 (Unicode スカラーの位置) に読み仮名を付ける (親字《よみ》、要るときだけ ｜)。
+#[uniffi::export]
+pub fn lyric_wrap_ruby(text: String, start: u32, end: u32, reading: String) -> String {
+    domain::wrap_ruby(&text, start, end, &reading)
+}

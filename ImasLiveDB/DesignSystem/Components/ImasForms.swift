@@ -154,6 +154,29 @@ struct ImasFormTextArea: View {
     }
 }
 
+/// 複数行の入力の欄で、選んでいる範囲を外から読める形 (iOS 18 から。歌詞の読み仮名を選んだ字に付けるなど)。
+/// 見た目は `ImasFormTextArea` と同じ。
+@available(iOS 18.0, *)
+struct ImasFormSelectableTextArea: View {
+    let label: String
+    var imprint: String? = "MEMO"
+    var systemImage: String? = "note.text"
+    @Binding var text: String
+    @Binding var selection: TextSelection?
+    var prompt: String
+
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 88
+
+    var body: some View {
+        ImasFormField(label: label, imprint: imprint, systemImage: systemImage) {
+            TextField(prompt, text: $text, selection: $selection, axis: .vertical)
+                .font(.imasBody)
+                .lineLimit(3...)
+                .frame(minHeight: minHeight, alignment: .topLeading)
+        }
+    }
+}
+
 /// オン・オフの欄。
 struct ImasFormToggle: View {
     let label: String

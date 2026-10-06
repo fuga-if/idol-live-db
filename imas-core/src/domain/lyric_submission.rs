@@ -180,6 +180,38 @@ pub fn ruby_like_lines(text: &str) -> Vec<u32> {
         .collect()
 }
 
+fn is_ideograph(c: char) -> bool {
+    matches!(c, '\u{4E00}'..='\u{9FFF}' | '\u{3400}'..='\u{4DBF}' | '\u{F900}'..='\u{FAFF}' | '々' | '〆' | 'ヶ')
+}
+
+/// 選んだ範囲 (Unicode スカラーの位置 `start..end`) に読み仮名を付けた本文を返す。
+/// 書き方は 親字《よみ》。親字が漢字だけで、直前が漢字でなければ ｜ は付けない
+/// (親字は《の直前に続く漢字が自動で選ばれるため)。それ以外は親字の頭に ｜ を置く。
+/// 範囲が空・改行を含む・読みが空のときは本文をそのまま返す。
+pub fn wrap_ruby(text: &str, start: u32, end: u32, reading: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let (start, end) = (start as usize, end as usize);
+    let reading = reading.trim();
+    if start >= end || end > chars.len() || reading.is_empty() || reading.contains(['\n', '《', '》']) {
+        return text.to_string();
+    }
+    let base = &chars[start..end];
+    if base.contains(&'\n') {
+        return text.to_string();
+    }
+    let needs_marker = !base.iter().all(|&c| is_ideograph(c)) || (start > 0 && is_ideograph(chars[start - 1]));
+    let mut out: String = chars[..start].iter().collect();
+    if needs_marker {
+        out.push('｜');
+    }
+    out.extend(base);
+    out.push('《');
+    out.push_str(reading);
+    out.push('》');
+    out.extend(&chars[end..]);
+    out
+}
+
 /// 指定の行を消す (ルビらしい行を本人が消すとき)。前後の空行の並びは整え直す。
 pub fn remove_lines(text: &str, indices: &[u32]) -> String {
     let kept: Vec<&str> = text
@@ -306,6 +338,17 @@ mod tests {
         assert!(c.issues.contains(&LyricSubmissionIssue::RubyLikeLines { lines: vec!["せかい".into(), "あか".into()] }));
         assert!(c.can_submit);
         assert_eq!(remove_lines(text, &[1, 2]), "護る為なら総てを捧げる\n僕の視界は赫く染まった\n\nねえ\nきらきら");
+    }
+
+    #[test]
+    fn wrap_ruby_adds_the_marker_only_when_needed() {
+        assert_eq!(wrap_ruby("僕の視界は", 2, 4, "せかい"), "僕の視界《せかい》は");
+        assert_eq!(wrap_ruby("月夜に", 1, 2, "世"), "月｜夜《世》に");
+        assert_eq!(wrap_ruby("あのステージへ", 2, 6, "ぶたい"), "あの｜ステージ《ぶたい》へ");
+        // 選択が空・読みが空・改行をまたぐときはそのまま
+        assert_eq!(wrap_ruby("夜", 0, 0, "よ"), "夜");
+        assert_eq!(wrap_ruby("夜", 0, 1, " "), "夜");
+        assert_eq!(wrap_ruby("夜\n朝", 0, 3, "よ"), "夜\n朝");
     }
 
     #[test]
