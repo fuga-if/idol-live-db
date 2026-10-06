@@ -129,7 +129,9 @@ struct LyricSubmissionSheet: View {
                 }
                 .buttonStyle(.imas(.secondary, fillsWidth: true))
             }
-            Text("文字の読み取りは端末の中だけで行い、写真は送りません。読み取った歌詞は誤りがないか見直してから送ってください。")
+            ImasStepList(steps: lyricOcrSteps().map { .init(title: $0.title, detail: $0.detail) })
+                .padding(.top, DS.Space.gapTight)
+            Text("文字の読み取りは端末の中だけで行い、写真はどこにも送りません。")
                 .font(.imasFootnote)
                 .foregroundStyle(DS.ink3)
                 .fixedSize(horizontal: false, vertical: true)

@@ -49,3 +49,9 @@ pub fn lyric_submission_allowed(brand_id: String, song_type: Option<String>, sin
 pub fn lyric_submission_guideline() -> Vec<domain::LyricGuideBlock> {
     domain::guideline()
 }
+
+/// 歌詞カードの読み取りの使い方 (手順と説明)。
+#[uniffi::export]
+pub fn lyric_ocr_steps() -> Vec<crate::domain::lyric_ocr::LyricOcrStep> {
+    crate::domain::lyric_ocr::steps()
+}

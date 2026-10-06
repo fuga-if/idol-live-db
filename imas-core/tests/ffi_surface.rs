@@ -258,6 +258,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_main_range,
     uniffi_imas_core_checksum_func_lyric_ocr_append,
     uniffi_imas_core_checksum_func_lyric_ocr_layout,
+    uniffi_imas_core_checksum_func_lyric_ocr_steps,
     uniffi_imas_core_checksum_func_lyric_submission_allowed,
     uniffi_imas_core_checksum_func_lyric_submission_check,
     uniffi_imas_core_checksum_func_lyric_submission_guideline,

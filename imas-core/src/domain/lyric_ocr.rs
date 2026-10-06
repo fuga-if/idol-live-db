@@ -221,6 +221,32 @@ pub fn layout(pieces: &[OcrPiece]) -> LyricOcrLayout {
     LyricOcrLayout { text: out.join("\n"), vertical, dropped_ruby: dropped }
 }
 
+/// 歌詞カードの読み取りの使い方の 1 手順。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct LyricOcrStep {
+    pub title: String,
+    pub detail: String,
+}
+
+/// 歌詞カードの読み取りの使い方 (投稿画面の読み取りボタンの下に出す)。
+pub fn steps() -> Vec<LyricOcrStep> {
+    let s = |title: &str, detail: &str| LyricOcrStep { title: title.into(), detail: detail.into() };
+    vec![
+        s(
+            "「歌詞カードを撮る」で撮る",
+            "撮影画面の右上の「自動」を押すと、シャッターを押したときだけ撮れます。何ページも続けて撮れ、撮った順に入ります。スクリーンショットや写真は「写真から読む」で選べます。",
+        ),
+        s(
+            "歌詞の部分が画面いっぱいに入るように、真上から撮る",
+            "明るい所で、影や光の反射が入らないようにすると読み取りがよくなります。縦書きの歌詞カードは読み取りが苦手です。",
+        ),
+        s(
+            "読み取った歌詞を見直して送る",
+            "読み取った文字は入力欄に入ります。歌詞カードと見比べて、記号や改行まで表記どおりに直してから送ってください。",
+        ),
+    ]
+}
+
 /// 入力欄に読み取った本文を足す。空なら置き換え、書きかけなら空行を挟んで後ろに足す
 /// (歌詞カードを何枚かに分けて撮る使い方)。
 pub fn append_to_draft(draft: &str, recognized: &str) -> String {
@@ -301,6 +327,13 @@ mod tests {
     fn empty_input_and_blank_pieces_give_empty_text() {
         assert_eq!(layout(&[]).text, "");
         assert_eq!(layout(&[p("  ", 0.0, 0.0, 10.0, 10.0)]).text, "");
+    }
+
+    #[test]
+    fn steps_explain_the_manual_shutter_and_review() {
+        let all = format!("{:?}", steps());
+        assert_eq!(steps().len(), 3);
+        assert!(all.contains("「自動」") && all.contains("見直して"));
     }
 
     #[test]
