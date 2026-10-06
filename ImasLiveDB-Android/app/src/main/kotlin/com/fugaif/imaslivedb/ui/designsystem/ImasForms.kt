@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -29,10 +30,13 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.ConfirmationNumber
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -44,17 +48,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -73,6 +80,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -89,6 +97,7 @@ import java.text.BreakIterator
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 // =============================================================================
 // 申込書 (編集シートの欄) (docs/DESIGN_SYSTEM.md §2.4・§7)。iOS `ImasForms.swift` の移植。
@@ -104,6 +113,9 @@ import kotlin.math.abs
 // ImasChoiceCards    大きな札から 1 つ選ぶ (参加のしかた: 現地・配信・LV)。選んだ札は墨の縁と ✓。
 //                    種類: GRID (横に並ぶ等幅の札、既定) / ROW (縦に積む全幅の行、モード選択) /
 //                    NUMERAL (大きな数字 + 単位、問題数・時間の選択)。
+// ImasPinnedPreview  編集シートの上に固定する見本。高さの決まった枠に、見本を本来の幅で組んでから
+//                    縮めて収める (入力のたびに見本の背が変わっても下の欄は動かない)。押すと原寸の
+//                    見本をシートで開く。欄 (`ImasFormCard` 等) は別にスクロールさせること。
 //
 // 設定画面の灰の表は `ImasListSection`。ものを編集するシートはこの申込書で組む。
 // =============================================================================
@@ -716,6 +728,68 @@ private fun <T> ChoiceLabel(choice: ImasChoice<T>, on: Boolean, style: ImasChoic
                 if (choice.subtitle != null) {
                     Text(choice.subtitle, style = ImasType.text(12.sp), color = if (on) DS.ink2 else DS.ink3, maxLines = 2)
                 }
+            }
+        }
+    }
+}
+
+// MARK: - 固定の見本
+
+/**
+ * 編集シートの上に固定する見本 (iOS `ImasPinnedPreview` / `.imasPinnedPreview { … }` の移植)。
+ * 高さの決まった枠に、見本を本来の幅で組んでから縮めて収める。見本をスクロールの中に置くと、写真や
+ * リンクを足すたびに見本の背が変わって下の欄がずれる (実機で「操作するたびにレイアウトがずれる」と
+ * 指摘された)。枠の高さは変わらないので、欄は動かない。押すと原寸の見本をシートで開く。
+ *
+ * 呼び出し側は欄 (`ImasFormCard` 等) をこれとは別にスクロールさせること (このまま上に固定したまま、
+ * 欄だけ `Modifier.weight(1f).verticalScroll(...)` で動かす)。見本が変わってもアニメーションは付けない。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ImasPinnedPreview(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    var showsFull by remember { mutableStateOf(false) }
+    Column(modifier.fillMaxWidth().background(DS.bg)) {
+        ImasPinnedPreviewBox(
+            Modifier
+                .padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
+                .clickable(onClickLabel = "原寸の見本を開く", role = Role.Button) { showsFull = true },
+            content
+        )
+        ImasPerforation()
+    }
+    if (showsFull) {
+        ModalBottomSheet(
+            onDismissRequest = { showsFull = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = DS.bg
+        ) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
+                ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { showsFull = false }))
+                Box(Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)) { content() }
+            }
+        }
+    }
+}
+
+/**
+ * 見本を本来の幅で組んでから、枠の高さに収まるよう一様に縮める (横も同じ比で縮むので、縮んだ見本は
+ * 枠の中で中央寄せになる)。枠の高さは [LocalDensity] の文字の大きさで決まる (iOS の
+ * `@ScaledMetric(relativeTo: .body)` 相当)。
+ */
+@Composable
+private fun ImasPinnedPreviewBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val boxHeight = with(LocalDensity.current) { 230.sp.toDp() }
+    SubcomposeLayout(modifier.fillMaxWidth().height(boxHeight).clipToBounds()) { constraints ->
+        val fullWidth = Constraints(minWidth = constraints.maxWidth, maxWidth = constraints.maxWidth)
+        val placeable = subcompose("pinnedPreview", content).first().measure(fullWidth)
+        val contentHeight = placeable.height.coerceAtLeast(1)
+        val scale = minOf(1f, constraints.maxHeight.toFloat() / contentHeight.toFloat())
+        val scaledWidth = (placeable.width * scale).roundToInt()
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            placeable.placeWithLayer((constraints.maxWidth - scaledWidth) / 2, 0) {
+                scaleX = scale
+                scaleY = scale
+                transformOrigin = TransformOrigin(0f, 0f)
             }
         }
     }

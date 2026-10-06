@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -96,6 +97,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasPinnedPreview
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
@@ -470,19 +472,27 @@ fun ProducerCardEditorSheet(
     )
     ModalBottomSheet(onDismissRequest = ::cancel, sheetState = sheetState, containerColor = DS.bg) {
         Box {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
+            // 見本は画面の上に固定する (下の欄は別にスクロールし、写真やリンクを足して見本の背が
+            // 変わっても欄は動かない。実機で「操作するたびにレイアウトがずれる」と指摘された)。
+            Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
                 ImasSheetToolbar(
                     ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = ::cancel, onSave = ::save),
                     title = if (card.name.isEmpty()) "P名刺を作る" else "P名刺を編集"
                 )
-                Column(
-                    Modifier.padding(horizontal = DS.Space.screen),
-                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
-                ) {
+                ImasPinnedPreview {
                     CardPreview(
                         draft(), record, directory, previewPortrait,
                         facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) }
                     )
+                }
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = DS.Space.screen)
+                        .padding(bottom = DS.Space.section),
+                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
+                ) {
                     ImasFormCard {
                         ImasFormTextField(
                             label = "名前", imprint = "NAME", text = name, onTextChange = { name = it },
