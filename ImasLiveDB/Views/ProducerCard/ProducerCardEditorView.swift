@@ -270,14 +270,15 @@ struct ProducerCardEditorView: View {
     }
 
     private func faceSlot(_ side: ProducerCardFiles.Side, title: String, pick: Binding<PhotosPickerItem?>) -> some View {
-        VStack(alignment: .leading, spacing: DS.Space.gap) {
+        // PhotosPicker の label は古い SDK で Sendable な closure なので、状態は外で読んでおく。
+        let pickTitle = facePreview[side] == nil ? "画像を選ぶ" : "選び直す"
+        return VStack(alignment: .leading, spacing: DS.Space.gap) {
             Text(title).imasText(.rowLabel, color: DS.ink2)
             if let url = facePreview[side] {
                 ImasCardFace(front: url, label: "自作の名刺の\(title)", thumbnail: true)
             }
             PhotosPicker(selection: pick, matching: .images) {
-                CardEditorActionLabel(title: facePreview[side] == nil ? "画像を選ぶ" : "選び直す",
-                                      systemImage: "photo.on.rectangle")
+                CardEditorActionLabel(title: pickTitle, systemImage: "photo.on.rectangle")
             }
             .buttonStyle(.plain)
             if let source = faceSources[side] {
