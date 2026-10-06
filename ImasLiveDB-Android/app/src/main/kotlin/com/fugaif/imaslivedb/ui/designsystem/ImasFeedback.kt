@@ -457,6 +457,24 @@ fun ImasErrorAlert(message: String?, onDismiss: () -> Unit, title: String = "保
 }
 
 /**
+ * 操作の完了を知らせる (iOS の `.alert("〇〇しました", isPresented:)`)。送信・投稿が
+ * 完了したときなど。[message] が null の間は出ない。閉じると [onDismiss]。
+ */
+@Composable
+fun ImasCompletionAlert(title: String, message: String?, onDismiss: () -> Unit, confirmLabel: String = "OK") {
+    if (message == null) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(confirmLabel) } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
  * 2 つの入力欄を持つダイアログ (プレイリストの公開: タイトル + ひとこと)。
  * iOS の `.alert("…", isPresented:) { TextField; TextField }` と同じ役目。
  */

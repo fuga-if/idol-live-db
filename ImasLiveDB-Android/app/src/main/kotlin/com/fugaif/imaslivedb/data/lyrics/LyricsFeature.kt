@@ -11,4 +11,11 @@ package com.fugaif.imaslivedb.data.lyrics
  */
 object LyricsFeature {
     const val isAvailable: Boolean = false
+
+    /**
+     * 歌詞の投稿 ([com.fugaif.imaslivedb.ui.lyrics.LyricSubmissionScreen]) を受け付けるか。
+     * 表示 ([isAvailable]) とは別に、閉じている間も投稿だけ先に集められるようにする。
+     * サーバの受け口 (`POST /songs/:id/lyric-submissions`) を本番に出すまでは開発ビルドだけ。
+     */
+    val acceptsSubmissions: Boolean get() = com.fugaif.imaslivedb.BuildConfig.DEBUG
 }

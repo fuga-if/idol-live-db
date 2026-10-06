@@ -173,6 +173,8 @@ fun SongDetailScreen(
     var showSongEdit by remember { mutableStateOf(false) }
     // 補足だけを書く軽い画面 (利用者の投稿が主な入口なので、楽曲編集とは別に持つ)。
     var showNoteEdit by remember { mutableStateOf(false) }
+    // 歌詞の投稿画面。受け口を本番に出すまでは LyricsFeature.acceptsSubmissions で開発ビルドだけ。
+    var showLyricSubmission by remember { mutableStateOf(false) }
     var showRecordHistory by remember { mutableStateOf(false) }
     var showVideoSheet by remember { mutableStateOf(false) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
@@ -219,13 +221,6 @@ fun SongDetailScreen(
                     val song = uiState.song
                     ImasToolbarButton(icon = Icons.Filled.MoreVert, label = "その他", onClick = { showMenu = true })
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("歌詞を見る") },
-                            onClick = {
-                                showMenu = false
-                                openUrl(context, lyricsUrl(song))
-                            }
-                        )
                         if (!song?.appleMusicId.isNullOrEmpty()) {
                             DropdownMenuItem(
                                 text = { Text("Apple Musicで開く") },
@@ -242,6 +237,15 @@ fun SongDetailScreen(
                                 onClick = {
                                     showMenu = false
                                     startCommunityEdit { showSongEdit = true }
+                                }
+                            )
+                        }
+                        if (LyricsFeature.acceptsSubmissions) {
+                            DropdownMenuItem(
+                                text = { Text("歌詞を投稿") },
+                                onClick = {
+                                    showMenu = false
+                                    startCommunityEdit { showLyricSubmission = true }
                                 }
                             )
                         }
@@ -354,6 +358,18 @@ fun SongDetailScreen(
         }
     }
 
+    if (showLyricSubmission && editingSong != null) {
+        Dialog(
+            onDismissRequest = { showLyricSubmission = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            com.fugaif.imaslivedb.ui.lyrics.LyricSubmissionScreen(
+                song = editingSong,
+                onDismiss = { showLyricSubmission = false }
+            )
+        }
+    }
+
     if (showRecordHistory) {
         RecordHistorySheet(
             recordType = "Song",
@@ -374,13 +390,6 @@ fun SongDetailScreen(
             )
         }
     }
-}
-
-private fun lyricsUrl(song: Song?): String {
-    if (song == null) return "https://www.uta-net.com"
-    if (!song.lyricsUrl.isNullOrEmpty()) return song.lyricsUrl
-    val encoded = java.net.URLEncoder.encode(song.title, "UTF-8")
-    return "https://www.uta-net.com/search/?Keyword=$encoded"
 }
 
 private fun openUrl(context: android.content.Context, url: String) {

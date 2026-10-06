@@ -85,6 +85,28 @@ class LyricsApi(private val client: WorkerHttpClient) {
         check(client.request("PUT", "/songs/${seg(songId)}/parts", body), "パート分けを保存できませんでした")
     }
 
+    /**
+     * 歌詞の投稿 (POST /songs/:id/lyric-submissions)。CD の歌詞カードなどの一次ソースを見て
+     * 入力した歌詞を確認待ち (pending) で預ける。公開はモデレーターの確認後で、`song_lyrics` には
+     * 書かない。ログイン必須・1 日 20 曲 (サーバの rate limit)。応答に本文は返らない。
+     *
+     * ボディは Worker 側 (`routes/lyric_submissions.ts`) と同じ snake_case
+     * (`source_kind` / `source_note` / `attested_no_copy` / `text`)。
+     */
+    suspend fun submitLyricSubmission(
+        songId: String,
+        sourceKind: uniffi.imas_core.LyricSourceKind,
+        sourceNote: String?,
+        text: String,
+    ) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("source_kind", uniffi.imas_core.lyricSourceKey(sourceKind))
+            .put("source_note", sourceNote ?: JSONObject.NULL)
+            .put("attested_no_copy", true)
+            .put("text", text)
+        check(client.request("POST", "/songs/${seg(songId)}/lyric-submissions", body), "歌詞を送信できませんでした")
+    }
+
     /** 行をくっつける / 切り離す (POST /songs/:id/lyric-structure)。文字は変わらない。 */
     suspend fun editStructure(songId: String, change: StructureChange) = withContext(Dispatchers.IO) {
         val body = when (change) {
