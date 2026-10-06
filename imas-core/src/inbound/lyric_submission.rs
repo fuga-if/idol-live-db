@@ -109,3 +109,9 @@ pub fn lyric_ruby_mark_found(plain: String, mark: domain::RubyMark) -> bool {
 pub fn lyric_ruby_join(plain: String, marks: Vec<domain::RubyMark>) -> String {
     domain::ruby_join(&plain, &marks)
 }
+
+/// 本文を書き換えたあと、読み仮名の場所を付け直す (同じ字を前に打ち足しても元の字に付いたまま)。
+#[uniffi::export]
+pub fn lyric_ruby_rebase(old_plain: String, new_plain: String, marks: Vec<domain::RubyMark>) -> Vec<domain::RubyMark> {
+    domain::ruby_rebase(&old_plain, &new_plain, &marks)
+}

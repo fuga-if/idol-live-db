@@ -36,10 +36,16 @@ final class LyricSubmissionDrafts {
     /// 本文から外して読み仮名の一覧へ移す。画面に記法を見せないため。
     func setText(_ songId: String, _ text: String) {
         update(songId) { d in
-            guard text.contains("》") else { d.text = text; return }
-            let split = lyricRubySplit(text: text)
-            d.text = split.plain
-            d.rubies += split.marks
+            var plain = text
+            var added: [RubyMark] = []
+            if text.contains("》") {
+                let split = lyricRubySplit(text: text)
+                plain = split.plain
+                added = split.marks
+            }
+            // 書き換えで読み仮名の付いた字の何番目かがずれないよう、付け直してから足す。
+            d.rubies = (d.rubies.isEmpty ? [] : lyricRubyRebase(oldPlain: d.text, newPlain: plain, marks: d.rubies)) + added
+            d.text = plain
         }
     }
 }

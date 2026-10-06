@@ -266,6 +266,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_ruby_like_lines,
     uniffi_imas_core_checksum_func_lyric_ruby_mark_at,
     uniffi_imas_core_checksum_func_lyric_ruby_mark_found,
+    uniffi_imas_core_checksum_func_lyric_ruby_rebase,
     uniffi_imas_core_checksum_func_lyric_ruby_split,
     uniffi_imas_core_checksum_func_lyric_wrap_ruby,
     uniffi_imas_core_checksum_func_lyric_submission_allowed,

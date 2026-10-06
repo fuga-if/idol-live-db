@@ -331,6 +331,41 @@ pub fn ruby_mark_at(plain: &str, start: u32, end: u32, reading: &str) -> Option<
     })
 }
 
+/// 本文を書き換えたあと、読み仮名の場所 (何番目の出現か) を付け直す。書き換えは 1 か所のまとまり
+/// (前後の変わらない部分に挟まれた範囲) と見なし、親字がその前にあれば同じ位置、後ろにあれば
+/// ずれた位置で数え直す (前後の一致は前から先に取るので、末尾への打ち足しに強い。打ち足した文字が
+/// 元の頭と同じ字で始まると前に寄せて読むことがある)。書き換えた範囲に親字が掛かったものは元の数え方のまま残す (見つからなければ
+/// 画面が「見つかりません」と出す)。同じ字を前に打ち足すと別の字に付く、を防ぐ。
+pub fn ruby_rebase(old_plain: &str, new_plain: &str, marks: &[RubyMark]) -> Vec<RubyMark> {
+    let old: Vec<char> = old_plain.chars().collect();
+    let new: Vec<char> = new_plain.chars().collect();
+    let prefix = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
+    let max_suffix = old.len().min(new.len()) - prefix;
+    let suffix = old.iter().rev().zip(new.iter().rev()).take(max_suffix).take_while(|(a, b)| a == b).count();
+    let (old_edit_end, new_edit_end) = (old.len() - suffix, new.len() - suffix);
+    marks
+        .iter()
+        .map(|mark| {
+            let needle: Vec<char> = mark.base.chars().collect();
+            let Some(start) = nth_position(&old, &needle, mark.nth as usize) else { return mark.clone() };
+            let end = start + needle.len();
+            let moved = if end <= prefix {
+                Some(start)
+            } else if start >= old_edit_end {
+                Some(start - old_edit_end + new_edit_end)
+            } else {
+                None
+            };
+            match moved {
+                Some(pos) if new.get(pos..pos + needle.len()) == Some(&needle[..]) => {
+                    RubyMark { nth: occurrences_before(&new, &needle, pos) as u32, ..mark.clone() }
+                }
+                _ => mark.clone(),
+            }
+        })
+        .collect()
+}
+
 /// その読み仮名の親字が、今の本文にまだあるか (歌詞を打ち直すと消えることがある)。
 pub fn ruby_mark_found(plain: &str, mark: &RubyMark) -> bool {
     let chars: Vec<char> = plain.chars().collect();
@@ -532,6 +567,20 @@ mod tests {
             RubyMark { base: "界".into(), reading: "かい".into(), nth: 0 },
         ];
         assert_eq!(ruby_join("視界", &marks), "視界《せかい》");
+    }
+
+    #[test]
+    fn ruby_rebase_keeps_marks_on_the_same_characters_after_edits() {
+        let marks = vec![RubyMark { base: "赫".into(), reading: "あか".into(), nth: 0 }];
+        // 前に同じ字を含む行を打ち足しても、元の「赫」に付いたまま (nth が 1 になる)
+        let rebased = ruby_rebase("赫く染まった", "空も赫い\n赫く染まった", &marks);
+        assert_eq!(rebased[0].nth, 1);
+        assert_eq!(ruby_join("空も赫い\n赫く染まった", &rebased), "空も赫い\n赫《あか》く染まった");
+        // 後ろを書き換えても変わらない
+        assert_eq!(ruby_rebase("赫く染まった", "赫く染まった空", &marks)[0].nth, 0);
+        // 親字そのものを消したら元のまま (画面が「見つかりません」と出す)
+        let gone = ruby_rebase("赫く", "く", &marks);
+        assert!(!ruby_mark_found("く", &gone[0]));
     }
 
     #[test]
