@@ -239,7 +239,7 @@ private fun CardCaseRow(
             imageUrl = ProducerCardFiles.oshiImageUrl(context, card.id, it.id)
         )
     }
-    // 自作の名刺の画像があればその小さな見本、名刺の写真があれば証明写真の枠 (どちらも右下に
+    // 自作の名刺の画像があればその小さな見本、名刺の写真があれば正方形の枠 (X のアイコンは丸。どちらも右下に
     // 担当のアイコンを重ねる)、無ければ担当のアイコン。
     val face = content?.let { c ->
         ProducerCardDisplay.receivedFace(context, card.id)?.takeIf { ProducerCardDisplay.design(c, it).usesFaceImage }
@@ -247,7 +247,7 @@ private fun CardCaseRow(
     val portrait = ProducerCardFiles.cardPhotoUrl(context, card.id)
     val leading = when {
         face != null -> ImasRowLeading.CardFace(face.front, oshiIcon)
-        portrait != null -> ImasRowLeading.Portrait(portrait, oshiIcon)
+        portrait != null -> ImasRowLeading.Portrait(portrait, oshiIcon, round = ProducerCardFiles.cardPhotoRound(context, card.id))
         oshiIcon != null -> ImasRowLeading.Avatar(
             label = oshiIcon.label, seed = oshiIcon.seed, brand = oshiIcon.brand,
             imageUrl = oshiIcon.imageUrl, isPick = true

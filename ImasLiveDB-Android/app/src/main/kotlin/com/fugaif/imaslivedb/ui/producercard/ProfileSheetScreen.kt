@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
-import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Description
@@ -83,6 +83,9 @@ import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.CardPhotoShape
+import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.cardPhotoShape
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -137,6 +140,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     var photoNotice by remember { mutableStateOf<String?>(null) }
     var hasOwnPhoto by remember { mutableStateOf(false) }
     var photoUrl by remember { mutableStateOf<String?>(null) }
+    var photoRound by remember { mutableStateOf(false) }
 
     val sizes = remember { profileSheetSizes() }
     val saveLock = remember { Mutex() }
@@ -145,6 +149,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         withContext(Dispatchers.IO) {
             hasOwnPhoto = ProfileSheetFiles.photoFile(context) != null
             photoUrl = ProfileSheetFiles.effectiveUrl(context)
+            photoRound = ProfileSheetFiles.effectiveRound(context)
         }
         val mine = card ?: return
         materials = ProfileSheetAssembler.load(context, module, mine)
@@ -157,6 +162,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         withContext(Dispatchers.IO) {
             hasOwnPhoto = ProfileSheetFiles.photoFile(context) != null
             photoUrl = ProfileSheetFiles.effectiveUrl(context)
+            photoRound = ProfileSheetFiles.effectiveRound(context)
         }
         card = mine
         loaded = true
@@ -201,9 +207,9 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         }
     }
 
-    fun savePhoto(image: Bitmap, crop: ImasPortraitCrop) {
+    fun savePhoto(image: Bitmap, crop: ImasPortraitCrop, origin: CardPhotoSource) {
         scope.launch {
-            val ok = withContext(Dispatchers.IO) { runCatching { ProfileSheetFiles.save(context, image, crop) }.isSuccess }
+            val ok = withContext(Dispatchers.IO) { runCatching { ProfileSheetFiles.save(context, image, crop, origin) }.isSuccess }
             if (!ok) photoNotice = "写真を保存できませんでした。"
             reloadMaterials()
         }
@@ -214,7 +220,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         photoNotice = null
         scope.launch {
             val image = PaperCardCodeReader.loadBitmap(context, uri)
-            if (image == null) photoNotice = "写真を読み込めませんでした。" else cropping = PhotoDraft(image, ImasPortraitCrop())
+            if (image == null) photoNotice = "写真を読み込めませんでした。" else cropping = PhotoDraft(image, ImasPortraitCrop(), CardPhotoSource.PICKED)
         }
     }
 
@@ -223,7 +229,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         isFetchingAvatar = true
         scope.launch {
             when (val outcome = XAvatarFetcher.fetch(handle)) {
-                is XAvatarFetcher.Outcome.Image -> cropping = PhotoDraft(outcome.bitmap, ImasPortraitCrop())
+                is XAvatarFetcher.Outcome.Image -> cropping = PhotoDraft(outcome.bitmap, ImasPortraitCrop(), CardPhotoSource.X_ICON)
                 is XAvatarFetcher.Outcome.Failed -> photoNotice = outcome.message
             }
             isFetchingAvatar = false
@@ -232,10 +238,10 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
 
     fun recrop() {
         scope.launch {
-            val (source, crop) = withContext(Dispatchers.IO) {
-                ProfileSheetFiles.decodeSource(context) to ProfileSheetFiles.crop(context)
+            val (source, crop, origin) = withContext(Dispatchers.IO) {
+                Triple(ProfileSheetFiles.decodeSource(context), ProfileSheetFiles.crop(context), ProfileSheetFiles.source(context))
             }
-            if (source != null) cropping = PhotoDraft(source, crop ?: ImasPortraitCrop())
+            if (source != null) cropping = PhotoDraft(source, crop ?: ImasPortraitCrop(), origin)
         }
     }
 
@@ -306,7 +312,9 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose),
                             verticalAlignment = Alignment.Top
                         ) {
-                            ImasCardPortraitThumbnail(url = photoUrl)
+                            ImasCardPortraitThumbnail(
+                                url = photoUrl, frame = ImasPortraitCrop.Frame.RESUME, round = photoRound, label = "証明写真"
+                            )
                             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                                 Text(
                                     when {
@@ -321,7 +329,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                                 }
                                 cardXAvatarHandle(mine.links)?.let { handle ->
                                     CardEditorAction(
-                                        Icons.Filled.AccountBox,
+                                        Icons.Filled.AccountCircle,
                                         if (isFetchingAvatar) "X のアイコンを取っています…" else "X のアイコンを使う (@$handle)",
                                         enabled = !isFetchingAvatar
                                     ) { useXAvatar(handle) }
@@ -423,12 +431,16 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         ) { BrandRoleSettingsScreen(onBack = { showingBrandSettings = false }) }
     }
     cropping?.let { draft ->
+        val round = cardPhotoShape(draft.origin) == CardPhotoShape.ROUND
         CardPhotoCropSheet(
             image = draft.image,
             initial = draft.crop,
-            onDone = { savePhoto(draft.image, it) },
+            onDone = { savePhoto(draft.image, it, draft.origin) },
             onDismiss = { cropping = null },
-            note = "引いて動かし、2 本の指で広げると、履歴書の証明写真の枠 (3:4) に合わせられます。写真は端末の中だけに置きます。"
+            frame = ProfileSheetFiles.cropFrame(draft.origin),
+            round = round,
+            note = if (round) "引いて動かし、2 本の指で広げると、丸いアイコンの枠に合わせられます。証明写真の欄の中に丸く置きます。写真は端末の中だけに置きます。"
+            else "引いて動かし、2 本の指で広げると、履歴書の証明写真の枠 (3:4) に合わせられます。写真は端末の中だけに置きます。"
         )
     }
     ImasErrorAlert(message = saveError, onDismiss = { saveError = null }, title = "保存できませんでした")
@@ -438,7 +450,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
 private class CardEdit(val card: MyProducerCard, val record: ProducerCardMyRecord?, val focus: String?)
 
 /** 写真の位置を決めるシートに渡すもの。 */
-private class PhotoDraft(val image: Bitmap, val crop: ImasPortraitCrop)
+private class PhotoDraft(val image: Bitmap, val crop: ImasPortraitCrop, val origin: CardPhotoSource)
 
 @Composable
 private fun FieldToggle(row: ProfileAutoFieldRow, subtitle: String?, update: (ProfileSheet) -> Unit, sheet: ProfileSheet) {

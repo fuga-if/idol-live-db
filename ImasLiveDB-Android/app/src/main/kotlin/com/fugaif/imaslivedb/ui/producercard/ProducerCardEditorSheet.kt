@@ -7,7 +7,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.runtime.mutableStateMapOf
@@ -103,6 +103,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import uniffi.imas_core.CardPhotoShape
+import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.cardPhotoShape
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
@@ -183,6 +186,8 @@ fun ProducerCardEditorSheet(
     var cropping by remember { mutableStateOf<CropDraft?>(null) }
     // 見本に出す切り抜き済みの写真 (✓ の前は一時ファイル)。
     var previewPortrait by remember { mutableStateOf<String?>(null) }
+    // 名刺の写真の出どころ (X のアイコンは丸く出す。切り方はコアの `cardPhotoShape`)。
+    var photoOrigin by remember { mutableStateOf(CardPhotoSource.PICKED) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
 
     // 自作の名刺の画像 (平らにした後)。変えた面だけ ✓ のときに書く (null は外した)。
@@ -223,9 +228,11 @@ fun ProducerCardEditorSheet(
             val source = ProducerCardFiles.decodeMyPhotoSource(context)
             val savedCrop = ProducerCardFiles.myPhotoCrop(context)
             val url = if (source == null) null else ProducerCardFiles.myPhotoUrl(context)
+            val origin = ProducerCardFiles.myPhotoSource(context)
             withContext(Dispatchers.Main) {
                 if (photoDirty) return@withContext
                 photoSource = source
+                photoOrigin = origin
                 crop = savedCrop ?: ImasPortraitCrop()
                 previewPortrait = url
             }
@@ -250,7 +257,7 @@ fun ProducerCardEditorSheet(
                 error = "写真を読み込めませんでした。"
                 return@launch
             }
-            cropping = CropDraft(image, ImasPortraitCrop())
+            cropping = CropDraft(image, ImasPortraitCrop(), CardPhotoSource.PICKED)
         }
     }
 
@@ -371,19 +378,19 @@ fun ProducerCardEditorSheet(
             val outcome = XAvatarFetcher.fetch(handle)
             isFetchingAvatar = false
             when (outcome) {
-                is XAvatarFetcher.Outcome.Image -> cropping = CropDraft(outcome.bitmap, ImasPortraitCrop())
+                is XAvatarFetcher.Outcome.Image -> cropping = CropDraft(outcome.bitmap, ImasPortraitCrop(), CardPhotoSource.X_ICON)
                 is XAvatarFetcher.Outcome.Failed -> avatarNotice = outcome.message
             }
         }
     }
 
     /** 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。 */
-    fun applyCrop(image: Bitmap, result: ImasPortraitCrop) {
+    fun applyCrop(image: Bitmap, result: ImasPortraitCrop, origin: CardPhotoSource) {
         avatarNotice = null
         applyingCrop = true
         scope.launch {
             val url = withContext(Dispatchers.IO) {
-                val jpeg = result.render(image)?.let { ProducerCardFiles.jpeg(it) } ?: return@withContext null
+                val jpeg = result.render(image, ImasPortraitCrop.Frame.CARD)?.let { ProducerCardFiles.jpeg(it) } ?: return@withContext null
                 val dir = previewFolder(context).apply { mkdirs() }
                 val file = File(dir, "${UUID.randomUUID()}.jpg")
                 runCatching { file.writeBytes(jpeg) }.getOrNull() ?: return@withContext null
@@ -396,6 +403,7 @@ fun ProducerCardEditorSheet(
             }
             if (image !== photoSource) photoSourceChanged = true
             photoSource = image
+            photoOrigin = origin
             crop = result
             previewPortrait = url
             photoDirty = true
@@ -452,8 +460,9 @@ fun ProducerCardEditorSheet(
                 if (photoDirty) {
                     val source = photoSource
                     val result = crop
+                    val origin = photoOrigin
                     withContext(Dispatchers.IO) {
-                        if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result, writeSource = photoSourceChanged)
+                        if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result, origin, writeSource = photoSourceChanged)
                         else ProducerCardFiles.deleteMyPhoto(context)
                     }
                 }
@@ -492,7 +501,7 @@ fun ProducerCardEditorSheet(
                 )
                 ImasPinnedPreview {
                     CardPreview(
-                        draft(), record, directory, previewPortrait,
+                        draft(), record, directory, previewPortrait, photoOrigin,
                         facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) }
                     )
                 }
@@ -572,28 +581,28 @@ fun ProducerCardEditorSheet(
                         ImasFormField(label = "名刺の写真", imprint = "PHOTO") {
                             val handle = cardXAvatarHandle(draft().links)
                             Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top) {
-                                previewPortrait?.let { ImasCardPortraitThumbnail(url = it) }
+                                previewPortrait?.let { ImasCardPortraitThumbnail(url = it, round = cardPhotoShape(photoOrigin) == CardPhotoShape.ROUND) }
                                 Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                                     CardEditorAction(Icons.Filled.Photo, if (photoSource == null) "写真を選ぶ" else "写真を変える") {
                                         pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                     }
                                     if (handle != null) {
                                         CardEditorAction(
-                                            Icons.Filled.AccountBox,
+                                            Icons.Filled.AccountCircle,
                                             if (isFetchingAvatar) "X のアイコンを取っています…" else "X のアイコンを使う (@$handle)",
                                             enabled = !isFetchingAvatar
                                         ) { useXAvatar(handle) }
                                     }
                                     val source = photoSource
                                     if (source != null) {
-                                        CardEditorAction(Icons.Filled.Crop, "位置を直す") { cropping = CropDraft(source, crop) }
+                                        CardEditorAction(Icons.Filled.Crop, "位置を直す") { cropping = CropDraft(source, crop, photoOrigin) }
                                         CardEditorAction(Icons.Filled.RemoveCircleOutline, "写真を外す", tint = DS.danger, onClick = ::removePhoto)
                                     }
                                     val notice = avatarNotice
                                     if (notice != null) {
                                         Text(notice, style = ImasTextRole.NOTE.style, color = DS.danger)
                                     } else if (source == null) {
-                                        Text("名前の横に証明写真のように載ります。担当の画像とは別です。", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+                                        Text("名前の横に正方形で載ります (X のアイコンは丸く)。担当の画像とは別です。", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
                                     }
                                 }
                             }
@@ -702,14 +711,15 @@ fun ProducerCardEditorSheet(
         CardPhotoCropSheet(
             image = draft.image,
             initial = draft.crop,
-            onDone = { applyCrop(draft.image, it) },
-            onDismiss = { cropping = null }
+            onDone = { applyCrop(draft.image, it, draft.origin) },
+            onDismiss = { cropping = null },
+            round = cardPhotoShape(draft.origin) == CardPhotoShape.ROUND
         )
     }
 }
 
 /** 切り抜きのシートに渡すもの。 */
-private class CropDraft(val image: Bitmap, val crop: ImasPortraitCrop)
+private class CropDraft(val image: Bitmap, val crop: ImasPortraitCrop, val origin: CardPhotoSource)
 
 /** 自作の名刺の画像の四隅を直すシートに渡すもの。 */
 private class FaceCornerDraft(val side: ProducerCardFiles.Side, val source: PaperPhotoSource)
@@ -758,12 +768,15 @@ private fun CardPreview(
     record: ProducerCardMyRecord?,
     directory: ProducerCardDirectory,
     portraitUrl: String?,
+    portraitSource: CardPhotoSource,
     face: ProducerCardFace?
 ) {
     val rec = record ?: ProducerCardMyRecord(oshiIds = emptyList(), attended = emptyList(), songCount = 0)
     val sample = draft.copy(name = draft.name.ifEmpty { "名前" })
     val card = encodeProducerCard(ProducerCardAssembler.input(sample, rec)).card
-    val content = rememberProducerCardContent(card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face)
+    val content = rememberProducerCardContent(
+        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, portraitSource = portraitSource, face = face
+    )
     ImasProducerCard(content, isFlippable = false, modifier = Modifier.semantics { contentDescription = "名刺の見本" })
 }
 
@@ -851,9 +864,13 @@ internal fun CardPhotoCropSheet(
     initial: ImasPortraitCrop,
     onDone: (ImasPortraitCrop) -> Unit,
     onDismiss: () -> Unit,
-    note: String = "引いて動かし、2 本の指で広げると、名刺の証明写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの Android で渡した相手にだけ届きます (QR には入りません)。"
+    /** 切り抜く枠 (P名刺は正方形、プロフィール帳の証明写真は 3:4)。 */
+    frame: ImasPortraitCrop.Frame = ImasPortraitCrop.Frame.CARD,
+    /** 丸く切る写真 (X のアイコン)。 */
+    round: Boolean = false,
+    note: String = "引いて動かし、2 本の指で広げると、名刺の写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの Android で渡した相手にだけ届きます (QR には入りません)。"
 ) {
-    var crop by remember { mutableStateOf(initial.clamped(image.width.toFloat(), image.height.toFloat())) }
+    var crop by remember { mutableStateOf(initial.clamped(image.width.toFloat(), image.height.toFloat(), frame)) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         // 写真を指で動かすので、引いてもシートが下がらないようにする (× で閉じる)。
@@ -872,7 +889,7 @@ internal fun CardPhotoCropSheet(
                 Modifier.padding(horizontal = DS.Space.screen),
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
             ) {
-                ImasPortraitCropper(image = image, crop = crop, onCropChange = { crop = it })
+                ImasPortraitCropper(image = image, crop = crop, onCropChange = { crop = it }, frame = frame, round = round)
                 ImasNote(note)
             }
         }

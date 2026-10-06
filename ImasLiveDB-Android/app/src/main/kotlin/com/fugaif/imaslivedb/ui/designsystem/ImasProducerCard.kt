@@ -78,7 +78,8 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 //                          `onOpenLink` / `onOpenOshi` を渡すと詳細の行が押せる。
 // ImasProducerCardDetails 名刺の下の紙面 (ひとこと・担当の写真と一覧・リンクの一覧・記録の掲示板)。
 // ImasCardFace       自作の名刺の画像の小さな見本 (91:55 の枠に収める。名刺入れの行・デザインの札・編集画面)。
-// ImasCardPortrait   名刺の写真の証明写真の枠 (3:4)。名刺入れの行・編集画面で同じ枠。
+// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+//                    名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
 // ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) を横に並べ、引いて (または押して) 選ぶ。
 // ImasCornerAdjuster 写真に写った紙の名刺の四隅を指で直す (書類カメラの手直しと同じ感覚)。
@@ -168,7 +169,8 @@ data class ImasProducerCardBack(
  * @param boardTrailing 掲示板の右上の印字 (「2014 — 2026」)。
  * @param photoUrl 担当の写真 (名刺の下の担当の一覧の上に広げる)。
  * @param photoEntityId 写真を端末に取り込んだ担当の id から引く (自分の名刺)。
- * @param portraitUrl 名刺の写真 (自分で選んだ写真。表の右の証明写真の枠に出す)。
+ * @param portraitUrl 名刺の写真 (自分で選んだ写真か X のアイコン。表の右の正方形の枠に出す)。
+ * @param portraitRound 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
  * @param nameFamily 名前の書体。null は見出しの書体。
  * @param back 裏。null なら返さない (自作の画像に裏の画像があればそれを裏にする)。
  */
@@ -189,6 +191,7 @@ data class ImasProducerCardContent(
     val photoUrl: String? = null,
     val photoEntityId: String? = null,
     val portraitUrl: String? = null,
+    val portraitRound: Boolean = false,
     val nameFamily: FontFamily? = null,
     val back: ImasProducerCardBack? = null
 ) {
@@ -314,6 +317,7 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             handle = content.handle,
             nameFamily = content.nameFamily,
             portrait = content.portraitUrl?.let { ImasMeishiPicture.Url(it) },
+            portraitRound = content.portraitRound,
             scale = scale
         )
     }

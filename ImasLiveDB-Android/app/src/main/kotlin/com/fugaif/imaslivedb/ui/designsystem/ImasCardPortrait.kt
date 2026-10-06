@@ -92,42 +92,66 @@ import org.json.JSONObject
 // =============================================================================
 // P名刺の写真・デザイン・四隅 (docs/DESIGN_SYSTEM.md §6.13)。iOS `ImasProducerCard.swift` の移植。
 //
-// ImasCardPortrait    名刺の写真の証明写真の枠 (3:4)。名刺・名刺入れの行・編集画面で同じ枠。
+// ImasCardPortrait    名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+//                     名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCrop    名刺の写真の切り抜き (拡大と真ん中の点)。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる。枠の外は暗く沈めず、そのまま切る。
 // ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) の札を横に並べ、引いて真ん中に来た札を選ぶ (押しても選ぶ)。
 // ImasCornerAdjuster  写真に写った紙の名刺の四隅を指で直す。丸い取っ手 4 つと四隅を結ぶ墨の線。
 // =============================================================================
 
-/** 名刺の写真の証明写真の枠 (3:4)。紙に貼った写真のように、角を小さく丸めて縁を付ける。 */
+/**
+ * 名刺の写真の枠。P名刺は正方形 ([ImasPortraitCrop.Frame.CARD])、プロフィール帳の証明写真の欄は履歴書の様式の 3:4
+ * ([ImasPortraitCrop.Frame.RESUME])。紙に貼った写真のように角を小さく丸めて縁を付ける。X のアイコン ([round]) は
+ * X と同じく丸く切り、3:4 の枠ではその中に丸く置く。
+ */
 @Composable
-fun ImasCardPortrait(url: String?, modifier: Modifier = Modifier, label: String = "名刺の写真") {
-    val shape = RoundedCornerShape(DS.rTag)
-    Box(
-        modifier
-            .aspectRatio(ImasPortraitCrop.ASPECT)
-            .imasSurfaceEdge(shape, fill = DS.surface2)
-            .clip(shape)
-            .semantics { contentDescription = label }
-    ) {
+fun ImasCardPortrait(
+    url: String?,
+    modifier: Modifier = Modifier,
+    label: String = "名刺の写真",
+    frame: ImasPortraitCrop.Frame = ImasPortraitCrop.Frame.CARD,
+    round: Boolean = false
+) {
+    val picture: @Composable (Modifier) -> Unit = { m ->
         if (url != null) {
             SubcomposeAsyncImage(
                 model = url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = m,
                 loading = { Box(Modifier.fillMaxSize().background(DS.surface2)) },
                 error = { Box(Modifier.fillMaxSize().background(DS.surface2)) }
             )
+        } else {
+            Box(m.background(DS.surface2))
+        }
+    }
+    // 大きさは枠の比で決め、写真はその上に重ねて切る (画像の大きさで枠が膨らまないように)。
+    Box(
+        modifier.aspectRatio(frame.aspect).semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        if (round) {
+            picture(Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape).border(1.dp, DS.line, CircleShape))
+        } else {
+            val shape = RoundedCornerShape(DS.rTag)
+            picture(Modifier.fillMaxSize().imasSurfaceEdge(shape, fill = DS.surface2).clip(shape))
         }
     }
 }
 
 /** 編集画面の小さな名刺の写真 (iOS の @ScaledMetric(relativeTo: .body) 60 の枠)。 */
 @Composable
-fun ImasCardPortraitThumbnail(url: String?, modifier: Modifier = Modifier) {
+fun ImasCardPortraitThumbnail(
+    url: String?,
+    modifier: Modifier = Modifier,
+    frame: ImasPortraitCrop.Frame = ImasPortraitCrop.Frame.CARD,
+    round: Boolean = false,
+    label: String = "名刺の写真"
+) {
     val width = with(LocalDensity.current) { 60.sp.toDp() }
-    ImasCardPortrait(url = url, modifier = modifier.width(width))
+    ImasCardPortrait(url = url, modifier = modifier.width(width), label = label, frame = frame, round = round)
 }
 
 /** 切り抜く四角 (元の写真の px)。 */
@@ -139,37 +163,53 @@ data class ImasCropRect(val left: Float, val top: Float, val width: Float, val h
 
 /**
  * 名刺の写真の切り抜き (iOS `ImasPortraitCrop`)。[zoom] は枠いっぱいに収めた大きさからの拡大 (1 以上)、
- * [centerX] / [centerY] は元の写真の中で枠の真ん中に来る点 (0〜1、左上が原点)。
+ * [centerX] / [centerY] は元の写真の中で枠の真ん中に来る点 (0〜1、左上が原点)。枠の形 ([Frame]) は持たないので、
+ * 前の 3:4 の切り抜きも正方形の枠で真ん中を保ったまま読み替えられる。
  */
 @Immutable
 data class ImasPortraitCrop(val zoom: Float = 1f, val centerX: Float = 0.5f, val centerY: Float = 0.5f) {
+    /** 切り抜く枠。 */
+    enum class Frame(
+        /** 枠の縦横比 (横 / 縦)。 */
+        val aspect: Float,
+        /** 書き出す大きさ (px)。 */
+        val outputWidth: Int,
+        val outputHeight: Int
+    ) {
+        /** P名刺の写真 (正方形。X のアイコンはこの枠に内接する丸で出す)。 */
+        CARD(1f, 1080, 1080),
+
+        /** プロフィール帳の証明写真の欄 (履歴書の様式の 3:4)。 */
+        RESUME(3f / 4f, 900, 1200)
+    }
+
     /** 元の写真 (px) の中で切り抜く四角。 */
-    fun rect(width: Float, height: Float): ImasCropRect {
+    fun rect(width: Float, height: Float, frame: Frame): ImasCropRect {
         if (width <= 0f || height <= 0f) return ImasCropRect(0f, 0f, 0f, 0f)
-        val baseW = min(width, height * ASPECT)
+        val baseW = min(width, height * frame.aspect)
         val w = baseW / zoom.coerceIn(1f, MAX_ZOOM)
-        val h = w / ASPECT
+        val h = w / frame.aspect
         val cx = (centerX * width).coerceIn(w / 2f, width - w / 2f)
         val cy = (centerY * height).coerceIn(h / 2f, height - h / 2f)
         return ImasCropRect(cx - w / 2f, cy - h / 2f, w, h)
     }
 
     /** 枠からはみ出さないように直した切り抜き。 */
-    fun clamped(width: Float, height: Float): ImasPortraitCrop {
+    fun clamped(width: Float, height: Float, frame: Frame): ImasPortraitCrop {
         if (width <= 0f || height <= 0f) return this
-        val r = rect(width, height)
+        val r = rect(width, height, frame)
         return ImasPortraitCrop(zoom.coerceIn(1f, MAX_ZOOM), r.centerX / width, r.centerY / height)
     }
 
-    /** 切り抜いた写真 (900×1200px)。 */
-    fun render(image: Bitmap): Bitmap? = runCatching {
-        val r = rect(image.width.toFloat(), image.height.toFloat())
+    /** 切り抜いた写真 ([Frame.outputWidth] × [Frame.outputHeight])。 */
+    fun render(image: Bitmap, frame: Frame): Bitmap? = runCatching {
+        val r = rect(image.width.toFloat(), image.height.toFloat(), frame)
         if (r.width <= 0f) return null
-        val out = Bitmap.createBitmap(OUTPUT_WIDTH, OUTPUT_HEIGHT, Bitmap.Config.ARGB_8888)
+        val out = Bitmap.createBitmap(frame.outputWidth, frame.outputHeight, Bitmap.Config.ARGB_8888)
         val src = Rect(r.left.roundToInt(), r.top.roundToInt(), (r.left + r.width).roundToInt(), (r.top + r.height).roundToInt())
         AndroidCanvas(out).apply {
             drawColor(android.graphics.Color.WHITE)
-            drawBitmap(image, src, RectF(0f, 0f, OUTPUT_WIDTH.toFloat(), OUTPUT_HEIGHT.toFloat()), Paint(Paint.FILTER_BITMAP_FLAG))
+            drawBitmap(image, src, RectF(0f, 0f, frame.outputWidth.toFloat(), frame.outputHeight.toFloat()), Paint(Paint.FILTER_BITMAP_FLAG))
         }
         out
     }.getOrNull()
@@ -177,12 +217,7 @@ data class ImasPortraitCrop(val zoom: Float = 1f, val centerX: Float = 0.5f, val
     fun toJson(): String = JSONObject().put("zoom", zoom.toDouble()).put("x", centerX.toDouble()).put("y", centerY.toDouble()).toString()
 
     companion object {
-        /** 枠の縦横比 (横 / 縦)。証明写真の 3:4。 */
-        const val ASPECT = 3f / 4f
         const val MAX_ZOOM = 5f
-        /** 書き出す大きさ (px)。 */
-        const val OUTPUT_WIDTH = 900
-        const val OUTPUT_HEIGHT = 1200
 
         fun fromJson(json: String): ImasPortraitCrop? = runCatching {
             val o = JSONObject(json)
@@ -191,20 +226,25 @@ data class ImasPortraitCrop(val zoom: Float = 1f, val centerX: Float = 0.5f, val
     }
 }
 
-/** 名刺の写真を枠に合わせる (iOS `ImasPortraitCropper`)。引いて動かし、つまんで広げる。枠の外は暗く沈めず、そのまま切る。 */
+/**
+ * 名刺の写真を枠に合わせる (iOS `ImasPortraitCropper`)。引いて動かし、つまんで広げる。枠の外は暗く沈めず、そのまま切る。
+ * [round] (X のアイコン) は枠 (正方形) に内接する丸で見せる (切り抜きそのものは枠の四角)。
+ */
 @Composable
 fun ImasPortraitCropper(
     image: Bitmap,
     crop: ImasPortraitCrop,
     onCropChange: (ImasPortraitCrop) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    frame: ImasPortraitCrop.Frame = ImasPortraitCrop.Frame.CARD,
+    round: Boolean = false
 ) {
     val bitmap = remember(image) { image.asImageBitmap() }
     val pxW = image.width.toFloat()
     val pxH = image.height.toFloat()
     val current by rememberUpdatedState(crop)
     val change by rememberUpdatedState(onCropChange)
-    val shape = RoundedCornerShape(DS.rInner)
+    val shape = if (round) CircleShape else RoundedCornerShape(DS.rInner)
     // iOS の @ScaledMetric(relativeTo: .body) 260。
     val maxWidth = with(LocalDensity.current) { 260.sp.toDp() }
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -212,31 +252,31 @@ fun ImasPortraitCropper(
             Modifier
                 .widthIn(max = maxWidth)
                 .fillMaxWidth()
-                .aspectRatio(ImasPortraitCrop.ASPECT)
+                .aspectRatio(frame.aspect)
                 .imasSurfaceEdge(shape)
                 .clip(shape)
                 .semantics {
                     contentDescription = "名刺の写真の位置。引いて動かし、2 本の指で広げます"
                     customActions = listOf(
-                        CustomAccessibilityAction("広げる") { change(current.copy(zoom = current.zoom + 0.25f).clamped(pxW, pxH)); true },
-                        CustomAccessibilityAction("縮める") { change(current.copy(zoom = current.zoom - 0.25f).clamped(pxW, pxH)); true }
+                        CustomAccessibilityAction("広げる") { change(current.copy(zoom = current.zoom + 0.25f).clamped(pxW, pxH, frame)); true },
+                        CustomAccessibilityAction("縮める") { change(current.copy(zoom = current.zoom - 0.25f).clamped(pxW, pxH, frame)); true }
                     )
                 }
                 .pointerInput(image) {
                     detectTransformGestures { _, pan, zoom, _ ->
                         val start = current
-                        val zoomed = start.copy(zoom = start.zoom * zoom).clamped(pxW, pxH)
-                        val r = zoomed.rect(pxW, pxH)
+                        val zoomed = start.copy(zoom = start.zoom * zoom).clamped(pxW, pxH, frame)
+                        val r = zoomed.rect(pxW, pxH, frame)
                         val scale = if (r.width > 0f) size.width / r.width else 1f
                         val next = zoomed.copy(
                             centerX = (r.centerX - pan.x / scale) / pxW,
                             centerY = (r.centerY - pan.y / scale) / pxH
                         )
-                        change(next.clamped(pxW, pxH))
+                        change(next.clamped(pxW, pxH, frame))
                     }
                 }
         ) {
-            val r = crop.rect(pxW, pxH)
+            val r = crop.rect(pxW, pxH, frame)
             if (r.width <= 0f) return@Canvas
             val s = size.width / r.width
             drawImage(

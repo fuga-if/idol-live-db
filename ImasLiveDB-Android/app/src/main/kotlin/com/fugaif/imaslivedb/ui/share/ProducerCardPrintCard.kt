@@ -93,8 +93,10 @@ fun ProducerCardPrintFront(
     handle: String? = null,
     /** 名前の書体 (コアのデザインの書体から引いたもの)。 */
     nameFamily: FontFamily? = null,
-    /** 名刺の写真 (右に証明写真の大きさで刷る)。 */
-    portrait: Bitmap? = null
+    /** 名刺の写真 (右に正方形の枠で刷る)。 */
+    portrait: Bitmap? = null,
+    /** 名刺の写真を丸く切る (X のアイコン)。 */
+    portraitRound: Boolean = false
 ) {
     val colors = ProducerCardPrint.colors(seed)
     ImasMeishiFront(
@@ -110,6 +112,7 @@ fun ProducerCardPrintFront(
         },
         oshiCaption = caption, moreOshi = moreOshi, handle = handle, nameFamily = nameFamily,
         portrait = portrait?.let { ImasMeishiPicture.Image(it) },
+        portraitRound = portraitRound,
         scale = ProducerCardPrint.PAPER_SCALE
     )
 }

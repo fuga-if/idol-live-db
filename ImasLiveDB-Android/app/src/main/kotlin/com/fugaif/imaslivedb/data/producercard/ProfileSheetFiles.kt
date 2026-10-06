@@ -9,6 +9,10 @@ import java.io.File
 import java.io.IOException
 import java.util.UUID
 import kotlin.math.max
+import uniffi.imas_core.CardPhotoShape
+import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.cardPhotoShape
+import uniffi.imas_core.cardPhotoSourceKey
 
 /**
  * プロフィール帳の証明写真の欄に入れる、プロフィール帳だけの画像 (P名刺の写真とは別)。iOS `ProfileSheetFiles` と対。
@@ -33,14 +37,23 @@ object ProfileSheetFiles {
         ImasPortraitCrop.fromJson(File(folder(context), "photo_crop.json").readText())
     }.getOrNull()
 
-    /** 書く (元・切り抜き・切り抜いた JPEG)。書けなければ投げる。 */
-    fun save(context: Context, source: Bitmap, crop: ImasPortraitCrop) {
-        val cropped = crop.render(source) ?: throw IOException("写真を切り抜けませんでした")
+    /** 写真の出どころ (写真から選んだ写真か X のアイコン)。 */
+    fun source(context: Context): CardPhotoSource =
+        ProducerCardFiles.readPhotoSource(File(folder(context), "photo_source_kind.txt"))
+
+    /** 切り抜く枠。X のアイコンは丸く出すので正方形で切り、証明写真の欄 (3:4) の中に丸く置く。 */
+    fun cropFrame(origin: CardPhotoSource): ImasPortraitCrop.Frame =
+        if (cardPhotoShape(origin) == CardPhotoShape.ROUND) ImasPortraitCrop.Frame.CARD else ImasPortraitCrop.Frame.RESUME
+
+    /** 書く (元・切り抜き・出どころ・切り抜いた JPEG)。書けなければ投げる。 */
+    fun save(context: Context, source: Bitmap, crop: ImasPortraitCrop, origin: CardPhotoSource) {
+        val cropped = crop.render(source, cropFrame(origin)) ?: throw IOException("写真を切り抜けませんでした")
         val photo = ProducerCardFiles.jpeg(cropped, maxPixels = 1600) ?: throw IOException("写真を書き出せませんでした")
         val original = ProducerCardFiles.jpeg(source, maxPixels = 3000) ?: throw IOException("写真を書き出せませんでした")
         val dir = folder(context).apply { mkdirs() }
         File(dir, "photo_source.jpg").writeBytes(original)
         File(dir, "photo_crop.json").writeText(crop.toJson())
+        File(dir, "photo_source_kind.txt").writeText(cardPhotoSourceKey(origin))
         val name = "photo-${UUID.randomUUID().toString().take(8)}.jpg"
         File(dir, name).writeBytes(photo)
         // 前の写真をすべて片付ける (2 つ残るとどちらが出るか決まらない)。
@@ -58,6 +71,12 @@ object ProfileSheetFiles {
     fun effectiveFile(context: Context): File? = photoFile(context) ?: ProducerCardFiles.myPhotoFile(context)
 
     fun effectiveUrl(context: Context): String? = effectiveFile(context)?.let { Uri.fromFile(it).toString() }
+
+    /** 証明写真の欄に入れる画像を丸く置くか (X のアイコン。切り方はコアの `cardPhotoShape`)。 */
+    fun effectiveRound(context: Context): Boolean {
+        val source = if (photoFile(context) != null) source(context) else ProducerCardFiles.myPhotoSource(context)
+        return cardPhotoShape(source) == CardPhotoShape.ROUND
+    }
 
     /** 切り抜く前の元を開く (長辺 3200px 程度まで間引く)。 */
     fun decodeSource(context: Context): Bitmap? = sourceFile(context)?.let { decodeBounded(it, 3200) }

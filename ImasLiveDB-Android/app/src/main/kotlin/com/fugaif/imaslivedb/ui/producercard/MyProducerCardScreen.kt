@@ -63,6 +63,7 @@ import uniffi.imas_core.CardDesign
 import uniffi.imas_core.EncodedProducerCard
 import uniffi.imas_core.cardQrLinkView
 import uniffi.imas_core.cardIssuedLabel
+import uniffi.imas_core.CardPhotoSource
 
 /**
  * 自分の P名刺。iOS `MyProducerCardView` の移植。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
@@ -91,6 +92,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
     var shareError by remember { mutableStateOf<String?>(null) }
     var qrMode by remember { mutableStateOf(QrMode.EXCHANGE) }
     var portraitUrl by remember { mutableStateOf<String?>(null) }
+    var portraitSource by remember { mutableStateOf(CardPhotoSource.PICKED) }
     var face by remember { mutableStateOf<ProducerCardFace?>(null) }
 
     suspend fun load() {
@@ -99,6 +101,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
         caseCount = repo.receivedCount()
         record = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull() ?: record
         portraitUrl = withContext(Dispatchers.IO) { ProducerCardFiles.myPhotoUrl(context) }
+        portraitSource = withContext(Dispatchers.IO) { ProducerCardFiles.myPhotoSource(context) }
         face = withContext(Dispatchers.IO) { ProducerCardDisplay.myFace(context) }
         val mine = myCard
         val rec = record
@@ -157,7 +160,8 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
                     // 名刺 1 枚。裏の QR は下の切り替え (交換用の QR / 自分の QR) と同じものを刷る。
                     val own = if (qrMode == QrMode.OWN) enc.card.qrUrl else null
                     val content = rememberProducerCardContent(
-                        card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
+                        card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl,
+                        portraitSource = portraitSource, face = face,
                         back = own?.let { ownQrBack(enc.card, it) }
                             ?: ImasProducerCardBack(
                                 qr = enc.url, issuedLabel = cardIssuedLabel(enc.card.issuedOn),

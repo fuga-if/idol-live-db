@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
+import uniffi.imas_core.CardPhotoSource
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.decodeProducerCard
 import uniffi.imas_core.producerCardCommon
@@ -164,7 +165,9 @@ fun ProducerCardReceiveContent(
                 if (card != null) {
                     val content = rememberProducerCardContent(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
-                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl, face = face, payload = incoming.payload
+                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl,
+                        portraitSource = images.firstOrNull { it.kind == CardFileImageKind.PHOTO }?.photoSource ?: CardPhotoSource.PICKED,
+                        face = face, payload = incoming.payload
                     )
                     ImasProducerCard(content)
                     ImasProducerCardDetails(content)

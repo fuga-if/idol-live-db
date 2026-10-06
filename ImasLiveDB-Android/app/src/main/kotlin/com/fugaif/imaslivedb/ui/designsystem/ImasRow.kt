@@ -113,10 +113,10 @@ sealed interface ImasRowLeading {
     ) : ImasRowLeading
 
     /**
-     * P名刺の写真 (証明写真の枠) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
+     * P名刺の写真 (正方形の枠。X のアイコンは [round] で丸) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
      * 担当が無ければ写真だけ。名刺入れの行。
      */
-    data class Portrait(val url: String, val oshi: ImasRowPortraitOshi? = null) : ImasRowLeading
+    data class Portrait(val url: String, val oshi: ImasRowPortraitOshi? = null, val round: Boolean = false) : ImasRowLeading
 
     /**
      * 自作の名刺の画像 (91:55 の枠に収めた小さな見本) と、その人の担当のアイコンを右下に重ねたもの。
@@ -436,7 +436,7 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
             entityId = leading.entityId
         )
         is ImasRowLeading.Portrait -> Box(Modifier.width(portraitLeadingWidth(density))) {
-            ImasCardPortrait(url = leading.url, modifier = Modifier.width(density.avatarSize * 0.9f))
+            ImasCardPortrait(url = leading.url, modifier = Modifier.width(density.avatarSize * 0.9f), round = leading.round)
             leading.oshi?.let { oshi ->
                 ImasAvatar(
                     label = oshi.label, seed = oshi.seed, brand = oshi.brand,

@@ -155,6 +155,7 @@ fun ReceivedCardDetailScreen(
                         card = c, directory = directory, sharedWith = myOshi,
                         imageUrl = { ProducerCardFiles.oshiImageUrl(context, r.id, it) },
                         portraitUrl = ProducerCardFiles.cardPhotoUrl(context, r.id),
+                        portraitSource = ProducerCardFiles.cardPhotoSource(context, r.id),
                         face = ProducerCardDisplay.receivedFace(context, r.id),
                         payload = r.payload
                     )

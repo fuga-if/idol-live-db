@@ -16,6 +16,11 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPortraitCrop
 import java.util.UUID
 import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
+import uniffi.imas_core.CardPhotoShape
+import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.cardPhotoShape
+import uniffi.imas_core.cardPhotoSourceFromKey
+import uniffi.imas_core.cardPhotoSourceKey
 
 /**
  * 名刺入れの画像ファイル (受け取った担当の画像・名刺の写真・紙の名刺の写真・自作の名刺の画像) と、
@@ -73,7 +78,14 @@ object ProducerCardFiles {
         for (image in images) {
             when (image.kind) {
                 CardFileImageKind.OSHI -> writeAtomically(oshiFile(context, cardId, image.idolId), image.jpeg)
-                CardFileImageKind.PHOTO -> writeCardPhoto(context, cardId, image.jpeg)
+                CardFileImageKind.PHOTO -> {
+                    writeCardPhoto(context, cardId, image.jpeg)
+                    // 写真の出どころ (X のアイコンなら丸く出す)。写真から選んだ写真は書かない (無ければ写真から選んだ写真)。
+                    val source = image.photoSource ?: CardPhotoSource.PICKED
+                    val file = cardPhotoSourceFile(context, cardId)
+                    if (source == CardPhotoSource.PICKED) file.delete()
+                    else writeAtomically(file, cardPhotoSourceKey(source).toByteArray())
+                }
                 CardFileImageKind.FACE_FRONT -> writeAtomically(faceFile(context, cardId, Side.FRONT), image.jpeg)
                 CardFileImageKind.FACE_BACK -> writeAtomically(faceFile(context, cardId, Side.BACK), image.jpeg)
             }
@@ -105,6 +117,19 @@ object ProducerCardFiles {
     fun cardPhotoUrl(context: Context, cardId: String): String? =
         cardPhotoFile(context, cardId)?.let { Uri.fromFile(it).toString() }
 
+    private fun cardPhotoSourceFile(context: Context, cardId: String): File = File(folder(context, cardId), "card_photo_source.txt")
+
+    /** 受け取った名刺の写真の出どころ (届いたまま。無ければ写真から選んだ写真)。 */
+    fun cardPhotoSource(context: Context, cardId: String): CardPhotoSource = readPhotoSource(cardPhotoSourceFile(context, cardId))
+
+    /** 受け取った名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。 */
+    fun cardPhotoRound(context: Context, cardId: String): Boolean =
+        cardPhotoShape(cardPhotoSource(context, cardId)) == CardPhotoShape.ROUND
+
+    /** 写真の出どころのキーのファイルを読む (キーの読み方はコア。無ければ写真から選んだ写真)。 */
+    fun readPhotoSource(file: File): CardPhotoSource =
+        cardPhotoSourceFromKey(runCatching { file.readText() }.getOrDefault(""))
+
     // ---- 自分の名刺の写真 ----
 
     private fun myFolder(context: Context): File = File(context.filesDir, MY_DIRECTORY_NAME)
@@ -122,17 +147,23 @@ object ProducerCardFiles {
     fun myPhotoSourceFile(context: Context): File? =
         File(myFolder(context), "photo_source.jpg").takeIf { it.exists() }
 
-    /** 切り抜きの位置と拡大。 */
+    /** 名刺の写真の出どころ (写真から選んだ写真か X のアイコン)。前の版で選んだ写真は写真から選んだ写真。 */
+    fun myPhotoSource(context: Context): CardPhotoSource = readPhotoSource(File(myFolder(context), "photo_source_kind.txt"))
+
+    /** 自分の名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。 */
+    fun myPhotoRound(context: Context): Boolean = cardPhotoShape(myPhotoSource(context)) == CardPhotoShape.ROUND
+
+    /** 切り抜きの位置と拡大。前の版の 3:4 の切り抜きも、正方形の枠で真ん中を保ったまま読み替える。 */
     fun myPhotoCrop(context: Context): ImasPortraitCrop? = runCatching {
         ImasPortraitCrop.fromJson(File(myFolder(context), "photo_crop.json").readText())
     }.getOrNull()
 
     /**
-     * 自分の名刺の写真を書く (元の写真・切り抜き・切り抜いた JPEG)。[writeSource] = false は位置を直しただけ
+     * 自分の名刺の写真を書く (元の写真・切り抜き・出どころ・切り抜いた正方形の JPEG)。[writeSource] = false は位置を直しただけ
      * (元の写真が残っていれば書き直さない。書き直すたびに JPEG の画質が落ちる)。書けなければ投げる。
      */
-    fun saveMyPhoto(context: Context, source: Bitmap, crop: ImasPortraitCrop, writeSource: Boolean = true) {
-        val cropped = crop.render(source) ?: throw IOException("名刺の写真を切り抜けませんでした")
+    fun saveMyPhoto(context: Context, source: Bitmap, crop: ImasPortraitCrop, origin: CardPhotoSource, writeSource: Boolean = true) {
+        val cropped = crop.render(source, ImasPortraitCrop.Frame.CARD) ?: throw IOException("名刺の写真を切り抜けませんでした")
         val photo = jpeg(cropped, maxPixels = 1600) ?: throw IOException("名刺の写真を書き出せませんでした")
         val dir = myFolder(context).apply { mkdirs() }
         val sourceFile = File(dir, "photo_source.jpg")
@@ -141,6 +172,7 @@ object ProducerCardFiles {
             writeAtomically(sourceFile, original)
         }
         writeAtomically(File(dir, "photo_crop.json"), crop.toJson().toByteArray())
+        writeAtomically(File(dir, "photo_source_kind.txt"), cardPhotoSourceKey(origin).toByteArray())
         val name = "photo-${UUID.randomUUID().toString().take(8)}.jpg"
         writeAtomically(File(dir, name), photo)
         // 前の写真は全部消す (途中で落ちて 2 枚残っていても、次の保存で 1 枚に戻る)。

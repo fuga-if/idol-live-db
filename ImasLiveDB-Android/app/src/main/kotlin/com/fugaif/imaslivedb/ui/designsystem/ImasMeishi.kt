@@ -63,7 +63,7 @@ import java.util.Locale
 // 画面は幅に合わせた倍率、紙に刷る画像は 1.5 倍の紙 (546×330) を 3 倍で焼く (1638×990px)。
 // 文字も紙の上の大きさで固定する (名刺は物。端末の文字の大きさに追わない。読み上げと大きな文字は名刺の下の詳細が受け持つ)。
 //
-// ImasMeishiFront  表。名前 (デザインの書体)・P歴・名刺の写真 (証明写真の枠)・担当 (判子か写真を
+// ImasMeishiFront  表。名前 (デザインの書体)・P歴・名刺の写真 (正方形の枠。X のアイコンは丸)・担当 (判子か写真を
 //                  ブランドごとにまとめて小さく並べ、下に「星井美希 担当」か、ブランドが 2 つ以上なら
 //                  まとまりごとにブランドの略称。並べる人・まとめ方・文言はコアの `producerCardFace`)・ハンドル 1 つ。
 //                  - 入場証 (PASS): 左に担当色の縦の帯。
@@ -179,7 +179,8 @@ private enum class MeishiFace(val family: FontFamily) {
  * @param moreOshi 数で畳んだ担当の人数 (「+2」)。
  * @param handle 右下に刷るハンドル (「@fuga_p」)。
  * @param nameFamily 名前の書体 (デザインの書体)。null は見出しの書体の極太。
- * @param portrait 名刺の写真 (右に証明写真の枠で)。
+ * @param portrait 名刺の写真 (右に正方形の枠で)。
+ * @param portraitRound 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
  */
 @Composable
 fun ImasMeishiFront(
@@ -194,10 +195,11 @@ fun ImasMeishiFront(
     handle: String? = null,
     nameFamily: FontFamily? = null,
     portrait: ImasMeishiPicture? = null,
+    portraitRound: Boolean = false,
     scale: Float = 1f
 ) {
     val p = rememberMeishiScale(scale)
-    val parts = MeishiFrontParts(name, ink, sinceImprint, oshiGroups, oshiCaption, moreOshi, handle, nameFamily, portrait, p)
+    val parts = MeishiFrontParts(name, ink, sinceImprint, oshiGroups, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
     Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(ink.paper)) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
@@ -217,6 +219,7 @@ private class MeishiFrontParts(
     val handle: String?,
     val nameFamily: FontFamily?,
     val portrait: ImasMeishiPicture?,
+    val portraitRound: Boolean,
     val p: MeishiScale
 )
 
@@ -390,16 +393,16 @@ private fun Footer(m: MeishiFrontParts, face: MeishiFace, weight: FontWeight) {
 }
 
 /**
- * 名刺の写真の証明写真の枠 (3:4)。枠の大きさを先に決め、写真はその上に重ねて切る
+ * 名刺の写真の正方形の枠 (X のアイコンは枠に内接する丸)。枠の大きさを先に決め、写真はその上に重ねて切る
  * (写真の比率で枠が膨らまないように。縦長の写真ではみ出したことがある)。
  */
 @Composable
 private fun Portrait(m: MeishiFrontParts, border: Color, width: Float) {
     val picture = m.portrait ?: return
     val p = m.p
-    val shape = RoundedCornerShape(p.dp(2f))
+    val shape = if (m.portraitRound) CircleShape else RoundedCornerShape(p.dp(2f))
     Box(
-        Modifier.size(p.dp(72f), p.dp(96f)).clip(shape).border(p.hair(width), border, shape)
+        Modifier.size(p.dp(84f)).clip(shape).border(p.hair(width), border, shape)
     ) { ImasMeishiPictureView(picture, Modifier.fillMaxSize()) }
 }
 

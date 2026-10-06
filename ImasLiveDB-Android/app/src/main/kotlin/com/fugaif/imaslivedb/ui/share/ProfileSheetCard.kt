@@ -328,7 +328,7 @@ private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
             }
             Box(Modifier.width(Ink.RULE.dp).fillMaxHeight().background(Ink.ink))
             Box(Modifier.fillMaxHeight().padding((10 * s).dp), contentAlignment = Alignment.Center) {
-                ProfilePhotoBox(if (layout.showPhoto) materials.portrait else null, 88 * s)
+                ProfilePhotoBox(if (layout.showPhoto) materials.portrait else null, materials.portraitRound, 88 * s)
             }
         }
     }
@@ -594,7 +594,7 @@ private fun ProfileOshiIcon(oshi: ProfileSheetOshi, size: Float) {
 
 /** 証明写真の欄 (3:4)。枠を先に決めてから写真を重ねて切る。写真が無ければ「写真をはる位置」を刷っておく。 */
 @Composable
-private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
+private fun ProfilePhotoBox(image: Bitmap?, round: Boolean, width: Float) {
     val height = width * 4 / 3
     Box(
         Modifier
@@ -616,7 +616,9 @@ private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
     ) {
         if (image != null) {
             val bitmap = remember(image) { image.asImageBitmap() }
-            Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            // X のアイコンは欄 (3:4) の中に丸く置く (欄の幅いっぱいの丸)。
+            val m = if (round) Modifier.size(width.dp).clip(CircleShape) else Modifier.fillMaxSize()
+            Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = m)
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("写真をはる位置", style = T.jp(7.5f, FontWeight.SemiBold), color = Ink.sub, textAlign = TextAlign.Center)

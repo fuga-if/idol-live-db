@@ -37,6 +37,8 @@ data class ProfileSheetMaterials(
     val oshi: List<ProfileSheetOshi> = emptyList(),
     /** 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。 */
     val portrait: Bitmap? = null,
+    /** 証明写真の欄の中に丸く置く (X のアイコン。切り方はコアの `cardPhotoShape`)。 */
+    val portraitRound: Boolean = false,
     /** 自分の QR の URL (P名刺に載せていれば)。 */
     val qrUrl: String? = null
 ) {
@@ -110,6 +112,7 @@ object ProfileSheetAssembler {
             record = record,
             oshi = oshi,
             portrait = portrait,
+            portraitRound = withContext(Dispatchers.IO) { ProfileSheetFiles.effectiveRound(context) },
             qrUrl = card.qrUrl
         )
     }

@@ -122,7 +122,8 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                             seed = face.oshiGroups.firstOrNull()?.idolIds?.firstOrNull()?.let { directory.idols[it]?.color },
                             handle = face.handle?.display,
                             nameFamily = nameFamily,
-                            portrait = materials.portrait
+                            portrait = materials.portrait,
+                            portraitRound = materials.portraitRound
                         )
                     }
                 }
@@ -183,6 +184,8 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
  */
 data class ProducerCardPrintMaterials(
     val portrait: Bitmap? = null,
+    /** 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。 */
+    val portraitRound: Boolean = false,
     val faceFront: Bitmap? = null,
     val faceBack: Bitmap? = null,
     /** 担当の写真 (アイドルの id → 画像)。 */
@@ -196,6 +199,7 @@ data class ProducerCardPrintMaterials(
                 val usesFace = ProducerCardDisplay.design(card, face).usesFaceImage
                 ProducerCardPrintMaterials(
                     portrait = ProducerCardFiles.myPhotoFile(context)?.let { ProfileSheetFiles.decodeBounded(it, 900) },
+                    portraitRound = ProducerCardFiles.myPhotoRound(context),
                     faceFront = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
                     faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
                     oshiImages = card.oshiIdolIds.mapNotNull { id ->

@@ -14,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
+import uniffi.imas_core.CardPhotoSource
 
 /** 名刺の画像の置き方 (iOS `ProducerCardStoreTests` の画像の部分と対)。 */
 @RunWith(RobolectricTestRunner::class)
@@ -89,14 +90,17 @@ class ProducerCardFilesTest {
         assertNull(ProducerCardFiles.myPhotoFile(context))
         val source = Bitmap.createBitmap(400, 300, Bitmap.Config.ARGB_8888)
         val crop = ImasPortraitCrop(zoom = 1.5f, centerX = 0.4f, centerY = 0.5f)
-        ProducerCardFiles.saveMyPhoto(context, source, crop)
+        ProducerCardFiles.saveMyPhoto(context, source, crop, CardPhotoSource.X_ICON)
         val first = ProducerCardFiles.myPhotoFile(context)
         assertNotNull(first)
         assertNotNull(ProducerCardFiles.myPhotoSourceFile(context))
         assertEquals(crop, ProducerCardFiles.myPhotoCrop(context))
+        assertEquals(CardPhotoSource.X_ICON, ProducerCardFiles.myPhotoSource(context))
+        assertEquals(true, ProducerCardFiles.myPhotoRound(context))
+        assertEquals(CardPhotoSource.X_ICON, ProducerCardAssembler.myPhotoImage(context)?.photoSource)
 
         // 書き直すと名前が変わり、前の写真は残らない (読み込みの控えが古い写真を出さない)。
-        ProducerCardFiles.saveMyPhoto(context, source, ImasPortraitCrop())
+        ProducerCardFiles.saveMyPhoto(context, source, ImasPortraitCrop(), CardPhotoSource.PICKED)
         val second = ProducerCardFiles.myPhotoFile(context)
         assertNotNull(second)
         assertEquals(false, first!!.exists())
@@ -104,5 +108,20 @@ class ProducerCardFilesTest {
         ProducerCardFiles.deleteMyPhoto(context)
         assertNull(ProducerCardFiles.myPhotoFile(context))
         assertNull(ProducerCardFiles.myPhotoCrop(context))
+        assertEquals("消したら写真から選んだ写真に戻る", CardPhotoSource.PICKED, ProducerCardFiles.myPhotoSource(context))
+    }
+
+    /** 届いた写真が X のアイコンなら出どころを残して丸く出し、写真から選んだ写真が届き直したら正方形に戻す。 */
+    @Test
+    fun receivedXIconPhotoIsRound() {
+        val jpeg = byteArrayOf(1, 2, 3)
+        ProducerCardFiles.saveImages(
+            context, "c1", listOf(CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO, photoSource = CardPhotoSource.X_ICON))
+        )
+        assertEquals(CardPhotoSource.X_ICON, ProducerCardFiles.cardPhotoSource(context, "c1"))
+        assertEquals(true, ProducerCardFiles.cardPhotoRound(context, "c1"))
+        ProducerCardFiles.saveImages(context, "c1", listOf(CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO)))
+        assertEquals(CardPhotoSource.PICKED, ProducerCardFiles.cardPhotoSource(context, "c1"))
+        assertEquals(false, ProducerCardFiles.cardPhotoRound(context, "c1"))
     }
 }

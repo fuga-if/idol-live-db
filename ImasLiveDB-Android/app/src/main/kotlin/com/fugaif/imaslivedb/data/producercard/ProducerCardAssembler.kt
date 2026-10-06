@@ -119,7 +119,8 @@ object ProducerCardAssembler {
     /** 自分の名刺の写真 (切り抜いた JPEG をそのまま。元の画質で渡す)。 */
     fun myPhotoImage(context: Context): CardFileImage? {
         val jpeg = ProducerCardFiles.myPhotoFile(context)?.let { runCatching { it.readBytes() }.getOrNull() } ?: return null
-        return CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO)
+        // 出どころも渡す (X のアイコンなら相手の端末でも丸く出る)。
+        return CardFileImage(idolId = "", jpeg = jpeg, kind = CardFileImageKind.PHOTO, photoSource = ProducerCardFiles.myPhotoSource(context))
     }
 
     /**

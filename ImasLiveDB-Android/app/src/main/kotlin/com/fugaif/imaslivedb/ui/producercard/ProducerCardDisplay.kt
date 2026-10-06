@@ -27,6 +27,9 @@ import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.cardQrLinkView
 import uniffi.imas_core.producerCardDisplayDesign
 import uniffi.imas_core.CardOshiEntry
+import uniffi.imas_core.CardPhotoShape
+import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.cardPhotoShape
 import uniffi.imas_core.cardIssuedLabel
 import uniffi.imas_core.producerCardFace
 import uniffi.imas_core.producerCardPayload
@@ -167,7 +170,7 @@ object ProducerCardDisplay {
 /**
  * 名刺 1 枚に載せるもの (自分の名刺・受け取った名刺で同じ部品)。名刺は [ImasProducerCard]、名刺の下の詳細は
  * [ImasProducerCardDetails] に同じものを渡す。iOS `ProducerCardDisplay.view`。
- * [portraitUrl] は名刺の写真、[face] は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は届いた画像。
+ * [portraitUrl] は名刺の写真 ([portraitSource] はその出どころ。X のアイコンは丸く出す)、[face] は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は届いた画像。
  * QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
  * [back] は裏の QR (渡さなければ交換用)。[payload] は受け取ったままの名刺の中身 (交換用の QR に使う。組み直すと、
  * 新しい版のアプリが足した項目を落とした QR になる)。
@@ -180,13 +183,14 @@ fun rememberProducerCardContent(
     ownImages: Boolean = false,
     imageUrl: (String) -> String? = { null },
     portraitUrl: String? = null,
+    portraitSource: CardPhotoSource = CardPhotoSource.PICKED,
     face: ProducerCardFace? = null,
     back: ImasProducerCardBack? = null,
     payload: String? = null
 ): ImasProducerCardContent {
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face))
     val photoEntityId = if (ownImages) firstWithImage(card, directory) else null
-    return remember(card, directory, sharedWith, ownImages, portraitUrl, face, back, payload, nameFamily, photoEntityId) {
+    return remember(card, directory, sharedWith, ownImages, portraitUrl, portraitSource, face, back, payload, nameFamily, photoEntityId) {
         val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrl)
         val cardFace = producerCardFace(card, directory.oshiEntries(oshi.map { it.id }))
         val byId = oshi.associateBy { it.id }
@@ -208,6 +212,7 @@ fun rememberProducerCardContent(
             photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
             photoEntityId = photoEntityId,
             portraitUrl = portraitUrl,
+            portraitRound = cardPhotoShape(portraitSource) == CardPhotoShape.ROUND,
             nameFamily = nameFamily,
             back = back ?: ImasProducerCardBack(
                 qr = producerCardUrlFromPayload(payload ?: producerCardPayload(card)),
