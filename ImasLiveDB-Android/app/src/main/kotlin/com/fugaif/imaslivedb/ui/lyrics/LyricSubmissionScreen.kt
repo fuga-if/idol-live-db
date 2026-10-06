@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fugaif.imaslivedb.data.lyrics.LyricSubmissionDrafts
@@ -131,12 +132,17 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
         isReading = true
         scope.launch {
             val images = uris.mapNotNull { PaperCardCodeReader.loadBitmap(context, it) }
-            val recognized = LyricsCardOcr.read(images)
+            val reading = LyricsCardOcr.read(images)
             isReading = false
-            if (recognized.isEmpty()) {
+            if (reading.text.isEmpty()) {
                 ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
             } else {
-                setText(lyricOcrAppend(text, recognized))
+                LyricSubmissionDrafts.update(song.id) {
+                    it.copy(
+                        text = lyricOcrAppend(it.text, reading.text),
+                        doubtfulLines = it.doubtfulLines + reading.doubtfulLines
+                    )
+                }
             }
         }
     }
@@ -197,7 +203,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     }
                 )
 
-                IssueNotes(check.lineCount, check.charCount, check.issues)
+                IssueNotes(check.lineCount, check.charCount, check.issues, draft.doubtfulLines)
 
                 ImasFormCard {
                     ImasFormToggle(
@@ -270,7 +276,8 @@ private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> 
             )
         }
         ImasStepList(
-            steps = lyricOcrSteps().map { ImasStep(title = it.title, detail = it.detail) },
+            // Android には iOS の「テキストをスキャン」(LiveTextCapture) に当たる機能が無い。
+            steps = lyricOcrSteps(liveText = false).map { ImasStep(title = it.title, detail = it.detail) },
             modifier = Modifier.padding(top = DS.Space.gapTight)
         )
         ImasText(
@@ -281,12 +288,25 @@ private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> 
     }
 }
 
-/** 行数・文字数と、コアが出した注意。送信を止める注意は朱で出す。 */
+/** 行数・文字数と、コアが出した注意。送信を止める注意は朱で出す。読み取りに自信の無い行があれば見直しを促す。 */
 @Composable
-private fun IssueNotes(lineCount: UInt, charCount: UInt, issues: List<LyricSubmissionIssue>) {
+private fun IssueNotes(
+    lineCount: UInt,
+    charCount: UInt,
+    issues: List<LyricSubmissionIssue>,
+    doubtfulLines: List<String>
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
         if (lineCount > 0u) {
             ImasText("$lineCount 行 · $charCount / ${lyricSubmissionMaxChars()} 字", ImasTextRole.NOTE)
+        }
+        if (doubtfulLines.isNotEmpty()) {
+            Text(
+                "読み取りに自信の無い行があります。歌詞カードと見比べてください:\n" +
+                    doubtfulLines.take(12).joinToString("\n") { "・$it" },
+                style = ImasTextRole.NOTE.style.copy(fontWeight = FontWeight.SemiBold),
+                color = DS.ink2
+            )
         }
         issues.forEach { issue ->
             if (issue != LyricSubmissionIssue.Empty) {

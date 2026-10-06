@@ -11,7 +11,12 @@ import androidx.compose.runtime.mutableStateMapOf
  */
 object LyricSubmissionDrafts {
 
-    data class Draft(val text: String = "", val agreed: Boolean = false)
+    data class Draft(
+        val text: String = "",
+        val agreed: Boolean = false,
+        /** 読み取りに自信の無かった行 (見直してもらうために出す)。 */
+        val doubtfulLines: List<String> = emptyList()
+    )
 
     private val drafts = mutableStateMapOf<String, Draft>()
 
