@@ -237,7 +237,7 @@ pub struct ProfileSheetRecord {
     pub attended: Vec<ProfileShowInput>,
     pub song_count: u32,
     pub brands: Vec<ProfileBrandInput>,
-    /// お気に入りの曲 (付けた新しい順。先頭から [`MAX_SONGS`] 曲を載せる)。
+    /// お気に入りの曲 (端末の並びのまま。先頭から [`MAX_SONGS`] 曲を載せる)。
     pub favorite_songs: Vec<ProfileSongInput>,
     /// 連絡先に出すリンク (`card_link_view` の display)。
     pub links: Vec<String>,
@@ -1070,14 +1070,21 @@ pub fn profile_auto_field_rows(
         .collect()
 }
 
-/// 載せる欄を 1 つ付け外しした選択。
+/// 載せる欄を 1 つ付け外しした選択。外した欄は編集画面の順に並べ直す (保存の形と同じ並びにして、
+/// 付けて外して戻しただけの選択が「変わった」に見えないように)。
 pub fn profile_toggle_field(sheet: &ProfileSheet, field: ProfileAutoField) -> ProfileSheet {
     let mut out = sheet.clone();
-    if out.hidden.contains(&field) {
-        out.hidden.retain(|f| *f != field);
-    } else {
-        out.hidden.push(field);
-    }
+    let hide = !out.hidden.contains(&field);
+    out.hidden = ALL_AUTO_FIELDS
+        .into_iter()
+        .filter(|f| {
+            if *f == field {
+                hide
+            } else {
+                sheet.hidden.contains(f)
+            }
+        })
+        .collect();
     out
 }
 
@@ -1608,8 +1615,8 @@ fn hand_ring(id: &str, nth: u32) -> ProfileHandRing {
         };
     }
     let g = fnv1a(&format!("{id}#{nth}"));
-    // 2 本目は傾きを 1 本目と逆向きに 4〜9 度ずらす (同じ向きだと 1 本の太い線に見える)。
-    let turn = 4.0 + f64::from(g % 6);
+    // 2 本目は傾きを 1 本目と逆向きに 6〜11 度ずらす (同じ向きだと 1 本の太い線に見える)。
+    let turn = 6.0 + f64::from(g % 6);
     let tilt = if base_tilt >= 0.0 {
         base_tilt - turn
     } else {
@@ -1619,9 +1626,9 @@ fn hand_ring(id: &str, nth: u32) -> ProfileHandRing {
         tilt_degrees: tilt,
         stretch: 0.96 + f64::from((g >> 8) % 17) / 100.0,
         start_degrees: f64::from((g >> 16) % 360),
-        scale: 1.12 + f64::from((g >> 4) % 7) / 100.0,
+        scale: 1.22 + f64::from((g >> 4) % 9) / 100.0,
         offset_x: (f64::from((g >> 12) % 9) - 4.0) / 100.0,
-        offset_y: (f64::from((g >> 20) % 9) - 4.0) / 100.0,
+        offset_y: (f64::from((g >> 20) % 21) - 10.0) / 100.0,
     }
 }
 
@@ -1962,6 +1969,18 @@ mod tests {
         let shown = profile_toggle_field(&sheet, ProfileAutoField::Qr);
         assert!(profile_sheet_layout(&shown, &record()).show_qr);
         assert_eq!(profile_toggle_field(&shown, ProfileAutoField::Qr), sheet);
+        // 外す順が違っても同じ選択になる (保存の形の並び)。
+        let mut a = profile_sheet_default();
+        a.hidden.clear();
+        let a = profile_toggle_field(
+            &profile_toggle_field(&a, ProfileAutoField::Qr),
+            ProfileAutoField::Photo,
+        );
+        assert_eq!(
+            a.hidden,
+            vec![ProfileAutoField::Photo, ProfileAutoField::Qr]
+        );
+        assert_eq!(profile_sheet_from_json(&profile_sheet_to_json(&a)), a);
     }
 
     #[test]
@@ -2183,16 +2202,16 @@ mod tests {
         assert_eq!(a, profile_brand_marks(&profile_sheet_default(), &rec));
         for m in &a {
             for (i, r) in m.rings.iter().enumerate() {
-                assert!((-18.0..=18.0).contains(&r.tilt_degrees));
+                assert!((-20.0..=20.0).contains(&r.tilt_degrees));
                 assert!((0.92..=1.13).contains(&r.stretch));
                 assert!((0.0..360.0).contains(&r.start_degrees));
                 assert!(
-                    (-0.04..=0.04).contains(&r.offset_x) && (-0.04..=0.04).contains(&r.offset_y)
+                    (-0.04..=0.04).contains(&r.offset_x) && (-0.1..=0.1).contains(&r.offset_y)
                 );
                 if i == 0 {
                     assert_eq!(r.scale, 1.0);
                 } else {
-                    assert!((1.12..=1.18).contains(&r.scale));
+                    assert!((1.22..=1.30).contains(&r.scale));
                     assert_ne!(r.tilt_degrees, m.rings[0].tilt_degrees);
                 }
             }
