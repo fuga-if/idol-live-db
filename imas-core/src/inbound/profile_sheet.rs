@@ -103,3 +103,8 @@ pub fn profile_toggle_brand(
 ) -> ProfileSheet {
     crate::domain::profile_sheet::profile_toggle_brand(&sheet, &record, &brand_id)
 }
+
+#[uniffi::export]
+pub fn profile_text_len(text: String) -> u32 {
+    crate::domain::profile_sheet::profile_text_len(&text)
+}

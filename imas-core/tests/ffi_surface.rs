@@ -127,6 +127,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_profile_sheet_layout,
     uniffi_imas_core_checksum_func_profile_brand_marks,
     uniffi_imas_core_checksum_func_profile_toggle_brand,
+    uniffi_imas_core_checksum_func_profile_text_len,
     uniffi_imas_core_checksum_func_build_mastery_groups,
     uniffi_imas_core_checksum_func_canonical_credit_key,
     uniffi_imas_core_checksum_func_ck_ingest_batch,

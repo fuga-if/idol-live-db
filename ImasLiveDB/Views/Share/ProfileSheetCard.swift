@@ -24,6 +24,9 @@ enum ProfileSheetInk {
     /// 欄の中の罫。
     static let rule: CGFloat = 1
 
+    /// QR の辺。詰め方で縮めない (焼いた画像を SNS が縮めても読めるように)。周りに紙の余白を足す。
+    static let qrSide: CGFloat = 52
+
     /// 題の書体 (同梱のポップ体)。
     static var titleFont: String { cardNameFontInfo(font: .pop).postscriptName }
 
@@ -220,7 +223,7 @@ private struct ProfileResumeBody: View {
                                     .minimumScaleFactor(0.7)
                                 Spacer(minLength: 0)
                                 if layout.showQr, let qr = materials.qr {
-                                    ProfileQR(image: qr, side: 40 * s)
+                                    ProfileQR(image: qr, side: ProfileSheetInk.qrSide)
                                 }
                             }
                         }
@@ -313,7 +316,7 @@ private struct ProfileCareerBody: View {
             }
             .fixedSize()
             if layout.showQr, let qr = materials.qr {
-                ProfileQR(image: qr, side: 52 * s)
+                ProfileQR(image: qr, side: ProfileSheetInk.qrSide)
             }
             if layout.showPhoto, let portrait = materials.portrait {
                 ProfilePhotoBox(image: portrait, width: 60 * s)
@@ -746,5 +749,7 @@ private struct ProfileQR: View {
             .scaledToFit()
             .foregroundStyle(ProfileSheetInk.ink)
             .frame(width: side, height: side)
+            .padding(4)
+            .background(ProfileSheetInk.paper)
     }
 }

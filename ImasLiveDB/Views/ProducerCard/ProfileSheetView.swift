@@ -62,10 +62,11 @@ struct ProfileSheetView: View {
 
     private func load() async {
         let mine = try? await AppContainer.shared.producerCards.myCard()
-        card = mine
+        // 材料を読み終えてから名刺を入れる (読み込み中に編集シートを空の材料で開かせない)。
         if let mine {
             materials = await ProfileSheetAssembler.load(card: mine, sheet: mine.profile)
         }
+        card = mine
         loaded = true
     }
 }

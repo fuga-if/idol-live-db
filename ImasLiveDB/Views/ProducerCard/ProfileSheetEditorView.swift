@@ -62,7 +62,7 @@ struct ProfileSheetEditorView: View {
                 ImasListSection("氏名", footer: "名前・写真・書体・リンク・自分の QR は P名刺のものです。") {
                     ImasValueRow(key: "名前", value: card.name)
                     ImasTextFieldRow(title: "ふりがな", text: $sheet.furigana, prompt: "ふがぴー",
-                                     error: sheet.furigana.count > Int(limits.maxFuriganaChars)
+                                     error: profileTextLen(text: sheet.furigana) > limits.maxFuriganaChars
                                         ? profileSheetErrorMessage(error: .furiganaTooLong) : nil)
                 }
                 answersSection.id("answers")
@@ -122,7 +122,8 @@ struct ProfileSheetEditorView: View {
                 let info = profileQuestionInfo(question: answer.question)
                 ImasQuestionField(number: index + 1, prompt: $answer.prompt, defaultPrompt: info.prompt,
                                   answer: $answer.text, placeholder: info.placeholder,
-                                  promptLimit: Int(limits.maxPromptChars), answerLimit: Int(limits.maxAnswerChars))
+                                  promptLimit: Int(limits.maxPromptChars), answerLimit: Int(limits.maxAnswerChars),
+                                  measure: { Int(profileTextLen(text: $0)) })
             }
             .onMove { answers.move(fromOffsets: $0, toOffset: $1) }
             .onDelete { answers.remove(atOffsets: $0) }

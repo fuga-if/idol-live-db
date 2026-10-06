@@ -948,7 +948,12 @@ pub fn profile_sheet_layout(
                         let count = past.iter().filter(|(pd, _)| pd.year() == d.year()).count();
                         career.push(ProfileCareerYear {
                             year,
-                            count_label: format!("{count}公演"),
+                            // 予定しかない年は数を出さない (「0公演」にしない)。
+                            count_label: if count == 0 {
+                                String::new()
+                            } else {
+                                format!("{count}公演")
+                            },
                             rows: Vec::new(),
                         });
                     }
@@ -1020,19 +1025,41 @@ pub fn profile_sheet_layout(
     }
 
     // 中身の量の見積もり: 欄の項目 (見出し 1 行 + 本文の折り返し) と表の行。
-    let entry_lines: u32 = sections
+    // 履歴書の趣味・特技と本人希望記入欄は左右に半分ずつ並ぶので、1 行に入る字も半分。
+    // 横に並ぶ欄は高い方に揃うので、2 つのうち多い方を数える。改行はそこで行を変える。
+    let section_lines = |s: &ProfileSection| -> u32 {
+        let half = style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation;
+        let per_line = if half {
+            CHARS_PER_LINE / 2
+        } else {
+            CHARS_PER_LINE
+        };
+        1 + s
+            .entries
+            .iter()
+            .map(|e| {
+                let label = u32::from(!e.label.is_empty());
+                let body: u32 = e
+                    .text
+                    .split('\n')
+                    .map(|l| char_len(l).div_ceil(per_line).max(1) as u32)
+                    .sum();
+                label + body
+            })
+            .sum::<u32>()
+    };
+    let full: u32 = sections
         .iter()
-        .map(|s| {
-            1 + s
-                .entries
-                .iter()
-                .map(|e| {
-                    let chars = char_len(&e.label) + char_len(&e.text) + 1;
-                    chars.div_ceil(CHARS_PER_LINE).max(1) as u32
-                })
-                .sum::<u32>()
-        })
+        .filter(|s| !(style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation))
+        .map(section_lines)
         .sum();
+    let paired: u32 = sections
+        .iter()
+        .filter(|s| style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation)
+        .map(section_lines)
+        .max()
+        .unwrap_or(0);
+    let entry_lines = full + paired;
     let table_lines = (history.len() + licenses.len()) as u32
         + career.iter().map(|y| 1 + y.rows.len() as u32).sum::<u32>();
     let load = entry_lines + table_lines;
@@ -1213,19 +1240,19 @@ pub fn profile_toggle_brand(
     record: &ProfileSheetRecord,
     brand_id: &str,
 ) -> ProfileSheet {
-    let mut out = sheet.clone();
+    let checked = profile_brand_marks(sheet, record)
+        .iter()
+        .any(|b| b.id == brand_id && b.checked);
     let auto = record_brand_ids(record).contains(brand_id);
-    let id = brand_id.to_string();
-    if auto {
-        if let Some(i) = out.brand_off.iter().position(|b| *b == id) {
-            out.brand_off.remove(i);
-        } else {
-            out.brand_off.push(id);
-        }
-    } else if let Some(i) = out.brand_on.iter().position(|b| *b == id) {
-        out.brand_on.remove(i);
-    } else {
-        out.brand_on.push(id);
+    let mut out = sheet.clone();
+    // 前に決めた分を両方から消し、今の記録に対して要る方にだけ入れる
+    // (記録が後から変わっても、最後に押した向きが残る)。
+    out.brand_on.retain(|b| b != brand_id);
+    out.brand_off.retain(|b| b != brand_id);
+    match (checked, auto) {
+        (true, true) => out.brand_off.push(brand_id.to_string()),
+        (false, false) => out.brand_on.push(brand_id.to_string()),
+        _ => {}
     }
     out
 }
@@ -1246,6 +1273,12 @@ fn parse_date(s: &str) -> Option<NaiveDate> {
 
 fn char_len(s: &str) -> usize {
     s.chars().count()
+}
+
+/// 上限と比べる文字数 (前後の空白・改行を除く)。編集画面の「12 / 80」もこれで数える
+/// (画面とコアで数え方が違うと、上限内に見えるのに保存できない)。
+pub fn profile_text_len(text: &str) -> u32 {
+    char_len(text.trim()) as u32
 }
 
 // ---------------------------------------------------------------------------
@@ -1616,6 +1649,16 @@ mod tests {
         assert!(!marks[3].checked);
 
         // 記録から付く丸を外す・記録に無い丸を付ける。もう一度押すと戻る。
+        // 記録に無いのに付けた丸を、記録が付いた後で外し、記録がまた消えても外したまま。
+        let mut later = rec.clone();
+        later.oshi_brand_ids.push("sm".into());
+        let picked = profile_toggle_brand(&sheet, &rec, "sm");
+        let dropped = profile_toggle_brand(&picked, &later, "sm");
+        assert!(!profile_brand_marks(&dropped, &rec)
+            .iter()
+            .any(|b| b.id == "sm" && b.checked));
+        assert!(profile_text_len("  あ👍 \n") == 2);
+
         let off = profile_toggle_brand(&sheet, &rec, "cg");
         assert_eq!(off.brand_off, vec!["cg"]);
         let on = profile_toggle_brand(&off, &rec, "sm");

@@ -19,6 +19,8 @@ struct ImasQuestionField: View {
     var placeholder: String = ""
     var promptLimit: Int? = nil
     var answerLimit: Int? = nil
+    /// 上限と比べる数え方 (検査と同じ数え方を画面から渡す。既定は前後の空白を除いた字数)。
+    var measure: (String) -> Int = { $0.trimmingCharacters(in: .whitespacesAndNewlines).count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapTight) {
@@ -27,8 +29,8 @@ struct ImasQuestionField: View {
                 TextField(defaultPrompt, text: $prompt)
                     .imasText(.rowLabel)
                     .accessibilityLabel("質問 \(number)")
-                if let promptLimit, prompt.count > promptLimit {
-                    Text("\(prompt.count) / \(promptLimit)").imasText(.note, color: DS.danger)
+                if let promptLimit, measure(prompt) > promptLimit {
+                    Text("\(measure(prompt)) / \(promptLimit)").imasText(.note, color: DS.danger)
                 }
             }
             TextField(placeholder, text: $answer, axis: .vertical)
@@ -36,7 +38,7 @@ struct ImasQuestionField: View {
                 .imasText(.body)
                 .accessibilityLabel(prompt.isEmpty ? defaultPrompt : prompt)
             if let answerLimit {
-                let count = answer.trimmingCharacters(in: .whitespacesAndNewlines).count
+                let count = measure(answer)
                 Text("\(count) / \(answerLimit)")
                     .imasText(.note, color: count > answerLimit ? DS.danger : DS.ink3)
                     .monospacedDigit()

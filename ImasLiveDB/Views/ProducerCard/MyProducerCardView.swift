@@ -61,7 +61,12 @@ struct MyProducerCardView: View {
         }
         .sheet(item: $editing) { card in
             ProducerCardEditorView(card: card, record: record) { saved in
-                try await AppContainer.shared.producerCards.saveMyCard(saved)
+                // 名刺の欄だけを今の行に重ねる (プロフィール帳は別の画面で書くので、開いた時の古い中身で戻さない)。
+                var row = saved
+                if let latest = try await AppContainer.shared.producerCards.myCard() {
+                    row.profileJson = latest.profileJson
+                }
+                try await AppContainer.shared.producerCards.saveMyCard(row)
                 await load()
             }
         }
