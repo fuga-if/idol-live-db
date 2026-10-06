@@ -249,6 +249,27 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         lastWasAdjust = false
     }
 
+    /**
+     * 次に記録するものを 1 つ前 / 後ろへ (上下の矢印)。空行は飛ばす。端では止まる。
+     * 最後まで記録し終えた (次が無い) ときに前へ戻すと、最後のものを指す。
+     */
+    fun stepCursor(delta: Int) {
+        when (lane) {
+            Lane.LINES -> {
+                val recordable = lineIds.indices.filter { isRecordable(lineIds[it]) }
+                if (recordable.isEmpty()) return
+                val at = cursor?.let { recordable.indexOf(it).takeIf { i -> i >= 0 } } ?: recordable.size
+                cursor = recordable[(at + delta).coerceIn(0, recordable.size - 1)]
+            }
+            Lane.CALLS -> {
+                if (callIds.isEmpty()) return
+                callCursor = ((callCursor ?: callIds.size) + delta).coerceIn(0, callIds.size - 1)
+            }
+            Lane.PARTS -> return
+        }
+        lastWasAdjust = false
+    }
+
     /** 次に記録する行に、もう時刻が入っているか (押すと上書きになる)。 */
     val cursorOverwrites: Boolean
         get() = when (lane) {

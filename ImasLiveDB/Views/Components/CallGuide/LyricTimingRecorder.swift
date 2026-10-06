@@ -263,6 +263,24 @@ final class LyricTimingRecorder: Identifiable {
         lastWasAdjust = false
     }
 
+    /// 次に記録するものを 1 つ前 / 後ろへ (上下の矢印)。空行は飛ばす。端では止まる。
+    /// 最後まで記録し終えた (次が無い) ときに前へ戻すと、最後のものを指す。
+    func stepCursor(by delta: Int) {
+        switch lane {
+        case .lines:
+            let recordable = lineIds.indices.filter { isRecordable(lineIds[$0]) }
+            guard !recordable.isEmpty else { return }
+            let at = cursor.flatMap { recordable.firstIndex(of: $0) } ?? recordable.count
+            cursor = recordable[min(max(at + delta, 0), recordable.count - 1)]
+        case .calls:
+            guard !callIds.isEmpty else { return }
+            callCursor = min(max((callCursor ?? callIds.count) + delta, 0), callIds.count - 1)
+        case .parts:
+            return
+        }
+        lastWasAdjust = false
+    }
+
     /// 次に記録する行に、もう時刻が入っているか (押すと上書きになる)。
     var cursorOverwrites: Bool {
         switch lane {
