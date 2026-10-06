@@ -72,6 +72,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 import uniffi.imas_core.CardNameFont
 import uniffi.imas_core.ProfileBrandCheck
+import uniffi.imas_core.ProfileHandRing
+import uniffi.imas_core.ProfileStat
 import uniffi.imas_core.ProfileCareerRow
 import uniffi.imas_core.ProfileEntry
 import uniffi.imas_core.ProfileHistoryKind
@@ -259,13 +261,13 @@ private fun ProfileResumeBody(
         }
         // 志望の動機は横いっぱい、趣味・特技と本人希望記入欄は左右に並べる (様式の欄の並び)。
         layout.sections.filter { it.slot == ProfileSlot.MOTIVATION }.forEach { section ->
-            ProfileBox { ProfileSectionView(section, fonts, s) }
+            ProfileBox { ProfileSectionView(section, s) }
         }
         val pair = layout.sections.filter { it.slot != ProfileSlot.MOTIVATION }
         if (pair.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy((8 * s).dp)) {
                 pair.forEach { section ->
-                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, fonts, s) }
+                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, s) }
                 }
             }
         }
@@ -278,13 +280,6 @@ private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
     ProfileBox {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             Column(Modifier.weight(1f)) {
-                ProfileField("ふりがな", s) {
-                    Text(
-                        layout.furigana.ifEmpty { " " }, style = ProfileSheetInk.sans(10.5f * s, FontWeight.Medium),
-                        color = ProfileSheetInk.ink, maxLines = 1
-                    )
-                }
-                ProfileRule()
                 ProfileField("氏名", s) {
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = (2 * s).dp),
@@ -349,7 +344,8 @@ private fun ProfileCareerBody(
         CareerIdentity(layout, materials, fonts, s)
         layout.sections.filter { it.slot == ProfileSlot.SUMMARY }.forEach { section ->
             ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileEntries(section.entries, fonts, s)
+            ProfileStats(section.stats, s)
+            ProfileEntries(section.entries, s)
         }
         if (layout.career.isNotEmpty()) {
             ProfileHeadline("職務経歴", "CAREER", accent, s)
@@ -363,7 +359,8 @@ private fun ProfileCareerBody(
         }
         layout.sections.filter { it.slot != ProfileSlot.SUMMARY }.forEach { section ->
             ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileEntries(section.entries, fonts, s)
+            ProfileStats(section.stats, s)
+            ProfileEntries(section.entries, s)
         }
         Text(
             "以上", style = ProfileSheetInk.sans(11 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
@@ -392,9 +389,6 @@ private fun CareerIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
             }
         }
         Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            if (layout.furigana.isNotEmpty()) {
-                Text(layout.furigana, style = ProfileSheetInk.sans(9.5f * s, FontWeight.Medium), color = ProfileSheetInk.sub, maxLines = 1)
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("氏名", style = ProfileSheetInk.sans(9 * s, FontWeight.Bold), color = ProfileSheetInk.sub)
                 Text(layout.name, style = ProfileSheetInk.named(fonts.name, 26 * s), color = ProfileSheetInk.ink, maxLines = 1)
@@ -553,7 +547,7 @@ private fun ProfileHistoryColumns(
 
 /** 欄 (題と、質問・答えの並び)。 */
 @Composable
-private fun ProfileSectionView(section: ProfileSection, fonts: ProfileFonts, s: Float) {
+private fun ProfileSectionView(section: ProfileSection, s: Float) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = (6 * s).dp),
         verticalArrangement = Arrangement.spacedBy((4 * s).dp)
@@ -565,25 +559,41 @@ private fun ProfileSectionView(section: ProfileSection, fonts: ProfileFonts, s: 
                 maxLines = 1, modifier = Modifier.alignByBaseline()
             )
         }
-        ProfileEntries(section.entries, fonts, s)
+        ProfileStats(section.stats, s)
+        ProfileEntries(section.entries, s)
     }
 }
 
-/** 質問 (印字の小さな字) と答え (P名刺の書体)。自動の項目は印字で。 */
+/** 実績の数字を 1 列に (大きな数字 + 単位、下に名前)。 */
 @Composable
-private fun ProfileEntries(entries: List<ProfileEntry>, fonts: ProfileFonts, s: Float) {
+private fun ProfileStats(stats: List<ProfileStat>, s: Float) {
+    if (stats.isEmpty()) return
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy((14 * s).dp)) {
+        stats.forEach { stat ->
+            Column {
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontSize = (20 * s).sp, fontWeight = FontWeight.Black)) { append(stat.value) }
+                        withStyle(SpanStyle(fontSize = (9 * s).sp, fontWeight = FontWeight.Bold)) { append(stat.unit) }
+                    },
+                    color = ProfileSheetInk.ink, maxLines = 1
+                )
+                Text(stat.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
+            }
+        }
+    }
+}
+
+/** 項目の見出し (印字の小さな字) と中身。 */
+@Composable
+private fun ProfileEntries(entries: List<ProfileEntry>, s: Float) {
     Column(verticalArrangement = Arrangement.spacedBy((4 * s).dp)) {
         entries.forEach { entry ->
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 if (entry.label.isNotEmpty()) {
                     Text(entry.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub)
                 }
-                Text(
-                    entry.text,
-                    style = if (entry.isAuto) ProfileSheetInk.sans(11 * s, FontWeight.SemiBold)
-                    else ProfileSheetInk.named(fonts.name, 12.5f * s),
-                    color = ProfileSheetInk.ink
-                )
+                Text(entry.text, style = ProfileSheetInk.sans(11 * s, FontWeight.SemiBold), color = ProfileSheetInk.ink)
             }
         }
     }
@@ -619,7 +629,7 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
             verticalArrangement = Arrangement.spacedBy((8 * s).dp)
         ) {
             brands.forEach { brand ->
-                val circle = if (brand.checked) profileAccent(brand.color) else null
+                val circle = if (brand.rings.isNotEmpty()) profileAccent(brand.color) else null
                 Text(
                     brand.label,
                     style = ProfileSheetInk.sans(10.5f * s, FontWeight.Bold),
@@ -628,7 +638,9 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
                     modifier = Modifier
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                         .drawBehind {
-                            if (circle != null) drawHandCircle(brand, circle, padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx())
+                            if (circle != null) brand.rings.forEach { ring ->
+                                drawHandRing(ring, circle, padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx())
+                            }
                         }
                 )
             }
@@ -637,22 +649,22 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
 }
 
 /**
- * 手描きの丸 (iOS `ProfileHandCircle`)。少し傾け、横に伸び縮みさせ、書き終わりを行き過ぎて重ねる。
- * 揺らぎはコアが id から決める。[padX] / [padY] だけ文字の外に広げて描く。
+ * 手描きの楕円 1 本 (iOS `ProfileHandCircle`)。少し傾け、横に伸び縮みさせ、書き終わりを行き過ぎて重ねる。
+ * 揺らぎ・大きさ・中心のずれはコアが id から決める (メインは 2 本で二重丸)。[padX] / [padY] だけ文字の外に広げて描く。
  */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandCircle(
-    brand: ProfileBrandCheck,
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
+    ring: ProfileHandRing,
     color: Color,
     padX: Float,
     padY: Float
 ) {
-    val w = size.width + padX * 2
-    val h = size.height + padY * 2
-    val cx = size.width / 2
-    val cy = size.height / 2
-    val rx = w / 2 * brand.stretch
+    val w = (size.width + padX * 2) * ring.scale
+    val h = (size.height + padY * 2) * ring.scale
+    val cx = (size.width / 2 + size.width * ring.offsetX).toFloat()
+    val cy = (size.height / 2 + size.height * ring.offsetY).toFloat()
+    val rx = w / 2 * ring.stretch
     val ry = h / 2.0
-    val a0 = brand.startDegrees * PI / 180
+    val a0 = ring.startDegrees * PI / 180
     val sweep = 2 * PI + 0.5
     val steps = 72
     val path = Path()
@@ -665,7 +677,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandCircle(
         val y = (cy + ry * r * sin(a)).toFloat()
         if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
     }
-    rotate(brand.tiltDegrees.toFloat(), pivot = Offset(cx, cy)) {
+    rotate(ring.tiltDegrees.toFloat(), pivot = Offset(cx, cy)) {
         drawPath(path, color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }

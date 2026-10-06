@@ -5,13 +5,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
-import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileBrandInput
-import uniffi.imas_core.ProfileSheet
+import uniffi.imas_core.ProfileLiveRecord
 import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
 import uniffi.imas_core.ProfileSongInput
@@ -45,26 +44,19 @@ data class ProfileSheetMaterials(
     val portrait: Bitmap? = null,
     /** 自分の QR の URL (P名刺に載せていれば)。 */
     val qrUrl: String? = null,
-    /** 答え・名前の書体 (P名刺の書体のファイルの名前)。 */
-    val nameFont: String = cardNameFonts().first().fileStem,
-    /** 好きな曲を選ぶ候補 (お気に入りの曲)。 */
-    val favoriteCandidates: List<Song> = emptyList(),
-    /** 好きな曲の題 (id → 題)。 */
-    val songTitles: Map<String, String> = emptyMap()
+    /** 名前の書体 (P名刺の書体のファイルの名前)。 */
+    val nameFont: String = cardNameFonts().first().fileStem
 ) {
-    /** 好きな曲を選び直したら、題を引き直さずに材料へ反映する。 */
-    fun withFavoriteSongIds(ids: List<String>): ProfileSheetMaterials = copy(
-        record = record.copy(favoriteSongs = ids.mapNotNull { id -> songTitles[id]?.let { ProfileSongInput(id, it) } })
-    )
-
     /** 担当の色 (帯・罫・押印の判子)。担当がいなければ null (墨)。 */
     val seed: String? get() = oshi.firstOrNull()?.color
 
     companion object {
         val EMPTY = ProfileSheetMaterials(
             record = ProfileSheetRecord(
-                today = "", name = "", sinceYear = null, oshiBrandIds = emptyList(), attended = emptyList(),
-                songCount = 0u, brands = emptyList(), favoriteSongs = emptyList(), links = emptyList()
+                today = "", name = "", sinceYear = null, oshiNames = emptyList(), oshiBrandIds = emptyList(),
+                attended = emptyList(), songCount = 0u, brands = emptyList(), favoriteSongs = emptyList(),
+                links = emptyList(), hasPhoto = false, hasQr = false,
+                live = ProfileLiveRecord(emptyList(), emptyList(), null, 0u)
             )
         )
     }
@@ -72,7 +64,7 @@ data class ProfileSheetMaterials(
 
 /** プロフィール帳の材料を集める。iOS `ProfileSheetAssembler` と対 (並びと除外はコア)。 */
 object ProfileSheetAssembler {
-    suspend fun load(context: Context, module: AppModule, card: MyProducerCard, sheet: ProfileSheet): ProfileSheetMaterials {
+    suspend fun load(context: Context, module: AppModule, card: MyProducerCard): ProfileSheetMaterials {
         val limits = producerCardLimits()
         val marks = module.userMarkRepository
         val oshiIds = runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList()).take(limits.maxOshi.toInt())
@@ -87,12 +79,16 @@ object ProfileSheetAssembler {
         val idolById = idols.associateBy { it.id }
         val oshiIdols = oshiIds.mapNotNull { idolById[it] }
 
-        // 好きな曲の候補はお気に入りの曲 (選んだ曲がお気に入りから外れていても題は引く)。
+        // お気に入りの曲は付けた新しい順に全部 (載せる曲数はコア)。
         val favoriteIds = runCatching { marks.favoriteSongIdList() }.getOrDefault(emptyList())
-        val songIds = (favoriteIds + sheet.favoriteSongIds).distinct()
-        val songs = if (songIds.isEmpty()) emptyList()
-        else runCatching { module.songRepository.fetchSongsByIds(songIds) }.getOrDefault(emptyList())
-        val songById = songs.associateBy { it.id }
+        val songById = if (favoriteIds.isEmpty()) emptyMap()
+        else runCatching { module.songRepository.fetchSongsByIds(favoriteIds) }.getOrDefault(emptyList()).associateBy { it.id }
+        val today = JstDay.today()
+        // 参加した公演のセトリ・会場から数えた記録 (数え方はコア)。
+        val live = runCatching {
+            module.snapshotStoreProvider.loadedStore()
+                .profileLiveRecord(attendedRefs.map { it.showId }, oshiIdols.map { it.id }, today)
+        }.getOrDefault(ProfileSheetMaterials.EMPTY.record.live)
 
         val (oshi, portrait) = withContext(Dispatchers.IO) {
             oshiIdols.map { idol ->
@@ -105,9 +101,10 @@ object ProfileSheetAssembler {
         }
 
         val record = ProfileSheetRecord(
-            today = JstDay.today(),
+            today = today,
             name = card.name,
             sinceYear = card.sinceYear?.takeIf { it in 0..65535 }?.toUShort(),
+            oshiNames = oshiIdols.map { it.name },
             oshiBrandIds = oshiIdols.map { it.brandId },
             attended = attendedRefs.mapNotNull { ref ->
                 val info = shows[ref.showId] ?: return@mapNotNull null
@@ -115,18 +112,19 @@ object ProfileSheetAssembler {
             },
             songCount = songCount.toUInt(),
             brands = brands.map { ProfileBrandInput(it.id, it.shortName, it.color, it.sortOrder.toLong()) },
-            favoriteSongs = emptyList(),
-            links = card.links.map { cardLinkView(it).display }
+            favoriteSongs = favoriteIds.mapNotNull { id -> songById[id]?.let { ProfileSongInput(id, it.title) } },
+            links = card.links.map { cardLinkView(it).display },
+            hasPhoto = portrait != null,
+            hasQr = card.qrUrl != null,
+            live = live
         )
         return ProfileSheetMaterials(
             record = record,
             oshi = oshi,
             portrait = portrait,
             qrUrl = card.qrUrl,
-            nameFont = cardNameFontInfo(card.font).fileStem,
-            favoriteCandidates = favoriteIds.mapNotNull { songById[it] },
-            songTitles = songById.mapValues { it.value.title }
-        ).withFavoriteSongIds(sheet.favoriteSongIds)
+            nameFont = cardNameFontInfo(card.font).fileStem
+        )
     }
 
     private fun decode(file: File): Bitmap? = runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull()

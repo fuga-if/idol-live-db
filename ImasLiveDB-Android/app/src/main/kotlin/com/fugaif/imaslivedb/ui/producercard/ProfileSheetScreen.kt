@@ -80,7 +80,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     suspend fun load() {
         val mine = module.producerCardRepository.myCard()
         // 材料を読み終えてから名刺を入れる (読み込み中に編集シートを空の材料で開かせない)。
-        if (mine != null) materials = ProfileSheetAssembler.load(context, module, mine, mine.profile)
+        if (mine != null) materials = ProfileSheetAssembler.load(context, module, mine)
         card = mine
         loaded = true
     }
