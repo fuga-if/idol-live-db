@@ -14,19 +14,16 @@ actor LyricSubmissionAPI {
     private init() {}
 
     private struct Body: Encodable {
-        let sourceKind: String
-        let sourceNote: String?
-        let attestedNoCopy: Bool
+        let agreedToGuideline: Bool
         let text: String
     }
 
-    func submit(songId: String, source: LyricSourceKind, sourceNote: String?, text: String) async throws {
+    func submit(songId: String, text: String) async throws {
         do {
             try await client.requestVoid(
                 "POST",
                 path: "/songs/\(songId)/lyric-submissions",
-                body: Body(sourceKind: lyricSourceKey(kind: source), sourceNote: sourceNote,
-                           attestedNoCopy: true, text: text),
+                body: Body(agreedToGuideline: true, text: text),
                 authorized: true
             )
         } catch {

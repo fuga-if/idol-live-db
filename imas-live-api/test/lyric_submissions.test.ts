@@ -16,27 +16,27 @@ describe("POST /songs/:id/lyric-submissions", () => {
   it("整えた本文を確認待ちで預かり、応答に本文を返さない", async () => {
     const r = await callJson("POST", "/songs/s1/lyric-submissions", {
       headers: await bearer(UID),
-      body: { source_kind: "booklet", source_note: " 初回限定盤 ", attested_no_copy: true, text: "\r\nきらめく \r\n\n\n\nステージ\n\n" },
+      body: { agreed_to_guideline: true, text: "\r\nきらめく \r\n\n\n\nステージ\n\n" },
     });
     expect(r.status).toBe(201);
     expect(r.body.status).toBe("pending");
     expect(JSON.stringify(r.body)).not.toContain("きらめく");
-    expect(await row("SELECT song_id, user_id, source_kind, source_note, body, line_count, status FROM lyric_submissions WHERE id = ?", r.body.id))
-      .toEqual({ song_id: "s1", user_id: UID, source_kind: "booklet", source_note: "初回限定盤", body: "きらめく\n\nステージ", line_count: 3, status: "pending" });
+    expect(await row("SELECT song_id, user_id, body, line_count, status FROM lyric_submissions WHERE id = ?", r.body.id))
+      .toEqual({ song_id: "s1", user_id: UID, body: "きらめく\n\nステージ", line_count: 3, status: "pending" });
     // 歌詞の公開テーブルには書かない
     expect(await row("SELECT count(*) AS n FROM song_lyrics")).toEqual({ n: 0 });
   });
 
-  it("入力元・転載していない確認・本文が無いと 400、未ログインは 401", async () => {
-    expect(validateSubmission({ source_kind: "site", attested_no_copy: true, text: "a" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "listening", attested_no_copy: true, text: "a" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: false, text: "a" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: " \n " }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "あ".repeat(8001) }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: Array(401).fill("a").join("\n") }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "ｱｲﾄﾞﾙ" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "a" }).ok).toBe(true);
-    expect((await callJson("POST", "/songs/s1/lyric-submissions", { body: { source_kind: "booklet", attested_no_copy: true, text: "a" } })).status).toBe(401);
+  it("ガイドラインへの同意・本文が無いと 400、未ログインは 401", async () => {
+    const ok = (text: string, agreed: unknown = true) => validateSubmission({ agreed_to_guideline: agreed, text }).ok;
+    expect(ok("a", false)).toBe(false);
+    expect(ok("a", "yes")).toBe(false);
+    expect(ok(" \n ")).toBe(false);
+    expect(ok("あ".repeat(8001))).toBe(false);
+    expect(ok(Array(401).fill("a").join("\n"))).toBe(false);
+    expect(ok("ｱｲﾄﾞﾙ")).toBe(false);
+    expect(ok("a")).toBe(true);
+    expect((await callJson("POST", "/songs/s1/lyric-submissions", { body: { agreed_to_guideline: true, text: "a" } })).status).toBe(401);
   });
 
   it("整え方はコアと同じ (字は変えない)", () => {

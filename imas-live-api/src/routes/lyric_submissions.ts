@@ -3,8 +3,9 @@
 // 利用者が CD の歌詞カードなどの一次ソースを見て入力した歌詞を、確認待ち (pending) として預かる。
 // 公開はモデレーターの確認後 (公開の手順は別。ここは song_lyrics に書かない)。
 //
-// ボディは { source_kind, source_note?, attested_no_copy, text } (アプリの JSON は snake_case)。
-// ⚠️ 入力元 (source_kind) と「歌詞サイトから転載していない」の確認 (attested_no_copy: true) が必須。
+// ボディは { agreed_to_guideline, text } (アプリの JSON は snake_case)。
+// ⚠️ 投稿ガイドラインへの同意 (agreed_to_guideline: true) が必須。入力元は書かせない
+//    (どこから写したかは確かめようがないので規約で縛る。ガイドラインはコアが持つ)。
 // ⚠️ 本文の整え方と上限は imas-core domain/lyric_submission.rs と同じ (改行を揃え、行末の空白と
 //    前後の空行を落とし、空行の連続を 1 つに。文字数は UTF-16 = .length)。字そのものは変えない。
 // ⚠️ 応答に本文を返さない (預かった id と状態だけ)。
@@ -17,9 +18,6 @@ import { NO_STORE } from "./lyrics";
 
 export const SUBMISSION_MAX_CHARS = 8000;
 export const SUBMISSION_MAX_LINES = 400;
-export const SOURCE_NOTE_MAX = 200;
-export const LYRIC_SOURCE_KINDS = ["booklet", "official"] as const;
-export type LyricSourceKind = (typeof LYRIC_SOURCE_KINDS)[number];
 
 export function normalizeLyricText(text: string): string {
   const out: string[] = [];
@@ -33,23 +31,13 @@ export function normalizeLyricText(text: string): string {
 }
 
 export type SubmissionResult =
-  | { ok: true; sourceKind: LyricSourceKind; sourceNote: string | null; body: string; lineCount: number }
+  | { ok: true; body: string; lineCount: number }
   | { ok: false; error: string };
 
 export function validateSubmission(body: Readonly<Record<string, unknown>>): SubmissionResult {
-  const { source_kind: sourceKind, source_note: sourceNote, attested_no_copy: attestedNoCopy, text } = body;
-  if (typeof sourceKind !== "string" || !(LYRIC_SOURCE_KINDS as readonly string[]).includes(sourceKind)) {
-    return { ok: false, error: "source_kind must be booklet or official" };
-  }
-  if (attestedNoCopy !== true) return { ok: false, error: "attested_no_copy must be true" };
+  const { agreed_to_guideline: agreed, text } = body;
+  if (agreed !== true) return { ok: false, error: "agreed_to_guideline must be true" };
   if (typeof text !== "string") return { ok: false, error: "text must be a string" };
-  let note: string | null = null;
-  if (sourceNote !== undefined && sourceNote !== null) {
-    if (typeof sourceNote !== "string" || sourceNote.length > SOURCE_NOTE_MAX) {
-      return { ok: false, error: `source_note must be a string up to ${SOURCE_NOTE_MAX}` };
-    }
-    note = sourceNote.trim() || null;
-  }
   const normalized = normalizeLyricText(text);
   if (!normalized) return { ok: false, error: "text is empty" };
   // 半角カナ (U+FF61〜U+FF9F) は表記どおりではないので受け付けない (コアの HalfwidthKana と同じ)。
@@ -57,7 +45,7 @@ export function validateSubmission(body: Readonly<Record<string, unknown>>): Sub
   if (normalized.length > SUBMISSION_MAX_CHARS) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_CHARS}` };
   const lineCount = normalized.split("\n").length;
   if (lineCount > SUBMISSION_MAX_LINES) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_LINES} lines` };
-  return { ok: true, sourceKind: sourceKind as LyricSourceKind, sourceNote: note, body: normalized, lineCount };
+  return { ok: true, body: normalized, lineCount };
 }
 
 export async function handleLyricSubmissions(ctx: RouteContext): Promise<Response | null> {
@@ -84,8 +72,7 @@ export async function handleLyricSubmissions(ctx: RouteContext): Promise<Respons
 
   const id = `lsub_${crypto.randomUUID()}`;
   await env.DB.prepare(
-    `INSERT INTO lyric_submissions (id, song_id, user_id, source_kind, source_note, body, line_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).bind(id, songId, authUser.uid, result.sourceKind, result.sourceNote, result.body, result.lineCount).run();
+    `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count) VALUES (?, ?, ?, ?, ?)`
+  ).bind(id, songId, authUser.uid, result.body, result.lineCount).run();
   return json({ id, song_id: songId, status: "pending" }, 201, NO_STORE);
 }

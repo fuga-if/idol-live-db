@@ -4,10 +4,9 @@
 //! 利用者が入力する」投稿だけで行う。ここは投稿画面が使う規則で、両 OS は
 //! [`check_submission`] を入力のたびに通して、整えた本文・行数・注意・送信の可否を出す。
 //!
-//! - **入力元を必ず選ぶ** ([`LyricSourceKind`])。公表された歌詞 (CD の歌詞カード・公式) だけ。
-//!   歌詞サイトは選択肢に無い。聴き取りの書き起こしも受け付けない (公表された歌詞と同じである
-//!   保証が無く、作詞者の意に反する改変になりうるため。2026-10-06 オーナー判断)。
-//! - **「歌詞サイトから転載していない」の確認が要る。** 確認なしでは送れない。
+//! - **投稿ガイドライン ([`guideline`]) への同意が要る。** 入力元 (歌詞カード・公式) は書かせない。
+//!   どこから写したかは確かめようがなく、プチリリと同じく規約で縛る (2026-10-06 オーナー判断)。
+//!   聴き取りの書き起こし・歌詞サイトからの転載はガイドラインで禁じる。
 //! - 上限 (文字数・行数) はサーバ (`imas-live-api` の `routes/lyric_submissions.ts`) と同じ数。
 //!   文字数はサーバの `.length` に合わせて UTF-16 で数える。
 //! - 作詞・作曲のクレジット行や、本文が 2 回続けて入っているのは、ページを丸ごと貼ったときの
@@ -17,39 +16,6 @@
 pub const MAX_CHARS: u32 = 8000;
 /// 1 曲の行数の上限 (空行を含む)。
 pub const MAX_LINES: u32 = 400;
-
-/// 歌詞を何を見て入力したか。サーバへは [`source_key`] の文字列で送る。
-#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LyricSourceKind {
-    /// CD のブックレット・歌詞カード。
-    Booklet,
-    /// 公式サイトや公式の動画に載っている歌詞。
-    Official,
-}
-
-/// 選択肢の並び (画面はこの順に出す)。
-pub const SOURCE_KINDS: [LyricSourceKind; 2] = [LyricSourceKind::Booklet, LyricSourceKind::Official];
-
-pub fn source_key(kind: LyricSourceKind) -> &'static str {
-    match kind {
-        LyricSourceKind::Booklet => "booklet",
-        LyricSourceKind::Official => "official",
-    }
-}
-
-pub fn source_label(kind: LyricSourceKind) -> &'static str {
-    match kind {
-        LyricSourceKind::Booklet => "CD の歌詞カード",
-        LyricSourceKind::Official => "公式サイト・公式動画",
-    }
-}
-
-pub fn source_detail(kind: LyricSourceKind) -> &'static str {
-    match kind {
-        LyricSourceKind::Booklet => "ブックレットや歌詞カードを見ながら入力した",
-        LyricSourceKind::Official => "公式に公開されている歌詞を見ながら入力した",
-    }
-}
 
 /// 投稿の前に知らせること。`blocks_submit` が真のものは送信を止める。
 #[derive(uniffi::Enum, Clone, Debug, PartialEq, Eq)]
@@ -101,7 +67,7 @@ pub struct LyricSubmissionCheck {
     /// 整えた本文の文字数 (UTF-16)。
     pub char_count: u32,
     pub issues: Vec<LyricSubmissionIssue>,
-    /// 入力元・確認・本文がそろって送れるか。
+    /// ガイドラインへの同意と本文がそろって送れるか。
     pub can_submit: bool,
 }
 
@@ -143,7 +109,7 @@ fn is_doubled(lines: &[&str]) -> bool {
     a == b
 }
 
-pub fn check_submission(text: &str, source: Option<LyricSourceKind>, attested_no_copy: bool) -> LyricSubmissionCheck {
+pub fn check_submission(text: &str, agreed_to_guideline: bool) -> LyricSubmissionCheck {
     let normalized = normalize(text);
     let lines: Vec<&str> = if normalized.is_empty() { Vec::new() } else { normalized.split('\n').collect() };
     let line_count = lines.len() as u32;
@@ -169,7 +135,7 @@ pub fn check_submission(text: &str, source: Option<LyricSourceKind>, attested_no
     if normalized.chars().any(|c| ('\u{FF61}'..='\u{FF9F}').contains(&c)) {
         issues.push(LyricSubmissionIssue::HalfwidthKana);
     }
-    let can_submit = source.is_some() && attested_no_copy && !issues.iter().any(blocks_submit);
+    let can_submit = agreed_to_guideline && !issues.iter().any(blocks_submit);
     LyricSubmissionCheck { normalized, line_count, char_count, issues, can_submit }
 }
 
@@ -233,18 +199,17 @@ mod tests {
 
     #[test]
     fn empty_text_cannot_be_sent() {
-        let c = check_submission(" \n\n", Some(LyricSourceKind::Booklet), true);
+        let c = check_submission(" \n\n", true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::Empty]);
         assert!(!c.can_submit);
         assert_eq!(c.line_count, 0);
     }
 
     #[test]
-    fn source_and_attestation_are_both_required() {
+    fn agreement_to_the_guideline_is_required() {
         let text = "きらめく\nステージ";
-        assert!(!check_submission(text, None, true).can_submit);
-        assert!(!check_submission(text, Some(LyricSourceKind::Official), false).can_submit);
-        let ok = check_submission(text, Some(LyricSourceKind::Official), true);
+        assert!(!check_submission(text, false).can_submit);
+        let ok = check_submission(text, true);
         assert!(ok.can_submit);
         assert_eq!((ok.line_count, ok.char_count), (2, 9));
     }
@@ -252,39 +217,39 @@ mod tests {
     #[test]
     fn limits_are_counted_on_the_normalized_text() {
         let long = "あ".repeat(MAX_CHARS as usize + 1);
-        let c = check_submission(&long, Some(LyricSourceKind::Booklet), true);
+        let c = check_submission(&long, true);
         assert!(c.issues.contains(&LyricSubmissionIssue::TooLong { max: MAX_CHARS }));
         assert!(!c.can_submit);
 
         let many = vec!["ら"; MAX_LINES as usize + 1].join("\n");
-        let c = check_submission(&many, Some(LyricSourceKind::Booklet), true);
+        let c = check_submission(&many, true);
         assert!(c.issues.contains(&LyricSubmissionIssue::TooManyLines { max: MAX_LINES }));
 
         // 行末の空白は数えない
-        let c = check_submission(&format!("{}   ", "あ".repeat(MAX_CHARS as usize)), Some(LyricSourceKind::Booklet), true);
+        let c = check_submission(&format!("{}   ", "あ".repeat(MAX_CHARS as usize)), true);
         assert!(c.can_submit);
     }
 
     #[test]
     fn credit_lines_and_doubled_body_warn_without_blocking() {
-        let c = check_submission("作詞：だれか\n作曲: だれか\nうたう", Some(LyricSourceKind::Booklet), true);
+        let c = check_submission("作詞：だれか\n作曲: だれか\nうたう", true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::CreditLines]);
         assert!(c.can_submit);
         // 歌詞の中の「作詞家」は行頭でも区切りが続かないので拾わない
-        assert!(check_submission("作詞家になりたい", Some(LyricSourceKind::Booklet), true).issues.is_empty());
+        assert!(check_submission("作詞家になりたい", true).issues.is_empty());
 
         let half = "一\n二\n三\n四";
-        let c = check_submission(&format!("{half}\n\n{half}"), Some(LyricSourceKind::Booklet), true);
+        let c = check_submission(&format!("{half}\n\n{half}"), true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::Doubled]);
         assert!(c.can_submit);
     }
 
     #[test]
     fn halfwidth_kana_blocks_submission() {
-        let c = check_submission("ｱｲﾄﾞﾙ", Some(LyricSourceKind::Booklet), true);
+        let c = check_submission("ｱｲﾄﾞﾙ", true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::HalfwidthKana]);
         assert!(!c.can_submit);
-        assert!(check_submission("アイドル ABC ａｂｃ", Some(LyricSourceKind::Booklet), true).can_submit);
+        assert!(check_submission("アイドル ABC ａｂｃ", true).can_submit);
     }
 
     #[test]
@@ -301,11 +266,5 @@ mod tests {
         assert!(g.contains(&LyricGuideBlock::Heading { text: "投稿できないもの".into() }));
         let all = format!("{g:?}");
         assert!(all.contains("聴き取って書き起こした歌詞") && all.contains("歌詞サイト"));
-    }
-
-    #[test]
-    fn source_keys_match_the_server() {
-        let keys: Vec<_> = SOURCE_KINDS.iter().map(|k| source_key(*k)).collect();
-        assert_eq!(keys, ["booklet", "official"]);
     }
 }

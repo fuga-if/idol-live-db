@@ -5,17 +5,15 @@ import SwiftUI
 /// 歌詞を投稿するシート。CD の歌詞カードなどの一次ソースを見て入力した歌詞を送る。
 ///
 /// 送った歌詞は確認待ちで預かられ、公開はモデレーターの確認後 (`LyricSubmissionAPI`)。
-/// 入力元の選択と「歌詞サイトから写していない」の確認が無いと送れない。
+/// 投稿ガイドラインに同意しないと送れない。入力元は書かせない (規約で縛る)。
 /// 本文の整え方・上限・注意はコア (`lyricSubmissionCheck`) が決める。
 struct LyricSubmissionSheet: View {
     let song: Song
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var source: LyricSourceKind?
-    @State private var sourceNote = ""
     @State private var text = ""
-    @State private var attested = false
+    @State private var agreed = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var confirmDiscard = false
@@ -27,11 +25,11 @@ struct LyricSubmissionSheet: View {
     @State private var showGuide = false
 
     private var check: LyricSubmissionCheck {
-        lyricSubmissionCheck(text: text, source: source, attestedNoCopy: attested)
+        lyricSubmissionCheck(text: text, agreedToGuideline: agreed)
     }
 
     private var isDirty: Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || source != nil
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
@@ -53,23 +51,16 @@ struct LyricSubmissionSheet: View {
                                  value: "投稿できるもの・できないもの") { showGuide = true }
                 }
 
-                VStack(alignment: .leading, spacing: DS.Space.gap) {
-                    ImasSectionHeader("何を見て入力しましたか", style: .small)
-                    ImasChoiceCards(choices: sourceChoices, selection: $source, style: .row)
-                }
-
                 ImasFormCard {
                     ImasFormTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
                                      text: $text, prompt: "1 行ずつ改行して入力してください")
-                    ImasFormTextField(label: "入力元の補足 (任意)", imprint: "SOURCE", text: $sourceNote,
-                                      prompt: "例: 初回限定盤のブックレット")
                 }
                 ocrButtons
                 issueNotes
 
                 ImasFormCard {
-                    ImasFormToggle(label: "確認", imprint: "CHECK", title: "歌詞サイトから写していません",
-                                   isOn: $attested)
+                    ImasFormToggle(label: "確認", imprint: "CHECK", title: "投稿ガイドラインを読み、それに沿って入力しました",
+                                   isOn: $agreed)
                 }
 
                 Text("送った歌詞は運営が確認してから公開します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。")
@@ -158,20 +149,6 @@ struct LyricSubmissionSheet: View {
         }
     }
 
-    private var sourceChoices: [ImasChoiceCards<LyricSourceKind?>.Choice] {
-        lyricSourceKinds().map { kind in
-            .init(value: kind, title: lyricSourceLabel(kind: kind), systemImage: Self.icon(kind),
-                  subtitle: lyricSourceDetail(kind: kind))
-        }
-    }
-
-    private static func icon(_ kind: LyricSourceKind) -> String {
-        switch kind {
-        case .booklet: return "opticaldisc"
-        case .official: return "globe"
-        }
-    }
-
     /// 行数・文字数と、コアが出した注意。送信を止める注意は朱で出す。
     private var issueNotes: some View {
         let check = check
@@ -195,14 +172,11 @@ struct LyricSubmissionSheet: View {
 
     private func submit() async {
         let check = check
-        guard check.canSubmit, let source else { return }
+        guard check.canSubmit else { return }
         isSaving = true
         defer { isSaving = false }
-        let note = sourceNote.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            try await LyricSubmissionAPI.shared.submit(songId: song.id, source: source,
-                                                       sourceNote: note.isEmpty ? nil : note,
-                                                       text: check.normalized)
+            try await LyricSubmissionAPI.shared.submit(songId: song.id, text: check.normalized)
             Logger.database.notice("lyric_submitted song=\(song.id, privacy: .public)")
             sent = true
         } catch {
