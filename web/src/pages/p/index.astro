@@ -2,7 +2,7 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { page } from "../../lib/data";
 import type { CardCatalog } from "../../lib/schema/CardCatalog";
-// 名前の書体 (名刺ページだけが読む。ブラウザは名前に出る字の断片だけを取りに行く)。
+// 名刺のデザインの書体 (名刺ページだけが読む。ブラウザは名前に出る字の断片だけを取りに行く)。
 import "../../styles/card-fonts.css";
 
 /**
@@ -34,10 +34,10 @@ const catalog = page<CardCatalog>("p/catalog.json");
   <section class="meishi" data-meishi hidden aria-live="polite">
     <p class="meishi__status" data-meishi-status>名刺を読み取っています…</p>
 
-    <article class="meishi-card" data-meishi-card hidden data-theme="neutral">
+    <article class="meishi-card" data-meishi-card hidden data-theme="neutral" data-design="pass">
       <div class="meishi-card__band" data-meishi-band aria-hidden="true"></div>
       <div class="meishi-card__body">
-        <h1 class="meishi-card__name" data-meishi-name data-font="gothic"></h1>
+        <h1 class="meishi-card__name" data-meishi-name></h1>
         <p class="meishi-card__message" data-meishi-message></p>
         <p class="meishi-card__since" data-meishi-since hidden></p>
 

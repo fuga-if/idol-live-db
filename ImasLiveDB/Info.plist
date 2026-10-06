@@ -55,9 +55,7 @@
 	<array>
 		<string>card_name_gothic.ttf</string>
 		<string>card_name_mincho.ttf</string>
-		<string>card_name_maru.ttf</string>
 		<string>card_name_pop.ttf</string>
-		<string>card_name_hand.ttf</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict>

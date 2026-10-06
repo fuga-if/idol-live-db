@@ -3190,9 +3190,12 @@ a.cal__day:hover {
 }
 
 /* --- P名刺 (`/p/`) ---------------------------------------------------------
-   「担当の入場証を 1 枚に広げた紙」: 上に担当色の帯、名前、ひとこと、P歴、担当の並び、
-   リンク、記録 (掲示板風)、時点。帯以外はカードの地色のまま (淡い色の地のカードは
-   却下済み)。帯と本体の間は切り取り線 (--ds-line の破線) で区切る。 */
+   名刺のデザインは 3 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
+   並び (DOM) は同じで、見た目だけを変える。自作の画像の名刺は Web に画像が無いので入場証。
+   - pass   「担当の入場証を 1 枚に広げた紙」: 上に担当色の帯、帯と本体の間は切り取り線。
+   - formal かしこまった名刺: 明朝、角の小さい白い紙に細い枠。担当色は名前の上の細い罫だけ。
+   - pop    ポップ: 丸い太字、墨の太い枠と太い帯、名前に担当色の太い下線。
+   どれも帯・罫・下線以外はカードの地色のまま (淡い色の地のカードは却下済み)。 */
 .meishi {
   display: flex;
   flex-direction: column;
@@ -3225,27 +3228,56 @@ a.cal__day:hover {
   font-family: var(--font-display);
   font-size: var(--fs-title1);
 }
-/* 名前の書体 (名刺の中身の `nameFont`。キーの一覧の正は imas-core の card_name_fonts)。
-   書体の断片は card-fonts.css (/p/ だけが読む)。字が無ければ見出しの書体に落ちる。 */
-.meishi-card__name[data-font="gothic"] {
+/* 名前の書体はデザインが決める (imas-core の card_design_info の font)。書体の断片は
+   card-fonts.css (/p/ だけが読む)。字が無ければ見出しの書体に落ちる。 */
+.meishi-card[data-design="pass"] .meishi-card__name {
   font-family: "Zen Kaku Gothic New", var(--font-display);
   font-weight: 900;
 }
-.meishi-card__name[data-font="mincho"] {
+
+/* かしこまった名刺 */
+.meishi-card[data-design="formal"] {
+  border-radius: var(--r-xs);
+  border: 1px solid var(--ds-line);
+  box-shadow: none;
+}
+.meishi-card[data-design="formal"] .meishi-card__band {
+  block-size: 2px;
+  margin: var(--sp7) var(--sp6) 0;
+  border-block-end: 0;
+}
+.meishi-card[data-design="formal"] .meishi-card__name {
   font-family: "IMAS Card mincho", var(--font-display);
   font-weight: 900;
+  letter-spacing: 0.04em;
 }
-.meishi-card__name[data-font="maru"] {
-  font-family: "IMAS Card maru", var(--font-display);
-  font-weight: 900;
+.meishi-card[data-design="formal"] .meishi-card__oshi a {
+  font-weight: 400;
+  color: var(--ds-ink);
 }
-.meishi-card__name[data-font="pop"] {
+.meishi-card[data-design="formal"] .meishi-card__board {
+  border-block-start: 1px solid var(--ds-line);
+}
+
+/* ポップ */
+.meishi-card[data-design="pop"] {
+  border: 3px solid var(--ds-ink);
+  box-shadow: none;
+}
+.meishi-card[data-design="pop"] .meishi-card__band {
+  block-size: 22px;
+  border-block-end: 3px solid var(--ds-ink);
+}
+.meishi-card[data-design="pop"] .meishi-card__name {
   font-family: "IMAS Card pop", var(--font-display);
   font-weight: 400;
+  font-size: var(--fs-large);
+  text-decoration: underline var(--accent) 0.18em;
+  text-underline-offset: 0.18em;
+  text-decoration-skip-ink: none;
 }
-.meishi-card__name[data-font="hand"] {
-  font-family: "IMAS Card hand", var(--font-display);
-  font-weight: 400;
+.meishi-card[data-design="pop"] .meishi-card__board {
+  border-block-start: 3px solid var(--ds-ink);
 }
 .meishi-card__message {
   color: var(--ds-ink2);

@@ -31,8 +31,11 @@ export interface CardView {
   attendedTruncated: boolean;
   /** `"2026.10.06 時点"` のように、既に整形済み。 */
   issuedOnDisplay: string;
-  /** 名前の書体のキー (`gothic` / `mincho` …)。名前の `data-font` にそのまま置く。 */
-  nameFont: string;
+  /**
+   * 名刺のデザインのキー (`pass` / `formal` / `pop`)。名刺の `data-design` にそのまま置く
+   * (書体と並びは CSS)。自作の画像の名刺は画像が Web に無いので `pass` で届く。
+   */
+  design: string;
   /** 自分の QR (題は「QR」のリンクの形)。無ければ `null`。 */
   qrLink: CardLinkView | null;
 }

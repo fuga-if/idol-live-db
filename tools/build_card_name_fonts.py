@@ -2,7 +2,7 @@
 """P名刺の「名前の書体」を作る (iOS / Android / Web で同じ書体にする)。
 
 書体の一覧 (キー・PostScript 名・ファイル名) の正はコア
-(`imas-core/src/domain/producer_card.rs` の `card_name_font_info`)。ここの表はそれと揃える
+(`imas-core/src/domain/producer_card.rs` の `card_name_font_info`。名刺のデザインが書体を決める)。ここの表はそれと揃える
 (`imas-core/tests/card_name_fonts.rs` がファイルの有無と PostScript 名を確かめる)。
 
 作るもの:
@@ -45,9 +45,7 @@ RAW = f"https://raw.githubusercontent.com/google/fonts/{GOOGLE_FONTS_COMMIT}/ofl
 FONTS = [
     ("gothic", "zenkakugothicnew", "ZenKakuGothicNew-Black.ttf", "ZenKakuGothicNew-Black", "Zen Kaku Gothic New", 900),
     ("mincho", "zenoldmincho", "ZenOldMincho-Black.ttf", "ZenOldMincho-Black", "Zen Old Mincho", 900),
-    ("maru", "zenmarugothic", "ZenMaruGothic-Black.ttf", "ZenMaruGothic-Black", "Zen Maru Gothic", 900),
     ("pop", "mochiypopone", "MochiyPopOne-Regular.ttf", "MochiyPopOne-Regular", "Mochiy Pop One", 400),
-    ("hand", "yomogi", "Yomogi-Regular.ttf", "Yomogi-Regular", "Yomogi", 400),
 ]
 
 # 名前に使われがちで JIS X 0208 に無い字 (ハート・音符・波ダッシュの全角など)。

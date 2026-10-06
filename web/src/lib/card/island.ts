@@ -137,8 +137,8 @@ function renderNext(el: HTMLElement, showId: string | null, shows: readonly Ref[
 
 function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
   e.name.textContent = card.name;
-  // 書体はキーを置くだけ (どの書体を引くかは CSS の `[data-font]`)。
-  e.name.dataset.font = card.nameFont;
+  // デザインはキーを置くだけ (書体と並びは CSS の `[data-design]`)。
+  e.card.dataset.design = card.design;
 
   e.message.textContent = card.message;
   e.message.hidden = card.message.length === 0;
@@ -152,7 +152,10 @@ function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
 
   // 担当色の帯は先頭の担当 1 人分だけ (カード全体は塗らない。淡い色の地のカードは却下済み)。
   const primaryOshi = renderOshi(e.oshi, card.oshiIdolIds, catalog.idols);
-  e.band.dataset.theme = primaryOshi?.themeKey ?? "neutral";
+  const theme = primaryOshi?.themeKey ?? "neutral";
+  e.band.dataset.theme = theme;
+  // ポップの名前の下線も担当色 (カードの地は塗らない。地色は --ds-surface のまま)。
+  e.card.dataset.theme = theme;
 
   // 自分の QR はリンクの先頭に「QR」として出す (アプリの名刺と同じ並び)。
   renderLinks(e.links, card.qrLink ? [card.qrLink, ...card.links] : card.links);

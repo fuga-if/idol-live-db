@@ -117,9 +117,7 @@ targets:
         UIAppFonts:
           - card_name_gothic.ttf
           - card_name_mincho.ttf
-          - card_name_maru.ttf
           - card_name_pop.ttf
-          - card_name_hand.ttf
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleURLTypes:

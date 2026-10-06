@@ -16,7 +16,7 @@ use imas_core::domain::idol_list_filtering::{
     filter_idol_list, idol_list_entries, sort_idol_list, IdolListEntry, IdolQuery,
 };
 use imas_core::domain::producer_card::{
-    card_link_view, card_qr_link_view, decode_producer_card, producer_card_name_font, CardLinkView,
+    card_link_view, card_qr_link_view, decode_producer_card, producer_card_display_design, CardLinkView,
 };
 use imas_core::domain::{idol_queries, list_facets};
 use wasm_bindgen::prelude::*;
@@ -127,9 +127,10 @@ struct CardView {
     /// `"YYYY.MM.DD 時点"`。`issued_on` (`YYYY-MM-DD`、producer_card が保証する形) を
     /// 区切りだけ変えたもの (日付の規則ではなく表記の整形なので wasm 側でやる)。
     issued_on_display: String,
-    /// 名前の書体のキー (`card_name_font_info().key`。既定の書体も必ず入る)。
-    /// ページは `data-font` に置き、CSS が同梱の書体 (`/fonts/card/`) を引く。
-    name_font: String,
+    /// 名刺のデザインのキー (`card_design_info().key`。既定のデザインも必ず入る)。
+    /// Web は自作の画像を持たない (QR に画像は入らない) ので、自作の画像の名刺は入場証になる。
+    /// ページは `data-design` に置き、CSS が並びと同梱の書体 (`/fonts/card/`) を引く。
+    design: String,
     /// 自分の QR (リンクの 1 本の形。題は「QR」)。無ければ `null`。
     qr_link: Option<CardLinkView>,
 }
@@ -140,7 +141,7 @@ pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
     let Some(card) = decode_producer_card(text) else {
         return Ok(JsValue::NULL);
     };
-    let name_font = producer_card_name_font(&card).key;
+    let design = producer_card_display_design(&card, false).key;
     let qr_link = card.qr_url.as_deref().map(card_qr_link_view);
     let view = CardView {
         name: card.name,
@@ -154,7 +155,7 @@ pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
         attended_count: card.attended.len() as u32,
         attended_truncated: card.attended_truncated,
         issued_on_display: issued_on_display(&card.issued_on),
-        name_font,
+        design,
         qr_link,
     };
     let json = to_json(&view)?;
