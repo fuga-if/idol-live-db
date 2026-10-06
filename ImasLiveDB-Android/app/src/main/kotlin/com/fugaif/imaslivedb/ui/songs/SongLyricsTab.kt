@@ -139,6 +139,8 @@ fun SongLyricsTab(
     isLyricsLoading: Boolean,
     onReload: () -> Unit,
     originalArtists: List<Idol> = emptyList(),
+    /** 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。null なら出さない (投稿の対象外・受付停止)。 */
+    onSubmitLyrics: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -290,7 +292,9 @@ fun SongLyricsTab(
             )
             lyricsResult is LyricsResult.NotFound || lyrics == null || !lyrics.hasContent -> ImasEmptyState(
                 icon = Icons.Filled.FormatQuote, title = "歌詞はまだありません",
-                message = "この曲の歌詞はまだ登録されていません。"
+                message = "この曲の歌詞はまだ登録されていません。",
+                actionTitle = if (onSubmitLyrics == null) null else "歌詞を投稿",
+                onAction = onSubmitLyrics
             )
             else -> {
                 if (lyrics.isDraft) {
