@@ -1142,6 +1142,15 @@ enum DatabaseMigrations {
             }
         }
 
+        // v42: プロフィール帳 (P名刺の続きの、SNS に貼る自己紹介の 1 枚絵)。中身はコアの保存の形
+        // (`profileSheetToJson`、空はまだ作っていない)。自分の名刺の行に足すだけで既存の行は変えない。
+        migrator.registerMigration("v42_profile_sheet") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !cols.contains("profile_json") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN profile_json TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         return migrator
     }
 }

@@ -47,6 +47,28 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertFalse(loaded.shows(.attended))
     }
 
+    /// プロフィール帳は自分の名刺の行に持つ。まだ作っていなければ既定の中身 (規則はコア)。
+    func testProfileSheetRoundTripsOnMyCard() throws {
+        let db = try makeDatabase()
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        XCTAssertEqual(card.profile, profileSheetDefault())
+        var sheet = card.profile
+        sheet.size = .story
+        sheet.furigana = "ふがぴー"
+        sheet.favoriteSongIds = ["s1"]
+        sheet.brandOn = ["sc"]
+        card.profile = sheet
+        try db.saveMyProducerCard(card)
+        XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
+
+        // P名刺を直して保存しても、プロフィール帳は消えない。
+        var edited = try XCTUnwrap(db.myProducerCard())
+        edited.message = "現地派"
+        try db.saveMyProducerCard(edited)
+        XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
+    }
+
     func testReceivedCardsSaveFindByPayloadAndDelete() async throws {
         let db = try makeDatabase()
         let a = received("c1", name: "しろくまP")
@@ -109,6 +131,10 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.hidden = [.attended]
         mine.font = .mincho
         mine.qrUrl = "https://lit.link/fuga"
+        var sheet = profileSheetDefault()
+        sheet.style = .career
+        sheet.answers[0].text = "アニメで見て"
+        mine.profile = sheet
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))
 
@@ -128,6 +154,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.hidden, [.attended])
         XCTAssertEqual(restored.font, .mincho)
         XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
+        XCTAssertEqual(restored.profile, sheet, "プロフィール帳もバックアップで戻る")
 
         // 2 回目は何も増えない (id で重複を弾く)。
         let again = try BackupExportImportService.importEnvelopeJSON(json, database: target, restoreDeviceId: false)

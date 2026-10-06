@@ -128,7 +128,7 @@ extension AppDatabase {
             let placeholders = databaseQuestionMarks(count: unique.count)
             let sql = """
                 SELECT s.id AS show_id, s.event_id AS event_id, s.name AS show_name, s.date AS date,
-                       s.venue AS venue, e.name AS event_name
+                       s.venue AS venue, e.name AS event_name, e.brand_id AS brand_id
                 FROM shows s JOIN events e ON e.id = s.event_id
                 WHERE s.id IN (\(placeholders))
                 """
@@ -141,7 +141,8 @@ extension AppDatabase {
                     date: date,
                     label: showDisplayTitle(eventName: row["event_name"] ?? "",
                                             showName: row["show_name"] ?? "", date: date),
-                    venue: row["venue"]
+                    venue: row["venue"],
+                    brandId: row["brand_id"]
                 )
                 out[info.id] = info
             }

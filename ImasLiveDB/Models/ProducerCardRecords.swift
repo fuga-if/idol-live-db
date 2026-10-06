@@ -25,6 +25,8 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     var nameFont: String = ""
     /// 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。
     var qrUrl: String? = nil
+    /// プロフィール帳の中身 (コアの保存の形 `profileSheetToJson`)。空はまだ作っていない。
+    var profileJson: String = ""
 
     enum CodingKeys: String, CodingKey {
         case id, name, message
@@ -34,6 +36,7 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
         case updatedAt = "updated_at"
         case nameFont = "name_font"
         case qrUrl = "qr_url"
+        case profileJson = "profile_json"
     }
 
     static func empty() -> MyProducerCard {
@@ -58,6 +61,12 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     }
 
     func shows(_ field: ProducerCardField) -> Bool { !hidden.contains(field) }
+
+    /// プロフィール帳 (まだ作っていなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。
+    var profile: ProfileSheet {
+        get { profileJson.isEmpty ? profileSheetDefault() : profileSheetFromJson(json: profileJson) }
+        set { profileJson = profileSheetToJson(sheet: newValue) }
+    }
 }
 
 /// 名刺に載せる項目のうち、1 つずつ外せるもの。rawValue は保存のキー (変えない)。
@@ -151,4 +160,6 @@ struct ProducerCardShowInfo: Hashable, Sendable {
     /// `showDisplayTitle` で組んだ表記。
     let label: String
     let venue: String?
+    /// ライブのブランド (プロフィール帳の対応範囲・職務経歴に使う)。
+    var brandId: String? = nil
 }
