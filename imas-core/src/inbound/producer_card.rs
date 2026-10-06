@@ -1,11 +1,12 @@
 //! P名刺の FFI 面。ロジックは domain::producer_card。
 
 use crate::domain::producer_card::{
-    CardCaseEntry, CardCaseSection, CardCommon, CardFileContents, CardFileImage, CardFileTypeInfo,
-    CardLink, CardLinkKind, CardLinkKindInfo, CardLinkView, CardNameFont, CardNameFontInfo,
-    CardRecordSummary, CardShowRef, EncodedProducerCard, ProducerCard, ProducerCardInput,
-    ProducerCardInputError, ProducerCardLimits, ScannedCode,
+    CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFileContents,
+    CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo, CardLinkView,
+    CardNameFont, CardNameFontInfo, CardRecordSummary, CardShowRef, EncodedProducerCard,
+    ProducerCard, ProducerCardInput, ProducerCardInputError, ProducerCardLimits, ScannedCode,
 };
+use crate::domain::producer_card_avatar::XAvatarLookup;
 
 #[uniffi::export]
 pub fn producer_card_limits() -> ProducerCardLimits {
@@ -170,16 +171,46 @@ pub fn card_name_font_info(font: CardNameFont) -> CardNameFontInfo {
 }
 
 #[uniffi::export]
-pub fn producer_card_name_font(card: ProducerCard) -> CardNameFontInfo {
-    crate::domain::producer_card::producer_card_name_font(&card)
+pub fn card_designs() -> Vec<CardDesignInfo> {
+    crate::domain::producer_card::card_designs()
 }
 
 #[uniffi::export]
-pub fn card_name_font_key(font: CardNameFont) -> String {
-    crate::domain::producer_card::card_name_font_key(font)
+pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
+    crate::domain::producer_card::card_design_info(design)
 }
 
 #[uniffi::export]
-pub fn card_name_font_from_key(key: String) -> Option<CardNameFont> {
-    crate::domain::producer_card::card_name_font_from_key(&key)
+pub fn producer_card_display_design(card: ProducerCard, has_face_image: bool) -> CardDesignInfo {
+    crate::domain::producer_card::producer_card_display_design(&card, has_face_image)
+}
+
+#[uniffi::export]
+pub fn card_design_key(design: CardDesign) -> String {
+    crate::domain::producer_card::card_design_key(design)
+}
+
+#[uniffi::export]
+pub fn card_design_from_key(key: String) -> Option<CardDesign> {
+    crate::domain::producer_card::card_design_from_key(&key)
+}
+
+#[uniffi::export]
+pub fn card_x_avatar_handle(links: Vec<CardLink>) -> Option<String> {
+    crate::domain::producer_card_avatar::card_x_avatar_handle(&links)
+}
+
+#[uniffi::export]
+pub fn x_profile_api_url(handle: String) -> Option<String> {
+    crate::domain::producer_card_avatar::x_profile_api_url(&handle)
+}
+
+#[uniffi::export]
+pub fn x_avatar_lookup(handle: String, status: u16, body: String) -> XAvatarLookup {
+    crate::domain::producer_card_avatar::x_avatar_lookup(&handle, status, &body)
+}
+
+#[uniffi::export]
+pub fn x_avatar_lookup_message(lookup: XAvatarLookup, handle: String) -> Option<String> {
+    crate::domain::producer_card_avatar::x_avatar_lookup_message(&lookup, &handle)
 }

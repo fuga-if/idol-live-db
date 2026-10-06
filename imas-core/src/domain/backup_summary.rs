@@ -169,9 +169,10 @@ pub struct BackupMyProducerCardRecord {
     /// 名刺から外した項目のキー (カンマ区切り)。
     pub hidden_fields: String,
     pub updated_at: String,
-    /// 名前の書体のキー (`card_name_font_key`)。空は既定の書体。
+    /// 名刺のデザインのキー (`card_design_key`)。空は既定のデザイン。書体を選んでいた頃の
+    /// 書体のキーが入っていることもある (`card_design_from_key` が近いデザインに読み替える)。
     #[uniffi(default = "")]
-    pub name_font: String,
+    pub design: String,
     /// 自分の QR の URL。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
@@ -534,11 +535,11 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                     .since_year
                     .map(|y| format!(",\"sinceYear\":{y}"))
                     .unwrap_or_default();
-                // 書体・自分の QR は足す前の版と同じ payload になるよう、あるときだけ出す。
-                let name_font = if c.name_font.is_empty() {
+                // デザイン・自分の QR は足す前の版と同じ payload になるよう、あるときだけ出す。
+                let design = if c.design.is_empty() {
                     String::new()
                 } else {
-                    format!(",\"nameFont\":{}", json_string_literal(&c.name_font))
+                    format!("\"design\":{},", json_string_literal(&c.design))
                 };
                 let qr_url = c
                     .qr_url
@@ -551,13 +552,13 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                     format!(",\"profileJson\":{}", json_string_literal(&c.profile_json))
                 };
                 format!(
-                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{}{},\"updatedAt\":{}}}",
+                    "{{{}\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    design,
                     json_string_literal(&c.hidden_fields),
                     json_string_literal(&c.id),
                     json_string_literal(&c.links_json),
                     json_string_literal(&c.message),
                     json_string_literal(&c.name),
-                    name_font,
                     profile,
                     qr_url,
                     since,
@@ -1018,7 +1019,10 @@ fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerC
         links_json: string_field(object, "linksJson")?,
         hidden_fields: string_field(object, "hiddenFields")?,
         updated_at: string_field(object, "updatedAt")?,
-        name_font: optional_field(object, "nameFont").unwrap_or_default(),
+        // 書体を選んでいた頃のバックアップは `nameFont` に書体のキーを持つ (読み替えは読む側)。
+        design: optional_field(object, "design")
+            .or_else(|| optional_field(object, "nameFont"))
+            .unwrap_or_default(),
         qr_url: optional_field(object, "qrUrl"),
         profile_json: optional_field(object, "profileJson").unwrap_or_default(),
     })
@@ -1157,7 +1161,7 @@ mod tests {
             links_json: r#"[{"kind":"x","value":"fuga_p"}]"#.to_string(),
             hidden_fields: "attended".to_string(),
             updated_at: "2026-10-05T21:00:00Z".to_string(),
-            name_font: String::new(),
+            design: String::new(),
             qr_url: None,
             profile_json: String::new(),
         }
@@ -1207,18 +1211,18 @@ mod tests {
         assert_eq!(plan.added_producer_cards, 2);
     }
 
-    /// 書体・自分の QR・プロフィール帳も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
+    /// デザイン・自分の QR・プロフィール帳も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
     #[test]
-    fn my_card_font_and_qr_round_trip() {
+    fn my_card_design_and_qr_round_trip() {
         let mut input = export_input();
         input.my_producer_cards = vec![my_card("ふがP")];
         let plain = build_backup_envelope(&input, BackupKindDialect::Canonical);
-        assert!(!plain.payload_json.contains("nameFont"));
+        assert!(!plain.payload_json.contains("design"));
         assert!(!plain.payload_json.contains("qrUrl"));
         assert!(!plain.payload_json.contains("profileJson"));
 
         let mut card = my_card("ふがP");
-        card.name_font = "mincho".to_string();
+        card.design = "formal".to_string();
         card.qr_url = Some("https://lit.link/fuga".to_string());
         card.profile_json =
             r#"{"style":"career","answers":[{"q":"message","text":"よろしく"}]}"#.to_string();
@@ -1232,6 +1236,21 @@ mod tests {
         )
         .expect("読める");
         assert_eq!(plan.my_producer_cards_to_insert, vec![card]);
+    }
+
+    /// 書体を選んでいた頃のバックアップ (`nameFont`) も読む。
+    #[test]
+    fn my_card_old_name_font_is_read_as_design() {
+        let old = serde_json::json!({
+            "hiddenFields": "", "id": "me", "linksJson": "[]", "message": "",
+            "name": "ふがP", "nameFont": "mincho", "updatedAt": "2026-10-05T21:00:00Z",
+        });
+        assert_eq!(parse_my_producer_card(&old).unwrap().design, "mincho");
+        let new = serde_json::json!({
+            "design": "pop", "hiddenFields": "", "id": "me", "linksJson": "[]", "message": "",
+            "name": "ふがP", "nameFont": "mincho", "updatedAt": "2026-10-05T21:00:00Z",
+        });
+        assert_eq!(parse_my_producer_card(&new).unwrap().design, "pop");
     }
 
     /// 名刺が無ければ payload にキーを出さない。

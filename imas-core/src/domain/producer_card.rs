@@ -120,10 +120,11 @@ pub struct ProducerCard {
     pub attended_truncated: bool,
     /// 名刺を作った日 (`YYYY-MM-DD`)。
     pub issued_on: String,
-    /// 名前の書体。None は既定の書体 (`CardNameFont::Gothic`)。既定の書体は中身に書かない
-    /// (書体を選んでいない名刺は古い版のアプリでも読める)。
+    /// 名刺のデザイン。None は既定のデザイン (`CardDesign::Pass`)。既定は中身に書かない
+    /// (デザインを選んでいない名刺は古い版のアプリでも読める)。描くときは
+    /// `producer_card_display_design` (自作の画像が手元に無ければ入場証で描く)。
     #[uniffi(default = None)]
-    pub name_font: Option<CardNameFont>,
+    pub design: Option<CardDesign>,
     /// 自分の QR (リットリンク・X のプロフィール・自分のサイトなど、好きな URL)。
     /// 受け取った側では「QR」というリンクの 1 本として出す (`card_qr_link_view`)。
     #[uniffi(default = None)]
@@ -144,7 +145,7 @@ pub struct ProducerCardInput {
     pub attended: Vec<CardShowRef>,
     pub issued_on: String,
     #[uniffi(default = None)]
-    pub name_font: Option<CardNameFont>,
+    pub design: Option<CardDesign>,
     /// 自分の QR の URL。入力のまま渡してよい (組み立てで `normalize_card_qr_url` を通す)。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
@@ -333,7 +334,7 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
         attended,
         attended_truncated: false,
         issued_on: input.issued_on.clone(),
-        name_font: input.name_font.filter(|f| *f != CardNameFont::default()),
+        design: input.design.filter(|d| *d != CardDesign::default()),
         qr_url: input
             .qr_url
             .as_deref()
@@ -710,23 +711,43 @@ pub fn card_qr_link_view(url: &str) -> CardLinkView {
 }
 
 // ---------------------------------------------------------------------------
-// 名前の書体
+// 名刺のデザイン
+//
+// 書体と並びをひとまとめにした 3 つのデザイン (入場証・かしこまった名刺・ポップ) と、
+// 自分で作った画像をそのまま名刺の顔にする「自作の画像」から選ぶ。細かい見た目は選ばせない。
+// 名刺の中身にはデザインの番号だけを入れる。自作の画像そのものは QR に入らないので、
+// 画像が手元に無い (QR だけで受け取った・Web で開いた) ときは入場証で描く。
 //
 // 書体のファイルは iOS / Android / Web で同じものを同梱する (`fonts/card-name/`、
-// 作り方は `tools/build_card_name_fonts.py`)。名刺の中身には書体の番号だけを入れる。
+// 作り方は `tools/build_card_name_fonts.py`)。
 // ---------------------------------------------------------------------------
 
-/// P名の書体。並び順は編集画面の選択肢の順。番号 (`name_font_code`) と保存のキーは変えない。
+/// 名刺のデザイン。並び順は編集画面の選択肢の順。番号 (`design_code`) と保存のキーは変えない。
+#[derive(uniffi::Enum, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CardDesign {
+    /// 入場証 (既定)。担当色の帯・ストラップの穴・太いゴシック。
+    #[default]
+    Pass,
+    /// かしこまった名刺。明朝・白い紙に端正な組み。担当色は細い罫と判子だけ。
+    Formal,
+    /// ポップ。丸い太字・太い線・担当色をはっきり。
+    Pop,
+    /// 自作の画像。自分で作った名刺の画像 (表・任意で裏) がそのまま名刺の顔になる。
+    Custom,
+}
+
+/// 同梱する名前の書体。デザインが書体を決める (書体だけを選ぶことはしない)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CardNameFont {
-    /// 太いゴシック (既定)。
+    /// 太いゴシック (入場証・自作の画像)。
     #[default]
     Gothic,
+    /// 明朝 (かしこまった名刺)。
     Mincho,
-    Maru,
+    /// ポップ体 (ポップ・プロフィール帳の題)。
     Pop,
-    Hand,
 }
 
 /// 書体 1 つの名乗り。端末はファイルの名前と PostScript 名で書体を引き、Web は `key` で引く。
@@ -734,9 +755,9 @@ pub enum CardNameFont {
 #[serde(rename_all = "camelCase")]
 pub struct CardNameFontInfo {
     pub font: CardNameFont,
-    /// 保存・Web の `data-font` に使う英字のキー。
+    /// 英字のキー (Web の書体の名前 `IMAS Card <key>` に使う)。
     pub key: String,
-    /// 編集画面に出す名前 (「明朝」)。
+    /// 書体の名前 (「明朝」)。
     pub label: String,
     /// 同梱するファイルの名前 (拡張子なし)。Android の res/font にも置ける形 (英小文字と `_`)。
     pub file_stem: String,
@@ -750,15 +771,35 @@ pub struct CardNameFontInfo {
     pub source_url: String,
 }
 
-const ALL_NAME_FONTS: [CardNameFont; 5] = [
+/// デザイン 1 つの名乗り。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardDesignInfo {
+    pub design: CardDesign,
+    /// 保存・Web の `data-design` に使う英字のキー。
+    pub key: String,
+    /// 編集画面に出す名前 (「かしこまった名刺」)。
+    pub label: String,
+    /// 名前に使う書体 (プロフィール帳もこの書体)。
+    pub font: CardNameFontInfo,
+    /// 自作の画像を名刺の顔にするデザイン (表の画像が要る)。
+    pub uses_face_image: bool,
+}
+
+const ALL_NAME_FONTS: [CardNameFont; 3] = [
     CardNameFont::Gothic,
     CardNameFont::Mincho,
-    CardNameFont::Maru,
     CardNameFont::Pop,
-    CardNameFont::Hand,
 ];
 
-/// 編集画面の書体の選択肢 (先頭が既定)。
+const ALL_DESIGNS: [CardDesign; 4] = [
+    CardDesign::Pass,
+    CardDesign::Formal,
+    CardDesign::Pop,
+    CardDesign::Custom,
+];
+
+/// 同梱する書体の一覧 (「このアプリについて」のクレジット・同梱の検査に使う)。
 pub fn card_name_fonts() -> Vec<CardNameFontInfo> {
     ALL_NAME_FONTS
         .into_iter()
@@ -766,7 +807,6 @@ pub fn card_name_fonts() -> Vec<CardNameFontInfo> {
         .collect()
 }
 
-/// 書体の名乗り。名刺の `name_font` が None (既定) なら `card_name_font_info(CardNameFont::default())`。
 pub fn card_name_font_info(font: CardNameFont) -> CardNameFontInfo {
     let (key, label, postscript, family) = match font {
         CardNameFont::Gothic => (
@@ -776,14 +816,7 @@ pub fn card_name_font_info(font: CardNameFont) -> CardNameFontInfo {
             "Zen Kaku Gothic New",
         ),
         CardNameFont::Mincho => ("mincho", "明朝", "ZenOldMincho-Black", "Zen Old Mincho"),
-        CardNameFont::Maru => (
-            "maru",
-            "丸ゴシック",
-            "ZenMaruGothic-Black",
-            "Zen Maru Gothic",
-        ),
         CardNameFont::Pop => ("pop", "ポップ", "MochiyPopOne-Regular", "Mochiy Pop One"),
-        CardNameFont::Hand => ("hand", "手書き", "Yomogi-Regular", "Yomogi"),
     };
     CardNameFontInfo {
         font,
@@ -800,39 +833,81 @@ pub fn card_name_font_info(font: CardNameFont) -> CardNameFontInfo {
     }
 }
 
-/// 名刺に載っている書体 (None は既定) の名乗り。
-pub fn producer_card_name_font(card: &ProducerCard) -> CardNameFontInfo {
-    card_name_font_info(card.name_font.unwrap_or_default())
+/// 編集画面のデザインの選択肢 (先頭が既定)。
+pub fn card_designs() -> Vec<CardDesignInfo> {
+    ALL_DESIGNS.into_iter().map(card_design_info).collect()
 }
 
-pub fn card_name_font_key(font: CardNameFont) -> String {
-    card_name_font_info(font).key
-}
-
-/// 保存のキーから書体を戻す。空・知らないキーは None (既定の書体で出す)。
-pub fn card_name_font_from_key(key: &str) -> Option<CardNameFont> {
-    ALL_NAME_FONTS
-        .into_iter()
-        .find(|f| card_name_font_info(*f).key == key)
-}
-
-fn name_font_code(font: CardNameFont) -> u8 {
-    match font {
-        CardNameFont::Gothic => 0,
-        CardNameFont::Mincho => 1,
-        CardNameFont::Maru => 2,
-        CardNameFont::Pop => 3,
-        CardNameFont::Hand => 4,
+pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
+    let (key, label, font) = match design {
+        CardDesign::Pass => ("pass", "入場証", CardNameFont::Gothic),
+        CardDesign::Formal => ("formal", "かしこまった名刺", CardNameFont::Mincho),
+        CardDesign::Pop => ("pop", "ポップ", CardNameFont::Pop),
+        CardDesign::Custom => ("custom", "自作の画像", CardNameFont::Gothic),
+    };
+    CardDesignInfo {
+        design,
+        key: key.into(),
+        label: label.into(),
+        font: card_name_font_info(font),
+        uses_face_image: design == CardDesign::Custom,
     }
 }
 
-/// 番号から書体を戻す。知らない番号 (新しい版のアプリが足した書体) は既定の書体で読む
-/// (書体が分からないだけで名刺を読めなくはしない)。
-fn name_font_from_code(code: u8) -> Option<CardNameFont> {
-    ALL_NAME_FONTS
+/// 名刺を描くデザイン。自作の画像の名刺でも、画像が手元に無ければ (QR だけで受け取った・
+/// Web で開いた・自分の画像を消した) 入場証で描く。
+pub fn producer_card_display_design(card: &ProducerCard, has_face_image: bool) -> CardDesignInfo {
+    let design = card.design.unwrap_or_default();
+    if design == CardDesign::Custom && !has_face_image {
+        return card_design_info(CardDesign::Pass);
+    }
+    card_design_info(design)
+}
+
+pub fn card_design_key(design: CardDesign) -> String {
+    card_design_info(design).key
+}
+
+/// 保存のキーからデザインを戻す。空・知らないキーは None (既定のデザインで出す)。
+/// 書体を選んでいた頃のキー (`gothic` / `mincho` / `maru` / `pop` / `hand`) も近いデザインに読み替える。
+pub fn card_design_from_key(key: &str) -> Option<CardDesign> {
+    if let Some(found) = ALL_DESIGNS
         .into_iter()
-        .find(|f| name_font_code(*f) == code)
-        .filter(|f| *f != CardNameFont::default())
+        .find(|d| card_design_info(*d).key == key)
+    {
+        return Some(found);
+    }
+    match key {
+        "gothic" => Some(CardDesign::Pass),
+        "mincho" => Some(CardDesign::Formal),
+        "maru" | "hand" => Some(CardDesign::Pop),
+        _ => None,
+    }
+}
+
+/// 中身に書くデザインの番号。書体を選んでいた頃の番号 (0 ゴシック・1 明朝・2 丸ゴシック・
+/// 3 ポップ・4 手書き) と同じ場所に入れるので、明朝とポップは同じ番号のまま
+/// (書体の版のアプリでも、かしこまった名刺は明朝・ポップはポップ体で出る)。
+fn design_code(design: CardDesign) -> u8 {
+    match design {
+        CardDesign::Pass => 0,
+        CardDesign::Formal => 1,
+        CardDesign::Pop => 3,
+        CardDesign::Custom => 5,
+    }
+}
+
+/// 番号からデザインを戻す。書体の頃の丸ゴシック・手書きはポップに読み替える。
+/// 知らない番号 (新しい版のアプリが足したデザイン) は既定のデザインで読む
+/// (デザインが分からないだけで名刺を読めなくはしない)。
+fn design_from_code(code: u8) -> Option<CardDesign> {
+    let design = match code {
+        1 => CardDesign::Formal,
+        2..=4 => CardDesign::Pop,
+        5 => CardDesign::Custom,
+        _ => CardDesign::Pass,
+    };
+    (design != CardDesign::default()).then_some(design)
 }
 
 fn is_simple_handle(s: &str) -> bool {
@@ -900,24 +975,25 @@ fn day_to_date(day: u32) -> String {
 //
 //   u8  版
 //   u8  旗 (bit0 since_year / bit1 show_count / bit2 song_count / bit3 next_show / bit4 truncated
-//          / bit5 name_font / bit6 qr_url)
+//          / bit5 design / bit6 qr_url)
 //   str 名前, str ひとこと
 //   [varint since_year] [varint show_count] [varint song_count] [str next_show_id]
 //   varint issued_on (日数)
 //   varint 担当の数, str × n
 //   varint リンクの数, (u8 種類, str) × n
 //   varint 公演の数, (varint 前の公演からの日数, u16 指紋) × n   (先頭は起点からの日数)
-//   [u8 書体の番号] [str 自分の QR の URL]                        (旗が立っているときだけ)
+//   [u8 デザインの番号] [str 自分の QR の URL]                    (旗が立っているときだけ)
 //
 //   str = varint バイト数 + UTF-8
 //
-// 書体と自分の QR は**後から足した任意の項目**なので、版は 1 のまま旗のビットで持つ。
-// 既定の書体で自分の QR も無い名刺は、足す前と 1 バイトも変わらない (古いアプリでも読める)。
+// デザインと自分の QR は**後から足した任意の項目**なので、版は 1 のまま旗のビットで持つ
+// (デザインの番号は、書体を選んでいた頃の書体の番号と同じ場所・同じ番号の振り方)。
+// 既定のデザインで自分の QR も無い名刺は、足す前と 1 バイトも変わらない (古いアプリでも読める)。
 // 項目がある名刺を古いアプリが読むと、末尾に余りがあるので「読めない名刺」になる
 // (誤読はしない)。版を上げると、項目の無い名刺まで古いアプリで読めなくなるので上げない。
 // ---------------------------------------------------------------------------
 
-const FLAG_NAME_FONT: u8 = 1 << 5;
+const FLAG_DESIGN: u8 = 1 << 5;
 const FLAG_QR_URL: u8 = 1 << 6;
 
 fn write_card(card: &ProducerCard) -> Vec<u8> {
@@ -939,9 +1015,9 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
     if card.attended_truncated {
         flags |= 1 << 4;
     }
-    let name_font = card.name_font.filter(|f| *f != CardNameFont::default());
-    if name_font.is_some() {
-        flags |= FLAG_NAME_FONT;
+    let design = card.design.filter(|d| *d != CardDesign::default());
+    if design.is_some() {
+        flags |= FLAG_DESIGN;
     }
     if card.qr_url.is_some() {
         flags |= FLAG_QR_URL;
@@ -979,8 +1055,8 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
         w.extend_from_slice(&s.tag.to_le_bytes());
         prev = s.day;
     }
-    if let Some(font) = name_font {
-        w.push(name_font_code(font));
+    if let Some(design) = design {
+        w.push(design_code(design));
     }
     if let Some(url) = &card.qr_url {
         put_str(&mut w, url);
@@ -1039,8 +1115,8 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         let tag = u16::from_le_bytes([r.u8()?, r.u8()?]);
         attended.push(CardShowStamp { day, tag });
     }
-    let name_font = if flags & FLAG_NAME_FONT != 0 {
-        name_font_from_code(r.u8()?)
+    let design = if flags & FLAG_DESIGN != 0 {
+        design_from_code(r.u8()?)
     } else {
         None
     };
@@ -1087,7 +1163,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         attended,
         attended_truncated: flags & (1 << 4) != 0,
         issued_on,
-        name_font,
+        design,
         qr_url,
     })
 }
@@ -1346,18 +1422,21 @@ pub fn card_links_from_json(json: &str) -> Vec<CardLink> {
 //   (str 担当の id, varint バイト数, JPEG) × n
 //   [varint 追加の区画の数, (u8 種類, varint バイト数, 中身) × m]   (あるときだけ)
 //
-// 追加の区画は後から足したもの (種類 1 = 名刺の写真の JPEG)。古い版のアプリは担当の画像の
-// 後ろを読まないので、写真の入ったファイルもそのまま開ける (写真だけが出ない)。
-// 知らない種類の区画は飛ばす。区画が無いファイル (足す前のもの) は今まで通り読む。
+// 追加の区画は後から足したもの (種類 1 = 名刺の写真、2 = 自作の名刺の画像の表、3 = 同じく裏。
+// どれも JPEG)。古い版のアプリは担当の画像の後ろを読まないので、写真の入ったファイルも
+// そのまま開ける (写真だけが出ない)。知らない種類の区画は飛ばす (表・裏を足す前の版のアプリは
+// 写真だけを読む)。区画が無いファイル (足す前のもの) は今まで通り読む。
 // ---------------------------------------------------------------------------
 
 const CARD_FILE_MAGIC: &[u8; 8] = b"IMASCARD";
 const CARD_FILE_VERSION: u8 = 1;
 /// 画像 1 枚の上限。長辺 1600px 程度の JPEG なら 1MB 前後なので十分に余裕がある。
 const MAX_CARD_FILE_IMAGE_BYTES: usize = 12 * 1024 * 1024;
-/// 追加の区画の数の上限 (今は写真の 1 つだけ。知らない種類を飛ばす余地を残す)。
+/// 追加の区画の数の上限 (今は写真・表・裏の 3 つ。知らない種類を飛ばす余地を残す)。
 const MAX_CARD_FILE_SECTIONS: usize = 8;
 const SECTION_PHOTO: u8 = 1;
+const SECTION_FACE_FRONT: u8 = 2;
+const SECTION_FACE_BACK: u8 = 3;
 
 /// 名刺ファイルの種類の名乗り。OS に登録する拡張子・MIME・UTI はここ 1 か所。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -1375,6 +1454,31 @@ pub enum CardFileImageKind {
     Oshi,
     /// 名刺の写真 (自分で選んだ写真。1 枚だけ。`idol_id` は空)。
     Photo,
+    /// 自作の名刺の画像の表 (デザインが自作の画像の名刺だけ。1 枚だけ。`idol_id` は空)。
+    FaceFront,
+    /// 自作の名刺の画像の裏 (任意。表がある名刺だけ。`idol_id` は空)。
+    FaceBack,
+}
+
+impl CardFileImageKind {
+    fn section(self) -> Option<u8> {
+        match self {
+            CardFileImageKind::Oshi => None,
+            CardFileImageKind::Photo => Some(SECTION_PHOTO),
+            CardFileImageKind::FaceFront => Some(SECTION_FACE_FRONT),
+            CardFileImageKind::FaceBack => Some(SECTION_FACE_BACK),
+        }
+    }
+
+    fn from_section(section: u8) -> Option<CardFileImageKind> {
+        [
+            CardFileImageKind::Photo,
+            CardFileImageKind::FaceFront,
+            CardFileImageKind::FaceBack,
+        ]
+        .into_iter()
+        .find(|k| k.section() == Some(section))
+    }
 }
 
 /// 名刺ファイルに入れる画像 1 枚 (担当の画像か名刺の写真)。
@@ -1390,7 +1494,8 @@ pub struct CardFileImage {
 pub struct CardFileContents {
     pub payload: String,
     pub card: ProducerCard,
-    /// 名刺の担当に載っている人の画像 (名刺の担当の順) と、名刺の写真 (あれば最後に 1 枚)。
+    /// 名刺の担当に載っている人の画像 (名刺の担当の順) と、名刺の写真・自作の名刺の画像の表・裏
+    /// (あればこの順に 1 枚ずつ)。
     pub images: Vec<CardFileImage>,
 }
 
@@ -1432,7 +1537,7 @@ pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u
     w.extend_from_slice(CARD_FILE_MAGIC);
     w.push(CARD_FILE_VERSION);
     put_str(&mut w, payload);
-    let (oshi, photos): (Vec<&CardFileImage>, Vec<&CardFileImage>) = images
+    let (oshi, sections): (Vec<&CardFileImage>, Vec<&CardFileImage>) = images
         .iter()
         .partition(|i| i.kind == CardFileImageKind::Oshi);
     put_varint(&mut w, oshi.len() as u64);
@@ -1441,13 +1546,13 @@ pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u
         put_varint(&mut w, image.jpeg.len() as u64);
         w.extend_from_slice(&image.jpeg);
     }
-    // 写真が無ければ区画ごと書かない (足す前のファイルと同じ形のまま)。
-    if !photos.is_empty() {
-        put_varint(&mut w, photos.len() as u64);
-        for photo in &photos {
-            w.push(SECTION_PHOTO);
-            put_varint(&mut w, photo.jpeg.len() as u64);
-            w.extend_from_slice(&photo.jpeg);
+    // 写真も自作の画像も無ければ区画ごと書かない (足す前のファイルと同じ形のまま)。
+    if !sections.is_empty() {
+        put_varint(&mut w, sections.len() as u64);
+        for image in &sections {
+            w.push(image.kind.section()?);
+            put_varint(&mut w, image.jpeg.len() as u64);
+            w.extend_from_slice(&image.jpeg);
         }
     }
     Some(w)
@@ -1490,11 +1595,12 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             let end = r.pos.checked_add(len)?;
             let body = r.bytes.get(r.pos..end)?;
             r.pos = end;
-            if kind == SECTION_PHOTO && !images.iter().any(|i| i.kind == CardFileImageKind::Photo) {
+            let known = CardFileImageKind::from_section(kind);
+            if let Some(kind) = known.filter(|k| !images.iter().any(|i| i.kind == *k)) {
                 images.push(CardFileImage {
                     idol_id: String::new(),
                     jpeg: body.to_vec(),
-                    kind: CardFileImageKind::Photo,
+                    kind,
                 });
             }
         }
@@ -1511,7 +1617,8 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
 }
 
 /// 名刺の担当に載っている人の画像だけを、名刺の担当の順に 1 人 1 枚で残し、
-/// 名刺の写真があれば最後に 1 枚だけ足す。
+/// 名刺の写真・自作の名刺の画像の表・裏があれば、この順に 1 枚ずつ足す。
+/// 自作の画像はデザインが自作の画像の名刺のときだけ、裏は表があるときだけ残す。
 fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<CardFileImage> {
     // JPEG だけを通す (画像を開く側に任意の形式を渡さない)。
     let usable = |i: &&CardFileImage| {
@@ -1526,15 +1633,26 @@ fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<Card
             out.push(image.clone());
         }
     }
-    let photo = images
-        .iter()
-        .find(|i| i.kind == CardFileImageKind::Photo)
-        .filter(usable);
-    if let Some(photo) = photo {
-        out.push(CardFileImage {
-            idol_id: String::new(),
-            ..photo.clone()
-        });
+    let custom = card.design == Some(CardDesign::Custom);
+    let mut has_front = false;
+    for kind in [
+        CardFileImageKind::Photo,
+        CardFileImageKind::FaceFront,
+        CardFileImageKind::FaceBack,
+    ] {
+        let allowed = match kind {
+            CardFileImageKind::FaceFront => custom,
+            CardFileImageKind::FaceBack => custom && has_front,
+            _ => true,
+        };
+        let found = images.iter().find(|i| i.kind == kind).filter(usable);
+        if let Some(image) = found.filter(|_| allowed) {
+            has_front |= kind == CardFileImageKind::FaceFront;
+            out.push(CardFileImage {
+                idol_id: String::new(),
+                ..image.clone()
+            });
+        }
     }
     out
 }
@@ -1591,7 +1709,7 @@ mod tests {
                 },
             ],
             issued_on: "2026-10-06".into(),
-            name_font: None,
+            design: None,
             qr_url: None,
         }
     }
@@ -2061,13 +2179,13 @@ mod tests {
 
     #[test]
     fn default_card_bytes_are_unchanged_by_new_fields() {
-        // 既定の書体で自分の QR も無い名刺は、項目を足す前と同じ中身 (古いアプリでも読める)。
+        // 既定のデザインで自分の QR も無い名刺は、項目を足す前と同じ中身 (古いアプリでも読める)。
         let mut i = input();
-        i.name_font = Some(CardNameFont::Gothic);
+        i.design = Some(CardDesign::Pass);
         let enc = encode_producer_card(&i);
-        assert_eq!(enc.card.name_font, None);
+        assert_eq!(enc.card.design, None);
         let bytes = write_card(&enc.card);
-        assert_eq!(bytes[1] & (FLAG_NAME_FONT | FLAG_QR_URL), 0);
+        assert_eq!(bytes[1] & (FLAG_DESIGN | FLAG_QR_URL), 0);
         // 足す前の版で作った名刺の中身 (固定) と 1 バイトも変わらず、今も同じに読める。
         let payload = enc.url.split_once('#').unwrap().1;
         assert_eq!(payload, V1_PAYLOAD);
@@ -2075,16 +2193,18 @@ mod tests {
     }
 
     #[test]
-    fn name_font_and_qr_url_round_trip() {
+    fn design_and_qr_url_round_trip() {
         let mut i = input();
-        i.name_font = Some(CardNameFont::Mincho);
+        i.design = Some(CardDesign::Formal);
         i.qr_url = Some("lit.link/fuga".into());
         let enc = encode_producer_card(&i);
-        assert_eq!(enc.card.name_font, Some(CardNameFont::Mincho));
+        assert_eq!(enc.card.design, Some(CardDesign::Formal));
         assert_eq!(enc.card.qr_url.as_deref(), Some("https://lit.link/fuga"));
         let back = decode_producer_card(&enc.url).unwrap();
         assert_eq!(back, enc.card);
-        assert_eq!(producer_card_name_font(&back).key, "mincho");
+        let shown = producer_card_display_design(&back, false);
+        assert_eq!(shown.key, "formal");
+        assert_eq!(shown.font.key, "mincho");
         let view = card_qr_link_view(back.qr_url.as_deref().unwrap());
         assert_eq!(view.label, "QR");
         assert_eq!(view.url, "https://lit.link/fuga");
@@ -2093,25 +2213,25 @@ mod tests {
 
     #[test]
     fn old_reader_shape_rejects_new_fields_but_not_plain_cards() {
-        // 古いアプリは旗を知らず、末尾に余りがあると読まない。書体の入った名刺の末尾は
-        // 書体の番号の 1 バイトだけであること (= 古いアプリは「読めない名刺」にして誤読しない)。
+        // 古いアプリは旗を知らず、末尾に余りがあると読まない。デザインの入った名刺の末尾は
+        // デザインの番号の 1 バイトだけであること (= 古いアプリは「読めない名刺」にして誤読しない)。
         let mut i = input();
         let plain = write_card(&encode_producer_card(&i).card);
-        i.name_font = Some(CardNameFont::Hand);
+        i.design = Some(CardDesign::Custom);
         let with_font = write_card(&encode_producer_card(&i).card);
         assert_eq!(with_font.len(), plain.len() + 1);
         assert_eq!(&with_font[2..plain.len()], &plain[2..]);
     }
 
     #[test]
-    fn unknown_font_code_reads_as_default_and_unknown_flag_is_rejected() {
+    fn unknown_design_code_reads_as_default_and_unknown_flag_is_rejected() {
         let mut i = input();
-        i.name_font = Some(CardNameFont::Pop);
+        i.design = Some(CardDesign::Pop);
         let mut bytes = write_card(&encode_producer_card(&i).card);
         let last = bytes.len() - 1;
         bytes[last] = 200;
-        let card = read_card(&bytes).expect("知らない書体は既定で読む");
-        assert_eq!(card.name_font, None);
+        let card = read_card(&bytes).expect("知らないデザインは既定で読む");
+        assert_eq!(card.design, None);
         let mut bytes = write_card(&encode_producer_card(&input()).card);
         bytes[1] |= 1 << 7;
         assert_eq!(read_card(&bytes), None);
@@ -2173,23 +2293,133 @@ mod tests {
     }
 
     #[test]
-    fn name_font_keys_round_trip() {
-        let fonts = card_name_fonts();
-        assert_eq!(fonts.len(), 5);
-        assert_eq!(fonts[0].font, CardNameFont::default());
-        for info in &fonts {
-            assert_eq!(card_name_font_from_key(&info.key), Some(info.font));
+    fn design_keys_and_codes_round_trip() {
+        let designs = card_designs();
+        assert_eq!(designs.len(), 4);
+        assert_eq!(designs[0].design, CardDesign::default());
+        for info in &designs {
+            assert_eq!(card_design_from_key(&info.key), Some(info.design));
             assert_eq!(
-                name_font_from_code(name_font_code(info.font)).unwrap_or_default(),
-                info.font
+                design_from_code(design_code(info.design)).unwrap_or_default(),
+                info.design
             );
-            assert!(info
+            assert_eq!(info.uses_face_image, info.design == CardDesign::Custom);
+        }
+        assert_eq!(card_design_from_key(""), None);
+        assert_eq!(card_design_from_key("comic"), None);
+        for font in card_name_fonts() {
+            assert!(font
                 .file_stem
                 .bytes()
                 .all(|b| b.is_ascii_lowercase() || b == b'_'));
         }
-        assert_eq!(card_name_font_from_key(""), None);
-        assert_eq!(card_name_font_from_key("comic"), None);
+    }
+
+    #[test]
+    fn old_font_keys_and_codes_read_as_nearest_design() {
+        // 書体を選んでいた頃の保存のキー。
+        assert_eq!(card_design_from_key("gothic"), Some(CardDesign::Pass));
+        assert_eq!(card_design_from_key("mincho"), Some(CardDesign::Formal));
+        assert_eq!(card_design_from_key("maru"), Some(CardDesign::Pop));
+        assert_eq!(card_design_from_key("pop"), Some(CardDesign::Pop));
+        assert_eq!(card_design_from_key("hand"), Some(CardDesign::Pop));
+        // 書体を選んでいた頃の名刺の中身 (書体の番号 0〜4)。
+        let expected = [
+            None,
+            Some(CardDesign::Formal),
+            Some(CardDesign::Pop),
+            Some(CardDesign::Pop),
+            Some(CardDesign::Pop),
+        ];
+        let plain = write_card(&encode_producer_card(&input()).card);
+        for (code, want) in expected.into_iter().enumerate() {
+            let mut bytes = plain.clone();
+            bytes[1] |= FLAG_DESIGN;
+            bytes.push(code as u8);
+            let card = read_card(&bytes).expect("書体の頃の名刺も読める");
+            assert_eq!(card.design, want, "書体の番号 {code}");
+        }
+    }
+
+    #[test]
+    fn custom_design_falls_back_to_pass_without_face_image() {
+        let mut i = input();
+        i.design = Some(CardDesign::Custom);
+        let card = encode_producer_card(&i).card;
+        assert_eq!(
+            producer_card_display_design(&card, true).design,
+            CardDesign::Custom
+        );
+        assert_eq!(
+            producer_card_display_design(&card, false).design,
+            CardDesign::Pass
+        );
+        let plain = encode_producer_card(&input()).card;
+        assert_eq!(
+            producer_card_display_design(&plain, true).design,
+            CardDesign::Pass
+        );
+    }
+
+    #[test]
+    fn card_file_carries_face_images_only_for_custom_design() {
+        let face = |kind, tag| CardFileImage {
+            idol_id: "x".into(),
+            jpeg: jpeg(tag),
+            kind,
+        };
+        let images = vec![
+            face(CardFileImageKind::FaceBack, 2),
+            face(CardFileImageKind::FaceFront, 1),
+            face(CardFileImageKind::Photo, 7),
+        ];
+        let mut i = input();
+        i.design = Some(CardDesign::Custom);
+        let custom = encode_producer_card(&i);
+        let file = decode_card_file(&encode_card_file(&custom.url, &images).unwrap()).unwrap();
+        assert_eq!(
+            file.images
+                .iter()
+                .map(|i| (i.kind, i.jpeg[3]))
+                .collect::<Vec<_>>(),
+            vec![
+                (CardFileImageKind::Photo, 7),
+                (CardFileImageKind::FaceFront, 1),
+                (CardFileImageKind::FaceBack, 2),
+            ]
+        );
+        assert!(file.images.iter().all(|i| i.idol_id.is_empty()));
+
+        // 裏だけでは載せない (表が名刺の顔)。
+        let back_only = encode_card_file(&custom.url, &images[..1]).unwrap();
+        assert!(decode_card_file(&back_only).unwrap().images.is_empty());
+
+        // 自作の画像のデザインでない名刺には載せない。
+        let plain = encode_producer_card(&input());
+        let file = decode_card_file(&encode_card_file(&plain.url, &images).unwrap()).unwrap();
+        assert_eq!(file.images.len(), 1);
+        assert_eq!(file.images[0].kind, CardFileImageKind::Photo);
+
+        // 表・裏を足す前の版の読み方 (写真の区画だけを読み、知らない区画は飛ばす) でも開ける:
+        // 区画の数と長さで飛ばせる形であること。
+        let bytes = encode_card_file(&custom.url, &images).unwrap();
+        let without_faces = encode_card_file(&custom.url, &images[2..]).unwrap();
+        assert!(bytes.len() > without_faces.len());
+        let mut r = Reader {
+            bytes: &bytes[CARD_FILE_MAGIC.len()..],
+            pos: 0,
+        };
+        r.u8().unwrap();
+        r.str().unwrap();
+        assert_eq!(r.count(MAX_OSHI as usize), Some(0));
+        let sections = r.count(MAX_CARD_FILE_SECTIONS).unwrap();
+        assert_eq!(sections, 3);
+        for _ in 0..sections {
+            r.u8().unwrap();
+            let len = r.count(MAX_CARD_FILE_IMAGE_BYTES).unwrap();
+            r.pos += len;
+        }
+        assert_eq!(r.pos, r.bytes.len());
     }
 
     /// 書体・自分の QR を足す前のコア (7826fcba) が `input()` から作った名刺の中身。
