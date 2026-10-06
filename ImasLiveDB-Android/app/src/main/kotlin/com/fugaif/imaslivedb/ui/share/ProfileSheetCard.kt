@@ -578,9 +578,9 @@ private fun ProfileStats(stats: List<ProfileStat>, accent: Color, s: Float) {
             stats.forEachIndexed { i, stat ->
                 if (i > 0) Box(Modifier.width(ProfileSheetInk.RULE.dp).fillMaxHeight().background(ProfileSheetInk.ink))
                 Column(
-                    Modifier.weight(1f).padding(horizontal = (4 * s).dp, vertical = (6 * s).dp),
+                    Modifier.weight(1f).padding(horizontal = 4.dp, vertical = (6 * s).dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy((3 * s).dp)
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     Text(stat.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
                     Row {
@@ -594,7 +594,7 @@ private fun ProfileStats(stats: List<ProfileStat>, accent: Color, s: Float) {
                             maxLines = 1, modifier = Modifier.alignByBaseline()
                         )
                     }
-                    Box(Modifier.size(width = (18 * s).dp, height = (2.5f * s).dp).background(accent))
+                    Box(Modifier.size(width = (18 * s).dp, height = 2.5.dp).background(accent))
                 }
             }
         }
@@ -635,15 +635,21 @@ private fun ProfileHeadline(title: String, imprint: String, accent: Color, s: Fl
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s: Float) {
+    // 名前が 2 段に折り返しても、欄の名前は 1 段目の高さに置く。
     Row(
-        Modifier.fillMaxWidth().padding(vertical = (2 * s).dp),
+        Modifier.fillMaxWidth().padding(vertical = (4 * s).dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
-        Text(title, style = ProfileSheetInk.sans(9 * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink, maxLines = 1)
+        Text(
+            title, style = ProfileSheetInk.sans(9 * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink,
+            maxLines = 1, softWrap = false, modifier = Modifier.padding(top = (5 * s).dp)
+        )
+        // 丸 (二重丸の外側) が欄の名前に掛からないよう、名前の列から少し離す。
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy((16 * s).dp),
-            verticalArrangement = Arrangement.spacedBy((8 * s).dp)
+            modifier = Modifier.padding(start = (6 * s).dp),
+            horizontalArrangement = Arrangement.spacedBy((11 * s).dp),
+            verticalArrangement = Arrangement.spacedBy((10 * s).dp)
         ) {
             brands.forEach { brand ->
                 val circle = if (brand.rings.isNotEmpty()) profileAccent(brand.color) else null
@@ -678,8 +684,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
 ) {
     val w = (size.width + padX * 2) * ring.scale
     val h = (size.height + padY * 2) * ring.scale
-    val cx = (size.width / 2 + size.width * ring.offsetX).toFloat()
-    val cy = (size.height / 2 + size.height * ring.offsetY).toFloat()
+    // ずれは丸を描く枠 (文字の外に広げた枠) の幅・高さに対する割合。
+    val cx = (size.width / 2 + (size.width + padX * 2) * ring.offsetX).toFloat()
+    val cy = (size.height / 2 + (size.height + padY * 2) * ring.offsetY).toFloat()
     val rx = w / 2 * ring.stretch
     val ry = h / 2.0
     val a0 = ring.startDegrees * PI / 180

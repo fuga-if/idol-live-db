@@ -35,7 +35,11 @@ object CollectionAttendance {
     suspend fun eventIds(db: AppDatabase, includeStream: Boolean): List<String> =
         collectionAttendedShows(marks(db, UserMark.EVENT), includeStream)
 
-    private suspend fun marks(db: AppDatabase, entityType: String): List<AttendanceMarkRecord> =
+    /**
+     * 参加マークを形態 (現地・配信・LV) つきのまま。どれを数えるかはコア側で選ぶ
+     * (プロフィール帳のセトリ・会場の集計は現地だけ、`profileLiveRecord`)。
+     */
+    suspend fun marks(db: AppDatabase, entityType: String): List<AttendanceMarkRecord> =
         db.userMarkDao().attendedMarks(entityType, UserMark.ATTENDED)
             .map { AttendanceMarkRecord(entityId = it.entityId, attendanceType = it.textValue) }
 }

@@ -30,7 +30,6 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasChipFlow
 import com.fugaif.imaslivedb.ui.designsystem.ImasDiscardConfirmation
 import com.fugaif.imaslivedb.ui.designsystem.ImasFilterChip
-import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
@@ -169,7 +168,7 @@ fun ProfileSheetEditorSheet(
                     if (rows.isNotEmpty()) {
                         ImasSection(
                             "載せる記録", style = ImasSectionHeaderStyle.SMALL,
-                            footer = "記録のある欄だけ並びます。外した記録は画像に載りません。"
+                            footer = "記録の無いものは並びません。外したものは画像に載りません。"
                         ) {
                             ImasCardList {
                                 rows.forEach { row ->
@@ -185,7 +184,6 @@ fun ProfileSheetEditorSheet(
                         }
                     }
 
-                    ImasNote("名前・写真・書体・リンク・自分の QR は P名刺のものです。")
                     error?.let {
                         Text(it, style = ImasTextRole.NOTE.style, color = DS.danger)
                     }

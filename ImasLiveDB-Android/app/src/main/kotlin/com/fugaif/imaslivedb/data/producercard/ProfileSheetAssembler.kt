@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
+import com.fugaif.imaslivedb.data.model.UserMark
+import com.fugaif.imaslivedb.data.repository.CollectionAttendance
 import com.fugaif.imaslivedb.di.AppModule
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -84,10 +86,13 @@ object ProfileSheetAssembler {
         val songById = if (favoriteIds.isEmpty()) emptyMap()
         else runCatching { module.songRepository.fetchSongsByIds(favoriteIds) }.getOrDefault(emptyList()).associateBy { it.id }
         val today = JstDay.today()
-        // 参加した公演のセトリ・会場から数えた記録 (数え方はコア)。
+        // 参加した公演のセトリ・会場から数えた記録。参加マークは形態つきのまま渡し、
+        // 現地だけに絞るのとイベント単位の展開はコア (回収と同じ取り出し方)。
         val live = runCatching {
+            val showMarks = CollectionAttendance.marks(module.database, UserMark.SHOW)
+            val eventMarks = CollectionAttendance.marks(module.database, UserMark.EVENT)
             module.snapshotStoreProvider.loadedStore()
-                .profileLiveRecord(attendedRefs.map { it.showId }, oshiIdols.map { it.id }, today)
+                .profileLiveRecord(showMarks, eventMarks, oshiIdols.map { it.id }, today)
         }.getOrDefault(ProfileSheetMaterials.EMPTY.record.live)
 
         val (oshi, portrait) = withContext(Dispatchers.IO) {
