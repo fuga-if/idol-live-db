@@ -32,6 +32,8 @@ pub enum LyricSubmissionIssue {
     Doubled,
     /// 半角カナが入っている (表記どおりではない。全角で入れてもらう)。
     HalfwidthKana,
+    /// 歌詞カードの読み仮名 (ルビ) を読み取ったらしい行がある ([`ruby_like_lines`])。
+    RubyLikeLines { lines: Vec<String> },
 }
 
 pub fn blocks_submit(issue: &LyricSubmissionIssue) -> bool {
@@ -54,6 +56,10 @@ pub fn issue_message(issue: &LyricSubmissionIssue) -> String {
         }
         LyricSubmissionIssue::Doubled => "同じ歌詞が 2 回続けて入っているようです。".into(),
         LyricSubmissionIssue::HalfwidthKana => "半角カナは使えません。全角で入力してください。".into(),
+        LyricSubmissionIssue::RubyLikeLines { lines } => format!(
+            "読み仮名 (ルビ) を読み取ったらしい行があります: {}。歌詞でなければ消してください。",
+            lines.iter().map(|l| format!("「{l}」")).collect::<Vec<_>>().join("")
+        ),
     }
 }
 
@@ -131,12 +137,58 @@ pub fn check_submission(text: &str, agreed_to_guideline: bool) -> LyricSubmissio
     if is_doubled(&lines) {
         issues.push(LyricSubmissionIssue::Doubled);
     }
+    let ruby = ruby_like_lines(&normalized);
+    if !ruby.is_empty() {
+        issues.push(LyricSubmissionIssue::RubyLikeLines {
+            lines: ruby.iter().map(|&i| lines[i as usize].trim().to_string()).collect(),
+        });
+    }
     // 半角カタカナと半角の句読点・濁点 (U+FF61〜U+FF9F)。
     if normalized.chars().any(|c| ('\u{FF61}'..='\u{FF9F}').contains(&c)) {
         issues.push(LyricSubmissionIssue::HalfwidthKana);
     }
     let can_submit = agreed_to_guideline && !issues.iter().any(blocks_submit);
     LyricSubmissionCheck { normalized, line_count, char_count, issues, can_submit }
+}
+
+fn is_kana(c: char) -> bool {
+    ('\u{3041}'..='\u{309F}').contains(&c) || ('\u{30A1}'..='\u{30FC}').contains(&c)
+}
+
+fn has_kanji(line: &str) -> bool {
+    line.chars().any(|c| ('\u{4E00}'..='\u{9FFF}').contains(&c) || ('\u{3400}'..='\u{4DBF}').contains(&c))
+}
+
+/// 読み仮名 (ルビ) を読み取ったらしい行の番号 (0 始まり)。歌詞カードを読み取ると、漢字の上の
+/// 小さな読み仮名が 1 行として入ることがある。かなだけの短い行 (6 字まで) で、隣の行に漢字が
+/// あるものを拾う。歌詞にも短いかなの行はあるので、消すかは本人に任せる (注意を出すだけ)。
+pub fn ruby_like_lines(text: &str) -> Vec<u32> {
+    let lines: Vec<&str> = text.split('\n').collect();
+    let short_kana = |l: &str| {
+        let t = l.trim();
+        (1..=6).contains(&t.chars().count()) && t.chars().all(is_kana)
+    };
+    // 隣の行 (同じようなかなの短い行は飛ばす。空行は越えない) に漢字があるか。
+    let neighbor_has_kanji = |i: usize| {
+        let prev = lines[..i].iter().rev().find(|l| !short_kana(l));
+        let next = lines[i + 1..].iter().find(|l| !short_kana(l));
+        prev.is_some_and(|l| has_kanji(l)) || next.is_some_and(|l| has_kanji(l))
+    };
+    (0..lines.len())
+        .filter(|&i| short_kana(lines[i]) && neighbor_has_kanji(i))
+        .map(|i| i as u32)
+        .collect()
+}
+
+/// 指定の行を消す (ルビらしい行を本人が消すとき)。前後の空行の並びは整え直す。
+pub fn remove_lines(text: &str, indices: &[u32]) -> String {
+    let kept: Vec<&str> = text
+        .split('\n')
+        .enumerate()
+        .filter(|(i, _)| !indices.contains(&(*i as u32)))
+        .map(|(_, l)| l)
+        .collect();
+    normalize(&kept.join("\n"))
 }
 
 /// その曲に歌詞を投稿できるか。掲載の方針 (アイマス系ブランドの非カバー曲だけ) と同じ線で切る。
@@ -232,7 +284,7 @@ mod tests {
 
     #[test]
     fn credit_lines_and_doubled_body_warn_without_blocking() {
-        let c = check_submission("作詞：だれか\n作曲: だれか\nうたう", true);
+        let c = check_submission("作詞：だれか\n作曲: だれか\nうたうよ、きらめくステージ", true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::CreditLines]);
         assert!(c.can_submit);
         // 歌詞の中の「作詞家」は行頭でも区切りが続かないので拾わない
@@ -242,6 +294,17 @@ mod tests {
         let c = check_submission(&format!("{half}\n\n{half}"), true);
         assert_eq!(c.issues, vec![LyricSubmissionIssue::Doubled]);
         assert!(c.can_submit);
+    }
+
+    #[test]
+    fn ruby_like_lines_are_flagged_and_can_be_removed() {
+        let text = "護る為なら総てを捧げる\nせかい\nあか\n僕の視界は赫く染まった\n\nねえ\nきらきら";
+        // 「ねえ」は隣が「きらきら」で漢字が無いので拾わない
+        assert_eq!(ruby_like_lines(text), vec![1, 2]);
+        let c = check_submission(text, true);
+        assert!(c.issues.contains(&LyricSubmissionIssue::RubyLikeLines { lines: vec!["せかい".into(), "あか".into()] }));
+        assert!(c.can_submit);
+        assert_eq!(remove_lines(text, &[1, 2]), "護る為なら総てを捧げる\n僕の視界は赫く染まった\n\nねえ\nきらきら");
     }
 
     #[test]

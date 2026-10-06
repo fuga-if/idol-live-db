@@ -222,6 +222,15 @@ struct LyricSubmissionSheet: View {
                         .font(.imasFootnote.weight(.semibold))
                         .foregroundStyle(lyricSubmissionIssueBlocks(issue: issue) ? DS.danger : DS.ink2)
                         .fixedSize(horizontal: false, vertical: true)
+                    if case .rubyLikeLines = issue {
+                        Button("この行を消す") {
+                            AppAnalytics.tap("lyric_submission.remove_ruby_lines")
+                            drafts.update(song.id) {
+                                $0.text = lyricRemoveLines(text: $0.text, indices: lyricRubyLikeLines(text: $0.text))
+                            }
+                        }
+                        .buttonStyle(.imas(.secondary, size: .small))
+                    }
                 }
             }
         }

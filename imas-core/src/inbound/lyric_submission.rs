@@ -67,3 +67,15 @@ pub fn lyric_ocr_pick_candidate(candidates: Vec<crate::domain::lyric_ocr::OcrCan
 pub fn lyric_ocr_latin_words(text: String) -> Vec<String> {
     crate::domain::lyric_ocr::latin_words(&text)
 }
+
+/// 読み仮名 (ルビ) を読み取ったらしい行の番号。
+#[uniffi::export]
+pub fn lyric_ruby_like_lines(text: String) -> Vec<u32> {
+    domain::ruby_like_lines(&text)
+}
+
+/// 指定の行を消す (前後の空行は整え直す)。
+#[uniffi::export]
+pub fn lyric_remove_lines(text: String, indices: Vec<u32>) -> String {
+    domain::remove_lines(&text, &indices)
+}
