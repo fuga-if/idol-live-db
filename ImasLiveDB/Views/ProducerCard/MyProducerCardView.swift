@@ -100,6 +100,7 @@ struct MyProducerCardView: View {
             encoded.card, directory: directory,
             imageURL: { CustomImageService.shared.imageURL(for: $0) },
             portraitURL: portraitURL,
+            portraitSource: ProducerCardFiles.myPhotoSource,
             face: face,
             back: own.map { ProducerCardDisplay.ownQRBack(encoded.card, url: $0) }
                 ?? ImasProducerCard.Back(qr: encoded.url, showCount: encoded.card.showCount,

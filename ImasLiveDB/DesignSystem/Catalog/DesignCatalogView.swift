@@ -281,9 +281,12 @@ private struct VenueRowsPage: View {
                     lead.details
                 }
             }
-            ImasSection("名刺の写真・デザイン", style: .small, footer: "名刺の写真は名前の横の証明写真の枠 (3:4)。デザインは小さな名刺の見本の札を横に引いて選ぶ (真ん中に来た札を選ぶ)。自作の画像の札は選んだ画像か「画像を選ぶ」。") {
+            ImasSection("名刺の写真・デザイン", style: .small, footer: "名刺の写真は名前の横の正方形の枠 (X のアイコンは丸)。デザインは小さな名刺の見本の札を横に引いて選ぶ (真ん中に来た札を選ぶ)。自作の画像の札は選んだ画像か「画像を選ぶ」。") {
                 VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
-                    ImasCardPortrait(url: nil).frame(width: 84)
+                    HStack(spacing: DS.Space.gapLoose) {
+                        ImasCardPortrait(url: nil).frame(width: 84)
+                        ImasCardPortrait(url: nil, round: true).frame(width: 84)
+                    }
                     CatalogDesignPicker()
                 }
             }

@@ -73,8 +73,10 @@ struct ProducerCardPrintFront: View {
     var handle: String? = nil
     /// 名前の書体の PostScript 名 (コアのデザインの書体)。
     var nameFont: String? = nil
-    /// 名刺の写真 (右に証明写真の大きさで刷る)。
+    /// 名刺の写真 (右に正方形の枠で刷る)。
     var portrait: UIImage? = nil
+    /// 名刺の写真を丸く切る (X のアイコン)。
+    var portraitRound = false
 
     var body: some View {
         ImasMeishiFront(
@@ -89,6 +91,7 @@ struct ProducerCardPrintFront: View {
             oshiCaption: caption,
             moreOshi: moreOshi, handle: handle, nameFont: nameFont,
             portrait: portrait.map { .image($0) },
+            portraitRound: portraitRound,
             ink: ProducerCardPrint.colors(seed: seed)
         )
     }

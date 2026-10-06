@@ -56,6 +56,13 @@ enum ProducerCardFiles {
                 try image.jpeg.write(to: oshiFile(cardId, idolId: image.idolId), options: .atomic)
             case .photo:
                 try image.jpeg.write(to: cardPhotoFile(cardId), options: .atomic)
+                // 写真の出どころ (X のアイコンなら丸く出す)。写真から選んだ写真は書かない (無ければ写真から選んだ写真)。
+                let source = image.photoSource ?? .picked
+                if source == .picked {
+                    try? FileManager.default.removeItem(at: cardPhotoSourceFile(cardId))
+                } else {
+                    try Data(cardPhotoSourceKey(source: source).utf8).write(to: cardPhotoSourceFile(cardId), options: .atomic)
+                }
             case .faceFront:
                 try image.jpeg.write(to: faceFile(cardId, side: .front), options: .atomic)
             case .faceBack:
@@ -73,6 +80,26 @@ enum ProducerCardFiles {
     static func cardPhotoURL(cardId: String) -> URL? {
         let url = cardPhotoFile(cardId)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private static func cardPhotoSourceFile(_ cardId: String) -> URL {
+        folder(cardId).appendingPathComponent("card_photo_source.txt")
+    }
+
+    /// 受け取った名刺の写真の出どころ (届いたまま。無ければ写真から選んだ写真)。
+    static func cardPhotoSource(cardId: String) -> CardPhotoSource {
+        readPhotoSource(at: cardPhotoSourceFile(cardId))
+    }
+
+    /// 受け取った名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。
+    static func cardPhotoRound(cardId: String) -> Bool {
+        cardPhotoShape(source: cardPhotoSource(cardId: cardId)) == .round
+    }
+
+    /// 写真の出どころのキーのファイルを読む (キーの読み方はコア。無ければ写真から選んだ写真)。
+    static func readPhotoSource(at url: URL) -> CardPhotoSource {
+        let key = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        return cardPhotoSourceFromKey(key: key)
     }
 
     // MARK: 受け取った自作の名刺の画像 (相手が自分で作った名刺の表・裏)
@@ -108,21 +135,31 @@ enum ProducerCardFiles {
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
-    /// 切り抜きの位置と拡大。
+    /// 名刺の写真の出どころ (写真から選んだ写真か X のアイコン)。前の版で選んだ写真は写真から選んだ写真。
+    static var myPhotoSource: CardPhotoSource {
+        readPhotoSource(at: myFolder.appendingPathComponent("photo_source_kind.txt"))
+    }
+
+    /// 自分の名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。
+    static var myPhotoRound: Bool { cardPhotoShape(source: myPhotoSource) == .round }
+
+    /// 切り抜きの位置と拡大。前の版の 3:4 の切り抜きも、正方形の枠で真ん中を保ったまま読み替える。
     static var myPhotoCrop: ImasPortraitCrop? {
         let url = myFolder.appendingPathComponent("photo_crop.json")
         guard let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(ImasPortraitCrop.self, from: data)
     }
 
-    /// 自分の名刺の写真を書く (元の写真・切り抜き・切り抜いた JPEG)。
-    static func saveMyPhoto(source: UIImage, crop: ImasPortraitCrop) throws {
-        guard let cropped = crop.render(source),
+    /// 自分の名刺の写真を書く (元の写真・切り抜き・出どころ・切り抜いた正方形の JPEG)。
+    static func saveMyPhoto(source: UIImage, crop: ImasPortraitCrop, origin: CardPhotoSource) throws {
+        guard let cropped = crop.render(source, frame: .card),
               let photo = jpeg(cropped, maxPixels: 1600),
               let original = jpeg(source, maxPixels: 3000) else { return }
         try FileManager.default.createDirectory(at: myFolder, withIntermediateDirectories: true)
         try original.write(to: myFolder.appendingPathComponent("photo_source.jpg"), options: .atomic)
         try JSONEncoder().encode(crop).write(to: myFolder.appendingPathComponent("photo_crop.json"), options: .atomic)
+        try Data(cardPhotoSourceKey(source: origin).utf8)
+            .write(to: myFolder.appendingPathComponent("photo_source_kind.txt"), options: .atomic)
         let previous = myPhotoURL
         let name = "photo-\(UUID().uuidString.prefix(8).lowercased()).jpg"
         try photo.write(to: myFolder.appendingPathComponent(name), options: .atomic)

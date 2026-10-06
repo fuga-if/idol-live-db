@@ -39,6 +39,8 @@ struct ProducerCardEditorView: View {
     /// 名刺の写真 (切り抜く前) と切り抜き。変えたら ✓ のときに書く。
     @State private var photoSource: UIImage?
     @State private var crop = ImasPortraitCrop()
+    /// 名刺の写真の出どころ (X のアイコンは丸く出す。切り方はコアの `cardPhotoShape`)。
+    @State private var photoOrigin: CardPhotoSource = .picked
     @State private var photoDirty = false
     @State private var photoPick: PhotosPickerItem?
     @State private var cropping: CropDraft?
@@ -71,6 +73,7 @@ struct ProducerCardEditorView: View {
         let id = UUID()
         let image: UIImage
         let crop: ImasPortraitCrop
+        let origin: CardPhotoSource
     }
 
     /// 自作の名刺の画像の四隅を直すシートに渡すもの。
@@ -160,8 +163,9 @@ struct ProducerCardEditorView: View {
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
             .interactiveDismissDisabled(isDirty)
             .sheet(item: $cropping) { draft in
-                CardPhotoCropSheet(image: draft.image, crop: draft.crop) { result in
-                    Task { await applyCrop(image: draft.image, crop: result) }
+                CardPhotoCropSheet(image: draft.image, crop: draft.crop,
+                                   round: cardPhotoShape(source: draft.origin) == .round) { result in
+                    Task { await applyCrop(image: draft.image, crop: result, origin: draft.origin) }
                 }
             }
             .onChange(of: photoPick) { _, item in
@@ -212,6 +216,7 @@ struct ProducerCardEditorView: View {
             card, directory: directory,
             imageURL: { CustomImageService.shared.imageURL(for: $0) },
             portraitURL: previewPortrait,
+            portraitSource: photoOrigin,
             face: previewFace,
             onOpenLink: nil, onOpenOshi: nil
         )
@@ -314,7 +319,7 @@ struct ProducerCardEditorView: View {
             ImasFormField(label: "名刺の写真", imprint: "PHOTO") {
                 HStack(alignment: .top, spacing: DS.Space.gapLoose) {
                     if let previewPortrait {
-                        ImasCardPortrait(url: previewPortrait)
+                        ImasCardPortrait(url: previewPortrait, round: cardPhotoShape(source: photoOrigin) == .round)
                             .frame(width: thumbnailWidth)
                     }
                     VStack(alignment: .leading, spacing: DS.Space.gap) {
@@ -326,13 +331,13 @@ struct ProducerCardEditorView: View {
                             Button { Task { await useXAvatar(handle) } } label: {
                                 CardEditorActionLabel(
                                     title: isFetchingAvatar ? "X のアイコンを取っています…" : "X のアイコンを使う (@\(handle))",
-                                    systemImage: "person.crop.square")
+                                    systemImage: "person.crop.circle")
                             }
                             .buttonStyle(.plain)
                             .disabled(isFetchingAvatar)
                         }
                         if let photoSource {
-                            Button { cropping = CropDraft(image: photoSource, crop: crop) } label: {
+                            Button { cropping = CropDraft(image: photoSource, crop: crop, origin: photoOrigin) } label: {
                                 CardEditorActionLabel(title: "位置を直す", systemImage: "crop")
                             }
                             .buttonStyle(.plain)
@@ -344,7 +349,7 @@ struct ProducerCardEditorView: View {
                         if let avatarNotice {
                             Text(avatarNotice).imasText(.note, color: DS.danger)
                         } else if photoSource == nil {
-                            Text("名前の横に証明写真のように載ります。担当の画像とは別です。").imasText(.note)
+                            Text("名前の横に正方形で載ります (X のアイコンは丸く)。担当の画像とは別です。").imasText(.note)
                         }
                     }
                 }
@@ -563,7 +568,7 @@ struct ProducerCardEditorView: View {
             // 名刺を保存できてから写真を書く (保存に失敗して編集をやめたとき、写真だけ変わらないように)。
             if photoDirty {
                 if let photoSource {
-                    try ProducerCardFiles.saveMyPhoto(source: photoSource, crop: crop)
+                    try ProducerCardFiles.saveMyPhoto(source: photoSource, crop: crop, origin: photoOrigin)
                 } else {
                     ProducerCardFiles.deleteMyPhoto()
                 }
@@ -590,6 +595,7 @@ struct ProducerCardEditorView: View {
         try? FileManager.default.removeItem(at: Self.previewFolder)
         photoSource = ProducerCardFiles.myPhotoSourceURL.flatMap { UIImage(contentsOfFile: $0.path) }
         crop = ProducerCardFiles.myPhotoCrop ?? ImasPortraitCrop()
+        photoOrigin = ProducerCardFiles.myPhotoSource
         previewPortrait = photoSource == nil ? nil : ProducerCardFiles.myPhotoURL
     }
 
@@ -599,19 +605,20 @@ struct ProducerCardEditorView: View {
             return
         }
         let upright = PaperCardRectifier.upright(image)
-        cropping = CropDraft(image: upright, crop: ImasPortraitCrop())
+        cropping = CropDraft(image: upright, crop: ImasPortraitCrop(), origin: .picked)
     }
 
     /// 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。
-    private func applyCrop(image: UIImage, crop: ImasPortraitCrop) async {
+    private func applyCrop(image: UIImage, crop: ImasPortraitCrop, origin: CardPhotoSource) async {
         avatarNotice = nil
-        guard let rendered = crop.render(image), let jpeg = ProducerCardFiles.jpeg(rendered) else { return }
+        guard let rendered = crop.render(image, frame: .card), let jpeg = ProducerCardFiles.jpeg(rendered) else { return }
         let dir = Self.previewFolder
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent("\(UUID().uuidString).jpg")
         guard (try? jpeg.write(to: url, options: .atomic)) != nil else { return }
         photoSource = image
         self.crop = crop
+        photoOrigin = origin
         previewPortrait = url
         photoDirty = true
     }
@@ -640,7 +647,7 @@ struct ProducerCardEditorView: View {
         switch outcome {
         case .image(let image):
             AppAnalytics.tap("producer_card.x_avatar")
-            cropping = CropDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop())
+            cropping = CropDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop(), origin: .xIcon)
         case .failed(let message):
             avatarNotice = message
         }
@@ -787,11 +794,14 @@ struct CardPhotoCropSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let image: UIImage
+    /// 丸く切る写真 (X のアイコン)。
+    var round = false
     let onDone: (ImasPortraitCrop) -> Void
     @State private var crop: ImasPortraitCrop
 
-    init(image: UIImage, crop: ImasPortraitCrop, onDone: @escaping (ImasPortraitCrop) -> Void) {
+    init(image: UIImage, crop: ImasPortraitCrop, round: Bool = false, onDone: @escaping (ImasPortraitCrop) -> Void) {
         self.image = image
+        self.round = round
         self.onDone = onDone
         _crop = State(initialValue: crop)
     }
@@ -799,8 +809,8 @@ struct CardPhotoCropSheet: View {
     var body: some View {
         NavigationStack {
             ImasFormPage {
-                ImasPortraitCropper(image: image, crop: $crop)
-                ImasNote("引いて動かし、2 本の指で広げると、名刺の証明写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの iPhone で渡した相手にだけ届きます (QR には入りません)。")
+                ImasPortraitCropper(image: image, crop: $crop, frame: .card, round: round)
+                ImasNote("引いて動かし、2 本の指で広げると、名刺の写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの iPhone で渡した相手にだけ届きます (QR には入りません)。")
             }
             .navigationTitle("写真の位置")
             .navigationBarTitleDisplayMode(.inline)

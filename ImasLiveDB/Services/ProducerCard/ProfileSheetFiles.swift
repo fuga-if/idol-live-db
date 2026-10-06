@@ -30,9 +30,19 @@ enum ProfileSheetFiles {
         return try? JSONDecoder().decode(ImasPortraitCrop.self, from: data)
     }
 
-    /// 書く (元・切り抜き・切り抜いた JPEG)。
-    static func save(source: UIImage, crop: ImasPortraitCrop) throws {
-        guard let cropped = crop.render(source),
+    /// 写真の出どころ (写真から選んだ写真か X のアイコン)。
+    static var source: CardPhotoSource {
+        ProducerCardFiles.readPhotoSource(at: folder.appendingPathComponent("photo_source_kind.txt"))
+    }
+
+    /// 切り抜く枠。X のアイコンは丸く出すので正方形で切り、証明写真の欄 (3:4) の中に丸く置く。
+    static func cropFrame(for origin: CardPhotoSource) -> ImasPortraitCrop.Frame {
+        cardPhotoShape(source: origin) == .round ? .card : .resume
+    }
+
+    /// 書く (元・切り抜き・出どころ・切り抜いた JPEG)。
+    static func save(source: UIImage, crop: ImasPortraitCrop, origin: CardPhotoSource) throws {
+        guard let cropped = crop.render(source, frame: cropFrame(for: origin)),
               let photo = ProducerCardFiles.jpeg(cropped, maxPixels: 1600),
               let original = ProducerCardFiles.jpeg(source, maxPixels: 3000) else {
             throw CocoaError(.fileWriteUnknown)
@@ -40,6 +50,8 @@ enum ProfileSheetFiles {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try original.write(to: folder.appendingPathComponent("photo_source.jpg"), options: .atomic)
         try JSONEncoder().encode(crop).write(to: folder.appendingPathComponent("photo_crop.json"), options: .atomic)
+        try Data(cardPhotoSourceKey(source: origin).utf8)
+            .write(to: folder.appendingPathComponent("photo_source_kind.txt"), options: .atomic)
         let name = "photo-\(UUID().uuidString.prefix(8).lowercased()).jpg"
         try photo.write(to: folder.appendingPathComponent(name), options: .atomic)
         // 前の写真をすべて片付ける (2 つ残るとどちらが出るか決まらない)。
@@ -56,4 +68,10 @@ enum ProfileSheetFiles {
 
     /// 証明写真の欄に入れる画像の場所: プロフィール帳の画像、無ければ P名刺の写真。
     static var effectiveURL: URL? { photoURL ?? ProducerCardFiles.myPhotoURL }
+
+    /// 証明写真の欄に入れる画像を丸く置くか (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    static var effectiveRound: Bool {
+        let source = photoURL != nil ? source : ProducerCardFiles.myPhotoSource
+        return cardPhotoShape(source: source) == .round
+    }
 }

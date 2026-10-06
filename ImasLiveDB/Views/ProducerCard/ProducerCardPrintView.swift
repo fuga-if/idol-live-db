@@ -63,6 +63,8 @@ struct ProducerCardPrintView: View {
 /// 書き出す前に全部 UIImage に読んでおく (URL のまま渡すと担当の写真が焼かれない)。
 struct ProducerCardPrintMaterials {
     var portrait: UIImage?
+    /// 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    var portraitRound = false
     var faceFront: UIImage?
     var faceBack: UIImage?
     /// 担当の写真 (アイドルの id → 画像)。
@@ -73,6 +75,7 @@ struct ProducerCardPrintMaterials {
     static func loadMine(card: ProducerCard) -> ProducerCardPrintMaterials {
         var out = ProducerCardPrintMaterials()
         out.portrait = ProducerCardFiles.myPhotoURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 900) }
+        out.portraitRound = ProducerCardFiles.myPhotoRound
         for id in card.oshiIdolIds {
             if let url = CustomImageService.shared.imageURL(for: id),
                let image = ProducerCardFiles.printImage(at: url) { out.oshiImages[id] = image }
@@ -139,7 +142,8 @@ struct ProducerCardPrintSheet {
             seed: face.oshiIdolIds.first.flatMap { directory.idols[$0]?.color },
             handle: face.handle?.display,
             nameFont: ProducerCardDisplay.nameFont(card.card),
-            portrait: materials.portrait
+            portrait: materials.portrait,
+            portraitRound: materials.portraitRound
         )
     }
 

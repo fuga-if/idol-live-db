@@ -13,7 +13,7 @@ import SwiftUI
 // 画面は幅に合わせた倍率、紙に刷る画像は 1 倍の紙を 4.5 倍で焼く (1638×990px)。
 // 文字も紙の上の大きさで固定する (名刺は物。読み上げと大きな文字は名刺の下の詳細が受け持つ)。
 //
-// ImasMeishiFront  表。名前 (デザインの書体)・P歴・名刺の写真 (証明写真の枠)・担当 (判子か写真を
+// ImasMeishiFront  表。名前 (デザインの書体)・P歴・名刺の写真 (正方形の枠。X のアイコンは丸)・担当 (判子か写真を
 //                  ブランドごとにまとめて小さく並べ、下に「星井美希 担当」か、ブランドが 2 つ以上なら
 //                  まとまりごとにブランドの略称。並べる人・まとめ方・文言はコアの `producerCardFace`)・
 //                  ハンドル 1 つ。
@@ -99,8 +99,10 @@ struct ImasMeishiFront: View {
     var handle: String? = nil
     /// 名前の書体の PostScript 名 (デザインの書体)。
     var nameFont: String? = nil
-    /// 名刺の写真 (右に証明写真の枠で)。
+    /// 名刺の写真 (右に正方形の枠で)。
     var portrait: ImasMeishiPicture? = nil
+    /// 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    var portraitRound = false
     let ink: ImasMeishiInk
     /// 紙の上の寸法を何倍で描くか (画面は幅に合わせる)。
     var scale: CGFloat = 1
@@ -280,16 +282,17 @@ struct ImasMeishiFront: View {
         }
     }
 
-    /// 名刺の写真の証明写真の枠 (3:4)。枠の大きさを先に決め、写真はその上に重ねて切る
-    /// (写真の比率で枠が膨らまないように。実機の縦長の写真ではみ出したことがある)。
+    /// 名刺の写真の正方形の枠 (X のアイコンは枠に内接する丸)。枠の大きさを先に決め、写真はその上に
+    /// 重ねて切る (写真の比率で枠が膨らまないように。実機の縦長の写真ではみ出したことがある)。
     @ViewBuilder
     private func portraitView(border: Color, width: CGFloat) -> some View {
         if let portrait {
+            let shape = RoundedRectangle(cornerRadius: portraitRound ? p(42) : p(2), style: .circular)
             Color.clear
-                .frame(width: p(72), height: p(96))
+                .frame(width: p(84), height: p(84))
                 .overlay { ImasMeishiPictureView(picture: portrait) }
-                .clipShape(RoundedRectangle(cornerRadius: p(2)))
-                .overlay(RoundedRectangle(cornerRadius: p(2)).strokeBorder(border, lineWidth: max(width, 0.5)))
+                .clipShape(shape)
+                .overlay(shape.strokeBorder(border, lineWidth: max(width, 0.5)))
         }
     }
 }

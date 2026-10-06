@@ -44,6 +44,7 @@ struct ProfileSheetView: View {
         let id = UUID()
         let image: UIImage
         let crop: ImasPortraitCrop
+        let origin: CardPhotoSource
     }
 
     var body: some View {
@@ -87,8 +88,8 @@ struct ProfileSheetView: View {
             BrandRoleSetupSheet()
         }
         .sheet(item: $cropping) { draft in
-            ProfilePhotoCropSheet(image: draft.image, crop: draft.crop) { crop in
-                Task { await savePhoto(draft.image, crop: crop) }
+            ProfilePhotoCropSheet(image: draft.image, crop: draft.crop, origin: draft.origin) { crop in
+                Task { await savePhoto(draft.image, crop: crop, origin: draft.origin) }
             }
         }
         .onChange(of: photoPick) { _, item in
@@ -173,7 +174,8 @@ struct ProfileSheetView: View {
         return ImasListSection("証明写真",
                                footer: "プロフィール帳だけの写真にできます (P名刺の写真は変わりません)。写真は端末の中だけに置き、バックアップには入りません。") {
             HStack(alignment: .top, spacing: DS.Space.gapLoose) {
-                ImasCardPortrait(url: ProfileSheetFiles.effectiveURL, label: "証明写真")
+                ImasCardPortrait(url: ProfileSheetFiles.effectiveURL, label: "証明写真", frame: .resume,
+                                 round: ProfileSheetFiles.effectiveRound)
                     .frame(width: thumbnailWidth)
                 VStack(alignment: .leading, spacing: DS.Space.gap) {
                     Text(hasOwnPhoto ? "プロフィール帳の写真" : (ProducerCardFiles.myPhotoURL == nil ? "写真なし" : "P名刺の写真"))
@@ -186,7 +188,7 @@ struct ProfileSheetView: View {
                         Button { Task { await useXAvatar(handle) } } label: {
                             ProfileActionLabel(
                                 title: isFetchingAvatar ? "X のアイコンを取っています…" : "X のアイコンを使う (@\(handle))",
-                                systemImage: "person.crop.square")
+                                systemImage: "person.crop.circle")
                         }
                         .buttonStyle(.plain)
                         .disabled(isFetchingAvatar)
@@ -221,7 +223,7 @@ struct ProfileSheetView: View {
             photoNotice = "写真を読み込めませんでした。"
             return
         }
-        cropping = PhotoDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop())
+        cropping = PhotoDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop(), origin: .picked)
     }
 
     private func useXAvatar(_ handle: String) async {
@@ -232,7 +234,7 @@ struct ProfileSheetView: View {
         switch outcome {
         case .image(let image):
             AppAnalytics.tap("profile_sheet.x_avatar")
-            cropping = PhotoDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop())
+            cropping = PhotoDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop(), origin: .xIcon)
         case .failed(let message):
             photoNotice = message
         }
@@ -240,12 +242,13 @@ struct ProfileSheetView: View {
 
     private func recrop() {
         guard let source = ProfileSheetFiles.sourceURL.flatMap({ UIImage(contentsOfFile: $0.path) }) else { return }
-        cropping = PhotoDraft(image: source, crop: ProfileSheetFiles.crop ?? ImasPortraitCrop())
+        cropping = PhotoDraft(image: source, crop: ProfileSheetFiles.crop ?? ImasPortraitCrop(),
+                              origin: ProfileSheetFiles.source)
     }
 
-    private func savePhoto(_ image: UIImage, crop: ImasPortraitCrop) async {
+    private func savePhoto(_ image: UIImage, crop: ImasPortraitCrop, origin: CardPhotoSource) async {
         do {
-            try ProfileSheetFiles.save(source: image, crop: crop)
+            try ProfileSheetFiles.save(source: image, crop: crop, origin: origin)
             AppAnalytics.tap("profile_sheet.photo")
         } catch {
             photoNotice = "写真を保存できませんでした。"
@@ -420,20 +423,29 @@ struct ProfilePhotoCropSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     let image: UIImage
+    /// 写真の出どころ (X のアイコンは正方形で切り、証明写真の欄の中に丸く置く)。
+    let origin: CardPhotoSource
     let onDone: (ImasPortraitCrop) -> Void
     @State private var crop: ImasPortraitCrop
 
-    init(image: UIImage, crop: ImasPortraitCrop, onDone: @escaping (ImasPortraitCrop) -> Void) {
+    init(image: UIImage, crop: ImasPortraitCrop, origin: CardPhotoSource,
+         onDone: @escaping (ImasPortraitCrop) -> Void) {
         self.image = image
+        self.origin = origin
         self.onDone = onDone
         _crop = State(initialValue: crop)
     }
 
+    private var round: Bool { cardPhotoShape(source: origin) == .round }
+
     var body: some View {
         NavigationStack {
             ImasFormPage {
-                ImasPortraitCropper(image: image, crop: $crop)
-                ImasNote("引いて動かし、2 本の指で広げると、履歴書の証明写真の枠 (3:4) に合わせられます。写真は端末の中だけに置きます。")
+                ImasPortraitCropper(image: image, crop: $crop, frame: ProfileSheetFiles.cropFrame(for: origin),
+                                    round: round)
+                ImasNote(round
+                    ? "引いて動かし、2 本の指で広げると、丸いアイコンの枠に合わせられます。証明写真の欄の中に丸く置きます。写真は端末の中だけに置きます。"
+                    : "引いて動かし、2 本の指で広げると、履歴書の証明写真の枠 (3:4) に合わせられます。写真は端末の中だけに置きます。")
             }
             .navigationTitle("写真の位置")
             .navigationBarTitleDisplayMode(.inline)

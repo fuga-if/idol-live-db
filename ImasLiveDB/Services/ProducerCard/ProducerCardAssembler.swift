@@ -90,10 +90,11 @@ enum ProducerCardAssembler {
         }
     }
 
-    /// 自分の名刺の写真 (切り抜いた JPEG をそのまま。元の画質で渡す)。
+    /// 自分の名刺の写真 (切り抜いた JPEG をそのまま。元の画質で渡す)。出どころも渡す (X のアイコンなら
+    /// 相手の端末でも丸く出る)。
     static func myPhotoImage() -> CardFileImage? {
         guard let url = ProducerCardFiles.myPhotoURL, let jpeg = try? Data(contentsOf: url) else { return nil }
-        return CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)
+        return CardFileImage(idolId: "", jpeg: jpeg, kind: .photo, photoSource: ProducerCardFiles.myPhotoSource)
     }
 
     /// 自作の名刺の画像 (表・裏。平らにした JPEG をそのまま渡す)。載せるかどうか

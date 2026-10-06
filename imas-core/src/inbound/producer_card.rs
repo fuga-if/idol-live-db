@@ -3,7 +3,8 @@
 use crate::domain::producer_card::{
     CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFace,
     CardFileContents, CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo,
-    CardLinkView, CardNameFont, CardNameFontInfo, CardOshiEntry, CardRecordSummary, CardShowRef,
+    CardLinkView, CardNameFont, CardNameFontInfo, CardOshiEntry, CardPhotoShape, CardPhotoSource,
+    CardRecordSummary, CardShowRef,
     EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
     ProducerCardLimits, ScannedCode,
 };
@@ -121,6 +122,24 @@ pub fn card_link_kind_key(kind: CardLinkKind) -> String {
 #[uniffi::export]
 pub fn card_link_kind_from_key(key: String) -> Option<CardLinkKind> {
     crate::domain::producer_card::card_link_kind_from_key(&key)
+}
+
+/// 名刺の写真の切り方 (X のアイコンは丸、写真から選んだ写真は正方形)。
+#[uniffi::export]
+pub fn card_photo_shape(source: CardPhotoSource) -> CardPhotoShape {
+    crate::domain::producer_card::card_photo_shape(source)
+}
+
+/// 写真の出どころを端末に残すときの英字キー。
+#[uniffi::export]
+pub fn card_photo_source_key(source: CardPhotoSource) -> String {
+    crate::domain::producer_card::card_photo_source_key(source)
+}
+
+/// 端末に残したキーから写真の出どころを読む (知らないキー・無いときは写真から選んだ写真)。
+#[uniffi::export]
+pub fn card_photo_source_from_key(key: String) -> CardPhotoSource {
+    crate::domain::producer_card::card_photo_source_from_key(&key)
 }
 
 #[uniffi::export]

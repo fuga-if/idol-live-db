@@ -20,9 +20,9 @@ enum ImasRowLeading {
     case bar(seed: String? = nil, brand: String? = nil, rainbow: Bool = false)
     /// アイドルのアイコン (40)。写真があれば写真、無ければ判子 (`ImasAvatar` の既定の見た目)。
     case avatar(label: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil, isPick: Bool = false)
-    /// P名刺の写真 (証明写真の枠) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
-    /// 担当が無ければ写真だけ。名刺入れの行。
-    case portrait(URL, oshi: ImasRowPortraitOshi? = nil)
+    /// P名刺の写真 (正方形の枠。X のアイコンは `round` で丸) と、その人の担当のアイコン (写真か判子) を
+    /// 右下に重ねたもの。担当が無ければ写真だけ。名刺入れの行。
+    case portrait(URL, round: Bool = false, oshi: ImasRowPortraitOshi? = nil)
     /// 自作の名刺の画像 (91:55 の枠に収めた小さな見本) と、その人の担当のアイコンを右下に重ねたもの。
     /// 名刺入れの行 (デザインが自作の画像の名刺)。
     case cardFace(URL, oshi: ImasRowPortraitOshi? = nil)
@@ -254,9 +254,9 @@ struct ImasRow<Detail: View>: View {
         case let .avatar(label, seed, brand, url, isPick):
             // 写真があれば写真、無ければ ImasAvatar 既定の判子 (アイコンは常に出す)。
             ImasAvatar(label: label, seed: seed, brand: brand, size: density.avatarSize, isPick: isPick, imageURL: url)
-        case let .portrait(url, oshi):
+        case let .portrait(url, round, oshi):
             ZStack(alignment: .bottomTrailing) {
-                ImasCardPortrait(url: url)
+                ImasCardPortrait(url: url, round: round)
                     .frame(width: density.avatarSize * 0.9)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let oshi {

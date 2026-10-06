@@ -198,7 +198,10 @@ struct ProducerCardPreviewHarness: View {
             mine.design = "formal"
             mine.qrUrl = "https://lit.link/fuga"
             try? db.saveMyProducerCard(mine)
-            try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop())
+            // `PRODUCER_CARD_PHOTO=x` で X のアイコンとして置く (丸く出るかを見る)。
+            let photoOrigin: CardPhotoSource = ProcessInfo.processInfo.environment["PRODUCER_CARD_PHOTO"] == "x"
+                ? .xIcon : .picked
+            try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop(), origin: photoOrigin)
             // 担当の代表画像は実機と同じく大きな縦長・横長 (枠からはみ出さないかを見る)。
             for (i, id) in myOshi.enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
                 _ = try? await CustomImageService.shared.addImage(bigPicture(tall: i % 2 == 0, seed: i), for: id)
@@ -344,7 +347,7 @@ struct ProducerCardPreviewHarness: View {
                 }
             }
             // 縦長の大きな画像 (1200×3000) をプロフィール帳の写真に入れる (枠からはみ出さないか)。
-            try? ProfileSheetFiles.save(source: profileTallPhoto(seed: 1), crop: ImasPortraitCrop())
+            try? ProfileSheetFiles.save(source: profileTallPhoto(seed: 1), crop: ImasPortraitCrop(), origin: .picked)
             var tall = await ProfileSheetAssembler.load(card: mine)
             tall.record.brandRolesJson = roles
             write(tall, size: .portrait, name: "resume_4x5_tall_photo.png")

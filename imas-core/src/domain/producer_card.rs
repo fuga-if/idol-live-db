@@ -1617,11 +1617,75 @@ const CARD_FILE_MAGIC: &[u8; 8] = b"IMASCARD";
 const CARD_FILE_VERSION: u8 = 1;
 /// 画像 1 枚の上限。長辺 1600px 程度の JPEG なら 1MB 前後なので十分に余裕がある。
 const MAX_CARD_FILE_IMAGE_BYTES: usize = 12 * 1024 * 1024;
-/// 追加の区画の数の上限 (今は写真・表・裏の 3 つ。知らない種類を飛ばす余地を残す)。
+/// 追加の区画の数の上限 (今は写真・表・裏・写真の出どころの 4 つ。知らない種類を飛ばす余地を残す)。
 const MAX_CARD_FILE_SECTIONS: usize = 8;
 const SECTION_PHOTO: u8 = 1;
 const SECTION_FACE_FRONT: u8 = 2;
 const SECTION_FACE_BACK: u8 = 3;
+/// 名刺の写真の出どころ (中身は 1 バイトの `photo_source_code`)。写真から選んだ写真では書かない。
+/// 足す前のアプリは知らない区画として飛ばし、写真は写真のまま (正方形で) 出す。
+const SECTION_PHOTO_SOURCE: u8 = 4;
+
+/// 名刺の写真の出どころ。端末に写真と一緒に残し、名刺ファイル・近くの端末で相手にも渡す
+/// (切り方は `card_photo_shape`)。
+#[derive(uniffi::Enum, Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum CardPhotoSource {
+    /// 写真から選んだ写真 (自分で切り抜いた正方形)。
+    #[default]
+    Picked,
+    /// X のアイコン (名刺のリンクの X の ID から取ったもの)。
+    XIcon,
+}
+
+/// 名刺の写真の切り方。枠はどちらも正方形で、丸はその枠に内接する円で切る。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum CardPhotoShape {
+    /// 正方形 (角を小さく丸める)。
+    Square,
+    /// 丸 (X のアイコンは X と同じ見え方で出す)。
+    Round,
+}
+
+/// 名刺の写真の切り方 (X のアイコンは丸、写真から選んだ写真は正方形)。名刺の表・紙に刷る画像・
+/// 名刺入れの行・編集画面の枠、プロフィール帳の証明写真の欄 (枠は 3:4 のまま、丸は枠の中に置く) で同じ。
+pub fn card_photo_shape(source: CardPhotoSource) -> CardPhotoShape {
+    match source {
+        CardPhotoSource::Picked => CardPhotoShape::Square,
+        CardPhotoSource::XIcon => CardPhotoShape::Round,
+    }
+}
+
+/// 写真の出どころを端末に残すときの英字キー。
+pub fn card_photo_source_key(source: CardPhotoSource) -> String {
+    match source {
+        CardPhotoSource::Picked => "picked",
+        CardPhotoSource::XIcon => "x_icon",
+    }
+    .to_string()
+}
+
+/// 端末に残したキーから写真の出どころを読む。知らないキー (無いときも) は写真から選んだ写真。
+pub fn card_photo_source_from_key(key: &str) -> CardPhotoSource {
+    match key.trim() {
+        "x_icon" => CardPhotoSource::XIcon,
+        _ => CardPhotoSource::Picked,
+    }
+}
+
+fn photo_source_code(source: CardPhotoSource) -> u8 {
+    match source {
+        CardPhotoSource::Picked => 0,
+        CardPhotoSource::XIcon => 1,
+    }
+}
+
+fn photo_source_from_code(code: u8) -> Option<CardPhotoSource> {
+    match code {
+        0 => Some(CardPhotoSource::Picked),
+        1 => Some(CardPhotoSource::XIcon),
+        _ => None,
+    }
+}
 
 /// 名刺ファイルの種類の名乗り。OS に登録する拡張子・MIME・UTI はここ 1 か所。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -1672,6 +1736,9 @@ pub struct CardFileImage {
     pub idol_id: String,
     pub jpeg: Vec<u8>,
     pub kind: CardFileImageKind,
+    /// 名刺の写真 (`Photo`) の出どころ。None は写真から選んだ写真 (足す前のファイルも)。写真のほかは None。
+    #[uniffi(default = None)]
+    pub photo_source: Option<CardPhotoSource>,
 }
 
 /// 名刺ファイルを開いた中身。
@@ -1731,13 +1798,24 @@ pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u
         put_varint(&mut w, image.jpeg.len() as u64);
         w.extend_from_slice(&image.jpeg);
     }
+    // 写真の出どころ (X のアイコンのときだけ。写真から選んだ写真は足す前のファイルと同じ形のまま)。
+    let photo_source = sections
+        .iter()
+        .find(|i| i.kind == CardFileImageKind::Photo)
+        .and_then(|i| i.photo_source)
+        .filter(|s| *s != CardPhotoSource::Picked);
     // 写真も自作の画像も無ければ区画ごと書かない (足す前のファイルと同じ形のまま)。
     if !sections.is_empty() {
-        put_varint(&mut w, sections.len() as u64);
+        put_varint(&mut w, (sections.len() + usize::from(photo_source.is_some())) as u64);
         for image in &sections {
             w.push(image.kind.section()?);
             put_varint(&mut w, image.jpeg.len() as u64);
             w.extend_from_slice(&image.jpeg);
+        }
+        if let Some(source) = photo_source {
+            w.push(SECTION_PHOTO_SOURCE);
+            put_varint(&mut w, 1);
+            w.push(photo_source_code(source));
         }
     }
     Some(w)
@@ -1769,9 +1847,11 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             idol_id,
             jpeg,
             kind: CardFileImageKind::Oshi,
+            photo_source: None,
         });
     }
     // 追加の区画 (足す前のファイルには無い)。あるなら最後まで読み切れること。
+    let mut photo_source = None;
     if r.pos < r.bytes.len() {
         let sections = r.count(MAX_CARD_FILE_SECTIONS)?;
         for _ in 0..sections {
@@ -1780,18 +1860,30 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             let end = r.pos.checked_add(len)?;
             let body = r.bytes.get(r.pos..end)?;
             r.pos = end;
+            if kind == SECTION_PHOTO_SOURCE {
+                // 知らない出どころは写真から選んだ写真として読む (写真そのものは出す)。
+                photo_source = photo_source.or(match body {
+                    [code] => photo_source_from_code(*code),
+                    _ => None,
+                });
+                continue;
+            }
             let known = CardFileImageKind::from_section(kind);
             if let Some(kind) = known.filter(|k| !images.iter().any(|i| i.kind == *k)) {
                 images.push(CardFileImage {
                     idol_id: String::new(),
                     jpeg: body.to_vec(),
                     kind,
+                    photo_source: None,
                 });
             }
         }
         if r.pos != r.bytes.len() {
             return None;
         }
+    }
+    if let Some(photo) = images.iter_mut().find(|i| i.kind == CardFileImageKind::Photo) {
+        photo.photo_source = photo_source;
     }
     let images = card_file_images(&card, images);
     Some(CardFileContents {
@@ -1815,7 +1907,10 @@ fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<Card
             .iter()
             .find(|i| i.kind == CardFileImageKind::Oshi && &i.idol_id == id);
         if let Some(image) = found.filter(usable) {
-            out.push(image.clone());
+            out.push(CardFileImage {
+                photo_source: None,
+                ..image.clone()
+            });
         }
     }
     let custom = card.design == Some(CardDesign::Custom);
@@ -1833,8 +1928,13 @@ fn card_file_images(card: &ProducerCard, images: Vec<CardFileImage>) -> Vec<Card
         let found = images.iter().find(|i| i.kind == kind).filter(usable);
         if let Some(image) = found.filter(|_| allowed) {
             has_front |= kind == CardFileImageKind::FaceFront;
+            // 出どころは写真にだけ持たせる (写真から選んだ写真は None にそろえる)。
+            let photo_source = image
+                .photo_source
+                .filter(|s| kind == CardFileImageKind::Photo && *s != CardPhotoSource::Picked);
             out.push(CardFileImage {
                 idol_id: String::new(),
+                photo_source,
                 ..image.clone()
             });
         }
@@ -2388,21 +2488,25 @@ mod tests {
                 idol_id: "765_如月千早".into(),
                 jpeg: vec![0xFF, 0xD8, 0xFF, 3],
                 kind: CardFileImageKind::Oshi,
+                photo_source: None,
             },
             CardFileImage {
                 idol_id: "961_黒井".into(),
                 jpeg: vec![0xFF, 0xD8, 0xFF, 9],
                 kind: CardFileImageKind::Oshi,
+                photo_source: None,
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
                 jpeg: vec![0xFF, 0xD8, 0xFF, 5],
                 kind: CardFileImageKind::Oshi,
+                photo_source: None,
             },
             CardFileImage {
                 idol_id: "765_天海春香".into(),
                 jpeg: vec![],
                 kind: CardFileImageKind::Oshi,
+                photo_source: None,
             },
         ];
         // URL を渡しても `#` の後ろだけを入れる。
@@ -2475,6 +2579,7 @@ mod tests {
             idol_id: "765_如月千早".into(),
             jpeg: vec![0x89, b'P', b'N', b'G'],
             kind: CardFileImageKind::Oshi,
+            photo_source: None,
         };
         let file = decode_card_file(&encode_card_file(&enc.url, &[png]).unwrap()).unwrap();
         assert!(file.images.is_empty());
@@ -2689,6 +2794,7 @@ mod tests {
             idol_id: "x".into(),
             jpeg: jpeg(tag),
             kind,
+            photo_source: None,
         };
         let images = vec![
             face(CardFileImageKind::FaceBack, 2),
@@ -2759,16 +2865,19 @@ mod tests {
                 idol_id: "765_如月千早".into(),
                 jpeg: jpeg(3),
                 kind: CardFileImageKind::Oshi,
+                photo_source: None,
             },
             CardFileImage {
                 idol_id: "whatever".into(),
                 jpeg: jpeg(7),
                 kind: CardFileImageKind::Photo,
+                photo_source: None,
             },
             CardFileImage {
                 idol_id: String::new(),
                 jpeg: jpeg(8),
                 kind: CardFileImageKind::Photo,
+                photo_source: None,
             },
         ];
         let bytes = encode_card_file(&enc.url, &images).unwrap();
@@ -2809,5 +2918,55 @@ mod tests {
         unknown.extend_from_slice(&[1, 2]);
         let read = decode_card_file(&unknown).unwrap();
         assert_eq!(read.images.len(), 1);
+    }
+
+    #[test]
+    fn card_file_carries_x_icon_photo_source_and_older_readers_keep_the_photo() {
+        let enc = encode_producer_card(&input());
+        let photo = |source| CardFileImage {
+            idol_id: String::new(),
+            jpeg: jpeg(7),
+            kind: CardFileImageKind::Photo,
+            photo_source: source,
+        };
+        // X のアイコンは出どころが届く (丸く出す)。
+        let bytes = encode_card_file(&enc.url, &[photo(Some(CardPhotoSource::XIcon))]).unwrap();
+        let file = decode_card_file(&bytes).unwrap();
+        assert_eq!(file.images.len(), 1);
+        assert_eq!(file.images[0].photo_source, Some(CardPhotoSource::XIcon));
+        assert_eq!(card_photo_shape(CardPhotoSource::XIcon), CardPhotoShape::Round);
+        // 写真から選んだ写真は出どころを書かない (足す前のファイルと同じ形)。
+        let picked = encode_card_file(&enc.url, &[photo(Some(CardPhotoSource::Picked))]).unwrap();
+        assert_eq!(picked, encode_card_file(&enc.url, &[photo(None)]).unwrap());
+        assert_eq!(decode_card_file(&picked).unwrap().images[0].photo_source, None);
+        assert_eq!(card_photo_shape(CardPhotoSource::Picked), CardPhotoShape::Square);
+        // 出どころは写真の後ろの別の区画なので、その区画を知らない読み方でも写真は読める
+        // (知らない区画として飛ばす。区画の種類を知らない番号に替えて確かめる)。
+        let mut older = bytes.clone();
+        let at = older.len() - 3;
+        assert_eq!(older[at], SECTION_PHOTO_SOURCE);
+        older[at] = 9;
+        let read = decode_card_file(&older).unwrap();
+        assert_eq!(read.images.len(), 1);
+        assert_eq!(read.images[0].jpeg, jpeg(7));
+        assert_eq!(read.images[0].photo_source, None);
+        // 担当の画像には出どころを持たせない。
+        let oshi = CardFileImage {
+            idol_id: "765_如月千早".into(),
+            jpeg: jpeg(3),
+            kind: CardFileImageKind::Oshi,
+            photo_source: Some(CardPhotoSource::XIcon),
+        };
+        let file = decode_card_file(&encode_card_file(&enc.url, &[oshi]).unwrap()).unwrap();
+        assert_eq!(file.images[0].photo_source, None);
+    }
+
+    #[test]
+    fn photo_source_keys_round_trip_and_unknown_reads_as_picked() {
+        for source in [CardPhotoSource::Picked, CardPhotoSource::XIcon] {
+            assert_eq!(card_photo_source_from_key(&card_photo_source_key(source)), source);
+        }
+        assert_eq!(card_photo_source_from_key(""), CardPhotoSource::Picked);
+        assert_eq!(card_photo_source_from_key("instagram"), CardPhotoSource::Picked);
     }
 }

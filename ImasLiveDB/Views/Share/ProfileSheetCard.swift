@@ -257,7 +257,8 @@ private struct ProfileResumeBody: View {
                     }
                 }
                 Rectangle().fill(Ink.ink).frame(width: Ink.rule)
-                ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil, width: 88 * s)
+                ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil, round: materials.portraitRound,
+                                width: 88 * s)
                     .padding(10 * s)
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -555,13 +556,20 @@ private struct ProfileOshiIcon: View {
 /// 証明写真の欄 (3:4)。枠を先に決めてから写真を重ねて切る。写真が無ければ「写真をはる位置」を刷っておく。
 private struct ProfilePhotoBox: View {
     let image: UIImage?
+    /// X のアイコンは欄 (3:4) の中に丸く置く (欄の幅いっぱいの丸)。
+    var round = false
     let width: CGFloat
 
     var body: some View {
         Color.clear
             .frame(width: width, height: width * 4 / 3)
             .overlay {
-                if let image {
+                if let image, round {
+                    Color.clear
+                        .frame(width: width, height: width)
+                        .overlay { Image(uiImage: image).resizable().scaledToFill() }
+                        .clipShape(Circle())
+                } else if let image {
                     Image(uiImage: image).resizable().scaledToFill()
                 } else {
                     VStack(spacing: 4) {

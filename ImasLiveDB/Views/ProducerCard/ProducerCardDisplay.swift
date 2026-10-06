@@ -161,11 +161,12 @@ enum ProducerCardDisplay {
     }
 
     /// 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。名刺の下の詳細は `.details`。
-    /// `portraitURL` は名刺の写真、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
+    /// `portraitURL` は名刺の写真 (`portraitSource` はその出どころ。X のアイコンは丸く出す)、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
     /// 届いた画像。QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
     /// `back` は裏の QR (渡さなければ交換用)。`payload` は受け取ったままの名刺の中身 (交換用の QR に使う)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
-                     imageURL: (String) -> URL?, portraitURL: URL? = nil, face: Face? = nil,
+                     imageURL: (String) -> URL?, portraitURL: URL? = nil,
+                     portraitSource: CardPhotoSource = .picked, face: Face? = nil,
                      back: ImasProducerCard.Back? = nil, payload: String? = nil,
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
@@ -189,6 +190,7 @@ enum ProducerCardDisplay {
             boardTrailing: boardTrailing(card),
             photoURL: oshi.compactMap(\.imageURL).first,
             portraitURL: portraitURL,
+            portraitRound: cardPhotoShape(source: portraitSource) == .round,
             nameFont: nameFont(card, face: face),
             back: Self.back(card, face: cardFace, payload: payload, qr: back),
             onOpenLink: onOpenLink,

@@ -116,7 +116,7 @@ struct CardCaseView: View {
            ProducerCardDisplay.design(content, face: face).usesFaceImage {
             leading = .cardFace(face.front, oshi: oshiIcon)
         } else if let portrait = ProducerCardFiles.cardPhotoURL(cardId: card.id) {
-            leading = .portrait(portrait, oshi: oshiIcon)
+            leading = .portrait(portrait, round: ProducerCardFiles.cardPhotoRound(cardId: card.id), oshi: oshiIcon)
         } else if let oshiIcon {
             leading = .avatar(label: oshiIcon.label, seed: oshiIcon.seed, brand: oshiIcon.brand,
                               imageURL: oshiIcon.imageURL, isPick: true)

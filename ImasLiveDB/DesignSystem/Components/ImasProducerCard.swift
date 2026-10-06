@@ -20,7 +20,8 @@ import SwiftUI
 //                          `onOpenLink` / `onOpenOshi` を渡すと詳細の行が押せる。
 // ImasProducerCardDetails 名刺の下の紙面 (ひとこと・担当の写真と一覧・リンクの一覧・記録の掲示板)。
 // ImasCardFace       自作の名刺の画像の小さな見本 (91:55 の枠に収める。名刺入れの行・デザインの札・編集画面)。
-// ImasCardPortrait   名刺の写真の証明写真の枠 (3:4)。名刺入れの行・編集画面で同じ枠。
+// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+//                    名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
 // ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) を横に並べ、引いて (または押して) 選ぶ。
 // ImasCornerAdjuster 写真に写った紙の名刺の四隅を指で直す (書類カメラの手直しと同じ感覚)。
@@ -112,8 +113,10 @@ struct ImasProducerCard: View {
     var boardTrailing: String? = nil
     /// 担当の写真 (名刺の下の担当の一覧の上に広げる)。
     var photoURL: URL? = nil
-    /// 名刺の写真 (自分で選んだ写真。表の右の証明写真の枠に出す)。
+    /// 名刺の写真 (自分で選んだ写真か X のアイコン。表の右の正方形の枠に出す)。
     var portraitURL: URL? = nil
+    /// 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    var portraitRound = false
     /// 名前の書体の PostScript 名 (コアの `CardDesignInfo.font.postscriptName`)。nil は見出しの書体。
     var nameFont: String? = nil
     /// 裏。nil なら返さない (自作の画像に裏の画像があればそれを裏にする)。
@@ -229,6 +232,7 @@ struct ImasProducerCard: View {
                 handle: handle,
                 nameFont: nameFont,
                 portrait: portraitURL.map { .url($0) },
+                portraitRound: portraitRound,
                 ink: ink,
                 scale: scale
             )
@@ -472,75 +476,114 @@ struct ImasCornerAdjuster: View {
 
 // MARK: - 名刺の写真
 
-/// 名刺の写真の証明写真の枠 (3:4)。紙に貼った写真のように、角を小さく丸めて縁を付ける。
+/// 名刺の写真の枠。P名刺は正方形 (`.card`)、プロフィール帳の証明写真の欄は履歴書の様式の 3:4 (`.resume`)。
+/// 紙に貼った写真のように角を小さく丸めて縁を付ける。X のアイコン (`round`) は X と同じく丸く切り、
+/// 3:4 の枠ではその中に丸く置く。
 struct ImasCardPortrait: View {
     let url: URL?
     var label: String = "名刺の写真"
+    var frame: ImasPortraitCrop.Frame = .card
+    /// 丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    var round = false
 
     var body: some View {
-        // 大きさは 3:4 の枠で決め、写真はその上に重ねて切る (画像の大きさで枠が膨らまないように)。
+        // 大きさは枠の比で決め、写真はその上に重ねて切る (画像の大きさで枠が膨らまないように)。
         Color.clear
-            .aspectRatio(ImasPortraitCrop.aspect, contentMode: .fit)
+            .aspectRatio(frame.aspect, contentMode: .fit)
             .overlay {
-                if let url {
-                    LazyImage(url: url) { state in
-                        if let image = state.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            DS.surface2
-                        }
-                    }
+                if round {
+                    Color.clear
+                        .aspectRatio(1, contentMode: .fit)
+                        .overlay { picture }
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(DS.line, lineWidth: 1))
+                } else {
+                    picture
+                        .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+                        .imasSurfaceEdge(cornerRadius: DS.rTag)
+                }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(label)
+    }
+
+    @ViewBuilder private var picture: some View {
+        if let url {
+            LazyImage(url: url) { state in
+                if let image = state.image {
+                    image.resizable().scaledToFill()
                 } else {
                     DS.surface2
                 }
             }
-        .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
-        .imasSurfaceEdge(cornerRadius: DS.rTag)
-        .accessibilityLabel(label)
+        } else {
+            DS.surface2
+        }
     }
 }
 
 /// 名刺の写真の切り抜き。`zoom` は枠いっぱいに収めた大きさからの拡大 (1 以上)、
-/// `center` は元の写真の中で枠の真ん中に来る点 (0〜1、左上が原点)。
+/// `center` は元の写真の中で枠の真ん中に来る点 (0〜1、左上が原点)。枠の形 (`Frame`) は持たないので、
+/// 前の 3:4 の切り抜きも正方形の枠で真ん中を保ったまま読み替えられる。
 struct ImasPortraitCrop: Codable, Equatable, Sendable {
-    /// 枠の縦横比 (横 / 縦)。証明写真の 3:4。
-    static let aspect: CGFloat = 3.0 / 4.0
+    /// 切り抜く枠。
+    enum Frame: Sendable {
+        /// P名刺の写真 (正方形。X のアイコンはこの枠に内接する丸で出す)。
+        case card
+        /// プロフィール帳の証明写真の欄 (履歴書の様式の 3:4)。
+        case resume
+
+        /// 枠の縦横比 (横 / 縦)。
+        var aspect: CGFloat {
+            switch self {
+            case .card: return 1
+            case .resume: return 3.0 / 4.0
+            }
+        }
+
+        /// 書き出す大きさ (px)。
+        var outputSize: CGSize {
+            switch self {
+            case .card: return CGSize(width: 1080, height: 1080)
+            case .resume: return CGSize(width: 900, height: 1200)
+            }
+        }
+    }
+
     static let maxZoom: CGFloat = 5
-    /// 書き出す大きさ (px)。
-    static let outputSize = CGSize(width: 900, height: 1200)
 
     var zoom: CGFloat = 1
     var center = CGPoint(x: 0.5, y: 0.5)
 
     /// 元の写真 (px) の中で切り抜く四角。
-    func rect(in size: CGSize) -> CGRect {
+    func rect(in size: CGSize, frame: Frame) -> CGRect {
         guard size.width > 0, size.height > 0 else { return .zero }
-        let baseW = min(size.width, size.height * Self.aspect)
+        let baseW = min(size.width, size.height * frame.aspect)
         let w = baseW / max(1, min(zoom, Self.maxZoom))
-        let h = w / Self.aspect
+        let h = w / frame.aspect
         let cx = min(max(center.x * size.width, w / 2), size.width - w / 2)
         let cy = min(max(center.y * size.height, h / 2), size.height - h / 2)
         return CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h)
     }
 
     /// 枠からはみ出さないように直した切り抜き。
-    func clamped(to size: CGSize) -> ImasPortraitCrop {
-        let r = rect(in: size)
+    func clamped(to size: CGSize, frame: Frame) -> ImasPortraitCrop {
+        let r = rect(in: size, frame: frame)
         guard size.width > 0, size.height > 0 else { return self }
         return ImasPortraitCrop(zoom: min(max(zoom, 1), Self.maxZoom),
                                 center: CGPoint(x: r.midX / size.width, y: r.midY / size.height))
     }
 
-    /// 切り抜いた写真 (900×1200px)。
-    func render(_ image: UIImage) -> UIImage? {
+    /// 切り抜いた写真 (`frame.outputSize`)。
+    func render(_ image: UIImage, frame: Frame) -> UIImage? {
         let px = CGSize(width: image.size.width * image.scale, height: image.size.height * image.scale)
-        let r = rect(in: px)
+        let r = rect(in: px, frame: frame)
         guard r.width > 0 else { return nil }
-        let k = Self.outputSize.width / r.width
+        let k = frame.outputSize.width / r.width
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
-        return UIGraphicsImageRenderer(size: Self.outputSize, format: format).image { _ in
+        return UIGraphicsImageRenderer(size: frame.outputSize, format: format).image { _ in
             image.draw(in: CGRect(x: -r.minX * k, y: -r.minY * k, width: px.width * k, height: px.height * k))
         }
     }
@@ -550,6 +593,9 @@ struct ImasPortraitCrop: Codable, Equatable, Sendable {
 struct ImasPortraitCropper: View {
     let image: UIImage
     @Binding var crop: ImasPortraitCrop
+    var frame: ImasPortraitCrop.Frame = .card
+    /// 丸く切る写真 (X のアイコン。枠は正方形で渡す) は、枠に内接する丸で見せる (切り抜きそのものは枠の四角)。
+    var round = false
 
     @State private var dragStart: ImasPortraitCrop?
     @State private var zoomStart: ImasPortraitCrop?
@@ -562,7 +608,7 @@ struct ImasPortraitCropper: View {
     var body: some View {
         GeometryReader { geo in
             let frame = geo.size
-            let r = crop.rect(in: pixelSize)
+            let r = crop.rect(in: pixelSize, frame: self.frame)
             let s = r.width > 0 ? frame.width / r.width : 1
             Image(uiImage: image)
                 .resizable()
@@ -576,13 +622,13 @@ struct ImasPortraitCropper: View {
                         .onChanged { value in
                             let start = dragStart ?? crop
                             dragStart = start
-                            let startRect = start.rect(in: pixelSize)
+                            let startRect = start.rect(in: pixelSize, frame: self.frame)
                             let scale = startRect.width > 0 ? frame.width / startRect.width : 1
                             var next = start
                             next.center = CGPoint(
                                 x: (startRect.midX - value.translation.width / scale) / pixelSize.width,
                                 y: (startRect.midY - value.translation.height / scale) / pixelSize.height)
-                            crop = next.clamped(to: pixelSize)
+                            crop = next.clamped(to: pixelSize, frame: self.frame)
                         }
                         .onEnded { _ in dragStart = nil }
                         .simultaneously(with: MagnifyGesture()
@@ -591,14 +637,15 @@ struct ImasPortraitCropper: View {
                                 zoomStart = start
                                 var next = start
                                 next.zoom = start.zoom * value.magnification
-                                crop = next.clamped(to: pixelSize)
+                                crop = next.clamped(to: pixelSize, frame: self.frame)
                             }
                             .onEnded { _ in zoomStart = nil })
                 )
         }
-        .aspectRatio(ImasPortraitCrop.aspect, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: DS.rInner, style: .continuous))
-        .imasSurfaceEdge(cornerRadius: DS.rInner)
+        .aspectRatio(frame.aspect, contentMode: .fit)
+        // 丸は正方形の枠の角を半分まで丸めたもの (角の丸めは辺の半分で止まる)。
+        .clipShape(RoundedRectangle(cornerRadius: round ? maxWidth : DS.rInner, style: round ? .circular : .continuous))
+        .imasSurfaceEdge(cornerRadius: round ? maxWidth : DS.rInner)
         .frame(maxWidth: maxWidth)
         .frame(maxWidth: .infinity)
         .accessibilityElement()
@@ -607,7 +654,7 @@ struct ImasPortraitCropper: View {
         .accessibilityAdjustableAction { direction in
             var next = crop
             next.zoom += direction == .increment ? 0.25 : -0.25
-            crop = next.clamped(to: pixelSize)
+            crop = next.clamped(to: pixelSize, frame: frame)
         }
     }
 }

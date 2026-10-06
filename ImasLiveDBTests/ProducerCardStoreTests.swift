@@ -351,21 +351,51 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertNotNil(ProducerCardFiles.oshiImageURL(cardId: cardId, idolId: "765_haruka"))
         XCTAssertNotNil(ProducerCardFiles.cardPhotoURL(cardId: cardId))
         XCTAssertNil(ProducerCardFiles.oshiImageURL(cardId: cardId, idolId: ""))
+        XCTAssertFalse(ProducerCardFiles.cardPhotoRound(cardId: cardId))
     }
 
-    /// 切り抜きは枠 (3:4) の中に収まり、写真の外にはみ出さない。
+    /// 届いた写真が X のアイコンなら出どころを残して丸く出し、写真から選んだ写真が届き直したら正方形に戻す。
+    func testReceivedXIconPhotoIsRound() throws {
+        let cardId = "test-\(UUID().uuidString)"
+        defer { ProducerCardFiles.deleteAll(cardId: cardId) }
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0x01])
+        try ProducerCardFiles.saveImages(cardId: cardId, images: [
+            CardFileImage(idolId: "", jpeg: jpeg, kind: .photo, photoSource: .xIcon),
+        ])
+        XCTAssertEqual(ProducerCardFiles.cardPhotoSource(cardId: cardId), .xIcon)
+        XCTAssertTrue(ProducerCardFiles.cardPhotoRound(cardId: cardId))
+        try ProducerCardFiles.saveImages(cardId: cardId, images: [
+            CardFileImage(idolId: "", jpeg: jpeg, kind: .photo),
+        ])
+        XCTAssertEqual(ProducerCardFiles.cardPhotoSource(cardId: cardId), .picked)
+        XCTAssertFalse(ProducerCardFiles.cardPhotoRound(cardId: cardId))
+    }
+
+    /// 切り抜きは枠 (P名刺は正方形・プロフィール帳は 3:4) の中に収まり、写真の外にはみ出さない。
     func testPortraitCropStaysInsideTheImage() {
         let size = CGSize(width: 4000, height: 3000)
-        let base = ImasPortraitCrop().rect(in: size)
-        XCTAssertEqual(base.width / base.height, ImasPortraitCrop.aspect, accuracy: 0.001)
-        XCTAssertEqual(base.height, 3000, accuracy: 0.5)
-        let corner = ImasPortraitCrop(zoom: 2, center: CGPoint(x: 1, y: 1)).rect(in: size)
-        XCTAssertEqual(corner.maxX, 4000, accuracy: 0.5)
-        XCTAssertEqual(corner.maxY, 3000, accuracy: 0.5)
-        XCTAssertEqual(corner.width, base.width / 2, accuracy: 0.5)
-        let image = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 300)).image { _ in }
-        let rendered = ImasPortraitCrop().render(image)
-        XCTAssertEqual(rendered?.size, ImasPortraitCrop.outputSize)
+        for frame in [ImasPortraitCrop.Frame.card, .resume] {
+            let base = ImasPortraitCrop().rect(in: size, frame: frame)
+            XCTAssertEqual(base.width / base.height, frame.aspect, accuracy: 0.001)
+            XCTAssertEqual(base.height, 3000, accuracy: 0.5)
+            let corner = ImasPortraitCrop(zoom: 2, center: CGPoint(x: 1, y: 1)).rect(in: size, frame: frame)
+            XCTAssertEqual(corner.maxX, 4000, accuracy: 0.5)
+            XCTAssertEqual(corner.maxY, 3000, accuracy: 0.5)
+            XCTAssertEqual(corner.width, base.width / 2, accuracy: 0.5)
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 300)).image { _ in }
+            XCTAssertEqual(ImasPortraitCrop().render(image, frame: frame)?.size, frame.outputSize)
+        }
+    }
+
+    /// 前の版の 3:4 の切り抜き (拡大と真ん中) は、正方形の枠でも真ん中を保ったまま読み替える。
+    func testOldPortraitCropKeepsCenterInSquareFrame() {
+        let size = CGSize(width: 3000, height: 4000)
+        let old = ImasPortraitCrop(zoom: 1.5, center: CGPoint(x: 0.4, y: 0.35))
+        let resume = old.rect(in: size, frame: .resume)
+        let square = old.rect(in: size, frame: .card)
+        XCTAssertEqual(square.width, square.height, accuracy: 0.5)
+        XCTAssertEqual(square.midX, resume.midX, accuracy: 0.5)
+        XCTAssertEqual(square.midY, resume.midY, accuracy: 0.5)
     }
 
     /// 斜めに写った紙の名刺の四隅を見つけて平らにする。四隅が無い写真はそのまま。

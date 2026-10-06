@@ -33,6 +33,7 @@ struct ReceivedCardDetailView: View {
                     card, directory: directory, sharedWith: myOshi,
                     imageURL: { ProducerCardFiles.oshiImageURL(cardId: row.id, idolId: $0) },
                     portraitURL: ProducerCardFiles.cardPhotoURL(cardId: row.id),
+                    portraitSource: ProducerCardFiles.cardPhotoSource(cardId: row.id),
                     face: ProducerCardDisplay.receivedFace(cardId: row.id),
                     payload: row.payload,
                     onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },

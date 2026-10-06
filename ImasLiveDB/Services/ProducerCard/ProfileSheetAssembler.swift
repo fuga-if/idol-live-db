@@ -20,6 +20,8 @@ struct ProfileSheetMaterials {
     var oshi: [ProfileSheetOshi] = []
     /// 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。
     var portrait: UIImage?
+    /// 証明写真の欄の中に丸く置く (X のアイコン。切り方はコアの `cardPhotoShape`)。
+    var portraitRound = false
     /// 自分の QR (P名刺に載せていれば)。
     var qr: UIImage?
 
@@ -90,6 +92,7 @@ enum ProfileSheetAssembler {
             record: record,
             oshi: oshi,
             portrait: portrait,
+            portraitRound: ProfileSheetFiles.effectiveRound,
             qr: qr
         )
     }
