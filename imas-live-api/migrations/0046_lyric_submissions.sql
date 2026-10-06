@@ -1,7 +1,7 @@
 -- 歌詞の投稿 (利用者が CD の歌詞カードなどの一次ソースを見て入力した歌詞)。
 -- 2026-10-06 に取り込み元の問題で歌詞を全削除した。再開は投稿だけで行い、公開はモデレーターの確認後。
 -- 本文はここに置いたまま song_lyrics には入れない (公開の手順は別に作る)。
--- source_kind は booklet / official / listening (imas-core domain/lyric_submission.rs と同じ)。
+-- source_kind は booklet / official (imas-core domain/lyric_submission.rs と同じ。聴き取りは受け付けない)。
 -- status は pending (確認待ち) / accepted / rejected / withdrawn。行は消さない (誰が何を出したかの記録)。
 CREATE TABLE IF NOT EXISTS lyric_submissions (
   id TEXT PRIMARY KEY NOT NULL,

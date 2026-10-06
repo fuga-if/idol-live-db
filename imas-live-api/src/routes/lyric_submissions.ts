@@ -18,7 +18,7 @@ import { NO_STORE } from "./lyrics";
 export const SUBMISSION_MAX_CHARS = 8000;
 export const SUBMISSION_MAX_LINES = 400;
 export const SOURCE_NOTE_MAX = 200;
-export const LYRIC_SOURCE_KINDS = ["booklet", "official", "listening"] as const;
+export const LYRIC_SOURCE_KINDS = ["booklet", "official"] as const;
 export type LyricSourceKind = (typeof LYRIC_SOURCE_KINDS)[number];
 
 export function normalizeLyricText(text: string): string {
@@ -39,7 +39,7 @@ export type SubmissionResult =
 export function validateSubmission(body: Readonly<Record<string, unknown>>): SubmissionResult {
   const { source_kind: sourceKind, source_note: sourceNote, attested_no_copy: attestedNoCopy, text } = body;
   if (typeof sourceKind !== "string" || !(LYRIC_SOURCE_KINDS as readonly string[]).includes(sourceKind)) {
-    return { ok: false, error: "source_kind must be booklet, official or listening" };
+    return { ok: false, error: "source_kind must be booklet or official" };
   }
   if (attestedNoCopy !== true) return { ok: false, error: "attested_no_copy must be true" };
   if (typeof text !== "string") return { ok: false, error: "text must be a string" };

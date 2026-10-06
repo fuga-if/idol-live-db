@@ -29,10 +29,11 @@ describe("POST /songs/:id/lyric-submissions", () => {
 
   it("入力元・転載していない確認・本文が無いと 400、未ログインは 401", async () => {
     expect(validateSubmission({ source_kind: "site", attested_no_copy: true, text: "a" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "listening", attested_no_copy: false, text: "a" }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "listening", attested_no_copy: true, text: " \n " }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "listening", attested_no_copy: true, text: "あ".repeat(8001) }).ok).toBe(false);
-    expect(validateSubmission({ source_kind: "listening", attested_no_copy: true, text: Array(401).fill("a").join("\n") }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "listening", attested_no_copy: true, text: "a" }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "official", attested_no_copy: false, text: "a" }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: " \n " }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "あ".repeat(8001) }).ok).toBe(false);
+    expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: Array(401).fill("a").join("\n") }).ok).toBe(false);
     expect(validateSubmission({ source_kind: "official", attested_no_copy: true, text: "a" }).ok).toBe(true);
     expect((await callJson("POST", "/songs/s1/lyric-submissions", { body: { source_kind: "booklet", attested_no_copy: true, text: "a" } })).status).toBe(401);
   });

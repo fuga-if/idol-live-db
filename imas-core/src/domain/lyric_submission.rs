@@ -4,7 +4,9 @@
 //! 利用者が入力する」投稿だけで行う。ここは投稿画面が使う規則で、両 OS は
 //! [`check_submission`] を入力のたびに通して、整えた本文・行数・注意・送信の可否を出す。
 //!
-//! - **入力元を必ず選ぶ** ([`LyricSourceKind`])。歌詞サイトは選択肢に無い。
+//! - **入力元を必ず選ぶ** ([`LyricSourceKind`])。公表された歌詞 (CD の歌詞カード・公式) だけ。
+//!   歌詞サイトは選択肢に無い。聴き取りの書き起こしも受け付けない (公表された歌詞と同じである
+//!   保証が無く、作詞者の意に反する改変になりうるため。2026-10-06 オーナー判断)。
 //! - **「歌詞サイトから転載していない」の確認が要る。** 確認なしでは送れない。
 //! - 上限 (文字数・行数) はサーバ (`imas-live-api` の `routes/lyric_submissions.ts`) と同じ数。
 //!   文字数はサーバの `.length` に合わせて UTF-16 で数える。
@@ -23,19 +25,15 @@ pub enum LyricSourceKind {
     Booklet,
     /// 公式サイトや公式の動画に載っている歌詞。
     Official,
-    /// 曲を聴いて書き起こした。
-    Listening,
 }
 
 /// 選択肢の並び (画面はこの順に出す)。
-pub const SOURCE_KINDS: [LyricSourceKind; 3] =
-    [LyricSourceKind::Booklet, LyricSourceKind::Official, LyricSourceKind::Listening];
+pub const SOURCE_KINDS: [LyricSourceKind; 2] = [LyricSourceKind::Booklet, LyricSourceKind::Official];
 
 pub fn source_key(kind: LyricSourceKind) -> &'static str {
     match kind {
         LyricSourceKind::Booklet => "booklet",
         LyricSourceKind::Official => "official",
-        LyricSourceKind::Listening => "listening",
     }
 }
 
@@ -43,7 +41,6 @@ pub fn source_label(kind: LyricSourceKind) -> &'static str {
     match kind {
         LyricSourceKind::Booklet => "CD の歌詞カード",
         LyricSourceKind::Official => "公式サイト・公式動画",
-        LyricSourceKind::Listening => "聴き取り",
     }
 }
 
@@ -51,7 +48,6 @@ pub fn source_detail(kind: LyricSourceKind) -> &'static str {
     match kind {
         LyricSourceKind::Booklet => "ブックレットや歌詞カードを見ながら入力した",
         LyricSourceKind::Official => "公式に公開されている歌詞を見ながら入力した",
-        LyricSourceKind::Listening => "曲を聴いて書き起こした",
     }
 }
 
@@ -189,8 +185,8 @@ mod tests {
     fn source_and_attestation_are_both_required() {
         let text = "きらめく\nステージ";
         assert!(!check_submission(text, None, true).can_submit);
-        assert!(!check_submission(text, Some(LyricSourceKind::Listening), false).can_submit);
-        let ok = check_submission(text, Some(LyricSourceKind::Listening), true);
+        assert!(!check_submission(text, Some(LyricSourceKind::Official), false).can_submit);
+        let ok = check_submission(text, Some(LyricSourceKind::Official), true);
         assert!(ok.can_submit);
         assert_eq!((ok.line_count, ok.char_count), (2, 9));
     }
@@ -228,6 +224,6 @@ mod tests {
     #[test]
     fn source_keys_match_the_server() {
         let keys: Vec<_> = SOURCE_KINDS.iter().map(|k| source_key(*k)).collect();
-        assert_eq!(keys, ["booklet", "official", "listening"]);
+        assert_eq!(keys, ["booklet", "official"]);
     }
 }

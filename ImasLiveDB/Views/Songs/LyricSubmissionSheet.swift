@@ -66,7 +66,7 @@ struct LyricSubmissionSheet: View {
                                    isOn: $attested)
                 }
 
-                Text("送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。歌詞サイトから写した歌詞は公開できません。分かった時点で削除します。")
+                Text("送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。\n次のものは投稿できません: 歌詞サイトから写した歌詞、聴き取りの書き起こし、歌詞が公表されていない曲、翻訳や替え歌、歌詞ではない文 (作詞・作曲などのクレジット)。分かった時点で削除します。")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -162,7 +162,6 @@ struct LyricSubmissionSheet: View {
         switch kind {
         case .booklet: return "opticaldisc"
         case .official: return "globe"
-        case .listening: return "headphones"
         }
     }
 
