@@ -874,6 +874,10 @@ pub fn producer_card_display_design(card: &ProducerCard, has_face_image: bool) -
     if design == CardDesign::Custom && !has_face_image {
         return card_design_info(CardDesign::Pass);
     }
+    // 「担当を大きく」は担当が主役の組み。載せる担当が居なければ左半分が空の枠になるので入場証で描く。
+    if design == CardDesign::Oshi && card.oshi_idol_ids.is_empty() {
+        return card_design_info(CardDesign::Pass);
+    }
     card_design_info(design)
 }
 
@@ -2200,6 +2204,15 @@ mod tests {
         let face = producer_card_face(&card, &[]);
         assert!(face.handle.is_none());
         assert!(face.since_imprint.is_none());
+    }
+
+    #[test]
+    fn oshi_design_without_oshi_falls_back_to_pass() {
+        let mut card = encode_producer_card(&input()).card;
+        card.design = Some(CardDesign::Oshi);
+        assert_eq!(producer_card_display_design(&card, false).design, CardDesign::Oshi);
+        card.oshi_idol_ids.clear();
+        assert_eq!(producer_card_display_design(&card, false).design, CardDesign::Pass);
     }
 
     fn input() -> ProducerCardInput {
