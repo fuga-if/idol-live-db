@@ -21,6 +21,7 @@ import org.robolectric.RuntimeEnvironment
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardLinkKind
 import uniffi.imas_core.ProducerCardInput
+import uniffi.imas_core.ProfileAutoField
 import uniffi.imas_core.ProfileSheetSize
 import uniffi.imas_core.ProfileSheetStyle
 import uniffi.imas_core.encodeProducerCard
@@ -93,8 +94,8 @@ class ProducerCardStoreTest {
         val card = myCard("ふがP")
         assertEquals(profileSheetDefault(), card.profile)
         val sheet = card.profile.copy(
-            size = ProfileSheetSize.STORY, furigana = "ふがぴー",
-            favoriteSongIds = listOf("s1"), brandOn = listOf("sc")
+            size = ProfileSheetSize.STORY, hidden = listOf(ProfileAutoField.QR),
+            brandOn = listOf("sc"), brandMain = "sc"
         )
         repo.saveMyCard(card.withProfile(sheet))
         assertEquals(sheet, repo.myCard()?.profile)
@@ -158,10 +159,7 @@ class ProducerCardStoreTest {
         val source = database()
         val sourceRepo = ProducerCardRepository(source)
         val default = profileSheetDefault()
-        val sheet = default.copy(
-            style = ProfileSheetStyle.CAREER,
-            answers = default.answers.mapIndexed { i, a -> if (i == 0) a.copy(text = "アニメで見て") else a }
-        )
+        val sheet = default.copy(style = ProfileSheetStyle.CAREER, brandOff = listOf("ml"))
         val mine = myCard("ふがP").copy(message = "現地派", sinceYear = 2014)
             .withLinks(listOf(CardLink(CardLinkKind.X, "fuga_p")))
             .withHidden(setOf(ProducerCardField.ATTENDED))
