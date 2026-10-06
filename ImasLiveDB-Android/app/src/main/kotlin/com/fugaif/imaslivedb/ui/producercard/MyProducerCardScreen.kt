@@ -56,6 +56,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import uniffi.imas_core.CardDesign
 import uniffi.imas_core.EncodedProducerCard
 import uniffi.imas_core.cardQrLinkView
 
@@ -86,6 +87,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
     var shareError by remember { mutableStateOf<String?>(null) }
     var qrMode by remember { mutableStateOf(QrMode.EXCHANGE) }
     var portraitUrl by remember { mutableStateOf<String?>(null) }
+    var face by remember { mutableStateOf<ProducerCardFace?>(null) }
 
     suspend fun load() {
         val repo = module.producerCardRepository
@@ -93,6 +95,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
         caseCount = repo.receivedCount()
         record = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull() ?: record
         portraitUrl = withContext(Dispatchers.IO) { ProducerCardFiles.myPhotoUrl(context) }
+        face = withContext(Dispatchers.IO) { ProducerCardDisplay.myFace(context) }
         val mine = myCard
         val rec = record
         val enc = if (mine != null && rec != null) ProducerCardAssembler.encode(mine, rec) else null
@@ -149,9 +152,12 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
                 enc != null -> {
                     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                         ProducerCardView(
-                            card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl,
+                            card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
                             onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } }
                         )
+                        if (enc.card.design == CardDesign.CUSTOM) {
+                            ImasNote("自作の画像は名刺ファイルと近くの Android で渡した相手に届きます。QR だけで受け取った人と Web では入場証で見えます。")
+                        }
                         ImasButton(
                             title = "交換する", icon = Icons.Filled.QrCode, role = ImasButtonRole.PRIMARY,
                             size = ImasButtonSize.LARGE, fillsWidth = true, onClick = { showingExchange = true }

@@ -12,6 +12,11 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardLink
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardOshi
 import java.text.NumberFormat
 import java.util.Locale
+import android.content.Context
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDesign
+import uniffi.imas_core.CardDesign
+import uniffi.imas_core.CardDesignInfo
 import uniffi.imas_core.ProducerCard
 import com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily
 import uniffi.imas_core.cardLinkView
@@ -42,6 +47,9 @@ data class ProducerCardDirectory(
         }
     }
 }
+
+/** 名刺の顔 (自作の名刺の画像の表・裏)。自分の名刺は端末の画像、受け取った名刺は届いた画像。iOS `ProducerCardDisplay.Face` と対。 */
+data class ProducerCardFace(val front: String, val back: String? = null)
 
 /** 名刺 (コアの `ProducerCard`) を DS の `ImasProducerCard` に載せる形にする。iOS `ProducerCardDisplay` と対。 */
 object ProducerCardDisplay {
@@ -77,9 +85,31 @@ object ProducerCardDisplay {
             ImasProducerCardLink(label = view.label, display = view.display, url = view.url)
         }
 
-    /** 名前の書体のファイルの名前 (書体の一覧と既定はコア)。 */
-    // 自作の画像の名刺は、画像を受け取れる版になるまで入場証で描く (画像の受け渡しは iOS から移植待ち)。
-    fun nameFont(card: ProducerCard): String = producerCardDisplayDesign(card, false).font.fileStem
+    /** 描くデザイン (自作の画像の名刺でも画像が無ければ入場証。決めるのはコア)。 */
+    fun design(card: ProducerCard, face: ProducerCardFace?): CardDesignInfo = producerCardDisplayDesign(card, face != null)
+
+    /** 名前の書体のファイルの名前 (デザインの書体。一覧と既定はコア)。 */
+    fun nameFont(card: ProducerCard, face: ProducerCardFace? = null): String = design(card, face).font.fileStem
+
+    /** DS の名刺のデザイン。 */
+    fun cardDesign(card: ProducerCard, face: ProducerCardFace?): ImasProducerCardDesign = when (design(card, face).design) {
+        CardDesign.PASS -> ImasProducerCardDesign.Pass
+        CardDesign.FORMAL -> ImasProducerCardDesign.Formal
+        CardDesign.POP -> ImasProducerCardDesign.Pop
+        CardDesign.CUSTOM -> face?.let { ImasProducerCardDesign.Face(it.front, it.back) } ?: ImasProducerCardDesign.Pass
+    }
+
+    /** 自分の名刺の顔 (自作の画像の表があれば)。ファイルを見るのでメインの外で呼ぶ。 */
+    fun myFace(context: Context): ProducerCardFace? =
+        ProducerCardFiles.myFaceUrl(context, ProducerCardFiles.Side.FRONT)?.let {
+            ProducerCardFace(front = it, back = ProducerCardFiles.myFaceUrl(context, ProducerCardFiles.Side.BACK))
+        }
+
+    /** 受け取った名刺の顔 (届いた自作の画像の表があれば)。 */
+    fun receivedFace(context: Context, cardId: String): ProducerCardFace? =
+        ProducerCardFiles.faceUrl(context, cardId, ProducerCardFiles.Side.FRONT)?.let {
+            ProducerCardFace(front = it, back = ProducerCardFiles.faceUrl(context, cardId, ProducerCardFiles.Side.BACK))
+        }
 
     /** 記録の数 (参加公演・回収曲・次の現場)。載っていない数は出さない。 */
     fun cells(card: ProducerCard, directory: ProducerCardDirectory): List<ImasBoardCell> = buildList {
@@ -120,7 +150,8 @@ object ProducerCardDisplay {
 
 /**
  * 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。
- * [portraitUrl] は名刺の写真 (自分の名刺は端末の写真、受け取った名刺は届いた写真。QR だけで受け取った名刺には無い)。
+ * [portraitUrl] は名刺の写真、[face] は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は届いた画像。
+ * QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
  */
 @Composable
 fun ProducerCardView(
@@ -131,6 +162,7 @@ fun ProducerCardView(
     ownImages: Boolean = false,
     imageUrl: (String) -> String? = { null },
     portraitUrl: String? = null,
+    face: ProducerCardFace? = null,
     onOpenLink: ((ImasProducerCardLink) -> Unit)? = null,
     onOpenOshi: ((ImasProducerCardOshi) -> Unit)? = null
 ) {
@@ -138,6 +170,7 @@ fun ProducerCardView(
     ImasProducerCard(
         name = card.name,
         modifier = modifier,
+        design = ProducerCardDisplay.cardDesign(card, face),
         sinceImprint = ProducerCardDisplay.sinceImprint(card),
         message = card.message,
         oshi = oshi,
@@ -147,7 +180,7 @@ fun ProducerCardView(
         photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
         photoEntityId = if (ownImages) firstWithImage(oshi) else null,
         portraitUrl = portraitUrl,
-        nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card)),
+        nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face)),
         onOpenLink = onOpenLink,
         onOpenOshi = onOpenOshi
     )

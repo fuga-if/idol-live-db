@@ -46,7 +46,16 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material3.Icon
+import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
@@ -81,12 +90,12 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 // =============================================================================
-// P名刺の写真・書体・四隅 (docs/DESIGN_SYSTEM.md §6.13)。iOS `ImasProducerCard.swift` の移植。
+// P名刺の写真・デザイン・四隅 (docs/DESIGN_SYSTEM.md §6.13)。iOS `ImasProducerCard.swift` の移植。
 //
 // ImasCardPortrait    名刺の写真の証明写真の枠 (3:4)。名刺・名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCrop    名刺の写真の切り抜き (拡大と真ん中の点)。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる。枠の外は暗く沈めず、そのまま切る。
-// ImasNameFontPicker  名前の書体の見本の札を横に並べ、引いて真ん中に来た札を選ぶ (押しても選ぶ)。
+// ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) の札を横に並べ、引いて真ん中に来た札を選ぶ (押しても選ぶ)。
 // ImasCornerAdjuster  写真に写った紙の名刺の四隅を指で直す。丸い取っ手 4 つと四隅を結ぶ墨の線。
 // =============================================================================
 
@@ -239,40 +248,56 @@ fun ImasPortraitCropper(
     }
 }
 
-/** 名前の書体の見本の札 1 枚 (iOS `ImasNameFontPicker.Option`)。 */
+/** 名刺のデザインの見本の札 1 枚 (iOS `ImasCardDesignPicker.Option`)。 */
 @Immutable
-data class ImasNameFontOption(
-    /** 保存のキー (`gothic`)。 */
+data class ImasCardDesignOption(
+    /** 保存のキー (`pass`)。 */
     val id: String,
-    /** 書体の名前 (「明朝」)。 */
+    /** デザインの名前 (「かしこまった名刺」)。 */
     val label: String,
-    /** 書体。null は見出しの書体。 */
+    val look: Look,
+    /** 名前の書体。null は見出しの書体。 */
     val family: FontFamily?
-)
+) {
+    /** 札の中に組む小さな名刺の形。 */
+    sealed interface Look {
+        data object Pass : Look
+        data object Formal : Look
+        data object Pop : Look
+        /** 自作の画像 (表の画像。まだ選んでいなければ null)。 */
+        data class Face(val url: String?) : Look
+    }
+}
 
 /**
- * 名前の書体の見本を横に並べる (iOS `ImasNameFontPicker`)。引くと真ん中に来た書体を選び、押してもその書体を選ぶ。
- * 見本は紙の札 (地は紙のまま)。選んだ札は墨の太い縁と ✓。
+ * 名刺のデザインの見本を横に並べる (iOS `ImasCardDesignPicker`)。引くと真ん中に来たデザインを選び、押してもそのデザインを選ぶ。
+ * 見本は紙の札 (地は紙のまま) に、そのデザインの小さな名刺 (帯・罫・枠と書体) を組む。色は先頭の担当の色 ([seed] / [brand])。
+ * 選んだ札は墨の太い縁と ✓。自作の画像の札は、選んだ画像 (まだ無ければ「画像を選ぶ」の点線の枠) を出す。
  */
 @Composable
-fun ImasNameFontPicker(
-    options: List<ImasNameFontOption>,
+fun ImasCardDesignPicker(
+    options: List<ImasCardDesignOption>,
     selection: String,
     onSelect: (String) -> Unit,
     sample: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    seed: String? = null,
+    brand: String? = null
 ) {
     if (options.isEmpty()) return
     val density = LocalDensity.current
-    // iOS の @ScaledMetric(relativeTo: .body) 176 × 92。
+    // iOS の @ScaledMetric(relativeTo: .body) 176 × 132。
     val tileWidth = with(density) { 176.sp.toDp() }
-    val tileHeight = with(density) { 92.sp.toDp() }
+    val tileHeight = with(density) { 132.sp.toDp() }
     val selectedIndex = options.indexOfFirst { it.id == selection }.coerceAtLeast(0)
     val pager = rememberPagerState(initialPage = selectedIndex) { options.size }
     val scope = rememberCoroutineScope()
     val haptics = rememberImasHaptics()
     val select by rememberUpdatedState(onSelect)
     val currentSelection by rememberUpdatedState(selection)
+    val t = imasThemeForBrand(seed, brand)
+    val accent = if (t.isNeutral) DS.sys else t.accent
+    val name = sample.ifEmpty { "ふがP" }
 
     // 引いて止まった札を選ぶ。
     LaunchedEffect(pager) {
@@ -317,7 +342,7 @@ fun ImasNameFontPicker(
             onDragCancel = { scope.launch { pager.animateScrollToPage(pager.currentPage) } }
         )
     }
-    BoxWithConstraints(modifier.fillMaxWidth().then(swipe).semantics { contentDescription = "名前の書体" }) {
+    BoxWithConstraints(modifier.fillMaxWidth().then(swipe).semantics { contentDescription = "名刺のデザイン" }) {
         val inset = ((maxWidth - tileWidth) / 2).coerceAtLeast(0.dp)
         HorizontalPager(
             state = pager,
@@ -343,24 +368,81 @@ fun ImasNameFontPicker(
                         }
                         scope.launch { pager.animateScrollToPage(page) }
                     })
-                    .padding(DS.Space.card)
+                    .padding(DS.Space.gap)
                     .clearAndSetSemantics {
                         contentDescription = option.label
                         selected = on
-                    }
+                    },
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
             ) {
-                ImasFitText(
-                    sample.ifEmpty { "ふがP" },
-                    style = ImasType.cardName(option.family, 24.sp),
-                    color = DS.ink,
-                    maxLines = 1,
-                    minScale = 0.5f,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.weight(1f))
+                Box(Modifier.fillMaxWidth().weight(1f)) { DesignLook(option, name, accent) }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
-                    Text(option.label, style = ImasTextRole.ROW_LABEL.style, color = if (on) DS.ink else DS.ink2, modifier = Modifier.weight(1f))
+                    ImasFitText(
+                        option.label, style = ImasTextRole.ROW_LABEL.style, color = if (on) DS.ink else DS.ink2,
+                        maxLines = 1, minScale = 0.7f, modifier = Modifier.weight(1f)
+                    )
                     ImasSelectionMark(isSelected = on, isSingle = true)
+                }
+            }
+        }
+    }
+}
+
+/** そのデザインの小さな名刺 (札の中身)。 */
+@Composable
+private fun DesignLook(option: ImasCardDesignOption, name: String, accent: Color) {
+    val shape = RoundedCornerShape(DS.rTag)
+    val nameStyle = ImasType.cardName(option.family, 18.sp)
+    when (val look = option.look) {
+        ImasCardDesignOption.Look.Pass -> Column(Modifier.fillMaxSize().background(DS.bg, shape).clip(shape)) {
+            Box(Modifier.fillMaxWidth().height(12.dp).background(accent))
+            ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f, modifier = Modifier.padding(DS.Space.gap))
+            Spacer(Modifier.weight(1f))
+            ImasPerforation(Modifier.padding(horizontal = DS.Space.gap))
+            Spacer(Modifier.weight(1f))
+        }
+        ImasCardDesignOption.Look.Formal -> Column(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape).padding(DS.Space.gap),
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+        ) {
+            Text("PRODUCER", style = ImasTextRole.IMPRINT.style, color = DS.ink2, maxLines = 1)
+            Box(Modifier.fillMaxWidth().height(1.dp).background(accent))
+            ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
+        }
+        ImasCardDesignOption.Look.Pop -> Column(Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(2.dp, DS.ink, shape)) {
+            Box(Modifier.fillMaxWidth().height(12.dp).background(accent))
+            Box(Modifier.fillMaxWidth().height(2.dp).background(DS.ink))
+            Column(Modifier.padding(DS.Space.gap), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
+                Box(Modifier.size(width = 32.dp, height = 5.dp).background(accent))
+            }
+        }
+        is ImasCardDesignOption.Look.Face -> {
+            val url = look.url
+            if (url != null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ImasCardFace(front = url, label = option.label, thumbnail = true)
+                }
+            } else {
+                val line = DS.line
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .drawBehind {
+                            val w = 1.dp.toPx()
+                            drawRoundRect(
+                                line,
+                                topLeft = Offset(w / 2, w / 2),
+                                size = Size(size.width - w, size.height - w),
+                                cornerRadius = CornerRadius(DS.rTag.toPx()),
+                                style = Stroke(width = w, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
+                            )
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight, Alignment.CenterVertically)
+                ) {
+                    Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = DS.ink2)
+                    Text("画像を選ぶ", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
                 }
             }
         }

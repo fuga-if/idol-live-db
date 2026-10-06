@@ -153,6 +153,7 @@ fun ReceivedCardDetailScreen(
                         card = c, directory = directory, sharedWith = myOshi,
                         imageUrl = { ProducerCardFiles.oshiImageUrl(context, r.id, it) },
                         portraitUrl = ProducerCardFiles.cardPhotoUrl(context, r.id),
+                        face = ProducerCardDisplay.receivedFace(context, r.id),
                         onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } },
                         onOpenOshi = { oshi -> onOpenIdol(oshi.id) }
                     )

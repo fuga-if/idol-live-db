@@ -6,7 +6,18 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.geometry.Offset
+import com.fugaif.imaslivedb.data.producercard.XAvatarFetcher
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardDesignOption
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardDesignPicker
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardFace
+import uniffi.imas_core.CardDesign
+import uniffi.imas_core.cardQrLinkView
+import uniffi.imas_core.cardXAvatarHandle
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -18,8 +29,6 @@ import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardPortraitThumbnail
-import com.fugaif.imaslivedb.ui.designsystem.ImasNameFontOption
-import com.fugaif.imaslivedb.ui.designsystem.ImasNameFontPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasPortraitCrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasPortraitCropper
 import com.fugaif.imaslivedb.ui.theme.ImasCardNameFonts
@@ -109,11 +118,15 @@ private data class EditableLink(val id: String = UUID.randomUUID().toString(), v
 
 /**
  * 自分の P名刺を作る・直す。iOS `ProducerCardEditorView` の移植。書くのは名前・ひとこと・P歴・リンク・
- * 名刺の写真・名前の書体・自分の QR で、担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
+ * 名刺のデザイン・名刺の写真・自分の QR で、担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
  * 上に名刺の見本を置き、変えたものはその場で見本に出る。
  *
- * 入力の検査・リンクと QR の URL の正規化・書体の一覧はコア
- * (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns`)。
+ * デザインは 3 つ (入場証・かしこまった名刺・ポップ) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
+ * 自作の画像は写真から選んだ名刺の画像 (表・任意で裏) を、紙の名刺の取り込みと同じく四隅を見つけて平らにし、
+ * 画像の QR があれば自分の QR に入れる。名刺の写真は X のアイコンからも取れる。
+ *
+ * 入力の検査・リンクと QR の URL の正規化・デザインの一覧・X のアイコンの規則はコア
+ * (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns` / `cardXAvatarHandle`)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,9 +152,9 @@ fun ProducerCardEditorSheet(
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
 
-    // 名刺のデザイン (自作の画像は画像の受け渡しを iOS から移植するまで出さない)。
-    val fonts = remember { cardDesigns().filter { !it.usesFaceImage } }
-    var nameFont by remember { mutableStateOf(cardDesignKey(card.design)) }
+    val designs = remember { cardDesigns() }
+    var design by remember { mutableStateOf(cardDesignKey(card.cardDesign)) }
+    val selectedDesign = designs.firstOrNull { it.key == design } ?: designs.first()
     var qrUrl by remember { mutableStateOf(card.qrUrl.orEmpty()) }
     var qrNotice by remember { mutableStateOf<String?>(null) }
 
@@ -157,6 +170,21 @@ fun ProducerCardEditorSheet(
     // 見本に出す切り抜き済みの写真 (✓ の前は一時ファイル)。
     var previewPortrait by remember { mutableStateOf<String?>(null) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
+
+    // 自作の名刺の画像 (平らにした後)。変えた面だけ ✓ のときに書く (null は外した)。
+    val faceImages = remember { mutableStateMapOf<ProducerCardFiles.Side, Bitmap>() }
+    // 写真から選んだ元と見つけた四隅 (四隅を直すとき用。この編集で選んだ面だけ)。
+    val faceSources = remember { mutableStateMapOf<ProducerCardFiles.Side, PaperPhotoSource>() }
+    // 見本に出す画像 (保存済みのファイルか、✓ の前の一時ファイル)。
+    val facePreview = remember { mutableStateMapOf<ProducerCardFiles.Side, String>() }
+    val faceDirty = remember { mutableStateListOf<ProducerCardFiles.Side>() }
+    var faceCorners by remember { mutableStateOf<FaceCornerDraft?>(null) }
+    var faceNotice by remember { mutableStateOf<String?>(null) }
+    var isReadingFace by remember { mutableStateOf(false) }
+    var pickingFace by remember { mutableStateOf(ProducerCardFiles.Side.FRONT) }
+
+    var isFetchingAvatar by remember { mutableStateOf(false) }
+    var avatarNotice by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(record) {
         val ids = record?.oshiIds?.take(limits.maxOshi.toInt()).orEmpty()
@@ -180,6 +208,15 @@ fun ProducerCardEditorSheet(
                 previewPortrait = url
             }
         }
+    }
+    LaunchedEffect(Unit) {
+        if (faceDirty.isNotEmpty()) return@LaunchedEffect
+        val saved = withContext(Dispatchers.IO) {
+            faceFolder(context).deleteRecursively()
+            ProducerCardFiles.Side.entries.associateWith { ProducerCardFiles.myFaceUrl(context, it) }
+        }
+        if (faceDirty.isNotEmpty()) return@LaunchedEffect
+        saved.forEach { (side, url) -> if (url != null) facePreview[side] = url }
     }
 
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -219,8 +256,105 @@ fun ProducerCardEditorSheet(
         }
     }
 
+    /**
+     * 画像に刷られた QR を読み、URL なら自分の QR に入れる (分け方はコア)。アプリの名刺の QR
+     * (自分の交換用の QR) は名刺に初めから入っているので入れない。
+     */
+    suspend fun readFaceQr(image: Bitmap) {
+        for (code in PaperCardCodeReader.codes(listOf(image))) {
+            val link = classifyScannedCode(code) as? ScannedCode.Link ?: continue
+            val normalized = normalizeCardQrUrl(link.url) ?: continue
+            if (normalizeCardQrUrl(qrUrl) != normalized) {
+                qrUrl = normalized
+                faceNotice = "画像の QR (${cardQrLinkView(normalized).display}) を自分の QR に入れました。"
+            }
+            return
+        }
+    }
+
+    /** 見本には一時ファイルで出し、✓ で端末に書く。 */
+    suspend fun setFace(image: Bitmap, side: ProducerCardFiles.Side) {
+        val url = withContext(Dispatchers.IO) {
+            val jpeg = ProducerCardFiles.jpeg(image, maxPixels = 2000, quality = 90) ?: return@withContext null
+            val dir = faceFolder(context).apply { mkdirs() }
+            val file = File(dir, "${side.key}-${UUID.randomUUID()}.jpg")
+            runCatching { file.writeBytes(jpeg) }.getOrNull() ?: return@withContext null
+            Uri.fromFile(file).toString()
+        } ?: return
+        faceImages[side] = image
+        facePreview[side] = url
+        if (side !in faceDirty) faceDirty.add(side)
+        readFaceQr(image)
+    }
+
+    /**
+     * 写真から選んだ名刺の画像。紙の名刺を撮った写真なら四隅を見つけて平らにする (見つからなければ
+     * 画像のまま)。画像の QR は自分の QR に入れる。
+     */
+    val pickFace = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val side = pickingFace
+        faceNotice = null
+        scope.launch {
+            val image = PaperCardCodeReader.loadBitmap(context, uri)
+            if (image == null) {
+                faceNotice = "画像を読み込めませんでした。"
+                return@launch
+            }
+            isReadingFace = true
+            try {
+                val result = PaperCardRectifier.rectify(PaperCardRectifier.bounded(image))
+                // 画面で作った画像は四隅が画像の縁なので見つからない。代わりに画像の中の小さな四角 (写真の枠など)
+                // を拾うことがあるので、画像の半分に満たない四角では切り抜かない (四隅を直す で選び直せる)。
+                val corners = result.corners?.takeIf { PaperCardCorners.area(it) >= 0.5f }
+                faceSources[side] = PaperPhotoSource(result.original, corners)
+                setFace(if (corners == null) result.original else result.image, side)
+            } finally {
+                isReadingFace = false
+            }
+        }
+    }
+
+    fun applyFaceCorners(side: ProducerCardFiles.Side, source: PaperPhotoSource, corners: List<Offset>) {
+        isReadingFace = true
+        scope.launch {
+            try {
+                val flat = withContext(Dispatchers.Default) { PaperCardRectifier.correct(source.original, corners) } ?: source.original
+                faceSources[side] = PaperPhotoSource(source.original, corners)
+                setFace(flat, side)
+            } finally {
+                isReadingFace = false
+            }
+        }
+    }
+
+    fun removeFace(side: ProducerCardFiles.Side) {
+        faceImages.remove(side)
+        faceSources.remove(side)
+        facePreview.remove(side)
+        if (side !in faceDirty) faceDirty.add(side)
+    }
+
+    /**
+     * 名刺のリンクの X の ID からアイコンを取り、名刺の写真の枠に合わせる。取れなければ案内を出す
+     * (写真から選ぶ形のまま)。
+     */
+    fun useXAvatar(handle: String) {
+        avatarNotice = null
+        isFetchingAvatar = true
+        scope.launch {
+            val outcome = XAvatarFetcher.fetch(handle)
+            isFetchingAvatar = false
+            when (outcome) {
+                is XAvatarFetcher.Outcome.Image -> cropping = CropDraft(outcome.bitmap, ImasPortraitCrop())
+                is XAvatarFetcher.Outcome.Failed -> avatarNotice = outcome.message
+            }
+        }
+    }
+
     /** 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。 */
     fun applyCrop(image: Bitmap, result: ImasPortraitCrop) {
+        avatarNotice = null
         applyingCrop = true
         scope.launch {
             val url = withContext(Dispatchers.IO) {
@@ -244,6 +378,7 @@ fun ProducerCardEditorSheet(
     }
 
     fun removePhoto() {
+        avatarNotice = null
         photoSource = null
         previewPortrait = null
         photoDirty = true
@@ -255,7 +390,7 @@ fun ProducerCardEditorSheet(
         message = message.trim(),
         sinceYear = sinceYear
     ).withLinks(filled().mapNotNull { normalizeCardLink(CardLink(it.kind, it.value)) }).withHidden(hidden)
-        .copy(nameFont = nameFont, qrUrl = normalizeCardQrUrl(qrUrl))
+        .copy(design = design, qrUrl = normalizeCardQrUrl(qrUrl))
 
     // 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
     // そのまま入れて渡す (載る中身を抜くと、QR に収まるかの見積もりが実物より短くなる)。
@@ -266,10 +401,12 @@ fun ProducerCardEditorSheet(
             qrUrl = qrUrl
         )
     )
-    val canSave = validation == null && !isSaving && !applyingCrop
+    // 自作の画像のデザインは表の画像が要る (無いと入場証になってしまう)。画像の QR を読み終えるまで保存させない。
+    val canSave = validation == null && !isSaving && !applyingCrop && !isReadingFace &&
+        !(selectedDesign.usesFaceImage && facePreview[ProducerCardFiles.Side.FRONT] == null)
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
-        draft().design != card.design || draft().qrUrl != card.qrUrl || photoDirty
+        draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty()
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     fun cancel() {
@@ -292,6 +429,13 @@ fun ProducerCardEditorSheet(
                     withContext(Dispatchers.IO) {
                         if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result, writeSource = photoSourceChanged)
                         else ProducerCardFiles.deleteMyPhoto(context)
+                    }
+                }
+                val faces = faceDirty.associateWith { faceImages[it] }
+                withContext(Dispatchers.IO) {
+                    faces.forEach { (side, image) ->
+                        if (image != null) ProducerCardFiles.saveMyFace(context, image, side)
+                        else ProducerCardFiles.deleteMyFace(context, side)
                     }
                 }
                 onDismiss()
@@ -322,7 +466,10 @@ fun ProducerCardEditorSheet(
                     Modifier.padding(horizontal = DS.Space.screen),
                     verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
                 ) {
-                    CardPreview(draft(), record, directory, previewPortrait)
+                    CardPreview(
+                        draft(), record, directory, previewPortrait,
+                        facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) }
+                    )
                     ImasFormCard {
                         ImasFormTextField(
                             label = "名前", imprint = "NAME", text = name, onTextChange = { name = it },
@@ -341,29 +488,81 @@ fun ProducerCardEditorSheet(
                     }
 
                     ImasFormCard {
+                        ImasFormField(label = "名刺のデザイン", imprint = "DESIGN") {
+                            val assets = context.assets
+                            val frontFace = facePreview[ProducerCardFiles.Side.FRONT]
+                            val options = remember(designs, frontFace) {
+                                designs.map {
+                                    ImasCardDesignOption(it.key, it.label, designLook(it.design, frontFace), ImasCardNameFonts.family(assets, it.font.fileStem))
+                                }
+                            }
+                            val lead = oshi.firstOrNull()
+                            ImasCardDesignPicker(
+                                options = options, selection = design, onSelect = { design = it }, sample = name.trim(),
+                                seed = lead?.color, brand = lead?.brandId
+                            )
+                        }
+                        if (selectedDesign.usesFaceImage) {
+                            ImasFormField(
+                                label = "自作の画像", imprint = "FACE",
+                                error = if (facePreview[ProducerCardFiles.Side.FRONT] == null) "表の画像を選んでください" else null
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top) {
+                                        listOf(ProducerCardFiles.Side.FRONT to "表", ProducerCardFiles.Side.BACK to "裏 (なくてもよい)").forEach { (side, title) ->
+                                            FaceSlot(
+                                                title = title,
+                                                preview = facePreview[side],
+                                                canAdjust = faceSources[side] != null,
+                                                onPick = {
+                                                    pickingFace = side
+                                                    pickFace.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                                },
+                                                onAdjust = { faceSources[side]?.let { faceCorners = FaceCornerDraft(side, it) } },
+                                                onRemove = { removeFace(side) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        "自分で作った名刺の画像がそのまま名刺の顔になります (91:55 の比が基本、違う比率でも切りません)。紙の名刺を撮った写真なら、四隅を見つけて平らにします。画像の QR は自分の QR に入ります。",
+                                        style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color
+                                    )
+                                    faceNotice?.let { Text(it, style = ImasTextRole.NOTE.style, color = DS.ink) }
+                                }
+                            }
+                        }
+                    }
+
+                    ImasFormCard {
                         ImasFormField(label = "名刺の写真", imprint = "PHOTO") {
+                            val handle = cardXAvatarHandle(draft().links)
                             Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top) {
                                 previewPortrait?.let { ImasCardPortraitThumbnail(url = it) }
                                 Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                                     CardEditorAction(Icons.Filled.Photo, if (photoSource == null) "写真を選ぶ" else "写真を変える") {
                                         pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                                     }
+                                    if (handle != null) {
+                                        CardEditorAction(
+                                            Icons.Filled.AccountBox,
+                                            if (isFetchingAvatar) "X のアイコンを取っています…" else "X のアイコンを使う (@$handle)",
+                                            enabled = !isFetchingAvatar
+                                        ) { useXAvatar(handle) }
+                                    }
                                     val source = photoSource
                                     if (source != null) {
                                         CardEditorAction(Icons.Filled.Crop, "位置を直す") { cropping = CropDraft(source, crop) }
                                         CardEditorAction(Icons.Filled.RemoveCircleOutline, "写真を外す", tint = DS.danger, onClick = ::removePhoto)
-                                    } else {
+                                    }
+                                    val notice = avatarNotice
+                                    if (notice != null) {
+                                        Text(notice, style = ImasTextRole.NOTE.style, color = DS.danger)
+                                    } else if (source == null) {
                                         Text("名前の横に証明写真のように載ります。担当の画像とは別です。", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
                                     }
                                 }
                             }
-                        }
-                        ImasFormField(label = "名前の書体", imprint = "TYPEFACE") {
-                            val assets = context.assets
-                            val options = remember(fonts) {
-                                fonts.map { ImasNameFontOption(it.key, it.label, ImasCardNameFonts.family(assets, it.font.fileStem)) }
-                            }
-                            ImasNameFontPicker(options = options, selection = nameFont, onSelect = { nameFont = it }, sample = name.trim())
                         }
                     }
 
@@ -443,13 +642,13 @@ fun ProducerCardEditorSheet(
 
                     val shownError = error ?: validation?.takeIf { it == ProducerCardInputError.TOO_LONG }?.let { producerCardInputErrorMessage(it) }
                     shownError?.let { Text(it, style = ImasTextRole.NOTE.style, color = DS.danger) }
-                    if (nameFont != fonts.first().key || qrUrl.isNotBlank()) {
-                        ImasNote("書体や自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                    if (design != designs.first().key || qrUrl.isNotBlank()) {
+                        ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                     }
                     ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
                 }
             }
-            ImasSavingOverlay(isSaving = isSaving, label = "保存中")
+            ImasSavingOverlay(isSaving = isSaving || isReadingFace, label = if (isReadingFace) "画像を整えています" else "保存中")
         }
     }
 
@@ -457,6 +656,14 @@ fun ProducerCardEditorSheet(
         confirmDiscard = false
         onDismiss()
     })
+    faceCorners?.let { draft ->
+        PaperCardCornerSheet(
+            image = draft.source.original,
+            initial = draft.source.corners ?: PaperCardRectifier.defaultCorners,
+            onDone = { applyFaceCorners(draft.side, draft.source, it) },
+            onDismiss = { faceCorners = null }
+        )
+    }
     cropping?.let { draft ->
         CardPhotoCropSheet(
             image = draft.image,
@@ -470,8 +677,42 @@ fun ProducerCardEditorSheet(
 /** 切り抜きのシートに渡すもの。 */
 private class CropDraft(val image: Bitmap, val crop: ImasPortraitCrop)
 
+/** 自作の名刺の画像の四隅を直すシートに渡すもの。 */
+private class FaceCornerDraft(val side: ProducerCardFiles.Side, val source: PaperPhotoSource)
+
 /** 見本に出す切り抜き済みの写真の一時置き場。 */
 private fun previewFolder(context: Context): File = File(context.cacheDir, "producer_card_edit")
+
+/** 自作の名刺の画像の一時置き場。 */
+private fun faceFolder(context: Context): File = File(context.cacheDir, "producer_card_face_edit")
+
+/** デザインの札に組む小さな名刺の形。 */
+private fun designLook(design: CardDesign, frontFace: String?): ImasCardDesignOption.Look = when (design) {
+    CardDesign.PASS -> ImasCardDesignOption.Look.Pass
+    CardDesign.FORMAL -> ImasCardDesignOption.Look.Formal
+    CardDesign.POP -> ImasCardDesignOption.Look.Pop
+    CardDesign.CUSTOM -> ImasCardDesignOption.Look.Face(frontFace)
+}
+
+/** 自作の名刺の画像の 1 面 (表・裏) の欄。 */
+@Composable
+private fun FaceSlot(
+    title: String,
+    preview: String?,
+    canAdjust: Boolean,
+    onPick: () -> Unit,
+    onAdjust: () -> Unit,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+        Text(title, style = ImasTextRole.ROW_LABEL.style, color = DS.ink2)
+        if (preview != null) ImasCardFace(front = preview, label = "自作の名刺の$title", thumbnail = true)
+        CardEditorAction(Icons.Filled.PhotoLibrary, if (preview == null) "画像を選ぶ" else "選び直す", onClick = onPick)
+        if (canAdjust) CardEditorAction(Icons.Filled.Crop, "四隅を直す", onClick = onAdjust)
+        if (preview != null) CardEditorAction(Icons.Filled.RemoveCircleOutline, "外す", tint = DS.danger, onClick = onRemove)
+    }
+}
 
 /** 今の入力で組んだ名刺 (保存前でもその場で見た目に出す)。 */
 @Composable
@@ -479,7 +720,8 @@ private fun CardPreview(
     draft: MyProducerCard,
     record: ProducerCardMyRecord?,
     directory: ProducerCardDirectory,
-    portraitUrl: String?
+    portraitUrl: String?,
+    face: ProducerCardFace?
 ) {
     val rec = record ?: ProducerCardMyRecord(oshiIds = emptyList(), attended = emptyList(), songCount = 0)
     // 見本は書体・写真・リンクを見るためのもの。記録の掲示板は外して背を低くする。
@@ -487,7 +729,7 @@ private fun CardPreview(
         .withHidden(draft.hidden + setOf(ProducerCardField.SHOW_COUNT, ProducerCardField.SONG_COUNT, ProducerCardField.NEXT))
     val card = encodeProducerCard(ProducerCardAssembler.input(sample, rec)).card
     ProducerCardView(
-        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl,
+        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
         modifier = Modifier.semantics { contentDescription = "名刺の見本" }
     )
 }
@@ -551,9 +793,15 @@ private fun QrEditor(
 
 /** 編集画面の小さな操作 (写真を選ぶ・位置を直す・リンクから選ぶ)。 */
 @Composable
-private fun CardEditorAction(icon: ImageVector, title: String, tint: Color = DS.ink, onClick: () -> Unit) {
+private fun CardEditorAction(
+    icon: ImageVector,
+    title: String,
+    tint: Color = DS.ink,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
     Row(
-        Modifier.imasRowPress(onClick = onClick),
+        if (enabled) Modifier.imasRowPress(onClick = onClick) else Modifier,
         horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -383,12 +383,12 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
 }
 
 /** 写真から選んだ写真の元と見つけた四隅。 */
-private class PaperPhotoSource(val original: Bitmap, val corners: List<Offset>?)
+internal class PaperPhotoSource(val original: Bitmap, val corners: List<Offset>?)
 
 /** 紙の名刺の四隅を指で直すシート (iOS `PaperCardCornerSheet`)。✓ で平らにし直す。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PaperCardCornerSheet(
+internal fun PaperCardCornerSheet(
     image: Bitmap,
     initial: List<Offset>,
     onDone: (List<Offset>) -> Unit,

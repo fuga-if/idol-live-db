@@ -18,7 +18,25 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import android.graphics.Bitmap
+import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
+import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
+import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDesign
+import com.fugaif.imaslivedb.ui.producercard.ProducerCardDisplay
+import com.fugaif.imaslivedb.ui.producercard.ProducerCardFace
+import uniffi.imas_core.CardDesign
+import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardLink
+import uniffi.imas_core.XAvatarLookup
+import uniffi.imas_core.cardDesigns
+import uniffi.imas_core.cardXAvatarHandle
+import uniffi.imas_core.decodeCardFile
+import uniffi.imas_core.decodeProducerCard
+import uniffi.imas_core.xAvatarLookup
+import uniffi.imas_core.xAvatarLookupMessage
+import uniffi.imas_core.xProfileApiUrl
 import uniffi.imas_core.CardLinkKind
 import uniffi.imas_core.ProducerCardInput
 import uniffi.imas_core.ProfileAutoField
@@ -164,6 +182,7 @@ class ProducerCardStoreTest {
             .withLinks(listOf(CardLink(CardLinkKind.X, "fuga_p")))
             .withHidden(setOf(ProducerCardField.ATTENDED))
             .withProfile(sheet)
+            .withCardDesign(CardDesign.FORMAL)
         sourceRepo.saveMyCard(mine)
         sourceRepo.saveReceived(received("c1", "しろくまP", memo = "物販列で隣"))
         val json = BackupExportImportService.buildEnvelopeJson(
@@ -189,9 +208,90 @@ class ProducerCardStoreTest {
         assertEquals(mine.links, restored.links)
         assertEquals(setOf(ProducerCardField.ATTENDED), restored.hidden)
         assertEquals("プロフィール帳もバックアップで戻る", sheet, restored.profile)
+        assertEquals("デザインもバックアップで戻る", CardDesign.FORMAL, restored.cardDesign)
 
         // 2 回目は何も増えない (id で重複を弾く)。
         assertEquals(0, import().addedProducerCards)
         assertEquals(1, targetRepo.receivedCount())
+    }
+
+    // ---- デザイン・自作の画像・X のアイコン (iOS ProducerCardStoreTests と対) ----
+
+    /** デザインは端末の表に入り、名刺の中身にも載る。デザインを選んでいなければ既定。 */
+    @Test
+    fun myCardDesignReachesTheCard() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        val mine = myCard("ふがP")
+        assertEquals("空のキーは既定のデザイン", cardDesigns().first().design, mine.cardDesign)
+        repo.saveMyCard(mine.withCardDesign(CardDesign.POP))
+        val loaded = repo.myCard()!!
+        assertEquals("pop", loaded.design)
+        val record = ProducerCardMyRecord(emptyList(), emptyList(), 0)
+        val encoded = ProducerCardAssembler.encode(loaded, record)!!
+        val back = decodeProducerCard(encoded.url)!!
+        assertEquals(CardDesign.POP, back.design)
+        assertEquals("card_name_pop", ProducerCardDisplay.nameFont(back))
+    }
+
+    /** 書体を選んでいた頃の保存のキーは、近いデザインに読み替える。 */
+    @Test
+    fun oldFontKeysReadAsNearestDesign() {
+        val cases = listOf(
+            "gothic" to CardDesign.PASS, "mincho" to CardDesign.FORMAL, "maru" to CardDesign.POP,
+            "hand" to CardDesign.POP, "pop" to CardDesign.POP, "" to CardDesign.PASS, "unknown" to CardDesign.PASS
+        )
+        for ((key, design) in cases) assertEquals(key, design, myCard("ふがP").copy(design = key).cardDesign)
+    }
+
+    /** 自作の画像の名刺は、画像が手元にあれば画像で、無ければ (QR だけで受け取った) 入場証で描く。 */
+    @Test
+    fun customDesignNeedsFaceImage() {
+        val card = encodeProducerCard(
+            ProducerCardInput(
+                name = "しろくまP", message = "", sinceYear = null, oshiIdolIds = emptyList(), links = emptyList(),
+                showCount = null, songCount = null, nextShowId = null, attended = emptyList(),
+                issuedOn = "2026-10-06", design = CardDesign.CUSTOM
+            )
+        ).card
+        val face = ProducerCardFace(front = "file:///tmp/front.jpg", back = null)
+        assertEquals(ImasProducerCardDesign.Face("file:///tmp/front.jpg", null), ProducerCardDisplay.cardDesign(card, face))
+        assertEquals(ImasProducerCardDesign.Pass, ProducerCardDisplay.cardDesign(card, null))
+    }
+
+    /** 自分の名刺ファイルには、デザインが自作の画像のときだけ表・裏の画像が入る。 */
+    @Test
+    fun myCardFileCarriesFacesOnlyForCustomDesign() = runBlocking {
+        val image = Bitmap.createBitmap(91, 55, Bitmap.Config.ARGB_8888)
+        try {
+            ProducerCardFiles.saveMyFace(context, image, ProducerCardFiles.Side.FRONT)
+            ProducerCardFiles.saveMyFace(context, image, ProducerCardFiles.Side.BACK)
+            val module = AppModule.from(context)
+            val record = ProducerCardMyRecord(emptyList(), emptyList(), 0)
+            fun faces(bytes: ByteArray) = decodeCardFile(bytes)!!.images.map { it.kind }.filter { it != CardFileImageKind.PHOTO }
+
+            val custom = ProducerCardAssembler.encode(myCard("ふがP").withCardDesign(CardDesign.CUSTOM), record)!!
+            assertEquals(
+                listOf(CardFileImageKind.FACE_FRONT, CardFileImageKind.FACE_BACK),
+                faces(ProducerCardAssembler.myCardFile(context, module, custom)!!)
+            )
+            val formal = ProducerCardAssembler.encode(myCard("ふがP").withCardDesign(CardDesign.FORMAL), record)!!
+            assertTrue(faces(ProducerCardAssembler.myCardFile(context, module, formal)!!).isEmpty())
+        } finally {
+            ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.FRONT)
+            ProducerCardFiles.deleteMyFace(context, ProducerCardFiles.Side.BACK)
+        }
+    }
+
+    /** X のアイコンの規則 (ID の取り出し・読みに行く先・返事の分け方) はコア。 */
+    @Test
+    fun xAvatarRulesComeFromCore() {
+        assertEquals(
+            "fuga_p",
+            cardXAvatarHandle(listOf(CardLink(CardLinkKind.BLUESKY, "a.bsky.social"), CardLink(CardLinkKind.X, "fuga_p")))
+        )
+        assertNull(cardXAvatarHandle(listOf(CardLink(CardLinkKind.BLUESKY, "a.bsky.social"))))
+        assertTrue(xProfileApiUrl("fuga_p") != null)
+        assertEquals(XAvatarLookup.NotFound, xAvatarLookup("fuga_p", 404.toUShort(), ""))
+        assertTrue(xAvatarLookupMessage(XAvatarLookup.Protected, "fuga_p") != null)
     }
 }

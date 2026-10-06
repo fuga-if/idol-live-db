@@ -118,6 +118,12 @@ sealed interface ImasRowLeading {
      */
     data class Portrait(val url: String, val oshi: ImasRowPortraitOshi? = null) : ImasRowLeading
 
+    /**
+     * 自作の名刺の画像 (91:55 の枠に収めた小さな見本) と、その人の担当のアイコンを右下に重ねたもの。
+     * 名刺入れの行 (デザインが自作の画像の名刺)。
+     */
+    data class CardFace(val url: String, val oshi: ImasRowPortraitOshi? = null) : ImasRowLeading
+
     /** 曲のジャケ (48、COMPACT は 40)。 */
     data class Artwork(
         val title: String,
@@ -356,7 +362,7 @@ private fun rowAlignment(leading: ImasRowLeading): Alignment.Vertical? = when (l
     else -> Alignment.CenterVertically
 }
 
-/** [ImasRowLeading.Portrait] の右下に重ねる担当のアイコン。 */
+/** [ImasRowLeading.Portrait] / [ImasRowLeading.CardFace] の右下に重ねる担当のアイコン。 */
 data class ImasRowPortraitOshi(
     val label: String,
     val seed: String? = null,
@@ -367,12 +373,16 @@ data class ImasRowPortraitOshi(
 /** 名刺の写真の先頭の幅 (写真の枠 + 右下に重ねる担当のアイコンのはみ出し)。 */
 private fun portraitLeadingWidth(density: ImasRowDensity): Dp = density.avatarSize * 1.2f
 
+/** 自作の名刺の画像の先頭の幅 (91:55 の見本 + 右下に重ねる担当のアイコンのはみ出し)。 */
+private fun cardFaceLeadingWidth(density: ImasRowDensity): Dp = density.avatarSize * 1.9f
+
 /** 先頭の幅 (区切り線を本文の頭に揃えるため)。 */
 private fun leadingWidth(leading: ImasRowLeading, density: ImasRowDensity): Dp = when (leading) {
     ImasRowLeading.None -> 0.dp
     is ImasRowLeading.Bar -> DS.Size.leadBar
     is ImasRowLeading.Avatar -> density.avatarSize + ImasAvatarRingPadding * 2
     is ImasRowLeading.Portrait -> portraitLeadingWidth(density)
+    is ImasRowLeading.CardFace -> cardFaceLeadingWidth(density)
     is ImasRowLeading.Artwork -> density.artworkSize
     is ImasRowLeading.Icon -> ImasIconTileSize.S28.frame
     is ImasRowLeading.Number -> 30.dp
@@ -427,6 +437,19 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
         )
         is ImasRowLeading.Portrait -> Box(Modifier.width(portraitLeadingWidth(density))) {
             ImasCardPortrait(url = leading.url, modifier = Modifier.width(density.avatarSize * 0.9f))
+            leading.oshi?.let { oshi ->
+                ImasAvatar(
+                    label = oshi.label, seed = oshi.seed, brand = oshi.brand,
+                    size = density.avatarSize * 0.55f, isPick = true, imageUrl = oshi.imageUrl,
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                )
+            }
+        }
+        is ImasRowLeading.CardFace -> Box(Modifier.width(cardFaceLeadingWidth(density))) {
+            ImasCardFace(
+                front = leading.url, label = "名刺の画像", thumbnail = true,
+                modifier = Modifier.width(density.avatarSize * 1.7f).padding(bottom = density.avatarSize * 0.2f)
+            )
             leading.oshi?.let { oshi ->
                 ImasAvatar(
                     label = oshi.label, seed = oshi.seed, brand = oshi.brand,
