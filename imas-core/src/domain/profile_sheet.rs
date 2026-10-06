@@ -19,6 +19,8 @@
 //! 保存するのは選択だけ (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`)。
 //! 名前・写真・書体・リンク・自分の QR は P名刺のものを使う。
 
+use crate::domain::collection_gap::collection_attended_show_ids;
+use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::snapshot::Snapshot;
 use chrono::{Datelike, NaiveDate};
 use std::collections::{HashMap, HashSet};
@@ -629,26 +631,39 @@ pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
 // 参加した公演のセトリ・会場から数える
 // ---------------------------------------------------------------------------
 
-/// 参加した公演 (`attended_show_ids`。予定も混ざってよい) のうち今日までに行ったものの、
-/// セトリと会場から数える。
+/// 現地で参加した公演 (公演単位とイベント単位の参加マーク。予定も混ざってよい) のうち今日までに
+/// 行ったものの、セトリと会場から数える。
 ///
+/// - 参加の形態が現地のもの (形態なしは現地) だけ。配信・LV は数えない
+///   ([`collection_attended_show_ids`] の `include_stream = false` と同じ規則)。
+/// - イベント単位の参加は配下の公演すべてに参加したものとして数える。
 /// - 曲・担当の歌唱は「披露に数える公演」(`Show::counts_as_performance`。上映会・配信だけは除く) だけ。
 /// - 担当の歌唱はその担当が歌唱メンバーに入っている披露の数。
 /// - 会場は会場マスタ (`venue_id`) で数え、無ければ公演の会場の表記で数える。都道府県は会場マスタから。
 /// - 同数は「先に聴いた・行った方」が上 (決定的にするため)。
 pub fn profile_live_record(
     snap: &Snapshot,
-    attended_show_ids: &[String],
+    show_marks: &[AttendanceMarkRecord],
+    event_marks: &[AttendanceMarkRecord],
     oshi_idol_ids: &[String],
     today: &str,
 ) -> ProfileLiveRecord {
     let today = parse_date(today);
+    // 現地参加だけ (配信・LV は「現地で聴いた」に入れない。形態の規則は回収と同じ正本)。
+    let local_shows = collection_attended_show_ids(show_marks.to_vec(), false);
+    let local_events = collection_attended_show_ids(event_marks.to_vec(), false);
+    let candidates = local_shows
+        .iter()
+        .filter_map(|id| snap.show_index_by_id.get(id).copied())
+        .chain(
+            local_events
+                .iter()
+                .filter_map(|id| snap.event_index_by_id.get(id))
+                .flat_map(|&e| snap.shows_by_event[e as usize].iter().copied()),
+        );
     let mut shows: Vec<u32> = Vec::new();
     let mut seen = HashSet::new();
-    for id in attended_show_ids {
-        let Some(&show) = snap.show_index_by_id.get(id) else {
-            continue;
-        };
+    for show in candidates {
         let past = matches!(
             (parse_date(&snap.shows[show as usize].date), today),
             (Some(d), Some(t)) if d <= t
@@ -791,6 +806,13 @@ fn density_caps(size: ProfileSheetSize) -> (u32, u32) {
 /// 1 行に入る文字数の見積もり (全角で、欄の幅いっぱい)。
 const CHARS_PER_LINE: usize = 30;
 
+/// いちばん通ったブランド。
+struct TopBrand {
+    id: String,
+    label: String,
+    count: u32,
+}
+
 /// 記録を数えた中間の形 (組み立てと編集画面の見本で共有する)。
 struct Facts<'a> {
     today: Option<NaiveDate>,
@@ -799,7 +821,7 @@ struct Facts<'a> {
     /// 次の現場 (いちばん近い予定)。
     next: Option<(NaiveDate, &'a ProfileShowInput)>,
     /// いちばん通ったブランド (短い名前と公演数)。
-    top_brand: Option<(String, u32)>,
+    top_brand: Option<TopBrand>,
     /// 年ごとの参加数 (新しい年から)。
     yearly: Vec<(i32, u32)>,
     /// はじめての参加からの年数 (1 年未満は None)。
@@ -848,7 +870,11 @@ impl<'a> Facts<'a> {
                     _ => Some((b, n)),
                 },
             )
-            .map(|(b, n)| (b.label.clone(), n));
+            .map(|(b, n)| TopBrand {
+                id: b.id.clone(),
+                label: b.label.clone(),
+                count: n,
+            });
 
         let mut years: Vec<(i32, u32)> = Vec::new();
         for (d, _) in past.iter().rev() {
@@ -1022,7 +1048,7 @@ impl<'a> Facts<'a> {
             F::TopBrand => self
                 .top_brand
                 .as_ref()
-                .map(|(b, n)| format!("{b} {n}公演"))
+                .map(|t| format!("{} {}公演", t.label, t.count))
                 .unwrap_or_default(),
             F::TopVenue => r
                 .live
@@ -1272,7 +1298,7 @@ pub fn profile_sheet_layout(
                     facts
                         .top_brand
                         .as_ref()
-                        .map(|(b, n)| format!("{b} {n}公演")),
+                        .map(|t| format!("{} {}公演", t.label, t.count)),
                 );
                 push(
                     F::TopVenue,
@@ -1460,10 +1486,10 @@ fn career_summary(facts: &Facts, on: &impl Fn(ProfileAutoField) -> bool) -> Opti
             record.song_count
         ));
     } else if let Some(f) = first {
-        out.push_str(&format!("{f}にはじめて現地に参加。"));
+        out.push_str(&format!("{f}にはじめて参加。"));
     }
-    if let Some((b, _)) = facts.top_brand.as_ref().filter(|_| on(F::TopBrand)) {
-        out.push_str(&format!("主に{b}の現場に通う。"));
+    if let Some(t) = facts.top_brand.as_ref().filter(|_| on(F::TopBrand)) {
+        out.push_str(&format!("主に{}の現場に通う。", t.label));
     }
     (!out.is_empty()).then_some(out)
 }
@@ -1546,12 +1572,7 @@ fn default_main_brand(record: &ProfileSheetRecord) -> Option<String> {
     if let Some(b) = record.oshi_brand_ids.iter().find(|b| is_listed(b)) {
         return Some(b.clone());
     }
-    let facts = Facts::new(record);
-    let label = facts.top_brand?.0;
-    listed
-        .iter()
-        .find(|b| b.label == label)
-        .map(|b| b.id.clone())
+    Facts::new(record).top_brand.map(|t| t.id)
 }
 
 /// 担当ブランドの並び (ブランドの並び順、その他を除く) と丸。丸は記録から付け、自分で付け外しした分を
@@ -1661,14 +1682,34 @@ pub fn profile_toggle_brand(
             _ => {}
         }
     };
+    let default_main = default_main_brand(record);
     match (mark.checked, mark.main) {
-        (false, _) => set_checked(&mut out, true),
+        (false, _) => {
+            set_checked(&mut out, true);
+            // 丸なしからは必ず丸 (メインの上書きや既定がこのブランドを指していても、いきなり二重丸にしない)。
+            let would_be_main = match out.brand_main.as_deref() {
+                Some(id) => id == brand_id,
+                None => default_main.as_deref() == Some(brand_id),
+            };
+            if would_be_main {
+                out.brand_main = Some(String::new());
+            }
+        }
         (true, false) => out.brand_main = Some(brand_id.to_string()),
         (true, true) => {
             set_checked(&mut out, false);
             out.brand_main = Some(String::new());
         }
     }
+    // 保存の形をそろえる: 既定と同じメインは「既定」に戻し (担当が変われば既定に追従する)、
+    // 付け外しはブランドの並び順に (1 周回しただけの選択が「変わった」に見えないように)。
+    if out.brand_main.is_some() && out.brand_main == default_main {
+        out.brand_main = None;
+    }
+    let order: Vec<String> = listed_brands(record).iter().map(|b| b.id.clone()).collect();
+    let rank = |id: &String| order.iter().position(|o| o == id).unwrap_or(usize::MAX);
+    out.brand_on.sort_by_key(rank);
+    out.brand_off.sort_by_key(rank);
     out
 }
 
@@ -2193,6 +2234,31 @@ mod tests {
         assert_eq!(c2.brand_off, vec!["cg"]);
         // 知らない id は何も変えない。
         assert_eq!(profile_toggle_brand(&s0, &rec, "zzz"), s0);
+        // 既定のメイン (765) を 1 周回すと元の選択に戻る (二重丸 → 丸なし → 丸 → 二重丸)。
+        let r1 = profile_toggle_brand(&s0, &rec, "765");
+        assert_eq!(state(&r1, "765"), (false, false));
+        let r2 = profile_toggle_brand(&r1, &rec, "765");
+        assert_eq!(state(&r2, "765"), (true, false), "丸なしからは丸");
+        let r3 = profile_toggle_brand(&r2, &rec, "765");
+        assert_eq!(r3, s0);
+        // メインを上書きしたブランドが記録から外れて丸なしになっても、押すと丸 (いきなり二重丸にしない)。
+        let mut gone = rec.clone();
+        gone.oshi_brand_ids.clear();
+        gone.attended
+            .retain(|s| s.brand_id.as_deref() != Some("765"));
+        let mut pinned = profile_sheet_default();
+        pinned.brand_main = Some("765".into());
+        let p1 = profile_toggle_brand(&pinned, &gone, "765");
+        let m = profile_brand_marks(&p1, &gone)
+            .into_iter()
+            .find(|b| b.id == "765")
+            .unwrap();
+        assert_eq!((m.checked, m.main), (true, false));
+        // 付け外しはブランドの並び順で持つ。
+        let both = profile_toggle_brand(&profile_toggle_brand(&s0, &rec, "sm"), &rec, "zzz");
+        let both = profile_toggle_brand(&profile_toggle_brand(&both, &rec, "ml"), &rec, "ml");
+        let both = profile_toggle_brand(&both, &rec, "ml");
+        assert_eq!(both.brand_on, vec!["sm"]);
     }
 
     #[test]
@@ -2205,9 +2271,7 @@ mod tests {
                 assert!((-20.0..=20.0).contains(&r.tilt_degrees));
                 assert!((0.92..=1.13).contains(&r.stretch));
                 assert!((0.0..360.0).contains(&r.start_degrees));
-                assert!(
-                    (-0.04..=0.04).contains(&r.offset_x) && (-0.1..=0.1).contains(&r.offset_y)
-                );
+                assert!((-0.04..=0.04).contains(&r.offset_x) && (-0.1..=0.1).contains(&r.offset_y));
                 if i == 0 {
                     assert_eq!(r.scale, 1.0);
                 } else {
@@ -2245,9 +2309,18 @@ mod tests {
             .into_iter()
             .chain(["no-such-idol".to_string()])
             .collect();
-        let mut ids = shows.clone();
-        ids.push(shows[0].clone()); // 重複は 1 回
-        let live = profile_live_record(snap, &ids, &oshi, "2026-10-06");
+        let mark = |id: &String, t: Option<&str>| AttendanceMarkRecord {
+            entity_id: id.clone(),
+            attendance_type: t.map(str::to_string),
+        };
+        // 現地 (形態なしも現地) と、重複・配信の印。
+        let mut marks: Vec<AttendanceMarkRecord> = shows
+            .iter()
+            .enumerate()
+            .map(|(i, id)| mark(id, if i % 2 == 0 { Some("live") } else { None }))
+            .collect();
+        marks.push(mark(&shows[0], Some("live"))); // 重複は 1 回
+        let live = profile_live_record(snap, &marks, &[], &oshi, "2026-10-06");
         assert!(
             !live.top_songs.is_empty(),
             "40 公演なら 2 回以上聴いた曲がある"
@@ -2269,7 +2342,38 @@ mod tests {
             assert!(v.count >= 2);
         }
         // 今日より後の公演だけなら何も数えない。
-        let none = profile_live_record(snap, &shows, &oshi, "1990-01-01");
+        let none = profile_live_record(snap, &marks, &[], &oshi, "1990-01-01");
         assert_eq!(none, ProfileLiveRecord::default());
+        // 配信・LV で見た公演は「現地」に入れない。
+        let streamed: Vec<AttendanceMarkRecord> = shows
+            .iter()
+            .enumerate()
+            .map(|(i, id)| mark(id, Some(if i % 2 == 0 { "stream" } else { "live_viewing" })))
+            .collect();
+        assert_eq!(
+            profile_live_record(snap, &streamed, &[], &oshi, "2026-10-06"),
+            ProfileLiveRecord::default()
+        );
+        // イベント単位の現地参加は配下の公演すべてとして数える。
+        let event = snap.shows[first as usize].event;
+        let event_id = snap.events[event as usize].id.clone();
+        let by_event = profile_live_record(
+            snap,
+            &[],
+            &[mark(&event_id, Some("live"))],
+            &oshi,
+            "2026-10-06",
+        );
+        let only_first = profile_live_record(
+            snap,
+            &snap.shows_by_event[event as usize]
+                .iter()
+                .map(|&s| mark(&snap.shows[s as usize].id, None))
+                .collect::<Vec<_>>(),
+            &[],
+            &oshi,
+            "2026-10-06",
+        );
+        assert_eq!(by_event, only_first);
     }
 }

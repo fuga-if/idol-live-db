@@ -1,6 +1,7 @@
 //! プロフィール帳の FFI 面。ロジックは domain::profile_sheet。
 
 use super::snapshot_store::{SnapshotError, SnapshotStore};
+use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::profile_sheet::{
     ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck,
     ProfileLiveRecord, ProfileSheet, ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize,
@@ -84,19 +85,22 @@ pub fn profile_toggle_brand(
 
 #[uniffi::export]
 impl SnapshotStore {
-    /// プロフィール帳の、参加した公演のセトリ・会場から数えた記録
+    /// プロフィール帳の、現地で参加した公演のセトリ・会場から数えた記録
     /// (いちばん聴いた曲・担当の歌唱・いちばん通った会場・都道府県の数)。
-    /// `attended_show_ids` は参加を付けた公演 (予定も混ざってよい)、`today` は JST の今日。
+    /// `show_marks` / `event_marks` は公演単位・イベント単位の参加マーク (形態つき。予定も混ざってよい。
+    /// 現地だけに絞るのはコア)、`oshi_idol_ids` は担当の順、`today` は JST の今日。
     pub fn profile_live_record(
         &self,
-        attended_show_ids: Vec<String>,
+        show_marks: Vec<AttendanceMarkRecord>,
+        event_marks: Vec<AttendanceMarkRecord>,
         oshi_idol_ids: Vec<String>,
         today: String,
     ) -> Result<ProfileLiveRecord, SnapshotError> {
         let snap = self.current()?;
         Ok(crate::domain::profile_sheet::profile_live_record(
             &snap,
-            &attended_show_ids,
+            &show_marks,
+            &event_marks,
             &oshi_idol_ids,
             &today,
         ))
