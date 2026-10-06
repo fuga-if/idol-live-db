@@ -1,6 +1,10 @@
 package com.fugaif.imaslivedb.ui.lyrics
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -23,11 +27,46 @@ object LyricsCardOcr {
     suspend fun read(images: List<Bitmap>): String {
         val pages = mutableListOf<String>()
         for (image in images) {
-            val pieces = recognize(image)
+            val pieces = recognize(prepared(image))
             val text = lyricOcrLayout(pieces).text
             if (text.isNotEmpty()) pages += text
         }
         return pages.joinToString("\n\n")
+    }
+
+    /**
+     * 読み取りの前の下ごしらえ。色を抜いて明暗をはっきりさせ (色の地や写真の上の文字に効く)、
+     * 小さい画像 (スクリーンショットの切り抜きなど) は短辺 2,000px まで拡大する。字の形は変えない。
+     */
+    private fun prepared(image: Bitmap): Bitmap {
+        val shortSide = minOf(image.width, image.height)
+        val scaled = if (shortSide > 0 && shortSide < 2000) {
+            val scale = minOf(2000f / shortSide, 3f)
+            Bitmap.createScaledBitmap(image, (image.width * scale).toInt(), (image.height * scale).toInt(), true)
+        } else {
+            image
+        }
+
+        val result = Bitmap.createBitmap(scaled.width, scaled.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val saturation = ColorMatrix().apply { setSaturation(0f) }
+        saturation.postConcat(contrastMatrix(1.3f))
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { colorFilter = ColorMatrixColorFilter(saturation) }
+        canvas.drawBitmap(scaled, 0f, 0f, paint)
+        return result
+    }
+
+    /** コントラストだけを動かす行列 (明暗をはっきりさせる。色味や透明度は動かさない)。 */
+    private fun contrastMatrix(contrast: Float): ColorMatrix {
+        val translate = (1f - contrast) * 0.5f * 255f
+        return ColorMatrix(
+            floatArrayOf(
+                contrast, 0f, 0f, 0f, translate,
+                0f, contrast, 0f, 0f, translate,
+                0f, 0f, contrast, 0f, translate,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
     }
 
     /** 1 枚の文字の片 (左上原点の画素の枠)。 */

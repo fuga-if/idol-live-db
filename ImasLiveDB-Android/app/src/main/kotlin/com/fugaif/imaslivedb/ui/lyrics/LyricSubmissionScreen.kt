@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.DocumentScanner
@@ -43,6 +44,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFormToggle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasStep
+import com.fugaif.imaslivedb.ui.designsystem.ImasStepList
 import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
 import com.fugaif.imaslivedb.ui.producercard.cardCameraAvailable
 import com.fugaif.imaslivedb.ui.producercard.rememberDocumentCamera
@@ -52,6 +55,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.LyricSubmissionIssue
 import uniffi.imas_core.lyricOcrAppend
+import uniffi.imas_core.lyricOcrSteps
 import uniffi.imas_core.lyricSubmissionCheck
 import uniffi.imas_core.lyricSubmissionIssueBlocks
 import uniffi.imas_core.lyricSubmissionIssueMessage
@@ -251,8 +255,12 @@ private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> 
                 enabled = enabled
             )
         }
+        ImasStepList(
+            steps = lyricOcrSteps().map { ImasStep(title = it.title, detail = it.detail) },
+            modifier = Modifier.padding(top = DS.Space.gapTight)
+        )
         ImasText(
-            "文字の読み取りは端末の中だけで行い、写真は送りません。読み取った歌詞は誤りがないか見直してから送ってください。",
+            "文字の読み取りは端末の中だけで行い、写真はどこにも送りません。",
             ImasTextRole.NOTE,
             color = DS.ink3
         )
