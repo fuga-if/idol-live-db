@@ -212,6 +212,155 @@ pub fn wrap_ruby(text: &str, start: u32, end: u32, reading: &str) -> String {
     out
 }
 
+/// 歌詞の中の読み仮名 1 つ。親字の文字列と、本文の中で何番目 (0 始まり) に出てくる親字か
+/// で場所を表す。画面は記法 (《》・｜) を見せず、本文とこの一覧を分けて持つ。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct RubyMark {
+    pub base: String,
+    pub reading: String,
+    pub nth: u32,
+}
+
+/// 記法の入った本文を、記法の無い本文と読み仮名の一覧に分けたもの。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct RubySplit {
+    pub plain: String,
+    pub marks: Vec<RubyMark>,
+}
+
+/// `needle` が `chars` の `pos` より前に何回出てくるか (重ならずに数える)。
+fn occurrences_before(chars: &[char], needle: &[char], pos: usize) -> usize {
+    let mut count = 0;
+    let mut i = 0;
+    while i + needle.len() <= pos {
+        if chars[i..i + needle.len()] == *needle {
+            count += 1;
+            i += needle.len();
+        } else {
+            i += 1;
+        }
+    }
+    count
+}
+
+/// `needle` の `nth` 番目 (0 始まり、重ならずに数える) の位置。
+fn nth_position(chars: &[char], needle: &[char], nth: usize) -> Option<usize> {
+    if needle.is_empty() {
+        return None;
+    }
+    let mut seen = 0;
+    let mut i = 0;
+    while i + needle.len() <= chars.len() {
+        if chars[i..i + needle.len()] == *needle {
+            if seen == nth {
+                return Some(i);
+            }
+            seen += 1;
+            i += needle.len();
+        } else {
+            i += 1;
+        }
+    }
+    None
+}
+
+/// 記法 (親字《よみ》・｜親字《よみ》) の入った本文を、記法の無い本文と読み仮名の一覧に分ける。
+pub fn ruby_split(text: &str) -> RubySplit {
+    let mut plain_lines: Vec<String> = Vec::new();
+    // (本文の頭からの位置, 親字, 読み)
+    let mut found: Vec<(usize, String, String)> = Vec::new();
+    let mut offset = 0usize;
+    for line in text.split('\n') {
+        let chars: Vec<char> = line.chars().collect();
+        let spans = crate::domain::lyric_sync::ruby_spans(line);
+        let mut plain = String::new();
+        let mut plain_len = 0usize;
+        let mut k = 0usize;
+        for span in &spans {
+            let (base_start, base_end) = (span.base_start as usize, span.base_end as usize);
+            let (open, close) = (span.open as usize, span.close as usize);
+            let marker = span.marker.map(|m| m as usize);
+            for (j, &c) in chars.iter().enumerate().take(base_start).skip(k) {
+                if Some(j) != marker {
+                    plain.push(c);
+                    plain_len += 1;
+                }
+            }
+            let base: String = chars[base_start..base_end].iter().collect();
+            let reading: String = chars[open + 1..close - 1].iter().collect();
+            found.push((offset + plain_len, base.clone(), reading));
+            plain.push_str(&base);
+            plain_len += base_end - base_start;
+            k = close;
+        }
+        for &c in &chars[k.min(chars.len())..] {
+            plain.push(c);
+            plain_len += 1;
+        }
+        offset += plain_len + 1;
+        plain_lines.push(plain);
+    }
+    let plain = plain_lines.join("\n");
+    let all: Vec<char> = plain.chars().collect();
+    let marks = found
+        .into_iter()
+        .map(|(pos, base, reading)| {
+            let needle: Vec<char> = base.chars().collect();
+            RubyMark { nth: occurrences_before(&all, &needle, pos) as u32, base, reading }
+        })
+        .collect();
+    RubySplit { plain, marks }
+}
+
+/// 選んだ範囲 (スカラーの位置) と読みから読み仮名を作る。範囲が空・改行をまたぐ・読みが空なら None。
+pub fn ruby_mark_at(plain: &str, start: u32, end: u32, reading: &str) -> Option<RubyMark> {
+    let chars: Vec<char> = plain.chars().collect();
+    let (start, end) = (start as usize, end as usize);
+    let reading = reading.trim();
+    if start >= end || end > chars.len() || reading.is_empty() || reading.contains(['\n', '《', '》', '｜']) {
+        return None;
+    }
+    let base = &chars[start..end];
+    if base.iter().any(|&c| c == '\n' || c == '《' || c == '》' || c == '｜') {
+        return None;
+    }
+    Some(RubyMark {
+        base: base.iter().collect(),
+        reading: reading.to_string(),
+        nth: occurrences_before(&chars, base, start) as u32,
+    })
+}
+
+/// その読み仮名の親字が、今の本文にまだあるか (歌詞を打ち直すと消えることがある)。
+pub fn ruby_mark_found(plain: &str, mark: &RubyMark) -> bool {
+    let chars: Vec<char> = plain.chars().collect();
+    let needle: Vec<char> = mark.base.chars().collect();
+    nth_position(&chars, &needle, mark.nth as usize).is_some()
+}
+
+/// 本文と読み仮名の一覧を、記法の入った本文に合わせる (送るとき)。親字の見つからない読み仮名・
+/// 同じ字に重なる読み仮名は飛ばす。｜ が要るかは [`wrap_ruby`] と同じ決まり。
+pub fn ruby_join(plain: &str, marks: &[RubyMark]) -> String {
+    let chars: Vec<char> = plain.chars().collect();
+    let mut placed: Vec<(usize, usize, &str)> = Vec::new();
+    for mark in marks {
+        let needle: Vec<char> = mark.base.chars().collect();
+        let Some(start) = nth_position(&chars, &needle, mark.nth as usize) else { continue };
+        let end = start + needle.len();
+        if placed.iter().any(|&(s, e, _)| start < e && s < end) {
+            continue;
+        }
+        placed.push((start, end, mark.reading.as_str()));
+    }
+    // 後ろから当てる (前の位置がずれないように)。
+    placed.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut out = plain.to_string();
+    for (start, end, reading) in placed {
+        out = wrap_ruby(&out, start as u32, end as u32, reading);
+    }
+    out
+}
+
 /// 指定の行を消す (ルビらしい行を本人が消すとき)。前後の空行の並びは整え直す。
 pub fn remove_lines(text: &str, indices: &[u32]) -> String {
     let kept: Vec<&str> = text
@@ -349,6 +498,40 @@ mod tests {
         assert_eq!(wrap_ruby("夜", 0, 0, "よ"), "夜");
         assert_eq!(wrap_ruby("夜", 0, 1, " "), "夜");
         assert_eq!(wrap_ruby("夜\n朝", 0, 3, "よ"), "夜\n朝");
+    }
+
+    #[test]
+    fn ruby_split_and_join_round_trip_without_showing_the_notation() {
+        let text = "僕の視界《せかい》は\n月｜夜《世》の｜ステージ《ぶたい》\n視界《しかい》";
+        let split = ruby_split(text);
+        assert_eq!(split.plain, "僕の視界は\n月夜のステージ\n視界");
+        assert_eq!(
+            split.marks,
+            vec![
+                RubyMark { base: "視界".into(), reading: "せかい".into(), nth: 0 },
+                RubyMark { base: "夜".into(), reading: "世".into(), nth: 0 },
+                RubyMark { base: "ステージ".into(), reading: "ぶたい".into(), nth: 0 },
+                RubyMark { base: "視界".into(), reading: "しかい".into(), nth: 1 },
+            ]
+        );
+        assert_eq!(ruby_join(&split.plain, &split.marks), text);
+    }
+
+    #[test]
+    fn ruby_marks_follow_edits_and_report_lost_bases() {
+        let mark = ruby_mark_at("赫く染まった赫い", 6, 7, "あか").unwrap();
+        assert_eq!(mark, RubyMark { base: "赫".into(), reading: "あか".into(), nth: 1 });
+        // 前に文字を足しても、2 つ目の「赫」に付いたまま
+        assert_eq!(ruby_join("世界が赫く染まった赫い", &[mark.clone()]), "世界が赫く染まった赫《あか》い");
+        // 2 つ目の「赫」が消えたら見つからない
+        assert!(!ruby_mark_found("赫く染まった", &mark));
+        assert_eq!(ruby_mark_at("夜", 0, 0, "よ"), None);
+        // 重なる読み仮名は後のものを飛ばす
+        let marks = [
+            RubyMark { base: "視界".into(), reading: "せかい".into(), nth: 0 },
+            RubyMark { base: "界".into(), reading: "かい".into(), nth: 0 },
+        ];
+        assert_eq!(ruby_join("視界", &marks), "視界《せかい》");
     }
 
     #[test]

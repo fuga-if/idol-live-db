@@ -14,6 +14,8 @@ final class LyricSubmissionDrafts {
         var agreed = false
         /// 読み取りに自信の無かった行 (見直してもらうために出す)。
         var doubtfulLines: [String] = []
+        /// 読み仮名。本文 (`text`) には記法 (《》・｜) を入れず、ここに分けて持つ。送るときに合わせる。
+        var rubies: [RubyMark] = []
     }
 
     private(set) var drafts: [String: Draft] = [:]
@@ -29,4 +31,15 @@ final class LyricSubmissionDrafts {
     }
 
     func clear(_ songId: String) { drafts[songId] = nil }
+
+    /// 本文を書き換える。記法 (親字《よみ》) が入ってきたら (読み取り・貼り付け・手で打った《》)、
+    /// 本文から外して読み仮名の一覧へ移す。画面に記法を見せないため。
+    func setText(_ songId: String, _ text: String) {
+        update(songId) { d in
+            guard text.contains("》") else { d.text = text; return }
+            let split = lyricRubySplit(text: text)
+            d.text = split.plain
+            d.rubies += split.marks
+        }
+    }
 }

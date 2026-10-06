@@ -31,15 +31,19 @@ struct LyricSubmissionSheet: View {
     private var agreed: Bool { drafts.draft(for: song.id).agreed }
     private var textBinding: Binding<String> {
         Binding(get: { drafts.draft(for: song.id).text },
-                set: { new in drafts.update(song.id) { $0.text = new } })
+                set: { new in drafts.setText(song.id, new) })
     }
     private var agreedBinding: Binding<Bool> {
         Binding(get: { drafts.draft(for: song.id).agreed },
                 set: { new in drafts.update(song.id) { $0.agreed = new } })
     }
 
+    private var rubies: [RubyMark] { drafts.draft(for: song.id).rubies }
+    /// 送る形の本文 (読み仮名を記法で入れたもの)。画面には出さない。
+    private var markup: String { lyricRubyJoin(plain: text, marks: rubies) }
+
     private var check: LyricSubmissionCheck {
-        lyricSubmissionCheck(text: text, agreedToGuideline: agreed)
+        lyricSubmissionCheck(text: markup, agreedToGuideline: agreed)
     }
 
     private var isDirty: Bool {
@@ -67,12 +71,18 @@ struct LyricSubmissionSheet: View {
 
                 ImasFormCard {
                     if #available(iOS 18.0, *) {
-                        LyricsRubyEditor(text: textBinding)
+                        LyricsRubyEditor(text: textBinding) { start, end, reading in
+                            let songId = song.id
+                            if let mark = lyricRubyMarkAt(plain: text, start: UInt32(start), end: UInt32(end), reading: reading) {
+                                drafts.update(songId) { $0.rubies.append(mark) }
+                            }
+                        }
                     } else {
                         ImasFormTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
                                          text: textBinding, prompt: "1 行ずつ改行して入力してください")
                     }
                 }
+                rubySection
                 ocrButtons
                 issueNotes
 
@@ -99,7 +109,7 @@ struct LyricSubmissionSheet: View {
             .fullScreenCover(isPresented: $showLineScanner) {
                 LyricLineScannerView { scanned in
                     let songId = song.id
-                    drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: scanned) }
+                    drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: scanned))
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
@@ -146,7 +156,7 @@ struct LyricSubmissionSheet: View {
                         AppAnalytics.tap("lyric_submission.live_text")
                         let songId = song.id
                         liveText.start { captured in
-                            drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: captured) }
+                            drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: captured))
                         }
                     } label: {
                         Label("テキストをスキャン", systemImage: "text.viewfinder")
@@ -197,9 +207,40 @@ struct LyricSubmissionSheet: View {
             ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
         } else {
             let songId = song.id
-            drafts.update(songId) {
-                $0.text = lyricOcrAppend(draft: $0.text, recognized: recognized)
-                $0.doubtfulLines += reading.doubtfulLines
+            drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: recognized))
+            drafts.update(songId) { $0.doubtfulLines += reading.doubtfulLines }
+        }
+    }
+
+    /// 付けた読み仮名の一覧 (外せる) と、送ったときの見た目の見本。記法は見せない。
+    @ViewBuilder
+    private var rubySection: some View {
+        if !rubies.isEmpty {
+            ImasFormCard {
+                ImasFormField(label: "読み仮名", imprint: "RUBY", systemImage: "character.textbox") {
+                    VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                        ForEach(Array(rubies.enumerated()), id: \.offset) { index, mark in
+                            HStack(spacing: DS.Space.gap) {
+                                Text("\(mark.base) → \(mark.reading)")
+                                if !lyricRubyMarkFound(plain: text, mark: mark) {
+                                    Text("歌詞に見つかりません")
+                                        .font(.imasFootnote.weight(.semibold))
+                                        .foregroundStyle(DS.danger)
+                                }
+                                Spacer(minLength: DS.Space.gap)
+                                ImasIconButton(systemImage: "xmark", label: "\(mark.base) の読み仮名を外す", size: .small) {
+                                    let songId = song.id
+                                    drafts.update(songId) { d in
+                                        if d.rubies.indices.contains(index) { d.rubies.remove(at: index) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                ImasFormField(label: "見本", imprint: "PREVIEW", systemImage: "eye") {
+                    ImasRubyPreview(text: markup)
+                }
             }
         }
     }
@@ -259,11 +300,12 @@ struct LyricSubmissionSheet: View {
     }
 }
 
-/// 歌詞の入力欄と「読み仮名を付ける」(iOS 18 から。選んだ字に 親字《よみ》 を付ける)。
-/// 付け方 (｜ が要るか) はコアの `lyricWrapRuby` が決める。
+/// 歌詞の入力欄と「選んだ字に読み仮名を付ける」(iOS 18 から。文字の選択を読むため)。
+/// 本文は書き換えず、選んだ範囲 (スカラーの位置) と読みを `onAdd` で返す。読み仮名は本文と分けて持つ。
 @available(iOS 18.0, *)
 private struct LyricsRubyEditor: View {
     @Binding var text: String
+    let onAdd: (Int, Int, String) -> Void
     @State private var selection: TextSelection?
     @State private var pending: Range<Int>?
     @State private var reading = ""
@@ -281,13 +323,13 @@ private struct LyricsRubyEditor: View {
         ImasFormSelectableTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
                                    text: $text, selection: $selection,
                                    prompt: "1 行ずつ改行して入力してください")
-        ImasFormField(label: "読み仮名", imprint: "RUBY", systemImage: "character.textbox") {
+        ImasFormField(label: "読み仮名を付ける", imprint: "RUBY", systemImage: "character.textbox") {
             Button {
                 AppAnalytics.tap("lyric_submission.add_ruby")
                 pending = selectedScalars
                 reading = ""
             } label: {
-                Label("選んだ字に読み仮名を付ける", systemImage: "plus")
+                Label(selectedScalars == nil ? "歌詞の字を選んでください" : "選んだ字に読み仮名を付ける", systemImage: "plus")
             }
             .buttonStyle(.imas(.secondary, size: .small))
             .disabled(selectedScalars == nil)
@@ -295,10 +337,7 @@ private struct LyricsRubyEditor: View {
         .alert("読み仮名", isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })) {
             TextField("歌詞カードに振られている読み", text: $reading)
             Button("付ける") {
-                if let range = pending {
-                    text = lyricWrapRuby(text: text, start: UInt32(range.lowerBound),
-                                         end: UInt32(range.upperBound), reading: reading)
-                }
+                if let range = pending { onAdd(range.lowerBound, range.upperBound, reading) }
                 pending = nil
                 selection = nil
             }

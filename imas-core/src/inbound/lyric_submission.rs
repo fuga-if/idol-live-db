@@ -85,3 +85,27 @@ pub fn lyric_remove_lines(text: String, indices: Vec<u32>) -> String {
 pub fn lyric_wrap_ruby(text: String, start: u32, end: u32, reading: String) -> String {
     domain::wrap_ruby(&text, start, end, &reading)
 }
+
+/// 記法の入った本文を、記法の無い本文と読み仮名の一覧に分ける。
+#[uniffi::export]
+pub fn lyric_ruby_split(text: String) -> domain::RubySplit {
+    domain::ruby_split(&text)
+}
+
+/// 選んだ範囲 (スカラーの位置) と読みから読み仮名を作る。作れなければ None。
+#[uniffi::export]
+pub fn lyric_ruby_mark_at(plain: String, start: u32, end: u32, reading: String) -> Option<domain::RubyMark> {
+    domain::ruby_mark_at(&plain, start, end, &reading)
+}
+
+/// その読み仮名の親字が、今の本文にまだあるか。
+#[uniffi::export]
+pub fn lyric_ruby_mark_found(plain: String, mark: domain::RubyMark) -> bool {
+    domain::ruby_mark_found(&plain, &mark)
+}
+
+/// 本文と読み仮名の一覧を、記法の入った本文に合わせる (送るとき・見本を描くとき)。
+#[uniffi::export]
+pub fn lyric_ruby_join(plain: String, marks: Vec<domain::RubyMark>) -> String {
+    domain::ruby_join(&plain, &marks)
+}

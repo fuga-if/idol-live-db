@@ -674,6 +674,24 @@ enum ImasRubyText {
     }
 }
 
+/// 読み仮名の付いた歌詞の見本 (投稿画面)。記法 (親字《よみ》) の入った本文のうち、読み仮名のある行だけを
+/// 歌詞の画面と同じく親字の上に読みを載せて並べる。記法そのものは見せない。
+struct ImasRubyPreview: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            ForEach(Array(text.split(separator: "\n").map(String.init).filter(ImasRubyText.hasRuby).enumerated()),
+                    id: \.offset) { _, line in
+                ImasRubyLabel(attributed: ImasRubyText.attributed(
+                    line, font: Font.imasScaledUIFont(17, weight: .medium, proportional: true),
+                    color: UIColor(DS.ink), lineSpacing: 2))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 /// 振り仮名のある歌詞の 1 行。UILabel は振り仮名を描かないので、CoreText で直接組む。
 /// 幅に合わせて折り返し、高さは中身に合わせる。アンカーの地の色 (`.backgroundColor`) も自前で敷く。
 struct ImasRubyLabel: UIViewRepresentable {
