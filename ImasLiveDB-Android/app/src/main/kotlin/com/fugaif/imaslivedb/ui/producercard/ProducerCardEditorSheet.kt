@@ -472,13 +472,19 @@ fun ProducerCardEditorSheet(
         songs != card.profile.songs
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
+    // ✕・✓ と払う動きは、押した時点の判定で決める (下の関数は組み立てたときの値を抱えたまま
+    // 渡り続けることがあり、書きかけでも確かめずに閉じていた)。
+    val dirtyNow by rememberUpdatedState(isDirty)
+    val validationNow by rememberUpdatedState(validation)
+
     fun cancel() {
-        if (isDirty) confirmDiscard = true else onDismiss()
+        if (dirtyNow) confirmDiscard = true else onDismiss()
     }
 
     fun save() {
-        if (validation != null) {
-            error = producerCardInputErrorMessage(validation)
+        val invalid = validationNow
+        if (invalid != null) {
+            error = producerCardInputErrorMessage(invalid)
             return
         }
         isSaving = true
@@ -514,7 +520,6 @@ fun ProducerCardEditorSheet(
     // 書きかけを指で払って消さない (iOS `interactiveDismissDisabled(isDirty)`)。
     // 判定の関数は同じものを渡し続ける (書き換わるたびに別の関数を渡すと、シートの状態が作り直されて
     // 開き直しや閉じる動きが途中で入る)。止めるのは閉じる動きだけ。
-    val dirtyNow by rememberUpdatedState(isDirty)
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = remember { { value: SheetValue -> value != SheetValue.Hidden || !dirtyNow } }

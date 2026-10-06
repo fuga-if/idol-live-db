@@ -47,6 +47,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
@@ -74,6 +76,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
 import com.fugaif.imaslivedb.ui.theme.LocalImasBackdrop
+import com.fugaif.imaslivedb.ui.theme.LocalImasColors
 import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 
@@ -542,7 +545,11 @@ fun <T> LazyListScope.imasListSectionItems(
     }
 }
 
-/** lazy の区画の行 1 つ (面を塗り、先頭と末尾の角を丸め、2 行目からの上に線を引く)。 */
+/**
+ * lazy の区画の行 1 つ (面を塗り、先頭と末尾の角を丸め、2 行目からの上に線を引く)。
+ * ダークの面の縁 ([imasSurfaceEdge] の 1 本の線) も行ごとに分けて引く (行の間には引かない)。
+ * ライトの面の影は行ごとに分けられないので付けない (行の多い一覧だけの見え方)。
+ */
 @Composable
 private fun LazySectionRow(first: Boolean, last: Boolean, content: @Composable () -> Unit) {
     val paper = LocalImasBackdrop.current == ImasBackdrop.PAPER
@@ -552,15 +559,24 @@ private fun LazySectionRow(first: Boolean, last: Boolean, content: @Composable (
         bottomStart = if (last) r else 0.dp, bottomEnd = if (last) r else 0.dp
     )
     val sep = DS.sep
+    val fill = if (paper) DS.paper else DS.surface
+    val edge = !paper && LocalImasColors.current.dark
     val inset = DS.Space.rowH
     Box(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = if (paper) 0.dp else DS.Space.screen)
             .clip(shape)
-            .background(if (paper) DS.paper else DS.surface)
+            .background(fill)
             .drawWithContent {
                 drawContent()
+                if (edge) {
+                    val w = 1.dp.toPx()
+                    drawOutline(shape.createOutline(size, layoutDirection, this), sep, style = Stroke(w))
+                    // 行と行の間の縁は消す (面は 1 枚に見せる)。
+                    if (!first) drawRect(fill, topLeft = Offset(w, 0f), size = Size(size.width - 2 * w, w))
+                    if (!last) drawRect(fill, topLeft = Offset(w, size.height - w), size = Size(size.width - 2 * w, w))
+                }
                 if (!first) {
                     val x = inset.toPx()
                     drawRect(sep, topLeft = Offset(x, 0f), size = Size(size.width - x, 1f))

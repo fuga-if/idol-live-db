@@ -62,7 +62,11 @@ import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.theme.DS
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileAutoField
 import uniffi.imas_core.ProfileAutoFieldRow
 import uniffi.imas_core.ProfileSheet
@@ -113,6 +117,8 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
     }
 
     val sizes = remember { profileSheetSizes() }
+    // 最後に流した保存 (選択の保存は順に 1 本ずつ)。
+    val lastSave = remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(Unit) {
         val mine = runCatching { module.producerCardRepository.myCard() }.getOrNull()
@@ -136,20 +142,28 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
      * 選んだらその場で保存する。保存は順に 1 本ずつ流し (古い選択が後から書かれないように。読んで重ねて書くのは
      * リポジトリが 1 本ずつ流す)、失敗したときは最後に変えた分だけ前の選択に戻す。
      * 名刺のほかの欄と好きな曲は DB の最新を使う (好きな曲は P名刺の編集で直すので、開いた時の古い選択で戻さない)。
+     * 保存はアプリのスコープで流す (選んですぐ戻っても、画面と一緒に取り消されて書き落とさない。iOS の Task と同じ)。
      */
     fun update(sheet: ProfileSheet) {
         val current = card ?: return
         val previous = current.profile
         card = current.withProfile(sheet)
-        scope.launch {
-            runCatching {
+        // 前の保存が終わってから書く (アプリのスコープは並んで走るので、古い選択が後から書かれないように)。
+        val prior = lastSave.value
+        lastSave.value = module.appScope.launch {
+            prior?.join()
+            try {
                 module.producerCardRepository.updateMyCard { latest ->
                     val row = latest ?: current
                     row.withProfile(sheet.copy(songs = row.profile.songs))
                 }
-            }.onFailure {
-                if (card?.profile == sheet) card = card?.withProfile(previous)
-                saveError = it.message ?: "もう一度試してください。"
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (card?.profile == sheet) card = card?.withProfile(previous)
+                    saveError = e.message ?: "もう一度試してください。"
+                }
             }
         }
     }
