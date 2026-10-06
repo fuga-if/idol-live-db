@@ -15,9 +15,13 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +29,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fugaif.imaslivedb.data.lyrics.LyricSubmissionDrafts
@@ -42,7 +48,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormLink
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormPage
-import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormSelectableTextArea
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormToggle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
@@ -65,6 +71,7 @@ import uniffi.imas_core.lyricSubmissionCheck
 import uniffi.imas_core.lyricSubmissionIssueBlocks
 import uniffi.imas_core.lyricSubmissionIssueMessage
 import uniffi.imas_core.lyricSubmissionMaxChars
+import uniffi.imas_core.lyricWrapRuby
 
 /**
  * 歌詞を投稿する画面 (iOS `LyricSubmissionSheet` の移植)。CD の歌詞カードなどの一次ソースを
@@ -188,13 +195,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                 }
 
                 ImasFormCard {
-                    ImasFormTextArea(
-                        label = "歌詞",
-                        text = text,
-                        onTextChange = { setText(it) },
-                        prompt = "1 行ずつ改行して入力してください",
-                        imprint = "LYRICS"
-                    )
+                    LyricsRubyFields(text = text, onTextChange = { setText(it) })
                 }
 
                 OcrButtons(
@@ -334,4 +335,99 @@ private fun IssueNotes(
             }
         }
     }
+}
+
+/**
+ * 歌詞の入力欄と「読み仮名を付ける」(iOS `LyricsRubyEditor` の移植。選んだ字に 親字《よみ》 を付ける)。
+ * 付け方 (｜ が要るか) はコアの [lyricWrapRuby] が決める。選択は [TextFieldValue.selection] の
+ * UTF-16 の位置なので、コアに渡す前にコードポイントの位置へ直す。
+ */
+@Composable
+private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit) {
+    var field by rememberRubyFieldValue(text)
+    var pending by remember { mutableStateOf<IntRange?>(null) }
+    var reading by remember { mutableStateOf("") }
+
+    val selection = field.selection
+    val selectedCodepoints: IntRange? = if (selection.collapsed) {
+        null
+    } else {
+        val start = text.codePointCount(0, selection.min)
+        val end = text.codePointCount(0, selection.max)
+        start until end
+    }
+
+    ImasFormSelectableTextArea(
+        label = "歌詞",
+        value = field,
+        onValueChange = {
+            field = it
+            if (it.text != text) onTextChange(it.text)
+        },
+        prompt = "1 行ずつ改行して入力してください",
+        imprint = "LYRICS"
+    )
+    ImasFormField(label = "読み仮名", imprint = "RUBY", icon = Icons.Filled.TextFields) {
+        ImasButton(
+            title = "選んだ字に読み仮名を付ける",
+            onClick = {
+                reading = ""
+                pending = selectedCodepoints
+            },
+            role = ImasButtonRole.SECONDARY,
+            size = ImasButtonSize.SMALL,
+            enabled = selectedCodepoints != null
+        )
+    }
+
+    val range = pending
+    if (range != null) {
+        RubyReadingDialog(
+            reading = reading,
+            onReadingChange = { reading = it },
+            onConfirm = {
+                onTextChange(lyricWrapRuby(text = text, start = range.first.toUInt(), end = (range.last + 1).toUInt(), reading = reading))
+                pending = null
+            },
+            onDismiss = { pending = null }
+        )
+    }
+}
+
+/** 外から渡された本文と、手元の入力 (選択を含む) を揃える。 */
+@Composable
+private fun rememberRubyFieldValue(text: String): MutableState<TextFieldValue> {
+    val state = remember { mutableStateOf(TextFieldValue(text, TextRange(text.length))) }
+    if (state.value.text != text) {
+        state.value = TextFieldValue(text, TextRange(text.length))
+    }
+    return state
+}
+
+/** 読みを入れるダイアログ (iOS の `.alert("読み仮名", …)` の移植)。 */
+@Composable
+private fun RubyReadingDialog(
+    reading: String,
+    onReadingChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("読み仮名") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                Text("歌詞カードに振られている読み仮名だけを付けてください。")
+                OutlinedTextField(
+                    value = reading,
+                    onValueChange = onReadingChange,
+                    placeholder = { Text("歌詞カードに振られている読み", color = DS.ink3) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = { ImasButton(title = "付ける", onClick = onConfirm, role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL) },
+        dismissButton = { ImasButton(title = "キャンセル", onClick = onDismiss, role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL) }
+    )
 }

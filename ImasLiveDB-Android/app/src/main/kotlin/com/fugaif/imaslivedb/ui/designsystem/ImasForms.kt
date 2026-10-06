@@ -107,6 +107,7 @@ import kotlin.math.roundToInt
 // ImasFormField      欄 1 つ。上に印字の見出し (「DATE · 日程」)、下に値。誤りは朱で。
 // ImasFormTextField  1 行の入力の欄。
 // ImasFormTextArea   複数行の入力の欄 (メモ・感想)。
+// ImasFormSelectableTextArea 複数行の入力の欄で、選んでいる範囲を外から読める形 (歌詞の読み仮名など)。
 // ImasFormToggle     オン・オフの欄。
 // ImasFormLink       押して別のシート・選択へ行く欄 (会場・日程)。値と矢印。
 // ImasFormAmount     金額の欄。「¥」と細長い数字。
@@ -405,6 +406,36 @@ fun ImasFormTextArea(
                 )
             }
         }
+    }
+}
+
+/**
+ * 複数行の入力の欄で、選んでいる範囲を外から読める形 (iOS `ImasFormSelectableTextArea` の移植。
+ * 歌詞の読み仮名を選んだ字に付けるなど)。見た目は [ImasFormTextArea] と同じ。呼び出し側が
+ * [TextFieldValue] (選択を含む) をそのまま持ち、変化をそのまま受け取る。
+ */
+@Composable
+fun ImasFormSelectableTextArea(
+    label: String,
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    prompt: String,
+    modifier: Modifier = Modifier,
+    imprint: String? = "MEMO",
+    icon: ImageVector? = Icons.AutoMirrored.Outlined.Notes
+) {
+    val minHeight = with(LocalDensity.current) { 88.sp.toDp() }
+    ImasFormField(label = label, modifier = modifier, imprint = imprint, icon = icon) {
+        FormInput(
+            value = value,
+            onValueChange = onValueChange,
+            prompt = prompt,
+            style = ImasTextRole.BODY.style,
+            label = label,
+            modifier = Modifier.fillMaxWidth().heightIn(min = minHeight),
+            singleLine = false,
+            minLines = 3
+        )
     }
 }
 
