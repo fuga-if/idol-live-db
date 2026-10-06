@@ -1,40 +1,15 @@
 //! プロフィール帳の FFI 面。ロジックは domain::profile_sheet。
 
+use super::snapshot_store::{SnapshotError, SnapshotStore};
 use crate::domain::profile_sheet::{
-    ProfileAutoField, ProfileAutoFieldInfo, ProfileBrandCheck, ProfileQuestion,
-    ProfileQuestionInfo, ProfileSheet, ProfileSheetError, ProfileSheetLayout, ProfileSheetLimits,
-    ProfileSheetRecord, ProfileSheetSize, ProfileSheetSizeInfo, ProfileSheetStyle,
-    ProfileSheetStyleInfo, ProfileSlot,
+    ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck,
+    ProfileLiveRecord, ProfileSheet, ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize,
+    ProfileSheetSizeInfo, ProfileSheetStyleInfo,
 };
-
-#[uniffi::export]
-pub fn profile_sheet_limits() -> ProfileSheetLimits {
-    crate::domain::profile_sheet::profile_sheet_limits()
-}
 
 #[uniffi::export]
 pub fn profile_sheet_default() -> ProfileSheet {
     crate::domain::profile_sheet::profile_sheet_default()
-}
-
-#[uniffi::export]
-pub fn profile_questions() -> Vec<ProfileQuestionInfo> {
-    crate::domain::profile_sheet::profile_questions()
-}
-
-#[uniffi::export]
-pub fn profile_question_info(question: ProfileQuestion) -> ProfileQuestionInfo {
-    crate::domain::profile_sheet::profile_question_info(question)
-}
-
-#[uniffi::export]
-pub fn profile_addable_questions(sheet: ProfileSheet) -> Vec<ProfileQuestionInfo> {
-    crate::domain::profile_sheet::profile_addable_questions(&sheet)
-}
-
-#[uniffi::export]
-pub fn profile_question_slot(style: ProfileSheetStyle, question: ProfileQuestion) -> ProfileSlot {
-    crate::domain::profile_sheet::profile_question_slot(style, question)
 }
 
 #[uniffi::export]
@@ -45,6 +20,19 @@ pub fn profile_auto_fields() -> Vec<ProfileAutoFieldInfo> {
 #[uniffi::export]
 pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo {
     crate::domain::profile_sheet::profile_auto_field_info(field)
+}
+
+#[uniffi::export]
+pub fn profile_auto_field_rows(
+    sheet: ProfileSheet,
+    record: ProfileSheetRecord,
+) -> Vec<ProfileAutoFieldRow> {
+    crate::domain::profile_sheet::profile_auto_field_rows(&sheet, &record)
+}
+
+#[uniffi::export]
+pub fn profile_toggle_field(sheet: ProfileSheet, field: ProfileAutoField) -> ProfileSheet {
+    crate::domain::profile_sheet::profile_toggle_field(&sheet, field)
 }
 
 #[uniffi::export]
@@ -60,16 +48,6 @@ pub fn profile_sheet_sizes() -> Vec<ProfileSheetSizeInfo> {
 #[uniffi::export]
 pub fn profile_sheet_size_info(size: ProfileSheetSize) -> ProfileSheetSizeInfo {
     crate::domain::profile_sheet::profile_sheet_size_info(size)
-}
-
-#[uniffi::export]
-pub fn validate_profile_sheet(sheet: ProfileSheet) -> Option<ProfileSheetError> {
-    crate::domain::profile_sheet::validate_profile_sheet(&sheet)
-}
-
-#[uniffi::export]
-pub fn profile_sheet_error_message(error: ProfileSheetError) -> String {
-    crate::domain::profile_sheet::profile_sheet_error_message(error)
 }
 
 #[uniffi::export]
@@ -105,6 +83,22 @@ pub fn profile_toggle_brand(
 }
 
 #[uniffi::export]
-pub fn profile_text_len(text: String) -> u32 {
-    crate::domain::profile_sheet::profile_text_len(&text)
+impl SnapshotStore {
+    /// プロフィール帳の、参加した公演のセトリ・会場から数えた記録
+    /// (いちばん聴いた曲・担当の歌唱・いちばん通った会場・都道府県の数)。
+    /// `attended_show_ids` は参加を付けた公演 (予定も混ざってよい)、`today` は JST の今日。
+    pub fn profile_live_record(
+        &self,
+        attended_show_ids: Vec<String>,
+        oshi_idol_ids: Vec<String>,
+        today: String,
+    ) -> Result<ProfileLiveRecord, SnapshotError> {
+        let snap = self.current()?;
+        Ok(crate::domain::profile_sheet::profile_live_record(
+            &snap,
+            &attended_show_ids,
+            &oshi_idol_ids,
+            &today,
+        ))
+    }
 }

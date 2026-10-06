@@ -1,21 +1,27 @@
 //! プロフィール帳 (SNS に貼る自己紹介の 1 枚絵) の中身・欄の割り当て・行の組み立て。
 //!
 //! P名刺 (QR で交換する名刺) の続きで、P を「職業」に見立てた事務書類の様式で 1 枚にする。
-//! 様式は 2 つ:
+//! **自分で書く欄は無い**。中身はすべてアプリの記録から埋まり、本人は様式・大きさ・載せる記録・
+//! 担当ブランドの丸を選ぶだけ (開いたらすぐ書き出せる)。様式は 2 つ:
 //!
-//! - **履歴書** (既定): 氏名・ふりがな・証明写真・P歴 (就任の年)・「学歴・職歴」を読み替えた
-//!   P歴の表 (就任 / はじめての参加 / 最近の現場 / 次の現場 / 以上)・免許・資格 (記録の数)・
-//!   志望の動機・趣味・特技・本人希望記入欄。
-//! - **職務経歴書**: 職務要約・職務経歴 (参加した公演を年ごとの表に)・活かせる経験・知識・スキル・自己PR。
+//! - **履歴書** (既定): 氏名・押印・証明写真・P歴・担当・連絡先、担当ブランド、
+//!   P歴 (学歴・職歴) の表 (就任 / はじめての参加 / 最近の現場 / 以上)、免許・資格 (記録の達成)、
+//!   志望の動機 (現地でいちばん聴いた曲・担当の歌を聴いた回数)、趣味・特技 (お気に入りの曲・
+//!   いちばん通ったブランドと会場)、本人希望記入欄 (次の現場)。
+//! - **職務経歴書**: 職務要約 (記録から組んだ文)・職務経歴 (参加した公演を年ごとの表に)・担当・
+//!   活かせる経験・知識・スキル・自己PR (実績の数字と年ごとの参加数)。
 //!
-//! 自分で書く欄は「用意した質問」から選んで足す (質問文は書き換えられる)。どの質問がどの様式の
-//! どの欄に入るか・欄の並び・行の組み立て・上限・文字の詰め方 (`ProfileSheetDensity`) はここで決め、
-//! 端末 (iOS / Android) はこの結果を描くだけにする。
+//! どの記録がどの欄に入るか・欄の並び・行の組み立て・上限・文字の詰め方 (`ProfileSheetDensity`)・
+//! 担当ブランドの丸 (メインは二重丸) はここで決め、端末 (iOS / Android) はこの結果を描くだけにする。
+//! 参加した公演のセトリからの集計 (いちばん聴いた曲・担当の歌唱・会場・都道府県) は
+//! [`profile_live_record`] (スナップショットを読む)。
 //!
-//! 中身は端末ローカル (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`)。
+//! 保存するのは選択だけ (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`)。
 //! 名前・写真・書体・リンク・自分の QR は P名刺のものを使う。
 
+use crate::domain::snapshot::Snapshot;
 use chrono::{Datelike, NaiveDate};
+use std::collections::{HashMap, HashSet};
 
 // ---------------------------------------------------------------------------
 // 型
@@ -41,46 +47,39 @@ pub enum ProfileSheetSize {
     Story,
 }
 
-/// 用意した質問。並び順は「質問を足す」の一覧の順。保存のキーは変えない。
-#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum ProfileQuestion {
-    /// Pになったきっかけ。
-    Trigger,
-    /// 担当のここが好き。
-    OshiLove,
-    /// いちばん思い出のライブ。
-    BestLive,
-    /// 好きなコール。
-    FavoriteCall,
-    /// 遠征の思い出。
-    Expedition,
-    /// 現場での目印。
-    Landmark,
-    /// ひとこと。
-    Message,
-    /// 自分で質問を書く欄 (何度でも足せる)。
-    Free,
-}
-
-/// アプリの記録から自動で埋まる欄 (外せる)。保存のキーは変えない。
+/// アプリの記録から自動で埋まる欄 (外せる)。保存のキーは変えない。並びは編集画面の順。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ProfileAutoField {
     /// P名刺の写真 (証明写真の欄)。
     Photo,
     /// 担当 (押印欄の判子と担当の行)。
     Oshi,
-    /// ブランドのチェック欄。
+    /// 担当ブランド (ブランドの名前に丸)。
     Brands,
     /// P歴 (就任の年)。
     Since,
-    /// 参加公演数・回収曲数。
-    Counts,
-    /// はじめて参加したライブ・最近の現場・職務経歴の表。
+    /// はじめて参加したライブ・最近の現場 (履歴書) / 職務経歴の表 (職務経歴書)。
     Shows,
     /// 次の現場。
     NextShow,
-    /// 好きな曲。
+    /// 参加公演数・回収曲数。
+    Counts,
+    /// 現地でいちばん聴いた曲 (参加した公演のセトリから)。
+    TopSongs,
+    /// 担当の歌を現地で聴いた回数。
+    OshiHeard,
+    /// お気に入りの曲。
     Songs,
+    /// いちばん通ったブランド。
+    TopBrand,
+    /// いちばん通った会場。
+    TopVenue,
+    /// 現地に行った都道府県の数。
+    Prefectures,
+    /// 年ごとの参加数 (職務経歴書だけ)。
+    Yearly,
+    /// 現場歴 (はじめての参加からの年数)。
+    FieldYears,
     /// リンク (連絡先)。
     Links,
     /// 自分の QR (既定は載せない)。
@@ -115,60 +114,20 @@ pub enum ProfileSheetDensity {
     Tight,
 }
 
-/// 自分で書く欄 1 つ。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct ProfileAnswer {
-    pub question: ProfileQuestion,
-    /// 質問文。空なら用意した質問文 (`ProfileQuestionInfo::prompt`)。
-    pub prompt: String,
-    pub text: String,
-}
-
-/// プロフィール帳の中身 (端末に保存するもの)。
+/// プロフィール帳の選択 (端末に保存するもの)。中身は毎回アプリの記録から組む。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct ProfileSheet {
     pub style: ProfileSheetStyle,
     pub size: ProfileSheetSize,
-    /// 氏名のふりがな (履歴書の欄)。
-    pub furigana: String,
-    /// 自分で書く欄 (並べた順)。
-    pub answers: Vec<ProfileAnswer>,
     /// 外した自動の欄。
     pub hidden: Vec<ProfileAutoField>,
-    /// 好きな曲 (お気に入りの曲から、並べた順)。
-    pub favorite_song_ids: Vec<String>,
-    /// 対応範囲で自分で丸を付けたブランド (記録からは付かないもの)。
+    /// 担当ブランドで自分で丸を付けたブランド (記録からは付かないもの)。
     pub brand_on: Vec<String>,
-    /// 対応範囲で自分で丸を外したブランド (記録からは付くもの)。
+    /// 担当ブランドで自分で丸を外したブランド (記録からは付くもの)。
     pub brand_off: Vec<String>,
-}
-
-#[derive(uniffi::Record, Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ProfileSheetLimits {
-    pub max_answers: u32,
-    pub max_answer_chars: u32,
-    pub max_prompt_chars: u32,
-    pub max_furigana_chars: u32,
-    pub max_songs: u32,
-}
-
-#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ProfileSheetError {
-    TooManyAnswers,
-    AnswerTooLong,
-    PromptTooLong,
-    FuriganaTooLong,
-    TooManySongs,
-}
-
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct ProfileQuestionInfo {
-    pub question: ProfileQuestion,
-    pub key: String,
-    /// 用意した質問文 (「Pになったきっかけ」)。
-    pub prompt: String,
-    /// 答えの欄の書き方の例。
-    pub placeholder: String,
+    /// メインのブランド (二重丸) の上書き。None は既定 (`profile_brand_marks` の決まり)、
+    /// 空文字はメインなし。
+    pub brand_main: Option<String>,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -177,6 +136,18 @@ pub struct ProfileAutoFieldInfo {
     pub key: String,
     /// 編集画面の名前 (「参加公演数・回収曲数」)。
     pub label: String,
+}
+
+/// 編集画面の「載せる記録」の 1 行。記録の無い欄・その様式で使わない欄は並べない。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct ProfileAutoFieldRow {
+    pub field: ProfileAutoField,
+    pub key: String,
+    pub label: String,
+    /// 今の記録で載る中身の短い見本 (「19公演・323曲」)。写真・QR は空。
+    pub value: String,
+    /// 載せているか。
+    pub shown: bool,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -197,8 +168,6 @@ pub struct ProfileSheetSizeInfo {
     pub caption: String,
     pub width_px: u32,
     pub height_px: u32,
-    /// この大きさで画像に載る自分で書く欄の数 (答えのある欄を並べた順に)。
-    pub max_visible_answers: u32,
 }
 
 // --- 組み立ての材料 (端末がアプリの記録から集めて渡す) ---
@@ -233,22 +202,51 @@ pub struct ProfileSongInput {
     pub title: String,
 }
 
-/// プロフィール帳の材料。名前・P歴・リンクは P名刺から、ほかはアプリの記録から。
+/// 数えたもの 1 つ (曲・担当・会場と回数)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct ProfileCount {
+    pub id: String,
+    pub label: String,
+    pub count: u32,
+}
+
+/// 参加した公演のセトリ・会場から数えた記録 ([`profile_live_record`])。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, Default)]
+pub struct ProfileLiveRecord {
+    /// 現地でいちばん聴いた曲 (2 回以上聴いた曲の上位、多い順)。
+    pub top_songs: Vec<ProfileCount>,
+    /// 担当の歌を現地で聴いた回数 (担当の順、0 回の担当は入れない)。
+    pub oshi_heard: Vec<ProfileCount>,
+    /// いちばん通った会場 (2 回以上)。
+    pub top_venue: Option<ProfileCount>,
+    /// 現地に行った都道府県の数 (会場の所在地が分かる公演だけ)。
+    pub prefecture_count: u32,
+}
+
+/// プロフィール帳の材料。名前・P歴・リンク・写真・QR は P名刺から、ほかはアプリの記録から。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct ProfileSheetRecord {
     /// 今日 (`YYYY-MM-DD`、JST)。
     pub today: String,
     pub name: String,
     pub since_year: Option<u16>,
-    /// 担当の所属ブランド (チェック欄に印を付ける)。
+    /// 担当の名前 (担当の順)。
+    pub oshi_names: Vec<String>,
+    /// 担当の所属ブランド (担当の順。丸と、メインの既定に使う)。
     pub oshi_brand_ids: Vec<String>,
     pub attended: Vec<ProfileShowInput>,
     pub song_count: u32,
     pub brands: Vec<ProfileBrandInput>,
-    /// 好きな曲 (端末が `favorite_song_ids` の順に引いたもの。引けない曲は入れない)。
+    /// お気に入りの曲 (付けた新しい順。先頭から [`MAX_SONGS`] 曲を載せる)。
     pub favorite_songs: Vec<ProfileSongInput>,
     /// 連絡先に出すリンク (`card_link_view` の display)。
     pub links: Vec<String>,
+    /// P名刺に写真があるか。
+    pub has_photo: bool,
+    /// P名刺に自分の QR があるか。
+    pub has_qr: bool,
+    /// セトリ・会場から数えた記録。
+    pub live: ProfileLiveRecord,
 }
 
 // --- 組み立てた結果 (端末が描く) ---
@@ -258,7 +256,7 @@ pub enum ProfileHistoryKind {
     Since,
     FirstShow,
     RecentShow,
-    NextShow,
+    /// 免許・資格の行 (記録の達成)。
     Count,
     /// 表の終わりの「以上」(右に寄せる)。
     Closing,
@@ -273,8 +271,24 @@ pub struct ProfileHistoryRow {
     pub kind: ProfileHistoryKind,
 }
 
-/// 対応範囲のブランド 1 つ。刷ってあるブランドの名前に、対応しているものだけ手描きの丸を付ける。
-/// 丸の形の揺らぎは id から決まる (書き出すたびに形が変わらない)。
+/// 手描きの楕円 1 本。揺らぎは id から決まる (書き出すたびに形が変わらない)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct ProfileHandRing {
+    /// 傾き (度)。
+    pub tilt_degrees: f64,
+    /// 横の伸び (1.0 で名前の幅どおり)。
+    pub stretch: f64,
+    /// 線の書き始めの角度 (度、0〜359)。書き終わりは少し行き過ぎて重なる。
+    pub start_degrees: f64,
+    /// 大きさ (1.0 で 1 本目と同じ)。
+    pub scale: f64,
+    /// 中心のずれ (名前の枠の幅・高さに対する割合)。
+    pub offset_x: f64,
+    pub offset_y: f64,
+}
+
+/// 担当ブランドのブランド 1 つ。刷ってあるブランドの名前に、担当しているものだけ手描きの丸を付ける
+/// (メインは 2 本の二重丸)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct ProfileBrandCheck {
     pub id: String,
@@ -282,14 +296,12 @@ pub struct ProfileBrandCheck {
     pub color: Option<String>,
     /// 丸を付けるか。
     pub checked: bool,
-    /// 記録 (担当・参加した公演) から付く丸か。編集画面で「記録から」と添える。
+    /// メイン (二重丸) か。
+    pub main: bool,
+    /// 記録 (担当・参加した公演) から付く丸か。編集画面で添える。
     pub from_record: bool,
-    /// 丸の傾き (度、-9〜9)。
-    pub tilt_degrees: f64,
-    /// 丸の横の伸び (1.0 で名前の幅どおり、0.92〜1.12)。
-    pub stretch: f64,
-    /// 線の書き始めの角度 (度、0〜359)。書き終わりは少し行き過ぎて重なる。
-    pub start_degrees: f64,
+    /// 描く楕円 (丸なしは 0 本・丸は 1 本・メインは 2 本)。
+    pub rings: Vec<ProfileHandRing>,
 }
 
 /// 職務経歴の表の 1 行 (公演 1 つ)。
@@ -315,13 +327,25 @@ pub struct ProfileCareerYear {
     pub rows: Vec<ProfileCareerRow>,
 }
 
-/// 欄の中の 1 項目 (質問と答え、または自動の項目)。
+/// 欄の中の 1 項目 (見出しと中身)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct ProfileEntry {
+    pub field: ProfileAutoField,
+    /// 「現地でいちばん聴いた曲」。空なら見出しなし。
     pub label: String,
     pub text: String,
-    /// アプリの記録から入った項目 (答えの書体でなく印字で出す)。
-    pub is_auto: bool,
+}
+
+/// 実績の数字 1 つ (職務経歴書の自己PR)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct ProfileStat {
+    pub field: ProfileAutoField,
+    /// 「参加公演」。
+    pub label: String,
+    /// 「19」。
+    pub value: String,
+    /// 「公演」。
+    pub unit: String,
 }
 
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -331,6 +355,8 @@ pub struct ProfileSection {
     pub title: String,
     /// 英字の印字 (「MOTIVATION」)。
     pub imprint: String,
+    /// 実績の数字 (項目の前に 1 列で並べる)。
+    pub stats: Vec<ProfileStat>,
     pub entries: Vec<ProfileEntry>,
 }
 
@@ -346,7 +372,6 @@ pub struct ProfileSheetLayout {
     /// 「2026年10月6日現在」。
     pub as_of: String,
     pub name: String,
-    pub furigana: String,
     pub show_photo: bool,
     pub show_oshi: bool,
     pub show_qr: bool,
@@ -354,9 +379,9 @@ pub struct ProfileSheetLayout {
     pub since_label: Option<String>,
     /// 連絡先 (外したら空)。
     pub contacts: Vec<String>,
-    /// 対応範囲の欄の名前 (「対応範囲」)。
+    /// 担当ブランドの欄の名前 (「担当ブランド」)。
     pub brands_title: String,
-    /// 対応範囲のブランド (外したら空)。
+    /// 担当ブランドの並び (外したら空)。
     pub brands: Vec<ProfileBrandCheck>,
     /// 履歴書の P歴の表 (職務経歴書は空)。最後の行は「以上」。
     pub history: Vec<ProfileHistoryRow>,
@@ -367,8 +392,6 @@ pub struct ProfileSheetLayout {
     /// 職務経歴の表に出し切れなかった公演の数 (「ほか 30 公演」)。
     pub career_more: u32,
     pub sections: Vec<ProfileSection>,
-    /// 答えがあるのにこの大きさでは載らない欄の数 (編集画面で知らせる)。
-    pub hidden_answers: u32,
     pub density: ProfileSheetDensity,
 }
 
@@ -376,32 +399,35 @@ pub struct ProfileSheetLayout {
 // 決まり
 // ---------------------------------------------------------------------------
 
-const MAX_ANSWERS: u32 = 8;
-const MAX_ANSWER_CHARS: u32 = 80;
-const MAX_PROMPT_CHARS: u32 = 16;
-const MAX_FURIGANA_CHARS: u32 = 24;
-const MAX_SONGS: u32 = 3;
+/// お気に入りの曲を載せる数。
+pub const MAX_SONGS: usize = 3;
+/// 現地でいちばん聴いた曲を載せる数。
+const MAX_TOP_SONGS: usize = 3;
+/// 年ごとの参加数を載せる年の数 (新しい年から)。
+const MAX_YEARS: usize = 5;
+/// 「いちばん」と言える回数の下限 (1 回ずつなら順位に意味が無い)。
+const MIN_TOP_COUNT: u32 = 2;
+/// 都道府県の数を載せる下限 (1 つだけなら「遠征」にならない)。
+const MIN_PREFECTURES: u32 = 2;
 
-const ALL_QUESTIONS: [ProfileQuestion; 8] = [
-    ProfileQuestion::Trigger,
-    ProfileQuestion::OshiLove,
-    ProfileQuestion::BestLive,
-    ProfileQuestion::FavoriteCall,
-    ProfileQuestion::Expedition,
-    ProfileQuestion::Landmark,
-    ProfileQuestion::Message,
-    ProfileQuestion::Free,
-];
+const BRANDS_TITLE: &str = "担当ブランド";
 
-const ALL_AUTO_FIELDS: [ProfileAutoField; 10] = [
+const ALL_AUTO_FIELDS: [ProfileAutoField; 17] = [
     ProfileAutoField::Photo,
     ProfileAutoField::Oshi,
     ProfileAutoField::Brands,
     ProfileAutoField::Since,
-    ProfileAutoField::Counts,
     ProfileAutoField::Shows,
     ProfileAutoField::NextShow,
+    ProfileAutoField::Counts,
+    ProfileAutoField::TopSongs,
+    ProfileAutoField::OshiHeard,
     ProfileAutoField::Songs,
+    ProfileAutoField::TopBrand,
+    ProfileAutoField::TopVenue,
+    ProfileAutoField::Prefectures,
+    ProfileAutoField::Yearly,
+    ProfileAutoField::FieldYears,
     ProfileAutoField::Links,
     ProfileAutoField::Qr,
 ];
@@ -409,87 +435,26 @@ const ALL_AUTO_FIELDS: [ProfileAutoField; 10] = [
 const ALL_STYLES: [ProfileSheetStyle; 2] = [ProfileSheetStyle::Resume, ProfileSheetStyle::Career];
 const ALL_SIZES: [ProfileSheetSize; 2] = [ProfileSheetSize::Portrait, ProfileSheetSize::Story];
 
-pub fn profile_sheet_limits() -> ProfileSheetLimits {
-    ProfileSheetLimits {
-        max_answers: MAX_ANSWERS,
-        max_answer_chars: MAX_ANSWER_CHARS,
-        max_prompt_chars: MAX_PROMPT_CHARS,
-        max_furigana_chars: MAX_FURIGANA_CHARS,
-        max_songs: MAX_SONGS,
-    }
-}
-
-pub fn profile_question_info(question: ProfileQuestion) -> ProfileQuestionInfo {
-    let (key, prompt, placeholder) = match question {
-        ProfileQuestion::Trigger => (
-            "trigger",
-            "Pになったきっかけ",
-            "アニメで見たステージに心をつかまれて",
-        ),
-        ProfileQuestion::OshiLove => (
-            "oshi_love",
-            "担当のここが好き",
-            "まっすぐなところ。歌声に背中を押される",
-        ),
-        ProfileQuestion::BestLive => (
-            "best_live",
-            "いちばん思い出のライブ",
-            "はじめての現地。1 曲目で泣いた",
-        ),
-        ProfileQuestion::FavoriteCall => ("favorite_call", "好きなコール", "サビ前のクラップ"),
-        ProfileQuestion::Expedition => ("expedition", "遠征の思い出", "夜行バスで行った西武ドーム"),
-        ProfileQuestion::Landmark => (
-            "landmark",
-            "現場での目印",
-            "担当色のタオルを首に巻いています",
-        ),
-        ProfileQuestion::Message => (
-            "message",
-            "ひとこと",
-            "同僚募集中です。気軽に声をかけてください",
-        ),
-        ProfileQuestion::Free => ("free", "自由記入", "質問も答えも自由に書けます"),
-    };
-    ProfileQuestionInfo {
-        question,
-        key: key.into(),
-        prompt: prompt.into(),
-        placeholder: placeholder.into(),
-    }
-}
-
-/// 用意した質問の一覧 (「質問を足す」の順)。
-pub fn profile_questions() -> Vec<ProfileQuestionInfo> {
-    ALL_QUESTIONS
-        .into_iter()
-        .map(profile_question_info)
-        .collect()
-}
-
-/// まだ足していない質問 (自由記入はいつでも足せる)。上限まで足していたら空。
-pub fn profile_addable_questions(sheet: &ProfileSheet) -> Vec<ProfileQuestionInfo> {
-    if sheet.answers.len() >= MAX_ANSWERS as usize {
-        return Vec::new();
-    }
-    ALL_QUESTIONS
-        .into_iter()
-        .filter(|q| *q == ProfileQuestion::Free || !sheet.answers.iter().any(|a| a.question == *q))
-        .map(profile_question_info)
-        .collect()
-}
-
 pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo {
+    use ProfileAutoField as F;
     let (key, label) = match field {
-        ProfileAutoField::Photo => ("photo", "写真"),
-        ProfileAutoField::Oshi => ("oshi", "担当"),
-        ProfileAutoField::Brands => ("brands", "対応範囲 (ブランド)"),
-        ProfileAutoField::Since => ("since", "P歴"),
-        ProfileAutoField::Counts => ("counts", "参加公演数・回収曲数"),
-        ProfileAutoField::Shows => ("shows", "はじめて参加したライブ・参加の経歴"),
-        ProfileAutoField::NextShow => ("next_show", "次の現場"),
-        ProfileAutoField::Songs => ("songs", "好きな曲"),
-        ProfileAutoField::Links => ("links", "リンク"),
-        ProfileAutoField::Qr => ("qr", "自分の QR"),
+        F::Photo => ("photo", "写真"),
+        F::Oshi => ("oshi", "担当"),
+        F::Brands => ("brands", "担当ブランド"),
+        F::Since => ("since", "P歴"),
+        F::Shows => ("shows", "参加の経歴"),
+        F::NextShow => ("next_show", "次の現場"),
+        F::Counts => ("counts", "参加公演数・回収曲数"),
+        F::TopSongs => ("top_songs", "現地でいちばん聴いた曲"),
+        F::OshiHeard => ("oshi_heard", "担当の歌を現地で聴いた回数"),
+        F::Songs => ("songs", "お気に入りの曲"),
+        F::TopBrand => ("top_brand", "いちばん通ったブランド"),
+        F::TopVenue => ("top_venue", "いちばん通った会場"),
+        F::Prefectures => ("prefectures", "現地に行った都道府県"),
+        F::Yearly => ("yearly", "年ごとの参加数"),
+        F::FieldYears => ("field_years", "現場歴"),
+        F::Links => ("links", "リンク"),
+        F::Qr => ("qr", "自分の QR"),
     };
     ProfileAutoFieldInfo {
         field,
@@ -504,6 +469,11 @@ pub fn profile_auto_fields() -> Vec<ProfileAutoFieldInfo> {
         .into_iter()
         .map(profile_auto_field_info)
         .collect()
+}
+
+/// その様式で使う欄か (年ごとの参加数は職務経歴書だけ)。
+fn applies(style: ProfileSheetStyle, field: ProfileAutoField) -> bool {
+    !(style == ProfileSheetStyle::Resume && field == ProfileAutoField::Yearly)
 }
 
 pub fn profile_sheet_style_info(style: ProfileSheetStyle) -> ProfileSheetStyleInfo {
@@ -526,9 +496,9 @@ pub fn profile_sheet_styles() -> Vec<ProfileSheetStyleInfo> {
 }
 
 pub fn profile_sheet_size_info(size: ProfileSheetSize) -> ProfileSheetSizeInfo {
-    let (key, label, caption, h, answers) = match size {
-        ProfileSheetSize::Portrait => ("portrait", "4:5", "縦長", 1350, 4),
-        ProfileSheetSize::Story => ("story", "9:16", "ストーリーズ", 1920, MAX_ANSWERS),
+    let (key, label, caption, h) = match size {
+        ProfileSheetSize::Portrait => ("portrait", "4:5", "縦長", 1350),
+        ProfileSheetSize::Story => ("story", "9:16", "ストーリーズ", 1920),
     };
     ProfileSheetSizeInfo {
         size,
@@ -537,7 +507,6 @@ pub fn profile_sheet_size_info(size: ProfileSheetSize) -> ProfileSheetSizeInfo {
         caption: caption.into(),
         width_px: 1080,
         height_px: h,
-        max_visible_answers: answers,
     }
 }
 
@@ -545,86 +514,15 @@ pub fn profile_sheet_sizes() -> Vec<ProfileSheetSizeInfo> {
     ALL_SIZES.into_iter().map(profile_sheet_size_info).collect()
 }
 
-/// はじめて開いたときの中身。履歴書・4:5、質問は「きっかけ・担当のここが好き・ひとこと」、
-/// 自分の QR だけ外しておく (載せるかは本人が決める)。
+/// はじめて開いたときの選択。履歴書・4:5、自分の QR だけ外しておく (載せるかは本人が決める)。
 pub fn profile_sheet_default() -> ProfileSheet {
     ProfileSheet {
         style: ProfileSheetStyle::default(),
         size: ProfileSheetSize::default(),
-        furigana: String::new(),
-        answers: [
-            ProfileQuestion::Trigger,
-            ProfileQuestion::OshiLove,
-            ProfileQuestion::Message,
-        ]
-        .into_iter()
-        .map(|question| ProfileAnswer {
-            question,
-            prompt: String::new(),
-            text: String::new(),
-        })
-        .collect(),
         hidden: vec![ProfileAutoField::Qr],
-        favorite_song_ids: Vec::new(),
         brand_on: Vec::new(),
         brand_off: Vec::new(),
-    }
-}
-
-pub fn validate_profile_sheet(sheet: &ProfileSheet) -> Option<ProfileSheetError> {
-    if sheet.answers.len() > MAX_ANSWERS as usize {
-        return Some(ProfileSheetError::TooManyAnswers);
-    }
-    if sheet
-        .answers
-        .iter()
-        .any(|a| char_len(a.text.trim()) > MAX_ANSWER_CHARS as usize)
-    {
-        return Some(ProfileSheetError::AnswerTooLong);
-    }
-    if sheet
-        .answers
-        .iter()
-        .any(|a| char_len(a.prompt.trim()) > MAX_PROMPT_CHARS as usize)
-    {
-        return Some(ProfileSheetError::PromptTooLong);
-    }
-    if char_len(sheet.furigana.trim()) > MAX_FURIGANA_CHARS as usize {
-        return Some(ProfileSheetError::FuriganaTooLong);
-    }
-    if sheet.favorite_song_ids.len() > MAX_SONGS as usize {
-        return Some(ProfileSheetError::TooManySongs);
-    }
-    None
-}
-
-pub fn profile_sheet_error_message(error: ProfileSheetError) -> String {
-    match error {
-        ProfileSheetError::TooManyAnswers => format!("書く欄は{MAX_ANSWERS}つまでです"),
-        ProfileSheetError::AnswerTooLong => format!("答えは{MAX_ANSWER_CHARS}文字までです"),
-        ProfileSheetError::PromptTooLong => format!("質問は{MAX_PROMPT_CHARS}文字までです"),
-        ProfileSheetError::FuriganaTooLong => {
-            format!("ふりがなは{MAX_FURIGANA_CHARS}文字までです")
-        }
-        ProfileSheetError::TooManySongs => format!("好きな曲は{MAX_SONGS}曲までです"),
-    }
-}
-
-/// 質問がどの欄に入るか。
-pub fn profile_question_slot(style: ProfileSheetStyle, question: ProfileQuestion) -> ProfileSlot {
-    use ProfileQuestion as Q;
-    use ProfileSlot as S;
-    match style {
-        ProfileSheetStyle::Resume => match question {
-            Q::Trigger | Q::OshiLove | Q::BestLive => S::Motivation,
-            Q::FavoriteCall | Q::Expedition => S::Hobby,
-            Q::Landmark | Q::Message | Q::Free => S::Wish,
-        },
-        ProfileSheetStyle::Career => match question {
-            Q::Message => S::Summary,
-            Q::FavoriteCall | Q::Expedition | Q::Landmark => S::Skills,
-            Q::Trigger | Q::OshiLove | Q::BestLive | Q::Free => S::SelfPr,
-        },
+        brand_main: None,
     }
 }
 
@@ -658,70 +556,47 @@ fn slot_title(slot: ProfileSlot) -> (&'static str, &'static str) {
 // 保存の形 (端末の表に JSON で入れる)
 // ---------------------------------------------------------------------------
 
-fn question_from_key(key: &str) -> Option<ProfileQuestion> {
-    ALL_QUESTIONS
-        .into_iter()
-        .find(|q| profile_question_info(*q).key == key)
-}
-
 fn auto_field_from_key(key: &str) -> Option<ProfileAutoField> {
     ALL_AUTO_FIELDS
         .into_iter()
         .find(|f| profile_auto_field_info(*f).key == key)
 }
 
+/// 保存の形。前の版が書いた `furigana` / `answers` / `songs` (自分で書く欄) は読み捨てる
+/// (serde は知らないキーを無視する)。
 #[derive(serde::Serialize, serde::Deserialize, Default)]
 #[serde(default)]
 struct SheetDto {
     style: String,
     size: String,
-    furigana: String,
-    answers: Vec<AnswerDto>,
     hidden: Vec<String>,
-    songs: Vec<String>,
     #[serde(rename = "brandOn")]
     brand_on: Vec<String>,
     #[serde(rename = "brandOff")]
     brand_off: Vec<String>,
+    #[serde(rename = "brandMain", skip_serializing_if = "Option::is_none")]
+    brand_main: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Default)]
-#[serde(default)]
-struct AnswerDto {
-    q: String,
-    prompt: String,
-    text: String,
-}
-
-/// 保存の形 (キーは英字。並べた順を保つ)。
+/// 保存の形 (キーは英字)。
 pub fn profile_sheet_to_json(sheet: &ProfileSheet) -> String {
     let dto = SheetDto {
         style: profile_sheet_style_info(sheet.style).key,
         size: profile_sheet_size_info(sheet.size).key,
-        furigana: sheet.furigana.clone(),
-        answers: sheet
-            .answers
-            .iter()
-            .map(|a| AnswerDto {
-                q: profile_question_info(a.question).key,
-                prompt: a.prompt.clone(),
-                text: a.text.clone(),
-            })
-            .collect(),
         hidden: ALL_AUTO_FIELDS
             .into_iter()
             .filter(|f| sheet.hidden.contains(f))
             .map(|f| profile_auto_field_info(f).key)
             .collect(),
-        songs: sheet.favorite_song_ids.clone(),
         brand_on: sheet.brand_on.clone(),
         brand_off: sheet.brand_off.clone(),
+        brand_main: sheet.brand_main.clone(),
     };
     serde_json::to_string(&dto).unwrap_or_default()
 }
 
-/// 保存の形から戻す。空・壊れた JSON は既定の中身。知らない質問・欄のキー (新しい版が足したもの)
-/// は捨て、上限を超えた分は落とす (読めない 1 項目のために全部を失わない)。
+/// 保存の形から戻す。空・壊れた JSON は既定の選択。知らない欄のキー (新しい版が足したもの) と
+/// 前の版の自分で書く欄は捨てる (読めない 1 項目のために全部を失わない)。
 pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
     let Ok(dto) = serde_json::from_str::<SheetDto>(json) else {
         return profile_sheet_default();
@@ -734,40 +609,162 @@ pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
         .into_iter()
         .find(|s| profile_sheet_size_info(*s).key == dto.size)
         .unwrap_or_default();
-    let answers = dto
-        .answers
-        .into_iter()
-        .filter_map(|a| {
-            Some(ProfileAnswer {
-                question: question_from_key(&a.q)?,
-                prompt: a.prompt,
-                text: a.text,
-            })
-        })
-        .take(MAX_ANSWERS as usize)
-        .collect();
     let mut hidden: Vec<ProfileAutoField> = Vec::new();
     for f in dto.hidden.iter().filter_map(|k| auto_field_from_key(k)) {
         if !hidden.contains(&f) {
             hidden.push(f);
         }
     }
-    let mut songs: Vec<String> = Vec::new();
-    for id in dto.songs {
-        if !id.is_empty() && !songs.contains(&id) {
-            songs.push(id);
-        }
-    }
-    songs.truncate(MAX_SONGS as usize);
     ProfileSheet {
         style,
         size,
-        furigana: dto.furigana,
-        answers,
         hidden,
-        favorite_song_ids: songs,
         brand_on: unique_ids(dto.brand_on),
         brand_off: unique_ids(dto.brand_off),
+        brand_main: dto.brand_main,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 参加した公演のセトリ・会場から数える
+// ---------------------------------------------------------------------------
+
+/// 参加した公演 (`attended_show_ids`。予定も混ざってよい) のうち今日までに行ったものの、
+/// セトリと会場から数える。
+///
+/// - 曲・担当の歌唱は「披露に数える公演」(`Show::counts_as_performance`。上映会・配信だけは除く) だけ。
+/// - 担当の歌唱はその担当が歌唱メンバーに入っている披露の数。
+/// - 会場は会場マスタ (`venue_id`) で数え、無ければ公演の会場の表記で数える。都道府県は会場マスタから。
+/// - 同数は「先に聴いた・行った方」が上 (決定的にするため)。
+pub fn profile_live_record(
+    snap: &Snapshot,
+    attended_show_ids: &[String],
+    oshi_idol_ids: &[String],
+    today: &str,
+) -> ProfileLiveRecord {
+    let today = parse_date(today);
+    let mut shows: Vec<u32> = Vec::new();
+    let mut seen = HashSet::new();
+    for id in attended_show_ids {
+        let Some(&show) = snap.show_index_by_id.get(id) else {
+            continue;
+        };
+        let past = matches!(
+            (parse_date(&snap.shows[show as usize].date), today),
+            (Some(d), Some(t)) if d <= t
+        );
+        if past && seen.insert(show) {
+            shows.push(show);
+        }
+    }
+    // 古い公演から (同数のときに先に聴いた方を上にする)。
+    shows.sort_by(|a, b| {
+        let (sa, sb) = (&snap.shows[*a as usize], &snap.shows[*b as usize]);
+        sa.date
+            .cmp(&sb.date)
+            .then(sa.sort_order.cmp(&sb.sort_order))
+            .then(sa.id.cmp(&sb.id))
+    });
+
+    let oshi: Vec<u32> = oshi_idol_ids
+        .iter()
+        .filter_map(|id| snap.idol_index_by_id.get(id).copied())
+        .collect();
+    let mut song_counts: HashMap<u32, (u32, usize)> = HashMap::new();
+    let mut oshi_counts = vec![0u32; oshi.len()];
+    let mut venue_counts: HashMap<String, (u32, usize, String)> = HashMap::new();
+    let mut prefectures: HashSet<&str> = HashSet::new();
+    let mut order = 0usize;
+    for &show in &shows {
+        let s = &snap.shows[show as usize];
+        let venue = s
+            .venue_id
+            .as_ref()
+            .and_then(|id| snap.venue_index_by_id.get(id))
+            .map(|&v| &snap.venues[v as usize]);
+        if let Some(p) = venue.and_then(|v| v.prefecture.as_deref()) {
+            if !p.trim().is_empty() {
+                prefectures.insert(p);
+            }
+        }
+        let venue_key = venue
+            .map(|v| (format!("v:{}", v.id), v.name.clone()))
+            .or_else(|| {
+                s.venue
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|l| !l.is_empty())
+                    .map(|l| (format!("l:{l}"), l.to_string()))
+            });
+        if let Some((key, label)) = venue_key {
+            let e = venue_counts.entry(key).or_insert((0, order, label));
+            e.0 += 1;
+        }
+        if s.counts_as_performance() {
+            for &item in &snap.setlist_items_by_show[show as usize] {
+                let song = snap.setlist_items[item as usize].song;
+                let e = song_counts.entry(song).or_insert((0, order));
+                e.0 += 1;
+                let performers = &snap.performers_by_item[item as usize];
+                for (i, idol) in oshi.iter().enumerate() {
+                    if performers.contains(idol) {
+                        oshi_counts[i] += 1;
+                    }
+                }
+                order += 1;
+            }
+        }
+        order += 1;
+    }
+
+    let mut top: Vec<(u32, u32, usize)> = song_counts
+        .into_iter()
+        .filter(|(_, (n, _))| *n >= MIN_TOP_COUNT)
+        .map(|(song, (n, first))| (song, n, first))
+        .collect();
+    top.sort_by(|a, b| b.1.cmp(&a.1).then(a.2.cmp(&b.2)));
+    let top_songs = top
+        .into_iter()
+        .take(MAX_TOP_SONGS)
+        .map(|(song, n, _)| {
+            let s = &snap.songs[song as usize];
+            ProfileCount {
+                id: s.id.clone(),
+                label: s.title.clone(),
+                count: n,
+            }
+        })
+        .collect();
+
+    let oshi_heard = oshi
+        .iter()
+        .zip(oshi_counts)
+        .filter(|(_, n)| *n > 0)
+        .map(|(&idol, n)| {
+            let i = &snap.idols[idol as usize];
+            ProfileCount {
+                id: i.id.clone(),
+                label: i.name.clone(),
+                count: n,
+            }
+        })
+        .collect();
+
+    let top_venue = venue_counts
+        .into_iter()
+        .filter(|(_, (n, _, _))| *n >= MIN_TOP_COUNT)
+        .min_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.1 .1.cmp(&b.1 .1)))
+        .map(|(key, (n, _, label))| ProfileCount {
+            id: key,
+            label,
+            count: n,
+        });
+
+    ProfileLiveRecord {
+        top_songs,
+        oshi_heard,
+        top_venue,
+        prefecture_count: prefectures.len() as u32,
     }
 }
 
@@ -794,38 +791,311 @@ fn density_caps(size: ProfileSheetSize) -> (u32, u32) {
 /// 1 行に入る文字数の見積もり (全角で、欄の幅いっぱい)。
 const CHARS_PER_LINE: usize = 30;
 
+/// 記録を数えた中間の形 (組み立てと編集画面の見本で共有する)。
+struct Facts<'a> {
+    today: Option<NaiveDate>,
+    /// 行った公演 (日付の昇順、重複なし)。
+    past: Vec<(NaiveDate, &'a ProfileShowInput)>,
+    /// 次の現場 (いちばん近い予定)。
+    next: Option<(NaiveDate, &'a ProfileShowInput)>,
+    /// いちばん通ったブランド (短い名前と公演数)。
+    top_brand: Option<(String, u32)>,
+    /// 年ごとの参加数 (新しい年から)。
+    yearly: Vec<(i32, u32)>,
+    /// はじめての参加からの年数 (1 年未満は None)。
+    field_years: Option<i32>,
+    record: &'a ProfileSheetRecord,
+}
+
+impl<'a> Facts<'a> {
+    fn new(record: &'a ProfileSheetRecord) -> Self {
+        let today = parse_date(&record.today);
+        let mut seen = HashSet::new();
+        let mut past: Vec<(NaiveDate, &ProfileShowInput)> = Vec::new();
+        let mut next: Option<(NaiveDate, &ProfileShowInput)> = None;
+        for s in &record.attended {
+            if !seen.insert(s.show_id.as_str()) {
+                continue;
+            }
+            let (Some(day), Some(today)) = (parse_date(&s.date), today) else {
+                continue;
+            };
+            if day <= today {
+                past.push((day, s));
+            } else if next.is_none_or(|(d, n)| (day, &s.show_id) < (d, &n.show_id)) {
+                next = Some((day, s));
+            }
+        }
+        past.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.show_id.cmp(&b.1.show_id)));
+
+        let listed = listed_brands(record);
+        let mut brand_counts: HashMap<&str, u32> = HashMap::new();
+        for (_, s) in &past {
+            if let Some(b) = s.brand_id.as_deref() {
+                if listed.iter().any(|l| l.id == b) {
+                    *brand_counts.entry(b).or_default() += 1;
+                }
+            }
+        }
+        // 同数はブランドの並び順で先の方。
+        let top_brand = listed
+            .iter()
+            .filter_map(|b| brand_counts.get(b.id.as_str()).map(|n| (b, *n)))
+            .fold(
+                None::<(&ProfileBrandInput, u32)>,
+                |best, (b, n)| match best {
+                    Some((_, m)) if m >= n => best,
+                    _ => Some((b, n)),
+                },
+            )
+            .map(|(b, n)| (b.label.clone(), n));
+
+        let mut years: Vec<(i32, u32)> = Vec::new();
+        for (d, _) in past.iter().rev() {
+            match years.last_mut() {
+                Some((y, n)) if *y == d.year() => *n += 1,
+                _ => years.push((d.year(), 1)),
+            }
+        }
+
+        let field_years = match (past.first(), today) {
+            (Some((first, _)), Some(t)) => {
+                let mut n = t.year() - first.year();
+                if (t.month(), t.day()) < (first.month(), first.day()) {
+                    n -= 1;
+                }
+                (n >= 1).then_some(n)
+            }
+            _ => None,
+        };
+
+        Facts {
+            today,
+            past,
+            next,
+            top_brand,
+            yearly: years,
+            field_years,
+            record,
+        }
+    }
+
+    fn favorite_titles(&self) -> Option<String> {
+        let titles: Vec<String> = self
+            .record
+            .favorite_songs
+            .iter()
+            .take(MAX_SONGS)
+            .map(|s| format!("「{}」", s.title))
+            .collect();
+        (!titles.is_empty()).then(|| titles.join(""))
+    }
+
+    fn top_song_text(&self) -> Option<String> {
+        let parts: Vec<String> = self
+            .record
+            .live
+            .top_songs
+            .iter()
+            .take(MAX_TOP_SONGS)
+            .map(|c| format!("「{}」{}回", c.label, c.count))
+            .collect();
+        (!parts.is_empty()).then(|| parts.join("　"))
+    }
+
+    fn oshi_heard_text(&self) -> Option<String> {
+        let parts: Vec<String> = self
+            .record
+            .live
+            .oshi_heard
+            .iter()
+            .map(|c| format!("{} {}回", c.label, c.count))
+            .collect();
+        (!parts.is_empty()).then(|| parts.join("　"))
+    }
+
+    fn oshi_heard_total(&self) -> u32 {
+        self.record.live.oshi_heard.iter().map(|c| c.count).sum()
+    }
+
+    fn prefectures(&self) -> Option<u32> {
+        let n = self.record.live.prefecture_count;
+        (n >= MIN_PREFECTURES).then_some(n)
+    }
+
+    fn has_counts(&self) -> bool {
+        !self.past.is_empty() || self.record.song_count > 0
+    }
+
+    fn counts_text(&self) -> String {
+        format!(
+            "参加公演 {}公演・回収曲 {}曲",
+            self.past.len(),
+            self.record.song_count
+        )
+    }
+
+    fn yearly_text(&self) -> Option<String> {
+        let parts: Vec<String> = self
+            .yearly
+            .iter()
+            .take(MAX_YEARS)
+            .map(|(y, n)| format!("{y}年 {n}公演"))
+            .collect();
+        (!parts.is_empty()).then(|| parts.join("　"))
+    }
+
+    fn next_text(&self) -> Option<String> {
+        self.next.map(|(d, s)| {
+            let venue = s
+                .venue
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(|v| format!("（{v}）"))
+                .unwrap_or_default();
+            format!(
+                "{}年{}月{}日　{}{venue}",
+                d.year(),
+                d.month(),
+                d.day(),
+                s.title
+            )
+        })
+    }
+
+    /// その欄に載せる記録があるか (無い欄は出さない・編集画面に並べない)。
+    fn has(&self, field: ProfileAutoField) -> bool {
+        use ProfileAutoField as F;
+        let r = self.record;
+        match field {
+            F::Photo => r.has_photo,
+            F::Oshi => !r.oshi_names.is_empty(),
+            F::Brands => !listed_brands(r).is_empty(),
+            F::Since => r.since_year.is_some(),
+            F::Shows => !self.past.is_empty(),
+            F::NextShow => self.next.is_some(),
+            F::Counts => self.has_counts(),
+            F::TopSongs => !r.live.top_songs.is_empty(),
+            F::OshiHeard => !r.live.oshi_heard.is_empty(),
+            F::Songs => !r.favorite_songs.is_empty(),
+            F::TopBrand => self.top_brand.is_some(),
+            F::TopVenue => r.live.top_venue.is_some(),
+            F::Prefectures => self.prefectures().is_some(),
+            F::Yearly => !self.yearly.is_empty(),
+            F::FieldYears => self.field_years.is_some(),
+            F::Links => !r.links.is_empty(),
+            F::Qr => r.has_qr,
+        }
+    }
+
+    /// 編集画面に添える短い見本。
+    fn preview(&self, field: ProfileAutoField) -> String {
+        use ProfileAutoField as F;
+        let r = self.record;
+        match field {
+            F::Photo | F::Qr | F::Brands => String::new(),
+            F::Oshi => r.oshi_names.join("・"),
+            F::Since => r
+                .since_year
+                .map(|y| format!("{y}年 就任"))
+                .unwrap_or_default(),
+            F::Shows => self
+                .past
+                .first()
+                .map(|(_, s)| format!("はじめて参加　{}", s.title))
+                .unwrap_or_default(),
+            F::NextShow => self.next.map(|(_, s)| s.title.clone()).unwrap_or_default(),
+            F::Counts => format!("{}公演・{}曲", self.past.len(), r.song_count),
+            F::TopSongs => r
+                .live
+                .top_songs
+                .first()
+                .map(|c| format!("「{}」{}回", c.label, c.count))
+                .unwrap_or_default(),
+            F::OshiHeard => format!("{}回", self.oshi_heard_total()),
+            F::Songs => r
+                .favorite_songs
+                .first()
+                .map(|s| format!("「{}」", s.title))
+                .unwrap_or_default(),
+            F::TopBrand => self
+                .top_brand
+                .as_ref()
+                .map(|(b, n)| format!("{b} {n}公演"))
+                .unwrap_or_default(),
+            F::TopVenue => r
+                .live
+                .top_venue
+                .as_ref()
+                .map(|c| format!("{} {}回", c.label, c.count))
+                .unwrap_or_default(),
+            F::Prefectures => self
+                .prefectures()
+                .map(|n| format!("{n}都道府県"))
+                .unwrap_or_default(),
+            F::Yearly => self
+                .yearly
+                .first()
+                .map(|(y, n)| format!("{y}年 {n}公演"))
+                .unwrap_or_default(),
+            F::FieldYears => self
+                .field_years
+                .map(|n| format!("{n}年"))
+                .unwrap_or_default(),
+            F::Links => r.links.join("　"),
+        }
+    }
+}
+
+/// 編集画面の「載せる記録」の行。その様式で使い、記録のある欄だけを編集画面の順に。
+pub fn profile_auto_field_rows(
+    sheet: &ProfileSheet,
+    record: &ProfileSheetRecord,
+) -> Vec<ProfileAutoFieldRow> {
+    let facts = Facts::new(record);
+    ALL_AUTO_FIELDS
+        .into_iter()
+        .filter(|f| applies(sheet.style, *f) && facts.has(*f))
+        .map(|f| {
+            let info = profile_auto_field_info(f);
+            ProfileAutoFieldRow {
+                field: f,
+                key: info.key,
+                label: info.label,
+                value: facts.preview(f),
+                shown: !sheet.hidden.contains(&f),
+            }
+        })
+        .collect()
+}
+
+/// 載せる欄を 1 つ付け外しした選択。
+pub fn profile_toggle_field(sheet: &ProfileSheet, field: ProfileAutoField) -> ProfileSheet {
+    let mut out = sheet.clone();
+    if out.hidden.contains(&field) {
+        out.hidden.retain(|f| *f != field);
+    } else {
+        out.hidden.push(field);
+    }
+    out
+}
+
 pub fn profile_sheet_layout(
     sheet: &ProfileSheet,
     record: &ProfileSheetRecord,
 ) -> ProfileSheetLayout {
-    let shows = |f: ProfileAutoField| !sheet.hidden.contains(&f);
-    let today = parse_date(&record.today);
+    let facts = Facts::new(record);
     let style = sheet.style;
-    let style_info = profile_sheet_style_info(style);
-
-    // 参加を付けた公演を、行った公演 (日付の昇順) と次の現場に分ける (P名刺と同じ分け方)。
-    let mut seen = std::collections::HashSet::new();
-    let mut past: Vec<(NaiveDate, &ProfileShowInput)> = Vec::new();
-    let mut next: Option<(NaiveDate, &ProfileShowInput)> = None;
-    for s in &record.attended {
-        if !seen.insert(s.show_id.as_str()) {
-            continue;
-        }
-        let (Some(day), Some(today)) = (parse_date(&s.date), today) else {
-            continue;
-        };
-        if day <= today {
-            past.push((day, s));
-        } else if next.is_none_or(|(d, n)| (day, &s.show_id) < (d, &n.show_id)) {
-            next = Some((day, s));
-        }
-    }
-    past.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.show_id.cmp(&b.1.show_id)));
-    let next = next.filter(|_| shows(ProfileAutoField::NextShow));
+    // 載せる欄: 外しておらず、その様式で使い、記録がある。
+    let on = |f: ProfileAutoField| !sheet.hidden.contains(&f) && applies(style, f) && facts.has(f);
+    let today = facts.today;
+    let past = &facts.past;
+    let next = facts.next.filter(|_| on(ProfileAutoField::NextShow));
 
     let since_label = record
         .since_year
-        .filter(|_| shows(ProfileAutoField::Since))
+        .filter(|_| on(ProfileAutoField::Since))
         .map(|y| match today.map(|t| t.year() - i32::from(y)) {
             Some(n) if n >= 1 => format!("{y}年 就任 · P歴{n}年"),
             _ => format!("{y}年 就任"),
@@ -840,7 +1110,7 @@ pub fn profile_sheet_layout(
             .map(|b| b.label.clone())
     };
 
-    let brands = if shows(ProfileAutoField::Brands) {
+    let brands = if on(ProfileAutoField::Brands) {
         profile_brand_marks(sheet, record)
     } else {
         Vec::new()
@@ -854,7 +1124,7 @@ pub fn profile_sheet_layout(
 
     match style {
         ProfileSheetStyle::Resume => {
-            if let Some(y) = record.since_year.filter(|_| shows(ProfileAutoField::Since)) {
+            if let Some(y) = record.since_year.filter(|_| on(ProfileAutoField::Since)) {
                 history.push(ProfileHistoryRow {
                     year: y.to_string(),
                     month: String::new(),
@@ -862,7 +1132,7 @@ pub fn profile_sheet_layout(
                     kind: ProfileHistoryKind::Since,
                 });
             }
-            if shows(ProfileAutoField::Shows) {
+            if on(ProfileAutoField::Shows) {
                 if let Some((d, s)) = past.first() {
                     history.push(history_row(
                         *d,
@@ -879,26 +1149,7 @@ pub fn profile_sheet_layout(
                     ));
                 }
             }
-            if let Some((d, s)) = next {
-                history.push(history_row(
-                    d,
-                    format!("次の現場　{}（予定）", s.title),
-                    ProfileHistoryKind::NextShow,
-                ));
-            }
-            // 上限を超えたら「次の現場」と「就任」を残し、間の行から落とす。
-            while history.len() > history_cap {
-                let drop = history
-                    .iter()
-                    .rposition(|r| {
-                        matches!(
-                            r.kind,
-                            ProfileHistoryKind::RecentShow | ProfileHistoryKind::FirstShow
-                        )
-                    })
-                    .unwrap_or(history.len() - 1);
-                history.remove(drop);
-            }
+            history.truncate(history_cap);
             if !history.is_empty() {
                 history.push(ProfileHistoryRow {
                     year: String::new(),
@@ -907,33 +1158,50 @@ pub fn profile_sheet_layout(
                     kind: ProfileHistoryKind::Closing,
                 });
             }
-            if shows(ProfileAutoField::Counts) {
-                if let Some(t) = today {
+            // 免許・資格: 記録の達成 (今日の日付で)。
+            if let Some(t) = today {
+                if on(ProfileAutoField::Counts) {
                     licenses.push(history_row(
                         t,
-                        format!(
-                            "参加公演 {}公演・回収曲 {}曲 達成",
-                            past.len(),
-                            record.song_count
-                        ),
+                        format!("{} 達成", facts.counts_text()),
+                        ProfileHistoryKind::Count,
+                    ));
+                }
+                if let Some(n) = facts
+                    .prefectures()
+                    .filter(|_| on(ProfileAutoField::Prefectures))
+                {
+                    licenses.push(history_row(
+                        t,
+                        format!("現地 {n}都道府県 踏破"),
+                        ProfileHistoryKind::Count,
+                    ));
+                }
+                if let Some(n) = facts
+                    .field_years
+                    .filter(|_| on(ProfileAutoField::FieldYears))
+                {
+                    licenses.push(history_row(
+                        t,
+                        format!("現場歴 {n}年 到達"),
                         ProfileHistoryKind::Count,
                     ));
                 }
             }
         }
         ProfileSheetStyle::Career => {
-            if shows(ProfileAutoField::Shows) || next.is_some() {
+            let show_past = on(ProfileAutoField::Shows);
+            if show_past || next.is_some() {
                 // 新しい公演から。次の現場はその年の頭に「予定」で置く。
                 let mut rows: Vec<(NaiveDate, ProfileCareerRow)> = Vec::new();
                 if let Some((d, s)) = next {
                     rows.push((d, career_row(d, s, brand_label(&s.brand_id), true)));
                 }
-                let past_rows: Vec<&(NaiveDate, &ProfileShowInput)> =
-                    if shows(ProfileAutoField::Shows) {
-                        past.iter().rev().collect()
-                    } else {
-                        Vec::new()
-                    };
+                let past_rows: Vec<&(NaiveDate, &ProfileShowInput)> = if show_past {
+                    past.iter().rev().collect()
+                } else {
+                    Vec::new()
+                };
                 let room = career_cap.saturating_sub(rows.len());
                 for (d, s) in past_rows.iter().take(room) {
                     rows.push((*d, career_row(*d, s, brand_label(&s.brand_id), false)));
@@ -965,76 +1233,165 @@ pub fn profile_sheet_layout(
         }
     }
 
-    // 欄。自動の項目を先に置き、質問の答えを並べた順に続ける。答えの空の質問は出さない。
-    // 大きさごとに載る数があり (並べた順に先頭から)、載らない答えの数は `hidden_answers` で返す。
-    let visible_cap = profile_sheet_size_info(sheet.size).max_visible_answers as usize;
-    let answered: Vec<&ProfileAnswer> = sheet
-        .answers
-        .iter()
-        .filter(|a| !a.text.trim().is_empty())
-        .collect();
-    let hidden_answers = answered.len().saturating_sub(visible_cap) as u32;
-    let visible: Vec<&ProfileAnswer> = answered.into_iter().take(visible_cap).collect();
+    // 欄: 記録を様式の欄に割り当てる。中身の無い欄は出さない。
     let mut sections: Vec<ProfileSection> = Vec::new();
     for slot in slots(style) {
         let mut entries: Vec<ProfileEntry> = Vec::new();
+        let mut stats: Vec<ProfileStat> = Vec::new();
+        let mut push = |field: ProfileAutoField, label: &str, text: Option<String>| {
+            if let Some(text) = text.filter(|_| on(field)) {
+                entries.push(ProfileEntry {
+                    field,
+                    label: label.into(),
+                    text,
+                });
+            }
+        };
+        use ProfileAutoField as F;
         match slot {
+            ProfileSlot::Motivation => {
+                push(F::TopSongs, "現地でいちばん聴いた曲", facts.top_song_text());
+                push(
+                    F::OshiHeard,
+                    "担当の歌を現地で聴いた回数",
+                    facts.oshi_heard_text(),
+                );
+            }
+            ProfileSlot::Hobby => {
+                push(F::Songs, "お気に入りの曲", facts.favorite_titles());
+                push(
+                    F::TopBrand,
+                    "いちばん通ったブランド",
+                    facts
+                        .top_brand
+                        .as_ref()
+                        .map(|(b, n)| format!("{b} {n}公演")),
+                );
+                push(
+                    F::TopVenue,
+                    "いちばん通った会場",
+                    record
+                        .live
+                        .top_venue
+                        .as_ref()
+                        .map(|c| format!("{} {}回", c.label, c.count)),
+                );
+            }
+            ProfileSlot::Wish => {
+                push(F::NextShow, "次の現場", facts.next_text());
+            }
             ProfileSlot::Summary => {
-                if let Some(text) = career_summary(record, past.len(), shows) {
-                    entries.push(auto_entry("", text));
+                if let Some(text) = career_summary(&facts, &on) {
+                    entries.push(ProfileEntry {
+                        field: F::Counts,
+                        label: String::new(),
+                        text,
+                    });
                 }
             }
-            ProfileSlot::Hobby | ProfileSlot::Skills
-                if shows(ProfileAutoField::Songs) && !record.favorite_songs.is_empty() =>
-            {
-                let titles: Vec<String> = record
-                    .favorite_songs
-                    .iter()
-                    .take(MAX_SONGS as usize)
-                    .map(|s| format!("「{}」", s.title))
-                    .collect();
-                entries.push(auto_entry("好きな曲", titles.join("")));
+            ProfileSlot::Skills => {
+                push(F::TopSongs, "現地でいちばん聴いた曲", facts.top_song_text());
+                push(F::Songs, "お気に入りの曲", facts.favorite_titles());
+                push(
+                    F::TopVenue,
+                    "いちばん通った会場",
+                    record
+                        .live
+                        .top_venue
+                        .as_ref()
+                        .map(|c| format!("{} {}回", c.label, c.count)),
+                );
             }
-            _ => {}
-        }
-        for a in &visible {
-            let text = a.text.trim();
-            if profile_question_slot(style, a.question) != slot {
-                continue;
+            ProfileSlot::SelfPr => {
+                push(F::Yearly, "年ごとの参加", facts.yearly_text());
+                let mut stat = |field: F, label: &str, value: u32, unit: &str| {
+                    if on(field) {
+                        stats.push(ProfileStat {
+                            field,
+                            label: label.into(),
+                            value: value.to_string(),
+                            unit: unit.into(),
+                        });
+                    }
+                };
+                stat(F::Counts, "参加公演", facts.past.len() as u32, "公演");
+                stat(F::Counts, "回収曲", record.song_count, "曲");
+                if let Some(n) = facts.prefectures() {
+                    stat(F::Prefectures, "現地", n, "都道府県");
+                }
+                stat(F::OshiHeard, "担当の歌唱", facts.oshi_heard_total(), "回");
+                if let Some(n) = facts.field_years {
+                    stat(F::FieldYears, "現場歴", n as u32, "年");
+                }
             }
-            let prompt = a.prompt.trim();
-            entries.push(ProfileEntry {
-                label: if prompt.is_empty() {
-                    profile_question_info(a.question).prompt
-                } else {
-                    prompt.to_string()
-                },
-                text: text.to_string(),
-                is_auto: false,
-            });
         }
-        if !entries.is_empty() {
+        if !entries.is_empty() || !stats.is_empty() {
             let (title, imprint) = slot_title(slot);
             sections.push(ProfileSection {
                 slot,
                 title: title.into(),
                 imprint: imprint.into(),
+                stats,
                 entries,
             });
         }
     }
 
-    // 中身の量の見積もり: 欄の項目 (見出し 1 行 + 本文の折り返し) と表の行。
-    // 履歴書の趣味・特技と本人希望記入欄は左右に半分ずつ並ぶので、1 行に入る字も半分。
-    // 横に並ぶ欄は高い方に揃うので、2 つのうち多い方を数える。改行はそこで行を変える。
+    let density = density_of(style, sheet.size, &sections, &history, &licenses, &career);
+
+    ProfileSheetLayout {
+        style,
+        size: sheet.size,
+        title: profile_sheet_style_info(style).label,
+        imprint: match style {
+            ProfileSheetStyle::Resume => "RÉSUMÉ".into(),
+            ProfileSheetStyle::Career => "CAREER HISTORY".into(),
+        },
+        as_of: today
+            .map(|d| format!("{}年{}月{}日現在", d.year(), d.month(), d.day()))
+            .unwrap_or_default(),
+        name: record.name.trim().to_string(),
+        show_photo: on(ProfileAutoField::Photo),
+        show_oshi: on(ProfileAutoField::Oshi),
+        show_qr: on(ProfileAutoField::Qr),
+        since_label,
+        contacts: if on(ProfileAutoField::Links) {
+            record.links.clone()
+        } else {
+            Vec::new()
+        },
+        brands_title: BRANDS_TITLE.into(),
+        brands,
+        history,
+        licenses,
+        career,
+        career_more,
+        sections,
+        density,
+    }
+}
+
+/// 中身の量の見積もり: 欄の項目 (見出し 1 行 + 本文の折り返し)・実績の数字 (2 行)・表の行。
+/// 履歴書の趣味・特技と本人希望記入欄は左右に半分ずつ並ぶので、1 行に入る字も半分。
+/// 横に並ぶ欄は高い方に揃うので、2 つのうち多い方を数える。
+fn density_of(
+    style: ProfileSheetStyle,
+    size: ProfileSheetSize,
+    sections: &[ProfileSection],
+    history: &[ProfileHistoryRow],
+    licenses: &[ProfileHistoryRow],
+    career: &[ProfileCareerYear],
+) -> ProfileSheetDensity {
+    let paired = |s: &ProfileSection| {
+        style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation
+    };
     let section_lines = |s: &ProfileSection| -> u32 {
-        let half = style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation;
-        let per_line = if half {
+        let per_line = if paired(s) {
             CHARS_PER_LINE / 2
         } else {
             CHARS_PER_LINE
         };
-        1 + s
+        let entries: u32 = s
             .entries
             .iter()
             .map(|e| {
@@ -1046,94 +1403,62 @@ pub fn profile_sheet_layout(
                     .sum();
                 label + body
             })
-            .sum::<u32>()
+            .sum();
+        1 + entries + if s.stats.is_empty() { 0 } else { 2 }
     };
     let full: u32 = sections
         .iter()
-        .filter(|s| !(style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation))
+        .filter(|s| !paired(s))
         .map(section_lines)
         .sum();
-    let paired: u32 = sections
+    let pair: u32 = sections
         .iter()
-        .filter(|s| style == ProfileSheetStyle::Resume && s.slot != ProfileSlot::Motivation)
+        .filter(|s| paired(s))
         .map(section_lines)
         .max()
         .unwrap_or(0);
-    let entry_lines = full + paired;
     let table_lines = (history.len() + licenses.len()) as u32
         + career.iter().map(|y| 1 + y.rows.len() as u32).sum::<u32>();
-    let load = entry_lines + table_lines;
-    let (regular, compact) = density_caps(sheet.size);
-    let density = if load <= regular {
+    let load = full + pair + table_lines;
+    let (regular, compact) = density_caps(size);
+    if load <= regular {
         ProfileSheetDensity::Regular
     } else if load <= compact {
         ProfileSheetDensity::Compact
     } else {
         ProfileSheetDensity::Tight
-    };
-
-    ProfileSheetLayout {
-        style,
-        size: sheet.size,
-        title: style_info.label,
-        imprint: match style {
-            ProfileSheetStyle::Resume => "RÉSUMÉ".into(),
-            ProfileSheetStyle::Career => "CAREER HISTORY".into(),
-        },
-        as_of: today
-            .map(|d| format!("{}年{}月{}日現在", d.year(), d.month(), d.day()))
-            .unwrap_or_default(),
-        name: record.name.trim().to_string(),
-        furigana: sheet.furigana.trim().to_string(),
-        show_photo: shows(ProfileAutoField::Photo),
-        show_oshi: shows(ProfileAutoField::Oshi),
-        show_qr: shows(ProfileAutoField::Qr),
-        since_label,
-        contacts: if shows(ProfileAutoField::Links) {
-            record.links.clone()
-        } else {
-            Vec::new()
-        },
-        brands_title: "対応範囲".into(),
-        brands,
-        history,
-        licenses,
-        career,
-        career_more,
-        sections,
-        hidden_answers,
-        density,
     }
 }
 
-/// 職務要約の 1 文 (P歴と記録の数から)。
-fn career_summary(
-    record: &ProfileSheetRecord,
-    show_count: usize,
-    shows: impl Fn(ProfileAutoField) -> bool,
-) -> Option<String> {
-    let since = record.since_year.filter(|_| shows(ProfileAutoField::Since));
-    let counts = shows(ProfileAutoField::Counts);
-    match (since, counts) {
-        (Some(y), true) => Some(format!(
-            "{y}年よりプロデューサーとして活動。これまでに{show_count}公演に参加し、{}曲を回収。",
-            record.song_count
-        )),
-        (Some(y), false) => Some(format!("{y}年よりプロデューサーとして活動。")),
-        (None, true) => Some(format!(
-            "これまでに{show_count}公演に参加し、{}曲を回収。",
-            record.song_count
-        )),
-        (None, false) => None,
+/// 職務要約の文 (P歴・はじめての参加・数・いちばん通ったブランドから)。
+fn career_summary(facts: &Facts, on: &impl Fn(ProfileAutoField) -> bool) -> Option<String> {
+    use ProfileAutoField as F;
+    let record = facts.record;
+    let mut out = String::new();
+    if let Some(y) = record.since_year.filter(|_| on(F::Since)) {
+        out.push_str(&format!("{y}年よりプロデューサーとして活動。"));
     }
-}
-
-fn auto_entry(label: &str, text: String) -> ProfileEntry {
-    ProfileEntry {
-        label: label.into(),
-        text,
-        is_auto: true,
+    let first = facts
+        .past
+        .first()
+        .filter(|_| on(F::FieldYears))
+        .map(|(d, _)| format!("{}年{}月", d.year(), d.month()));
+    if on(F::Counts) {
+        let lead = first
+            .map(|f| format!("{f}の初参加から、"))
+            .unwrap_or_else(|| "これまでに".into());
+        out.push_str(&format!(
+            "{lead}{}公演に参加し、{}曲を回収。",
+            facts.past.len(),
+            record.song_count
+        ));
+    } else if let Some(f) = first {
+        out.push_str(&format!("{f}にはじめて現地に参加。"));
     }
+    if let Some((b, _)) = facts.top_brand.as_ref().filter(|_| on(F::TopBrand)) {
+        out.push_str(&format!("主に{b}の現場に通う。"));
+    }
+    (!out.is_empty()).then_some(out)
 }
 
 fn history_row(day: NaiveDate, text: String, kind: ProfileHistoryKind) -> ProfileHistoryRow {
@@ -1171,34 +1496,14 @@ fn unique_ids(ids: Vec<String>) -> Vec<String> {
 }
 
 // ---------------------------------------------------------------------------
-// 対応範囲 (ブランドに丸を付ける)
+// 担当ブランド (ブランドに丸を付ける・メインは二重丸)
 // ---------------------------------------------------------------------------
 
-/// 対応範囲に並べないブランド (その他は「対応している」と言える範囲ではない)。
+/// 担当ブランドに並べないブランド (その他は「担当している」と言える範囲ではない)。
 const BRANDS_NOT_LISTED: [&str; 1] = ["other"];
 
-/// 記録から丸が付くブランド: 担当の所属と、今日までに参加した公演のライブのブランド。
-fn record_brand_ids(record: &ProfileSheetRecord) -> std::collections::HashSet<String> {
-    let today = parse_date(&record.today);
-    let mut ids: std::collections::HashSet<String> =
-        record.oshi_brand_ids.iter().cloned().collect();
-    for s in &record.attended {
-        let past = matches!((parse_date(&s.date), today), (Some(d), Some(t)) if d <= t);
-        if past {
-            if let Some(b) = &s.brand_id {
-                ids.insert(b.clone());
-            }
-        }
-    }
-    ids
-}
-
-/// 対応範囲の並び (ブランドの並び順、その他を除く) と丸。丸は記録から付け、自分で付け外しした分を重ねる。
-pub fn profile_brand_marks(
-    sheet: &ProfileSheet,
-    record: &ProfileSheetRecord,
-) -> Vec<ProfileBrandCheck> {
-    let from_record = record_brand_ids(record);
+/// 並べるブランド (ブランドの並び順、その他を除く)。
+fn listed_brands(record: &ProfileSheetRecord) -> Vec<&ProfileBrandInput> {
     let mut brands: Vec<&ProfileBrandInput> = record
         .brands
         .iter()
@@ -1210,49 +1515,152 @@ pub fn profile_brand_marks(
             .then_with(|| a.id.cmp(&b.id))
     });
     brands
+}
+
+/// 記録から丸が付くブランド: 担当の所属と、今日までに参加した公演のライブのブランド。
+fn record_brand_ids(record: &ProfileSheetRecord) -> HashSet<String> {
+    let today = parse_date(&record.today);
+    let mut ids: HashSet<String> = record.oshi_brand_ids.iter().cloned().collect();
+    for s in &record.attended {
+        let past = matches!((parse_date(&s.date), today), (Some(d), Some(t)) if d <= t);
+        if past {
+            if let Some(b) = &s.brand_id {
+                ids.insert(b.clone());
+            }
+        }
+    }
+    ids
+}
+
+/// メインの既定: 最初の担当のブランド、担当がいなければいちばん多く参加したブランド。
+fn default_main_brand(record: &ProfileSheetRecord) -> Option<String> {
+    let listed = listed_brands(record);
+    let is_listed = |id: &str| listed.iter().any(|b| b.id == id);
+    if let Some(b) = record.oshi_brand_ids.iter().find(|b| is_listed(b)) {
+        return Some(b.clone());
+    }
+    let facts = Facts::new(record);
+    let label = facts.top_brand?.0;
+    listed
+        .iter()
+        .find(|b| b.label == label)
+        .map(|b| b.id.clone())
+}
+
+/// 担当ブランドの並び (ブランドの並び順、その他を除く) と丸。丸は記録から付け、自分で付け外しした分を
+/// 重ねる。メイン (二重丸) は 1 つだけで、丸の付いたブランドのうち、上書きがあればそれ、無ければ既定
+/// ([`default_main_brand`])。
+pub fn profile_brand_marks(
+    sheet: &ProfileSheet,
+    record: &ProfileSheetRecord,
+) -> Vec<ProfileBrandCheck> {
+    let from_record = record_brand_ids(record);
+    let listed = listed_brands(record);
+    let checked_of = |id: &str| -> bool {
+        if from_record.contains(id) {
+            !sheet.brand_off.iter().any(|b| b == id)
+        } else {
+            sheet.brand_on.iter().any(|b| b == id)
+        }
+    };
+    let main = match &sheet.brand_main {
+        Some(id) if id.is_empty() => None,
+        Some(id) => Some(id.clone()),
+        None => default_main_brand(record),
+    }
+    .filter(|id| listed.iter().any(|b| &b.id == id) && checked_of(id));
+    listed
         .into_iter()
         .map(|b| {
-            let auto = from_record.contains(&b.id);
-            let checked = if auto {
-                !sheet.brand_off.contains(&b.id)
-            } else {
-                sheet.brand_on.contains(&b.id)
+            let checked = checked_of(&b.id);
+            let is_main = main.as_deref() == Some(b.id.as_str());
+            let rings = match (checked, is_main) {
+                (false, _) => Vec::new(),
+                (true, false) => vec![hand_ring(&b.id, 0)],
+                (true, true) => vec![hand_ring(&b.id, 0), hand_ring(&b.id, 1)],
             };
-            let h = fnv1a(&b.id);
             ProfileBrandCheck {
                 id: b.id.clone(),
                 label: b.label.clone(),
                 color: b.color.clone(),
                 checked,
-                from_record: auto,
-                tilt_degrees: f64::from(h % 19) - 9.0,
-                stretch: 0.92 + f64::from((h >> 8) % 21) / 100.0,
-                start_degrees: f64::from((h >> 16) % 360),
+                main: is_main,
+                from_record: from_record.contains(&b.id),
+                rings,
             }
         })
         .collect()
 }
 
-/// 対応範囲の丸を 1 つ付け外しした中身。記録から付く丸を外したら `brand_off` に、
-/// 記録に無い丸を付けたら `brand_on` に入れる (記録が増えても、自分で決めた分は変えない)。
+/// 手描きの楕円の揺らぎ (id と何本目かから決める)。1 本目は名前を囲み、2 本目は少し大きく、
+/// 傾きと中心をずらして重ねる (二重丸)。
+fn hand_ring(id: &str, nth: u32) -> ProfileHandRing {
+    let h = fnv1a(id);
+    let base_tilt = f64::from(h % 19) - 9.0;
+    if nth == 0 {
+        return ProfileHandRing {
+            tilt_degrees: base_tilt,
+            stretch: 0.92 + f64::from((h >> 8) % 21) / 100.0,
+            start_degrees: f64::from((h >> 16) % 360),
+            scale: 1.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+        };
+    }
+    let g = fnv1a(&format!("{id}#{nth}"));
+    // 2 本目は傾きを 1 本目と逆向きに 4〜9 度ずらす (同じ向きだと 1 本の太い線に見える)。
+    let turn = 4.0 + f64::from(g % 6);
+    let tilt = if base_tilt >= 0.0 {
+        base_tilt - turn
+    } else {
+        base_tilt + turn
+    };
+    ProfileHandRing {
+        tilt_degrees: tilt,
+        stretch: 0.96 + f64::from((g >> 8) % 17) / 100.0,
+        start_degrees: f64::from((g >> 16) % 360),
+        scale: 1.12 + f64::from((g >> 4) % 7) / 100.0,
+        offset_x: (f64::from((g >> 12) % 9) - 4.0) / 100.0,
+        offset_y: (f64::from((g >> 20) % 9) - 4.0) / 100.0,
+    }
+}
+
+/// 担当ブランドのブランドを 1 回押した選択。押すたびに 丸なし → 丸 → 二重丸 (メイン) → 丸なし と回す。
+///
+/// - 記録から付く丸を外したら `brand_off` に、記録に無い丸を付けたら `brand_on` に入れる
+///   (記録が増えても、自分で決めた分は変えない)。
+/// - 丸を二重丸にしたら、それがメイン (前のメインは丸に戻る)。
+/// - 二重丸を押したら丸なしにし、メインは「なし」に決める (既定のメインを勝手に戻さない)。
 pub fn profile_toggle_brand(
     sheet: &ProfileSheet,
     record: &ProfileSheetRecord,
     brand_id: &str,
 ) -> ProfileSheet {
-    let checked = profile_brand_marks(sheet, record)
-        .iter()
-        .any(|b| b.id == brand_id && b.checked);
-    let auto = record_brand_ids(record).contains(brand_id);
+    let Some(mark) = profile_brand_marks(sheet, record)
+        .into_iter()
+        .find(|b| b.id == brand_id)
+    else {
+        return sheet.clone();
+    };
     let mut out = sheet.clone();
-    // 前に決めた分を両方から消し、今の記録に対して要る方にだけ入れる
-    // (記録が後から変わっても、最後に押した向きが残る)。
-    out.brand_on.retain(|b| b != brand_id);
-    out.brand_off.retain(|b| b != brand_id);
-    match (checked, auto) {
-        (true, true) => out.brand_off.push(brand_id.to_string()),
-        (false, false) => out.brand_on.push(brand_id.to_string()),
-        _ => {}
+    let set_checked = |out: &mut ProfileSheet, checked: bool| {
+        // 前に決めた分を両方から消し、今の記録に対して要る方にだけ入れる
+        // (記録が後から変わっても、最後に押した向きが残る)。
+        out.brand_on.retain(|b| b != brand_id);
+        out.brand_off.retain(|b| b != brand_id);
+        match (checked, mark.from_record) {
+            (false, true) => out.brand_off.push(brand_id.to_string()),
+            (true, false) => out.brand_on.push(brand_id.to_string()),
+            _ => {}
+        }
+    };
+    match (mark.checked, mark.main) {
+        (false, _) => set_checked(&mut out, true),
+        (true, false) => out.brand_main = Some(brand_id.to_string()),
+        (true, true) => {
+            set_checked(&mut out, false);
+            out.brand_main = Some(String::new());
+        }
     }
     out
 }
@@ -1275,12 +1683,6 @@ fn char_len(s: &str) -> usize {
     s.chars().count()
 }
 
-/// 上限と比べる文字数 (前後の空白・改行を除く)。編集画面の「12 / 80」もこれで数える
-/// (画面とコアで数え方が違うと、上限内に見えるのに保存できない)。
-pub fn profile_text_len(text: &str) -> u32 {
-    char_len(text.trim()) as u32
-}
-
 // ---------------------------------------------------------------------------
 // テスト
 // ---------------------------------------------------------------------------
@@ -1299,45 +1701,36 @@ mod tests {
         }
     }
 
+    fn brand(id: &str, label: &str, order: i64) -> ProfileBrandInput {
+        ProfileBrandInput {
+            id: id.into(),
+            label: label.into(),
+            color: None,
+            sort_order: order,
+        }
+    }
+
     fn record() -> ProfileSheetRecord {
         ProfileSheetRecord {
             today: "2026-10-06".into(),
             name: " ふがP ".into(),
             since_year: Some(2014),
+            oshi_names: vec!["天海春香".into()],
             oshi_brand_ids: vec!["765".into()],
             attended: vec![
                 show("b", "2025-03-01", "ml"),
                 show("a", "2015-07-18", "765"),
                 show("c", "2026-09-14", "cg"),
+                show("d", "2026-09-15", "cg"),
                 show("n", "2026-11-03", "765"),
                 show("a", "2015-07-18", "765"),
             ],
             song_count: 523,
             brands: vec![
-                ProfileBrandInput {
-                    id: "765".into(),
-                    label: "765".into(),
-                    color: None,
-                    sort_order: 1,
-                },
-                ProfileBrandInput {
-                    id: "cg".into(),
-                    label: "シンデレラ".into(),
-                    color: None,
-                    sort_order: 4,
-                },
-                ProfileBrandInput {
-                    id: "ml".into(),
-                    label: "ミリオン".into(),
-                    color: None,
-                    sort_order: 5,
-                },
-                ProfileBrandInput {
-                    id: "sm".into(),
-                    label: "SideM".into(),
-                    color: None,
-                    sort_order: 6,
-                },
+                brand("765", "765", 1),
+                brand("cg", "シンデレラ", 4),
+                brand("ml", "ミリオン", 5),
+                brand("sm", "SideM", 6),
             ],
             favorite_songs: vec![
                 ProfileSongInput {
@@ -1350,101 +1743,109 @@ mod tests {
                 },
             ],
             links: vec!["@fuga_p".into()],
+            has_photo: true,
+            has_qr: true,
+            live: ProfileLiveRecord {
+                top_songs: vec![
+                    ProfileCount {
+                        id: "s9".into(),
+                        label: "曲9".into(),
+                        count: 3,
+                    },
+                    ProfileCount {
+                        id: "s8".into(),
+                        label: "曲8".into(),
+                        count: 2,
+                    },
+                ],
+                oshi_heard: vec![ProfileCount {
+                    id: "haruka".into(),
+                    label: "天海春香".into(),
+                    count: 5,
+                }],
+                top_venue: Some(ProfileCount {
+                    id: "v:ssa".into(),
+                    label: "さいたまスーパーアリーナ".into(),
+                    count: 2,
+                }),
+                prefecture_count: 3,
+            },
         }
     }
 
-    fn sheet_with(answers: &[(ProfileQuestion, &str)]) -> ProfileSheet {
+    /// 記録の少ない人 (参加 1 公演だけ・担当なし・お気に入りなし)。
+    fn sparse_record() -> ProfileSheetRecord {
+        ProfileSheetRecord {
+            since_year: None,
+            oshi_names: Vec::new(),
+            oshi_brand_ids: Vec::new(),
+            attended: vec![show("x", "2026-08-01", "ml")],
+            song_count: 0,
+            favorite_songs: Vec::new(),
+            links: Vec::new(),
+            has_photo: false,
+            has_qr: false,
+            live: ProfileLiveRecord::default(),
+            ..record()
+        }
+    }
+
+    fn career() -> ProfileSheet {
         ProfileSheet {
-            answers: answers
-                .iter()
-                .map(|(q, t)| ProfileAnswer {
-                    question: *q,
-                    prompt: String::new(),
-                    text: (*t).into(),
-                })
-                .collect(),
+            style: ProfileSheetStyle::Career,
             ..profile_sheet_default()
         }
     }
 
     #[test]
-    fn default_is_resume_with_three_questions_and_qr_hidden() {
+    fn default_is_resume_with_qr_hidden() {
         let s = profile_sheet_default();
         assert_eq!(s.style, ProfileSheetStyle::Resume);
         assert_eq!(s.size, ProfileSheetSize::Portrait);
-        assert_eq!(s.answers.len(), 3);
         assert_eq!(s.hidden, vec![ProfileAutoField::Qr]);
-        assert_eq!(validate_profile_sheet(&s), None);
+        assert_eq!(s.brand_main, None);
     }
 
     #[test]
-    fn json_round_trip_keeps_order_and_custom_prompt() {
-        let mut s = sheet_with(&[
-            (ProfileQuestion::Message, "よろしく"),
-            (ProfileQuestion::Free, "答え"),
-        ]);
-        s.answers[1].prompt = "好きな衣装".into();
-        s.style = ProfileSheetStyle::Career;
+    fn json_round_trip_keeps_choices() {
+        let mut s = career();
         s.size = ProfileSheetSize::Story;
-        s.furigana = "ふがぴー".into();
-        s.hidden = vec![ProfileAutoField::Photo, ProfileAutoField::Qr];
-        s.favorite_song_ids = vec!["s1".into(), "s2".into()];
+        s.hidden = vec![ProfileAutoField::Photo, ProfileAutoField::Yearly];
+        s.brand_on = vec!["sm".into()];
+        s.brand_off = vec!["cg".into()];
+        s.brand_main = Some("ml".into());
         assert_eq!(profile_sheet_from_json(&profile_sheet_to_json(&s)), s);
+        // メインなし (空文字) も残る。既定 (None) はキーを書かない。
+        s.brand_main = Some(String::new());
+        assert_eq!(profile_sheet_from_json(&profile_sheet_to_json(&s)), s);
+        assert!(!profile_sheet_to_json(&profile_sheet_default()).contains("brandMain"));
     }
 
     #[test]
-    fn broken_or_unknown_json_falls_back_without_losing_the_rest() {
+    fn old_json_with_answers_still_reads() {
         assert_eq!(profile_sheet_from_json(""), profile_sheet_default());
         assert_eq!(profile_sheet_from_json("{"), profile_sheet_default());
         let s = profile_sheet_from_json(
-            r#"{"style":"zine","answers":[{"q":"future","text":"x"},{"q":"message","text":"y"}],
-                "hidden":["qr","qr","sparkles"],"songs":["a","a","b","c","d"]}"#,
+            r#"{"style":"career","size":"story","furigana":"ふがぴー",
+                "answers":[{"q":"message","prompt":"","text":"よろしく"}],
+                "hidden":["qr","qr","sparkles","songs"],"songs":["a","b"],
+                "brandOn":["sm","sm"],"brandOff":[]}"#,
         );
-        assert_eq!(s.style, ProfileSheetStyle::Resume);
-        assert_eq!(s.answers.len(), 1);
-        assert_eq!(s.answers[0].question, ProfileQuestion::Message);
-        assert_eq!(s.hidden, vec![ProfileAutoField::Qr]);
-        assert_eq!(s.favorite_song_ids, vec!["a", "b", "c"]);
+        assert_eq!(s.style, ProfileSheetStyle::Career);
+        assert_eq!(s.size, ProfileSheetSize::Story);
+        assert_eq!(
+            s.hidden,
+            vec![ProfileAutoField::Qr, ProfileAutoField::Songs]
+        );
+        assert_eq!(s.brand_on, vec!["sm"]);
+        assert_eq!(s.brand_main, None);
+        // 書き直すと前の版の答えは残らない。
+        let json = profile_sheet_to_json(&s);
+        assert!(!json.contains("answers") && !json.contains("furigana"));
     }
 
     #[test]
-    fn validation_limits() {
-        let mut s = sheet_with(&[(ProfileQuestion::Message, &"あ".repeat(80))]);
-        assert_eq!(validate_profile_sheet(&s), None);
-        s.answers[0].text.push('あ');
-        assert_eq!(
-            validate_profile_sheet(&s),
-            Some(ProfileSheetError::AnswerTooLong)
-        );
-        let mut s = sheet_with(&[]);
-        s.favorite_song_ids = vec!["1".into(), "2".into(), "3".into(), "4".into()];
-        assert_eq!(
-            validate_profile_sheet(&s),
-            Some(ProfileSheetError::TooManySongs)
-        );
-        let s = sheet_with(&[(ProfileQuestion::Free, ""); 9]);
-        assert_eq!(
-            validate_profile_sheet(&s),
-            Some(ProfileSheetError::TooManyAnswers)
-        );
-        assert!(profile_sheet_error_message(ProfileSheetError::AnswerTooLong).contains("80"));
-    }
-
-    #[test]
-    fn addable_questions_skip_used_ones_but_free_repeats() {
-        let s = sheet_with(&[(ProfileQuestion::Trigger, ""), (ProfileQuestion::Free, "")]);
-        let keys: Vec<String> = profile_addable_questions(&s)
-            .into_iter()
-            .map(|q| q.key)
-            .collect();
-        assert!(!keys.contains(&"trigger".to_string()));
-        assert!(keys.contains(&"free".to_string()));
-        let full = sheet_with(&[(ProfileQuestion::Free, ""); 8]);
-        assert!(profile_addable_questions(&full).is_empty());
-    }
-
-    #[test]
-    fn resume_history_reads_since_first_recent_next_then_closing() {
+    fn resume_history_and_licenses_come_from_records() {
         let layout = profile_sheet_layout(&profile_sheet_default(), &record());
         assert_eq!(layout.title, "履歴書");
         assert_eq!(layout.as_of, "2026年10月6日現在");
@@ -1460,64 +1861,96 @@ mod tests {
             vec![
                 ("2014".into(), "".into(), "プロデューサーに就任".into()),
                 ("2015".into(), "7".into(), "はじめて参加　公演a".into()),
-                ("2026".into(), "9".into(), "最近の現場　公演c".into()),
-                ("2026".into(), "11".into(), "次の現場　公演n（予定）".into()),
+                ("2026".into(), "9".into(), "最近の現場　公演d".into()),
                 ("".into(), "".into(), "以上".into()),
             ]
         );
         // 重複した参加は 1 回に数え、予定は数えない。
-        assert_eq!(layout.licenses.len(), 1);
-        assert_eq!(layout.licenses[0].text, "参加公演 3公演・回収曲 523曲 達成");
+        let licenses: Vec<&str> = layout.licenses.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(
+            licenses,
+            vec![
+                "参加公演 4公演・回収曲 523曲 達成",
+                "現地 3都道府県 踏破",
+                "現場歴 11年 到達",
+            ]
+        );
         assert!(layout.career.is_empty());
-        // 担当のブランドと行ったライブのブランドに印。
-        let checked: Vec<&str> = layout
-            .brands
-            .iter()
-            .filter(|b| b.checked)
-            .map(|b| b.id.as_str())
-            .collect();
-        assert_eq!(checked, vec!["765", "cg", "ml"]);
+        assert_eq!(layout.brands_title, "担当ブランド");
         assert_eq!(layout.contacts, vec!["@fuga_p"]);
         assert!(!layout.show_qr);
+        assert!(layout.show_photo);
     }
 
     #[test]
-    fn resume_slots_place_auto_songs_and_answers() {
-        let sheet = sheet_with(&[
-            (ProfileQuestion::Message, "よろしく"),
-            (ProfileQuestion::Trigger, "アニメ"),
-            (ProfileQuestion::FavoriteCall, "  "),
-        ]);
-        let layout = profile_sheet_layout(&sheet, &record());
-        let slots: Vec<ProfileSlot> = layout.sections.iter().map(|s| s.slot).collect();
+    fn resume_slots_hold_songs_places_and_next_show() {
+        let layout = profile_sheet_layout(&profile_sheet_default(), &record());
+        let got: Vec<(ProfileSlot, Vec<(&str, &str)>)> = layout
+            .sections
+            .iter()
+            .map(|s| {
+                (
+                    s.slot,
+                    s.entries
+                        .iter()
+                        .map(|e| (e.label.as_str(), e.text.as_str()))
+                        .collect(),
+                )
+            })
+            .collect();
         assert_eq!(
-            slots,
+            got,
             vec![
-                ProfileSlot::Motivation,
-                ProfileSlot::Hobby,
-                ProfileSlot::Wish
+                (
+                    ProfileSlot::Motivation,
+                    vec![
+                        ("現地でいちばん聴いた曲", "「曲9」3回　「曲8」2回"),
+                        ("担当の歌を現地で聴いた回数", "天海春香 5回"),
+                    ]
+                ),
+                (
+                    ProfileSlot::Hobby,
+                    vec![
+                        ("お気に入りの曲", "「曲1」「曲2」"),
+                        ("いちばん通ったブランド", "シンデレラ 2公演"),
+                        ("いちばん通った会場", "さいたまスーパーアリーナ 2回"),
+                    ]
+                ),
+                (
+                    ProfileSlot::Wish,
+                    vec![("次の現場", "2026年11月3日　公演n（会場n）")]
+                ),
             ]
         );
-        assert_eq!(layout.sections[0].entries[0].label, "Pになったきっかけ");
-        assert_eq!(layout.sections[1].entries[0].text, "「曲1」「曲2」");
-        assert!(layout.sections[1].entries[0].is_auto);
-        // 空の答えは出さない (好きなコールは空)。
-        assert_eq!(layout.sections[1].entries.len(), 1);
-        assert_eq!(layout.sections[2].entries[0].text, "よろしく");
+    }
+
+    #[test]
+    fn sparse_records_leave_no_empty_slots() {
+        let layout = profile_sheet_layout(&profile_sheet_default(), &sparse_record());
+        // 参加 1 公演: はじめての参加だけ。P歴・最近の現場・予定・資格の数の他は出ない。
+        assert_eq!(layout.history.len(), 2);
+        assert_eq!(layout.licenses.len(), 1);
+        assert_eq!(layout.licenses[0].text, "参加公演 1公演・回収曲 0曲 達成");
+        let fields: Vec<ProfileAutoField> = layout
+            .sections
+            .iter()
+            .flat_map(|s| s.entries.iter().map(|e| e.field))
+            .collect();
+        assert_eq!(fields, vec![ProfileAutoField::TopBrand]);
+        assert!(!layout.show_photo && !layout.show_oshi);
+        assert!(layout.since_label.is_none());
+        // 編集画面にも記録の無い欄は並ばない。
+        let keys: Vec<String> = profile_auto_field_rows(&profile_sheet_default(), &sparse_record())
+            .into_iter()
+            .map(|r| r.key)
+            .collect();
+        assert_eq!(keys, vec!["brands", "shows", "counts", "top_brand"]);
     }
 
     #[test]
     fn hidden_fields_drop_their_rows() {
         let mut sheet = profile_sheet_default();
-        sheet.hidden = vec![
-            ProfileAutoField::Since,
-            ProfileAutoField::Shows,
-            ProfileAutoField::NextShow,
-            ProfileAutoField::Counts,
-            ProfileAutoField::Brands,
-            ProfileAutoField::Links,
-            ProfileAutoField::Songs,
-        ];
+        sheet.hidden = ALL_AUTO_FIELDS.to_vec();
         let layout = profile_sheet_layout(&sheet, &record());
         assert!(layout.history.is_empty(), "行が無ければ「以上」も出さない");
         assert!(layout.licenses.is_empty());
@@ -1525,45 +1958,69 @@ mod tests {
         assert!(layout.contacts.is_empty());
         assert!(layout.since_label.is_none());
         assert!(layout.sections.is_empty());
-        assert!(layout.show_qr);
+        assert!(!layout.show_qr && !layout.show_photo);
+        let shown = profile_toggle_field(&sheet, ProfileAutoField::Qr);
+        assert!(profile_sheet_layout(&shown, &record()).show_qr);
+        assert_eq!(profile_toggle_field(&shown, ProfileAutoField::Qr), sheet);
     }
 
     #[test]
-    fn career_groups_shows_by_year_newest_first_with_planned_on_top() {
-        let mut sheet = sheet_with(&[
-            (ProfileQuestion::Message, "同僚募集中"),
-            (ProfileQuestion::Landmark, "タオル"),
-        ]);
-        sheet.style = ProfileSheetStyle::Career;
-        let layout = profile_sheet_layout(&sheet, &record());
+    fn career_has_summary_table_skills_and_stats() {
+        let layout = profile_sheet_layout(&career(), &record());
         assert_eq!(layout.title, "職務経歴書");
         let years: Vec<(&str, &str, usize)> = layout
             .career
             .iter()
             .map(|y| (y.year.as_str(), y.count_label.as_str(), y.rows.len()))
             .collect();
-        assert_eq!(
-            years,
-            vec![
-                ("2026年", "1公演", 2),
-                ("2025年", "1公演", 1),
-                ("2015年", "1公演", 1)
-            ]
-        );
+        assert_eq!(years, vec![("2026年", "2公演", 3), ("2025年", "1公演", 1)]);
+        assert_eq!(layout.career_more, 1);
         assert!(layout.career[0].rows[0].planned);
         assert_eq!(layout.career[0].rows[0].date, "11/3");
         assert_eq!(
             layout.career[0].rows[1].brand.as_deref(),
             Some("シンデレラ")
         );
-        assert_eq!(layout.career_more, 0);
         let slots: Vec<ProfileSlot> = layout.sections.iter().map(|s| s.slot).collect();
-        assert_eq!(slots, vec![ProfileSlot::Summary, ProfileSlot::Skills]);
-        assert!(layout.sections[0].entries[0]
-            .text
-            .starts_with("2014年よりプロデューサー"));
-        assert_eq!(layout.sections[0].entries[1].text, "同僚募集中");
+        assert_eq!(
+            slots,
+            vec![
+                ProfileSlot::Summary,
+                ProfileSlot::Skills,
+                ProfileSlot::SelfPr
+            ]
+        );
+        assert_eq!(
+            layout.sections[0].entries[0].text,
+            "2014年よりプロデューサーとして活動。2015年7月の初参加から、4公演に参加し、523曲を回収。主にシンデレラの現場に通う。"
+        );
+        let stats: Vec<(&str, &str, &str)> = layout.sections[2]
+            .stats
+            .iter()
+            .map(|s| (s.label.as_str(), s.value.as_str(), s.unit.as_str()))
+            .collect();
+        assert_eq!(
+            stats,
+            vec![
+                ("参加公演", "4", "公演"),
+                ("回収曲", "523", "曲"),
+                ("現地", "3", "都道府県"),
+                ("担当の歌唱", "5", "回"),
+                ("現場歴", "11", "年"),
+            ]
+        );
+        assert_eq!(
+            layout.sections[2].entries[0].text,
+            "2026年 2公演　2025年 1公演　2015年 1公演"
+        );
         assert!(layout.history.is_empty());
+        // 年ごとの参加数は職務経歴書だけの欄。
+        assert!(profile_auto_field_rows(&profile_sheet_default(), &record())
+            .iter()
+            .all(|r| r.field != ProfileAutoField::Yearly));
+        assert!(profile_auto_field_rows(&career(), &record())
+            .iter()
+            .any(|r| r.field == ProfileAutoField::Yearly));
     }
 
     #[test]
@@ -1579,8 +2036,7 @@ mod tests {
             })
             .collect();
         rec.attended.dedup_by(|a, b| a.date == b.date);
-        let mut sheet = profile_sheet_default();
-        sheet.style = ProfileSheetStyle::Career;
+        let mut sheet = career();
         let portrait = profile_sheet_layout(&sheet, &rec);
         let shown: usize = portrait.career.iter().map(|y| y.rows.len()).sum();
         assert_eq!(shown, 4);
@@ -1591,127 +2047,210 @@ mod tests {
     }
 
     #[test]
-    fn density_tightens_as_answers_grow_and_relaxes_on_story() {
-        let few = profile_sheet_layout(
-            &sheet_with(&[(ProfileQuestion::Message, "よろしく")]),
-            &record(),
-        );
-        assert_eq!(few.density, ProfileSheetDensity::Regular);
-        let long = "あ".repeat(80);
-        let many: Vec<(ProfileQuestion, &str)> =
-            ALL_QUESTIONS.iter().map(|q| (*q, long.as_str())).collect();
-        let mut sheet = sheet_with(&many);
-        let dense = profile_sheet_layout(&sheet, &record());
+    fn density_relaxes_for_sparse_records_and_on_story() {
+        let sparse = profile_sheet_layout(&profile_sheet_default(), &sparse_record());
+        assert_eq!(sparse.density, ProfileSheetDensity::Regular);
+        let mut rec = record();
+        rec.live.top_songs = (0..3)
+            .map(|i| ProfileCount {
+                id: format!("t{i}"),
+                label: "とても長い曲名".repeat(4),
+                count: 9,
+            })
+            .collect();
+        let dense = profile_sheet_layout(&profile_sheet_default(), &rec);
         assert_ne!(dense.density, ProfileSheetDensity::Regular);
-        sheet.size = ProfileSheetSize::Story;
-        sheet.answers.truncate(4);
-        let story = profile_sheet_layout(&sheet, &record());
-        assert_eq!(story.density, ProfileSheetDensity::Regular);
-    }
-
-    #[test]
-    fn question_slots_cover_every_question_in_both_styles() {
-        for q in ALL_QUESTIONS {
-            assert!(slots(ProfileSheetStyle::Resume)
-                .contains(&profile_question_slot(ProfileSheetStyle::Resume, q)));
-            assert!(slots(ProfileSheetStyle::Career)
-                .contains(&profile_question_slot(ProfileSheetStyle::Career, q)));
-        }
+        let mut story = profile_sheet_default();
+        story.size = ProfileSheetSize::Story;
+        assert_eq!(
+            profile_sheet_layout(&story, &rec).density,
+            ProfileSheetDensity::Regular
+        );
     }
 
     #[test]
     fn info_lists_have_unique_keys() {
-        let mut keys: Vec<String> = profile_questions().into_iter().map(|q| q.key).collect();
-        keys.extend(profile_auto_fields().into_iter().map(|f| f.key));
+        let mut keys: Vec<String> = profile_auto_fields().into_iter().map(|f| f.key).collect();
         let n = keys.len();
         keys.sort();
         keys.dedup();
         assert_eq!(keys.len(), n);
         assert_eq!(profile_sheet_sizes()[1].height_px, 1920);
         assert_eq!(profile_sheet_styles()[0].label, "履歴書");
+        assert_eq!(
+            profile_auto_field_info(ProfileAutoField::Brands).label,
+            "担当ブランド"
+        );
     }
 
     #[test]
     fn brand_marks_skip_other_follow_sort_order_and_keep_manual_choices() {
         let mut rec = record();
-        rec.brands.push(ProfileBrandInput {
-            id: "other".into(),
-            label: "Other".into(),
-            color: None,
-            sort_order: 99,
-        });
+        rec.brands.push(brand("other", "Other", 99));
         rec.brands.reverse();
         let sheet = profile_sheet_default();
         let marks = profile_brand_marks(&sheet, &rec);
         let ids: Vec<&str> = marks.iter().map(|b| b.id.as_str()).collect();
         assert_eq!(ids, vec!["765", "cg", "ml", "sm"]);
         assert!(marks.iter().all(|b| b.checked == b.from_record));
-        assert!(!marks[3].checked);
+        assert!(!marks[3].checked && marks[3].rings.is_empty());
 
-        // 記録から付く丸を外す・記録に無い丸を付ける。もう一度押すと戻る。
         // 記録に無いのに付けた丸を、記録が付いた後で外し、記録がまた消えても外したまま。
         let mut later = rec.clone();
         later.oshi_brand_ids.push("sm".into());
         let picked = profile_toggle_brand(&sheet, &rec, "sm");
-        let dropped = profile_toggle_brand(&picked, &later, "sm");
+        assert_eq!(picked.brand_on, vec!["sm"]);
+        // 記録が付いた後で 丸 → 二重丸 → 丸なし。
+        let main = profile_toggle_brand(&picked, &later, "sm");
+        let dropped = profile_toggle_brand(&main, &later, "sm");
         assert!(!profile_brand_marks(&dropped, &rec)
             .iter()
             .any(|b| b.id == "sm" && b.checked));
-        assert!(profile_text_len("  あ👍 \n") == 2);
-
-        let off = profile_toggle_brand(&sheet, &rec, "cg");
-        assert_eq!(off.brand_off, vec!["cg"]);
-        let on = profile_toggle_brand(&off, &rec, "sm");
-        assert_eq!(on.brand_on, vec!["sm"]);
-        let checked: Vec<String> = profile_brand_marks(&on, &rec)
-            .into_iter()
-            .filter(|b| b.checked)
-            .map(|b| b.id)
-            .collect();
-        assert_eq!(checked, vec!["765", "ml", "sm"]);
-        let back = profile_toggle_brand(&profile_toggle_brand(&on, &rec, "cg"), &rec, "sm");
-        assert!(back.brand_on.is_empty() && back.brand_off.is_empty());
-        assert_eq!(profile_sheet_from_json(&profile_sheet_to_json(&on)), on);
+        assert_eq!(
+            profile_sheet_from_json(&profile_sheet_to_json(&dropped)),
+            dropped
+        );
     }
 
     #[test]
-    fn brand_circle_wobble_is_stable_and_in_range() {
+    fn main_brand_defaults_to_first_oshi_then_most_attended() {
+        let marks = profile_brand_marks(&profile_sheet_default(), &record());
+        let main: Vec<&str> = marks
+            .iter()
+            .filter(|b| b.main)
+            .map(|b| b.id.as_str())
+            .collect();
+        assert_eq!(main, vec!["765"]);
+        assert_eq!(marks[0].rings.len(), 2);
+        assert_eq!(marks[1].rings.len(), 1);
+        // 担当がいなければいちばん多く参加したブランド。
+        let mut rec = record();
+        rec.oshi_brand_ids.clear();
+        let marks = profile_brand_marks(&profile_sheet_default(), &rec);
+        assert_eq!(
+            marks
+                .iter()
+                .filter(|b| b.main)
+                .map(|b| b.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["cg"]
+        );
+        // 記録が無ければメインも無い。
+        let mut empty = sparse_record();
+        empty.attended.clear();
+        assert!(profile_brand_marks(&profile_sheet_default(), &empty)
+            .iter()
+            .all(|b| !b.main && !b.checked));
+    }
+
+    #[test]
+    fn tapping_a_brand_cycles_none_circle_double_none() {
+        let rec = record();
+        let s0 = profile_sheet_default();
+        let state = |s: &ProfileSheet, id: &str| -> (bool, bool) {
+            let m = profile_brand_marks(s, &rec)
+                .into_iter()
+                .find(|b| b.id == id)
+                .unwrap();
+            (m.checked, m.main)
+        };
+        assert_eq!(state(&s0, "sm"), (false, false));
+        let s1 = profile_toggle_brand(&s0, &rec, "sm");
+        assert_eq!(state(&s1, "sm"), (true, false));
+        let s2 = profile_toggle_brand(&s1, &rec, "sm");
+        assert_eq!(state(&s2, "sm"), (true, true));
+        // メインは 1 つだけ: 前のメインは丸に戻る。
+        assert_eq!(state(&s2, "765"), (true, false));
+        let s3 = profile_toggle_brand(&s2, &rec, "sm");
+        assert_eq!(state(&s3, "sm"), (false, false));
+        // 二重丸を外した後は既定のメインを勝手に戻さない。
+        assert!(profile_brand_marks(&s3, &rec).iter().all(|b| !b.main));
+        assert_eq!(s3.brand_main.as_deref(), Some(""));
+        // 記録から付く丸 (cg) も同じ順で回る。
+        let c1 = profile_toggle_brand(&s0, &rec, "cg");
+        assert_eq!(state(&c1, "cg"), (true, true));
+        let c2 = profile_toggle_brand(&c1, &rec, "cg");
+        assert_eq!(state(&c2, "cg"), (false, false));
+        assert_eq!(c2.brand_off, vec!["cg"]);
+        // 知らない id は何も変えない。
+        assert_eq!(profile_toggle_brand(&s0, &rec, "zzz"), s0);
+    }
+
+    #[test]
+    fn brand_rings_are_stable_and_in_range() {
         let rec = record();
         let a = profile_brand_marks(&profile_sheet_default(), &rec);
-        let b = profile_brand_marks(&profile_sheet_default(), &rec);
-        assert_eq!(a, b);
+        assert_eq!(a, profile_brand_marks(&profile_sheet_default(), &rec));
         for m in &a {
-            assert!((-9.0..=9.0).contains(&m.tilt_degrees));
-            assert!((0.92..=1.12).contains(&m.stretch));
-            assert!((0.0..360.0).contains(&m.start_degrees));
+            for (i, r) in m.rings.iter().enumerate() {
+                assert!((-18.0..=18.0).contains(&r.tilt_degrees));
+                assert!((0.92..=1.13).contains(&r.stretch));
+                assert!((0.0..360.0).contains(&r.start_degrees));
+                assert!(
+                    (-0.04..=0.04).contains(&r.offset_x) && (-0.04..=0.04).contains(&r.offset_y)
+                );
+                if i == 0 {
+                    assert_eq!(r.scale, 1.0);
+                } else {
+                    assert!((1.12..=1.18).contains(&r.scale));
+                    assert_ne!(r.tilt_degrees, m.rings[0].tilt_degrees);
+                }
+            }
         }
-        assert!(a.windows(2).any(|w| w[0].tilt_degrees != w[1].tilt_degrees));
     }
 
     #[test]
-    fn portrait_prints_the_first_four_answers_in_order_and_counts_the_rest() {
-        let sheet = sheet_with(&[
-            (ProfileQuestion::Message, "1"),
-            (ProfileQuestion::Trigger, ""),
-            (ProfileQuestion::Landmark, "2"),
-            (ProfileQuestion::FavoriteCall, "3"),
-            (ProfileQuestion::Free, "4"),
-            (ProfileQuestion::Expedition, "5"),
-        ]);
-        let layout = profile_sheet_layout(&sheet, &record());
-        let texts: Vec<&str> = layout
-            .sections
+    fn live_record_counts_heard_songs_oshi_venues_and_prefectures() {
+        use crate::test_support::bundle_snapshot;
+        let snap = bundle_snapshot();
+        // 披露に数える公演を古い順に 40 公演。
+        let shows: Vec<String> = snap
+            .shows_in_date_order
             .iter()
-            .flat_map(|s| s.entries.iter())
-            .filter(|e| !e.is_auto)
-            .map(|e| e.text.as_str())
+            .map(|&s| &snap.shows[s as usize])
+            .filter(|s| s.counts_as_performance() && s.date.as_str() <= "2026-01-01")
+            .filter(|s| {
+                !snap.setlist_items_by_show[snap.show_index_by_id[&s.id] as usize].is_empty()
+            })
+            .take(40)
+            .map(|s| s.id.clone())
             .collect();
-        // 空の答えは数に入れない。並べた順に先頭の 4 つ (欄の中は欄の並びで出る)。
-        assert_eq!(texts.len(), 4);
-        assert!(!texts.contains(&"5"));
-        assert_eq!(layout.hidden_answers, 1);
-        let mut story = sheet.clone();
-        story.size = ProfileSheetSize::Story;
-        assert_eq!(profile_sheet_layout(&story, &record()).hidden_answers, 0);
+        assert_eq!(shows.len(), 40);
+        // 最初の公演で最初に歌ったアイドルを担当にする。
+        let first = snap.show_index_by_id[&shows[0]];
+        let item = snap.setlist_items_by_show[first as usize][0];
+        let idol = snap.performers_by_item[item as usize]
+            .first()
+            .map(|&i| snap.idols[i as usize].id.clone());
+        let oshi: Vec<String> = idol
+            .into_iter()
+            .chain(["no-such-idol".to_string()])
+            .collect();
+        let mut ids = shows.clone();
+        ids.push(shows[0].clone()); // 重複は 1 回
+        let live = profile_live_record(snap, &ids, &oshi, "2026-10-06");
+        assert!(
+            !live.top_songs.is_empty(),
+            "40 公演なら 2 回以上聴いた曲がある"
+        );
+        assert!(live.top_songs.len() <= 3);
+        assert!(live.top_songs.windows(2).all(|w| w[0].count >= w[1].count));
+        assert!(live.top_songs.iter().all(|c| c.count >= 2));
+        // 1 曲目の回数をセトリから数え直して合わせる。
+        let top = snap.song_index_by_id[&live.top_songs[0].id];
+        let expected = shows
+            .iter()
+            .map(|id| snap.show_index_by_id[id])
+            .flat_map(|s| snap.setlist_items_by_show[s as usize].iter())
+            .filter(|&&i| snap.setlist_items[i as usize].song == top)
+            .count() as u32;
+        assert_eq!(live.top_songs[0].count, expected);
+        assert!(live.oshi_heard.len() <= 1 && live.oshi_heard.iter().all(|c| c.count >= 1));
+        if let Some(v) = &live.top_venue {
+            assert!(v.count >= 2);
+        }
+        // 今日より後の公演だけなら何も数えない。
+        let none = profile_live_record(snap, &shows, &oshi, "1990-01-01");
+        assert_eq!(none, ProfileLiveRecord::default());
     }
 }
