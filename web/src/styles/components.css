@@ -3194,11 +3194,13 @@ a.cal__day:hover {
    表は名前・P歴の印字・担当 (ブランドごとにまとめる。並べる人はコアの producer_card_face)・ハンドル 1 つ。
    文字は紙の幅に合わせて伸び縮みする (container query の cqi。紙の上の大きさで決める)。
    収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下の紙面 (.meishi-details) に並べる。
-   名刺のデザインは 3 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
+   名刺のデザインは 4 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
    並び (DOM) は同じで、見た目だけを変える。自作の画像の名刺は Web に画像が無いので入場証。
    - pass   入場証: 左に担当色の縦の帯。
    - formal かしこまった名刺: 明朝、角の小さい紙に細い枠。担当色は名前の上の細い罫だけ。
    - pop    ポップ: 丸い太字、墨の太い枠と担当色の太い帯、名前に担当色の太い下線。
+   - oshi   担当を大きく: 左半分に担当を大きく (並べる順はコアの heroIdolIds、枠の割り方は data-count)。
+            Web は画像を持たないので、担当色の判子に名前を刷る。境目に担当色の細い縦の線。
    どれも帯・罫・下線以外はカードの地色のまま (淡い色の地のカードは却下済み)。 */
 .meishi {
   display: flex;
@@ -3368,6 +3370,81 @@ a.cal__day:hover {
 .meishi-card[data-design="pop"] .meishi-card__face-oshi {
   font-family: var(--font-display);
   font-weight: 800;
+}
+
+/* 担当を大きく (左半分に担当の判子を大きく。先頭ほど大きな枠) */
+.meishi-card__hero {
+  display: none;
+}
+.meishi-card[data-design="oshi"] .meishi-card__hero {
+  flex: none;
+  display: grid;
+  inline-size: 46%;
+  gap: 0.4cqi;
+  background: var(--ds-line);
+}
+.meishi-card__hero[data-count="2"],
+.meishi-card__hero[data-count="4"] {
+  grid-template-columns: 1fr 1fr;
+}
+.meishi-card__hero[data-count="3"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.meishi-card__hero[data-count="3"] > :first-child {
+  grid-row: span 2;
+}
+.meishi-card__hero[data-count="5"] {
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: 55fr 45fr;
+}
+.meishi-card__hero[data-count="5"] > * {
+  grid-column: span 2;
+}
+.meishi-card__hero[data-count="5"] > :nth-child(-n + 2) {
+  grid-column: span 3;
+}
+.meishi-card__hero-tile {
+  display: grid;
+  place-items: center;
+  min-inline-size: 0;
+  min-block-size: 0;
+  background: var(--ds-surface);
+}
+.meishi-card__hero-stamp {
+  display: grid;
+  place-items: center;
+  inline-size: min(78%, 30cqi);
+  aspect-ratio: 1;
+  padding: 1.2cqi;
+  border: 0.6cqi solid var(--accent, var(--ds-ink));
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 2.8cqi;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--accent, var(--ds-ink));
+}
+.meishi-card__hero:is([data-count="4"], [data-count="5"]) .meishi-card__hero-stamp {
+  font-size: 2cqi;
+}
+.meishi-card[data-design="oshi"] .meishi-card__band {
+  inline-size: 0.8cqi;
+}
+.meishi-card[data-design="oshi"] .meishi-card__body {
+  padding: 4cqi 4cqi;
+}
+.meishi-card[data-design="oshi"] .meishi-card__imprint-head::after {
+  content: "PRODUCER";
+}
+.meishi-card[data-design="oshi"] .meishi-card__name {
+  font-size: 6.4cqi;
+}
+/* 担当の名前は左の判子に刷るので、名前の下の担当の行は出さない。 */
+.meishi-card[data-design="oshi"] .meishi-card__face-oshi {
+  display: none;
 }
 
 /* 名刺の下の紙面 */

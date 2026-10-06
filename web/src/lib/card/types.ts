@@ -32,7 +32,7 @@ export interface CardView {
   /** `"2026.10.06 時点"` のように、既に整形済み。 */
   issuedOnDisplay: string;
   /**
-   * 名刺のデザインのキー (`pass` / `formal` / `pop`)。名刺の `data-design` にそのまま置く
+   * 名刺のデザインのキー (`pass` / `formal` / `pop` / `oshi`)。名刺の `data-design` にそのまま置く
    * (書体と並びは CSS)。自作の画像の名刺は画像が Web に無いので `pass` で届く。
    */
   design: string;
@@ -67,8 +67,10 @@ export interface CardFaceOshiGroup {
 export interface CardFace {
   /** 表に並べる担当 (`oshiGroups` を平らにしたもの)。 */
   oshiIdolIds: string[];
-  /** 表に並べる担当のブランドごとのまとまり (並べる順もコアが決める)。 */
+  /** 表に並べる担当のブランドごとのまとまり (並べる順もコアが決める)。ブランドの略称を刷らない名刺は略称が空。 */
   oshiGroups: CardFaceOshiGroup[];
+  /** 担当を大きく のデザインで大きく並べる順 (ブランドごとの代表が先。先頭ほど大きな枠)。 */
+  heroIdolIds: string[];
   /** 担当の 1 行 (「星井美希 担当」)。ブランドが 2 つ以上なら null で、まとまりごとにブランドの略称を刷る。 */
   oshiCaption: string | null;
   /** 表に並べきれず数で畳んだ担当の人数。0 なら畳まない。 */

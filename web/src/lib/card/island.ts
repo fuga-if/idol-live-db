@@ -20,6 +20,7 @@ interface Elements {
   status: HTMLElement;
   card: HTMLElement;
   band: HTMLElement;
+  hero: HTMLElement;
   imprint: HTMLElement;
   name: HTMLElement;
   faceOshi: HTMLElement;
@@ -46,6 +47,7 @@ function elements(): Elements | null {
   const status = document.querySelector<HTMLElement>("[data-meishi-status]");
   const card = document.querySelector<HTMLElement>("[data-meishi-card]");
   const band = document.querySelector<HTMLElement>("[data-meishi-band]");
+  const hero = document.querySelector<HTMLElement>("[data-meishi-hero]");
   const imprint = document.querySelector<HTMLElement>("[data-meishi-imprint]");
   const name = document.querySelector<HTMLElement>("[data-meishi-name]");
   const faceOshi = document.querySelector<HTMLElement>("[data-meishi-face-oshi]");
@@ -66,7 +68,7 @@ function elements(): Elements | null {
   const caseScheme = document.querySelector<HTMLAnchorElement>("[data-meishi-case-scheme]");
   const unreadable = document.querySelector<HTMLElement>("[data-meishi-unreadable]");
   if (
-    !root || !status || !card || !band || !imprint || !name || !faceOshi || !handle || !details ||
+    !root || !status || !card || !band || !hero || !imprint || !name || !faceOshi || !handle || !details ||
     !oshiSection || !linksSection || !message || !since || !oshi || !links ||
     !showCount || !songCount || !next || !asof || !caseBox || !caseNote || !caseScheme ||
     !unreadable
@@ -74,7 +76,7 @@ function elements(): Elements | null {
     return null;
   }
   return {
-    root, status, card, band, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
+    root, status, card, band, hero, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
     asof, caseBox, caseNote, caseScheme, unreadable,
   };
 }
@@ -188,6 +190,27 @@ function renderFaceOshi(el: HTMLElement, face: CardFace, idols: readonly Ref[]):
   el.hidden = false;
 }
 
+/**
+ * 担当を大きく のデザインの左の枠。並べる順は wasm (`producer_card_face` の `heroIdolIds`)、
+ * 枠の割り方は CSS (`data-count`)。Web はアイドルの画像を持たないので、担当色の判子に名前を刷る。
+ */
+function renderHero(el: HTMLElement, face: CardFace, idols: readonly Ref[]): void {
+  el.replaceChildren();
+  for (const id of face.heroIdolIds) {
+    const ref = refById(idols, id);
+    if (!ref) continue;
+    const tile = document.createElement("span");
+    tile.className = "meishi-card__hero-tile";
+    tile.dataset.theme = ref.themeKey;
+    const stamp = document.createElement("span");
+    stamp.className = "meishi-card__hero-stamp";
+    stamp.textContent = ref.name;
+    tile.append(stamp);
+    el.append(tile);
+  }
+  el.dataset.count = String(el.childElementCount);
+}
+
 /** 台帳にある担当だけを、wasm に渡す形 (名前とブランド) に詰める。 */
 function drawableOshi(idolIds: readonly string[], catalog: CardCatalog): CardOshiEntry[] {
   return idolIds.flatMap((id) => {
@@ -203,6 +226,7 @@ function renderCard(e: Elements, card: CardView, face: CardFace, catalog: CardCa
   // 左上の印字の頭 (PRODUCER PASS 等) はデザインごとに CSS が出す。ここは P 歴だけ。
   e.imprint.textContent = face.sinceImprint ?? "";
   renderFaceOshi(e.faceOshi, face, catalog.idols);
+  renderHero(e.hero, face, catalog.idols);
   e.handle.textContent = face.handle?.display ?? "";
   // デザインはキーを置くだけ (書体と並びは CSS の `[data-design]`)。
   e.card.dataset.design = card.design;

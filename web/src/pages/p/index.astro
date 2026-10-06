@@ -37,8 +37,10 @@ const catalog = page<CardCatalog>("p/catalog.json");
     {/*
       名刺そのものは 91:55 の横長の紙 1 枚 (アプリの名刺・紙に刷る画像と同じ組み)。表に載せるのは
       名前・P歴・担当 (ブランドごとにまとめる)・ハンドル 1 つ。収まらない詳細は名刺の下の紙面に並べる。
+      担当を大きく (data-design="oshi") は左に担当を大きく並べる枠 (Web は画像を持たないので担当色の判子と名前)。
     */}
     <article class="meishi-card" data-meishi-card hidden data-theme="neutral" data-design="pass">
+      <div class="meishi-card__hero" data-meishi-hero aria-hidden="true"></div>
       <div class="meishi-card__band" data-meishi-band aria-hidden="true"></div>
       <div class="meishi-card__body">
         <p class="meishi-card__imprint"><span class="meishi-card__imprint-head"></span><span data-meishi-imprint></span></p>
