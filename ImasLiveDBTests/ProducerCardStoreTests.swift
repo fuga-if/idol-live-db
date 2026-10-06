@@ -129,7 +129,7 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.sinceYear = 2014
         mine.links = [CardLink(kind: .x, value: "fuga_p")]
         mine.hidden = [.attended]
-        mine.font = .mincho
+        mine.cardDesign = .formal
         mine.qrUrl = "https://lit.link/fuga"
         var sheet = profileSheetDefault()
         sheet.style = .career
@@ -152,7 +152,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.sinceYear, 2014)
         XCTAssertEqual(restored.links, mine.links)
         XCTAssertEqual(restored.hidden, [.attended])
-        XCTAssertEqual(restored.font, .mincho)
+        XCTAssertEqual(restored.cardDesign, .formal)
         XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
         XCTAssertEqual(restored.profile, sheet, "プロフィール帳もバックアップで戻る")
 
@@ -174,30 +174,103 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertNil(DeeplinkRouter.parse(URL(fileURLWithPath: "/tmp/a.json")))
     }
 
-    // MARK: - 書体・自分の QR・写真
+    // MARK: - デザイン・自分の QR・写真
 
-    /// 書体と自分の QR は端末の表に入り、名刺の中身にも載る。書体を選んでいなければ既定。
-    func testMyCardFontAndQRReachTheCard() throws {
+    /// デザインと自分の QR は端末の表に入り、名刺の中身にも載る。デザインを選んでいなければ既定。
+    func testMyCardDesignAndQRReachTheCard() throws {
         let db = try makeDatabase()
         var mine = MyProducerCard.empty()
         mine.name = "ふがP"
-        XCTAssertEqual(mine.font, cardNameFonts()[0].font, "空のキーは既定の書体")
-        mine.font = .pop
+        XCTAssertEqual(mine.cardDesign, cardDesigns()[0].design, "空のキーは既定のデザイン")
+        mine.cardDesign = .pop
         mine.qrUrl = normalizeCardQrUrl(raw: "lit.link/fuga")
         try db.saveMyProducerCard(mine)
         let loaded = try XCTUnwrap(db.myProducerCard())
-        XCTAssertEqual(loaded.nameFont, "pop")
+        XCTAssertEqual(loaded.design, "pop")
         XCTAssertEqual(loaded.qrUrl, "https://lit.link/fuga")
 
         let record = ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
         let encoded = try XCTUnwrap(ProducerCardAssembler.encode(card: loaded, record: record))
         let back = try XCTUnwrap(decodeProducerCard(text: encoded.url))
-        XCTAssertEqual(back.nameFont, .pop)
+        XCTAssertEqual(back.design, .pop)
         XCTAssertEqual(ProducerCardDisplay.links(back).first?.label, "QR")
         XCTAssertEqual(ProducerCardDisplay.nameFont(back), "MochiyPopOne-Regular")
     }
 
-    /// 同梱の書体がすべて PostScript 名で引ける (Info.plist の UIAppFonts と揃っている)。
+    /// 書体を選んでいた頃の保存のキーは、近いデザインに読み替える。
+    func testOldFontKeysReadAsNearestDesign() {
+        var mine = MyProducerCard.empty()
+        for (key, design) in [("gothic", CardDesign.pass), ("mincho", .formal), ("maru", .pop), ("hand", .pop),
+                              ("pop", .pop), ("", .pass), ("unknown", .pass)] {
+            mine.design = key
+            XCTAssertEqual(mine.cardDesign, design, key)
+        }
+    }
+
+    /// 自作の画像の名刺は、画像が手元にあれば画像で、無ければ (QR だけで受け取った) 入場証で描く。
+    func testCustomDesignNeedsFaceImage() throws {
+        let card = encodeProducerCard(input: ProducerCardInput(
+            name: "しろくまP", message: "", sinceYear: nil, oshiIdolIds: [], links: [], showCount: nil, songCount: nil,
+            nextShowId: nil, attended: [], issuedOn: "2026-10-06", design: .custom, qrUrl: nil)).card
+        let face = ProducerCardDisplay.Face(front: URL(fileURLWithPath: "/tmp/front.jpg"), back: nil)
+        XCTAssertEqual(ProducerCardDisplay.cardDesign(card, face: face), .face(front: face.front, back: nil))
+        XCTAssertEqual(ProducerCardDisplay.cardDesign(card, face: nil), .pass)
+    }
+
+    /// 名刺ファイルの自作の画像 (表・裏) は受け取った名刺の顔として書き、名刺入れから引ける。
+    func testReceivedFaceImagesAreStored() throws {
+        let cardId = "test-\(UUID().uuidString)"
+        defer { ProducerCardFiles.deleteAll(cardId: cardId) }
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0x02])
+        try ProducerCardFiles.saveImages(cardId: cardId, images: [
+            CardFileImage(idolId: "", jpeg: jpeg, kind: .faceFront),
+            CardFileImage(idolId: "", jpeg: jpeg, kind: .faceBack),
+        ])
+        let face = try XCTUnwrap(ProducerCardDisplay.receivedFace(cardId: cardId))
+        XCTAssertNotNil(face.back)
+        XCTAssertNil(ProducerCardFiles.cardPhotoURL(cardId: cardId))
+    }
+
+    /// 自分の名刺ファイルには、デザインが自作の画像のときだけ表・裏の画像が入る。
+    func testMyCardFileCarriesFacesOnlyForCustomDesign() throws {
+        defer {
+            ProducerCardFiles.deleteMyFace(.front)
+            ProducerCardFiles.deleteMyFace(.back)
+        }
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 91, height: 55)).image { ctx in
+            UIColor(white: 0.5, alpha: 1).setFill()
+            ctx.fill(CGRect(x: 0, y: 0, width: 91, height: 55))
+        }
+        try ProducerCardFiles.saveMyFace(image, side: .front)
+        try ProducerCardFiles.saveMyFace(image, side: .back)
+        var mine = MyProducerCard.empty()
+        mine.name = "ふがP"
+        let record = ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
+
+        mine.cardDesign = .custom
+        let custom = try XCTUnwrap(ProducerCardAssembler.encode(card: mine, record: record))
+        let file = try XCTUnwrap(decodeCardFile(bytes: try XCTUnwrap(ProducerCardAssembler.myCardFile(custom))))
+        // 名刺の写真 (端末に置いてあれば) は別の種類。ここでは自作の画像だけを見る。
+        let faces: (CardFileContents) -> [CardFileImageKind] = { $0.images.map(\.kind).filter { $0 != .photo } }
+        XCTAssertEqual(faces(file), [.faceFront, .faceBack])
+
+        mine.cardDesign = .formal
+        let formal = try XCTUnwrap(ProducerCardAssembler.encode(card: mine, record: record))
+        let plain = try XCTUnwrap(decodeCardFile(bytes: try XCTUnwrap(ProducerCardAssembler.myCardFile(formal))))
+        XCTAssertTrue(faces(plain).isEmpty)
+    }
+
+    /// X のアイコンの規則 (ID の取り出し・読みに行く先・返事の分け方) はコア。
+    func testXAvatarRulesComeFromCore() {
+        XCTAssertEqual(cardXAvatarHandle(links: [CardLink(kind: .bluesky, value: "a.bsky.social"),
+                                                 CardLink(kind: .x, value: "fuga_p")]), "fuga_p")
+        XCTAssertNil(cardXAvatarHandle(links: [CardLink(kind: .bluesky, value: "a.bsky.social")]))
+        XCTAssertNotNil(xProfileApiUrl(handle: "fuga_p"))
+        XCTAssertEqual(xAvatarLookup(handle: "fuga_p", status: 404, body: ""), .notFound)
+        XCTAssertNotNil(xAvatarLookupMessage(lookup: .protected, handle: "fuga_p"))
+    }
+
+    /// デザインの書体がすべて PostScript 名で引ける (Info.plist の UIAppFonts と揃っている)。
     func testNameFontsAreBundled() {
         for font in cardNameFonts() {
             XCTAssertNotNil(UIFont(name: font.postscriptName, size: 20), "\(font.key) の書体が引けない")

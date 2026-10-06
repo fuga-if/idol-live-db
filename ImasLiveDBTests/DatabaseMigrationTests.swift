@@ -90,6 +90,22 @@ final class DatabaseMigrationTests: XCTestCase {
         try assertLocalOnlyRowsSurviveMigration(from: "v40_producer_cards")
     }
 
+    /// 名前の書体 (v41) を選んでいた自分の名刺は、デザイン (v43) に上げても選んだもの (書体のキー) が残る。
+    func testNameFontColumnBecomesDesign() throws {
+        let queue = try DatabaseQueue(path: temporaryDatabasePath())
+        try DatabaseMigrations.migrator.migrate(queue, upTo: "v41_producer_card_font_qr")
+        try queue.write { db in
+            try db.execute(sql: """
+                INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at, name_font)
+                VALUES ('me', 'ふがP', '', '[]', '', '2026-10-06T00:00:00Z', 'mincho')
+                """)
+        }
+        try DatabaseMigrations.migrator.migrate(queue)
+        let mine = try XCTUnwrap(try queue.read { db in try MyProducerCard.fetchOne(db) })
+        XCTAssertEqual(mine.design, "mincho")
+        XCTAssertEqual(mine.cardDesign, .formal)
+    }
+
     /// `version` まで上げた DB に、その版にある端末ローカルの表の行を入れ、
     /// 最新まで上げてコアのスキーマも当てた後に、行が 1 つも変わっていないことを確かめる。
     private func assertLocalOnlyRowsSurviveMigration(
