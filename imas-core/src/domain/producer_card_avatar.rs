@@ -9,6 +9,9 @@ use crate::domain::producer_card::{CardLink, CardLinkKind};
 /// 公開のプロフィール API の在り処 (ID を後ろに付ける)。ここ 1 か所だけに書く。
 const PROFILE_API_BASE: &str = "https://api.fxtwitter.com/2/profile/";
 
+/// アイコンの画像を取りに行ってよい置き場 (返事の中の URL で、端末から任意の先へ通信させない)。
+const AVATAR_IMAGE_ORIGIN: &str = "https://pbs.twimg.com/";
+
 /// X の ID の長さの上限 (X の決まり)。
 const MAX_X_HANDLE_CHARS: usize = 15;
 
@@ -104,10 +107,10 @@ pub fn x_avatar_lookup_message(lookup: &XAvatarLookup, handle: &str) -> Option<S
 /// アイコンの画像の URL を大きい順の候補にする。X のアイコンは名前の末尾 (`_normal` など) で
 /// 大きさが決まり、末尾を外すと元の大きさ、`_400x400` で 400px になる。
 /// 名刺の写真の枠 (縦長) に切り抜くので、小さい版 (48px) は使わずに大きい版から取りに行く。
-/// https でない URL は使わない。
+/// X の画像の置き場 (`https://pbs.twimg.com/`) でない URL は使わない。
 pub fn x_avatar_image_urls(avatar_url: &str) -> Vec<String> {
     let url = avatar_url.trim();
-    if !url.starts_with("https://") {
+    if !url.starts_with(AVATAR_IMAGE_ORIGIN) {
         return Vec::new();
     }
     let (path, query) = url.split_once('?').map_or((url, ""), |(p, q)| (p, q));
@@ -204,6 +207,8 @@ mod tests {
             vec!["https://pbs.twimg.com/profile_images/1/abc.jpg".to_string()]
         );
         assert!(x_avatar_image_urls("http://pbs.twimg.com/a_normal.jpg").is_empty());
+        assert!(x_avatar_image_urls("https://evil.example/a_normal.jpg").is_empty());
+        assert!(x_avatar_image_urls("https://pbs.twimg.com.evil.example/a_normal.jpg").is_empty());
         assert!(x_avatar_image_urls("javascript:alert(1)").is_empty());
     }
 

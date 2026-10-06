@@ -595,6 +595,7 @@ struct ProducerCardEditorView: View {
 
     /// 切り抜きを決めた。見本には一時ファイルで出し、✓ で端末に書く。
     private func applyCrop(image: UIImage, crop: ImasPortraitCrop) async {
+        avatarNotice = nil
         guard let rendered = crop.render(image), let jpeg = ProducerCardFiles.jpeg(rendered) else { return }
         let dir = Self.previewFolder
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -612,6 +613,7 @@ struct ProducerCardEditorView: View {
     }
 
     private func removePhoto() {
+        avatarNotice = nil
         photoSource = nil
         previewPortrait = nil
         photoDirty = true
@@ -654,13 +656,28 @@ struct ProducerCardEditorView: View {
             return
         }
         isReadingFace = true
+        defer { isReadingFace = false }
         let result = await PaperCardRectifier.rectify(image)
-        isReadingFace = false
-        faceSources[side] = PaperPhotoSource(original: result.original, corners: result.corners)
-        await setFace(result.image, side: side)
+        // 画面で作った画像は四隅が画像の縁なので見つからない。代わりに画像の中の小さな四角 (写真の枠など)
+        // を拾うことがあるので、画像の半分に満たない四角では切り抜かない (四隅を直す で選び直せる)。
+        let corners = result.corners.flatMap { Self.area(of: $0) >= 0.5 ? $0 : nil }
+        faceSources[side] = PaperPhotoSource(original: result.original, corners: corners)
+        await setFace(corners == nil ? result.original : result.image, side: side)
+    }
+
+    /// 四隅で囲んだ面積 (写真全体を 1 として)。
+    private static func area(of quad: [CGPoint]) -> CGFloat {
+        var sum: CGFloat = 0
+        for i in quad.indices {
+            let a = quad[i], b = quad[(i + 1) % quad.count]
+            sum += a.x * b.y - b.x * a.y
+        }
+        return abs(sum) / 2
     }
 
     private func applyFaceCorners(side: ProducerCardFiles.Side, source: PaperPhotoSource, corners: [CGPoint]) async {
+        isReadingFace = true
+        defer { isReadingFace = false }
         let flat = PaperCardRectifier.correct(source.original, corners: corners) ?? source.original
         faceSources[side] = PaperPhotoSource(original: source.original, corners: corners)
         await setFace(flat, side: side)

@@ -374,6 +374,8 @@ struct ImasCardFace: View {
                 .imasSurfaceEdge(cornerRadius: DS.rTag)
                 .accessibilityLabel(label)
         } else {
+            // 裏を外したら表に戻す (返したまま裏が無くなると何も見えなくなる)。
+            let showingBack = self.showingBack && back != nil
             VStack(spacing: DS.Space.gap) {
                 ZStack {
                     side(front).opacity(showingBack ? 0 : 1)
@@ -404,7 +406,7 @@ struct ImasCardFace: View {
 
     private func flip() {
         guard back != nil else { return }
-        withAnimation(.imasStandard) { showingBack.toggle() }
+        withAnimation(.imasStandard) { showingBack = !(showingBack && back != nil) }
     }
 
     private func side(_ url: URL) -> some View {

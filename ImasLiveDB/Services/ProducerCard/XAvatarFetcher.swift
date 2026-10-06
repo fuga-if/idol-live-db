@@ -24,6 +24,8 @@ enum XAvatarFetcher {
 
     /// 画像の大きさの上限 (アイコンは数百 KB まで。誤って大きなものを受け取らない)。
     private static let maxImageBytes = 8 * 1024 * 1024
+    /// プロフィールの返事の大きさの上限 (数 KB のもの)。
+    private static let maxProfileBytes = 512 * 1024
 
     static func fetch(handle: String) async -> Outcome {
         let lookup = await lookup(handle: handle)
@@ -40,7 +42,7 @@ enum XAvatarFetcher {
         guard let raw = xProfileApiUrl(handle: handle), let url = URL(string: raw) else { return .notFound }
         var request = URLRequest(url: url)
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        guard let (data, response) = try? await session.data(for: request),
+        guard let (data, response) = await limitedData(for: request, maxBytes: maxProfileBytes),
               let http = response as? HTTPURLResponse else { return .unavailable }
         return xAvatarLookup(handle: handle, status: UInt16(clamping: http.statusCode),
                              body: String(decoding: data, as: UTF8.self))
@@ -48,9 +50,24 @@ enum XAvatarFetcher {
 
     private static func image(at raw: String) async -> UIImage? {
         guard let url = URL(string: raw),
-              let (data, response) = try? await session.data(from: url),
-              (response as? HTTPURLResponse)?.statusCode == 200,
-              data.count <= maxImageBytes else { return nil }
+              let (data, response) = await limitedData(for: URLRequest(url: url), maxBytes: maxImageBytes),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
         return UIImage(data: data)
+    }
+
+    /// 上限を超えたら読むのをやめる (大きすぎる返事を最後まで受け取らない)。
+    private static func limitedData(for request: URLRequest, maxBytes: Int) async -> (Data, URLResponse)? {
+        guard let (bytes, response) = try? await session.bytes(for: request) else { return nil }
+        if response.expectedContentLength > Int64(maxBytes) { return nil }
+        var data = Data()
+        do {
+            for try await byte in bytes {
+                data.append(byte)
+                if data.count > maxBytes { return nil }
+            }
+        } catch {
+            return nil
+        }
+        return (data, response)
     }
 }

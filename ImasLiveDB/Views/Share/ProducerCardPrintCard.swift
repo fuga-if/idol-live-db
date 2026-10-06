@@ -225,14 +225,20 @@ struct ProducerCardPrintFront: View {
 }
 
 /// 自作の名刺の画像 (表・裏) を 91:55 の紙に刷る。比率が違う画像は切らずに収め、余りは紙の色。
+/// 縦の名刺 (55:91) は 90° 回して横の版面に収める (入稿の版面は横に揃える)。
 struct ProducerCardPrintImage: View {
     let image: UIImage
 
+    private var isPortrait: Bool { image.size.height > image.size.width }
+
     var body: some View {
+        let size = ProducerCardPrint.size
         Image(uiImage: image)
             .resizable()
             .scaledToFit()
-            .frame(width: ProducerCardPrint.size.width, height: ProducerCardPrint.size.height)
+            .frame(width: isPortrait ? size.height : size.width, height: isPortrait ? size.width : size.height)
+            .rotationEffect(.degrees(isPortrait ? -90 : 0))
+            .frame(width: size.width, height: size.height)
             .background(ProducerCardPrint.paper)
     }
 }
