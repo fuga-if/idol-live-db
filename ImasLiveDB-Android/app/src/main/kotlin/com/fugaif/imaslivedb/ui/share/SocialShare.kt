@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -92,6 +93,8 @@ object ShareMessage {
 @Composable
 fun SocialShareMenu(
     payload: SharePayload,
+    /** X/その他の上に足す項目 (例: 結果を画像でシェア)。受け取った close でメニューを閉じる。 */
+    leadingItems: @Composable ColumnScope.(close: () -> Unit) -> Unit = {},
     trigger: @Composable (onClick: () -> Unit) -> Unit
 ) {
     val context = LocalContext.current
@@ -99,6 +102,7 @@ fun SocialShareMenu(
     Box {
         trigger { expanded = true }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            leadingItems { expanded = false }
             DropdownMenuItem(
                 text = { Text("X にポスト") },
                 leadingIcon = { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null) },
@@ -124,9 +128,10 @@ fun SocialShareMenu(
 fun SocialShareIconButton(
     payload: SharePayload,
     contentDescription: String = "シェア",
-    style: ImasIconButtonStyle = ImasIconButtonStyle.PLAIN
+    style: ImasIconButtonStyle = ImasIconButtonStyle.PLAIN,
+    leadingItems: @Composable ColumnScope.(close: () -> Unit) -> Unit = {}
 ) {
-    SocialShareMenu(payload) { onClick ->
+    SocialShareMenu(payload, leadingItems) { onClick ->
         ImasIconButton(icon = Icons.Filled.Share, label = contentDescription, onClick = onClick, style = style)
     }
 }

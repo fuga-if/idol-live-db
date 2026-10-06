@@ -14,6 +14,8 @@ struct PollDetailView: View {
     @State private var didPromptLogin = false
     /// ランキングの曲/アイドルをタップで開く詳細シート。
     @State private var sheetDestination: DetailDestination?
+    /// 結果の画像をシェアするシート。
+    @State private var showResultShare = false
 
     // 投票用アイドル一覧（アイドルお題時に事前ロード）。master 参照なので View 側に残す。
     @State private var allIdols: [Idol] = []
@@ -49,6 +51,11 @@ struct PollDetailView: View {
             // ログイン完了で再ロード → myVoteCount 反映 + 投票可能に。
             LoginToEditSheet(onSignedIn: { Task { await loadDetail() } })
         }
+        .sheet(isPresented: $showResultShare) {
+            if let detail = vm.detail {
+                PollResultShareSheet(poll: detail.poll, entries: detail.entries)
+            }
+        }
         .sheet(item: $sheetDestination) { dest in
             DetailSheetView(destination: dest)
                 .environment(database)
@@ -56,11 +63,25 @@ struct PollDetailView: View {
         .toolbar {
             if let poll {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
-                    SocialShareMenu(payload: .pollInvite(poll: poll), analyticsKey: "poll_detail.share_poll") {
+                    // 結果の画像 (票が入ってから) と、お題そのもののシェア (「このお題に投票しよう！」、常に出す)。
+                    Menu {
+                        if vm.detail?.entries.isEmpty == false {
+                            Section {
+                                Button {
+                                    AppAnalytics.tap("poll_detail.share_result_image")
+                                    showResultShare = true
+                                } label: {
+                                    Label("結果を画像でシェア", systemImage: "photo")
+                                }
+                            }
+                        }
+                        Section {
+                            SocialShareMenuItems(payload: .pollInvite(poll: poll), analyticsKey: "poll_detail.share_poll")
+                        }
+                    } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
-                    .accessibilityLabel("このお題をシェア")
+                    .accessibilityLabel("シェア")
                 }
             }
             if let poll, canDelete(poll: poll) {
@@ -230,13 +251,15 @@ struct PollDetailView: View {
             if detail.entries.isEmpty {
                 ImasEmptyState(systemImage: "chart.bar", title: "まだ票がありません", message: "最初の一票を入れましょう！")
             } else {
+                // 同票は同じ順位 (結果の画像と同じ数え方、コアの pollCompetitionRanks)。
+                let ranks = pollCompetitionRanks(votes: detail.entries.map { UInt32(clamping: $0.voteCount) })
                 ImasCardList {
                     ForEach(Array(detail.entries.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 {
                             ImasRowDivider(inset: 56)
                         }
                         PollEntryRow(
-                            rank: index + 1,
+                            rank: Int(ranks[index]),
                             entry: entry,
                             targetType: detail.poll.targetType,
                             canVote: AuthService.shared.isSignedIn && detail.poll.isActive,

@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +61,7 @@ import com.fugaif.imaslivedb.ui.share.SocialShareChip
 import com.fugaif.imaslivedb.ui.share.SocialShareIconButton
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import uniffi.imas_core.pollCompetitionRanks
 import uniffi.imas_core.voteLimitPerTarget
 import uniffi.imas_core.votesRemaining
 
@@ -75,6 +78,8 @@ fun PollDetailScreen(
     var showPicker by remember { mutableStateOf(false) }
     // 削除は取り返しがつかないので、ボタンタップ→即実行にせず確認を挟む。
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // 結果の画像をシェアするシート。
+    var showResultShare by remember { mutableStateOf(false) }
     val authService = remember { AppModule.from(context).authService }
     val authState by authService.state.collectAsState()
 
@@ -93,13 +98,22 @@ fun PollDetailScreen(
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 },
                 actions = {
-                    // お題そのもののシェア (「このお題に投票しよう！」)。投票有無に関係なく常に出す。
+                    // 結果の画像 (票が入ってから) と、お題そのもののシェア (「このお題に投票しよう！」、常に出す)。
                     if (detail != null) {
                         SocialShareIconButton(
                             payload = ShareMessage.pollInvitePayload(
                                 detail.id, detail.title, detail.endsAtMs, detail.isActive
                             ),
-                            contentDescription = "このお題をシェア"
+                            contentDescription = "シェア",
+                            leadingItems = { close ->
+                                if (detail.entries.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text("結果を画像でシェア") },
+                                        leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) },
+                                        onClick = { close(); showResultShare = true }
+                                    )
+                                }
+                            }
                         )
                     }
                     if (canDelete) {
@@ -142,11 +156,13 @@ fun PollDetailScreen(
                 if (detail.entries.isEmpty()) {
                     ImasEmptyState(icon = Icons.Filled.AddCircle, title = "まだ票がありません", message = "最初の一票を入れましょう！")
                 } else {
+                    // 同票は同じ順位 (結果の画像と同じ数え方、コアの pollCompetitionRanks)。
+                    val ranks = pollCompetitionRanks(detail.entries.map { it.voteCount.coerceAtLeast(0).toUInt() })
                     ImasCardList(style = ImasCardListStyle.PANEL) {
                         detail.entries.forEachIndexed { index, entry ->
                             if (index > 0) ImasRowDivider(inset = DS.Space.rowH)
                             PollEntryRow(
-                                rank = index + 1,
+                                rank = ranks[index].toInt(),
                                 entry = entry,
                                 totalVotes = detail.totalVotes,
                                 targetType = detail.targetType,
@@ -221,6 +237,16 @@ fun PollDetailScreen(
                 onConfirm = { ordered -> viewModel.applyPickerSelection(ordered, unvoteDeselected = false); showPicker = false }
             )
         }
+    }
+
+    if (showResultShare && detail != null) {
+        PollResultShareSheet(
+            detail = detail,
+            songsById = state.songsById,
+            idolsById = state.idolsById,
+            unitsById = state.unitsById,
+            onDismiss = { showResultShare = false }
+        )
     }
 
     ImasConfirmDestructive(
