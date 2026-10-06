@@ -34,6 +34,7 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasCompletionAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasDiscardConfirmation
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
@@ -58,6 +59,8 @@ import kotlinx.coroutines.launch
 import uniffi.imas_core.LyricSubmissionIssue
 import uniffi.imas_core.lyricOcrAppend
 import uniffi.imas_core.lyricOcrSteps
+import uniffi.imas_core.lyricRemoveLines
+import uniffi.imas_core.lyricRubyLikeLines
 import uniffi.imas_core.lyricSubmissionCheck
 import uniffi.imas_core.lyricSubmissionIssueBlocks
 import uniffi.imas_core.lyricSubmissionIssueMessage
@@ -203,7 +206,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     }
                 )
 
-                IssueNotes(check.lineCount, check.charCount, check.issues, draft.doubtfulLines)
+                IssueNotes(song.id, check.lineCount, check.charCount, check.issues, draft.doubtfulLines)
 
                 ImasFormCard {
                     ImasFormToggle(
@@ -291,6 +294,7 @@ private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> 
 /** 行数・文字数と、コアが出した注意。送信を止める注意は朱で出す。読み取りに自信の無い行があれば見直しを促す。 */
 @Composable
 private fun IssueNotes(
+    songId: String,
     lineCount: UInt,
     charCount: UInt,
     issues: List<LyricSubmissionIssue>,
@@ -315,6 +319,18 @@ private fun IssueNotes(
                     ImasTextRole.NOTE,
                     color = if (lyricSubmissionIssueBlocks(issue)) DS.danger else ImasTextRole.NOTE.color
                 )
+                if (issue is LyricSubmissionIssue.RubyLikeLines) {
+                    ImasButton(
+                        title = "この行を消す",
+                        onClick = {
+                            LyricSubmissionDrafts.update(songId) {
+                                it.copy(text = lyricRemoveLines(it.text, lyricRubyLikeLines(it.text)))
+                            }
+                        },
+                        role = ImasButtonRole.SECONDARY,
+                        size = ImasButtonSize.SMALL
+                    )
+                }
             }
         }
     }
