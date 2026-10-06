@@ -248,6 +248,12 @@ pub fn brand_role_settings(json: &str, record: &BrandRoleRecord) -> BrandRoleSet
     }
 }
 
+/// 担当かメインのブランドが 1 つでもあるか (全部「なし」や未設定は false)。
+/// バックアップの取り込みで、端末の設定が何も言っていないなら運んできた設定で埋めてよい、の判定に使う。
+pub fn brand_roles_has_any(json: &str) -> bool {
+    saved_roles(json).is_some_and(|m| m.values().any(|r| *r != BrandRole::None))
+}
+
 /// 行の段を 1 つ変えた行。
 pub fn brand_role_set(rows: &[BrandRoleRow], brand_id: &str, role: BrandRole) -> Vec<BrandRoleRow> {
     rows.iter()
@@ -411,6 +417,8 @@ mod tests {
         assert!(saved.rows.iter().all(|row| row.role == BrandRole::None));
         assert!(brand_roles_configured(&none));
         assert!(!brand_roles_configured(""));
+        assert!(!brand_roles_has_any(&none) && !brand_roles_has_any(""));
+        assert!(brand_roles_has_any(r#"{"oshi":["ml"]}"#));
     }
 
     #[test]

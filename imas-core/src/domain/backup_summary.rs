@@ -252,9 +252,11 @@ pub struct BackupLocalState {
     /// 既にある自分の名刺の id。自分の名刺は 1 枚なので、あれば取り込まない。
     #[uniffi(default)]
     pub my_producer_card_ids: Vec<String>,
-    /// 担当ブランドを端末で既に決めているか。決めていれば取り込まない (決め直した設定を戻さない)。
-    #[uniffi(default = false)]
-    pub has_brand_roles: bool,
+    /// 端末の担当ブランドの設定 (保存の形のまま。空はまだ決めていない)。担当・メインが 1 つでもあれば取り込まない
+    /// (決め直した設定を戻さない)。全部「なし」なら運んできた設定で埋める (新しい端末で、記録が無いまま
+    /// はじめの案内を閉じた人の設定は何も言っていない)。
+    #[uniffi(default = "")]
+    pub brand_roles_json: String,
 }
 
 /// envelope を検証して取り出したメタ情報 (取り込み前のプレビュー用)。
@@ -807,11 +809,12 @@ pub fn plan_backup_import(
     }
 
     // 担当ブランドは端末でまだ決めていないときだけ入れる (決め直した設定を古い設定で戻さない)。
-    let brand_roles_json_to_restore = if local.has_brand_roles {
-        String::new()
-    } else {
-        parsed.brand_roles_json
-    };
+    let brand_roles_json_to_restore =
+        if crate::domain::brand_role::brand_roles_has_any(&local.brand_roles_json) {
+            String::new()
+        } else {
+            parsed.brand_roles_json
+        };
 
     let added_marks = marks_to_insert.len() as i64;
     let added_personal_tags = personal_tags_to_insert.len() as i64;
@@ -1319,7 +1322,7 @@ mod tests {
         assert_eq!(plan.brand_roles_json_to_restore, input.brand_roles_json);
 
         let set = BackupLocalState {
-            has_brand_roles: true,
+            brand_roles_json: r#"{"main":["sc"]}"#.to_string(),
             ..BackupLocalState::default()
         };
         let plan = plan_backup_import(
@@ -1330,6 +1333,19 @@ mod tests {
         )
         .expect("読める");
         assert_eq!(plan.brand_roles_json_to_restore, "");
+        // 端末の設定が全部「なし」なら、運んできた設定で埋める。
+        let all_none = BackupLocalState {
+            brand_roles_json: r#"{"main":[],"oshi":[]}"#.to_string(),
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &all_none,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(plan.brand_roles_json_to_restore, input.brand_roles_json);
 
         // 全部なしで決めた設定も「決めた」として運ぶ。壊れた文字列は運ばない。
         input.brand_roles_json = r#"{"main":[],"oshi":[]}"#.to_string();

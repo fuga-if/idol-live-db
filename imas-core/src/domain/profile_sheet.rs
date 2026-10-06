@@ -6,16 +6,16 @@
 //!
 //! 欄: 氏名・押印・証明写真・P歴・担当・連絡先、担当ブランド、P歴 (学歴・職歴) の表
 //! (就任 / はじめての参加 / いちばん通った年 / 最近の現場 / 以上)、免許・資格 (記録の達成)、
-//! 志望の動機 (現地でいちばん聴いた曲)、趣味・特技 (お気に入りの曲・いちばん通った会場)、
-//! 本人希望記入欄 (次の現場)。載せるのは一目で分かる数字だけにする (担当の歌唱の回数のような
-//! 細かすぎる数は載せない。2026-10 ユーザー「基本いらない」)。
+//! 志望の動機 (好きな曲)、本人希望記入欄 (次の現場)。
+//! 本人が選んだもの (担当・好きな曲・担当ブランド) を前に出し、記録から数えた数字は一目で分かるものだけを
+//! 小さく載せる (担当の歌唱の回数・現地でいちばん聴いた曲・いちばん通った会場はやめた。2026-10 ユーザー
+//! 「基本いらない」「一番聞いた曲とかは本人からしても『あ、そうなんだ』って感じ」)。
 //!
 //! どの記録がどの欄に入るか・欄の並び・行の組み立て・上限・文字の詰め方 (`ProfileSheetDensity`)・
 //! 担当ブランドの丸はここで決め、端末 (iOS / Android) はこの結果を描くだけにする。
 //! 担当ブランドの丸はアプリ全体の設定 (`brand_role`。担当 = 丸・メイン = 二重丸、メインは複数可) から描き、
 //! 設定がまだ無ければ記録から組んだ既定を使う。プロフィール帳の中では丸を上書きしない。
-//! 参加した公演のセトリからの集計 (いちばん聴いた曲・会場・都道府県) は [`profile_live_record`]
-//! (スナップショットを読む)。
+//! 現地に行った都道府県の数は [`profile_live_record`] (スナップショットを読む)。
 //!
 //! 保存するのは選択だけ (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`)。
 //! 名前・P歴・書体・リンク・自分の QR は P名刺のものを使う。証明写真の欄は P名刺の写真か、
@@ -28,7 +28,7 @@ use crate::domain::collection_gap::collection_attended_show_ids;
 use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::snapshot::Snapshot;
 use chrono::{Datelike, NaiveDate};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 // ---------------------------------------------------------------------------
 // 型
@@ -65,26 +65,20 @@ pub enum ProfileAutoField {
     Counts,
     /// 現地に行った都道府県の数。
     Prefectures,
-    /// 現地でいちばん聴いた曲 (参加した公演のセトリから)。
-    TopSongs,
-    /// お気に入りの曲。
+    /// 好きな曲 (お気に入りに付けた曲)。
     Songs,
-    /// いちばん通った会場。
-    TopVenue,
     /// リンク (連絡先。P名刺から)。
     Links,
     /// 自分の QR (P名刺から。既定は載せない)。
     Qr,
 }
 
-/// 欄 (履歴書の下の 3 つ)。
+/// 欄 (履歴書の下の 2 つ)。
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ProfileSlot {
-    /// 志望の動機。
+    /// 志望の動機 (好きな曲)。
     Motivation,
-    /// 趣味・特技。
-    Hobby,
-    /// 本人希望記入欄。
+    /// 本人希望記入欄 (次の現場)。
     Wish,
 }
 
@@ -173,21 +167,9 @@ pub struct ProfileSongInput {
     pub title: String,
 }
 
-/// 数えたもの 1 つ (曲・会場と回数)。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct ProfileCount {
-    pub id: String,
-    pub label: String,
-    pub count: u32,
-}
-
-/// 参加した公演のセトリ・会場から数えた記録 ([`profile_live_record`])。
+/// 参加した公演の会場から数えた記録 ([`profile_live_record`])。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, Default)]
 pub struct ProfileLiveRecord {
-    /// 現地でいちばん聴いた曲 (2 回以上聴いた曲の上位、多い順)。
-    pub top_songs: Vec<ProfileCount>,
-    /// いちばん通った会場 (2 回以上)。
-    pub top_venue: Option<ProfileCount>,
     /// 現地に行った都道府県の数 (会場の所在地が分かる公演だけ)。
     pub prefecture_count: u32,
 }
@@ -327,11 +309,9 @@ pub struct ProfileSheetLayout {
 // 決まり
 // ---------------------------------------------------------------------------
 
-/// お気に入りの曲を載せる数。
-pub const MAX_SONGS: usize = 3;
-/// 現地でいちばん聴いた曲を載せる数。
-const MAX_TOP_SONGS: usize = 3;
-/// 「いちばん」と言える回数の下限 (1 回ずつなら順位に意味が無い)。
+/// 好きな曲を載せる数 (志望の動機の欄いっぱいに)。
+pub const MAX_SONGS: usize = 5;
+/// 「いちばん通った年」と言える公演数の下限 (1 回ずつなら順位に意味が無い)。
 const MIN_TOP_COUNT: u32 = 2;
 /// 都道府県の数を載せる下限 (1 つだけなら「遠征」にならない)。
 const MIN_PREFECTURES: u32 = 2;
@@ -340,30 +320,25 @@ const TITLE: &str = "履歴書";
 const IMPRINT: &str = "RÉSUMÉ";
 const BRANDS_TITLE: &str = "担当ブランド";
 
-const ALL_AUTO_FIELDS: [ProfileAutoField; 14] = [
+/// 選ぶ画面の順。本人が選んだもの (写真・担当・担当ブランド・好きな曲) を先に、記録から数えたものを後に。
+const ALL_AUTO_FIELDS: [ProfileAutoField; 12] = [
     ProfileAutoField::Photo,
     ProfileAutoField::Oshi,
     ProfileAutoField::Brands,
+    ProfileAutoField::Songs,
     ProfileAutoField::Since,
     ProfileAutoField::Shows,
     ProfileAutoField::PeakYear,
     ProfileAutoField::NextShow,
     ProfileAutoField::Counts,
     ProfileAutoField::Prefectures,
-    ProfileAutoField::TopSongs,
-    ProfileAutoField::Songs,
-    ProfileAutoField::TopVenue,
     ProfileAutoField::Links,
     ProfileAutoField::Qr,
 ];
 
 const ALL_SIZES: [ProfileSheetSize; 2] = [ProfileSheetSize::Portrait, ProfileSheetSize::Story];
 
-const SLOTS: [ProfileSlot; 3] = [
-    ProfileSlot::Motivation,
-    ProfileSlot::Hobby,
-    ProfileSlot::Wish,
-];
+const SLOTS: [ProfileSlot; 2] = [ProfileSlot::Motivation, ProfileSlot::Wish];
 
 pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo {
     use ProfileAutoField as F;
@@ -377,9 +352,7 @@ pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo 
         F::NextShow => ("next_show", "次の現場"),
         F::Counts => ("counts", "参加公演数・回収曲数"),
         F::Prefectures => ("prefectures", "現地に行った都道府県"),
-        F::TopSongs => ("top_songs", "現地でいちばん聴いた曲"),
-        F::Songs => ("songs", "お気に入りの曲"),
-        F::TopVenue => ("top_venue", "いちばん通った会場"),
+        F::Songs => ("songs", "好きな曲"),
         F::Links => ("links", "連絡先 (リンク)"),
         F::Qr => ("qr", "自分の QR"),
     };
@@ -436,7 +409,6 @@ pub fn profile_sheet_default() -> ProfileSheet {
 fn slot_title(slot: ProfileSlot) -> (&'static str, &'static str) {
     match slot {
         ProfileSlot::Motivation => ("志望の動機", "MOTIVATION"),
-        ProfileSlot::Hobby => ("趣味・特技", "HOBBIES"),
         ProfileSlot::Wish => ("本人希望記入欄", "REQUESTS"),
     }
 }
@@ -497,14 +469,15 @@ pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
 // ---------------------------------------------------------------------------
 
 /// 現地で参加した公演 (公演単位とイベント単位の参加マーク。予定も混ざってよい) のうち今日までに
-/// 行ったものの、セトリと会場から数える。
+/// 行ったものの、会場の所在地から都道府県の数を数える。
 ///
 /// - 参加の形態が現地のもの (形態なしは現地) だけ。配信・LV は数えない
 ///   ([`collection_attended_show_ids`] の `include_stream = false` と同じ規則)。
 /// - イベント単位の参加は配下の公演すべてに参加したものとして数える。
-/// - 曲は「披露に数える公演」(`Show::counts_as_performance`。上映会・配信だけは除く) だけ。
-/// - 会場は会場マスタ (`venue_id`) で数え、無ければ公演の会場の表記で数える。都道府県は会場マスタから。
-/// - 同数は「先に聴いた・行った方」が上 (決定的にするため)。
+/// - 都道府県は会場マスタ (`venue_id`) から。
+///
+/// セトリから数える「現地でいちばん聴いた曲」「いちばん通った会場」は 2026-10 にやめた (本人からすると
+/// 「あ、そうなんだ」で終わる数字より、本人が選んだ好きな曲・担当を前に出す。ユーザーの指摘)。
 pub fn profile_live_record(
     snap: &Snapshot,
     show_marks: &[AttendanceMarkRecord],
@@ -512,7 +485,7 @@ pub fn profile_live_record(
     today: &str,
 ) -> ProfileLiveRecord {
     let today = parse_date(today);
-    // 現地参加だけ (配信・LV は「現地で聴いた」に入れない。形態の規則は回収と同じ正本)。
+    // 現地参加だけ (形態の規則は回収と同じ正本)。
     let local_shows = collection_attended_show_ids(show_marks.to_vec(), false);
     let local_events = collection_attended_show_ids(event_marks.to_vec(), false);
     let candidates = local_shows
@@ -524,98 +497,26 @@ pub fn profile_live_record(
                 .filter_map(|id| snap.event_index_by_id.get(id))
                 .flat_map(|&e| snap.shows_by_event[e as usize].iter().copied()),
         );
-    let mut shows: Vec<u32> = Vec::new();
     let mut seen = HashSet::new();
-    for show in candidates {
-        let past = matches!(
-            (parse_date(&snap.shows[show as usize].date), today),
-            (Some(d), Some(t)) if d <= t
-        );
-        if past && seen.insert(show) {
-            shows.push(show);
-        }
-    }
-    // 古い公演から (同数のときに先に聴いた方を上にする)。
-    shows.sort_by(|a, b| {
-        let (sa, sb) = (&snap.shows[*a as usize], &snap.shows[*b as usize]);
-        sa.date
-            .cmp(&sb.date)
-            .then(sa.sort_order.cmp(&sb.sort_order))
-            .then(sa.id.cmp(&sb.id))
-    });
-
-    let mut song_counts: HashMap<u32, (u32, usize)> = HashMap::new();
-    let mut venue_counts: HashMap<String, (u32, usize, String)> = HashMap::new();
     let mut prefectures: HashSet<&str> = HashSet::new();
-    let mut order = 0usize;
-    for &show in &shows {
+    for show in candidates {
         let s = &snap.shows[show as usize];
-        let venue = s
+        let past = matches!((parse_date(&s.date), today), (Some(d), Some(t)) if d <= t);
+        if !past || !seen.insert(show) {
+            continue;
+        }
+        let prefecture = s
             .venue_id
             .as_ref()
             .and_then(|id| snap.venue_index_by_id.get(id))
-            .map(|&v| &snap.venues[v as usize]);
-        if let Some(p) = venue.and_then(|v| v.prefecture.as_deref()) {
-            if !p.trim().is_empty() {
-                prefectures.insert(p);
-            }
+            .and_then(|&v| snap.venues[v as usize].prefecture.as_deref())
+            .map(str::trim)
+            .filter(|p| !p.is_empty());
+        if let Some(p) = prefecture {
+            prefectures.insert(p);
         }
-        let venue_key = venue
-            .map(|v| (format!("v:{}", v.id), v.name.clone()))
-            .or_else(|| {
-                s.venue
-                    .as_deref()
-                    .map(str::trim)
-                    .filter(|l| !l.is_empty())
-                    .map(|l| (format!("l:{l}"), l.to_string()))
-            });
-        if let Some((key, label)) = venue_key {
-            let e = venue_counts.entry(key).or_insert((0, order, label));
-            e.0 += 1;
-        }
-        if s.counts_as_performance() {
-            for &item in &snap.setlist_items_by_show[show as usize] {
-                let song = snap.setlist_items[item as usize].song;
-                let e = song_counts.entry(song).or_insert((0, order));
-                e.0 += 1;
-                order += 1;
-            }
-        }
-        order += 1;
     }
-
-    let mut top: Vec<(u32, u32, usize)> = song_counts
-        .into_iter()
-        .filter(|(_, (n, _))| *n >= MIN_TOP_COUNT)
-        .map(|(song, (n, first))| (song, n, first))
-        .collect();
-    top.sort_by(|a, b| b.1.cmp(&a.1).then(a.2.cmp(&b.2)));
-    let top_songs = top
-        .into_iter()
-        .take(MAX_TOP_SONGS)
-        .map(|(song, n, _)| {
-            let s = &snap.songs[song as usize];
-            ProfileCount {
-                id: s.id.clone(),
-                label: s.title.clone(),
-                count: n,
-            }
-        })
-        .collect();
-
-    let top_venue = venue_counts
-        .into_iter()
-        .filter(|(_, (n, _, _))| *n >= MIN_TOP_COUNT)
-        .min_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.1 .1.cmp(&b.1 .1)))
-        .map(|(key, (n, _, label))| ProfileCount {
-            id: key,
-            label,
-            count: n,
-        });
-
     ProfileLiveRecord {
-        top_songs,
-        top_venue,
         prefecture_count: prefectures.len() as u32,
     }
 }
@@ -717,26 +618,6 @@ impl<'a> Facts<'a> {
         (!titles.is_empty()).then(|| titles.join(""))
     }
 
-    fn top_song_text(&self) -> Option<String> {
-        let parts: Vec<String> = self
-            .record
-            .live
-            .top_songs
-            .iter()
-            .take(MAX_TOP_SONGS)
-            .map(|c| format!("「{}」{}回", c.label, c.count))
-            .collect();
-        (!parts.is_empty()).then(|| parts.join("　"))
-    }
-
-    fn top_venue_text(&self) -> Option<String> {
-        self.record
-            .live
-            .top_venue
-            .as_ref()
-            .map(|c| format!("{} {}回", c.label, c.count))
-    }
-
     fn prefectures(&self) -> Option<u32> {
         let n = self.record.live.prefecture_count;
         (n >= MIN_PREFECTURES).then_some(n)
@@ -787,9 +668,7 @@ impl<'a> Facts<'a> {
             F::NextShow => self.next.is_some(),
             F::Counts => self.has_counts(),
             F::Prefectures => self.prefectures().is_some(),
-            F::TopSongs => !r.live.top_songs.is_empty(),
             F::Songs => !r.favorite_songs.is_empty(),
-            F::TopVenue => r.live.top_venue.is_some(),
             F::Links => !r.links.is_empty(),
             F::Qr => r.has_qr,
         }
@@ -821,18 +700,11 @@ impl<'a> Facts<'a> {
                 .prefectures()
                 .map(|n| format!("{n}都道府県"))
                 .unwrap_or_default(),
-            F::TopSongs => r
-                .live
-                .top_songs
-                .first()
-                .map(|c| format!("「{}」{}回", c.label, c.count))
-                .unwrap_or_default(),
             F::Songs => r
                 .favorite_songs
                 .first()
                 .map(|s| format!("「{}」", s.title))
                 .unwrap_or_default(),
-            F::TopVenue => self.top_venue_text().unwrap_or_default(),
             F::Links => r.links.join("　"),
         }
     }
@@ -1000,11 +872,7 @@ pub fn profile_sheet_layout(
         use ProfileAutoField as F;
         match slot {
             ProfileSlot::Motivation => {
-                push(F::TopSongs, "現地でいちばん聴いた曲", facts.top_song_text());
-            }
-            ProfileSlot::Hobby => {
-                push(F::Songs, "お気に入りの曲", facts.favorite_titles());
-                push(F::TopVenue, "いちばん通った会場", facts.top_venue_text());
+                push(F::Songs, "好きな曲", facts.favorite_titles());
             }
             ProfileSlot::Wish => {
                 push(F::NextShow, "次の現場", facts.next_text());
@@ -1290,23 +1158,6 @@ mod tests {
             has_photo: true,
             has_qr: true,
             live: ProfileLiveRecord {
-                top_songs: vec![
-                    ProfileCount {
-                        id: "s9".into(),
-                        label: "曲9".into(),
-                        count: 3,
-                    },
-                    ProfileCount {
-                        id: "s8".into(),
-                        label: "曲8".into(),
-                        count: 2,
-                    },
-                ],
-                top_venue: Some(ProfileCount {
-                    id: "v:ssa".into(),
-                    label: "さいたまスーパーアリーナ".into(),
-                    count: 2,
-                }),
                 prefecture_count: 3,
             },
         }
@@ -1459,14 +1310,7 @@ mod tests {
             vec![
                 (
                     ProfileSlot::Motivation,
-                    vec![("現地でいちばん聴いた曲", "「曲9」3回　「曲8」2回")]
-                ),
-                (
-                    ProfileSlot::Hobby,
-                    vec![
-                        ("お気に入りの曲", "「曲1」「曲2」"),
-                        ("いちばん通った会場", "さいたまスーパーアリーナ 2回"),
-                    ]
+                    vec![("好きな曲", "「曲1」「曲2」")]
                 ),
                 (
                     ProfileSlot::Wish,
@@ -1569,17 +1413,10 @@ mod tests {
         let sparse = profile_sheet_layout(&profile_sheet_default(), &sparse_record());
         assert_eq!(sparse.density, ProfileSheetDensity::Regular);
         let mut rec = record();
-        rec.live.top_songs = (0..3)
-            .map(|i| ProfileCount {
-                id: format!("t{i}"),
-                label: "とても長い曲名".repeat(6),
-                count: 9,
-            })
-            .collect();
-        rec.favorite_songs = (0..3)
+        rec.favorite_songs = (0..5)
             .map(|i| ProfileSongInput {
                 id: format!("f{i}"),
-                title: "長いお気に入りの曲の名前".repeat(2),
+                title: "長いお気に入りの曲の名前".repeat(3),
             })
             .collect();
         let dense = profile_sheet_layout(&profile_sheet_default(), &rec);
@@ -1666,23 +1503,39 @@ mod tests {
     }
 
     #[test]
-    fn live_record_counts_heard_songs_venues_and_prefectures() {
+    fn live_record_counts_prefectures_of_local_past_shows() {
         use crate::test_support::bundle_snapshot;
         let snap = bundle_snapshot();
-        // 披露に数える公演を古い順に 40 公演。
+        // 会場の都道府県が分かる公演を古い順に 40 公演。
         let shows: Vec<String> = snap
             .shows_in_date_order
             .iter()
             .map(|&s| &snap.shows[s as usize])
-            .filter(|s| s.counts_as_performance() && s.date.as_str() <= "2026-01-01")
+            .filter(|s| s.date.as_str() <= "2026-01-01")
             .filter(|s| {
-                !snap.setlist_items_by_show[snap.show_index_by_id[&s.id] as usize].is_empty()
+                s.venue_id
+                    .as_ref()
+                    .and_then(|id| snap.venue_index_by_id.get(id))
+                    .and_then(|&v| snap.venues[v as usize].prefecture.as_deref())
+                    .is_some_and(|p| !p.trim().is_empty())
             })
             .take(40)
             .map(|s| s.id.clone())
             .collect();
         assert_eq!(shows.len(), 40);
-        let first = snap.show_index_by_id[&shows[0]];
+        let expected: HashSet<String> = shows
+            .iter()
+            .map(|id| &snap.shows[snap.show_index_by_id[id] as usize])
+            .map(|s| {
+                let v = snap.venue_index_by_id[s.venue_id.as_ref().unwrap()];
+                snap.venues[v as usize]
+                    .prefecture
+                    .clone()
+                    .unwrap()
+                    .trim()
+                    .to_string()
+            })
+            .collect();
         let mark = |id: &String, t: Option<&str>| AttendanceMarkRecord {
             entity_id: id.clone(),
             attendance_type: t.map(str::to_string),
@@ -1693,30 +1546,14 @@ mod tests {
             .enumerate()
             .map(|(i, id)| mark(id, if i % 2 == 0 { Some("live") } else { None }))
             .collect();
-        marks.push(mark(&shows[0], Some("live"))); // 重複は 1 回
+        marks.push(mark(&shows[0], Some("live")));
         let live = profile_live_record(snap, &marks, &[], "2026-10-06");
-        assert!(
-            !live.top_songs.is_empty(),
-            "40 公演なら 2 回以上聴いた曲がある"
-        );
-        assert!(live.top_songs.len() <= 3);
-        assert!(live.top_songs.windows(2).all(|w| w[0].count >= w[1].count));
-        assert!(live.top_songs.iter().all(|c| c.count >= 2));
-        // 1 曲目の回数をセトリから数え直して合わせる。
-        let top = snap.song_index_by_id[&live.top_songs[0].id];
-        let expected = shows
-            .iter()
-            .map(|id| snap.show_index_by_id[id])
-            .flat_map(|s| snap.setlist_items_by_show[s as usize].iter())
-            .filter(|&&i| snap.setlist_items[i as usize].song == top)
-            .count() as u32;
-        assert_eq!(live.top_songs[0].count, expected);
-        if let Some(v) = &live.top_venue {
-            assert!(v.count >= 2);
-        }
+        assert_eq!(live.prefecture_count as usize, expected.len());
         // 今日より後の公演だけなら何も数えない。
-        let none = profile_live_record(snap, &marks, &[], "1990-01-01");
-        assert_eq!(none, ProfileLiveRecord::default());
+        assert_eq!(
+            profile_live_record(snap, &marks, &[], "1990-01-01"),
+            ProfileLiveRecord::default()
+        );
         // 配信・LV で見た公演は「現地」に入れない。
         let streamed: Vec<AttendanceMarkRecord> = shows
             .iter()
@@ -1728,11 +1565,12 @@ mod tests {
             ProfileLiveRecord::default()
         );
         // イベント単位の現地参加は配下の公演すべてとして数える。
+        let first = snap.show_index_by_id[&shows[0]];
         let event = snap.shows[first as usize].event;
         let event_id = snap.events[event as usize].id.clone();
         let by_event =
             profile_live_record(snap, &[], &[mark(&event_id, Some("live"))], "2026-10-06");
-        let only_first = profile_live_record(
+        let each = profile_live_record(
             snap,
             &snap.shows_by_event[event as usize]
                 .iter()
@@ -1741,6 +1579,7 @@ mod tests {
             &[],
             "2026-10-06",
         );
-        assert_eq!(by_event, only_first);
+        assert_eq!(by_event, each);
+        assert!(by_event.prefecture_count >= 1);
     }
 }
