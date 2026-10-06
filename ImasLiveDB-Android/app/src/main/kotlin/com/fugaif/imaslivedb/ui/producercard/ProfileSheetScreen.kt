@@ -42,13 +42,17 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.share.ProfileSheetPreview
 import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
+import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.profileSheetLayout
+import uniffi.imas_core.profileSheetSizes
+import uniffi.imas_core.profileSheetStyles
 
 private const val FILE_PREFIX = "profile_sheet"
 
@@ -74,6 +78,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     var editing by remember { mutableStateOf<MyProducerCard?>(null) }
     var exporting by remember { mutableStateOf(false) }
     var exportError by remember { mutableStateOf<String?>(null) }
+    var saveError by remember { mutableStateOf<String?>(null) }
     // Android 9 以下の保存経路。保存先を選んで戻ってくるまで画像を持っておく。
     var pendingSave by remember { mutableStateOf<Bitmap?>(null) }
 
@@ -85,6 +90,22 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
         loaded = true
     }
     LaunchedEffect(Unit) { load() }
+
+    val styles = remember { profileSheetStyles() }
+    val sizes = remember { profileSheetSizes() }
+
+    /** 様式・大きさを選んだらその場で保存する (材料は変わらないので読み直さない)。 */
+    fun saveSheet(sheet: ProfileSheet) {
+        val current = card ?: return
+        val updated = current.withProfile(sheet)
+        card = updated
+        scope.launch {
+            runCatching {
+                val latest = module.producerCardRepository.myCard() ?: current
+                module.producerCardRepository.saveMyCard(latest.withProfile(sheet))
+            }.onFailure { saveError = "もう一度試してください。" }
+        }
+    }
 
     val documentPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri ->
         val bitmap = pendingSave
@@ -116,7 +137,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                 actions = {
                     if (card != null) {
                         IconButton(onClick = { editing = card }) {
-                            Icon(Icons.Filled.Edit, contentDescription = "プロフィール帳を編集")
+                            Icon(Icons.Filled.Edit, contentDescription = "載せる記録を選ぶ")
                         }
                     }
                 }
@@ -132,6 +153,19 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                     ProfileSheetPreview(
                         layout, materials, capture,
                         Modifier.semantics { contentDescription = "${layout.title}の見本" }
+                    )
+                    // 様式と大きさはここでも切り替え、選んだらその場で保存する。
+                    val sheet = mine.profile
+                    ImasSegmented(
+                        labels = styles.map { it.label },
+                        selection = styles.indexOfFirst { it.style == sheet.style },
+                        onSelect = { i -> saveSheet(sheet.copy(style = styles[i].style)) }
+                    )
+                    ImasSegmented(
+                        labels = sizes.map { it.label },
+                        captions = sizes.map { it.caption },
+                        selection = sizes.indexOfFirst { it.size == sheet.size },
+                        onSelect = { i -> saveSheet(sheet.copy(size = sizes[i].size)) }
                     )
                     ImasButton(
                         title = "画像を書き出す", icon = Icons.Filled.Share, role = ImasButtonRole.PRIMARY,
@@ -157,7 +191,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                             }
                         )
                     }
-                    ImasNote("様式・載せる記録は右上の鉛筆から。名前・写真・書体・リンクは P名刺のものを使います。")
+                    ImasNote("載せる記録と担当ブランドの丸は右上の鉛筆から。名前・写真・書体・リンクは P名刺のものを使います。")
                 }
             }
         }
@@ -175,5 +209,6 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
             onDismiss = { editing = null }
         )
     }
+    ImasErrorAlert(message = saveError, onDismiss = { saveError = null }, title = "保存できませんでした")
     ImasErrorAlert(message = exportError, onDismiss = { exportError = null }, title = "画像を書き出せませんでした")
 }

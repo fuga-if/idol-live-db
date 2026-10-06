@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -111,7 +111,7 @@ fun ProfileSheetEditorSheet(
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 ImasSheetToolbar(
                     ImasSheetToolbarKind.Edit(canSave = canSave, isSaving = isSaving, onCancel = ::cancel, onSave = ::save),
-                    title = "プロフィール帳を編集"
+                    title = "載せる記録を選ぶ"
                 )
                 Column(
                     Modifier.padding(horizontal = DS.Space.screen),
@@ -141,7 +141,7 @@ fun ProfileSheetEditorSheet(
 
                     ImasSection(
                         "担当ブランド", style = ImasSectionHeaderStyle.SMALL,
-                        footer = "担当と参加した公演のブランドに丸が付いています。押すたびに 丸なし → 丸 → 二重丸 (メイン) の順に変わります。"
+                        footer = "担当と参加した公演のブランドに丸が付いています。押すたびに 丸 → 二重丸 (メイン) → 丸なし と変わります。メインは 1 つです。"
                     ) {
                         ImasChipFlow {
                             profileBrandMarks(sheet, materials.record).forEach { mark ->
@@ -149,13 +149,13 @@ fun ProfileSheetEditorSheet(
                                     label = mark.label,
                                     selected = mark.checked,
                                     brand = mark.id,
-                                    icon = if (mark.main) Icons.Filled.Star else null,
+                                    icon = if (mark.main) Icons.Filled.RadioButtonChecked else null,
                                     onClick = { sheet = profileToggleBrand(sheet, materials.record, mark.id) },
                                     contentDescription = listOfNotNull(
                                         mark.label,
                                         when {
-                                            mark.main -> "メイン (二重丸)"
-                                            mark.checked -> "丸"
+                                            mark.main -> "メイン"
+                                            mark.checked -> "丸あり"
                                             else -> "丸なし"
                                         },
                                         "記録から丸が付くブランド".takeIf { mark.fromRecord }

@@ -261,13 +261,13 @@ private fun ProfileResumeBody(
         }
         // 志望の動機は横いっぱい、趣味・特技と本人希望記入欄は左右に並べる (様式の欄の並び)。
         layout.sections.filter { it.slot == ProfileSlot.MOTIVATION }.forEach { section ->
-            ProfileBox { ProfileSectionView(section, s) }
+            ProfileBox { ProfileSectionView(section, fonts, s) }
         }
         val pair = layout.sections.filter { it.slot != ProfileSlot.MOTIVATION }
         if (pair.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy((8 * s).dp)) {
                 pair.forEach { section ->
-                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, s) }
+                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, fonts, s) }
                 }
             }
         }
@@ -344,8 +344,8 @@ private fun ProfileCareerBody(
         CareerIdentity(layout, materials, fonts, s)
         layout.sections.filter { it.slot == ProfileSlot.SUMMARY }.forEach { section ->
             ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileStats(section.stats, s)
-            ProfileEntries(section.entries, s)
+            ProfileStats(section.stats, accent, s)
+            ProfileEntries(section.entries, fonts, s)
         }
         if (layout.career.isNotEmpty()) {
             ProfileHeadline("職務経歴", "CAREER", accent, s)
@@ -353,14 +353,14 @@ private fun ProfileCareerBody(
         }
         val showOshi = layout.showOshi && materials.oshi.isNotEmpty()
         if (showOshi || layout.brands.isNotEmpty()) {
-            ProfileHeadline("担当・ブランド", "IN CHARGE", accent, s)
+            ProfileHeadline("担当", "IN CHARGE", accent, s)
             if (showOshi) ProfileOshiList(materials.oshi, s)
             if (layout.brands.isNotEmpty()) ProfileBrandRange(layout.brandsTitle, layout.brands, s)
         }
         layout.sections.filter { it.slot != ProfileSlot.SUMMARY }.forEach { section ->
             ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileStats(section.stats, s)
-            ProfileEntries(section.entries, s)
+            ProfileStats(section.stats, accent, s)
+            ProfileEntries(section.entries, fonts, s)
         }
         Text(
             "以上", style = ProfileSheetInk.sans(11 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
@@ -547,7 +547,7 @@ private fun ProfileHistoryColumns(
 
 /** 欄 (題と、質問・答えの並び)。 */
 @Composable
-private fun ProfileSectionView(section: ProfileSection, s: Float) {
+private fun ProfileSectionView(section: ProfileSection, fonts: ProfileFonts, s: Float) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = (6 * s).dp),
         verticalArrangement = Arrangement.spacedBy((4 * s).dp)
@@ -559,26 +559,40 @@ private fun ProfileSectionView(section: ProfileSection, s: Float) {
                 maxLines = 1, modifier = Modifier.alignByBaseline()
             )
         }
-        ProfileStats(section.stats, s)
-        ProfileEntries(section.entries, s)
+        ProfileEntries(section.entries, fonts, s)
     }
 }
 
-/** 実績の数字を 1 列に (大きな数字 + 単位、下に名前)。 */
+/**
+ * 実績の数字 (職務経歴書の自己PR)。太い罫の箱 1 つを縦の細罫で等幅に区切った 1 列。
+ * 各升は上に名前、中に数字 + 単位、下に担当色の短い棒。
+ */
 @Composable
-private fun ProfileStats(stats: List<ProfileStat>, s: Float) {
+private fun ProfileStats(stats: List<ProfileStat>, accent: Color, s: Float) {
     if (stats.isEmpty()) return
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy((14 * s).dp)) {
-        stats.forEach { stat ->
-            Column {
-                Text(
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(fontSize = (20 * s).sp, fontWeight = FontWeight.Black)) { append(stat.value) }
-                        withStyle(SpanStyle(fontSize = (9 * s).sp, fontWeight = FontWeight.Bold)) { append(stat.unit) }
-                    },
-                    color = ProfileSheetInk.ink, maxLines = 1
-                )
-                Text(stat.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
+    ProfileBox {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            stats.forEachIndexed { i, stat ->
+                if (i > 0) Box(Modifier.width(ProfileSheetInk.RULE.dp).fillMaxHeight().background(ProfileSheetInk.ink))
+                Column(
+                    Modifier.weight(1f).padding(horizontal = (4 * s).dp, vertical = (6 * s).dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy((3 * s).dp)
+                ) {
+                    Text(stat.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
+                    Row {
+                        Text(
+                            stat.value, color = ProfileSheetInk.ink, maxLines = 1,
+                            style = ProfileSheetInk.sans(22 * s, FontWeight.Black, tabular = true),
+                            modifier = Modifier.alignByBaseline()
+                        )
+                        Text(
+                            stat.unit, style = ProfileSheetInk.sans(9 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
+                            maxLines = 1, modifier = Modifier.alignByBaseline()
+                        )
+                    }
+                    Box(Modifier.size(width = (18 * s).dp, height = (2.5f * s).dp).background(accent))
+                }
             }
         }
     }
@@ -586,14 +600,14 @@ private fun ProfileStats(stats: List<ProfileStat>, s: Float) {
 
 /** 項目の見出し (印字の小さな字) と中身。 */
 @Composable
-private fun ProfileEntries(entries: List<ProfileEntry>, s: Float) {
+private fun ProfileEntries(entries: List<ProfileEntry>, fonts: ProfileFonts, s: Float) {
     Column(verticalArrangement = Arrangement.spacedBy((4 * s).dp)) {
         entries.forEach { entry ->
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 if (entry.label.isNotEmpty()) {
                     Text(entry.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub)
                 }
-                Text(entry.text, style = ProfileSheetInk.sans(11 * s, FontWeight.SemiBold), color = ProfileSheetInk.ink)
+                Text(entry.text, style = ProfileSheetInk.named(fonts.name, 12.5f * s), color = ProfileSheetInk.ink)
             }
         }
     }
@@ -638,8 +652,8 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
                     modifier = Modifier
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                         .drawBehind {
-                            if (circle != null) brand.rings.forEach { ring ->
-                                drawHandRing(ring, circle, padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx())
+                            if (circle != null) brand.rings.forEachIndexed { i, ring ->
+                                drawHandRing(ring, circle, width = (if (i == 0) 2f else 1.6f).dp.toPx(), padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx())
                             }
                         }
                 )
@@ -655,6 +669,7 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
     ring: ProfileHandRing,
     color: Color,
+    width: Float,
     padX: Float,
     padY: Float
 ) {
@@ -678,7 +693,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
         if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
     }
     rotate(ring.tiltDegrees.toFloat(), pivot = Offset(cx, cy)) {
-        drawPath(path, color, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(path, color, style = Stroke(width = width, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
 
