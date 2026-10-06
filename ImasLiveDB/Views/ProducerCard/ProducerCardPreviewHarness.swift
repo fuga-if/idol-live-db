@@ -10,6 +10,10 @@ import SwiftUI
 struct ProducerCardPreviewHarness: View {
     enum Mode: String {
         case card, editor, exchange, read, receive, `case`, detail, print, paper, crop, corners
+        /// 紙に刷る画像を 4 デザインぶん書き出す (Documents/print_exports/。PNG そのものを見て確かめる)。
+        case printExport
+        /// 自分の名刺の下の詳細だけ (ひとこと・担当・リンク・記録。画面の下の方を撮る)。
+        case details
         /// プロフィール帳の選ぶ画面 / 見本の画面 / 見本の画像を全部書き出す (Documents/profile_exports/)。
         case profile, profilePreview, profileExport
         /// 担当ブランドのはじめの案内 / 設定の画面。
@@ -20,6 +24,11 @@ struct ProducerCardPreviewHarness: View {
 
     /// 自分の名刺のデザインを差し替えて撮る (`PRODUCER_CARD_DESIGN=pop`、`custom` は見本の自作の画像も置く)。
     static var envDesign: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DESIGN"] }
+
+    /// 自分の担当の人数 (`PRODUCER_CARD_OSHI=5`。既定は 2。4 人以上で表の担当が数で畳まれる)。
+    static var envOshiCount: Int {
+        ProcessInfo.processInfo.environment["PRODUCER_CARD_OSHI"].flatMap(Int.init) ?? 2
+    }
 
     /// 受け取った名刺の詳細で開く名刺の名前 (`PRODUCER_CARD_DETAIL=みどりP`。既定は写真のある名刺)。
     static var envDetail: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DETAIL"] }
@@ -36,8 +45,8 @@ struct ProducerCardPreviewHarness: View {
     @State private var myCard: EncodedProducerCard?
     @State private var directory = ProducerCardDirectory()
     @State private var record: ProducerCardMyRecord?
-    @State private var profileMaterials: ProfileSheetMaterials?
     @State private var exportedCount: Int?
+    @State private var profileMaterials: ProfileSheetMaterials?
 
     var body: some View {
         Group {
@@ -102,6 +111,19 @@ struct ProducerCardPreviewHarness: View {
         case .profileExport:
             Text(exportedCount.map { "書き出し \($0) 枚" } ?? "書き出し中")
                 .task { exportedCount = await Samples.exportProfiles(database) }
+        case .details:
+            if let myCard {
+                ImasPage {
+                    ProducerCardDisplay.view(
+                        myCard.card, directory: directory,
+                        imageURL: { CustomImageService.shared.imageURL(for: $0) },
+                        onOpenLink: { _ in }, onOpenOshi: nil
+                    ).details
+                }
+            }
+        case .printExport:
+            Text(exportedCount.map { "書き出し \($0) 枚" } ?? "書き出し中")
+                .task { exportedCount = await Samples.exportPrints(database) }
         case .corners:
             PaperCardCornerSheet(image: Samples.paperPhoto(), corners: [
                 CGPoint(x: 0.14, y: 0.24), CGPoint(x: 0.86, y: 0.2), CGPoint(x: 0.9, y: 0.72), CGPoint(x: 0.1, y: 0.76),
@@ -125,7 +147,7 @@ struct ProducerCardPreviewHarness: View {
             let now = "2026-10-06T00:00:00Z"
             // 自分の担当と参加 (見本なので端末の印に直接書く)。
             try? await db.dbQueue.write { d in
-                for id in idols.prefix(2) {
+                for id in idols.prefix(envOshiCount) {
                     try d.execute(sql: """
                         INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
                         VALUES ('idol', ?, 'myPick', 1, NULL, ?)
@@ -147,6 +169,10 @@ struct ProducerCardPreviewHarness: View {
             mine.qrUrl = "https://lit.link/fuga"
             try? db.saveMyProducerCard(mine)
             try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop())
+            // 担当の代表画像は実機と同じく大きな縦長・横長 (枠からはみ出さないかを見る)。
+            for (i, id) in idols.prefix(envOshiCount).enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
+                _ = try? await CustomImageService.shared.addImage(bigPicture(tall: i % 2 == 0, seed: i), for: id)
+            }
 
             let refs = shows.map { CardShowRef(showId: $0.0, date: $0.1) }
             func card(_ name: String, _ message: String, oshi: [String], shows: Int, attended: [CardShowRef],
@@ -161,18 +187,20 @@ struct ProducerCardPreviewHarness: View {
                 (card("しろくまP", "千早の歌を一生聴きたい", oshi: [idols[1]], shows: 63, attended: refs, design: .custom), .app, shows[0], "物販列で隣"),
                 (card("あおいP", "", oshi: [idols[3]], shows: 21, attended: [refs[1]]), .app, shows[0], nil),
                 (card("かるたP", "", oshi: [idols[2]], shows: 0, attended: []), .paper, shows[0], nil),
-                (card("みどりP", "初現地でした", oshi: [idols[0], idols[2]], shows: 5, attended: [refs[2]], design: .pop), .app, shows[2], nil),
+                (card("みどりP", "初現地でした", oshi: [idols[0], idols[2], idols[3], idols[4]], shows: 5, attended: [refs[2]], design: .pop), .app, shows[2], nil),
                 (card("あかねP", "よろしくお願いいたします", oshi: [idols[2]], shows: 12, attended: [refs[0]], design: .formal), .app, shows[1], nil),
             ]
             for (i, s) in samples.enumerated() {
                 var row = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1, memo: s.3)
                 row.receivedAt = "2026-10-05T2\(i):00:00Z"
                 try? db.saveReceivedProducerCard(row)
-                if i == 0, let jpeg = ProducerCardFiles.jpeg(portrait(seed: 1)),
+                if i == 0, let jpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 1), maxPixels: 2000),
+                   let oshiJpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 0), maxPixels: 1600),
                    let front = ProducerCardFiles.jpeg(face(name: "しろくまP", back: false), maxPixels: 2000),
                    let back = ProducerCardFiles.jpeg(face(name: "しろくまP", back: true), maxPixels: 2000) {
                     try? ProducerCardFiles.saveImages(cardId: row.id, images: [
                         CardFileImage(idolId: "", jpeg: jpeg, kind: .photo),
+                        CardFileImage(idolId: idols[1], jpeg: oshiJpeg, kind: .oshi),
                         CardFileImage(idolId: "", jpeg: front, kind: .faceFront),
                         CardFileImage(idolId: "", jpeg: back, kind: .faceBack),
                     ])
@@ -301,6 +329,61 @@ struct ProducerCardPreviewHarness: View {
                 UIColor(white: 0.1, alpha: 1).setFill()
                 ctx.fill(CGRect(x: 0, y: 0, width: 1200, height: 750))
                 ctx.fill(CGRect(x: 0, y: 2250, width: 1200, height: 750))
+            }
+        }
+
+        /// 4 デザインの紙に刷る画像 (表・裏) を書き出す (Documents/print_exports/)。
+        @MainActor
+        static func exportPrints(_ db: AppDatabase) async -> Int {
+            guard var mine = try? db.myProducerCard() else { return 0 }
+            let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("print_exports", isDirectory: true)
+            try? FileManager.default.removeItem(at: dir)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            saveMyFaces()
+            var count = 0
+            for design in ["pass", "formal", "pop", "custom"] {
+                mine.design = design
+                guard let record = try? await ProducerCardAssembler.loadMyRecord(),
+                      let encoded = ProducerCardAssembler.encode(card: mine, record: record) else { continue }
+                let directory = await ProducerCardDirectory.load(idolIds: encoded.card.oshiIdolIds, showIds: [])
+                let materials = ProducerCardPrintMaterials.loadMine(card: encoded.card)
+                for back in [ProducerCardPrintSheet.Back.exchange, .own] {
+                    var sheet = ProducerCardPrintSheet(card: encoded, directory: directory, materials: materials, back: back)
+                    sheet.qr = ImasQRCode.render(sheet.backText)
+                    let images = sheet.renderImages()
+                    for (side, image) in zip(["front", "back_\(back == .own ? "own" : "exchange")"], images) {
+                        if side == "front" && back == .own { continue }
+                        guard let png = image.pngData() else { continue }
+                        try? png.write(to: dir.appendingPathComponent("\(design)_\(side).png"))
+                        count += 1
+                    }
+                }
+            }
+            return count
+        }
+
+        /// 実機の担当の画像のような大きな写真 (縦長 1200×3000 / 横長 3000×1200)。上下・左右の端に印を付けて、
+        /// 枠で切った位置と、枠からはみ出していないかを見る。
+        @MainActor
+        static func bigPicture(tall: Bool, seed: Int) -> UIImage {
+            let size = tall ? CGSize(width: 1200, height: 3000) : CGSize(width: 3000, height: 1200)
+            // 見本の写真の地 (写真の代わりなので DS の色ではない)。
+            let colors: [UIColor] = [UIColor(hue: 0.95, saturation: 0.45, brightness: 0.85, alpha: 1),
+                                     UIColor(hue: 0.55, saturation: 0.45, brightness: 0.8, alpha: 1)]
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+                colors[seed % colors.count].setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+                UIColor(white: 0.1, alpha: 1).setFill()
+                ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: 120))
+                ctx.fill(CGRect(x: 0, y: size.height - 120, width: size.width, height: 120))
+                let side = min(size.width, size.height) * 0.7
+                let symbol = UIImage(systemName: "person.fill",
+                                     withConfiguration: UIImage.SymbolConfiguration(pointSize: side))?
+                    .withTintColor(UIColor(white: 1, alpha: 1), renderingMode: .alwaysOriginal)
+                symbol?.draw(in: CGRect(x: (size.width - side) / 2, y: (size.height - side) / 2, width: side, height: side))
             }
         }
 

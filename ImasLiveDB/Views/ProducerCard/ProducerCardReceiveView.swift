@@ -32,9 +32,11 @@ struct ProducerCardReceiveView: View {
     var body: some View {
         ImasPage {
             if let card {
-                ProducerCardDisplay.view(
+                let display = ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: Set(record?.oshiIds ?? []),
                     imageURL: { imageURLs[$0] }, portraitURL: portraitURL, face: face, onOpenLink: nil, onOpenOshi: nil)
+                display
+                display.details
                 commonSection(card)
                 ImasFormCard {
                     ImasFormLink(label: "受け取った公演", imprint: "SHOW", systemImage: "ticket",

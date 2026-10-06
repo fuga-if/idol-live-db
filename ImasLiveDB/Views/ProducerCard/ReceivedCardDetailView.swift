@@ -29,7 +29,7 @@ struct ReceivedCardDetailView: View {
     var body: some View {
         ImasPage {
             if let row, let card {
-                ProducerCardDisplay.view(
+                let display = ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: myOshi,
                     imageURL: { ProducerCardFiles.oshiImageURL(cardId: row.id, idolId: $0) },
                     portraitURL: ProducerCardFiles.cardPhotoURL(cardId: row.id),
@@ -39,6 +39,8 @@ struct ReceivedCardDetailView: View {
                         if let idol = directory.idols[oshi.id] { sheet = .idol(idol) }
                     }
                 )
+                display
+                display.details
                 commonSection(row)
                 memoSection(row)
                 photoSection(row)

@@ -98,6 +98,12 @@ struct DesignCatalogPageView: View {
 // MARK: - 見本の色
 
 private enum Sample {
+    /// P名刺の見本の担当。
+    static var cardOshi: [ImasProducerCard.Oshi] {
+        [.init(id: "a", name: "花海咲季", shortName: "咲", seed: saki, subtitle: "学マス"),
+         .init(id: "c", name: "如月千早", shortName: "千", seed: chihaya, subtitle: "765AS", isShared: true)]
+    }
+
     static let haruka = "#E22B30"
     static let chihaya = "#2743D2"
     static let miki = "#B4E04B"
@@ -245,27 +251,28 @@ private struct VenueRowsPage: View {
                              subtitle: "コミュニティで表示される名前", onOpen: {})
                 }
             }
-            ImasSection("P名刺", style: .small, footer: "デザインは 3 つ (入場証・かしこまった名刺・ポップ) と自作の画像。並べる要素は同じで、組みと線と書体が変わる。帯・罫は先頭の担当の色。受け取った名刺で同じ担当は朱の札「担当被り」。写真が無ければ写真の面は出さない (担当の行の判子は必ず出す)。") {
+            ImasSection("P名刺", style: .small, footer: "名刺は 91:55 の横長の紙 1 枚 (紙に刷る画像と同じ組み)。表は名前・P歴・名刺の写真・担当 (写真か判子、4 人以上は 2 人 +N)・ハンドル 1 つ。押すと裏返って QR・参加公演数・回収曲数・日付。デザインは 3 つ (入場証・かしこまった名刺・ポップ) と自作の画像。紙はダークでも明るいチケットの紙。収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下に並べる。") {
+                let lead = ImasProducerCard(
+                    sinceImprint: "SINCE 2014", name: "ふがP", message: "現地派・Pライブ皆勤目指してます",
+                    oshi: Sample.cardOshi, faceOshi: Sample.cardOshi,
+                    handle: "@fuga_p",
+                    links: [.init(label: "X", display: "@fuga_p", url: "https://x.com/fuga_p")],
+                    cells: [.init(value: "87", unit: "公演", label: "参加公演"), .init(value: "412", unit: "曲", label: "回収曲"),
+                            .init(value: "10/18", label: "次の現場")],
+                    boardTrailing: "2014 — 2026",
+                    back: .init(qr: "https://idollivedb.fugaapp.site/p/#sample", showCount: 87, songCount: 412,
+                                issuedLabel: "2026.10.06 時点"),
+                    onOpenLink: { _ in })
                 VStack(spacing: DS.Space.gapLoose) {
-                    ImasProducerCard(
-                        sinceImprint: "SINCE 2014", name: "ふがP", message: "現地派・Pライブ皆勤目指してます",
-                        oshi: [.init(id: "a", name: "花海咲季", shortName: "咲", seed: Sample.saki, subtitle: "学マス"),
-                               .init(id: "b", name: "月村手毬", shortName: "毬", seed: Sample.chihaya, subtitle: "学マス", isShared: true)],
-                        links: [.init(label: "X", display: "@fuga_p", url: "https://x.com/fuga_p")],
-                        cells: [.init(value: "87", unit: "公演", label: "参加公演"), .init(value: "412", unit: "曲", label: "回収曲"),
-                                .init(value: "10/18", label: "次の現場")],
-                        boardTrailing: "2014 — 2026", onOpenLink: { _ in })
+                    lead
                     ImasProducerCard(design: .formal, sinceImprint: "SINCE 2011", name: "かるたP",
-                                     oshi: [.init(id: "c", name: "如月千早", shortName: "千", seed: Sample.chihaya, subtitle: "765AS")],
-                                     links: [.init(label: "QR", display: "lit.link/karuta", url: "https://lit.link/karuta"),
-                                             .init(label: "X", display: "@karuta_p", url: "https://x.com/karuta_p")],
+                                     oshi: [Sample.cardOshi[1]], faceOshi: [Sample.cardOshi[1]], handle: "@karuta_p",
                                      portraitURL: URL(fileURLWithPath: "/dev/null"), nameFont: "ZenOldMincho-Black")
-                    ImasProducerCard(design: .pop, sinceImprint: "SINCE 2020", name: "みどりP", message: "初現地でした",
-                                     oshi: [.init(id: "a", name: "花海咲季", shortName: "咲", seed: Sample.saki, subtitle: "学マス")],
-                                     cells: [.init(value: "5", unit: "公演", label: "参加公演")],
-                                     nameFont: "MochiyPopOne-Regular")
-                    ImasProducerCard(design: .face(front: URL(fileURLWithPath: "/dev/null"), back: nil), name: "しろくまP",
-                                     oshi: [.init(id: "c", name: "如月千早", shortName: "千", seed: Sample.chihaya, subtitle: "765AS")])
+                    ImasProducerCard(design: .pop, sinceImprint: "SINCE 2020", name: "みどりP",
+                                     oshi: Sample.cardOshi, faceOshi: [Sample.cardOshi[0], Sample.cardOshi[1]], moreOshi: 3,
+                                     handle: "@midori_p", nameFont: "MochiyPopOne-Regular")
+                    ImasProducerCard(design: .face(front: URL(fileURLWithPath: "/dev/null"), back: nil), name: "しろくまP")
+                    lead.details
                 }
             }
             ImasSection("名刺の写真・デザイン", style: .small, footer: "名刺の写真は名前の横の証明写真の枠 (3:4)。デザインは小さな名刺の見本の札を横に引いて選ぶ (真ん中に来た札を選ぶ)。自作の画像の札は選んだ画像か「画像を選ぶ」。") {

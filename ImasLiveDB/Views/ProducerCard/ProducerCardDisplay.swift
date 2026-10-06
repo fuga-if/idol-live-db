@@ -104,10 +104,6 @@ enum ProducerCardDisplay {
         return cells
     }
 
-    static func sinceImprint(_ card: ProducerCard) -> String? {
-        card.sinceYear.map { "SINCE \($0)" }
-    }
-
     /// 掲示板の右上 (「2014 — 2026」)。P 歴が無ければ名刺を作った年だけ。
     static func boardTrailing(_ card: ProducerCard) -> String? {
         let issued = String(card.issuedOn.prefix(4))
@@ -137,26 +133,49 @@ enum ProducerCardDisplay {
         return parts.joined(separator: " · ")
     }
 
-    /// 名刺 1 枚の View (自分の名刺・受け取った名刺で同じ部品)。
+    /// 名刺の裏 (紙に刷る裏と同じ)。QR は渡さなければ交換用 (その名刺の中身の URL)。
+    static func back(_ card: ProducerCard, face: CardFace, qr: ImasProducerCard.Back? = nil) -> ImasProducerCard.Back {
+        if let qr { return qr }
+        return ImasProducerCard.Back(
+            qr: producerCardUrlFromPayload(payload: producerCardPayload(card: card)),
+            showCount: card.showCount, songCount: card.songCount, issuedLabel: face.issuedLabel)
+    }
+
+    /// 自分の QR の裏 (「自分の QR」を選んだとき)。
+    static func ownQRBack(_ card: ProducerCard, url: String) -> ImasProducerCard.Back {
+        ImasProducerCard.Back(
+            qr: url, qrLabel: "自分の QR コード", note: "読み取ると \(cardQrLinkView(url: url).display) が開きます。",
+            showCount: card.showCount, songCount: card.songCount, issuedLabel: cardIssuedLabel(issuedOn: card.issuedOn))
+    }
+
+    /// 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。名刺の下の詳細は `.details`。
     /// `portraitURL` は名刺の写真、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
     /// 届いた画像。QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
+    /// `back` は裏の QR (渡さなければ交換用)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
                      imageURL: (String) -> URL?, portraitURL: URL? = nil, face: Face? = nil,
+                     back: ImasProducerCard.Back? = nil,
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
+        let cardFace = producerCardFace(card: card, drawableIdolIds: oshi.map(\.id))
+        let byId = Dictionary(oshi.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return ImasProducerCard(
             design: cardDesign(card, face: face),
-            sinceImprint: sinceImprint(card),
+            sinceImprint: cardFace.sinceImprint,
             name: card.name,
             message: card.message,
             oshi: oshi,
+            faceOshi: cardFace.oshiIdolIds.compactMap { byId[$0] },
+            moreOshi: Int(cardFace.moreOshi),
+            handle: cardFace.handle?.display,
             links: links(card),
             cells: cells(card, directory: directory),
             boardTrailing: boardTrailing(card),
             photoURL: oshi.compactMap(\.imageURL).first,
             portraitURL: portraitURL,
             nameFont: nameFont(card, face: face),
+            back: Self.back(card, face: cardFace, qr: back),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi
         )

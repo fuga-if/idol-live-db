@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import UIKit
 
 /// 名刺入れの画像ファイル (受け取った担当の画像・紙の名刺の写真・自作の名刺の画像) と、
@@ -188,6 +189,21 @@ enum ProducerCardFiles {
 
     static func deleteAll(cardId: String) {
         try? FileManager.default.removeItem(at: folder(cardId))
+    }
+
+    // MARK: 刷る画像
+
+    /// 紙に刷る画像に焼く小さな画像 (長辺 `maxPixels` まで、向きは写真のまま)。ImageRenderer は
+    /// 画像の読み込みを待たないので、刷る前にここで読んでおく。大きな写真を丸ごと読まない。
+    static func printImage(at url: URL, maxPixels: Int = 600) -> UIImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixels,
+        ]
+        guard let cg = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: cg)
     }
 
     // MARK: 送る画像

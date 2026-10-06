@@ -267,7 +267,7 @@ struct ImasRow<Detail: View>: View {
             .frame(width: portraitLeadingWidth)
         case let .cardFace(url, oshi):
             ZStack(alignment: .bottomTrailing) {
-                ImasCardFace(front: url, label: "名刺の画像", thumbnail: true)
+                ImasCardFace(front: url, label: "名刺の画像")
                     .frame(width: density.avatarSize * 1.7)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, density.avatarSize * 0.2)

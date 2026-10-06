@@ -201,22 +201,23 @@ struct ProducerCardEditorView: View {
 
     // MARK: - 見本
 
-    /// 今の入力で組んだ名刺 (保存前でもその場で見た目に出す)。
+    /// 今の入力で組んだ名刺の表 (保存前でもその場で見た目に出す)。名刺は 91:55 の紙 1 枚なので、
+    /// 入力で背が変わらない (名刺の下の詳細は出さない・返さない)。
     private var preview: some View {
         let rec = record ?? ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
         var sample = draft
         if sample.name.isEmpty { sample.name = "名前" }
-        // 見本は書体・写真・リンクを見るためのもの。記録の掲示板は外して背を低くする。
-        sample.hidden.formUnion([.showCount, .songCount, .next])
         let card = encodeProducerCard(input: ProducerCardAssembler.input(card: sample, record: rec)).card
-        return ProducerCardDisplay.view(
+        var display = ProducerCardDisplay.view(
             card, directory: directory,
             imageURL: { CustomImageService.shared.imageURL(for: $0) },
             portraitURL: previewPortrait,
             face: previewFace,
             onOpenLink: nil, onOpenOshi: nil
         )
-        .accessibilityLabel("名刺の見本")
+        display.isFlippable = false
+        return display
+            .accessibilityLabel("名刺の見本")
     }
 
     // MARK: - デザイン
@@ -282,7 +283,7 @@ struct ProducerCardEditorView: View {
         return VStack(alignment: .leading, spacing: DS.Space.gap) {
             Text(title).imasText(.rowLabel, color: DS.ink2)
             if let url = facePreview[side] {
-                ImasCardFace(front: url, label: "自作の名刺の\(title)", thumbnail: true)
+                ImasCardFace(front: url, label: "自作の名刺の\(title)")
             }
             PhotosPicker(selection: pick, matching: .images) {
                 CardEditorActionLabel(title: pickTitle, systemImage: "photo.on.rectangle")

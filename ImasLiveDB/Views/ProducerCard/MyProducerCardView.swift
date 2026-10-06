@@ -32,7 +32,9 @@ struct MyProducerCardView: View {
             if !loaded {
                 ImasInlineLoading()
             } else if let encoded {
-                cardSection(encoded)
+                let card = cardView(encoded)
+                cardSection(encoded, card: card)
+                card.details
                 if let own = encoded.card.qrUrl {
                     qrSection(encoded, own: own)
                 }
@@ -91,16 +93,26 @@ struct MyProducerCardView: View {
         .trackScreen("producer_card")
     }
 
-    private func cardSection(_ encoded: EncodedProducerCard) -> some View {
+    /// 名刺 1 枚。裏の QR は下の切り替え (交換用の QR / 自分の QR) と同じものを刷る。
+    private func cardView(_ encoded: EncodedProducerCard) -> ImasProducerCard {
+        let own = qrMode == .own ? encoded.card.qrUrl : nil
+        return ProducerCardDisplay.view(
+            encoded.card, directory: directory,
+            imageURL: { CustomImageService.shared.imageURL(for: $0) },
+            portraitURL: portraitURL,
+            face: face,
+            back: own.map { ProducerCardDisplay.ownQRBack(encoded.card, url: $0) }
+                ?? ImasProducerCard.Back(qr: encoded.url, showCount: encoded.card.showCount,
+                                         songCount: encoded.card.songCount,
+                                         issuedLabel: cardIssuedLabel(issuedOn: encoded.card.issuedOn)),
+            onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
+            onOpenOshi: nil
+        )
+    }
+
+    private func cardSection(_ encoded: EncodedProducerCard, card: ImasProducerCard) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
-            ProducerCardDisplay.view(
-                encoded.card, directory: directory,
-                imageURL: { CustomImageService.shared.imageURL(for: $0) },
-                portraitURL: portraitURL,
-                face: face,
-                onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
-                onOpenOshi: nil
-            )
+            card
             if encoded.card.design == .custom {
                 ImasNote("自作の画像は名刺ファイルと近くの iPhone で渡した相手に届きます。QR だけで受け取った人と Web では入場証で見えます。")
             }
