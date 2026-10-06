@@ -137,7 +137,9 @@ enum BackupExportImportService {
             expenses: expenses,
             playlists: playlists,
             producerCards: producerCards,
-            myProducerCards: myProducerCards
+            myProducerCards: myProducerCards,
+            // 担当ブランドはアプリ全体の設定 (端末の UserDefaults)。まだ決めていなければ空 (運ばない)。
+            brandRolesJson: BrandRoleStore.json
         )
         // iOS の kind 表記 (UserMarkKind.rawValue) がそのまま JSON の canonical 表記。
         return buildBackupEnvelope(input: input, dialect: .canonical).envelopeJson
@@ -205,7 +207,8 @@ enum BackupExportImportService {
             expenseIds: try database.allExpenseIds(),
             playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id),
             producerCardIds: try database.allReceivedProducerCardIds(),
-            myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? []
+            myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? [],
+            hasBrandRoles: BrandRoleStore.isConfigured
         )
 
         let plan: BackupImportPlan
@@ -270,6 +273,11 @@ enum BackupExportImportService {
                            linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
                            design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson)
         })
+
+        // 担当ブランドは端末でまだ決めていないときだけ (コアが決める)。
+        if !plan.brandRolesJsonToRestore.isEmpty {
+            BrandRoleStore.restore(json: plan.brandRolesJsonToRestore)
+        }
 
         if plan.restoreDeviceId {
             DeviceIdentity.restore(plan.info.deviceId)

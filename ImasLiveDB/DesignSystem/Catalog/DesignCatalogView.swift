@@ -370,6 +370,7 @@ private struct ApplicationFormPage: View {
     @State private var url = "htps://example"
     @State private var tagText = ""
     @State private var tags = ["ソロ曲好き", "初参戦"]
+    @State private var roleIndex = [2, 1, 0]
 
     var body: some View {
         ImasFormPage {
@@ -396,6 +397,16 @@ private struct ApplicationFormPage: View {
                     .init(value: 20, title: "20", subtitle: "問"),
                     .init(value: 30, title: "30", subtitle: "問"),
                 ], selection: $questionCount, style: .numeral)
+            }
+            ImasSection("段のついたスライダー (ImasStepSlider / ImasStepSliderRow)", style: .small) {
+                ImasCardList {
+                    ForEach(Array(zip(["765AS", "ミリオン", "学マス"], [Sample.as765, Sample.ml, Sample.gakuen]).enumerated()),
+                            id: \.offset) { i, item in
+                        ImasStepSliderRow(title: item.0, steps: ["なし", "担当", "メイン"], index: $roleIndex[i],
+                                          brand: item.1)
+                    }
+                }
+                ImasStepSlider(steps: ["なし", "担当", "メイン"], index: $roleIndex[0], accessibilityLabel: "墨 (色なし)")
             }
             ImasFormCard {
                 ImasFormTextField(label: "席", imprint: "SEAT", systemImage: "chair", text: $seat)

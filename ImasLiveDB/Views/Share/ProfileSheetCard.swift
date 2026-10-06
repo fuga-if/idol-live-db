@@ -2,34 +2,35 @@ import SwiftUI
 import UIKit
 
 // =============================================================================
-// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた事務書類の様式を、ポップに崩す。
+// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた **履歴書** の様式。
 //
-// - 履歴書 (既定) / 職務経歴書。欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
-// - 紙は生成り、線は墨の太い罫。担当色は上の帯・表の頭の罫・押印欄の判子・職務経歴の印にだけ出す
-//   (面を塗らない)。ブランドの丸はブランドの色の手描きの線。
-// - 題はポップな書体 (Mochiy Pop One)、項目名は印字 (ゴシック)、名前と記入欄の中身は P名刺で選んだ書体。
-// - 中身はすべてアプリの記録から (自分で書く欄は無い)。
-// - アプリ名の帯 (`ShareCardFooter`) を下に置く。
+// - 欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
+// - 紙は生成り、線は墨。罫の太さは 2 段 (外枠と欄の中)。担当色は押印欄の判子の 1 か所だけ
+//   (面を塗らない・帯を引かない)。ブランドの丸はブランドの色の手描きの線 (中身そのものの色)。
+// - 字面は事務書類の端正さに寄せる (2026-10 ユーザー「文字の感じが若干垢抜けてない」)。題・名前・欄の題は明朝、
+//   本文はゴシック (`ProfileSheetType`)、英字は等幅の大文字の印字だけ。太さは 2 段 (本文 = regular・見出し = semibold)、
+//   和文はかなを詰めて (palt) 字間を少し詰め、英字の大文字にだけ字間を足す。数字は等幅。
+//   題は大きく本文は控えめにして、大きさの比をはっきり取る。
+// - 中身はすべてアプリの記録から (自分で書く欄は無い)。アプリ名の帯 (`ShareCardFooter`) を下に置く。
 //
 // ImageRenderer で焼く固定のキャンバスなので、色は固定色、文字は固定 pt (docs/DESIGN_SYSTEM.md §13)。
-// 画像は読み込み済みの UIImage だけを使う (ImageRenderer は読み込みを待たない)。
+// 画像は読み込み済みの UIImage だけを使う (ImageRenderer は読み込みを待たない)。画像は大きさの決まった枠を
+// 先に作ってから重ねて切る (縦長の大きな画像で枠が膨らまないように)。
 // =============================================================================
 
 enum ProfileSheetInk {
     /// 生成りの紙。
     static let paper = Color(.sRGB, red: 0xFB / 255, green: 0xF7 / 255, blue: 0xEE / 255)
     static let ink = ShareInk.nearBlack
-    static let sub = Color(.sRGB, red: 0x5A / 255, green: 0x57 / 255, blue: 0x55 / 255)
-    /// 外枠の罫 (太い)。
-    static let frame: CGFloat = 2.5
+    /// 設問・項目名の灰。
+    static let sub = Color(.sRGB, red: 0x6A / 255, green: 0x66 / 255, blue: 0x63 / 255)
+    /// 外枠の罫。
+    static let frame: CGFloat = 1.5
     /// 欄の中の罫。
-    static let rule: CGFloat = 1
+    static let rule: CGFloat = 0.5
 
     /// QR の辺。詰め方で縮めない (焼いた画像を SNS が縮めても読めるように)。周りに紙の余白を足す。
     static let qrSide: CGFloat = 52
-
-    /// 題の書体 (同梱のポップ体)。
-    static var titleFont: String { cardNameFontInfo(font: .pop).postscriptName }
 
     static func size(_ size: ProfileSheetSize) -> ShareCard.Size {
         size == .story ? ShareCard.Ratio.story.size : ShareCard.Ratio.portrait.size
@@ -44,7 +45,8 @@ enum ProfileSheetInk {
         case .compact: 2
         case .tight: 4
         }
-        let base: CGFloat = layout.size == .story ? 1.12 : 1
+        // 9:16 は縦に余るので大きく組む (入らなければ下の段へ)。
+        let base: CGFloat = layout.size == .story ? 1.3 : 1
         return steps[start...].map { $0 * base }
     }
 
@@ -53,46 +55,74 @@ enum ProfileSheetInk {
     }
 }
 
-/// プロフィール帳 1 枚 (様式で出し分け)。
+/// プロフィール帳の書体。題・名前・欄の題だけ明朝 (ヒラギノ明朝 W6)、ほかはゴシック (ヒラギノ角ゴ)、
+/// 英字は等幅の印字。
+/// 撮り比べ (2026-10): 「全部ゴシック 1 系統」と並べ、題と名前を明朝にした方が履歴書の用紙らしく
+/// 締まって見え (ゴシックの太い題は見出しの圧が強い)、本文はゴシックのままで縮小にも耐えたのでこちらを採った。
+enum ProfileSheetType {
+    /// 和文 (かなを詰める palt)。`weight` は regular / semibold の 2 段で使う。
+    static func jp(_ size: CGFloat, _ weight: UIFont.Weight = .regular) -> Font {
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        let descriptor = base.fontDescriptor.addingAttributes([
+            .featureSettings: [[
+                UIFontDescriptor.FeatureKey.type: kTextSpacingType,
+                UIFontDescriptor.FeatureKey.selector: kAltProportionalTextSelector,
+            ]],
+        ])
+        return Font(UIFont(descriptor: descriptor, size: size))
+    }
+
+    /// 数字 (等幅)。
+    static func num(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight).monospacedDigit()
+    }
+
+    /// 英字の印字 (等幅の大文字。字間は `imprintTracking`)。
+    static func imprint(_ size: CGFloat) -> Font {
+        .system(size: size, weight: .medium, design: .monospaced)
+    }
+
+    /// 題・名前・欄の題 (ヒラギノ明朝 W6。引けなければ本文のゴシックの semibold)。
+    static func display(_ size: CGFloat) -> Font {
+        guard let font = UIFont(name: "HiraMinProN-W6", size: size) else { return jp(size, .semibold) }
+        return Font(font)
+    }
+
+    static let imprintTracking: CGFloat = 2.4
+    /// 和文の字間 (少し詰める)。
+    static let jpTracking: CGFloat = -0.2
+}
+
+private typealias T = ProfileSheetType
+private typealias Ink = ProfileSheetInk
+
+/// プロフィール帳 1 枚。
 struct ProfileSheetCard: View {
     let layout: ProfileSheetLayout
     let materials: ProfileSheetMaterials
 
     var body: some View {
-        let size = ProfileSheetInk.size(layout.size)
-        let accent = ProfileSheetInk.accent(materials.seed)
-        let scales = ProfileSheetInk.scales(layout)
-        VStack(spacing: 0) {
-            Rectangle().fill(accent).frame(height: 10)
-            Rectangle().fill(ProfileSheetInk.ink).frame(height: 2)
-            VStack(alignment: .leading, spacing: 0) {
-                ProfileSheetHeading(layout: layout, s: scales[0])
-                // コアの詰め方から始めて、収まらなければ小さい方へ (最後の段は下を切る)。
-                ViewThatFits(in: .vertical) {
-                    ForEach(scales, id: \.self) { s in
-                        content(accent: accent, s: s)
-                    }
+        let size = Ink.size(layout.size)
+        let scales = Ink.scales(layout)
+        VStack(alignment: .leading, spacing: 0) {
+            ProfileSheetHeading(layout: layout)
+            // コアの詰め方から始めて、収まらなければ小さい方へ (最後の段は下を切る)。
+            ViewThatFits(in: .vertical) {
+                ForEach(scales, id: \.self) { s in
+                    ProfileResumeBody(layout: layout, materials: materials, s: s)
                 }
-                .padding(.top, 10)
-                .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
-                .clipped()
-                ShareCardFooter(ink: ProfileSheetInk.ink.opacity(0.7), rule: ProfileSheetInk.ink.opacity(0.3))
-                    .padding(.top, 8)
             }
-            .padding(.horizontal, 26)
-            .padding(.top, 14)
-            .padding(.bottom, 18)
+            .padding(.top, 12)
+            .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
+            .clipped()
+            ShareCardFooter(ink: Ink.ink.opacity(0.7), rule: Ink.ink.opacity(0.25))
+                .padding(.top, 8)
         }
+        .padding(.horizontal, 26)
+        .padding(.top, 26)
+        .padding(.bottom, 18)
         .frame(width: size.width, height: size.height)
-        .background(ProfileSheetInk.paper)
-    }
-
-    @ViewBuilder
-    private func content(accent: Color, s: CGFloat) -> some View {
-        switch layout.style {
-        case .resume: ProfileResumeBody(layout: layout, materials: materials, accent: accent, s: s)
-        case .career: ProfileCareerBody(layout: layout, materials: materials, accent: accent, s: s)
-        }
+        .background(Ink.paper)
     }
 }
 
@@ -100,22 +130,24 @@ struct ProfileSheetCard: View {
 
 private struct ProfileSheetHeading: View {
     let layout: ProfileSheetLayout
-    let s: CGFloat
 
     var body: some View {
-        HStack(alignment: .lastTextBaseline, spacing: 10) {
-            Text(layout.title)
-                .font(.imasCardNameFixed(ProfileSheetInk.titleFont, size: 32 * s))
-                .tracking(6)
-                .foregroundStyle(ProfileSheetInk.ink)
-            Text(layout.imprint)
-                .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                .tracking(2)
-                .foregroundStyle(ProfileSheetInk.sub)
-            Spacer(minLength: 8)
-            Text(layout.asOf)
-                .font(.system(size: 10.5 * s, weight: .semibold))
-                .foregroundStyle(ProfileSheetInk.ink)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .lastTextBaseline, spacing: 10) {
+                Text(layout.title)
+                    .font(T.display(30))
+                    .tracking(7)
+                Text(layout.imprint)
+                    .font(T.imprint(8))
+                    .tracking(T.imprintTracking)
+                    .foregroundStyle(Ink.sub)
+                Spacer(minLength: 8)
+                Text(layout.asOf)
+                    .font(T.jp(9.5))
+                    .monospacedDigit()
+            }
+            .foregroundStyle(Ink.ink)
+            Rectangle().fill(Ink.ink).frame(height: Ink.frame)
         }
     }
 }
@@ -125,11 +157,10 @@ private struct ProfileSheetHeading: View {
 private struct ProfileResumeBody: View {
     let layout: ProfileSheetLayout
     let materials: ProfileSheetMaterials
-    let accent: Color
     let s: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8 * s) {
+        VStack(alignment: .leading, spacing: 10 * s) {
             identity
             if !layout.brands.isEmpty {
                 ProfileBrandRange(title: layout.brandsTitle, brands: layout.brands, s: s)
@@ -138,15 +169,15 @@ private struct ProfileResumeBody: View {
                 ProfileBox {
                     VStack(spacing: 0) {
                         if !layout.history.isEmpty {
-                            ProfileTableHead(title: "P歴（学歴・職歴）", accent: accent, s: s)
+                            ProfileTableHead(title: "P歴（学歴・職歴）", s: s)
                             ForEach(Array(layout.history.enumerated()), id: \.offset) { i, row in
                                 if i > 0 { ProfileRule() }
                                 ProfileHistoryLine(row: row, s: s)
                             }
                         }
                         if !layout.licenses.isEmpty {
-                            if !layout.history.isEmpty { ProfileRule(width: ProfileSheetInk.frame) }
-                            ProfileTableHead(title: "免許・資格", accent: accent, s: s)
+                            if !layout.history.isEmpty { ProfileRule(width: Ink.frame) }
+                            ProfileTableHead(title: "免許・資格", s: s)
                             ForEach(Array(layout.licenses.enumerated()), id: \.offset) { i, row in
                                 if i > 0 { ProfileRule() }
                                 ProfileHistoryLine(row: row, s: s)
@@ -157,14 +188,14 @@ private struct ProfileResumeBody: View {
             }
             // 志望の動機は横いっぱい、趣味・特技と本人希望記入欄は左右に並べる (様式の欄の並び)。
             ForEach(layout.sections.filter { $0.slot == .motivation }, id: \.title) { section in
-                ProfileBox { ProfileSectionView(section: section, font: materials.nameFont, s: s) }
+                ProfileBox { ProfileSectionView(section: section, s: s) }
             }
             let pair = layout.sections.filter { $0.slot != .motivation }
             if !pair.isEmpty {
-                HStack(alignment: .top, spacing: 8 * s) {
+                HStack(alignment: .top, spacing: 10 * s) {
                     ForEach(pair, id: \.title) { section in
                         ProfileBox {
-                            ProfileSectionView(section: section, font: materials.nameFont, s: s)
+                            ProfileSectionView(section: section, s: s)
                                 .frame(maxHeight: .infinity, alignment: .top)
                         }
                     }
@@ -182,23 +213,25 @@ private struct ProfileResumeBody: View {
                     ProfileField(label: "氏名", s: s) {
                         HStack(spacing: 8) {
                             Text(layout.name)
-                                .font(.imasCardNameFixed(materials.nameFont, size: 30 * s))
-                                .foregroundStyle(ProfileSheetInk.ink)
+                                .font(T.display(24 * s))
+                                .tracking(T.jpTracking)
+                                .foregroundStyle(Ink.ink)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.5)
                             Spacer(minLength: 0)
                             if layout.showOshi, let oshi = materials.oshi.first {
-                                ProfileSeal(oshi: oshi, diameter: 46 * s)
+                                ProfileSeal(oshi: oshi, diameter: 42 * s)
                             }
                         }
-                        .padding(.vertical, 2 * s)
+                        .padding(.vertical, 3 * s)
                     }
                     if let since = layout.sinceLabel {
                         ProfileRule()
                         ProfileField(label: "P歴", s: s) {
                             Text(since)
-                                .font(.system(size: 10.5 * s, weight: .bold))
-                                .foregroundStyle(ProfileSheetInk.ink)
+                                .font(T.jp(10 * s))
+                                .monospacedDigit()
+                                .foregroundStyle(Ink.ink)
                                 .lineLimit(1)
                         }
                     }
@@ -210,239 +243,81 @@ private struct ProfileResumeBody: View {
                         ProfileRule()
                         ProfileField(label: "連絡先", s: s) {
                             HStack(spacing: 8) {
-                                Text(layout.contacts.joined(separator: "　"))
-                                    .font(.system(size: 10.5 * s, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(ProfileSheetInk.ink)
+                                Text(layout.contacts.joined(separator: "   "))
+                                    .font(T.imprint(9.5 * s))
+                                    .foregroundStyle(Ink.ink)
                                     .lineLimit(2)
                                     .minimumScaleFactor(0.7)
                                 Spacer(minLength: 0)
                                 if layout.showQr, let qr = materials.qr {
-                                    ProfileQR(image: qr, side: ProfileSheetInk.qrSide)
+                                    ProfileQR(image: qr, side: Ink.qrSide)
                                 }
                             }
                         }
                     }
                 }
-                Rectangle().fill(ProfileSheetInk.ink).frame(width: ProfileSheetInk.frame)
-                ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil, width: 92 * s)
-                    .padding(8 * s)
+                Rectangle().fill(Ink.ink).frame(width: Ink.rule)
+                ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil, width: 88 * s)
+                    .padding(10 * s)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
-// MARK: - 職務経歴書
-
-private struct ProfileCareerBody: View {
-    let layout: ProfileSheetLayout
-    let materials: ProfileSheetMaterials
-    let accent: Color
-    let s: CGFloat
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8 * s) {
-            identity
-            ForEach(layout.sections.filter { $0.slot == .summary }, id: \.title) { section in
-                ProfileHeadline(title: section.title, imprint: section.imprint, accent: accent, s: s)
-                ProfileEntries(entries: section.entries, font: materials.nameFont, s: s)
-            }
-            if !layout.career.isEmpty {
-                ProfileHeadline(title: "職務経歴", imprint: "CAREER", accent: accent, s: s)
-                careerTable
-            }
-            if (layout.showOshi && !materials.oshi.isEmpty) || !layout.brands.isEmpty {
-                ProfileHeadline(title: "担当", imprint: "IN CHARGE", accent: accent, s: s)
-                if layout.showOshi && !materials.oshi.isEmpty {
-                    ProfileOshiList(oshi: materials.oshi, s: s)
-                }
-                if !layout.brands.isEmpty {
-                    ProfileBrandRange(title: layout.brandsTitle, brands: layout.brands, s: s)
-                }
-            }
-            ForEach(layout.sections.filter { $0.slot != .summary }, id: \.title) { section in
-                ProfileHeadline(title: section.title, imprint: section.imprint, accent: accent, s: s)
-                if !section.stats.isEmpty {
-                    ProfileStats(stats: section.stats, accent: accent, s: s)
-                }
-                ProfileEntries(entries: section.entries, font: materials.nameFont, s: s)
-            }
-            HStack {
-                Spacer()
-                Text("以上").font(.system(size: 11 * s, weight: .bold)).foregroundStyle(ProfileSheetInk.ink)
-            }
-        }
-    }
-
-    /// 右上に氏名と押印・証明写真 (職務経歴書の頭)。
-    private var identity: some View {
-        HStack(alignment: .bottom, spacing: 12 * s) {
-            VStack(alignment: .leading, spacing: 4 * s) {
-                if let since = layout.sinceLabel {
-                    Text(since)
-                        .font(.system(size: 10.5 * s, weight: .bold))
-                        .foregroundStyle(ProfileSheetInk.ink)
-                }
-                if !layout.contacts.isEmpty {
-                    Text(layout.contacts.joined(separator: "　"))
-                        .font(.system(size: 10 * s, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(ProfileSheetInk.sub)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                }
-            }
-            Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 2) {
-                HStack(alignment: .center, spacing: 6) {
-                    Text("氏名").font(.system(size: 9 * s, weight: .bold)).foregroundStyle(ProfileSheetInk.sub)
-                    Text(layout.name)
-                        .font(.imasCardNameFixed(materials.nameFont, size: 26 * s))
-                        .foregroundStyle(ProfileSheetInk.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                    if layout.showOshi, let oshi = materials.oshi.first {
-                        ProfileSeal(oshi: oshi, diameter: 40 * s)
-                    }
-                }
-                Rectangle().fill(ProfileSheetInk.ink).frame(height: ProfileSheetInk.frame)
-            }
-            .fixedSize()
-            if layout.showQr, let qr = materials.qr {
-                ProfileQR(image: qr, side: ProfileSheetInk.qrSide)
-            }
-            if layout.showPhoto, let portrait = materials.portrait {
-                ProfilePhotoBox(image: portrait, width: 60 * s)
-            }
-        }
-    }
-
-    private var careerTable: some View {
-        ProfileBox {
-            VStack(spacing: 0) {
-                ForEach(Array(layout.career.enumerated()), id: \.offset) { i, year in
-                    if i > 0 { ProfileRule(width: ProfileSheetInk.frame) }
-                    HStack {
-                        Text(year.year).font(.system(size: 12 * s, weight: .heavy))
-                        Spacer()
-                        Text(year.countLabel).font(.system(size: 10 * s, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundStyle(ProfileSheetInk.ink)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3 * s)
-                    .overlay(alignment: .bottom) { Rectangle().fill(accent).frame(height: 2.5) }
-                    ForEach(Array(year.rows.enumerated()), id: \.offset) { j, row in
-                        if j > 0 { ProfileRule() }
-                        ProfileCareerLine(row: row, accent: accent, s: s)
-                    }
-                }
-                if layout.careerMore > 0 {
-                    ProfileRule()
-                    HStack {
-                        Spacer()
-                        Text("ほか \(layout.careerMore) 公演")
-                            .font(.system(size: 9.5 * s, weight: .semibold))
-                            .foregroundStyle(ProfileSheetInk.sub)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3 * s)
-                }
-            }
-        }
-    }
-}
-
-private struct ProfileCareerLine: View {
-    let row: ProfileCareerRow
-    let accent: Color
-    let s: CGFloat
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(row.date)
-                .font(.system(size: 10 * s, weight: .bold, design: .monospaced))
-                .frame(width: 40 * s, alignment: .leading)
-            (Text(row.title).font(.system(size: 10 * s, weight: .bold))
-                + Text(row.venue.map { "　\($0)" } ?? "")
-                .font(.system(size: 8.5 * s, weight: .medium))
-                .foregroundColor(ProfileSheetInk.sub))
-                .lineLimit(1)
-                .truncationMode(.tail)
-            Spacer(minLength: 4)
-            if row.planned {
-                Text("予定")
-                    .font(.system(size: 9 * s, weight: .heavy))
-                    .foregroundStyle(accent)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .overlay(Rectangle().strokeBorder(accent, lineWidth: 1.5))
-                    .rotationEffect(.degrees(-6))
-            } else if let brand = row.brand {
-                Text(brand)
-                    .font(.system(size: 9 * s, weight: .bold))
-                    .foregroundStyle(ProfileSheetInk.sub)
-                    .lineLimit(1)
-            }
-        }
-        .foregroundStyle(ProfileSheetInk.ink)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 3 * s)
-    }
-}
-
 // MARK: - 部品 (プロフィール帳の中だけ)
 
-/// 太い墨の罫で囲む欄。
+/// 墨の罫で囲む欄。
 private struct ProfileBox<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(Rectangle().strokeBorder(ProfileSheetInk.ink, lineWidth: ProfileSheetInk.frame))
+            .overlay(Rectangle().strokeBorder(Ink.ink, lineWidth: Ink.frame))
     }
 }
 
 private struct ProfileRule: View {
-    var width: CGFloat = ProfileSheetInk.rule
+    var width: CGFloat = Ink.rule
 
     var body: some View {
-        Rectangle().fill(ProfileSheetInk.ink).frame(height: width)
+        Rectangle().fill(Ink.ink).frame(height: width)
     }
 }
 
-/// 項目名 (印字) と中身の 1 段。
+/// 項目名と中身の 1 段。
 private struct ProfileField<Content: View>: View {
     let label: String
     let s: CGFloat
     @ViewBuilder var content: Content
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 10) {
             Text(label)
-                .font(.system(size: 8.5 * s, weight: .bold))
-                .foregroundStyle(ProfileSheetInk.sub)
-                .frame(width: 40 * s, alignment: .leading)
+                .font(T.jp(7.5 * s, .semibold))
+                .foregroundStyle(Ink.sub)
+                .frame(width: 34 * s, alignment: .leading)
             content
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4 * s)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5 * s)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-/// 表の頭 (年・月・内容)。下の罫だけ担当色で太く。
+/// 表の頭 (年・月・内容)。下は墨の罫。
 private struct ProfileTableHead: View {
     let title: String
-    let accent: Color
     let s: CGFloat
 
     var body: some View {
         ProfileHistoryColumns(year: "年", month: "月", s: s) {
             Text(title).frame(maxWidth: .infinity)
         }
-        .font(.system(size: 9 * s, weight: .heavy))
-        .foregroundStyle(ProfileSheetInk.ink)
-        .overlay(alignment: .bottom) { Rectangle().fill(accent).frame(height: 2.5) }
+        .font(T.jp(7.5 * s, .semibold))
+        .foregroundStyle(Ink.sub)
+        .overlay(alignment: .bottom) { Rectangle().fill(Ink.ink).frame(height: Ink.rule * 2) }
     }
 }
 
@@ -453,12 +328,13 @@ private struct ProfileHistoryLine: View {
     var body: some View {
         ProfileHistoryColumns(year: row.year, month: row.month, s: s) {
             Text(row.text)
+                .tracking(T.jpTracking)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: row.kind == .closing ? .trailing : .leading)
         }
-        .font(.system(size: 10 * s, weight: row.kind == .closing ? .bold : .medium))
-        .foregroundStyle(ProfileSheetInk.ink)
+        .font(T.jp(9.5 * s, row.kind == .closing ? .semibold : .regular))
+        .foregroundStyle(Ink.ink)
     }
 }
 
@@ -471,13 +347,13 @@ private struct ProfileHistoryColumns<Content: View>: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Text(year).monospacedDigit().frame(width: 40 * s)
-            Rectangle().fill(ProfileSheetInk.ink).frame(width: ProfileSheetInk.rule)
-            Text(month).monospacedDigit().frame(width: 26 * s)
-            Rectangle().fill(ProfileSheetInk.ink).frame(width: ProfileSheetInk.rule)
-            content.padding(.horizontal, 8)
+            Text(year).monospacedDigit().frame(width: 38 * s)
+            Rectangle().fill(Ink.ink).frame(width: Ink.rule)
+            Text(month).monospacedDigit().frame(width: 24 * s)
+            Rectangle().fill(Ink.ink).frame(width: Ink.rule)
+            content.padding(.horizontal, 10)
         }
-        .padding(.vertical, 2.5 * s)
+        .padding(.vertical, 3.5 * s)
         .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -485,113 +361,43 @@ private struct ProfileHistoryColumns<Content: View>: View {
 /// 欄 (題と、項目の並び)。
 private struct ProfileSectionView: View {
     let section: ProfileSection
-    let font: String
     let s: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4 * s) {
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(section.title).font(.system(size: 10.5 * s, weight: .heavy))
+        VStack(alignment: .leading, spacing: 6 * s) {
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text(section.title)
+                    .font(T.display(10.5 * s))
+                    .tracking(T.jpTracking)
                 Text(section.imprint)
-                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                    .tracking(1.5)
-                    .foregroundStyle(ProfileSheetInk.sub)
+                    .font(T.imprint(7))
+                    .tracking(T.imprintTracking)
+                    .foregroundStyle(Ink.sub)
             }
-            .foregroundStyle(ProfileSheetInk.ink)
-            ProfileEntries(entries: section.entries, font: font, s: s)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6 * s)
-    }
-}
-
-/// 項目名 (印字の小さな字) と中身 (記入欄らしく P名刺の書体で)。
-private struct ProfileEntries: View {
-    let entries: [ProfileEntry]
-    let font: String
-    let s: CGFloat
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4 * s) {
-            ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
-                VStack(alignment: .leading, spacing: 1) {
-                    if !entry.label.isEmpty {
+            .foregroundStyle(Ink.ink)
+            VStack(alignment: .leading, spacing: 6 * s) {
+                ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(entry.label)
-                            .font(.system(size: 8.5 * s, weight: .bold))
-                            .foregroundStyle(ProfileSheetInk.sub)
+                            .font(T.jp(7.5 * s, .semibold))
+                            .foregroundStyle(Ink.sub)
+                        Text(entry.text)
+                            .font(T.jp(10.5 * s))
+                            .tracking(T.jpTracking)
+                            .monospacedDigit()
+                            .lineSpacing(2 * s)
+                            .foregroundStyle(Ink.ink)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Text(entry.text)
-                        .font(.imasCardNameFixed(font, size: 12.5 * s))
-                        .foregroundStyle(ProfileSheetInk.ink)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9 * s)
     }
 }
 
-/// 実績の数字 (自己PR)。太い罫で囲み、縦の罫で区切って数字を大きく刷る。
-private struct ProfileStats: View {
-    let stats: [ProfileStat]
-    let accent: Color
-    let s: CGFloat
-
-    var body: some View {
-        ProfileBox {
-            HStack(spacing: 0) {
-                ForEach(Array(stats.enumerated()), id: \.offset) { i, stat in
-                    if i > 0 { Rectangle().fill(ProfileSheetInk.ink).frame(width: ProfileSheetInk.rule) }
-                    VStack(spacing: 1) {
-                        Text(stat.label)
-                            .font(.system(size: 8.5 * s, weight: .bold))
-                            .foregroundStyle(ProfileSheetInk.sub)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                            Text(stat.value)
-                                .font(.system(size: 22 * s, weight: .heavy, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(ProfileSheetInk.ink)
-                            Text(stat.unit)
-                                .font(.system(size: 9 * s, weight: .bold))
-                                .foregroundStyle(ProfileSheetInk.ink)
-                        }
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        Rectangle().fill(accent).frame(width: 18 * s, height: 2.5)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6 * s)
-                    .padding(.horizontal, 4)
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
-/// 職務経歴書の見出し (担当色の四角 + 題 + 英字の印字)。
-private struct ProfileHeadline: View {
-    let title: String
-    let imprint: String
-    let accent: Color
-    let s: CGFloat
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 6) {
-            Rectangle().fill(accent).frame(width: 9 * s, height: 9 * s)
-            Text(title).font(.system(size: 12 * s, weight: .heavy)).foregroundStyle(ProfileSheetInk.ink)
-            Text(imprint)
-                .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                .tracking(1.5)
-                .foregroundStyle(ProfileSheetInk.sub)
-            Rectangle().fill(ProfileSheetInk.ink).frame(height: ProfileSheetInk.rule)
-        }
-        .padding(.top, 2 * s)
-    }
-}
-
-/// 担当ブランド: 刷ってあるブランドの名前に、担当しているものだけ手描きの丸 (メインは二重丸)。
+/// 担当ブランド: 刷ってあるブランドの名前に、担当しているものだけ手描きの丸 (メインは二重丸、いくつでも)。
 private struct ProfileBrandRange: View {
     let title: String
     let brands: [ProfileBrandCheck]
@@ -601,23 +407,24 @@ private struct ProfileBrandRange: View {
         // 名前が 2 段に折り返しても、欄の名前は 1 段目の高さに置く。
         HStack(alignment: .top, spacing: 10) {
             Text(title)
-                .font(.system(size: 9 * s, weight: .heavy))
-                .foregroundStyle(ProfileSheetInk.ink)
+                .font(T.jp(7.5 * s, .semibold))
+                .foregroundStyle(Ink.sub)
                 .padding(.top, 5 * s)
                 .fixedSize()
             // 丸 (二重丸の外側) が欄の名前に掛からないよう、名前の列から少し離す。
-            FlowLayout(spacing: 11 * s, lineSpacing: 10 * s) {
+            FlowLayout(spacing: 17 * s, lineSpacing: 10 * s) {
                 ForEach(brands, id: \.id) { brand in
                     Text(brand.label)
-                        .font(.system(size: 10.5 * s, weight: .bold))
-                        .foregroundStyle(brand.checked ? ProfileSheetInk.ink : ProfileSheetInk.sub)
+                        .font(T.jp(10 * s, brand.checked ? .semibold : .regular))
+                        .tracking(T.jpTracking)
+                        .foregroundStyle(brand.checked ? Ink.ink : Ink.sub)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .overlay {
                             ForEach(Array(brand.rings.enumerated()), id: \.offset) { i, ring in
                                 ProfileHandCircle(ring: ring)
-                                    .stroke(ProfileSheetInk.accent(brand.color),
-                                            style: StrokeStyle(lineWidth: i == 0 ? 2 : 1.6, lineCap: .round,
+                                    .stroke(Ink.accent(brand.color),
+                                            style: StrokeStyle(lineWidth: i == 0 ? 1.6 : 1.2, lineCap: .round,
                                                                lineJoin: .round))
                                     .padding(.horizontal, -3)
                                     .padding(.vertical, -4)
@@ -661,16 +468,16 @@ struct ProfileHandCircle: Shape {
     }
 }
 
-/// 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。
+/// 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。プロフィール帳で担当色を使う唯一の所。
 private struct ProfileSeal: View {
     let oshi: ProfileSheetOshi
     let diameter: CGFloat
 
     var body: some View {
-        let color = ProfileSheetInk.accent(oshi.color ?? oshi.brandColor)
+        let color = Ink.accent(oshi.color ?? oshi.brandColor)
         ZStack {
-            Circle().strokeBorder(color, lineWidth: 2.5)
-            Circle().strokeBorder(color, lineWidth: 1).padding(4)
+            Circle().strokeBorder(color, lineWidth: 2)
+            Circle().strokeBorder(color, lineWidth: 0.8).padding(3.5)
             sealText.foregroundStyle(color)
         }
         .frame(width: diameter, height: diameter)
@@ -703,13 +510,14 @@ private struct ProfileOshiList: View {
     let s: CGFloat
 
     var body: some View {
-        HStack(spacing: 10 * s) {
+        HStack(spacing: 12 * s) {
             ForEach(oshi) { idol in
                 HStack(spacing: 5) {
-                    ProfileOshiIcon(oshi: idol, size: 24 * s)
+                    ProfileOshiIcon(oshi: idol, size: 22 * s)
                     Text(idol.name)
-                        .font(.system(size: 10.5 * s, weight: .bold))
-                        .foregroundStyle(ProfileSheetInk.ink)
+                        .font(T.jp(10 * s))
+                        .tracking(T.jpTracking)
+                        .foregroundStyle(Ink.ink)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
@@ -718,57 +526,57 @@ private struct ProfileOshiList: View {
     }
 }
 
-/// 担当のアイコン (写真が無ければ判子)。
+/// 担当のアイコン (写真が無ければ判子)。枠を先に決めてから写真を重ねて丸く切る。
 private struct ProfileOshiIcon: View {
     let oshi: ProfileSheetOshi
     let size: CGFloat
 
     var body: some View {
-        let color = ProfileSheetInk.accent(oshi.color ?? oshi.brandColor)
-        ZStack {
-            if let image = oshi.image {
-                Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                ProfileSheetInk.paper
-                Text(oshi.shortName)
-                    .font(.system(size: size * 0.34, weight: .bold))
-                    .foregroundStyle(color)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.horizontal, size * 0.1)
+        let color = Ink.accent(oshi.color ?? oshi.brandColor)
+        Color.clear
+            .frame(width: size, height: size)
+            .overlay {
+                if let image = oshi.image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    Text(oshi.shortName)
+                        .font(.system(size: size * 0.34, weight: .bold))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, size * 0.1)
+                }
             }
-        }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-        .overlay(Circle().strokeBorder(color, lineWidth: 1.5))
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(color, lineWidth: 1.2))
     }
 }
 
-/// 証明写真の欄。写真が無ければ履歴書の「写真をはる位置」を刷っておく。
+/// 証明写真の欄 (3:4)。枠を先に決めてから写真を重ねて切る。写真が無ければ「写真をはる位置」を刷っておく。
 private struct ProfilePhotoBox: View {
     let image: UIImage?
     let width: CGFloat
 
     var body: some View {
-        let height = width * 4 / 3
-        ZStack {
-            if let image {
-                Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                VStack(spacing: 4) {
-                    Text("写真をはる位置").font(.system(size: 8, weight: .bold))
-                    Text("縦 36〜40mm\n横 24〜30mm").font(.system(size: 7, weight: .medium))
+        Color.clear
+            .frame(width: width, height: width * 4 / 3)
+            .overlay {
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    VStack(spacing: 4) {
+                        Text("写真をはる位置").font(T.jp(7.5, .semibold))
+                        Text("縦 36〜40mm\n横 24〜30mm").font(T.jp(6.5)).monospacedDigit()
+                    }
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Ink.sub)
                 }
-                .multilineTextAlignment(.center)
-                .foregroundStyle(ProfileSheetInk.sub)
             }
-        }
-        .frame(width: width, height: height)
-        .clipped()
-        .overlay(
-            Rectangle().strokeBorder(ProfileSheetInk.ink,
-                                     style: StrokeStyle(lineWidth: 1, dash: image == nil ? [3, 2] : []))
-        )
+            .clipped()
+            .overlay(
+                Rectangle().strokeBorder(Ink.ink,
+                                         style: StrokeStyle(lineWidth: Ink.rule, dash: image == nil ? [3, 2] : []))
+            )
     }
 }
 
@@ -782,9 +590,9 @@ private struct ProfileQR: View {
             .interpolation(.none)
             .resizable()
             .scaledToFit()
-            .foregroundStyle(ProfileSheetInk.ink)
+            .foregroundStyle(Ink.ink)
             .frame(width: side, height: side)
             .padding(4)
-            .background(ProfileSheetInk.paper)
+            .background(Ink.paper)
     }
 }

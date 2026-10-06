@@ -397,6 +397,12 @@ struct MyPageView: View {
                 ImasNavRow(title: "タブバー", systemImage: "dock.rectangle", showsChevron: false)
             }
 
+            NavigationLink {
+                BrandRoleSettingsView()
+            } label: {
+                ImasNavRow(title: "担当ブランド", systemImage: "circle.circle", showsChevron: false)
+            }
+
             ImasMenuRow(
                 title: "デフォルトブランド",
                 systemImage: "square.grid.2x2",

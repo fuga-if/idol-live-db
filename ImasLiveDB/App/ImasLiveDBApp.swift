@@ -21,7 +21,11 @@ struct ImasLiveDBApp: App {
     private static let dailyVoteKey = "daily_vote_last_date"
 
     /// 起動時に出すシート。オンボーディング優先、無ければ日替わりの今日の1曲。
-    private enum LaunchSheet: Int, Identifiable { case onboarding, announcements, dailyVote; var id: Int { rawValue } }
+    /// 担当ブランド (`brandRoles`) は初回起動のオンボーディングを閉じた後に 1 度だけ続けて出す。
+    private enum LaunchSheet: Int, Identifiable {
+        case onboarding, brandRoles, announcements, dailyVote
+        var id: Int { rawValue }
+    }
     @State private var launchSheet: LaunchSheet?
     @State private var updateService = UpdateCheckService.shared
     /// 起動時 reseed が失敗したときに 1 度だけ出すアラートの表示フラグ。
@@ -161,11 +165,19 @@ struct ImasLiveDBApp: App {
             }
             .sheet(item: $launchSheet, onDismiss: {
                 // オンボーディングを見たフラグは閉じたら確定 (今日の1曲を閉じた場合は既に true)。
+                let firstLaunch = !UserDefaults.standard.bool(forKey: Self.onboardingStorageKey)
                 UserDefaults.standard.set(true, forKey: Self.onboardingStorageKey)
+                // 初回起動はオンボーディングに続けて担当ブランドを選んでもらう (飛ばしても 1 度きり)。
+                // 既存のユーザーにはプロフィール帳をはじめて開いたときに出す。
+                if firstLaunch, BrandRoleStore.shouldPrompt {
+                    launchSheet = .brandRoles
+                }
             }) { item in
                 switch item {
                 case .onboarding:
                     HelpView()
+                case .brandRoles:
+                    BrandRoleSetupSheet()
                 case .announcements:
                     InboxView()
                 case .dailyVote:

@@ -10,8 +10,10 @@ import SwiftUI
 struct ProducerCardPreviewHarness: View {
     enum Mode: String {
         case card, editor, exchange, read, receive, `case`, detail, print, paper, crop, corners
-        /// プロフィール帳の画面 / 編集シート / 見本の画像を全部書き出す (Documents/profile_exports/)。
-        case profile, profileEditor, profileExport
+        /// プロフィール帳の選ぶ画面 / 見本の画面 / 見本の画像を全部書き出す (Documents/profile_exports/)。
+        case profile, profilePreview, profileExport
+        /// 担当ブランドのはじめの案内 / 設定の画面。
+        case brandRoles, brandSettings
     }
 
     /// プロフィール帳の見本の選択 (`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
@@ -58,7 +60,7 @@ struct ProducerCardPreviewHarness: View {
             let first = named ?? received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
             firstCardId = first?.id
             samplePayload = first?.payload
-            if [.profile, .profileEditor, .profileExport].contains(mode) {
+            if [.profile, .profilePreview, .profileExport].contains(mode) {
                 await Samples.seedProfile(database)
             }
             record = try? await ProducerCardAssembler.loadMyRecord()
@@ -88,11 +90,15 @@ struct ProducerCardPreviewHarness: View {
         case .crop:
             CardPhotoCropSheet(image: Samples.portrait(), crop: ImasPortraitCrop(zoom: 1.4, center: CGPoint(x: 0.5, y: 0.4))) { _ in }
         case .profile: NavigationStack { ProfileSheetView() }
-        case .profileEditor:
+        case .profilePreview:
             if let mine = try? database.myProducerCard() {
-                ProfileSheetEditorView(card: mine, materials: profileMaterials ?? .empty) { _ in }
-                    .task { profileMaterials = await ProfileSheetAssembler.load(card: mine) }
+                NavigationStack {
+                    ProfileSheetPreviewView(sheet: mine.profile, materials: profileMaterials ?? .empty)
+                }
+                .task { profileMaterials = await ProfileSheetAssembler.load(card: mine) }
             }
+        case .brandRoles: BrandRoleSetupSheet()
+        case .brandSettings: NavigationStack { BrandRoleSettingsView() }
         case .profileExport:
             Text(exportedCount.map { "書き出し \($0) 枚" } ?? "書き出し中")
                 .task { exportedCount = await Samples.exportProfiles(database) }
@@ -216,10 +222,8 @@ struct ProducerCardPreviewHarness: View {
         static func profileSample() -> ProfileSheet {
             var sheet = profileSheetDefault()
             let env = ProcessInfo.processInfo.environment
-            if env["PROFILE_STYLE"] == "career" { sheet.style = .career }
             if env["PROFILE_SIZE"] == "story" { sheet.size = .story }
             sheet.hidden = []
-            sheet.brandOn = ["sc"]
             return sheet
         }
 
@@ -241,37 +245,63 @@ struct ProducerCardPreviewHarness: View {
             return out
         }
 
-        /// 様式 × 大きさ × 書体 × 記録の多い/少ないを全部 PNG に書き出す (Documents/profile_exports/)。
+        /// 大きさ × 記録の多い/少ない、と縦長の大きな画像を証明写真に入れたものを PNG に書き出す
+        /// (Documents/profile_exports/)。担当ブランドはメイン 2 つ・担当 1 つの設定で描く。
         @MainActor
         static func exportProfiles(_ db: AppDatabase) async -> Int {
-            guard var mine = try? db.myProducerCard() else { return 0 }
+            guard let mine = try? db.myProducerCard() else { return 0 }
             let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("profile_exports", isDirectory: true)
             try? FileManager.default.removeItem(at: dir)
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let roles = #"{"main":["765as","sc"],"oshi":["ml"]}"#
             var count = 0
-            for font in ["pass", "pop"] {
-                mine.design = font
-                let full = await ProfileSheetAssembler.load(card: mine)
-                for fill in ["many", "few"] {
-                    let materials = fill == "few" ? sparse(full) : full
-                    for style in [ProfileSheetStyle.resume, .career] {
-                        for size in [ProfileSheetSize.portrait, .story] {
-                            if font != "pass" && (fill == "few" || size == .story) { continue }
-                            var sheet = profileSample()
-                            sheet.style = style
-                            sheet.size = size
-                            let layout = profileSheetLayout(sheet: sheet, record: materials.record)
-                            guard let image = ProfileSheetAssembler.render(layout: layout, materials: materials),
-                                  let png = image.pngData() else { continue }
-                            let name = "\(style == .resume ? "resume" : "career")_\(size == .portrait ? "4x5" : "9x16")_\(fill)_\(font).png"
-                            try? png.write(to: dir.appendingPathComponent(name))
-                            count += 1
-                        }
-                    }
+            func write(_ materials: ProfileSheetMaterials, size: ProfileSheetSize, name: String) {
+                var sheet = profileSample()
+                sheet.size = size
+                let layout = profileSheetLayout(sheet: sheet, record: materials.record)
+                guard let image = ProfileSheetAssembler.render(layout: layout, materials: materials),
+                      let png = image.pngData() else { return }
+                try? png.write(to: dir.appendingPathComponent(name))
+                count += 1
+            }
+            ProfileSheetFiles.delete()
+            // 担当の画像は実機と同じく大きな縦長・横長 (書き出しに担当の画像が出るかを見る)。
+            let oshiIds = (try? await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
+            for (i, id) in oshiIds.enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
+                _ = try? await CustomImageService.shared.addImage(profileTallPhoto(seed: i), for: id)
+            }
+            var full = await ProfileSheetAssembler.load(card: mine)
+            full.record.brandRolesJson = roles
+            for fill in ["many", "few"] {
+                let materials = fill == "few" ? sparse(full) : full
+                for size in [ProfileSheetSize.portrait, .story] {
+                    write(materials, size: size, name: "resume_\(size == .portrait ? "4x5" : "9x16")_\(fill).png")
                 }
             }
+            // 縦長の大きな画像 (1200×3000) をプロフィール帳の写真に入れる (枠からはみ出さないか)。
+            try? ProfileSheetFiles.save(source: profileTallPhoto(seed: 1), crop: ImasPortraitCrop())
+            var tall = await ProfileSheetAssembler.load(card: mine)
+            tall.record.brandRolesJson = roles
+            write(tall, size: .portrait, name: "resume_4x5_tall_photo.png")
+            write(tall, size: .story, name: "resume_9x16_tall_photo.png")
+            ProfileSheetFiles.delete()
             return count
+        }
+
+        /// 実機の写真のような縦長の大きな画像 (1200×3000)。上下の端に黒い帯を付けて、枠で切った位置を見る。
+        @MainActor
+        static func profileTallPhoto(seed: Int) -> UIImage {
+            let size = CGSize(width: 1200, height: 3000)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let base = portrait(seed: seed)
+            return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+                base.draw(in: CGRect(x: 0, y: 750, width: 1200, height: 1500))
+                UIColor(white: 0.1, alpha: 1).setFill()
+                ctx.fill(CGRect(x: 0, y: 0, width: 1200, height: 750))
+                ctx.fill(CGRect(x: 0, y: 2250, width: 1200, height: 750))
+            }
         }
 
         /// 見本の写真 (人の形の記号を色の地に置いたもの)。

@@ -15,26 +15,20 @@ struct ProfileSheetOshi: Identifiable {
 /// プロフィール帳の材料。中身の組み立て (欄・行・丸・詰め方) はコアの `profileSheetLayout`、
 /// ここはアプリの記録とマスタを引いて渡す形にするだけ。自分で書く欄は無い。
 struct ProfileSheetMaterials {
-    /// 名前・P歴・リンク・記録・ブランド・お気に入りの曲・セトリから数えた記録。
+    /// 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲・セトリから数えた記録。
     var record: ProfileSheetRecord
     var oshi: [ProfileSheetOshi] = []
-    /// P名刺の写真。
+    /// 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。
     var portrait: UIImage?
     /// 自分の QR (P名刺に載せていれば)。
     var qr: UIImage?
-    /// 名前と記入欄の書体 (P名刺のデザインの書体の PostScript 名)。
-    var nameFont: String
 
     static let empty = ProfileSheetMaterials(
         record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiNames: [], oshiBrandIds: [], attended: [],
-                                   songCount: 0, brands: [], favoriteSongs: [], links: [], hasPhoto: false,
-                                   hasQr: false,
-                                   live: ProfileLiveRecord(topSongs: [], oshiHeard: [], topVenue: nil, prefectureCount: 0)),
-        nameFont: cardDesigns()[0].font.postscriptName
+                                   songCount: 0, brands: [], brandRolesJson: "", favoriteSongs: [], links: [],
+                                   hasPhoto: false, hasQr: false,
+                                   live: ProfileLiveRecord(topSongs: [], topVenue: nil, prefectureCount: 0))
     )
-
-    /// 担当の色 (帯・罫・押印の判子)。担当がいなければ nil (墨)。
-    var seed: String? { oshi.first?.color }
 }
 
 @MainActor
@@ -57,7 +51,7 @@ enum ProfileSheetAssembler {
         let showMarks = (try? await CollectionAttendance.marks(entity: .show, database: .shared)) ?? []
         let eventMarks = (try? await CollectionAttendance.marks(entity: .event, database: .shared)) ?? []
         let live = (try? await c.statsReading.profileLiveRecord(
-            showMarks: showMarks, eventMarks: eventMarks, oshiIdolIds: oshiIdols.map(\.id), today: today))
+            showMarks: showMarks, eventMarks: eventMarks, today: today))
             ?? ProfileSheetMaterials.empty.record.live
 
         // お気に入りの曲 (載せる数と並びはコア。引けない曲は入れない)。
@@ -70,10 +64,11 @@ enum ProfileSheetAssembler {
             ProfileSheetOshi(
                 id: idol.id, name: idol.name, shortName: idol.shortName, color: idol.color,
                 brandColor: brandById[idol.brandId]?.color,
-                image: images.imageURL(for: idol.id).flatMap { UIImage(contentsOfFile: $0.path) }
+                // 書き出しは画像の読み込みを待たないので、ここで小さく読んでおく。
+                image: images.imageURL(for: idol.id).flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 240) }
             )
         }
-        let portrait = ProducerCardFiles.myPhotoURL.flatMap { UIImage(contentsOfFile: $0.path) }
+        let portrait = ProfileSheetFiles.effectiveURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 600) }
         let qr = card.qrUrl.flatMap { ImasQRCode.render($0) }
 
         let record = ProfileSheetRecord(
@@ -91,6 +86,7 @@ enum ProfileSheetAssembler {
             brands: brands.map {
                 ProfileBrandInput(id: $0.id, label: $0.shortName, color: $0.color, sortOrder: Int64($0.sortOrder))
             },
+            brandRolesJson: BrandRoleStore.json,
             favoriteSongs: favoriteIds.compactMap { id in songById[id].map { ProfileSongInput(id: id, title: $0.title) } },
             links: card.links.map { cardLinkView(link: $0).display },
             hasPhoto: portrait != nil,
@@ -101,8 +97,7 @@ enum ProfileSheetAssembler {
             record: record,
             oshi: oshi,
             portrait: portrait,
-            qr: qr,
-            nameFont: cardDesignInfo(design: card.cardDesign).font.postscriptName
+            qr: qr
         )
     }
 

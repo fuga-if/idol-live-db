@@ -13,6 +13,8 @@ import SwiftUI
 /// (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns` / `cardXAvatarHandle`)。
 struct ProducerCardEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    /// 開いたら見せる欄 (プロフィール帳の「P名刺のリンクを直す」から `links`)。
+    @Environment(\.producerCardEditorFocus) private var focus
 
     let card: MyProducerCard
     let record: ProducerCardMyRecord?
@@ -123,7 +125,7 @@ struct ProducerCardEditorView: View {
                 designCard.id("look")
                 photoCard
                 oshiCard
-                linksCard
+                linksCard.id("links")
                 qrCard.id("qr")
                 recordCard
 
@@ -136,6 +138,11 @@ struct ProducerCardEditorView: View {
                     ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                 }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
+            }
+            .onAppear {
+                if let focus {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { proxy.scrollTo(focus, anchor: .top) }
+                }
             }
             #if DEBUG
             .onAppear {

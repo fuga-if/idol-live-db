@@ -55,9 +55,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(card.profile, profileSheetDefault())
         var sheet = card.profile
         sheet.size = .story
-        sheet.hidden = [.topSongs, .qr] // 保存の形の並び (編集画面の順)
-        sheet.brandOn = ["sc"]
-        sheet.brandMain = "sc"
+        sheet.hidden = [.topSongs, .qr] // 保存の形の並び (選ぶ画面の順)
         card.profile = sheet
         try db.saveMyProducerCard(card)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
@@ -67,6 +65,19 @@ final class ProducerCardStoreTests: XCTestCase {
         edited.message = "現地派"
         try db.saveMyProducerCard(edited)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
+    }
+
+    /// 職務経歴書・プロフィール帳の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。
+    func testOldProfileJsonWithCareerStyleStillReads() throws {
+        let db = try makeDatabase()
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        card.profileJson = #"{"style":"career","size":"story","hidden":["qr","oshi_heard","yearly"],"brandOn":["sc"],"brandMain":"sc"}"#
+        try db.saveMyProducerCard(card)
+        let loaded = try XCTUnwrap(db.myProducerCard())
+        XCTAssertEqual(loaded.profile.size, .story)
+        XCTAssertEqual(loaded.profile.hidden, [.qr])
+        XCTAssertEqual(profileSheetLayout(sheet: loaded.profile, record: ProfileSheetMaterials.empty.record).title, "履歴書")
     }
 
     func testReceivedCardsSaveFindByPayloadAndDelete() async throws {
@@ -132,8 +143,7 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.cardDesign = .formal
         mine.qrUrl = "https://lit.link/fuga"
         var sheet = profileSheetDefault()
-        sheet.style = .career
-        sheet.brandMain = ""
+        sheet.size = .story
         mine.profile = sheet
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))

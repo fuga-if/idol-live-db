@@ -28,9 +28,8 @@ protocol StatsReading: Sendable {
     /// - Parameters:
     ///   - showMarks: 公演単位の参加マーク (形態つき。現地だけに絞るのはコア)。
     ///   - eventMarks: イベント単位の参加マーク。
-    ///   - oshiIdolIds: 担当アイドル (担当の順)。
     ///   - today: JST の今日 (`yyyy-MM-dd`)。
     func profileLiveRecord(
-        showMarks: [AttendanceMarkRecord], eventMarks: [AttendanceMarkRecord], oshiIdolIds: [String], today: String
+        showMarks: [AttendanceMarkRecord], eventMarks: [AttendanceMarkRecord], today: String
     ) async throws -> ProfileLiveRecord
 }
