@@ -1,7 +1,9 @@
 // routes/lyric_submissions.ts — 歌詞の投稿 (POST /songs/:song_id/lyric-submissions)。
 //
-// 利用者が CD の歌詞カードなどの一次ソースを見て入力した歌詞を、確認待ち (pending) として預かる。
-// 公開はモデレーターの確認後 (公開の手順は別。ここは song_lyrics に書かない)。
+// 利用者が CD の歌詞カードなどの一次ソースを見て入力した歌詞を預かる。
+// まだ歌詞の無い曲なら、その場で song_lyrics に公開する (運営はあとから確認する。2026-10-06 オーナー判断)。
+// 既に歌詞のある曲への投稿は上書きせず、確認待ちとして預かるだけ (直しの提案として運営が見る)。
+// lyric_submissions の status は運営の確認の状態 (pending = 未確認)。公開したかどうかではない。
 //
 // ボディは { agreed_to_guideline, text } (アプリの JSON は snake_case)。
 // ⚠️ 投稿ガイドラインへの同意 (agreed_to_guideline: true) が必須。入力元は書かせない
@@ -14,7 +16,15 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit } from "../rate_limit";
 import type { RouteContext } from "./context";
 import { decodePathParam, readJsonBody, requireActiveUser } from "./guards";
-import { NO_STORE } from "./lyrics";
+import { NO_STORE, storeLyrics, validateLyricsBody } from "./lyrics";
+
+/** 投稿から公開した歌詞の出典の表記 (曲の歌詞の下に「出典: …」と出る)。 */
+export const SUBMISSION_SOURCE = "みんなの投稿";
+
+/** 整えた本文を歌詞の行にする。空行は blank、それ以外は lyric。 */
+export function submissionLines(body: string): Array<{ kind: string; text: string }> {
+  return body.split("\n").map((text) => (text ? { kind: "lyric", text } : { kind: "blank", text: "" }));
+}
 
 export const SUBMISSION_MAX_CHARS = 8000;
 export const SUBMISSION_MAX_LINES = 400;
@@ -74,5 +84,18 @@ export async function handleLyricSubmissions(ctx: RouteContext): Promise<Respons
   await env.DB.prepare(
     `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count) VALUES (?, ?, ?, ?, ?)`
   ).bind(id, songId, authUser.uid, result.body, result.lineCount).run();
-  return json({ id, song_id: songId, status: "pending" }, 201, NO_STORE);
+  const published = await publishIfFirst(ctx, songId, result.body);
+  return json({ id, song_id: songId, status: "pending", published }, 201, NO_STORE);
+}
+
+/** まだ歌詞の無い曲なら公開する。既にある (下書きを含む) なら何もしない。公開したら true。 */
+async function publishIfFirst(ctx: RouteContext, songId: string, body: string): Promise<boolean> {
+  const { env } = ctx;
+  const existing = await env.DB.prepare("SELECT 1 AS x FROM song_lyrics WHERE song_id = ?").bind(songId).first();
+  if (existing) return false;
+  const lyrics = { source: SUBMISSION_SOURCE, status: "published", lines: submissionLines(body) };
+  // 1 行が長すぎるなど、歌詞の形に合わないものは公開せず確認待ちに残す。
+  if (validateLyricsBody(lyrics)) return false;
+  await storeLyrics(env, songId, lyrics);
+  return true;
 }

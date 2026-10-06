@@ -665,7 +665,7 @@ struct SongSheetContent: View {
         if canSubmitLyrics {
             ImasEmptyState(systemImage: "text.quote",
                            title: "歌詞を募集しています",
-                           message: "CD の歌詞カードなどを見て、この曲の歌詞を入力してください。運営が確認してから公開します。",
+                           message: "CD の歌詞カードなどを見て、この曲の歌詞を入力してください。送った歌詞はすぐに公開され、運営があとから確認します。",
                            actionTitle: "歌詞を投稿",
                            action: { openLyricSubmission() },
                            seed: songSeed)

@@ -23,8 +23,21 @@ describe("POST /songs/:id/lyric-submissions", () => {
     expect(JSON.stringify(r.body)).not.toContain("きらめく");
     expect(await row("SELECT song_id, user_id, body, line_count, status FROM lyric_submissions WHERE id = ?", r.body.id))
       .toEqual({ song_id: "s1", user_id: UID, body: "きらめく\n\nステージ", line_count: 3, status: "pending" });
-    // 歌詞の公開テーブルには書かない
-    expect(await row("SELECT count(*) AS n FROM song_lyrics")).toEqual({ n: 0 });
+    // 歌詞の無い曲なので、その場で公開する (運営はあとから確認する)
+    expect(r.body.published).toBe(true);
+    const lyrics = await callJson("GET", "/songs/s1/lyrics", { headers: await bearer(UID) });
+    expect(lyrics.body.lines.map((l: { kind: string; text: string }) => [l.kind, l.text]))
+      .toEqual([["lyric", "きらめく"], ["blank", ""], ["lyric", "ステージ"]]);
+    expect(lyrics.body.source).toBe("みんなの投稿");
+
+    // 既に歌詞のある曲への投稿は上書きせず、確認待ちに残す
+    const again = await callJson("POST", "/songs/s1/lyric-submissions", {
+      headers: await bearer(UID), body: { agreed_to_guideline: true, text: "ちがう歌詞" },
+    });
+    expect(again.status).toBe(201);
+    expect(again.body.published).toBe(false);
+    const still = await callJson("GET", "/songs/s1/lyrics", { headers: await bearer(UID) });
+    expect(JSON.stringify(still.body)).not.toContain("ちがう歌詞");
   });
 
   it("ガイドラインへの同意・本文が無いと 400、未ログインは 401", async () => {

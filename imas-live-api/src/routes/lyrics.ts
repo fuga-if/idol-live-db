@@ -569,7 +569,112 @@ export async function fetchPublishedLyrics(
 }
 
 /** PUT のボディ検証。問題があればエラーメッセージ、無ければ null。 */
-function validateLyricsBody(body: unknown): string | null {
+export interface LyricsBody {
+  source?: string | null;
+  status: string;
+  lines: Array<{ kind?: string; text?: string | null; section?: string | null }>;
+}
+
+/** 歌詞本文を保存する (行 id・タイミング・コール等の引き継ぎ、検索用の本文と索引の追従)。
+ *  呼び出し側で `validateLyricsBody` を通してから呼ぶこと。管理者の投入 (PUT /admin/lyrics/:id) と
+ *  利用者の投稿の即時公開 (routes/lyric_submissions.ts) が使う。 */
+export async function storeLyrics(env: Env, songId: string, { source, status, lines }: LyricsBody): Promise<void> {
+
+  // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
+  //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。
+  //    既存 start_ms も同じ位置の行に引き継ぐ (本文修正でタイミングを消さない)。
+  const prev = await env.DB.prepare(
+    "SELECT lines_json FROM song_lyrics WHERE song_id = ?"
+  )
+    .bind(songId)
+    .first<{ lines_json: string | null }>();
+  const existing = parseLines(prev?.lines_json ?? null);
+
+  const statements: D1PreparedStatement[] = [
+    env.DB.prepare(
+      `INSERT INTO song_lyrics (song_id, source, status, first_published_at, created_at, updated_at)
+       VALUES (?, ?, ?, CASE WHEN ? = 'published' THEN datetime('now') ELSE NULL END,
+               datetime('now'), datetime('now'))
+       ON CONFLICT(song_id) DO UPDATE SET
+         source = excluded.source,
+         status = excluded.status,
+         -- 初回 published の時刻だけを残す。published→draft→published と往復しても
+         -- 報告母集団の基準がずれないよう COALESCE で上書きを防ぐ。
+         first_published_at = COALESCE(
+           song_lyrics.first_published_at,
+           CASE WHEN excluded.status = 'published' THEN datetime('now') ELSE NULL END),
+         updated_at = datetime('now')`
+    ).bind(songId, source ?? null, status, status),
+  ];
+
+  const nextLines: LyricLineRow[] = lines.map((line, i) => {
+    // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
+    const text = toRubyNotation(line.text ?? "");
+    // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
+    // 本文が変わってアンカーがズレたコールには stale が立つ (消さない)。
+    const annotation = carryOverAnnotation(existing[i], text);
+    return {
+      id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
+      ord: i,
+      kind: line.kind ?? "lyric",
+      text,
+      section: line.section ?? null,
+      // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
+      start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
+      ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
+      ...(existing[i]?.singers?.length ? { singers: existing[i]!.singers } : {}),
+      // 途中の区切りは文字の位置に掛かるので、本文が同じときだけ引き継ぐ。
+      ...(existing[i]?.partBreaks?.length && existing[i]!.text === text ? { partBreaks: existing[i]!.partBreaks } : {}),
+      clap: annotation.clap,
+      calls: annotation.calls,
+    };
+  });
+
+  // body は検索専用の平文コピー (migrations/0028)。lines_json と必ず同時に書く。
+  // 歌詞行だけを連結する: marker (イントロ/間奏) や blank は本文ではないので、
+  // 「間奏」で検索して全曲ヒットするような結果にしない。
+  const searchBody = nextLines
+    .filter((line) => line.kind === "lyric")
+    .map((line) => stripRuby(line.text))
+    .join("\n");
+
+  // body_norm は表記ゆれを吸収した検索用のコピー (migrations 0031)。body と必ず同時に書く。
+  const searchBodyNorm = normalizeForSearch(searchBody);
+  statements.push(
+    env.DB.prepare(
+      "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ? WHERE song_id = ?"
+    ).bind(JSON.stringify(nextLines), searchBody, searchBodyNorm, songId)
+  );
+
+  // 歌詞の差し替えで行が消えるとコール数が変わる (carryOverAnnotation は消えた行の
+  // コールを持ち越さない)。統計 (0032) が実体からズレないよう、同じ batch で数え直す。
+  // UPDATE なので、コールを一度も書かれていない曲に 0 件の行は生えない。
+  // 「最後に誰がいつコールを書いたか」は歌詞の再投入では動かさない (call_stats.ts)。
+  statements.push(syncCallStatsStatement(env.DB, songId, countCallAnnotations(nextLines)));
+
+  await env.DB.batch(statements);
+
+  // 検索の転置インデックスを差分で追従させる。本文が変わっていなければ
+  // 1 クエリも投げない (同じ歌詞の入れ直しは索引の書き込みゼロ)。
+  //
+  // 索引は body_norm から作る (全再構築 tools/lyrics/build_gram_index.py と同じ)。
+  // 検索語も正規化してから gram を引くので、素の本文で作ると正規化した語の候補から漏れる。
+  //
+  // 失敗しても PUT は成功として返す。索引がズレても検索側は候補を body LIKE で
+  // 検証するので誤ヒットは出ず、「出るはずの曲が出ない」側にしか倒れない。
+  // 歌詞そのものは既に保存済みなので、索引の都合で投入を失敗扱いにする方が害が大きい。
+  const previousBody = existing
+    .filter((line) => line.kind === "lyric")
+    .map((line) => line.text)
+    .join("\n");
+  try {
+    await updateGramIndex(env, songId, normalizeForSearch(previousBody), searchBodyNorm);
+  } catch (err) {
+    console.error("lyrics_gram_index_update_failed", songId, err);
+  }
+}
+
+export function validateLyricsBody(body: unknown): string | null {
   if (!body || typeof body !== "object") return "body must be an object";
   const { source, status, lines } = body as Record<string, unknown>;
 
@@ -1065,104 +1170,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     const rl = await checkRateLimit(env.DB, subject, "lyrics_admin");
     if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
 
-    const { source, status, lines } = body as {
-      source?: string | null;
-      status: string;
-      lines: Array<{ kind?: string; text?: string | null; section?: string | null }>;
-    };
-
-    // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
-    //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。
-    //    既存 start_ms も同じ位置の行に引き継ぐ (本文修正でタイミングを消さない)。
-    const prev = await env.DB.prepare(
-      "SELECT lines_json FROM song_lyrics WHERE song_id = ?"
-    )
-      .bind(songId)
-      .first<{ lines_json: string | null }>();
-    const existing = parseLines(prev?.lines_json ?? null);
-
-    const statements: D1PreparedStatement[] = [
-      env.DB.prepare(
-        `INSERT INTO song_lyrics (song_id, source, status, first_published_at, created_at, updated_at)
-         VALUES (?, ?, ?, CASE WHEN ? = 'published' THEN datetime('now') ELSE NULL END,
-                 datetime('now'), datetime('now'))
-         ON CONFLICT(song_id) DO UPDATE SET
-           source = excluded.source,
-           status = excluded.status,
-           -- 初回 published の時刻だけを残す。published→draft→published と往復しても
-           -- 報告母集団の基準がずれないよう COALESCE で上書きを防ぐ。
-           first_published_at = COALESCE(
-             song_lyrics.first_published_at,
-             CASE WHEN excluded.status = 'published' THEN datetime('now') ELSE NULL END),
-           updated_at = datetime('now')`
-      ).bind(songId, source ?? null, status, status),
-    ];
-
-    const nextLines: LyricLineRow[] = lines.map((line, i) => {
-      // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
-      const text = toRubyNotation(line.text ?? "");
-      // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
-      // 本文が変わってアンカーがズレたコールには stale が立つ (消さない)。
-      const annotation = carryOverAnnotation(existing[i], text);
-      return {
-        id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
-        ord: i,
-        kind: line.kind ?? "lyric",
-        text,
-        section: line.section ?? null,
-        // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
-        start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
-        ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
-        ...(existing[i]?.singers?.length ? { singers: existing[i]!.singers } : {}),
-        // 途中の区切りは文字の位置に掛かるので、本文が同じときだけ引き継ぐ。
-        ...(existing[i]?.partBreaks?.length && existing[i]!.text === text ? { partBreaks: existing[i]!.partBreaks } : {}),
-        clap: annotation.clap,
-        calls: annotation.calls,
-      };
-    });
-
-    // body は検索専用の平文コピー (migrations/0028)。lines_json と必ず同時に書く。
-    // 歌詞行だけを連結する: marker (イントロ/間奏) や blank は本文ではないので、
-    // 「間奏」で検索して全曲ヒットするような結果にしない。
-    const searchBody = nextLines
-      .filter((line) => line.kind === "lyric")
-      .map((line) => stripRuby(line.text))
-      .join("\n");
-
-    // body_norm は表記ゆれを吸収した検索用のコピー (migrations 0031)。body と必ず同時に書く。
-    const searchBodyNorm = normalizeForSearch(searchBody);
-    statements.push(
-      env.DB.prepare(
-        "UPDATE song_lyrics SET lines_json = ?, body = ?, body_norm = ? WHERE song_id = ?"
-      ).bind(JSON.stringify(nextLines), searchBody, searchBodyNorm, songId)
-    );
-
-    // 歌詞の差し替えで行が消えるとコール数が変わる (carryOverAnnotation は消えた行の
-    // コールを持ち越さない)。統計 (0032) が実体からズレないよう、同じ batch で数え直す。
-    // UPDATE なので、コールを一度も書かれていない曲に 0 件の行は生えない。
-    // 「最後に誰がいつコールを書いたか」は歌詞の再投入では動かさない (call_stats.ts)。
-    statements.push(syncCallStatsStatement(env.DB, songId, countCallAnnotations(nextLines)));
-
-    await env.DB.batch(statements);
-
-    // 検索の転置インデックスを差分で追従させる。本文が変わっていなければ
-    // 1 クエリも投げない (同じ歌詞の入れ直しは索引の書き込みゼロ)。
-    //
-    // 索引は body_norm から作る (全再構築 tools/lyrics/build_gram_index.py と同じ)。
-    // 検索語も正規化してから gram を引くので、素の本文で作ると正規化した語の候補から漏れる。
-    //
-    // 失敗しても PUT は成功として返す。索引がズレても検索側は候補を body LIKE で
-    // 検証するので誤ヒットは出ず、「出るはずの曲が出ない」側にしか倒れない。
-    // 歌詞そのものは既に保存済みなので、索引の都合で投入を失敗扱いにする方が害が大きい。
-    const previousBody = existing
-      .filter((line) => line.kind === "lyric")
-      .map((line) => line.text)
-      .join("\n");
-    try {
-      await updateGramIndex(env, songId, normalizeForSearch(previousBody), searchBodyNorm);
-    } catch (err) {
-      console.error("lyrics_gram_index_update_failed", songId, err);
-    }
+    const { source, status, lines } = body as LyricsBody;
+    await storeLyrics(env, songId, { source, status, lines });
 
     const header = await env.DB.prepare(
       "SELECT source, status, updated_at, lines_json FROM song_lyrics WHERE song_id = ?"

@@ -4,7 +4,7 @@ import SwiftUI
 
 /// 歌詞を投稿するシート。CD の歌詞カードなどの一次ソースを見て入力した歌詞を送る。
 ///
-/// 送った歌詞は確認待ちで預かられ、公開はモデレーターの確認後 (`LyricSubmissionAPI`)。
+/// 歌詞の無い曲なら送るとすぐ公開され、運営があとから確認する (`LyricSubmissionAPI`)。
 /// 投稿ガイドラインに同意しないと送れない。入力元は書かせない (規約で縛る)。
 /// 本文の整え方・上限・注意はコア (`lyricSubmissionCheck`) が決める。
 struct LyricSubmissionSheet: View {
@@ -12,17 +12,29 @@ struct LyricSubmissionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var text = ""
-    @State private var agreed = false
+    /// 入力は `LyricSubmissionDrafts` に置く (画面が組み直されても消えないように)。
+    @State private var drafts = LyricSubmissionDrafts.shared
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var confirmDiscard = false
-    @State private var sent = false
+    /// 送れたあとの知らせ (公開したか、直しの提案として預かったか)。
+    @State private var sentMessage: String?
     @State private var showCamera = false
     @State private var photoPicks: [PhotosPickerItem] = []
     @State private var isReading = false
     @State private var ocrMessage: String?
     @State private var showGuide = false
+
+    private var text: String { drafts.draft(for: song.id).text }
+    private var agreed: Bool { drafts.draft(for: song.id).agreed }
+    private var textBinding: Binding<String> {
+        Binding(get: { drafts.draft(for: song.id).text },
+                set: { new in drafts.update(song.id) { $0.text = new } })
+    }
+    private var agreedBinding: Binding<Bool> {
+        Binding(get: { drafts.draft(for: song.id).agreed },
+                set: { new in drafts.update(song.id) { $0.agreed = new } })
+    }
 
     private var check: LyricSubmissionCheck {
         lyricSubmissionCheck(text: text, agreedToGuideline: agreed)
@@ -53,17 +65,17 @@ struct LyricSubmissionSheet: View {
 
                 ImasFormCard {
                     ImasFormTextArea(label: "歌詞", imprint: "LYRICS", systemImage: "text.quote",
-                                     text: $text, prompt: "1 行ずつ改行して入力してください")
+                                     text: textBinding, prompt: "1 行ずつ改行して入力してください")
                 }
                 ocrButtons
                 issueNotes
 
                 ImasFormCard {
                     ImasFormToggle(label: "確認", imprint: "CHECK", title: "投稿ガイドラインを読み、それに沿って入力しました",
-                                   isOn: $agreed)
+                                   isOn: agreedBinding)
                 }
 
-                Text("送った歌詞は運営が確認してから公開します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。")
+                Text("送った歌詞はすぐに公開され、運営があとから確認します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -100,12 +112,12 @@ struct LyricSubmissionSheet: View {
             }
             .imasErrorAlert("送信できませんでした", message: $errorMessage)
             .imasErrorAlert("文字を読み取れませんでした", message: $ocrMessage)
-            .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
+            .imasDiscardConfirmation(isPresented: $confirmDiscard) { drafts.clear(song.id); dismiss() }
             .interactiveDismissDisabled(isDirty)
-            .alert("歌詞を送りました", isPresented: $sent) {
+            .alert("歌詞を送りました", isPresented: Binding(get: { sentMessage != nil }, set: { if !$0 { sentMessage = nil } })) {
                 Button("OK") { dismiss() }
             } message: {
-                Text("運営が確認してから公開します。ありがとうございました。")
+                Text(sentMessage ?? "")
             }
         }
         .trackScreen("lyric_submission")
@@ -147,7 +159,8 @@ struct LyricSubmissionSheet: View {
         if recognized.isEmpty {
             ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
         } else {
-            text = lyricOcrAppend(draft: text, recognized: recognized)
+            let songId = song.id
+            drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: recognized) }
         }
     }
 
@@ -178,9 +191,12 @@ struct LyricSubmissionSheet: View {
         isSaving = true
         defer { isSaving = false }
         do {
-            try await LyricSubmissionAPI.shared.submit(songId: song.id, text: check.normalized)
+            let published = try await LyricSubmissionAPI.shared.submit(songId: song.id, text: check.normalized)
+            drafts.clear(song.id)
             Logger.database.notice("lyric_submitted song=\(song.id, privacy: .public)")
-            sent = true
+            sentMessage = published
+                ? "歌詞を公開しました。運営があとから確認します。ありがとうございました。"
+                : "この曲には歌詞があるので、直しの提案として運営が確認します。ありがとうございました。"
         } catch {
             errorMessage = "時間をおいてもう一度お試しください。(\(error.localizedDescription))"
         }
