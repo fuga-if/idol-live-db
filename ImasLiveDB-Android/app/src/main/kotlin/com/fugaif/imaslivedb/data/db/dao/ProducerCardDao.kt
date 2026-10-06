@@ -16,7 +16,8 @@ data class ProducerCardShowRow(
     @ColumnInfo(name = "show_name") val showName: String?,
     @ColumnInfo(name = "event_name") val eventName: String?,
     @ColumnInfo(name = "date") val date: String?,
-    @ColumnInfo(name = "venue") val venue: String?
+    @ColumnInfo(name = "venue") val venue: String?,
+    @ColumnInfo(name = "brand_id") val brandId: String? = null
 )
 
 /**
@@ -109,7 +110,7 @@ interface ProducerCardDao {
     @Query(
         """
         SELECT s.id AS show_id, s.event_id AS event_id, s.name AS show_name, s.date AS date,
-               s.venue AS venue, e.name AS event_name
+               s.venue AS venue, e.name AS event_name, e.brand_id AS brand_id
         FROM shows s JOIN events e ON e.id = s.event_id
         WHERE s.id IN (:ids)
         """

@@ -75,7 +75,8 @@ class ProducerCardRepository(private val db: AppDatabase) {
                 eventId = row.eventId,
                 date = date,
                 label = showDisplayTitle(row.eventName.orEmpty(), row.showName.orEmpty(), date),
-                venue = row.venue
+                venue = row.venue,
+                brandId = row.brandId
             )
         }
     }

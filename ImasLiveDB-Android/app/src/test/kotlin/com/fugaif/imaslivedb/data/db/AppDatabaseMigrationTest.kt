@@ -60,8 +60,32 @@ class AppDatabaseMigrationTest {
     /** P名刺の 2 表 (MIGRATION_26_27) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates26ToLatest() = assertMigrates(from = 26)
 
-    /** 直前の版。P名刺の書体と自分の QR の列 (MIGRATION_27_28) を足しても、端末ローカルの行は残る。 */
+    /** P名刺の書体と自分の QR の列 (MIGRATION_27_28) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates27ToLatest() = assertMigrates(from = 27)
+
+    /** 直前の版。プロフィール帳の列 (MIGRATION_28_29) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates28ToLatest() = assertMigrates(from = 28)
+
+    /** v29 で足した列は、上がってきた端末の自分の名刺を変えない (プロフィール帳はまだ作っていない = 空)。 */
+    @Test
+    fun migrating28To29KeepsMyCardAndAddsProfile() {
+        val name = "producer_card_profile_28.sqlite"
+        helper.createDatabase(name, 28).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at, name_font, qr_url) " +
+                    "VALUES ('me', 'ふがP', 'よろしく', '[]', 'next', '2026-10-06T00:00:00Z', 'mincho', 'https://example.com/p')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 29, true, AppDatabase.MIGRATION_28_29).use { db ->
+            db.query("SELECT name, name_font, qr_url, profile_json FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertEquals(
+                    listOf("ふがP", "mincho", "https://example.com/p", ""),
+                    (0..3).map { c.getString(it) }
+                )
+            }
+        }
+    }
 
     /** v28 で足した列は、上がってきた端末の自分の名刺を変えない (書体は既定 = 空、自分の QR は無し)。 */
     @Test
@@ -173,7 +197,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 28
+        const val LATEST = 29
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

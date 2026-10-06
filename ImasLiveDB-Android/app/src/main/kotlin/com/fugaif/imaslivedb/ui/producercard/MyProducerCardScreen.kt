@@ -197,7 +197,11 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
             card = card,
             record = record,
             onSave = { saved ->
-                module.producerCardRepository.saveMyCard(saved)
+                // 名刺の欄だけを今の行に重ねる (プロフィール帳は別の画面で書くので、開いた時の古い中身で戻さない)。
+                val latest = module.producerCardRepository.myCard()
+                module.producerCardRepository.saveMyCard(
+                    latest?.let { saved.copy(profileJson = it.profileJson) } ?: saved
+                )
                 load()
             },
             onDismiss = {

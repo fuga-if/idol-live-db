@@ -21,8 +21,11 @@ import org.robolectric.RuntimeEnvironment
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardLinkKind
 import uniffi.imas_core.ProducerCardInput
+import uniffi.imas_core.ProfileSheetSize
+import uniffi.imas_core.ProfileSheetStyle
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.producerCardPayload
+import uniffi.imas_core.profileSheetDefault
 
 /**
  * P名刺 (自分の名刺・名刺入れ) の端末 DB とバックアップの往復のテスト (iOS `ProducerCardStoreTests` と対)。
@@ -83,6 +86,24 @@ class ProducerCardStoreTest {
         assertFalse(loaded.shows(ProducerCardField.ATTENDED))
     }
 
+    /** プロフィール帳は自分の名刺の行に持つ。まだ作っていなければ既定の中身 (規則はコア)。 */
+    @Test
+    fun profileSheetRoundTripsOnMyCard() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        val card = myCard("ふがP")
+        assertEquals(profileSheetDefault(), card.profile)
+        val sheet = card.profile.copy(
+            size = ProfileSheetSize.STORY, furigana = "ふがぴー",
+            favoriteSongIds = listOf("s1"), brandOn = listOf("sc")
+        )
+        repo.saveMyCard(card.withProfile(sheet))
+        assertEquals(sheet, repo.myCard()?.profile)
+
+        // P名刺を直して保存しても、プロフィール帳は消えない。
+        repo.saveMyCard(repo.myCard()!!.copy(message = "現地派"))
+        assertEquals(sheet, repo.myCard()?.profile)
+    }
+
     @Test
     fun receivedCardsSaveFindByPayloadAndDelete() = runBlocking {
         val repo = ProducerCardRepository(database())
@@ -136,9 +157,15 @@ class ProducerCardStoreTest {
     fun backupRoundTripRestoresProducerCards() = runBlocking {
         val source = database()
         val sourceRepo = ProducerCardRepository(source)
+        val default = profileSheetDefault()
+        val sheet = default.copy(
+            style = ProfileSheetStyle.CAREER,
+            answers = default.answers.mapIndexed { i, a -> if (i == 0) a.copy(text = "アニメで見て") else a }
+        )
         val mine = myCard("ふがP").copy(message = "現地派", sinceYear = 2014)
             .withLinks(listOf(CardLink(CardLinkKind.X, "fuga_p")))
             .withHidden(setOf(ProducerCardField.ATTENDED))
+            .withProfile(sheet)
         sourceRepo.saveMyCard(mine)
         sourceRepo.saveReceived(received("c1", "しろくまP", memo = "物販列で隣"))
         val json = BackupExportImportService.buildEnvelopeJson(
@@ -163,6 +190,7 @@ class ProducerCardStoreTest {
         assertEquals(2014, restored.sinceYear)
         assertEquals(mine.links, restored.links)
         assertEquals(setOf(ProducerCardField.ATTENDED), restored.hidden)
+        assertEquals("プロフィール帳もバックアップで戻る", sheet, restored.profile)
 
         // 2 回目は何も増えない (id で重複を弾く)。
         assertEquals(0, import().addedProducerCards)

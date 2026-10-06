@@ -10,15 +10,20 @@ import java.util.UUID
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardNameFont
 import uniffi.imas_core.ProducerCard
+import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.cardLinksFromJson
 import uniffi.imas_core.cardLinksToJson
 import uniffi.imas_core.cardNameFontFromKey
 import uniffi.imas_core.cardNameFontKey
 import uniffi.imas_core.cardNameFonts
 import uniffi.imas_core.decodeProducerCard
+import uniffi.imas_core.profileSheetDefault
+import uniffi.imas_core.profileSheetFromJson
+import uniffi.imas_core.profileSheetToJson
 
 /**
- * 自分の P名刺のうち、自分で書いた中身 (名前・ひとこと・P歴・リンク・外した項目・名前の書体・自分の QR)。
+ * 自分の P名刺のうち、自分で書いた中身 (名前・ひとこと・P歴・リンク・外した項目・名前の書体・自分の QR・
+ * プロフィール帳の中身)。
  * 名刺の写真は表に持たず端末のファイル (`ProducerCardFiles`)。
  * **端末ローカル唯一データ** (収支と同じ扱い、破壊的な移行はしない)。iOS `MyProducerCard` と同型。
  *
@@ -50,7 +55,10 @@ data class MyProducerCard(
     val nameFont: String = "",
     /** 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。 */
     @ColumnInfo(name = "qr_url")
-    val qrUrl: String? = null
+    val qrUrl: String? = null,
+    /** プロフィール帳の中身 (コアの保存の形 `profileSheetToJson`)。空はまだ作っていない。 */
+    @ColumnInfo(name = "profile_json", defaultValue = "")
+    val profileJson: String = ""
 ) {
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
@@ -63,6 +71,12 @@ data class MyProducerCard(
         get() = hiddenFields.split(",").mapNotNull { ProducerCardField.fromKey(it) }.toSet()
 
     fun shows(field: ProducerCardField): Boolean = field !in hidden
+
+    /** プロフィール帳 (まだ作っていなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。 */
+    val profile: ProfileSheet
+        get() = if (profileJson.isEmpty()) profileSheetDefault() else profileSheetFromJson(profileJson)
+
+    fun withProfile(sheet: ProfileSheet): MyProducerCard = copy(profileJson = profileSheetToJson(sheet))
 
     fun withLinks(links: List<CardLink>): MyProducerCard = copy(linksJson = cardLinksToJson(links))
 
@@ -175,5 +189,7 @@ data class ProducerCardShowInfo(
     val date: String,
     /** `showDisplayTitle` で組んだ表記。 */
     val label: String,
-    val venue: String?
+    val venue: String?,
+    /** ライブのブランド (プロフィール帳の対応範囲・職務経歴に使う)。 */
+    val brandId: String? = null
 )
