@@ -113,7 +113,7 @@ struct LyricsPlayerView: View {
                 AppAnalytics.tap("lyrics_player.add_to_playlist")
                 showsAddToPlaylist = true
             }
-            ImasIconButton(systemImage: "metronome", label: "タイミングを編集", size: .small, style: .glass) {
+            ImasIconButton(systemImage: "metronome", label: "タイミング・パートを編集", size: .small, style: .glass) {
                 onEditTimings()
             }
             ImasIconButton(systemImage: "chevron.down", label: "閉じる", size: .small, style: .glass) { dismiss() }

@@ -289,7 +289,7 @@ fun LyricsPlayerScreen(
                     onClick = { showsAddToPlaylist = true },
                     style = ImasIconButtonStyle.PLAIN
                 )
-                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
+                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミング・パートを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
                 ImasIconButton(icon = Icons.Filled.ExpandMore, label = "閉じる", onClick = onClose, style = ImasIconButtonStyle.PLAIN)
             }
 

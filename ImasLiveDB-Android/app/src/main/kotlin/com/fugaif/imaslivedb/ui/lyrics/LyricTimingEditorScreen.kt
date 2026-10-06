@@ -78,6 +78,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPartsSelectableLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyFlowText
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyText
+import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
 import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.designsystem.ImasTimingBlock
 import com.fugaif.imaslivedb.ui.designsystem.ImasTimingTimeline
@@ -143,6 +144,9 @@ fun LyricTimingEditorScreen(
     var partsErasing by remember { mutableStateOf(false) }
     // 行をタップして次に記録する行を選んだ直後か (指の下の一覧を寄せない)。
     var pickedByTap by remember { mutableStateOf(false) }
+    // パートの段の見せ方。false = 曲に付いていく (聴きながら)、true = 一覧 (追従と再生の操作を畳む。聴かずに塗る)。
+    var partsAsList by remember { mutableStateOf(false) }
+    val isPartsList = recorder.lane == LyricTimingRecorder.Lane.PARTS && partsAsList
     val laneListState = rememberLazyListState()
 
     val duration = run {
@@ -160,9 +164,10 @@ fun LyricTimingEditorScreen(
     val overlayStarts = recorder.startsForCore.mapIndexed { i, v -> if (isOverlay(i)) v else null }
     val currentIndex = lyricActiveLine(mainStarts, shownMs.toLong())?.toInt()
     // パートを付ける行: タイムラインで選んだ行、選んでいなければいま歌っている行 (見出しには付けない)。
+    // 一覧では、選んだ行だけ (曲に付いていかない)。
     val partsTargetId: String? = selectedId
         ?.takeIf { sel -> lyrics.lines.any { it.id == sel && it.kind == com.fugaif.imaslivedb.data.lyrics.LyricLineKind.LYRIC } }
-        ?: currentIndex?.let { i ->
+        ?: currentIndex?.takeIf { !isPartsList }?.let { i ->
             lyrics.lines[i].id.takeIf { lyrics.lines[i].kind == com.fugaif.imaslivedb.data.lyrics.LyricLineKind.LYRIC }
         }
     val allCalls = lyrics.lines.flatMapIndexed { i, line -> line.calls.map { CallRef(it, i) } }
@@ -193,6 +198,8 @@ fun LyricTimingEditorScreen(
         }
         if (playback.loadedSongId.value != song.id) {
             startFailed = !playback.startFull(song.id, song.appleMusicId ?: "")
+            // 鳴らせないなら、パートは一覧で塗る (曲に付いていけないので)。
+            if (startFailed) partsAsList = true
         }
     }
     LaunchedEffect(loadedSongId) {
@@ -275,17 +282,26 @@ fun LyricTimingEditorScreen(
                 ImasNote("この曲は Apple Music で鳴らせませんでした。")
             }
             if (recorder.lane == LyricTimingRecorder.Lane.LINES) CursorBar(recorder)
+            if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
+                ImasSegmented(
+                    labels = listOf("リアルタイム", "一覧"),
+                    selection = if (partsAsList) 1 else 0,
+                    onSelect = { partsAsList = it == 1 },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
         LaneLyricsList(
             lyrics = lyrics,
             recorder = recorder,
             cast = cast,
             seed = seed,
-            currentIndex = currentIndex,
+            currentIndex = currentIndex.takeIf { !isPartsList },
             allCalls = allCalls,
             selectedId = selectedId,
             onSelect = { selectedId = it },
-            startFailed = startFailed,
+            startFailed = startFailed && !isPartsList,
+            isPartsList = isPartsList,
             onPaint = { lineId, start, end -> paint(lineId, start, end) },
             partsTargetId = partsTargetId,
             listState = laneListState,
@@ -297,78 +313,81 @@ fun LyricTimingEditorScreen(
             modifier = Modifier.weight(1f)
         )
 
-        // タイムライン
-        run {
-            val spans = lyricLineSpans(mainStarts, duration.toLong())
-            val overlayBlocks = lyricOverlaySpans(overlayStarts, duration.toLong()).map {
-                ImasTimingBlock(lyrics.lines[it.index.toInt()].id, it.startMs.toInt(), it.endMs.toInt(), lyrics.lines[it.index.toInt()].text)
-            }
-            val blocks = spans.map {
-                ImasTimingBlock(lyrics.lines[it.index.toInt()].id, it.startMs.toInt(), it.endMs.toInt(), lyrics.lines[it.index.toInt()].text)
-            }
-            val callBlocks = lyricCallSpans(recorder.callStartsForCore, duration.toLong()).map {
-                val ref = allCalls[it.index.toInt()]
-                ImasTimingBlock(ref.call.id, it.startMs.toInt(), it.endMs.toInt(), ref.call.text)
-            }
-            ImasTimingTimeline(
-                blocks = blocks, subLanes = listOf(overlayBlocks, callBlocks), playheadMs = shownMs,
-                selectedId = selectedId, seed = seed,
-                onScrub = { scrubMs = it },
-                onScrubEnd = { ms -> scrubMs = null; seek(ms) },
-                onSelect = { id -> selectedId = if (selectedId == id) null else id },
-                onMoveStart = { id, ms -> recorder.adjust(id, ms) }
-            )
-        }
-
-        // 選んだ帯の操作
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp1),
-            horizontalArrangement = Arrangement.spacedBy(DS.sp2),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val id = selectedId
-            val start = id?.let { recorder.start(it) }
-            if (id != null && start != null) {
-                ImasLyricTimeLabel(ms = start, isEmphasized = true)
-                val lineIndex = recorder.lineIds.indexOf(id)
-                if (lineIndex >= 0) {
-                    val overlay = isOverlay(lineIndex)
-                    ImasIconButton(
-                        icon = if (overlay) Icons.Filled.Layers else Icons.Outlined.Layers,
-                        label = if (overlay) "メインに戻す" else "被せにする",
-                        onClick = { recorder.setOverlay(id, !overlay) }
-                    )
+        // 一覧でパートを塗るときは、タイムラインと再生の操作を畳んで歌詞を広く見せる。
+        if (!isPartsList) {
+            // タイムライン
+            run {
+                val spans = lyricLineSpans(mainStarts, duration.toLong())
+                val overlayBlocks = lyricOverlaySpans(overlayStarts, duration.toLong()).map {
+                    ImasTimingBlock(lyrics.lines[it.index.toInt()].id, it.startMs.toInt(), it.endMs.toInt(), lyrics.lines[it.index.toInt()].text)
                 }
-                Spacer(Modifier.weight(1f))
-                ImasButton(title = "-0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, -100) })
-                ImasButton(title = "+0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, 100) })
-                ImasIconButton(icon = Icons.Filled.MyLocation, label = "再生位置に合わせる", onClick = { recorder.adjust(id, playheadMs) })
-                ImasIconButton(icon = Icons.Filled.PlayArrow, label = "この行から再生して押し直す", onClick = {
-                    seek(maxOf(0, start - 1500))
-                    recorder.aim(id)
-                    if (!playback.isPlaying.value) playback.togglePlay()
-                })
-            } else {
-                ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞって戻すと、そこから押し直せます。")
+                val blocks = spans.map {
+                    ImasTimingBlock(lyrics.lines[it.index.toInt()].id, it.startMs.toInt(), it.endMs.toInt(), lyrics.lines[it.index.toInt()].text)
+                }
+                val callBlocks = lyricCallSpans(recorder.callStartsForCore, duration.toLong()).map {
+                    val ref = allCalls[it.index.toInt()]
+                    ImasTimingBlock(ref.call.id, it.startMs.toInt(), it.endMs.toInt(), ref.call.text)
+                }
+                ImasTimingTimeline(
+                    blocks = blocks, subLanes = listOf(overlayBlocks, callBlocks), playheadMs = shownMs,
+                    selectedId = selectedId, seed = seed,
+                    onScrub = { scrubMs = it },
+                    onScrubEnd = { ms -> scrubMs = null; seek(ms) },
+                    onSelect = { id -> selectedId = if (selectedId == id) null else id },
+                    onMoveStart = { id, ms -> recorder.adjust(id, ms) }
+                )
             }
-        }
 
-        // 再生のトランスポート
-        Row(
-            Modifier.fillMaxWidth().padding(top = DS.sp4),
-            horizontalArrangement = Arrangement.spacedBy(DS.sp8),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Spacer(Modifier.weight(1f))
-            ImasIconButton(icon = Icons.Filled.Replay5, label = "5 秒戻す", onClick = { seek(maxOf(0, playheadMs - 5000)) })
-            ImasIconButton(
-                icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                label = if (isPlaying) "一時停止" else "再生",
-                style = ImasIconButtonStyle.FILLED,
-                onClick = { playback.togglePlay() }
-            )
-            ImasIconButton(icon = Icons.Filled.Forward5, label = "5 秒進める", onClick = { seek(minOf(duration, playheadMs + 5000)) })
-            Spacer(Modifier.weight(1f))
+            // 選んだ帯の操作
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = DS.sp5, vertical = DS.sp1),
+                horizontalArrangement = Arrangement.spacedBy(DS.sp2),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val id = selectedId
+                val start = id?.let { recorder.start(it) }
+                if (id != null && start != null) {
+                    ImasLyricTimeLabel(ms = start, isEmphasized = true)
+                    val lineIndex = recorder.lineIds.indexOf(id)
+                    if (lineIndex >= 0) {
+                        val overlay = isOverlay(lineIndex)
+                        ImasIconButton(
+                            icon = if (overlay) Icons.Filled.Layers else Icons.Outlined.Layers,
+                            label = if (overlay) "メインに戻す" else "被せにする",
+                            onClick = { recorder.setOverlay(id, !overlay) }
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    ImasButton(title = "-0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, -100) })
+                    ImasButton(title = "+0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, 100) })
+                    ImasIconButton(icon = Icons.Filled.MyLocation, label = "再生位置に合わせる", onClick = { recorder.adjust(id, playheadMs) })
+                    ImasIconButton(icon = Icons.Filled.PlayArrow, label = "この行から再生して押し直す", onClick = {
+                        seek(maxOf(0, start - 1500))
+                        recorder.aim(id)
+                        if (!playback.isPlaying.value) playback.togglePlay()
+                    })
+                } else {
+                    ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞって戻すと、そこから押し直せます。")
+                }
+            }
+
+            // 再生のトランスポート
+            Row(
+                Modifier.fillMaxWidth().padding(top = DS.sp4),
+                horizontalArrangement = Arrangement.spacedBy(DS.sp8),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(Modifier.weight(1f))
+                ImasIconButton(icon = Icons.Filled.Replay5, label = "5 秒戻す", onClick = { seek(maxOf(0, playheadMs - 5000)) })
+                ImasIconButton(
+                    icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    label = if (isPlaying) "一時停止" else "再生",
+                    style = ImasIconButtonStyle.FILLED,
+                    onClick = { playback.togglePlay() }
+                )
+                ImasIconButton(icon = Icons.Filled.Forward5, label = "5 秒進める", onClick = { seek(minOf(duration, playheadMs + 5000)) })
+                Spacer(Modifier.weight(1f))
+            }
         }
 
         if (recorder.lane == LyricTimingRecorder.Lane.PARTS) {
@@ -492,6 +511,7 @@ private fun LaneLyricsList(
     selectedId: String?,
     onSelect: (String?) -> Unit,
     startFailed: Boolean,
+    isPartsList: Boolean,
     onPaint: (String, Int, Int) -> Unit,
     partsTargetId: String?,
     listState: LazyListState,
@@ -539,13 +559,15 @@ private fun LaneLyricsList(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
                 if (startFailed) {
-                    ImasNote(if (isParts) "パート分けには Apple Music でのフル再生が必要です。" else "記録には Apple Music でのフル再生が必要です。")
+                    ImasNote(if (isParts) "聴きながら塗るには Apple Music でのフル再生が必要です。一覧なら聴かずに塗れます。" else "記録には Apple Music でのフル再生が必要です。")
                 }
                 ImasText(
                     when (recorder.lane) {
                         LyricTimingRecorder.Lane.LINES -> "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
                         LyricTimingRecorder.Lane.CALLS -> "コールをタップして選ぶと、前後に寄せられます。"
-                        LyricTimingRecorder.Lane.PARTS -> "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+                        LyricTimingRecorder.Lane.PARTS -> if (isPartsList) {
+                            "歌う人を選んでから行をタップすると、行まるごと塗れます。選んだ行は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+                        } else "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
                     },
                     ImasTextRole.META, color = DS.ink3
                 )

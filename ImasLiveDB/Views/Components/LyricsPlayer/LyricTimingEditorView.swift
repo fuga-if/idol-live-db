@@ -42,6 +42,18 @@ struct LyricTimingEditorView: View {
     @State private var partsErasing = false
     /// 行をタップして次に記録する行を選んだ直後か (指の下の一覧を寄せない)。
     @State private var pickedByTap = false
+    /// パートの段の見せ方。曲に付いていくか、歌詞を一覧で並べて落ち着いて塗るか。
+    @State private var partsView: PartsView = .live
+
+    enum PartsView: Hashable {
+        /// 曲に付いていき、いま歌っている行に塗る (聴きながら)。
+        case live
+        /// 曲に付いていかない。タイムラインと再生の操作を畳んで、歌詞を広く並べる (聴かずに)。
+        case list
+    }
+
+    /// パートを一覧で塗っているか (曲への追従と、再生まわりの操作を外す)。
+    private var isPartsList: Bool { recorder.lane == .parts && partsView == .list }
 
     private var duration: Int {
         let lastStart = recorder.starts.compactMap { $0 }.max() ?? 0
@@ -71,15 +83,27 @@ struct LyricTimingEditorView: View {
                     .padding(.horizontal, DS.sp5)
                     .padding(.bottom, DS.sp2)
             }
+            if recorder.lane == .parts {
+                ImasSegmented(options: [PartsView.live, .list], selection: $partsView, seed: seed) { view in
+                    switch view {
+                    case .live: "リアルタイム"
+                    case .list: "一覧"
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+                .padding(.bottom, DS.sp2)
+            }
             // 歌詞を上下に動かして、記録する行・コールを入れる行・塗る行を選ぶ。
             laneLyrics
                 .frame(maxHeight: .infinity)
-            timeline
-            selectionControls
-                .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp3)
-            transport
-                .padding(.top, DS.sp4)
+            if !isPartsList {
+                timeline
+                selectionControls
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.top, DS.sp3)
+                transport
+                    .padding(.top, DS.sp4)
+            }
             if recorder.lane == .parts {
                 partsBrush
                     .padding(.vertical, DS.sp4)
@@ -94,6 +118,8 @@ struct LyricTimingEditorView: View {
             // 曲の途中で開いたら、そこから押し直せるようにする (記録済みの曲を頭から押させない)。
             if playback.isFullLoaded, let ms = playback.positionMs(), ms > 0 { recorder.aim(atMs: ms) }
             if !playback.isFullLoaded { startFailed = !(await playback.startFull()) }
+            // 鳴らせないなら、パートは一覧で塗る (曲に付いていけないので)。
+            if startFailed { partsView = .list }
         }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .medium), trigger: recordToken)
@@ -200,8 +226,8 @@ struct LyricTimingEditorView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp4) {
-                    if startFailed {
-                        ImasNote(recorder.lane == .parts ? "パート分けには Apple Music でのフル再生が必要です。"
+                    if startFailed, !isPartsList {
+                        ImasNote(recorder.lane == .parts ? "聴きながら塗るには Apple Music でのフル再生が必要です。一覧なら聴かずに塗れます。"
                                                          : "記録には Apple Music でのフル再生が必要です。",
                                  systemImage: "music.note")
                     }
@@ -232,7 +258,7 @@ struct LyricTimingEditorView: View {
                 proxy.scrollTo(lyrics.lines[cursor].id, anchor: UnitPoint(x: 0.5, y: 0.35))
             }
             .onChange(of: currentIndex) { _, index in
-                guard recorder.lane != .lines, let index, Date() >= followPausedUntil else { return }
+                guard recorder.lane != .lines, !isPartsList, let index, Date() >= followPausedUntil else { return }
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
                     proxy.scrollTo(lyrics.lines[index].id, anchor: UnitPoint(x: 0.5, y: 0.3))
                 }
@@ -245,6 +271,8 @@ struct LyricTimingEditorView: View {
         switch recorder.lane {
         case .lines: "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
         case .calls: "コールをタップして選ぶと、前後に寄せられます。"
+        case .parts where isPartsList:
+            "歌う人を選んでから行をタップすると、行まるごと塗れます。選んだ行は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
         case .parts: "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
         }
     }
@@ -298,7 +326,7 @@ struct LyricTimingEditorView: View {
         case .marker:
             Text(line.text).imasText(.eyebrow, color: DS.ink3)
         case .lyric:
-            let isCurrent = index == currentIndex
+            let isCurrent = !isPartsList && index == currentIndex
             switch recorder.lane {
             case .parts: partsLaneRow(line: line, isCurrent: isCurrent)
             default: callsLaneRow(index: index, line: line, isCurrent: isCurrent)
@@ -409,7 +437,8 @@ struct LyricTimingEditorView: View {
         if let selectedId, lyrics.lines.contains(where: { $0.id == selectedId && $0.kind == .lyric }) {
             return selectedId
         }
-        // 見出し (「1番」など) には付けない。
+        // 一覧では、選んだ行だけ (曲に付いていかない)。見出し (「1番」など) には付けない。
+        if isPartsList { return nil }
         return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
     }
 
