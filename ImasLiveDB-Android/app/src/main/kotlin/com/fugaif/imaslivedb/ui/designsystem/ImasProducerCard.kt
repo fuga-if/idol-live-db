@@ -34,6 +34,7 @@ import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -347,13 +348,18 @@ private fun InkLine(height: androidx.compose.ui.unit.Dp) {
     Box(Modifier.fillMaxWidth().height(height).background(DS.ink).clearAndSetSemantics { })
 }
 
+/**
+ * 担当の写真の帯。大きさは呼び出し側の [modifier] が決め、写真はその枠を超えて描かない (iOS の
+ * `scaledToFill` のように後から高さを付けると元の比率のまま描かれて下の行に被さる事故があったため、
+ * 枠を先に決めて `clipToBounds` で切る)。
+ */
 @Composable
 private fun OshiPhoto(p: ProducerCardParts, modifier: Modifier) {
     SubcomposeAsyncImage(
         model = p.photo,
         contentDescription = p.photoLabel,
         contentScale = ContentScale.Crop,
-        modifier = modifier,
+        modifier = modifier.clipToBounds(),
         loading = { Box(Modifier.fillMaxSize().background(DS.surface2)) },
         error = { Box(Modifier.fillMaxSize().background(DS.surface2)) }
     )
