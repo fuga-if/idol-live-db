@@ -12,13 +12,13 @@ final class LiveTextCapture {
     final class Receiver: UIView, UIKeyInput {
         var onText: ((String) -> Void)?
         var hasText: Bool { false }
-        func insertText(_ text: String) {
-            onText?(text)
-            // 1 回の「入力」で 1 度だけ。受け手のままだとキーボードが出続ける。
-            DispatchQueue.main.async { [weak self] in _ = self?.resignFirstResponder() }
-        }
+        /// 「入力」を押すたびに 1 塊ずつ届く。カメラは閉じずに次の塊を選べる (× で閉じるまで)。
+        func insertText(_ text: String) { onText?(text) }
         func deleteBackward() {}
         override var canBecomeFirstResponder: Bool { true }
+        /// カメラを × で閉じたあとにキーボードを出さない (受け手には入力の画面が要らない)。
+        private let emptyInput = UIView(frame: .zero)
+        override var inputView: UIView? { emptyInput }
     }
 
     let receiver = Receiver(frame: .zero)
@@ -33,6 +33,9 @@ final class LiveTextCapture {
         guard receiver.becomeFirstResponder() else { return }
         receiver.captureTextFromCamera(nil)
     }
+
+    /// 受け手を手放す (シートを閉じるとき)。
+    func stop() { _ = receiver.resignFirstResponder() }
 }
 
 /// 受け手を画面に置く (見えない・場所を取らない)。

@@ -121,6 +121,7 @@ struct LyricSubmissionSheet: View {
                 Text(sentMessage ?? "")
             }
         }
+        .onDisappear { liveText.stop() }
         .trackScreen("lyric_submission")
     }
 
