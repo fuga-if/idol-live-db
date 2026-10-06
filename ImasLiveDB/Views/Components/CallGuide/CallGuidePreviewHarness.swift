@@ -28,7 +28,7 @@ struct CallGuidePreviewHarness: View {
         case player
         /// 行の区切りの編集 (くっつける / 切り離す)。
         case structure
-        /// パート分け (歌唱者は DB の実在曲から引く。歌詞はダミー)。
+        /// タイミング編集のパートの段 (歌唱者は DB の実在曲から引く。歌詞はダミー)。
         case parts
         /// プレイリスト (見本のプレイリストを 1 つ作って開く。端末 DB に書く)。
         case playlist
