@@ -3,7 +3,9 @@ import SwiftUI
 // =============================================================================
 // 紙に刷る P名刺 (91×55mm、日本の名刺の大きさ)。
 //
-// 表 = 担当色の縦の帯・選んだ書体の名前・担当・ハンドル・名刺の写真 (あれば右に証明写真)。
+// 表 = 名刺のデザインごとの組み (入場証は担当色の縦の帯、かしこまった名刺は明朝と細い罫、
+//      ポップは墨の太い枠と担当色の太い帯)。名前・担当・ハンドル・名刺の写真 (あれば右に証明写真)。
+//      自作の画像の名刺は、その画像をそのまま刷る (`ProducerCardPrintImage`)。
 //      印刷所の名刺テンプレにそのまま載る余白を残す。
 // 裏 = QR (既定はアプリの交換と同じ中身。自分の QR も選べる)・参加公演数と回収曲数・「YYYY.MM.DD 時点」。
 //
@@ -28,58 +30,178 @@ enum ProducerCardPrint {
     }
 }
 
-/// 表。
+/// 表。デザイン (入場証・かしこまった名刺・ポップ) ごとに組みを変える。載せるものは同じ。
 struct ProducerCardPrintFront: View {
+    enum Look { case pass, formal, pop }
+
+    var look: Look = .pass
     let name: String
     var sinceYear: UInt16? = nil
     /// 担当の名前 (「天海春香・如月千早」)。
     var oshiNames: [String] = []
-    /// 担当の色 (帯)。
+    /// 担当の色 (帯・罫)。
     var seed: String? = nil
     /// 右下に刷るハンドル (「@fuga_p」)。
     var handle: String? = nil
-    /// 名前の書体の PostScript 名 (コアの書体の一覧から)。
+    /// 名前の書体の PostScript 名 (コアのデザインの書体)。
     var nameFont: String? = nil
     /// 名刺の写真 (右に証明写真の大きさで刷る)。
     var portrait: UIImage? = nil
 
+    private var accent: Color { seed == nil ? ProducerCardPrint.ink : ShareCardPalette(seed: seed).accent }
+
     var body: some View {
-        let palette = ShareCardPalette(seed: seed)
-        HStack(spacing: 0) {
-            Rectangle().fill(seed == nil ? ProducerCardPrint.ink : palette.accent).frame(width: 30)
-            HStack(alignment: .center, spacing: 22) {
-                info
-                if let portrait {
-                    Image(uiImage: portrait)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 114, height: 152)
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(ProducerCardPrint.sub.opacity(0.35), lineWidth: 0.5))
-                }
+        Group {
+            switch look {
+            case .pass: passBody
+            case .formal: formalBody
+            case .pop: popBody
             }
-            .padding(.horizontal, 30)
-            .padding(.vertical, 26)
         }
         .frame(width: ProducerCardPrint.size.width, height: ProducerCardPrint.size.height)
         .background(ProducerCardPrint.paper)
     }
 
-    private var info: some View {
+    // MARK: 入場証 (担当色の縦の帯)
+
+    private var passBody: some View {
+        HStack(spacing: 0) {
+            Rectangle().fill(accent).frame(width: 30)
+            HStack(alignment: .center, spacing: 22) {
+                info(imprint: "PRODUCER PASS", nameSize: 40, oshiFont: .system(size: 13, weight: .regular, design: .serif))
+                portraitView(border: ProducerCardPrint.sub.opacity(0.35), width: 0.5)
+            }
+            .padding(.horizontal, 30)
+            .padding(.vertical, 26)
+        }
+    }
+
+    // MARK: かしこまった名刺 (担当色は名前の上の細い罫だけ)
+
+    private var formalBody: some View {
+        HStack(alignment: .center, spacing: 26) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(["PRODUCER", sinceYear.map { "SINCE \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 9, weight: .medium, design: .serif))
+                    .tracking(2.4)
+                    .foregroundStyle(ProducerCardPrint.sub)
+                Rectangle().fill(accent).frame(height: 0.75).padding(.top, 8)
+                Spacer(minLength: 0)
+                if !oshiNames.isEmpty {
+                    Text("\(oshiNames.joined(separator: "・")) 担当")
+                        .font(.system(size: 12, weight: .regular, design: .serif))
+                        .foregroundStyle(ProducerCardPrint.sub)
+                        .lineLimit(2)
+                        .padding(.bottom, 6)
+                }
+                Text(name)
+                    .font(.imasCardNameFixed(nameFont, size: 38))
+                    .tracking(2)
+                    .foregroundStyle(ProducerCardPrint.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Spacer(minLength: 0)
+                HStack(alignment: .lastTextBaseline) {
+                    if let handle {
+                        Text(handle)
+                            .font(.system(size: 11, weight: .regular, design: .serif))
+                            .foregroundStyle(ProducerCardPrint.ink)
+                    }
+                    Spacer(minLength: 8)
+                    Text("IDOL LIVE DB")
+                        .font(.system(size: 8, weight: .regular, design: .serif))
+                        .tracking(1.6)
+                        .foregroundStyle(ProducerCardPrint.sub)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            portraitView(border: ProducerCardPrint.sub.opacity(0.35), width: 0.5)
+        }
+        .padding(.horizontal, 40)
+        .padding(.vertical, 32)
+    }
+
+    // MARK: ポップ (墨の太い枠・担当色の太い帯と名前の下の太い線)
+
+    private var popBody: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(["PRODUCER!", sinceYear.map { "SINCE \($0)" }].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1.2)
+                    .foregroundStyle(seed == nil ? ProducerCardPrint.paper : ProducerCardPrint.ink)
+                Spacer()
+            }
+            .padding(.horizontal, 22)
+            .frame(height: 44)
+            .background(accent)
+            Rectangle().fill(ProducerCardPrint.ink).frame(height: 4)
+            HStack(alignment: .center, spacing: 20) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(name)
+                        .font(.imasCardNameFixed(nameFont, size: 42))
+                        .foregroundStyle(ProducerCardPrint.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    Rectangle().fill(accent).frame(width: 84, height: 9)
+                    if !oshiNames.isEmpty {
+                        Text("\(oshiNames.joined(separator: "・")) 担当")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundStyle(ProducerCardPrint.ink)
+                            .lineLimit(2)
+                    }
+                    Spacer(minLength: 0)
+                    HStack(alignment: .lastTextBaseline) {
+                        if let handle {
+                            Text(handle)
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundStyle(ProducerCardPrint.ink)
+                        }
+                        Spacer(minLength: 8)
+                        Text("IDOL LIVE DB")
+                            .font(.system(size: 8, weight: .heavy, design: .rounded))
+                            .tracking(1.6)
+                            .foregroundStyle(ProducerCardPrint.sub)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                portraitView(border: ProducerCardPrint.ink, width: 3)
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 18)
+        }
+        .overlay(Rectangle().strokeBorder(ProducerCardPrint.ink, lineWidth: 8))
+    }
+
+    // MARK: 共通
+
+    @ViewBuilder
+    private func portraitView(border: Color, width: CGFloat) -> some View {
+        if let portrait {
+            Image(uiImage: portrait)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 114, height: 152)
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+                .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(border, lineWidth: width))
+        }
+    }
+
+    private func info(imprint: String, nameSize: CGFloat, oshiFont: Font) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(["PRODUCER PASS", sinceYear.map { "SINCE \($0)" }].compactMap { $0 }.joined(separator: " · "))
+            Text([imprint, sinceYear.map { "SINCE \($0)" }].compactMap { $0 }.joined(separator: " · "))
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .tracking(1.6)
                 .foregroundStyle(ProducerCardPrint.sub)
             Spacer(minLength: 0)
             Text(name)
-                .font(.imasCardNameFixed(nameFont, size: 40))
+                .font(.imasCardNameFixed(nameFont, size: nameSize))
                 .foregroundStyle(ProducerCardPrint.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             if !oshiNames.isEmpty {
                 Text("\(oshiNames.joined(separator: "・")) 担当")
-                    .font(.system(size: 13, weight: .regular, design: .serif))
+                    .font(oshiFont)
                     .foregroundStyle(ProducerCardPrint.ink)
                     .lineLimit(2)
                     .padding(.top, 8)
@@ -99,6 +221,19 @@ struct ProducerCardPrintFront: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+/// 自作の名刺の画像 (表・裏) を 91:55 の紙に刷る。比率が違う画像は切らずに収め、余りは紙の色。
+struct ProducerCardPrintImage: View {
+    let image: UIImage
+
+    var body: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(width: ProducerCardPrint.size.width, height: ProducerCardPrint.size.height)
+            .background(ProducerCardPrint.paper)
     }
 }
 

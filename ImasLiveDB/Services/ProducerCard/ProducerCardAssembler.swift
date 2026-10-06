@@ -45,7 +45,7 @@ enum ProducerCardAssembler {
             nextShowId: card.shows(.next) ? summary.nextShowId : nil,
             attended: card.shows(.attended) ? summary.attendedPast : [],
             issuedOn: JSTDay.today(),
-            nameFont: card.font,
+            design: card.cardDesign,
             qrUrl: card.qrUrl
         )
     }
@@ -79,9 +79,18 @@ enum ProducerCardAssembler {
         return CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)
     }
 
-    /// 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真)。
+    /// 自作の名刺の画像 (表・裏。平らにした JPEG をそのまま渡す)。載せるかどうか
+    /// (デザインが自作の画像の名刺だけ・裏は表があるときだけ) はコアの `encodeCardFile` が決める。
+    static func myFaceImages() -> [CardFileImage] {
+        [(ProducerCardFiles.Side.front, CardFileImageKind.faceFront), (.back, .faceBack)].compactMap { side, kind in
+            guard let url = ProducerCardFiles.myFaceURL(side), let jpeg = try? Data(contentsOf: url) else { return nil }
+            return CardFileImage(idolId: "", jpeg: jpeg, kind: kind)
+        }
+    }
+
+    /// 自分の名刺ファイル (名刺 + 担当の画像 + 名刺の写真 + 自作の名刺の画像)。
     static func myCardFile(_ encoded: EncodedProducerCard) -> Data? {
-        let images = myOshiImages(for: encoded.card) + [myPhotoImage()].compactMap { $0 }
+        let images = myOshiImages(for: encoded.card) + [myPhotoImage()].compactMap { $0 } + myFaceImages()
         return encodeCardFile(payload: payload(of: encoded), images: images)
     }
 

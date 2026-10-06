@@ -22,6 +22,7 @@ struct MyProducerCardView: View {
     @State private var shareError: String?
     @State private var qrMode: QRMode = .exchange
     @State private var portraitURL: URL?
+    @State private var face: ProducerCardDisplay.Face?
 
     /// 名刺の画面で見せる QR。自分の QR を載せていなければ交換用だけ。
     enum QRMode: Hashable { case exchange, own }
@@ -96,9 +97,13 @@ struct MyProducerCardView: View {
                 encoded.card, directory: directory,
                 imageURL: { CustomImageService.shared.imageURL(for: $0) },
                 portraitURL: portraitURL,
+                face: face,
                 onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
                 onOpenOshi: nil
             )
+            if encoded.card.design == .custom {
+                ImasNote("自作の画像は名刺ファイルと近くの iPhone で渡した相手に届きます。QR だけで受け取った人と Web では入場証で見えます。")
+            }
             ImasButton(title: "交換する", systemImage: "qrcode", role: .primary, size: .large) {
                 AppAnalytics.tap("producer_card.exchange")
                 showingExchange = true
@@ -177,6 +182,7 @@ struct MyProducerCardView: View {
             record = rec
         }
         portraitURL = ProducerCardFiles.myPhotoURL
+        face = ProducerCardDisplay.myFace()
         if let myCard, let record, let enc = ProducerCardAssembler.encode(card: myCard, record: record) {
             encoded = enc
             directory = await ProducerCardDirectory.load(

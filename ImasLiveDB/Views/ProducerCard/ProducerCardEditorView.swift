@@ -1,12 +1,16 @@
 import PhotosUI
 import SwiftUI
 
-/// 自分の P名刺を作る・直す。書くのは名前・ひとこと・P歴・リンク・名刺の写真・名前の書体・自分の QR で、
+/// 自分の P名刺を作る・直す。書くのは名前・ひとこと・P歴・リンク・名刺のデザイン・名刺の写真・自分の QR で、
 /// 担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
 /// 上に名刺の見本を置き、変えたものはその場で見本に出る。
 ///
-/// 入力の検査・リンクと QR の URL の正規化・書体の一覧はコア
-/// (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardNameFonts`)。
+/// デザインは 3 つ (入場証・かしこまった名刺・ポップ) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
+/// 自作の画像は写真から選んだ名刺の画像 (表・任意で裏) を、紙の名刺の取り込みと同じく四隅を見つけて平らにし、
+/// 画像の QR があれば自分の QR に入れる。名刺の写真は X のアイコンからも取れる。
+///
+/// 入力の検査・リンクと QR の URL の正規化・デザインの一覧・X のアイコンの規則はコア
+/// (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns` / `cardXAvatarHandle`)。
 struct ProducerCardEditorView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -25,7 +29,7 @@ struct ProducerCardEditorView: View {
     @State private var error: String?
     @State private var confirmDiscard = false
 
-    @State private var nameFont: String
+    @State private var design: String
     @State private var qrUrl: String
     @State private var qrPick: PhotosPickerItem?
     @State private var qrNotice: String?
@@ -40,15 +44,38 @@ struct ProducerCardEditorView: View {
     @State private var previewPortrait: URL?
     @State private var directory = ProducerCardDirectory()
 
+    /// 自作の名刺の画像 (平らにした後)。変えた面だけ ✓ のときに書く (nil は外した)。
+    @State private var faceImages: [ProducerCardFiles.Side: UIImage] = [:]
+    /// 写真から選んだ元と見つけた四隅 (四隅を直すとき用。この編集で選んだ面だけ)。
+    @State private var faceSources: [ProducerCardFiles.Side: PaperPhotoSource] = [:]
+    /// 見本に出す画像 (保存済みのファイルか、✓ の前の一時ファイル)。
+    @State private var facePreview: [ProducerCardFiles.Side: URL] = [:]
+    @State private var faceDirty: Set<ProducerCardFiles.Side> = []
+    @State private var faceFrontPick: PhotosPickerItem?
+    @State private var faceBackPick: PhotosPickerItem?
+    @State private var faceCorners: FaceCornerDraft?
+    @State private var faceNotice: String?
+    @State private var isReadingFace = false
+
+    @State private var isFetchingAvatar = false
+    @State private var avatarNotice: String?
+
     private let limits = producerCardLimits()
     private let kinds = cardLinkKinds()
-    private let fonts = cardNameFonts()
+    private let designs = cardDesigns()
 
     /// 切り抜きのシートに渡すもの。
     struct CropDraft: Identifiable {
         let id = UUID()
         let image: UIImage
         let crop: ImasPortraitCrop
+    }
+
+    /// 自作の名刺の画像の四隅を直すシートに渡すもの。
+    struct FaceCornerDraft: Identifiable {
+        let id = UUID()
+        let side: ProducerCardFiles.Side
+        let source: PaperPhotoSource
     }
 
     struct EditableLink: Identifiable, Hashable {
@@ -67,7 +94,7 @@ struct ProducerCardEditorView: View {
         _sinceYear = State(initialValue: card.sinceYear)
         _links = State(initialValue: card.links.map { EditableLink(kind: $0.kind, value: $0.value) })
         _hidden = State(initialValue: card.hidden)
-        _nameFont = State(initialValue: cardNameFontKey(font: card.font))
+        _design = State(initialValue: cardDesignKey(design: card.cardDesign))
         _qrUrl = State(initialValue: card.qrUrl ?? "")
     }
 
@@ -94,7 +121,8 @@ struct ProducerCardEditorView: View {
                     }
                 }
 
-                lookCard.id("look")
+                designCard.id("look")
+                photoCard
                 oshiCard
                 linksCard
                 qrCard.id("qr")
@@ -105,8 +133,8 @@ struct ProducerCardEditorView: View {
                 } else if validation == .tooLong {
                     Text(producerCardInputErrorMessage(error: .tooLong)).imasText(.note, color: DS.danger)
                 }
-                if nameFont != cardNameFonts()[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
-                    ImasNote("書体や自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
+                    ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                 }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
             }
@@ -121,7 +149,7 @@ struct ProducerCardEditorView: View {
             .navigationTitle(card.name.isEmpty ? "P名刺を作る" : "P名刺を編集")
             .navigationBarTitleDisplayMode(.inline)
             .imasSheetToolbar(.edit(canSave: canSave, onCancel: cancel, onSave: { Task { await save() } }))
-            .imasSavingOverlay(isSaving, label: "保存中")
+            .imasSavingOverlay(isSaving || isReadingFace, label: isReadingFace ? "画像を整えています" : "保存中")
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
             .interactiveDismissDisabled(isDirty)
             .sheet(item: $cropping) { draft in
@@ -139,11 +167,28 @@ struct ProducerCardEditorView: View {
                 qrPick = nil
                 Task { await readQR(item) }
             }
+            .onChange(of: faceFrontPick) { _, item in
+                guard let item else { return }
+                faceFrontPick = nil
+                Task { await loadFace(item, side: .front) }
+            }
+            .onChange(of: faceBackPick) { _, item in
+                guard let item else { return }
+                faceBackPick = nil
+                Task { await loadFace(item, side: .back) }
+            }
+            .sheet(item: $faceCorners) { draft in
+                PaperCardCornerSheet(image: draft.source.original,
+                                     corners: draft.source.corners ?? PaperCardRectifier.defaultCorners) { corners in
+                    Task { await applyFaceCorners(side: draft.side, source: draft.source, corners: corners) }
+                }
+            }
           }
         }
         .task {
             await loadOshi()
             loadPhoto()
+            loadFaces()
         }
     }
 
@@ -161,15 +206,101 @@ struct ProducerCardEditorView: View {
             card, directory: directory,
             imageURL: { CustomImageService.shared.imageURL(for: $0) },
             portraitURL: previewPortrait,
+            face: previewFace,
             onOpenLink: nil, onOpenOshi: nil
         )
         .accessibilityLabel("名刺の見本")
     }
 
-    // MARK: - 写真・書体
+    // MARK: - デザイン
 
-    private var lookCard: some View {
+    private var selectedDesign: CardDesignInfo {
+        designs.first { $0.key == design } ?? designs[0]
+    }
+
+    private var previewFace: ProducerCardDisplay.Face? {
+        facePreview[.front].map { ProducerCardDisplay.Face(front: $0, back: facePreview[.back]) }
+    }
+
+    private var designCard: some View {
+        let lead = oshi.first
+        return ImasFormCard {
+            ImasFormField(label: "名刺のデザイン", imprint: "DESIGN") {
+                ImasCardDesignPicker(
+                    options: designs.map { info in
+                        .init(id: info.key, label: info.label, look: look(info.design),
+                              postScriptName: info.font.postscriptName)
+                    },
+                    selection: $design,
+                    sample: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    seed: lead?.color, brand: lead.flatMap { brands[$0.brandId]?.color }
+                )
+            }
+            if selectedDesign.usesFaceImage {
+                faceField
+            }
+        }
+    }
+
+    private func look(_ design: CardDesign) -> ImasCardDesignPicker.Option.Look {
+        switch design {
+        case .pass: return .pass
+        case .formal: return .formal
+        case .pop: return .pop
+        case .custom: return .face(facePreview[.front])
+        }
+    }
+
+    /// 自作の名刺の画像 (表・裏)。
+    private var faceField: some View {
+        ImasFormField(label: "自作の画像", imprint: "FACE",
+                      error: facePreview[.front] == nil ? "表の画像を選んでください" : nil) {
+            VStack(alignment: .leading, spacing: DS.Space.gapLoose) {
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+                    faceSlot(.front, title: "表", pick: $faceFrontPick)
+                    faceSlot(.back, title: "裏 (なくてもよい)", pick: $faceBackPick)
+                }
+                Text("自分で作った名刺の画像がそのまま名刺の顔になります (91:55 の比が基本、違う比率でも切りません)。紙の名刺を撮った写真なら、四隅を見つけて平らにします。画像の QR は自分の QR に入ります。")
+                    .imasText(.note)
+                if let faceNotice {
+                    Text(faceNotice).imasText(.note, color: DS.ink)
+                }
+            }
+        }
+    }
+
+    private func faceSlot(_ side: ProducerCardFiles.Side, title: String, pick: Binding<PhotosPickerItem?>) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            Text(title).imasText(.rowLabel, color: DS.ink2)
+            if let url = facePreview[side] {
+                ImasCardFace(front: url, label: "自作の名刺の\(title)", thumbnail: true)
+            }
+            PhotosPicker(selection: pick, matching: .images) {
+                CardEditorActionLabel(title: facePreview[side] == nil ? "画像を選ぶ" : "選び直す",
+                                      systemImage: "photo.on.rectangle")
+            }
+            .buttonStyle(.plain)
+            if let source = faceSources[side] {
+                Button { faceCorners = FaceCornerDraft(side: side, source: source) } label: {
+                    CardEditorActionLabel(title: "四隅を直す", systemImage: "crop")
+                }
+                .buttonStyle(.plain)
+            }
+            if facePreview[side] != nil {
+                Button(role: .destructive) { removeFace(side) } label: {
+                    CardEditorActionLabel(title: "外す", systemImage: "minus.circle")
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - 名刺の写真
+
+    private var photoCard: some View {
         let pickTitle = photoSource == nil ? "写真を選ぶ" : "写真を変える"
+        let handle = cardXAvatarHandle(links: draft.links)
         return ImasFormCard {
             ImasFormField(label: "名刺の写真", imprint: "PHOTO") {
                 HStack(alignment: .top, spacing: DS.Space.gapLoose) {
@@ -182,6 +313,15 @@ struct ProducerCardEditorView: View {
                             CardEditorActionLabel(title: pickTitle, systemImage: "photo")
                         }
                         .buttonStyle(.plain)
+                        if let handle {
+                            Button { Task { await useXAvatar(handle) } } label: {
+                                CardEditorActionLabel(
+                                    title: isFetchingAvatar ? "X のアイコンを取っています…" : "X のアイコンを使う (@\(handle))",
+                                    systemImage: "person.crop.square")
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isFetchingAvatar)
+                        }
                         if let photoSource {
                             Button { cropping = CropDraft(image: photoSource, crop: crop) } label: {
                                 CardEditorActionLabel(title: "位置を直す", systemImage: "crop")
@@ -192,18 +332,13 @@ struct ProducerCardEditorView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        if photoSource == nil {
+                        if let avatarNotice {
+                            Text(avatarNotice).imasText(.note, color: DS.danger)
+                        } else if photoSource == nil {
                             Text("名前の横に証明写真のように載ります。担当の画像とは別です。").imasText(.note)
                         }
                     }
                 }
-            }
-            ImasFormField(label: "名前の書体", imprint: "TYPEFACE") {
-                ImasNameFontPicker(
-                    options: fonts.map { .init(id: $0.key, label: $0.label, postScriptName: $0.postscriptName) },
-                    selection: $nameFont,
-                    sample: name.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
             }
         }
     }
@@ -373,7 +508,7 @@ struct ProducerCardEditorView: View {
             .filter { !$0.value.trimmingCharacters(in: .whitespaces).isEmpty }
             .compactMap { normalizeCardLink(link: CardLink(kind: $0.kind, value: $0.value)) }
         out.hidden = hidden
-        out.nameFont = nameFont
+        out.design = design
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
         return out
     }
@@ -392,12 +527,15 @@ struct ProducerCardEditorView: View {
         return validateProducerCard(input: input)
     }
 
-    private var canSave: Bool { validation == nil && !isSaving }
+    /// 自作の画像のデザインは表の画像が要る (無いと入場証になってしまう)。
+    private var canSave: Bool {
+        validation == nil && !isSaving && !(selectedDesign.usesFaceImage && facePreview[.front] == nil)
+    }
 
     private var isDirty: Bool {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
-            || draft.font != card.font || draft.qrUrl != card.qrUrl || photoDirty
+            || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
     }
 
     private func cancel() {
@@ -419,6 +557,13 @@ struct ProducerCardEditorView: View {
                     try ProducerCardFiles.saveMyPhoto(source: photoSource, crop: crop)
                 } else {
                     ProducerCardFiles.deleteMyPhoto()
+                }
+            }
+            for side in faceDirty {
+                if let image = faceImages[side] {
+                    try ProducerCardFiles.saveMyFace(image, side: side)
+                } else {
+                    ProducerCardFiles.deleteMyFace(side)
                 }
             }
             AppAnalytics.tap("producer_card.save")
@@ -470,6 +615,94 @@ struct ProducerCardEditorView: View {
         photoSource = nil
         previewPortrait = nil
         photoDirty = true
+    }
+
+    // MARK: - X のアイコン
+
+    /// 名刺のリンクの X の ID からアイコンを取り、名刺の写真の枠に合わせる。取れなければ案内を出す
+    /// (写真から選ぶ形のまま)。
+    private func useXAvatar(_ handle: String) async {
+        avatarNotice = nil
+        isFetchingAvatar = true
+        let outcome = await XAvatarFetcher.fetch(handle: handle)
+        isFetchingAvatar = false
+        switch outcome {
+        case .image(let image):
+            AppAnalytics.tap("producer_card.x_avatar")
+            cropping = CropDraft(image: PaperCardRectifier.upright(image), crop: ImasPortraitCrop())
+        case .failed(let message):
+            avatarNotice = message
+        }
+    }
+
+    // MARK: - 自作の名刺の画像
+
+    private func loadFaces() {
+        guard faceDirty.isEmpty else { return }
+        try? FileManager.default.removeItem(at: Self.faceFolder)
+        for side in ProducerCardFiles.Side.allCases {
+            facePreview[side] = ProducerCardFiles.myFaceURL(side)
+        }
+    }
+
+    /// 写真から選んだ名刺の画像。紙の名刺を撮った写真なら四隅を見つけて平らにする (見つからなければ
+    /// 画像のまま)。画像の QR は自分の QR に入れる。
+    private func loadFace(_ item: PhotosPickerItem, side: ProducerCardFiles.Side) async {
+        faceNotice = nil
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            faceNotice = "画像を読み込めませんでした。"
+            return
+        }
+        isReadingFace = true
+        let result = await PaperCardRectifier.rectify(image)
+        isReadingFace = false
+        faceSources[side] = PaperPhotoSource(original: result.original, corners: result.corners)
+        await setFace(result.image, side: side)
+    }
+
+    private func applyFaceCorners(side: ProducerCardFiles.Side, source: PaperPhotoSource, corners: [CGPoint]) async {
+        let flat = PaperCardRectifier.correct(source.original, corners: corners) ?? source.original
+        faceSources[side] = PaperPhotoSource(original: source.original, corners: corners)
+        await setFace(flat, side: side)
+    }
+
+    /// 見本には一時ファイルで出し、✓ で端末に書く。
+    private func setFace(_ image: UIImage, side: ProducerCardFiles.Side) async {
+        guard let jpeg = ProducerCardFiles.jpeg(image, maxPixels: 2000, quality: 0.9) else { return }
+        let dir = Self.faceFolder
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("\(side.rawValue)-\(UUID().uuidString).jpg")
+        guard (try? jpeg.write(to: url, options: .atomic)) != nil else { return }
+        faceImages[side] = image
+        facePreview[side] = url
+        faceDirty.insert(side)
+        await readFaceQR(image)
+    }
+
+    private func removeFace(_ side: ProducerCardFiles.Side) {
+        faceImages[side] = nil
+        faceSources[side] = nil
+        facePreview[side] = nil
+        faceDirty.insert(side)
+    }
+
+    /// 画像に刷られた QR を読み、URL なら自分の QR に入れる (分け方はコア)。アプリの名刺の QR
+    /// (自分の交換用の QR) は名刺に初めから入っているので入れない。
+    private func readFaceQR(_ image: UIImage) async {
+        for code in await PaperCardCodeReader.codes(in: [image]) {
+            guard case .link(let url, _) = classifyScannedCode(text: code),
+                  let normalized = normalizeCardQrUrl(raw: url) else { continue }
+            if normalizeCardQrUrl(raw: qrUrl) != normalized {
+                qrUrl = normalized
+                faceNotice = "画像の QR (\(cardQrLinkView(url: normalized).display)) を自分の QR に入れました。"
+            }
+            return
+        }
+    }
+
+    /// 自作の名刺の画像の一時置き場。
+    private static var faceFolder: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("producer_card_face_edit", isDirectory: true)
     }
 
     // MARK: - 写真の QR

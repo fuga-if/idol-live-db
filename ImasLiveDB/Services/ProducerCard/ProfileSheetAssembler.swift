@@ -22,7 +22,7 @@ struct ProfileSheetMaterials {
     var portrait: UIImage?
     /// 自分の QR (P名刺に載せていれば)。
     var qr: UIImage?
-    /// 名前と記入欄の書体 (P名刺の書体の PostScript 名)。
+    /// 名前と記入欄の書体 (P名刺のデザインの書体の PostScript 名)。
     var nameFont: String
 
     static let empty = ProfileSheetMaterials(
@@ -30,7 +30,7 @@ struct ProfileSheetMaterials {
                                    songCount: 0, brands: [], favoriteSongs: [], links: [], hasPhoto: false,
                                    hasQr: false,
                                    live: ProfileLiveRecord(topSongs: [], oshiHeard: [], topVenue: nil, prefectureCount: 0)),
-        nameFont: cardNameFonts()[0].postscriptName
+        nameFont: cardDesigns()[0].font.postscriptName
     )
 
     /// 担当の色 (帯・罫・押印の判子)。担当がいなければ nil (墨)。
@@ -102,7 +102,7 @@ enum ProfileSheetAssembler {
             oshi: oshi,
             portrait: portrait,
             qr: qr,
-            nameFont: cardNameFontInfo(font: card.font).postscriptName
+            nameFont: cardDesignInfo(design: card.cardDesign).font.postscriptName
         )
     }
 

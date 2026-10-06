@@ -109,9 +109,13 @@ struct CardCaseView: View {
             ImasRowPortraitOshi(label: $0.shortName, seed: $0.color, brand: brand?.color,
                                 imageURL: ProducerCardFiles.oshiImageURL(cardId: card.id, idolId: $0.id))
         }
-        // 名刺の写真があれば証明写真の枠 (右下に担当のアイコンを重ねる)、無ければ担当のアイコン。
+        // 自作の名刺の画像があればその小さな見本、名刺の写真があれば証明写真の枠 (どちらも右下に
+        // 担当のアイコンを重ねる)、無ければ担当のアイコン。
         let leading: ImasRowLeading
-        if let portrait = ProducerCardFiles.cardPhotoURL(cardId: card.id) {
+        if let content, let face = ProducerCardDisplay.receivedFace(cardId: card.id),
+           ProducerCardDisplay.design(content, face: face).usesFaceImage {
+            leading = .cardFace(face.front, oshi: oshiIcon)
+        } else if let portrait = ProducerCardFiles.cardPhotoURL(cardId: card.id) {
             leading = .portrait(portrait, oshi: oshiIcon)
         } else if let oshiIcon {
             leading = .avatar(label: oshiIcon.label, seed: oshiIcon.seed, brand: oshiIcon.brand,

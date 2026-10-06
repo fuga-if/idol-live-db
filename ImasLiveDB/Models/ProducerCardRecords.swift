@@ -21,8 +21,9 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     /// 名刺から外した項目 (`ProducerCardField` の rawValue をカンマで)。
     var hiddenFields: String
     var updatedAt: String
-    /// 名前の書体の保存のキー (`cardNameFontKey`)。空は既定の書体。
-    var nameFont: String = ""
+    /// 名刺のデザインの保存のキー (`cardDesignKey`)。空は既定のデザイン。書体を選んでいた頃の
+    /// 書体のキーが残っていることもある (`cardDesignFromKey` が近いデザインに読み替える)。
+    var design: String = ""
     /// 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。
     var qrUrl: String? = nil
     /// プロフィール帳の中身 (コアの保存の形 `profileSheetToJson`)。空はまだ作っていない。
@@ -34,7 +35,7 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
         case linksJson = "links_json"
         case hiddenFields = "hidden_fields"
         case updatedAt = "updated_at"
-        case nameFont = "name_font"
+        case design
         case qrUrl = "qr_url"
         case profileJson = "profile_json"
     }
@@ -44,10 +45,10 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
                        linksJson: "[]", hiddenFields: "", updatedAt: "")
     }
 
-    /// 名前の書体 (保存のキーが空・知らないものなら既定)。
-    var font: CardNameFont {
-        get { cardNameFontFromKey(key: nameFont) ?? cardNameFonts()[0].font }
-        set { nameFont = cardNameFontKey(font: newValue) }
+    /// 名刺のデザイン (保存のキーが空・知らないものなら既定)。
+    var cardDesign: CardDesign {
+        get { cardDesignFromKey(key: design) ?? cardDesigns()[0].design }
+        set { design = cardDesignKey(design: newValue) }
     }
 
     var links: [CardLink] {

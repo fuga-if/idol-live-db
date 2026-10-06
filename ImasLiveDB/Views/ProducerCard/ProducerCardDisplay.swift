@@ -51,9 +51,42 @@ enum ProducerCardDisplay {
         }
     }
 
-    /// 名前の書体の PostScript 名 (書体の一覧と既定はコア)。
-    static func nameFont(_ card: ProducerCard) -> String {
-        producerCardNameFont(card: card).postscriptName
+    /// 名刺の顔 (自作の名刺の画像の表・裏)。自分の名刺は端末の画像、受け取った名刺は届いた画像。
+    struct Face: Equatable {
+        let front: URL
+        var back: URL?
+    }
+
+    /// 描くデザイン (自作の画像の名刺でも画像が無ければ入場証。決めるのはコア)。
+    static func design(_ card: ProducerCard, face: Face?) -> CardDesignInfo {
+        producerCardDisplayDesign(card: card, hasFaceImage: face != nil)
+    }
+
+    /// 名前の書体の PostScript 名 (デザインの書体。一覧と既定はコア)。
+    static func nameFont(_ card: ProducerCard, face: Face? = nil) -> String {
+        design(card, face: face).font.postscriptName
+    }
+
+    /// DS の名刺のデザイン。
+    static func cardDesign(_ card: ProducerCard, face: Face?) -> ImasProducerCard.Design {
+        switch design(card, face: face).design {
+        case .pass: return .pass
+        case .formal: return .formal
+        case .pop: return .pop
+        case .custom: return face.map { .face(front: $0.front, back: $0.back) } ?? .pass
+        }
+    }
+
+    /// 自分の名刺の顔 (自作の画像の表があれば)。
+    static func myFace() -> Face? {
+        ProducerCardFiles.myFaceURL(.front).map { Face(front: $0, back: ProducerCardFiles.myFaceURL(.back)) }
+    }
+
+    /// 受け取った名刺の顔 (届いた自作の画像の表があれば)。
+    static func receivedFace(cardId: String) -> Face? {
+        ProducerCardFiles.faceURL(cardId: cardId, side: .front).map {
+            Face(front: $0, back: ProducerCardFiles.faceURL(cardId: cardId, side: .back))
+        }
     }
 
     /// 記録の数 (参加公演・回収曲・次の現場)。載っていない数は出さない。
@@ -105,14 +138,15 @@ enum ProducerCardDisplay {
     }
 
     /// 名刺 1 枚の View (自分の名刺・受け取った名刺で同じ部品)。
-    /// `portraitURL` は名刺の写真 (自分の名刺は端末の写真、受け取った名刺は届いた写真。QR だけで
-    /// 受け取った名刺には無い)。
+    /// `portraitURL` は名刺の写真、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
+    /// 届いた画像。QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
-                     imageURL: (String) -> URL?, portraitURL: URL? = nil,
+                     imageURL: (String) -> URL?, portraitURL: URL? = nil, face: Face? = nil,
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
         return ImasProducerCard(
+            design: cardDesign(card, face: face),
             sinceImprint: sinceImprint(card),
             name: card.name,
             message: card.message,
@@ -122,7 +156,7 @@ enum ProducerCardDisplay {
             boardTrailing: boardTrailing(card),
             photoURL: oshi.compactMap(\.imageURL).first,
             portraitURL: portraitURL,
-            nameFont: nameFont(card),
+            nameFont: nameFont(card, face: face),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi
         )

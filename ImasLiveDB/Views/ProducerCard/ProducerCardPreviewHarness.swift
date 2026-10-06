@@ -16,8 +16,11 @@ struct ProducerCardPreviewHarness: View {
 
     /// プロフィール帳の見本の選択 (`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
 
-    /// 自分の名刺の書体を差し替えて撮る (`PRODUCER_CARD_FONT=pop`)。
-    static var envFont: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_FONT"] }
+    /// 自分の名刺のデザインを差し替えて撮る (`PRODUCER_CARD_DESIGN=pop`、`custom` は見本の自作の画像も置く)。
+    static var envDesign: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DESIGN"] }
+
+    /// 受け取った名刺の詳細で開く名刺の名前 (`PRODUCER_CARD_DETAIL=みどりP`。既定は写真のある名刺)。
+    static var envDetail: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DETAIL"] }
 
     static var envMode: Mode? {
         ProcessInfo.processInfo.environment["PRODUCER_CARD_PREVIEW"].flatMap(Mode.init(rawValue:))
@@ -44,13 +47,15 @@ struct ProducerCardPreviewHarness: View {
         }
         .task {
             await Samples.seed(database)
-            if let key = Self.envFont, var mine = try? database.myProducerCard() {
-                mine.nameFont = key
+            if let key = Self.envDesign, var mine = try? database.myProducerCard() {
+                mine.design = key
                 try? database.saveMyProducerCard(mine)
+                if key == "custom" { Samples.saveMyFaces() }
             }
             // 名刺の写真のある名刺を先に (写真の出方を見る)。
             let received = (try? await AppContainer.shared.producerCards.receivedCards()) ?? []
-            let first = received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
+            let named = Self.envDetail.flatMap { name in received.first { $0.card?.name == name } }
+            let first = named ?? received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
             firstCardId = first?.id
             samplePayload = first?.payload
             if [.profile, .profileEditor, .profileExport].contains(mode) {
@@ -132,32 +137,39 @@ struct ProducerCardPreviewHarness: View {
             mine.message = "現地派・Pライブ皆勤目指してます"
             mine.sinceYear = 2014
             mine.links = [CardLink(kind: .x, value: "fuga_p"), CardLink(kind: .bluesky, value: "fuga.bsky.social")]
-            mine.nameFont = "mincho"
+            mine.design = "formal"
             mine.qrUrl = "https://lit.link/fuga"
             try? db.saveMyProducerCard(mine)
             try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop())
 
             let refs = shows.map { CardShowRef(showId: $0.0, date: $0.1) }
             func card(_ name: String, _ message: String, oshi: [String], shows: Int, attended: [CardShowRef],
-                      font: CardNameFont? = nil) -> String {
+                      design: CardDesign? = nil) -> String {
                 producerCardPayload(card: encodeProducerCard(input: ProducerCardInput(
                     name: name, message: message, sinceYear: 2011, oshiIdolIds: oshi,
                     links: [CardLink(kind: .x, value: "\(name.lowercased())_sample")], showCount: UInt32(shows),
                     songCount: 300, nextShowId: nil, attended: attended, issuedOn: "2026-10-05",
-                    nameFont: font, qrUrl: font == nil ? nil : "https://lit.link/shirokuma")).card)
+                    design: design, qrUrl: design == nil ? nil : "https://lit.link/shirokuma")).card)
             }
             let samples: [(String, ReceivedProducerCard.Source, (String, String)?, String?)] = [
-                (card("しろくまP", "千早の歌を一生聴きたい", oshi: [idols[1]], shows: 63, attended: refs, font: .maru), .app, shows[0], "物販列で隣"),
+                (card("しろくまP", "千早の歌を一生聴きたい", oshi: [idols[1]], shows: 63, attended: refs, design: .custom), .app, shows[0], "物販列で隣"),
                 (card("あおいP", "", oshi: [idols[3]], shows: 21, attended: [refs[1]]), .app, shows[0], nil),
                 (card("かるたP", "", oshi: [idols[2]], shows: 0, attended: []), .paper, shows[0], nil),
-                (card("みどりP", "初現地でした", oshi: [idols[0], idols[2]], shows: 5, attended: [refs[2]]), .app, shows[2], nil),
+                (card("みどりP", "初現地でした", oshi: [idols[0], idols[2]], shows: 5, attended: [refs[2]], design: .pop), .app, shows[2], nil),
+                (card("あかねP", "よろしくお願いいたします", oshi: [idols[2]], shows: 12, attended: [refs[0]], design: .formal), .app, shows[1], nil),
             ]
             for (i, s) in samples.enumerated() {
                 var row = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1, memo: s.3)
                 row.receivedAt = "2026-10-05T2\(i):00:00Z"
                 try? db.saveReceivedProducerCard(row)
-                if i == 0, let jpeg = ProducerCardFiles.jpeg(portrait(seed: 1)) {
-                    try? ProducerCardFiles.saveImages(cardId: row.id, images: [CardFileImage(idolId: "", jpeg: jpeg, kind: .photo)])
+                if i == 0, let jpeg = ProducerCardFiles.jpeg(portrait(seed: 1)),
+                   let front = ProducerCardFiles.jpeg(face(name: "しろくまP", back: false), maxPixels: 2000),
+                   let back = ProducerCardFiles.jpeg(face(name: "しろくまP", back: true), maxPixels: 2000) {
+                    try? ProducerCardFiles.saveImages(cardId: row.id, images: [
+                        CardFileImage(idolId: "", jpeg: jpeg, kind: .photo),
+                        CardFileImage(idolId: "", jpeg: front, kind: .faceFront),
+                        CardFileImage(idolId: "", jpeg: back, kind: .faceBack),
+                    ])
                 }
             }
         }
@@ -196,7 +208,7 @@ struct ProducerCardPreviewHarness: View {
                 }
             }
             guard var mine = try? db.myProducerCard() else { return }
-            if let key = envFont { mine.nameFont = key }
+            if let key = envDesign { mine.design = key }
             mine.profile = profileSample()
             try? db.saveMyProducerCard(mine)
         }
@@ -238,14 +250,14 @@ struct ProducerCardPreviewHarness: View {
             try? FileManager.default.removeItem(at: dir)
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             var count = 0
-            for font in ["hand", "pop"] {
-                mine.nameFont = font
+            for font in ["pass", "pop"] {
+                mine.design = font
                 let full = await ProfileSheetAssembler.load(card: mine)
                 for fill in ["many", "few"] {
                     let materials = fill == "few" ? sparse(full) : full
                     for style in [ProfileSheetStyle.resume, .career] {
                         for size in [ProfileSheetSize.portrait, .story] {
-                            if font != "hand" && (fill == "few" || size == .story) { continue }
+                            if font != "pass" && (fill == "few" || size == .story) { continue }
                             var sheet = profileSample()
                             sheet.style = style
                             sheet.size = size
@@ -276,6 +288,45 @@ struct ProducerCardPreviewHarness: View {
                                      withConfiguration: UIImage.SymbolConfiguration(pointSize: 700))?
                     .withTintColor(UIColor(white: 1, alpha: 1), renderingMode: .alwaysOriginal)
                 symbol?.draw(in: CGRect(x: 250, y: 380, width: 700, height: 760))
+            }
+        }
+
+        /// 自分の名刺の見本の自作の画像 (表・裏) を置く。
+        @MainActor
+        static func saveMyFaces() {
+            guard ProducerCardFiles.myFaceURL(.front) == nil else { return }
+            try? ProducerCardFiles.saveMyFace(face(name: "ふがP", back: false), side: .front)
+            try? ProducerCardFiles.saveMyFace(face(name: "ふがP", back: true), side: .back)
+        }
+
+        /// 見本の自作の名刺の画像 (91:55。表は名前、裏は QR)。
+        @MainActor
+        static func face(name: String, back: Bool) -> UIImage {
+            let size = CGSize(width: 1820, height: 1100)
+            // 見本の画像の色 (自作の画像の代わりなので DS の色ではない)。
+            let navy = UIColor(hue: 0.64, saturation: 0.67, brightness: 0.36, alpha: 1)
+            let gold = UIColor(hue: 0.12, saturation: 0.61, brightness: 0.93, alpha: 1)
+            return UIGraphicsImageRenderer(size: size).image { ctx in
+                (back ? gold : navy).setFill()
+                ctx.fill(CGRect(origin: .zero, size: size))
+                if back {
+                    if let qr = ImasQRCode.render("https://lit.link/\(name == "ふがP" ? "fuga" : "shirokuma")") {
+                        let box = CGRect(x: 1100, y: 250, width: 600, height: 600)
+                        UIColor(white: 1, alpha: 1).setFill()
+                        ctx.fill(box.insetBy(dx: -30, dy: -30))
+                        ctx.cgContext.interpolationQuality = .none
+                        qr.withTintColor(UIColor(white: 0, alpha: 1), renderingMode: .alwaysOriginal).draw(in: box)
+                    }
+                    ("SEE YOU AT THE LIVE" as NSString).draw(at: CGPoint(x: 120, y: 480), withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 80, weight: .heavy), .foregroundColor: navy])
+                } else {
+                    gold.setFill()
+                    ctx.fill(CGRect(x: 0, y: 900, width: size.width, height: 40))
+                    (name as NSString).draw(at: CGPoint(x: 140, y: 330), withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 260, weight: .heavy), .foregroundColor: UIColor(white: 1, alpha: 1)])
+                    ("PRODUCER / SINCE 2011" as NSString).draw(at: CGPoint(x: 150, y: 680), withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 64, weight: .semibold), .foregroundColor: gold])
+                }
             }
         }
 

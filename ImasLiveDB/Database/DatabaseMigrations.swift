@@ -1151,6 +1151,17 @@ enum DatabaseMigrations {
             }
         }
 
+        // v43: P名刺の「名前の書体」を「名刺のデザイン」に置き換える。列の名前だけを変え、中身
+        // (書体のキー) はそのまま残す (コアの `cardDesignFromKey` が近いデザインに読み替える)。
+        migrator.registerMigration("v43_producer_card_design") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if cols.contains("name_font") && !cols.contains("design") {
+                try db.execute(sql: "ALTER TABLE my_producer_card RENAME COLUMN name_font TO design")
+            } else if !cols.contains("design") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN design TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         return migrator
     }
 }

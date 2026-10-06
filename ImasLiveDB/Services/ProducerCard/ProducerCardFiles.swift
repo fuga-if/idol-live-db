@@ -1,12 +1,13 @@
 import Foundation
 import UIKit
 
-/// 名刺入れの画像ファイル (受け取った担当の画像・紙の名刺の写真)。
+/// 名刺入れの画像ファイル (受け取った担当の画像・紙の名刺の写真・自作の名刺の画像) と、
+/// 自分の名刺の写真・自作の名刺の画像。
 ///
 /// 写真は**端末の中だけ** (バックアップにもクラウドにも載せない。アイドルの画像と同じ扱い)。
 /// 置き場所は `Documents/producer_cards/<名刺の id>/`。名刺を消したら丸ごと消す。
 enum ProducerCardFiles {
-    /// 紙の名刺の写真の面。
+    /// 名刺の面 (紙の名刺の写真・自作の名刺の画像)。
     enum Side: String, CaseIterable, Sendable {
         case front, back
     }
@@ -50,6 +51,10 @@ enum ProducerCardFiles {
                 try image.jpeg.write(to: oshiFile(cardId, idolId: image.idolId), options: .atomic)
             case .photo:
                 try image.jpeg.write(to: cardPhotoFile(cardId), options: .atomic)
+            case .faceFront:
+                try image.jpeg.write(to: faceFile(cardId, side: .front), options: .atomic)
+            case .faceBack:
+                try image.jpeg.write(to: faceFile(cardId, side: .back), options: .atomic)
             }
         }
     }
@@ -62,6 +67,17 @@ enum ProducerCardFiles {
 
     static func cardPhotoURL(cardId: String) -> URL? {
         let url = cardPhotoFile(cardId)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    // MARK: 受け取った自作の名刺の画像 (相手が自分で作った名刺の表・裏)
+
+    private static func faceFile(_ cardId: String, side: Side) -> URL {
+        folder(cardId).appendingPathComponent("face_\(side.rawValue).jpg")
+    }
+
+    static func faceURL(cardId: String, side: Side) -> URL? {
+        let url = faceFile(cardId, side: side)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
 
@@ -110,6 +126,37 @@ enum ProducerCardFiles {
 
     static func deleteMyPhoto() {
         try? FileManager.default.removeItem(at: myFolder)
+    }
+
+    // MARK: 自分の自作の名刺の画像
+
+    /// 自作の名刺の画像の置き場所 (`Documents/producer_card_face/`)。写真のフォルダとは別
+    /// (写真を外しても画像は残す)。
+    private static var myFaceFolder: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("producer_card_face", isDirectory: true)
+    }
+
+    /// 自作の名刺の画像 (平らにして切り抜いた後の JPEG)。名刺ファイル・近くの端末で相手にこの画質で渡る。
+    /// 名前は書くたびに変える (画像の読み込みの控えが古い画像を出し続けないように)。
+    static func myFaceURL(_ side: Side) -> URL? {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: myFaceFolder.path)) ?? []
+        return names.first { $0.hasPrefix("\(side.rawValue)-") && $0.hasSuffix(".jpg") }
+            .map { myFaceFolder.appendingPathComponent($0) }
+    }
+
+    /// 自作の名刺の画像を書く (長辺 2000px まで。比率はそのまま)。
+    static func saveMyFace(_ image: UIImage, side: Side) throws {
+        guard let data = jpeg(image, maxPixels: 2000, quality: 0.9) else { return }
+        try FileManager.default.createDirectory(at: myFaceFolder, withIntermediateDirectories: true)
+        let previous = myFaceURL(side)
+        let name = "\(side.rawValue)-\(UUID().uuidString.prefix(8).lowercased()).jpg"
+        try data.write(to: myFaceFolder.appendingPathComponent(name), options: .atomic)
+        if let previous { try? FileManager.default.removeItem(at: previous) }
+    }
+
+    static func deleteMyFace(_ side: Side) {
+        if let url = myFaceURL(side) { try? FileManager.default.removeItem(at: url) }
     }
 
     // MARK: 紙の名刺の写真

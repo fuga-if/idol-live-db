@@ -6,16 +6,25 @@ import SwiftUI
 // =============================================================================
 // P名刺 (docs/DESIGN_SYSTEM.md §6.13)
 //
-// ImasProducerCard   P名刺 1 枚。担当の入場証 (`ImasPass`) を 1 枚に広げた紙。
-//                    上の帯が担当の色でストラップの穴、担当の写真、名前を大きく (選んだ書体で)、ひとこと、
-//                    担当の行、リンクの行、下に記録の電光掲示板 (`ImasBoard`)。
+// ImasProducerCard   P名刺 1 枚。デザイン (`design`) は 3 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    並べる要素は同じ: 担当の写真、名前 (デザインの書体で大きく)、ひとこと、担当の行、
+//                    リンクの行、記録の電光掲示板 (`ImasBoard`)。
+//                    - 入場証 (pass): 担当の入場証 (`ImasPass`) を 1 枚に広げた紙。上の帯が担当の色で
+//                      ストラップの穴、区切りは切り取り線。
+//                    - かしこまった名刺 (formal): 角の小さい紙に細い枠。担当色は名前の上の細い罫と判子だけ、
+//                      区切りは細い罫、担当の写真は名前の下に枠に入れて小さく。明朝。
+//                    - ポップ (pop): 墨の太い枠と太い区切り、担当色の太い帯と名前の下の太い線。ポップ体。
+//                    - 自作の画像 (face): 帯と名前の面の代わりに自分で作った名刺の画像 (`ImasCardFace`)。
+//                      下に担当・リンク・掲示板。画像が手元に無い名刺は入場証で描く (コアが決める)。
 //                    使わない場面: アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
-//                    種類: 担当の写真がある (帯の下に写真) / 無い (写真の面を出さない。担当の行の判子は必ず出す)。
+//                    種類: 担当の写真がある / 無い (写真の面を出さない。担当の行の判子は必ず出す)。
 //                          名刺の写真がある (名前の横に証明写真の枠) / 無い (枠を出さない)。
 //                    状態: リンク・担当は押すと開く (`onOpenLink` / `onOpenOshi`)。渡さなければ押せない。
+// ImasCardFace       自作の名刺の画像 (表・任意で裏)。比率は画像のまま切らずに収め、押すと裏に返す。
+//                    `thumbnail` は 91:55 の枠に収めた小さな見本 (名刺入れの行・デザインの札)。
 // ImasCardPortrait   名刺の写真の証明写真の枠 (3:4)。名刺・名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
-// ImasNameFontPicker 名前の書体の見本を横に並べ、引いて (または押して) 選ぶ。
+// ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) を横に並べ、引いて (または押して) 選ぶ。
 // ImasCornerAdjuster 写真に写った紙の名刺の四隅を指で直す (書類カメラの手直しと同じ感覚)。
 // ImasCameraFrame    カメラの読み取り窓。面と同じ角丸で切り、縦長 (3:4) に収める。中身はカメラの View。
 // ImasQRCode         QR。チケットの紙 (ダークでも明るい) に墨で刷る。誤り訂正は L (中身が長いので
@@ -25,6 +34,18 @@ import SwiftUI
 // MARK: - P名刺
 
 struct ImasProducerCard: View {
+    /// 名刺のデザイン (一覧・既定・書体はコアの `cardDesigns`)。並べる要素は同じで、組みと線と書体が変わる。
+    enum Design: Equatable {
+        /// 入場証。担当色の帯・ストラップの穴・切り取り線。
+        case pass
+        /// かしこまった名刺。紙のまま、担当色は名前の上の細い罫と判子だけ、区切りは細い罫。
+        case formal
+        /// ポップ。墨の太い枠と太い区切り、担当色の太い帯と名前の下の太い線。
+        case pop
+        /// 自作の画像。帯・名前の面の代わりに、自分で作った名刺の画像 (押すと裏) を出す。
+        case face(front: URL, back: URL?)
+    }
+
     /// 名刺に載せる担当 1 人。
     struct Oshi: Identifiable, Hashable {
         let id: String
@@ -50,6 +71,7 @@ struct ImasProducerCard: View {
         let url: String
     }
 
+    var design: Design = .pass
     /// 帯の右の印字 (「SINCE 2014」)。
     var sinceImprint: String? = nil
     let name: String
@@ -60,11 +82,11 @@ struct ImasProducerCard: View {
     var cells: [ImasBoard.Cell] = []
     /// 掲示板の右上の印字 (「2014 — 2026」)。
     var boardTrailing: String? = nil
-    /// 帯の下に大きく出す担当の写真。
+    /// 担当の写真 (入場証は帯の下に大きく、かしこまった名刺は名前の下に枠に入れて、ポップは帯の下に太い線で)。
     var photoURL: URL? = nil
     /// 名刺の写真 (自分で選んだ写真。名前の横の証明写真の枠に出す)。
     var portraitURL: URL? = nil
-    /// 名前の書体の PostScript 名 (コアの `CardNameFontInfo.postscriptName`)。nil は見出しの書体。
+    /// 名前の書体の PostScript 名 (コアの `CardDesignInfo.font.postscriptName`)。nil は見出しの書体。
     var nameFont: String? = nil
     var onOpenLink: ((Link) -> Void)? = nil
     var onOpenOshi: ((Oshi) -> Void)? = nil
@@ -73,11 +95,29 @@ struct ImasProducerCard: View {
     @ScaledMetric(relativeTo: .body) private var photoHeight: CGFloat = 220
     @ScaledMetric(relativeTo: .body) private var portraitWidth: CGFloat = 84
 
-    var body: some View {
+    /// ポップの太い線。
+    private static let popLine: CGFloat = 3
+
+    private var theme: ImasTheme {
         let lead = oshi.first
-        let t = ImasTheme.derive(seed: lead?.seed, brand: lead?.brand, scheme: scheme)
-        let band = t.isNeutral ? DS.sys : t.accent
-        let onBand = t.isNeutral ? DS.onSys : t.onAccent
+        return ImasTheme.derive(seed: lead?.seed, brand: lead?.brand, scheme: scheme)
+    }
+
+    private var band: Color { theme.isNeutral ? DS.sys : theme.accent }
+    private var onBand: Color { theme.isNeutral ? DS.onSys : theme.onAccent }
+
+    var body: some View {
+        switch design {
+        case .pass: passBody
+        case .formal: formalBody
+        case .pop: popBody
+        case let .face(front, back): faceBody(front: front, back: back)
+        }
+    }
+
+    // MARK: 入場証
+
+    private var passBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 HStack {
@@ -94,68 +134,188 @@ struct ImasProducerCard: View {
             .background(band)
 
             if let photoURL {
-                LazyImage(url: photoURL) { state in
-                    if let image = state.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        DS.surface2
-                    }
-                }
-                .frame(height: photoHeight)
-                .frame(maxWidth: .infinity)
-                .clipped()
-                .accessibilityLabel(lead.map { "\($0.name)の写真" } ?? "担当の写真")
+                oshiPhoto(photoURL).frame(height: photoHeight)
             }
+            nameBlock(size: 28)
+            rows { ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.card) }
+            board
+        }
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        .imasSurfaceEdge(cornerRadius: DS.rCard)
+    }
 
+    // MARK: かしこまった名刺
+
+    private var formalBody: some View {
+        let rule = theme.isNeutral ? DS.ink : theme.accent
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("PRODUCER").imasText(.imprint, color: DS.ink2)
+                Spacer(minLength: 60)
+                if let sinceImprint { Text(sinceImprint).imasText(.imprint, color: DS.ink2) }
+            }
+            .padding(.horizontal, DS.Space.card)
+            .padding(.top, DS.Space.card)
+            Rectangle().fill(rule).frame(height: 1)
+                .padding(.horizontal, DS.Space.card)
+                .padding(.top, DS.Space.gapTight)
+                .accessibilityHidden(true)
+            nameBlock(size: 28)
+            if let photoURL {
+                oshiPhoto(photoURL)
+                    .frame(height: photoHeight * 0.72)
+                    .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+                    .padding(.horizontal, DS.Space.card)
+                    .padding(.bottom, DS.Space.gapLoose)
+            }
+            rows { Rectangle().fill(DS.line).frame(height: 1).padding(.horizontal, DS.Space.card) }
+            board
+        }
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+    }
+
+    // MARK: ポップ
+
+    private var popBody: some View {
+        let line = Self.popLine
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("PRODUCER!").imasText(.imprint, color: onBand)
+                Spacer(minLength: 60)
+                if let sinceImprint { Text(sinceImprint).imasText(.imprint, color: onBand) }
+            }
+            .padding(.horizontal, DS.Space.card)
+            .frame(height: 52)
+            .background(band)
+            Rectangle().fill(DS.ink).frame(height: line).accessibilityHidden(true)
+            if let photoURL {
+                oshiPhoto(photoURL).frame(height: photoHeight)
+                Rectangle().fill(DS.ink).frame(height: line).accessibilityHidden(true)
+            }
             HStack(alignment: .top, spacing: DS.Space.gapLoose) {
                 VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                     Text(name)
-                        .font(.imasCardName(nameFont, size: 28))
+                        .font(.imasCardName(nameFont, size: 30))
                         .foregroundStyle(DS.ink)
                         .lineLimit(2)
                         .minimumScaleFactor(0.6)
-                    if let message, !message.isEmpty {
-                        Text(message).font(.imasFootnote).foregroundStyle(DS.ink2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Rectangle().fill(band).frame(width: 64, height: 8)
+                        .accessibilityHidden(true)
+                    messageText
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 if let portraitURL {
                     ImasCardPortrait(url: portraitURL, label: "\(name)の写真")
                         .frame(width: portraitWidth)
+                        .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.ink, lineWidth: 2))
                 }
             }
             .padding(.horizontal, DS.Space.card)
             .padding(.vertical, DS.Space.gapLoose)
+            rows { Rectangle().fill(DS.ink).frame(height: 2) }
+            board
+        }
+        .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous).strokeBorder(DS.ink, lineWidth: line))
+    }
 
-            if !oshi.isEmpty {
-                ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.card)
-                VStack(spacing: 0) {
-                    ForEach(Array(oshi.enumerated()), id: \.element.id) { index, item in
-                        oshiRow(item)
-                            .environment(\.imasRowPosition, index == 0 ? .first : .following)
-                    }
-                }
-            }
+    // MARK: 自作の画像
 
-            if !links.isEmpty {
-                ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.card)
-                VStack(spacing: 0) {
-                    ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
-                        linkRow(link)
-                            .environment(\.imasRowPosition, index == 0 ? .first : .following)
-                    }
-                }
+    private func faceBody(front: URL, back: URL?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ImasCardFace(front: front, back: back, label: "\(name)の名刺")
+                .padding(DS.Space.gapLoose)
+            if let message, !message.isEmpty {
+                messageText
+                    .padding(.horizontal, DS.Space.card)
+                    .padding(.bottom, DS.Space.gapLoose)
             }
-
-            if !cells.isEmpty {
-                ImasBoard(title: "RECORD", trailing: boardTrailing, cells: cells)
-                    .padding(DS.Space.gapLoose)
-            }
+            rows { ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.card) }
+            board
         }
         .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: DS.rCard, style: .continuous))
         .imasSurfaceEdge(cornerRadius: DS.rCard)
+    }
+
+    // MARK: 共通の部品
+
+    private func oshiPhoto(_ url: URL) -> some View {
+        LazyImage(url: url) { state in
+            if let image = state.image {
+                image.resizable().scaledToFill()
+            } else {
+                DS.surface2
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .clipped()
+        .accessibilityLabel(oshi.first.map { "\($0.name)の写真" } ?? "担当の写真")
+    }
+
+    @ViewBuilder
+    private var messageText: some View {
+        if let message, !message.isEmpty {
+            Text(message).font(.imasFootnote).foregroundStyle(DS.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// 名前・ひとこと・名刺の写真 (入場証とかしこまった名刺)。
+    private func nameBlock(size: CGFloat) -> some View {
+        HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Text(name)
+                    .font(.imasCardName(nameFont, size: size))
+                    .foregroundStyle(DS.ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                messageText
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let portraitURL {
+                ImasCardPortrait(url: portraitURL, label: "\(name)の写真")
+                    .frame(width: portraitWidth)
+            }
+        }
+        .padding(.horizontal, DS.Space.card)
+        .padding(.vertical, DS.Space.gapLoose)
+    }
+
+    /// 担当の行・リンクの行。区切りはデザインごとの線。
+    @ViewBuilder
+    private func rows<Separator: View>(@ViewBuilder separator: () -> Separator) -> some View {
+        if !oshi.isEmpty {
+            separator()
+            VStack(spacing: 0) {
+                ForEach(Array(oshi.enumerated()), id: \.element.id) { index, item in
+                    oshiRow(item)
+                        .environment(\.imasRowPosition, index == 0 ? .first : .following)
+                }
+            }
+        }
+        if !links.isEmpty {
+            separator()
+            VStack(spacing: 0) {
+                ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
+                    linkRow(link)
+                        .environment(\.imasRowPosition, index == 0 ? .first : .following)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var board: some View {
+        if !cells.isEmpty {
+            ImasBoard(title: "RECORD", trailing: boardTrailing, cells: cells)
+                .padding(DS.Space.gapLoose)
+        }
     }
 
     @ViewBuilder
@@ -184,6 +344,88 @@ struct ImasProducerCard: View {
                 .accessibilityHint("開く")
         } else {
             row
+        }
+    }
+}
+
+// MARK: - 自作の名刺の画像
+
+/// 自分で作った名刺の画像 (表・任意で裏)。比率は画像のまま (91:55 でなくても切らずに収める)。
+/// 裏があれば押すと返して裏を見せる。名刺入れの行の先頭は `thumbnail` (91:55 の枠に収める)。
+struct ImasCardFace: View {
+    let front: URL
+    var back: URL? = nil
+    var label: String = "名刺の画像"
+    /// 行の先頭の小さな見本 (91:55 の枠に収め、返さない)。
+    var thumbnail = false
+
+    /// 日本の名刺の比 (91:55)。読み込む前の枠と小さな見本の枠。
+    static let aspect: CGFloat = 91.0 / 55.0
+
+    @State private var showingBack = false
+
+    var body: some View {
+        if thumbnail {
+            image(front)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .aspectRatio(Self.aspect, contentMode: .fit)
+                .background(DS.surface2)
+                .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+                .imasSurfaceEdge(cornerRadius: DS.rTag)
+                .accessibilityLabel(label)
+        } else {
+            VStack(spacing: DS.Space.gap) {
+                ZStack {
+                    side(front).opacity(showingBack ? 0 : 1)
+                    if let back {
+                        side(back)
+                            .opacity(showingBack ? 1 : 0)
+                            .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    }
+                }
+                .rotation3DEffect(.degrees(showingBack ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+                .contentShape(Rectangle())
+                .onTapGesture { flip() }
+                .accessibilityElement()
+                .accessibilityLabel(showingBack ? "\(label)の裏" : label)
+                .accessibilityAddTraits(back == nil ? .isImage : [.isImage, .isButton])
+                .accessibilityHint(back == nil ? "" : "押すと\(showingBack ? "表" : "裏")を見せます")
+                if back != nil {
+                    HStack(spacing: DS.Space.gap) {
+                        Text("表").imasText(.imprint, color: showingBack ? DS.ink3 : DS.ink)
+                        Text("裏").imasText(.imprint, color: showingBack ? DS.ink : DS.ink3)
+                    }
+                    .accessibilityHidden(true)
+                }
+            }
+            .sensoryFeedback(.selection, trigger: showingBack)
+        }
+    }
+
+    private func flip() {
+        guard back != nil else { return }
+        withAnimation(.imasStandard) { showingBack.toggle() }
+    }
+
+    private func side(_ url: URL) -> some View {
+        LazyImage(url: url) { state in
+            if let image = state.image {
+                image.resizable().scaledToFit()
+            } else {
+                DS.surface2.aspectRatio(Self.aspect, contentMode: .fit)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+        .imasSurfaceEdge(cornerRadius: DS.rTag)
+    }
+
+    private func image(_ url: URL) -> some View {
+        LazyImage(url: url) { state in
+            if let image = state.image {
+                image.resizable().scaledToFit()
+            } else {
+                DS.surface2
+            }
         }
     }
 }
@@ -404,17 +646,25 @@ struct ImasPortraitCropper: View {
     }
 }
 
-// MARK: - 名前の書体
+// MARK: - 名刺のデザイン
 
-/// 名前の書体の見本を横に並べる。引くと真ん中に来た書体を選び、押してもその書体を選ぶ。
-/// 見本は紙の札 (地は紙のまま)。選んだ札は墨の太い縁と ✓。
-struct ImasNameFontPicker: View {
+/// 名刺のデザインの見本を横に並べる。引くと真ん中に来たデザインを選び、押してもそのデザインを選ぶ。
+/// 見本は紙の札 (地は紙のまま) に、そのデザインの小さな名刺 (帯・罫・枠と書体) を組む。
+/// 選んだ札は墨の太い縁と ✓。自作の画像の札は、選んだ画像 (まだ無ければ画像を選ぶ案内) を出す。
+struct ImasCardDesignPicker: View {
     struct Option: Identifiable, Hashable {
-        /// 保存のキー (`gothic`)。
+        enum Look: Hashable {
+            case pass, formal, pop
+            /// 自作の画像 (表の画像。まだ選んでいなければ nil)。
+            case face(URL?)
+        }
+
+        /// 保存のキー (`pass`)。
         let id: String
-        /// 書体の名前 (「明朝」)。
+        /// デザインの名前 (「かしこまった名刺」)。
         let label: String
-        /// PostScript 名。
+        let look: Look
+        /// 名前の書体の PostScript 名。
         let postScriptName: String
     }
 
@@ -422,9 +672,14 @@ struct ImasNameFontPicker: View {
     @Binding var selection: String
     /// 見本に組む名前。
     let sample: String
+    /// 担当の色 (帯・罫)。
+    var seed: String? = nil
+    var brand: String? = nil
 
+    @Environment(\.colorScheme) private var scheme
     @State private var scrolled: String?
     @ScaledMetric(relativeTo: .body) private var tileWidth: CGFloat = 176
+    @ScaledMetric(relativeTo: .body) private var tileHeight: CGFloat = 132
 
     var body: some View {
         GeometryReader { geo in
@@ -453,31 +708,33 @@ struct ImasNameFontPicker: View {
         }
         .sensoryFeedback(.selection, trigger: selection)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("名前の書体")
+        .accessibilityLabel("名刺のデザイン")
     }
 
-    @ScaledMetric(relativeTo: .body) private var tileHeight: CGFloat = 92
+    private var accent: Color {
+        let t = ImasTheme.derive(seed: seed, brand: brand, scheme: scheme)
+        return t.isNeutral ? DS.sys : t.accent
+    }
+
+    private var name: String { sample.isEmpty ? "ふがP" : sample }
 
     private func tile(_ option: Option) -> some View {
         let on = option.id == selection
         return Button {
             withAnimation(.imasStandard) { selection = option.id }
         } label: {
-            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-                Text(sample.isEmpty ? "ふがP" : sample)
-                    .font(.imasCardName(option.postScriptName, size: 24))
-                    .foregroundStyle(DS.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: DS.Space.gap) {
+                look(option)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 HStack(spacing: DS.Space.gapTight) {
                     Text(option.label).imasText(.rowLabel, color: on ? DS.ink : DS.ink2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Spacer(minLength: 0)
                     ImasSelectionMark(isSelected: on, isSingle: true)
                 }
             }
-            .padding(DS.Space.card)
+            .padding(DS.Space.gap)
             .frame(maxHeight: .infinity)
             .background(DS.surface, in: RoundedRectangle(cornerRadius: DS.rInner, style: .continuous))
             .overlay(
@@ -489,6 +746,67 @@ struct ImasNameFontPicker: View {
         .buttonStyle(.plain)
         .accessibilityLabel(option.label)
         .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    /// そのデザインの小さな名刺。
+    @ViewBuilder
+    private func look(_ option: Option) -> some View {
+        let nameText = Text(name)
+            .font(.imasCardName(option.postScriptName, size: 18))
+            .foregroundStyle(DS.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+        switch option.look {
+        case .pass:
+            VStack(alignment: .leading, spacing: 0) {
+                accent.frame(height: 12)
+                nameText.padding(DS.Space.gap)
+                Spacer(minLength: 0)
+                ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.gap)
+                Spacer(minLength: 0)
+            }
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+        case .formal:
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Text("PRODUCER").imasText(.imprint, color: DS.ink2)
+                accent.frame(height: 1)
+                nameText
+                Spacer(minLength: 0)
+            }
+            .padding(DS.Space.gap)
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+        case .pop:
+            VStack(alignment: .leading, spacing: 0) {
+                accent.frame(height: 12)
+                DS.ink.frame(height: 2)
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    nameText
+                    accent.frame(width: 32, height: 5)
+                }
+                .padding(DS.Space.gap)
+                Spacer(minLength: 0)
+            }
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.ink, lineWidth: 2))
+        case let .face(url):
+            if let url {
+                ImasCardFace(front: url, label: option.label, thumbnail: true)
+            } else {
+                VStack(spacing: DS.Space.gapTight) {
+                    Image(systemName: "photo.on.rectangle").foregroundStyle(DS.ink2)
+                    Text("画像を選ぶ").imasText(.note)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(
+                    RoundedRectangle(cornerRadius: DS.rTag, style: .continuous)
+                        .strokeBorder(DS.line, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                )
+            }
+        }
     }
 }
 

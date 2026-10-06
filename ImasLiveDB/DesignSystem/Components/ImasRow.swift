@@ -23,6 +23,9 @@ enum ImasRowLeading {
     /// P名刺の写真 (証明写真の枠) と、その人の担当のアイコン (写真か判子) を右下に重ねたもの。
     /// 担当が無ければ写真だけ。名刺入れの行。
     case portrait(URL, oshi: ImasRowPortraitOshi? = nil)
+    /// 自作の名刺の画像 (91:55 の枠に収めた小さな見本) と、その人の担当のアイコンを右下に重ねたもの。
+    /// 名刺入れの行 (デザインが自作の画像の名刺)。
+    case cardFace(URL, oshi: ImasRowPortraitOshi? = nil)
     /// 曲のジャケ (48、compact は 40)。
     case artwork(title: String, seed: String? = nil, brand: String? = nil, imageURL: URL? = nil)
     /// 記号 (幅 28、地なし)。`seed` / `brand` を渡すとその実体の色で点く (予定の種類・ブランド)。
@@ -262,6 +265,18 @@ struct ImasRow<Detail: View>: View {
                 }
             }
             .frame(width: portraitLeadingWidth)
+        case let .cardFace(url, oshi):
+            ZStack(alignment: .bottomTrailing) {
+                ImasCardFace(front: url, label: "名刺の画像", thumbnail: true)
+                    .frame(width: density.avatarSize * 1.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, density.avatarSize * 0.2)
+                if let oshi {
+                    ImasAvatar(label: oshi.label, seed: oshi.seed, brand: oshi.brand,
+                               size: density.avatarSize * 0.55, isPick: true, imageURL: oshi.imageURL)
+                }
+            }
+            .frame(width: cardFaceLeadingWidth)
         case let .artwork(title, seed, brand, url):
             ImasArtwork(title: title, seed: seed, brand: brand, size: density.artworkSize, imageURL: url)
         case let .icon(name, tone, seed, brand):
@@ -305,6 +320,9 @@ struct ImasRow<Detail: View>: View {
     /// 名刺の写真の先頭の幅 (写真の枠 + 右下に重ねる担当のアイコンのはみ出し)。
     private var portraitLeadingWidth: CGFloat { density.avatarSize * 1.2 }
 
+    /// 自作の名刺の画像の先頭の幅 (91:55 の見本 + 右下に重ねる担当のアイコンのはみ出し)。
+    private var cardFaceLeadingWidth: CGFloat { density.avatarSize * 1.9 }
+
     /// 先頭の幅 (区切り線を本文の頭に揃えるため)。
     private var leadingWidth: CGFloat {
         switch leading {
@@ -312,6 +330,7 @@ struct ImasRow<Detail: View>: View {
         case .bar: return DS.Size.leadBar
         case .avatar: return density.avatarSize + ImasAvatar.ringPadding * 2
         case .portrait: return portraitLeadingWidth
+        case .cardFace: return cardFaceLeadingWidth
         case .artwork: return density.artworkSize
         case .icon: return ImasIconTile.Size.s28.rawValue
         case .number: return 30
