@@ -24,6 +24,7 @@ struct LyricSubmissionSheet: View {
     @State private var isReading = false
     @State private var ocrMessage: String?
     @State private var showGuide = false
+    @State private var liveText = LiveTextCapture()
 
     private var text: String { drafts.draft(for: song.id).text }
     private var agreed: Bool { drafts.draft(for: song.id).agreed }
@@ -127,7 +128,20 @@ struct LyricSubmissionSheet: View {
     private var ocrButtons: some View {
         VStack(alignment: .leading, spacing: DS.Space.gapTight) {
             HStack(spacing: DS.Space.gap) {
-                if PaperCardCamera.isAvailable {
+                if liveText.isAvailable {
+                    // メモアプリと同じ「テキストをスキャン」。塊ごとに選んで入れられ、書類スキャンより読みがよい。
+                    Button {
+                        AppAnalytics.tap("lyric_submission.live_text")
+                        let songId = song.id
+                        liveText.start { captured in
+                            drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: captured) }
+                        }
+                    } label: {
+                        Label("テキストをスキャン", systemImage: "text.viewfinder")
+                    }
+                    .buttonStyle(.imas(.secondary, fillsWidth: true))
+                    .background { LiveTextCaptureAnchor(capture: liveText).frame(width: 0, height: 0) }
+                } else if PaperCardCamera.isAvailable {
                     Button {
                         AppAnalytics.tap("lyric_submission.ocr_camera")
                         showCamera = true
@@ -141,7 +155,7 @@ struct LyricSubmissionSheet: View {
                 }
                 .buttonStyle(.imas(.secondary, fillsWidth: true))
             }
-            ImasStepList(steps: lyricOcrSteps().map { .init(title: $0.title, detail: $0.detail) })
+            ImasStepList(steps: lyricOcrSteps(liveText: liveText.isAvailable).map { .init(title: $0.title, detail: $0.detail) })
                 .padding(.top, DS.Space.gapTight)
             Text("文字の読み取りは端末の中だけで行い、写真はどこにも送りません。")
                 .font(.imasFootnote)
