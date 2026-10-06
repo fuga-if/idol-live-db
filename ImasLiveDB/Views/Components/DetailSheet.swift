@@ -365,11 +365,7 @@ struct SongSheetContent: View {
                         Label("編集履歴", systemImage: "clock.arrow.circlepath")
                     }
                     Divider()
-                    // アプリ内の歌詞は「歌詞」タブへ移した (束ね取得に同梱されるので常時表示できる)。
-                    // ここに残すのは外部の歌詞サイト検索だけ。
-                    Button { openURL(lyricsURL) } label: {
-                        Label("歌詞サイトで探す", systemImage: "safari")
-                    }
+                    // 外部の歌詞サイトへの導線は置かない (歌詞の投稿の横で「そこから写して」と読めるため。2026-10-06)。
                     if let appleMusicURL = vm.artworkInfo?.appleMusicURL {
                         Button { openURL(appleMusicURL) } label: {
                             Label("Apple Musicで開く", systemImage: "music.note")
@@ -724,14 +720,6 @@ struct SongSheetContent: View {
         case .promptLogin: showCommunityLoginPrompt = true
         case .ignore: break  // BAN 済み。導線自体を出していない。
         }
-    }
-
-    private var lyricsURL: URL {
-        if let url = URL.safeHTTP(string: song.lyricsUrl) {
-            return url
-        }
-        let encoded = song.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return URL(string: "https://www.uta-net.com/search/?Keyword=\(encoded)") ?? URL(string: "https://www.uta-net.com")!
     }
 }
 
