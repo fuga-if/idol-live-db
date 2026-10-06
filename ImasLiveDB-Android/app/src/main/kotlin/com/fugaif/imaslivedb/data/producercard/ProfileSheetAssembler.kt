@@ -5,16 +5,12 @@ import android.graphics.Bitmap
 import com.fugaif.imaslivedb.data.local.BrandRoleStore
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
-import com.fugaif.imaslivedb.data.model.UserMark
-import com.fugaif.imaslivedb.data.repository.CollectionAttendance
 import com.fugaif.imaslivedb.di.AppModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileBrandInput
-import uniffi.imas_core.ProfileLiveRecord
 import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
-import uniffi.imas_core.ProfileSongInput
 import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.producerCardLimits
 
@@ -36,7 +32,7 @@ data class ProfileSheetOshi(
  * コアの `profileSheetLayout`、ここはアプリの記録とマスタを引いて渡す形にするだけ。
  */
 data class ProfileSheetMaterials(
-    /** 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲・都道府県の数。 */
+    /** 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。 */
     val record: ProfileSheetRecord,
     val oshi: List<ProfileSheetOshi> = emptyList(),
     /** 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。 */
@@ -49,8 +45,7 @@ data class ProfileSheetMaterials(
             record = ProfileSheetRecord(
                 today = "", name = "", sinceYear = null, oshiNames = emptyList(), oshiBrandIds = emptyList(),
                 attended = emptyList(), songCount = 0u, brands = emptyList(), brandRolesJson = "",
-                favoriteSongs = emptyList(), links = emptyList(), hasPhoto = false, hasQr = false,
-                live = ProfileLiveRecord(0u)
+                favoriteSongs = emptyList(), links = emptyList(), hasPhoto = false, hasQr = false
             )
         )
     }
@@ -61,7 +56,10 @@ object ProfileSheetAssembler {
     suspend fun load(context: Context, module: AppModule, card: MyProducerCard): ProfileSheetMaterials {
         val limits = producerCardLimits()
         val marks = module.userMarkRepository
-        val oshiIds = runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList()).take(limits.maxOshi.toInt())
+        // 載せる担当は名刺と同じ選び方 (ブランドごとに 1 人を先に確保して上限まで。規則はコア)。
+        val oshiIds = ProducerCardAssembler.cardOshiIds(
+            module, runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList())
+        ).take(limits.maxOshi.toInt())
         val repo = module.producerCardRepository
         val attendedRefs = runCatching { repo.attendedShowRefs() }.getOrDefault(emptyList())
         val shows = runCatching { repo.showInfos(attendedRefs.map { it.showId }) }.getOrDefault(emptyMap())
@@ -75,19 +73,9 @@ object ProfileSheetAssembler {
         // 担当ブランドの既定は設定の画面と同じ材料で組む (担当の上限で切らない)。
         val brandRoleRecord = BrandRoleStore.loadRecord(module)
 
-        // お気に入りの曲は付けた新しい順に全部 (載せる曲数はコア)。
-        val favoriteIds = runCatching { marks.favoriteSongIdList() }.getOrDefault(emptyList())
-        val songById = if (favoriteIds.isEmpty()) emptyMap()
-        else runCatching { module.songRepository.fetchSongsByIds(favoriteIds) }.getOrDefault(emptyList()).associateBy { it.id }
         val today = JstDay.today()
-        // 都道府県を数えるのは現地参加だけ。参加マークは形態つきのまま渡し、
-        // 現地だけに絞るのとイベント単位の展開はコア (回収と同じ取り出し方)。
-        val live = runCatching {
-            val showMarks = CollectionAttendance.marks(module.database, UserMark.SHOW)
-            val eventMarks = CollectionAttendance.marks(module.database, UserMark.EVENT)
-            module.snapshotStoreProvider.loadedStore()
-                .profileLiveRecord(showMarks, eventMarks, today)
-        }.getOrDefault(ProfileSheetMaterials.EMPTY.record.live)
+        // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
+        val favorites = FavoriteSongSource.load(module)
 
         val (oshi, portrait) = withContext(Dispatchers.IO) {
             oshiIdols.map { idol ->
@@ -113,11 +101,10 @@ object ProfileSheetAssembler {
             songCount = songCount.toUInt(),
             brands = brands.map { ProfileBrandInput(it.id, it.shortName, it.color, it.sortOrder.toLong()) },
             brandRolesJson = BrandRoleStore.json(context),
-            favoriteSongs = favoriteIds.mapNotNull { id -> songById[id]?.let { ProfileSongInput(id, it.title) } },
+            favoriteSongs = favorites.map { it.input },
             links = card.links.map { cardLinkView(it).display },
             hasPhoto = portrait != null,
-            hasQr = card.qrUrl != null,
-            live = live
+            hasQr = card.qrUrl != null
         )
         return ProfileSheetMaterials(
             record = record,

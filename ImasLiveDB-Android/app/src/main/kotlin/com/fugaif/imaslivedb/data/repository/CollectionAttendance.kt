@@ -36,8 +36,7 @@ object CollectionAttendance {
         collectionAttendedShows(marks(db, UserMark.EVENT), includeStream)
 
     /**
-     * 参加マークを形態 (現地・配信・LV) つきのまま。どれを数えるかはコア側で選ぶ
-     * (プロフィール帳のセトリ・会場の集計は現地だけ、`profileLiveRecord`)。
+     * 参加マークを形態 (現地・配信・LV) つきのまま。どれを数えるかはコア側で選ぶ。
      */
     suspend fun marks(db: AppDatabase, entityType: String): List<AttendanceMarkRecord> =
         db.userMarkDao().attendedMarks(entityType, UserMark.ATTENDED)

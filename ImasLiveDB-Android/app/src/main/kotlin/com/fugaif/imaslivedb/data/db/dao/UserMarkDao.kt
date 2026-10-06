@@ -23,6 +23,10 @@ interface UserMarkDao {
     @Query("SELECT entity_id FROM user_marks WHERE entity_type = :type AND kind = :kind AND bool_value = 1 ORDER BY updated_at DESC")
     suspend fun idsFor(type: String, kind: String): List<String>
 
+    /** 指定種別 (kind) で ON のエンティティと、付けた時刻 (ISO 8601)。 */
+    @Query("SELECT entity_id, updated_at FROM user_marks WHERE entity_type = :type AND kind = :kind AND bool_value = 1")
+    suspend fun markedTimes(type: String, kind: String): List<MarkedTime>
+
     @Query("SELECT text_value FROM user_marks WHERE entity_type = :type AND entity_id = :id AND kind = 'memo' LIMIT 1")
     suspend fun memo(type: String, id: String): String?
 
@@ -70,3 +74,9 @@ interface UserMarkDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(marks: List<UserMark>)
 }
+
+/** 印 1 つと付けた時刻 ([UserMarkDao.markedTimes])。 */
+data class MarkedTime(
+    @androidx.room.ColumnInfo(name = "entity_id") val entityId: String,
+    @androidx.room.ColumnInfo(name = "updated_at") val updatedAt: String
+)

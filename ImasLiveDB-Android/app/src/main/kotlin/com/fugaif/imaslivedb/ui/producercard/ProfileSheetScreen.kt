@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Crop
@@ -106,7 +107,7 @@ private const val FILE_PREFIX = "profile_sheet"
 /**
  * プロフィール帳: P としての自己紹介を、履歴書の様式の 1 枚絵にして SNS に貼る。iOS `ProfileSheetView` の移植。
  *
- * 開くとまず「載せる記録を選ぶ」画面。大きさ・証明写真・担当ブランド・載せる記録を選び、「作る」で画像の見本
+ * 開くとまず「載せる記録を選ぶ」画面。大きさ・証明写真・担当ブランド・好きな曲・載せる記録を選び、「作る」で画像の見本
  * ([ProfileSheetPreviewPage]) へ進んで書き出す。見本から鉛筆で戻れる。
  * 自分で書く欄は無く、中身はすべてアプリの記録から埋まる。名前・P歴・リンク・自分の QR は P名刺のもの
  * (ここからそのまま P名刺の編集を開ける)。担当ブランドはアプリ全体の設定 ([BrandRoleStore])。
@@ -127,6 +128,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     var editingCard by remember { mutableStateOf<CardEdit?>(null) }
     var showingBrandSetup by remember { mutableStateOf(false) }
     var showingBrandSettings by remember { mutableStateOf(false) }
+    var showingSongPicker by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
 
     // 証明写真
@@ -350,9 +352,19 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
                         ) { showingBrandSettings = true }
                         rows.firstOrNull { it.field == ProfileAutoField.BRANDS }?.let { FieldToggle(it, null, ::update, sheet) }
                     }
+                    rows.firstOrNull { it.field == ProfileAutoField.SONGS }?.let { row ->
+                        ImasListSection("好きな曲", footer = "お気に入りに付けた曲の中から、志望の動機の欄に載せる曲を選びます。") {
+                            ImasNavRow(
+                                title = "載せる曲を選ぶ", subtitle = row.value.ifEmpty { null },
+                                icon = Icons.AutoMirrored.Filled.QueueMusic, showsChevron = false, subtitleLineLimit = 2
+                            ) { showingSongPicker = true }
+                            FieldToggle(row, null, ::update, sheet)
+                        }
+                    }
                     ImasListSection("載せる記録", footer = "記録の無いものは並びません。外したものは画像に載りません。") {
-                        rows.filter { it.field != ProfileAutoField.PHOTO && it.field != ProfileAutoField.BRANDS }.forEach { row ->
-                            FieldToggle(row, if (row.fromCard) "P名刺から · ${row.value}" else row.value, ::update, sheet)
+                        val own = setOf(ProfileAutoField.PHOTO, ProfileAutoField.BRANDS, ProfileAutoField.SONGS)
+                        rows.filter { it.field !in own }.forEach { row ->
+                            FieldToggle(row, if (row.fromCard) listOf("P名刺から", row.value).filter { it.isNotEmpty() }.joinToString(" · ") else row.value, ::update, sheet)
                         }
                     }
                     ImasListSection(
@@ -390,6 +402,18 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
             },
             onDismiss = { editingCard = null }
         )
+    }
+    if (showingSongPicker) {
+        Dialog(
+            onDismissRequest = { showingSongPicker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            FavoriteSongPickerScreen(
+                chosen = card?.profile?.songs,
+                onChange = { ids -> card?.profile?.let { update(it.copy(songs = ids)) } },
+                onBack = { showingSongPicker = false }
+            )
+        }
     }
     if (showingBrandSetup) BrandRoleSetupSheet(onDismiss = { showingBrandSetup = false })
     if (showingBrandSettings) {
@@ -487,7 +511,7 @@ private fun ProfileSheetPreviewPage(sheet: ProfileSheet?, materials: ProfileShee
                     }
                 )
             }
-            ImasNote("中身はアプリの記録 (担当・好きな曲・担当ブランド・参加した公演・回収) から自動で入ります。載せるものは右上の鉛筆から選び直せます。")
+            ImasNote("中身はアプリの記録 (担当・選んだ好きな曲・担当ブランド・参加した公演・回収) から入ります。載せるものは右上の鉛筆から選び直せます。")
         }
     }
     ImasErrorAlert(message = exportError, onDismiss = { exportError = null }, title = "画像を書き出せませんでした")

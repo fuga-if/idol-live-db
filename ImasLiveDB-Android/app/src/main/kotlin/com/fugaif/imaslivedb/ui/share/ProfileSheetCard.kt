@@ -55,6 +55,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -142,17 +143,28 @@ object ProfileSheetInk {
 private object ProfileSheetType {
     /** 和文 (かなを詰める palt)。[weight] は regular / semibold の 2 段で使う。 */
     fun jp(size: Float, weight: FontWeight = FontWeight.Normal, tracking: Float = 0f) = TextStyle(
-        fontSize = size.sp, fontWeight = weight, letterSpacing = tracking.sp, fontFeatureSettings = "palt, tnum"
+        fontSize = size.sp, fontWeight = weight, letterSpacing = tracking.sp, fontFeatureSettings = "palt, tnum",
+        // 和文の行の高さを iOS (ヒラギノ) にそろえる (Android の既定は行が高く、同じ倍率で縦に収まらない)。
+        lineHeight = 1.25.em, lineHeightStyle = TIGHT
     )
+
+    /** 行の上下の余りを削る (行の高さを字面に寄せる)。 */
+    val TIGHT = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both)
 
     /** 英字の印字 (等幅の大文字)。 */
     fun imprint(size: Float, tracking: Float = IMPRINT_TRACKING) = TextStyle(
-        fontFamily = FontFamily.Monospace, fontSize = size.sp, fontWeight = FontWeight.Medium, letterSpacing = tracking.sp
+        fontFamily = FontFamily.Monospace, fontSize = size.sp, fontWeight = FontWeight.Medium, letterSpacing = tracking.sp,
+        lineHeight = 1.25.em, lineHeightStyle = TIGHT
     )
 
     /** 題・名前・欄の題 (明朝。引けなければ本文のゴシックの semibold)。 */
     fun display(family: FontFamily?, size: Float, tracking: Float = 0f) =
-        family?.let { TextStyle(fontFamily = it, fontSize = size.sp, letterSpacing = tracking.sp, fontFeatureSettings = "palt") }
+        family?.let {
+            TextStyle(
+                fontFamily = it, fontSize = size.sp, letterSpacing = tracking.sp, fontFeatureSettings = "palt",
+                lineHeight = 1.2.em, lineHeightStyle = TIGHT
+            )
+        }
             ?: jp(size, FontWeight.SemiBold, tracking)
 
     const val IMPRINT_TRACKING = 2.4f
@@ -423,11 +435,7 @@ private fun ProfileSectionView(section: ProfileSection, mincho: FontFamily?, s: 
                     if (entry.label.isNotEmpty()) {
                         Text(entry.label, style = T.jp(7.5f * s, FontWeight.SemiBold), color = Ink.sub)
                     }
-                    Text(
-                        entry.text,
-                        style = T.jp(10.5f * s, tracking = T.JP_TRACKING).copy(lineHeight = (10.5f * s + 2 * s).sp * 1.25f),
-                        color = Ink.ink
-                    )
+                    Text(entry.text, style = T.jp(10.5f * s, tracking = T.JP_TRACKING).copy(lineHeight = 1.45.em), color = Ink.ink)
                 }
             }
         }
@@ -546,9 +554,14 @@ private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
 }
 
 /** 担当の並び (写真か判子 + 名前)。 */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileOshiList(oshi: List<ProfileSheetOshi>, s: Float) {
-    Row(horizontalArrangement = Arrangement.spacedBy((12 * s).dp), verticalAlignment = Alignment.CenterVertically) {
+    // 担当が多いと 1 行に収まらないので折り返す (名前を切らない)。
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy((12 * s).dp),
+        verticalArrangement = Arrangement.spacedBy((4 * s).dp)
+    ) {
         oshi.forEach { idol ->
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                 ProfileOshiIcon(idol, 22 * s)

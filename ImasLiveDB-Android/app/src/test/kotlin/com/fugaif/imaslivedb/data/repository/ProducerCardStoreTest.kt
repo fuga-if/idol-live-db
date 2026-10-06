@@ -42,6 +42,10 @@ import uniffi.imas_core.ProducerCardInput
 import uniffi.imas_core.ProfileAutoField
 import uniffi.imas_core.ProfileSheetSize
 import uniffi.imas_core.profileSheetLayout
+import uniffi.imas_core.ProfileSongInput
+import uniffi.imas_core.favoriteSongPicks
+import uniffi.imas_core.favoriteSongToggle
+import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.producercard.ProfileSheetMaterials
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.producerCardPayload
@@ -168,6 +172,46 @@ class ProducerCardStoreTest {
         assertEquals("同じ中身なら既にある名刺を返す", "c1", second.id)
         assertEquals(0, repo.restoreReceivedIfAbsent(listOf(received("c3", "しろくまP"))))
         assertEquals(listOf("c1"), repo.receivedIds())
+    }
+
+    /** 履歴書に載せる好きな曲は曲 id の並びで自分の名刺の行に持つ。選ぶ前の保存 (キーなし) は「まだ選んでいない」。 */
+    @Test
+    fun chosenProfileSongsRoundTripAndOldJsonReadsAsUnchosen() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        repo.saveMyCard(
+            myCard("ふがP").copy(profileJson = """{"size":"portrait","hidden":["qr","peak_year","prefectures"],"songs":["自分で書いた曲"]}""")
+        )
+        var loaded = repo.myCard()!!
+        assertEquals("前の版の保存は、まだ選んでいない", null, loaded.profile.songs)
+        assertEquals("やめた欄は読み捨てる", listOf(ProfileAutoField.QR), loaded.profile.hidden)
+
+        repo.saveMyCard(loaded.withProfile(loaded.profile.copy(songs = listOf("s3", "s1"))))
+        loaded = repo.myCard()!!
+        assertEquals(listOf("s3", "s1"), loaded.profile.songs)
+
+        // 全部外した (空) は「まだ選んでいない」と区別して残る。
+        repo.saveMyCard(loaded.withProfile(loaded.profile.copy(songs = emptyList())))
+        assertEquals(emptyList<String>(), repo.myCard()?.profile?.songs)
+    }
+
+    /** お気に入りから外した曲は、選んでいても履歴書に載らない (お気に入りの時刻は端末のマークから引く)。 */
+    @Test
+    fun unfavoritedSongsDropOutOfTheProfileSheet() = runBlocking {
+        val marks = UserMarkRepository(database())
+        listOf("s1", "s2", "s3").forEach { marks.toggle(UserMark.SONG, it, UserMark.FAVORITE) }
+        marks.toggle(UserMark.SONG, "s2", UserMark.FAVORITE)
+        val times = marks.favoriteSongTimes()
+        assertEquals(setOf("s1", "s3"), times.keys)
+
+        val favorites = times.keys.sorted().map { ProfileSongInput(it, "曲$it", times[it].orEmpty()) }
+        val record = ProfileSheetMaterials.EMPTY.record.copy(today = "2026-10-06", favoriteSongs = favorites)
+        val sheet = profileSheetDefault().copy(songs = listOf("s2", "s3", "s1"))
+        assertEquals("「曲s3」「曲s1」", profileSheetLayout(sheet, record).sections.first().entries.first().text)
+
+        // 選ぶ画面: 載っている曲を押すと外れ、上限までは末尾に足す (規則はコア)。
+        assertEquals(listOf("s3", "s1"), favoriteSongToggle(listOf("s3"), favorites, "s1"))
+        assertEquals(listOf("s1"), favoriteSongToggle(listOf("s3", "s1"), favorites, "s3"))
+        assertEquals(listOf("s1"), favoriteSongPicks(listOf("s2", "s1"), favorites).picked.map { it.id })
     }
 
     /** 職務経歴書・プロフィール帳の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。 */

@@ -233,6 +233,10 @@ class UserMarkRepository(
     /** お気に入り曲の ID (印を付けた新しい順)。プロフィール帳の好きな曲の候補 (iOS `markedEntityIds(.song, .favorite)`)。 */
     suspend fun favoriteSongIdList(): List<String> = dao.idsFor(UserMark.SONG, UserMark.FAVORITE)
 
+    /** お気に入りの曲と、お気に入りに付けた時刻 (ISO 8601)。 */
+    suspend fun favoriteSongTimes(): Map<String, String> =
+        dao.markedTimes(UserMark.SONG, UserMark.FAVORITE).associate { it.entityId to it.updatedAt }
+
     /** お気に入り曲 ID セット (曲一覧行アイコン/絞り込み用の軽量版)。 */
     suspend fun favoriteSongIds(): Set<String> = dao.idsFor(UserMark.SONG, UserMark.FAVORITE).toSet()
 
