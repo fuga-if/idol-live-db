@@ -8,7 +8,8 @@ import OSLog
 /// タイムラインで前後に寄せる。保存 (`PUT /songs/{id}/timings`) するまでサーバにも
 /// 端末にも残さない。行の本文・コールの文言は持たない (id と種別だけ)。
 ///
-/// 「次に記録する行」の決め方はコア (`lyricNextRecordable`) が持つ。
+/// 「次に記録する行」の決め方はコア (`lyricNextRecordable`) が持つ。再生位置を動かすと
+/// その位置の次の行へ寄せる (`aim(atMs:)`) ので、記録済みの曲も途中から押し直せる。
 @Observable
 @MainActor
 final class LyricTimingRecorder: Identifiable {
@@ -237,6 +238,38 @@ final class LyricTimingRecorder: Identifiable {
             return
         }
         lastWasAdjust = false
+    }
+
+    /// 再生位置を動かしたら、次に記録するものをその位置へ寄せる (いま鳴っている行・コールの次)。
+    /// 記録済みの曲を途中から押し直すため。戻さずに頭から押せば、これまでどおり頭から上書きする。
+    /// 規則はコア (`lyricRecordCursorAt`)。
+    func aim(atMs positionMs: Int) {
+        let position = Int64(positionMs)
+        cursor = lyricRecordCursorAt(kinds: kinds, starts: startsForCore, positionMs: position).map(Int.init)
+        callCursor = lyricRecordCursorAt(kinds: Array(repeating: "lyric", count: callIds.count),
+                                         starts: callStartsForCore, positionMs: position).map(Int.init)
+        lastWasAdjust = false
+    }
+
+    /// 次に記録するものを、この行 (またはコール) にする。
+    func aim(at id: String) {
+        if let i = lineIds.firstIndex(of: id), isRecordable(id) {
+            cursor = i
+            lane = .lines
+        } else if let i = callIds.firstIndex(of: id) {
+            callCursor = i
+            lane = .calls
+        }
+        lastWasAdjust = false
+    }
+
+    /// 次に記録する行に、もう時刻が入っているか (押すと上書きになる)。
+    var cursorOverwrites: Bool {
+        switch lane {
+        case .lines: return cursor.map { starts[$0] != nil } ?? false
+        case .calls: return callCursor.map { callStarts[$0] != nil } ?? false
+        case .parts: return false
+        }
     }
 
     /// 行またはコールの開始を指定の時刻にする (つまみ・微調整)。カーソルは動かさない。

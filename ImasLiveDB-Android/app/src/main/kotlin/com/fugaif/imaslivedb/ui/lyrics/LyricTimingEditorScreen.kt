@@ -175,7 +175,18 @@ fun LyricTimingEditorScreen(
         recorder.paint(lineId, start, end, brush, cast.artists.map { it.id })
     }
 
+    /** 再生位置を動かす。次に記録するものも、その位置の次へ寄せる (途中から押し直せるように)。 */
+    fun seek(ms: Int) {
+        playheadMs = ms
+        playback.seek(ms)
+        recorder.aim(ms)
+    }
+
     LaunchedEffect(Unit) {
+        // 曲の途中で開いたら、そこから押し直せるようにする (記録済みの曲を頭から押させない)。
+        if (playback.loadedSongId.value == song.id) {
+            playback.positionMs()?.takeIf { it > 0 }?.let { recorder.aim(it) }
+        }
         if (playback.loadedSongId.value != song.id) {
             startFailed = !playback.startFull(song.id, song.appleMusicId ?: "")
         }
@@ -267,7 +278,10 @@ fun LyricTimingEditorScreen(
                 val next = recorder.cursor
                 if (next != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(DS.sp2)) {
-                        ImasText("次に記録する行", ImasTextRole.EYEBROW)
+                        Row(horizontalArrangement = Arrangement.spacedBy(DS.sp2), verticalAlignment = Alignment.CenterVertically) {
+                            ImasText("次に記録する行", ImasTextRole.EYEBROW)
+                            if (recorder.cursorOverwrites) ImasText("記録済み・押すと上書き", ImasTextRole.META)
+                        }
                         upcoming(lyrics, next).forEachIndexed { offset, index ->
                             ImasPlayerLyricLine(
                                 text = lyrics.lines[index].text, isCurrent = offset == 0,
@@ -276,7 +290,7 @@ fun LyricTimingEditorScreen(
                         }
                     }
                 } else {
-                    ImasNote("最後の行まで記録しました。タイムラインで帯を選ぶと前後に寄せられます。")
+                    ImasNote("最後の行まで記録しました。帯を選ぶと前後に寄せられます。タイムラインで戻すと、そこから押し直せます。")
                 }
             }
             Spacer(Modifier.weight(1f))
@@ -324,7 +338,7 @@ fun LyricTimingEditorScreen(
                 blocks = blocks, subLanes = listOf(overlayBlocks, callBlocks), playheadMs = shownMs,
                 selectedId = selectedId, seed = seed,
                 onScrub = { scrubMs = it },
-                onScrubEnd = { ms -> scrubMs = null; playheadMs = ms; playback.seek(ms) },
+                onScrubEnd = { ms -> scrubMs = null; seek(ms) },
                 onSelect = { id -> selectedId = if (selectedId == id) null else id },
                 onMoveStart = { id, ms -> recorder.adjust(id, ms) }
             )
@@ -353,12 +367,13 @@ fun LyricTimingEditorScreen(
                 ImasButton(title = "-0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, -100) })
                 ImasButton(title = "+0.1秒", role = ImasButtonRole.SECONDARY, size = ImasButtonSize.SMALL, onClick = { recorder.nudge(id, 100) })
                 ImasIconButton(icon = Icons.Filled.MyLocation, label = "再生位置に合わせる", onClick = { recorder.adjust(id, playheadMs) })
-                ImasIconButton(icon = Icons.Filled.PlayArrow, label = "この行から再生", onClick = {
-                    playback.seek(maxOf(0, start - 1500))
+                ImasIconButton(icon = Icons.Filled.PlayArrow, label = "この行から再生して押し直す", onClick = {
+                    seek(maxOf(0, start - 1500))
+                    recorder.aim(id)
                     if (!playback.isPlaying.value) playback.togglePlay()
                 })
             } else {
-                ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞると再生位置が動きます。")
+                ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞって戻すと、そこから押し直せます。")
             }
         }
 
@@ -369,14 +384,14 @@ fun LyricTimingEditorScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(Modifier.weight(1f))
-            ImasIconButton(icon = Icons.Filled.Replay5, label = "5 秒戻す", onClick = { playback.seek(maxOf(0, playheadMs - 5000)) })
+            ImasIconButton(icon = Icons.Filled.Replay5, label = "5 秒戻す", onClick = { seek(maxOf(0, playheadMs - 5000)) })
             ImasIconButton(
                 icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 label = if (isPlaying) "一時停止" else "再生",
                 style = ImasIconButtonStyle.FILLED,
                 onClick = { playback.togglePlay() }
             )
-            ImasIconButton(icon = Icons.Filled.Forward5, label = "5 秒進める", onClick = { playback.seek(minOf(duration, playheadMs + 5000)) })
+            ImasIconButton(icon = Icons.Filled.Forward5, label = "5 秒進める", onClick = { seek(minOf(duration, playheadMs + 5000)) })
             Spacer(Modifier.weight(1f))
         }
 
@@ -454,8 +469,9 @@ fun LyricTimingEditorScreen(
             ImasButton(
                 title = when {
                     recorder.laneCursor == null -> "最後まで記録しました"
-                    recorder.lane == LyricTimingRecorder.Lane.LINES -> "歌い出しで押す"
-                    else -> "コールの頭で押す"
+                    recorder.lane == LyricTimingRecorder.Lane.LINES ->
+                        if (recorder.cursorOverwrites) "歌い出しで押し直す" else "歌い出しで押す"
+                    else -> if (recorder.cursorOverwrites) "コールの頭で押し直す" else "コールの頭で押す"
                 },
                 icon = Icons.Filled.TouchApp,
                 role = ImasButtonRole.PRIMARY,

@@ -7,6 +7,8 @@ import SwiftUI
 /// 2. 直す … 横長のタイムラインで行の帯を選び、-0.1 / +0.1 秒で寄せるか、
 ///    帯の頭のつまみをなぞる。「再生位置に合わせる」で今の位置にくっつける。
 ///    タイムラインの地をなぞると再生位置が動く (ちょい戻し)。
+/// 3. 途中から押し直す … 再生位置を動かすと「次に記録する行」がその位置の次の行へ移る。
+///    記録済みの曲でも、直したいところへ戻して押せば、そこから先だけ上書きできる。
 ///
 /// 保存するまでサーバにも端末にも残さない。行の本文は画面に出すだけで、送らない。
 struct LyricTimingEditorView: View {
@@ -86,7 +88,11 @@ struct LyricTimingEditorView: View {
             }
         }
         .background(DS.bg)
-        .task { if !playback.isFullLoaded { startFailed = !(await playback.startFull()) } }
+        .task {
+            // 曲の途中で開いたら、そこから押し直せるようにする (記録済みの曲を頭から押させない)。
+            if playback.isFullLoaded, let ms = playback.positionMs(), ms > 0 { recorder.aim(atMs: ms) }
+            if !playback.isFullLoaded { startFailed = !(await playback.startFull()) }
+        }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .medium), trigger: recordToken)
         .confirmationDialog("保存せずに閉じますか？", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -394,7 +400,12 @@ struct LyricTimingEditorView: View {
             }
             if let next = recorder.cursor {
                 VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text("次に記録する行").imasText(.eyebrow)
+                    HStack(spacing: DS.sp2) {
+                        Text("次に記録する行").imasText(.eyebrow)
+                        if recorder.cursorOverwrites {
+                            Text("記録済み・押すと上書き").imasText(.meta, color: DS.ink3)
+                        }
+                    }
                     // 押す行の先も 2 行見せる (次の次が見えていると押す間合いを取りやすい)。
                     ForEach(Array(upcoming(from: next).enumerated()), id: \.element) { offset, index in
                         ImasPlayerLyricLine(text: lyrics.lines[index].text, isCurrent: offset == 0,
@@ -404,7 +415,7 @@ struct LyricTimingEditorView: View {
                     }
                 }
             } else {
-                ImasNote("最後の行まで記録しました。タイムラインで帯を選ぶと前後に寄せられます。",
+                ImasNote("最後の行まで記録しました。帯を選ぶと前後に寄せられます。タイムラインで戻すと、そこから押し直せます。",
                          systemImage: "checkmark")
             }
         }
@@ -445,8 +456,7 @@ struct LyricTimingEditorView: View {
             onScrub: { scrubMs = $0 },
             onScrubEnd: { ms in
                 scrubMs = nil
-                playheadMs = ms
-                playback.seek(ms)
+                seek(ms)
             },
             onSelect: { id in selectedId = selectedId == id ? nil : id },
             onMoveStart: { id, ms in recorder.adjust(id: id, toMs: ms) }
@@ -476,13 +486,15 @@ struct LyricTimingEditorView: View {
                 ImasIconButton(systemImage: "arrow.right.to.line", label: "再生位置に合わせる", size: .small) {
                     recorder.adjust(id: id, toMs: playheadMs)
                 }
-                ImasIconButton(systemImage: "play.fill", label: "この行から再生", size: .small) {
-                    playback.seek(max(0, start - 1500))
+                ImasIconButton(systemImage: "play.fill", label: "この行から再生して押し直す", size: .small) {
+                    AppAnalytics.tap("lyric_timing.retake_from")
+                    seek(max(0, start - 1500))
+                    recorder.aim(at: id)
                     if !playback.isPlaying { playback.togglePlay() }
                 }
             }
         } else {
-            ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞると再生位置が動きます。",
+            ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞって戻すと、そこから押し直せます。",
                      systemImage: "hand.draw")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -491,21 +503,22 @@ struct LyricTimingEditorView: View {
     private var transport: some View {
         HStack(spacing: DS.sp8) {
             ImasIconButton(systemImage: "gobackward.5", label: "5 秒戻す") {
-                playback.seek(max(0, playheadMs - 5000))
+                seek(max(0, playheadMs - 5000))
             }
             ImasIconButton(systemImage: playback.isPlaying ? "pause.fill" : "play.fill",
                            label: playback.isPlaying ? "一時停止" : "再生", style: .filled) {
                 playback.togglePlay()
             }
             ImasIconButton(systemImage: "goforward.5", label: "5 秒進める") {
-                playback.seek(min(duration, playheadMs + 5000))
+                seek(min(duration, playheadMs + 5000))
             }
         }
     }
 
     private var recordButton: some View {
         ImasButton(title: recorder.laneCursor == nil ? "最後まで記録しました"
-                   : recorder.lane == .lines ? "歌い出しで押す" : "コールの頭で押す",
+                   : recorder.lane == .lines ? (recorder.cursorOverwrites ? "歌い出しで押し直す" : "歌い出しで押す")
+                   : (recorder.cursorOverwrites ? "コールの頭で押し直す" : "コールの頭で押す"),
                    systemImage: "hand.tap.fill", role: .primary, size: .large, fillsWidth: true) {
             guard let ms = playback.positionMs() else { return }
             recorder.recordNext(positionMs: ms)
@@ -515,6 +528,13 @@ struct LyricTimingEditorView: View {
     }
 
     // MARK: -
+
+    /// 再生位置を動かす。次に記録するものも、その位置の次へ寄せる (途中から押し直せるように)。
+    private func seek(_ ms: Int) {
+        playheadMs = ms
+        playback.seek(ms)
+        recorder.aim(atMs: ms)
+    }
 
     private func poll() async {
         while !Task.isCancelled {
