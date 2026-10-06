@@ -63,12 +63,4 @@ struct CoreStatsRepository: StatsReading {
             song: CoreRecordMapping.song(from: record.song), playCount: Int(record.playCount),
             frequency: record.frequency, frequencyLabel: record.frequencyLabel)
     }
-
-    func profileLiveRecord(
-        showMarks: [AttendanceMarkRecord], eventMarks: [AttendanceMarkRecord], today: String
-    ) async throws -> ProfileLiveRecord {
-        try await snapshot.withStore { store in
-            try store.profileLiveRecord(showMarks: showMarks, eventMarks: eventMarks, today: today)
-        }
-    }
 }

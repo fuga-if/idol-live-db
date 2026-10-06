@@ -61,6 +61,7 @@ pub mod play_queue;
 pub mod prng;
 pub mod producer_card;
 pub mod producer_card_avatar;
+pub mod favorite_song_picks;
 pub mod profile_sheet;
 pub mod quiz_generation;
 pub mod recents;

@@ -35,6 +35,9 @@ final class MyPageViewModelTests: XCTestCase {
         func markedEntityIds(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String] {
             markedIds
         }
+        func markedTimes(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String: String] {
+            Dictionary(markedIds.map { ($0, "") }, uniquingKeysWith: { a, _ in a })
+        }
         func autoCollectedSongIds() async throws -> Set<String> { [] }
     }
 

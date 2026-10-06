@@ -90,6 +90,18 @@ extension AppDatabase {
         try await dbQueue.read { db in try Self.fetchMarkedEntityIdsQuery(db, entity: entity, kind: kind) }
     }
 
+    /// 付いているマークの対象 id と付けた時刻 (`updated_at`)。付いているとみなす規則は `fetchMarkedEntityIdsQuery` と同じ。
+    func fetchMarkedTimesAsync(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String: String] {
+        try await dbQueue.read { db in
+            let rows = try UserMark.filter(
+                UserMark.Columns.entityType == entity.rawValue &&
+                UserMark.Columns.kind == kind.rawValue
+            ).fetchAll(db)
+            return Dictionary(UserMark.meaningful(rows).map { ($0.entityId, $0.updatedAt) },
+                              uniquingKeysWith: { a, b in max(a, b) })
+        }
+    }
+
     /// 付いているマークの対象 id。何を付いているとみなすかはコアの規則 (`UserMark.meaningful`)。
     /// メモのように中身を文字で持つ kind もあるので、フラグで絞らない。
     private static func fetchMarkedEntityIdsQuery(_ db: Database, entity: UserMarkEntity, kind: UserMarkKind) throws -> [String] {

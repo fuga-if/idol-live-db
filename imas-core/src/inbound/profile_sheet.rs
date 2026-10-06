@@ -1,11 +1,8 @@
 //! プロフィール帳の FFI 面。ロジックは domain::profile_sheet。
 
-use super::snapshot_store::{SnapshotError, SnapshotStore};
-use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::profile_sheet::{
-    ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck,
-    ProfileLiveRecord, ProfileSheet, ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize,
-    ProfileSheetSizeInfo,
+    ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck, ProfileSheet,
+    ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize, ProfileSheetSizeInfo,
 };
 
 #[uniffi::export]
@@ -64,26 +61,4 @@ pub fn profile_sheet_layout(sheet: ProfileSheet, record: ProfileSheetRecord) -> 
 #[uniffi::export]
 pub fn profile_brand_marks(record: ProfileSheetRecord) -> Vec<ProfileBrandCheck> {
     crate::domain::profile_sheet::profile_brand_marks(&record)
-}
-
-#[uniffi::export]
-impl SnapshotStore {
-    /// プロフィール帳の、現地で参加した公演のセトリ・会場から数えた記録
-    /// (いちばん聴いた曲・いちばん通った会場・都道府県の数)。
-    /// `show_marks` / `event_marks` は公演単位・イベント単位の参加マーク (形態つき。予定も混ざってよい。
-    /// 現地だけに絞るのはコア)、`today` は JST の今日。
-    pub fn profile_live_record(
-        &self,
-        show_marks: Vec<AttendanceMarkRecord>,
-        event_marks: Vec<AttendanceMarkRecord>,
-        today: String,
-    ) -> Result<ProfileLiveRecord, SnapshotError> {
-        let snap = self.current()?;
-        Ok(crate::domain::profile_sheet::profile_live_record(
-            &snap,
-            &show_marks,
-            &event_marks,
-            &today,
-        ))
-    }
 }

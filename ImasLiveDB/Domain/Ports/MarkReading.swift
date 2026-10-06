@@ -10,6 +10,8 @@ import Foundation
 protocol MarkReading: Sendable {
     /// 指定エンティティ種別・マーク種別が付いた id 一覧。
     func markedEntityIds(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String]
+    /// 指定エンティティ種別・マーク種別が付いた id と、付けた (最後に書いた) 時刻 (ISO 8601)。
+    func markedTimes(entity: UserMarkEntity, kind: UserMarkKind) async throws -> [String: String]
     /// 自動回収済み (現地参加由来) の曲 id 集合。
     func autoCollectedSongIds() async throws -> Set<String>
 }

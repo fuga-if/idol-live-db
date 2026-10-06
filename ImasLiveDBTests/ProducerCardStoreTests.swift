@@ -80,6 +80,57 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(profileSheetLayout(sheet: loaded.profile, record: ProfileSheetMaterials.empty.record).title, "履歴書")
     }
 
+    /// 履歴書に載せる好きな曲は曲 id の並びで自分の名刺の行に持つ。選ぶ前の保存 (キーなし) は「まだ選んでいない」。
+    func testChosenProfileSongsRoundTripAndOldJsonReadsAsUnchosen() throws {
+        let db = try makeDatabase()
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        card.profileJson = #"{"size":"portrait","hidden":["qr","peak_year","prefectures"],"songs":["自分で書いた曲"]}"#
+        try db.saveMyProducerCard(card)
+        var loaded = try XCTUnwrap(db.myProducerCard())
+        XCTAssertNil(loaded.profile.songs, "前の版の保存は、まだ選んでいない")
+        XCTAssertEqual(loaded.profile.hidden, [.qr], "やめた欄 (いちばん通った年・都道府県) は読み捨てる")
+
+        var sheet = loaded.profile
+        sheet.songs = ["s3", "s1"]
+        loaded.profile = sheet
+        try db.saveMyProducerCard(loaded)
+        XCTAssertEqual(try db.myProducerCard()?.profile.songs, ["s3", "s1"])
+
+        // 全部外した (空) は「まだ選んでいない」と区別して残る。
+        sheet.songs = []
+        loaded.profile = sheet
+        try db.saveMyProducerCard(loaded)
+        XCTAssertEqual(try db.myProducerCard()?.profile.songs, [])
+    }
+
+    /// お気に入りから外した曲は、選んでいても履歴書に載らない (お気に入りの時刻は端末のマークから引く)。
+    func testUnfavoritedSongsDropOutOfTheProfileSheet() async throws {
+        let db = try makeDatabase()
+        try db.upsertUserMark(entity: .song, id: "s1", kind: .favorite, boolValue: true)
+        try db.upsertUserMark(entity: .song, id: "s2", kind: .favorite, boolValue: true)
+        try db.upsertUserMark(entity: .song, id: "s3", kind: .favorite, boolValue: true)
+        try db.upsertUserMark(entity: .song, id: "s2", kind: .favorite, boolValue: false)
+        let times = try await db.fetchMarkedTimesAsync(entity: .song, kind: .favorite)
+        XCTAssertEqual(Set(times.keys), ["s1", "s3"])
+
+        let favorites = times.keys.sorted().map {
+            ProfileSongInput(id: $0, title: "曲\($0)", favoritedAt: times[$0] ?? "")
+        }
+        var record = ProfileSheetMaterials.empty.record
+        record.today = "2026-10-06"
+        record.favoriteSongs = favorites
+        var sheet = profileSheetDefault()
+        sheet.songs = ["s2", "s3", "s1"]
+        let layout = profileSheetLayout(sheet: sheet, record: record)
+        XCTAssertEqual(layout.sections.first?.entries.first?.text, "「曲s3」「曲s1」")
+
+        // 選ぶ画面: 載っている曲を押すと外れ、上限までは末尾に足す (規則はコア)。
+        XCTAssertEqual(favoriteSongToggle(chosen: ["s3"], favorites: favorites, songId: "s1"), ["s3", "s1"])
+        XCTAssertEqual(favoriteSongToggle(chosen: ["s3", "s1"], favorites: favorites, songId: "s3"), ["s1"])
+        XCTAssertEqual(favoriteSongPicks(chosen: ["s2", "s1"], favorites: favorites).picked.map(\.id), ["s1"])
+    }
+
     func testReceivedCardsSaveFindByPayloadAndDelete() async throws {
         let db = try makeDatabase()
         let a = received("c1", name: "しろくまP")

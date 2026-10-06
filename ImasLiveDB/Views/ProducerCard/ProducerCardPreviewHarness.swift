@@ -16,6 +16,8 @@ struct ProducerCardPreviewHarness: View {
         case details
         /// プロフィール帳の選ぶ画面 / 見本の画面 / 見本の画像を全部書き出す (Documents/profile_exports/)。
         case profile, profilePreview, profileExport
+        /// 好きな曲を選ぶ画面 (`PROFILE_CHOSEN=1` で 3 曲を選んだ状態にする。書き出しにも効く)。
+        case profileSongs
         /// 担当ブランドのはじめの案内 / 設定の画面。
         case brandRoles, brandSettings
     }
@@ -69,7 +71,7 @@ struct ProducerCardPreviewHarness: View {
             let first = named ?? received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
             firstCardId = first?.id
             samplePayload = first?.payload
-            if [.profile, .profilePreview, .profileExport].contains(mode) {
+            if [.profile, .profilePreview, .profileExport, .profileSongs].contains(mode) {
                 await Samples.seedProfile(database)
             }
             record = try? await ProducerCardAssembler.loadMyRecord()
@@ -99,6 +101,16 @@ struct ProducerCardPreviewHarness: View {
         case .crop:
             CardPhotoCropSheet(image: Samples.portrait(), crop: ImasPortraitCrop(zoom: 1.4, center: CGPoint(x: 0.5, y: 0.4))) { _ in }
         case .profile: NavigationStack { ProfileSheetView() }
+        case .profileSongs:
+            if let mine = try? database.myProducerCard() {
+                NavigationStack {
+                    FavoriteSongPickerView(chosen: mine.profile.songs) { ids in
+                        var card = mine
+                        card.profile.songs = ids
+                        try? database.saveMyProducerCard(card)
+                    }
+                }
+            }
         case .profilePreview:
             if let mine = try? database.myProducerCard() {
                 NavigationStack {
@@ -214,14 +226,15 @@ struct ProducerCardPreviewHarness: View {
         static func seedProfile(_ db: AppDatabase) async {
             let now = "2026-10-06T00:00:00Z"
             try? await db.dbQueue.write { d in
+                // お気に入りは何十曲もある前提 (選ぶ画面で絞り込む)。付けた時刻は 1 曲ずつずらす。
                 let songs = try String.fetchAll(d, sql: """
-                    SELECT id FROM songs WHERE artwork_url IS NOT NULL ORDER BY release_date DESC LIMIT 5
+                    SELECT id FROM songs WHERE artwork_url IS NOT NULL ORDER BY release_date DESC LIMIT 40
                     """)
-                for id in songs {
+                for (i, id) in songs.enumerated() {
                     try d.execute(sql: """
                         INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
                         VALUES ('song', ?, 'favorite', 1, NULL, ?)
-                        """, arguments: [id, now])
+                        """, arguments: [id, String(format: "2026-09-%02dT00:00:00Z", 30 - i % 29)])
                 }
                 let oshiShows = try String.fetchAll(d, sql: """
                     SELECT DISTINCT s.id FROM shows s JOIN show_cast c ON c.show_id = s.id
@@ -244,6 +257,11 @@ struct ProducerCardPreviewHarness: View {
             guard var mine = try? db.myProducerCard() else { return }
             if let key = envDesign { mine.design = key }
             mine.profile = profileSample()
+            if ProcessInfo.processInfo.environment["PROFILE_CHOSEN"] == "1" {
+                // 新しい順の先頭ではない 3 曲を選んだ状態 (選んだ順に載るかを見る)。
+                let favorites = (try? db.fetchMarkedEntityIds(entity: .song, kind: .favorite)) ?? []
+                mine.profile.songs = [12, 3, 25].compactMap { favorites.indices.contains($0) ? favorites[$0] : nil }
+            }
             try? db.saveMyProducerCard(mine)
         }
 
@@ -266,7 +284,6 @@ struct ProducerCardPreviewHarness: View {
             out.record.sinceYear = nil
             out.record.hasPhoto = false
             out.record.hasQr = false
-            out.record.live = ProfileSheetMaterials.empty.record.live
             out.oshi = []
             out.portrait = nil
             out.qr = nil
@@ -287,6 +304,7 @@ struct ProducerCardPreviewHarness: View {
             func write(_ materials: ProfileSheetMaterials, size: ProfileSheetSize, name: String) {
                 var sheet = profileSample()
                 sheet.size = size
+                sheet.songs = mine.profile.songs
                 let layout = profileSheetLayout(sheet: sheet, record: materials.record)
                 guard let image = ProfileSheetAssembler.render(layout: layout, materials: materials),
                       let png = image.pngData() else { return }

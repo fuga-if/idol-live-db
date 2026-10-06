@@ -3,10 +3,11 @@ import SwiftUI
 
 /// プロフィール帳: P としての自己紹介を、履歴書の様式の 1 枚絵にして SNS に貼る。
 ///
-/// 開くとまず「載せる記録を選ぶ」画面 (この画面)。大きさ・証明写真・担当ブランド・載せる記録を選び、
+/// 開くとまず「載せる記録を選ぶ」画面 (この画面)。大きさ・証明写真・担当ブランド・好きな曲・載せる記録を選び、
 /// 「作る」で画像の見本 (`ProfileSheetPreviewView`) へ進んで書き出す。見本から「編集」で戻れる。
 /// 自分で書く欄は無く、中身はすべてアプリの記録から埋まる。名前・P歴・リンク・自分の QR は P名刺のもの
 /// (ここからそのまま P名刺の編集を開ける)。担当ブランドはアプリ全体の設定 (`BrandRoleStore`)。
+/// 好きな曲はお気に入りの中から選ぶ (`FavoriteSongPickerView`。選んだ曲 id はプロフィール帳の選択に持つ)。
 /// 選んだものはその場で自分の名刺の行に保存する。欄の一覧と見本の値・付け外しはコア
 /// (`profileAutoFieldRows` / `profileToggleField`)。項目の多い設定寄りの画面なので Form の型で組む。
 struct ProfileSheetView: View {
@@ -125,8 +126,11 @@ struct ProfileSheetView: View {
             }
             photoSection(card, row: rows.first { $0.field == .photo })
             brandsSection(row: rows.first { $0.field == .brands })
+            if let row = rows.first(where: { $0.field == .songs }) {
+                songsSection(sheet, row: row)
+            }
             ImasListSection("載せる記録", footer: "記録の無いものは並びません。外したものは画像に載りません。") {
-                ForEach(rows.filter { $0.field != .photo && $0.field != .brands }, id: \.key) { row in
+                ForEach(rows.filter { ![ProfileAutoField.photo, .brands, .songs].contains($0.field) }, id: \.key) { row in
                     toggle(row, subtitle: row.fromCard ? "P名刺から · \(row.value)" : row.value)
                 }
             }
@@ -277,6 +281,26 @@ struct ProfileSheetView: View {
         }
     }
 
+    // MARK: - 好きな曲
+
+    private func songsSection(_ sheet: ProfileSheet, row: ProfileAutoFieldRow) -> some View {
+        ImasListSection("好きな曲", footer: "お気に入りに付けた曲の中から、志望の動機の欄に載せる曲を選びます。") {
+            NavigationLink {
+                FavoriteSongPickerView(chosen: sheet.songs) { ids in setSongs(ids) }
+            } label: {
+                ImasNavRow(title: "載せる曲を選ぶ", subtitle: row.value,
+                           systemImage: "music.note.list", showsChevron: false, subtitleLineLimit: 2)
+            }
+            toggle(row, subtitle: nil)
+        }
+    }
+
+    private func setSongs(_ ids: [String]) {
+        guard var sheet = card?.profile else { return }
+        sheet.songs = ids
+        update(sheet)
+    }
+
     // MARK: - 保存
 
     private func toggleField(_ field: ProfileAutoField) {
@@ -368,7 +392,7 @@ struct ProfileSheetPreviewView: View {
             ImasButton(title: "画像を書き出す", systemImage: "square.and.arrow.up", role: .primary, size: .large) {
                 export(layout)
             }
-            ImasNote("中身はアプリの記録 (担当・好きな曲・担当ブランド・参加した公演・回収) から自動で入ります。載せるものは右上の鉛筆から選び直せます。")
+            ImasNote("中身はアプリの記録 (担当・選んだ好きな曲・担当ブランド・参加した公演・回収) から入ります。載せるものは右上の鉛筆から選び直せます。")
         }
         .navigationTitle("プロフィール帳")
         .navigationBarTitleDisplayMode(.inline)

@@ -15,7 +15,7 @@ struct ProfileSheetOshi: Identifiable {
 /// プロフィール帳の材料。中身の組み立て (欄・行・丸・詰め方) はコアの `profileSheetLayout`、
 /// ここはアプリの記録とマスタを引いて渡す形にするだけ。自分で書く欄は無い。
 struct ProfileSheetMaterials {
-    /// 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲・セトリから数えた記録。
+    /// 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。
     var record: ProfileSheetRecord
     var oshi: [ProfileSheetOshi] = []
     /// 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。
@@ -26,8 +26,7 @@ struct ProfileSheetMaterials {
     static let empty = ProfileSheetMaterials(
         record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiNames: [], oshiBrandIds: [], attended: [],
                                    songCount: 0, brands: [], brandRolesJson: "", favoriteSongs: [], links: [],
-                                   hasPhoto: false, hasQr: false,
-                                   live: ProfileLiveRecord(prefectureCount: 0))
+                                   hasPhoto: false, hasQr: false)
     )
 }
 
@@ -49,17 +48,8 @@ enum ProfileSheetAssembler {
         let oshiIdols = oshiIds.compactMap { idolById[$0] }
         // 担当ブランドの既定は設定の画面と同じ材料で組む (担当の上限で切らない)。
         let brandRoleRecord = await BrandRoleStore.loadRecord()
-        // 都道府県を数えるのは現地参加だけ (形態の規則はコア)。マークは形態つきのまま渡す。
-        let showMarks = (try? await CollectionAttendance.marks(entity: .show, database: .shared)) ?? []
-        let eventMarks = (try? await CollectionAttendance.marks(entity: .event, database: .shared)) ?? []
-        let live = (try? await c.statsReading.profileLiveRecord(
-            showMarks: showMarks, eventMarks: eventMarks, today: today))
-            ?? ProfileSheetMaterials.empty.record.live
-
-        // お気に入りの曲 (載せる数と並びはコア。引けない曲は入れない)。
-        let favoriteIds = (try? await c.markReading.markedEntityIds(entity: .song, kind: .favorite)) ?? []
-        let songs = favoriteIds.isEmpty ? [] : ((try? await c.songReading.songs(ids: favoriteIds)) ?? [])
-        let songById = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
+        let favorites = await FavoriteSongSource.load()
 
         let images = CustomImageService.shared
         let oshi = oshiIdols.map { idol in
@@ -89,11 +79,10 @@ enum ProfileSheetAssembler {
                 ProfileBrandInput(id: $0.id, label: $0.shortName, color: $0.color, sortOrder: Int64($0.sortOrder))
             },
             brandRolesJson: BrandRoleStore.json,
-            favoriteSongs: favoriteIds.compactMap { id in songById[id].map { ProfileSongInput(id: id, title: $0.title) } },
+            favoriteSongs: favorites.map(\.input),
             links: card.links.map { cardLinkView(link: $0).display },
             hasPhoto: portrait != nil,
-            hasQr: qr != nil,
-            live: live
+            hasQr: qr != nil
         )
         return ProfileSheetMaterials(
             record: record,
