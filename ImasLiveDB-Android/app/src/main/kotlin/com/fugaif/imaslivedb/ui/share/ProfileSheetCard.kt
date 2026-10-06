@@ -24,7 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -304,7 +307,7 @@ private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
                     ProfileRule()
                     ProfileField("担当", s) { ProfileOshiList(materials.oshi, s) }
                 }
-                val qr = materials.qrUrl?.takeIf { layout.showQr }
+                val qr = materials.qrUrl?.takeIf { layout.showQr && imasQrMatrix(it) != null }
                 if (layout.contacts.isNotEmpty() || qr != null) {
                     ProfileRule()
                     ProfileField("連絡先", s) {
@@ -397,7 +400,7 @@ private fun CareerIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
             }
             Box(Modifier.fillMaxWidth().height(ProfileSheetInk.FRAME.dp).background(ProfileSheetInk.ink))
         }
-        materials.qrUrl?.takeIf { layout.showQr }?.let { ProfileQR(it) }
+        materials.qrUrl?.takeIf { layout.showQr && imasQrMatrix(it) != null }?.let { ProfileQR(it) }
         if (layout.showPhoto && materials.portrait != null) ProfilePhotoBox(materials.portrait, 60 * s)
     }
 }
@@ -844,11 +847,12 @@ private fun ProfileFitText(
     textAlign: TextAlign? = null
 ) {
     val measurer = rememberTextMeasurer()
-    val holder = remember { arrayOfNulls<TextLayoutResult>(1) }
+    // 描く文字は配置のときにだけ決める (大きさの問い合わせ (intrinsics) は配置をしないので上書きしない)。
+    var drawn by remember { mutableStateOf<TextLayoutResult?>(null) }
     val base = style.copy(color = color, textAlign = textAlign ?: style.textAlign)
     Layout(
         content = {},
-        modifier = modifier.drawBehind { holder[0]?.let { drawText(it) } }
+        modifier = modifier.drawBehind { drawn?.let { drawText(it) } }
     ) { _, constraints ->
         val width = if (constraints.hasBoundedWidth) constraints.maxWidth else Constraints.Infinity
         val aligned = textAlign != null && constraints.hasBoundedWidth
@@ -864,8 +868,9 @@ private fun ProfileFitText(
             result = measure(scale, TextOverflow.Clip)
         }
         if (result.didOverflowWidth || result.didOverflowHeight) result = measure(scale, TextOverflow.Ellipsis)
-        holder[0] = result
         val w = result.size.width
-        layout(w.coerceIn(constraints.minWidth, constraints.maxWidth), result.size.height.coerceIn(constraints.minHeight, constraints.maxHeight)) {}
+        layout(w.coerceIn(constraints.minWidth, constraints.maxWidth), result.size.height.coerceIn(constraints.minHeight, constraints.maxHeight)) {
+            drawn = result
+        }
     }
 }

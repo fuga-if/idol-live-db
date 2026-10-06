@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
@@ -28,7 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProfileSheetAssembler
 import com.fugaif.imaslivedb.data.producercard.ProfileSheetMaterials
@@ -38,6 +39,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
@@ -49,6 +51,8 @@ import com.fugaif.imaslivedb.ui.share.ShareCardSaveResult
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.profileSheetLayout
 import uniffi.imas_core.profileSheetSizes
@@ -83,7 +87,7 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     var pendingSave by remember { mutableStateOf<Bitmap?>(null) }
 
     suspend fun load() {
-        val mine = module.producerCardRepository.myCard()
+        val mine = runCatching { module.producerCardRepository.myCard() }.getOrNull()
         // 材料を読み終えてから名刺を入れる (読み込み中に編集シートを空の材料で開かせない)。
         if (mine != null) materials = ProfileSheetAssembler.load(context, module, mine)
         card = mine
@@ -92,18 +96,23 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) { load() }
 
     val styles = remember { profileSheetStyles() }
+    val saveLock = remember { Mutex() }
     val sizes = remember { profileSheetSizes() }
 
-    /** 様式・大きさを選んだらその場で保存する (材料は変わらないので読み直さない)。 */
+    /** 様式・大きさを選んだらその場で保存する (材料は変わらないので読み直さない)。続けて押しても選んだ順に書く。 */
     fun saveSheet(sheet: ProfileSheet) {
         val current = card ?: return
-        val updated = current.withProfile(sheet)
-        card = updated
+        card = current.withProfile(sheet)
         scope.launch {
-            runCatching {
-                val latest = module.producerCardRepository.myCard() ?: current
-                module.producerCardRepository.saveMyCard(latest.withProfile(sheet))
-            }.onFailure { saveError = "もう一度試してください。" }
+            saveLock.withLock {
+                runCatching {
+                    val latest = module.producerCardRepository.myCard() ?: current
+                    module.producerCardRepository.saveMyCard(latest.withProfile(sheet))
+                }.onFailure {
+                    card = current
+                    saveError = "もう一度試してください。"
+                }
+            }
         }
     }
 
@@ -148,11 +157,16 @@ fun ProfileSheetScreen(onBack: () -> Unit) {
             val mine = card
             when {
                 !loaded -> ImasInlineLoading()
-                mine != null -> Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+                mine == null -> ImasEmptyState(
+                    icon = Icons.Filled.Badge,
+                    title = "まだ P名刺がありません",
+                    message = "P名刺を作ると、その名前と記録でプロフィール帳ができます。"
+                )
+                else -> Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                     val layout = profileSheetLayout(mine.profile, materials.record)
                     ProfileSheetPreview(
                         layout, materials, capture,
-                        Modifier.semantics { contentDescription = "${layout.title}の見本" }
+                        Modifier.clearAndSetSemantics { contentDescription = "${layout.title}の見本" }
                     )
                     // 様式と大きさはここでも切り替え、選んだらその場で保存する。
                     val sheet = mine.profile

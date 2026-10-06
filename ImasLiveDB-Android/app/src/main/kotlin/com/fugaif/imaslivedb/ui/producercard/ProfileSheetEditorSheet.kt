@@ -23,7 +23,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProfileSheetMaterials
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
@@ -120,7 +120,7 @@ fun ProfileSheetEditorSheet(
                     val layout = profileSheetLayout(sheet, materials.record)
                     ProfileSheetPreview(
                         layout, materials, previewCapture,
-                        Modifier.semantics { contentDescription = "${layout.title}の見本" }
+                        Modifier.clearAndSetSemantics { contentDescription = "${layout.title}の見本" }
                     )
 
                     ImasSection("様式", style = ImasSectionHeaderStyle.SMALL) {
