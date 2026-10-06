@@ -134,7 +134,7 @@ struct ImasProducerCard: View {
             .background(band)
 
             if let photoURL {
-                oshiPhoto(photoURL).frame(height: photoHeight)
+                oshiPhoto(photoURL, height: photoHeight)
             }
             nameBlock(size: 28)
             rows { ImasPerforation(color: DS.perforation).padding(.horizontal, DS.Space.card) }
@@ -163,8 +163,7 @@ struct ImasProducerCard: View {
                 .accessibilityHidden(true)
             nameBlock(size: 28)
             if let photoURL {
-                oshiPhoto(photoURL)
-                    .frame(height: photoHeight * 0.72)
+                oshiPhoto(photoURL, height: photoHeight * 0.72)
                     .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
                     .padding(.horizontal, DS.Space.card)
@@ -193,7 +192,7 @@ struct ImasProducerCard: View {
             .background(band)
             Rectangle().fill(DS.ink).frame(height: line).accessibilityHidden(true)
             if let photoURL {
-                oshiPhoto(photoURL).frame(height: photoHeight)
+                oshiPhoto(photoURL, height: photoHeight)
                 Rectangle().fill(DS.ink).frame(height: line).accessibilityHidden(true)
             }
             HStack(alignment: .top, spacing: DS.Space.gapLoose) {
@@ -245,17 +244,25 @@ struct ImasProducerCard: View {
 
     // MARK: 共通の部品
 
-    private func oshiPhoto(_ url: URL) -> some View {
-        LazyImage(url: url) { state in
-            if let image = state.image {
-                image.resizable().scaledToFill()
-            } else {
-                DS.surface2
+    /// 担当の写真の帯。写真は枠いっぱいに広げて枠で切る。`scaledToFill` の画像に後から高さを
+    /// 付けると、画像は元の比率の大きさのまま描かれて下の行に被さる (実機の縦長の写真で起きた)。
+    /// 先に大きさの決まった枠を作り、その上に画像を重ねてから切る。
+    private func oshiPhoto(_ url: URL, height: CGFloat) -> some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: height)
+            .overlay {
+                LazyImage(url: url) { state in
+                    if let image = state.image {
+                        image.resizable().scaledToFill()
+                    } else {
+                        DS.surface2
+                    }
+                }
             }
-        }
-        .frame(maxWidth: .infinity)
-        .clipped()
-        .accessibilityLabel(oshi.first.map { "\($0.name)の写真" } ?? "担当の写真")
+            .clipped()
+            .accessibilityElement()
+            .accessibilityLabel(oshi.first.map { "\($0.name)の写真" } ?? "担当の写真")
     }
 
     @ViewBuilder
@@ -516,20 +523,22 @@ struct ImasCardPortrait: View {
     var label: String = "名刺の写真"
 
     var body: some View {
-        Group {
-            if let url {
-                LazyImage(url: url) { state in
-                    if let image = state.image {
-                        image.resizable().scaledToFill()
-                    } else {
-                        DS.surface2
+        // 大きさは 3:4 の枠で決め、写真はその上に重ねて切る (画像の大きさで枠が膨らまないように)。
+        Color.clear
+            .aspectRatio(ImasPortraitCrop.aspect, contentMode: .fit)
+            .overlay {
+                if let url {
+                    LazyImage(url: url) { state in
+                        if let image = state.image {
+                            image.resizable().scaledToFill()
+                        } else {
+                            DS.surface2
+                        }
                     }
+                } else {
+                    DS.surface2
                 }
-            } else {
-                DS.surface2
             }
-        }
-        .aspectRatio(ImasPortraitCrop.aspect, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
         .imasSurfaceEdge(cornerRadius: DS.rTag)
         .accessibilityLabel(label)
