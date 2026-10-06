@@ -7,7 +7,8 @@ import UIKit
 // - 履歴書 (既定) / 職務経歴書。欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
 // - 紙は生成り、線は墨の太い罫。担当色は上の帯・表の頭の罫・押印欄の判子・職務経歴の印にだけ出す
 //   (面を塗らない)。ブランドの丸はブランドの色の手描きの線。
-// - 題はポップな書体 (Mochiy Pop One)、設問は印字 (ゴシック)、答えと名前は P名刺で選んだ書体。
+// - 題はポップな書体 (Mochiy Pop One)、項目名は印字 (ゴシック)、名前と記入欄の中身は P名刺で選んだ書体。
+// - 中身はすべてアプリの記録から (自分で書く欄は無い)。
 // - アプリ名の帯 (`ShareCardFooter`) を下に置く。
 //
 // ImageRenderer で焼く固定のキャンバスなので、色は固定色、文字は固定 pt (docs/DESIGN_SYSTEM.md §13)。
@@ -173,18 +174,11 @@ private struct ProfileResumeBody: View {
         }
     }
 
-    /// 氏名・ふりがな・押印・P歴・担当・連絡先と証明写真。
+    /// 氏名・押印・P歴・担当・連絡先と証明写真。
     private var identity: some View {
         ProfileBox {
             HStack(spacing: 0) {
                 VStack(spacing: 0) {
-                    ProfileField(label: "ふりがな", s: s) {
-                        Text(layout.furigana.isEmpty ? " " : layout.furigana)
-                            .font(.system(size: 10.5 * s, weight: .medium))
-                            .foregroundStyle(ProfileSheetInk.ink)
-                            .lineLimit(1)
-                    }
-                    ProfileRule()
                     ProfileField(label: "氏名", s: s) {
                         HStack(spacing: 8) {
                             Text(layout.name)
@@ -258,7 +252,7 @@ private struct ProfileCareerBody: View {
                 careerTable
             }
             if (layout.showOshi && !materials.oshi.isEmpty) || !layout.brands.isEmpty {
-                ProfileHeadline(title: "担当・対応範囲", imprint: "IN CHARGE", accent: accent, s: s)
+                ProfileHeadline(title: "担当", imprint: "IN CHARGE", accent: accent, s: s)
                 if layout.showOshi && !materials.oshi.isEmpty {
                     ProfileOshiList(oshi: materials.oshi, s: s)
                 }
@@ -268,6 +262,9 @@ private struct ProfileCareerBody: View {
             }
             ForEach(layout.sections.filter { $0.slot != .summary }, id: \.title) { section in
                 ProfileHeadline(title: section.title, imprint: section.imprint, accent: accent, s: s)
+                if !section.stats.isEmpty {
+                    ProfileStats(stats: section.stats, accent: accent, s: s)
+                }
                 ProfileEntries(entries: section.entries, font: materials.nameFont, s: s)
             }
             HStack {
@@ -296,11 +293,6 @@ private struct ProfileCareerBody: View {
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 2) {
-                if !layout.furigana.isEmpty {
-                    Text(layout.furigana)
-                        .font(.system(size: 9.5 * s, weight: .medium))
-                        .foregroundStyle(ProfileSheetInk.sub)
-                }
                 HStack(alignment: .center, spacing: 6) {
                     Text("氏名").font(.system(size: 9 * s, weight: .bold)).foregroundStyle(ProfileSheetInk.sub)
                     Text(layout.name)
@@ -490,7 +482,7 @@ private struct ProfileHistoryColumns<Content: View>: View {
     }
 }
 
-/// 欄 (題と、質問・答えの並び)。
+/// 欄 (題と、項目の並び)。
 private struct ProfileSectionView: View {
     let section: ProfileSection
     let font: String
@@ -513,7 +505,7 @@ private struct ProfileSectionView: View {
     }
 }
 
-/// 質問 (印字の小さな字) と答え (P名刺の書体)。自動の項目は印字で。
+/// 項目名 (印字の小さな字) と中身 (記入欄らしく P名刺の書体で)。
 private struct ProfileEntries: View {
     let entries: [ProfileEntry]
     let font: String
@@ -529,13 +521,51 @@ private struct ProfileEntries: View {
                             .foregroundStyle(ProfileSheetInk.sub)
                     }
                     Text(entry.text)
-                        .font(entry.isAuto
-                              ? .system(size: 11 * s, weight: .semibold)
-                              : .imasCardNameFixed(font, size: 12.5 * s))
+                        .font(.imasCardNameFixed(font, size: 12.5 * s))
                         .foregroundStyle(ProfileSheetInk.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+}
+
+/// 実績の数字 (自己PR)。太い罫で囲み、縦の罫で区切って数字を大きく刷る。
+private struct ProfileStats: View {
+    let stats: [ProfileStat]
+    let accent: Color
+    let s: CGFloat
+
+    var body: some View {
+        ProfileBox {
+            HStack(spacing: 0) {
+                ForEach(Array(stats.enumerated()), id: \.offset) { i, stat in
+                    if i > 0 { Rectangle().fill(ProfileSheetInk.ink).frame(width: ProfileSheetInk.rule) }
+                    VStack(spacing: 1) {
+                        Text(stat.label)
+                            .font(.system(size: 8.5 * s, weight: .bold))
+                            .foregroundStyle(ProfileSheetInk.sub)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        HStack(alignment: .lastTextBaseline, spacing: 2) {
+                            Text(stat.value)
+                                .font(.system(size: 22 * s, weight: .heavy, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(ProfileSheetInk.ink)
+                            Text(stat.unit)
+                                .font(.system(size: 9 * s, weight: .bold))
+                                .foregroundStyle(ProfileSheetInk.ink)
+                        }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        Rectangle().fill(accent).frame(width: 18 * s, height: 2.5)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6 * s)
+                    .padding(.horizontal, 4)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -561,18 +591,22 @@ private struct ProfileHeadline: View {
     }
 }
 
-/// 対応範囲: 刷ってあるブランドの名前に、対応しているものだけ手描きの丸。
+/// 担当ブランド: 刷ってあるブランドの名前に、担当しているものだけ手描きの丸 (メインは二重丸)。
 private struct ProfileBrandRange: View {
     let title: String
     let brands: [ProfileBrandCheck]
     let s: CGFloat
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        // 名前が 2 段に折り返しても、欄の名前は 1 段目の高さに置く。
+        HStack(alignment: .top, spacing: 10) {
             Text(title)
                 .font(.system(size: 9 * s, weight: .heavy))
                 .foregroundStyle(ProfileSheetInk.ink)
-            FlowLayout(spacing: 16 * s, lineSpacing: 8 * s) {
+                .padding(.top, 5 * s)
+                .fixedSize()
+            // 丸 (二重丸の外側) が欄の名前に掛からないよう、名前の列から少し離す。
+            FlowLayout(spacing: 11 * s, lineSpacing: 10 * s) {
                 ForEach(brands, id: \.id) { brand in
                     Text(brand.label)
                         .font(.system(size: 10.5 * s, weight: .bold))
@@ -580,34 +614,35 @@ private struct ProfileBrandRange: View {
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .overlay {
-                            if brand.checked {
-                                ProfileHandCircle(tilt: brand.tiltDegrees, stretch: brand.stretch,
-                                                  start: brand.startDegrees)
+                            ForEach(Array(brand.rings.enumerated()), id: \.offset) { i, ring in
+                                ProfileHandCircle(ring: ring)
                                     .stroke(ProfileSheetInk.accent(brand.color),
-                                            style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                                            style: StrokeStyle(lineWidth: i == 0 ? 2 : 1.6, lineCap: .round,
+                                                               lineJoin: .round))
                                     .padding(.horizontal, -3)
                                     .padding(.vertical, -4)
                             }
                         }
                 }
             }
+            .padding(.leading, 6 * s)
         }
-        .padding(.vertical, 2 * s)
+        .padding(.vertical, 4 * s)
     }
 }
 
-/// 手描きの丸。少し傾け、横に伸び縮みさせ、書き終わりを行き過ぎて重ねる。揺らぎはコアが id から決める。
+/// 手描きの丸。少し傾け、横に伸び縮みさせ、書き終わりを行き過ぎて重ねる。揺らぎはコアが id から決める
+/// (二重丸の 2 本目は大きさと中心もずらす)。
 struct ProfileHandCircle: Shape {
-    var tilt: Double
-    var stretch: Double
-    var start: Double
+    var ring: ProfileHandRing
 
     func path(in rect: CGRect) -> Path {
-        let cx = rect.midX
-        let cy = rect.midY
-        let rx = rect.width / 2 * stretch
-        let ry = rect.height / 2
-        let a0 = start * .pi / 180
+        let tilt = ring.tiltDegrees
+        let cx = rect.midX + rect.width * ring.offsetX
+        let cy = rect.midY + rect.height * ring.offsetY
+        let rx = rect.width / 2 * ring.stretch * ring.scale
+        let ry = rect.height / 2 * ring.scale
+        let a0 = ring.startDegrees * .pi / 180
         let sweep = 2 * Double.pi + 0.5
         let steps = 72
         var path = Path()

@@ -160,6 +160,6 @@ struct ProducerCardShowInfo: Hashable, Sendable {
     /// `showDisplayTitle` で組んだ表記。
     let label: String
     let venue: String?
-    /// ライブのブランド (プロフィール帳の対応範囲・職務経歴に使う)。
+    /// ライブのブランド (プロフィール帳の担当ブランド・職務経歴に使う)。
     var brandId: String? = nil
 }

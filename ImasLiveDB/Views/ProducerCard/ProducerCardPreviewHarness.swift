@@ -14,8 +14,7 @@ struct ProducerCardPreviewHarness: View {
         case profile, profileEditor, profileExport
     }
 
-    /// プロフィール帳の見本の中身 (`PROFILE_FILL=many|few`、`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
-    static var envProfileFill: String { ProcessInfo.processInfo.environment["PROFILE_FILL"] ?? "many" }
+    /// プロフィール帳の見本の選択 (`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
 
     /// 自分の名刺の書体を差し替えて撮る (`PRODUCER_CARD_FONT=pop`)。
     static var envFont: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_FONT"] }
@@ -87,7 +86,7 @@ struct ProducerCardPreviewHarness: View {
         case .profileEditor:
             if let mine = try? database.myProducerCard() {
                 ProfileSheetEditorView(card: mine, materials: profileMaterials ?? .empty) { _ in }
-                    .task { profileMaterials = await ProfileSheetAssembler.load(card: mine, sheet: mine.profile) }
+                    .task { profileMaterials = await ProfileSheetAssembler.load(card: mine) }
             }
         case .profileExport:
             Text(exportedCount.map { "書き出し \($0) 枚" } ?? "書き出し中")
@@ -163,8 +162,8 @@ struct ProducerCardPreviewHarness: View {
             }
         }
 
-        /// プロフィール帳の見本: お気に入りの曲・参加した公演を増やし、次の現場を 1 つ入れ、
-        /// 自分の名刺にプロフィール帳の中身を書く (何度呼んでも同じ)。
+        /// プロフィール帳の見本: お気に入りの曲・参加した公演 (担当の出た公演と最近の公演) を増やし、
+        /// 次の現場を 1 つ入れる (何度呼んでも同じ)。
         @MainActor
         static func seedProfile(_ db: AppDatabase) async {
             let now = "2026-10-06T00:00:00Z"
@@ -178,14 +177,18 @@ struct ProducerCardPreviewHarness: View {
                         VALUES ('song', ?, 'favorite', 1, NULL, ?)
                         """, arguments: [id, now])
                 }
-                let past = try String.fetchAll(d, sql: """
-                    SELECT id FROM shows WHERE date <= '2026-10-05' AND date >= '2014-01-01'
-                    ORDER BY date LIMIT 1 OFFSET 40
-                    """) + String.fetchAll(d, sql: """
-                    SELECT id FROM shows WHERE date <= '2026-10-05' ORDER BY date DESC LIMIT 14 OFFSET 4
+                let oshiShows = try String.fetchAll(d, sql: """
+                    SELECT DISTINCT s.id FROM shows s JOIN show_cast c ON c.show_id = s.id
+                    WHERE c.idol_id = (SELECT entity_id FROM user_marks WHERE entity_type = 'idol' AND kind = 'myPick'
+                                       AND bool_value = 1 ORDER BY entity_id LIMIT 1)
+                      AND s.date <= '2026-10-05' AND s.date >= '2014-01-01'
+                    ORDER BY s.date LIMIT 12
+                    """)
+                let recent = try String.fetchAll(d, sql: """
+                    SELECT id FROM shows WHERE date <= '2026-10-05' ORDER BY date DESC LIMIT 8 OFFSET 4
                     """)
                 let next = try String.fetchAll(d, sql: "SELECT id FROM shows WHERE date > '2026-10-06' ORDER BY date LIMIT 1")
-                for id in past + next {
+                for id in oshiShows + recent + next {
                     try d.execute(sql: """
                         INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
                         VALUES ('show', ?, 'attended', 1, 'live', ?)
@@ -194,42 +197,39 @@ struct ProducerCardPreviewHarness: View {
             }
             guard var mine = try? db.myProducerCard() else { return }
             if let key = envFont { mine.nameFont = key }
-            mine.profile = profileSample(fill: envProfileFill, songs: (try? await AppContainer.shared.markReading
-                .markedEntityIds(entity: .song, kind: .favorite)) ?? [])
+            mine.profile = profileSample()
             try? db.saveMyProducerCard(mine)
         }
 
-        static func profileSample(fill: String, songs: [String]) -> ProfileSheet {
+        static func profileSample() -> ProfileSheet {
             var sheet = profileSheetDefault()
             let env = ProcessInfo.processInfo.environment
             if env["PROFILE_STYLE"] == "career" { sheet.style = .career }
             if env["PROFILE_SIZE"] == "story" { sheet.size = .story }
-            sheet.furigana = "ふがぴー"
-            sheet.favoriteSongIds = Array(songs.prefix(3))
-            let few: [(ProfileQuestion, String)] = [
-                (.trigger, "アニメで見たステージに心をつかまれて"),
-                (.message, "同僚募集中です。気軽に声をかけてください"),
-            ]
-            let many: [(ProfileQuestion, String)] = few + [
-                (.oshiLove, "まっすぐなところ。歌声に何度も背中を押されてきました"),
-                (.bestLive, "はじめての現地。1 曲目のイントロで泣いた"),
-                (.favoriteCall, "サビ前のクラップ"),
-                (.expedition, "夜行バスで行った西武ドーム。帰りは始発"),
-                (.landmark, "担当色のタオルを首に巻いています"),
-            ]
-            sheet.answers = (fill == "few" ? few : many).map {
-                ProfileAnswer(question: $0.0, prompt: "", text: $0.1)
-            }
-            if fill == "few" {
-                sheet.hidden = [.qr, .songs]
-            } else {
-                sheet.hidden = []
-                sheet.brandOn = ["sc"]
-            }
+            sheet.hidden = []
+            sheet.brandOn = ["sc"]
             return sheet
         }
 
-        /// 様式 × 大きさ × 書体 × 欄の多い/少ないを全部 PNG に書き出す (Documents/profile_exports/)。
+        /// 記録の少ない人の見本 (参加 1 公演・担当なし・お気に入りなし・写真なし)。
+        static func sparse(_ m: ProfileSheetMaterials) -> ProfileSheetMaterials {
+            var out = m
+            out.record.attended = Array(m.record.attended.suffix(1))
+            out.record.oshiNames = []
+            out.record.oshiBrandIds = []
+            out.record.favoriteSongs = []
+            out.record.songCount = 12
+            out.record.sinceYear = nil
+            out.record.hasPhoto = false
+            out.record.hasQr = false
+            out.record.live = ProfileSheetMaterials.empty.record.live
+            out.oshi = []
+            out.portrait = nil
+            out.qr = nil
+            return out
+        }
+
+        /// 様式 × 大きさ × 書体 × 記録の多い/少ないを全部 PNG に書き出す (Documents/profile_exports/)。
         @MainActor
         static func exportProfiles(_ db: AppDatabase) async -> Int {
             guard var mine = try? db.myProducerCard() else { return 0 }
@@ -237,17 +237,16 @@ struct ProducerCardPreviewHarness: View {
                 .appendingPathComponent("profile_exports", isDirectory: true)
             try? FileManager.default.removeItem(at: dir)
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            let songs = (try? await AppContainer.shared.markReading.markedEntityIds(entity: .song, kind: .favorite)) ?? []
             var count = 0
-            for font in ["hand", "pop", "gothic"] {
+            for font in ["hand", "pop"] {
                 mine.nameFont = font
+                let full = await ProfileSheetAssembler.load(card: mine)
                 for fill in ["many", "few"] {
-                    let base = profileSample(fill: fill, songs: songs)
-                    let materials = await ProfileSheetAssembler.load(card: mine, sheet: base)
+                    let materials = fill == "few" ? sparse(full) : full
                     for style in [ProfileSheetStyle.resume, .career] {
                         for size in [ProfileSheetSize.portrait, .story] {
                             if font != "hand" && (fill == "few" || size == .story) { continue }
-                            var sheet = base
+                            var sheet = profileSample()
                             sheet.style = style
                             sheet.size = size
                             let layout = profileSheetLayout(sheet: sheet, record: materials.record)

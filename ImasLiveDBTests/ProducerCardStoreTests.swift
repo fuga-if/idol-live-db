@@ -55,9 +55,9 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(card.profile, profileSheetDefault())
         var sheet = card.profile
         sheet.size = .story
-        sheet.furigana = "ふがぴー"
-        sheet.favoriteSongIds = ["s1"]
+        sheet.hidden = [.topSongs, .qr] // 保存の形の並び (編集画面の順)
         sheet.brandOn = ["sc"]
+        sheet.brandMain = "sc"
         card.profile = sheet
         try db.saveMyProducerCard(card)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
@@ -133,7 +133,7 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.qrUrl = "https://lit.link/fuga"
         var sheet = profileSheetDefault()
         sheet.style = .career
-        sheet.answers[0].text = "アニメで見て"
+        sheet.brandMain = ""
         mine.profile = sheet
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))

@@ -13,34 +13,25 @@ struct ProfileSheetOshi: Identifiable {
 }
 
 /// プロフィール帳の材料。中身の組み立て (欄・行・丸・詰め方) はコアの `profileSheetLayout`、
-/// ここはアプリの記録とマスタを引いて渡す形にするだけ。
+/// ここはアプリの記録とマスタを引いて渡す形にするだけ。自分で書く欄は無い。
 struct ProfileSheetMaterials {
-    /// 名前・P歴・リンク・記録・ブランド・好きな曲 (好きな曲は `favoriteSongIds` を引いたもの)。
+    /// 名前・P歴・リンク・記録・ブランド・お気に入りの曲・セトリから数えた記録。
     var record: ProfileSheetRecord
     var oshi: [ProfileSheetOshi] = []
     /// P名刺の写真。
     var portrait: UIImage?
     /// 自分の QR (P名刺に載せていれば)。
     var qr: UIImage?
-    /// 答え・名前の書体 (P名刺の書体の PostScript 名)。
+    /// 名前と記入欄の書体 (P名刺の書体の PostScript 名)。
     var nameFont: String
-    /// 好きな曲を選ぶ候補 (お気に入りの曲)。
-    var favoriteCandidates: [Song] = []
-    /// 好きな曲の題 (id → 題)。
-    var songTitles: [String: String] = [:]
 
     static let empty = ProfileSheetMaterials(
-        record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiBrandIds: [], attended: [],
-                                   songCount: 0, brands: [], favoriteSongs: [], links: []),
+        record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiNames: [], oshiBrandIds: [], attended: [],
+                                   songCount: 0, brands: [], favoriteSongs: [], links: [], hasPhoto: false,
+                                   hasQr: false,
+                                   live: ProfileLiveRecord(topSongs: [], oshiHeard: [], topVenue: nil, prefectureCount: 0)),
         nameFont: cardNameFonts()[0].postscriptName
     )
-
-    /// 好きな曲を選び直したら、題を引き直さずに材料へ反映する。
-    func with(favoriteSongIds ids: [String]) -> ProfileSheetMaterials {
-        var out = self
-        out.record.favoriteSongs = ids.compactMap { id in songTitles[id].map { ProfileSongInput(id: id, title: $0) } }
-        return out
-    }
 
     /// 担当の色 (帯・罫・押印の判子)。担当がいなければ nil (墨)。
     var seed: String? { oshi.first?.color }
@@ -48,9 +39,10 @@ struct ProfileSheetMaterials {
 
 @MainActor
 enum ProfileSheetAssembler {
-    static func load(card: MyProducerCard, sheet: ProfileSheet) async -> ProfileSheetMaterials {
+    static func load(card: MyProducerCard) async -> ProfileSheetMaterials {
         let c = AppContainer.shared
         let limits = producerCardLimits()
+        let today = JSTDay.today()
         let oshiIds = Array(((try? await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? [])
             .prefix(Int(limits.maxOshi)))
         let attendedRefs = (try? await c.producerCards.attendedShowRefs()) ?? []
@@ -61,11 +53,13 @@ enum ProfileSheetAssembler {
         let idols = oshiIds.isEmpty ? [] : ((try? await c.idolReading.idols(ids: oshiIds)) ?? [])
         let idolById = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let oshiIdols = oshiIds.compactMap { idolById[$0] }
+        let live = (try? await c.statsReading.profileLiveRecord(
+            attendedShowIds: attendedRefs.map(\.showId), oshiIdolIds: oshiIdols.map(\.id), today: today))
+            ?? ProfileSheetMaterials.empty.record.live
 
-        // 好きな曲の候補はお気に入りの曲 (選んだ曲がお気に入りから外れていても題は引く)。
+        // お気に入りの曲 (載せる数と並びはコア。引けない曲は入れない)。
         let favoriteIds = (try? await c.markReading.markedEntityIds(entity: .song, kind: .favorite)) ?? []
-        let songIds = Array(Set(favoriteIds + sheet.favoriteSongIds))
-        let songs = songIds.isEmpty ? [] : ((try? await c.songReading.songs(ids: songIds)) ?? [])
+        let songs = favoriteIds.isEmpty ? [] : ((try? await c.songReading.songs(ids: favoriteIds)) ?? [])
         let songById = Dictionary(songs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
 
         let images = CustomImageService.shared
@@ -76,11 +70,14 @@ enum ProfileSheetAssembler {
                 image: images.imageURL(for: idol.id).flatMap { UIImage(contentsOfFile: $0.path) }
             )
         }
+        let portrait = ProducerCardFiles.myPhotoURL.flatMap { UIImage(contentsOfFile: $0.path) }
+        let qr = card.qrUrl.flatMap { ImasQRCode.render($0) }
 
         let record = ProfileSheetRecord(
-            today: JSTDay.today(),
+            today: today,
             name: card.name,
             sinceYear: card.sinceYear.flatMap(UInt16.init(exactly:)),
+            oshiNames: oshiIdols.map(\.name),
             oshiBrandIds: oshiIdols.map(\.brandId),
             attended: attendedRefs.compactMap { ref in
                 guard let info = shows[ref.showId] else { return nil }
@@ -91,20 +88,19 @@ enum ProfileSheetAssembler {
             brands: brands.map {
                 ProfileBrandInput(id: $0.id, label: $0.shortName, color: $0.color, sortOrder: Int64($0.sortOrder))
             },
-            favoriteSongs: [],
-            links: card.links.map { cardLinkView(link: $0).display }
+            favoriteSongs: favoriteIds.compactMap { id in songById[id].map { ProfileSongInput(id: id, title: $0.title) } },
+            links: card.links.map { cardLinkView(link: $0).display },
+            hasPhoto: portrait != nil,
+            hasQr: qr != nil,
+            live: live
         )
-        var out = ProfileSheetMaterials(
+        return ProfileSheetMaterials(
             record: record,
             oshi: oshi,
-            portrait: ProducerCardFiles.myPhotoURL.flatMap { UIImage(contentsOfFile: $0.path) },
-            qr: card.qrUrl.flatMap { ImasQRCode.render($0) },
-            nameFont: cardNameFontInfo(font: card.font).postscriptName,
-            favoriteCandidates: favoriteIds.compactMap { songById[$0] },
-            songTitles: songById.mapValues(\.title)
+            portrait: portrait,
+            qr: qr,
+            nameFont: cardNameFontInfo(font: card.font).postscriptName
         )
-        out = out.with(favoriteSongIds: sheet.favoriteSongIds)
-        return out
     }
 
     /// 書き出す画像 (1080 幅の PNG にする UIImage)。

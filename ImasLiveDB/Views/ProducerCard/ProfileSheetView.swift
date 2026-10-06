@@ -2,8 +2,9 @@ import SwiftUI
 
 /// プロフィール帳: P としての自己紹介を、履歴書・職務経歴書の様式の 1 枚絵にして SNS に貼る。
 ///
-/// 名前・写真・書体・リンク・自分の QR は P名刺のもの、担当・記録はアプリから。自分で書く欄と
-/// 様式・大きさは編集シート (`ProfileSheetEditorView`) で決め、端末の自分の名刺の行に持つ。
+/// 自分で書く欄は無く、中身はすべてアプリの記録から埋まる (開いたらすぐ書き出せる)。名前・写真・
+/// 書体・リンク・自分の QR は P名刺のもの。ここでは様式と大きさを選び、載せる記録と担当ブランドの丸は
+/// 編集シート (`ProfileSheetEditorView`) で選ぶ。選択は端末の自分の名刺の行に持つ。
 /// 欄の割り当て・行の組み立てはコア (`profileSheetLayout`)。
 struct ProfileSheetView: View {
     @State private var card: MyProducerCard?
@@ -11,6 +12,10 @@ struct ProfileSheetView: View {
     @State private var loaded = false
     @State private var editing: MyProducerCard?
     @State private var exportError: String?
+    @State private var saveError: String?
+
+    private let styles = profileSheetStyles()
+    private let sizes = profileSheetSizes()
 
     var body: some View {
         ImasPage {
@@ -23,10 +28,16 @@ struct ProfileSheetView: View {
                     ProfileSheetCard(layout: layout, materials: materials)
                 }
                 .accessibilityLabel("\(layout.title)の見本")
+                ImasSegmented(options: styles.map(\.style), selection: choice(\.style)) { style in
+                    styles.first { $0.style == style }?.label ?? ""
+                }
+                ImasSegmented(options: sizes.map(\.size), selection: choice(\.size)) { size in
+                    sizes.first { $0.size == size }.map { "\($0.label) \($0.caption)" } ?? ""
+                }
                 ImasButton(title: "画像を書き出す", systemImage: "square.and.arrow.up", role: .primary, size: .large) {
                     export(layout)
                 }
-                ImasNote("自分で書く欄・様式・載せる記録は右上の鉛筆から。名前・写真・書体・リンクは P名刺のものを使います。書き出した画像は共有シートから写真に保存できます。")
+                ImasNote("中身はアプリの記録 (参加した公演・セトリ・回収・担当・お気に入り) から自動で埋まります。載せる記録と担当ブランドの丸は右上の鉛筆から。名前・写真・書体・リンクは P名刺のものを使います。")
             }
         }
         .navigationTitle("プロフィール帳")
@@ -34,21 +45,42 @@ struct ProfileSheetView: View {
         .toolbar {
             if card != nil {
                 ToolbarItem(placement: .topBarTrailing) {
-                    ImasToolbarButton(systemImage: "pencil", label: "プロフィール帳を編集") { editing = card }
+                    ImasToolbarButton(systemImage: "pencil", label: "載せる記録を選ぶ") { editing = card }
                 }
             }
         }
         .sheet(item: $editing) { card in
             ProfileSheetEditorView(card: card, materials: materials) { sheet in
-                var saved = (try await AppContainer.shared.producerCards.myCard()) ?? card
-                saved.profile = sheet
-                try await AppContainer.shared.producerCards.saveMyCard(saved)
-                await load()
+                try await save(sheet)
             }
         }
         .imasErrorAlert("画像を書き出せませんでした", message: $exportError)
+        .imasErrorAlert("保存できませんでした", message: $saveError)
         .task { await load() }
         .trackScreen("profile_sheet")
+    }
+
+    /// 様式・大きさの切り替え。選んだらその場で保存する (書き出しまで 1 画面で済ませる)。
+    private func choice<Value>(_ key: WritableKeyPath<ProfileSheet, Value>) -> Binding<Value> {
+        Binding(
+            get: { (card?.profile ?? profileSheetDefault())[keyPath: key] },
+            set: { value in
+                guard var sheet = card?.profile else { return }
+                sheet[keyPath: key] = value
+                card?.profile = sheet
+                Task {
+                    do { try await save(sheet) } catch { saveError = error.localizedDescription }
+                }
+            }
+        )
+    }
+
+    private func save(_ sheet: ProfileSheet) async throws {
+        guard let card else { return }
+        var saved = (try await AppContainer.shared.producerCards.myCard()) ?? card
+        saved.profile = sheet
+        try await AppContainer.shared.producerCards.saveMyCard(saved)
+        self.card = saved
     }
 
     private func export(_ layout: ProfileSheetLayout) {
@@ -64,7 +96,7 @@ struct ProfileSheetView: View {
         let mine = try? await AppContainer.shared.producerCards.myCard()
         // 材料を読み終えてから名刺を入れる (読み込み中に編集シートを空の材料で開かせない)。
         if let mine {
-            materials = await ProfileSheetAssembler.load(card: mine, sheet: mine.profile)
+            materials = await ProfileSheetAssembler.load(card: mine)
         }
         card = mine
         loaded = true
