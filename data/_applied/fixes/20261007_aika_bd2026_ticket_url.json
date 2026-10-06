@@ -1,0 +1,16 @@
+{
+ "title": "灯里愛夏 BIRTHDAY ONLINE LIVE 2026 の特設 URL を埋める",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20056.html",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏_birthday_online_live_2026",
+   "fields": {
+    "ticket_url": "https://asobistage.asobistore.jp/event/valiv_bd2026_manaka/ticket"
+   },
+   "source": "https://idolmaster-official.jp/news/01_20056.html",
+   "note": "公式ニュースのチケットページへのリンク (レトラ 2026 と同じ形)"
+  }
+ ]
+}
