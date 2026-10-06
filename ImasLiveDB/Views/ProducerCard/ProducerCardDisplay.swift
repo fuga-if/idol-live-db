@@ -24,6 +24,16 @@ struct ProducerCardDirectory {
         }
         return dir
     }
+
+    /// 担当の名前とブランド (端末に無い担当は入れない)。名刺の表の組み・名刺に載せる担当の選び方はコア
+    /// (`producerCardFace` / `producerCardPickOshi`)。
+    func oshiEntries(_ ids: [String]) -> [CardOshiEntry] {
+        ids.compactMap { id in
+            guard let idol = idols[id] else { return nil }
+            return CardOshiEntry(idolId: id, name: idol.name, brandId: idol.brandId,
+                                 brandLabel: brands[idol.brandId]?.shortName ?? "")
+        }
+    }
 }
 
 /// 名刺 (コアの `ProducerCard`) を DS の `ImasProducerCard` に載せる形にする。
@@ -160,7 +170,7 @@ enum ProducerCardDisplay {
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
-        let cardFace = producerCardFace(card: card, drawableIdolIds: oshi.map(\.id))
+        let cardFace = producerCardFace(card: card, drawable: directory.oshiEntries(oshi.map(\.id)))
         let byId = Dictionary(oshi.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         return ImasProducerCard(
             design: cardDesign(card, face: face),
@@ -168,7 +178,10 @@ enum ProducerCardDisplay {
             name: card.name,
             message: card.message,
             oshi: oshi,
-            faceOshi: cardFace.oshiIdolIds.compactMap { byId[$0] },
+            faceGroups: cardFace.oshiGroups.map { group in
+                ImasProducerCard.FaceGroup(label: group.brandLabel, oshi: group.idolIds.compactMap { byId[$0] })
+            },
+            faceCaption: cardFace.oshiCaption,
             moreOshi: Int(cardFace.moreOshi),
             handle: cardFace.handle?.display,
             links: links(card),

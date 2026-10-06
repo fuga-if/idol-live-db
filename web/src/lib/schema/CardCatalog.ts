@@ -8,6 +8,16 @@ export type CardCatalog = { schemaVersion: number,
  */
 idols: Array<Ref>, 
 /**
+ * 担当のブランド (アイドルの id → ブランドの id)。名刺の表で担当をブランドごとに並べるのに
+ * 使う (ページが `CardOshiEntry` に詰めて wasm の `producer_card_face_json` に渡す)。
+ * ブランドの無いアイドルは載せない。
+ */
+idolBrandIds: { [key in string]: string }, 
+/**
+ * 名刺の表に刷るブランドの略称 (ブランドの id → 略称。「765AS」「学マス」)。
+ */
+brandLabels: { [key in string]: string }, 
+/**
  * 「次の現場」(`next_show_id`) を解決するための、今日以降の公演。
  */
 upcomingShows: Array<Ref>, 

@@ -104,6 +104,11 @@ private enum Sample {
          .init(id: "c", name: "如月千早", shortName: "千", seed: chihaya, subtitle: "765AS", isShared: true)]
     }
 
+    /// P名刺の表の見本 (ブランドごとのまとまり。まとめ方はコアの `producerCardFace`)。
+    static var cardFaceGroups: [ImasProducerCard.FaceGroup] {
+        [.init(label: "学マス", oshi: [cardOshi[0]]), .init(label: "765AS", oshi: [cardOshi[1]])]
+    }
+
     static let haruka = "#E22B30"
     static let chihaya = "#2743D2"
     static let miki = "#B4E04B"
@@ -251,10 +256,10 @@ private struct VenueRowsPage: View {
                              subtitle: "コミュニティで表示される名前", onOpen: {})
                 }
             }
-            ImasSection("P名刺", style: .small, footer: "名刺は 91:55 の横長の紙 1 枚 (紙に刷る画像と同じ組み)。表は名前・P歴・名刺の写真・担当 (写真か判子、4 人以上は 2 人 +N)・ハンドル 1 つ。押すと裏返って QR・参加公演数・回収曲数・日付。デザインは 3 つ (入場証・かしこまった名刺・ポップ) と自作の画像。紙はダークでも明るいチケットの紙。収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下に並べる。") {
+            ImasSection("P名刺", style: .small, footer: "名刺は 91:55 の横長の紙 1 枚 (紙に刷る画像と同じ組み)。表は名前・P歴・名刺の写真・担当 (写真か判子をブランドごとにまとめ、5 人まで全員。ブランドが 2 つ以上なら判子の下にブランドの略称)・ハンドル 1 つ。押すと裏返って QR・参加公演数・回収曲数・日付。デザインは 3 つ (入場証・かしこまった名刺・ポップ) と自作の画像。紙はダークでも明るいチケットの紙。収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下に並べる。") {
                 let lead = ImasProducerCard(
                     sinceImprint: "SINCE 2014", name: "ふがP", message: "現地派・Pライブ皆勤目指してます",
-                    oshi: Sample.cardOshi, faceOshi: Sample.cardOshi,
+                    oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
                     handle: "@fuga_p",
                     links: [.init(label: "X", display: "@fuga_p", url: "https://x.com/fuga_p")],
                     cells: [.init(value: "87", unit: "公演", label: "参加公演"), .init(value: "412", unit: "曲", label: "回収曲"),
@@ -266,10 +271,11 @@ private struct VenueRowsPage: View {
                 VStack(spacing: DS.Space.gapLoose) {
                     lead
                     ImasProducerCard(design: .formal, sinceImprint: "SINCE 2011", name: "かるたP",
-                                     oshi: [Sample.cardOshi[1]], faceOshi: [Sample.cardOshi[1]], handle: "@karuta_p",
+                                     oshi: [Sample.cardOshi[1]], faceGroups: [.init(label: "765AS", oshi: [Sample.cardOshi[1]])],
+                                     faceCaption: "如月千早 担当", handle: "@karuta_p",
                                      portraitURL: URL(fileURLWithPath: "/dev/null"), nameFont: "ZenOldMincho-Black")
                     ImasProducerCard(design: .pop, sinceImprint: "SINCE 2020", name: "みどりP",
-                                     oshi: Sample.cardOshi, faceOshi: [Sample.cardOshi[0], Sample.cardOshi[1]], moreOshi: 3,
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
                                      handle: "@midori_p", nameFont: "MochiyPopOne-Regular")
                     ImasProducerCard(design: .face(front: URL(fileURLWithPath: "/dev/null"), back: nil), name: "しろくまP")
                     lead.details

@@ -95,6 +95,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_card_invite_proof,
     uniffi_imas_core_checksum_func_card_issued_label,
     uniffi_imas_core_checksum_func_producer_card_face,
+    uniffi_imas_core_checksum_func_producer_card_pick_oshi,
     uniffi_imas_core_checksum_func_card_link_kind_from_key,
     uniffi_imas_core_checksum_func_card_link_kind_key,
     uniffi_imas_core_checksum_func_card_links_from_json,

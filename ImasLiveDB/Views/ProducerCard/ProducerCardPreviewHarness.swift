@@ -27,9 +27,16 @@ struct ProducerCardPreviewHarness: View {
     /// 自分の名刺のデザインを差し替えて撮る (`PRODUCER_CARD_DESIGN=pop`、`custom` は見本の自作の画像も置く)。
     static var envDesign: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DESIGN"] }
 
-    /// 自分の担当の人数 (`PRODUCER_CARD_OSHI=5`。既定は 2。4 人以上で表の担当が数で畳まれる)。
+    /// 自分の担当の人数 (`PRODUCER_CARD_OSHI=5`。既定は 2)。
     static var envOshiCount: Int {
         ProcessInfo.processInfo.environment["PRODUCER_CARD_OSHI"].flatMap(Int.init) ?? 2
+    }
+
+    /// 自分の担当を名前で決める (`PRODUCER_CARD_OSHI_NAMES=星井美希,上水流宇宙`)。
+    /// 渡すと `PRODUCER_CARD_OSHI` より優先する (ブランドをまたぐ担当の表を撮る)。
+    static var envOshiNames: [String]? {
+        ProcessInfo.processInfo.environment["PRODUCER_CARD_OSHI_NAMES"]
+            .map { $0.split(separator: ",").map(String.init) }
     }
 
     /// 受け取った名刺の詳細で開く名刺の名前 (`PRODUCER_CARD_DETAIL=みどりP`。既定は写真のある名刺)。
@@ -156,10 +163,21 @@ struct ProducerCardPreviewHarness: View {
                     .map { ($0["id"] as String, $0["date"] as String) }
             }) ?? []
             guard idols.count >= 4, shows.count >= 3 else { return }
+            let myOshi: [String]
+            if let names = envOshiNames {
+                let found: [String: String] = (try? await db.dbQueue.read { d in
+                    try Dictionary(Row.fetchAll(d, sql: "SELECT id, name FROM idols WHERE name IN (\(names.map { _ in "?" }.joined(separator: ",")))",
+                                                arguments: StatementArguments(names))
+                        .map { ($0["name"] as String, $0["id"] as String) }, uniquingKeysWith: { a, _ in a })
+                }) ?? [:]
+                myOshi = names.compactMap { found[$0] }
+            } else {
+                myOshi = Array(idols.prefix(envOshiCount))
+            }
             let now = "2026-10-06T00:00:00Z"
             // 自分の担当と参加 (見本なので端末の印に直接書く)。
             try? await db.dbQueue.write { d in
-                for id in idols.prefix(envOshiCount) {
+                for id in myOshi {
                     try d.execute(sql: """
                         INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
                         VALUES ('idol', ?, 'myPick', 1, NULL, ?)
@@ -182,7 +200,7 @@ struct ProducerCardPreviewHarness: View {
             try? db.saveMyProducerCard(mine)
             try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop())
             // 担当の代表画像は実機と同じく大きな縦長・横長 (枠からはみ出さないかを見る)。
-            for (i, id) in idols.prefix(envOshiCount).enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
+            for (i, id) in myOshi.enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
                 _ = try? await CustomImageService.shared.addImage(bigPicture(tall: i % 2 == 0, seed: i), for: id)
             }
 

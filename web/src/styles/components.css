@@ -3191,7 +3191,7 @@ a.cal__day:hover {
 
 /* --- P名刺 (`/p/`) ---------------------------------------------------------
    名刺そのものは 91:55 の横長の紙 1 枚 (アプリの名刺・紙に刷る画像と同じ組み)。
-   表は名前・P歴の印字・担当 (数で畳む。並べる人はコアの producer_card_face)・ハンドル 1 つ。
+   表は名前・P歴の印字・担当 (ブランドごとにまとめる。並べる人はコアの producer_card_face)・ハンドル 1 つ。
    文字は紙の幅に合わせて伸び縮みする (container query の cqi。紙の上の大きさで決める)。
    収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下の紙面 (.meishi-details) に並べる。
    名刺のデザインは 3 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
@@ -3262,12 +3262,27 @@ a.cal__day:hover {
   color: var(--ds-ink);
   overflow-wrap: anywhere;
 }
+/* 担当: 1 行の文言 (「星井美希 担当」) か、ブランドごとのまとまり (「765AS 星井美希」) を折り返して並べる
+   (並べる人・まとめ方・文言はコアの producer_card_face。2 行を超える分は切る)。 */
 .meishi-card__face-oshi {
-  font-size: 2.4cqi;
-  color: var(--ds-ink);
-  white-space: nowrap;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6cqi 2.4cqi;
+  max-block-size: calc(2.4cqi * 1.4 * 2 + 0.6cqi);
   overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 2.4cqi;
+  line-height: 1.4;
+  color: var(--ds-ink);
+}
+.meishi-card__face-group {
+  white-space: nowrap;
+}
+.meishi-card__face-brand {
+  margin-inline-end: 0.8cqi;
+  font-family: ui-monospace, monospace;
+  font-size: 1.8cqi;
+  letter-spacing: 0.08em;
+  color: var(--ds-ink2);
 }
 .meishi-card__footer {
   display: flex;

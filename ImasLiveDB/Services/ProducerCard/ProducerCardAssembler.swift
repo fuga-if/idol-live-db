@@ -5,6 +5,8 @@ import UIKit
 struct ProducerCardMyRecord: Sendable {
     /// 担当 (アプリの担当の印)。
     let oshiIds: [String]
+    /// 名刺に載せる担当 (担当から上限まで。ブランドごとに 1 人を先に確保する選び方はコアの `producerCardPickOshi`)。
+    let cardOshiIds: [String]
     /// 参加を付けた公演 (今後の参加予定も含む)。
     let attended: [CardShowRef]
     /// 回収した曲の数。
@@ -13,6 +15,14 @@ struct ProducerCardMyRecord: Sendable {
     /// 共通点に使う「行った公演」と「次の現場」。分け方はコア。
     var summary: CardRecordSummary {
         producerCardRecordSummary(today: JSTDay.today(), attended: attended)
+    }
+
+    /// `cardOshiIds` を渡さなければ担当のまま (名刺を組むときに上限で切る)。
+    init(oshiIds: [String], cardOshiIds: [String]? = nil, attended: [CardShowRef], songCount: Int) {
+        self.oshiIds = oshiIds
+        self.cardOshiIds = cardOshiIds ?? oshiIds
+        self.attended = attended
+        self.songCount = songCount
     }
 }
 
@@ -27,7 +37,14 @@ enum ProducerCardAssembler {
         let oshi = try await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)
         let attended = try await c.producerCards.attendedShowRefs()
         let songs = try await c.markReading.autoCollectedSongIds()
-        return ProducerCardMyRecord(oshiIds: oshi, attended: attended, songCount: songs.count)
+        return ProducerCardMyRecord(oshiIds: oshi, cardOshiIds: await cardOshiIds(oshi), attended: attended,
+                                    songCount: songs.count)
+    }
+
+    /// 名刺に載せる担当 (担当の名前とブランドを引いて、選び方はコアの `producerCardPickOshi`)。
+    static func cardOshiIds(_ oshi: [String]) async -> [String] {
+        let directory = await ProducerCardDirectory.load(idolIds: oshi, showIds: [])
+        return producerCardPickOshi(oshi: directory.oshiEntries(oshi))
     }
 
     /// 名刺の入力。外した項目は空にする。
@@ -38,7 +55,7 @@ enum ProducerCardAssembler {
             name: card.name,
             message: card.shows(.message) ? card.message : "",
             sinceYear: card.shows(.since) ? card.sinceYear.flatMap(UInt16.init(exactly:)) : nil,
-            oshiIdolIds: card.shows(.oshi) ? Array(record.oshiIds.prefix(Int(limits.maxOshi))) : [],
+            oshiIdolIds: card.shows(.oshi) ? Array(record.cardOshiIds.prefix(Int(limits.maxOshi))) : [],
             links: card.shows(.links) ? card.links : [],
             showCount: card.shows(.showCount) ? summary.showCount : nil,
             songCount: card.shows(.songCount) ? UInt32(record.songCount) : nil,

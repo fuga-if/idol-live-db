@@ -18,6 +18,12 @@ web_dto! {
         pub schema_version: u32,
         /// 担当 (`oshi_idol_ids`) を解決するための全アイドル。
         pub idols: Vec<Ref>,
+        /// 担当のブランド (アイドルの id → ブランドの id)。名刺の表で担当をブランドごとに並べるのに
+        /// 使う (ページが `CardOshiEntry` に詰めて wasm の `producer_card_face_json` に渡す)。
+        /// ブランドの無いアイドルは載せない。
+        pub idol_brand_ids: std::collections::BTreeMap<String, String>,
+        /// 名刺の表に刷るブランドの略称 (ブランドの id → 略称。「765AS」「学マス」)。
+        pub brand_labels: std::collections::BTreeMap<String, String>,
         /// 「次の現場」(`next_show_id`) を解決するための、今日以降の公演。
         pub upcoming_shows: Vec<Ref>,
         /// 「アプリで開いて名刺入れに入れる」導線。

@@ -9,8 +9,8 @@ import SwiftUI
 // ImasProducerCard   P名刺 1 枚。名刺そのものは 91:55 の横長の紙 1 枚 (紙に刷る画像の表・裏と同じ組み、
 //                    `ImasMeishiFront` / `ImasMeishiBack`)。押すと裏返って裏 (QR・参加公演数・回収曲数・日付)。
 //                    デザイン (`design`) は 3 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
-//                    表に載せるのは名前・P歴・名刺の写真・担当 (判子か写真、多いときは数で畳む)・ハンドル 1 つ
-//                    (載せる担当とハンドルはコアの `producerCardFace`)。
+//                    表に載せるのは名前・P歴・名刺の写真・担当 (判子か写真をブランドごとにまとめる)・ハンドル 1 つ
+//                    (載せる担当・まとめ方・判子の下の文言・ハンドルはコアの `producerCardFace`)。
 //                    - 自作の画像 (face): 表は自分で作った名刺の画像。裏は裏の画像 (無ければ QR の裏)。
 //                      画像が手元に無い名刺は入場証で描く (コアが決める)。
 //                    名刺に収まらないもの (ひとこと・担当の一覧・リンクの一覧・記録の掲示板) は
@@ -59,6 +59,13 @@ struct ImasProducerCard: View {
         var isShared: Bool = false
     }
 
+    /// 名刺の表で 1 つのブランドにまとめて並べる担当 (コアの `CardFaceOshiGroup`)。
+    struct FaceGroup: Hashable {
+        /// ブランドの略称 (「765AS」)。`faceCaption` が無いときだけ判子の下に刷る。
+        let label: String
+        let oshi: [Oshi]
+    }
+
     /// 名刺に載せるリンク 1 本。
     struct Link: Identifiable, Hashable {
         var id: String { url }
@@ -90,8 +97,10 @@ struct ImasProducerCard: View {
     var message: String? = nil
     /// 担当の全員 (名刺の下の担当の一覧)。
     var oshi: [Oshi] = []
-    /// 名刺の表に並べる担当 (コアの `producerCardFace`)。
-    var faceOshi: [Oshi] = []
+    /// 名刺の表に並べる担当のブランドごとのまとまり (コアの `producerCardFace`)。
+    var faceGroups: [FaceGroup] = []
+    /// 名刺の表の判子の下の 1 行 (「星井美希 担当」)。nil ならまとまりごとにブランドの略称を刷る。
+    var faceCaption: String? = nil
     /// 表で数で畳んだ担当の人数。
     var moreOshi: Int = 0
     /// 表に刷るハンドル 1 つ。
@@ -207,12 +216,15 @@ struct ImasProducerCard: View {
                 look: design == .formal ? .formal : (design == .pop ? .pop : .pass),
                 name: name,
                 sinceImprint: sinceImprint,
-                oshi: faceOshi.map { item in
-                    let theme = ImasTheme.derive(seed: item.seed, brand: item.brand, scheme: .light)
-                    return ImasMeishiOshi(id: item.id, name: item.name, shortName: item.shortName,
-                                          color: theme.isNeutral ? DS.ticketInk : theme.accent,
-                                          picture: item.imageURL.map { .url($0) })
+                oshiGroups: faceGroups.map { group in
+                    ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map { item in
+                        let theme = ImasTheme.derive(seed: item.seed, brand: item.brand, scheme: .light)
+                        return ImasMeishiOshi(id: item.id, name: item.name, shortName: item.shortName,
+                                              color: theme.isNeutral ? DS.ticketInk : theme.accent,
+                                              picture: item.imageURL.map { .url($0) })
+                    })
                 },
+                oshiCaption: faceCaption,
                 moreOshi: moreOshi,
                 handle: handle,
                 nameFont: nameFont,
@@ -247,8 +259,12 @@ struct ImasProducerCard: View {
         if case .face = design { return "\(name)の名刺の画像" }
         var parts = ["\(name)の名刺"]
         if let sinceImprint { parts.append(sinceImprint) }
-        if !faceOshi.isEmpty {
-            let names = faceOshi.map(\.name).joined(separator: "、")
+        if !faceGroups.isEmpty {
+            // 読み上げはブランドごとに「765AS 星井美希」(1 ブランドなら名前だけ)。
+            let names = faceGroups.map { group in
+                let members = group.oshi.map(\.name).joined(separator: "、")
+                return faceGroups.count > 1 && !group.label.isEmpty ? "\(group.label) \(members)" : members
+            }.joined(separator: "、")
             parts.append(moreOshi > 0 ? "担当 \(names) ほか\(moreOshi)人" : "担当 \(names)")
         }
         if let handle { parts.append(handle) }

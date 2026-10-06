@@ -41,6 +41,12 @@ enum ProducerCardPrint {
     }
 }
 
+/// 紙に刷る担当のブランドごとのまとまり (コアの `CardFaceOshiGroup`)。
+struct ProducerCardPrintOshiGroup {
+    let label: String
+    let oshi: [ProducerCardPrintOshi]
+}
+
 /// 紙に刷る担当 1 人 (写真は読み込み済みのものだけ)。
 struct ProducerCardPrintOshi: Identifiable {
     let id: String
@@ -56,8 +62,10 @@ struct ProducerCardPrintFront: View {
     let name: String
     /// 「SINCE 2014」(コアの `CardFace.sinceImprint`)。
     var sinceImprint: String? = nil
-    /// 表に並べる担当 (コアの `CardFace.oshiIdolIds` の順)。
-    var oshi: [ProducerCardPrintOshi] = []
+    /// 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
+    var groups: [ProducerCardPrintOshiGroup] = []
+    /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。
+    var caption: String? = nil
     var moreOshi: Int = 0
     /// 担当の色 (帯・罫)。先頭の担当の色。
     var seed: String? = nil
@@ -71,11 +79,14 @@ struct ProducerCardPrintFront: View {
     var body: some View {
         ImasMeishiFront(
             look: look, name: name, sinceImprint: sinceImprint,
-            oshi: oshi.map {
-                ImasMeishiOshi(id: $0.id, name: $0.name, shortName: $0.shortName,
-                               color: ProducerCardPrint.stampColor(seed: $0.seed),
-                               picture: $0.image.map { .image($0) })
+            oshiGroups: groups.map { group in
+                ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map {
+                    ImasMeishiOshi(id: $0.id, name: $0.name, shortName: $0.shortName,
+                                   color: ProducerCardPrint.stampColor(seed: $0.seed),
+                                   picture: $0.image.map { .image($0) })
+                })
             },
+            oshiCaption: caption,
             moreOshi: moreOshi, handle: handle, nameFont: nameFont,
             portrait: portrait.map { .image($0) },
             ink: ProducerCardPrint.colors(seed: seed)

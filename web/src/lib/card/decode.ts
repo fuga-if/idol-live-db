@@ -10,7 +10,7 @@
  * `Query` (生テーブル 10MB を組み直す側) は経由しない。名刺の読み解きに Snapshot は
  * 要らないので、wasm モジュールだけ (640KB 級) を取りに行く。
  */
-import type { CardFace, CardView } from "./types";
+import type { CardFace, CardOshiEntry, CardView } from "./types";
 
 let cached: Promise<typeof import("../query/imas_query_wasm")> | null = null;
 
@@ -35,12 +35,13 @@ export async function decodeCard(text: string): Promise<CardView | null> {
 }
 
 /**
- * 名刺の表 (91:55) に載せるもの。`drawableIdolIds` は台帳 (`p/catalog.json`) にある担当の id。
- * 表に並べる担当・数で畳む人数・ハンドルの選び方は wasm 側 (`producer_card_face`) が決める。
+ * 名刺の表 (91:55) に載せるもの。`drawable` は台帳 (`p/catalog.json`) にある担当の名前とブランド。
+ * 表に並べる担当・ブランドごとのまとめ方・判子の下の 1 行・数で畳む人数・ハンドルの選び方は
+ * wasm 側 (`producer_card_face`) が決める。
  */
-export async function decodeCardFace(text: string, drawableIdolIds: string[]): Promise<CardFace | null> {
+export async function decodeCardFace(text: string, drawable: CardOshiEntry[]): Promise<CardFace | null> {
   const mod = await loadModule();
-  const result = mod.producer_card_face_json(text, drawableIdolIds);
+  const result = mod.producer_card_face_json(text, JSON.stringify(drawable));
   if (typeof result !== "string") return null;
   return JSON.parse(result) as CardFace;
 }

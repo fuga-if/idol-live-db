@@ -103,7 +103,7 @@ struct ProducerCardPrintSheet {
 
     /// 表の組み (載せる担当・畳む数・ハンドルはコア)。
     private var face: CardFace {
-        producerCardFace(card: card.card, drawableIdolIds: card.card.oshiIdolIds.filter { directory.idols[$0] != nil })
+        producerCardFace(card: card.card, drawable: directory.oshiEntries(card.card.oshiIdolIds))
     }
 
     /// 裏の QR の中身。
@@ -125,12 +125,15 @@ struct ProducerCardPrintSheet {
             look: look,
             name: card.card.name,
             sinceImprint: face.sinceImprint,
-            oshi: face.oshiIdolIds.compactMap { id in
-                directory.idols[id].map {
-                    ProducerCardPrintOshi(id: id, name: $0.name, shortName: $0.shortName, seed: $0.color,
-                                          image: materials.oshiImages[id])
-                }
+            groups: face.oshiGroups.map { group in
+                ProducerCardPrintOshiGroup(label: group.brandLabel, oshi: group.idolIds.compactMap { id in
+                    directory.idols[id].map {
+                        ProducerCardPrintOshi(id: id, name: $0.name, shortName: $0.shortName, seed: $0.color,
+                                              image: materials.oshiImages[id])
+                    }
+                })
             },
+            caption: face.oshiCaption,
             moreOshi: Int(face.moreOshi),
             // 担当の色は画面の名刺と同じく、描ける先頭の担当の色。
             seed: face.oshiIdolIds.first.flatMap { directory.idols[$0]?.color },

@@ -17,6 +17,13 @@ pub fn card_catalog(ctx: &Ctx) -> CardCatalog {
         .iter()
         .filter_map(|idol| ctx.idol_ref(&idol.id))
         .collect();
+    let idol_brand_ids = ctx
+        .snap
+        .idols
+        .iter()
+        .filter_map(|idol| Some((idol.id.clone(), idol.brand_id.clone()?)))
+        .collect();
+    let brand_labels = ctx.snap.brands.iter().map(|b| (b.id.clone(), b.short_name.clone())).collect();
 
     let upcoming_show_shows = upcoming_shows(ctx.snap, &ctx.today);
     let upcoming_shows_refs = upcoming_show_shows
@@ -29,6 +36,8 @@ pub fn card_catalog(ctx: &Ctx) -> CardCatalog {
     CardCatalog {
         schema_version: SCHEMA_VERSION,
         idols,
+        idol_brand_ids,
+        brand_labels,
         upcoming_shows: upcoming_shows_refs,
         app_store_url: app.app_store_url,
         deeplink_prefix: format!("{}://p#", content::DEEPLINK_SCHEME),

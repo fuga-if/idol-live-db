@@ -36,8 +36,10 @@ enum ProfileSheetAssembler {
         let c = AppContainer.shared
         let limits = producerCardLimits()
         let today = JSTDay.today()
-        let oshiIds = Array(((try? await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? [])
-            .prefix(Int(limits.maxOshi)))
+        // 載せる担当は名刺と同じ選び方 (ブランドごとに 1 人を先に確保して上限まで。規則はコア)。
+        let oshiIds = Array(await ProducerCardAssembler.cardOshiIds(
+            (try? await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
+        ).prefix(Int(limits.maxOshi)))
         let attendedRefs = (try? await c.producerCards.attendedShowRefs()) ?? []
         let shows = (try? await c.producerCards.showInfos(ids: attendedRefs.map(\.showId))) ?? [:]
         let songCount = (try? await c.markReading.autoCollectedSongIds())?.count ?? 0

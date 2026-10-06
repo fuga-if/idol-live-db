@@ -14,7 +14,9 @@ import SwiftUI
 // 文字も紙の上の大きさで固定する (名刺は物。読み上げと大きな文字は名刺の下の詳細が受け持つ)。
 //
 // ImasMeishiFront  表。名前 (デザインの書体)・P歴・名刺の写真 (証明写真の枠)・担当 (判子か写真を
-//                  小さく並べ、多いときは「+N」で畳む。枠の数はコアの `producerCardFace`)・ハンドル 1 つ。
+//                  ブランドごとにまとめて小さく並べ、下に「星井美希 担当」か、ブランドが 2 つ以上なら
+//                  まとまりごとにブランドの略称。並べる人・まとめ方・文言はコアの `producerCardFace`)・
+//                  ハンドル 1 つ。
 //                  - 入場証 (pass): 左に担当色の縦の帯。
 //                  - かしこまった名刺 (formal): 細い罫と明朝、担当色は罫と判子だけ。
 //                  - ポップ (pop): 墨の太い枠と担当色の太い帯、名前の下に担当色の太い線。
@@ -59,6 +61,14 @@ enum ImasMeishiPicture {
     case image(UIImage)
 }
 
+/// 名刺の表で 1 つのブランドにまとめて並べる担当 (コアの `CardFaceOshiGroup`)。
+struct ImasMeishiOshiGroup: Identifiable {
+    /// ブランドの略称 (「765AS」)。名前の行が無いときだけ判子の下に刷る。空なら刷らない。
+    let label: String
+    let oshi: [ImasMeishiOshi]
+    var id: String { oshi.first?.id ?? label }
+}
+
 /// 名刺の表に並べる担当 1 人。
 struct ImasMeishiOshi: Identifiable {
     let id: String
@@ -79,8 +89,10 @@ struct ImasMeishiFront: View {
     let name: String
     /// 「SINCE 2014」(コアの `CardFace.sinceImprint`)。
     var sinceImprint: String? = nil
-    /// 表に並べる担当 (コアの `CardFace.oshiIdolIds` の順)。
-    var oshi: [ImasMeishiOshi] = []
+    /// 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
+    var oshiGroups: [ImasMeishiOshiGroup] = []
+    /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。nil ならまとまりごとにブランドの略称を刷る。
+    var oshiCaption: String? = nil
     /// 数で畳んだ担当の人数 (「+2」)。
     var moreOshi: Int = 0
     /// 右下に刷るハンドル (「@fuga_p」)。
@@ -117,7 +129,8 @@ struct ImasMeishiFront: View {
                     imprint("PRODUCER PASS", design: .monospaced)
                     Spacer(minLength: p(4))
                     nameText(size: 26)
-                    oshiBlock(stamp: 22, font: .system(size: p(8.5), weight: .regular, design: .serif))
+                    oshiBlock(stamp: 22, font: .system(size: p(8.5), weight: .regular, design: .serif),
+                              labelFont: .system(size: p(6), weight: .semibold, design: .monospaced))
                         .padding(.top, p(6))
                     Spacer(minLength: p(4))
                     footer(design: .monospaced, weight: .medium)
@@ -138,7 +151,8 @@ struct ImasMeishiFront: View {
                 imprint("PRODUCER", design: .serif, tracking: 1.6)
                 Rectangle().fill(ink.accent).frame(height: max(p(0.5), 0.5)).padding(.top, p(5))
                 Spacer(minLength: p(4))
-                oshiBlock(stamp: 18, font: .system(size: p(8), weight: .regular, design: .serif))
+                oshiBlock(stamp: 18, font: .system(size: p(8), weight: .regular, design: .serif),
+                          labelFont: .system(size: p(6), weight: .medium, design: .serif))
                     .padding(.bottom, p(5))
                 nameText(size: 25, tracking: 1.3)
                 Spacer(minLength: p(4))
@@ -171,7 +185,8 @@ struct ImasMeishiFront: View {
                 VStack(alignment: .leading, spacing: p(5)) {
                     nameText(size: 27)
                     Rectangle().fill(ink.accent).frame(width: p(56), height: p(6))
-                    oshiBlock(stamp: 20, font: .system(size: p(8.5), weight: .heavy, design: .rounded))
+                    oshiBlock(stamp: 20, font: .system(size: p(8.5), weight: .heavy, design: .rounded),
+                              labelFont: .system(size: p(6), weight: .heavy, design: .rounded))
                     Spacer(minLength: 0)
                     footer(design: .rounded, weight: .heavy)
                 }
@@ -207,13 +222,27 @@ struct ImasMeishiFront: View {
             .minimumScaleFactor(0.45)
     }
 
-    /// 担当の判子 (写真) の並びと名前 (「天海春香・如月千早 担当」)。
+    /// 担当の判子 (写真) をブランドごとにまとめた並びと、その下の 1 行 (「星井美希 担当」) か
+    /// まとまりごとのブランドの略称。名刺に載る担当 (5 人) が全員、名前・写真と重ならずに並ぶ大きさ。
     @ViewBuilder
-    private func oshiBlock(stamp: CGFloat, font: Font) -> some View {
-        if !oshi.isEmpty {
+    private func oshiBlock(stamp: CGFloat, font: Font, labelFont: Font) -> some View {
+        if !oshiGroups.isEmpty {
             VStack(alignment: .leading, spacing: p(3)) {
-                HStack(spacing: p(3)) {
-                    ForEach(oshi) { ImasMeishiStamp(oshi: $0, size: p(stamp), paper: ink.paper) }
+                HStack(alignment: .top, spacing: p(7)) {
+                    ForEach(oshiGroups) { group in
+                        VStack(alignment: .leading, spacing: p(2)) {
+                            HStack(spacing: p(3)) {
+                                ForEach(group.oshi) { ImasMeishiStamp(oshi: $0, size: p(stamp), paper: ink.paper) }
+                            }
+                            if oshiCaption == nil, !group.label.isEmpty {
+                                Text(group.label)
+                                    .font(labelFont)
+                                    .foregroundStyle(ink.sub)
+                                    .lineLimit(1)
+                                    .fixedSize()
+                            }
+                        }
+                    }
                     if moreOshi > 0 {
                         Text("+\(moreOshi)")
                             .font(.system(size: p(stamp * 0.36), weight: .bold, design: .rounded).monospacedDigit())
@@ -222,18 +251,15 @@ struct ImasMeishiFront: View {
                             .overlay(Circle().strokeBorder(ink.line, lineWidth: max(p(0.75), 0.5)))
                     }
                 }
-                Text(oshiNames)
-                    .font(font)
-                    .foregroundStyle(ink.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                if let oshiCaption {
+                    Text(oshiCaption)
+                        .font(font)
+                        .foregroundStyle(ink.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
             }
         }
-    }
-
-    private var oshiNames: String {
-        let names = oshi.map(\.name).joined(separator: "・")
-        return moreOshi > 0 ? "\(names) ほか\(moreOshi)人 担当" : "\(names) 担当"
     }
 
     private func footer(design: Font.Design, weight: Font.Weight) -> some View {

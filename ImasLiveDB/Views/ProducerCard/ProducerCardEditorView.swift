@@ -759,7 +759,7 @@ struct ProducerCardEditorView: View {
     }
 
     private func loadOshi() async {
-        guard let ids = record?.oshiIds.prefix(Int(limits.maxOshi)), !ids.isEmpty else { return }
+        guard let ids = record?.cardOshiIds.prefix(Int(limits.maxOshi)), !ids.isEmpty else { return }
         let idols = (try? await AppContainer.shared.idolReading.idols(ids: Array(ids))) ?? []
         let byId = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         oshi = ids.compactMap { byId[$0] }

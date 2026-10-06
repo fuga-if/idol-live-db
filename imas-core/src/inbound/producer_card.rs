@@ -3,7 +3,7 @@
 use crate::domain::producer_card::{
     CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFace,
     CardFileContents, CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo,
-    CardLinkView, CardNameFont, CardNameFontInfo, CardRecordSummary, CardShowRef,
+    CardLinkView, CardNameFont, CardNameFontInfo, CardOshiEntry, CardRecordSummary, CardShowRef,
     EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
     ProducerCardLimits, ScannedCode,
 };
@@ -101,10 +101,16 @@ pub fn card_issued_label(issued_on: String) -> String {
     crate::domain::producer_card::card_issued_label(&issued_on)
 }
 
-/// 名刺の表 (91:55) の組み。`drawable_idol_ids` は端末が描ける担当の id。
+/// 名刺の表 (91:55) の組み。`drawable` は端末が描ける担当 (名前とブランド)。
 #[uniffi::export]
-pub fn producer_card_face(card: ProducerCard, drawable_idol_ids: Vec<String>) -> CardFace {
-    crate::domain::producer_card::producer_card_face(&card, &drawable_idol_ids)
+pub fn producer_card_face(card: ProducerCard, drawable: Vec<CardOshiEntry>) -> CardFace {
+    crate::domain::producer_card::producer_card_face(&card, &drawable)
+}
+
+/// 名刺に載せる担当 (アプリの担当の並びから上限まで。ブランドごとに 1 人を先に確保する)。
+#[uniffi::export]
+pub fn producer_card_pick_oshi(oshi: Vec<CardOshiEntry>) -> Vec<String> {
+    crate::domain::producer_card::producer_card_pick_oshi(&oshi)
 }
 
 #[uniffi::export]

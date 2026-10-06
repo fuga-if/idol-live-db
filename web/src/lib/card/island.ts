@@ -13,7 +13,7 @@
 import { decodeCard, decodeCardFace } from "./decode";
 import type { CardCatalog } from "../schema/CardCatalog";
 import type { Ref } from "../schema/Ref";
-import type { CardFace, CardLinkView, CardView } from "./types";
+import type { CardFace, CardLinkView, CardOshiEntry, CardView } from "./types";
 
 interface Elements {
   root: HTMLElement;
@@ -148,18 +148,54 @@ function renderNext(el: HTMLElement, showId: string | null, shows: readonly Ref[
   el.hidden = false;
 }
 
-/** 名刺の表の担当 (「天海春香・如月千早 ほか2人 担当」)。並べる人と畳む数は wasm (`producer_card_face`)。 */
+/**
+ * 名刺の表の担当。並べる人・ブランドごとのまとめ方・1 行の文言・畳む数は wasm (`producer_card_face`)。
+ * 1 行の文言があればそれだけ (「星井美希 担当」)、無ければブランドごとに「765AS 星井美希」を並べる
+ * (Web はアイドルの画像を持たないので、判子の代わりに名前を刷る)。
+ */
 function renderFaceOshi(el: HTMLElement, face: CardFace, idols: readonly Ref[]): void {
-  const names = face.oshiIdolIds
-    .map((id) => refById(idols, id)?.name)
-    .filter((n): n is string => n !== undefined);
-  if (names.length === 0) {
+  el.replaceChildren();
+  if (face.oshiIdolIds.length === 0) {
     el.hidden = true;
     return;
   }
-  const more = face.moreOshi > 0 ? ` ほか${face.moreOshi}人` : "";
-  el.textContent = `${names.join("・")}${more} 担当`;
+  if (face.oshiCaption !== null) {
+    el.textContent = face.oshiCaption;
+  } else {
+    for (const group of face.oshiGroups) {
+      const names = group.idolIds
+        .map((id) => refById(idols, id)?.name)
+        .filter((n): n is string => n !== undefined);
+      if (names.length === 0) continue;
+      const span = document.createElement("span");
+      span.className = "meishi-card__face-group";
+      if (group.brandLabel) {
+        const label = document.createElement("span");
+        label.className = "meishi-card__face-brand";
+        label.textContent = group.brandLabel;
+        span.append(label);
+      }
+      span.append(names.join("・"));
+      el.append(span);
+    }
+  }
+  if (face.moreOshi > 0) {
+    const more = document.createElement("span");
+    more.className = "meishi-card__face-group";
+    more.textContent = `+${face.moreOshi}`;
+    el.append(more);
+  }
   el.hidden = false;
+}
+
+/** 台帳にある担当だけを、wasm に渡す形 (名前とブランド) に詰める。 */
+function drawableOshi(idolIds: readonly string[], catalog: CardCatalog): CardOshiEntry[] {
+  return idolIds.flatMap((id) => {
+    const ref = refById(catalog.idols, id);
+    if (!ref) return [];
+    const brandId = catalog.idolBrandIds[id] ?? "";
+    return [{ idolId: id, name: ref.name, brandId, brandLabel: catalog.brandLabels[brandId] ?? "" }];
+  });
 }
 
 function renderCard(e: Elements, card: CardView, face: CardFace, catalog: CardCatalog): void {
@@ -242,7 +278,7 @@ async function run(): Promise<void> {
   let face: CardFace | null = null;
   if (card) {
     // 台帳にある担当だけを渡す (無い担当は名刺に出さないので、畳む数にも数えない)。
-    const drawable = card.oshiIdolIds.filter((id) => refById(catalog.idols, id) !== undefined);
+    const drawable = drawableOshi(card.oshiIdolIds, catalog);
     try {
       face = await decodeCardFace(payload, drawable);
     } catch {

@@ -41,12 +41,36 @@ export interface CardView {
 }
 
 /**
+ * 担当 1 人の名前とブランド。フィールド名・形は Rust の `CardOshiEntry` と 1:1。
+ * ページが台帳 (`p/catalog.json`) から詰めて wasm (`producer_card_face_json`) に渡す。
+ */
+export interface CardOshiEntry {
+  idolId: string;
+  name: string;
+  /** 分からなければ空。 */
+  brandId: string;
+  /** 「765AS」「学マス」。分からなければ空。 */
+  brandLabel: string;
+}
+
+/** 名刺の表で 1 つのブランドにまとめて並べる担当 (Rust の `CardFaceOshiGroup`)。 */
+export interface CardFaceOshiGroup {
+  /** `oshiCaption` が無いときだけ刷るブランドの略称。空なら刷らない。 */
+  brandLabel: string;
+  idolIds: string[];
+}
+
+/**
  * 名刺の表 (91:55) に載せるもの。フィールド名・形は Rust の `CardFace`
  * (`imas_core::domain::producer_card::producer_card_face`) と 1:1。
  */
 export interface CardFace {
-  /** 表に並べる担当 (台帳にある担当だけを渡して、残りから選んだもの)。 */
+  /** 表に並べる担当 (`oshiGroups` を平らにしたもの)。 */
   oshiIdolIds: string[];
+  /** 表に並べる担当のブランドごとのまとまり (並べる順もコアが決める)。 */
+  oshiGroups: CardFaceOshiGroup[];
+  /** 担当の 1 行 (「星井美希 担当」)。ブランドが 2 つ以上なら null で、まとまりごとにブランドの略称を刷る。 */
+  oshiCaption: string | null;
   /** 表に並べきれず数で畳んだ担当の人数。0 なら畳まない。 */
   moreOshi: number;
   /** 表に刷るハンドル 1 つ。 */

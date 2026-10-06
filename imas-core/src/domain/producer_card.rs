@@ -1358,18 +1358,55 @@ pub fn card_issued_label(issued_on: &str) -> String {
 // 名刺そのものは日本の名刺の比 (91:55) の横長の 1 枚。表に載せるのは名前・P 歴・名刺の写真・
 // 担当 (判子かアイコンを小さく並べる)・ハンドル 1 つだけで、担当の一覧・リンクの一覧・記録・
 // ひとことは名刺の外 (下) に出す。画面の名刺・紙に刷る画像・Web の名刺で同じ組みにする。
+//
+// 担当はブランドごとにまとめて並べる。枠が足りないときも、まずブランドごとに 1 人 (そのブランドで
+// 並びが先の担当) を載せ、残りの枠に 2 人目以降を並び順で入れる (担当の多い人でもブランドが抜け
+// 落ちないように)。名刺に載せる担当そのもの (アプリの担当から `MAX_OSHI` 人) も同じ規則で選ぶ。
 // ---------------------------------------------------------------------------
 
-/// 名刺の表に担当を並べる枠の数。これより多い担当は、最後の枠を「+N」にして数で畳む
-/// (枠の数は変わらないので、担当の人数で名前や写真の場所が動かない)。
-pub const CARD_FACE_OSHI_SLOTS: u32 = 3;
+/// 名刺の表に担当を並べる枠の数 (名刺に載る担当の上限と同じ。名刺に載る担当は全員表に出る)。
+/// これより多い担当が来たときだけ、最後の枠を「+N」にして数で畳む。
+pub const CARD_FACE_OSHI_SLOTS: u32 = MAX_OSHI;
+
+/// 担当の名前を表の 1 行に並べる上限の文字数 (「 担当」まで含めて)。名刺の写真の横の幅に
+/// 紙の上で読める大きさで収まる長さ。超えるときは「765AS 5人 担当」と数で言う。
+const CARD_FACE_CAPTION_MAX_CHARS: usize = 18;
+
+/// 担当 1 人の名前とブランド。ブランドごとに並べる・選ぶのに使う
+/// (端末はマスタから、Web は台帳 `p/catalog.json` の `oshiEntries` から渡す)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardOshiEntry {
+    pub idol_id: String,
+    /// 判子の下に刷る名前。
+    pub name: String,
+    /// ブランドの id。分からなければ空 (空どうしは同じブランドとして扱わない)。
+    pub brand_id: String,
+    /// 表に刷るブランドの略称 (「765AS」「学マス」)。分からなければ空。
+    pub brand_label: String,
+}
+
+/// 名刺の表で 1 つのブランドにまとめて並べる担当。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CardFaceOshiGroup {
+    /// 判子の並びの下に刷るブランドの略称 (`CardFace.oshi_caption` が無いときだけ刷る。空なら刷らない)。
+    pub brand_label: String,
+    /// このブランドの担当 (名刺の並び順)。
+    pub idol_ids: Vec<String>,
+}
 
 /// 名刺の表に載せるもの。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CardFace {
-    /// 表に並べる担当 (名刺の並びのまま。描けない担当は除いてから数える)。
+    /// 表に並べる担当 (`oshi_groups` を順に平らにしたもの。描けない担当は除いてから数える)。
     pub oshi_idol_ids: Vec<String>,
+    /// 表に並べる担当のブランドごとのまとまり (ブランドは名刺の並びで先に出た順、中は名刺の並び順)。
+    pub oshi_groups: Vec<CardFaceOshiGroup>,
+    /// 判子の下に刷る 1 行 (「星井美希 担当」「765AS 5人 担当」)。ブランドが 2 つ以上なら None で、
+    /// そのときは名前の代わりにまとまりごとにブランドの略称を判子の下に刷る。
+    pub oshi_caption: Option<String>,
     /// 表に並べきれず数で畳んだ担当の人数 (「+2」)。0 なら畳まない。
     pub more_oshi: u32,
     /// 表に刷るハンドル 1 つ (X があれば X、無ければ先頭のリンク)。自分の QR は裏に刷るので選ばない。
@@ -1380,22 +1417,109 @@ pub struct CardFace {
     pub issued_label: String,
 }
 
-/// 名刺の表の組み。`drawable_idol_ids` は端末 (Web は台帳) が描ける担当の id
+/// 並びのまま渡された担当から `slots` 人を選ぶ (選んだ位置を並びの順で返す)。
+/// まずブランドごとに並びが先の 1 人、残りの枠に 2 人目以降を並び順で。ブランドが枠より多ければ
+/// 並びで先に出たブランドから。
+fn pick_oshi_by_brand(oshi: &[&CardOshiEntry], slots: usize) -> Vec<usize> {
+    let mut picked = vec![false; oshi.len()];
+    let mut count = 0;
+    let mut brands: Vec<&str> = Vec::new();
+    for (i, o) in oshi.iter().enumerate() {
+        if count == slots {
+            break;
+        }
+        let known = !o.brand_id.is_empty();
+        if known && brands.contains(&o.brand_id.as_str()) {
+            continue;
+        }
+        if known {
+            brands.push(&o.brand_id);
+        }
+        picked[i] = true;
+        count += 1;
+    }
+    for p in picked.iter_mut() {
+        if count == slots {
+            break;
+        }
+        if !*p {
+            *p = true;
+            count += 1;
+        }
+    }
+    picked.iter().enumerate().filter(|(_, p)| **p).map(|(i, _)| i).collect()
+}
+
+/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
+/// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
+pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
+    let mut seen: Vec<&str> = Vec::new();
+    let unique: Vec<&CardOshiEntry> = oshi
+        .iter()
+        .filter(|o| {
+            if seen.contains(&o.idol_id.as_str()) {
+                false
+            } else {
+                seen.push(&o.idol_id);
+                true
+            }
+        })
+        .collect();
+    pick_oshi_by_brand(&unique, MAX_OSHI as usize)
+        .into_iter()
+        .map(|i| unique[i].idol_id.clone())
+        .collect()
+}
+
+/// 判子の下の 1 行。ブランドが 1 つのときだけ名前を (長ければ数で)。
+fn card_face_caption(groups: &[CardFaceOshiGroup], names: &[&str]) -> Option<String> {
+    let [group] = groups else { return None };
+    let caption = format!("{} 担当", names.join("・"));
+    if caption.chars().count() <= CARD_FACE_CAPTION_MAX_CHARS {
+        return Some(caption);
+    }
+    let count = group.idol_ids.len();
+    Some(if group.brand_label.is_empty() {
+        format!("{count}人 担当")
+    } else {
+        format!("{} {count}人 担当", group.brand_label)
+    })
+}
+
+/// 名刺の表の組み。`drawable` は端末 (Web は台帳) が描ける担当とそのブランド
 /// (相手の方が新しいデータを持っていて手元に無いアイドルは出さない。その分は畳む数にも数えない)。
-pub fn producer_card_face(card: &ProducerCard, drawable_idol_ids: &[String]) -> CardFace {
-    let oshi: Vec<String> = card
+pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> CardFace {
+    let oshi: Vec<&CardOshiEntry> = card
         .oshi_idol_ids
         .iter()
-        .filter(|id| drawable_idol_ids.contains(id))
-        .cloned()
+        .filter_map(|id| drawable.iter().find(|d| &d.idol_id == id))
         .collect();
     let slots = CARD_FACE_OSHI_SLOTS as usize;
-    let (shown, more) = if oshi.len() <= slots {
-        (oshi, 0)
+    let (picked, more) = if oshi.len() <= slots {
+        ((0..oshi.len()).collect::<Vec<_>>(), 0)
     } else {
-        let more = (oshi.len() - (slots - 1)) as u32;
-        (oshi.into_iter().take(slots - 1).collect(), more)
+        let picked = pick_oshi_by_brand(&oshi, slots - 1);
+        let more = (oshi.len() - picked.len()) as u32;
+        (picked, more)
     };
+    // ブランドごとにまとめる (ブランドは並びで先に出た順)。
+    let mut grouped: Vec<(&str, Vec<&CardOshiEntry>)> = Vec::new();
+    for o in picked.iter().map(|&i| oshi[i]) {
+        match grouped.iter_mut().find(|(b, _)| !b.is_empty() && *b == o.brand_id) {
+            Some((_, members)) => members.push(o),
+            None => grouped.push((&o.brand_id, vec![o])),
+        }
+    }
+    let names: Vec<&str> = grouped.iter().flat_map(|(_, m)| m.iter().map(|o| o.name.as_str())).collect();
+    let groups: Vec<CardFaceOshiGroup> = grouped
+        .iter()
+        .map(|(_, members)| CardFaceOshiGroup {
+            brand_label: members[0].brand_label.clone(),
+            idol_ids: members.iter().map(|o| o.idol_id.clone()).collect(),
+        })
+        .collect();
+    let shown: Vec<String> = groups.iter().flat_map(|g| g.idol_ids.iter().cloned()).collect();
+    let caption = card_face_caption(&groups, &names);
     let handle = card
         .links
         .iter()
@@ -1404,6 +1528,8 @@ pub fn producer_card_face(card: &ProducerCard, drawable_idol_ids: &[String]) -> 
         .map(card_link_view);
     CardFace {
         oshi_idol_ids: shown,
+        oshi_groups: groups,
+        oshi_caption: caption,
         more_oshi: more,
         handle,
         since_imprint: card.since_year.map(|y| format!("SINCE {y}")),
@@ -1738,27 +1864,121 @@ pub fn card_peer_tag(payload: &str) -> String {
 mod tests {
     use super::*;
 
+    fn entry(id: &str, name: &str, brand: &str, label: &str) -> CardOshiEntry {
+        CardOshiEntry { idol_id: id.into(), name: name.into(), brand_id: brand.into(), brand_label: label.into() }
+    }
+
+    /// 担当 5 人・4 ブランド (765AS 美希 / 876 宇宙 / 学マス 手毬・美鈴 / ミリオン 桃子)。
+    fn five_in_four_brands() -> Vec<CardOshiEntry> {
+        vec![
+            entry("miki", "星井美希", "765as", "765AS"),
+            entry("temari", "月村手毬", "gakuen", "学マス"),
+            entry("sora", "上水流宇宙", "876", "876"),
+            entry("misuzu", "秦谷美鈴", "gakuen", "学マス"),
+            entry("momoko", "周防桃子", "ml", "ミリオン"),
+        ]
+    }
+
     #[test]
-    fn card_face_folds_oshi_beyond_slots() {
+    fn card_face_shows_all_card_oshi_grouped_by_brand() {
         let mut card = encode_producer_card(&input()).card;
-        let ids: Vec<String> = (0..5).map(|i| format!("idol_{i}")).collect();
-        // 3 人までは全員、4 人目からは 2 人 + 「+N」。
-        card.oshi_idol_ids = ids[..3].to_vec();
-        let face = producer_card_face(&card, &ids);
-        assert_eq!(face.oshi_idol_ids, ids[..3].to_vec());
+        let all = five_in_four_brands();
+        card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
+        let face = producer_card_face(&card, &all);
+        // 名刺に載る 5 人は全員表に出る。ブランドは並びで先に出た順、中は名刺の並び順。
         assert_eq!(face.more_oshi, 0);
-        card.oshi_idol_ids = ids.clone();
-        let face = producer_card_face(&card, &ids);
-        assert_eq!(face.oshi_idol_ids, ids[..2].to_vec());
-        assert_eq!(face.more_oshi, 3);
-        // 描けない担当は数えない (4 人いても描けるのが 3 人なら畳まない)。
-        let drawable = vec![ids[0].clone(), ids[2].clone(), ids[4].clone()];
-        let face = producer_card_face(&card, &drawable);
-        assert_eq!(face.oshi_idol_ids, drawable);
-        assert_eq!(face.more_oshi, 0);
+        let groups: Vec<(&str, Vec<&str>)> = face
+            .oshi_groups
+            .iter()
+            .map(|g| (g.brand_label.as_str(), g.idol_ids.iter().map(String::as_str).collect()))
+            .collect();
+        assert_eq!(
+            groups,
+            vec![
+                ("765AS", vec!["miki"]),
+                ("学マス", vec!["temari", "misuzu"]),
+                ("876", vec!["sora"]),
+                ("ミリオン", vec!["momoko"]),
+            ]
+        );
+        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "misuzu", "sora", "momoko"]);
+        // ブランドが 2 つ以上なら名前の行は刷らず、まとまりごとにブランドの略称を刷る。
+        assert_eq!(face.oshi_caption, None);
+    }
+
+    #[test]
+    fn card_face_caption_names_one_brand_and_counts_when_long() {
+        let mut card = encode_producer_card(&input()).card;
+        let one = vec![entry("miki", "星井美希", "765as", "765AS")];
+        card.oshi_idol_ids = vec!["miki".into()];
+        let face = producer_card_face(&card, &one);
+        assert_eq!(face.oshi_caption.as_deref(), Some("星井美希 担当"));
+        assert_eq!(face.oshi_groups.len(), 1);
+        let many: Vec<CardOshiEntry> = ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
+            .iter()
+            .enumerate()
+            .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
+            .collect();
+        card.oshi_idol_ids = many.iter().map(|o| o.idol_id.clone()).collect();
+        let face = producer_card_face(&card, &many);
+        assert_eq!(face.oshi_caption.as_deref(), Some("765AS 5人 担当"));
+        card.oshi_idol_ids.truncate(2);
+        let face = producer_card_face(&card, &many);
+        assert_eq!(face.oshi_caption.as_deref(), Some("天海春香・如月千早 担当"));
+        // 担当がいなければ何も刷らない。
         let face = producer_card_face(&card, &[]);
-        assert!(face.oshi_idol_ids.is_empty());
+        assert!(face.oshi_idol_ids.is_empty() && face.oshi_groups.is_empty());
+        assert_eq!(face.oshi_caption, None);
+    }
+
+    #[test]
+    fn card_face_skips_undrawable_oshi() {
+        let mut card = encode_producer_card(&input()).card;
+        let all = five_in_four_brands();
+        card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
+        // 手元に無い担当は出さず、畳む数にも数えない。
+        let drawable: Vec<CardOshiEntry> = all.iter().filter(|o| o.idol_id != "sora").cloned().collect();
+        let face = producer_card_face(&card, &drawable);
+        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "misuzu", "momoko"]);
         assert_eq!(face.more_oshi, 0);
+    }
+
+    #[test]
+    fn pick_oshi_keeps_one_per_brand_before_filling_by_order() {
+        // アプリの担当が 8 人 (765AS が 4 人続いてから他のブランド)。先頭から切ると 765AS だけになる。
+        let oshi = vec![
+            entry("haruka", "天海春香", "765as", "765AS"),
+            entry("chihaya", "如月千早", "765as", "765AS"),
+            entry("miki", "星井美希", "765as", "765AS"),
+            entry("yukiho", "萩原雪歩", "765as", "765AS"),
+            entry("sora", "上水流宇宙", "876", "876"),
+            entry("temari", "月村手毬", "gakuen", "学マス"),
+            entry("misuzu", "秦谷美鈴", "gakuen", "学マス"),
+            entry("momoko", "周防桃子", "ml", "ミリオン"),
+        ];
+        // ブランドごとに 1 人 (春香・宇宙・手毬・桃子) を先に、残りの 1 枠に並び順で千早。並びはアプリのまま。
+        assert_eq!(producer_card_pick_oshi(&oshi), vec!["haruka", "chihaya", "sora", "temari", "momoko"]);
+        // 5 人以下はそのまま。同じ id は 1 度だけ。
+        let few = vec![oshi[0].clone(), oshi[4].clone(), oshi[0].clone()];
+        assert_eq!(producer_card_pick_oshi(&few), vec!["haruka", "sora"]);
+        // ブランドが枠より多ければ、並びで先に出たブランドから。ブランドが分からない担当は 1 人ずつ数える。
+        let wide: Vec<CardOshiEntry> =
+            (0..7).map(|i| entry(&format!("i{i}"), "名前", &format!("b{i}"), "")).collect();
+        assert_eq!(producer_card_pick_oshi(&wide), vec!["i0", "i1", "i2", "i3", "i4"]);
+        let unknown = vec![entry("a", "名前", "", ""), entry("b", "名前", "", "")];
+        assert_eq!(producer_card_pick_oshi(&unknown), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn card_face_folds_with_brand_representatives_when_over_slots() {
+        // 名刺の上限を超える担当が来たとき (古い版の名刺など) も、ブランドの代表を先に並べて残りを畳む。
+        let mut card = encode_producer_card(&input()).card;
+        let mut all = five_in_four_brands();
+        all.insert(1, entry("haruka", "天海春香", "765as", "765AS"));
+        card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
+        let face = producer_card_face(&card, &all);
+        assert_eq!(face.more_oshi, 2);
+        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "sora", "momoko"]);
     }
 
     #[test]
