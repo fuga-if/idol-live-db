@@ -93,9 +93,9 @@ struct LyricSubmissionSheet: View {
             ))
             .imasSavingOverlay(isSaving || isReading, label: isReading ? "読み取り中" : "送信中")
             .fullScreenCover(isPresented: $showLineScanner) {
-                LyricLineScannerView { lines in
+                LyricLineScannerView { scanned in
                     let songId = song.id
-                    drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: lines.joined(separator: "\n")) }
+                    drafts.update(songId) { $0.text = lyricOcrAppend(draft: $0.text, recognized: scanned) }
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
@@ -159,12 +159,12 @@ struct LyricSubmissionSheet: View {
                     .buttonStyle(.imas(.secondary, fillsWidth: true))
                 }
                 if LyricLineScannerView.isAvailable {
-                    // 行を押した順に 1 行ずつ入れる。テキストスキャンが落とす改行を確実に入れたいとき。
+                    // 映った歌詞を押した順に入れる (塊の間は空行)。テキストスキャンが落とす改行を入れたいとき。
                     Button {
                         AppAnalytics.tap("lyric_submission.line_scanner")
                         showLineScanner = true
                     } label: {
-                        Label("1 行ずつスキャン", systemImage: "text.line.first.and.arrowtriangle.forward")
+                        Label("押してスキャン", systemImage: "hand.tap")
                     }
                     .buttonStyle(.imas(.secondary, fillsWidth: true))
                 }
