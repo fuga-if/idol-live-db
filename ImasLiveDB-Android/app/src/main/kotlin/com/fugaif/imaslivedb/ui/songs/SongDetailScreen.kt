@@ -131,6 +131,7 @@ import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.youtubeVideoRefs
 import uniffi.imas_core.kamisabiCardLabel
 import uniffi.imas_core.kamisabiCompletionLabel
+import uniffi.imas_core.lyricSubmissionAllowed
 import uniffi.imas_core.shortYearMonth
 import uniffi.imas_core.splitCreditNames
 
@@ -240,7 +241,9 @@ fun SongDetailScreen(
                                 }
                             )
                         }
-                        if (LyricsFeature.acceptsSubmissions) {
+                        if (LyricsFeature.acceptsSubmissions && song != null &&
+                            lyricSubmissionAllowed(song.brandId ?: "", song.songType, song.singerLabel)
+                        ) {
                             DropdownMenuItem(
                                 text = { Text("歌詞を投稿") },
                                 onClick = {

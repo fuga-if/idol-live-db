@@ -90,19 +90,13 @@ class LyricsApi(private val client: WorkerHttpClient) {
      * 入力した歌詞を確認待ち (pending) で預ける。公開はモデレーターの確認後で、`song_lyrics` には
      * 書かない。ログイン必須・1 日 20 曲 (サーバの rate limit)。応答に本文は返らない。
      *
-     * ボディは Worker 側 (`routes/lyric_submissions.ts`) と同じ snake_case
-     * (`source_kind` / `source_note` / `attested_no_copy` / `text`)。
+     * 投稿ガイドラインへの同意が必須 (入力元は書かせない。どこから写したかは確かめようがないので
+     * 規約で縛る)。ボディは Worker 側 (`routes/lyric_submissions.ts`) と同じ snake_case
+     * (`agreed_to_guideline` / `text`)。
      */
-    suspend fun submitLyricSubmission(
-        songId: String,
-        sourceKind: uniffi.imas_core.LyricSourceKind,
-        sourceNote: String?,
-        text: String,
-    ) = withContext(Dispatchers.IO) {
+    suspend fun submitLyricSubmission(songId: String, text: String) = withContext(Dispatchers.IO) {
         val body = JSONObject()
-            .put("source_kind", uniffi.imas_core.lyricSourceKey(sourceKind))
-            .put("source_note", sourceNote ?: JSONObject.NULL)
-            .put("attested_no_copy", true)
+            .put("agreed_to_guideline", true)
             .put("text", text)
         check(client.request("POST", "/songs/${seg(songId)}/lyric-submissions", body), "歌詞を送信できませんでした")
     }

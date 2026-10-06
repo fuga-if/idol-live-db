@@ -10,11 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,28 +23,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.fugaif.imaslivedb.data.lyrics.LyricsApi
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
-import com.fugaif.imaslivedb.ui.designsystem.ImasChoice
-import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCards
-import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCardsStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasCompletionAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasDiscardConfirmation
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
+import com.fugaif.imaslivedb.ui.designsystem.ImasFormLink
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
-import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextField
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormToggle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
-import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
@@ -55,12 +50,8 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
-import uniffi.imas_core.LyricSourceKind
 import uniffi.imas_core.LyricSubmissionIssue
 import uniffi.imas_core.lyricOcrAppend
-import uniffi.imas_core.lyricSourceDetail
-import uniffi.imas_core.lyricSourceKinds
-import uniffi.imas_core.lyricSourceLabel
 import uniffi.imas_core.lyricSubmissionCheck
 import uniffi.imas_core.lyricSubmissionIssueBlocks
 import uniffi.imas_core.lyricSubmissionIssueMessage
@@ -71,8 +62,8 @@ import uniffi.imas_core.lyricSubmissionMaxChars
  * 見て入力した歌詞を送る。
  *
  * 送った歌詞は確認待ちで預かられ、公開はモデレーターの確認後 ([LyricsApi.submitLyricSubmission])。
- * 入力元の選択と「歌詞サイトから写していない」の確認が無いと送れない。
- * 本文の整え方・上限・注意はコア ([lyricSubmissionCheck]) が決める。
+ * 投稿ガイドラインに同意しないと送れない。入力元は書かせない (どこから写したかは確かめようが
+ * なく、規約で縛る)。本文の整え方・上限・注意はコア ([lyricSubmissionCheck]) が決める。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,19 +71,18 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var source by remember { mutableStateOf<LyricSourceKind?>(null) }
-    var sourceNote by remember { mutableStateOf("") }
     var text by remember { mutableStateOf("") }
-    var attested by remember { mutableStateOf(false) }
+    var agreed by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
     var sent by remember { mutableStateOf(false) }
     var isReading by remember { mutableStateOf(false) }
     var ocrMessage by remember { mutableStateOf<String?>(null) }
+    var showGuide by remember { mutableStateOf(false) }
 
-    val check = lyricSubmissionCheck(text, source, attested)
-    val isDirty = text.trim().isNotEmpty() || source != null
+    val check = lyricSubmissionCheck(text, agreed)
+    val isDirty = text.trim().isNotEmpty()
 
     fun requestDismiss() {
         if (isDirty) confirmDiscard = true else onDismiss()
@@ -100,16 +90,12 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
 
     fun submit() {
         val currentCheck = check
-        val currentSource = source
-        if (!currentCheck.canSubmit || currentSource == null) return
-        val note = sourceNote.trim()
+        if (!currentCheck.canSubmit) return
         isSaving = true
         scope.launch {
             try {
                 AppModule.from(context).lyricsApi.submitLyricSubmission(
                     songId = song.id,
-                    sourceKind = currentSource,
-                    sourceNote = note.ifEmpty { null },
                     text = currentCheck.normalized
                 )
                 isSaving = false
@@ -164,20 +150,13 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
-                    ImasSectionHeader(title = "何を見て入力しましたか", style = ImasSectionHeaderStyle.SMALL)
-                    ImasChoiceCards(
-                        choices = lyricSourceKinds().map { kind ->
-                            ImasChoice(
-                                value = kind,
-                                title = lyricSourceLabel(kind),
-                                icon = sourceIcon(kind),
-                                subtitle = lyricSourceDetail(kind)
-                            )
-                        },
-                        selection = source,
-                        onSelect = { source = it },
-                        style = ImasChoiceCardsStyle.ROW
+                ImasFormCard {
+                    ImasFormLink(
+                        label = "投稿ガイドライン",
+                        value = "投稿できるもの・できないもの",
+                        onClick = { showGuide = true },
+                        imprint = "GUIDE",
+                        icon = Icons.Filled.Book
                     )
                 }
 
@@ -188,13 +167,6 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                         onTextChange = { text = it },
                         prompt = "1 行ずつ改行して入力してください",
                         imprint = "LYRICS"
-                    )
-                    ImasFormTextField(
-                        label = "入力元の補足 (任意)",
-                        text = sourceNote,
-                        onTextChange = { sourceNote = it },
-                        imprint = "SOURCE",
-                        prompt = "例: 初回限定盤のブックレット"
                     )
                 }
 
@@ -213,16 +185,14 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     ImasFormToggle(
                         label = "確認",
                         imprint = "CHECK",
-                        title = "歌詞サイトから写していません",
-                        isOn = attested,
-                        onCheckedChange = { attested = it }
+                        title = "投稿ガイドラインを読み、それに沿って入力しました",
+                        isOn = agreed,
+                        onCheckedChange = { agreed = it }
                     )
                 }
 
                 ImasText(
-                    "送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。\n" +
-                        "次のものは投稿できません: 歌詞サイトから写した歌詞、聴き取りの書き起こし、歌詞が公表されていない曲、" +
-                        "翻訳や替え歌、歌詞ではない文 (作詞・作曲などのクレジット)。分かった時点で削除します。",
+                    "送った歌詞は運営が確認してから公開します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。",
                     ImasTextRole.NOTE
                 )
             }
@@ -244,11 +214,12 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
         message = if (sent) "運営が確認してから公開します。ありがとうございました。" else null,
         onDismiss = { sent = false; onDismiss() }
     )
-}
 
-private fun sourceIcon(kind: LyricSourceKind): ImageVector = when (kind) {
-    LyricSourceKind.BOOKLET -> Icons.Filled.Album
-    LyricSourceKind.OFFICIAL -> Icons.Filled.Public
+    if (showGuide) {
+        Dialog(onDismissRequest = { showGuide = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            LyricSubmissionGuideScreen(onBack = { showGuide = false })
+        }
+    }
 }
 
 /**
