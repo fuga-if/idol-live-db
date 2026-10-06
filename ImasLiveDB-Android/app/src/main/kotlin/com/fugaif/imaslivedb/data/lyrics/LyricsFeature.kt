@@ -8,9 +8,11 @@ package com.fugaif.imaslivedb.data.lyrics
  * 閉じている間は歌詞タブ・歌詞検索・歌詞クイズ・コールガイドの入口を出さない
  * (Android には歌詞検索・コールガイド・歌詞クイズはもともと無いので、歌詞タブと
  * 再生中バーの追従だけが対象)。
+ *
+ * 開発ビルドでは開く (投稿した歌詞を運営が見て確かめるため)。配布ビルドは閉じたまま。
  */
 object LyricsFeature {
-    const val isAvailable: Boolean = false
+    val isAvailable: Boolean get() = com.fugaif.imaslivedb.BuildConfig.DEBUG
 
     /**
      * 歌詞の投稿 ([com.fugaif.imaslivedb.ui.lyrics.LyricSubmissionScreen]) を受け付けるか。

@@ -86,19 +86,23 @@ class LyricsApi(private val client: WorkerHttpClient) {
     }
 
     /**
-     * 歌詞の投稿 (POST /songs/:id/lyric-submissions)。CD の歌詞カードなどの一次ソースを見て
-     * 入力した歌詞を確認待ち (pending) で預ける。公開はモデレーターの確認後で、`song_lyrics` には
-     * 書かない。ログイン必須・1 日 20 曲 (サーバの rate limit)。応答に本文は返らない。
+     * 歌詞の投稿 (POST /songs/:id/lyric-submissions)。歌詞の無い曲ならその場で公開され、
+     * 運営はあとから確認する。既に歌詞のある曲への投稿は上書きされず、直しの提案として
+     * 預かられる。ログイン必須・1 日 20 曲 (サーバの rate limit)。応答に本文は返らない。
      *
      * 投稿ガイドラインへの同意が必須 (入力元は書かせない。どこから写したかは確かめようがないので
      * 規約で縛る)。ボディは Worker 側 (`routes/lyric_submissions.ts`) と同じ snake_case
      * (`agreed_to_guideline` / `text`)。
+     *
+     * @return 公開されたら true (歌詞の無い曲)、預かっただけなら false。
      */
-    suspend fun submitLyricSubmission(songId: String, text: String) = withContext(Dispatchers.IO) {
+    suspend fun submitLyricSubmission(songId: String, text: String): Boolean = withContext(Dispatchers.IO) {
         val body = JSONObject()
             .put("agreed_to_guideline", true)
             .put("text", text)
-        check(client.request("POST", "/songs/${seg(songId)}/lyric-submissions", body), "歌詞を送信できませんでした")
+        val res = client.request("POST", "/songs/${seg(songId)}/lyric-submissions", body)
+        check(res, "歌詞を送信できませんでした")
+        JSONObject(res.body ?: "{}").optBoolean("published", false)
     }
 
     /** 行をくっつける / 切り離す (POST /songs/:id/lyric-structure)。文字は変わらない。 */

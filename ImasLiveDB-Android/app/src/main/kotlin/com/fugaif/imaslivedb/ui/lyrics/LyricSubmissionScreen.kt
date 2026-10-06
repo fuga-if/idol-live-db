@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.fugaif.imaslivedb.data.lyrics.LyricSubmissionDrafts
 import com.fugaif.imaslivedb.data.lyrics.LyricsApi
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
@@ -65,9 +66,12 @@ import uniffi.imas_core.lyricSubmissionMaxChars
  * 歌詞を投稿する画面 (iOS `LyricSubmissionSheet` の移植)。CD の歌詞カードなどの一次ソースを
  * 見て入力した歌詞を送る。
  *
- * 送った歌詞は確認待ちで預かられ、公開はモデレーターの確認後 ([LyricsApi.submitLyricSubmission])。
+ * 歌詞の無い曲なら送るとすぐ公開され、運営があとから確認する ([LyricsApi.submitLyricSubmission])。
  * 投稿ガイドラインに同意しないと送れない。入力元は書かせない (どこから写したかは確かめようが
  * なく、規約で縛る)。本文の整え方・上限・注意はコア ([lyricSubmissionCheck]) が決める。
+ *
+ * 入力は [LyricSubmissionDrafts] に置く (曲ごと・メモリだけ)。画面が作り直されても消えない
+ * ようにするため (同期の完了などで再構成されると `remember` は消える)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,12 +79,17 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var text by remember { mutableStateOf("") }
-    var agreed by remember { mutableStateOf(false) }
+    val draft = LyricSubmissionDrafts.draft(song.id)
+    val text = draft.text
+    val agreed = draft.agreed
+    fun setText(new: String) = LyricSubmissionDrafts.update(song.id) { it.copy(text = new) }
+    fun setAgreed(new: Boolean) = LyricSubmissionDrafts.update(song.id) { it.copy(agreed = new) }
+
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
-    var sent by remember { mutableStateOf(false) }
+    /** 送れたあとの知らせ (公開したか、直しの提案として預かったか)。 */
+    var sentMessage by remember { mutableStateOf<String?>(null) }
     var isReading by remember { mutableStateOf(false) }
     var ocrMessage by remember { mutableStateOf<String?>(null) }
     var showGuide by remember { mutableStateOf(false) }
@@ -98,12 +107,17 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
         isSaving = true
         scope.launch {
             try {
-                AppModule.from(context).lyricsApi.submitLyricSubmission(
+                val published = AppModule.from(context).lyricsApi.submitLyricSubmission(
                     songId = song.id,
                     text = currentCheck.normalized
                 )
+                LyricSubmissionDrafts.clear(song.id)
                 isSaving = false
-                sent = true
+                sentMessage = if (published) {
+                    "歌詞を公開しました。運営があとから確認します。ありがとうございました。"
+                } else {
+                    "この曲には歌詞があるので、直しの提案として運営が確認します。ありがとうございました。"
+                }
             } catch (e: Exception) {
                 isSaving = false
                 errorMessage = "時間をおいてもう一度お試しください。(${e.message})"
@@ -122,7 +136,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
             if (recognized.isEmpty()) {
                 ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
             } else {
-                text = lyricOcrAppend(text, recognized)
+                setText(lyricOcrAppend(text, recognized))
             }
         }
     }
@@ -168,7 +182,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     ImasFormTextArea(
                         label = "歌詞",
                         text = text,
-                        onTextChange = { text = it },
+                        onTextChange = { setText(it) },
                         prompt = "1 行ずつ改行して入力してください",
                         imprint = "LYRICS"
                     )
@@ -191,12 +205,12 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                         imprint = "CHECK",
                         title = "投稿ガイドラインを読み、それに沿って入力しました",
                         isOn = agreed,
-                        onCheckedChange = { agreed = it }
+                        onCheckedChange = { setAgreed(it) }
                     )
                 }
 
                 ImasText(
-                    "送った歌詞は運営が確認してから公開します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。",
+                    "送った歌詞はすぐに公開され、運営があとから確認します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。",
                     ImasTextRole.NOTE
                 )
             }
@@ -207,7 +221,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     ImasDiscardConfirmation(
         isPresented = confirmDiscard,
         onDismiss = { confirmDiscard = false },
-        onDiscard = { confirmDiscard = false; onDismiss() }
+        onDiscard = { confirmDiscard = false; LyricSubmissionDrafts.clear(song.id); onDismiss() }
     )
 
     ImasErrorAlert(message = errorMessage, onDismiss = { errorMessage = null }, title = "送信できませんでした")
@@ -215,8 +229,8 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
 
     ImasCompletionAlert(
         title = "歌詞を送りました",
-        message = if (sent) "運営が確認してから公開します。ありがとうございました。" else null,
-        onDismiss = { sent = false; onDismiss() }
+        message = sentMessage,
+        onDismiss = { sentMessage = null; onDismiss() }
     )
 
     if (showGuide) {
