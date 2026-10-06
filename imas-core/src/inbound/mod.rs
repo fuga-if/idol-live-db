@@ -28,6 +28,7 @@ pub mod mastery;
 pub mod now_playing;
 pub mod oshi_theme_resolution;
 pub mod producer_card;
+pub mod profile_sheet;
 pub mod quiz_generation;
 pub mod search_queries;
 pub mod setlist_diff;

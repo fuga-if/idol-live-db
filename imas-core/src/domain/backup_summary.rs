@@ -175,6 +175,9 @@ pub struct BackupMyProducerCardRecord {
     /// 自分の QR の URL。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
+    /// プロフィール帳の中身 (`profile_sheet_to_json`)。空はまだ作っていない。
+    #[uniffi(default = "")]
+    pub profile_json: String,
 }
 
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
@@ -542,14 +545,20 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                     .as_deref()
                     .map(|u| format!(",\"qrUrl\":{}", json_string_literal(u)))
                     .unwrap_or_default();
+                let profile = if c.profile_json.is_empty() {
+                    String::new()
+                } else {
+                    format!(",\"profileJson\":{}", json_string_literal(&c.profile_json))
+                };
                 format!(
-                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    "{{\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{}{},\"updatedAt\":{}}}",
                     json_string_literal(&c.hidden_fields),
                     json_string_literal(&c.id),
                     json_string_literal(&c.links_json),
                     json_string_literal(&c.message),
                     json_string_literal(&c.name),
                     name_font,
+                    profile,
                     qr_url,
                     since,
                     json_string_literal(&c.updated_at),
@@ -1011,6 +1020,7 @@ fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerC
         updated_at: string_field(object, "updatedAt")?,
         name_font: optional_field(object, "nameFont").unwrap_or_default(),
         qr_url: optional_field(object, "qrUrl"),
+        profile_json: optional_field(object, "profileJson").unwrap_or_default(),
     })
 }
 
@@ -1149,6 +1159,7 @@ mod tests {
             updated_at: "2026-10-05T21:00:00Z".to_string(),
             name_font: String::new(),
             qr_url: None,
+            profile_json: String::new(),
         }
     }
 
@@ -1196,7 +1207,7 @@ mod tests {
         assert_eq!(plan.added_producer_cards, 2);
     }
 
-    /// 書体・自分の QR も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
+    /// 書体・自分の QR・プロフィール帳も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
     #[test]
     fn my_card_font_and_qr_round_trip() {
         let mut input = export_input();
@@ -1204,10 +1215,13 @@ mod tests {
         let plain = build_backup_envelope(&input, BackupKindDialect::Canonical);
         assert!(!plain.payload_json.contains("nameFont"));
         assert!(!plain.payload_json.contains("qrUrl"));
+        assert!(!plain.payload_json.contains("profileJson"));
 
         let mut card = my_card("ふがP");
         card.name_font = "mincho".to_string();
         card.qr_url = Some("https://lit.link/fuga".to_string());
+        card.profile_json =
+            r#"{"style":"career","answers":[{"q":"message","text":"よろしく"}]}"#.to_string();
         input.my_producer_cards = vec![card.clone()];
         let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
         let plan = plan_backup_import(

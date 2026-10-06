@@ -59,6 +59,7 @@ pub mod performer_label;
 pub mod play_queue;
 pub mod prng;
 pub mod producer_card;
+pub mod profile_sheet;
 pub mod quiz_generation;
 pub mod recents;
 pub mod relative_time;
