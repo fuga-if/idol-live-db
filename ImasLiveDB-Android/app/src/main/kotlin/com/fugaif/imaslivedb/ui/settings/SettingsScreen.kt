@@ -144,6 +144,9 @@ fun SettingsScreen(
                 // アカウント (投票に必要)
                 item { ImasListSection("アカウント") { AccountSection() } }
 
+                // Apple Music (フル再生のサインイン。曲の行の再生ボタンは未サインインだと試聴に落ちるので入口をここにも置く)
+                item { ImasListSection("Apple Music") { AppleMusicSettingsRow() } }
+
                 // フィルタ設定
                 item {
                     ImasListSection("フィルタ設定") {
