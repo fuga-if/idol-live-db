@@ -197,6 +197,8 @@ pub struct ProfileSheetSizeInfo {
     pub caption: String,
     pub width_px: u32,
     pub height_px: u32,
+    /// この大きさで画像に載る自分で書く欄の数 (答えのある欄を並べた順に)。
+    pub max_visible_answers: u32,
 }
 
 // --- 組み立ての材料 (端末がアプリの記録から集めて渡す) ---
@@ -365,6 +367,8 @@ pub struct ProfileSheetLayout {
     /// 職務経歴の表に出し切れなかった公演の数 (「ほか 30 公演」)。
     pub career_more: u32,
     pub sections: Vec<ProfileSection>,
+    /// 答えがあるのにこの大きさでは載らない欄の数 (編集画面で知らせる)。
+    pub hidden_answers: u32,
     pub density: ProfileSheetDensity,
 }
 
@@ -478,7 +482,7 @@ pub fn profile_auto_field_info(field: ProfileAutoField) -> ProfileAutoFieldInfo 
     let (key, label) = match field {
         ProfileAutoField::Photo => ("photo", "写真"),
         ProfileAutoField::Oshi => ("oshi", "担当"),
-        ProfileAutoField::Brands => ("brands", "ブランド"),
+        ProfileAutoField::Brands => ("brands", "対応範囲 (ブランド)"),
         ProfileAutoField::Since => ("since", "P歴"),
         ProfileAutoField::Counts => ("counts", "参加公演数・回収曲数"),
         ProfileAutoField::Shows => ("shows", "はじめて参加したライブ・参加の経歴"),
@@ -522,9 +526,9 @@ pub fn profile_sheet_styles() -> Vec<ProfileSheetStyleInfo> {
 }
 
 pub fn profile_sheet_size_info(size: ProfileSheetSize) -> ProfileSheetSizeInfo {
-    let (key, label, caption, h) = match size {
-        ProfileSheetSize::Portrait => ("portrait", "4:5", "縦長", 1350),
-        ProfileSheetSize::Story => ("story", "9:16", "ストーリーズ", 1920),
+    let (key, label, caption, h, answers) = match size {
+        ProfileSheetSize::Portrait => ("portrait", "4:5", "縦長", 1350, 4),
+        ProfileSheetSize::Story => ("story", "9:16", "ストーリーズ", 1920, MAX_ANSWERS),
     };
     ProfileSheetSizeInfo {
         size,
@@ -533,6 +537,7 @@ pub fn profile_sheet_size_info(size: ProfileSheetSize) -> ProfileSheetSizeInfo {
         caption: caption.into(),
         width_px: 1080,
         height_px: h,
+        max_visible_answers: answers,
     }
 }
 
@@ -773,8 +778,8 @@ pub fn profile_sheet_from_json(json: &str) -> ProfileSheet {
 /// 大きさごとの表の行数の上限 (履歴書の P歴は「以上」を除く、職務経歴書は公演の行)。
 fn row_caps(size: ProfileSheetSize) -> (usize, usize) {
     match size {
-        ProfileSheetSize::Portrait => (4, 5),
-        ProfileSheetSize::Story => (5, 12),
+        ProfileSheetSize::Portrait => (4, 4),
+        ProfileSheetSize::Story => (5, 8),
     }
 }
 
@@ -906,12 +911,11 @@ pub fn profile_sheet_layout(
                 if let Some(t) = today {
                     licenses.push(history_row(
                         t,
-                        format!("参加公演 {}公演 達成", past.len()),
-                        ProfileHistoryKind::Count,
-                    ));
-                    licenses.push(history_row(
-                        t,
-                        format!("回収曲 {}曲 達成", record.song_count),
+                        format!(
+                            "参加公演 {}公演・回収曲 {}曲 達成",
+                            past.len(),
+                            record.song_count
+                        ),
                         ProfileHistoryKind::Count,
                     ));
                 }
@@ -957,6 +961,15 @@ pub fn profile_sheet_layout(
     }
 
     // 欄。自動の項目を先に置き、質問の答えを並べた順に続ける。答えの空の質問は出さない。
+    // 大きさごとに載る数があり (並べた順に先頭から)、載らない答えの数は `hidden_answers` で返す。
+    let visible_cap = profile_sheet_size_info(sheet.size).max_visible_answers as usize;
+    let answered: Vec<&ProfileAnswer> = sheet
+        .answers
+        .iter()
+        .filter(|a| !a.text.trim().is_empty())
+        .collect();
+    let hidden_answers = answered.len().saturating_sub(visible_cap) as u32;
+    let visible: Vec<&ProfileAnswer> = answered.into_iter().take(visible_cap).collect();
     let mut sections: Vec<ProfileSection> = Vec::new();
     for slot in slots(style) {
         let mut entries: Vec<ProfileEntry> = Vec::new();
@@ -979,9 +992,9 @@ pub fn profile_sheet_layout(
             }
             _ => {}
         }
-        for a in &sheet.answers {
+        for a in &visible {
             let text = a.text.trim();
-            if text.is_empty() || profile_question_slot(style, a.question) != slot {
+            if profile_question_slot(style, a.question) != slot {
                 continue;
             }
             let prompt = a.prompt.trim();
@@ -1061,6 +1074,7 @@ pub fn profile_sheet_layout(
         career,
         career_more,
         sections,
+        hidden_answers,
         density,
     }
 }
@@ -1419,8 +1433,8 @@ mod tests {
             ]
         );
         // 重複した参加は 1 回に数え、予定は数えない。
-        assert_eq!(layout.licenses[0].text, "参加公演 3公演 達成");
-        assert_eq!(layout.licenses[1].text, "回収曲 523曲 達成");
+        assert_eq!(layout.licenses.len(), 1);
+        assert_eq!(layout.licenses[0].text, "参加公演 3公演・回収曲 523曲 達成");
         assert!(layout.career.is_empty());
         // 担当のブランドと行ったライブのブランドに印。
         let checked: Vec<&str> = layout
@@ -1536,11 +1550,11 @@ mod tests {
         sheet.style = ProfileSheetStyle::Career;
         let portrait = profile_sheet_layout(&sheet, &rec);
         let shown: usize = portrait.career.iter().map(|y| y.rows.len()).sum();
-        assert_eq!(shown, 5);
-        assert_eq!(portrait.career_more as usize, rec.attended.len() - 5);
+        assert_eq!(shown, 4);
+        assert_eq!(portrait.career_more as usize, rec.attended.len() - 4);
         sheet.size = ProfileSheetSize::Story;
         let story = profile_sheet_layout(&sheet, &rec);
-        assert_eq!(story.career.iter().map(|y| y.rows.len()).sum::<usize>(), 12);
+        assert_eq!(story.career.iter().map(|y| y.rows.len()).sum::<usize>(), 8);
     }
 
     #[test]
@@ -1555,10 +1569,11 @@ mod tests {
             ALL_QUESTIONS.iter().map(|q| (*q, long.as_str())).collect();
         let mut sheet = sheet_with(&many);
         let dense = profile_sheet_layout(&sheet, &record());
-        assert_eq!(dense.density, ProfileSheetDensity::Tight);
+        assert_ne!(dense.density, ProfileSheetDensity::Regular);
         sheet.size = ProfileSheetSize::Story;
+        sheet.answers.truncate(4);
         let story = profile_sheet_layout(&sheet, &record());
-        assert_ne!(story.density, ProfileSheetDensity::Tight);
+        assert_eq!(story.density, ProfileSheetDensity::Regular);
     }
 
     #[test]
@@ -1628,5 +1643,32 @@ mod tests {
             assert!((0.0..360.0).contains(&m.start_degrees));
         }
         assert!(a.windows(2).any(|w| w[0].tilt_degrees != w[1].tilt_degrees));
+    }
+
+    #[test]
+    fn portrait_prints_the_first_four_answers_in_order_and_counts_the_rest() {
+        let sheet = sheet_with(&[
+            (ProfileQuestion::Message, "1"),
+            (ProfileQuestion::Trigger, ""),
+            (ProfileQuestion::Landmark, "2"),
+            (ProfileQuestion::FavoriteCall, "3"),
+            (ProfileQuestion::Free, "4"),
+            (ProfileQuestion::Expedition, "5"),
+        ]);
+        let layout = profile_sheet_layout(&sheet, &record());
+        let texts: Vec<&str> = layout
+            .sections
+            .iter()
+            .flat_map(|s| s.entries.iter())
+            .filter(|e| !e.is_auto)
+            .map(|e| e.text.as_str())
+            .collect();
+        // 空の答えは数に入れない。並べた順に先頭の 4 つ (欄の中は欄の並びで出る)。
+        assert_eq!(texts.len(), 4);
+        assert!(!texts.contains(&"5"));
+        assert_eq!(layout.hidden_answers, 1);
+        let mut story = sheet.clone();
+        story.size = ProfileSheetSize::Story;
+        assert_eq!(profile_sheet_layout(&story, &record()).hidden_answers, 0);
     }
 }
