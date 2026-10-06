@@ -34,7 +34,8 @@ struct ProducerCardReceiveView: View {
             if let card {
                 let display = ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: Set(record?.oshiIds ?? []),
-                    imageURL: { imageURLs[$0] }, portraitURL: portraitURL, face: face, onOpenLink: nil, onOpenOshi: nil)
+                    imageURL: { imageURLs[$0] }, portraitURL: portraitURL, face: face,
+                    payload: incoming.payload, onOpenLink: nil, onOpenOshi: nil)
                 display
                 display.details
                 commonSection(card)

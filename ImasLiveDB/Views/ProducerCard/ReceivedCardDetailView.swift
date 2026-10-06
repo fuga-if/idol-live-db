@@ -34,6 +34,7 @@ struct ReceivedCardDetailView: View {
                     imageURL: { ProducerCardFiles.oshiImageURL(cardId: row.id, idolId: $0) },
                     portraitURL: ProducerCardFiles.cardPhotoURL(cardId: row.id),
                     face: ProducerCardDisplay.receivedFace(cardId: row.id),
+                    payload: row.payload,
                     onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
                     onOpenOshi: { oshi in
                         if let idol = directory.idols[oshi.id] { sheet = .idol(idol) }

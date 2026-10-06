@@ -132,7 +132,8 @@ struct ProducerCardPrintSheet {
                 }
             },
             moreOshi: Int(face.moreOshi),
-            seed: card.card.oshiIdolIds.first.flatMap { directory.idols[$0]?.color },
+            // 担当の色は画面の名刺と同じく、描ける先頭の担当の色。
+            seed: face.oshiIdolIds.first.flatMap { directory.idols[$0]?.color },
             handle: face.handle?.display,
             nameFont: ProducerCardDisplay.nameFont(card.card),
             portrait: materials.portrait

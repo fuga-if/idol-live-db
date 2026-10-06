@@ -139,10 +139,11 @@ struct ImasProducerCard: View {
         VStack(spacing: DS.Space.gap) {
             GeometryReader { geo in
                 let scale = geo.size.width / ImasMeishi.canvas.width
+                // 角丸の切り抜きと縁は面ごとに付けて、面と一緒に回す (外に付けると回る途中で枠だけ残る)。
                 ZStack {
-                    front(scale: scale).opacity(flipped ? 0 : 1)
+                    paperEdge(front(scale: scale)).opacity(flipped ? 0 : 1)
                     if hasBack {
-                        backSide(scale: scale)
+                        paperEdge(backSide(scale: scale))
                             .opacity(flipped ? 1 : 0)
                             .rotation3DEffect(.degrees(reduceMotion ? 0 : 180), axis: (x: 0, y: 1, z: 0))
                     }
@@ -150,8 +151,6 @@ struct ImasProducerCard: View {
                 .rotation3DEffect(.degrees(flipped && !reduceMotion ? 180 : 0), axis: (x: 0, y: 1, z: 0))
             }
             .aspectRatio(ImasMeishi.aspect, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
-            .imasSurfaceEdge(cornerRadius: DS.rTag)
             .frame(maxWidth: Self.maxWidth)
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
@@ -176,9 +175,17 @@ struct ImasProducerCard: View {
             if ProcessInfo.processInfo.environment["PRODUCER_CARD_BACK"] == "1" { showingBack = true }
         }
         #endif
-        .task(id: back?.qr) {
-            qrImage = back.flatMap { ImasQRCode.render($0.qr) }
+        .task(id: canFlip ? back?.qr : nil) {
+            // 返せない名刺 (編集画面の見本) は裏を出さないので QR を描かない。
+            qrImage = canFlip ? back.flatMap { ImasQRCode.render($0.qr) } : nil
         }
+    }
+
+    /// 紙の角丸と縁 (面ごとに付けて、裏返るときに面と一緒に回す)。
+    private func paperEdge(_ side: some View) -> some View {
+        side
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .imasSurfaceEdge(cornerRadius: DS.rTag)
     }
 
     private var canFlip: Bool { isFlippable && hasBack }

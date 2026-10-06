@@ -133,11 +133,13 @@ enum ProducerCardDisplay {
         return parts.joined(separator: " · ")
     }
 
-    /// 名刺の裏 (紙に刷る裏と同じ)。QR は渡さなければ交換用 (その名刺の中身の URL)。
-    static func back(_ card: ProducerCard, face: CardFace, qr: ImasProducerCard.Back? = nil) -> ImasProducerCard.Back {
+    /// 名刺の裏 (紙に刷る裏と同じ)。QR は渡さなければ交換用。`payload` は受け取ったままの中身
+    /// (組み直すと、新しい版のアプリが足した項目を落とした QR になる)。無ければ名刺から組む。
+    static func back(_ card: ProducerCard, face: CardFace, payload: String?, qr: ImasProducerCard.Back? = nil)
+        -> ImasProducerCard.Back {
         if let qr { return qr }
         return ImasProducerCard.Back(
-            qr: producerCardUrlFromPayload(payload: producerCardPayload(card: card)),
+            qr: producerCardUrlFromPayload(payload: payload ?? producerCardPayload(card: card)),
             showCount: card.showCount, songCount: card.songCount, issuedLabel: face.issuedLabel)
     }
 
@@ -151,10 +153,10 @@ enum ProducerCardDisplay {
     /// 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。名刺の下の詳細は `.details`。
     /// `portraitURL` は名刺の写真、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
     /// 届いた画像。QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
-    /// `back` は裏の QR (渡さなければ交換用)。
+    /// `back` は裏の QR (渡さなければ交換用)。`payload` は受け取ったままの名刺の中身 (交換用の QR に使う)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
                      imageURL: (String) -> URL?, portraitURL: URL? = nil, face: Face? = nil,
-                     back: ImasProducerCard.Back? = nil,
+                     back: ImasProducerCard.Back? = nil, payload: String? = nil,
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
@@ -175,7 +177,7 @@ enum ProducerCardDisplay {
             photoURL: oshi.compactMap(\.imageURL).first,
             portraitURL: portraitURL,
             nameFont: nameFont(card, face: face),
-            back: Self.back(card, face: cardFace, qr: back),
+            back: Self.back(card, face: cardFace, payload: payload, qr: back),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi
         )
