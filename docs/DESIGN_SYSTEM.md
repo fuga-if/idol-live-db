@@ -403,6 +403,8 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasPortraitCropper`** 名刺の写真を枠に合わせる。引いて動かし、つまんで広げる (枠の外は暗く沈めず切る)。
 - **`ImasNameFontPicker`** 名前の書体の見本の札を横に並べる。引くと真ん中に来た札を選び、押しても選ぶ。札の地は紙のまま、選んだ札は墨の太い縁と ✓ (色の地のチップにしない)。
 - **`ImasCornerAdjuster`** 写真に写った紙の名刺の四隅を指で直す。丸い取っ手 4 つと四隅を結ぶ墨の線。✓ で平らにし直す。
+- **プロフィール帳** P名刺の画面の「渡す・しまう」から入る。見本 (`ShareCardPreview`) + 「画像を書き出す」、右上の鉛筆で編集シート
+  (Form の型: 見本・様式と大きさ (`ImasSegmented`)・ふりがな・自分で書く欄 (`ImasQuestionField`)・好きな曲・対応範囲 (`ImasFilterChip`)・アプリの記録 (`ImasToggleRow`))。画像は §13。
 - **名刺入れ** 受け取った公演の半券 (`ImasStubRow`) の下に `ImasRow` (行頭の帯 = 相手の担当の色、`.avatar`、末尾に「担当被り」) を並べ、右に引くとメモ・左に引くと削除 (`.imasSwipe`)。
   名刺の写真がある名刺は行頭を `.portrait` (証明写真の枠の右下に担当のアイコンを重ねる。担当のアイコンは消さない) にする。
 
@@ -421,6 +423,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasColorPicker` | タグの色など | 色の丸 + 選んだ色に ✓、色名を読み上げ |
 | `ImasBrandPicker` | ブランドを選ぶ (ゲーム・絞り込み) | `ImasBrandCell` の格子 + 「すべて」 |
 | `ImasChipInputField` | マイタグ等、押すと増える手元のチップを 1 行で追加 | カプセルの入力欄 + 丸い送信ボタン (`+`)。文字数の上限は超えた分を切り詰める |
+| `ImasQuestionField` | 質問と答えの欄 (プロフィール帳の自分で書く欄)。List の 1 行 | 設問番号の印字 (`Q1`) + 質問 (書き換えられる。空なら用意した質問文を薄く) + 答え (複数行) + 文字数 (超えたら朱)。並べ替えは `onMove`、外すのは `onDelete` と組む |
 
 **検索と絞り込みは別物** — 虫眼鏡はアプリで 1 つ (横断検索 `UnifiedSearchView`、結果は push)。一覧を絞るのは `ImasSearchField` と絞り込みシート。
 
@@ -688,6 +691,16 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 画面ではなく 1 枚の画像なので、アプリの部品ではなく `ShareCard*` の決まりで作る。
 
 - `ShareCardScaffold` — 地 (ほぼ黒)・余白・見出しの書体 (明朝)・アプリ名の帯。`.photo` (写真の上に文字) / `.solo` (1 人・1 曲) / `.poster` (ランキング・ティアー表)。
+- **プロフィール帳** (`ProfileSheetCard`) — 例外的に生成りの紙の地。P を職業に見立てた事務書類の様式を、ポップに崩す。
+  様式は **履歴書** (既定: 氏名・ふりがな・押印欄・証明写真・P歴・担当・連絡先、対応範囲、P歴 (学歴・職歴) の表と「以上」、免許・資格、
+  志望の動機 / 趣味・特技 + 本人希望記入欄) と **職務経歴書** (職務要約・職務経歴の年ごとの表・担当・対応範囲・活かせる経験・知識・スキル・自己PR・以上)。
+  大きさは 4:5 (1080×1350) と 9:16 (1080×1920)。
+  - 線は墨の太い罫 (外枠 2.5pt・中 1pt)。担当色は上の帯・表の頭の罫・押印欄の判子・職務経歴書の見出しの四角と「予定」の印だけ (面を塗らない)。
+  - 題はポップ体 (Mochiy Pop One、`cardNameFonts` の pop)、設問・記録は印字のゴシック、答えと名前は P名刺の書体。
+  - 押印欄は担当の判子 (担当色の二重の丸に名前、少し傾けて押す)。担当の行は写真か判子を必ず出す。写真の無い証明写真の欄は「写真をはる位置」を刷る。
+  - 対応範囲はブランドの名前を刷り、対応しているものだけブランドの色の手描きの丸 (`ProfileHandCircle`。傾き・伸び・書き始めはコアが id から決める)。
+  - 欄・行・丸・載る数・詰め方はコア (`profileSheetLayout`)。詰め方から始め、実物が収まらなければ 1 段ずつ小さくして収める (`ViewThatFits`)。
+  - 撮り比べ (2026-10): アンケート用紙案をやめ、ユーザーの「履歴書・職務経歴書のフォーマットを pop に」で 2 様式にした。
 - 文字と色は `ShareInk` / `ShareCardPalette` だけ。固定のキャンバスなので固定の pt を使ってよい (例外として許可)。
 - **置き換えるもの** ソートメーカーとティアー表の独自の組み、クイズの共有画像の別系統。
 
@@ -737,6 +750,8 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | ゲームの表彰台・対戦結果を見せる | `ImasPodium` / `ImasStageVersusResult` |
 | ティアー表を組む | `ImasTierBoard` + `ImasTierRow` / `ImasTierChip` / `ImasTierMoveBar` |
 | P名刺・QR を見せる | `ImasProducerCard` / `ImasQRCode` / `ImasCameraFrame` / `ImasCardPortrait` / `ImasNameFontPicker` / `ImasPortraitCropper` / `ImasCornerAdjuster` |
+| 質問に答える欄を並べる (並べ替え・外す) | `ImasQuestionField` (List + `onMove` / `onDelete`) |
+| 自己紹介の 1 枚絵 (履歴書・職務経歴書) | `ProfileSheetCard` (§13) |
 
 ---
 

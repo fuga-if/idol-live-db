@@ -1167,6 +1167,9 @@ private struct FormTemplatePage: View {
     @State private var name = "LIVE TOUR -標-"
     @State private var url = "htps://example"
     @State private var memo = ""
+    @State private var questionPrompt = ""
+    @State private var questionAnswer = "アニメで見たステージに心をつかまれて"
+    @State private var questionLong = String(repeating: "あ", count: 84)
     @State private var notify = true
     @State private var confirmDelete = false
     @State private var toolbarKind = 0
@@ -1200,6 +1203,12 @@ private struct FormTemplatePage: View {
             }
             ImasListSection("メモ", footer: "メモはこの端末にだけ保存されます。") {
                 ImasTextAreaRow(text: $memo, prompt: "座席・同行者・感想など", limit: 400)
+            }
+            ImasListSection("質問と答え (ImasQuestionField)", footer: "長く押して並べ替え、左に引いて外す (List の onMove / onDelete と組む)。2 つ目は上限を超えた状態。") {
+                ImasQuestionField(number: 1, prompt: $questionPrompt, defaultPrompt: "Pになったきっかけ",
+                                  answer: $questionAnswer, placeholder: "アニメで見て", promptLimit: 16, answerLimit: 80)
+                ImasQuestionField(number: 2, prompt: .constant("好きな衣装"), defaultPrompt: "自由記入",
+                                  answer: $questionLong, promptLimit: 16, answerLimit: 80)
             }
             ImasListSection("保存中のオーバーレイ (見本。触ると 1.5 秒で消える)") {
                 ImasActionRow(title: "保存中 (くるくる) を試す", systemImage: "arrow.clockwise") { trySaving(.spinner) }
