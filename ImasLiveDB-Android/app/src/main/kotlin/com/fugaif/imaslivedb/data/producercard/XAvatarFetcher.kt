@@ -8,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.runInterruptible
 import uniffi.imas_core.XAvatarLookup
 import uniffi.imas_core.xAvatarLookup
 import uniffi.imas_core.xAvatarLookupMessage
@@ -40,38 +40,48 @@ object XAvatarFetcher {
     private const val MAX_IMAGE_BYTES = 8 * 1024 * 1024
     /** プロフィールの返事の大きさの上限 (数 KB のもの)。 */
     private const val MAX_PROFILE_BYTES = 512 * 1024
+    /** 開くアイコンの長辺の目安 (px)。名刺の写真は 900×1200 に切り抜く。 */
+    private const val MAX_IMAGE_PIXELS = 2000
 
+    /** 取ってくる。全体で [TOTAL_TIMEOUT_MS] を過ぎたら読むのをやめる (少しずつ返す相手に粘らない)。 */
     suspend fun fetch(handle: String): Outcome = withContext(Dispatchers.IO) {
-        withTimeoutOrNull(TOTAL_TIMEOUT_MS) { fetchNow(handle) }
-            ?: Outcome.Failed(xAvatarLookupMessage(XAvatarLookup.Unavailable, handle).orEmpty())
+        runInterruptible { fetchNow(handle, System.nanoTime() + TOTAL_TIMEOUT_MS * 1_000_000) }
     }
 
-    private fun fetchNow(handle: String): Outcome {
-        val lookup = lookup(handle)
+    private fun fetchNow(handle: String, deadline: Long): Outcome {
+        val lookup = lookup(handle, deadline)
         if (lookup is XAvatarLookup.Found) {
             for (raw in lookup.imageUrls) {
-                image(raw)?.let { return Outcome.Image(it) }
+                image(raw, deadline)?.let { return Outcome.Image(it) }
             }
             return Outcome.Failed(xAvatarLookupMessage(XAvatarLookup.Unavailable, handle).orEmpty())
         }
         return Outcome.Failed(xAvatarLookupMessage(lookup, handle).orEmpty())
     }
 
-    private fun lookup(handle: String): XAvatarLookup {
+    private fun lookup(handle: String, deadline: Long): XAvatarLookup {
         val raw = xProfileApiUrl(handle) ?: return XAvatarLookup.NotFound
-        val (status, body) = limitedGet(raw, MAX_PROFILE_BYTES, accept = "application/json")
+        val (status, body) = limitedGet(raw, MAX_PROFILE_BYTES, accept = "application/json", deadline = deadline)
             ?: return XAvatarLookup.Unavailable
         return xAvatarLookup(handle, status.coerceIn(0, UShort.MAX_VALUE.toInt()).toUShort(), body.toString(Charsets.UTF_8))
     }
 
-    private fun image(raw: String): Bitmap? {
-        val (status, body) = limitedGet(raw, MAX_IMAGE_BYTES, accept = "image/*") ?: return null
+    private fun image(raw: String, deadline: Long): Bitmap? {
+        val (status, body) = limitedGet(raw, MAX_IMAGE_BYTES, accept = "image/*", deadline = deadline) ?: return null
         if (status != 200) return null
-        return runCatching { BitmapFactory.decodeByteArray(body, 0, body.size) }.getOrNull()
+        // 縦横を見てから、長辺 MAX_IMAGE_PIXELS 程度まで間引いて開く (大きな画像で Bitmap を膨らませない)。
+        return runCatching {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(body, 0, body.size, bounds)
+            var sample = 1
+            while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_IMAGE_PIXELS) sample *= 2
+            BitmapFactory.decodeByteArray(body, 0, body.size, BitmapFactory.Options().apply { inSampleSize = sample })
+        }.getOrNull()
     }
 
     /** 上限を超えたら読むのをやめる (大きすぎる返事を最後まで受け取らない)。読めなければ null。 */
-    private fun limitedGet(raw: String, maxBytes: Int, accept: String): Pair<Int, ByteArray>? = runCatching {
+    private fun limitedGet(raw: String, maxBytes: Int, accept: String, deadline: Long): Pair<Int, ByteArray>? = runCatching {
+        if (System.nanoTime() > deadline) return@runCatching null
         val connection = URL(raw).openConnection() as HttpURLConnection
         try {
             connection.useCaches = false
@@ -89,7 +99,7 @@ object XAvatarFetcher {
                     val n = input.read(buffer)
                     if (n < 0) break
                     out.write(buffer, 0, n)
-                    if (out.size() > maxBytes) return@runCatching null
+                    if (out.size() > maxBytes || System.nanoTime() > deadline) return@runCatching null
                 }
             }
             status to out.toByteArray()

@@ -104,6 +104,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardLinkKind
@@ -185,6 +186,14 @@ fun ProducerCardEditorSheet(
 
     var isFetchingAvatar by remember { mutableStateOf(false) }
     var avatarNotice by remember { mutableStateOf<String?>(null) }
+    // 取りに行っている X のアイコン (写真を選んだ・外したら取り消す。遅れて届いたアイコンで切り抜きを差し替えない)。
+    var avatarJob by remember { mutableStateOf<Job?>(null) }
+
+    fun cancelAvatar() {
+        avatarJob?.cancel()
+        avatarJob = null
+        isFetchingAvatar = false
+    }
 
     LaunchedEffect(record) {
         val ids = record?.oshiIds?.take(limits.maxOshi.toInt()).orEmpty()
@@ -221,6 +230,7 @@ fun ProducerCardEditorSheet(
 
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
+        cancelAvatar()
         scope.launch {
             val image = PaperCardCodeReader.loadBitmap(context, uri)
             if (image == null) {
@@ -295,14 +305,15 @@ fun ProducerCardEditorSheet(
         if (uri == null) return@rememberLauncherForActivityResult
         val side = pickingFace
         faceNotice = null
+        // 読み込みから保存させない (読み込み中に ✓ で閉じると、選んだ面が黙って書かれない)。
+        isReadingFace = true
         scope.launch {
-            val image = PaperCardCodeReader.loadBitmap(context, uri)
-            if (image == null) {
-                faceNotice = "画像を読み込めませんでした。"
-                return@launch
-            }
-            isReadingFace = true
             try {
+                val image = PaperCardCodeReader.loadBitmap(context, uri)
+                if (image == null) {
+                    faceNotice = "画像を読み込めませんでした。"
+                    return@launch
+                }
                 val result = PaperCardRectifier.rectify(PaperCardRectifier.bounded(image))
                 // 画面で作った画像は四隅が画像の縁なので見つからない。代わりに画像の中の小さな四角 (写真の枠など)
                 // を拾うことがあるので、画像の半分に満たない四角では切り抜かない (四隅を直す で選び直せる)。
@@ -342,7 +353,8 @@ fun ProducerCardEditorSheet(
     fun useXAvatar(handle: String) {
         avatarNotice = null
         isFetchingAvatar = true
-        scope.launch {
+        avatarJob?.cancel()
+        avatarJob = scope.launch {
             val outcome = XAvatarFetcher.fetch(handle)
             isFetchingAvatar = false
             when (outcome) {
@@ -378,6 +390,7 @@ fun ProducerCardEditorSheet(
     }
 
     fun removePhoto() {
+        cancelAvatar()
         avatarNotice = null
         photoSource = null
         previewPortrait = null
