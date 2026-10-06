@@ -1,13 +1,19 @@
 package com.fugaif.imaslivedb.ui.lyrics
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.filled.Headset
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
@@ -23,6 +29,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.data.lyrics.LyricsApi
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasChoice
 import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCards
 import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCardsStyle
@@ -40,12 +48,16 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
+import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
+import com.fugaif.imaslivedb.ui.producercard.cardCameraAvailable
+import com.fugaif.imaslivedb.ui.producercard.rememberDocumentCamera
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.LyricSourceKind
 import uniffi.imas_core.LyricSubmissionIssue
+import uniffi.imas_core.lyricOcrAppend
 import uniffi.imas_core.lyricSourceDetail
 import uniffi.imas_core.lyricSourceKinds
 import uniffi.imas_core.lyricSourceLabel
@@ -76,6 +88,8 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
     var sent by remember { mutableStateOf(false) }
+    var isReading by remember { mutableStateOf(false) }
+    var ocrMessage by remember { mutableStateOf<String?>(null) }
 
     val check = lyricSubmissionCheck(text, source, attested)
     val isDirty = text.trim().isNotEmpty() || source != null
@@ -106,6 +120,25 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
             }
         }
     }
+
+    /** 書類カメラ・写真で撮った歌詞カードを読む。読んだ文字は入力欄に足すだけで、本人が見直してから送る。 */
+    fun read(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        isReading = true
+        scope.launch {
+            val images = uris.mapNotNull { PaperCardCodeReader.loadBitmap(context, it) }
+            val recognized = LyricsCardOcr.read(images)
+            isReading = false
+            if (recognized.isEmpty()) {
+                ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
+            } else {
+                text = lyricOcrAppend(text, recognized)
+            }
+        }
+    }
+
+    val openCamera = rememberDocumentCamera(maxPages = 10, onFinish = ::read)
+    val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { read(it) }
 
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth()) {
@@ -165,6 +198,15 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                     )
                 }
 
+                OcrButtons(
+                    canUseCamera = cardCameraAvailable(context),
+                    enabled = !isReading && !isSaving,
+                    onCamera = openCamera,
+                    onPickPhotos = {
+                        pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    }
+                )
+
                 IssueNotes(check.lineCount, check.charCount, check.issues)
 
                 ImasFormCard {
@@ -178,13 +220,14 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                 }
 
                 ImasText(
-                    "送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。" +
-                        "歌詞サイトから写した歌詞は公開できません。分かった時点で削除します。",
+                    "送った歌詞は運営が確認してから公開します。CD の歌詞カードや、公式に公開されている歌詞を見て入力してください。\n" +
+                        "次のものは投稿できません: 歌詞サイトから写した歌詞、聴き取りの書き起こし、歌詞が公表されていない曲、" +
+                        "翻訳や替え歌、歌詞ではない文 (作詞・作曲などのクレジット)。分かった時点で削除します。",
                     ImasTextRole.NOTE
                 )
             }
         }
-        ImasSavingOverlay(isSaving, label = "送信中")
+        ImasSavingOverlay(isSaving || isReading, label = if (isReading) "読み取り中" else "送信中")
     }
 
     ImasDiscardConfirmation(
@@ -194,6 +237,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     )
 
     ImasErrorAlert(message = errorMessage, onDismiss = { errorMessage = null }, title = "送信できませんでした")
+    ImasErrorAlert(message = ocrMessage, onDismiss = { ocrMessage = null }, title = "文字を読み取れませんでした")
 
     ImasCompletionAlert(
         title = "歌詞を送りました",
@@ -205,7 +249,43 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
 private fun sourceIcon(kind: LyricSourceKind): ImageVector = when (kind) {
     LyricSourceKind.BOOKLET -> Icons.Filled.Album
     LyricSourceKind.OFFICIAL -> Icons.Filled.Public
-    LyricSourceKind.LISTENING -> Icons.Filled.Headset
+}
+
+/**
+ * 歌詞カードを撮る・写真から読む (iOS `LyricSubmissionSheet.ocrButtons` の移植)。
+ * 読み取りは端末の中だけで行い、読んだ文字は入力欄に足すだけで本人が見直してから送る。
+ */
+@Composable
+private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> Unit, onPickPhotos: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            if (canUseCamera) {
+                ImasButton(
+                    title = "歌詞カードを撮る",
+                    onClick = onCamera,
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Filled.DocumentScanner,
+                    role = ImasButtonRole.SECONDARY,
+                    fillsWidth = true,
+                    enabled = enabled
+                )
+            }
+            ImasButton(
+                title = "写真から読む",
+                onClick = onPickPhotos,
+                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.PhotoLibrary,
+                role = ImasButtonRole.SECONDARY,
+                fillsWidth = true,
+                enabled = enabled
+            )
+        }
+        ImasText(
+            "文字の読み取りは端末の中だけで行い、写真は送りません。読み取った歌詞は誤りがないか見直してから送ってください。",
+            ImasTextRole.NOTE,
+            color = DS.ink3
+        )
+    }
 }
 
 /** 行数・文字数と、コアが出した注意。送信を止める注意は朱で出す。 */

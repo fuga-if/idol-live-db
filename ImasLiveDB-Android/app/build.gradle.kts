@@ -276,6 +276,8 @@ dependencies {
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.mlkit.document.scanner)
     implementation(libs.zxing.core)
+    // 歌詞カードの文字認識 (端末内だけ。画像は送らず保存もしない)
+    implementation(libs.mlkit.text.recognition.japanese)
 
     // Debug
     debugImplementation(libs.androidx.ui.tooling)

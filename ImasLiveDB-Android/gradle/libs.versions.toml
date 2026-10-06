@@ -57,6 +57,8 @@ mlkitBarcode = "17.3.0"
 mlkitDocumentScanner = "16.0.0-beta1"
 # P名刺: QR を刷る (誤り訂正 L。iOS の CIQRCodeGenerator の対)
 zxing = "3.5.3"
+# 歌詞カードの文字認識 (端末内の日本語モデル・bundled 版。iOS の Vision の対)
+mlkitTextRecognitionJapanese = "16.0.1"
 
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -122,6 +124,7 @@ androidx-camera-view = { group = "androidx.camera", name = "camera-view", versio
 mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
 mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+mlkit-text-recognition-japanese = { group = "com.google.mlkit", name = "text-recognition-japanese", version.ref = "mlkitTextRecognitionJapanese" }
 
 # Test
 junit = { group = "junit", name = "junit", version = "4.13.2" }
