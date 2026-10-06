@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
@@ -47,6 +48,19 @@ enum class AnnouncementLink { WIDGET_HOW_TO }
 object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
+        Announcement(
+            id = "lyrics_paused_2026_10",
+            date = "2026-10-06",
+            title = "歌詞の掲載を一時停止しています",
+            summary = "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除しました。",
+            body = listOf(
+                "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除し、歌詞タブ・歌詞検索・歌詞クイズ・コールガイド・歌詞プレイヤーを一時停止しています。",
+                "皆さんが付けてくださったコール・タイミング・パート分けは保管しています。再開するときは、このお知らせでお伝えします。",
+            ),
+            icon = Icons.Filled.PauseCircle,
+            tint = "#737380",
+            link = null
+        ),
         Announcement(
             id = "v2.4.0_lyrics_playlist",
             date = "2026-10-04",

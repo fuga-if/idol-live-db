@@ -413,8 +413,10 @@ struct ProduceTabView: View {
                 NavigationLink { IntroDonHomeView() } label: {
                     ImasShortcutTile(systemImage: "music.note.list", label: "イントロドン", seed: pickBrandSeed)
                 }
-                NavigationLink { LyricsQuizSetupView() } label: {
-                    ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ", seed: pickBrandSeed)
+                if LyricsFeature.isAvailable {
+                    NavigationLink { LyricsQuizSetupView() } label: {
+                        ImasShortcutTile(systemImage: "text.quote", label: "歌詞クイズ", seed: pickBrandSeed)
+                    }
                 }
                 NavigationLink { SetlistQuizSetupView() } label: {
                     ImasShortcutTile(systemImage: "list.number", label: "セトリ当て", seed: pickBrandSeed)

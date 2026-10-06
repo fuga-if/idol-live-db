@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import com.fugaif.imaslivedb.data.lyrics.LyricsFeature
 import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -427,8 +428,16 @@ private fun SongSheetContent(
 
     // 歌詞タブを初めて開いたとき (または曲を切り替えて戻ってきたとき) に取りに行く。
     // iOS は曲詳細の束ね取得に同梱されるが、Android にその経路が無いので遅延取得。
+    // 歌詞機能が閉じている間は歌詞タブ自体を出さないので segment 3 には来ない。
     LaunchedEffect(segment, song.id) {
-        if (segment == 3 && state.lyrics == null && !state.isLyricsLoading) onLoadLyrics()
+        if (LyricsFeature.isAvailable && segment == 3 && state.lyrics == null && !state.isLyricsLoading) onLoadLyrics()
+    }
+
+    // 歌詞は JASRAC 等の許諾に従う (`LyricsFeature`)。閉じている間はタブ自体を出さない。
+    val tabLabels = if (LyricsFeature.isAvailable) {
+        listOf("情報・歌唱", "披露履歴", "コミュニティ", "歌詞")
+    } else {
+        listOf("情報・歌唱", "披露履歴", "コミュニティ")
     }
 
     val scroll = rememberScrollState()
@@ -439,7 +448,7 @@ private fun SongSheetContent(
             modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
         )
         ImasTabs(
-            labels = listOf("情報・歌唱", "披露履歴", "コミュニティ", "歌詞"),
+            labels = tabLabels,
             selection = segment, onSelect = { segment = it },
             seed = seed, brand = song.brandId,
             modifier = imasResetScrollOnTabChange(scroll, segment).fillMaxWidth().padding(horizontal = DS.sp5)

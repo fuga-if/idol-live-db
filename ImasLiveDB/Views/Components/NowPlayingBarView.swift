@@ -36,7 +36,7 @@ final class NowPlayingModel {
             isPlaying: service.isPlaying
         )
         // バーを先に出してから、その曲の歌詞を取りに行く (曲送りで替わった曲にも付いてくる)。
-        if service.isFullPlayback { await LyricsSession.shared.follow(songId: songId) }
+        if service.isFullPlayback, LyricsFeature.isAvailable { await LyricsSession.shared.follow(songId: songId) }
     }
 }
 

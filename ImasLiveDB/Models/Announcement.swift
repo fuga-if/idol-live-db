@@ -21,6 +21,19 @@ enum AnnouncementCatalog {
     /// 新しいものほど上 (表示順)。
     static let all: [Announcement] = [
         Announcement(
+            id: "lyrics_paused_2026_10",
+            date: "2026-10-06",
+            title: "歌詞の掲載を一時停止しています",
+            summary: "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除しました。",
+            body: [
+                "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除し、歌詞タブ・歌詞検索・歌詞クイズ・コールガイド・歌詞プレイヤーを一時停止しています。",
+                "皆さんが付けてくださったコール・タイミング・パート分けは保管しています。再開するときは、このお知らせでお伝えします。",
+            ],
+            icon: "pause.circle",
+            tint: Color(red: 0.45, green: 0.45, blue: 0.50),
+            link: nil
+        ),
+        Announcement(
             id: "v2.4.0_lyrics_playlist",
             date: "2026-10-04",
             title: "歌詞が再生に合わせて進むようになりました",

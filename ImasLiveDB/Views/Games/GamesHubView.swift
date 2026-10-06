@@ -21,7 +21,10 @@ struct GamesHubView: View {
         let blurb: String
     }
 
-    private let entries: [GameEntry] = [
+    /// 歌詞クイズは歌詞タブと同じ根拠 (`LyricsFeature`) で出し分ける。
+    private let entries: [GameEntry] = Self.allEntries.filter { $0.kind != .lyricsQuiz || LyricsFeature.isAvailable }
+
+    private static let allEntries: [GameEntry] = [
         .init(kind: .idolQuiz, systemImage: "person.fill.questionmark", title: "アイドル当て",
               blurb: "プロフィールから当てる"),
         .init(kind: .songSingerQuiz, systemImage: "music.microphone", title: "ソロ曲クイズ",
@@ -72,7 +75,7 @@ struct GamesHubView: View {
     }
 
     private func title(_ kind: GameKind) -> String {
-        entries.first { $0.kind == kind }?.title ?? ""
+        Self.allEntries.first { $0.kind == kind }?.title ?? ""
     }
 
     private var stageTicket: some View {
@@ -133,7 +136,7 @@ struct GamesHubView: View {
     @ViewBuilder
     private var resumeRow: some View {
         HStack(spacing: DS.sp4) {
-            if let s = resumeStore.latest {
+            if let s = resumeStore.latest, s.kind != .lyricsQuiz || LyricsFeature.isAvailable {
                 VStack(alignment: .leading, spacing: DS.sp1) {
                     Text("つづきから").font(QS.text(11)).foregroundStyle(QS.dim)
                     Text("\(title(s.kind)) · " + String(format: "Q.%02d / %d", min(s.plays.count + 1, s.total), s.total))
