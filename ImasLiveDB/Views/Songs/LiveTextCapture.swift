@@ -30,8 +30,13 @@ final class LiveTextCapture {
 
     func start(onText: @escaping (String) -> Void) {
         receiver.onText = onText
-        guard receiver.becomeFirstResponder() else { return }
-        receiver.captureTextFromCamera(nil)
+        // 前のスキャンを × で閉じたあとも受け手のままなので、いったん手放してから受け手に戻る。
+        // 受け手のまま始め直すと、カメラが開かない。
+        _ = receiver.resignFirstResponder()
+        DispatchQueue.main.async { [receiver] in
+            guard receiver.becomeFirstResponder() else { return }
+            receiver.captureTextFromCamera(nil)
+        }
     }
 
     /// 受け手を手放す (シートを閉じるとき)。
