@@ -256,6 +256,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_ruby_choices,
     uniffi_imas_core_checksum_func_lyric_aside_spans,
     uniffi_imas_core_checksum_func_lyric_main_range,
+    uniffi_imas_core_checksum_func_lyric_ocr_append,
+    uniffi_imas_core_checksum_func_lyric_ocr_layout,
     uniffi_imas_core_checksum_func_lyric_source_detail,
     uniffi_imas_core_checksum_func_lyric_source_key,
     uniffi_imas_core_checksum_func_lyric_source_kinds,

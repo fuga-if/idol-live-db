@@ -1,4 +1,5 @@
 import os
+import PhotosUI
 import SwiftUI
 
 /// 歌詞を投稿するシート。CD の歌詞カードなどの一次ソースを見て入力した歌詞を送る。
@@ -19,6 +20,10 @@ struct LyricSubmissionSheet: View {
     @State private var errorMessage: String?
     @State private var confirmDiscard = false
     @State private var sent = false
+    @State private var showCamera = false
+    @State private var photoPicks: [PhotosPickerItem] = []
+    @State private var isReading = false
+    @State private var ocrMessage: String?
 
     private var check: LyricSubmissionCheck {
         lyricSubmissionCheck(text: text, source: source, attestedNoCopy: attested)
@@ -53,6 +58,7 @@ struct LyricSubmissionSheet: View {
                     ImasFormTextField(label: "入力元の補足 (任意)", imprint: "SOURCE", text: $sourceNote,
                                       prompt: "例: 初回限定盤のブックレット")
                 }
+                ocrButtons
                 issueNotes
 
                 ImasFormCard {
@@ -73,8 +79,29 @@ struct LyricSubmissionSheet: View {
                 onCancel: { isDirty ? (confirmDiscard = true) : dismiss() },
                 onSubmit: { AppAnalytics.tap("lyric_submission.submit"); Task { await submit() } }
             ))
-            .imasSavingOverlay(isSaving, label: "送信中")
+            .imasSavingOverlay(isSaving || isReading, label: isReading ? "読み取り中" : "送信中")
+            .fullScreenCover(isPresented: $showCamera) {
+                PaperCardCamera(maxPages: 10, onFinish: { images in
+                    showCamera = false
+                    Task { await read(images) }
+                }, onCancel: { showCamera = false })
+                .ignoresSafeArea()
+            }
+            .onChange(of: photoPicks) { _, picks in
+                guard !picks.isEmpty else { return }
+                Task {
+                    var images: [UIImage] = []
+                    for pick in picks {
+                        if let data = try? await pick.loadTransferable(type: Data.self), let image = UIImage(data: data) {
+                            images.append(image)
+                        }
+                    }
+                    photoPicks = []
+                    await read(images)
+                }
+            }
             .imasErrorAlert("送信できませんでした", message: $errorMessage)
+            .imasErrorAlert("文字を読み取れませんでした", message: $ocrMessage)
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
             .interactiveDismissDisabled(isDirty)
             .alert("歌詞を送りました", isPresented: $sent) {
@@ -84,6 +111,44 @@ struct LyricSubmissionSheet: View {
             }
         }
         .trackScreen("lyric_submission")
+    }
+
+    /// 歌詞カードを撮る・写真から読む。読んだ文字は入力欄に足すだけで、本人が見直してから送る。
+    private var ocrButtons: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            HStack(spacing: DS.Space.gap) {
+                if PaperCardCamera.isAvailable {
+                    Button {
+                        AppAnalytics.tap("lyric_submission.ocr_camera")
+                        showCamera = true
+                    } label: {
+                        Label("歌詞カードを撮る", systemImage: "camera.viewfinder")
+                    }
+                    .buttonStyle(.imas(.secondary, fillsWidth: true))
+                }
+                PhotosPicker(selection: $photoPicks, maxSelectionCount: 10, matching: .images) {
+                    Label("写真から読む", systemImage: "photo.on.rectangle")
+                }
+                .buttonStyle(.imas(.secondary, fillsWidth: true))
+            }
+            Text("文字の読み取りは端末の中だけで行い、写真は送りません。読み取った歌詞は誤りがないか見直してから送ってください。")
+                .font(.imasFootnote)
+                .foregroundStyle(DS.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .disabled(isReading || isSaving)
+    }
+
+    private func read(_ images: [UIImage]) async {
+        guard !images.isEmpty else { return }
+        isReading = true
+        defer { isReading = false }
+        let recognized = await LyricsCardOCR.read(images)
+        if recognized.isEmpty {
+            ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
+        } else {
+            text = lyricOcrAppend(draft: text, recognized: recognized)
+        }
     }
 
     private var sourceChoices: [ImasChoiceCards<LyricSourceKind?>.Choice] {
