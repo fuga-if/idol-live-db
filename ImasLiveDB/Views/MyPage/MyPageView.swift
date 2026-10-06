@@ -110,6 +110,8 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var lowerSections: some View {
+        // フル再生の許可。曲の行は鳴らせないと試聴に落ちるので、状態と入口をここに出す。
+        ImasListSection("Apple Music") { AppleMusicSettingsRow() }
         settingsSection
         dataSyncSection
         dataBackupSection
