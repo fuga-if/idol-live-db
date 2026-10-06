@@ -58,6 +58,7 @@ pub mod performance_gap;
 pub mod performance_stats;
 pub mod performer_label;
 pub mod play_queue;
+pub mod poll_result_card;
 pub mod prng;
 pub mod producer_card;
 pub mod producer_card_avatar;

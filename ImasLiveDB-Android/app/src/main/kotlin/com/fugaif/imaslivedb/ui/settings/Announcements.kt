@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
@@ -48,16 +49,24 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
+            id = "lyrics_paused_2026_10",
+            date = "2026-10-06",
+            title = "歌詞の掲載を一時停止しています",
+            summary = "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除しました。",
+            body = listOf(
+                "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除し、歌詞タブ・歌詞検索・歌詞クイズ・コールガイド・歌詞プレイヤーを一時停止しています。",
+                "皆さんが付けてくださったコール・タイミング・パート分けは保管しています。再開するときは、このお知らせでお伝えします。",
+            ),
+            icon = Icons.Filled.PauseCircle,
+            tint = "#737380",
+            link = null
+        ),
+        Announcement(
             id = "v2.4.0_lyrics_playlist",
             date = "2026-10-04",
-            title = "歌詞が再生に合わせて進むようになりました",
-            summary = "歌詞の追従・ここ好き・パート分け、プレイリスト、オリメンと初歌唱、今日は何の日などを追加しました。",
+            title = "プレイリストと「今日は何の日？」を追加しました",
+            summary = "プレイリスト、オリメンと初歌唱、チケットの申込記録、今日は何の日などを追加しました。",
             body = listOf(
-                "歌詞が再生に合わせて進むようになりました。Apple Music で曲を鳴らすと、今歌っている行が光って自動で送られます。行の時刻はみんなで記録して育てていけます。",
-                "「ここ好き」: 好きな行に印を付けられます。みんなの「ここ好き」はシークバーの山になって、曲のどこが盛り上がるかが一目で分かります。",
-                "パート分け: 誰が歌うかを、歌詞の字を担当色で塗って出します (何人かで歌うところは縞で塗り分けます。ソロ曲には出しません)。曲を聴きながら、歌う人を選んで歌詞を塗るだけで付けられ、行の途中で歌う人が変わるところや、何人かで歌うところも表せます。コールにも時刻を付けられ、歌詞の流れの中に並んで出ます。歌詞と同じ文字で叫ぶ「同時」コールは、歌詞のその語に下線を引いて示します。",
-                "振り仮名 (ルビ) を漢字の上に出すようになりました。歌詞の括弧で書いた被せ・歌わない字は、一段小さく薄く出します。歌詞プレイヤーは下へスワイプで畳めます。",
-                "コール練習: 歌詞プレイヤーでは、コールの瞬間に端末が震えて今のコールが大きく出ます。再生中バーにも、今歌っている行が出ます。",
                 "プレイリスト: 曲を集めて Apple Music で続けて鳴らせます。みんなのプレイリストに公開したり、人のものを保存したりもできます。「次に流れる曲」の ∞ をオンにすると、曲が終わったあとに似た曲を足して流し続けます。",
                 "セトリの詳細表示に、その曲のオリメンと、その公演で初めて歌った人が出るようになりました。歌唱の段を押すと歌唱者の一覧が開きます。",
                 "チケット: ライブ一覧の頭に受付中のチケットを出し、受付ごとに自分の申込 (申込済み・当選・落選) を記録できます。",

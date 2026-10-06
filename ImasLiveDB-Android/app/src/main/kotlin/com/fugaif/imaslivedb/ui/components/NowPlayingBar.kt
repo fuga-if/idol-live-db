@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.fugaif.imaslivedb.data.lyrics.LyricsFeature
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.AudioPreviewManager
@@ -107,9 +108,12 @@ fun NowPlayingBar(onSongClick: (String) -> Unit, modifier: Modifier = Modifier) 
 
     // 鳴っている曲が変わったら (止めたら) 歌詞を手放す。曲送り・プレイリストで替わったときは
     // 自分で取りに行く (歌詞タブを開いていなくてもバーが付いてくるように)。
+    // 歌詞機能が閉じている間は追従しない (API を叩かない。`LyricsFeature` 参照)。
     LaunchedEffect(loadedSongId) {
         LyricsSession.release(unlessSongId = loadedSongId)
-        LyricsSession.follow(loadedSongId, module.songRepository, module.lyricsApi)
+        if (LyricsFeature.isAvailable) {
+            LyricsSession.follow(loadedSongId, module.songRepository, module.lyricsApi)
+        }
     }
 
     val fullEntry = loadedSongId?.let { id -> sessionEntry?.takeIf { it.song.id == id } }
