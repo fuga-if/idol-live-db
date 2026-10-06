@@ -96,6 +96,8 @@ struct BrandRoleSetupSheet: View {
             .imasSheetToolbar(.edit(canSave: loaded, onCancel: skip, onSave: save))
         }
         .task {
+            // 出したら 1 度きり (× でも下へ引いて閉じても、もう案内しない)。
+            BrandRoleStore.markPrompted()
             rows = await BrandRoleStore.load().rows
             loaded = true
         }
@@ -103,7 +105,6 @@ struct BrandRoleSetupSheet: View {
     }
 
     private func skip() {
-        BrandRoleStore.markPrompted()
         dismiss()
     }
 

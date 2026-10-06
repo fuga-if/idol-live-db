@@ -34,14 +34,19 @@ enum ProfileSheetFiles {
     static func save(source: UIImage, crop: ImasPortraitCrop) throws {
         guard let cropped = crop.render(source),
               let photo = ProducerCardFiles.jpeg(cropped, maxPixels: 1600),
-              let original = ProducerCardFiles.jpeg(source, maxPixels: 3000) else { return }
+              let original = ProducerCardFiles.jpeg(source, maxPixels: 3000) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         try original.write(to: folder.appendingPathComponent("photo_source.jpg"), options: .atomic)
         try JSONEncoder().encode(crop).write(to: folder.appendingPathComponent("photo_crop.json"), options: .atomic)
-        let previous = photoURL
         let name = "photo-\(UUID().uuidString.prefix(8).lowercased()).jpg"
         try photo.write(to: folder.appendingPathComponent(name), options: .atomic)
-        if let previous { try? FileManager.default.removeItem(at: previous) }
+        // 前の写真をすべて片付ける (2 つ残るとどちらが出るか決まらない)。
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        for old in names where old.hasPrefix("photo-") && old != name {
+            try FileManager.default.removeItem(at: folder.appendingPathComponent(old))
+        }
     }
 
     /// 消す (証明写真の欄は P名刺の写真に戻る)。

@@ -55,7 +55,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(card.profile, profileSheetDefault())
         var sheet = card.profile
         sheet.size = .story
-        sheet.hidden = [.topSongs, .qr] // 保存の形の並び (選ぶ画面の順)
+        sheet.hidden = [.songs, .qr] // 保存の形の並び (選ぶ画面の順)
         card.profile = sheet
         try db.saveMyProducerCard(card)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)

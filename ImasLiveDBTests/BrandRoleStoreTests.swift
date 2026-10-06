@@ -37,6 +37,8 @@ final class BrandRoleStoreTests: XCTestCase {
     }
 
     func testSaveMarksConfiguredAndPrompted() {
+        // テストのホストのアプリが案内を出して印を付けることがあるので、同じ同期の区間で消してから見る。
+        clear()
         XCTAssertFalse(BrandRoleStore.isConfigured)
         XCTAssertTrue(BrandRoleStore.shouldPrompt)
         BrandRoleStore.save([row("765", .main), row("ml", .main), row("cg", .oshi), row("sc", .none)])

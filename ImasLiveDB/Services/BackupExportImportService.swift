@@ -208,7 +208,7 @@ enum BackupExportImportService {
             playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id),
             producerCardIds: try database.allReceivedProducerCardIds(),
             myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? [],
-            hasBrandRoles: BrandRoleStore.isConfigured
+            brandRolesJson: BrandRoleStore.json
         )
 
         let plan: BackupImportPlan
@@ -274,7 +274,7 @@ enum BackupExportImportService {
                            design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson)
         })
 
-        // 担当ブランドは端末でまだ決めていないときだけ (コアが決める)。
+        // 担当ブランドは端末の設定に担当・メインが 1 つも無いときだけ (コアが決める)。
         if !plan.brandRolesJsonToRestore.isEmpty {
             BrandRoleStore.restore(json: plan.brandRolesJsonToRestore)
         }

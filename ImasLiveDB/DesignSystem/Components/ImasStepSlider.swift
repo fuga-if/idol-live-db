@@ -7,7 +7,8 @@ import SwiftUI
 // 使わない 順序の無い選択肢 → `ImasSegmented` / 大きな札で選ぶ → `ImasChoiceCards` / オンオフ → `ImasToggleRow`。
 // 構成   墨の細い溝に段の目盛り (小さな丸)、選んだ段までを実体の色 (無ければ墨) で埋め、つまみ (紙の丸に色の縁) を置く。
 //        段の名前は目盛りの下に並べ、選んだ段だけ墨の太字。
-// 操作   引くとつまみが指に付いてきて、段をまたぐたびに触覚を返し、離すと近い段に吸い付く。目盛りや名前を押しても選べる。
+// 操作   横に引くとつまみが指に付いてきて、段をまたぐたびに触覚を返し、離すと近い段に吸い付く。段の名前を押しても選べる。
+//        触れただけ・縦に引いただけでは動かない (一覧のスクロールの指で値を変えない)。
 //        VoiceOver では調整できる値 (上下のスワイプで 1 段ずつ) として読む。
 // 種類   `ImasStepSlider` (スライダーだけ) / `ImasStepSliderRow` (行頭の色の帯 + 題 + スライダーの 1 行。設定の一覧用)。
 // 状態   段 0 は溝だけ (埋めない)。
@@ -26,6 +27,8 @@ struct ImasStepSlider: View {
     @Environment(\.colorScheme) private var scheme
     /// 引いている間のつまみの位置 (溝の左端からの距離)。離したら nil に戻して段に吸い付かせる。
     @State private var dragX: CGFloat?
+    /// 引き始めが縦向きだった (一覧のスクロール)。その指では値を動かさない。
+    @State private var dragIsVertical = false
     @ScaledMetric(relativeTo: .body) private var thumb: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var tick: CGFloat = 8
     @ScaledMetric(relativeTo: .body) private var groove: CGFloat = 4
@@ -63,14 +66,21 @@ struct ImasStepSlider: View {
                 }
                 .contentShape(Rectangle())
                 .gesture(
-                    DragGesture(minimumDistance: 0)
+                    // 触れただけでは動かさない (一覧を縦にスクロールする指で値が変わらないように)。
+                    // 横に引いたときだけつまみを付いてこさせる。押して選ぶのは段の名前のボタン。
+                    DragGesture(minimumDistance: 8)
                         .onChanged { value in
+                            if dragX == nil {
+                                dragIsVertical = abs(value.translation.height) > abs(value.translation.width)
+                            }
+                            guard !dragIsVertical else { return }
                             dragX = value.location.x
                             let nearest = Int(((value.location.x - inset) / width * CGFloat(last)).rounded())
                             let clamped = min(max(nearest, 0), steps.count - 1)
                             if clamped != index { index = clamped }
                         }
                         .onEnded { _ in
+                            dragIsVertical = false
                             withAnimation(.imasStandard) { dragX = nil }
                         }
                 )
@@ -122,21 +132,34 @@ struct ImasStepSliderRow: View {
     var brand: String? = nil
 
     @ScaledMetric(relativeTo: .body) private var sliderWidth: CGFloat = 188
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(alignment: .center, spacing: DS.Space.rowGap) {
             ImasLeadBar(seed: seed, brand: brand)
-                .frame(height: DS.Size.touch)
-            Text(title)
-                .imasText(.rowTitle)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            ImasStepSlider(steps: steps, index: $index, accessibilityLabel: "\(title)の担当",
-                           seed: seed, brand: brand)
-                .frame(width: sliderWidth)
+                .frame(maxHeight: .infinity)
+            // 文字が大きいときは題とスライダーを縦に積む (横に並べるとはみ出す)。
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    titleText
+                    slider
+                }
+            } else {
+                titleText.frame(maxWidth: .infinity, alignment: .leading)
+                slider.frame(width: sliderWidth)
+            }
         }
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, DS.Space.rowH)
         .padding(.vertical, DS.Space.rowVCompact)
         .frame(minHeight: DS.Size.touch)
+    }
+
+    private var titleText: some View {
+        Text(title).imasText(.rowTitle).lineLimit(2)
+    }
+
+    private var slider: some View {
+        ImasStepSlider(steps: steps, index: $index, accessibilityLabel: "\(title)の担当", seed: seed, brand: brand)
     }
 }

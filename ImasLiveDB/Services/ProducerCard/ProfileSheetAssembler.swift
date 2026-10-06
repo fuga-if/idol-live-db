@@ -27,7 +27,7 @@ struct ProfileSheetMaterials {
         record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiNames: [], oshiBrandIds: [], attended: [],
                                    songCount: 0, brands: [], brandRolesJson: "", favoriteSongs: [], links: [],
                                    hasPhoto: false, hasQr: false,
-                                   live: ProfileLiveRecord(topSongs: [], topVenue: nil, prefectureCount: 0))
+                                   live: ProfileLiveRecord(prefectureCount: 0))
     )
 }
 
@@ -47,7 +47,9 @@ enum ProfileSheetAssembler {
         let idols = oshiIds.isEmpty ? [] : ((try? await c.idolReading.idols(ids: oshiIds)) ?? [])
         let idolById = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let oshiIdols = oshiIds.compactMap { idolById[$0] }
-        // セトリ・会場から数えるのは現地参加だけ (形態の規則はコア)。マークは形態つきのまま渡す。
+        // 担当ブランドの既定は設定の画面と同じ材料で組む (担当の上限で切らない)。
+        let brandRoleRecord = await BrandRoleStore.loadRecord()
+        // 都道府県を数えるのは現地参加だけ (形態の規則はコア)。マークは形態つきのまま渡す。
         let showMarks = (try? await CollectionAttendance.marks(entity: .show, database: .shared)) ?? []
         let eventMarks = (try? await CollectionAttendance.marks(entity: .event, database: .shared)) ?? []
         let live = (try? await c.statsReading.profileLiveRecord(
@@ -76,7 +78,7 @@ enum ProfileSheetAssembler {
             name: card.name,
             sinceYear: card.sinceYear.flatMap(UInt16.init(exactly:)),
             oshiNames: oshiIdols.map(\.name),
-            oshiBrandIds: oshiIdols.map(\.brandId),
+            oshiBrandIds: brandRoleRecord.oshiBrandIds,
             attended: attendedRefs.compactMap { ref in
                 guard let info = shows[ref.showId] else { return nil }
                 return ProfileShowInput(showId: ref.showId, date: ref.date, title: info.label,

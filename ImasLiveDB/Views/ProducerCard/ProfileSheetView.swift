@@ -100,6 +100,8 @@ struct ProfileSheetView: View {
         }
         .imasErrorAlert("保存できませんでした", message: $saveError)
         .task {
+            // 見本・設定の画面から戻るたびに読み直さない (P名刺・写真を直したときは個別に読み直す)。
+            guard !loaded else { return }
             await load()
             // 担当ブランドをまだ決めていなければ、はじめて開いたときに 1 度だけ確かめてもらう。
             if card != nil, BrandRoleStore.shouldPrompt {
@@ -366,7 +368,7 @@ struct ProfileSheetPreviewView: View {
             ImasButton(title: "画像を書き出す", systemImage: "square.and.arrow.up", role: .primary, size: .large) {
                 export(layout)
             }
-            ImasNote("中身はアプリの記録 (参加した公演・セトリ・回収・担当・お気に入り) から自動で入ります。載せるものは右上の鉛筆から選び直せます。")
+            ImasNote("中身はアプリの記録 (担当・好きな曲・担当ブランド・参加した公演・回収) から自動で入ります。載せるものは右上の鉛筆から選び直せます。")
         }
         .navigationTitle("プロフィール帳")
         .navigationBarTitleDisplayMode(.inline)

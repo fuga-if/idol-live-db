@@ -27,6 +27,8 @@ struct ImasLiveDBApp: App {
         var id: Int { rawValue }
     }
     @State private var launchSheet: LaunchSheet?
+    /// 起動時のシートの途中で届いたリンクを優先したので、続けて出すシート (担当ブランド) は出さない。
+    @State private var openedByLink = false
     @State private var updateService = UpdateCheckService.shared
     /// 起動時 reseed が失敗したときに 1 度だけ出すアラートの表示フラグ。
     @State private var showReseedAlert = false
@@ -107,6 +109,7 @@ struct ImasLiveDBApp: App {
                 // 詳細ページの提示 (ContentView が incomingURL を開く) を優先する。
                 // オンボーディング既読フラグは onDismiss で通常どおり確定される。
                 launchSheet = nil
+                openedByLink = true
                 incomingURL = url
             }
         }
@@ -169,7 +172,7 @@ struct ImasLiveDBApp: App {
                 UserDefaults.standard.set(true, forKey: Self.onboardingStorageKey)
                 // 初回起動はオンボーディングに続けて担当ブランドを選んでもらう (飛ばしても 1 度きり)。
                 // 既存のユーザーにはプロフィール帳をはじめて開いたときに出す。
-                if firstLaunch, BrandRoleStore.shouldPrompt {
+                if firstLaunch, !openedByLink, BrandRoleStore.shouldPrompt {
                     launchSheet = .brandRoles
                 }
             }) { item in
