@@ -63,6 +63,8 @@ const LIMITS = {
   lyric_like: 500,
   // playlist: みんなのプレイリストの公開・差し替え。お題より少し緩め (並べ直して出し直すので)。
   playlist: 20,
+  // lyric_submission: 歌詞の投稿 (1 曲ぶんの本文)。手で打つものなので 1 日 20 曲あれば足りる。
+  lyric_submission: 20,
 } as const satisfies Record<string, number>;
 
 /** 日次枠の種類。LIMITS に無い名前は型で弾く (知らない名前に黙って既定値を当てない)。 */

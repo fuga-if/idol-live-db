@@ -235,6 +235,8 @@ struct SongSheetContent: View {
     @State private var lyricsFollowPausedUntil: Date = .distantPast
     /// 補足シート。補足は利用者の投稿が主な入口なので、楽曲編集とは別の軽い導線にしている。
     @State private var showNoteEditor = false
+    @State private var showLyricSubmission = false
+    @State private var showLyricSubmissionLoginPrompt = false
     /// 未ログインで補足の導線を押した時のログイン誘導。
     @State private var showNoteLoginPrompt = false
     /// 補足を直接反映したときの値。`song` は親から渡る固定値なので、送信後すぐ画面に出すために持つ。
@@ -264,6 +266,16 @@ struct SongSheetContent: View {
             showNoteEditor = true
         } else {
             showNoteLoginPrompt = true
+        }
+    }
+
+    /// 歌詞の投稿の導線。投稿はログインが要るので、補足と同じくログインを挟む。
+    private func openLyricSubmission() {
+        AppAnalytics.tap("song_detail.submit_lyrics")
+        if EditPermission.canEdit {
+            showLyricSubmission = true
+        } else {
+            showLyricSubmissionLoginPrompt = true
         }
     }
 
@@ -337,6 +349,11 @@ struct SongSheetContent: View {
                             Label("この楽曲を編集", systemImage: "pencil")
                         }
                     }
+                    if LyricsFeature.acceptsSubmissions {
+                        Button { openLyricSubmission() } label: {
+                            Label("歌詞を投稿", systemImage: "text.quote")
+                        }
+                    }
                     if EditPermission.showEditAffordance {
                         Button { openNoteEditor() } label: {
                             Label(displayNote == nil ? "補足を書く" : "補足を直す", systemImage: "text.bubble")
@@ -371,6 +388,12 @@ struct SongSheetContent: View {
         }
         .sheet(isPresented: $showNoteEditor) {
             SongNoteEditSheet(song: songWithDisplayNote) { noteOverride = .some($0) }
+        }
+        .sheet(isPresented: $showLyricSubmission) {
+            LyricSubmissionSheet(song: song)
+        }
+        .sheet(isPresented: $showLyricSubmissionLoginPrompt) {
+            LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showLyricSubmission = true } })
         }
         .sheet(isPresented: $showNoteLoginPrompt) {
             LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showNoteEditor = true } })

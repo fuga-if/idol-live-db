@@ -23,6 +23,17 @@ import Foundation
 /// 閉じている間は歌詞タブ・歌詞検索・歌詞クイズ・コールガイドの入口を出さない。
 enum LyricsFeature {
     static var isAvailable: Bool { false }
+
+    /// 歌詞の投稿 (`LyricSubmissionSheet`) を受け付けるか。表示 (`isAvailable`) とは別に、
+    /// 閉じている間も投稿だけ先に集められるようにする。サーバの受け口
+    /// (`POST /songs/:id/lyric-submissions`) を本番に出すまでは開発ビルドだけ。
+    static var acceptsSubmissions: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
+    }
 }
 
 /// JASRAC 許諾の掲示物。許諾条件に「許諾マークをトップページに掲載し、その下に

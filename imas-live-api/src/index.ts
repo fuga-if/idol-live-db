@@ -20,6 +20,7 @@ import { handleMusicToken } from "./routes/music_token";
 import { handleMusicAuth } from "./routes/music_auth";
 import { handleLyricAnnotations } from "./routes/lyric_annotations";
 import { handleLyricParts } from "./routes/parts";
+import { handleLyricSubmissions } from "./routes/lyric_submissions";
 import { handleCommunityPlaylists } from "./routes/community_playlists";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleTransfer } from "./routes/transfer";
@@ -211,6 +212,7 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
       "PUT /songs/:song_id/calls",
       "PUT /songs/:song_id/timings",
       "PUT /songs/:song_id/parts",
+      "POST /songs/:song_id/lyric-submissions",
       "PUT /songs/:song_id/lyric-likes/:line_id",
       "DELETE /songs/:song_id/lyric-likes/:line_id",
       "POST /songs/:song_id/lyric-structure",
@@ -264,6 +266,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   handleLyricsTimings,
   // 歌詞行のパート分け (誰が歌うか)。行 ID とアイドル id だけを受け、本文は返さない。
   handleLyricParts,
+  // 歌詞の投稿 (確認待ちで預かる。公開はモデレーターの確認後)。
+  handleLyricSubmissions,
   // 歌詞行の「ここ好き」(PUT/DELETE /songs/:id/lyric-likes/:line_id)。人数は歌詞の応答の likeCount。
   handleLyricLikes,
   // 歌詞の行のくっつけ / 切り離し (POST /songs/:id/lyric-structure)。文字は書き換えない。

@@ -45,6 +45,7 @@ pub mod ledger;
 pub mod list_facets;
 pub mod list_grouping;
 pub mod lyric_chunks;
+pub mod lyric_submission;
 pub mod lyric_sync;
 pub mod lyrics_query;
 pub mod lyrics_quiz;
