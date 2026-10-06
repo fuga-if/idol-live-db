@@ -47,7 +47,48 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertFalse(loaded.shows(.attended))
     }
 
-    /// プロフィール帳は自分の名刺の行に持つ。まだ作っていなければ既定の中身 (規則はコア)。
+    /// 判子の下のブランド名は既定で外す。足す前の行 (保存の文字列に無い) も外れたまま、
+    /// 「刷る」と決めたときだけ保存の文字列に書き、名刺の中身に乗る。
+    func testBrandLabelsAreOptInAndRideOnTheCard() throws {
+        let db = try makeDatabase()
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        card.hiddenFields = "attended" // 足す前の版が書いた行
+        XCTAssertFalse(card.shows(.brandLabels))
+        XCTAssertTrue(card.hidden.contains(.attended))
+        let record = ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
+        XCTAssertFalse(ProducerCardAssembler.input(card: card, record: record).showBrandLabels)
+
+        card.hidden.remove(.brandLabels)
+        XCTAssertTrue(card.shows(.brandLabels))
+        XCTAssertEqual(card.hiddenFields, "attended,brand_labels")
+        try db.saveMyProducerCard(card)
+        let loaded = try XCTUnwrap(db.myProducerCard())
+        XCTAssertTrue(loaded.shows(.brandLabels))
+        XCTAssertFalse(loaded.shows(.attended))
+        let encoded = try XCTUnwrap(ProducerCardAssembler.encode(card: loaded, record: record))
+        XCTAssertTrue(try XCTUnwrap(decodeProducerCard(text: encoded.url)).showBrandLabels)
+    }
+
+    /// P名刺の編集で直した好きな曲は保存の時点の行に重ね、画像の選択 (大きさ・外した欄) は今の行のまま。
+    func testEditKeepsLatestImageChoicesAndTakesEditedSongs() {
+        var opened = MyProducerCard.empty()
+        opened.name = "ふがP"
+        var edited = opened
+        edited.profile.songs = ["s2", "s1"]
+        var latest = opened
+        var sheet = latest.profile
+        sheet.size = .story
+        sheet.hidden = [.qr]
+        latest.profile = sheet
+        let merged = edited.applyingEdit(onto: latest)
+        XCTAssertEqual(merged.profile.songs, ["s2", "s1"])
+        XCTAssertEqual(merged.profile.size, .story)
+        XCTAssertEqual(merged.profile.hidden, [.qr])
+        XCTAssertEqual(edited.applyingEdit(onto: nil), edited)
+    }
+
+    /// P名刺の画像の選択と好きな曲は自分の名刺の行に持つ。まだ選んでいなければ既定の中身 (規則はコア)。
     func testProfileSheetRoundTripsOnMyCard() throws {
         let db = try makeDatabase()
         var card = MyProducerCard.empty()
@@ -60,14 +101,14 @@ final class ProducerCardStoreTests: XCTestCase {
         try db.saveMyProducerCard(card)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
 
-        // P名刺を直して保存しても、プロフィール帳は消えない。
+        // P名刺を直して保存しても、画像の選択は消えない。
         var edited = try XCTUnwrap(db.myProducerCard())
         edited.message = "現地派"
         try db.saveMyProducerCard(edited)
         XCTAssertEqual(try db.myProducerCard()?.profile, sheet)
     }
 
-    /// 職務経歴書・プロフィール帳の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。
+    /// 職務経歴書・プロフィール帳 (今の P名刺の画像) の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。
     func testOldProfileJsonWithCareerStyleStillReads() throws {
         let db = try makeDatabase()
         var card = MyProducerCard.empty()
@@ -195,6 +236,7 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.qrUrl = "https://lit.link/fuga"
         var sheet = profileSheetDefault()
         sheet.size = .story
+        sheet.songs = ["s2", "s1"]
         mine.profile = sheet
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))
@@ -215,7 +257,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.hidden, [.attended])
         XCTAssertEqual(restored.cardDesign, .formal)
         XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
-        XCTAssertEqual(restored.profile, sheet, "プロフィール帳もバックアップで戻る")
+        XCTAssertEqual(restored.profile, sheet, "P名刺の画像の選択と好きな曲もバックアップで戻る")
 
         // 2 回目は何も増えない (id で重複を弾く)。
         let again = try BackupExportImportService.importEnvelopeJSON(json, database: target, restoreDeviceId: false)
@@ -371,7 +413,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertFalse(ProducerCardFiles.cardPhotoRound(cardId: cardId))
     }
 
-    /// 切り抜きは枠 (P名刺は正方形・プロフィール帳は 3:4) の中に収まり、写真の外にはみ出さない。
+    /// 切り抜きは枠 (P名刺は正方形・前の版の 3:4) の中に収まり、写真の外にはみ出さない。
     func testPortraitCropStaysInsideTheImage() {
         let size = CGSize(width: 4000, height: 3000)
         for frame in [ImasPortraitCrop.Frame.card, .resume] {

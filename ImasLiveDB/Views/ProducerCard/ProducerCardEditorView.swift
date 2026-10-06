@@ -1,11 +1,12 @@
 import PhotosUI
 import SwiftUI
 
-/// 自分の P名刺を作る・直す。書くのは名前・ひとこと・P歴・リンク・名刺のデザイン・名刺の写真・自分の QR で、
-/// 担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
+/// 自分の P名刺を作る・直す。書くのは名前・ひとこと・P歴・リンク・名刺のデザイン・名刺の写真・自分の QR・
+/// 好きな曲で、担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。担当ブランドはアプリ全体の
+/// 設定へ行く。好きな曲と担当ブランドは名刺 (QR) には入らず、P名刺の画像 (SNS に貼る画像) に載る。
 /// 上に名刺の見本を置き、変えたものはその場で見本に出る。
 ///
-/// デザインは 3 つ (入場証・かしこまった名刺・ポップ) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
+/// デザインは 4 つ (入場証・かしこまった名刺・ポップ・担当を大きく) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
 /// 自作の画像は写真から選んだ名刺の画像 (表・任意で裏) を、紙の名刺の取り込みと同じく四隅を見つけて平らにし、
 /// 画像の QR があれば自分の QR に入れる。名刺の写真は X のアイコンからも取れる。
 ///
@@ -13,9 +14,6 @@ import SwiftUI
 /// (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns` / `cardXAvatarHandle`)。
 struct ProducerCardEditorView: View {
     @Environment(\.dismiss) private var dismiss
-    /// 開いたら見せる欄 (プロフィール帳の「P名刺のリンクを直す」から `links`)。
-    @Environment(\.producerCardEditorFocus) private var focus
-
     let card: MyProducerCard
     let record: ProducerCardMyRecord?
     let onSave: (MyProducerCard) async throws -> Void
@@ -64,6 +62,12 @@ struct ProducerCardEditorView: View {
     @State private var isFetchingAvatar = false
     @State private var avatarNotice: String?
 
+    /// 好きな曲 (お気に入りから選んだ曲 id、載せる順。nil はまだ選んでいない)。
+    @State private var songs: [String]?
+    @State private var favorites: [ProfileSongInput] = []
+    /// 担当ブランドの設定の要約 (「メイン 765AS / 担当 シャニマス」)。
+    @State private var brandRoleSummary = ""
+
     private let limits = producerCardLimits()
     private let kinds = cardLinkKinds()
     private let designs = cardDesigns()
@@ -101,6 +105,7 @@ struct ProducerCardEditorView: View {
         _hidden = State(initialValue: card.hidden)
         _design = State(initialValue: cardDesignKey(design: card.cardDesign))
         _qrUrl = State(initialValue: card.qrUrl ?? "")
+        _songs = State(initialValue: card.profile.songs)
     }
 
     var body: some View {
@@ -127,10 +132,11 @@ struct ProducerCardEditorView: View {
 
                 designCard.id("look")
                 photoCard
-                oshiCard
+                oshiCard.id("oshi")
                 linksCard.id("links")
                 qrCard.id("qr")
                 recordCard
+                imageCard.id("image")
 
                 if let error {
                     Text(error).imasText(.note, color: DS.danger)
@@ -142,14 +148,9 @@ struct ProducerCardEditorView: View {
                 }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
             }
-            .onAppear {
-                if let focus {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { proxy.scrollTo(focus, anchor: .top) }
-                }
-            }
             #if DEBUG
             .onAppear {
-                // シミュレータでの見た目確認 (PRODUCER_CARD_SCROLL=look|qr)。
+                // シミュレータでの見た目確認 (PRODUCER_CARD_SCROLL=look|oshi|qr|image)。
                 if let target = ProcessInfo.processInfo.environment["PRODUCER_CARD_SCROLL"] {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) { proxy.scrollTo(target, anchor: .top) }
                 }
@@ -200,6 +201,10 @@ struct ProducerCardEditorView: View {
             await loadOshi()
             loadPhoto()
             loadFaces()
+            await loadImageMaterials()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .brandRolesChanged)) { _ in
+            Task { await loadBrandRoles() }
         }
     }
 
@@ -260,6 +265,7 @@ struct ProducerCardEditorView: View {
         case .pass: return .pass
         case .formal: return .formal
         case .pop: return .pop
+        case .oshi: return .oshi(oshi.first.flatMap { CustomImageService.shared.imageURL(for: $0.id) })
         case .custom: return .face(facePreview[.front])
         }
     }
@@ -428,6 +434,7 @@ struct ProducerCardEditorView: View {
                 }
             }
             toggle(.oshi, title: "担当を載せる")
+            toggle(.brandLabels, title: "判子の下にブランド名を刷る")
         }
     }
 
@@ -506,6 +513,60 @@ struct ProducerCardEditorView: View {
         )
     }
 
+    // MARK: - P名刺の画像に載るもの
+
+    /// 好きな曲と担当ブランド。名刺 (QR) には入らず、P名刺の画像 (SNS に貼る画像) に載る。
+    private var imageCard: some View {
+        ImasFormCard {
+            ImasFormField(label: "好きな曲 · お気に入りから", imprint: "SONGS") {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    NavigationLink {
+                        FavoriteSongPickerView(chosen: songs) { songs = $0 }
+                    } label: {
+                        ImasNavRow(title: "載せる曲を選ぶ", subtitle: songsSummary,
+                                   systemImage: "music.note.list", subtitleLineLimit: 2)
+                    }
+                    .buttonStyle(.plain)
+                    Text("好きな曲と担当ブランドは名刺の QR には入らず、SNS に貼る画像に載ります。")
+                        .imasText(.note)
+                }
+            }
+            ImasFormField(label: "担当ブランド · アプリ全体の設定", imprint: "BRANDS") {
+                NavigationLink {
+                    BrandRoleSettingsView()
+                } label: {
+                    ImasNavRow(title: "担当ブランドを選ぶ", subtitle: brandRoleSummary,
+                               systemImage: "circle.circle", subtitleLineLimit: 2)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// 選んだ曲の題 (まだ選んでいなければお気に入りの新しい順。並べ方はコア)。
+    private var songsSummary: String {
+        guard !favorites.isEmpty else { return "お気に入りの曲がありません" }
+        let picks = favoriteSongPicks(chosen: songs, favorites: favorites)
+        let titles = picks.picked.map { "「\($0.title)」" }.joined()
+        if titles.isEmpty { return "載せない" }
+        return picks.chosenByHand ? titles : "おまかせ (お気に入りの新しい順)  \(titles)"
+    }
+
+    private func loadImageMaterials() async {
+        favorites = await FavoriteSongSource.load().map(\.input)
+        await loadBrandRoles()
+    }
+
+    private func loadBrandRoles() async {
+        let rows = await BrandRoleStore.load().rows
+        let main = rows.filter { $0.role == .main }.map(\.label)
+        let oshi = rows.filter { $0.role == .oshi }.map(\.label)
+        var parts: [String] = []
+        if !main.isEmpty { parts.append("メイン \(main.joined(separator: "・"))") }
+        if !oshi.isEmpty { parts.append("担当 \(oshi.joined(separator: "・"))") }
+        brandRoleSummary = parts.isEmpty ? "まだありません" : parts.joined(separator: " / ")
+    }
+
     // MARK: - 保存
 
     private static var years: [Int] {
@@ -524,6 +585,7 @@ struct ProducerCardEditorView: View {
         out.hidden = hidden
         out.design = design
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
+        out.profile.songs = songs
         return out
     }
 
@@ -550,6 +612,7 @@ struct ProducerCardEditorView: View {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
+            || songs != card.profile.songs
     }
 
     private func cancel() {

@@ -171,7 +171,7 @@ struct ImasLiveDBApp: App {
                 let firstLaunch = !UserDefaults.standard.bool(forKey: Self.onboardingStorageKey)
                 UserDefaults.standard.set(true, forKey: Self.onboardingStorageKey)
                 // 初回起動はオンボーディングに続けて担当ブランドを選んでもらう (飛ばしても 1 度きり)。
-                // 既存のユーザーにはプロフィール帳をはじめて開いたときに出す。
+                // 既存のユーザーには P名刺の画像 (SNS に貼る画像) をはじめて開いたときに出す。
                 if firstLaunch, !openedByLink, BrandRoleStore.shouldPrompt {
                     launchSheet = .brandRoles
                 }

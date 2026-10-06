@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-/// プロフィール帳に載る担当 1 人 (押印欄の判子と担当の行)。画像は焼く前に読んでおく
+/// P名刺の画像 (SNS に貼る履歴書の様式) に載る担当 1 人 (押印欄の判子と担当の行)。画像は焼く前に読んでおく
 /// (ImageRenderer は画像の読み込みを待たない)。
 struct ProfileSheetOshi: Identifiable {
     let id: String
@@ -12,13 +12,13 @@ struct ProfileSheetOshi: Identifiable {
     let image: UIImage?
 }
 
-/// プロフィール帳の材料。中身の組み立て (欄・行・丸・詰め方) はコアの `profileSheetLayout`、
-/// ここはアプリの記録とマスタを引いて渡す形にするだけ。自分で書く欄は無い。
+/// P名刺の画像の材料。中身の組み立て (欄・行・丸・詰め方) はコアの `profileSheetLayout`、
+/// ここは P名刺・アプリの記録とマスタを引いて渡す形にするだけ。自分で書く欄は無い。
 struct ProfileSheetMaterials {
     /// 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。
     var record: ProfileSheetRecord
     var oshi: [ProfileSheetOshi] = []
-    /// 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。
+    /// 証明写真の欄の画像 (P名刺の写真)。
     var portrait: UIImage?
     /// 証明写真の欄の中に丸く置く (X のアイコン。切り方はコアの `cardPhotoShape`)。
     var portraitRound = false
@@ -64,7 +64,7 @@ enum ProfileSheetAssembler {
                 image: images.imageURL(for: idol.id).flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 240) }
             )
         }
-        let portrait = ProfileSheetFiles.effectiveURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 600) }
+        let portrait = ProducerCardFiles.myPhotoURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 600) }
         let qr = card.qrUrl.flatMap { ImasQRCode.render($0) }
 
         let record = ProfileSheetRecord(
@@ -92,7 +92,7 @@ enum ProfileSheetAssembler {
             record: record,
             oshi: oshi,
             portrait: portrait,
-            portraitRound: ProfileSheetFiles.effectiveRound,
+            portraitRound: ProducerCardFiles.myPhotoRound,
             qr: qr
         )
     }

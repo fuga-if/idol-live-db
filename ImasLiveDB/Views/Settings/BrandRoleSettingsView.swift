@@ -26,7 +26,7 @@ struct BrandRoleSection: View {
         }
     }
 
-    static let note = "担当は丸、メインは二重丸でプロフィール帳の担当ブランドに付きます。メインはいくつでも選べます。"
+    static let note = "担当は丸、メインは二重丸で P名刺の画像 (SNS に貼る画像) の担当ブランドに付きます。メインはいくつでも選べます。"
 }
 
 /// 設定の「担当ブランド」。動かしたらその場で保存する (設定の画面の決まり)。
@@ -67,7 +67,7 @@ struct BrandRoleSettingsView: View {
     }
 }
 
-/// はじめの案内: 担当ブランドを選ぶ (初回起動の案内の後と、まだ決めていない人がプロフィール帳を
+/// はじめの案内: 担当ブランドを選ぶ (初回起動の案内の後と、まだ決めていない人が P名刺の画像を
 /// はじめて開いたときに 1 度だけ)。記録から組んだ見立てを並べて確かめてもらう。× で飛ばせる。
 struct BrandRoleSetupSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -80,7 +80,7 @@ struct BrandRoleSetupSheet: View {
         NavigationStack {
             List {
                 Section {
-                    ImasNote("担当しているブランドを選んでください。プロフィール帳の担当ブランドの丸になります。あとから設定 (マイページ) で直せます。")
+                    ImasNote("担当しているブランドを選んでください。P名刺の画像 (SNS に貼る画像) の担当ブランドの丸になります。あとから設定 (マイページ) で直せます。")
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())

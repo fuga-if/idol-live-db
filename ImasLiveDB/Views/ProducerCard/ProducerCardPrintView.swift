@@ -76,11 +76,13 @@ struct ProducerCardPrintMaterials {
         var out = ProducerCardPrintMaterials()
         out.portrait = ProducerCardFiles.myPhotoURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 900) }
         out.portraitRound = ProducerCardFiles.myPhotoRound
+        let face = ProducerCardDisplay.myFace()
+        // 担当を大きく は左半分いっぱいに刷るので、担当の画像を大きく読む (紙の 1638×990px の半分に足りる大きさ)。
+        let oshiPixels = ProducerCardDisplay.design(card, face: face).design == .oshi ? 1600 : 600
         for id in card.oshiIdolIds {
             if let url = CustomImageService.shared.imageURL(for: id),
-               let image = ProducerCardFiles.printImage(at: url) { out.oshiImages[id] = image }
+               let image = ProducerCardFiles.printImage(at: url, maxPixels: oshiPixels) { out.oshiImages[id] = image }
         }
-        let face = ProducerCardDisplay.myFace()
         if ProducerCardDisplay.design(card, face: face).usesFaceImage, let face {
             out.faceFront = ProducerCardFiles.printImage(at: face.front, maxPixels: 2000)
             out.faceBack = face.back.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 2000) }
@@ -118,6 +120,7 @@ struct ProducerCardPrintSheet {
         switch ProducerCardDisplay.design(card.card, face: nil).design {
         case .formal: return .formal
         case .pop: return .pop
+        case .oshi: return .oshi
         case .pass, .custom: return .pass
         }
     }
@@ -135,6 +138,12 @@ struct ProducerCardPrintSheet {
                                               image: materials.oshiImages[id])
                     }
                 })
+            },
+            hero: face.heroIdolIds.compactMap { id in
+                directory.idols[id].map {
+                    ProducerCardPrintOshi(id: id, name: $0.name, shortName: $0.shortName, seed: $0.color,
+                                          image: materials.oshiImages[id])
+                }
             },
             caption: face.oshiCaption,
             moreOshi: Int(face.moreOshi),

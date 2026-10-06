@@ -8,19 +8,21 @@ import SwiftUI
 //
 // ImasProducerCard   P名刺 1 枚。名刺そのものは 91:55 の横長の紙 1 枚 (紙に刷る画像の表・裏と同じ組み、
 //                    `ImasMeishiFront` / `ImasMeishiBack`)。押すと裏返って裏 (QR・参加公演数・回収曲数・日付)。
-//                    デザイン (`design`) は 3 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    デザイン (`design`) は 4 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    - 担当を大きく (oshi): 左半分に担当の画像を大きく (`heroOshi` の順。無い担当は大きな判子)。
 //                    表に載せるのは名前・P歴・名刺の写真・担当 (判子か写真をブランドごとにまとめる)・ハンドル 1 つ
 //                    (載せる担当・まとめ方・判子の下の文言・ハンドルはコアの `producerCardFace`)。
 //                    - 自作の画像 (face): 表は自分で作った名刺の画像。裏は裏の画像 (無ければ QR の裏)。
 //                      画像が手元に無い名刺は入場証で描く (コアが決める)。
 //                    名刺に収まらないもの (ひとこと・担当の一覧・リンクの一覧・記録の掲示板) は
-//                    `details` (`ImasProducerCardDetails`) で名刺の下の紙面に並べる。
+//                    `details` (`ImasProducerCardDetails`) で名刺の下の紙面に並べる。記録の掲示板は
+//                    受け取った名刺だけ (自分の名刺は `cells` を渡さない。自分の記録は P名刺の画像で見せる)。
 //                    使わない場面: アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
 //                    状態: 裏返せる (`isFlippable`、編集画面の固定の見本は返さない)。リンク・担当は
 //                          `onOpenLink` / `onOpenOshi` を渡すと詳細の行が押せる。
 // ImasProducerCardDetails 名刺の下の紙面 (ひとこと・担当の写真と一覧・リンクの一覧・記録の掲示板)。
 // ImasCardFace       自作の名刺の画像の小さな見本 (91:55 の枠に収める。名刺入れの行・デザインの札・編集画面)。
-// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸)。
 //                    名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
 // ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) を横に並べ、引いて (または押して) 選ぶ。
@@ -41,6 +43,8 @@ struct ImasProducerCard: View {
         case formal
         /// ポップ。墨の太い枠と担当色の太い帯、名前の下の太い線。
         case pop
+        /// 担当を大きく。左半分に担当の画像を大きく、右に名前・P歴・ハンドル。
+        case oshi
         /// 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。
         case face(front: URL, back: URL?)
     }
@@ -102,6 +106,8 @@ struct ImasProducerCard: View {
     var faceGroups: [FaceGroup] = []
     /// 名刺の表の判子の下の 1 行 (「星井美希 担当」)。nil ならまとまりごとにブランドの略称を刷る。
     var faceCaption: String? = nil
+    /// 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。
+    var heroOshi: [Oshi] = []
     /// 表で数で畳んだ担当の人数。
     var moreOshi: Int = 0
     /// 表に刷るハンドル 1 つ。
@@ -214,19 +220,15 @@ struct ImasProducerCard: View {
         switch design {
         case let .face(url, _):
             imageSide(url, scale: scale)
-        case .pass, .formal, .pop:
+        case .pass, .formal, .pop, .oshi:
             ImasMeishiFront(
-                look: design == .formal ? .formal : (design == .pop ? .pop : .pass),
+                look: look,
                 name: name,
                 sinceImprint: sinceImprint,
                 oshiGroups: faceGroups.map { group in
-                    ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map { item in
-                        let theme = ImasTheme.derive(seed: item.seed, brand: item.brand, scheme: .light)
-                        return ImasMeishiOshi(id: item.id, name: item.name, shortName: item.shortName,
-                                              color: theme.isNeutral ? DS.ticketInk : theme.accent,
-                                              picture: item.imageURL.map { .url($0) })
-                    })
+                    ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map(meishiOshi))
                 },
+                hero: heroOshi.map(meishiOshi),
                 oshiCaption: faceCaption,
                 moreOshi: moreOshi,
                 handle: handle,
@@ -237,6 +239,23 @@ struct ImasProducerCard: View {
                 scale: scale
             )
         }
+    }
+
+    private var look: ImasMeishiFront.Look {
+        switch design {
+        case .formal: return .formal
+        case .pop: return .pop
+        case .oshi: return .oshi
+        case .pass, .face: return .pass
+        }
+    }
+
+    /// 名刺の紙に刷る担当 1 人 (判子の色は明るい紙の上の担当色)。
+    private func meishiOshi(_ item: Oshi) -> ImasMeishiOshi {
+        let theme = ImasTheme.derive(seed: item.seed, brand: item.brand, scheme: .light)
+        return ImasMeishiOshi(id: item.id, name: item.name, shortName: item.shortName,
+                              color: theme.isNeutral ? DS.ticketInk : theme.accent,
+                              picture: item.imageURL.map { .url($0) })
     }
 
     @ViewBuilder
@@ -476,7 +495,7 @@ struct ImasCornerAdjuster: View {
 
 // MARK: - 名刺の写真
 
-/// 名刺の写真の枠。P名刺は正方形 (`.card`)、プロフィール帳の証明写真の欄は履歴書の様式の 3:4 (`.resume`)。
+/// 名刺の写真の枠。P名刺は正方形 (`.card`)。3:4 (`.resume`) は前の版の切り抜きの比。
 /// 紙に貼った写真のように角を小さく丸めて縁を付ける。X のアイコン (`round`) は X と同じく丸く切り、
 /// 3:4 の枠ではその中に丸く置く。
 struct ImasCardPortrait: View {
@@ -530,7 +549,7 @@ struct ImasPortraitCrop: Codable, Equatable, Sendable {
     enum Frame: Sendable {
         /// P名刺の写真 (正方形。X のアイコンはこの枠に内接する丸で出す)。
         case card
-        /// プロフィール帳の証明写真の欄 (履歴書の様式の 3:4)。
+        /// 3:4 (前の版の P名刺の写真・履歴書の様式の証明写真の欄の比。前の切り抜きの読み替えを確かめるのに使う)。
         case resume
 
         /// 枠の縦横比 (横 / 縦)。
@@ -668,6 +687,8 @@ struct ImasCardDesignPicker: View {
     struct Option: Identifiable, Hashable {
         enum Look: Hashable {
             case pass, formal, pop
+            /// 担当を大きく (先頭の担当の画像。無ければ判子)。
+            case oshi(URL?)
             /// 自作の画像 (表の画像。まだ選んでいなければ nil)。
             case face(URL?)
         }
@@ -805,6 +826,29 @@ struct ImasCardDesignPicker: View {
             .background(DS.bg)
             .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.ink, lineWidth: 2))
+        case let .oshi(url):
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(alignment: .top) {
+                        if let url {
+                            ImasMeishiPictureView(picture: .url(url), fallback: DS.bg)
+                        } else {
+                            Circle().strokeBorder(accent, lineWidth: 2).padding(DS.Space.gap)
+                        }
+                    }
+                    .clipped()
+                accent.frame(width: 2)
+                VStack(alignment: .leading, spacing: 0) {
+                    nameText
+                    Spacer(minLength: 0)
+                }
+                .padding(DS.Space.gapTight)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
         case let .face(url):
             if let url {
                 ImasCardFace(front: url, label: option.label)

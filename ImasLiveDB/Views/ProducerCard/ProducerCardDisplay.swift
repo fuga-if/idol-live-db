@@ -83,6 +83,7 @@ enum ProducerCardDisplay {
         case .pass: return .pass
         case .formal: return .formal
         case .pop: return .pop
+        case .oshi: return .oshi
         case .custom: return face.map { .face(front: $0.front, back: $0.back) } ?? .pass
         }
     }
@@ -164,10 +165,11 @@ enum ProducerCardDisplay {
     /// `portraitURL` は名刺の写真 (`portraitSource` はその出どころ。X のアイコンは丸く出す)、`face` は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は
     /// 届いた画像。QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
     /// `back` は裏の QR (渡さなければ交換用)。`payload` は受け取ったままの名刺の中身 (交換用の QR に使う)。
+    /// `showsRecord` は名刺の下の記録の掲示板 (自分の名刺は出さない。自分の記録は P名刺の画像で見せる)。
     static func view(_ card: ProducerCard, directory: ProducerCardDirectory, sharedWith myOshi: Set<String> = [],
                      imageURL: (String) -> URL?, portraitURL: URL? = nil,
                      portraitSource: CardPhotoSource = .picked, face: Face? = nil,
-                     back: ImasProducerCard.Back? = nil, payload: String? = nil,
+                     back: ImasProducerCard.Back? = nil, payload: String? = nil, showsRecord: Bool = true,
                      onOpenLink: ((ImasProducerCard.Link) -> Void)?,
                      onOpenOshi: ((ImasProducerCard.Oshi) -> Void)?) -> ImasProducerCard {
         let oshi = oshi(card, directory: directory, sharedWith: myOshi, imageURL: imageURL)
@@ -183,10 +185,11 @@ enum ProducerCardDisplay {
                 ImasProducerCard.FaceGroup(label: group.brandLabel, oshi: group.idolIds.compactMap { byId[$0] })
             },
             faceCaption: cardFace.oshiCaption,
+            heroOshi: cardFace.heroIdolIds.compactMap { byId[$0] },
             moreOshi: Int(cardFace.moreOshi),
             handle: cardFace.handle?.display,
             links: links(card),
-            cells: cells(card, directory: directory),
+            cells: showsRecord ? cells(card, directory: directory) : [],
             boardTrailing: boardTrailing(card),
             photoURL: oshi.compactMap(\.imageURL).first,
             portraitURL: portraitURL,

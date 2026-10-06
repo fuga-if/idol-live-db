@@ -14,7 +14,7 @@ struct FavoriteSong: Identifiable, Sendable {
     }
 }
 
-/// お気に入りの曲を引く (プロフィール帳と、載せる曲を選ぶ画面で共有する。引けない曲は入れない)。
+/// お気に入りの曲を引く (P名刺の画像・P名刺の編集・載せる曲を選ぶ画面で共有する。引けない曲は入れない)。
 @MainActor
 enum FavoriteSongSource {
     static func load() async -> [FavoriteSong] {

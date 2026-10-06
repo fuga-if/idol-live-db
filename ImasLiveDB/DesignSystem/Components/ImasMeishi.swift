@@ -20,6 +20,9 @@ import SwiftUI
 //                  - 入場証 (pass): 左に担当色の縦の帯。
 //                  - かしこまった名刺 (formal): 細い罫と明朝、担当色は罫と判子だけ。
 //                  - ポップ (pop): 墨の太い枠と担当色の太い帯、名前の下に担当色の太い線。
+//                  - 担当を大きく (oshi): 左半分に担当の画像を大きく (1 人なら 1 枚、複数なら分けて。先頭ほど
+//                    大きな枠。並びはコアの `CardFace.heroIdolIds`)。画像の無い担当は大きな判子と名前。
+//                    右に名前・P歴・名刺の写真・ハンドル。境目に担当色の細い縦の線。
 // ImasMeishiBack   裏。QR (交換用か自分の QR)・参加公演数・回収曲数・「YYYY.MM.DD 時点」。
 // ImasMeishiStamp  表に並べる担当 1 人 (写真があれば写真、無ければ判子)。
 // =============================================================================
@@ -83,7 +86,7 @@ struct ImasMeishiOshi: Identifiable {
 // MARK: - 表
 
 struct ImasMeishiFront: View {
-    enum Look { case pass, formal, pop }
+    enum Look { case pass, formal, pop, oshi }
 
     var look: Look = .pass
     let name: String
@@ -91,6 +94,8 @@ struct ImasMeishiFront: View {
     var sinceImprint: String? = nil
     /// 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
     var oshiGroups: [ImasMeishiOshiGroup] = []
+    /// 担当を大きく並べる順 (担当を大きく のデザインだけ。コアの `CardFace.heroIdolIds` の順)。
+    var hero: [ImasMeishiOshi] = []
     /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。nil ならまとまりごとにブランドの略称を刷る。
     var oshiCaption: String? = nil
     /// 数で畳んだ担当の人数 (「+2」)。
@@ -115,6 +120,7 @@ struct ImasMeishiFront: View {
             case .pass: passBody
             case .formal: formalBody
             case .pop: popBody
+            case .oshi: oshiBody
             }
         }
         .frame(width: p(ImasMeishi.canvas.width), height: p(ImasMeishi.canvas.height))
@@ -201,6 +207,50 @@ struct ImasMeishiFront: View {
         .overlay(Rectangle().strokeBorder(ink.ink, lineWidth: p(5)))
     }
 
+    // MARK: 担当を大きく (左半分に担当の画像)
+
+    /// 左の担当の画像の枠の幅 (紙の半分より少し狭く、右の名前の欄を確保する)。
+    private static let heroWidth: CGFloat = 170
+
+    private var oshiBody: some View {
+        HStack(spacing: 0) {
+            ImasMeishiHero(oshi: hero, paper: ink.paper, ink: ink.ink, gap: p(1.5), scale: scale)
+                .frame(width: p(Self.heroWidth), height: p(ImasMeishi.canvas.height))
+                .clipped()
+            Rectangle().fill(ink.accent).frame(width: p(3))
+            VStack(alignment: .leading, spacing: p(6)) {
+                HStack(alignment: .top, spacing: p(8)) {
+                    imprint("PRODUCER", design: .monospaced)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    portraitView(border: ink.line, width: p(0.5), side: 44)
+                }
+                nameText(size: 24)
+                heroCaption
+                Spacer(minLength: 0)
+                footer(design: .monospaced, weight: .medium)
+            }
+            .padding(.horizontal, p(14))
+            .padding(.vertical, p(14))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+    }
+
+    /// 担当を大きく のデザインの名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称、畳んだ数)。
+    @ViewBuilder
+    private var heroCaption: some View {
+        let labels = oshiGroups.map(\.label).filter { !$0.isEmpty }
+        let line = oshiCaption ?? (labels.isEmpty ? nil : labels.joined(separator: "・"))
+        let more = moreOshi > 0 ? "+\(moreOshi)" : nil
+        let text = [line, more].compactMap { $0 }.joined(separator: "  ")
+        if !text.isEmpty {
+            Text(text)
+                .font(.system(size: p(8), weight: .medium))
+                .foregroundStyle(ink.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+        }
+    }
+
     // MARK: 共通
 
     private func imprintText(_ head: String) -> String {
@@ -285,11 +335,11 @@ struct ImasMeishiFront: View {
     /// 名刺の写真の正方形の枠 (X のアイコンは枠に内接する丸)。枠の大きさを先に決め、写真はその上に
     /// 重ねて切る (写真の比率で枠が膨らまないように。実機の縦長の写真ではみ出したことがある)。
     @ViewBuilder
-    private func portraitView(border: Color, width: CGFloat) -> some View {
+    private func portraitView(border: Color, width: CGFloat, side: CGFloat = 84) -> some View {
         if let portrait {
-            let shape = RoundedRectangle(cornerRadius: portraitRound ? p(42) : p(2), style: .circular)
+            let shape = RoundedRectangle(cornerRadius: portraitRound ? p(side / 2) : p(2), style: .circular)
             Color.clear
-                .frame(width: p(84), height: p(84))
+                .frame(width: p(side), height: p(side))
                 .overlay { ImasMeishiPictureView(picture: portrait) }
                 .clipShape(shape)
                 .overlay(shape.strokeBorder(border, lineWidth: max(width, 0.5)))
@@ -357,6 +407,91 @@ struct ImasMeishiBack: View {
                 .font(.system(size: p(7), weight: .semibold))
                 .foregroundStyle(ink.sub)
         }
+    }
+}
+
+// MARK: - 担当を大きく
+
+/// 担当を大きく のデザインの左の枠。担当の画像を枠いっぱいに分けて並べる (先頭ほど大きな枠)。
+/// 1 人: 1 枚 / 2 人: 左右 / 3 人: 左に先頭、右に 2 段 / 4 人: 2×2 / 5 人: 上に 2 枚、下に 3 枚。
+/// 画像は枠の上に重ねて上寄せで切る (縦長の担当の画像で顔が切れにくいように)。画像の無い担当は大きな判子と名前。
+struct ImasMeishiHero: View {
+    let oshi: [ImasMeishiOshi]
+    let paper: Color
+    let ink: Color
+    /// 枠と枠の間の紙の幅。
+    let gap: CGFloat
+    var scale: CGFloat = 1
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width, h = geo.size.height
+            ZStack(alignment: .topLeading) {
+                paper
+                ForEach(Array(Self.tiles(count: oshi.count).enumerated()), id: \.offset) { index, tile in
+                    let rect = CGRect(x: tile.minX * w, y: tile.minY * h, width: tile.width * w, height: tile.height * h)
+                        .insetBy(dx: gap / 2, dy: gap / 2)
+                    ImasMeishiHeroTile(oshi: oshi[index], paper: paper, ink: ink, scale: scale)
+                        .frame(width: max(rect.width, 0), height: max(rect.height, 0))
+                        .clipped()
+                        .offset(x: rect.minX, y: rect.minY)
+                }
+            }
+        }
+    }
+
+    /// 人数ごとの枠 (枠全体を 1 とした割合)。
+    static func tiles(count: Int) -> [CGRect] {
+        switch count {
+        case 0: return []
+        case 1: return [CGRect(x: 0, y: 0, width: 1, height: 1)]
+        case 2: return [CGRect(x: 0, y: 0, width: 0.5, height: 1), CGRect(x: 0.5, y: 0, width: 0.5, height: 1)]
+        case 3: return [CGRect(x: 0, y: 0, width: 0.5, height: 1),
+                        CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5), CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)]
+        case 4: return [CGRect(x: 0, y: 0, width: 0.5, height: 0.5), CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5),
+                        CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5), CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)]
+        default:
+            let top = 0.55, third = 1.0 / 3
+            return [CGRect(x: 0, y: 0, width: 0.5, height: top), CGRect(x: 0.5, y: 0, width: 0.5, height: top)]
+                + (0..<3).map { CGRect(x: Double($0) * third, y: top, width: third, height: 1 - top) }
+        }
+    }
+}
+
+/// 担当を大きく の枠 1 つ。画像は上寄せで枠いっぱい、無ければ判子と名前。
+private struct ImasMeishiHeroTile: View {
+    let oshi: ImasMeishiOshi
+    let paper: Color
+    let ink: Color
+    let scale: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = geo.size
+            if let picture = oshi.picture {
+                ImasMeishiPictureView(picture: picture, fallback: stamp(size))
+                    .frame(width: size.width, height: size.height, alignment: .top)
+            } else {
+                stamp(size)
+            }
+        }
+    }
+
+    private func stamp(_ size: CGSize) -> some View {
+        let side = min(size.width, size.height) * 0.62
+        return VStack(spacing: side * 0.08) {
+            ImasMeishiStamp(oshi: oshi, size: side, paper: paper)
+            if size.height > side * 1.5 {
+                Text(oshi.name)
+                    .font(.system(size: max(side * 0.14, 6 * scale), weight: .semibold))
+                    .foregroundStyle(ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, side * 0.1)
+            }
+        }
+        .frame(width: size.width, height: size.height)
+        .background(paper)
     }
 }
 

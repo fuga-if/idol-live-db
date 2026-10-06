@@ -63,7 +63,8 @@ enum ProducerCardAssembler {
             attended: card.shows(.attended) ? summary.attendedPast : [],
             issuedOn: JSTDay.today(),
             design: card.cardDesign,
-            qrUrl: card.qrUrl
+            qrUrl: card.qrUrl,
+            showBrandLabels: card.shows(.brandLabels)
         )
     }
 

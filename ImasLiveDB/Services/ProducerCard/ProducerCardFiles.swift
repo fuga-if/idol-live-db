@@ -143,6 +143,15 @@ enum ProducerCardFiles {
     /// 自分の名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。
     static var myPhotoRound: Bool { cardPhotoShape(source: myPhotoSource) == .round }
 
+    /// 前の版のプロフィール帳だけの写真 (`Documents/profile_sheet_photo/`) を片付ける。プロフィール帳は
+    /// P名刺の画像に一本化し、写真は P名刺の写真を使う (端末の中だけの写しで、元は写真の中にある)。
+    static func removeLegacyProfileSheetPhoto() {
+        let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("profile_sheet_photo", isDirectory: true)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
     /// 切り抜きの位置と拡大。前の版の 3:4 の切り抜きも、正方形の枠で真ん中を保ったまま読み替える。
     static var myPhotoCrop: ImasPortraitCrop? {
         let url = myFolder.appendingPathComponent("photo_crop.json")

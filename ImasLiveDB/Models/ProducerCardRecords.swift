@@ -18,7 +18,8 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     var sinceYear: Int?
     /// リンクの保存の形 (`cardLinksToJson`)。
     var linksJson: String
-    /// 名刺から外した項目 (`ProducerCardField` の rawValue をカンマで)。
+    /// 名刺から外した項目 (`ProducerCardField` の rawValue をカンマで)。既定で外す項目
+    /// (`ProducerCardField.optIn`) だけは逆で、書いてあれば**載せる** (足す前の行も既定どおり外れるように)。
     var hiddenFields: String
     var updatedAt: String
     /// 名刺のデザインの保存のキー (`cardDesignKey`)。空は既定のデザイン。書体を選んでいた頃の
@@ -26,7 +27,8 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     var design: String = ""
     /// 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。
     var qrUrl: String? = nil
-    /// プロフィール帳の中身 (コアの保存の形 `profileSheetToJson`)。空はまだ作っていない。
+    /// P名刺の画像 (SNS に貼る履歴書の様式) の選択と、P名刺の好きな曲 (コアの保存の形 `profileSheetToJson`)。
+    /// 空はまだ選んでいない。名刺の中身 (QR) には入らない。
     var profileJson: String = ""
 
     enum CodingKeys: String, CodingKey {
@@ -57,16 +59,33 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     }
 
     var hidden: Set<ProducerCardField> {
-        get { Set(hiddenFields.split(separator: ",").compactMap { ProducerCardField(rawValue: String($0)) }) }
-        set { hiddenFields = ProducerCardField.allCases.filter(newValue.contains).map(\.rawValue).joined(separator: ",") }
+        get {
+            let stored = Set(hiddenFields.split(separator: ",").compactMap { ProducerCardField(rawValue: String($0)) })
+            return stored.symmetricDifference(ProducerCardField.optIn)
+        }
+        set {
+            let stored = newValue.symmetricDifference(ProducerCardField.optIn)
+            hiddenFields = ProducerCardField.allCases.filter(stored.contains).map(\.rawValue).joined(separator: ",")
+        }
     }
 
     func shows(_ field: ProducerCardField) -> Bool { !hidden.contains(field) }
 
-    /// プロフィール帳 (まだ作っていなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。
+    /// P名刺の画像の選択と好きな曲 (まだ選んでいなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。
     var profile: ProfileSheet {
         get { profileJson.isEmpty ? profileSheetDefault() : profileSheetFromJson(json: profileJson) }
         set { profileJson = profileSheetToJson(sheet: newValue) }
+    }
+
+    /// P名刺の編集で直した行を、保存する時点の行 (`latest`) に重ねる。P名刺の画像の選択 (大きさ・載せる項目) は
+    /// 画像の画面でその場で保存するので今の行のまま (開いた時の古い選択で戻さない)、好きな曲だけは編集のものにする。
+    func applyingEdit(onto latest: MyProducerCard?) -> MyProducerCard {
+        guard let latest else { return self }
+        var row = self
+        var profile = latest.profile
+        profile.songs = self.profile.songs
+        row.profile = profile
+        return row
     }
 }
 
@@ -80,6 +99,11 @@ enum ProducerCardField: String, CaseIterable, Sendable {
     case songCount = "song_count"
     case next
     case attended
+    /// 表の判子の下のブランドの略称 (既定で外す。コアの `ProducerCard.showBrandLabels`)。
+    case brandLabels = "brand_labels"
+
+    /// 既定で外す項目。保存の文字列には「載せる」と決めたときだけ書く。
+    static let optIn: Set<ProducerCardField> = [.brandLabels]
 
     var label: String {
         switch self {
@@ -91,6 +115,7 @@ enum ProducerCardField: String, CaseIterable, Sendable {
         case .songCount: return "回収曲数"
         case .next: return "次の現場"
         case .attended: return "参加した公演の一覧"
+        case .brandLabels: return "ブランド名"
         }
     }
 }
@@ -161,6 +186,6 @@ struct ProducerCardShowInfo: Hashable, Sendable {
     /// `showDisplayTitle` で組んだ表記。
     let label: String
     let venue: String?
-    /// ライブのブランド (プロフィール帳の担当ブランド・職務経歴に使う)。
+    /// ライブのブランド (P名刺の画像の担当ブランド・職務経歴に使う)。
     var brandId: String? = nil
 }

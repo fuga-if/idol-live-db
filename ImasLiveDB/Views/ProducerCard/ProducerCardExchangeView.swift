@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// 名刺交換。「見せる / 読む」の 2 択だけ。
+/// 名刺交換。「見せる / 読む」の 2 択だけ。見せる側からは名刺ファイル (AirDrop 等) でも送れる。
 ///
 /// - 見せる: 自分の名刺の QR を明るい画面で出し、近くの iPhone に名乗る (読んだ相手に担当の画像を送り、
 ///   相手の名刺を受け取る)。
@@ -34,6 +34,7 @@ struct ProducerCardExchangeView: View {
     /// 確認で ✓ を押した名刺 (中身 → 名刺入れの id)。✓ の後に近くの相手から画像が届いたら足す。
     @State private var savedIds: [String: String] = [:]
     @State private var previousBrightness: CGFloat?
+    @State private var shareError: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -73,6 +74,7 @@ struct ProducerCardExchangeView: View {
             restoreBrightness()
         }
         // 開いている間に届いた名刺のリンク・名刺ファイルは、この画面の中で受け取る。
+        .imasErrorAlert("名刺ファイルを作れませんでした", message: $shareError)
         .onReceive(NotificationCenter.default.publisher(for: .producerCardIncoming)) { note in
             guard let incoming = note.object as? IncomingProducerCard else { return }
             path = [incoming]
@@ -91,12 +93,34 @@ struct ProducerCardExchangeView: View {
                                message: "名刺入れに入れました。")
                 }
                 ImasNote("相手のアプリで読むと、近くの iPhone どうしなら担当の画像も元の画質のまま届き、相手の名刺も受け取れます。アプリが無い人がカメラで読むと、Web の名刺ページが開きます。")
+                ImasCardList {
+                    Button { shareCardFile(myCard) } label: {
+                        ImasNavRow(title: "名刺ファイルで送る", subtitle: "AirDrop や Quick Share で写真と担当の画像ごと渡す",
+                                   systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.imasRow)
+                    .environment(\.imasRowPosition, .first)
+                }
             }
         } else {
             ImasCard {
                 ImasEmptyState(systemImage: "person.text.rectangle", title: "まだ P名刺がありません",
                                message: "プロデュースの「P名刺」から作ると、ここで QR を見せられます。")
             }
+        }
+    }
+
+    private func shareCardFile(_ myCard: EncodedProducerCard) {
+        guard let data = myFile ?? ProducerCardAssembler.myCardFile(myCard) else {
+            shareError = "名刺の中身を組み立てられませんでした。"
+            return
+        }
+        do {
+            let url = try ProducerCardAssembler.writeShareFile(data, card: myCard.card)
+            AppAnalytics.tap("producer_card.share_file")
+            SystemShare.present(items: [url])
+        } catch {
+            shareError = error.localizedDescription
         }
     }
 

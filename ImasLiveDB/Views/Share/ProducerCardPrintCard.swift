@@ -56,7 +56,7 @@ struct ProducerCardPrintOshi: Identifiable {
     var image: UIImage? = nil
 }
 
-/// 表。デザイン (入場証・かしこまった名刺・ポップ) ごとに組みを変える。載せるものは画面の名刺と同じ。
+/// 表。デザイン (入場証・かしこまった名刺・ポップ・担当を大きく) ごとに組みを変える。載せるものは画面の名刺と同じ。
 struct ProducerCardPrintFront: View {
     var look: ImasMeishiFront.Look = .pass
     let name: String
@@ -64,6 +64,8 @@ struct ProducerCardPrintFront: View {
     var sinceImprint: String? = nil
     /// 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
     var groups: [ProducerCardPrintOshiGroup] = []
+    /// 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。
+    var hero: [ProducerCardPrintOshi] = []
     /// 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。
     var caption: String? = nil
     var moreOshi: Int = 0
@@ -82,18 +84,21 @@ struct ProducerCardPrintFront: View {
         ImasMeishiFront(
             look: look, name: name, sinceImprint: sinceImprint,
             oshiGroups: groups.map { group in
-                ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map {
-                    ImasMeishiOshi(id: $0.id, name: $0.name, shortName: $0.shortName,
-                                   color: ProducerCardPrint.stampColor(seed: $0.seed),
-                                   picture: $0.image.map { .image($0) })
-                })
+                ImasMeishiOshiGroup(label: group.label, oshi: group.oshi.map(Self.meishiOshi))
             },
+            hero: hero.map(Self.meishiOshi),
             oshiCaption: caption,
             moreOshi: moreOshi, handle: handle, nameFont: nameFont,
             portrait: portrait.map { .image($0) },
             portraitRound: portraitRound,
             ink: ProducerCardPrint.colors(seed: seed)
         )
+    }
+
+    private static func meishiOshi(_ oshi: ProducerCardPrintOshi) -> ImasMeishiOshi {
+        ImasMeishiOshi(id: oshi.id, name: oshi.name, shortName: oshi.shortName,
+                       color: ProducerCardPrint.stampColor(seed: oshi.seed),
+                       picture: oshi.image.map { .image($0) })
     }
 }
 

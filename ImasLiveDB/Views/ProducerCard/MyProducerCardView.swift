@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// 自分の P名刺。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
+/// 自分の P名刺。91:55 の名刺 1 枚と、名刺に収まらない詳細 (ひとこと・担当・リンク) を下に並べる。
 ///
-/// 担当と記録の数はアプリの記録から毎回作る (名刺の表には名前・ひとこと・リンクだけ持つ)。
-/// ここから「交換する」(QR を見せる / 読む)、名刺ファイルで送る、紙に刷る画像、プロフィール帳、名刺入れへ行く。
+/// 名刺は交換するもの (誰で、どうつながれるか)。記録の数は名刺の下には出さず、裏 (紙の名刺の裏と同じ) と
+/// SNS に貼る画像 (見せるもの) に載る。担当と記録の数はアプリの記録から毎回作る。
+/// 出し方は 3 つ: 交換する (QR を見せる / 読む・名刺ファイル)・紙に刷る・SNS に貼る画像。それと名刺入れ。
 struct MyProducerCardView: View {
     @Environment(\.openURL) private var openURL
 
@@ -18,8 +19,7 @@ struct MyProducerCardView: View {
     @State private var showingExchange = false
     @State private var showingPrint = false
     @State private var showingCase = false
-    @State private var showingProfile = false
-    @State private var shareError: String?
+    @State private var showingImage = false
     @State private var qrMode: QRMode = .exchange
     @State private var portraitURL: URL?
     @State private var face: ProducerCardDisplay.Face?
@@ -64,12 +64,9 @@ struct MyProducerCardView: View {
         }
         .sheet(item: $editing) { card in
             ProducerCardEditorView(card: card, record: record) { saved in
-                // 名刺の欄だけを今の行に重ねる (プロフィール帳は別の画面で書くので、開いた時の古い中身で戻さない)。
-                var row = saved
-                if let latest = try await AppContainer.shared.producerCards.myCard() {
-                    row.profileJson = latest.profileJson
-                }
-                try await AppContainer.shared.producerCards.saveMyCard(row)
+                // 画像の選択 (大きさ・載せる項目) は画像の画面で書くので、開いた時の古い中身で戻さない。
+                let latest = try await AppContainer.shared.producerCards.myCard()
+                try await AppContainer.shared.producerCards.saveMyCard(saved.applyingEdit(onto: latest))
                 await load()
             }
         }
@@ -84,8 +81,7 @@ struct MyProducerCardView: View {
             }
         }
         .navigationDestination(isPresented: $showingCase) { CardCaseView() }
-        .navigationDestination(isPresented: $showingProfile) { ProfileSheetView() }
-        .imasErrorAlert("名刺ファイルを作れませんでした", message: $shareError)
+        .navigationDestination(isPresented: $showingImage) { ProducerCardImageView() }
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in
             Task { caseCount = (try? await AppContainer.shared.producerCards.receivedCount()) ?? caseCount }
@@ -106,6 +102,7 @@ struct MyProducerCardView: View {
                 ?? ImasProducerCard.Back(qr: encoded.url, showCount: encoded.card.showCount,
                                          songCount: encoded.card.songCount,
                                          issuedLabel: cardIssuedLabel(issuedOn: encoded.card.issuedOn)),
+            showsRecord: false,
             onOpenLink: { link in if let url = URL(string: link.url) { openURL(url) } },
             onOpenOshi: nil
         )
@@ -116,10 +113,6 @@ struct MyProducerCardView: View {
             card
             if encoded.card.design == .custom {
                 ImasNote("自作の画像は名刺ファイルと近くの iPhone で渡した相手に届きます。QR だけで受け取った人と Web では入場証で見えます。")
-            }
-            ImasButton(title: "交換する", systemImage: "qrcode", role: .primary, size: .large) {
-                AppAnalytics.tap("producer_card.exchange")
-                showingExchange = true
             }
             if encoded.droppedShows > 0 {
                 ImasNote("QR に収めるため、古い参加公演 \(encoded.droppedShows) 件を名刺から外しています。")
@@ -145,20 +138,23 @@ struct MyProducerCardView: View {
     private var actionsSection: some View {
         ImasSection("渡す・しまう") {
             ImasCardList {
-                Button { shareCardFile() } label: {
-                    ImasNavRow(title: "名刺ファイルで送る", subtitle: "AirDrop や Quick Share で写真と担当の画像ごと渡す",
-                               systemImage: "square.and.arrow.up")
+                Button {
+                    AppAnalytics.tap("producer_card.exchange")
+                    showingExchange = true
+                } label: {
+                    ImasNavRow(title: "交換する", subtitle: "QR を見せる・読む。名刺ファイルでも送れる",
+                               systemImage: "qrcode")
                 }
                 .buttonStyle(.imasRow)
                 .environment(\.imasRowPosition, .first)
                 Button { showingPrint = true } label: {
-                    ImasNavRow(title: "紙に刷る画像", subtitle: "91×55mm の名刺の表と裏を書き出す",
+                    ImasNavRow(title: "紙に刷る", subtitle: "91×55mm の名刺の表と裏を画像で書き出す",
                                systemImage: "printer")
                 }
                 .buttonStyle(.imasRow)
                 .environment(\.imasRowPosition, .following)
-                Button { showingProfile = true } label: {
-                    ImasNavRow(title: "プロフィール帳", subtitle: "履歴書・職務経歴書の様式で、SNS に貼る自己紹介の 1 枚に",
+                Button { showingImage = true } label: {
+                    ImasNavRow(title: "SNS に貼る画像", subtitle: "履歴書の様式で、担当・好きな曲・記録を 1 枚に",
                                systemImage: "doc.richtext")
                 }
                 .buttonStyle(.imasRow)
@@ -173,20 +169,6 @@ struct MyProducerCardView: View {
         }
     }
 
-    private func shareCardFile() {
-        guard let encoded, let data = ProducerCardAssembler.myCardFile(encoded) else {
-            shareError = "名刺の中身を組み立てられませんでした。"
-            return
-        }
-        do {
-            let url = try ProducerCardAssembler.writeShareFile(data, card: encoded.card)
-            AppAnalytics.tap("producer_card.share_file")
-            SystemShare.present(items: [url])
-        } catch {
-            shareError = error.localizedDescription
-        }
-    }
-
     private func load() async {
         let store = AppContainer.shared.producerCards
         myCard = try? await store.myCard()
@@ -194,6 +176,7 @@ struct MyProducerCardView: View {
         if let rec = try? await ProducerCardAssembler.loadMyRecord() {
             record = rec
         }
+        ProducerCardFiles.removeLegacyProfileSheetPhoto()
         portraitURL = ProducerCardFiles.myPhotoURL
         face = ProducerCardDisplay.myFace()
         if let myCard, let record, let enc = ProducerCardAssembler.encode(card: myCard, record: record) {

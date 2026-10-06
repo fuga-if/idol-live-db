@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 // =============================================================================
-// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた **履歴書** の様式。
+// P名刺の画像 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた **履歴書** の様式。
 //
 // - 欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
 // - 紙は生成り、線は墨。罫の太さは 2 段 (外枠と欄の中)。担当色は押印欄の判子の 1 か所だけ
@@ -55,7 +55,7 @@ enum ProfileSheetInk {
     }
 }
 
-/// プロフィール帳の書体。題・名前・欄の題だけ明朝 (ヒラギノ明朝 W6)、ほかはゴシック (ヒラギノ角ゴ)、
+/// P名刺の画像の書体。題・名前・欄の題だけ明朝 (ヒラギノ明朝 W6)、ほかはゴシック (ヒラギノ角ゴ)、
 /// 英字は等幅の印字。
 /// 撮り比べ (2026-10): 「全部ゴシック 1 系統」と並べ、題と名前を明朝にした方が履歴書の用紙らしく
 /// 締まって見え (ゴシックの太い題は見出しの圧が強い)、本文はゴシックのままで縮小にも耐えたのでこちらを採った。
@@ -96,7 +96,7 @@ enum ProfileSheetType {
 private typealias T = ProfileSheetType
 private typealias Ink = ProfileSheetInk
 
-/// プロフィール帳 1 枚。
+/// P名刺の画像 1 枚。
 struct ProfileSheetCard: View {
     let layout: ProfileSheetLayout
     let materials: ProfileSheetMaterials
@@ -266,7 +266,7 @@ private struct ProfileResumeBody: View {
     }
 }
 
-// MARK: - 部品 (プロフィール帳の中だけ)
+// MARK: - 部品 (P名刺の画像の中だけ)
 
 /// 墨の罫で囲む欄。
 private struct ProfileBox<Content: View>: View {
@@ -469,7 +469,7 @@ struct ProfileHandCircle: Shape {
     }
 }
 
-/// 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。プロフィール帳で担当色を使う唯一の所。
+/// 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。P名刺の画像で担当色を使う唯一の所。
 private struct ProfileSeal: View {
     let oshi: ProfileSheetOshi
     let diameter: CGFloat

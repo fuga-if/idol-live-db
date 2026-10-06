@@ -10,19 +10,19 @@ import SwiftUI
 struct ProducerCardPreviewHarness: View {
     enum Mode: String {
         case card, editor, exchange, read, receive, `case`, detail, print, paper, crop, corners
-        /// 紙に刷る画像を 4 デザインぶん書き出す (Documents/print_exports/。PNG そのものを見て確かめる)。
+        /// 紙に刷る画像を 5 デザインぶん書き出す (Documents/print_exports/。PNG そのものを見て確かめる)。
         case printExport
         /// 自分の名刺の下の詳細だけ (ひとこと・担当・リンク・記録。画面の下の方を撮る)。
         case details
-        /// プロフィール帳の選ぶ画面 / 見本の画面 / 見本の画像を全部書き出す (Documents/profile_exports/)。
-        case profile, profilePreview, profileExport
+        /// SNS に貼る P名刺の画像の画面 / 見本の画像を全部書き出す (Documents/profile_exports/)。
+        case profile, profileExport
         /// 好きな曲を選ぶ画面 (`PROFILE_CHOSEN=1` で 3 曲を選んだ状態にする。書き出しにも効く)。
         case profileSongs
         /// 担当ブランドのはじめの案内 / 設定の画面。
         case brandRoles, brandSettings
     }
 
-    /// プロフィール帳の見本の選択 (`PROFILE_STYLE=career`、`PROFILE_SIZE=story`)。
+    /// P名刺の画像の見本の選択 (`PROFILE_SIZE=story`)。
 
     /// 自分の名刺のデザインを差し替えて撮る (`PRODUCER_CARD_DESIGN=pop`、`custom` は見本の自作の画像も置く)。
     static var envDesign: String? { ProcessInfo.processInfo.environment["PRODUCER_CARD_DESIGN"] }
@@ -55,7 +55,6 @@ struct ProducerCardPreviewHarness: View {
     @State private var directory = ProducerCardDirectory()
     @State private var record: ProducerCardMyRecord?
     @State private var exportedCount: Int?
-    @State private var profileMaterials: ProfileSheetMaterials?
 
     var body: some View {
         Group {
@@ -78,7 +77,7 @@ struct ProducerCardPreviewHarness: View {
             let first = named ?? received.first { ProducerCardFiles.cardPhotoURL(cardId: $0.id) != nil } ?? received.first
             firstCardId = first?.id
             samplePayload = first?.payload
-            if [.profile, .profilePreview, .profileExport, .profileSongs].contains(mode) {
+            if [.profile, .profileExport, .profileSongs, .editor].contains(mode) {
                 await Samples.seedProfile(database)
             }
             record = try? await ProducerCardAssembler.loadMyRecord()
@@ -107,7 +106,7 @@ struct ProducerCardPreviewHarness: View {
         case .paper: PaperCardImportView()
         case .crop:
             CardPhotoCropSheet(image: Samples.portrait(), crop: ImasPortraitCrop(zoom: 1.4, center: CGPoint(x: 0.5, y: 0.4))) { _ in }
-        case .profile: NavigationStack { ProfileSheetView() }
+        case .profile: NavigationStack { ProducerCardImageView() }
         case .profileSongs:
             if let mine = try? database.myProducerCard() {
                 NavigationStack {
@@ -117,13 +116,6 @@ struct ProducerCardPreviewHarness: View {
                         try? database.saveMyProducerCard(card)
                     }
                 }
-            }
-        case .profilePreview:
-            if let mine = try? database.myProducerCard() {
-                NavigationStack {
-                    ProfileSheetPreviewView(sheet: mine.profile, materials: profileMaterials ?? .empty)
-                }
-                .task { profileMaterials = await ProfileSheetAssembler.load(card: mine) }
             }
         case .brandRoles: BrandRoleSetupSheet()
         case .brandSettings: NavigationStack { BrandRoleSettingsView() }
@@ -203,7 +195,9 @@ struct ProducerCardPreviewHarness: View {
                 ? .xIcon : .picked
             try? ProducerCardFiles.saveMyPhoto(source: portrait(), crop: ImasPortraitCrop(), origin: photoOrigin)
             // 担当の代表画像は実機と同じく大きな縦長・横長 (枠からはみ出さないかを見る)。
-            for (i, id) in myOshi.enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
+            // `PRODUCER_CARD_NO_OSHI_IMAGES=1` で置かない (画像の無い担当の判子を見る)。
+            let skipImages = ProcessInfo.processInfo.environment["PRODUCER_CARD_NO_OSHI_IMAGES"] == "1"
+            for (i, id) in myOshi.enumerated() where !skipImages && !CustomImageService.shared.hasCustomImage(for: id) {
                 _ = try? await CustomImageService.shared.addImage(bigPicture(tall: i % 2 == 0, seed: i), for: id)
             }
 
@@ -241,7 +235,7 @@ struct ProducerCardPreviewHarness: View {
             }
         }
 
-        /// プロフィール帳の見本: お気に入りの曲・参加した公演 (担当の出た公演と最近の公演) を増やし、
+        /// P名刺の画像の見本: お気に入りの曲・参加した公演 (担当の出た公演と最近の公演) を増やし、
         /// 次の現場を 1 つ入れる (何度呼んでも同じ)。
         @MainActor
         static func seedProfile(_ db: AppDatabase) async {
@@ -311,7 +305,7 @@ struct ProducerCardPreviewHarness: View {
             return out
         }
 
-        /// 大きさ × 記録の多い/少ない、と縦長の大きな画像を証明写真に入れたものを PNG に書き出す
+        /// 大きさ × 記録の多い/少ない、と縦長の大きな画像を P名刺の写真に入れたものを PNG に書き出す
         /// (Documents/profile_exports/)。担当ブランドはメイン 2 つ・担当 1 つの設定で描く。
         @MainActor
         static func exportProfiles(_ db: AppDatabase) async -> Int {
@@ -332,7 +326,6 @@ struct ProducerCardPreviewHarness: View {
                 try? png.write(to: dir.appendingPathComponent(name))
                 count += 1
             }
-            ProfileSheetFiles.delete()
             // 担当の画像は実機と同じく大きな縦長・横長 (書き出しに担当の画像が出るかを見る)。
             let oshiIds = (try? await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
             for (i, id) in oshiIds.enumerated() where !CustomImageService.shared.hasCustomImage(for: id) {
@@ -346,13 +339,12 @@ struct ProducerCardPreviewHarness: View {
                     write(materials, size: size, name: "resume_\(size == .portrait ? "4x5" : "9x16")_\(fill).png")
                 }
             }
-            // 縦長の大きな画像 (1200×3000) をプロフィール帳の写真に入れる (枠からはみ出さないか)。
-            try? ProfileSheetFiles.save(source: profileTallPhoto(seed: 1), crop: ImasPortraitCrop(), origin: .picked)
-            var tall = await ProfileSheetAssembler.load(card: mine)
-            tall.record.brandRolesJson = roles
+            // 縦長の大きな画像 (1200×3000) を写真の欄に入れる (枠からはみ出さないか)。P名刺の写真は正方形に
+            // 切って持つので、切る前の縦長の画像をそのまま渡して欄の枠で切れるかを見る。
+            var tall = full
+            tall.portrait = profileTallPhoto(seed: 1)
             write(tall, size: .portrait, name: "resume_4x5_tall_photo.png")
             write(tall, size: .story, name: "resume_9x16_tall_photo.png")
-            ProfileSheetFiles.delete()
             return count
         }
 
@@ -371,7 +363,8 @@ struct ProducerCardPreviewHarness: View {
             }
         }
 
-        /// 4 デザインの紙に刷る画像 (表・裏) を書き出す (Documents/print_exports/)。
+        /// 5 デザインの紙に刷る画像 (表・裏) を書き出す (Documents/print_exports/)。担当を大きく は担当の
+        /// 人数を変えても書き出す (`PRODUCER_CARD_OSHI` の人数で `oshi_front.png`)。
         @MainActor
         static func exportPrints(_ db: AppDatabase) async -> Int {
             guard var mine = try? db.myProducerCard() else { return 0 }
@@ -381,7 +374,7 @@ struct ProducerCardPreviewHarness: View {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             saveMyFaces()
             var count = 0
-            for design in ["pass", "formal", "pop", "custom"] {
+            for design in ["pass", "formal", "pop", "oshi", "custom"] {
                 mine.design = design
                 guard let record = try? await ProducerCardAssembler.loadMyRecord(),
                       let encoded = ProducerCardAssembler.encode(card: mine, record: record) else { continue }
