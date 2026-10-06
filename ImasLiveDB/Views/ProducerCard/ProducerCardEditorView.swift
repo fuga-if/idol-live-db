@@ -102,7 +102,6 @@ struct ProducerCardEditorView: View {
         NavigationStack {
           ScrollViewReader { proxy in
             ImasFormPage {
-                preview
                 ImasFormCard {
                     ImasFormTextField(label: "名前", imprint: "NAME", text: $name, prompt: "ふがP",
                                       error: name.count > Int(limits.maxNameChars) ? "\(limits.maxNameChars)文字までです" : nil,
@@ -146,6 +145,7 @@ struct ProducerCardEditorView: View {
                 }
             }
             #endif
+            .imasPinnedPreview { preview }
             .navigationTitle(card.name.isEmpty ? "P名刺を作る" : "P名刺を編集")
             .navigationBarTitleDisplayMode(.inline)
             .imasSheetToolbar(.edit(canSave: canSave, onCancel: cancel, onSave: { Task { await save() } }))

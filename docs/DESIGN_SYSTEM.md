@@ -95,6 +95,7 @@
 **用途** 作る・直す (ライブ・公演・受付・曲・アイドル・支出・タグ・お題・補足・参考動画・セトリ)。
 **組み方**
 - 申込書: `NavigationStack` + `ImasFormPage` に `ImasFormCard` (欄の間は切り取り線) と欄 (`ImasFormTextField`・`ImasFormTextArea`・`ImasFormLink`・`ImasFormToggle`・`ImasFormAmount`・自由な中身は `ImasFormField`)。大きな選択は `ImasChoiceCards`。
+  入力の結果を見せる見本は `.imasPinnedPreview { … }` で画面の上に固定する (高さの決まった枠に縮めて収め、押すと原寸)。見本を欄と一緒にスクロールの中に置くと、入力のたびに見本の背が変わって欄がずれる。
   対象の公演はチケット (`ImasTicket`) で頭に置く。OS の `Form` + `.imasForm()` で組んでよいのは項目の多い設定寄りのシートだけ。タイトルは「〇〇を追加」「〇〇を編集」。
 - ツールバー `.imasSheetToolbar(.edit(onCancel:onSave:canSave:))`。左=×、右=✓ の記号だけ (文字のボタンを書かない。読み上げは「キャンセル」「保存」)。みんなに見えるものは `.submit`。複数を選ぶシートは `.select`、読むだけのシートは `.read`、後で答えてよい問いかけは `.prompt` (左=あとで、右=記録する。§16)。iOS 26 は OS のガラスの丸 (確定は塗り)、iOS 17/18 は記号のボタン。
 - 保存中は `.imasSavingOverlay(isSaving, label: "保存中")`、失敗は `.imasErrorAlert($error)`、書きかけを閉じるときは `.imasDiscardConfirmation(isDirty:)`。

@@ -357,3 +357,63 @@ struct ImasChoiceCards<Option: Hashable>: View {
         }
     }
 }
+
+// MARK: - 固定の見本
+
+/// 編集シートの上に固定する見本。高さの決まった枠に、見本を本来の幅で組んでから縮めて収める。
+/// 見本をスクロールの中に置くと、写真やリンクを足すたびに見本の背が変わって下の欄がずれる
+/// (実機で「操作するたびにレイアウトがずれる」と指摘された)。枠の高さは変わらないので、欄は動かない。
+/// 押すと原寸の見本をシートで開く。`.imasPinnedPreview { … }` で編集画面の上に付ける。
+struct ImasPinnedPreview<Content: View>: View {
+    @ViewBuilder var content: Content
+    @ScaledMetric(relativeTo: .body) private var height: CGFloat = 230
+    @State private var contentHeight: CGFloat = 1
+    @State private var showsFull = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let scale = min(1, geo.size.height / max(contentHeight, 1))
+            content
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: geo.size.width)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+                .scaleEffect(scale, anchor: .top)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+        }
+        .frame(height: height)
+        .clipped()
+        .transaction { $0.animation = nil }
+        .contentShape(Rectangle())
+        .onTapGesture { showsFull = true }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("原寸の見本を開きます")
+        .sheet(isPresented: $showsFull) {
+            NavigationStack {
+                ScrollView {
+                    content
+                        .padding(.horizontal, DS.Space.screen)
+                        .padding(.vertical, DS.Space.gap)
+                }
+                .background(DS.bg)
+                .navigationTitle("見本")
+                .navigationBarTitleDisplayMode(.inline)
+                .imasSheetToolbar(.read(onClose: { showsFull = false }))
+            }
+        }
+    }
+}
+
+extension View {
+    /// 画面の上に見本を固定する (下の欄はその下でスクロールし、見本の背が変わっても動かない)。
+    func imasPinnedPreview<Preview: View>(@ViewBuilder _ preview: () -> Preview) -> some View {
+        safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                ImasPinnedPreview { preview() }
+                    .padding(.horizontal, DS.Space.screen)
+                    .padding(.vertical, DS.Space.gap)
+                ImasPerforation(color: DS.perforation)
+            }
+            .background(DS.bg)
+        }
+    }
+}
