@@ -13,6 +13,8 @@ struct ProfileSheetView: View {
     @State private var editing: MyProducerCard?
     @State private var exportError: String?
     @State private var saveError: String?
+    @State private var pendingSave: Task<Void, Never>?
+    @State private var saveGeneration = 0
 
     private let styles = profileSheetStyles()
     private let sizes = profileSheetSizes()
@@ -51,7 +53,9 @@ struct ProfileSheetView: View {
         }
         .sheet(item: $editing) { card in
             ProfileSheetEditorView(card: card, materials: materials) { sheet in
-                try await save(sheet)
+                await pendingSave?.value
+                try await persist(sheet)
+                self.card?.profile = sheet
             }
         }
         .imasErrorAlert("画像を書き出せませんでした", message: $exportError)
@@ -61,26 +65,39 @@ struct ProfileSheetView: View {
     }
 
     /// 様式・大きさの切り替え。選んだらその場で保存する (書き出しまで 1 画面で済ませる)。
+    /// 続けて切り替えても保存は順に 1 本ずつ流し (古い選択が後から書かれないように)、
+    /// 失敗したときは最後に押した分だけ前の選択に戻す。
     private func choice<Value>(_ key: WritableKeyPath<ProfileSheet, Value>) -> Binding<Value> {
         Binding(
             get: { (card?.profile ?? profileSheetDefault())[keyPath: key] },
             set: { value in
-                guard var sheet = card?.profile else { return }
+                guard let previous = card?.profile else { return }
+                var sheet = previous
                 sheet[keyPath: key] = value
                 card?.profile = sheet
-                Task {
-                    do { try await save(sheet) } catch { saveError = error.localizedDescription }
+                saveGeneration += 1
+                let generation = saveGeneration
+                let prior = pendingSave
+                pendingSave = Task {
+                    await prior?.value
+                    do {
+                        try await persist(sheet)
+                    } catch {
+                        guard generation == saveGeneration else { return }
+                        card?.profile = previous
+                        saveError = error.localizedDescription
+                    }
                 }
             }
         )
     }
 
-    private func save(_ sheet: ProfileSheet) async throws {
+    /// 自分の名刺の行にプロフィール帳の選択を書く (名刺のほかの欄は DB の最新を使う)。
+    private func persist(_ sheet: ProfileSheet) async throws {
         guard let card else { return }
         var saved = (try await AppContainer.shared.producerCards.myCard()) ?? card
         saved.profile = sheet
         try await AppContainer.shared.producerCards.saveMyCard(saved)
-        self.card = saved
     }
 
     private func export(_ layout: ProfileSheetLayout) {

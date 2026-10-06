@@ -64,9 +64,11 @@ struct CoreStatsRepository: StatsReading {
             frequency: record.frequency, frequencyLabel: record.frequencyLabel)
     }
 
-    func profileLiveRecord(attendedShowIds: [String], oshiIdolIds: [String], today: String) async throws -> ProfileLiveRecord {
+    func profileLiveRecord(
+        showMarks: [AttendanceMarkRecord], eventMarks: [AttendanceMarkRecord], oshiIdolIds: [String], today: String
+    ) async throws -> ProfileLiveRecord {
         try await snapshot.withStore { store in
-            try store.profileLiveRecord(attendedShowIds: attendedShowIds, oshiIdolIds: oshiIdolIds, today: today)
+            try store.profileLiveRecord(showMarks: showMarks, eventMarks: eventMarks, oshiIdolIds: oshiIdolIds, today: today)
         }
     }
 }

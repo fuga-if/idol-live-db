@@ -53,8 +53,11 @@ enum ProfileSheetAssembler {
         let idols = oshiIds.isEmpty ? [] : ((try? await c.idolReading.idols(ids: oshiIds)) ?? [])
         let idolById = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let oshiIdols = oshiIds.compactMap { idolById[$0] }
+        // セトリ・会場から数えるのは現地参加だけ (形態の規則はコア)。マークは形態つきのまま渡す。
+        let showMarks = (try? await CollectionAttendance.marks(entity: .show, database: .shared)) ?? []
+        let eventMarks = (try? await CollectionAttendance.marks(entity: .event, database: .shared)) ?? []
         let live = (try? await c.statsReading.profileLiveRecord(
-            attendedShowIds: attendedRefs.map(\.showId), oshiIdolIds: oshiIdols.map(\.id), today: today))
+            showMarks: showMarks, eventMarks: eventMarks, oshiIdolIds: oshiIdols.map(\.id), today: today))
             ?? ProfileSheetMaterials.empty.record.live
 
         // お気に入りの曲 (載せる数と並びはコア。引けない曲は入れない)。

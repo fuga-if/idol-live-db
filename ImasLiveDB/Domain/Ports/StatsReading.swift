@@ -24,10 +24,13 @@ protocol StatsReading: Sendable {
     func collectionDashboard(
         collectedSongIds: Set<String>, pickIdolIds: Set<String>, today: String, chanceLimit: Int
     ) async throws -> CollectionDashboard
-    /// プロフィール帳の、参加した公演のセトリ・会場から数えた記録 (コアの `profileLiveRecord`)。
+    /// プロフィール帳の、現地で参加した公演のセトリ・会場から数えた記録 (コアの `profileLiveRecord`)。
     /// - Parameters:
-    ///   - attendedShowIds: 参加を付けた公演 (予定も混ざってよい)。
+    ///   - showMarks: 公演単位の参加マーク (形態つき。現地だけに絞るのはコア)。
+    ///   - eventMarks: イベント単位の参加マーク。
     ///   - oshiIdolIds: 担当アイドル (担当の順)。
     ///   - today: JST の今日 (`yyyy-MM-dd`)。
-    func profileLiveRecord(attendedShowIds: [String], oshiIdolIds: [String], today: String) async throws -> ProfileLiveRecord
+    func profileLiveRecord(
+        showMarks: [AttendanceMarkRecord], eventMarks: [AttendanceMarkRecord], oshiIdolIds: [String], today: String
+    ) async throws -> ProfileLiveRecord
 }
