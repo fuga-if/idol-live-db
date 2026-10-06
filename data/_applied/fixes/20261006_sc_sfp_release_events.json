@@ -1,0 +1,142 @@
+{
+ "title": "シャニソン発売記念イベント 5 件の告知 URL と各回の開演",
+ "author": "daily-data-crawl",
+ "source": "https://shinycolors.lantis.jp/event/",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント",
+   "fields": {
+    "ticket_url": "https://shinycolors.lantis.jp/event/260312_1/"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260312_1/",
+   "note": "Lantis 公式のイベント告知"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント_1",
+   "fields": {
+    "start_time": "15:00"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260312_1/",
+   "note": "【第一回】の開演"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント_2",
+   "fields": {
+    "start_time": "17:30"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260312_1/",
+   "note": "【第二回】の開演"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント",
+   "fields": {
+    "ticket_url": "https://shinycolors.lantis.jp/event/260515_1/"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260515_1/",
+   "note": "Lantis 公式のイベント告知"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント_1",
+   "fields": {
+    "start_time": "15:00"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260515_1/",
+   "note": "【第一回】の開演"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント_2",
+   "fields": {
+    "start_time": "17:30"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260515_1/",
+   "note": "【第二回】の開演"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ボーダーレス_ノンストレス_oh_yeah_発売記念イベント",
+   "fields": {
+    "ticket_url": "https://shinycolors.lantis.jp/event/260213_1/"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260213_1/",
+   "note": "Lantis 公式のイベント告知"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_ボーダーレス_ノンストレス_oh_yeah_発売記念イベント_1",
+   "fields": {
+    "start_time": "16:00"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260213_1/",
+   "note": "【第一回】の開演"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_ボーダーレス_ノンストレス_oh_yeah_発売記念イベント_2",
+   "fields": {
+    "start_time": "18:30"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260213_1/",
+   "note": "【第二回】の開演"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント",
+   "fields": {
+    "ticket_url": "https://shinycolors.lantis.jp/event/260429_1/"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260429_1/",
+   "note": "Lantis 公式のイベント告知"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント_1",
+   "fields": {
+    "start_time": "16:00"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260429_1/",
+   "note": "【第一回】の開演"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_ring_ring_ringの魔法_街角メランコリー_発売記念イベント_2",
+   "fields": {
+    "start_time": "18:30"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260429_1/",
+   "note": "【第二回】の開演"
+  },
+  {
+   "table": "events",
+   "id": "ev_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント",
+   "fields": {
+    "ticket_url": "https://shinycolors.lantis.jp/event/260623_1/"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260623_1/",
+   "note": "Lantis 公式のイベント告知"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント_1",
+   "fields": {
+    "start_time": "15:00"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260623_1/",
+   "note": "【第一回】の開演"
+  },
+  {
+   "table": "shows",
+   "id": "sh_the_idolm@ster_shiny_colors_song_for_prism_tokyo自由系_ガール_my_time_発売記念イベント_2",
+   "fields": {
+    "start_time": "17:30"
+   },
+   "source": "https://shinycolors.lantis.jp/event/260623_1/",
+   "note": "【第二回】の開演"
+  }
+ ]
+}
