@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.MobileOff
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -45,6 +44,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -276,7 +280,7 @@ fun LyricsPlayerScreen(
                 }
                 if (allCalls.isNotEmpty()) {
                     ImasIconButton(
-                        icon = if (callHaptics) Icons.Filled.Vibration else Icons.Filled.MobileOff,
+                        icon = if (callHaptics) Icons.Filled.Vibration else VibrationOff,
                         label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
                         onClick = ::toggleCallHaptics,
                         size = ImasIconButtonSize.SMALL,
@@ -447,6 +451,29 @@ private fun LyricsPlayerRow(
 }
 
 /** コール練習の震えの設定 (iOS `@AppStorage("lyrics.call_haptics")` と同じ鍵)。 */
+/**
+ * コールで震わせるのオフの記号。端末に斜線 (MobileOff) だと「端末が無い」に読めるので、
+ * 震える記号 (Vibration) に斜線を引く (iOS `apple.haptics.and.music.note.slash` と対)。
+ */
+private val VibrationOff: ImageVector by lazy {
+    ImageVector.Builder(name = "VibrationOff", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f)
+        .addPath(
+            PathParser().parsePathString(
+                "M0,15h2L2,9L0,9v6zM3,17h2L5,7L3,7v10zM22,9v6h2L24,9h-2zM19,17h2L21,7h-2v10z" +
+                    "M16.5,3h-9C6.67,3 6,3.67 6,4.5v15c0,0.83 0.67,1.5 1.5,1.5h9c0.83,0 1.5,-0.67 1.5,-1.5v-15" +
+                    "c0,-0.83 -0.67,-1.5 -1.5,-1.5zM16,19L8,19L8,5h8v14z"
+            ).toNodes(),
+            fill = SolidColor(Color.Black)
+        )
+        .addPath(
+            PathParser().parsePathString("M2.5,2.5L21.5,21.5").toNodes(),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 2f,
+            strokeLineCap = StrokeCap.Round
+        )
+        .build()
+}
+
 private const val CALL_HAPTICS_PREFS = "imas_settings"
 private const val CALL_HAPTICS_KEY = "lyrics.call_haptics"
 

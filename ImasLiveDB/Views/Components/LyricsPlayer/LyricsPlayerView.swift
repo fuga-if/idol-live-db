@@ -102,7 +102,7 @@ struct LyricsPlayerView: View {
             }
             Spacer(minLength: 0)
             if !allCalls.isEmpty {
-                ImasIconButton(systemImage: callHaptics ? "iphone.radiowaves.left.and.right" : "iphone.slash",
+                ImasIconButton(systemImage: callHapticsSymbol,
                                label: callHaptics ? "コールで震わせる: オン" : "コールで震わせる: オフ",
                                size: .small, style: .glass) {
                     AppAnalytics.tap("lyrics_player.toggle_call_haptics")
@@ -118,6 +118,15 @@ struct LyricsPlayerView: View {
             }
             ImasIconButton(systemImage: "chevron.down", label: "閉じる", size: .small, style: .glass) { dismiss() }
         }
+    }
+
+    /// コールで震わせる切り替えの記号。端末の記号 (iphone / iphone.slash) だと「端末が無い・通話」に読めるので、
+    /// 音楽に合わせて震える記号を使う (iOS 18 から。17 は端末が震える記号で代える)。
+    private var callHapticsSymbol: String {
+        if #available(iOS 18.0, *) {
+            return callHaptics ? "apple.haptics.and.music.note" : "apple.haptics.and.music.note.slash"
+        }
+        return callHaptics ? "iphone.radiowaves.left.and.right" : "iphone.slash"
     }
 
     // MARK: - 歌詞
