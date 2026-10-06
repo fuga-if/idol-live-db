@@ -79,6 +79,7 @@ import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.ledger.LedgerScreen
 import com.fugaif.imaslivedb.ui.producercard.CardCaseScreen
 import com.fugaif.imaslivedb.ui.producercard.MyProducerCardScreen
+import com.fugaif.imaslivedb.ui.producercard.ProfileSheetScreen
 import com.fugaif.imaslivedb.ui.producercard.ReceivedCardDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.CommunityPlaylistDetailScreen
 import com.fugaif.imaslivedb.ui.playlists.PlaylistDetailScreen
@@ -407,8 +408,12 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     composable(NavRoutes.ProducerCard.route) {
         MyProducerCardScreen(
             onBack = { navController.popBackStack() },
-            onOpenCardCase = { navController.navigate(NavRoutes.CardCase.route) }
+            onOpenCardCase = { navController.navigate(NavRoutes.CardCase.route) },
+            onOpenProfileSheet = { navController.navigate(NavRoutes.ProfileSheet.route) }
         )
+    }
+    composable(NavRoutes.ProfileSheet.route) {
+        ProfileSheetScreen(onBack = { navController.popBackStack() })
     }
     composable(NavRoutes.CardCase.route) {
         CardCaseScreen(

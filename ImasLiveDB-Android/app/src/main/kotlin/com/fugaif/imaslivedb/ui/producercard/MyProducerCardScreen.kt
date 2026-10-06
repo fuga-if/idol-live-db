@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Inbox
@@ -62,11 +63,11 @@ import uniffi.imas_core.cardQrLinkView
  * 自分の P名刺。iOS `MyProducerCardView` の移植。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
  *
  * 担当と記録の数はアプリの記録から毎回作る (名刺の表には名前・ひとこと・リンクだけ持つ)。
- * ここから「交換する」(QR を見せる / 読む)、名刺ファイルで送る、紙に刷る画像、名刺入れへ行く。
+ * ここから「交換する」(QR を見せる / 読む)、名刺ファイルで送る、紙に刷る画像、プロフィール帳、名刺入れへ行く。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
+fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenProfileSheet: () -> Unit) {
     val context = LocalContext.current
     val module = remember { AppModule.from(context) }
     val uriHandler = LocalUriHandler.current
@@ -170,6 +171,11 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit) {
                                 title = "紙に刷る画像", subtitle = "91×55mm の名刺の表と裏を書き出す",
                                 icon = Icons.Filled.Print, position = ImasRowPosition.FOLLOWING,
                                 onClick = { showingPrint = true }
+                            )
+                            ImasNavRow(
+                                title = "プロフィール帳", subtitle = "履歴書・職務経歴書の様式で、SNS に貼る自己紹介の 1 枚に",
+                                icon = Icons.AutoMirrored.Filled.Article, position = ImasRowPosition.FOLLOWING,
+                                onClick = onOpenProfileSheet
                             )
                             ImasNavRow(
                                 title = "名刺入れ", subtitle = "受け取った名刺を公演ごとに",
