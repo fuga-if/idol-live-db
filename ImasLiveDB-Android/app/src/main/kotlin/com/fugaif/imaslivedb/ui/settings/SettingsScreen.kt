@@ -58,6 +58,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,7 +113,7 @@ import uniffi.imas_core.InputField
 import uniffi.imas_core.inputIsAcceptable
 import uniffi.imas_core.inputLimitMax
 
-private enum class SettingsInfoScreen { HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
+private enum class SettingsInfoScreen { BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -147,6 +148,11 @@ fun SettingsScreen(
                 // フィルタ設定
                 item {
                     ImasListSection("フィルタ設定") {
+                        ImasNavRow(
+                            title = "担当ブランド",
+                            icon = Icons.Filled.RadioButtonChecked,
+                            showsChevron = false
+                        ) { infoScreen = SettingsInfoScreen.BRAND_ROLES }
                         DefaultBrandPicker(
                             brands = state.brands,
                             selectedBrandId = state.defaultBrandId,
@@ -297,6 +303,11 @@ fun SettingsScreen(
             onDismissRequest = { infoScreen = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) { InboxScreen(onBack = { infoScreen = null }) }
+
+        SettingsInfoScreen.BRAND_ROLES -> Dialog(
+            onDismissRequest = { infoScreen = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { BrandRoleSettingsScreen(onBack = { infoScreen = null }) }
 
         SettingsInfoScreen.PRIVACY -> Dialog(
             onDismissRequest = { infoScreen = null },

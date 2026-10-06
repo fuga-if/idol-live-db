@@ -39,6 +39,8 @@ import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.games.DailyPickSheet
+import com.fugaif.imaslivedb.ui.settings.BrandRoleSetupSheet
+import com.fugaif.imaslivedb.data.local.BrandRoleLaunchPrompt
 import com.fugaif.imaslivedb.ui.ledger.TicketExpensePrompt
 import com.fugaif.imaslivedb.ui.navigation.AppNavigation
 import com.fugaif.imaslivedb.ui.theme.ImasLiveDBTheme
@@ -54,6 +56,9 @@ import com.fugaif.imaslivedb.data.producercard.ProducerCardIntents
 import com.fugaif.imaslivedb.ui.producercard.ProducerCardIncomingHost
 
 class MainActivity : ComponentActivity() {
+    /** P名刺のリンク・名刺ファイルで起動した。はじめの案内 (担当ブランド) より受け取りを優先して、案内は出さない。 */
+    private var openedByLink = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 引数なしの enableEdgeToEdge() は、システムバーのアイコン色を**端末の**ライト/ダーク
@@ -68,7 +73,10 @@ class MainActivity : ComponentActivity() {
         val sync = module.syncEngine
         openDatabase()
         // P名刺のリンク・名刺ファイルで開かれた (回転などで作り直したときは二度受け取らない)。
-        if (savedInstanceState == null) handleProducerCardIntent(intent)
+        if (savedInstanceState == null) {
+            openedByLink = ProducerCardIntents.parse(intent) != null
+            handleProducerCardIntent(intent)
+        }
         setContent {
             ImasLiveDBTheme {
                 when (val bootState = boot.state.collectAsState().value) {
@@ -134,6 +142,9 @@ class MainActivity : ComponentActivity() {
             var showDailyPick by remember {
                 mutableStateOf(AppModule.from(this@MainActivity).gameProgressStore.consumeDailySheetSlot())
             }
+            // 初回起動 (入れたばかり) はまず担当ブランドを選んでもらう (飛ばしても 1 度きり)。
+            // 既存のユーザーにはプロフィール帳をはじめて開いたときに出す。リンクから開いたときは出さない。
+            var showBrandSetup by remember { mutableStateOf(BrandRoleLaunchPrompt.consume(this@MainActivity, openedByLink)) }
             // オーバーレイにするのは、この上でタグピッカー (ModalBottomSheet) を開くため。
             // ボトムシートの中からボトムシートを開くと重なりとタッチ処理が壊れる。
             Box(modifier = Modifier.fillMaxSize()) {
@@ -146,7 +157,9 @@ class MainActivity : ComponentActivity() {
                 ProducerCardIncomingHost()
                 // 端末にしか無いデータの書き込み失敗は、どの画面で起きてもここで知らせる。
                 LocalWriteFailureAlert()
-                if (showDailyPick) {
+                if (showBrandSetup) {
+                    BrandRoleSetupSheet(onDismiss = { showBrandSetup = false })
+                } else if (showDailyPick) {
                     DailyPickSheet(onDismiss = { showDailyPick = false })
                 }
             }

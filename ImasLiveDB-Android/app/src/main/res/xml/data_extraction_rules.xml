@@ -10,7 +10,7 @@
   画像だけで超えると、DB や設定を含むバックアップ全体が取られなくなる。
   P名刺の写真・受け取った担当の画像 (ProducerCardFiles の filesDir/producer_cards) と自分の名刺の写真
   (filesDir/producer_card_me)・自作の名刺の画像
-  (filesDir/producer_card_face) も同じ理由で外す。
+  (filesDir/producer_card_face)・プロフィール帳の証明写真 (filesDir/profile_sheet_photo) も同じ理由で外す。
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -21,6 +21,7 @@
         <exclude domain="file" path="producer_cards/" />
         <exclude domain="file" path="producer_card_me/" />
         <exclude domain="file" path="producer_card_face/" />
+        <exclude domain="file" path="profile_sheet_photo/" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="imas_auth_secure.xml" />

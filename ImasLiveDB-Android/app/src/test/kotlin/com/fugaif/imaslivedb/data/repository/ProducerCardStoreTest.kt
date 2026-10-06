@@ -41,7 +41,8 @@ import uniffi.imas_core.CardLinkKind
 import uniffi.imas_core.ProducerCardInput
 import uniffi.imas_core.ProfileAutoField
 import uniffi.imas_core.ProfileSheetSize
-import uniffi.imas_core.ProfileSheetStyle
+import uniffi.imas_core.profileSheetLayout
+import com.fugaif.imaslivedb.data.producercard.ProfileSheetMaterials
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.producerCardPayload
 import uniffi.imas_core.profileSheetDefault
@@ -111,10 +112,8 @@ class ProducerCardStoreTest {
         val repo = ProducerCardRepository(database())
         val card = myCard("ふがP")
         assertEquals(profileSheetDefault(), card.profile)
-        val sheet = card.profile.copy(
-            size = ProfileSheetSize.STORY, hidden = listOf(ProfileAutoField.QR),
-            brandOn = listOf("sc"), brandMain = "sc"
-        )
+        // 保存の形の並び (選ぶ画面の順)。
+        val sheet = card.profile.copy(size = ProfileSheetSize.STORY, hidden = listOf(ProfileAutoField.SONGS, ProfileAutoField.QR))
         repo.saveMyCard(card.withProfile(sheet))
         assertEquals(sheet, repo.myCard()?.profile)
 
@@ -171,13 +170,28 @@ class ProducerCardStoreTest {
         assertEquals(listOf("c1"), repo.receivedIds())
     }
 
+    /** 職務経歴書・プロフィール帳の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。 */
+    @Test
+    fun oldProfileJsonWithCareerStyleStillReads() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        repo.saveMyCard(
+            myCard("ふがP").copy(
+                profileJson = """{"style":"career","size":"story","hidden":["qr","oshi_heard","yearly"],"brandOn":["sc"],"brandMain":"sc"}"""
+            )
+        )
+        val loaded = repo.myCard()!!.profile
+        assertEquals(ProfileSheetSize.STORY, loaded.size)
+        assertEquals(listOf(ProfileAutoField.QR), loaded.hidden)
+        assertEquals("履歴書", profileSheetLayout(loaded, ProfileSheetMaterials.EMPTY.record).title)
+    }
+
     /** 書き出したバックアップを空の端末に取り込むと、名刺入れと自分の名刺が戻る。 */
     @Test
     fun backupRoundTripRestoresProducerCards() = runBlocking {
         val source = database()
         val sourceRepo = ProducerCardRepository(source)
         val default = profileSheetDefault()
-        val sheet = default.copy(style = ProfileSheetStyle.CAREER, brandOff = listOf("ml"))
+        val sheet = default.copy(size = ProfileSheetSize.STORY)
         val mine = myCard("ふがP").copy(message = "現地派", sinceYear = 2014)
             .withLinks(listOf(CardLink(CardLinkKind.X, "fuga_p")))
             .withHidden(setOf(ProducerCardField.ATTENDED))

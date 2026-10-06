@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.data.image
 import android.content.Context
 import com.fugaif.imaslivedb.R
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
+import com.fugaif.imaslivedb.data.producercard.ProfileSheetFiles
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,7 +22,7 @@ class BackupRulesTest {
     private val imageDirectories =
         (GalleryKind.entries.map { it.directoryName } + CustomImageStore.BRAND_DIRECTORY_NAME +
             ProducerCardFiles.DIRECTORY_NAME + ProducerCardFiles.MY_DIRECTORY_NAME +
-            ProducerCardFiles.MY_FACE_DIRECTORY_NAME)
+            ProducerCardFiles.MY_FACE_DIRECTORY_NAME + ProfileSheetFiles.DIRECTORY_NAME)
             .map { "$it/" }.toSet()
 
     @Test

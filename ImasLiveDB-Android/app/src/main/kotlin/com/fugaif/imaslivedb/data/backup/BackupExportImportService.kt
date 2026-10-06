@@ -34,6 +34,7 @@ import uniffi.imas_core.backupCurrentSchemaVersion
 import uniffi.imas_core.buildBackupEnvelope
 import uniffi.imas_core.planBackupImport
 import java.time.Instant
+import com.fugaif.imaslivedb.data.local.BrandRoleStore
 
 /** バックアップ (引き継ぎコード/ファイルエクスポート) で壊れた・改ざんされたデータを検出したときに投げる。 */
 class BackupFormatException(message: String) : Exception(message)
@@ -113,7 +114,9 @@ object BackupExportImportService {
                     it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
                     design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
                 )
-            }
+            },
+            // 担当ブランドはアプリ全体の設定 (端末の SharedPreferences)。まだ決めていなければ空 (運ばない)。
+            brandRolesJson = BrandRoleStore.json(context)
         )
         return buildBackupEnvelope(input, BackupKindDialect.ANDROID).envelopeJson
     }
@@ -149,7 +152,8 @@ object BackupExportImportService {
             // プレイリストも id で重複を見る。
             playlistIds = playlistRepository.allIds(),
             producerCardIds = producerCardRepository.receivedIds(),
-            myProducerCardIds = listOfNotNull(producerCardRepository.myCard()?.id)
+            myProducerCardIds = listOfNotNull(producerCardRepository.myCard()?.id),
+            brandRolesJson = BrandRoleStore.json(context)
         )
 
         val plan = try {
@@ -204,6 +208,8 @@ object BackupExportImportService {
             }
         )
         pollVoteLog.mergeIfAbsent(plan.pollVotesToAdd.associate { it.pollId to it.entityIds.toSet() })
+        // 担当ブランドは端末の設定に担当・メインが 1 つも無いときだけ (コアが決める)。
+        if (plan.brandRolesJsonToRestore.isNotEmpty()) BrandRoleStore.restore(context, plan.brandRolesJsonToRestore)
         if (plan.restoreDeviceId) DeviceIdentity.restore(context, plan.info.deviceId)
 
         return BackupImportResult(

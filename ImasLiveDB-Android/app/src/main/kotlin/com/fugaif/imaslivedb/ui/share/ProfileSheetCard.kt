@@ -49,17 +49,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -76,44 +73,44 @@ import kotlin.math.sin
 import uniffi.imas_core.CardNameFont
 import uniffi.imas_core.ProfileBrandCheck
 import uniffi.imas_core.ProfileHandRing
-import uniffi.imas_core.ProfileStat
-import uniffi.imas_core.ProfileCareerRow
-import uniffi.imas_core.ProfileEntry
 import uniffi.imas_core.ProfileHistoryKind
 import uniffi.imas_core.ProfileHistoryRow
 import uniffi.imas_core.ProfileSection
 import uniffi.imas_core.ProfileSheetDensity
 import uniffi.imas_core.ProfileSheetLayout
 import uniffi.imas_core.ProfileSheetSize
-import uniffi.imas_core.ProfileSheetStyle
 import uniffi.imas_core.ProfileSlot
 import uniffi.imas_core.cardNameFontInfo
 
 // =============================================================================
-// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。iOS `ProfileSheetCard.swift` の移植。
-// P を職業に見立てた事務書類の様式を、ポップに崩す。
+// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。iOS `ProfileSheetCard.swift` の移植。P を職業に見立てた **履歴書** の様式。
 //
-// - 履歴書 (既定) / 職務経歴書。欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
-// - 紙は生成り、線は墨の太い罫。担当色は上の帯・表の頭の罫・押印欄の判子・職務経歴の印にだけ出す
-//   (面を塗らない)。ブランドの丸はブランドの色の手描きの線。
-// - 題はポップな書体 (Mochiy Pop One)、設問は印字 (ゴシック)、答えと名前は P名刺で選んだ書体。
-// - アプリ名の帯 (`ShareCardFooter`) を下に置く。
+// - 欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
+// - 紙は生成り、線は墨。罫の太さは 2 段 (外枠 1.5 と欄の中 0.5)。担当色は押印欄の判子の 1 か所だけ
+//   (面を塗らない・帯を引かない)。ブランドの丸はブランドの色の手描きの線 (中身そのものの色)。
+// - 字面は事務書類の端正さに寄せる。題・名前・欄の題は明朝 (同梱の `card_name_mincho`)、本文はゴシック、
+//   英字は等幅の大文字の印字だけ。太さは 2 段 (本文 = regular・見出し = semibold)、和文はかなを詰めて (palt)
+//   字間を少し詰め、英字の大文字にだけ字間を足す。数字は等幅。題は大きく本文は控えめにして、大きさの比をはっきり取る。
+// - 中身はすべてアプリの記録から (自分で書く欄は無い)。アプリ名の帯 (`ShareCardFooter`) を下に置く。
 //
 // 固定のキャンバスに焼くので、色は固定色、文字は固定の大きさ (docs/DESIGN_SYSTEM.md §13)。
-// 画像は読み込み済みの Bitmap だけを使う (焼くのは今描かれているものだけで、読み込みを待たない)。
+// 画像は読み込み済みの Bitmap だけを使う (焼くのは今描かれているものだけで、読み込みを待たない)。画像は大きさの決まった枠を
+// 先に作ってから重ねて切る (縦長の大きな画像で枠が膨らまないように)。
 // =============================================================================
 
 object ProfileSheetInk {
     /** 生成りの紙。 */
     val paper = Color(0xFFFBF7EE)
     val ink = ShareInk.nearBlack
-    val sub = Color(0xFF5A5755)
 
-    /** 外枠の罫 (太い)。 */
-    const val FRAME = 2.5f
+    /** 設問・項目名の灰。 */
+    val sub = Color(0xFF6A6663)
+
+    /** 外枠の罫。 */
+    const val FRAME = 1.5f
 
     /** 欄の中の罫。 */
-    const val RULE = 1f
+    const val RULE = 0.5f
 
     /** QR の辺。詰め方で縮めない (焼いた画像を SNS が縮めても読めるように)。周りに紙の余白を足す。 */
     const val QR_SIDE = 52f
@@ -132,57 +129,60 @@ object ProfileSheetInk {
             ProfileSheetDensity.COMPACT -> 2
             ProfileSheetDensity.TIGHT -> 4
         }
-        val base = if (layout.size == ProfileSheetSize.STORY) 1.12f else 1f
+        // 9:16 は縦に余るので大きく組む (入らなければ下の段へ)。
+        val base = if (layout.size == ProfileSheetSize.STORY) 1.3f else 1f
         return steps.drop(start).map { it * base }
     }
-
-    /** ゴシックの印字。 */
-    fun sans(size: Float, weight: FontWeight, tracking: Float = 0f, tabular: Boolean = false) = TextStyle(
-        fontSize = size.sp, fontWeight = weight, letterSpacing = tracking.sp,
-        fontFeatureSettings = if (tabular) "tnum" else null
-    )
-
-    /** 等幅の英字の印字。 */
-    fun mono(size: Float, weight: FontWeight = FontWeight.SemiBold, tracking: Float = 0f) = TextStyle(
-        fontFamily = FontFamily.Monospace, fontSize = size.sp, fontWeight = weight, letterSpacing = tracking.sp
-    )
-
-    /** 同梱の書体 (P名刺で選んだ書体・題のポップ体)。引けなければゴシックの極太。 */
-    fun named(family: FontFamily?, size: Float, tracking: Float = 0f) =
-        family?.let { TextStyle(fontFamily = it, fontSize = size.sp, letterSpacing = tracking.sp) }
-            ?: sans(size, FontWeight.ExtraBold, tracking)
 }
+
+/**
+ * プロフィール帳の書体。題・名前・欄の題だけ明朝 (同梱の書体)、ほかはゴシック、英字は等幅の印字。
+ * iOS `ProfileSheetType` と対。
+ */
+private object ProfileSheetType {
+    /** 和文 (かなを詰める palt)。[weight] は regular / semibold の 2 段で使う。 */
+    fun jp(size: Float, weight: FontWeight = FontWeight.Normal, tracking: Float = 0f) = TextStyle(
+        fontSize = size.sp, fontWeight = weight, letterSpacing = tracking.sp, fontFeatureSettings = "palt, tnum"
+    )
+
+    /** 英字の印字 (等幅の大文字)。 */
+    fun imprint(size: Float, tracking: Float = IMPRINT_TRACKING) = TextStyle(
+        fontFamily = FontFamily.Monospace, fontSize = size.sp, fontWeight = FontWeight.Medium, letterSpacing = tracking.sp
+    )
+
+    /** 題・名前・欄の題 (明朝。引けなければ本文のゴシックの semibold)。 */
+    fun display(family: FontFamily?, size: Float, tracking: Float = 0f) =
+        family?.let { TextStyle(fontFamily = it, fontSize = size.sp, letterSpacing = tracking.sp, fontFeatureSettings = "palt") }
+            ?: jp(size, FontWeight.SemiBold, tracking)
+
+    const val IMPRINT_TRACKING = 2.4f
+
+    /** 和文の字間 (少し詰める)。 */
+    const val JP_TRACKING = -0.2f
+}
+
+private typealias T = ProfileSheetType
+private typealias Ink = ProfileSheetInk
 
 /** 担当色 (なければ墨)。 */
 @Composable
-private fun profileAccent(seed: String?): Color =
-    if (seed == null) ProfileSheetInk.ink else rememberShareCardPalette(seed).accent
+private fun profileAccent(seed: String?): Color = if (seed == null) Ink.ink else rememberShareCardPalette(seed).accent
 
-/** 書体の段 (名前・答えの書体と、題のポップ体)。 */
-private class ProfileFonts(val name: FontFamily?, val title: FontFamily?)
-
-/** プロフィール帳 1 枚 (様式で出し分け)。[ShareCardCanvas] の中で、大きさは [ProfileSheetInk.size]。 */
+/** プロフィール帳 1 枚。[ShareCardCanvas] の中で、大きさは [ProfileSheetInk.size]。 */
 @Composable
 fun ProfileSheetCard(layout: ProfileSheetLayout, materials: ProfileSheetMaterials) {
-    val accent = profileAccent(materials.seed)
     val scales = remember(layout.density, layout.size) { ProfileSheetInk.scales(layout) }
-    val titleStem = remember { cardNameFontInfo(CardNameFont.POP).fileStem }
-    val fonts = ProfileFonts(name = rememberCardNameFamily(materials.nameFont), title = rememberCardNameFamily(titleStem))
-    Column(Modifier.fillMaxSize().background(ProfileSheetInk.paper)) {
-        Box(Modifier.fillMaxWidth().height(10.dp).background(accent))
-        Box(Modifier.fillMaxWidth().height(2.dp).background(ProfileSheetInk.ink))
-        Column(Modifier.weight(1f).fillMaxWidth().padding(start = 26.dp, end = 26.dp, top = 14.dp, bottom = 18.dp)) {
-            ProfileSheetHeading(layout, fonts, scales.first())
-            // コアの詰め方から始めて、収まらなければ小さい方へ (最後の段は下を切る)。
-            ProfileFitFirst(scales, Modifier.weight(1f).fillMaxWidth().padding(top = 10.dp)) { s ->
-                when (layout.style) {
-                    ProfileSheetStyle.RESUME -> ProfileResumeBody(layout, materials, fonts, accent, s)
-                    ProfileSheetStyle.CAREER -> ProfileCareerBody(layout, materials, fonts, accent, s)
-                }
-            }
-            Box(Modifier.padding(top = 8.dp)) {
-                ShareCardFooter(ink = ProfileSheetInk.ink.copy(alpha = 0.7f), rule = ProfileSheetInk.ink.copy(alpha = 0.3f))
-            }
+    val mincho = rememberCardNameFamily(remember { cardNameFontInfo(CardNameFont.MINCHO).fileStem })
+    Column(
+        Modifier.fillMaxSize().background(Ink.paper).padding(start = 26.dp, end = 26.dp, top = 26.dp, bottom = 18.dp)
+    ) {
+        ProfileSheetHeading(layout, mincho)
+        // コアの詰め方から始めて、収まらなければ小さい方へ (最後の段は下を切る)。
+        ProfileFitFirst(scales, Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp)) { s ->
+            ProfileResumeBody(layout, materials, mincho, s)
+        }
+        Box(Modifier.padding(top = 8.dp)) {
+            ShareCardFooter(ink = Ink.ink.copy(alpha = 0.7f), rule = Ink.ink.copy(alpha = 0.25f))
         }
     }
 }
@@ -210,50 +210,41 @@ private fun ProfileFitFirst(scales: List<Float>, modifier: Modifier, content: @C
 // MARK: - 頭 (題・日付)
 
 @Composable
-private fun ProfileSheetHeading(layout: ProfileSheetLayout, fonts: ProfileFonts, s: Float) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            layout.title, style = ProfileSheetInk.named(fonts.title, 32 * s, tracking = 6f),
-            color = ProfileSheetInk.ink, maxLines = 1, modifier = Modifier.alignByBaseline()
-        )
-        Text(
-            layout.imprint, style = ProfileSheetInk.mono(9f, tracking = 2f), color = ProfileSheetInk.sub,
-            maxLines = 1, modifier = Modifier.alignByBaseline()
-        )
-        Spacer(Modifier.weight(1f))
-        Text(
-            layout.asOf, style = ProfileSheetInk.sans(10.5f * s, FontWeight.SemiBold), color = ProfileSheetInk.ink,
-            maxLines = 1, modifier = Modifier.alignByBaseline()
-        )
+private fun ProfileSheetHeading(layout: ProfileSheetLayout, mincho: FontFamily?) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                layout.title, style = T.display(mincho, 30f, tracking = 7f), color = Ink.ink, maxLines = 1,
+                modifier = Modifier.alignByBaseline()
+            )
+            Text(layout.imprint, style = T.imprint(8f), color = Ink.sub, maxLines = 1, modifier = Modifier.alignByBaseline())
+            Spacer(Modifier.weight(1f).width(8.dp))
+            Text(layout.asOf, style = T.jp(9.5f), color = Ink.ink, maxLines = 1, modifier = Modifier.alignByBaseline())
+        }
+        ProfileRule(Ink.FRAME)
     }
 }
 
 // MARK: - 履歴書
 
 @Composable
-private fun ProfileResumeBody(
-    layout: ProfileSheetLayout,
-    materials: ProfileSheetMaterials,
-    fonts: ProfileFonts,
-    accent: Color,
-    s: Float
-) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy((8 * s).dp)) {
-        ResumeIdentity(layout, materials, fonts, s)
+private fun ProfileResumeBody(layout: ProfileSheetLayout, materials: ProfileSheetMaterials, mincho: FontFamily?, s: Float) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy((10 * s).dp)) {
+        ResumeIdentity(layout, materials, mincho, s)
         if (layout.brands.isNotEmpty()) ProfileBrandRange(layout.brandsTitle, layout.brands, s)
         if (layout.history.isNotEmpty() || layout.licenses.isNotEmpty()) {
             ProfileBox {
                 Column {
                     if (layout.history.isNotEmpty()) {
-                        ProfileTableHead("P歴（学歴・職歴）", accent, s)
+                        ProfileTableHead("P歴（学歴・職歴）", s)
                         layout.history.forEachIndexed { i, row ->
                             if (i > 0) ProfileRule()
                             ProfileHistoryLine(row, s)
                         }
                     }
                     if (layout.licenses.isNotEmpty()) {
-                        if (layout.history.isNotEmpty()) ProfileRule(ProfileSheetInk.FRAME)
-                        ProfileTableHead("免許・資格", accent, s)
+                        if (layout.history.isNotEmpty()) ProfileRule(Ink.FRAME)
+                        ProfileTableHead("免許・資格", s)
                         layout.licenses.forEachIndexed { i, row ->
                             if (i > 0) ProfileRule()
                             ProfileHistoryLine(row, s)
@@ -262,46 +253,44 @@ private fun ProfileResumeBody(
                 }
             }
         }
-        // 志望の動機は横いっぱい、趣味・特技と本人希望記入欄は左右に並べる (様式の欄の並び)。
+        // 志望の動機は横いっぱい、ほかの欄は左右に並べる (様式の欄の並び)。
         layout.sections.filter { it.slot == ProfileSlot.MOTIVATION }.forEach { section ->
-            ProfileBox { ProfileSectionView(section, fonts, s) }
+            ProfileBox { ProfileSectionView(section, mincho, s) }
         }
         val pair = layout.sections.filter { it.slot != ProfileSlot.MOTIVATION }
         if (pair.isNotEmpty()) {
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy((8 * s).dp)) {
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy((10 * s).dp)) {
                 pair.forEach { section ->
-                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, fonts, s) }
+                    ProfileBox(Modifier.weight(1f).fillMaxHeight()) { ProfileSectionView(section, mincho, s) }
                 }
             }
         }
     }
 }
 
-/** 氏名・ふりがな・押印・P歴・担当・連絡先と証明写真。 */
+/** 氏名・押印・P歴・担当・連絡先と証明写真。 */
 @Composable
-private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMaterials, fonts: ProfileFonts, s: Float) {
+private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMaterials, mincho: FontFamily?, s: Float) {
     ProfileBox {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
             Column(Modifier.weight(1f)) {
                 ProfileField("氏名", s) {
                     Row(
-                        Modifier.fillMaxWidth().padding(vertical = (2 * s).dp),
+                        Modifier.fillMaxWidth().padding(vertical = (3 * s).dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProfileFitText(
-                            layout.name, style = ProfileSheetInk.named(fonts.name, 30 * s), color = ProfileSheetInk.ink,
+                            layout.name, style = T.display(mincho, 24 * s, tracking = T.JP_TRACKING), color = Ink.ink,
                             maxLines = 1, minScale = 0.5f, modifier = Modifier.weight(1f)
                         )
                         val oshi = materials.oshi.firstOrNull()
-                        if (layout.showOshi && oshi != null) ProfileSeal(oshi, 46 * s)
+                        if (layout.showOshi && oshi != null) ProfileSeal(oshi, 42 * s)
                     }
                 }
                 layout.sinceLabel?.let { since ->
                     ProfileRule()
-                    ProfileField("P歴", s) {
-                        Text(since, style = ProfileSheetInk.sans(10.5f * s, FontWeight.Bold), color = ProfileSheetInk.ink, maxLines = 1)
-                    }
+                    ProfileField("P歴", s) { Text(since, style = T.jp(10 * s), color = Ink.ink, maxLines = 1) }
                 }
                 if (layout.showOshi && materials.oshi.isNotEmpty()) {
                     ProfileRule()
@@ -317,153 +306,17 @@ private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ProfileFitText(
-                                layout.contacts.joinToString("　"), style = ProfileSheetInk.mono(10.5f * s),
-                                color = ProfileSheetInk.ink, maxLines = 2, minScale = 0.7f, modifier = Modifier.weight(1f)
+                                layout.contacts.joinToString("   "), style = T.imprint(9.5f * s, tracking = 0f),
+                                color = Ink.ink, maxLines = 2, minScale = 0.7f, modifier = Modifier.weight(1f)
                             )
                             if (qr != null) ProfileQR(qr)
                         }
                     }
                 }
             }
-            Box(Modifier.width(ProfileSheetInk.FRAME.dp).fillMaxHeight().background(ProfileSheetInk.ink))
-            Box(Modifier.fillMaxHeight().padding((8 * s).dp), contentAlignment = Alignment.Center) {
-                ProfilePhotoBox(if (layout.showPhoto) materials.portrait else null, 92 * s)
-            }
-        }
-    }
-}
-
-// MARK: - 職務経歴書
-
-@Composable
-private fun ProfileCareerBody(
-    layout: ProfileSheetLayout,
-    materials: ProfileSheetMaterials,
-    fonts: ProfileFonts,
-    accent: Color,
-    s: Float
-) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy((8 * s).dp)) {
-        CareerIdentity(layout, materials, fonts, s)
-        layout.sections.filter { it.slot == ProfileSlot.SUMMARY }.forEach { section ->
-            ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileStats(section.stats, accent, s)
-            ProfileEntries(section.entries, fonts, s)
-        }
-        if (layout.career.isNotEmpty()) {
-            ProfileHeadline("職務経歴", "CAREER", accent, s)
-            CareerTable(layout, accent, s)
-        }
-        val showOshi = layout.showOshi && materials.oshi.isNotEmpty()
-        if (showOshi || layout.brands.isNotEmpty()) {
-            ProfileHeadline("担当", "IN CHARGE", accent, s)
-            if (showOshi) ProfileOshiList(materials.oshi, s)
-            if (layout.brands.isNotEmpty()) ProfileBrandRange(layout.brandsTitle, layout.brands, s)
-        }
-        layout.sections.filter { it.slot != ProfileSlot.SUMMARY }.forEach { section ->
-            ProfileHeadline(section.title, section.imprint, accent, s)
-            ProfileStats(section.stats, accent, s)
-            ProfileEntries(section.entries, fonts, s)
-        }
-        Text(
-            "以上", style = ProfileSheetInk.sans(11 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
-            textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-/** 右上に氏名と押印・証明写真 (職務経歴書の頭)。 */
-@Composable
-private fun CareerIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMaterials, fonts: ProfileFonts, s: Float) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy((12 * s).dp),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy((4 * s).dp)) {
-            layout.sinceLabel?.let {
-                Text(it, style = ProfileSheetInk.sans(10.5f * s, FontWeight.Bold), color = ProfileSheetInk.ink)
-            }
-            if (layout.contacts.isNotEmpty()) {
-                ProfileFitText(
-                    layout.contacts.joinToString("　"), style = ProfileSheetInk.mono(10f * s), color = ProfileSheetInk.sub,
-                    maxLines = 2, minScale = 0.7f
-                )
-            }
-        }
-        Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("氏名", style = ProfileSheetInk.sans(9 * s, FontWeight.Bold), color = ProfileSheetInk.sub)
-                Text(layout.name, style = ProfileSheetInk.named(fonts.name, 26 * s), color = ProfileSheetInk.ink, maxLines = 1)
-                val oshi = materials.oshi.firstOrNull()
-                if (layout.showOshi && oshi != null) ProfileSeal(oshi, 40 * s)
-            }
-            Box(Modifier.fillMaxWidth().height(ProfileSheetInk.FRAME.dp).background(ProfileSheetInk.ink))
-        }
-        materials.qrUrl?.takeIf { layout.showQr && imasQrMatrix(it) != null }?.let { ProfileQR(it) }
-        if (layout.showPhoto && materials.portrait != null) ProfilePhotoBox(materials.portrait, 60 * s)
-    }
-}
-
-@Composable
-private fun CareerTable(layout: ProfileSheetLayout, accent: Color, s: Float) {
-    ProfileBox {
-        Column {
-            layout.career.forEachIndexed { i, year ->
-                if (i > 0) ProfileRule(ProfileSheetInk.FRAME)
-                Row(
-                    Modifier.fillMaxWidth().accentUnderline(accent).padding(horizontal = 8.dp, vertical = (3 * s).dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(year.year, style = ProfileSheetInk.sans(12 * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink)
-                    Spacer(Modifier.weight(1f))
-                    Text(year.countLabel, style = ProfileSheetInk.mono(10 * s, FontWeight.Bold), color = ProfileSheetInk.ink)
-                }
-                year.rows.forEachIndexed { j, row ->
-                    if (j > 0) ProfileRule()
-                    ProfileCareerLine(row, accent, s)
-                }
-            }
-            if (layout.careerMore > 0u) {
-                ProfileRule()
-                Text(
-                    "ほか ${layout.careerMore} 公演", style = ProfileSheetInk.sans(9.5f * s, FontWeight.SemiBold),
-                    color = ProfileSheetInk.sub, textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = (3 * s).dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProfileCareerLine(row: ProfileCareerRow, accent: Color, s: Float) {
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = (3 * s).dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            row.date, style = ProfileSheetInk.mono(10 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
-            maxLines = 1, modifier = Modifier.width((40 * s).dp)
-        )
-        val text = buildAnnotatedString {
-            withStyle(SpanStyle(fontSize = (10 * s).sp, fontWeight = FontWeight.Bold, color = ProfileSheetInk.ink)) { append(row.title) }
-            row.venue?.let {
-                withStyle(SpanStyle(fontSize = (8.5f * s).sp, fontWeight = FontWeight.Medium, color = ProfileSheetInk.sub)) {
-                    append("　$it")
-                }
-            }
-        }
-        Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (row.planned) {
-            Text(
-                "予定", style = ProfileSheetInk.sans(9 * s, FontWeight.ExtraBold), color = accent,
-                modifier = Modifier.rotate(-6f).border(1.5.dp, accent).padding(horizontal = 5.dp, vertical = 1.dp)
-            )
-        } else {
-            row.brand?.let {
-                Text(it, style = ProfileSheetInk.sans(9 * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
+            Box(Modifier.width(Ink.RULE.dp).fillMaxHeight().background(Ink.ink))
+            Box(Modifier.fillMaxHeight().padding((10 * s).dp), contentAlignment = Alignment.Center) {
+                ProfilePhotoBox(if (layout.showPhoto) materials.portrait else null, 88 * s)
             }
         }
     }
@@ -471,56 +324,52 @@ private fun ProfileCareerLine(row: ProfileCareerRow, accent: Color, s: Float) {
 
 // MARK: - 部品 (プロフィール帳の中だけ)
 
-/** 太い墨の罫で囲む欄。 */
+/** 墨の罫で囲む欄。 */
 @Composable
 private fun ProfileBox(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Box(modifier.fillMaxWidth().border(ProfileSheetInk.FRAME.dp, ProfileSheetInk.ink)) { content() }
+    Box(modifier.fillMaxWidth().border(Ink.FRAME.dp, Ink.ink)) { content() }
 }
 
 @Composable
-private fun ProfileRule(width: Float = ProfileSheetInk.RULE) {
-    Box(Modifier.fillMaxWidth().height(width.dp).background(ProfileSheetInk.ink))
+private fun ProfileRule(width: Float = Ink.RULE) {
+    Box(Modifier.fillMaxWidth().height(width.dp).background(Ink.ink))
 }
 
-/** 下に担当色の太い罫 (表の頭)。 */
-private fun Modifier.accentUnderline(accent: Color): Modifier = drawWithContent {
-    drawContent()
-    val h = 2.5.dp.toPx()
-    drawRect(accent, topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
-}
-
-/** 項目名 (印字) と中身の 1 段。 */
+/** 項目名と中身の 1 段。 */
 @Composable
 private fun ProfileField(label: String, s: Float, content: @Composable () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = (4 * s).dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = (5 * s).dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub,
-            maxLines = 1, modifier = Modifier.width((40 * s).dp)
+            label, style = T.jp(7.5f * s, FontWeight.SemiBold), color = Ink.sub,
+            maxLines = 1, modifier = Modifier.width((34 * s).dp)
         )
         Box(Modifier.weight(1f)) { content() }
     }
 }
 
-/** 表の頭 (年・月・内容)。下の罫だけ担当色で太く。 */
+/** 表の頭 (年・月・内容)。下は墨の罫。 */
 @Composable
-private fun ProfileTableHead(title: String, accent: Color, s: Float) {
-    val style = ProfileSheetInk.sans(9 * s, FontWeight.ExtraBold)
-    ProfileHistoryColumns("年", "月", style, s, Modifier.accentUnderline(accent)) {
-        Text(title, style = style, color = ProfileSheetInk.ink, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+private fun ProfileTableHead(title: String, s: Float) {
+    val style = T.jp(7.5f * s, FontWeight.SemiBold)
+    Column {
+        ProfileHistoryColumns("年", "月", style, Ink.sub, s) {
+            Text(title, style = style, color = Ink.sub, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        }
+        ProfileRule(Ink.RULE * 2)
     }
 }
 
 @Composable
 private fun ProfileHistoryLine(row: ProfileHistoryRow, s: Float) {
     val closing = row.kind == ProfileHistoryKind.CLOSING
-    val style = ProfileSheetInk.sans(10 * s, if (closing) FontWeight.Bold else FontWeight.Medium, tabular = true)
-    ProfileHistoryColumns(row.year, row.month, style, s) {
+    val style = T.jp(9.5f * s, if (closing) FontWeight.SemiBold else FontWeight.Normal, T.JP_TRACKING)
+    ProfileHistoryColumns(row.year, row.month, style, Ink.ink, s) {
         Text(
-            row.text, style = style, color = ProfileSheetInk.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            row.text, style = style, color = Ink.ink, maxLines = 1, overflow = TextOverflow.Ellipsis,
             textAlign = if (closing) TextAlign.End else TextAlign.Start, modifier = Modifier.fillMaxWidth()
         )
     }
@@ -532,106 +381,60 @@ private fun ProfileHistoryColumns(
     year: String,
     month: String,
     style: TextStyle,
+    color: Color,
     s: Float,
-    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     Row(
-        modifier.fillMaxWidth().padding(vertical = (2.5f * s).dp).height(IntrinsicSize.Min),
+        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(year, style = style, color = ProfileSheetInk.ink, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.width((40 * s).dp))
-        Box(Modifier.width(ProfileSheetInk.RULE.dp).fillMaxHeight().background(ProfileSheetInk.ink))
-        Text(month, style = style, color = ProfileSheetInk.ink, textAlign = TextAlign.Center, maxLines = 1, modifier = Modifier.width((26 * s).dp))
-        Box(Modifier.width(ProfileSheetInk.RULE.dp).fillMaxHeight().background(ProfileSheetInk.ink))
-        Box(Modifier.weight(1f).padding(horizontal = 8.dp)) { content() }
+        Text(
+            year, style = style, color = color, textAlign = TextAlign.Center, maxLines = 1,
+            modifier = Modifier.width((38 * s).dp).padding(vertical = (3.5f * s).dp)
+        )
+        Box(Modifier.width(Ink.RULE.dp).fillMaxHeight().background(Ink.ink))
+        Text(
+            month, style = style, color = color, textAlign = TextAlign.Center, maxLines = 1,
+            modifier = Modifier.width((24 * s).dp).padding(vertical = (3.5f * s).dp)
+        )
+        Box(Modifier.width(Ink.RULE.dp).fillMaxHeight().background(Ink.ink))
+        Box(Modifier.weight(1f).padding(horizontal = 10.dp, vertical = (3.5f * s).dp)) { content() }
     }
 }
 
-/** 欄 (題と、質問・答えの並び)。 */
+/** 欄 (題と、項目の並び)。 */
 @Composable
-private fun ProfileSectionView(section: ProfileSection, fonts: ProfileFonts, s: Float) {
+private fun ProfileSectionView(section: ProfileSection, mincho: FontFamily?, s: Float) {
     Column(
-        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = (6 * s).dp),
-        verticalArrangement = Arrangement.spacedBy((4 * s).dp)
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = (9 * s).dp),
+        verticalArrangement = Arrangement.spacedBy((6 * s).dp)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(section.title, style = ProfileSheetInk.sans(10.5f * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink, modifier = Modifier.alignByBaseline())
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                section.imprint, style = ProfileSheetInk.mono(8f, tracking = 1.5f), color = ProfileSheetInk.sub,
-                maxLines = 1, modifier = Modifier.alignByBaseline()
+                section.title, style = T.display(mincho, 10.5f * s, T.JP_TRACKING), color = Ink.ink,
+                modifier = Modifier.alignByBaseline()
             )
+            Text(section.imprint, style = T.imprint(7f), color = Ink.sub, maxLines = 1, modifier = Modifier.alignByBaseline())
         }
-        ProfileEntries(section.entries, fonts, s)
-    }
-}
-
-/**
- * 実績の数字 (職務経歴書の自己PR)。太い罫の箱 1 つを縦の細罫で等幅に区切った 1 列。
- * 各升は上に名前、中に数字 + 単位、下に担当色の短い棒。
- */
-@Composable
-private fun ProfileStats(stats: List<ProfileStat>, accent: Color, s: Float) {
-    if (stats.isEmpty()) return
-    ProfileBox {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            stats.forEachIndexed { i, stat ->
-                if (i > 0) Box(Modifier.width(ProfileSheetInk.RULE.dp).fillMaxHeight().background(ProfileSheetInk.ink))
-                Column(
-                    Modifier.weight(1f).padding(horizontal = 4.dp, vertical = (6 * s).dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
-                ) {
-                    Text(stat.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub, maxLines = 1)
-                    Row {
-                        Text(
-                            stat.value, color = ProfileSheetInk.ink, maxLines = 1,
-                            style = ProfileSheetInk.sans(22 * s, FontWeight.Black, tabular = true),
-                            modifier = Modifier.alignByBaseline()
-                        )
-                        Text(
-                            stat.unit, style = ProfileSheetInk.sans(9 * s, FontWeight.Bold), color = ProfileSheetInk.ink,
-                            maxLines = 1, modifier = Modifier.alignByBaseline()
-                        )
+        Column(verticalArrangement = Arrangement.spacedBy((6 * s).dp)) {
+            section.entries.forEach { entry ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    if (entry.label.isNotEmpty()) {
+                        Text(entry.label, style = T.jp(7.5f * s, FontWeight.SemiBold), color = Ink.sub)
                     }
-                    Box(Modifier.size(width = (18 * s).dp, height = 2.5.dp).background(accent))
+                    Text(
+                        entry.text,
+                        style = T.jp(10.5f * s, tracking = T.JP_TRACKING).copy(lineHeight = (10.5f * s + 2 * s).sp * 1.25f),
+                        color = Ink.ink
+                    )
                 }
             }
         }
     }
 }
 
-/** 項目の見出し (印字の小さな字) と中身。 */
-@Composable
-private fun ProfileEntries(entries: List<ProfileEntry>, fonts: ProfileFonts, s: Float) {
-    Column(verticalArrangement = Arrangement.spacedBy((4 * s).dp)) {
-        entries.forEach { entry ->
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                if (entry.label.isNotEmpty()) {
-                    Text(entry.label, style = ProfileSheetInk.sans(8.5f * s, FontWeight.Bold), color = ProfileSheetInk.sub)
-                }
-                Text(entry.text, style = ProfileSheetInk.named(fonts.name, 12.5f * s), color = ProfileSheetInk.ink)
-            }
-        }
-    }
-}
-
-/** 職務経歴書の見出し (担当色の四角 + 題 + 英字の印字)。 */
-@Composable
-private fun ProfileHeadline(title: String, imprint: String, accent: Color, s: Float) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = (2 * s).dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.size((9 * s).dp).background(accent))
-        Text(title, style = ProfileSheetInk.sans(12 * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink, maxLines = 1)
-        Text(imprint, style = ProfileSheetInk.mono(8f, tracking = 1.5f), color = ProfileSheetInk.sub, maxLines = 1)
-        Box(Modifier.weight(1f).height(ProfileSheetInk.RULE.dp).background(ProfileSheetInk.ink))
-    }
-}
-
-/** 担当ブランド: 刷ってあるブランドの名前に、担当しているものだけ手描きの丸。 */
+/** 担当ブランド: 刷ってあるブランドの名前に、担当しているものだけ手描きの丸 (メインは二重丸、いくつでも)。 */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s: Float) {
@@ -642,27 +445,30 @@ private fun ProfileBrandRange(title: String, brands: List<ProfileBrandCheck>, s:
         verticalAlignment = Alignment.Top
     ) {
         Text(
-            title, style = ProfileSheetInk.sans(9 * s, FontWeight.ExtraBold), color = ProfileSheetInk.ink,
+            title, style = T.jp(7.5f * s, FontWeight.SemiBold), color = Ink.sub,
             maxLines = 1, softWrap = false, modifier = Modifier.padding(top = (5 * s).dp)
         )
         // 丸 (二重丸の外側) が欄の名前に掛からないよう、名前の列から少し離す。
         FlowRow(
             modifier = Modifier.padding(start = (6 * s).dp),
-            horizontalArrangement = Arrangement.spacedBy((11 * s).dp),
+            horizontalArrangement = Arrangement.spacedBy((17 * s).dp),
             verticalArrangement = Arrangement.spacedBy((10 * s).dp)
         ) {
             brands.forEach { brand ->
                 val circle = if (brand.rings.isNotEmpty()) profileAccent(brand.color) else null
                 Text(
                     brand.label,
-                    style = ProfileSheetInk.sans(10.5f * s, FontWeight.Bold),
-                    color = if (brand.checked) ProfileSheetInk.ink else ProfileSheetInk.sub,
+                    style = T.jp(10 * s, if (brand.checked) FontWeight.SemiBold else FontWeight.Normal, T.JP_TRACKING),
+                    color = if (brand.checked) Ink.ink else Ink.sub,
                     maxLines = 1,
                     modifier = Modifier
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                         .drawBehind {
                             if (circle != null) brand.rings.forEachIndexed { i, ring ->
-                                drawHandRing(ring, circle, width = (if (i == 0) 2f else 1.6f).dp.toPx(), padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx())
+                                drawHandRing(
+                                    ring, circle, width = (if (i == 0) 1.6f else 1.2f).dp.toPx(),
+                                    padX = 4.dp.toPx() + 3.dp.toPx(), padY = 2.dp.toPx() + 4.dp.toPx()
+                                )
                             }
                         }
                 )
@@ -707,7 +513,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
     }
 }
 
-/** 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。 */
+/** 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。プロフィール帳で担当色を使う唯一の所。 */
 @Composable
 private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
     val color = profileAccent(oshi.color ?: oshi.brandColor)
@@ -716,9 +522,9 @@ private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
         Modifier
             .size(diameter.dp)
             .rotate(-12f)
-            .border(2.5.dp, color, CircleShape)
-            .padding(4.dp)
-            .border(1.dp, color, CircleShape),
+            .border(2.dp, color, CircleShape)
+            .padding(3.5.dp)
+            .border(0.8.dp, color, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         // 2〜3 文字は縦書き、長い名前は横に縮めて入れる。
@@ -733,7 +539,7 @@ private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
                 oshi.shortName,
                 style = TextStyle(fontFamily = FontFamily.Serif, fontWeight = FontWeight.ExtraBold, fontSize = (diameter * 0.24f).sp),
                 color = color, maxLines = 1, minScale = 0.4f, textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = (diameter * 0.14f - 4).coerceAtLeast(0f).dp)
+                modifier = Modifier.padding(horizontal = (diameter * 0.14f - 3.5f).coerceAtLeast(0f).dp)
             )
         }
     }
@@ -742,25 +548,22 @@ private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
 /** 担当の並び (写真か判子 + 名前)。 */
 @Composable
 private fun ProfileOshiList(oshi: List<ProfileSheetOshi>, s: Float) {
-    Row(horizontalArrangement = Arrangement.spacedBy((10 * s).dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(horizontalArrangement = Arrangement.spacedBy((12 * s).dp), verticalAlignment = Alignment.CenterVertically) {
         oshi.forEach { idol ->
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                ProfileOshiIcon(idol, 24 * s)
-                ProfileFitText(
-                    idol.name, style = ProfileSheetInk.sans(10.5f * s, FontWeight.Bold), color = ProfileSheetInk.ink,
-                    maxLines = 1, minScale = 0.6f
-                )
+                ProfileOshiIcon(idol, 22 * s)
+                ProfileFitText(idol.name, style = T.jp(10 * s, tracking = T.JP_TRACKING), color = Ink.ink, maxLines = 1, minScale = 0.6f)
             }
         }
     }
 }
 
-/** 担当のアイコン (写真が無ければ判子)。 */
+/** 担当のアイコン (写真が無ければ判子)。枠を先に決めてから写真を重ねて丸く切る。 */
 @Composable
 private fun ProfileOshiIcon(oshi: ProfileSheetOshi, size: Float) {
     val color = profileAccent(oshi.color ?: oshi.brandColor)
     Box(
-        Modifier.size(size.dp).clip(CircleShape).background(ProfileSheetInk.paper).border(1.5.dp, color, CircleShape),
+        Modifier.size(size.dp).clip(CircleShape).background(Ink.paper).border(1.2.dp, color, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         val image = oshi.image
@@ -768,7 +571,7 @@ private fun ProfileOshiIcon(oshi: ProfileSheetOshi, size: Float) {
             Image(image.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
             ProfileFitText(
-                oshi.shortName, style = ProfileSheetInk.sans(size * 0.34f, FontWeight.Bold), color = color,
+                oshi.shortName, style = TextStyle(fontSize = (size * 0.34f).sp, fontWeight = FontWeight.Bold), color = color,
                 maxLines = 1, minScale = 0.5f, textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = (size * 0.1f).dp)
             )
@@ -776,7 +579,7 @@ private fun ProfileOshiIcon(oshi: ProfileSheetOshi, size: Float) {
     }
 }
 
-/** 証明写真の欄。写真が無ければ履歴書の「写真をはる位置」を刷っておく。 */
+/** 証明写真の欄 (3:4)。枠を先に決めてから写真を重ねて切る。写真が無ければ「写真をはる位置」を刷っておく。 */
 @Composable
 private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
     val height = width * 4 / 3
@@ -786,9 +589,9 @@ private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
             .clipToBounds()
             .drawWithContent {
                 drawContent()
-                val stroke = 1.dp.toPx()
+                val stroke = Ink.RULE.dp.toPx()
                 drawRect(
-                    ProfileSheetInk.ink, topLeft = Offset(stroke / 2, stroke / 2),
+                    Ink.ink, topLeft = Offset(stroke / 2, stroke / 2),
                     size = Size(size.width - stroke, size.height - stroke),
                     style = Stroke(
                         width = stroke,
@@ -799,14 +602,12 @@ private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
         contentAlignment = Alignment.Center
     ) {
         if (image != null) {
-            Image(image.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            val bitmap = remember(image) { image.asImageBitmap() }
+            Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("写真をはる位置", style = ProfileSheetInk.sans(8f, FontWeight.Bold), color = ProfileSheetInk.sub, textAlign = TextAlign.Center)
-                Text(
-                    "縦 36〜40mm\n横 24〜30mm", style = ProfileSheetInk.sans(7f, FontWeight.Medium),
-                    color = ProfileSheetInk.sub, textAlign = TextAlign.Center
-                )
+                Text("写真をはる位置", style = T.jp(7.5f, FontWeight.SemiBold), color = Ink.sub, textAlign = TextAlign.Center)
+                Text("縦 36〜40mm\n横 24〜30mm", style = T.jp(6.5f), color = Ink.sub, textAlign = TextAlign.Center)
             }
         }
     }
@@ -815,8 +616,8 @@ private fun ProfilePhotoBox(image: Bitmap?, width: Float) {
 @Composable
 private fun ProfileQR(url: String) {
     val matrix = remember(url) { imasQrMatrix(url) }
-    Box(Modifier.background(ProfileSheetInk.paper).padding(4.dp)) {
-        Canvas(Modifier.size(ProfileSheetInk.QR_SIDE.dp)) { if (matrix != null) drawQr(matrix, ProfileSheetInk.ink) }
+    Box(Modifier.background(Ink.paper).padding(4.dp)) {
+        Canvas(Modifier.size(Ink.QR_SIDE.dp)) { if (matrix != null) drawQr(matrix, Ink.ink) }
     }
 }
 

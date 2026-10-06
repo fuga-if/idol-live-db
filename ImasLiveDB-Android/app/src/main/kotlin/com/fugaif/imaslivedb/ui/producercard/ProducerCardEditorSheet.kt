@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.ui.producercard
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -131,15 +132,24 @@ private data class EditableLink(val id: String = UUID.randomUUID().toString(), v
  * 入力の検査・リンクと QR の URL の正規化・デザインの一覧・X のアイコンの規則はコア
  * (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns` / `cardXAvatarHandle`)。
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ProducerCardEditorSheet(
     card: MyProducerCard,
     record: ProducerCardMyRecord?,
     onSave: suspend (MyProducerCard) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /** 開いたら見せる欄 (`links`。プロフィール帳の「P名刺のリンクを直す」から)。 */
+    focus: String? = null
 ) {
     val context = LocalContext.current
+    val linksFocus = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    if (focus == "links") {
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(400)
+            linksFocus.bringIntoView()
+        }
+    }
     val module = remember { AppModule.from(context) }
     val limits = remember { producerCardLimits() }
     val kinds = remember { cardLinkKinds() }
@@ -610,7 +620,7 @@ fun ProducerCardEditorSheet(
                         FieldToggle(ProducerCardField.OSHI, "担当を載せる", null, hidden) { hidden = it }
                     }
 
-                    ImasFormCard {
+                    ImasFormCard(Modifier.bringIntoViewRequester(linksFocus)) {
                         ImasFormField(label = "リンク", imprint = "LINKS") {
                             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                                 links.forEachIndexed { index, link ->
@@ -816,7 +826,7 @@ private fun QrEditor(
 
 /** 編集画面の小さな操作 (写真を選ぶ・位置を直す・リンクから選ぶ)。 */
 @Composable
-private fun CardEditorAction(
+internal fun CardEditorAction(
     icon: ImageVector,
     title: String,
     tint: Color = DS.ink,
@@ -836,11 +846,12 @@ private fun CardEditorAction(
 /** 名刺の写真を枠に合わせるシート (iOS `CardPhotoCropSheet`)。引いて動かし、つまんで広げ、✓ で決める。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CardPhotoCropSheet(
+internal fun CardPhotoCropSheet(
     image: Bitmap,
     initial: ImasPortraitCrop,
     onDone: (ImasPortraitCrop) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    note: String = "引いて動かし、2 本の指で広げると、名刺の証明写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの Android で渡した相手にだけ届きます (QR には入りません)。"
 ) {
     var crop by remember { mutableStateOf(initial.clamped(image.width.toFloat(), image.height.toFloat())) }
     ModalBottomSheet(
@@ -862,7 +873,7 @@ private fun CardPhotoCropSheet(
                 verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)
             ) {
                 ImasPortraitCropper(image = image, crop = crop, onCropChange = { crop = it })
-                ImasNote("引いて動かし、2 本の指で広げると、名刺の証明写真の枠に合わせられます。写真は端末の中と、名刺ファイル・近くの Android で渡した相手にだけ届きます (QR には入りません)。")
+                ImasNote(note)
             }
         }
     }

@@ -2,13 +2,12 @@ package com.fugaif.imaslivedb.data.producercard
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import com.fugaif.imaslivedb.data.local.BrandRoleStore
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.UserMark
 import com.fugaif.imaslivedb.data.repository.CollectionAttendance
 import com.fugaif.imaslivedb.di.AppModule
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileBrandInput
@@ -17,8 +16,6 @@ import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
 import uniffi.imas_core.ProfileSongInput
 import uniffi.imas_core.cardLinkView
-import uniffi.imas_core.cardDesignInfo
-import uniffi.imas_core.cardDesigns
 import uniffi.imas_core.producerCardLimits
 
 /**
@@ -39,26 +36,21 @@ data class ProfileSheetOshi(
  * コアの `profileSheetLayout`、ここはアプリの記録とマスタを引いて渡す形にするだけ。
  */
 data class ProfileSheetMaterials(
-    /** 名前・P歴・リンク・記録・ブランド・好きな曲 (好きな曲は `favoriteSongIds` を引いたもの)。 */
+    /** 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲・都道府県の数。 */
     val record: ProfileSheetRecord,
     val oshi: List<ProfileSheetOshi> = emptyList(),
-    /** P名刺の写真。 */
+    /** 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。 */
     val portrait: Bitmap? = null,
     /** 自分の QR の URL (P名刺に載せていれば)。 */
-    val qrUrl: String? = null,
-    /** 名前の書体 (P名刺の書体のファイルの名前)。 */
-    val nameFont: String = cardDesigns().first().font.fileStem
+    val qrUrl: String? = null
 ) {
-    /** 担当の色 (帯・罫・押印の判子)。担当がいなければ null (墨)。 */
-    val seed: String? get() = oshi.firstOrNull()?.color
-
     companion object {
         val EMPTY = ProfileSheetMaterials(
             record = ProfileSheetRecord(
                 today = "", name = "", sinceYear = null, oshiNames = emptyList(), oshiBrandIds = emptyList(),
-                attended = emptyList(), songCount = 0u, brands = emptyList(), favoriteSongs = emptyList(),
-                links = emptyList(), hasPhoto = false, hasQr = false,
-                live = ProfileLiveRecord(emptyList(), emptyList(), null, 0u)
+                attended = emptyList(), songCount = 0u, brands = emptyList(), brandRolesJson = "",
+                favoriteSongs = emptyList(), links = emptyList(), hasPhoto = false, hasQr = false,
+                live = ProfileLiveRecord(0u)
             )
         )
     }
@@ -80,19 +72,21 @@ object ProfileSheetAssembler {
         else runCatching { module.idolRepository.fetchIdolsByIds(oshiIds) }.getOrDefault(emptyList())
         val idolById = idols.associateBy { it.id }
         val oshiIdols = oshiIds.mapNotNull { idolById[it] }
+        // 担当ブランドの既定は設定の画面と同じ材料で組む (担当の上限で切らない)。
+        val brandRoleRecord = BrandRoleStore.loadRecord(module)
 
         // お気に入りの曲は付けた新しい順に全部 (載せる曲数はコア)。
         val favoriteIds = runCatching { marks.favoriteSongIdList() }.getOrDefault(emptyList())
         val songById = if (favoriteIds.isEmpty()) emptyMap()
         else runCatching { module.songRepository.fetchSongsByIds(favoriteIds) }.getOrDefault(emptyList()).associateBy { it.id }
         val today = JstDay.today()
-        // 参加した公演のセトリ・会場から数えた記録。参加マークは形態つきのまま渡し、
+        // 都道府県を数えるのは現地参加だけ。参加マークは形態つきのまま渡し、
         // 現地だけに絞るのとイベント単位の展開はコア (回収と同じ取り出し方)。
         val live = runCatching {
             val showMarks = CollectionAttendance.marks(module.database, UserMark.SHOW)
             val eventMarks = CollectionAttendance.marks(module.database, UserMark.EVENT)
             module.snapshotStoreProvider.loadedStore()
-                .profileLiveRecord(showMarks, eventMarks, oshiIdols.map { it.id }, today)
+                .profileLiveRecord(showMarks, eventMarks, today)
         }.getOrDefault(ProfileSheetMaterials.EMPTY.record.live)
 
         val (oshi, portrait) = withContext(Dispatchers.IO) {
@@ -100,9 +94,10 @@ object ProfileSheetAssembler {
                 ProfileSheetOshi(
                     id = idol.id, name = idol.name, shortName = idol.shortName, color = idol.color,
                     brandColor = brandById[idol.brandId]?.color,
-                    image = module.customImageStore.primaryImageFile(idol.id)?.let(::decode)
+                    // 書き出しは画像の読み込みを待たないので、ここで小さく読んでおく。
+                    image = module.customImageStore.primaryImageFile(idol.id)?.let { ProfileSheetFiles.decodeBounded(it, 240) }
                 )
-            } to ProducerCardFiles.myPhotoFile(context)?.let(::decode)
+            } to ProfileSheetFiles.effectiveFile(context)?.let { ProfileSheetFiles.decodeBounded(it, 600) }
         }
 
         val record = ProfileSheetRecord(
@@ -110,13 +105,14 @@ object ProfileSheetAssembler {
             name = card.name,
             sinceYear = card.sinceYear?.takeIf { it in 0..65535 }?.toUShort(),
             oshiNames = oshiIdols.map { it.name },
-            oshiBrandIds = oshiIdols.map { it.brandId },
+            oshiBrandIds = brandRoleRecord.oshiBrandIds,
             attended = attendedRefs.mapNotNull { ref ->
                 val info = shows[ref.showId] ?: return@mapNotNull null
                 ProfileShowInput(ref.showId, ref.date, info.label, info.venue, info.brandId)
             },
             songCount = songCount.toUInt(),
             brands = brands.map { ProfileBrandInput(it.id, it.shortName, it.color, it.sortOrder.toLong()) },
+            brandRolesJson = BrandRoleStore.json(context),
             favoriteSongs = favoriteIds.mapNotNull { id -> songById[id]?.let { ProfileSongInput(id, it.title) } },
             links = card.links.map { cardLinkView(it).display },
             hasPhoto = portrait != null,
@@ -127,10 +123,7 @@ object ProfileSheetAssembler {
             record = record,
             oshi = oshi,
             portrait = portrait,
-            qrUrl = card.qrUrl,
-            nameFont = cardDesignInfo(card.cardDesign).font.fileStem
+            qrUrl = card.qrUrl
         )
     }
-
-    private fun decode(file: File): Bitmap? = runCatching { BitmapFactory.decodeFile(file.path) }.getOrNull()
 }
