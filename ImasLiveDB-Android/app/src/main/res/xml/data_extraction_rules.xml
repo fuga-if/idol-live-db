@@ -10,7 +10,7 @@
   画像だけで超えると、DB や設定を含むバックアップ全体が取られなくなる。
   P名刺の写真・受け取った担当の画像 (ProducerCardFiles の filesDir/producer_cards) と自分の名刺の写真
   (filesDir/producer_card_me)・自作の名刺の画像
-  (filesDir/producer_card_face)・プロフィール帳の証明写真 (filesDir/profile_sheet_photo) も同じ理由で外す。
+  (filesDir/producer_card_face)・前の版のプロフィール帳の証明写真 (filesDir/profile_sheet_photo、P名刺の画面を開くと片付ける) も同じ理由で外す。
 -->
 <data-extraction-rules>
     <cloud-backup>

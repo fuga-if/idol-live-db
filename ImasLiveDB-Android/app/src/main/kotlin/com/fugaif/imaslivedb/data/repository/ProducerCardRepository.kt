@@ -5,6 +5,8 @@ import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import java.time.Instant
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.temporal.ChronoUnit
 import uniffi.imas_core.CardShowRef
 import uniffi.imas_core.showDisplayTitle
@@ -27,6 +29,20 @@ class ProducerCardRepository(private val db: AppDatabase) {
     suspend fun saveMyCard(card: MyProducerCard) {
         dao.upsertMyCard(card.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
     }
+
+    /** 自分の名刺の行を読んで直して書くのを 1 本ずつ流す ([updateMyCard])。 */
+    private val myCardLock = Mutex()
+
+    /**
+     * 自分の名刺の行を、今の行 (まだ無ければ null) から組み直して書く。読んでから書くまでを 1 本ずつ流すので、
+     * P名刺の編集の保存と P名刺の画像の選択の保存が並んでも、片方の変更をもう片方が古い行で消さない。
+     * [transform] が null を返したら書かない。書いた行を返す。
+     */
+    suspend fun updateMyCard(transform: (MyProducerCard?) -> MyProducerCard?): MyProducerCard? =
+        myCardLock.withLock {
+            val next = transform(dao.myCard()) ?: return@withLock null
+            next.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
+        }
 
     /** 受け取った名刺 (新しく受け取った順)。 */
     suspend fun receivedCards(): List<ReceivedProducerCard> = dao.receivedCards()

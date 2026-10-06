@@ -743,10 +743,17 @@ private fun <T> ChoiceLabel(choice: ImasChoice<T>, on: Boolean, style: ImasChoic
  *
  * 呼び出し側は欄 (`ImasFormCard` 等) をこれとは別にスクロールさせること (このまま上に固定したまま、
  * 欄だけ `Modifier.weight(1f).verticalScroll(...)` で動かす)。見本が変わってもアニメーションは付けない。
+ *
+ * [full] は原寸のシートに出す見本 (省けば [content])。見本が書き出しの取っ手 (`ShareCardCapture`) を持つときは、
+ * 原寸の側には別の取っ手で組んだものを渡す (1 つの取っ手を 2 か所で描かない)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ImasPinnedPreview(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun ImasPinnedPreview(
+    modifier: Modifier = Modifier,
+    full: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
     var showsFull by remember { mutableStateOf(false) }
     Column(modifier.fillMaxWidth().background(DS.bg)) {
         ImasPinnedPreviewBox(
@@ -765,7 +772,7 @@ fun ImasPinnedPreview(modifier: Modifier = Modifier, content: @Composable () -> 
         ) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
                 ImasSheetToolbar(ImasSheetToolbarKind.Read(onClose = { showsFull = false }))
-                Box(Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)) { content() }
+                Box(Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)) { (full ?: content)() }
             }
         }
     }

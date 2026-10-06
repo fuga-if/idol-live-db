@@ -40,7 +40,7 @@ import uniffi.imas_core.brandRoleSet
 import uniffi.imas_core.brandRoleStep
 import uniffi.imas_core.brandRoleSteps
 
-private const val BRAND_ROLE_NOTE = "担当は丸、メインは二重丸でプロフィール帳の担当ブランドに付きます。メインはいくつでも選べます。"
+private const val BRAND_ROLE_NOTE = "担当は丸、メインは二重丸で P名刺の画像 (SNS に貼る画像) の担当ブランドに付きます。メインはいくつでも選べます。"
 
 /**
  * 担当ブランドの並び (ブランドごとに なし / 担当 / メイン の段のついたスライダー)。iOS `BrandRoleSection`。
@@ -110,7 +110,7 @@ fun BrandRoleSettingsScreen(onBack: () -> Unit) {
 }
 
 /**
- * はじめの案内: 担当ブランドを選ぶ (初回起動の後と、まだ決めていない人がプロフィール帳をはじめて開いたときに 1 度だけ)。
+ * はじめの案内: 担当ブランドを選ぶ (初回起動の後と、まだ決めていない人が P名刺の画像をはじめて開いたときに 1 度だけ)。
  * iOS `BrandRoleSetupSheet`。記録から組んだ見立てを並べて確かめてもらう。× で飛ばせる。
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,7 +145,7 @@ fun BrandRoleSetupSheet(onDismiss: () -> Unit) {
                     title = "担当ブランド"
                 )
                 ImasNote(
-                    "担当しているブランドを選んでください。プロフィール帳の担当ブランドの丸になります。あとから設定で直せます。",
+                    "担当しているブランドを選んでください。P名刺の画像 (SNS に貼る画像) の担当ブランドの丸になります。あとから設定で直せます。",
                     Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.gap)
                 )
                 if (loaded) {

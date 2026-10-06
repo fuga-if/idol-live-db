@@ -94,7 +94,8 @@ object ProducerCardAssembler {
             attended = if (card.shows(ProducerCardField.ATTENDED)) summary.attendedPast else emptyList(),
             issuedOn = JstDay.today(),
             design = card.cardDesign,
-            qrUrl = card.qrUrl
+            qrUrl = card.qrUrl,
+            showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS)
         )
     }
 

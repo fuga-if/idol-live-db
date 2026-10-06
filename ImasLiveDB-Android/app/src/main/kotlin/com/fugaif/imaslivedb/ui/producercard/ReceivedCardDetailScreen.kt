@@ -35,7 +35,6 @@ import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
-import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
 import com.fugaif.imaslivedb.di.AppModule
@@ -55,7 +54,9 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDetails
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardCommon
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.producerCardCommon
@@ -84,6 +85,7 @@ fun ReceivedCardDetailScreen(
     var card by remember { mutableStateOf<ProducerCard?>(null) }
     var common by remember { mutableStateOf<CardCommon?>(null) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
+    var images by remember { mutableStateOf(ReceivedCardImages()) }
     var myOshi by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showOptions by remember { mutableStateOf<List<LedgerShowOption>>(emptyList()) }
     var loaded by remember { mutableStateOf(false) }
@@ -109,6 +111,7 @@ fun ReceivedCardDetailScreen(
         val showIds = listOfNotNull(found.showId, decoded?.nextShowId, c?.sharedShowIds?.firstOrNull())
         directory = ProducerCardDirectory.load(module, decoded?.oshiIdolIds.orEmpty(), showIds)
         showOptions = runCatching { module.expenseRepository.attendedShowOptions() }.getOrDefault(emptyList())
+        images = withContext(Dispatchers.IO) { ReceivedCardImages.load(context, found.id, decoded?.oshiIdolIds.orEmpty()) }
         myOshi = record?.oshiIds.orEmpty().toSet()
         common = c
         row = found
@@ -153,10 +156,10 @@ fun ReceivedCardDetailScreen(
                 r != null && c != null -> {
                     val content = rememberProducerCardContent(
                         card = c, directory = directory, sharedWith = myOshi,
-                        imageUrl = { ProducerCardFiles.oshiImageUrl(context, r.id, it) },
-                        portraitUrl = ProducerCardFiles.cardPhotoUrl(context, r.id),
-                        portraitSource = ProducerCardFiles.cardPhotoSource(context, r.id),
-                        face = ProducerCardDisplay.receivedFace(context, r.id),
+                        imageUrls = images.oshi,
+                        portraitUrl = images.portraitUrl,
+                        portraitSource = images.portraitSource,
+                        face = images.face,
                         payload = r.payload
                     )
                     ImasProducerCard(content)
@@ -177,7 +180,7 @@ fun ReceivedCardDetailScreen(
                             )
                         }
                     }
-                    PhotoSection(r)
+                    PhotoSection(images.paperPhotos)
                 }
                 loaded -> ImasCard {
                     ImasEmptyState(
@@ -265,9 +268,7 @@ private fun CommonSection(
 }
 
 @Composable
-private fun PhotoSection(row: ReceivedProducerCard) {
-    val context = LocalContext.current
-    val photos = ProducerCardFiles.Side.entries.mapNotNull { ProducerCardFiles.photoUrl(context, row.id, it) }
+private fun PhotoSection(photos: List<String>) {
     if (photos.isEmpty()) return
     ImasSection("紙の名刺", footer = "写真は端末の中だけに置いています。") {
         Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {

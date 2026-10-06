@@ -230,7 +230,7 @@ class UserMarkRepository(
             ids.mapNotNull { sdao.fetchSong(it) }
         }
 
-    /** お気に入り曲の ID (印を付けた新しい順)。プロフィール帳の好きな曲の候補 (iOS `markedEntityIds(.song, .favorite)`)。 */
+    /** お気に入り曲の ID (印を付けた新しい順)。P名刺の好きな曲の候補 (iOS `markedEntityIds(.song, .favorite)`)。 */
     suspend fun favoriteSongIdList(): List<String> = dao.idsFor(UserMark.SONG, UserMark.FAVORITE)
 
     /** お気に入りの曲と、お気に入りに付けた時刻 (ISO 8601)。 */

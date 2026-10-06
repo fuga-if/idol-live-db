@@ -41,7 +41,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
-import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
@@ -70,7 +69,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSwipeKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardCaseEntry
 import uniffi.imas_core.CardCaseSection
 import uniffi.imas_core.EncodedProducerCard
@@ -95,6 +96,8 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
     var decoded by remember { mutableStateOf<Map<String, ProducerCard>>(emptyMap()) }
     var sections by remember { mutableStateOf<List<CardCaseSection>>(emptyList()) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
+    // 行の画像 (名刺の id → 画像)。ファイルを見るので読むときに IO で引く。
+    var images by remember { mutableStateOf<Map<String, ReceivedCardImages>>(emptyMap()) }
     var myOshi by remember { mutableStateOf<Set<String>>(emptySet()) }
     var myCard by remember { mutableStateOf<EncodedProducerCard?>(null) }
     var loaded by remember { mutableStateOf(false) }
@@ -116,6 +119,9 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
         myOshi = record?.oshiIds.orEmpty().toSet()
         if (myCard == null && record != null) {
             repo.myCard()?.let { myCard = ProducerCardAssembler.encode(it, record) }
+        }
+        images = withContext(Dispatchers.IO) {
+            all.associate { row -> row.id to ReceivedCardImages.load(context, row.id, map[row.id]?.oshiIdolIds.orEmpty()) }
         }
         cards = all
         decoded = map
@@ -176,6 +182,7 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
                             CardCaseRow(
                                 card = card,
                                 content = decoded[card.id],
+                                images = images[card.id] ?: ReceivedCardImages(),
                                 directory = directory,
                                 myOshi = myOshi,
                                 onOpen = { onOpenCard(card.id) },
@@ -223,31 +230,29 @@ private fun SectionHeader(section: CardCaseSection, directory: ProducerCardDirec
 private fun CardCaseRow(
     card: ReceivedProducerCard,
     content: ProducerCard?,
+    images: ReceivedCardImages,
     directory: ProducerCardDirectory,
     myOshi: Set<String>,
     onOpen: () -> Unit,
     onMemo: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val context = LocalContext.current
     val lead = content?.oshiIdolIds?.firstNotNullOfOrNull { directory.idols[it] }
     val shared = content?.oshiIdolIds?.any { it in myOshi } == true
     val paper = card.sourceValue == ReceivedProducerCard.Source.PAPER
     val oshiIcon = lead?.let {
         ImasRowPortraitOshi(
             label = it.shortName, seed = it.color, brand = it.brandId,
-            imageUrl = ProducerCardFiles.oshiImageUrl(context, card.id, it.id)
+            imageUrl = images.oshi[it.id]
         )
     }
     // 自作の名刺の画像があればその小さな見本、名刺の写真があれば正方形の枠 (X のアイコンは丸。どちらも右下に
     // 担当のアイコンを重ねる)、無ければ担当のアイコン。
-    val face = content?.let { c ->
-        ProducerCardDisplay.receivedFace(context, card.id)?.takeIf { ProducerCardDisplay.design(c, it).usesFaceImage }
-    }
-    val portrait = ProducerCardFiles.cardPhotoUrl(context, card.id)
+    val face = content?.let { c -> images.face?.takeIf { ProducerCardDisplay.design(c, it).usesFaceImage } }
+    val portrait = images.portraitUrl
     val leading = when {
         face != null -> ImasRowLeading.CardFace(face.front, oshiIcon)
-        portrait != null -> ImasRowLeading.Portrait(portrait, oshiIcon, round = ProducerCardFiles.cardPhotoRound(context, card.id))
+        portrait != null -> ImasRowLeading.Portrait(portrait, oshiIcon, round = images.portraitRound)
         oshiIcon != null -> ImasRowLeading.Avatar(
             label = oshiIcon.label, seed = oshiIcon.seed, brand = oshiIcon.brand,
             imageUrl = oshiIcon.imageUrl, isPick = true

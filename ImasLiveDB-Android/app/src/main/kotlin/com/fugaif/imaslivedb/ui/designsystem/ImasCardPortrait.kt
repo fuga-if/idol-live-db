@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,6 +47,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -92,7 +94,7 @@ import org.json.JSONObject
 // =============================================================================
 // P名刺の写真・デザイン・四隅 (docs/DESIGN_SYSTEM.md §6.13)。iOS `ImasProducerCard.swift` の移植。
 //
-// ImasCardPortrait    名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+// ImasCardPortrait    名刺の写真の枠 (正方形。X のアイコンは丸)。
 //                     名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCrop    名刺の写真の切り抜き (拡大と真ん中の点)。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる。枠の外は暗く沈めず、そのまま切る。
@@ -101,8 +103,8 @@ import org.json.JSONObject
 // =============================================================================
 
 /**
- * 名刺の写真の枠。P名刺は正方形 ([ImasPortraitCrop.Frame.CARD])、プロフィール帳の証明写真の欄は履歴書の様式の 3:4
- * ([ImasPortraitCrop.Frame.RESUME])。紙に貼った写真のように角を小さく丸めて縁を付ける。X のアイコン ([round]) は
+ * 名刺の写真の枠。P名刺は正方形 ([ImasPortraitCrop.Frame.CARD])。3:4 ([ImasPortraitCrop.Frame.RESUME]) は
+ * 前の版の切り抜きの比。紙に貼った写真のように角を小さく丸めて縁を付ける。X のアイコン ([round]) は
  * X と同じく丸く切り、3:4 の枠ではその中に丸く置く。
  */
 @Composable
@@ -179,7 +181,7 @@ data class ImasPortraitCrop(val zoom: Float = 1f, val centerX: Float = 0.5f, val
         /** P名刺の写真 (正方形。X のアイコンはこの枠に内接する丸で出す)。 */
         CARD(1f, 1080, 1080),
 
-        /** プロフィール帳の証明写真の欄 (履歴書の様式の 3:4)。 */
+        /** 3:4 (前の版の P名刺の写真・履歴書の様式の証明写真の欄の比。前の切り抜きの読み替えを確かめるのに使う)。 */
         RESUME(3f / 4f, 900, 1200)
     }
 
@@ -304,6 +306,8 @@ data class ImasCardDesignOption(
         data object Pass : Look
         data object Formal : Look
         data object Pop : Look
+        /** 担当を大きく (先頭の担当の画像。無ければ担当色の丸)。 */
+        data class Oshi(val url: String?) : Look
         /** 自作の画像 (表の画像。まだ選んでいなければ null)。 */
         data class Face(val url: String?) : Look
     }
@@ -455,6 +459,25 @@ private fun DesignLook(option: ImasCardDesignOption, name: String, accent: Color
             Column(Modifier.padding(DS.Space.gap), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                 ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
                 Box(Modifier.size(width = 32.dp, height = 5.dp).background(accent))
+            }
+        }
+        is ImasCardDesignOption.Look.Oshi -> Row(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape)
+        ) {
+            Box(Modifier.weight(1f).fillMaxHeight().clipToBounds()) {
+                val url = look.url
+                if (url != null) {
+                    ImasMeishiPictureView(
+                        ImasMeishiPicture.Url(url), Modifier.fillMaxSize(), alignment = Alignment.TopCenter,
+                        fallback = { Box(Modifier.fillMaxSize().background(DS.bg)) }
+                    )
+                } else {
+                    Box(Modifier.fillMaxSize().padding(DS.Space.gap).border(2.dp, accent, CircleShape))
+                }
+            }
+            Box(Modifier.width(2.dp).fillMaxHeight().background(accent))
+            Column(Modifier.weight(1f).fillMaxHeight().padding(DS.Space.gapTight)) {
+                ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
             }
         }
         is ImasCardDesignOption.Look.Face -> {

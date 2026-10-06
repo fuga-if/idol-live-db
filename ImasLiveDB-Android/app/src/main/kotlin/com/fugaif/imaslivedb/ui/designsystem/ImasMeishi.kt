@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -69,8 +73,12 @@ import java.util.Locale
 //                  - 入場証 (PASS): 左に担当色の縦の帯。
 //                  - かしこまった名刺 (FORMAL): 細い罫と明朝、担当色は罫と判子だけ。
 //                  - ポップ (POP): 墨の太い枠と担当色の太い帯、名前の下に担当色の太い線。
+//                  - 担当を大きく (OSHI): 左半分に担当の画像を大きく (1 人なら 1 枚、複数なら分けて。先頭ほど
+//                    大きな枠。並びはコアの `CardFace.heroIdolIds`)。画像の無い担当は大きな判子と名前。
+//                    右に名前・P歴・名刺の写真・ハンドル。境目に担当色の細い縦の線。
 // ImasMeishiBack   裏。QR (交換用か自分の QR)・参加公演数・回収曲数・「YYYY.MM.DD 時点」。
 // ImasMeishiStamp  表に並べる担当 1 人 (写真があれば写真、無ければ判子)。
+// ImasMeishiHero   担当を大きく の左の枠 (担当の画像を枠いっぱいに分けて並べる)。
 // =============================================================================
 
 object ImasMeishi {
@@ -80,6 +88,27 @@ object ImasMeishi {
 
     /** 紙の縦横比。 */
     const val ASPECT = WIDTH / HEIGHT
+
+    /** 担当を大きく の左の担当の画像の枠の幅 (紙の半分より少し狭く、右の名前の欄を確保する)。 */
+    const val HERO_WIDTH = 170f
+
+    /**
+     * 担当を大きく の人数ごとの枠 (枠全体を 1 とした割合。先頭ほど大きな枠)。iOS `ImasMeishiHero.tiles`。
+     * 1 人: 1 枚 / 2 人: 左右 / 3 人: 左に先頭、右に 2 段 / 4 人: 2×2 / 5 人: 上に 2 枚、下に 3 枚。
+     */
+    fun heroTiles(count: Int): List<Rect> = when (count) {
+        0 -> emptyList()
+        1 -> listOf(Rect(0f, 0f, 1f, 1f))
+        2 -> listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 1f))
+        3 -> listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 0.5f), Rect(0.5f, 0.5f, 1f, 1f))
+        4 -> listOf(Rect(0f, 0f, 0.5f, 0.5f), Rect(0.5f, 0f, 1f, 0.5f), Rect(0f, 0.5f, 0.5f, 1f), Rect(0.5f, 0.5f, 1f, 1f))
+        else -> {
+            val top = 0.55f
+            val third = 1f / 3f
+            listOf(Rect(0f, 0f, 0.5f, top), Rect(0.5f, 0f, 1f, top)) +
+                (0 until 3).map { Rect(it * third, top, (it + 1) * third, 1f) }
+        }
+    }
 }
 
 /** 名刺の紙と墨の色。 */
@@ -146,7 +175,7 @@ data class ImasMeishiOshiGroup(
 )
 
 /** 表の組み (名刺のデザイン。自作の画像は画像そのもの)。 */
-enum class ImasMeishiLook { PASS, FORMAL, POP }
+enum class ImasMeishiLook { PASS, FORMAL, POP, OSHI }
 
 /** 紙の上の寸法を倍率で描くための換算 (文字は端末の文字の大きさに追わない)。 */
 private class MeishiScale(val scale: Float, private val fontScale: Float) {
@@ -175,6 +204,7 @@ private enum class MeishiFace(val family: FontFamily) {
  *
  * @param sinceImprint 「SINCE 2014」(コアの `CardFace.sinceImprint`)。
  * @param oshiGroups 表に並べる担当のブランドごとのまとまり (コアの `CardFace.oshiGroups` の順)。
+ * @param hero 担当を大きく並べる順 (担当を大きく のデザインだけ。コアの `CardFace.heroIdolIds` の順)。
  * @param oshiCaption 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。null ならまとまりごとにブランドの略称を刷る。
  * @param moreOshi 数で畳んだ担当の人数 (「+2」)。
  * @param handle 右下に刷るハンドル (「@fuga_p」)。
@@ -190,6 +220,7 @@ fun ImasMeishiFront(
     look: ImasMeishiLook = ImasMeishiLook.PASS,
     sinceImprint: String? = null,
     oshiGroups: List<ImasMeishiOshiGroup> = emptyList(),
+    hero: List<ImasMeishiOshi> = emptyList(),
     oshiCaption: String? = null,
     moreOshi: Int = 0,
     handle: String? = null,
@@ -199,12 +230,13 @@ fun ImasMeishiFront(
     scale: Float = 1f
 ) {
     val p = rememberMeishiScale(scale)
-    val parts = MeishiFrontParts(name, ink, sinceImprint, oshiGroups, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
+    val parts = MeishiFrontParts(name, ink, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
     Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(ink.paper)) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
             ImasMeishiLook.FORMAL -> FormalFront(parts)
             ImasMeishiLook.POP -> PopFront(parts)
+            ImasMeishiLook.OSHI -> OshiFront(parts)
         }
     }
 }
@@ -214,6 +246,7 @@ private class MeishiFrontParts(
     val ink: ImasMeishiInk,
     val sinceImprint: String?,
     val oshiGroups: List<ImasMeishiOshiGroup>,
+    val hero: List<ImasMeishiOshi>,
     val oshiCaption: String?,
     val moreOshi: Int,
     val handle: String?,
@@ -322,6 +355,46 @@ private fun PopFront(m: MeishiFrontParts) {
     }
 }
 
+/** 担当を大きく (左半分に担当の画像、境目に担当色の細い縦の線、右に名前・P歴・名刺の写真・ハンドル)。 */
+@Composable
+private fun OshiFront(m: MeishiFrontParts) {
+    val p = m.p
+    Row(Modifier.fillMaxSize()) {
+        ImasMeishiHero(
+            oshi = m.hero, paper = m.ink.paper, ink = m.ink.ink, gap = p.dp(1.5f), scale = p.scale,
+            modifier = Modifier.width(p.dp(ImasMeishi.HERO_WIDTH)).fillMaxHeight()
+        )
+        Box(Modifier.width(p.dp(3f)).fillMaxHeight().background(m.ink.accent))
+        Column(
+            Modifier.fillMaxSize().padding(p.dp(14f)),
+            verticalArrangement = Arrangement.spacedBy(p.dp(6f))
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(p.dp(8f)), verticalAlignment = Alignment.Top) {
+                Box(Modifier.weight(1f)) { Imprint(m, "PRODUCER", MeishiFace.MONO) }
+                Portrait(m, m.ink.line, 0.5f, side = 44f)
+            }
+            NameText(m, 24f)
+            HeroCaption(m)
+            Spacer(Modifier.weight(1f))
+            Footer(m, MeishiFace.MONO, FontWeight.Medium)
+        }
+    }
+}
+
+/** 担当を大きく の名前の下の 1 行 (「星井美希 担当」、無ければブランドの略称、畳んだ数)。 */
+@Composable
+private fun HeroCaption(m: MeishiFrontParts) {
+    val labels = m.oshiGroups.map { it.label }.filter { it.isNotEmpty() }
+    val line = m.oshiCaption ?: labels.takeIf { it.isNotEmpty() }?.joinToString("・")
+    val more = if (m.moreOshi > 0) "+${m.moreOshi}" else null
+    val text = listOfNotNull(line, more).joinToString("  ")
+    if (text.isEmpty()) return
+    ImasFitText(
+        text, style = TextStyle(fontSize = m.p.sp(8f), fontWeight = FontWeight.Medium),
+        color = m.ink.ink, maxLines = 2, minScale = 0.6f
+    )
+}
+
 // MARK: 共通
 
 private fun meishiText(p: MeishiScale, size: Float, weight: FontWeight, face: MeishiFace, tracking: Float = 0f) =
@@ -397,12 +470,12 @@ private fun Footer(m: MeishiFrontParts, face: MeishiFace, weight: FontWeight) {
  * (写真の比率で枠が膨らまないように。縦長の写真ではみ出したことがある)。
  */
 @Composable
-private fun Portrait(m: MeishiFrontParts, border: Color, width: Float) {
+private fun Portrait(m: MeishiFrontParts, border: Color, width: Float, side: Float = 84f) {
     val picture = m.portrait ?: return
     val p = m.p
     val shape = if (m.portraitRound) CircleShape else RoundedCornerShape(p.dp(2f))
     Box(
-        Modifier.size(p.dp(84f)).clip(shape).border(p.hair(width), border, shape)
+        Modifier.size(p.dp(side)).clip(shape).border(p.hair(width), border, shape)
     ) { ImasMeishiPictureView(picture, Modifier.fillMaxSize()) }
 }
 
@@ -481,24 +554,83 @@ fun ImasMeishiStamp(oshi: ImasMeishiOshi, size: Dp, paper: Color) {
 }
 
 /**
+ * 担当を大きく のデザインの左の枠。担当の画像を枠いっぱいに分けて並べる (先頭ほど大きな枠。並びは [ImasMeishi.heroTiles])。
+ * 画像は枠の上に重ねて上寄せで切る (縦長の担当の画像で顔が切れにくいように)。画像の無い担当は大きな判子と名前。
+ * iOS `ImasMeishiHero`。
+ *
+ * @param gap 枠と枠の間の紙の幅。
+ */
+@Composable
+fun ImasMeishiHero(
+    oshi: List<ImasMeishiOshi>,
+    paper: Color,
+    ink: Color,
+    gap: Dp,
+    modifier: Modifier = Modifier,
+    scale: Float = 1f
+) {
+    BoxWithConstraints(modifier.background(paper).clipToBounds()) {
+        val w = maxWidth
+        val h = maxHeight
+        ImasMeishi.heroTiles(oshi.size).forEachIndexed { index, tile ->
+            val x = w * tile.left + gap / 2
+            val y = h * tile.top + gap / 2
+            val tw = (w * tile.width - gap).coerceAtLeast(0.dp)
+            val th = (h * tile.height - gap).coerceAtLeast(0.dp)
+            Box(Modifier.offset(x, y).size(tw, th).clipToBounds()) {
+                HeroTile(oshi[index], paper, ink, scale, tw, th)
+            }
+        }
+    }
+}
+
+/** 担当を大きく の枠 1 つ。画像は上寄せで枠いっぱい、無ければ判子と名前。 */
+@Composable
+private fun HeroTile(oshi: ImasMeishiOshi, paper: Color, ink: Color, scale: Float, width: Dp, height: Dp) {
+    val side = minOf(width, height) * 0.62f
+    val stamp: @Composable () -> Unit = {
+        Column(
+            Modifier.fillMaxSize().background(paper),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(side * 0.08f, Alignment.CenterVertically)
+        ) {
+            ImasMeishiStamp(oshi, side, paper)
+            if (height > side * 1.5f) {
+                val fontSize = with(LocalDensity.current) { maxOf(side * 0.14f, (6f * scale).dp).toSp() }
+                ImasFitText(
+                    oshi.name, style = TextStyle(fontSize = fontSize, fontWeight = FontWeight.SemiBold), color = ink,
+                    maxLines = 1, minScale = 0.5f, textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = side * 0.1f)
+                )
+            }
+        }
+    }
+    val picture = oshi.picture
+    if (picture == null) stamp()
+    else ImasMeishiPictureView(picture, Modifier.fillMaxSize(), alignment = Alignment.TopCenter, fallback = stamp)
+}
+
+/**
  * 名刺の画像 1 枚。置いた枠いっぱいに広げる (枠で切るのは置いた側)。
  * URL は読み込みながら出し、読めないあいだは [fallback] (判子など) か紙の地。
+ * [alignment] は切るときに寄せる側 (担当を大きく は上寄せ)。
  */
 @Composable
 fun ImasMeishiPictureView(
     picture: ImasMeishiPicture,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
+    alignment: Alignment = Alignment.Center,
     fallback: @Composable () -> Unit = { Box(Modifier.fillMaxSize().background(DS.surface2)) }
 ) {
     when (picture) {
         is ImasMeishiPicture.Image -> {
             val bitmap = remember(picture.bitmap) { picture.bitmap.asImageBitmap() }
-            Image(bitmap, contentDescription = null, contentScale = contentScale, modifier = modifier)
+            Image(bitmap, contentDescription = null, contentScale = contentScale, alignment = alignment, modifier = modifier)
         }
         is ImasMeishiPicture.Url -> SubcomposeAsyncImage(
-            model = picture.url, contentDescription = null, contentScale = contentScale, modifier = modifier,
-            loading = { fallback() }, error = { fallback() }
+            model = picture.url, contentDescription = null, contentScale = contentScale, alignment = alignment,
+            modifier = modifier, loading = { fallback() }, error = { fallback() }
         )
     }
 }

@@ -23,7 +23,7 @@ import uniffi.imas_core.profileSheetToJson
 
 /**
  * 自分の P名刺のうち、自分で書いた中身 (名前・ひとこと・P歴・リンク・外した項目・名刺のデザイン・自分の QR・
- * プロフィール帳の中身)。
+ * P名刺の画像の選択と好きな曲)。
  * 名刺の写真は表に持たず端末のファイル (`ProducerCardFiles`)。
  * **端末ローカル唯一データ** (収支と同じ扱い、破壊的な移行はしない)。iOS `MyProducerCard` と同型。
  *
@@ -45,7 +45,10 @@ data class MyProducerCard(
     /** リンクの保存の形 (`cardLinksToJson`)。 */
     @ColumnInfo(name = "links_json", defaultValue = "[]")
     val linksJson: String,
-    /** 名刺から外した項目 ([ProducerCardField.key] をカンマで)。 */
+    /**
+     * 名刺から外した項目 ([ProducerCardField.key] をカンマで)。既定で外す項目 ([ProducerCardField.OPT_IN]) だけは逆で、
+     * 書いてあれば**載せる** (足す前の行も既定どおり外れるように)。
+     */
     @ColumnInfo(name = "hidden_fields", defaultValue = "")
     val hiddenFields: String,
     @ColumnInfo(name = "updated_at")
@@ -59,7 +62,10 @@ data class MyProducerCard(
     /** 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。 */
     @ColumnInfo(name = "qr_url")
     val qrUrl: String? = null,
-    /** プロフィール帳の中身 (コアの保存の形 `profileSheetToJson`)。空はまだ作っていない。 */
+    /**
+     * P名刺の画像 (SNS に貼る履歴書の様式) の選択と、P名刺の好きな曲 (コアの保存の形 `profileSheetToJson`)。
+     * 空はまだ選んでいない。名刺の中身 (QR) には入らない。
+     */
     @ColumnInfo(name = "profile_json", defaultValue = "")
     val profileJson: String = ""
 ) {
@@ -71,11 +77,14 @@ data class MyProducerCard(
     fun withCardDesign(cardDesign: CardDesign): MyProducerCard = copy(design = cardDesignKey(cardDesign))
 
     val hidden: Set<ProducerCardField>
-        get() = hiddenFields.split(",").mapNotNull { ProducerCardField.fromKey(it) }.toSet()
+        get() {
+            val stored = hiddenFields.split(",").mapNotNull { ProducerCardField.fromKey(it) }.toSet()
+            return (stored - ProducerCardField.OPT_IN) + (ProducerCardField.OPT_IN - stored)
+        }
 
     fun shows(field: ProducerCardField): Boolean = field !in hidden
 
-    /** プロフィール帳 (まだ作っていなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。 */
+    /** P名刺の画像の選択と好きな曲 (まだ選んでいなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。 */
     val profile: ProfileSheet
         get() = if (profileJson.isEmpty()) profileSheetDefault() else profileSheetFromJson(profileJson)
 
@@ -83,8 +92,19 @@ data class MyProducerCard(
 
     fun withLinks(links: List<CardLink>): MyProducerCard = copy(linksJson = cardLinksToJson(links))
 
-    fun withHidden(hidden: Set<ProducerCardField>): MyProducerCard =
-        copy(hiddenFields = ProducerCardField.entries.filter { it in hidden }.joinToString(",") { it.key })
+    fun withHidden(hidden: Set<ProducerCardField>): MyProducerCard {
+        val stored = (hidden - ProducerCardField.OPT_IN) + (ProducerCardField.OPT_IN - hidden)
+        return copy(hiddenFields = ProducerCardField.entries.filter { it in stored }.joinToString(",") { it.key })
+    }
+
+    /**
+     * P名刺の編集で直した行を、保存する時点の行 ([latest]) に重ねる。P名刺の画像の選択 (大きさ・載せる項目) は
+     * 画像の画面でその場で保存するので今の行のまま (開いた時の古い選択で戻さない)、好きな曲だけは編集のものにする。
+     */
+    fun applyingEdit(latest: MyProducerCard?): MyProducerCard {
+        if (latest == null) return this
+        return withProfile(latest.profile.copy(songs = profile.songs))
+    }
 
     companion object {
         /** 自分の名刺は 1 枚だけ。 */
@@ -106,9 +126,15 @@ enum class ProducerCardField(val key: String, val label: String) {
     SHOW_COUNT("show_count", "参加公演数"),
     SONG_COUNT("song_count", "回収曲数"),
     NEXT("next", "次の現場"),
-    ATTENDED("attended", "参加した公演の一覧");
+    ATTENDED("attended", "参加した公演の一覧"),
+
+    /** 表の判子の下のブランドの略称 (既定で外す。コアの `ProducerCard.showBrandLabels`)。 */
+    BRAND_LABELS("brand_labels", "ブランド名");
 
     companion object {
+        /** 既定で外す項目。保存の文字列には「載せる」と決めたときだけ書く。 */
+        val OPT_IN: Set<ProducerCardField> = setOf(BRAND_LABELS)
+
         fun fromKey(key: String): ProducerCardField? = entries.firstOrNull { it.key == key }
     }
 }
@@ -193,6 +219,6 @@ data class ProducerCardShowInfo(
     /** `showDisplayTitle` で組んだ表記。 */
     val label: String,
     val venue: String?,
-    /** ライブのブランド (プロフィール帳の対応範囲・職務経歴に使う)。 */
+    /** ライブのブランド (P名刺の画像の担当ブランドに使う)。 */
     val brandId: String? = null
 )

@@ -11,7 +11,7 @@ class ImasPortraitCropTest {
 
     @Test
     fun fitsTheFrameAtZoomOne() {
-        // 横長の写真 (4000×3000) は高さいっぱい・枠の比の幅で真ん中を切る (P名刺は正方形・プロフィール帳は 3:4)。
+        // 横長の写真 (4000×3000) は高さいっぱい・枠の比の幅で真ん中を切る (P名刺は正方形・前の版の 3:4)。
         val resume = ImasPortraitCrop().rect(4000f, 3000f, ImasPortraitCrop.Frame.RESUME)
         assertEquals(2250f, resume.width, 0.5f)
         assertEquals(3000f, resume.height, 0.5f)

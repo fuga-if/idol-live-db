@@ -165,7 +165,7 @@ fun ProducerCardReceiveContent(
                 if (card != null) {
                     val content = rememberProducerCardContent(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
-                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl,
+                        imageUrls = imageUrls, portraitUrl = portraitUrl,
                         portraitSource = images.firstOrNull { it.kind == CardFileImageKind.PHOTO }?.photoSource ?: CardPhotoSource.PICKED,
                         face = face, payload = incoming.payload
                     )

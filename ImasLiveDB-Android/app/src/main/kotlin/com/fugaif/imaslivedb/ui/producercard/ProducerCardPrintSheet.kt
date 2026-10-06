@@ -37,7 +37,6 @@ import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshi
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshiGroup
 import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
 import com.fugaif.imaslivedb.di.AppModule
-import com.fugaif.imaslivedb.data.producercard.ProfileSheetFiles
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.producerCardFace
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintPreview
@@ -80,6 +79,7 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
     val look = when (ProducerCardDisplay.design(c, null).design) {
         CardDesign.FORMAL -> ImasMeishiLook.FORMAL
         CardDesign.POP -> ImasMeishiLook.POP
+        CardDesign.OSHI -> ImasMeishiLook.OSHI
         CardDesign.PASS, CardDesign.CUSTOM -> ImasMeishiLook.PASS
     }
     val backOptions = listOfNotNull(Back.FACE_BACK.takeIf { faceBack != null }, Back.EXCHANGE, Back.OWN.takeIf { c.qrUrl != null })
@@ -115,6 +115,11 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                                         ProducerCardPrintOshi(id, it.name, it.shortName, it.color, materials.oshiImages[id])
                                     }
                                 })
+                            },
+                            hero = face.heroIdolIds.mapNotNull { id ->
+                                directory.idols[id]?.let {
+                                    ProducerCardPrintOshi(id, it.name, it.shortName, it.color, materials.oshiImages[id])
+                                }
                             },
                             caption = face.oshiCaption,
                             moreOshi = face.moreOshi.toInt(),
@@ -196,14 +201,17 @@ data class ProducerCardPrintMaterials(
         suspend fun loadMine(context: android.content.Context, module: AppModule, card: ProducerCard): ProducerCardPrintMaterials =
             withContext(Dispatchers.IO) {
                 val face = ProducerCardDisplay.myFace(context)
-                val usesFace = ProducerCardDisplay.design(card, face).usesFaceImage
+                val design = ProducerCardDisplay.design(card, face)
+                val usesFace = design.usesFaceImage
+                // 担当を大きく は左半分いっぱいに刷るので、担当の画像を大きく読む (紙の 1638×990px の半分に足りる大きさ)。
+                val oshiPixels = if (design.design == CardDesign.OSHI) 1600 else 600
                 ProducerCardPrintMaterials(
-                    portrait = ProducerCardFiles.myPhotoFile(context)?.let { ProfileSheetFiles.decodeBounded(it, 900) },
+                    portrait = ProducerCardFiles.myPhotoFile(context)?.let { ProducerCardFiles.decodeBounded(it, 900) },
                     portraitRound = ProducerCardFiles.myPhotoRound(context),
-                    faceFront = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
-                    faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
+                    faceFront = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)?.let { ProducerCardFiles.decodeBounded(it, 2000) } else null,
+                    faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProducerCardFiles.decodeBounded(it, 2000) } else null,
                     oshiImages = card.oshiIdolIds.mapNotNull { id ->
-                        module.customImageStore.primaryImageFile(id)?.let { ProfileSheetFiles.decodeBounded(it, 600) }?.let { id to it }
+                        module.customImageStore.primaryImageFile(id)?.let { ProducerCardFiles.decodeBounded(it, oshiPixels) }?.let { id to it }
                     }.toMap()
                 )
             }

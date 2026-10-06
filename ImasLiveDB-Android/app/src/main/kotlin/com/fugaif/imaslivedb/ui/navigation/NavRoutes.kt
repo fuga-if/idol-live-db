@@ -68,8 +68,8 @@ sealed class NavRoutes(val route: String) {
     data object Ledger : NavRoutes("ledger")
     /** 自分の P名刺 (プロデュースの担当の入場証の下から)。 */
     data object ProducerCard : NavRoutes("producer_card")
-    /** プロフィール帳 (P名刺の「渡す・しまう」から)。 */
-    data object ProfileSheet : NavRoutes("profile_sheet")
+    /** SNS に貼る P名刺の画像 (P名刺の「渡す・しまう」から)。 */
+    data object ProducerCardImage : NavRoutes("producer_card_image")
     /** 名刺入れ (受け取った P名刺)。 */
     data object CardCase : NavRoutes("card_case")
     data class ReceivedCard(val cardId: String) : NavRoutes("received_card/{cardId}") {

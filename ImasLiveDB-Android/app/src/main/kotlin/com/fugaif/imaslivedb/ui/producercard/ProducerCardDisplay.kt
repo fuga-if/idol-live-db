@@ -69,6 +69,34 @@ data class ProducerCardDirectory(
     }
 }
 
+/**
+ * 受け取った名刺 1 枚の端末の画像 (担当の画像・名刺の写真とその出どころ・自作の名刺の画像・紙の名刺の写真)。
+ * ファイルを見るので一覧・詳細を読むときに IO で引き、画面はこれを描くだけにする。
+ */
+data class ReceivedCardImages(
+    /** 担当の画像 (アイドルの id → 画像)。 */
+    val oshi: Map<String, String> = emptyMap(),
+    val portraitUrl: String? = null,
+    val portraitSource: CardPhotoSource = CardPhotoSource.PICKED,
+    val face: ProducerCardFace? = null,
+    /** 紙の名刺の写真 (表・裏)。 */
+    val paperPhotos: List<String> = emptyList()
+) {
+    /** 名刺の写真を丸く出すか (切り方はコアの `cardPhotoShape`)。 */
+    val portraitRound: Boolean get() = cardPhotoShape(portraitSource) == CardPhotoShape.ROUND
+
+    companion object {
+        /** ファイルを見るのでメインの外で呼ぶ。 */
+        fun load(context: Context, cardId: String, oshiIds: List<String>): ReceivedCardImages = ReceivedCardImages(
+            oshi = oshiIds.mapNotNull { id -> ProducerCardFiles.oshiImageUrl(context, cardId, id)?.let { id to it } }.toMap(),
+            portraitUrl = ProducerCardFiles.cardPhotoUrl(context, cardId),
+            portraitSource = ProducerCardFiles.cardPhotoSource(context, cardId),
+            face = ProducerCardDisplay.receivedFace(context, cardId),
+            paperPhotos = ProducerCardFiles.Side.entries.mapNotNull { ProducerCardFiles.photoUrl(context, cardId, it) }
+        )
+    }
+}
+
 /** 名刺の顔 (自作の名刺の画像の表・裏)。自分の名刺は端末の画像、受け取った名刺は届いた画像。iOS `ProducerCardDisplay.Face` と対。 */
 data class ProducerCardFace(val front: String, val back: String? = null)
 
@@ -79,7 +107,7 @@ object ProducerCardDisplay {
     fun number(value: Long): String = numbers.format(value)
 
     /**
-     * 担当の行。[imageUrl] は担当の画像の在り処 (受け取った名刺は受け取った画像)。
+     * 担当の行。[imageUrls] は担当の画像の在り処 (アイドルの id → 画像。受け取った名刺は受け取った画像)。
      * [ownImages] = true は自分の名刺 (端末に取り込んだアイドルの写真を引く)。
      */
     fun oshi(
@@ -87,14 +115,14 @@ object ProducerCardDisplay {
         directory: ProducerCardDirectory,
         sharedWith: Set<String> = emptySet(),
         ownImages: Boolean = false,
-        imageUrl: (String) -> String? = { null }
+        imageUrls: Map<String, String> = emptyMap()
     ): List<ImasProducerCardOshi> = card.oshiIdolIds.mapNotNull { id ->
         val idol = directory.idols[id] ?: return@mapNotNull null
         val brand = directory.brands[idol.brandId]
         ImasProducerCardOshi(
             id = idol.id, name = idol.name, shortName = idol.shortName,
             seed = idol.color, brand = idol.brandId,
-            imageUrl = if (ownImages) null else imageUrl(idol.id),
+            imageUrl = if (ownImages) null else imageUrls[idol.id],
             entityId = if (ownImages) idol.id else null,
             subtitle = brand?.shortName, isShared = idol.id in sharedWith
         )
@@ -117,6 +145,7 @@ object ProducerCardDisplay {
         CardDesign.PASS -> ImasProducerCardDesign.Pass
         CardDesign.FORMAL -> ImasProducerCardDesign.Formal
         CardDesign.POP -> ImasProducerCardDesign.Pop
+        CardDesign.OSHI -> ImasProducerCardDesign.Oshi
         CardDesign.CUSTOM -> face?.let { ImasProducerCardDesign.Face(it.front, it.back) } ?: ImasProducerCardDesign.Pass
     }
 
@@ -174,6 +203,8 @@ object ProducerCardDisplay {
  * QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
  * [back] は裏の QR (渡さなければ交換用)。[payload] は受け取ったままの名刺の中身 (交換用の QR に使う。組み直すと、
  * 新しい版のアプリが足した項目を落とした QR になる)。
+ * [imageUrls] は担当の画像 (アイドルの id → 画像。受け取った名刺は受け取った画像。近くの端末から後で届いても組み直す)。
+ * [showsRecord] は名刺の下の記録の掲示板 (自分の名刺は出さない。自分の記録は P名刺の画像で見せる)。
  */
 @Composable
 fun rememberProducerCardContent(
@@ -181,17 +212,21 @@ fun rememberProducerCardContent(
     directory: ProducerCardDirectory,
     sharedWith: Set<String> = emptySet(),
     ownImages: Boolean = false,
-    imageUrl: (String) -> String? = { null },
+    imageUrls: Map<String, String> = emptyMap(),
     portraitUrl: String? = null,
     portraitSource: CardPhotoSource = CardPhotoSource.PICKED,
     face: ProducerCardFace? = null,
     back: ImasProducerCardBack? = null,
-    payload: String? = null
+    payload: String? = null,
+    showsRecord: Boolean = true
 ): ImasProducerCardContent {
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face))
     val photoEntityId = if (ownImages) firstWithImage(card, directory) else null
-    return remember(card, directory, sharedWith, ownImages, portraitUrl, portraitSource, face, back, payload, nameFamily, photoEntityId) {
-        val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrl)
+    return remember(
+        card, directory, sharedWith, ownImages, imageUrls, portraitUrl, portraitSource, face, back, payload, showsRecord,
+        nameFamily, photoEntityId
+    ) {
+        val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrls)
         val cardFace = producerCardFace(card, directory.oshiEntries(oshi.map { it.id }))
         val byId = oshi.associateBy { it.id }
         ImasProducerCardContent(
@@ -204,10 +239,11 @@ fun rememberProducerCardContent(
                 ImasProducerCardFaceGroup(group.brandLabel, group.idolIds.mapNotNull { byId[it] })
             },
             oshiCaption = cardFace.oshiCaption,
+            heroOshi = cardFace.heroIdolIds.mapNotNull { byId[it] },
             moreOshi = cardFace.moreOshi.toInt(),
             handle = cardFace.handle?.display,
             links = ProducerCardDisplay.links(card),
-            cells = ProducerCardDisplay.cells(card, directory),
+            cells = if (showsRecord) ProducerCardDisplay.cells(card, directory) else emptyList(),
             boardTrailing = ProducerCardDisplay.boardTrailing(card),
             photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
             photoEntityId = photoEntityId,

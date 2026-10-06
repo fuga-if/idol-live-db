@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -40,6 +41,10 @@ import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasCameraFrame
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
@@ -57,7 +62,8 @@ import uniffi.imas_core.ScannedCode
 import uniffi.imas_core.classifyScannedCode
 
 /**
- * 名刺交換。「見せる / 読む」の 2 択だけ。iOS `ProducerCardExchangeView` の移植。
+ * 名刺交換。「見せる / 読む」の 2 択だけ。見せる側からは名刺ファイル (Quick Share 等) でも送れる。
+ * iOS `ProducerCardExchangeView` の移植。
  *
  * - 見せる: 自分の名刺の QR を明るい画面で出し、近くの Android に名乗る (読んだ相手に担当の画像を送り、
  *   相手の名刺を受け取る)。
@@ -90,6 +96,21 @@ fun ProducerCardExchangeSheet(
     var cameraPermitted by remember { mutableStateOf(cardCameraPermitted(context)) }
     var permissionsAsked by remember { mutableStateOf(false) }
     var applied by remember { mutableStateOf(0) }
+    var shareError by remember { mutableStateOf<String?>(null) }
+
+    /** 名刺ファイル (名刺 + 写真 + 担当の画像) を共有シートで送る。 */
+    fun shareCardFile(card: EncodedProducerCard) {
+        scope.launch {
+            val data = myFile ?: ProducerCardAssembler.myCardFile(context, module, card)
+            if (data == null) {
+                shareError = "名刺の中身を組み立てられませんでした。"
+                return@launch
+            }
+            runCatching { ProducerCardAssembler.writeShareFile(context, data, card.card) }
+                .onSuccess { ProducerCardAssembler.shareFile(context, it) }
+                .onFailure { shareError = it.message ?: "名刺の中身を組み立てられませんでした。" }
+        }
+    }
 
     /** 読んだ相手が送り返してきた名刺を名刺入れへ (受け取った公演は今日の参加公演)。 */
     suspend fun storeFromReader(contents: CardFileContents) {
@@ -231,7 +252,7 @@ fun ProducerCardExchangeSheet(
             ) {
                 ImasTabs(labels = listOf("見せる", "読む"), selection = if (reading) 1 else 0, onSelect = { reading = it == 1 })
                 if (!reading) {
-                    ShowSection(myCard, lastReceived)
+                    ShowSection(myCard, lastReceived, onShareFile = ::shareCardFile)
                 } else {
                     ReadSection(
                         cameraAvailable = cardCameraAvailable(context),
@@ -245,10 +266,11 @@ fun ProducerCardExchangeSheet(
             }
         }
     }
+    ImasErrorAlert(message = shareError, onDismiss = { shareError = null }, title = "名刺ファイルを作れませんでした")
 }
 
 @Composable
-private fun ShowSection(myCard: EncodedProducerCard?, lastReceived: String?) {
+private fun ShowSection(myCard: EncodedProducerCard?, lastReceived: String?, onShareFile: (EncodedProducerCard) -> Unit) {
     if (myCard == null) {
         ImasCard {
             ImasEmptyState(
@@ -264,6 +286,12 @@ private fun ShowSection(myCard: EncodedProducerCard?, lastReceived: String?) {
         ImasNotice(kind = ImasNoticeKind.SUCCESS, title = "${lastReceived}さんの名刺を受け取りました", message = "名刺入れに入れました。")
     }
     ImasNote("相手のアプリで読むと、近くの Android どうしなら担当の画像も元の画質のまま届き、相手の名刺も受け取れます。アプリが無い人がカメラで読むと、Web の名刺ページが開きます。")
+    ImasCardList {
+        ImasNavRow(
+            title = "名刺ファイルで送る", subtitle = "AirDrop や Quick Share で写真と担当の画像ごと渡す",
+            icon = Icons.Filled.Share, position = ImasRowPosition.FIRST, onClick = { onShareFile(myCard) }
+        )
+    }
 }
 
 private fun caption(myCard: EncodedProducerCard): String {

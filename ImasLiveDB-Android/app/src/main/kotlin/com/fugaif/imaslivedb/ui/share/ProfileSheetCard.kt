@@ -84,7 +84,7 @@ import uniffi.imas_core.ProfileSlot
 import uniffi.imas_core.cardNameFontInfo
 
 // =============================================================================
-// プロフィール帳 (SNS に貼る自己紹介の 1 枚絵)。iOS `ProfileSheetCard.swift` の移植。P を職業に見立てた **履歴書** の様式。
+// P名刺の画像 (SNS に貼る自己紹介の 1 枚絵)。iOS `ProfileSheetCard.swift` の移植。P を職業に見立てた **履歴書** の様式。
 //
 // - 欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
 // - 紙は生成り、線は墨。罫の太さは 2 段 (外枠 1.5 と欄の中 0.5)。担当色は押印欄の判子の 1 か所だけ
@@ -137,7 +137,7 @@ object ProfileSheetInk {
 }
 
 /**
- * プロフィール帳の書体。題・名前・欄の題だけ明朝 (同梱の書体)、ほかはゴシック、英字は等幅の印字。
+ * P名刺の画像の書体。題・名前・欄の題だけ明朝 (同梱の書体)、ほかはゴシック、英字は等幅の印字。
  * iOS `ProfileSheetType` と対。
  */
 private object ProfileSheetType {
@@ -180,7 +180,7 @@ private typealias Ink = ProfileSheetInk
 @Composable
 private fun profileAccent(seed: String?): Color = if (seed == null) Ink.ink else rememberShareCardPalette(seed).accent
 
-/** プロフィール帳 1 枚。[ShareCardCanvas] の中で、大きさは [ProfileSheetInk.size]。 */
+/** P名刺の画像 1 枚。[ShareCardCanvas] の中で、大きさは [ProfileSheetInk.size]。 */
 @Composable
 fun ProfileSheetCard(layout: ProfileSheetLayout, materials: ProfileSheetMaterials) {
     val scales = remember(layout.density, layout.size) { ProfileSheetInk.scales(layout) }
@@ -334,7 +334,7 @@ private fun ResumeIdentity(layout: ProfileSheetLayout, materials: ProfileSheetMa
     }
 }
 
-// MARK: - 部品 (プロフィール帳の中だけ)
+// MARK: - 部品 (P名刺の画像の中だけ)
 
 /** 墨の罫で囲む欄。 */
 @Composable
@@ -521,7 +521,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHandRing(
     }
 }
 
-/** 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。プロフィール帳で担当色を使う唯一の所。 */
+/** 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。P名刺の画像で担当色を使う唯一の所。 */
 @Composable
 private fun ProfileSeal(oshi: ProfileSheetOshi, diameter: Float) {
     val color = profileAccent(oshi.color ?: oshi.brandColor)
@@ -637,7 +637,7 @@ private fun ProfileQR(url: String) {
 }
 
 /**
- * 実寸のプロフィール帳を親の幅に合わせて縮めて見せる (影は付けず、細い線で縁取る)。焼くのは [capture]。
+ * 実寸の P名刺の画像を親の幅に合わせて縮めて見せる (影は付けず、細い線で縁取る)。焼くのは [capture]。
  * iOS `ShareCardPreview` の役。
  */
 @Composable

@@ -6,6 +6,7 @@ import com.fugaif.imaslivedb.data.local.BrandRoleStore
 import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.imasQrMatrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileBrandInput
@@ -15,7 +16,7 @@ import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.producerCardLimits
 
 /**
- * プロフィール帳に載る担当 1 人 (押印欄の判子と担当の行)。iOS `ProfileSheetOshi` と対。
+ * P名刺の画像 (SNS に貼る履歴書の様式) に載る担当 1 人 (押印欄の判子と担当の行)。iOS `ProfileSheetOshi` と対。
  * 画像は焼く前に読んでおく (焼くのは今描かれているものだけで、読み込みを待たない)。
  */
 data class ProfileSheetOshi(
@@ -28,14 +29,14 @@ data class ProfileSheetOshi(
 )
 
 /**
- * プロフィール帳の材料。iOS `ProfileSheetMaterials` と対。中身の組み立て (欄・行・丸・詰め方) は
- * コアの `profileSheetLayout`、ここはアプリの記録とマスタを引いて渡す形にするだけ。
+ * P名刺の画像の材料。iOS `ProfileSheetMaterials` と対。中身の組み立て (欄・行・丸・詰め方) は
+ * コアの `profileSheetLayout`、ここは P名刺・アプリの記録とマスタを引いて渡す形にするだけ。
  */
 data class ProfileSheetMaterials(
     /** 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。 */
     val record: ProfileSheetRecord,
     val oshi: List<ProfileSheetOshi> = emptyList(),
-    /** 証明写真の欄の画像 (プロフィール帳の画像、無ければ P名刺の写真)。 */
+    /** 証明写真の欄の画像 (P名刺の写真)。 */
     val portrait: Bitmap? = null,
     /** 証明写真の欄の中に丸く置く (X のアイコン。切り方はコアの `cardPhotoShape`)。 */
     val portraitRound: Boolean = false,
@@ -53,7 +54,7 @@ data class ProfileSheetMaterials(
     }
 }
 
-/** プロフィール帳の材料を集める。iOS `ProfileSheetAssembler` と対 (並びと除外はコア)。 */
+/** P名刺の画像の材料を集める。iOS `ProfileSheetAssembler` と対 (並びと除外はコア)。 */
 object ProfileSheetAssembler {
     suspend fun load(context: Context, module: AppModule, card: MyProducerCard): ProfileSheetMaterials {
         val limits = producerCardLimits()
@@ -79,16 +80,23 @@ object ProfileSheetAssembler {
         // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
         val favorites = FavoriteSongSource.load(module)
 
-        val (oshi, portrait) = withContext(Dispatchers.IO) {
+        val oshi = withContext(Dispatchers.IO) {
             oshiIdols.map { idol ->
                 ProfileSheetOshi(
                     id = idol.id, name = idol.name, shortName = idol.shortName, color = idol.color,
                     brandColor = brandById[idol.brandId]?.color,
                     // 書き出しは画像の読み込みを待たないので、ここで小さく読んでおく。
-                    image = module.customImageStore.primaryImageFile(idol.id)?.let { ProfileSheetFiles.decodeBounded(it, 240) }
+                    image = module.customImageStore.primaryImageFile(idol.id)?.let { ProducerCardFiles.decodeBounded(it, 240) }
                 )
-            } to ProfileSheetFiles.effectiveFile(context)?.let { ProfileSheetFiles.decodeBounded(it, 600) }
+            }
         }
+        // 証明写真の欄は P名刺の写真 (X のアイコンは欄の中に丸く置く)。
+        val (portrait, portraitRound) = withContext(Dispatchers.IO) {
+            ProducerCardFiles.myPhotoFile(context)?.let { ProducerCardFiles.decodeBounded(it, 600) } to
+                ProducerCardFiles.myPhotoRound(context)
+        }
+        // 自分の QR は組めるものだけ (組めない URL で欄を空けない)。
+        val qrUrl = card.qrUrl?.takeIf { imasQrMatrix(it) != null }
 
         val record = ProfileSheetRecord(
             today = today,
@@ -106,14 +114,14 @@ object ProfileSheetAssembler {
             favoriteSongs = favorites.map { it.input },
             links = card.links.map { cardLinkView(it).display },
             hasPhoto = portrait != null,
-            hasQr = card.qrUrl != null
+            hasQr = qrUrl != null
         )
         return ProfileSheetMaterials(
             record = record,
             oshi = oshi,
             portrait = portrait,
-            portraitRound = withContext(Dispatchers.IO) { ProfileSheetFiles.effectiveRound(context) },
-            qrUrl = card.qrUrl
+            portraitRound = portraitRound,
+            qrUrl = qrUrl
         )
     }
 }

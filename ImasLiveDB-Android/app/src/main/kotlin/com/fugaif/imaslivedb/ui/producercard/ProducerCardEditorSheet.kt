@@ -3,7 +3,6 @@ package com.fugaif.imaslivedb.ui.producercard
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +12,18 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.geometry.Offset
 import com.fugaif.imaslivedb.data.producercard.XAvatarFetcher
+import com.fugaif.imaslivedb.data.producercard.FavoriteSongSource
+import com.fugaif.imaslivedb.data.local.BrandRoleStore
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
+import com.fugaif.imaslivedb.ui.settings.BrandRoleSettingsScreen
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import uniffi.imas_core.BrandRole
+import uniffi.imas_core.ProfileSongInput
+import uniffi.imas_core.favoriteSongPicks
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardDesignOption
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardDesignPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardFace
@@ -126,10 +137,11 @@ private data class EditableLink(val id: String = UUID.randomUUID().toString(), v
 
 /**
  * 自分の P名刺を作る・直す。iOS `ProducerCardEditorView` の移植。書くのは名前・ひとこと・P歴・リンク・
- * 名刺のデザイン・名刺の写真・自分の QR で、担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
+ * 名刺のデザイン・名刺の写真・自分の QR・好きな曲で、担当と記録の数はアプリの記録から入る (載せたくない項目はここで外す)。
+ * 担当ブランドはアプリ全体の設定へ行く。好きな曲と担当ブランドは名刺 (QR) には入らず、P名刺の画像 (SNS に貼る画像) に載る。
  * 上に名刺の見本を置き、変えたものはその場で見本に出る。
  *
- * デザインは 3 つ (入場証・かしこまった名刺・ポップ) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
+ * デザインは 4 つ (入場証・かしこまった名刺・ポップ・担当を大きく) と「自作の画像」から選ぶだけ (細かい見た目は選ばせない)。
  * 自作の画像は写真から選んだ名刺の画像 (表・任意で裏) を、紙の名刺の取り込みと同じく四隅を見つけて平らにし、
  * 画像の QR があれば自分の QR に入れる。名刺の写真は X のアイコンからも取れる。
  *
@@ -142,18 +154,9 @@ fun ProducerCardEditorSheet(
     card: MyProducerCard,
     record: ProducerCardMyRecord?,
     onSave: suspend (MyProducerCard) -> Unit,
-    onDismiss: () -> Unit,
-    /** 開いたら見せる欄 (`links`。プロフィール帳の「P名刺のリンクを直す」から)。 */
-    focus: String? = null
+    onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val linksFocus = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
-    if (focus == "links") {
-        LaunchedEffect(Unit) {
-            kotlinx.coroutines.delay(400)
-            linksFocus.bringIntoView()
-        }
-    }
     val module = remember { AppModule.from(context) }
     val limits = remember { producerCardLimits() }
     val kinds = remember { cardLinkKinds() }
@@ -165,6 +168,15 @@ fun ProducerCardEditorSheet(
     val links = remember { mutableStateListOf(*card.links.map { EditableLink(kind = it.kind, value = it.value) }.toTypedArray()) }
     var hidden by remember { mutableStateOf(card.hidden) }
     var oshi by remember { mutableStateOf<List<Idol>>(emptyList()) }
+    // 先頭の担当の画像 (担当を大きく のデザインの札)。
+    var leadImage by remember { mutableStateOf<String?>(null) }
+    // 好きな曲 (お気に入りから選んだ曲 id、載せる順。null はまだ選んでいない)。
+    var songs by remember { mutableStateOf(card.profile.songs) }
+    var favorites by remember { mutableStateOf<List<ProfileSongInput>>(emptyList()) }
+    var showingSongPicker by remember { mutableStateOf(false) }
+    // 担当ブランドの設定の要約 (「メイン 765AS / 担当 シャニマス」)。
+    var brandRoleSummary by remember { mutableStateOf("") }
+    var showingBrandSettings by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
@@ -218,7 +230,22 @@ fun ProducerCardEditorSheet(
         if (ids.isEmpty()) return@LaunchedEffect
         val byId = module.idolRepository.fetchIdolsByIds(ids).associateBy { it.id }
         oshi = ids.mapNotNull { byId[it] }
+        leadImage = oshi.firstOrNull()?.let { lead ->
+            withContext(Dispatchers.IO) { module.customImageStore.primaryImageFile(lead.id)?.let { Uri.fromFile(it).toString() } }
+        }
         directory = ProducerCardDirectory.load(module, ids, emptyList())
+    }
+    LaunchedEffect(Unit) { favorites = FavoriteSongSource.load(module).map { it.input } }
+    // 担当ブランドの設定が変わったら (設定の画面から戻った等) 要約を組み直す。
+    val brandRolesJson by BrandRoleStore.json.collectAsState()
+    LaunchedEffect(brandRolesJson) {
+        val rows = BrandRoleStore.load(context, module).rows
+        val main = rows.filter { it.role == BrandRole.MAIN }.map { it.label }
+        val picked = rows.filter { it.role == BrandRole.OSHI }.map { it.label }
+        brandRoleSummary = listOfNotNull(
+            main.takeIf { it.isNotEmpty() }?.let { "メイン ${it.joinToString("・")}" },
+            picked.takeIf { it.isNotEmpty() }?.let { "担当 ${it.joinToString("・")}" }
+        ).joinToString(" / ").ifEmpty { "まだありません" }
     }
     LaunchedEffect(Unit) {
         if (photoDirty) return@LaunchedEffect
@@ -425,6 +452,7 @@ fun ProducerCardEditorSheet(
         sinceYear = sinceYear
     ).withLinks(filled().mapNotNull { normalizeCardLink(CardLink(it.kind, it.value)) }).withHidden(hidden)
         .copy(design = design, qrUrl = normalizeCardQrUrl(qrUrl))
+        .let { it.withProfile(it.profile.copy(songs = songs)) }
 
     // 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
     // そのまま入れて渡す (載る中身を抜くと、QR に収まるかの見積もりが実物より短くなる)。
@@ -440,7 +468,8 @@ fun ProducerCardEditorSheet(
         !(selectedDesign.usesFaceImage && facePreview[ProducerCardFiles.Side.FRONT] == null)
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
-        draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty()
+        draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
+        songs != card.profile.songs
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     fun cancel() {
@@ -534,9 +563,9 @@ fun ProducerCardEditorSheet(
                         ImasFormField(label = "名刺のデザイン", imprint = "DESIGN") {
                             val assets = context.assets
                             val frontFace = facePreview[ProducerCardFiles.Side.FRONT]
-                            val options = remember(designs, frontFace) {
+                            val options = remember(designs, frontFace, leadImage) {
                                 designs.map {
-                                    ImasCardDesignOption(it.key, it.label, designLook(it.design, frontFace), ImasCardNameFonts.family(assets, it.font.fileStem))
+                                    ImasCardDesignOption(it.key, it.label, designLook(it.design, frontFace, leadImage), ImasCardNameFonts.family(assets, it.font.fileStem))
                                 }
                             }
                             val lead = oshi.firstOrNull()
@@ -628,9 +657,10 @@ fun ProducerCardEditorSheet(
                             }
                         }
                         FieldToggle(ProducerCardField.OSHI, "担当を載せる", null, hidden) { hidden = it }
+                        FieldToggle(ProducerCardField.BRAND_LABELS, "判子の下にブランド名を刷る", null, hidden) { hidden = it }
                     }
 
-                    ImasFormCard(Modifier.bringIntoViewRequester(linksFocus)) {
+                    ImasFormCard {
                         ImasFormField(label = "リンク", imprint = "LINKS") {
                             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
                                 links.forEachIndexed { index, link ->
@@ -683,6 +713,28 @@ fun ProducerCardEditorSheet(
                         FieldToggle(ProducerCardField.ATTENDED, "参加した公演の一覧", "共通点を出すのに使う", hidden) { hidden = it }
                     }
 
+                    // P名刺の画像に載るもの (名刺の QR には入らない)。
+                    ImasFormCard {
+                        ImasFormField(label = "好きな曲 · お気に入りから", imprint = "SONGS") {
+                            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                                ImasNavRow(
+                                    title = "載せる曲を選ぶ", subtitle = songsSummary(songs, favorites),
+                                    icon = Icons.AutoMirrored.Filled.QueueMusic, subtitleLineLimit = 2
+                                ) { showingSongPicker = true }
+                                Text(
+                                    "好きな曲と担当ブランドは名刺の QR には入らず、SNS に貼る画像に載ります。",
+                                    style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color
+                                )
+                            }
+                        }
+                        ImasFormField(label = "担当ブランド · アプリ全体の設定", imprint = "BRANDS") {
+                            ImasNavRow(
+                                title = "担当ブランドを選ぶ", subtitle = brandRoleSummary,
+                                icon = Icons.Filled.RadioButtonChecked, subtitleLineLimit = 2
+                            ) { showingBrandSettings = true }
+                        }
+                    }
+
                     val shownError = error ?: validation?.takeIf { it == ProducerCardInputError.TOO_LONG }?.let { producerCardInputErrorMessage(it) }
                     shownError?.let { Text(it, style = ImasTextRole.NOTE.style, color = DS.danger) }
                     if (design != designs.first().key || qrUrl.isNotBlank()) {
@@ -706,6 +758,20 @@ fun ProducerCardEditorSheet(
             onDone = { applyFaceCorners(draft.side, draft.source, it) },
             onDismiss = { faceCorners = null }
         )
+    }
+    if (showingSongPicker) {
+        Dialog(
+            onDismissRequest = { showingSongPicker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            FavoriteSongPickerScreen(chosen = songs, onChange = { songs = it }, onBack = { showingSongPicker = false })
+        }
+    }
+    if (showingBrandSettings) {
+        Dialog(
+            onDismissRequest = { showingBrandSettings = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { BrandRoleSettingsScreen(onBack = { showingBrandSettings = false }) }
     }
     cropping?.let { draft ->
         CardPhotoCropSheet(
@@ -731,11 +797,21 @@ private fun previewFolder(context: Context): File = File(context.cacheDir, "prod
 private fun faceFolder(context: Context): File = File(context.cacheDir, "producer_card_face_edit")
 
 /** デザインの札に組む小さな名刺の形。 */
-private fun designLook(design: CardDesign, frontFace: String?): ImasCardDesignOption.Look = when (design) {
+private fun designLook(design: CardDesign, frontFace: String?, leadImage: String?): ImasCardDesignOption.Look = when (design) {
     CardDesign.PASS -> ImasCardDesignOption.Look.Pass
     CardDesign.FORMAL -> ImasCardDesignOption.Look.Formal
     CardDesign.POP -> ImasCardDesignOption.Look.Pop
+    CardDesign.OSHI -> ImasCardDesignOption.Look.Oshi(leadImage)
     CardDesign.CUSTOM -> ImasCardDesignOption.Look.Face(frontFace)
+}
+
+/** 選んだ曲の題 (まだ選んでいなければお気に入りの新しい順。並べ方はコア)。 */
+private fun songsSummary(chosen: List<String>?, favorites: List<ProfileSongInput>): String {
+    if (favorites.isEmpty()) return "お気に入りの曲がありません"
+    val picks = favoriteSongPicks(chosen, favorites)
+    val titles = picks.picked.joinToString("") { "「${it.title}」" }
+    if (titles.isEmpty()) return "載せない"
+    return if (picks.chosenByHand) titles else "おまかせ (お気に入りの新しい順)  $titles"
 }
 
 /** 自作の名刺の画像の 1 面 (表・裏) の欄。 */
@@ -864,7 +940,7 @@ internal fun CardPhotoCropSheet(
     initial: ImasPortraitCrop,
     onDone: (ImasPortraitCrop) -> Unit,
     onDismiss: () -> Unit,
-    /** 切り抜く枠 (P名刺は正方形、プロフィール帳の証明写真は 3:4)。 */
+    /** 切り抜く枠 (P名刺は正方形)。 */
     frame: ImasPortraitCrop.Frame = ImasPortraitCrop.Frame.CARD,
     /** 丸く切る写真 (X のアイコン)。 */
     round: Boolean = false,

@@ -44,6 +44,13 @@ object ProducerCardFiles {
      */
     const val MY_FACE_DIRECTORY_NAME = "producer_card_face"
 
+    /**
+     * 前の版のプロフィール帳だけの写真の置き場所 (filesDir の下)。プロフィール帳は P名刺の画像に一本化し、
+     * 写真は P名刺の写真を使う。残っていれば P名刺の画面を開いたときに片付ける ([removeLegacyProfileSheetPhoto])。
+     * 片付けるまでは Auto Backup から外したまま (BackupRulesTest が突き合わせる)。
+     */
+    const val LEGACY_PROFILE_SHEET_DIRECTORY_NAME = "profile_sheet_photo"
+
     /** 名刺の面 (紙の名刺の写真・自作の名刺の画像)。 */
     enum class Side(val key: String) { FRONT("front"), BACK("back") }
 
@@ -186,6 +193,15 @@ object ProducerCardFiles {
     /** 切り抜く前の写真を開く (長辺 3200px 程度まで間引く)。 */
     fun decodeMyPhotoSource(context: Context): Bitmap? = myPhotoSourceFile(context)?.let { decodeBounded(it) }
 
+    /**
+     * 前の版のプロフィール帳だけの写真 (`filesDir/profile_sheet_photo/`) を片付ける。iOS `removeLegacyProfileSheetPhoto`。
+     * 端末の中だけの写しで、元は端末の写真の中にある。ファイルを見るのでメインの外で呼ぶ。
+     */
+    fun removeLegacyProfileSheetPhoto(context: Context) {
+        val dir = File(context.filesDir, LEGACY_PROFILE_SHEET_DIRECTORY_NAME)
+        if (dir.exists()) dir.deleteRecursively()
+    }
+
     // ---- 自分の自作の名刺の画像 ----
 
     private fun myFaceFolder(context: Context): File = File(context.filesDir, MY_FACE_DIRECTORY_NAME)
@@ -259,12 +275,15 @@ object ProducerCardFiles {
         return jpeg(bitmap)
     }
 
-    /** 大きな写真をそのまま開いてメモリを使い切らないよう、長辺 3200px 程度まで間引いて開く。 */
-    private fun decodeBounded(file: File): Bitmap? = runCatching {
+    /**
+     * 大きな写真をそのまま開いてメモリを使い切らないよう、長辺 [maxPixels] 程度まで間引いて開く。
+     * 書き出しに焼く画像も、焼くのは今描かれているものだけで読み込みを待たないので、刷る前にこれで読んでおく。
+     */
+    fun decodeBounded(file: File, maxPixels: Int = 3200): Bitmap? = runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.path, bounds)
         var sample = 1
-        while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= 3200) sample *= 2
+        while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxPixels) sample *= 2
         BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
     }.getOrNull()
 

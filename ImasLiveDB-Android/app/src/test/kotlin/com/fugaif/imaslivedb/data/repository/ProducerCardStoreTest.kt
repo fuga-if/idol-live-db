@@ -8,6 +8,8 @@ import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ProducerCardField
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -23,6 +25,7 @@ import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
 import com.fugaif.imaslivedb.data.producercard.ProducerCardFiles
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishi
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDesign
 import com.fugaif.imaslivedb.ui.producercard.ProducerCardDisplay
 import com.fugaif.imaslivedb.ui.producercard.ProducerCardFace
@@ -105,12 +108,69 @@ class ProducerCardStoreTest {
         assertEquals("ふがP", loaded.name)
         assertEquals(links, loaded.links)
         assertEquals(setOf(ProducerCardField.ATTENDED, ProducerCardField.SONG_COUNT), loaded.hidden)
-        assertEquals("iOS と同じ保存のキー", "song_count,attended", loaded.hiddenFields)
+        // 既定で外す項目 (ブランド名) は逆向き: 外さない (= 載せる) と決めたので書く。
+        assertEquals("iOS と同じ保存のキー", "song_count,attended,brand_labels", loaded.hiddenFields)
         assertTrue(loaded.shows(ProducerCardField.OSHI))
         assertFalse(loaded.shows(ProducerCardField.ATTENDED))
     }
 
-    /** プロフィール帳は自分の名刺の行に持つ。まだ作っていなければ既定の中身 (規則はコア)。 */
+    /**
+     * 判子の下のブランド名は既定で外す。足す前の行 (保存の文字列に無い) も外れたまま、
+     * 「刷る」と決めたときだけ保存の文字列に書き、名刺の中身に乗る。
+     */
+    @Test
+    fun brandLabelsAreOptInAndRideOnTheCard() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        // 足す前の版が書いた行。
+        val card = myCard("ふがP").copy(hiddenFields = "attended")
+        assertFalse(card.shows(ProducerCardField.BRAND_LABELS))
+        assertTrue(ProducerCardField.ATTENDED in card.hidden)
+        val record = ProducerCardMyRecord(emptyList(), emptyList(), 0)
+        assertFalse(ProducerCardAssembler.input(card, record).showBrandLabels)
+
+        val labelled = card.withHidden(card.hidden - ProducerCardField.BRAND_LABELS)
+        assertTrue(labelled.shows(ProducerCardField.BRAND_LABELS))
+        assertEquals("attended,brand_labels", labelled.hiddenFields)
+        repo.saveMyCard(labelled)
+        val loaded = repo.myCard()!!
+        assertTrue(loaded.shows(ProducerCardField.BRAND_LABELS))
+        assertFalse(loaded.shows(ProducerCardField.ATTENDED))
+        val encoded = ProducerCardAssembler.encode(loaded, record)!!
+        assertTrue(decodeProducerCard(encoded.url)!!.showBrandLabels)
+    }
+
+    /** P名刺の編集で直した好きな曲は保存の時点の行に重ね、画像の選択 (大きさ・外した欄) は今の行のまま。 */
+    @Test
+    fun editKeepsLatestImageChoicesAndTakesEditedSongs() {
+        val opened = myCard("ふがP")
+        val edited = opened.withProfile(opened.profile.copy(songs = listOf("s2", "s1")))
+        val latest = opened.withProfile(opened.profile.copy(size = ProfileSheetSize.STORY, hidden = listOf(ProfileAutoField.QR)))
+        val merged = edited.applyingEdit(latest)
+        assertEquals(listOf("s2", "s1"), merged.profile.songs)
+        assertEquals(ProfileSheetSize.STORY, merged.profile.size)
+        assertEquals(listOf(ProfileAutoField.QR), merged.profile.hidden)
+        assertEquals(edited, edited.applyingEdit(null))
+    }
+
+    /** 自分の名刺の行を読んで直して書くのは 1 本ずつ流れる (並んでも片方の変更を古い行で消さない)。 */
+    @Test
+    fun updateMyCardSerializesReadModifyWrite() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        repo.saveMyCard(myCard("ふがP"))
+        coroutineScope {
+            launch {
+                repo.updateMyCard { latest ->
+                    latest!!.withProfile(latest.profile.copy(size = ProfileSheetSize.STORY))
+                }
+            }
+            launch { repo.updateMyCard { latest -> latest!!.copy(message = "現地派") } }
+        }
+        val loaded = repo.myCard()!!
+        assertEquals("現地派", loaded.message)
+        assertEquals(ProfileSheetSize.STORY, loaded.profile.size)
+    }
+
+    /** P名刺の画像の選択と好きな曲は自分の名刺の行に持つ。まだ選んでいなければ既定の中身 (規則はコア)。 */
     @Test
     fun profileSheetRoundTripsOnMyCard() = runBlocking {
         val repo = ProducerCardRepository(database())
@@ -121,7 +181,7 @@ class ProducerCardStoreTest {
         repo.saveMyCard(card.withProfile(sheet))
         assertEquals(sheet, repo.myCard()?.profile)
 
-        // P名刺を直して保存しても、プロフィール帳は消えない。
+        // P名刺を直して保存しても、画像の選択は消えない。
         repo.saveMyCard(repo.myCard()!!.copy(message = "現地派"))
         assertEquals(sheet, repo.myCard()?.profile)
     }
@@ -214,7 +274,7 @@ class ProducerCardStoreTest {
         assertEquals(listOf("s1"), favoriteSongPicks(listOf("s2", "s1"), favorites).picked.map { it.id })
     }
 
-    /** 職務経歴書・プロフィール帳の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。 */
+    /** 職務経歴書・プロフィール帳 (今の P名刺の画像) の中の丸の上書きがあった頃の保存も落ちずに読める (やめた項目は読み捨てる)。 */
     @Test
     fun oldProfileJsonWithCareerStyleStillReads() = runBlocking {
         val repo = ProducerCardRepository(database())
@@ -235,7 +295,7 @@ class ProducerCardStoreTest {
         val source = database()
         val sourceRepo = ProducerCardRepository(source)
         val default = profileSheetDefault()
-        val sheet = default.copy(size = ProfileSheetSize.STORY)
+        val sheet = default.copy(size = ProfileSheetSize.STORY, songs = listOf("s2", "s1"))
         val mine = myCard("ふがP").copy(message = "現地派", sinceYear = 2014)
             .withLinks(listOf(CardLink(CardLinkKind.X, "fuga_p")))
             .withHidden(setOf(ProducerCardField.ATTENDED))
@@ -265,7 +325,7 @@ class ProducerCardStoreTest {
         assertEquals(2014, restored.sinceYear)
         assertEquals(mine.links, restored.links)
         assertEquals(setOf(ProducerCardField.ATTENDED), restored.hidden)
-        assertEquals("プロフィール帳もバックアップで戻る", sheet, restored.profile)
+        assertEquals("P名刺の画像の選択と好きな曲もバックアップで戻る", sheet, restored.profile)
         assertEquals("デザインもバックアップで戻る", CardDesign.FORMAL, restored.cardDesign)
 
         // 2 回目は何も増えない (id で重複を弾く)。
@@ -314,6 +374,27 @@ class ProducerCardStoreTest {
         val face = ProducerCardFace(front = "file:///tmp/front.jpg", back = null)
         assertEquals(ImasProducerCardDesign.Face("file:///tmp/front.jpg", null), ProducerCardDisplay.cardDesign(card, face))
         assertEquals(ImasProducerCardDesign.Pass, ProducerCardDisplay.cardDesign(card, null))
+    }
+
+    /** 担当を大きく は画像が無くても担当を大きく (判子で) 描く。左の枠は人数ごとに分け、枠全体を隙間なく埋める。 */
+    @Test
+    fun oshiDesignDrawsHeroTilesThatFillTheFrame() {
+        val card = encodeProducerCard(
+            ProducerCardInput(
+                name = "ふがP", message = "", sinceYear = null, oshiIdolIds = listOf("765_haruka"), links = emptyList(),
+                showCount = null, songCount = null, nextShowId = null, attended = emptyList(),
+                issuedOn = "2026-10-06", design = CardDesign.OSHI
+            )
+        ).card
+        assertEquals(ImasProducerCardDesign.Oshi, ProducerCardDisplay.cardDesign(card, null))
+        assertTrue(ImasMeishi.heroTiles(0).isEmpty())
+        for (count in 1..5) {
+            val tiles = ImasMeishi.heroTiles(count)
+            assertEquals(count, tiles.size)
+            assertEquals("枠全体を埋める ($count 人)", 1f, tiles.sumOf { (it.width * it.height).toDouble() }.toFloat(), 0.0001f)
+            // 先頭ほど大きな枠。
+            assertTrue(tiles.zipWithNext().all { (a, b) -> a.width * a.height >= b.width * b.height - 0.0001f })
+        }
     }
 
     /** 自分の名刺ファイルには、デザインが自作の画像のときだけ表・裏の画像が入る。 */

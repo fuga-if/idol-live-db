@@ -66,19 +66,21 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 //
 // ImasProducerCard   P名刺 1 枚。名刺そのものは 91:55 の横長の紙 1 枚 (紙に刷る画像の表・裏と同じ組み、
 //                    `ImasMeishiFront` / `ImasMeishiBack`)。押すと裏返って裏 (QR・参加公演数・回収曲数・日付)。
-//                    デザイン (`design`) は 3 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    デザイン (`design`) は 4 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    - 担当を大きく (Oshi): 左半分に担当の画像を大きく (`heroOshi` の順。無い担当は大きな判子)。
 //                    表に載せるのは名前・P歴・名刺の写真・担当 (判子か写真、ブランドごとにまとめ、多いときは数で畳む)・
 //                    ハンドル 1 つ (載せる担当とハンドルはコアの `producerCardFace`)。
 //                    - 自作の画像 (Face): 表は自分で作った名刺の画像。裏は裏の画像 (無ければ QR の裏)。
 //                      画像が手元に無い名刺は入場証で描く (コアが決める)。
 //                    名刺に収まらないもの (ひとこと・担当の一覧・リンクの一覧・記録の掲示板) は
-//                    `ImasProducerCardDetails` で名刺の下の紙面に並べる。
+//                    `ImasProducerCardDetails` で名刺の下の紙面に並べる。記録の掲示板は受け取った名刺だけ
+//                    (自分の名刺は `cells` を渡さない。自分の記録は P名刺の画像で見せる)。
 //                    使わない場面: アイドル 1 人の顔 → `ImasIdolHeader` / 担当の入口 → `ImasPass`。
 //                    状態: 裏返せる (`isFlippable`、編集画面の固定の見本は返さない)。リンク・担当は
 //                          `onOpenLink` / `onOpenOshi` を渡すと詳細の行が押せる。
 // ImasProducerCardDetails 名刺の下の紙面 (ひとこと・担当の写真と一覧・リンクの一覧・記録の掲示板)。
 // ImasCardFace       自作の名刺の画像の小さな見本 (91:55 の枠に収める。名刺入れの行・デザインの札・編集画面)。
-// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸。プロフィール帳の証明写真の欄は 3:4)。
+// ImasCardPortrait   名刺の写真の枠 (正方形。X のアイコンは丸)。
 //                    名刺入れの行・編集画面で同じ枠。
 // ImasPortraitCropper 名刺の写真を枠に合わせて指で動かす・広げる (切り抜きの位置と拡大)。
 // ImasCardDesignPicker 名刺のデザインの見本 (小さな名刺) を横に並べ、引いて (または押して) 選ぶ。
@@ -99,6 +101,9 @@ sealed interface ImasProducerCardDesign {
 
     /** ポップ。墨の太い枠と担当色の太い帯、名前の下の太い線。 */
     data object Pop : ImasProducerCardDesign
+
+    /** 担当を大きく。左半分に担当の画像を大きく、右に名前・P歴・ハンドル。 */
+    data object Oshi : ImasProducerCardDesign
 
     /** 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。 */
     data class Face(val front: String, val back: String? = null) : ImasProducerCardDesign
@@ -163,9 +168,10 @@ data class ImasProducerCardBack(
  * @param oshi 担当の全員 (名刺の下の担当の一覧)。
  * @param faceGroups 名刺の表に並べる担当 (コアの `producerCardFace` のブランドごとのまとまり)。
  * @param oshiCaption 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。
+ * @param heroOshi 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。
  * @param moreOshi 表で数で畳んだ担当の人数。
  * @param handle 表に刷るハンドル 1 つ。
- * @param cells 記録の数 (参加公演・回収曲・次の現場)。空なら掲示板を出さない。
+ * @param cells 記録の数 (参加公演・回収曲・次の現場)。空なら掲示板を出さない (自分の名刺は渡さない)。
  * @param boardTrailing 掲示板の右上の印字 (「2014 — 2026」)。
  * @param photoUrl 担当の写真 (名刺の下の担当の一覧の上に広げる)。
  * @param photoEntityId 写真を端末に取り込んだ担当の id から引く (自分の名刺)。
@@ -183,6 +189,7 @@ data class ImasProducerCardContent(
     val oshi: List<ImasProducerCardOshi> = emptyList(),
     val faceGroups: List<ImasProducerCardFaceGroup> = emptyList(),
     val oshiCaption: String? = null,
+    val heroOshi: List<ImasProducerCardOshi> = emptyList(),
     val moreOshi: Int = 0,
     val handle: String? = null,
     val links: List<ImasProducerCardLink> = emptyList(),
@@ -299,19 +306,14 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             look = when (design) {
                 ImasProducerCardDesign.Formal -> ImasMeishiLook.FORMAL
                 ImasProducerCardDesign.Pop -> ImasMeishiLook.POP
-                else -> ImasMeishiLook.PASS
+                ImasProducerCardDesign.Oshi -> ImasMeishiLook.OSHI
+                ImasProducerCardDesign.Pass, is ImasProducerCardDesign.Face -> ImasMeishiLook.PASS
             },
             sinceImprint = content.sinceImprint,
             oshiGroups = content.faceGroups.map { group ->
-                ImasMeishiOshiGroup(group.label, group.oshi.map { item ->
-                    val file = rememberCustomImage(item.entityId)
-                    ImasMeishiOshi(
-                        id = item.id, name = item.name, shortName = item.shortName,
-                        color = ImasMeishiInk.stampColor(item.seed, item.brand, ink.ink),
-                        picture = (item.imageUrl ?: file?.let { Uri.fromFile(it).toString() })?.let { ImasMeishiPicture.Url(it) }
-                    )
-                })
+                ImasMeishiOshiGroup(group.label, group.oshi.map { meishiOshi(it, ink) })
             },
+            hero = if (design == ImasProducerCardDesign.Oshi) content.heroOshi.map { meishiOshi(it, ink) } else emptyList(),
             oshiCaption = content.oshiCaption,
             moreOshi = content.moreOshi,
             handle = content.handle,
@@ -321,6 +323,17 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
             scale = scale
         )
     }
+}
+
+/** 名刺の紙に刷る担当 1 人 (判子の色は明るい紙の上の担当色。自分の名刺は端末に取り込んだ写真)。 */
+@Composable
+private fun meishiOshi(item: ImasProducerCardOshi, ink: ImasMeishiInk): ImasMeishiOshi {
+    val file = rememberCustomImage(item.entityId)
+    return ImasMeishiOshi(
+        id = item.id, name = item.name, shortName = item.shortName,
+        color = ImasMeishiInk.stampColor(item.seed, item.brand, ink.ink),
+        picture = (item.imageUrl ?: file?.let { Uri.fromFile(it).toString() })?.let { ImasMeishiPicture.Url(it) }
+    )
 }
 
 @Composable
@@ -351,9 +364,12 @@ private fun frontLabel(c: ImasProducerCardContent): String {
     if (c.design is ImasProducerCardDesign.Face) return "${c.name}の名刺の画像"
     val parts = mutableListOf("${c.name}の名刺")
     c.sinceImprint?.let { parts += it }
-    val names = c.faceGroups.flatMap { g -> g.oshi.map { it.name } }
-    if (names.isNotEmpty()) {
-        val joined = names.joinToString("、")
+    if (c.faceGroups.isNotEmpty()) {
+        // 読み上げはブランドごとに「765AS 星井美希」(ブランド名を刷る名刺で 2 ブランド以上のときだけ。ほかは名前だけ)。
+        val joined = c.faceGroups.joinToString("、") { group ->
+            val members = group.oshi.joinToString("、") { it.name }
+            if (c.faceGroups.size > 1 && group.label.isNotEmpty()) "${group.label} $members" else members
+        }
         parts += if (c.moreOshi > 0) "担当 $joined ほか${c.moreOshi}人" else "担当 $joined"
     }
     c.handle?.let { parts += it }

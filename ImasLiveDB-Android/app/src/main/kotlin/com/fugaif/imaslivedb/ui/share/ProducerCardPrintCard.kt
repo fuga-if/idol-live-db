@@ -75,7 +75,7 @@ data class ProducerCardPrintOshi(
 /** 紙に刷る担当のブランドごとのまとまり (コアの `CardFaceOshiGroup`)。 */
 data class ProducerCardPrintOshiGroup(val label: String, val oshi: List<ProducerCardPrintOshi>)
 
-/** 表。デザイン (入場証・かしこまった名刺・ポップ) ごとに組みを変える。載せるものは画面の名刺と同じ。 */
+/** 表。デザイン (入場証・かしこまった名刺・ポップ・担当を大きく) ごとに組みを変える。載せるものは画面の名刺と同じ。 */
 @Composable
 fun ProducerCardPrintFront(
     name: String,
@@ -84,6 +84,8 @@ fun ProducerCardPrintFront(
     sinceImprint: String? = null,
     /** 表に並べる担当のまとまり (コアの `CardFace.oshiGroups` の順)。 */
     groups: List<ProducerCardPrintOshiGroup> = emptyList(),
+    /** 担当を大きく並べる順 (担当を大きく のデザイン。コアの `CardFace.heroIdolIds`)。 */
+    hero: List<ProducerCardPrintOshi> = emptyList(),
     /** 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。 */
     caption: String? = null,
     moreOshi: Int = 0,
@@ -101,21 +103,22 @@ fun ProducerCardPrintFront(
     val colors = ProducerCardPrint.colors(seed)
     ImasMeishiFront(
         name = name, ink = colors, look = look, sinceImprint = sinceImprint,
-        oshiGroups = groups.map { group ->
-            ImasMeishiOshiGroup(group.label, group.oshi.map {
-                ImasMeishiOshi(
-                    id = it.id, name = it.name, shortName = it.shortName,
-                    color = stampColor(it.seed),
-                    picture = it.image?.let { image -> ImasMeishiPicture.Image(image) }
-                )
-            })
-        },
+        oshiGroups = groups.map { group -> ImasMeishiOshiGroup(group.label, group.oshi.map { meishiOshi(it) }) },
+        hero = hero.map { meishiOshi(it) },
         oshiCaption = caption, moreOshi = moreOshi, handle = handle, nameFamily = nameFamily,
         portrait = portrait?.let { ImasMeishiPicture.Image(it) },
         portraitRound = portraitRound,
         scale = ProducerCardPrint.PAPER_SCALE
     )
 }
+
+/** 紙に刷る担当 1 人 (写真は読み込み済みのものだけ)。 */
+@Composable
+private fun meishiOshi(oshi: ProducerCardPrintOshi): ImasMeishiOshi = ImasMeishiOshi(
+    id = oshi.id, name = oshi.name, shortName = oshi.shortName,
+    color = stampColor(oshi.seed),
+    picture = oshi.image?.let { ImasMeishiPicture.Image(it) }
+)
 
 /** 担当の判子の色。 */
 @Composable
