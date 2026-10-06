@@ -3190,11 +3190,15 @@ a.cal__day:hover {
 }
 
 /* --- P名刺 (`/p/`) ---------------------------------------------------------
+   名刺そのものは 91:55 の横長の紙 1 枚 (アプリの名刺・紙に刷る画像と同じ組み)。
+   表は名前・P歴の印字・担当 (数で畳む。並べる人はコアの producer_card_face)・ハンドル 1 つ。
+   文字は紙の幅に合わせて伸び縮みする (container query の cqi。紙の上の大きさで決める)。
+   収まらない詳細 (ひとこと・担当・リンク・記録) は名刺の下の紙面 (.meishi-details) に並べる。
    名刺のデザインは 3 つ (`data-design`。キーの一覧の正は imas-core の card_designs)。
    並び (DOM) は同じで、見た目だけを変える。自作の画像の名刺は Web に画像が無いので入場証。
-   - pass   「担当の入場証を 1 枚に広げた紙」: 上に担当色の帯、帯と本体の間は切り取り線。
-   - formal かしこまった名刺: 明朝、角の小さい白い紙に細い枠。担当色は名前の上の細い罫だけ。
-   - pop    ポップ: 丸い太字、墨の太い枠と太い帯、名前に担当色の太い下線。
+   - pass   入場証: 左に担当色の縦の帯。
+   - formal かしこまった名刺: 明朝、角の小さい紙に細い枠。担当色は名前の上の細い罫だけ。
+   - pop    ポップ: 丸い太字、墨の太い枠と担当色の太い帯、名前に担当色の太い下線。
    どれも帯・罫・下線以外はカードの地色のまま (淡い色の地のカードは却下済み)。 */
 .meishi {
   display: flex;
@@ -3206,88 +3210,166 @@ a.cal__day:hover {
   font-size: var(--fs-subhead);
 }
 .meishi-card {
+  container-type: inline-size;
   display: flex;
-  flex-direction: column;
-  border-radius: var(--r-xl);
+  inline-size: 100%;
+  max-inline-size: 480px;
+  margin-inline: auto;
+  aspect-ratio: 91 / 55;
+  border-radius: var(--r-xs);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow1);
   overflow: clip;
 }
 .meishi-card__band {
-  block-size: 10px;
-  background: var(--accent, var(--ds-line));
-  border-block-end: 1.5px dashed var(--ds-line);
+  flex: none;
+  inline-size: 5cqi;
+  background: var(--accent, var(--ds-ink));
 }
 .meishi-card__body {
+  flex: 1;
+  min-inline-size: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp4);
-  padding: var(--sp7) var(--sp6);
+  gap: 1.5cqi;
+  padding: 4.5cqi 5cqi;
+}
+/* 印字は上、名前と担当は真ん中、ハンドルは下。 */
+.meishi-card__name,
+.meishi-card__footer {
+  margin-block-start: auto;
+}
+.meishi-card__imprint {
+  font-family: ui-monospace, monospace;
+  font-size: 1.9cqi;
+  letter-spacing: 0.17em;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meishi-card__imprint-head::after {
+  content: "PRODUCER PASS";
+}
+[data-meishi-imprint]:not(:empty)::before {
+  content: " · ";
 }
 .meishi-card__name {
-  font-family: var(--font-display);
-  font-size: var(--fs-title1);
-}
-/* 名前の書体はデザインが決める (imas-core の card_design_info の font)。書体の断片は
-   card-fonts.css (/p/ だけが読む)。字が無ければ見出しの書体に落ちる。 */
-.meishi-card[data-design="pass"] .meishi-card__name {
   font-family: "Zen Kaku Gothic New", var(--font-display);
   font-weight: 900;
+  font-size: 7.4cqi;
+  line-height: 1.15;
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+.meishi-card__face-oshi {
+  font-size: 2.4cqi;
+  color: var(--ds-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meishi-card__footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqi;
+}
+.meishi-card__handle {
+  font-family: ui-monospace, monospace;
+  font-size: 2.3cqi;
+  color: var(--ds-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meishi-card__brand {
+  flex: none;
+  font-family: ui-monospace, monospace;
+  font-size: 1.6cqi;
+  letter-spacing: 0.2em;
+  color: var(--ds-ink2);
 }
 
-/* かしこまった名刺 */
+/* かしこまった名刺 (帯の代わりに名前の上の細い罫) */
 .meishi-card[data-design="formal"] {
-  border-radius: var(--r-xs);
   border: 1px solid var(--ds-line);
   box-shadow: none;
 }
 .meishi-card[data-design="formal"] .meishi-card__band {
-  block-size: 2px;
-  margin: var(--sp7) var(--sp6) 0;
-  border-block-end: 0;
+  display: none;
+}
+.meishi-card[data-design="formal"] .meishi-card__body {
+  padding: 5.5cqi 7cqi;
+}
+.meishi-card[data-design="formal"] .meishi-card__imprint {
+  font-family: "IMAS Card mincho", serif;
+  padding-block-end: 1.4cqi;
+  border-block-end: 1px solid var(--accent, var(--ds-ink));
+}
+.meishi-card[data-design="formal"] .meishi-card__imprint-head::after {
+  content: "PRODUCER";
 }
 .meishi-card[data-design="formal"] .meishi-card__name {
   font-family: "IMAS Card mincho", var(--font-display);
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
-.meishi-card[data-design="formal"] .meishi-card__oshi a {
-  font-weight: 400;
-  color: var(--ds-ink);
-}
-.meishi-card[data-design="formal"] .meishi-card__board {
-  border-block-start: 1px solid var(--ds-line);
+.meishi-card[data-design="formal"] .meishi-card__handle,
+.meishi-card[data-design="formal"] .meishi-card__brand,
+.meishi-card[data-design="formal"] .meishi-card__face-oshi {
+  font-family: serif;
 }
 
-/* ポップ */
+/* ポップ (墨の太い枠・上に担当色の太い帯) */
 .meishi-card[data-design="pop"] {
-  border: 3px solid var(--ds-ink);
+  flex-direction: column;
+  border: 1.4cqi solid var(--ds-ink);
   box-shadow: none;
 }
 .meishi-card[data-design="pop"] .meishi-card__band {
-  block-size: 22px;
-  border-block-end: 3px solid var(--ds-ink);
+  inline-size: auto;
+  block-size: 7cqi;
+  border-block-end: 0.8cqi solid var(--ds-ink);
+}
+.meishi-card[data-design="pop"] .meishi-card__body {
+  padding: 3cqi 4.5cqi;
+}
+.meishi-card[data-design="pop"] .meishi-card__imprint {
+  order: -1;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+.meishi-card[data-design="pop"] .meishi-card__imprint-head::after {
+  content: "PRODUCER!";
 }
 .meishi-card[data-design="pop"] .meishi-card__name {
   font-family: "IMAS Card pop", var(--font-display);
   font-weight: 400;
-  font-size: var(--fs-large);
-  text-decoration: underline var(--accent) 0.18em;
+  text-decoration: underline var(--accent, var(--ds-ink)) 0.18em;
   text-underline-offset: 0.18em;
   text-decoration-skip-ink: none;
 }
-.meishi-card[data-design="pop"] .meishi-card__board {
-  border-block-start: 3px solid var(--ds-ink);
+.meishi-card[data-design="pop"] .meishi-card__handle,
+.meishi-card[data-design="pop"] .meishi-card__face-oshi {
+  font-family: var(--font-display);
+  font-weight: 800;
 }
-.meishi-card__message {
-  color: var(--ds-ink2);
+
+/* 名刺の下の紙面 */
+.meishi-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp7);
 }
-.meishi-card__since {
+.meishi-details__message {
+  font-size: var(--fs-body);
+}
+.meishi-details__since {
   font-size: var(--fs-footnote);
   color: var(--ds-ink2);
 }
-.meishi-card__oshi,
-.meishi-card__links {
+.meishi-details__oshi,
+.meishi-details__links {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp2) var(--sp4);
@@ -3295,11 +3377,11 @@ a.cal__day:hover {
   margin: 0;
   padding: 0;
 }
-.meishi-card__oshi a {
+.meishi-details__oshi a {
   font-weight: 700;
   color: var(--accent, var(--ds-ink));
 }
-.meishi-card__links a {
+.meishi-details__links a {
   display: inline-flex;
   align-items: baseline;
   gap: var(--sp2);
@@ -3309,7 +3391,7 @@ a.cal__day:hover {
   font-weight: 700;
   color: var(--ds-ink2);
 }
-.meishi-card__board {
+.meishi-details__board {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -3317,22 +3399,22 @@ a.cal__day:hover {
   padding-block-start: var(--sp4);
   border-block-start: 1.5px dashed var(--ds-line);
 }
-.meishi-card__digit {
+.meishi-details__digit {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-.meishi-card__digit-value {
+.meishi-details__digit-value {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-title2);
   font-weight: 700;
 }
-.meishi-card__digit-label {
+.meishi-details__digit-label {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
 }
-.meishi-card__next {
+.meishi-details__next {
   display: flex;
   align-items: baseline;
   gap: var(--sp2);
@@ -3341,7 +3423,7 @@ a.cal__day:hover {
 .meishi-card__next-label {
   color: var(--ds-ink2);
 }
-.meishi-card__asof {
+.meishi-details__asof {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
   text-align: end;

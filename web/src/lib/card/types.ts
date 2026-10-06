@@ -39,3 +39,20 @@ export interface CardView {
   /** 自分の QR (題は「QR」のリンクの形)。無ければ `null`。 */
   qrLink: CardLinkView | null;
 }
+
+/**
+ * 名刺の表 (91:55) に載せるもの。フィールド名・形は Rust の `CardFace`
+ * (`imas_core::domain::producer_card::producer_card_face`) と 1:1。
+ */
+export interface CardFace {
+  /** 表に並べる担当 (台帳にある担当だけを渡して、残りから選んだもの)。 */
+  oshiIdolIds: string[];
+  /** 表に並べきれず数で畳んだ担当の人数。0 なら畳まない。 */
+  moreOshi: number;
+  /** 表に刷るハンドル 1 つ。 */
+  handle: CardLinkView | null;
+  /** `"SINCE 2014"`。 */
+  sinceImprint: string | null;
+  /** `"2026.10.06 時点"`。 */
+  issuedLabel: string;
+}

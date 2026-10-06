@@ -10,17 +10,23 @@
  * `catalog.unreadableText` を出す。どちらの場合も「アプリで開く」導線は出す
  * (名刺が読めなくても、アプリの方は読めるかもしれない)。
  */
-import { decodeCard } from "./decode";
+import { decodeCard, decodeCardFace } from "./decode";
 import type { CardCatalog } from "../schema/CardCatalog";
 import type { Ref } from "../schema/Ref";
-import type { CardLinkView, CardView } from "./types";
+import type { CardFace, CardLinkView, CardView } from "./types";
 
 interface Elements {
   root: HTMLElement;
   status: HTMLElement;
   card: HTMLElement;
   band: HTMLElement;
+  imprint: HTMLElement;
   name: HTMLElement;
+  faceOshi: HTMLElement;
+  handle: HTMLElement;
+  details: HTMLElement;
+  oshiSection: HTMLElement;
+  linksSection: HTMLElement;
   message: HTMLElement;
   since: HTMLElement;
   oshi: HTMLElement;
@@ -40,7 +46,13 @@ function elements(): Elements | null {
   const status = document.querySelector<HTMLElement>("[data-meishi-status]");
   const card = document.querySelector<HTMLElement>("[data-meishi-card]");
   const band = document.querySelector<HTMLElement>("[data-meishi-band]");
+  const imprint = document.querySelector<HTMLElement>("[data-meishi-imprint]");
   const name = document.querySelector<HTMLElement>("[data-meishi-name]");
+  const faceOshi = document.querySelector<HTMLElement>("[data-meishi-face-oshi]");
+  const handle = document.querySelector<HTMLElement>("[data-meishi-handle]");
+  const details = document.querySelector<HTMLElement>("[data-meishi-details]");
+  const oshiSection = document.querySelector<HTMLElement>("[data-meishi-oshi-section]");
+  const linksSection = document.querySelector<HTMLElement>("[data-meishi-links-section]");
   const message = document.querySelector<HTMLElement>("[data-meishi-message]");
   const since = document.querySelector<HTMLElement>("[data-meishi-since]");
   const oshi = document.querySelector<HTMLElement>("[data-meishi-oshi]");
@@ -54,14 +66,15 @@ function elements(): Elements | null {
   const caseScheme = document.querySelector<HTMLAnchorElement>("[data-meishi-case-scheme]");
   const unreadable = document.querySelector<HTMLElement>("[data-meishi-unreadable]");
   if (
-    !root || !status || !card || !band || !name || !message || !since || !oshi || !links ||
+    !root || !status || !card || !band || !imprint || !name || !faceOshi || !handle || !details ||
+    !oshiSection || !linksSection || !message || !since || !oshi || !links ||
     !showCount || !songCount || !next || !asof || !caseBox || !caseNote || !caseScheme ||
     !unreadable
   ) {
     return null;
   }
   return {
-    root, status, card, band, name, message, since, oshi, links, showCount, songCount, next,
+    root, status, card, band, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
     asof, caseBox, caseNote, caseScheme, unreadable,
   };
 }
@@ -135,8 +148,26 @@ function renderNext(el: HTMLElement, showId: string | null, shows: readonly Ref[
   el.hidden = false;
 }
 
-function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
+/** 名刺の表の担当 (「天海春香・如月千早 ほか2人 担当」)。並べる人と畳む数は wasm (`producer_card_face`)。 */
+function renderFaceOshi(el: HTMLElement, face: CardFace, idols: readonly Ref[]): void {
+  const names = face.oshiIdolIds
+    .map((id) => refById(idols, id)?.name)
+    .filter((n): n is string => n !== undefined);
+  if (names.length === 0) {
+    el.hidden = true;
+    return;
+  }
+  const more = face.moreOshi > 0 ? ` ほか${face.moreOshi}人` : "";
+  el.textContent = `${names.join("・")}${more} 担当`;
+  el.hidden = false;
+}
+
+function renderCard(e: Elements, card: CardView, face: CardFace, catalog: CardCatalog): void {
   e.name.textContent = card.name;
+  // 左上の印字の頭 (PRODUCER PASS 等) はデザインごとに CSS が出す。ここは P 歴だけ。
+  e.imprint.textContent = face.sinceImprint ?? "";
+  renderFaceOshi(e.faceOshi, face, catalog.idols);
+  e.handle.textContent = face.handle?.display ?? "";
   // デザインはキーを置くだけ (書体と並びは CSS の `[data-design]`)。
   e.card.dataset.design = card.design;
 
@@ -166,7 +197,11 @@ function renderCard(e: Elements, card: CardView, catalog: CardCatalog): void {
 
   e.asof.textContent = card.issuedOnDisplay;
 
+  e.oshiSection.hidden = e.oshi.childElementCount === 0;
+  e.linksSection.hidden = e.links.childElementCount === 0;
+
   e.card.hidden = false;
+  e.details.hidden = false;
 }
 
 async function run(): Promise<void> {
@@ -204,12 +239,23 @@ async function run(): Promise<void> {
     card = null;
   }
 
+  let face: CardFace | null = null;
+  if (card) {
+    // 台帳にある担当だけを渡す (無い担当は名刺に出さないので、畳む数にも数えない)。
+    const drawable = card.oshiIdolIds.filter((id) => refById(catalog.idols, id) !== undefined);
+    try {
+      face = await decodeCardFace(payload, drawable);
+    } catch {
+      face = null;
+    }
+  }
+
   e.status.hidden = true;
-  if (!card) {
+  if (!card || !face) {
     e.unreadable.hidden = false;
     return;
   }
-  renderCard(e, card, catalog);
+  renderCard(e, card, face, catalog);
 }
 
 void run();

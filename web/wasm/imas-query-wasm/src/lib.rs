@@ -16,7 +16,8 @@ use imas_core::domain::idol_list_filtering::{
     filter_idol_list, idol_list_entries, sort_idol_list, IdolListEntry, IdolQuery,
 };
 use imas_core::domain::producer_card::{
-    card_link_view, card_qr_link_view, decode_producer_card, producer_card_display_design, CardLinkView,
+    card_link_view, card_qr_link_view, decode_producer_card, producer_card_display_design,
+    producer_card_face, CardLinkView,
 };
 use imas_core::domain::{idol_queries, list_facets};
 use wasm_bindgen::prelude::*;
@@ -159,6 +160,18 @@ pub fn decode_producer_card_json(text: &str) -> Result<JsValue, JsValue> {
         qr_link,
     };
     let json = to_json(&view)?;
+    Ok(JsValue::from_str(&json))
+}
+
+/// 名刺の表 (91:55) に載せるもの (`producer_card_face`: 表に並べる担当・数で畳んだ人数・ハンドル 1 つ・
+/// P 歴の印字)。`drawable_idol_ids` は台帳 (`p/catalog.json`) にある担当の id (ページが突き合わせた残り)。
+/// 名刺でなければ `null`。
+#[wasm_bindgen]
+pub fn producer_card_face_json(text: &str, drawable_idol_ids: Vec<String>) -> Result<JsValue, JsValue> {
+    let Some(card) = decode_producer_card(text) else {
+        return Ok(JsValue::NULL);
+    };
+    let json = to_json(&producer_card_face(&card, &drawable_idol_ids))?;
     Ok(JsValue::from_str(&json))
 }
 
