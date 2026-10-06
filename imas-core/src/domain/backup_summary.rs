@@ -176,7 +176,7 @@ pub struct BackupMyProducerCardRecord {
     /// 自分の QR の URL。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
-    /// プロフィール帳の中身 (`profile_sheet_to_json`)。空はまだ作っていない。
+    /// P名刺の画像の中身 (`profile_sheet_to_json`)。空はまだ作っていない。
     #[uniffi(default = "")]
     pub profile_json: String,
 }
@@ -1253,7 +1253,7 @@ mod tests {
         assert_eq!(plan.added_producer_cards, 2);
     }
 
-    /// デザイン・自分の QR・プロフィール帳も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
+    /// デザイン・自分の QR・P名刺の画像も運ぶ。無ければキーを出さない (足す前の版と同じ payload)。
     #[test]
     fn my_card_design_and_qr_round_trip() {
         let mut input = export_input();

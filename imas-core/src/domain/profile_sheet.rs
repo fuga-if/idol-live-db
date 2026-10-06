@@ -1,6 +1,8 @@
-//! プロフィール帳 (SNS に貼る自己紹介の 1 枚絵) の中身・欄の割り当て・行の組み立て。
+//! P名刺の画像 (SNS に貼る自己紹介の 1 枚絵) の中身・欄の割り当て・行の組み立て。
 //!
-//! P名刺 (QR で交換する名刺) の続きで、P を「職業」に見立てた **履歴書** の様式で 1 枚にする
+//! P名刺の 3 つ目の出し方 (交換する・紙に刷る・SNS に貼る画像)。名刺は交換するもの (誰で、どうつながれるか)、
+//! この画像は見せるもの (どんな P か)。2026-10 に「P名刺の画像」という別の機能をやめて P名刺に一本化した。
+//! P を「職業」に見立てた **履歴書** の様式で 1 枚にする
 //! (職務経歴書の様式は 2026-10 にやめた。1 つに絞り、絵になる証明写真・押印・担当ブランドの丸のある履歴書を残した)。
 //! **自分で書く欄は無い**。中身はすべてアプリの記録から埋まり、本人は大きさと載せる記録を選ぶだけ。
 //!
@@ -17,11 +19,11 @@
 //! どの記録がどの欄に入るか・欄の並び・行の組み立て・上限・文字の詰め方 (`ProfileSheetDensity`)・
 //! 担当ブランドの丸はここで決め、端末 (iOS / Android) はこの結果を描くだけにする。
 //! 担当ブランドの丸はアプリ全体の設定 (`brand_role`。担当 = 丸・メイン = 二重丸、メインは複数可) から描き、
-//! 設定がまだ無ければ記録から組んだ既定を使う。プロフィール帳の中では丸を上書きしない。
+//! 設定がまだ無ければ記録から組んだ既定を使う。P名刺の画像の中では丸を上書きしない。
 //!
-//! 保存するのは選択だけ (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`。好きな曲は曲 id の並び)。
-//! 名前・P歴・書体・リンク・自分の QR は P名刺のものを使う。証明写真の欄は P名刺の写真か、
-//! プロフィール帳だけの画像 (端末が持つ)。
+//! 保存するのは選択だけ (自分の P名刺の行に JSON で持つ。`profile_sheet_to_json`)。大きさと外した欄は画像の
+//! 画面で、好きな曲 (曲 id の並び) は P名刺の編集で選ぶ (好きな曲は P名刺の項目。名刺の QR には入らない)。
+//! 名前・P歴・書体・リンク・自分の QR・証明写真の欄の写真は P名刺のものを使う。
 
 use crate::domain::brand_role::{
     brand_role_settings, BrandRole, BrandRoleBrand, BrandRoleRecord, BrandRoleVisit,
@@ -89,7 +91,7 @@ pub enum ProfileSheetDensity {
     Tight,
 }
 
-/// プロフィール帳の選択 (端末に保存するもの)。中身は毎回アプリの記録から組む。
+/// P名刺の画像の選択 (端末に保存するもの)。中身は毎回アプリの記録から組む。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct ProfileSheet {
     pub size: ProfileSheetSize,
@@ -159,7 +161,7 @@ pub struct ProfileBrandInput {
     pub sort_order: i64,
 }
 
-/// プロフィール帳の材料。名前・P歴・リンク・QR は P名刺から、ほかはアプリの記録から。
+/// P名刺の画像の材料。名前・P歴・リンク・QR は P名刺から、ほかはアプリの記録から。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct ProfileSheetRecord {
     /// 今日 (`YYYY-MM-DD`、JST)。
@@ -179,7 +181,7 @@ pub struct ProfileSheetRecord {
     pub favorite_songs: Vec<ProfileSongInput>,
     /// 連絡先に出すリンク (`card_link_view` の display)。
     pub links: Vec<String>,
-    /// 証明写真の欄に入れる画像があるか (プロフィール帳の画像か P名刺の写真)。
+    /// 証明写真の欄に入れる画像があるか (P名刺の画像の画像か P名刺の写真)。
     pub has_photo: bool,
     /// P名刺に自分の QR があるか。
     pub has_qr: bool,
@@ -395,7 +397,7 @@ fn auto_field_from_key(key: &str) -> Option<ProfileAutoField> {
         .find(|f| profile_auto_field_info(*f).key == key)
 }
 
-/// 保存の形。前の版が書いた `style` (職務経歴書)・`brandOn` / `brandOff` / `brandMain` (プロフィール帳の中の
+/// 保存の形。前の版が書いた `style` (職務経歴書)・`brandOn` / `brandOff` / `brandMain` (P名刺の画像の中の
 /// 丸の上書き)・`furigana` / `answers` / `songs` (自分で書く欄) は読み捨てる (serde は知らないキーを無視する)。
 /// 選んだ好きな曲は `songIds` (前の版の `songs` とは別のキー。無ければまだ選んでいない)。
 #[derive(serde::Serialize, serde::Deserialize, Default)]
@@ -851,7 +853,7 @@ fn history_row(day: NaiveDate, text: String, kind: ProfileHistoryKind) -> Profil
 // 担当ブランド (アプリ全体の設定から丸を付ける・メインは二重丸)
 // ---------------------------------------------------------------------------
 
-/// 担当ブランドの設定の材料 (プロフィール帳の材料から)。
+/// 担当ブランドの設定の材料 (P名刺の画像の材料から)。
 fn brand_role_record(record: &ProfileSheetRecord) -> BrandRoleRecord {
     BrandRoleRecord {
         today: record.today.clone(),

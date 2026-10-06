@@ -9,7 +9,7 @@
 //! - 3 段の値は段の番号 (0 = なし・1 = 担当・2 = メイン) で端末のスライダーと受け渡す
 //!   ([`brand_role_steps`] / [`brand_role_from_index`])。
 //!
-//! プロフィール帳の担当ブランドの丸 (担当 = 丸・メイン = 二重丸) はこの設定から描く。
+//! P名刺の画像の担当ブランドの丸 (担当 = 丸・メイン = 二重丸) はこの設定から描く。
 
 use chrono::NaiveDate;
 use std::collections::HashMap;
@@ -285,7 +285,7 @@ pub fn brand_roles_to_json(rows: &[BrandRoleRow]) -> String {
     serde_json::to_string(&dto).unwrap_or_default()
 }
 
-/// 保存の形の段 (並べるブランドに限らない。バックアップの取り込み・プロフィール帳が読む)。
+/// 保存の形の段 (並べるブランドに限らない。バックアップの取り込み・P名刺の画像が読む)。
 pub fn brand_role_of(json: &str, brand_id: &str) -> Option<BrandRole> {
     saved_roles(json).map(|m| m.get(brand_id).copied().unwrap_or_default())
 }

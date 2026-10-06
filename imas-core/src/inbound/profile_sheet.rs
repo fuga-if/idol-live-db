@@ -1,4 +1,4 @@
-//! プロフィール帳の FFI 面。ロジックは domain::profile_sheet。
+//! P名刺の画像の FFI 面。ロジックは domain::profile_sheet。
 
 use crate::domain::profile_sheet::{
     ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck, ProfileSheet,

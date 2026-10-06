@@ -129,6 +129,10 @@ pub struct ProducerCard {
     /// 受け取った側では「QR」というリンクの 1 本として出す (`card_qr_link_view`)。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
+    /// 表の判子の下にブランドの略称を刷る (担当が 2 ブランド以上のときのまとまりの名前と、
+    /// 1 ブランドで数で畳んだ「765AS 5人 担当」の略称)。既定は刷らない。決めるのは `producer_card_face`。
+    #[uniffi(default = false)]
+    pub show_brand_labels: bool,
 }
 
 /// 自分の名刺を作るときの材料。数や公演はアプリの記録から、名前などは編集画面から。
@@ -149,6 +153,9 @@ pub struct ProducerCardInput {
     /// 自分の QR の URL。入力のまま渡してよい (組み立てで `normalize_card_qr_url` を通す)。
     #[uniffi(default = None)]
     pub qr_url: Option<String>,
+    /// 表の判子の下にブランドの略称を刷る ([`ProducerCard::show_brand_labels`])。
+    #[uniffi(default = false)]
+    pub show_brand_labels: bool,
 }
 
 /// 組み上がった名刺と QR に入れる URL。
@@ -340,6 +347,7 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
             .as_deref()
             .filter(|u| !u.trim().is_empty())
             .and_then(normalize_card_qr_url),
+        show_brand_labels: input.show_brand_labels,
     };
 
     let total = card.attended.len();
@@ -733,6 +741,9 @@ pub enum CardDesign {
     Formal,
     /// ポップ。丸い太字・太い線・担当色をはっきり。
     Pop,
+    /// 担当を大きく。表の左半分に担当の画像を大きく (複数なら分けて) 並べ、右に名前・P歴・ハンドル。
+    /// 画像の無い担当は大きな判子。
+    Oshi,
     /// 自作の画像。自分で作った名刺の画像 (表・任意で裏) がそのまま名刺の顔になる。
     Custom,
 }
@@ -746,7 +757,7 @@ pub enum CardNameFont {
     Gothic,
     /// 明朝 (かしこまった名刺)。
     Mincho,
-    /// ポップ体 (ポップ・プロフィール帳の題)。
+    /// ポップ体 (ポップ・P名刺の画像の題)。
     Pop,
 }
 
@@ -780,7 +791,7 @@ pub struct CardDesignInfo {
     pub key: String,
     /// 編集画面に出す名前 (「かしこまった名刺」)。
     pub label: String,
-    /// 名前に使う書体 (プロフィール帳もこの書体)。
+    /// 名前に使う書体 (P名刺の画像もこの書体)。
     pub font: CardNameFontInfo,
     /// 自作の画像を名刺の顔にするデザイン (表の画像が要る)。
     pub uses_face_image: bool,
@@ -792,10 +803,11 @@ const ALL_NAME_FONTS: [CardNameFont; 3] = [
     CardNameFont::Pop,
 ];
 
-const ALL_DESIGNS: [CardDesign; 4] = [
+const ALL_DESIGNS: [CardDesign; 5] = [
     CardDesign::Pass,
     CardDesign::Formal,
     CardDesign::Pop,
+    CardDesign::Oshi,
     CardDesign::Custom,
 ];
 
@@ -843,6 +855,7 @@ pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
         CardDesign::Pass => ("pass", "入場証", CardNameFont::Gothic),
         CardDesign::Formal => ("formal", "かしこまった名刺", CardNameFont::Mincho),
         CardDesign::Pop => ("pop", "ポップ", CardNameFont::Pop),
+        CardDesign::Oshi => ("oshi", "担当を大きく", CardNameFont::Gothic),
         CardDesign::Custom => ("custom", "自作の画像", CardNameFont::Gothic),
     };
     CardDesignInfo {
@@ -888,23 +901,33 @@ pub fn card_design_from_key(key: &str) -> Option<CardDesign> {
 /// 中身に書くデザインの番号。書体を選んでいた頃の番号 (0 ゴシック・1 明朝・2 丸ゴシック・
 /// 3 ポップ・4 手書き) と同じ場所に入れるので、明朝とポップは同じ番号のまま
 /// (書体の版のアプリでも、かしこまった名刺は明朝・ポップはポップ体で出る)。
+/// 担当を大きく (6) を知らない版のアプリは既定のデザイン (入場証) で描く。
 fn design_code(design: CardDesign) -> u8 {
     match design {
         CardDesign::Pass => 0,
         CardDesign::Formal => 1,
         CardDesign::Pop => 3,
         CardDesign::Custom => 5,
+        CardDesign::Oshi => 6,
     }
 }
+
+/// デザインの 1 バイトのうち、デザインの番号に使う下位の 4 bit。
+const DESIGN_CODE_MASK: u8 = 0x0F;
+/// デザインの 1 バイトの上位の旗: 表にブランドの略称を刷る (`ProducerCard::show_brand_labels`)。
+/// 旗だけ立てる名刺は既定のデザイン (0) と一緒に書く。旗を知らない版のアプリは
+/// 16 以上を知らない番号として既定のデザインで読み、名刺そのものは読める。
+const DESIGN_BRAND_LABELS: u8 = 0x10;
 
 /// 番号からデザインを戻す。書体の頃の丸ゴシック・手書きはポップに読み替える。
 /// 知らない番号 (新しい版のアプリが足したデザイン) は既定のデザインで読む
 /// (デザインが分からないだけで名刺を読めなくはしない)。
 fn design_from_code(code: u8) -> Option<CardDesign> {
-    let design = match code {
+    let design = match code & DESIGN_CODE_MASK {
         1 => CardDesign::Formal,
         2..=4 => CardDesign::Pop,
         5 => CardDesign::Custom,
+        6 => CardDesign::Oshi,
         _ => CardDesign::Pass,
     };
     (design != CardDesign::default()).then_some(design)
@@ -1016,7 +1039,7 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
         flags |= 1 << 4;
     }
     let design = card.design.filter(|d| *d != CardDesign::default());
-    if design.is_some() {
+    if design.is_some() || card.show_brand_labels {
         flags |= FLAG_DESIGN;
     }
     if card.qr_url.is_some() {
@@ -1055,8 +1078,13 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
         w.extend_from_slice(&s.tag.to_le_bytes());
         prev = s.day;
     }
-    if let Some(design) = design {
-        w.push(design_code(design));
+    if design.is_some() || card.show_brand_labels {
+        let labels = if card.show_brand_labels {
+            DESIGN_BRAND_LABELS
+        } else {
+            0
+        };
+        w.push(design_code(design.unwrap_or_default()) | labels);
     }
     if let Some(url) = &card.qr_url {
         put_str(&mut w, url);
@@ -1115,11 +1143,13 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         let tag = u16::from_le_bytes([r.u8()?, r.u8()?]);
         attended.push(CardShowStamp { day, tag });
     }
-    let design = if flags & FLAG_DESIGN != 0 {
-        design_from_code(r.u8()?)
+    let design_byte = if flags & FLAG_DESIGN != 0 {
+        Some(r.u8()?)
     } else {
         None
     };
+    let design = design_byte.and_then(design_from_code);
+    let show_brand_labels = design_byte.is_some_and(|b| b & DESIGN_BRAND_LABELS != 0);
     let qr_url = if flags & FLAG_QR_URL != 0 {
         Some(r.str()?)
     } else {
@@ -1165,6 +1195,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         issued_on,
         design,
         qr_url,
+        show_brand_labels,
     })
 }
 
@@ -1403,9 +1434,14 @@ pub struct CardFace {
     /// 表に並べる担当 (`oshi_groups` を順に平らにしたもの。描けない担当は除いてから数える)。
     pub oshi_idol_ids: Vec<String>,
     /// 表に並べる担当のブランドごとのまとまり (ブランドは名刺の並びで先に出た順、中は名刺の並び順)。
+    /// ブランドの略称を刷らない名刺 (`ProducerCard::show_brand_labels` が false) は略称が空。
     pub oshi_groups: Vec<CardFaceOshiGroup>,
+    /// 「担当を大きく」のデザインで担当の画像を大きく並べる順 (`oshi_idol_ids` と同じ人)。
+    /// ブランドごとの代表 (まとまりの先頭) を先に、残りをまとまりの順で。先頭ほど大きな枠に入る。
+    pub hero_idol_ids: Vec<String>,
     /// 判子の下に刷る 1 行 (「星井美希 担当」「765AS 5人 担当」)。ブランドが 2 つ以上なら None で、
-    /// そのときは名前の代わりにまとまりごとにブランドの略称を判子の下に刷る。
+    /// そのときは名前の代わりにまとまりごとにブランドの略称を判子の下に刷る (略称を刷らない名刺は何も刷らない)。
+    /// 数で畳んだ行の略称も、略称を刷らない名刺では落とす (「5人 担当」)。
     pub oshi_caption: Option<String>,
     /// 表に並べきれず数で畳んだ担当の人数 (「+2」)。0 なら畳まない。
     pub more_oshi: u32,
@@ -1514,11 +1550,20 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
     let groups: Vec<CardFaceOshiGroup> = grouped
         .iter()
         .map(|(_, members)| CardFaceOshiGroup {
-            brand_label: members[0].brand_label.clone(),
+            brand_label: if card.show_brand_labels {
+                members[0].brand_label.clone()
+            } else {
+                String::new()
+            },
             idol_ids: members.iter().map(|o| o.idol_id.clone()).collect(),
         })
         .collect();
     let shown: Vec<String> = groups.iter().flat_map(|g| g.idol_ids.iter().cloned()).collect();
+    let hero: Vec<String> = groups
+        .iter()
+        .filter_map(|g| g.idol_ids.first().cloned())
+        .chain(groups.iter().flat_map(|g| g.idol_ids.iter().skip(1).cloned()))
+        .collect();
     let caption = card_face_caption(&groups, &names);
     let handle = card
         .links
@@ -1529,6 +1574,7 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
     CardFace {
         oshi_idol_ids: shown,
         oshi_groups: groups,
+        hero_idol_ids: hero,
         oshi_caption: caption,
         more_oshi: more,
         handle,
@@ -1647,7 +1693,7 @@ pub enum CardPhotoShape {
 }
 
 /// 名刺の写真の切り方 (X のアイコンは丸、写真から選んだ写真は正方形)。名刺の表・紙に刷る画像・
-/// 名刺入れの行・編集画面の枠、プロフィール帳の証明写真の欄 (枠は 3:4 のまま、丸は枠の中に置く) で同じ。
+/// 名刺入れの行・編集画面の枠、P名刺の画像の証明写真の欄 (枠は 3:4 のまま、丸は枠の中に置く) で同じ。
 pub fn card_photo_shape(source: CardPhotoSource) -> CardPhotoShape {
     match source {
         CardPhotoSource::Picked => CardPhotoShape::Square,
@@ -1982,6 +2028,7 @@ mod tests {
     #[test]
     fn card_face_shows_all_card_oshi_grouped_by_brand() {
         let mut card = encode_producer_card(&input()).card;
+        card.show_brand_labels = true;
         let all = five_in_four_brands();
         card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
         let face = producer_card_face(&card, &all);
@@ -2004,6 +2051,59 @@ mod tests {
         assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "misuzu", "sora", "momoko"]);
         // ブランドが 2 つ以上なら名前の行は刷らず、まとまりごとにブランドの略称を刷る。
         assert_eq!(face.oshi_caption, None);
+        // 大きく並べる順は、ブランドごとの代表が先 (学マスの 2 人目は後ろ)。
+        assert_eq!(face.hero_idol_ids, vec!["miki", "temari", "sora", "momoko", "misuzu"]);
+    }
+
+    #[test]
+    fn card_face_drops_brand_labels_unless_asked() {
+        let mut card = encode_producer_card(&input()).card;
+        let all = five_in_four_brands();
+        card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
+        // 既定は刷らない: まとまりは残るが略称は空。
+        assert!(!card.show_brand_labels);
+        let face = producer_card_face(&card, &all);
+        assert_eq!(face.oshi_groups.len(), 4);
+        assert!(face.oshi_groups.iter().all(|g| g.brand_label.is_empty()));
+        // 1 ブランドで数で畳む行も略称を落とす。
+        let many: Vec<CardOshiEntry> = ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
+            .iter()
+            .enumerate()
+            .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
+            .collect();
+        card.oshi_idol_ids = many.iter().map(|o| o.idol_id.clone()).collect();
+        assert_eq!(producer_card_face(&card, &many).oshi_caption.as_deref(), Some("5人 担当"));
+        card.show_brand_labels = true;
+        assert_eq!(producer_card_face(&card, &many).oshi_caption.as_deref(), Some("765AS 5人 担当"));
+    }
+
+    #[test]
+    fn brand_labels_ride_in_the_design_byte() {
+        // 既定 (刷らない・入場証) の名刺は旗を書かない (足す前と同じ中身)。
+        let plain = encode_producer_card(&input());
+        let mut labelled_input = input();
+        labelled_input.show_brand_labels = true;
+        let labelled = encode_producer_card(&labelled_input);
+        assert!(labelled.url.len() > plain.url.len());
+        let back = decode_producer_card(&labelled.url).unwrap();
+        assert!(back.show_brand_labels);
+        assert_eq!(back.design, None);
+        // デザインと一緒でも両方戻る。
+        labelled_input.design = Some(CardDesign::Oshi);
+        let back = decode_producer_card(&encode_producer_card(&labelled_input).url).unwrap();
+        assert!(back.show_brand_labels);
+        assert_eq!(back.design, Some(CardDesign::Oshi));
+        assert!(!decode_producer_card(&plain.url).unwrap().show_brand_labels);
+        // 旗を知らない版のアプリの読み方 (16 以上は知らない番号) と同じく、番号の下位だけでデザインを読む。
+        assert_eq!(design_from_code(DESIGN_BRAND_LABELS | 1), Some(CardDesign::Formal));
+    }
+
+    #[test]
+    fn oshi_design_reads_as_default_on_older_apps() {
+        // 担当を大きく (6) は、知らない版のアプリでは既定 (入場証) で読める番号。
+        assert_eq!(design_code(CardDesign::Oshi), 6);
+        assert_eq!(card_design_info(CardDesign::Oshi).key, "oshi");
+        assert!(!card_design_info(CardDesign::Oshi).uses_face_image);
     }
 
     #[test]
@@ -2020,6 +2120,7 @@ mod tests {
             .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
             .collect();
         card.oshi_idol_ids = many.iter().map(|o| o.idol_id.clone()).collect();
+        card.show_brand_labels = true;
         let face = producer_card_face(&card, &many);
         assert_eq!(face.oshi_caption.as_deref(), Some("765AS 5人 担当"));
         card.oshi_idol_ids.truncate(2);
@@ -2133,6 +2234,7 @@ mod tests {
             issued_on: "2026-10-06".into(),
             design: None,
             qr_url: None,
+            show_brand_labels: false,
         }
     }
 
@@ -2722,7 +2824,7 @@ mod tests {
     #[test]
     fn design_keys_and_codes_round_trip() {
         let designs = card_designs();
-        assert_eq!(designs.len(), 4);
+        assert_eq!(designs.len(), 5);
         assert_eq!(designs[0].design, CardDesign::default());
         for info in &designs {
             assert_eq!(card_design_from_key(&info.key), Some(info.design));
