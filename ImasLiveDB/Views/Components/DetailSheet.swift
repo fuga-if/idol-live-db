@@ -184,9 +184,10 @@ enum SongDetailTab: Int, CaseIterable, Hashable {
     }
 
     /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾 (`LyricsFeature`) に従う。
+    /// 歌詞の表示を閉じている間も、投稿を受け付けていれば投稿の入口として出す。
     /// セグメントバーも初期タブもここを唯一の根拠にする。
     static var available: [SongDetailTab] {
-        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable || LyricsFeature.acceptsSubmissions }
     }
 
     /// 出せないタブを指定されたときの落とし所。ディープリンクや保存された初期タブが
@@ -347,12 +348,6 @@ struct SongSheetContent: View {
                             }
                         } label: {
                             Label("この楽曲を編集", systemImage: "pencil")
-                        }
-                    }
-                    if LyricsFeature.acceptsSubmissions,
-                       lyricSubmissionAllowed(brandId: song.brandId ?? "", songType: song.songType, singerLabel: song.singerLabel) {
-                        Button { openLyricSubmission() } label: {
-                            Label("歌詞を投稿", systemImage: "text.quote")
                         }
                     }
                     if EditPermission.showEditAffordance {
@@ -645,10 +640,40 @@ struct SongSheetContent: View {
 
     /// 歌詞は束ね取得 (`/songs/{id}/detail`) に同梱されるので、常時読み込みでも
     /// リクエストは増えない。中身は `SongLyricsTab` (VM を読むだけ)。
+    @ViewBuilder
     private var lyricsTab: some View {
-        SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
-                      playback: lyricsPlayback) {
-            Task { await vm.loadServerData(song: song) }
+        if LyricsFeature.isAvailable {
+            SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
+                          playback: lyricsPlayback,
+                          onSubmitLyrics: canSubmitLyrics ? { openLyricSubmission() } : nil) {
+                Task { await vm.loadServerData(song: song) }
+            }
+        } else {
+            // 歌詞の表示を閉じている間は、投稿の入口だけを出す (歌詞は取りに行かない)。
+            lyricSubmissionInvite
+        }
+    }
+
+    /// この曲に歌詞を投稿できるか (投稿の受付中で、アイマス系ブランドのオリジナル曲)。
+    private var canSubmitLyrics: Bool {
+        LyricsFeature.acceptsSubmissions
+            && lyricSubmissionAllowed(brandId: song.brandId ?? "", songType: song.songType, singerLabel: song.singerLabel)
+    }
+
+    @ViewBuilder
+    private var lyricSubmissionInvite: some View {
+        if canSubmitLyrics {
+            ImasEmptyState(systemImage: "text.quote",
+                           title: "歌詞を募集しています",
+                           message: "CD の歌詞カードなどを見て、この曲の歌詞を入力してください。運営が確認してから公開します。",
+                           actionTitle: "歌詞を投稿",
+                           action: { openLyricSubmission() },
+                           seed: songSeed)
+        } else {
+            ImasEmptyState(systemImage: "text.quote",
+                           title: "この曲は歌詞の投稿の対象外です",
+                           message: "歌詞の投稿は、アイドルマスターシリーズのオリジナル曲だけ受け付けています。",
+                           seed: songSeed)
         }
     }
 

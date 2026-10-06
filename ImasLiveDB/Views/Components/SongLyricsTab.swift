@@ -31,6 +31,8 @@ struct SongLyricsTab: View {
     /// 色を敷いて示す行 (歌詞クイズの出題箇所)。スクロールは親 (`SongSheetContent`) が行 id で行う。
     var focusLineIds: Set<String> = []
     var playback = Playback()
+    /// 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。nil なら出さない (投稿の対象外・受付停止)。
+    var onSubmitLyrics: (() -> Void)? = nil
     /// 通信失敗時の再試行 (束ね取得のやり直し)。
     let reload: () -> Void
 
@@ -262,6 +264,8 @@ struct SongLyricsTab: View {
             ImasEmptyState(systemImage: "text.quote",
                            title: "歌詞はまだありません",
                            message: "この曲の歌詞はまだ登録されていません。",
+                           actionTitle: onSubmitLyrics == nil ? nil : "歌詞を投稿",
+                           action: onSubmitLyrics,
                            seed: seed)
         } else {
             ImasEmptyState(systemImage: "text.quote",
