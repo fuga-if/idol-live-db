@@ -50,6 +50,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
 import com.fugaif.imaslivedb.ui.ledger.LedgerShowPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDetails
 import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import java.io.File
 import java.util.UUID
@@ -160,10 +162,12 @@ fun ProducerCardReceiveContent(
                 verticalArrangement = Arrangement.spacedBy(DS.Space.section)
             ) {
                 if (card != null) {
-                    ProducerCardView(
+                    val content = rememberProducerCardContent(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
-                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl, face = face
+                        imageUrl = { imageUrls[it] }, portraitUrl = portraitUrl, face = face, payload = incoming.payload
                     )
+                    ImasProducerCard(content)
+                    ImasProducerCardDetails(content)
                     record?.let { CommonSummary(card, it, directory) }
                     ImasFormCard {
                         ImasFormLink(

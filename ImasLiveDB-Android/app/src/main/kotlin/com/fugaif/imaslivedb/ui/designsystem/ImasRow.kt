@@ -447,7 +447,7 @@ private fun ImasRowLeadingView(leading: ImasRowLeading, density: ImasRowDensity,
         }
         is ImasRowLeading.CardFace -> Box(Modifier.width(cardFaceLeadingWidth(density))) {
             ImasCardFace(
-                front = leading.url, label = "名刺の画像", thumbnail = true,
+                front = leading.url, label = "名刺の画像",
                 modifier = Modifier.width(density.avatarSize * 1.7f).padding(bottom = density.avatarSize * 0.2f)
             )
             leading.oshi?.let { oshi ->

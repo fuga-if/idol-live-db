@@ -1,13 +1,17 @@
 package com.fugaif.imaslivedb.ui.producercard
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasBoardCell
-import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardBack
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardContent
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardFaceGroup
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardLink
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardOshi
 import java.text.NumberFormat
@@ -22,6 +26,11 @@ import com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily
 import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.cardQrLinkView
 import uniffi.imas_core.producerCardDisplayDesign
+import uniffi.imas_core.CardOshiEntry
+import uniffi.imas_core.cardIssuedLabel
+import uniffi.imas_core.producerCardFace
+import uniffi.imas_core.producerCardPayload
+import uniffi.imas_core.producerCardUrlFromPayload
 
 /**
  * 名刺を描くのに要る、端末のマスタの引き当て (担当のアイドル・ブランド・公演)。iOS `ProducerCardDirectory` と対。
@@ -45,6 +54,15 @@ data class ProducerCardDirectory(
             }
             return ProducerCardDirectory(idols, brands, shows)
         }
+    }
+
+    /**
+     * 担当の名前とブランド (端末に無い担当は入れない)。名刺の表の組み・名刺に載せる担当の選び方はコア
+     * (`producerCardFace` / `producerCardPickOshi`)。
+     */
+    fun oshiEntries(ids: List<String>): List<CardOshiEntry> = ids.mapNotNull { id ->
+        val idol = idols[id] ?: return@mapNotNull null
+        CardOshiEntry(idolId = id, name = idol.name, brandId = idol.brandId, brandLabel = brands[idol.brandId]?.shortName.orEmpty())
     }
 }
 
@@ -118,8 +136,6 @@ object ProducerCardDisplay {
         card.nextShowId?.let { directory.shows[it] }?.let { add(ImasBoardCell(value = monthDay(it.date), label = "次の現場")) }
     }
 
-    fun sinceImprint(card: ProducerCard): String? = card.sinceYear?.let { "SINCE $it" }
-
     /** 掲示板の右上 (「2014 — 2026」)。P 歴が無ければ名刺を作った年だけ。 */
     fun boardTrailing(card: ProducerCard): String? {
         val issued = card.issuedOn.take(4)
@@ -149,46 +165,73 @@ object ProducerCardDisplay {
 }
 
 /**
- * 名刺 1 枚 (自分の名刺・受け取った名刺で同じ部品)。
+ * 名刺 1 枚に載せるもの (自分の名刺・受け取った名刺で同じ部品)。名刺は [ImasProducerCard]、名刺の下の詳細は
+ * [ImasProducerCardDetails] に同じものを渡す。iOS `ProducerCardDisplay.view`。
  * [portraitUrl] は名刺の写真、[face] は自作の名刺の画像 (自分の名刺は端末の画像、受け取った名刺は届いた画像。
  * QR だけで受け取った名刺には無いので、自作の画像の名刺も入場証で描く)。
+ * [back] は裏の QR (渡さなければ交換用)。[payload] は受け取ったままの名刺の中身 (交換用の QR に使う。組み直すと、
+ * 新しい版のアプリが足した項目を落とした QR になる)。
  */
 @Composable
-fun ProducerCardView(
+fun rememberProducerCardContent(
     card: ProducerCard,
     directory: ProducerCardDirectory,
-    modifier: Modifier = Modifier,
     sharedWith: Set<String> = emptySet(),
     ownImages: Boolean = false,
     imageUrl: (String) -> String? = { null },
     portraitUrl: String? = null,
     face: ProducerCardFace? = null,
-    onOpenLink: ((ImasProducerCardLink) -> Unit)? = null,
-    onOpenOshi: ((ImasProducerCardOshi) -> Unit)? = null
-) {
-    val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrl)
-    ImasProducerCard(
-        name = card.name,
-        modifier = modifier,
-        design = ProducerCardDisplay.cardDesign(card, face),
-        sinceImprint = ProducerCardDisplay.sinceImprint(card),
-        message = card.message,
-        oshi = oshi,
-        links = ProducerCardDisplay.links(card),
-        cells = ProducerCardDisplay.cells(card, directory),
-        boardTrailing = ProducerCardDisplay.boardTrailing(card),
-        photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
-        photoEntityId = if (ownImages) firstWithImage(oshi) else null,
-        portraitUrl = portraitUrl,
-        nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face)),
-        onOpenLink = onOpenLink,
-        onOpenOshi = onOpenOshi
-    )
+    back: ImasProducerCardBack? = null,
+    payload: String? = null
+): ImasProducerCardContent {
+    val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face))
+    val photoEntityId = if (ownImages) firstWithImage(card, directory) else null
+    return remember(card, directory, sharedWith, ownImages, portraitUrl, face, back, payload, nameFamily, photoEntityId) {
+        val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrl)
+        val cardFace = producerCardFace(card, directory.oshiEntries(oshi.map { it.id }))
+        val byId = oshi.associateBy { it.id }
+        ImasProducerCardContent(
+            name = card.name,
+            design = ProducerCardDisplay.cardDesign(card, face),
+            sinceImprint = cardFace.sinceImprint,
+            message = card.message,
+            oshi = oshi,
+            faceGroups = cardFace.oshiGroups.map { group ->
+                ImasProducerCardFaceGroup(group.brandLabel, group.idolIds.mapNotNull { byId[it] })
+            },
+            oshiCaption = cardFace.oshiCaption,
+            moreOshi = cardFace.moreOshi.toInt(),
+            handle = cardFace.handle?.display,
+            links = ProducerCardDisplay.links(card),
+            cells = ProducerCardDisplay.cells(card, directory),
+            boardTrailing = ProducerCardDisplay.boardTrailing(card),
+            photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
+            photoEntityId = photoEntityId,
+            portraitUrl = portraitUrl,
+            nameFamily = nameFamily,
+            back = back ?: ImasProducerCardBack(
+                qr = producerCardUrlFromPayload(payload ?: producerCardPayload(card)),
+                issuedLabel = cardFace.issuedLabel,
+                showCount = card.showCount?.toLong(),
+                songCount = card.songCount?.toLong()
+            )
+        )
+    }
 }
+
+/** 自分の QR の裏 (「自分の QR」を選んだとき)。iOS `ProducerCardDisplay.ownQRBack`。 */
+fun ownQrBack(card: ProducerCard, url: String): ImasProducerCardBack = ImasProducerCardBack(
+    qr = url, issuedLabel = cardIssuedLabel(card.issuedOn), qrLabel = "自分の QR コード",
+    note = "読み取ると ${cardQrLinkView(url).display} が開きます。",
+    showCount = card.showCount?.toLong(), songCount = card.songCount?.toLong()
+)
 
 /** 自分の名刺の写真: 端末に写真を取り込んだ先頭の担当。 */
 @Composable
-private fun firstWithImage(oshi: List<ImasProducerCardOshi>): String? {
+private fun firstWithImage(card: ProducerCard, directory: ProducerCardDirectory): String? {
     val store = AppModule.from(androidx.compose.ui.platform.LocalContext.current).customImageStore
-    return oshi.firstOrNull { it.entityId != null && store.primaryImageFile(it.entityId) != null }?.entityId
+    val version by store.galleryVersion.collectAsState()
+    return remember(card.oshiIdolIds, directory, version) {
+        card.oshiIdolIds.firstOrNull { it in directory.idols && store.primaryImageFile(it) != null }
+    }
 }

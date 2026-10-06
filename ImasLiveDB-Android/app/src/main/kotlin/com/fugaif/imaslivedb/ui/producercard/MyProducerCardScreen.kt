@@ -47,6 +47,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardBack
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDetails
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasQRCode
@@ -59,6 +62,7 @@ import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardDesign
 import uniffi.imas_core.EncodedProducerCard
 import uniffi.imas_core.cardQrLinkView
+import uniffi.imas_core.cardIssuedLabel
 
 /**
  * 自分の P名刺。iOS `MyProducerCardView` の移植。担当の入場証を 1 枚に広げた紙に、担当・記録の数・リンクを載せる。
@@ -150,11 +154,18 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
             when {
                 !loaded -> ImasInlineLoading()
                 enc != null -> {
+                    // 名刺 1 枚。裏の QR は下の切り替え (交換用の QR / 自分の QR) と同じものを刷る。
+                    val own = if (qrMode == QrMode.OWN) enc.card.qrUrl else null
+                    val content = rememberProducerCardContent(
+                        card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
+                        back = own?.let { ownQrBack(enc.card, it) }
+                            ?: ImasProducerCardBack(
+                                qr = enc.url, issuedLabel = cardIssuedLabel(enc.card.issuedOn),
+                                showCount = enc.card.showCount?.toLong(), songCount = enc.card.songCount?.toLong()
+                            )
+                    )
                     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
-                        ProducerCardView(
-                            card = enc.card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
-                            onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } }
-                        )
+                        ImasProducerCard(content)
                         if (enc.card.design == CardDesign.CUSTOM) {
                             ImasNote("自作の画像は名刺ファイルと近くの Android で渡した相手に届きます。QR だけで受け取った人と Web では入場証で見えます。")
                         }
@@ -166,6 +177,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenP
                             ImasNote("QR に収めるため、古い参加公演 ${enc.droppedShows} 件を名刺から外しています。")
                         }
                     }
+                    ImasProducerCardDetails(content, onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } })
                     enc.card.qrUrl?.let { own -> QrSection(enc, own, qrMode) { qrMode = it } }
                     ImasSection("渡す・しまう") {
                         ImasCardList {

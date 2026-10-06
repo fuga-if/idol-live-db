@@ -52,6 +52,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
 import com.fugaif.imaslivedb.ui.ledger.LedgerShowPickerSheet
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardDetails
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.CardCommon
@@ -149,11 +151,16 @@ fun ReceivedCardDetailScreen(
             val c = card
             when {
                 r != null && c != null -> {
-                    ProducerCardView(
+                    val content = rememberProducerCardContent(
                         card = c, directory = directory, sharedWith = myOshi,
                         imageUrl = { ProducerCardFiles.oshiImageUrl(context, r.id, it) },
                         portraitUrl = ProducerCardFiles.cardPhotoUrl(context, r.id),
                         face = ProducerCardDisplay.receivedFace(context, r.id),
+                        payload = r.payload
+                    )
+                    ImasProducerCard(content)
+                    ImasProducerCardDetails(
+                        content,
                         onOpenLink = { link -> runCatching { uriHandler.openUri(link.url) } },
                         onOpenOshi = { oshi -> onOpenIdol(oshi.id) }
                     )

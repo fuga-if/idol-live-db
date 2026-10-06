@@ -1,7 +1,6 @@
 package com.fugaif.imaslivedb.ui.producercard
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -34,7 +33,13 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintBack
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintFront
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintImage
-import com.fugaif.imaslivedb.ui.share.ProducerCardPrintLook
+import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshi
+import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshiGroup
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.data.producercard.ProfileSheetFiles
+import uniffi.imas_core.ProducerCard
+import uniffi.imas_core.producerCardFace
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintPreview
 import com.fugaif.imaslivedb.ui.share.ShareCardFiles
 import com.fugaif.imaslivedb.ui.share.rememberShareCardCapture
@@ -45,8 +50,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardDesign
 import uniffi.imas_core.EncodedProducerCard
-import uniffi.imas_core.cardIssuedLabel
-import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.cardQrLinkView
 
 /**
@@ -63,28 +66,21 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
     val backCapture = rememberShareCardCapture()
     var exporting by remember { mutableStateOf(false) }
     val c = card.card
-    val oshiNames = c.oshiIdolIds.mapNotNull { directory.idols[it]?.name }
     var back by remember { mutableStateOf(Back.EXCHANGE) }
-    var portrait by remember { mutableStateOf<Bitmap?>(null) }
-    var faceFront by remember { mutableStateOf<Bitmap?>(null) }
-    var faceBack by remember { mutableStateOf<Bitmap?>(null) }
+    var materials by remember { mutableStateOf(ProducerCardPrintMaterials()) }
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            fun decode(file: java.io.File?) = file?.let { runCatching { BitmapFactory.decodeFile(it.path) }.getOrNull() }
-            portrait = decode(ProducerCardFiles.myPhotoFile(context))
-            val face = ProducerCardDisplay.myFace(context)
-            if (ProducerCardDisplay.design(c, face).usesFaceImage) {
-                faceFront = decode(ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT))
-                faceBack = decode(ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK))
-            }
-        }
-        if (faceBack != null) back = Back.FACE_BACK
+        materials = ProducerCardPrintMaterials.loadMine(context, AppModule.from(context), c)
+        if (materials.faceBack != null) back = Back.FACE_BACK
     }
+    val faceFront = materials.faceFront
+    val faceBack = materials.faceBack
+    // 表の組み (載せる担当・畳む数・ハンドルはコア)。
+    val face = remember(c, directory) { producerCardFace(c, directory.oshiEntries(c.oshiIdolIds)) }
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(c))
     val look = when (ProducerCardDisplay.design(c, null).design) {
-        CardDesign.FORMAL -> ProducerCardPrintLook.FORMAL
-        CardDesign.POP -> ProducerCardPrintLook.POP
-        CardDesign.PASS, CardDesign.CUSTOM -> ProducerCardPrintLook.PASS
+        CardDesign.FORMAL -> ImasMeishiLook.FORMAL
+        CardDesign.POP -> ImasMeishiLook.POP
+        CardDesign.PASS, CardDesign.CUSTOM -> ImasMeishiLook.PASS
     }
     val backOptions = listOfNotNull(Back.FACE_BACK.takeIf { faceBack != null }, Back.EXCHANGE, Back.OWN.takeIf { c.qrUrl != null })
     // 裏の QR の中身と案内。
@@ -112,12 +108,21 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                         } else ProducerCardPrintFront(
                             name = c.name,
                             look = look,
-                            sinceYear = c.sinceYear?.toInt(),
-                            oshiNames = oshiNames,
-                            seed = c.oshiIdolIds.firstOrNull()?.let { directory.idols[it]?.color },
-                            handle = c.links.firstOrNull()?.let { cardLinkView(it).display },
+                            sinceImprint = face.sinceImprint,
+                            groups = face.oshiGroups.map { group ->
+                                ProducerCardPrintOshiGroup(group.brandLabel, group.idolIds.mapNotNull { id ->
+                                    directory.idols[id]?.let {
+                                        ProducerCardPrintOshi(id, it.name, it.shortName, it.color, materials.oshiImages[id])
+                                    }
+                                })
+                            },
+                            caption = face.oshiCaption,
+                            moreOshi = face.moreOshi.toInt(),
+                            // 担当の色は画面の名刺と同じく、描ける先頭の担当の色。
+                            seed = face.oshiGroups.firstOrNull()?.idolIds?.firstOrNull()?.let { directory.idols[it]?.color },
+                            handle = face.handle?.display,
                             nameFamily = nameFamily,
-                            portrait = portrait
+                            portrait = materials.portrait
                         )
                     }
                 }
@@ -150,7 +155,7 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                                 note = backNote,
                                 showCount = c.showCount?.toLong(),
                                 songCount = c.songCount?.toLong(),
-                                issuedLabel = cardIssuedLabel(c.issuedOn)
+                                issuedLabel = face.issuedLabel
                             )
                         }
                     }
@@ -169,6 +174,35 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                 )
             }
         }
+    }
+}
+
+/**
+ * 紙に刷る画像に焼く、読み込み済みの画像。iOS `ProducerCardPrintMaterials`。焼くのは今描かれているものだけで
+ * 読み込みを待たないので、書き出す前に全部 Bitmap に読んでおく (URL のまま渡すと担当の写真が焼かれない)。
+ */
+data class ProducerCardPrintMaterials(
+    val portrait: Bitmap? = null,
+    val faceFront: Bitmap? = null,
+    val faceBack: Bitmap? = null,
+    /** 担当の写真 (アイドルの id → 画像)。 */
+    val oshiImages: Map<String, Bitmap> = emptyMap()
+) {
+    companion object {
+        /** 自分の名刺の画像 (名刺の写真・担当の代表画像・自作の画像) を読む。大きな写真を丸ごと読まない。 */
+        suspend fun loadMine(context: android.content.Context, module: AppModule, card: ProducerCard): ProducerCardPrintMaterials =
+            withContext(Dispatchers.IO) {
+                val face = ProducerCardDisplay.myFace(context)
+                val usesFace = ProducerCardDisplay.design(card, face).usesFaceImage
+                ProducerCardPrintMaterials(
+                    portrait = ProducerCardFiles.myPhotoFile(context)?.let { ProfileSheetFiles.decodeBounded(it, 900) },
+                    faceFront = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
+                    faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProfileSheetFiles.decodeBounded(it, 2000) } else null,
+                    oshiImages = card.oshiIdolIds.mapNotNull { id ->
+                        module.customImageStore.primaryImageFile(id)?.let { ProfileSheetFiles.decodeBounded(it, 600) }?.let { id to it }
+                    }.toMap()
+                )
+            }
     }
 }
 

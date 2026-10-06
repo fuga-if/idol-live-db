@@ -421,7 +421,7 @@ private fun DesignLook(option: ImasCardDesignOption, name: String, accent: Color
             val url = look.url
             if (url != null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ImasCardFace(front = url, label = option.label, thumbnail = true)
+                    ImasCardFace(front = url, label = option.label)
                 }
             } else {
                 val line = DS.line

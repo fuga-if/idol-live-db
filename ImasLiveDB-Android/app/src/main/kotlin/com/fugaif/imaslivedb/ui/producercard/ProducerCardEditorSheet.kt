@@ -103,6 +103,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
+import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCard
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import java.time.LocalDate
@@ -740,14 +741,17 @@ private fun FaceSlot(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         Text(title, style = ImasTextRole.ROW_LABEL.style, color = DS.ink2)
-        if (preview != null) ImasCardFace(front = preview, label = "自作の名刺の$title", thumbnail = true)
+        if (preview != null) ImasCardFace(front = preview, label = "自作の名刺の$title")
         CardEditorAction(Icons.Filled.PhotoLibrary, if (preview == null) "画像を選ぶ" else "選び直す", onClick = onPick)
         if (canAdjust) CardEditorAction(Icons.Filled.Crop, "四隅を直す", onClick = onAdjust)
         if (preview != null) CardEditorAction(Icons.Filled.RemoveCircleOutline, "外す", tint = DS.danger, onClick = onRemove)
     }
 }
 
-/** 今の入力で組んだ名刺 (保存前でもその場で見た目に出す)。 */
+/**
+ * 今の入力で組んだ名刺の表 (保存前でもその場で見た目に出す)。名刺は 91:55 の紙 1 枚なので、
+ * 入力で背が変わらない (名刺の下の詳細は出さない・返さない)。
+ */
 @Composable
 private fun CardPreview(
     draft: MyProducerCard,
@@ -757,14 +761,10 @@ private fun CardPreview(
     face: ProducerCardFace?
 ) {
     val rec = record ?: ProducerCardMyRecord(oshiIds = emptyList(), attended = emptyList(), songCount = 0)
-    // 見本は書体・写真・リンクを見るためのもの。記録の掲示板は外して背を低くする。
     val sample = draft.copy(name = draft.name.ifEmpty { "名前" })
-        .withHidden(draft.hidden + setOf(ProducerCardField.SHOW_COUNT, ProducerCardField.SONG_COUNT, ProducerCardField.NEXT))
     val card = encodeProducerCard(ProducerCardAssembler.input(sample, rec)).card
-    ProducerCardView(
-        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face,
-        modifier = Modifier.semantics { contentDescription = "名刺の見本" }
-    )
+    val content = rememberProducerCardContent(card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, face = face)
+    ImasProducerCard(content, isFlippable = false, modifier = Modifier.semantics { contentDescription = "名刺の見本" })
 }
 
 /** 自分の QR の欄 (URL を打つ・名刺のリンクから選ぶ・写真の QR を読む)。 */

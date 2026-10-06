@@ -26,6 +26,8 @@ import uniffi.imas_core.encodeCardFile
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.producerCardLimits
 import uniffi.imas_core.producerCardPayload
+import uniffi.imas_core.producerCardPickOshi
+import com.fugaif.imaslivedb.ui.producercard.ProducerCardDirectory
 import uniffi.imas_core.producerCardRecordSummary
 import uniffi.imas_core.validateProducerCard
 
@@ -38,7 +40,12 @@ data class ProducerCardMyRecord(
     /** 参加を付けた公演 (今後の参加予定も含む)。 */
     val attended: List<CardShowRef>,
     /** 回収した曲の数。 */
-    val songCount: Int
+    val songCount: Int,
+    /**
+     * 名刺に載せる担当 (担当から上限まで。ブランドごとに 1 人を先に確保する選び方はコアの `producerCardPickOshi`)。
+     * 渡さなければ担当のまま (名刺を組むときに上限で切る)。
+     */
+    val cardOshiIds: List<String> = oshiIds
 ) {
     /** 共通点に使う「行った公演」と「次の現場」。分け方はコア。 */
     val summary: CardRecordSummary get() = producerCardRecordSummary(JstDay.today(), attended)
@@ -55,11 +62,21 @@ object ProducerCardAssembler {
     /** 共有シートに渡す名刺ファイルの置き場所 (res/xml/provider_paths.xml の cache-path と対)。 */
     private const val SHARE_DIR = "producer_card_share"
 
-    suspend fun loadMyRecord(module: AppModule): ProducerCardMyRecord = ProducerCardMyRecord(
-        oshiIds = module.userMarkRepository.pickedIdolIdList(),
-        attended = module.producerCardRepository.attendedShowRefs(),
-        songCount = module.songRepository.fetchCollectedSongIds().size
-    )
+    suspend fun loadMyRecord(module: AppModule): ProducerCardMyRecord {
+        val oshi = module.userMarkRepository.pickedIdolIdList()
+        return ProducerCardMyRecord(
+            oshiIds = oshi,
+            attended = module.producerCardRepository.attendedShowRefs(),
+            songCount = module.songRepository.fetchCollectedSongIds().size,
+            cardOshiIds = cardOshiIds(module, oshi)
+        )
+    }
+
+    /** 名刺に載せる担当 (担当の名前とブランドを引いて、選び方はコアの `producerCardPickOshi`)。 */
+    suspend fun cardOshiIds(module: AppModule, oshi: List<String>): List<String> {
+        val directory = ProducerCardDirectory.load(module, oshi, emptyList())
+        return producerCardPickOshi(directory.oshiEntries(oshi))
+    }
 
     /** 名刺の入力。外した項目は空にする。 */
     fun input(card: MyProducerCard, record: ProducerCardMyRecord): ProducerCardInput {
@@ -69,7 +86,7 @@ object ProducerCardAssembler {
             name = card.name,
             message = if (card.shows(ProducerCardField.MESSAGE)) card.message else "",
             sinceYear = card.sinceYear?.takeIf { card.shows(ProducerCardField.SINCE) && it in 0..65535 }?.toUShort(),
-            oshiIdolIds = if (card.shows(ProducerCardField.OSHI)) record.oshiIds.take(limits.maxOshi.toInt()) else emptyList(),
+            oshiIdolIds = if (card.shows(ProducerCardField.OSHI)) record.cardOshiIds.take(limits.maxOshi.toInt()) else emptyList(),
             links = if (card.shows(ProducerCardField.LINKS)) card.links else emptyList(),
             showCount = if (card.shows(ProducerCardField.SHOW_COUNT)) summary.showCount else null,
             songCount = if (card.shows(ProducerCardField.SONG_COUNT)) record.songCount.toUInt() else null,
