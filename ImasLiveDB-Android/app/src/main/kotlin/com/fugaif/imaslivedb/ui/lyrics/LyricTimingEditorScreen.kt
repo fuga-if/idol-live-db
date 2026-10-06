@@ -1,7 +1,6 @@
 package com.fugaif.imaslivedb.ui.lyrics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.filled.KeyboardReturn
@@ -48,7 +46,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -71,6 +68,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasLyricLineState
 import com.fugaif.imaslivedb.ui.designsystem.ImasLyricTimeLabel
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
@@ -558,7 +557,7 @@ private fun LaneLyricsList(
                 line.kind == LyricLineKind.BLANK -> Spacer(Modifier.height(DS.sp1))
                 isLines -> LinesLaneRow(
                     line = line, isCurrent = isCurrent, isNext = index == recorder.cursor,
-                    start = recorder.start(line.id), accent = accent,
+                    start = recorder.start(line.id), accent = accent, seed = seed,
                     onPick = {
                         if (recorder.cursor != index) onPickByTap()
                         recorder.aim(line.id)
@@ -618,31 +617,37 @@ private fun LinesLaneRow(
     isNext: Boolean,
     start: Int?,
     accent: androidx.compose.ui.graphics.Color,
+    seed: String?,
     onPick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(DS.rSM)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(if (isNext) accent.copy(alpha = 0.12f) else androidx.compose.ui.graphics.Color.Transparent)
-            .border(1.dp, if (isNext) accent.copy(alpha = 0.5f) else androidx.compose.ui.graphics.Color.Transparent, shape)
+    // 次に記録する行は「ここを押す」の印 (薄い地)、いま鳴っている行は濃い地。
+    val state = when {
+        isNext -> ImasLyricLineState.CURSOR
+        isCurrent -> ImasLyricLineState.CURRENT
+        else -> ImasLyricLineState.NORMAL
+    }
+    ImasLyricLineRow(
+        state = state, seed = seed,
+        modifier = Modifier
             .clickable(onClickLabel = "この行から記録する", onClick = onPick)
             .semantics { selected = isNext }
-            .padding(horizontal = DS.sp3, vertical = DS.sp2),
-        horizontalArrangement = Arrangement.spacedBy(DS.sp3),
-        verticalAlignment = Alignment.Top
     ) {
-        Column(Modifier.weight(1f)) {
-            if (line.kind == LyricLineKind.MARKER) {
-                ImasText(line.text, ImasTextRole.EYEBROW, color = DS.ink3)
-            } else {
-                LaneLyricText(line.text, isCurrent || isNext)
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = DS.sp2),
+            horizontalArrangement = Arrangement.spacedBy(DS.sp3),
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(Modifier.weight(1f)) {
+                if (line.kind == LyricLineKind.MARKER) {
+                    ImasText(line.text, ImasTextRole.EYEBROW, color = DS.ink3)
+                } else {
+                    LaneLyricText(line.text, isCurrent || isNext)
+                }
             }
-        }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
-            if (isNext) ImasText("次に記録", ImasTextRole.META, color = accent)
-            ImasLyricTimeLabel(ms = start, isEmphasized = isNext)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(DS.sp1)) {
+                if (isNext) ImasText("次に記録", ImasTextRole.META, color = accent)
+                ImasLyricTimeLabel(ms = start, isEmphasized = isNext)
+            }
         }
     }
 }

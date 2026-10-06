@@ -280,10 +280,9 @@ struct LyricTimingEditorView: View {
                 }
             }
             .padding(.vertical, DS.sp2)
-            .padding(.horizontal, DS.sp3)
-            .background(RoundedRectangle(cornerRadius: DS.rSM).fill(isNext ? accent.opacity(0.12) : .clear))
-            .overlay(RoundedRectangle(cornerRadius: DS.rSM).strokeBorder(isNext ? accent.opacity(0.5) : .clear,
-                                                                         lineWidth: 1))
+            .padding(.leading, DS.sp3)
+            // 次に記録する行は「ここを押す」の印 (薄い地)、いま鳴っている行は濃い地。
+            .imasLyricLine(isNext ? .cursor : isCurrent ? .current : .normal, seed: seed)
             .contentShape(Rectangle())
         }
         .buttonStyle(.imasPress)
