@@ -5,7 +5,7 @@ use crate::domain::event_list_queries::AttendanceMarkRecord;
 use crate::domain::profile_sheet::{
     ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck,
     ProfileLiveRecord, ProfileSheet, ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize,
-    ProfileSheetSizeInfo, ProfileSheetStyleInfo,
+    ProfileSheetSizeInfo,
 };
 
 #[uniffi::export]
@@ -37,11 +37,6 @@ pub fn profile_toggle_field(sheet: ProfileSheet, field: ProfileAutoField) -> Pro
 }
 
 #[uniffi::export]
-pub fn profile_sheet_styles() -> Vec<ProfileSheetStyleInfo> {
-    crate::domain::profile_sheet::profile_sheet_styles()
-}
-
-#[uniffi::export]
 pub fn profile_sheet_sizes() -> Vec<ProfileSheetSizeInfo> {
     crate::domain::profile_sheet::profile_sheet_sizes()
 }
@@ -67,33 +62,20 @@ pub fn profile_sheet_layout(sheet: ProfileSheet, record: ProfileSheetRecord) -> 
 }
 
 #[uniffi::export]
-pub fn profile_brand_marks(
-    sheet: ProfileSheet,
-    record: ProfileSheetRecord,
-) -> Vec<ProfileBrandCheck> {
-    crate::domain::profile_sheet::profile_brand_marks(&sheet, &record)
-}
-
-#[uniffi::export]
-pub fn profile_toggle_brand(
-    sheet: ProfileSheet,
-    record: ProfileSheetRecord,
-    brand_id: String,
-) -> ProfileSheet {
-    crate::domain::profile_sheet::profile_toggle_brand(&sheet, &record, &brand_id)
+pub fn profile_brand_marks(record: ProfileSheetRecord) -> Vec<ProfileBrandCheck> {
+    crate::domain::profile_sheet::profile_brand_marks(&record)
 }
 
 #[uniffi::export]
 impl SnapshotStore {
     /// プロフィール帳の、現地で参加した公演のセトリ・会場から数えた記録
-    /// (いちばん聴いた曲・担当の歌唱・いちばん通った会場・都道府県の数)。
+    /// (いちばん聴いた曲・いちばん通った会場・都道府県の数)。
     /// `show_marks` / `event_marks` は公演単位・イベント単位の参加マーク (形態つき。予定も混ざってよい。
-    /// 現地だけに絞るのはコア)、`oshi_idol_ids` は担当の順、`today` は JST の今日。
+    /// 現地だけに絞るのはコア)、`today` は JST の今日。
     pub fn profile_live_record(
         &self,
         show_marks: Vec<AttendanceMarkRecord>,
         event_marks: Vec<AttendanceMarkRecord>,
-        oshi_idol_ids: Vec<String>,
         today: String,
     ) -> Result<ProfileLiveRecord, SnapshotError> {
         let snap = self.current()?;
@@ -101,7 +83,6 @@ impl SnapshotStore {
             &snap,
             &show_marks,
             &event_marks,
-            &oshi_idol_ids,
             &today,
         ))
     }

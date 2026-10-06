@@ -54,6 +54,7 @@ pub mod weighted_sampling;
 
 pub mod app_navigation;
 pub mod auth_rules;
+pub mod brand_role;
 pub mod brand_theme;
 pub mod collection_dashboard;
 pub mod color_engine;

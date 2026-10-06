@@ -200,6 +200,10 @@ pub struct BackupExportInput {
     pub producer_cards: Vec<BackupProducerCardRecord>,
     #[uniffi(default)]
     pub my_producer_cards: Vec<BackupMyProducerCardRecord>,
+    /// 担当ブランドの設定 (アプリ全体の設定の保存の形 `brand_roles_to_json`)。空はまだ決めていない
+    /// (キーごと出さない)。
+    #[uniffi(default = "")]
+    pub brand_roles_json: String,
 }
 
 /// 書き出し結果。`envelope_json` をそのままファイル/引き継ぎコードにすればよい。
@@ -248,6 +252,9 @@ pub struct BackupLocalState {
     /// 既にある自分の名刺の id。自分の名刺は 1 枚なので、あれば取り込まない。
     #[uniffi(default)]
     pub my_producer_card_ids: Vec<String>,
+    /// 担当ブランドを端末で既に決めているか。決めていれば取り込まない (決め直した設定を戻さない)。
+    #[uniffi(default = false)]
+    pub has_brand_roles: bool,
 }
 
 /// envelope を検証して取り出したメタ情報 (取り込み前のプレビュー用)。
@@ -285,6 +292,8 @@ pub struct BackupImportPlan {
     pub playlists_to_insert: Vec<BackupPlaylistRecord>,
     pub producer_cards_to_insert: Vec<BackupProducerCardRecord>,
     pub my_producer_cards_to_insert: Vec<BackupMyProducerCardRecord>,
+    /// 端末に書く担当ブランドの設定 (空なら書かない)。
+    pub brand_roles_json_to_restore: String,
     pub added_marks: i64,
     pub added_votes: i64,
     pub added_personal_tags: i64,
@@ -570,6 +579,17 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
         format!(",\"myProducerCards\":[{items}]")
     };
 
+    // 担当ブランドもまだ決めていなければキーごと出さない。中身は保存の形の文字列のまま運ぶ。
+    let brand_roles_field =
+        if crate::domain::brand_role::brand_roles_configured(&input.brand_roles_json) {
+            format!(
+                ",\"brandRoles\":{}",
+                json_string_literal(&input.brand_roles_json)
+            )
+        } else {
+            String::new()
+        };
+
     // プレイリストが無ければキーごと出さない (プレイリストを知らない版と同じ payload のまま)。
     let playlists_field = if input.playlists.is_empty() {
         String::new()
@@ -578,8 +598,9 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
     };
 
     format!(
-        "{{\"appVersion\":{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{}{},\"personalTags\":[{}],\"platform\":{}{},\"pollVotes\":[{}]{},\"schemaVersion\":{},\"userMarks\":[{}]}}",
+        "{{\"appVersion\":{}{},\"deviceId\":{},\"expenses\":[{}],\"exportedAt\":{}{},\"personalTags\":[{}],\"platform\":{}{},\"pollVotes\":[{}]{},\"schemaVersion\":{},\"userMarks\":[{}]}}",
         json_string_literal(&input.app_version),
+        brand_roles_field,
         json_string_literal(&input.device_id),
         expenses,
         json_string_literal(&input.exported_at),
@@ -634,6 +655,8 @@ struct ParsedBackup {
     playlists: Vec<BackupPlaylistRecord>,
     producer_cards: Vec<BackupProducerCardRecord>,
     my_producer_cards: Vec<BackupMyProducerCardRecord>,
+    /// 担当ブランドの設定 (読めなければ空)。
+    brand_roles_json: String,
 }
 
 /// envelope を検証し、中身の件数とメタ情報だけを返す (書き込み前のプレビュー用)。
@@ -783,6 +806,13 @@ pub fn plan_backup_import(
         }
     }
 
+    // 担当ブランドは端末でまだ決めていないときだけ入れる (決め直した設定を古い設定で戻さない)。
+    let brand_roles_json_to_restore = if local.has_brand_roles {
+        String::new()
+    } else {
+        parsed.brand_roles_json
+    };
+
     let added_marks = marks_to_insert.len() as i64;
     let added_personal_tags = personal_tags_to_insert.len() as i64;
     let added_votes: i64 = poll_votes_to_add
@@ -803,6 +833,7 @@ pub fn plan_backup_import(
         playlists_to_insert,
         producer_cards_to_insert,
         my_producer_cards_to_insert,
+        brand_roles_json_to_restore,
         added_marks,
         added_votes,
         added_personal_tags,
@@ -895,6 +926,13 @@ fn parse_backup(envelope_json: &str) -> Result<ParsedBackup, BackupImportError> 
         playlists,
         producer_cards,
         my_producer_cards,
+        // 担当ブランドも版を上げずに足した項目。読める保存の形のときだけ持ち回る。
+        brand_roles_json: payload
+            .get("brandRoles")
+            .and_then(|v| v.as_str())
+            .filter(|j| crate::domain::brand_role::brand_roles_configured(j))
+            .map(str::to_string)
+            .unwrap_or_default(),
     })
 }
 
@@ -1136,6 +1174,7 @@ mod tests {
             playlists: vec![],
             producer_cards: vec![],
             my_producer_cards: vec![],
+            brand_roles_json: String::new(),
         }
     }
 
@@ -1251,6 +1290,54 @@ mod tests {
             "name": "ふがP", "nameFont": "mincho", "updatedAt": "2026-10-05T21:00:00Z",
         });
         assert_eq!(parse_my_producer_card(&new).unwrap().design, "pop");
+    }
+
+    /// 担当ブランドの設定を運ぶ。決めていなければキーを出さず、端末で決めていれば取り込まない。
+    #[test]
+    fn brand_roles_round_trip_only_into_an_unset_device() {
+        let plain = build_backup_envelope(&export_input(), BackupKindDialect::Canonical);
+        assert!(!plain.payload_json.contains("brandRoles"));
+        let none = plan_backup_import(
+            &plain.envelope_json,
+            &BackupLocalState::default(),
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(none.brand_roles_json_to_restore, "");
+
+        let mut input = export_input();
+        input.brand_roles_json = r#"{"main":["765","ml"],"oshi":["cg"]}"#.to_string();
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &BackupLocalState::default(),
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(plan.brand_roles_json_to_restore, input.brand_roles_json);
+
+        let set = BackupLocalState {
+            has_brand_roles: true,
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(
+            &doc.envelope_json,
+            &set,
+            false,
+            BackupKindDialect::Canonical,
+        )
+        .expect("読める");
+        assert_eq!(plan.brand_roles_json_to_restore, "");
+
+        // 全部なしで決めた設定も「決めた」として運ぶ。壊れた文字列は運ばない。
+        input.brand_roles_json = r#"{"main":[],"oshi":[]}"#.to_string();
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        assert!(doc.payload_json.contains("brandRoles"));
+        input.brand_roles_json = "{".to_string();
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        assert!(!doc.payload_json.contains("brandRoles"));
     }
 
     /// 名刺が無ければ payload にキーを出さない。

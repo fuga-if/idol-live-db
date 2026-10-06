@@ -4,6 +4,7 @@ pub mod app_navigation;
 pub mod auth_rules;
 pub mod backup_import_summary;
 pub mod backup_summary;
+pub mod brand_role;
 pub mod brand_theme;
 pub mod calendar_queries;
 pub mod cast_song_matching;
