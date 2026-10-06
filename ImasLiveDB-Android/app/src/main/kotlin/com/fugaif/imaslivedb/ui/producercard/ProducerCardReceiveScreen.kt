@@ -244,6 +244,8 @@ private suspend fun writePreviewImages(context: Context, images: List<CardFileIm
             when (image.kind) {
                 CardFileImageKind.OSHI -> oshi[image.idolId] = url
                 CardFileImageKind.PHOTO -> portrait = url
+                // 自作の名刺の画像 (表・裏) の見本は iOS から移植するまで出さない。
+                CardFileImageKind.FACE_FRONT, CardFileImageKind.FACE_BACK -> Unit
             }
         }
         PreviewImages(oshi, portrait)

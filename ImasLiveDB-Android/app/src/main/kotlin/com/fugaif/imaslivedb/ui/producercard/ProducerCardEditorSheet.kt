@@ -30,8 +30,8 @@ import uniffi.imas_core.CardLinkView
 import uniffi.imas_core.ProducerCardInputError
 import uniffi.imas_core.ScannedCode
 import uniffi.imas_core.cardLinkView
-import uniffi.imas_core.cardNameFontKey
-import uniffi.imas_core.cardNameFonts
+import uniffi.imas_core.cardDesignKey
+import uniffi.imas_core.cardDesigns
 import uniffi.imas_core.classifyScannedCode
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.normalizeCardQrUrl
@@ -113,7 +113,7 @@ private data class EditableLink(val id: String = UUID.randomUUID().toString(), v
  * 上に名刺の見本を置き、変えたものはその場で見本に出る。
  *
  * 入力の検査・リンクと QR の URL の正規化・書体の一覧はコア
- * (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardNameFonts`)。
+ * (`validateProducerCard` / `normalizeCardLink` / `normalizeCardQrUrl` / `cardDesigns`)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,8 +139,9 @@ fun ProducerCardEditorSheet(
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
 
-    val fonts = remember { cardNameFonts() }
-    var nameFont by remember { mutableStateOf(cardNameFontKey(card.font)) }
+    // 名刺のデザイン (自作の画像は画像の受け渡しを iOS から移植するまで出さない)。
+    val fonts = remember { cardDesigns().filter { !it.usesFaceImage } }
+    var nameFont by remember { mutableStateOf(cardDesignKey(card.design)) }
     var qrUrl by remember { mutableStateOf(card.qrUrl.orEmpty()) }
     var qrNotice by remember { mutableStateOf<String?>(null) }
 
@@ -268,7 +269,7 @@ fun ProducerCardEditorSheet(
     val canSave = validation == null && !isSaving && !applyingCrop
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
-        draft().font != card.font || draft().qrUrl != card.qrUrl || photoDirty
+        draft().design != card.design || draft().qrUrl != card.qrUrl || photoDirty
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     fun cancel() {
@@ -360,7 +361,7 @@ fun ProducerCardEditorSheet(
                         ImasFormField(label = "名前の書体", imprint = "TYPEFACE") {
                             val assets = context.assets
                             val options = remember(fonts) {
-                                fonts.map { ImasNameFontOption(it.key, it.label, ImasCardNameFonts.family(assets, it.fileStem)) }
+                                fonts.map { ImasNameFontOption(it.key, it.label, ImasCardNameFonts.family(assets, it.font.fileStem)) }
                             }
                             ImasNameFontPicker(options = options, selection = nameFont, onSelect = { nameFont = it }, sample = name.trim())
                         }

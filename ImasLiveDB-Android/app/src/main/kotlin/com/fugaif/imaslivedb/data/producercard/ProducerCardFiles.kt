@@ -62,6 +62,8 @@ object ProducerCardFiles {
             when (image.kind) {
                 CardFileImageKind.OSHI -> writeAtomically(oshiFile(context, cardId, image.idolId), image.jpeg)
                 CardFileImageKind.PHOTO -> writeCardPhoto(context, cardId, image.jpeg)
+                // 自作の名刺の画像 (表・裏) の置き場は iOS から移植するまで書かない。
+                CardFileImageKind.FACE_FRONT, CardFileImageKind.FACE_BACK -> Unit
             }
         }
     }

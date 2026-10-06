@@ -16,7 +16,7 @@ import uniffi.imas_core.ProducerCard
 import com.fugaif.imaslivedb.ui.theme.rememberCardNameFamily
 import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.cardQrLinkView
-import uniffi.imas_core.producerCardNameFont
+import uniffi.imas_core.producerCardDisplayDesign
 
 /**
  * 名刺を描くのに要る、端末のマスタの引き当て (担当のアイドル・ブランド・公演)。iOS `ProducerCardDirectory` と対。
@@ -78,7 +78,8 @@ object ProducerCardDisplay {
         }
 
     /** 名前の書体のファイルの名前 (書体の一覧と既定はコア)。 */
-    fun nameFont(card: ProducerCard): String = producerCardNameFont(card).fileStem
+    // 自作の画像の名刺は、画像を受け取れる版になるまで入場証で描く (画像の受け渡しは iOS から移植待ち)。
+    fun nameFont(card: ProducerCard): String = producerCardDisplayDesign(card, false).font.fileStem
 
     /** 記録の数 (参加公演・回収曲・次の現場)。載っていない数は出さない。 */
     fun cells(card: ProducerCard, directory: ProducerCardDirectory): List<ImasBoardCell> = buildList {

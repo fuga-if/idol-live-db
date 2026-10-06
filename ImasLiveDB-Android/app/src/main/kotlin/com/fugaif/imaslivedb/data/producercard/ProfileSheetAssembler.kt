@@ -17,8 +17,8 @@ import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
 import uniffi.imas_core.ProfileSongInput
 import uniffi.imas_core.cardLinkView
-import uniffi.imas_core.cardNameFontInfo
-import uniffi.imas_core.cardNameFonts
+import uniffi.imas_core.cardDesignInfo
+import uniffi.imas_core.cardDesigns
 import uniffi.imas_core.producerCardLimits
 
 /**
@@ -47,7 +47,7 @@ data class ProfileSheetMaterials(
     /** 自分の QR の URL (P名刺に載せていれば)。 */
     val qrUrl: String? = null,
     /** 名前の書体 (P名刺の書体のファイルの名前)。 */
-    val nameFont: String = cardNameFonts().first().fileStem
+    val nameFont: String = cardDesigns().first().font.fileStem
 ) {
     /** 担当の色 (帯・罫・押印の判子)。担当がいなければ null (墨)。 */
     val seed: String? get() = oshi.firstOrNull()?.color
@@ -128,7 +128,7 @@ object ProfileSheetAssembler {
             oshi = oshi,
             portrait = portrait,
             qrUrl = card.qrUrl,
-            nameFont = cardNameFontInfo(card.font).fileStem
+            nameFont = cardDesignInfo(card.design).font.fileStem
         )
     }
 

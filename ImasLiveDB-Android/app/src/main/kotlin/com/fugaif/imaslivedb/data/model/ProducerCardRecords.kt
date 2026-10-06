@@ -8,14 +8,14 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import uniffi.imas_core.CardLink
-import uniffi.imas_core.CardNameFont
+import uniffi.imas_core.CardDesign
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.cardLinksFromJson
 import uniffi.imas_core.cardLinksToJson
-import uniffi.imas_core.cardNameFontFromKey
-import uniffi.imas_core.cardNameFontKey
-import uniffi.imas_core.cardNameFonts
+import uniffi.imas_core.cardDesignFromKey
+import uniffi.imas_core.cardDesignKey
+import uniffi.imas_core.cardDesigns
 import uniffi.imas_core.decodeProducerCard
 import uniffi.imas_core.profileSheetDefault
 import uniffi.imas_core.profileSheetFromJson
@@ -50,7 +50,10 @@ data class MyProducerCard(
     val hiddenFields: String,
     @ColumnInfo(name = "updated_at")
     val updatedAt: String,
-    /** 名前の書体の保存のキー (`cardNameFontKey`)。空は既定の書体。 */
+    /**
+     * 名刺のデザインの保存のキー (`cardDesignKey`)。空は既定のデザイン。列の名前は書体を選んでいた頃の
+     * まま (書体のキーが残っていても `cardDesignFromKey` が近いデザインに読み替える)。
+     */
     @ColumnInfo(name = "name_font", defaultValue = "")
     val nameFont: String = "",
     /** 自分の QR の URL (正規化済み、`normalizeCardQrUrl`)。 */
@@ -62,10 +65,10 @@ data class MyProducerCard(
 ) {
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
-    /** 名前の書体 (保存のキーが空・知らないものなら既定)。 */
-    val font: CardNameFont get() = cardNameFontFromKey(nameFont) ?: cardNameFonts().first().font
+    /** 名刺のデザイン (保存のキーが空・知らないものなら既定)。 */
+    val design: CardDesign get() = cardDesignFromKey(nameFont) ?: cardDesigns().first().design
 
-    fun withFont(font: CardNameFont): MyProducerCard = copy(nameFont = cardNameFontKey(font))
+    fun withDesign(design: CardDesign): MyProducerCard = copy(nameFont = cardDesignKey(design))
 
     val hidden: Set<ProducerCardField>
         get() = hiddenFields.split(",").mapNotNull { ProducerCardField.fromKey(it) }.toSet()

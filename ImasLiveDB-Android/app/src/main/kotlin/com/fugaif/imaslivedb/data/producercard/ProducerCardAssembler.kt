@@ -76,7 +76,7 @@ object ProducerCardAssembler {
             nextShowId = if (card.shows(ProducerCardField.NEXT)) summary.nextShowId else null,
             attended = if (card.shows(ProducerCardField.ATTENDED)) summary.attendedPast else emptyList(),
             issuedOn = JstDay.today(),
-            nameFont = card.font,
+            design = card.design,
             qrUrl = card.qrUrl
         )
     }
