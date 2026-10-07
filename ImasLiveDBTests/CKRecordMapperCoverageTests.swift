@@ -162,7 +162,8 @@ final class CKRecordMapperCoverageTests: XCTestCase {
                 parentSongId: v("parentSongId"), singerLabel: v("singerLabel"), unitName: v("unitName"),
                 unitId: v("unitId"), seriesGroup: v("seriesGroup"), unitVersionId: v("unitVersionId"),
                 jointBrandIds: v("jointBrandIds"), isCollab: flag, hasKamisabiCard: !flag,
-                note: v("note"), streamingDate: v("streamingDate"), cdReleaseDate: v("cdReleaseDate"))),
+                note: v("note"), streamingDate: v("streamingDate"), cdReleaseDate: v("cdReleaseDate"),
+                firstAppearanceNote: v("firstAppearanceNote"))),
             .unit(row: CkUnitRow(
                 id: v("id"), brandId: v("brandId"), name: v("name"), isPermanent: flag,
                 nameAlt: v("nameAlt"), nameKana: v("nameKana"))),
@@ -327,6 +328,7 @@ final class CKRecordMapperCoverageTests: XCTestCase {
         rec["note"] = "ミリシタ 1 周年記念楽曲" as NSString
         rec["streamingDate"] = "2016-03-10" as NSString
         rec["cdReleaseDate"] = "2011-11-09" as NSString
+        rec["firstAppearanceNote"] = "TVアニメ第14話 新OP" as NSString
 
         let song = try XCTUnwrap(CKRecordMapper.song(from: rec))
         XCTAssertEqual(song.title, "蒼い鳥")
@@ -337,5 +339,6 @@ final class CKRecordMapperCoverageTests: XCTestCase {
         XCTAssertEqual(song.note, "ミリシタ 1 周年記念楽曲")
         XCTAssertEqual(song.streamingDate, "2016-03-10")
         XCTAssertEqual(song.cdReleaseDate, "2011-11-09")
+        XCTAssertEqual(song.firstAppearanceNote, "TVアニメ第14話 新OP")
     }
 }

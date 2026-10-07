@@ -50,6 +50,7 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 曲の日付は 3 つある。`release_date` は**初出** (ゲームへの実装・MV の公開・アニメの放送を含め、
 最初に世に出た日)、`cd_release_date` は最初に収録された CD の発売日、`streaming_date` は配信開始日。
 ライブでの初披露はセトリから出すので書かない (画面の「初出」は release_date と初披露の早いほう)。
+初出が何だったか (「TVアニメ第14話 新OP」) は `first_appearance_note` に短く書くと、初出の行に添えて出る。
 ```json
 { "fixes": [ { "table": "songs", "id": "765as_change", "fields": { "cd_release_date": "2011-11-09" } } ] }
 ```

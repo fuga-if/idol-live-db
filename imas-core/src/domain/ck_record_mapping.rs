@@ -576,6 +576,8 @@ pub struct CkSongRow {
     pub streaming_date: Option<String>,
     /// CD 発売日 (最初に収録された CD)。
     pub cd_release_date: Option<String>,
+    /// 初出が何だったかの補足。
+    pub first_appearance_note: Option<String>,
 }
 
 /// units
@@ -985,6 +987,7 @@ pub fn song(record: &CkRecordInput) -> Option<CkSongRow> {
         // 同上。読み落とすと同期のたびに消える。
         streaming_date: f.str("streamingDate"),
         cd_release_date: f.str("cdReleaseDate"),
+        first_appearance_note: f.str("firstAppearanceNote"),
     })
 }
 
@@ -1874,14 +1877,19 @@ mod tests {
                 ("title", text("CHANGE!!!!")),
                 ("streamingDate", text("2016-03-10")),
                 ("cdReleaseDate", text("2011-11-09")),
+                ("firstAppearanceNote", text("TVアニメ第14話 新OP")),
             ],
         ))
         .unwrap();
         assert_eq!(s.streaming_date.as_deref(), Some("2016-03-10"));
         assert_eq!(s.cd_release_date.as_deref(), Some("2011-11-09"));
+        assert_eq!(s.first_appearance_note.as_deref(), Some("TVアニメ第14話 新OP"));
 
         let plain = song(&rec("s2", &[("title", text("GO MY WAY!!"))])).unwrap();
-        assert_eq!((plain.streaming_date, plain.cd_release_date), (None, None));
+        assert_eq!(
+            (plain.streaming_date, plain.cd_release_date, plain.first_appearance_note),
+            (None, None, None)
+        );
     }
 
     #[test]

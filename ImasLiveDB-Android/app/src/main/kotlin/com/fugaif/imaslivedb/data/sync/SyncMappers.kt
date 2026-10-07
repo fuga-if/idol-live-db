@@ -390,7 +390,9 @@ object SyncMappers {
                 note = row.note.emptyToNull(),
                 // 同じ理由。落とすと同期のたびに配信開始日・CD 発売日が消える。
                 streamingDate = row.streamingDate.emptyToNull(),
-                cdReleaseDate = row.cdReleaseDate.emptyToNull()
+                cdReleaseDate = row.cdReleaseDate.emptyToNull(),
+                // 同じ理由。落とすと同期のたびに初出の補足が消える。
+                firstAppearanceNote = row.firstAppearanceNote.emptyToNull()
             )
         }
 

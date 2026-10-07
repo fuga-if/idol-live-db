@@ -53,11 +53,14 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     var streamingDate: String?
     /// その曲が最初に収録された CD の発売日。CD になっていなければ nil。
     var cdReleaseDate: String?
+    /// 初出が何だったか (「TVアニメ第14話 新OP」)。曲詳細の初出の行に添える (添え方はコア)。
+    var firstAppearanceNote: String?
 
     enum CodingKeys: String, CodingKey {
         case id, title, composer, lyricist, arranger, isrc, note
         case streamingDate = "streaming_date"
         case cdReleaseDate = "cd_release_date"
+        case firstAppearanceNote = "first_appearance_note"
         case titleKana = "title_kana"
         case brandId = "brand_id"
         case songType = "song_type"

@@ -193,7 +193,8 @@ fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
     let note = if columns.contains("note") { "note" } else { "NULL AS note" };
     // 配信開始日・CD 発売日も同じ扱い。
     let streaming = optional_col(&columns, "streaming_date");
-    let debut = optional_col(&columns, "cd_release_date");
+    let cd_release = optional_col(&columns, "cd_release_date");
+    let first_note = optional_col(&columns, "first_appearance_note");
     // ユニットの版も同じ扱い。
     let unit_version =
         if columns.contains("unit_version_id") { "unit_version_id" } else { "NULL AS unit_version_id" };
@@ -203,7 +204,7 @@ fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
                     composer, lyricist, arranger, cd_series, cd_title, artwork_url, preview_url,
                     apple_music_id, apple_music_album_id, isrc, lyrics_url, parent_song_id,
                     singer_label, unit_name, unit_id, series_group, {jasrac}, {joint}, {collab},
-                    {kamisabi}, {unit_version}, {note}, {streaming}, {debut}
+                    {kamisabi}, {unit_version}, {note}, {streaming}, {cd_release}, {first_note}
              FROM songs ORDER BY id"),
         )
         .map_err(|e| e.to_string())?;
@@ -241,6 +242,7 @@ fn load_songs(conn: &Connection) -> Result<Vec<Song>, String> {
                 note: r.get(28)?,
                 streaming_date: r.get(29)?,
                 cd_release_date: r.get(30)?,
+                first_appearance_note: r.get(31)?,
             })
         })
         .map_err(|e| e.to_string())?;

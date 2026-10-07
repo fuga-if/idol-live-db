@@ -100,6 +100,9 @@ pub struct Song {
     /// その曲が最初に収録された CD の発売日 (YYYY-MM-DD)。CD になっていなければ `None`。
     /// 画面に出す行は [`crate::domain::song_dates::song_date_rows`] が決める。
     pub cd_release_date: Option<String>,
+    /// 初出が何だったか (「TVアニメ第14話 新OP」「ミリシタ実装」)。初出の行に添える。
+    /// 公式の出典があるものだけ。無ければ `None` (ライブが初出の曲は公演名が自動で添わる)。
+    pub first_appearance_note: Option<String>,
 }
 
 /// idols 全カラム (Bundle スキーマ基準)。

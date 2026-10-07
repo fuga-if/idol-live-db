@@ -33,6 +33,7 @@ struct SongEditView: View {
     @State private var releaseDate: String
     @State private var streamingDate: String
     @State private var cdReleaseDate: String
+    @State private var firstAppearanceNote: String
     @State private var singerLabel: String
     @State private var note: String
     @State private var isrc: String
@@ -73,6 +74,7 @@ struct SongEditView: View {
         _releaseDate = State(initialValue: song.releaseDate ?? "")
         _streamingDate = State(initialValue: song.streamingDate ?? "")
         _cdReleaseDate = State(initialValue: song.cdReleaseDate ?? "")
+        _firstAppearanceNote = State(initialValue: song.firstAppearanceNote ?? "")
         _singerLabel = State(initialValue: song.singerLabel ?? "")
         _note = State(initialValue: song.note ?? "")
         _isrc = State(initialValue: song.isrc ?? "")
@@ -100,6 +102,7 @@ struct SongEditView: View {
         _releaseDate = State(initialValue: "")
         _streamingDate = State(initialValue: "")
         _cdReleaseDate = State(initialValue: "")
+        _firstAppearanceNote = State(initialValue: "")
         _singerLabel = State(initialValue: "")
         _note = State(initialValue: "")
         _isrc = State(initialValue: "")
@@ -136,6 +139,7 @@ struct SongEditView: View {
                                      keyboard: .numbersAndPunctuation)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                    ImasTextFieldRow(title: "初出の補足", text: $firstAppearanceNote, prompt: "例: TVアニメ第14話 新OP")
                     ImasTextFieldRow(title: "CD 発売日", text: $cdReleaseDate, prompt: "YYYY-MM-DD",
                                      keyboard: .numbersAndPunctuation)
                         .textInputAutocapitalization(.never)
@@ -306,6 +310,7 @@ struct SongEditView: View {
         songFields["releaseDate"] = AnyEncodable.clearable(trimmedReleaseDate, original: original?.releaseDate)
         songFields["streamingDate"] = AnyEncodable.clearable(trimmedStreamingDate, original: original?.streamingDate)
         songFields["cdReleaseDate"] = AnyEncodable.clearable(trimmedCdReleaseDate, original: original?.cdReleaseDate)
+        songFields["firstAppearanceNote"] = AnyEncodable.clearable(firstAppearanceNote, original: original?.firstAppearanceNote)
         songFields["singerLabel"] = AnyEncodable.clearable(singerLabel, original: original?.singerLabel)
         songFields["note"] = AnyEncodable.clearable(note, original: original?.note)
         songFields["isrc"] = AnyEncodable.clearable(isrc, original: original?.isrc)
@@ -411,6 +416,7 @@ struct SongEditView: View {
         song.releaseDate = nonEmpty(releaseDate)
         song.streamingDate = nonEmpty(streamingDate)
         song.cdReleaseDate = nonEmpty(cdReleaseDate)
+        song.firstAppearanceNote = nonEmpty(firstAppearanceNote)
         song.singerLabel = nonEmpty(singerLabel)
         song.note = nonEmpty(note)
         song.isrc = nonEmpty(isrc)

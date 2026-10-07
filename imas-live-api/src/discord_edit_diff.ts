@@ -80,6 +80,7 @@ const FIELD_LABELS: Record<string, string> = {
   releaseDate: "初出",
   streamingDate: "配信開始日",
   cdReleaseDate: "CD 発売日",
+  firstAppearanceNote: "初出の補足",
   cdTitle: "収録CD",
   cdSeries: "CDシリーズ",
   durationSec: "長さ(秒)",

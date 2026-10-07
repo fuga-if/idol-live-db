@@ -330,7 +330,9 @@ enum CKRecordMapper {
             note: row.note,
             // 同じ理由。落とすと同期のたびに配信開始日・CD 発売日が消える。
             streamingDate: row.streamingDate,
-            cdReleaseDate: row.cdReleaseDate
+            cdReleaseDate: row.cdReleaseDate,
+            // 同じ理由。落とすと同期のたびに初出の補足が消える。
+            firstAppearanceNote: row.firstAppearanceNote
         )
     }
 

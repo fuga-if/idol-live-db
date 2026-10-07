@@ -57,7 +57,8 @@ class SyncMappersSongTest {
             CkRow.Song(
                 baseSongRow(
                     id = "s1", isCollab = false, hasKamisabiCard = false,
-                    streamingDate = "2016-03-10", cdReleaseDate = "2011-11-09"
+                    streamingDate = "2016-03-10", cdReleaseDate = "2011-11-09",
+                    firstAppearanceNote = "TVアニメ第14話 新OP"
                 )
             ),
             CkRow.Song(baseSongRow(id = "s2", isCollab = false, hasKamisabiCard = false))
@@ -67,6 +68,7 @@ class SyncMappersSongTest {
 
         assertEquals("2016-03-10", songs.getValue("s1").streamingDate)
         assertEquals("2011-11-09", songs.getValue("s1").cdReleaseDate)
+        assertEquals("TVアニメ第14話 新OP", songs.getValue("s1").firstAppearanceNote)
         assertEquals(null, songs.getValue("s2").streamingDate)
         assertEquals(null, songs.getValue("s2").cdReleaseDate)
     }
@@ -78,7 +80,8 @@ class SyncMappersSongTest {
         hasKamisabiCard: Boolean,
         note: String? = null,
         streamingDate: String? = null,
-        cdReleaseDate: String? = null
+        cdReleaseDate: String? = null,
+        firstAppearanceNote: String? = null
     ) = CkSongRow(
         id = id,
         title = "title-$id",
@@ -109,6 +112,7 @@ class SyncMappersSongTest {
         hasKamisabiCard = hasKamisabiCard,
         note = note,
         streamingDate = streamingDate,
-        cdReleaseDate = cdReleaseDate
+        cdReleaseDate = cdReleaseDate,
+        firstAppearanceNote = firstAppearanceNote
     )
 }

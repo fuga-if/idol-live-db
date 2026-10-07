@@ -203,6 +203,7 @@ enum EditFieldLabel {
         "releaseDate": "初出",
         "streamingDate": "配信開始日",
         "cdReleaseDate": "CD 発売日",
+        "firstAppearanceNote": "初出の補足",
         "kana": "読み (かな)",
         "romaji": "ローマ字",
         // SetlistItem

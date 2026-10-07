@@ -161,6 +161,8 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     releaseDate: { type: "STRING", pattern: ISO_DATE_RE },
     streamingDate: { type: "STRING", pattern: ISO_DATE_RE },
     cdReleaseDate: { type: "STRING", pattern: ISO_DATE_RE },
+    // 初出が何だったか (「TVアニメ第14話 新OP」)。初出の行に添える短い補足。
+    firstAppearanceNote: { type: "STRING", maxLen: 100 },
     singerLabel: { type: "STRING", maxLen: 300 },
     isrc: { type: "STRING", maxLen: 20 },
     // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。曲詳細の曲名の下に 1 文で出す自由文。

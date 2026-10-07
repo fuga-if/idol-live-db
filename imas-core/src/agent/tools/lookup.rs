@@ -425,6 +425,7 @@ fn get_song(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
     o.opt("note", song.note.as_deref());
     o.opt("streaming_date", song.streaming_date.as_deref());
     o.opt("cd_release_date", song.cd_release_date.as_deref());
+    o.opt("first_appearance_note", song.first_appearance_note.as_deref());
     // 歌詞本文はここから返さない (JASRAC の許諾が「D1 に置きダウンロードさせない」形)。
     // 作品コードの有無までが扱える範囲。
     o.put("has_jasrac_code", song.jasrac_code.is_some());

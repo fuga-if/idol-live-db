@@ -67,6 +67,7 @@ fun SongEditScreen(
     var releaseDate by rememberSaveable(key) { mutableStateOf(original?.releaseDate ?: "") }
     var streamingDate by rememberSaveable(key) { mutableStateOf(original?.streamingDate ?: "") }
     var cdReleaseDate by rememberSaveable(key) { mutableStateOf(original?.cdReleaseDate ?: "") }
+    var firstAppearanceNote by rememberSaveable(key) { mutableStateOf(original?.firstAppearanceNote ?: "") }
     var singerLabel by rememberSaveable(key) { mutableStateOf(original?.singerLabel ?: "") }
     var note by rememberSaveable(key) { mutableStateOf(original?.note ?: "") }
     var durationSecText by rememberSaveable(key) { mutableStateOf(original?.durationSec?.toString() ?: "") }
@@ -159,6 +160,7 @@ fun SongEditScreen(
         fields.putClearable("releaseDate", trimmedReleaseDate, original?.releaseDate)
         fields.putClearable("streamingDate", trimmedStreamingDate, original?.streamingDate)
         fields.putClearable("cdReleaseDate", trimmedCdReleaseDate, original?.cdReleaseDate)
+        fields.putClearable("firstAppearanceNote", firstAppearanceNote, original?.firstAppearanceNote)
         fields.putClearable("singerLabel", singerLabel, original?.singerLabel)
         fields.putClearable("note", note, original?.note)
         fields.putClearable("isrc", isrc, original?.isrc)
@@ -221,6 +223,7 @@ fun SongEditScreen(
                     releaseDate = trimmedReleaseDate.ifEmpty { null },
                     streamingDate = trimmedStreamingDate.ifEmpty { null },
                     cdReleaseDate = trimmedCdReleaseDate.ifEmpty { null },
+                    firstAppearanceNote = firstAppearanceNote.nonEmptyTrimmed(),
                     singerLabel = singerLabel.nonEmptyTrimmed(),
                     note = note.nonEmptyTrimmed(),
                     isrc = isrc.nonEmptyTrimmed(),
@@ -278,6 +281,7 @@ fun SongEditScreen(
             EditTextField("作曲", composer, { composer = it })
             EditTextField("編曲", arranger, { arranger = it })
             EditTextField("初出 (YYYY-MM-DD)", releaseDate, { releaseDate = it })
+            EditTextField("初出の補足 (例: TVアニメ第14話 新OP)", firstAppearanceNote, { firstAppearanceNote = it })
             EditTextField("CD 発売日 (YYYY-MM-DD)", cdReleaseDate, { cdReleaseDate = it })
             EditTextField("配信開始日 (YYYY-MM-DD)", streamingDate, { streamingDate = it })
             EditTextField("歌唱表記 (例: 春香・千早)", singerLabel, { singerLabel = it })

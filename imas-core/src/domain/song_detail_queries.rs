@@ -78,6 +78,8 @@ pub struct SongDetailRecord {
     pub streaming_date: Option<String>,
     /// CD 発売日。同上。
     pub cd_release_date: Option<String>,
+    /// 初出が何だったかの補足。同上。
+    pub first_appearance_note: Option<String>,
     /// 参加ブランド (`brand_id` が先頭、続いて `joint_brand_ids`)。画面で割らない。
     pub brand_ids: Vec<String>,
 }
@@ -115,6 +117,7 @@ impl From<&Song> for SongDetailRecord {
             note: s.note.clone(),
             streaming_date: s.streaming_date.clone(),
             cd_release_date: s.cd_release_date.clone(),
+            first_appearance_note: s.first_appearance_note.clone(),
             brand_ids: s.brand_ids().map(str::to_string).collect(),
         }
     }
@@ -916,6 +919,7 @@ mod tests {
             note: row.get_unwrap("note"),
             streaming_date: row.get_unwrap("streaming_date"),
             cd_release_date: row.get_unwrap("cd_release_date"),
+            first_appearance_note: row.get_unwrap("first_appearance_note"),
             brand_ids: row
                 .get_unwrap::<_, Option<String>>("brand_id")
                 .into_iter()

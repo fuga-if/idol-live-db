@@ -134,7 +134,11 @@ data class Song(
 
     /** その曲が最初に収録された CD の発売日 (YYYY-MM-DD)。CD になっていなければ null。 */
     @ColumnInfo(name = "cd_release_date")
-    val cdReleaseDate: String? = null
+    val cdReleaseDate: String? = null,
+
+    /** 初出が何だったか (「TVアニメ第14話 新OP」)。曲詳細の初出の行に添える (添え方はコア)。 */
+    @ColumnInfo(name = "first_appearance_note")
+    val firstAppearanceNote: String? = null
 ) {
     val isRemix: Boolean get() = parentSongId != null
 }

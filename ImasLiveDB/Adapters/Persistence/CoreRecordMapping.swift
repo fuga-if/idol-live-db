@@ -393,7 +393,8 @@ enum CoreRecordMapping {
             hasKamisabiCard: record.hasKamisabiCard,
             note: record.note,
             streamingDate: record.streamingDate,
-            cdReleaseDate: record.cdReleaseDate
+            cdReleaseDate: record.cdReleaseDate,
+            firstAppearanceNote: record.firstAppearanceNote
         )
     }
 

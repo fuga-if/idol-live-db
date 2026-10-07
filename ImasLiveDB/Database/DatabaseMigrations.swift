@@ -1177,6 +1177,14 @@ enum DatabaseMigrations {
             }
         }
 
+        // v45: songs.first_appearance_note カラム追加 (初出が何だったかの補足。曲詳細の初出の行に添える)。
+        migrator.registerMigration("v45_songs_first_appearance_note") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("first_appearance_note") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN first_appearance_note TEXT")
+            }
+        }
+
         return migrator
     }
 }

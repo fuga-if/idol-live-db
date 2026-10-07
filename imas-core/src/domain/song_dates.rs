@@ -39,9 +39,10 @@ pub struct SongDateRow {
     pub label: String,
     /// YYYY-MM-DD (データにある表記のまま)。
     pub date: String,
-    /// 初出がライブでの初披露のときの公演名 (「初星学園 標 DAY1」)。それ以外は `None`。
+    /// 初出の行に添える補足。ライブでの初披露なら公演名 (「初星学園 標 DAY1」)、
+    /// そうでなければ `songs.first_appearance_note` (「TVアニメ第14話 新OP」)。無ければ `None`。
     pub detail: Option<String>,
-    /// 画面に出す値。日付に公演名を添えた形 (「2026-09-23（初星学園 標 DAY1）」)。
+    /// 画面に出す値。日付に補足を添えた形 (「2026-09-23（初星学園 標 DAY1）」)。
     /// 添え方を各画面で書くと揃わないので、ここで作る。
     pub display: String,
 }
@@ -59,7 +60,14 @@ pub fn song_date_rows(snap: &Snapshot, song_id: &str) -> Vec<SongDateRow> {
     let mut rows = Vec::new();
     match (release, first_live) {
         (Some(r), Some(show)) if show.date.as_str() < r => rows.push(live_row(snap, show)),
-        (Some(r), _) => rows.push(row(SongDateKind::FirstAppearance, FIRST_APPEARANCE_LABEL, r)),
+        (Some(r), _) => {
+            let mut first = row(SongDateKind::FirstAppearance, FIRST_APPEARANCE_LABEL, r);
+            if let Some(note) = non_empty(&song.first_appearance_note) {
+                first.display = format!("{r}（{note}）");
+                first.detail = Some(note.to_string());
+            }
+            rows.push(first);
+        }
         (None, Some(show)) => rows.push(live_row(snap, show)),
         (None, None) => {}
     }
@@ -244,6 +252,16 @@ mod tests {
         assert_eq!(rows[0].kind, SongDateKind::FirstPerformance);
         assert_eq!(rows[0].display, "2026-09-23（初星学園 標 DAY1）");
         assert_eq!(rows[1].display, "2026-09-24");
+    }
+
+    #[test]
+    fn first_appearance_note_is_attached() {
+        let mut s = song(Some("2011-10-07"), Some("2011-11-09"), None);
+        s.first_appearance_note = Some("TVアニメ第14話 新OP".into());
+        let rows = song_date_rows(&snap(s, vec![]), "s");
+        assert_eq!(rows[0].detail.as_deref(), Some("TVアニメ第14話 新OP"));
+        assert_eq!(rows[0].display, "2011-10-07（TVアニメ第14話 新OP）");
+        assert_eq!(rows[0].kind, SongDateKind::FirstAppearance);
     }
 
     #[test]

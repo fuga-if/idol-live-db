@@ -288,6 +288,7 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         note,
         streaming_date,
         cd_release_date,
+        first_appearance_note,
     } = song;
     Song {
         id,
@@ -325,6 +326,7 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         // 配信開始日・CD 発売日。出面の曲ページの日付の行 (domain::song_dates) が読む。
         streaming_date,
         cd_release_date,
+        first_appearance_note,
     }
 }
 
