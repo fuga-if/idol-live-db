@@ -233,9 +233,8 @@ struct StoreOrderImportView: View {
                     .monospacedDigit()
             }
             ImasMetric(value: "\(value.recordedQuantity)", unit: "点", size: .medium, emphasized: true)
-            Stepper("記録する数", value: count, in: 1...Int(value.quantity)).labelsHidden()
+            ImasStepper(label: "記録する数", value: count, range: 1...Int(value.quantity))
         }
-        .sensoryFeedback(.selection, trigger: value.recordedQuantity)
     }
 
     private func adjustmentRow(_ order: StoreOrder) -> some View {

@@ -707,14 +707,59 @@ struct ImasStepperRow: View {
             trailing: .custom(AnyView(
                 HStack(spacing: DS.Space.gap) {
                     ImasMetric(value: "\(value)", unit: unit, size: .medium, emphasized: true)
-                    Stepper(title, value: $value, in: range, step: step).labelsHidden()
+                    ImasStepper(label: title, value: $value, range: range, step: step)
                 }
             )),
             density: .compact,
             titleLineLimit: 1,
             titleRole: .rowLabel
         )
+    }
+}
+
+/// − | + の溝だけ (Android `ImasStepper` と同じ形)。行の外で数を刻むとき (明細の品目の点数など) に使う。
+/// 行に置くなら `ImasStepperRow`。VoiceOver では上下スワイプで増減する 1 つの要素になる。
+struct ImasStepper: View {
+    let label: String
+    @Binding var value: Int
+    var range: ClosedRange<Int>
+    var step: Int = 1
+
+    var body: some View {
+        HStack(spacing: 0) {
+            half("minus", enabled: value > range.lowerBound) { change(value - step) }
+            Rectangle().fill(DS.line).frame(width: 1, height: 18)
+            half("plus", enabled: value < range.upperBound) { change(value + step) }
+        }
+        .background(DS.fill, in: RoundedRectangle(cornerRadius: DS.rControl(DS.Size.chip), style: .continuous))
         .sensoryFeedback(.selection, trigger: value)
+        .accessibilityElement()
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: change(value + step)
+            case .decrement: change(value - step)
+            @unknown default: break
+            }
+        }
+    }
+
+    private func change(_ next: Int) {
+        let clamped = min(max(next, range.lowerBound), range.upperBound)
+        if clamped != value { value = clamped }
+    }
+
+    private func half(_ symbol: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.imasBody.weight(.medium))
+                .foregroundStyle(enabled ? DS.ink : DS.ink3)
+                .frame(width: 44, height: DS.Size.chip)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }
 

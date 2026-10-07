@@ -380,7 +380,7 @@ private fun QuantityRow(item: StoreOrderItem, onChange: (StoreOrderItem) -> Unit
         if (item.recordedQuantity < item.quantity) {
             Text(
                 formatYen(storeOrderItemAmount(item)),
-                style = ImasType.text(13.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
+                style = ImasTextRole.SECTION_LABEL.style.copy(fontFeatureSettings = "tnum"),
                 color = DS.ink
             )
         }

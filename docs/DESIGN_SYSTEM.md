@@ -280,7 +280,8 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **使う** 設定、マイページ、ハブの入口の一覧、フォームから細かい選択へ進むとき。
 
 ### 5.11 `ImasToggleRow` / `ImasMenuRow` / `ImasStepperRow`
-- 設定・絞り込み・フォームのスイッチ・選択肢・数。中身は OS の `Toggle` / `Picker(.menu)` / `Stepper` で、題と補足 (`subtitle`) の文字だけ部品が揃える。
+- 設定・絞り込み・フォームのスイッチ・選択肢・数。中身は OS の `Toggle` / `Picker(.menu)` で、題と補足 (`subtitle`) の文字だけ部品が揃える。数の増減は `ImasStepper` (− | + の溝。`fill` の地・`rControl(chip)` の角・間に `line` の縦線)。
+- `ImasStepper` は行の外でも単独で使う (明細取り込みの品目の「記録する数」など)。OS の `Stepper` は画面に直接置かない。
 
 ### 5.12 `ImasActionRow` 行の形のボタン
 - **種類** `.standard` (「＋ 曲を追加」など、文字は `accent`) / `.destructive` (「このライブを削除」、文字は `danger`)。
