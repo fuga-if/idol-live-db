@@ -85,7 +85,7 @@ struct LyricSubmissionSheet: View {
                                    isOn: agreedBinding)
                 }
 
-                Text("送った歌詞はすぐに公開され、運営があとから確認します。歌詞サイトから写した歌詞や、聴き取りの書き起こしは投稿できません。")
+                Text("送った歌詞はすぐに公開され、運営があとから確認します。歌詞サイトや他のサービスから写した歌詞は、公開後でも削除し、投稿した人のアカウントを止めることがあります。聴き取りの書き起こしも投稿できません。")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink2)
                     .fixedSize(horizontal: false, vertical: true)

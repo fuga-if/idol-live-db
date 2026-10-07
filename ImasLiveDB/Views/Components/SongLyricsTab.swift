@@ -250,6 +250,9 @@ struct SongLyricsTab: View {
                     ImasNote("出典: \(source)")
                         .padding(.horizontal, DS.sp1)
                 }
+                LyricsColophon(songId: song.id, credit: lyrics.submittedBy, isDraft: lyrics.isDraft) {
+                    await vm.loadServerData(song: song)
+                }
             } else {
                 emptyState
             }

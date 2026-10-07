@@ -65,15 +65,21 @@ final class ContributionFeedbackStore {
         }
     }
 
-    /// 届いた Good を見た (「マイ投稿」を閉じた)。いまの新着を既読にし、手元の新着の数も 0 にする。
+    /// 歌詞の公開の新着の数。
+    var newLyricsCount: Int { feedback?.lyrics?.newPublishedCount ?? 0 }
+
+    /// 届いた Good と公開された歌詞を見た (「マイ投稿」を閉じた)。いまの新着を既読にし、手元の新着の数も 0 にする。
     func markGoodsSeen() {
-        guard let current = feedback, let latest = current.goods.map(\.latestGoodAt).max(), latest > lastSeenGoodAt else { return }
+        guard let current = feedback else { return }
+        let times = current.goods.map(\.latestGoodAt) + (current.lyrics?.published.map(\.publishedAt) ?? [])
+        guard let latest = times.max(), latest > lastSeenGoodAt else { return }
         lastSeenGoodAt = latest
         defaults.set(Int(latest), forKey: Keys.lastSeenGoodAt)
         feedback = ContributionFeedback(
             goods: current.goods.map { $0.seen() },
             newGoodTotal: 0,
-            setlistReach: current.setlistReach
+            setlistReach: current.setlistReach,
+            lyrics: current.lyrics?.seen()
         )
     }
 

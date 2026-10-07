@@ -272,6 +272,15 @@ struct ProduceTabView: View {
     /// 押すと「マイ投稿」へ (そこで新着を既読にする)。
     @ViewBuilder
     private var feedbackCards: some View {
+        if feedbackStore.newLyricsCount > 0 {
+            statTileLink(route: .myContributions) {
+                ImasEntryCard(systemImage: "text.quote",
+                              title: "あなたが投稿した歌詞が \(feedbackStore.newLyricsCount) 曲公開されました",
+                              preview: (feedbackStore.feedback?.lyrics?.likeTotal ?? 0) > 0
+                                  ? "ここ好き \(feedbackStore.feedback?.lyrics?.likeTotal ?? 0)" : nil,
+                              seed: pickBrandSeed)
+            }
+        }
         if feedbackStore.newGoodTotal > 0 {
             statTileLink(route: .myContributions) {
                 ImasEntryCard(systemImage: "hand.thumbsup.fill",

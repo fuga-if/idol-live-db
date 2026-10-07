@@ -3,8 +3,7 @@ import Foundation
 /// データを入れた人への手応え (自分の編集に付いた Good・自分が入れたセトリの閲覧数) と、
 /// 公演ページの奥付 (クレジット) のポート。
 ///
-/// 対象はアプリからの編集 (セトリ・歌唱者・公演・曲など) だけ。歌詞の投稿は別の口
-/// (`LyricSubmissionAPI`) でサーバの別の表に入るので、ここを通るどのデータにも出ない。
+/// 対象はアプリからの編集 (セトリ・歌唱者・公演・曲など) と、歌詞の投稿 (その投稿で公開されたもの)。
 ///
 /// ⚠️ Domain 規約: このファイルは `SwiftUI` / `GRDB` / `CloudKit` を import しない。
 protocol ContributionFeedbackReading: Sendable {
@@ -28,6 +27,31 @@ struct ContributionFeedback: Decodable, Sendable, Equatable {
     let newGoodTotal: Int
     /// 自分が入れたセトリの公演が、先週 (JST の月曜始まり) 見られた数。
     let setlistReach: SetlistReach
+    /// 自分の投稿で公開された歌詞。旧サーバは返さない。
+    let lyrics: LyricsFeedback?
+}
+
+/// 自分の投稿で公開された歌詞と、その反響 (ここ好き)。
+struct LyricsFeedback: Decodable, Sendable, Equatable {
+    struct Published: Decodable, Sendable, Equatable, Identifiable {
+        let songId: String
+        /// 公開した時刻 (epoch ミリ秒)。
+        let publishedAt: Int64
+        let isNew: Bool
+        /// いまのここ好きの人数 (行ごとの人数の合計)。非公開に戻った曲は 0。
+        let likeCount: Int
+        var id: String { songId }
+    }
+    let published: [Published]
+    let newPublishedCount: Int
+    let likeTotal: Int
+
+    /// 既読にした写し。
+    func seen() -> LyricsFeedback {
+        LyricsFeedback(
+            published: published.map { Published(songId: $0.songId, publishedAt: $0.publishedAt, isNew: false, likeCount: $0.likeCount) },
+            newPublishedCount: 0, likeTotal: likeTotal)
+    }
 }
 
 /// Good が付いた自分の編集 1 件。

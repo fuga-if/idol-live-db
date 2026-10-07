@@ -7,6 +7,8 @@ import SwiftUI
 struct MyContributionsView: View {
     @State private var log = LocalContributionLog.shared
     @State private var feedbackStore = ContributionFeedbackStore.shared
+    /// 公開された歌詞の曲名 (端末のマスタから引く)。
+    @State private var lyricSongTitles: [String: String] = [:]
 
     var body: some View {
         ImasPage {
@@ -40,7 +42,13 @@ struct MyContributionsView: View {
         .navigationTitle("マイ投稿")
         .navigationBarTitleDisplayMode(.inline)
         .trackScreen("my_contributions")
-        .task { await feedbackStore.refresh(force: true) }
+        .task {
+            await feedbackStore.refresh(force: true)
+            let ids = feedbackStore.feedback?.lyrics?.published.map(\.songId) ?? []
+            if !ids.isEmpty, let songs = try? await AppContainer.shared.songReading.songs(ids: ids) {
+                lyricSongTitles = Dictionary(songs.map { ($0.id, $0.title) }, uniquingKeysWith: { a, _ in a })
+            }
+        }
         // 開いている間は NEW を見せたまま、閉じたときに既読にする。
         .onDisappear { feedbackStore.markGoodsSeen() }
     }
@@ -49,6 +57,22 @@ struct MyContributionsView: View {
     @ViewBuilder
     private var feedbackSections: some View {
         if let feedback = feedbackStore.feedback {
+            if let lyrics = feedback.lyrics, !lyrics.published.isEmpty {
+                ImasSection("公開された歌詞", style: .small,
+                            footer: "あなたの投稿で公開された歌詞と、いまの「ここ好き」の数です。") {
+                    ImasCardList {
+                        ForEach(Array(lyrics.published.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { ImasRowDivider() }
+                            ImasRecordRow(
+                                systemImage: "text.quote", tone: .themed,
+                                title: lyricSongTitles[item.songId] ?? "曲",
+                                subtitle: "ここ好き \(item.likeCount)",
+                                badges: item.isNew ? [ImasBadgeSpec(text: "NEW", kind: .new)] : []
+                            )
+                        }
+                    }
+                }
+            }
             if feedback.setlistReach.viewers > 0 {
                 ImasSection("先週の反響", style: .small,
                             footer: "あなたが入れたセトリの公演ページを見た人の数です。公演ごとに 1 人 1 回で数え、いくつも見た人はその数だけ数えます (のべ人数)。") {

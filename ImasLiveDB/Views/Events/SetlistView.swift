@@ -626,6 +626,7 @@ struct SetlistView: View {
         switch role {
         case .setlist: "セトリ入力"
         case .performers: "歌唱者"
+        case .lyrics: "歌詞入力"
         }
     }
 

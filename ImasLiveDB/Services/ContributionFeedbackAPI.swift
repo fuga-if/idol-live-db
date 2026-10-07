@@ -45,7 +45,10 @@ struct FakeContributionFeedbackReading: ContributionFeedbackReading {
                              goodCount: 2, newGoodCount: 0, latestGoodAt: now - 86_400_000 * 3),
             ],
             newGoodTotal: 3,
-            setlistReach: SetlistReach(week: "2026-09-28", viewers: 128, shows: 4)
+            setlistReach: SetlistReach(week: "2026-09-28", viewers: 128, shows: 4),
+            lyrics: LyricsFeedback(
+                published: [.init(songId: "765as_READY!!", publishedAt: now - 7_200_000, isNew: true, likeCount: 12)],
+                newPublishedCount: 1, likeTotal: 12)
         )
     }
     func reportShowViews(showIds: [String]) async throws {}

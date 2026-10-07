@@ -297,6 +297,12 @@ struct LyricLinePartBreak: Codable, Hashable, Sendable {
 }
 
 /// 1 曲分の歌詞。
+/// 歌詞の奥付 (`submittedBy`)。`names` は載せてよい人の表示名、`total` は投稿で公開した人の数。
+struct LyricsCredit: Decodable, Sendable, Hashable {
+    let names: [String]
+    let total: Int
+}
+
 struct Lyrics: Decodable, Sendable, Hashable {
     let songId: String
     /// 出典表記 (JASRAC 許諾表示等)。
@@ -311,6 +317,8 @@ struct Lyrics: Decodable, Sendable, Hashable {
     /// ビルド種別 (DEBUG) では切っていない — クライアントの自己申告は信用できないので。
     /// 旧サーバは status を返さないので optional。
     let status: String?
+    /// 歌詞の奥付 (投稿で公開した人。名前は本人が載せると選んだ人だけ)。旧サーバは返さない。
+    var submittedBy: LyricsCredit? = nil
 
     /// 未公開 (下書き) か。画面に明示して、公開済みと取り違えないようにする。
     var isDraft: Bool { status == "draft" }
@@ -343,7 +351,7 @@ struct Lyrics: Decodable, Sendable, Hashable {
 
 extension Lyrics {
     private enum CodingKeys: String, CodingKey {
-        case songId, source, updatedAt, lines, status
+        case songId, source, updatedAt, lines, status, submittedBy
     }
 
     /// 単体取得 (`/songs/{id}/lyrics`) は `songId` を含むが、束ね取得
@@ -359,7 +367,8 @@ extension Lyrics {
             source: try c.decodeIfPresent(String.self, forKey: .source),
             updatedAt: try c.decodeIfPresent(Int.self, forKey: .updatedAt),
             lines: try c.decodeIfPresent([LyricLine].self, forKey: .lines) ?? [],
-            status: try c.decodeIfPresent(String.self, forKey: .status)
+            status: try c.decodeIfPresent(String.self, forKey: .status),
+            submittedBy: try c.decodeIfPresent(LyricsCredit.self, forKey: .submittedBy)
         )
     }
 
@@ -367,7 +376,7 @@ extension Lyrics {
     func resolvingSongId(_ id: String) -> Lyrics {
         songId.isEmpty
             ? Lyrics(songId: id, source: source, updatedAt: updatedAt,
-                     lines: lines, status: status)
+                     lines: lines, status: status, submittedBy: submittedBy)
             : self
     }
 }
