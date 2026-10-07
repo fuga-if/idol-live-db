@@ -8,6 +8,7 @@
 // 失敗は 1 行の JSON (event: "cron_task_failed") でログに出す。最後に失敗をまとめて投げ直すので、
 // cron の実行としても失敗が記録される。
 
+import { jstWeekStart, SHOW_VIEW_WEEKS_KEPT } from "./contribution_feedback";
 import { postDiscordDigest, postPlaylistDigest } from "./discord_digest";
 import { postPollResults } from "./discord_poll_results";
 import { createLiveThreads } from "./discord_live_threads";
@@ -135,6 +136,15 @@ const DAILY: CronTask[] = [
     name: "timing_edit_history",
     // 歌詞のタイミングの編集の記録 (Discord の更新通知用)。読むのは直近だけなので古い行は消す。
     run: (env) => env.DB.prepare("DELETE FROM timing_edit_history WHERE at < datetime('now', '-180 days')").run(),
+  },
+  {
+    name: "show_views_weekly",
+    // 公演の週ごとの閲覧数 (contribution_feedback.ts)。読むのは先週の分だけなので、
+    // SHOW_VIEW_WEEKS_KEPT 週より前は消す (week の索引で引く)。
+    run: (env) =>
+      env.DB.prepare("DELETE FROM show_views_weekly WHERE week < ?")
+        .bind(jstWeekStart(Date.now() - SHOW_VIEW_WEEKS_KEPT * 7 * 86_400_000))
+        .run(),
   },
   { name: "song_tag_counts", run: refreshTagCounts },
 ];

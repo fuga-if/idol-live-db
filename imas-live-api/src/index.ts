@@ -25,6 +25,7 @@ import { handleCommunityPlaylists } from "./routes/community_playlists";
 import { handleSongDetail } from "./routes/song_detail";
 import { handleTransfer } from "./routes/transfer";
 import { handleDiscord } from "./routes/discord";
+import { handleContributionFeedback } from "./routes/contribution_feedback";
 
 // ALLOWED_ORIGINS は wrangler.jsonc の vars で設定する。
 // iOS ネイティブは Origin ヘッダを送らないため、空リストでも動作する。
@@ -182,6 +183,10 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
       "POST /edits/:batchId/revert",
       "GET /master/:recordType/:recordName/history",
       "GET /users/:user_id/badges",
+      "POST /users/me/credit",
+      "GET /me/feedback?since=",
+      "POST /shows/views",
+      "GET /shows/:id/credits",
       "POST /admin/ban",
       "POST /admin/revert-user",
       "GET /admin/users/:id/edits",
@@ -244,6 +249,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   handleRoot,
   handleAppLinks,
   handleAuth,
+  // 手応え (Good の新着・セトリの閲覧数) と公演の奥付。/users/me/credit は handleUsers より前。
+  handleContributionFeedback,
   handleUsers,
   handleEdits,
   handleAdmin,

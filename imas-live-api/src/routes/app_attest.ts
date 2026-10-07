@@ -122,7 +122,7 @@ function isCommunityRead(path: string, method: string): boolean {
   if (/^\/songs\/[^/]+\/(tags|similar|detail)$/.test(path)) return true;
   if (/^\/idols\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/units\/[^/]+\/similar$/.test(path)) return true;
-  if (/^\/shows\/[^/]+\/(predictions|likes)$/.test(path)) return true;
+  if (/^\/shows\/[^/]+\/(predictions|likes|credits)$/.test(path)) return true;
   // コールガイドの整備状況。歌詞本文もコール本文も含まない件数・日時・表示名だけの
   // 集計なので、歌詞の枠 (認証必須・no-store) ではなくこちら側に置く。
   if (path === "/calls/dashboard") return true;

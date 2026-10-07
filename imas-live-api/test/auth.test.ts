@@ -208,7 +208,7 @@ describe("GET /auth/me とトークンの検証", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       uid: UID, displayName: "わたし", avatarUrl: "https://example.com/a.png",
-      isAdmin: false, isBanned: false, editCount: 2, goodsReceived: 1,
+      isAdmin: false, isBanned: false, editCount: 2, goodsReceived: 1, creditOptIn: false,
     });
   });
 
