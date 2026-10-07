@@ -331,6 +331,8 @@ final class AuthService {
             let isBanned: Bool
             let editCount: Int?
             let goodsReceived: Int?
+            /// 公演ページの奥付に表示名を載せるか (古いサーバは返さない)。
+            let creditOptIn: Bool?
         }
         do {
             let me: Me = try await APIClient.shared.request("GET", path: "/auth/me", authorized: true)
@@ -344,6 +346,9 @@ final class AuthService {
             if let name = refresh.displayName {
                 userName = name
                 KeychainStore.set(name, forKey: userNameKey)
+            }
+            if let creditOptIn = me.creditOptIn {
+                ContributionFeedbackStore.shared.adoptCreditOptIn(creditOptIn)
             }
         } catch APIClientError.notAuthorized {
             // sessionToken も identityToken も無効 → invalidateToken は APIClient 側で実行済み。

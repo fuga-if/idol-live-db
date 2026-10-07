@@ -34,6 +34,8 @@ struct SetlistView: View {
     }
 
     /// 選んでいるタブ。「次のライブ」の「セトリを予想」からは予想で開く。
+    /// 公演ページ末尾の奥付 (セトリ・歌唱者を入れた人。名前は本人が載せると選んだ人だけ)。
+    @State private var creditLines: [ShowCreditLine] = []
     @State private var selectedTab: ShowTab
     @State private var tabsScrolledPast = false
 
@@ -486,6 +488,10 @@ struct SetlistView: View {
             await loadRowMeta()
         }
         .task { await model.loadVenueDirectory() }
+        .task {
+            creditLines = await ContributionFeedbackStore.shared.creditLines(showId: show.id)
+            await ContributionFeedbackStore.shared.reportShowView(showId: show.id)
+        }
         .trackScreen("setlist")
     }
 
@@ -588,7 +594,46 @@ struct SetlistView: View {
                     .listRowSeparator(.hidden)
                 }
             }
+
+            if !simpleMode { creditsSection }
         }
+    }
+
+    // MARK: - 奥付
+
+    /// パンフの奥付のように、このセトリを入れた人を末尾に載せる。誰も関わっていなければ出さない。
+    @ViewBuilder
+    private var creditsSection: some View {
+        if !creditLines.isEmpty {
+            Section(header: ImasSectionHeader("このセトリを入れた人", imprint: "CREDITS", style: .small).textCase(nil)) {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    ImasCardList {
+                        ForEach(Array(creditLines.enumerated()), id: \.offset) { index, line in
+                            if index > 0 { ImasRowDivider() }
+                            ImasValueRow(key: Self.creditRoleLabel(line.role), value: Self.creditNames(line))
+                        }
+                    }
+                    ImasNote("名前は、入れた人がマイページで「公演ページに名前を載せる」を選んだときだけ出ます。")
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 16, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+        }
+    }
+
+    private static func creditRoleLabel(_ role: ShowCreditRole) -> String {
+        switch role {
+        case .setlist: "セトリ入力"
+        case .performers: "歌唱者"
+        }
+    }
+
+    /// 「A・B ほか 2 人」。名前を載せる人がいなければ「3 人」。
+    private static func creditNames(_ line: ShowCreditLine) -> String {
+        let names = line.names.joined(separator: "・")
+        if line.unnamedCount == 0 { return names }
+        return names.isEmpty ? "\(line.unnamedCount) 人" : "\(names) ほか \(line.unnamedCount) 人"
     }
 
     // MARK: - 予想

@@ -180,6 +180,9 @@ final class AppContainer: Sendable {
         return CallGuideAPI.shared
     }()
 
+    /// 手応え (Good の新着・セトリの閲覧数) と公演の奥付。
+    let contributionFeedback: any ContributionFeedbackReading = ContributionFeedbackAPI.shared
+
     /// コールガイドの整備状況 (一覧 / 最近の編集 / 未整備) の読み取り実装。
     /// 認証不要・エッジキャッシュ前提の口で、**歌詞本文もコール本文も通らない**
     /// (通るのは曲 id と件数・日時・マスク済み表示名だけ)。
