@@ -7,9 +7,6 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +20,8 @@ import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceDialog
+import com.fugaif.imaslivedb.ui.designsystem.ImasCompletionAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
@@ -110,33 +109,19 @@ fun LyricsColophon(
         ImasNote("歌詞サイトや他のサービスから写した歌詞は、公開後でも削除します。")
     }
 
-    if (showReasons) {
-        AlertDialog(
-            onDismissRequest = { showReasons = false },
-            title = { Text("この歌詞を報告") },
-            text = {
-                Column {
-                    Text("運営が確認し、必要なら非公開にします。")
-                    REPORT_REASONS.forEach { (key, label) ->
-                        TextButton(onClick = {
-                            showReasons = false
-                            run({ api.report(songId, key) }, after = { reportSent = true })
-                        }) { Text(label) }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = { TextButton(onClick = { showReasons = false }) { Text("キャンセル") } }
-        )
-    }
-    if (reportSent) {
-        AlertDialog(
-            onDismissRequest = { reportSent = false },
-            title = { Text("報告を送りました") },
-            text = { Text("ありがとうございます。運営が確認します。") },
-            confirmButton = { TextButton(onClick = { reportSent = false }) { Text("OK") } }
-        )
-    }
+    ImasChoiceDialog(
+        title = "この歌詞を報告",
+        isPresented = showReasons,
+        options = REPORT_REASONS,
+        message = "運営が確認し、必要なら非公開にします。",
+        onPick = { key -> run({ api.report(songId, key) }, after = { reportSent = true }) },
+        onDismiss = { showReasons = false }
+    )
+    ImasCompletionAlert(
+        title = "報告を送りました",
+        message = if (reportSent) "ありがとうございます。運営が確認します。" else null,
+        onDismiss = { reportSent = false }
+    )
     ImasErrorAlert(error, onDismiss = { error = null }, title = "送れませんでした")
 }
 

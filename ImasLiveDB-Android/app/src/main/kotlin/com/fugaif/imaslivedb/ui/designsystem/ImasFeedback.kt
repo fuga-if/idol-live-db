@@ -475,6 +475,43 @@ fun ImasCompletionAlert(title: String, message: String?, onDismiss: () -> Unit, 
 }
 
 /**
+ * いくつかの選択肢から 1 つ選んでもらう (iOS `.confirmationDialog` に選択肢を並べる形)。
+ * [isPresented] が true の間だけ出る。選ぶと閉じてから [onPick] に選んだ鍵を渡す。
+ */
+@Composable
+fun ImasChoiceDialog(
+    title: String,
+    isPresented: Boolean,
+    options: List<Pair<String, String>>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+    message: String? = null,
+    dismissTitle: String = "キャンセル"
+) {
+    if (!isPresented) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            androidx.compose.foundation.layout.Column {
+                message?.let { Text(it) }
+                options.forEach { (key, label) ->
+                    TextButton(onClick = {
+                        onDismiss()
+                        onPick(key)
+                    }) { Text(label, color = DS.ink) }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
  * 2 つの入力欄を持つダイアログ (プレイリストの公開: タイトル + ひとこと)。
  * iOS の `.alert("…", isPresented:) { TextField; TextField }` と同じ役目。
  */
