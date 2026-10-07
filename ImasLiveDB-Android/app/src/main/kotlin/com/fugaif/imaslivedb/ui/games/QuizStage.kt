@@ -552,8 +552,11 @@ fun QuizTicketHintRow(
                     )
                 }
             }
+            // 0 点のヒント (1 枚目) は「無料」と出す。
+            val costLabel = if (cost == 0) "無料" else "−$cost"
+            val costStyle = if (cost == 0) QS.text(14, FontWeight.Bold) else QS.num(18)
             if (isOpen) {
-                Text("−$cost", style = QS.num(18), color = QS.paperSub)
+                Text(costLabel, style = costStyle, color = QS.paperSub)
             } else {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -564,10 +567,13 @@ fun QuizTicketHintRow(
                         .background(QS.paperInk)
                         .quizPress(onClick = onOpen)
                         .padding(horizontal = 16.dp)
-                        .semantics { contentDescription = "${label}のヒントを開く。${cost}点下がります" }
+                        .semantics {
+                            contentDescription = if (cost == 0) "${label}のヒントを開く。点は下がりません"
+                            else "${label}のヒントを開く。${cost}点下がります"
+                        }
                 ) {
                     Text("開く", style = QS.text(14, FontWeight.Bold), color = QS.ink)
-                    Text("−$cost", style = QS.num(18), color = QS.paperTile.copy(alpha = 0.85f))
+                    Text(costLabel, style = costStyle, color = QS.paperTile.copy(alpha = 0.85f))
                 }
             }
         }

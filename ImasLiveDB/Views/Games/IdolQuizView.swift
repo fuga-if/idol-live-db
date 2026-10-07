@@ -2,7 +2,8 @@ import SwiftUI
 
 /// アイドル当てクイズ。最初はシルエット＋曖昧なプロフィール1項目だけで出題し、
 /// 並んだヒントの属性をユーザがどれから開けるか選ぶ (戦略性)。
-/// 素点は 10pt で、ヒントを 1 つ開くごとに獲得点が下がる (CV/メンバーカラーは -2pt)。
+/// 素点は 10pt で、ヒントを開くと種別ごとのコストだけ獲得点が下がる (1 枚目は減点なし)。
+/// ハードは 4 択ではなく、出題候補の全員からアイドル選択画面で選ぶ。
 /// CV枠は常設し、声優未発表キャラは開封して初めて「声優未発表」と分かる
 /// (CV枠の有無で不在が無料でバレないようにする)。全 sessionLength 問のセッション制。
 ///
@@ -15,11 +16,15 @@ struct IdolQuizView: View {
     /// 出題ブランド絞り込み（空集合 = 全ブランド対象）。IdolQuizSetupView から渡す。
     let selectedBrandIds: Set<String>
 
+    /// 4 択かハードか。つづきからは保存した選び方で作り直す。
+    let mode: IdolQuizModeSetting
+
     /// 途中でやめたセッションの続き (ゲーム一覧の「つづきから」)。nil なら新しく始める。
     let resume: QuizSuspended?
 
-    init(selectedBrandIds: Set<String> = [], resume: QuizSuspended? = nil) {
+    init(selectedBrandIds: Set<String> = [], mode: IdolQuizModeSetting = .normal, resume: QuizSuspended? = nil) {
         self.selectedBrandIds = selectedBrandIds
+        self.mode = resume.flatMap { IdolQuizModeSetting(rawValue: $0.idolQuizMode ?? "") } ?? mode
         self.resume = resume
     }
 
@@ -53,7 +58,10 @@ struct IdolQuizView: View {
     @State private var seed: UInt64 = 0
     /// `resume` は最初の 1 回だけ使う (「もう一度」は新しいセッション)。
     @State private var didUseResume = false
+    /// ハードの選択画面を出しているか。
+    @State private var showPicker = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppDatabase.self) private var database
 
     private var question: IdolQuizQuestion? {
         questions.indices.contains(index) ? questions[index] : nil
@@ -107,10 +115,25 @@ struct IdolQuizView: View {
             } else {
                 QuizValueMeter(value: Int(hint.currentValue), base: baseValue, note: meterNote)
                 ticket(q)
-                QuizStageChoiceGrid(choices: choices(q).map { QuizStageChoice(id: $0.id, title: $0.name) }) { choice in
-                    if let idol = idols.first(where: { $0.id == choice.id }) { pick(idol) }
+                switch mode {
+                case .normal:
+                    QuizStageChoiceGrid(choices: choices(q).map { QuizStageChoice(id: $0.id, title: $0.name) }) { choice in
+                        if let idol = idols.first(where: { $0.id == choice.id }) { pick(idol) }
+                    }
+                    .padding(.top, DS.sp2)
+                case .hard:
+                    QuizStagePrimaryButton(title: "アイドルを選ぶ", systemImage: "magnifyingglass") {
+                        AppAnalytics.tap("idol_quiz.open_picker")
+                        showPicker = true
+                    }
+                    .padding(.top, DS.sp2)
+                    .sheet(isPresented: $showPicker) {
+                        IdolPickerView(title: "答える", mode: .single, idols: choices(q)) { selection in
+                            if let id = selection.first, let idol = idols.first(where: { $0.id == id }) { pick(idol) }
+                        }
+                        .environment(database)
+                    }
                 }
-                .padding(.top, DS.sp2)
             }
         } else {
             ImasEmptyState(systemImage: "person.fill.questionmark", title: "出題できる候補が不足しています")
@@ -224,7 +247,8 @@ struct IdolQuizView: View {
         QuizResumeStore.shared.save(QuizSuspended(
             kind: .idolQuiz, seed: seed, brandIds: Array(selectedBrandIds),
             nextIndex: index + 1, asked: Int(tally.asked), correct: Int(tally.correct),
-            points: Int(tally.points), plays: plays, total: sessionLength, savedAt: .now))
+            points: Int(tally.points), plays: plays, total: sessionLength,
+            idolQuizMode: mode.rawValue, savedAt: .now))
     }
 
     private func nextQuestion() {
@@ -277,7 +301,7 @@ struct IdolQuizView: View {
         }
         questions = idolQuizSession(idols: idolQuizRefs(idols),
                                     selectedBrandIds: Array(selectedBrandIds),
-                                    seed: seed)
+                                    mode: mode.core, seed: seed)
         index = saved?.nextIndex ?? 0
         selectedId = nil
         opened = []
