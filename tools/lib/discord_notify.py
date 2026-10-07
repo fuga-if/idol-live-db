@@ -57,7 +57,7 @@ FIX_TABLES = {
 }
 FIX_FIELDS = {
     "title": "曲名", "title_kana": "よみ", "name": "名前", "name_kana": "よみ", "name_romaji": "ローマ字",
-    "composer": "作曲", "lyricist": "作詞", "arranger": "編曲", "release_date": "発売日",
+    "composer": "作曲", "lyricist": "作詞", "arranger": "編曲", "release_date": "初出", "cd_release_date": "CD 発売日", "streaming_date": "配信開始日",
     "cd_title": "収録CD", "cd_series": "CDシリーズ", "song_type": "曲の種類", "unit_name": "ユニット名",
     "singer_label": "歌唱", "parent_song_id": "元曲", "series_group": "シリーズ", "duration_sec": "長さ(秒)",
     "note": "補足", "notes": "メモ", "date": "日付", "start_date": "開始日", "end_date": "終了日",

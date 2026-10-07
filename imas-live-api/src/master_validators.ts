@@ -157,7 +157,10 @@ const FIELD_RULES: Record<string, Record<string, FieldRule>> = {
     lyricist: { type: "STRING", maxLen: 200 },
     composer: { type: "STRING", maxLen: 200 },
     arranger: { type: "STRING", maxLen: 200 },
+    // releaseDate は初出 (ゲーム・MV・放送を含む)。配信開始日と CD 発売日は別に持つ。
     releaseDate: { type: "STRING", pattern: ISO_DATE_RE },
+    streamingDate: { type: "STRING", pattern: ISO_DATE_RE },
+    cdReleaseDate: { type: "STRING", pattern: ISO_DATE_RE },
     singerLabel: { type: "STRING", maxLen: 300 },
     isrc: { type: "STRING", maxLen: 20 },
     // 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。曲詳細の曲名の下に 1 文で出す自由文。
