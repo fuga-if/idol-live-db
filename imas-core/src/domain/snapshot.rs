@@ -94,6 +94,12 @@ pub struct Song {
     /// 曲の補足 (自由文)。「ミリシタ 1 周年記念楽曲」のように、他の列では持てない
     /// 由来や位置づけを一文で書く。公式の出典があるものだけ入れる。無ければ `None`。
     pub note: Option<String>,
+    /// 配信開始日 (YYYY-MM-DD)。`release_date` は初出 (ゲームへの実装・MV 公開・放送を含む)
+    /// なので、配信はそれより後になることがある。分からなければ `None`。
+    pub streaming_date: Option<String>,
+    /// その曲が最初に収録された CD の発売日 (YYYY-MM-DD)。CD になっていなければ `None`。
+    /// 画面に出す行は [`crate::domain::song_dates::song_date_rows`] が決める。
+    pub cd_release_date: Option<String>,
 }
 
 /// idols 全カラム (Bundle スキーマ基準)。

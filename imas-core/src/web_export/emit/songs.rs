@@ -8,6 +8,7 @@ use super::context::{distinguishing_show_name, duration_display, join_parts, Ctx
 use crate::domain::credit_names::split_credits;
 use crate::domain::display_join::join_capped;
 use crate::domain::performance_stats;
+use crate::domain::song_dates;
 use crate::domain::song_detail_queries as detail;
 use crate::domain::song_detail_queries::performance_ordinal_label;
 use crate::web_export::content;
@@ -194,7 +195,12 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             .iter()
             .filter_map(|s| ctx.song_ref(&s.id))
             .collect(),
-        fact_rows: song_fact_rows(&record, series_display.as_deref(), duration_display.as_deref()),
+        fact_rows: song_fact_rows(
+            &record,
+            &song_dates::song_date_rows(ctx.snap, song_id),
+            series_display.as_deref(),
+            duration_display.as_deref(),
+        ),
         app: content::app_open_plain(),
         seo: ctx.seo(
             &record.title,
@@ -209,13 +215,20 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
 }
 
 /// 曲の「基本情報」行。値が無い行は出さない (アイドルの `profile_rows` と同じ規則)。
+/// 日付の行 (初出・CD 発売日・配信開始日) はアプリと同じく `domain::song_dates` が決めた並びのまま。
 fn song_fact_rows(
     record: &detail::SongDetailRecord,
+    date_rows: &[song_dates::SongDateRow],
     series_display: Option<&str>,
     duration_display: Option<&str>,
 ) -> Vec<ProfileRow> {
-    [
-        ("リリース", record.release_date.as_deref(), "monospaced"),
+    let dates = date_rows.iter().map(|row| ProfileRow {
+        label: row.label.clone(),
+        value: row.display.clone(),
+        style: if row.detail.is_some() { "plain" } else { "monospaced" }.to_string(),
+        link: None,
+    });
+    let rest = [
         ("収録", record.cd_title.as_deref(), "plain"),
         ("シリーズ", series_display, "plain"),
         ("再生時間", duration_display, "monospaced"),
@@ -229,8 +242,8 @@ fn song_fact_rows(
             style: style.to_string(),
             link: None,
         })
-    })
-    .collect()
+    });
+    dates.chain(rest).collect()
 }
 
 /// 検索結果や共有カードに出る 1 文。曲名は「」で括り、ユニットは丸括弧で添える
@@ -240,7 +253,7 @@ fn song_description(record: &detail::SongDetailRecord) -> String {
     let release = record
         .release_date
         .as_deref()
-        .map(|d| format!("{d} リリース。"))
+        .map(|d| format!("{d} 初出。"))
         .unwrap_or_default();
     format!("「{}」{}の楽曲情報。{}クレジット・歌唱アイドル・ライブでの披露履歴。", record.title, unit, release)
 }

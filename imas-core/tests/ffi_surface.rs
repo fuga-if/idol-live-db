@@ -561,6 +561,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_method_snapshotstore_song_artist_ids,
     uniffi_imas_core_checksum_method_snapshotstore_song_collected_count_map,
     uniffi_imas_core_checksum_method_snapshotstore_song_collected_shows,
+    uniffi_imas_core_checksum_method_snapshotstore_song_date_rows,
     uniffi_imas_core_checksum_method_snapshotstore_song_ids_with_any_artist,
     uniffi_imas_core_checksum_method_snapshotstore_song_list,
     uniffi_imas_core_checksum_method_snapshotstore_song_performance_count_map,

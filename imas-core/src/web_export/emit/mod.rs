@@ -286,6 +286,8 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         is_collab,
         has_kamisabi_card,
         note,
+        streaming_date,
+        cd_release_date,
     } = song;
     Song {
         id,
@@ -320,6 +322,9 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         has_kamisabi_card,
         // 曲の補足。出面の曲ページが読む。
         note,
+        // 配信開始日・CD 発売日。出面の曲ページの日付の行 (domain::song_dates) が読む。
+        streaming_date,
+        cd_release_date,
     }
 }
 

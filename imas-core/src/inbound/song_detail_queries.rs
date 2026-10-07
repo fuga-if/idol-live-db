@@ -8,10 +8,18 @@ use crate::domain::song_detail_queries::{
     self, AlbumSummaryRecord, PerformanceHistoryEntry, PickedSongRecord, SeriesSummaryRecord,
     SongDetailRecord, SongWithRolesRecord,
 };
+use crate::domain::song_dates::{self, SongDateRow};
 use std::collections::HashMap;
 
 #[uniffi::export]
 impl SnapshotStore {
+    /// 曲詳細の日付の行 (初出・CD 発売日・配信開始日)。どれを出すかは
+    /// domain::song_dates が決める。画面は並びのまま出すだけ。
+    pub fn song_date_rows(&self, song_id: String) -> Result<Vec<SongDateRow>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(song_dates::song_date_rows(&snap, &song_id))
+    }
+
     /// 曲 id 群の一括取得 (入力 id 順・未知 id は読み飛ばし)。fetchSongs(ids:) 相当。
     pub fn song_records_by_ids(
         &self,
