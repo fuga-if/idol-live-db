@@ -506,6 +506,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_method_snapshotstore_idol_cast_names,
     uniffi_imas_core_checksum_method_snapshotstore_idol_current_voice_actor,
     uniffi_imas_core_checksum_method_snapshotstore_idol_list,
+    uniffi_imas_core_checksum_method_snapshotstore_idol_list_in_brands,
     uniffi_imas_core_checksum_method_snapshotstore_idol_original_song_sections,
     uniffi_imas_core_checksum_method_snapshotstore_idol_performed_song_records,
     uniffi_imas_core_checksum_method_snapshotstore_idol_records_by_ids,
