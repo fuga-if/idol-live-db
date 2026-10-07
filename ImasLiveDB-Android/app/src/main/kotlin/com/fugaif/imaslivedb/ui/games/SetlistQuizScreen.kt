@@ -39,7 +39,7 @@ import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.games.QuizStagePlay
 import com.fugaif.imaslivedb.data.games.QuizSuspended
 import com.fugaif.imaslivedb.data.games.longestStreak
-import com.fugaif.imaslivedb.data.games.setlistCaption
+import com.fugaif.imaslivedb.data.games.answeredCaption
 import com.fugaif.imaslivedb.data.games.streak
 import com.fugaif.imaslivedb.data.games.streakBrokeAt
 import com.fugaif.imaslivedb.di.AppModule
@@ -289,7 +289,7 @@ fun SetlistQuizScreen(
             question != null && hintState != null -> {
                 QuizStageProgress(
                     slots = state.plays.penlights(total = QUIZ_SESSION_LENGTH, answering = verdict == null),
-                    caption = state.plays.setlistCaption(QUIZ_SESSION_LENGTH),
+                    caption = state.plays.answeredCaption(QUIZ_SESSION_LENGTH),
                     streak = state.plays.streak, streakBrokeAt = state.plays.streakBrokeAt
                 )
                 if (verdict != null) {

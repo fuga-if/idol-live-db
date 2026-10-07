@@ -368,7 +368,7 @@ private fun PenlightStick(slot: QuizPenlight, modifier: Modifier) {
     }
 }
 
-/** ヘッダ下のペンライト + 一言 (「セトリ 3 / 10 曲目まで点灯」「3 連続正解中」)。 */
+/** ヘッダ下のペンライト + 一言 (「全 10 問中 3 問 回答済み」「3 連続正解中」)。 */
 @Composable
 fun QuizStageProgress(slots: List<QuizPenlight>, caption: String, streak: Int, streakBrokeAt: Int? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(bottom = 2.dp)) {

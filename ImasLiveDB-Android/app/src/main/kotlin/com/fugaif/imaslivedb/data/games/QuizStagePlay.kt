@@ -47,5 +47,5 @@ val List<QuizStagePlay>.streak: Int get() = QuizStreak.current(map { it.isCorrec
 val List<QuizStagePlay>.longestStreak: Int get() = QuizStreak.longest(map { it.isCorrect })
 val List<QuizStagePlay>.streakBrokeAt: Int? get() = QuizStreak.brokeAt(map { it.isCorrect })
 
-/** 「セトリ 3 / 10 曲目まで点灯」。 */
-fun List<QuizStagePlay>.setlistCaption(total: Int): String = "セトリ $size / $total 曲目まで点灯"
+/** 「全 10 問中 3 問 回答済み」。 */
+fun List<QuizStagePlay>.answeredCaption(total: Int): String = "全 $total 問中 $size 問 回答済み"

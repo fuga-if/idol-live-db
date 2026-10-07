@@ -214,7 +214,7 @@ struct QuizPenlightRow: View {
     }
 }
 
-/// ヘッダ下のペンライト + 一言 (「セトリ 3 / 10 曲目まで点灯」「3 連続正解中」)。
+/// ヘッダ下のペンライト + 一言 (「全 10 問中 3 問 回答済み」「3 連続正解中」)。
 struct QuizStageProgress: View {
     let slots: [QuizPenlight]
     let caption: String
@@ -1072,9 +1072,9 @@ extension Array where Element == QuizStagePlay {
         }
     }
 
-    /// 「セトリ 3 / 10 曲目まで点灯」。
-    func setlistCaption(total: Int) -> String {
-        "セトリ \(count) / \(total) 曲目まで点灯"
+    /// 「全 10 問中 3 問 回答済み」。
+    func answeredCaption(total: Int) -> String {
+        "全 \(total) 問中 \(count) 問 回答済み"
     }
 }
 

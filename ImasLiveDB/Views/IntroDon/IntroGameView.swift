@@ -274,7 +274,7 @@ struct IntroGameView: View {
             QuizStageProgress(
                 slots: QuizPenlight.slots(results: results, total: session.totalCount,
                                           answering: session.phase != .revealed),
-                caption: "セトリ \(session.records.count) / \(session.totalCount) 曲目まで点灯",
+                caption: "全 \(session.totalCount) 問中 \(session.records.count) 問 回答済み",
                 streak: session.combo)
         } else {
             VStack(spacing: DS.sp3) {

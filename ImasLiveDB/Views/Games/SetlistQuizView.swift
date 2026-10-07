@@ -76,7 +76,7 @@ struct SetlistQuizView: View {
                                 onReplay: { startSession() }, onClose: { dismiss() })
         } else if let q = question, let hint {
             QuizStageProgress(slots: plays.penlights(total: sessionLength, answering: verdict == nil),
-                              caption: plays.setlistCaption(total: sessionLength),
+                              caption: plays.answeredCaption(total: sessionLength),
                               streak: plays.streak, streakBrokeAt: plays.streakBrokeAt)
                 .padding(.bottom, 2)
             if let verdict {
