@@ -78,7 +78,13 @@ enum LyricsCardOCR {
         }.count)
     }
 
+    // CIContext はスレッドセーフ (Apple の文書)。iOS 26 SDK からは Sendable だが、
+    // 古い Xcode の CI では Sendable でないので nonisolated(unsafe) で共有を許す。
+    #if compiler(>=6.2)
     private static let context = CIContext()
+    #else
+    nonisolated(unsafe) private static let context = CIContext()
+    #endif
 
     /// 読み取りの前の下ごしらえ。色を抜いて明暗をはっきりさせ (色の地や写真の上の文字に効く)、
     /// 小さい画像 (スクリーンショットの切り抜きなど) は短辺 2,000px まで拡大する。字の形は変えない。
