@@ -17,6 +17,7 @@ pub mod color_names;
 pub mod color_quiz;
 pub mod community;
 pub mod community_limits;
+pub mod contribution_feedback;
 pub mod costume_queries;
 pub mod credit_names;
 pub mod daily_pick;

@@ -7,6 +7,7 @@ pub mod calendar_queries;
 pub mod ck_record_mapping;
 pub mod color_match;
 pub mod color_quiz;
+pub mod contribution_feedback;
 pub mod costume_queries;
 pub mod daily_pick;
 pub mod edit_permission_rules;
