@@ -75,6 +75,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.notification.NotificationCategory
+import com.fugaif.imaslivedb.ui.components.signInWithFeedback
 import com.fugaif.imaslivedb.data.notification.NotificationPrefs
 import com.fugaif.imaslivedb.data.notification.NotificationScheduler
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
@@ -463,7 +464,7 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
             )
             ImasButton(
                 title = "Googleでログイン",
-                onClick = { scope.launch { authService.signIn(context) } },
+                onClick = { scope.launch { authService.signInWithFeedback(context) } },
                 role = ImasButtonRole.PRIMARY,
                 size = ImasButtonSize.LARGE,
                 fillsWidth = true
