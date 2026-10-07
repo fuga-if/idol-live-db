@@ -50,9 +50,12 @@ import com.fugaif.imaslivedb.data.model.Expense
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormTextArea
+import com.fugaif.imaslivedb.ui.designsystem.ImasMetric
+import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasRowChevron
 import com.fugaif.imaslivedb.ui.designsystem.ImasSelectionMark
+import com.fugaif.imaslivedb.ui.designsystem.ImasStepper
 import com.fugaif.imaslivedb.ui.designsystem.ImasStep
 import com.fugaif.imaslivedb.ui.designsystem.ImasStepList
 import com.fugaif.imaslivedb.ui.designsystem.ImasSwitch
@@ -70,6 +73,7 @@ import uniffi.imas_core.expenseCategoryLabel
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.parseStoreOrders
 import uniffi.imas_core.storeOrderExpenses
+import uniffi.imas_core.storeOrderItemAmount
 
 /** 画面で直せる注文 1 件 (含めるか・紐づけ先・品目ごとの費目と含めるか)。iOS `DraftOrder` と対。 */
 private data class DraftOrder(
@@ -349,10 +353,44 @@ private fun ItemRow(item: StoreOrderItem, onChange: (StoreOrderItem) -> Unit) {
                     if (item.quantity > 1u) "${item.quantity}点 ${formatYen(item.subtotal)}" else formatYen(item.subtotal),
                     style = ImasType.text(13.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
                     color = if (item.included) DS.ink else DS.ink3,
-                    textDecoration = if (item.included) null else TextDecoration.LineThrough
+                    textDecoration = if (item.included && item.recordedQuantity >= item.quantity) null else TextDecoration.LineThrough
                 )
             }
+            if (item.included && item.quantity > 1u) {
+                Spacer(Modifier.height(DS.Space.gapTight))
+                QuantityRow(item, onChange)
+            }
         }
+    }
+}
+
+/**
+ * 同じ品を複数点買ったとき、自分の分の点数だけを記録する (友人の分と合わせて買った場合)。
+ * 額は単価 × 点数 (計算はコア)。iOS `quantityRow`。
+ */
+@Composable
+private fun QuantityRow(item: StoreOrderItem, onChange: (StoreOrderItem) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("記録する数", style = ImasTextRole.VALUE.style, color = DS.ink2)
+        Spacer(Modifier.weight(1f))
+        if (item.recordedQuantity < item.quantity) {
+            Text(
+                formatYen(storeOrderItemAmount(item)),
+                style = ImasType.text(13.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
+                color = DS.ink
+            )
+        }
+        ImasMetric("${item.recordedQuantity}", unit = "点", size = ImasNumeralSize.MEDIUM, emphasized = true)
+        ImasStepper(
+            label = "記録する数",
+            value = item.recordedQuantity.toInt(),
+            onValueChange = { onChange(item.copy(recordedQuantity = it.toUInt())) },
+            range = 1..item.quantity.toInt()
+        )
     }
 }
 

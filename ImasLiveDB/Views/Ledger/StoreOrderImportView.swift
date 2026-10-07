@@ -206,10 +206,36 @@ struct StoreOrderImportView: View {
                         .font(.imasFootnote.weight(.semibold))
                         .foregroundStyle(value.included ? DS.ink : DS.ink3)
                         .monospacedDigit()
-                        .strikethrough(!value.included)
+                        .strikethrough(!value.included || value.recordedQuantity < value.quantity)
+                }
+                if value.included && value.quantity > 1 {
+                    quantityRow(item)
                 }
             }
         }
+    }
+
+    /// 同じ品を複数点買ったとき、自分の分の点数だけを記録する (友人の分と合わせて買った場合)。
+    /// 額は単価 × 点数 (計算はコア)。
+    private func quantityRow(_ item: Binding<StoreOrderItem>) -> some View {
+        let value = item.wrappedValue
+        let count = Binding<Int>(
+            get: { Int(item.wrappedValue.recordedQuantity) },
+            set: { item.recordedQuantity.wrappedValue = UInt32($0) }
+        )
+        return HStack(spacing: DS.Space.gap) {
+            Text("記録する数").imasText(.value, color: DS.ink2)
+            Spacer(minLength: DS.Space.gapTight)
+            if value.recordedQuantity < value.quantity {
+                Text(formatYen(amount: storeOrderItemAmount(item: value)))
+                    .font(.imasFootnote.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                    .monospacedDigit()
+            }
+            ImasMetric(value: "\(value.recordedQuantity)", unit: "点", size: .medium, emphasized: true)
+            Stepper("記録する数", value: count, in: 1...Int(value.quantity)).labelsHidden()
+        }
+        .sensoryFeedback(.selection, trigger: value.recordedQuantity)
     }
 
     private func adjustmentRow(_ order: StoreOrder) -> some View {

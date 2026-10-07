@@ -392,6 +392,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_split_credit_names,
     uniffi_imas_core_checksum_func_spoken_date,
     uniffi_imas_core_checksum_func_store_order_expenses,
+    uniffi_imas_core_checksum_func_store_order_item_amount,
     uniffi_imas_core_checksum_func_sync_chunk_progress,
     uniffi_imas_core_checksum_func_sync_classify_error,
     uniffi_imas_core_checksum_func_sync_completion_plan,

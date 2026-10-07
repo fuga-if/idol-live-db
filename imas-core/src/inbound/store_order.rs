@@ -2,7 +2,7 @@
 //!
 //! 貼り付けたテキスト全体を 1 回で渡して、読めた注文をまとめて受け取る。
 
-use crate::domain::store_order::{StoreExpenseDraft, StoreOrder, StoreShowCandidate};
+use crate::domain::store_order::{StoreExpenseDraft, StoreOrder, StoreOrderItem, StoreShowCandidate};
 
 #[uniffi::export]
 pub fn parse_store_orders(
@@ -21,6 +21,12 @@ pub fn store_order_expenses(
     event_id: Option<String>,
 ) -> Vec<StoreExpenseDraft> {
     crate::domain::store_order::store_order_expenses(&order, show_id, event_id)
+}
+
+/// 品目のうち帳簿に入れる額 (外したら 0、点数を減らしたら単価 × 点数)。画面の品目の額に出す。
+#[uniffi::export]
+pub fn store_order_item_amount(item: StoreOrderItem) -> i64 {
+    item.counted_amount()
 }
 
 /// アソビストアのマイページの購入履歴一覧 (取り込み画面の案内で開く)。

@@ -50,6 +50,31 @@ pub struct StoreOrderItem {
     /// 既定は**チケット代以外**。チケット代は公演の参加から記録するので、
     /// 明細からも入れると二重になる (利用者の運用)。
     pub included: bool,
+    /// 帳簿に入れる点数 (`1..=quantity`)。同じ品を友人の分と合わせて買ったとき、
+    /// 自分の分だけを入れられるように。既定は `quantity` (全部)。
+    pub recorded_quantity: u32,
+}
+
+impl StoreOrderItem {
+    /// 帳簿に入れる点数。範囲外の値は `1..=quantity` に寄せる。外した品目は 0。
+    pub fn counted_quantity(&self) -> u32 {
+        if !self.included {
+            return 0;
+        }
+        self.recorded_quantity.clamp(1, self.quantity.max(1))
+    }
+
+    /// 帳簿に入れる額。全部入れるなら明細の小計、一部なら単価 × 点数。
+    pub fn counted_amount(&self) -> i64 {
+        let n = self.counted_quantity();
+        if n == 0 {
+            0
+        } else if n >= self.quantity {
+            self.subtotal
+        } else {
+            self.unit_price * i64::from(n)
+        }
+    }
 }
 
 /// 注文 1 件。
@@ -188,6 +213,7 @@ fn parse_order_history(text: &str, existing_notes: &[String]) -> Vec<StoreOrder>
             subtotal: total,
             category: if digital { ExpenseCategory::Ticket } else { ExpenseCategory::Goods },
             included: true,
+            recorded_quantity: 1,
         };
         orders.push(finish_order(
             STORE_ASOBI.to_string(),
@@ -226,17 +252,19 @@ pub fn store_order_expenses(
     // 費目 → (合計, 品名)。並びは費目一覧の順。
     let mut groups: Vec<(ExpenseCategory, i64, Vec<String>)> = Vec::new();
     for item in order.items.iter().filter(|i| i.included) {
-        let label = if item.quantity > 1 {
-            format!("{}×{}", item.name, item.quantity)
-        } else {
-            item.name.clone()
+        let n = item.counted_quantity();
+        let label = match (n, item.quantity) {
+            (n, q) if n < q => format!("{}×{}（{}点中）", item.name, n, q),
+            (n, _) if n > 1 => format!("{}×{}", item.name, n),
+            _ => item.name.clone(),
         };
+        let amount = item.counted_amount();
         match groups.iter_mut().find(|g| g.0 == item.category) {
             Some(g) => {
-                g.1 += item.subtotal;
+                g.1 += amount;
                 g.2.push(label);
             }
-            None => groups.push((item.category, item.subtotal, vec![label])),
+            None => groups.push((item.category, amount, vec![label])),
         }
     }
     if groups.is_empty() {
@@ -333,6 +361,7 @@ fn parse_one(
                     unit_price,
                     subtotal,
                     included: true,
+                    recorded_quantity: quantity,
                 });
                 continue;
             }
@@ -696,6 +725,28 @@ THE IDOLM@STER SHINY COLORS 7thLIVE ペンライト：1×4,400円=4,400円
             item.included = false;
         }
         assert!(store_order_expenses(&order, None, None).is_empty());
+    }
+
+    #[test]
+    fn records_only_part_of_the_same_item() {
+        let mut order = parse_store_orders(GOODS_MAIL, "2026-01-01", &[], &[]).remove(0);
+        // アクリルスタンド 3 点 (1,500 円) のうち、自分の分は 1 点。
+        assert_eq!(order.items[1].recorded_quantity, 3);
+        order.items[1].recorded_quantity = 1;
+        assert_eq!(order.items[1].counted_amount(), 1_500);
+        let drafts = store_order_expenses(&order, None, None);
+        // グッズ 3,000 + 1,500 + 送料 800、UO 4,400。
+        assert_eq!(drafts[0].amount, 3_000 + 1_500 + 800);
+        assert_eq!(drafts[1].amount, 4_400);
+        assert!(drafts[0].note.contains("アクリルスタンド×1（3点中）"));
+
+        // 範囲外は寄せる。外した品目は 0。
+        order.items[1].recorded_quantity = 0;
+        assert_eq!(order.items[1].counted_quantity(), 1);
+        order.items[1].recorded_quantity = 9;
+        assert_eq!(order.items[1].counted_amount(), 4_500);
+        order.items[1].included = false;
+        assert_eq!(order.items[1].counted_amount(), 0);
     }
 
     #[test]
