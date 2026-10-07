@@ -14,6 +14,7 @@ final class IdolListViewModelTests: XCTestCase {
         var castNamesToReturn: [String: String] = [:]
 
         func idols(brandId: String?) async throws -> [Idol] { idolsToReturn }
+        func idols(brandIds: Set<String>) async throws -> [Idol] { idolsToReturn }
         func idolCastNames() async throws -> [String: String] { castNamesToReturn }
 
         // 未使用メソッドは既定値で充足 (このテストでは呼ばれない)。

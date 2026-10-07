@@ -61,6 +61,7 @@ final class SetlistViewModelTests: XCTestCase {
         func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol] { [] }
 
         func idols(brandId: String?) async throws -> [Idol] { [] }
+        func idols(brandIds: Set<String>) async throws -> [Idol] { [] }
         func idol(id: String) async throws -> Idol? { nil }
         func idols(criterion: IdolFilterCriterion) async throws -> [Idol] { [] }
         func idolCastNames() async throws -> [String: String] { [:] }

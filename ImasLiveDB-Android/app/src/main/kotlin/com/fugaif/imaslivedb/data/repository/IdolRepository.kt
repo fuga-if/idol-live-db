@@ -37,6 +37,10 @@ class IdolRepository(
         return hydrateIdols(snapshots.query { store -> store.idolList(brandId).map { it.id } })
     }
 
+    /** 複数ブランドのアイドル一覧。同じ人を 1 回にするのはコア (idolListInBrands)。空なら全件。 */
+    suspend fun fetchIdolsInBrands(brandIds: Collection<String>): List<Idol> =
+        hydrateIdols(snapshots.query { store -> store.idolListInBrands(brandIds.toList()).map { it.id } })
+
     /**
      * 誕生月 (1..12) で絞ったアイドル。プロフィールの誕生日行から開く一覧の母集団。
      *

@@ -49,6 +49,7 @@ final class MyPageViewModelTests: XCTestCase {
 
         func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol] { [] }
         func idols(brandId: String?) async throws -> [Idol] { allIdols }
+        func idols(brandIds: Set<String>) async throws -> [Idol] { allIdols }
 
         func idol(id: String) async throws -> Idol? { nil }
         func idols(criterion: IdolFilterCriterion) async throws -> [Idol] { [] }
