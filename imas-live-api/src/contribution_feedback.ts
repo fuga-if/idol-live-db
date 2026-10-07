@@ -5,8 +5,9 @@
 //   GET  /shows/:id/credits        公演ページ末尾の奥付 (セトリ入力・歌唱者の入力をした人の表示名)
 //   POST /users/me/credit          奥付に名前を載せるか (本人のオプトイン。既定は載せない)
 //
-// 対象は edit_batch の source='app' (利用者がアプリから入れた編集) だけ。歌詞の投稿は
-// lyric_submissions にあって edit_batch に入らないので、構造上どれにも出ない (歌詞を煽らない)。
+// 編集は edit_batch の source='app' (利用者がアプリから入れた編集)。歌詞の投稿は lyric_submissions の
+// published_at (その投稿で公開された) から「公開されました」・ここ好きの反響・歌詞の奥付を出す
+// (2026-10-07 オーナー判断: 歌詞の投稿をいちばん欲しい)。
 //
 // 閲覧数は端末 ID の行を持たず、(公演, 週) の人数だけを積む。重複は端末が週ごとに畳む。
 // 1 端末 1 週 1 公演 = 1 行の upsert なので、書き込みは「その週に開かれた公演の数」で頭打ちになる。
@@ -71,7 +72,7 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
   const since = Number.isFinite(sinceRaw) && sinceRaw > 0 ? Math.floor(sinceRaw) : 0;
   const lastWeek = jstWeekStart(Date.now() - 7 * DAY_MS);
 
-  const [goods, reach] = await Promise.all([
+  const [goods, reach, lyrics] = await Promise.all([
     env.DB.prepare(
       `SELECT eb.id, eb.summary,
               (SELECT h.record_type FROM edit_history h WHERE h.batch_id = eb.id ORDER BY h.id LIMIT 1) AS record_type,
@@ -107,6 +108,17 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
     )
       .bind(lastWeek, user.uid)
       .first<{ viewers: number; shows: number }>(),
+    // 自分の投稿で公開された歌詞 (新しい順) と、その曲のいまのここ好きの人数。
+    env.DB.prepare(
+      `SELECT s.song_id, s.published_at, l.status, l.likes_json
+         FROM lyric_submissions s
+         LEFT JOIN song_lyrics l ON l.song_id = s.song_id
+        WHERE s.user_id = ? AND s.published_at IS NOT NULL
+        ORDER BY s.published_at DESC
+        LIMIT ?`
+    )
+      .bind(user.uid, MAX_FEEDBACK_GOODS)
+      .all<{ song_id: string; published_at: string; status: string | null; likes_json: string | null }>(),
   ]);
 
   const items = (goods.results ?? []).map((r) => ({
@@ -118,15 +130,71 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
     newGoodCount: Number(r.new_good_count) || 0,
     latestGoodAt: Number(r.latest_good_at) || 0,
   }));
+  const lyricItems = (lyrics.results ?? []).map((r) => {
+    const publishedAt = sqliteTimeToMs(r.published_at);
+    return {
+      songId: r.song_id,
+      publishedAt,
+      isNew: publishedAt > since,
+      // 非公開に戻った曲 (BAN・差し戻し) の人数は出さない。
+      likeCount: r.status === "published" ? sumLikes(r.likes_json) : 0,
+    };
+  });
   return json({
     goods: items,
     newGoodTotal: items.reduce((n, g) => n + g.newGoodCount, 0),
+    lyrics: {
+      published: lyricItems,
+      newPublishedCount: lyricItems.filter((l) => l.isNew).length,
+      likeTotal: lyricItems.reduce((n, l) => n + l.likeCount, 0),
+    },
     setlistReach: {
       week: lastWeek,
       viewers: Number(reach?.viewers) || 0,
       shows: Number(reach?.shows) || 0,
     },
   });
+}
+
+/** D1 の datetime('now') ('YYYY-MM-DD HH:MM:SS'、UTC) を epoch ミリ秒に。 */
+function sqliteTimeToMs(s: string): number {
+  const ms = Date.parse(s.replace(" ", "T") + "Z");
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** song_lyrics.likes_json ({行ID: 人数}) の合計。 */
+function sumLikes(json: string | null): number {
+  if (!json) return 0;
+  try {
+    return Object.values(JSON.parse(json) as Record<string, unknown>)
+      .reduce<number>((n, v) => n + (typeof v === "number" ? v : 0), 0);
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * 曲の歌詞の奥付 (歌詞入力 ○○)。その曲で投稿が公開された人のうち、名前を載せると選んだ人。
+ * 歌詞の応答 (GET /songs/:id/lyrics・曲詳細の束ね) に載せる。歌詞本文には手を入れない。
+ */
+export async function fetchLyricsCredit(db: D1Database, songId: string): Promise<CreditRole> {
+  const { results } = await db.prepare(
+    `SELECT u.display_name AS name,
+            COALESCE(u.credit_opt_in, 0) AS opt_in,
+            COALESCE(u.is_banned, 0) AS banned,
+            MIN(s.published_at) AS first_at
+       FROM lyric_submissions s
+       JOIN users u ON u.id = s.user_id
+      WHERE s.song_id = ? AND s.published_at IS NOT NULL
+      GROUP BY s.user_id
+      ORDER BY first_at`
+  )
+    .bind(songId)
+    .all<{ name: string | null; opt_in: number; banned: number }>();
+  return toRole((results ?? []).map((r) => ({
+    name: r.name, opt_in: Number(r.opt_in), banned: Number(r.banned),
+    first_at: 0, did_items: 0, did_performers: 0,
+  })));
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +246,7 @@ interface CreditRow {
   did_performers: number;
 }
 
-interface CreditRole {
+export interface CreditRole {
   /** 載せてよい人の表示名 (最初に入れた順)。 */
   names: string[];
   /** この役割に関わった人の総数 (名前を出さない人も含む)。 */

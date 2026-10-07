@@ -10,6 +10,7 @@ import { handleGetAdminUserEdits, handlePostAdminRevertUser } from "../revert";
 import { checkIsAdmin } from "../users";
 import type { RouteContext } from "./context";
 import { decodePathParam, readJsonBody } from "./guards";
+import { SUBMISSION_SOURCE } from "./lyric_submissions";
 
 /** /admin/ban・/admin/revert-user・/admin/users/:id/edits。どれでもなければ null。 */
 export async function handleAdmin(ctx: RouteContext): Promise<Response | null> {
@@ -38,6 +39,18 @@ export async function handleAdmin(ctx: RouteContext): Promise<Response | null> {
       env.DB.prepare("UPDATE users SET is_banned = 1 WHERE id = ?").bind(targetUserId),
       // BAN 対象が付けた Good を撤去 (受け手の goods_received は都度 COUNT 算出なので自動で減る)
       env.DB.prepare("DELETE FROM edit_good WHERE user_id = ?").bind(targetUserId),
+      // BAN 対象の投稿がいま出ている歌詞 (その曲の最後に公開された投稿が本人) を非公開 (draft) にする。
+      // 本文は消さないので、誤 BAN なら POST /admin/lyrics/status で戻せる。前の人の版に
+      // 戻すなら POST /admin/lyrics/:song_id/restore。出典が投稿のままの曲だけ (運営が入れ直した曲は触らない)。
+      env.DB.prepare(
+        `UPDATE song_lyrics SET status = 'draft', updated_at = datetime('now')
+          WHERE source = ? AND status = 'published'
+            AND song_id IN (
+              SELECT s.song_id FROM lyric_submissions s
+               WHERE s.user_id = ? AND s.published_at IS NOT NULL
+                 AND s.published_at = (SELECT MAX(s2.published_at) FROM lyric_submissions s2
+                                        WHERE s2.song_id = s.song_id))`
+      ).bind(SUBMISSION_SOURCE, targetUserId),
     ]);
 
     return json({ banned: targetUserId });

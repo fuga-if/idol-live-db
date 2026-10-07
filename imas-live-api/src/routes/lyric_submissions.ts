@@ -1,9 +1,11 @@
 // routes/lyric_submissions.ts — 歌詞の投稿 (POST /songs/:song_id/lyric-submissions)。
 //
 // 利用者が CD の歌詞カードなどの一次ソースを見て入力した歌詞を預かる。
-// まだ歌詞の無い曲なら、その場で song_lyrics に公開する (運営はあとから確認する。2026-10-06 オーナー判断)。
-// 既に歌詞のある曲への投稿は上書きせず、確認待ちとして預かるだけ (直しの提案として運営が見る)。
-// lyric_submissions の status は運営の確認の状態 (pending = 未確認)。公開したかどうかではない。
+// 投稿はその場で song_lyrics に公開する (運営はあとから確認する。2026-10-06 オーナー判断)。
+// 既に歌詞のある曲への直しもすぐ公開する (2026-10-07 オーナー判断)。上書き前の版は
+// song_lyrics_versions に残し、モデレーターが POST /admin/lyrics/:song_id/restore で戻せる。
+// 歌詞を出せない曲 (lyric_unlicensed_songs) と、歌詞の形に合わないものは預かるだけで公開しない。
+// lyric_submissions の status は運営の確認の状態 (pending = 未確認)。公開したかは published_at。
 //
 // ボディは { agreed_to_guideline, text } (アプリの JSON は snake_case)。
 // ⚠️ 投稿ガイドラインへの同意 (agreed_to_guideline: true) が必須。入力元は書かせない
@@ -84,18 +86,31 @@ export async function handleLyricSubmissions(ctx: RouteContext): Promise<Respons
   await env.DB.prepare(
     `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count) VALUES (?, ?, ?, ?, ?)`
   ).bind(id, songId, authUser.uid, result.body, result.lineCount).run();
-  const published = await publishIfFirst(ctx, songId, result.body);
+  const published = await publishSubmission(ctx, songId, result.body, id);
   return json({ id, song_id: songId, status: "pending", published }, 201, NO_STORE);
 }
 
-/** まだ歌詞の無い曲なら公開する。既にある (下書きを含む) なら何もしない。公開したら true。 */
-async function publishIfFirst(ctx: RouteContext, songId: string, body: string): Promise<boolean> {
+/**
+ * 投稿を公開する。前の版があれば残してから上書きする。公開したら true。
+ * 誰の投稿で公開されたか (published_at) も残す (手応え・歌詞の奥付・BAN 時の一括非公開が引く)。
+ */
+async function publishSubmission(ctx: RouteContext, songId: string, body: string, submissionId: string): Promise<boolean> {
   const { env } = ctx;
-  const existing = await env.DB.prepare("SELECT 1 AS x FROM song_lyrics WHERE song_id = ?").bind(songId).first();
-  if (existing) return false;
+  const unlicensed = await env.DB.prepare("SELECT 1 AS x FROM lyric_unlicensed_songs WHERE song_id = ?")
+    .bind(songId).first();
+  if (unlicensed) return false;
   const lyrics = { source: SUBMISSION_SOURCE, status: "published", lines: submissionLines(body) };
   // 1 行が長すぎるなど、歌詞の形に合わないものは公開せず確認待ちに残す。
   if (validateLyricsBody(lyrics)) return false;
+  const prev = await env.DB.prepare("SELECT source, status, lines_json FROM song_lyrics WHERE song_id = ?")
+    .bind(songId).first<{ source: string | null; status: string; lines_json: string | null }>();
+  if (prev?.lines_json) {
+    await env.DB.prepare(
+      `INSERT INTO song_lyrics_versions (song_id, source, status, lines_json, replaced_by) VALUES (?, ?, ?, ?, ?)`
+    ).bind(songId, prev.source, prev.status, prev.lines_json, submissionId).run();
+  }
   await storeLyrics(env, songId, lyrics);
+  await env.DB.prepare("UPDATE lyric_submissions SET published_at = datetime('now') WHERE id = ?")
+    .bind(submissionId).run();
   return true;
 }

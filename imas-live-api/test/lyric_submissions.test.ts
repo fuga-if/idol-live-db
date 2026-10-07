@@ -30,14 +30,55 @@ describe("POST /songs/:id/lyric-submissions", () => {
       .toEqual([["lyric", "きらめく"], ["blank", ""], ["lyric", "ステージ"]]);
     expect(lyrics.body.source).toBe("みんなの投稿");
 
-    // 既に歌詞のある曲への投稿は上書きせず、確認待ちに残す
+    // 既に歌詞のある曲への直しもすぐ公開し、前の版を残す (2026-10-07)
     const again = await callJson("POST", "/songs/s1/lyric-submissions", {
       headers: await bearer(UID), body: { agreed_to_guideline: true, text: "ちがう歌詞" },
     });
     expect(again.status).toBe(201);
-    expect(again.body.published).toBe(false);
-    const still = await callJson("GET", "/songs/s1/lyrics", { headers: await bearer(UID) });
-    expect(JSON.stringify(still.body)).not.toContain("ちがう歌詞");
+    expect(again.body.published).toBe(true);
+    const now = await callJson("GET", "/songs/s1/lyrics?v=2", { headers: await bearer(UID) });
+    expect(now.body.lines.map((l: { text: string }) => l.text)).toEqual(["ちがう歌詞"]);
+    expect(await row("SELECT COUNT(*) AS n FROM song_lyrics_versions WHERE song_id = 's1'")).toEqual({ n: 1 });
+
+    // モデレーターは 1 つ前の版に戻せる (本文は応答に出さない)
+    await insertUser("001094.lsub.admin", { isAdmin: true });
+    const restored = await callJson("POST", "/admin/lyrics/s1/restore", { headers: await bearer("001094.lsub.admin") });
+    expect(restored.body).toEqual({ restored: "s1" });
+    const back = await callJson("GET", "/songs/s1/lyrics?v=3", { headers: await bearer(UID) });
+    expect(back.body.lines.map((l: { text: string }) => l.text)).toEqual(["きらめく", "", "ステージ"]);
+    expect((await callJson("POST", "/admin/lyrics/s1/restore", { headers: await bearer(UID) })).status).toBe(401);
+  });
+
+  it("歌詞を出せない曲は預かるだけで公開しない", async () => {
+    const r = await callJson("POST", "/songs/765as_binarystar/lyric-submissions", {
+      headers: await bearer(UID), body: { agreed_to_guideline: true, text: "ほし" },
+    });
+    expect(r.status).toBe(201);
+    expect(r.body.published).toBe(false);
+    expect(await row("SELECT COUNT(*) AS n FROM song_lyrics WHERE song_id = '765as_binarystar'")).toEqual({ n: 0 });
+  });
+
+  it("歌詞の奥付は名前を載せると選んだ人だけ。BAN すると、その人の版が出ている曲は非公開になる", async () => {
+    await insertUser("001094.lsub.b", { displayName: "Bさん" });
+    await callJson("POST", "/songs/s9/lyric-submissions", {
+      headers: await bearer(UID), body: { agreed_to_guideline: true, text: "いち" },
+    });
+    await new Promise((res) => setTimeout(res, 1100)); // published_at は秒単位
+    await callJson("POST", "/songs/s9/lyric-submissions", {
+      headers: await bearer("001094.lsub.b"), body: { agreed_to_guideline: true, text: "に" },
+    });
+    await callJson("POST", "/users/me/credit", { headers: await bearer("001094.lsub.b"), body: { credit_opt_in: true } });
+    const lyrics = await callJson("GET", "/songs/s9/lyrics", { headers: await bearer(UID) });
+    expect(lyrics.body.submittedBy).toEqual({ names: ["Bさん"], total: 2 });
+
+    // 投稿した人への手応え
+    const fb = await callJson("GET", "/me/feedback?since=0", { headers: await bearer("001094.lsub.b") });
+    expect(fb.body.lyrics.newPublishedCount).toBe(1);
+    expect(fb.body.lyrics.published[0]).toMatchObject({ songId: "s9", isNew: true, likeCount: 0 });
+
+    await insertUser("001094.lsub.admin2", { isAdmin: true });
+    await callJson("POST", "/admin/ban", { headers: await bearer("001094.lsub.admin2"), body: { user_id: "001094.lsub.b" } });
+    expect(await row("SELECT status FROM song_lyrics WHERE song_id = 's9'")).toEqual({ status: "draft" });
   });
 
   it("ガイドラインへの同意・本文が無いと 400、未ログインは 401", async () => {

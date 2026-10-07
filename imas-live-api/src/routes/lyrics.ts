@@ -19,6 +19,7 @@
 // 理由は migrations/0026_song_lyrics.sql の先頭コメントを参照。
 // このファイルは日時文字列を JS 側で組み立てず、必ず SQL の datetime('now') で書く。
 
+import { fetchLyricsCredit, type CreditRole } from "../contribution_feedback";
 import { convertLinesToRubyNotation, listRuby, stripRuby, toRubyNotation } from "../lyrics_ruby";
 import { applyStructureOp } from "../lyrics_structure";
 import { getAuthUser } from "../auth";
@@ -552,7 +553,7 @@ export async function fetchPublishedLyrics(
   songId: string,
   includeDraft = false,
   request?: Request
-): Promise<(ReturnType<typeof buildLyricsPayload> & { status: string }) | null> {
+): Promise<(ReturnType<typeof buildLyricsPayload> & { status: string; submittedBy: CreditRole }) | null> {
   const header = await db
     .prepare(
       `SELECT source, updated_at, lines_json, status, likes_json, rights_org FROM song_lyrics
@@ -565,7 +566,9 @@ export async function fetchPublishedLyrics(
   if (request && !lyricsAllowedForClient(request, header.rights_org)) return null;
   // 行は同じ 1 行に JSON で入っているので、追加の読み取りは発生しない。
   return { ...buildLyricsPayload(songId, header, parseLines(header.lines_json)),
-           status: header.status };
+           status: header.status,
+           // 歌詞の奥付 (歌詞入力 ○○。名前は本人が載せると選んだ人だけ)。
+           submittedBy: await fetchLyricsCredit(db, songId) };
 }
 
 /** PUT のボディ検証。問題があればエラーメッセージ、無ければ null。 */
@@ -928,7 +931,8 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
     await commitIpRateLimit(env.DB, ipRl);
     // ここまで来たら歌詞を返すことが確定している (401/404/429 では数えない)。
     logLyricsRead(songId);
-    return json({ ...buildLyricsPayload(songId, header, lines), status: header.status },
+    const submittedBy = await fetchLyricsCredit(env.DB, songId);
+    return json({ ...buildLyricsPayload(songId, header, lines), status: header.status, submittedBy },
                 200, NO_STORE);
   }
 
@@ -945,6 +949,31 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   //       「まとめ取りできる口」になる。
   //
   // PUT を曲数ぶん叩くのに比べて、本文と転置インデックスを書き直さずに済む。
+  // ----------------------------------------------------------------
+  // POST /admin/lyrics/:song_id/restore — 投稿で上書きされる前の版に 1 つ戻す (モデレーターのみ)
+  // ----------------------------------------------------------------
+  //   song_lyrics_versions のいちばん新しい版を書き戻し、その版の行を消す (もう一度呼べば更に前へ)。
+  //   応答は件数だけで、本文は返さない (まとめ取りの口にしない)。
+  const restoreMatch = path.match(/^\/admin\/lyrics\/([^/]+)\/restore$/);
+  if (restoreMatch && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+    const songId = decodePathParam(ctx, restoreMatch[1], "song_id");
+    if (songId instanceof Response) return songId;
+    const version = await env.DB.prepare(
+      "SELECT id, source, status, lines_json FROM song_lyrics_versions WHERE song_id = ? ORDER BY id DESC LIMIT 1"
+    ).bind(songId).first<{ id: number; source: string | null; status: string; lines_json: string }>();
+    if (!version) return error("no previous version", 404);
+    const lines = parseLines(version.lines_json).map((l) => ({ kind: l.kind, text: l.text, section: l.section ?? null }));
+    await storeLyrics(env, songId, {
+      source: version.source,
+      status: LYRIC_STATUSES.has(version.status) ? version.status : "draft",
+      lines,
+    });
+    await env.DB.prepare("DELETE FROM song_lyrics_versions WHERE id = ?").bind(version.id).run();
+    return json({ restored: songId }, 200, NO_STORE);
+  }
+
   if (path === "/admin/lyrics/status" && request.method === "POST") {
     const subject = await authorizeLyricsWrite(request, env);
     if (!subject) return error("Unauthorized", 401);
