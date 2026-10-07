@@ -96,7 +96,7 @@ object BackupExportImportService {
             },
             // 収支も端末にしか無いデータなので、機種変で置いていかない。
             expenses = expenseRepository.getAll().map {
-                BackupExpenseRecord(it.id, it.date, it.category, it.amount, it.showId, it.eventId, it.note, it.updatedAt)
+                BackupExpenseRecord(it.id, it.date, it.category, it.amount, it.showId, it.eventId, it.note, it.ticketKind, it.updatedAt)
             },
             // プレイリストも端末ローカル唯一データ。
             playlists = playlistRepository.allForBackup().map { (playlist, songIds) ->
@@ -180,7 +180,7 @@ object BackupExportImportService {
             )
             expenseRepository.restoreIfAbsent(
                 plan.expensesToInsert.map {
-                    Expense(it.id, it.date, it.category, it.amount, it.showId, it.eventId, it.note, it.updatedAt)
+                    Expense(it.id, it.date, it.category, it.amount, it.showId, it.eventId, it.note, it.updatedAt, it.ticketKind)
                 }
             )
         }

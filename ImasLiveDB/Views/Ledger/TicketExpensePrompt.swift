@@ -23,8 +23,8 @@ enum AttendanceMarkedKey {
 /// 参加を付けた直後の確認シート。**必ず確認してから**帳簿に書く
 /// (勝手に金額が増えると、自分で付けた覚えのない行が帳簿に混ざる)。
 ///
-/// 出すのは「その形態の券種がマスタにあり、まだその公演のチケット代を
-/// 記録していない」ときだけ。券が 1 種なら金額そのまま、複数なら選ばせる。
+/// 出すのは「その形態の券種がマスタにあり、まだその公演のその形態のチケット代を
+/// 記録していない」ときだけ (現地のチケット代があっても、足した配信のぶんは聞く)。券が 1 種なら金額そのまま、複数なら選ばせる。
 struct TicketExpensePromptModifier: ViewModifier {
     let ledgerReading: any LedgerReading
     let ledgerWriting: any LedgerWriting
@@ -42,6 +42,7 @@ struct TicketExpensePromptModifier: ViewModifier {
                 guard let showId = note.userInfo?[AttendanceMarkedKey.showId] as? String,
                       let raw = note.userInfo?[AttendanceMarkedKey.type] as? String,
                       let type = AttendanceType(rawValue: raw) else { return }
+                // 載っているのはいま付けた 1 つの形態 (現地に配信を足したなら配信)。
                 Task { await prepare(showId: showId, type: type) }
             }
             .sheet(item: $request, onDismiss: presentNext) { request in
@@ -66,7 +67,7 @@ struct TicketExpensePromptModifier: ViewModifier {
         }
         guard let prompt = ticketExpensePrompt(
             showTickets: tickets, attendanceType: type.rawValue,
-            existingExpenseCategories: existing.map(\.category)) else { return }
+            existingExpenses: existing.map(\.recorded)) else { return }
 
         let options = (try? await ledgerReading.attendedShowOptions()) ?? []
         let option = options.first { $0.id == showId }
@@ -80,12 +81,12 @@ struct TicketExpensePromptModifier: ViewModifier {
         ))
     }
 
-    /// 空いていればすぐ出し、出していれば待ち行列に積む。同じ公演は 1 度だけ聞く
+    /// 空いていればすぐ出し、出していれば待ち行列に積む。同じ公演の同じ形態は 1 度だけ聞く
     /// (付け外しを繰り返したときに同じ確認を重ねない)。待ちは公演日順に並べる
     /// (通知ごとの読み込みは並行に走るので、届いた順は日付順とは限らない)。
     private func enqueue(_ next: TicketExpensePromptRequest) {
-        guard request?.showId != next.showId,
-              !pending.contains(where: { $0.showId == next.showId }) else { return }
+        guard request?.id != next.id,
+              !pending.contains(where: { $0.id == next.id }) else { return }
         guard request != nil else {
             request = next
             return
@@ -108,7 +109,8 @@ struct TicketExpensePromptModifier: ViewModifier {
             amount: amount,
             showId: request.showId,
             eventId: request.eventId,
-            note: note
+            note: note,
+            ticketKind: request.kind
         )
         do {
             try await ledgerWriting.save(expense)
@@ -202,5 +204,5 @@ struct TicketExpensePromptRequest: Identifiable {
     let date: String
     let kind: TicketKind
     let tickets: [ShowTicket]
-    var id: String { showId }
+    var id: String { "\(showId)|\(ticketKindRaw(kind: kind))" }
 }

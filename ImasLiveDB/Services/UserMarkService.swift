@@ -347,32 +347,57 @@ final class UserMarkService {
         scheduleBackup()
     }
 
-    // MARK: - 参加種別 (現地 / 配信)
+    // MARK: - 参加種別 (現地 / 配信 / LV、複数可)
 
-    /// 公演の参加種別。.attended 行の bool_value=参加有無、text_value=種別("live"/"stream")。
-    /// nil = 不参加。旧来の bool だけの参加 (text なし) は現地(live)扱い。
-    func attendance(entity: UserMarkEntity, id: String) -> AttendanceType? {
+    /// 公演に付いている参加形態 (語彙の順)。空 = 不参加。
+    /// .attended 行の bool_value=参加有無、text_value=形態 (複数は "live,stream")。
+    /// 読み方 (旧来の text なし = 現地 など) はコア (`attendanceTypes`)。
+    func attendedTypes(entity: UserMarkEntity, id: String) -> [AttendanceType] {
+        observe(entity)
+        guard let mark = try? db.fetchUserMark(entity: entity, id: id, kind: .attended),
+              mark.boolValue else { return [] }
+        return attendanceTypes(textValue: mark.textValue).compactMap(AttendanceType.init(rawValue:))
+    }
+
+    /// 参加マークの保存値そのまま (コアに渡す経路用)。不参加なら nil、形態の無い旧来の行は空文字。
+    func attendanceText(entity: UserMarkEntity, id: String) -> String? {
         observe(entity)
         guard let mark = try? db.fetchUserMark(entity: entity, id: id, kind: .attended),
               mark.boolValue else { return nil }
-        return AttendanceType(rawValue: mark.textValue ?? "") ?? .live
+        return mark.textValue ?? ""
     }
 
-    /// 参加種別を設定する。nil で不参加 (マーク解除)。
-    func setAttendance(entity: UserMarkEntity, id: String, type: AttendanceType?) throws {
-        try db.setAttendanceMark(entity: entity, id: id, type: type)
-        updateBoolCache(entity, .attended, id, type != nil)
+    /// 1 つの形態を付ける (`on`) / 外す。最後の 1 つを外すと参加マークごと外れる。
+    /// 付け外しの規則 (並び・区切り) はコア (`attendanceSetType`)。
+    func setAttendance(entity: UserMarkEntity, id: String, type: AttendanceType, on: Bool) throws {
+        let mark = try db.fetchUserMark(entity: entity, id: id, kind: .attended)
+        let text = attendanceSetType(
+            current: mark?.textValue, attended: mark?.boolValue ?? false,
+            attendanceType: type.rawValue, on: on)
+        try writeAttendance(entity: entity, id: id, text: text, added: on ? type : nil)
+    }
+
+    /// 参加を取り消す (形態をすべて外す)。
+    func clearAttendance(entity: UserMarkEntity, id: String) throws {
+        try writeAttendance(entity: entity, id: id, text: nil, added: nil)
+    }
+
+    /// `text` が nil なら不参加。`added` はいま付けた形態 (付けたときだけ)。
+    private func writeAttendance(entity: UserMarkEntity, id: String, text: String?, added: AttendanceType?) throws {
+        try db.setAttendanceMark(entity: entity, id: id, text: text)
+        updateBoolCache(entity, .attended, id, text != nil)
         // 参加ライブの登録は「一区切りついた瞬間」なのでレビュー依頼の好機に数える。
         // 取り消しは数えない (良い体験ではないので)。
-        if type != nil { ReviewPrompt.noteMilestone() }
-        // 付けた直後だけ「チケット代を記録しますか」を出す土台にする。
+        if added != nil { ReviewPrompt.noteMilestone() }
+        // 付けた直後だけ「チケット代を記録しますか」を出す土台にする。載せるのは**いま付けた
+        // 1 つの形態** (現地に配信を足したなら配信のチケット代を聞く)。
         // ここに出す条件 (価格が分かっているか / もう記録済みか) は持たせない —
         // DB を引く判断なので、受け取った画面側 (TicketPromptCenter) が決める。
-        if entity == .show, let type {
+        if entity == .show, let added {
             NotificationCenter.default.post(
                 name: .attendanceMarked,
                 object: nil,
-                userInfo: [AttendanceMarkedKey.showId: id, AttendanceMarkedKey.type: type.rawValue]
+                userInfo: [AttendanceMarkedKey.showId: id, AttendanceMarkedKey.type: added.rawValue]
             )
         }
         refreshAutoCollected()

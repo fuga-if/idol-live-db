@@ -1185,6 +1185,16 @@ enum DatabaseMigrations {
             }
         }
 
+        // v46: チケット代に券の形態 (live / stream / live_viewing)。1 公演に複数の形態で参加
+        // できるようにしたので、二重計上の判定を形態ごとにする。**端末ローカル唯一データ**なので
+        // 列を足すだけ (既存の行は NULL のまま。NULL の読み方はコアの ticket_kind_recorded)。
+        migrator.registerMigration("v46_expenses_ticket_kind") { db in
+            let columns = try Row.fetchAll(db, sql: "PRAGMA table_info(expenses)").map { $0["name"] as String? }
+            if !columns.contains("ticket_kind") {
+                try db.execute(sql: "ALTER TABLE expenses ADD COLUMN ticket_kind TEXT")
+            }
+        }
+
         return migrator
     }
 }

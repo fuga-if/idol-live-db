@@ -101,6 +101,7 @@ enum BackupExportImportService {
                 showId: $0.showId,
                 eventId: $0.eventId,
                 note: $0.note,
+                ticketKind: $0.ticketKind,
                 updatedAt: $0.updatedAt
             )
         }
@@ -248,6 +249,7 @@ enum BackupExportImportService {
                 showId: $0.showId,
                 eventId: $0.eventId,
                 note: $0.note,
+                ticketKind: $0.ticketKind,
                 updatedAt: $0.updatedAt
             )
         }

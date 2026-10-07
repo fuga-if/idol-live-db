@@ -46,6 +46,7 @@ import uniffi.imas_core.TicketKind
 import uniffi.imas_core.formatYen
 import uniffi.imas_core.ticketExpenseNote
 import uniffi.imas_core.ticketExpensePrompt
+import uniffi.imas_core.ticketKindRaw
 import uniffi.imas_core.ticketKindLabel
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
@@ -73,8 +74,8 @@ fun TicketExpensePrompt() {
     LaunchedEffect(Unit) {
         module.userMarkRepository.attendanceMarked.collect { event ->
             val next = prepare(module, event) ?: return@collect
-            // 同じ公演は 1 度だけ聞く (付け外しを繰り返したときに同じ確認を重ねない)。
-            if (queue.any { it.showId == next.showId }) return@collect
+            // 同じ公演の同じ形態は 1 度だけ聞く (付け外しを繰り返したときに同じ確認を重ねない)。
+            if (queue.any { it.id == next.id }) return@collect
             queue.add(next)
         }
     }
@@ -82,7 +83,7 @@ fun TicketExpensePrompt() {
     queue.firstOrNull()?.let { req ->
         val done = { queue.remove(req) }
         // 公演ごとに別のシートとして作り直す (前の公演の閉じた状態を引き継がない)。
-        key(req.showId) {
+        key(req.id) {
             TicketExpenseSheet(
                 request = req,
                 onSave = { ticket, amount ->
@@ -94,7 +95,8 @@ fun TicketExpensePrompt() {
                             amount = amount,
                             showId = req.showId,
                             eventId = req.eventId,
-                            note = note
+                            note = note,
+                            ticketKind = req.kind
                         )
                         // 保存できたときだけ閉じる (書けなかったら知らせて、シートは残す)。
                         localWrite("チケット代の記録") { module.expenseRepository.save(expense) } ?: return@launch
@@ -110,13 +112,14 @@ fun TicketExpensePrompt() {
 /**
  * 出す条件を調べる。**出さない理由が 1 つでもあれば黙って終わる**
  * (参加を付けただけなのに毎回シートが出ると、付ける作業が止まる)。
- * 聞くかどうか (その形態の券があるか・この公演のチケット代を付けていないか) はコア
+ * 聞くかどうか (その形態の券があるか・この公演のその形態のチケット代を付けていないか) はコア
  * (ticketExpensePrompt)。付けたかどうかを**読めなかった**ときは聞かない (iOS と同じ)。
  */
 private suspend fun prepare(module: AppModule, event: AttendanceMarkedEvent): TicketExpenseRequest? {
     val tickets = module.showTicketRepository.forShow(event.showId).map { it.toCore() }
     val existing = runCatching { module.expenseRepository.forShow(event.showId) }.getOrNull() ?: return null
-    val prompt = ticketExpensePrompt(tickets, event.type.raw, existing.map { it.category }) ?: return null
+    // event.type はいま付けた 1 つの形態 (現地に配信を足したなら配信のチケット代を聞く)。
+    val prompt = ticketExpensePrompt(tickets, event.type.raw, existing.map { it.recorded }) ?: return null
 
     val option = module.expenseRepository.attendedShowOptions().firstOrNull { it.id == event.showId }
     return TicketExpenseRequest(
@@ -137,7 +140,10 @@ private data class TicketExpenseRequest(
     val date: String,
     val kind: TicketKind,
     val tickets: List<ShowTicket>
-)
+) {
+    /** 公演 × 形態 (現地と配信を続けて付けたら、それぞれ聞く)。 */
+    val id: String get() = "$showId|${ticketKindRaw(kind)}"
+}
 
 /** 確認シートの中身。金額はその場で直せる (手数料や先行の差額を含めたい人がいる)。 */
 @OptIn(ExperimentalMaterial3Api::class)

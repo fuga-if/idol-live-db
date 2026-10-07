@@ -23,17 +23,18 @@ final class LocalDataWriteTests: XCTestCase {
     func testAttendanceMarkKeepsFlagAndTypeTogether() throws {
         let db = try makeDatabase()
 
-        try db.setAttendanceMark(entity: .show, id: "sh1", type: .stream)
+        try db.setAttendanceMark(entity: .show, id: "sh1", text: "stream")
         var row = try XCTUnwrap(db.fetchUserMark(entity: .show, id: "sh1", kind: .attended))
         XCTAssertTrue(row.boolValue)
         XCTAssertEqual(row.textValue, "stream")
 
-        try db.setAttendanceMark(entity: .show, id: "sh1", type: .live)
+        // 1 公演に複数の形態 (現地 + 配信)。
+        try db.setAttendanceMark(entity: .show, id: "sh1", text: "live,stream")
         row = try XCTUnwrap(db.fetchUserMark(entity: .show, id: "sh1", kind: .attended))
         XCTAssertTrue(row.boolValue)
-        XCTAssertEqual(row.textValue, "live")
+        XCTAssertEqual(row.textValue, "live,stream")
 
-        try db.setAttendanceMark(entity: .show, id: "sh1", type: nil)
+        try db.setAttendanceMark(entity: .show, id: "sh1", text: nil)
         row = try XCTUnwrap(db.fetchUserMark(entity: .show, id: "sh1", kind: .attended))
         XCTAssertFalse(row.boolValue)
         XCTAssertNil(row.textValue, "取り消したのに種別が残っている")
@@ -43,7 +44,7 @@ final class LocalDataWriteTests: XCTestCase {
 
     func testRestoreUserMarksAddsOnlyMissingRows() throws {
         let db = try makeDatabase()
-        try db.setAttendanceMark(entity: .show, id: "sh1", type: .live)
+        try db.setAttendanceMark(entity: .show, id: "sh1", text: "live")
 
         let added = try db.restoreUserMarksIfAbsent([
             mark("sh1", .attended, text: "stream"),  // 既にある: 上書きしない

@@ -103,7 +103,8 @@ data class SetlistUiState(
 
 /** この公演に付けた自分のマーク (参加 / お気に入り / メモ / 座席)。 */
 data class ShowMarks(
-    val attendance: AttendanceType? = null,
+    /** 付いている参加形態 (複数可。空 = 不参加)。 */
+    val attendance: List<AttendanceType> = emptyList(),
     val favoriteOn: Boolean = false,
     val note: String? = null,
     val seat: String? = null
@@ -238,7 +239,7 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
 
     private suspend fun loadMarks() {
         _marks.value = ShowMarks(
-            attendance = marks.attendance(UserMark.SHOW, showId),
+            attendance = marks.attendedTypes(UserMark.SHOW, showId),
             favoriteOn = marks.isOn(UserMark.SHOW, showId, UserMark.FAVORITE),
             note = marks.note(UserMark.SHOW, showId),
             seat = marks.seat(UserMark.SHOW, showId)
@@ -268,8 +269,16 @@ class SetlistViewModel(app: Application, private val showId: String) : AndroidVi
     }
 
     /** 参加を付け外しすると回収の札と要約が変わるので、行の添え物も読み直す。 */
-    fun setAttendance(type: AttendanceType?) = write {
-        localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type) } ?: return@write
+    fun setAttendance(type: AttendanceType, on: Boolean) = write {
+        localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type, on) } ?: return@write
+        loadMarks()
+        // 読み直しは画面のスコープ (メインスレッド) で。画面を離れていれば読み直すものも無い。
+        viewModelScope.launch { reload() }
+    }
+
+    /** 参加を取り消す (形態をすべて外す)。 */
+    fun clearAttendance() = write {
+        localWrite("参加の記録") { marks.clearAttendance(UserMark.SHOW, showId) } ?: return@write
         loadMarks()
         // 読み直しは画面のスコープ (メインスレッド) で。画面を離れていれば読み直すものも無い。
         viewModelScope.launch { reload() }

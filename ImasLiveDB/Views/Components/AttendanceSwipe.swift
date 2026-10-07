@@ -3,7 +3,7 @@ import SwiftUI
 /// 公演 (Show) 1 件の行をスワイプすると出る参加登録アクション。
 ///
 /// 選択肢と「取り消す」の出し分けは、SetlistView の参加確認ダイアログ
-/// (`AttendanceAvailability.options` + `UserMarkService.shared.attendance` != nil) と
+/// (`AttendanceAvailability.options` + `UserMarkService.shared.attendedTypes` が空でない) と
 /// **全く同じ規則**をスワイプ版として呼ぶだけにしている。ここで新しい判定を書き足すと、
 /// ダイアログ版とスワイプ版で規則が二重管理になり、どちらかだけ直る事故のもとになる。
 struct AttendanceSwipeActions: ViewModifier {
@@ -18,25 +18,28 @@ struct AttendanceSwipeActions: ViewModifier {
     func body(content: Content) -> some View {
         // 一覧行数は公演単位 (多くて数十件) なので、行ごとに現在値を読んでも
         // 習熟度一覧 (数千曲) のような再評価コストにはならない。
-        let current = marks.attendance(entity: .show, id: show.id)
+        // 形態は複数付けられる (現地で見て配信のアーカイブも買った)。ボタンは付け外し。
+        let current = marks.attendedTypes(entity: .show, id: show.id)
         return content
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                 ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
+                    let on = current.contains(type)
                     Button {
-                        AppAnalytics.tap("attendance_swipe.set_\(type.rawValue)")
-                        set(type)
+                        AppAnalytics.tap("attendance_swipe.\(on ? "unset" : "set")_\(type.rawValue)")
+                        set(type, on: !on)
                     } label: {
                         // ⚠️ ラベルは**文字だけ**。`Label(_, systemImage:)` にすると
                         // 幅が足りないときにアイコンだけが残り、どれを押すのか読めなくなる
                         // (現地/配信/LV + 取消の 4 つで実機の幅を超える)。
                         Text(type.label)
                     }
-                    .tint(current == type ? DS.ink3 : UserMarkKind.attended.tint)
+                    .tint(on ? DS.ink3 : UserMarkKind.attended.tint)
+                    .accessibilityLabel(on ? "\(type.label)を外す" : "\(type.label)で参加")
                 }
-                if current != nil {
+                if !current.isEmpty {
                     Button(role: .destructive) {
                         AppAnalytics.tap("attendance_swipe.cancel")
-                        set(nil)
+                        clear()
                     } label: {
                         Text("取消")
                     }
@@ -44,9 +47,18 @@ struct AttendanceSwipeActions: ViewModifier {
             }
     }
 
-    private func set(_ type: AttendanceType?) {
+    private func set(_ type: AttendanceType, on: Bool) {
         do {
-            try marks.setAttendance(entity: .show, id: show.id, type: type)
+            try marks.setAttendance(entity: .show, id: show.id, type: type, on: on)
+        } catch {
+            LocalWriteFailure.report(error, action: "参加の記録")
+        }
+        onChange()
+    }
+
+    private func clear() {
+        do {
+            try marks.clearAttendance(entity: .show, id: show.id)
         } catch {
             LocalWriteFailure.report(error, action: "参加の記録")
         }

@@ -86,10 +86,16 @@ fun ExpenseEditorSheet(
 
     fun save() {
         if (validation != null) return
-        val saved = expense?.copy(
-            date = dateText, category = expenseCategoryKey(category), amount = (amount ?: 0).toLong(),
-            showId = showId, eventId = eventId, note = note.ifEmpty { null }
-        ) ?: Expense.make(dateText, category, (amount ?: 0).toLong(), showId, eventId, note)
+        val saved = expense?.let { original ->
+            val key = expenseCategoryKey(category)
+            original.copy(
+                date = dateText, category = key, amount = (amount ?: 0).toLong(),
+                showId = showId, eventId = eventId, note = note.ifEmpty { null },
+                // 券の形態は「この公演の、この形態のチケット代」という意味なので、費目か公演を
+                // 変えたら手放す (残すと別の公演の券として二重計上の判定に効いてしまう)。
+                ticketKind = original.ticketKind.takeIf { original.category == key && original.showId == showId }
+            )
+        } ?: Expense.make(dateText, category, (amount ?: 0).toLong(), showId, eventId, note)
         onSave(saved)
     }
 

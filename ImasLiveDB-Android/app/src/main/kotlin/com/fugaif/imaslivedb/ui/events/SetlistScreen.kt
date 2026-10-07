@@ -373,8 +373,9 @@ fun SetlistScreen(
                 if (!simpleMode) {
                     item(key = "mark_bar") {
                         UserMarkBar(
-                            attendedLabel = marks.attendance?.let { "参加 (${it.label})" } ?: "参加",
-                            attendedOn = marks.attendance != null,
+                            attendedLabel = if (marks.attendance.isEmpty()) "参加"
+                            else "参加 (${marks.attendance.joinToString("・") { it.label }})",
+                            attendedOn = marks.attendance.isNotEmpty(),
                             onAttendedClick = { showAttendanceDialog = true },
                             favoriteOn = marks.favoriteOn,
                             onFavoriteClick = viewModel::toggleFavorite,
@@ -456,9 +457,13 @@ fun SetlistScreen(
         AttendanceDialog(
             current = marks.attendance,
             onDismiss = { showAttendanceDialog = false },
-            onSelect = { type ->
+            onToggle = { type, on ->
                 showAttendanceDialog = false
-                viewModel.setAttendance(type)
+                viewModel.setAttendance(type, on)
+            },
+            onClear = {
+                showAttendanceDialog = false
+                viewModel.clearAttendance()
             }
         )
     }
@@ -650,13 +655,15 @@ private fun creditNames(line: ShowCreditLine): String {
  * 現地 / 配信 / LV の 3 形態を常に出す (`AttendanceType.options`)。開催情報の
  * has_streaming / has_live_viewing でフィルタしないのは、その列が欠落しやすく、
  * 「過去に LV 参加したのに記録できない」ほうが体験上の損失が大きいから
- * (iOS `AttendanceAvailability` と同じ判断)。選択中の形態をもう一度押すと不参加に戻る。
+ * (iOS `AttendanceAvailability` と同じ判断)。形態は複数付けられ (現地 + 配信)、
+ * 付いている形態は外し、無い形態は足す (iOS の参加確認ダイアログと同じ文言)。
  */
 @Composable
 private fun AttendanceDialog(
-    current: AttendanceType?,
+    current: List<AttendanceType>,
     onDismiss: () -> Unit,
-    onSelect: (AttendanceType?) -> Unit
+    onToggle: (AttendanceType, Boolean) -> Unit,
+    onClear: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -664,15 +671,30 @@ private fun AttendanceDialog(
         text = {
             Column {
                 AttendanceType.options().forEach { type ->
-                    val on = current == type
+                    val on = type in current
                     Text(
-                        if (on) "${type.label}で参加 (取り消す)" else "${type.label}で参加",
+                        when {
+                            on -> "${type.label}を外す"
+                            current.isEmpty() -> "${type.label}で参加"
+                            else -> "${type.label}も追加"
+                        },
                         fontSize = 15.sp,
                         fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                         color = if (on) DS.ink else DS.ink2,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onSelect(if (on) null else type) }
+                            .clickable { onToggle(type, !on) }
+                            .padding(vertical = 12.dp)
+                    )
+                }
+                if (current.isNotEmpty()) {
+                    Text(
+                        "参加を取り消す",
+                        fontSize = 15.sp,
+                        color = DS.danger,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onClear() }
                             .padding(vertical = 12.dp)
                     )
                 }

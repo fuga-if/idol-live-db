@@ -55,10 +55,12 @@ import uniffi.imas_core.formatYen
 import uniffi.imas_core.ticketExpenseBackfill
 import uniffi.imas_core.ticketExpenseNote
 import uniffi.imas_core.ticketKindLabel
+import uniffi.imas_core.ticketKindRaw
 
 /** 取り込み候補の公演 1 つ (コアの候補 + 画面に出す公演名と日付)。iOS `TicketBackfillRow` と対。 */
 data class TicketBackfillRow(val item: TicketBackfillItem, val option: LedgerShowOption) {
-    val id: String get() = item.showId
+    /** 公演 × 形態 (現地と配信の両方で参加した公演は 2 行になる)。 */
+    val id: String get() = "${item.showId}|${ticketKindRaw(item.kind)}"
 }
 
 /**
@@ -74,14 +76,14 @@ object TicketBackfill {
         // 記録済みかは全件を 1 回読んで公演ごとに束ねる (公演ごとに引くと参加数ぶん往復する)。
         val recorded = module.expenseRepository.getAll().groupBy { it.showId.orEmpty() }
         val inputs = options.mapNotNull { option ->
-            val type = module.userMarkRepository.attendance(UserMark.SHOW, option.id) ?: return@mapNotNull null
+            val attendance = module.userMarkRepository.attendanceText(UserMark.SHOW, option.id) ?: return@mapNotNull null
             val tickets = module.showTicketRepository.forShow(option.id).map { it.toCore() }
             if (tickets.isEmpty()) return@mapNotNull null
             TicketBackfillInput(
                 showId = option.id,
-                attendanceType = type.raw,
+                attendanceType = attendance,
                 tickets = tickets,
-                existingExpenseCategories = recorded[option.id].orEmpty().map { it.category }
+                existingExpenses = recorded[option.id].orEmpty().map { it.recorded }
             )
         }
         val byId = options.associateBy { it.id }
@@ -97,7 +99,8 @@ object TicketBackfill {
         amount = ticket.price,
         showId = row.item.showId,
         eventId = row.option.eventId,
-        note = ticketExpenseNote(ticket)
+        note = ticketExpenseNote(ticket),
+        ticketKind = row.item.kind
     )
 }
 

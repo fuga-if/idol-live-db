@@ -343,7 +343,7 @@ struct SetlistView: View {
                         kinds: [.attended, .favorite, .note, .seat],
                         seed: showBrandHex,
                         onAttendedTap: { showAttendanceDialog = true },
-                        attendedIsOn: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil
+                        attendedIsOn: !UserMarkService.shared.attendedTypes(entity: .show, id: show.id).isEmpty
                     )
                     .id(attendanceVersion)
                 }
@@ -377,11 +377,19 @@ struct SetlistView: View {
         .listSectionSpacing(.compact)
         .confirmationDialog("この公演への参加", isPresented: $showAttendanceDialog, titleVisibility: .visible) {
             // そのライブに実在した形態だけ提示 (show優先・eventフォールバック)。
+            // 形態は複数付けられる (現地で見て配信のアーカイブも買った)。付いている形態は外す。
+            let current = UserMarkService.shared.attendedTypes(entity: .show, id: show.id)
             ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
-                Button("\(type.label)で参加") { setAttendance(type) }
+                if current.contains(type) {
+                    Button("\(type.label)を外す") { setAttendance(type, on: false) }
+                } else {
+                    Button(current.isEmpty ? "\(type.label)で参加" : "\(type.label)も追加") {
+                        setAttendance(type, on: true)
+                    }
+                }
             }
-            if UserMarkService.shared.attendance(entity: .show, id: show.id) != nil {
-                Button("参加を取り消す", role: .destructive) { setAttendance(nil) }
+            if !current.isEmpty {
+                Button("参加を取り消す", role: .destructive) { clearAttendance() }
             }
             Button("キャンセル", role: .cancel) {}
         }
@@ -504,10 +512,20 @@ struct SetlistView: View {
         }
     }
 
-    /// この公演の参加種別を設定 (nil=取消)。UserMarkBar 表示を更新。
-    private func setAttendance(_ type: AttendanceType?) {
+    /// この公演に参加形態を 1 つ付ける / 外す。UserMarkBar 表示を更新。
+    private func setAttendance(_ type: AttendanceType, on: Bool) {
         do {
-            try UserMarkService.shared.setAttendance(entity: .show, id: show.id, type: type)
+            try UserMarkService.shared.setAttendance(entity: .show, id: show.id, type: type, on: on)
+        } catch {
+            LocalWriteFailure.report(error, action: "参加の記録")
+        }
+        attendanceVersion &+= 1
+    }
+
+    /// この公演の参加を取り消す (形態をすべて外す)。
+    private func clearAttendance() {
+        do {
+            try UserMarkService.shared.clearAttendance(entity: .show, id: show.id)
         } catch {
             LocalWriteFailure.report(error, action: "参加の記録")
         }

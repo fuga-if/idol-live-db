@@ -14,6 +14,8 @@ import java.time.Instant
 import uniffi.imas_core.ticketApplicationRaw
 import uniffi.imas_core.ticketApplicationFromRaw
 import uniffi.imas_core.TicketApplication
+import uniffi.imas_core.attendanceSetType
+import uniffi.imas_core.attendanceTypes
 
 /** 参加が付いた (取り消しではない) 直後の通知。iOS `.attendanceMarked` 通知と対。 */
 data class AttendanceMarkedEvent(val showId: String, val type: AttendanceType)
@@ -57,26 +59,46 @@ class UserMarkRepository(
     }
 
     /**
-     * 参加形態を返す (未参加は null)。種別が入っていない旧データは現地扱い。
+     * 付いている参加形態 (語彙の順。未参加は空)。1 公演に複数付けられる (現地 + 配信)。
+     * 読み方 (種別の無い旧データ = 現地 など) はコア ([attendanceTypes])。
      * 参加は公演 (show) 単位で持つのが正で、イベント単位のマークは旧データの互換のみ。
      */
-    suspend fun attendance(type: String, id: String): AttendanceType? {
-        if (!dao.isOn(type, id, UserMark.ATTENDED)) return null
-        return AttendanceType.from(dao.textValue(type, id, UserMark.ATTENDED)) ?: AttendanceType.LIVE
+    suspend fun attendedTypes(type: String, id: String): List<AttendanceType> {
+        val text = attendanceText(type, id) ?: return emptyList()
+        return attendanceTypes(text).mapNotNull { AttendanceType.from(it) }
     }
 
-    /** 参加形態を設定する。null で不参加に戻す。 */
-    suspend fun setAttendance(type: String, id: String, value: AttendanceType?) {
-        if (value == null) {
+    /** 参加マークの保存値そのまま (コアに渡す経路用)。未参加は null、形態の無い旧データは空文字。 */
+    suspend fun attendanceText(type: String, id: String): String? {
+        if (!dao.isOn(type, id, UserMark.ATTENDED)) return null
+        return dao.textValue(type, id, UserMark.ATTENDED) ?: ""
+    }
+
+    /**
+     * 1 つの形態を付ける ([on]) / 外す。最後の 1 つを外すと参加マークごと外れる。
+     * 付け外しの規則 (並び・区切り) はコア ([attendanceSetType])。
+     */
+    suspend fun setAttendance(type: String, id: String, value: AttendanceType, on: Boolean) {
+        val attended = dao.isOn(type, id, UserMark.ATTENDED)
+        val current = if (attended) dao.textValue(type, id, UserMark.ATTENDED) else null
+        val text = attendanceSetType(current, attended, value.raw, on)
+        writeAttendance(type, id, text, added = value.takeIf { on })
+    }
+
+    /** 参加を取り消す (形態をすべて外す)。 */
+    suspend fun clearAttendance(type: String, id: String) = writeAttendance(type, id, null, added = null)
+
+    private suspend fun writeAttendance(type: String, id: String, text: String?, added: AttendanceType?) {
+        if (text == null) {
             dao.delete(type, id, UserMark.ATTENDED)
         } else {
-            dao.upsert(UserMark(type, id, UserMark.ATTENDED, true, value.raw, Instant.now().toString()))
-            // 公演単位で付いたときだけ流す。取り消しは対象外 (チケット代の確認は
-            // 「付けた直後」の一度きりでよい) — イベント単位の互換マークも対象外
-            // (どの公演のチケットか特定できない)。
-            if (type == UserMark.SHOW) {
-                _attendanceMarked.tryEmit(AttendanceMarkedEvent(id, value))
-            }
+            dao.upsert(UserMark(type, id, UserMark.ATTENDED, true, text, Instant.now().toString()))
+        }
+        // 公演単位で付いたときだけ、いま付けた 1 つの形態を流す (現地に配信を足したなら配信の
+        // チケット代を聞く)。取り消し・外しは対象外 (チケット代の確認は「付けた直後」の一度きり
+        // でよい) — イベント単位の互換マークも対象外 (どの公演のチケットか特定できない)。
+        if (added != null && type == UserMark.SHOW) {
+            _attendanceMarked.tryEmit(AttendanceMarkedEvent(id, added))
         }
     }
 

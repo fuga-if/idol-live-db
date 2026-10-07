@@ -46,7 +46,7 @@ import kotlinx.coroutines.launch
  *
  * 参加マークは公演単位 (`entity_type = show` / `kind = attended` / `text_value = 参加形態`) で
  * 持つ。イベント全体に付けてしまうと、行っていない公演まで回収率の対象になってしまう。
- * 選択中の形態をもう一度押すと不参加に戻る。
+ * 形態は複数付けられ (現地 + 配信)、チップを押すたびに付け外しする。最後の 1 つを外すと不参加。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,30 +62,30 @@ fun EventAttendanceSheet(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var attendance by remember { mutableStateOf<Map<String, AttendanceType>>(emptyMap()) }
+    var attendance by remember { mutableStateOf<Map<String, List<AttendanceType>>>(emptyMap()) }
 
     suspend fun reload() {
-        attendance = shows.mapNotNull { show ->
-            marks.attendance(UserMark.SHOW, show.id)?.let { show.id to it }
-        }.toMap()
+        attendance = shows.associate { show -> show.id to marks.attendedTypes(UserMark.SHOW, show.id) }
+            .filterValues { it.isNotEmpty() }
     }
 
     LaunchedEffect(shows) { reload() }
 
-    val allLive = shows.isNotEmpty() && shows.all { attendance[it.id] == AttendanceType.LIVE }
+    val allLive = shows.isNotEmpty() && shows.all { attendance[it.id]?.contains(AttendanceType.LIVE) == true }
 
-    fun set(showId: String, type: AttendanceType?) {
+    fun set(showId: String, type: AttendanceType, on: Boolean) {
         scope.launch {
-            localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type) }
+            localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type, on) }
             reload()
             onChange()
         }
     }
 
+    /** 全公演に現地を付ける / 外す。ほかの形態 (配信など) はそのまま残す。 */
     fun toggleAllLive() {
-        val target = if (allLive) null else AttendanceType.LIVE
+        val on = !allLive
         scope.launch {
-            localWrite("参加の記録") { shows.forEach { marks.setAttendance(UserMark.SHOW, it.id, target) } }
+            localWrite("参加の記録") { shows.forEach { marks.setAttendance(UserMark.SHOW, it.id, AttendanceType.LIVE, on) } }
             reload()
             onChange()
         }
@@ -101,7 +101,7 @@ fun EventAttendanceSheet(
                     modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
                 )
 
-                ImasListSection(footer = "公演ごとに参加形態を選べます。回収率には現地参加だけが数えられます。") {
+                ImasListSection(footer = "公演ごとに参加形態を選べます。現地と配信のように複数付けられます。回収率には現地参加だけが数えられます。") {
                     ImasSelectableRow(
                         title = "全公演に現地参加",
                         trailing = ImasRowTrailing.Value("${shows.size}公演"),
@@ -114,7 +114,7 @@ fun EventAttendanceSheet(
 
                 ImasListSection {
                     shows.forEach { show ->
-                        ShowAttendanceRow(show, attendance[show.id], seed, brand) { type -> set(show.id, type) }
+                        ShowAttendanceRow(show, attendance[show.id].orEmpty(), seed, brand) { type, on -> set(show.id, type, on) }
                     }
                 }
             }
@@ -125,10 +125,10 @@ fun EventAttendanceSheet(
 @Composable
 private fun ShowAttendanceRow(
     show: Show,
-    current: AttendanceType?,
+    current: List<AttendanceType>,
     seed: String?,
     brand: String?,
-    onSet: (AttendanceType?) -> Unit
+    onSet: (AttendanceType, Boolean) -> Unit
 ) {
     Column(
         Modifier
@@ -148,11 +148,11 @@ private fun ShowAttendanceRow(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
             AttendanceType.options().forEach { type ->
-                val on = current == type
+                val on = type in current
                 ImasFilterChip(
                     label = type.label,
                     selected = on,
-                    onClick = { onSet(if (on) null else type) },
+                    onClick = { onSet(type, !on) },
                     seed = seed,
                     brand = brand
                 )
