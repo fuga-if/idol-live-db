@@ -1,7 +1,7 @@
 // POST /songs/:id/lyric-submissions — 歌詞の投稿。確認待ちで預かり、本文は返さない。
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { normalizeLyricText, validateSubmission } from "../src/routes/lyric_submissions";
-import { bearer, callJson } from "./support/worker";
+import { bearer, callJson, makeEnv } from "./support/worker";
 import { insertUser, row } from "./support/d1";
 
 const UID = "001094.lsub";
@@ -95,5 +95,29 @@ describe("POST /songs/:id/lyric-submissions", () => {
 
   it("整え方はコアと同じ (字は変えない)", () => {
     expect(normalizeLyricText("\r\n\n  あいう　 \r\nかきく\n\n\n\nさしす\n\n")).toBe("  あいう\nかきく\n\nさしす");
+  });
+});
+
+describe("POST /songs/:id/lyrics-report", () => {
+  it("理由と短い補足だけを GitHub の issue にする (本文は載せない)", async () => {
+    const sent: Array<{ url: string; body: { title: string; body: string; labels: string[] } }> = [];
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      sent.push({ url, body: JSON.parse(String(init.body)) });
+      return Response.json({ number: 1 }, { status: 201 });
+    });
+    const env = makeEnv({ GITHUB_TOKEN: "t", GITHUB_REPO: "owner/repo" });
+    expect((await callJson("POST", "/songs/s1/lyrics-report", { body: { reason: "copied" }, env })).status).toBe(401);
+    expect((await callJson("POST", "/songs/s1/lyrics-report", {
+      headers: await bearer(UID), body: { reason: "nope" }, env,
+    })).status).toBe(400);
+    const r = await callJson("POST", "/songs/s1/lyrics-report", {
+      headers: await bearer(UID), body: { reason: "copied", note: "あ".repeat(400) }, env,
+    });
+    expect(r.status).toBe(201);
+    expect(sent[0].url).toBe("https://api.github.com/repos/owner/repo/issues");
+    expect(sent[0].body.title).toBe("[歌詞の報告] s1 — 歌詞サイト・他サービスからの転載");
+    expect(sent[0].body.labels).toEqual(["lyrics-report"]);
+    expect(sent[0].body.body).toContain("あ".repeat(300));
+    expect(sent[0].body.body).not.toContain("あ".repeat(301));
   });
 });

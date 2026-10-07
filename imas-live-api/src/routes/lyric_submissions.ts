@@ -60,8 +60,70 @@ export function validateSubmission(body: Readonly<Record<string, unknown>>): Sub
   return { ok: true, body: normalized, lineCount };
 }
 
+/** 歌詞の報告の理由 (アプリの選択肢と同じ鍵)。 */
+export const LYRICS_REPORT_REASONS: Readonly<Record<string, string>> = {
+  copied: "歌詞サイト・他サービスからの転載",
+  wrong: "歌詞の誤り",
+  rights: "権利者からの削除の求め",
+  other: "その他",
+};
+const LYRICS_REPORT_NOTE_MAX = 300;
+
+/**
+ * POST /songs/:song_id/lyrics-report — 歌詞の報告 (転載・誤り・削除の求め)。GitHub の issue にする。
+ * ⚠️ issue は公開リポジトリに立つので、歌詞の本文は載せない (曲 id・理由・短い補足だけ)。
+ *    補足に本文を貼られても長く載らないよう 300 字で切る。
+ */
+async function handleLyricsReport(ctx: RouteContext, songIdRaw: string): Promise<Response> {
+  const { request, env, json, error, rateLimitResponse } = ctx;
+  const user = await getAuthUser(request, env);
+  if (!user) return error("Unauthorized", 401);
+  const songId = decodePathParam(ctx, songIdRaw, "song_id");
+  if (songId instanceof Response) return songId;
+  if (!songId || songId.length > 200) return error("invalid song_id", 400);
+  const body = await readJsonBody(ctx);
+  if (body instanceof Response) return body;
+  const reason = typeof body.reason === "string" ? LYRICS_REPORT_REASONS[body.reason] : undefined;
+  if (!reason) return error("invalid reason", 400);
+  const note = typeof body.note === "string" ? body.note.trim().slice(0, LYRICS_REPORT_NOTE_MAX) : "";
+
+  const [inactive, rl] = await Promise.all([
+    requireActiveUser(ctx, user),
+    checkRateLimit(env.DB, user.uid, "edit_request"),
+  ]);
+  if (inactive) return inactive;
+  if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+  if (!env.GITHUB_TOKEN) return error("reports are not configured (GITHUB_TOKEN missing)", 503);
+
+  const repo = env.GITHUB_REPO || "fuga-if/idol-live-db";
+  const issueBody = [
+    `**曲**: \`${songId.replace(/`/g, "")}\``,
+    `**理由**: ${reason}`,
+    note ? `**補足**:\n\n> ${note.replace(/\n/g, "\n> ")}` : "",
+    "",
+    "非公開にする: `POST /admin/lyrics/status` (song_ids, status=draft) / 前の版に戻す: `POST /admin/lyrics/:song_id/restore`",
+  ].filter((l) => l !== "").join("\n");
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "imas-live-api",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ title: `[歌詞の報告] ${songId} — ${reason}`, body: issueBody, labels: ["lyrics-report"] }),
+  });
+  if (!res.ok) {
+    console.error(`[lyrics-report] github ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    return error(`failed to report (github ${res.status})`, 502);
+  }
+  return json({ ok: true }, 201, NO_STORE);
+}
+
 export async function handleLyricSubmissions(ctx: RouteContext): Promise<Response | null> {
   const { request, env, path, json, error, rateLimitResponse } = ctx;
+  const report = path.match(/^\/songs\/([^/]+)\/lyrics-report$/);
+  if (report && request.method === "POST") return handleLyricsReport(ctx, report[1]);
   const match = path.match(/^\/songs\/([^/]+)\/lyric-submissions$/);
   if (!match || request.method !== "POST") return null;
 
