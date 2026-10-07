@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -52,7 +54,14 @@ class ContributionFeedbackService(
     val feedback: StateFlow<Feedback?> = _feedback.asStateFlow()
 
     @Volatile private var lastFetchedMs = 0L
-    private val creditsCache = HashMap<String, List<ShowCreditLine>>()
+    /** 公演ごとの奥付 (取った時刻つき)。サーバ側のエッジと同じ 10 分で取り直す。 */
+    private val creditsCache = HashMap<String, Pair<List<ShowCreditLine>, Long>>()
+    /** 閲覧の記録の読み書きを 1 本にする (続けて開いた公演の記録で上書きしないため)。 */
+    private val viewMutex = Mutex()
+
+    init {
+        authService.addSignOutListener { resetForSignOut() }
+    }
 
     /** 手応えを取り直す。`force` でなければ 10 分以内の再取得はしない。 */
     suspend fun refresh(force: Boolean = false) = withContext(Dispatchers.IO) {
@@ -85,40 +94,56 @@ class ContributionFeedbackService(
         _feedback.value = current.copy(goods = current.goods.map { it.copy(newGoodCount = 0) }, newGoodTotal = 0)
     }
 
-    /** 公演ページを開いた。今週まだ送っていなければ送る (失敗したら覚えず、次に開いたとき送り直す)。 */
+    /** 公演ページを開いた。今週まだ送っていなければ送る。失敗したら記録から外し、次に開いたとき送り直す。 */
     suspend fun reportShowView(showId: String) = withContext(Dispatchers.IO) {
-        val decision = showViewDecision(
-            storedWeek = prefs.getString(KEY_VIEW_WEEK, "") ?: "",
-            reported = prefs.getString(KEY_VIEW_REPORTED, null)?.let { raw ->
-                runCatching { JSONArray(raw).let { a -> (0 until a.length()).map { a.getString(it) } } }.getOrNull()
-            } ?: emptyList(),
-            showId = showId,
-            nowEpochSeconds = System.currentTimeMillis() / 1000
-        )
-        if (decision.report) {
-            val ok = try {
-                http.request("POST", "/shows/views", JSONObject().put("show_ids", JSONArray(listOf(showId))),
-                    authorized = false).isSuccess
-            } catch (e: Exception) {
-                false
-            }
-            if (!ok) return@withContext
+        val decision = viewMutex.withLock {
+            val d = showViewDecision(
+                storedWeek = prefs.getString(KEY_VIEW_WEEK, "") ?: "",
+                reported = readReported(),
+                showId = showId,
+                nowEpochSeconds = System.currentTimeMillis() / 1000
+            )
+            prefs.edit()
+                .putString(KEY_VIEW_WEEK, d.week)
+                .putString(KEY_VIEW_REPORTED, JSONArray(d.reportedAfter).toString())
+                .apply()
+            d
         }
-        prefs.edit()
-            .putString(KEY_VIEW_WEEK, decision.week)
-            .putString(KEY_VIEW_REPORTED, JSONArray(decision.reportedAfter).toString())
-            .apply()
+        if (!decision.report) return@withContext
+        val ok = try {
+            http.request("POST", "/shows/views", JSONObject().put("show_ids", JSONArray(listOf(showId))),
+                authorized = false).isSuccess
+        } catch (e: Exception) {
+            false
+        }
+        if (!ok) viewMutex.withLock {
+            prefs.edit().putString(KEY_VIEW_REPORTED, JSONArray(readReported().filter { it != showId }).toString()).apply()
+        }
+    }
+
+    private fun readReported(): List<String> =
+        prefs.getString(KEY_VIEW_REPORTED, null)?.let { raw ->
+            runCatching { JSONArray(raw).let { a -> (0 until a.length()).map { a.getString(it) } } }.getOrNull()
+        } ?: emptyList()
+
+    /** サインアウト。アカウントごとの値 (既読の位置・手応え) を捨てる。閲覧の記録は端末の値なので残す。 */
+    private fun resetForSignOut() {
+        _feedback.value = null
+        lastFetchedMs = 0L
+        prefs.edit().remove(KEY_SEEN_GOOD_AT).apply()
     }
 
     /** 公演の奥付の行 (並びと「ほか N 人」はコア `showCreditLines`)。取れなければ空。 */
     suspend fun creditLines(showId: String): List<ShowCreditLine> = withContext(Dispatchers.IO) {
-        synchronized(creditsCache) { creditsCache[showId] }?.let { return@withContext it }
+        val now = System.currentTimeMillis()
+        synchronized(creditsCache) { creditsCache[showId] }
+            ?.takeIf { now - it.second < CREDITS_TTL_MS }?.let { return@withContext it.first }
         try {
             val res = http.request("GET", "/shows/${enc(showId)}/credits", authorized = false)
             if (!res.isSuccess || res.body.isNullOrEmpty()) return@withContext emptyList()
             val json = JSONObject(res.body)
             val lines = showCreditLines(role(json.optJSONObject("setlist")), role(json.optJSONObject("performers")))
-            synchronized(creditsCache) { creditsCache[showId] = lines }
+            synchronized(creditsCache) { creditsCache[showId] = lines to now }
             lines
         } catch (e: Exception) {
             Log.w(TAG, "credits failed: ${e.message}")
@@ -131,6 +156,7 @@ class ContributionFeedbackService(
         val res = http.request("POST", "/users/me/credit", JSONObject().put("credit_opt_in", isOn))
         if (!res.isSuccess || res.body.isNullOrEmpty()) throw IllegalStateException("設定を保存できませんでした (HTTP ${res.code})")
         authService.adoptCreditOptIn(JSONObject(res.body).optBoolean("creditOptIn", isOn))
+        synchronized(creditsCache) { creditsCache.clear() }
     }
 
     private fun role(o: JSONObject?): ShowCreditInput {
@@ -172,5 +198,6 @@ class ContributionFeedbackService(
         const val KEY_VIEW_WEEK = "show_view_week"
         const val KEY_VIEW_REPORTED = "show_view_reported"
         const val REFRESH_INTERVAL_MS = 10 * 60 * 1000L
+        const val CREDITS_TTL_MS = 10 * 60 * 1000L
     }
 }

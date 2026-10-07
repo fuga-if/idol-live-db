@@ -150,6 +150,7 @@ final class AuthService {
         // 前ユーザーの投票済み/投稿累計が漏れるので破棄する。
         LocalPollVoteLog.shared.clear()
         LocalContributionLog.shared.clear()
+        ContributionFeedbackStore.shared.resetForSignOut()
     }
 
     /// App Store Review Guideline 5.1.1(v) 対応:

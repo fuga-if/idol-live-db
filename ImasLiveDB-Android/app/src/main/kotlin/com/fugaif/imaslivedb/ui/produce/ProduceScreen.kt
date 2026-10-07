@@ -449,7 +449,7 @@ private fun ActivitySection(
         if (reach != null && reach.viewers > 0) {
             ImasEntryCard(
                 icon = Icons.Filled.Visibility,
-                title = "先週、あなたが入れたセトリが ${reach.viewers} 人に見られました",
+                title = "先週、あなたが入れたセトリが のべ ${reach.viewers} 人に見られました",
                 preview = "${reach.shows} 公演のセトリ",
                 seed = state.pickSeed,
                 onClick = onContributionsClick

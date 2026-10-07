@@ -38,8 +38,8 @@ final class ContributionFeedbackStore {
     /// 奥付に表示名を載せるか (既定は載せない)。
     private(set) var creditOptIn: Bool
     private var lastFetchedAt: Date?
-    /// 同じ公演の奥付を開き直すたびに叩かない (サーバ側もエッジで 1 時間)。
-    private var creditsCache: [String: ShowCredits] = [:]
+    /// 同じ公演の奥付を開き直すたびに叩かない (サーバ側のエッジと同じ 10 分)。
+    private var creditsCache: [String: (credits: ShowCredits, at: Date)] = [:]
 
     #if DEBUG
     private static let isFake = ProcessInfo.processInfo.environment["FAKE_FEEDBACK"] == "1"
@@ -77,35 +77,39 @@ final class ContributionFeedbackStore {
         )
     }
 
-    /// 公演ページを開いた。今週まだ送っていなければ送る (失敗したら覚えず、次に開いたとき送り直す)。
+    /// 公演ページを開いた。今週まだ送っていなければ送る。
+    /// 送る前に覚える (続けて開いた別の公演の記録で上書きしないため)。失敗したら戻し、次に開いたとき送り直す。
     func reportShowView(showId: String) async {
+        let storedWeek = defaults.string(forKey: Keys.viewWeek) ?? ""
+        let reported = defaults.stringArray(forKey: Keys.viewReported) ?? []
         let decision = showViewDecision(
-            storedWeek: defaults.string(forKey: Keys.viewWeek) ?? "",
-            reported: defaults.stringArray(forKey: Keys.viewReported) ?? [],
+            storedWeek: storedWeek,
+            reported: reported,
             showId: showId,
             nowEpochSeconds: Int64(Date().timeIntervalSince1970)
         )
-        if decision.report {
-            do {
-                try await api.reportShowViews(showIds: [showId])
-            } catch {
-                logger.warning("show_view_report_failed: \(error.localizedDescription, privacy: .public)")
-                return
-            }
-        }
         defaults.set(decision.week, forKey: Keys.viewWeek)
         defaults.set(decision.reportedAfter, forKey: Keys.viewReported)
+        guard decision.report else { return }
+        do {
+            try await api.reportShowViews(showIds: [showId])
+        } catch {
+            logger.warning("show_view_report_failed: \(error.localizedDescription, privacy: .public)")
+            // その間に覚えた別の公演は残し、この公演だけ外す。
+            let now = defaults.stringArray(forKey: Keys.viewReported) ?? []
+            defaults.set(now.filter { $0 != showId }, forKey: Keys.viewReported)
+        }
     }
 
     /// 公演の奥付の行 (並びと「ほか N 人」はコア `showCreditLines`)。取れなければ空。
     func creditLines(showId: String) async -> [ShowCreditLine] {
         let credits: ShowCredits
-        if let hit = creditsCache[showId] {
-            credits = hit
+        if let hit = creditsCache[showId], Date().timeIntervalSince(hit.at) < 600 {
+            credits = hit.credits
         } else {
             do {
                 credits = try await api.showCredits(showId: showId)
-                creditsCache[showId] = credits
+                creditsCache[showId] = (credits, Date())
             } catch {
                 logger.warning("show_credits_failed: \(error.localizedDescription, privacy: .public)")
                 return []
@@ -127,5 +131,17 @@ final class ContributionFeedbackStore {
     func setCreditOptIn(_ isOn: Bool) async throws {
         let saved = try await api.setCreditOptIn(isOn)
         adoptCreditOptIn(saved)
+        creditsCache.removeAll()
+    }
+
+    /// サインアウト。アカウントごとの値 (既読の位置・掲載の設定・手応え) を捨てる。
+    /// 閲覧の記録は端末の値なので残す。
+    func resetForSignOut() {
+        feedback = nil
+        lastFetchedAt = nil
+        lastSeenGoodAt = 0
+        creditOptIn = false
+        defaults.removeObject(forKey: Keys.lastSeenGoodAt)
+        defaults.removeObject(forKey: Keys.creditOptIn)
     }
 }

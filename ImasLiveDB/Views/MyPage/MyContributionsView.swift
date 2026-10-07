@@ -51,10 +51,10 @@ struct MyContributionsView: View {
         if let feedback = feedbackStore.feedback {
             if feedback.setlistReach.viewers > 0 {
                 ImasSection("先週の反響", style: .small,
-                            footer: "あなたが入れたセトリの公演ページを見た人の数です (公演ごとに 1 人 1 回)。") {
+                            footer: "あなたが入れたセトリの公演ページを見た人の数です。公演ごとに 1 人 1 回で数え、いくつも見た人はその数だけ数えます (のべ人数)。") {
                     ImasStatGrid(columns: 2) {
                         ImasStatTile(systemImage: "eye.fill", value: "\(feedback.setlistReach.viewers)", unit: "人",
-                                     label: "セトリを見た人")
+                                     label: "セトリを見た人 (のべ)")
                         ImasStatTile(systemImage: "music.note.list", value: "\(feedback.setlistReach.shows)", unit: "公演",
                                      label: "見られた公演")
                     }

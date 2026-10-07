@@ -283,7 +283,7 @@ struct ProduceTabView: View {
         if let reach = feedbackStore.feedback?.setlistReach, reach.viewers > 0 {
             statTileLink(route: .myContributions) {
                 ImasEntryCard(systemImage: "eye.fill",
-                              title: "先週、あなたが入れたセトリが \(reach.viewers) 人に見られました",
+                              title: "先週、あなたが入れたセトリが のべ \(reach.viewers) 人に見られました",
                               preview: "\(reach.shows) 公演のセトリ",
                               seed: pickBrandSeed)
             }

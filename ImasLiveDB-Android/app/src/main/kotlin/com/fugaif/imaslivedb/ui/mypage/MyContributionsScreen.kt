@@ -104,10 +104,10 @@ private fun FeedbackSections(feedback: ContributionFeedbackService.Feedback) {
         ImasSection(
             "先週の反響",
             style = ImasSectionHeaderStyle.SMALL,
-            footer = "あなたが入れたセトリの公演ページを見た人の数です (公演ごとに 1 人 1 回)。"
+            footer = "あなたが入れたセトリの公演ページを見た人の数です。公演ごとに 1 人 1 回で数え、いくつも見た人はその数だけ数えます (のべ人数)。"
         ) {
             ImasStatGrid(columns = 2) {
-                ImasStatTile(icon = Icons.Filled.Visibility, value = "${reach.viewers}", unit = "人", label = "セトリを見た人")
+                ImasStatTile(icon = Icons.Filled.Visibility, value = "${reach.viewers}", unit = "人", label = "セトリを見た人 (のべ)")
                 ImasStatTile(icon = Icons.Filled.QueueMusic, value = "${reach.shows}", unit = "公演", label = "見られた公演")
             }
         }

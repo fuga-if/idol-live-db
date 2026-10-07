@@ -136,6 +136,14 @@ class AuthService(
     fun signOut() {
         prefs?.edit()?.clear()?.apply()
         _state.value = AuthState()
+        signOutListeners.forEach { it() }
+    }
+
+    /** サインアウトで捨てるアカウントごとの値を持つ側が登録する (手応えの既読位置など)。 */
+    private val signOutListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+
+    fun addSignOutListener(listener: () -> Unit) {
+        signOutListeners += listener
     }
 
     /**
