@@ -1211,3 +1211,23 @@ fun ImasRubyFlowText(
         }
     }
 }
+
+/**
+ * 読み仮名の付いた歌詞の見本 (投稿画面。iOS `ImasRubyPreview` の移植)。記法 (親字《よみ》) の入った
+ * 本文のうち、読み仮名のある行だけを歌詞の画面と同じく親字の上に読みを載せて並べる。記法そのものは
+ * 見せない。
+ */
+@Composable
+fun ImasRubyPreview(text: String, modifier: Modifier = Modifier) {
+    val lines = remember(text) { text.split("\n").filter(ImasRubyText::hasRuby) }
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        lines.forEach { line ->
+            ImasRubyFlowText(
+                text = line,
+                style = ImasType.text(17.sp, FontWeight.Medium),
+                color = DS.ink,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}

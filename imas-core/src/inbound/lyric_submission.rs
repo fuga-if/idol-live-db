@@ -52,8 +52,8 @@ pub fn lyric_submission_guideline() -> Vec<domain::LyricGuideBlock> {
 
 /// 歌詞カードの読み取りの使い方 (手順と説明)。
 #[uniffi::export]
-pub fn lyric_ocr_steps(live_text: bool) -> Vec<crate::domain::lyric_ocr::LyricOcrStep> {
-    crate::domain::lyric_ocr::steps(live_text)
+pub fn lyric_ocr_steps(tap_scanner: bool) -> Vec<crate::domain::lyric_ocr::LyricOcrStep> {
+    crate::domain::lyric_ocr::steps(tap_scanner)
 }
 
 /// 1 片の読み取り候補から 1 つ選ぶ (辞書に無い英単語が少ないもの)。見直しが要るかも返す。

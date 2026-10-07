@@ -8,14 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
@@ -50,6 +54,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasFormLink
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormSelectableTextArea
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormToggle
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasRubyPreview
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
@@ -63,15 +71,18 @@ import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import kotlinx.coroutines.launch
 import uniffi.imas_core.LyricSubmissionIssue
+import uniffi.imas_core.RubyMark
 import uniffi.imas_core.lyricOcrAppend
 import uniffi.imas_core.lyricOcrSteps
 import uniffi.imas_core.lyricRemoveLines
+import uniffi.imas_core.lyricRubyJoin
 import uniffi.imas_core.lyricRubyLikeLines
+import uniffi.imas_core.lyricRubyMarkAt
+import uniffi.imas_core.lyricRubyMarkFound
 import uniffi.imas_core.lyricSubmissionCheck
 import uniffi.imas_core.lyricSubmissionIssueBlocks
 import uniffi.imas_core.lyricSubmissionIssueMessage
 import uniffi.imas_core.lyricSubmissionMaxChars
-import uniffi.imas_core.lyricWrapRuby
 
 /**
  * 歌詞を投稿する画面 (iOS `LyricSubmissionSheet` の移植)。CD の歌詞カードなどの一次ソースを
@@ -93,7 +104,10 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     val draft = LyricSubmissionDrafts.draft(song.id)
     val text = draft.text
     val agreed = draft.agreed
-    fun setText(new: String) = LyricSubmissionDrafts.update(song.id) { it.copy(text = new) }
+    val rubies = draft.rubies
+    /** 送る形の本文 (読み仮名を記法で入れたもの)。画面には出さない。 */
+    val markup = lyricRubyJoin(text, rubies)
+    fun setText(new: String) = LyricSubmissionDrafts.setText(song.id, new)
     fun setAgreed(new: Boolean) = LyricSubmissionDrafts.update(song.id) { it.copy(agreed = new) }
 
     var isSaving by remember { mutableStateOf(false) }
@@ -105,7 +119,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     var ocrMessage by remember { mutableStateOf<String?>(null) }
     var showGuide by remember { mutableStateOf(false) }
 
-    val check = lyricSubmissionCheck(text, agreed)
+    val check = lyricSubmissionCheck(markup, agreed)
     val isDirty = text.trim().isNotEmpty()
 
     fun requestDismiss() {
@@ -147,12 +161,9 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
             if (reading.text.isEmpty()) {
                 ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
             } else {
-                LyricSubmissionDrafts.update(song.id) {
-                    it.copy(
-                        text = lyricOcrAppend(it.text, reading.text),
-                        doubtfulLines = it.doubtfulLines + reading.doubtfulLines
-                    )
-                }
+                val current = LyricSubmissionDrafts.draft(song.id).text
+                LyricSubmissionDrafts.setText(song.id, lyricOcrAppend(current, reading.text))
+                LyricSubmissionDrafts.update(song.id) { it.copy(doubtfulLines = it.doubtfulLines + reading.doubtfulLines) }
             }
         }
     }
@@ -195,8 +206,19 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                 }
 
                 ImasFormCard {
-                    LyricsRubyFields(text = text, onTextChange = { setText(it) })
+                    LyricsRubyFields(
+                        text = text,
+                        onTextChange = { setText(it) },
+                        onAddRuby = { start, end, reading ->
+                            val mark = lyricRubyMarkAt(plain = text, start = start.toUInt(), end = end.toUInt(), reading = reading)
+                            if (mark != null) {
+                                LyricSubmissionDrafts.update(song.id) { it.copy(rubies = it.rubies + mark) }
+                            }
+                        }
+                    )
                 }
+
+                RubySection(songId = song.id, text = text, markup = markup, rubies = rubies)
 
                 OcrButtons(
                     canUseCamera = cardCameraAvailable(context),
@@ -281,7 +303,7 @@ private fun OcrButtons(canUseCamera: Boolean, enabled: Boolean, onCamera: () -> 
         }
         ImasStepList(
             // Android には iOS の「テキストをスキャン」(LiveTextCapture) に当たる機能が無い。
-            steps = lyricOcrSteps(liveText = false).map { ImasStep(title = it.title, detail = it.detail) },
+            steps = lyricOcrSteps(tapScanner = false).map { ImasStep(title = it.title, detail = it.detail) },
             modifier = Modifier.padding(top = DS.Space.gapTight)
         )
         ImasText(
@@ -338,12 +360,13 @@ private fun IssueNotes(
 }
 
 /**
- * 歌詞の入力欄と「読み仮名を付ける」(iOS `LyricsRubyEditor` の移植。選んだ字に 親字《よみ》 を付ける)。
- * 付け方 (｜ が要るか) はコアの [lyricWrapRuby] が決める。選択は [TextFieldValue.selection] の
- * UTF-16 の位置なので、コアに渡す前にコードポイントの位置へ直す。
+ * 歌詞の入力欄と「選んだ字に読み仮名を付ける」(iOS `LyricsRubyEditor` の移植。文字の選択を読む)。
+ * 本文は書き換えず、選んだ範囲 (コードポイントの位置) と読みを [onAddRuby] で返す。読み仮名は
+ * 本文と分けて持つ。選択は [TextFieldValue.selection] の UTF-16 の位置なので、呼び出し側に渡す前に
+ * コードポイントの位置へ直す。
  */
 @Composable
-private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit) {
+private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit, onAddRuby: (Int, Int, String) -> Unit) {
     var field by rememberRubyFieldValue(text)
     var pending by remember { mutableStateOf<IntRange?>(null) }
     var reading by remember { mutableStateOf("") }
@@ -367,9 +390,9 @@ private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit) {
         prompt = "1 行ずつ改行して入力してください",
         imprint = "LYRICS"
     )
-    ImasFormField(label = "読み仮名", imprint = "RUBY", icon = Icons.Filled.TextFields) {
+    ImasFormField(label = "読み仮名を付ける", imprint = "RUBY", icon = Icons.Filled.TextFields) {
         ImasButton(
-            title = "選んだ字に読み仮名を付ける",
+            title = if (selectedCodepoints == null) "歌詞の字を選んでください" else "選んだ字に読み仮名を付ける",
             onClick = {
                 reading = ""
                 pending = selectedCodepoints
@@ -386,11 +409,48 @@ private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit) {
             reading = reading,
             onReadingChange = { reading = it },
             onConfirm = {
-                onTextChange(lyricWrapRuby(text = text, start = range.first.toUInt(), end = (range.last + 1).toUInt(), reading = reading))
+                onAddRuby(range.first, range.last + 1, reading)
                 pending = null
             },
             onDismiss = { pending = null }
         )
+    }
+}
+
+/**
+ * 付けた読み仮名の一覧 (外せる) と、送ったときの見た目の見本。記法は見せない (iOS `rubySection` の移植)。
+ */
+@Composable
+private fun RubySection(songId: String, text: String, markup: String, rubies: List<RubyMark>) {
+    if (rubies.isEmpty()) return
+    ImasFormCard {
+        ImasFormField(label = "読み仮名", imprint = "RUBY", icon = Icons.Filled.TextFields) {
+            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                rubies.forEachIndexed { index, mark ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${mark.base} → ${mark.reading}")
+                        if (!lyricRubyMarkFound(text, mark)) {
+                            ImasText("歌詞に見つかりません", ImasTextRole.NOTE, color = DS.danger)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        ImasIconButton(
+                            icon = Icons.Filled.Close,
+                            label = "${mark.base} の読み仮名を外す",
+                            size = ImasIconButtonSize.SMALL,
+                            style = ImasIconButtonStyle.PLAIN,
+                            onClick = {
+                                LyricSubmissionDrafts.update(songId) { d ->
+                                    d.copy(rubies = d.rubies.filterIndexed { i, _ -> i != index })
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        ImasFormField(label = "見本", imprint = "PREVIEW", icon = Icons.Filled.Visibility) {
+            ImasRubyPreview(text = markup)
+        }
     }
 }
 

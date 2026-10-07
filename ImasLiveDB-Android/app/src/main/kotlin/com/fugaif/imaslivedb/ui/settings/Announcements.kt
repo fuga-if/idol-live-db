@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
@@ -49,15 +48,17 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
-            id = "lyrics_paused_2026_10",
-            date = "2026-10-06",
-            title = "歌詞の掲載を一時停止しています",
-            summary = "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除しました。",
+            id = "lyrics_submissions_2026_10",
+            date = "2026-10-07",
+            title = "歌詞はみんなの投稿で集め直します",
+            summary = "掲載していた歌詞はすべて取り下げ、CD の歌詞カードをもとにした投稿で集め直します。",
             body = listOf(
-                "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除し、歌詞タブ・歌詞検索・歌詞クイズ・コールガイド・歌詞プレイヤーを一時停止しています。",
-                "皆さんが付けてくださったコール・タイミング・パート分けは保管しています。再開するときは、このお知らせでお伝えします。",
+                "歌詞データの取得方法に問題があったため、掲載していた歌詞をすべて削除しました。",
+                "これからは、皆さんに CD の歌詞カードなどを見て入力していただいた歌詞を掲載します。曲の画面の「歌詞」タブから投稿でき、歌詞カードを撮った写真から文字を読み取れます。送った歌詞はすぐに公開され、運営があとから確認します。",
+                "歌詞サイトから写した歌詞や、聴き取った歌詞は投稿できません。詳しくは投稿画面の「投稿ガイドライン」をご覧ください。",
+                "以前の歌詞に皆さんが付けてくださったコール・タイミング・パート分けは保管しています。",
             ),
-            icon = Icons.Filled.PauseCircle,
+            icon = Icons.Filled.FormatQuote,
             tint = "#737380",
             link = null
         ),

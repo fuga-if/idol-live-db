@@ -24,7 +24,7 @@ packages:
 # 「app extension の CFBundleVersion は本体と一致していること」で弾かれる)。
 settings:
   base:
-    MARKETING_VERSION: "2.4.0"
+    MARKETING_VERSION: "2.5.0"
     CURRENT_PROJECT_VERSION: "64"
 
 targets:

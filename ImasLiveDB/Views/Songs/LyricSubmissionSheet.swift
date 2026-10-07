@@ -1,5 +1,4 @@
 import os
-import PhotosUI
 import SwiftUI
 
 /// 歌詞を投稿するシート。CD の歌詞カードなどの一次ソースを見て入力した歌詞を送る。
@@ -19,12 +18,7 @@ struct LyricSubmissionSheet: View {
     @State private var confirmDiscard = false
     /// 送れたあとの知らせ (公開したか、直しの提案として預かったか)。
     @State private var sentMessage: String?
-    @State private var showCamera = false
-    @State private var photoPicks: [PhotosPickerItem] = []
-    @State private var isReading = false
-    @State private var ocrMessage: String?
     @State private var showGuide = false
-    @State private var liveText = LiveTextCapture()
     @State private var showLineScanner = false
 
     private var text: String { drafts.draft(for: song.id).text }
@@ -105,35 +99,14 @@ struct LyricSubmissionSheet: View {
                 onCancel: { isDirty ? (confirmDiscard = true) : dismiss() },
                 onSubmit: { AppAnalytics.tap("lyric_submission.submit"); Task { await submit() } }
             ))
-            .imasSavingOverlay(isSaving || isReading, label: isReading ? "読み取り中" : "送信中")
+            .imasSavingOverlay(isSaving, label: "送信中")
             .fullScreenCover(isPresented: $showLineScanner) {
                 LyricLineScannerView { scanned in
                     let songId = song.id
                     drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: scanned))
                 }
             }
-            .fullScreenCover(isPresented: $showCamera) {
-                PaperCardCamera(maxPages: 10, onFinish: { images in
-                    showCamera = false
-                    Task { await read(images) }
-                }, onCancel: { showCamera = false })
-                .ignoresSafeArea()
-            }
-            .onChange(of: photoPicks) { _, picks in
-                guard !picks.isEmpty else { return }
-                Task {
-                    var images: [UIImage] = []
-                    for pick in picks {
-                        if let data = try? await pick.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                            images.append(image)
-                        }
-                    }
-                    photoPicks = []
-                    await read(images)
-                }
-            }
             .imasErrorAlert("送信できませんでした", message: $errorMessage)
-            .imasErrorAlert("文字を読み取れませんでした", message: $ocrMessage)
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { drafts.clear(song.id); dismiss() }
             .interactiveDismissDisabled(isDirty)
             .alert("歌詞を送りました", isPresented: Binding(get: { sentMessage != nil }, set: { if !$0 { sentMessage = nil } })) {
@@ -142,73 +115,30 @@ struct LyricSubmissionSheet: View {
                 Text(sentMessage ?? "")
             }
         }
-        .onDisappear { liveText.stop() }
         .trackScreen("lyric_submission")
     }
 
-    /// 歌詞カードを撮る・写真から読む。読んだ文字は入力欄に足すだけで、本人が見直してから送る。
+    /// 歌詞カードの読み取り。映った歌詞を押した順に、塊の中は改行・塊の間は空行で入れる
+    /// (行の区切りを歌詞カードどおりに取り込むため、これだけにする)。読んだ文字は本人が見直してから送る。
+    @ViewBuilder
     private var ocrButtons: some View {
-        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-            HStack(spacing: DS.Space.gap) {
-                if liveText.isAvailable {
-                    // メモアプリと同じ「テキストをスキャン」。塊ごとに選んで入れられ、書類スキャンより読みがよい。
-                    Button {
-                        AppAnalytics.tap("lyric_submission.live_text")
-                        let songId = song.id
-                        liveText.start { captured in
-                            drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: captured))
-                        }
-                    } label: {
-                        Label("テキストをスキャン", systemImage: "text.viewfinder")
-                    }
-                    .buttonStyle(.imas(.secondary, fillsWidth: true))
-                    .background { LiveTextCaptureAnchor(capture: liveText).frame(width: 0, height: 0) }
-                } else if PaperCardCamera.isAvailable {
-                    Button {
-                        AppAnalytics.tap("lyric_submission.ocr_camera")
-                        showCamera = true
-                    } label: {
-                        Label("歌詞カードを撮る", systemImage: "camera.viewfinder")
-                    }
-                    .buttonStyle(.imas(.secondary, fillsWidth: true))
+        if LyricLineScannerView.isAvailable {
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                Button {
+                    AppAnalytics.tap("lyric_submission.line_scanner")
+                    showLineScanner = true
+                } label: {
+                    Label("歌詞カードを読み取る", systemImage: "text.viewfinder")
                 }
-                if LyricLineScannerView.isAvailable {
-                    // 映った歌詞を押した順に入れる (塊の間は空行)。テキストスキャンが落とす改行を入れたいとき。
-                    Button {
-                        AppAnalytics.tap("lyric_submission.line_scanner")
-                        showLineScanner = true
-                    } label: {
-                        Label("押してスキャン", systemImage: "hand.tap")
-                    }
-                    .buttonStyle(.imas(.secondary, fillsWidth: true))
-                }
+                .buttonStyle(.imas(.secondary, fillsWidth: true))
+                ImasStepList(steps: lyricOcrSteps(tapScanner: true).map { .init(title: $0.title, detail: $0.detail) })
+                    .padding(.top, DS.Space.gapTight)
+                Text("文字の読み取りは端末の中だけで行い、映像はどこにも送りません。")
+                    .font(.imasFootnote)
+                    .foregroundStyle(DS.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            PhotosPicker(selection: $photoPicks, maxSelectionCount: 10, matching: .images) {
-                Label("写真から読む", systemImage: "photo.on.rectangle")
-            }
-            .buttonStyle(.imas(.secondary, fillsWidth: true))
-            ImasStepList(steps: lyricOcrSteps(liveText: liveText.isAvailable).map { .init(title: $0.title, detail: $0.detail) })
-                .padding(.top, DS.Space.gapTight)
-            Text("文字の読み取りは端末の中だけで行い、写真はどこにも送りません。")
-                .font(.imasFootnote)
-                .foregroundStyle(DS.ink3)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .disabled(isReading || isSaving)
-    }
-
-    private func read(_ images: [UIImage]) async {
-        guard !images.isEmpty else { return }
-        isReading = true
-        defer { isReading = false }
-        let reading = await LyricsCardOCR.read(images)
-        let recognized = reading.text
-        if recognized.isEmpty {
-            ocrMessage = "明るい所で、歌詞カードが画面いっぱいに写るように撮ってください。"
-        } else {
-            let songId = song.id
-            drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: recognized))
-            drafts.update(songId) { $0.doubtfulLines += reading.doubtfulLines }
+            .disabled(isSaving)
         }
     }
 
@@ -253,13 +183,6 @@ struct LyricSubmissionSheet: View {
                 Text("\(check.lineCount) 行 · \(check.charCount) / \(lyricSubmissionMaxChars()) 字")
                     .font(.imasFootnote)
                     .foregroundStyle(DS.ink3)
-            }
-            let doubtful = drafts.draft(for: song.id).doubtfulLines
-            if !doubtful.isEmpty {
-                Text("読み取りに自信の無い行があります。歌詞カードと見比べてください:\n" + doubtful.prefix(12).map { "・\($0)" }.joined(separator: "\n"))
-                    .font(.imasFootnote.weight(.semibold))
-                    .foregroundStyle(DS.ink2)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(Array(check.issues.enumerated()), id: \.offset) { _, issue in
                 if issue != .empty {

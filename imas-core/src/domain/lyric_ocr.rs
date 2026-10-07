@@ -284,13 +284,14 @@ pub struct LyricOcrStep {
 }
 
 /// 歌詞カードの読み取りの使い方 (投稿画面の読み取りボタンの下に出す)。
-/// `live_text` は OS の「テキストをスキャン」(カメラの映像から文字の塊を選んで入れる) が使える端末か。
-pub fn steps(live_text: bool) -> Vec<LyricOcrStep> {
+/// `tap_scanner` は、映った歌詞を押して取り込む読み取り (iOS の DataScanner) が使える端末か。
+/// 使えない端末 (Android) は書類スキャンで撮る。
+pub fn steps(tap_scanner: bool) -> Vec<LyricOcrStep> {
     let s = |title: &str, detail: &str| LyricOcrStep { title: title.into(), detail: detail.into() };
-    let first = if live_text {
+    let first = if tap_scanner {
         s(
-            "「テキストをスキャン」で、歌詞の塊ごとに読み取る",
-            "カメラの映像の中で歌詞の塊を選び、「入力」を押すと入力欄に入ります。塊ごとにくり返してください。改行が抜けるときは「押してスキャン」で、映った歌詞を上から順に押すと、塊の間に空行を挟んで入ります。スクリーンショットや写真は「写真から読む」で選べます。",
+            "「歌詞カードを読み取る」で、歌詞を上から順に押す",
+            "カメラに映った歌詞に枠が出ます。押した順に入り、ひと続きの塊の中は改行、塊と塊の間は空行になります。押し間違えたら「1 つ戻す」で消せます。",
         )
     } else {
         s(
@@ -398,7 +399,7 @@ mod tests {
         let all = format!("{:?}", steps(false));
         assert_eq!(steps(false).len(), 3);
         assert!(all.contains("「自動」") && all.contains("見直して"));
-        assert!(steps(true)[0].title.contains("テキストをスキャン"));
+        assert!(steps(true)[0].title.contains("歌詞カードを読み取る"));
     }
 
     #[test]
