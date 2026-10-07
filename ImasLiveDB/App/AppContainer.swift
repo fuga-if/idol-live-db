@@ -181,7 +181,15 @@ final class AppContainer: Sendable {
     }()
 
     /// 手応え (Good の新着・セトリの閲覧数) と公演の奥付。
-    let contributionFeedback: any ContributionFeedbackReading = ContributionFeedbackAPI.shared
+    /// DEBUG かつ `FAKE_FEEDBACK=1` のときは見本 (ログイン無しで画面を確かめる)。
+    let contributionFeedback: any ContributionFeedbackReading = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["FAKE_FEEDBACK"] == "1" {
+            return FakeContributionFeedbackReading()
+        }
+        #endif
+        return ContributionFeedbackAPI.shared
+    }()
 
     /// コールガイドの整備状況 (一覧 / 最近の編集 / 未整備) の読み取り実装。
     /// 認証不要・エッジキャッシュ前提の口で、**歌詞本文もコール本文も通らない**

@@ -41,12 +41,18 @@ final class ContributionFeedbackStore {
     /// 同じ公演の奥付を開き直すたびに叩かない (サーバ側もエッジで 1 時間)。
     private var creditsCache: [String: ShowCredits] = [:]
 
+    #if DEBUG
+    private static let isFake = ProcessInfo.processInfo.environment["FAKE_FEEDBACK"] == "1"
+    #else
+    private static let isFake = false
+    #endif
+
     /// まだ見ていない Good の数。
     var newGoodTotal: Int { feedback?.newGoodTotal ?? 0 }
 
     /// 手応えを取り直す。`force` でなければ 10 分以内の再取得はしない。
     func refresh(force: Bool = false) async {
-        guard AuthService.shared.isSignedIn else {
+        guard AuthService.shared.isSignedIn || Self.isFake else {
             feedback = nil
             return
         }

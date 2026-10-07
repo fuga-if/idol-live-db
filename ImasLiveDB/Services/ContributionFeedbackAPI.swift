@@ -31,3 +31,29 @@ actor ContributionFeedbackAPI: ContributionFeedbackReading {
         return res.creditOptIn
     }
 }
+
+#if DEBUG
+/// `FAKE_FEEDBACK=1` のときの見本 (Worker やログイン無しで画面を確かめる)。
+struct FakeContributionFeedbackReading: ContributionFeedbackReading {
+    func myFeedback(since: Int64) async throws -> ContributionFeedback {
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        return ContributionFeedback(
+            goods: [
+                ReceivedGood(batchId: 2, summary: "セトリを編集 (24 件)", recordType: "SetlistItem", recordName: nil,
+                             goodCount: 5, newGoodCount: 3, latestGoodAt: now - 3_600_000),
+                ReceivedGood(batchId: 1, summary: "チケット受付を追加", recordType: "TicketSale", recordName: nil,
+                             goodCount: 2, newGoodCount: 0, latestGoodAt: now - 86_400_000 * 3),
+            ],
+            newGoodTotal: 3,
+            setlistReach: SetlistReach(week: "2026-09-28", viewers: 128, shows: 4)
+        )
+    }
+    func reportShowViews(showIds: [String]) async throws {}
+    func showCredits(showId: String) async throws -> ShowCredits {
+        ShowCredits(showId: showId,
+                    setlist: .init(names: ["ふが", "ゆきほP"], total: 4),
+                    performers: .init(names: ["ふが"], total: 1))
+    }
+    func setCreditOptIn(_ isOn: Bool) async throws -> Bool { isOn }
+}
+#endif
