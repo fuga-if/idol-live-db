@@ -20,10 +20,10 @@ import uniffi.imas_core.showViewDecision
 import java.net.URLEncoder
 
 /**
- * データを入れた人への手応え (自分の編集に付いた Good・自分が入れたセトリの先週の閲覧数) と、
+ * データを入れた人への手応え (自分の編集に付いた Good・自分が入れたセトリの先週の閲覧数・公開された歌詞) と、
  * 公演ページの奥付。iOS `ContributionFeedbackStore` + `ContributionFeedbackAPI` の移植。
  *
- * 対象はアプリからの編集だけ。歌詞の投稿はサーバの別の表に入るので、どれにも出ない。
+ * 対象はアプリからの編集と、歌詞の投稿 (その投稿で公開されたもの)。
  * - Good の新着: 最後に見た Good の時刻より後を新着として数える。「マイ投稿」を閉じたら既読。
  * - 公演の閲覧: 1 端末 1 週 1 公演 1 回だけ送る (判定はコア `showViewDecision`)。
  * - 奥付に名前を載せるか: サーバの設定。写しは [AuthService] の状態に持つ。
@@ -45,7 +45,17 @@ class ContributionFeedbackService(
 
     data class SetlistReach(val week: String, val viewers: Int, val shows: Int)
 
-    data class Feedback(val goods: List<ReceivedGood>, val newGoodTotal: Int, val setlistReach: SetlistReach)
+    /** 自分の投稿で公開された歌詞 1 曲。likeCount はいまのここ好きの人数 (非公開に戻った曲は 0)。 */
+    data class PublishedLyric(val songId: String, val publishedAt: Long, val isNew: Boolean, val likeCount: Int)
+
+    data class LyricsFeedback(val published: List<PublishedLyric>, val newPublishedCount: Int, val likeTotal: Int)
+
+    data class Feedback(
+        val goods: List<ReceivedGood>,
+        val newGoodTotal: Int,
+        val setlistReach: SetlistReach,
+        val lyrics: LyricsFeedback? = null
+    )
 
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -85,13 +95,20 @@ class ContributionFeedbackService(
         }
     }
 
-    /** 届いた Good を見た (「マイ投稿」を閉じた)。いまの新着を既読にし、手元の新着の数も 0 にする。 */
+    /** 届いた Good と公開された歌詞を見た (「マイ投稿」を閉じた)。いまの新着を既読にし、手元の新着の数も 0 にする。 */
     fun markGoodsSeen() {
         val current = _feedback.value ?: return
-        val latest = current.goods.maxOfOrNull { it.latestGoodAt } ?: return
+        val times = current.goods.map { it.latestGoodAt } + (current.lyrics?.published?.map { it.publishedAt } ?: emptyList())
+        val latest = times.maxOrNull() ?: return
         if (latest <= prefs.getLong(KEY_SEEN_GOOD_AT, 0L)) return
         prefs.edit().putLong(KEY_SEEN_GOOD_AT, latest).apply()
-        _feedback.value = current.copy(goods = current.goods.map { it.copy(newGoodCount = 0) }, newGoodTotal = 0)
+        _feedback.value = current.copy(
+            goods = current.goods.map { it.copy(newGoodCount = 0) },
+            newGoodTotal = 0,
+            lyrics = current.lyrics?.let { l ->
+                l.copy(published = l.published.map { it.copy(isNew = false) }, newPublishedCount = 0)
+            }
+        )
     }
 
     /** 公演ページを開いた。今週まだ送っていなければ送る。失敗したら記録から外し、次に開いたとき送り直す。 */
@@ -178,6 +195,17 @@ class ContributionFeedbackService(
             )
         }
         val reach = json.optJSONObject("setlistReach")
+        val lyrics = json.optJSONObject("lyrics")?.let { l ->
+            val arr = l.optJSONArray("published") ?: JSONArray()
+            LyricsFeedback(
+                published = (0 until arr.length()).map { i ->
+                    val o = arr.getJSONObject(i)
+                    PublishedLyric(o.optString("songId"), o.optLong("publishedAt"), o.optBoolean("isNew"), o.optInt("likeCount"))
+                },
+                newPublishedCount = l.optInt("newPublishedCount"),
+                likeTotal = l.optInt("likeTotal")
+            )
+        }
         return Feedback(
             goods = goods,
             newGoodTotal = json.optInt("newGoodTotal"),
@@ -185,7 +213,8 @@ class ContributionFeedbackService(
                 week = reach?.optString("week") ?: "",
                 viewers = reach?.optInt("viewers") ?: 0,
                 shows = reach?.optInt("shows") ?: 0
-            )
+            ),
+            lyrics = lyrics
         )
     }
 

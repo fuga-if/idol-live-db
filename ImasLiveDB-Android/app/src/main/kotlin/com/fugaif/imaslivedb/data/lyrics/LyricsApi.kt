@@ -119,6 +119,25 @@ class LyricsApi(private val client: WorkerHttpClient) {
         check(client.request("POST", "/songs/${seg(songId)}/lyric-structure", body), "行の区切りを変えられませんでした")
     }
 
+    /** 歌詞の報告 (POST /songs/:id/lyrics-report)。運営の GitHub の issue になる。本文は送らない。 */
+    suspend fun report(songId: String, reason: String, note: String = "") = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("reason", reason).put("note", note)
+        check(client.request("POST", "/songs/${seg(songId)}/lyrics-report", body), "報告を送れませんでした")
+    }
+
+    /** モデレーター: 公開 ⇄ 非公開 (POST /admin/lyrics/status)。本文は消さない。 */
+    suspend fun setPublished(songId: String, isPublished: Boolean) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("song_ids", JSONArray(listOf(songId)))
+            .put("status", if (isPublished) "published" else "draft")
+        check(client.request("POST", "/admin/lyrics/status", body), "公開状態を変えられませんでした")
+    }
+
+    /** モデレーター: 投稿で上書きされる前の版に 1 つ戻す (POST /admin/lyrics/:id/restore)。 */
+    suspend fun restorePrevious(songId: String) = withContext(Dispatchers.IO) {
+        check(client.request("POST", "/admin/lyrics/${seg(songId)}/restore"), "前の版に戻せませんでした")
+    }
+
     private fun check(res: com.fugaif.imaslivedb.data.net.WorkerResponse, message: String) {
         if (res.code !in 200..299) throw IOException("$message (${res.code})")
     }

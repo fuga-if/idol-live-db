@@ -36,6 +36,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
 import com.fugaif.imaslivedb.data.community.ContributionFeedbackService
 import com.fugaif.imaslivedb.ui.edit.EditFeedFormat
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,7 +57,15 @@ fun MyContributionsScreen(onBack: () -> Unit) {
     val total = counts.values.sum()
     val feedbackService = remember { AppModule.from(context).contributionFeedbackService }
     val feedback by feedbackService.feedback.collectAsState()
+    var lyricTitles by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     LaunchedEffect(Unit) { feedbackService.refresh(force = true) }
+    // 公開された歌詞の曲名 (端末のマスタから引く)。
+    LaunchedEffect(feedback?.lyrics?.published?.map { it.songId }) {
+        val ids = feedback?.lyrics?.published?.map { it.songId }.orEmpty()
+        if (ids.isNotEmpty()) {
+            lyricTitles = AppModule.from(context).songRepository.fetchSongsByIds(ids).associate { it.id to it.title }
+        }
+    }
     // 開いている間は NEW を見せたまま、閉じたときに既読にする。
     DisposableEffect(Unit) { onDispose { feedbackService.markGoodsSeen() } }
 
@@ -76,7 +87,7 @@ fun MyContributionsScreen(onBack: () -> Unit) {
                 label = "コミュニティへの投稿累計"
             )
 
-            feedback?.let { FeedbackSections(it) }
+            feedback?.let { FeedbackSections(it, lyricTitles) }
 
             ImasSection("内訳", style = ImasSectionHeaderStyle.SMALL) {
                 ImasStatGrid(columns = 2) {
@@ -98,7 +109,28 @@ fun MyContributionsScreen(onBack: () -> Unit) {
 
 /** 届いた Good と、先週セトリが見られた数 (iOS MyContributionsView.feedbackSections)。 */
 @Composable
-private fun FeedbackSections(feedback: ContributionFeedbackService.Feedback) {
+private fun FeedbackSections(feedback: ContributionFeedbackService.Feedback, lyricTitles: Map<String, String>) {
+    val lyrics = feedback.lyrics
+    if (lyrics != null && lyrics.published.isNotEmpty()) {
+        ImasSection(
+            "公開された歌詞",
+            style = ImasSectionHeaderStyle.SMALL,
+            footer = "あなたの投稿で公開された歌詞と、いまの「ここ好き」の数です。"
+        ) {
+            ImasCardList {
+                lyrics.published.forEachIndexed { index, item ->
+                    if (index > 0) ImasRowDivider()
+                    ImasRecordRow(
+                        title = lyricTitles[item.songId] ?: "曲",
+                        icon = Icons.Filled.FormatQuote,
+                        tone = ImasIconTileTone.THEMED,
+                        subtitle = "ここ好き ${item.likeCount}",
+                        badges = if (item.isNew) listOf(ImasBadgeSpec("NEW", ImasBadgeKind.NEW)) else emptyList()
+                    )
+                }
+            }
+        }
+    }
     val reach = feedback.setlistReach
     if (reach.viewers > 0) {
         ImasSection(

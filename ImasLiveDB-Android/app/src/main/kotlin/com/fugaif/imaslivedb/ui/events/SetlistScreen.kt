@@ -633,6 +633,7 @@ private fun ShowCreditsSection(lines: List<ShowCreditLine>) {
 private fun creditRoleLabel(role: ShowCreditRole): String = when (role) {
     ShowCreditRole.SETLIST -> "セトリ入力"
     ShowCreditRole.PERFORMERS -> "歌唱者"
+    ShowCreditRole.LYRICS -> "歌詞入力"
 }
 
 /** 「A・B ほか 2 人」。名前を載せる人がいなければ「3 人」。 */

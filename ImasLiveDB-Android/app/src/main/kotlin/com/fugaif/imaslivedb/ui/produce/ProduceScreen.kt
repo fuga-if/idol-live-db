@@ -74,6 +74,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasEntryCard
 import com.fugaif.imaslivedb.data.community.ContributionFeedbackService
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.FormatQuote
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicketRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
@@ -436,6 +437,16 @@ private fun ActivitySection(
         }
         // 自分の編集への手応え。Good の新着と、先週セトリが見られた数 (どちらも 0 なら出さない)。
         // 押すと「マイ投稿」へ (そこで新着を既読にする)。
+        val lyrics = feedback?.lyrics
+        if (lyrics != null && lyrics.newPublishedCount > 0) {
+            ImasEntryCard(
+                icon = Icons.Filled.FormatQuote,
+                title = "あなたが投稿した歌詞が ${lyrics.newPublishedCount} 曲公開されました",
+                preview = if (lyrics.likeTotal > 0) "ここ好き ${lyrics.likeTotal}" else null,
+                seed = state.pickSeed,
+                onClick = onContributionsClick
+            )
+        }
         if (feedback != null && feedback.newGoodTotal > 0) {
             ImasEntryCard(
                 icon = Icons.Filled.ThumbUp,

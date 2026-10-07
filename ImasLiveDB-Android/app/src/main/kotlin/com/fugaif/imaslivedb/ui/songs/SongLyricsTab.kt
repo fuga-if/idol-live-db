@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import uniffi.imas_core.authAdminCapabilities
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -371,6 +372,15 @@ fun SongLyricsTab(
                 if (!lyrics.source.isNullOrEmpty()) {
                     ImasNote("出典: ${lyrics.source}", modifier = Modifier.padding(top = DS.sp2))
                 }
+                LyricsColophon(
+                    songId = song.id,
+                    credit = lyrics.submittedBy,
+                    isDraft = lyrics.isDraft,
+                    isSignedIn = authState.isSignedIn,
+                    canModerate = authAdminCapabilities(authState.isAdmin).canEditLyrics,
+                    onChanged = onReload,
+                    modifier = Modifier.padding(top = DS.sp2)
+                )
             }
         }
         if (lyrics != null) NexToneLicenseNotice()

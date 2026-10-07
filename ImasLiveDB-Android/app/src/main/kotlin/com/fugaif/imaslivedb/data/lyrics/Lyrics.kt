@@ -158,6 +158,9 @@ data class LyricLinePartBreak(val at: Int, val singers: List<String>) {
     }
 }
 
+/** 歌詞の奥付 (`submittedBy`)。names は載せてよい人の表示名、total は投稿で公開した人の数。 */
+data class LyricsCredit(val names: List<String>, val total: Int)
+
 /** 1 曲分の歌詞。 */
 data class Lyrics(
     val songId: String,
@@ -166,6 +169,8 @@ data class Lyrics(
     val updatedAt: Long?,
     val lines: List<LyricLine>,
     val status: String?,
+    /** 歌詞の奥付 (投稿で公開した人。名前は本人が載せると選んだ人だけ)。旧サーバは返さない。 */
+    val submittedBy: LyricsCredit? = null,
 ) {
     val isDraft: Boolean get() = status == "draft"
     val hasContent: Boolean get() = lines.any { it.kind == LyricLineKind.LYRIC && it.text.isNotEmpty() }
@@ -194,6 +199,12 @@ data class Lyrics(
             updatedAt = if (o.isNull("updatedAt")) null else o.optLong("updatedAt"),
             lines = o.optJSONArray("lines").objects().map(LyricLine::parse),
             status = o.optStringOrNull("status"),
+            submittedBy = o.optJSONObject("submittedBy")?.let { c ->
+                LyricsCredit(
+                    names = c.optJSONArray("names")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
+                    total = c.optInt("total")
+                )
+            },
         )
     }
 }
