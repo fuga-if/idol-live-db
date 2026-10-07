@@ -78,11 +78,11 @@ pub fn non_performance_venue_modes() -> Vec<String> {
     collection::non_performance_venue_modes()
 }
 
-/// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
-/// SQL 経路が `text_value IS NULL OR text_value IN (…)` を組むために引く。
+/// 回収に数える参加マークを選ぶ SQL 条件 (`user_marks.text_value` 列)。
+/// SQL 経路が副問い合わせに `AND <条件>` で足す。1 公演に複数の形態を持つ保存値も読む。
 #[uniffi::export]
-pub fn collection_attendance_types(include_stream: bool) -> Vec<String> {
-    collection::collection_attendance_types(include_stream)
+pub fn collection_attendance_sql_condition(include_stream: bool) -> String {
+    collection::collection_attendance_sql_condition(include_stream)
 }
 
 /// 2 段に積めない場所 (簡易表示・共有文) 向けの 1 行表記。

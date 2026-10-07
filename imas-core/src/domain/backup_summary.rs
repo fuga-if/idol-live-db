@@ -124,6 +124,8 @@ pub struct BackupExpenseRecord {
     pub show_id: Option<String>,
     pub event_id: Option<String>,
     pub note: Option<String>,
+    /// チケット代を記録したときの券の形態 (`expenses.ticket_kind`)。古いバックアップには無い。
+    pub ticket_kind: Option<String>,
     pub updated_at: String,
 }
 
@@ -458,6 +460,7 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                 ("eventId", &e.event_id),
                 ("note", &e.note),
                 ("showId", &e.show_id),
+                ("ticketKind", &e.ticket_kind),
             ]
             .into_iter()
             .filter_map(|(key, value)| {
@@ -1017,6 +1020,7 @@ fn parse_expense(value: &serde_json::Value) -> Option<BackupExpenseRecord> {
         show_id: optional_field(object, "showId"),
         event_id: optional_field(object, "eventId"),
         note: optional_field(object, "note"),
+        ticket_kind: optional_field(object, "ticketKind"),
         updated_at: string_field(object, "updatedAt")?,
     })
 }
@@ -1415,6 +1419,7 @@ mod tests {
             show_id: Some("show_1".to_string()),
             event_id: Some("event_1".to_string()),
             note: None,
+            ticket_kind: None,
             updated_at: "2026-09-19T12:00:00Z".to_string(),
         }
     }
@@ -1465,7 +1470,9 @@ mod tests {
     #[test]
     fn expenses_are_planned_by_id() {
         let mut input = export_input();
-        input.expenses = vec![expense("exp_1", 9_000), expense("exp_2", 12_000)];
+        let mut with_kind = expense("exp_2", 12_000);
+        with_kind.ticket_kind = Some("stream".to_string());
+        input.expenses = vec![expense("exp_1", 9_000), with_kind];
         let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
 
         let local = BackupLocalState {
@@ -1489,6 +1496,8 @@ mod tests {
             plan.expenses_to_insert[0].show_id.as_deref(),
             Some("show_1")
         );
+        // 券の形態 (形態ごとの二重計上の判定に使う) も持ち越す。
+        assert_eq!(plan.expenses_to_insert[0].ticket_kind.as_deref(), Some("stream"));
     }
 
     /// 収支を知らない版が書いたファイル (expenses キーが無い) も、そのまま取り込める。

@@ -101,7 +101,8 @@ pub struct EventWithDateRecord {
 }
 
 /// 参加マーク 1 件の射影 (プラットフォームが user_marks から解決して渡す)。
-/// `attendance_type` は user_marks.text_value ("live"/"stream"/"live_viewing"/NULL)。
+/// `attendance_type` は user_marks.text_value の生値 ("live" / "live,stream" / NULL 等。
+/// 読み方は [`crate::domain::attendance::attendance_types`])。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct AttendanceMarkRecord {
     pub entity_id: String,
@@ -445,8 +446,8 @@ pub fn event_ids_for_shows(snap: &Snapshot, show_ids: &[String]) -> Vec<String> 
 ///   id もそのまま集合に入る (忠実に再現)。
 /// - `show_marks`: show 単位。所属イベント id へ展開する (未知 show は JOIN 不成立で無視)。
 ///
-/// 種別は "stream" → 配信、"live_viewing" → LV、それ以外 ("live"・NULL の旧データ・
-/// 未知値) → 現地 (元実装の default 分岐と同じ)。
+/// 種別の読み方は [`crate::domain::attendance::attendance_types`] (NULL の旧データ・
+/// 未知値は現地)。`live,stream` のように複数付いていれば両方の集合に入る。
 pub fn attended_event_type_sets(
     snap: &Snapshot,
     event_marks: &[AttendanceMarkRecord],
@@ -456,13 +457,16 @@ pub fn attended_event_type_sets(
     let mut stream: HashSet<String> = HashSet::new();
     let mut live_viewing: HashSet<String> = HashSet::new();
 
-    let mut classify = |event_id: &str, attendance_type: Option<&str>| {
-        let set = match attendance_type {
-            Some("stream") => &mut stream,
-            Some("live_viewing") => &mut live_viewing,
-            _ => &mut live,
-        };
-        set.insert(event_id.to_owned());
+    // 1 公演に複数の形態が付いていれば、その全部の集合に入る。
+    let mut classify = |event_id: &str, text_value: Option<&str>| {
+        for attendance in crate::domain::attendance::attendance_types(text_value) {
+            let set = match attendance.as_str() {
+                "stream" => &mut stream,
+                "live_viewing" => &mut live_viewing,
+                _ => &mut live,
+            };
+            set.insert(event_id.to_owned());
+        }
     };
 
     for mark in event_marks {
@@ -891,6 +895,8 @@ mod tests {
             (shows[100].id.clone(), Some("live"), 1),
             ("ghost_show".into(), Some("live"), 1),
             (shows[7].id.clone(), None, 0),
+            // 現地で見て配信も買った (1 公演に 2 形態)。
+            (shows[300].id.clone(), Some("stream,live"), 1),
         ];
         let mut insert = db
             .prepare("INSERT INTO user_marks VALUES (?, ?, ?, ?, ?)")
@@ -975,11 +981,20 @@ mod tests {
             .unwrap();
         let (mut live, mut stream, mut lv) = (HashSet::new(), HashSet::new(), HashSet::new());
         for (event_id, atype) in rows {
-            match atype.as_deref() {
-                Some("stream") => stream.insert(event_id),
-                Some("live_viewing") => lv.insert(event_id),
-                _ => live.insert(event_id),
-            };
+            // 複数形態は `,` 区切り。どの語も知らなければ現地。
+            let raw = atype.unwrap_or_default();
+            let mut known = false;
+            for t in raw.split(',') {
+                known |= match t {
+                    "stream" => stream.insert(event_id.clone()) || true,
+                    "live_viewing" => lv.insert(event_id.clone()) || true,
+                    "live" => live.insert(event_id.clone()) || true,
+                    _ => false,
+                };
+            }
+            if !known {
+                live.insert(event_id);
+            }
         }
 
         let actual = attended_event_type_sets(bundle_snapshot(), &event_marks, &show_marks);
