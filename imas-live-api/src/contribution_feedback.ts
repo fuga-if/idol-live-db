@@ -15,14 +15,18 @@ import { getAuthUser } from "./auth";
 import { maskDisplayName } from "./feed";
 import { checkRateLimit, commitIpRateLimit } from "./rate_limit";
 import type { RouteContext } from "./routes/context";
-import { readJsonBody, requireActiveUser, requireDeviceWrite } from "./routes/guards";
+import { readJsonBody, requireActiveUser, requireDeviceId, requireIpQuota } from "./routes/guards";
 import { validateOpaqueKey } from "./validation";
 
 const DAY_MS = 86_400_000;
 const JST_OFFSET_MS = 9 * 3_600_000;
 
-/** 1 回の POST /shows/views で受ける公演の数の上限 (端末は溜めた分をまとめて送る)。 */
-export const MAX_VIEW_SHOW_IDS = 30;
+/** 1 回の POST /shows/views で受ける公演の数の上限 (アプリは 1 公演ずつ送る)。 */
+export const MAX_VIEW_SHOW_IDS = 3;
+/** 閲覧の書き込みの IP ごとの上限。キャリアの NAT で大勢が同じ IP でも足りる幅にする。 */
+const VIEW_IP_LIMITS = { perMinute: 30, perDay: 2000 };
+/** Good の集計に使う、自分の編集の新しい順の上限 (古い編集まで毎回読まない)。 */
+const FEEDBACK_RECENT_BATCHES = 200;
 /** 奥付に並べる名前の上限 (役割ごと)。超えた分は人数だけ返す。 */
 export const MAX_CREDIT_NAMES = 12;
 /** Good の新着の一覧に返す編集の数。 */
@@ -77,14 +81,19 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
               MAX(g.created_at) AS latest_good_at
          FROM edit_batch eb
          JOIN edit_good g ON g.batch_id = eb.id
-        WHERE eb.editor_id = ? AND eb.source = 'app' AND eb.cloudkit_ok = 1
+        WHERE eb.id IN (
+                SELECT id FROM edit_batch
+                 WHERE editor_id = ? AND source = 'app' AND cloudkit_ok = 1
+                 ORDER BY created_at DESC LIMIT ?)
         GROUP BY eb.id
         ORDER BY latest_good_at DESC
         LIMIT ?`
     )
-      .bind(since, user.uid, MAX_FEEDBACK_GOODS)
+      .bind(since, user.uid, FEEDBACK_RECENT_BATCHES, MAX_FEEDBACK_GOODS)
       .all<GoodRow>(),
     // 自分が入れた (取り消されていない) セトリの公演の、先週の閲覧数の合計。
+    // CROSS JOIN で edit_batch (editor 索引) から引かせる。普通の JOIN だと planner が
+    // idx_edit_history_record (record_type だけ) から入り、全員の ShowSetlist 行を読む。
     env.DB.prepare(
       `SELECT COALESCE(SUM(v.viewers), 0) AS viewers, COUNT(*) AS shows
          FROM show_views_weekly v
@@ -92,7 +101,7 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
           AND v.show_id IN (
             SELECT h.record_name
               FROM edit_batch eb
-              JOIN edit_history h ON h.batch_id = eb.id
+              CROSS JOIN edit_history h ON h.batch_id = eb.id
              WHERE eb.editor_id = ? AND eb.source = 'app' AND eb.cloudkit_ok = 1
                AND eb.reverted_at IS NULL AND h.record_type = 'ShowSetlist')`
     )
@@ -126,8 +135,10 @@ export async function handleGetMyFeedback(ctx: RouteContext): Promise<Response> 
 
 export async function handlePostShowViews(ctx: RouteContext): Promise<Response> {
   const { env, json, error } = ctx;
-  const gate = await requireDeviceWrite(ctx);
-  if (gate instanceof Response) return gate;
+  const deviceId = requireDeviceId(ctx);
+  if (deviceId instanceof Response) return deviceId;
+  const ipQuota = await requireIpQuota(ctx, "community", VIEW_IP_LIMITS);
+  if (ipQuota instanceof Response) return ipQuota;
 
   const body = await readJsonBody(ctx, "show_ids is required");
   if (body instanceof Response) return body;
@@ -145,12 +156,12 @@ export async function handlePostShowViews(ctx: RouteContext): Promise<Response> 
   await env.DB.batch(
     [...ids].map((id) =>
       env.DB.prepare(
-        `INSERT INTO show_views_weekly (show_id, week, viewers) VALUES (?, ?, 1)
-           ON CONFLICT (show_id, week) DO UPDATE SET viewers = viewers + 1`
-      ).bind(id, week)
+        `INSERT INTO show_views_weekly (week, show_id, viewers) VALUES (?, ?, 1)
+           ON CONFLICT (week, show_id) DO UPDATE SET viewers = viewers + 1`
+      ).bind(week, id)
     )
   );
-  await commitIpRateLimit(env.DB, gate.ipQuota);
+  await commitIpRateLimit(env.DB, ipQuota);
   return json({ ok: true, week, counted: ids.size });
 }
 
@@ -174,12 +185,14 @@ interface CreditRole {
   total: number;
 }
 
+/** BAN した人は名前も人数も出さない。 */
 function toRole(rows: CreditRow[]): CreditRole {
-  const names = rows
-    .filter((r) => r.opt_in === 1 && r.banned === 0 && r.name)
+  const active = rows.filter((r) => r.banned === 0);
+  const names = active
+    .filter((r) => r.opt_in === 1 && r.name)
     .map((r) => maskDisplayName(r.name))
     .slice(0, MAX_CREDIT_NAMES);
-  return { names, total: rows.length };
+  return { names, total: active.length };
 }
 
 export async function handleGetShowCredits(ctx: RouteContext, showIdRaw: string): Promise<Response> {
@@ -220,8 +233,8 @@ export async function handleGetShowCredits(ctx: RouteContext, showIdRaw: string)
       performers: toRole(rows.filter((r) => Number(r.did_performers) === 1)),
     },
     200,
-    // 公演ページを開くたびに来るのでエッジで賄う。名前の出し入れは最大 1 時間遅れて反映される。
-    { "Cache-Control": "public, max-age=3600" }
+    // 公演ページを開くたびに来るのでエッジで賄う。名前の出し入れ・BAN は最大 10 分遅れて反映される。
+    { "Cache-Control": "public, max-age=600" }
   );
 }
 

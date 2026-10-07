@@ -8,10 +8,14 @@
 -- 歌詞の投稿 (lyric_submissions) は edit_batch に入らないので、Good の新着にも閲覧数にもクレジットにも出ない。
 ALTER TABLE users ADD COLUMN credit_opt_in INTEGER NOT NULL DEFAULT 0;
 
+--   PK を (week, show_id) にして、先週の分の引き当て・古い週の削除をこの 1 本で賄う (副索引を持たず書き込みを軽く)。
 CREATE TABLE IF NOT EXISTS show_views_weekly (
-  show_id TEXT NOT NULL,
   week    TEXT NOT NULL,
+  show_id TEXT NOT NULL,
   viewers INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (show_id, week)
+  PRIMARY KEY (week, show_id)
 );
-CREATE INDEX IF NOT EXISTS idx_show_views_weekly_week ON show_views_weekly(week);
+
+-- batch ごとの「どの型の行があるか」(奥付の役割分け・自分のセトリの公演の引き当て) を、
+-- setlist の batch の行を全部読まずに引くための索引。
+CREATE INDEX IF NOT EXISTS idx_edit_history_batch_type ON edit_history(batch_id, record_type);

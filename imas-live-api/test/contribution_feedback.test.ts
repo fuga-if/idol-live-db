@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { jstWeekStart } from "../src/contribution_feedback";
 import { bearer, callJson, device } from "./support/worker";
-import { exec, insertUser, row } from "./support/d1";
+import { exec, insertUser, row, rows } from "./support/d1";
 
 const NOW = Date.now();
 
@@ -82,13 +82,28 @@ describe("GET /me/feedback", () => {
     await insertBatch("fb.reach", [["ShowSetlist", "sh_r3"]], { reverted: true });
     const lastWeek = jstWeekStart(Date.now() - 7 * 86_400_000);
     const thisWeek = jstWeekStart(Date.now());
-    await exec("INSERT INTO show_views_weekly VALUES ('sh_r1', ?, 5)", lastWeek);
-    await exec("INSERT INTO show_views_weekly VALUES ('sh_r2', ?, 2)", lastWeek);
-    await exec("INSERT INTO show_views_weekly VALUES ('sh_r3', ?, 100)", lastWeek);
-    await exec("INSERT INTO show_views_weekly VALUES ('sh_r1', ?, 9)", thisWeek);
+    await exec("INSERT INTO show_views_weekly VALUES (?, 'sh_r1', 5)", lastWeek);
+    await exec("INSERT INTO show_views_weekly VALUES (?, 'sh_r2', 2)", lastWeek);
+    await exec("INSERT INTO show_views_weekly VALUES (?, 'sh_r3', 100)", lastWeek);
+    await exec("INSERT INTO show_views_weekly VALUES (?, 'sh_r1', 9)", thisWeek);
 
     const { body } = await callJson("GET", "/me/feedback", { headers: await bearer("fb.reach") });
     expect(body.setlistReach).toEqual({ week: lastWeek, viewers: 7, shows: 2 });
+  });
+});
+
+describe("D1 の読み方", () => {
+  it("先週の閲覧数は自分の編集 (editor 索引) から引く。全員の ShowSetlist 行を読まない", async () => {
+    const plan = await rows<{ detail: string }>(
+      `EXPLAIN QUERY PLAN
+       SELECT h.record_name FROM edit_batch eb CROSS JOIN edit_history h ON h.batch_id = eb.id
+        WHERE eb.editor_id = 'x' AND eb.source = 'app' AND eb.cloudkit_ok = 1
+          AND eb.reverted_at IS NULL AND h.record_type = 'ShowSetlist'`
+    );
+    const details = plan.map((p) => p.detail).join(" | ");
+    expect(details).toContain("idx_edit_batch_editor");
+    expect(details).toContain("idx_edit_history_batch_type");
+    expect(details).not.toContain("idx_edit_history_record");
   });
 });
 
@@ -112,7 +127,7 @@ describe("POST /shows/views", () => {
     const h = device("dev-3");
     expect((await callJson("POST", "/shows/views", { headers: h, body: { show_ids: ["ev_1"] } })).status).toBe(400);
     expect((await callJson("POST", "/shows/views", { headers: h, body: { show_ids: [] } })).status).toBe(400);
-    const many = Array.from({ length: 31 }, (_, i) => `sh_${i}`);
+    const many = Array.from({ length: 4 }, (_, i) => `sh_${i}`);
     expect((await callJson("POST", "/shows/views", { headers: h, body: { show_ids: many } })).status).toBe(400);
   });
 });
@@ -135,8 +150,8 @@ describe("GET /shows/:id/credits と POST /users/me/credit", () => {
 
     // 既定は載せない。
     const before = await callJson("GET", "/shows/sh_c1/credits?v=0");
-    expect(before.body.setlist).toEqual({ names: [], total: 4 });
-    expect(before.res.headers.get("Cache-Control")).toBe("public, max-age=3600");
+    expect(before.body.setlist).toEqual({ names: [], total: 3 });
+    expect(before.res.headers.get("Cache-Control")).toBe("public, max-age=600");
 
     for (const uid of ["cr.a", "cr.b", "cr.c", "cr.banned", "cr.mail"]) {
       const res = await callJson("POST", "/users/me/credit", { headers: await bearer(uid), body: { credit_opt_in: true } });
@@ -147,7 +162,7 @@ describe("GET /shows/:id/credits と POST /users/me/credit", () => {
     const { body } = await callJson("GET", "/shows/sh_c1/credits?v=1");
     expect(body).toEqual({
       showId: "sh_c1",
-      setlist: { names: ["Aさん", "Bさん", "m***"], total: 4 },
+      setlist: { names: ["Aさん", "Bさん", "m***"], total: 3 },
       performers: { names: ["Aさん", "Cさん"], total: 2 },
     });
 
