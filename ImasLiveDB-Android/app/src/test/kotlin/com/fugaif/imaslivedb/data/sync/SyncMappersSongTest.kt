@@ -52,12 +52,33 @@ class SyncMappersSongTest {
         assertEquals(null, songs.getValue("s2").note)
     }
 
+    @Test fun readsStreamingAndDebutDates() {
+        val rows = listOf(
+            CkRow.Song(
+                baseSongRow(
+                    id = "s1", isCollab = false, hasKamisabiCard = false,
+                    streamingDate = "2016-03-10", cdReleaseDate = "2011-11-09"
+                )
+            ),
+            CkRow.Song(baseSongRow(id = "s2", isCollab = false, hasKamisabiCard = false))
+        )
+
+        val songs = SyncMappers.songs(rows).associateBy { it.id }
+
+        assertEquals("2016-03-10", songs.getValue("s1").streamingDate)
+        assertEquals("2011-11-09", songs.getValue("s1").cdReleaseDate)
+        assertEquals(null, songs.getValue("s2").streamingDate)
+        assertEquals(null, songs.getValue("s2").cdReleaseDate)
+    }
+
     /** 検証に関係ない列は固定値で埋めた最小の [CkSongRow]。 */
     private fun baseSongRow(
         id: String,
         isCollab: Boolean,
         hasKamisabiCard: Boolean,
-        note: String? = null
+        note: String? = null,
+        streamingDate: String? = null,
+        cdReleaseDate: String? = null
     ) = CkSongRow(
         id = id,
         title = "title-$id",
@@ -86,6 +107,8 @@ class SyncMappersSongTest {
         jointBrandIds = null,
         isCollab = isCollab,
         hasKamisabiCard = hasKamisabiCard,
-        note = note
+        note = note,
+        streamingDate = streamingDate,
+        cdReleaseDate = cdReleaseDate
     )
 }

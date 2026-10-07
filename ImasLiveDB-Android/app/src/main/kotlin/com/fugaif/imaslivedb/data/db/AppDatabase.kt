@@ -94,7 +94,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         MyProducerCard::class,
         ReceivedProducerCard::class
     ],
-    version = 30,
+    version = 31,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -718,6 +718,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v31: songs に配信開始日 (streaming_date) と CD 発売日 (cd_release_date) を足す
+         * (iOS v44_songs_streaming_cd_release_dates と対)。release_date は初出 (ゲーム・MV・放送を含む) のまま。
+         */
+        val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN streaming_date TEXT")
+                db.execSQL("ALTER TABLE songs ADD COLUMN cd_release_date TEXT")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
@@ -725,7 +736,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
             MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29, MIGRATION_29_30
+            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31
         )
     }
 }

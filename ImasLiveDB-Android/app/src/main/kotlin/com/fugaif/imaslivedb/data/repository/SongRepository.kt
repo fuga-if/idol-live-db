@@ -24,6 +24,7 @@ import uniffi.imas_core.IntroQuizPlayability
 import uniffi.imas_core.KamisabiCompletion
 import uniffi.imas_core.PerformanceHistoryEntry
 import uniffi.imas_core.PickedSongRecord
+import uniffi.imas_core.SongDateRow
 import uniffi.imas_core.SongListFilter
 import uniffi.imas_core.SongListSort
 import uniffi.imas_core.introQuizPlayableIndices
@@ -228,6 +229,13 @@ class SongRepository(
 
     suspend fun fetchSongPerformanceHistory(songId: String): List<PerformanceHistoryRow> =
         snapshots.query { store -> store.songPerformanceHistory(songId).map { it.toRow() } }
+
+    /**
+     * 曲詳細の日付の行 (初出・CD 発売日・配信開始日)。どれをどの順で出すかはコア
+     * (`song_dates`) が決める。初出にはライブでの初披露も含む (セトリから出す)。
+     */
+    suspend fun fetchSongDateRows(songId: String): List<SongDateRow> =
+        snapshots.query { store -> store.songDateRows(songId) }
 
     /**
      * 披露回数ランキング (iOS CoreStatsRepository.songPlayCountRanking と同一経路)。

@@ -130,6 +130,7 @@ import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import com.fugaif.imaslivedb.ui.theme.penlight
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.youtubeVideoRefs
+import uniffi.imas_core.SongDateKind
 import uniffi.imas_core.kamisabiCardLabel
 import uniffi.imas_core.kamisabiCompletionLabel
 import uniffi.imas_core.lyricSubmissionAllowed
@@ -695,14 +696,15 @@ private fun InfoTab(
                 if (song.songType.isNotEmpty() && song.songType != "unknown") {
                     add { FieldRow(key = "タイプ", value = songTypeLabel(song.songType), onClick = { onFilteredSongsClick(SongFilterKind.SONG_TYPE, song.songType) }) }
                 }
-                // 「YYYY-...」から年だけ取れたときにリリース年の一覧へ。年が読めない表記
-                // (未定・年だけ等) は押せない普通の行に落とす — 行き先が作れないため。
-                val releaseYear = song.releaseDate?.take(4)?.takeIf { it.length == 4 && it.toIntOrNull() != null }
-                song.releaseDate?.takeIf { it.isNotEmpty() }?.let { date ->
-                    if (releaseYear != null) {
-                        add { FieldRow(key = "リリース日", value = date, onClick = { onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, releaseYear) }) }
+                // 日付の行 (初出・CD 発売日・配信開始日) はコアが決めた並びのまま出す。
+                // release_date の初出の行だけ、「YYYY-...」から年が取れたら年の一覧へ飛べる
+                // (一覧は release_date で引く)。年が読めない表記は押せない普通の行に落とす。
+                state.dateRows.forEach { row ->
+                    val year = row.date.take(4).takeIf { it.length == 4 && it.toIntOrNull() != null }
+                    if (row.kind == SongDateKind.FIRST_APPEARANCE && year != null) {
+                        add { FieldRow(key = row.label, value = row.display, onClick = { onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, year) }) }
                     } else {
-                        add { FieldRow(key = "リリース日", value = date) }
+                        add { FieldRow(key = row.label, value = row.display) }
                     }
                 }
                 formatDuration(song.durationSec)?.let { v -> add { FieldRow(key = "再生時間", value = v) } }

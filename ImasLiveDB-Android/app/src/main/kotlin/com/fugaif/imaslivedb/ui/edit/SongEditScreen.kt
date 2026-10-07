@@ -65,6 +65,8 @@ fun SongEditScreen(
     var composer by rememberSaveable(key) { mutableStateOf(original?.composer ?: "") }
     var arranger by rememberSaveable(key) { mutableStateOf(original?.arranger ?: "") }
     var releaseDate by rememberSaveable(key) { mutableStateOf(original?.releaseDate ?: "") }
+    var streamingDate by rememberSaveable(key) { mutableStateOf(original?.streamingDate ?: "") }
+    var cdReleaseDate by rememberSaveable(key) { mutableStateOf(original?.cdReleaseDate ?: "") }
     var singerLabel by rememberSaveable(key) { mutableStateOf(original?.singerLabel ?: "") }
     var note by rememberSaveable(key) { mutableStateOf(original?.note ?: "") }
     var durationSecText by rememberSaveable(key) { mutableStateOf(original?.durationSec?.toString() ?: "") }
@@ -107,6 +109,8 @@ fun SongEditScreen(
         val trimmedTitle = title.trim()
         val trimmedAmId = appleMusicId.trim()
         val trimmedReleaseDate = releaseDate.trim()
+        val trimmedStreamingDate = streamingDate.trim()
+        val trimmedCdReleaseDate = cdReleaseDate.trim()
         val trimmedDuration = durationSecText.trim()
         val parsedDuration = trimmedDuration.toIntOrNull()
 
@@ -123,9 +127,9 @@ fun SongEditScreen(
         if (isCreate && artistIdolIds.isEmpty()) {
             errorMessage = "歌唱アイドルを 1 名以上選択してください"; return
         }
-        if (trimmedReleaseDate.isNotEmpty() && !isValidIsoDate(trimmedReleaseDate)) {
-            errorMessage = "リリース日は YYYY-MM-DD 形式で入力してください"; return
-        }
+        listOf("初出" to trimmedReleaseDate, "CD 発売日" to trimmedCdReleaseDate, "配信開始日" to trimmedStreamingDate)
+            .firstOrNull { (_, value) -> value.isNotEmpty() && !isValidIsoDate(value) }
+            ?.let { (label, _) -> errorMessage = "${label}は YYYY-MM-DD 形式で入力してください"; return }
         // 非数値は toIntOrNull() が null になるので、iOS の `(parsedDuration ?? -1) < 0` と同じく弾く。
         if (trimmedDuration.isNotEmpty() && (parsedDuration ?: -1) < 0) {
             errorMessage = "再生時間は秒数 (整数) で入力してください"; return
@@ -153,6 +157,8 @@ fun SongEditScreen(
         fields.putClearable("composer", composer, original?.composer)
         fields.putClearable("arranger", arranger, original?.arranger)
         fields.putClearable("releaseDate", trimmedReleaseDate, original?.releaseDate)
+        fields.putClearable("streamingDate", trimmedStreamingDate, original?.streamingDate)
+        fields.putClearable("cdReleaseDate", trimmedCdReleaseDate, original?.cdReleaseDate)
         fields.putClearable("singerLabel", singerLabel, original?.singerLabel)
         fields.putClearable("note", note, original?.note)
         fields.putClearable("isrc", isrc, original?.isrc)
@@ -213,6 +219,8 @@ fun SongEditScreen(
                     composer = composer.nonEmptyTrimmed(),
                     arranger = arranger.nonEmptyTrimmed(),
                     releaseDate = trimmedReleaseDate.ifEmpty { null },
+                    streamingDate = trimmedStreamingDate.ifEmpty { null },
+                    cdReleaseDate = trimmedCdReleaseDate.ifEmpty { null },
                     singerLabel = singerLabel.nonEmptyTrimmed(),
                     note = note.nonEmptyTrimmed(),
                     isrc = isrc.nonEmptyTrimmed(),
@@ -269,7 +277,9 @@ fun SongEditScreen(
             EditTextField("作詞", lyricist, { lyricist = it })
             EditTextField("作曲", composer, { composer = it })
             EditTextField("編曲", arranger, { arranger = it })
-            EditTextField("リリース日 (YYYY-MM-DD)", releaseDate, { releaseDate = it })
+            EditTextField("初出 (YYYY-MM-DD)", releaseDate, { releaseDate = it })
+            EditTextField("CD 発売日 (YYYY-MM-DD)", cdReleaseDate, { cdReleaseDate = it })
+            EditTextField("配信開始日 (YYYY-MM-DD)", streamingDate, { streamingDate = it })
             EditTextField("歌唱表記 (例: 春香・千早)", singerLabel, { singerLabel = it })
             EditTextField("補足 (例: ミリシタ 1 周年記念楽曲)", note, { note = it })
             EditTextField("再生時間 (秒)", durationSecText, { durationSecText = it }, numeric = true)

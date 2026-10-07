@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uniffi.imas_core.KamisabiCompletion
+import uniffi.imas_core.SongDateRow
 import uniffi.imas_core.ShowWithEventNameRecord
 import com.fugaif.imaslivedb.data.local.localWrite
 
@@ -30,6 +31,8 @@ data class SongDetailUiState(
     val originalArtists: List<Idol> = emptyList(),
     val performerArtists: List<Idol> = emptyList(),
     val performanceHistory: List<PerformanceHistoryRow> = emptyList(),
+    /** 日付の行 (初出・CD 発売日・配信開始日)。並びと出す条件はコアが決める。 */
+    val dateRows: List<SongDateRow> = emptyList(),
     val unit: ImasUnit? = null,
     val brand: Brand? = null,
     /** 現地回収済み (参加ライブでこの曲が披露された) 公演一覧。 */
@@ -82,6 +85,7 @@ class SongDetailViewModel : ViewModel() {
             val originalArtists = module.songRepository.fetchSongArtists(songId, "original")
             val performerArtists = module.songRepository.fetchSongArtists(songId, "performer")
             val history = module.songRepository.fetchSongPerformanceHistory(songId)
+            val dateRows = module.songRepository.fetchSongDateRows(songId)
             val unit = if (song?.unitId != null) {
                 module.unitRepository.fetchUnit(song.unitId)
             } else {
@@ -113,6 +117,7 @@ class SongDetailViewModel : ViewModel() {
                 originalArtists = originalArtists,
                 performerArtists = performerArtists,
                 performanceHistory = history,
+                dateRows = dateRows,
                 unit = unit,
                 brand = brand,
                 collectedShows = collectedShows,
