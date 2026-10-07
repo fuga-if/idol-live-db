@@ -274,7 +274,9 @@ fun ImasTicket(
                             }
                         }
                         if (metaIcon != null) {
-                            appendInlineContent(TicketMetaIconId, "")
+                            // 代わりの文字は空にできない (Compose が IllegalArgumentException で落とす)。
+                            // 記号は飾りなので読み上げに残らない空白にする。
+                            appendInlineContent(TicketMetaIconId, " ")
                             append(" ")
                         }
                         if (meta != null) withStyle(SpanStyle(fontSize = 13.sp)) { append(meta) }
