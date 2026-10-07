@@ -1,0 +1,73 @@
+{
+ "title": "vα-liv PRODUCER MEETING 2024 夜公演のセットリスト (issue #221)",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_12831 (公式セットリスト画像 Evening/夜公演)",
+ "show_id": "sh_project_imas_valiv_producer_meeting_2024_from_now_on_2",
+ "all_performers": [
+  "876_灯里愛夏",
+  "876_上水流宇宙",
+  "876_サラ_レトラ_オリヴェイラ_ウタガワ"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "876_リローディング",
+   "performers": [
+    "876_灯里愛夏",
+    "876_上水流宇宙",
+    "876_サラ_レトラ_オリヴェイラ_ウタガワ"
+   ]
+  },
+  {
+   "position": 2,
+   "song_id": "ml_きまぐれユモレスク",
+   "performers": [
+    "876_灯里愛夏"
+   ]
+  },
+  {
+   "position": 3,
+   "song_id": "cg_無重力シャトル",
+   "performers": [
+    "876_上水流宇宙"
+   ]
+  },
+  {
+   "position": 4,
+   "song_id": "ml_流星群",
+   "performers": [
+    "876_サラ_レトラ_オリヴェイラ_ウタガワ"
+   ]
+  },
+  {
+   "position": 5,
+   "song_id": "876_ともすれば中略アイドル",
+   "performers": [
+    "876_灯里愛夏"
+   ]
+  },
+  {
+   "position": 6,
+   "song_id": "876_公転周期",
+   "performers": [
+    "876_上水流宇宙"
+   ]
+  },
+  {
+   "position": 7,
+   "song_id": "876_群青イニシエーション",
+   "performers": [
+    "876_サラ_レトラ_オリヴェイラ_ウタガワ"
+   ]
+  },
+  {
+   "position": 8,
+   "song_id": "876_ハッピース",
+   "performers": [
+    "876_灯里愛夏",
+    "876_上水流宇宙",
+    "876_サラ_レトラ_オリヴェイラ_ウタガワ"
+   ]
+  }
+ ]
+}
