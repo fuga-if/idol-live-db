@@ -2893,7 +2893,7 @@ INSERT INTO "idols" VALUES('765as_双海亜美','765as','双海亜美','ふた�
 INSERT INTO "idols" VALUES('765as_音無小鳥','765as','音無小鳥','おとなしことり',NULL,'#FFF98E',1014,'--01-15','A',165.0,49.0,'山形県',NULL,NULL,NULL,NULL,'乙女座','TVを観ること、妄想',NULL,'765プロダクションの事務員。元アイドル志望で、隠れて『あずきP』として活動するケースもある。CV: 滝田樹里。',NULL,NULL,NULL,NULL,NULL,'2005-07-26',NULL,0,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','95');
+INSERT INTO "meta" VALUES('data_version','96');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -16467,6 +16467,14 @@ INSERT INTO "setlist_items" VALUES('sh_kimchikura_fes_26_1_0015','sh_kimchikura_
 INSERT INTO "setlist_items" VALUES('sh_the_idolm@ster_million_live_14thlive_2_0039','sh_the_idolm@ster_million_live_14thlive_2','ml_春風満帆スターティング',39,'二次会',NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_1_0019','sh_学園アイドルマスター_live_tour_-標-_福岡公演_1','gakuen_古今東西ちょちょいのちょい',19,'アンコール',NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_学園アイドルマスター_live_tour_-標-_福岡公演_1_0020','sh_学園アイドルマスター_live_tour_-標-_福岡公演_1','gakuen_ガラクタロード',20,'アンコール',NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0001','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','876_リローディング',1,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0002','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','ml_きまぐれユモレスク',2,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0003','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','cg_無重力シャトル',3,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0004','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','ml_流星群',4,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0005','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','876_ともすれば中略アイドル',5,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0006','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','876_公転周期',6,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0007','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','876_群青イニシエーション',7,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0008','sh_project_imas_valiv_producer_meeting_2024_from_now_on_2','876_ハッピース',8,NULL,NULL,NULL);
 CREATE TABLE "setlist_performers" (
             setlist_item_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -75229,6 +75237,18 @@ INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_passionable_read
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1_0002','sidem_葛之葉雨彦');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1_0002','sidem_蒼井享介');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolmster_sidem_passionable_reading_show_魂環の人形_1_0002','sidem_黒野玄武');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0001','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0001','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0001','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0002','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0003','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0004','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0005','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0006','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0007','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0008','876_サラ_レトラ_オリヴェイラ_ウタガワ');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0008','876_上水流宇宙');
+INSERT INTO "setlist_performers" VALUES('sh_project_imas_valiv_producer_meeting_2024_from_now_on_2_0008','876_灯里愛夏');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
