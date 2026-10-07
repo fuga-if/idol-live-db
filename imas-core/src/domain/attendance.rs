@@ -73,7 +73,22 @@ pub fn attendance_set_type(
     if on {
         types.push(attendance_type.to_string());
     }
-    attendance_text(&types)
+    // 知らない語 (新しい版が足した形態) は消さずに後ろへ残す。古い端末で付け外ししただけで
+    // 新しい版の記録が消えないように。知る形態が 1 つも残らなければ参加ごと外す。
+    let known = attendance_text(&types)?;
+    let unknown: Vec<&str> = if attended { unknown_tokens(current) } else { Vec::new() };
+    Some(std::iter::once(known.as_str()).chain(unknown).collect::<Vec<_>>().join(&SEPARATOR.to_string()))
+}
+
+/// 語彙に無い語 (空は除く。出てきた順・重複なし)。
+fn unknown_tokens(text_value: Option<&str>) -> Vec<&str> {
+    let mut out: Vec<&str> = Vec::new();
+    for t in text_value.unwrap_or("").split(SEPARATOR).map(str::trim) {
+        if !t.is_empty() && !ATTENDANCE_TYPES.iter().any(|k| k.value == t) && !out.contains(&t) {
+            out.push(t);
+        }
+    }
+    out
 }
 
 /// その行に `attendance_type` が付いているか (読み方は [`attendance_types`])。
@@ -98,13 +113,16 @@ pub fn attendance_sql_condition(column: &str, types: &[String]) -> String {
     if kept.is_empty() {
         return "1=0".to_string();
     }
+    let has = |v: &str| format!("(',' || REPLACE({column}, ' ', '') || ',') LIKE '%,{v},%'");
     let mut parts: Vec<String> = Vec::new();
     if kept.contains(&LOCAL_ATTENDANCE) {
+        // NULL・空・知らない語だけの行は現地として読む ([`attendance_types`] と同じ)。
+        let any_known: Vec<String> = ATTENDANCE_TYPES.iter().map(|t| has(t.value)).collect();
         parts.push(format!("{column} IS NULL"));
-        parts.push(format!("TRIM({column}) = ''"));
+        parts.push(format!("NOT ({})", any_known.join(" OR ")));
     }
     for v in kept {
-        parts.push(format!("(',' || REPLACE({column}, ' ', '') || ',') LIKE '%,{v},%'"));
+        parts.push(has(v));
     }
     format!("({})", parts.join(" OR "))
 }
@@ -150,14 +168,27 @@ mod tests {
         assert_eq!(attendance_set_type(Some("stream"), true, "stream", false), None);
         // 付いているものをもう一度付けても変わらない。
         assert_eq!(attendance_set_type(Some("live"), true, "live", true), Some("live".into()));
+        // 知らない語 (新しい版の形態) は残す。知る形態が無くなれば参加ごと外す。
+        assert_eq!(attendance_set_type(Some("stream,online"), true, "live", true), Some("live,stream,online".into()));
+        assert_eq!(attendance_set_type(Some("stream,online"), true, "stream", false), None);
     }
 
     #[test]
     fn sql_条件は読み方と同じ行を選ぶ() {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         conn.execute_batch("CREATE TABLE m (id INTEGER, text_value TEXT);").unwrap();
-        let rows: [Option<&str>; 7] =
-            [None, Some(""), Some("live"), Some("stream"), Some("live,stream"), Some("live_viewing"), Some("stream,live_viewing")];
+        let rows: [Option<&str>; 10] = [
+            None,
+            Some(""),
+            Some("live"),
+            Some("stream"),
+            Some("live,stream"),
+            Some("live_viewing"),
+            Some("stream,live_viewing"),
+            Some("x"),
+            Some(","),
+            Some("stream,x"),
+        ];
         for (i, t) in rows.iter().enumerate() {
             conn.execute("INSERT INTO m VALUES (?1, ?2)", rusqlite::params![i as i64, t]).unwrap();
         }
