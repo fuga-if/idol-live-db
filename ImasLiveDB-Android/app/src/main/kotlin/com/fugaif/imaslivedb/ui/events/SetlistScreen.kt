@@ -1,5 +1,12 @@
 package com.fugaif.imaslivedb.ui.events
 
+import androidx.compose.ui.platform.LocalContext
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import uniffi.imas_core.ShowCreditRole
+import uniffi.imas_core.ShowCreditLine
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -202,6 +209,16 @@ fun SetlistScreen(
         if (hasSetlist) viewModel.refreshLikes()
     }
 
+    // 公演ページ末尾の奥付 (セトリ・歌唱者を入れた人。名前は本人が載せると選んだ人だけ) と、
+    // 閲覧の記録 (1 端末 1 週 1 公演 1 回)。iOS SetlistView の `.task` と同じ。
+    val context = LocalContext.current
+    val feedbackService = remember { AppModule.from(context).contributionFeedbackService }
+    var creditLines by remember(showId) { mutableStateOf<List<ShowCreditLine>>(emptyList()) }
+    LaunchedEffect(showId) {
+        creditLines = feedbackService.creditLines(showId)
+        feedbackService.reportShowView(showId)
+    }
+
     var menuOpen by remember { mutableStateOf(false) }
     // 公演の画面の内部タブ。「次のライブ」の「セトリを予想」からは予想で開く。
     var selectedTab by rememberSaveable(showId) {
@@ -395,7 +412,8 @@ fun SetlistScreen(
                         likes = likes,
                         viewModel = viewModel,
                         onSongClick = onSongClick,
-                        onIdolClick = onIdolClick
+                        onIdolClick = onIdolClick,
+                        creditLines = creditLines
                     )
                     ShowTab.PREDICTION -> {
                         item(key = "prediction") {
@@ -498,7 +516,8 @@ private fun LazyListScope.setlistTabContent(
     likes: Map<String, SetlistLikeService.LikeEntry>,
     viewModel: SetlistViewModel,
     onSongClick: (String) -> Unit,
-    onIdolClick: (String) -> Unit
+    onIdolClick: (String) -> Unit,
+    creditLines: List<ShowCreditLine>
 ) {
     if (!hasSetlist) {
         item(key = "empty") {
@@ -586,6 +605,42 @@ private fun LazyListScope.setlistTabContent(
             }
         }
     }
+
+    if (!simpleMode && creditLines.isNotEmpty()) {
+        item(key = "credits") { ShowCreditsSection(creditLines) }
+    }
+}
+
+/** パンフの奥付のように、このセトリを入れた人を末尾に載せる (iOS SetlistView.creditsSection)。 */
+@Composable
+private fun ShowCreditsSection(lines: List<ShowCreditLine>) {
+    ImasSection(
+        "このセトリを入れた人",
+        imprint = "CREDITS",
+        style = ImasSectionHeaderStyle.SMALL,
+        footer = "名前は、入れた人が設定で「公演ページに名前を載せる」を選んだときだけ出ます。",
+        modifier = Modifier.padding(horizontal = DS.Space.screen)
+    ) {
+        ImasCardList {
+            lines.forEachIndexed { index, line ->
+                if (index > 0) ImasRowDivider()
+                ImasValueRow(key = creditRoleLabel(line.role), value = creditNames(line))
+            }
+        }
+    }
+}
+
+private fun creditRoleLabel(role: ShowCreditRole): String = when (role) {
+    ShowCreditRole.SETLIST -> "セトリ入力"
+    ShowCreditRole.PERFORMERS -> "歌唱者"
+}
+
+/** 「A・B ほか 2 人」。名前を載せる人がいなければ「3 人」。 */
+private fun creditNames(line: ShowCreditLine): String {
+    val names = line.names.joinToString("・")
+    val unnamed = line.unnamedCount.toInt()
+    if (unnamed == 0) return names
+    return if (names.isEmpty()) "$unnamed 人" else "$names ほか $unnamed 人"
 }
 
 /**

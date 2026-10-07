@@ -148,6 +148,10 @@ class AppModule private constructor(context: Context) {
     }
     val editApi: EditApi by lazy { EditApi(workerHttpClient, authService) }
     val setlistLikeService: SetlistLikeService by lazy { SetlistLikeService(workerHttpClient) }
+    /** 手応え (Good の新着・セトリの閲覧数) と公演の奥付。 */
+    val contributionFeedbackService: com.fugaif.imaslivedb.data.community.ContributionFeedbackService by lazy {
+        com.fugaif.imaslivedb.data.community.ContributionFeedbackService(appContext, workerHttpClient, authService)
+    }
     /** Discord のロール受け取り (認可 URL の発行)。 */
     val discordLinkService: DiscordLinkService by lazy { DiscordLinkService(workerHttpClient) }
     /** セトリ予想 (みんなの予想)。覚え書きを画面をまたいで共有するため、アプリで 1 つ。 */

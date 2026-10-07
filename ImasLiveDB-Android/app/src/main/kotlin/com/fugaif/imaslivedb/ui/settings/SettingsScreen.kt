@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -406,6 +407,9 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
     val authService = remember { AppModule.from(context).authService }
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val feedbackService = remember { AppModule.from(context).contributionFeedbackService }
+    var isSavingCredit by remember { mutableStateOf(false) }
+    var creditError by remember { mutableStateOf<String?>(null) }
 
     if (authState.isSignedIn) {
         ImasRow(
@@ -418,6 +422,26 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
                 }
             }
         )
+        // 奥付の掲載。サーバが受け付けた値で表示を確定する (失敗したら元のまま)。
+        ImasToggleRow(
+            title = "公演ページに名前を載せる",
+            subtitle = "セトリや歌唱者を入れた公演の末尾に、表示名がクレジットとして出ます",
+            isOn = authState.creditOptIn,
+            enabled = !isSavingCredit,
+            onCheckedChange = { isOn ->
+                isSavingCredit = true
+                scope.launch {
+                    try {
+                        feedbackService.setCreditOptIn(isOn)
+                    } catch (e: Exception) {
+                        creditError = e.message ?: "設定を変更できませんでした"
+                    } finally {
+                        isSavingCredit = false
+                    }
+                }
+            }
+        )
+        ImasErrorAlert(creditError, onDismiss = { creditError = null }, title = "設定を変更できませんでした")
         ImasActionRow(title = "ログアウト", kind = ImasActionRowKind.DESTRUCTIVE, onClick = viewModel::signOut)
         ImasActionRow(
             title = if (state.isDeleting) "削除中..." else "アカウントを削除",

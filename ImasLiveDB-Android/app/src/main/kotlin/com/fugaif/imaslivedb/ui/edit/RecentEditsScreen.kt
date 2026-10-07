@@ -548,7 +548,7 @@ private fun EditFeedCard(
  * `NEGATIVE` (灰) にする。旧実装にあった op ごとの色分け (追加=緑/更新=青/削除=赤 等) は
  * iOS 側でも実際には使われていない (`opDesign` は死んだコード) ため、ここでは持ち越さない。
  */
-private object EditFeedFormat {
+internal object EditFeedFormat {
     fun recordTypeIcon(type: String): ImageVector = when (type) {
         "Event" -> Icons.Filled.Event
         "Show" -> Icons.Filled.MusicNote
