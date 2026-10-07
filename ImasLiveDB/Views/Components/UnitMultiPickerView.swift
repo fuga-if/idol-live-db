@@ -106,8 +106,7 @@ struct UnitMultiPickerView: View {
     @ViewBuilder
     private var brandFilterBar: some View {
         if !brands.isEmpty {
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-                .padding(.horizontal, DS.sp4)
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds, layout: .row)
                 .padding(.vertical, DS.sp3)
                 .background(.regularMaterial)
         }

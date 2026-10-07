@@ -10,9 +10,9 @@ import SwiftUI
 // MARK: - ブランド
 
 extension ImasBrandPicker.Option {
-    /// ブランドから。読み込んだロゴがあればロゴ、無ければペンライト。
+    /// ブランドから。読み込んだロゴがあればロゴ、無ければ略称の判子。
     @MainActor init(brand: Brand) {
-        self.init(id: brand.id, label: brand.shortName, color: brand.color,
+        self.init(id: brand.id, label: brand.shortName, mark: brand.iconText, color: brand.color,
                   logoURL: CustomImageService.shared.brandImageURL(for: brand.id))
     }
 }
@@ -20,9 +20,9 @@ extension ImasBrandPicker.Option {
 extension ImasBrandPicker {
     /// ブランドの並びから組む。
     @MainActor init(brands: [Brand], selection: Binding<Set<String>>, includesAll: Bool = true,
-                    allLabel: String = "全て", allowsMultiple: Bool = true) {
+                    allLabel: String = "全て", allowsMultiple: Bool = true, layout: Layout = .grid) {
         self.init(options: brands.map { ImasBrandPicker.Option(brand: $0) }, selection: selection,
-                  includesAll: includesAll, allLabel: allLabel, allowsMultiple: allowsMultiple)
+                  includesAll: includesAll, allLabel: allLabel, allowsMultiple: allowsMultiple, layout: layout)
     }
 }
 

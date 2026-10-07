@@ -110,7 +110,7 @@
 **唯一の正** アイドルは `IdolPickerView`、ユニットは `UnitMultiPickerView`、曲は `SongSearchPickerView`。同じ役割のピッカーを新しく作らない。
 
 ### 2.6 絞り込みシート `FilterSheet`
-**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、ブランドは `ImasBrandPicker` (チップ。ロゴを読み込んだブランドはロゴ)、並び順などの切り替えは `ImasSegmented`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
+**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、ブランドは `ImasBrandPicker` (判子の格子 `ImasBrandCell`。ロゴを読み込んだブランドはロゴ)、並び順などの切り替えは `ImasSegmented`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
 **やらない** 絞り込み条件を 1 画面に 2 か所 / 一覧の中にリセットの区画。
 
 ### 2.7 設定 `SettingsScreen`
@@ -338,7 +338,10 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - `ImasUnitCell` — ユニットの名札。`ImasIdolCell` のユニット版 (上の帯はブランド色)。下段のアイコンは `ImasUnitAvatar`
   (登録画像があれば画像、無ければブランド色の面 + `person.3.fill` のモノグラム。判子ではなく記号な点がアイドルと違う)。`metric` とピッカーの `isSelected` は `ImasIdolCell` と同じ。
 - `ImasArtworkCell` — ジャケ + 曲名/アルバム名。3 列。
-- ブランドの選び方は格子にせず `ImasBrandPicker` (チップ)。
+- `ImasBrandCell` — ブランドの判子 48 + 名前。判子は読み込んだロゴ、無ければ紙の白 + ブランド色の輪と略称 (765 / デレ / ミリ …、`Brand.iconText`)。
+  選んだものは判子をブランド色で塗りつぶし名前を墨の太字に、選んでいないものは紙の判子のまま名前を灰に (淡い色の地は敷かない)。
+  `ImasBrandPicker` がこれを格子に並べる (ゲームの設定・絞り込みシート・投票の作成)。一覧の上に常に出すピッカーの頭 (アイドル・ユニットを選ぶ) だけは
+  リストの場所を食わないよう `layout: .row` でチップ 1 段 (`ImasChipRow`)。新しいデザインで一度チップにしてブランドのアイコンが消えたのはデグレとして戻した (2026-10-07)。
 
 ### 6.7 会場の部品
 - **`ImasTicket`** 紙のチケット。次のライブ・次の出演・記録する公演。上に印字の目印 (`ADMIT ONE · 参加予定`)、題、日付と会場。
