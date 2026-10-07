@@ -1162,6 +1162,21 @@ enum DatabaseMigrations {
             }
         }
 
+        // v44: songs.streaming_date / cd_release_date カラム追加。
+        //
+        // release_date は初出 (ゲーム・MV・放送を含む)。配信開始日と CD 発売日を別に持つ
+        // (ライブでの初披露はセトリから出すので列にしない)。同梱 master.sqlite は既に
+        // この列を持つので、v34 と同じく `PRAGMA table_info` で確かめてから冪等に足す。
+        migrator.registerMigration("v44_songs_streaming_cd_release_dates") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("streaming_date") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN streaming_date TEXT")
+            }
+            if !songsColumns.contains("cd_release_date") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN cd_release_date TEXT")
+            }
+        }
+
         return migrator
     }
 }

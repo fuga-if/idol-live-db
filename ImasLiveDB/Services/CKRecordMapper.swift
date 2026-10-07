@@ -327,7 +327,10 @@ enum CKRecordMapper {
             // `CKRecordMapperCoverageTests` がこれを捕まえる。
             hasKamisabiCard: row.hasKamisabiCard,
             // 同じ理由。落とすと同期のたびに曲の補足が消える。
-            note: row.note
+            note: row.note,
+            // 同じ理由。落とすと同期のたびに配信開始日・CD 発売日が消える。
+            streamingDate: row.streamingDate,
+            cdReleaseDate: row.cdReleaseDate
         )
     }
 

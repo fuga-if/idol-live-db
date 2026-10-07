@@ -200,7 +200,9 @@ enum EditFieldLabel {
         // Song
         "appleMusicId": "Apple Music ID",
         "artworkUrl": "ジャケット画像",
-        "releaseDate": "発売日",
+        "releaseDate": "初出",
+        "streamingDate": "配信開始日",
+        "cdReleaseDate": "CD 発売日",
         "kana": "読み (かな)",
         "romaji": "ローマ字",
         // SetlistItem

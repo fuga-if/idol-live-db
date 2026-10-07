@@ -35,6 +35,9 @@ protocol SongReading: Sendable {
 
     /// 披露履歴 (どの公演で披露されたか)。
     func songPerformanceHistory(songId: String) async throws -> [PerformanceHistoryRow]
+    /// 曲詳細の日付の行 (初出・CD 発売日・配信開始日)。どれをどの順で出すかはコア
+    /// (`song_dates`) が決める。初出にはライブでの初披露も含む (セトリから出す)。
+    func songDateRows(songId: String) async throws -> [SongDateRow]
     /// 歌唱アーティスト (role 指定: "original" / "performer" 等)。
     func songArtists(songId: String, role: String?) async throws -> [Idol]
     /// 関連曲 (同シリーズ/同ユニット等)。

@@ -48,9 +48,16 @@ struct Song: Codable, FetchableRecord, PersistableRecord, Identifiable, Hashable
     /// 曲の補足 (自由文)。「ミリシタ 1 周年記念楽曲」のように、他の列では持てない由来や
     /// 位置づけを一文で書く。公式の出典があるものだけ入る。曲詳細にそのまま出す。
     var note: String?
+    /// 配信開始日 (YYYY-MM-DD)。`releaseDate` は初出 (ゲーム・MV・放送を含む) なので、配信はそれより
+    /// 後になることがある。曲詳細にどの日付を出すかはコアの `songDateRows` が決める。
+    var streamingDate: String?
+    /// その曲が最初に収録された CD の発売日。CD になっていなければ nil。
+    var cdReleaseDate: String?
 
     enum CodingKeys: String, CodingKey {
         case id, title, composer, lyricist, arranger, isrc, note
+        case streamingDate = "streaming_date"
+        case cdReleaseDate = "cd_release_date"
         case titleKana = "title_kana"
         case brandId = "brand_id"
         case songType = "song_type"
