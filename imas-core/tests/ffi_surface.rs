@@ -226,6 +226,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_jst_is_today_or_later,
     uniffi_imas_core_checksum_func_show_view_decision,
     uniffi_imas_core_checksum_func_show_credit_lines,
+    uniffi_imas_core_checksum_func_lyrics_credit_line,
     uniffi_imas_core_checksum_func_jst_today,
     uniffi_imas_core_checksum_func_kamisabi_card_label,
     uniffi_imas_core_checksum_func_kamisabi_completion_label,

@@ -18,3 +18,9 @@ pub fn show_view_decision(
 pub fn show_credit_lines(setlist: ShowCreditInput, performers: ShowCreditInput) -> Vec<ShowCreditLine> {
     crate::domain::contribution_feedback::show_credit_lines(&setlist, &performers)
 }
+
+/// 曲の歌詞の奥付 (歌詞入力)。投稿で公開された人がいなければ None。
+#[uniffi::export]
+pub fn lyrics_credit_line(input: ShowCreditInput) -> Option<ShowCreditLine> {
+    crate::domain::contribution_feedback::lyrics_credit_line(&input)
+}

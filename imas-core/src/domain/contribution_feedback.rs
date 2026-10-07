@@ -61,6 +61,8 @@ pub enum ShowCreditRole {
     Setlist,
     /// 歌唱者 (誰が歌ったか) を入れた人。
     Performers,
+    /// 曲の歌詞を投稿した人 (歌詞の末尾の奥付)。
+    Lyrics,
 }
 
 /// サーバの 1 役割ぶん (GET /shows/:id/credits の setlist / performers)。
@@ -86,19 +88,28 @@ pub struct ShowCreditLine {
 pub fn show_credit_lines(setlist: &ShowCreditInput, performers: &ShowCreditInput) -> Vec<ShowCreditLine> {
     [(ShowCreditRole::Setlist, setlist), (ShowCreditRole::Performers, performers)]
         .into_iter()
-        .filter(|(_, input)| input.total > 0)
-        .map(|(role, input)| {
-            let mut names: Vec<String> = Vec::new();
-            for n in &input.names {
-                let n = n.trim();
-                if !n.is_empty() && !names.iter().any(|x| x == n) {
-                    names.push(n.to_string());
-                }
-            }
-            let unnamed_count = input.total.saturating_sub(names.len() as u32);
-            ShowCreditLine { role, names, unnamed_count }
-        })
+        .filter_map(|(role, input)| credit_line(role, input))
         .collect()
+}
+
+/// 曲の歌詞の奥付 (歌詞入力)。投稿で公開された人がいなければ None。
+pub fn lyrics_credit_line(input: &ShowCreditInput) -> Option<ShowCreditLine> {
+    credit_line(ShowCreditRole::Lyrics, input)
+}
+
+fn credit_line(role: ShowCreditRole, input: &ShowCreditInput) -> Option<ShowCreditLine> {
+    if input.total == 0 {
+        return None;
+    }
+    let mut names: Vec<String> = Vec::new();
+    for n in &input.names {
+        let n = n.trim();
+        if !n.is_empty() && !names.iter().any(|x| x == n) {
+            names.push(n.to_string());
+        }
+    }
+    let unnamed_count = input.total.saturating_sub(names.len() as u32);
+    Some(ShowCreditLine { role, names, unnamed_count })
 }
 
 #[cfg(test)]
@@ -165,6 +176,15 @@ mod tests {
                 ShowCreditLine { role: ShowCreditRole::Setlist, names: vec!["A".into(), "B".into()], unnamed_count: 2 },
                 ShowCreditLine { role: ShowCreditRole::Performers, names: vec![], unnamed_count: 2 },
             ]
+        );
+    }
+
+    #[test]
+    fn lyrics_credit_is_one_line_or_none() {
+        assert_eq!(lyrics_credit_line(&ShowCreditInput { names: vec![], total: 0 }), None);
+        assert_eq!(
+            lyrics_credit_line(&ShowCreditInput { names: vec!["A".into()], total: 3 }),
+            Some(ShowCreditLine { role: ShowCreditRole::Lyrics, names: vec!["A".into()], unnamed_count: 2 })
         );
     }
 
