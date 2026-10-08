@@ -100,6 +100,8 @@ struct StoreOrderImportView: View {
                         .init(title: "下の「ペースト」を押す"),
                     ])
                 }
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.rowV)
             }
             ImasNote("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
         }
@@ -117,6 +119,9 @@ struct StoreOrderImportView: View {
                     }
                     .labelStyle(.titleAndIcon)
                     .buttonBorderShape(.capsule)
+                    // 下の貼り付け欄は欄の部品が自分で余白を持つので、ボタンだけ寄せる。
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.top, DS.Space.rowV)
 
                     ImasFormTextArea(label: "貼り付け", imprint: "PASTE", text: $text, prompt: "または、ここに直接貼り付け")
                 }
@@ -161,6 +166,8 @@ struct StoreOrderImportView: View {
                         showRow(draft.wrappedValue)
                     }
                 }
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.rowV)
             }
             if !order.orderNumber.isEmpty {
                 ImasNote("注文番号 \(order.orderNumber)")

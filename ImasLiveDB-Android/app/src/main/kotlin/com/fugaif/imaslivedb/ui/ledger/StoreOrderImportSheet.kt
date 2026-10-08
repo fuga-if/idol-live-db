@@ -140,7 +140,11 @@ fun StoreOrderImportSheet(
                     ImasNote("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
                     ImasFormCard {
                         Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-                            OutlinedButton(onClick = { clipboard.getText()?.text?.let(::parse) }) {
+                            // 下の貼り付け欄は欄の部品が自分で余白を持つので、ボタンだけ寄せる。
+                            OutlinedButton(
+                                onClick = { clipboard.getText()?.text?.let(::parse) },
+                                modifier = Modifier.padding(start = DS.Space.rowH, end = DS.Space.rowH, top = DS.Space.rowV)
+                            ) {
                                 Icon(Icons.Filled.ContentPaste, contentDescription = null)
                                 Spacer(Modifier.width(DS.Space.gapTight))
                                 Text("ペースト")
@@ -228,7 +232,7 @@ fun StoreOrderImportSheet(
 private fun GuideCard() {
     val uriHandler = LocalUriHandler.current
     ImasFormCard {
-        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
+        Column(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV), verticalArrangement = Arrangement.spacedBy(DS.Space.gapLoose)) {
             Text("取り込み方", style = ImasTextRole.SECTION_LABEL.style, color = ImasTextRole.SECTION_LABEL.color)
             ImasStepList(
                 steps = listOf(
@@ -265,7 +269,7 @@ private fun OrderCard(
             color = ImasTextRole.SECTION_LABEL.color
         )
         ImasFormCard {
-            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
+            Column(Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV), verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                         Text(
