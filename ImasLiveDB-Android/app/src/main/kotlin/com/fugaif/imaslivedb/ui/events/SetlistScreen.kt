@@ -672,36 +672,39 @@ private fun AttendanceDialog(
             Column {
                 AttendanceType.options().forEach { type ->
                     val on = type in current
-                    Text(
+                    AttendanceDialogRow(
                         when {
                             on -> "${type.label}を外す"
                             current.isEmpty() -> "${type.label}で参加"
                             else -> "${type.label}も追加"
                         },
-                        fontSize = 15.sp,
-                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                         color = if (on) DS.ink else DS.ink2,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onToggle(type, !on) }
-                            .padding(vertical = 12.dp)
+                        bold = on,
+                        onClick = { onToggle(type, !on) }
                     )
                 }
                 if (current.isNotEmpty()) {
-                    Text(
-                        "参加を取り消す",
-                        fontSize = 15.sp,
-                        color = DS.danger,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onClear() }
-                            .padding(vertical = 12.dp)
-                    )
+                    AttendanceDialogRow("参加を取り消す", color = DS.danger, onClick = onClear)
                 }
             }
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } }
+    )
+}
+
+/** 参加ダイアログの 1 行 (形態の付け外しと「参加を取り消す」で同じ見た目)。 */
+@Composable
+private fun AttendanceDialogRow(text: String, color: Color, bold: Boolean = false, onClick: () -> Unit) {
+    Text(
+        text,
+        fontSize = 15.sp,
+        fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
+        color = color,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp)
     )
 }
 
