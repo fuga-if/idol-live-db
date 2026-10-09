@@ -25,15 +25,34 @@ use crate::domain::snapshot::Snapshot;
 /// 利用者が Spotify のアプリに登録するリダイレクト先。iOS・Android 共通。
 pub const REDIRECT_URI: &str = "imaslivedb://spotify-callback";
 /// 求める権限。プレイリストを作って曲を入れる・Spotify アプリを操作して鳴らす (再生位置を読む)。
-pub const SCOPES: &str = "playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state";
-/// 鳴らすのに要る権限。プレイリストだけの頃にログインした人はこれを持っていない。
-const PLAYBACK_SCOPES: [&str; 2] = ["user-read-playback-state", "user-modify-playback-state"];
+pub const SCOPES: &str = "playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state app-remote-control";
+/// 鳴らすのに要る権限。前の版でログインした人はこれを持っていない。
+/// `app-remote-control` は Spotify アプリと SDK で繋ぐ権限 (iOS は Web API の鍵をそのまま SDK に渡す)。
+const PLAYBACK_SCOPES: [&str; 3] = [
+    "user-read-playback-state",
+    "user-modify-playback-state",
+    "app-remote-control",
+];
 /// 開発者向けのダッシュボード。ここでアプリを作る。
 pub const DASHBOARD_URL: &str = "https://developer.spotify.com/dashboard";
 /// 書き出したプレイリストの説明。
 pub const PLAYLIST_DESCRIPTION: &str = "アイドルライブDB から作成";
 /// 1 曲あたりに試す検索の数の上限。
 const MAX_QUERIES: usize = 3;
+
+/// 案内を出す端末。Spotify のアプリに登録してもらう値 (Bundle ID / パッケージ名と指紋) が違う。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpotifyGuidePlatform {
+    Ios,
+    Android,
+}
+
+/// iOS アプリの Bundle ID。Spotify の SDK はこれで呼び出し元を確かめる。
+pub const IOS_BUNDLE_ID: &str = "com.fugaif.ImasLiveDB";
+/// Android アプリのパッケージ名。
+pub const ANDROID_PACKAGE: &str = "site.fugaapp.imaslivedb";
+/// Android アプリの署名の指紋 (Play が署名し直した鍵の SHA-1。利用者の端末に届く APK はこれ)。
+pub const ANDROID_SHA1: &str = "1F:83:20:23:99:01:62:E7:A8:F1:57:AF:CA:68:9B:1C:BF:25:A2:D9";
 
 /// 設定画面の案内。手順と、貼り付けてもらう値。
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
@@ -54,12 +73,44 @@ pub struct SpotifySetupGuide {
 pub struct SpotifyGuideStep {
     pub title: String,
     pub detail: String,
+    /// この手順で Spotify の画面に貼る値 (コピーの口を添える)。
+    pub values: Vec<SpotifyGuideValue>,
 }
 
-pub fn setup_guide() -> SpotifySetupGuide {
-    let step = |title: &str, detail: &str| SpotifyGuideStep {
+/// 貼ってもらう値 1 つ。`label` は Spotify の画面の欄の名前そのまま。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct SpotifyGuideValue {
+    pub label: String,
+    pub value: String,
+}
+
+pub fn setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
+    let value = |label: &str, value: &str| SpotifyGuideValue {
+        label: label.to_string(),
+        value: value.to_string(),
+    };
+    let step = |title: &str, detail: &str, values: Vec<SpotifyGuideValue>| SpotifyGuideStep {
         title: title.to_string(),
         detail: detail.to_string(),
+        values,
+    };
+    let (sdk_step, sdk_values) = match platform {
+        SpotifyGuidePlatform::Ios => (
+            step(
+                "「Web API」と「iOS」にチェックして保存",
+                "「Which API/SDKs are you planning to use?」で Web API と iOS にチェックを入れます。出てきた iOS app bundles の欄に下の値を貼って「Add」を押し、規約に同意して「Save」を押します。",
+                vec![],
+            ),
+            vec![value("iOS app bundles", IOS_BUNDLE_ID)],
+        ),
+        SpotifyGuidePlatform::Android => (
+            step(
+                "「Web API」と「Android」にチェックして保存",
+                "「Which API/SDKs are you planning to use?」で Web API と Android にチェックを入れます。出てきた Android packages の欄に下の 2 つを貼って「Add」を押し、規約に同意して「Save」を押します。",
+                vec![],
+            ),
+            vec![value("Package name", ANDROID_PACKAGE), value("SHA1 fingerprint", ANDROID_SHA1)],
+        ),
     };
     SpotifySetupGuide {
         dashboard_url: DASHBOARD_URL.to_string(),
@@ -70,31 +121,34 @@ pub fn setup_guide() -> SpotifySetupGuide {
             step(
                 "Spotify for Developers を開く",
                 "下の「開発者サイトを開く」から、いつもの Spotify アカウントでログインします。初めてのときは利用規約への同意とメールアドレスの確認を求められます。",
+                vec![],
             ),
             step(
                 "「Create app」でアプリを作る",
                 "App name と App description は何でもかまいません (例: アイドルライブDB)。Website は空のままで大丈夫です。",
+                vec![],
             ),
             step(
                 "Redirect URI を貼って「Add」",
-                "下の「コピー」で写した値を Redirect URIs の欄に貼り、「Add」を押します。1 文字でも違うとログインできません。",
+                "下の値をコピーして Redirect URIs の欄に貼り、「Add」を押します。1 文字でも違うとログインできません。",
+                vec![value("Redirect URIs", REDIRECT_URI)],
             ),
-            step(
-                "「Web API」にチェックして保存",
-                "「Which API/SDKs are you planning to use?」で Web API にチェックを入れ、規約に同意して「Save」を押します。",
-            ),
+            SpotifyGuideStep { values: sdk_values, ..sdk_step },
             step(
                 "Client ID を写して、ここに貼る",
                 "できたアプリの画面 (Settings → Basic Information) にある Client ID をコピーして、下の欄に貼ります。Client secret は使いません。",
+                vec![],
             ),
         ],
         notes: vec![
-            "Spotify の決まりで、アプリを作った人が Spotify Premium に入っている必要があります。".to_string(),
+            "Spotify の決まりで、アプリを作った人が Spotify Premium に入っている必要があります。曲を鳴らすには、聴く人も Premium に入っている必要があります。".to_string(),
+            "曲を鳴らすには、この端末に Spotify アプリが入っている必要があります (音は Spotify アプリから出ます)。".to_string(),
             "家族など自分以外のアカウントで使うときは、アプリの「User Management」にその人のメールアドレスを足します (5 人まで)。".to_string(),
         ],
         troubleshooting: vec![
             "「INVALID_CLIENT: Invalid redirect URI」と出たら、手順 3 の Redirect URI が 1 文字でも違っています。".to_string(),
             "「INVALID_CLIENT: Invalid client」と出たら、Client ID の貼り間違いです。".to_string(),
+            "曲を鳴らすときに Spotify アプリで断られたら、手順 4 の値が 1 文字でも違っていないかを確かめてください。".to_string(),
         ],
     }
 }
@@ -333,6 +387,10 @@ pub enum SpotifyFailure {
     Network,
     /// 鳴らす先 (Spotify アプリ) が見つからない (404 NO_ACTIVE_DEVICE / 端末の一覧が空)。
     NoDevice,
+    /// この端末に Spotify アプリが入っていない (SDK が起こせない)。
+    AppNotInstalled,
+    /// Spotify アプリに繋げなかった (SDK の接続が断られた・待っても戻ってこなかった)。
+    ConnectionFailed,
     /// 鳴らすには Spotify Premium が要る (403 PREMIUM_REQUIRED)。
     PremiumRequired,
     /// ログインが鳴らす許可を含んでいない (プレイリストだけの頃にログインした)。
@@ -348,6 +406,8 @@ pub fn failure_message(failure: SpotifyFailure) -> String {
         SpotifyFailure::RateLimited => "Spotify が混み合っています。少し待ってからもう一度試してください。",
         SpotifyFailure::Network => "Spotify に繋がりませんでした。通信できる所でもう一度試してください。",
         SpotifyFailure::NoDevice => "鳴らす先の Spotify アプリが見つかりません。Spotify アプリを一度開いてから戻ると、そこで鳴らせます。",
+        SpotifyFailure::AppNotInstalled => "この端末に Spotify アプリが入っていません。Spotify アプリを入れると、そこで鳴らせます。",
+        SpotifyFailure::ConnectionFailed => "Spotify アプリに繋がりませんでした。Spotify アプリでログインしているか、設定の「Spotify」の手順 4 の値が合っているかを確かめてください。",
         SpotifyFailure::PremiumRequired => "Spotify で曲を選んで鳴らすには Spotify Premium が要ります。",
         SpotifyFailure::PlaybackNotAllowed => "Spotify で鳴らす許可がまだありません。設定の「Spotify」からもう一度ログインしてください。",
         SpotifyFailure::Other => "Spotify とのやりとりに失敗しました。もう一度試してください。",
@@ -659,6 +719,9 @@ mod tests {
             "playlist-modify-private playlist-modify-public"
         ));
         assert!(!scopes_allow_playback("user-read-playback-state"));
+        assert!(!scopes_allow_playback(
+            "user-read-playback-state user-modify-playback-state"
+        ));
     }
 
     fn device(id: Option<&str>, active: bool, restricted: bool, kind: &str) -> SpotifyDevice {
@@ -731,9 +794,20 @@ mod tests {
 
     #[test]
     fn guide_carries_the_values_to_paste() {
-        let g = setup_guide();
+        let g = setup_guide(SpotifyGuidePlatform::Ios);
         assert_eq!(g.redirect_uri, "imaslivedb://spotify-callback");
         assert_eq!(g.steps.len(), 5);
         assert!(g.notes.iter().any(|n| n.contains("Premium")));
+        assert_eq!(g.steps[2].values[0].value, REDIRECT_URI);
+        assert_eq!(
+            g.steps[3].values,
+            vec![SpotifyGuideValue {
+                label: "iOS app bundles".into(),
+                value: IOS_BUNDLE_ID.into()
+            }]
+        );
+        let a = setup_guide(SpotifyGuidePlatform::Android);
+        assert_eq!(a.steps[3].values.len(), 2);
+        assert!(a.steps[3].title.contains("Android"));
     }
 }

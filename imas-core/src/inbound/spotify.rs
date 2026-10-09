@@ -2,14 +2,14 @@
 
 use crate::domain::spotify::{
     self, FullPlaybackOption, FullPlaybackService, SongClues, SpotifyClientIdCheck, SpotifyDevice,
-    SpotifyFailure, SpotifySetupGuide, SpotifyTrackCandidate,
+    SpotifyFailure, SpotifyGuidePlatform, SpotifySetupGuide, SpotifyTrackCandidate,
 };
 use crate::inbound::snapshot_store::{SnapshotError, SnapshotStore};
 
 /// 設定画面の案内 (手順・貼る値・注意)。
 #[uniffi::export]
-pub fn spotify_setup_guide() -> SpotifySetupGuide {
-    spotify::setup_guide()
+pub fn spotify_setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
+    spotify::setup_guide(platform)
 }
 
 /// 貼られた Client ID を確かめる。
