@@ -1,4 +1,5 @@
 import os
+import PhotosUI
 import SwiftUI
 
 /// 歌詞を投稿するシート。CD の歌詞カードなどの一次ソースを見て入力した歌詞を送る。
@@ -20,6 +21,9 @@ struct LyricSubmissionSheet: View {
     @State private var sentMessage: String?
     @State private var showGuide = false
     @State private var showLineScanner = false
+    @State private var photoPicks: [PhotosPickerItem] = []
+    @State private var isReading = false
+    @State private var ocrMessage: String?
 
     private var text: String { drafts.draft(for: song.id).text }
     private var agreed: Bool { drafts.draft(for: song.id).agreed }
@@ -99,7 +103,16 @@ struct LyricSubmissionSheet: View {
                 onCancel: { isDirty ? (confirmDiscard = true) : dismiss() },
                 onSubmit: { AppAnalytics.tap("lyric_submission.submit"); Task { await submit() } }
             ))
-            .imasSavingOverlay(isSaving, label: "送信中")
+            .imasSavingOverlay(isSaving || isReading, label: isReading ? "読み取り中" : "送信中")
+            .onChange(of: photoPicks) { _, picks in
+                guard !picks.isEmpty else { return }
+                Task {
+                    let images = await LyricsCardOCR.images(from: picks)
+                    photoPicks = []
+                    await read(images)
+                }
+            }
+            .imasErrorAlert("文字を読み取れませんでした", message: $ocrMessage)
             .fullScreenCover(isPresented: $showLineScanner) {
                 LyricLineScannerView { scanned in
                     let songId = song.id
@@ -119,11 +132,12 @@ struct LyricSubmissionSheet: View {
     }
 
     /// 歌詞カードの読み取り。映った歌詞を押した順に、塊の中は改行・塊の間は空行で入れる
-    /// (行の区切りを歌詞カードどおりに取り込むため、これだけにする)。読んだ文字は本人が見直してから送る。
+    /// (行の区切りを歌詞カードどおりに取り込める)。写真・スクリーンショットからも読める。
+    /// 読んだ文字は入力欄に足すだけで、本人が見直してから送る。
     @ViewBuilder
     private var ocrButtons: some View {
-        if LyricLineScannerView.isAvailable {
-            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            if LyricLineScannerView.isAvailable {
                 Button {
                     AppAnalytics.tap("lyric_submission.line_scanner")
                     showLineScanner = true
@@ -131,14 +145,33 @@ struct LyricSubmissionSheet: View {
                     Label("歌詞カードを読み取る", systemImage: "text.viewfinder")
                 }
                 .buttonStyle(.imas(.secondary, fillsWidth: true))
-                ImasStepList(steps: lyricOcrSteps(tapScanner: true).map { .init(title: $0.title, detail: $0.detail) })
-                    .padding(.top, DS.Space.gapTight)
-                Text("文字の読み取りは端末の中だけで行い、映像はどこにも送りません。")
-                    .font(.imasFootnote)
-                    .foregroundStyle(DS.ink3)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .disabled(isSaving)
+            PhotosPicker(selection: $photoPicks, maxSelectionCount: 10, matching: .images) {
+                Label("写真から読む", systemImage: "photo.on.rectangle")
+            }
+            .buttonStyle(.imas(.secondary, fillsWidth: true))
+            ImasStepList(steps: lyricOcrSteps(tapScanner: LyricLineScannerView.isAvailable)
+                .map { .init(title: $0.title, detail: $0.detail) })
+                .padding(.top, DS.Space.gapTight)
+            Text("文字の読み取りは端末の中だけで行い、映像や写真はどこにも送りません。")
+                .font(.imasFootnote)
+                .foregroundStyle(DS.ink3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .disabled(isSaving || isReading)
+    }
+
+    /// 写真の文字を読み、入力欄に足す。
+    private func read(_ images: [UIImage]) async {
+        guard !images.isEmpty else { return }
+        isReading = true
+        defer { isReading = false }
+        let recognized = await LyricsCardOCR.read(images).text
+        if recognized.isEmpty {
+            ocrMessage = "歌詞カードが画面いっぱいに写った、明るい写真を選んでください。"
+        } else {
+            let songId = song.id
+            drafts.setText(songId, lyricOcrAppend(draft: drafts.draft(for: songId).text, recognized: recognized))
         }
     }
 
