@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Link
@@ -151,6 +151,8 @@ fun SongLyricsTab(
     val canEdit = authState.isSignedIn
 
     var isEditingStructure by remember { mutableStateOf(false) }
+    // 非 null = この行の文字を直すシートを開いている。
+    var lineEditTarget by remember { mutableStateOf<LyricLine?>(null) }
     var structureBusyLineId by remember { mutableStateOf<String?>(null) }
     var structureMenuLineId by remember { mutableStateOf<String?>(null) }
     var structureError by remember { mutableStateOf<String?>(null) }
@@ -355,7 +357,8 @@ fun SongLyricsTab(
                                         lineId,
                                         if (isRuby) StructureChange.RubyBase(lineId, at, base) else StructureChange.Ruby(lineId, at, base)
                                     )
-                                }
+                                },
+                                onEditLine = { lineEditTarget = it }
                             )
                         }
                     }
@@ -405,6 +408,15 @@ fun SongLyricsTab(
             )
         }
     }
+    val editTarget = lineEditTarget
+    if (editTarget != null) {
+        Dialog(onDismissRequest = { lineEditTarget = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            com.fugaif.imaslivedb.ui.lyrics.LyricLineEditScreen(
+                songId = song.id, line = editTarget,
+                onSaved = onReload, onDismiss = { lineEditTarget = null }
+            )
+        }
+    }
     ImasErrorAlert(message = structureError, onDismiss = { structureError = null }, title = "保存できませんでした")
     ImasErrorAlert(
         message = if (recordUnavailable) "記録には Apple Music でのフル再生が必要です。" else null,
@@ -448,13 +460,13 @@ private fun EditBar(
                 )
             }
             isEditingStructure -> {
-                ImasButton(title = "区切りの編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
+                ImasButton(title = "行の編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
             }
             else -> {
                 if (showsPartsButton) {
                     ImasIconButton(icon = Icons.Filled.Group, label = "パート分け", size = ImasIconButtonSize.SMALL, onClick = onBeginParts)
                 }
-                ImasIconButton(icon = Icons.Filled.ContentCut, label = "行の区切りを編集", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
+                ImasIconButton(icon = Icons.Filled.Edit, label = "歌詞の行を直す・区切る", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
                 ImasIconButton(icon = Icons.Filled.QueueMusic, label = "歌詞プレイヤー", size = ImasIconButtonSize.SMALL, onClick = onOpenPlayer)
                 ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
             }
@@ -681,7 +693,8 @@ private fun StructureBody(
     onSplit: (String, Int) -> Unit,
     onMerge: (String, LyricJoiner) -> Unit,
     onToggleRuby: (String, Int, Boolean) -> Unit,
-    onRubyBase: (String, Int, Boolean, Int) -> Unit
+    onRubyBase: (String, Int, Boolean, Int) -> Unit,
+    onEditLine: (LyricLine) -> Unit
 ) {
     lyrics.lines.forEachIndexed { index, line ->
         when (line.kind) {
@@ -707,8 +720,14 @@ private fun StructureBody(
                         onRubyBase = { at, isRuby, base -> onRubyBase(line.id, at, isRuby, base) }
                     )
                     val nextIsLyric = index + 1 < lyrics.lines.size && lyrics.lines[index + 1].kind == LyricLineKind.LYRIC
-                    if (nextIsLyric) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        // 文字を直す (この 1 行だけ。行の数は変わらないので注釈は残る)。
+                        ImasIconButton(
+                            icon = Icons.Filled.Edit, label = "この行を直す",
+                            size = ImasIconButtonSize.SMALL, enabled = busyLineId == null,
+                            onClick = { onEditLine(line) }
+                        )
+                        if (nextIsLyric) {
                             Box {
                                 ImasIconButton(
                                     icon = Icons.Filled.Link, label = "次の行とくっつける",
