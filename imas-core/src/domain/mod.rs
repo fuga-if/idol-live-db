@@ -64,6 +64,7 @@ pub mod performer_label;
 pub mod play_queue;
 pub mod poll_result_card;
 pub mod prng;
+pub mod card_meetings;
 pub mod producer_card;
 pub mod producer_card_avatar;
 pub mod favorite_song_picks;

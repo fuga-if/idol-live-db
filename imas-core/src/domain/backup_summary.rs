@@ -157,6 +157,25 @@ pub struct BackupProducerCardRecord {
     pub memo: Option<String>,
     pub received_at: String,
     pub updated_at: String,
+    /// 最後に会ったときの受け取り方の保存のキー (`card_receive_via_key`)。None は不明 (足す前の版)。
+    #[uniffi(default = None)]
+    pub via: Option<String>,
+    /// 会った記録 (古い順でなくてよい)。足す前の版のバックアップは空で、取り込むときに名刺の行から
+    /// 1 回目の記録を作る (`card_first_meeting_id`)。
+    #[uniffi(default)]
+    pub meetings: Vec<BackupCardMeetingRecord>,
+}
+
+/// 受け取った名刺の会った記録 1 つ (`received_card_meetings`)。同一性は id。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct BackupCardMeetingRecord {
+    pub id: String,
+    /// 受け取った名刺の id。
+    pub card_id: String,
+    pub show_id: Option<String>,
+    pub show_date: Option<String>,
+    pub via: Option<String>,
+    pub met_at: String,
 }
 
 /// 自分の P名刺の書いた中身 (`my_producer_card`)。担当や記録の数はアプリの記録から
@@ -185,6 +204,9 @@ pub struct BackupMyProducerCardRecord {
     /// (足す前のバックアップもこれ。自動の選び方で載る)。
     #[uniffi(default = None)]
     pub card_oshi_json: Option<String>,
+    /// 自分の名刺 id (`producer_card_new_id`)。機種変更しても同じ人として届くよう運ぶ。
+    #[uniffi(default = None)]
+    pub card_id: Option<String>,
 }
 
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
@@ -258,6 +280,9 @@ pub struct BackupLocalState {
     /// 既にある自分の名刺の id。自分の名刺は 1 枚なので、あれば取り込まない。
     #[uniffi(default)]
     pub my_producer_card_ids: Vec<String>,
+    /// 既にある会った記録の id。
+    #[uniffi(default)]
+    pub card_meeting_ids: Vec<String>,
     /// 端末の担当ブランドの設定 (保存の形のまま。空はまだ決めていない)。担当・メインが 1 つでもあれば取り込まない
     /// (決め直した設定を戻さない)。全部「なし」なら運んできた設定で埋める (新しい端末で、記録が無いまま
     /// はじめの案内を閉じた人の設定は何も言っていない)。
@@ -300,6 +325,8 @@ pub struct BackupImportPlan {
     pub playlists_to_insert: Vec<BackupPlaylistRecord>,
     pub producer_cards_to_insert: Vec<BackupProducerCardRecord>,
     pub my_producer_cards_to_insert: Vec<BackupMyProducerCardRecord>,
+    /// 足す会った記録 (名刺が端末に無いものは端末が飛ばす)。
+    pub card_meetings_to_insert: Vec<BackupCardMeetingRecord>,
     /// 端末に書く担当ブランドの設定 (空なら書かない)。
     pub brand_roles_json_to_restore: String,
     pub added_marks: i64,
@@ -528,14 +555,53 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                         .map(|v| format!(",\"{key}\":{}", json_string_literal(v)))
                 })
                 .collect::<String>();
+                // 会った記録・受け取り方は足す前の版と同じ payload になるよう、あるときだけ出す。
+                let meetings = if c.meetings.is_empty() {
+                    String::new()
+                } else {
+                    let items = c
+                        .meetings
+                        .iter()
+                        .map(|m| {
+                            let optional = [
+                                ("showDate", &m.show_date),
+                                ("showId", &m.show_id),
+                                ("via", &m.via),
+                            ]
+                            .into_iter()
+                            .filter_map(|(key, value)| {
+                                value
+                                    .as_ref()
+                                    .map(|v| format!(",\"{key}\":{}", json_string_literal(v)))
+                            })
+                            .collect::<String>();
+                            format!(
+                                "{{\"cardId\":{},\"id\":{},\"metAt\":{}{}}}",
+                                json_string_literal(&m.card_id),
+                                json_string_literal(&m.id),
+                                json_string_literal(&m.met_at),
+                                optional,
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join(",");
+                    format!(",\"meetings\":[{items}]")
+                };
+                let via = c
+                    .via
+                    .as_deref()
+                    .map(|v| format!(",\"via\":{}", json_string_literal(v)))
+                    .unwrap_or_default();
                 format!(
-                    "{{\"id\":{}{},\"payload\":{},\"receivedAt\":{},\"source\":{},\"updatedAt\":{}}}",
+                    "{{\"id\":{}{}{},\"payload\":{},\"receivedAt\":{},\"source\":{},\"updatedAt\":{}{}}}",
                     json_string_literal(&c.id),
+                    meetings,
                     optional,
                     json_string_literal(&c.payload),
                     json_string_literal(&c.received_at),
                     json_string_literal(&c.source),
                     json_string_literal(&c.updated_at),
+                    via,
                 )
             })
             .collect::<Vec<_>>()
@@ -574,8 +640,14 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                     .as_deref()
                     .map(|j| format!("\"cardOshiJson\":{},", json_string_literal(j)))
                     .unwrap_or_default();
+                let card_id = c
+                    .card_id
+                    .as_deref()
+                    .map(|j| format!("\"cardId\":{},", json_string_literal(j)))
+                    .unwrap_or_default();
                 format!(
-                    "{{{}{}\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    "{{{}{}{}\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    card_id,
                     card_oshi,
                     design,
                     json_string_literal(&c.hidden_fields),
@@ -805,7 +877,28 @@ pub fn plan_backup_import(
     // 受け取った名刺も id で見る。メモを書き足した名刺を古いメモで上書きしない。
     let mut seen_cards: HashSet<String> = local.producer_card_ids.iter().cloned().collect();
     let mut producer_cards_to_insert = Vec::new();
+    // 会った記録は無い id のものだけ足す (端末にある名刺にも、後で会った記録を足せるように)。
+    // 記録の無い名刺 (足す前の版のバックアップ) は名刺の行から 1 回目の記録を作る。
+    let mut seen_meetings: HashSet<String> = local.card_meeting_ids.iter().cloned().collect();
+    let mut card_meetings_to_insert = Vec::new();
     for card in parsed.producer_cards {
+        let meetings = if card.meetings.is_empty() {
+            vec![BackupCardMeetingRecord {
+                id: crate::domain::card_meetings::card_first_meeting_id(&card.id),
+                card_id: card.id.clone(),
+                show_id: card.show_id.clone(),
+                show_date: card.show_date.clone(),
+                via: card.via.clone(),
+                met_at: card.received_at.clone(),
+            }]
+        } else {
+            card.meetings.clone()
+        };
+        for meeting in meetings {
+            if meeting.card_id == card.id && seen_meetings.insert(meeting.id.clone()) {
+                card_meetings_to_insert.push(meeting);
+            }
+        }
         if seen_cards.insert(card.id.clone()) {
             producer_cards_to_insert.push(card);
         }
@@ -849,6 +942,7 @@ pub fn plan_backup_import(
         playlists_to_insert,
         producer_cards_to_insert,
         my_producer_cards_to_insert,
+        card_meetings_to_insert,
         brand_roles_json_to_restore,
         added_marks,
         added_votes,
@@ -1061,6 +1155,24 @@ fn parse_producer_card(value: &serde_json::Value) -> Option<BackupProducerCardRe
         memo: optional_field(object, "memo"),
         received_at: string_field(object, "receivedAt")?,
         updated_at: string_field(object, "updatedAt")?,
+        via: optional_field(object, "via"),
+        meetings: object
+            .get("meetings")
+            .and_then(|v| v.as_array())
+            .map(|items| items.iter().filter_map(parse_card_meeting).collect())
+            .unwrap_or_default(),
+    })
+}
+
+fn parse_card_meeting(value: &serde_json::Value) -> Option<BackupCardMeetingRecord> {
+    let object = value.as_object()?;
+    Some(BackupCardMeetingRecord {
+        id: string_field(object, "id")?,
+        card_id: string_field(object, "cardId")?,
+        show_id: optional_field(object, "showId"),
+        show_date: optional_field(object, "showDate"),
+        via: optional_field(object, "via"),
+        met_at: string_field(object, "metAt")?,
     })
 }
 
@@ -1081,6 +1193,7 @@ fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerC
         qr_url: optional_field(object, "qrUrl"),
         profile_json: optional_field(object, "profileJson").unwrap_or_default(),
         card_oshi_json: optional_field(object, "cardOshiJson"),
+        card_id: optional_field(object, "cardId"),
     })
 }
 
@@ -1206,7 +1319,62 @@ mod tests {
             memo: memo.map(|m| m.to_string()),
             received_at: "2026-10-05T21:00:00Z".to_string(),
             updated_at: "2026-10-05T21:00:00Z".to_string(),
+            via: None,
+            meetings: vec![],
         }
+    }
+
+    /// 会った記録・受け取り方・自分の名刺 id も運ぶ。記録の無い古いバックアップは名刺の行から
+    /// 1 回目の記録を作り、端末にある記録は入れ直さない。
+    #[test]
+    fn card_meetings_and_card_id_round_trip() {
+        let mut input = export_input();
+        let plain = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        assert!(!plain.payload_json.contains("meetings"));
+
+        let mut card = producer_card("c1", None);
+        card.via = Some("nearby".to_string());
+        card.meetings = vec![
+            BackupCardMeetingRecord {
+                id: "m_c1".to_string(),
+                card_id: "c1".to_string(),
+                show_id: Some("show_1".to_string()),
+                show_date: Some("2026-10-05".to_string()),
+                via: Some("camera_qr".to_string()),
+                met_at: "2026-10-05T21:00:00Z".to_string(),
+            },
+            BackupCardMeetingRecord {
+                id: "m2".to_string(),
+                card_id: "c1".to_string(),
+                show_id: None,
+                show_date: None,
+                via: Some("nearby".to_string()),
+                met_at: "2026-12-01T21:00:00Z".to_string(),
+            },
+        ];
+        let mut mine = my_card("ふがP");
+        mine.card_id = Some("AAAAAAAAAAA".to_string());
+        input.producer_cards = vec![card.clone(), producer_card("c_old", None)];
+        input.my_producer_cards = vec![mine.clone()];
+        let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
+        let plan = plan_backup_import(&doc.envelope_json, &BackupLocalState::default(), false, BackupKindDialect::Canonical)
+            .expect("読める");
+        assert_eq!(plan.producer_cards_to_insert[0], card);
+        assert_eq!(plan.my_producer_cards_to_insert, vec![mine]);
+        let ids: Vec<&str> = plan.card_meetings_to_insert.iter().map(|m| m.id.as_str()).collect();
+        assert_eq!(ids, vec!["m_c1", "m2", "m_c_old"], "古い名刺は名刺の行から 1 回目の記録を作る");
+        assert_eq!(plan.card_meetings_to_insert[2].met_at, "2026-10-05T21:00:00Z");
+
+        // 端末に名刺も 1 回目の記録もあれば、足すのは新しい記録だけ。
+        let local = BackupLocalState {
+            producer_card_ids: vec!["c1".to_string(), "c_old".to_string()],
+            card_meeting_ids: vec!["m_c1".to_string(), "m_c_old".to_string()],
+            ..BackupLocalState::default()
+        };
+        let plan = plan_backup_import(&doc.envelope_json, &local, false, BackupKindDialect::Canonical).expect("読める");
+        assert!(plan.producer_cards_to_insert.is_empty());
+        let ids: Vec<&str> = plan.card_meetings_to_insert.iter().map(|m| m.id.as_str()).collect();
+        assert_eq!(ids, vec!["m2"]);
     }
 
     fn my_card(name: &str) -> BackupMyProducerCardRecord {
@@ -1222,6 +1390,7 @@ mod tests {
             qr_url: None,
             profile_json: String::new(),
             card_oshi_json: None,
+            card_id: None,
         }
     }
 

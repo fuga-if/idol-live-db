@@ -133,6 +133,11 @@ pub struct ProducerCard {
     /// 1 ブランドで数で畳んだ「765AS 5人 担当」の略称)。既定は刷らない。決めるのは `producer_card_face`。
     #[uniffi(default = false)]
     pub show_brand_labels: bool,
+    /// 名刺 id (同じ人の名刺を見分ける。端末で一度だけ作るランダムな 11 文字、`producer_card_new_id`)。
+    /// 受け取った側は同じ id の名刺を 1 枚にまとめて会った記録を積む (`card_receive_plan`)。
+    /// 無い名刺 (足す前の版・紙の名刺) は中身が同じときだけ同じ人として扱う。
+    #[uniffi(default = None)]
+    pub card_id: Option<String>,
 }
 
 /// 自分の名刺を作るときの材料。数や公演はアプリの記録から、名前などは編集画面から。
@@ -156,6 +161,9 @@ pub struct ProducerCardInput {
     /// 表の判子の下にブランドの略称を刷る ([`ProducerCard::show_brand_labels`])。
     #[uniffi(default = false)]
     pub show_brand_labels: bool,
+    /// 名刺 id ([`ProducerCard::card_id`])。形の合わないものは載せない。
+    #[uniffi(default = None)]
+    pub card_id: Option<String>,
 }
 
 /// 組み上がった名刺と QR に入れる URL。
@@ -348,6 +356,7 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
             .filter(|u| !u.trim().is_empty())
             .and_then(normalize_card_qr_url),
         show_brand_labels: input.show_brand_labels,
+        card_id: input.card_id.clone().filter(|id| card_id_bytes(id).is_some()),
     };
 
     let total = card.attended.len();
@@ -1010,6 +1019,7 @@ fn day_to_date(day: u32) -> String {
 //   varint リンクの数, (u8 種類, str) × n
 //   varint 公演の数, (varint 前の公演からの日数, u16 指紋) × n   (先頭は起点からの日数)
 //   [u8 デザインの番号] [str 自分の QR の URL]                    (旗が立っているときだけ)
+//   [u8 続きの旗 (bit0 名刺 id)] [8 バイト 名刺 id]                (旗 bit7 が立っているときだけ)
 //
 //   str = varint バイト数 + UTF-8
 //
@@ -1018,10 +1028,55 @@ fn day_to_date(day: u32) -> String {
 // 既定のデザインで自分の QR も無い名刺は、足す前と 1 バイトも変わらない (古いアプリでも読める)。
 // 項目がある名刺を古いアプリが読むと、末尾に余りがあるので「読めない名刺」になる
 // (誤読はしない)。版を上げると、項目の無い名刺まで古いアプリで読めなくなるので上げない。
+//
+// 旗の bit7 は「続きの旗がある」。1 バイト目の旗を使い切ったので、名刺 id から先の任意の項目は
+// 続きの旗に足す。bit7 を知らないアプリは読まない (上と同じく誤読はしない)。続きの旗に知らない
+// ビットが立っていたら、知らない項目が続いているはずなので読まない。
 // ---------------------------------------------------------------------------
 
 const FLAG_DESIGN: u8 = 1 << 5;
 const FLAG_QR_URL: u8 = 1 << 6;
+const FLAG_EXT: u8 = 1 << 7;
+const EXT_CARD_ID: u8 = 1;
+/// 名刺 id のバイト数 (64 ビット。端末の数より十分に大きく、ぶつからない)。
+const CARD_ID_BYTES: usize = 8;
+
+/// 名刺 id (base64url の 11 文字) をバイトにする。形が違えば None。
+fn card_id_bytes(id: &str) -> Option<[u8; CARD_ID_BYTES]> {
+    if id.len() != 11 {
+        return None;
+    }
+    let bytes = base64url_decode(id)?;
+    let out: [u8; CARD_ID_BYTES] = bytes.try_into().ok()?;
+    (base64url_encode(&out) == id).then_some(out)
+}
+
+/// 自分の名刺 id を作る。`seed` は端末が作った UUID (16 進の 32 桁。ハイフンはあってもよい) で、
+/// 先頭 16 桁を 8 バイトにする。UUID でない文字なら文字から散らして作る (同じ文字なら同じ id)。
+pub fn producer_card_new_id(seed: &str) -> String {
+    let hex: String = seed.chars().filter(|c| c.is_ascii_hexdigit()).take(16).collect();
+    let bytes: [u8; CARD_ID_BYTES] = if hex.len() == 16 {
+        let mut out = [0u8; CARD_ID_BYTES];
+        for (i, b) in out.iter_mut().enumerate() {
+            *b = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).unwrap_or(0);
+        }
+        out
+    } else {
+        // FNV-1a (64)。
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for b in seed.bytes() {
+            h ^= u64::from(b);
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        }
+        h.to_le_bytes()
+    };
+    base64url_encode(&bytes)
+}
+
+/// 名刺 id の形として正しいか (端末に残っている id を確かめる)。
+pub fn producer_card_id_is_valid(id: &str) -> bool {
+    card_id_bytes(id).is_some()
+}
 
 fn write_card(card: &ProducerCard) -> Vec<u8> {
     let mut w = Vec::with_capacity(256);
@@ -1048,6 +1103,10 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
     }
     if card.qr_url.is_some() {
         flags |= FLAG_QR_URL;
+    }
+    let card_id = card.card_id.as_deref().and_then(card_id_bytes);
+    if card_id.is_some() {
+        flags |= FLAG_EXT;
     }
     w.push(flags);
     put_str(&mut w, &card.name);
@@ -1092,6 +1151,10 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
     }
     if let Some(url) = &card.qr_url {
         put_str(&mut w, url);
+    }
+    if let Some(id) = card_id {
+        w.push(EXT_CARD_ID);
+        w.extend_from_slice(&id);
     }
     w
 }
@@ -1159,8 +1222,22 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
     } else {
         None
     };
-    // 知らない旗 (bit7) が立っている名刺は、知らない項目が続いているはずなので読まない。
-    if flags & (1 << 7) != 0 || r.pos != bytes.len() || name.trim().is_empty() {
+    let mut card_id = None;
+    if flags & FLAG_EXT != 0 {
+        let ext = r.u8()?;
+        // 知らない続きの旗が立っている名刺は、知らない項目が続いているはずなので読まない。
+        if ext & !EXT_CARD_ID != 0 {
+            return None;
+        }
+        if ext & EXT_CARD_ID != 0 {
+            let mut id = [0u8; CARD_ID_BYTES];
+            for b in id.iter_mut() {
+                *b = r.u8()?;
+            }
+            card_id = Some(base64url_encode(&id));
+        }
+    }
+    if r.pos != bytes.len() || name.trim().is_empty() {
         return None;
     }
     // 手で組んだ名刺 (QR・名刺ファイル・近くの端末から届くもの) が、アプリの作る名刺より
@@ -1200,6 +1277,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         design,
         qr_url,
         show_brand_labels,
+        card_id,
     })
 }
 
@@ -2441,7 +2519,41 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            card_id: None,
         }
+    }
+
+    #[test]
+    fn card_id_round_trips_and_old_cards_stay_byte_identical() {
+        let id = producer_card_new_id("8D3F2A10-9B7C-4E21-A0B1-1234567890AB");
+        assert_eq!(id.len(), 11);
+        assert!(producer_card_id_is_valid(&id));
+        assert_eq!(id, producer_card_new_id("8d3f2a109b7c4e21"), "UUID の先頭 16 桁で決まる");
+        assert!(producer_card_id_is_valid(&producer_card_new_id("not-a-uuid")));
+        assert!(!producer_card_id_is_valid("short"));
+
+        // id の無い名刺は足す前と同じ (旗 bit7 が立たない)。
+        let plain = encode_producer_card(&input());
+        assert_eq!(base64url_decode(&producer_card_payload(&plain.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(plain.card.card_id, None);
+
+        let mut with_id = input();
+        with_id.card_id = Some(id.clone());
+        let enc = encode_producer_card(&with_id);
+        let back = decode_producer_card(&enc.url).expect("decodes");
+        assert_eq!(back.card_id.as_deref(), Some(id.as_str()));
+        assert_eq!(back, enc.card);
+
+        // 形の違う id は載せない。
+        let mut bad = input();
+        bad.card_id = Some("x".into());
+        assert_eq!(encode_producer_card(&bad).card.card_id, None);
+
+        // 知らない続きの旗が立っていたら読まない。
+        let mut bytes = base64url_decode(&producer_card_payload(&enc.card)).unwrap();
+        let ext_at = bytes.len() - CARD_ID_BYTES - 1;
+        bytes[ext_at] |= 1 << 1;
+        assert_eq!(decode_producer_card(&base64url_encode(&bytes)), None);
     }
 
     #[test]

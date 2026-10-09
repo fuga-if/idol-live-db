@@ -114,6 +114,18 @@ pub fn producer_card_pick_oshi(oshi: Vec<CardOshiEntry>) -> Vec<String> {
     crate::domain::producer_card::producer_card_pick_oshi(&oshi)
 }
 
+/// 自分の名刺 id を作る (`seed` は端末が作った UUID)。
+#[uniffi::export]
+pub fn producer_card_new_id(seed: String) -> String {
+    crate::domain::producer_card::producer_card_new_id(&seed)
+}
+
+/// 名刺 id の形として正しいか。
+#[uniffi::export]
+pub fn producer_card_id_is_valid(id: String) -> bool {
+    crate::domain::producer_card::producer_card_id_is_valid(&id)
+}
+
 /// 名刺に載せる担当 id (載せる順)。`chosen` が None (まだ選んでいない) なら自動の選び方。
 /// 選んだ人のうち担当から外れた人は抜け、誰も残らなければ自動の選び方。
 #[uniffi::export]
