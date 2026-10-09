@@ -120,6 +120,18 @@ pub fn producer_card_new_id(seed: String) -> String {
     crate::domain::producer_card::producer_card_new_id(&seed)
 }
 
+/// 名刺 id を名刺に載せるか (今は載せない。開閉はコアの定数 1 か所)。
+#[uniffi::export]
+pub fn producer_card_embeds_card_id() -> bool {
+    crate::domain::producer_card::producer_card_embeds_card_id()
+}
+
+/// 自分の名刺を組むときに載せる名刺 id (載せない間は None)。端末の Assembler はこれを通す。
+#[uniffi::export]
+pub fn producer_card_id_to_embed(card_id: Option<String>) -> Option<String> {
+    crate::domain::producer_card::producer_card_id_to_embed(card_id.as_deref())
+}
+
 /// 名刺 id の形として正しいか。
 #[uniffi::export]
 pub fn producer_card_id_is_valid(id: String) -> bool {

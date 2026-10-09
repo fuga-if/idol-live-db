@@ -1,7 +1,8 @@
 //! 受け取った P名刺の受け取り方・会った記録の FFI 面。ロジックは domain::card_meetings。
 
 use crate::domain::card_meetings::{
-    CardMeetingRecord, CardMeetingView, CardReceivePlan, CardReceiveVia, CardStoredRef,
+    CardIncoming, CardMeetingRecord, CardMeetingView, CardReceivePlan, CardReceiveVia,
+    CardSamePersonChoice, CardSamePersonConfirm, CardStoredRef,
 };
 
 #[uniffi::export]
@@ -27,24 +28,43 @@ pub fn card_meeting_views(meetings: Vec<CardMeetingRecord>) -> Vec<CardMeetingVi
     crate::domain::card_meetings::card_meeting_views(&meetings)
 }
 
-/// 名刺を受け取ったときのしまい方 (同じ人の名刺があるか・会った記録を足すか)。
+/// 名刺を受け取ったときのしまい方 (同じ人の名刺があるか・確かめるか・会った記録を足すか・最後の記録の書き換え)。
 #[uniffi::export]
 pub fn card_receive_plan(
-    incoming_payload: String,
+    incoming: CardIncoming,
     stored: Vec<CardStoredRef>,
     meetings: Vec<CardMeetingRecord>,
-    show_id: Option<String>,
-    met_at: String,
     match_same_person: bool,
+    choice: CardSamePersonChoice,
 ) -> CardReceivePlan {
     crate::domain::card_meetings::card_receive_plan(
-        &incoming_payload,
+        &incoming,
         &stored,
         &meetings,
-        show_id.as_deref(),
-        &met_at,
         match_same_person,
+        choice,
     )
+}
+
+/// 同じ人か確かめる画面 (今ある名刺と届いた名刺の名前・リンク、選択肢の言葉)。
+#[uniffi::export]
+pub fn card_same_person_confirm(
+    existing_payload: String,
+    incoming_payload: String,
+) -> Option<CardSamePersonConfirm> {
+    crate::domain::card_meetings::card_same_person_confirm(&existing_payload, &incoming_payload)
+}
+
+/// 名刺の会った記録のうち最後のもの (受け取った名刺の行はこれを写して持つ)。
+#[uniffi::export]
+pub fn card_latest_meeting(meetings: Vec<CardMeetingRecord>, card_id: String) -> Option<CardMeetingRecord> {
+    crate::domain::card_meetings::card_latest_meeting(&meetings, &card_id)
+}
+
+/// 会った記録の名刺に戻せるか (詳細の「この時の名刺に戻す」)。
+#[uniffi::export]
+pub fn card_meeting_restorable(meeting_payload: Option<String>, current_payload: String) -> bool {
+    crate::domain::card_meetings::card_meeting_restorable(meeting_payload.as_deref(), &current_payload)
 }
 
 /// 会った記録の無い名刺の 1 回目の記録の id (移行とバックアップで同じ id にする)。

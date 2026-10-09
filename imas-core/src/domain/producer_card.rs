@@ -134,8 +134,9 @@ pub struct ProducerCard {
     #[uniffi(default = false)]
     pub show_brand_labels: bool,
     /// 名刺 id (同じ人の名刺を見分ける。端末で一度だけ作るランダムな 11 文字、`producer_card_new_id`)。
-    /// 受け取った側は同じ id の名刺を 1 枚にまとめて会った記録を積む (`card_receive_plan`)。
-    /// 無い名刺 (足す前の版・紙の名刺) は中身が同じときだけ同じ人として扱う。
+    /// 受け取った側は同じ id で名前も同じ名刺を 1 枚にまとめて会った記録を積む (`card_receive_plan`。
+    /// 名前が違えば確かめる)。無い名刺 (足す前の版・紙の名刺・id を載せない今の名刺) は中身が同じか、
+    /// 名前と担当が同じとき (確かめる) に同じ人として扱う。自分の名刺に載せるかは `PRODUCER_CARD_EMBEDS_CARD_ID`。
     #[uniffi(default = None)]
     pub card_id: Option<String>,
 }
@@ -1071,6 +1072,30 @@ pub fn producer_card_new_id(seed: &str) -> String {
         h.to_le_bytes()
     };
     base64url_encode(&bytes)
+}
+
+/// 自分の名刺を組むとき (端末の Assembler) に名刺 id を載せるか。**名刺 id の開閉はこの 1 か所だけ**。
+///
+/// 公開中の 2.5.0 は名刺 id 入りの名刺 (旗 bit7) を「読めない名刺」として扱うので、今は載せない。
+/// 名刺 id を読める版 (2.6.0) が十分に行き渡る次の次の版で `true` にする。
+/// - 読む・書く (`decode_producer_card` / `encode_producer_card`) はこの定数に関係なく id を扱える
+///   (載せた名刺を受け取れるようにしておく)。端末は自分の名刺 id を作って持っておく。
+/// - 載せない間、受け取った側は「中身が同じ」で黙って、「名前と担当が同じ」で確かめてから同じ人とみなし、
+///   会った記録を積む (`card_meetings::card_receive_plan`)。
+/// - 編集画面の「古い版のアプリでは読めません」と「名刺 id を作り直す」は `producer_card_embeds_card_id` で切り替える。
+pub const PRODUCER_CARD_EMBEDS_CARD_ID: bool = false;
+
+/// 名刺 id を名刺に載せるか ([`PRODUCER_CARD_EMBEDS_CARD_ID`])。
+pub fn producer_card_embeds_card_id() -> bool {
+    PRODUCER_CARD_EMBEDS_CARD_ID
+}
+
+/// 自分の名刺を組むときに載せる名刺 id。載せない間は None ([`PRODUCER_CARD_EMBEDS_CARD_ID`])。
+pub fn producer_card_id_to_embed(card_id: Option<&str>) -> Option<String> {
+    if !PRODUCER_CARD_EMBEDS_CARD_ID {
+        return None;
+    }
+    card_id.filter(|id| card_id_bytes(id).is_some()).map(str::to_string)
 }
 
 /// 名刺 id の形として正しいか (端末に残っている id を確かめる)。
@@ -2521,6 +2546,21 @@ mod tests {
             show_brand_labels: false,
             card_id: None,
         }
+    }
+
+    /// 今は名刺 id を載せない (公開中の 2.5.0 が読めないため)。開けるのは定数 1 か所。
+    #[test]
+    fn card_id_is_not_embedded_until_the_switch_is_opened() {
+        let id = producer_card_new_id("0123456789abcdef");
+        assert!(!producer_card_embeds_card_id());
+        assert_eq!(producer_card_id_to_embed(Some(&id)), None);
+        assert_eq!(producer_card_id_to_embed(None), None);
+        // 組んだ名刺は足す前と 1 バイトも変わらない (旗 bit7 が立たない)。
+        let mut with_id = input();
+        with_id.card_id = producer_card_id_to_embed(Some(&id));
+        let enc = encode_producer_card(&with_id);
+        assert_eq!(base64url_decode(&producer_card_payload(&enc.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(enc.card, encode_producer_card(&input()).card);
     }
 
     #[test]
