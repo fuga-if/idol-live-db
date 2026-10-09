@@ -295,7 +295,7 @@ fun PlaylistDetailScreen(
                     )
                 }
                 else -> {
-                    val unplayable = PlaylistPlayback.unplayableCount(state.songs)
+                    val unplayable = PlaylistPlayback.unplayableCount(AppModule.from(context).lyricsPlayback, state.songs)
                     LazyColumn(Modifier.fillMaxSize()) {
                         item {
                             Column(Modifier.padding(DS.Space.card)) {

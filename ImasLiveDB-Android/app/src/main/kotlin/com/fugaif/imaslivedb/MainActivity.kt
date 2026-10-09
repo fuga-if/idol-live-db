@@ -84,7 +84,10 @@ class MainActivity : ComponentActivity() {
                 when (val bootState = boot.state.collectAsState().value) {
                     DatabaseBoot.State.Preparing -> SyncLoadingScreen(CloudKitSyncEngine.SyncState.Idle, onRetry = {})
                     is DatabaseBoot.State.Failed -> DatabaseRecoveryScreen(bootState.detail, onRetry = ::openDatabase)
-                    DatabaseBoot.State.Ready -> AppRoot(sync)
+                    DatabaseBoot.State.Ready -> {
+                        AppRoot(sync)
+                        com.fugaif.imaslivedb.ui.components.SpotifyPlaybackAlert()
+                    }
                 }
             }
         }

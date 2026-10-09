@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.player.RoutedLyricsPlayback
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasActionRowKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
@@ -54,6 +56,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasMenuRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
+import com.fugaif.imaslivedb.ui.designsystem.ImasNoticeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasNote
 import com.fugaif.imaslivedb.ui.designsystem.ImasPoint
@@ -67,6 +72,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import uniffi.imas_core.FullPlaybackService
+import uniffi.imas_core.fullPlaybackOptions
 import uniffi.imas_core.spotifyCheckClientId
 import uniffi.imas_core.spotifySetupGuide
 
@@ -76,7 +83,7 @@ fun SpotifySettingsRow(onOpen: () -> Unit) {
     val state by AppModule.from(LocalContext.current).spotifyService.state.collectAsState()
     ImasNavRow(
         title = if (state.isConnected) state.accountName ?: "Spotify" else "Spotify と連携",
-        subtitle = if (state.isConnected) "セトリやプレイリストを Spotify に書き出せます"
+        subtitle = if (state.isConnected) "Spotify でフル尺で鳴らし、書き出せます"
         else "自分の Spotify アプリの Client ID で使います",
         icon = Icons.AutoMirrored.Filled.QueueMusic,
         value = if (state.isConnected) "連携中" else null,
@@ -143,11 +150,13 @@ private fun ConnectedSections() {
         )
         state.clientId?.let { ImasValueRow(key = "Client ID", value = masked(it), monospaced = true) }
     }
+    PlaybackSection()
     ImasListSection("できること") {
         ImasPointList(
             points = listOf(
                 ImasPoint(Icons.AutoMirrored.Filled.QueueMusic, "公演のメニューから、セトリを Spotify のプレイリストにできます。"),
                 ImasPoint(Icons.AutoMirrored.Filled.PlaylistAdd, "自分のプレイリストを Spotify に書き出せます。"),
+                ImasPoint(Icons.Filled.PlayArrow, "曲を Spotify でフル尺で鳴らし、歌詞を追いかけられます (Spotify Premium が要ります)。"),
                 ImasPoint(Icons.AutoMirrored.Filled.OpenInNew, "曲の画面のメニューから、その曲を Spotify で開けます。"),
             ),
             modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
@@ -169,6 +178,48 @@ private fun ConnectedSections() {
         onDismiss = { confirmSignOut = false },
         dismissTitle = "やめる",
     )
+}
+
+/** フル尺をどちらで鳴らすか。鳴らす許可の無いログイン (プレイリストだけの頃) なら、ログインし直しを促す。iOS と対。 */
+@Composable
+private fun PlaybackSection() {
+    val context = LocalContext.current
+    val service = AppModule.from(context).spotifyService
+    val playback = AppModule.from(context).lyricsPlayback as? RoutedLyricsPlayback
+    val state by service.state.collectAsState()
+    if (state.canControlPlayback) {
+        val options = remember { fullPlaybackOptions() }
+        ImasListSection(
+            "フル再生",
+            footer = "Spotify で鳴らすときは、音は Spotify アプリから出ます。鳴らす前に一度 Spotify アプリを開いておいてください。",
+        ) {
+            ImasMenuRow(
+                title = "フル尺で鳴らす",
+                options = options.map { it.service },
+                selection = playback?.currentService() ?: state.fullPlaybackPreference ?: FullPlaybackService.SPOTIFY,
+                onSelect = service::setFullPlaybackPreference,
+                label = { s -> options.first { it.service == s }.label },
+                icon = Icons.Filled.PlayArrow,
+            )
+        }
+    } else {
+        ImasListSection("フル再生") {
+            ImasNotice(
+                kind = ImasNoticeKind.INFO,
+                title = "Spotify で鳴らすには、もう一度ログインが要ります",
+                message = "曲を鳴らす許可を足すためです。Client ID はそのまま使います。",
+                modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
+            )
+            state.clientId?.let { clientId ->
+                ImasActionRow(
+                    title = "もう一度ログイン",
+                    onClick = { service.startSignIn(context, clientId) },
+                    icon = Icons.AutoMirrored.Filled.Login,
+                    isLoading = state.isSigningIn,
+                )
+            }
+        }
+    }
 }
 
 @Composable

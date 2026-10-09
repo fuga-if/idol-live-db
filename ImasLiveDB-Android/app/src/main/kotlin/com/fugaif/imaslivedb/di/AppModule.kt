@@ -138,10 +138,14 @@ class AppModule private constructor(context: Context) {
     val communityPlaylistApi: com.fugaif.imaslivedb.data.community.CommunityPlaylistApi by lazy {
         com.fugaif.imaslivedb.data.community.CommunityPlaylistApi(workerHttpClient)
     }
-    /** 歌詞の追従・記録の再生 (Apple Music のフル再生)。 */
+    /** 歌詞の追従・記録の再生 (フル再生。Apple Music か Spotify に振り分ける)。 */
     val lyricsPlayback: com.fugaif.imaslivedb.player.LyricsPlayback by lazy {
-        com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
-            appContext as android.app.Application, workerHttpClient, songRepository
+        com.fugaif.imaslivedb.player.RoutedLyricsPlayback(
+            apple = com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
+                appContext as android.app.Application, workerHttpClient, songRepository
+            ),
+            spotifyPlayback = com.fugaif.imaslivedb.player.SpotifyLyricsPlayback(spotifyService),
+            spotify = spotifyService,
         )
     }
     /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。Android は NexTone 管理曲だけ返る。 */

@@ -174,7 +174,7 @@ fun CommunityPlaylistDetailScreen(
             when {
                 !state.loaded -> ImasLoadingState()
                 else -> {
-                    val unplayable = PlaylistPlayback.unplayableCount(state.songs)
+                    val unplayable = PlaylistPlayback.unplayableCount(AppModule.from(context).lyricsPlayback, state.songs)
                     val missing = (state.playlist?.songCount ?: 0) - state.songs.size
                     LazyColumn(Modifier.fillMaxSize()) {
                         item {

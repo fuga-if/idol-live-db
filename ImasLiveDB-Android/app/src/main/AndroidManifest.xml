@@ -44,6 +44,11 @@
       詳細は NotificationScheduler の KDoc。
     -->
 
+    <!-- Spotify で鳴らす先が無いとき、Spotify アプリを開く (開けば鳴らす先として見えるようになる)。 -->
+    <queries>
+        <package android:name="com.spotify.music" />
+    </queries>
+
     <application
         android:name=".ImasLiveDBApplication"
         android:allowBackup="true"

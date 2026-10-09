@@ -15,4 +15,8 @@ object PlaylistPlayback {
 
     /** Apple Music で鳴らせない曲 (配信なし) の数。一覧で「n 曲は飛ばします」と出す。 */
     fun unplayableCount(songs: List<Song>): Int = songs.count { it.appleMusicId.isNullOrEmpty() }
+
+    /** 一覧に出す「n 曲は飛ばします」の数。Spotify で鳴らすときは曲名で探すので、鳴らすまで分からない (0)。 */
+    fun unplayableCount(playback: LyricsPlayback, songs: List<Song>): Int =
+        if (playback.fullPlaysWithoutAppleMusicId) 0 else unplayableCount(songs)
 }

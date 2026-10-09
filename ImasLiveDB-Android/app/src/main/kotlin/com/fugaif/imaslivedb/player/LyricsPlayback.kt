@@ -5,10 +5,11 @@ import kotlinx.coroutines.flow.StateFlow
 /**
  * 歌詞と再生の繋ぎ。iOS の `LyricsPlayback` (DetailSheet が MusicKitService から組む) と同じ口。
  *
- * 追従・記録・ジャンプは Apple Music のフル再生だけ。30 秒試聴は曲のどこを切り出したか
+ * 追従・記録・ジャンプはフル再生 (Apple Music / Spotify) だけ。30 秒試聴は曲のどこを切り出したか
  * 分からないので、行の時刻と突き合わせられない。
  *
- * 実装は [AppleMusicLyricsPlayback] (MusicKit for Android)。SDK の AAR が無いビルドや、
+ * 実装は [RoutedLyricsPlayback] が [AppleMusicLyricsPlayback] (MusicKit for Android) と
+ * [SpotifyLyricsPlayback] (Spotify アプリの操作) に振り分ける。SDK の AAR が無いビルドや、
  * Apple Music に繋げない端末では [isAvailable] が false で、画面は「再生できない」と出す。
  */
 /** Apple Music に繋がっているか (画面が「サインイン」の案内を出すかを決める)。 */
@@ -78,6 +79,9 @@ interface LyricsPlayback {
 
     /** 積んだ曲の、いまの曲より後ろに残っている分 (songs.id と、「次はこれ」で足した曲ならその理由)。 */
     val upcomingQueue: StateFlow<List<Pair<String, String?>>>
+
+    /** Apple Music の id が無い曲もフル尺で鳴らせるか (Spotify は曲名で探して鳴らす)。 */
+    val fullPlaysWithoutAppleMusicId: Boolean get() = false
 }
 
 /** 再生できない環境の実装 (SDK の AAR が無いビルド等)。画面は「Apple Music で再生できません」と出す。 */

@@ -15,12 +15,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import uniffi.imas_core.FullPlaybackService
 import uniffi.imas_core.SpotifyFailure
 import uniffi.imas_core.SpotifyTrackCandidate
 import uniffi.imas_core.spotifyPlaylistDescription
+import uniffi.imas_core.spotifyScopesAllowPlayback
 import uniffi.imas_core.spotifySetupGuide
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -30,6 +37,10 @@ data class SpotifyState(
     val clientId: String? = null,
     val accountName: String? = null,
     val isConnected: Boolean = false,
+    /** Spotify アプリを操作して鳴らせる許可があるか (プレイリストだけの頃のログインには無い)。 */
+    val canControlPlayback: Boolean = false,
+    /** フル尺をどちらで鳴らすか (端末の設定)。null は選んでいない (コアの既定に任せる)。 */
+    val fullPlaybackPreference: FullPlaybackService? = null,
     /**
      * ブラウザから戻って、鍵を受け取っている間。ブラウザを開いている間は立てない
      * (閉じて戻られたことをアプリは知れないので、立てると下ろす機会が無い)。
@@ -73,6 +84,12 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
             clientId = prefs.getString(KEY_CLIENT_ID, null),
             accountName = prefs.getString(KEY_ACCOUNT_NAME, null),
             isConnected = tokens != null,
+            canControlPlayback = tokens?.scope?.let(::spotifyScopesAllowPlayback) ?: false,
+            fullPlaybackPreference = when (prefs.getString(KEY_FULL_PLAYBACK, null)) {
+                "spotify" -> FullPlaybackService.SPOTIFY
+                "apple_music" -> FullPlaybackService.APPLE_MUSIC
+                else -> null
+            },
         )
     )
     val state: StateFlow<SpotifyState> = _state.asStateFlow()
@@ -151,11 +168,21 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
 
     private fun loadTokens(): SpotifyWebApi.Tokens? = runCatching {
         val json = JSONObject(secure?.getString(KEY_TOKENS, null) ?: return null)
-        SpotifyWebApi.Tokens(json.getString("access"), json.getString("refresh"), json.getLong("expires"))
+        SpotifyWebApi.Tokens(
+            json.getString("access"), json.getString("refresh"), json.getLong("expires"),
+            json.optString("scope").ifEmpty { null },
+        )
     }.getOrNull()
+
+    /** フル尺をどちらで鳴らすかを選ぶ (端末の設定)。 */
+    fun setFullPlaybackPreference(value: FullPlaybackService) {
+        prefs.edit { putString(KEY_FULL_PLAYBACK, if (value == FullPlaybackService.SPOTIFY) "spotify" else "apple_music") }
+        _state.update { it.copy(fullPlaybackPreference = value) }
+    }
 
     private fun storeTokens(value: SpotifyWebApi.Tokens?) {
         tokens = value
+        _state.update { it.copy(canControlPlayback = value?.scope?.let(::spotifyScopesAllowPlayback) ?: false) }
         secure?.edit {
             if (value == null) {
                 remove(KEY_TOKENS)
@@ -163,19 +190,22 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
                 putString(
                     KEY_TOKENS,
                     JSONObject().put("access", value.accessToken).put("refresh", value.refreshToken)
-                        .put("expires", value.expiresAtMillis).toString()
+                        .put("expires", value.expiresAtMillis).put("scope", value.scope ?: "").toString()
                 )
             }
         }
     }
 
     /** 使える鍵。切れていれば更新する。更新もできなければログアウトして投げる。 */
-    private suspend fun accessToken(): String = tokenLock.withLock {
+    suspend fun accessToken(): String = tokenLock.withLock {
         val current = tokens ?: throw SpotifyException(SpotifyFailure.SESSION_EXPIRED)
         val clientId = _state.value.clientId ?: throw SpotifyException(SpotifyFailure.SESSION_EXPIRED)
         if (current.expiresAtMillis > System.currentTimeMillis()) return@withLock current.accessToken
         try {
-            SpotifyWebApi.refresh(current.refreshToken, clientId).also { storeTokens(it) }.accessToken
+            SpotifyWebApi.refresh(current.refreshToken, clientId)
+                // 更新の応答に権限が無ければ前のを引き継ぐ。
+                .let { it.copy(scope = it.scope ?: current.scope) }
+                .also { storeTokens(it) }.accessToken
         } catch (e: SpotifyException) {
             if (e.kind == SpotifyFailure.SESSION_EXPIRED) signOut()
             throw e
@@ -186,6 +216,20 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
 
     /** 曲の Spotify のページ。見つからなければ null。 */
     suspend fun trackUrl(songId: String): String? = findTrack(songId)?.let { SpotifyWebApi.trackUrl(it.first) }
+
+    /** 曲の Spotify の URI (`spotify:track:…`)。見つからなければ null。 */
+    suspend fun trackUri(songId: String): String? = findTrack(songId)?.second
+
+    /**
+     * 曲をまとめて探す (並びは [songIds] と同じ。見つからなければ null)。iOS `trackURIs` と対。
+     * 覚えている曲は探さない。探すのは同時に 4 曲まで (一度に投げすぎると 429 になる)。
+     */
+    suspend fun trackUris(songIds: List<String>): List<String?> = coroutineScope {
+        val gate = Semaphore(4)
+        songIds.map { songId ->
+            async { gate.withPermit { runCatching { trackUri(songId) }.getOrNull() } }
+        }.awaitAll()
+    }
 
     /** (Spotify の曲 id, uri)。 */
     private suspend fun findTrack(songId: String): Pair<String, String>? {
@@ -240,6 +284,7 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
         const val KEY_ACCOUNT_NAME = "account_name"
         const val KEY_TOKENS = "tokens"
         const val KEY_TRACK_PREFIX = "track."
+        const val KEY_FULL_PLAYBACK = "full_playback_preference"
         const val KEY_PENDING_VERIFIER = "pending_verifier"
         const val KEY_PENDING_STATE = "pending_state"
         const val KEY_PENDING_CLIENT_ID = "pending_client_id"

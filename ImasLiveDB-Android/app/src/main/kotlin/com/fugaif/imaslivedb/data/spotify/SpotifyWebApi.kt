@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.imas_core.SpotifyDevice
 import uniffi.imas_core.SpotifyFailure
 import uniffi.imas_core.spotifyFailureMessage
 import java.io.IOException
@@ -28,7 +29,11 @@ object SpotifyWebApi {
     private const val API = "https://api.spotify.com/v1/"
     private const val TIMEOUT_MS = 15_000
 
-    data class Tokens(val accessToken: String, val refreshToken: String, val expiresAtMillis: Long)
+    /** [scope] は許された権限 (空白区切り)。プレイリストだけの頃に保存した鍵には無い。 */
+    data class Tokens(val accessToken: String, val refreshToken: String, val expiresAtMillis: Long, val scope: String? = null)
+
+    /** `GET /me/player` の要るところだけ。 */
+    data class PlayerState(val trackId: String?, val progressMs: Long, val durationMs: Long?, val isPlaying: Boolean)
 
     data class Track(val id: String, val name: String, val artists: List<String>, val album: String, val uri: String)
 
@@ -74,6 +79,7 @@ object SpotifyWebApi {
             accessToken = json.getString("access_token"),
             refreshToken = refresh,
             expiresAtMillis = System.currentTimeMillis() + (json.optLong("expires_in", 3600) - 60) * 1000,
+            scope = json.optString("scope").ifEmpty { null },
         )
     }
 
@@ -112,6 +118,56 @@ object SpotifyWebApi {
         }
     }
 
+    // MARK: - 鳴らす (Spotify アプリを操作する。Premium が要る)
+
+    suspend fun devices(accessToken: String): List<SpotifyDevice> {
+        val list = JSONObject(api("GET", "me/player/devices", accessToken = accessToken)).getJSONArray("devices")
+        return (0 until list.length()).map { i ->
+            val d = list.getJSONObject(i)
+            SpotifyDevice(
+                id = d.optString("id").ifEmpty { null },
+                isActive = d.optBoolean("is_active"),
+                isRestricted = d.optBoolean("is_restricted"),
+                kind = d.optString("type"),
+            )
+        }
+    }
+
+    /**
+     * 曲を並べて、[offset] 番目から鳴らし始める。
+     *
+     * 後ろの曲は Spotify の「次に再生」(`POST /me/player/queue`) には積まない。そちらは鳴らし直しても
+     * 消えず (空にする口が無い)、次の再生に前の残りが割り込むため。並べる曲はすべてここで渡す。
+     */
+    suspend fun play(uris: List<String>, offset: Int, deviceId: String, accessToken: String) {
+        val body = JSONObject().put("uris", JSONArray(uris)).put("offset", JSONObject().put("position", offset))
+        api("PUT", "me/player/play?device_id=${enc(deviceId)}", body.toString(), accessToken)
+    }
+
+    suspend fun pause(accessToken: String) { api("PUT", "me/player/pause", accessToken = accessToken) }
+    suspend fun resume(accessToken: String) { api("PUT", "me/player/play", accessToken = accessToken) }
+    suspend fun seek(ms: Long, accessToken: String) {
+        api("PUT", "me/player/seek?position_ms=${ms.coerceAtLeast(0)}", accessToken = accessToken)
+    }
+    suspend fun next(accessToken: String) { api("POST", "me/player/next", accessToken = accessToken) }
+    suspend fun previous(accessToken: String) { api("POST", "me/player/previous", accessToken = accessToken) }
+
+    /** 今鳴っているもの。何も鳴らしていなければ null (204)。 */
+    suspend fun playerState(accessToken: String): PlayerState? {
+        val text = api("GET", "me/player", accessToken = accessToken)
+        if (text.isBlank()) return null
+        val json = JSONObject(text)
+        val item = json.optJSONObject("item")
+        return PlayerState(
+            trackId = item?.optString("id")?.ifEmpty { null },
+            progressMs = json.optLong("progress_ms", 0),
+            durationMs = item?.optLong("duration_ms")?.takeIf { it > 0 },
+            isPlaying = json.optBoolean("is_playing"),
+        )
+    }
+
+    private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8").replace("+", "%20")
+
     fun trackUrl(id: String): String = "https://open.spotify.com/track/$id"
 
     private suspend fun api(method: String, path: String, json: String? = null, accessToken: String): String {
@@ -125,13 +181,25 @@ object SpotifyWebApi {
             when {
                 code in 200..299 -> return text ?: ""
                 code == 401 -> throw SpotifyException(SpotifyFailure.SESSION_EXPIRED)
-                code == 403 -> throw SpotifyException(SpotifyFailure.NOT_REGISTERED)
+                code == 403 -> throw SpotifyException(forbiddenKind(text))
+                // 鳴らす口の 404 は「鳴らす先が無い」(NO_ACTIVE_DEVICE)。
+                code == 404 && path.startsWith("me/player") -> throw SpotifyException(SpotifyFailure.NO_DEVICE)
                 code == 429 && attempt == 0 -> delay((retryAfter ?: 2L).coerceAtMost(10L) * 1000)
                 code == 429 -> throw SpotifyException(SpotifyFailure.RATE_LIMITED)
                 else -> throw SpotifyException(SpotifyFailure.OTHER)
             }
         }
         throw SpotifyException(SpotifyFailure.OTHER)
+    }
+
+    /** 403 の中身で分ける: Premium が要る / 権限が足りない / アプリに登録されていない。 */
+    private fun forbiddenKind(body: String?): SpotifyFailure = when {
+        body == null -> SpotifyFailure.NOT_REGISTERED
+        body.contains("PREMIUM_REQUIRED") -> SpotifyFailure.PREMIUM_REQUIRED
+        // 「今はできない」(再生中に再生・先頭で前へ など)。失敗として伝えず、状態を読み直せば足りる。
+        body.contains("Restriction") -> SpotifyFailure.OTHER
+        body.contains("scope", ignoreCase = true) -> SpotifyFailure.PLAYBACK_NOT_ALLOWED
+        else -> SpotifyFailure.NOT_REGISTERED
     }
 
     private suspend fun send(method: String, url: String, headers: Map<String, String>, body: String?): Pair<Int, String?> {
