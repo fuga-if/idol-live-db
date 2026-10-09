@@ -44,7 +44,7 @@ final class SpotifyService {
         }
     }
 
-    private let guide = spotifySetupGuide()
+    private let guide = spotifySetupGuide(platform: .ios)
     private var authSession: ASWebAuthenticationSession?
     private let presentation = PresentationAnchor()
 

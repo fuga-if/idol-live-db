@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Spotify 連携の始め方を、Spotify の開発者サイトの画面を模した図つきで案内する画面。
 /// ヘルプ →「Spotify と連携する」と、設定の「Spotify」から開く。
@@ -7,9 +6,8 @@ import UIKit
 /// 手順の題と説明・注意はコア (`spotifySetupGuide`) が持つ (設定の画面と同じ文)。
 /// 図の中の英語は Spotify の画面に出る表記そのまま (探すときに同じ字面で見つけられるように)。
 struct SpotifyHowToView: View {
-    private let guide = spotifySetupGuide()
+    private let guide = spotifySetupGuide(platform: .ios)
     @Environment(\.openURL) private var openURL
-    @State private var copiedCount = 0
 
     var body: some View {
         ImasPage {
@@ -32,7 +30,6 @@ struct SpotifyHowToView: View {
         .navigationTitle("Spotify と連携する")
         .navigationBarTitleDisplayMode(.inline)
         .trackScreen("spotify_how_to")
-        .sensoryFeedback(.success, trigger: copiedCount)
     }
 
     // MARK: - 頭・注意
@@ -61,6 +58,13 @@ struct SpotifyHowToView: View {
 
     // MARK: - 図
 
+    /// その手順で貼る値を、写せる形で並べる。
+    private func copyFields(_ step: SpotifyGuideStep) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ForEach(step.values, id: \.label) { ImasCopyField(label: $0.label, value: $0.value) }
+        }
+    }
+
     @ViewBuilder
     private func illustration(_ index: Int) -> some View {
         switch index {
@@ -83,21 +87,18 @@ struct SpotifyHowToView: View {
                 ImasMockField(label: "Redirect URIs", value: guide.redirectUri, isTarget: true)
                 ImasMockButton(title: "Add", isTarget: true)
             }
-            ImasButton(title: copiedCount > 0 ? "コピー済み" : "Redirect URI をコピー",
-                       systemImage: copiedCount > 0 ? "checkmark" : "doc.on.doc",
-                       role: .secondary, size: .small) {
-                UIPasteboard.general.string = guide.redirectUri
-                copiedCount += 1
-            }
+            copyFields(guide.steps[2])
         case 3:
             ImasMockBrowser(url: "developer.spotify.com/dashboard/create") {
                 Text("Which API/SDKs are you planning to use?").imasText(.meta)
                 ImasMockCheck(label: "Web API", isChecked: true)
                 ImasMockCheck(label: "Web Playback SDK")
                 ImasMockCheck(label: "Android")
-                ImasMockCheck(label: "iOS")
+                ImasMockCheck(label: "iOS", isChecked: true)
+                ForEach(guide.steps[3].values, id: \.label) { ImasMockField(label: $0.label, value: $0.value, isTarget: true) }
                 ImasMockButton(title: "Save", isTarget: true)
             }
+            copyFields(guide.steps[3])
         default:
             ImasMockBrowser(url: "developer.spotify.com/dashboard/…/settings") {
                 Text("Basic Information").imasText(.rowTitle)

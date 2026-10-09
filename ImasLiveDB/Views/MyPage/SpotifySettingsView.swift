@@ -28,11 +28,10 @@ struct SpotifySettingsRow: View {
 /// 手順の中で要る操作 (開発者サイトを開く・Redirect URI を写す) はその手順の真下に置く。
 struct SpotifySettingsView: View {
     private var spotify: SpotifyService { .shared }
-    private let guide = spotifySetupGuide()
+    private let guide = spotifySetupGuide(platform: .ios)
 
     @Environment(\.openURL) private var openURL
     @State private var clientIdInput = SpotifyService.shared.clientId ?? ""
-    @State private var copiedCount = 0
     @State private var errorMessage: String?
     @State private var confirmSignOut = false
 
@@ -51,7 +50,6 @@ struct SpotifySettingsView: View {
         .navigationTitle("Spotify")
         .navigationBarTitleDisplayMode(.inline)
         .imasErrorAlert("Spotify にログインできませんでした", message: $errorMessage)
-        .sensoryFeedback(.success, trigger: copiedCount)
         .task { await MusicKitService.shared.checkSubscriptionIfAuthorized() }
     }
 
@@ -171,39 +169,20 @@ struct SpotifySettingsView: View {
 
     private var steps: [ImasStepList.Step] {
         guide.steps.enumerated().map { index, step in
-            switch index {
-            case 0:
+            if index == 0 {
                 return .init(title: step.title, detail: step.detail) {
                     ImasButton(title: "開発者サイトを開く", systemImage: "safari", role: .secondary, size: .small) {
                         if let url = URL(string: guide.dashboardUrl) { openURL(url) }
                     }
                 }
-            case 2:
-                return .init(title: step.title, detail: step.detail) { redirectURIBox }
-            default:
-                return .init(title: step.title, detail: step.detail)
+            }
+            guard !step.values.isEmpty else { return .init(title: step.title, detail: step.detail) }
+            return .init(title: step.title, detail: step.detail) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    ForEach(step.values, id: \.label) { ImasCopyField(label: $0.label, value: $0.value) }
+                }
             }
         }
-    }
-
-    /// 貼ってもらう値。読み違えないよう等幅で出し、押すだけで写せるようにする。
-    private var redirectURIBox: some View {
-        HStack(spacing: DS.Space.gap) {
-            Text(guide.redirectUri)
-                .font(ImasTextRole.value.font.monospaced())
-                .foregroundStyle(DS.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .textSelection(.enabled)
-            Spacer(minLength: 0)
-            ImasButton(title: copiedCount > 0 ? "コピー済み" : "コピー",
-                       systemImage: copiedCount > 0 ? "checkmark" : "doc.on.doc",
-                       role: .secondary, size: .small) {
-                UIPasteboard.general.string = guide.redirectUri
-                copiedCount += 1
-            }
-        }
-        .accessibilityElement(children: .contain)
     }
 
     private func signIn() {

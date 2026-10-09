@@ -123,6 +123,9 @@ final class MusicKitService {
 
     func clearSpotifyFailure() { spotifyFailure = nil }
 
+    /// Spotify アプリから戻ってきた (`imaslivedb://spotify-callback`)。SDK の繋ぎ直しに使う。
+    func handleSpotifyCallback(_ url: URL) { spotifyRemote.handleCallback(url) }
+
     /// LRU キャッシュ（最大500件）
     private let cache: NSCache<NSString, Boxed<MusicKitSongInfo?>> = {
         let c = NSCache<NSString, Boxed<MusicKitSongInfo?>>()

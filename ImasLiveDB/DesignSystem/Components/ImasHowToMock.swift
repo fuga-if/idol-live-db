@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - 図解の部品 (よその画面の見立て)
 
@@ -75,5 +76,39 @@ struct ImasMockCheck: View {
             Text(label).imasText(.value, color: isChecked ? DS.ink : DS.ink3)
             if isChecked { ImasBadge(text: "ここ", kind: .lead) }
         }
+    }
+}
+
+// MARK: - 写してもらう値
+
+/// よその画面に貼ってもらう値 1 つ (Redirect URI・Bundle ID・指紋)。欄の名前と、読み違えないよう等幅の値と、
+/// 押すだけで写せるコピーのボタン。写したらボタンが「コピー済み」に替わり、手応えを返す。
+struct ImasCopyField: View {
+    let label: String
+    let value: String
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+            Text(label).imasText(.meta)
+            HStack(spacing: DS.Space.gap) {
+                Text(value)
+                    .font(ImasTextRole.value.font.monospaced())
+                    .foregroundStyle(DS.ink)
+                    // 途中で折り返すと、改行も値の一部に見える。1 行に縮めて収める。
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .textSelection(.enabled)
+                Spacer(minLength: 0)
+                ImasButton(title: copied ? "コピー済み" : "コピー",
+                           systemImage: copied ? "checkmark" : "doc.on.doc",
+                           role: .secondary, size: .small) {
+                    UIPasteboard.general.string = value
+                    copied = true
+                }
+            }
+        }
+        .sensoryFeedback(.success, trigger: copied)
+        .accessibilityElement(children: .contain)
     }
 }

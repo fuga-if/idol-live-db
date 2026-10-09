@@ -17,6 +17,10 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
+  # Spotify のフル再生 (利用者の Spotify アプリと繋ぐ App Remote)。
+  SpotifyiOS:
+    url: https://github.com/spotify/ios-sdk
+    from: "5.0.1"
 
 # 版はここ 1 箇所だけ。ターゲットごとに書くと必ずずれる — 実際、fastlane の
 # 書き戻しが `sub!` (最初の 1 件だけ置換) だったため、本体が 53 に上がっても
@@ -124,6 +128,9 @@ targets:
           - CFBundleURLName: com.fugaif.ImasLiveDB
             CFBundleURLSchemes:
               - imaslivedb
+        # Spotify の SDK が Spotify アプリの有無を確かめる (無ければ App Store へ案内する)。
+        LSApplicationQueriesSchemes:
+          - spotify
         # P名刺の近くの端末への直接の受け渡し (MultipeerConnectivity の service type "imascard")。
         # 配列なので INFOPLIST_KEY_* では書けない。
         NSBonjourServices:
@@ -175,6 +182,8 @@ targets:
         product: NukeUI
       - package: Firebase
         product: FirebaseAnalytics
+      - package: SpotifyiOS
+        product: SpotifyiOS
       # imas-core (Rust): imas-core/build.sh で生成。
       # Apple では rusqlite が system SQLite とリンクするため libsqlite3 を明示
       # (bundled を静的リンクすると GRDB まで同梱 SQLite に乗っ取られる — Cargo.toml 参照)

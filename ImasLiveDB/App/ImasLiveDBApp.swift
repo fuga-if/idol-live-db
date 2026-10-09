@@ -105,6 +105,11 @@ struct ImasLiveDBApp: App {
             }
             .task { await boot.prepare() }
             .onOpenURL { url in
+                // Spotify アプリから戻ってきた (SDK の繋ぎ直し)。詳細ページの深いリンクではない。
+                if url.host() == "spotify-callback" {
+                    MusicKitService.shared.handleSpotifyCallback(url)
+                    return
+                }
                 // deeplink 着地時は起動シート (オンボーディング/日替わりピック) を閉じて
                 // 詳細ページの提示 (ContentView が incomingURL を開く) を優先する。
                 // オンボーディング既読フラグは onDismiss で通常どおり確定される。
