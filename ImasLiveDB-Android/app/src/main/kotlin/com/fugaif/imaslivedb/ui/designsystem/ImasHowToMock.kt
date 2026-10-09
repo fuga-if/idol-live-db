@@ -15,7 +15,17 @@ import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -97,5 +107,41 @@ fun ImasMockCheck(label: String, isChecked: Boolean = false) {
         )
         Text(label, style = ImasTextRole.VALUE.style, color = if (isChecked) DS.ink else DS.ink3)
         if (isChecked) ImasBadge("ここ", kind = ImasBadgeKind.LEAD)
+    }
+}
+
+// MARK: - 写してもらう値
+
+/**
+ * よその画面に貼ってもらう値 1 つ (Redirect URI・パッケージ名・指紋)。iOS `ImasCopyField`。
+ * 欄の名前と、読み違えないよう等幅の値と、押すだけで写せるコピーのボタン。写したら「コピー済み」に替わり、手応えを返す。
+ */
+@Composable
+fun ImasCopyField(label: String, value: String) {
+    val clipboard = LocalClipboardManager.current
+    val haptics = LocalHapticFeedback.current
+    var copied by remember(value) { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+        Text(label, style = ImasTextRole.META.style, color = ImasTextRole.META.color)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            Text(
+                value,
+                style = ImasTextRole.VALUE.style.copy(fontFamily = FontFamily.Monospace),
+                color = DS.ink,
+                maxLines = 2,
+                modifier = Modifier.weight(1f),
+            )
+            ImasButton(
+                title = if (copied) "コピー済み" else "コピー",
+                onClick = {
+                    clipboard.setText(AnnotatedString(value))
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    copied = true
+                },
+                icon = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+                role = ImasButtonRole.SECONDARY,
+                size = ImasButtonSize.SMALL,
+            )
+        }
     }
 }

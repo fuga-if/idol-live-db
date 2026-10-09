@@ -28,6 +28,7 @@ import uniffi.imas_core.SpotifyFailure
 import uniffi.imas_core.SpotifyTrackCandidate
 import uniffi.imas_core.spotifyPlaylistDescription
 import uniffi.imas_core.spotifyScopesAllowPlayback
+import uniffi.imas_core.SpotifyGuidePlatform
 import uniffi.imas_core.spotifySetupGuide
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -75,7 +76,7 @@ class SpotifyService(context: Context, private val snapshot: SnapshotStoreProvid
             )
         }.onFailure { Log.w(TAG, "鍵の保存先を開けない: ${it.message}") }.getOrNull()
     }
-    private val guide = spotifySetupGuide()
+    private val guide = spotifySetupGuide(SpotifyGuidePlatform.ANDROID)
     private val tokenLock = Mutex()
     private var tokens: SpotifyWebApi.Tokens? = loadTokens()
 

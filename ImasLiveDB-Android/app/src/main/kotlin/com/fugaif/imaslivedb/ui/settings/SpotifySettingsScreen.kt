@@ -52,6 +52,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceDialog
+import com.fugaif.imaslivedb.ui.designsystem.ImasCopyField
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
@@ -75,6 +76,7 @@ import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import uniffi.imas_core.FullPlaybackService
 import uniffi.imas_core.fullPlaybackOptions
 import uniffi.imas_core.spotifyCheckClientId
+import uniffi.imas_core.SpotifyGuidePlatform
 import uniffi.imas_core.spotifySetupGuide
 
 /** 設定の「Spotify」の行。状態を出して、案内の画面へ進む。iOS `SpotifySettingsRow`。 */
@@ -227,7 +229,7 @@ private fun SetupSections(onOpenHowTo: (() -> Unit)?) {
     val context = LocalContext.current
     val service = AppModule.from(context).spotifyService
     val state by service.state.collectAsState()
-    val guide = remember { spotifySetupGuide() }
+    val guide = remember { spotifySetupGuide(SpotifyGuidePlatform.ANDROID) }
     var clientIdInput by remember { mutableStateOf(state.clientId ?: "") }
     val check = spotifyCheckClientId(clientIdInput)
 
@@ -247,8 +249,15 @@ private fun SetupSections(onOpenHowTo: (() -> Unit)?) {
                             size = ImasButtonSize.SMALL,
                         )
                     }
-                    2 -> ImasStep(step.title, step.detail) { RedirectUriBox(guide.redirectUri) }
-                    else -> ImasStep(step.title, step.detail)
+                    else -> if (step.values.isEmpty()) {
+                        ImasStep(step.title, step.detail)
+                    } else {
+                        ImasStep(step.title, step.detail) {
+                            Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                                step.values.forEach { ImasCopyField(it.label, it.value) }
+                            }
+                        }
+                    }
                 }
             },
             modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapLoose),
@@ -287,39 +296,6 @@ private fun SetupSections(onOpenHowTo: (() -> Unit)?) {
         ) {
             guide.troubleshooting.forEach { ImasNote(it) }
         }
-    }
-}
-
-/** 貼ってもらう値。読み違えないよう等幅で出し、押すだけで写せるようにする。 */
-@Composable
-private fun RedirectUriBox(value: String) {
-    val clipboard = LocalClipboardManager.current
-    val haptics = LocalHapticFeedback.current
-    var copied by remember { mutableStateOf(false) }
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(DS.Space.gap),
-    ) {
-        Text(
-            value,
-            style = ImasTextRole.VALUE.style.copy(fontFamily = FontFamily.Monospace),
-            color = DS.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        ImasButton(
-            title = if (copied) "コピー済み" else "コピー",
-            onClick = {
-                clipboard.setText(AnnotatedString(value))
-                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                copied = true
-            },
-            icon = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
-            role = ImasButtonRole.SECONDARY,
-            size = ImasButtonSize.SMALL,
-        )
     }
 }
 

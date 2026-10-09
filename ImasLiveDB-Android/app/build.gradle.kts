@@ -212,6 +212,10 @@ dependencies {
     if (hasMusicKit) implementation(libs.androidx.appcompat)
     // Apple Music のサインインを開くアプリ内ブラウザ (Custom Tabs)。1.8.0 は既存の依存を動かさない版。
     implementation(libs.androidx.browser)
+    // Spotify App Remote SDK (利用者の Spotify アプリと繋いで鳴らす)。Maven に無いので AAR を置いている
+    // (app/spotify-sdk/README.md)。SDK が状態を JSON で受け渡すのに Gson が要る。
+    implementation(files("spotify-sdk/spotify-app-remote-release-0.8.0.aar"))
+    implementation(libs.gson)
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)

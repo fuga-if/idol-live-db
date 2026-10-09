@@ -144,7 +144,7 @@ class AppModule private constructor(context: Context) {
             apple = com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
                 appContext as android.app.Application, workerHttpClient, songRepository
             ),
-            spotifyPlayback = com.fugaif.imaslivedb.player.SpotifyLyricsPlayback(spotifyService),
+            spotifyPlayback = com.fugaif.imaslivedb.player.SpotifyLyricsPlayback(appContext, spotifyService),
             spotify = spotifyService,
         )
     }

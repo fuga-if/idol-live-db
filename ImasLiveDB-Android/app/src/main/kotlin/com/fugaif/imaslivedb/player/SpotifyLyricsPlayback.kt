@@ -1,6 +1,14 @@
 package com.fugaif.imaslivedb.player
 
+import android.content.Context
 import android.util.Log
+import com.spotify.android.appremote.api.ConnectionParams
+import com.spotify.android.appremote.api.Connector
+import com.spotify.android.appremote.api.PlayerApi
+import com.spotify.android.appremote.api.SpotifyAppRemote
+import com.spotify.android.appremote.api.error.CouldNotFindSpotifyApp
+import com.spotify.protocol.client.Subscription
+import com.spotify.protocol.types.PlayerState
 import com.fugaif.imaslivedb.data.spotify.SpotifyException
 import com.fugaif.imaslivedb.data.spotify.SpotifyService
 import com.fugaif.imaslivedb.data.spotify.SpotifyWebApi
@@ -14,6 +22,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import uniffi.imas_core.SpotifyGuidePlatform
+import uniffi.imas_core.spotifySetupGuide
 import uniffi.imas_core.SpotifyFailure
 import uniffi.imas_core.playQueueNextIndex
 import uniffi.imas_core.playQueuePreviousIndex
@@ -21,12 +34,16 @@ import uniffi.imas_core.spotifyPickDevice
 import uniffi.imas_core.spotifyPositionNow
 
 /**
- * Spotify アプリを Web API で操作して鳴らす [LyricsPlayback] (Spotify Connect)。iOS `SpotifyRemotePlayer` と
- * `MusicKitService` の Spotify の枝を合わせたもの。音を出すのは利用者の Spotify アプリで、このアプリは
- * 「この曲を鳴らして」「今どこ？」を頼むだけ (SDK は使わない。Client ID の登録だけで済む)。
+ * 利用者の Spotify アプリと Spotify の SDK (App Remote) で繋いで鳴らす [LyricsPlayback]。iOS `SpotifyRemotePlayer` と
+ * `MusicKitService` の Spotify の枝を合わせたもの。音を出すのは Spotify アプリで、このアプリは「この曲を鳴らして」と
+ * 頼み、鳴っている曲と位置を Spotify アプリから知らされる。
  *
- * 再生位置は周期で聞きに行き、間はコア (`spotifyPositionNow`) が経過を足して埋める。
- * 鳴らす先 (どの端末の Spotify アプリか) はコア (`spotifyPickDevice`) が選ぶ。
+ * - 繋ぐ: SDK が Spotify アプリを裏で起こして繋ぐ。初回は Spotify アプリが許可の画面を出す
+ *   (利用者の Spotify アプリにこのアプリのパッケージ名と指紋が登録されている必要がある。案内はコア)。
+ * - 鳴らす: 1 曲は SDK で。並べて鳴らすときは SDK に口が無いので、繋いだ後に Web API の
+ *   `PUT /me/player/play` に並べた曲を渡す (鳴らす先はコア `spotifyPickDevice` が選ぶ)。
+ * - 位置: SDK が状態の変わり目を知らせる。その間はコア (`spotifyPositionNow`) が経過を足して埋める。
+ *   SDK の接続が切れている間は Web API に周期で聞きに行く。
  *
  * 鳴らし始めは Spotify 側の切り替わりが遅れる (頼んでから 1〜2 秒は前の曲が返る)。
  * そこで鳴らし始めごとに番号 ([session]) を振り、頼んだ曲が一度返ってくるまでの状態は写さない。
@@ -35,7 +52,10 @@ import uniffi.imas_core.spotifyPositionNow
  * 「次はこれ」は Spotify では足さない。足すには Spotify の「次に再生」に積むしかなく、
  * それは鳴らし直しても消えずに次の再生へ割り込むため。
  */
-class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlayback {
+class SpotifyLyricsPlayback(
+    private val context: Context,
+    private val spotify: SpotifyService,
+) : LyricsPlayback {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // Apple Music の口は振り分け ([RoutedLyricsPlayback]) が持つ。ここでは使わない。
@@ -81,6 +101,11 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
     /** 鳴り始める前に頼まれた位置。鳴り始めたら送る。 */
     private var pendingSeekMs: Int? = null
 
+    /** SDK の接続。切れていれば null。 */
+    private var appRemote: SpotifyAppRemote? = null
+    private var stateSubscription: Subscription<PlayerState>? = null
+    private val connected: SpotifyAppRemote? get() = appRemote?.takeIf { it.isConnected }
+
     override fun positionMs(): Int? {
         val last = last ?: return null
         if (_loadedSongId.value == null) return null
@@ -107,11 +132,19 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         detach()
         val mine = session
         try {
-            val token = spotify.accessToken()
-            val devices = SpotifyWebApi.devices(token)
-            val device = spotifyPickDevice(devices)?.let { devices[it.toInt()].id }
-                ?: throw SpotifyException(SpotifyFailure.NO_DEVICE)
-            SpotifyWebApi.play(playable.map { it.second }, start, device, token)
+            val remote = ensureConnected()
+            val uris = playable.map { it.second }
+            if (uris.size == 1) {
+                playNative(remote, uris[0])
+            } else {
+                try {
+                    playList(uris, start)
+                } catch (e: SpotifyException) {
+                    // 繋いだ直後で鳴らす先の一覧に出てこないことがある。せめて押した曲だけは鳴らす。
+                    if (e.kind != SpotifyFailure.NO_DEVICE) throw e
+                    playNative(remote, uris[start])
+                }
+            }
         } catch (e: SpotifyException) {
             _failure.value = e.kind
             return false
@@ -127,18 +160,19 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         _loadedSongId.value = playable[start].first
         _isPlaying.value = true
         refreshQueueFlags()
+        subscribe()
         startPolling()
         return true
     }
 
     override fun skipNext() {
-        if (_canSkipNext.value) send { SpotifyWebApi.next(it) }
+        if (_canSkipNext.value) command({ it.skipNext() }) { SpotifyWebApi.next(it) }
     }
 
     override fun skipPrevious() {
         val index = queueIndex ?: return
         val target = playQueuePreviousIndex(index.toUInt(), (positionMs() ?: 0).toLong())
-        if (target.toInt() == index) seek(0) else send { SpotifyWebApi.previous(it) }
+        if (target.toInt() == index) seek(0) else command({ it.skipPrevious() }) { SpotifyWebApi.previous(it) }
     }
 
     override fun seek(ms: Int) {
@@ -148,7 +182,7 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
             pendingSeekMs = ms
             return
         }
-        send { SpotifyWebApi.seek(ms.toLong(), it) }
+        command({ it.seekTo(ms.coerceAtLeast(0).toLong()) }) { SpotifyWebApi.seek(ms.toLong(), it) }
     }
 
     override fun togglePlay() {
@@ -156,11 +190,11 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         if (_isPlaying.value) {
             last = current.copy(progressMs = (positionMs() ?: 0).toLong(), isPlaying = false, fetchedAt = System.currentTimeMillis())
             _isPlaying.value = false
-            send { SpotifyWebApi.pause(it) }
+            command({ it.pause() }) { SpotifyWebApi.pause(it) }
         } else {
             last = current.copy(isPlaying = true, fetchedAt = System.currentTimeMillis())
             _isPlaying.value = true
-            send { SpotifyWebApi.resume(it) }
+            command({ it.resume() }) { SpotifyWebApi.resume(it) }
         }
     }
 
@@ -168,12 +202,14 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
     override fun stop() {
         val playing = _loadedSongId.value != null && _isPlaying.value
         detach()
-        if (playing) send(pollAfter = false) { SpotifyWebApi.pause(it) }
+        if (playing) command({ it.pause() }, pollAfter = false) { SpotifyWebApi.pause(it) }
     }
 
     /** 追うのをやめて状態を手放す (Spotify 側の音は触らない)。 */
     private fun detach() {
         session++
+        stateSubscription?.cancel()
+        stateSubscription = null
         pollJob?.cancel()
         pollJob = null
         last = null
@@ -198,7 +234,90 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         }
     }
 
-    // MARK: - Spotify とのやりとり
+    // MARK: - SDK
+
+    /** 繋がっていなければ繋ぐ (Spotify アプリを裏で起こす。初回は Spotify アプリが許可を尋ねる)。 */
+    private suspend fun ensureConnected(): SpotifyAppRemote {
+        connected?.let { return it }
+        val clientId = spotify.state.value.clientId ?: throw SpotifyException(SpotifyFailure.SESSION_EXPIRED)
+        if (!SpotifyAppRemote.isSpotifyInstalled(context)) throw SpotifyException(SpotifyFailure.APP_NOT_INSTALLED)
+        val params = ConnectionParams.Builder(clientId)
+            .setRedirectUri(spotifySetupGuide(SpotifyGuidePlatform.ANDROID).redirectUri)
+            .showAuthView(true)
+            .build()
+        val remote = suspendCancellableCoroutine { cont ->
+            SpotifyAppRemote.connect(context, params, object : Connector.ConnectionListener {
+                override fun onConnected(remote: SpotifyAppRemote) {
+                    if (cont.isActive) cont.resume(remote)
+                }
+
+                override fun onFailure(error: Throwable) {
+                    Log.w(TAG, "spotify_sdk_connect_failed: $error")
+                    val kind = when (error) {
+                        is CouldNotFindSpotifyApp -> SpotifyFailure.APP_NOT_INSTALLED
+                        else -> SpotifyFailure.CONNECTION_FAILED
+                    }
+                    // 繋いだ後に切れたときもここに来る。そのときは Web API に聞く方へ落とすだけ。
+                    appRemote = null
+                    if (cont.isActive) cont.resumeWithException(SpotifyException(kind))
+                }
+            })
+        }
+        appRemote = remote
+        return remote
+    }
+
+    private suspend fun playNative(remote: SpotifyAppRemote, uri: String) {
+        suspendCancellableCoroutine { cont ->
+            remote.playerApi.play(uri)
+                .setResultCallback { if (cont.isActive) cont.resume(Unit) }
+                .setErrorCallback {
+                    Log.w(TAG, "spotify_sdk_play_failed: $it")
+                    if (cont.isActive) cont.resumeWithException(SpotifyException(SpotifyFailure.PREMIUM_REQUIRED))
+                }
+        }
+    }
+
+    private suspend fun playList(uris: List<String>, offset: Int) {
+        val token = spotify.accessToken()
+        val devices = SpotifyWebApi.devices(token)
+        val device = spotifyPickDevice(devices)?.let { devices[it.toInt()].id }
+            ?: throw SpotifyException(SpotifyFailure.NO_DEVICE)
+        SpotifyWebApi.play(uris, offset, device, token)
+    }
+
+    /** SDK の知らせを受け始める。 */
+    private fun subscribe() {
+        val remote = connected ?: return
+        stateSubscription?.cancel()
+        val mine = session
+        stateSubscription = remote.playerApi.subscribeToPlayerState().setEventCallback { state ->
+            if (mine != session) return@setEventCallback
+            val track = state.track
+            accept(
+                track?.uri?.let(::trackId),
+                state.playbackPosition,
+                track?.duration?.takeIf { it > 0 },
+                !state.isPaused,
+            )
+        }
+    }
+
+    /** 操作を送る。繋がっていれば SDK で、繋がっていなければ Web API で。 */
+    private fun command(
+        native: (PlayerApi) -> Unit,
+        pollAfter: Boolean = true,
+        web: suspend (String) -> Unit,
+    ) {
+        val remote = connected
+        if (remote != null) {
+            native(remote.playerApi)
+            return
+        }
+        send(pollAfter, web)
+    }
+
+    // MARK: - Spotify とのやりとり (SDK が繋がっていない間)
 
     /** 操作を送って、すぐ状態を聞き直す (Spotify 側が受け付けたかを画面に返す)。 */
     private fun send(pollAfter: Boolean = true, action: suspend (String) -> Unit) {
@@ -228,9 +347,9 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         if (pollJob != null) return
         pollJob = scope.launch {
             while (isActive) {
-                // 鳴っている間は 1 秒ごと、止まっている間はゆっくり。
+                // 鳴っている間は 1 秒ごと、止まっている間はゆっくり。SDK が繋がっていれば SDK の知らせを待つ。
                 delay(if (last?.isPlaying == true) 1_000 else 3_000)
-                poll()
+                if (connected == null) poll()
             }
         }
     }
@@ -254,8 +373,14 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
         }
         // 聞いている間に鳴らし直した・止めたなら、この答えは前の再生のもの。
         if (mine != session) return
+        accept(state?.trackId, state?.progressMs ?: 0, state?.durationMs, state?.isPlaying ?: false)
+    }
+
+    /** 知った状態を受け取る (SDK の知らせ・Web API の答えのどちらからも)。 */
+    private fun accept(trackId: String?, progressMs: Long, durationMs: Long?, isPlaying: Boolean) {
+        if (_loadedSongId.value == null) return
         if (!isConfirmed) {
-            val arrived = state?.trackId?.let { songIdByTrackId.containsKey(it) } ?: false
+            val arrived = trackId?.let { songIdByTrackId.containsKey(it) } ?: false
             val timedOut = System.currentTimeMillis() - startedAt > CONFIRM_TIMEOUT_MS
             if (!arrived && !timedOut) return
             isConfirmed = true
@@ -264,13 +389,13 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
                 seek(it)
             }
         }
-        if (state == null || state.trackId == null) {
+        if (trackId == null) {
             last = last?.copy(isPlaying = false, fetchedAt = System.currentTimeMillis())
             _isPlaying.value = false
             return
         }
-        last = Snapshot(state.trackId, state.progressMs, state.durationMs, state.isPlaying, System.currentTimeMillis())
-        val songId = songIdByTrackId[state.trackId]
+        last = Snapshot(trackId, progressMs, durationMs, isPlaying, System.currentTimeMillis())
+        val songId = songIdByTrackId[trackId]
         if (songId == null) {
             detach()
             return
@@ -280,7 +405,7 @@ class SpotifyLyricsPlayback(private val spotify: SpotifyService) : LyricsPlaybac
             queueIndex = queueSongIds.indexOf(songId).takeIf { it >= 0 }
             refreshQueueFlags()
         }
-        if (_isPlaying.value != state.isPlaying) _isPlaying.value = state.isPlaying
+        if (_isPlaying.value != isPlaying) _isPlaying.value = isPlaying
     }
 
     private fun trackId(uri: String): String? = uri.removePrefix("spotify:track:").takeIf { uri.startsWith("spotify:track:") }

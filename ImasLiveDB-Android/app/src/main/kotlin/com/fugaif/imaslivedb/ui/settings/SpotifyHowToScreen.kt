@@ -43,6 +43,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasCopyField
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileSize
@@ -56,6 +57,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasStepList
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
+import uniffi.imas_core.SpotifyGuidePlatform
+import uniffi.imas_core.SpotifyGuideStep
 import uniffi.imas_core.spotifySetupGuide
 
 /**
@@ -70,7 +73,7 @@ import uniffi.imas_core.spotifySetupGuide
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpotifyHowToScreen(onBack: () -> Unit, onOpenSettings: (() -> Unit)? = null) {
-    val guide = remember { spotifySetupGuide() }
+    val guide = remember { spotifySetupGuide(SpotifyGuidePlatform.ANDROID) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,7 +104,7 @@ fun SpotifyHowToScreen(onBack: () -> Unit, onOpenSettings: (() -> Unit)? = null)
                 guide.steps.forEachIndexed { index, step ->
                     ImasCard {
                         ImasStepList(
-                            steps = listOf(ImasStep(step.title, step.detail) { Illustration(index, guide.dashboardUrl, guide.redirectUri) }),
+                            steps = listOf(ImasStep(step.title, step.detail) { Illustration(index, guide.dashboardUrl, guide.redirectUri, guide.steps) }),
                             startIndex = index + 1,
                         )
                     }
@@ -134,7 +137,7 @@ private fun Tip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Str
 }
 
 @Composable
-private fun Illustration(index: Int, dashboardUrl: String, redirectUri: String) {
+private fun Illustration(index: Int, dashboardUrl: String, redirectUri: String, steps: List<SpotifyGuideStep>) {
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         when (index) {
@@ -161,15 +164,19 @@ private fun Illustration(index: Int, dashboardUrl: String, redirectUri: String) 
                     ImasMockField("Redirect URIs", redirectUri, isTarget = true)
                     ImasMockButton("Add", isTarget = true)
                 }
-                CopyRedirectUriButton(redirectUri)
+                CopyFields(steps[2])
             }
-            3 -> ImasMockBrowser("developer.spotify.com/dashboard/create") {
-                ImasText("Which API/SDKs are you planning to use?", role = ImasTextRole.META)
-                ImasMockCheck("Web API", isChecked = true)
-                ImasMockCheck("Web Playback SDK")
-                ImasMockCheck("Android")
-                ImasMockCheck("iOS")
-                ImasMockButton("Save", isTarget = true)
+            3 -> {
+                ImasMockBrowser("developer.spotify.com/dashboard/create") {
+                    ImasText("Which API/SDKs are you planning to use?", role = ImasTextRole.META)
+                    ImasMockCheck("Web API", isChecked = true)
+                    ImasMockCheck("Web Playback SDK")
+                    ImasMockCheck("Android", isChecked = true)
+                    ImasMockCheck("iOS")
+                    steps[3].values.forEach { ImasMockField(it.label, it.value, isTarget = true) }
+                    ImasMockButton("Save", isTarget = true)
+                }
+                CopyFields(steps[3])
             }
             else -> ImasMockBrowser("developer.spotify.com/dashboard/…/settings") {
                 ImasText("Basic Information", role = ImasTextRole.ROW_TITLE)
@@ -180,20 +187,10 @@ private fun Illustration(index: Int, dashboardUrl: String, redirectUri: String) 
     }
 }
 
+/** その手順で貼る値を、写せる形で並べる。 */
 @Composable
-private fun CopyRedirectUriButton(value: String) {
-    val clipboard = LocalClipboardManager.current
-    val haptics = LocalHapticFeedback.current
-    var copied by remember { mutableStateOf(false) }
-    ImasButton(
-        title = if (copied) "コピー済み" else "Redirect URI をコピー",
-        onClick = {
-            clipboard.setText(AnnotatedString(value))
-            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            copied = true
-        },
-        icon = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
-        role = ImasButtonRole.SECONDARY,
-        size = ImasButtonSize.SMALL,
-    )
+private fun CopyFields(step: SpotifyGuideStep) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+        step.values.forEach { ImasCopyField(it.label, it.value) }
+    }
 }

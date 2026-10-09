@@ -246,6 +246,8 @@ private val OSS_LICENSES = listOf(
     Triple("Google Identity Services (googleid)", "Google", APACHE_2),
     Triple("Coil", "Coil Contributors", APACHE_2),
     Triple("OkHttp", "Square, Inc.", APACHE_2),
+    Triple("Spotify App Remote SDK", "Spotify AB", APACHE_2),
+    Triple("Gson", "Google", APACHE_2),
     Triple("Kotlin / kotlinx.coroutines", "JetBrains", APACHE_2),
     // JNA だけライセンスが違う。UniFFI が生成するバインディングが要求する実行時依存。
     Triple("JNA (Java Native Access)", "JNA Contributors", "Apache License 2.0 / LGPL 2.1 のデュアルライセンス"),
