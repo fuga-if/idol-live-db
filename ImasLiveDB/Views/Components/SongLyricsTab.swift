@@ -71,6 +71,8 @@ struct SongLyricsTab: View {
     /// パート分けの「筆」= いま付けている歌唱者。行をタップするとこの人を付け外しする。
     @State private var partsBrush: String?
     @State private var partsSaving = false
+    /// 非 nil = この行の文字を直すシートを開いている。
+    @State private var lineEditTarget: LyricLine?
     /// 区切りの変更を送っている行 (二度押しを止める)。
     @State private var structureBusyLineId: String?
     /// 振り仮名を振る字を選んでいる候補 (選ぶダイアログを出す)。
@@ -112,6 +114,9 @@ struct SongLyricsTab: View {
                 song: song, seed: seed, artistLine: vm.artistLine(for: song),
                 artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
                 lyrics: lyrics, cast: partCast))
+        }
+        .sheet(item: $lineEditTarget) { line in
+            LyricLineEditSheet(songId: song.id, line: line, onSaved: reload)
         }
         .sheet(item: $callRequest) { request in
             CallEditorSheet(
@@ -447,7 +452,7 @@ struct SongLyricsTab: View {
                     }
                     .disabled(partsSaving || partsDraft == currentParts(lyrics))
                 } else if isEditingStructure {
-                    ImasButton(title: "区切りの編集を終了", role: .plain, size: .small) {
+                    ImasButton(title: "行の編集を終了", role: .plain, size: .small) {
                         isEditingStructure = false
                     }
                 } else if let editor {
@@ -464,7 +469,7 @@ struct SongLyricsTab: View {
                             partsBrush = vm.originalArtists.first?.id
                         }
                     }
-                    ImasIconButton(systemImage: "scissors", label: "行の区切りを編集", size: .small) {
+                    ImasIconButton(systemImage: "pencil.and.scissors", label: "歌詞の行を直す・区切る", size: .small) {
                         AppAnalytics.tap("lyric_structure.begin_edit")
                         isEditingStructure = true
                     }
@@ -868,9 +873,22 @@ struct SongLyricsTab: View {
                     )
                     .opacity(structureBusyLineId == line.id ? 0.4 : 1)
                     rubyToggles(line)
-                    if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
-                        HStack {
-                            Spacer(minLength: 0)
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        // 文字を直す (この 1 行だけ。行の数は変わらないので注釈は残る)。
+                        Button {
+                            AppAnalytics.tap("lyric_line_edit.open")
+                            lineEditTarget = line
+                        } label: {
+                            Label("この行を直す", systemImage: "pencil")
+                                .labelStyle(.iconOnly)
+                                .imasText(.meta)
+                                .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(structureBusyLineId != nil)
+                        if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
                             Menu {
                                 ForEach(LyricStructurePayload.Joiner.allCases, id: \.self) { joiner in
                                     Button(joiner.label) {

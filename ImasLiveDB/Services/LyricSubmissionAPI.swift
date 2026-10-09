@@ -4,7 +4,7 @@ import OSLog
 private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "lyric_submission_api")
 
 /// 歌詞の投稿 (`POST /songs/{song_id}/lyric-submissions`)。歌詞の無い曲ならその場で公開され、運営はあとから確認する。
-/// 既に歌詞のある曲への投稿は上書きされず、直しの提案として預かられる。
+/// 既に歌詞のある曲への投稿も、その場で公開される (前の版はサーバに残る)。
 ///
 /// 本文 (歌詞) を送るので、歌詞に触れるほかの経路と同じく `APIClient.noDiskCache` を通す。
 actor LyricSubmissionAPI {
@@ -33,6 +33,21 @@ actor LyricSubmissionAPI {
             return res.published
         } catch {
             logger.warning("lyric_submission_failed: \(error.localizedDescription)")
+            throw error
+        }
+    }
+
+    /// 公開中の歌詞の 1 行だけを直す (`PUT /songs/{song_id}/lyric-lines/{line_id}`)。すぐ公開される。
+    func editLine(songId: String, lineId: String, text: String) async throws {
+        do {
+            let _: Response = try await client.request(
+                "PUT",
+                path: "/songs/\(songId)/lyric-lines/\(lineId)",
+                body: Body(agreedToGuideline: true, text: text),
+                authorized: true
+            )
+        } catch {
+            logger.warning("lyric_line_edit_failed: \(error.localizedDescription)")
             throw error
         }
     }
