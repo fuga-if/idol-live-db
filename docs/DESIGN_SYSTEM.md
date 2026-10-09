@@ -377,6 +377,9 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasStepList`** 手順 1・2・3。番号は等幅の墨丸の札。手順に写真・図解を添えたいときは `media` (任意の View) を渡す (ウィジェットの使い方など)。複数のカードに分けて続き番号にしたいときは `startIndex` を渡す。
 - **`ImasPointList`** アイコン付きの箇条書き。順序を持たない特徴・利点の列挙 (ログイン誘導の案内など)。番号が付く `ImasStepList` との違いは、順番に意味が無いこと。
 - **使わない** 一覧の絞り込み条件の列挙 → `ImasFilterBar` / 区画の補足 1 行 → `ImasNote`。
+- **`ImasMockBrowser` / `ImasMockButton` / `ImasMockField` / `ImasMockCheck`** 手順の図に置く、よその Web 画面の見立て (Spotify の開発者サイトなど)。`ImasStepList` の `media` に入れる。
+  本物の見た目 (ロゴ・ブランド色) は写さず、内側の窓 (`ImasCard(style: .inset)`) に URL と押す所だけを描く。押す所は墨で塗り、触る欄には「ここ」の札 (`.lead`)、使わない欄は「使わない」の札。
+  図の中の英語は相手の画面の表記そのまま (探すときに同じ字面で見つけられるように)。読み上げからは隠す (手順の文が同じことを言う)。実例: `SpotifyHowToView`。
 
 ### 6.11 `ImasTagHeaderCard` タグ詳細の頭
 - **用途** 曲・アイドル・ユニットのタグ詳細で共通の頭 (§2.2 の「頭」のタグ版)。

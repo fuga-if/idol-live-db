@@ -74,6 +74,8 @@ enum HelpCatalog {
                          detail: "曲一覧 / アルバムグリッド / シリーズグリッド を絞り込みパネルから切り替え可能。"),
                 HelpItem(label: "Apple Music 連携",
                          detail: "Apple Music に契約していればプレビュー再生 / フル再生 OK。ジャケ写も自動取得。"),
+                HelpItem(label: "Spotify 連携",
+                         detail: "自分の Spotify アプリの Client ID で連携すると、セトリや自分のプレイリストを Spotify に書き出せ、曲を Spotify で開けます。始め方はヘルプの「Spotify と連携する」に図つきで載っています。"),
                 HelpItem(label: "歌唱履歴で深掘り",
                          detail: "曲詳細から「どのライブで何回歌われたか」を一覧表示。担当曲の披露頻度がわかります。"),
                 HelpItem(label: "オリジナルメンバーを表示",
@@ -326,6 +328,17 @@ struct HelpView: View {
                             systemImage: "person.crop.square.badge.camera",
                             iconTone: .themed,
                             seed: "#FF4D8C",
+                            showsChevron: false,
+                            subtitleLineLimit: 2
+                        )
+                    }
+                    NavigationLink {
+                        SpotifyHowToView()
+                    } label: {
+                        ImasNavRow(
+                            title: "Spotify と連携する",
+                            subtitle: "自分の Spotify アプリを作って、セトリを Spotify のプレイリストに。図つきで手順を案内します。",
+                            systemImage: "music.note.list",
                             showsChevron: false,
                             subtitleLineLimit: 2
                         )

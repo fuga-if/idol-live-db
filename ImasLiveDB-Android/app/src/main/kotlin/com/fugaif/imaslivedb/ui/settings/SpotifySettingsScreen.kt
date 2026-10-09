@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Verified
@@ -92,6 +93,11 @@ fun SpotifySettingsRow(onOpen: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SpotifySettingsScreen(onBack: () -> Unit) {
+    var showsHowTo by remember { mutableStateOf(false) }
+    if (showsHowTo) {
+        SpotifyHowToScreen(onBack = { showsHowTo = false })
+        return
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -104,18 +110,22 @@ fun SpotifySettingsScreen(onBack: () -> Unit) {
     ) { padding ->
         ImasFormBackdrop(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = DS.Space.section)) {
-                SpotifySettingsContent()
+                SpotifySettingsContent(onOpenHowTo = { showsHowTo = true })
             }
         }
     }
 }
 
-/** 設定の画面と書き出しのシートで同じ中身。 */
+/**
+ * 設定の画面と書き出しのシートで同じ中身。
+ *
+ * @param onOpenHowTo 図つきの手順へ進む。null なら入口を出さない (シートの中から画面を積まない)。
+ */
 @Composable
-fun SpotifySettingsContent() {
+fun SpotifySettingsContent(onOpenHowTo: (() -> Unit)? = null) {
     val service = AppModule.from(LocalContext.current).spotifyService
     val state by service.state.collectAsState()
-    if (state.isConnected) ConnectedSections() else SetupSections()
+    if (state.isConnected) ConnectedSections() else SetupSections(onOpenHowTo)
     ImasErrorAlert(message = state.signInError, onDismiss = service::clearSignInError, title = "Spotify にログインできませんでした")
 }
 
@@ -162,7 +172,7 @@ private fun ConnectedSections() {
 }
 
 @Composable
-private fun SetupSections() {
+private fun SetupSections(onOpenHowTo: (() -> Unit)?) {
     val context = LocalContext.current
     val service = AppModule.from(context).spotifyService
     val state by service.state.collectAsState()
@@ -192,6 +202,14 @@ private fun SetupSections() {
             },
             modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gapLoose),
         )
+        if (onOpenHowTo != null) {
+            ImasNavRow(
+                title = "図つきの手順を見る",
+                subtitle = "Spotify の画面のどこを押すかを絵で案内します",
+                icon = Icons.Filled.Image,
+                onClick = onOpenHowTo,
+            )
+        }
     }
     ImasListSection("Client ID", footer = guide.notes.joinToString("\n")) {
         ImasTextFieldRow(

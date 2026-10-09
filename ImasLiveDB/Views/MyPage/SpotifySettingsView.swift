@@ -105,6 +105,12 @@ struct SpotifySettingsView: View {
         ImasListSection("Spotify のアプリを作る") {
             ImasStepList(steps: steps)
                 .padding(.vertical, DS.Space.gap)
+            NavigationLink {
+                SpotifyHowToView()
+            } label: {
+                ImasNavRow(title: "図つきの手順を見る", subtitle: "Spotify の画面のどこを押すかを絵で案内します",
+                           systemImage: "photo.on.rectangle", showsChevron: false)
+            }
         }
         ImasListSection("Client ID", footer: guide.notes.joined(separator: "\n")) {
             ImasTextFieldRow(title: "Client ID", text: $clientIdInput, prompt: "32 文字の英数字", error: check.problem)
