@@ -8,8 +8,8 @@
 //!   黙って 1 枚にまとめる (中身は新しい方に)。名刺 id が同じで名前が違う名刺 (他人の id を名乗った名刺かもしれない)、
 //!   id の無い名刺で名前と担当が同じで中身が違う名刺は、受け取る人に確かめる ([`card_same_person_confirm`]。
 //!   既定は別の名刺として残す)。同じ人の名刺には会った記録を積む。
-//!   同じ機会 (同じ公演、どちらかに公演が無ければ JST の同じ日) にもう一度読んだときは記録を足さず、
-//!   最後の記録を新しい方に書き換える (中身・会場で交換したこと)。
+//!   同じ機会 (同じ公演、どちらかに公演が無ければ JST の同じ日) に同じ中身をもう一度読んだときは記録を足さず、
+//!   会場で交換したなら最後の記録の受け取り方を上げる。中身が違えば同じ機会でも記録を積む (前の中身を残す)。
 //! - 会った記録はそのときの名刺の中身を持ち、詳細から「この時の名刺に戻す」ができる ([`card_meeting_restorable`])。
 //! - 会った記録の並び・何回目か ([`card_meeting_views`])・最後の記録 ([`card_latest_meeting`]) もここ。
 //!
@@ -348,8 +348,12 @@ pub fn card_receive_plan(
     };
     let show_id = incoming.show_id.as_deref();
     let last = card_latest_meeting(meetings, &existing);
+    // 同じ機会でも、最後の記録の中身と違う名刺なら記録を積む (前の中身を記録に残し、「この時の名刺に戻す」で戻せるように)。
     let (add_meeting, last_meeting_update) = match last {
-        Some(l) if same_occasion(&l, show_id, &incoming.met_at) => (
+        Some(l)
+            if same_occasion(&l, show_id, &incoming.met_at)
+                && l.payload.as_deref().is_none_or(|p| p == incoming.payload) =>
+        (
             false,
             refresh_last_meeting(
                 &l,
@@ -669,6 +673,20 @@ mod tests {
         let with_show = meeting("m1", "c1", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z");
         assert!(same_occasion(&with_show, None, "2026-10-05T11:00:00Z"));
         assert!(!same_occasion(&with_show, Some("sh_2"), "2026-10-05T11:00:00Z"), "どちらにも公演があれば公演で");
+    }
+
+    /// 同じ機会でも中身の違う名刺 (同じ人として更新した名刺) は記録を積み、前の中身を記録に残す。
+    #[test]
+    fn same_occasion_with_different_payload_keeps_the_previous_payload() {
+        let old = payload_with("ふがP", None, &["i1"], "前");
+        let new = payload_with("ふがP", None, &["i1"], "後");
+        let stored = vec![CardStoredRef { id: "c1".into(), payload: old.clone() }];
+        let mut last = meeting("m1", "c1", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z");
+        last.payload = Some(old.clone());
+        let p = plan(&incoming(&new, Some("sh_1"), Some(CardReceiveVia::Nearby), "2026-10-05T11:00:00Z"), &stored, &[last], SamePerson);
+        assert_eq!(p.existing_card_id.as_deref(), Some("c1"));
+        assert!(p.add_meeting, "前の中身を残すため記録を積む");
+        assert_eq!(p.last_meeting_update, None, "前の記録は書き換えない");
     }
 
     /// 同じ機会の 2 回目でも、新しい方が会場での交換なら最後の記録の受け取り方を上げ、中身を新しい方にする。
