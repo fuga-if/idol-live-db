@@ -181,6 +181,10 @@ pub struct BackupMyProducerCardRecord {
     /// P名刺の画像の中身 (`profile_sheet_to_json`)。空はまだ作っていない。
     #[uniffi(default = "")]
     pub profile_json: String,
+    /// 名刺に載せる担当の選択 (`card_oshi_choice_to_json`)。None はまだ選んでいない
+    /// (足す前のバックアップもこれ。自動の選び方で載る)。
+    #[uniffi(default = None)]
+    pub card_oshi_json: Option<String>,
 }
 
 /// 書き出しの入力。時刻・端末 ID・アプリ版は OS から受け取る。
@@ -565,8 +569,14 @@ fn build_payload_json(input: &BackupExportInput, dialect: BackupKindDialect) -> 
                 } else {
                     format!(",\"profileJson\":{}", json_string_literal(&c.profile_json))
                 };
+                let card_oshi = c
+                    .card_oshi_json
+                    .as_deref()
+                    .map(|j| format!("\"cardOshiJson\":{},", json_string_literal(j)))
+                    .unwrap_or_default();
                 format!(
-                    "{{{}\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    "{{{}{}\"hiddenFields\":{},\"id\":{},\"linksJson\":{},\"message\":{},\"name\":{}{}{}{},\"updatedAt\":{}}}",
+                    card_oshi,
                     design,
                     json_string_literal(&c.hidden_fields),
                     json_string_literal(&c.id),
@@ -1070,6 +1080,7 @@ fn parse_my_producer_card(value: &serde_json::Value) -> Option<BackupMyProducerC
             .unwrap_or_default(),
         qr_url: optional_field(object, "qrUrl"),
         profile_json: optional_field(object, "profileJson").unwrap_or_default(),
+        card_oshi_json: optional_field(object, "cardOshiJson"),
     })
 }
 
@@ -1210,6 +1221,7 @@ mod tests {
             design: String::new(),
             qr_url: None,
             profile_json: String::new(),
+            card_oshi_json: None,
         }
     }
 
@@ -1266,12 +1278,14 @@ mod tests {
         assert!(!plain.payload_json.contains("design"));
         assert!(!plain.payload_json.contains("qrUrl"));
         assert!(!plain.payload_json.contains("profileJson"));
+        assert!(!plain.payload_json.contains("cardOshiJson"));
 
         let mut card = my_card("ふがP");
         card.design = "formal".to_string();
         card.qr_url = Some("https://lit.link/fuga".to_string());
         card.profile_json =
             r#"{"style":"career","answers":[{"q":"message","text":"よろしく"}]}"#.to_string();
+        card.card_oshi_json = Some(r#"["765as_星井美希"]"#.to_string());
         input.my_producer_cards = vec![card.clone()];
         let doc = build_backup_envelope(&input, BackupKindDialect::Canonical);
         let plan = plan_backup_import(
@@ -1292,6 +1306,8 @@ mod tests {
             "name": "ふがP", "nameFont": "mincho", "updatedAt": "2026-10-05T21:00:00Z",
         });
         assert_eq!(parse_my_producer_card(&old).unwrap().design, "mincho");
+        // 担当の選択を足す前のバックアップは「まだ選んでいない」。
+        assert_eq!(parse_my_producer_card(&old).unwrap().card_oshi_json, None);
         let new = serde_json::json!({
             "design": "pop", "hiddenFields": "", "id": "me", "linksJson": "[]", "message": "",
             "name": "ふがP", "nameFont": "mincho", "updatedAt": "2026-10-05T21:00:00Z",

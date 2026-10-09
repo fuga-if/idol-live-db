@@ -1490,12 +1490,40 @@ fn pick_oshi_by_brand(oshi: &[&CardOshiEntry], slots: usize) -> Vec<usize> {
     picked.iter().enumerate().filter(|(_, p)| **p).map(|(i, _)| i).collect()
 }
 
-/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
-/// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
-pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
+// ---------------------------------------------------------------------------
+// 名刺に載せる担当を本人が選ぶ
+// ---------------------------------------------------------------------------
+//
+// - 選べるのはアプリの担当の中から 1〜`MAX_OSHI` 人。選んだ順に並び、並べ替え・外すができる。
+// - まだ選んでいない (`chosen = None`) ときは自動の選び方 (`producer_card_pick_oshi`、ブランドごとに 1 人)。
+// - 選んだあとに担当から外したアイドルは自動で抜ける (重複も 1 つに)。抜けて誰も残らなければ
+//   まだ選んでいないのと同じ (自動の選び方) に戻す。名刺から担当ごと外すのは「担当を載せる」の付け外し。
+// - 最後の 1 人は外せない (外すと勝手に自動の選び方に戻って、押した人と違う並びになるので)。
+//
+// 端末は担当の一覧を並べ、押した idol id をここへ渡すだけにする。保存は idol id の並び
+// (`card_oshi_choice_to_json`。保存が無い・読めないときはまだ選んでいない)。
+
+/// 名刺に載せる担当を選ぶ画面に並べるもの。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardOshiPicks {
+    /// 名刺に載せる担当 (載せる順)。
+    pub picked: Vec<CardOshiEntry>,
+    /// 本人が選んだか (false はまだ選んでいなくて、自動の選び方の結果が入っている)。
+    pub chosen_by_hand: bool,
+    /// アプリの担当すべて (アプリの並び。同じ id は 1 つに)。
+    pub oshi: Vec<CardOshiEntry>,
+    /// 載せられる上限。
+    pub max: u32,
+    /// 上限まで選んだか (選んでいない担当は足せない)。
+    pub full: bool,
+    /// 1 人だけ選んでいるか (その 1 人は外せない)。
+    pub single: bool,
+}
+
+/// 同じ id を 1 つにしたアプリの担当 (並びはそのまま)。
+fn unique_oshi(oshi: &[CardOshiEntry]) -> Vec<&CardOshiEntry> {
     let mut seen: Vec<&str> = Vec::new();
-    let unique: Vec<&CardOshiEntry> = oshi
-        .iter()
+    oshi.iter()
         .filter(|o| {
             if seen.contains(&o.idol_id.as_str()) {
                 false
@@ -1504,11 +1532,91 @@ pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
                 true
             }
         })
-        .collect();
+        .collect()
+}
+
+/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
+/// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
+/// 本人がまだ選んでいないときの既定 (`producer_card_oshi_picked_ids(None, ..)`)。
+pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
+    let unique = unique_oshi(oshi);
     pick_oshi_by_brand(&unique, MAX_OSHI as usize)
         .into_iter()
         .map(|i| unique[i].idol_id.clone())
         .collect()
+}
+
+/// 選んだ担当 id を、アプリの担当に今いる人だけ・重複なし・上限までに整える (並びは選んだ順)。
+pub fn producer_card_oshi_normalize(ids: &[String], oshi: &[CardOshiEntry]) -> Vec<String> {
+    let mut seen: Vec<&str> = Vec::new();
+    ids.iter()
+        .filter(|id| {
+            let known = oshi.iter().any(|o| &o.idol_id == *id);
+            if !known || seen.contains(&id.as_str()) {
+                return false;
+            }
+            seen.push(id);
+            true
+        })
+        .take(MAX_OSHI as usize)
+        .cloned()
+        .collect()
+}
+
+/// 本人の選択が今も効いているか (選んでいて、担当から外れずに 1 人以上残っている)。
+fn oshi_choice_in_effect(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> Option<Vec<String>> {
+    let ids = producer_card_oshi_normalize(chosen?, oshi);
+    (!ids.is_empty()).then_some(ids)
+}
+
+/// 名刺に載せる担当 id (載せる順)。まだ選んでいない・選んだ人が全員担当から外れたときは自動の選び方。
+pub fn producer_card_oshi_picked_ids(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> Vec<String> {
+    oshi_choice_in_effect(chosen, oshi).unwrap_or_else(|| producer_card_pick_oshi(oshi))
+}
+
+/// 選ぶ画面に並べるもの。
+pub fn producer_card_oshi_picks(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> CardOshiPicks {
+    let by_hand = oshi_choice_in_effect(chosen, oshi);
+    let chosen_by_hand = by_hand.is_some();
+    let ids = by_hand.unwrap_or_else(|| producer_card_pick_oshi(oshi));
+    let unique = unique_oshi(oshi);
+    let picked: Vec<CardOshiEntry> = ids
+        .iter()
+        .filter_map(|id| unique.iter().find(|o| &o.idol_id == id).map(|o| (*o).clone()))
+        .collect();
+    CardOshiPicks {
+        full: picked.len() >= MAX_OSHI as usize,
+        single: picked.len() == 1,
+        chosen_by_hand,
+        oshi: unique.into_iter().cloned().collect(),
+        max: MAX_OSHI,
+        picked,
+    }
+}
+
+/// 1 人を載せる / 外した後の選択。載っていなければ末尾に足し (上限なら変えない)、載っていれば外す
+/// (最後の 1 人は外さない)。まだ選んでいなければ、今載っている既定の並びから始める。
+pub fn producer_card_oshi_toggle(chosen: Option<&[String]>, oshi: &[CardOshiEntry], idol_id: &str) -> Vec<String> {
+    let mut ids = producer_card_oshi_picked_ids(chosen, oshi);
+    if let Some(i) = ids.iter().position(|id| id == idol_id) {
+        if ids.len() > 1 {
+            ids.remove(i);
+        }
+    } else if ids.len() < MAX_OSHI as usize && oshi.iter().any(|o| o.idol_id == idol_id) {
+        ids.push(idol_id.to_string());
+    }
+    ids
+}
+
+/// 名刺に載せる担当の選択の保存の形 (idol id の JSON の配列)。
+pub fn card_oshi_choice_to_json(ids: &[String]) -> String {
+    serde_json::to_string(ids).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// 保存の形から選択を読む。読めない・空の配列はまだ選んでいない (None)。
+pub fn card_oshi_choice_from_json(json: &str) -> Option<Vec<String>> {
+    let ids: Vec<String> = serde_json::from_str(json).ok()?;
+    (!ids.is_empty()).then_some(ids)
 }
 
 /// 判子の下の 1 行。ブランドが 1 つのときだけ名前を (長ければ数で)。
@@ -2172,6 +2280,90 @@ mod tests {
         assert_eq!(producer_card_pick_oshi(&wide), vec!["i0", "i1", "i2", "i3", "i4"]);
         let unknown = vec![entry("a", "名前", "", ""), entry("b", "名前", "", "")];
         assert_eq!(producer_card_pick_oshi(&unknown), vec!["a", "b"]);
+    }
+
+    fn ids(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn eight_oshi() -> Vec<CardOshiEntry> {
+        vec![
+            entry("haruka", "天海春香", "765as", "765AS"),
+            entry("chihaya", "如月千早", "765as", "765AS"),
+            entry("miki", "星井美希", "765as", "765AS"),
+            entry("yukiho", "萩原雪歩", "765as", "765AS"),
+            entry("sora", "上水流宇宙", "876", "876"),
+            entry("temari", "月村手毬", "gakuen", "学マス"),
+            entry("misuzu", "秦谷美鈴", "gakuen", "学マス"),
+            entry("momoko", "周防桃子", "ml", "ミリオン"),
+        ]
+    }
+
+    #[test]
+    fn oshi_choice_unchosen_uses_the_automatic_pick() {
+        let oshi = eight_oshi();
+        let picks = producer_card_oshi_picks(None, &oshi);
+        let picked: Vec<&str> = picks.picked.iter().map(|o| o.idol_id.as_str()).collect();
+        assert_eq!(picked, vec!["haruka", "chihaya", "sora", "temari", "momoko"]);
+        assert!(!picks.chosen_by_hand && picks.full && !picks.single);
+        assert_eq!(picks.max, 5);
+        assert_eq!(picks.oshi.len(), 8);
+        assert_eq!(producer_card_oshi_picked_ids(None, &oshi), producer_card_pick_oshi(&oshi));
+        assert!(producer_card_oshi_picks(None, &[]).picked.is_empty());
+    }
+
+    #[test]
+    fn oshi_choice_keeps_order_caps_and_drops_former_oshi() {
+        let oshi = eight_oshi();
+        // 選んだ順のまま。担当から外れた人・重複は抜ける。
+        let chosen = ids(&["miki", "gone", "sora", "miki"]);
+        let picks = producer_card_oshi_picks(Some(&chosen), &oshi);
+        let picked: Vec<&str> = picks.picked.iter().map(|o| o.idol_id.as_str()).collect();
+        assert_eq!(picked, vec!["miki", "sora"]);
+        assert!(picks.chosen_by_hand && !picks.full);
+        // 1 人だけ選べる。
+        let one = ids(&["miki"]);
+        let picks = producer_card_oshi_picks(Some(&one), &oshi);
+        assert!(picks.single && picks.chosen_by_hand);
+        assert_eq!(producer_card_oshi_picked_ids(Some(&one), &oshi), ids(&["miki"]));
+        // 上限で切る。
+        let many = ids(&["momoko", "misuzu", "temari", "sora", "yukiho", "miki"]);
+        assert_eq!(
+            producer_card_oshi_picked_ids(Some(&many), &oshi),
+            ids(&["momoko", "misuzu", "temari", "sora", "yukiho"])
+        );
+        // 選んだ人が全員担当から外れたら、自動の選び方に戻す。
+        let gone = ids(&["gone"]);
+        let picks = producer_card_oshi_picks(Some(&gone), &oshi);
+        assert!(!picks.chosen_by_hand);
+        assert_eq!(producer_card_oshi_picked_ids(Some(&gone), &oshi), producer_card_pick_oshi(&oshi));
+    }
+
+    #[test]
+    fn oshi_choice_toggle_adds_removes_and_keeps_the_last_one() {
+        let oshi = eight_oshi();
+        // まだ選んでいなければ既定の並びから外す。
+        assert_eq!(
+            producer_card_oshi_toggle(None, &oshi, "chihaya"),
+            ids(&["haruka", "sora", "temari", "momoko"])
+        );
+        // 上限なら足さない。担当でない人は足さない。
+        assert_eq!(producer_card_oshi_toggle(None, &oshi, "miki"), producer_card_pick_oshi(&oshi));
+        let one = ids(&["miki"]);
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "stranger"), ids(&["miki"]));
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "sora"), ids(&["miki", "sora"]));
+        // 最後の 1 人は外さない。
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "miki"), ids(&["miki"]));
+    }
+
+    #[test]
+    fn oshi_choice_json_round_trips_and_reads_broken_as_unchosen() {
+        let chosen = ids(&["765as_星井美希", "sora"]);
+        let json = card_oshi_choice_to_json(&chosen);
+        assert_eq!(card_oshi_choice_from_json(&json), Some(chosen));
+        assert_eq!(card_oshi_choice_from_json(""), None);
+        assert_eq!(card_oshi_choice_from_json("[]"), None);
+        assert_eq!(card_oshi_choice_from_json("{broken"), None);
     }
 
     #[test]
