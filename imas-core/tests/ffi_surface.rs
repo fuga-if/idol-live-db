@@ -369,6 +369,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_tier_list_cycle_color,
     uniffi_imas_core_checksum_func_tier_list_max_tiers,
     uniffi_imas_core_checksum_func_tier_list_min_tiers,
+    uniffi_imas_core_checksum_func_tier_list_move_item,
     uniffi_imas_core_checksum_func_tier_list_new_tier,
     uniffi_imas_core_checksum_func_tier_list_normalize_tier_label,
     uniffi_imas_core_checksum_func_tier_list_normalize_title,

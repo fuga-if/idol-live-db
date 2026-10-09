@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import uniffi.imas_core.tierListMoveItem
 import uniffi.imas_core.tierListTiers
 import java.util.UUID
 
@@ -14,7 +15,7 @@ import java.util.UUID
 // iOS TierListBoard.swift の移植。
 //
 // 並べるのは利用者の手 (好みの判断を機械に任せない)。コアが持つのは段の既定 (名前と色)、
-// 段の数の上限、色の候補、名前の整え方、ソートメーカーの順位からのたたき台だけ。
+// 段の数の上限、色の候補、名前の整え方、ソートメーカーの順位からのたたき台、段の中の並べ替えの規則だけ。
 // =============================================================================
 
 /** 段 1 つ。並び替え・削除しても振り分けが崩れないように、振り分けは段の id で持つ。 */
@@ -38,6 +39,8 @@ data class TierListBoard(
     val tiers: List<TierDef> = TierDef.defaults(),
     /** 項目 id → 段の id。載っていない項目は未分類。 */
     val placements: Map<String, String> = emptyMap(),
+    /** 段の中の左右の並び (表全体で 1 本。各段はこのうちその段にいるもの)。null = 対象の並びのまま。 */
+    val order: List<String>? = null,
     val scopeLabel: String,
     /** ソートメーカーの結果から作ったときのたたき台 (「たたき台に戻す」用)。 */
     val suggested: Map<String, String>? = null,
@@ -49,7 +52,24 @@ data class TierListBoard(
     val unplacedIds: List<String> get() = itemIds.filter { tierIndexOf(it) == null }
     val placedCount: Int get() = itemIds.size - unplacedIds.size
 
-    fun idsInTier(tierId: String): List<String> = itemIds.filter { placements[it] == tierId }
+    fun idsInTier(tierId: String): List<String> = (order ?: itemIds).filter { placements[it] == tierId }
+
+    /**
+     * 項目を段へ移した表。[before] (段の中の別の項目) を渡したらその左へ、無ければ段の右端へ (規則はコア)。
+     * 未分類は対象の並びのまま見せるので、未分類へ戻すときは並びを触らない。
+     */
+    fun moved(id: String, tierId: String?, before: String? = null): TierListBoard {
+        val newPlacements = placements.toMutableMap()
+        if (tierId == null) {
+            newPlacements.remove(id)
+            return copy(placements = newPlacements)
+        }
+        newPlacements[id] = tierId
+        return copy(
+            placements = newPlacements,
+            order = tierListMoveItem(itemIds = itemIds, order = order ?: emptyList(), item = id, before = before)
+        )
+    }
 
     /** 項目が今いる段の添字 (未分類・消えた段なら null)。 */
     fun tierIndexOf(itemId: String): Int? {
@@ -151,6 +171,7 @@ class TierListStore(context: Context) {
                 }
             })
             put("placements", JSONObject().apply { b.placements.forEach { (id, tierId) -> put(id, tierId) } })
+            b.order?.let { put("order", JSONArray(it)) }
             put("scopeLabel", b.scopeLabel)
             b.suggested?.let { suggested ->
                 put("suggested", JSONObject().apply { suggested.forEach { (id, tierId) -> put(id, tierId) } })
@@ -181,6 +202,8 @@ class TierListStore(context: Context) {
                 suggestedJson.keys().forEach { id -> map[id] = suggestedJson.optString(id) }
                 map
             } else null
+            val orderJson = o.optJSONArray("order")
+            val order = orderJson?.let { arr -> (0 until arr.length()).map { arr.getString(it) } }
             val title = if (o.has("title")) o.optString("title").takeIf { it.isNotEmpty() } else null
             val id = o.optString("id").takeIf { it.isNotEmpty() } ?: UUID.randomUUID().toString()
             val savedAt = o.optLong("savedAt")
@@ -190,6 +213,7 @@ class TierListStore(context: Context) {
                 itemIds = (0 until itemIdsJson.length()).map { itemIdsJson.getString(it) },
                 tiers = tiers,
                 placements = placements,
+                order = order,
                 scopeLabel = o.optString("scopeLabel"),
                 suggested = suggested,
                 title = title,

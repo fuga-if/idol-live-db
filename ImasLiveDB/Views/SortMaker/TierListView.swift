@@ -4,6 +4,7 @@ import SwiftUI
 ///
 /// 動かし方は 2 通り: ①タップで選ぶ → 下のバーで段を押す ②長押しでつかんで段へドラッグ。
 /// 片手でも確実に動かせる①を主にして、②は慣れた人向けの近道。
+/// 段の中の左右は、札の上に落とす (または選んだまま別の札をタップする) とその左に入る。
 /// 1 回動かすたびに端末へ保存する (一覧から何枚でも開き直せる)。
 struct TierListView: View {
     let subject: SortMakerSubject
@@ -17,6 +18,8 @@ struct TierListView: View {
     @State private var showEdit = false
     @State private var confirmReset = false
     @State private var moveFeedback = 0
+    /// ドラッグ中、その左に入る札 (段の中の並べ替えの印を出す)。
+    @State private var dropBeforeId: String?
     /// 未分類の絞り込み (全曲を入れても探せるように)。
     @State private var unplacedQuery = ""
     /// 未分類の検索用カタログ。照合規則はコア (`text_search_index`)。項目を読み込んだ時に 1 回組む。
@@ -40,7 +43,7 @@ struct TierListView: View {
                     showEdit = true
                 }
                 unplacedSection
-                Text("タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。変えるたびに端末に保存されます。")
+                Text("タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。段の中の札の上に落とすと、その左に入ります。変えるたびに端末に保存されます。")
                     .imasText(.meta)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -74,7 +77,10 @@ struct TierListView: View {
                     Button("名前と段を編集", systemImage: "pencil") { showEdit = true }
                     if board.suggested != nil {
                         Button("ソート結果のたたき台に戻す", systemImage: "arrow.counterclockwise") {
-                            update { $0.placements = $0.suggested ?? [:] }
+                            update {
+                                $0.placements = $0.suggested ?? [:]
+                                $0.order = nil
+                            }
                         }
                     }
                     Button("全部を未分類に戻す", systemImage: "tray", role: .destructive) { confirmReset = true }
@@ -85,7 +91,12 @@ struct TierListView: View {
             }
         }
         .confirmationDialog("全部を未分類に戻しますか？", isPresented: $confirmReset, titleVisibility: .visible) {
-            Button("未分類に戻す", role: .destructive) { update { $0.placements = [:] } }
+            Button("未分類に戻す", role: .destructive) {
+                update {
+                    $0.placements = [:]
+                    $0.order = nil
+                }
+            }
         }
         .sheet(item: $detail) { DetailSheetView(destination: $0) }
         .sheet(isPresented: $showExport) {
@@ -139,7 +150,7 @@ struct TierListView: View {
         ) {
             if let id = selectedId { move(id, to: tier.id) }
         } content: {
-            ImasTierItems(ids: ids, layout: .flow, emptyText: selectedId == nil ? nil : "ここへ移す") { chip($0) }
+            ImasTierItems(ids: ids, layout: .flow, emptyText: selectedId == nil ? nil : "ここへ移す") { chip($0, inTier: true) }
         }
         .dropDestination(for: String.self) { dropped, _ in
             // 他のアプリから運ばれた文字列は受けない。
@@ -168,7 +179,7 @@ struct TierListView: View {
             }
             ImasCard(padding: 0) {
                 ImasTierItems(ids: ids, layout: .grid,
-                              emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil)) { chip($0) }
+                              emptyText: total == 0 ? "全部振り分けました" : (ids.isEmpty ? "当てはまるものがありません" : nil)) { chip($0, inTier: false) }
                     .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
             }
             .contentShape(Rectangle())
@@ -181,11 +192,31 @@ struct TierListView: View {
         }
     }
 
-    private func chip(_ id: String) -> some View {
-        TierListChip(item: items[id], isSelected: selectedId == id)
+    /// 段の中の札は「この左へ入れる」の落とし先にもなる。未分類の札は対象の並びのままなので受けない
+    /// (受け口を付けると未分類の枠へ落とせなくなる)。
+    @ViewBuilder
+    private func chip(_ id: String, inTier: Bool) -> some View {
+        if inTier {
+            baseChip(id, inTier: true)
+                .dropDestination(for: String.self) { dropped, _ in
+                    guard let dragged = dropped.first, board.itemIds.contains(dragged) else { return false }
+                    dropBeforeId = nil
+                    move(dragged, to: board.placements[id], before: id)
+                    return true
+                } isTargeted: { targeted in
+                    if targeted { dropBeforeId = id } else if dropBeforeId == id { dropBeforeId = nil }
+                }
+        } else {
+            baseChip(id, inTier: false)
+        }
+    }
+
+    private func baseChip(_ id: String, inTier: Bool) -> some View {
+        TierListChip(item: items[id], isSelected: selectedId == id, showsInsertMark: dropBeforeId == id)
             .onTapGesture { tapChip(id) }
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint(selectedId == nil || selectedId == id ? "選んでから段を指定" : "選んだものをこの段へ移す")
+            .accessibilityHint(selectedId == nil || selectedId == id ? "選んでから段を指定"
+                               : (inTier ? "選んだものをこの左へ移す" : "選んだものを未分類へ戻す"))
             .draggable(id) {
                 TierListChip(item: items[id], isSelected: true)
             }
@@ -208,11 +239,11 @@ struct TierListView: View {
         )
     }
 
-    /// チップのタップ。何か選んでいて別のチップを押したら、そのチップの段へ移す
+    /// チップのタップ。何か選んでいて別のチップを押したら、そのチップの段のその左へ移す
     /// (段の中はチップで埋まるので、行の余白を押せと言っても押せない)。
     private func tapChip(_ id: String) {
         if let selected = selectedId, selected != id {
-            move(selected, to: board.placements[id])
+            move(selected, to: board.placements[id], before: id)
         } else {
             selectedId = selectedId == id ? nil : id
         }
@@ -220,10 +251,10 @@ struct TierListView: View {
 
     // MARK: - 更新
 
-    private func move(_ id: String, to tierId: String?) {
+    private func move(_ id: String, to tierId: String?, before: String? = nil) {
         moveFeedback += 1
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            update { $0.placements[id] = tierId }
+            update { $0.move(id, to: tierId, before: before) }
             selectedId = nil
         }
     }
@@ -239,10 +270,12 @@ struct TierListView: View {
 struct TierListChip: View {
     let item: SortMakerItem?
     let isSelected: Bool
+    var showsInsertMark = false
 
     var body: some View {
         ImasTierChip(title: item?.title ?? "", seed: item?.seed, brand: BrandColors.hex(for: item?.brandId),
-                     isSelected: isSelected, accessibilityTitle: item == nil ? "不明" : nil) { size in
+                     isSelected: isSelected, showsInsertMark: showsInsertMark,
+                     accessibilityTitle: item == nil ? "不明" : nil) { size in
             switch item {
             case .song(let song):
                 ArtworkImageView(url: song.artworkUrl.flatMap(URL.safeHTTP(string:)), size: size,
