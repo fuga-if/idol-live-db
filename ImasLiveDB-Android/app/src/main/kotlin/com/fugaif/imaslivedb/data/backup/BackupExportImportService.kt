@@ -112,7 +112,7 @@ object BackupExportImportService {
                         card.id, card.payload, card.source, card.showId, card.showDate, card.memo, card.receivedAt,
                         card.updatedAt, via = card.via,
                         meetings = meetingsByCard[card.id].orEmpty().map {
-                            BackupCardMeetingRecord(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt)
+                            BackupCardMeetingRecord(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt, it.payload)
                         }
                     )
                 }
@@ -162,7 +162,11 @@ object BackupExportImportService {
             playlistIds = playlistRepository.allIds(),
             producerCardIds = producerCardRepository.receivedIds(),
             myProducerCardIds = listOfNotNull(producerCardRepository.myCard()?.id),
-            cardMeetingIds = producerCardRepository.meetingIds(),
+            // 既にある受け取った名刺の id と中身 (中身が同じ別 id の名刺は入れず、その会った記録を既にある名刺に付け替える)。
+            producerCards = producerCardRepository.receivedRefs(),
+            cardMeetings = producerCardRepository.meetings().map {
+                BackupCardMeetingRecord(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt, it.payload)
+            },
             brandRolesJson = BrandRoleStore.json(context)
         )
 
@@ -210,10 +214,10 @@ object BackupExportImportService {
                 )
             }
         )
-        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす)。
+        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす。中身が同じ別 id の名刺の記録はコアが付け替え済み)。
         producerCardRepository.restoreMeetingsIfAbsent(
             plan.cardMeetingsToInsert.map {
-                ReceivedCardMeeting(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt)
+                ReceivedCardMeeting(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt, it.payload)
             }
         )
         producerCardRepository.restoreMyCardIfAbsent(

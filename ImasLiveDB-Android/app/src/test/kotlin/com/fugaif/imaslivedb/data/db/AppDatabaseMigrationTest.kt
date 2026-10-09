@@ -69,8 +69,36 @@ class AppDatabaseMigrationTest {
     /** 直前の版。書体の列をデザインに改める (MIGRATION_29_30) ときも、端末ローカルの行は残る。 */
     @Test fun migrates29ToLatest() = assertMigrates(from = 29)
 
-    /** 直前の版。会った記録の表 (MIGRATION_34_35) を足しても、端末ローカルの行は残る。 */
+    /** 会った記録の表 (MIGRATION_34_35) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates34ToLatest() = assertMigrates(from = 34)
+
+    /** 直前の版。会った記録の中身の列 (MIGRATION_35_36) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates35ToLatest() = assertMigrates(from = 35)
+
+    /**
+     * 会った記録に中身 (v36) を足す前の記録は、名刺の行の中身で埋める (iOS
+     * testCardMeetingPayloadIsBackfilledFromCardRow と対)。
+     */
+    @Test
+    fun migrating35To36BackfillsPayloadFromCardRow() {
+        val name = "card_meeting_payload_35.sqlite"
+        helper.createDatabase(name, 35).use {
+            it.execSQL(
+                "INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at) " +
+                    "VALUES ('c1', 'AQ_now', 'app', NULL, NULL, NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z')"
+            )
+            it.execSQL(
+                "INSERT INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at) " +
+                    "VALUES ('x1', 'c1', NULL, NULL, 'nearby', '2026-12-01T12:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 36, true, AppDatabase.MIGRATION_35_36).use { db ->
+            db.query("SELECT payload FROM received_card_meetings ORDER BY id").use { c ->
+                val rows = buildList { while (c.moveToNext()) add(c.getString(0)) }
+                assertEquals(listOf("AQ_now"), rows)
+            }
+        }
+    }
 
     /**
      * 会った記録 (v35) を足す前に受け取った名刺は、名刺の行から 1 回目の記録を作る (受け取り方は不明、紙の名刺は紙)。
@@ -294,7 +322,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 35
+        const val LATEST = 36
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

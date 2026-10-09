@@ -13,6 +13,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import uniffi.imas_core.CardFileImage
+import uniffi.imas_core.CardSamePersonChoice
+import uniffi.imas_core.CardSamePersonConfirm
 import uniffi.imas_core.cardExchangeShowCandidates
 
 private const val TAG = "producer_card"
@@ -36,9 +38,10 @@ object ProducerCardInbox {
         cardExchangeShowCandidates(JstDay.today(), record.attended)
 
     /**
-     * 名刺をしまう。同じ人の名刺 (名刺 id が同じ、無ければ中身が同じ) が既にあれば新しく足さず、1 枚にまとめて
-     * 中身を新しい方に替え、会った記録を積む (同じ相手の QR を同じ公演で 2 回読んでも記録は 1 つ)。
-     * 届いた画像 (写真・担当の画像) は新しいものに差し替える。[dedupe] = false は QR の無い紙の名刺
+     * 名刺をしまう。同じ人の名刺 (中身が同じ・名刺 id と名前が同じ、または確かめて同じ人を選んだ) が既にあれば
+     * 新しく足さず、1 枚にまとめて中身を新しい方に替え、会った記録を積む (同じ相手の QR を同じ公演で 2 回読んでも
+     * 記録は 1 つ)。確かめる名刺を [choice] = `UNDECIDED` のまま渡すと別の名刺として足す (確認は [samePersonConfirm])。
+     * 届いた画像 (写真・担当の画像) はしまった名刺に書く。[dedupe] = false は QR の無い紙の名刺
      * (名前だけで中身を作るので、同じ名前の別人と重ならないように常に新しく足す)。
      * 画像を書けなくても名刺はしまえているので、失敗は記録だけにする。
      */
@@ -49,15 +52,20 @@ object ProducerCardInbox {
         source: ReceivedProducerCard.Source,
         via: CardReceiveVia,
         show: ProducerCardShowInfo?,
-        dedupe: Boolean = true
+        dedupe: Boolean = true,
+        choice: CardSamePersonChoice = CardSamePersonChoice.UNDECIDED
     ): ReceivedProducerCard {
         val repo = AppModule.from(context).producerCardRepository
         val fresh = ReceivedProducerCard.make(payload, source, show?.id, show?.date, via = via)
-        val saved = repo.receive(fresh, matchSamePerson = dedupe)
+        val saved = repo.receive(fresh, matchSamePerson = dedupe, choice = choice)
         attachImages(context, saved.id, images)
         notifyChanged()
         return saved
     }
+
+    /** 届いた名刺が名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面。 */
+    suspend fun samePersonConfirm(context: Context, payload: String): CardSamePersonConfirm? =
+        runCatching { AppModule.from(context).producerCardRepository.samePersonConfirm(payload) }.getOrNull()
 
     /** 後から届いた画像 (担当の画像・名刺の写真) を、しまった名刺に足す (数 MB を書くのでメインの外で)。 */
     suspend fun attachImages(context: Context, cardId: String, images: List<CardFileImage>) {

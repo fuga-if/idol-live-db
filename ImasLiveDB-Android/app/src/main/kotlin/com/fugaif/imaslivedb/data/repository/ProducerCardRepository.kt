@@ -9,7 +9,10 @@ import java.time.Instant
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.temporal.ChronoUnit
+import uniffi.imas_core.CardSamePersonChoice
+import uniffi.imas_core.CardSamePersonConfirm
 import uniffi.imas_core.CardShowRef
+import uniffi.imas_core.CardStoredRef
 import uniffi.imas_core.showDisplayTitle
 
 /**
@@ -55,10 +58,20 @@ class ProducerCardRepository(private val db: AppDatabase) {
 
     /**
      * 名刺をしまう。同じ人の名刺があれば 1 枚にまとめて中身を新しい方に替え、会った記録を積む
-     * (しまい方はコアの `cardReceivePlan`。探すのと書くのは 1 つの書き込み)。
+     * (しまい方はコアの `cardReceivePlan`。探すのと書くのは 1 つの書き込み)。同じ人か確かめる名刺は
+     * [choice] で (`UNDECIDED` なら別の名刺として足す)。
      */
-    suspend fun receive(card: ReceivedProducerCard, matchSamePerson: Boolean): ReceivedProducerCard =
-        dao.receive(card, matchSamePerson)
+    suspend fun receive(
+        card: ReceivedProducerCard,
+        matchSamePerson: Boolean,
+        choice: CardSamePersonChoice = CardSamePersonChoice.UNDECIDED
+    ): ReceivedProducerCard = dao.receive(card, matchSamePerson, choice)
+
+    /** 届いた名刺が名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面 (コアの `cardSamePersonConfirm`)。 */
+    suspend fun samePersonConfirm(payload: String): CardSamePersonConfirm? = dao.samePersonConfirm(payload)
+
+    /** 名刺の中身を会った記録のときの中身に戻す (詳細の「この時の名刺に戻す」)。 */
+    suspend fun restorePayload(cardId: String, meetingId: String) = dao.restorePayload(cardId, meetingId, now())
 
     /** 会った記録 ([cardId] が null なら全部。並べ方・何回目かはコアの `cardMeetingViews`)。 */
     suspend fun meetings(cardId: String? = null): List<ReceivedCardMeeting> =
@@ -80,6 +93,9 @@ class ProducerCardRepository(private val db: AppDatabase) {
     // ---- バックアップ ----
 
     suspend fun receivedIds(): List<String> = dao.receivedIds()
+
+    /** バックアップ用の名刺入れの id と中身 (中身が同じ別 id の名刺の記録の付け替えの材料)。 */
+    suspend fun receivedRefs(): List<CardStoredRef> = dao.receivedRefs().map { CardStoredRef(id = it.id, payload = it.payload) }
 
     suspend fun restoreReceivedIfAbsent(cards: List<ReceivedProducerCard>): Int =
         if (cards.isEmpty()) 0 else dao.restoreReceivedIfAbsent(cards)

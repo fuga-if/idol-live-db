@@ -72,6 +72,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -101,6 +102,7 @@ import com.fugaif.imaslivedb.data.model.ProducerCardField
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasDiscardConfirmation
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormField
@@ -131,11 +133,33 @@ import uniffi.imas_core.CardLinkKind
 import uniffi.imas_core.cardLinkKinds
 import uniffi.imas_core.normalizeCardLink
 import uniffi.imas_core.producerCardInputErrorMessage
+import uniffi.imas_core.producerCardEmbedsCardId
 import uniffi.imas_core.producerCardLimits
+import uniffi.imas_core.producerCardNewId
 import uniffi.imas_core.validateProducerCard
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasConfirmDestructive
 
 /** 編集中のリンク 1 本。 */
 private data class EditableLink(val id: String = UUID.randomUUID().toString(), val kind: CardLinkKind, val value: String)
+
+private const val RENEW_CARD_ID_NOTE =
+    "作り直すと、相手の名刺入れではあなたの名刺が別の人の名刺になります (今までの会った記録とはつながりません)。"
+
+/** 名刺 id を作り直す (名刺 id を名刺に載せている間だけ出す。コアの `producerCardEmbedsCardId`)。 */
+@Composable
+private fun CardIdCard(renewedCardId: String?, onRenew: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+        ImasCardList {
+            ImasActionRow(
+                title = if (renewedCardId == null) "名刺 id を作り直す" else "名刺 id を作り直しました (✓ で保存)",
+                icon = Icons.Filled.Refresh,
+                onClick = onRenew
+            )
+        }
+        ImasNote(RENEW_CARD_ID_NOTE)
+    }
+}
 
 /**
  * 自分の P名刺を作る・直す。iOS `ProducerCardEditorView` の移植。書くのは名前・ひとこと・P歴・リンク・
@@ -189,6 +213,9 @@ fun ProducerCardEditorSheet(
     var isSaving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDiscard by remember { mutableStateOf(false) }
+    // 作り直した名刺 id (✓ で保存する。null は作り直していない)。
+    var renewedCardId by remember { mutableStateOf<String?>(null) }
+    var confirmRenewCardId by remember { mutableStateOf(false) }
 
     val designs = remember { cardDesigns() }
     var design by remember { mutableStateOf(cardDesignKey(card.cardDesign)) }
@@ -467,6 +494,7 @@ fun ProducerCardEditorSheet(
         .copy(design = design, qrUrl = normalizeCardQrUrl(qrUrl))
         .let { it.withProfile(it.profile.copy(songs = songs)) }
         .withCardOshiChoice(oshiChoice)
+        .let { d -> renewedCardId?.let { d.copy(cardId = it) } ?: d }
 
     // 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
     // そのまま入れて渡す (載る中身を抜くと、QR に収まるかの見積もりが実物より短くなる)。
@@ -483,7 +511,7 @@ fun ProducerCardEditorSheet(
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
         draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
-        songs != card.profile.songs || oshiChoice != card.cardOshiChoice
+        songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != null
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     // ✕・✓ と払う動きは、押した時点の判定で決める (下の関数は組み立てたときの値を抱えたまま
@@ -762,7 +790,12 @@ fun ProducerCardEditorSheet(
 
                     val shownError = error ?: validation?.takeIf { it == ProducerCardInputError.TOO_LONG }?.let { producerCardInputErrorMessage(it) }
                     shownError?.let { Text(it, style = ImasTextRole.NOTE.style, color = DS.danger) }
-                    ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                    if (producerCardEmbedsCardId()) {
+                        CardIdCard(renewedCardId, onRenew = { confirmRenewCardId = true })
+                        ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                    } else if (design != designs[0].key || qrUrl.trim().isNotEmpty()) {
+                        ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                    }
                     ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
                 }
             }
@@ -774,6 +807,14 @@ fun ProducerCardEditorSheet(
         confirmDiscard = false
         onDismiss()
     })
+    ImasConfirmDestructive(
+        title = "名刺 id を作り直しますか？",
+        isPresented = confirmRenewCardId,
+        onDismiss = { confirmRenewCardId = false },
+        actionTitle = "作り直す",
+        message = RENEW_CARD_ID_NOTE,
+        onConfirm = { renewedCardId = producerCardNewId(UUID.randomUUID().toString()) }
+    )
     faceCorners?.let { draft ->
         PaperCardCornerSheet(
             image = draft.source.original,

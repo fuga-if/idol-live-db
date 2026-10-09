@@ -96,7 +96,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         ReceivedProducerCard::class,
         ReceivedCardMeeting::class
     ],
-    version = 35,
+    version = 36,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -785,6 +785,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v36: 会った記録ごとにそのとき受け取った名刺の中身を持つ (詳細の「この時の名刺に戻す」。
+         * 他人の名刺 id を名乗った名刺で中身が差し替わっても戻せるように。iOS v49_card_meeting_payload と対)。
+         * 端末ローカル唯一データなので足すだけ。今ある記録は名刺の行の中身で埋める (それより前の中身は残っていない)。
+         */
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE received_card_meetings ADD COLUMN payload TEXT")
+                db.execSQL(
+                    "UPDATE received_card_meetings SET payload = (" +
+                        "SELECT c.payload FROM received_producer_cards c WHERE c.id = received_card_meetings.card_id" +
+                        ") WHERE payload IS NULL"
+                )
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
@@ -793,7 +809,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
             MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
             MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
-            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35
+            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36
         )
     }
 }

@@ -113,8 +113,15 @@ fun ProducerCardExchangeSheet(
         }
     }
 
-    /** 読んだ相手が送り返してきた名刺を名刺入れへ (受け取った公演は今日の参加公演)。 */
+    /**
+     * 読んだ相手が送り返してきた名刺を名刺入れへ (受け取った公演は今日の参加公演)。
+     * 名刺入れの名刺と同じ人か確かめる必要があれば、黙ってしまわず受け取りの確認を開く。
+     */
     suspend fun storeFromReader(contents: CardFileContents) {
+        if (ProducerCardInbox.samePersonConfirm(context, contents.payload) != null) {
+            if (path == null) path = IncomingProducerCard(contents.payload, contents.images, CardReceiveVia.NEARBY)
+            return
+        }
         val record = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull()
         val showId = record?.let { ProducerCardInbox.exchangeShowCandidates(it).firstOrNull() }
         val infos = runCatching { module.producerCardRepository.showInfos(listOfNotNull(showId)) }.getOrDefault(emptyMap())
@@ -237,7 +244,7 @@ fun ProducerCardExchangeSheet(
                     savedNotice = "${saved.first}さんの名刺を名刺入れに入れました"
                     // 近くの相手との受け渡しは、画像が届くか待ち時間が過ぎるまで続ける。
                     savedIds[incoming.payload] = saved.second
-                    nearby.allowSending()
+                    if (incoming.via == CardReceiveVia.CAMERA_QR) nearby.allowSending()
                 } else if (incoming.via == CardReceiveVia.CAMERA_QR) {
                     nearby.stop()
                 }

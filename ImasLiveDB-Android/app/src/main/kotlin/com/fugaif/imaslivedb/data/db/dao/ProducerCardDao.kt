@@ -10,9 +10,17 @@ import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import java.util.UUID
+import uniffi.imas_core.CardIncoming
+import uniffi.imas_core.CardSamePersonChoice
+import uniffi.imas_core.CardSamePersonConfirm
 import uniffi.imas_core.CardStoredRef
 import uniffi.imas_core.cardFirstMeetingId
+import uniffi.imas_core.cardLatestMeeting
+import uniffi.imas_core.cardMeetingRestorable
 import uniffi.imas_core.cardReceivePlan
+import uniffi.imas_core.cardSamePersonConfirm
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 /** 名刺入れの名刺の id と中身 (同じ人を探す材料)。 */
 data class ReceivedCardRef(
@@ -109,65 +117,113 @@ interface ProducerCardDao {
     suspend fun meetingIds(): List<String>
 
     /**
-     * 名刺をしまう。同じ人の名刺 (名刺 id が同じ、無ければ中身が同じ) があれば 1 枚にまとめて中身を新しい方に替え、
-     * 会った記録を積む (同じ機会にもう一度読んだときは積まない)。しまい方はコアの `cardReceivePlan`。
+     * 名刺をしまう。同じ人の名刺があれば 1 枚にまとめて中身を新しい方に替え、会った記録を積む
+     * (同じ機会にもう一度読んだときは最後の記録を新しい方に書き換える)。しまい方はコアの `cardReceivePlan`
+     * (中身が同じ・名刺 id と名前が同じなら黙って、名刺 id が同じで名前が違う・名前と担当が同じなら `choice` で)。
+     * 確かめる名刺を `UNDECIDED` のまま渡すと別の名刺として足す (黙って中身を差し替えない)。
      * `matchSamePerson = false` は QR の無い紙の名刺 (常に新しく足す)。探すのと書くのを 1 つの書き込みで行う。
-     * iOS `AppDatabase.receiveProducerCard` と対。
+     * 書いた後、名刺の行に最後の会った記録を写す。iOS `AppDatabase.receiveProducerCard` と対。
      */
     @Transaction
-    suspend fun receive(fresh: ReceivedProducerCard, matchSamePerson: Boolean): ReceivedProducerCard {
+    suspend fun receive(
+        fresh: ReceivedProducerCard,
+        matchSamePerson: Boolean,
+        choice: CardSamePersonChoice = CardSamePersonChoice.UNDECIDED
+    ): ReceivedProducerCard {
         val plan = cardReceivePlan(
-            fresh.payload, receivedRefs().map { CardStoredRef(id = it.id, payload = it.payload) },
-            meetings().map { it.record }, fresh.showId, fresh.receivedAt, matchSamePerson
+            CardIncoming(payload = fresh.payload, showId = fresh.showId, showDate = fresh.showDate, via = fresh.receiveVia, metAt = fresh.receivedAt),
+            storedRefs(), meetings().map { it.record }, matchSamePerson, choice
         )
         val existing = plan.existingCardId?.let { receivedCard(it) }
         val row = if (existing != null) {
-            // 名刺の行は最後に会った記録を写す (古い記録が後から届いても戻さない)。
-            val latest = plan.addMeeting && fresh.receivedAt >= existing.receivedAt
-            existing.copy(
-                payload = fresh.payload, source = fresh.source, updatedAt = fresh.updatedAt,
-                showId = if (latest) fresh.showId else existing.showId,
-                showDate = if (latest) fresh.showDate else existing.showDate,
-                receivedAt = if (latest) fresh.receivedAt else existing.receivedAt,
-                via = if (latest) fresh.via else existing.via
-            ).also { upsertReceived(it) }
+            existing.copy(payload = fresh.payload, source = fresh.source, updatedAt = fresh.updatedAt).also { upsertReceived(it) }
         } else {
             fresh.also { upsertReceived(it) }
         }
+        plan.lastMeetingUpdate?.let { upsertMeeting(ReceivedCardMeeting.from(it)) }
         if (plan.addMeeting) {
             val id = if (existing == null) cardFirstMeetingId(row.id) else UUID.randomUUID().toString()
             upsertMeeting(
                 ReceivedCardMeeting(
                     id = id, cardId = row.id, showId = fresh.showId, showDate = fresh.showDate,
-                    via = fresh.via, metAt = fresh.receivedAt
+                    via = fresh.via, metAt = fresh.receivedAt, payload = fresh.payload
                 )
             )
         }
-        return row
+        copyLatestMeeting(row.id)
+        return receivedCard(row.id) ?: row
+    }
+
+    /** 届いた名刺が、名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面 (コアの `cardSamePersonConfirm`)。 */
+    suspend fun samePersonConfirm(payload: String): CardSamePersonConfirm? {
+        val plan = cardReceivePlan(
+            CardIncoming(payload = payload, showId = null, showDate = null, via = null, metAt = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()),
+            storedRefs(), meetings().map { it.record }, true, CardSamePersonChoice.UNDECIDED
+        )
+        val id = plan.confirmCardId ?: return null
+        val existing = receivedCard(id) ?: return null
+        return cardSamePersonConfirm(existing.payload, payload)
+    }
+
+    /**
+     * 詳細の「この時の名刺に戻す」: 名刺の中身を会った記録のときの中身に戻す (戻せるかはコアの
+     * `cardMeetingRestorable`)。写真・担当の画像は今のまま。
+     */
+    @Transaction
+    suspend fun restorePayload(cardId: String, meetingId: String, now: String) {
+        val row = receivedCard(cardId) ?: return
+        val meeting = meeting(meetingId) ?: return
+        if (meeting.cardId != cardId) return
+        val payload = meeting.payload ?: return
+        if (!cardMeetingRestorable(meeting.payload, row.payload)) return
+        upsertReceived(row.copy(payload = payload, updatedAt = now))
+    }
+
+    private suspend fun storedRefs(): List<CardStoredRef> = receivedRefs().map { CardStoredRef(id = it.id, payload = it.payload) }
+
+    /** 名刺の行に最後の会った記録 (コアの `cardLatestMeeting`) の公演・受け取り方・日時・中身を写す。 */
+    private suspend fun copyLatestMeeting(cardId: String) {
+        val row = receivedCard(cardId) ?: return
+        val latest = cardLatestMeeting(meetings(cardId).map { it.record }, cardId) ?: return
+        val updated = row.copy(
+            showId = latest.showId, showDate = latest.showDate, via = latest.via, receivedAt = latest.metAt,
+            payload = latest.payload ?: row.payload
+        )
+        if (updated != row) upsertReceived(updated)
     }
 
     /** 最後に会った記録の公演を変え、名刺の行にも写す (詳細の「受け取った公演を変える」)。 */
     @Transaction
     suspend fun changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?, now: String) {
         val row = receivedCard(cardId) ?: return
+        // 最後の記録はコアの `cardLatestMeeting` と同じ並び (日時、同じ時刻は id の大きい方)。
         val latest = meetings(cardId).maxWithOrNull(compareBy<ReceivedCardMeeting> { it.metAt }.thenBy { it.id })
         upsertMeeting(
             latest?.copy(showId = showId, showDate = showDate) ?: ReceivedCardMeeting(
                 id = cardFirstMeetingId(cardId), cardId = cardId, showId = showId, showDate = showDate,
-                via = row.via, metAt = row.receivedAt
+                via = row.via, metAt = row.receivedAt, payload = row.payload
             )
         )
         upsertReceived(row.copy(showId = showId, showDate = showDate, updatedAt = now))
     }
 
-    /** バックアップからの非破壊復元: 無い id の会った記録だけ足す (名刺が端末に無い記録は飛ばす)。 */
+    /**
+     * バックアップからの非破壊復元: 無い id の会った記録だけ足す (名刺が端末に無い記録は飛ばす)。
+     * 中身が同じ別 id の名刺の記録は、コアの計画 (`planBackupImport`) で端末の名刺に付け替えてある。
+     * 足した名刺の行には最後の会った記録を写す。
+     */
     @Transaction
     suspend fun restoreMeetingsIfAbsent(meetings: List<ReceivedCardMeeting>): Int {
         var inserted = 0
+        val touched = mutableSetOf<String>()
         for (m in meetings) {
             if (receivedCard(m.cardId) == null) continue
-            if (insertMeetingIfAbsent(m) != -1L) inserted++
+            if (insertMeetingIfAbsent(m) != -1L) {
+                touched += m.cardId
+                inserted++
+            }
         }
+        for (cardId in touched) copyLatestMeeting(cardId)
         return inserted
     }
 

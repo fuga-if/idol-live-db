@@ -29,6 +29,7 @@ import uniffi.imas_core.producerCardLimits
 import uniffi.imas_core.producerCardPayload
 import uniffi.imas_core.producerCardOshiPickedIds
 import com.fugaif.imaslivedb.ui.producercard.ProducerCardDirectory
+import uniffi.imas_core.producerCardIdToEmbed
 import uniffi.imas_core.producerCardRecordSummary
 import uniffi.imas_core.validateProducerCard
 
@@ -99,7 +100,8 @@ object ProducerCardAssembler {
             design = card.cardDesign,
             qrUrl = card.qrUrl,
             showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS),
-            cardId = card.cardId
+            // 名刺 id を載せるかはコアの定数 1 か所 (公開中の 2.5.0 が読めないので今は載せない)。
+            cardId = producerCardIdToEmbed(card.cardId)
         )
     }
 

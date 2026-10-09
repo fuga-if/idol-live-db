@@ -280,11 +280,21 @@ data class ReceivedCardMeeting(
     val via: String?,
     /** 受け取った日時 (ISO 8601)。 */
     @ColumnInfo(name = "met_at")
-    val metAt: String
+    val metAt: String,
+    /** そのとき受け取った名刺の中身 (詳細の「この時の名刺に戻す」)。足す前の記録は null。 */
+    @ColumnInfo(name = "payload")
+    val payload: String? = null
 ) {
     /** コアに渡す形。 */
     val record: CardMeetingRecord
-        get() = CardMeetingRecord(id = id, cardId = cardId, showId = showId, showDate = showDate, via = via, metAt = metAt)
+        get() = CardMeetingRecord(id = id, cardId = cardId, showId = showId, showDate = showDate, via = via, metAt = metAt, payload = payload)
+
+    companion object {
+        fun from(record: CardMeetingRecord): ReceivedCardMeeting = ReceivedCardMeeting(
+            id = record.id, cardId = record.cardId, showId = record.showId, showDate = record.showDate,
+            via = record.via, metAt = record.metAt, payload = record.payload
+        )
+    }
 }
 
 /** 名刺に出す公演 1 件 (受け取った公演・共通点・次の現場)。iOS `ProducerCardShowInfo` と同型。 */
