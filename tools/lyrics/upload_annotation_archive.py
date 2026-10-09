@@ -13,7 +13,8 @@ Usage:
 
 退避ファイルは歌詞本文と anchorText を持たない (2026-10-06 の全削除の前に作ったもの)。
 歌詞が投稿で入り直すと Worker の storeLyrics が付け直す (imas-live-api/src/lyrics_annotation_archive.ts)。
-本文由来で text を除いたコールは戻せないので入れない。
+本文と同じ文言で text を除いたコールも入れる (行の突き合わせの手がかりになり、被せのコールは
+投稿された本文から文言を戻せる)。
 
 何度流してもよい (song_id で上書き。付け直し済みの印 restored_at は触らない)。
 """
@@ -35,7 +36,7 @@ CALL_FIELDS = ("id", "start", "end", "text", "emphasis", "timing", "startMs", "s
 
 
 def compact_song(song):
-    """注釈のある行だけ、値のある項目だけにする。text の無いコールは捨てる。"""
+    """注釈のある行だけ、値のある項目だけにする。"""
     lines = []
     for line in song.get("lines") or []:
         entry = {"id": line["id"], "ord": line["ord"], "kind": line["kind"]}
@@ -43,7 +44,7 @@ def compact_song(song):
             if line.get(f) not in (None, [], ""):
                 entry[f] = line[f]
         calls = [{f: c[f] for f in CALL_FIELDS if c.get(f) is not None}
-                 for c in line.get("calls") or [] if c.get("text")]
+                 for c in line.get("calls") or []]
         if calls:
             entry["calls"] = calls
         if len(entry) > 3:
