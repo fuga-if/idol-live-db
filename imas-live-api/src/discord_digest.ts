@@ -205,7 +205,15 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   const newIdolTags = source<{ name: string }>("idol_tag_master", "idol_tag_master", "name", "status = 'active'");
   const newUnitTags = source<{ name: string }>("unit_tag_master", "unit_tag_master", "name", "status = 'active'");
   const polls = source<{ title: string }>("polls", "polls", "title", "status = 'active'");
-  const sources: Source<any>[] = [edits, calls, timings, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
+  // 歌詞の投稿: 曲と、新規 / 直し / 保留 (公開しなかった) だけ。本文と投稿者は出さない。
+  // 公開 (published_at) は投稿と同じリクエストの中で付くので、1 分たったものから読む。
+  const lyrics = source<{ song_id: string; published: number; replaced: number }>(
+    "lyrics", "lyric_submissions",
+    `song_id, published_at IS NOT NULL AS published,
+     EXISTS (SELECT 1 FROM song_lyrics_versions v WHERE v.replaced_by = lyric_submissions.id) AS replaced`,
+    "created_at <= datetime('now', '-1 minute')"
+  );
+  const sources: Source<any>[] = [edits, calls, timings, lyrics, songTags, idolTags, unitTags, newSongTags, newIdolTags, newUnitTags, polls];
 
   const cursorRows = await env.DB.prepare("SELECT source, last_rowid FROM discord_digest_cursors").all<{
     source: string;
@@ -280,6 +288,11 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   // 名前とジャケ写は CloudKit から 1 回でまとめて引く。
   const callSongIds = [...new Set((calls.rows ?? []).map((r) => r.song_id))];
   const timingSongIds = [...new Set((timings.rows ?? []).map((r) => r.song_id))];
+  const lyricGroups: Array<[string, string[]]> = [["新規", []], ["直し", []], ["保留", []]];
+  for (const r of lyrics.rows ?? []) {
+    const group = lyricGroups[!r.published ? 2 : r.replaced ? 1 : 0][1];
+    if (!group.includes(r.song_id)) group.push(r.song_id);
+  }
   const taggedSongIds = [...songTagged.keys()];
   const idolIds = [...idolTagged.keys()];
   const unitIds = [...unitTagged.keys()];
@@ -287,6 +300,7 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
     ...new Set([
       ...callSongIds.slice(0, LIST_LIMIT),
       ...timingSongIds.slice(0, LIST_LIMIT),
+      ...lyricGroups.flatMap(([, ids]) => ids.slice(0, LIST_LIMIT)),
       ...taggedSongIds.slice(0, EMBED_LIMIT + LIST_LIMIT),
       ...idolIds.slice(0, LIST_LIMIT),
       ...unitIds.slice(0, LIST_LIMIT),
@@ -310,6 +324,17 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
       .map((id) => link(nameOf(id), `${WEB_BASE}/songs/${encodeURIComponent(id)}/`));
     lines.push(`⏱️ **歌詞のタイミング** ${names.join("、")}${moreSuffix(timingSongIds.length)}`);
   }
+
+  // 歌詞の投稿: 新規 / 直し / 保留 ごとに曲名と Web の曲ページ。
+  const lyricParts = lyricGroups
+    .filter(([, ids]) => ids.length)
+    .map(([label, ids]) =>
+      `${label} ${ids
+        .slice(0, LIST_LIMIT)
+        .map((id) => link(nameOf(id), `${WEB_BASE}/songs/${encodeURIComponent(id)}/`))
+        .join("、")}${moreSuffix(ids.length)}`
+    );
+  if (lyricParts.length) lines.push(`📜 **歌詞の投稿** ${lyricParts.join(" ／ ")}`);
 
   // 曲のタグ付け: 曲ごとに埋め込み (曲名・付いたタグ・ジャケ写)。入りきらない分は本文に名前だけ。
   const embeds: unknown[] = [];

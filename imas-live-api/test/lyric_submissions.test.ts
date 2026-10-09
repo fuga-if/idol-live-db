@@ -120,4 +120,25 @@ describe("POST /songs/:id/lyrics-report", () => {
     expect(sent[0].body.body).toContain("あ".repeat(300));
     expect(sent[0].body.body).not.toContain("あ".repeat(301));
   });
+
+  it("#運営 にも曲と理由と issue をすぐ知らせる (本文・補足は出さない)", async () => {
+    const sent: Array<{ url: string; body: any }> = [];
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      sent.push({ url, body: JSON.parse(String(init.body)) });
+      if (url.startsWith("https://api.github.com")) {
+        return Response.json({ number: 7, html_url: "https://github.com/owner/repo/issues/7" }, { status: 201 });
+      }
+      return Response.json({});
+    });
+    const env = makeEnv({ GITHUB_TOKEN: "t", GITHUB_REPO: "owner/repo", DISCORD_BOT_TOKEN: "b", DISCORD_MOD_CHANNEL_ID: "mod1" });
+    const r = await callJson("POST", "/songs/s1/lyrics-report", {
+      headers: await bearer(UID), body: { reason: "wrong", note: "ひみつの補足" }, env,
+    });
+    expect(r.status).toBe(201);
+    const discord = sent.find((s) => s.url === "https://discord.com/api/v10/channels/mod1/messages");
+    expect(discord?.body.allowed_mentions).toEqual({ parse: [] });
+    expect(discord?.body.content).toContain("歌詞の報告** s1（歌詞の誤り）");
+    expect(discord?.body.content).toContain("<https://github.com/owner/repo/issues/7>");
+    expect(discord?.body.content).not.toContain("ひみつの補足");
+  });
 });
