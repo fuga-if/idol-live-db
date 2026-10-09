@@ -79,6 +79,7 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                     ImasProseBlock.Bullets(
                         listOf(
                             "Cloudflare Workers: アプリの API 通信先として利用しています。",
+                            "Spotify: 設定で連携した場合だけ、曲名と歌唱者名を検索語として Spotify に送り、あなたの Spotify アカウントにプレイリストを作ります。使う Client ID とログインの鍵は端末の中にだけ保存し、このアプリのサーバには送りません。",
                             "Google Sign-In: ログイン認証に利用しています。"
                         )
                     ),

@@ -53,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,12 +64,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.CoOccurringSong
+import com.fugaif.imaslivedb.data.spotify.SpotifyException
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongVideo
@@ -77,6 +80,7 @@ import com.fugaif.imaslivedb.data.model.SongSingerTally
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
@@ -172,6 +176,11 @@ fun SongDetailScreen(
     var currentSongId by rememberSaveable(songId) { mutableStateOf(songId) }
     var tagDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var showMenu by remember { mutableStateOf(false) }
+    val spotify = remember { AppModule.from(context).spotifyService }
+    val spotifyState by spotify.state.collectAsState()
+    // 「Spotifyで開く」で見つからなかった・失敗したときの文。
+    var spotifyMessage by remember { mutableStateOf<String?>(null) }
+    val spotifyScope = rememberCoroutineScope()
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
     var showSongEdit by remember { mutableStateOf(false) }
     // 補足だけを書く軽い画面 (利用者の投稿が主な入口なので、楽曲編集とは別に持つ)。
@@ -233,6 +242,24 @@ fun SongDetailScreen(
                                 }
                             )
                         }
+                        // 名義と曲名で突き合わせるので、見分けられなければ開かない (iOS と同じ)。
+                        if (song != null && spotifyState.isConnected) {
+                            DropdownMenuItem(
+                                text = { Text("Spotifyで開く") },
+                                onClick = {
+                                    showMenu = false
+                                    spotifyScope.launch {
+                                        try {
+                                            val url = spotify.trackUrl(song.id)
+                                            if (url != null) openUrl(context, url)
+                                            else spotifyMessage = "Spotify でこの曲が見つかりませんでした。"
+                                        } catch (e: SpotifyException) {
+                                            spotifyMessage = e.message
+                                        }
+                                    }
+                                }
+                            )
+                        }
                         // 編集導線。BAN 済みには出さない (押しても 403 になるだけ)。判定はコア。
                         if (song != null && canEditHere) {
                             DropdownMenuItem(
@@ -264,6 +291,7 @@ fun SongDetailScreen(
             )
         }
     ) { padding ->
+        ImasErrorAlert(message = spotifyMessage, onDismiss = { spotifyMessage = null }, title = "Spotifyで開けませんでした")
         val song = uiState.song
         if (uiState.isLoading || song == null) {
             com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))

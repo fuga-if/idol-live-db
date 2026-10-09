@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -205,6 +206,7 @@ fun PlaylistDetailScreen(
     val scope = rememberCoroutineScope()
     var isRenaming by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    var showsSpotifyExport by remember { mutableStateOf(false) }
     var playFailed by remember { mutableStateOf(false) }
     var showsPicker by remember { mutableStateOf(false) }
     var isPublishing by remember { mutableStateOf(false) }
@@ -238,6 +240,13 @@ fun PlaylistDetailScreen(
                             leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
                             onClick = { showMenu = false; isRenaming = true }
                         )
+                        if (state.songs.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Spotify に書き出す") },
+                                leadingIcon = { Icon(Icons.Filled.IosShare, contentDescription = null) },
+                                onClick = { showMenu = false; showsSpotifyExport = true }
+                            )
+                        }
                         if (state.songs.isNotEmpty()) {
                             DropdownMenuItem(
                                 text = { Text(if (state.playlist?.publishedId == null) "みんなに公開する" else "公開中の中身を更新する") },
@@ -336,6 +345,13 @@ fun PlaylistDetailScreen(
         }
     }
 
+    if (showsSpotifyExport) {
+        SpotifyExportSheet(
+            name = state.playlist?.name ?: "プレイリスト",
+            songs = state.songs.map { SpotifyExportSong(it.id, it.title) },
+            onDismiss = { showsSpotifyExport = false },
+        )
+    }
     if (isRenaming) {
         ImasTextInputDialog(
             title = "名前を変える",

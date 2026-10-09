@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Schedule
@@ -149,6 +150,8 @@ import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.joined
+import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSheet
+import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSong
 
 /** 公演の画面の内部タブ。セットリスト (未来の公演でまだ無ければ出さない)・予想 (未来だけ)・情報。 */
 private enum class ShowTab(val label: String) {
@@ -227,6 +230,7 @@ fun SetlistScreen(
     var showAttendanceDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
+    var showSpotifyExport by remember { mutableStateOf(false) }
 
     /** 編集導線の共通ゲート。未ログインならログイン誘導、BAN は無反応 (導線自体を隠している)。 */
     fun startEdit() {
@@ -278,6 +282,13 @@ fun SetlistScreen(
                             leadingIcon = { Icon(Icons.Filled.History, null) },
                             onClick = { menuOpen = false; showHistorySheet = true }
                         )
+                        if (uiState.setlist.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Spotifyプレイリストに追加") },
+                                leadingIcon = { Icon(Icons.Filled.IosShare, null) },
+                                onClick = { menuOpen = false; showSpotifyExport = true }
+                            )
+                        }
                     }
                 }
             )
@@ -493,6 +504,13 @@ fun SetlistScreen(
         }
     }
 
+    if (showSpotifyExport) {
+        SpotifyExportSheet(
+            name = uiState.show?.name.orEmpty(),
+            songs = uiState.setlist.map { SpotifyExportSong(it.songId, it.songTitle) },
+            onDismiss = { showSpotifyExport = false }
+        )
+    }
     if (showHistorySheet) {
         SetlistEditHistorySheet(
             showId = showId,

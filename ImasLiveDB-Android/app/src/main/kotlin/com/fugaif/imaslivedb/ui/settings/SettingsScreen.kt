@@ -115,7 +115,7 @@ import uniffi.imas_core.InputField
 import uniffi.imas_core.inputIsAcceptable
 import uniffi.imas_core.inputLimitMax
 
-private enum class SettingsInfoScreen { BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
+private enum class SettingsInfoScreen { SPOTIFY, BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -149,6 +149,9 @@ fun SettingsScreen(
 
                 // Apple Music (フル再生のサインイン。曲の行の再生ボタンは未サインインだと試聴に落ちるので入口をここにも置く)
                 item { ImasListSection("Apple Music") { AppleMusicSettingsRow() } }
+
+                // Spotify (自分の Spotify アプリの Client ID で連携する)
+                item { ImasListSection("Spotify") { SpotifySettingsRow { infoScreen = SettingsInfoScreen.SPOTIFY } } }
 
                 // フィルタ設定
                 item {
@@ -308,6 +311,11 @@ fun SettingsScreen(
             onDismissRequest = { infoScreen = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) { InboxScreen(onBack = { infoScreen = null }) }
+
+        SettingsInfoScreen.SPOTIFY -> Dialog(
+            onDismissRequest = { infoScreen = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { SpotifySettingsScreen(onBack = { infoScreen = null }) }
 
         SettingsInfoScreen.BRAND_ROLES -> Dialog(
             onDismissRequest = { infoScreen = null },

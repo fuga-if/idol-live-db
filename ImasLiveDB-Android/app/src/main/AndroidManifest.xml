@@ -129,6 +129,23 @@
         </activity>
 
         <!--
+          Spotify のログイン (アプリ内ブラウザ) から戻る口。利用者が自分の Spotify アプリに
+          この Redirect URI を登録する (imas-core domain/spotify.rs の REDIRECT_URI)。
+        -->
+        <activity
+            android:name=".data.spotify.SpotifyAuthReturnActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="imaslivedb" android:host="spotify-callback" />
+            </intent-filter>
+        </activity>
+
+        <!--
           MusicKit for Android の認証画面は使わない (端末の Apple Music にサインイン済みだと
           結果が返らない不具合 FB24754184。サインインはアプリ内ブラウザで通す)。
           AAR が持ち込む画面と口を畳む。AAR が無いビルドでは何も起きない。
