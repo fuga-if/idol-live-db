@@ -33,4 +33,4 @@ pending_cloudkit_deletions_voyager_20260913.tsv	2026-09-13	done	2026-09-23	0/14	
 pending_cloudkit_deletions_setlist_performers_20260924_fivestar.tsv	2026-09-24	done	2026-10-05	0/2	Five-St@r Party!! の出演外の鷹城恭二 (issue #145 #146)
 pending_cloudkit_deletions_setlist_performers_20260924_sidem11th.tsv	2026-09-24	done	2026-10-05	0/76	SideM 11th DAY1 の出演外の歌唱者 (issue #148 #153 #167)
 pending_cloudkit_deletions_setlist_performers_20261009_sc3rd_tokyo.tsv	2026-10-09	done	2026-10-09	0/16	シャニマス3rd 東京公演の出演外・チーム外の歌唱者 (斑鳩ルカ・鈴木羽那・郁田はるき ほか)
-pending_cloudkit_deletions_setlist_performers_20261009_full_audit.tsv	2026-10-09	pending		75/75	全公演の再精査で外した歌唱者 70 行・出演者 5 行
+pending_cloudkit_deletions_setlist_performers_20261009_full_audit.tsv	2026-10-09	done	2026-10-10	0/75	全公演の再精査で外した歌唱者 70 行・出演者 5 行
