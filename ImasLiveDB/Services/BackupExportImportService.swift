@@ -114,17 +114,22 @@ enum BackupExportImportService {
 
         // P名刺 (受け取った名刺と自分の名刺) も端末にしか無い。写真・担当の画像は運ばない
         // (アイドルの画像と同じく端末の中だけ)。
-        let producerCards = try database.allReceivedProducerCards().map {
-            BackupProducerCardRecord(id: $0.id, payload: $0.payload, source: $0.source,
-                                     showId: $0.showId, showDate: $0.showDate, memo: $0.memo,
-                                     receivedAt: $0.receivedAt, updatedAt: $0.updatedAt)
+        let meetingsByCard = Dictionary(grouping: try database.allReceivedCardMeetings(), by: \.cardId)
+        let producerCards = try database.allReceivedProducerCards().map { card in
+            BackupProducerCardRecord(id: card.id, payload: card.payload, source: card.source,
+                                     showId: card.showId, showDate: card.showDate, memo: card.memo,
+                                     receivedAt: card.receivedAt, updatedAt: card.updatedAt, via: card.via,
+                                     meetings: (meetingsByCard[card.id] ?? []).map {
+                                         BackupCardMeetingRecord(id: $0.id, cardId: $0.cardId, showId: $0.showId,
+                                                                 showDate: $0.showDate, via: $0.via, metAt: $0.metAt)
+                                     })
         }
         let myProducerCards = try database.myProducerCard().map {
             [BackupMyProducerCardRecord(id: $0.id, name: $0.name, message: $0.message,
                                         sinceYear: $0.sinceYear.map(Int64.init), linksJson: $0.linksJson,
                                         hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
                                         design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson,
-                                        cardOshiJson: $0.cardOshiJson)]
+                                        cardOshiJson: $0.cardOshiJson, cardId: $0.cardId)]
         } ?? []
 
         // 時刻・アプリ版・端末 ID は OS からしか分からないので引数で渡す (共有コアは時刻を取らない)。
@@ -210,6 +215,7 @@ enum BackupExportImportService {
             playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id),
             producerCardIds: try database.allReceivedProducerCardIds(),
             myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? [],
+            cardMeetingIds: try database.allReceivedCardMeetings().map(\.id),
             brandRolesJson: BrandRoleStore.json
         )
 
@@ -269,13 +275,18 @@ enum BackupExportImportService {
         let addedProducerCards = try database.restoreReceivedProducerCardsIfAbsent(plan.producerCardsToInsert.map {
             ReceivedProducerCard(id: $0.id, payload: $0.payload, source: $0.source, showId: $0.showId,
                                  showDate: $0.showDate, memo: $0.memo, receivedAt: $0.receivedAt,
-                                 updatedAt: $0.updatedAt)
+                                 updatedAt: $0.updatedAt, via: $0.via)
+        })
+        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす)。
+        try database.restoreReceivedCardMeetingsIfAbsent(plan.cardMeetingsToInsert.map {
+            ReceivedCardMeeting(id: $0.id, cardId: $0.cardId, showId: $0.showId, showDate: $0.showDate,
+                                via: $0.via, metAt: $0.metAt)
         })
         try database.restoreMyProducerCardsIfAbsent(plan.myProducerCardsToInsert.map {
             MyProducerCard(id: $0.id, name: $0.name, message: $0.message, sinceYear: $0.sinceYear.map { Int($0) },
                            linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
                            design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson,
-                           cardOshiJson: $0.cardOshiJson)
+                           cardOshiJson: $0.cardOshiJson, cardId: $0.cardId)
         })
 
         // 担当ブランドは端末の設定に担当・メインが 1 つも無いときだけ (コアが決める)。

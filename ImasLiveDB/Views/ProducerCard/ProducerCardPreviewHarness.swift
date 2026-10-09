@@ -240,10 +240,20 @@ struct ProducerCardPreviewHarness: View {
                 (card("みどりP", "初現地でした", oshi: [idols[0], idols[2], idols[3], idols[4]], shows: 5, attended: [refs[2]], design: .pop), .app, shows[2], nil),
                 (card("あかねP", "よろしくお願いいたします", oshi: [idols[2]], shows: 12, attended: [refs[0]], design: .formal), .app, shows[1], nil),
             ]
+            // 受け取り方 (会場で交換の札が付くもの・付かないもの)。
+            let vias: [CardReceiveVia] = [.nearby, .cameraQr, .paper, .link, .file]
             for (i, s) in samples.enumerated() {
-                var row = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1, memo: s.3)
-                row.receivedAt = "2026-10-05T2\(i):00:00Z"
-                try? db.saveReceivedProducerCard(row)
+                var fresh = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1,
+                                                      memo: s.3, via: vias[i])
+                fresh.receivedAt = "2026-10-05T2\(i):00:00Z"
+                guard let row = try? await db.receiveProducerCard(fresh, matchSamePerson: s.1 == .app) else { continue }
+                // しろくまP とは前の公演でも会っている (会った記録が 2 つ)。
+                if i == 0 {
+                    var earlier = ReceivedProducerCard.make(payload: s.0, source: .app, showId: shows[2].0,
+                                                            showDate: shows[2].1, via: .cameraQr)
+                    earlier.receivedAt = "2026-01-05T20:00:00Z"
+                    _ = try? await db.receiveProducerCard(earlier, matchSamePerson: true)
+                }
                 if i == 0, let jpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 1), maxPixels: 2000),
                    let oshiJpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 0), maxPixels: 1600),
                    let front = ProducerCardFiles.jpeg(face(name: "しろくまP", back: false), maxPixels: 2000),

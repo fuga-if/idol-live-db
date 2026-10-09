@@ -1204,6 +1204,42 @@ enum DatabaseMigrations {
             }
         }
 
+        // v48: 受け取った名刺の受け取り方と会った記録、自分の名刺 id。**端末ローカル唯一データ**なので足すだけ。
+        // - received_producer_cards.via: 最後に会ったときの受け取り方 (コアの `cardReceiveViaKey`)。古い行は NULL (不明)。
+        // - received_card_meetings: 同じ人と会うたびに積む記録。今ある名刺は行から 1 回目の記録を作る
+        //   (id はコアの `cardFirstMeetingId` と同じ "m_" + 名刺の id。バックアップの取り込みと重ならない)。
+        // - my_producer_card.card_id: 同じ人の名刺を見分ける名刺 id (コアの `producerCardNewId`)。
+        migrator.registerMigration("v48_producer_card_meetings") { db in
+            let received = try Row.fetchAll(db, sql: "PRAGMA table_info(received_producer_cards)").map { $0["name"] as String? }
+            if !received.contains("via") {
+                try db.execute(sql: "ALTER TABLE received_producer_cards ADD COLUMN via TEXT")
+            }
+            try db.create(table: "received_card_meetings", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("card_id", .text).notNull()
+                    .references("received_producer_cards", onDelete: .cascade)
+                t.column("show_id", .text)
+                t.column("show_date", .text)
+                t.column("via", .text)
+                t.column("met_at", .text).notNull()
+            }
+            try db.create(index: "idx_received_card_meetings_card", on: "received_card_meetings",
+                          columns: ["card_id"], ifNotExists: true)
+            try db.execute(sql: "UPDATE received_producer_cards SET via = 'paper' WHERE source = 'paper' AND via IS NULL")
+            try db.execute(sql: """
+                INSERT OR IGNORE INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at)
+                SELECT 'm_' || id, id, show_id, show_date,
+                       CASE WHEN source = 'paper' THEN 'paper' ELSE via END, received_at
+                FROM received_producer_cards
+                """)
+            let mine = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !mine.contains("card_id") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN card_id TEXT")
+            }
+            try db.execute(sql: "UPDATE my_producer_card SET card_id = ? WHERE card_id IS NULL",
+                           arguments: [producerCardNewId(seed: UUID().uuidString)])
+        }
+
         return migrator
     }
 }

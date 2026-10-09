@@ -99,7 +99,7 @@ struct ProducerCardReceiveView: View {
 
     @ViewBuilder
     private var nearbyNote: some View {
-        if let nearby, incoming.via == .scan {
+        if let nearby, incoming.via == .cameraQr {
             switch nearby.phase {
             case .searching, .connected, .waiting:
                 ImasNote("近くの相手の iPhone から写真と担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。")
@@ -159,7 +159,7 @@ struct ProducerCardReceiveView: View {
         defer { isSaving = false }
         do {
             let saved = try await ProducerCardInbox.store(payload: incoming.payload, images: images,
-                                                          source: .app, show: show)
+                                                          source: .app, via: incoming.via, show: show)
             AppAnalytics.tap("producer_card.receive")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             if let onDone { onDone((card.name, saved.id)) } else { dismiss() }

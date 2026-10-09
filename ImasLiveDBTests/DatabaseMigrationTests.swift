@@ -11,7 +11,8 @@ final class DatabaseMigrationTests: XCTestCase {
 
     /// 端末ローカルにしかない表。移行で 1 行も欠けてはいけない。
     private static let localOnlyTables = ["user_marks", "personal_tags", "expenses",
-                                          "my_producer_card", "received_producer_cards"]
+                                          "my_producer_card", "received_producer_cards",
+                                          "received_card_meetings"]
 
     /// 空の DB に全移行を当て、コアのマスタスキーマまで通ること
     /// (同梱 DB が無いときの新規インストールの経路)。
@@ -104,6 +105,33 @@ final class DatabaseMigrationTests: XCTestCase {
         let mine = try XCTUnwrap(try queue.read { db in try MyProducerCard.fetchOne(db) })
         XCTAssertEqual(mine.design, "mincho")
         XCTAssertEqual(mine.cardDesign, .formal)
+    }
+
+    /// 会った記録 (v48) を足す前に受け取った名刺は、名刺の行から 1 回目の記録を作る (受け取り方は不明、紙の名刺は紙)。
+    /// 自分の名刺には名刺 id が入る。
+    func testCardMeetingsAreBackfilledFromOldRows() throws {
+        let queue = try DatabaseQueue(path: temporaryDatabasePath())
+        try DatabaseMigrations.migrator.migrate(queue, upTo: "v47_producer_card_oshi_choice")
+        try queue.write { db in
+            try db.execute(sql: """
+                INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at)
+                VALUES ('me', 'ふがP', '', '[]', '', '2026-10-06T00:00:00Z')
+                """)
+            try db.execute(sql: """
+                INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at)
+                VALUES ('c1', 'AQ_a', 'app', 'sh_1', '2026-10-05', NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z'),
+                       ('c2', 'AQ_b', 'paper', NULL, NULL, NULL, '2026-10-06T12:00:00Z', '2026-10-06T12:00:00Z')
+                """)
+        }
+        try DatabaseMigrations.migrator.migrate(queue)
+        let meetings = try queue.read { db in try ReceivedCardMeeting.order(Column("id")).fetchAll(db) }
+        XCTAssertEqual(meetings.map(\.id), [cardFirstMeetingId(cardId: "c1"), cardFirstMeetingId(cardId: "c2")])
+        XCTAssertEqual(meetings[0].showId, "sh_1")
+        XCTAssertNil(meetings[0].via, "古い行は受け取り方が不明")
+        XCTAssertEqual(meetings[1].via, "paper")
+        XCTAssertEqual(meetings[0].metAt, "2026-10-05T12:00:00Z")
+        let mine = try XCTUnwrap(try queue.read { db in try MyProducerCard.fetchOne(db) })
+        XCTAssertTrue(producerCardIdIsValid(id: try XCTUnwrap(mine.cardId)))
     }
 
     /// 担当の選択 (v47) を足す前の自分の名刺は「まだ選んでいない」として読み、名刺は自動の選び方で載る。

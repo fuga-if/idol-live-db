@@ -256,16 +256,74 @@ final class ProducerCardStoreTests: XCTestCase {
     /// 同じ相手の名刺 (中身が同じ) は、別の id で届いても 1 枚にする。
     func testSamePayloadIsNotStoredTwice() async throws {
         let db = try makeDatabase()
-        let first = try await db.insertReceivedProducerCardIfNew(received("c1", name: "しろくまP"))
-        let second = try await db.insertReceivedProducerCardIfNew(received("c2", name: "しろくまP"))
+        let first = try await db.receiveProducerCard(received("c1", name: "しろくまP"), matchSamePerson: true)
+        let second = try await db.receiveProducerCard(received("c2", name: "しろくまP"), matchSamePerson: true)
         XCTAssertEqual(first.id, "c1")
         XCTAssertEqual(second.id, "c1", "同じ中身なら既にある名刺を返す")
         XCTAssertEqual(try db.restoreReceivedProducerCardsIfAbsent([received("c3", name: "しろくまP")]), 0)
         XCTAssertEqual(try db.allReceivedProducerCardIds(), ["c1"])
+        XCTAssertEqual(try db.allReceivedCardMeetings().count, 1, "同じ公演で 2 回読んでも会った記録は 1 つ")
+    }
+
+    // MARK: - 名刺 id・受け取り方・会った記録
+
+    private func payload(name: String, cardId: String) -> String {
+        let input = ProducerCardInput(
+            name: name, message: "", sinceYear: nil, oshiIdolIds: [], links: [], showCount: nil, songCount: nil,
+            nextShowId: nil, attended: [], issuedOn: "2026-10-06", cardId: cardId)
+        return producerCardPayload(card: encodeProducerCard(input: input).card)
+    }
+
+    /// 同じ名刺 id の名刺は、中身が変わっても 1 枚にまとめて中身を新しい方にし、会った記録を積む。
+    /// 会場で交換した記録 (近くの端末・カメラの QR と公演) にだけ「会場で交換」の札、2 回目から「2回目」。
+    func testSamePersonMergesAndStacksMeetings() async throws {
+        let db = try makeDatabase()
+        let id = producerCardNewId(seed: UUID().uuidString)
+        let first = ReceivedProducerCard.make(payload: payload(name: "ふがP", cardId: id), source: .app,
+                                              showId: "sh_1", showDate: "2026-10-05", via: .cameraQr,
+                                              now: Date(timeIntervalSince1970: 1_790_000_000))
+        let saved = try await db.receiveProducerCard(first, matchSamePerson: true)
+        let renamed = ReceivedProducerCard.make(payload: payload(name: "ふがP@現地", cardId: id), source: .app,
+                                                showId: nil, showDate: nil, via: .link,
+                                                now: Date(timeIntervalSince1970: 1_795_000_000))
+        let merged = try await db.receiveProducerCard(renamed, matchSamePerson: true)
+        XCTAssertEqual(merged.id, saved.id)
+        XCTAssertEqual(merged.card?.name, "ふがP@現地", "中身は新しい方")
+        XCTAssertEqual(merged.receiveVia, .link)
+        XCTAssertEqual(try db.allReceivedProducerCardIds().count, 1)
+
+        let views = cardMeetingViews(meetings: try await db.receivedCardMeetingsAsync(cardId: saved.id).map(\.record))
+        XCTAssertEqual(views.map(\.ordinal), [2, 1])
+        XCTAssertEqual(views[0].ordinalLabel, "2回目")
+        XCTAssertNil(views[0].badge, "リンクは札なし")
+        XCTAssertEqual(views[1].badge, "会場で交換")
+
+        // QR の無い紙の名刺は同じ人を探さず新しく足す。名刺を消すと会った記録も消える。
+        _ = try await db.receiveProducerCard(
+            ReceivedProducerCard.make(payload: payload(name: "ふがP@現地", cardId: id), source: .paper,
+                                      showId: nil, showDate: nil, via: .paper), matchSamePerson: false)
+        XCTAssertEqual(try db.allReceivedProducerCardIds().count, 2)
+        try db.deleteReceivedProducerCard(id: saved.id)
+        XCTAssertEqual(try db.allReceivedCardMeetings().count, 1)
+    }
+
+    /// 自分の名刺 id は保存のときに一度だけ作り、名刺の中身に載る。
+    func testMyCardIdIsMadeOnceAndRidesOnTheCard() throws {
+        let db = try makeDatabase()
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        try db.saveMyProducerCard(card)
+        let id = try XCTUnwrap(db.myProducerCard()?.cardId)
+        XCTAssertTrue(producerCardIdIsValid(id: id))
+        try db.saveMyProducerCard(try XCTUnwrap(db.myProducerCard()))
+        XCTAssertEqual(try db.myProducerCard()?.cardId, id, "作り直さない")
+        let record = ProducerCardMyRecord(oshiIds: [], attended: [], songCount: 0)
+        let encoded = try XCTUnwrap(ProducerCardAssembler.encode(card: try XCTUnwrap(db.myProducerCard()), record: record))
+        XCTAssertEqual(decodeProducerCard(text: encoded.url)?.cardId, id)
     }
 
     /// 書き出したバックアップを空の端末に取り込むと、名刺入れと自分の名刺が戻る。
-    func testBackupRoundTripRestoresProducerCards() throws {
+    func testBackupRoundTripRestoresProducerCards() async throws {
         let source = try makeDatabase()
         var mine = MyProducerCard.empty()
         mine.name = "ふがP"
@@ -281,7 +339,14 @@ final class ProducerCardStoreTests: XCTestCase {
         mine.profile = sheet
         mine.cardOshiChoice = ["765as_星井美希", "876_上水流宇宙"]
         try source.saveMyProducerCard(mine)
-        try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))
+        var first = received("c1", name: "しろくまP", memo: "物販列で隣")
+        first.via = "camera_qr"
+        _ = try await source.receiveProducerCard(first, matchSamePerson: true)
+        var secondMeeting = ReceivedProducerCard.make(payload: first.payload, source: .app, showId: "sh_2",
+                                                      showDate: "2026-12-01", via: .nearby)
+        secondMeeting.id = "c9"
+        _ = try await source.receiveProducerCard(secondMeeting, matchSamePerson: true)
+        let myCardId = try XCTUnwrap(source.myProducerCard()?.cardId)
 
         let json = try BackupExportImportService.buildEnvelopeJSON(database: source)
 
@@ -301,6 +366,10 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
         XCTAssertEqual(restored.profile, sheet, "P名刺の画像の選択と好きな曲もバックアップで戻る")
         XCTAssertEqual(restored.cardOshiChoice, ["765as_星井美希", "876_上水流宇宙"], "名刺に載せる担当の選択も戻る")
+        XCTAssertEqual(restored.cardId, myCardId, "名刺 id も戻る (機種変更で別人にならない)")
+        XCTAssertEqual(card.via, "nearby", "受け取り方も戻る")
+        XCTAssertEqual(try target.allReceivedCardMeetings().map(\.via).sorted { ($0 ?? "") < ($1 ?? "") },
+                       ["camera_qr", "nearby"], "会った記録も戻る")
 
         // 2 回目は何も増えない (id で重複を弾く)。
         let again = try BackupExportImportService.importEnvelopeJSON(json, database: target, restoreDeviceId: false)

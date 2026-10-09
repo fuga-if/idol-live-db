@@ -299,7 +299,7 @@ struct PaperCardImportView: View {
         }
         do {
             // QR の無い紙の名刺は名前だけで中身を作るので、同じ名前の別人と重ねない (常に新しく足す)。
-            var saved = try await ProducerCardInbox.store(payload: payload, images: [], source: .paper, show: show,
+            var saved = try await ProducerCardInbox.store(payload: payload, images: [], source: .paper, via: .paper, show: show,
                                                           dedupe: appCard != nil)
             let trimmed = memo.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty, saved.memo == nil {

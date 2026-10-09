@@ -19,7 +19,7 @@ extension AppDatabase {
     }
 
     func saveMyProducerCard(_ card: MyProducerCard) throws {
-        var row = card
+        var row = card.withCardId()
         row.id = MyProducerCard.singletonId
         row.updatedAt = ISO8601DateFormatter.shared.string(from: Date())
         try dbQueue.write { db in try row.save(db) }
@@ -32,7 +32,7 @@ extension AppDatabase {
             var inserted = 0
             for card in cards {
                 guard try MyProducerCard.fetchCount(db) == 0 else { break }
-                var row = card
+                var row = card.withCardId()
                 row.id = MyProducerCard.singletonId
                 try row.insert(db)
                 inserted += 1
@@ -77,16 +77,93 @@ extension AppDatabase {
         try dbQueue.write { db in try row.save(db) }
     }
 
-    /// 同じ中身の名刺が無ければ入れる。あればそれを返す (探すのと入れるのを 1 つの書き込みで行い、
-    /// 同時に 2 回届いても 2 枚にしない)。
-    func insertReceivedProducerCardIfNew(_ card: ReceivedProducerCard) async throws -> ReceivedProducerCard {
+    /// 名刺をしまう。同じ人の名刺 (名刺 id が同じ、無ければ中身が同じ) があれば 1 枚にまとめて中身を新しい方に替え、
+    /// 会った記録を積む (同じ機会にもう一度読んだときは積まない)。しまい方はコアの `cardReceivePlan`。
+    /// `matchSamePerson: false` は QR の無い紙の名刺 (常に新しく足す)。探すのと書くのを 1 つの書き込みで行い、
+    /// 同時に 2 回届いても 2 枚にしない。
+    func receiveProducerCard(_ fresh: ReceivedProducerCard, matchSamePerson: Bool) async throws -> ReceivedProducerCard {
         try await dbQueue.write { db in
-            if let existing = try ReceivedProducerCard
-                .filter(ReceivedProducerCard.Columns.payload == card.payload).fetchOne(db) {
-                return existing
+            let stored = try Row.fetchAll(db, sql: "SELECT id, payload FROM received_producer_cards")
+                .map { CardStoredRef(id: $0["id"], payload: $0["payload"]) }
+            let meetings = try ReceivedCardMeeting.fetchAll(db).map(\.record)
+            let plan = cardReceivePlan(incomingPayload: fresh.payload, stored: stored, meetings: meetings,
+                                       showId: fresh.showId, metAt: fresh.receivedAt,
+                                       matchSamePerson: matchSamePerson)
+            var row = fresh
+            if let existingId = plan.existingCardId, let existing = try ReceivedProducerCard.fetchOne(db, key: existingId) {
+                row = existing
+                row.payload = fresh.payload
+                row.source = fresh.source
+                // 名刺の行は最後に会った記録を写す (古い記録が後から届いても戻さない)。
+                if plan.addMeeting, fresh.receivedAt >= existing.receivedAt {
+                    row.showId = fresh.showId
+                    row.showDate = fresh.showDate
+                    row.receivedAt = fresh.receivedAt
+                    row.via = fresh.via
+                }
+                row.updatedAt = fresh.updatedAt
+                try row.update(db)
+            } else {
+                try row.insert(db)
             }
-            try card.insert(db)
-            return card
+            if plan.addMeeting {
+                let id = plan.existingCardId == nil ? cardFirstMeetingId(cardId: row.id) : UUID().uuidString
+                try ReceivedCardMeeting(id: id, cardId: row.id, showId: fresh.showId, showDate: fresh.showDate,
+                                        via: fresh.via, metAt: fresh.receivedAt).insert(db)
+            }
+            return row
+        }
+    }
+
+    /// 名刺の会った記録 (並びは問わない。並べ方・何回目かはコアの `cardMeetingViews`)。`cardId` が nil なら全部。
+    func receivedCardMeetingsAsync(cardId: String? = nil) async throws -> [ReceivedCardMeeting] {
+        try await dbQueue.read { db in
+            if let cardId {
+                return try ReceivedCardMeeting.filter(ReceivedCardMeeting.Columns.cardId == cardId).fetchAll(db)
+            }
+            return try ReceivedCardMeeting.fetchAll(db)
+        }
+    }
+
+    func allReceivedCardMeetings() throws -> [ReceivedCardMeeting] {
+        try dbQueue.read { db in try ReceivedCardMeeting.fetchAll(db) }
+    }
+
+    /// 最後に会った記録の公演を変え、名刺の行にも写す (詳細の「受け取った公演を変える」)。
+    func changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?) async throws {
+        try await dbQueue.write { db in
+            guard var row = try ReceivedProducerCard.fetchOne(db, key: cardId) else { return }
+            let latest = try ReceivedCardMeeting
+                .filter(ReceivedCardMeeting.Columns.cardId == cardId)
+                .order(ReceivedCardMeeting.Columns.metAt.desc)
+                .fetchOne(db)
+            if var latest {
+                latest.showId = showId
+                latest.showDate = showDate
+                try latest.update(db)
+            } else {
+                try ReceivedCardMeeting(id: cardFirstMeetingId(cardId: cardId), cardId: cardId, showId: showId,
+                                        showDate: showDate, via: row.via, metAt: row.receivedAt).insert(db)
+            }
+            row.showId = showId
+            row.showDate = showDate
+            row.updatedAt = ISO8601DateFormatter.shared.string(from: Date())
+            try row.update(db)
+        }
+    }
+
+    /// バックアップからの非破壊復元: 無い id の会った記録だけ足す (名刺が端末に無い記録は飛ばす)。
+    @discardableResult
+    func restoreReceivedCardMeetingsIfAbsent(_ meetings: [ReceivedCardMeeting]) throws -> Int {
+        try dbQueue.write { db in
+            var inserted = 0
+            for meeting in meetings {
+                guard try ReceivedCardMeeting.fetchOne(db, key: meeting.id) == nil,
+                      try ReceivedProducerCard.fetchOne(db, key: meeting.cardId) != nil else { continue }
+                try meeting.insert(db)
+                inserted += 1
+            }
+            return inserted
         }
     }
 

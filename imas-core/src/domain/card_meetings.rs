@@ -106,6 +106,8 @@ pub struct CardMeetingView {
     pub show_id: Option<String>,
     pub show_date: Option<String>,
     pub met_at: String,
+    /// 半券に刷る日付 (`YYYY-MM-DD`)。公演があれば公演の日、無ければ受け取った日 (JST)。
+    pub date: String,
     /// 受け取り方の言い方 (不明なら None)。
     pub via_label: Option<String>,
     /// 「会場で交換」の札 ([`card_meeting_badge`])。
@@ -137,6 +139,9 @@ pub fn card_meeting_views(meetings: &[CardMeetingRecord]) -> Vec<CardMeetingView
                 show_id: non_empty(&m.show_id).map(str::to_string),
                 show_date: non_empty(&m.show_date).map(str::to_string),
                 met_at: m.met_at.clone(),
+                date: non_empty(&m.show_date)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| jst_day(&m.met_at)),
                 via_label: via.map(card_receive_via_label),
                 badge: card_meeting_badge(via, non_empty(&m.show_id)),
                 ordinal: *n,
@@ -367,5 +372,7 @@ mod tests {
         assert_eq!(views[1].via_label.as_deref(), Some("リンクで受け取り"));
         assert_eq!(views[3].via_label, None, "古い行は受け取り方が不明");
         assert_eq!(views[3].badge, None);
+        assert_eq!(views[0].date, "2026-10-05", "公演があれば公演の日");
+        assert_eq!(views[1].date, "2026-11-01", "無ければ受け取った日 (JST)");
     }
 }

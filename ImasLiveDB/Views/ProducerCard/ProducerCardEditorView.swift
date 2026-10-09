@@ -147,10 +147,8 @@ struct ProducerCardEditorView: View {
                 } else if validation == .tooLong {
                     Text(producerCardInputErrorMessage(error: .tooLong)).imasText(.note, color: DS.danger)
                 }
-                if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
-                    ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
-                }
-                ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
+                ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
             }
             #if DEBUG
             .onAppear {

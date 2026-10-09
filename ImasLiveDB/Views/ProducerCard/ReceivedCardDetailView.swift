@@ -1,7 +1,10 @@
 import NukeUI
 import SwiftUI
 
-/// 受け取った名刺 1 枚。相手の名刺 (自分の名刺と同じ部品)・あなたとの共通点・メモ・紙の名刺の写真。
+/// 受け取った名刺 1 枚。相手の名刺 (自分の名刺と同じ部品)・あなたとの共通点・会った記録・メモ・紙の名刺の写真。
+///
+/// 会った記録は同じ人と会うたびに積んだもの (公演の半券の行、会場で交換していれば朱の線の札「会場で交換」)。
+/// 並び・何回目か・札はコア (`cardMeetingViews`)。
 ///
 /// 共通点 (同じ担当・同じ公演にいた回数・はじめて同じ会場) はコア (`producerCardCommon`)。
 /// 公演の行を押すとその公演の詳細へ。
@@ -15,6 +18,7 @@ struct ReceivedCardDetailView: View {
     @State private var row: ReceivedProducerCard?
     @State private var card: ProducerCard?
     @State private var common: CardCommon?
+    @State private var meetings: [CardMeetingView] = []
     @State private var directory = ProducerCardDirectory()
     @State private var myOshi: Set<String> = []
     @State private var showOptions: [LedgerShowOption] = []
@@ -27,6 +31,7 @@ struct ReceivedCardDetailView: View {
     @State private var error: String?
 
     var body: some View {
+      ScrollViewReader { proxy in
         ImasPage {
             if let row, let card {
                 let display = ProducerCardDisplay.view(
@@ -44,6 +49,7 @@ struct ReceivedCardDetailView: View {
                 display
                 display.details
                 commonSection(row)
+                meetingsSection.id("meetings")
                 memoSection(row)
                 photoSection(row)
             } else if loaded {
@@ -55,6 +61,15 @@ struct ReceivedCardDetailView: View {
                 ImasInlineLoading()
             }
         }
+        #if DEBUG
+        .onChange(of: loaded) { _, done in
+            // シミュレータでの見た目確認 (PRODUCER_CARD_SCROLL=meetings)。
+            if done, let target = ProcessInfo.processInfo.environment["PRODUCER_CARD_SCROLL"] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { proxy.scrollTo(target, anchor: .top) }
+            }
+        }
+        #endif
+      }
         .navigationTitle(card?.name ?? "名刺")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -132,6 +147,30 @@ struct ReceivedCardDetailView: View {
         .environment(\.imasRowPosition, .following)
     }
 
+    // MARK: - 会った記録
+
+    @ViewBuilder
+    private var meetingsSection: some View {
+        if !meetings.isEmpty {
+            ImasSection("会った記録") {
+                ImasCardList {
+                    ForEach(Array(meetings.enumerated()), id: \.element.id) { index, meeting in
+                        let show = meeting.showId.flatMap { directory.shows[$0] }
+                        if index > 0 { ImasRowDivider(inset: DS.sp4) }
+                        ImasStubRow(
+                            date: ImasStubDate(meeting.date),
+                            title: show?.label ?? "公演に紐づかない",
+                            subtitle: meeting.viaLabel,
+                            badges: [meeting.badge.map { ImasBadgeSpec(text: $0, kind: .positive) },
+                                     meeting.ordinalLabel.map { ImasBadgeSpec(text: $0, kind: .neutral) }]
+                                .compactMap { $0 }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - メモ
 
     private func memoSection(_ row: ReceivedProducerCard) -> some View {
@@ -184,22 +223,26 @@ struct ReceivedCardDetailView: View {
         if let decoded, let record {
             common = producerCardCommon(card: decoded, myOshiIds: record.oshiIds, myAttended: record.summary.attendedPast)
         }
+        let views = cardMeetingViews(meetings: ((try? await store.meetings(cardId: cardId)) ?? []).map(\.record))
         let showIds = [found.showId, decoded?.nextShowId, common?.sharedShowIds.first].compactMap { $0 }
+            + views.compactMap(\.showId)
         directory = await ProducerCardDirectory.load(idolIds: decoded?.oshiIdolIds ?? [], showIds: showIds)
         showOptions = (try? await AppContainer.shared.ledgerReading.attendedShowOptions()) ?? []
         myOshi = Set(record?.oshiIds ?? [])
         self.common = common
+        meetings = views
         row = found
         card = decoded
         loaded = true
     }
 
+    /// 最後に会った記録の公演を変える (名刺の行にも写す)。
     private func changeShow(_ option: LedgerShowOption?) async {
-        guard var updated = row else { return }
-        updated.showId = option?.id
-        updated.showDate = option?.date
+        guard let row else { return }
         do {
-            try await ProducerCardInbox.update(updated)
+            try await AppContainer.shared.producerCards.changeLatestMeetingShow(
+                cardId: row.id, showId: option?.id, showDate: option?.date)
+            NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
         } catch {
             self.error = error.localizedDescription
         }

@@ -2,14 +2,18 @@ import SwiftUI
 
 /// 名刺入れ。受け取った名刺を、受け取った公演ごと (公演の半券の下) に束ねて新しい順に並べる。
 ///
-/// 束ね方・並び順はコア (`cardCaseSections`)。行頭の帯は相手の担当の色、自分と担当が同じなら
-/// 朱の札「担当被り」。行は右に引くとメモ、左に引くと削除。
+/// 束ね方・並び順はコア (`cardCaseSections`)。同じ人と何度か会っていれば、会った記録ごとにその公演の束に出る
+/// (公演ごとに誰と会ったかが分かるように。名刺の中身は 1 枚で、いちばん新しいもの)。行頭の帯は相手の担当の色、
+/// 自分と担当が同じなら朱の札「担当被り」。会場で交換した記録は朱の線の札「会場で交換」、2 回目からは「2回目」
+/// (札と回数はコアの `cardMeetingViews`)。行は右に引くとメモ、左に引くと削除。
 ///
 /// ⚠️ 行のスワイプを効かせるため **List** で組む。
 struct CardCaseView: View {
     @State private var cards: [ReceivedProducerCard] = []
     @State private var decoded: [String: ProducerCard] = [:]
     @State private var sections: [CardCaseSection] = []
+    /// 束の行 (会った記録の id) → 会った記録。記録の無い名刺は名刺の id のまま (記録は nil)。
+    @State private var meetings: [String: CardMeetingView] = [:]
     @State private var directory = ProducerCardDirectory()
     @State private var myOshi: Set<String> = []
     @State private var myCard: EncodedProducerCard?
@@ -40,8 +44,9 @@ struct CardCaseView: View {
                 ForEach(sections, id: \.self) { section in
                     sectionHeader(section)
                     ForEach(section.entryIds, id: \.self) { id in
-                        if let card = cards.first(where: { $0.id == id }) {
-                            row(card)
+                        let meeting = meetings[id]
+                        if let card = cards.first(where: { $0.id == (meeting?.cardId ?? id) }) {
+                            row(card, meeting: meeting)
                         }
                     }
                 }
@@ -100,7 +105,7 @@ struct CardCaseView: View {
 
     // MARK: - 行
 
-    private func row(_ card: ReceivedProducerCard) -> some View {
+    private func row(_ card: ReceivedProducerCard, meeting: CardMeetingView?) -> some View {
         let content = decoded[card.id]
         let lead = content?.oshiIdolIds.compactMap { directory.idols[$0] }.first
         let brand = lead.flatMap { directory.brands[$0.brandId] }
@@ -135,6 +140,12 @@ struct CardCaseView: View {
                 leadBar: lead.map { ImasRowLeadBar(seed: $0.color, brand: brand?.color) },
                 trailing: shared ? .badge(ImasBadge(text: "担当被り", kind: .new)) : .none
             ) {
+                if meeting?.badge != nil || meeting?.ordinalLabel != nil {
+                    HStack(spacing: DS.Space.gapTight) {
+                        if let badge = meeting?.badge { ImasBadge(text: badge, kind: .positive) }
+                        if let ordinal = meeting?.ordinalLabel { ImasBadge(text: ordinal) }
+                    }
+                }
                 if let memo = card.memo, !memo.isEmpty {
                     Text(memo).imasText(.note).lineLimit(1)
                 }
@@ -157,7 +168,12 @@ struct CardCaseView: View {
         let all = (try? await store.receivedCards()) ?? []
         var map: [String: ProducerCard] = [:]
         for card in all { if let c = card.card { map[card.id] = c } }
-        let entries = all.map {
+        // 束の行は会った記録ごと (記録の無い名刺は名刺の行から)。
+        let views = cardMeetingViews(meetings: ((try? await store.meetings(cardId: nil)) ?? []).map(\.record))
+        let met = Set(views.map(\.cardId))
+        let entries = views.map {
+            CardCaseEntry(id: $0.id, showId: $0.showId, showDate: $0.showDate, receivedAt: $0.metAt)
+        } + all.filter { !met.contains($0.id) }.map {
             CardCaseEntry(id: $0.id, showId: $0.showId, showDate: $0.showDate, receivedAt: $0.receivedAt)
         }
         let record = try? await ProducerCardAssembler.loadMyRecord()
@@ -169,6 +185,7 @@ struct CardCaseView: View {
             myCard = ProducerCardAssembler.encode(card: mine, record: record)
         }
         cards = all
+        meetings = Dictionary(views.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         decoded = map
         sections = built
         loaded = true

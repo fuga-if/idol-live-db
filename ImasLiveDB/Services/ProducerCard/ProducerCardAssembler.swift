@@ -72,7 +72,8 @@ enum ProducerCardAssembler {
             issuedOn: JSTDay.today(),
             design: card.cardDesign,
             qrUrl: card.qrUrl,
-            showBrandLabels: card.shows(.brandLabels)
+            showBrandLabels: card.shows(.brandLabels),
+            cardId: card.cardId
         )
     }
 
