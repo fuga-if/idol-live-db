@@ -7,7 +7,18 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import com.fugaif.imaslivedb.data.model.MyProducerCard
+import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
+import java.util.UUID
+import uniffi.imas_core.CardStoredRef
+import uniffi.imas_core.cardFirstMeetingId
+import uniffi.imas_core.cardReceivePlan
+
+/** 名刺入れの名刺の id と中身 (同じ人を探す材料)。 */
+data class ReceivedCardRef(
+    @ColumnInfo(name = "id") val id: String,
+    @ColumnInfo(name = "payload") val payload: String
+)
 
 /** 名刺に出す公演 1 件の行 (表記はリポジトリがコアの `showDisplayTitle` で組む)。 */
 data class ProducerCardShowRow(
@@ -62,22 +73,107 @@ interface ProducerCardDao {
     suspend fun insertReceivedIfAbsent(card: ReceivedProducerCard): Long
 
     @Query("DELETE FROM received_producer_cards WHERE id = :id")
-    suspend fun deleteReceived(id: String)
+    suspend fun deleteReceivedRow(id: String)
+
+    /** 名刺と会った記録を一緒に消す。 */
+    @Transaction
+    suspend fun deleteReceived(id: String) {
+        deleteMeetings(id)
+        deleteReceivedRow(id)
+    }
+
+    @Query("SELECT id, payload FROM received_producer_cards")
+    suspend fun receivedRefs(): List<ReceivedCardRef>
+
+    // ---- 会った記録 ----
+
+    @Query("SELECT * FROM received_card_meetings")
+    suspend fun meetings(): List<ReceivedCardMeeting>
+
+    @Query("SELECT * FROM received_card_meetings WHERE card_id = :cardId")
+    suspend fun meetings(cardId: String): List<ReceivedCardMeeting>
+
+    @Query("SELECT * FROM received_card_meetings WHERE id = :id")
+    suspend fun meeting(id: String): ReceivedCardMeeting?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertMeeting(meeting: ReceivedCardMeeting)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertMeetingIfAbsent(meeting: ReceivedCardMeeting): Long
+
+    @Query("DELETE FROM received_card_meetings WHERE card_id = :cardId")
+    suspend fun deleteMeetings(cardId: String)
+
+    @Query("SELECT id FROM received_card_meetings")
+    suspend fun meetingIds(): List<String>
+
+    /**
+     * 名刺をしまう。同じ人の名刺 (名刺 id が同じ、無ければ中身が同じ) があれば 1 枚にまとめて中身を新しい方に替え、
+     * 会った記録を積む (同じ機会にもう一度読んだときは積まない)。しまい方はコアの `cardReceivePlan`。
+     * `matchSamePerson = false` は QR の無い紙の名刺 (常に新しく足す)。探すのと書くのを 1 つの書き込みで行う。
+     * iOS `AppDatabase.receiveProducerCard` と対。
+     */
+    @Transaction
+    suspend fun receive(fresh: ReceivedProducerCard, matchSamePerson: Boolean): ReceivedProducerCard {
+        val plan = cardReceivePlan(
+            fresh.payload, receivedRefs().map { CardStoredRef(id = it.id, payload = it.payload) },
+            meetings().map { it.record }, fresh.showId, fresh.receivedAt, matchSamePerson
+        )
+        val existing = plan.existingCardId?.let { receivedCard(it) }
+        val row = if (existing != null) {
+            // 名刺の行は最後に会った記録を写す (古い記録が後から届いても戻さない)。
+            val latest = plan.addMeeting && fresh.receivedAt >= existing.receivedAt
+            existing.copy(
+                payload = fresh.payload, source = fresh.source, updatedAt = fresh.updatedAt,
+                showId = if (latest) fresh.showId else existing.showId,
+                showDate = if (latest) fresh.showDate else existing.showDate,
+                receivedAt = if (latest) fresh.receivedAt else existing.receivedAt,
+                via = if (latest) fresh.via else existing.via
+            ).also { upsertReceived(it) }
+        } else {
+            fresh.also { upsertReceived(it) }
+        }
+        if (plan.addMeeting) {
+            val id = if (existing == null) cardFirstMeetingId(row.id) else UUID.randomUUID().toString()
+            upsertMeeting(
+                ReceivedCardMeeting(
+                    id = id, cardId = row.id, showId = fresh.showId, showDate = fresh.showDate,
+                    via = fresh.via, metAt = fresh.receivedAt
+                )
+            )
+        }
+        return row
+    }
+
+    /** 最後に会った記録の公演を変え、名刺の行にも写す (詳細の「受け取った公演を変える」)。 */
+    @Transaction
+    suspend fun changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?, now: String) {
+        val row = receivedCard(cardId) ?: return
+        val latest = meetings(cardId).maxWithOrNull(compareBy<ReceivedCardMeeting> { it.metAt }.thenBy { it.id })
+        upsertMeeting(
+            latest?.copy(showId = showId, showDate = showDate) ?: ReceivedCardMeeting(
+                id = cardFirstMeetingId(cardId), cardId = cardId, showId = showId, showDate = showDate,
+                via = row.via, metAt = row.receivedAt
+            )
+        )
+        upsertReceived(row.copy(showId = showId, showDate = showDate, updatedAt = now))
+    }
+
+    /** バックアップからの非破壊復元: 無い id の会った記録だけ足す (名刺が端末に無い記録は飛ばす)。 */
+    @Transaction
+    suspend fun restoreMeetingsIfAbsent(meetings: List<ReceivedCardMeeting>): Int {
+        var inserted = 0
+        for (m in meetings) {
+            if (receivedCard(m.cardId) == null) continue
+            if (insertMeetingIfAbsent(m) != -1L) inserted++
+        }
+        return inserted
+    }
 
     /** バックアップ用の id 一覧 (重複判定はコアが id で行う)。 */
     @Query("SELECT id FROM received_producer_cards")
     suspend fun receivedIds(): List<String>
-
-    /**
-     * 同じ中身の名刺が無ければ入れる。あればそれを返す (探すのと入れるのを 1 つの書き込みで行い、
-     * 同時に 2 回届いても 2 枚にしない)。
-     */
-    @Transaction
-    suspend fun insertReceivedIfNew(card: ReceivedProducerCard): ReceivedProducerCard {
-        receivedCardByPayload(card.payload)?.let { return it }
-        upsertReceived(card)
-        return card
-    }
 
     /**
      * バックアップからの非破壊復元: id が同じもの、または同じ相手の名刺 (中身が同じ) が既にあれば
@@ -98,7 +194,7 @@ interface ProducerCardDao {
     suspend fun restoreMyCardIfAbsent(cards: List<MyProducerCard>): Int {
         for (card in cards) {
             if (myCardCount() > 0) break
-            insertMyCardIfAbsent(card.copy(id = MyProducerCard.SINGLETON_ID))
+            insertMyCardIfAbsent(card.withCardId().copy(id = MyProducerCard.SINGLETON_ID))
             return 1
         }
         return 0

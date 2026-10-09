@@ -1,5 +1,9 @@
 package com.fugaif.imaslivedb.data.repository
 
+import uniffi.imas_core.producerCardIdIsValid
+import uniffi.imas_core.producerCardNewId
+import uniffi.imas_core.cardMeetingViews
+import uniffi.imas_core.CardReceiveVia
 import android.content.Context
 import androidx.room.Room
 import com.fugaif.imaslivedb.data.backup.BackupExportImportService
@@ -264,12 +268,81 @@ class ProducerCardStoreTest {
     @Test
     fun samePayloadIsNotStoredTwice() = runBlocking {
         val repo = ProducerCardRepository(database())
-        val first = repo.insertReceivedIfNew(received("c1", "しろくまP"))
-        val second = repo.insertReceivedIfNew(received("c2", "しろくまP"))
+        val first = repo.receive(received("c1", "しろくまP"), matchSamePerson = true)
+        val second = repo.receive(received("c2", "しろくまP"), matchSamePerson = true)
         assertEquals("c1", first.id)
         assertEquals("同じ中身なら既にある名刺を返す", "c1", second.id)
         assertEquals(0, repo.restoreReceivedIfAbsent(listOf(received("c3", "しろくまP"))))
         assertEquals(listOf("c1"), repo.receivedIds())
+        assertEquals("同じ公演で 2 回読んでも会った記録は 1 つ", 1, repo.meetings().size)
+    }
+
+    // ---- 名刺 id・受け取り方・会った記録 (iOS ProducerCardStoreTests と対) ----
+
+    private fun payload(name: String, cardId: String): String = producerCardPayload(
+        encodeProducerCard(
+            ProducerCardInput(
+                name = name, message = "", sinceYear = null, oshiIdolIds = emptyList(), links = emptyList(),
+                showCount = null, songCount = null, nextShowId = null, attended = emptyList(),
+                issuedOn = "2026-10-06", cardId = cardId
+            )
+        ).card
+    )
+
+    /**
+     * 同じ名刺 id の名刺は、中身が変わっても 1 枚にまとめて中身を新しい方にし、会った記録を積む。
+     * 会場で交換した記録 (近くの端末・カメラの QR と公演) にだけ「会場で交換」の札、2 回目から「2回目」。
+     */
+    @Test
+    fun samePersonMergesAndStacksMeetings() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        val id = producerCardNewId(java.util.UUID.randomUUID().toString())
+        val saved = repo.receive(
+            ReceivedProducerCard.make(
+                payload("ふがP", id), ReceivedProducerCard.Source.APP, "sh_1", "2026-10-05",
+                via = CardReceiveVia.CAMERA_QR, now = java.time.Instant.ofEpochSecond(1_790_000_000)
+            ),
+            matchSamePerson = true
+        )
+        val merged = repo.receive(
+            ReceivedProducerCard.make(
+                payload("ふがP@現地", id), ReceivedProducerCard.Source.APP, null, null,
+                via = CardReceiveVia.LINK, now = java.time.Instant.ofEpochSecond(1_795_000_000)
+            ),
+            matchSamePerson = true
+        )
+        assertEquals(saved.id, merged.id)
+        assertEquals("中身は新しい方", "ふがP@現地", merged.card?.name)
+        assertEquals(CardReceiveVia.LINK, merged.receiveVia)
+        assertEquals(1, repo.receivedIds().size)
+
+        val views = cardMeetingViews(repo.meetings(saved.id).map { it.record })
+        assertEquals(listOf(2u, 1u), views.map { it.ordinal })
+        assertEquals("2回目", views[0].ordinalLabel)
+        assertNull("リンクは札なし", views[0].badge)
+        assertEquals("会場で交換", views[1].badge)
+
+        // QR の無い紙の名刺は同じ人を探さず新しく足す。名刺を消すと会った記録も消える。
+        repo.receive(
+            ReceivedProducerCard.make(payload("ふがP@現地", id), ReceivedProducerCard.Source.PAPER, null, null, via = CardReceiveVia.PAPER),
+            matchSamePerson = false
+        )
+        assertEquals(2, repo.receivedIds().size)
+        repo.deleteReceived(saved.id)
+        assertEquals(1, repo.meetings().size)
+    }
+
+    /** 自分の名刺 id は保存のときに一度だけ作り、名刺の中身に載る。 */
+    @Test
+    fun myCardIdIsMadeOnceAndRidesOnTheCard() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        repo.saveMyCard(myCard("ふがP"))
+        val id = repo.myCard()!!.cardId!!
+        assertTrue(producerCardIdIsValid(id))
+        repo.saveMyCard(repo.myCard()!!)
+        assertEquals("作り直さない", id, repo.myCard()!!.cardId)
+        val encoded = ProducerCardAssembler.encode(repo.myCard()!!, ProducerCardMyRecord(emptyList(), emptyList(), 0))!!
+        assertEquals(id, decodeProducerCard(encoded.url)!!.cardId)
     }
 
     /** 履歴書に載せる好きな曲は曲 id の並びで自分の名刺の行に持つ。選ぶ前の保存 (キーなし) は「まだ選んでいない」。 */
@@ -341,7 +414,13 @@ class ProducerCardStoreTest {
             .withCardDesign(CardDesign.FORMAL)
             .withCardOshiChoice(listOf("765as_星井美希", "876_上水流宇宙"))
         sourceRepo.saveMyCard(mine)
-        sourceRepo.saveReceived(received("c1", "しろくまP", memo = "物販列で隣"))
+        sourceRepo.receive(received("c1", "しろくまP", memo = "物販列で隣").copy(via = "camera_qr"), matchSamePerson = true)
+        sourceRepo.receive(
+            ReceivedProducerCard.make(received("c1", "しろくまP").payload, ReceivedProducerCard.Source.APP, "sh_2", "2026-12-01", via = CardReceiveVia.NEARBY)
+                .copy(id = "c9"),
+            matchSamePerson = true
+        )
+        val myCardId = sourceRepo.myCard()!!.cardId
         val json = BackupExportImportService.buildEnvelopeJson(
             context, UserMarkRepository(source), LocalPollVoteLog(context),
             PersonalTagRepository(source), ExpenseRepository(source), PlaylistRepository(source), sourceRepo
@@ -366,6 +445,9 @@ class ProducerCardStoreTest {
         assertEquals(setOf(ProducerCardField.ATTENDED), restored.hidden)
         assertEquals("P名刺の画像の選択と好きな曲もバックアップで戻る", sheet, restored.profile)
         assertEquals("デザインもバックアップで戻る", CardDesign.FORMAL, restored.cardDesign)
+        assertEquals("名刺 id も戻る (機種変更で別人にならない)", myCardId, restored.cardId)
+        assertEquals("受け取り方も戻る", "nearby", card.via)
+        assertEquals("会った記録も戻る", listOf("camera_qr", "nearby"), targetRepo.meetings().mapNotNull { it.via }.sorted())
         assertEquals("名刺に載せる担当の選択も戻る", listOf("765as_星井美希", "876_上水流宇宙"), restored.cardOshiChoice)
 
         // 2 回目は何も増えない (id で重複を弾く)。

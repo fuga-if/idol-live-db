@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb
 
+import uniffi.imas_core.CardReceiveVia
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -186,13 +187,13 @@ class MainActivity : ComponentActivity() {
     private fun handleProducerCardIntent(intent: Intent?) {
         when (val link = ProducerCardIntents.parse(intent)) {
             is ProducerCardIntent.Card -> ProducerCardIncoming.present(
-                IncomingProducerCard(link.payload, emptyList(), IncomingProducerCard.Via.LINK)
+                IncomingProducerCard(link.payload, emptyList(), CardReceiveVia.LINK)
             )
             is ProducerCardIntent.File -> lifecycleScope.launch {
                 val contents = ProducerCardIntents.readCardFile(this@MainActivity, link.uri)
                 if (contents != null) {
                     ProducerCardIncoming.present(
-                        IncomingProducerCard(contents.payload, contents.images, IncomingProducerCard.Via.FILE)
+                        IncomingProducerCard(contents.payload, contents.images, CardReceiveVia.FILE)
                     )
                 } else {
                     ProducerCardIncoming.reportFileFailed()

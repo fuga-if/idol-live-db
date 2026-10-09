@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.data.producercard
 
+import uniffi.imas_core.CardReceiveVia
 import android.content.Context
 import android.util.Log
 import com.fugaif.imaslivedb.data.model.JstDay
@@ -35,8 +36,9 @@ object ProducerCardInbox {
         cardExchangeShowCandidates(JstDay.today(), record.attended)
 
     /**
-     * 名刺をしまう。同じ中身の名刺が既にあれば新しく足さず、その名刺に画像だけ足して返す
-     * (同じ相手の QR を 2 回読んでも 2 枚にしない)。[dedupe] = false は QR の無い紙の名刺
+     * 名刺をしまう。同じ人の名刺 (名刺 id が同じ、無ければ中身が同じ) が既にあれば新しく足さず、1 枚にまとめて
+     * 中身を新しい方に替え、会った記録を積む (同じ相手の QR を同じ公演で 2 回読んでも記録は 1 つ)。
+     * 届いた画像 (写真・担当の画像) は新しいものに差し替える。[dedupe] = false は QR の無い紙の名刺
      * (名前だけで中身を作るので、同じ名前の別人と重ならないように常に新しく足す)。
      * 画像を書けなくても名刺はしまえているので、失敗は記録だけにする。
      */
@@ -45,17 +47,13 @@ object ProducerCardInbox {
         payload: String,
         images: List<CardFileImage>,
         source: ReceivedProducerCard.Source,
+        via: CardReceiveVia,
         show: ProducerCardShowInfo?,
         dedupe: Boolean = true
     ): ReceivedProducerCard {
         val repo = AppModule.from(context).producerCardRepository
-        val fresh = ReceivedProducerCard.make(payload, source, show?.id, show?.date)
-        val saved = if (dedupe) {
-            repo.insertReceivedIfNew(fresh)
-        } else {
-            repo.saveReceived(fresh)
-            fresh
-        }
+        val fresh = ReceivedProducerCard.make(payload, source, show?.id, show?.date, via = via)
+        val saved = repo.receive(fresh, matchSamePerson = dedupe)
         attachImages(context, saved.id, images)
         notifyChanged()
         return saved

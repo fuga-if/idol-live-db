@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import uniffi.imas_core.CardReceiveVia
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -222,7 +223,7 @@ fun PaperCardImportSheet(onDismiss: () -> Unit) {
                 )
                 // QR の無い紙の名刺は名前だけで中身を作るので、同じ名前の別人と重ねない (常に新しく足す)。
                 var saved = ProducerCardInbox.store(
-                    context, payload, emptyList(), ReceivedProducerCard.Source.PAPER, show, dedupe = found != null
+                    context, payload, emptyList(), ReceivedProducerCard.Source.PAPER, CardReceiveVia.PAPER, show, dedupe = found != null
                 )
                 val trimmedMemo = memo.trim()
                 if (trimmedMemo.isNotEmpty() && saved.memo == null) {

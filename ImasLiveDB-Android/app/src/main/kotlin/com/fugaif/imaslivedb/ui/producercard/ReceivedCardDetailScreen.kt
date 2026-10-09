@@ -1,5 +1,12 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubDate
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
+import uniffi.imas_core.cardMeetingViews
+import uniffi.imas_core.CardMeetingView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,6 +91,7 @@ fun ReceivedCardDetailScreen(
     var row by remember { mutableStateOf<ReceivedProducerCard?>(null) }
     var card by remember { mutableStateOf<ProducerCard?>(null) }
     var common by remember { mutableStateOf<CardCommon?>(null) }
+    var meetings by remember { mutableStateOf<List<CardMeetingView>>(emptyList()) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
     var images by remember { mutableStateOf(ReceivedCardImages()) }
     var myOshi by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -108,12 +116,15 @@ fun ReceivedCardDetailScreen(
         val c = if (decoded != null && record != null) {
             producerCardCommon(decoded, record.oshiIds, record.summary.attendedPast)
         } else null
-        val showIds = listOfNotNull(found.showId, decoded?.nextShowId, c?.sharedShowIds?.firstOrNull())
+        val views = cardMeetingViews(module.producerCardRepository.meetings(cardId).map { it.record })
+        val showIds = listOfNotNull(found.showId, decoded?.nextShowId, c?.sharedShowIds?.firstOrNull()) +
+            views.mapNotNull { it.showId }
         directory = ProducerCardDirectory.load(module, decoded?.oshiIdolIds.orEmpty(), showIds)
         showOptions = runCatching { module.expenseRepository.attendedShowOptions() }.getOrDefault(emptyList())
         images = withContext(Dispatchers.IO) { ReceivedCardImages.load(context, found.id, decoded?.oshiIdolIds.orEmpty()) }
         myOshi = record?.oshiIds.orEmpty().toSet()
         common = c
+        meetings = views
         row = found
         card = decoded
         loaded = true
@@ -169,6 +180,7 @@ fun ReceivedCardDetailScreen(
                         onOpenOshi = { oshi -> onOpenIdol(oshi.id) }
                     )
                     CommonSection(r, common, directory, onOpenShow, onPickShow = { pickingShow = true })
+                    MeetingsSection(meetings, directory)
                     ImasSection("メモ", actionTitle = "編集", actionIcon = Icons.Filled.Edit, onAction = { editingMemo = true }) {
                         ImasCard {
                             val memo = r.memo
@@ -202,7 +214,11 @@ fun ReceivedCardDetailScreen(
                 pickingShow = false
                 val current = row ?: return@LedgerShowPickerSheet
                 scope.launch {
-                    runCatching { ProducerCardInbox.update(context, current.copy(showId = option?.id, showDate = option?.date)) }
+                    // 最後に会った記録の公演を変える (名刺の行にも写す)。
+                    runCatching {
+                        module.producerCardRepository.changeLatestMeetingShow(current.id, option?.id, option?.date)
+                        ProducerCardInbox.changed()
+                    }
                         .onFailure { error = it.message ?: "保存できませんでした" }
                 }
             },
@@ -261,6 +277,32 @@ private fun CommonSection(
                 ImasValueRow(
                     key = "受け取った公演", value = "選ぶ", isLink = true,
                     position = ImasRowPosition.FOLLOWING, onClick = onPickShow
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 会った記録 (同じ人と会うたびに積んだもの)。公演の半券の行、会場で交換していれば朱の線の札「会場で交換」。
+ * 並び・何回目か・札はコア (`cardMeetingViews`)。iOS `ReceivedCardDetailView.meetingsSection` と対。
+ */
+@Composable
+private fun MeetingsSection(meetings: List<CardMeetingView>, directory: ProducerCardDirectory) {
+    if (meetings.isEmpty()) return
+    ImasSection("会った記録") {
+        ImasCardList {
+            meetings.forEachIndexed { index, meeting ->
+                val show = meeting.showId?.let { directory.shows[it] }
+                if (index > 0) ImasRowDivider(inset = DS.sp4)
+                ImasStubRow(
+                    date = ImasStubDate(meeting.date),
+                    title = show?.label ?: "公演に紐づかない",
+                    subtitle = meeting.viaLabel,
+                    badges = listOfNotNull(
+                        meeting.badge?.let { ImasBadgeSpec(it, ImasBadgeKind.POSITIVE) },
+                        meeting.ordinalLabel?.let { ImasBadgeSpec(it, ImasBadgeKind.NEUTRAL) }
+                    )
                 )
             }
         }

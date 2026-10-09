@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.data.backup
 
+import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
+import uniffi.imas_core.BackupCardMeetingRecord
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.room.withTransaction
@@ -104,15 +106,22 @@ object BackupExportImportService {
             },
             // P名刺 (受け取った名刺と自分の名刺。名前の書体・自分の QR も) も端末にしか無い。写真・担当の画像は運ばない
             // (アイドルの画像と同じく端末の中だけ)。
-            producerCards = producerCardRepository.receivedCards().map {
-                BackupProducerCardRecord(
-                    it.id, it.payload, it.source, it.showId, it.showDate, it.memo, it.receivedAt, it.updatedAt
-                )
+            producerCards = producerCardRepository.meetings().groupBy { it.cardId }.let { meetingsByCard ->
+                producerCardRepository.receivedCards().map { card ->
+                    BackupProducerCardRecord(
+                        card.id, card.payload, card.source, card.showId, card.showDate, card.memo, card.receivedAt,
+                        card.updatedAt, via = card.via,
+                        meetings = meetingsByCard[card.id].orEmpty().map {
+                            BackupCardMeetingRecord(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt)
+                        }
+                    )
+                }
             },
             myProducerCards = listOfNotNull(producerCardRepository.myCard()).map {
                 BackupMyProducerCardRecord(
                     it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson,
+                    cardId = it.cardId
                 )
             },
             // 担当ブランドはアプリ全体の設定 (端末の SharedPreferences)。まだ決めていなければ空 (運ばない)。
@@ -153,6 +162,7 @@ object BackupExportImportService {
             playlistIds = playlistRepository.allIds(),
             producerCardIds = producerCardRepository.receivedIds(),
             myProducerCardIds = listOfNotNull(producerCardRepository.myCard()?.id),
+            cardMeetingIds = producerCardRepository.meetingIds(),
             brandRolesJson = BrandRoleStore.json(context)
         )
 
@@ -195,15 +205,23 @@ object BackupExportImportService {
         val addedProducerCards = producerCardRepository.restoreReceivedIfAbsent(
             plan.producerCardsToInsert.map {
                 ReceivedProducerCard(
-                    it.id, it.payload, it.source, it.showId, it.showDate, it.memo, it.receivedAt, it.updatedAt
+                    it.id, it.payload, it.source, it.showId, it.showDate, it.memo, it.receivedAt, it.updatedAt,
+                    via = it.via
                 )
+            }
+        )
+        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす)。
+        producerCardRepository.restoreMeetingsIfAbsent(
+            plan.cardMeetingsToInsert.map {
+                ReceivedCardMeeting(it.id, it.cardId, it.showId, it.showDate, it.via, it.metAt)
             }
         )
         producerCardRepository.restoreMyCardIfAbsent(
             plan.myProducerCardsToInsert.map {
                 MyProducerCard(
                     it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson,
+                    cardId = it.cardId
                 )
             }
         )

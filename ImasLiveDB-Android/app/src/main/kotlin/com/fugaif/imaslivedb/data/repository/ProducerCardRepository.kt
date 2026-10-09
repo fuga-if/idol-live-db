@@ -3,6 +3,7 @@ package com.fugaif.imaslivedb.data.repository
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
+import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import java.time.Instant
 import kotlinx.coroutines.sync.Mutex
@@ -27,7 +28,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
     suspend fun myCard(): MyProducerCard? = dao.myCard()
 
     suspend fun saveMyCard(card: MyProducerCard) {
-        dao.upsertMyCard(card.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
+        dao.upsertMyCard(card.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
     }
 
     /** 自分の名刺の行を読んで直して書くのを 1 本ずつ流す ([updateMyCard])。 */
@@ -41,7 +42,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
     suspend fun updateMyCard(transform: (MyProducerCard?) -> MyProducerCard?): MyProducerCard? =
         myCardLock.withLock {
             val next = transform(dao.myCard()) ?: return@withLock null
-            next.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
+            next.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
         }
 
     /** 受け取った名刺 (新しく受け取った順)。 */
@@ -52,8 +53,20 @@ class ProducerCardRepository(private val db: AppDatabase) {
     /** 同じ中身の名刺が既にあればそれを返す (同じ相手を 2 回読んでも 2 枚にしない)。 */
     suspend fun receivedCardByPayload(payload: String): ReceivedProducerCard? = dao.receivedCardByPayload(payload)
 
-    /** 同じ中身の名刺が無ければ足し、あればそれを返す (探すのと足すのは 1 つの書き込み)。 */
-    suspend fun insertReceivedIfNew(card: ReceivedProducerCard): ReceivedProducerCard = dao.insertReceivedIfNew(card)
+    /**
+     * 名刺をしまう。同じ人の名刺があれば 1 枚にまとめて中身を新しい方に替え、会った記録を積む
+     * (しまい方はコアの `cardReceivePlan`。探すのと書くのは 1 つの書き込み)。
+     */
+    suspend fun receive(card: ReceivedProducerCard, matchSamePerson: Boolean): ReceivedProducerCard =
+        dao.receive(card, matchSamePerson)
+
+    /** 会った記録 ([cardId] が null なら全部。並べ方・何回目かはコアの `cardMeetingViews`)。 */
+    suspend fun meetings(cardId: String? = null): List<ReceivedCardMeeting> =
+        if (cardId == null) dao.meetings() else dao.meetings(cardId)
+
+    /** 最後に会った記録の公演を変える (名刺の行にも写す)。 */
+    suspend fun changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?) =
+        dao.changeLatestMeetingShow(cardId, showId, showDate, now())
 
     /** 同じ id があれば上書きし、無ければ足す。 */
     suspend fun saveReceived(card: ReceivedProducerCard) {
@@ -70,6 +83,11 @@ class ProducerCardRepository(private val db: AppDatabase) {
 
     suspend fun restoreReceivedIfAbsent(cards: List<ReceivedProducerCard>): Int =
         if (cards.isEmpty()) 0 else dao.restoreReceivedIfAbsent(cards)
+
+    suspend fun meetingIds(): List<String> = dao.meetingIds()
+
+    suspend fun restoreMeetingsIfAbsent(meetings: List<ReceivedCardMeeting>): Int =
+        if (meetings.isEmpty()) 0 else dao.restoreMeetingsIfAbsent(meetings)
 
     suspend fun restoreMyCardIfAbsent(cards: List<MyProducerCard>): Int =
         if (cards.isEmpty()) 0 else dao.restoreMyCardIfAbsent(cards)

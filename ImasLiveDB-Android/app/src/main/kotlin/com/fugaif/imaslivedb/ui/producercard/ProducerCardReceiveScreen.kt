@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import uniffi.imas_core.CardReceiveVia
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -138,7 +139,7 @@ fun ProducerCardReceiveContent(
         isSaving = true
         scope.launch {
             try {
-                val saved = ProducerCardInbox.store(context, incoming.payload, images, ReceivedProducerCard.Source.APP, show)
+                val saved = ProducerCardInbox.store(context, incoming.payload, images, ReceivedProducerCard.Source.APP, incoming.via, show)
                 haptics.impactMedium()
                 onDone(c.name to saved.id)
             } catch (e: Exception) {
@@ -178,7 +179,7 @@ fun ProducerCardReceiveContent(
                             value = show?.label, placeholder = "公演に紐づけない", onClick = { pickingShow = true }
                         )
                     }
-                    if (nearby != null && incoming.via == IncomingProducerCard.Via.SCAN) {
+                    if (nearby != null && incoming.via == CardReceiveVia.CAMERA_QR) {
                         ImasNote(nearbyNote(phase, images.isEmpty()))
                     }
                 } else {

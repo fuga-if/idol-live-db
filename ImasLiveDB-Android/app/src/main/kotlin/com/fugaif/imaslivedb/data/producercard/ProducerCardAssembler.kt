@@ -98,7 +98,8 @@ object ProducerCardAssembler {
             issuedOn = JstDay.today(),
             design = card.cardDesign,
             qrUrl = card.qrUrl,
-            showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS)
+            showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS),
+            cardId = card.cardId
         )
     }
 

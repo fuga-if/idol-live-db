@@ -69,6 +69,45 @@ class AppDatabaseMigrationTest {
     /** 直前の版。書体の列をデザインに改める (MIGRATION_29_30) ときも、端末ローカルの行は残る。 */
     @Test fun migrates29ToLatest() = assertMigrates(from = 29)
 
+    /** 直前の版。会った記録の表 (MIGRATION_34_35) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates34ToLatest() = assertMigrates(from = 34)
+
+    /**
+     * 会った記録 (v35) を足す前に受け取った名刺は、名刺の行から 1 回目の記録を作る (受け取り方は不明、紙の名刺は紙)。
+     * 自分の名刺には名刺 id が入る (iOS testCardMeetingsAreBackfilledFromOldRows と対)。
+     */
+    @Test
+    fun migrating34To35BackfillsMeetings() {
+        val name = "producer_card_meetings_34.sqlite"
+        helper.createDatabase(name, 34).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at) " +
+                    "VALUES ('me', 'ふがP', '', '[]', '', '2026-10-06T00:00:00Z')"
+            )
+            it.execSQL(
+                "INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at) " +
+                    "VALUES ('c1', 'AQ_a', 'app', 'sh_1', '2026-10-05', NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z'), " +
+                    "('c2', 'AQ_b', 'paper', NULL, NULL, NULL, '2026-10-06T12:00:00Z', '2026-10-06T12:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 35, true, AppDatabase.MIGRATION_34_35).use { db ->
+            db.query("SELECT id, show_id, via, met_at FROM received_card_meetings ORDER BY id").use { c ->
+                c.moveToFirst()
+                assertEquals(uniffi.imas_core.cardFirstMeetingId("c1"), c.getString(0))
+                assertEquals("sh_1", c.getString(1))
+                assertTrue("古い行は受け取り方が不明", c.isNull(2))
+                assertEquals("2026-10-05T12:00:00Z", c.getString(3))
+                c.moveToNext()
+                assertEquals(uniffi.imas_core.cardFirstMeetingId("c2"), c.getString(0))
+                assertEquals("paper", c.getString(2))
+            }
+            db.query("SELECT card_id FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertTrue(uniffi.imas_core.producerCardIdIsValid(c.getString(0)))
+            }
+        }
+    }
+
     /** 直前の版。担当の選択の列 (MIGRATION_33_34) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates33ToLatest() = assertMigrates(from = 33)
 
@@ -255,7 +294,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 34
+        const val LATEST = 35
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17
