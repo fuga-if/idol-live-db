@@ -34,3 +34,11 @@
 -keepclassmembers class * extends com.sun.jna.** { public *; }
 -keep class uniffi.imas_core.** { *; }
 -dontwarn java.awt.**
+
+# Spotify App Remote SDK (app/spotify-sdk)。SDK は Jackson の写像も同梱しているが、使うのは Gson の写像
+# (既定)。Jackson と注釈の型は入れていないので、無いことを警告にしない。状態の型は Gson が反射で
+# 組むので名前ごと残す (SDK 同梱の規則に加えて、SDK の型を丸ごと残す)。
+-dontwarn com.fasterxml.jackson.**
+-dontwarn com.spotify.base.annotations.**
+-keep class com.spotify.protocol.** { *; }
+-keep class com.spotify.android.appremote.** { *; }
