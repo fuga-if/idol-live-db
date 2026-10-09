@@ -1,7 +1,8 @@
 //! Spotify 連携の FFI 面。判断は domain::spotify。
 
 use crate::domain::spotify::{
-    self, SongClues, SpotifyClientIdCheck, SpotifyFailure, SpotifySetupGuide, SpotifyTrackCandidate,
+    self, FullPlaybackOption, FullPlaybackService, SongClues, SpotifyClientIdCheck, SpotifyDevice,
+    SpotifyFailure, SpotifySetupGuide, SpotifyTrackCandidate,
 };
 use crate::inbound::snapshot_store::{SnapshotError, SnapshotStore};
 
@@ -21,6 +22,46 @@ pub fn spotify_check_client_id(input: String) -> SpotifyClientIdCheck {
 #[uniffi::export]
 pub fn spotify_playlist_description() -> String {
     spotify::PLAYLIST_DESCRIPTION.to_string()
+}
+
+/// ログインで許された権限で鳴らせるか。
+#[uniffi::export]
+pub fn spotify_scopes_allow_playback(granted: String) -> bool {
+    spotify::scopes_allow_playback(&granted)
+}
+
+/// どの端末で鳴らすか (`devices` の何番目か)。無ければ `None`。
+#[uniffi::export]
+pub fn spotify_pick_device(devices: Vec<SpotifyDevice>) -> Option<u32> {
+    spotify::pick_device(&devices).map(|i| i as u32)
+}
+
+/// 今の再生位置 (ms)。聞いた位置に経過を足して埋める。
+#[uniffi::export]
+pub fn spotify_position_now(
+    progress_ms: i64,
+    fetched_at_ms: i64,
+    now_ms: i64,
+    is_playing: bool,
+    duration_ms: Option<i64>,
+) -> i64 {
+    spotify::position_now(progress_ms, fetched_at_ms, now_ms, is_playing, duration_ms)
+}
+
+/// フル尺で鳴らすサービスの選択肢 (設定のメニュー)。
+#[uniffi::export]
+pub fn full_playback_options() -> Vec<FullPlaybackOption> {
+    spotify::full_playback_options()
+}
+
+/// フル尺をどのサービスで鳴らすか。鳴らせなければ `None`。
+#[uniffi::export]
+pub fn choose_full_playback(
+    preference: Option<FullPlaybackService>,
+    apple_music_ready: bool,
+    spotify_ready: bool,
+) -> Option<FullPlaybackService> {
+    spotify::choose_full_playback(preference, apple_music_ready, spotify_ready)
 }
 
 /// うまくいかなかったときの文。

@@ -24,8 +24,10 @@ use crate::domain::snapshot::Snapshot;
 
 /// 利用者が Spotify のアプリに登録するリダイレクト先。iOS・Android 共通。
 pub const REDIRECT_URI: &str = "imaslivedb://spotify-callback";
-/// 求める権限。プレイリストを作って曲を入れるだけ。
-pub const SCOPES: &str = "playlist-modify-private playlist-modify-public";
+/// 求める権限。プレイリストを作って曲を入れる・Spotify アプリを操作して鳴らす (再生位置を読む)。
+pub const SCOPES: &str = "playlist-modify-private playlist-modify-public user-read-playback-state user-modify-playback-state";
+/// 鳴らすのに要る権限。プレイリストだけの頃にログインした人はこれを持っていない。
+const PLAYBACK_SCOPES: [&str; 2] = ["user-read-playback-state", "user-modify-playback-state"];
 /// 開発者向けのダッシュボード。ここでアプリを作る。
 pub const DASHBOARD_URL: &str = "https://developer.spotify.com/dashboard";
 /// 書き出したプレイリストの説明。
@@ -63,7 +65,7 @@ pub fn setup_guide() -> SpotifySetupGuide {
         dashboard_url: DASHBOARD_URL.to_string(),
         redirect_uri: REDIRECT_URI.to_string(),
         scopes: SCOPES.to_string(),
-        lead: "自分の Spotify アカウントで「アプリ」を作り、その Client ID を貼ると、セトリやプレイリストを Spotify のプレイリストに書き出したり、曲を Spotify で開いたりできます。作るのは最初の 1 回だけです。".to_string(),
+        lead: "自分の Spotify アカウントで「アプリ」を作り、その Client ID を貼ると、曲を Spotify でフル尺で鳴らして歌詞を追いかけたり、セトリやプレイリストを Spotify のプレイリストに書き出したりできます。作るのは最初の 1 回だけです。".to_string(),
         steps: vec![
             step(
                 "Spotify for Developers を開く",
@@ -329,6 +331,12 @@ pub enum SpotifyFailure {
     RateLimited,
     /// 通信できない。
     Network,
+    /// 鳴らす先 (Spotify アプリ) が見つからない (404 NO_ACTIVE_DEVICE / 端末の一覧が空)。
+    NoDevice,
+    /// 鳴らすには Spotify Premium が要る (403 PREMIUM_REQUIRED)。
+    PremiumRequired,
+    /// ログインが鳴らす許可を含んでいない (プレイリストだけの頃にログインした)。
+    PlaybackNotAllowed,
     /// それ以外。
     Other,
 }
@@ -339,9 +347,117 @@ pub fn failure_message(failure: SpotifyFailure) -> String {
         SpotifyFailure::SessionExpired => "Spotify のログインが切れました。設定の「Spotify」からもう一度ログインしてください。",
         SpotifyFailure::RateLimited => "Spotify が混み合っています。少し待ってからもう一度試してください。",
         SpotifyFailure::Network => "Spotify に繋がりませんでした。通信できる所でもう一度試してください。",
+        SpotifyFailure::NoDevice => "鳴らす先の Spotify アプリが見つかりません。Spotify アプリを一度開いてから戻ると、そこで鳴らせます。",
+        SpotifyFailure::PremiumRequired => "Spotify で曲を選んで鳴らすには Spotify Premium が要ります。",
+        SpotifyFailure::PlaybackNotAllowed => "Spotify で鳴らす許可がまだありません。設定の「Spotify」からもう一度ログインしてください。",
         SpotifyFailure::Other => "Spotify とのやりとりに失敗しました。もう一度試してください。",
     }
     .to_string()
+}
+
+/// ログインで許された権限 (トークン応答の `scope`、空白区切り) で鳴らせるか。
+pub fn scopes_allow_playback(granted: &str) -> bool {
+    let granted: Vec<&str> = granted.split_whitespace().collect();
+    PLAYBACK_SCOPES.iter().all(|s| granted.contains(s))
+}
+
+// MARK: - 鳴らす
+
+/// Spotify の鳴らす先 (`GET /me/player/devices` の 1 台)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct SpotifyDevice {
+    pub id: Option<String>,
+    pub is_active: bool,
+    pub is_restricted: bool,
+    /// "Smartphone" / "Computer" / "Speaker" など。
+    pub kind: String,
+}
+
+/// どの端末で鳴らすか。いま鳴らしている端末 → この電話 (Smartphone) → ほかの端末の順。
+/// 操作を受け付けない端末 (`is_restricted`) と id の無い端末は選ばない。無ければ `None`。
+pub fn pick_device(devices: &[SpotifyDevice]) -> Option<usize> {
+    let usable =
+        |d: &SpotifyDevice| !d.is_restricted && d.id.as_deref().is_some_and(|id| !id.is_empty());
+    devices
+        .iter()
+        .position(|d| usable(d) && d.is_active)
+        .or_else(|| {
+            devices
+                .iter()
+                .position(|d| usable(d) && d.kind.eq_ignore_ascii_case("smartphone"))
+        })
+        .or_else(|| devices.iter().position(usable))
+}
+
+/// 今の再生位置 (ms)。Spotify には周期で聞きに行くので、聞いた時刻からの経過を足して埋める
+/// (歌詞の行は 1 秒より細かく切り替わる)。止まっていれば聞いた位置のまま。曲の長さを超えない。
+pub fn position_now(
+    progress_ms: i64,
+    fetched_at_ms: i64,
+    now_ms: i64,
+    is_playing: bool,
+    duration_ms: Option<i64>,
+) -> i64 {
+    let elapsed = if is_playing {
+        (now_ms - fetched_at_ms).max(0)
+    } else {
+        0
+    };
+    let pos = progress_ms.max(0) + elapsed;
+    match duration_ms {
+        Some(d) if d > 0 => pos.min(d),
+        _ => pos,
+    }
+}
+
+/// フル尺で鳴らすサービス。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FullPlaybackService {
+    AppleMusic,
+    Spotify,
+}
+
+/// フル尺で鳴らすサービスの選択肢 (設定のメニュー)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct FullPlaybackOption {
+    pub service: FullPlaybackService,
+    pub label: String,
+}
+
+pub fn full_playback_options() -> Vec<FullPlaybackOption> {
+    vec![
+        FullPlaybackOption {
+            service: FullPlaybackService::AppleMusic,
+            label: "Apple Music".to_string(),
+        },
+        FullPlaybackOption {
+            service: FullPlaybackService::Spotify,
+            label: "Spotify".to_string(),
+        },
+    ]
+}
+
+/// フル尺をどのサービスで鳴らすか。鳴らせなければ `None` (試聴に落とす)。
+///
+/// 選んであって使えればそれ。選んでいない・選んだ方が使えないなら Apple Music → Spotify の順
+/// (Apple Music は端末の契約だけで鳴り、Spotify はアプリを開いておく手間があるため)。
+pub fn choose_full_playback(
+    preference: Option<FullPlaybackService>,
+    apple_music_ready: bool,
+    spotify_ready: bool,
+) -> Option<FullPlaybackService> {
+    let ready = |s: FullPlaybackService| match s {
+        FullPlaybackService::AppleMusic => apple_music_ready,
+        FullPlaybackService::Spotify => spotify_ready,
+    };
+    preference.filter(|p| ready(*p)).or_else(|| {
+        [
+            FullPlaybackService::AppleMusic,
+            FullPlaybackService::Spotify,
+        ]
+        .into_iter()
+        .find(|s| ready(*s))
+    })
 }
 
 /// 書き出しの結果の文。見つからなかった曲の数を必ず言う (黙って抜けると欠けたまま気付かない)。
@@ -534,6 +650,83 @@ mod tests {
             "5 曲を Spotify のプレイリストに入れました。"
         );
         assert!(export_summary(5, 2).contains("見つからなかった 2 曲"));
+    }
+
+    #[test]
+    fn playback_needs_both_scopes() {
+        assert!(scopes_allow_playback(SCOPES));
+        assert!(!scopes_allow_playback(
+            "playlist-modify-private playlist-modify-public"
+        ));
+        assert!(!scopes_allow_playback("user-read-playback-state"));
+    }
+
+    fn device(id: Option<&str>, active: bool, restricted: bool, kind: &str) -> SpotifyDevice {
+        SpotifyDevice {
+            id: id.map(str::to_string),
+            is_active: active,
+            is_restricted: restricted,
+            kind: kind.into(),
+        }
+    }
+
+    #[test]
+    fn device_prefers_active_then_phone() {
+        let devices = [
+            device(Some("pc"), false, false, "Computer"),
+            device(Some("phone"), false, false, "Smartphone"),
+            device(Some("speaker"), true, false, "Speaker"),
+        ];
+        assert_eq!(pick_device(&devices), Some(2));
+        assert_eq!(pick_device(&devices[..2]), Some(1));
+        assert_eq!(pick_device(&devices[..1]), Some(0));
+    }
+
+    #[test]
+    fn device_skips_restricted_and_idless() {
+        let devices = [
+            device(Some("tv"), true, true, "TV"),
+            device(None, false, false, "Smartphone"),
+        ];
+        assert_eq!(pick_device(&devices), None);
+        assert_eq!(pick_device(&[]), None);
+    }
+
+    #[test]
+    fn position_runs_only_while_playing_and_stops_at_the_end() {
+        assert_eq!(
+            position_now(10_000, 1_000, 1_500, true, Some(200_000)),
+            10_500
+        );
+        assert_eq!(
+            position_now(10_000, 1_000, 1_500, false, Some(200_000)),
+            10_000
+        );
+        assert_eq!(
+            position_now(199_900, 1_000, 2_000, true, Some(200_000)),
+            200_000
+        );
+        // 時計が戻っても位置は戻さない。
+        assert_eq!(position_now(10_000, 2_000, 1_000, true, None), 10_000);
+    }
+
+    #[test]
+    fn full_playback_follows_preference_when_ready() {
+        use FullPlaybackService::*;
+        assert_eq!(
+            choose_full_playback(Some(Spotify), true, true),
+            Some(Spotify)
+        );
+        assert_eq!(choose_full_playback(None, true, true), Some(AppleMusic));
+        assert_eq!(
+            choose_full_playback(Some(AppleMusic), false, true),
+            Some(Spotify)
+        );
+        assert_eq!(
+            choose_full_playback(Some(Spotify), true, false),
+            Some(AppleMusic)
+        );
+        assert_eq!(choose_full_playback(None, false, false), None);
     }
 
     #[test]
