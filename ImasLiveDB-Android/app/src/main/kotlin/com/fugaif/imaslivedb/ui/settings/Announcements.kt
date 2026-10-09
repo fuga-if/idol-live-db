@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
@@ -47,6 +48,24 @@ enum class AnnouncementLink { WIDGET_HOW_TO }
 object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
+        Announcement(
+            id = "v2.6.0_spotify",
+            date = "2026-10-10",
+            title = "Spotify で鳴らせるようになりました",
+            summary = "Spotify でのフル再生と歌詞の追従、歌詞の 1 行直し、P名刺の担当選びなどを追加しました。",
+            body = listOf(
+                "Spotify: 自分の Spotify アプリの Client ID で連携すると、曲を Spotify でフル尺で鳴らし、歌詞を再生位置に合わせて追いかけられます。プレイリストを Spotify に書き出すこともできます。始め方は「Spotify と連携」の画面に図つきの手順があります。",
+                "歌詞: 1 行だけ直せる「この行を直す」と「この歌詞を報告」を足しました。歌詞カードの写真やスクリーンショットから行を読み取れます。歌詞には入力してくれた人の奥付が出ます。",
+                "自分の編集に付いた Good の新着と、先週セトリが見られた数が分かるようになりました。",
+                "曲の日付を「初出」「CD 発売日」「配信開始日」に分けて出します。",
+                "P名刺に載せる担当を自分で選べます。受け取った名刺には会った記録が付き、同じ人の名刺は 1 枚にまとまります。",
+                "1 公演に参加形態を複数付けられます (現地 + 配信アーカイブ など)。",
+                "アイドル当てクイズの配点を見直し、全員から選ぶハードモードを足しました。ティアー表は段の中の左右もドラッグで並べ替えられます。",
+            ),
+            icon = Icons.Filled.MusicNote,
+            tint = "#1F9E61",
+            link = null
+        ),
         Announcement(
             id = "lyrics_submissions_2026_10",
             date = "2026-10-07",
