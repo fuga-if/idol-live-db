@@ -15,6 +15,8 @@
 // ⚠️ 応答に本文を返さない (預かった id と状態だけ)。
 
 import { getAuthUser } from "../auth";
+import { postChannelMessage } from "../discord";
+import { md } from "../discord_digest";
 import { checkRateLimit } from "../rate_limit";
 import type { RouteContext } from "./context";
 import { decodePathParam, readJsonBody, requireActiveUser } from "./guards";
@@ -71,6 +73,7 @@ const LYRICS_REPORT_NOTE_MAX = 300;
 
 /**
  * POST /songs/:song_id/lyrics-report — 歌詞の報告 (転載・誤り・削除の求め)。GitHub の issue にする。
+ * 非公開の #運営 (DISCORD_MOD_CHANNEL_ID) にもすぐ知らせる (即公開なので荒らしに早く気づくため)。
  * ⚠️ issue は公開リポジトリに立つので、歌詞の本文は載せない (曲 id・理由・短い補足だけ)。
  *    補足に本文を貼られても長く載らないよう 300 字で切る。
  */
@@ -117,7 +120,31 @@ async function handleLyricsReport(ctx: RouteContext, songIdRaw: string): Promise
     console.error(`[lyrics-report] github ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return error(`failed to report (github ${res.status})`, 502);
   }
+  const issue = (await res.json().catch(() => ({}))) as { html_url?: string };
+  const notify = notifyModerators(env, songId, reason, issue.html_url);
+  if (ctx.waitUntil) ctx.waitUntil(notify);
+  else await notify;
   return json({ ok: true }, 201, NO_STORE);
+}
+
+/** 歌詞の報告を #運営 に出す。届かなくても報告そのものは成立しているので投げない。 */
+async function notifyModerators(env: RouteContext["env"], songId: string, reason: string, issueUrl?: string): Promise<void> {
+  if (!env.DISCORD_BOT_TOKEN || !env.DISCORD_MOD_CHANNEL_ID) return;
+  const page = `https://idollivedb.fugaapp.site/songs/${encodeURIComponent(songId)}/`;
+  const lines = [
+    `🚩 **歌詞の報告** ${md(songId)}（${reason}）`,
+    `曲ページ: <${page}>`,
+    issueUrl ? `issue: <${issueUrl}>` : "",
+  ].filter(Boolean);
+  try {
+    const ok = await postChannelMessage(env, env.DISCORD_MOD_CHANNEL_ID, {
+      content: lines.join("\n"),
+      allowed_mentions: { parse: [] },
+    });
+    if (!ok) console.error("[lyrics-report] discord post failed");
+  } catch (e) {
+    console.error(`[lyrics-report] discord post failed: ${e}`);
+  }
 }
 
 export async function handleLyricSubmissions(ctx: RouteContext): Promise<Response | null> {
