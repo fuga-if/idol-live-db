@@ -139,6 +139,44 @@ class ProducerCardStoreTest {
         assertTrue(decodeProducerCard(encoded.url)!!.showBrandLabels)
     }
 
+    /**
+     * 名刺に載せる担当は自分の名刺の行に持つ。まだ選んでいなければブランドごとに 1 人、選べばその人だけ
+     * その順に載る。担当から外した人は抜け、全員抜ければ自動の選び方に戻る (規則はコア。iOS と対)。
+     */
+    @Test
+    fun oshiChoiceRoundTripsAndDrivesTheCard() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        fun entry(id: String, brand: String) = uniffi.imas_core.CardOshiEntry(idolId = id, name = id, brandId = brand, brandLabel = brand)
+        val entries = listOf(
+            entry("haruka", "765as"), entry("chihaya", "765as"), entry("sora", "876"), entry("temari", "gakuen"),
+            entry("momoko", "ml"), entry("miki", "765as"), entry("misuzu", "gakuen")
+        )
+        val record = ProducerCardMyRecord(entries.map { it.idolId }, emptyList(), 0, oshiEntries = entries)
+        var card = myCard("ふがP")
+        assertNull(card.cardOshiChoice)
+        assertEquals(
+            "まだ選んでいなければブランドごとに 1 人",
+            listOf("haruka", "chihaya", "sora", "temari", "momoko"), ProducerCardAssembler.input(card, record).oshiIdolIds
+        )
+
+        repo.saveMyCard(card.withCardOshiChoice(listOf("miki")))
+        val loaded = repo.myCard()!!
+        assertEquals(listOf("miki"), loaded.cardOshiChoice)
+        val encoded = ProducerCardAssembler.encode(loaded, record)!!
+        assertEquals("1 人だけ選べば 1 人", listOf("miki"), decodeProducerCard(encoded.url)!!.oshiIdolIds)
+
+        // 上限で切る。担当から外した人は抜ける。
+        card = card.withCardOshiChoice(listOf("misuzu", "gone", "momoko", "temari", "sora", "chihaya", "haruka"))
+        assertEquals(listOf("misuzu", "momoko", "temari", "sora", "chihaya"), ProducerCardAssembler.input(card, record).oshiIdolIds)
+        card = card.withCardOshiChoice(listOf("gone"))
+        assertEquals(
+            "全員外れたら自動の選び方",
+            listOf("haruka", "chihaya", "sora", "temari", "momoko"), ProducerCardAssembler.input(card, record).oshiIdolIds
+        )
+        // 空の選択は持たない (まだ選んでいないに戻る)。
+        assertNull(card.withCardOshiChoice(emptyList()).cardOshiJson)
+    }
+
     /** P名刺の編集で直した好きな曲は保存の時点の行に重ね、画像の選択 (大きさ・外した欄) は今の行のまま。 */
     @Test
     fun editKeepsLatestImageChoicesAndTakesEditedSongs() {
@@ -301,6 +339,7 @@ class ProducerCardStoreTest {
             .withHidden(setOf(ProducerCardField.ATTENDED))
             .withProfile(sheet)
             .withCardDesign(CardDesign.FORMAL)
+            .withCardOshiChoice(listOf("765as_星井美希", "876_上水流宇宙"))
         sourceRepo.saveMyCard(mine)
         sourceRepo.saveReceived(received("c1", "しろくまP", memo = "物販列で隣"))
         val json = BackupExportImportService.buildEnvelopeJson(
@@ -327,6 +366,7 @@ class ProducerCardStoreTest {
         assertEquals(setOf(ProducerCardField.ATTENDED), restored.hidden)
         assertEquals("P名刺の画像の選択と好きな曲もバックアップで戻る", sheet, restored.profile)
         assertEquals("デザインもバックアップで戻る", CardDesign.FORMAL, restored.cardDesign)
+        assertEquals("名刺に載せる担当の選択も戻る", listOf("765as_星井美希", "876_上水流宇宙"), restored.cardOshiChoice)
 
         // 2 回目は何も増えない (id で重複を弾く)。
         assertEquals(0, import().addedProducerCards)

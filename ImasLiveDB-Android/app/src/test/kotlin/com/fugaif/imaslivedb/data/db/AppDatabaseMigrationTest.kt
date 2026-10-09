@@ -69,6 +69,32 @@ class AppDatabaseMigrationTest {
     /** 直前の版。書体の列をデザインに改める (MIGRATION_29_30) ときも、端末ローカルの行は残る。 */
     @Test fun migrates29ToLatest() = assertMigrates(from = 29)
 
+    /** 直前の版。担当の選択の列 (MIGRATION_33_34) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates33ToLatest() = assertMigrates(from = 33)
+
+    /**
+     * 担当の選択 (v34) を足す前の自分の名刺は「まだ選んでいない」として読む
+     * (iOS testOldMyCardRowReadsOshiChoiceAsUnchosen と対)。
+     */
+    @Test
+    fun migrating33To34ReadsOshiChoiceAsUnchosen() {
+        val name = "producer_card_oshi_33.sqlite"
+        helper.createDatabase(name, 33).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at) " +
+                    "VALUES ('me', 'ふがP', 'よろしく', '[]', '', '2026-10-06T00:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 34, true, AppDatabase.MIGRATION_33_34).use { db ->
+            db.query("SELECT name, card_oshi_json FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertEquals("ふがP", c.getString(0))
+                assertTrue(c.isNull(1))
+            }
+        }
+        assertEquals(null, com.fugaif.imaslivedb.data.model.MyProducerCard.empty().cardOshiChoice)
+    }
+
     /**
      * 名前の書体 (v28) を選んでいた自分の名刺は、デザイン (v30) に上げても選んだもの (書体のキー) と
      * ほかの中身が残り、近いデザインに読み替わる (iOS testNameFontColumnBecomesDesign と対)。
@@ -229,7 +255,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 33
+        const val LATEST = 34
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

@@ -12,6 +12,8 @@ import uniffi.imas_core.CardDesign
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.cardLinksFromJson
+import uniffi.imas_core.cardOshiChoiceFromJson
+import uniffi.imas_core.cardOshiChoiceToJson
 import uniffi.imas_core.cardLinksToJson
 import uniffi.imas_core.cardDesignFromKey
 import uniffi.imas_core.cardDesignKey
@@ -67,7 +69,13 @@ data class MyProducerCard(
      * 空はまだ選んでいない。名刺の中身 (QR) には入らない。
      */
     @ColumnInfo(name = "profile_json", defaultValue = "")
-    val profileJson: String = ""
+    val profileJson: String = "",
+    /**
+     * 名刺に載せる担当の選択 (コアの保存の形 `cardOshiChoiceToJson`)。null はまだ選んでいない
+     * (足す前の行もこれ。コアの自動の選び方で載る)。
+     */
+    @ColumnInfo(name = "card_oshi_json")
+    val cardOshiJson: String? = null
 ) {
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
@@ -83,6 +91,15 @@ data class MyProducerCard(
         }
 
     fun shows(field: ProducerCardField): Boolean = field !in hidden
+
+    /**
+     * 名刺に載せる担当の選択 (アプリの担当の id、載せる順)。null はまだ選んでいない。
+     * 選び方 (既定・上限・担当から外れた人を抜く) はコアの `producerCardOshiPickedIds`。
+     */
+    val cardOshiChoice: List<String>? get() = cardOshiJson?.let { cardOshiChoiceFromJson(it) }
+
+    fun withCardOshiChoice(choice: List<String>?): MyProducerCard =
+        copy(cardOshiJson = choice?.takeIf { it.isNotEmpty() }?.let { cardOshiChoiceToJson(it) })
 
     /** P名刺の画像の選択と好きな曲 (まだ選んでいなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。 */
     val profile: ProfileSheet

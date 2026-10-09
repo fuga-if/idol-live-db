@@ -18,6 +18,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.settings.BrandRoleSettingsScreen
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.RecentActors
+import uniffi.imas_core.producerCardOshiPicks
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -167,7 +169,14 @@ fun ProducerCardEditorSheet(
     var sinceYear by remember { mutableStateOf(card.sinceYear) }
     val links = remember { mutableStateListOf(*card.links.map { EditableLink(kind = it.kind, value = it.value) }.toTypedArray()) }
     var hidden by remember { mutableStateOf(card.hidden) }
-    var oshi by remember { mutableStateOf<List<Idol>>(emptyList()) }
+    // アプリの担当のアイドル (名刺に載せる担当を選ぶ材料。行に写真か判子を出す)。
+    var oshiIdols by remember { mutableStateOf<Map<String, Idol>>(emptyMap()) }
+    // 名刺に載せる担当の選択 (idol id、載せる順。null はまだ選んでいない)。
+    var oshiChoice by remember { mutableStateOf(card.cardOshiChoice) }
+    var showingOshiPicker by remember { mutableStateOf(false) }
+    val oshiEntries = record?.oshiEntries.orEmpty()
+    // 名刺に載せる担当 (本人の選択。まだ選んでいなければ自動の選び方。規則はコア)。
+    val oshi = record?.cardOshiIds(oshiChoice).orEmpty().mapNotNull { oshiIdols[it] }
     // 先頭の担当の画像 (担当を大きく のデザインの札)。
     var leadImage by remember { mutableStateOf<String?>(null) }
     // 好きな曲 (お気に入りから選んだ曲 id、載せる順。null はまだ選んでいない)。
@@ -225,15 +234,19 @@ fun ProducerCardEditorSheet(
         isFetchingAvatar = false
     }
 
+    // アプリの担当すべてを引く (どの人を選んでも見本に出せるように)。
     LaunchedEffect(record) {
-        val ids = record?.oshiIds?.take(limits.maxOshi.toInt()).orEmpty()
+        val ids = record?.oshiIds.orEmpty()
         if (ids.isEmpty()) return@LaunchedEffect
-        val byId = module.idolRepository.fetchIdolsByIds(ids).associateBy { it.id }
-        oshi = ids.mapNotNull { byId[it] }
-        leadImage = oshi.firstOrNull()?.let { lead ->
-            withContext(Dispatchers.IO) { module.customImageStore.primaryImageFile(lead.id)?.let { Uri.fromFile(it).toString() } }
-        }
         directory = ProducerCardDirectory.load(module, ids, emptyList())
+        oshiIdols = directory.idols
+    }
+    // 先頭の担当の画像 (担当を大きく のデザインの札)。選び直したら引き直す。
+    val leadId = oshi.firstOrNull()?.id
+    LaunchedEffect(leadId) {
+        leadImage = leadId?.let { id ->
+            withContext(Dispatchers.IO) { module.customImageStore.primaryImageFile(id)?.let { Uri.fromFile(it).toString() } }
+        }
     }
     LaunchedEffect(Unit) { favorites = FavoriteSongSource.load(module).map { it.input } }
     // 担当ブランドの設定が変わったら (設定の画面から戻った等) 要約を組み直す。
@@ -453,6 +466,7 @@ fun ProducerCardEditorSheet(
     ).withLinks(filled().mapNotNull { normalizeCardLink(CardLink(it.kind, it.value)) }).withHidden(hidden)
         .copy(design = design, qrUrl = normalizeCardQrUrl(qrUrl))
         .let { it.withProfile(it.profile.copy(songs = songs)) }
+        .withCardOshiChoice(oshiChoice)
 
     // 検査は名刺に載る中身 (担当・記録の数・書体も) で組んだ入力に、書きかけのリンクと QR の URL を
     // そのまま入れて渡す (載る中身を抜くと、QR に収まるかの見積もりが実物より短くなる)。
@@ -469,7 +483,7 @@ fun ProducerCardEditorSheet(
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
         draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
-        songs != card.profile.songs
+        songs != card.profile.songs || oshiChoice != card.cardOshiChoice
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     // ✕・✓ と払う動きは、押した時点の判定で決める (下の関数は組み立てたときの値を抱えたまま
@@ -658,6 +672,12 @@ fun ProducerCardEditorSheet(
                                             Text(idol.name, style = ImasTextRole.ROW_TITLE.style, color = DS.ink)
                                         }
                                     }
+                                    val byHand = producerCardOshiPicks(oshiChoice, oshiEntries).chosenByHand
+                                    ImasNavRow(
+                                        title = "名刺に載せる担当を選ぶ",
+                                        subtitle = if (byHand) "選んだ ${oshi.size} 人 (この順に載ります)" else "おまかせ (ブランドごとに 1 人)",
+                                        icon = Icons.Filled.RecentActors, subtitleLineLimit = 2
+                                    ) { showingOshiPicker = true }
                                 }
                             }
                         }
@@ -770,6 +790,17 @@ fun ProducerCardEditorSheet(
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             FavoriteSongPickerScreen(chosen = songs, onChange = { songs = it }, onBack = { showingSongPicker = false })
+        }
+    }
+    if (showingOshiPicker) {
+        Dialog(
+            onDismissRequest = { showingOshiPicker = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            CardOshiPickerScreen(
+                chosen = oshiChoice, oshi = oshiEntries, idols = oshiIdols,
+                onChange = { oshiChoice = it }, onBack = { showingOshiPicker = false }
+            )
         }
     }
     if (showingBrandSettings) {

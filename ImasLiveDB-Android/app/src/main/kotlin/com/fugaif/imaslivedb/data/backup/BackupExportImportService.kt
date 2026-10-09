@@ -112,7 +112,7 @@ object BackupExportImportService {
             myProducerCards = listOfNotNull(producerCardRepository.myCard()).map {
                 BackupMyProducerCardRecord(
                     it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson
                 )
             },
             // 担当ブランドはアプリ全体の設定 (端末の SharedPreferences)。まだ決めていなければ空 (運ばない)。
@@ -203,7 +203,7 @@ object BackupExportImportService {
             plan.myProducerCardsToInsert.map {
                 MyProducerCard(
                     it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt,
-                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson
+                    design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson
                 )
             }
         )
