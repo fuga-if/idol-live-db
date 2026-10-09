@@ -28,6 +28,7 @@ pub mod ledger;
 pub mod lyrics_quiz;
 pub mod mastery;
 pub mod now_playing;
+pub mod spotify;
 pub mod oshi_theme_resolution;
 pub mod poll_result_card;
 pub mod card_meetings;

@@ -56,6 +56,7 @@ pub mod mastery;
 pub mod next_song;
 pub mod notification_plan;
 pub mod now_playing;
+pub mod spotify;
 pub mod on_this_day;
 pub mod oshi_theme_resolution;
 pub mod performance_gap;
