@@ -217,6 +217,8 @@ struct SongSheetContent: View {
     /// データ取得・整形担当。5系統のロード + 楽曲情報行/クレジットの整形を保持する。
     @State private var vm = DetailSheetViewModel()
     @State private var editSong: Song?
+    /// 「Spotifyで開く」で見つからなかった・失敗したときの文。
+    @State private var spotifyMessage: String?
     @State private var showLoginPrompt = false
     @State private var showPenlightVoteSheet = false
     @State private var showTagPicker = false
@@ -367,6 +369,11 @@ struct SongSheetContent: View {
                             Label("Apple Musicで開く", systemImage: "music.note")
                         }
                     }
+                    if SpotifyService.shared.isConnected {
+                        Button { openInSpotify() } label: {
+                            Label("Spotifyで開く", systemImage: "arrow.up.right.square")
+                        }
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -375,6 +382,7 @@ struct SongSheetContent: View {
         .sheet(item: $editSong) { s in
             SongEditView(song: s).environment(database)
         }
+        .imasErrorAlert("Spotifyで開けませんでした", message: $spotifyMessage)
         .sheet(isPresented: $showLoginPrompt) {
             LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { editSong = song } })
         }
@@ -682,6 +690,21 @@ struct SongSheetContent: View {
         .appleMusic(songId: song.id,
                     startFull: { await startFullForLyrics() },
                     scrollTo: { lyricsScrollTarget = $0 })
+    }
+
+    /// Spotify で曲を探して開く。名義と曲名で突き合わせるので、見分けられなければ開かない。
+    private func openInSpotify() {
+        Task {
+            do {
+                if let url = try await SpotifyService.shared.trackURL(songId: song.id) {
+                    openURL(url)
+                } else {
+                    spotifyMessage = "Spotify でこの曲が見つかりませんでした。"
+                }
+            } catch {
+                spotifyMessage = error.localizedDescription
+            }
+        }
     }
 
     /// タイミング記録のためにフル再生を始める。未契約・Apple Music に無い曲は false。

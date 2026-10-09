@@ -116,6 +116,7 @@ struct MyPageView: View {
     private var lowerSections: some View {
         // フル再生の許可。曲の行は鳴らせないと試聴に落ちるので、状態と入口をここに出す。
         ImasListSection("Apple Music") { AppleMusicSettingsRow() }
+        ImasListSection("Spotify") { SpotifySettingsRow() }
         settingsSection
         dataSyncSection
         dataBackupSection

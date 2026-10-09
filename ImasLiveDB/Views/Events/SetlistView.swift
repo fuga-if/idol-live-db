@@ -84,6 +84,7 @@ struct SetlistView: View {
     @State private var showPlaylistAlert = false
     @State private var playlistMessage = ""
     @State private var isCreatingPlaylist = false
+    @State private var showSpotifyExport = false
     @State private var playlistProgress: (current: Int, total: Int) = (0, 0)
     @State private var sheetDestination: DetailDestination?
     @State private var showEditSheet = false
@@ -437,6 +438,12 @@ struct SetlistView: View {
                     } label: {
                         Label("Apple Musicプレイリストに追加", systemImage: "music.note.list")
                     }
+                    Button {
+                        showSpotifyExport = true
+                    } label: {
+                        Label("Spotifyプレイリストに追加", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(setlist.isEmpty)
 
                     Button {
                         Task { await playAllPreview() }
@@ -455,6 +462,9 @@ struct SetlistView: View {
                     Image(systemName: "music.note.list")
                 }
             }
+        }
+        .sheet(isPresented: $showSpotifyExport) {
+            SpotifyExportSheet(name: show.name, songs: setlist.map { ($0.songId, $0.songTitle) })
         }
         .alert("プレイリスト", isPresented: $showPlaylistAlert) {
             Button("OK") {}
