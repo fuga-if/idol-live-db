@@ -20,7 +20,7 @@ import { md } from "../discord_digest";
 import { checkRateLimit } from "../rate_limit";
 import type { RouteContext } from "./context";
 import { decodePathParam, readJsonBody, requireActiveUser } from "./guards";
-import { NO_STORE, storeLyrics, validateLyricsBody } from "./lyrics";
+import { NO_STORE, parseLines, storeLyrics, validateLyricsBody, type LyricsBody } from "./lyrics";
 
 /** 投稿から公開した歌詞の出典の表記 (曲の歌詞の下に「出典: …」と出る)。 */
 export const SUBMISSION_SOURCE = "みんなの投稿";
@@ -151,6 +151,8 @@ export async function handleLyricSubmissions(ctx: RouteContext): Promise<Respons
   const { request, env, path, json, error, rateLimitResponse } = ctx;
   const report = path.match(/^\/songs\/([^/]+)\/lyrics-report$/);
   if (report && request.method === "POST") return handleLyricsReport(ctx, report[1]);
+  const lineEdit = path.match(/^\/songs\/([^/]+)\/lyric-lines\/([^/]+)$/);
+  if (lineEdit && request.method === "PUT") return handleLineEdit(ctx, lineEdit[1], lineEdit[2]);
   const match = path.match(/^\/songs\/([^/]+)\/lyric-submissions$/);
   if (!match || request.method !== "POST") return null;
 
@@ -175,20 +177,69 @@ export async function handleLyricSubmissions(ctx: RouteContext): Promise<Respons
   await env.DB.prepare(
     `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count) VALUES (?, ?, ?, ?, ?)`
   ).bind(id, songId, authUser.uid, result.body, result.lineCount).run();
-  const published = await publishSubmission(ctx, songId, result.body, id);
+  const published = await publishSubmission(ctx, songId, submissionLines(result.body), id);
   return json({ id, song_id: songId, status: "pending", published }, 201, NO_STORE);
+}
+
+/**
+ * PUT /songs/:song_id/lyric-lines/:line_id — 公開中の歌詞の 1 行だけを直す。
+ *
+ * 誤字の直しのたびに全文を打ち直させないための口。ボディは投稿と同じ { agreed_to_guideline, text }
+ * で、text は 1 行。行の数は変わらないので、行 id・タイミング・歌割・コールはその行に残る
+ * (本文が変わってずれたコールには stale が立つ)。扱いは投稿と同じ: その場で公開し、前の版を残し、
+ * lyric_submissions に直した後の全文を記録する (確認・BAN 時の一括非公開・奥付が引く)。
+ * ⚠️ 応答に本文を返さない。
+ */
+async function handleLineEdit(ctx: RouteContext, songIdRaw: string, lineIdRaw: string): Promise<Response> {
+  const { request, env, json, error, rateLimitResponse } = ctx;
+  const authUser = await getAuthUser(request, env);
+  if (!authUser) return error("Unauthorized", 401);
+  const inactive = await requireActiveUser(ctx, authUser);
+  if (inactive) return inactive;
+  const songId = decodePathParam(ctx, songIdRaw, "song_id");
+  if (songId instanceof Response) return songId;
+  const lineId = decodePathParam(ctx, lineIdRaw, "line_id");
+  if (lineId instanceof Response) return lineId;
+  if (!songId || songId.length > 200 || !lineId || lineId.length > 200) return error("invalid id", 400);
+
+  const body = await readJsonBody(ctx);
+  if (body instanceof Response) return body;
+  const result = validateSubmission(body);
+  if (!result.ok) return error(result.error, 400);
+  if (result.lineCount !== 1) return error("text must be a single line", 400);
+
+  const header = await env.DB.prepare("SELECT status, lines_json FROM song_lyrics WHERE song_id = ?")
+    .bind(songId).first<{ status: string; lines_json: string | null }>();
+  const current = parseLines(header?.status === "published" ? header.lines_json : null);
+  const index = current.findIndex((l) => l.id === lineId && l.kind === "lyric");
+  if (index < 0) return error("line not found", 404);
+  if (current[index]!.text === result.body) return json({ id: null, song_id: songId, line_id: lineId, published: false }, 200, NO_STORE);
+
+  const rl = await checkRateLimit(env.DB, authUser.uid, "edit");
+  if (!rl.allowed) return rateLimitResponse(rl.used, rl.limit, rl.reset_at);
+
+  const lines = current.map((l, i) => ({ kind: l.kind, text: i === index ? result.body : l.text, section: l.section ?? null }));
+  const fullText = lines.map((l) => (l.kind === "lyric" ? l.text : "")).join("\n");
+  const id = `lsub_${crypto.randomUUID()}`;
+  await env.DB.prepare(
+    `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count) VALUES (?, ?, ?, ?, ?)`
+  ).bind(id, songId, authUser.uid, fullText, lines.length).run();
+  const published = await publishSubmission(ctx, songId, lines, id);
+  return json({ id, song_id: songId, line_id: lineId, published }, 200, NO_STORE);
 }
 
 /**
  * 投稿を公開する。前の版があれば残してから上書きする。公開したら true。
  * 誰の投稿で公開されたか (published_at) も残す (手応え・歌詞の奥付・BAN 時の一括非公開が引く)。
  */
-async function publishSubmission(ctx: RouteContext, songId: string, body: string, submissionId: string): Promise<boolean> {
+async function publishSubmission(
+  ctx: RouteContext, songId: string, lines: LyricsBody["lines"], submissionId: string
+): Promise<boolean> {
   const { env } = ctx;
   const unlicensed = await env.DB.prepare("SELECT 1 AS x FROM lyric_unlicensed_songs WHERE song_id = ?")
     .bind(songId).first();
   if (unlicensed) return false;
-  const lyrics = { source: SUBMISSION_SOURCE, status: "published", lines: submissionLines(body) };
+  const lyrics = { source: SUBMISSION_SOURCE, status: "published", lines };
   // 1 行が長すぎるなど、歌詞の形に合わないものは公開せず確認待ちに残す。
   if (validateLyricsBody(lyrics)) return false;
   const prev = await env.DB.prepare("SELECT source, status, lines_json FROM song_lyrics WHERE song_id = ?")

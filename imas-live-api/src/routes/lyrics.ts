@@ -27,6 +27,7 @@ import { checkRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import { carryOverAnnotation } from "../lyrics_calls";
 import { hasAnnotations, restoreFromArchive } from "../lyrics_annotation_archive";
+import { matchLines } from "../lyrics_line_match";
 import {
   countCallAnnotations,
   syncCallStatsStatement,
@@ -585,8 +586,8 @@ export interface LyricsBody {
 export async function storeLyrics(env: Env, songId: string, { source, status, lines }: LyricsBody): Promise<void> {
 
   // ⚠️ 行 ID は発行後不変という契約 (将来コールがこの ID を参照する)。
-  //    ord 順に既存 id を再利用し、増えた分だけ新しく採番する。
-  //    既存 start_ms も同じ位置の行に引き継ぐ (本文修正でタイミングを消さない)。
+  //    新しい各行が前のどの行の続きかを本文で突き合わせ (lyrics_line_match.ts)、その行の id と
+  //    タイミング・歌割・コールを引き継ぐ。続きの無い行だけ新しく採番する。行を足しても後ろがずれない。
   const prev = await env.DB.prepare(
     "SELECT lines_json FROM song_lyrics WHERE song_id = ?"
   )
@@ -611,24 +612,26 @@ export async function storeLyrics(env: Env, songId: string, { source, status, li
     ).bind(songId, source ?? null, status, status),
   ];
 
+  // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
+  const texts = lines.map((line) => toRubyNotation(line.text ?? ""));
+  const matched = matchLines(existing, lines.map((line, i) => ({ kind: line.kind ?? "lyric", text: texts[i]! })));
   let nextLines: LyricLineRow[] = lines.map((line, i) => {
-    // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
-    const text = toRubyNotation(line.text ?? "");
-    // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
+    const text = texts[i]!;
+    const from = matched[i] === undefined ? undefined : existing[matched[i]!];
     // 本文が変わってアンカーがズレたコールには stale が立つ (消さない)。
-    const annotation = carryOverAnnotation(existing[i], text);
+    const annotation = carryOverAnnotation(from, text);
     return {
-      id: existing[i]?.id ?? "ll_" + crypto.randomUUID(),
+      id: from?.id ?? "ll_" + crypto.randomUUID(),
       ord: i,
       kind: line.kind ?? "lyric",
       text,
       section: line.section ?? null,
-      // 同じ位置に既存行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
-      start_ms: existing[i]?.start_ms ?? existing[i]?.startMs ?? null,
-      ...(existing[i]?.layer ? { layer: existing[i]!.layer } : {}),
-      ...(existing[i]?.singers?.length ? { singers: existing[i]!.singers } : {}),
+      // 続きの行があればタイミングを引き継ぐ。本文だけ直したときに消えない。
+      start_ms: from?.start_ms ?? from?.startMs ?? null,
+      ...(from?.layer ? { layer: from.layer } : {}),
+      ...(from?.singers?.length ? { singers: from.singers } : {}),
       // 途中の区切りは文字の位置に掛かるので、本文が同じときだけ引き継ぐ。
-      ...(existing[i]?.partBreaks?.length && existing[i]!.text === text ? { partBreaks: existing[i]!.partBreaks } : {}),
+      ...(from?.partBreaks?.length && from.text === text ? { partBreaks: from.partBreaks } : {}),
       clap: annotation.clap,
       calls: annotation.calls,
     };

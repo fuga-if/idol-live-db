@@ -218,6 +218,7 @@ async function handleRoot(ctx: RouteContext): Promise<Response | null> {
       "PUT /songs/:song_id/timings",
       "PUT /songs/:song_id/parts",
       "POST /songs/:song_id/lyric-submissions",
+      "PUT /songs/:song_id/lyric-lines/:line_id",
       "POST /songs/:song_id/lyrics-report",
       "POST /admin/lyrics/:song_id/restore",
       "POST /admin/lyrics/:song_id/restore-annotations",
