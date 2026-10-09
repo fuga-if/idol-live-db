@@ -222,9 +222,11 @@ struct ReceivedCardMeeting: Codable, FetchableRecord, PersistableRecord, Hashabl
     var via: String?
     /// 受け取った日時 (ISO 8601)。
     var metAt: String
+    /// そのとき受け取った名刺の中身 (詳細の「この時の名刺に戻す」)。足す前の記録は nil。
+    var payload: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, via
+        case id, via, payload
         case cardId = "card_id"
         case showId = "show_id"
         case showDate = "show_date"
@@ -234,11 +236,29 @@ struct ReceivedCardMeeting: Codable, FetchableRecord, PersistableRecord, Hashabl
     enum Columns {
         static let cardId = Column(CodingKeys.cardId)
         static let metAt = Column(CodingKeys.metAt)
+        static let id = Column(CodingKeys.id)
     }
 
     /// コアに渡す形。
     var record: CardMeetingRecord {
-        CardMeetingRecord(id: id, cardId: cardId, showId: showId, showDate: showDate, via: via, metAt: metAt)
+        CardMeetingRecord(id: id, cardId: cardId, showId: showId, showDate: showDate, via: via, metAt: metAt,
+                          payload: payload)
+    }
+
+    init(id: String, cardId: String, showId: String?, showDate: String?, via: String?, metAt: String,
+         payload: String? = nil) {
+        self.id = id
+        self.cardId = cardId
+        self.showId = showId
+        self.showDate = showDate
+        self.via = via
+        self.metAt = metAt
+        self.payload = payload
+    }
+
+    init(_ record: CardMeetingRecord) {
+        self.init(id: record.id, cardId: record.cardId, showId: record.showId, showDate: record.showDate,
+                  via: record.via, metAt: record.metAt, payload: record.payload)
     }
 }
 

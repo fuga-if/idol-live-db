@@ -54,7 +54,7 @@ struct ProducerCardExchangeView: View {
                         savedNotice = "\(saved.name)さんの名刺を名刺入れに入れました"
                         // 近くの相手との受け渡しは、画像が届くか待ち時間が過ぎるまで続ける。
                         savedIds[incoming.payload] = saved.id
-                        nearby.allowSending()
+                        if incoming.via == .cameraQr { nearby.allowSending() }
                     } else if incoming.via == .cameraQr {
                         nearby.stop()
                     }
@@ -196,7 +196,14 @@ struct ProducerCardExchangeView: View {
     }
 
     /// 読んだ相手が送り返してきた名刺を名刺入れへ (受け取った公演は今日の参加公演)。
+    /// 名刺入れの名刺と同じ人か確かめる必要があれば、黙ってしまわず受け取りの確認を開く。
     private func storeFromReader(_ contents: CardFileContents) async {
+        if await ProducerCardInbox.samePersonConfirm(payload: contents.payload) != nil {
+            if path.isEmpty {
+                path = [IncomingProducerCard(payload: contents.payload, images: contents.images, via: .nearby)]
+            }
+            return
+        }
         let record = try? await ProducerCardAssembler.loadMyRecord()
         let showId = record.flatMap { ProducerCardInbox.exchangeShowCandidates(record: $0).first }
         let infos = (try? await AppContainer.shared.producerCards.showInfos(ids: [showId].compactMap { $0 })) ?? [:]
@@ -237,6 +244,6 @@ struct IncomingProducerCard: Hashable, Identifiable {
     let payload: String
     /// 名刺ファイルに入っていた担当の画像。
     let images: [CardFileImage]
-    /// 受け取り方 (カメラの QR・リンク・名刺ファイル)。
+    /// 受け取り方 (カメラの QR・リンク・名刺ファイル。近くの端末は同じ人か確かめるときだけ)。
     let via: CardReceiveVia
 }

@@ -121,7 +121,8 @@ enum BackupExportImportService {
                                      receivedAt: card.receivedAt, updatedAt: card.updatedAt, via: card.via,
                                      meetings: (meetingsByCard[card.id] ?? []).map {
                                          BackupCardMeetingRecord(id: $0.id, cardId: $0.cardId, showId: $0.showId,
-                                                                 showDate: $0.showDate, via: $0.via, metAt: $0.metAt)
+                                                                 showDate: $0.showDate, via: $0.via, metAt: $0.metAt,
+                                                                 payload: $0.payload)
                                      })
         }
         let myProducerCards = try database.myProducerCard().map {
@@ -215,7 +216,11 @@ enum BackupExportImportService {
             playlistIds: try database.allPlaylistsForBackup().map(\.playlist.id),
             producerCardIds: try database.allReceivedProducerCardIds(),
             myProducerCardIds: try database.myProducerCard().map { [$0.id] } ?? [],
-            cardMeetingIds: try database.allReceivedCardMeetings().map(\.id),
+            producerCards: try database.allReceivedCardRefs(),
+            cardMeetings: try database.allReceivedCardMeetings().map {
+                BackupCardMeetingRecord(id: $0.id, cardId: $0.cardId, showId: $0.showId, showDate: $0.showDate,
+                                        via: $0.via, metAt: $0.metAt, payload: $0.payload)
+            },
             brandRolesJson: BrandRoleStore.json
         )
 
@@ -277,10 +282,10 @@ enum BackupExportImportService {
                                  showDate: $0.showDate, memo: $0.memo, receivedAt: $0.receivedAt,
                                  updatedAt: $0.updatedAt, via: $0.via)
         })
-        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす)。
+        // 会った記録は名刺の後 (名刺が端末に無い記録は飛ばす。中身が同じ別 id の名刺の記録はコアが付け替え済み)。
         try database.restoreReceivedCardMeetingsIfAbsent(plan.cardMeetingsToInsert.map {
             ReceivedCardMeeting(id: $0.id, cardId: $0.cardId, showId: $0.showId, showDate: $0.showDate,
-                                via: $0.via, metAt: $0.metAt)
+                                via: $0.via, metAt: $0.metAt, payload: $0.payload)
         })
         try database.restoreMyProducerCardsIfAbsent(plan.myProducerCardsToInsert.map {
             MyProducerCard(id: $0.id, name: $0.name, message: $0.message, sinceYear: $0.sinceYear.map { Int($0) },

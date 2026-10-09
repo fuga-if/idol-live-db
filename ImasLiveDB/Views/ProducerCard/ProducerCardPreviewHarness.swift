@@ -22,6 +22,8 @@ struct ProducerCardPreviewHarness: View {
         case brandRoles, brandSettings
         /// 名刺に載せる担当を選ぶ画面 (`PRODUCER_CARD_OSHI_CHOSEN` で選んだ状態にできる)。
         case oshiPicker
+        /// 受け取りの確認で、名刺入れの名刺と同じ人か確かめるところ (名前と担当が同じで中身の違う名刺を受け取る)。
+        case samePerson
     }
 
     /// P名刺の画像の見本の選択 (`PROFILE_SIZE=story`)。
@@ -105,6 +107,14 @@ struct ProducerCardPreviewHarness: View {
         }
     }
 
+    /// 名前と担当はそのままで、ひとこととリンクを変えた名刺 (同じ人か確かめる名刺)。
+    private static func remade(_ payload: String) -> String {
+        guard var card = decodeProducerCard(text: payload) else { return payload }
+        card.message = "名刺を作り直しました"
+        card.links = [CardLink(kind: .x, value: "shirokuma_new"), CardLink(kind: .bluesky, value: "shirokuma.bsky.social")]
+        return producerCardPayload(card: card)
+    }
+
     @ViewBuilder
     private var screen: some View {
         switch mode {
@@ -115,6 +125,9 @@ struct ProducerCardPreviewHarness: View {
         case .read: ProducerCardExchangeView(myCard: myCard, initialMode: .read)
         case .receive:
             ProducerCardReceiveSheet(incoming: IncomingProducerCard(payload: samplePayload ?? "", images: [], via: .link))
+        case .samePerson:
+            ProducerCardReceiveSheet(incoming: IncomingProducerCard(payload: Self.remade(samplePayload ?? ""), images: [],
+                                                                    via: .nearby))
         case .case: NavigationStack { CardCaseView() }
         case .detail: NavigationStack { ReceivedCardDetailView(cardId: firstCardId ?? "") }
         case .print:

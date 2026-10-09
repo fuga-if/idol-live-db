@@ -62,6 +62,10 @@ struct ProducerCardEditorView: View {
     @State private var faceNotice: String?
     @State private var isReadingFace = false
 
+    /// 作り直した名刺 id (✓ で保存する。nil は作り直していない)。
+    @State private var renewedCardId: String?
+    @State private var confirmRenewCardId = false
+
     @State private var isFetchingAvatar = false
     @State private var avatarNotice: String?
 
@@ -147,7 +151,12 @@ struct ProducerCardEditorView: View {
                 } else if validation == .tooLong {
                     Text(producerCardInputErrorMessage(error: .tooLong)).imasText(.note, color: DS.danger)
                 }
-                ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                if producerCardEmbedsCardId() {
+                    cardIdCard
+                    ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                } else if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
+                    ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
             }
             #if DEBUG
@@ -164,6 +173,10 @@ struct ProducerCardEditorView: View {
             .imasSheetToolbar(.edit(canSave: canSave, onCancel: cancel, onSave: { Task { await save() } }))
             .imasSavingOverlay(isSaving || isReadingFace, label: isReadingFace ? "画像を整えています" : "保存中")
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
+            .imasConfirmDestructive("名刺 id を作り直しますか？", isPresented: $confirmRenewCardId, actionTitle: "作り直す",
+                                    message: Self.renewCardIdNote) {
+                renewedCardId = producerCardNewId(seed: UUID().uuidString)
+            }
             .interactiveDismissDisabled(isDirty)
             .sheet(item: $cropping) { draft in
                 CardPhotoCropSheet(image: draft.image, crop: draft.crop,
@@ -534,6 +547,23 @@ struct ProducerCardEditorView: View {
         )
     }
 
+    // MARK: - 名刺 id
+
+    private static let renewCardIdNote = "作り直すと、相手の名刺入れではあなたの名刺が別の人の名刺になります (今までの会った記録とはつながりません)。"
+
+    /// 名刺 id を作り直す (名刺 id を名刺に載せている間だけ出す。コアの `producerCardEmbedsCardId`)。
+    private var cardIdCard: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasCardList {
+                ImasActionRow(title: renewedCardId == nil ? "名刺 id を作り直す" : "名刺 id を作り直しました (✓ で保存)",
+                              systemImage: "arrow.triangle.2.circlepath") {
+                    confirmRenewCardId = true
+                }
+            }
+            ImasNote(Self.renewCardIdNote)
+        }
+    }
+
     // MARK: - P名刺の画像に載るもの
 
     /// 好きな曲と担当ブランド。名刺 (QR) には入らず、P名刺の画像 (SNS に貼る画像) に載る。
@@ -608,6 +638,7 @@ struct ProducerCardEditorView: View {
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
         out.profile.songs = songs
         out.cardOshiChoice = oshiChoice
+        if let renewedCardId { out.cardId = renewedCardId }
         return out
     }
 
@@ -634,7 +665,7 @@ struct ProducerCardEditorView: View {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
-            || songs != card.profile.songs || oshiChoice != card.cardOshiChoice
+            || songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != nil
     }
 
     private func cancel() {

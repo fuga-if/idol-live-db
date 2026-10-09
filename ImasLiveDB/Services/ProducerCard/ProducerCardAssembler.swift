@@ -73,7 +73,8 @@ enum ProducerCardAssembler {
             design: card.cardDesign,
             qrUrl: card.qrUrl,
             showBrandLabels: card.shows(.brandLabels),
-            cardId: card.cardId
+            // 名刺 id を載せるかはコアの定数 1 か所 (公開中の 2.5.0 が読めないので今は載せない)。
+            cardId: producerCardIdToEmbed(cardId: card.cardId)
         )
     }
 

@@ -1240,6 +1240,21 @@ enum DatabaseMigrations {
                            arguments: [producerCardNewId(seed: UUID().uuidString)])
         }
 
+        // v49: 会った記録ごとにそのとき受け取った名刺の中身を持つ (詳細の「この時の名刺に戻す」。
+        // 他人の名刺 id を名乗った名刺で中身が差し替わっても戻せるように)。**端末ローカル唯一データ**なので足すだけ。
+        // 今ある記録は名刺の行の中身で埋める (それより前の中身は残っていない)。
+        migrator.registerMigration("v49_card_meeting_payload") { db in
+            let columns = try Row.fetchAll(db, sql: "PRAGMA table_info(received_card_meetings)").map { $0["name"] as String? }
+            if !columns.contains("payload") {
+                try db.execute(sql: "ALTER TABLE received_card_meetings ADD COLUMN payload TEXT")
+            }
+            try db.execute(sql: """
+                UPDATE received_card_meetings
+                SET payload = (SELECT c.payload FROM received_producer_cards c WHERE c.id = received_card_meetings.card_id)
+                WHERE payload IS NULL
+                """)
+        }
+
         return migrator
     }
 }

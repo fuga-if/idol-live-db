@@ -130,8 +130,29 @@ final class DatabaseMigrationTests: XCTestCase {
         XCTAssertNil(meetings[0].via, "古い行は受け取り方が不明")
         XCTAssertEqual(meetings[1].via, "paper")
         XCTAssertEqual(meetings[0].metAt, "2026-10-05T12:00:00Z")
+        XCTAssertEqual(meetings.map(\.payload), ["AQ_a", "AQ_b"], "v49 で記録に名刺の中身を埋める")
         let mine = try XCTUnwrap(try queue.read { db in try MyProducerCard.fetchOne(db) })
         XCTAssertTrue(producerCardIdIsValid(id: try XCTUnwrap(mine.cardId)))
+    }
+
+    /// 会った記録に中身 (v49) を足す前の記録は、名刺の行の中身で埋める。
+    func testCardMeetingPayloadIsBackfilledFromCardRow() throws {
+        let queue = try DatabaseQueue(path: temporaryDatabasePath())
+        try DatabaseMigrations.migrator.migrate(queue, upTo: "v48_producer_card_meetings")
+        try queue.write { db in
+            try db.execute(sql: """
+                INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at)
+                VALUES ('c1', 'AQ_now', 'app', NULL, NULL, NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z')
+                """)
+            try db.execute(sql: """
+                INSERT INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at)
+                VALUES ('x1', 'c1', NULL, NULL, 'nearby', '2026-12-01T12:00:00Z')
+                """)
+        }
+        try DatabaseMigrations.migrator.migrate(queue)
+        let meetings = try queue.read { db in try ReceivedCardMeeting.order(Column("id")).fetchAll(db) }
+        XCTAssertEqual(meetings.map(\.id), ["x1"])
+        XCTAssertEqual(meetings.map(\.payload), ["AQ_now"])
     }
 
     /// 担当の選択 (v47) を足す前の自分の名刺は「まだ選んでいない」として読み、名刺は自動の選び方で載る。

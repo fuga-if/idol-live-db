@@ -19,6 +19,8 @@ struct ReceivedCardDetailView: View {
     @State private var card: ProducerCard?
     @State private var common: CardCommon?
     @State private var meetings: [CardMeetingView] = []
+    /// 「この時の名刺に戻す」の確認中の記録。
+    @State private var restoringMeeting: CardMeetingView?
     @State private var directory = ProducerCardDirectory()
     @State private var myOshi: Set<String> = []
     @State private var showOptions: [LedgerShowOption] = []
@@ -97,6 +99,14 @@ struct ReceivedCardDetailView: View {
                                 message: "名刺入れから消えます。写真と受け取った画像も消えます。") {
             Task { await delete() }
         }
+        .confirmationDialog("この時の名刺に戻しますか？", isPresented: Binding(
+            get: { restoringMeeting != nil }, set: { if !$0 { restoringMeeting = nil } }
+        ), titleVisibility: .visible, presenting: restoringMeeting) { meeting in
+            Button("この時の名刺に戻す") { Task { await restore(meeting) } }
+            Button("キャンセル", role: .cancel) {}
+        } message: { meeting in
+            Text("名前やリンクなどの中身を \(meeting.date) に受け取った名刺に戻します。写真と担当の画像は今のままです。")
+        }
         .imasErrorAlert("名刺を直せませんでした", message: $error)
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in
@@ -149,9 +159,11 @@ struct ReceivedCardDetailView: View {
 
     // MARK: - 会った記録
 
+    /// 会った記録。そのときの名刺の中身が今と違う記録には「この時の名刺に戻す」を添える
+    /// (同じ人として更新した名刺を、前の中身に戻せるように。戻せるかはコアの `cardMeetingRestorable`)。
     @ViewBuilder
     private var meetingsSection: some View {
-        if !meetings.isEmpty {
+        if !meetings.isEmpty, let row {
             ImasSection("会った記録") {
                 ImasCardList {
                     ForEach(Array(meetings.enumerated()), id: \.element.id) { index, meeting in
@@ -165,6 +177,12 @@ struct ReceivedCardDetailView: View {
                                      meeting.ordinalLabel.map { ImasBadgeSpec(text: $0, kind: .neutral) }]
                                 .compactMap { $0 }
                         )
+                        if cardMeetingRestorable(meetingPayload: meeting.payload, currentPayload: row.payload) {
+                            ImasActionRow(title: "この時の名刺に戻す", systemImage: "arrow.uturn.backward") {
+                                restoringMeeting = meeting
+                            }
+                            .environment(\.imasRowPosition, .following)
+                        }
                     }
                 }
             }
@@ -242,6 +260,16 @@ struct ReceivedCardDetailView: View {
         do {
             try await AppContainer.shared.producerCards.changeLatestMeetingShow(
                 cardId: row.id, showId: option?.id, showDate: option?.date)
+            NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func restore(_ meeting: CardMeetingView) async {
+        restoringMeeting = nil
+        do {
+            try await AppContainer.shared.producerCards.restorePayload(cardId: cardId, meetingId: meeting.id)
             NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
         } catch {
             self.error = error.localizedDescription

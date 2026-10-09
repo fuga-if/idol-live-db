@@ -14,8 +14,15 @@ struct GRDBProducerCardRepository: ProducerCardStoring {
     func receivedCard(payload: String) async throws -> ReceivedProducerCard? {
         try await database.receivedProducerCardAsync(payload: payload)
     }
-    func receive(_ card: ReceivedProducerCard, matchSamePerson: Bool) async throws -> ReceivedProducerCard {
-        try await database.receiveProducerCard(card, matchSamePerson: matchSamePerson)
+    func receive(_ card: ReceivedProducerCard, matchSamePerson: Bool,
+                 choice: CardSamePersonChoice) async throws -> ReceivedProducerCard {
+        try await database.receiveProducerCard(card, matchSamePerson: matchSamePerson, choice: choice)
+    }
+    func samePersonConfirm(payload: String) async throws -> CardSamePersonConfirm? {
+        try await database.receivedCardSamePersonConfirm(payload: payload)
+    }
+    func restorePayload(cardId: String, meetingId: String) async throws {
+        try await database.restoreReceivedCardPayload(cardId: cardId, meetingId: meetingId)
     }
     func meetings(cardId: String?) async throws -> [ReceivedCardMeeting] {
         try await database.receivedCardMeetingsAsync(cardId: cardId)
