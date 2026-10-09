@@ -26,6 +26,7 @@ import { getAuthUser } from "../auth";
 import { checkRateLimit, commitIpRateLimit } from "../rate_limit";
 import { checkIsAdmin } from "../users";
 import { carryOverAnnotation } from "../lyrics_calls";
+import { hasAnnotations, restoreFromArchive } from "../lyrics_annotation_archive";
 import {
   countCallAnnotations,
   syncCallStatsStatement,
@@ -610,7 +611,7 @@ export async function storeLyrics(env: Env, songId: string, { source, status, li
     ).bind(songId, source ?? null, status, status),
   ];
 
-  const nextLines: LyricLineRow[] = lines.map((line, i) => {
+  let nextLines: LyricLineRow[] = lines.map((line, i) => {
     // 振り仮名の括弧は《》に直して保存する (lyrics_ruby.ts。文字数は変わらない)。
     const text = toRubyNotation(line.text ?? "");
     // 行 ID と同じ規則 (ord 順で同じ位置の旧行) で clap/calls も引き継ぐ。
@@ -633,6 +634,11 @@ export async function storeLyrics(env: Env, songId: string, { source, status, li
     };
   });
 
+  // 歌詞を消したときに退避した注釈 (歌割・タイミング・コール・ここ好き) があれば付け直す。
+  // 引き継げる既存の注釈が 1 つも無いとき (消したあと入り直した歌詞) だけ見る。
+  const restored = hasAnnotations(nextLines) ? null : await restoreFromArchive(env.DB, songId, nextLines);
+  if (restored) nextLines = restored.lines;
+
   // body は検索専用の平文コピー (migrations/0028)。lines_json と必ず同時に書く。
   // 歌詞行だけを連結する: marker (イントロ/間奏) や blank は本文ではないので、
   // 「間奏」で検索して全曲ヒットするような結果にしない。
@@ -654,6 +660,7 @@ export async function storeLyrics(env: Env, songId: string, { source, status, li
   // UPDATE なので、コールを一度も書かれていない曲に 0 件の行は生えない。
   // 「最後に誰がいつコールを書いたか」は歌詞の再投入では動かさない (call_stats.ts)。
   statements.push(syncCallStatsStatement(env.DB, songId, countCallAnnotations(nextLines)));
+  if (restored) statements.push(...restored.statements);
 
   await env.DB.batch(statements);
 
@@ -954,6 +961,32 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
   // ----------------------------------------------------------------
   //   song_lyrics_versions のいちばん新しい版を書き戻し、その版の行を消す (もう一度呼べば更に前へ)。
   //   応答は件数だけで、本文は返さない (まとめ取りの口にしない)。
+  // ----------------------------------------------------------------
+  // POST /admin/lyrics/:song_id/restore-annotations — 退避した注釈を今の歌詞に付け直す (モデレーターのみ)
+  // ----------------------------------------------------------------
+  //   退避 (lyric_annotation_archive) より先に歌詞が入り直した曲のための口。今の本文のまま storeLyrics を
+  //   通し直すので、付け直しの規則は投稿時と同じ (lyrics_annotation_archive.ts)。応答は付けたかどうかだけ。
+  const annotationsMatch = path.match(/^\/admin\/lyrics\/([^/]+)\/restore-annotations$/);
+  if (annotationsMatch && request.method === "POST") {
+    const subject = await authorizeLyricsWrite(request, env);
+    if (!subject) return error("Unauthorized", 401);
+    const songId = decodePathParam(ctx, annotationsMatch[1], "song_id");
+    if (songId instanceof Response) return songId;
+    const header = await env.DB.prepare("SELECT source, status, lines_json FROM song_lyrics WHERE song_id = ?")
+      .bind(songId).first<{ source: string | null; status: string; lines_json: string | null }>();
+    const current = parseLines(header?.lines_json ?? null);
+    if (!header || !current.length) return error("lyrics not found", 404);
+    await storeLyrics(env, songId, {
+      source: header.source,
+      status: LYRIC_STATUSES.has(header.status) ? header.status : "draft",
+      lines: current.map((l) => ({ kind: l.kind, text: l.text, section: l.section ?? null })),
+    });
+    const after = await env.DB.prepare(
+      "SELECT restored_at FROM lyric_annotation_archive WHERE song_id = ?"
+    ).bind(songId).first<{ restored_at: string | null }>();
+    return json({ songId, restored: !!after?.restored_at }, 200, NO_STORE);
+  }
+
   const restoreMatch = path.match(/^\/admin\/lyrics\/([^/]+)\/restore$/);
   if (restoreMatch && request.method === "POST") {
     const subject = await authorizeLyricsWrite(request, env);
