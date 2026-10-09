@@ -64,6 +64,8 @@ struct CardOshiPickerView: View {
                 .onMove { from, to in
                     var ids = picks.picked.map(\.idolId)
                     ids.move(fromOffsets: from, toOffset: to)
+                    // 同じ位置で離しただけなら選んだことにしない (おまかせのままにする)。
+                    guard ids != picks.picked.map(\.idolId) else { return }
                     set(producerCardOshiNormalize(ids: ids, oshi: oshi))
                 }
                 if picks.chosenByHand {
