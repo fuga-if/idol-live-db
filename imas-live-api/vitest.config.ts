@@ -18,6 +18,21 @@ export default defineWorkersConfig(async () => {
   return {
     test: {
       include: ["test/**/*.test.ts"],
+      // workerd 上では V8 のカバレッジ API が使えないので istanbul (ソース計装) 一択。
+      // enabled: true にして `npm test` が常にレポートを吐くようにしてある。別スクリプトに
+      // 分けると CI でも手元でも「測り忘れた回」ができて、数値が飛び飛びになる。
+      coverage: {
+        enabled: true,
+        provider: "istanbul",
+        include: ["src/**/*.ts"],
+        // json-summary: 全体の数値 / json: ファイル単位の内訳。どちらも
+        // vitest-coverage-report-action が読む (前者は必須、後者が無いとファイル別が出ない)。
+        reporter: ["text", "html", "json-summary", "json"],
+        reportsDirectory: "./coverage",
+        // 既定 (false) だとテストが 1 件でも落ちた回はレポートを書かない。CI は落ちた回こそ
+        // 数値を見たいので、worker-guard.yml の if: always() と対にして常に書かせる。
+        reportOnFailure: true,
+      },
       setupFiles: ["./test/support/apply_migrations.ts", "./test/support/no_network.ts"],
       poolOptions: {
         workers: {

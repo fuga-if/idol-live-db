@@ -22,6 +22,9 @@ on:
 jobs:
   typecheck:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write      # カバレッジを PR にコメントする
     defaults:
       run:
         working-directory: imas-live-api
@@ -45,8 +48,33 @@ jobs:
       # vitest (Workers ランタイム上)。型が通っても契約は壊れうる —
       # 特に GET /calls/dashboard は「応答にも発行 SQL にも歌詞の断片を出さない」ことを
       # テストでしか担保できない (test/calls_dashboard.test.ts)。
+      # coverage は vitest.config.ts で常時 on。レポートは coverage/ に出る。
       - name: Test
         run: npm test
+
+      # カバレッジを Job Summary と PR コメントに出す。テストが落ちた回でも
+      # (落ちるまでに通った分の) レポートは出ているので if: always()。
+      #
+      # ⚠️ working-directory は run: 用の defaults が効かない (uses: ステップは対象外)。
+      #    このアクション自身の入力として渡す必要がある。
+      #
+      # fork からの PR では GITHUB_TOKEN が read-only になりコメントが 403 で落ちるが、
+      # アクション側が warning にして Job Summary は書くので、ジョブは赤くならない。
+      - name: Report coverage
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          working-directory: imas-live-api
+
+      # どの行が通っていないかは HTML レポートでしか分からないので丸ごと残す。
+      # 数値だけ見たいときは上の Job Summary で足りる。
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-imas-live-api
+          path: imas-live-api/coverage
+          retention-days: 14
 
       # バンドルできることまで確認する (import 漏れ・構文エラーの検出)。
       # --dry-run なので Cloudflare へは何も送らない。
