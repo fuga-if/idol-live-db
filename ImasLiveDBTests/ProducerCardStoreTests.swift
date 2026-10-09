@@ -70,6 +70,47 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(decodeProducerCard(text: encoded.url)).showBrandLabels)
     }
 
+    // MARK: - 名刺に載せる担当の選択
+
+    private func oshiEntry(_ id: String, brand: String) -> CardOshiEntry {
+        CardOshiEntry(idolId: id, name: id, brandId: brand, brandLabel: brand)
+    }
+
+    /// 名刺に載せる担当は自分の名刺の行に持つ。まだ選んでいなければブランドごとに 1 人、選べばその人だけ
+    /// その順に載る。担当から外した人は抜け、全員抜ければ自動の選び方に戻る (規則はコア)。
+    func testOshiChoiceRoundTripsAndDrivesTheCard() throws {
+        let db = try makeDatabase()
+        let entries = [oshiEntry("haruka", brand: "765as"), oshiEntry("chihaya", brand: "765as"),
+                       oshiEntry("sora", brand: "876"), oshiEntry("temari", brand: "gakuen"),
+                       oshiEntry("momoko", brand: "ml"), oshiEntry("miki", brand: "765as"),
+                       oshiEntry("misuzu", brand: "gakuen")]
+        let record = ProducerCardMyRecord(oshiIds: entries.map(\.idolId), oshiEntries: entries,
+                                          attended: [], songCount: 0)
+        var card = MyProducerCard.empty()
+        card.name = "ふがP"
+        XCTAssertNil(card.cardOshiChoice)
+        XCTAssertEqual(ProducerCardAssembler.input(card: card, record: record).oshiIdolIds,
+                       ["haruka", "chihaya", "sora", "temari", "momoko"], "まだ選んでいなければブランドごとに 1 人")
+
+        card.cardOshiChoice = ["miki"]
+        try db.saveMyProducerCard(card)
+        let loaded = try XCTUnwrap(db.myProducerCard())
+        XCTAssertEqual(loaded.cardOshiChoice, ["miki"])
+        let encoded = try XCTUnwrap(ProducerCardAssembler.encode(card: loaded, record: record))
+        XCTAssertEqual(try XCTUnwrap(decodeProducerCard(text: encoded.url)).oshiIdolIds, ["miki"], "1 人だけ選べば 1 人")
+
+        // 上限で切る。担当から外した人は抜ける。
+        card.cardOshiChoice = ["misuzu", "gone", "momoko", "temari", "sora", "chihaya", "haruka"]
+        XCTAssertEqual(ProducerCardAssembler.input(card: card, record: record).oshiIdolIds,
+                       ["misuzu", "momoko", "temari", "sora", "chihaya"])
+        card.cardOshiChoice = ["gone"]
+        XCTAssertEqual(ProducerCardAssembler.input(card: card, record: record).oshiIdolIds,
+                       ["haruka", "chihaya", "sora", "temari", "momoko"], "全員外れたら自動の選び方")
+        // 空の選択は持たない (まだ選んでいないに戻る)。
+        card.cardOshiChoice = []
+        XCTAssertNil(card.cardOshiJson)
+    }
+
     /// P名刺の編集で直した好きな曲は保存の時点の行に重ね、画像の選択 (大きさ・外した欄) は今の行のまま。
     func testEditKeepsLatestImageChoicesAndTakesEditedSongs() {
         var opened = MyProducerCard.empty()
@@ -238,6 +279,7 @@ final class ProducerCardStoreTests: XCTestCase {
         sheet.size = .story
         sheet.songs = ["s2", "s1"]
         mine.profile = sheet
+        mine.cardOshiChoice = ["765as_星井美希", "876_上水流宇宙"]
         try source.saveMyProducerCard(mine)
         try source.saveReceivedProducerCard(received("c1", name: "しろくまP", memo: "物販列で隣"))
 
@@ -258,6 +300,7 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(restored.cardDesign, .formal)
         XCTAssertEqual(restored.qrUrl, "https://lit.link/fuga")
         XCTAssertEqual(restored.profile, sheet, "P名刺の画像の選択と好きな曲もバックアップで戻る")
+        XCTAssertEqual(restored.cardOshiChoice, ["765as_星井美希", "876_上水流宇宙"], "名刺に載せる担当の選択も戻る")
 
         // 2 回目は何も増えない (id で重複を弾く)。
         let again = try BackupExportImportService.importEnvelopeJSON(json, database: target, restoreDeviceId: false)

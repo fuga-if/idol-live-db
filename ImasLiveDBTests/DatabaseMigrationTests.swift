@@ -106,6 +106,22 @@ final class DatabaseMigrationTests: XCTestCase {
         XCTAssertEqual(mine.cardDesign, .formal)
     }
 
+    /// 担当の選択 (v47) を足す前の自分の名刺は「まだ選んでいない」として読み、名刺は自動の選び方で載る。
+    func testOldMyCardRowReadsOshiChoiceAsUnchosen() throws {
+        let queue = try DatabaseQueue(path: temporaryDatabasePath())
+        try DatabaseMigrations.migrator.migrate(queue, upTo: "v46_expenses_ticket_kind")
+        try queue.write { db in
+            try db.execute(sql: """
+                INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at)
+                VALUES ('me', 'ふがP', '', '[]', '', '2026-10-06T00:00:00Z')
+                """)
+        }
+        try DatabaseMigrations.migrator.migrate(queue)
+        let mine = try XCTUnwrap(try queue.read { db in try MyProducerCard.fetchOne(db) })
+        XCTAssertNil(mine.cardOshiJson)
+        XCTAssertNil(mine.cardOshiChoice)
+    }
+
     /// `version` まで上げた DB に、その版にある端末ローカルの表の行を入れ、
     /// 最新まで上げてコアのスキーマも当てた後に、行が 1 つも変わっていないことを確かめる。
     private func assertLocalOnlyRowsSurviveMigration(

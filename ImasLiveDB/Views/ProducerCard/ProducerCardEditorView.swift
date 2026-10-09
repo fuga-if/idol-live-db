@@ -23,7 +23,10 @@ struct ProducerCardEditorView: View {
     @State private var sinceYear: Int?
     @State private var links: [EditableLink]
     @State private var hidden: Set<ProducerCardField>
-    @State private var oshi: [Idol] = []
+    /// アプリの担当のアイドル (名刺に載せる担当を選ぶ材料。行に写真か判子を出す)。
+    @State private var oshiIdols: [String: Idol] = [:]
+    /// 名刺に載せる担当の選択 (idol id、載せる順。nil はまだ選んでいない)。
+    @State private var oshiChoice: [String]?
     @State private var brands: [String: Brand] = [:]
     @State private var isSaving = false
     @State private var error: String?
@@ -106,6 +109,7 @@ struct ProducerCardEditorView: View {
         _design = State(initialValue: cardDesignKey(design: card.cardDesign))
         _qrUrl = State(initialValue: card.qrUrl ?? "")
         _songs = State(initialValue: card.profile.songs)
+        _oshiChoice = State(initialValue: card.cardOshiChoice)
     }
 
     var body: some View {
@@ -415,8 +419,17 @@ struct ProducerCardEditorView: View {
 
     // MARK: - 担当
 
+    /// アプリの担当の名前とブランド (選び方の材料)。
+    private var oshiEntries: [CardOshiEntry] { record?.oshiEntries ?? [] }
+
+    /// 名刺に載せる担当 (本人の選択。まだ選んでいなければ自動の選び方。規則はコア)。
+    private var oshi: [Idol] {
+        (record?.cardOshiIds(choice: oshiChoice) ?? []).compactMap { oshiIdols[$0] }
+    }
+
     private var oshiCard: some View {
-        ImasFormCard {
+        let byHand = producerCardOshiPicks(chosen: oshiChoice, oshi: oshiEntries).chosenByHand
+        return ImasFormCard {
             ImasFormField(label: "担当 · アプリから", imprint: "OSHI") {
                 if oshi.isEmpty {
                     Text("アイドル詳細で「担当」を付けると、ここに入ります").imasText(.note)
@@ -430,6 +443,16 @@ struct ProducerCardEditorView: View {
                                 Text(idol.name).imasText(.rowTitle)
                             }
                         }
+                        NavigationLink {
+                            CardOshiPickerView(chosen: oshiChoice, oshi: oshiEntries, idols: oshiIdols,
+                                               brands: brands) { oshiChoice = $0 }
+                        } label: {
+                            ImasNavRow(title: "名刺に載せる担当を選ぶ",
+                                       subtitle: byHand ? "選んだ \(oshi.count) 人 (この順に載ります)"
+                                                        : "おまかせ (ブランドごとに 1 人)",
+                                       systemImage: "person.crop.rectangle.stack", subtitleLineLimit: 2)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -586,6 +609,7 @@ struct ProducerCardEditorView: View {
         out.design = design
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
         out.profile.songs = songs
+        out.cardOshiChoice = oshiChoice
         return out
     }
 
@@ -612,7 +636,7 @@ struct ProducerCardEditorView: View {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
-            || songs != card.profile.songs
+            || songs != card.profile.songs || oshiChoice != card.cardOshiChoice
     }
 
     private func cancel() {
@@ -828,15 +852,12 @@ struct ProducerCardEditorView: View {
         }
     }
 
+    /// アプリの担当すべてを引く (どの人を選んでも見本に出せるように)。
     private func loadOshi() async {
-        guard let ids = record?.cardOshiIds.prefix(Int(limits.maxOshi)), !ids.isEmpty else { return }
-        let idols = (try? await AppContainer.shared.idolReading.idols(ids: Array(ids))) ?? []
-        let byId = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        oshi = ids.compactMap { byId[$0] }
-        if let all = try? await AppContainer.shared.brandReading.brands() {
-            brands = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        }
-        directory = await ProducerCardDirectory.load(idolIds: Array(ids), showIds: [])
+        guard let ids = record?.oshiIds, !ids.isEmpty else { return }
+        directory = await ProducerCardDirectory.load(idolIds: ids, showIds: [])
+        oshiIdols = directory.idols
+        brands = directory.brands
     }
 }
 

@@ -1195,6 +1195,15 @@ enum DatabaseMigrations {
             }
         }
 
+        // v47: P名刺に載せる担当を本人が選ぶ。中身はコアの保存の形 (`cardOshiChoiceToJson`)。
+        // NULL はまだ選んでいない (自動の選び方)。**端末ローカル唯一データ**なので列を足すだけ。
+        migrator.registerMigration("v47_producer_card_oshi_choice") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !cols.contains("card_oshi_json") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN card_oshi_json TEXT")
+            }
+        }
+
         return migrator
     }
 }
