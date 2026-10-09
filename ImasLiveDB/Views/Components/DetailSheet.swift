@@ -82,6 +82,7 @@ struct DetailSheetView: View {
                     DetailContentView(destination: dest) { path.append($0) }
                 }
         }
+        .spotifyPlaybackAlert()
     }
 
     private var dismissButton: some View {
@@ -518,13 +519,11 @@ struct SongSheetContent: View {
                 size: .large
             ) {
                 AppAnalytics.tap("song_detail.play")
-                if let info = vm.artworkInfo, info.musicKitId != nil {
-                    Task { await playFull(info) }
-                } else if let previewURL = vm.artworkInfo?.previewURL {
-                    MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
-                }
+                Task { await playFull() }
             }
-            .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil)
+            // Spotify は曲名で探して鳴らすので、Apple Music の情報が無くても押せる。
+            .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil
+                      && MusicKitService.shared.fullPlaybackService != .spotify)
 
             ImasMarkButton(kind: .favorite, isOn: isFavorite, seed: songSeed) {
                 AppAnalytics.tap("song_detail.toggle_favorite")
@@ -583,24 +582,17 @@ struct SongSheetContent: View {
     private var isFavorite: Bool { markService.bool(.favorite, entity: .song, id: song.id) }
     private var isKamisabiOwned: Bool { markService.bool(.owned, entity: .song, id: song.id) }
 
-    private func playFull(_ info: MusicKitSongInfo) async {
-        if MusicKitService.shared.isPlaying
-            && MusicKitService.shared.isFullPlayback
-            && MusicKitService.shared.isPlaying(songId: song.id) {
-            MusicKitService.shared.stop()
+    /// フル尺で鳴らす (Apple Music か Spotify かは `MusicKitService` が選ぶ)。鳴らせなければ試聴。
+    private func playFull() async {
+        let player = MusicKitService.shared
+        if player.isPlaying(songId: song.id) {
+            player.stop()
             return
         }
-        if !MusicKitService.shared.hasAppleMusicSubscription {
-            await MusicKitService.shared.requestAuthorization()
-            guard MusicKitService.shared.hasAppleMusicSubscription else {
-                // サブスク無しは fallback でプレビュー再生。
-                if let previewURL = info.previewURL {
-                    MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
-                }
-                return
-            }
-        }
-        await MusicKitService.shared.playFull(songInfo: info, songId: song.id)
+        if await player.playFullSongs([(songId: song.id, appleMusicId: song.appleMusicId)], startAt: 0) { return }
+        // Spotify で鳴らすつもりで鳴らせなかったときは、理由 (ContentView が出す) だけにして試聴には落とさない。
+        guard player.spotifyFailure == nil, let previewURL = vm.artworkInfo?.previewURL else { return }
+        player.togglePreview(url: previewURL, songId: song.id)
     }
 
     private func toggleFavorite() {
@@ -687,7 +679,7 @@ struct SongSheetContent: View {
 
     /// 歌詞タブとプレイヤーの繋ぎ。追従・記録はフル再生だけ (試聴は位置を突き合わせられない)。
     private var lyricsPlayback: SongLyricsTab.Playback {
-        .appleMusic(songId: song.id,
+        .fullPlayback(songId: song.id,
                     startFull: { await startFullForLyrics() },
                     scrollTo: { lyricsScrollTarget = $0 })
     }
@@ -710,13 +702,8 @@ struct SongSheetContent: View {
     /// タイミング記録のためにフル再生を始める。未契約・Apple Music に無い曲は false。
     /// 試聴へは落とさない (`playFull` と違い、位置を突き合わせられない再生は意味が無い)。
     private func startFullForLyrics() async -> Bool {
-        guard let info = vm.artworkInfo, info.musicKitId != nil else { return false }
         let player = MusicKitService.shared
-        if !player.hasAppleMusicSubscription {
-            await player.requestAuthorization()
-            guard player.hasAppleMusicSubscription else { return false }
-        }
-        await player.playFull(songInfo: info, songId: song.id)
+        await player.playFullSongs([(songId: song.id, appleMusicId: song.appleMusicId)], startAt: 0)
         return player.isFullPlayback && player.nowPlayingSongId == song.id
     }
 

@@ -18,6 +18,7 @@ final class SpotifyService {
         static let accountName = "spotify.account_name"
         static let tokens = "spotify.tokens"
         static let trackIds = "spotify.track_ids"
+        static let fullPlayback = "spotify.full_playback_preference"
     }
 
     private(set) var clientId: String?
@@ -29,6 +30,20 @@ final class SpotifyService {
 
     var isConnected: Bool { tokens != nil }
 
+    /// Spotify アプリを操作して鳴らせる許可があるか (プレイリストだけの頃のログインには無い)。
+    var canControlPlayback: Bool {
+        guard let scope = tokens?.scope else { return false }
+        return spotifyScopesAllowPlayback(granted: scope)
+    }
+
+    /// フル尺をどちらで鳴らすか (端末の設定)。nil は選んでいない (コアの既定に任せる)。
+    var fullPlaybackPreference: FullPlaybackService? {
+        didSet {
+            UserDefaults.standard.set(fullPlaybackPreference.map { $0 == .spotify ? "spotify" : "apple_music" },
+                                      forKey: Key.fullPlayback)
+        }
+    }
+
     private let guide = spotifySetupGuide()
     private var authSession: ASWebAuthenticationSession?
     private let presentation = PresentationAnchor()
@@ -38,6 +53,11 @@ final class SpotifyService {
         clientId = defaults.string(forKey: Key.clientId)
         accountName = defaults.string(forKey: Key.accountName)
         trackIds = defaults.dictionary(forKey: Key.trackIds) as? [String: String] ?? [:]
+        fullPlaybackPreference = switch defaults.string(forKey: Key.fullPlayback) {
+        case "spotify": .spotify
+        case "apple_music": .appleMusic
+        default: nil
+        }
         tokens = KeychainStore.get(Key.tokens)
             .flatMap { $0.data(using: .utf8) }
             .flatMap { try? JSONDecoder().decode(SpotifyWebAPI.Tokens.self, from: $0) }
@@ -118,24 +138,72 @@ final class SpotifyService {
     }
 
     /// 使える鍵。切れていれば更新する。更新もできなければログアウトして投げる。
-    private func accessToken() async throws -> String {
+    func accessToken() async throws -> String {
         guard let tokens, let clientId else { throw SpotifyWebAPI.Failure(kind: .sessionExpired) }
         if tokens.expiresAt > Date() { return tokens.accessToken }
-        do {
-            let fresh = try await SpotifyWebAPI.refresh(tokens.refreshToken, clientId: clientId)
-            store(fresh)
-            return fresh.accessToken
-        } catch let failure as SpotifyWebAPI.Failure where failure.kind == .sessionExpired {
-            signOut()
-            throw failure
+        // 切れた瞬間に周期の問い合わせ・操作・曲探しが重なっても、更新は 1 本にまとめる
+        // (更新用の鍵は使うと替わるので、2 本目は失効した鍵で断られてログアウトになる)。
+        if let refreshing { return try await refreshing.value }
+        let task = Task { @MainActor in
+            defer { refreshing = nil }
+            do {
+                var fresh = try await SpotifyWebAPI.refresh(tokens.refreshToken, clientId: clientId)
+                // 更新の応答に権限が無ければ前のを引き継ぐ。
+                if fresh.scope == nil { fresh.scope = tokens.scope }
+                store(fresh)
+                return fresh.accessToken
+            } catch let failure as SpotifyWebAPI.Failure where failure.kind == .sessionExpired {
+                signOut()
+                throw failure
+            }
         }
+        refreshing = task
+        return try await task.value
     }
+
+    @ObservationIgnored private var refreshing: Task<String, Error>?
 
     // MARK: - 曲
 
     /// 曲の Spotify のページ。見つからなければ nil。
     func trackURL(songId: String) async throws -> URL? {
         try await findTrack(songId: songId).map { SpotifyWebAPI.trackURL(id: $0.id) }
+    }
+
+    /// 曲の Spotify の URI (`spotify:track:…`)。見つからなければ nil。
+    func trackURI(songId: String) async throws -> String? {
+        try await findTrack(songId: songId)?.uri
+    }
+
+    /// 曲をまとめて探す (並びは `songIds` と同じ。見つからなければ nil)。
+    /// 覚えている曲は探さない。探すのは同時に 4 曲まで (一度に投げすぎると 429 になる)。
+    func trackURIs(songIds: [String]) async -> [String?] {
+        let work = URIWork(count: songIds.count)
+        let workers = (0..<min(4, songIds.count)).map { _ in
+            Task { @MainActor in
+                while let i = work.take() {
+                    work.results[i] = try? await self.trackURI(songId: songIds[i])
+                }
+            }
+        }
+        for worker in workers { await worker.value }
+        return work.results
+    }
+
+    @MainActor private final class URIWork {
+        var results: [String?]
+        private var next = 0
+        init(count: Int) { results = Array(repeating: nil, count: count) }
+        func take() -> Int? {
+            guard next < results.count else { return nil }
+            defer { next += 1 }
+            return next
+        }
+    }
+
+    /// Spotify の曲 id → 曲。鳴っている曲を引き当てる (見つけた曲だけ)。
+    func songId(forTrackId trackId: String) -> String? {
+        trackIds.first { $0.value == trackId }?.key
     }
 
     private struct FoundTrack { let id: String; let uri: String }

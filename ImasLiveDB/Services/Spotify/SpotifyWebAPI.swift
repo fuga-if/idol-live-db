@@ -13,6 +13,16 @@ enum SpotifyWebAPI {
         let accessToken: String
         let refreshToken: String
         let expiresAt: Date
+        /// 許された権限 (空白区切り)。プレイリストだけの頃に保存した鍵には無い。
+        var scope: String?
+    }
+
+    /// `GET /me/player` の要るところだけ。
+    struct PlayerState: Sendable {
+        let trackId: String?
+        let progressMs: Int
+        let durationMs: Int?
+        let isPlaying: Bool
     }
 
     struct Track: Sendable {
@@ -83,12 +93,14 @@ enum SpotifyWebAPI {
             let access_token: String
             let expires_in: Double
             let refresh_token: String?
+            let scope: String?
         }
         let payload = try JSONDecoder().decode(Payload.self, from: data)
         // 更新で新しい鍵が返らなければ前の鍵を使い続ける。
         guard let refresh = payload.refresh_token ?? previousRefreshToken else { throw Failure(kind: .other) }
         return Tokens(accessToken: payload.access_token, refreshToken: refresh,
-                      expiresAt: Date().addingTimeInterval(payload.expires_in - 60))
+                      expiresAt: Date().addingTimeInterval(payload.expires_in - 60),
+                      scope: payload.scope)
     }
 
     // MARK: - Web API
@@ -146,6 +158,63 @@ enum SpotifyWebAPI {
         }
     }
 
+    // MARK: - 鳴らす (Spotify アプリを操作する。Premium が要る)
+
+    static func devices(accessToken: String) async throws -> [SpotifyDevice] {
+        struct Response: Decodable {
+            struct Device: Decodable { let id: String?; let is_active: Bool; let is_restricted: Bool; let type: String }
+            let devices: [Device]
+        }
+        let data = try await api("me/player/devices", accessToken: accessToken)
+        return try JSONDecoder().decode(Response.self, from: data).devices.map {
+            SpotifyDevice(id: $0.id, isActive: $0.is_active, isRestricted: $0.is_restricted, kind: $0.type)
+        }
+    }
+
+    /// 曲を並べて、`offset` 番目から鳴らし始める。
+    ///
+    /// 後ろの曲は Spotify の「次に再生」(`POST /me/player/queue`) には積まない。そちらは鳴らし直しても
+    /// 消えず (空にする口が無い)、次の再生に前の残りが割り込むため。並べる曲はすべてここで渡す。
+    static func play(uris: [String], offset: Int, deviceId: String, accessToken: String) async throws {
+        _ = try await api("me/player/play", method: "PUT", query: ["device_id": deviceId],
+                          json: ["uris": uris, "offset": ["position": offset]], accessToken: accessToken)
+    }
+
+    static func pause(accessToken: String) async throws {
+        _ = try await api("me/player/pause", method: "PUT", accessToken: accessToken)
+    }
+
+    static func resume(accessToken: String) async throws {
+        _ = try await api("me/player/play", method: "PUT", accessToken: accessToken)
+    }
+
+    static func seek(ms: Int, accessToken: String) async throws {
+        _ = try await api("me/player/seek", method: "PUT", query: ["position_ms": "\(max(0, ms))"], accessToken: accessToken)
+    }
+
+    static func next(accessToken: String) async throws {
+        _ = try await api("me/player/next", method: "POST", accessToken: accessToken)
+    }
+
+    static func previous(accessToken: String) async throws {
+        _ = try await api("me/player/previous", method: "POST", accessToken: accessToken)
+    }
+
+    /// 今鳴っているもの。何も鳴らしていなければ nil (204)。
+    static func playerState(accessToken: String) async throws -> PlayerState? {
+        struct Response: Decodable {
+            struct Item: Decodable { let id: String?; let duration_ms: Int? }
+            let is_playing: Bool
+            let progress_ms: Int?
+            let item: Item?
+        }
+        let data = try await api("me/player", accessToken: accessToken)
+        guard !data.isEmpty else { return nil }
+        let r = try JSONDecoder().decode(Response.self, from: data)
+        return PlayerState(trackId: r.item?.id, progressMs: r.progress_ms ?? 0,
+                           durationMs: r.item?.duration_ms, isPlaying: r.is_playing)
+    }
+
     static func trackURL(id: String) -> URL { URL(string: "https://open.spotify.com/track/\(id)")! }
 
     // MARK: - 通信
@@ -169,7 +238,9 @@ enum SpotifyWebAPI {
             switch response.statusCode {
             case 200..<300: return data
             case 401: throw Failure(kind: .sessionExpired)
-            case 403: throw Failure(kind: .notRegistered)
+            case 403: throw Failure(kind: forbiddenKind(data))
+            // 鳴らす口の 404 は「鳴らす先が無い」(NO_ACTIVE_DEVICE)。
+            case 404 where path.hasPrefix("me/player"): throw Failure(kind: .noDevice)
             case 429 where attempt == 0:
                 let wait = Double(response.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 2
                 try await Task.sleep(for: .seconds(min(wait, 10)))
@@ -178,6 +249,16 @@ enum SpotifyWebAPI {
             }
         }
         throw Failure(kind: .other)
+    }
+
+    /// 403 の中身で分ける: Premium が要る / 権限が足りない / アプリに登録されていない。
+    private static func forbiddenKind(_ data: Data) -> SpotifyFailure {
+        let body = String(data: data, encoding: .utf8) ?? ""
+        if body.contains("PREMIUM_REQUIRED") { return .premiumRequired }
+        // 「今はできない」(再生中に再生・先頭で前へ など)。失敗として伝えず、状態を読み直せば足りる。
+        if body.contains("Restriction") { return .other }
+        if body.localizedCaseInsensitiveContains("scope") { return .playbackNotAllowed }
+        return .notRegistered
     }
 
     private static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {

@@ -75,7 +75,7 @@ enum HelpCatalog {
                 HelpItem(label: "Apple Music 連携",
                          detail: "Apple Music に契約していればプレビュー再生 / フル再生 OK。ジャケ写も自動取得。"),
                 HelpItem(label: "Spotify 連携",
-                         detail: "自分の Spotify アプリの Client ID で連携すると、セトリや自分のプレイリストを Spotify に書き出せ、曲を Spotify で開けます。始め方はヘルプの「Spotify と連携する」に図つきで載っています。"),
+                         detail: "自分の Spotify アプリの Client ID で連携すると、曲を Spotify でフル尺で鳴らして歌詞を追いかけられます (Spotify Premium が要ります)。セトリや自分のプレイリストを Spotify に書き出すこともできます。始め方はヘルプの「Spotify と連携する」に図つきで載っています。"),
                 HelpItem(label: "歌唱履歴で深掘り",
                          detail: "曲詳細から「どのライブで何回歌われたか」を一覧表示。担当曲の披露頻度がわかります。"),
                 HelpItem(label: "オリジナルメンバーを表示",

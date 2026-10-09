@@ -31,6 +31,14 @@ final class MusicKitService {
     /// ジャケと名義が出る。再生中バーの引き当てもここを使う。
     private(set) var nowPlayingSongId: String? { didSet { syncPlayFlags() } }
     private(set) var isFullPlayback = false
+    /// フル尺をどこで鳴らしているか。Spotify は利用者の Spotify アプリを操作して鳴らす (`SpotifyRemotePlayer`)。
+    enum FullSource { case appleMusic, spotify }
+    private(set) var fullSource: FullSource = .appleMusic
+    /// Spotify で鳴らせなかった理由。画面 (ContentView) が出して `clearSpotifyFailure` で消す。
+    private(set) var spotifyFailure: SpotifyFailure?
+    @ObservationIgnored private let spotifyRemote = SpotifyRemotePlayer()
+    /// 積んだ Spotify の曲 id → `songs.id`。
+    @ObservationIgnored private var songIdBySpotifyTrackId: [String: String] = [:]
     /// フル再生で ApplicationMusicPlayer に曲を積んだか (止めるときに queue を解放する必要があるか)。
     @ObservationIgnored private var usedApplicationPlayer = false
 
@@ -105,6 +113,16 @@ final class MusicKitService {
         "\(nowPlayingSongId ?? "-")|\(isPlaying)|\(isFullPlayback)"
     }
 
+    /// フル尺をどのサービスで鳴らすか (選び方はコア)。どちらも使えなければ nil (試聴に落とす)。
+    var fullPlaybackService: FullPlaybackService? {
+        let spotify = SpotifyService.shared
+        return chooseFullPlayback(preference: spotify.fullPlaybackPreference,
+                                  appleMusicReady: hasAppleMusicSubscription,
+                                  spotifyReady: spotify.isConnected && spotify.canControlPlayback)
+    }
+
+    func clearSpotifyFailure() { spotifyFailure = nil }
+
     /// LRU キャッシュ（最大500件）
     private let cache: NSCache<NSString, Boxed<MusicKitSongInfo?>> = {
         let c = NSCache<NSString, Boxed<MusicKitSongInfo?>>()
@@ -119,7 +137,15 @@ final class MusicKitService {
     private var isObservingSubscription = false
 
     static let shared = MusicKitService()
-    private init() {}
+    private init() {
+        spotifyRemote.onChange = { [weak self] in self?.syncFromSpotify($0) }
+        spotifyRemote.onFailure = { [weak self] failure in
+            self?.spotifyFailure = failure
+            if self?.fullSource == .spotify, SpotifyRemotePlayer.stopsPlayback(failure) {
+                self?.stop(pausingSpotify: false)
+            }
+        }
+    }
 
     /// Apple Music の認可を取り、契約の有無を読み直す。
     ///
@@ -142,6 +168,14 @@ final class MusicKitService {
         guard !isObservingSubscription else { return }
         isObservingSubscription = true
         Task { await observeSubscriptionUpdates() }
+    }
+
+    /// 許可済みなら契約の有無だけ読み直す (尋ねない)。どちらで鳴らすかを見せる画面が、開いたときに呼ぶ。
+    /// 起動時には契約を読まないので、読む前は「契約なし」に見えて Spotify が選ばれて見える。
+    func checkSubscriptionIfAuthorized() async {
+        guard MusicAuthorization.currentStatus == .authorized else { return }
+        authorizationStatus = .authorized
+        await checkSubscription()
     }
 
     @MainActor
@@ -231,13 +265,96 @@ final class MusicKitService {
             stop()
             return
         }
-        if !isObservingSubscription { await requestAuthorization() }
-        if hasAppleMusicSubscription, let appleMusicId, !appleMusicId.isEmpty {
-            await playQueue([(songId: songId, appleMusicId: appleMusicId)], startAt: 0)
-            if isPlaying(songId: songId) { return }
-        }
+        if await playFullSongs([(songId: songId, appleMusicId: appleMusicId)], startAt: 0) { return }
+        // Spotify で鳴らすつもりで鳴らせなかった (アプリが開いていない等) ときは、理由を出して試聴には落とさない。
+        if spotifyFailure != nil { return }
         // 未契約・配信なし・カタログから消えた曲は試聴へ落とす。
         if let previewURL { togglePreview(url: previewURL, songId: songId) }
+    }
+
+    /// 曲をフル尺で鳴らす。Apple Music か Spotify か (`fullPlaybackService`) で振り分ける。
+    ///
+    /// - Parameters:
+    ///   - entries: 積む順の `songs.id` と Apple Music の id (無い曲は nil。Spotify は曲名で探す)。
+    ///   - startAt: `entries` の何番目から鳴らすか。その曲が鳴らせなければ、次に鳴らせる曲から。
+    /// - Returns: フル尺で鳴り始めたか。
+    @discardableResult
+    func playFullSongs(_ entries: [(songId: String, appleMusicId: String?)], startAt: Int) async -> Bool {
+        spotifyFailure = nil
+        // Spotify を選んでいて使えるなら、Apple Music の許可は尋ねない (使わない人に出さない)。
+        let spotify = SpotifyService.shared
+        let prefersSpotify = spotify.fullPlaybackPreference == .spotify && spotify.isConnected && spotify.canControlPlayback
+        if !prefersSpotify, !isObservingSubscription { await requestAuthorization() }
+        switch fullPlaybackService {
+        case .spotify?:
+            return await playSpotify(entries.map(\.songId), startAt: startAt)
+        case .appleMusic?:
+            let playable = entries.compactMap { entry in
+                entry.appleMusicId.flatMap { $0.isEmpty ? nil : (songId: entry.songId, appleMusicId: $0) }
+            }
+            guard !playable.isEmpty else { return false }
+            let start = entries[min(startAt, entries.count - 1)...].lazy
+                .compactMap { e in playable.firstIndex { $0.songId == e.songId } }.first ?? 0
+            await playQueue(playable, startAt: start)
+            return isFullPlayback
+        case nil:
+            return false
+        }
+    }
+
+    /// Spotify で鳴らす。並べる曲を先に Spotify で探し (覚えている曲は探さない。探すのは並行で)、
+    /// 見つかった曲だけを並べて、押した曲 (無ければその後ろで最初に見つかった曲) から鳴らす。
+    ///
+    /// 「次はこれ」は Spotify では足さない。足すには Spotify の「次に再生」に積むしかなく、
+    /// それは鳴らし直しても消えずに次の再生へ割り込むため。
+    private func playSpotify(_ songIds: [String], startAt: Int) async -> Bool {
+        guard !songIds.isEmpty else { return false }
+        let spotify = SpotifyService.shared
+        let uris = await spotify.trackURIs(songIds: songIds)
+        let playable = songIds.indices.compactMap { i in uris[i].map { (songId: songIds[i], uri: $0, index: i) } }
+        guard let start = playable.firstIndex(where: { $0.index >= startAt }) ?? playable.indices.first else { return false }
+        stop(pausingSpotify: false)
+        do {
+            try await spotifyRemote.play(uris: playable.map(\.uri), offset: start)
+        } catch let failure as SpotifyWebAPI.Failure {
+            spotifyFailure = failure.kind
+            return false
+        } catch {
+            return false
+        }
+        fullSource = .spotify
+        queueSongIds = playable.map(\.songId)
+        queueIndex = start
+        songIdBySpotifyTrackId = Dictionary(
+            playable.compactMap { p in SpotifyRemotePlayer.trackId(fromURI: p.uri).map { ($0, p.songId) } },
+            uniquingKeysWith: { first, _ in first })
+        isPlaying = true
+        isFullPlayback = true
+        nowPlayingSongId = playable[start].songId
+        recommendedLabels = [:]
+        playedSongIds = [playable[start].songId]
+        return true
+    }
+
+    /// Spotify の状態をこちらへ写す (曲が替わった・Spotify アプリ側で止めた)。
+    /// このアプリが積んでいない曲に替わったら (Spotify アプリで別の曲を選んだ)、追うのをやめる。
+    private func syncFromSpotify(_ snapshot: SpotifyRemotePlayer.Snapshot?) {
+        guard fullSource == .spotify, isFullPlayback else { return }
+        guard let snapshot, let trackId = snapshot.trackId else {
+            if isPlaying { isPlaying = false }
+            return
+        }
+        guard let songId = songIdBySpotifyTrackId[trackId] else {
+            stop(pausingSpotify: false)
+            return
+        }
+        if songId != nowPlayingSongId {
+            nowPlayingSongId = songId
+            queueIndex = queueSongIds.firstIndex(of: songId)
+            playedSongIds.append(songId)
+            appendNextIfNeeded()
+        }
+        if snapshot.isPlaying != isPlaying { isPlaying = snapshot.isPlaying }
     }
 
     /// フル再生（Apple Musicサブスクユーザーのみ）
@@ -307,7 +424,8 @@ final class MusicKitService {
     /// 今の曲が積んだ最後の曲なら、「次はこれ」を 1 曲足す (選び方はコア)。
     /// 足すのは最後の曲に来たときだけなので、積んでいくのは常に 1 曲先まで。
     private func appendNextIfNeeded() {
-        guard autoplayNext, isFullPlayback, !isAppendingNext, let current = nowPlayingSongId,
+        // Spotify では足さない (理由は `playSpotify`)。
+        guard autoplayNext, isFullPlayback, fullSource == .appleMusic, !isAppendingNext, let current = nowPlayingSongId,
               let queueIndex, queueIndex == queueSongIds.count - 1 else { return }
         isAppendingNext = true
         let exclude = Array((playedSongIds + queueSongIds).suffix(300))
@@ -338,6 +456,7 @@ final class MusicKitService {
     /// 次の曲へ。
     func skipToNext() {
         guard canSkipToNext else { return }
+        if fullSource == .spotify { spotifyRemote.next(); return }
         Task { @MainActor in try? await ApplicationMusicPlayer.shared.skipToNextEntry() }
     }
 
@@ -345,7 +464,9 @@ final class MusicKitService {
     func skipToPrevious() {
         guard isFullPlayback, let queueIndex else { return }
         let target = playQueuePreviousIndex(index: UInt32(queueIndex), positionMs: Int64(fullPlaybackPositionMs ?? 0))
-        if Int(target) == queueIndex {
+        if fullSource == .spotify {
+            if Int(target) == queueIndex { spotifyRemote.seek(ms: 0) } else { spotifyRemote.previous() }
+        } else if Int(target) == queueIndex {
             musicPlayer.playbackTime = 0
         } else {
             Task { @MainActor in try? await ApplicationMusicPlayer.shared.skipToPreviousEntry() }
@@ -367,7 +488,7 @@ final class MusicKitService {
     }
 
     private func syncFromPlayer() {
-        guard isFullPlayback else { return }
+        guard isFullPlayback, fullSource == .appleMusic else { return }
         let player = ApplicationMusicPlayer.shared
         if case .song(let song)? = player.queue.currentEntry?.item,
            let songId = songIdByMusicKitId[song.id], songId != nowPlayingSongId {
@@ -386,11 +507,13 @@ final class MusicKitService {
     /// 30 秒試聴は曲のどこを切り出したか分からないので返さない。
     var fullPlaybackPositionMs: Int? {
         guard isFullPlayback, nowPlayingSongId != nil else { return nil }
+        if fullSource == .spotify { return spotifyRemote.positionMs }
         return Int((musicPlayer.playbackTime * 1000).rounded())
     }
 
     /// フル再生している曲の長さ (ミリ秒)。分からなければ nil。
     var fullPlaybackDurationMs: Int? {
+        if isFullPlayback, fullSource == .spotify { return spotifyRemote.durationMs }
         guard isFullPlayback, case .song(let song)? = musicPlayer.queue.currentEntry?.item,
               let duration = song.duration else { return nil }
         return Int((duration * 1000).rounded())
@@ -399,6 +522,7 @@ final class MusicKitService {
     /// フル再生の位置を動かす (タイミング記録の巻き戻し)。フル再生中でなければ何もしない。
     func seekFull(toMs ms: Int) {
         guard isFullPlayback else { return }
+        if fullSource == .spotify { spotifyRemote.seek(ms: ms); return }
         musicPlayer.playbackTime = TimeInterval(max(0, ms)) / 1000
     }
 
@@ -408,7 +532,9 @@ final class MusicKitService {
     /// stop は queue ごと解放して `nowPlayingSongId` を nil にするので、
     /// バーの一時停止ボタンから呼ぶと曲そのものを見失う。
     func pause() {
-        if isFullPlayback {
+        if isFullPlayback, fullSource == .spotify {
+            spotifyRemote.pause()
+        } else if isFullPlayback {
             musicPlayer.pause()
         } else {
             player?.pause()
@@ -422,7 +548,9 @@ final class MusicKitService {
     /// 曲を選び直す経路は `togglePreview` / `playFull` 側。
     func resume() {
         guard nowPlayingSongId != nil else { return }
-        if isFullPlayback {
+        if isFullPlayback, fullSource == .spotify {
+            spotifyRemote.resume()
+        } else if isFullPlayback {
             // self の musicPlayer を Task に渡すと非 Sendable の送信になる。
             // playFull と同じく Task の中で shared を取り直す。
             Task { @MainActor in try? await ApplicationMusicPlayer.shared.play() }
@@ -434,7 +562,11 @@ final class MusicKitService {
     }
 
     /// 停止
-    func stop() {
+    func stop() { stop(pausingSpotify: true) }
+
+    /// - Parameter pausingSpotify: Spotify の音も止めるか。続けて別の曲を鳴らすとき・利用者が Spotify アプリで
+    ///   別の曲を選んだときは止めない (止める頼みが後から届いて、鳴らし直した曲を止めてしまう)。
+    private func stop(pausingSpotify: Bool) {
         // observer を先に解除してから player を解放
         if let token = endObserverToken {
             NotificationCenter.default.removeObserver(token)
@@ -447,7 +579,13 @@ final class MusicKitService {
         // 次に IntroDon (MPMusicPlayer 経路) が setQueue を打っても残骸 queue が干渉して
         // .stopped 固着する事例があった。 必ず stop で queue を解放する。
         // ApplicationMusicPlayer の stop は OS とのやり取りで重いので、フル再生を使ったときだけ。
-        if usedApplicationPlayer || isFullPlayback {
+        if fullSource == .spotify {
+            // 止めるのは Spotify アプリの音。聞きに行くのもやめる。
+            if isFullPlayback, pausingSpotify { spotifyRemote.pause() }
+            spotifyRemote.detach()
+            fullSource = .appleMusic
+            songIdBySpotifyTrackId = [:]
+        } else if usedApplicationPlayer || isFullPlayback {
             musicPlayer.stop()
             usedApplicationPlayer = false
         }
