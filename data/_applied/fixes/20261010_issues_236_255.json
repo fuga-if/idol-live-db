@@ -1,0 +1,17 @@
+{
+ "title": "修正リクエスト #242-244 #248 #249 #252-255 の反映",
+ "author": "daily-data-crawl",
+ "source": "各項目の source を参照",
+ "fixes": [
+  {"table": "songs", "id": "gakuen_supremacy", "fields": {"note": "学園アイドルマスター クラス対抗初星大運動会 クラス曲"}, "source": "https://idolmaster-official.jp/news/01_16487.html", "note": "#244 公式ニュースの「イベントを彩る楽曲として制作されたクラス曲」"},
+  {"table": "songs", "id": "gakuen_lets_go_ichi-no-ni", "fields": {"note": "学園アイドルマスター クラス対抗初星大運動会 クラス曲"}, "source": "https://idolmaster-official.jp/news/01_16487.html", "note": "#243"},
+  {"table": "songs", "id": "gakuen_ナイワ", "fields": {"note": "学園アイドルマスター クラス対抗初星大運動会 クラス曲"}, "source": "https://idolmaster-official.jp/news/01_16487.html", "note": "#242"},
+  {"table": "songs", "id": "cg_shabon_song", "fields": {"singer_label": "城ヶ崎美嘉、小日向美穂", "song_type": "unit", "note": "TVアニメ『アイドルマスター シンデレラガールズ』 Blu-ray/DVD 第3巻 特典CD「346Pro IDOL selection vol.2」収録曲"}, "add_original_singers": ["cg_小日向美穂"], "source": "https://dic.pixiv.net/a/shabon_song", "note": "#249 原曲は城ヶ崎美嘉・小日向美穂のデュエット (GAME VERSION は 5 人)"},
+  {"table": "events", "id": "ev_the_idolmster_side_m_1st_stagestrting_夜moon_side", "fields": {"name": "THE IDOLM@STER SideM 1st STAGE～ST@RTING!～"}, "source": "公式表記 SideM", "note": "#248"},
+  {"table": "shows", "id": "sh_L0285", "fields": {"name": "THE IDOLM@STER SideM 1st STAGE～ST@RTING!～ 昼[Sun Side]"}, "source": "公式表記 SideM", "note": "#248 と同じ表記揺れ"},
+  {"table": "shows", "id": "sh_L0286", "fields": {"name": "THE IDOLM@STER SideM 1st STAGE～ST@RTING!～ 夜[Moon Side]"}, "source": "公式表記 SideM", "note": "#248 と同じ表記揺れ"},
+  {"table": "events", "id": "ev_283_production_xxxx_performance_xxx_sn-gul4r1ty", "fields": {"name": "283 Production XXXX Performance XXX= S/N-GUL4R1TY", "ticket_url": "https://idolmaster-official.jp/live_event/283_XXX/"}, "source": "https://idolmaster-official.jp/live_event/283_XXX/", "note": "#252 #253 「// 0x01; initialize()」は第 1 公演の名前 (公演名に残す)"},
+  {"table": "events", "id": "ev_283_production_musical_performance_騎士団のヴェール_veil_of_order_abnegatio_i_", "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/283_Order/"}, "source": "https://idolmaster-official.jp/live_event/283_Order/", "note": "#254"},
+  {"table": "events", "id": "ev_the_idolmster_shiny_colors_7th_live_tour_螺旋_-halo_around-_the_origin_on_the_a", "fields": {"ticket_url": "https://idolmaster-official.jp/live_event/shinycolors_7th_rasen/"}, "source": "https://idolmaster-official.jp/live_event/shinycolors_7th_rasen/", "note": "#255"}
+ ]
+}
