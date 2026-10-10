@@ -1,12 +1,12 @@
 {
- "_note": "アイドルの容姿の公式タグに運営の 1 票を入れる初期値。オーナー確認済みの確認表 data/fixes/idol_appearance_review_20261010.csv の「入れるタグ」列そのまま (シンデレラ 1 つめのグループは調査後に別ファイルで足す)。票は D1 に入り、端末 ID official:<このファイル名> で利用者の票と分かれる。--apply には --d1-sql が要る (docs: data/README.md)。",
+ "_note": "アイドルの容姿の公式タグに運営の 1 票を入れる初期値。オーナー確認済みの確認表 data/research/appearance_20261010/idol_appearance_review_20261010.csv の「入れるタグ」列そのまま (承認済みの 234 行。シンデレラ 1 つめのグループは確認後に別ファイルで足す)。タグは名前で指し、--d1-sql の SQL が本番の行を名前で引く。票は D1 に入り、端末 ID official:<このファイル名> で利用者の票と分かれる (data/README.md)。",
  "fixes": [
   {
    "table": "idols",
    "id": "765as_天海春香",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ストレートヘア",
     "リボン"
    ],
@@ -39,7 +39,7 @@
    "add_official_tags": [
     "茶髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
   },
@@ -48,7 +48,7 @@
    "id": "765as_高槻やよい",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ツインテール"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
@@ -58,8 +58,8 @@
    "id": "765as_秋月律子",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
-    "三つ編み"
+    "ボブ〜ミディアムヘア",
+    "三つ編み・編み込み"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
   },
@@ -81,7 +81,7 @@
     "茶髪",
     "ロングヘア",
     "ストレートヘア",
-    "おでこ出し"
+    "おでこ"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
   },
@@ -100,7 +100,7 @@
    "id": "765as_双海亜美",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "サイドテール"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
@@ -119,7 +119,7 @@
    "table": "idols",
    "id": "765as_四条貴音",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア",
     "ストレートヘア"
    ],
@@ -149,8 +149,7 @@
    "id": "876_日高愛",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
-    "ボブ",
+    "ボブ〜ミディアムヘア",
     "アホ毛"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
@@ -160,7 +159,7 @@
    "id": "876_水谷絵理",
    "add_official_tags": [
     "黒髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ストレートヘア",
     "ヘアピン"
    ],
@@ -179,7 +178,7 @@
    "id": "ml_春日未来",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -218,7 +217,7 @@
    "add_official_tags": [
     "黒髪",
     "ロングヘア",
-    "三つ編み"
+    "三つ編み・編み込み"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -237,7 +236,7 @@
    "id": "ml_徳川まつり",
    "add_official_tags": [
     "緑髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ツインテール"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
@@ -248,7 +247,7 @@
    "add_official_tags": [
     "黒髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -258,7 +257,7 @@
    "add_official_tags": [
     "青髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -286,7 +285,7 @@
    "id": "ml_矢吹可奈",
    "add_official_tags": [
     "オレンジ髪",
-    "ミディアムヘア"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -322,7 +321,7 @@
    "table": "idols",
    "id": "ml_白石紬",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
@@ -377,7 +376,7 @@
    "table": "idols",
    "id": "ml_伴田路子",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア",
     "ツインテール"
    ],
@@ -388,7 +387,7 @@
    "id": "ml_舞浜歩",
    "add_official_tags": [
     "ピンク髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ポニーテール"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
@@ -397,9 +396,9 @@
    "table": "idols",
    "id": "ml_真壁瑞希",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -429,7 +428,7 @@
    "add_official_tags": [
     "金髪",
     "ショートヘア",
-    "ボブ",
+    "ボブ〜ミディアムヘア",
     "アホ毛"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
@@ -468,7 +467,7 @@
    "add_official_tags": [
     "茶髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -495,7 +494,7 @@
    "id": "ml_豊川風花",
    "add_official_tags": [
     "紫髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ウェーブ"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
@@ -525,7 +524,7 @@
    "add_official_tags": [
     "茶髪",
     "ロングヘア",
-    "三つ編み"
+    "三つ編み・編み込み"
    ],
    "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/"
   },
@@ -555,7 +554,7 @@
    "add_official_tags": [
     "オレンジ髪",
     "ロングヘア",
-    "ツインテール"
+    "ローツインテール"
    ],
    "source": "https://wiki.biligame.com/imascg/%E5%B0%8F%E6%9D%BE%E4%BC%8A%E5%90%B9 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=komatsu_ibuki (タグ集計)"
   },
@@ -596,7 +595,7 @@
    "add_official_tags": [
     "黒髪",
     "ショートヘア",
-    "ツインテール",
+    "ローツインテール",
     "ヘアバンド"
    ],
    "source": "https://wiki.biligame.com/imascg/%E5%86%B4%E5%B3%B6%E6%B8%85%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saejima_kiyomi (タグ集計)"
@@ -605,7 +604,7 @@
    "table": "idols",
    "id": "cg_榊原里美",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア",
     "ツインテール",
     "縦ロール",
@@ -630,7 +629,7 @@
    "id": "cg_佐久間まゆ",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ヘアバンド",
     "リボン"
    ],
@@ -641,7 +640,7 @@
    "id": "cg_櫻井桃華",
    "add_official_tags": [
     "金髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ウェーブ",
     "ヘアバンド"
    ],
@@ -712,7 +711,7 @@
    "table": "idols",
    "id": "cg_塩見周子",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ショートヘア"
    ],
    "source": "https://wiki.biligame.com/imascg/%E5%A1%A9%E8%A6%8B%E5%91%A8%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiomi_syuko (タグ集計)"
@@ -751,7 +750,7 @@
    "id": "cg_首藤葵",
    "add_official_tags": [
     "黒髪",
-    "三つ編み",
+    "三つ編み・編み込み",
     "ヘアピン"
    ],
    "source": "https://wiki.biligame.com/imascg/%E9%A6%96%E8%97%A4%E8%91%B5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shutou_aoi (タグ集計)"
@@ -781,7 +780,7 @@
    "add_official_tags": [
     "黒髪",
     "ショートヘア",
-    "ボブ",
+    "ボブ〜ミディアムヘア",
     "ぱっつん前髪"
    ],
    "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E9%9B%AA%E5%8D%83%E5%A4%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shirayuki_chiyo (タグ集計)"
@@ -844,7 +843,7 @@
     "茶髪",
     "ロングヘア",
     "ウェーブ",
-    "三つ編み"
+    "三つ編み・編み込み"
    ],
    "source": "https://wiki.biligame.com/imascg/%E9%96%A2%E8%A3%95%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=seki_hiromi (タグ集計)"
   },
@@ -908,7 +907,7 @@
    "table": "idols",
    "id": "cg_高峯のあ",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア",
     "ストレートヘア"
    ],
@@ -920,7 +919,7 @@
    "add_official_tags": [
     "茶髪",
     "ロングヘア",
-    "お団子",
+    "お団子ヘア",
     "ポニーテール"
    ],
    "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E6%A3%AE%E8%97%8D%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takamori_aiko (タグ集計)"
@@ -1049,7 +1048,7 @@
    "table": "idols",
    "id": "cg_成宮由愛",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ショートヘア",
     "アホ毛",
     "ヘアバンド"
@@ -1111,7 +1110,7 @@
    "id": "cg_二宮飛鳥",
    "add_official_tags": [
     "ロングヘア",
-    "三つ編み",
+    "三つ編み・編み込み",
     "アホ毛"
    ],
    "source": "https://wiki.biligame.com/imascg/%E4%BA%8C%E5%AE%AE%E9%A3%9B%E9%B3%A5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=ninomiya_asuka (タグ集計)"
@@ -1122,7 +1121,7 @@
    "add_official_tags": [
     "黒髪",
     "ショートヘア",
-    "ボブ",
+    "ボブ〜ミディアムヘア",
     "ぱっつん前髪"
    ],
    "source": "https://wiki.biligame.com/imascg/%E4%B8%B9%E7%BE%BD%E4%BB%81%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=niwa_hitomi (タグ集計)"
@@ -1161,7 +1160,7 @@
    "id": "cg_浜口あやめ",
    "add_official_tags": [
     "黒髪",
-    "お団子",
+    "お団子ヘア",
     "ポニーテール"
    ],
    "source": "https://wiki.biligame.com/imascg/%E6%B5%9C%E5%8F%A3%E3%81%82%E3%82%84%E3%82%81 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hamaguchi_ayame (タグ集計)"
@@ -1172,7 +1171,7 @@
    "add_official_tags": [
     "紫髪",
     "ショートヘア",
-    "メッシュ"
+    "髪色2色以上"
    ],
    "source": "https://wiki.biligame.com/imascg/%E6%97%A9%E5%9D%82%E7%BE%8E%E7%8E%B2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hayasaka_mirei (タグ集計)"
   },
@@ -1211,7 +1210,7 @@
    "table": "idols",
    "id": "cg_久川凪",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア"
    ],
    "source": "https://dic.pixiv.net/a/%E4%B9%85%E5%B7%9D%E5%87%AA"
@@ -1220,7 +1219,7 @@
    "table": "idols",
    "id": "cg_久川颯",
    "add_official_tags": [
-    "銀髪"
+    "白髪・銀髪"
    ],
    "source": "https://dic.pixiv.net/a/%E4%B9%85%E5%B7%9D%E9%A2%AF"
   },
@@ -1229,7 +1228,7 @@
    "id": "cg_姫川友紀",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ポニーテール"
    ],
    "source": "https://dic.pixiv.net/a/%E5%A7%AB%E5%B7%9D%E5%8F%8B%E7%B4%80"
@@ -1325,7 +1324,7 @@
    "table": "idols",
    "id": "cg_星輝子",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ロングヘア",
     "ツインテール"
    ],
@@ -1344,7 +1343,7 @@
    "id": "cg_本田未央",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://dic.pixiv.net/a/%E6%9C%AC%E7%94%B0%E6%9C%AA%E5%A4%AE"
   },
@@ -1453,7 +1452,7 @@
    "id": "cg_三村かな子",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://dic.pixiv.net/a/%E4%B8%89%E6%9D%91%E3%81%8B%E3%81%AA%E5%AD%90"
   },
@@ -1519,7 +1518,7 @@
    "id": "cg_楊菲菲",
    "add_official_tags": [
     "黒髪",
-    "お団子"
+    "お団子ヘア"
    ],
    "source": "https://dic.pixiv.net/a/%E6%A5%8A%E8%8F%B2%E8%8F%B2"
   },
@@ -1600,7 +1599,7 @@
    "table": "idols",
    "id": "sc_桑山千雪",
    "add_official_tags": [
-    "三つ編み",
+    "三つ編み・編み込み",
     "リボン"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS"
@@ -1609,7 +1608,7 @@
    "table": "idols",
    "id": "sc_幽谷霧子",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ツインテール"
    ],
    "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS"
@@ -1679,7 +1678,7 @@
    "id": "sidem_アスランbbⅱ世",
    "add_official_tags": [
     "黒髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "片目隠れ"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1700,7 +1699,7 @@
    "id": "sidem_伊集院北斗",
    "add_official_tags": [
     "金髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ウェーブ"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1710,7 +1709,7 @@
    "id": "sidem_伊瀬谷四季",
    "add_official_tags": [
     "黒髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ストレートヘア"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1721,7 +1720,7 @@
    "add_official_tags": [
     "緑髪",
     "ショートヘア",
-    "編み込み"
+    "三つ編み・編み込み"
    ],
    "source": "https://dic.pixiv.net/a/%E5%8D%AF%E6%9C%88%E5%B7%BB%E7%B7%92"
   },
@@ -1750,8 +1749,7 @@
    "id": "sidem_神楽麗",
    "add_official_tags": [
     "黒髪",
-    "ミディアムヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
   },
@@ -1789,8 +1787,8 @@
    "table": "idols",
    "id": "sidem_牙崎漣",
    "add_official_tags": [
-    "銀髪",
-    "ミディアムヘア",
+    "白髪・銀髪",
+    "ボブ〜ミディアムヘア",
     "跳ね毛"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1799,8 +1797,8 @@
    "table": "idols",
    "id": "sidem_北村想楽",
    "add_official_tags": [
-    "ミディアムヘア",
-    "ツートンカラー"
+    "ボブ〜ミディアムヘア",
+    "髪色2色以上"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
   },
@@ -1819,7 +1817,7 @@
    "id": "sidem_清澄九郎",
    "add_official_tags": [
     "黒髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ストレートヘア"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1829,7 +1827,7 @@
    "id": "sidem_葛之葉雨彦",
    "add_official_tags": [
     "水色の髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "ストレートヘア"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1858,8 +1856,8 @@
    "table": "idols",
    "id": "sidem_榊夏来",
    "add_official_tags": [
-    "銀髪",
-    "ミディアムヘア",
+    "白髪・銀髪",
+    "ボブ〜ミディアムヘア",
     "片目隠れ"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1929,7 +1927,7 @@
    "id": "sidem_九十九一希",
    "add_official_tags": [
     "オレンジ髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "片目隠れ"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
@@ -1959,7 +1957,7 @@
    "id": "sidem_猫柳キリオ",
    "add_official_tags": [
     "ショートヘア",
-    "ツートンカラー"
+    "髪色2色以上"
    ],
    "source": "https://dic.pixiv.net/a/%E7%8C%AB%E6%9F%B3%E3%82%AD%E3%83%AA%E3%82%AA"
   },
@@ -1967,7 +1965,7 @@
    "table": "idols",
    "id": "sidem_硲道夫",
    "add_official_tags": [
-    "銀髪",
+    "白髪・銀髪",
     "ショートヘア",
     "ストレートヘア"
    ],
@@ -1989,7 +1987,7 @@
    "add_official_tags": [
     "茶髪",
     "ショートヘア",
-    "ボブ"
+    "ボブ〜ミディアムヘア"
    ],
    "source": "https://sidem.miraheze.org/wiki/Idol_File"
   },
@@ -2039,7 +2037,7 @@
    "id": "sidem_山下次郎",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
+    "ボブ〜ミディアムヘア",
     "片目隠れ"
    ],
    "source": "https://dic.pixiv.net/a/%E5%B1%B1%E4%B8%8B%E6%AC%A1%E9%83%8E"
@@ -2059,8 +2057,8 @@
    "id": "sidem_渡辺みのり",
    "add_official_tags": [
     "茶髪",
-    "ミディアムヘア",
-    "ポニーテール"
+    "ボブ〜ミディアムヘア",
+    "ひとつ縛り"
    ],
    "source": "https://dic.pixiv.net/a/%E6%B8%A1%E8%BE%BA%E3%81%BF%E3%81%AE%E3%82%8A"
   },

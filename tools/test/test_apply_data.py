@@ -313,17 +313,24 @@ class AddOfficialTagsTest(PostFixture):
         device = "official:votes"
         self.assertEqual(votes, [(device, "ml_t", "黒髪"), (device, "ml_t", "ロングヘア")])
 
-        # 書き出した SQL を D1 の表に 2 回流しても 1 票のまま。利用者の票には足すだけ。
+        # 本番には利用者が作った同名のタグ (ロングヘア) と票が先にある。0050 はそれを作り直さず
+        # 公式・容姿にし、運営の票はその行に 1 票足すだけ。SQL を 2 回流しても 1 票のまま。
         d1 = sqlite3.connect(":memory:")
-        for name in ("0020_idol_tags.sql", "0021_idol_tag_master.sql", "0050_idol_appearance_tags.sql"):
+        for name in ("0020_idol_tags.sql", "0021_idol_tag_master.sql"):
             d1.executescript((apply_data.D1_MIGRATIONS_DIR / name).read_text(encoding="utf-8"))
-        d1.execute("INSERT INTO idol_tags VALUES ('ml_t', 'official_appearance_hair_black', 2)")
+        d1.execute("INSERT INTO idol_tag_master (id, name, category, created_by, created_at, updated_at)"
+                   " VALUES ('tag_user', 'ロングヘア', 'charm', 'dev-1', 1, 1)")
+        d1.execute("INSERT INTO idol_tags VALUES ('ml_t', 'tag_user', 2)")
+        d1.executescript((apply_data.D1_MIGRATIONS_DIR / "0050_idol_appearance_tags.sql").read_text(encoding="utf-8"))
+        self.assertEqual(
+            d1.execute("SELECT id, category, is_official FROM idol_tag_master WHERE name = 'ロングヘア'").fetchall(),
+            [("tag_user", "appearance", 1)])
         sql = apply_data.official_tag_vote_sql(votes)
         d1.executescript(sql)
         d1.executescript(sql)
         self.assertEqual(
             d1.execute("SELECT tag_id, vote_count FROM idol_tags ORDER BY tag_id").fetchall(),
-            [("official_appearance_hair_black", 3), ("official_appearance_length_long", 1)])
+            [("official_appearance_hair_black", 1), ("tag_user", 3)])
         self.assertEqual(d1.execute("SELECT DISTINCT device_id FROM device_idol_tag").fetchall(), [(device,)])
 
     def test_an_unknown_tag_is_rejected(self):
