@@ -1,0 +1,11 @@
+{
+ "title": "修正リクエスト #256-259 の反映",
+ "author": "daily-data-crawl",
+ "source": "各項目の source を参照",
+ "fixes": [
+  {"table": "songs", "id": "sidem_竜宮逢幻記", "fields": {"title_kana": "りゅうぐうほうげんき"}, "source": "出典が見つからなかったため投稿内容で登録 (#256)", "note": "#256 投稿はカタカナ「リュウグウホウゲンキ」→ ひらがなで登録。「逢」の音読みはホウ"},
+  {"table": "songs", "id": "sidem_one_round_world", "fields": {"unit_name": "FRAME"}, "source": "https://itunes.apple.com/lookup?id=6762776166&country=jp", "note": "#257 Apple Music の artistName と CD 題「MONTHLY THEME SONG 07 FRAME」"},
+  {"table": "songs", "id": "sidem_awakened", "fields": {"unit_name": "C.FIRST"}, "source": "https://itunes.apple.com/lookup?id=6773805377&country=jp", "note": "#258 Apple Music の artistName と CD 題「MONTHLY THEME SONG 08 C.FIRST」"},
+  {"table": "songs", "id": "sidem_remain_viable", "fields": {"unit_name": "Legenders"}, "source": "https://itunes.apple.com/lookup?id=6785376840&country=jp", "note": "#259 Apple Music の artistName と CD 題「MONTHLY THEME SONG 09 Legenders」"}
+ ]
+}
