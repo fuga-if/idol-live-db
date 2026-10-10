@@ -1063,6 +1063,9 @@ def apply_all(conn, official_votes=None):
         print(f"  ✓ units/{path.name}: {len(data['units'])} 件")
 
     for path, data in load("idol_facets"):
+        if data.get("unconfirmed"):
+            print(f"  - idol_facets/{path.name}: 未確認 (unconfirmed) なので入れない")
+            continue
         defs, _ = facet_defs()
         n = 0
         for r in data["idol_facets"]:
@@ -1081,6 +1084,9 @@ def apply_all(conn, official_votes=None):
         print(f"  ✓ idol_facets/{path.name}: {n} 値")
 
     for path, data in load("idol_hairstyles"):
+        if data.get("unconfirmed"):
+            print(f"  - idol_hairstyles/{path.name}: 未確認 (unconfirmed) なので入れない")
+            continue
         for r in data.get("idol_hairstyles", []):
             row = {c: hair_db_value(c, r.get(c)) for c in (
                 "hair_color", "hair_color_secondary", "hair_length", "styles", "bangs", "accessories")}

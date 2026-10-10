@@ -1,0 +1,2378 @@
+{
+ "_note": "アイドルの髪型の初期値 (label 基本・is_main)。オーナー確認済みの調査の表 data/research/appearance_20261010/idol_appearance_review_20261010.csv の「入れるタグ」列 (承認済みの 234 行のうち、タグのある 213 人) を、項目の値の語彙 (imas-core/facets.json) に直した。タグ名と語彙の対応は docs/ARCHITECTURE-facets.md。髪色2色以上の子は 2 色目を未入力のまま source_note に書いた。",
+ "idol_hairstyles": [
+  {
+   "idol_id": "765as_天海春香",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ストレート"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは2つのリボンのみ記載。色・長さは公式のカード絵で確認"
+  },
+  {
+   "idol_id": "765as_如月千早",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは「青味のかかった黒」。青と黒で迷う (青を採用)"
+  },
+  {
+   "idol_id": "765as_星井美希",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ",
+    "アホ毛"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "覚醒後 (茶のショート) は別。基本の姿を採用。ふわっとした髪なのでストレートではなくウェーブ (オーナー指摘)"
+  },
+  {
+   "idol_id": "765as_萩原雪歩",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaはボブ。長さはあご〜首元でショートとミディアムの境目。色はカード絵; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "765as_高槻やよい",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaはおさげ (ツインテール)。色・長さはカード絵"
+  },
+  {
+   "idol_id": "765as_秋月律子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは2本のお下げ。色・長さはカード絵"
+  },
+  {
+   "idol_id": "765as_三浦あずさ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート",
+    "アホ毛"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは「青味のかかった黒」。青と黒で迷う。アニメ版は途中から短髪"
+  },
+  {
+   "idol_id": "765as_水瀬伊織",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "bangs": "おでこ",
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは前髪アップ (おでこ)。色はオレンジ寄りの茶"
+  },
+  {
+   "idol_id": "765as_菊地真",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaはショートヘア (アホ毛2本)"
+  },
+  {
+   "idol_id": "765as_双海亜美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "サイドテール"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは向かって左で結ぶ。長さは真美より短めでミディアムとした"
+  },
+  {
+   "idol_id": "765as_双海真美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "サイドテール"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは向かって右で結ぶ (『2』では長いサイドテール)。長さの判断は低確度"
+  },
+  {
+   "idol_id": "765as_四条貴音",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
+  },
+  {
+   "idol_id": "765as_我那覇響",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール",
+    "アホ毛"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaはリボンで結ぶポニーテール (アホ毛2本)"
+  },
+  {
+   "idol_id": "765as_音無小鳥",
+   "label": "基本",
+   "is_main": true,
+   "hair_length": "ショート",
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaに「ショートヘアの小鳥」の記述のみ。髪色・髪型は未確認のため空欄"
+  },
+  {
+   "idol_id": "876_日高愛",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは「茶色がかった赤のミディボブ、アホ毛2本」。茶と赤で迷う (茶を採用)"
+  },
+  {
+   "idol_id": "876_水谷絵理",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ストレート"
+   ],
+   "accessories": [
+    "ヘアピン"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "source_note": "Wikipediaは「青みがかった黒のミディアムレイヤーストレート、左側をヘアクリップでまとめる」。黒と青で迷う (黒を採用)"
+  },
+  {
+   "idol_id": "765as_亜夜",
+   "label": "基本",
+   "is_main": true,
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://www.gamespark.jp/article/2021/09/14/111827.html",
+   "source_note": "声優コメントでツインテールの言及のみ。髪色・長さは未確認のため空欄"
+  },
+  {
+   "idol_id": "ml_春日未来",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄 (髪留めを集める設定)"
+  },
+  {
+   "idol_id": "ml_エミリースチュアート",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_高坂海美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_佐竹美奈子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型はカード絵に基づく。低確度"
+  },
+  {
+   "idol_id": "ml_高山紗代子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。Wikipedia ML登場人物に「お下げ」の記述。色はカード絵"
+  },
+  {
+   "idol_id": "ml_田中琴葉",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_徳川まつり",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。青緑寄りで緑とした。長さは短めのツインテールでミディアム"
+  },
+  {
+   "idol_id": "ml_中谷育",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "ml_七尾百合子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。濃い青〜黒で迷う (青を採用); 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "ml_福田のり子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_松田亜利沙",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_矢吹可奈",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。オレンジ寄りの茶で迷う。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_横山奈緒",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_北沢志保",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。濃い茶"
+  },
+  {
+   "idol_id": "ml_ジュリア",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "赤",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_白石紬",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。紫がかった灰。色は灰と紫で迷う。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_周防桃子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_天空橋朋花",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。ベージュ寄りの茶。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_所恵美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_永吉昴",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。暗い緑がかった茶。緑と茶で迷う (緑を採用)"
+  },
+  {
+   "idol_id": "ml_二階堂千鶴",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_伴田路子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。灰がかったベージュ。灰と金で迷う"
+  },
+  {
+   "idol_id": "ml_舞浜歩",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "ピンク",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。長さ・髪型はカード絵に基づく。低確度"
+  },
+  {
+   "idol_id": "ml_真壁瑞希",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。薄い灰紫; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "ml_最上静香",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。暗い紫がかった黒"
+  },
+  {
+   "idol_id": "ml_百瀬莉緒",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。金と明るい茶で迷う"
+  },
+  {
+   "idol_id": "ml_伊吹翼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "ml_大神環",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。赤みのオレンジ。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_北上麗花",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。濃い青緑〜黒で迷う (青を採用)"
+  },
+  {
+   "idol_id": "ml_木下ひなた",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_桜守歌織",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。長さはあご付近でショートとミディアムの境目; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "ml_篠宮可憐",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。オレンジ寄りの金。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_島原エレナ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ロング",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "idol_id": "ml_豊川風花",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "紫",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。濃い青紫。紫と青で迷う"
+  },
+  {
+   "idol_id": "ml_野々原茜",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "赤",
+   "hair_length": "ショート",
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_箱崎星梨花",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "idol_id": "ml_馬場このみ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。サイドの三つ編み"
+  },
+  {
+   "idol_id": "ml_宮尾美也",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。Wikipedia ML登場人物に「ウェーブのかかった長い髪」。色はカード絵"
+  },
+  {
+   "idol_id": "ml_望月杏奈",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "紫",
+   "hair_length": "ロング",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "source_note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず、アホ毛のみ"
+  },
+  {
+   "idol_id": "cg_小松伊吹",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ロング",
+   "styles": [
+    "ローツインテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%B0%8F%E6%9D%BE%E4%BC%8A%E5%90%B9 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=komatsu_ibuki (タグ集計)",
+   "source_note": "タグ集計はオレンジ/茶が割れた。萌娘百科のカテゴリは橙发"
+  },
+  {
+   "idol_id": "cg_小室千奈美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール",
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%B0%8F%E5%AE%A4%E5%8D%83%E5%A5%88%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=komuro_chinami (タグ集計)",
+   "source_note": "萌娘百科カテゴリは棕发(茶)"
+  },
+  {
+   "idol_id": "cg_西園寺琴歌",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "ピンク",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%9C%92%E5%AF%BA%E7%90%B4%E6%AD%8C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saionji_kotoka (タグ集計)",
+   "source_note": "淡いパステルピンク。ツインテール・アップなどアレンジが多く、基本は下ろしたウェーブ(謎の猫Wiki等の記述)"
+  },
+  {
+   "idol_id": "cg_斉藤洋子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%96%89%E8%97%A4%E6%B4%8B%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saitou_youko (タグ集計)",
+   "source_note": "タグ集計は8件と少ない"
+  },
+  {
+   "idol_id": "cg_冴島清美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "ローツインテール"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%86%B4%E5%B3%B6%E6%B8%85%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saejima_kiyomi (タグ集計)",
+   "source_note": "黒/茶の割れ(黒が多数)。おさげ風の低いツインテール"
+  },
+  {
+   "idol_id": "cg_榊原里美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール",
+    "縦ロール"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%A6%8A%E5%8E%9F%E9%87%8C%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakakibara_satomi (タグ集計)",
+   "source_note": "灰/銀の割れ(灰が多数)。ツインドリル"
+  },
+  {
+   "idol_id": "cg_鷺沢文香",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "bangs": "片目隠れ",
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%B7%BA%E6%B2%A2%E6%96%87%E9%A6%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sagisawa_fumika (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_佐久間まゆ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "accessories": [
+    "ヘアバンド",
+    "リボン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E4%B9%85%E9%96%93%E3%81%BE%E3%82%86 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakuma_mayu (タグ集計)",
+   "source_note": "長さはミディアム/ショートのタグが割れた"
+  },
+  {
+   "idol_id": "cg_櫻井桃華",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ウェーブ"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%AB%BB%E4%BA%95%E6%A1%83%E8%8F%AF (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakurai_momoka (タグ集計)",
+   "source_note": "長さはタグが割れ(ミディアム/ショート)。金髪巻き髪は萌娘百科の記述"
+  },
+  {
+   "idol_id": "cg_佐々木千枝",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "accessories": [
+    "ヘアピン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E3%80%85%E6%9C%A8%E5%8D%83%E6%9E%9D (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sasaki_chie (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_佐城雪美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "bangs": "ぱっつん",
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E5%9F%8E%E9%9B%AA%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sajou_yukimi (タグ集計)",
+   "source_note": "青みがかった黒。タグ集計は青が多数なので青の可能性あり"
+  },
+  {
+   "idol_id": "cg_佐藤心",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール",
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E8%97%A4%E5%BF%83 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=satou_shin (タグ集計)",
+   "source_note": "金/明るい茶の割れ。萌娘百科の記述は金髪"
+  },
+  {
+   "idol_id": "cg_沢田麻理菜",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%B2%A2%E7%94%B0%E9%BA%BB%E7%90%86%E8%8F%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sawada_marina (タグ集計)",
+   "source_note": "タグ集計は12件と少ない。長さはロング/ミディアム割れ"
+  },
+  {
+   "idol_id": "cg_財前時子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://wiki.biligame.com/imascg/%E8%B2%A1%E5%89%8D%E6%99%82%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=zaizen_tokiko (タグ集計)",
+   "source_note": "色は茶が多数でオレンジ少数。髪型は根拠が取れず空欄。不明: 髪型"
+  },
+  {
+   "idol_id": "cg_椎名法子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%A4%8E%E5%90%8D%E6%B3%95%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiina_noriko (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_塩見周子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E5%A1%A9%E8%A6%8B%E5%91%A8%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiomi_syuko (タグ集計)",
+   "source_note": "灰/白/金の割れ(灰が多数)。薄い色のため迷い"
+  },
+  {
+   "idol_id": "cg_篠原礼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E7%AF%A0%E5%8E%9F%E7%A4%BC (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shinohara_rei (タグ集計)",
+   "source_note": "タグ集計17件"
+  },
+  {
+   "idol_id": "cg_渋谷凛",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%B8%8B%E8%B0%B7%E5%87%9B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shibuya_rin (タグ集計)",
+   "source_note": "タグ集計は茶118/黒70で割れ。一般には黒髪の扱いだが迷い"
+  },
+  {
+   "idol_id": "cg_島村卯月",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "サイドテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%B3%B6%E6%9D%91%E5%8D%AF%E6%9C%88 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shimamura_uzuki (タグ集計)",
+   "source_note": "長さはロング/肩付近で迷い"
+  },
+  {
+   "idol_id": "cg_首藤葵",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "accessories": [
+    "ヘアピン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%A6%96%E8%97%A4%E8%91%B5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shutou_aoi (タグ集計)",
+   "source_note": "長さはタグが割れ(ロング6/ショート3)で不明。タグ集計14件。不明: 長さ"
+  },
+  {
+   "idol_id": "cg_白菊ほたる",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E8%8F%8A%E3%81%BB%E3%81%9F%E3%82%8B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiragiku_hotaru (タグ集計)",
+   "source_note": "紫タグも30件あり(黒が多数)"
+  },
+  {
+   "idol_id": "cg_白坂小梅",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ショート",
+   "bangs": "片目隠れ",
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E5%9D%82%E5%B0%8F%E6%A2%85 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shirasaka_koume (タグ集計)",
+   "source_note": "薄い金/淡い色。タグ集計は金が多数"
+  },
+  {
+   "idol_id": "cg_白雪千夜",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "bangs": "ぱっつん",
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E9%9B%AA%E5%8D%83%E5%A4%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shirayuki_chiyo (タグ集計)",
+   "source_note": "タグ集計と萌点が一致; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "cg_城ヶ崎美嘉",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "ピンク",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%9F%8E%E3%83%B6%E5%B4%8E%E7%BE%8E%E5%98%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=jougasaki_mika (タグ集計)",
+   "source_note": "髪型はポニー/ツインなど衣装で変わる(萌点は双馬尾・単馬尾)。ポニーテールが多数"
+  },
+  {
+   "idol_id": "cg_城ヶ崎莉嘉",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ツーサイドアップ"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%9F%8E%E3%83%B6%E5%B4%8E%E8%8E%89%E5%98%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=jougasaki_rika (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_杉坂海",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%9D%89%E5%9D%82%E6%B5%B7 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sugisaka_umi (タグ集計)",
+   "source_note": "超長髪"
+  },
+  {
+   "idol_id": "cg_涼宮星花",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%B6%BC%E5%AE%AE%E6%98%9F%E8%8A%B1 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=suzumiya_seika (タグ集計)",
+   "source_note": "タグ集計16件"
+  },
+  {
+   "idol_id": "cg_砂塚あきら",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E7%A0%82%E5%A1%9A%E3%81%82%E3%81%8D%E3%82%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sunazuka_akira (タグ集計)",
+   "source_note": "黒/茶の割れ(黒が多数)"
+  },
+  {
+   "idol_id": "cg_関裕美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ",
+    "三つ編み・編み込み"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%96%A2%E8%A3%95%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=seki_hiromi (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_瀬名詩織",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E7%80%AC%E5%90%8D%E8%A9%A9%E7%B9%94 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sena_shiori (タグ集計)",
+   "source_note": "タグ集計は5件と少ないが萌点も黒長直"
+  },
+  {
+   "idol_id": "cg_仙崎恵磨",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E4%BB%99%E5%B4%8E%E6%81%B5%E7%A3%A8 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=senzaki_ema (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_相馬夏美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E7%9B%B8%E9%A6%AC%E5%A4%8F%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=souma_natsumi (タグ集計)",
+   "source_note": "長さはタグが割れ(ロング5/ショート3)で不明。タグ集計12件。不明: 長さ"
+  },
+  {
+   "idol_id": "cg_高垣楓",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E5%9E%A3%E6%A5%93 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takagaki_kaede (タグ集計)",
+   "source_note": "緑/茶の割れ(緑が多数)。暗い緑がかった茶とも見え迷い"
+  },
+  {
+   "idol_id": "cg_高橋礼子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E6%A9%8B%E7%A4%BC%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takahashi_reiko (タグ集計)",
+   "source_note": "髪型は根拠が取れず空欄。不明: 髪型"
+  },
+  {
+   "idol_id": "cg_鷹富士茄子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "accessories": [
+    "その他の髪飾り"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%B7%B9%E5%AF%8C%E5%A3%AB%E8%8C%84%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takafuji_kako (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_高峯のあ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E5%B3%AF%E3%81%AE%E3%81%82 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takamine_noa (タグ集計)",
+   "source_note": "銀/白/灰の割れ。萌点は白長直"
+  },
+  {
+   "idol_id": "cg_高森藍子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "お団子",
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E6%A3%AE%E8%97%8D%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takamori_aiko (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_多田李衣菜",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E5%A4%9A%E7%94%B0%E6%9D%8E%E8%A1%A3%E8%8F%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tada_riina (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_橘ありす",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ハーフアップ"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%A9%98%E3%81%82%E3%82%8A%E3%81%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tachibana_arisu (タグ集計)",
+   "source_note": "黒タグも22件あり"
+  },
+  {
+   "idol_id": "cg_月宮雅",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ウェーブ"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%9C%88%E5%AE%AE%E9%9B%85 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsukimiya_miyabi (タグ集計)",
+   "source_note": "タグ集計20件"
+  },
+  {
+   "idol_id": "cg_辻野あかり",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート",
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E8%BE%BB%E9%87%8E%E3%81%82%E3%81%8B%E3%82%8A (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsujino_akari (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_土屋亜子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%9C%9F%E5%B1%8B%E4%BA%9C%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsuchiya_ako (タグ集計)",
+   "source_note": "タグ集計7件と少ない"
+  },
+  {
+   "idol_id": "cg_東郷あい",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E6%9D%B1%E9%83%B7%E3%81%82%E3%81%84 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tougou_ai (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_十時愛梨",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%8D%81%E6%99%82%E6%84%9B%E6%A2%A8 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=totoki_airi (タグ集計)",
+   "source_note": "長さはタグから決められず空欄。不明: 長さ"
+  },
+  {
+   "idol_id": "cg_道明寺歌鈴",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ポニーテール",
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%81%93%E6%98%8E%E5%AF%BA%E6%AD%8C%E9%88%B4 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=doumyouji_karin (タグ集計)",
+   "source_note": "長さはショートタグ多数だがポニーテール込みで迷い"
+  },
+  {
+   "idol_id": "cg_中野有香",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%AD%E9%87%8E%E6%9C%89%E9%A6%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nakano_yuka (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_長富蓮実",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ウェーブ"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%95%B7%E5%AF%8C%E8%93%AE%E5%AE%9F (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nagatomi_hasumi (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_ナターリア",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E3%83%8A%E3%82%BF%E3%83%BC%E3%83%AA%E3%82%A2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=natalia_%28idolmaster%29 (タグ集計)",
+   "source_note": "黒/緑の割れ(黒が多数)。緑がかった黒の可能性"
+  },
+  {
+   "idol_id": "cg_並木芽衣子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%A6%E6%9C%A8%E8%8A%BD%E8%A1%A3%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=namiki_meiko (タグ集計)",
+   "source_note": "タグ集計21件"
+  },
+  {
+   "idol_id": "cg_成宮由愛",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%88%90%E5%AE%AE%E7%94%B1%E6%84%9B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=narumiya_yume (タグ集計)",
+   "source_note": "灰/銀の割れ(灰が多数)"
+  },
+  {
+   "idol_id": "cg_南条光",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%8D%97%E6%9D%A1%E5%85%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nanjou_hikaru (タグ集計)",
+   "source_note": "長さの根拠はタグ集計のみ。青タグも少数"
+  },
+  {
+   "idol_id": "cg_難波笑美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ウェーブ"
+   ],
+   "accessories": [
+    "ヘアピン"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%9B%A3%E6%B3%A2%E7%AC%91%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=namba_emi (タグ集計)",
+   "source_note": "タグ集計21件"
+  },
+  {
+   "idol_id": "cg_西川保奈美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%B7%9D%E4%BF%9D%E5%A5%88%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nishikawa_honami (タグ集計)",
+   "source_note": "茶11/黒7で割れ。髪型は根拠が取れず空欄。タグ集計17件。不明: 髪型"
+  },
+  {
+   "idol_id": "cg_西島櫂",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%B3%B6%E6%AB%82 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nishijima_kai (タグ集計)",
+   "source_note": "タグ集計9件"
+  },
+  {
+   "idol_id": "cg_新田美波",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%96%B0%E7%94%B0%E7%BE%8E%E6%B3%A2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nitta_minami (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_二宮飛鳥",
+   "label": "基本",
+   "is_main": true,
+   "hair_length": "ロング",
+   "styles": [
+    "三つ編み・編み込み",
+    "アホ毛"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E4%BA%8C%E5%AE%AE%E9%A3%9B%E9%B3%A5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=ninomiya_asuka (タグ集計)",
+   "source_note": "茶に金/オレンジの二色(エクステ)。色は一語で表せずその他"
+  },
+  {
+   "idol_id": "cg_丹羽仁美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "bangs": "ぱっつん",
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%B9%E7%BE%BD%E4%BB%81%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=niwa_hitomi (タグ集計)",
+   "source_note": "黒/緑の割れ(黒が多数); 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "cg_野々村そら",
+   "label": "基本",
+   "is_main": true,
+   "styles": [
+    "ツインテール",
+    "ウェーブ"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E9%87%8E%E3%80%85%E6%9D%91%E3%81%9D%E3%82%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nonomura_sora (タグ集計)",
+   "source_note": "色(黒/茶)と長さがタグから決められず不明。タグ集計9件。不明: 色・長さ"
+  },
+  {
+   "idol_id": "cg_服部瞳子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://wiki.biligame.com/imascg/%E6%9C%8D%E9%83%A8%E7%9E%B3%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hattori_toko (タグ集計)",
+   "source_note": "タグ集計3件のみで根拠が弱い。不明: 髪型"
+  },
+  {
+   "idol_id": "cg_浜川愛結奈",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "ピンク",
+   "hair_length": "ロング",
+   "styles": [
+    "ハーフアップ",
+    "ウェーブ"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%B5%9C%E5%B7%9D%E6%84%9B%E7%B5%90%E5%A5%88 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hamakawa_ayuna (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_浜口あやめ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "styles": [
+    "お団子",
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E6%B5%9C%E5%8F%A3%E3%81%82%E3%82%84%E3%82%81 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hamaguchi_ayame (タグ集計)",
+   "source_note": "長さは根拠が取れず空欄。不明: 長さ"
+  },
+  {
+   "idol_id": "cg_早坂美玲",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "紫",
+   "hair_length": "ショート",
+   "source": "https://wiki.biligame.com/imascg/%E6%97%A9%E5%9D%82%E7%BE%8E%E7%8E%B2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hayasaka_mirei (タグ集計)",
+   "source_note": "紫に挑染(メッシュ); 髪色2色以上 (2色目は未入力。調査の生の値: 紫/ショート/ショート,メッシュ)"
+  },
+  {
+   "idol_id": "cg_速水奏",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "bangs": "センター分け",
+   "source": "https://wiki.biligame.com/imascg/%E9%80%9F%E6%B0%B4%E5%A5%8F (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hayami_kanade (タグ集計)",
+   "source_note": "青みがかった黒。タグ集計は青91/黒64で割れ"
+  },
+  {
+   "idol_id": "cg_原田美世",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://wiki.biligame.com/imascg/%E5%8E%9F%E7%94%B0%E7%BE%8E%E4%B8%96 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=harada_miyo (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_柊志乃",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "bangs": "センター分け",
+   "source": "https://wiki.biligame.com/imascg/%E6%9F%8A%E5%BF%97%E4%B9%83 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hiiragi_shino (タグ集計)",
+   "source_note": "タグ集計と萌点が一致"
+  },
+  {
+   "idol_id": "cg_久川凪",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E4%B9%85%E5%B7%9D%E5%87%AA",
+   "source_note": "色は萌娘百科の記載。髪型の詳細は未確認"
+  },
+  {
+   "idol_id": "cg_久川颯",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "source": "https://dic.pixiv.net/a/%E4%B9%85%E5%B7%9D%E9%A2%AF",
+   "source_note": "色は萌娘百科の記載。長さ・髪型は未確認"
+  },
+  {
+   "idol_id": "cg_姫川友紀",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%A7%AB%E5%B7%9D%E5%8F%8B%E7%B4%80"
+  },
+  {
+   "idol_id": "cg_兵藤レナ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%85%B5%E8%97%A4%E3%83%AC%E3%83%8A"
+  },
+  {
+   "idol_id": "cg_福山舞",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E7%A6%8F%E5%B1%B1%E8%88%9E",
+   "source_note": "長さは未確認"
+  },
+  {
+   "idol_id": "cg_藤居朋",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://dic.pixiv.net/a/%E8%97%A4%E5%B1%85%E6%9C%8B",
+   "source_note": "暗い緑 (墨緑)。髪型は日によって変わる (単馬尾・双馬尾・お団子)。標準は大きなリボンの単馬尾"
+  },
+  {
+   "idol_id": "cg_藤本里奈",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E8%97%A4%E6%9C%AC%E9%87%8C%E5%A5%88"
+  },
+  {
+   "idol_id": "cg_藤原肇",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E8%97%A4%E5%8E%9F%E8%82%87"
+  },
+  {
+   "idol_id": "cg_双葉杏",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%8F%8C%E8%91%89%E6%9D%8F",
+   "source_note": "黄色寄りの金"
+  },
+  {
+   "idol_id": "cg_古澤頼子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "source": "https://dic.pixiv.net/a/%E5%8F%A4%E6%BE%A4%E9%A0%BC%E5%AD%90",
+   "source_note": "色のみ確認。長さ・髪型は不明"
+  },
+  {
+   "idol_id": "cg_ヘレン",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E3%83%98%E3%83%AC%E3%83%B3",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_北条加蓮",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%8C%97%E6%9D%A1%E5%8A%A0%E8%93%AE",
+   "source_note": "萌娘百科は橙髪と記載。明るい茶 (オレンジがかった茶) で、茶と橙の境目"
+  },
+  {
+   "idol_id": "cg_星輝子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%98%9F%E8%BC%9D%E5%AD%90"
+  },
+  {
+   "idol_id": "cg_堀裕子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "source": "https://dic.pixiv.net/a/%E5%A0%80%E8%A3%95%E5%AD%90",
+   "source_note": "色のみ確認。長さ・髪型は未確認"
+  },
+  {
+   "idol_id": "cg_本田未央",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://dic.pixiv.net/a/%E6%9C%AC%E7%94%B0%E6%9C%AA%E5%A4%AE",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_前川みく",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "source": "https://dic.pixiv.net/a/%E5%89%8D%E5%B7%9D%E3%81%BF%E3%81%8F",
+   "source_note": "色のみ確認。長さ・髪型は未確認"
+  },
+  {
+   "idol_id": "cg_槙原志保",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E6%A7%99%E5%8E%9F%E5%BF%97%E4%BF%9D",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_松尾千鶴",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%9D%BE%E5%B0%BE%E5%8D%83%E9%B6%B4"
+  },
+  {
+   "idol_id": "cg_松永涼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "赤",
+   "hair_length": "ショート",
+   "source": "https://dic.pixiv.net/a/%E6%9D%BE%E6%B0%B8%E6%B6%BC",
+   "source_note": "色は赤茶系で境目"
+  },
+  {
+   "idol_id": "cg_松原早耶",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "source": "https://dic.pixiv.net/a/%E6%9D%BE%E5%8E%9F%E6%97%A9%E8%80%B6",
+   "source_note": "色のみ確認。長さ・髪型は未確認"
+  },
+  {
+   "idol_id": "cg_松本沙理奈",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%9D%BE%E6%9C%AC%E6%B2%99%E7%90%86%E5%A5%88"
+  },
+  {
+   "idol_id": "cg_松山久美子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "source": "https://dic.pixiv.net/a/%E6%9D%BE%E5%B1%B1%E4%B9%85%E7%BE%8E%E5%AD%90",
+   "source_note": "色のみ確認。長さ・髪型は未確認"
+  },
+  {
+   "idol_id": "cg_的場梨沙",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E7%9A%84%E5%A0%B4%E6%A2%A8%E6%B2%99"
+  },
+  {
+   "idol_id": "cg_水野翠",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%B0%B4%E9%87%8E%E7%BF%A0"
+  },
+  {
+   "idol_id": "cg_水本ゆかり",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E6%B0%B4%E6%9C%AC%E3%82%86%E3%81%8B%E3%82%8A",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_三船美優",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E4%B8%89%E8%88%B9%E7%BE%8E%E5%84%AA",
+   "source_note": "濃い茶で黒との境目"
+  },
+  {
+   "idol_id": "cg_三村かな子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://dic.pixiv.net/a/%E4%B8%89%E6%9D%91%E3%81%8B%E3%81%AA%E5%AD%90",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_宮本フレデリカ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%AE%AE%E6%9C%AC%E3%83%95%E3%83%AC%E3%83%87%E3%83%AA%E3%82%AB"
+  },
+  {
+   "idol_id": "cg_向井拓海",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%90%91%E4%BA%95%E6%8B%93%E6%B5%B7",
+   "source_note": "金と明るい茶の境目"
+  },
+  {
+   "idol_id": "cg_村上巴",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E6%9D%91%E4%B8%8A%E5%B7%B4",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_メアリー_コクラン",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E3%83%A1%E3%82%A2%E3%83%AA%E3%83%BC%E3%83%BB%E3%82%B3%E3%82%AF%E3%83%A9%E3%83%B3",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_森久保乃々",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%A3%AE%E4%B9%85%E4%BF%9D%E4%B9%83%E3%80%85"
+  },
+  {
+   "idol_id": "cg_諸星きらり",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E8%AB%B8%E6%98%9F%E3%81%8D%E3%82%89%E3%82%8A",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_楊菲菲",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "styles": [
+    "お団子"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%A5%8A%E8%8F%B2%E8%8F%B2",
+   "source_note": "長さは未確認"
+  },
+  {
+   "idol_id": "cg_柳清良",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%9F%B3%E6%B8%85%E8%89%AF"
+  },
+  {
+   "idol_id": "cg_大和亜季",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://dic.pixiv.net/a/%E5%A4%A7%E5%92%8C%E4%BA%9C%E5%AD%A3",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_遊佐こずえ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E9%81%8A%E4%BD%90%E3%81%93%E3%81%9A%E3%81%88",
+   "source_note": "淡い金 (白寄り) で金と白の境目"
+  },
+  {
+   "idol_id": "cg_横山千佳",
+   "label": "基本",
+   "is_main": true,
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%A8%AA%E5%B1%B1%E5%8D%83%E4%BD%B3",
+   "source_note": "色・長さは不明"
+  },
+  {
+   "idol_id": "cg_依田芳乃",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E4%BE%9D%E7%94%B0%E8%8A%B3%E4%B9%83",
+   "source_note": "淡い青〜青紫系で青・水色・紫の境目"
+  },
+  {
+   "idol_id": "cg_ライラ",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "source": "https://dic.pixiv.net/a/%E3%83%A9%E3%82%A4%E3%83%A9",
+   "source_note": "髪型は未確認"
+  },
+  {
+   "idol_id": "cg_龍崎薫",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E9%BE%8D%E5%B4%8E%E8%96%AB",
+   "source_note": "長さは未確認"
+  },
+  {
+   "idol_id": "cg_和久井留美",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ロング",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%92%8C%E4%B9%85%E4%BA%95%E7%95%99%E7%BE%8E"
+  },
+  {
+   "idol_id": "sc_桑山千雪",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ロング",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "accessories": [
+    "リボン"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS",
+   "source_note": "Wikipediaの記述「ひとつに纏めた三つ編みの髪をリボンで結んでいる」。髪色・長さは記述なしのため未記入 / 色と長さはオーナー指摘で「長めの茶髪」"
+  },
+  {
+   "idol_id": "sc_幽谷霧子",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "styles": [
+    "ツインテール"
+   ],
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS",
+   "source_note": "Wikipediaの記述「ツインテールの銀髪にぐるぐる巻きの包帯が特徴」。髪の長さは記述なしのため未記入"
+  },
+  {
+   "idol_id": "sidem_蒼井享介",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。悠介より赤みが強く赤との境目に迷う"
+  },
+  {
+   "idol_id": "sidem_蒼井悠介",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_紅井朱雀",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "赤",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤と黄のグラデーション気味。髪型にこだわりあり(pixiv百科事典)"
+  },
+  {
+   "idol_id": "sidem_秋月涼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://dic.pixiv.net/a/%E7%A7%8B%E6%9C%88%E6%B6%BC",
+   "source_note": "pixiv百科事典: アホ毛の記述あり。色・長さはアイコン目視。濃い茶(黒との境目に迷う)"
+  },
+  {
+   "idol_id": "sidem_秋山隼人",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_握野英雄",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_アスランbbⅱ世",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ボブ〜ミディアム",
+   "bangs": "片目隠れ",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。紫がかった黒"
+  },
+  {
+   "idol_id": "sidem_天ヶ瀬冬馬",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛",
+    "アホ毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤みのある茶。アホ毛は pixiv百科事典に言及あり"
+  },
+  {
+   "idol_id": "sidem_伊集院北斗",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。金髪は pixiv百科事典に記述あり(染めている)。長さは短め〜中間で迷う"
+  },
+  {
+   "idol_id": "sidem_伊瀬谷四季",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ自信低め"
+  },
+  {
+   "idol_id": "sidem_卯月巻緒",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "styles": [
+    "三つ編み・編み込み"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%8D%AF%E6%9C%88%E5%B7%BB%E7%B7%92",
+   "source_note": "pixiv百科事典: 明るい緑色の髪と左こめかみあたりの編み込み。長さはアイコン目視"
+  },
+  {
+   "idol_id": "sidem_円城寺道流",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。バンダナ着用で髪の見える範囲が狭い。黒か濃い茶か迷う"
+  },
+  {
+   "idol_id": "sidem_岡村直央",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "アホ毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。アホ毛は pixiv百科事典の岡村直央の項に言及"
+  },
+  {
+   "idol_id": "sidem_神楽麗",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_柏木翼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。カーキ寄りの緑で茶との境目に迷う"
+  },
+  {
+   "idol_id": "sidem_兜大吾",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "ピンク",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_神谷幸広",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。灰がかった茶"
+  },
+  {
+   "idol_id": "sidem_牙崎漣",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。銀髪は pixiv百科事典に記述あり(髪紐は衣装時)。長さ自信低め"
+  },
+  {
+   "idol_id": "sidem_北村想楽",
+   "label": "基本",
+   "is_main": true,
+   "hair_length": "ボブ〜ミディアム",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。白と黒のツートン(アイコン目視)。単色に収まらないため『その他』; 髪色2色以上 (2色目は未入力。調査の生の値: その他/ミディアム/ツートン)"
+  },
+  {
+   "idol_id": "sidem_木村龍",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_清澄九郎",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。緑がかった黒"
+  },
+  {
+   "idol_id": "sidem_葛之葉雨彦",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "水色",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。銀との境目に迷う"
+  },
+  {
+   "idol_id": "sidem_黒野玄武",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "オールバック"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_古論クリス",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ポニーテール"
+   ],
+   "source": "https://dic.pixiv.net/a/%E5%8F%A4%E8%AB%96%E3%82%AF%E3%83%AA%E3%82%B9",
+   "source_note": "pixiv百科事典: 金髪ポニテ。長さはアイコン目視"
+  },
+  {
+   "idol_id": "sidem_榊夏来",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ボブ〜ミディアム",
+   "bangs": "片目隠れ",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。pixiv百科事典の山下次郎の項に銀髪組の記述"
+  },
+  {
+   "idol_id": "sidem_桜庭薫",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "bangs": "片目隠れ",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さは耳にかかる程度"
+  },
+  {
+   "idol_id": "sidem_東雲荘一郎",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_信玄誠司",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。濃い茶"
+  },
+  {
+   "idol_id": "sidem_大河タケル",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。青みのある黒"
+  },
+  {
+   "idol_id": "sidem_鷹城恭二",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://dic.pixiv.net/a/%E9%B7%B9%E5%9F%8E%E6%81%AD%E4%BA%8C",
+   "source_note": "pixiv百科事典: 日常は濃いめの茶髪(衣装時のみ灰がかった黒髪)。長さ・髪型はアイコン目視"
+  },
+  {
+   "idol_id": "sidem_橘志狼",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "逆立てた髪"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_九十九一希",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ボブ〜ミディアム",
+   "bangs": "片目隠れ",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ自信低め"
+  },
+  {
+   "idol_id": "sidem_都築圭",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ・髪型は自信低め"
+  },
+  {
+   "idol_id": "sidem_天道輝",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤みの茶"
+  },
+  {
+   "idol_id": "sidem_猫柳キリオ",
+   "label": "基本",
+   "is_main": true,
+   "hair_length": "ショート",
+   "source": "https://dic.pixiv.net/a/%E7%8C%AB%E6%9F%B3%E3%82%AD%E3%83%AA%E3%82%AA",
+   "source_note": "pixiv百科事典: 黄緑とピンクのヘアカラー(染めている)。単色に収まらないため『その他』。長さ・髪型はアイコン目視; 髪色2色以上 (2色目は未入力。調査の生の値: その他/ショート/ツートン)"
+  },
+  {
+   "idol_id": "sidem_硲道夫",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "白・銀",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。pixiv百科事典の山下次郎の項に銀髪組の記述"
+  },
+  {
+   "idol_id": "sidem_華村翔真",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ロング",
+   "styles": [
+    "ウェーブ"
+   ],
+   "source": "https://dic.pixiv.net/a/%E8%8F%AF%E6%9D%91%E7%BF%94%E7%9C%9F",
+   "source_note": "pixiv百科事典(秋月涼の項) に髪の長い翔真との記述、金髪アイドルの記述あり。髪型はアイコン目視"
+  },
+  {
+   "idol_id": "sidem_姫野かのん",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。明るい茶; 長さのタグが複数 (ショート/ボブ〜ミディアム)。調査の生の値の ショート を採用"
+  },
+  {
+   "idol_id": "sidem_冬美旬",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "黒",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_舞田類",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "idol_id": "sidem_水嶋咲",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ショート",
+   "styles": [
+    "ストレート"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "通常(男性姿)は短髪(Wikipedia 登場人物)。ツインテールは女装時のウィッグ。色・髪型はアイコン(女装姿)目視で、標準姿の判断に迷う"
+  },
+  {
+   "idol_id": "sidem_御手洗翔太",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "緑",
+   "hair_length": "ショート",
+   "styles": [
+    "跳ね毛"
+   ],
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。黄緑寄り(pixiv百科事典『髪色に合わせた黄緑色』)"
+  },
+  {
+   "idol_id": "sidem_山下次郎",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "bangs": "片目隠れ",
+   "source": "https://dic.pixiv.net/a/%E5%B1%B1%E4%B8%8B%E6%AC%A1%E9%83%8E",
+   "source_note": "pixiv百科事典: 普段は片目隠れ(右目)でステージでは前髪を分ける。色・長さはアイコン目視"
+  },
+  {
+   "idol_id": "sidem_若里春名",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "オレンジ",
+   "hair_length": "ショート",
+   "accessories": [
+    "ヘアバンド"
+   ],
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。茶との境目に迷う"
+  },
+  {
+   "idol_id": "sidem_渡辺みのり",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "茶",
+   "hair_length": "ボブ〜ミディアム",
+   "styles": [
+    "ひとつ縛り"
+   ],
+   "source": "https://dic.pixiv.net/a/%E6%B8%A1%E8%BE%BA%E3%81%BF%E3%81%AE%E3%82%8A",
+   "source_note": "pixiv百科事典: 普段は後ろで結わえた髪にヘアピン。色・長さはアイコン目視"
+  },
+  {
+   "idol_id": "sidem_天峰秀",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "青",
+   "source": "https://dic.pixiv.net/a/%E5%A4%A9%E5%B3%B0%E7%A7%80",
+   "source_note": "pixiv百科事典: 本人の髪色も青寄り。長さ・髪型は帽子を被った画像のため不明"
+  },
+  {
+   "idol_id": "sidem_花園百々人",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "金",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "アイコン目視(帽子姿)。長さ・髪型は不明。淡い黄で金との境目に迷う"
+  },
+  {
+   "idol_id": "sidem_眉見鋭心",
+   "label": "基本",
+   "is_main": true,
+   "hair_color": "赤",
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "source_note": "アイコン目視(帽子姿)。長さ・髪型は不明。赤茶寄り"
+  }
+ ]
+}
