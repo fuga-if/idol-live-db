@@ -125,6 +125,17 @@ class QueryAllTest(unittest.TestCase):
         with self.assertRaises(export_cloudkit.UnknownRecordTypeError):
             export_cloudkit.query_all("TicketSale")
 
+    def test_a_missing_record_type_404_is_converted(self):
+        # 本番 (production) は未昇格の型に 404 "Missing record type" を返す (2026-10-11 の実測)
+        from lib import cloudkit as _ck
+        saved = _ck.query_all
+        self.addCleanup(setattr, _ck, "query_all", saved)
+        _ck.query_all = lambda *a, **k: (_ for _ in ()).throw(
+            self._http_error(404, '{"reason":"ObjectNotFoundException: Missing record type: IdolFacet","serverErrorCode":"NOT_FOUND"}')
+        )
+        with self.assertRaises(export_cloudkit.UnknownRecordTypeError):
+            export_cloudkit.query_all("IdolFacet")
+
     def test_an_unrelated_http_error_is_not_swallowed(self):
         from lib import cloudkit as _ck
         saved = _ck.query_all

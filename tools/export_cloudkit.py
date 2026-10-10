@@ -55,7 +55,7 @@ class UnknownRecordTypeError(RuntimeError):
 
     RECORD_TYPE_MAP に表を足してからマージすると、Production へのスキーマ昇格 (CloudKit
     Dashboard での型のデプロイ) より先に日次 export が走ることがある。その間 CloudKit は
-    "unknown type" の 400 を返すので、その表だけ据え置いて export 全体は続行させる
+    "unknown type" の 400 か "Missing record type" の 404 を返すので、その表だけ据え置いて export 全体は続行させる
     (refresh_table 側の catch 用)。
     """
 
@@ -66,7 +66,10 @@ def query_all(record_type: str) -> list[dict]:
         return _ck.query_all(sk.BASE_URL + sk.QUERY_PATH, record_type, post=sk.get_json)
     except requests.exceptions.HTTPError as e:
         body = e.response.text if e.response is not None else ""
-        if "unknown type" in body.lower():
+        # 未昇格の型への返事は 2 通りある: 400 "unknown type" と、404 "Missing record type" (ObjectNotFoundException)。
+        # 2026-10-11 の本番 (production) は 404 の方を返した
+        low = body.lower()
+        if "unknown type" in low or "missing record type" in low:
             raise UnknownRecordTypeError(record_type) from e
         raise
 
