@@ -11,7 +11,8 @@
 // ⚠️ 投稿ガイドラインへの同意 (agreed_to_guideline: true) が必須。入力元は書かせない
 //    (どこから写したかは確かめようがないので規約で縛る。ガイドラインはコアが持つ)。
 // ⚠️ 本文の整え方と上限は imas-core domain/lyric_submission.rs と同じ (改行を揃え、行末の空白と
-//    前後の空行を落とし、空行の連続を 1 つに。文字数は UTF-16 = .length)。字そのものは変えない。
+//    前後の空行を落とし、空行の連続を 1 つに。文字数は UTF-16 = .length)。半角カナは全角に直し
+//    (弾かない。2026-10-11 オーナー判断)、それ以外の字は変えない。
 // ⚠️ 応答に本文を返さない (預かった id と状態だけ)。
 
 import { getAuthUser } from "../auth";
@@ -33,9 +34,38 @@ export function submissionLines(body: string): Array<{ kind: string; text: strin
 export const SUBMISSION_MAX_CHARS = 8000;
 export const SUBMISSION_MAX_LINES = 400;
 
+/**
+ * 半角カナと半角の句読点・カギ括弧・中黒・長音・濁点 (U+FF61〜U+FF9F) を全角にする。
+ * 濁点・半濁点は前の字と合わせて 1 字にし (ｶﾞ → ガ)、合わせられないときは単独の ゛ ゜ にする。
+ * 範囲外の字は触らない。コアの fold_halfwidth_kana と同じ規則。
+ */
+export function foldHalfwidthKana(text: string): string {
+  let out = "";
+  for (const ch of text) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code < 0xff61 || code > 0xff9f) {
+      out += ch;
+      continue;
+    }
+    const full = ch.normalize("NFKC");
+    if (full !== "\u3099" && full !== "\u309A") {
+      out += full;
+      continue;
+    }
+    const prev = Array.from(out).pop();
+    const joined = prev === undefined ? "" : (prev + full).normalize("NFC");
+    if (prev !== undefined && Array.from(joined).length === 1) {
+      out = out.slice(0, out.length - prev.length) + joined;
+    } else {
+      out += full === "\u3099" ? "\u309B" : "\u309C";
+    }
+  }
+  return out;
+}
+
 export function normalizeLyricText(text: string): string {
   const out: string[] = [];
-  for (const raw of text.replace(/\r\n?/g, "\n").split("\n")) {
+  for (const raw of foldHalfwidthKana(text.replace(/\r\n?/g, "\n")).split("\n")) {
     const line = raw.replace(/\s+$/u, "");
     if (!line && (out.length === 0 || out[out.length - 1] === "")) continue;
     out.push(line);
@@ -54,8 +84,6 @@ export function validateSubmission(body: Readonly<Record<string, unknown>>): Sub
   if (typeof text !== "string") return { ok: false, error: "text must be a string" };
   const normalized = normalizeLyricText(text);
   if (!normalized) return { ok: false, error: "text is empty" };
-  // 半角カナ (U+FF61〜U+FF9F) は表記どおりではないので受け付けない (コアの HalfwidthKana と同じ)。
-  if (/[\uFF61-\uFF9F]/u.test(normalized)) return { ok: false, error: "text must not contain halfwidth kana" };
   if (normalized.length > SUBMISSION_MAX_CHARS) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_CHARS}` };
   const lineCount = normalized.split("\n").length;
   if (lineCount > SUBMISSION_MAX_LINES) return { ok: false, error: `text must be up to ${SUBMISSION_MAX_LINES} lines` };

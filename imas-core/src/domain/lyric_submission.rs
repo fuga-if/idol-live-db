@@ -11,6 +11,8 @@
 //!   文字数はサーバの `.length` に合わせて UTF-16 で数える。
 //! - 作詞・作曲のクレジット行や、本文が 2 回続けて入っているのは、ページを丸ごと貼ったときの
 //!   形なので注意を出す (送信は止めない。曲によっては正しい形もありうるため)。
+//! - 半角カナ (U+FF61〜U+FF9F) は整えるときに全角へ直す ([`fold_halfwidth_kana`])。表記どおりの
+//!   歌詞に半角カナは無く、入ってくるのは入力や読み取りの癖なので、弾かずに直す (2026-10-11 オーナー判断)。
 
 /// 1 曲の本文の上限 (UTF-16)。長い全体曲でも 3,000 字ほど。
 pub const MAX_CHARS: u32 = 8000;
@@ -30,8 +32,6 @@ pub enum LyricSubmissionIssue {
     CreditLines,
     /// 本文の後半が前半の繰り返しになっている (ページを 2 回貼ったときの形)。
     Doubled,
-    /// 半角カナが入っている (表記どおりではない。全角で入れてもらう)。
-    HalfwidthKana,
     /// 歌詞カードの読み仮名 (ルビ) を読み取ったらしい行がある ([`ruby_like_lines`])。
     RubyLikeLines { lines: Vec<String> },
 }
@@ -42,7 +42,6 @@ pub fn blocks_submit(issue: &LyricSubmissionIssue) -> bool {
         LyricSubmissionIssue::Empty
             | LyricSubmissionIssue::TooLong { .. }
             | LyricSubmissionIssue::TooManyLines { .. }
-            | LyricSubmissionIssue::HalfwidthKana
     )
 }
 
@@ -55,7 +54,6 @@ pub fn issue_message(issue: &LyricSubmissionIssue) -> String {
             "作詞・作曲などのクレジットは本文に入れないでください。曲の情報から出します。".into()
         }
         LyricSubmissionIssue::Doubled => "同じ歌詞が 2 回続けて入っているようです。".into(),
-        LyricSubmissionIssue::HalfwidthKana => "半角カナは使えません。全角で入力してください。".into(),
         LyricSubmissionIssue::RubyLikeLines { lines } => format!(
             "読み仮名 (ルビ) を読み取ったらしい行があります: {}。歌詞カードに振られた読み仮名なら、親字《よみ》の形 (例: 視界《せかい》) で本文に入れ直してから、この行を消してください。",
             lines.iter().map(|l| format!("「{l}」")).collect::<Vec<_>>().join("")
@@ -78,9 +76,9 @@ pub struct LyricSubmissionCheck {
 }
 
 /// 改行を `\n` に揃え、行末の空白を落とし、空行の連続を 1 つに、前後の空行を除く。
-/// 字そのものは変えない (歌詞を勝手に直さない)。
+/// 半角カナは全角にする ([`fold_halfwidth_kana`])。それ以外の字は変えない (歌詞を勝手に直さない)。
 pub fn normalize(text: &str) -> String {
-    let unified = text.replace("\r\n", "\n").replace('\r', "\n");
+    let unified = fold_halfwidth_kana(&text.replace("\r\n", "\n").replace('\r', "\n"));
     let mut out: Vec<&str> = Vec::new();
     for line in unified.split('\n') {
         let line = line.trim_end();
@@ -93,6 +91,43 @@ pub fn normalize(text: &str) -> String {
         out.pop();
     }
     out.join("\n")
+}
+
+/// 半角カナと半角の句読点・カギ括弧・中黒・長音・濁点 (U+FF61〜U+FF9F) を全角にする。
+/// 濁点・半濁点は前の字と合わせて 1 字にし (`ｶﾞ` → `ガ`、`ﾊﾟ` → `パ`、`ｳﾞ` → `ヴ`)、
+/// 合わせられないときは単独の `゛` `゜` にする。範囲外の字 (英数字・全角英数・記号) は触らない。
+/// サーバ (`routes/lyric_submissions.ts` の `foldHalfwidthKana`) も同じ規則で直す。
+pub fn fold_halfwidth_kana(text: &str) -> String {
+    use unicode_normalization::char::{compose, decompose_compatible};
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        if !('\u{FF61}'..='\u{FF9F}').contains(&c) {
+            out.push(c);
+            continue;
+        }
+        let mut full = None;
+        decompose_compatible(c, |d| full = Some(d));
+        let full = full.unwrap_or(c);
+        if let Some(standalone) = match full {
+            '\u{3099}' => Some('゛'),
+            '\u{309A}' => Some('゜'),
+            _ => None,
+        } {
+            match out.pop() {
+                Some(prev) => match compose(prev, full) {
+                    Some(joined) => out.push(joined),
+                    None => {
+                        out.push(prev);
+                        out.push(standalone);
+                    }
+                },
+                None => out.push(standalone),
+            }
+        } else {
+            out.push(full);
+        }
+    }
+    out
 }
 
 const CREDIT_PREFIXES: [&str; 6] = ["作詞", "作曲", "編曲", "歌手", "歌：", "唄："];
@@ -142,10 +177,6 @@ pub fn check_submission(text: &str, agreed_to_guideline: bool) -> LyricSubmissio
         issues.push(LyricSubmissionIssue::RubyLikeLines {
             lines: ruby.iter().map(|&i| lines[i as usize].trim().to_string()).collect(),
         });
-    }
-    // 半角カタカナと半角の句読点・濁点 (U+FF61〜U+FF9F)。
-    if normalized.chars().any(|c| ('\u{FF61}'..='\u{FF9F}').contains(&c)) {
-        issues.push(LyricSubmissionIssue::HalfwidthKana);
     }
     let can_submit = agreed_to_guideline && !issues.iter().any(blocks_submit);
     LyricSubmissionCheck { normalized, line_count, char_count, issues, can_submit }
@@ -445,7 +476,6 @@ pub fn guideline() -> Vec<LyricGuideBlock> {
         h("入力のしかた"),
         b(&[
             "CD の歌詞カードや公式の表記どおりに入力してください。記号 (… や ♡ など)、全角と半角、大文字と小文字も表記に合わせます。",
-            "半角カナは使わないでください。",
             "空白と改行は、できるだけ歌詞カードのとおりにしてください。行の区切りは歌詞カードに合わせ、まとまりの間には空行を 1 つ入れます。",
             "歌詞カードの写真やスクリーンショットから文字を読み取れます。読み取った歌詞は、表記どおりになっているか必ず見直してください。",
             "歌詞カードに振られている読み仮名 (当て読み) は、親字《よみ》の形で入れてください (例: 視界《せかい》)。親字は《の直前に続く漢字が自動で選ばれます。親字にかな・カタカナ・英字が入るときや、続く漢字の途中から振るときは、親字の頭に ｜ を置きます (例: ｜ステージ《ぶたい》、月｜夜《よ》)。（）は被せの歌詞に使うので、読み仮名には使わないでください。",
@@ -584,11 +614,20 @@ mod tests {
     }
 
     #[test]
-    fn halfwidth_kana_blocks_submission() {
-        let c = check_submission("ｱｲﾄﾞﾙ", true);
-        assert_eq!(c.issues, vec![LyricSubmissionIssue::HalfwidthKana]);
-        assert!(!c.can_submit);
-        assert!(check_submission("アイドル ABC ａｂｃ", true).can_submit);
+    fn halfwidth_kana_is_folded_to_fullwidth_instead_of_blocking() {
+        let c = check_submission("ｱｲﾄﾞﾙ･ﾏｽﾀｰ｡ ｢ﾊﾟｰﾃｨｰ｣ ｳﾞｫｲｽ", true);
+        assert_eq!(c.normalized, "アイドル・マスター。 「パーティー」 ヴォイス");
+        assert!(c.issues.is_empty());
+        assert!(c.can_submit);
+        // 合わせられない濁点は単独の字に。行頭に来ても落とさない
+        assert_eq!(fold_halfwidth_kana("ﾞあﾟ"), "゛あ゜");
+        assert_eq!(fold_halfwidth_kana("がﾞ"), "が゛");
+        // 範囲外 (英数字・全角英数・全角カナ・記号) は触らない
+        assert_eq!(fold_halfwidth_kana("アイドル ABC ａｂｃ M@STER ♡…"), "アイドル ABC ａｂｃ M@STER ♡…");
+        // 半角の濁点で字数が減るので、上限は直したあとの字で数える
+        let c = check_submission(&"ｶﾞ".repeat(MAX_CHARS as usize), true);
+        assert_eq!(c.char_count, MAX_CHARS);
+        assert!(c.can_submit);
     }
 
     #[test]

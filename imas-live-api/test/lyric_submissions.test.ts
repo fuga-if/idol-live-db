@@ -88,13 +88,18 @@ describe("POST /songs/:id/lyric-submissions", () => {
     expect(ok(" \n ")).toBe(false);
     expect(ok("あ".repeat(8001))).toBe(false);
     expect(ok(Array(401).fill("a").join("\n"))).toBe(false);
-    expect(ok("ｱｲﾄﾞﾙ")).toBe(false);
+    expect(ok("ｱｲﾄﾞﾙ")).toBe(true);
     expect(ok("a")).toBe(true);
     expect((await callJson("POST", "/songs/s1/lyric-submissions", { body: { agreed_to_guideline: true, text: "a" } })).status).toBe(401);
   });
 
-  it("整え方はコアと同じ (字は変えない)", () => {
+  it("整え方はコアと同じ (半角カナだけ全角にし、ほかの字は変えない)", () => {
     expect(normalizeLyricText("\r\n\n  あいう　 \r\nかきく\n\n\n\nさしす\n\n")).toBe("  あいう\nかきく\n\nさしす");
+    expect(normalizeLyricText("ｱｲﾄﾞﾙ･ﾏｽﾀｰ｡ ｢ﾊﾟｰﾃｨｰ｣ ｳﾞｫｲｽ")).toBe("アイドル・マスター。 「パーティー」 ヴォイス");
+    expect(normalizeLyricText("ﾞあﾟ\nがﾞ")).toBe("゛あ゜\nが゛");
+    expect(normalizeLyricText("アイドル ABC ａｂｃ M@STER ♡…")).toBe("アイドル ABC ａｂｃ M@STER ♡…");
+    const r = validateSubmission({ agreed_to_guideline: true, text: "ｶﾞ".repeat(8000) });
+    expect(r.ok && r.body.length).toBe(8000);
   });
 });
 
