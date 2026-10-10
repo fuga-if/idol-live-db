@@ -23,6 +23,8 @@ const USAGE: &str = "\
   --work-db <path>   --sql のときの中間 DB (既定: <out>/../.cache/master-web.sqlite)
   --community <path> コミュニティ集計 (既定: db/community.sql)。無ければ集計抜きで出す
   --calls <path>     コールガイドの進捗の写し (既定: db/calls_dashboard.json)。無ければページを出さない
+  --api-sql <path>   公開データ API (imas-data-api) の D1 に流す SQL を書く。--out と別の出力で、
+                     これだけ指定してもよい (Web の JSON は出さない)
   --today <Y-m-d>    JST の「今日」を固定する (省略時は現在時刻から求める)
   --pretty           整形して書く (既定は minify)
 ";
@@ -71,6 +73,7 @@ fn parse() -> Result<Args, WebExportError> {
             "--community" => args.community = Some(value()?),
             "--calls" => args.calls = Some(value()?),
             "--out" => args.out = Some(value()?.into()),
+            "--api-sql" => args.api_sql = Some(value()?.into()),
             "--emit-fixture" => args.emit_fixture = Some(value()?.into()),
             "--fixture-check" => args.fixture_check = Some(value()?.into()),
             "--today" => args.today = Some(value()?),
@@ -93,8 +96,8 @@ fn validate(args: &Args) -> Result<(), WebExportError> {
     if args.sql.is_some() == args.db.is_some() {
         return Err(WebExportError::Args("--sql と --db のどちらか一方が要る".into()));
     }
-    if args.out.is_none() {
-        return Err(WebExportError::Args("--out が要る".into()));
+    if args.out.is_none() && args.api_sql.is_none() {
+        return Err(WebExportError::Args("--out か --api-sql が要る".into()));
     }
     Ok(())
 }

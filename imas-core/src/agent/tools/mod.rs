@@ -21,6 +21,7 @@ pub mod browse;
 pub mod lookup;
 pub mod persona;
 pub mod personal;
+pub mod publish;
 pub mod predict;
 pub mod scope;
 pub mod speech;

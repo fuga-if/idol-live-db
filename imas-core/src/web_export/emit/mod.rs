@@ -107,10 +107,9 @@ impl RouteBook {
 
 /// 実データを `out` に書き出す。
 pub fn run(args: &Args) -> Result<Stats> {
-    let out = args
-        .out
-        .clone()
-        .ok_or_else(|| WebExportError::Args("--out が要る".into()))?;
+    if args.out.is_none() && args.api_sql.is_none() {
+        return Err(WebExportError::Args("--out か --api-sql が要る".into()));
+    }
 
     // 1) DB を用意する。
     let (db_path, content_hash) = match (&args.sql, &args.db) {
@@ -118,7 +117,7 @@ pub fn run(args: &Args) -> Result<Stats> {
             let work_db = args
                 .work_db
                 .clone()
-                .unwrap_or_else(|| default_work_db(&out));
+                .unwrap_or_else(|| default_work_db(args.out.as_ref().or(args.api_sql.as_ref()).expect("検査済み")));
             restore::restore(sql, &work_db)?;
             (work_db, Some(restore::content_hash(sql)?))
         }
@@ -163,6 +162,20 @@ pub fn run(args: &Args) -> Result<Stats> {
     // コールガイドの進捗 (Worker の公開エンドポイントの写し)。無ければページごと出さない。
     let calls =
         crate::web_export::calls_dashboard::load(calls_path(args)).map_err(WebExportError::Db)?;
+
+    // 公開データ API 用の SQL。Web の JSON とは独立の出力 (同じ Snapshot を読むだけ)。
+    let mut api_stats = None;
+    if let Some(path) = &args.api_sql {
+        let sql = crate::web_export::data_api::render_sql(&snap, &today, content_hash.as_deref())?;
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(path, &sql)?;
+        api_stats = Some(Stats { files: 1, bytes: sql.len() as u64, ..Stats::default() });
+    }
+    let Some(out) = args.out.clone() else {
+        return Ok(api_stats.unwrap_or_default());
+    };
 
     let ctx = Ctx::new(&snap, &community, today, generated_at, content_hash);
     write_all(&ctx, &out, args.pretty, raw_tables, calls.as_ref())

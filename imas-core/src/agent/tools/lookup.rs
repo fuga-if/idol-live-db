@@ -262,6 +262,9 @@ fn get_idol(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
     o.opt("age", idol.age);
     o.opt("height", idols::height_display(idol.height));
     o.opt("weight", idol.weight.map(|w| w as i64));
+    // スリーサイズはアプリの詳細画面が出している項目なので合わせる (3 つ揃ったときだけ)。
+    o.opt("three_size", idols::three_size(idol.bust, idol.waist, idol.hip));
+    o.opt("color", idol.color.as_deref().filter(|c| !c.is_empty()));
     o.opt("birth_place", idol.birth_place.as_deref());
     o.opt("hobbies", idol.hobbies.as_deref());
     o.opt("talents", idol.talents.as_deref());
@@ -336,7 +339,7 @@ fn get_idol(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
     Ok(o.value())
 }
 
-fn idol_show_json(s: &idols::IdolShowRecord) -> Value {
+pub(super) fn idol_show_json(s: &idols::IdolShowRecord) -> Value {
     let mut x = Obj::new();
     x.put("show_id", s.show_id.as_str());
     x.put("date", s.date.as_str());

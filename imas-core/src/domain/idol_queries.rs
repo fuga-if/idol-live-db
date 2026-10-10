@@ -601,7 +601,7 @@ pub fn height_display(height: Option<f64>) -> Option<String> {
 }
 
 /// 3 つ揃ったときだけ `"B83 W56 H84"`。1 つでも欠けたら行ごと出さない (原本と同じ)。
-fn three_size(bust: Option<f64>, waist: Option<f64>, hip: Option<f64>) -> Option<String> {
+pub fn three_size(bust: Option<f64>, waist: Option<f64>, hip: Option<f64>) -> Option<String> {
     Some(format!("B{} W{} H{}", bust? as i64, waist? as i64, hip? as i64))
 }
 
