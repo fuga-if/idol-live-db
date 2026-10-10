@@ -1,4 +1,5 @@
--- アイドルのタグに「容姿」(category = 'appearance') の公式タグをそろえる。
+-- アイドルのタグに容姿 (髪色・髪の長さ・髪型・髪の飾り) の公式タグをそろえる。カテゴリは既存の「魅力・外見」(charm)。
+-- (「容姿」の新しいカテゴリは作らない: 本番の髪のタグが既に charm にあり、古いアプリでも見出しが化けないため。2026-10-10 オーナー判断)
 --
 -- 容姿は idols の列ではなくタグで持つ (利用者が投票で育てられるように)。語は確認表
 -- (data/research/appearance_20261010/idol_appearance_review_20261010.csv の「入れるタグ」列)
@@ -6,10 +7,10 @@
 --
 -- **本番には利用者が作った髪のタグが既にある** (ロングヘア・黒髪・ツインテール・
 -- 白髪・銀髪 など。category は主に charm)。それらは作り直さず、**名前で照合して**その行を
--- 公式・容姿にする (id は本番の行のまま。票も付いたまま)。新しく作るのは本番に同名が
+-- 公式・魅力・外見にする (id は本番の行のまま。票も付いたまま)。新しく作るのは本番に同名が
 -- 無い語だけ。下の 2 文はどちらも名前だけを見るので、どの環境に流しても同じ結果になる:
 --   1. 同名の行が無い語だけを INSERT する (name は UNIQUE。id は新しく作る行にだけ使う)
---   2. 一覧の名前の行を、全部 公式・容姿・公開中 にする (description は書き換えない)
+--   2. 一覧の名前の行を、全部 公式・魅力・外見 (charm)・公開中 にする (description は書き換えない)
 -- 初期値 (運営の票) はここでは入れない。tools/apply_data.py の --d1-sql が名前から引いて入れる。
 --
 -- 公式タグを作る API は無い (POST は is_official = 0 固定) ので、0007 の penlight_palette と
@@ -64,13 +65,13 @@ WITH official(id, name, description) AS (VALUES
 )
 INSERT INTO idol_tag_master
   (id, name, description, category, color, created_by, created_at, updated_at, is_official, status)
-SELECT o.id, o.name, o.description, 'appearance', NULL, 'official',
+SELECT o.id, o.name, o.description, 'charm', NULL, 'official',
        CAST(strftime('%s', 'now') AS INTEGER), CAST(strftime('%s', 'now') AS INTEGER), 1, 'active'
   FROM official o
  WHERE NOT EXISTS (SELECT 1 FROM idol_tag_master t WHERE t.name = o.name);
 
 UPDATE idol_tag_master
-   SET is_official = 1, category = 'appearance', status = 'active'
+   SET is_official = 1, category = 'charm', status = 'active'
  WHERE name IN (
        '黒髪', '茶髪', '金髪', '白髪・銀髪', '赤髪', 'オレンジ髪', 'ピンク髪', '緑髪', '青髪', '水色の髪', '紫髪', '髪色2色以上',
        'ロングヘア', 'ボブ〜ミディアムヘア', 'ショートヘア',

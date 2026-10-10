@@ -105,11 +105,10 @@ pub const SONG_TAG_CATEGORIES: [Term; 4] = [
     term("special", "特別", "特別"),
     term("free", "フリー", "フリー"),
 ];
-pub const IDOL_TAG_CATEGORIES: [Term; 5] = [
+pub const IDOL_TAG_CATEGORIES: [Term; 4] = [
     term("personality", "性格", "性格"),
+    // 髪色・髪の長さ・髪型・髪の飾りの公式タグ (D1 の migrations/0050) もここに入る (容姿の別カテゴリは作らない)。
     term("charm", "魅力・外見", "魅力・外見"),
-    // 髪色・髪の長さ・髪型・飾り・目。公式のタグ (D1 の migrations/0050) がここに入る。
-    term("appearance", "容姿", "容姿"),
     term("talent", "特技", "特技"),
     term("free", "フリー", "フリー"),
 ];
@@ -320,10 +319,10 @@ mod tests {
         let tags: Vec<(String, Option<String>)> = vec![
             ("t-free".into(), Some("free".into())),
             ("t-none".into(), None),
-            ("t-hair1".into(), Some("appearance".into())),
+            ("t-hair1".into(), Some("charm".into())),
             ("t-kind".into(), Some("personality".into())),
             ("t-future".into(), Some("future_category".into())),
-            ("t-hair2".into(), Some("appearance".into())),
+            ("t-hair2".into(), Some("charm".into())),
             ("t-empty".into(), Some(String::new())),
         ];
         let groups = group_tags_by_category(&IDOL_TAG_CATEGORIES, &tags);
@@ -335,7 +334,7 @@ mod tests {
             shape,
             vec![
                 ("personality", "性格", vec!["t-kind"]),
-                ("appearance", "容姿", vec!["t-hair1", "t-hair2"]),
+                ("charm", "魅力・外見", vec!["t-hair1", "t-hair2"]),
                 ("free", "フリー", vec!["t-free"]),
                 ("", "その他", vec!["t-none", "t-future", "t-empty"]),
             ],

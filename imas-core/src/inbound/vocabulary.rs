@@ -50,9 +50,9 @@ mod tests {
     #[test]
     fn idol_tag_category_groups_delegates() {
         let g = idol_tag_category_groups(vec![
-            TagCategoryInput { id: "a".into(), category: Some("appearance".into()) },
+            TagCategoryInput { id: "a".into(), category: Some("charm".into()) },
             TagCategoryInput { id: "b".into(), category: None },
         ]);
-        assert_eq!(g.iter().map(|g| g.label.as_str()).collect::<Vec<_>>(), vec!["容姿", "その他"]);
+        assert_eq!(g.iter().map(|g| g.label.as_str()).collect::<Vec<_>>(), vec!["魅力・外見", "その他"]);
     }
 }
