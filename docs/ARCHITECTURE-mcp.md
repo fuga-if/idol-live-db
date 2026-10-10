@@ -227,11 +227,11 @@ cargo build --release --features agent --bin imas-mcp
 
 | | |
 |---|---|
-| ツール | **24 本** — 読み 18 / 書き (ドラフト) 6 |
+| ツール | **26 本** — 読み 20 / 書き (ドラフト) 6 |
 | Snapshot ロード | **91〜170 ms** (曲 3,068 / アイドル 394 / イベント 747)。プロセス起動ごとに 1 度 |
 | テスト | `agent_tools` 86 / `setlist_shape` 14 / `entity_resolution` + `proposal` 37。`cargo test --lib` 全体で 1,349 |
 
-読み: `resolve` `search` `get_idol` `get_song` `get_event` `get_show` `vocabulary`
+読み: `resolve` `search` `get_idol` `get_idol_facts` (項目の束。[`ARCHITECTURE-facets.md`](ARCHITECTURE-facets.md)) `get_song` `get_event` `get_show` `vocabulary`
 `list_idols` `list_songs` `list_events` `idol_songs` `song_performances` `setlist_diff`
 `stats` `list_shows` `setlist_shape` `song_position_profile` `co_performed_songs`
 書き: `propose_song` `propose_event` `propose_setlist` `propose_idol` `propose_fix` `check_proposals`

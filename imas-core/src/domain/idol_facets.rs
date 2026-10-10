@@ -143,6 +143,8 @@ pub struct FacetDef {
     /// Jev に渡すか。`false` は照合専用 (質問に曲名が出たときの突き合わせ用の全件など)。
     pub jev: bool,
     pub auto: Auto,
+    /// マスタの表 (曲・ユニット・ライブ・声優・ブランド) から計算する項目か。`idol_facets` の行では書けない。
+    pub computed: bool,
     /// 髪型のまとまり (`idol_hairstyles`) に保存する項目か。`/facts` では main の髪型の値として出る。
     pub hairstyle: bool,
     /// タグの票 (`facet` / `facet_value`) からこの項目に値を足してよいか。
@@ -170,6 +172,7 @@ const fn f(
         jev_hint,
         jev: true,
         auto: Auto::No,
+        computed: false,
         hairstyle: false,
         taggable: false,
         bulk_full_of: None,
@@ -180,6 +183,11 @@ const fn f(
 impl FacetDef {
     const fn auto(mut self, a: Auto) -> Self {
         self.auto = a;
+        self
+    }
+    /// 表から計算する項目 (行では書けない)。
+    const fn computed(mut self) -> Self {
+        self.computed = true;
         self
     }
     const fn hair(mut self) -> Self {
@@ -255,19 +263,19 @@ pub const FACETS: &[FacetDef] = &[
     // --- profile ---
     f("gender", Category::Profile, Kind::Single, Some(GENDERS), "性別", "女性/男性。未設定のアイドルは項目ごと無い"),
     f("age", Category::Profile, Kind::Number, None, "年齢", "設定上の年齢。「17歳以上か」のような比較に使う").unit("歳"),
-    f("age_band", Category::Profile, Kind::Single, Some(AGE_BANDS), "年齢帯", "年齢から自動。「10代か」の判定はこれを見る").auto(Auto::Exact),
+    f("age_band", Category::Profile, Kind::Single, Some(AGE_BANDS), "年齢帯", "年齢から自動。「10代か」の判定はこれを見る").auto(Auto::Exact).computed(),
     f("school_stage", Category::Profile, Kind::Single, Some(SCHOOL_STAGES), "学校の段階", "学年・年齢・公式の値から。推定のときは derived:true。13歳以上19歳未満の境目は年齢の目安").auto(Auto::Estimate),
     f("birthday", Category::Profile, Kind::Single, None, "誕生日", "「1月18日」の形"),
-    f("birth_month", Category::Profile, Kind::Number, None, "誕生月", "誕生日から自動 (1〜12)").auto(Auto::Exact).unit("月"),
+    f("birth_month", Category::Profile, Kind::Number, None, "誕生月", "誕生日から自動 (1〜12)").auto(Auto::Exact).unit("月").computed(),
     f("constellation", Category::Profile, Kind::Single, Some(CONSTELLATIONS), "星座", "12 星座"),
     f("height_cm", Category::Profile, Kind::Number, None, "身長", "cm").unit("cm"),
-    f("height_band", Category::Profile, Kind::Single, Some(HEIGHT_BANDS), "身長帯", "身長から自動").auto(Auto::Exact),
+    f("height_band", Category::Profile, Kind::Single, Some(HEIGHT_BANDS), "身長帯", "身長から自動").auto(Auto::Exact).computed(),
     f("blood_type", Category::Profile, Kind::Single, Some(BLOOD_TYPES), "血液型", "A/B/O/AB。不明は項目ごと無い"),
     f("handedness", Category::Profile, Kind::Single, Some(HANDEDNESS), "利き手", "右利き/左利き/両利き"),
     f("birthplace", Category::Profile, Kind::Single, None, "出身地", "都道府県 (「県」「府」「都」は付けない)。海外・市の名前のものは原文に近い形"),
-    f("birthplace_region", Category::Profile, Kind::Single, Some(REGIONS), "出身地方", "出身地から自動。近畿は「関西」とも言う").auto(Auto::Exact),
+    f("birthplace_region", Category::Profile, Kind::Single, Some(REGIONS), "出身地方", "出身地から自動。近畿は「関西」とも言う").auto(Auto::Exact).computed(),
     f("nationality", Category::Profile, Kind::Single, None, "国籍", "公式に分かるものだけ。出身地からは推測しない"),
-    f("school", Category::Profile, Kind::Single, None, "学校", "学マスは初星学園。ほかは公式に分かるものだけ").auto(Auto::Exact),
+    f("school", Category::Profile, Kind::Single, None, "学校", "学マスは初星学園。ほかは公式に分かるものだけ").auto(Auto::Exact).computed(),
     f("grade", Category::Profile, Kind::Single, None, "学年", "「1年」「中学2年」など"),
     // --- appearance (hair_* は idol_hairstyles に保存。main の値が出る) ---
     f("hair_color", Category::Appearance, Kind::Single, Some(HAIR_COLORS), "髪色", "main の髪型の髪色。ほかの髪型は other_hairstyles に載る").hair(),
@@ -303,25 +311,25 @@ pub const FACETS: &[FacetDef] = &[
     f("favorite_things", Category::Likes, Kind::Multi, None, "好きなもの", "").taggable(),
     f("dislikes", Category::Likes, Kind::Multi, None, "苦手なもの", "").taggable(),
     // --- relations ---
-    f("brand", Category::Relations, Kind::Single, None, "ブランド", "値はブランド名。extra に id と短縮名"),
-    f("agency", Category::Relations, Kind::Single, None, "所属事務所・学園", "ブランドから自動").auto(Auto::Exact),
-    f("unit_count", Category::Relations, Kind::Number, None, "ユニットの数", "").unit("組"),
-    f("representative_units", Category::Relations, Kind::Multi, None, "代表的なユニット", "恒常ユニットを優先して最大 5"),
-    f("units", Category::Relations, Kind::Multi, None, "所属ユニット (全件)", "照合用。質問にユニット名が出たときの突き合わせに使う").full_of("representative_units"),
-    f("frequent_costars", Category::Relations, Kind::Multi, None, "よく共演する人", "同じ公演に出た回数が多い順に最大 5"),
+    f("brand", Category::Relations, Kind::Single, None, "ブランド", "値はブランド名。extra に id と短縮名").computed(),
+    f("agency", Category::Relations, Kind::Single, None, "所属事務所・学園", "ブランドから自動").auto(Auto::Exact).computed(),
+    f("unit_count", Category::Relations, Kind::Number, None, "ユニットの数", "").unit("組").computed(),
+    f("representative_units", Category::Relations, Kind::Multi, None, "代表的なユニット", "恒常ユニットを優先して最大 5").computed(),
+    f("units", Category::Relations, Kind::Multi, None, "所属ユニット (全件)", "照合用。質問にユニット名が出たときの突き合わせに使う").full_of("representative_units").computed(),
+    f("frequent_costars", Category::Relations, Kind::Multi, None, "よく共演する人", "同じ公演に出た回数が多い順に最大 5").computed(),
     f("family", Category::Relations, Kind::Multi, None, "家族", "").taggable(),
     f("roommates", Category::Relations, Kind::Multi, None, "ルームメイト", "").taggable(),
     // --- works ---
-    f("voice_actor", Category::Works, Kind::Single, None, "声優", "現在の担当"),
-    f("solo_song_count", Category::Works, Kind::Number, None, "ソロ曲の数", "その人ひとりの持ち歌").unit("曲"),
-    f("unit_song_count", Category::Works, Kind::Number, None, "ユニット曲・合唱曲の数", "持ち歌のうちソロでないもの + 所属ユニットの曲").unit("曲"),
-    f("representative_songs", Category::Works, Kind::Multi, None, "代表曲", "ライブで歌った回数が多い順に最大 5 (回数は extra)"),
-    f("songs", Category::Works, Kind::Multi, None, "持ち歌 (全件)", "照合用。質問に曲名が出たときの突き合わせに使う").full_of("representative_songs"),
-    f("performed_songs", Category::Works, Kind::Multi, None, "ライブで歌った曲 (全件)", "照合用").full_of("representative_songs"),
-    f("show_count", Category::Works, Kind::Number, None, "出演公演数", "").unit("公演"),
-    f("first_show", Category::Works, Kind::Single, None, "初出演の公演", "「日付 ライブ名」"),
-    f("latest_show", Category::Works, Kind::Single, None, "直近の出演公演", "「日付 ライブ名」"),
-    f("appeared_events", Category::Works, Kind::Multi, None, "出演したライブ (全件)", "照合用。ライブ名が質問に出たときの突き合わせに使う").full_of("latest_show"),
+    f("voice_actor", Category::Works, Kind::Single, None, "声優", "現在の担当").computed(),
+    f("solo_song_count", Category::Works, Kind::Number, None, "ソロ曲の数", "その人ひとりの持ち歌").unit("曲").computed(),
+    f("unit_song_count", Category::Works, Kind::Number, None, "ユニット曲・合唱曲の数", "持ち歌のうちソロでないもの + 所属ユニットの曲").unit("曲").computed(),
+    f("representative_songs", Category::Works, Kind::Multi, None, "代表曲", "ライブで歌った回数が多い順に最大 5 (回数は extra)").computed(),
+    f("songs", Category::Works, Kind::Multi, None, "持ち歌 (全件)", "照合用。質問に曲名が出たときの突き合わせに使う").full_of("representative_songs").computed(),
+    f("performed_songs", Category::Works, Kind::Multi, None, "ライブで歌った曲 (全件)", "照合用").full_of("representative_songs").computed(),
+    f("show_count", Category::Works, Kind::Number, None, "出演公演数", "").unit("公演").computed(),
+    f("first_show", Category::Works, Kind::Single, None, "初出演の公演", "「日付 ライブ名」").computed(),
+    f("latest_show", Category::Works, Kind::Single, None, "直近の出演公演", "「日付 ライブ名」").computed(),
+    f("appeared_events", Category::Works, Kind::Multi, None, "出演したライブ (全件)", "照合用。ライブ名が質問に出たときの突き合わせに使う").full_of("latest_show").computed(),
 ];
 
 pub fn facet_def(key: &str) -> Option<&'static FacetDef> {
@@ -350,7 +358,7 @@ pub fn definitions_json() -> Value {
                 Auto::Exact => "exact",
                 Auto::Estimate => "estimate",
             }.into());
-            o.insert("store".into(), if d.hairstyle { "idol_hairstyles" } else if d.auto == Auto::Exact || d.bulk_full_of.is_some() { "computed" } else { "idol_facets" }.into());
+            o.insert("store".into(), if d.hairstyle { "idol_hairstyles" } else if d.computed { "computed" } else { "idol_facets" }.into());
             o.insert("taggable".into(), d.taggable.into());
             if let Some(s) = d.bulk_full_of {
                 o.insert("full_of".into(), s.into());
@@ -638,8 +646,45 @@ fn row_value(def: &FacetDef, raw: &str) -> Option<Value> {
 
 fn color_value(hex: &str) -> Value {
     let hex = hex.to_uppercase();
-    let name = crate::domain::color_names::color_name(Some(&hex));
+    let name = color_name_ja(&hex);
     json!({ "hex": hex, "name": name })
+}
+
+/// `#RRGGBB` → 大まかな色名。Jev が「赤っぽいか」「青系か」を判定できる粒度。
+///
+/// 読み上げ用の `color_names::color_name` は表に近い色が無いと `#RRGGBB` をそのまま返すので使わない。
+/// こちらは HSL の色相・彩度・明度だけで決める (表を持たない): 彩度が低ければ白/灰/黒、
+/// そうでなければ色相で 赤・オレンジ・黄・黄緑・緑・水色・青・紫・ピンク、暗いオレンジは茶、明るい赤はピンク。
+pub fn color_name_ja(hex: &str) -> String {
+    let h = hex.trim_start_matches('#');
+    let v: Option<Vec<f64>> = (0..3)
+        .map(|i| h.get(i * 2..i * 2 + 2).and_then(|b| u8::from_str_radix(b, 16).ok()).map(|b| b as f64 / 255.0))
+        .collect();
+    let Some(rgb) = v.filter(|v| v.len() == 3) else { return "不明".into() };
+    let (r, g, b) = (rgb[0], rgb[1], rgb[2]);
+    let (max, min) = (r.max(g).max(b), r.min(g).min(b));
+    let l = (max + min) / 2.0;
+    let d = max - min;
+    let s = if d == 0.0 { 0.0 } else { d / (1.0 - (2.0 * l - 1.0).abs()) };
+    if s < 0.12 || d < 0.05 {
+        return if l > 0.85 { "白" } else if l < 0.2 { "黒" } else { "グレー" }.into();
+    }
+    let hue = {
+        let x = if max == r { ((g - b) / d).rem_euclid(6.0) } else if max == g { (b - r) / d + 2.0 } else { (r - g) / d + 4.0 };
+        x * 60.0
+    };
+    let name = match hue {
+        h if !(10.0..345.0).contains(&h) => if l > 0.72 { "ピンク" } else { "赤" },
+        h if h < 45.0 => if l < 0.4 { "茶" } else { "オレンジ" },
+        h if h < 70.0 => if l < 0.35 { "茶" } else { "黄" },
+        h if h < 100.0 => "黄緑",
+        h if h < 165.0 => "緑",
+        h if h < 200.0 => "水色",
+        h if h < 250.0 => if l > 0.65 { "水色" } else { "青" },
+        h if h < 320.0 => "紫",
+        _ => if l >= 0.45 { "ピンク" } else { "赤" },
+    };
+    name.into()
 }
 
 /// `idol_facets` の行 ID の元の文字列。単一値は (アイドル, 項目)、複数値は値まで含めて決める。
@@ -891,7 +936,7 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
     for &ri in &snap.idol_facets_by_idol[ii as usize] {
         let row = &snap.idol_facets[ri as usize];
         let Some(def) = facet_def(&row.facet) else { continue };
-        if def.auto == Auto::Exact || def.full_of_is_set() {
+        if def.computed {
             continue; // 自動の項目・全件側は行で上書きしない
         }
         if def.hairstyle {
@@ -919,7 +964,6 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
     let main_hair = valid_hair.iter().copied().find(|r| r.is_main).or_else(|| valid_hair.first().copied());
     if let Some(m) = main_hair {
         let src = if m.origin == "promoted" { Source::Promoted } else { Source::Official };
-        let note = m.source_note.as_ref().map(|n| json!({ "note": n }));
         for (facet, v) in [
             ("hair_color", m.hair_color.clone()),
             ("hair_color_secondary", m.hair_color_secondary.clone()),
@@ -929,7 +973,6 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
             if let Some(v) = v {
                 let mut x = cand(facet, v);
                 x.source = src;
-                x.extra = note.clone();
                 c.push(x);
             }
         }
@@ -937,7 +980,6 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
             for v in list {
                 let mut x = cand(facet, v.as_str());
                 x.source = src;
-                x.extra = note.clone();
                 c.push(x);
             }
         }
@@ -987,6 +1029,9 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
             .collect();
         if let Some(app) = categories.get_mut("appearance").and_then(Value::as_object_mut) {
             app.insert("main_hairstyle_label".into(), m.label.clone().into());
+            if let Some(n) = &m.source_note {
+                app.insert("main_hairstyle_note".into(), n.clone().into());
+            }
             if !others.is_empty() {
                 app.insert("other_hairstyles".into(), Value::Array(others));
             }
@@ -1010,11 +1055,6 @@ pub fn build_idol_facts(snap: &Snapshot, idol_id: &str, persona: &PersonaInput, 
     Some(Value::Object(doc))
 }
 
-impl FacetDef {
-    fn full_of_is_set(&self) -> bool {
-        self.bulk_full_of.is_some()
-    }
-}
 
 /// main 以外の髪型 1 つ。項目と同じ形 (`{value, source}`) で、label がつく。
 fn hairstyle_json(r: &IdolHairstyleRow) -> Value {
@@ -1280,7 +1320,7 @@ mod tests {
         let mut keys = BTreeSet::new();
         for d in FACETS {
             assert!(keys.insert(d.key), "項目キーが重複: {}", d.key);
-            assert!(!["main_hairstyle_label", "other_hairstyles"].contains(&d.key), "予約語");
+            assert!(!["main_hairstyle_label", "main_hairstyle_note", "other_hairstyles"].contains(&d.key), "予約語");
             if let Some(v) = d.vocab {
                 let set: BTreeSet<_> = v.iter().collect();
                 assert_eq!(set.len(), v.len(), "{} の語彙が重複", d.key);
@@ -1338,6 +1378,18 @@ mod tests {
     }
 
     #[test]
+    fn 色名は_hex_から大まかに決まる() {
+        for (hex, name) in [
+            ("#A453A6", "紫"), ("#E22B30", "赤"), ("#1945BA", "青"), ("#B4E04B", "黄緑"), ("#FFE43F", "黄"),
+            ("#FFFFFF", "白"), ("#000000", "黒"), ("#808080", "グレー"), ("#FF69B4", "ピンク"), ("#00FFFF", "水色"),
+            ("#8B4513", "茶"), ("#FF8C00", "オレンジ"), ("#2E8B57", "緑"), ("#87CEEB", "水色"),
+        ] {
+            assert_eq!(color_name_ja(hex), name, "{hex}");
+        }
+        assert_eq!(color_name_ja("zzz"), "不明");
+    }
+
+    #[test]
     fn 出身地の正規化と地方() {
         assert_eq!(normalize_birthplace("兵庫"), Some(("兵庫".into(), "近畿")));
         assert_eq!(normalize_birthplace("神奈川県"), Some(("神奈川".into(), "関東")));
@@ -1375,7 +1427,7 @@ mod tests {
             assert!(text.len() < 80_000, "{} の束が大きすぎる: {}", idol.id, text.len());
             for (ckey, cat) in doc["categories"].as_object().unwrap() {
                 for (fkey, e) in cat.as_object().unwrap() {
-                    if fkey == "main_hairstyle_label" || fkey == "other_hairstyles" {
+                    if fkey == "main_hairstyle_label" || fkey == "main_hairstyle_note" || fkey == "other_hairstyles" {
                         continue;
                     }
                     let def = facet_def(fkey).unwrap_or_else(|| panic!("定義に無い項目 {fkey}"));
@@ -1410,7 +1462,7 @@ mod tests {
         assert_eq!(p["grade"]["value"], "1年");
         assert_eq!(p["height_band"]["value"], "150cm台");
         assert_eq!(d["categories"]["appearance"]["image_color"]["value"]["hex"], "#A453A6");
-        assert!(d["categories"]["appearance"]["image_color"]["value"]["name"].as_str().unwrap().len() > 0);
+        assert_eq!(d["categories"]["appearance"]["image_color"]["value"]["name"], "紫");
         assert_eq!(d["categories"]["relations"]["agency"]["value"], "初星学園");
         assert!(d["summary"]["value"].as_str().unwrap().contains("カッコいい"));
     }
@@ -1485,6 +1537,7 @@ mod tests {
                 row(id, "eye_color", "ラメ入りの虹色", "official"),
                 row(id, "age_band", "30代", "official"),
                 row(id, "hair_color", "金", "official"), // 髪は idol_hairstyles にだけ
+                row(id, "show_count", "9999", "official"), // 表から計算する項目は行で書けない
             ],
             vec![],
         );
@@ -1492,6 +1545,7 @@ mod tests {
         assert!(d["categories"]["appearance"].get("eye_color").is_none());
         assert!(d["categories"]["appearance"].get("hair_color").is_none());
         assert_eq!(d["categories"]["profile"]["age_band"]["value"], "10代");
+        assert_ne!(d["categories"]["works"]["show_count"]["value"], 9999);
     }
 
     #[test]

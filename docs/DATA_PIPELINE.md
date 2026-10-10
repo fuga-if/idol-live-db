@@ -169,6 +169,17 @@ python3 tools/sync_master_d1.py --remote --yes --from-cloudkit --key-file tools/
 - 書き込みは 1 回で約 3 万行 (D1 無料枠は 10 万行/日)。1 日 2 回までが目安。
 - 歌詞本文・`lyrics_url`・`preview_url` は D1 に流さない(列も無い。テストで固定)。
 
+## アイドルの項目 (`idol_facets` / `idol_hairstyles`)
+
+髪型・目の色・性格・好み・経歴など、アイドルの細かい情報は項目として持ち、公開データ API の `/v1/idols/:id/facts` で配る。
+定義と設計は [`ARCHITECTURE-facets.md`](ARCHITECTURE-facets.md)、入れ方は [`data/README.md`](../data/README.md)。
+
+- 投入口は `data/idol_facets/` と `data/idol_hairstyles/` (`apply_data.py --check` → `--apply --push`)。直しは `data/fixes/`。
+- CloudKit のレコード型 `IdolFacet` / `IdolHairstyle` は `tools/cloudkit_schema.ckdb` に足してあるが、**Production に未昇格**。
+  昇格するまで日次 export は表を作らず、`db/master.sql` の形は変わらない。昇格後の最初の export で表が入り、
+  そのあと `imas-core/src/domain/facets_schema.sql` の DDL を `master_schema.sql` に移す。
+- 同期 (`sync-data-api`) は、`facts` 文書も `docs` 表に組んで置く (追加の設定は要らない)。
+
 ## events の種別 (`event_type`)
 
 「**この曲、いつぶり?**」に、オタクが自然に付ける但し書き —

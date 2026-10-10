@@ -677,7 +677,7 @@
       "key": "brand",
       "kind": "single",
       "label": "ブランド",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -698,7 +698,7 @@
       "key": "unit_count",
       "kind": "number",
       "label": "ユニットの数",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false,
       "unit": "組"
     },
@@ -710,7 +710,7 @@
       "key": "representative_units",
       "kind": "multi",
       "label": "代表的なユニット",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -733,7 +733,7 @@
       "key": "frequent_costars",
       "kind": "multi",
       "label": "よく共演する人",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -764,7 +764,7 @@
       "key": "voice_actor",
       "kind": "single",
       "label": "声優",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -775,7 +775,7 @@
       "key": "solo_song_count",
       "kind": "number",
       "label": "ソロ曲の数",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false,
       "unit": "曲"
     },
@@ -787,7 +787,7 @@
       "key": "unit_song_count",
       "kind": "number",
       "label": "ユニット曲・合唱曲の数",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false,
       "unit": "曲"
     },
@@ -799,7 +799,7 @@
       "key": "representative_songs",
       "kind": "multi",
       "label": "代表曲",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -833,7 +833,7 @@
       "key": "show_count",
       "kind": "number",
       "label": "出演公演数",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false,
       "unit": "公演"
     },
@@ -845,7 +845,7 @@
       "key": "first_show",
       "kind": "single",
       "label": "初出演の公演",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {
@@ -856,7 +856,7 @@
       "key": "latest_show",
       "kind": "single",
       "label": "直近の出演公演",
-      "store": "idol_facets",
+      "store": "computed",
       "taggable": false
     },
     {

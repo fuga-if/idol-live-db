@@ -4,6 +4,7 @@
 > yesno (当てっこゲーム)。LLM 向けの口は [`ARCHITECTURE-mcp.md`](ARCHITECTURE-mcp.md)、
 > Web 出面は [`ARCHITECTURE-web.md`](ARCHITECTURE-web.md)、集計系の Worker は
 > [`ARCHITECTURE-worker.md`](ARCHITECTURE-worker.md)。データの流れは [`DATA_PIPELINE.md`](DATA_PIPELINE.md)。
+> アイドルの細かい項目 (`/v1/idols/:id/facts`) の定義・出どころ・タグとのつなぎは [`ARCHITECTURE-facets.md`](ARCHITECTURE-facets.md)。
 
 > 状態: **実装済み・未デプロイ** (2026-10-10)。デプロイと本番 D1 の作成・同期はオーナーの操作 (§8)。
 
@@ -46,7 +47,7 @@ D1 の表 (`imas-data-api/schema.sql` が唯一の定義):
 
 | 表 | 中身 |
 |---|---|
-| `docs(kind, id, body)` | 完成した文書 (JSON)。`idol` / `song` / `unit` / `brands` |
+| `docs(kind, id, body)` | 完成した文書 (JSON)。`idol` / `facts` (アイドルの項目の束) / `song` / `unit` / `brands` |
 | `idols` / `songs` / `units` | 一覧用の索引行 (`ord` = 通し番号、名前、よみ、ブランド) |
 | `song_idols(idol_id, song_ord)` | アイドルの持ち歌 (原唱 + ユニット名義)。`GET /v1/songs?idol=` |
 | `terms(kind, term, ord)` | 前方一致の検索語 (名前・よみ・ローマ字・別名・曲名…を畳んだもの) |
@@ -67,6 +68,7 @@ Rust のテスト (`web_export::data_api` / `agent::tools::publish`) が、SQL �
 | `/v1/meta` | `version` (同期の版)・`generated_at`・`idol_count` / `song_count` / `unit_count`・`schema_version`・`credits` |
 | `/v1/brands` | ブランド一覧 (id・名前・短縮名・色) |
 | `/v1/idols/:id` | アイドルの文書 (下) |
+| `/v1/idols/:id/facts` | アイドルの**項目の束** (年齢帯・髪型・一人称・代表曲など。値ごとに出どころ)。[`ARCHITECTURE-facets.md`](ARCHITECTURE-facets.md) |
 | `/v1/idols?brand=&q=&limit=&cursor=` | 一覧・検索 |
 | `/v1/songs/:id` | 曲の文書 (= `get_song`) |
 | `/v1/songs?brand=&q=&idol=&limit=&cursor=` | 一覧・検索。`idol` はそのアイドルの持ち歌 (`q` とは併用不可) |

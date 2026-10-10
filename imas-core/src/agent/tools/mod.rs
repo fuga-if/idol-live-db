@@ -125,7 +125,7 @@ pub fn call_tool(
     Err(ToolError::UnknownTool(name.to_string()))
 }
 
-/// ツール入力スキーマの封を組む。**`lookup` / `browse` / `predict` / `proposal` の全 25 本がここを通る。**
+/// ツール入力スキーマの封を組む。**`lookup` / `browse` / `predict` / `proposal` の全 26 本がここを通る。**
 ///
 /// 以前は `browse` の `spec()` だけがここを自前で組んでいて (`$schema` +
 /// `additionalProperties: false` 付き)、`lookup` は生の JSON 文字列 (`additionalProperties`
@@ -762,7 +762,7 @@ mod tests {
         assert!(single["terms"].is_null() && single["next"].is_null(), "{single}");
     }
 
-    /// 読み取り 19 本 + 書き込み 6 本、計 25 本すべてで封 (`tool_schema` の出力) が
+    /// 読み取り 20 本 + 書き込み 6 本、計 26 本すべてで封 (`tool_schema` の出力) が
     /// 揃っていることを固定する。以前は `additionalProperties: false` が browse の
     /// 7 本にしか付いておらず、残り 13 本は引数を打ち間違えても黙って無視されていた
     /// (レビュー指摘)。ここで 1 本でも漏れたら壊れるようにする。
