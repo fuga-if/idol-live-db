@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Mic
@@ -52,6 +53,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,12 +64,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
 import com.fugaif.imaslivedb.data.auth.showEditAffordance
 import com.fugaif.imaslivedb.data.auth.startCommunityEdit
 import com.fugaif.imaslivedb.data.model.CoOccurringSong
+import com.fugaif.imaslivedb.data.spotify.SpotifyException
 import com.fugaif.imaslivedb.data.model.PerformanceHistoryRow
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongVideo
@@ -76,6 +80,7 @@ import com.fugaif.imaslivedb.data.model.SongSingerTally
 import com.fugaif.imaslivedb.data.model.Vocab
 import com.fugaif.imaslivedb.player.AudioPreviewManager
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.components.CommunityLoginPromptDialog
 import com.fugaif.imaslivedb.ui.edit.RecordHistorySheet
@@ -129,8 +134,10 @@ import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
 import com.fugaif.imaslivedb.ui.theme.penlight
 import com.fugaif.imaslivedb.ui.filtered.SongFilterKind
 import uniffi.imas_core.youtubeVideoRefs
+import uniffi.imas_core.SongDateKind
 import uniffi.imas_core.kamisabiCardLabel
 import uniffi.imas_core.kamisabiCompletionLabel
+import uniffi.imas_core.lyricSubmissionAllowed
 import uniffi.imas_core.shortYearMonth
 import uniffi.imas_core.splitCreditNames
 
@@ -169,10 +176,17 @@ fun SongDetailScreen(
     var currentSongId by rememberSaveable(songId) { mutableStateOf(songId) }
     var tagDetailId by rememberSaveable { mutableStateOf<String?>(null) }
     var showMenu by remember { mutableStateOf(false) }
+    val spotify = remember { AppModule.from(context).spotifyService }
+    val spotifyState by spotify.state.collectAsState()
+    // 「Spotifyで開く」で見つからなかった・失敗したときの文。
+    var spotifyMessage by remember { mutableStateOf<String?>(null) }
+    val spotifyScope = rememberCoroutineScope()
     var showLoginPrompt by rememberSaveable { mutableStateOf(false) }
     var showSongEdit by remember { mutableStateOf(false) }
     // 補足だけを書く軽い画面 (利用者の投稿が主な入口なので、楽曲編集とは別に持つ)。
     var showNoteEdit by remember { mutableStateOf(false) }
+    // 歌詞の投稿画面。受け口を本番に出すまでは LyricsFeature.acceptsSubmissions で開発ビルドだけ。
+    var showLyricSubmission by remember { mutableStateOf(false) }
     var showRecordHistory by remember { mutableStateOf(false) }
     var showVideoSheet by remember { mutableStateOf(false) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
@@ -219,19 +233,30 @@ fun SongDetailScreen(
                     val song = uiState.song
                     ImasToolbarButton(icon = Icons.Filled.MoreVert, label = "その他", onClick = { showMenu = true })
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("歌詞を見る") },
-                            onClick = {
-                                showMenu = false
-                                openUrl(context, lyricsUrl(song))
-                            }
-                        )
                         if (!song?.appleMusicId.isNullOrEmpty()) {
                             DropdownMenuItem(
                                 text = { Text("Apple Musicで開く") },
                                 onClick = {
                                     showMenu = false
                                     openUrl(context, "https://music.apple.com/jp/song/${song!!.appleMusicId}")
+                                }
+                            )
+                        }
+                        // 名義と曲名で突き合わせるので、見分けられなければ開かない (iOS と同じ)。
+                        if (song != null && spotifyState.isConnected) {
+                            DropdownMenuItem(
+                                text = { Text("Spotifyで開く") },
+                                onClick = {
+                                    showMenu = false
+                                    spotifyScope.launch {
+                                        try {
+                                            val url = spotify.trackUrl(song.id)
+                                            if (url != null) openUrl(context, url)
+                                            else spotifyMessage = "Spotify でこの曲が見つかりませんでした。"
+                                        } catch (e: SpotifyException) {
+                                            spotifyMessage = e.message
+                                        }
+                                    }
                                 }
                             )
                         }
@@ -266,6 +291,7 @@ fun SongDetailScreen(
             )
         }
     ) { padding ->
+        ImasErrorAlert(message = spotifyMessage, onDismiss = { spotifyMessage = null }, title = "Spotifyで開けませんでした")
         val song = uiState.song
         if (uiState.isLoading || song == null) {
             com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState(modifier = Modifier.fillMaxSize().padding(padding))
@@ -294,7 +320,8 @@ fun SongDetailScreen(
                 onFilteredSongsClick = onFilteredSongsClick,
                 onEditNote = if (canEditHere) ({ startCommunityEdit { showNoteEdit = true } }) else null,
                 onLoadLyrics = viewModel::loadLyrics,
-                onAddToPlaylist = { showAddToPlaylist = true }
+                onAddToPlaylist = { showAddToPlaylist = true },
+                onSubmitLyrics = { startCommunityEdit { showLyricSubmission = true } }
             )
         }
     }
@@ -354,6 +381,18 @@ fun SongDetailScreen(
         }
     }
 
+    if (showLyricSubmission && editingSong != null) {
+        Dialog(
+            onDismissRequest = { showLyricSubmission = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            com.fugaif.imaslivedb.ui.lyrics.LyricSubmissionScreen(
+                song = editingSong,
+                onDismiss = { showLyricSubmission = false }
+            )
+        }
+    }
+
     if (showRecordHistory) {
         RecordHistorySheet(
             recordType = "Song",
@@ -374,13 +413,6 @@ fun SongDetailScreen(
             )
         }
     }
-}
-
-private fun lyricsUrl(song: Song?): String {
-    if (song == null) return "https://www.uta-net.com"
-    if (!song.lyricsUrl.isNullOrEmpty()) return song.lyricsUrl
-    val encoded = java.net.URLEncoder.encode(song.title, "UTF-8")
-    return "https://www.uta-net.com/search/?Keyword=$encoded"
 }
 
 private fun openUrl(context: android.content.Context, url: String) {
@@ -420,7 +452,8 @@ private fun SongSheetContent(
     onFilteredSongsClick: (String, String) -> Unit,
     onEditNote: (() -> Unit)?,
     onLoadLyrics: () -> Unit,
-    onAddToPlaylist: () -> Unit
+    onAddToPlaylist: () -> Unit,
+    onSubmitLyrics: () -> Unit
 ) {
     // 配色シード: ソロ (歌唱1人) はその個人カラー、それ以外はブランド色 (brand は各部品に別途渡す)。
     val seed = if (state.originalArtists.size == 1) state.originalArtists.first().color else null
@@ -428,17 +461,22 @@ private fun SongSheetContent(
 
     // 歌詞タブを初めて開いたとき (または曲を切り替えて戻ってきたとき) に取りに行く。
     // iOS は曲詳細の束ね取得に同梱されるが、Android にその経路が無いので遅延取得。
-    // 歌詞機能が閉じている間は歌詞タブ自体を出さないので segment 3 には来ない。
+    // 歌詞機能が閉じている間は歌詞を取りに行かない (投稿の入口だけを出すため)。
     LaunchedEffect(segment, song.id) {
         if (LyricsFeature.isAvailable && segment == 3 && state.lyrics == null && !state.isLyricsLoading) onLoadLyrics()
     }
 
-    // 歌詞は JASRAC 等の許諾に従う (`LyricsFeature`)。閉じている間はタブ自体を出さない。
-    val tabLabels = if (LyricsFeature.isAvailable) {
+    // 歌詞は JASRAC 等の許諾に従う (`LyricsFeature`)。表示を閉じている間も、投稿を
+    // 受け付けていればタブ自体は出す (中身は投稿の入口だけ。canSubmitLyrics 参照)。
+    val showsLyricsTab = LyricsFeature.isAvailable || LyricsFeature.acceptsSubmissions
+    val tabLabels = if (showsLyricsTab) {
         listOf("情報・歌唱", "披露履歴", "コミュニティ", "歌詞")
     } else {
         listOf("情報・歌唱", "披露履歴", "コミュニティ")
     }
+    // この曲に歌詞を投稿できるか (投稿の受付中で、アイマス系ブランドのオリジナル曲)。
+    val canSubmitLyrics = LyricsFeature.acceptsSubmissions &&
+        lyricSubmissionAllowed(song.brandId ?: "", song.songType, song.singerLabel)
 
     val scroll = rememberScrollState()
     Column(modifier = modifier.verticalScroll(scroll)) {
@@ -471,17 +509,27 @@ private fun SongSheetContent(
                 onOpenPenlightVote, onPollClick
             )
             else -> {
-                val artistLine = when {
-                    state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
-                    !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-                    !song.unitName.isNullOrEmpty() -> song.unitName
-                    else -> null
+                if (LyricsFeature.isAvailable) {
+                    val artistLine = when {
+                        state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
+                        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
+                        !song.unitName.isNullOrEmpty() -> song.unitName
+                        else -> null
+                    }
+                    SongLyricsTab(
+                        song = song, seed = seed, artistLine = artistLine,
+                        lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
+                        onReload = onLoadLyrics, originalArtists = state.originalArtists,
+                        onSubmitLyrics = if (canSubmitLyrics) onSubmitLyrics else null
+                    )
+                } else {
+                    // 歌詞の表示を閉じている間は、投稿の入口だけを出す (歌詞は取りに行かない)。
+                    LyricSubmissionInvite(
+                        canSubmit = canSubmitLyrics, seed = seed, brand = song.brandId,
+                        onSubmitLyrics = onSubmitLyrics,
+                        modifier = Modifier.padding(top = DS.sp4)
+                    )
                 }
-                SongLyricsTab(
-                    song = song, seed = seed, artistLine = artistLine,
-                    lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
-                    onReload = onLoadLyrics, originalArtists = state.originalArtists
-                )
             }
         }
         Box(Modifier.size(DS.sp9))
@@ -676,14 +724,15 @@ private fun InfoTab(
                 if (song.songType.isNotEmpty() && song.songType != "unknown") {
                     add { FieldRow(key = "タイプ", value = songTypeLabel(song.songType), onClick = { onFilteredSongsClick(SongFilterKind.SONG_TYPE, song.songType) }) }
                 }
-                // 「YYYY-...」から年だけ取れたときにリリース年の一覧へ。年が読めない表記
-                // (未定・年だけ等) は押せない普通の行に落とす — 行き先が作れないため。
-                val releaseYear = song.releaseDate?.take(4)?.takeIf { it.length == 4 && it.toIntOrNull() != null }
-                song.releaseDate?.takeIf { it.isNotEmpty() }?.let { date ->
-                    if (releaseYear != null) {
-                        add { FieldRow(key = "リリース日", value = date, onClick = { onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, releaseYear) }) }
+                // 日付の行 (初出・CD 発売日・配信開始日) はコアが決めた並びのまま出す。
+                // release_date の初出の行だけ、「YYYY-...」から年が取れたら年の一覧へ飛べる
+                // (一覧は release_date で引く)。年が読めない表記は押せない普通の行に落とす。
+                state.dateRows.forEach { row ->
+                    val year = row.date.take(4).takeIf { it.length == 4 && it.toIntOrNull() != null }
+                    if (row.kind == SongDateKind.FIRST_APPEARANCE && year != null) {
+                        add { FieldRow(key = row.label, value = row.display, onClick = { onFilteredSongsClick(SongFilterKind.RELEASE_YEAR, year) }) }
                     } else {
-                        add { FieldRow(key = "リリース日", value = date) }
+                        add { FieldRow(key = row.label, value = row.display) }
                     }
                 }
                 formatDuration(song.durationSec)?.let { v -> add { FieldRow(key = "再生時間", value = v) } }
@@ -860,6 +909,39 @@ private fun NoteEntry(note: String?, seed: String?, brandId: String?, onEdit: ((
         brand = brandId,
         onClick = onEdit
     )
+}
+
+/**
+ * 歌詞の表示を閉じている間の歌詞タブの中身 (歌詞は取りに行かない、投稿の入口だけ)。
+ * iOS `SongSheetContent.lyricSubmissionInvite` と同じ。
+ */
+@Composable
+private fun LyricSubmissionInvite(
+    canSubmit: Boolean,
+    seed: String?,
+    brand: String?,
+    onSubmitLyrics: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (canSubmit) {
+        ImasEmptyState(
+            icon = Icons.Filled.FormatQuote,
+            title = "歌詞を募集しています",
+            message = "CD の歌詞カードなどを見て、この曲の歌詞を入力してください。送った歌詞はすぐに公開され、運営があとから確認します。",
+            actionTitle = "歌詞を投稿",
+            onAction = onSubmitLyrics,
+            seed = seed, brand = brand,
+            modifier = modifier
+        )
+    } else {
+        ImasEmptyState(
+            icon = Icons.Filled.FormatQuote,
+            title = "この曲は歌詞の投稿の対象外です",
+            message = "歌詞の投稿は、アイドルマスターシリーズのオリジナル曲だけ受け付けています。",
+            seed = seed, brand = brand,
+            modifier = modifier
+        )
+    }
 }
 
 /**

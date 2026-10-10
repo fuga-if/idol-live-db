@@ -19,6 +19,8 @@
 #
 # 共有なので、別 worktree で同時に Gradle / xcodebuild を回すとぶつかる
 # (xcodebuild は "database is locked" で落ちる)。落ちたら待って回し直す。
+#
+# 作業場ごとに CARGO_TARGET_DIR や -derivedDataPath を分けないこと (CLAUDE.md を参照)。
 set -euo pipefail
 
 REPO="$(git -C "${1:-$PWD}" rev-parse --show-toplevel)"

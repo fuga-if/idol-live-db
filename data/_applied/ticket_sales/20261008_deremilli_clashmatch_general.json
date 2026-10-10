@@ -1,0 +1,18 @@
+{
+ "title": "デレミリ合同ライブ CLASH M@TCH!! アソビストア一般会員先行",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch",
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-10-07 12:00",
+   "ends_at": "2026-11-01 23:59",
+   "result_at": "2026-11-14 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/eea32b55-afb5-4ff8-be1b-f9ed1bf22008",
+   "note": "1公演2枚まで(複数公演申込可)。入金期間11/14 13:00〜11/18 23:59。対象席種はアリーナ前方席/プレミアムラウンジ付指定席/一般指定席。",
+   "source_url": "https://idolmaster-official.jp/news/01_20072",
+   "sort_order": 1
+  }
+ ]
+}

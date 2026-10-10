@@ -82,6 +82,7 @@ struct DetailSheetView: View {
                     DetailContentView(destination: dest) { path.append($0) }
                 }
         }
+        .spotifyPlaybackAlert()
     }
 
     private var dismissButton: some View {
@@ -184,9 +185,10 @@ enum SongDetailTab: Int, CaseIterable, Hashable {
     }
 
     /// 実際に画面へ出すタブ。歌詞は JASRAC の許諾 (`LyricsFeature`) に従う。
+    /// 歌詞の表示を閉じている間も、投稿を受け付けていれば投稿の入口として出す。
     /// セグメントバーも初期タブもここを唯一の根拠にする。
     static var available: [SongDetailTab] {
-        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable }
+        allCases.filter { $0 != .lyrics || LyricsFeature.isAvailable || LyricsFeature.acceptsSubmissions }
     }
 
     /// 出せないタブを指定されたときの落とし所。ディープリンクや保存された初期タブが
@@ -216,6 +218,8 @@ struct SongSheetContent: View {
     /// データ取得・整形担当。5系統のロード + 楽曲情報行/クレジットの整形を保持する。
     @State private var vm = DetailSheetViewModel()
     @State private var editSong: Song?
+    /// 「Spotifyで開く」で見つからなかった・失敗したときの文。
+    @State private var spotifyMessage: String?
     @State private var showLoginPrompt = false
     @State private var showPenlightVoteSheet = false
     @State private var showTagPicker = false
@@ -235,6 +239,8 @@ struct SongSheetContent: View {
     @State private var lyricsFollowPausedUntil: Date = .distantPast
     /// 補足シート。補足は利用者の投稿が主な入口なので、楽曲編集とは別の軽い導線にしている。
     @State private var showNoteEditor = false
+    @State private var showLyricSubmission = false
+    @State private var showLyricSubmissionLoginPrompt = false
     /// 未ログインで補足の導線を押した時のログイン誘導。
     @State private var showNoteLoginPrompt = false
     /// 補足を直接反映したときの値。`song` は親から渡る固定値なので、送信後すぐ画面に出すために持つ。
@@ -264,6 +270,16 @@ struct SongSheetContent: View {
             showNoteEditor = true
         } else {
             showNoteLoginPrompt = true
+        }
+    }
+
+    /// 歌詞の投稿の導線。投稿はログインが要るので、補足と同じくログインを挟む。
+    private func openLyricSubmission() {
+        AppAnalytics.tap("song_detail.submit_lyrics")
+        if EditPermission.canEdit {
+            showLyricSubmission = true
+        } else {
+            showLyricSubmissionLoginPrompt = true
         }
     }
 
@@ -348,14 +364,15 @@ struct SongSheetContent: View {
                         Label("編集履歴", systemImage: "clock.arrow.circlepath")
                     }
                     Divider()
-                    // アプリ内の歌詞は「歌詞」タブへ移した (束ね取得に同梱されるので常時表示できる)。
-                    // ここに残すのは外部の歌詞サイト検索だけ。
-                    Button { openURL(lyricsURL) } label: {
-                        Label("歌詞サイトで探す", systemImage: "safari")
-                    }
+                    // 外部の歌詞サイトへの導線は置かない (歌詞の投稿の横で「そこから写して」と読めるため。2026-10-06)。
                     if let appleMusicURL = vm.artworkInfo?.appleMusicURL {
                         Button { openURL(appleMusicURL) } label: {
                             Label("Apple Musicで開く", systemImage: "music.note")
+                        }
+                    }
+                    if SpotifyService.shared.isConnected {
+                        Button { openInSpotify() } label: {
+                            Label("Spotifyで開く", systemImage: "arrow.up.right.square")
                         }
                     }
                 } label: {
@@ -366,11 +383,18 @@ struct SongSheetContent: View {
         .sheet(item: $editSong) { s in
             SongEditView(song: s).environment(database)
         }
+        .imasErrorAlert("Spotifyで開けませんでした", message: $spotifyMessage)
         .sheet(isPresented: $showLoginPrompt) {
             LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { editSong = song } })
         }
         .sheet(isPresented: $showNoteEditor) {
             SongNoteEditSheet(song: songWithDisplayNote) { noteOverride = .some($0) }
+        }
+        .sheet(isPresented: $showLyricSubmission) {
+            LyricSubmissionSheet(song: song)
+        }
+        .sheet(isPresented: $showLyricSubmissionLoginPrompt) {
+            LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showLyricSubmission = true } })
         }
         .sheet(isPresented: $showNoteLoginPrompt) {
             LoginToEditSheet(onSignedIn: { if EditPermission.canEdit { showNoteEditor = true } })
@@ -495,13 +519,11 @@ struct SongSheetContent: View {
                 size: .large
             ) {
                 AppAnalytics.tap("song_detail.play")
-                if let info = vm.artworkInfo, info.musicKitId != nil {
-                    Task { await playFull(info) }
-                } else if let previewURL = vm.artworkInfo?.previewURL {
-                    MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
-                }
+                Task { await playFull() }
             }
-            .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil)
+            // Spotify は曲名で探して鳴らすので、Apple Music の情報が無くても押せる。
+            .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil
+                      && MusicKitService.shared.fullPlaybackService != .spotify)
 
             ImasMarkButton(kind: .favorite, isOn: isFavorite, seed: songSeed) {
                 AppAnalytics.tap("song_detail.toggle_favorite")
@@ -560,24 +582,17 @@ struct SongSheetContent: View {
     private var isFavorite: Bool { markService.bool(.favorite, entity: .song, id: song.id) }
     private var isKamisabiOwned: Bool { markService.bool(.owned, entity: .song, id: song.id) }
 
-    private func playFull(_ info: MusicKitSongInfo) async {
-        if MusicKitService.shared.isPlaying
-            && MusicKitService.shared.isFullPlayback
-            && MusicKitService.shared.isPlaying(songId: song.id) {
-            MusicKitService.shared.stop()
+    /// フル尺で鳴らす (Apple Music か Spotify かは `MusicKitService` が選ぶ)。鳴らせなければ試聴。
+    private func playFull() async {
+        let player = MusicKitService.shared
+        if player.isPlaying(songId: song.id) {
+            player.stop()
             return
         }
-        if !MusicKitService.shared.hasAppleMusicSubscription {
-            await MusicKitService.shared.requestAuthorization()
-            guard MusicKitService.shared.hasAppleMusicSubscription else {
-                // サブスク無しは fallback でプレビュー再生。
-                if let previewURL = info.previewURL {
-                    MusicKitService.shared.togglePreview(url: previewURL, songId: song.id)
-                }
-                return
-            }
-        }
-        await MusicKitService.shared.playFull(songInfo: info, songId: song.id)
+        if await player.playFullSongs([(songId: song.id, appleMusicId: song.appleMusicId)], startAt: 0) { return }
+        // Spotify で鳴らすつもりで鳴らせなかったときは、理由 (ContentView が出す) だけにして試聴には落とさない。
+        guard player.spotifyFailure == nil, let previewURL = vm.artworkInfo?.previewURL else { return }
+        player.togglePreview(url: previewURL, songId: song.id)
     }
 
     private func toggleFavorite() {
@@ -625,30 +640,70 @@ struct SongSheetContent: View {
 
     /// 歌詞は束ね取得 (`/songs/{id}/detail`) に同梱されるので、常時読み込みでも
     /// リクエストは増えない。中身は `SongLyricsTab` (VM を読むだけ)。
+    @ViewBuilder
     private var lyricsTab: some View {
-        SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
-                      playback: lyricsPlayback) {
-            Task { await vm.loadServerData(song: song) }
+        if LyricsFeature.isAvailable {
+            SongLyricsTab(song: song, seed: songSeed, vm: vm, focusLineIds: Set(lyricsFocus),
+                          playback: lyricsPlayback,
+                          onSubmitLyrics: canSubmitLyrics ? { openLyricSubmission() } : nil) {
+                Task { await vm.loadServerData(song: song) }
+            }
+        } else {
+            // 歌詞の表示を閉じている間は、投稿の入口だけを出す (歌詞は取りに行かない)。
+            lyricSubmissionInvite
+        }
+    }
+
+    /// この曲に歌詞を投稿できるか (投稿の受付中で、アイマス系ブランドのオリジナル曲)。
+    private var canSubmitLyrics: Bool {
+        LyricsFeature.acceptsSubmissions
+            && lyricSubmissionAllowed(brandId: song.brandId ?? "", songType: song.songType, singerLabel: song.singerLabel)
+    }
+
+    @ViewBuilder
+    private var lyricSubmissionInvite: some View {
+        if canSubmitLyrics {
+            ImasEmptyState(systemImage: "text.quote",
+                           title: "歌詞を募集しています",
+                           message: "CD の歌詞カードなどを見て、この曲の歌詞を入力してください。送った歌詞はすぐに公開され、運営があとから確認します。",
+                           actionTitle: "歌詞を投稿",
+                           action: { openLyricSubmission() },
+                           seed: songSeed)
+        } else {
+            ImasEmptyState(systemImage: "text.quote",
+                           title: "この曲は歌詞の投稿の対象外です",
+                           message: "歌詞の投稿は、アイドルマスターシリーズのオリジナル曲だけ受け付けています。",
+                           seed: songSeed)
         }
     }
 
     /// 歌詞タブとプレイヤーの繋ぎ。追従・記録はフル再生だけ (試聴は位置を突き合わせられない)。
     private var lyricsPlayback: SongLyricsTab.Playback {
-        .appleMusic(songId: song.id,
+        .fullPlayback(songId: song.id,
                     startFull: { await startFullForLyrics() },
                     scrollTo: { lyricsScrollTarget = $0 })
+    }
+
+    /// Spotify で曲を探して開く。名義と曲名で突き合わせるので、見分けられなければ開かない。
+    private func openInSpotify() {
+        Task {
+            do {
+                if let url = try await SpotifyService.shared.trackURL(songId: song.id) {
+                    openURL(url)
+                } else {
+                    spotifyMessage = "Spotify でこの曲が見つかりませんでした。"
+                }
+            } catch {
+                spotifyMessage = error.localizedDescription
+            }
+        }
     }
 
     /// タイミング記録のためにフル再生を始める。未契約・Apple Music に無い曲は false。
     /// 試聴へは落とさない (`playFull` と違い、位置を突き合わせられない再生は意味が無い)。
     private func startFullForLyrics() async -> Bool {
-        guard let info = vm.artworkInfo, info.musicKitId != nil else { return false }
         let player = MusicKitService.shared
-        if !player.hasAppleMusicSubscription {
-            await player.requestAuthorization()
-            guard player.hasAppleMusicSubscription else { return false }
-        }
-        await player.playFull(songInfo: info, songId: song.id)
+        await player.playFullSongs([(songId: song.id, appleMusicId: song.appleMusicId)], startAt: 0)
         return player.isFullPlayback && player.nowPlayingSongId == song.id
     }
 
@@ -701,14 +756,6 @@ struct SongSheetContent: View {
         case .promptLogin: showCommunityLoginPrompt = true
         case .ignore: break  // BAN 済み。導線自体を出していない。
         }
-    }
-
-    private var lyricsURL: URL {
-        if let url = URL.safeHTTP(string: song.lyricsUrl) {
-            return url
-        }
-        let encoded = song.title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        return URL(string: "https://www.uta-net.com/search/?Keyword=\(encoded)") ?? URL(string: "https://www.uta-net.com")!
     }
 }
 

@@ -69,6 +69,8 @@ struct AboutView: View {
                 JASRACLicenseNotice(placement: .about)
                 ossCredit(name: "GRDB.swift", license: "MIT License", url: "https://github.com/groue/GRDB.swift")
                 ossCredit(name: "Nuke", license: "MIT License", url: "https://github.com/kean/Nuke")
+                ossCredit(name: "Spotify iOS SDK", license: "Spotify Developer Terms", url: "https://github.com/spotify/ios-sdk")
+                ossCredit(name: "MPMessagePack (Spotify iOS SDK に同梱)", license: "MIT License", url: "https://github.com/gabriel/MPMessagePack")
                 // P名刺の名前の書体 (同梱。一覧はコア)。
                 ForEach(cardNameFonts(), id: \.key) { font in
                     ossCredit(name: "\(font.familyName) (P名刺の書体)", license: font.license, url: font.sourceUrl)

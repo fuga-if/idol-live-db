@@ -3,7 +3,7 @@
 use crate::domain::producer_card::{
     CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFace,
     CardFileContents, CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo,
-    CardLinkView, CardNameFont, CardNameFontInfo, CardOshiEntry, CardPhotoShape, CardPhotoSource,
+    CardLinkView, CardNameFont, CardOshiPicks, CardNameFontInfo, CardOshiEntry, CardPhotoShape, CardPhotoSource,
     CardRecordSummary, CardShowRef,
     EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
     ProducerCardLimits, ScannedCode,
@@ -112,6 +112,67 @@ pub fn producer_card_face(card: ProducerCard, drawable: Vec<CardOshiEntry>) -> C
 #[uniffi::export]
 pub fn producer_card_pick_oshi(oshi: Vec<CardOshiEntry>) -> Vec<String> {
     crate::domain::producer_card::producer_card_pick_oshi(&oshi)
+}
+
+/// 自分の名刺 id を作る (`seed` は端末が作った UUID)。
+#[uniffi::export]
+pub fn producer_card_new_id(seed: String) -> String {
+    crate::domain::producer_card::producer_card_new_id(&seed)
+}
+
+/// 名刺 id を名刺に載せるか (今は載せない。開閉はコアの定数 1 か所)。
+#[uniffi::export]
+pub fn producer_card_embeds_card_id() -> bool {
+    crate::domain::producer_card::producer_card_embeds_card_id()
+}
+
+/// 自分の名刺を組むときに載せる名刺 id (載せない間は None)。端末の Assembler はこれを通す。
+#[uniffi::export]
+pub fn producer_card_id_to_embed(card_id: Option<String>) -> Option<String> {
+    crate::domain::producer_card::producer_card_id_to_embed(card_id.as_deref())
+}
+
+/// 名刺 id の形として正しいか。
+#[uniffi::export]
+pub fn producer_card_id_is_valid(id: String) -> bool {
+    crate::domain::producer_card::producer_card_id_is_valid(&id)
+}
+
+/// 名刺に載せる担当 id (載せる順)。`chosen` が None (まだ選んでいない) なら自動の選び方。
+/// 選んだ人のうち担当から外れた人は抜け、誰も残らなければ自動の選び方。
+#[uniffi::export]
+pub fn producer_card_oshi_picked_ids(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>) -> Vec<String> {
+    crate::domain::producer_card::producer_card_oshi_picked_ids(chosen.as_deref(), &oshi)
+}
+
+/// 名刺に載せる担当を選ぶ画面に並べるもの。
+#[uniffi::export]
+pub fn producer_card_oshi_picks(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>) -> CardOshiPicks {
+    crate::domain::producer_card::producer_card_oshi_picks(chosen.as_deref(), &oshi)
+}
+
+/// 1 人を載せる / 外した後の選択 (最後の 1 人は外さない)。
+#[uniffi::export]
+pub fn producer_card_oshi_toggle(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>, idol_id: String) -> Vec<String> {
+    crate::domain::producer_card::producer_card_oshi_toggle(chosen.as_deref(), &oshi, &idol_id)
+}
+
+/// 並べ替えた選択を整える (担当に今いる人だけ・重複なし・上限まで)。
+#[uniffi::export]
+pub fn producer_card_oshi_normalize(ids: Vec<String>, oshi: Vec<CardOshiEntry>) -> Vec<String> {
+    crate::domain::producer_card::producer_card_oshi_normalize(&ids, &oshi)
+}
+
+/// 名刺に載せる担当の選択の保存の形。
+#[uniffi::export]
+pub fn card_oshi_choice_to_json(ids: Vec<String>) -> String {
+    crate::domain::producer_card::card_oshi_choice_to_json(&ids)
+}
+
+/// 保存の形から選択を読む (読めない・空はまだ選んでいない)。
+#[uniffi::export]
+pub fn card_oshi_choice_from_json(json: String) -> Option<Vec<String>> {
+    crate::domain::producer_card::card_oshi_choice_from_json(&json)
 }
 
 #[uniffi::export]

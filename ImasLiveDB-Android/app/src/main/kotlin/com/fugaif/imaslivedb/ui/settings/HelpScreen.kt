@@ -42,6 +42,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasDisclosureRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.DS
 
@@ -86,7 +87,7 @@ object HelpCatalog {
             HelpItem("ブランドでフィルタ", "右上の絞り込みボタンから、765AS / シンデレラ / ミリオン / SideM / シャニ / 学マス / ヴイアラ など特定ブランドだけに絞れます。"),
             HelpItem("ライブの種別で見分ける", "周年ライブ・オーケストラ・他社イベント・リリースイベント・バースデーライブなどの種別が付いています。絞り込みで種別ごとに外すこともできます。"),
             HelpItem("詳細でセトリ・出演者・チケット情報を確認", "ライブをタップすると、公演日ごとのセトリ、出演アイドル、参考動画、チケット情報まで確認できます。"),
-            HelpItem("参加したライブを記録", "公演の行を右にスワイプすると、その場で参加 (現地 / 配信 / LV) を登録できます。詳細画面からも付けられ、マイページの参加カウントに加算されます。"),
+            HelpItem("参加したライブを記録", "公演の行を右にスワイプすると、その場で参加 (現地 / 配信 / LV) を登録できます。現地で見て配信のアーカイブも買った公演のように、形態は複数付けられます (チケット代も形態ごとに記録できます)。詳細画面からも付けられ、マイページの参加カウントに加算されます。"),
             HelpItem("衣装と着用公演", "イベント詳細の「情報」タブに、そのイベントで着た衣装がまとまっています。衣装を開くと、ほかのイベントも含めてその衣装を着た公演と曲をたどれます。"),
             HelpItem("開催前のセトリ予想", "開催前の公演では、みんなの予想に加えて、過去のセトリから推定した「機械予測」が出ます。気になる曲はそのまま自分の予想に入れられます。"),
         )
@@ -113,6 +114,7 @@ object HelpCatalog {
             HelpItem("3 つの表示モード", "曲一覧 / アルバムグリッド / シリーズグリッド を絞り込みパネルから切り替え可能。"),
             HelpItem("試聴とジャケ写", "配信のある曲は 30 秒のプレビューを再生できます。ジャケ写も自動取得。"),
             HelpItem("歌唱履歴で深掘り", "曲詳細から「どのライブで何回歌われたか」を一覧表示。担当曲の披露頻度がわかります。"),
+            HelpItem("Spotify 連携", "自分の Spotify アプリの Client ID で連携すると、曲を Spotify でフル尺で鳴らして歌詞を追いかけられます (Spotify Premium が要ります)。セトリや自分のプレイリストを Spotify に書き出すこともできます。始め方は使い方の「Spotify と連携する」に図つきで載っています。"),
             HelpItem("オリジナルメンバーを表示", "曲のアイコン群はオリジナル歌唱メンバー (ライブ歌唱者ではなく)。ユニット曲はユニット名で表示されます。"),
             HelpItem("回収済 / 未回収で絞り込み", "マイマークで「回収済」を付けた曲だけ、または未回収だけを表示できます。"),
             HelpItem("並びはリリース日順", "既定はリリース日の新しい順です。件数の行にある並び替えメニューから、披露回数順などにすぐ切り替えられます。"),
@@ -265,9 +267,24 @@ object HelpCatalog {
     )
 }
 
+/** 使い方の特集 (図つきの手順の画面)。 */
+private enum class HelpFeature { SPOTIFY, SPOTIFY_SETTINGS }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpScreen(onBack: () -> Unit) {
+    var feature by remember { mutableStateOf<HelpFeature?>(null) }
+    when (feature) {
+        HelpFeature.SPOTIFY -> {
+            SpotifyHowToScreen(onBack = { feature = null }, onOpenSettings = { feature = HelpFeature.SPOTIFY_SETTINGS })
+            return
+        }
+        HelpFeature.SPOTIFY_SETTINGS -> {
+            SpotifySettingsScreen(onBack = { feature = HelpFeature.SPOTIFY })
+            return
+        }
+        null -> Unit
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -295,7 +312,16 @@ fun HelpScreen(onBack: () -> Unit) {
                         )
                     }
                 }
-                ImasListSection {
+                ImasListSection("特集") {
+                    ImasNavRow(
+                        title = "Spotify と連携する",
+                        subtitle = "自分の Spotify アプリを作って、セトリを Spotify のプレイリストに。図つきで手順を案内します。",
+                        subtitleLineLimit = 2,
+                        icon = Icons.Filled.QueueMusic,
+                        onClick = { feature = HelpFeature.SPOTIFY },
+                    )
+                }
+                ImasListSection("機能カテゴリ") {
                     HelpCatalog.sections.forEach { section -> HelpSectionDisclosure(section) }
                 }
             }

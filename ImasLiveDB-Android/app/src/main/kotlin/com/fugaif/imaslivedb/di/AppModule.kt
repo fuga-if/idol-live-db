@@ -42,6 +42,7 @@ import com.fugaif.imaslivedb.data.games.QuizResumeStore
 import com.fugaif.imaslivedb.data.games.SortMakerStore
 import com.fugaif.imaslivedb.data.games.TierListStore
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
+import com.fugaif.imaslivedb.data.spotify.SpotifyService
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -129,6 +130,7 @@ class AppModule private constructor(context: Context) {
     }
     val showTicketRepository: ShowTicketRepository by lazy { ShowTicketRepository(database) }
     val authService: AuthService by lazy { AuthService(appContext) }
+    val spotifyService: SpotifyService by lazy { SpotifyService(appContext, snapshotStoreProvider) }
     /** Worker (imas-live-api) への HTTP。セッションはリクエストの時点の値を付ける。 */
     val workerHttpClient: WorkerHttpClient by lazy { WorkerHttpClient(appContext, { authService.sessionToken }, renewer = authService) }
     val communityApi: CommunityApi by lazy { CommunityApi(workerHttpClient) }
@@ -136,10 +138,14 @@ class AppModule private constructor(context: Context) {
     val communityPlaylistApi: com.fugaif.imaslivedb.data.community.CommunityPlaylistApi by lazy {
         com.fugaif.imaslivedb.data.community.CommunityPlaylistApi(workerHttpClient)
     }
-    /** 歌詞の追従・記録の再生 (Apple Music のフル再生)。 */
+    /** 歌詞の追従・記録の再生 (フル再生。Apple Music か Spotify に振り分ける)。 */
     val lyricsPlayback: com.fugaif.imaslivedb.player.LyricsPlayback by lazy {
-        com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
-            appContext as android.app.Application, workerHttpClient, songRepository
+        com.fugaif.imaslivedb.player.RoutedLyricsPlayback(
+            apple = com.fugaif.imaslivedb.player.AppleMusicLyricsPlayback(
+                appContext as android.app.Application, workerHttpClient, songRepository
+            ),
+            spotifyPlayback = com.fugaif.imaslivedb.player.SpotifyLyricsPlayback(appContext, spotifyService),
+            spotify = spotifyService,
         )
     }
     /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。Android は NexTone 管理曲だけ返る。 */
@@ -148,6 +154,10 @@ class AppModule private constructor(context: Context) {
     }
     val editApi: EditApi by lazy { EditApi(workerHttpClient, authService) }
     val setlistLikeService: SetlistLikeService by lazy { SetlistLikeService(workerHttpClient) }
+    /** 手応え (Good の新着・セトリの閲覧数) と公演の奥付。 */
+    val contributionFeedbackService: com.fugaif.imaslivedb.data.community.ContributionFeedbackService by lazy {
+        com.fugaif.imaslivedb.data.community.ContributionFeedbackService(appContext, workerHttpClient, authService)
+    }
     /** Discord のロール受け取り (認可 URL の発行)。 */
     val discordLinkService: DiscordLinkService by lazy { DiscordLinkService(workerHttpClient) }
     /** セトリ予想 (みんなの予想)。覚え書きを画面をまたいで共有するため、アプリで 1 つ。 */

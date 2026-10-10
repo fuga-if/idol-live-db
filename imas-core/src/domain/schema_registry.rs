@@ -103,6 +103,12 @@ pub fn expected_tables() -> Vec<TableSpec> {
              "チケット受付 (抽選 / 先着 / リセール / 当日券)。1 イベントに複数あり得る。\
               show_ids が空なら全公演対象。段階 (受付前/中・結果待ち・終了) の判定と\
               並び・注目受付の選び方は domain/ticket_sales.rs"),
+        spec("idol_facets", Auxiliary, &["id", "idol_id", "facet", "value"],
+             "アイドルの項目 (性格・好み・経歴…) の値。1 値 1 行。CloudKit の IdolFacet を本番に昇格して\
+              日次 export が db/master.sql に出すまでは表が無い (読むときは空)。昇格後に Master へ。\
+              DDL は facets_schema.sql、定義は domain/idol_facets.rs"),
+        spec("idol_hairstyles", Auxiliary, &["id", "idol_id", "label", "is_main"],
+             "アイドルの髪型 1 つぶん。1 人に複数、is_main はちょうど 1 つ。idol_facets と同じ扱い"),
         spec("venues", Master, &["id", "name"], "会場"),
         spec("venue_names", Master, &["venue_id", "name"], "会場の別名・改称"),
         spec("venue_halls", Master, &["venue_id", "name"], "会場内のホール"),

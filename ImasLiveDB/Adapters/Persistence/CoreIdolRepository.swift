@@ -19,6 +19,12 @@ struct CoreIdolRepository: IdolReading {
         }
     }
 
+    func idols(brandIds: Set<String>) async throws -> [Idol] {
+        try await snapshot.withStore { store in
+            try store.idolListInBrands(brandIds: Array(brandIds)).map(CoreRecordMapping.idol(from:))
+        }
+    }
+
     func idol(id: String) async throws -> Idol? {
         try await snapshot.withStore { store in
             try store.idolRecordsByIds(idolIds: [id]).first.map(CoreRecordMapping.idol(from:))

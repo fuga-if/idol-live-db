@@ -220,7 +220,7 @@ struct ColorMatchGameView: View {
     @ViewBuilder
     private var choiceStage: some View {
         QuizStageProgress(slots: plays.penlights(total: questionCount, answering: choiceVerdict == nil),
-                          caption: plays.setlistCaption(total: questionCount),
+                          caption: plays.answeredCaption(total: questionCount),
                           streak: plays.streak, streakBrokeAt: plays.streakBrokeAt)
             .padding(.bottom, 2)
         if let choiceVerdict {

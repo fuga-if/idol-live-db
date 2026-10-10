@@ -11,7 +11,8 @@ import SwiftUI
 //                  横に払って次のチケットへ。
 // ImasIdolHeader   アイドル詳細の頭。名札 (色の帯・名前・担当) と電光掲示板を 1 枚につなげる。
 // ImasIdolCell     アイドルの名札 (格子の 1 つ)。上の帯が担当色。担当は帯と枠が点く。
-// ImasBrandPicker  ブランドを選ぶ。チップを折り返して並べる (ペンライト、ロゴを入れたブランドはロゴ)。
+// ImasBrandCell    ブランドの判子 48 (読み込んだロゴ、無ければ紙の白 + ブランド色の輪と略称) + 名前。
+// ImasBrandPicker  ブランドを選ぶ。判子の格子 (ゲームの設定・絞り込み) か、ピッカーの頭のチップ 1 段。
 // =============================================================================
 
 // MARK: - 半券の日付
@@ -572,36 +573,130 @@ struct ImasIdolGrid<Content: View>: View {
 
 // MARK: - ブランドを選ぶ
 
-/// ブランドを選ぶ。チップを折り返して並べる。先頭はペンライト、ロゴを読み込んだブランドはロゴ。
-/// `includesAll` で先頭に「すべて」(何も選ばない = 全部) を置く。
+/// ブランドの判子 1 つ + 名前。押すと選択が切り替わる。
+///
+/// 判子は読み込んだロゴがあればロゴ、無ければアイドルの判子と同じく紙の白にブランド色の輪と略称
+/// (765 / デレ / ミリ …)。選んだものは判子をブランド色で塗りつぶし (押した判子)、名前を墨の太字にする。
+/// 選んでいないものは紙の判子のまま名前を灰に落とす (淡い色の地は敷かない)。
+/// 色の無いもの (「全て」) は墨で描く。
+struct ImasBrandCell: View {
+    let label: String
+    /// 判子の中の略称 (3〜4 字)。
+    let mark: String
+    /// ブランドの色 (hex)。nil は墨。
+    var color: String? = nil
+    var logoURL: URL? = nil
+    let isSelected: Bool
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var scheme
+
+    static let size: CGFloat = 48
+
+    var body: some View {
+        let t = ImasTheme.derive(seed: nil, brand: color, scheme: scheme)
+        Button(action: action) {
+            VStack(spacing: DS.Space.gapTight) {
+                seal(t)
+                Text(label)
+                    .font(isSelected ? Font.imasCaption.weight(.bold) : Font.imasCaption)
+                    .foregroundStyle(isSelected ? DS.ink : DS.ink2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.imasPress)
+        .sensoryFeedback(.selection, trigger: isSelected)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    @ViewBuilder private func seal(_ t: ImasTheme) -> some View {
+        let ring = t.penlight
+        if let logoURL, let image = UIImage(contentsOfFile: logoURL.path) {
+            // 配布しているロゴは「円 + 四隅透過」。独自に横長の絵を入れても切れないよう fit で収める。
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: Self.size, height: Self.size)
+                .background(DS.paper, in: Circle())
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(isSelected ? ring : DS.line, lineWidth: isSelected ? 2.5 : 1))
+                .opacity(isSelected ? 1 : 0.55)
+        } else {
+            ZStack {
+                Circle().fill(isSelected ? t.actionFill : DS.paper)
+                Circle().strokeBorder(ring, lineWidth: 1.75)
+                Text(mark)
+                    .font(Font(Font.imasProportionalUIFont(Self.size * (mark.count <= 2 ? 0.36 : mark.count == 3 ? 0.3 : 0.24),
+                                                           weight: .heavy)))
+                    .foregroundStyle(isSelected ? t.onActionFill : ring)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(.horizontal, Self.size * 0.1)
+            }
+            .frame(width: Self.size, height: Self.size)
+        }
+    }
+}
+
+/// ブランドを選ぶ。`includesAll` で先頭に「全て」(何も選ばない = 全部) を置く。
+///
+/// - `.grid` (既定) 判子の格子 (`ImasBrandCell`)。ゲームの設定・絞り込みシート・投票の作成。
+/// - `.row` チップを 1 段で横に並べる (`ImasChipRow`)。一覧の上に常に出しておくピッカーの頭
+///   (アイドル・ユニットを選ぶ画面)。格子だとリストの場所を食うので 1 段にする。
 struct ImasBrandPicker: View {
     struct Option: Identifiable, Hashable {
         let id: String
         let label: String
+        /// 判子の中の略称。nil なら名前の頭 2 字。
+        var mark: String? = nil
         /// ブランドの色 (hex)。
         var color: String? = nil
         /// 読み込んだロゴ (端末の中のファイル)。
         var logoURL: URL? = nil
     }
 
+    enum Layout { case grid, row }
+
     let options: [Option]
     @Binding var selection: Set<String>
     var includesAll: Bool = true
-    /// 「全部選んでいない」チップの文言。画面ごとの言葉づかいに合わせて渡せる (既定「すべて」)。
+    /// 「全部選んでいない」の文言。画面ごとの言葉づかいに合わせて渡せる (既定「すべて」)。
     var allLabel: String = "すべて"
     var allowsMultiple: Bool = true
+    var layout: Layout = .grid
 
     var body: some View {
-        ImasChipFlow {
-            if includesAll {
-                ImasFilterChip(text: allLabel, isSelected: selection.isEmpty) {
-                    selection = []
+        switch layout {
+        case .grid:
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 64, maximum: 84), spacing: DS.Space.gap)],
+                      spacing: DS.Space.rowGap) {
+                if includesAll {
+                    ImasBrandCell(label: allLabel, mark: String(allLabel.prefix(1)), isSelected: selection.isEmpty) {
+                        selection = []
+                    }
+                }
+                ForEach(options) { option in
+                    ImasBrandCell(label: option.label, mark: option.mark ?? String(option.label.prefix(2)),
+                                  color: option.color, logoURL: option.logoURL,
+                                  isSelected: selection.contains(option.id)) {
+                        toggle(option.id)
+                    }
                 }
             }
-            ForEach(options) { option in
-                ImasFilterChip(text: option.label, isSelected: selection.contains(option.id), brand: option.color,
-                               leading: option.logoURL.map { .logo($0) }) {
-                    toggle(option.id)
+        case .row:
+            ImasChipRow {
+                if includesAll {
+                    ImasFilterChip(text: allLabel, isSelected: selection.isEmpty) { selection = [] }
+                }
+                ForEach(options) { option in
+                    ImasFilterChip(text: option.label, isSelected: selection.contains(option.id), brand: option.color,
+                                   leading: option.logoURL.map { .logo($0) }) {
+                        toggle(option.id)
+                    }
                 }
             }
         }

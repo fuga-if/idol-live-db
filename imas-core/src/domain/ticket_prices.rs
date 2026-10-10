@@ -94,26 +94,68 @@ pub struct TicketExpensePrompt {
 /// 公演の名前が分からないときにシートに出す呼び方。
 pub const TICKET_PROMPT_FALLBACK_SHOW_LABEL: &str = "この公演";
 
+/// 公演に記録済みの支出 1 件 (二重計上を避ける判定の材料)。各 OS が `expenses` から射影する。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct RecordedShowExpense {
+    /// 費目キー (`expenses.category`)。
+    pub category: String,
+    /// チケット代を記録したときの券の形態 (`expenses.ticket_kind`。[`ticket_kind_raw`] の値)。
+    /// 形態を持てるようにする前の行と、手で入れた行は `None`。
+    pub ticket_kind: Option<String>,
+    pub note: Option<String>,
+}
+
+/// その形態のチケット代を記録済みか。
+///
+/// 1 公演に複数の形態で参加できる (現地 + 配信のアーカイブ) ので、**形態ごとに**見る。
+/// 現地のチケット代があっても、配信のチケット代はまだ、がありうる。
+///
+/// 形態を持たない古いチケット代の行は、メモが券種名 ([`ticket_expense_note`] の書式) と
+/// 一致すればその券の形態とみなす。一致しなければ**どの形態も記録済み**とみなす —
+/// 分からないまま聞くと二重計上になりうる (複数形態を持つ前の振る舞いと同じ)。
+pub fn ticket_kind_recorded(
+    kind: TicketKind,
+    show_tickets: &[ShowTicket],
+    existing_expenses: &[RecordedShowExpense],
+) -> bool {
+    let ticket_key = crate::domain::ledger::expense_category_key(
+        crate::domain::ledger::ExpenseCategory::Ticket,
+    );
+    existing_expenses
+        .iter()
+        .filter(|e| e.category == ticket_key)
+        .any(|e| match e.ticket_kind.as_deref().and_then(ticket_kind_from_raw) {
+            Some(recorded) => recorded == kind,
+            None => {
+                let matched: Vec<TicketKind> = show_tickets
+                    .iter()
+                    .filter(|t| e.note.as_deref() == Some(ticket_expense_note(t).as_str())
+                        || e.note.as_deref() == Some(t.name.as_str()))
+                    .map(|t| t.kind)
+                    .collect();
+                matched.is_empty() || matched.contains(&kind)
+            }
+        })
+}
+
 /// 参加を付けた直後に、チケット代を記録するか聞くか。聞くなら候補の券種。
+///
+/// `attendance_type` は**いま付けた 1 つの形態** (現地に配信を足したなら `stream`)。
 ///
 /// **聞かない理由が 1 つでもあれば `None`** (参加を付けるたびにシートが出ると、付ける作業が止まる):
 /// - その形態の券種がマスタに無い
-/// - その公演のチケット代を既に記録してある (`existing_expense_categories` に `ticket` がある。
-///   二重計上を防ぐ)
+/// - その形態のチケット代を既に記録してある ([`ticket_kind_recorded`]。二重計上を防ぐ)
 ///
 /// 記録済みかを**読めなかった**ときは OS が呼ばずに終わること (分からないまま聞くと
 /// 二重計上になりうる。iOS の今の振る舞い)。
 pub fn ticket_expense_prompt(
     show_tickets: &[ShowTicket],
     attendance_type: &str,
-    existing_expense_categories: &[String],
+    existing_expenses: &[RecordedShowExpense],
 ) -> Option<TicketExpensePrompt> {
     let kind = ticket_kind_from_attendance(attendance_type);
     let tickets = tickets_for_kind(show_tickets, kind);
-    let ticket_key = crate::domain::ledger::expense_category_key(
-        crate::domain::ledger::ExpenseCategory::Ticket,
-    );
-    let already_recorded = existing_expense_categories.contains(&ticket_key);
+    let already_recorded = ticket_kind_recorded(kind, show_tickets, existing_expenses);
     (!tickets.is_empty() && !already_recorded).then_some(TicketExpensePrompt { kind, tickets })
 }
 
@@ -130,15 +172,16 @@ pub fn ticket_expense_note(ticket: &ShowTicket) -> String {
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct TicketBackfillInput {
     pub show_id: String,
-    /// 参加形態 (`user_marks.attended` の text_value。空なら現地)。
+    /// 参加マークの保存値 (`user_marks.attended` の text_value そのまま。複数形態は
+    /// `live,stream`。空なら現地。読み方は [`crate::domain::attendance::attendance_types`])。
     pub attendance_type: String,
     /// その公演の券種 (全形態)。
     pub tickets: Vec<ShowTicket>,
-    /// その公演に記録済みの費目キー。
-    pub existing_expense_categories: Vec<String>,
+    /// その公演に記録済みの支出。
+    pub existing_expenses: Vec<RecordedShowExpense>,
 }
 
-/// 取り込み候補の公演 1 つ。
+/// 取り込み候補 1 つ (公演 × 形態。現地と配信の両方で参加した公演は 2 つ出る)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct TicketBackfillItem {
     pub show_id: String,
@@ -153,23 +196,26 @@ pub struct TicketBackfillItem {
 /// 参加を付けてあるのにチケット代がまだ無い公演を、取り込み候補として並べる。
 ///
 /// 候補にするかは参加を付けた直後の確認 ([`ticket_expense_prompt`]) と同じ規則
-/// (その形態の券種があり、チケット代をまだ記録していない)。並びは渡された順のまま。
+/// (その形態の券種があり、その形態のチケット代をまだ記録していない) を、付いている
+/// 形態ごとに当てる。並びは渡された順のまま、1 公演の中は形態の語彙順。
 pub fn ticket_expense_backfill(inputs: &[TicketBackfillInput]) -> Vec<TicketBackfillItem> {
     inputs
         .iter()
-        .filter_map(|input| {
-            let prompt = ticket_expense_prompt(
-                &input.tickets,
-                &input.attendance_type,
-                &input.existing_expense_categories,
-            )?;
-            let preselected = default_ticket(&prompt.tickets, prompt.kind);
-            Some(TicketBackfillItem {
-                show_id: input.show_id.clone(),
-                kind: prompt.kind,
-                tickets: prompt.tickets,
-                preselected,
-            })
+        .flat_map(|input| {
+            crate::domain::attendance::attendance_types(Some(&input.attendance_type))
+                .into_iter()
+                .filter_map(|attendance| {
+                    let prompt =
+                        ticket_expense_prompt(&input.tickets, &attendance, &input.existing_expenses)?;
+                    let preselected = default_ticket(&prompt.tickets, prompt.kind);
+                    Some(TicketBackfillItem {
+                        show_id: input.show_id.clone(),
+                        kind: prompt.kind,
+                        tickets: prompt.tickets,
+                        preselected,
+                    })
+                })
+                .collect::<Vec<_>>()
         })
         .collect()
 }
@@ -314,6 +360,25 @@ pub fn ticket_kind_from_attendance(text_value: &str) -> TicketKind {
     }
 }
 
+/// 券の形態の保存値 (`show_tickets.kind` / `expenses.ticket_kind`)。参加形態の語と同じ。
+pub fn ticket_kind_raw(kind: TicketKind) -> String {
+    let [live, stream, live_viewing] = &crate::domain::vocabulary::ATTENDANCE_TYPES;
+    match kind {
+        TicketKind::Live => live,
+        TicketKind::Stream => stream,
+        TicketKind::LiveViewing => live_viewing,
+    }
+    .value
+    .to_string()
+}
+
+/// 保存値 → 券の形態。知らない値は `None` ([`ticket_kind_from_attendance`] と違い現地に倒さない)。
+fn ticket_kind_from_raw(raw: &str) -> Option<TicketKind> {
+    [TicketKind::Live, TicketKind::Stream, TicketKind::LiveViewing]
+        .into_iter()
+        .find(|k| ticket_kind_raw(*k) == raw)
+}
+
 /// 形態の表示名。語は参加形態と同じ ([`crate::domain::vocabulary::ATTENDANCE_TYPES`] の短い形)。
 pub fn ticket_kind_label(kind: TicketKind) -> String {
     let [live, stream, live_viewing] = &crate::domain::vocabulary::ATTENDANCE_TYPES;
@@ -397,37 +462,87 @@ mod tests {
         assert_eq!(prompt.tickets, tickets_for_kind(&tickets, TicketKind::Live));
         // 形態なし (旧データ) は現地扱い。
         assert_eq!(ticket_expense_prompt(&tickets, "", &[]).map(|p| p.kind), Some(TicketKind::Live));
-        // チケット代を記録済みなら聞かない。ほかの費目は関係ない。
-        assert!(ticket_expense_prompt(&tickets, "live", &["ticket".to_string()]).is_none());
-        assert!(ticket_expense_prompt(&tickets, "live", &["transport".to_string()]).is_some());
+        // その形態のチケット代を記録済みなら聞かない。ほかの費目は関係ない。
+        assert!(ticket_expense_prompt(&tickets, "live", &[recorded("ticket", Some("live"), None)]).is_none());
+        assert!(ticket_expense_prompt(&tickets, "live", &[recorded("transport", None, None)]).is_some());
+        // 現地のチケット代があっても、あとから足した配信は聞く (現地 + アーカイブ購入)。
+        let live_recorded = [recorded("ticket", Some("live"), Some("S席"))];
+        assert_eq!(
+            ticket_expense_prompt(&tickets, "stream", &live_recorded).map(|p| p.kind),
+            Some(TicketKind::Stream)
+        );
         // その形態の券が無ければ聞かない。
         let live_only: Vec<ShowTicket> =
             tickets.iter().filter(|t| t.kind == TicketKind::Live).cloned().collect();
         assert!(ticket_expense_prompt(&live_only, "live_viewing", &[]).is_none());
     }
 
+    fn recorded(category: &str, kind: Option<&str>, note: Option<&str>) -> RecordedShowExpense {
+        RecordedShowExpense {
+            category: category.into(),
+            ticket_kind: kind.map(Into::into),
+            note: note.map(Into::into),
+        }
+    }
+
+    /// 形態を持たない古いチケット代は、メモの券種名から形態を読む。読めなければ全部記録済み。
+    #[test]
+    fn legacy_ticket_rows_are_read_by_note_or_block_everything() {
+        let tickets = sample();
+        let legacy = |note: Option<&str>| [recorded("ticket", None, note)];
+        // 確認シートで記録した行 (メモ = 券種名)。
+        assert!(ticket_kind_recorded(TicketKind::Live, &tickets, &legacy(Some("S席"))));
+        assert!(!ticket_kind_recorded(TicketKind::Stream, &tickets, &legacy(Some("S席"))));
+        assert!(ticket_kind_recorded(TicketKind::Stream, &tickets, &legacy(Some("配信 (アーカイブ付き)"))));
+        let mut estimate = tickets.clone();
+        estimate[0].is_estimate = true;
+        assert!(!ticket_kind_recorded(TicketKind::Stream, &estimate, &legacy(Some("S席 (推定)"))));
+        assert!(ticket_kind_recorded(TicketKind::Live, &estimate, &legacy(Some("S席 (推定)"))));
+        // 手で入れた行 (メモが券種名でない・無い) は形態が分からないので、どれも記録済み。
+        for kind in [TicketKind::Live, TicketKind::Stream, TicketKind::LiveViewing] {
+            assert!(ticket_kind_recorded(kind, &tickets, &legacy(Some("一般"))));
+            assert!(ticket_kind_recorded(kind, &tickets, &legacy(None)));
+        }
+        // 知らない形態の保存値も同じ (古いメモの読み方に倒す)。
+        assert!(ticket_kind_recorded(TicketKind::Stream, &tickets, &[recorded("ticket", Some("x"), None)]));
+    }
+
+    #[test]
+    fn ticket_kind_raw_round_trips() {
+        for kind in [TicketKind::Live, TicketKind::Stream, TicketKind::LiveViewing] {
+            assert_eq!(ticket_kind_from_raw(&ticket_kind_raw(kind)), Some(kind));
+            assert_eq!(ticket_kind_from_attendance(&ticket_kind_raw(kind)), kind);
+        }
+    }
+
     #[test]
     fn backfill_lists_unrecorded_shows_and_preselects_only_a_single_candidate() {
-        let input = |show: &str, attendance: &str, tickets: Vec<ShowTicket>, existing: &[&str]| {
+        let input = |show: &str, attendance: &str, tickets: Vec<ShowTicket>, existing: Vec<RecordedShowExpense>| {
             TicketBackfillInput {
                 show_id: show.into(),
                 attendance_type: attendance.into(),
                 tickets,
-                existing_expense_categories: existing.iter().map(|s| s.to_string()).collect(),
+                existing_expenses: existing,
             }
         };
         let items = ticket_expense_backfill(&[
             // 現地の券が 2 種 → 候補に出すが選ばせる。
-            input("multi", "live", sample(), &[]),
+            input("multi", "live", sample(), vec![]),
             // LV は 1 種 → 最初から選んでおく。ほかの費目があっても関係ない。
-            input("single", "live_viewing", sample(), &["transport"]),
+            input("single", "live_viewing", sample(), vec![recorded("transport", None, None)]),
             // 記録済み → 出さない。
-            input("done", "live", sample(), &["ticket"]),
+            input("done", "live", sample(), vec![recorded("ticket", Some("live"), None)]),
             // 券種が無い → 出さない。
-            input("none", "live", vec![], &[]),
+            input("none", "live", vec![], vec![]),
+            // 現地 + 配信で参加し、現地だけ記録済み → 配信だけ出す。
+            input("both", "live,stream", sample(), vec![recorded("ticket", Some("live"), None)]),
         ]);
         let ids: Vec<&str> = items.iter().map(|i| i.show_id.as_str()).collect();
-        assert_eq!(ids, ["multi", "single"]);
+        assert_eq!(ids, ["multi", "single", "both"]);
+        assert_eq!(items[2].kind, TicketKind::Stream);
+        // どちらも未記録なら形態ごとに 2 つ出る。
+        let both = ticket_expense_backfill(&[input("both", "stream,live", sample(), vec![])]);
+        assert_eq!(both.iter().map(|i| i.kind).collect::<Vec<_>>(), [TicketKind::Live, TicketKind::Stream]);
         assert_eq!(items[0].preselected, None);
         assert_eq!(items[0].tickets.len(), 2);
         assert_eq!(items[1].kind, TicketKind::LiveViewing);

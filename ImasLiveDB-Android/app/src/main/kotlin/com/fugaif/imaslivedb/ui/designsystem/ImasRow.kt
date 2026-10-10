@@ -905,14 +905,6 @@ fun ImasStepperRow(
     unit: String? = null,
     position: ImasRowPosition? = null
 ) {
-    val haptics = rememberImasHaptics()
-    fun change(next: Int) {
-        val clamped = next.coerceIn(range.first, range.last)
-        if (clamped != value) {
-            haptics.selection()
-            onValueChange(clamped)
-        }
-    }
     ImasRow(
         title = title,
         modifier = modifier,
@@ -921,14 +913,7 @@ fun ImasStepperRow(
         trailing = ImasRowTrailing.Custom {
             Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
                 ImasMetric("$value", unit = unit, size = ImasNumeralSize.MEDIUM, emphasized = true)
-                Row(
-                    Modifier.background(DS.fill, RoundedCornerShape(DS.rControl(DS.Size.chip))),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StepperHalf(Icons.Filled.Remove, "$title を減らす", enabled = value > range.first) { change(value - step) }
-                    Box(Modifier.width(1.dp).height(18.dp).background(DS.line))
-                    StepperHalf(Icons.Filled.Add, "$title を増やす", enabled = value < range.last) { change(value + step) }
-                }
+                ImasStepper(title, value, onValueChange, range, step)
             }
         },
         density = ImasRowDensity.COMPACT,
@@ -936,6 +921,30 @@ fun ImasStepperRow(
         titleRole = ImasTextRole.ROW_LABEL,
         position = position
     )
+}
+
+/**
+ * − | + の溝だけ (iOS の OS の `Stepper`)。行の外で数を刻むとき (明細の品目の点数など) に使う。
+ * 行に置くなら [ImasStepperRow]。
+ */
+@Composable
+fun ImasStepper(label: String, value: Int, onValueChange: (Int) -> Unit, range: IntRange, step: Int = 1) {
+    val haptics = rememberImasHaptics()
+    fun change(next: Int) {
+        val clamped = next.coerceIn(range.first, range.last)
+        if (clamped != value) {
+            haptics.selection()
+            onValueChange(clamped)
+        }
+    }
+    Row(
+        Modifier.background(DS.fill, RoundedCornerShape(DS.rControl(DS.Size.chip))),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StepperHalf(Icons.Filled.Remove, "$label を減らす", enabled = value > range.first) { change(value - step) }
+        Box(Modifier.width(1.dp).height(18.dp).background(DS.line))
+        StepperHalf(Icons.Filled.Add, "$label を増やす", enabled = value < range.last) { change(value + step) }
+    }
 }
 
 @Composable

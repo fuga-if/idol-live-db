@@ -285,6 +285,8 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
        ('d1', 'song-a', 't1', 0), ('d2', 'song-a', 't1', 0), ('d1', 'song-a', 't2', 0), ('d1', 'song-b', 't3', 0)`
     );
     await exec("INSERT INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES ('d1', 'idol-c', 'it1', 0)");
+    // 運営が入れた票 (公式タグの初期値) は知らせない。
+    await exec("INSERT INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES ('official:seed', 'idol-d', 'it1', 0)");
 
     fetchMock.get("https://api.apple-cloudkit.com")
       .intercept({ path: /\/records\/lookup$/, method: "POST" })
@@ -314,6 +316,7 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
     expect(posted.content).toContain("曲にタグ** 1曲");
     expect(posted.content).toContain("アイドルにタグ** [如月千早](<https://idollivedb.fugaapp.site/idols/idol-c/>) #歌姫");
     expect(posted.content).not.toContain("消えた");
+    expect(posted.content).not.toContain("idol-d");
   });
 
   it("編集は項目ごとの変更前→変更後と、セトリの追加・削除・曲順を出す", async () => {
@@ -409,6 +412,36 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
     expect(posted.embeds[2].url).toBe("https://idollivedb.fugaapp.site/events/e1/");
     expect(posted.embeds[2].description).toBe("・チケット受付：＋ 一般抽選");
     expect(JSON.stringify(posted)).not.toContain("ytref_");
+  });
+
+  it("歌詞の投稿は新規・直し・保留に分けて曲だけ出す (本文と投稿者は出さない。1 分たってから)", async () => {
+    await runScheduled(cron, digestEnv()); // 位置を覚えるだけ
+    const sub = (id: string, song: string, published: boolean, age = "-2 minutes") =>
+      exec(
+        `INSERT INTO lyric_submissions (id, song_id, user_id, body, line_count, created_at, published_at)
+         VALUES (?, ?, ?, 'ないしょの歌詞', 1, datetime('now', ?), ${published ? "datetime('now')" : "NULL"})`,
+        id, song, UID, age
+      );
+    await sub("l1", "song-new", true);
+    await sub("l2", "song-fix", true);
+    await exec(`INSERT INTO song_lyrics_versions (song_id, status, lines_json, replaced_by) VALUES ('song-fix', 'published', '[]', 'l2')`);
+    await sub("l3", "song-held", false);
+    await sub("l4", "song-just-now", true, "+0 seconds");
+
+    let posted: any = null;
+    fetchMock.get(DISCORD).intercept({ path: `/api/v10/channels/${CHANNEL}/messages`, method: "POST" })
+      .reply(200, (opts) => {
+        posted = JSON.parse(String(opts.body));
+        return {};
+      });
+    await runScheduled(cron, digestEnv());
+
+    const text: string = posted.content;
+    expect(text).toContain("歌詞の投稿** 新規 [song-new](<https://idollivedb.fugaapp.site/songs/song-new/>) ／ 直し [song-fix]");
+    expect(text).toContain("／ 保留 [song-held]");
+    expect(text).not.toContain("song-just-now");
+    expect(text).not.toContain("ないしょの歌詞");
+    expect(text).not.toContain(UID);
   });
 
   it("Bot トークンが無ければ何もしない", async () => {

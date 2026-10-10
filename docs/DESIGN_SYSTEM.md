@@ -110,7 +110,7 @@
 **唯一の正** アイドルは `IdolPickerView`、ユニットは `UnitMultiPickerView`、曲は `SongSearchPickerView`。同じ役割のピッカーを新しく作らない。
 
 ### 2.6 絞り込みシート `FilterSheet`
-**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、ブランドは `ImasBrandPicker` (チップ。ロゴを読み込んだブランドはロゴ)、並び順などの切り替えは `ImasSegmented`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
+**組み方** `List` + `.imasFilterSheetChrome()` + `filterSheetToolbar` (左=リセット、右=適用。リセットはツールバーにだけ)。区画は `ImasListSection`。中身は `ImasChipFlow` + `ImasFilterChip`、ブランドは `ImasBrandPicker` (判子の格子 `ImasBrandCell`。ロゴを読み込んだブランドはロゴ)、並び順などの切り替えは `ImasSegmented`、`ImasToggleRow`、細かい選択へ進む `ImasNavRow`。
 **やらない** 絞り込み条件を 1 画面に 2 か所 / 一覧の中にリセットの区画。
 
 ### 2.7 設定 `SettingsScreen`
@@ -280,7 +280,8 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **使う** 設定、マイページ、ハブの入口の一覧、フォームから細かい選択へ進むとき。
 
 ### 5.11 `ImasToggleRow` / `ImasMenuRow` / `ImasStepperRow`
-- 設定・絞り込み・フォームのスイッチ・選択肢・数。中身は OS の `Toggle` / `Picker(.menu)` / `Stepper` で、題と補足 (`subtitle`) の文字だけ部品が揃える。
+- 設定・絞り込み・フォームのスイッチ・選択肢・数。中身は OS の `Toggle` / `Picker(.menu)` で、題と補足 (`subtitle`) の文字だけ部品が揃える。数の増減は `ImasStepper` (− | + の溝。`fill` の地・`rControl(chip)` の角・間に `line` の縦線)。
+- `ImasStepper` は行の外でも単独で使う (明細取り込みの品目の「記録する数」など)。OS の `Stepper` は画面に直接置かない。
 
 ### 5.12 `ImasActionRow` 行の形のボタン
 - **種類** `.standard` (「＋ 曲を追加」など、文字は `accent`) / `.destructive` (「このライブを削除」、文字は `danger`)。
@@ -338,7 +339,10 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - `ImasUnitCell` — ユニットの名札。`ImasIdolCell` のユニット版 (上の帯はブランド色)。下段のアイコンは `ImasUnitAvatar`
   (登録画像があれば画像、無ければブランド色の面 + `person.3.fill` のモノグラム。判子ではなく記号な点がアイドルと違う)。`metric` とピッカーの `isSelected` は `ImasIdolCell` と同じ。
 - `ImasArtworkCell` — ジャケ + 曲名/アルバム名。3 列。
-- ブランドの選び方は格子にせず `ImasBrandPicker` (チップ)。
+- `ImasBrandCell` — ブランドの判子 48 + 名前。判子は読み込んだロゴ、無ければ紙の白 + ブランド色の輪と略称 (765 / デレ / ミリ …、`Brand.iconText`)。
+  選んだものは判子をブランド色で塗りつぶし名前を墨の太字に、選んでいないものは紙の判子のまま名前を灰に (淡い色の地は敷かない)。
+  `ImasBrandPicker` がこれを格子に並べる (ゲームの設定・絞り込みシート・投票の作成)。一覧の上に常に出すピッカーの頭 (アイドル・ユニットを選ぶ) だけは
+  リストの場所を食わないよう `layout: .row` でチップ 1 段 (`ImasChipRow`)。新しいデザインで一度チップにしてブランドのアイコンが消えたのはデグレとして戻した (2026-10-07)。
 
 ### 6.7 会場の部品
 - **`ImasTicket`** 紙のチケット。次のライブ・次の出演・記録する公演。上に印字の目印 (`ADMIT ONE · 参加予定`)、題、日付と会場。
@@ -373,6 +377,9 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 - **`ImasStepList`** 手順 1・2・3。番号は等幅の墨丸の札。手順に写真・図解を添えたいときは `media` (任意の View) を渡す (ウィジェットの使い方など)。複数のカードに分けて続き番号にしたいときは `startIndex` を渡す。
 - **`ImasPointList`** アイコン付きの箇条書き。順序を持たない特徴・利点の列挙 (ログイン誘導の案内など)。番号が付く `ImasStepList` との違いは、順番に意味が無いこと。
 - **使わない** 一覧の絞り込み条件の列挙 → `ImasFilterBar` / 区画の補足 1 行 → `ImasNote`。
+- **`ImasMockBrowser` / `ImasMockButton` / `ImasMockField` / `ImasMockCheck`** 手順の図に置く、よその Web 画面の見立て (Spotify の開発者サイトなど)。`ImasStepList` の `media` に入れる。
+  本物の見た目 (ロゴ・ブランド色) は写さず、内側の窓 (`ImasCard(style: .inset)`) に URL と押す所だけを描く。押す所は墨で塗り、触る欄には「ここ」の札 (`.lead`)、使わない欄は「使わない」の札。
+  図の中の英語は相手の画面の表記そのまま (探すときに同じ字面で見つけられるように)。読み上げからは隠す (手順の文が同じことを言う)。実例: `SpotifyHowToView`。
 
 ### 6.11 `ImasTagHeaderCard` タグ詳細の頭
 - **用途** 曲・アイドル・ユニットのタグ詳細で共通の頭 (§2.2 の「頭」のタグ版)。
@@ -457,6 +464,7 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
 | `ImasFilterField` | 絞り込みシートの「名前で絞り込み」 | 絞り込み記号 + 入力 + ⊗ |
 | `ImasTextFieldRow` | フォームの 1 行入力 | 項目名 + 入力 + 入力の下に誤りの文 (`danger` 13pt) |
 | `ImasTextAreaRow` | 複数行 (メモ・説明・補足) | プレースホルダ + 文字数 |
+| `ImasFormSelectableTextArea` | 申込書の複数行で、選んでいる範囲を使う (iOS 18 から。歌詞の読み仮名を選んだ字に付ける) | `ImasFormTextArea` と同じ見た目 + 選択の束縛 |
 | `ImasAmountField` | 金額 (収支) | 「¥」+ 等幅数字 + 桁区切り |
 | `ImasDateRow` | 日付・時刻 | OS の DatePicker (compact) |
 | `ImasColorPicker` | タグの色など | 色の丸 + 選んだ色に ✓、色名を読み上げ |
@@ -728,10 +736,11 @@ ImasSection("ライブ歌唱曲", count: "42曲", action: .seeAll { ... }, foote
   - `ImasTierBoard` 段を縦に積む枠 (段の間は 2pt の隙間、外を角丸で切る)。
   - `ImasTierRow` 1 段。左に段の色の札、右に置いたものの面 (最小高 72)。
   - `ImasTierItems` 段の中 (`.flow` 回り込み) と未分類 (`.grid` 見えている分だけ描く格子)。空のときは 1 行の文。
-  - `ImasTierChip` 置く 1 枚 (ジャケかアイコン 52 + 名前 1 行)。
+  - `ImasTierChip` 置く 1 枚 (ジャケかアイコン 52 + 名前 1 行)。ドラッグが上に来ている間は左の隙間 (6pt) の真ん中に墨の 3pt の縦線を出す (「この左に入る」)。
   - `ImasTierLabel` 段の色の札。`.row` (行の頭) / `.button` (移す先) / `.swatch` (編集の色見本)。2 文字以下は大きく、長い名前は小さく 2 行まで。
   - `ImasTierMoveBar` 選んでいる間だけ下に出す「〇〇をどこへ？」の帯 (段のボタンを 6 列で折り返し + 未分類へ)。
 - **状態** 何かを選んでいるときだけ、札と面が「ここへ移す」の押し先になる (`isTarget`)。選んだ 1 枚は段の色の地と枠で浮く。
+- **段の中の左右** 段の中の札の上に落とす (または選んだまま別の札をタップする) とその左に入り、段の余白に落とすとその段の右端に入る。並びは表全体で 1 本 (`TierListBoard.order`) を保存し、規則はコア (`tier_list_move_item`)。未分類は対象の並びのまま見せる。Android は長押しのまま離すと詳細、長押しから動かすとドラッグ (`imasTierDropTarget` が落とし先)。
 - **色** 段ごとのシード (`TierDef.colorSeed`) を色エンジンに通した `accent` / `onAccent`。
 
 ---

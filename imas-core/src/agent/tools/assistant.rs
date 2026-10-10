@@ -31,7 +31,7 @@ pub fn progress_label(name: &str) -> &'static str {
     match name {
         "my_attended_shows" => "参戦履歴を見ています…",
         "resolve" | "search" => "データベースを検索しています…",
-        "get_idol" | "list_idols" => "アイドルを調べています…",
+        "get_idol" | "get_idol_facts" | "list_idols" => "アイドルを調べています…",
         "get_song" | "list_songs" => "曲を調べています…",
         "idol_songs" | "songs_for_cast" => "持ち歌を調べています…",
         "get_event" | "list_events" | "list_shows" => "ライブを調べています…",

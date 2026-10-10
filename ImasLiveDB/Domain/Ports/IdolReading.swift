@@ -9,6 +9,8 @@ import Foundation
 protocol IdolReading: Sendable {
     /// ブランド絞り込み (nil で全件) のアイドル一覧。
     func idols(brandId: String?) async throws -> [Idol]
+    /// 複数ブランドのアイドル一覧 (空で全件)。両方のブランドに居る人は 1 回だけ (コア `idol_list_in_brands`)。
+    func idols(brandIds: Set<String>) async throws -> [Idol]
     /// 単一アイドル。
     func idol(id: String) async throws -> Idol?
     /// id 集合に該当するアイドル。

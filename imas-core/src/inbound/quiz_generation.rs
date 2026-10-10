@@ -17,7 +17,7 @@
 
 use crate::domain::prng::SplitMix64;
 use crate::domain::quiz_generation::{
-    self as quiz, IdolQuizFact, IdolQuizHintState, IdolQuizIdolRef, IdolQuizPoolEstimate,
+    self as quiz, IdolQuizFact, IdolQuizHintState, IdolQuizIdolRef, IdolQuizMode, IdolQuizPoolEstimate,
     IdolQuizQuestion, QuizAnswerOutcome, QuizGrade, QuizSessionResult, QuizTally,
     SongQuizHintKind, SongQuizOriginalArtistRow, SongQuizSingerRef, SongSingerQuizHintState,
     SongSingerQuizPoolEstimate, SongSingerQuizQuestion, IDOL_QUIZ_BASE_POINTS, SESSION_LENGTH,
@@ -58,15 +58,18 @@ pub fn idol_quiz_pool_estimate(
 
 /// 1 ゲーム分の出題をまとめて生成する (問題ごとに呼ばない)。
 /// 返る index は引数 `idols` を指す。候補不足なら空。
+/// `Hard` は選択肢が出題候補の全員になる (同じシードでも `Normal` と出題順は変わる)。
 #[uniffi::export]
 pub fn idol_quiz_session(
     idols: Vec<IdolQuizIdolRef>,
     selected_brand_ids: Vec<String>,
+    mode: IdolQuizMode,
     seed: u64,
 ) -> Vec<IdolQuizQuestion> {
     quiz::idol_quiz_session(
         &idols,
         &selected_brand_ids,
+        mode,
         SESSION_LENGTH,
         &mut SplitMix64(seed),
     )

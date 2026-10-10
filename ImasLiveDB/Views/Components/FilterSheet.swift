@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Brand Filter Section (shared across filter sheets)
 
-/// ブランド絞り込みの区画。見た目は `ImasBrandPicker` (チップを折り返して並べる)。
+/// ブランド絞り込みの区画。見た目は `ImasBrandPicker` (ブランドの判子の格子)。
 struct BrandFilterSection: View {
     let brands: [Brand]
     /// 空集合 = 全ブランド対象。 複数選択は OR (= IN) で結合される。

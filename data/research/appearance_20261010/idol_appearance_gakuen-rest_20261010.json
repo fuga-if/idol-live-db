@@ -1,0 +1,246 @@
+{
+ "title": "アイドルの容姿 学マスと残り",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "gakuen_藤田ことね",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み,リボン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=fujita_kotone (solo タグ集計)",
+   "note": "金 195/200、twin_braids 164、hair_ribbon 92。低めの二つ結び三つ編み"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_紫雲清夏",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,ヘアピン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=shiun_sumika (solo タグ集計)",
+   "note": "orange 112/134、金10。straight 54、hairclip 38"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_有村麻央",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,片目隠れ"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=arimura_mao (solo タグ集計)",
+   "note": "pink 175/200、short 158。hair_over_one_eye 55 で片目隠れは約 1/4 だが特徴的なので付けた。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_葛城リーリヤ",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み,ヘアバンド"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=katsuragi_lilja (solo タグ集計)",
+   "note": "grey 167+white 21 /200。tag は short が多いが画像で確認すると前髪側は短く背中に長い三つ編みを垂らすのでロング。ヘアバンド(青)確認。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_花海咲季",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ツーサイドアップ"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=hanami_saki (solo タグ集計)",
+   "note": "brown 116 / red 69 /200で割れた。赤みのある茶。two_side_up 119、long 153。お団子(bun 39)は衣装違いと判断して除外"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_十王星南",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,メッシュ"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=juo_sena (solo タグ集計)",
+   "note": "blonde 180/196、毛先がピンク(pink 90, streaked 89, gradient 17)。メッシュ扱い"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_姫崎莉波",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "お団子"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=himesaki_rinami (solo タグ集計)",
+   "note": "brown 185/200、long 152、hair_bun 51。お団子は全体の1/4で衣装差の可能性。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_雨夜燕",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=amaya_tsubame (solo タグ集計)",
+   "note": "black 54/68、ponytail 49(high_ponytail 18)。標本 68 件と少なめ"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_月村手毬",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,アホ毛"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=tsukimura_temari (solo タグ集計)",
+   "note": "green 141/200、black 18、blue 17。antenna_hair 44 + ahoge 13。黒緑なので要目視"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_篠澤広",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,ヘアピン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=shinosawa_hiro (solo タグ集計)",
+   "note": "blonde 161/200、grey 17。淡い金。hairclip 61。flipped_hair 16 (跳ね毛)も少数"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_花海佑芽",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=hanami_ume (solo タグ集計)",
+   "note": "brown 173/200、orange 53、gradient 76 (毛先が橙)。medium 59 / long 24 / short 21。ahoge 151。hair_bun 45 は一部と判断し除外"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_秦谷美鈴",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,髪飾り"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=hataya_misuzu (solo タグ集計)",
+   "note": "purple 153/200、short 170、hair_flower 103、bob_cut 7"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_倉本千奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,髪飾り"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=kuramoto_china (solo タグ集計)",
+   "note": "brown 164/200、blonde 17、long 172、straight 39、hair_ornament 70"
+  },
+  {
+   "table": "idols",
+   "id": "876_上水流宇宙",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ロング",
+    "hair_style": "髪飾り"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=kamizuru_cosmo (solo タグ集計)",
+   "note": "solo 9 件のみで低信頼。purple 9/9、毛先が青系グラデ(gradient 4, multicolored 5)。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "876_灯里愛夏",
+   "fields": {
+    "hair_color": "赤"
+   },
+   "source": "https://mzh.moegirl.org.cn/ (WebSearch 要約経由。ページ本体は 403 で未読)",
+   "note": "萌娘百科の検索要約に「红发・白发(渐变)」とあるのみ。safebooru にタグ無し。長さ・髪型は不明。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "876_サラ_レトラ_オリヴェイラ_ウタガワ",
+   "fields": {
+    "hair_color": "金",
+    "hair_style": "メッシュ"
+   },
+   "source": "https://mzh.moegirl.org.cn/ (WebSearch 要約経由。ページ本体は 403 で未読)",
+   "note": "萌娘百科(蕾特拉)の検索要約に「黄发挑染」とあるのみ。長さは不明。safebooru にタグ無し。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "961_奥空心白",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ヘアバンド"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=okuzora_kohaku (solo タグ集計)",
+   "note": "solo 24 件のみ。blonde 19、short 21、hairband 20、hair_over_one_eye 10"
+  },
+  {
+   "table": "idols",
+   "id": "cg_イヴ_サンタクロース",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=eve_santaclaus (solo タグ集計)",
+   "note": "white 44 / silver 20 /78。白は選択肢に無いので銀(白銀)。long 70。ストレートは 3 件のみで記憶ベース"
+  },
+  {
+   "table": "idols",
+   "id": "cg_ケイト",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=kate_(idolmaster) (solo タグ集計)",
+   "note": "solo 18 件。brown 18、short 8 / medium 1(残りは未タグ)。wavy 2 件。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "765as_玲音",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=leon_(idolmaster) (solo タグ集計)",
+   "note": "solo 9 件のみで低信頼。orange 6、ponytail 6、long 9。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "765as_詩花",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,リボン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=shiika_(idolmaster) (solo タグ集計)",
+   "note": "solo 30 件。green 26、short 12 / medium 11 で割れた。hair_bow 14。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_ピエール",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=pierre_(idolmaster) (solo タグ集計)",
+   "note": "solo 50 件。blonde 43、short 22、ahoge 9"
+  }
+ ]
+}

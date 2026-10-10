@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.songs
 
+import uniffi.imas_core.authAdminCapabilities
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -21,7 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QueueMusic
@@ -137,6 +138,8 @@ fun SongLyricsTab(
     isLyricsLoading: Boolean,
     onReload: () -> Unit,
     originalArtists: List<Idol> = emptyList(),
+    /** 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。null なら出さない (投稿の対象外・受付停止)。 */
+    onSubmitLyrics: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -146,6 +149,8 @@ fun SongLyricsTab(
     val canEdit = authState.isSignedIn
 
     var isEditingStructure by remember { mutableStateOf(false) }
+    // 非 null = この行の文字を直すシートを開いている。
+    var lineEditTarget by remember { mutableStateOf<LyricLine?>(null) }
     var structureBusyLineId by remember { mutableStateOf<String?>(null) }
     var structureMenuLineId by remember { mutableStateOf<String?>(null) }
     var structureError by remember { mutableStateOf<String?>(null) }
@@ -258,7 +263,9 @@ fun SongLyricsTab(
             )
             lyricsResult is LyricsResult.NotFound || lyrics == null || !lyrics.hasContent -> ImasEmptyState(
                 icon = Icons.Filled.FormatQuote, title = "歌詞はまだありません",
-                message = "この曲の歌詞はまだ登録されていません。"
+                message = "この曲の歌詞はまだ登録されていません。",
+                actionTitle = if (onSubmitLyrics == null) null else "歌詞を投稿",
+                onAction = onSubmitLyrics
             )
             else -> {
                 if (lyrics.isDraft) {
@@ -298,7 +305,8 @@ fun SongLyricsTab(
                                         lineId,
                                         if (isRuby) StructureChange.RubyBase(lineId, at, base) else StructureChange.Ruby(lineId, at, base)
                                     )
-                                }
+                                },
+                                onEditLine = { lineEditTarget = it }
                             )
                         }
                     }
@@ -315,6 +323,15 @@ fun SongLyricsTab(
                 if (!lyrics.source.isNullOrEmpty()) {
                     ImasNote("出典: ${lyrics.source}", modifier = Modifier.padding(top = DS.sp2))
                 }
+                LyricsColophon(
+                    songId = song.id,
+                    credit = lyrics.submittedBy,
+                    isDraft = lyrics.isDraft,
+                    isSignedIn = authState.isSignedIn,
+                    canModerate = authAdminCapabilities(authState.isAdmin).canEditLyrics,
+                    onChanged = onReload,
+                    modifier = Modifier.padding(top = DS.sp2)
+                )
             }
         }
         if (lyrics != null) NexToneLicenseNotice()
@@ -336,6 +353,15 @@ fun SongLyricsTab(
             LyricTimingEditorScreen(
                 song = song, seed = seed, lyrics = lyrics, recorder = activeRecorder,
                 onSaved = onReload, onClose = { recorder = null }, cast = partCast
+            )
+        }
+    }
+    val editTarget = lineEditTarget
+    if (editTarget != null) {
+        Dialog(onDismissRequest = { lineEditTarget = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            com.fugaif.imaslivedb.ui.lyrics.LyricLineEditScreen(
+                songId = song.id, line = editTarget,
+                onSaved = onReload, onDismiss = { lineEditTarget = null }
             )
         }
     }
@@ -368,10 +394,10 @@ private fun EditBar(
         Spacer(Modifier.weight(1f))
         when {
             isEditingStructure -> {
-                ImasButton(title = "区切りの編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
+                ImasButton(title = "行の編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
             }
             else -> {
-                ImasIconButton(icon = Icons.Filled.ContentCut, label = "行の区切りを編集", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
+                ImasIconButton(icon = Icons.Filled.Edit, label = "歌詞の行を直す・区切る", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
                 ImasIconButton(icon = Icons.Filled.QueueMusic, label = "歌詞プレイヤー", size = ImasIconButtonSize.SMALL, onClick = onOpenPlayer)
                 // 歌詞の時刻・コールの時刻・パート分けは、どれもこの 1 つの入口から (段を切り替える)。
                 ImasIconButton(icon = Icons.Filled.Speed, label = "タイミング・パートを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
@@ -528,7 +554,8 @@ private fun StructureBody(
     onSplit: (String, Int) -> Unit,
     onMerge: (String, LyricJoiner) -> Unit,
     onToggleRuby: (String, Int, Boolean) -> Unit,
-    onRubyBase: (String, Int, Boolean, Int) -> Unit
+    onRubyBase: (String, Int, Boolean, Int) -> Unit,
+    onEditLine: (LyricLine) -> Unit
 ) {
     lyrics.lines.forEachIndexed { index, line ->
         when (line.kind) {
@@ -554,8 +581,14 @@ private fun StructureBody(
                         onRubyBase = { at, isRuby, base -> onRubyBase(line.id, at, isRuby, base) }
                     )
                     val nextIsLyric = index + 1 < lyrics.lines.size && lyrics.lines[index + 1].kind == LyricLineKind.LYRIC
-                    if (nextIsLyric) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        // 文字を直す (この 1 行だけ。行の数は変わらないので注釈は残る)。
+                        ImasIconButton(
+                            icon = Icons.Filled.Edit, label = "この行を直す",
+                            size = ImasIconButtonSize.SMALL, enabled = busyLineId == null,
+                            onClick = { onEditLine(line) }
+                        )
+                        if (nextIsLyric) {
                             Box {
                                 ImasIconButton(
                                     icon = Icons.Filled.Link, label = "次の行とくっつける",

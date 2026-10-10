@@ -48,7 +48,8 @@ import kotlinx.coroutines.launch
  *
  * 現地/配信/LV の 3 択を swipe のボタンに直接並べると実機の幅を超える (iOS は文字だけにして
  * しのいでいるが、取消を含め 4 択は Android の行幅でも苦しい)。右に引くとまずシートを開き、
- * そこで形態を選ぶ (習熟度画面の群一覧が右スワイプでシートを出しているのと同じ作り)。
+ * そこで形態を付け外しする (習熟度画面の群一覧が右スワイプでシートを出しているのと同じ作り)。
+ * 形態は複数付けられる (現地で見て配信のアーカイブも買った)。
  * 左スワイプは使わない — 端から引くと OS の「戻る」に取られて画面ごと閉じる
  * (エミュで実測済み)。取り消しはシートの中に置く。
  *
@@ -65,16 +66,17 @@ fun AttendanceSwipeRow(
     val context = LocalContext.current
     val marks = remember { AppModule.from(context).userMarkRepository }
     val scope = rememberCoroutineScope()
-    var current by remember(showId) { mutableStateOf<AttendanceType?>(null) }
+    var current by remember(showId) { mutableStateOf<List<AttendanceType>>(emptyList()) }
     var showSheet by remember { mutableStateOf(false) }
 
-    LaunchedEffect(showId) { current = marks.attendance(UserMark.SHOW, showId) }
+    LaunchedEffect(showId) { current = marks.attendedTypes(UserMark.SHOW, showId) }
 
     ImasSwipe(
         leading = listOf(
             ImasSwipeAction(
                 kind = ImasSwipeKind.ATTEND,
-                title = current?.let { "${it.label}で参加中" } ?: "参加を登録",
+                title = if (current.isEmpty()) "参加を登録"
+                else "${current.joinToString("・") { it.label }}で参加中",
                 action = { showSheet = true }
             )
         )
@@ -86,11 +88,18 @@ fun AttendanceSwipeRow(
         AttendancePickerSheet(
             showName = showName,
             current = current,
-            onSelect = { type ->
+            onToggle = { type, on ->
+                scope.launch {
+                    localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type, on) } ?: return@launch
+                    current = marks.attendedTypes(UserMark.SHOW, showId)
+                    onChange()
+                }
+            },
+            onClear = {
                 showSheet = false
                 scope.launch {
-                    localWrite("参加の記録") { marks.setAttendance(UserMark.SHOW, showId, type) } ?: return@launch
-                    current = type
+                    localWrite("参加の記録") { marks.clearAttendance(UserMark.SHOW, showId) } ?: return@launch
+                    current = emptyList()
                     onChange()
                 }
             },
@@ -152,15 +161,17 @@ fun EventAttendanceSwipeRow(
 /**
  * 公演への参加形態を選ぶシート。現地 / 配信 / LV の 3 形態を常に出す
  * ([AttendanceType.options]) — 開催情報の欠落で選べなくなるより、選び間違いのほうが
- * 実害が小さいという判断 (iOS `AttendanceAvailability` と同じ)。選択中の形態をもう一度
- * 押すと不参加に戻る。取り消しはここに置く (行のスワイプには乗せない)。
+ * 実害が小さいという判断 (iOS `AttendanceAvailability` と同じ)。形態は複数付けられ、
+ * 押すたびに付け外しする (最後の 1 つを外すと不参加)。シートは開いたまま。
+ * 取り消しはここに置く (行のスワイプには乗せない)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AttendancePickerSheet(
     showName: String?,
-    current: AttendanceType?,
-    onSelect: (AttendanceType?) -> Unit,
+    current: List<AttendanceType>,
+    onToggle: (AttendanceType, Boolean) -> Unit,
+    onClear: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -174,21 +185,20 @@ private fun AttendancePickerSheet(
                     maxLines = 2,
                     modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap)
                 )
-                ImasListSection(footer = "参加形態を選ぶ") {
+                ImasListSection(footer = "参加形態を選ぶ (現地と配信のように複数付けられます)") {
                     AttendanceType.options().forEach { type ->
-                        val on = current == type
+                        val on = type in current
                         ImasSelectableRow(
                             title = "${type.label}で参加",
                             isSelected = on,
-                            isSingle = true,
-                            onClick = { onSelect(if (on) null else type) }
+                            onClick = { onToggle(type, !on) }
                         )
                     }
                 }
-                if (current != null) {
+                if (current.isNotEmpty()) {
                     ImasActionRow(
                         title = "参加を取り消す",
-                        onClick = { onSelect(null) },
+                        onClick = onClear,
                         icon = Icons.Filled.Cancel,
                         kind = ImasActionRowKind.DESTRUCTIVE
                     )

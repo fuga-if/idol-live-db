@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// 取り込み候補の公演 1 つ (コアの候補 + 画面に出す公演名と日付)。
+/// 取り込み候補 1 つ (コアの候補 + 画面に出す公演名と日付)。
+/// 現地と配信の両方で参加した公演は形態ごとに 2 行になるので、id は公演 × 形態。
 struct TicketBackfillRow: Identifiable {
     let item: TicketBackfillItem
     let option: LedgerShowOption
-    var id: String { item.showId }
+    var id: String { "\(item.showId)|\(ticketKindRaw(kind: item.kind))" }
 }
 
 /// 過去の参加からチケット代を取り込む候補を集める。
@@ -21,14 +22,14 @@ enum TicketBackfill {
                                   by: { $0.showId ?? "" })
         var inputs: [TicketBackfillInput] = []
         for option in options {
-            guard let type = UserMarkService.shared.attendance(entity: .show, id: option.id) else { continue }
+            guard let attendance = UserMarkService.shared.attendanceText(entity: .show, id: option.id) else { continue }
             let tickets = (try? await container.showReading.tickets(showId: option.id)) ?? []
             if tickets.isEmpty { continue }
             inputs.append(TicketBackfillInput(
                 showId: option.id,
-                attendanceType: type.rawValue,
+                attendanceType: attendance,
                 tickets: tickets,
-                existingExpenseCategories: (recorded[option.id] ?? []).map(\.category)
+                existingExpenses: (recorded[option.id] ?? []).map(\.recorded)
             ))
         }
         let byId = Dictionary(uniqueKeysWithValues: options.map { ($0.id, $0) })
@@ -45,7 +46,8 @@ enum TicketBackfill {
             amount: ticket.price,
             showId: row.item.showId,
             eventId: row.option.eventId,
-            note: ticketExpenseNote(ticket: ticket)
+            note: ticketExpenseNote(ticket: ticket),
+            ticketKind: row.item.kind
         )
     }
 }
@@ -61,7 +63,7 @@ struct TicketBackfillView: View {
     /// 選んだ分を書く。
     let onSave: ([Expense]) async -> Void
 
-    /// 公演 id → 選んだ券。無い公演は記録しない。
+    /// 行 id (公演 × 形態) → 選んだ券。無い行は記録しない。
     @State private var selection: [String: ShowTicket] = [:]
     @State private var saving = false
 

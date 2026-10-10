@@ -3,12 +3,16 @@ package com.fugaif.imaslivedb.data.repository
 import com.fugaif.imaslivedb.data.db.AppDatabase
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
+import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import java.time.Instant
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.temporal.ChronoUnit
+import uniffi.imas_core.CardSamePersonChoice
+import uniffi.imas_core.CardSamePersonConfirm
 import uniffi.imas_core.CardShowRef
+import uniffi.imas_core.CardStoredRef
 import uniffi.imas_core.showDisplayTitle
 
 /**
@@ -27,7 +31,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
     suspend fun myCard(): MyProducerCard? = dao.myCard()
 
     suspend fun saveMyCard(card: MyProducerCard) {
-        dao.upsertMyCard(card.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
+        dao.upsertMyCard(card.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
     }
 
     /** 自分の名刺の行を読んで直して書くのを 1 本ずつ流す ([updateMyCard])。 */
@@ -41,7 +45,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
     suspend fun updateMyCard(transform: (MyProducerCard?) -> MyProducerCard?): MyProducerCard? =
         myCardLock.withLock {
             val next = transform(dao.myCard()) ?: return@withLock null
-            next.copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
+            next.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
         }
 
     /** 受け取った名刺 (新しく受け取った順)。 */
@@ -52,8 +56,30 @@ class ProducerCardRepository(private val db: AppDatabase) {
     /** 同じ中身の名刺が既にあればそれを返す (同じ相手を 2 回読んでも 2 枚にしない)。 */
     suspend fun receivedCardByPayload(payload: String): ReceivedProducerCard? = dao.receivedCardByPayload(payload)
 
-    /** 同じ中身の名刺が無ければ足し、あればそれを返す (探すのと足すのは 1 つの書き込み)。 */
-    suspend fun insertReceivedIfNew(card: ReceivedProducerCard): ReceivedProducerCard = dao.insertReceivedIfNew(card)
+    /**
+     * 名刺をしまう。同じ人の名刺があれば 1 枚にまとめて中身を新しい方に替え、会った記録を積む
+     * (しまい方はコアの `cardReceivePlan`。探すのと書くのは 1 つの書き込み)。同じ人か確かめる名刺は
+     * [choice] で (`UNDECIDED` なら別の名刺として足す)。
+     */
+    suspend fun receive(
+        card: ReceivedProducerCard,
+        matchSamePerson: Boolean,
+        choice: CardSamePersonChoice = CardSamePersonChoice.UNDECIDED
+    ): ReceivedProducerCard = dao.receive(card, matchSamePerson, choice)
+
+    /** 届いた名刺が名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面 (コアの `cardSamePersonConfirm`)。 */
+    suspend fun samePersonConfirm(payload: String): CardSamePersonConfirm? = dao.samePersonConfirm(payload)
+
+    /** 名刺の中身を会った記録のときの中身に戻す (詳細の「この時の名刺に戻す」)。 */
+    suspend fun restorePayload(cardId: String, meetingId: String) = dao.restorePayload(cardId, meetingId, now())
+
+    /** 会った記録 ([cardId] が null なら全部。並べ方・何回目かはコアの `cardMeetingViews`)。 */
+    suspend fun meetings(cardId: String? = null): List<ReceivedCardMeeting> =
+        if (cardId == null) dao.meetings() else dao.meetings(cardId)
+
+    /** 最後に会った記録の公演を変える (名刺の行にも写す)。 */
+    suspend fun changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?) =
+        dao.changeLatestMeetingShow(cardId, showId, showDate, now())
 
     /** 同じ id があれば上書きし、無ければ足す。 */
     suspend fun saveReceived(card: ReceivedProducerCard) {
@@ -68,8 +94,16 @@ class ProducerCardRepository(private val db: AppDatabase) {
 
     suspend fun receivedIds(): List<String> = dao.receivedIds()
 
+    /** バックアップ用の名刺入れの id と中身 (中身が同じ別 id の名刺の記録の付け替えの材料)。 */
+    suspend fun receivedRefs(): List<CardStoredRef> = dao.receivedRefs().map { CardStoredRef(id = it.id, payload = it.payload) }
+
     suspend fun restoreReceivedIfAbsent(cards: List<ReceivedProducerCard>): Int =
         if (cards.isEmpty()) 0 else dao.restoreReceivedIfAbsent(cards)
+
+    suspend fun meetingIds(): List<String> = dao.meetingIds()
+
+    suspend fun restoreMeetingsIfAbsent(meetings: List<ReceivedCardMeeting>): Int =
+        if (meetings.isEmpty()) 0 else dao.restoreMeetingsIfAbsent(meetings)
 
     suspend fun restoreMyCardIfAbsent(cards: List<MyProducerCard>): Int =
         if (cards.isEmpty()) 0 else dao.restoreMyCardIfAbsent(cards)

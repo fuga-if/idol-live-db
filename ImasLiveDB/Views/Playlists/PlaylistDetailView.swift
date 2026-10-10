@@ -12,6 +12,7 @@ struct PlaylistDetailView: View {
     @State private var playFailed = false
     @State private var sheetDestination: DetailDestination?
     @State private var showsPicker = false
+    @State private var showsSpotifyExport = false
     @State private var isPublishing = false
     @State private var publishTitle = ""
     @State private var publishDescription = ""
@@ -71,6 +72,9 @@ struct PlaylistDetailView: View {
                         isRenaming = true
                     }
                     if !songs.isEmpty {
+                        Button("Spotify に書き出す", systemImage: "square.and.arrow.up") { showsSpotifyExport = true }
+                    }
+                    if !songs.isEmpty {
                         Button(playlist.publishedId == nil ? "みんなに公開する" : "公開中の中身を更新する",
                                systemImage: "person.2") { beginPublish() }
                     }
@@ -84,6 +88,9 @@ struct PlaylistDetailView: View {
                 }
                 .accessibilityLabel("そのほか")
             }
+        }
+        .sheet(isPresented: $showsSpotifyExport) {
+            SpotifyExportSheet(name: playlist.name, songs: songs.map { ($0.id, $0.title) })
         }
         .alert("名前を変える", isPresented: $isRenaming) {
             TextField("名前", text: $renameText)

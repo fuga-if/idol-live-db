@@ -58,7 +58,7 @@ import com.fugaif.imaslivedb.data.games.QuizSuspended
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import com.fugaif.imaslivedb.data.games.longestStreak
-import com.fugaif.imaslivedb.data.games.setlistCaption
+import com.fugaif.imaslivedb.data.games.answeredCaption
 import com.fugaif.imaslivedb.data.games.streak
 import com.fugaif.imaslivedb.data.games.streakBrokeAt
 import com.fugaif.imaslivedb.data.model.Brand
@@ -651,7 +651,7 @@ private fun ColorMatchStage(state: ColorMatchUiState, viewModel: ColorMatchViewM
 private fun ChoiceStage(state: ColorMatchUiState, viewModel: ColorMatchViewModel) {
     QuizStageProgress(
         slots = state.plays.penlights(total = state.questionCount, answering = state.choiceVerdict == null),
-        caption = state.plays.setlistCaption(state.questionCount),
+        caption = state.plays.answeredCaption(state.questionCount),
         streak = state.plays.streak, streakBrokeAt = state.plays.streakBrokeAt
     )
     val verdict = state.choiceVerdict

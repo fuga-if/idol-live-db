@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,6 +26,8 @@ import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.designsystem.ImasCandidateCount
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoice
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceCards
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasInlineLoading
 import com.fugaif.imaslivedb.ui.designsystem.ImasNotice
@@ -36,11 +40,29 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uniffi.imas_core.IdolQuizMode
 import uniffi.imas_core.idolQuizPoolEstimate
 import uniffi.imas_core.quizBrandIdsDecode
 import uniffi.imas_core.quizBrandIdsEncode
 
+/** アイドル当てクイズの選び方 (保存値)。コアの `IdolQuizMode` と 1:1。name は保存値なので変えない。 */
+enum class IdolQuizModeSetting(val label: String, val blurb: String) {
+    NORMAL("4択", "4人の中から当てる"),
+    HARD("ハード", "出題候補の全員から選ぶ");
+
+    val core: IdolQuizMode
+        get() = when (this) {
+            NORMAL -> IdolQuizMode.NORMAL
+            HARD -> IdolQuizMode.HARD
+        }
+
+    companion object {
+        fun fromName(name: String?): IdolQuizModeSetting = entries.firstOrNull { it.name == name } ?: NORMAL
+    }
+}
+
 data class IdolQuizSetupUiState(
+    val mode: IdolQuizModeSetting = IdolQuizModeSetting.NORMAL,
     val brands: List<Brand> = emptyList(),
     val selectedBrandIds: Set<String> = emptySet(),
     val estimatedCount: Int = 0,
@@ -59,7 +81,10 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(
-        IdolQuizSetupUiState(selectedBrandIds = quizBrandIdsDecode(prefs.getString(KEY_BRAND_IDS, "") ?: "").toSet())
+        IdolQuizSetupUiState(
+            mode = IdolQuizModeSetting.fromName(prefs.getString(KEY_MODE, null)),
+            selectedBrandIds = quizBrandIdsDecode(prefs.getString(KEY_BRAND_IDS, "") ?: "").toSet()
+        )
     )
     val uiState: StateFlow<IdolQuizSetupUiState> = _uiState.asStateFlow()
 
@@ -76,6 +101,11 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
             castNames = fetchIdolCastNames(snapshots)
             estimatePool()
         }
+    }
+
+    fun setMode(mode: IdolQuizModeSetting) {
+        _uiState.value = _uiState.value.copy(mode = mode)
+        prefs.edit().putString(KEY_MODE, mode.name).apply()
     }
 
     fun toggleBrand(id: String) {
@@ -113,6 +143,7 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         private const val PREFS_NAME = "quiz_setup_prefs"
         private const val KEY_BRAND_IDS = "idol_quiz_brand_ids"
+        private const val KEY_MODE = "idol_quiz_mode"
     }
 }
 
@@ -120,7 +151,7 @@ class IdolQuizSetupViewModel(app: Application) : AndroidViewModel(app) {
 @Composable
 fun IdolQuizSetupScreen(
     onBack: () -> Unit,
-    onStart: (Set<String>) -> Unit,
+    onStart: (Set<String>, IdolQuizModeSetting) -> Unit,
     viewModel: IdolQuizSetupViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -137,8 +168,20 @@ fun IdolQuizSetupScreen(
             ImasSetupHeader(
                 icon = Icons.Filled.PersonSearch,
                 title = "アイドル当てクイズ",
-                message = "プロフィールのヒントを手がかりに誰かを 4 択で当てよう"
+                message = "プロフィールのヒントを手がかりに誰かを当てよう"
             )
+            ImasSection(title = "選び方", style = ImasSectionHeaderStyle.SMALL) {
+                ImasChoiceCards(
+                    choices = IdolQuizModeSetting.entries.map { mode ->
+                        ImasChoice(
+                            value = mode, title = mode.label, subtitle = mode.blurb,
+                            icon = if (mode == IdolQuizModeSetting.NORMAL) Icons.Filled.GridView else Icons.Filled.Groups
+                        )
+                    },
+                    selection = state.mode,
+                    onSelect = { viewModel.setMode(it) }
+                )
+            }
             QuizSetupBrandSection(
                 brands = state.brands, selectedBrandIds = state.selectedBrandIds,
                 onToggle = { viewModel.toggleBrand(it) }, onClearAll = { viewModel.clearBrands() }
@@ -153,7 +196,7 @@ fun IdolQuizSetupScreen(
                     message = "4 択を出すにはアイドルが最低 4 名必要です。ブランドの選択を増やしてください。"
                 )
             }
-            QuizPrimaryButton(title = "スタート", enabled = state.canStart) { onStart(state.selectedBrandIds) }
+            QuizPrimaryButton(title = "スタート", enabled = state.canStart) { onStart(state.selectedBrandIds, state.mode) }
         }
     }
 }

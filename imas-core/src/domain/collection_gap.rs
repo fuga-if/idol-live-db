@@ -42,9 +42,7 @@ use crate::domain::snapshot::Snapshot;
 use std::collections::HashSet;
 
 
-/// 参加形態を持たない古いマークの扱い。**現地参加**とみなす
-/// (形態を選べるようにする前のマークはすべて現地参加の意味で付いている)。
-const LOCAL_ATTENDANCE: &str = "live";
+use crate::domain::attendance::{attendance_sql_condition, attendance_types, LOCAL_ATTENDANCE};
 
 /// 回収の対象になる催し (`events.kind`)。歌枠・配信番組・ラジオ・リリイベは入らない。
 pub const REAL_LIVE_KINDS: [&str; 2] = ["live", "festival"];
@@ -74,15 +72,22 @@ pub fn non_performance_venue_modes() -> Vec<String> {
 
 /// 回収に数える参加形態 (`user_marks.text_value`)。**空なら形態を問わない。**
 ///
-/// SQL 経路が `text_value IS NULL OR text_value IN (…)` を組むために引く。
 /// `NULL` を現地扱いにする規則は [`collection_attended_show_ids`] と同じで、
-/// 絞るときは必ず [`LOCAL_ATTENDANCE`] が並びに入るので両者は同じ集合を選ぶ。
+/// 絞るときは必ず [`LOCAL_ATTENDANCE`] が並びに入る。
 pub fn collection_attendance_types(include_stream: bool) -> Vec<String> {
     if include_stream {
         Vec::new()
     } else {
         vec![LOCAL_ATTENDANCE.to_string()]
     }
+}
+
+/// 回収に数える参加マークを選ぶ SQL 条件 (`user_marks.text_value` 列)。
+///
+/// SQL 経路 (iOS の自動回収) が副問い合わせに足す。選ぶ行は
+/// [`collection_attended_show_ids`] と同じ (複数形態の保存値の読み方も含めて)。
+pub fn collection_attendance_sql_condition(include_stream: bool) -> String {
+    attendance_sql_condition("text_value", &collection_attendance_types(include_stream))
 }
 
 /// 回収に数える参加マークを選ぶ。**この規則の正本はここ 1 つ。**
@@ -101,9 +106,11 @@ pub fn collection_attended_show_ids(
     marks
         .into_iter()
         .filter(|m| {
-            // 形態を持たない古いマークは現地参加として扱う。
-            let attendance = m.attendance_type.as_deref().unwrap_or(LOCAL_ATTENDANCE);
-            kept.is_empty() || kept.iter().any(|k| k == attendance)
+            // 1 公演に複数の形態が付いていれば、どれか 1 つが数える形態なら数える
+            // (現地で見て配信も買った公演は、既定の「現地のみ」でも回収に入る)。
+            // 形態を持たない古いマークは現地参加として読む ([`attendance_types`])。
+            kept.is_empty()
+                || attendance_types(m.attendance_type.as_deref()).iter().any(|t| kept.contains(t))
         })
         .map(|m| m.entity_id)
         .collect()
@@ -387,10 +394,16 @@ mod tests {
                 attendance_type: Some("live_viewing".into()),
             },
             AttendanceMarkRecord { entity_id: "d".into(), attendance_type: None },
+            // 現地で見て配信も買った公演。
+            AttendanceMarkRecord { entity_id: "e".into(), attendance_type: Some("live,stream".into()) },
+            AttendanceMarkRecord {
+                entity_id: "f".into(),
+                attendance_type: Some("stream,live_viewing".into()),
+            },
         ];
-        assert_eq!(collection_attended_show_ids(marks.clone(), false), vec!["a", "d"]);
+        assert_eq!(collection_attended_show_ids(marks.clone(), false), vec!["a", "d", "e"]);
         // 設定を入れた人は形態を問わない (LV も配信も含む)。
-        assert_eq!(collection_attended_show_ids(marks, true), vec!["a", "b", "c", "d"]);
+        assert_eq!(collection_attended_show_ids(marks, true), vec!["a", "b", "c", "d", "e", "f"]);
     }
 
     /// SQL 経路 (`AppDatabase+UserMarks`) が IN 句に使う値は、Rust の判定と同じ集合を指す。

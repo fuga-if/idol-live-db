@@ -1,5 +1,13 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDivider
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubDate
+import com.fugaif.imaslivedb.ui.designsystem.ImasStubRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeSpec
+import uniffi.imas_core.cardMeetingRestorable
+import uniffi.imas_core.cardMeetingViews
+import uniffi.imas_core.CardMeetingView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -38,6 +47,7 @@ import com.fugaif.imaslivedb.data.producercard.ProducerCardAssembler
 import com.fugaif.imaslivedb.data.producercard.ProducerCardInbox
 import com.fugaif.imaslivedb.data.repository.LedgerShowOption
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasActionRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasCard
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardStyle
@@ -84,6 +94,7 @@ fun ReceivedCardDetailScreen(
     var row by remember { mutableStateOf<ReceivedProducerCard?>(null) }
     var card by remember { mutableStateOf<ProducerCard?>(null) }
     var common by remember { mutableStateOf<CardCommon?>(null) }
+    var meetings by remember { mutableStateOf<List<CardMeetingView>>(emptyList()) }
     var directory by remember { mutableStateOf(ProducerCardDirectory()) }
     var images by remember { mutableStateOf(ReceivedCardImages()) }
     var myOshi by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -95,6 +106,8 @@ fun ReceivedCardDetailScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // 「この時の名刺に戻す」の確認中の記録。
+    var restoringMeeting by remember { mutableStateOf<CardMeetingView?>(null) }
 
     suspend fun load() {
         val found = module.producerCardRepository.receivedCard(cardId)
@@ -108,12 +121,15 @@ fun ReceivedCardDetailScreen(
         val c = if (decoded != null && record != null) {
             producerCardCommon(decoded, record.oshiIds, record.summary.attendedPast)
         } else null
-        val showIds = listOfNotNull(found.showId, decoded?.nextShowId, c?.sharedShowIds?.firstOrNull())
+        val views = cardMeetingViews(module.producerCardRepository.meetings(cardId).map { it.record })
+        val showIds = listOfNotNull(found.showId, decoded?.nextShowId, c?.sharedShowIds?.firstOrNull()) +
+            views.mapNotNull { it.showId }
         directory = ProducerCardDirectory.load(module, decoded?.oshiIdolIds.orEmpty(), showIds)
         showOptions = runCatching { module.expenseRepository.attendedShowOptions() }.getOrDefault(emptyList())
         images = withContext(Dispatchers.IO) { ReceivedCardImages.load(context, found.id, decoded?.oshiIdolIds.orEmpty()) }
         myOshi = record?.oshiIds.orEmpty().toSet()
         common = c
+        meetings = views
         row = found
         card = decoded
         loaded = true
@@ -169,6 +185,7 @@ fun ReceivedCardDetailScreen(
                         onOpenOshi = { oshi -> onOpenIdol(oshi.id) }
                     )
                     CommonSection(r, common, directory, onOpenShow, onPickShow = { pickingShow = true })
+                    MeetingsSection(meetings, directory, r, onRestore = { restoringMeeting = it })
                     ImasSection("メモ", actionTitle = "編集", actionIcon = Icons.Filled.Edit, onAction = { editingMemo = true }) {
                         ImasCard {
                             val memo = r.memo
@@ -202,7 +219,11 @@ fun ReceivedCardDetailScreen(
                 pickingShow = false
                 val current = row ?: return@LedgerShowPickerSheet
                 scope.launch {
-                    runCatching { ProducerCardInbox.update(context, current.copy(showId = option?.id, showDate = option?.date)) }
+                    // 最後に会った記録の公演を変える (名刺の行にも写す)。
+                    runCatching {
+                        module.producerCardRepository.changeLatestMeetingShow(current.id, option?.id, option?.date)
+                        ProducerCardInbox.changed()
+                    }
                         .onFailure { error = it.message ?: "保存できませんでした" }
                 }
             },
@@ -221,6 +242,22 @@ fun ReceivedCardDetailScreen(
                 runCatching { ProducerCardInbox.delete(context, current) }
                     .onSuccess { onBack() }
                     .onFailure { error = it.message ?: "削除できませんでした" }
+            }
+        }
+    )
+    ImasConfirmDestructive(
+        title = "この時の名刺に戻しますか？",
+        isPresented = restoringMeeting != null,
+        onDismiss = { restoringMeeting = null },
+        actionTitle = "この時の名刺に戻す",
+        message = restoringMeeting?.let { "名前やリンクなどの中身を ${it.date} に受け取った名刺に戻します。写真と担当の画像は今のままです。" },
+        onConfirm = {
+            val meeting = restoringMeeting ?: return@ImasConfirmDestructive
+            restoringMeeting = null
+            scope.launch {
+                runCatching { module.producerCardRepository.restorePayload(cardId, meeting.id) }
+                    .onSuccess { ProducerCardInbox.changed() }
+                    .onFailure { error = it.message ?: "直せませんでした" }
             }
         }
     )
@@ -262,6 +299,44 @@ private fun CommonSection(
                     key = "受け取った公演", value = "選ぶ", isLink = true,
                     position = ImasRowPosition.FOLLOWING, onClick = onPickShow
                 )
+            }
+        }
+    }
+}
+
+/**
+ * 会った記録 (同じ人と会うたびに積んだもの)。公演の半券の行、会場で交換していれば朱の線の札「会場で交換」。
+ * 並び・何回目か・札はコア (`cardMeetingViews`)。そのときの名刺の中身が今と違う記録には「この時の名刺に戻す」を
+ * 添える (戻せるかはコアの `cardMeetingRestorable`)。iOS `ReceivedCardDetailView.meetingsSection` と対。
+ */
+@Composable
+private fun MeetingsSection(
+    meetings: List<CardMeetingView>,
+    directory: ProducerCardDirectory,
+    row: ReceivedProducerCard,
+    onRestore: (CardMeetingView) -> Unit
+) {
+    if (meetings.isEmpty()) return
+    ImasSection("会った記録") {
+        ImasCardList {
+            meetings.forEachIndexed { index, meeting ->
+                val show = meeting.showId?.let { directory.shows[it] }
+                if (index > 0) ImasRowDivider(inset = DS.sp4)
+                ImasStubRow(
+                    date = ImasStubDate(meeting.date),
+                    title = show?.label ?: "公演に紐づかない",
+                    subtitle = meeting.viaLabel,
+                    badges = listOfNotNull(
+                        meeting.badge?.let { ImasBadgeSpec(it, ImasBadgeKind.POSITIVE) },
+                        meeting.ordinalLabel?.let { ImasBadgeSpec(it, ImasBadgeKind.NEUTRAL) }
+                    )
+                )
+                if (cardMeetingRestorable(meeting.payload, row.payload)) {
+                    ImasActionRow(
+                        title = "この時の名刺に戻す", icon = Icons.AutoMirrored.Filled.Undo,
+                        position = ImasRowPosition.FOLLOWING, onClick = { onRestore(meeting) }
+                    )
+                }
             }
         }
     }

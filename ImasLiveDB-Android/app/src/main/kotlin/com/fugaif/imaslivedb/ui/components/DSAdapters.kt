@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.fugaif.imaslivedb.data.image.CustomImageStore
 import com.fugaif.imaslivedb.data.model.Brand
+import com.fugaif.imaslivedb.data.model.iconText
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
@@ -30,9 +31,12 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSongRow
 
 // MARK: - ブランド
 
-/** ブランドから (iOS `ImasBrandPicker.Option(brand:)`)。読み込んだロゴがあればロゴ、無ければペンライト。 */
+/** ブランドから (iOS `ImasBrandPicker.Option(brand:)`)。読み込んだロゴがあればロゴ、無ければ略称の判子。 */
 fun ImasBrandOption(brand: Brand, store: CustomImageStore): ImasBrandOption =
-    ImasBrandOption(id = brand.id, label = brand.shortName, color = brand.color, logo = store.brandImageFile(brand.id))
+    ImasBrandOption(
+        id = brand.id, label = brand.shortName, mark = brand.iconText, color = brand.color,
+        logo = store.brandImageFile(brand.id)
+    )
 
 /**
  * ブランドの並びから組む (iOS `ImasBrandPicker(brands:selection:)`)。

@@ -1,0 +1,117 @@
+//! 歌詞の投稿の FFI 面。規則は [`crate::domain::lyric_submission`]。
+
+use crate::domain::lyric_submission::{self as domain, LyricSubmissionCheck, LyricSubmissionIssue};
+
+/// 入力のたびに通す。整えた本文・行数・文字数・注意・送れるか。
+#[uniffi::export]
+pub fn lyric_submission_check(text: String, agreed_to_guideline: bool) -> LyricSubmissionCheck {
+    domain::check_submission(&text, agreed_to_guideline)
+}
+
+/// 注意の文。
+#[uniffi::export]
+pub fn lyric_submission_issue_message(issue: LyricSubmissionIssue) -> String {
+    domain::issue_message(&issue)
+}
+
+/// 送信を止める注意か (止めないものは注意として出すだけ)。
+#[uniffi::export]
+pub fn lyric_submission_issue_blocks(issue: LyricSubmissionIssue) -> bool {
+    domain::blocks_submit(&issue)
+}
+
+/// 本文の文字数の上限 (UTF-16)。
+#[uniffi::export]
+pub fn lyric_submission_max_chars() -> u32 {
+    domain::MAX_CHARS
+}
+
+/// 歌詞カードの文字認識の片を、歌詞の行に並べ直す (読み順・段組み・ルビ外し・空行)。
+#[uniffi::export]
+pub fn lyric_ocr_layout(pieces: Vec<crate::domain::lyric_ocr::OcrPiece>) -> crate::domain::lyric_ocr::LyricOcrLayout {
+    crate::domain::lyric_ocr::layout(&pieces)
+}
+
+/// 読み取った本文を入力欄に足す (空なら置き換え、書きかけなら空行を挟んで後ろへ)。
+#[uniffi::export]
+pub fn lyric_ocr_append(draft: String, recognized: String) -> String {
+    crate::domain::lyric_ocr::append_to_draft(&draft, &recognized)
+}
+
+/// その曲に歌詞を投稿できるか (アイマス系ブランドの非カバー曲だけ)。
+#[uniffi::export]
+pub fn lyric_submission_allowed(brand_id: String, song_type: Option<String>, singer_label: Option<String>) -> bool {
+    domain::submission_allowed(&brand_id, song_type.as_deref(), singer_label.as_deref())
+}
+
+/// 投稿ガイドライン (読みもの画面に並べる塊)。
+#[uniffi::export]
+pub fn lyric_submission_guideline() -> Vec<domain::LyricGuideBlock> {
+    domain::guideline()
+}
+
+/// 歌詞カードの読み取りの使い方 (手順と説明)。
+#[uniffi::export]
+pub fn lyric_ocr_steps(tap_scanner: bool) -> Vec<crate::domain::lyric_ocr::LyricOcrStep> {
+    crate::domain::lyric_ocr::steps(tap_scanner)
+}
+
+/// 1 片の読み取り候補から 1 つ選ぶ (辞書に無い英単語が少ないもの)。見直しが要るかも返す。
+#[uniffi::export]
+pub fn lyric_ocr_pick_candidate(candidates: Vec<crate::domain::lyric_ocr::OcrCandidate>) -> crate::domain::lyric_ocr::OcrChoice {
+    crate::domain::lyric_ocr::pick_candidate(&candidates)
+}
+
+/// 綴りを確かめる英単語 (OS の辞書に通す)。
+#[uniffi::export]
+pub fn lyric_ocr_latin_words(text: String) -> Vec<String> {
+    crate::domain::lyric_ocr::latin_words(&text)
+}
+
+/// 読み仮名 (ルビ) を読み取ったらしい行の番号。
+#[uniffi::export]
+pub fn lyric_ruby_like_lines(text: String) -> Vec<u32> {
+    domain::ruby_like_lines(&text)
+}
+
+/// 指定の行を消す (前後の空行は整え直す)。
+#[uniffi::export]
+pub fn lyric_remove_lines(text: String, indices: Vec<u32>) -> String {
+    domain::remove_lines(&text, &indices)
+}
+
+/// 選んだ範囲 (Unicode スカラーの位置) に読み仮名を付ける (親字《よみ》、要るときだけ ｜)。
+#[uniffi::export]
+pub fn lyric_wrap_ruby(text: String, start: u32, end: u32, reading: String) -> String {
+    domain::wrap_ruby(&text, start, end, &reading)
+}
+
+/// 記法の入った本文を、記法の無い本文と読み仮名の一覧に分ける。
+#[uniffi::export]
+pub fn lyric_ruby_split(text: String) -> domain::RubySplit {
+    domain::ruby_split(&text)
+}
+
+/// 選んだ範囲 (スカラーの位置) と読みから読み仮名を作る。作れなければ None。
+#[uniffi::export]
+pub fn lyric_ruby_mark_at(plain: String, start: u32, end: u32, reading: String) -> Option<domain::RubyMark> {
+    domain::ruby_mark_at(&plain, start, end, &reading)
+}
+
+/// その読み仮名の親字が、今の本文にまだあるか。
+#[uniffi::export]
+pub fn lyric_ruby_mark_found(plain: String, mark: domain::RubyMark) -> bool {
+    domain::ruby_mark_found(&plain, &mark)
+}
+
+/// 本文と読み仮名の一覧を、記法の入った本文に合わせる (送るとき・見本を描くとき)。
+#[uniffi::export]
+pub fn lyric_ruby_join(plain: String, marks: Vec<domain::RubyMark>) -> String {
+    domain::ruby_join(&plain, &marks)
+}
+
+/// 本文を書き換えたあと、読み仮名の場所を付け直す (同じ字を前に打ち足しても元の字に付いたまま)。
+#[uniffi::export]
+pub fn lyric_ruby_rebase(old_plain: String, new_plain: String, marks: Vec<domain::RubyMark>) -> Vec<domain::RubyMark> {
+    domain::ruby_rebase(&old_plain, &new_plain, &marks)
+}

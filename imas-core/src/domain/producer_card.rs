@@ -133,6 +133,12 @@ pub struct ProducerCard {
     /// 1 ブランドで数で畳んだ「765AS 5人 担当」の略称)。既定は刷らない。決めるのは `producer_card_face`。
     #[uniffi(default = false)]
     pub show_brand_labels: bool,
+    /// 名刺 id (同じ人の名刺を見分ける。端末で一度だけ作るランダムな 11 文字、`producer_card_new_id`)。
+    /// 受け取った側は同じ id で名前も同じ名刺を 1 枚にまとめて会った記録を積む (`card_receive_plan`。
+    /// 名前が違えば確かめる)。無い名刺 (足す前の版・紙の名刺・id を載せない今の名刺) は中身が同じか、
+    /// 名前と担当が同じとき (確かめる) に同じ人として扱う。自分の名刺に載せるかは `PRODUCER_CARD_EMBEDS_CARD_ID`。
+    #[uniffi(default = None)]
+    pub card_id: Option<String>,
 }
 
 /// 自分の名刺を作るときの材料。数や公演はアプリの記録から、名前などは編集画面から。
@@ -156,6 +162,9 @@ pub struct ProducerCardInput {
     /// 表の判子の下にブランドの略称を刷る ([`ProducerCard::show_brand_labels`])。
     #[uniffi(default = false)]
     pub show_brand_labels: bool,
+    /// 名刺 id ([`ProducerCard::card_id`])。形の合わないものは載せない。
+    #[uniffi(default = None)]
+    pub card_id: Option<String>,
 }
 
 /// 組み上がった名刺と QR に入れる URL。
@@ -348,6 +357,7 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
             .filter(|u| !u.trim().is_empty())
             .and_then(normalize_card_qr_url),
         show_brand_labels: input.show_brand_labels,
+        card_id: input.card_id.clone().filter(|id| card_id_bytes(id).is_some()),
     };
 
     let total = card.attended.len();
@@ -1010,6 +1020,7 @@ fn day_to_date(day: u32) -> String {
 //   varint リンクの数, (u8 種類, str) × n
 //   varint 公演の数, (varint 前の公演からの日数, u16 指紋) × n   (先頭は起点からの日数)
 //   [u8 デザインの番号] [str 自分の QR の URL]                    (旗が立っているときだけ)
+//   [u8 続きの旗 (bit0 名刺 id)] [8 バイト 名刺 id]                (旗 bit7 が立っているときだけ)
 //
 //   str = varint バイト数 + UTF-8
 //
@@ -1018,10 +1029,79 @@ fn day_to_date(day: u32) -> String {
 // 既定のデザインで自分の QR も無い名刺は、足す前と 1 バイトも変わらない (古いアプリでも読める)。
 // 項目がある名刺を古いアプリが読むと、末尾に余りがあるので「読めない名刺」になる
 // (誤読はしない)。版を上げると、項目の無い名刺まで古いアプリで読めなくなるので上げない。
+//
+// 旗の bit7 は「続きの旗がある」。1 バイト目の旗を使い切ったので、名刺 id から先の任意の項目は
+// 続きの旗に足す。bit7 を知らないアプリは読まない (上と同じく誤読はしない)。続きの旗に知らない
+// ビットが立っていたら、知らない項目が続いているはずなので読まない。
 // ---------------------------------------------------------------------------
 
 const FLAG_DESIGN: u8 = 1 << 5;
 const FLAG_QR_URL: u8 = 1 << 6;
+const FLAG_EXT: u8 = 1 << 7;
+const EXT_CARD_ID: u8 = 1;
+/// 名刺 id のバイト数 (64 ビット。端末の数より十分に大きく、ぶつからない)。
+const CARD_ID_BYTES: usize = 8;
+
+/// 名刺 id (base64url の 11 文字) をバイトにする。形が違えば None。
+fn card_id_bytes(id: &str) -> Option<[u8; CARD_ID_BYTES]> {
+    if id.len() != 11 {
+        return None;
+    }
+    let bytes = base64url_decode(id)?;
+    let out: [u8; CARD_ID_BYTES] = bytes.try_into().ok()?;
+    (base64url_encode(&out) == id).then_some(out)
+}
+
+/// 自分の名刺 id を作る。`seed` は端末が作った UUID (16 進の 32 桁。ハイフンはあってもよい) で、
+/// 先頭 16 桁を 8 バイトにする。UUID でない文字なら文字から散らして作る (同じ文字なら同じ id)。
+pub fn producer_card_new_id(seed: &str) -> String {
+    let hex: String = seed.chars().filter(|c| c.is_ascii_hexdigit()).take(16).collect();
+    let bytes: [u8; CARD_ID_BYTES] = if hex.len() == 16 {
+        let mut out = [0u8; CARD_ID_BYTES];
+        for (i, b) in out.iter_mut().enumerate() {
+            *b = u8::from_str_radix(&hex[i * 2..i * 2 + 2], 16).unwrap_or(0);
+        }
+        out
+    } else {
+        // FNV-1a (64)。
+        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+        for b in seed.bytes() {
+            h ^= u64::from(b);
+            h = h.wrapping_mul(0x0100_0000_01b3);
+        }
+        h.to_le_bytes()
+    };
+    base64url_encode(&bytes)
+}
+
+/// 自分の名刺を組むとき (端末の Assembler) に名刺 id を載せるか。**名刺 id の開閉はこの 1 か所だけ**。
+///
+/// 公開中の 2.5.0 は名刺 id 入りの名刺 (旗 bit7) を「読めない名刺」として扱うので、今は載せない。
+/// 名刺 id を読める版 (2.6.0) が十分に行き渡る次の次の版で `true` にする。
+/// - 読む・書く (`decode_producer_card` / `encode_producer_card`) はこの定数に関係なく id を扱える
+///   (載せた名刺を受け取れるようにしておく)。端末は自分の名刺 id を作って持っておく。
+/// - 載せない間、受け取った側は「中身が同じ」で黙って、「名前と担当が同じ」で確かめてから同じ人とみなし、
+///   会った記録を積む (`card_meetings::card_receive_plan`)。
+/// - 編集画面の「古い版のアプリでは読めません」と「名刺 id を作り直す」は `producer_card_embeds_card_id` で切り替える。
+pub const PRODUCER_CARD_EMBEDS_CARD_ID: bool = false;
+
+/// 名刺 id を名刺に載せるか ([`PRODUCER_CARD_EMBEDS_CARD_ID`])。
+pub fn producer_card_embeds_card_id() -> bool {
+    PRODUCER_CARD_EMBEDS_CARD_ID
+}
+
+/// 自分の名刺を組むときに載せる名刺 id。載せない間は None ([`PRODUCER_CARD_EMBEDS_CARD_ID`])。
+pub fn producer_card_id_to_embed(card_id: Option<&str>) -> Option<String> {
+    if !PRODUCER_CARD_EMBEDS_CARD_ID {
+        return None;
+    }
+    card_id.filter(|id| card_id_bytes(id).is_some()).map(str::to_string)
+}
+
+/// 名刺 id の形として正しいか (端末に残っている id を確かめる)。
+pub fn producer_card_id_is_valid(id: &str) -> bool {
+    card_id_bytes(id).is_some()
+}
 
 fn write_card(card: &ProducerCard) -> Vec<u8> {
     let mut w = Vec::with_capacity(256);
@@ -1048,6 +1128,10 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
     }
     if card.qr_url.is_some() {
         flags |= FLAG_QR_URL;
+    }
+    let card_id = card.card_id.as_deref().and_then(card_id_bytes);
+    if card_id.is_some() {
+        flags |= FLAG_EXT;
     }
     w.push(flags);
     put_str(&mut w, &card.name);
@@ -1092,6 +1176,10 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
     }
     if let Some(url) = &card.qr_url {
         put_str(&mut w, url);
+    }
+    if let Some(id) = card_id {
+        w.push(EXT_CARD_ID);
+        w.extend_from_slice(&id);
     }
     w
 }
@@ -1159,8 +1247,22 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
     } else {
         None
     };
-    // 知らない旗 (bit7) が立っている名刺は、知らない項目が続いているはずなので読まない。
-    if flags & (1 << 7) != 0 || r.pos != bytes.len() || name.trim().is_empty() {
+    let mut card_id = None;
+    if flags & FLAG_EXT != 0 {
+        let ext = r.u8()?;
+        // 知らない続きの旗が立っている名刺は、知らない項目が続いているはずなので読まない。
+        if ext & !EXT_CARD_ID != 0 {
+            return None;
+        }
+        if ext & EXT_CARD_ID != 0 {
+            let mut id = [0u8; CARD_ID_BYTES];
+            for b in id.iter_mut() {
+                *b = r.u8()?;
+            }
+            card_id = Some(base64url_encode(&id));
+        }
+    }
+    if r.pos != bytes.len() || name.trim().is_empty() {
         return None;
     }
     // 手で組んだ名刺 (QR・名刺ファイル・近くの端末から届くもの) が、アプリの作る名刺より
@@ -1200,6 +1302,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         design,
         qr_url,
         show_brand_labels,
+        card_id,
     })
 }
 
@@ -1490,12 +1593,41 @@ fn pick_oshi_by_brand(oshi: &[&CardOshiEntry], slots: usize) -> Vec<usize> {
     picked.iter().enumerate().filter(|(_, p)| **p).map(|(i, _)| i).collect()
 }
 
-/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
-/// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
-pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
+// ---------------------------------------------------------------------------
+// 名刺に載せる担当を本人が選ぶ
+// ---------------------------------------------------------------------------
+//
+// - 選べるのはアプリの担当の中から 1〜`MAX_OSHI` 人。選んだ順に並び、並べ替え・外すができる。
+// - まだ選んでいない (`chosen = None`) ときは自動の選び方 (`producer_card_pick_oshi`、ブランドごとに 1 人)。
+// - 選んだあとに担当から外したアイドルは自動で抜ける (重複も 1 つに)。抜けて誰も残らなければ
+//   まだ選んでいないのと同じ (自動の選び方) に戻す。名刺から担当ごと外すのは「担当を載せる」の付け外し。
+// - 最後の 1 人は外せない (外すと勝手に自動の選び方に戻って、押した人と違う並びになるので)。
+// - 保存した選択は担当の付け外しで書き換えない (外した人をまた担当にすると、選んだ並びに戻る)。
+//
+// 端末は担当の一覧を並べ、押した idol id をここへ渡すだけにする。保存は idol id の並び
+// (`card_oshi_choice_to_json`。保存が無い・読めないときはまだ選んでいない)。
+
+/// 名刺に載せる担当を選ぶ画面に並べるもの。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardOshiPicks {
+    /// 名刺に載せる担当 (載せる順)。
+    pub picked: Vec<CardOshiEntry>,
+    /// 本人が選んだか (false はまだ選んでいなくて、自動の選び方の結果が入っている)。
+    pub chosen_by_hand: bool,
+    /// アプリの担当すべて (アプリの並び。同じ id は 1 つに)。
+    pub oshi: Vec<CardOshiEntry>,
+    /// 載せられる上限。
+    pub max: u32,
+    /// 上限まで選んだか (選んでいない担当は足せない)。
+    pub full: bool,
+    /// 1 人だけ選んでいるか (その 1 人は外せない)。
+    pub single: bool,
+}
+
+/// 同じ id を 1 つにしたアプリの担当 (並びはそのまま)。
+fn unique_oshi(oshi: &[CardOshiEntry]) -> Vec<&CardOshiEntry> {
     let mut seen: Vec<&str> = Vec::new();
-    let unique: Vec<&CardOshiEntry> = oshi
-        .iter()
+    oshi.iter()
         .filter(|o| {
             if seen.contains(&o.idol_id.as_str()) {
                 false
@@ -1504,11 +1636,91 @@ pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
                 true
             }
         })
-        .collect();
+        .collect()
+}
+
+/// 名刺に載せる担当 (アプリの担当の並びから `MAX_OSHI` 人)。ブランドごとに 1 人を先に確保し、
+/// 残りを並び順で埋める。返す並びはアプリの並びのまま。同じ id は 1 度だけ数える。
+/// 本人がまだ選んでいないときの既定 (`producer_card_oshi_picked_ids(None, ..)`)。
+pub fn producer_card_pick_oshi(oshi: &[CardOshiEntry]) -> Vec<String> {
+    let unique = unique_oshi(oshi);
     pick_oshi_by_brand(&unique, MAX_OSHI as usize)
         .into_iter()
         .map(|i| unique[i].idol_id.clone())
         .collect()
+}
+
+/// 選んだ担当 id を、アプリの担当に今いる人だけ・重複なし・上限までに整える (並びは選んだ順)。
+pub fn producer_card_oshi_normalize(ids: &[String], oshi: &[CardOshiEntry]) -> Vec<String> {
+    let mut seen: Vec<&str> = Vec::new();
+    ids.iter()
+        .filter(|id| {
+            let known = oshi.iter().any(|o| &o.idol_id == *id);
+            if !known || seen.contains(&id.as_str()) {
+                return false;
+            }
+            seen.push(id);
+            true
+        })
+        .take(MAX_OSHI as usize)
+        .cloned()
+        .collect()
+}
+
+/// 本人の選択が今も効いているか (選んでいて、担当から外れずに 1 人以上残っている)。
+fn oshi_choice_in_effect(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> Option<Vec<String>> {
+    let ids = producer_card_oshi_normalize(chosen?, oshi);
+    (!ids.is_empty()).then_some(ids)
+}
+
+/// 名刺に載せる担当 id (載せる順)。まだ選んでいない・選んだ人が全員担当から外れたときは自動の選び方。
+pub fn producer_card_oshi_picked_ids(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> Vec<String> {
+    oshi_choice_in_effect(chosen, oshi).unwrap_or_else(|| producer_card_pick_oshi(oshi))
+}
+
+/// 選ぶ画面に並べるもの。
+pub fn producer_card_oshi_picks(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> CardOshiPicks {
+    let by_hand = oshi_choice_in_effect(chosen, oshi);
+    let chosen_by_hand = by_hand.is_some();
+    let ids = by_hand.unwrap_or_else(|| producer_card_pick_oshi(oshi));
+    let unique = unique_oshi(oshi);
+    let picked: Vec<CardOshiEntry> = ids
+        .iter()
+        .filter_map(|id| unique.iter().find(|o| &o.idol_id == id).map(|o| (*o).clone()))
+        .collect();
+    CardOshiPicks {
+        full: picked.len() >= MAX_OSHI as usize,
+        single: picked.len() == 1,
+        chosen_by_hand,
+        oshi: unique.into_iter().cloned().collect(),
+        max: MAX_OSHI,
+        picked,
+    }
+}
+
+/// 1 人を載せる / 外した後の選択。載っていなければ末尾に足し (上限なら変えない)、載っていれば外す
+/// (最後の 1 人は外さない)。まだ選んでいなければ、今載っている既定の並びから始める。
+pub fn producer_card_oshi_toggle(chosen: Option<&[String]>, oshi: &[CardOshiEntry], idol_id: &str) -> Vec<String> {
+    let mut ids = producer_card_oshi_picked_ids(chosen, oshi);
+    if let Some(i) = ids.iter().position(|id| id == idol_id) {
+        if ids.len() > 1 {
+            ids.remove(i);
+        }
+    } else if ids.len() < MAX_OSHI as usize && oshi.iter().any(|o| o.idol_id == idol_id) {
+        ids.push(idol_id.to_string());
+    }
+    ids
+}
+
+/// 名刺に載せる担当の選択の保存の形 (idol id の JSON の配列)。
+pub fn card_oshi_choice_to_json(ids: &[String]) -> String {
+    serde_json::to_string(ids).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// 保存の形から選択を読む。読めない・空の配列はまだ選んでいない (None)。
+pub fn card_oshi_choice_from_json(json: &str) -> Option<Vec<String>> {
+    let ids: Vec<String> = serde_json::from_str(json).ok()?;
+    (!ids.is_empty()).then_some(ids)
 }
 
 /// 判子の下の 1 行。ブランドが 1 つのときだけ名前を (長ければ数で)。
@@ -2174,6 +2386,90 @@ mod tests {
         assert_eq!(producer_card_pick_oshi(&unknown), vec!["a", "b"]);
     }
 
+    fn ids(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn eight_oshi() -> Vec<CardOshiEntry> {
+        vec![
+            entry("haruka", "天海春香", "765as", "765AS"),
+            entry("chihaya", "如月千早", "765as", "765AS"),
+            entry("miki", "星井美希", "765as", "765AS"),
+            entry("yukiho", "萩原雪歩", "765as", "765AS"),
+            entry("sora", "上水流宇宙", "876", "876"),
+            entry("temari", "月村手毬", "gakuen", "学マス"),
+            entry("misuzu", "秦谷美鈴", "gakuen", "学マス"),
+            entry("momoko", "周防桃子", "ml", "ミリオン"),
+        ]
+    }
+
+    #[test]
+    fn oshi_choice_unchosen_uses_the_automatic_pick() {
+        let oshi = eight_oshi();
+        let picks = producer_card_oshi_picks(None, &oshi);
+        let picked: Vec<&str> = picks.picked.iter().map(|o| o.idol_id.as_str()).collect();
+        assert_eq!(picked, vec!["haruka", "chihaya", "sora", "temari", "momoko"]);
+        assert!(!picks.chosen_by_hand && picks.full && !picks.single);
+        assert_eq!(picks.max, 5);
+        assert_eq!(picks.oshi.len(), 8);
+        assert_eq!(producer_card_oshi_picked_ids(None, &oshi), producer_card_pick_oshi(&oshi));
+        assert!(producer_card_oshi_picks(None, &[]).picked.is_empty());
+    }
+
+    #[test]
+    fn oshi_choice_keeps_order_caps_and_drops_former_oshi() {
+        let oshi = eight_oshi();
+        // 選んだ順のまま。担当から外れた人・重複は抜ける。
+        let chosen = ids(&["miki", "gone", "sora", "miki"]);
+        let picks = producer_card_oshi_picks(Some(&chosen), &oshi);
+        let picked: Vec<&str> = picks.picked.iter().map(|o| o.idol_id.as_str()).collect();
+        assert_eq!(picked, vec!["miki", "sora"]);
+        assert!(picks.chosen_by_hand && !picks.full);
+        // 1 人だけ選べる。
+        let one = ids(&["miki"]);
+        let picks = producer_card_oshi_picks(Some(&one), &oshi);
+        assert!(picks.single && picks.chosen_by_hand);
+        assert_eq!(producer_card_oshi_picked_ids(Some(&one), &oshi), ids(&["miki"]));
+        // 上限で切る。
+        let many = ids(&["momoko", "misuzu", "temari", "sora", "yukiho", "miki"]);
+        assert_eq!(
+            producer_card_oshi_picked_ids(Some(&many), &oshi),
+            ids(&["momoko", "misuzu", "temari", "sora", "yukiho"])
+        );
+        // 選んだ人が全員担当から外れたら、自動の選び方に戻す。
+        let gone = ids(&["gone"]);
+        let picks = producer_card_oshi_picks(Some(&gone), &oshi);
+        assert!(!picks.chosen_by_hand);
+        assert_eq!(producer_card_oshi_picked_ids(Some(&gone), &oshi), producer_card_pick_oshi(&oshi));
+    }
+
+    #[test]
+    fn oshi_choice_toggle_adds_removes_and_keeps_the_last_one() {
+        let oshi = eight_oshi();
+        // まだ選んでいなければ既定の並びから外す。
+        assert_eq!(
+            producer_card_oshi_toggle(None, &oshi, "chihaya"),
+            ids(&["haruka", "sora", "temari", "momoko"])
+        );
+        // 上限なら足さない。担当でない人は足さない。
+        assert_eq!(producer_card_oshi_toggle(None, &oshi, "miki"), producer_card_pick_oshi(&oshi));
+        let one = ids(&["miki"]);
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "stranger"), ids(&["miki"]));
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "sora"), ids(&["miki", "sora"]));
+        // 最後の 1 人は外さない。
+        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "miki"), ids(&["miki"]));
+    }
+
+    #[test]
+    fn oshi_choice_json_round_trips_and_reads_broken_as_unchosen() {
+        let chosen = ids(&["765as_星井美希", "sora"]);
+        let json = card_oshi_choice_to_json(&chosen);
+        assert_eq!(card_oshi_choice_from_json(&json), Some(chosen));
+        assert_eq!(card_oshi_choice_from_json(""), None);
+        assert_eq!(card_oshi_choice_from_json("[]"), None);
+        assert_eq!(card_oshi_choice_from_json("{broken"), None);
+    }
+
     #[test]
     fn card_face_folds_with_brand_representatives_when_over_slots() {
         // 名刺の上限を超える担当が来たとき (古い版の名刺など) も、ブランドの代表を先に並べて残りを畳む。
@@ -2248,7 +2544,56 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            card_id: None,
         }
+    }
+
+    /// 今は名刺 id を載せない (公開中の 2.5.0 が読めないため)。開けるのは定数 1 か所。
+    #[test]
+    fn card_id_is_not_embedded_until_the_switch_is_opened() {
+        let id = producer_card_new_id("0123456789abcdef");
+        assert!(!producer_card_embeds_card_id());
+        assert_eq!(producer_card_id_to_embed(Some(&id)), None);
+        assert_eq!(producer_card_id_to_embed(None), None);
+        // 組んだ名刺は足す前と 1 バイトも変わらない (旗 bit7 が立たない)。
+        let mut with_id = input();
+        with_id.card_id = producer_card_id_to_embed(Some(&id));
+        let enc = encode_producer_card(&with_id);
+        assert_eq!(base64url_decode(&producer_card_payload(&enc.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(enc.card, encode_producer_card(&input()).card);
+    }
+
+    #[test]
+    fn card_id_round_trips_and_old_cards_stay_byte_identical() {
+        let id = producer_card_new_id("8D3F2A10-9B7C-4E21-A0B1-1234567890AB");
+        assert_eq!(id.len(), 11);
+        assert!(producer_card_id_is_valid(&id));
+        assert_eq!(id, producer_card_new_id("8d3f2a109b7c4e21"), "UUID の先頭 16 桁で決まる");
+        assert!(producer_card_id_is_valid(&producer_card_new_id("not-a-uuid")));
+        assert!(!producer_card_id_is_valid("short"));
+
+        // id の無い名刺は足す前と同じ (旗 bit7 が立たない)。
+        let plain = encode_producer_card(&input());
+        assert_eq!(base64url_decode(&producer_card_payload(&plain.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(plain.card.card_id, None);
+
+        let mut with_id = input();
+        with_id.card_id = Some(id.clone());
+        let enc = encode_producer_card(&with_id);
+        let back = decode_producer_card(&enc.url).expect("decodes");
+        assert_eq!(back.card_id.as_deref(), Some(id.as_str()));
+        assert_eq!(back, enc.card);
+
+        // 形の違う id は載せない。
+        let mut bad = input();
+        bad.card_id = Some("x".into());
+        assert_eq!(encode_producer_card(&bad).card.card_id, None);
+
+        // 知らない続きの旗が立っていたら読まない。
+        let mut bytes = base64url_decode(&producer_card_payload(&enc.card)).unwrap();
+        let ext_at = bytes.len() - CARD_ID_BYTES - 1;
+        bytes[ext_at] |= 1 << 1;
+        assert_eq!(decode_producer_card(&base64url_encode(&bytes)), None);
     }
 
     #[test]

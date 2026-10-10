@@ -35,6 +35,8 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.theme.DS
 import kotlinx.coroutines.launch
+import uniffi.imas_core.TagCategoryInput
+import uniffi.imas_core.idolTagCategoryGroups
 
 /**
  * アイドルへのタグ追加ピッカー。SongTagPickerSheet と同じ見た目・操作感 (タグは曲と共有のマスタ)。
@@ -115,23 +117,37 @@ fun IdolTagPickerSheet(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
-                    ImasSectionHeader(title = if (trimmedQuery.isEmpty()) "よく使われるタグ" else "候補", style = ImasSectionHeaderStyle.SMALL)
-                    when {
-                        isLoading -> ImasInlineLoading()
-                        tags.isEmpty() -> ImasNote("タグが見つかりません")
-                        else -> ImasChipFlow {
-                            tags.forEach { tag ->
-                                val applied = alreadyAppliedTagIds.contains(tag.id)
-                                TagSelectChip(
-                                    tag = tag,
-                                    isApplied = applied,
-                                    isSelected = selected.contains(tag.id),
-                                    onClick = {
-                                        selected = if (selected.contains(tag.id)) selected - tag.id else selected + tag.id
-                                    }
-                                )
+                @Composable
+                fun chips(list: List<CommunityApi.CommunityTag>) = ImasChipFlow {
+                    list.forEach { tag ->
+                        TagSelectChip(
+                            tag = tag,
+                            isApplied = alreadyAppliedTagIds.contains(tag.id),
+                            isSelected = selected.contains(tag.id),
+                            onClick = {
+                                selected = if (selected.contains(tag.id)) selected - tag.id else selected + tag.id
                             }
+                        )
+                    }
+                }
+
+                if (trimmedQuery.isEmpty() && !isLoading && tags.isNotEmpty()) {
+                    // 検索していないときはカテゴリ (性格・容姿 …) ごとに見出しを分ける。中はよく使われる順。まとめ方はコア。
+                    val byId = remember(tags) { tags.associateBy { it.id } }
+                    val groups = remember(tags) { idolTagCategoryGroups(tags.map { TagCategoryInput(it.id, it.category) }) }
+                    groups.forEach { group ->
+                        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
+                            ImasSectionHeader(title = group.label, style = ImasSectionHeaderStyle.SMALL)
+                            chips(group.tagIds.mapNotNull { byId[it] })
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(DS.Space.header)) {
+                        ImasSectionHeader(title = if (trimmedQuery.isEmpty()) "よく使われるタグ" else "候補", style = ImasSectionHeaderStyle.SMALL)
+                        when {
+                            isLoading -> ImasInlineLoading()
+                            tags.isEmpty() -> ImasNote("タグが見つかりません")
+                            else -> chips(tags)
                         }
                     }
                 }

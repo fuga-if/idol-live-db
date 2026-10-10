@@ -12,6 +12,14 @@ import uniffi.imas_core.CardDesign
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.cardLinksFromJson
+import uniffi.imas_core.CardMeetingRecord
+import uniffi.imas_core.CardReceiveVia
+import uniffi.imas_core.cardReceiveViaFromKey
+import uniffi.imas_core.cardReceiveViaKey
+import uniffi.imas_core.producerCardIdIsValid
+import uniffi.imas_core.producerCardNewId
+import uniffi.imas_core.cardOshiChoiceFromJson
+import uniffi.imas_core.cardOshiChoiceToJson
 import uniffi.imas_core.cardLinksToJson
 import uniffi.imas_core.cardDesignFromKey
 import uniffi.imas_core.cardDesignKey
@@ -67,7 +75,19 @@ data class MyProducerCard(
      * 空はまだ選んでいない。名刺の中身 (QR) には入らない。
      */
     @ColumnInfo(name = "profile_json", defaultValue = "")
-    val profileJson: String = ""
+    val profileJson: String = "",
+    /**
+     * 名刺に載せる担当の選択 (コアの保存の形 `cardOshiChoiceToJson`)。null はまだ選んでいない
+     * (足す前の行もこれ。コアの自動の選び方で載る)。
+     */
+    @ColumnInfo(name = "card_oshi_json")
+    val cardOshiJson: String? = null,
+    /**
+     * 名刺 id (同じ人の名刺を見分ける、コアの `producerCardNewId`)。端末で一度だけ作り、名刺の中身に載せる。
+     * 保存のときに無ければ作る ([withCardId])。
+     */
+    @ColumnInfo(name = "card_id")
+    val cardId: String? = null
 ) {
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
@@ -83,6 +103,20 @@ data class MyProducerCard(
         }
 
     fun shows(field: ProducerCardField): Boolean = field !in hidden
+
+    /**
+     * 名刺に載せる担当の選択 (アプリの担当の id、載せる順)。null はまだ選んでいない。
+     * 選び方 (既定・上限・担当から外れた人を抜く) はコアの `producerCardOshiPickedIds`。
+     */
+    val cardOshiChoice: List<String>? get() = cardOshiJson?.let { cardOshiChoiceFromJson(it) }
+
+    /** 名刺 id が無ければ作った行 (形の壊れた id も作り直す)。 */
+    fun withCardId(): MyProducerCard =
+        if (cardId != null && producerCardIdIsValid(cardId)) this
+        else copy(cardId = producerCardNewId(UUID.randomUUID().toString()))
+
+    fun withCardOshiChoice(choice: List<String>?): MyProducerCard =
+        copy(cardOshiJson = choice?.takeIf { it.isNotEmpty() }?.let { cardOshiChoiceToJson(it) })
 
     /** P名刺の画像の選択と好きな曲 (まだ選んでいなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。 */
     val profile: ProfileSheet
@@ -168,11 +202,17 @@ data class ReceivedProducerCard(
     val showDate: String?,
     @ColumnInfo(name = "memo")
     val memo: String?,
-    /** 受け取った日時 (ISO 8601)。 */
+    /** 受け取った日時 (ISO 8601)。会った記録があれば最後に会った日時。 */
     @ColumnInfo(name = "received_at")
     val receivedAt: String,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: String
+    val updatedAt: String,
+    /**
+     * 最後に会ったときの受け取り方 (コアの `cardReceiveViaKey`)。null は不明 (足す前に受け取った名刺)。
+     * 受け取った公演・日時と同じく、最後の会った記録 ([ReceivedCardMeeting]) を写して持つ。
+     */
+    @ColumnInfo(name = "via")
+    val via: String? = null
 ) {
     enum class Source(val key: String) {
         /** アプリの QR・名刺ファイル・近くの端末から。 */
@@ -191,6 +231,9 @@ data class ReceivedProducerCard(
     /** 名刺の中身。読み解けなければ null (画面は名前の無い名刺として出さずに飛ばす)。 */
     val card: ProducerCard? get() = decodeProducerCard(payload)
 
+    /** 受け取り方 (不明なら null)。 */
+    val receiveVia: CardReceiveVia? get() = via?.let { cardReceiveViaFromKey(it) }
+
     companion object {
         fun make(
             payload: String,
@@ -198,6 +241,7 @@ data class ReceivedProducerCard(
             showId: String?,
             showDate: String?,
             memo: String? = null,
+            via: CardReceiveVia? = null,
             now: Instant = Instant.now()
         ): ReceivedProducerCard {
             // iOS (ISO8601DateFormatter) と同じ秒までの形にそろえる。
@@ -205,9 +249,51 @@ data class ReceivedProducerCard(
             return ReceivedProducerCard(
                 id = UUID.randomUUID().toString(), payload = payload, source = source.key,
                 showId = showId, showDate = showDate, memo = memo?.takeIf { it.isNotEmpty() },
-                receivedAt = stamp, updatedAt = stamp
+                receivedAt = stamp, updatedAt = stamp, via = via?.let { cardReceiveViaKey(it) }
             )
         }
+    }
+}
+
+/**
+ * 受け取った名刺の会った記録 1 つ。**端末ローカル唯一データ**。iOS `ReceivedCardMeeting` と同型。
+ * 同じ人の名刺は 1 枚にまとめ、会うたびにここへ積む (同じ人の見分け・積み方・何回目かはコアの
+ * `cardReceivePlan` / `cardMeetingViews`)。名刺を消すと一緒に消す (`ProducerCardDao.deleteReceived`)。
+ */
+@Entity(
+    tableName = "received_card_meetings",
+    indices = [Index(name = "idx_received_card_meetings_card", value = ["card_id"])]
+)
+data class ReceivedCardMeeting(
+    @PrimaryKey
+    @ColumnInfo(name = "id")
+    val id: String,
+    /** 受け取った名刺の行の id。 */
+    @ColumnInfo(name = "card_id")
+    val cardId: String,
+    @ColumnInfo(name = "show_id")
+    val showId: String?,
+    @ColumnInfo(name = "show_date")
+    val showDate: String?,
+    /** 受け取り方 (コアの `cardReceiveViaKey`)。null は不明。 */
+    @ColumnInfo(name = "via")
+    val via: String?,
+    /** 受け取った日時 (ISO 8601)。 */
+    @ColumnInfo(name = "met_at")
+    val metAt: String,
+    /** そのとき受け取った名刺の中身 (詳細の「この時の名刺に戻す」)。足す前の記録は null。 */
+    @ColumnInfo(name = "payload")
+    val payload: String? = null
+) {
+    /** コアに渡す形。 */
+    val record: CardMeetingRecord
+        get() = CardMeetingRecord(id = id, cardId = cardId, showId = showId, showDate = showDate, via = via, metAt = metAt, payload = payload)
+
+    companion object {
+        fun from(record: CardMeetingRecord): ReceivedCardMeeting = ReceivedCardMeeting(
+            id = record.id, cardId = record.cardId, showId = record.showId, showDate = record.showDate,
+            via = record.via, metAt = record.metAt, payload = record.payload
+        )
     }
 }
 

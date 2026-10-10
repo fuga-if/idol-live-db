@@ -157,6 +157,12 @@ struct ExpenseEditorView: View {
         saved.showId = showId
         saved.eventId = eventId
         saved.note = note.isEmpty ? nil : note
+        // 券の形態は「この公演の、この形態のチケット代」という意味なので、費目か公演を
+        // 変えたら手放す (残すと別の公演の券として二重計上の判定に効いてしまう)。
+        if let original = expense,
+           original.category != saved.category || original.showId != saved.showId {
+            saved.ticketKind = nil
+        }
         isSaving = true
         let succeeded = await onSave(saved)
         isSaving = false

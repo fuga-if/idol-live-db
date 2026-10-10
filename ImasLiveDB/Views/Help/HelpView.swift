@@ -39,7 +39,7 @@ enum HelpCatalog {
                 HelpItem(label: "詳細でセトリ・出演者・チケット情報を確認",
                          detail: "ライブをタップすると、公演日ごとのセトリ、出演アイドル、参考動画、チケット情報まで確認できます。"),
                 HelpItem(label: "参加したライブを記録",
-                         detail: "公演の行を左にスワイプすると、その場で参加 (現地 / 配信 / LV) を登録できます。詳細画面からも付けられ、マイページの参加カウントに加算されます。"),
+                         detail: "公演の行を左にスワイプすると、その場で参加 (現地 / 配信 / LV) を登録できます。現地で見て配信のアーカイブも買った公演のように、形態は複数付けられます (チケット代も形態ごとに記録できます)。詳細画面からも付けられ、マイページの参加カウントに加算されます。"),
                 HelpItem(label: "衣装と着用公演",
                          detail: "イベント詳細の「情報」タブに、そのイベントで着た衣装がまとまっています。衣装を開くと、ほかのイベントも含めてその衣装を着た公演と曲をたどれます。"),
                 HelpItem(label: "開催前のセトリ予想",
@@ -74,6 +74,8 @@ enum HelpCatalog {
                          detail: "曲一覧 / アルバムグリッド / シリーズグリッド を絞り込みパネルから切り替え可能。"),
                 HelpItem(label: "Apple Music 連携",
                          detail: "Apple Music に契約していればプレビュー再生 / フル再生 OK。ジャケ写も自動取得。"),
+                HelpItem(label: "Spotify 連携",
+                         detail: "自分の Spotify アプリの Client ID で連携すると、曲を Spotify でフル尺で鳴らして歌詞を追いかけられます (Spotify Premium が要ります)。セトリや自分のプレイリストを Spotify に書き出すこともできます。始め方はヘルプの「Spotify と連携する」に図つきで載っています。"),
                 HelpItem(label: "歌唱履歴で深掘り",
                          detail: "曲詳細から「どのライブで何回歌われたか」を一覧表示。担当曲の披露頻度がわかります。"),
                 HelpItem(label: "オリジナルメンバーを表示",
@@ -326,6 +328,17 @@ struct HelpView: View {
                             systemImage: "person.crop.square.badge.camera",
                             iconTone: .themed,
                             seed: "#FF4D8C",
+                            showsChevron: false,
+                            subtitleLineLimit: 2
+                        )
+                    }
+                    NavigationLink {
+                        SpotifyHowToView()
+                    } label: {
+                        ImasNavRow(
+                            title: "Spotify と連携する",
+                            subtitle: "自分の Spotify アプリを作って、セトリを Spotify のプレイリストに。図つきで手順を案内します。",
+                            systemImage: "music.note.list",
                             showsChevron: false,
                             subtitleLineLimit: 2
                         )

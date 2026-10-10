@@ -34,17 +34,18 @@ extension AppDatabase {
         }
     }
 
-    /// 参加の記録 (有無と種別) を 1 トランザクションで書く。`type` が nil なら取り消し。
+    /// 参加の記録 (有無と形態) を 1 トランザクションで書く。`text` が nil なら取り消し。
+    /// `text` は形態の保存値 (複数は "live,stream"。組み立てはコアの `attendanceSetType`)。
     ///
     /// 有無 (bool_value) と種別 (text_value) を別々に書くと、間で失敗したときに
     /// 「参加しているのに種別が無い / 取り消したのに種別が残る」行ができる。
-    func setAttendanceMark(entity: UserMarkEntity, id: String, type: AttendanceType?) throws {
+    func setAttendanceMark(entity: UserMarkEntity, id: String, text: String?) throws {
         try upsertUserMarkRow(entity: entity, id: id, kind: .attended) { existing in
-            existing.boolValue = type != nil
-            existing.textValue = type?.rawValue
+            existing.boolValue = text != nil
+            existing.textValue = text
         } makeNew: {
             UserMark(entityType: entity.rawValue, entityId: id, kind: UserMarkKind.attended.rawValue,
-                     boolValue: type != nil, textValue: type?.rawValue,
+                     boolValue: text != nil, textValue: text,
                      updatedAt: ISO8601DateFormatter.shared.string(from: Date()))
         }
     }
@@ -217,13 +218,11 @@ extension AppDatabase {
     private static var excludedVenueModes: String { sqlList(nonPerformanceVenueModes()) }
 
     /// 参加した公演の .attended 種別条件 (現地のみ / 設定により配信も)。
-    /// **どの形態を数えるかも imas-core が持つ** (`collectionAttendanceTypes`)。
-    /// 形態を持たない古いマーク (NULL) は現地扱い — 絞るときは必ず「現地」が並びに入るので、
-    /// core の `collection_attended_show_ids` と同じ集合を選ぶ。
+    /// **条件そのものを imas-core が組む** (`collectionAttendanceSqlCondition`)。
+    /// 形態を持たない古いマーク (NULL) は現地扱い・1 公演に複数の形態 ("live,stream") も読む
+    /// ので、core の `collection_attended_show_ids` と同じ集合を選ぶ。
     private var attendedTypeCondition: String {
-        let types = collectionAttendanceTypes(includeStream: collectionIncludeStream)
-        guard !types.isEmpty else { return "1=1" }
-        return "(text_value IS NULL OR text_value IN (\(Self.sqlList(types))))"
+        collectionAttendanceSqlCondition(includeStream: collectionIncludeStream)
     }
 
     /// 参加マークの entity_id を引く副問い合わせ。**回収を数える SQL はここを通す。**

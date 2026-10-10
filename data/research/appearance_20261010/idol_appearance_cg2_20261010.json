@@ -1,0 +1,712 @@
+{
+ "title": "アイドルの容姿 シンデレラガールズ 2",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "cg_小松伊吹",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール(低め)"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%B0%8F%E6%9D%BE%E4%BC%8A%E5%90%B9 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=komatsu_ibuki (タグ集計)",
+   "note": "タグ集計はオレンジ/茶が割れた。萌娘百科のカテゴリは橙发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小室千奈美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ハイポニーテール,ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%B0%8F%E5%AE%A4%E5%8D%83%E5%A5%88%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=komuro_chinami (タグ集計)",
+   "note": "萌娘百科カテゴリは棕发(茶)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_西園寺琴歌",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%9C%92%E5%AF%BA%E7%90%B4%E6%AD%8C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saionji_kotoka (タグ集計)",
+   "note": "淡いパステルピンク。ツインテール・アップなどアレンジが多く、基本は下ろしたウェーブ(謎の猫Wiki等の記述)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_斉藤洋子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%96%89%E8%97%A4%E6%B4%8B%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saitou_youko (タグ集計)",
+   "note": "タグ集計は8件と少ない"
+  },
+  {
+   "table": "idols",
+   "id": "cg_冴島清美",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "下ツインテール,ヘアバンド"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%86%B4%E5%B3%B6%E6%B8%85%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=saejima_kiyomi (タグ集計)",
+   "note": "黒/茶の割れ(黒が多数)。おさげ風の低いツインテール"
+  },
+  {
+   "table": "idols",
+   "id": "cg_榊原里美",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,ドリル,リボン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%A6%8A%E5%8E%9F%E9%87%8C%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakakibara_satomi (タグ集計)",
+   "note": "灰/銀の割れ(灰が多数)。ツインドリル"
+  },
+  {
+   "table": "idols",
+   "id": "cg_鷺沢文香",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,ヘアバンド,前髪で目を隠す"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%B7%BA%E6%B2%A2%E6%96%87%E9%A6%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sagisawa_fumika (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐久間まゆ",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ヘアバンド,リボン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E4%B9%85%E9%96%93%E3%81%BE%E3%82%86 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakuma_mayu (タグ集計)",
+   "note": "長さはミディアム/ショートのタグが割れた"
+  },
+  {
+   "table": "idols",
+   "id": "cg_櫻井桃華",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ミディアム",
+    "hair_style": "カール,ヘアバンド"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%AB%BB%E4%BA%95%E6%A1%83%E8%8F%AF (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sakurai_momoka (タグ集計)",
+   "note": "長さはタグが割れ(ミディアム/ショート)。金髪巻き髪は萌娘百科の記述"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐々木千枝",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート,ヘアピン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E3%80%85%E6%9C%A8%E5%8D%83%E6%9E%9D (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sasaki_chie (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐城雪美",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,ぱっつん"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E5%9F%8E%E9%9B%AA%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sajou_yukimi (タグ集計)",
+   "note": "青みがかった黒。タグ集計は青が多数なので青の可能性あり"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐藤心",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BD%90%E8%97%A4%E5%BF%83 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=satou_shin (タグ集計)",
+   "note": "金/明るい茶の割れ。萌娘百科の記述は金髪"
+  },
+  {
+   "table": "idols",
+   "id": "cg_沢田麻理菜",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%B2%A2%E7%94%B0%E9%BA%BB%E7%90%86%E8%8F%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sawada_marina (タグ集計)",
+   "note": "タグ集計は12件と少ない。長さはロング/ミディアム割れ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_財前時子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E8%B2%A1%E5%89%8D%E6%99%82%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=zaizen_tokiko (タグ集計)",
+   "note": "色は茶が多数でオレンジ少数。髪型は根拠が取れず空欄。不明: 髪型"
+  },
+  {
+   "table": "idols",
+   "id": "cg_椎名法子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%A4%8E%E5%90%8D%E6%B3%95%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiina_noriko (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_塩見周子",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%A1%A9%E8%A6%8B%E5%91%A8%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiomi_syuko (タグ集計)",
+   "note": "灰/白/金の割れ(灰が多数)。薄い色のため迷い"
+  },
+  {
+   "table": "idols",
+   "id": "cg_篠原礼",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%AF%A0%E5%8E%9F%E7%A4%BC (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shinohara_rei (タグ集計)",
+   "note": "タグ集計17件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_渋谷凛",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%B8%8B%E8%B0%B7%E5%87%9B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shibuya_rin (タグ集計)",
+   "note": "タグ集計は茶118/黒70で割れ。一般には黒髪の扱いだが迷い"
+  },
+  {
+   "table": "idols",
+   "id": "cg_島村卯月",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "サイドテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%B3%B6%E6%9D%91%E5%8D%AF%E6%9C%88 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shimamura_uzuki (タグ集計)",
+   "note": "長さはロング/肩付近で迷い"
+  },
+  {
+   "table": "idols",
+   "id": "cg_首藤葵",
+   "fields": {
+    "hair_color": "黒",
+    "hair_style": "三つ編み,ヘアピン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%A6%96%E8%97%A4%E8%91%B5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shutou_aoi (タグ集計)",
+   "note": "長さはタグが割れ(ロング6/ショート3)で不明。タグ集計14件。不明: 長さ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白菊ほたる",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E8%8F%8A%E3%81%BB%E3%81%9F%E3%82%8B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shiragiku_hotaru (タグ集計)",
+   "note": "紫タグも30件あり(黒が多数)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白坂小梅",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "片目隠れ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E5%9D%82%E5%B0%8F%E6%A2%85 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shirasaka_koume (タグ集計)",
+   "note": "薄い金/淡い色。タグ集計は金が多数"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白雪千夜",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,ぱっつん"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%99%BD%E9%9B%AA%E5%8D%83%E5%A4%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=shirayuki_chiyo (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_城ヶ崎美嘉",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール,リボン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%9F%8E%E3%83%B6%E5%B4%8E%E7%BE%8E%E5%98%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=jougasaki_mika (タグ集計)",
+   "note": "髪型はポニー/ツインなど衣装で変わる(萌点は双馬尾・単馬尾)。ポニーテールが多数"
+  },
+  {
+   "table": "idols",
+   "id": "cg_城ヶ崎莉嘉",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ツーサイドアップ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%9F%8E%E3%83%B6%E5%B4%8E%E8%8E%89%E5%98%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=jougasaki_rika (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_杉坂海",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%9D%89%E5%9D%82%E6%B5%B7 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sugisaka_umi (タグ集計)",
+   "note": "超長髪"
+  },
+  {
+   "table": "idols",
+   "id": "cg_涼宮星花",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%B6%BC%E5%AE%AE%E6%98%9F%E8%8A%B1 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=suzumiya_seika (タグ集計)",
+   "note": "タグ集計16件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_砂塚あきら",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%A0%82%E5%A1%9A%E3%81%82%E3%81%8D%E3%82%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sunazuka_akira (タグ集計)",
+   "note": "黒/茶の割れ(黒が多数)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_関裕美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ,三つ編み"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%96%A2%E8%A3%95%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=seki_hiromi (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_瀬名詩織",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%80%AC%E5%90%8D%E8%A9%A9%E7%B9%94 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=sena_shiori (タグ集計)",
+   "note": "タグ集計は5件と少ないが萌点も黒長直"
+  },
+  {
+   "table": "idols",
+   "id": "cg_仙崎恵磨",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BB%99%E5%B4%8E%E6%81%B5%E7%A3%A8 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=senzaki_ema (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_相馬夏美",
+   "fields": {
+    "hair_color": "黒",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E7%9B%B8%E9%A6%AC%E5%A4%8F%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=souma_natsumi (タグ集計)",
+   "note": "長さはタグが割れ(ロング5/ショート3)で不明。タグ集計12件。不明: 長さ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_高垣楓",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E5%9E%A3%E6%A5%93 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takagaki_kaede (タグ集計)",
+   "note": "緑/茶の割れ(緑が多数)。暗い緑がかった茶とも見え迷い"
+  },
+  {
+   "table": "idols",
+   "id": "cg_高橋礼子",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E6%A9%8B%E7%A4%BC%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takahashi_reiko (タグ集計)",
+   "note": "髪型は根拠が取れず空欄。不明: 髪型"
+  },
+  {
+   "table": "idols",
+   "id": "cg_鷹富士茄子",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート,髪飾り"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%B7%B9%E5%AF%8C%E5%A3%AB%E8%8C%84%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takafuji_kako (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_高峯のあ",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E5%B3%AF%E3%81%AE%E3%81%82 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takamine_noa (タグ集計)",
+   "note": "銀/白/灰の割れ。萌点は白長直"
+  },
+  {
+   "table": "idols",
+   "id": "cg_高森藍子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "お団子,ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%AB%98%E6%A3%AE%E8%97%8D%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=takamori_aiko (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_多田李衣菜",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%A4%9A%E7%94%B0%E6%9D%8E%E8%A1%A3%E8%8F%9C (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tada_riina (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_橘ありす",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ハーフアップ,リボン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%A9%98%E3%81%82%E3%82%8A%E3%81%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tachibana_arisu (タグ集計)",
+   "note": "黒タグも22件あり"
+  },
+  {
+   "table": "idols",
+   "id": "cg_月宮雅",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート,ウェーブ,ヘアバンド"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%9C%88%E5%AE%AE%E9%9B%85 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsukimiya_miyabi (タグ集計)",
+   "note": "タグ集計20件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_辻野あかり",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E8%BE%BB%E9%87%8E%E3%81%82%E3%81%8B%E3%82%8A (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsujino_akari (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_土屋亜子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%9C%9F%E5%B1%8B%E4%BA%9C%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tsuchiya_ako (タグ集計)",
+   "note": "タグ集計7件と少ない"
+  },
+  {
+   "table": "idols",
+   "id": "cg_東郷あい",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%9D%B1%E9%83%B7%E3%81%82%E3%81%84 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=tougou_ai (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_十時愛梨",
+   "fields": {
+    "hair_color": "茶",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%8D%81%E6%99%82%E6%84%9B%E6%A2%A8 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=totoki_airi (タグ集計)",
+   "note": "長さはタグから決められず空欄。不明: 長さ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_道明寺歌鈴",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ポニーテール,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%81%93%E6%98%8E%E5%AF%BA%E6%AD%8C%E9%88%B4 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=doumyouji_karin (タグ集計)",
+   "note": "長さはショートタグ多数だがポニーテール込みで迷い"
+  },
+  {
+   "table": "idols",
+   "id": "cg_中野有香",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%AD%E9%87%8E%E6%9C%89%E9%A6%99 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nakano_yuka (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_長富蓮実",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ウェーブ,ヘアバンド"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%95%B7%E5%AF%8C%E8%93%AE%E5%AE%9F (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nagatomi_hasumi (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_ナターリア",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E3%83%8A%E3%82%BF%E3%83%BC%E3%83%AA%E3%82%A2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=natalia_%28idolmaster%29 (タグ集計)",
+   "note": "黒/緑の割れ(黒が多数)。緑がかった黒の可能性"
+  },
+  {
+   "table": "idols",
+   "id": "cg_並木芽衣子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%A6%E6%9C%A8%E8%8A%BD%E8%A1%A3%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=namiki_meiko (タグ集計)",
+   "note": "タグ集計21件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_成宮由愛",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ショート",
+    "hair_style": "ショート,アホ毛,ヘアバンド"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%88%90%E5%AE%AE%E7%94%B1%E6%84%9B (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=narumiya_yume (タグ集計)",
+   "note": "灰/銀の割れ(灰が多数)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_南条光",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%8D%97%E6%9D%A1%E5%85%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nanjou_hikaru (タグ集計)",
+   "note": "長さの根拠はタグ集計のみ。青タグも少数"
+  },
+  {
+   "table": "idols",
+   "id": "cg_難波笑美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ウェーブ,ヘアピン"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%9B%A3%E6%B3%A2%E7%AC%91%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=namba_emi (タグ集計)",
+   "note": "タグ集計21件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_西川保奈美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%B7%9D%E4%BF%9D%E5%A5%88%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nishikawa_honami (タグ集計)",
+   "note": "茶11/黒7で割れ。髪型は根拠が取れず空欄。タグ集計17件。不明: 髪型"
+  },
+  {
+   "table": "idols",
+   "id": "cg_西島櫂",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショート,アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E8%A5%BF%E5%B3%B6%E6%AB%82 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nishijima_kai (タグ集計)",
+   "note": "タグ集計9件"
+  },
+  {
+   "table": "idols",
+   "id": "cg_新田美波",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%96%B0%E7%94%B0%E7%BE%8E%E6%B3%A2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nitta_minami (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_二宮飛鳥",
+   "fields": {
+    "hair_color": "その他",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み(エクステ),アホ毛"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%BA%8C%E5%AE%AE%E9%A3%9B%E9%B3%A5 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=ninomiya_asuka (タグ集計)",
+   "note": "茶に金/オレンジの二色(エクステ)。色は一語で表せずその他"
+  },
+  {
+   "table": "idols",
+   "id": "cg_丹羽仁美",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,ぱっつん"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E4%B8%B9%E7%BE%BD%E4%BB%81%E7%BE%8E (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=niwa_hitomi (タグ集計)",
+   "note": "黒/緑の割れ(黒が多数)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_野々村そら",
+   "fields": {
+    "hair_style": "ツインテール,カール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%87%8E%E3%80%85%E6%9D%91%E3%81%9D%E3%82%89 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=nonomura_sora (タグ集計)",
+   "note": "色(黒/茶)と長さがタグから決められず不明。タグ集計9件。不明: 色・長さ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_服部瞳子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%9C%8D%E9%83%A8%E7%9E%B3%E5%AD%90 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hattori_toko (タグ集計)",
+   "note": "タグ集計3件のみで根拠が弱い。不明: 髪型"
+  },
+  {
+   "table": "idols",
+   "id": "cg_浜川愛結奈",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ロング",
+    "hair_style": "ハーフアップ,ウェーブ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%B5%9C%E5%B7%9D%E6%84%9B%E7%B5%90%E5%A5%88 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hamakawa_ayuna (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_浜口あやめ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_style": "お団子,ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%B5%9C%E5%8F%A3%E3%81%82%E3%82%84%E3%82%81 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hamaguchi_ayame (タグ集計)",
+   "note": "長さは根拠が取れず空欄。不明: 長さ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_早坂美玲",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ショート",
+    "hair_style": "ショート,メッシュ"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%97%A9%E5%9D%82%E7%BE%8E%E7%8E%B2 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hayasaka_mirei (タグ集計)",
+   "note": "紫に挑染(メッシュ)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_速水奏",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート,中分"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E9%80%9F%E6%B0%B4%E5%A5%8F (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hayami_kanade (タグ集計)",
+   "note": "青みがかった黒。タグ集計は青91/黒64で割れ"
+  },
+  {
+   "table": "idols",
+   "id": "cg_原田美世",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート,ポニーテール"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E5%8E%9F%E7%94%B0%E7%BE%8E%E4%B8%96 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=harada_miyo (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  },
+  {
+   "table": "idols",
+   "id": "cg_柊志乃",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,中分"
+   },
+   "source": "https://wiki.biligame.com/imascg/%E6%9F%8A%E5%BF%97%E4%B9%83 (萌点タグ) ; https://safebooru.org/index.php?page=post&s=list&tags=hiiragi_shino (タグ集計)",
+   "note": "タグ集計と萌点が一致"
+  }
+ ]
+}

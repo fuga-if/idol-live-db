@@ -132,6 +132,7 @@ export async function handleAuth(ctx: RouteContext): Promise<Response | null> {
     //   goodsReceived = 自分の編集が累計で受け取った Good 数 (edit_good を editor で都度 COUNT)
     const row = await env.DB.prepare(
       `SELECT u.id, u.display_name, u.avatar_url, u.is_admin, u.is_banned, u.contribution_count, u.created_at,
+              COALESCE(u.credit_opt_in, 0) AS credit_opt_in,
               COALESCE((SELECT COUNT(*) FROM edit_good g
                         JOIN edit_batch eb ON eb.id = g.batch_id
                         WHERE eb.editor_id = u.id AND eb.source = 'app'), 0) AS goods_received
@@ -147,6 +148,7 @@ export async function handleAuth(ctx: RouteContext): Promise<Response | null> {
         contribution_count: number;
         created_at: string;
         goods_received: number;
+        credit_opt_in: number;
       }>();
     // 退会で無効になったセッションは 401 (読んだ行で判定する。読み足さない)。
     if (isRevokedSession(user, row)) return error("Unauthorized", 401);
@@ -163,6 +165,8 @@ export async function handleAuth(ctx: RouteContext): Promise<Response | null> {
       isBanned: !!row?.is_banned,
       editCount,
       goodsReceived: row?.goods_received ?? 0,
+      // 公演ページの奥付に表示名を載せるか (本人のオプトイン)。
+      creditOptIn: !!row?.credit_opt_in,
     });
   }
 

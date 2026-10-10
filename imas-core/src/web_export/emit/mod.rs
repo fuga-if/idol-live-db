@@ -107,10 +107,9 @@ impl RouteBook {
 
 /// 実データを `out` に書き出す。
 pub fn run(args: &Args) -> Result<Stats> {
-    let out = args
-        .out
-        .clone()
-        .ok_or_else(|| WebExportError::Args("--out が要る".into()))?;
+    if args.out.is_none() && args.api_sql.is_none() {
+        return Err(WebExportError::Args("--out か --api-sql が要る".into()));
+    }
 
     // 1) DB を用意する。
     let (db_path, content_hash) = match (&args.sql, &args.db) {
@@ -118,7 +117,7 @@ pub fn run(args: &Args) -> Result<Stats> {
             let work_db = args
                 .work_db
                 .clone()
-                .unwrap_or_else(|| default_work_db(&out));
+                .unwrap_or_else(|| default_work_db(args.out.as_ref().or(args.api_sql.as_ref()).expect("検査済み")));
             restore::restore(sql, &work_db)?;
             (work_db, Some(restore::content_hash(sql)?))
         }
@@ -163,6 +162,24 @@ pub fn run(args: &Args) -> Result<Stats> {
     // コールガイドの進捗 (Worker の公開エンドポイントの写し)。無ければページごと出さない。
     let calls =
         crate::web_export::calls_dashboard::load(calls_path(args)).map_err(WebExportError::Db)?;
+
+    // 公開データ API 用の SQL。Web の JSON とは独立の出力 (同じ Snapshot を読むだけ)。
+    let mut api_stats = None;
+    if let Some(path) = &args.api_sql {
+        let tags = match &args.facet_tags {
+            Some(p) => crate::web_export::data_api::load_facet_tags(p)?,
+            None => Default::default(),
+        };
+        let sql = crate::web_export::data_api::render_sql_with_tags(&snap, &today, content_hash.as_deref(), &tags)?;
+        if let Some(dir) = path.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        std::fs::write(path, &sql)?;
+        api_stats = Some(Stats { files: 1, bytes: sql.len() as u64, ..Stats::default() });
+    }
+    let Some(out) = args.out.clone() else {
+        return Ok(api_stats.unwrap_or_default());
+    };
 
     let ctx = Ctx::new(&snap, &community, today, generated_at, content_hash);
     write_all(&ctx, &out, args.pretty, raw_tables, calls.as_ref())
@@ -243,6 +260,9 @@ fn shippable_tables(mut raw: RawTables) -> RawTables {
     // 生テーブルまで渡すと、正データ (event_page の TicketInfo) と二重に存在してズレても
     // 気づけなくなる)。
     raw.ticket_sales = Vec::new();
+    // アイドルの項目は公開データ API (`/facts`) の入力で、ブラウザには要らない。
+    raw.idol_facets = Vec::new();
+    raw.idol_hairstyles = Vec::new();
     raw
 }
 
@@ -286,6 +306,9 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         is_collab,
         has_kamisabi_card,
         note,
+        streaming_date,
+        cd_release_date,
+        first_appearance_note,
     } = song;
     Song {
         id,
@@ -320,6 +343,10 @@ fn shippable_song(song: crate::domain::snapshot::Song) -> crate::domain::snapsho
         has_kamisabi_card,
         // 曲の補足。出面の曲ページが読む。
         note,
+        // 配信開始日・CD 発売日。出面の曲ページの日付の行 (domain::song_dates) が読む。
+        streaming_date,
+        cd_release_date,
+        first_appearance_note,
     }
 }
 

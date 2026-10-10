@@ -117,6 +117,12 @@ struct CoreSongRepository: SongReading {
 
     // MARK: - 楽曲詳細
 
+    func songDateRows(songId: String) async throws -> [SongDateRow] {
+        try await snapshot.withStore { store in
+            try store.songDateRows(songId: songId)
+        }
+    }
+
     func songPerformanceHistory(songId: String) async throws -> [PerformanceHistoryRow] {
         try await snapshot.withStore { store in
             try store.songPerformanceHistory(songId: songId).map {

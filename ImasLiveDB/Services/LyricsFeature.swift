@@ -22,7 +22,12 @@ import Foundation
 /// サーバから全て削除した。許諾は生きているので、入手方法を作り直したらここを `true` に戻す。
 /// 閉じている間は歌詞タブ・歌詞検索・歌詞クイズ・コールガイドの入口を出さない。
 enum LyricsFeature {
-    static var isAvailable: Bool { false }
+    /// 歌詞の表示 (歌詞タブ・歌詞検索・歌詞クイズ・コールガイド・歌詞プレイヤー)。
+    /// 2026-10-06 に全削除して閉じ、同日から利用者の投稿 (`LyricSubmissionSheet`) で集め直すことにして開け直した。
+    static var isAvailable: Bool { true }
+
+    /// 歌詞の投稿を受け付けるか (`POST /songs/:id/lyric-submissions`)。
+    static var acceptsSubmissions: Bool { true }
 }
 
 /// JASRAC 許諾の掲示物。許諾条件に「許諾マークをトップページに掲載し、その下に

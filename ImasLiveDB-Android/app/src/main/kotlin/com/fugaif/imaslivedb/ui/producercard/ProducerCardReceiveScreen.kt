@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import uniffi.imas_core.CardReceiveVia
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasRowPosition
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
@@ -61,6 +63,9 @@ import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardFileImage
 import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardPhotoSource
+import uniffi.imas_core.CardSamePersonChoice
+import uniffi.imas_core.CardSamePersonConfirm
+import uniffi.imas_core.CardSamePersonSide
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.decodeProducerCard
 import uniffi.imas_core.producerCardCommon
@@ -103,6 +108,9 @@ fun ProducerCardReceiveContent(
     var pickingShow by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    // 同じ人か確かめる画面 (要らなければ null)。
+    var samePerson by remember { mutableStateOf<CardSamePersonConfirm?>(null) }
+    var samePersonChoice by remember { mutableStateOf(CardSamePersonChoice.SEPARATE) }
 
     /** 届いた画像をプレビューできるよう一時フォルダに書く (しまうときは名刺入れの置き場へ)。 */
     suspend fun accept(new: List<CardFileImage>) {
@@ -117,6 +125,7 @@ fun ProducerCardReceiveContent(
     LaunchedEffect(incoming) {
         accept(incoming.images)
         nearby?.received?.value?.takeIf { it.payload == incoming.payload }?.let { accept(it.images) }
+        samePerson = ProducerCardInbox.samePersonConfirm(context, incoming.payload)
         val rec = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull()
         record = rec
         showOptions = runCatching { module.expenseRepository.attendedShowOptions() }.getOrDefault(emptyList())
@@ -138,7 +147,8 @@ fun ProducerCardReceiveContent(
         isSaving = true
         scope.launch {
             try {
-                val saved = ProducerCardInbox.store(context, incoming.payload, images, ReceivedProducerCard.Source.APP, show)
+                val choice = if (samePerson == null) CardSamePersonChoice.UNDECIDED else samePersonChoice
+                val saved = ProducerCardInbox.store(context, incoming.payload, images, ReceivedProducerCard.Source.APP, incoming.via, show, choice = choice)
                 haptics.impactMedium()
                 onDone(c.name to saved.id)
             } catch (e: Exception) {
@@ -163,6 +173,7 @@ fun ProducerCardReceiveContent(
                 verticalArrangement = Arrangement.spacedBy(DS.Space.section)
             ) {
                 if (card != null) {
+                    SamePersonSection(samePerson, samePersonChoice, onChoose = { samePersonChoice = it })
                     val content = rememberProducerCardContent(
                         card = card, directory = directory, sharedWith = record?.oshiIds.orEmpty().toSet(),
                         imageUrls = imageUrls, portraitUrl = portraitUrl,
@@ -178,7 +189,7 @@ fun ProducerCardReceiveContent(
                             value = show?.label, placeholder = "公演に紐づけない", onClick = { pickingShow = true }
                         )
                     }
-                    if (nearby != null && incoming.via == IncomingProducerCard.Via.SCAN) {
+                    if (nearby != null && incoming.via == CardReceiveVia.CAMERA_QR) {
                         ImasNote(nearbyNote(phase, images.isEmpty()))
                     }
                 } else {
@@ -215,6 +226,49 @@ private fun nearbyNote(phase: NearbyCardExchange.Phase?, noImages: Boolean): Str
         if (noImages) "相手の名刺を受け取りました (写真・担当の画像は設定されていません)。" else "写真と画像を受け取りました。"
     else ->
         "近くに相手の Android が見つかりませんでした。名刺は QR の中身だけで保存できます。写真と担当の画像は、相手に「名刺ファイルで送る」で送ってもらうと届きます。"
+}
+
+/**
+ * 名刺入れの名刺と同じ人か確かめる (名刺 id が同じで名前が違う・名前と担当が同じで中身が違う。
+ * 決めるのはコアの `cardReceivePlan` / `cardSamePersonConfirm`)。「同じ人として更新」か「別の名刺として残す」を
+ * 選べる行で選ばせる (既定は別の名刺。黙って中身を差し替えない)。iOS `ProducerCardReceiveView.samePersonSection` と対。
+ */
+@Composable
+private fun SamePersonSection(
+    samePerson: CardSamePersonConfirm?,
+    choice: CardSamePersonChoice,
+    onChoose: (CardSamePersonChoice) -> Unit
+) {
+    if (samePerson == null) return
+    ImasSection(samePerson.title, style = ImasSectionHeaderStyle.SMALL) {
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+            ImasNote(samePerson.reason)
+            ImasCardList {
+                SamePersonSide(samePerson.before, first = true)
+                SamePersonSide(samePerson.after, first = false)
+            }
+            ImasCardList {
+                ImasSelectableRow(
+                    title = samePerson.separateLabel, isSelected = choice == CardSamePersonChoice.SEPARATE,
+                    isSingle = true, position = ImasRowPosition.FIRST, onClick = { onChoose(CardSamePersonChoice.SEPARATE) }
+                )
+                ImasSelectableRow(
+                    title = samePerson.samePersonLabel, isSelected = choice == CardSamePersonChoice.SAME_PERSON,
+                    isSingle = true, position = ImasRowPosition.FOLLOWING, onClick = { onChoose(CardSamePersonChoice.SAME_PERSON) }
+                )
+            }
+            // 選んだ方の説明 (行の副題では切れるので下に出す)。
+            ImasNote(if (choice == CardSamePersonChoice.SAME_PERSON) samePerson.samePersonNote else samePerson.separateNote)
+        }
+    }
+}
+
+@Composable
+private fun SamePersonSide(side: CardSamePersonSide, first: Boolean) {
+    ImasValueRow(key = side.label, value = side.name, position = if (first) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING)
+    side.links.forEach { link ->
+        ImasValueRow(key = link.label, value = link.display, position = ImasRowPosition.FOLLOWING)
+    }
 }
 
 /** 受け取りの確認の「あなたとの共通点」(同じ担当・同じ公演にいた回数)。共通点はコア。 */

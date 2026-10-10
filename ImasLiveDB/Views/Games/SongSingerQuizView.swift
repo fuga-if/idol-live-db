@@ -100,7 +100,7 @@ struct SongSingerQuizView: View {
                                 onReplay: { restart() }, onClose: { dismiss() })
         } else if let q = question, let song = songById[q.songId] {
             QuizStageProgress(slots: plays.penlights(total: sessionLength, answering: verdict == nil),
-                              caption: plays.setlistCaption(total: sessionLength),
+                              caption: plays.answeredCaption(total: sessionLength),
                               streak: plays.streak, streakBrokeAt: plays.streakBrokeAt)
                 .padding(.bottom, DS.sp1)
             if let verdict {

@@ -3,7 +3,7 @@
 //! 公演 1 つぶんの券種をまとめて渡して、選んだ結果や価格帯を受け取る。
 
 use crate::domain::ticket_prices::{
-    ShowTicket, TicketArchive, TicketBackfillInput, TicketBackfillItem, TicketExpensePrompt, TicketInputError, TicketKind, TicketPriceRange,
+    RecordedShowExpense, ShowTicket, TicketArchive, TicketBackfillInput, TicketBackfillItem, TicketExpensePrompt, TicketInputError, TicketKind, TicketPriceRange,
 };
 
 #[uniffi::export]
@@ -42,18 +42,25 @@ pub fn validate_ticket(name: String, price: i64) -> Option<TicketInputError> {
 }
 
 /// 参加を付けた直後にチケット代を記録するか聞くか (聞くなら候補)。聞かない理由が
-/// 1 つでもあれば `None`。`existing_expense_categories` はその公演の記録済みの費目キー。
+/// 1 つでもあれば `None`。`attendance_type` はいま付けた 1 つの形態、
+/// `existing_expenses` はその公演の記録済みの支出 (形態ごとに二重計上を見る)。
 #[uniffi::export]
 pub fn ticket_expense_prompt(
     show_tickets: Vec<ShowTicket>,
     attendance_type: String,
-    existing_expense_categories: Vec<String>,
+    existing_expenses: Vec<RecordedShowExpense>,
 ) -> Option<TicketExpensePrompt> {
     crate::domain::ticket_prices::ticket_expense_prompt(
         &show_tickets,
         &attendance_type,
-        &existing_expense_categories,
+        &existing_expenses,
     )
+}
+
+/// 券の形態の保存値 (`expenses.ticket_kind` に書く値)。
+#[uniffi::export]
+pub fn ticket_kind_raw(kind: TicketKind) -> String {
+    crate::domain::ticket_prices::ticket_kind_raw(kind)
 }
 
 /// 参加を付けてあるのにチケット代がまだ無い公演 (過去の参加の取り込み候補)。

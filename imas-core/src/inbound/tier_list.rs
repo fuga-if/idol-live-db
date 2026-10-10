@@ -75,6 +75,19 @@ pub fn tier_list_assign_from_ranking(ranks: Vec<u32>) -> Vec<u32> {
     tier_list::assign_from_ranking(&ranks)
 }
 
+/// 段の中の並びを 1 件動かす (ドラッグで札の上に落とした / 段の余白に落とした)。
+/// `order` は保存している表全体の並び (空 = 対象の並びのまま)。`before` が別の項目ならその左へ、
+/// None なら末尾 (= 落とした段の右端) へ。戻り値をそのまま保存する。
+#[uniffi::export]
+pub fn tier_list_move_item(
+    item_ids: Vec<String>,
+    order: Vec<String>,
+    item: String,
+    before: Option<String>,
+) -> Vec<String> {
+    tier_list::move_item(&item_ids, &order, &item, before.as_deref())
+}
+
 /// 共有文の 1 段。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct TierListShareTier {
@@ -98,6 +111,8 @@ mod tests {
         let labels: Vec<String> = tier_list_tiers().into_iter().map(|t| t.label).collect();
         assert_eq!(labels, vec!["S", "A", "B", "C", "D"]);
         assert_eq!(tier_list_assign_from_ranking(vec![1, 2, 3]), vec![0, 1, 2]);
+        let items: Vec<String> = ["a", "b", "c"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(tier_list_move_item(items.clone(), vec![], "c".into(), Some("a".into())), vec!["c", "a", "b"]);
         let text = tier_list_share_text(
             "t".into(),
             "".into(),

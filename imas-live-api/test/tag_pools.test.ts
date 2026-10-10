@@ -560,6 +560,12 @@ describe("GET /tags/activity", () => {
     await applyTags(POOLS[0], "s1", ["song-tag"], "dev-1");
     await applyTags(POOLS[0], "s1", ["song-tag"], "dev-2");
     await applyTags(POOLS[1], "i1", ["idol-tag"], "dev-1");
+    // 運営が入れた票 (公式タグの初期値) は利用者の動きに数えない。
+    await exec(
+      `INSERT INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES
+       ('official:seed', 'i1', 'idol-tag', CAST(strftime('%s', 'now') AS INTEGER)),
+       ('official:seed', 'i2', 'idol-tag', CAST(strftime('%s', 'now') AS INTEGER))`
+    );
 
     const res = await callJson("GET", "/tags/activity?window_days=3");
     expect(res.status).toBe(200);

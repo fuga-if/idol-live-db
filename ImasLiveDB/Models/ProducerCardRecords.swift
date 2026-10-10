@@ -30,6 +30,12 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     /// P名刺の画像 (SNS に貼る履歴書の様式) の選択と、P名刺の好きな曲 (コアの保存の形 `profileSheetToJson`)。
     /// 空はまだ選んでいない。名刺の中身 (QR) には入らない。
     var profileJson: String = ""
+    /// 名刺に載せる担当の選択 (コアの保存の形 `cardOshiChoiceToJson`)。nil はまだ選んでいない
+    /// (足す前の行もこれ。コアの自動の選び方で載る)。
+    var cardOshiJson: String? = nil
+    /// 名刺 id (同じ人の名刺を見分ける、コアの `producerCardNewId`)。端末で一度だけ作り、名刺の中身に載せる。
+    /// 保存のときに無ければ作る (`AppDatabase.saveMyProducerCard`)。
+    var cardId: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, message
@@ -40,6 +46,8 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
         case design
         case qrUrl = "qr_url"
         case profileJson = "profile_json"
+        case cardOshiJson = "card_oshi_json"
+        case cardId = "card_id"
     }
 
     static func empty() -> MyProducerCard {
@@ -70,6 +78,21 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     }
 
     func shows(_ field: ProducerCardField) -> Bool { !hidden.contains(field) }
+
+    /// 名刺 id が無ければ作った行 (形の壊れた id も作り直す)。
+    func withCardId() -> MyProducerCard {
+        if let cardId, producerCardIdIsValid(id: cardId) { return self }
+        var row = self
+        row.cardId = producerCardNewId(seed: UUID().uuidString)
+        return row
+    }
+
+    /// 名刺に載せる担当の選択 (アプリの担当の id、載せる順)。nil はまだ選んでいない。
+    /// 選び方 (既定・上限・担当から外れた人を抜く) はコアの `producerCardOshiPickedIds`。
+    var cardOshiChoice: [String]? {
+        get { cardOshiJson.flatMap { cardOshiChoiceFromJson(json: $0) } }
+        set { cardOshiJson = newValue.flatMap { $0.isEmpty ? nil : cardOshiChoiceToJson(ids: $0) } }
+    }
 
     /// P名刺の画像の選択と好きな曲 (まだ選んでいなければ既定の中身。壊れた保存も既定に戻す、規則はコア)。
     var profile: ProfileSheet {
@@ -143,12 +166,15 @@ struct ReceivedProducerCard: Codable, FetchableRecord, PersistableRecord, Hashab
     /// 受け取った公演の日付 (`YYYY-MM-DD`)。束ねるときに使う。
     var showDate: String?
     var memo: String?
-    /// 受け取った日時 (ISO 8601)。
+    /// 受け取った日時 (ISO 8601)。会った記録があれば最後に会った日時。
     var receivedAt: String
     var updatedAt: String
+    /// 最後に会ったときの受け取り方 (コアの `cardReceiveViaKey`)。nil は不明 (足す前に受け取った名刺)。
+    /// 受け取った公演・日時と同じく、最後の会った記録 (`ReceivedCardMeeting`) を写して持つ。
+    var via: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, payload, source, memo
+        case id, payload, source, memo, via
         case showId = "show_id"
         case showDate = "show_date"
         case receivedAt = "received_at"
@@ -167,14 +193,72 @@ struct ReceivedProducerCard: Codable, FetchableRecord, PersistableRecord, Hashab
     var card: ProducerCard? { decodeProducerCard(text: payload) }
 
     static func make(payload: String, source: Source, showId: String?, showDate: String?,
-                     memo: String? = nil, now: Date = Date()) -> ReceivedProducerCard {
+                     memo: String? = nil, via: CardReceiveVia? = nil, now: Date = Date()) -> ReceivedProducerCard {
         let stamp = ISO8601DateFormatter.shared.string(from: now)
         return ReceivedProducerCard(
             id: UUID().uuidString, payload: payload, source: source.rawValue,
             showId: showId, showDate: showDate,
             memo: memo?.isEmpty == true ? nil : memo,
-            receivedAt: stamp, updatedAt: stamp
+            receivedAt: stamp, updatedAt: stamp,
+            via: via.map { cardReceiveViaKey(via: $0) }
         )
+    }
+
+    /// 受け取り方 (不明なら nil)。
+    var receiveVia: CardReceiveVia? { via.flatMap { cardReceiveViaFromKey(key: $0) } }
+}
+
+/// 受け取った名刺の会った記録 1 つ。**端末ローカル唯一データ**。同じ人の名刺は 1 枚にまとめ、会うたびにここへ積む
+/// (同じ人の見分け・積み方・何回目かはコアの `cardReceivePlan` / `cardMeetingViews`)。名刺を消すと一緒に消える。
+struct ReceivedCardMeeting: Codable, FetchableRecord, PersistableRecord, Hashable, Identifiable, Sendable {
+    static let databaseTableName = "received_card_meetings"
+
+    var id: String
+    /// 受け取った名刺の行の id。
+    var cardId: String
+    var showId: String?
+    var showDate: String?
+    /// 受け取り方 (コアの `cardReceiveViaKey`)。nil は不明。
+    var via: String?
+    /// 受け取った日時 (ISO 8601)。
+    var metAt: String
+    /// そのとき受け取った名刺の中身 (詳細の「この時の名刺に戻す」)。足す前の記録は nil。
+    var payload: String? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, via, payload
+        case cardId = "card_id"
+        case showId = "show_id"
+        case showDate = "show_date"
+        case metAt = "met_at"
+    }
+
+    enum Columns {
+        static let cardId = Column(CodingKeys.cardId)
+        static let metAt = Column(CodingKeys.metAt)
+        static let id = Column(CodingKeys.id)
+    }
+
+    /// コアに渡す形。
+    var record: CardMeetingRecord {
+        CardMeetingRecord(id: id, cardId: cardId, showId: showId, showDate: showDate, via: via, metAt: metAt,
+                          payload: payload)
+    }
+
+    init(id: String, cardId: String, showId: String?, showDate: String?, via: String?, metAt: String,
+         payload: String? = nil) {
+        self.id = id
+        self.cardId = cardId
+        self.showId = showId
+        self.showDate = showDate
+        self.via = via
+        self.metAt = metAt
+        self.payload = payload
+    }
+
+    init(_ record: CardMeetingRecord) {
+        self.init(id: record.id, cardId: record.cardId, showId: record.showId, showDate: record.showDate,
+                  via: record.via, metAt: record.metAt, payload: record.payload)
     }
 }
 

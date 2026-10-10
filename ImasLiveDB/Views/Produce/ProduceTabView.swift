@@ -32,6 +32,8 @@ struct ProduceTabView: View {
     @State private var voteLog = LocalPollVoteLog.shared
     @State private var imageService = CustomImageService.shared
     @State private var contributionLog = LocalContributionLog.shared
+    /// 自分の編集に付いた Good の新着と、自分が入れたセトリの先週の閲覧数。
+    @State private var feedbackStore = ContributionFeedbackStore.shared
 
     // 参加したライブ (タイル「参加ライブ」の遷移先に渡す)。
     @State private var attendedEvents: [EventWithDate] = []
@@ -255,6 +257,7 @@ struct ProduceTabView: View {
                     ImasStatTile(systemImage: "tray.full.fill", value: numberString(cardCaseCount), label: "名刺入れ", seed: pickBrandSeed, tappable: true)
                 }
             }
+            feedbackCards
             Button {
                 if NavThrottle.allow() { navPath.append(ActivityRoute.playlists) }
             } label: {
@@ -262,6 +265,37 @@ struct ProduceTabView: View {
                            systemImage: "music.note.list")
             }
             .buttonStyle(.imasRow)
+        }
+    }
+
+    /// 自分の編集への手応え。Good の新着と、先週セトリが見られた数 (どちらも 0 なら出さない)。
+    /// 押すと「マイ投稿」へ (そこで新着を既読にする)。
+    @ViewBuilder
+    private var feedbackCards: some View {
+        if feedbackStore.newLyricsCount > 0 {
+            statTileLink(route: .myContributions) {
+                ImasEntryCard(systemImage: "text.quote",
+                              title: "あなたが投稿した歌詞が \(feedbackStore.newLyricsCount) 曲公開されました",
+                              preview: (feedbackStore.feedback?.lyrics?.likeTotal ?? 0) > 0
+                                  ? "ここ好き \(feedbackStore.feedback?.lyrics?.likeTotal ?? 0)" : nil,
+                              seed: pickBrandSeed)
+            }
+        }
+        if feedbackStore.newGoodTotal > 0 {
+            statTileLink(route: .myContributions) {
+                ImasEntryCard(systemImage: "hand.thumbsup.fill",
+                              title: "あなたの編集に Good が \(feedbackStore.newGoodTotal) 件届きました",
+                              preview: feedbackStore.feedback?.goods.first(where: { $0.newGoodCount > 0 })?.summary,
+                              seed: pickBrandSeed)
+            }
+        }
+        if let reach = feedbackStore.feedback?.setlistReach, reach.viewers > 0 {
+            statTileLink(route: .myContributions) {
+                ImasEntryCard(systemImage: "eye.fill",
+                              title: "先週、あなたが入れたセトリが のべ \(reach.viewers) 人に見られました",
+                              preview: "\(reach.shows) 公演のセトリ",
+                              seed: pickBrandSeed)
+            }
         }
     }
 
@@ -627,6 +661,7 @@ struct ProduceTabView: View {
     /// サーバー指標 (予想数)。未ログインなら 0。
     /// 編集数 / 受Good は UI 上で出さなくなったため取得を停止 (badges API は別画面で必要なら再開)。
     private func loadServerActivity() async {
+        await feedbackStore.refresh()
         guard AuthService.shared.isSignedIn else {
             predictionCount = 0
             return

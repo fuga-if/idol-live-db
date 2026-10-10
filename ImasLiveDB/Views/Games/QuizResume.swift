@@ -32,6 +32,8 @@ struct QuizSuspended: Codable, Identifiable {
     var difficulty: Int? = nil
     /// メンバーカラーの遊び方 ("choice" = 4択 / "match" = 並べる)。古い保存は並べる。
     var colorMode: String? = nil
+    /// アイドル当ての選び方 (`IdolQuizModeSetting.rawValue`)。古い保存は 4 択。
+    var idolQuizMode: String? = nil
     let savedAt: Date
 
     var id: GameKind { kind }

@@ -132,7 +132,6 @@ pub struct IdolQuizIdolRef {
     /// メンバーカラー (HEX)。空/未設定は出題対象外。
     pub color: Option<String>,
     pub blood_type: Option<String>,
-    pub constellation: Option<String>,
     pub birth_place: Option<String>,
     pub height: Option<f64>,
     pub age: Option<i32>,
@@ -186,7 +185,6 @@ impl ChoiceRef {
 #[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum IdolQuizFactKind {
     BloodType,
-    Constellation,
     BirthPlace,
     Height,
     Age,
@@ -202,7 +200,6 @@ impl IdolQuizFactKind {
     fn label(self) -> &'static str {
         match self {
             Self::BloodType => "血液型",
-            Self::Constellation => "星座",
             Self::BirthPlace => "出身",
             Self::Height => "身長",
             Self::Age => "年齢",
@@ -214,16 +211,19 @@ impl IdolQuizFactKind {
         }
     }
 
-    /// 開封コスト。メンバーカラーと CV は一気に正体が割れるので重い (-2pt)。
+    /// 開封コスト。該当者が多い血液型・身長・誕生日は軽く、ファンなら一発で絞れる
+    /// 出身・年齢・趣味・特技は重く、正体がほぼ割れるメンバーカラーと CV が最も重い。
     fn cost(self) -> u32 {
         match self {
-            Self::MemberColor | Self::VoiceActor => 2,
-            _ => 1,
+            Self::BloodType | Self::Height | Self::Birthday => 1,
+            Self::BirthPlace | Self::Age | Self::Hobbies | Self::Talents => 3,
+            Self::MemberColor | Self::VoiceActor => 4,
         }
     }
 }
 
 /// 公開できるプロフィール事実 1 件。`facts[0]` が無料公開、以降がヒント。
+/// ヒントの 1 枚目 (`facts[1]`) は減点なしで開ける (`cost` = 0)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct IdolQuizFact {
     pub kind: IdolQuizFactKind,
@@ -268,32 +268,37 @@ fn birthday_display(birthday: &Option<String>) -> Option<String> {
 }
 
 /// プロフィール事実を「曖昧 (絞り込みにくい) → 特定 (バレやすい)」の順で返す。
-/// 先頭が無料公開、後ろほど答えに近い。
+/// 先頭が無料公開、2 件目が減点なしのヒント、後ろほど答えに近い。
+///
+/// 星座は誕生日とほぼ同じ情報なので出さない (誕生日だけ)。
 ///
 /// CV は値の有無によらず**常にスロットを出す**。枠の有無で「声優未発表キャラだ」と
 /// 無料でバレるのを防ぐためで、開封して初めて「声優未発表」と分かる。
 pub fn idol_quiz_facts(idol: &IdolQuizIdolRef) -> Vec<IdolQuizFact> {
     use IdolQuizFactKind::*;
-    let mut facts: Vec<IdolQuizFact> = Vec::with_capacity(10);
+    let mut facts: Vec<IdolQuizFact> = Vec::with_capacity(9);
     // 曖昧グループ (該当者が多い)
     facts.extend(text_fact(BloodType, &idol.blood_type));
-    facts.extend(text_fact(Constellation, &idol.constellation));
-    facts.extend(text_fact(BirthPlace, &idol.birth_place));
     facts.extend(height_display(idol.height).map(|v| IdolQuizFact::new(Height, v)));
-    facts.extend(idol.age.map(|a| IdolQuizFact::new(Age, format!("{a}歳"))));
-    // 特定グループ (一気に絞れる)
-    facts.extend(text_fact(Hobbies, &idol.hobbies));
-    facts.extend(text_fact(Talents, &idol.talents));
     facts.extend(
         birthday_display(&idol.birthday)
             .filter(|v| !v.is_empty())
             .map(|v| IdolQuizFact::new(Birthday, v)),
     );
+    // 特定グループ (一気に絞れる)
+    facts.extend(text_fact(BirthPlace, &idol.birth_place));
+    facts.extend(idol.age.map(|a| IdolQuizFact::new(Age, format!("{a}歳"))));
+    facts.extend(text_fact(Hobbies, &idol.hobbies));
+    facts.extend(text_fact(Talents, &idol.talents));
     facts.extend(text_fact(MemberColor, &idol.color));
     facts.push(IdolQuizFact::new(
         VoiceActor,
         idol.voice_actor.as_deref().filter(|v| !v.is_empty()).unwrap_or(VOICE_ACTOR_UNANNOUNCED),
     ));
+    // ヒントの 1 枚目は減点なし (満点のまま 1 つ開けられる)。
+    if let Some(first_hint) = facts.get_mut(1) {
+        first_hint.cost = 0;
+    }
     facts
 }
 
@@ -421,11 +426,21 @@ fn choice_positions(
 // アイドル当てクイズ: 1 セッション分の出題
 // ---------------------------------------------------------------------------
 
+/// アイドル当てクイズの選び方。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IdolQuizMode {
+    /// 同ブランド優先の 4 択。
+    Normal,
+    /// 出題候補の全員から選ぶ (4 択の消去法が効かない)。
+    Hard,
+}
+
 /// 出題 1 問。index はいずれも [`idol_quiz_session`] に渡した `idols` を指す。
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct IdolQuizQuestion {
     pub answer: u32,
-    /// 表示順の 4 択 (候補が足りなければ少なくなる。正解は必ず含む)。
+    /// 選択肢。`Normal` は表示順の 4 択 (候補が足りなければ少なくなる)、
+    /// `Hard` は出題候補の全員 (`idols` の並び順)。どちらも正解は必ず含む。
     pub choices: Vec<u32>,
     /// `facts[0]` が無料公開、以降がヒント。
     pub facts: Vec<IdolQuizFact>,
@@ -438,6 +453,7 @@ pub struct IdolQuizQuestion {
 pub fn idol_quiz_session(
     idols: &[IdolQuizIdolRef],
     selected_brand_ids: &[String],
+    mode: IdolQuizMode,
     session_length: u32,
     rng: &mut SplitMix64,
 ) -> Vec<IdolQuizQuestion> {
@@ -452,12 +468,16 @@ pub fn idol_quiz_session(
         .filter_map(|_| {
             let answer_position = draw.next(rng)?;
             let answer = pool[answer_position];
-            Some(IdolQuizQuestion {
-                answer,
-                choices: choice_positions(&choice_pool, answer_position, rng)
+            let choices = match mode {
+                IdolQuizMode::Normal => choice_positions(&choice_pool, answer_position, rng)
                     .into_iter()
                     .map(|p| pool[p])
                     .collect(),
+                IdolQuizMode::Hard => pool.clone(),
+            };
+            Some(IdolQuizQuestion {
+                answer,
+                choices,
                 facts: idol_quiz_facts(&idols[answer as usize]),
             })
         })
@@ -1076,9 +1096,8 @@ mod tests {
             is_external: false,
             color: Some("#FF0000".into()),
             blood_type: Some("A型".into()),
-            constellation: Some("牡羊座".into()),
             birth_place: None,
-            height: None,
+            height: Some(160.0),
             age: None,
             hobbies: None,
             talents: None,
@@ -1087,7 +1106,7 @@ mod tests {
         }
     }
 
-    /// 事実 3 件 (血液型 + 星座 + CV) を満たす最小の出題可能アイドル。
+    /// 事実 3 件 (血液型 + 身長 + CV) を満たす最小の出題可能アイドル。
     fn eligible(id: &str, brand: &str) -> IdolQuizIdolRef {
         idol(id, brand)
     }
@@ -1116,12 +1135,11 @@ mod tests {
     // プロフィール事実
     // =======================================================================
 
-    /// 曖昧 → 特定の順に並び、メンバーカラーと CV だけコストが重い。
+    /// 曖昧 → 特定の順に並び、星座は出さない。ヒント 1 枚目は無料、特定グループほど重い。
     #[test]
     fn facts_are_ordered_from_vague_to_specific() {
         let mut i = idol("i1", "cg");
         i.birth_place = Some("東京".into());
-        i.height = Some(160.0);
         i.age = Some(17);
         i.hobbies = Some("料理".into());
         i.talents = Some("暗算".into());
@@ -1132,19 +1150,18 @@ mod tests {
             labels(&facts),
             vec![
                 "血液型",
-                "星座",
-                "出身",
                 "身長",
+                "誕生日",
+                "出身",
                 "年齢",
                 "趣味",
                 "特技",
-                "誕生日",
                 "メンバーカラー",
                 "CV"
             ]
         );
         let costs: Vec<u32> = facts.iter().map(|f| f.cost).collect();
-        assert_eq!(costs, vec![1, 1, 1, 1, 1, 1, 1, 1, 2, 2]);
+        assert_eq!(costs, vec![1, 0, 1, 3, 3, 3, 3, 4, 4]);
     }
 
     /// 空文字は「値なし」と同じ (原本の `!isEmpty` ガード)。
@@ -1152,8 +1169,9 @@ mod tests {
     fn facts_skip_empty_strings() {
         let mut i = idol("i1", "cg");
         i.blood_type = Some(String::new());
-        i.constellation = Some(String::new());
+        i.height = None;
         i.birth_place = Some(String::new());
+        i.hobbies = Some(String::new());
         // 空文字の 3 つは消え、値のあるメンバーカラーと常設の CV だけが残る。
         assert_eq!(labels(&idol_quiz_facts(&i)), vec!["メンバーカラー", "CV"]);
     }
@@ -1204,7 +1222,7 @@ mod tests {
     fn pool_requires_three_facts() {
         let mut thin = idol("thin", "cg");
         thin.blood_type = None;
-        thin.constellation = None; // 残るのはメンバーカラーと CV の 2 件 = ヒントが足りない
+        thin.height = None; // 残るのはメンバーカラーと CV の 2 件 = ヒントが足りない
         assert_eq!(idol_quiz_facts(&thin).len(), 2);
         let idols = vec![thin, eligible("a", "cg")];
         assert_eq!(idol_quiz_pool_indices(&idols, &[]), vec![1]);
@@ -1253,12 +1271,12 @@ mod tests {
     #[test]
     fn estimate_matches_playable_pool() {
         let mut thin = idol("thin", "cg");
-        thin.constellation = None;
+        thin.height = None;
         thin.blood_type = None;
         let mut idols = pool_of(4, "cg");
         idols.push(thin);
         assert_eq!(idol_quiz_pool_estimate(&idols, &[]).count, 4);
-        assert_eq!(idol_quiz_session(&idols, &[], 3, &mut SplitMix64(1)).len(), 3);
+        assert_eq!(idol_quiz_session(&idols, &[], IdolQuizMode::Normal, 3, &mut SplitMix64(1)).len(), 3);
     }
 
     // =======================================================================
@@ -1269,7 +1287,7 @@ mod tests {
     #[test]
     fn session_is_empty_when_pool_is_too_small() {
         let idols = pool_of(3, "cg");
-        assert!(idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(1)).is_empty());
+        assert!(idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(1)).is_empty());
     }
 
     /// 母集団が足りている限り、同じアイドルは 1 セッション中に 2 度出ない。
@@ -1277,7 +1295,7 @@ mod tests {
     fn session_never_repeats_answer_while_pool_lasts() {
         let idols = pool_of(12, "cg");
         for seed in 0..30 {
-            let questions = idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed));
+            let questions = idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed));
             let unique: HashSet<u32> = questions.iter().map(|q| q.answer).collect();
             assert_eq!(unique.len(), questions.len(), "重複出題: seed={seed}");
         }
@@ -1289,7 +1307,7 @@ mod tests {
     fn session_wraps_after_pool_is_exhausted() {
         let idols = pool_of(4, "cg");
         for seed in 0..20 {
-            let questions = idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed));
+            let questions = idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed));
             assert_eq!(questions.len(), 10);
             for block in questions.chunks(4).take(2) {
                 let unique: HashSet<u32> = block.iter().map(|q| q.answer).collect();
@@ -1303,7 +1321,7 @@ mod tests {
     fn session_choices_contain_answer_without_duplicates() {
         let idols = pool_of(12, "cg");
         for seed in 0..30 {
-            for q in idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed)) {
+            for q in idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed)) {
                 assert_eq!(q.choices.len(), 4);
                 assert!(q.choices.contains(&q.answer), "正解が選択肢にない");
                 let unique: HashSet<&u32> = q.choices.iter().collect();
@@ -1317,8 +1335,8 @@ mod tests {
     fn session_is_deterministic_for_the_same_seed() {
         let idols = pool_of(12, "cg");
         assert_eq!(
-            idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(42)),
-            idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(42))
+            idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(42)),
+            idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(42))
         );
     }
 
@@ -1327,7 +1345,7 @@ mod tests {
     fn answer_position_varies_between_questions() {
         let idols = pool_of(12, "cg");
         let positions: HashSet<usize> = (0..30)
-            .flat_map(|seed| idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed)))
+            .flat_map(|seed| idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed)))
             .map(|q| q.choices.iter().position(|c| *c == q.answer).expect("正解が無い"))
             .collect();
         assert!(positions.len() > 1, "正解の位置が固定されている: {positions:?}");
@@ -1339,7 +1357,7 @@ mod tests {
         let mut idols = pool_of(4, "cg");
         idols.extend((0..6).map(|i| eligible(&format!("ml{i}"), "ml")));
         for seed in 0..30 {
-            for q in idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed)) {
+            for q in idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed)) {
                 let answer_brand = idols[q.answer as usize].brand_id.clone();
                 assert!(
                     q.choices.iter().all(|&c| idols[c as usize].brand_id == answer_brand),
@@ -1354,11 +1372,28 @@ mod tests {
     fn distractors_fall_back_to_other_brands() {
         let mut idols = vec![eligible("solo", "961")];
         idols.extend(pool_of(6, "cg"));
-        let questions = idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(5));
+        let questions = idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(5));
         let solo_questions: Vec<_> = questions.iter().filter(|q| q.answer == 0).collect();
         assert!(!solo_questions.is_empty(), "テスト前提: 単独ブランドも出題される");
         for q in solo_questions {
             assert_eq!(q.choices.len(), 4, "他ブランドで補って 4 択にする");
+        }
+    }
+
+    /// ハードは出題候補の全員が選択肢 (母集団の並び順)。出題対象外の人は入らない。
+    #[test]
+    fn hard_mode_offers_every_candidate() {
+        let mut idols = pool_of(6, "cg");
+        idols.push(eligible("ml1", "ml"));
+        let mut ext = eligible("ext", "cg");
+        ext.is_external = true;
+        idols.push(ext);
+        let questions =
+            idol_quiz_session(&idols, &["cg".into()], IdolQuizMode::Hard, SESSION_LENGTH, &mut SplitMix64(3));
+        assert_eq!(questions.len(), SESSION_LENGTH as usize);
+        for q in questions {
+            assert_eq!(q.choices, vec![0, 1, 2, 3, 4, 5]);
+            assert!(q.choices.contains(&q.answer));
         }
     }
 
@@ -1368,7 +1403,7 @@ mod tests {
         let mut idols = pool_of(5, "cg");
         idols.push(idols[0].clone()); // 同 id の重複エントリ
         for seed in 0..30 {
-            for q in idol_quiz_session(&idols, &[], SESSION_LENGTH, &mut SplitMix64(seed)) {
+            for q in idol_quiz_session(&idols, &[], IdolQuizMode::Normal, SESSION_LENGTH, &mut SplitMix64(seed)) {
                 let answer_id = &idols[q.answer as usize].id;
                 let same_id = q.choices.iter().filter(|&&c| idols[c as usize].id == *answer_id);
                 assert_eq!(same_id.count(), 1, "正解と同じ人物が 2 つ並んだ");
@@ -1539,7 +1574,7 @@ mod tests {
     fn facts_fixture() -> Vec<IdolQuizFact> {
         vec![
             IdolQuizFact::new(IdolQuizFactKind::BloodType, "A型"),
-            IdolQuizFact::new(IdolQuizFactKind::Constellation, "牡羊座"),
+            IdolQuizFact::new(IdolQuizFactKind::Height, "160cm"),
             IdolQuizFact::new(IdolQuizFactKind::MemberColor, "#FF0000"),
             IdolQuizFact::new(IdolQuizFactKind::VoiceActor, "声優A"),
         ]
@@ -1560,7 +1595,7 @@ mod tests {
     fn value_ignores_out_of_range_and_duplicate_indices() {
         let facts = facts_fixture();
         assert_eq!(idol_quiz_current_value(&facts, &[99], IDOL_QUIZ_BASE_POINTS), 10);
-        assert_eq!(idol_quiz_current_value(&facts, &[2, 2, 2], IDOL_QUIZ_BASE_POINTS), 8);
+        assert_eq!(idol_quiz_current_value(&facts, &[2, 2, 2], IDOL_QUIZ_BASE_POINTS), 6);
     }
 
     /// 未開封ヒントだけを並べ、開いた後の点も添える。無料の facts[0] は出さない。
@@ -1576,16 +1611,31 @@ mod tests {
                     fact_index: 2,
                     kind: IdolQuizFactKind::MemberColor,
                     label: "メンバーカラー".into(),
-                    next_value: 7,
+                    next_value: 5,
                 },
                 IdolQuizHintOption {
                     fact_index: 3,
                     kind: IdolQuizFactKind::VoiceActor,
                     label: "CV".into(),
-                    next_value: 7,
+                    next_value: 5,
                 },
             ]
         );
+    }
+
+    /// ヒントの 1 枚目は開けても満点のまま。2 枚目からは種別のコストで下がる。
+    #[test]
+    fn first_hint_is_free() {
+        let mut i = idol("i1", "cg");
+        i.birthday = Some("--04-03".into());
+        i.hobbies = Some("料理".into());
+        let facts = idol_quiz_facts(&i);
+        let state = idol_quiz_hint_state(&facts, &[], false, IDOL_QUIZ_BASE_POINTS);
+        assert_eq!(state.hints[0].kind, IdolQuizFactKind::Height);
+        assert_eq!(state.hints[0].next_value, 10);
+        assert_eq!(idol_quiz_current_value(&facts, &[1], IDOL_QUIZ_BASE_POINTS), 10);
+        assert_eq!(idol_quiz_current_value(&facts, &[1, 2], IDOL_QUIZ_BASE_POINTS), 9);
+        assert_eq!(idol_quiz_current_value(&facts, &[1, 3], IDOL_QUIZ_BASE_POINTS), 7);
     }
 
     /// 解答後は全部見せ、ヒントは出さない。
@@ -1677,9 +1727,9 @@ mod tests {
             IDOL_QUIZ_BASE_POINTS,
         );
         assert!(outcome.is_correct);
-        assert_eq!(outcome.earned_points, 8);
+        assert_eq!(outcome.earned_points, 6);
         assert_eq!(outcome.revealed_hints, 1);
-        assert_eq!(outcome.tally, QuizTally { asked: 4, correct: 3, points: 28 });
+        assert_eq!(outcome.tally, QuizTally { asked: 4, correct: 3, points: 26 });
         assert!(!outcome.is_last_question);
     }
 

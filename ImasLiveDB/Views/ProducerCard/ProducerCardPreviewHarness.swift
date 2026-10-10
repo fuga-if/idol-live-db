@@ -20,6 +20,10 @@ struct ProducerCardPreviewHarness: View {
         case profileSongs
         /// 担当ブランドのはじめの案内 / 設定の画面。
         case brandRoles, brandSettings
+        /// 名刺に載せる担当を選ぶ画面 (`PRODUCER_CARD_OSHI_CHOSEN` で選んだ状態にできる)。
+        case oshiPicker
+        /// 受け取りの確認で、名刺入れの名刺と同じ人か確かめるところ (名前と担当が同じで中身の違う名刺を受け取る)。
+        case samePerson
     }
 
     /// P名刺の画像の見本の選択 (`PROFILE_SIZE=story`)。
@@ -36,6 +40,12 @@ struct ProducerCardPreviewHarness: View {
     /// 渡すと `PRODUCER_CARD_OSHI` より優先する (ブランドをまたぐ担当の表を撮る)。
     static var envOshiNames: [String]? {
         ProcessInfo.processInfo.environment["PRODUCER_CARD_OSHI_NAMES"]
+            .map { $0.split(separator: ",").map(String.init) }
+    }
+
+    /// 名刺に載せる担当を名前で選んだ状態にする (`PRODUCER_CARD_OSHI_CHOSEN=星井美希`。担当の中から)。
+    static var envOshiChosen: [String]? {
+        ProcessInfo.processInfo.environment["PRODUCER_CARD_OSHI_CHOSEN"]
             .map { $0.split(separator: ",").map(String.init) }
     }
 
@@ -71,6 +81,13 @@ struct ProducerCardPreviewHarness: View {
                 try? database.saveMyProducerCard(mine)
                 if key == "custom" { Samples.saveMyFaces() }
             }
+            if let names = Self.envOshiChosen, var mine = try? database.myProducerCard() {
+                let idols = (try? await AppContainer.shared.idolReading.idols(
+                    ids: (try? await AppContainer.shared.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
+                )) ?? []
+                mine.cardOshiChoice = names.compactMap { name in idols.first { $0.name == name }?.id }
+                try? database.saveMyProducerCard(mine)
+            }
             // 名刺の写真のある名刺を先に (写真の出方を見る)。
             let received = (try? await AppContainer.shared.producerCards.receivedCards()) ?? []
             let named = Self.envDetail.flatMap { name in received.first { $0.card?.name == name } }
@@ -83,10 +100,19 @@ struct ProducerCardPreviewHarness: View {
             record = try? await ProducerCardAssembler.loadMyRecord()
             if let mine = try? await AppContainer.shared.producerCards.myCard(), let record {
                 myCard = ProducerCardAssembler.encode(card: mine, record: record)
-                directory = await ProducerCardDirectory.load(idolIds: myCard?.card.oshiIdolIds ?? [], showIds: [])
+                directory = await ProducerCardDirectory.load(
+                    idolIds: mode == .oshiPicker ? record.oshiIds : myCard?.card.oshiIdolIds ?? [], showIds: [])
             }
             ready = true
         }
+    }
+
+    /// 名前と担当はそのままで、ひとこととリンクを変えた名刺 (同じ人か確かめる名刺)。
+    private static func remade(_ payload: String) -> String {
+        guard var card = decodeProducerCard(text: payload) else { return payload }
+        card.message = "名刺を作り直しました"
+        card.links = [CardLink(kind: .x, value: "shirokuma_new"), CardLink(kind: .bluesky, value: "shirokuma.bsky.social")]
+        return producerCardPayload(card: card)
     }
 
     @ViewBuilder
@@ -99,6 +125,9 @@ struct ProducerCardPreviewHarness: View {
         case .read: ProducerCardExchangeView(myCard: myCard, initialMode: .read)
         case .receive:
             ProducerCardReceiveSheet(incoming: IncomingProducerCard(payload: samplePayload ?? "", images: [], via: .link))
+        case .samePerson:
+            ProducerCardReceiveSheet(incoming: IncomingProducerCard(payload: Self.remade(samplePayload ?? ""), images: [],
+                                                                    via: .nearby))
         case .case: NavigationStack { CardCaseView() }
         case .detail: NavigationStack { ReceivedCardDetailView(cardId: firstCardId ?? "") }
         case .print:
@@ -115,6 +144,13 @@ struct ProducerCardPreviewHarness: View {
                         card.profile.songs = ids
                         try? database.saveMyProducerCard(card)
                     }
+                }
+            }
+        case .oshiPicker:
+            if let mine = try? database.myProducerCard(), let record {
+                NavigationStack {
+                    CardOshiPickerView(chosen: mine.cardOshiChoice, oshi: record.oshiEntries,
+                                       idols: directory.idols, brands: directory.brands) { _ in }
                 }
             }
         case .brandRoles: BrandRoleSetupSheet()
@@ -217,10 +253,20 @@ struct ProducerCardPreviewHarness: View {
                 (card("みどりP", "初現地でした", oshi: [idols[0], idols[2], idols[3], idols[4]], shows: 5, attended: [refs[2]], design: .pop), .app, shows[2], nil),
                 (card("あかねP", "よろしくお願いいたします", oshi: [idols[2]], shows: 12, attended: [refs[0]], design: .formal), .app, shows[1], nil),
             ]
+            // 受け取り方 (会場で交換の札が付くもの・付かないもの)。
+            let vias: [CardReceiveVia] = [.nearby, .cameraQr, .paper, .link, .file]
             for (i, s) in samples.enumerated() {
-                var row = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1, memo: s.3)
-                row.receivedAt = "2026-10-05T2\(i):00:00Z"
-                try? db.saveReceivedProducerCard(row)
+                var fresh = ReceivedProducerCard.make(payload: s.0, source: s.1, showId: s.2?.0, showDate: s.2?.1,
+                                                      memo: s.3, via: vias[i])
+                fresh.receivedAt = "2026-10-05T2\(i):00:00Z"
+                guard let row = try? await db.receiveProducerCard(fresh, matchSamePerson: s.1 == .app) else { continue }
+                // しろくまP とは前の公演でも会っている (会った記録が 2 つ)。
+                if i == 0 {
+                    var earlier = ReceivedProducerCard.make(payload: s.0, source: .app, showId: shows[2].0,
+                                                            showDate: shows[2].1, via: .cameraQr)
+                    earlier.receivedAt = "2026-01-05T20:00:00Z"
+                    _ = try? await db.receiveProducerCard(earlier, matchSamePerson: true)
+                }
                 if i == 0, let jpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 1), maxPixels: 2000),
                    let oshiJpeg = ProducerCardFiles.jpeg(bigPicture(tall: true, seed: 0), maxPixels: 1600),
                    let front = ProducerCardFiles.jpeg(face(name: "しろくまP", back: false), maxPixels: 2000),

@@ -12,6 +12,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.fugaif.imaslivedb.ui.components.NameFilterField
+import com.fugaif.imaslivedb.ui.components.rememberSearchFiltered
+import com.fugaif.imaslivedb.ui.designsystem.ImasSelectableRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,7 +38,7 @@ import com.fugaif.imaslivedb.data.games.GameKind
 import com.fugaif.imaslivedb.data.games.QuizStagePlay
 import com.fugaif.imaslivedb.data.games.QuizSuspended
 import com.fugaif.imaslivedb.data.games.longestStreak
-import com.fugaif.imaslivedb.data.games.setlistCaption
+import com.fugaif.imaslivedb.data.games.answeredCaption
 import com.fugaif.imaslivedb.data.games.streak
 import com.fugaif.imaslivedb.data.games.streakBrokeAt
 import com.fugaif.imaslivedb.data.model.Idol
@@ -53,7 +65,8 @@ import uniffi.imas_core.idolQuizSessionResult
 // =============================================================================
 // アイドル当てクイズ。iOS IdolQuizView の移植。
 // 曖昧なプロフィールから出題し、並んだヒントのどれから開けるかをユーザが選ぶ (戦略性)。
-// ヒントを 1 つ開くごとに獲得点が下がる。見た目は QuizStage.kt の「ステージ + チケット」。
+// ヒントを開くと種別ごとのコストだけ獲得点が下がる (1 枚目は減点なし)。見た目は QuizStage.kt の
+// 「ステージ + チケット」。ハードは 4 択ではなく、出題候補の全員から名前で探して選ぶ。
 //
 // 出題の生成規則・事実の並び・採点 (素点とヒントの開封コスト)・グレード判定は
 // imas-core の `domain::quiz_generation` にあり、iOS と同じ実装を共有する。
@@ -95,6 +108,8 @@ data class IdolQuizUiState(
 class IdolQuizViewModel(
     app: Application,
     private val selectedBrandIds: Set<String>,
+    /** 4 択かハードか。つづきからは保存した選び方で作り直す。 */
+    private val mode: IdolQuizModeSetting,
     /** つづきから。最初の 1 回だけ使う (「もう一度」は新しいセッション)。 */
     private var resume: QuizSuspended? = null
 ) : AndroidViewModel(app) {
@@ -128,6 +143,7 @@ class IdolQuizViewModel(
     private fun makeSession(seed: ULong): List<Question> = idolQuizSession(
         idols = refs,
         selectedBrandIds = selectedBrandIds.toList(),
+        mode = mode.core,
         seed = seed
     ).map { q ->
         Question(
@@ -169,7 +185,8 @@ class IdolQuizViewModel(
             QuizSuspended(
                 kind = GameKind.idolQuiz, seed = seed, brandIds = selectedBrandIds.toList(),
                 nextIndex = s.index + 1, asked = s.tally.asked.toInt(), correct = s.tally.correct.toInt(),
-                points = s.tally.points.toInt(), plays = s.plays, total = QUIZ_SESSION_LENGTH
+                points = s.tally.points.toInt(), plays = s.plays, total = QUIZ_SESSION_LENGTH,
+                idolQuizMode = mode.name
             )
         )
     }
@@ -251,11 +268,12 @@ class IdolQuizViewModel(
     class Factory(
         private val app: Application,
         private val selectedBrandIds: Set<String>,
+        private val mode: IdolQuizModeSetting,
         private val resume: QuizSuspended? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-            IdolQuizViewModel(app, selectedBrandIds, resume) as T
+            IdolQuizViewModel(app, selectedBrandIds, mode, resume) as T
     }
 }
 
@@ -263,13 +281,15 @@ class IdolQuizViewModel(
 fun IdolQuizScreen(
     selectedBrandIds: Set<String>,
     onBack: () -> Unit,
+    mode: IdolQuizModeSetting = IdolQuizModeSetting.NORMAL,
     resume: QuizSuspended? = null,
     viewModel: IdolQuizViewModel = viewModel(
         factory = IdolQuizViewModel.Factory(
-            LocalContext.current.applicationContext as Application, selectedBrandIds, resume
+            LocalContext.current.applicationContext as Application, selectedBrandIds, mode, resume
         )
     )
 ) {
+    var showPicker by remember { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val question = state.question
     val hintState = state.hintState
@@ -309,7 +329,7 @@ fun IdolQuizScreen(
             question != null && hintState != null -> {
                 QuizStageProgress(
                     slots = state.plays.penlights(total = QUIZ_SESSION_LENGTH, answering = verdict == null),
-                    caption = state.plays.setlistCaption(QUIZ_SESSION_LENGTH),
+                    caption = state.plays.answeredCaption(QUIZ_SESSION_LENGTH),
                     streak = state.plays.streak, streakBrokeAt = state.plays.streakBrokeAt
                 )
                 if (verdict != null) {
@@ -328,12 +348,54 @@ fun IdolQuizScreen(
                         else "ヒント ${state.opened.size} 枚で −${state.baseValue - value}"
                     )
                     IdolTicket(question, hintState, state.opened, state.showVoiceActorFact) { viewModel.openHint(it) }
-                    QuizStageChoiceGrid(choices = question.choices.map { QuizStageChoice(it.id, it.name) }) {
-                        viewModel.pick(it.id)
+                    when (mode) {
+                        IdolQuizModeSetting.NORMAL ->
+                            QuizStageChoiceGrid(choices = question.choices.map { QuizStageChoice(it.id, it.name) }) {
+                                viewModel.pick(it.id)
+                            }
+                        IdolQuizModeSetting.HARD -> {
+                            QuizStagePrimaryButton(title = "アイドルを選ぶ", icon = Icons.Filled.Search) { showPicker = true }
+                            if (showPicker) {
+                                IdolQuizAnswerSheet(
+                                    idols = question.choices,
+                                    onDismiss = { showPicker = false },
+                                    onPick = { showPicker = false; viewModel.pick(it) }
+                                )
+                            }
+                        }
                     }
                 }
             }
             else -> ImasEmptyState(Icons.Filled.PersonSearch, "出題できる候補が不足しています")
+        }
+    }
+}
+
+/**
+ * ハードの解答シート。出題候補の全員を名前・かな・別名で絞り込み、タップで即答える
+ * (iOS は `IdolPickerView` の単一選択)。照合はコアの索引 ([rememberSearchFiltered])。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun IdolQuizAnswerSheet(idols: List<Idol>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val visible = rememberSearchFiltered(idols, query) { listOf(it.name, it.nameKana, it.aliases) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        NameFilterField(prompt = "アイドル名で探す", value = query, onValueChange = { query = it })
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(visible, key = { it.id }) { idol ->
+                ImasSelectableRow(
+                    title = idol.name,
+                    subtitle = idol.nameKana?.takeIf { it.isNotBlank() },
+                    isSelected = false,
+                    seed = idol.color,
+                    brand = idol.brandId,
+                    onClick = { onPick(idol.id) }
+                )
+            }
         }
     }
 }

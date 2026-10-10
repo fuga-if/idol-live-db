@@ -1,0 +1,16 @@
+{
+ "title": "アニマ・フォルトゥナ の補足 (issue #231)",
+ "author": "daily-data-crawl",
+ "source": "https://www.lantis.jp/sidem/releaseinfo/release_LACZ-10340.html",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sidem_アニマフォルトゥナ",
+   "fields": {
+    "note": "PASSIONABLE READING SHOW『魂環の人形』 主題歌"
+   },
+   "source": "https://www.lantis.jp/sidem/releaseinfo/release_LACZ-10340.html",
+   "note": "レーベルの商品ページ「朗読劇ステージ PASSIONABLE READING SHOW」「ダークファンタジー映画『魂環の人形(マリオネット)』の主題歌」の呼び方に寄せて短くした"
+  }
+ ]
+}

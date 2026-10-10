@@ -17,7 +17,7 @@ struct NowPlayingLyricsPlayerView: View {
         if let entry = LyricsSession.shared.entry(forSongId: player.nowPlayingSongId) {
             LyricsPlayerView(song: entry.song, seed: entry.seed, artistLine: entry.artistLine,
                              artworkURL: entry.artworkURL, lyrics: entry.lyrics,
-                             playback: .appleMusic(songId: entry.song.id, startFull: {
+                             playback: .fullPlayback(songId: entry.song.id, startFull: {
                                  // もう読み込まれている。止まっていれば鳴らし直すだけ。
                                  MusicKitService.shared.resume()
                                  return MusicKitService.shared.nowPlayingSongId == entry.song.id

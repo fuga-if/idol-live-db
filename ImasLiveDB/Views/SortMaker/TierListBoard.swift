@@ -4,7 +4,7 @@ import Foundation
 // ティアー表の保存。端末の中に何枚でも持てる (曲・アイドルごとに一覧から開き直す)。
 //
 // 並べるのは利用者の手 (好みの判断を機械に任せない)。コアが持つのは段の既定 (名前と色)、
-// 段の数の上限、色の候補、名前の整え方、ソートメーカーの順位からのたたき台だけ。
+// 段の数の上限、色の候補、名前の整え方、ソートメーカーの順位からのたたき台、段の中の並べ替えの規則だけ。
 // =============================================================================
 
 /// 段 1 つ。並び替え・削除しても振り分けが崩れないように、振り分けは段の id で持つ。
@@ -34,6 +34,8 @@ struct TierListBoard: Codable, Identifiable, Hashable {
     var tiers: [TierDef]
     /// 項目 id → 段の id。載っていない項目は未分類。
     var placements: [String: String]
+    /// 段の中の左右の並び (表全体で 1 本。各段はこのうちその段にいるもの)。nil = 対象の並びのまま。
+    var order: [String]? = nil
     let scopeLabel: String
     /// ソートメーカーの結果から作ったときのたたき台 (「たたき台に戻す」用)。
     var suggested: [String: String]? = nil
@@ -58,7 +60,15 @@ struct TierListBoard: Codable, Identifiable, Hashable {
     var placedCount: Int { itemIds.count - unplacedIds.count }
 
     func ids(inTier tierId: String) -> [String] {
-        itemIds.filter { placements[$0] == tierId }
+        (order ?? itemIds).filter { placements[$0] == tierId }
+    }
+
+    /// 項目を段へ移す。`before` (段の中の別の項目) を渡したらその左へ、無ければ段の右端へ (規則はコア)。
+    /// 未分類は対象の並びのまま見せるので、未分類へ戻すときは並びを触らない。
+    mutating func move(_ id: String, to tierId: String?, before: String? = nil) {
+        placements[id] = tierId
+        guard tierId != nil else { return }
+        order = tierListMoveItem(itemIds: itemIds, order: order ?? [], item: id, before: before)
     }
 
     /// 項目が今いる段の添字 (未分類・消えた段なら nil)。

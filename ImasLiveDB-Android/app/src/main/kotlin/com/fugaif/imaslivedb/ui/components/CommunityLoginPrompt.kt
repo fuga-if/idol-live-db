@@ -37,7 +37,7 @@ fun CommunityLoginPromptDialog(
                 onDismiss()
                 // signIn はアカウント選択シートを出すため Activity context が要る
                 // (AppModule が握る application context ではなく LocalContext を渡す)。
-                scope.launch { AppModule.from(context).authService.signIn(context) }
+                scope.launch { AppModule.from(context).authService.signInWithFeedback(context) }
             }) { Text("Googleでログイン", color = DS.ink) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル", color = DS.ink2) } },

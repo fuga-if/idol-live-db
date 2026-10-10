@@ -38,6 +38,8 @@ data class QuizSuspended(
     val difficulty: Int? = null,
     /** メンバーカラーの遊び方 ("choice" = 4択 / "match" = 並べる)。 */
     val colorMode: String? = null,
+    /** アイドル当ての選び方 ([com.fugaif.imaslivedb.ui.games.IdolQuizModeSetting] の name)。古い保存は 4 択。 */
+    val idolQuizMode: String? = null,
     /** 保存した時刻 (epoch ミリ秒)。一覧の「つづきから」はいちばん新しいものを出す。 */
     val savedAt: Long = System.currentTimeMillis()
 ) {
@@ -110,6 +112,7 @@ class QuizResumeStore(context: Context) {
             put("total", s.total)
             s.difficulty?.let { put("difficulty", it) }
             s.colorMode?.let { put("colorMode", it) }
+            s.idolQuizMode?.let { put("idolQuizMode", it) }
             put("savedAt", s.savedAt)
             put("plays", JSONArray().apply {
                 s.plays.forEach { p ->
@@ -150,6 +153,7 @@ class QuizResumeStore(context: Context) {
                 total = o.optInt("total"),
                 difficulty = if (o.has("difficulty")) o.optInt("difficulty") else null,
                 colorMode = if (o.has("colorMode")) o.optString("colorMode") else null,
+                idolQuizMode = if (o.has("idolQuizMode")) o.optString("idolQuizMode") else null,
                 savedAt = o.optLong("savedAt")
             )
         }

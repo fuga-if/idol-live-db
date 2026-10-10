@@ -94,7 +94,8 @@ enum AssistantTurnRunner {
     private static func attendedShows() -> [AssistantAttendedShow] {
         let marks = UserMarkService.shared
         return marks.allMarked(kind: .attended, entity: .show).map { id in
-            AssistantAttendedShow(showId: id, attendance: (marks.attendance(entity: .show, id: id) ?? .live).rawValue)
+            // 保存値のまま渡す (複数形態・旧来の空の読み方はコア)。
+            AssistantAttendedShow(showId: id, attendance: marks.attendanceText(entity: .show, id: id) ?? "")
         }
     }
 

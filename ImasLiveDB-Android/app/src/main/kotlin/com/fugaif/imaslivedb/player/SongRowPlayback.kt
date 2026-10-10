@@ -18,9 +18,13 @@ object SongRowPlayback {
             playback.stop()
             return
         }
-        if (playback.appleMusicState.value == AppleMusicState.READY && !appleMusicId.isNullOrEmpty()) {
+        if (playback.appleMusicState.value == AppleMusicState.READY &&
+            (!appleMusicId.isNullOrEmpty() || playback.fullPlaysWithoutAppleMusicId)
+        ) {
             AudioPreviewManager.stop()
-            if (playback.startFull(songId, appleMusicId)) return
+            if (playback.startFull(songId, appleMusicId.orEmpty())) return
+            // Spotify で鳴らすつもりで鳴らせなかった (アプリが開いていない等) ときは、理由を出して試聴には落とさない。
+            if ((playback as? RoutedLyricsPlayback)?.spotifyFailure?.value != null) return
         }
         // 未サインイン・配信なしの曲は試聴へ落とす。フル尺が残っていると 2 つ重なるので止める。
         if (previewUrl != null) {

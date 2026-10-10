@@ -8,6 +8,7 @@ import SwiftUI
 //
 // CardQRScanner        アプリの名刺の QR を読む (VisionKit の DataScanner)。読めた文字列を 1 回だけ返す。
 // PaperCardCamera      紙の名刺の表裏を撮る (VisionKit の書類カメラ。名刺の形に切り抜かれる)。
+//                      歌詞カードの読み取り (`LyricSubmissionSheet`) も `maxPages` を広げて使う。
 // PaperCardCodeReader  撮った写真から QR を拾う (Vision)。文字の読み取りはしない。
 // PaperCardRectifier   写真ライブラリから選んだ紙の名刺を、四隅を見つけて平らにして切り抜く。
 // PhotoQRReader        写真に写った QR を 1 つ読む (自分の QR を写真から入れるとき)。
@@ -70,6 +71,8 @@ struct CardQRScanner: UIViewControllerRepresentable {
 // MARK: - 紙の名刺を撮る
 
 struct PaperCardCamera: UIViewControllerRepresentable {
+    /// 使う枚数の上限。名刺は表と裏の 2 枚。
+    var maxPages: Int = 2
     let onFinish: ([UIImage]) -> Void
     let onCancel: () -> Void
 
@@ -83,22 +86,24 @@ struct PaperCardCamera: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: VNDocumentCameraViewController, context: Context) {}
 
-    func makeCoordinator() -> Coordinator { Coordinator(onFinish: onFinish, onCancel: onCancel) }
+    func makeCoordinator() -> Coordinator { Coordinator(maxPages: maxPages, onFinish: onFinish, onCancel: onCancel) }
 
     @MainActor
     final class Coordinator: NSObject, @preconcurrency VNDocumentCameraViewControllerDelegate {
+        let maxPages: Int
         let onFinish: ([UIImage]) -> Void
         let onCancel: () -> Void
 
-        init(onFinish: @escaping ([UIImage]) -> Void, onCancel: @escaping () -> Void) {
+        init(maxPages: Int, onFinish: @escaping ([UIImage]) -> Void, onCancel: @escaping () -> Void) {
+            self.maxPages = maxPages
             self.onFinish = onFinish
             self.onCancel = onCancel
         }
 
         func documentCameraViewController(_ controller: VNDocumentCameraViewController,
                                           didFinishWith scan: VNDocumentCameraScan) {
-            // 表と裏の 2 枚まで。3 枚目以降は名刺ではないので使わない。
-            let images = (0..<min(scan.pageCount, 2)).map { scan.imageOfPage(at: $0) }
+            // 上限より後の枚は使わない (名刺なら表と裏の 2 枚まで)。
+            let images = (0..<min(scan.pageCount, maxPages)).map { scan.imageOfPage(at: $0) }
             onFinish(images)
         }
 

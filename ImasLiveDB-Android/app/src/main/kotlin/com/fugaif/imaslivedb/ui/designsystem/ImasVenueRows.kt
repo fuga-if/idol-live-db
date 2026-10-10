@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -47,6 +48,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -55,6 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -67,12 +70,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.ui.components.CopyItem
 import com.fugaif.imaslivedb.ui.components.Copyable
 import com.fugaif.imaslivedb.ui.theme.DS
@@ -80,14 +85,16 @@ import com.fugaif.imaslivedb.ui.theme.ImasMotion
 import com.fugaif.imaslivedb.ui.theme.ImasNumeralSize
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
+import com.fugaif.imaslivedb.ui.theme.actionFill
 import com.fugaif.imaslivedb.ui.theme.imasPress
 import com.fugaif.imaslivedb.ui.theme.imasThemeForBrand
+import com.fugaif.imaslivedb.ui.theme.onActionFill
 import com.fugaif.imaslivedb.ui.theme.penlight
 import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
-import uniffi.imas_core.WeekdayKind
-import uniffi.imas_core.ticketStubDate
 import java.io.File
 import kotlin.math.abs
+import uniffi.imas_core.WeekdayKind
+import uniffi.imas_core.ticketStubDate
 
 // =============================================================================
 // 会場の行と札 (docs/DESIGN_SYSTEM.md §5.4・§5.5・§6.6・§6.7)。iOS `ImasVenueRows.swift` の移植。
@@ -800,22 +807,112 @@ internal fun ImasGridLayout(columns: Int, spacing: Dp, modifier: Modifier = Modi
 /**
  * ブランドの選択肢 1 つ (iOS `ImasBrandPicker.Option`)。
  *
+ * @param mark 判子の中の略称 (765 / デレ / ミリ …)。null なら名前の頭 2 字。
  * @param color ブランドの色 (hex)。
- * @param logo 読み込んだロゴ (端末の中のファイル)。あればペンライトの代わりにロゴ。
+ * @param logo 読み込んだロゴ (端末の中のファイル)。あれば判子の代わりにロゴ。
  */
 @Immutable
 data class ImasBrandOption(
     val id: String,
     val label: String,
+    val mark: String? = null,
     val color: String? = null,
     val logo: File? = null
 )
 
+/** 判子の大きさ (iOS `ImasBrandCell.size`)。 */
+private val ImasBrandCellSize = 48.dp
+/** 格子の 1 つの最小幅 (iOS の `GridItem(.adaptive(minimum: 64))`)。 */
+private val ImasBrandCellMinWidth = 64.dp
+
 /**
- * ブランドを選ぶ (iOS `ImasBrandPicker`)。チップを折り返して並べる。先頭はペンライト、ロゴを読み込んだブランドはロゴ。
- * [includesAll] で先頭に「すべて」(何も選ばない = 全部) を置く。格子 (ブランドの四角) にはしない。
+ * ブランドの判子 1 つ + 名前 (iOS `ImasBrandCell`)。押すと選択が切り替わる。
  *
- * @param allLabel 「全部選んでいない」チップの文言。画面ごとの言葉づかいに合わせて渡せる (既定「すべて」)。
+ * 判子は読み込んだロゴがあればロゴ、無ければアイドルの判子と同じく紙の白にブランド色の輪と略称。
+ * 選んだものは判子をブランド色で塗りつぶし (押した判子)、名前を墨の太字にする。
+ * 選んでいないものは紙の判子のまま名前を灰に落とす (淡い色の地は敷かない)。色の無いもの (「全て」) は墨。
+ */
+@Composable
+fun ImasBrandCell(
+    label: String,
+    mark: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: String? = null,
+    logo: File? = null
+) {
+    val haptics = rememberImasHaptics()
+    val t = imasThemeForBrand(null, color)
+    val ring = t.penlight
+    val size = ImasBrandCellSize
+    Column(
+        modifier
+            .imasPress {
+                haptics.selection()
+                onClick()
+            }
+            .semantics(mergeDescendants = true) {
+                contentDescription = label
+                this.selected = selected
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+    ) {
+        if (logo != null && logo.exists()) {
+            // 配布しているロゴは「円 + 四隅透過」。独自に横長の絵を入れても切れないよう Fit で収める。
+            AsyncImage(
+                model = logo,
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(DS.paper)
+                    .border(if (selected) 2.5.dp else 1.dp, if (selected) ring else DS.line, CircleShape)
+                    .alpha(if (selected) 1f else 0.55f)
+            )
+        } else {
+            val fontSize = with(LocalDensity.current) {
+                (size * when {
+                    mark.length <= 2 -> 0.36f
+                    mark.length == 3 -> 0.3f
+                    else -> 0.24f
+                }).toSp()
+            }
+            Box(
+                Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(if (selected) t.actionFill else DS.paper)
+                    .border(1.75.dp, ring, CircleShape)
+                    .padding(horizontal = size * 0.1f),
+                contentAlignment = Alignment.Center
+            ) {
+                ImasFitText(
+                    mark,
+                    style = ImasType.heading(fontSize, FontWeight.ExtraBold),
+                    color = if (selected) t.onActionFill else ring,
+                    minScale = 0.6f,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        ImasFitText(
+            label,
+            style = ImasType.text(12.sp, if (selected) FontWeight.Bold else FontWeight.Normal),
+            color = if (selected) DS.ink else DS.ink2,
+            minScale = 0.8f,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * ブランドを選ぶ (iOS `ImasBrandPicker`)。判子の格子 ([ImasBrandCell])。
+ * [includesAll] で先頭に「全て」(何も選ばない = 全部) を置く。
+ *
+ * @param allLabel 「全部選んでいない」の文言。画面ごとの言葉づかいに合わせて渡せる (既定「すべて」)。
  */
 @Composable
 fun ImasBrandPicker(
@@ -835,18 +932,34 @@ fun ImasBrandPicker(
         }
         onSelectionChange(next)
     }
-    ImasChipFlow(modifier) {
+    val cells: List<@Composable (Modifier) -> Unit> = buildList {
         if (includesAll) {
-            ImasFilterChip(label = allLabel, selected = selection.isEmpty(), onClick = { onSelectionChange(emptySet()) })
+            add { m -> ImasBrandCell(allLabel, allLabel.take(1), selection.isEmpty(), { onSelectionChange(emptySet()) }, m) }
         }
         options.forEach { option ->
-            ImasFilterChip(
-                label = option.label,
-                selected = option.id in selection,
-                onClick = { toggle(option.id) },
-                seed = option.color,
-                leading = option.logo?.let { ImasChipLeading.Logo(it) }
-            )
+            add { m ->
+                ImasBrandCell(
+                    label = option.label,
+                    mark = option.mark ?: option.label.take(2),
+                    selected = option.id in selection,
+                    onClick = { toggle(option.id) },
+                    modifier = m,
+                    color = option.color,
+                    logo = option.logo
+                )
+            }
+        }
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val gap = DS.Space.gap
+        val columns = ((maxWidth + gap) / (ImasBrandCellMinWidth + gap)).toInt().coerceAtLeast(1)
+        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.rowGap)) {
+            cells.chunked(columns).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    row.forEach { cell -> cell(Modifier.weight(1f)) }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
         }
     }
 }

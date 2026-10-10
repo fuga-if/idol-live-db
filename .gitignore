@@ -47,6 +47,7 @@ imas-live-api/.dev.vars
 eckey.pem
 firebase-debug.log
 imas-live-api/node_modules/
+imas-live-api/coverage/
 
 # Claude Code ランタイム状態
 .claude/scheduled_tasks.lock
@@ -132,6 +133,7 @@ web/.cache/
 web/dist/
 web/src/lib/fold/
 web/node_modules/
+web/coverage/
 web/wasm/*/target/
 web/wasm/*/pkg/
 

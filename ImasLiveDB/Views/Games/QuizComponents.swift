@@ -22,7 +22,6 @@ func idolQuizRefs(_ idols: [Idol]) -> [IdolQuizIdolRef] {
             isExternal: idol.isExternal,
             color: idol.color,
             bloodType: idol.bloodType,
-            constellation: idol.constellation,
             birthPlace: idol.birthPlace,
             height: idol.height,
             age: idol.age.map { Int32(clamping: $0) },

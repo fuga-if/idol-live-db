@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.ui.settings
 
+import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -74,6 +75,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.fugaif.imaslivedb.data.model.PerformerRow
 import com.fugaif.imaslivedb.data.notification.NotificationCategory
+import com.fugaif.imaslivedb.ui.components.signInWithFeedback
 import com.fugaif.imaslivedb.data.notification.NotificationPrefs
 import com.fugaif.imaslivedb.data.notification.NotificationScheduler
 import com.fugaif.imaslivedb.data.sync.CloudKitSyncEngine
@@ -113,7 +115,7 @@ import uniffi.imas_core.InputField
 import uniffi.imas_core.inputIsAcceptable
 import uniffi.imas_core.inputLimitMax
 
-private enum class SettingsInfoScreen { BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
+private enum class SettingsInfoScreen { SPOTIFY, BRAND_ROLES, HELP, INBOX, PRIVACY, TERMS, SUPPORT, LICENSES }
 
 private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-privacy/issues/new"
 
@@ -147,6 +149,9 @@ fun SettingsScreen(
 
                 // Apple Music (フル再生のサインイン。曲の行の再生ボタンは未サインインだと試聴に落ちるので入口をここにも置く)
                 item { ImasListSection("Apple Music") { AppleMusicSettingsRow() } }
+
+                // Spotify (自分の Spotify アプリの Client ID で連携する)
+                item { ImasListSection("Spotify") { SpotifySettingsRow { infoScreen = SettingsInfoScreen.SPOTIFY } } }
 
                 // フィルタ設定
                 item {
@@ -307,6 +312,11 @@ fun SettingsScreen(
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) { InboxScreen(onBack = { infoScreen = null }) }
 
+        SettingsInfoScreen.SPOTIFY -> Dialog(
+            onDismissRequest = { infoScreen = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) { SpotifySettingsScreen(onBack = { infoScreen = null }) }
+
         SettingsInfoScreen.BRAND_ROLES -> Dialog(
             onDismissRequest = { infoScreen = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -406,6 +416,9 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
     val authService = remember { AppModule.from(context).authService }
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val feedbackService = remember { AppModule.from(context).contributionFeedbackService }
+    var isSavingCredit by remember { mutableStateOf(false) }
+    var creditError by remember { mutableStateOf<String?>(null) }
 
     if (authState.isSignedIn) {
         ImasRow(
@@ -418,6 +431,26 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
                 }
             }
         )
+        // 奥付の掲載。サーバが受け付けた値で表示を確定する (失敗したら元のまま)。
+        ImasToggleRow(
+            title = "公演ページに名前を載せる",
+            subtitle = "セトリや歌唱者を入れた公演の末尾に、表示名がクレジットとして出ます",
+            isOn = authState.creditOptIn,
+            enabled = !isSavingCredit,
+            onCheckedChange = { isOn ->
+                isSavingCredit = true
+                scope.launch {
+                    try {
+                        feedbackService.setCreditOptIn(isOn)
+                    } catch (e: Exception) {
+                        creditError = e.message ?: "設定を変更できませんでした"
+                    } finally {
+                        isSavingCredit = false
+                    }
+                }
+            }
+        )
+        ImasErrorAlert(creditError, onDismiss = { creditError = null }, title = "設定を変更できませんでした")
         ImasActionRow(title = "ログアウト", kind = ImasActionRowKind.DESTRUCTIVE, onClick = viewModel::signOut)
         ImasActionRow(
             title = if (state.isDeleting) "削除中..." else "アカウントを削除",
@@ -439,7 +472,7 @@ private fun AccountSection(viewModel: AccountViewModel = viewModel()) {
             )
             ImasButton(
                 title = "Googleでログイン",
-                onClick = { scope.launch { authService.signIn(context) } },
+                onClick = { scope.launch { authService.signInWithFeedback(context) } },
                 role = ImasButtonRole.PRIMARY,
                 size = ImasButtonSize.LARGE,
                 fillsWidth = true

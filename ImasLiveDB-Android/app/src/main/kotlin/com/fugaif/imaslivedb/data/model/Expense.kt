@@ -9,6 +9,9 @@ import java.util.UUID
 import uniffi.imas_core.ExpenseCategory
 import uniffi.imas_core.expenseCategoryFromKey
 import uniffi.imas_core.expenseCategoryKey
+import uniffi.imas_core.RecordedShowExpense
+import uniffi.imas_core.TicketKind
+import uniffi.imas_core.ticketKindRaw
 
 /**
  * アイマス関連の支出 1 件 (家計簿)。**端末ローカル唯一データ** (iOS `Expense` と同型)。
@@ -49,10 +52,20 @@ data class Expense(
     @ColumnInfo(name = "note")
     val note: String? = null,
     @ColumnInfo(name = "updated_at")
-    val updatedAt: String
+    val updatedAt: String,
+    /**
+     * チケット代を記録したときの券の形態 (`ticketKindRaw(kind)` の値)。1 公演に複数の形態で
+     * 参加できるので、二重計上の判定を形態ごとにするための札。手で入れた行と、この列を足す前の
+     * 行は null (判定はコアの ticket_kind_recorded 規則)。
+     */
+    @ColumnInfo(name = "ticket_kind")
+    val ticketKind: String? = null
 ) {
     /** 保存値 → 費目。知らないキーは「その他」に落ちる (コアの規則)。 */
     val categoryValue: ExpenseCategory get() = expenseCategoryFromKey(category)
+
+    /** 二重計上の判定 (ticketExpensePrompt / ticketExpenseBackfill) に渡す射影。 */
+    val recorded: RecordedShowExpense get() = RecordedShowExpense(category, ticketKind, note)
 
     companion object {
         /** 新規作成。id と更新時刻はここで振る (画面ごとに違う振り方をしないため)。 */
@@ -62,7 +75,8 @@ data class Expense(
             amount: Long,
             showId: String?,
             eventId: String?,
-            note: String?
+            note: String?,
+            ticketKind: TicketKind? = null
         ): Expense = Expense(
             id = UUID.randomUUID().toString(),
             date = date,
@@ -71,7 +85,8 @@ data class Expense(
             showId = showId,
             eventId = eventId,
             note = note?.takeIf { it.isNotEmpty() },
-            updatedAt = Instant.now().toString()
+            updatedAt = Instant.now().toString(),
+            ticketKind = ticketKind?.let { ticketKindRaw(it) }
         )
     }
 }

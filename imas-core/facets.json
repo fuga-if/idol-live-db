@@ -1,0 +1,890 @@
+{
+  "_note": "項目の定義の唯一の正は imas-core/src/domain/idol_facets.rs。このファイルはその書き出し (cargo test が一致を固定。更新は UPDATE_FACETS_JSON=1 cargo test idol_facets)。",
+  "categories": [
+    {
+      "key": "profile",
+      "label": "プロフィール"
+    },
+    {
+      "key": "appearance",
+      "label": "容姿"
+    },
+    {
+      "key": "personality",
+      "label": "性格・話し方"
+    },
+    {
+      "key": "career",
+      "label": "経歴・特技"
+    },
+    {
+      "key": "likes",
+      "label": "好み"
+    },
+    {
+      "key": "relations",
+      "label": "所属・関係"
+    },
+    {
+      "key": "works",
+      "label": "楽曲・ライブ"
+    }
+  ],
+  "facets": [
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "女性/男性。未設定のアイドルは項目ごと無い",
+      "key": "gender",
+      "kind": "single",
+      "label": "性別",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "女性",
+        "男性"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "設定上の年齢。「17歳以上か」のような比較に使う",
+      "key": "age",
+      "kind": "number",
+      "label": "年齢",
+      "store": "idol_facets",
+      "taggable": false,
+      "unit": "歳"
+    },
+    {
+      "auto": "exact",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "年齢から自動。「10代か」の判定はこれを見る",
+      "key": "age_band",
+      "kind": "single",
+      "label": "年齢帯",
+      "store": "computed",
+      "taggable": false,
+      "vocab": [
+        "10歳未満",
+        "10代",
+        "20代",
+        "30代",
+        "40代以上"
+      ]
+    },
+    {
+      "auto": "estimate",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "学年・年齢・公式の値から。推定のときは derived:true。13歳以上19歳未満の境目は年齢の目安",
+      "key": "school_stage",
+      "kind": "single",
+      "label": "学校の段階",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "小学生",
+        "中学生",
+        "高校生",
+        "大学生",
+        "社会人"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "「1月18日」の形",
+      "key": "birthday",
+      "kind": "single",
+      "label": "誕生日",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "exact",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "誕生日から自動 (1〜12)",
+      "key": "birth_month",
+      "kind": "number",
+      "label": "誕生月",
+      "store": "computed",
+      "taggable": false,
+      "unit": "月"
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "12 星座",
+      "key": "constellation",
+      "kind": "single",
+      "label": "星座",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "牡羊座",
+        "牡牛座",
+        "双子座",
+        "蟹座",
+        "獅子座",
+        "乙女座",
+        "天秤座",
+        "蠍座",
+        "射手座",
+        "山羊座",
+        "水瓶座",
+        "魚座"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "cm",
+      "key": "height_cm",
+      "kind": "number",
+      "label": "身長",
+      "store": "idol_facets",
+      "taggable": false,
+      "unit": "cm"
+    },
+    {
+      "auto": "exact",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "身長から自動",
+      "key": "height_band",
+      "kind": "single",
+      "label": "身長帯",
+      "store": "computed",
+      "taggable": false,
+      "vocab": [
+        "140cm未満",
+        "140cm台",
+        "150cm台",
+        "160cm台",
+        "170cm以上"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "A/B/O/AB。不明は項目ごと無い",
+      "key": "blood_type",
+      "kind": "single",
+      "label": "血液型",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "A",
+        "B",
+        "O",
+        "AB"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "右利き/左利き/両利き",
+      "key": "handedness",
+      "kind": "single",
+      "label": "利き手",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "右利き",
+        "左利き",
+        "両利き"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "都道府県 (「県」「府」「都」は付けない)。海外・市の名前のものは原文に近い形",
+      "key": "birthplace",
+      "kind": "single",
+      "label": "出身地",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "exact",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "出身地から自動。近畿は「関西」とも言う",
+      "key": "birthplace_region",
+      "kind": "single",
+      "label": "出身地方",
+      "store": "computed",
+      "taggable": false,
+      "vocab": [
+        "北海道",
+        "東北",
+        "関東",
+        "中部",
+        "近畿",
+        "中国",
+        "四国",
+        "九州・沖縄",
+        "海外"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "公式に分かるものだけ。出身地からは推測しない",
+      "key": "nationality",
+      "kind": "single",
+      "label": "国籍",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "exact",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "学マスは初星学園。ほかは公式に分かるものだけ",
+      "key": "school",
+      "kind": "single",
+      "label": "学校",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "profile",
+      "jev": true,
+      "jev_hint": "「1年」「中学2年」など",
+      "key": "grade",
+      "kind": "single",
+      "label": "学年",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "main の髪型の髪色。ほかの髪型は other_hairstyles に載る",
+      "key": "hair_color",
+      "kind": "single",
+      "label": "髪色",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "黒",
+        "茶",
+        "金",
+        "白・銀",
+        "赤",
+        "オレンジ",
+        "ピンク",
+        "緑",
+        "青",
+        "水色",
+        "紫"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "メッシュ・インナー・グラデーションの2色目",
+      "key": "hair_color_secondary",
+      "kind": "single",
+      "label": "髪色 (2色目)",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "黒",
+        "茶",
+        "金",
+        "白・銀",
+        "赤",
+        "オレンジ",
+        "ピンク",
+        "緑",
+        "青",
+        "水色",
+        "紫"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "ロング/ボブ〜ミディアム/ショート",
+      "key": "hair_length",
+      "kind": "single",
+      "label": "髪の長さ",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "ロング",
+        "ボブ〜ミディアム",
+        "ショート"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "main の髪型のかたち。複数あてはまる (ツインテールかつ縦ロール など)",
+      "key": "hair_style",
+      "kind": "multi",
+      "label": "髪型",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "ストレート",
+        "ウェーブ",
+        "縦ロール",
+        "ツインテール",
+        "ローツインテール",
+        "ポニーテール",
+        "サイドテール",
+        "ハーフサイドテール",
+        "ツーサイドアップ",
+        "ハーフアップ",
+        "ハーフアップツイン",
+        "三つ編み・編み込み",
+        "お団子",
+        "ひとつ縛り",
+        "まとめ髪",
+        "姫カット",
+        "アホ毛",
+        "跳ね毛",
+        "外はね",
+        "逆立てた髪",
+        "オールバック",
+        "リーゼント"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "特徴のある前髪だけ。普通の前髪は項目ごと無い",
+      "key": "bangs",
+      "kind": "single",
+      "label": "前髪",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "ぱっつん",
+        "センター分け",
+        "片目隠れ",
+        "おでこ"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "リボン・ヘアバンド・ヘアピンなど",
+      "key": "hair_accessory",
+      "kind": "multi",
+      "label": "髪飾り",
+      "store": "idol_hairstyles",
+      "taggable": false,
+      "vocab": [
+        "リボン",
+        "ヘアバンド",
+        "ヘアピン",
+        "その他の髪飾り"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "key": "eye_color",
+      "kind": "single",
+      "label": "目の色",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "黒",
+        "茶",
+        "青",
+        "水色",
+        "緑",
+        "赤",
+        "ピンク",
+        "紫",
+        "金",
+        "オレンジ",
+        "灰"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "普段眼鏡をかけているか",
+      "key": "glasses",
+      "kind": "bool",
+      "label": "眼鏡",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "公式の色。値は hex と色名 (色名は hex から自動)",
+      "key": "image_color",
+      "kind": "color",
+      "label": "イメージカラー",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "appearance",
+      "jev": true,
+      "jev_hint": "ほくろ・八重歯・泣きぼくろなど",
+      "key": "features",
+      "kind": "multi",
+      "label": "身体的な特徴",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "性格を表す短い語。ファンの票由来のものは source:tag",
+      "key": "traits",
+      "kind": "multi",
+      "label": "性格",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "場面で変わる子は複数",
+      "key": "first_person",
+      "kind": "multi",
+      "label": "一人称",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "key": "producer_call",
+      "kind": "multi",
+      "label": "プロデューサーの呼び方",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "「○○」は差し込み部分",
+      "key": "catchphrases",
+      "kind": "multi",
+      "label": "口癖・決まり文句",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "key": "sentence_endings",
+      "kind": "multi",
+      "label": "語尾",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "関西弁・博多弁など。標準語は項目ごと無い",
+      "key": "dialect",
+      "kind": "single",
+      "label": "方言",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "敬語/タメ口/混在",
+      "key": "speech_style",
+      "kind": "single",
+      "label": "話し方",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "敬語",
+        "タメ口",
+        "敬語とタメ口の混在"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "personality",
+      "jev": true,
+      "jev_hint": "出典つきで確かめた話し方の要約文",
+      "key": "speech_notes",
+      "kind": "single",
+      "label": "話し方の要約",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "hobbies",
+      "kind": "multi",
+      "label": "趣味",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "talents",
+      "kind": "multi",
+      "label": "特技",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "past_jobs",
+      "kind": "multi",
+      "label": "アイドルになる前の職業",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "club",
+      "kind": "multi",
+      "label": "部活・サークル",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "education",
+      "kind": "single",
+      "label": "学歴",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "jev_hint": "総選挙の順位など",
+      "key": "achievements",
+      "kind": "multi",
+      "label": "実績",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "jev_hint": "スカウト/オーディションなど",
+      "key": "debut_route",
+      "kind": "single",
+      "label": "アイドルになった経緯",
+      "store": "idol_facets",
+      "taggable": false,
+      "vocab": [
+        "スカウト",
+        "オーディション",
+        "事務所の紹介",
+        "その他"
+      ]
+    },
+    {
+      "auto": "no",
+      "category": "career",
+      "jev": true,
+      "key": "debut_date",
+      "kind": "single",
+      "label": "デビュー日",
+      "store": "idol_facets",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "likes",
+      "jev": true,
+      "key": "favorite_foods",
+      "kind": "multi",
+      "label": "好きな食べ物",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "likes",
+      "jev": true,
+      "key": "favorite_things",
+      "kind": "multi",
+      "label": "好きなもの",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "likes",
+      "jev": true,
+      "key": "dislikes",
+      "kind": "multi",
+      "label": "苦手なもの",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "jev_hint": "値はブランド名。extra に id と短縮名",
+      "key": "brand",
+      "kind": "single",
+      "label": "ブランド",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "exact",
+      "category": "relations",
+      "jev": true,
+      "jev_hint": "ブランドから自動",
+      "key": "agency",
+      "kind": "single",
+      "label": "所属事務所・学園",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "key": "unit_count",
+      "kind": "number",
+      "label": "ユニットの数",
+      "store": "computed",
+      "taggable": false,
+      "unit": "組"
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "jev_hint": "恒常ユニットを優先して最大 5",
+      "key": "representative_units",
+      "kind": "multi",
+      "label": "代表的なユニット",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "full_of": "representative_units",
+      "jev": false,
+      "jev_hint": "照合用。質問にユニット名が出たときの突き合わせに使う",
+      "key": "units",
+      "kind": "multi",
+      "label": "所属ユニット (全件)",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "jev_hint": "同じ公演に出た回数が多い順に最大 5",
+      "key": "frequent_costars",
+      "kind": "multi",
+      "label": "よく共演する人",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "key": "family",
+      "kind": "multi",
+      "label": "家族",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "relations",
+      "jev": true,
+      "key": "roommates",
+      "kind": "multi",
+      "label": "ルームメイト",
+      "store": "idol_facets",
+      "taggable": true
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "現在の担当",
+      "key": "voice_actor",
+      "kind": "single",
+      "label": "声優",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "その人ひとりの持ち歌",
+      "key": "solo_song_count",
+      "kind": "number",
+      "label": "ソロ曲の数",
+      "store": "computed",
+      "taggable": false,
+      "unit": "曲"
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "持ち歌のうちソロでないもの + 所属ユニットの曲",
+      "key": "unit_song_count",
+      "kind": "number",
+      "label": "ユニット曲・合唱曲の数",
+      "store": "computed",
+      "taggable": false,
+      "unit": "曲"
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "ライブで歌った回数が多い順に最大 5 (回数は extra)",
+      "key": "representative_songs",
+      "kind": "multi",
+      "label": "代表曲",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "full_of": "representative_songs",
+      "jev": false,
+      "jev_hint": "照合用。質問に曲名が出たときの突き合わせに使う",
+      "key": "songs",
+      "kind": "multi",
+      "label": "持ち歌 (全件)",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "full_of": "representative_songs",
+      "jev": false,
+      "jev_hint": "照合用",
+      "key": "performed_songs",
+      "kind": "multi",
+      "label": "ライブで歌った曲 (全件)",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "key": "show_count",
+      "kind": "number",
+      "label": "出演公演数",
+      "store": "computed",
+      "taggable": false,
+      "unit": "公演"
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "「日付 ライブ名」",
+      "key": "first_show",
+      "kind": "single",
+      "label": "初出演の公演",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "jev": true,
+      "jev_hint": "「日付 ライブ名」",
+      "key": "latest_show",
+      "kind": "single",
+      "label": "直近の出演公演",
+      "store": "computed",
+      "taggable": false
+    },
+    {
+      "auto": "no",
+      "category": "works",
+      "full_of": "latest_show",
+      "jev": false,
+      "jev_hint": "照合用。ライブ名が質問に出たときの突き合わせに使う",
+      "key": "appeared_events",
+      "kind": "multi",
+      "label": "出演したライブ (全件)",
+      "store": "computed",
+      "taggable": false
+    }
+  ],
+  "hairstyle_fields": {
+    "bangs": "bangs",
+    "hair_accessory": "accessories",
+    "hair_color": "hair_color",
+    "hair_color_secondary": "hair_color_secondary",
+    "hair_length": "hair_length",
+    "hair_style": "styles"
+  },
+  "main_hairstyle_label": "基本",
+  "schema_version": 1,
+  "sources": [
+    "official",
+    "promoted",
+    "tag"
+  ]
+}

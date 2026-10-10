@@ -6,11 +6,13 @@
 use super::browse::show_header;
 use super::json::Obj;
 use super::{args, ToolError, ToolSpec};
+use crate::domain::attendance::{attendance_types, has_attendance_type};
 use crate::domain::snapshot::Snapshot;
 use serde_json::{json, Value};
 
-/// 公演 1 件の参加マーク。`attendance` は語彙の参加種別 ("live" 現地 / "stream" 配信 /
-/// "live_viewing" ライブビューイング)。
+/// 公演 1 件の参加マーク。`attendance` は参加マークの保存値そのまま (語彙の参加種別
+/// "live" 現地 / "stream" 配信 / "live_viewing" ライブビューイング を `,` でつないだもの。
+/// 読み方は [`crate::domain::attendance::attendance_types`])。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttendedShow {
     pub show_id: String,
@@ -52,7 +54,7 @@ pub fn call(snap: &Snapshot, attended: &[AttendedShow], arguments: &Value) -> Re
         .filter_map(|mark| snap.show_index_by_id.get(&mark.show_id).map(|&i| (i, mark)))
         .filter(|(i, mark)| {
             let event = &snap.events[snap.shows[*i as usize].event as usize];
-            attendance.as_deref().is_none_or(|a| a == mark.attendance)
+            attendance.as_deref().is_none_or(|a| has_attendance_type(Some(&mark.attendance), a))
                 && brand.as_deref().is_none_or(|b| event.brand_id.as_deref() == Some(b))
         })
         .collect();
@@ -61,9 +63,12 @@ pub fn call(snap: &Snapshot, attended: &[AttendedShow], arguments: &Value) -> Re
         sb.date.cmp(&sa.date).then_with(|| sa.id.cmp(&sb.id))
     });
 
-    let mut by_attendance = std::collections::BTreeMap::<&str, usize>::new();
+    // 1 公演に複数の形態が付いていれば、それぞれの形態で 1 つずつ数える。
+    let mut by_attendance = std::collections::BTreeMap::<String, usize>::new();
     for (_, mark) in &rows {
-        *by_attendance.entry(mark.attendance.as_str()).or_default() += 1;
+        for t in attendance_types(Some(&mark.attendance)) {
+            *by_attendance.entry(t).or_default() += 1;
+        }
     }
     let mut o = Obj::new();
     o.put("total", rows.len());
@@ -77,7 +82,7 @@ pub fn call(snap: &Snapshot, attended: &[AttendedShow], arguments: &Value) -> Re
                     let mut row = show_header(snap, *i);
                     let event = &snap.events[snap.shows[*i as usize].event as usize];
                     row["brand"] = json!(event.brand_id);
-                    row["attendance"] = json!(mark.attendance);
+                    row["attendance"] = json!(attendance_types(Some(&mark.attendance)));
                     row
                 })
                 .collect(),
@@ -102,20 +107,21 @@ mod tests {
         let (old, new) = (shows[0], shows[shows.len() - 1]);
         let marks = vec![
             AttendedShow { show_id: old.id.clone(), attendance: "live".into() },
-            AttendedShow { show_id: new.id.clone(), attendance: "stream".into() },
+            AttendedShow { show_id: new.id.clone(), attendance: "live,stream".into() },
             AttendedShow { show_id: "no-such-show".into(), attendance: "live".into() },
         ];
 
         let all = call(&snap, &marks, &json!({})).unwrap();
         assert_eq!(all["total"], 2);
-        assert_eq!(all["by_attendance"]["live"], 1);
+        // 現地と配信の両方を付けた公演は両方で数える。
+        assert_eq!(all["by_attendance"]["live"], 2);
         assert_eq!(all["by_attendance"]["stream"], 1);
         assert_eq!(all["shows"][0]["show_id"], json!(new.id));
-        assert_eq!(all["shows"][0]["attendance"], "stream");
+        assert_eq!(all["shows"][0]["attendance"], json!(["live", "stream"]));
 
-        let live = call(&snap, &marks, &json!({ "attendance": "live" })).unwrap();
-        assert_eq!(live["total"], 1);
-        assert_eq!(live["shows"][0]["show_id"], json!(old.id));
+        let stream = call(&snap, &marks, &json!({ "attendance": "stream" })).unwrap();
+        assert_eq!(stream["total"], 1);
+        assert_eq!(stream["shows"][0]["show_id"], json!(new.id));
     }
 
     #[test]

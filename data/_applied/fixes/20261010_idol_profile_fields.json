@@ -1,0 +1,253 @@
+{
+ "title": "アイドルのプロフィール項目（趣味・出身地・星座など）を公式アイドル名鑑に合わせて直す",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "765as_秋月律子",
+   "fields": {
+    "hobbies": "資格取得、ボランティア"
+   },
+   "note": "趣味に「ボランティア」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/10001"
+  },
+  {
+   "table": "idols",
+   "id": "765as_如月千早",
+   "fields": {
+    "hobbies": "音楽鑑賞、写真"
+   },
+   "note": "趣味に「写真」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/10005"
+  },
+  {
+   "table": "idols",
+   "id": "765as_双海真美",
+   "fields": {
+    "hobbies": "メール、ぼんさい"
+   },
+   "note": "趣味「ゲーム」は誤り、公式は「メール、ぼんさい」",
+   "source": "https://idollist.idolmaster-official.jp/detail/10010"
+  },
+  {
+   "table": "idols",
+   "id": "765as_亜夜",
+   "fields": {
+    "birth_place": "神奈川"
+   },
+   "note": "出身地が空だった",
+   "source": "https://idollist.idolmaster-official.jp/detail/240002"
+  },
+  {
+   "table": "idols",
+   "id": "765as_詩花",
+   "fields": {
+    "birth_place": "オーストリア"
+   },
+   "note": "出身地が空だった",
+   "source": "https://idollist.idolmaster-official.jp/detail/230001"
+  },
+  {
+   "table": "idols",
+   "id": "ml_ジュリア",
+   "fields": {
+    "birth_place": "福岡"
+   },
+   "note": "出身地が空だった",
+   "source": "https://idollist.idolmaster-official.jp/detail/30013"
+  },
+  {
+   "table": "idols",
+   "id": "ml_高山紗代子",
+   "fields": {
+    "hobbies": "ハリネズミの飼育、日記"
+   },
+   "note": "趣味に「日記」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/30016"
+  },
+  {
+   "table": "idols",
+   "id": "ml_松田亜利沙",
+   "fields": {
+    "hobbies": "アイドルのデータ集め、カメラ"
+   },
+   "note": "趣味に「カメラ」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/30032"
+  },
+  {
+   "table": "idols",
+   "id": "ml_白石紬",
+   "fields": {
+    "hobbies": "庭園、甘味処巡り"
+   },
+   "note": "公式は「庭園・甘味処巡り」",
+   "source": "https://idollist.idolmaster-official.jp/detail/30014"
+  },
+  {
+   "table": "idols",
+   "id": "ml_桜守歌織",
+   "fields": {
+    "constellation": "牡羊座"
+   },
+   "note": "星座が牡牛座になっていた（公式はおひつじ座）",
+   "source": "https://idollist.idolmaster-official.jp/detail/30009"
+  },
+  {
+   "table": "idols",
+   "id": "876_水谷絵理",
+   "fields": {
+    "hobbies": "映像編集、ジグソーパズル"
+   },
+   "note": "趣味に「ジグソーパズル」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/210002"
+  },
+  {
+   "table": "idols",
+   "id": "876_灯里愛夏",
+   "fields": {
+    "age": null,
+    "hobbies": "アイドル研究、カフェで読書、ミュージカル"
+   },
+   "note": "年齢は公式で非公開 / 趣味に「カフェで読書」が抜けていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/210003"
+  },
+  {
+   "table": "idols",
+   "id": "876_上水流宇宙",
+   "fields": {
+    "age": null,
+    "hobbies": "イラストを描くこと、ゲーム、食べること",
+    "constellation": "乙女座"
+   },
+   "note": "年齢は公式で非公開 / 趣味が公式と違っていた / 星座が蠍座になっていた（公式はおとめ座）",
+   "source": "https://idollist.idolmaster-official.jp/detail/210004"
+  },
+  {
+   "table": "idols",
+   "id": "876_サラ_レトラ_オリヴェイラ_ウタガワ",
+   "fields": {
+    "age": null,
+    "hobbies": "寝ること、メイクネイル、雑貨集め"
+   },
+   "note": "年齢は公式で非公開 / 趣味が公式と違っていた",
+   "source": "https://idollist.idolmaster-official.jp/detail/210005"
+  },
+  {
+   "table": "idols",
+   "id": "961_奥空心白",
+   "fields": {
+    "birthday": "--07-26"
+   },
+   "note": "誕生日の書式（先頭の -- が無かった）",
+   "source": "https://idollist.idolmaster-official.jp/detail/240001"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_都築圭",
+   "fields": {
+    "constellation": "牡羊座"
+   },
+   "note": "星座が牡牛座になっていた（4/2生まれ、公式はおひつじ座）",
+   "source": "https://idollist.idolmaster-official.jp/detail/40033"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_秋月涼",
+   "fields": {
+    "height": 164,
+    "gender": "male",
+    "talents": "ダンス、変装"
+   },
+   "note": "身長は公式164cm / 性別が female になっていた / 特技が空だった",
+   "source": [
+    "https://idollist.idolmaster-official.jp/detail/40004",
+    "https://idolmaster-official.jp/sidem/idol/ryo"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "sidem_牙崎漣",
+   "fields": {
+    "birth_place": "不明",
+    "constellation": null,
+    "hobbies": "なんでんなことオマエに教えないといけねーんだ？バァーカ！"
+   },
+   "note": "公式の出身地・星座は「不明」 / 趣味の表記を公式に合わせた",
+   "source": "https://idollist.idolmaster-official.jp/detail/40018"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_秋山隼人",
+   "fields": {
+    "talents": "野球選手のモノマネ、虫採り"
+   },
+   "note": "特技に「虫採り」が抜けていた",
+   "source": "https://idolmaster-official.jp/sidem/idol/hayato"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_木村龍",
+   "fields": {
+    "talents": "裁縫（自称）、ウィンタースポーツ"
+   },
+   "note": "特技に「ウィンタースポーツ」が抜けていた",
+   "source": "https://idolmaster-official.jp/sidem/idol/ryu"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_卯月巻緒",
+   "fields": {
+    "talents": "利きケーキ、一輪車、ケーキ占い"
+   },
+   "note": "特技に「ケーキ占い」が抜けていた",
+   "source": "https://idolmaster-official.jp/sidem/idol/makio"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_葛之葉雨彦",
+   "fields": {
+    "talents": "折り紙、囲碁"
+   },
+   "note": "特技に「囲碁」が抜けていた",
+   "source": "https://idolmaster-official.jp/sidem/idol/amehiko"
+  },
+  {
+   "table": "idols",
+   "id": "765as_音無小鳥",
+   "fields": {
+    "birthday": "--09-09",
+    "height": 159,
+    "blood_type": "AB",
+    "birth_place": null
+   },
+   "note": "誕生日1/15・身長165・A型は誤り（9/9・159cm・AB型）。出身地「山形県」は根拠なし",
+   "source": "https://ja.wikipedia.org/wiki/音無小鳥"
+  },
+  {
+   "table": "idols",
+   "id": "cg_棟方愛海",
+   "fields": {
+    "description": "青森出身の14歳のお団子ヘアが特徴のアイドル。明るく社交的で、指の運動が趣味。CV: 藤本彩花。"
+   },
+   "note": "説明文に CV が無かった",
+   "source": "https://cinderellagirls.idolmaster-official.jp/idol/"
+  },
+  {
+   "table": "idols",
+   "id": "cg_藤本里奈",
+   "fields": {
+    "description": "湘南出身の18歳のギャル系で元現場仕事のアイドル。「~ぽよ」「しゃーわせ」が口癖でCIAO KUMA愛用。CV: 金子真由美。"
+   },
+   "note": "説明文に CV が無かった",
+   "source": "https://cinderellagirls.idolmaster-official.jp/idol/"
+  },
+  {
+   "table": "idols",
+   "id": "sc_七草にちか",
+   "fields": {
+    "description": "気が強く甘え上手な「みんなの妹」。アイドルに強い憧れを抱いており、譲れない思いや負けず嫌いな面をのぞかせることも。高校1年生。"
+   },
+   "note": "公式紹介文では「みんなの妹」の後で文が切れる。続けると意味が変わるため句点を補った",
+   "source": "https://shinycolors.idolmaster-official.jp/idol/shhis/nichika/"
+  }
+ ]
+}

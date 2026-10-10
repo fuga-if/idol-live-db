@@ -31,6 +31,9 @@ struct SongEditView: View {
     @State private var composer: String
     @State private var arranger: String
     @State private var releaseDate: String
+    @State private var streamingDate: String
+    @State private var cdReleaseDate: String
+    @State private var firstAppearanceNote: String
     @State private var singerLabel: String
     @State private var note: String
     @State private var isrc: String
@@ -69,6 +72,9 @@ struct SongEditView: View {
         _composer = State(initialValue: song.composer ?? "")
         _arranger = State(initialValue: song.arranger ?? "")
         _releaseDate = State(initialValue: song.releaseDate ?? "")
+        _streamingDate = State(initialValue: song.streamingDate ?? "")
+        _cdReleaseDate = State(initialValue: song.cdReleaseDate ?? "")
+        _firstAppearanceNote = State(initialValue: song.firstAppearanceNote ?? "")
         _singerLabel = State(initialValue: song.singerLabel ?? "")
         _note = State(initialValue: song.note ?? "")
         _isrc = State(initialValue: song.isrc ?? "")
@@ -94,6 +100,9 @@ struct SongEditView: View {
         _composer = State(initialValue: "")
         _arranger = State(initialValue: "")
         _releaseDate = State(initialValue: "")
+        _streamingDate = State(initialValue: "")
+        _cdReleaseDate = State(initialValue: "")
+        _firstAppearanceNote = State(initialValue: "")
         _singerLabel = State(initialValue: "")
         _note = State(initialValue: "")
         _isrc = State(initialValue: "")
@@ -126,7 +135,16 @@ struct SongEditView: View {
                     ImasTextFieldRow(title: "作詞", text: $lyricist)
                     ImasTextFieldRow(title: "作曲", text: $composer)
                     ImasTextFieldRow(title: "編曲", text: $arranger)
-                    ImasTextFieldRow(title: "リリース日", text: $releaseDate, prompt: "YYYY-MM-DD",
+                    ImasTextFieldRow(title: "初出", text: $releaseDate, prompt: "YYYY-MM-DD",
+                                     keyboard: .numbersAndPunctuation)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    ImasTextFieldRow(title: "初出の補足", text: $firstAppearanceNote, prompt: "例: TVアニメ第14話 新OP")
+                    ImasTextFieldRow(title: "CD 発売日", text: $cdReleaseDate, prompt: "YYYY-MM-DD",
+                                     keyboard: .numbersAndPunctuation)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    ImasTextFieldRow(title: "配信開始日", text: $streamingDate, prompt: "YYYY-MM-DD",
                                      keyboard: .numbersAndPunctuation)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -248,8 +266,12 @@ struct SongEditView: View {
         }
         // リリース日はサーバ validator (YYYY-MM-DD) と一致する形式のみ許可。
         let trimmedReleaseDate = releaseDate.trimmingCharacters(in: .whitespaces)
-        if !trimmedReleaseDate.isEmpty && !isValidISODate(trimmedReleaseDate) {
-            errorMessage = "リリース日は YYYY-MM-DD 形式で入力してください"
+        let trimmedStreamingDate = streamingDate.trimmingCharacters(in: .whitespaces)
+        let trimmedCdReleaseDate = cdReleaseDate.trimmingCharacters(in: .whitespaces)
+        for (label, value) in [("初出", trimmedReleaseDate), ("CD 発売日", trimmedCdReleaseDate),
+                               ("配信開始日", trimmedStreamingDate)]
+        where !value.isEmpty && !isValidISODate(value) {
+            errorMessage = "\(label)は YYYY-MM-DD 形式で入力してください"
             return
         }
         // 再生時間は秒数 (非負整数) のみ許可。
@@ -286,6 +308,9 @@ struct SongEditView: View {
         songFields["composer"] = AnyEncodable.clearable(composer, original: original?.composer)
         songFields["arranger"] = AnyEncodable.clearable(arranger, original: original?.arranger)
         songFields["releaseDate"] = AnyEncodable.clearable(trimmedReleaseDate, original: original?.releaseDate)
+        songFields["streamingDate"] = AnyEncodable.clearable(trimmedStreamingDate, original: original?.streamingDate)
+        songFields["cdReleaseDate"] = AnyEncodable.clearable(trimmedCdReleaseDate, original: original?.cdReleaseDate)
+        songFields["firstAppearanceNote"] = AnyEncodable.clearable(firstAppearanceNote, original: original?.firstAppearanceNote)
         songFields["singerLabel"] = AnyEncodable.clearable(singerLabel, original: original?.singerLabel)
         songFields["note"] = AnyEncodable.clearable(note, original: original?.note)
         songFields["isrc"] = AnyEncodable.clearable(isrc, original: original?.isrc)
@@ -389,6 +414,9 @@ struct SongEditView: View {
         song.composer = nonEmpty(composer)
         song.arranger = nonEmpty(arranger)
         song.releaseDate = nonEmpty(releaseDate)
+        song.streamingDate = nonEmpty(streamingDate)
+        song.cdReleaseDate = nonEmpty(cdReleaseDate)
+        song.firstAppearanceNote = nonEmpty(firstAppearanceNote)
         song.singerLabel = nonEmpty(singerLabel)
         song.note = nonEmpty(note)
         song.isrc = nonEmpty(isrc)

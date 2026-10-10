@@ -69,6 +69,99 @@ class AppDatabaseMigrationTest {
     /** 直前の版。書体の列をデザインに改める (MIGRATION_29_30) ときも、端末ローカルの行は残る。 */
     @Test fun migrates29ToLatest() = assertMigrates(from = 29)
 
+    /** 会った記録の表 (MIGRATION_34_35) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates34ToLatest() = assertMigrates(from = 34)
+
+    /** 直前の版。会った記録の中身の列 (MIGRATION_35_36) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates35ToLatest() = assertMigrates(from = 35)
+
+    /**
+     * 会った記録に中身 (v36) を足す前の記録は、名刺の行の中身で埋める (iOS
+     * testCardMeetingPayloadIsBackfilledFromCardRow と対)。
+     */
+    @Test
+    fun migrating35To36BackfillsPayloadFromCardRow() {
+        val name = "card_meeting_payload_35.sqlite"
+        helper.createDatabase(name, 35).use {
+            it.execSQL(
+                "INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at) " +
+                    "VALUES ('c1', 'AQ_now', 'app', NULL, NULL, NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z')"
+            )
+            it.execSQL(
+                "INSERT INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at) " +
+                    "VALUES ('x1', 'c1', NULL, NULL, 'nearby', '2026-12-01T12:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 36, true, AppDatabase.MIGRATION_35_36).use { db ->
+            db.query("SELECT payload FROM received_card_meetings ORDER BY id").use { c ->
+                val rows = buildList { while (c.moveToNext()) add(c.getString(0)) }
+                assertEquals(listOf("AQ_now"), rows)
+            }
+        }
+    }
+
+    /**
+     * 会った記録 (v35) を足す前に受け取った名刺は、名刺の行から 1 回目の記録を作る (受け取り方は不明、紙の名刺は紙)。
+     * 自分の名刺には名刺 id が入る (iOS testCardMeetingsAreBackfilledFromOldRows と対)。
+     */
+    @Test
+    fun migrating34To35BackfillsMeetings() {
+        val name = "producer_card_meetings_34.sqlite"
+        helper.createDatabase(name, 34).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at) " +
+                    "VALUES ('me', 'ふがP', '', '[]', '', '2026-10-06T00:00:00Z')"
+            )
+            it.execSQL(
+                "INSERT INTO received_producer_cards (id, payload, source, show_id, show_date, memo, received_at, updated_at) " +
+                    "VALUES ('c1', 'AQ_a', 'app', 'sh_1', '2026-10-05', NULL, '2026-10-05T12:00:00Z', '2026-10-05T12:00:00Z'), " +
+                    "('c2', 'AQ_b', 'paper', NULL, NULL, NULL, '2026-10-06T12:00:00Z', '2026-10-06T12:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 35, true, AppDatabase.MIGRATION_34_35).use { db ->
+            db.query("SELECT id, show_id, via, met_at FROM received_card_meetings ORDER BY id").use { c ->
+                c.moveToFirst()
+                assertEquals(uniffi.imas_core.cardFirstMeetingId("c1"), c.getString(0))
+                assertEquals("sh_1", c.getString(1))
+                assertTrue("古い行は受け取り方が不明", c.isNull(2))
+                assertEquals("2026-10-05T12:00:00Z", c.getString(3))
+                c.moveToNext()
+                assertEquals(uniffi.imas_core.cardFirstMeetingId("c2"), c.getString(0))
+                assertEquals("paper", c.getString(2))
+            }
+            db.query("SELECT card_id FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertTrue(uniffi.imas_core.producerCardIdIsValid(c.getString(0)))
+            }
+        }
+    }
+
+    /** 直前の版。担当の選択の列 (MIGRATION_33_34) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates33ToLatest() = assertMigrates(from = 33)
+
+    /**
+     * 担当の選択 (v34) を足す前の自分の名刺は「まだ選んでいない」として読む
+     * (iOS testOldMyCardRowReadsOshiChoiceAsUnchosen と対)。
+     */
+    @Test
+    fun migrating33To34ReadsOshiChoiceAsUnchosen() {
+        val name = "producer_card_oshi_33.sqlite"
+        helper.createDatabase(name, 33).use {
+            it.execSQL(
+                "INSERT INTO my_producer_card (id, name, message, links_json, hidden_fields, updated_at) " +
+                    "VALUES ('me', 'ふがP', 'よろしく', '[]', '', '2026-10-06T00:00:00Z')"
+            )
+        }
+        helper.runMigrationsAndValidate(name, 34, true, AppDatabase.MIGRATION_33_34).use { db ->
+            db.query("SELECT name, card_oshi_json FROM my_producer_card").use { c ->
+                c.moveToFirst()
+                assertEquals("ふがP", c.getString(0))
+                assertTrue(c.isNull(1))
+            }
+        }
+        assertEquals(null, com.fugaif.imaslivedb.data.model.MyProducerCard.empty().cardOshiChoice)
+    }
+
     /**
      * 名前の書体 (v28) を選んでいた自分の名刺は、デザイン (v30) に上げても選んだもの (書体のキー) と
      * ほかの中身が残り、近いデザインに読み替わる (iOS testNameFontColumnBecomesDesign と対)。
@@ -229,7 +322,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 30
+        const val LATEST = 36
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

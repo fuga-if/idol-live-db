@@ -1,5 +1,10 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
+import uniffi.imas_core.cardMeetingViews
+import uniffi.imas_core.CardMeetingView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +104,8 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
     // 行の画像 (名刺の id → 画像)。ファイルを見るので読むときに IO で引く。
     var images by remember { mutableStateOf<Map<String, ReceivedCardImages>>(emptyMap()) }
     var myOshi by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // 束の行 (会った記録の id) → 会った記録。記録の無い名刺は名刺の id のまま (記録は無し)。
+    var meetings by remember { mutableStateOf<Map<String, CardMeetingView>>(emptyMap()) }
     var myCard by remember { mutableStateOf<EncodedProducerCard?>(null) }
     var loaded by remember { mutableStateOf(false) }
 
@@ -112,7 +119,11 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
         val repo = module.producerCardRepository
         val all = repo.receivedCards()
         val map = all.mapNotNull { row -> row.card?.let { row.id to it } }.toMap()
-        val entries = all.map { CardCaseEntry(it.id, it.showId, it.showDate, it.receivedAt) }
+        // 束の行は会った記録ごと (記録の無い名刺は名刺の行から)。
+        val views = cardMeetingViews(repo.meetings().map { it.record })
+        val met = views.map { it.cardId }.toSet()
+        val entries = views.map { CardCaseEntry(it.id, it.showId, it.showDate, it.metAt) } +
+            all.filter { it.id !in met }.map { CardCaseEntry(it.id, it.showId, it.showDate, it.receivedAt) }
         val record = runCatching { ProducerCardAssembler.loadMyRecord(module) }.getOrNull()
         val built = cardCaseSections(entries)
         directory = ProducerCardDirectory.load(module, map.values.flatMap { it.oshiIdolIds }, built.mapNotNull { it.showId })
@@ -124,6 +135,7 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
             all.associate { row -> row.id to ReceivedCardImages.load(context, row.id, map[row.id]?.oshiIdolIds.orEmpty()) }
         }
         cards = all
+        meetings = views.associateBy { it.id }
         decoded = map
         sections = built
         loaded = true
@@ -177,10 +189,14 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
                     item { ImasListSummary<String>(count = cards.size, unit = "枚") }
                     sections.forEach { section ->
                         item(key = "section_${section.showId ?: section.date}") { SectionHeader(section, directory) }
-                        val rows = section.entryIds.mapNotNull { id -> cards.firstOrNull { it.id == id } }
-                        items(rows, key = { it.id }) { card ->
+                        val rows = section.entryIds.mapNotNull { id ->
+                            val meeting = meetings[id]
+                            cards.firstOrNull { it.id == (meeting?.cardId ?: id) }?.let { Triple(id, it, meeting) }
+                        }
+                        items(rows, key = { it.first }) { (_, card, meeting) ->
                             CardCaseRow(
                                 card = card,
+                                meeting = meeting,
                                 content = decoded[card.id],
                                 images = images[card.id] ?: ReceivedCardImages(),
                                 directory = directory,
@@ -229,6 +245,7 @@ private fun SectionHeader(section: CardCaseSection, directory: ProducerCardDirec
 @Composable
 private fun CardCaseRow(
     card: ReceivedProducerCard,
+    meeting: CardMeetingView?,
     content: ProducerCard?,
     images: ReceivedCardImages,
     directory: ProducerCardDirectory,
@@ -276,8 +293,16 @@ private fun CardCaseRow(
             trailing = if (shared) ImasRowTrailing.Badge("担当被り", ImasBadgeKind.NEW) else ImasRowTrailing.None,
             position = ImasRowPosition.FOLLOWING,
             modifier = Modifier.background(DS.surface).imasRowPress(onClick = onOpen),
-            detail = memo?.let { text ->
-                { Text(text, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color, maxLines = 1) }
+            detail = if (memo == null && meeting?.badge == null && meeting?.ordinalLabel == null) null else {
+                {
+                    if (meeting?.badge != null || meeting?.ordinalLabel != null) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
+                            meeting.badge?.let { ImasBadge(it, kind = ImasBadgeKind.POSITIVE) }
+                            meeting.ordinalLabel?.let { ImasBadge(it) }
+                        }
+                    }
+                    memo?.let { Text(it, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color, maxLines = 1) }
+                }
             }
         )
     }

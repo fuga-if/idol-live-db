@@ -387,7 +387,12 @@ object SyncMappers {
                 // 同じ理由。落とすと KAMISABI 収録済みの曲が同期のたびに未収録へ戻る。
                 hasKamisabiCard = row.hasKamisabiCard,
                 // 同じ理由。落とすと同期のたびに曲の補足が消える。
-                note = row.note.emptyToNull()
+                note = row.note.emptyToNull(),
+                // 同じ理由。落とすと同期のたびに配信開始日・CD 発売日が消える。
+                streamingDate = row.streamingDate.emptyToNull(),
+                cdReleaseDate = row.cdReleaseDate.emptyToNull(),
+                // 同じ理由。落とすと同期のたびに初出の補足が消える。
+                firstAppearanceNote = row.firstAppearanceNote.emptyToNull()
             )
         }
 

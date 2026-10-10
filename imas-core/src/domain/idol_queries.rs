@@ -202,6 +202,26 @@ pub fn idol_list(snap: &Snapshot, brand_id: Option<&str>) -> Vec<IdolRecord> {
     }
 }
 
+/// 複数ブランドを選んだときのアイドル一覧 (好きなアイドルソートの候補など)。
+///
+/// ブランド id の昇順にブランドごとの [`idol_list`] をつなぎ、同じ人は初出の 1 回だけにする。
+/// 765AS の 13 人は ML にも属すので、ブランド別の一覧を足し合わせるだけだと同じ人が 2 回入る
+/// (ソートで「双海真美 vs 双海真美」が出た)。空なら全件 (`idol_list(None)`)。
+pub fn idol_list_in_brands(snap: &Snapshot, brand_ids: &[String]) -> Vec<IdolRecord> {
+    if brand_ids.is_empty() {
+        return idol_list(snap, None);
+    }
+    let mut sorted: Vec<&str> = brand_ids.iter().map(String::as_str).collect();
+    sorted.sort_unstable();
+    sorted.dedup();
+    let mut seen: HashSet<String> = HashSet::new();
+    sorted
+        .into_iter()
+        .flat_map(|bid| idol_list(snap, Some(bid)))
+        .filter(|r| seen.insert(r.id.clone()))
+        .collect()
+}
+
 /// アイドル id 群の一括取得 (fetchIdols(ids:) / fetchIdol(id:) の N+1 防止用)。
 ///
 /// SQL の `IN` は結果順未規定・重複 id も 1 行だったので、「入力 id 順・初出のみ・
@@ -581,7 +601,7 @@ pub fn height_display(height: Option<f64>) -> Option<String> {
 }
 
 /// 3 つ揃ったときだけ `"B83 W56 H84"`。1 つでも欠けたら行ごと出さない (原本と同じ)。
-fn three_size(bust: Option<f64>, waist: Option<f64>, hip: Option<f64>) -> Option<String> {
+pub fn three_size(bust: Option<f64>, waist: Option<f64>, hip: Option<f64>) -> Option<String> {
     Some(format!("B{} W{} H{}", bust? as i64, waist? as i64, hip? as i64))
 }
 
@@ -786,6 +806,32 @@ mod tests {
     /// iOS String.likeEscaped と同じエスケープ (\ → \\、% → \%、_ → \_)。
     fn like_escaped(q: &str) -> String {
         q.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    }
+
+    /// 複数ブランドの一覧は同じ人を 1 回だけ出す (765AS と ML の両方に居る人)。
+    #[test]
+    fn idol_list_in_brands_has_no_duplicates() {
+        let (snap, _conn) = load();
+        let both = idol_list_in_brands(snap, &["ml".to_string(), "765as".to_string()]);
+        let mut ids: Vec<&str> = both.iter().map(|r| r.id.as_str()).collect();
+        let n = ids.len();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), n, "同じ人が 2 回入っている");
+        let as765 = idol_list(snap, Some("765as"));
+        let ml = idol_list(snap, Some("ml"));
+        assert!(
+            as765.iter().any(|a| ml.iter().any(|m| m.id == a.id)),
+            "前提: 両方に居る人がいる"
+        );
+        // 並びはブランド id の昇順 (765as → ml)、各ブランド内は sort_order。
+        let head: Vec<&String> = both[..as765.len()].iter().map(|r| &r.id).collect();
+        let expected: Vec<&String> = as765.iter().map(|r| &r.id).collect();
+        assert_eq!(head, expected);
+        assert_eq!(
+            idol_list_in_brands(snap, &[]).len(),
+            idol_list(snap, None).len()
+        );
     }
 
     /// 照合 1: idol_list が元 SQL と全ブランド + 全件 (brand_id なし) で一致する。

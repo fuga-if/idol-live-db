@@ -60,7 +60,6 @@ fun idolQuizRefs(idols: List<Idol>, castNames: Map<String, String>): List<IdolQu
             isExternal = idol.isExternal,
             color = idol.color,
             bloodType = idol.bloodType,
-            constellation = idol.constellation,
             birthPlace = idol.birthPlace,
             height = idol.height,
             age = idol.age,

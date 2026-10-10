@@ -100,6 +100,8 @@ struct StoreOrderImportView: View {
                         .init(title: "下の「ペースト」を押す"),
                     ])
                 }
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.rowV)
             }
             ImasNote("「購入完了のご連絡」メールの本文を貼っても読めます。メールなら品名まで入ります。")
         }
@@ -117,6 +119,9 @@ struct StoreOrderImportView: View {
                     }
                     .labelStyle(.titleAndIcon)
                     .buttonBorderShape(.capsule)
+                    // 下の貼り付け欄は欄の部品が自分で余白を持つので、ボタンだけ寄せる。
+                    .padding(.horizontal, DS.Space.rowH)
+                    .padding(.top, DS.Space.rowV)
 
                     ImasFormTextArea(label: "貼り付け", imprint: "PASTE", text: $text, prompt: "または、ここに直接貼り付け")
                 }
@@ -161,6 +166,8 @@ struct StoreOrderImportView: View {
                         showRow(draft.wrappedValue)
                     }
                 }
+                .padding(.horizontal, DS.Space.rowH)
+                .padding(.vertical, DS.Space.rowV)
             }
             if !order.orderNumber.isEmpty {
                 ImasNote("注文番号 \(order.orderNumber)")
@@ -206,9 +213,34 @@ struct StoreOrderImportView: View {
                         .font(.imasFootnote.weight(.semibold))
                         .foregroundStyle(value.included ? DS.ink : DS.ink3)
                         .monospacedDigit()
-                        .strikethrough(!value.included)
+                        .strikethrough(!value.included || value.recordedQuantity < value.quantity)
+                }
+                if value.included && value.quantity > 1 {
+                    quantityRow(item)
                 }
             }
+        }
+    }
+
+    /// 同じ品を複数点買ったとき、自分の分の点数だけを記録する (友人の分と合わせて買った場合)。
+    /// 額は単価 × 点数 (計算はコア)。
+    private func quantityRow(_ item: Binding<StoreOrderItem>) -> some View {
+        let value = item.wrappedValue
+        let count = Binding<Int>(
+            get: { Int(item.wrappedValue.recordedQuantity) },
+            set: { item.recordedQuantity.wrappedValue = UInt32($0) }
+        )
+        return HStack(spacing: DS.Space.gap) {
+            Text("記録する数").imasText(.value, color: DS.ink2)
+            Spacer(minLength: DS.Space.gapTight)
+            if value.recordedQuantity < value.quantity {
+                Text(formatYen(amount: storeOrderItemAmount(item: value)))
+                    .font(.imasFootnote.weight(.semibold))
+                    .foregroundStyle(DS.ink)
+                    .monospacedDigit()
+            }
+            ImasMetric(value: "\(value.recordedQuantity)", unit: "点", size: .medium, emphasized: true)
+            ImasStepper(label: "記録する数", value: count, range: 1...Int(value.quantity))
         }
     }
 

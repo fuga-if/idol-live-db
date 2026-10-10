@@ -715,6 +715,7 @@ pub fn collected_count_map(
 mod tests {
     use super::*;
     use crate::test_support::{bundle_conn, bundle_path, bundle_snapshot};
+    use crate::domain::event_list_queries::AttendanceMarkRecord;
     use rusqlite::Connection;
 
     /// 空白だけの検索語は、絞り込みなしと同じ (non_empty は前後の空白を落とす。Q-07)。
@@ -1148,7 +1149,7 @@ mod tests {
         )
         .unwrap();
 
-        // フィクスチャ: リアルライブ 3 公演 (現地 2 + 配信 1)・非リアルライブ 1 公演・
+        // フィクスチャ: リアルライブ 5 公演 (現地 2 + 配信 1 + 現地と配信 1 + 配信と LV 1)・非リアルライブ 1 公演・
         // event 単位参加 1 件・bool_value=0 の無効マーク・未知 id。すべて実データから選ぶ。
         let pick = |sql: &str, n: usize| -> Vec<String> {
             let mut stmt = db.prepare(sql).unwrap();
@@ -1164,8 +1165,8 @@ mod tests {
             "SELECT sh.id FROM shows sh JOIN events e ON e.id = sh.event_id
              WHERE e.kind IN ('live','festival')
                AND EXISTS (SELECT 1 FROM setlist_items si WHERE si.show_id = sh.id)
-             ORDER BY sh.id LIMIT 4",
-            4,
+             ORDER BY sh.id LIMIT 6",
+            6,
         );
         let other_shows = pick(
             "SELECT sh.id FROM shows sh JOIN events e ON e.id = sh.event_id
@@ -1194,6 +1195,8 @@ mod tests {
         insert("show", &live_shows[1], 1, Some("live")); // 現地参加 (明示)
         insert("show", &live_shows[2], 1, Some("stream")); // 配信参加 → バッジ既定では除外
         insert("show", &live_shows[3], 0, None); // 取り消し済み → 無効
+        insert("show", &live_shows[4], 1, Some("stream,live")); // 現地 + 配信 → 現地として数える
+        insert("show", &live_shows[5], 1, Some("stream,live_viewing")); // 現地なし → 既定では除外
         insert("show", &other_shows[0], 1, None); // 非リアルライブ → kind 絞りで除外対象
         insert("show", "存在しないshow", 1, None); // 未知 id は無視される
         insert("event", &events[0], 1, None); // event 単位参加 → 配下 show へ展開
@@ -1217,10 +1220,12 @@ mod tests {
     #[test]
     fn collected_badge_counts_match_sql() {
         let db = marks_db();
-        // iOS fetchSongCollectedCountsQuery (回収=現地のみ設定) の SQL そのまま。
+        // iOS fetchSongCollectedCountsQuery (回収=現地のみ設定) の SQL。参加形態の条件は
+        // iOS と同じくコアから受け取る (複数形態 "stream,live" も読む)。
+        let cond = crate::domain::collection_gap::collection_attendance_sql_condition(false);
         let expected = count_map_from_sql(
             &db,
-            "SELECT si.song_id, COUNT(DISTINCT si.show_id)
+            &format!("SELECT si.song_id, COUNT(DISTINCT si.show_id)
              FROM setlist_items si
              JOIN shows sh ON sh.id = si.show_id
              JOIN events e ON e.id = sh.event_id
@@ -1231,7 +1236,7 @@ mod tests {
                  si.show_id IN (
                      SELECT entity_id FROM user_marks
                      WHERE entity_type='show' AND kind='attended' AND bool_value=1
-                       AND (text_value IS NULL OR text_value='live')
+                       AND {cond}
                  ) OR si.show_id IN (
                      SELECT id FROM shows WHERE event_id IN (
                          SELECT entity_id FROM user_marks
@@ -1239,14 +1244,19 @@ mod tests {
                      )
                  )
              )
-             GROUP BY si.song_id",
+             GROUP BY si.song_id"),
         );
-        let show_ids = resolve_marks(
-            &db,
-            "SELECT entity_id FROM user_marks
-             WHERE entity_type='show' AND kind='attended' AND bool_value=1
-               AND (text_value IS NULL OR text_value='live')",
-        );
+        // Rust 経路 (collection_attended_show_ids) で選んだ show が SQL と同じ件数を出す。
+        let marks: Vec<AttendanceMarkRecord> = {
+            let mut stmt = db
+                .prepare("SELECT entity_id, text_value FROM user_marks WHERE entity_type='show' AND kind='attended' AND bool_value=1")
+                .unwrap();
+            stmt.query_map([], |r| Ok(AttendanceMarkRecord { entity_id: r.get(0)?, attendance_type: r.get(1)? }))
+                .unwrap()
+                .collect::<Result<_, _>>()
+                .unwrap()
+        };
+        let show_ids = crate::domain::collection_gap::collection_attended_show_ids(marks, false);
         let event_ids = resolve_marks(
             &db,
             "SELECT entity_id FROM user_marks

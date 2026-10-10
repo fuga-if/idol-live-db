@@ -69,6 +69,10 @@ struct MyPageView: View {
     @State private var editingName = ""
     @State private var isSavingName = false
     @State private var nameErrorMessage: String?
+    /// 公演ページの奥付に表示名を載せるか (サーバの設定の写し)。
+    @State private var feedbackStore = ContributionFeedbackStore.shared
+    @State private var isSavingCredit = false
+    @State private var creditErrorMessage: String?
 
     // MARK: - バックアップ/引き継ぎコード
     /// 復元時に端末IDも引き継ぐか (上級者向け・既定OFF)。同一端末からの復元でない限りOFFのままにすべき。
@@ -112,6 +116,7 @@ struct MyPageView: View {
     private var lowerSections: some View {
         // フル再生の許可。曲の行は鳴らせないと試聴に落ちるので、状態と入口をここに出す。
         ImasListSection("Apple Music") { AppleMusicSettingsRow() }
+        ImasListSection("Spotify") { SpotifySettingsRow() }
         settingsSection
         dataSyncSection
         dataBackupSection
@@ -292,6 +297,13 @@ struct MyPageView: View {
                 if let email = AuthService.shared.userEmail {
                     ImasValueRow(key: "メールアドレス", value: email)
                 }
+                ImasToggleRow(
+                    title: "公演ページに名前を載せる",
+                    subtitle: "セトリや歌唱者を入れた公演の末尾に、表示名がクレジットとして出ます",
+                    isOn: creditOptInBinding
+                )
+                .disabled(isSavingCredit)
+                .imasErrorAlert("設定を変更できませんでした", message: $creditErrorMessage)
                 #if DEBUG
                 if let uid = AuthService.shared.userId {
                     ImasValueRow(key: "ID", value: uid, monospaced: true)
@@ -321,6 +333,25 @@ struct MyPageView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    /// 奥付の掲載の切り替え。サーバが受け付けた値で表示を確定する (失敗したら元のまま)。
+    private var creditOptInBinding: Binding<Bool> {
+        Binding(
+            get: { feedbackStore.creditOptIn },
+            set: { isOn in
+                AppAnalytics.tap("my_page.credit_opt_in")
+                isSavingCredit = true
+                Task {
+                    defer { isSavingCredit = false }
+                    do {
+                        try await feedbackStore.setCreditOptIn(isOn)
+                    } catch {
+                        creditErrorMessage = error.localizedDescription
+                    }
+                }
+            }
+        )
     }
 
     // MARK: - Admin Section (モデレーション)

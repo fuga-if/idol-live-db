@@ -169,11 +169,11 @@ sealed class NavRoutes(val route: String) {
         }
     }
     data object GamesIdolQuizSetup : NavRoutes("games_idolquiz_setup")
-    data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}") {
+    data class GamesIdolQuiz(val brandIds: String) : NavRoutes("games_idolquiz/{brandIds}/{mode}") {
         companion object {
-            const val ROUTE = "games_idolquiz/{brandIds}"
-            fun createRoute(brandIds: Set<String>) =
-                "games_idolquiz/" + (if (brandIds.isEmpty()) "all" else brandIds.sorted().joinToString(","))
+            const val ROUTE = "games_idolquiz/{brandIds}/{mode}"
+            fun createRoute(brandIds: Set<String>, mode: String) =
+                "games_idolquiz/" + (if (brandIds.isEmpty()) "all" else brandIds.sorted().joinToString(",")) + "/" + mode
         }
     }
     // --- 絞り込み一覧 (iOS Views/Filtered/) ---

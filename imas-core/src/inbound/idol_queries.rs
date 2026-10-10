@@ -44,6 +44,15 @@ impl SnapshotStore {
         Ok(queries::idol_list(&snap, brand_id.as_deref()))
     }
 
+    /// 複数ブランドのアイドル一覧 (ブランド id 昇順・同じ人は初出のみ)。空なら全件。
+    pub fn idol_list_in_brands(
+        &self,
+        brand_ids: Vec<String>,
+    ) -> Result<Vec<IdolRecord>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(queries::idol_list_in_brands(&snap, &brand_ids))
+    }
+
     /// アイドル id 群の一括取得 (入力 id 順・初出のみ・未知 id は読み飛ばし)。
     /// SQL 時代の fetchIdols(ids:) / fetchIdol(id:) 相当。
     pub fn idol_records_by_ids(

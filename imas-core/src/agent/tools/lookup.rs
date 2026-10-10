@@ -92,6 +92,15 @@ pub fn catalog() -> Vec<ToolSpec> {
             id_or_name_schema("name", "アイドル名。声優名・別名・ローマ字でも引ける"),
         ),
         spec(
+            "get_idol_facts",
+            "アイドル 1 人の項目の束。年齢帯・髪色・髪型 (セカンドヘア等の版つき)・一人称・趣味・出身地方・\
+             代表曲など細かい項目を、カテゴリ別に「値と出どころ (official/promoted/tag)」で返す。\
+             当てっこゲームの判定や「〜な子は誰」の絞り込みの根拠に使う。照合用の全件 (持ち歌・ユニット・\
+             出演ライブ) も入る。ファンの票 (タグ) はここには含まれず、マスタの値だけ。\
+             id か name のどちらかを渡す。",
+            id_or_name_schema("name", "アイドル名。声優名・別名・ローマ字でも引ける"),
+        ),
+        spec(
             "get_song",
             "曲 1 曲の全体像 (ブランド・種別・配信日・作家・CD・名義・原唱者・披露履歴・関連曲)。\
              id か title のどちらかを渡す。歌詞本文は扱わない (JASRAC 作品コードの有無まで)。",
@@ -130,6 +139,7 @@ pub fn call(
         "resolve" => resolve(snap, args),
         "search" => search(snap, args),
         "get_idol" => get_idol(snap, args),
+        "get_idol_facts" => get_idol_facts(snap, args),
         "get_song" => get_song(snap, args),
         "get_event" => get_event(snap, args),
         "get_show" => get_show(snap, args),
@@ -262,6 +272,9 @@ fn get_idol(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
     o.opt("age", idol.age);
     o.opt("height", idols::height_display(idol.height));
     o.opt("weight", idol.weight.map(|w| w as i64));
+    // スリーサイズはアプリの詳細画面が出している項目なので合わせる (3 つ揃ったときだけ)。
+    o.opt("three_size", idols::three_size(idol.bust, idol.waist, idol.hip));
+    o.opt("color", idol.color.as_deref().filter(|c| !c.is_empty()));
     o.opt("birth_place", idol.birth_place.as_deref());
     o.opt("hobbies", idol.hobbies.as_deref());
     o.opt("talents", idol.talents.as_deref());
@@ -336,7 +349,13 @@ fn get_idol(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
     Ok(o.value())
 }
 
-fn idol_show_json(s: &idols::IdolShowRecord) -> Value {
+/// 項目の束。組み立ては `domain::idol_facets` (話し方だけ `speech` から渡す)。
+fn get_idol_facts(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
+    let id = pick(snap, args, EntityKind::Idol, "name")?;
+    super::publish::idol_facts_document(snap, &id, &[])
+}
+
+pub(super) fn idol_show_json(s: &idols::IdolShowRecord) -> Value {
     let mut x = Obj::new();
     x.put("show_id", s.show_id.as_str());
     x.put("date", s.date.as_str());
@@ -423,6 +442,9 @@ fn get_song(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
 
     o.put("has_kamisabi_card", song.has_kamisabi_card);
     o.opt("note", song.note.as_deref());
+    o.opt("streaming_date", song.streaming_date.as_deref());
+    o.opt("cd_release_date", song.cd_release_date.as_deref());
+    o.opt("first_appearance_note", song.first_appearance_note.as_deref());
     // 歌詞本文はここから返さない (JASRAC の許諾が「D1 に置きダウンロードさせない」形)。
     // 作品コードの有無までが扱える範囲。
     o.put("has_jasrac_code", song.jasrac_code.is_some());

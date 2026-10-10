@@ -2,7 +2,7 @@ import Foundation
 
 /// 再生との連動。プレイヤーとスクロールは親 (`SongSheetContent`) が持つ。
 ///
-/// 追従・記録はフル再生 (Apple Music) だけ。30 秒試聴は曲のどこを切り出したか
+/// 追従・記録はフル再生 (Apple Music / Spotify) だけ。30 秒試聴は曲のどこを切り出したか
 /// 分からないので、行の時刻と突き合わせられない。
 struct LyricsPlayback {
     /// この曲がフル尺で読み込まれているか (一時停止中も含む)。
@@ -32,11 +32,11 @@ struct LyricsPlayback {
 }
 
 extension LyricsPlayback {
-    /// Apple Music (`MusicKitService`) で鳴らす繋ぎ。歌詞タブと再生中バーで同じものを使う。
+    /// フル再生 (`MusicKitService`。Apple Music か Spotify) で鳴らす繋ぎ。歌詞タブと再生中バーで同じものを使う。
     ///
     /// - Parameter startFull: この曲のフル再生を始める。始められなければ false。
     @MainActor
-    static func appleMusic(songId: String,
+    static func fullPlayback(songId: String,
                            startFull: @escaping () async -> Bool,
                            scrollTo: @escaping (String) -> Void = { _ in }) -> LyricsPlayback {
         let player = MusicKitService.shared

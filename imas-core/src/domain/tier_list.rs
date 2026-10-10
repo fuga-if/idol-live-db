@@ -3,6 +3,7 @@
 //! 振り分けそのものは利用者が手で行う (好みの判断を機械に任せない)。コアが持つのは
 //! - 段の並び (名前と数) … iOS / Android で段が食い違わないように 1 か所に置く
 //! - ソートメーカーの順位表からの「たたき台」… 順位を段へ割り当てる規則
+//! - 段の中の左右の並びを 1 件動かす規則 … ドラッグで落とした位置の決め方
 //! だけ。たたき台はあくまで初期値で、画面で自由に動かせる。
 //!
 //! ## 順位 → 段の割り当て
@@ -120,6 +121,39 @@ pub fn assign_from_ranking(ranks: &[u32]) -> Vec<u32> {
     out
 }
 
+/// 表全体の並び (`order`) を対象の id 列 (`item_ids`) に揃える。対象に無い id と重複は落とし、
+/// 並びに無い対象は元の順で末尾へ足す。`order` が空なら `item_ids` のまま。
+/// 段の中の並びは「この並びのうちその段にいるもの」なので、段をまたいで 1 本で持てば足りる。
+pub fn normalize_order(item_ids: &[String], order: &[String]) -> Vec<String> {
+    use std::collections::HashSet;
+    let valid: HashSet<&str> = item_ids.iter().map(String::as_str).collect();
+    let mut seen: HashSet<&str> = HashSet::with_capacity(item_ids.len());
+    let mut out = Vec::with_capacity(item_ids.len());
+    for id in order.iter().chain(item_ids.iter()) {
+        if valid.contains(id.as_str()) && seen.insert(id.as_str()) {
+            out.push(id.clone());
+        }
+    }
+    out
+}
+
+/// `item` を並びの中で動かした新しい並び。
+/// - `before` が並びにある別の項目なら、その直前へ (札の上に落とした = その札の左に入る)。
+/// - それ以外 (None・自分自身・並びに無い id) なら末尾へ (段の余白に落とした = その段の右端)。
+///   ただし `before` が自分自身のときは動かさない (つかんで同じ場所に離しただけ)。
+/// `item` が対象に無ければ揃えただけの並びを返す。どの段へ入るかは呼び出し側が振り分けで持つ。
+pub fn move_item(item_ids: &[String], order: &[String], item: &str, before: Option<&str>) -> Vec<String> {
+    let mut out = normalize_order(item_ids, order);
+    if before == Some(item) {
+        return out;
+    }
+    let Some(from) = out.iter().position(|id| id == item) else { return out };
+    let moved = out.remove(from);
+    let to = before.and_then(|b| out.iter().position(|id| id == b)).unwrap_or(out.len());
+    out.insert(to, moved);
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -185,6 +219,35 @@ mod tests {
         assert_eq!(cycle_color("#ff5a5f"), TIER_PALETTE[1]);
         assert_eq!(cycle_color(TIER_PALETTE[9]), TIER_PALETTE[0]);
         assert_eq!(cycle_color("#123456"), TIER_PALETTE[0]);
+    }
+
+    fn ids(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn order_is_normalized_to_the_items() {
+        let items = ids(&["a", "b", "c", "d"]);
+        assert_eq!(normalize_order(&items, &[]), items);
+        // 対象に無い id と重複は落とし、足りない対象は元の順で末尾へ。
+        assert_eq!(normalize_order(&items, &ids(&["c", "x", "a", "c"])), ids(&["c", "a", "b", "d"]));
+    }
+
+    #[test]
+    fn move_item_inserts_before_the_target_or_at_the_end() {
+        let items = ids(&["a", "b", "c", "d"]);
+        // 右へ: a を d の前へ。
+        assert_eq!(move_item(&items, &items, "a", Some("d")), ids(&["b", "c", "a", "d"]));
+        // 左へ: d を b の前へ。
+        assert_eq!(move_item(&items, &items, "d", Some("b")), ids(&["a", "d", "b", "c"]));
+        // 余白へ = 末尾。
+        assert_eq!(move_item(&items, &items, "b", None), ids(&["a", "c", "d", "b"]));
+        // 並びに無い先も末尾。
+        assert_eq!(move_item(&items, &items, "b", Some("zz")), ids(&["a", "c", "d", "b"]));
+        // 自分の上に離しただけなら動かない。
+        assert_eq!(move_item(&items, &items, "c", Some("c")), items);
+        // 対象に無い項目は揃えるだけ。
+        assert_eq!(move_item(&items, &ids(&["d"]), "zz", Some("a")), ids(&["d", "a", "b", "c"]));
     }
 
     #[test]

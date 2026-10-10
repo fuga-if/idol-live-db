@@ -99,16 +99,8 @@ enum SortMakerCandidates {
             let songs = (try? await container.songReading.songs(filter: filter, sortOrder: .titleKana, ascending: nil)) ?? []
             return songs.map { .song($0.song) }
         case .idol:
-            let idols: [Idol]
-            if scope.brandIds.isEmpty {
-                idols = (try? await container.idolReading.idols(brandId: nil)) ?? []
-            } else {
-                var merged: [Idol] = []
-                for brandId in scope.brandIds.sorted() {
-                    merged += (try? await container.idolReading.idols(brandId: brandId)) ?? []
-                }
-                idols = merged
-            }
+            // 765AS と ML の両方に居る人を 2 回入れない (コア `idol_list_in_brands` が初出だけにする)。
+            let idols = (try? await container.idolReading.idols(brandIds: scope.brandIds)) ?? []
             return idols.filter { !$0.isExternal }.map { .idol($0) }
         }
     }

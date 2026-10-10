@@ -1,28 +1,20 @@
 import Foundation
 
-/// プレイリスト (曲の並び) を Apple Music で順に鳴らす。曲詳細の「再生」と同じく、
-/// 契約が無ければ認可を尋ねてから。フル再生できなければ鳴らさない (試聴は 30 秒で曲送りにならない)。
+/// プレイリスト (曲の並び) をフル尺で順に鳴らす (Apple Music か Spotify かは `MusicKitService` が選ぶ)。
+/// フル再生できなければ鳴らさない (試聴は 30 秒で曲送りにならない)。
 @MainActor
 enum PlaylistPlayback {
-    /// - Returns: 鳴らし始められたか。false は未契約か、Apple Music にある曲が 1 つも無い。
+    /// - Returns: 鳴らし始められたか。false は鳴らせるサービスが無いか、鳴らせる曲が 1 つも無い。
     @discardableResult
     static func play(_ songs: [Song], startAt index: Int = 0) async -> Bool {
-        let player = MusicKitService.shared
-        if !player.hasAppleMusicSubscription {
-            await player.requestAuthorization()
-            guard player.hasAppleMusicSubscription else { return false }
-        }
-        let entries = songs.compactMap { song in
-            song.appleMusicId.flatMap { $0.isEmpty ? nil : (songId: song.id, appleMusicId: $0) }
-        }
-        // 押した曲が Apple Music に無ければ、その後ろで最初に鳴らせる曲から。
-        let start = songs[index...].lazy.compactMap { s in entries.firstIndex { $0.songId == s.id } }.first ?? 0
-        await player.playQueue(entries, startAt: start)
-        return player.isFullPlayback
+        await MusicKitService.shared.playFullSongs(songs.map { (songId: $0.id, appleMusicId: $0.appleMusicId) },
+                                                   startAt: index)
     }
 
     /// Apple Music で鳴らせない曲 (配信なし) の数。一覧で「n 曲は飛ばします」と出す。
+    /// Spotify で鳴らすときは曲名で探すので、鳴らしてみるまで分からない (0 を返して出さない)。
     static func unplayableCount(_ songs: [Song]) -> Int {
-        songs.filter { ($0.appleMusicId ?? "").isEmpty }.count
+        guard MusicKitService.shared.fullPlaybackService != .spotify else { return 0 }
+        return songs.filter { ($0.appleMusicId ?? "").isEmpty }.count
     }
 }

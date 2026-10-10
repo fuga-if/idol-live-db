@@ -21,6 +21,7 @@ pub mod browse;
 pub mod lookup;
 pub mod persona;
 pub mod personal;
+pub mod publish;
 pub mod predict;
 pub mod scope;
 pub mod speech;
@@ -124,7 +125,7 @@ pub fn call_tool(
     Err(ToolError::UnknownTool(name.to_string()))
 }
 
-/// ツール入力スキーマの封を組む。**`lookup` / `browse` / `predict` / `proposal` の全 24 本がここを通る。**
+/// ツール入力スキーマの封を組む。**`lookup` / `browse` / `predict` / `proposal` の全 26 本がここを通る。**
 ///
 /// 以前は `browse` の `spec()` だけがここを自前で組んでいて (`$schema` +
 /// `additionalProperties: false` 付き)、`lookup` は生の JSON 文字列 (`additionalProperties`
@@ -611,6 +612,7 @@ mod tests {
             ("resolve", json!({"query": "春日未来"})),
             ("search", json!({"query": "夢"})),
             ("get_idol", json!({"id": idol})),
+            ("get_idol_facts", json!({"id": idol})),
             ("get_song", json!({"id": song})),
             ("get_event", json!({"id": event})),
             ("get_show", json!({"id": show_a})),
@@ -760,16 +762,16 @@ mod tests {
         assert!(single["terms"].is_null() && single["next"].is_null(), "{single}");
     }
 
-    /// 読み取り 18 本 + 書き込み 6 本、計 24 本すべてで封 (`tool_schema` の出力) が
+    /// 読み取り 20 本 + 書き込み 6 本、計 26 本すべてで封 (`tool_schema` の出力) が
     /// 揃っていることを固定する。以前は `additionalProperties: false` が browse の
     /// 7 本にしか付いておらず、残り 13 本は引数を打ち間違えても黙って無視されていた
     /// (レビュー指摘)。ここで 1 本でも漏れたら壊れるようにする。
     #[cfg(feature = "agent")]
     #[test]
-    fn 全25本のツールでスキーマの封が揃っている() {
+    fn 全26本のツールでスキーマの封が揃っている() {
         let mut all = tool_catalog();
         all.extend(crate::agent::proposal::proposal_catalog());
-        assert_eq!(all.len(), 25, "ツール数が変わった (この数を変えたら意図的か確認すること)");
+        assert_eq!(all.len(), 26, "ツール数が変わった (この数を変えたら意図的か確認すること)");
 
         let mut names: Vec<&str> = all.iter().map(|s| s.name.as_str()).collect();
         names.sort();

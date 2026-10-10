@@ -1,5 +1,42 @@
 import SwiftUI
 
+/// アイドル当てクイズの選び方 (保存値)。コアの `IdolQuizMode` と 1:1。
+/// rawValue は AppStorage と「つづきから」の保存値なので変更しない。
+enum IdolQuizModeSetting: String, CaseIterable, Identifiable {
+    case normal
+    case hard
+
+    var id: String { rawValue }
+
+    var core: IdolQuizMode {
+        switch self {
+        case .normal: return .normal
+        case .hard:   return .hard
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .normal: return "4択"
+        case .hard:   return "ハード"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .normal: return "4人の中から当てる"
+        case .hard:   return "出題候補の全員から選ぶ"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .normal: return "square.grid.2x2"
+        case .hard:   return "person.3.fill"
+        }
+    }
+}
+
 /// アイドル当てクイズの出題設定画面。
 /// ブランドを絞り込んでからクイズを開始する。設定は AppStorage で次回起動まで保持する。
 ///
@@ -10,6 +47,7 @@ struct IdolQuizSetupView: View {
 
     /// 永続化: カンマ区切りブランドID文字列（空文字列 = 全ブランド）。
     @AppStorage("idolQuizBrandIds") private var brandIdsRaw: String = ""
+    @AppStorage("idolQuizMode") private var modeRaw: String = IdolQuizModeSetting.normal.rawValue
 
     @State private var brands: [Brand] = []
     @State private var selectedBrandIds: Set<String> = []
@@ -20,13 +58,19 @@ struct IdolQuizSetupView: View {
 
     private var estimatedCount: Int { Int(estimate.count) }
 
+    private var mode: IdolQuizModeSetting {
+        get { IdolQuizModeSetting(rawValue: modeRaw) ?? .normal }
+        nonmutating set { modeRaw = newValue.rawValue }
+    }
+
     /// スタート可能かどうか（推計中は暫定的に許可して二重ロードを防ぐ）。
     private var canStart: Bool { isEstimating || estimate.isSufficient }
 
     var body: some View {
         ImasPage {
             ImasSetupHeader(systemImage: "person.fill.questionmark", title: "アイドル当てクイズ",
-                            message: "プロフィールのヒントを手がかりに誰かを 4 択で当てよう")
+                            message: "プロフィールのヒントを手がかりに誰かを当てよう")
+            modeSection
             ImasSection("出題ブランド", style: .small, footer: "複数選択可 · 空=全ブランド対象",
                        actionTitle: selectedBrandIds.isEmpty ? nil : "全てに戻す",
                        onAction: selectedBrandIds.isEmpty ? nil : {
@@ -41,7 +85,7 @@ struct IdolQuizSetupView: View {
                            message: "4 択を出すにはアイドルが最低 4 名必要です。ブランドの選択を増やしてください。")
             }
             ImasButton(title: "スタート", systemImage: "play.fill", role: .primary, size: .large) {
-                AppAnalytics.tap("idol_quiz_setup.start")
+                AppAnalytics.tap("idol_quiz_setup.start_\(mode.rawValue)")
                 navigateToGame = true
             }
             .disabled(!canStart)
@@ -49,7 +93,7 @@ struct IdolQuizSetupView: View {
         .navigationTitle("アイドル当てクイズ")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToGame) {
-            IdolQuizView(selectedBrandIds: selectedBrandIds)
+            IdolQuizView(selectedBrandIds: selectedBrandIds, mode: mode)
         }
         .task {
             // ブランド一覧の取得と、永続化データの復元を同時に実行。
@@ -63,6 +107,26 @@ struct IdolQuizSetupView: View {
             Task { await estimatePool() }
         }
         .trackScreen("idol_quiz_setup")
+    }
+
+    // MARK: - 選び方
+
+    private var modeSection: some View {
+        VStack(alignment: .leading, spacing: DS.Space.header) {
+            ImasSectionHeader(title: "選び方", tight: true)
+            ImasChoiceCards(
+                choices: IdolQuizModeSetting.allCases.map {
+                    .init(value: $0, title: $0.label, systemImage: $0.systemImage, subtitle: $0.blurb)
+                },
+                selection: Binding(
+                    get: { mode },
+                    set: { newValue in
+                        AppAnalytics.tap("idol_quiz_setup.mode_\(newValue.rawValue)")
+                        mode = newValue
+                    }
+                )
+            )
+        }
     }
 
     // MARK: - Data

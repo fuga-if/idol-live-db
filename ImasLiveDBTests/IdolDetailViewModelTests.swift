@@ -24,6 +24,7 @@ final class IdolDetailViewModelTests: XCTestCase {
 
         // 未使用。
         func idols(brandId: String?) async throws -> [Idol] { [] }
+        func idols(brandIds: Set<String>) async throws -> [Idol] { [] }
         func idol(id: String) async throws -> Idol? { nil }
         func idols(ids: [String]) async throws -> [Idol] { [] }
         func similarIdols(from candidates: [SimilarIdolCandidate]) async throws -> [Idol] { [] }

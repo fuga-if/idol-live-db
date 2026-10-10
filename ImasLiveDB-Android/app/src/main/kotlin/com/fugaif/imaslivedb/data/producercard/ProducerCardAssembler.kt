@@ -14,6 +14,7 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.CardFileImage
+import uniffi.imas_core.CardOshiEntry
 import uniffi.imas_core.CardFileImageKind
 import uniffi.imas_core.CardRecordSummary
 import uniffi.imas_core.CardShowRef
@@ -26,8 +27,9 @@ import uniffi.imas_core.encodeCardFile
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.producerCardLimits
 import uniffi.imas_core.producerCardPayload
-import uniffi.imas_core.producerCardPickOshi
+import uniffi.imas_core.producerCardOshiPickedIds
 import com.fugaif.imaslivedb.ui.producercard.ProducerCardDirectory
+import uniffi.imas_core.producerCardIdToEmbed
 import uniffi.imas_core.producerCardRecordSummary
 import uniffi.imas_core.validateProducerCard
 
@@ -42,13 +44,17 @@ data class ProducerCardMyRecord(
     /** 回収した曲の数。 */
     val songCount: Int,
     /**
-     * 名刺に載せる担当 (担当から上限まで。ブランドごとに 1 人を先に確保する選び方はコアの `producerCardPickOshi`)。
-     * 渡さなければ担当のまま (名刺を組むときに上限で切る)。
+     * 担当の名前とブランド (端末のマスタで引けた人だけ、アプリの並び)。名刺に載せる担当はここから
+     * 本人の選択で選ぶ (選び方はコアの `producerCardOshiPickedIds`)。渡さなければ担当の id だけで組む
+     * (ブランドが分からないので、上限まで並び順で載る)。
      */
-    val cardOshiIds: List<String> = oshiIds
+    val oshiEntries: List<CardOshiEntry> = oshiIds.map { CardOshiEntry(idolId = it, name = "", brandId = "", brandLabel = "") }
 ) {
     /** 共通点に使う「行った公演」と「次の現場」。分け方はコア。 */
     val summary: CardRecordSummary get() = producerCardRecordSummary(JstDay.today(), attended)
+
+    /** 名刺に載せる担当 (載せる順)。[choice] は本人の選択 (null はまだ選んでいない)。 */
+    fun cardOshiIds(choice: List<String>?): List<String> = producerCardOshiPickedIds(choice, oshiEntries)
 }
 
 /**
@@ -68,17 +74,15 @@ object ProducerCardAssembler {
             oshiIds = oshi,
             attended = module.producerCardRepository.attendedShowRefs(),
             songCount = module.songRepository.fetchCollectedSongIds().size,
-            cardOshiIds = cardOshiIds(module, oshi)
+            oshiEntries = oshiEntries(module, oshi)
         )
     }
 
-    /** 名刺に載せる担当 (担当の名前とブランドを引いて、選び方はコアの `producerCardPickOshi`)。 */
-    suspend fun cardOshiIds(module: AppModule, oshi: List<String>): List<String> {
-        val directory = ProducerCardDirectory.load(module, oshi, emptyList())
-        return producerCardPickOshi(directory.oshiEntries(oshi))
-    }
+    /** 担当の名前とブランド (名刺に載せる担当を選ぶ材料。端末のマスタで引けない担当は入れない)。 */
+    suspend fun oshiEntries(module: AppModule, oshi: List<String>): List<CardOshiEntry> =
+        ProducerCardDirectory.load(module, oshi, emptyList()).oshiEntries(oshi)
 
-    /** 名刺の入力。外した項目は空にする。 */
+    /** 名刺の入力。外した項目は空にする。担当は本人の選択 (まだ選んでいなければ自動の選び方) で。 */
     fun input(card: MyProducerCard, record: ProducerCardMyRecord): ProducerCardInput {
         val summary = record.summary
         val limits = producerCardLimits()
@@ -86,7 +90,7 @@ object ProducerCardAssembler {
             name = card.name,
             message = if (card.shows(ProducerCardField.MESSAGE)) card.message else "",
             sinceYear = card.sinceYear?.takeIf { card.shows(ProducerCardField.SINCE) && it in 0..65535 }?.toUShort(),
-            oshiIdolIds = if (card.shows(ProducerCardField.OSHI)) record.cardOshiIds.take(limits.maxOshi.toInt()) else emptyList(),
+            oshiIdolIds = if (card.shows(ProducerCardField.OSHI)) record.cardOshiIds(card.cardOshiChoice).take(limits.maxOshi.toInt()) else emptyList(),
             links = if (card.shows(ProducerCardField.LINKS)) card.links else emptyList(),
             showCount = if (card.shows(ProducerCardField.SHOW_COUNT)) summary.showCount else null,
             songCount = if (card.shows(ProducerCardField.SONG_COUNT)) record.songCount.toUInt() else null,
@@ -95,7 +99,9 @@ object ProducerCardAssembler {
             issuedOn = JstDay.today(),
             design = card.cardDesign,
             qrUrl = card.qrUrl,
-            showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS)
+            showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS),
+            // 名刺 id を載せるかはコアの定数 1 か所 (公開中の 2.5.0 が読めないので今は載せない)。
+            cardId = producerCardIdToEmbed(card.cardId)
         )
     }
 

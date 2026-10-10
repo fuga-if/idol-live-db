@@ -1041,6 +1041,9 @@ mod tests {
                 is_collab: false,
                 has_kamisabi_card: false,
                 note: None,
+                streaming_date: None,
+                cd_release_date: None,
+                first_appearance_note: None,
             }
         }
 

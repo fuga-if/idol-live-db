@@ -88,6 +88,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasTierLabelStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasTierMoveBar
 import com.fugaif.imaslivedb.ui.designsystem.ImasTierRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasTierSpec
+import com.fugaif.imaslivedb.ui.designsystem.ImasTierDragAutoScroll
+import com.fugaif.imaslivedb.ui.designsystem.imasTierDragAutoScrollArea
+import com.fugaif.imaslivedb.ui.designsystem.imasTierDropTarget
+import com.fugaif.imaslivedb.ui.designsystem.rememberImasTierDragAutoScroll
 import com.fugaif.imaslivedb.ui.theme.BrandColors
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -109,7 +113,8 @@ import uniffi.imas_core.tierListTitleMaxChars
 
 // =============================================================================
 // ティアー表の編集画面。iOS TierListView.swift の移植。
-// タップで選ぶ → 下のバーで段を押す、が主な操作 (長押しドラッグは iOS のみ・Android は省略)。
+// タップで選ぶ → 下のバーで段を押す、が主な操作。長押しでつかんで段へ運ぶ近道もある
+// (長押しのまま動かさずに離すと詳細)。段の中の札の上に落とすと、その左に入る。
 // 1 回動かすたびに端末へ保存する (一覧から何枚でも開き直せる)。
 // 見た目の部品は ui/designsystem/ImasTierList.kt (iOS ImasTierList.swift と同名・同役目)。
 // =============================================================================
@@ -144,22 +149,20 @@ class TierListViewModel : ViewModel() {
         }
     }
 
-    fun move(id: String, tierId: String?) {
+    fun move(id: String, tierId: String?, before: String? = null) {
         val current = _uiState.value ?: return
-        val placements = current.board.placements.toMutableMap()
-        if (tierId == null) placements.remove(id) else placements[id] = tierId
-        commit(current.board.copy(placements = placements, savedAt = System.currentTimeMillis()))
+        commit(current.board.moved(id, tierId, before).copy(savedAt = System.currentTimeMillis()))
     }
 
     fun resetToSuggested() {
         val current = _uiState.value ?: return
         val suggested = current.board.suggested ?: return
-        commit(current.board.copy(placements = suggested, savedAt = System.currentTimeMillis()))
+        commit(current.board.copy(placements = suggested, order = null, savedAt = System.currentTimeMillis()))
     }
 
     fun resetAllUnplaced() {
         val current = _uiState.value ?: return
-        commit(current.board.copy(placements = emptyMap(), savedAt = System.currentTimeMillis()))
+        commit(current.board.copy(placements = emptyMap(), order = null, savedAt = System.currentTimeMillis()))
     }
 
     /** 表の名前・段 (名前・色・並び・数) を保存する。消した段にいたものは未分類へ。 */
@@ -193,6 +196,8 @@ fun TierListScreen(
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     var showExport by rememberSaveable { mutableStateOf(false) }
     var showEdit by rememberSaveable { mutableStateOf(false) }
+    /** ドラッグ中、その左に入る札 (段の中の並べ替えの印を出す)。 */
+    var dropBeforeId by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -230,11 +235,14 @@ fun TierListScreen(
             if (s == null || !s.isLoaded) {
                 ImasLoadingState()
             } else {
+                val scrollState = rememberScrollState()
+                val autoScroll = rememberImasTierDragAutoScroll(scrollState)
                 Column(Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .verticalScroll(rememberScrollState())
+                            .imasTierDragAutoScrollArea(autoScroll)
+                            .verticalScroll(scrollState)
                             .padding(DS.sp5),
                         verticalArrangement = Arrangement.spacedBy(DS.sp4)
                     ) {
@@ -243,13 +251,13 @@ fun TierListScreen(
                             subtitle = "${s.board.scopeLabel} · ${s.board.placedCount} / ${s.board.itemIds.size} 振り分け済み",
                             onEdit = { showEdit = true }
                         )
-                        // チップのタップ。何か選んでいて別のチップを押したら、そのチップの段
-                        // (未分類なら未分類) へ移す (段の中はチップで埋まるので、行の余白を
+                        // チップのタップ。何か選んでいて別のチップを押したら、そのチップの段の
+                        // その左 (未分類なら未分類) へ移す (段の中はチップで埋まるので、行の余白を
                         // 押せと言っても押せない)。
                         val tapChip: (String) -> Unit = { id ->
                             val selected = selectedId
                             if (selected != null && selected != id) {
-                                viewModel.move(selected, s.board.placements[id])
+                                viewModel.move(selected, s.board.placements[id], before = id)
                                 selectedId = null
                             } else {
                                 selectedId = if (selectedId == id) null else id
@@ -263,12 +271,34 @@ fun TierListScreen(
                                     seed = tier.colorSeed,
                                     isTarget = selectedId != null,
                                     accessibilityLabel = "${tier.label} ${ids.size}件",
-                                    onMoveHere = { selectedId?.let { viewModel.move(it, tier.id); selectedId = null } }
+                                    onMoveHere = { selectedId?.let { viewModel.move(it, tier.id); selectedId = null } },
+                                    // 段の余白に落とす = その段の右端。
+                                    modifier = Modifier.imasTierDropTarget(onDrop = { dragged ->
+                                        if (dragged !in s.board.itemIds) return@imasTierDropTarget false
+                                        viewModel.move(dragged, tier.id); selectedId = null; true
+                                    }, autoScroll = autoScroll)
                                 ) {
                                     ImasTierItems(
                                         ids = ids,
                                         emptyText = if (selectedId != null) "ここへ移す" else null
-                                    ) { id -> TierListChip(item = s.items[id], isSelected = selectedId == id, onClick = { tapChip(id) }, onLongClick = { s.items[id]?.let(onItemClick) }) }
+                                    ) { id ->
+                                        TierListChip(
+                                            item = s.items[id], isSelected = selectedId == id,
+                                            onClick = { tapChip(id) }, onLongClick = { s.items[id]?.let(onItemClick) },
+                                            dragId = id, showsInsertMark = dropBeforeId == id,
+                                            // 札の上に落とす = その左。
+                                            modifier = Modifier.imasTierDropTarget(
+                                                onDrop = { dragged ->
+                                                    if (dragged !in s.board.itemIds) return@imasTierDropTarget false
+                                                    viewModel.move(dragged, tier.id, before = id); selectedId = null; true
+                                                },
+                                                onHover = { over ->
+                                                    if (over) dropBeforeId = id else if (dropBeforeId == id) dropBeforeId = null
+                                                },
+                                                autoScroll = autoScroll
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -284,10 +314,14 @@ fun TierListScreen(
                             hasSelection = selectedId != null,
                             onSelect = tapChip,
                             onItemDetail = onItemClick,
-                            onRowClick = { selectedId?.let { viewModel.move(it, null); selectedId = null } }
+                            onRowClick = { selectedId?.let { viewModel.move(it, null); selectedId = null } },
+                            onDrop = { dragged ->
+                                if (dragged !in s.board.itemIds) false else { viewModel.move(dragged, null); selectedId = null; true }
+                            },
+                            autoScroll = autoScroll
                         )
                         ImasText(
-                            "タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。変えるたびに端末に保存されます。",
+                            "タップで選んで下のボタンで段を選ぶか、長押しでつかんで段まで運んでください。段の中の札の上に落とすと、その左に入ります。変えるたびに端末に保存されます。",
                             ImasTextRole.META
                         )
                     }
@@ -354,7 +388,9 @@ private fun UnplacedSection(
     hasSelection: Boolean,
     onSelect: (String) -> Unit,
     onItemDetail: (SortMakerItem) -> Unit,
-    onRowClick: () -> Unit
+    onRowClick: () -> Unit,
+    onDrop: (String) -> Boolean,
+    autoScroll: ImasTierDragAutoScroll
 ) {
     // 全曲を入れると数千件になるので、名前・歌唱で絞り込めるようにする (照合はコア)。
     var query by rememberSaveable { mutableStateOf("") }
@@ -378,7 +414,7 @@ private fun UnplacedSection(
                 value = query, onValueChange = { query = it }, modifier = Modifier.fillMaxWidth()
             )
         }
-        ImasCard(padding = 0.dp) {
+        ImasCard(padding = 0.dp, modifier = Modifier.imasTierDropTarget(onDrop = onDrop, autoScroll = autoScroll)) {
             // 数が多いときは見えている分だけ描く格子 (枠の中でスクロール)。iOS の LazyVGrid は常に
             // 遅延描画だが、Compose の FlowRow は遅延しないので、ここだけ件数で切り替える
             // (全曲 (数千件) を回り込みで一度に組むと開いた瞬間に固まる)。
@@ -395,7 +431,12 @@ private fun UnplacedSection(
                 modifier = Modifier
                     .heightIn(min = 72.dp)
                     .clickable(onClick = onRowClick)
-            ) { id -> TierListChip(item = items[id], isSelected = selectedId == id, onClick = { onSelect(id) }, onLongClick = { items[id]?.let(onItemDetail) }) }
+            ) { id ->
+                TierListChip(
+                    item = items[id], isSelected = selectedId == id,
+                    onClick = { onSelect(id) }, onLongClick = { items[id]?.let(onItemDetail) }, dragId = id
+                )
+            }
         }
     }
 }
@@ -406,16 +447,22 @@ private fun TierListChip(
     item: SortMakerItem?,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    dragId: String? = null,
+    showsInsertMark: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     ImasTierChip(
         title = item?.title ?: "",
         seed = item?.seed,
         brand = BrandColors.hex(item?.brandId),
         isSelected = isSelected,
+        modifier = modifier,
         accessibilityTitle = if (item == null) "不明" else null,
         onClick = onClick,
-        onLongClick = onLongClick
+        onLongClick = onLongClick,
+        dragData = dragId,
+        showsInsertMark = showsInsertMark
     ) { size ->
         when (item) {
             is SortMakerItem.SongItem -> ImasArtwork(title = item.song.title, imageUrl = item.song.artworkUrl, size = size)

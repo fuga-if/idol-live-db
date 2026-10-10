@@ -95,17 +95,9 @@ object SortMakerCandidates {
             songRepository.fetchSongs(filter = filter).map { SortMakerItem.SongItem(it.song) }
         }
         SortMakerSubject.IDOL -> {
-            val idols = if (scope.brandIds.isEmpty()) {
-                idolRepository.fetchIdolsForList(null)
-            } else {
-                val merged = mutableListOf<Idol>()
-                for (brandId in scope.brandIds.sorted()) {
-                    merged += idolRepository.fetchIdolsForList(brandId)
-                }
-                merged
-            }
-            // fetchIdolsForList は既に is_external を除外済み (iOS `idols(brandId:)` と同一条件)。
-            idols.map { SortMakerItem.IdolItem(it) }
+            // 765AS と ML の両方に居る人を 2 回入れない (コア idolListInBrands が初出だけにする)。
+            // is_external はコアで除外済み。
+            idolRepository.fetchIdolsInBrands(scope.brandIds).map { SortMakerItem.IdolItem(it) }
         }
     }
 

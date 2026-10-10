@@ -23,7 +23,10 @@ struct ProducerCardEditorView: View {
     @State private var sinceYear: Int?
     @State private var links: [EditableLink]
     @State private var hidden: Set<ProducerCardField>
-    @State private var oshi: [Idol] = []
+    /// アプリの担当のアイドル (名刺に載せる担当を選ぶ材料。行に写真か判子を出す)。
+    @State private var oshiIdols: [String: Idol] = [:]
+    /// 名刺に載せる担当の選択 (idol id、載せる順。nil はまだ選んでいない)。
+    @State private var oshiChoice: [String]?
     @State private var brands: [String: Brand] = [:]
     @State private var isSaving = false
     @State private var error: String?
@@ -58,6 +61,10 @@ struct ProducerCardEditorView: View {
     @State private var faceCorners: FaceCornerDraft?
     @State private var faceNotice: String?
     @State private var isReadingFace = false
+
+    /// 作り直した名刺 id (✓ で保存する。nil は作り直していない)。
+    @State private var renewedCardId: String?
+    @State private var confirmRenewCardId = false
 
     @State private var isFetchingAvatar = false
     @State private var avatarNotice: String?
@@ -106,6 +113,7 @@ struct ProducerCardEditorView: View {
         _design = State(initialValue: cardDesignKey(design: card.cardDesign))
         _qrUrl = State(initialValue: card.qrUrl ?? "")
         _songs = State(initialValue: card.profile.songs)
+        _oshiChoice = State(initialValue: card.cardOshiChoice)
     }
 
     var body: some View {
@@ -143,10 +151,13 @@ struct ProducerCardEditorView: View {
                 } else if validation == .tooLong {
                     Text(producerCardInputErrorMessage(error: .tooLong)).imasText(.note, color: DS.danger)
                 }
-                if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
+                if producerCardEmbedsCardId() {
+                    cardIdCard
+                    ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
+                } else if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
                     ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                 }
-                ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直しても、相手の手元の名刺は交換したときのままです。")
+                ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
             }
             #if DEBUG
             .onAppear {
@@ -162,6 +173,10 @@ struct ProducerCardEditorView: View {
             .imasSheetToolbar(.edit(canSave: canSave, onCancel: cancel, onSave: { Task { await save() } }))
             .imasSavingOverlay(isSaving || isReadingFace, label: isReadingFace ? "画像を整えています" : "保存中")
             .imasDiscardConfirmation(isPresented: $confirmDiscard) { dismiss() }
+            .imasConfirmDestructive("名刺 id を作り直しますか？", isPresented: $confirmRenewCardId, actionTitle: "作り直す",
+                                    message: Self.renewCardIdNote) {
+                renewedCardId = producerCardNewId(seed: UUID().uuidString)
+            }
             .interactiveDismissDisabled(isDirty)
             .sheet(item: $cropping) { draft in
                 CardPhotoCropSheet(image: draft.image, crop: draft.crop,
@@ -415,8 +430,17 @@ struct ProducerCardEditorView: View {
 
     // MARK: - 担当
 
+    /// アプリの担当の名前とブランド (選び方の材料)。
+    private var oshiEntries: [CardOshiEntry] { record?.oshiEntries ?? [] }
+
+    /// 名刺に載せる担当 (本人の選択。まだ選んでいなければ自動の選び方。規則はコア)。
+    private var oshi: [Idol] {
+        (record?.cardOshiIds(choice: oshiChoice) ?? []).compactMap { oshiIdols[$0] }
+    }
+
     private var oshiCard: some View {
-        ImasFormCard {
+        let byHand = producerCardOshiPicks(chosen: oshiChoice, oshi: oshiEntries).chosenByHand
+        return ImasFormCard {
             ImasFormField(label: "担当 · アプリから", imprint: "OSHI") {
                 if oshi.isEmpty {
                     Text("アイドル詳細で「担当」を付けると、ここに入ります").imasText(.note)
@@ -430,6 +454,16 @@ struct ProducerCardEditorView: View {
                                 Text(idol.name).imasText(.rowTitle)
                             }
                         }
+                        NavigationLink {
+                            CardOshiPickerView(chosen: oshiChoice, oshi: oshiEntries, idols: oshiIdols,
+                                               brands: brands) { oshiChoice = $0 }
+                        } label: {
+                            ImasNavRow(title: "名刺に載せる担当を選ぶ",
+                                       subtitle: byHand ? "選んだ \(oshi.count) 人 (この順に載ります)"
+                                                        : "おまかせ (ブランドごとに 1 人)",
+                                       systemImage: "person.crop.rectangle.stack", subtitleLineLimit: 2)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -513,6 +547,23 @@ struct ProducerCardEditorView: View {
         )
     }
 
+    // MARK: - 名刺 id
+
+    private static let renewCardIdNote = "作り直すと、相手の名刺入れではあなたの名刺が別の人の名刺になります (今までの会った記録とはつながりません)。"
+
+    /// 名刺 id を作り直す (名刺 id を名刺に載せている間だけ出す。コアの `producerCardEmbedsCardId`)。
+    private var cardIdCard: some View {
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasCardList {
+                ImasActionRow(title: renewedCardId == nil ? "名刺 id を作り直す" : "名刺 id を作り直しました (✓ で保存)",
+                              systemImage: "arrow.triangle.2.circlepath") {
+                    confirmRenewCardId = true
+                }
+            }
+            ImasNote(Self.renewCardIdNote)
+        }
+    }
+
     // MARK: - P名刺の画像に載るもの
 
     /// 好きな曲と担当ブランド。名刺 (QR) には入らず、P名刺の画像 (SNS に貼る画像) に載る。
@@ -586,6 +637,8 @@ struct ProducerCardEditorView: View {
         out.design = design
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
         out.profile.songs = songs
+        out.cardOshiChoice = oshiChoice
+        if let renewedCardId { out.cardId = renewedCardId }
         return out
     }
 
@@ -612,7 +665,7 @@ struct ProducerCardEditorView: View {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
-            || songs != card.profile.songs
+            || songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != nil
     }
 
     private func cancel() {
@@ -828,15 +881,12 @@ struct ProducerCardEditorView: View {
         }
     }
 
+    /// アプリの担当すべてを引く (どの人を選んでも見本に出せるように)。
     private func loadOshi() async {
-        guard let ids = record?.cardOshiIds.prefix(Int(limits.maxOshi)), !ids.isEmpty else { return }
-        let idols = (try? await AppContainer.shared.idolReading.idols(ids: Array(ids))) ?? []
-        let byId = Dictionary(idols.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        oshi = ids.compactMap { byId[$0] }
-        if let all = try? await AppContainer.shared.brandReading.brands() {
-            brands = Dictionary(all.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        }
-        directory = await ProducerCardDirectory.load(idolIds: Array(ids), showIds: [])
+        guard let ids = record?.oshiIds, !ids.isEmpty else { return }
+        directory = await ProducerCardDirectory.load(idolIds: ids, showIds: [])
+        oshiIdols = directory.idols
+        brands = directory.brands
     }
 }
 

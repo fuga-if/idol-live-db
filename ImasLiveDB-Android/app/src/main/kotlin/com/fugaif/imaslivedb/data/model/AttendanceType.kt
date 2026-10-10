@@ -3,7 +3,8 @@ package com.fugaif.imaslivedb.data.model
 /**
  * 参加形態 (`user_marks.text_value`)。iOS `AttendanceType` の 1:1 移植。
  *
- * 種別なし (旧データ) は現地扱い — 集計側 (コアの attendedEventTypeSets) と同じ解釈。
+ * 1 公演に複数付けられ、保存値は `live,stream` のように並ぶ。読み書きはコア
+ * (`attendanceTypes` / `attendanceSetType`) で、種別なし (旧データ) は現地扱い。
  */
 enum class AttendanceType(val raw: String) {
     LIVE("live"),

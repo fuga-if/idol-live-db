@@ -17,23 +17,20 @@ enum ProducerCardInbox {
         cardExchangeShowCandidates(today: JSTDay.today(), myAttended: record.attended)
     }
 
-    /// 名刺をしまう。同じ中身の名刺が既にあれば新しく足さず、その名刺に画像だけ足して返す
-    /// (同じ相手の QR を 2 回読んでも 2 枚にしない)。`dedupe: false` は QR の無い紙の名刺
+    /// 名刺をしまう。同じ人の名刺 (中身が同じ・名刺 id と名前が同じ、または確かめて同じ人を選んだ) が既にあれば
+    /// 新しく足さず、1 枚にまとめて中身を新しい方に替え、会った記録を積む (同じ相手の QR を同じ公演で 2 回読んでも
+    /// 記録は 1 つ)。確かめる名刺を `choice: .undecided` のまま渡すと別の名刺として足す (確認は `samePersonConfirm`)。
+    /// 届いた画像 (写真・担当の画像) はしまった名刺に書く。`dedupe: false` は QR の無い紙の名刺
     /// (名前だけで中身を作るので、同じ名前の別人と重ならないように常に新しく足す)。
     /// 画像を書けなくても名刺はしまえているので、失敗は記録だけにする。
     @discardableResult
     static func store(payload: String, images: [CardFileImage], source: ReceivedProducerCard.Source,
-                      show: ProducerCardShowInfo?, dedupe: Bool = true) async throws -> ReceivedProducerCard {
+                      via: CardReceiveVia, show: ProducerCardShowInfo?,
+                      dedupe: Bool = true, choice: CardSamePersonChoice = .undecided) async throws -> ReceivedProducerCard {
         let store = AppContainer.shared.producerCards
         let fresh = ReceivedProducerCard.make(payload: payload, source: source,
-                                              showId: show?.id, showDate: show?.date)
-        let saved: ReceivedProducerCard
-        if dedupe {
-            saved = try await store.insertReceivedIfNew(fresh)
-        } else {
-            try await store.saveReceived(fresh)
-            saved = fresh
-        }
+                                              showId: show?.id, showDate: show?.date, via: via)
+        let saved = try await store.receive(fresh, matchSamePerson: dedupe, choice: choice)
         attachImages(cardId: saved.id, images: images)
         NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
         return saved
@@ -48,6 +45,11 @@ enum ProducerCardInbox {
             logger.error("producer_card_image_save_failed: \(error.localizedDescription)")
         }
         NotificationCenter.default.post(name: .producerCardsChanged, object: nil)
+    }
+
+    /// 届いた名刺が名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面。
+    static func samePersonConfirm(payload: String) async -> CardSamePersonConfirm? {
+        try? await AppContainer.shared.producerCards.samePersonConfirm(payload: payload)
     }
 
     static func delete(_ card: ReceivedProducerCard) async throws {

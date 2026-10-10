@@ -437,6 +437,8 @@ mod tests {
             costume_wears: wears,
             ticket_sales: vec![],
             show_archives: vec![],
+            idol_facets: vec![],
+            idol_hairstyles: vec![],
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],
@@ -477,6 +479,9 @@ mod tests {
             is_collab: false,
             has_kamisabi_card: false,
             note: None,
+            streaming_date: None,
+            cd_release_date: None,
+            first_appearance_note: None,
         }
     }
 

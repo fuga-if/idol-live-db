@@ -56,7 +56,8 @@ import kotlinx.coroutines.withContext
 // CardQRScanner        アプリの名刺の QR を読む (CameraX + ML Kit の QR 読み取り。端末内のモデルで、
 //                      圏外でも動く)。読めた文字列を 1 回だけ返す。
 // rememberPaperCardCamera  紙の名刺の表裏を撮る (ML Kit の書類カメラ。名刺の形に切り抜かれる。
-//                      まだ入っていなければふつうのカメラ)。
+//                      まだ入っていなければふつうのカメラ)。rememberDocumentCamera を maxPages=2 で使う。
+//                      歌詞カードの読み取り (`LyricSubmissionScreen`) は maxPages を広げて同じ関数を使う。
 // PaperCardCodeReader  撮った写真から QR を拾う (ML Kit)。文字の読み取りはしない。
 // PhotoQRReader        写真に写った QR を 1 つ読む (自分の QR を写真から入れるとき)。
 // (写真から選んだ紙の名刺を平らにするのは PaperCardRectifier.kt)
@@ -137,9 +138,9 @@ fun CardQRScanner(onScan: (String) -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-private fun paperScannerOptions() = GmsDocumentScannerOptions.Builder()
+private fun documentScannerOptions(maxPages: Int) = GmsDocumentScannerOptions.Builder()
     .setGalleryImportAllowed(false)
-    .setPageLimit(2)
+    .setPageLimit(maxPages)
     .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
     .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE)
     .build()
@@ -150,7 +151,7 @@ private fun paperScannerOptions() = GmsDocumentScannerOptions.Builder()
  */
 fun prefetchPaperCardCamera(context: Context) {
     runCatching {
-        val scanner = GmsDocumentScanning.getClient(paperScannerOptions())
+        val scanner = GmsDocumentScanning.getClient(documentScannerOptions(maxPages = 2))
         ModuleInstall.getClient(context).installModules(ModuleInstallRequest.newBuilder().addApi(scanner).build())
             .addOnFailureListener { Log.w(TAG, "paper_card_camera_prefetch_failed", it) }
     }
@@ -163,14 +164,25 @@ fun prefetchPaperCardCamera(context: Context) {
  * 入っていない (圏外で落とせない等) ときは、ふつうのカメラで 1 枚撮る (QR は同じく読める)。
  */
 @Composable
-fun rememberPaperCardCamera(onFinish: (List<Uri>) -> Unit): () -> Unit {
+fun rememberPaperCardCamera(onFinish: (List<Uri>) -> Unit): () -> Unit =
+    rememberDocumentCamera(maxPages = 2, onFinish = onFinish)
+
+/**
+ * 書類カメラ。返す関数を呼ぶと開く。ML Kit の書類カメラ (紙の形に切り抜かれる。[maxPages] 枚まで)
+ * を使う。まだ端末に入っていない (圏外で落とせない等) ときは、ふつうのカメラで 1 枚撮る。
+ *
+ * 名刺は [rememberPaperCardCamera] (2 枚まで)。歌詞カードの読み取りは [maxPages] を広げて使う
+ * (iOS `PaperCardCamera` の `maxPages` と対)。
+ */
+@Composable
+fun rememberDocumentCamera(maxPages: Int, onFinish: (List<Uri>) -> Unit): () -> Unit {
     val context = LocalContext.current
     val currentFinish by rememberUpdatedState(onFinish)
     val scan = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
         val pages = GmsDocumentScanningResult.fromActivityResultIntent(result.data)?.pages.orEmpty()
-        // 表と裏の 2 枚まで。3 枚目以降は名刺ではないので使わない。
-        currentFinish(pages.take(2).map { it.imageUri })
+        // 上限より後の枚は使わない。
+        currentFinish(pages.take(maxPages).map { it.imageUri })
     }
     var captureUri by remember { mutableStateOf<Uri?>(null) }
     val photo = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
@@ -185,10 +197,10 @@ fun rememberPaperCardCamera(onFinish: (List<Uri>) -> Unit): () -> Unit {
         captureUri = uri
         photo.launch(uri)
     }
-    return remember(context) {
+    return remember(context, maxPages) {
         {
             val activity = context.findActivity()
-            val scanner = GmsDocumentScanning.getClient(paperScannerOptions())
+            val scanner = GmsDocumentScanning.getClient(documentScannerOptions(maxPages))
             if (activity == null) {
                 takePlainPhoto()
             } else {

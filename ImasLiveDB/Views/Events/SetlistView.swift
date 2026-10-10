@@ -34,6 +34,8 @@ struct SetlistView: View {
     }
 
     /// 選んでいるタブ。「次のライブ」の「セトリを予想」からは予想で開く。
+    /// 公演ページ末尾の奥付 (セトリ・歌唱者を入れた人。名前は本人が載せると選んだ人だけ)。
+    @State private var creditLines: [ShowCreditLine] = []
     @State private var selectedTab: ShowTab
     @State private var tabsScrolledPast = false
 
@@ -82,6 +84,7 @@ struct SetlistView: View {
     @State private var showPlaylistAlert = false
     @State private var playlistMessage = ""
     @State private var isCreatingPlaylist = false
+    @State private var showSpotifyExport = false
     @State private var playlistProgress: (current: Int, total: Int) = (0, 0)
     @State private var sheetDestination: DetailDestination?
     @State private var showEditSheet = false
@@ -341,7 +344,7 @@ struct SetlistView: View {
                         kinds: [.attended, .favorite, .note, .seat],
                         seed: showBrandHex,
                         onAttendedTap: { showAttendanceDialog = true },
-                        attendedIsOn: UserMarkService.shared.attendance(entity: .show, id: show.id) != nil
+                        attendedIsOn: !UserMarkService.shared.attendedTypes(entity: .show, id: show.id).isEmpty
                     )
                     .id(attendanceVersion)
                 }
@@ -375,11 +378,19 @@ struct SetlistView: View {
         .listSectionSpacing(.compact)
         .confirmationDialog("この公演への参加", isPresented: $showAttendanceDialog, titleVisibility: .visible) {
             // そのライブに実在した形態だけ提示 (show優先・eventフォールバック)。
+            // 形態は複数付けられる (現地で見て配信のアーカイブも買った)。付いている形態は外す。
+            let current = UserMarkService.shared.attendedTypes(entity: .show, id: show.id)
             ForEach(AttendanceAvailability.options(show: show, event: event), id: \.self) { type in
-                Button("\(type.label)で参加") { setAttendance(type) }
+                if current.contains(type) {
+                    Button("\(type.label)を外す") { setAttendance(type, on: false) }
+                } else {
+                    Button(current.isEmpty ? "\(type.label)で参加" : "\(type.label)も追加") {
+                        setAttendance(type, on: true)
+                    }
+                }
             }
-            if UserMarkService.shared.attendance(entity: .show, id: show.id) != nil {
-                Button("参加を取り消す", role: .destructive) { setAttendance(nil) }
+            if !current.isEmpty {
+                Button("参加を取り消す", role: .destructive) { clearAttendance() }
             }
             Button("キャンセル", role: .cancel) {}
         }
@@ -427,6 +438,12 @@ struct SetlistView: View {
                     } label: {
                         Label("Apple Musicプレイリストに追加", systemImage: "music.note.list")
                     }
+                    Button {
+                        showSpotifyExport = true
+                    } label: {
+                        Label("Spotifyプレイリストに追加", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(setlist.isEmpty)
 
                     Button {
                         Task { await playAllPreview() }
@@ -445,6 +462,9 @@ struct SetlistView: View {
                     Image(systemName: "music.note.list")
                 }
             }
+        }
+        .sheet(isPresented: $showSpotifyExport) {
+            SpotifyExportSheet(name: show.name, songs: setlist.map { ($0.songId, $0.songTitle) })
         }
         .alert("プレイリスト", isPresented: $showPlaylistAlert) {
             Button("OK") {}
@@ -486,6 +506,10 @@ struct SetlistView: View {
             await loadRowMeta()
         }
         .task { await model.loadVenueDirectory() }
+        .task {
+            creditLines = await ContributionFeedbackStore.shared.creditLines(showId: show.id)
+            await ContributionFeedbackStore.shared.reportShowView(showId: show.id)
+        }
         .trackScreen("setlist")
     }
 
@@ -498,10 +522,20 @@ struct SetlistView: View {
         }
     }
 
-    /// この公演の参加種別を設定 (nil=取消)。UserMarkBar 表示を更新。
-    private func setAttendance(_ type: AttendanceType?) {
+    /// この公演に参加形態を 1 つ付ける / 外す。UserMarkBar 表示を更新。
+    private func setAttendance(_ type: AttendanceType, on: Bool) {
         do {
-            try UserMarkService.shared.setAttendance(entity: .show, id: show.id, type: type)
+            try UserMarkService.shared.setAttendance(entity: .show, id: show.id, type: type, on: on)
+        } catch {
+            LocalWriteFailure.report(error, action: "参加の記録")
+        }
+        attendanceVersion &+= 1
+    }
+
+    /// この公演の参加を取り消す (形態をすべて外す)。
+    private func clearAttendance() {
+        do {
+            try UserMarkService.shared.clearAttendance(entity: .show, id: show.id)
         } catch {
             LocalWriteFailure.report(error, action: "参加の記録")
         }
@@ -588,7 +622,47 @@ struct SetlistView: View {
                     .listRowSeparator(.hidden)
                 }
             }
+
+            if !simpleMode { creditsSection }
         }
+    }
+
+    // MARK: - 奥付
+
+    /// パンフの奥付のように、このセトリを入れた人を末尾に載せる。誰も関わっていなければ出さない。
+    @ViewBuilder
+    private var creditsSection: some View {
+        if !creditLines.isEmpty {
+            Section(header: ImasSectionHeader("このセトリを入れた人", imprint: "CREDITS", style: .small).textCase(nil)) {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    ImasCardList {
+                        ForEach(Array(creditLines.enumerated()), id: \.offset) { index, line in
+                            if index > 0 { ImasRowDivider() }
+                            ImasValueRow(key: Self.creditRoleLabel(line.role), value: Self.creditNames(line))
+                        }
+                    }
+                    ImasNote("名前は、入れた人がマイページで「公演ページに名前を載せる」を選んだときだけ出ます。")
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 16, trailing: 16))
+                .listRowSeparator(.hidden)
+            }
+        }
+    }
+
+    private static func creditRoleLabel(_ role: ShowCreditRole) -> String {
+        switch role {
+        case .setlist: "セトリ入力"
+        case .performers: "歌唱者"
+        case .lyrics: "歌詞入力"
+        }
+    }
+
+    /// 「A・B ほか 2 人」。名前を載せる人がいなければ「3 人」。
+    private static func creditNames(_ line: ShowCreditLine) -> String {
+        let names = line.names.joined(separator: "・")
+        if line.unnamedCount == 0 { return names }
+        return names.isEmpty ? "\(line.unnamedCount) 人" : "\(names) ほか \(line.unnamedCount) 人"
     }
 
     // MARK: - 予想

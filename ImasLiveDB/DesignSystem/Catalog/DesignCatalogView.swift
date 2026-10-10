@@ -1594,7 +1594,6 @@ private struct StagePage: View {
         .environment(\.imasBackdrop, .paper)
     }
 }
-#endif
 
 /// 部品カタログのデザインの札 (選んだデザインを持つための入れ物)。
 private struct CatalogDesignPicker: View {
@@ -1616,3 +1615,4 @@ private struct CatalogDesignPicker: View {
             selection: $selection, sample: "ふがP", seed: Sample.saki)
     }
 }
+#endif

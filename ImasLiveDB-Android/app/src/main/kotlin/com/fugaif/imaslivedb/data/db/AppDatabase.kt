@@ -46,6 +46,7 @@ import com.fugaif.imaslivedb.data.model.Playlist
 import com.fugaif.imaslivedb.data.model.PlaylistItem
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
+import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.Show
@@ -92,9 +93,10 @@ import com.fugaif.imaslivedb.data.model.UserMark
         Playlist::class,
         PlaylistItem::class,
         MyProducerCard::class,
-        ReceivedProducerCard::class
+        ReceivedProducerCard::class,
+        ReceivedCardMeeting::class
     ],
-    version = 30,
+    version = 36,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -718,6 +720,87 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v31: songs に配信開始日 (streaming_date) と CD 発売日 (cd_release_date) を足す
+         * (iOS v44_songs_streaming_cd_release_dates と対)。release_date は初出 (ゲーム・MV・放送を含む) のまま。
+         */
+        val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN streaming_date TEXT")
+                db.execSQL("ALTER TABLE songs ADD COLUMN cd_release_date TEXT")
+            }
+        }
+
+        /** v32: songs に初出の補足 (first_appearance_note) を足す (iOS v45_songs_first_appearance_note と対)。 */
+        val MIGRATION_31_32 = object : Migration(31, 32) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE songs ADD COLUMN first_appearance_note TEXT")
+            }
+        }
+
+        /**
+         * v33: チケット代に券の形態 (expenses.ticket_kind) を足す (iOS v46_expenses_ticket_kind と対)。
+         * 1 公演に複数の形態で参加できるようにしたので、二重計上の判定を形態ごとにする。
+         * 端末ローカル唯一データなので列を足すだけ (既存の行は NULL。読み方はコアの ticket_kind_recorded)。
+         */
+        val MIGRATION_32_33 = object : Migration(32, 33) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN ticket_kind TEXT")
+            }
+        }
+
+        /**
+         * v34: P名刺に載せる担当を本人が選ぶ (my_producer_card.card_oshi_json。iOS v47_producer_card_oshi_choice と対)。
+         * 中身はコアの保存の形 (`cardOshiChoiceToJson`)。NULL はまだ選んでいない (自動の選び方)。列を足すだけ。
+         */
+        val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE my_producer_card ADD COLUMN card_oshi_json TEXT")
+            }
+        }
+
+        /**
+         * v35: 受け取った名刺の受け取り方と会った記録、自分の名刺 id (iOS v48_producer_card_meetings と対)。
+         * 端末ローカル唯一データなので足すだけ。今ある名刺は行から 1 回目の記録を作る
+         * (id はコアの `cardFirstMeetingId` と同じ "m_" + 名刺の id。紙の名刺は受け取り方を紙に、ほかは不明)。
+         */
+        val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE received_producer_cards ADD COLUMN via TEXT")
+                db.execSQL("UPDATE received_producer_cards SET via = 'paper' WHERE source = 'paper' AND via IS NULL")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `received_card_meetings` (`id` TEXT NOT NULL, `card_id` TEXT NOT NULL, " +
+                        "`show_id` TEXT, `show_date` TEXT, `via` TEXT, `met_at` TEXT NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_received_card_meetings_card` ON `received_card_meetings` (`card_id`)")
+                db.execSQL(
+                    "INSERT OR IGNORE INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at) " +
+                        "SELECT 'm_' || id, id, show_id, show_date, via, received_at FROM received_producer_cards"
+                )
+                db.execSQL("ALTER TABLE my_producer_card ADD COLUMN card_id TEXT")
+                db.execSQL(
+                    "UPDATE my_producer_card SET card_id = ? WHERE card_id IS NULL",
+                    arrayOf(uniffi.imas_core.producerCardNewId(java.util.UUID.randomUUID().toString()))
+                )
+            }
+        }
+
+        /**
+         * v36: 会った記録ごとにそのとき受け取った名刺の中身を持つ (詳細の「この時の名刺に戻す」。
+         * 他人の名刺 id を名乗った名刺で中身が差し替わっても戻せるように。iOS v49_card_meeting_payload と対)。
+         * 端末ローカル唯一データなので足すだけ。今ある記録は名刺の行の中身で埋める (それより前の中身は残っていない)。
+         */
+        val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE received_card_meetings ADD COLUMN payload TEXT")
+                db.execSQL(
+                    "UPDATE received_card_meetings SET payload = (" +
+                        "SELECT c.payload FROM received_producer_cards c WHERE c.id = received_card_meetings.card_id" +
+                        ") WHERE payload IS NULL"
+                )
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
@@ -725,7 +808,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19,
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
             MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
-            MIGRATION_28_29, MIGRATION_29_30
+            MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
+            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36
         )
     }
 }

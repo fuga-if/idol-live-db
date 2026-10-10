@@ -1,5 +1,12 @@
 package com.fugaif.imaslivedb.ui.events
 
+import androidx.compose.ui.platform.LocalContext
+import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.designsystem.ImasValueRow
+import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasSection
+import uniffi.imas_core.ShowCreditRole
+import uniffi.imas_core.ShowCreditLine
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -29,6 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Schedule
@@ -142,6 +150,8 @@ import com.fugaif.imaslivedb.ui.theme.displayName
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
 import com.fugaif.imaslivedb.ui.theme.imasTheme
 import com.fugaif.imaslivedb.ui.theme.joined
+import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSheet
+import com.fugaif.imaslivedb.ui.playlists.SpotifyExportSong
 
 /** 公演の画面の内部タブ。セットリスト (未来の公演でまだ無ければ出さない)・予想 (未来だけ)・情報。 */
 private enum class ShowTab(val label: String) {
@@ -202,6 +212,16 @@ fun SetlistScreen(
         if (hasSetlist) viewModel.refreshLikes()
     }
 
+    // 公演ページ末尾の奥付 (セトリ・歌唱者を入れた人。名前は本人が載せると選んだ人だけ) と、
+    // 閲覧の記録 (1 端末 1 週 1 公演 1 回)。iOS SetlistView の `.task` と同じ。
+    val context = LocalContext.current
+    val feedbackService = remember { AppModule.from(context).contributionFeedbackService }
+    var creditLines by remember(showId) { mutableStateOf<List<ShowCreditLine>>(emptyList()) }
+    LaunchedEffect(showId) {
+        creditLines = feedbackService.creditLines(showId)
+        feedbackService.reportShowView(showId)
+    }
+
     var menuOpen by remember { mutableStateOf(false) }
     // 公演の画面の内部タブ。「次のライブ」の「セトリを予想」からは予想で開く。
     var selectedTab by rememberSaveable(showId) {
@@ -210,6 +230,7 @@ fun SetlistScreen(
     var showAttendanceDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
+    var showSpotifyExport by remember { mutableStateOf(false) }
 
     /** 編集導線の共通ゲート。未ログインならログイン誘導、BAN は無反応 (導線自体を隠している)。 */
     fun startEdit() {
@@ -261,6 +282,13 @@ fun SetlistScreen(
                             leadingIcon = { Icon(Icons.Filled.History, null) },
                             onClick = { menuOpen = false; showHistorySheet = true }
                         )
+                        if (uiState.setlist.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("Spotifyプレイリストに追加") },
+                                leadingIcon = { Icon(Icons.Filled.IosShare, null) },
+                                onClick = { menuOpen = false; showSpotifyExport = true }
+                            )
+                        }
                     }
                 }
             )
@@ -356,8 +384,9 @@ fun SetlistScreen(
                 if (!simpleMode) {
                     item(key = "mark_bar") {
                         UserMarkBar(
-                            attendedLabel = marks.attendance?.let { "参加 (${it.label})" } ?: "参加",
-                            attendedOn = marks.attendance != null,
+                            attendedLabel = if (marks.attendance.isEmpty()) "参加"
+                            else "参加 (${marks.attendance.joinToString("・") { it.label }})",
+                            attendedOn = marks.attendance.isNotEmpty(),
                             onAttendedClick = { showAttendanceDialog = true },
                             favoriteOn = marks.favoriteOn,
                             onFavoriteClick = viewModel::toggleFavorite,
@@ -395,7 +424,8 @@ fun SetlistScreen(
                         likes = likes,
                         viewModel = viewModel,
                         onSongClick = onSongClick,
-                        onIdolClick = onIdolClick
+                        onIdolClick = onIdolClick,
+                        creditLines = creditLines
                     )
                     ShowTab.PREDICTION -> {
                         item(key = "prediction") {
@@ -438,9 +468,13 @@ fun SetlistScreen(
         AttendanceDialog(
             current = marks.attendance,
             onDismiss = { showAttendanceDialog = false },
-            onSelect = { type ->
+            onToggle = { type, on ->
                 showAttendanceDialog = false
-                viewModel.setAttendance(type)
+                viewModel.setAttendance(type, on)
+            },
+            onClear = {
+                showAttendanceDialog = false
+                viewModel.clearAttendance()
             }
         )
     }
@@ -470,6 +504,13 @@ fun SetlistScreen(
         }
     }
 
+    if (showSpotifyExport) {
+        SpotifyExportSheet(
+            name = uiState.show?.name.orEmpty(),
+            songs = uiState.setlist.map { SpotifyExportSong(it.songId, it.songTitle) },
+            onDismiss = { showSpotifyExport = false }
+        )
+    }
     if (showHistorySheet) {
         SetlistEditHistorySheet(
             showId = showId,
@@ -498,7 +539,8 @@ private fun LazyListScope.setlistTabContent(
     likes: Map<String, SetlistLikeService.LikeEntry>,
     viewModel: SetlistViewModel,
     onSongClick: (String) -> Unit,
-    onIdolClick: (String) -> Unit
+    onIdolClick: (String) -> Unit,
+    creditLines: List<ShowCreditLine>
 ) {
     if (!hasSetlist) {
         item(key = "empty") {
@@ -586,6 +628,43 @@ private fun LazyListScope.setlistTabContent(
             }
         }
     }
+
+    if (!simpleMode && creditLines.isNotEmpty()) {
+        item(key = "credits") { ShowCreditsSection(creditLines) }
+    }
+}
+
+/** パンフの奥付のように、このセトリを入れた人を末尾に載せる (iOS SetlistView.creditsSection)。 */
+@Composable
+private fun ShowCreditsSection(lines: List<ShowCreditLine>) {
+    ImasSection(
+        "このセトリを入れた人",
+        imprint = "CREDITS",
+        style = ImasSectionHeaderStyle.SMALL,
+        footer = "名前は、入れた人が設定で「公演ページに名前を載せる」を選んだときだけ出ます。",
+        modifier = Modifier.padding(horizontal = DS.Space.screen)
+    ) {
+        ImasCardList {
+            lines.forEachIndexed { index, line ->
+                if (index > 0) ImasRowDivider()
+                ImasValueRow(key = creditRoleLabel(line.role), value = creditNames(line))
+            }
+        }
+    }
+}
+
+private fun creditRoleLabel(role: ShowCreditRole): String = when (role) {
+    ShowCreditRole.SETLIST -> "セトリ入力"
+    ShowCreditRole.PERFORMERS -> "歌唱者"
+    ShowCreditRole.LYRICS -> "歌詞入力"
+}
+
+/** 「A・B ほか 2 人」。名前を載せる人がいなければ「3 人」。 */
+private fun creditNames(line: ShowCreditLine): String {
+    val names = line.names.joinToString("・")
+    val unnamed = line.unnamedCount.toInt()
+    if (unnamed == 0) return names
+    return if (names.isEmpty()) "$unnamed 人" else "$names ほか $unnamed 人"
 }
 
 /**
@@ -594,13 +673,15 @@ private fun LazyListScope.setlistTabContent(
  * 現地 / 配信 / LV の 3 形態を常に出す (`AttendanceType.options`)。開催情報の
  * has_streaming / has_live_viewing でフィルタしないのは、その列が欠落しやすく、
  * 「過去に LV 参加したのに記録できない」ほうが体験上の損失が大きいから
- * (iOS `AttendanceAvailability` と同じ判断)。選択中の形態をもう一度押すと不参加に戻る。
+ * (iOS `AttendanceAvailability` と同じ判断)。形態は複数付けられ (現地 + 配信)、
+ * 付いている形態は外し、無い形態は足す (iOS の参加確認ダイアログと同じ文言)。
  */
 @Composable
 private fun AttendanceDialog(
-    current: AttendanceType?,
+    current: List<AttendanceType>,
     onDismiss: () -> Unit,
-    onSelect: (AttendanceType?) -> Unit
+    onToggle: (AttendanceType, Boolean) -> Unit,
+    onClear: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -608,22 +689,40 @@ private fun AttendanceDialog(
         text = {
             Column {
                 AttendanceType.options().forEach { type ->
-                    val on = current == type
-                    Text(
-                        if (on) "${type.label}で参加 (取り消す)" else "${type.label}で参加",
-                        fontSize = 15.sp,
-                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    val on = type in current
+                    AttendanceDialogRow(
+                        when {
+                            on -> "${type.label}を外す"
+                            current.isEmpty() -> "${type.label}で参加"
+                            else -> "${type.label}も追加"
+                        },
                         color = if (on) DS.ink else DS.ink2,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(if (on) null else type) }
-                            .padding(vertical = 12.dp)
+                        bold = on,
+                        onClick = { onToggle(type, !on) }
                     )
+                }
+                if (current.isNotEmpty()) {
+                    AttendanceDialogRow("参加を取り消す", color = DS.danger, onClick = onClear)
                 }
             }
         },
         confirmButton = {},
         dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } }
+    )
+}
+
+/** 参加ダイアログの 1 行 (形態の付け外しと「参加を取り消す」で同じ見た目)。 */
+@Composable
+private fun AttendanceDialogRow(text: String, color: Color, bold: Boolean = false, onClick: () -> Unit) {
+    Text(
+        text,
+        fontSize = 15.sp,
+        fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
+        color = color,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp)
     )
 }
 

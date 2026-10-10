@@ -44,6 +44,11 @@
       詳細は NotificationScheduler の KDoc。
     -->
 
+    <!-- Spotify で鳴らす先が無いとき、Spotify アプリを開く (開けば鳴らす先として見えるようになる)。 -->
+    <queries>
+        <package android:name="com.spotify.music" />
+    </queries>
+
     <application
         android:name=".ImasLiveDBApplication"
         android:allowBackup="true"
@@ -125,6 +130,23 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="imaslivedb" android:host="music-auth" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Spotify のログイン (アプリ内ブラウザ) から戻る口。利用者が自分の Spotify アプリに
+          この Redirect URI を登録する (imas-core domain/spotify.rs の REDIRECT_URI)。
+        -->
+        <activity
+            android:name=".data.spotify.SpotifyAuthReturnActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="imaslivedb" android:host="spotify-callback" />
             </intent-filter>
         </activity>
 

@@ -1162,6 +1162,99 @@ enum DatabaseMigrations {
             }
         }
 
+        // v44: songs.streaming_date / cd_release_date カラム追加。
+        //
+        // release_date は初出 (ゲーム・MV・放送を含む)。配信開始日と CD 発売日を別に持つ
+        // (ライブでの初披露はセトリから出すので列にしない)。同梱 master.sqlite は既に
+        // この列を持つので、v34 と同じく `PRAGMA table_info` で確かめてから冪等に足す。
+        migrator.registerMigration("v44_songs_streaming_cd_release_dates") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("streaming_date") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN streaming_date TEXT")
+            }
+            if !songsColumns.contains("cd_release_date") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN cd_release_date TEXT")
+            }
+        }
+
+        // v45: songs.first_appearance_note カラム追加 (初出が何だったかの補足。曲詳細の初出の行に添える)。
+        migrator.registerMigration("v45_songs_first_appearance_note") { db in
+            let songsColumns = try Row.fetchAll(db, sql: "PRAGMA table_info(songs)").map { $0["name"] as String? }
+            if !songsColumns.contains("first_appearance_note") {
+                try db.execute(sql: "ALTER TABLE songs ADD COLUMN first_appearance_note TEXT")
+            }
+        }
+
+        // v46: チケット代に券の形態 (live / stream / live_viewing)。1 公演に複数の形態で参加
+        // できるようにしたので、二重計上の判定を形態ごとにする。**端末ローカル唯一データ**なので
+        // 列を足すだけ (既存の行は NULL のまま。NULL の読み方はコアの ticket_kind_recorded)。
+        migrator.registerMigration("v46_expenses_ticket_kind") { db in
+            let columns = try Row.fetchAll(db, sql: "PRAGMA table_info(expenses)").map { $0["name"] as String? }
+            if !columns.contains("ticket_kind") {
+                try db.execute(sql: "ALTER TABLE expenses ADD COLUMN ticket_kind TEXT")
+            }
+        }
+
+        // v47: P名刺に載せる担当を本人が選ぶ。中身はコアの保存の形 (`cardOshiChoiceToJson`)。
+        // NULL はまだ選んでいない (自動の選び方)。**端末ローカル唯一データ**なので列を足すだけ。
+        migrator.registerMigration("v47_producer_card_oshi_choice") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !cols.contains("card_oshi_json") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN card_oshi_json TEXT")
+            }
+        }
+
+        // v48: 受け取った名刺の受け取り方と会った記録、自分の名刺 id。**端末ローカル唯一データ**なので足すだけ。
+        // - received_producer_cards.via: 最後に会ったときの受け取り方 (コアの `cardReceiveViaKey`)。古い行は NULL (不明)。
+        // - received_card_meetings: 同じ人と会うたびに積む記録。今ある名刺は行から 1 回目の記録を作る
+        //   (id はコアの `cardFirstMeetingId` と同じ "m_" + 名刺の id。バックアップの取り込みと重ならない)。
+        // - my_producer_card.card_id: 同じ人の名刺を見分ける名刺 id (コアの `producerCardNewId`)。
+        migrator.registerMigration("v48_producer_card_meetings") { db in
+            let received = try Row.fetchAll(db, sql: "PRAGMA table_info(received_producer_cards)").map { $0["name"] as String? }
+            if !received.contains("via") {
+                try db.execute(sql: "ALTER TABLE received_producer_cards ADD COLUMN via TEXT")
+            }
+            try db.create(table: "received_card_meetings", ifNotExists: true) { t in
+                t.column("id", .text).primaryKey()
+                t.column("card_id", .text).notNull()
+                    .references("received_producer_cards", onDelete: .cascade)
+                t.column("show_id", .text)
+                t.column("show_date", .text)
+                t.column("via", .text)
+                t.column("met_at", .text).notNull()
+            }
+            try db.create(index: "idx_received_card_meetings_card", on: "received_card_meetings",
+                          columns: ["card_id"], ifNotExists: true)
+            try db.execute(sql: "UPDATE received_producer_cards SET via = 'paper' WHERE source = 'paper' AND via IS NULL")
+            try db.execute(sql: """
+                INSERT OR IGNORE INTO received_card_meetings (id, card_id, show_id, show_date, via, met_at)
+                SELECT 'm_' || id, id, show_id, show_date,
+                       CASE WHEN source = 'paper' THEN 'paper' ELSE via END, received_at
+                FROM received_producer_cards
+                """)
+            let mine = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !mine.contains("card_id") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN card_id TEXT")
+            }
+            try db.execute(sql: "UPDATE my_producer_card SET card_id = ? WHERE card_id IS NULL",
+                           arguments: [producerCardNewId(seed: UUID().uuidString)])
+        }
+
+        // v49: 会った記録ごとにそのとき受け取った名刺の中身を持つ (詳細の「この時の名刺に戻す」。
+        // 他人の名刺 id を名乗った名刺で中身が差し替わっても戻せるように)。**端末ローカル唯一データ**なので足すだけ。
+        // 今ある記録は名刺の行の中身で埋める (それより前の中身は残っていない)。
+        migrator.registerMigration("v49_card_meeting_payload") { db in
+            let columns = try Row.fetchAll(db, sql: "PRAGMA table_info(received_card_meetings)").map { $0["name"] as String? }
+            if !columns.contains("payload") {
+                try db.execute(sql: "ALTER TABLE received_card_meetings ADD COLUMN payload TEXT")
+            }
+            try db.execute(sql: """
+                UPDATE received_card_meetings
+                SET payload = (SELECT c.payload FROM received_producer_cards c WHERE c.id = received_card_meetings.card_id)
+                WHERE payload IS NULL
+                """)
+        }
+
         return migrator
     }
 }

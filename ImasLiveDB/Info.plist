@@ -44,6 +44,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>spotify</string>
+	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<false/>
 	<key>NSBonjourServices</key>

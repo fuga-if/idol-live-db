@@ -2,6 +2,8 @@
 # Built application files
 *.apk
 *.aar
+# Spotify App Remote SDK は Apache 2.0 で再配布できる (app/spotify-sdk/README.md)。
+!app/spotify-sdk/*.aar
 *.ap_
 *.aab
 

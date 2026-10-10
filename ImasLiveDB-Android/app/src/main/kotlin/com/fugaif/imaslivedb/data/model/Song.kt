@@ -123,7 +123,22 @@ data class Song(
      * 位置づけを一文で書く。公式の出典があるものだけ入る。曲詳細にそのまま出す。
      */
     @ColumnInfo(name = "note")
-    val note: String? = null
+    val note: String? = null,
+
+    /**
+     * 配信開始日 (YYYY-MM-DD)。`releaseDate` は初出 (ゲーム・MV・放送を含む) なので、配信はそれより
+     * 後になることがある。曲詳細にどの日付を出すかはコアの `songDateRows` が決める。
+     */
+    @ColumnInfo(name = "streaming_date")
+    val streamingDate: String? = null,
+
+    /** その曲が最初に収録された CD の発売日 (YYYY-MM-DD)。CD になっていなければ null。 */
+    @ColumnInfo(name = "cd_release_date")
+    val cdReleaseDate: String? = null,
+
+    /** 初出が何だったか (「TVアニメ第14話 新OP」)。曲詳細の初出の行に添える (添え方はコア)。 */
+    @ColumnInfo(name = "first_appearance_note")
+    val firstAppearanceNote: String? = null
 ) {
     val isRemix: Boolean get() = parentSongId != null
 }

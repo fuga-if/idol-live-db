@@ -71,6 +71,10 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasShortcutGroup
 import com.fugaif.imaslivedb.ui.designsystem.ImasShortcutTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
+import com.fugaif.imaslivedb.ui.designsystem.ImasEntryCard
+import com.fugaif.imaslivedb.data.community.ContributionFeedbackService
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.FormatQuote
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicket
 import com.fugaif.imaslivedb.ui.designsystem.ImasTicketRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
@@ -120,6 +124,9 @@ fun ProduceScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refresh() }
     val context = LocalContext.current
     val authState by AppModule.from(context).authService.state.collectAsState()
+    val feedbackService = AppModule.from(context).contributionFeedbackService
+    val feedback by feedbackService.feedback.collectAsState()
+    LaunchedEffect(authState.isSignedIn) { feedbackService.refresh() }
     val uriHandler = LocalUriHandler.current
     val suspended by AppModule.from(context).quizResumeStore.sessions.collectAsStateWithLifecycle()
     // いちばん最近中断したクイズ (ゲーム一覧の「つづきから」と同じもの)。
@@ -205,6 +212,7 @@ fun ProduceScreen(
                 onAttendedClick = onNavigateToAttendedEvents,
                 onFavoritesClick = onNavigateToFavorites,
                 onContributionsClick = onNavigateToMyContributions,
+                feedback = feedback,
                 onVotesClick = onNavigateToMyVotes,
                 onCollectedClick = onNavigateToCollectedSongs,
                 onMasteryClick = onNavigateToMastery,
@@ -395,6 +403,7 @@ private fun ActivitySection(
     onAttendedClick: () -> Unit,
     onFavoritesClick: () -> Unit,
     onContributionsClick: () -> Unit,
+    feedback: ContributionFeedbackService.Feedback?,
     onVotesClick: () -> Unit,
     onCollectedClick: () -> Unit,
     onMasteryClick: () -> Unit,
@@ -425,6 +434,37 @@ private fun ActivitySection(
                     onClick = tile.onClick
                 )
             }
+        }
+        // 自分の編集への手応え。Good の新着と、先週セトリが見られた数 (どちらも 0 なら出さない)。
+        // 押すと「マイ投稿」へ (そこで新着を既読にする)。
+        val lyrics = feedback?.lyrics
+        if (lyrics != null && lyrics.newPublishedCount > 0) {
+            ImasEntryCard(
+                icon = Icons.Filled.FormatQuote,
+                title = "あなたが投稿した歌詞が ${lyrics.newPublishedCount} 曲公開されました",
+                preview = if (lyrics.likeTotal > 0) "ここ好き ${lyrics.likeTotal}" else null,
+                seed = state.pickSeed,
+                onClick = onContributionsClick
+            )
+        }
+        if (feedback != null && feedback.newGoodTotal > 0) {
+            ImasEntryCard(
+                icon = Icons.Filled.ThumbUp,
+                title = "あなたの編集に Good が ${feedback.newGoodTotal} 件届きました",
+                preview = feedback.goods.firstOrNull { it.newGoodCount > 0 }?.summary,
+                seed = state.pickSeed,
+                onClick = onContributionsClick
+            )
+        }
+        val reach = feedback?.setlistReach
+        if (reach != null && reach.viewers > 0) {
+            ImasEntryCard(
+                icon = Icons.Filled.Visibility,
+                title = "先週、あなたが入れたセトリが のべ ${reach.viewers} 人に見られました",
+                preview = "${reach.shows} 公演のセトリ",
+                seed = state.pickSeed,
+                onClick = onContributionsClick
+            )
         }
         ImasNavRow(
             title = "プレイリスト",

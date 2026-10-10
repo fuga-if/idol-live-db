@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // 公開データ API。web (assets-only Worker) とも imas-live-api (コミュニティ D1) とも別の Worker。
+  // docs/ARCHITECTURE-data-api.md。
+  "name": "imas-data-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  // 既存の idollivedb.fugaapp.site に合わせる。2 段サブドメイン (api.idollivedb.…) は
+  // Cloudflare の無料の証明書 (*.fugaapp.site) の対象外なので 1 段にしてある。
+  "routes": [{ "pattern": "idollivedb-api.fugaapp.site", "custom_domain": true }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      // imas-live-db (コミュニティの集計) とは別の DB。マスタの写しだけを置く。
+      "database_name": "imas-master-db",
+      // `wrangler d1 create imas-master-db` が返す id に差し替える (デプロイ前にオーナーが)。
+      "database_id": "a75ba9d1-4c7c-46e6-9500-2cf519d5a023"
+    }
+  ],
+  // キャッシュに当たらず D1 まで行くリクエストだけを IP ごとに絞る (Worker 内で数える)。
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "4101", "simple": { "limit": 60, "period": 60 } }
+  ],
+  "observability": { "enabled": false }
+}

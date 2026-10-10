@@ -4,6 +4,11 @@ import SwiftUI
 ///
 /// QR を読んだとき・名刺のリンク (Universal Link) を開いたとき・名刺ファイルを開いたときの共通の画面。
 /// QR から来たときは近くの相手の iPhone から担当の画像が届くのを待つ (届かなくても保存できる)。
+///
+/// 名刺入れの名刺と同じ人か確かめる必要がある名刺 (名刺 id が同じで名前が違う・名前と担当が同じで中身が違う。
+/// 決めるのはコアの `cardReceivePlan` / `cardSamePersonConfirm`) は、上に今ある名刺と届いた名刺の名前・リンクを並べ、
+/// 「同じ人として更新」か「別の名刺として残す」を選ばせる (既定は別の名刺。黙って中身を差し替えない)。
+/// 近くの端末から届いた名刺も、確かめる必要があればこの画面を通る。
 struct ProducerCardReceiveView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -26,12 +31,16 @@ struct ProducerCardReceiveView: View {
     @State private var pickingShow = false
     @State private var isSaving = false
     @State private var error: String?
+    /// 同じ人か確かめる画面 (要らなければ nil)。
+    @State private var samePerson: CardSamePersonConfirm?
+    @State private var samePersonChoice: CardSamePersonChoice = .separate
 
     private var card: ProducerCard? { decodeProducerCard(text: incoming.payload) }
 
     var body: some View {
         ImasPage {
             if let card {
+                samePersonSection
                 let display = ProducerCardDisplay.view(
                     card, directory: directory, sharedWith: Set(record?.oshiIds ?? []),
                     imageURL: { imageURLs[$0] }, portraitURL: portraitURL,
@@ -97,9 +106,48 @@ struct ProducerCardReceiveView: View {
         }
     }
 
+    // MARK: - 同じ人の確認
+
+    @ViewBuilder
+    private var samePersonSection: some View {
+        if let samePerson {
+            ImasSection(samePerson.title, style: .small) {
+                VStack(alignment: .leading, spacing: DS.Space.gap) {
+                    ImasNote(samePerson.reason)
+                    ImasCardList {
+                        samePersonSide(samePerson.before, first: true)
+                        samePersonSide(samePerson.after, first: false)
+                    }
+                    ImasCardList {
+                        ImasSelectableRow(title: samePerson.separateLabel, isSelected: samePersonChoice == .separate, isSingle: true) {
+                            samePersonChoice = .separate
+                        }
+                        .environment(\.imasRowPosition, .first)
+                        ImasSelectableRow(title: samePerson.samePersonLabel, isSelected: samePersonChoice == .samePerson, isSingle: true) {
+                            samePersonChoice = .samePerson
+                        }
+                        .environment(\.imasRowPosition, .following)
+                    }
+                    // 選んだ方の説明 (行の副題では切れるので下に出す)。
+                    ImasNote(samePersonChoice == .samePerson ? samePerson.samePersonNote : samePerson.separateNote)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func samePersonSide(_ side: CardSamePersonSide, first: Bool) -> some View {
+        ImasValueRow(key: side.label, value: side.name)
+            .environment(\.imasRowPosition, first ? .first : .following)
+        ForEach(Array(side.links.enumerated()), id: \.offset) { _, link in
+            ImasValueRow(key: link.label, value: link.display)
+                .environment(\.imasRowPosition, .following)
+        }
+    }
+
     @ViewBuilder
     private var nearbyNote: some View {
-        if let nearby, incoming.via == .scan {
+        if let nearby, incoming.via == .cameraQr {
             switch nearby.phase {
             case .searching, .connected, .waiting:
                 ImasNote("近くの相手の iPhone から写真と担当の画像を受け取っています…。繋がると、あなたの名刺も相手の名刺入れに渡ります (× でやめると相手には渡りません)。")
@@ -116,6 +164,7 @@ struct ProducerCardReceiveView: View {
     private func load() async {
         accept(incoming.images)
         if let current = nearby?.received, current.payload == incoming.payload { accept(current.images) }
+        samePerson = await ProducerCardInbox.samePersonConfirm(payload: incoming.payload)
         let rec = try? await ProducerCardAssembler.loadMyRecord()
         record = rec
         showOptions = (try? await AppContainer.shared.ledgerReading.attendedShowOptions()) ?? []
@@ -159,7 +208,8 @@ struct ProducerCardReceiveView: View {
         defer { isSaving = false }
         do {
             let saved = try await ProducerCardInbox.store(payload: incoming.payload, images: images,
-                                                          source: .app, show: show)
+                                                          source: .app, via: incoming.via, show: show,
+                                                          choice: samePerson == nil ? .undecided : samePersonChoice)
             AppAnalytics.tap("producer_card.receive")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             if let onDone { onDone((card.name, saved.id)) } else { dismiss() }

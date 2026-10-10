@@ -167,3 +167,84 @@ jobs:
           # checkout で資格情報を残していないので、push のときだけ token を渡す。
           git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" "HEAD:${BRANCH}"
           echo "::notice::${BRANCH} に保存した"
+
+  # 検査 (check) を通った日だけ、export の db/master.sql を公開データ API の D1 に全置き換えで流す。
+  # 落ちた日は流さない (壊れたデータを公開しない)。develop の db/master.sql は PR で入るまで古いので、
+  # 入力は develop ではなく export の artifact そのもの。
+  #   - Cloudflare の資格情報は environment "cloudflare" の secret (CLOUDFLARE_API_TOKEN /
+  #     CLOUDFLARE_ACCOUNT_ID)。無ければ全ステップを飛ばす (失敗にしない)。
+  #   - CloudKit の鍵は使わない。D1 の書き込みは約 4 万行 (無料枠 10 万行/日) なので 1 日 1 回 + 手動 1 回まで。
+  #   - 設定は docs/DATA_PIPELINE.md「公開データ API への同期」。
+  sync-data-api:
+    needs: [export, check]
+    if: needs.check.result == 'success'
+    runs-on: ubuntu-latest
+    environment: cloudflare
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check Cloudflare credentials
+        id: gate
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::environment cloudflare に CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が無いので、公開データ API への同期は飛ばした"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          ref: develop
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          name: master-sql
+          path: db
+
+      - name: Verify the artifact is the export
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          EXPECTED: ${{ needs.export.outputs.sha256 }}
+        run: echo "$EXPECTED  db/master.sql" | sha256sum --check
+
+      # Cloudflare のトークンを持つジョブなので、第三者の action を増やさず rustup で入れる (他のガードと同じ)。
+      - name: Install Rust
+        if: steps.gate.outputs.enabled == 'true'
+        run: rustup toolchain install stable --profile minimal
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          node-version: 24
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install wrangler
+        if: steps.gate.outputs.enabled == 'true'
+        run: npm ci --prefix imas-data-api
+
+      # master.sql → imas-core web-export --api-sql → wrangler d1 execute --remote (全置き換え)。
+      # meta.version は「日付 + 組んだ SQL の内容ハッシュ」なので、中身が変わればキャッシュ鍵が切り替わる。
+      - name: Sync to D1 imas-master-db
+        if: steps.gate.outputs.enabled == 'true'
+        run: python3 tools/sync_master_d1.py --remote --yes --master-sql db/master.sql
+
+      - name: Summary
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          SHA: ${{ needs.export.outputs.sha256 }}
+        run: |
+          {
+            echo '## 公開データ API の D1 を更新した'
+            echo "入力: CloudKit の書き出し (sha256 \`$SHA\`)"
+          } >> "$GITHUB_STEP_SUMMARY"

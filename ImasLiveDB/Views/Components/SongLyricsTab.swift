@@ -31,6 +31,8 @@ struct SongLyricsTab: View {
     /// 色を敷いて示す行 (歌詞クイズの出題箇所)。スクロールは親 (`SongSheetContent`) が行 id で行う。
     var focusLineIds: Set<String> = []
     var playback = Playback()
+    /// 歌詞が無い曲で「歌詞を投稿」を出すときの開き方。nil なら出さない (投稿の対象外・受付停止)。
+    var onSubmitLyrics: (() -> Void)? = nil
     /// 通信失敗時の再試行 (束ね取得のやり直し)。
     let reload: () -> Void
 
@@ -64,6 +66,8 @@ struct SongLyricsTab: View {
     @State private var playerFollowsQueue = false
     /// 行の区切りを編集している (くっつける / 切り離す)。
     @State private var isEditingStructure = false
+    /// 非 nil = この行の文字を直すシートを開いている。
+    @State private var lineEditTarget: LyricLine?
     /// 区切りの変更を送っている行 (二度押しを止める)。
     @State private var structureBusyLineId: String?
     /// 振り仮名を振る字を選んでいる候補 (選ぶダイアログを出す)。
@@ -105,6 +109,9 @@ struct SongLyricsTab: View {
                 song: song, seed: seed, artistLine: vm.artistLine(for: song),
                 artworkURL: vm.artworkInfo?.artworkURL ?? song.artworkUrl.flatMap(URL.init(string:)),
                 lyrics: lyrics, cast: partCast))
+        }
+        .sheet(item: $lineEditTarget) { line in
+            LyricLineEditSheet(songId: song.id, line: line, onSaved: reload)
         }
         .sheet(item: $callRequest) { request in
             CallEditorSheet(
@@ -230,6 +237,9 @@ struct SongLyricsTab: View {
                     ImasNote("出典: \(source)")
                         .padding(.horizontal, DS.sp1)
                 }
+                LyricsColophon(songId: song.id, credit: lyrics.submittedBy, isDraft: lyrics.isDraft) {
+                    await vm.loadServerData(song: song)
+                }
             } else {
                 emptyState
             }
@@ -244,6 +254,8 @@ struct SongLyricsTab: View {
             ImasEmptyState(systemImage: "text.quote",
                            title: "歌詞はまだありません",
                            message: "この曲の歌詞はまだ登録されていません。",
+                           actionTitle: onSubmitLyrics == nil ? nil : "歌詞を投稿",
+                           action: onSubmitLyrics,
                            seed: seed)
         } else {
             ImasEmptyState(systemImage: "text.quote",
@@ -412,7 +424,7 @@ struct SongLyricsTab: View {
             HStack(spacing: DS.sp3) {
                 Spacer(minLength: 0)
                 if isEditingStructure {
-                    ImasButton(title: "区切りの編集を終了", role: .plain, size: .small) {
+                    ImasButton(title: "行の編集を終了", role: .plain, size: .small) {
                         isEditingStructure = false
                     }
                 } else if let editor {
@@ -422,7 +434,7 @@ struct SongLyricsTab: View {
                     }
                     saveButton(editor)
                 } else {
-                    ImasIconButton(systemImage: "scissors", label: "行の区切りを編集", size: .small) {
+                    ImasIconButton(systemImage: "pencil.and.scissors", label: "歌詞の行を直す・区切る", size: .small) {
                         AppAnalytics.tap("lyric_structure.begin_edit")
                         isEditingStructure = true
                     }
@@ -732,9 +744,22 @@ struct SongLyricsTab: View {
                     )
                     .opacity(structureBusyLineId == line.id ? 0.4 : 1)
                     rubyToggles(line)
-                    if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
-                        HStack {
-                            Spacer(minLength: 0)
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        // 文字を直す (この 1 行だけ。行の数は変わらないので注釈は残る)。
+                        Button {
+                            AppAnalytics.tap("lyric_line_edit.open")
+                            lineEditTarget = line
+                        } label: {
+                            Label("この行を直す", systemImage: "pencil")
+                                .labelStyle(.iconOnly)
+                                .imasText(.meta)
+                                .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(structureBusyLineId != nil)
+                        if index + 1 < lyrics.lines.count, lyrics.lines[index + 1].kind == .lyric {
                             Menu {
                                 ForEach(LyricStructurePayload.Joiner.allCases, id: \.self) { joiner in
                                     Button(joiner.label) {

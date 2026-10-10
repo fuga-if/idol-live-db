@@ -23,9 +23,19 @@ export function clientIp(request: Request): string {
   return request.headers.get("CF-Connecting-IP") || "unknown";
 }
 
-/** X-Device-Id (端末ごとの集計の主体)。無ければ 400。 */
+/**
+ * 運営が入れた票 (公式タグの初期値など) の端末 ID の接頭辞。端末の記録 (device_*_tag) に
+ * この形で入っている行は利用者の票ではない。利用者の端末はこの接頭辞を名乗れない
+ * (名乗れると、運営の票を外したり、運営の票のふりをしたりできる)。
+ */
+export const OFFICIAL_DEVICE_PREFIX = "official:";
+
+/** X-Device-Id (端末ごとの集計の主体)。無ければ 400。運営の接頭辞も 400。 */
 export function requireDeviceId(ctx: ErrorResponder & Pick<RouteContext, "request">): string | Response {
-  return ctx.request.headers.get("X-Device-Id") || ctx.error("X-Device-Id header is required");
+  const deviceId = ctx.request.headers.get("X-Device-Id");
+  if (!deviceId) return ctx.error("X-Device-Id header is required");
+  if (deviceId.startsWith(OFFICIAL_DEVICE_PREFIX)) return ctx.error("invalid X-Device-Id");
+  return deviceId;
 }
 
 /**

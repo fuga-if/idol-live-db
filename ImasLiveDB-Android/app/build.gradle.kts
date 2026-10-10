@@ -53,8 +53,8 @@ android {
         applicationId = "site.fugaapp.imaslivedb"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 9
-        versionName = "2.4.0"
+        versionCode = 13
+        versionName = "2.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -212,6 +212,10 @@ dependencies {
     if (hasMusicKit) implementation(libs.androidx.appcompat)
     // Apple Music のサインインを開くアプリ内ブラウザ (Custom Tabs)。1.8.0 は既存の依存を動かさない版。
     implementation(libs.androidx.browser)
+    // Spotify App Remote SDK (利用者の Spotify アプリと繋いで鳴らす)。Maven に無いので AAR を置いている
+    // (app/spotify-sdk/README.md)。SDK が状態を JSON で受け渡すのに Gson が要る。
+    implementation(files("spotify-sdk/spotify-app-remote-release-0.8.0.aar"))
+    implementation(libs.gson)
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
@@ -276,6 +280,8 @@ dependencies {
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.mlkit.document.scanner)
     implementation(libs.zxing.core)
+    // 歌詞カードの文字認識 (端末内だけ。画像は送らず保存もしない)
+    implementation(libs.mlkit.text.recognition.japanese)
 
     // Debug
     debugImplementation(libs.androidx.ui.tooling)

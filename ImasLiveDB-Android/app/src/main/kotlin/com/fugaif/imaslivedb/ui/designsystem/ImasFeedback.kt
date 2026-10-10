@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fugaif.imaslivedb.di.AppModule
+import com.fugaif.imaslivedb.ui.components.signInWithFeedback
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
@@ -351,7 +352,7 @@ fun ImasSignInPrompt(
     if (state.isSignedIn) return
     val scope = rememberCoroutineScope()
     // signIn はアカウント選択のシートを出すため Activity の context が要る。
-    val signIn: () -> Unit = { scope.launch { auth.signIn(context) } }
+    val signIn: () -> Unit = { scope.launch { auth.signInWithFeedback(context) } }
     Row(
         modifier
             .fillMaxWidth()
@@ -450,6 +451,61 @@ fun ImasErrorAlert(message: String?, onDismiss: () -> Unit, title: String = "保
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
+ * 操作の完了を知らせる (iOS の `.alert("〇〇しました", isPresented:)`)。送信・投稿が
+ * 完了したときなど。[message] が null の間は出ない。閉じると [onDismiss]。
+ */
+@Composable
+fun ImasCompletionAlert(title: String, message: String?, onDismiss: () -> Unit, confirmLabel: String = "OK") {
+    if (message == null) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(confirmLabel) } },
+        containerColor = DS.surface,
+        titleContentColor = DS.ink,
+        textContentColor = DS.ink2
+    )
+}
+
+/**
+ * いくつかの選択肢から 1 つ選んでもらう (iOS `.confirmationDialog` に選択肢を並べる形)。
+ * [isPresented] が true の間だけ出る。選ぶと閉じてから [onPick] に選んだ鍵を渡す。
+ */
+@Composable
+fun ImasChoiceDialog(
+    title: String,
+    isPresented: Boolean,
+    options: List<Pair<String, String>>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+    message: String? = null,
+    dismissTitle: String = "キャンセル"
+) {
+    if (!isPresented) return
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            androidx.compose.foundation.layout.Column {
+                message?.let { Text(it) }
+                options.forEach { (key, label) ->
+                    TextButton(onClick = {
+                        onDismiss()
+                        onPick(key)
+                    }) { Text(label, color = DS.ink) }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissTitle, color = DS.ink) } },
         containerColor = DS.surface,
         titleContentColor = DS.ink,
         textContentColor = DS.ink2

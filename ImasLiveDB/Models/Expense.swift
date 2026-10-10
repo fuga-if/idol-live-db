@@ -23,12 +23,17 @@ struct Expense: Codable, FetchableRecord, PersistableRecord, Identifiable, Hasha
     /// 紐づく公演が属するイベント。イベントで束ねた集計に使う。
     var eventId: String?
     var note: String?
+    /// チケット代を記録したときの券の形態 (`ticketKindRaw(kind:)` の値)。
+    /// 1 公演に複数の形態で参加できるので、二重計上の判定を形態ごとにするための札。
+    /// 手で入れた行と、この列を足す前の行は nil (判定はコアの `ticketKindRecorded` 規則)。
+    var ticketKind: String?
     var updatedAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, date, category, amount, note
         case showId = "show_id"
         case eventId = "event_id"
+        case ticketKind = "ticket_kind"
         case updatedAt = "updated_at"
     }
 
@@ -45,7 +50,8 @@ struct Expense: Codable, FetchableRecord, PersistableRecord, Identifiable, Hasha
         amount: Int64,
         showId: String?,
         eventId: String?,
-        note: String?
+        note: String?,
+        ticketKind: TicketKind? = nil
     ) -> Expense {
         Expense(
             id: UUID().uuidString,
@@ -55,6 +61,7 @@ struct Expense: Codable, FetchableRecord, PersistableRecord, Identifiable, Hasha
             showId: showId,
             eventId: eventId,
             note: note?.isEmpty == true ? nil : note,
+            ticketKind: ticketKind.map { ticketKindRaw(kind: $0) },
             updatedAt: ISO8601DateFormatter.shared.string(from: Date())
         )
     }
@@ -69,4 +76,9 @@ struct Expense: Codable, FetchableRecord, PersistableRecord, Identifiable, Hasha
 
     /// 保存値 → 費目。知らないキーは「その他」に落ちる (コアの規則)。
     var categoryValue: ExpenseCategory { expenseCategoryFromKey(key: category) }
+
+    /// 二重計上の判定 (`ticketExpensePrompt` / `ticketExpenseBackfill`) に渡す射影。
+    var recorded: RecordedShowExpense {
+        RecordedShowExpense(category: category, ticketKind: ticketKind, note: note)
+    }
 }

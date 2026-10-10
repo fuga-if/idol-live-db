@@ -17,6 +17,8 @@ import os
 final class DetailSheetViewModel {
     // MARK: - 楽曲メタ / 歌唱 / 履歴 (SongReading + BrandReading + MusicKit)
     private(set) var history: [PerformanceHistoryRow] = []
+    /// 日付の行 (初出・CD 発売日・配信開始日)。読むまでは nil で、その間は初出 (release_date) だけ出す。
+    private(set) var dateRows: [SongDateRow]?
     private(set) var originalArtists: [Idol] = []
     private(set) var performerArtists: [Idol] = []
     private(set) var artworkInfo: MusicKitSongInfo?
@@ -91,6 +93,7 @@ final class DetailSheetViewModel {
         // 読んだ値はまとめて入れる (1 つずつ入れると、そのたびに画面を組み直して重い)。
         do {
             let history = try await songReading.songPerformanceHistory(songId: song.id)
+            let dateRows = try await songReading.songDateRows(songId: song.id)
             let originalArtists = try await songReading.songArtists(songId: song.id, role: "original")
             let performerArtists = try await songReading.songArtists(songId: song.id, role: "performer")
             var brand: Brand?
@@ -102,6 +105,7 @@ final class DetailSheetViewModel {
             let relatedSongs = try await songReading.relatedSongs(to: song, limit: 8)
             let variantSongs = try await songReading.variantSongs(of: song)
             self.history = history
+            self.dateRows = dateRows
             self.originalArtists = originalArtists
             self.performerArtists = performerArtists
             if brand != nil { self.brand = brand }
@@ -271,13 +275,15 @@ final class DetailSheetViewModel {
             rows.append(SongInfoRow(key: "CDシリーズ",
                                     kind: .navigate(value: cdSeries, destination: .filteredSongs(.cdSeries(cdSeries)))))
         }
-        if let date = song.releaseDate {
-            let year = String(date.prefix(4))
-            if year.count == 4, Int(year) != nil {
-                rows.append(SongInfoRow(key: "リリース日",
-                                        kind: .navigate(value: date, destination: .filteredSongs(.releaseYear(year)))))
+        for dateRow in dateRows(for: song) {
+            let year = String(dateRow.date.prefix(4))
+            // 「その年の曲」の一覧は release_date で引くので、飛べるのはその日付の初出の行だけ。
+            if dateRow.kind == .firstAppearance, year.count == 4, Int(year) != nil {
+                rows.append(SongInfoRow(key: dateRow.label,
+                                        kind: .navigate(value: dateRow.display,
+                                                        destination: .filteredSongs(.releaseYear(year)))))
             } else {
-                rows.append(SongInfoRow(key: "リリース日", kind: .plain(value: date, mono: false)))
+                rows.append(SongInfoRow(key: dateRow.label, kind: .plain(value: dateRow.display, mono: false)))
             }
         }
         if let dur = durationValue(for: song) {
@@ -287,6 +293,14 @@ final class DetailSheetViewModel {
             rows.append(SongInfoRow(key: "ユニット", kind: .unit(value: unitName, unitId: unitId)))
         }
         return rows
+    }
+
+    /// コアから読んだ日付の行。読む前は release_date だけの初出の行で埋める (行が後から増えるだけで、
+    /// 初出の行が一瞬消えることはない)。
+    private func dateRows(for song: Song) -> [SongDateRow] {
+        if let dateRows { return dateRows }
+        guard let date = song.releaseDate, !date.isEmpty else { return [] }
+        return [SongDateRow(kind: .firstAppearance, label: "初出", date: date, detail: nil, display: date)]
     }
 
     /// クレジット文字列を区切り文字で複数名に分割する。

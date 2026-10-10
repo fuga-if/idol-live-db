@@ -727,6 +727,8 @@ mod tests {
             costume_wears: vec![],
             ticket_sales: sales,
             show_archives,
+            idol_facets: vec![],
+            idol_hairstyles: vec![],
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],

@@ -9,6 +9,14 @@ final class IdolTagPickerViewModel {
     let idolId: String
 
     private(set) var tags: [CommunityTag] = []
+    /// `tags` をカテゴリごとにまとめたもの (検索していないときの見出し分け)。まとめ方はコア。
+    var categoryGroups: [(label: String, tags: [CommunityTag])] {
+        let byId = Dictionary(tags.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let groups = idolTagCategoryGroups(tags: tags.map {
+            TagCategoryInput(id: $0.id, category: $0.category?.rawValue)
+        })
+        return groups.map { group in (group.label, group.tagIds.compactMap { byId[$0] }) }
+    }
     private(set) var myTagIds: Set<String> = []
     private(set) var isLoading = false
     private(set) var isApplying = false

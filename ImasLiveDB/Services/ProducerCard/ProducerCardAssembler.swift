@@ -5,8 +5,9 @@ import UIKit
 struct ProducerCardMyRecord: Sendable {
     /// 担当 (アプリの担当の印)。
     let oshiIds: [String]
-    /// 名刺に載せる担当 (担当から上限まで。ブランドごとに 1 人を先に確保する選び方はコアの `producerCardPickOshi`)。
-    let cardOshiIds: [String]
+    /// 担当の名前とブランド (端末のマスタで引けた人だけ、アプリの並び)。名刺に載せる担当はここから
+    /// 本人の選択で選ぶ (選び方はコアの `producerCardOshiPickedIds`)。
+    let oshiEntries: [CardOshiEntry]
     /// 参加を付けた公演 (今後の参加予定も含む)。
     let attended: [CardShowRef]
     /// 回収した曲の数。
@@ -17,12 +18,18 @@ struct ProducerCardMyRecord: Sendable {
         producerCardRecordSummary(today: JSTDay.today(), attended: attended)
     }
 
-    /// `cardOshiIds` を渡さなければ担当のまま (名刺を組むときに上限で切る)。
-    init(oshiIds: [String], cardOshiIds: [String]? = nil, attended: [CardShowRef], songCount: Int) {
+    /// `oshiEntries` を渡さなければ担当の id だけで組む (ブランドが分からないので、上限まで並び順で載る)。
+    init(oshiIds: [String], oshiEntries: [CardOshiEntry]? = nil, attended: [CardShowRef], songCount: Int) {
         self.oshiIds = oshiIds
-        self.cardOshiIds = cardOshiIds ?? oshiIds
+        self.oshiEntries = oshiEntries
+            ?? oshiIds.map { CardOshiEntry(idolId: $0, name: "", brandId: "", brandLabel: "") }
         self.attended = attended
         self.songCount = songCount
+    }
+
+    /// 名刺に載せる担当 (載せる順)。`choice` は本人の選択 (nil はまだ選んでいない)。
+    func cardOshiIds(choice: [String]?) -> [String] {
+        producerCardOshiPickedIds(chosen: choice, oshi: oshiEntries)
     }
 }
 
@@ -37,17 +44,17 @@ enum ProducerCardAssembler {
         let oshi = try await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)
         let attended = try await c.producerCards.attendedShowRefs()
         let songs = try await c.markReading.autoCollectedSongIds()
-        return ProducerCardMyRecord(oshiIds: oshi, cardOshiIds: await cardOshiIds(oshi), attended: attended,
+        return ProducerCardMyRecord(oshiIds: oshi, oshiEntries: await oshiEntries(oshi), attended: attended,
                                     songCount: songs.count)
     }
 
-    /// 名刺に載せる担当 (担当の名前とブランドを引いて、選び方はコアの `producerCardPickOshi`)。
-    static func cardOshiIds(_ oshi: [String]) async -> [String] {
+    /// 担当の名前とブランド (名刺に載せる担当を選ぶ材料。端末のマスタで引けない担当は入れない)。
+    static func oshiEntries(_ oshi: [String]) async -> [CardOshiEntry] {
         let directory = await ProducerCardDirectory.load(idolIds: oshi, showIds: [])
-        return producerCardPickOshi(oshi: directory.oshiEntries(oshi))
+        return directory.oshiEntries(oshi)
     }
 
-    /// 名刺の入力。外した項目は空にする。
+    /// 名刺の入力。外した項目は空にする。担当は本人の選択 (まだ選んでいなければ自動の選び方) で。
     static func input(card: MyProducerCard, record: ProducerCardMyRecord) -> ProducerCardInput {
         let summary = record.summary
         let limits = producerCardLimits()
@@ -55,7 +62,8 @@ enum ProducerCardAssembler {
             name: card.name,
             message: card.shows(.message) ? card.message : "",
             sinceYear: card.shows(.since) ? card.sinceYear.flatMap(UInt16.init(exactly:)) : nil,
-            oshiIdolIds: card.shows(.oshi) ? Array(record.cardOshiIds.prefix(Int(limits.maxOshi))) : [],
+            oshiIdolIds: card.shows(.oshi)
+                ? Array(record.cardOshiIds(choice: card.cardOshiChoice).prefix(Int(limits.maxOshi))) : [],
             links: card.shows(.links) ? card.links : [],
             showCount: card.shows(.showCount) ? summary.showCount : nil,
             songCount: card.shows(.songCount) ? UInt32(record.songCount) : nil,
@@ -64,7 +72,9 @@ enum ProducerCardAssembler {
             issuedOn: JSTDay.today(),
             design: card.cardDesign,
             qrUrl: card.qrUrl,
-            showBrandLabels: card.shows(.brandLabels)
+            showBrandLabels: card.shows(.brandLabels),
+            // 名刺 id を載せるかはコアの定数 1 か所 (公開中の 2.5.0 が読めないので今は載せない)。
+            cardId: producerCardIdToEmbed(cardId: card.cardId)
         )
     }
 

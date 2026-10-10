@@ -94,6 +94,15 @@ pub struct Song {
     /// 曲の補足 (自由文)。「ミリシタ 1 周年記念楽曲」のように、他の列では持てない
     /// 由来や位置づけを一文で書く。公式の出典があるものだけ入れる。無ければ `None`。
     pub note: Option<String>,
+    /// 配信開始日 (YYYY-MM-DD)。`release_date` は初出 (ゲームへの実装・MV 公開・放送を含む)
+    /// なので、配信はそれより後になることがある。分からなければ `None`。
+    pub streaming_date: Option<String>,
+    /// その曲が最初に収録された CD の発売日 (YYYY-MM-DD)。CD になっていなければ `None`。
+    /// 画面に出す行は [`crate::domain::song_dates::song_date_rows`] が決める。
+    pub cd_release_date: Option<String>,
+    /// 初出が何だったか (「TVアニメ第14話 新OP」「ミリシタ実装」)。初出の行に添える。
+    /// 公式の出典があるものだけ。無ければ `None` (ライブが初出の曲は公演名が自動で添わる)。
+    pub first_appearance_note: Option<String>,
 }
 
 /// idols 全カラム (Bundle スキーマ基準)。
@@ -497,6 +506,39 @@ pub struct CostumeWear {
     pub sort_order: i64,
 }
 
+/// idol_facets の 1 行 (髪以外のアイドルの項目 1 値)。定義は [`crate::domain::idol_facets`]。
+///
+/// 複数値の項目は値ごとに 1 行。`origin` は `official` か `promoted` (タグの票から昇格した値)。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct IdolFacetRow {
+    pub id: String,
+    pub idol_id: String,
+    pub facet: String,
+    pub value: String,
+    pub origin: String,
+    pub source_note: Option<String>,
+    pub sort_order: i64,
+}
+
+/// idol_hairstyles の 1 行 (髪型 1 つぶん)。`styles` / `accessories` は複数値。
+#[derive(Debug, Clone, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct IdolHairstyleRow {
+    pub id: String,
+    pub idol_id: String,
+    /// 「基本」「セカンドヘア」「覚醒後」など。1 人の中で重複しない。
+    pub label: String,
+    pub is_main: bool,
+    pub hair_color: Option<String>,
+    pub hair_color_secondary: Option<String>,
+    pub hair_length: Option<String>,
+    pub styles: Vec<String>,
+    pub bangs: Option<String>,
+    pub accessories: Vec<String>,
+    pub origin: String,
+    pub source_note: Option<String>,
+    pub sort_order: i64,
+}
+
 /// ticket_sales 全カラム。event は events Vec の添字。
 ///
 /// `show_ids` は生の文字列 id のまま持つ (show 添字への解決はしない)。1 イベントの
@@ -653,6 +695,14 @@ pub struct Snapshot {
     pub ticket_sales: Vec<TicketSaleRow>,
     /// 配信のアーカイブ期間。並びは (show 添字, ticket_id)。
     pub show_archives: Vec<ShowArchiveRow>,
+    /// アイドルの項目 (idol_facets)。並びは (idol_id, facet, sort_order, id)。表が無い DB では空。
+    pub idol_facets: Vec<IdolFacetRow>,
+    /// idols と同じ添字。そのアイドルの項目行 (idol_facets 添字群)。
+    pub idol_facets_by_idol: Vec<Vec<u32>>,
+    /// アイドルの髪型 (idol_hairstyles)。並びは (idol_id, sort_order, id)。表が無い DB では空。
+    pub idol_hairstyles: Vec<IdolHairstyleRow>,
+    /// idols と同じ添字。そのアイドルの髪型 (idol_hairstyles 添字群)。
+    pub idol_hairstyles_by_idol: Vec<Vec<u32>>,
     /// Documents 専用表。表が無い DB (Bundle) では空。
     pub event_releases: Vec<EventRelease>,
     /// meta 表 (key → value)。value が NULL の行は載せない

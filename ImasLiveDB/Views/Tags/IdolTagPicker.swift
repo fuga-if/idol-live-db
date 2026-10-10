@@ -47,15 +47,27 @@ struct IdolTagPicker: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: DS.Space.header) {
-                    ImasSectionHeader(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補", style: .small)
-                    if vm.isLoading {
-                        ImasInlineLoading()
-                    } else if vm.tags.isEmpty {
-                        ImasNote("タグが見つかりません")
-                    } else {
-                        ImasChipFlow {
-                            ForEach(vm.tags) { tag in tagChip(tag) }
+                if trimmedSearch.isEmpty && !vm.isLoading && !vm.tags.isEmpty {
+                    // 検索していないときはカテゴリ (性格・容姿 …) ごとに見出しを分ける。中はよく使われる順。
+                    ForEach(vm.categoryGroups, id: \.label) { group in
+                        VStack(alignment: .leading, spacing: DS.Space.header) {
+                            ImasSectionHeader(group.label, style: .small)
+                            ImasChipFlow {
+                                ForEach(group.tags) { tag in tagChip(tag) }
+                            }
+                        }
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: DS.Space.header) {
+                        ImasSectionHeader(trimmedSearch.isEmpty ? "よく使われるタグ" : "候補", style: .small)
+                        if vm.isLoading {
+                            ImasInlineLoading()
+                        } else if vm.tags.isEmpty {
+                            ImasNote("タグが見つかりません")
+                        } else {
+                            ImasChipFlow {
+                                ForEach(vm.tags) { tag in tagChip(tag) }
+                            }
                         }
                     }
                 }

@@ -14,6 +14,7 @@ import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
 import uniffi.imas_core.cardLinkView
 import uniffi.imas_core.producerCardLimits
+import uniffi.imas_core.producerCardOshiPickedIds
 
 /**
  * P名刺の画像 (SNS に貼る履歴書の様式) に載る担当 1 人 (押印欄の判子と担当の行)。iOS `ProfileSheetOshi` と対。
@@ -59,10 +60,12 @@ object ProfileSheetAssembler {
     suspend fun load(context: Context, module: AppModule, card: MyProducerCard): ProfileSheetMaterials {
         val limits = producerCardLimits()
         val marks = module.userMarkRepository
-        // 載せる担当は名刺と同じ選び方 (ブランドごとに 1 人を先に確保して上限まで。規則はコア)。
-        val oshiIds = ProducerCardAssembler.cardOshiIds(
+        // 載せる担当は名刺に載せた担当 (本人の選択。まだ選んでいなければブランドごとに 1 人を先に確保して
+        // 上限まで。規則はコア)。
+        val entries = ProducerCardAssembler.oshiEntries(
             module, runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList())
-        ).take(limits.maxOshi.toInt())
+        )
+        val oshiIds = producerCardOshiPickedIds(card.cardOshiChoice, entries).take(limits.maxOshi.toInt())
         val repo = module.producerCardRepository
         val attendedRefs = runCatching { repo.attendedShowRefs() }.getOrDefault(emptyList())
         val shows = runCatching { repo.showInfos(attendedRefs.map { it.showId }) }.getOrDefault(emptyMap())

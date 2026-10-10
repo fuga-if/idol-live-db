@@ -199,8 +199,7 @@ struct IdolPickerView: View {
     @ViewBuilder
     private var brandFilterBar: some View {
         if !brands.isEmpty {
-            ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-                .padding(.horizontal, DS.sp4)
+            ImasBrandPicker(brands: brands, selection: $selectedBrandIds, layout: .row)
                 .padding(.vertical, DS.sp3)
                 .background(DS.surface)
             ImasRowDivider()
@@ -333,8 +332,7 @@ private struct UnitMemberAddPicker: View {
         NavigationStack {
             VStack(spacing: 0) {
                 if !brands.isEmpty {
-                    ImasBrandPicker(brands: brands, selection: $selectedBrandIds)
-                        .padding(.horizontal, DS.sp4)
+                    ImasBrandPicker(brands: brands, selection: $selectedBrandIds, layout: .row)
                         .padding(.vertical, DS.sp3)
                         .background(DS.surface)
                     ImasRowDivider()

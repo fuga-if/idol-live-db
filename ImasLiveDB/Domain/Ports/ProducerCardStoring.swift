@@ -16,8 +16,19 @@ protocol ProducerCardStoring: Sendable {
     func receivedCard(id: String) async throws -> ReceivedProducerCard?
     /// 同じ中身の名刺が既にあればそれを返す (同じ相手を 2 回読んでも 2 枚にしない)。
     func receivedCard(payload: String) async throws -> ReceivedProducerCard?
-    /// 同じ中身の名刺が無ければ足し、あればそれを返す (探すのと足すのは 1 つの書き込み)。
-    func insertReceivedIfNew(_ card: ReceivedProducerCard) async throws -> ReceivedProducerCard
+    /// 名刺をしまう。同じ人の名刺があれば 1 枚にまとめて中身を新しい方に替え、会った記録を積む
+    /// (しまい方はコアの `cardReceivePlan`。探すのと書くのは 1 つの書き込み)。同じ人か確かめる名刺は `choice` で
+    /// (`.undecided` なら別の名刺として足す)。
+    func receive(_ card: ReceivedProducerCard, matchSamePerson: Bool,
+                 choice: CardSamePersonChoice) async throws -> ReceivedProducerCard
+    /// 届いた名刺が名刺入れのある名刺と同じ人か確かめる必要があれば、その確認の画面 (コアの `cardSamePersonConfirm`)。
+    func samePersonConfirm(payload: String) async throws -> CardSamePersonConfirm?
+    /// 名刺の中身を会った記録のときの中身に戻す (詳細の「この時の名刺に戻す」)。
+    func restorePayload(cardId: String, meetingId: String) async throws
+    /// 会った記録 (`cardId` が nil なら全部)。
+    func meetings(cardId: String?) async throws -> [ReceivedCardMeeting]
+    /// 最後に会った記録の公演を変える (名刺の行にも写す)。
+    func changeLatestMeetingShow(cardId: String, showId: String?, showDate: String?) async throws
     /// 同じ id があれば上書きし、無ければ足す。
     func saveReceived(_ card: ReceivedProducerCard) async throws
     func deleteReceived(id: String) async throws

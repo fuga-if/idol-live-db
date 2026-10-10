@@ -85,6 +85,34 @@ class LyricsApi(private val client: WorkerHttpClient) {
         check(client.request("PUT", "/songs/${seg(songId)}/parts", body), "パート分けを保存できませんでした")
     }
 
+    /**
+     * 歌詞の投稿 (POST /songs/:id/lyric-submissions)。歌詞の無い曲ならその場で公開され、
+     * 運営はあとから確認する。既に歌詞のある曲への投稿も、その場で公開される (前の版はサーバに残る)。
+     * ログイン必須・1 日 20 曲 (サーバの rate limit)。応答に本文は返らない。
+     *
+     * 投稿ガイドラインへの同意が必須 (入力元は書かせない。どこから写したかは確かめようがないので
+     * 規約で縛る)。ボディは Worker 側 (`routes/lyric_submissions.ts`) と同じ snake_case
+     * (`agreed_to_guideline` / `text`)。
+     *
+     * @return 公開されたら true (歌詞の無い曲)、預かっただけなら false。
+     */
+    suspend fun submitLyricSubmission(songId: String, text: String): Boolean = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("agreed_to_guideline", true)
+            .put("text", text)
+        val res = client.request("POST", "/songs/${seg(songId)}/lyric-submissions", body)
+        check(res, "歌詞を送信できませんでした")
+        JSONObject(res.body ?: "{}").optBoolean("published", false)
+    }
+
+    /** 公開中の歌詞の 1 行だけを直す (PUT /songs/:id/lyric-lines/:line_id)。すぐ公開される。 */
+    suspend fun editLine(songId: String, lineId: String, text: String) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("agreed_to_guideline", true)
+            .put("text", text)
+        check(client.request("PUT", "/songs/${seg(songId)}/lyric-lines/${seg(lineId)}", body), "行を直せませんでした")
+    }
+
     /** 行をくっつける / 切り離す (POST /songs/:id/lyric-structure)。文字は変わらない。 */
     suspend fun editStructure(songId: String, change: StructureChange) = withContext(Dispatchers.IO) {
         val body = when (change) {
@@ -97,6 +125,25 @@ class LyricsApi(private val client: WorkerHttpClient) {
                 .put("at", change.at).put("base", change.base)
         }
         check(client.request("POST", "/songs/${seg(songId)}/lyric-structure", body), "行の区切りを変えられませんでした")
+    }
+
+    /** 歌詞の報告 (POST /songs/:id/lyrics-report)。運営の GitHub の issue になる。本文は送らない。 */
+    suspend fun report(songId: String, reason: String, note: String = "") = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("reason", reason).put("note", note)
+        check(client.request("POST", "/songs/${seg(songId)}/lyrics-report", body), "報告を送れませんでした")
+    }
+
+    /** モデレーター: 公開 ⇄ 非公開 (POST /admin/lyrics/status)。本文は消さない。 */
+    suspend fun setPublished(songId: String, isPublished: Boolean) = withContext(Dispatchers.IO) {
+        val body = JSONObject()
+            .put("song_ids", JSONArray(listOf(songId)))
+            .put("status", if (isPublished) "published" else "draft")
+        check(client.request("POST", "/admin/lyrics/status", body), "公開状態を変えられませんでした")
+    }
+
+    /** モデレーター: 投稿で上書きされる前の版に 1 つ戻す (POST /admin/lyrics/:id/restore)。 */
+    suspend fun restorePrevious(songId: String) = withContext(Dispatchers.IO) {
+        check(client.request("POST", "/admin/lyrics/${seg(songId)}/restore"), "前の版に戻せませんでした")
     }
 
     private fun check(res: com.fugaif.imaslivedb.data.net.WorkerResponse, message: String) {

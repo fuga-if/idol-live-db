@@ -62,7 +62,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasSetupHeader
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatGrid
 import com.fugaif.imaslivedb.ui.designsystem.ImasStatTile
 import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
-import com.fugaif.imaslivedb.ui.games.GameBrandFilterGrid
+import com.fugaif.imaslivedb.ui.components.ImasBrandPicker
 import com.fugaif.imaslivedb.ui.songs.IdolMultiPickerPage
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
@@ -396,14 +396,10 @@ private fun SavedBoardsSection(boards: List<TierListBoard>, onOpen: (TierListBoa
 @Composable
 private fun BrandSection(state: SortMakerSetupUiState, onChange: (Set<String>) -> Unit) {
     Section(title = "ブランド", note = "複数選択可 · 空=全ブランド") {
-        GameBrandFilterGrid(
+        ImasBrandPicker(
             brands = state.brands,
-            selectedBrandIds = state.scope.brandIds,
-            onToggle = { id ->
-                val updated = if (state.scope.brandIds.contains(id)) state.scope.brandIds - id else state.scope.brandIds + id
-                onChange(updated)
-            },
-            onClearAll = { onChange(emptySet()) }
+            selection = state.scope.brandIds,
+            onSelectionChange = onChange
         )
     }
 }

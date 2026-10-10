@@ -21,7 +21,8 @@
 #   - 本体 build/ の古いビルド出力 (imas-core / Export / asc / *.xcarchive 以外)
 #   - XcodeBuildMCP の作業場のうち、もう無い worktree のもの
 #   - 利用できなくなったシミュレータ
-# 共有置き場 (target-shared・~/Library/Caches/imas-live-db) は使い回すので消さない。
+# 共有置き場 (target-shared・~/Library/Caches/imas-live-db) はここでは消さない。
+# 古くなったものは intro の clean_caches.py が消す (CLAUDE.md を参照)。
 set -euo pipefail
 
 APPLY=0

@@ -1,12 +1,14 @@
 //! FFI 面: #[uniffi::export] はこの層にだけ置く (domain への薄い委譲)。
 
 pub mod assistant_tools;
+pub mod attendance;
 pub mod backup_import_summary;
 pub mod backup_summary;
 pub mod calendar_queries;
 pub mod ck_record_mapping;
 pub mod color_match;
 pub mod color_quiz;
+pub mod contribution_feedback;
 pub mod costume_queries;
 pub mod daily_pick;
 pub mod edit_permission_rules;
@@ -26,8 +28,10 @@ pub mod ledger;
 pub mod lyrics_quiz;
 pub mod mastery;
 pub mod now_playing;
+pub mod spotify;
 pub mod oshi_theme_resolution;
 pub mod poll_result_card;
+pub mod card_meetings;
 pub mod producer_card;
 pub mod favorite_song_picks;
 pub mod profile_sheet;
@@ -70,6 +74,7 @@ pub mod idol_detail;
 pub mod intro_don_session;
 pub mod list_grouping;
 pub mod lyric_chunks;
+pub mod lyric_submission;
 pub mod lyric_sync;
 pub mod lyrics_query;
 pub mod next_song;

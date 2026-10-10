@@ -1,5 +1,6 @@
 package com.fugaif.imaslivedb.data.producercard
 
+import uniffi.imas_core.CardReceiveVia
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -27,10 +28,9 @@ data class IncomingProducerCard(
     val payload: String,
     /** 名刺ファイルに入っていた担当の画像。 */
     val images: List<CardFileImage>,
-    val via: Via
-) {
-    enum class Via { SCAN, LINK, FILE }
-}
+    /** 受け取り方 (カメラの QR・リンク・名刺ファイル)。 */
+    val via: CardReceiveVia
+)
 
 /** アプリの外から開かれた P名刺 (iOS `Deeplink.producerCard` / `.producerCardFile` と対)。 */
 sealed interface ProducerCardIntent {

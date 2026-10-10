@@ -12,6 +12,7 @@ import SwiftUI
 // ImasTierItems    段の中・未分類の並び。段の中は回り込み (flow)、未分類は数千件になりうるので
 //                  見えている分だけ描く格子 (grid)。空のときは 1 行の文。
 // ImasTierChip     表に置く 1 枚 (ジャケかアイコン + 名前 1 行)。選ぶと色の地と枠で浮く。
+//                  ドラッグで上に来ている間は左の隙間に墨の縦線 (「この左に入る」の印) を出す。
 // ImasTierMoveBar  選んでいる間だけ下に出す「〇〇をどこへ？」の帯。段のボタンを 6 列で折り返し、
 //                  最後に未分類へ戻すボタン。
 //
@@ -182,6 +183,8 @@ struct ImasTierChip<Media: View>: View {
     var seed: String?
     var brand: String?
     let isSelected: Bool
+    /// ドラッグで上に来ている間 true。左の隙間に「この左に入る」の縦線を出す。
+    var showsInsertMark = false
     /// 読み上げの名前。項目が読めなかったときの「不明」など、表示と変えたいときだけ渡す。
     var accessibilityTitle: String? = nil
     @ViewBuilder var media: (_ size: CGFloat) -> Media
@@ -202,6 +205,17 @@ struct ImasTierChip<Media: View>: View {
         .background(isSelected ? theme.tint : .clear, in: shape)
         .overlay(shape.stroke(theme.accent, lineWidth: isSelected ? 2.5 : 0))
         .scaleEffect(isSelected ? 1.06 : 1)
+        .overlay(alignment: .leading) {
+            // 並びの隙間 (6pt) の真ん中に 3pt の線。
+            if showsInsertMark {
+                Capsule().fill(DS.ink)
+                    .frame(width: 3)
+                    .padding(.vertical, DS.sp1)
+                    .offset(x: -4.5)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: showsInsertMark)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityTitle ?? title)

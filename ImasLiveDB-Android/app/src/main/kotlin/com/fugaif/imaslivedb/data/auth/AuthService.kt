@@ -39,7 +39,9 @@ data class AuthState(
      * 起動時の [AuthService.refreshMe] (`GET /auth/me`) と、編集 API が 403 を返した時の
      * [AuthService.markBannedFromServer]。
      */
-    val isBanned: Boolean = false
+    val isBanned: Boolean = false,
+    /** 公演ページの奥付に表示名を載せるか (`GET /auth/me` の creditOptIn。既定は載せない)。 */
+    val creditOptIn: Boolean = false
 )
 
 /**
@@ -134,6 +136,14 @@ class AuthService(
     fun signOut() {
         prefs?.edit()?.clear()?.apply()
         _state.value = AuthState()
+        signOutListeners.forEach { it() }
+    }
+
+    /** サインアウトで捨てるアカウントごとの値を持つ側が登録する (手応えの既読位置など)。 */
+    private val signOutListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+
+    fun addSignOutListener(listener: () -> Unit) {
+        signOutListeners += listener
     }
 
     /**
@@ -170,7 +180,8 @@ class AuthService(
             _state.value = _state.value.copy(
                 isAdmin = isAdmin,
                 isBanned = isBanned,
-                displayName = displayName ?: _state.value.displayName
+                displayName = displayName ?: _state.value.displayName,
+                creditOptIn = json.optBoolean("creditOptIn", _state.value.creditOptIn)
             )
         } catch (e: Exception) {
             Log.w(TAG, "refreshMe failed: ${e.message}")
@@ -188,6 +199,11 @@ class AuthService(
         if (lastMeRefreshMs != 0L && nowMs - lastMeRefreshMs < ME_REFRESH_INTERVAL_MS) return
         lastMeRefreshMs = nowMs
         refreshMe()
+    }
+
+    /** 奥付の掲載の切り替えをサーバが受け付けたら写す。 */
+    fun adoptCreditOptIn(isOn: Boolean) {
+        _state.value = _state.value.copy(creditOptIn = isOn)
     }
 
     /**

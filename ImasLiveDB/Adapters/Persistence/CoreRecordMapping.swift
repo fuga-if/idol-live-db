@@ -391,7 +391,10 @@ enum CoreRecordMapping {
             jointBrandIds: record.jointBrandIds,
             isCollab: record.isCollab,
             hasKamisabiCard: record.hasKamisabiCard,
-            note: record.note
+            note: record.note,
+            streamingDate: record.streamingDate,
+            cdReleaseDate: record.cdReleaseDate,
+            firstAppearanceNote: record.firstAppearanceNote
         )
     }
 

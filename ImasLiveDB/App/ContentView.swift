@@ -108,6 +108,7 @@ struct ContentView: View {
         // Picker/Toggle 等コントロールのラベルも文字サイズ設定に追従する。
         // (ナビタイトル/タブバー等の UIKit chrome は OS 管轄なので対象外)
         .environment(\.font, .imasBody)
+        .spotifyPlaybackAlert()
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showSettings = true
         }
