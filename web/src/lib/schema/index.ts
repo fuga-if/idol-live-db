@@ -30,6 +30,7 @@ export type { CallGuidePage } from "./CallGuidePage";
 export type { CallGuideSongRow } from "./CallGuideSongRow";
 export type { CallGuideVocabulary } from "./CallGuideVocabulary";
 export type { CardCatalog } from "./CardCatalog";
+export type { CastKind } from "./CastKind";
 export type { CoOccurRow } from "./CoOccurRow";
 export type { Countdown } from "./Countdown";
 export type { Counts } from "./Counts";

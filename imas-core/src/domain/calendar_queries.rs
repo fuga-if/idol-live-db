@@ -732,6 +732,7 @@ mod tests {
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],
+            show_cast_performers: vec![],
             unit_members: vec![],
             idol_brands: vec![],
         })

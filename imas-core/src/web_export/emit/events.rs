@@ -409,6 +409,10 @@ fn setlist_rows(
                             reference: ctx.idol_ref(&p.idol_id)?,
                             // 「同じ名前を 2 つ配らない」判断はコアに任せる。
                             cast_name: detail::distinct_cast_name(p).map(str::to_string),
+                            cast_kind: match p.performer_kind {
+                                detail::PerformerKind::Voice => CastKind::Voice,
+                                detail::PerformerKind::Stage => CastKind::Stage,
+                            },
                         })
                     })
                     .collect(),
@@ -700,6 +704,7 @@ mod tests {
             song_artists: vec![],
             setlist_performers: vec![],
             show_cast: vec![],
+            show_cast_performers: vec![],
             unit_members: vec![],
             idol_brands: vec![],
         });

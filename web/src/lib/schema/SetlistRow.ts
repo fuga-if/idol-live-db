@@ -23,7 +23,7 @@ number: number, notes: string | null,
  */
 unitLabel: string | null, song: Ref, 
 /**
- * 歌唱メンバー。`display_name` は**コアが現任 CV で解決済み**。
+ * 歌唱メンバー。演者名は**コアがその公演の演者で解決済み**。
  */
 performers: Array<PerformerRef>, 
 /**

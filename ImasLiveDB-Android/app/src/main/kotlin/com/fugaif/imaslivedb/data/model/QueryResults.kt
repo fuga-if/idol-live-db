@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.data.model
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
+import uniffi.imas_core.PerformerKind
 import uniffi.imas_core.dateRangeDisplay
 
 // MARK: - Event Query Results
@@ -52,7 +53,9 @@ data class PerformerRow(
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "idol_color") val idolColor: String?,
     @ColumnInfo(name = "idol_name") val idolName: String?,
-    @ColumnInfo(name = "idol_id") val idolId: String?
+    @ColumnInfo(name = "idol_id") val idolId: String?,
+    /** [name] が声優か、声優以外 (舞台の俳優) か。決めるのはコア (`show_performer`)。 */
+    val performerKind: PerformerKind = PerformerKind.VOICE
 )
 
 data class AllPerformerRow(

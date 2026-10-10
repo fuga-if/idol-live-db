@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, HashMap};
 use crate::domain::snapshot::{
     Anniversary, Brand, BrandMemberLink, Costume, CostumeWear, Creator, Event, EventRelease, Idol,
     IdolBrandLink, IdolSongLink,
-    IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff,
+    IdolVoiceActor, SetlistItem, Show, ShowCastLink, ShowCastPerformer, Snapshot, Song, SongArtistLink, Staff,
     IdolFacetRow, IdolHairstyleRow, ShowArchiveRow, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
 use crate::domain::text_search_index::TextSearchIndex;
@@ -63,6 +63,10 @@ pub struct RawTables {
     pub setlist_performers: Vec<(String, String)>,
     /// (show_id, idol_id, cast_role)
     pub show_cast: Vec<(String, String, Option<String>)>,
+    /// (show_id, idol_id, performer_name)。声優以外が演じた公演だけの行。
+    /// 後から足した表なので、古い tables.json に無くても読めるよう既定値を許す。
+    #[serde(default)]
+    pub show_cast_performers: Vec<(String, String, String)>,
     /// (unit_id, idol_id)
     pub unit_members: Vec<(String, String)>,
     /// (idol_id, brand_id, is_primary)
@@ -97,6 +101,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         song_artists,
         setlist_performers,
         show_cast,
+        show_cast_performers,
         unit_members,
         idol_brands,
     } = raw;
@@ -254,6 +259,20 @@ pub fn build(raw: RawTables) -> Snapshot {
     }
     for list in &mut cast_by_show {
         list.sort_by_key(|l| idol_sort_key(&idols, l.idol));
+    }
+
+    // show_cast_performers → 公演ごとの演者。親の無い孤児行は読み飛ばす。
+    let mut cast_performers_by_show: Vec<Vec<ShowCastPerformer>> = vec![Vec::new(); shows.len()];
+    for (show_id, idol_id, name) in show_cast_performers {
+        let (Some(&si), Some(&ii)) =
+            (show_index_by_id.get(&show_id), idol_index_by_id.get(&idol_id))
+        else {
+            continue;
+        };
+        cast_performers_by_show[si as usize].push(ShowCastPerformer { idol: ii, name });
+    }
+    for list in &mut cast_performers_by_show {
+        list.sort_by_key(|p| p.idol);
     }
     for list in &mut cast_shows_by_idol {
         list.sort_by_key(|&i| {
@@ -624,6 +643,7 @@ pub fn build(raw: RawTables) -> Snapshot {
         performed_items_by_idol,
         cast_by_show,
         cast_shows_by_idol,
+        cast_performers_by_show,
         members_by_unit,
         units_by_idol,
         songs_by_unit,

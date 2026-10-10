@@ -478,6 +478,7 @@ fn show_page() -> ShowPage {
                         performers: vec![PerformerRef {
                             reference: idol_mirai(),
                             cast_name: Some("山崎はるか".to_string()),
+                            cast_kind: CastKind::Voice,
                         }],
                         full_cast_label: None,
                         lineup: Some(LineupNote {
@@ -532,10 +533,12 @@ fn show_page() -> ShowPage {
                         PerformerRef {
                             reference: idol_mirai(),
                             cast_name: Some("山崎はるか".to_string()),
+                            cast_kind: CastKind::Voice,
                         },
                         PerformerRef {
                             reference: idol_shizuka(),
                             cast_name: Some("田所あずさ".to_string()),
+                            cast_kind: CastKind::Voice,
                         },
                     ],
                     full_cast_label: Some("全員".to_string()),

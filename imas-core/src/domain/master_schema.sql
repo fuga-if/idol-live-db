@@ -60,6 +60,14 @@ CREATE TABLE "show_cast" (
             FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE,
             FOREIGN KEY (idol_id) REFERENCES idols(id) ON DELETE CASCADE
         );
+CREATE TABLE show_cast_performers (
+            show_id TEXT NOT NULL,
+            idol_id TEXT NOT NULL,
+            performer_name TEXT NOT NULL,
+            PRIMARY KEY (show_id, idol_id),
+            FOREIGN KEY (show_id) REFERENCES shows(id) ON DELETE CASCADE,
+            FOREIGN KEY (idol_id) REFERENCES idols(id) ON DELETE CASCADE
+        );
 CREATE TABLE show_tickets (
             id TEXT PRIMARY KEY NOT NULL,
             show_id TEXT NOT NULL,

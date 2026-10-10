@@ -80,6 +80,11 @@ pub fn expected_tables() -> Vec<TableSpec> {
         spec("setlist_performers", Master, &["setlist_item_id", "idol_id"],
              "その披露の歌唱メンバー (複合 PK)"),
         spec("show_cast", Master, &["show_id", "idol_id"], "公演の出演者 (複合 PK)"),
+        spec("show_cast_performers", Master, &["show_id", "idol_id", "performer_name"],
+             "その公演でアイドルを演じた人。**声優以外が演じたときだけ行を作る** (舞台の俳優)。\
+              無ければ演者は公演日の CV。決め方は event_detail_queries::show_performer。\
+              **CloudKit では配らない** (song_units / meta と同じ扱い。export_cloudkit.py は\
+              db/master.sql から引き継ぐ)。端末には同梱 DB の reseed でだけ届く"),
         spec("creators", Master, &["id", "name", "name_kana"],
              "作詞・作曲・編曲の作家とその読み (人単位・所属つきの表記)。\n\
               曲側に持たせない: 読みは人の属性で、同じ人が数十曲に出るため。\n\

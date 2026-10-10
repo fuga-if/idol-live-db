@@ -125,7 +125,7 @@ web_dto! {
         /// `setlist_items.unit_name`。**この披露限りの表記**で、曲のユニットとは別物。
         pub unit_label: Option<String>,
         pub song: Ref,
-        /// 歌唱メンバー。`display_name` は**コアが現任 CV で解決済み**。
+        /// 歌唱メンバー。演者名は**コアがその公演の演者で解決済み**。
         pub performers: Vec<PerformerRef>,
         /// 公演の出演者全員で歌う行なら `全員`。
         /// 判定 (出演者 2 人以上・歌唱者と完全一致) は `domain::setlist_lineup::row_lineup` が持つ。
@@ -218,14 +218,28 @@ web_dto! {
     pub struct PerformerRef {
         #[serde(rename = "ref")]
         pub reference: Ref,
-        /// 現任 CV 名。**アイドル名と違うときだけ入る** (CV 不在なら `None`)。
-        /// アイドル名は `reference.name`。
+        /// その公演でアイドルを演じた人の名前 (公演日の CV。舞台なら俳優)。
+        /// **アイドル名と違うときだけ入る** (演者不明なら `None`)。
+        /// アイドル名は `reference.name`。決め方は `event_detail_queries::show_performer`。
         ///
         /// **どちらを出すかは受け手が決めない。** 表示の規則は
         /// `domain::event_detail_queries::performer_display_name` が持ち、
         /// 閲覧者が選んだモードに従って主/副を返す。ここは素材を両方渡すだけで、
         /// 「同じ名前を 2 つ持たせない」判断もその関数 (`Both` の副) に任せる。
         pub cast_name: Option<String>,
+        /// `cast_name` が声優か俳優か。俳優 (`stage`) には「CV.」を添えない。
+        pub cast_kind: CastKind,
+    }
+}
+
+web_dto! {
+    /// 演者の種別 (`domain::event_detail_queries::PerformerKind` の写し)。
+    #[derive(Copy, Eq)]
+    pub enum CastKind {
+        /// 声優。
+        Voice,
+        /// 声優以外 (舞台の俳優など)。
+        Stage,
     }
 }
 

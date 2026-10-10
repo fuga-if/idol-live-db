@@ -111,11 +111,48 @@ pub struct SetlistEntryRecord {
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct SetlistPerformerRecord {
     pub idol_id: String,
-    /// 表示名 = 現任 CV 名 (交代待ちで現任不在ならアイドル名)。
-    /// SQL の `COALESCE((SELECT v.name ... valid_to IS NULL ...), i.name)` 相当。
+    /// 表示名 = **その公演でアイドルを演じた人** ([`show_performer`])。
+    /// 演者が分からなければアイドル名。
     pub display_name: String,
     pub idol_name: String,
     pub idol_color: Option<String>,
+    /// `display_name` が声優か、声優以外 (舞台の俳優) か。「CV」と添えてよいかはこれで決める。
+    pub performer_kind: PerformerKind,
+}
+
+/// 公演でアイドルを演じた人の種別。
+#[derive(uniffi::Enum, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PerformerKind {
+    /// 声優 (CV)。
+    Voice,
+    /// 声優以外 (舞台の俳優など)。「CV」とは添えない。
+    Stage,
+}
+
+/// 公演でアイドルを演じた人。
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShowPerformer {
+    pub name: String,
+    pub kind: PerformerKind,
+}
+
+/// 公演 `show` でアイドル `idol` を演じた人。**決め方はここ 1 か所。**
+///
+/// 1. `show_cast_performers` の行 (声優以外が演じた公演だけにある) → 種別 Stage
+/// 2. 公演日に担当していた CV (`valid_from <= 日付 <= valid_to`、NULL は開区間)
+/// 3. 現任 CV (交代の谷間など、公演日に当てはまる人が居ないとき)
+/// 4. どれも無ければ None (呼び出し側がアイドル名に落とす)
+///
+/// 現任 CV を一律に出していた頃は、交代前の公演に後任の名前が出ていた
+/// (2019 年の三峰結華に、2022 年からの希水しお)。
+pub fn show_performer(snap: &Snapshot, show: u32, idol: u32) -> Option<ShowPerformer> {
+    if let Some(name) = snap.cast_performer_name(show, idol) {
+        return Some(ShowPerformer { name: name.to_string(), kind: PerformerKind::Stage });
+    }
+    let date = snap.shows.get(show as usize).map(|s| s.date.as_str());
+    date.and_then(|d| snap.voice_actor_on(idol, d))
+        .or_else(|| snap.current_voice_actor(idol))
+        .map(|va| ShowPerformer { name: va.name.clone(), kind: PerformerKind::Voice })
 }
 
 /// セトリの歌唱者をどの名前で出すか。**画面ごとに分岐を書かないための 1 本。**
@@ -127,9 +164,9 @@ pub struct SetlistPerformerRecord {
 pub enum PerformerNameMode {
     /// アイドル名だけ。既定 (アプリの簡易表示がこれだった)。
     IdolOnly,
-    /// 現任 CV 名だけ。CV が居なければアイドル名。
+    /// 演者名 (公演日の CV・舞台なら俳優) だけ。分からなければアイドル名。
     CastOnly,
-    /// アイドル名 + CV 名。
+    /// アイドル名 + 演者名。
     Both,
     /// 公演に合わせる。キャラライブ = アイドル名 / 声優ライブ = CV 名。
     FollowShow,
@@ -227,7 +264,7 @@ pub fn performer_display_name(
     is_character_live: bool,
 ) -> PerformerDisplayName {
     let idol = || record.idol_name.clone();
-    // display_name は現任 CV (不在ならアイドル名) で解決済み。
+    // display_name はその公演の演者 (不在ならアイドル名) で解決済み。
     let cast = || record.display_name.clone();
     let only = |primary: String| PerformerDisplayName {
         primary,
@@ -808,15 +845,16 @@ pub fn setlist_performers_by_item(
             .iter()
             .map(|&idol| {
                 let record = &snap.idols[idol as usize];
-                // 表示名は現任 CV (valid_to IS NULL の最新 valid_from)。不在ならアイドル名。
-                let display_name = snap
-                    .current_voice_actor(idol)
-                    .map_or_else(|| record.name.clone(), |va| va.name.clone());
+                // 表示名はその公演で演じた人 (show_performer)。分からなければアイドル名。
+                let performer = show_performer(snap, s, idol);
                 SetlistPerformerRecord {
                     idol_id: record.id.clone(),
-                    display_name,
+                    display_name: performer
+                        .as_ref()
+                        .map_or_else(|| record.name.clone(), |p| p.name.clone()),
                     idol_name: record.name.clone(),
                     idol_color: record.color.clone(),
+                    performer_kind: performer.map_or(PerformerKind::Voice, |p| p.kind),
                 }
             })
             .collect();
@@ -1230,6 +1268,7 @@ mod performer_name_tests {
             display_name: cast.into(),
             idol_name: idol.into(),
             idol_color: None,
+            performer_kind: PerformerKind::Voice,
         }
     }
 
@@ -1757,11 +1796,21 @@ mod tests {
             .prepare(
                 "SELECT sp.setlist_item_id,
                         i.id AS performer_id,
-                        COALESCE((SELECT v.name FROM idol_voice_actors v
-                                  WHERE v.idol_id = i.id AND v.valid_to IS NULL
-                                  ORDER BY IFNULL(v.valid_from,'') DESC LIMIT 1), i.name) AS cast_name,
+                        COALESCE(
+                            (SELECT p.performer_name FROM show_cast_performers p
+                             WHERE p.show_id = si.show_id AND p.idol_id = i.id),
+                            (SELECT v.name FROM idol_voice_actors v
+                             WHERE v.idol_id = i.id
+                               AND (v.valid_from IS NULL OR v.valid_from <= sh.date)
+                               AND (v.valid_to IS NULL OR sh.date <= v.valid_to)
+                             ORDER BY IFNULL(v.valid_from,'') DESC LIMIT 1),
+                            (SELECT v.name FROM idol_voice_actors v
+                             WHERE v.idol_id = i.id AND v.valid_to IS NULL
+                             ORDER BY IFNULL(v.valid_from,'') DESC LIMIT 1),
+                            i.name) AS cast_name,
                         i.color AS idol_color, i.name AS idol_name
                  FROM setlist_items si
+                 JOIN shows sh ON sh.id = si.show_id
                  JOIN setlist_performers sp ON si.id = sp.setlist_item_id
                  JOIN idols i ON i.id = sp.idol_id
                  WHERE si.show_id = ?",
@@ -2556,5 +2605,101 @@ mod tests {
         assert_eq!(recent_shows(snap, "2026-09-04", 3).len(), 3);
         // すべての公演より前の日付なら「最近の公演」は無い。
         assert!(recent_shows(snap, "1900-01-01", 10).is_empty());
+    }
+}
+
+#[cfg(test)]
+mod show_performer_tests {
+    use super::*;
+    use crate::domain::snapshot::IdolVoiceActor;
+    use crate::test_support::bundle_snapshot;
+
+    fn performer_in(show_id: &str, idol_name: &str) -> Option<ShowPerformer> {
+        let snap = bundle_snapshot();
+        let show = snap.show_index_by_id[show_id];
+        let idol = snap.idols.iter().position(|i| i.name == idol_name).expect(idol_name) as u32;
+        show_performer(snap, show, idol)
+    }
+
+    fn voice(name: &str) -> Option<ShowPerformer> {
+        Some(ShowPerformer { name: name.to_string(), kind: PerformerKind::Voice })
+    }
+
+    #[test]
+    fn 交代前の公演には当時のcvが出る() {
+        // 2019-03-09 (シャニマス 1st)。成海瑠奈の担当は 2018-04-24〜2021-12-01。
+        assert_eq!(performer_in("sh_L0577", "三峰結華"), voice("成海瑠奈"));
+    }
+
+    #[test]
+    fn 交代後の公演には後任のcvが出る() {
+        // 2023-01-29。希水しおは 2022-01-18〜 (現任)。
+        assert_eq!(performer_in("sh_L0807", "三峰結華"), voice("希水しお"));
+    }
+
+    #[test]
+    fn 舞台公演は俳優が出て種別はstage() {
+        assert_eq!(
+            performer_in("sh_L0755", "天道輝"),
+            Some(ShowPerformer { name: "加藤良輔".to_string(), kind: PerformerKind::Stage })
+        );
+    }
+
+    #[test]
+    fn 演者の行が無いアイドルは公演日のcv() {
+        // 同じ天道輝でも、舞台でない公演には行が無いので CV が出る。
+        let snap = bundle_snapshot();
+        let idol = snap.idols.iter().position(|i| i.name == "天道輝").unwrap() as u32;
+        let show = snap.cast_shows_by_idol[idol as usize]
+            .iter()
+            .copied()
+            .find(|&s| snap.cast_performer_name(s, idol).is_none())
+            .expect("舞台以外の出演がある");
+        assert_eq!(show_performer(snap, show, idol), voice("仲村宗悟"));
+    }
+
+    #[test]
+    fn 歌唱メンバーの表示名も公演の演者に揃う() {
+        let rows = setlist_performers_by_item(bundle_snapshot(), "sh_L0755");
+        let teru = rows
+            .values()
+            .flatten()
+            .find(|p| p.idol_name == "天道輝")
+            .expect("舞台の歌唱メンバーに天道輝がいる");
+        assert_eq!(teru.display_name, "加藤良輔");
+        assert_eq!(teru.performer_kind, PerformerKind::Stage);
+
+        let rows = setlist_performers_by_item(bundle_snapshot(), "sh_L0577");
+        let yuika = rows.values().flatten().find(|p| p.idol_name == "三峰結華").unwrap();
+        assert_eq!(yuika.display_name, "成海瑠奈");
+        assert_eq!(yuika.performer_kind, PerformerKind::Voice);
+    }
+
+    /// 期間の端・谷間・開区間。実データに無い形は手で組む。
+    #[test]
+    fn 公演日のcvは両端を含み谷間は現任に落ちる() {
+        let va = |id: &str, from: Option<&str>, to: Option<&str>| IdolVoiceActor {
+            id: id.to_string(),
+            idol: 0,
+            name: id.to_string(),
+            valid_from: from.map(str::to_string),
+            valid_to: to.map(str::to_string),
+        };
+        let snap = Snapshot {
+            idol_voice_actors: vec![
+                va("先代", None, Some("2021-12-01")),
+                va("後任", Some("2022-01-18"), None),
+            ],
+            // valid_from 降順 (NULL は末尾)。
+            voice_actors_by_idol: vec![vec![1, 0]],
+            ..Snapshot::default()
+        };
+        let on = |d: &str| snap.voice_actor_on(0, d).map(|v| v.name.as_str());
+        assert_eq!(on("2010-01-01"), Some("先代"));
+        assert_eq!(on("2021-12-01"), Some("先代"));
+        assert_eq!(on("2021-12-15"), None);
+        assert_eq!(on("2022-01-18"), Some("後任"));
+        // 公演が引けない (日付が分からない) ときも現任に落ちる。
+        assert_eq!(show_performer(&snap, 0, 0), voice("後任"));
     }
 }

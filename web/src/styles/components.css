@@ -2389,6 +2389,10 @@ a.labeled-row .labeled-row__value {
 .performer__cast::before {
   content: var(--cast-prefix, "CV. ");
 }
+/* 舞台の俳優が演じた公演 (data-cast-kind="stage") は声優ではないので「CV.」を添えない。 */
+.performer[data-cast-kind="stage"] {
+  --cast-prefix: "";
+}
 
 /* CV 名を主にするモード。
    - 「CV 名」= 常に CV 名

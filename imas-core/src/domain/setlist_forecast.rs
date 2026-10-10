@@ -1161,6 +1161,7 @@ mod tests {
                 .iter()
                 .flat_map(|s| ["i1", "i2"].map(|i| (s.to_string(), i.to_string(), None)))
                 .collect(),
+            show_cast_performers: vec![],
             unit_members: vec![],
             idol_brands: vec![],
         })

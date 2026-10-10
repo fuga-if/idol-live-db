@@ -38,7 +38,7 @@ object PerformerNamePref {
 }
 
 /**
- * コアに渡す形。[PerformerRow.name] は SQL 側で現任 CV に解決済みの表示名。
+ * コアに渡す形。[PerformerRow.name] はコアがその公演の演者に解決済みの表示名。
  *
  * `idolId` が null なのはアイドル行に紐づかない演者 (ゲスト等)。その場合は
  * アイドル名も CV 名も同じ文字列になり、どのモードでも同じ名前が出る。
@@ -47,7 +47,8 @@ private fun PerformerRow.toRecord(): SetlistPerformerRecord = SetlistPerformerRe
     idolId = idolId ?: id,
     displayName = name,
     idolName = idolName ?: name,
-    idolColor = idolColor
+    idolColor = idolColor,
+    performerKind = performerKind
 )
 
 /** 選んだモードでの表示名 (主と、必要なら副)。 */

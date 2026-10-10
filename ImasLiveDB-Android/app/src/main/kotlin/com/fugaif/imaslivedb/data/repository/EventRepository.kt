@@ -308,8 +308,8 @@ class EventRepository(
      * 曲ごとのグループ化と並びはコアが担う。Room の SQL には ORDER BY が無く並びが未規定
      * だったので、iOS と同じ「アイドルの sort_order 順」に揃う。
      *
-     * 表示名 (`PerformerRow.name`) はコアでは現任 CV 名で、不在ならアイドル名に落ちる
-     * (声優の履歴 idol_voice_actors は seed で入る)。
+     * 表示名 (`PerformerRow.name`) はコアがその公演で演じた人 (公演日の CV。舞台なら俳優) に解決し、
+     * 分からなければアイドル名に落ちる (声優の履歴 idol_voice_actors と舞台の演者 show_cast_performers は seed で入る)。
      */
     suspend fun fetchPerformersByItem(showId: String): Map<String, List<PerformerRow>> =
         snapshots.query { store ->
@@ -423,7 +423,8 @@ private fun ShowRecord.toShow(): Show = Show(
 
 /** `PerformerRow.id` は SQL 時代も idol_id をそのまま返していた (iOS CoreRecordMapping と同じ)。 */
 private fun SetlistPerformerRecord.toPerformerRow(): PerformerRow = PerformerRow(
-    id = idolId, name = displayName, idolColor = idolColor, idolName = idolName, idolId = idolId
+    id = idolId, name = displayName, idolColor = idolColor, idolName = idolName, idolId = idolId,
+    performerKind = performerKind
 )
 
 private fun Show.toShowWithEventName(eventName: String): ShowWithEventName = ShowWithEventName(

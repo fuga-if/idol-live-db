@@ -215,14 +215,15 @@ enum CoreRecordMapping {
     }
 
     /// `PerformerRow.id` は SQL 時代も idol_id をそのまま使っていた (performer_id エイリアス)。
-    /// `name` は現任 CV 名 = core の `displayName`。
+    /// `name` はその公演で演じた人 (公演日の CV。舞台なら俳優) = core の `displayName`。
     static func performerRow(from record: SetlistPerformerRecord) -> PerformerRow {
         PerformerRow(
             id: record.idolId,
             name: record.displayName,
             idolColor: record.idolColor,
             idolName: record.idolName,
-            idolId: record.idolId
+            idolId: record.idolId,
+            performerKind: record.performerKind
         )
     }
 

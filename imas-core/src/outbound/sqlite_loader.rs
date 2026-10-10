@@ -104,6 +104,7 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
     let song_artists = load_song_artists(&conn)?;
     let setlist_performers = load_setlist_performers(&conn)?;
     let show_cast = load_show_cast(&conn)?;
+    let show_cast_performers = load_show_cast_performers(&conn)?;
     let unit_members = load_unit_members(&conn)?;
     let idol_brands = load_idol_brands(&conn)?;
 
@@ -134,6 +135,7 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         song_artists,
         setlist_performers,
         show_cast,
+        show_cast_performers,
         unit_members,
         idol_brands,
     })
@@ -1002,6 +1004,26 @@ fn load_show_cast(conn: &Connection) -> Result<Vec<(String, String, Option<Strin
     let rows = stmt
         .query_map([], |r| {
             Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<String>>(2)?))
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// show_cast_performers の生行 (show_id, idol_id, performer_name)。
+///
+/// 後から足した表なので、まだ作っていない DB (古い Documents DB・古い同梱) では空で続ける。
+fn load_show_cast_performers(conn: &Connection) -> Result<Vec<(String, String, String)>, String> {
+    if !table_exists(conn, "show_cast_performers")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT show_id, idol_id, performer_name FROM show_cast_performers ORDER BY show_id, idol_id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))
         })
         .map_err(|e| e.to_string())?;
     rows.collect::<Result<_, _>>().map_err(|e| e.to_string())

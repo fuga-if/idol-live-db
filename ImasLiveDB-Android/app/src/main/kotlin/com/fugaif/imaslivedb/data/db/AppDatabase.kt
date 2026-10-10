@@ -51,6 +51,7 @@ import com.fugaif.imaslivedb.data.model.SetlistItem
 import com.fugaif.imaslivedb.data.model.SetlistPerformer
 import com.fugaif.imaslivedb.data.model.Show
 import com.fugaif.imaslivedb.data.model.ShowCast
+import com.fugaif.imaslivedb.data.model.ShowCastPerformer
 import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.data.model.SongArtist
 import com.fugaif.imaslivedb.data.model.SongVideo
@@ -68,6 +69,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         SetlistItem::class,
         SetlistPerformer::class,
         ShowCast::class,
+        ShowCastPerformer::class,
         Idol::class,
         IdolBrand::class,
         ImasUnit::class,
@@ -96,7 +98,7 @@ import com.fugaif.imaslivedb.data.model.UserMark
         ReceivedProducerCard::class,
         ReceivedCardMeeting::class
     ],
-    version = 36,
+    version = 37,
     // 確定スキーマを app/schemas へ JSON で吐く。共有コア (imas-core) が持つ
     // マスタ DDL と突き合わせて、片方だけスキーマを変えた事故を CI で捕まえるため。
     exportSchema = true
@@ -155,8 +157,8 @@ abstract class AppDatabase : RoomDatabase() {
             // 流せるようにする条件は 2 つのどちらか:
             //   a) Room 側が上記の列と索引を宣言して版を上げる (コアの KNOWN_GAPS からも消す)
             //   b) コアが「呼び手が持たない表だけ作る」適用モードを持つ
-            // なお idol_voice_actors / song_units は Room が知らない表なので照合対象外であり、
-            // コア適用の実利はいまのところこの 2 表だけ (どちらも Android では空のまま)。
+            // なお song_units は Room が知らない表なので照合対象外であり、
+            // コア適用の実利はいまのところこの表だけ (Android では空のまま)。
             return configure(
                 Room.databaseBuilder(
                     context.applicationContext,
@@ -801,6 +803,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v37: 公演でアイドルを演じた人 (show_cast_performers。声優以外が演じたときだけ行がある)。
+         * iOS は コアの ensureMasterSchema が同じ表を作る。CloudKit では配らず seed でだけ入るので、
+         * v20 と同じく最後に取り込んだ seed の指紋を消して、次の起動で同梱の seed から入れ直させる。
+         */
+        val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `show_cast_performers` (`show_id` TEXT NOT NULL, " +
+                        "`idol_id` TEXT NOT NULL, `performer_name` TEXT NOT NULL, PRIMARY KEY(`show_id`, `idol_id`))"
+                )
+                db.execSQL("DELETE FROM meta WHERE key = 'content_hash'")
+            }
+        }
+
         /** 登録する移行の全部 (古い順)。本番の builder と移行テストが同じ並びを使う。 */
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
@@ -809,7 +826,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
             MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27, MIGRATION_27_28,
             MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32,
-            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36
+            MIGRATION_32_33, MIGRATION_33_34, MIGRATION_34_35, MIGRATION_35_36, MIGRATION_36_37
         )
     }
 }

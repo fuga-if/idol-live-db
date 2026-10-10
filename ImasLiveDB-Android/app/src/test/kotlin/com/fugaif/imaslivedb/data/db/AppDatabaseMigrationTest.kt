@@ -72,8 +72,11 @@ class AppDatabaseMigrationTest {
     /** 会った記録の表 (MIGRATION_34_35) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates34ToLatest() = assertMigrates(from = 34)
 
-    /** 直前の版。会った記録の中身の列 (MIGRATION_35_36) を足しても、端末ローカルの行は残る。 */
+    /** 会った記録の中身の列 (MIGRATION_35_36) を足しても、端末ローカルの行は残る。 */
     @Test fun migrates35ToLatest() = assertMigrates(from = 35)
+
+    /** 直前の版。公演の演者の表 (MIGRATION_36_37) を足しても、端末ローカルの行は残る。 */
+    @Test fun migrates36ToLatest() = assertMigrates(from = 36)
 
     /**
      * 会った記録に中身 (v36) を足す前の記録は、名刺の行の中身で埋める (iOS
@@ -322,7 +325,7 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         /** `@Database(version = …)` と同じ値。版を上げたらここも上げる。 */
-        const val LATEST = 36
+        const val LATEST = 37
 
         /** 家計簿 (expenses) を作った版 (MIGRATION_16_17)。 */
         const val EXPENSES_SINCE = 17

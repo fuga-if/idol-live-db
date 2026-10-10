@@ -598,6 +598,16 @@ pub struct ShowCastLink {
     pub cast_role: String,
 }
 
+/// 公演でアイドルを演じた人 (show_cast_performers)。`idol` は idols Vec の添字。
+///
+/// **声優以外が演じたときだけ行がある** (舞台の俳優など)。行が無ければ演者は
+/// 公演日の CV。決め方は `event_detail_queries::show_performer` の 1 か所。
+#[derive(Debug, Clone)]
+pub struct ShowCastPerformer {
+    pub idol: u32,
+    pub name: String,
+}
+
 /// ブランド→所属アイドルリンク (idol_brands)。`idol` は idols Vec の添字。
 /// is_external の除外や DISTINCT はクエリ層の責務 (リンクは表の生データを保つ)。
 #[derive(Debug, Clone)]
@@ -750,6 +760,9 @@ pub struct Snapshot {
     pub cast_by_show: Vec<Vec<ShowCastLink>>,
     /// idols と同じ添字。show_cast の逆引き (出演した show 添字群)。show.date DESC。
     pub cast_shows_by_idol: Vec<Vec<u32>>,
+    /// shows と同じ添字。その公演でアイドルを演じた声優以外の人 (show_cast_performers)。
+    /// 並びは idol 添字順 (1 公演 1 アイドル 1 行なので探すだけ)。
+    pub cast_performers_by_show: Vec<Vec<ShowCastPerformer>>,
 
     /// units と同じ添字。メンバー idol 添字を sort_order 順で格納。
     pub members_by_unit: Vec<Vec<u32>>,
@@ -944,5 +957,28 @@ impl Snapshot {
             .iter()
             .map(|&i| &self.idol_voice_actors[i as usize])
             .find(|va| va.valid_to.is_none())
+    }
+
+    /// `date` (YYYY-MM-DD) の時点で担当していた CV。期間は両端を含み、NULL は開区間
+    /// (`valid_from <= date <= valid_to`)。重なっていれば valid_from の新しい方。
+    /// 誰も当てはまらなければ None (交代の谷間・履歴の無いアイドル)。
+    pub fn voice_actor_on(&self, idol: u32, date: &str) -> Option<&IdolVoiceActor> {
+        // voice_actors_by_idol は valid_from 降順なので、先頭一致が「新しい方」。
+        self.voice_actors_by_idol[idol as usize]
+            .iter()
+            .map(|&i| &self.idol_voice_actors[i as usize])
+            .find(|va| {
+                va.valid_from.as_deref().is_none_or(|from| from <= date)
+                    && va.valid_to.as_deref().is_none_or(|to| date <= to)
+            })
+    }
+
+    /// 公演で声優以外がそのアイドルを演じていれば、その人の名前。
+    pub fn cast_performer_name(&self, show: u32, idol: u32) -> Option<&str> {
+        self.cast_performers_by_show
+            .get(show as usize)?
+            .iter()
+            .find(|p| p.idol == idol)
+            .map(|p| p.name.as_str())
     }
 }

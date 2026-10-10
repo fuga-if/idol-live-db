@@ -88,7 +88,7 @@ pub use search::{
     FoldCase, FoldParity, SearchManifest, SearchPage, SearchRow, SearchShard, SearchShardMeta,
 };
 pub use show::{
-    ForecastRow, LineupNote, MissingOriginals, PerformerRef, SetlistCostume, SetlistNote,
+    CastKind, ForecastRow, LineupNote, MissingOriginals, PerformerRef, SetlistCostume, SetlistNote,
     SetlistNoteGroup, SetlistNoteTone, SetlistRow, SetlistSection, ShowCostume, ShowForecast,
     ShowPage, SiblingNav,
 };

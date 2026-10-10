@@ -114,6 +114,9 @@ struct PerformerRow: Codable, FetchableRecord, Identifiable, Sendable {
     var idolColor: String?
     var idolName: String?
     var idolId: String?
+    /// `name` が声優か、声優以外 (舞台の俳優) か。決めるのはコア (`show_performer`)。
+    /// SQL の列ではないので CodingKeys に載せない (既定値で埋まる)。
+    var performerKind: PerformerKind = .voice
 
     enum CodingKeys: String, CodingKey {
         case id, name

@@ -560,7 +560,15 @@ fn get_show(snap: &Snapshot, args: &Value) -> Result<Value, ToolError> {
                     let mut x = Obj::new();
                     x.put("id", idol.id.as_str());
                     x.put("name", idol.name.as_str());
-                    x.opt("voice_actor", snap.current_voice_actor(i).map(|va| va.name.clone()));
+                    // 演者はその公演で演じた人 (公演日の CV / 舞台なら俳優)。決め方はコア 1 か所。
+                    let performer = events::show_performer(snap, si, i);
+                    let (voice, stage) = match performer {
+                        Some(p) if p.kind == events::PerformerKind::Stage => (None, Some(p.name)),
+                        Some(p) => (Some(p.name), None),
+                        None => (None, None),
+                    };
+                    x.opt("voice_actor", voice);
+                    x.opt("stage_actor", stage);
                     x.opt("cast_role", snap.show_cast_role(si, i));
                     x.value()
                 })

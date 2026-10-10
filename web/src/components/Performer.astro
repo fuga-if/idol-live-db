@@ -1,4 +1,5 @@
 ---
+import type { CastKind } from "../lib/schema/CastKind";
 import type { Ref } from "../lib/schema/Ref";
 /**
  * 歌唱者 1 人 — 名前の下にアイドル色の線。並べるとペンライトの帯のように見え、
@@ -12,14 +13,18 @@ import type { Ref } from "../lib/schema/Ref";
  * `castName` が無い = CV 不在 (この判断も Rust 側)。その人はどのモードでも
  * アイドル名のまま出す。
  *
+ * `castKind`: 演者が声優か舞台の俳優か (Rust の `show_performer` が決める)。
+ * 俳優 (`stage`) には「CV.」を添えない。
+ *
  * `absent`: 原唱者だがこの行では歌っていない人。線を破線に、文字を薄くする。
  */
 interface Props {
   ref: Ref;
   castName?: string | null;
+  castKind?: CastKind;
   absent?: boolean;
 }
-const { ref, castName = null, absent = false } = Astro.props;
+const { ref, castName = null, castKind = "voice", absent = false } = Astro.props;
 ---
 
 <a
@@ -27,6 +32,7 @@ const { ref, castName = null, absent = false } = Astro.props;
   href={ref.path}
   data-theme={ref.themeKey}
   data-no-cast={castName === null ? "true" : undefined}
+  data-cast-kind={castKind === "stage" ? "stage" : undefined}
 >
   <span class="performer__names">
     <span class="performer__idol">{ref.name}</span>
