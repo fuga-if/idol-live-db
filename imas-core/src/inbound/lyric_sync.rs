@@ -21,6 +21,12 @@ pub fn lyric_next_recordable(kinds: Vec<String>, after: Option<u32>) -> Option<u
     d::next_recordable(&kinds, after)
 }
 
+/// 再生位置を動かしたあとに次に記録する行 (いま鳴っている行の次)。記録済みの曲を途中から直す。
+#[uniffi::export]
+pub fn lyric_record_cursor_at(kinds: Vec<String>, starts: Vec<Option<i64>>, position_ms: i64) -> Option<u32> {
+    d::record_cursor_at(&kinds, &starts, position_ms)
+}
+
 /// 「ここ好き」の保存値を行 ID の並びに戻す。
 #[uniffi::export]
 pub fn lyric_likes_parse(stored: Option<String>) -> Vec<String> {

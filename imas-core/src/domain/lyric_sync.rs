@@ -50,6 +50,24 @@ pub fn next_recordable(kinds: &[String], after: Option<u32>) -> Option<u32> {
         .map(|i| i as u32)
 }
 
+/// 再生位置を動かしたあとに「次に記録する」行。いま鳴っている記録対象の行 (再生位置より前に
+/// 始まる行のうち始まりが最も遅い行) の次。まだどの行も始まっていなければ先頭の記録対象。
+///
+/// 記録済みの曲を途中から直すための規則。戻して聴き直せば、その位置の次の行から押し直せる
+/// (頭から全部押し直さなくてよい)。時刻の無い行は飛ばさない: 途中まで記録した曲で先へ送っても、
+/// 最後に記録した行の次 (= まだ時刻の無い行) を指す。
+pub fn record_cursor_at(kinds: &[String], starts: &[Option<i64>], position_ms: i64) -> Option<u32> {
+    let timed: Vec<Option<i64>> = starts
+        .iter()
+        .enumerate()
+        .map(|(i, s)| if kinds.get(i).map_or(false, |k| is_recordable(k)) { *s } else { None })
+        .collect();
+    match active_line(&timed, position_ms) {
+        Some(current) => next_recordable(kinds, Some(current)),
+        None => next_recordable(kinds, None),
+    }
+}
+
 /// 保存値の区切り。行 ID は `ll_<uuid>` なので現れない。
 const SEP: char = ',';
 
@@ -866,6 +884,40 @@ mod tests {
     fn has_timing_needs_two_lines() {
         assert!(!has_timing(&[None, Some(1)]));
         assert!(has_timing(&[Some(0), None, Some(1)]));
+    }
+
+    #[test]
+    fn record_cursor_at_points_after_the_playing_line() {
+        let kinds: Vec<String> = ["marker", "lyric", "blank", "lyric", "lyric"].iter().map(|s| s.to_string()).collect();
+        let starts = [Some(0), Some(1_000), None, Some(5_000), Some(9_000)];
+        // イントロ (どの行も始まっていない) なら先頭から。
+        assert_eq!(record_cursor_at(&kinds, &starts, -1), Some(0));
+        // 1 行目を聴いている → 次は空行を飛ばした 3。
+        assert_eq!(record_cursor_at(&kinds, &starts, 2_000), Some(3));
+        assert_eq!(record_cursor_at(&kinds, &starts, 5_000), Some(4));
+        // 最後の行を聴いている → もう無い。
+        assert_eq!(record_cursor_at(&kinds, &starts, 10_000), None);
+    }
+
+    #[test]
+    fn record_cursor_at_resumes_after_the_last_timed_line() {
+        let kinds: Vec<String> = ["lyric"; 5].iter().map(|s| s.to_string()).collect();
+        // 途中まで記録した曲。先へ送っても、まだ時刻の無い 2 を指す。
+        let starts = [Some(1_000), Some(3_000), None, None, None];
+        assert_eq!(record_cursor_at(&kinds, &starts, 60_000), Some(2));
+        // 戻せば、その位置の次から押し直せる。
+        assert_eq!(record_cursor_at(&kinds, &starts, 1_500), Some(1));
+    }
+
+    #[test]
+    fn record_cursor_at_follows_time_not_display_order() {
+        let kinds: Vec<String> = ["lyric"; 4].iter().map(|s| s.to_string()).collect();
+        // 打ち間違いで 2 が 1 より前に来ている。時刻で今の行を決める (active_line と同じ)。
+        let starts = [Some(1_000), Some(6_000), Some(4_000), Some(9_000)];
+        assert_eq!(record_cursor_at(&kinds, &starts, 5_000), Some(3));
+        // 空行に時刻が残っていても数えない。
+        let kinds: Vec<String> = ["lyric", "blank", "lyric"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(record_cursor_at(&kinds, &[Some(1_000), Some(2_000), None], 3_000), Some(2));
     }
 
     #[test]

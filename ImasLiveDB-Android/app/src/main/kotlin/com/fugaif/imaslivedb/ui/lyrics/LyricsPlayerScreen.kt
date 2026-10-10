@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.MobileOff
 import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -58,6 +57,7 @@ import com.fugaif.imaslivedb.ui.components.ArtworkImage
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasButtonRole
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
+import com.fugaif.imaslivedb.ui.designsystem.ImasIcons
 import com.fugaif.imaslivedb.ui.designsystem.imasPullDownHandle
 import com.fugaif.imaslivedb.ui.designsystem.imasPullDownScroll
 import com.fugaif.imaslivedb.ui.designsystem.imasPullOffset
@@ -276,7 +276,7 @@ fun LyricsPlayerScreen(
                 }
                 if (allCalls.isNotEmpty()) {
                     ImasIconButton(
-                        icon = if (callHaptics) Icons.Filled.Vibration else Icons.Filled.MobileOff,
+                        icon = if (callHaptics) Icons.Filled.Vibration else ImasIcons.VibrationOff,
                         label = if (callHaptics) "コールで震わせる: オン" else "コールで震わせる: オフ",
                         onClick = ::toggleCallHaptics,
                         size = ImasIconButtonSize.SMALL,
@@ -289,7 +289,7 @@ fun LyricsPlayerScreen(
                     onClick = { showsAddToPlaylist = true },
                     style = ImasIconButtonStyle.PLAIN
                 )
-                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
+                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミング・パートを編集", onClick = onEditTimings, style = ImasIconButtonStyle.PLAIN)
                 ImasIconButton(icon = Icons.Filled.ExpandMore, label = "閉じる", onClick = onClose, style = ImasIconButtonStyle.PLAIN)
             }
 

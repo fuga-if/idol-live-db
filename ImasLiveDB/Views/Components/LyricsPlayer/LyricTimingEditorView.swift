@@ -4,9 +4,12 @@ import SwiftUI
 ///
 /// 1. ざっくり付ける … 曲を流しながら、下の大きいボタンを歌い出しに合わせて押す
 ///    (歌詞の行を狙ってタップしなくてよい)。押すたびに「次の行」が進む。
+///    次に記録する行は、歌詞の一覧で行をタップするか、上下の矢印で選び直せる。
 /// 2. 直す … 横長のタイムラインで行の帯を選び、-0.1 / +0.1 秒で寄せるか、
 ///    帯の頭のつまみをなぞる。「再生位置に合わせる」で今の位置にくっつける。
 ///    タイムラインの地をなぞると再生位置が動く (ちょい戻し)。
+/// 3. 途中から押し直す … 再生位置を動かすと「次に記録する行」がその位置の次の行へ移る。
+///    記録済みの曲でも、直したいところへ戻して押せば、そこから先だけ上書きできる。
 ///
 /// 保存するまでサーバにも端末にも残さない。行の本文は画面に出すだけで、送らない。
 struct LyricTimingEditorView: View {
@@ -37,6 +40,20 @@ struct LyricTimingEditorView: View {
     @State private var partsBrushIds: [String]?
     /// 消しゴムを持っているか (塗る代わりに、その字の歌う人をみな外す)。
     @State private var partsErasing = false
+    /// 行をタップして次に記録する行を選んだ直後か (指の下の一覧を寄せない)。
+    @State private var pickedByTap = false
+    /// パートの段の見せ方。曲に付いていくか、歌詞を一覧で並べて落ち着いて塗るか。
+    @State private var partsView: PartsView = .live
+
+    enum PartsView: Hashable {
+        /// 曲に付いていき、いま歌っている行に塗る (聴きながら)。
+        case live
+        /// 曲に付いていかない。タイムラインと再生の操作を畳んで、歌詞を広く並べる (聴かずに)。
+        case list
+    }
+
+    /// パートを一覧で塗っているか (曲への追従と、再生まわりの操作を外す)。
+    private var isPartsList: Bool { recorder.lane == .parts && partsView == .list }
 
     private var duration: Int {
         let lastStart = recorder.starts.compactMap { $0 }.max() ?? 0
@@ -62,20 +79,31 @@ struct LyricTimingEditorView: View {
                 .padding(.bottom, DS.sp3)
             }
             if recorder.lane == .lines {
-                nowAndNext
+                cursorBar
                     .padding(.horizontal, DS.sp5)
-                Spacer(minLength: DS.sp4)
-            } else {
-                // コールとパートは、歌詞を上下に動かして入れる行を選ぶ (曲に付いていくが、なぞると止まる)。
-                laneLyrics
-                    .frame(maxHeight: .infinity)
+                    .padding(.bottom, DS.sp2)
             }
-            timeline
-            selectionControls
+            if recorder.lane == .parts {
+                ImasSegmented(options: [PartsView.live, .list], selection: $partsView, seed: seed) { view in
+                    switch view {
+                    case .live: "リアルタイム"
+                    case .list: "一覧"
+                    }
+                }
                 .padding(.horizontal, DS.sp5)
-                .padding(.top, DS.sp3)
-            transport
-                .padding(.top, DS.sp4)
+                .padding(.bottom, DS.sp2)
+            }
+            // 歌詞を上下に動かして、記録する行・コールを入れる行・塗る行を選ぶ。
+            laneLyrics
+                .frame(maxHeight: .infinity)
+            if !isPartsList {
+                timeline
+                selectionControls
+                    .padding(.horizontal, DS.sp5)
+                    .padding(.top, DS.sp3)
+                transport
+                    .padding(.top, DS.sp4)
+            }
             if recorder.lane == .parts {
                 partsBrush
                     .padding(.vertical, DS.sp4)
@@ -86,7 +114,13 @@ struct LyricTimingEditorView: View {
             }
         }
         .background(DS.bg)
-        .task { if !playback.isFullLoaded { startFailed = !(await playback.startFull()) } }
+        .task {
+            // 曲の途中で開いたら、そこから押し直せるようにする (記録済みの曲を頭から押させない)。
+            if playback.isFullLoaded, let ms = playback.positionMs(), ms > 0 { recorder.aim(atMs: ms) }
+            if !playback.isFullLoaded { startFailed = !(await playback.startFull()) }
+            // 鳴らせないなら、パートは一覧で塗る (曲に付いていけないので)。
+            if startFailed { partsView = .list }
+        }
         .task(id: playback.isFullLoaded) { await poll() }
         .sensoryFeedback(.impact(weight: .medium), trigger: recordToken)
         .confirmationDialog("保存せずに閉じますか？", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -163,21 +197,41 @@ struct LyricTimingEditorView: View {
         return result
     }
 
-    private var nowAndNext: some View { linesNowAndNext }
+    // MARK: - 段ごとの歌詞: 動かして選ぶ
 
-    // MARK: - コールとパートの段: 歌詞を動かして選ぶ
+    /// 歌詞の段の頭: 次に記録する行の状態と、1 行ずつ選び直す矢印。
+    private var cursorBar: some View {
+        HStack(spacing: DS.sp3) {
+            VStack(alignment: .leading, spacing: DS.sp1) {
+                Text("次に記録する行").imasText(.eyebrow)
+                Text(recorder.cursor == nil ? "最後まで記録しました。行をタップすると、そこから押し直せます。"
+                     : recorder.cursorOverwrites ? "記録済み・押すと上書き" : "まだ時刻がありません")
+                    .imasText(.meta, color: DS.ink3)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            ImasIconButton(systemImage: "chevron.up", label: "前の行にする", size: .small) {
+                AppAnalytics.tap("lyric_timing.step_cursor")
+                recorder.stepCursor(by: -1)
+            }
+            ImasIconButton(systemImage: "chevron.down", label: "次の行にする", size: .small) {
+                AppAnalytics.tap("lyric_timing.step_cursor")
+                recorder.stepCursor(by: 1)
+            }
+            .disabled(recorder.cursor == nil)
+        }
+    }
 
     private var laneLyrics: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp4) {
-                    if startFailed {
-                        ImasNote(recorder.lane == .parts ? "パート分けには Apple Music でのフル再生が必要です。"
+                    if startFailed, !isPartsList {
+                        ImasNote(recorder.lane == .parts ? "聴きながら塗るには Apple Music でのフル再生が必要です。一覧なら聴かずに塗れます。"
                                                          : "記録には Apple Music でのフル再生が必要です。",
                                  systemImage: "music.note")
                     }
-                    Text(recorder.lane == .parts ? "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
-                                                 : "コールをタップして選ぶと、前後に寄せられます。")
+                    Text(laneHint)
                         .imasText(.meta, color: DS.ink3)
                     ForEach(Array(lyrics.lines.enumerated()), id: \.element.id) { index, line in
                         laneRow(index: index, line: line)
@@ -187,8 +241,24 @@ struct LyricTimingEditorView: View {
                 .padding(.horizontal, DS.sp5)
                 .padding(.vertical, DS.sp4)
             }
+            // 歌詞の段は次に記録する行に付いていく (押すたびに 1 行進む)。行をタップして選んだときは寄せない。
+            .onChange(of: recorder.cursor) { _, cursor in
+                guard recorder.lane == .lines, let cursor else { return }
+                if pickedByTap { pickedByTap = false; return }
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                    proxy.scrollTo(lyrics.lines[cursor].id, anchor: UnitPoint(x: 0.5, y: 0.35))
+                }
+            }
+            .onAppear {
+                guard recorder.lane == .lines, let cursor = recorder.cursor else { return }
+                proxy.scrollTo(lyrics.lines[cursor].id, anchor: UnitPoint(x: 0.5, y: 0.35))
+            }
+            .onChange(of: recorder.lane) { _, lane in
+                guard lane == .lines, let cursor = recorder.cursor else { return }
+                proxy.scrollTo(lyrics.lines[cursor].id, anchor: UnitPoint(x: 0.5, y: 0.35))
+            }
             .onChange(of: currentIndex) { _, index in
-                guard let index, Date() >= followPausedUntil else { return }
+                guard recorder.lane != .lines, !isPartsList, let index, Date() >= followPausedUntil else { return }
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
                     proxy.scrollTo(lyrics.lines[index].id, anchor: UnitPoint(x: 0.5, y: 0.3))
                 }
@@ -197,15 +267,66 @@ struct LyricTimingEditorView: View {
         }
     }
 
+    private var laneHint: String {
+        switch recorder.lane {
+        case .lines: "行をタップすると、その行から記録します。押すたびに次の行へ進みます。"
+        case .calls: "コールをタップして選ぶと、前後に寄せられます。"
+        case .parts where isPartsList:
+            "歌う人を選んでから行をタップすると、行まるごと塗れます。選んだ行は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+        case .parts: "歌う人を選んでから行をタップすると、行まるごと塗れます。いま歌っている行 (選んだ行) は、語をタップするか長押しでなぞると、その字だけ塗れます。もう一度で外れます。"
+        }
+    }
+
     @ViewBuilder
     private func laneRow(index: Int, line: LyricLine) -> some View {
+        if recorder.lane == .lines, line.kind != .blank {
+            linesLaneRow(index: index, line: line, isCurrent: index == currentIndex)
+        } else {
+            otherLaneRow(index: index, line: line)
+        }
+    }
+
+    /// 歌詞の段の 1 行。タップでその行を次に記録する行にする。記録した時刻を右に添える。
+    private func linesLaneRow(index: Int, line: LyricLine, isCurrent: Bool) -> some View {
+        let isNext = index == recorder.cursor
+        let accent = ImasTheme.derive(seed: seed, scheme: scheme).accent
+        return Button {
+            AppAnalytics.tap("lyric_timing.pick_line")
+            pickedByTap = recorder.cursor != index
+            recorder.aim(at: line.id)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: DS.sp3) {
+                if line.kind == .marker {
+                    Text(line.text).imasText(.eyebrow, color: DS.ink3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    laneText(line.text, isCurrent: isCurrent || isNext)
+                }
+                VStack(alignment: .trailing, spacing: DS.sp1) {
+                    if isNext { Text("次に記録").imasText(.meta, color: accent) }
+                    ImasLyricTimeLabel(ms: recorder.start(for: line.id), isEmphasized: isNext)
+                }
+            }
+            .padding(.vertical, DS.sp2)
+            .padding(.leading, DS.sp3)
+            // 次に記録する行は「ここを押す」の印 (薄い地)、いま鳴っている行は濃い地。
+            .imasLyricLine(isNext ? .cursor : isCurrent ? .current : .normal, seed: seed)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.imasPress)
+        .accessibilityAddTraits(isNext ? .isSelected : [])
+        .accessibilityHint("この行から記録します")
+    }
+
+    @ViewBuilder
+    private func otherLaneRow(index: Int, line: LyricLine) -> some View {
         switch line.kind {
         case .blank:
             Color.clear.frame(height: DS.sp1)
         case .marker:
             Text(line.text).imasText(.eyebrow, color: DS.ink3)
         case .lyric:
-            let isCurrent = index == currentIndex
+            let isCurrent = !isPartsList && index == currentIndex
             switch recorder.lane {
             case .parts: partsLaneRow(line: line, isCurrent: isCurrent)
             default: callsLaneRow(index: index, line: line, isCurrent: isCurrent)
@@ -316,7 +437,8 @@ struct LyricTimingEditorView: View {
         if let selectedId, lyrics.lines.contains(where: { $0.id == selectedId && $0.kind == .lyric }) {
             return selectedId
         }
-        // 見出し (「1番」など) には付けない。
+        // 一覧では、選んだ行だけ (曲に付いていかない)。見出し (「1番」など) には付けない。
+        if isPartsList { return nil }
         return currentIndex.flatMap { lyrics.lines[$0].kind == .lyric ? lyrics.lines[$0].id : nil }
     }
 
@@ -381,48 +503,6 @@ struct LyricTimingEditorView: View {
         }
     }
 
-    private var linesNowAndNext: some View {
-        VStack(alignment: .leading, spacing: DS.sp4) {
-            if startFailed {
-                ImasNote("記録には Apple Music でのフル再生が必要です。", systemImage: "music.note")
-            }
-            VStack(alignment: .leading, spacing: DS.sp1) {
-                Text("いま").imasText(.eyebrow)
-                ImasPlayerLyricLine(text: currentIndex.map { lyrics.lines[$0].text } ?? "（イントロ）",
-                                    isCurrent: true, seed: seed)
-                    .lineLimit(3)
-            }
-            if let next = recorder.cursor {
-                VStack(alignment: .leading, spacing: DS.sp2) {
-                    Text("次に記録する行").imasText(.eyebrow)
-                    // 押す行の先も 2 行見せる (次の次が見えていると押す間合いを取りやすい)。
-                    ForEach(Array(upcoming(from: next).enumerated()), id: \.element) { offset, index in
-                        ImasPlayerLyricLine(text: lyrics.lines[index].text, isCurrent: offset == 0,
-                                            isMarker: lyrics.lines[index].kind == .marker, seed: seed)
-                            .lineLimit(2)
-                            .opacity(offset == 0 ? 1 : 0.7)
-                    }
-                }
-            } else {
-                ImasNote("最後の行まで記録しました。タイムラインで帯を選ぶと前後に寄せられます。",
-                         systemImage: "checkmark")
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// 次に記録する行と、その先の記録対象 2 行の添字。
-    private func upcoming(from cursor: Int) -> [Int] {
-        var result = [cursor]
-        var after = UInt32(cursor)
-        while result.count < 3,
-              let next = lyricNextRecordable(kinds: lyrics.lines.map(\.kind.rawValue), after: after) {
-            result.append(Int(next))
-            after = next
-        }
-        return result
-    }
-
     // MARK: - タイムライン
 
     private var timeline: some View {
@@ -445,8 +525,7 @@ struct LyricTimingEditorView: View {
             onScrub: { scrubMs = $0 },
             onScrubEnd: { ms in
                 scrubMs = nil
-                playheadMs = ms
-                playback.seek(ms)
+                seek(ms)
             },
             onSelect: { id in selectedId = selectedId == id ? nil : id },
             onMoveStart: { id, ms in recorder.adjust(id: id, toMs: ms) }
@@ -476,13 +555,15 @@ struct LyricTimingEditorView: View {
                 ImasIconButton(systemImage: "arrow.right.to.line", label: "再生位置に合わせる", size: .small) {
                     recorder.adjust(id: id, toMs: playheadMs)
                 }
-                ImasIconButton(systemImage: "play.fill", label: "この行から再生", size: .small) {
-                    playback.seek(max(0, start - 1500))
+                ImasIconButton(systemImage: "play.fill", label: "この行から再生して押し直す", size: .small) {
+                    AppAnalytics.tap("lyric_timing.retake_from")
+                    seek(max(0, start - 1500))
+                    recorder.aim(at: id)
                     if !playback.isPlaying { playback.togglePlay() }
                 }
             }
         } else {
-            ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞると再生位置が動きます。",
+            ImasNote("帯をタップして選ぶと、前後に寄せられます。地をなぞって戻すと、そこから押し直せます。",
                      systemImage: "hand.draw")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -491,21 +572,22 @@ struct LyricTimingEditorView: View {
     private var transport: some View {
         HStack(spacing: DS.sp8) {
             ImasIconButton(systemImage: "gobackward.5", label: "5 秒戻す") {
-                playback.seek(max(0, playheadMs - 5000))
+                seek(max(0, playheadMs - 5000))
             }
             ImasIconButton(systemImage: playback.isPlaying ? "pause.fill" : "play.fill",
                            label: playback.isPlaying ? "一時停止" : "再生", style: .filled) {
                 playback.togglePlay()
             }
             ImasIconButton(systemImage: "goforward.5", label: "5 秒進める") {
-                playback.seek(min(duration, playheadMs + 5000))
+                seek(min(duration, playheadMs + 5000))
             }
         }
     }
 
     private var recordButton: some View {
         ImasButton(title: recorder.laneCursor == nil ? "最後まで記録しました"
-                   : recorder.lane == .lines ? "歌い出しで押す" : "コールの頭で押す",
+                   : recorder.lane == .lines ? (recorder.cursorOverwrites ? "歌い出しで押し直す" : "歌い出しで押す")
+                   : (recorder.cursorOverwrites ? "コールの頭で押し直す" : "コールの頭で押す"),
                    systemImage: "hand.tap.fill", role: .primary, size: .large, fillsWidth: true) {
             guard let ms = playback.positionMs() else { return }
             recorder.recordNext(positionMs: ms)
@@ -515,6 +597,13 @@ struct LyricTimingEditorView: View {
     }
 
     // MARK: -
+
+    /// 再生位置を動かす。次に記録するものも、その位置の次へ寄せる (途中から押し直せるように)。
+    private func seek(_ ms: Int) {
+        playheadMs = ms
+        playback.seek(ms)
+        recorder.aim(atMs: ms)
+    }
 
     private func poll() async {
         while !Task.isCancelled {

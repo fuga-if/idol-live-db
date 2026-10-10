@@ -277,6 +277,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_part_segments,
     uniffi_imas_core_checksum_func_lyric_part_toggle_break,
     uniffi_imas_core_checksum_func_lyric_part_union,
+    uniffi_imas_core_checksum_func_lyric_record_cursor_at,
     uniffi_imas_core_checksum_func_lyric_ruby_spans,
     uniffi_imas_core_checksum_func_lyric_ruby_choices,
     uniffi_imas_core_checksum_func_lyric_aside_spans,

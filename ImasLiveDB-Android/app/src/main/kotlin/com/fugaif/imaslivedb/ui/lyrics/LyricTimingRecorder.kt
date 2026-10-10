@@ -10,6 +10,7 @@ import com.fugaif.imaslivedb.data.lyrics.PartsLine
 import com.fugaif.imaslivedb.data.lyrics.TimingEntry
 import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.lyricNextRecordable
+import uniffi.imas_core.lyricRecordCursorAt
 import uniffi.imas_core.lyricPartErase
 import uniffi.imas_core.lyricPartPaint
 import uniffi.imas_core.lyricPartSegments
@@ -21,7 +22,8 @@ import uniffi.imas_core.lyricPartSegments
  * タイムラインで前後に寄せる。保存 ([LyricsApi.saveTimings]) するまでサーバにも端末にも残さない。
  * 行の本文・コールの文言は持たない (id と種別だけ)。
  *
- * 「次に記録する行」の決め方はコア ([lyricNextRecordable]) が持つ。
+ * 「次に記録する行」の決め方はコア ([lyricNextRecordable]) が持つ。再生位置を動かすと
+ * その位置の次の行へ寄せる ([aim]) ので、記録済みの曲も途中から押し直せる。
  */
 class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
 
@@ -219,6 +221,62 @@ class LyricTimingRecorder(lyrics: Lyrics, val songId: String) {
         }
         lastWasAdjust = false
     }
+
+    /**
+     * 再生位置を動かしたら、次に記録するものをその位置へ寄せる (いま鳴っている行・コールの次)。
+     * 記録済みの曲を途中から押し直すため。戻さずに頭から押せば、これまでどおり頭から上書きする。
+     * 規則はコア ([lyricRecordCursorAt])。
+     */
+    fun aim(positionMs: Int) {
+        val position = positionMs.toLong()
+        cursor = lyricRecordCursorAt(kinds, startsForCore, position)?.toInt()
+        callCursor = lyricRecordCursorAt(List(callIds.size) { "lyric" }, callStartsForCore, position)?.toInt()
+        lastWasAdjust = false
+    }
+
+    /** 次に記録するものを、この行 (またはコール) にする。 */
+    fun aim(id: String) {
+        val li = lineIds.indexOf(id)
+        if (li >= 0 && isRecordable(id)) {
+            cursor = li
+            lane = Lane.LINES
+        } else {
+            val ci = callIds.indexOf(id)
+            if (ci < 0) return
+            callCursor = ci
+            lane = Lane.CALLS
+        }
+        lastWasAdjust = false
+    }
+
+    /**
+     * 次に記録するものを 1 つ前 / 後ろへ (上下の矢印)。空行は飛ばす。端では止まる。
+     * 最後まで記録し終えた (次が無い) ときに前へ戻すと、最後のものを指す。
+     */
+    fun stepCursor(delta: Int) {
+        when (lane) {
+            Lane.LINES -> {
+                val recordable = lineIds.indices.filter { isRecordable(lineIds[it]) }
+                if (recordable.isEmpty()) return
+                val at = cursor?.let { recordable.indexOf(it).takeIf { i -> i >= 0 } } ?: recordable.size
+                cursor = recordable[(at + delta).coerceIn(0, recordable.size - 1)]
+            }
+            Lane.CALLS -> {
+                if (callIds.isEmpty()) return
+                callCursor = ((callCursor ?: callIds.size) + delta).coerceIn(0, callIds.size - 1)
+            }
+            Lane.PARTS -> return
+        }
+        lastWasAdjust = false
+    }
+
+    /** 次に記録する行に、もう時刻が入っているか (押すと上書きになる)。 */
+    val cursorOverwrites: Boolean
+        get() = when (lane) {
+            Lane.LINES -> cursor?.let { starts[it] != null } ?: false
+            Lane.CALLS -> callCursor?.let { callStarts[it] != null } ?: false
+            Lane.PARTS -> false
+        }
 
     /** 行またはコールの開始を指定の時刻にする (つまみ・微調整)。カーソルは動かさない。 */
     fun adjust(id: String, toMs: Int) {

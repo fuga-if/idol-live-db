@@ -24,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FormatQuote
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Speed
@@ -70,7 +69,6 @@ import com.fugaif.imaslivedb.data.model.Song
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.LyricsSession
 import com.fugaif.imaslivedb.ui.designsystem.ImasAsideStyle
-import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadgeKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasButton
@@ -163,11 +161,6 @@ fun SongLyricsTab(
     var likes by remember { mutableStateOf(setOf<String>()) }
     var likeCounts by remember { mutableStateOf(mapOf<String, Int>()) }
     var heatTick by remember { mutableStateOf(0) }
-    // 非 null = パート分けを編集している (行 ID → 歌唱者のアイドル id)。
-    var partsDraft by remember { mutableStateOf<Map<String, List<String>>?>(null) }
-    // パート分けの「筆」= いま付けている歌唱者。行をタップするとこの人を付け外しする。
-    var partsBrush by remember { mutableStateOf<String?>(null) }
-    var partsSaving by remember { mutableStateOf(false) }
 
     val lyrics = (lyricsResult as? LyricsResult.Loaded)?.lyrics
     val playback = module.lyricsPlayback
@@ -176,9 +169,6 @@ fun SongLyricsTab(
     val partCast = remember(originalArtists, partsApplicable) {
         if (partsApplicable) LyricPartCast(originalArtists) else LyricPartCast.EMPTY
     }
-
-    fun currentParts(l: Lyrics): Map<String, List<String>> =
-        l.lines.filter { it.singers.isNotEmpty() }.associate { it.id to it.singers }
 
     LaunchedEffect(song.id) { likes = module.userMarkRepository.lyricLikes(song.id) }
 
@@ -229,13 +219,17 @@ fun SongLyricsTab(
     }
 
     suspend fun beginRecording(current: Lyrics) {
-        // 鳴らせない端末だけは開かない。未サインインなら、編集画面がサインインの案内を出し、
+        // 鳴らせない端末では、パート分けだけ (聴かずに塗れる) 開く。それも無い曲 (ソロ曲) は開かない。
+        // 未サインインなら、編集画面がサインインの案内を出し、
         // サインインの画面も鳴らそうとした時点で自動で開く (戻ると鳴り始める)。
-        if (playback.appleMusicState.value == com.fugaif.imaslivedb.player.AppleMusicState.UNAVAILABLE) {
+        val unavailable = playback.appleMusicState.value == com.fugaif.imaslivedb.player.AppleMusicState.UNAVAILABLE
+        if (unavailable && !partsApplicable) {
             recordUnavailable = true
             return
         }
-        recorder = LyricTimingRecorder(current, song.id)
+        recorder = LyricTimingRecorder(current, song.id).also {
+            if (unavailable) it.lane = LyricTimingRecorder.Lane.PARTS
+        }
     }
 
     fun changeStructure(lineId: String, change: StructureChange) {
@@ -250,32 +244,6 @@ fun SongLyricsTab(
             } finally {
                 structureBusyLineId = null
             }
-        }
-    }
-
-    // 筆の人をその行に付け外しする。並びは原唱者の並びに揃える (帯の縞の順を決めておく)。
-    fun togglePart(lineId: String) {
-        val brush = partsBrush ?: return
-        val draft = partsDraft ?: return
-        var singers = draft[lineId] ?: emptyList()
-        singers = if (brush in singers) singers - brush else singers + brush
-        singers = partCast.ordered(singers)
-        partsDraft = if (singers.isEmpty()) draft - lineId else draft + (lineId to singers)
-    }
-
-    suspend fun saveParts(current: Lyrics) {
-        val draft = partsDraft ?: return
-        partsSaving = true
-        try {
-            val lines = current.lines.mapNotNull { line -> draft[line.id]?.let { com.fugaif.imaslivedb.data.lyrics.PartsLine(line.id, it) } }
-            module.lyricsApi.saveParts(song.id, lines)
-            partsDraft = null
-            partsBrush = null
-            onReload()
-        } catch (e: Exception) {
-            structureError = e.message ?: "保存できませんでした"
-        } finally {
-            partsSaving = false
         }
     }
 
@@ -306,33 +274,13 @@ fun SongLyricsTab(
                         modifier = Modifier.padding(bottom = DS.sp2)
                     )
                 }
-                val draft = partsDraft
                 EditBar(
                     canEdit = canEdit, isEditingStructure = isEditingStructure,
-                    showsPartsButton = partsApplicable,
-                    partsDraft = draft, partsSaving = partsSaving,
-                    partsUnchanged = draft != null && draft == currentParts(lyrics),
                     onToggleStructureEdit = { isEditingStructure = !isEditingStructure },
                     onOpenPlayer = { showPlayer = true },
-                    onBeginRecording = { scope.launch { beginRecording(lyrics) } },
-                    onBeginParts = {
-                        partsDraft = currentParts(lyrics)
-                        partsBrush = originalArtists.firstOrNull()?.id
-                    },
-                    onCancelParts = { partsDraft = null; partsBrush = null },
-                    onSaveParts = { scope.launch { saveParts(lyrics) } }
+                    onBeginRecording = { scope.launch { beginRecording(lyrics) } }
                 )
                 when {
-                    draft != null -> {
-                        ImasNote(
-                            "歌う人を選んでから、歌詞の行をタップします。もう一度タップすると外れます。",
-                            modifier = Modifier.padding(vertical = DS.sp2)
-                        )
-                        PartsBrushBar(artists = originalArtists, brush = partsBrush, onSelect = { partsBrush = it })
-                        LyricsCard(song.title, artistLine) {
-                            PartsBody(lyrics = lyrics, draft = draft, cast = partCast, onToggle = ::togglePart)
-                        }
-                    }
                     isEditingStructure -> {
                         ImasNote(
                             "語をタップすると、その語の前で行を切り離します。行の右下の鎖のボタンで次の行とくっつけます。歌詞の文字は変わりません。",
@@ -437,110 +385,23 @@ private fun LyricsCard(title: String, artistLine: String?, content: @Composable 
 private fun EditBar(
     canEdit: Boolean,
     isEditingStructure: Boolean,
-    showsPartsButton: Boolean,
-    partsDraft: Map<String, List<String>>?,
-    partsSaving: Boolean,
-    partsUnchanged: Boolean,
     onToggleStructureEdit: () -> Unit,
     onOpenPlayer: () -> Unit,
-    onBeginRecording: () -> Unit,
-    onBeginParts: () -> Unit,
-    onCancelParts: () -> Unit,
-    onSaveParts: () -> Unit
+    onBeginRecording: () -> Unit
 ) {
     if (!canEdit) return
     Row(Modifier.fillMaxWidth().padding(bottom = DS.sp2), horizontalArrangement = Arrangement.spacedBy(DS.sp3)) {
         Spacer(Modifier.weight(1f))
         when {
-            partsDraft != null -> {
-                ImasButton(title = "やめる", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onCancelParts)
-                ImasButton(
-                    title = "保存", role = ImasButtonRole.PRIMARY, size = ImasButtonSize.SMALL,
-                    isLoading = partsSaving, enabled = !partsSaving && !partsUnchanged, onClick = onSaveParts
-                )
-            }
             isEditingStructure -> {
                 ImasButton(title = "行の編集を終了", role = ImasButtonRole.PLAIN, size = ImasButtonSize.SMALL, onClick = onToggleStructureEdit)
             }
             else -> {
-                if (showsPartsButton) {
-                    ImasIconButton(icon = Icons.Filled.Group, label = "パート分け", size = ImasIconButtonSize.SMALL, onClick = onBeginParts)
-                }
                 ImasIconButton(icon = Icons.Filled.Edit, label = "歌詞の行を直す・区切る", size = ImasIconButtonSize.SMALL, onClick = onToggleStructureEdit)
                 ImasIconButton(icon = Icons.Filled.QueueMusic, label = "歌詞プレイヤー", size = ImasIconButtonSize.SMALL, onClick = onOpenPlayer)
-                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミングを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
+                // 歌詞の時刻・コールの時刻・パート分けは、どれもこの 1 つの入口から (段を切り替える)。
+                ImasIconButton(icon = Icons.Filled.Speed, label = "タイミング・パートを編集", size = ImasIconButtonSize.SMALL, onClick = onBeginRecording)
             }
-        }
-    }
-}
-
-// MARK: - パート分け (誰が歌うか)
-
-/** 筆 (歌唱者) を選ぶ帯。原唱者のアイコンを並べ、選んだ人に輪を付ける。 */
-@Composable
-private fun PartsBrushBar(artists: List<Idol>, brush: String?, onSelect: (String) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = DS.sp2),
-        horizontalArrangement = Arrangement.spacedBy(DS.sp2)
-    ) {
-        artists.forEach { idol ->
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .padding(vertical = DS.sp1)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(idol.id) }
-            ) {
-                ImasAvatar(label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 36.dp, isPick = brush == idol.id, entityId = idol.id)
-                Text(
-                    idol.shortName,
-                    style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.META.style,
-                    color = if (brush == idol.id) DS.ink else DS.ink3,
-                    maxLines = 1
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PartsBody(lyrics: Lyrics, draft: Map<String, List<String>>, cast: LyricPartCast, onToggle: (String) -> Unit) {
-    lyrics.lines.forEach { line ->
-        when (line.kind) {
-            LyricLineKind.LYRIC -> {
-                val singers = draft[line.id] ?: emptyList()
-                // 行の途中の区切りはそのまま、行の頭の歌う人だけ塗り替える。
-                val drafted = line.copy(singers = singers, calls = emptyList())
-                val parts = cast.marks(drafted)
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onToggle(line.id) }
-                        .padding(vertical = DS.sp2),
-                    horizontalArrangement = Arrangement.spacedBy(DS.sp2),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        if (ImasRubyText.hasRuby(line.text) || parts.isNotEmpty()) {
-                            ImasRubyFlowText(
-                                text = line.text,
-                                style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
-                                color = DS.ink,
-                                partsAt = { start -> parts.colorsAt(start) }
-                            )
-                        } else {
-                            Text(
-                                line.text,
-                                style = com.fugaif.imaslivedb.ui.theme.ImasTextRole.BODY.style,
-                                color = DS.ink
-                            )
-                        }
-                        ImasPartNames(groups = cast.groups(drafted))
-                    }
-                }
-            }
-            LyricLineKind.MARKER -> SectionMarker(line.text)
-            LyricLineKind.BLANK -> Spacer(Modifier.height(DS.sp3))
         }
     }
 }
