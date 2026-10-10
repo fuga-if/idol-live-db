@@ -1,0 +1,787 @@
+{
+ "title": "アイドル説明文の事実誤りを公式プロフィールに合わせて直す（全アイドル点検）",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "cg_安部菜々",
+   "fields": {
+    "description": "ウサミン星からやってきた永遠の17歳の声優アイドル志望。実年齢は永遠の謎。CV: 三宅麻理恵。"
+   },
+   "note": "「うさみんスーパーラブリービーム☆を放つ」は公式紹介文・名鑑に無く裏付け不可。公式はウサミン星出身・声優アイドル志望・永遠の17歳",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/nana/",
+    "https://idollist.idolmaster-official.jp/detail/20010"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_綾瀬穂乃香",
+   "fields": {
+    "description": "宮城出身の17歳の元バレリーナアイドル。コンクール多数受賞、ぴにゃこら太グッズに目がない。"
+   },
+   "note": "「ピニャコラータ」は誤記、公式は「ぴにゃこら太」 / グッズ収集は趣味ではない（名鑑の趣味はバレエ）。公式は「ぴにゃこら太に目がない」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/honoka/",
+    "https://idollist.idolmaster-official.jp/detail/20011"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_有浦柑奈",
+   "fields": {
+    "description": "長崎出身の19歳のシンガーソングライター。祖父からもらったギターで「Love & Peace」を発信する。"
+   },
+   "note": "「祖父の遺した」は公式に無い（公式は「祖父からもらったギター」で、祖父の死去は記載なし）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/kanna/",
+    "https://idollist.idolmaster-official.jp/detail/20013"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_井村雪菜",
+   "fields": {
+    "description": "メイクを愛する17歳の高校生アイドル。事務所のメイク講師役で、手作りのぬいぐるみ「チャっくん」を持ち歩く。"
+   },
+   "note": "「チャッ君」は表記誤り、公式は「チャっくん」（自作のぬいぐるみ）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/setsuna/",
+    "https://idollist.idolmaster-official.jp/detail/20022"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_上田鈴帆",
+   "fields": {
+    "description": "博多弁で話す14歳のアイドル。手作りの独創的な着ぐるみ(鏡餅、大樹、不死鳥など)を着こなす個性派。CV: 春野ななみ。"
+   },
+   "note": "「ペリカン」は公式に無い、公式の例は鏡餅・大樹・不死鳥 / 公式は「衣装」ではなく自作の「着ぐるみ」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/suzuho/",
+    "https://idollist.idolmaster-official.jp/detail/20023"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_梅木音葉",
+   "fields": {
+    "description": "北海道出身の19歳の現役音大生アイドル。絶対音感と共感覚を持ち、森林浴とピアノが趣味で作曲も得意。"
+   },
+   "note": "趣味は「森林浴・ピアノ」（名鑑）。作曲は趣味ではなく得意なこと",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/otoha/",
+    "https://idollist.idolmaster-official.jp/detail/20025"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_江上椿",
+   "fields": {
+    "description": "新潟出身の19歳のカメラマンアイドル。常にカメラを持ち歩き写真を撮るのが趣味、注目されるのは苦手。"
+   },
+   "note": "趣味は「写真を撮ること」（名鑑）で「写真集め」ではない",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/tsubaki/",
+    "https://idollist.idolmaster-official.jp/detail/20026"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_及川雫",
+   "fields": {
+    "description": "岩手出身の16歳でショートヘアの抜群のスタイルの高校生。実家の『おいかわ牧場』をPRする酪農系アイドル。CV: のぐちゆり。"
+   },
+   "note": "牧場名の表記誤り「及川牧場」→公式「おいかわ牧場」 / 「農業系」→公式は「酪農系アイドル」 / 「大柄」は公式に無い（公式は「抜群のスタイル」）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/shizuku/",
+    "https://idollist.idolmaster-official.jp/detail/20029"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_大原みちる",
+   "fields": {
+    "description": "実家「おおはらベーカリー」の看板娘アイドル。パン愛が深く、パンの知識は事務所一の15歳。"
+   },
+   "note": "店名の表記誤り「大原ベーカリー」→公式「おおはらベーカリー」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/michiru/",
+    "https://idollist.idolmaster-official.jp/detail/20035"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_岡崎泰葉",
+   "fields": {
+    "description": "11年の芸歴を持つ元子役の16歳モデル兼アイドル。真面目でストイック、ドールハウス作りが趣味。"
+   },
+   "note": "「誰かの笑顔のためにという信念」は公式紹介文・名鑑に無く裏付け不可",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/yasuha/",
+    "https://idollist.idolmaster-official.jp/detail/20036"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_緒方智絵里",
+   "fields": {
+    "description": "内気で心優しい16歳のアイドル。四つ葉のクローバー集めとうさぎが好き。CV: 大空直美。"
+   },
+   "note": "「天使志望」は公式紹介文・名鑑に無く裏付け不可 / 「徐々に成長していく」も公式根拠なし。公式は四つ葉のクローバー集め・うさぎ好き",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/chieri/",
+    "https://idollist.idolmaster-official.jp/detail/20037"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_輿水幸子",
+   "fields": {
+    "description": "「宇宙で一番カワイイ」を自称する自信家な少女アイドル。実は人の見ていないところで全力を尽くす努力家。CV: 竹達彩奈。"
+   },
+   "note": "自称は公式では「宇宙で一番カワイイ」。「世界一かわいい幸子ちゃん」は公式の表現と異なる",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/sachiko/",
+    "https://idollist.idolmaster-official.jp/search/detail/20062"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_小関麗奈",
+   "fields": {
+    "description": "山形出身の自分を「レイナサマ」と呼ぶ13歳の悪戯っ子アイドル。実は世話焼きの一面も。CV: 長野佑紀。"
+   },
+   "note": "自称の表記は公式では「レイナサマ」（「麗奈様」ではない）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/reina/",
+    "https://idollist.idolmaster-official.jp/search/detail/20063"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_小日向美穂",
+   "fields": {
+    "description": "熊本出身の17歳アイドル。お芝居が好きで、「プロデューサーくん」と名付けたクマのぬいぐるみを大切にする。CV: 津田美波。"
+   },
+   "note": "クマのぬいぐるみが「ファンから」もらったものという記述は公式に無い。公式は「プロデューサーくん」と名付けたぬいぐるみ",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/miho/",
+    "https://idollist.idolmaster-official.jp/search/detail/20065"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐城雪美",
+   "fields": {
+    "description": "京都出身の10歳のミステリアスなアイドル。物静かで、鏡で会話の練習をしつつ、愛猫ペロと話す時間を大切にする。CV: 中澤ミナ。"
+   },
+   "note": "公式では会話の練習は「鏡を見ながら」。ペロとは「おはなしする時間を大切にしている」で、ペロと話す練習ではない",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/yukimi/",
+    "https://idollist.idolmaster-official.jp/search/detail/20077"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐藤心",
+   "fields": {
+    "description": "自分を「しゅがーはぁと」と呼ぶ26歳アイドル。裁縫が得意で衣装作りが趣味、裏表のない面倒見のいい性格。CV: 花守ゆみり。"
+   },
+   "note": "自称の表記は公式では「しゅがーはぁと」（「シュガーハート」ではない）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/shin/",
+    "https://idollist.idolmaster-official.jp/search/detail/20078"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_篠原礼",
+   "fields": {
+    "description": "宮崎出身の27歳の元社交ダンス講師アイドル。セクシーななぞなぞが得意で、実は怖がりな一面も。"
+   },
+   "note": "「お酒に弱い」は公式に無く、公式は「飲みに行くのが大好き」で矛盾気味",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/rei/",
+    "https://idollist.idolmaster-official.jp/search/detail/20082"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_関裕美",
+   "fields": {
+    "description": "富山出身の14歳のアクセサリー作りが趣味の中2アイドル。目つきがきついことを気にしているが優しい心の持ち主。CV: 会沢紗弥。"
+   },
+   "note": "気にしているのは公式では「目つきがきついこと」。「眉間のしわ」は公式に無い（チャームポイントはおでこ）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/hiromi/",
+    "https://idollist.idolmaster-official.jp/search/detail/20094"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_十時愛梨",
+   "fields": {
+    "description": "天然でマイペース、甘いものとケーキ作りが大好きなアイドル。のんびり屋に見えて手際の良い18歳の女子大生。CV: 原田ひとみ。"
+   },
+   "note": "「ハイテンションで元気いっぱいのスポーツ大好き」は公式（天然でマイペース・のんびり屋、甘いもの好き、趣味ケーキ作り）と食い違う / 「健康的な魅力」も公式に根拠なし",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/airi/",
+    "https://idollist.idolmaster-official.jp/search/detail/20110"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_姫川友紀",
+   "fields": {
+    "description": "野球が大好きな20歳のアイドル。兄の影響で野球好きになり、球場で飲むビールが大好物。CV: 杜野まこ。"
+   },
+   "note": "年齢18歳は誤り（公式20歳） / CV青山吉能は誤り（名鑑では杜野まこ） / 「スポーツ大好き」は公式では野球に特化",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/yuki/",
+    "https://idollist.idolmaster-official.jp/search/detail/20134"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_鷹富士茄子",
+   "fields": {
+    "description": "島根出身の20歳の元日生まれの幸運体質アイドル。隠し芸が趣味、誠実に実力で勝負する。CV: 森下来奈。"
+   },
+   "note": "「モノマネが特技」は公式紹介文・名鑑（趣味: 隠し芸、特技欄なし）で裏付けなし。隠し芸も名鑑上は趣味",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/kako/",
+    "https://idollist.idolmaster-official.jp/search/detail/20100"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_ヘレン",
+   "fields": {
+    "description": "海の向こう出身の24歳のオーラが凄いアイドル。各種格闘技経験者で、自らを「世界レベル」と語る。"
+   },
+   "note": "信条「ノーダンス・ノーアース」は公式紹介文・名鑑に無く裏付けなし（公式は「世界レベル」と自称）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/helen/",
+    "https://idollist.idolmaster-official.jp/search/detail/20142"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_長富蓮実",
+   "fields": {
+    "description": "島根出身の16歳の、昭和のアイドルが大好きなアイドル。母の影響で昭和に憧れ、古着屋巡りとボウリングが趣味。"
+   },
+   "note": "「母譲りで古着屋巡り」は公式と不一致（母の影響は昭和アイドルへの憧れ） / 「ボウリングも得意」は名鑑では趣味であり得意の根拠なし / 「昭和スター」→公式は昭和のアイドル",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/hasumi/",
+    "https://idollist.idolmaster-official.jp/search/detail/20111"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_的場梨沙",
+   "fields": {
+    "description": "大人顔負けのファッションを着こなすハイセンスなアイドル。ダンスが得意で、パパが大好きなパパっ子の12歳。CV: 集貝はな。"
+   },
+   "note": "年齢誤り: 10歳→公式12歳 / 「ボーイッシュで芸術家気質」「アートを愛し」は公式と無関係（公式はハイセンスなファッション、ダンス、パパっ子） / CV誤り: 小市眞琴→公式は集貝はな（小市眞琴は結城晴のCV）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/risa/",
+    "https://idollist.idolmaster-official.jp/search/detail/20154"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_水木聖來",
+   "fields": {
+    "description": "茨城出身の23歳のダンス大好きアイドル。高校時代からダンスに打ち込み、ブロードウェイに立つほどの実力派。"
+   },
+   "note": "「高校時代からブロードウェイで踊った」は誤読。公式は「高校生の頃からダンスに打ち込み、ブロードウェイに立つほどの腕前」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/seira/",
+    "https://idollist.idolmaster-official.jp/search/detail/20157"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_棟方愛海",
+   "fields": {
+    "description": "青森出身の14歳のお団子ヘアが特徴のアイドル。明るく社交的で、指の運動が趣味。"
+   },
+   "note": "「登山」が趣味は誤り。公式・名鑑の趣味は「指の運動」のみ（「お山への情熱」は登山ではない）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/atsumi/",
+    "https://idollist.idolmaster-official.jp/search/detail/20165"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_持田亜里沙",
+   "fields": {
+    "description": "元幼稚園の先生の21歳アイドル。長野出身で、ピアノと料理が得意、手作りパペット「ウサコちゃん」が相棒。"
+   },
+   "note": "経歴: 「元保育士」→公式は「元幼稚園の先生」 / 表記: 「うさこちゃん」→公式は「ウサコちゃん」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/arisa/",
+    "https://idollist.idolmaster-official.jp/search/detail/20169"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_柳瀬美由紀",
+   "fields": {
+    "description": "北海道出身の14歳のアイドル。実家は水産工場でカニが大好物、ぬいぐるみ集めが趣味。"
+   },
+   "note": "「実家の蟹工場」→公式は「実家は水産工場」。「蟹さばきが得意」も公式は「カニを剥くのが工場社員より早いらしい」程度",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/miyuki/",
+    "https://idollist.idolmaster-official.jp/search/detail/20178"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_横山千佳",
+   "fields": {
+    "description": "宮崎出身の9歳の魔法少女に憧れるアイドル。ツインテールで「ラブリーチカ」に変身。"
+   },
+   "note": "表記: 「ラブリーちかちゃん」→公式は「ラブリーチカ」 / 「魔法少女アニメが大好き」→公式は魔女っ娘に憧れアニメをよく見る、程度（軽微）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/chika/",
+    "https://idollist.idolmaster-official.jp/search/detail/20183"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_脇山珠美",
+   "fields": {
+    "description": "佐賀出身の16歳の剣道部員アイドル。竹刀「竹男」が相棒で、小柄ながら凛とした魅力を持つ。CV: 嘉山未紗。"
+   },
+   "note": "表記: 竹刀の名前「タケオ」→公式は「竹男」",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/tamami/",
+    "https://idollist.idolmaster-official.jp/search/detail/20189"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_矢口美羽",
+   "fields": {
+    "description": "千葉出身の14歳のお笑い兼業アイドル。ムードメーカーで、一発ギャグをよく披露する。"
+   },
+   "note": "「駄洒落を連発」→公式は「一発ギャグを披露」。「変わり者」も公式に根拠なし",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/miu/",
+    "https://idollist.idolmaster-official.jp/search/detail/20176"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_真鍋いつき",
+   "fields": {
+    "description": "石川出身の22歳の元インストラクターアイドル。運動なら何でも好きで、意外と食いしん坊。"
+   },
+   "note": "「フィットネスインストラクター」→公式は単に「元インストラクター」 / 「スポーツ全般が得意」「とにかく食欲旺盛」→公式は「運動なら何でも好き」「意外と食いしん坊らしい」（誇張）",
+   "source": [
+    "https://cinderellagirls.idolmaster-official.jp/idol/itsuki/",
+    "https://idollist.idolmaster-official.jp/search/detail/20156"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_リュ_ヘナ",
+   "fields": {
+    "description": "シンデレラガールズ韓国版限定アイドル。ヘアバンドが特徴で、自撮りと小物作りが趣味。"
+   },
+   "note": "「韓流アイドルを思わせるモデル体型のセクシー系」は裏付けなし。ファンwiki上の設定は肩までの髪にヘアバンド、趣味は自撮りと小物作り（ヘアバンドも自作）",
+   "source": [
+    "https://ja.wikipedia.org/wiki/アイドルマスター_シンデレラガールズの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "cg_イム_ユジン",
+   "fields": {
+    "description": "シンデレラガールズ韓国版限定アイドル。ソウル出身のノリがいい少女で、道を尋ねた相手のプロデューサーにスカウトされた。"
+   },
+   "note": "「日本文化に憧れて来日」「向上心のある女子高生」は裏付けなし。ファンwiki上はソウル出身、ノリがいい性格、道を尋ねようと声をかけたPにスカウトされた",
+   "source": [
+    "https://ja.wikipedia.org/wiki/アイドルマスター_シンデレラガールズの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "sidem_姫野かのん",
+   "fields": {
+    "description": "中性的で可愛らしい容姿の男性アイドル。女の子扱いされるのを嫌うもふもふえんメンバー。CV: 伊能幸輝。"
+   },
+   "note": "CV: 村瀬歩 → 公式アイドルページの現行CVは伊能幸輝（村瀬歩から交代済み）",
+   "source": [
+    "https://idolmaster-official.jp/sidem/idol/kanon",
+    "https://ja.wikipedia.org/wiki/アイドルマスター_SideMの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "sidem_柏木翼",
+   "fields": {
+    "description": "元パイロットの真面目で穏やかな性格のアイドル。卑屈な面も見せる、DRAMATIC STARSのメンバー。CV: 八代拓。"
+   },
+   "note": "元パイロット志望 → 公式は「パイロットからアイドルへ！」。副操縦士として乗務した後に夢を諦めた設定で、「志望」ではない",
+   "source": [
+    "https://idolmaster-official.jp/sidem/idol/tsubasa",
+    "https://ja.wikipedia.org/wiki/アイドルマスター_SideMの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "765as_音無小鳥",
+   "fields": {
+    "description": "765プロダクションの事務員。妄想が趣味で、アニメではピアノバーで歌手として歌うことも。CV: 滝田樹里。"
+   },
+   "note": "「元アイドル志望」→ 根拠なし（設定は「アイドルといえば、アイドルだったかも」とぼかされているのみ） / 「『あずきP』として活動」→ 該当する設定は見当たらず、でっち上げと判断して削除",
+   "source": [
+    "https://ja.wikipedia.org/wiki/アイドルマスターの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "876_日高愛",
+   "fields": {
+    "description": "876プロ所属の元気で前向きなアイドル。歌が大好きで、明るく猪突猛進な性格。CV: 戸松遥。"
+   },
+   "note": "「ダンスが得意」→ 根拠なし。公式の台詞やWikipediaでは「歌が好き」が軸 / 「真っ直ぐ」は猪突猛進な性格（Wikipedia）に合わせて言い換えた",
+   "source": [
+    "https://idollist.idolmaster-official.jp/search/detail/210001",
+    "https://ja.wikipedia.org/wiki/アイドルマスターの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "876_水谷絵理",
+   "fields": {
+    "description": "876プロ所属のアイドル。元は引きこもりのネットアイドル「ELLIE」で、映像編集などのPCスキルに長けた内気な少女。CV: 花澤香菜。"
+   },
+   "note": "「クールで知的」→ 根拠なし。設定は内気で、長く話すと疲れてしまう元引きこもり / 「ネット上では明るい一面も」→ 根拠なし。ネットアイドルELLIEとしての活動歴に差し替え",
+   "source": [
+    "https://idollist.idolmaster-official.jp/search/detail/210002",
+    "https://ja.wikipedia.org/wiki/アイドルマスターの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "876_灯里愛夏",
+   "fields": {
+    "description": "福岡県出身、876プロのライバーアイドル（ヴイアライヴ）。「やっぴー！」が決め台詞で、表現力と地元愛が強み、シティーガール力を伸ばしたいと意気込む。"
+   },
+   "note": "「ヴイアラ候補生」→ 2024年3月にデビュー済み。公式の肩書は「876プロの新人ライバーアイドル」 / 「上京した」→ 公式プロフィールでは確認できない（出身が福岡県であることのみ）",
+   "source": [
+    "https://idolmaster-official.jp/va-liv/manaka",
+    "https://idolmaster-official.jp/va-liv/about",
+    "https://idollist.idolmaster-official.jp/search/detail/210003"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "876_上水流宇宙",
+   "fields": {
+    "description": "876プロのライバーアイドル（ヴイアライヴ）。芸歴10年目の崖っぷちから再起した努力家で、ダンス・振付が強み、地声の大きさも特技。"
+   },
+   "note": "「青色担当」→ 公式で確認できない / 「候補生」→ デビュー済み（2024年3月） / 「クールに見えて実は元気」→ 公式で確認できない（声の大きさは公式の特殊スキル）",
+   "source": [
+    "https://idolmaster-official.jp/va-liv/cosmo",
+    "https://idolmaster-official.jp/va-liv/about"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "876_サラ_レトラ_オリヴェイラ_ウタガワ",
+   "fields": {
+    "description": "日本とブラジルのハーフで、876プロのライバーアイドル（ヴイアライヴ）。歌唱力と作詞力が強みで、枠に収まらない表現者を目指す。"
+   },
+   "note": "「頑固でストイック」→ 公式で確認できない（公式の自己評価では弱みが「遠慮して前に出ない」） / 「ヴイアラメンバー最年長で姉的存在」→ 年齢は公式で非公開のため根拠なし",
+   "source": [
+    "https://idolmaster-official.jp/va-liv/letora",
+    "https://idollist.idolmaster-official.jp/search/detail/210005"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "765as_玲音",
+   "fields": {
+    "description": "961プロダクション所属のオーバーランクアイドル。スターリットシーズンでは詩花・亜夜とユニット「ディアマント」を組む。CV: 茅原実里。"
+   },
+   "note": "「クールで凛とした雰囲気の黒髪美少女」→ 根拠なし。設定は、観客を楽しませることを第一に考える「ナチュラルボーン・アイドル」で、ランクの枠を超えた「オーバーランク」",
+   "source": [
+    "https://idollist.idolmaster-official.jp/search/detail/220001",
+    "https://ja.wikipedia.org/wiki/アイドルマスターの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "765as_亜夜",
+   "fields": {
+    "description": "961プロダクション所属、ユニット「ディアマント」のセンター。元は961プロの裏方スタッフで、玲音・詩花をも超える完璧なアイドルを目指すストイックな少女。CV: 日高里菜。"
+   },
+   "note": "「元気で愛嬌たっぷりの末っ子的存在」→ 誤り。ディアマントのセンターで、完璧なアイドルを目指すストイックで強気な性格（公式の台詞「二人を超えるアイドルを目指して」）",
+   "source": [
+    "https://idollist.idolmaster-official.jp/search/detail/240002",
+    "https://ja.wikipedia.org/wiki/アイドルマスターの登場人物"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_絢瀬絵里",
+   "fields": {
+    "description": "音ノ木坂学院3年生、生徒会長。μ'sのメンバー。CV: 南條愛乃。"
+   },
+   "note": "「μ'sのサブリーダー」→ 公式設定にサブリーダーという役職はない（ファンの通称程度）。削除",
+   "source": [
+    "https://www.lovelive-anime.jp/otonokizaka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_渡辺曜",
+   "fields": {
+    "description": "浦の星女学院2年生、千歌の幼馴染で水泳部の高飛び込みが得意な元気娘。「ヨーソロー！」が口癖。CV: 斉藤朱夏。"
+   },
+   "note": "「水泳・ダイビングが得意」→ 曜の競技は高飛び込み（飛込競技）。「ダイビング」だと果南のスキューバ設定と紛らわしいため明確化",
+   "source": [
+    "https://www.lovelive-anime.jp/uranohoshi/member.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_国木田花丸",
+   "fields": {
+    "description": "浦の星女学院1年生、寺の娘で本好きの穏やかな少女。「ずら」が口癖でルビィとは中学時代からの親友。CV: 高槻かなこ。"
+   },
+   "note": "「ルビィとは幼馴染」→ 二人は中学時代からの同級生・親友（本がきっかけで知り合う）。幼馴染とする根拠なし",
+   "source": [
+    "https://dic.pixiv.net/a/黒澤ルビィ",
+    "https://ciatr.jp/topics/211260"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_小原鞠莉",
+   "fields": {
+    "description": "浦の星女学院3年生、ハーフで同学院の理事長も務める。陽気で英語混じりに話す自由奔放な性格。CV: 鈴木愛奈。"
+   },
+   "note": "「理事長の娘」→ アニメでは鞠莉本人が3年生と理事長を兼任（第3話で新理事長として登場）",
+   "source": [
+    "https://thetv.jp/program/0000906632/4/",
+    "https://zh.moegirl.org.cn/%E5%B0%8F%E5%8E%9F%E9%9E%A0%E8%8E%89"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_上原歩夢",
+   "fields": {
+    "description": "虹ヶ咲学園2年生、侑の幼馴染で何事にもコツコツ取り組む努力家。スクールアイドル活動を通して少しずつ成長していく。CV: 大西亜玖璃。"
+   },
+   "note": "「内気な少女」→ 公式紹介は「何事にもコツコツ取り組む努力家」。内気という設定の根拠なし",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_中須かすみ",
+   "fields": {
+    "description": "虹ヶ咲学園1年生、かわいいものが大好きな小悪魔系で負けず嫌い。可愛さで勝負する。CV: 相良茉優。"
+   },
+   "note": "「自称『スクールアイドル同好会の中心』」→ 公式に該当する自称・台詞が見当たらない。公式紹介（かわいいもの好き・負けず嫌い）に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_朝香果林",
+   "fields": {
+    "description": "虹ヶ咲学園3年生、読者モデルをしている大人っぽい先輩。見た目とは裏腹に意外とピュアな一面も。CV: 久保田未夢。"
+   },
+   "note": "「現役モデル」→ 公式は「読者モデル」 / 「寂しがり屋」→ 公式は「意外とピュアな一面」。寂しがり屋の根拠なし",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_宮下愛",
+   "fields": {
+    "description": "虹ヶ咲学園2年生、運動神経抜群で様々な部の助っ人として活躍する、ノリが良く面倒見のいい性格。CV: 村上奈津実。"
+   },
+   "note": "「『あいきゃん』が口癖」→ そのような口癖は確認できない（でっち上げ） / 「お笑いが大好き」→ 公式紹介にない（ダジャレ好きはファン周知だが公式ページ記載なし）。公式紹介（運動神経抜群・助っ人）に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_近江彼方",
+   "fields": {
+    "description": "虹ヶ咲学園3年生、いつも眠そうにしているおっとり系。料理と妹をかわいがることには情熱を燃やす。CV: 鬼頭明里。"
+   },
+   "note": "「アルバイトを掛け持ち」→ 公式紹介に記載なく、掛け持ちの根拠なし。公式紹介（料理・妹思い）に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_優木せつ菜",
+   "fields": {
+    "description": "虹ヶ咲学園2年生、好きを叫ぶアツいスクールアイドル。生徒会長・中川菜々のもう一つの姿。CV: 林鼓子。"
+   },
+   "note": "3年生 → 公式は2年生",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_三船栞子",
+   "fields": {
+    "description": "虹ヶ咲学園1年生、真面目で「みんなのために」行動できる性格。ランジュとは幼馴染。CV: 小泉萌香。"
+   },
+   "note": "「生徒会副会長」→ スクスタでは菜々を選挙で破り生徒会長になる。副会長とする根拠が取れないため削除 / 「当初は同好会に反対していた」→ スクスタ限定の筋でメディア間で異なるため削除し、公式紹介（真面目・ランジュの幼馴染）に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php",
+    "https://dic.nicovideo.jp/a/%E5%84%AA%E6%9C%A8%E3%81%9B%E3%81%A4%E8%8F%9C"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_ミア_テイラー",
+   "fields": {
+    "description": "虹ヶ咲学園3年生、NYCから来た14歳の留学生で、飛び級で編入した音楽一家テイラー家の娘。皮肉屋だが繊細な天才作曲家。CV: 内田秀。"
+   },
+   "note": "1年生 → 公式は3年生（14歳で飛び級編入） / 「少年のような少女」→ 根拠なし、削除",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_鐘嵐珠",
+   "fields": {
+    "description": "虹ヶ咲学園2年生、香港から来た留学生のお嬢様。何をやってもパーフェクトな結果を出す完璧主義者。CV: 法元明菜。"
+   },
+   "note": "1年生 → 公式は2年生 / 「『みんなが幸せになるべき』が信念」→ 公式に根拠なし、削除",
+   "source": [
+    "https://www.lovelive-anime.jp/nijigasaki/about_nijigasaki.php"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_平安名すみれ",
+   "fields": {
+    "description": "結ヶ丘女子高校の生徒、幼い頃は子役としてCMにも出演していた自信家。実家は神社で、実は根の優しい努力家。CV: ペイトン尚未。"
+   },
+   "note": "「ハリウッド志望」「帰国子女」→ 公式設定になし（でっち上げ）。公式は元子役・実家が学校近くの神社",
+   "source": [
+    "https://www.lovelive-anime.jp/yuigaoka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_葉月恋",
+   "fields": {
+    "description": "結ヶ丘女子高校の生徒会長、母が設立した学校を守るお嬢様。気高く凛とした令嬢。CV: 青山なぎさ。"
+   },
+   "note": "「伝説のスクールアイドル鬼塚冬毬の妹を持つ」→ でっち上げ。冬毬は鬼塚夏美の妹で恋とは無関係 / 「理事長の娘」→ 公式は「結ヶ丘女子高等学校の設立者の娘」",
+   "source": [
+    "https://www.lovelive-anime.jp/yuigaoka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_鬼塚夏美",
+   "fields": {
+    "description": "結ヶ丘女子高校の2期生、人気エルチューバーとして活動していた行動力ある流行好き。冬毬の姉。CV: 絵森彩。"
+   },
+   "note": "「伝説のスクールアイドル冬毬」→ 冬毬にそのような設定はない / 「マイペースな自由人」→ 公式は流行に敏感で行動力があり、目的のためには手段を選ばない性格。エルチューバー設定に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/yuigaoka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_鬼塚冬毬",
+   "fields": {
+    "description": "結ヶ丘女子高校の3期生、夏美の妹。効率主義で無駄を嫌う。CV: 坂倉花。"
+   },
+   "note": "「伝説のスクールアイドル」→ でっち上げ。公式は効率重視で、姉の夢中なスクールアイドルに興味を示す後輩",
+   "source": [
+    "https://www.lovelive-anime.jp/yuigaoka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_米女メイ",
+   "fields": {
+    "description": "結ヶ丘女子高校の2期生、一見とっつきにくい不良っぽさがあるが、正義感が強くスクールアイドルへの憧れを秘めている。CV: 薮島朱音。"
+   },
+   "note": "「頼れる妹分」→ 公式に根拠なし / 「ボーイッシュでクール/熱血漢」→ 公式は「斜に構えた不良っぽい女の子」「正義感が強い」。公式に寄せて修正",
+   "source": [
+    "https://www.lovelive-anime.jp/yuigaoka/member/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_村野さやか",
+   "fields": {
+    "description": "蓮ノ空女学院の生徒、しっかり者で生真面目な性格。幼い頃からフィギュアスケートを続けている。DOLLCHESTRA所属。CV: 野中ここな。"
+   },
+   "note": "「妹キャラ」→ 公式に根拠なし（現在は3年生・ダブル部長のひとり）。公式紹介のフィギュアスケートに差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/hasunosora/member/02/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_乙宗梢",
+   "fields": {
+    "description": "蓮ノ空女学院の102期生（卒業生）、文武両道の才女。スリーズブーケ所属で、部長としてラブライブ！優勝を果たした。CV: 花宮初奈。"
+   },
+   "note": "「蓮ノ空女学院の生徒」→ 公式では102期生・卒業生。時期依存を避けて期生表記に / 「スリーズブーケのリーダー的存在」→ 公式はスクールアイドルクラブ部長。曖昧な表現を公式事実に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/hasunosora/member/03/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_夕霧綴理",
+   "fields": {
+    "description": "蓮ノ空女学院の102期生（卒業生）、天才と称されるパフォーマー。マイペースで独特なワードセンスを持ち、寂しがりやで人懐っこい。DOLLCHESTRA所属。CV: 佐々木琴子。"
+   },
+   "note": "「寡黙でクール」→ 公式は「マイペース」「寂しがりやで人懐っこい」 / 「ダンス担当」→ 公式に根拠なし / 「生徒」→ 公式では102期生・卒業生",
+   "source": [
+    "https://www.lovelive-anime.jp/hasunosora/member/04/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_大沢瑠璃乃",
+   "fields": {
+    "description": "蓮ノ空女学院の生徒、カリフォルニアから編入した帰国子女で周囲を明るくする元気なムードメーカー。みらくらぱーく！所属。CV: 菅叶和。"
+   },
+   "note": "「運動神経抜群」→ 公式に根拠なし。公式紹介（帰国子女・元気な性格、体力を使い切ると充電切れ）に差し替え",
+   "source": [
+    "https://www.lovelive-anime.jp/hasunosora/member/05/"
+   ]
+  },
+  {
+   "table": "idols",
+   "id": "lovelive_藤島慈",
+   "fields": {
+    "description": "蓮ノ空女学院の102期生（卒業生）、幼い頃からタレント活動をしてきた、自分の可愛さを自覚する努力家。みらくらぱーく！所属。CV: 月音こな。"
+   },
+   "note": "「おっとりとした天然系のおもしろお姉さん」→ 公式は元子役タレントで自分の可愛さを自覚し、世界中を夢中にするため努力する性格。逆の人物像 / 「生徒」→ 公式では102期生・卒業生",
+   "source": [
+    "https://www.lovelive-anime.jp/hasunosora/member/06/"
+   ]
+  }
+ ]
+}
