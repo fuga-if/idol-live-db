@@ -117,16 +117,6 @@ ITEM_SOURCE_KEYS = ("source", "source_url")
 # 各項目に付けてよい、表の列ではないキー (DB には入らない)。
 ANNOTATION_KEYS = ("source", "note")
 
-# アイドルの公式タグに運営の 1 票を入れる (data/fixes/ の add_official_tags)。
-# タグと票はマスタ (master.sqlite / CloudKit) ではなく D1 (imas-live-api) にあるので、
-# --apply はマスタに何も書かず、D1 に流す SQL を --d1-sql に書き出すだけ。
-# 公式タグの語は D1 の migration (official_ で始まる id の行) が正本。
-D1_MIGRATIONS_DIR = ROOT / "imas-live-api" / "migrations"
-# 運営の票の端末 ID の接頭辞 (imas-live-api の OFFICIAL_DEVICE_PREFIX と同じ)。端末の記録に
-# この形で入れることで、利用者の票と分かれる (利用者はこの接頭辞を名乗れない)。
-OFFICIAL_DEVICE_PREFIX = "official:"
-
-
 def facet_defs():
     """imas-core/facets.json: 項目キー → 定義。Rust の定義の書き出し (唯一の正は Rust 側)。"""
     data = json.loads(FACETS_JSON.read_text(encoding="utf-8"))
@@ -187,55 +177,6 @@ def hair_row_problems(tag, row, data):
 
 def hair_db_value(col, v):
     return "、".join(v) if col in HAIR_MULTI_COLUMNS and isinstance(v, list) else v
-
-
-def official_idol_tags():
-    """D1 の migration が入れるアイドルの公式タグ: 名前 → id。"""
-    out = {}
-    for path in sorted(D1_MIGRATIONS_DIR.glob("*.sql")):
-        text = path.read_text(encoding="utf-8")
-        if "idol_tag_master" not in text:
-            continue
-        for tag_id, name in re.findall(r"\('(official_[a-z0-9_]+)', '([^']+)'", text):
-            out[name] = tag_id
-    return out
-
-
-def official_vote_device(path):
-    """運営の票の端末 ID。投稿ファイルごとに分ける (どのファイルで入れた票か辿れ、消すときも絞れる)。"""
-    return OFFICIAL_DEVICE_PREFIX + Path(path).stem
-
-
-def _sql_text(v):
-    return "'" + str(v).replace("'", "''") + "'"
-
-
-def official_tag_vote_sql(votes):
-    """(端末 ID, idol_id, タグ名) の並びを、D1 に流す SQL にする。何度流しても 1 票のまま。
-
-    API の付与 (routes/tags.ts の attachTags) と同じく、端末の記録 (device_idol_tag) に行があれば
-    数えない。先に票を足してから記録を入れるので、2 回目は NOT EXISTS で票が増えない
-    (changes() に頼らない: wrangler の --file でも文の境目で値が変わらない)。
-    タグは名前で引く (同名の利用者タグを公式にした場合、id は migration の id と違う)。
-    """
-    lines = [
-        "-- 公式タグの運営の票 (tools/apply_data.py が書き出した)。",
-        "-- npx wrangler d1 execute imas-live-db --remote --file <このファイル>",
-    ]
-    for device, idol_id, name in votes:
-        d, i, n = _sql_text(device), _sql_text(idol_id), _sql_text(name)
-        lines.append(
-            f"INSERT INTO idol_tags (idol_id, tag_id, vote_count) SELECT {i}, t.id, 1 FROM idol_tag_master t"
-            f" WHERE t.name = {n} AND t.status != 'removed' AND NOT EXISTS (SELECT 1 FROM device_idol_tag"
-            f" WHERE device_id = {d} AND idol_id = {i} AND tag_id = t.id)"
-            f" ON CONFLICT(idol_id, tag_id) DO UPDATE SET vote_count = vote_count + 1;"
-        )
-        lines.append(
-            f"INSERT OR IGNORE INTO device_idol_tag (device_id, idol_id, tag_id, created_at)"
-            f" SELECT {d}, {i}, t.id, CAST(strftime('%s', 'now') AS INTEGER) FROM idol_tag_master t"
-            f" WHERE t.name = {n} AND t.status != 'removed';"
-        )
-    return "\n".join(lines) + "\n"
 
 
 def cols(conn, table):
@@ -808,22 +749,8 @@ def validate(conn):
                     for idol in singers:
                         if not exists(conn, "idols", idol):
                             problems.append(f"{tag}: add_original_singers の idol '{idol}' が存在しない")
-            official = fx.get("add_official_tags")
-            if official is not None:
-                known = official_idol_tags()
-                if table != "idols":
-                    problems.append(f"{tag}: add_official_tags は idols の修正にだけ書ける")
-                elif not isinstance(official, list) or not official:
-                    problems.append(f"{tag}: add_official_tags は公式タグの名前の配列 (空は不可)")
-                else:
-                    if len(set(official)) != len(official):
-                        problems.append(f"{tag}: add_official_tags に同じタグが重なっている")
-                    for name in official:
-                        if name not in known:
-                            problems.append(f"{tag}: '{name}' はアイドルの公式タグに無い "
-                                            "(imas-live-api/migrations の official_ の行)")
-            if fields is None and (singers or official):
-                pass  # 原唱者を足すだけ / 公式タグに票を入れるだけの修正
+            if fields is None and singers:
+                pass  # 原唱者を足すだけの修正
             elif not isinstance(fields, dict) or not fields:
                 problems.append(f"{tag}: fields が無い/空")
             else:
@@ -926,10 +853,8 @@ def insert_row(conn, table, row):
     )
 
 
-def apply_all(conn, official_votes=None):
-    """data/ を master.sqlite に入れる。公式タグの票 (D1 行き) は official_votes に溜める。"""
-    if official_votes is None:
-        official_votes = []
+def apply_all(conn):
+    """data/ を master.sqlite に入れる。"""
     # 表 → その表に渡す id 集合。空集合の表は「全件 push」を意味する
     # (絞り込む列が無い表・fixes で行を直した表)。
     affected = defaultdict(set)
@@ -1140,9 +1065,6 @@ def apply_all(conn, official_votes=None):
                     (rid, idol),
                 )
                 affected["song_artists"].add(rid)
-            # 公式タグの票は D1 行き。マスタには書かない (official_votes に溜めて main が SQL にする)。
-            for name in fx.get("add_official_tags", []):
-                official_votes.append((official_vote_device(path), rid, name))
             if not fields and not fx.get("add_original_singers"):
                 continue  # マスタの行は変わっていないので CloudKit へ押さない
             # fixes は id 列で 1 行を直す。その表が絞れるなら、その 1 行だけを押す
@@ -1246,9 +1168,6 @@ def main():
     ap.add_argument("--push", action="store_true", help="反映後 CloudKit へ push (要 --apply)")
     ap.add_argument("--production", action="store_true", help="push 先を Production に")
     ap.add_argument("--db", default=str(DB_PATH))
-    ap.add_argument("--d1-sql", metavar="OUT.sql",
-                    help="公式タグの票 (add_official_tags) を D1 に流す SQL の書き出し先。"
-                         "票のある投稿を --apply するときは必須 (票はマスタではなく D1 にある)")
     ap.add_argument("--only", metavar="FILE.json",
                     help="この 1 ファイルだけを対象にする (他の保留中の投稿に巻き込まれない)")
     args = ap.parse_args()
@@ -1292,27 +1211,11 @@ def main():
         )
         sys.exit(1)
 
-    has_official_votes = any(fx.get("add_official_tags")
-                             for _, data in load("fixes") for fx in data.get("fixes", []))
-    if has_official_votes and not args.d1_sql:
-        print(
-            "\n✗ 公式タグの票 (add_official_tags) は D1 (imas-live-api) に入れるもので、"
-            "--apply / --push ではどこにも届かない。--d1-sql <書き出し先.sql> を付けて SQL を作り、"
-            "npx wrangler d1 execute imas-live-db --remote --file <その.sql> で流すこと。",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     backup = Path(args.db).with_suffix(f".sqlite.bak_{int(time.time())}")
     shutil.copy2(args.db, backup)
     print(f"\nバックアップ: {backup.name}")
-    official_votes = []
-    affected = apply_all(conn, official_votes)
+    affected = apply_all(conn)
     conn.close()
-    if official_votes:
-        Path(args.d1_sql).write_text(official_tag_vote_sql(official_votes), encoding="utf-8")
-        print(f"\n公式タグの票 {len(official_votes)} 件の SQL: {args.d1_sql}"
-              f"\n  → cd imas-live-api && npx wrangler d1 execute imas-live-db --remote --file {Path(args.d1_sql).resolve()}")
     print(f"対象テーブル: {sorted(affected)}")
 
     if args.push:

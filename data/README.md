@@ -37,11 +37,12 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 | `data/creators/` | 作詞・作曲・編曲の作家 | `id` `name` `name_kana` |
 | `data/unit_versions/` | ユニットのバージョン | `id` `unit_id` `name` (+ `code` `catchphrase` `valid_from` `valid_to`) |
 | `data/costumes/` | ライブ衣装と、着た公演 | `id` `name` `wears[]`（`show_id` + 任意で `setlist_item_id` / `idol_id`） |
+| `data/idol_hairstyles/` `data/idol_facets/` | アイドルの髪型・項目 | 下の「アイドルの項目」 |
 | `data/ticket_sales/` | チケット受付（抽選・先着・リセール・当日券） | `event_id` `kind` `name` `source_url` + 任意で `show_ids[]` `starts_at`/`ends_at`/`result_at` `url` `note` `sort_order` |
 
 ## 修正（data/fixes/）
 
-既存レコードのフィールドを直す。対象テーブルは `idols / songs / events / shows / units / brands / ticket_sales`
+既存レコードのフィールドを直す。対象テーブルは `idols / songs / events / shows / units / brands / ticket_sales / idol_facets / idol_hairstyles`
 （`venues` `venue_names` `creators` `setlist_items` も対象）。チケット受付の締切延長などは
 `{ "fixes": [ { "table": "ticket_sales", "id": "対象id", "fields": { "ends_at": "2026-04-20 23:59" } } ] }`。
 ```json
@@ -65,21 +66,40 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 { "fixes": [ { "table": "songs", "id": "ml_your_home_town", "add_original_singers": ["765as_双海亜美"] } ] }
 ```
 
-アイドルの容姿 (髪色・髪の長さ・髪型・髪の飾り) は idols の列ではなく、**アイドルのタグ**の
-既存の「魅力・外見」(category `charm`) の公式タグで持つ (利用者が投票で育てられるように)。初期値は
-`add_official_tags` に公式タグの名前を並べると、運営の 1 票として入る。使える名前は
-`imas-live-api/migrations/0050_idol_appearance_tags.sql` の 45 語 (髪色: 黒髪 / 茶髪 / 金髪 /
-白髪・銀髪 / 赤髪 / オレンジ髪 / ピンク髪 / 緑髪 / 青髪 / 水色の髪 / 紫髪 / 髪色2色以上、長さ: ロングヘア /
-ボブ〜ミディアムヘア / ショートヘア、ほかに髪型と飾り)。このうち 20 語は利用者が先に作っていた
-タグで、0050 は**名前で照合して**その行を公式にする (作り直さない)。初期値もタグを名前で指す。
+## アイドルの項目 (性格・好み・髪型など)
+
+アイドルの細かい情報は、プロフィールの列 (誕生日・身長など) のほかに**項目 (ファセット)** として持つ。
+項目の一覧・値の語彙は `imas-core/facets.json` (唯一の正は `imas-core/src/domain/idol_facets.rs`)。
+設計と使われ方は [`docs/ARCHITECTURE-facets.md`](../docs/ARCHITECTURE-facets.md)。
+
+| 置き場所 | 持つもの |
+|---|---|
+| `data/idol_hairstyles/` | **髪型**。1 人に複数 (基本 / セカンドヘア / 覚醒後 …)。`is_main: true` がちょうど 1 つ |
+| `data/idol_facets/` | 髪以外の項目 (目の色・眼鏡・性格・好きな食べ物・経歴・方言 …)。1 値 1 行 |
+
 ```json
-{ "fixes": [ { "table": "idols", "id": "765as_天海春香", "add_official_tags": ["茶髪", "ボブ〜ミディアムヘア", "リボン"] } ] }
+{ "source": "https://…", "idol_hairstyles": [
+  { "idol_id": "765as_星井美希", "label": "基本", "is_main": true,
+    "hair_color": "金", "hair_length": "ロング", "styles": ["ウェーブ", "アホ毛"] },
+  { "idol_id": "765as_星井美希", "label": "覚醒後", "is_main": false,
+    "hair_color": "茶", "hair_length": "ショート" } ] }
 ```
-タグと票はマスタ (CloudKit) ではなく D1 にあるので、`--apply --push` では届かない。
-オーナーは `--apply --only <ファイル名> --d1-sql <書き出し先.sql>` で SQL を作り、
-`cd imas-live-api && npx wrangler d1 execute imas-live-db --remote --file <その.sql>` で流す。
-票は端末 ID `official:<ファイル名>` の記録として入るので、利用者の票と分かれる
-(タグの流れ・#更新通知 には出ない。利用者はこの票を外せない)。何度流しても 1 票のまま。
+```json
+{ "source": "https://…", "idol_facets": [
+  { "idol_id": "sidem_桜庭薫", "facet": "glasses", "value": true },
+  { "idol_id": "765as_天海春香", "facet": "favorite_foods", "values": ["お菓子"], "source_note": "…" } ] }
+```
+- 髪型の列: `hair_color` `hair_color_secondary` `hair_length` `styles[]` `bangs` `accessories[]`
+  (値は facets.json の語彙)。**main の付け替え**は `{"set_main": [{"idol_id": "…", "label": "覚醒後"}]}`。
+- `idol_facets` の `facet` は facets.json の `store: "idol_facets"` の項目だけ。年齢帯・出身地方・色名など
+  自動で決まるもの (`computed`) と髪 (`idol_hairstyles`) は書けない。`origin` は `official`(既定) か
+  `promoted` (タグの票から昇格した値)。単一値の項目は 1 人 1 行で、直すなら `data/fixes/`
+  (`{"table": "idol_facets", "id": "<行 id>", "fields": {"value": "…"}}`。行 id は
+  `if_` + sha1(`idol_id|facet`[`|value` 複数値だけ]) の先頭 20 桁で、`tools/apply_data.py` の `facet_row_id`)。
+- ファイルの先頭に `"unconfirmed": "理由"` を書くと、`--check` は通すが `--apply` は入れない
+  (確認待ちの下書き置き場)。
+- 反映は他の投稿と同じ (`--check` → `--apply --push`)。**CloudKit の IdolFacet / IdolHairstyle は
+  Production に未昇格**のあいだ、`--push` は失敗する。手順は ARCHITECTURE-facets.md §8。
 
 ## 値の決まり
 

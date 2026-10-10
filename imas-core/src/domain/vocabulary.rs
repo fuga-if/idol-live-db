@@ -107,7 +107,7 @@ pub const SONG_TAG_CATEGORIES: [Term; 4] = [
 ];
 pub const IDOL_TAG_CATEGORIES: [Term; 4] = [
     term("personality", "性格", "性格"),
-    // 髪色・髪の長さ・髪型・髪の飾りの公式タグ (D1 の migrations/0050) もここに入る (容姿の別カテゴリは作らない)。
+    // 髪色・髪の長さ・髪型・髪の飾りは公式のプロフィール項目 (idol_hairstyles) で持つので、タグのカテゴリは足さない。
     term("charm", "魅力・外見", "魅力・外見"),
     term("talent", "特技", "特技"),
     term("free", "フリー", "フリー"),
