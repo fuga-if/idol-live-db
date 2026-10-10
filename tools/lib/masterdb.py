@@ -48,6 +48,24 @@ def _keep_content_hash_row(text: str, sql_path) -> str:
     return text
 
 
+# アイドルの項目の表 (idol_facets / idol_hairstyles)。CloudKit の本番に昇格し、日次 export が
+# db/master.sql に出すようになるまでは master_schema.sql にも db/master.sql にも無いので、
+# DDL は imas-core/src/domain/facets_schema.sql から作る (昇格後は master.sql に在るので何もしない)。
+FACETS_SCHEMA = ROOT / "imas-core" / "src" / "domain" / "facets_schema.sql"
+FACET_TABLES = ("idol_facets", "idol_hairstyles")
+
+
+def ensure_facet_tables(conn: sqlite3.Connection) -> bool:
+    """項目の表が無ければ作る。作ったら True。あれば何もしない (`IF NOT EXISTS`)。"""
+    have = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    if all(t in have for t in FACET_TABLES):
+        return False
+    ddl = re.sub(r"CREATE (UNIQUE )?(TABLE|INDEX) ", r"CREATE \1\2 IF NOT EXISTS ",
+                 FACETS_SCHEMA.read_text(encoding="utf-8"))
+    conn.executescript(ddl)
+    return True
+
+
 def restore(sql_path, db_path) -> None:
     """sql_path (db/master.sql の形) を db_path に丸ごと入れる。db_path は空であること。"""
     conn = sqlite3.connect(str(db_path))

@@ -155,6 +155,8 @@ class ExportMainTest(unittest.TestCase):
         conn.commit()
         self.cloudkit = {}
         for table in seed_cloudkit.TABLE_ORDER:
+            if table in masterdb.FACET_TABLES:
+                continue  # 未昇格の recordType (db/master.sql にも CloudKit にも無い)
             cols, select = seed_cloudkit.push_columns(conn, table)
             cur = conn.execute(f"SELECT {select} FROM {table}")
             names = [d[0] for d in cur.description]
@@ -168,11 +170,16 @@ class ExportMainTest(unittest.TestCase):
         self.db = root / "master.sqlite"
         for obj, name, value in ((export_cloudkit, "DUMP_PATH", self.dump),
                                  (export_cloudkit, "DB_PATH", self.db),
-                                 (export_cloudkit, "query_all", lambda rt: self.cloudkit.get(rt, [])),
+                                 (export_cloudkit, "query_all", self._query_all),
                                  (seed_cloudkit, "init_session", lambda key_id, key_file: None)):
             self.addCleanup(setattr, obj, name, getattr(obj, name))
             setattr(obj, name, value)
         self.addCleanup(seed_cloudkit._build_paths, "development")
+
+    def _query_all(self, record_type):
+        if record_type not in self.cloudkit:
+            raise export_cloudkit.UnknownRecordTypeError(record_type)
+        return self.cloudkit[record_type]
 
     def tearDown(self):
         self.tmp.cleanup()

@@ -197,6 +197,52 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE IdolFacet (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        facet           STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        origin          STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        sourceNote      STRING QUERYABLE SEARCHABLE SORTABLE,
+        value           STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE IdolHairstyle (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE,
+        accessories     STRING QUERYABLE SEARCHABLE SORTABLE,
+        bangs           STRING QUERYABLE SEARCHABLE SORTABLE,
+        deletedAt       TIMESTAMP QUERYABLE SORTABLE,
+        hairColor       STRING QUERYABLE SEARCHABLE SORTABLE,
+        hairColorSecondary STRING QUERYABLE SEARCHABLE SORTABLE,
+        hairLength      STRING QUERYABLE SEARCHABLE SORTABLE,
+        idolId          STRING QUERYABLE SEARCHABLE SORTABLE,
+        isMain          INT64 QUERYABLE SORTABLE,
+        label           STRING QUERYABLE SEARCHABLE SORTABLE,
+        modifiedAt      TIMESTAMP QUERYABLE SORTABLE,
+        origin          STRING QUERYABLE SEARCHABLE SORTABLE,
+        sortOrder       INT64 QUERYABLE SORTABLE,
+        sourceNote      STRING QUERYABLE SEARCHABLE SORTABLE,
+        styles          STRING QUERYABLE SEARCHABLE SORTABLE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE ImasUnit (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

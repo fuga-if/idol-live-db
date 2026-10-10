@@ -76,18 +76,34 @@ KIND_TABLES = {
     # チケット受付 (旧 events.ticket_open_date/ticket_deadline/ticket_lottery_date の後継)。
     # id は事前に振らず、event_id + name から決定的に作る (wear_id と同じ考え方)。
     "ticket_sales": ["ticket_sales"],
+    # アイドルの項目 (性格・好み・経歴・目の色など髪以外) と髪型。定義は imas-core/facets.json
+    # (唯一の正は imas-core/src/domain/idol_facets.rs)。運用は docs/ARCHITECTURE-facets.md。
+    "idol_facets": ["idol_facets"],
+    "idol_hairstyles": ["idol_hairstyles"],
 }
 # data/fixes/ で既存レコードを UPDATE 可能なテーブル (id 列を持つ事実情報のみ)
 ALLOWED_FIX_TABLES = {
     "idols", "songs", "events", "shows", "units", "brands", "venues", "venue_names", "creators",
     "setlist_items", "ticket_sales", "show_tickets",
+    "idol_facets", "idol_hairstyles",
 }
 # 表ごとに fixes で書き換えてよい列を絞るもの (載っていない表は全列可)。
 # show_tickets は価格・券種名を fixes で直させない (価格は import_show_tickets.py の TSV で
 # 出典つきに入れる)。ここから触れるのは配信アーカイブの視聴期間だけ。
 FIX_FIELD_WHITELIST = {
     "show_tickets": {"archive_starts_at", "archive_ends_at"},
+    # 項目の値は直せるが、どのアイドルのどの項目かは変えない (id が中身から決まっているため)。
+    "idol_facets": {"value", "origin", "source_note", "sort_order"},
+    # 髪型の is_main / label は fixes で変えない。付け替えは data/idol_hairstyles/ の set_main。
+    "idol_hairstyles": {"hair_color", "hair_color_secondary", "hair_length", "styles", "bangs",
+                        "accessories", "origin", "source_note", "sort_order"},
 }
+
+FACETS_JSON = ROOT / "imas-core" / "facets.json"
+FACET_ORIGINS = {"official", "promoted"}
+MAIN_HAIRSTYLE_LABEL = "基本"
+# 髪型の複数値の列は '、' 区切りで保存する (語彙に '、' は無い)。
+HAIR_MULTI_COLUMNS = {"styles", "accessories"}
 
 TICKET_SALE_KINDS = {"lottery", "first_come", "resale", "same_day"}
 TICKET_MOMENT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$")
@@ -109,6 +125,68 @@ D1_MIGRATIONS_DIR = ROOT / "imas-live-api" / "migrations"
 # 運営の票の端末 ID の接頭辞 (imas-live-api の OFFICIAL_DEVICE_PREFIX と同じ)。端末の記録に
 # この形で入れることで、利用者の票と分かれる (利用者はこの接頭辞を名乗れない)。
 OFFICIAL_DEVICE_PREFIX = "official:"
+
+
+def facet_defs():
+    """imas-core/facets.json: 項目キー → 定義。Rust の定義の書き出し (唯一の正は Rust 側)。"""
+    data = json.loads(FACETS_JSON.read_text(encoding="utf-8"))
+    return {f["key"]: f for f in data["facets"]}, data
+
+
+def facet_row_id(idol_id, facet, value, multi):
+    """idol_facets.id。Rust の facet_row_key と同じ式 ('if_' + sha1 の先頭 20 桁)。"""
+    key = f"{idol_id}|{facet}" + (f"|{value}" if multi else "")
+    return "if_" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:20]
+
+
+def hairstyle_row_id(idol_id, label):
+    """idol_hairstyles.id。Rust の hairstyle_row_key と同じ式 ('ih_' + sha1 の先頭 20 桁)。"""
+    return "ih_" + hashlib.sha1(f"{idol_id}|{label}".encode("utf-8")).hexdigest()[:20]
+
+
+def facet_value_problem(d, value):
+    """項目の定義 d に対して値が妥当か。問題の説明か None。"""
+    kind = d["kind"]
+    if kind in ("single", "multi"):
+        if not isinstance(value, str) or not value.strip():
+            return "値は空でない文字列"
+        if d.get("vocab") and value not in d["vocab"]:
+            return f"'{value}' は語彙に無い (許可: {d['vocab']})"
+    elif kind == "number":
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return "値は数値"
+    elif kind == "bool":
+        if value not in (True, False, "true", "false"):
+            return "値は true / false"
+    elif kind == "color":
+        if not (isinstance(value, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", value)):
+            return "値は #RRGGBB"
+    return None
+
+
+def hair_row_problems(tag, row, data):
+    """髪型 1 行 (styles / accessories は配列) の語彙・形。"""
+    out = []
+    vocab = {f["key"]: f.get("vocab") for f in data["facets"]}
+    fields = data["hairstyle_fields"]
+    for facet_key, col in fields.items():
+        v = row.get(col)
+        if v is None:
+            continue
+        items = v if col in HAIR_MULTI_COLUMNS else [v]
+        if col in HAIR_MULTI_COLUMNS and not isinstance(v, list):
+            out.append(f"{tag}: {col} は配列")
+            continue
+        for item in items:
+            if item not in vocab[facet_key]:
+                out.append(f"{tag}: {col} '{item}' が語彙に無い (許可: {vocab[facet_key]})")
+    if not str(row.get("label", "")).strip():
+        out.append(f"{tag}: label が空")
+    return out
+
+
+def hair_db_value(col, v):
+    return "、".join(v) if col in HAIR_MULTI_COLUMNS and isinstance(v, list) else v
 
 
 def official_idol_tags():
@@ -630,6 +708,85 @@ def validate(conn):
                 if not exists(conn, "idols", idol):
                     problems.append(f"{tag}: member '{idol}' が存在しない")
 
+    # アイドルの項目 (髪以外) と髪型。表は masterdb.ensure_facet_tables が作る。
+    defs, defs_data = facet_defs()
+    seen_facet_ids = set()
+    for path, data in load("idol_facets"):
+        for i, r in enumerate(data.get("idol_facets", [])):
+            tag = f"idol_facets/{path.name}[{i}]"
+            d = defs.get(r.get("facet"))
+            if d is None:
+                problems.append(f"{tag}: facet '{r.get('facet')}' は定義に無い (imas-core/facets.json)")
+                continue
+            if d["store"] != "idol_facets":
+                where = {"idol_hairstyles": "data/idol_hairstyles/", "computed": "自動で決まる (投稿できない)"}[d["store"]]
+                problems.append(f"{tag}: '{d['key']}' はここに書けない → {where}")
+                continue
+            if not exists(conn, "idols", r.get("idol_id", "")):
+                problems.append(f"{tag}: idol '{r.get('idol_id')}' が存在しない")
+            if r.get("origin", "official") not in FACET_ORIGINS:
+                problems.append(f"{tag}: origin は {sorted(FACET_ORIGINS)}")
+            for k in r:
+                if k not in ("idol_id", "facet", "value", "values", "origin", "source_note", "sort_order", *ANNOTATION_KEYS):
+                    problems.append(f"{tag}: 未知のキー '{k}'")
+            values = r["values"] if isinstance(r.get("values"), list) else [r.get("value")]
+            if "value" in r and "values" in r:
+                problems.append(f"{tag}: value と values は同時に書けない")
+            if len(values) > 1 and d["kind"] != "multi":
+                problems.append(f"{tag}: '{d['key']}' は単一値 (values は複数値の項目だけ)")
+            for v in values:
+                bad = facet_value_problem(d, v)
+                if bad:
+                    problems.append(f"{tag}: {bad}")
+                    continue
+                rid = facet_row_id(r.get("idol_id"), d["key"], v, d["kind"] == "multi")
+                if rid in seen_facet_ids:
+                    problems.append(f"{tag}: 同じ (idol_id, facet{', value' if d['kind'] == 'multi' else ''}) が重複している")
+                seen_facet_ids.add(rid)
+                if exists(conn, "idol_facets", rid):
+                    problems.append(f"{tag}: 既に存在 ({r.get('idol_id')} / {d['key']})。直すなら data/fixes/ で")
+
+    # 髪型: 1 人につき is_main はちょうど 1 つ、label は重複しない (DB の部分一意索引と同じ規則)。
+    hair_new = defaultdict(list)  # idol_id → 投稿された行
+    for path, data in load("idol_hairstyles"):
+        for i, r in enumerate(data.get("idol_hairstyles", [])):
+            tag = f"idol_hairstyles/{path.name}[{i}]"
+            for k in r:
+                if k not in ("idol_id", "label", "is_main", "hair_color", "hair_color_secondary", "hair_length",
+                             "styles", "bangs", "accessories", "origin", "source_note", "sort_order", *ANNOTATION_KEYS):
+                    problems.append(f"{tag}: 未知のキー '{k}'")
+            if not exists(conn, "idols", r.get("idol_id", "")):
+                problems.append(f"{tag}: idol '{r.get('idol_id')}' が存在しない")
+            if r.get("origin", "official") not in FACET_ORIGINS:
+                problems.append(f"{tag}: origin は {sorted(FACET_ORIGINS)}")
+            problems += hair_row_problems(tag, r, defs_data)
+            if not any(r.get(c) for c in ("hair_color", "hair_length", "styles", "bangs", "accessories")):
+                problems.append(f"{tag}: 髪色・長さ・髪型・前髪・飾りのどれも無い髪型は入れない")
+            hair_new[r.get("idol_id")].append((tag, r))
+        for i, sm in enumerate(data.get("set_main", [])):
+            tag = f"idol_hairstyles/{path.name}.set_main[{i}]"
+            if not conn.execute("SELECT 1 FROM idol_hairstyles WHERE idol_id = ? AND label = ?",
+                                (sm.get("idol_id"), sm.get("label"))).fetchone() \
+                    and not any(x[1].get("label") == sm.get("label") for x in hair_new.get(sm.get("idol_id"), [])):
+                problems.append(f"{tag}: ({sm.get('idol_id')}, {sm.get('label')}) の髪型が無い")
+            hair_new[sm.get("idol_id")].append((tag, {"_set_main": sm.get("label")}))
+    for idol_id, items in hair_new.items():
+        existing = {lab: bool(m) for lab, m in conn.execute(
+            "SELECT label, is_main FROM idol_hairstyles WHERE idol_id = ?", (idol_id,))}
+        for tag, r in items:
+            if "_set_main" in r:
+                continue
+            if r["label"] in existing:
+                problems.append(f"{tag}: ({idol_id}, {r['label']}) は既に存在。直すなら data/fixes/ で")
+            existing[r["label"]] = bool(r.get("is_main"))
+        for tag, r in items:
+            if "_set_main" in r and r["_set_main"] in existing:
+                existing = {lab: lab == r["_set_main"] for lab in existing}
+        mains = sum(1 for m in existing.values() if m)
+        if mains != 1:
+            problems.append(f"idol_hairstyles: {idol_id} の is_main が {mains} 個 (ちょうど 1 個。"
+                            "最初の髪型は is_main: true、付け替えは set_main)")
+
     # 修正 (data/fixes/): 既存レコードのフィールド UPDATE
     for path, data in load("fixes"):
         for i, fx in enumerate(data.get("fixes", [])):
@@ -679,6 +836,16 @@ def validate(conn):
                         problems.append(
                             f"{tag}: '{table}' の '{k}' は fixes で直せない "
                             f"(許可: {sorted(FIX_FIELD_WHITELIST[table])})")
+                if table == "idol_facets" and rid and exists(conn, table, rid):
+                    row = conn.execute("SELECT facet FROM idol_facets WHERE id = ?", (rid,)).fetchone()
+                    d = defs.get(row[0])
+                    if "value" in fields and (d is None or facet_value_problem(d, fields["value"])):
+                        problems.append(f"{tag}: value が不正 ({row[0]}): "
+                                        f"{facet_value_problem(d, fields['value']) if d else '定義に無い項目'}")
+                    if fields.get("origin", "official") not in FACET_ORIGINS:
+                        problems.append(f"{tag}: origin は {sorted(FACET_ORIGINS)}")
+                if table == "idol_hairstyles" and rid and exists(conn, table, rid):
+                    problems += hair_row_problems(tag, {**fields, "label": "x"}, defs_data)
                 # show_tickets のアーカイブ期間: 形式・実在性・前後関係 (ticket_sales の日時と同じ規則)
                 if table == "show_tickets" and rid and exists(conn, table, rid):
                     cur = conn.execute(
@@ -895,6 +1062,43 @@ def apply_all(conn, official_votes=None):
             affected["unit_members"]  # 絞る列が無いので全件
         print(f"  ✓ units/{path.name}: {len(data['units'])} 件")
 
+    for path, data in load("idol_facets"):
+        defs, _ = facet_defs()
+        n = 0
+        for r in data["idol_facets"]:
+            d = defs[r["facet"]]
+            values = r["values"] if isinstance(r.get("values"), list) else [r["value"]]
+            for order, v in enumerate(values):
+                text = "true" if v is True else "false" if v is False else str(v)
+                insert_row(conn, "idol_facets", {
+                    "id": facet_row_id(r["idol_id"], d["key"], v, d["kind"] == "multi"),
+                    "idol_id": r["idol_id"], "facet": d["key"], "value": text,
+                    "origin": r.get("origin", "official"), "source_note": r.get("source_note"),
+                    "sort_order": r.get("sort_order", order),
+                })
+                n += 1
+            affected["idol_facets"].add(r["idol_id"])  # idol_id で絞って push する
+        print(f"  ✓ idol_facets/{path.name}: {n} 値")
+
+    for path, data in load("idol_hairstyles"):
+        for r in data.get("idol_hairstyles", []):
+            row = {c: hair_db_value(c, r.get(c)) for c in (
+                "hair_color", "hair_color_secondary", "hair_length", "styles", "bangs", "accessories")}
+            insert_row(conn, "idol_hairstyles", {
+                "id": hairstyle_row_id(r["idol_id"], r["label"]), "idol_id": r["idol_id"], "label": r["label"],
+                "is_main": 1 if r.get("is_main") else 0, **row,
+                "origin": r.get("origin", "official"), "source_note": r.get("source_note"),
+                "sort_order": r.get("sort_order", 0),
+            })
+            affected["idol_hairstyles"].add(r["idol_id"])
+        for sm in data.get("set_main", []):
+            conn.execute("UPDATE idol_hairstyles SET is_main = 0 WHERE idol_id = ?", (sm["idol_id"],))
+            conn.execute("UPDATE idol_hairstyles SET is_main = 1 WHERE idol_id = ? AND label = ?",
+                         (sm["idol_id"], sm["label"]))
+            affected["idol_hairstyles"].add(sm["idol_id"])
+        print(f"  ✓ idol_hairstyles/{path.name}: {len(data.get('idol_hairstyles', []))} 件"
+              f"{' + set_main ' + str(len(data['set_main'])) if data.get('set_main') else ''}")
+
     tscol = cols(conn, "ticket_sales")  # 呼び出し側 (main) が事前に表の存在を確かめている
     for path, data in load("ticket_sales"):
         for t in data["ticket_sales"]:
@@ -919,6 +1123,8 @@ def apply_all(conn, official_votes=None):
                 # (M5: list のまま bind すると sqlite3 が束縛エラーで apply が途中で落ちる)。
                 if table == "ticket_sales" and isinstance(fields.get("show_ids"), list):
                     fields = dict(fields, show_ids=",".join(fields["show_ids"]) or None)
+                if table == "idol_hairstyles":
+                    fields = {k: hair_db_value(k, v) for k, v in fields.items()}
                 sets = ", ".join(f"{k} = ?" for k in fields)
                 conn.execute(f"UPDATE {table} SET {sets} WHERE id = ?", list(fields.values()) + [rid])
             # 原唱者は足すだけ。消すと CloudKit 側に残るので、削除は台帳 (pending_cloudkit_deletions_*) で扱う。
@@ -1047,6 +1253,9 @@ def main():
     ensure_db(args.db)
     conn = sqlite3.connect(args.db)
     conn.execute("PRAGMA foreign_keys = ON")
+    # 項目の表は CloudKit の昇格・日次 export を待たずに投入できるよう、無ければここで作る
+    # (DDL は imas-core/src/domain/facets_schema.sql)。
+    masterdb.ensure_facet_tables(conn)
 
     has_any = any(load(k) for k in list(KIND_TABLES) + ["fixes"])
     if not has_any:

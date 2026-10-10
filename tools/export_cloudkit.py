@@ -230,6 +230,16 @@ def main():
     for table in sk.TABLE_ORDER:
         if table in PRESERVED_TABLES:
             continue
+        if table in masterdb.FACET_TABLES and not sk.get_column_info(conn, table):
+            # アイドルの項目の表は、CloudKit に recordType が昇格されるまで db/master.sql に無い。
+            # 昇格済みのときだけ表を作って取り込む (未昇格のままなら master.sql の形を変えない)。
+            try:
+                query_all(sk.RECORD_TYPE_MAP[table])
+            except UnknownRecordTypeError:
+                print(f"  {table:<22} ⚠ CloudKit に recordType '{sk.RECORD_TYPE_MAP[table]}' がまだ無い (未昇格) → 表を作らず続行",
+                      file=sys.stderr)
+                continue
+            masterdb.ensure_facet_tables(conn)
         if table in sk.RECORD_TYPE_MAP and sk.get_column_info(conn, table):
             total += refresh_table(conn, table)
     conn.commit()

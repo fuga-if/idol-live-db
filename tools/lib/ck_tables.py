@@ -23,6 +23,9 @@ TABLE_ORDER = [
     "venue_halls",
     "shows",
     "idol_brands",
+    # アイドルの項目 (髪以外) と髪型。idols にだけぶら下がる。
+    "idol_facets",
+    "idol_hairstyles",
     "unit_members",
     "song_artists",
     "setlist_items",
@@ -50,6 +53,8 @@ RECORD_TYPE_MAP = {
     "idols": "Idol",
     "idol_cast": "IdolCast",
     "idol_brands": "IdolBrand",
+    "idol_facets": "IdolFacet",
+    "idol_hairstyles": "IdolHairstyle",
     "units": "ImasUnit",
     "unit_members": "UnitMember",
     "song_artists": "SongArtist",
@@ -82,6 +87,8 @@ ID_FILTER_COLUMN = {
     "costume_wears": "costume_id",
     "ticket_sales": "event_id",
     "show_tickets": "id",
+    "idol_facets": "idol_id",
+    "idol_hairstyles": "idol_id",
 }
 
 # 渡す id が「何の id か」。**列名からは決まらない** ので ID_FILTER_COLUMN とは別に持つ:
@@ -97,6 +104,9 @@ SCOPED_ID_SPACE = {
     "shows": "event",
     "show_cast": "show",
     "idols": "idol",
+    # 項目・髪型は idols と同じ空間 (そのアイドルの項目だけを押す)。
+    "idol_facets": "idol",
+    "idol_hairstyles": "idol",
     "units": "unit",
     "costumes": "costume",
     "costume_wears": "costume",
