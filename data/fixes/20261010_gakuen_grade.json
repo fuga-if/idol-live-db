@@ -1,0 +1,23 @@
+{
+ "title": "初星学園の有村麻央・姫崎莉波の学年を 3 年に直す",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "gakuen_有村麻央",
+   "fields": {
+    "attribute": "3年"
+   },
+   "note": "学年が「1年」になっていた。公式は 3 年生 (17 歳、寮長)",
+   "source": "https://gakuen.idolmaster-official.jp/idol/mao/"
+  },
+  {
+   "table": "idols",
+   "id": "gakuen_姫崎莉波",
+   "fields": {
+    "attribute": "3年"
+   },
+   "note": "学年が「1年」になっていた。公式は 3 年生 (17 歳)",
+   "source": "https://gakuen.idolmaster-official.jp/idol/rinami/"
+  }
+ ]
+}
