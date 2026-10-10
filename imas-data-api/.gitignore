@@ -1,0 +1,5 @@
+node_modules/
+.wrangler/
+# 生成物: web-export の SQL・中間 DB (`npm run export`)、畳み込み wasm (`npm run wasm`)
+.build/
+src/fold/

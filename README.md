@@ -26,10 +26,11 @@ iOS / Android ネイティブアプリと、それを支える Cloudflare Worker
 | Web 出面 | `web/` | Astro (静的サイト), Cloudflare Workers Static Assets |
 | データ整備ツール | `tools/` | Python (CloudKit seed・Apple Music 補完・整合性チェック) |
 | LLM から引く口 | `imas-core/src/agent/` | Rust (MCP サーバ / CLI・`imas-mcp`) |
+| 公開データ API (マスタ読み取り) | `imas-data-api/` | Cloudflare Workers, D1 (マスタの写し), Cache API |
 
 iOS と Android はファイル/コンポーネント構成を意図的に揃えており、片方の変更はもう片方に 1:1 で横展開する運用です。
 
-各コンポーネントの設計方針: [iOS](docs/ARCHITECTURE.md) / [Android](docs/ARCHITECTURE-android.md) / [Worker](docs/ARCHITECTURE-worker.md) / [Web](docs/ARCHITECTURE-web.md) / [MCP](docs/ARCHITECTURE-mcp.md)。データ所在・同期・マイグレーションの共通思想は [iOS 文書のデータ節](docs/ARCHITECTURE.md) と [DATA_PIPELINE.md](docs/DATA_PIPELINE.md)。
+各コンポーネントの設計方針: [iOS](docs/ARCHITECTURE.md) / [Android](docs/ARCHITECTURE-android.md) / [Worker](docs/ARCHITECTURE-worker.md) / [Web](docs/ARCHITECTURE-web.md) / [MCP](docs/ARCHITECTURE-mcp.md) / [公開データ API](docs/ARCHITECTURE-data-api.md)。データ所在・同期・マイグレーションの共通思想は [iOS 文書のデータ節](docs/ARCHITECTURE.md) と [DATA_PIPELINE.md](docs/DATA_PIPELINE.md)。
 
 ## LLM から引く (MCP サーバ / CLI)
 
@@ -47,6 +48,12 @@ cd imas-core && cargo build --release --features agent --bin imas-mcp
 MCP クライアント (Claude Code 等) からそのまま使えます。歌詞は扱いません
 (JASRAC の許諾はアプリのストリーム配信に対するもの)。新規データの登録は `data/` への
 **提案ドラフトを作るところまで**で、反映はオーナーの操作が要ります。
+
+## 公開データ API (マスタの読み取り)
+
+アイドル・曲・ユニットを読む公開の HTTP API (`GET /v1/idols/:id`、`/v1/songs?q=` など)。専用の
+Worker + D1 で、判断は `imas-core` の `agent::tools` と同じ。エンドポイント・JSON の形・費用の守り・
+同期とデプロイの手順は [docs/ARCHITECTURE-data-api.md](docs/ARCHITECTURE-data-api.md)。歌詞本文などは返さない。
 
 ---
 

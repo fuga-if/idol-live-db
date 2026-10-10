@@ -1,0 +1,25 @@
+{
+  "name": "imas-data-api",
+  "private": true,
+  "type": "module",
+  "description": "ImasLiveDB 公開データ API (マスタの読み取り専用)。Cloudflare Worker + D1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "export": "cd ../imas-core && cargo run --release --locked --features web-export --bin web-export -- --sql ../db/master.sql --api-sql ../imas-data-api/.build/master-d1.sql --work-db ../imas-data-api/.build/work.sqlite",
+    "wasm": "cd ../web/wasm/imas-fold-wasm && wasm-pack build --release --target web --out-dir ../../../imas-data-api/src/fold",
+    "sync:local": "python3 ../tools/sync_master_d1.py --local",
+    "dev": "wrangler dev",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260831.1",
+    "@types/node": "^24.19.2",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.0",
+    "wrangler": "4.128.0"
+  }
+}

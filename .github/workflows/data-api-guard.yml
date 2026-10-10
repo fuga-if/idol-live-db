@@ -1,0 +1,67 @@
+name: Data API Guard
+
+# 公開データ API (imas-data-api) の検証。デプロイと D1 への書き込みはしない
+# (オーナーの手元操作。docs/ARCHITECTURE-data-api.md §8)。secret は使わない。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'imas-data-api/**'
+      - 'imas-core/src/agent/**'
+      - 'imas-core/src/web_export/data_api.rs'
+      - 'web/wasm/imas-fold-wasm/**'
+      - 'imas-text-fold/**'
+      - 'db/master.sql'
+      - '.github/workflows/data-api-guard.yml'
+  pull_request:
+    paths:
+      - 'imas-data-api/**'
+      - 'imas-core/src/agent/**'
+      - 'imas-core/src/web_export/data_api.rs'
+      - 'web/wasm/imas-fold-wasm/**'
+      - 'imas-text-fold/**'
+      - 'db/master.sql'
+      - '.github/workflows/data-api-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Rust tests (文書・SQL)
+        working-directory: imas-core
+        run: |
+          cargo test --locked --lib --features web-export data_api
+          cargo test --locked --lib publish
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: imas-data-api/package-lock.json
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+      - name: npm ci
+        working-directory: imas-data-api
+        run: npm ci
+      - name: Build fold wasm
+        working-directory: imas-data-api
+        run: npm run wasm
+      - name: Type check
+        working-directory: imas-data-api
+        run: npm run check
+      - name: Unit tests (実行計画・ルーティング)
+        working-directory: imas-data-api
+        run: npm test
+      - name: Bundle check (deploy しない)
+        working-directory: imas-data-api
+        run: npx wrangler deploy --dry-run --outdir "$RUNNER_TEMP/dry"

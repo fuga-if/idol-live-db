@@ -195,32 +195,31 @@ cargo build --release --features agent --bin imas-mcp
 
 `--read-only` を付けると書き込み (ドラフト作成) ツールを出さない。
 
-## 8. リモート公開 (Phase 2・未着手 / 着手前に決めることがある)
+## 8. リモート公開 (Phase 2・方針は決定済み / MCP の JSON-RPC 自体は未着手)
 
-手元に clone した人しか使えないのは惜しいので、誰でも繋げる MCP エンドポイントも出したい。
-**判断は同じ `agent::tools` を通す** (feature = "agent" を付けて wasm で呼ぶ) ので、判断そのものがズレることはない
-(ただし読む DB が違えば答えは違いうる。§3 の注記)。
+手元に clone した人しか使えないのは惜しいので、誰でも使える口を出す。まず**マスタを読む公開 HTTP API**
+(`imas-data-api/`、[`ARCHITECTURE-data-api.md`](ARCHITECTURE-data-api.md)) を作った。リモートの MCP
+エンドポイントは、この Worker の `main` に JSON-RPC を足す形で載せる (未着手)。
 
-**着手前に決めること (これが未決のうちは Phase 2 を始めない)**:
+**決めたこと (2026-10-10。オーナー判断を含む)**:
 
-1. **どの Worker に載せるか。** `web/` は assets-only Worker (`main` を持たない) で、
-   「静的アセット配信は無料・リクエスト無制限・Worker 呼び出し 0 回」が成立の前提。
-   MCP は JSON-RPC を喋る以上 `main` が要り、足した瞬間にこの前提が壊れて全リクエストが
-   Worker invocation (無料枠 10 万/日) を食う。**別 Worker を立てる**こと。既存の
-   `imas-live-api/` への相乗りも不可 (不可触と定めてある)。
-2. **流量制限と認証。** 無認証の MCP は 1 クライアントの暴走で無料枠を焼き切れる。
-   D1 の無料枠を焼いた前例があるので、「超えたら止まるのか課金されるのか」まで決めること。
-3. **データ源。** 下表。
+1. **どの Worker か: 専用の別 Worker `imas-data-api`。** `web/` は assets-only Worker で、
+   「静的アセット配信は無料・リクエスト無制限・Worker 呼び出し 0 回」が成立の前提なので、
+   `main` を足さない。`imas-live-api/` への相乗りも不可。
+2. **流量制限と認証: 認証なし(公開・読み取り専用)。** 代わりに、全クエリのインデックス化
+   (`EXPLAIN QUERY PLAN` のテストで固定)・エッジの Cache API (キーに同期の版)・LIMIT 必須の
+   ページング・Rate Limiting バインディング(キャッシュ外れだけを IP ごとに絞る)を重ねる。
+   超えたら止まる(D1 無料枠は超過すると失敗するだけで課金されない・Worker は 503)。
+   数字は `ARCHITECTURE-data-api.md` §4・§5。MCP の JSON-RPC を足すときも同じ守りの内側に置く。
+3. **データ源: 専用の D1 `imas-master-db`**(`imas-live-db` とは別)。案 A(生テーブル一括)・
+   案 B(静的 JSON)・案 C(D1 に master を置き直す)のうち、検索・絞り込みを API で受けたい
+   というオーナー判断で D1 を採った。ただし**生テーブルは置かず**、`agent::tools` から組んだ
+   完成した文書 + 索引を置く(読み取りは主キー 1 行・フルスキャン無し。判断は imas-core 一本の
+   まま)。歌詞本文・`lyrics_url`・`preview_url` は D1 にも置かない(§1。T12 相当のテストあり)。
+   静的 JSON(案 B)は費用が最も安い(無制限・無料)ので、無料枠を超えそうなときの退避先として残す。
 
-| 案 | データ源 | 難点 |
-|---|---|---|
-| A: 生テーブル一括 | `web/data/snapshot/tables.json` (9.4MB) | Worker の CPU 時間内にパースしきれない |
-| B: 分割済み JSON | `web/data/search/*.json` (732KB) + 個別 `songs/<slug>.json` 等 | **個別 JSON は dist に出ていない** (`search/*.json` が「dist に出る唯一の `data/` サブセット」で、全量を `public/` に置くのは禁止事項)。索引だけでは §4 の「1 回で文章が書ける形」を原理的に満たせない (索引は id と綴りしか持たない) |
-| C: D1 | D1 に master を置き直す | 読み取り行数が課金対象。過去に無料枠を焼いた経緯がある |
-
-**案 B を採るなら、先に「`web-export` が MCP 用の配信 JSON も `dist/` に出す」と決める**こと
-(ページ数 7,631 に対し Workers Static Assets の上限は 20,000 ファイルなので枠は足りる)。
-それをやらないなら B は「検索はできるが答えが書けない」ので却下。
+読む元は `db/master.sql`(Web と同じ入力)で、アプリが読む `master.sqlite` とは別物である点
+(§3 の注記)は変わらない。
 
 ## 9. 実装の記録
 

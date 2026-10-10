@@ -116,6 +116,23 @@ dump を作り直してコミットする (cron はデータのみ更新し、�
 検知すると生成した DB ごと消す**ので、`db/master.sql` に既知の FK 違反 (Q-02 の 9 公演等) が
 残っている間は、この手順を安易に実行しない。
 
+## 公開データ API への同期
+
+公開データ API (`imas-data-api/`、[`ARCHITECTURE-data-api.md`](ARCHITECTURE-data-api.md)) は
+`db/master.sql` を入力に、専用の D1 `imas-master-db` へ**全置き換え**で流す。
+
+```bash
+python3 tools/sync_master_d1.py --local            # ローカル D1 で確かめる
+python3 tools/sync_master_d1.py --remote --yes      # 本番 D1 (オーナー)
+```
+
+- **`apply_data.py --push` の流れには足さない。** `--push` は CloudKit への書き込みで、API の入力
+  `db/master.sql` は翌日の日次 cron が CloudKit から取り直すまで変わらない。`--push` 直後に同期しても
+  反映前の内容を流すだけになる。同期は **日次の `db/master.sql` が develop に入ったあと**に打つ。
+- 同期のたびに `meta.version` が変わり、エッジのキャッシュは新しい鍵に切り替わる。
+- 書き込みは 1 回で約 4 万行(D1 無料枠は 10 万行/日)。1 日 2 回までが目安。
+- 歌詞本文・`lyrics_url`・`preview_url` は D1 に流さない(列も無い。テストで固定)。
+
 ## events の種別 (`event_type`)
 
 「**この曲、いつぶり?**」に、オタクが自然に付ける但し書き —
