@@ -119,18 +119,54 @@ dump を作り直してコミットする (cron はデータのみ更新し、�
 ## 公開データ API への同期
 
 公開データ API (`imas-data-api/`、[`ARCHITECTURE-data-api.md`](ARCHITECTURE-data-api.md)) は
-`db/master.sql` を入力に、専用の D1 `imas-master-db` へ**全置き換え**で流す。
+**CloudKit の最新の、FK 検査を通った書き出し**を毎日、専用の D1 `imas-master-db` に**全置き換え**で反映する。
+入力は develop の `db/master.sql` ではない (develop へはオーナーの PR で入るまで古いまま)。
+yesno など API の利用者が読むのはこの経路の結果。
+
+### 自動 (毎日 03:00 JST と手動実行)
+
+`.github/workflows/refresh-data.yml` の `sync-data-api` ジョブ。
+
+- `export` → `check` (FK 検査) が**緑のときだけ**走る。検査に落ちた日は流さない (壊れたデータを公開しない。
+  API には前日までの検査済みデータが残る)。
+- 入力は export の `master-sql` artifact そのもの (sha256 を `export` の出力と突き合わせる)。
+  `tools/sync_master_d1.py --remote --yes --master-sql db/master.sql` が imas-core の web-export `--api-sql`
+  で SQL を組み、`wrangler d1 execute imas-master-db --remote --file` で全置き換えする。
+- `/v1/meta` の `version` は「日付 + 組んだ SQL の内容ハッシュ」。中身が変わればキャッシュ鍵が切り替わる。
+- **オーナーが CloudKit に push した直後に反映したいとき**: Actions → Refresh master data → Run workflow
+  (`gh workflow run refresh-data.yml --ref develop`)。`workflow_dispatch` で export → check → 同期まで通る。
+- CloudKit の鍵は `export` だけが持つ。`sync-data-api` は Cloudflare の資格情報だけを持つ。
+
+### 必要な設定 (オーナーが 1 度だけ。ここでは作っていない)
+
+1. D1 とデプロイ ([`ARCHITECTURE-data-api.md`](ARCHITECTURE-data-api.md) §8): `wrangler d1 create imas-master-db` で
+   返った `database_id` を `imas-data-api/wrangler.jsonc` に書く。
+2. Cloudflare の API トークンを作る: ダッシュボード → My Profile → API Tokens → Create Token → Custom token。
+   権限は **Account / D1 / Edit だけ** (Workers の権限は付けない)。Account Resources は自分のアカウントに絞る。
+3. GitHub の environment `cloudflare` に secret を登録し、Deployment branches を `main` と `develop` に絞る:
+   ```bash
+   gh secret set CLOUDFLARE_API_TOKEN  --env cloudflare --body "<手順 2 のトークン>"
+   gh secret set CLOUDFLARE_ACCOUNT_ID --env cloudflare --body "<Cloudflare のアカウント ID>"
+   ```
+   (Settings → Environments → cloudflare → Deployment branches: Selected → `main` と `develop`。
+   cloudkit と同じ理由で、feature ブランチのワークフローからトークンを取れないようにする。)
+4. secret が無い間、`sync-data-api` は同期を飛ばすだけで失敗にしない (notice を出す)。
+
+### 手元から (緊急用)
 
 ```bash
-python3 tools/sync_master_d1.py --local            # ローカル D1 で確かめる
-python3 tools/sync_master_d1.py --remote --yes      # 本番 D1 (オーナー)
+python3 tools/sync_master_d1.py --local                       # ローカル D1。入力は bot/data-refresh の最新 (git fetch して取る)
+python3 tools/sync_master_d1.py --remote --yes                # 本番 D1 (オーナー)。入力は同上
+python3 tools/sync_master_d1.py --remote --yes --from-cloudkit --key-file tools/eckey.pem   # CloudKit から今書き出して流す
 ```
 
-- **`apply_data.py --push` の流れには足さない。** `--push` は CloudKit への書き込みで、API の入力
-  `db/master.sql` は翌日の日次 cron が CloudKit から取り直すまで変わらない。`--push` 直後に同期しても
-  反映前の内容を流すだけになる。同期は **日次の `db/master.sql` が develop に入ったあと**に打つ。
-- 同期のたびに `meta.version` が変わり、エッジのキャッシュは新しい鍵に切り替わる。
-- 書き込みは 1 回で約 4 万行(D1 無料枠は 10 万行/日)。1 日 2 回までが目安。
+- 既定の入力は **`bot/data-refresh` の最新の `db/master.sql`**。`--from-develop` は古いことがあるので
+  最終更新日を出して警告する。`--master-sql PATH` で任意の写しも指せる。
+- `--from-cloudkit` は使い捨ての git worktree で `export_cloudkit.py` を回す (作業ツリーの `db/master.sql` は
+  触らない)。鍵と `CLOUDKIT_KEY_ID` が要り、**FK 検査を通らない**ので、通常は CI の手動実行を使うこと。
+- `apply_data.py --push` の流れには足さない。`--push` は CloudKit への書き込みで、反映するには
+  上の手動実行 (CI) か `--from-cloudkit` を使う。
+- 書き込みは 1 回で約 3 万行 (D1 無料枠は 10 万行/日)。1 日 2 回までが目安。
 - 歌詞本文・`lyrics_url`・`preview_url` は D1 に流さない(列も無い。テストで固定)。
 
 ## events の種別 (`event_type`)

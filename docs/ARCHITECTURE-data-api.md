@@ -36,7 +36,7 @@ Worker にも入れて、索引側 (同期時に Rust が畳む) と検索語側
 
 ```
  db/master.sql ─▶ imas-core web-export --api-sql ─▶ imas-data-api/.build/master-d1.sql
-   (CloudKit の日次写し)   (agent::tools::publish が文書を組む)      │  tools/sync_master_d1.py
+   (CloudKit の日次の書き出し)   (agent::tools::publish が文書を組む)      │  tools/sync_master_d1.py
                                                                       ▼  wrangler d1 execute (全置き換え)
  クライアント ─▶ Cloudflare エッジ ─▶ Worker (src/app.ts) ─▶ D1 imas-master-db
                   Cache API (版つきの鍵)   Rate Limiting (キャッシュ外のみ)
@@ -153,15 +153,21 @@ Rust のテスト (`web_export::data_api` / `agent::tools::publish`) が、SQL �
 
 ## 6. 同期 (マスタ → D1)
 
-- `db/master.sql` (CloudKit の日次写し) が入力。Web と同じ入力なので、Web と答えが揃う。
-- `python3 tools/sync_master_d1.py --local` … ローカル D1 へ (`wrangler dev` が読む)。
-- `python3 tools/sync_master_d1.py --remote` … 流すコマンドを**表示するだけ**。`--remote --yes` で本番へ。
-- 全置き換え (DROP → CREATE → INSERT)。何度流しても同じ。`meta.version` が新しくなる。
-- **`apply_data.py --push` の最後には足さない。** push は CloudKit への書き込みで、API の入力
-  (`db/master.sql`) は翌日の cron まで変わらない。同期は「日次の `db/master.sql` が develop に
-  入ったあと」に打つ (将来 `refresh-data.yml` の後段に GitHub Actions で自動化できるが、
-  Cloudflare の API トークン (D1 編集) が要るのでオーナーが決める)。詳細は
-  [`DATA_PIPELINE.md`](DATA_PIPELINE.md) の「公開データ API への同期」。
+**API は「CloudKit の最新の、FK 検査を通った書き出し」を毎日反映する。** CloudKit で直した値
+(例: 学マスの学年) は、翌日 03:00 JST (または手動実行) に API に届く。develop の `db/master.sql` は
+PR で入るまで古いので入力にしない。yesno などの利用者は、この鮮度を前提にしてよい。
+
+- 自動: `.github/workflows/refresh-data.yml` の `sync-data-api` ジョブ。`export` → `check` (FK 検査) が
+  緑のときだけ、export の artifact をそのまま `tools/sync_master_d1.py --remote --yes --master-sql` で流す。
+  検査に落ちた日は流さず、API には前日までのデータが残る。`workflow_dispatch` で手動実行もできる
+  (CloudKit に push した直後に反映したいとき)。Cloudflare の資格情報 (environment `cloudflare`) が無ければ飛ばす。
+- 手元: `python3 tools/sync_master_d1.py --local` (ローカル D1)、`--remote` は流すコマンドを**表示するだけ**、
+  `--remote --yes` で本番。既定の入力は `bot/data-refresh` の最新。`--from-cloudkit` / `--from-develop` /
+  `--master-sql PATH` で変えられる。
+- 全置き換え (DROP → CREATE → INSERT)。何度流しても同じ。`meta.version` (日付 + SQL の内容ハッシュ) が
+  内容が変わると新しくなり、エッジのキャッシュ鍵が切り替わる。
+- **`apply_data.py --push` の最後には足さない。** push は CloudKit への書き込みで、翌日の cron か手動実行が
+  それを取り直して流す。トークンの作り方・secret は [`DATA_PIPELINE.md`](DATA_PIPELINE.md) の「公開データ API への同期」。
 
 ## 7. テスト
 
@@ -181,8 +187,7 @@ cd imas-data-api && npm ci && npm run wasm && npm run check && npm test
 ```bash
 cd imas-data-api
 npx wrangler d1 create imas-master-db          # 1 度だけ。返った database_id を wrangler.jsonc に書く
-npm run export                                 # SQL を組む (または tools/sync_master_d1.py が呼ぶ)
-npx wrangler d1 execute imas-master-db --remote --file .build/master-d1.sql
+python3 ../tools/sync_master_d1.py --remote --yes # SQL を組んで本番 D1 に流す (以降は毎日 CI が流す)
 npm run wasm && npx wrangler deploy            # カスタムドメインは wrangler が用意する
 curl https://idollivedb-api.fugaapp.site/v1/meta
 ```
