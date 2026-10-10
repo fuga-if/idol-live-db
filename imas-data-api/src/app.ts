@@ -119,6 +119,7 @@ type Route =
   | { type: "meta"; key: string }
   | { type: "brands"; key: string }
   | { type: "doc"; kind: ListKind; id: string; key: string }
+  | { type: "facts"; id: string; key: string }
   | { type: "list"; kind: ListKind; q?: string; brand?: string; idol?: string; limit: number; cursor: number; key: string };
 
 const ID_MAX = 200;
@@ -140,6 +141,17 @@ function parseRoute(url: URL): Route {
     }
     if (id.length === 0 || id.length > ID_MAX) return { type: "bad", message: "id が不正です" };
     return { type: "doc", kind, id, key: `/v1/${parts[1]}/${encodeURIComponent(id)}` };
+  }
+  // /v1/idols/:id/facts (アイドルの項目の束。同期のときに組んだ文書を 1 行返すだけ)
+  if (parts.length === 4 && kind === "idol" && parts[3] === "facts") {
+    let id: string;
+    try {
+      id = decodeURIComponent(parts[2]);
+    } catch {
+      return { type: "bad", message: "id の percent-encoding が壊れています" };
+    }
+    if (id.length === 0 || id.length > ID_MAX) return { type: "bad", message: "id が不正です" };
+    return { type: "facts", id, key: `/v1/idols/${encodeURIComponent(id)}/facts` };
   }
   if (parts.length !== 2) return { type: "none" };
 
@@ -187,6 +199,8 @@ async function run(route: Exclude<Route, { type: "none" } | { type: "bad" }>, en
       return docResponse(env, "brands", "all");
     case "doc":
       return docResponse(env, route.kind, route.id);
+    case "facts":
+      return docResponse(env, "facts", route.id);
     case "list": {
       const prefix = route.q === undefined ? undefined : deps.fold(route.q);
       if (prefix === "") return fail(400, "bad_request", "q が空になります");

@@ -14,7 +14,7 @@ function setup() {
     INSERT INTO songs VALUES (1,'s1','ml','Thank You!','Thank You!','2020-01-01'),(2,'s2','cg','ありがとう','ありがとう','2019-01-01');
     INSERT INTO song_idols VALUES ('ml_a',1);
     INSERT INTO units VALUES (1,'u1','ml','LiLiLiLi','りりりり',1);
-    INSERT INTO docs VALUES ('idol','ml_a','{"id":"ml_a","name":"春日未来"}'),('brands','all','{"brands":[]}');
+    INSERT INTO docs VALUES ('idol','ml_a','{"id":"ml_a","name":"春日未来"}'),('facts','ml_a','{"schema_version":1,"id":"ml_a","categories":{}}'),('brands','all','{"brands":[]}');
   `);
   const t = (kind: string, s: string, ord: number) =>
     db.prepare("INSERT INTO terms VALUES (?,?,?)").run(kind, fold(s), ord);
@@ -42,6 +42,21 @@ describe("ルーティング", () => {
     expect(await r.text()).toBe('{"id":"ml_a","name":"春日未来"}');
     expect(r.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(r.headers.get("Cache-Control")).toBe("public, max-age=3600");
+  });
+
+  it("/v1/idols/:id/facts は項目の束の文書を 1 行で返す", async () => {
+    const { get, stats } = setup();
+    const r = await get("/v1/idols/ml_a/facts");
+    expect(r.status).toBe(200);
+    expect(await r.text()).toBe('{"schema_version":1,"id":"ml_a","categories":{}}');
+    expect(r.headers.get("Cache-Control")).toBe("public, max-age=3600");
+    expect(r.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(stats.statements).toBe(2); // 版の確認 + 主キー 1 行
+    expect((await get("/v1/idols/none/facts")).status).toBe(404);
+    // facts は idols だけ。曲やユニットには無い。
+    expect((await get("/v1/songs/s1/facts")).status).toBe(404);
+    expect((await get("/v1/idols/ml_a/other")).status).toBe(404);
+    expect((await get("/v1/idols/%E0%A4%A/facts")).status).toBe(400);
   });
 
   it("日本語 id は percent-encode のままでも引ける", async () => {
