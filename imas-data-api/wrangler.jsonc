@@ -15,7 +15,7 @@
       // imas-live-db (コミュニティの集計) とは別の DB。マスタの写しだけを置く。
       "database_name": "imas-master-db",
       // `wrangler d1 create imas-master-db` が返す id に差し替える (デプロイ前にオーナーが)。
-      "database_id": "REPLACE_WITH_ID_FROM_wrangler_d1_create"
+      "database_id": "a75ba9d1-4c7c-46e6-9500-2cf519d5a023"
     }
   ],
   // キャッシュに当たらず D1 まで行くリクエストだけを IP ごとに絞る (Worker 内で数える)。
