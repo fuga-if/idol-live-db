@@ -50,6 +50,8 @@ WITH official(id, name, description) AS (VALUES
   ('official_appearance_style_streaks', 'メッシュ', '髪型'),
   ('official_appearance_style_two_tone', 'ツートンカラー', '髪型'),
   ('official_appearance_style_forehead', 'おでこ出し', '髪型'),
+  ('official_appearance_style_hime_cut', '姫カット', '髪型'),
+  ('official_appearance_style_pompadour', 'リーゼント', '髪型'),
   ('official_appearance_accessory_ribbon', 'リボン', '髪の飾り'),
   ('official_appearance_accessory_hairband', 'ヘアバンド', '髪の飾り'),
   ('official_appearance_accessory_hairpin', 'ヘアピン', '髪の飾り'),
