@@ -89,6 +89,10 @@ pub struct Args {
     /// 公開データ API (`imas-data-api`) の D1 に流す SQL の書き出し先。
     /// Web 用の JSON とは別の出力で、`data_api::render_sql` が組む。
     pub api_sql: Option<PathBuf>,
+    /// タグの票の写し (JSON: `{"<idol_id>": [{"tag","facet","facet_value","category","votes"}, ...]}`)。
+    /// 公開データ API の `/facts` にファンの票の値を足す入力。無ければマスタの値だけで組む。
+    /// 形は `domain::idol_facets::TagFacetInput`。
+    pub facet_tags: Option<PathBuf>,
     /// コミュニティ集計 (`db/community.sql`)。無指定なら既定の場所を見る。
     /// ファイルが無ければ集計抜きで書き出す。
     pub community: Option<String>,

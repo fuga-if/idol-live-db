@@ -166,7 +166,11 @@ pub fn run(args: &Args) -> Result<Stats> {
     // 公開データ API 用の SQL。Web の JSON とは独立の出力 (同じ Snapshot を読むだけ)。
     let mut api_stats = None;
     if let Some(path) = &args.api_sql {
-        let sql = crate::web_export::data_api::render_sql(&snap, &today, content_hash.as_deref())?;
+        let tags = match &args.facet_tags {
+            Some(p) => crate::web_export::data_api::load_facet_tags(p)?,
+            None => Default::default(),
+        };
+        let sql = crate::web_export::data_api::render_sql_with_tags(&snap, &today, content_hash.as_deref(), &tags)?;
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
@@ -256,6 +260,9 @@ fn shippable_tables(mut raw: RawTables) -> RawTables {
     // 生テーブルまで渡すと、正データ (event_page の TicketInfo) と二重に存在してズレても
     // 気づけなくなる)。
     raw.ticket_sales = Vec::new();
+    // アイドルの項目は公開データ API (`/facts`) の入力で、ブラウザには要らない。
+    raw.idol_facets = Vec::new();
+    raw.idol_hairstyles = Vec::new();
     raw
 }
 

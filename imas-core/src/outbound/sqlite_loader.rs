@@ -97,6 +97,8 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
 
     let ticket_sales = load_ticket_sales(&conn, &event_index_by_id)?;
     let show_archives = load_show_archives(&conn, &show_index_by_id)?;
+    let idol_facets = load_idol_facets(&conn)?;
+    let idol_hairstyles = load_idol_hairstyles(&conn)?;
 
     // 結合表は素の行のまま読む (添字への解決と索引構築は domain 側)。
     let song_artists = load_song_artists(&conn)?;
@@ -127,6 +129,8 @@ pub fn load_raw_tables(db_path: &str) -> Result<RawTables, String> {
         costume_wears,
         ticket_sales,
         show_archives,
+        idol_facets,
+        idol_hairstyles,
         song_artists,
         setlist_performers,
         show_cast,
@@ -1787,4 +1791,71 @@ mod tests {
         assert!(snap.songs.iter().all(|s| s.jasrac_code.is_none()));
         let _ = std::fs::remove_file(&path);
     }
+}
+
+/// idol_facets をロードする。昇格待ちの表なので、無い DB (db/master.sql の古い写し・同梱 DB) では空。
+fn load_idol_facets(conn: &Connection) -> Result<Vec<crate::domain::snapshot::IdolFacetRow>, String> {
+    if !table_exists(conn, "idol_facets")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, idol_id, facet, value, origin, source_note, sort_order \
+             FROM idol_facets ORDER BY idol_id, facet, sort_order, id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(crate::domain::snapshot::IdolFacetRow {
+                id: r.get(0)?,
+                idol_id: r.get(1)?,
+                facet: r.get(2)?,
+                value: r.get(3)?,
+                origin: r.get::<_, Option<String>>(4)?.unwrap_or_else(|| "official".into()),
+                source_note: r.get(5)?,
+                sort_order: r.get::<_, Option<i64>>(6)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
+}
+
+/// '、' 区切りの複数値列 → 配列。
+fn split_multi(v: Option<String>) -> Vec<String> {
+    v.map(|t| t.split('、').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect())
+        .unwrap_or_default()
+}
+
+/// idol_hairstyles をロードする。idol_facets と同じく、表が無い DB では空。
+fn load_idol_hairstyles(conn: &Connection) -> Result<Vec<crate::domain::snapshot::IdolHairstyleRow>, String> {
+    if !table_exists(conn, "idol_hairstyles")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, idol_id, label, is_main, hair_color, hair_color_secondary, hair_length, styles, \
+                    bangs, accessories, origin, source_note, sort_order \
+             FROM idol_hairstyles ORDER BY idol_id, sort_order, id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(crate::domain::snapshot::IdolHairstyleRow {
+                id: r.get(0)?,
+                idol_id: r.get(1)?,
+                label: r.get(2)?,
+                is_main: r.get::<_, Option<i64>>(3)?.unwrap_or(0) != 0,
+                hair_color: r.get(4)?,
+                hair_color_secondary: r.get(5)?,
+                hair_length: r.get(6)?,
+                styles: split_multi(r.get(7)?),
+                bangs: r.get(8)?,
+                accessories: split_multi(r.get(9)?),
+                origin: r.get::<_, Option<String>>(10)?.unwrap_or_else(|| "official".into()),
+                source_note: r.get(11)?,
+                sort_order: r.get::<_, Option<i64>>(12)?.unwrap_or(0),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<_, _>>().map_err(|e| e.to_string())
 }

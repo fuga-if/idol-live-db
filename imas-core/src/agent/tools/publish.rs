@@ -99,6 +99,21 @@ pub fn idol_document(snap: &Snapshot, idol_id: &str, today_key: &str) -> Result<
     Ok(doc)
 }
 
+/// アイドル 1 人の項目の束 (`GET /v1/idols/:id/facts`、MCP の `get_idol_facts`)。
+///
+/// 組み立ては `domain::idol_facets::build_idol_facts`。ここは話し方 (出典つきの公式データ)
+/// を渡すだけ。`tags` はタグの票の写し (imas-live-api から同期。MCP・アプリ内トークは空)。
+/// 歌詞・試聴の URL・体重・スリーサイズは束に含まれない (domain のテストが固定)。
+pub fn idol_facts_document(
+    snap: &Snapshot,
+    idol_id: &str,
+    tags: &[crate::domain::idol_facets::TagFacetInput],
+) -> Result<Value, ToolError> {
+    let persona = speech::persona_input(idol_id);
+    crate::domain::idol_facets::build_idol_facts(snap, idol_id, &persona, tags)
+        .ok_or_else(|| ToolError::NotFound(format!("idol の id が無い: {idol_id}")))
+}
+
 /// 曲 1 件の文書。
 pub fn song_document(snap: &Snapshot, song_id: &str, today_key: &str) -> Result<Value, ToolError> {
     let mut doc = call_tool(snap, "get_song", &json!({ "id": song_id }), today_key)?;

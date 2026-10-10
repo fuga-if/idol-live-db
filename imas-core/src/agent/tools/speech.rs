@@ -153,6 +153,27 @@ pub fn speech_profile(idol_id: &str, name_of: impl Fn(&str) -> Option<String>) -
     (!o.is_empty()).then(|| Value::Object(o))
 }
 
+/// 項目 (`/facts`) の personality に渡す話し方。`render` の「A／B（場面）」を項目ごとの値に割る。
+/// データの無い子は空の入力。
+pub fn persona_input(idol_id: &str) -> crate::domain::idol_facets::PersonaInput {
+    let d = data();
+    let persona = d.personas.get(idol_id);
+    let list = |v: Option<String>| -> Vec<String> {
+        v.map(|t| t.split('／').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect()).unwrap_or_default()
+    };
+    crate::domain::idol_facets::PersonaInput {
+        first_person: list(persona.and_then(|p| render(&p["first_person"]))),
+        producer_call: list(producer_call(idol_id)),
+        catchphrases: catchphrases(idol_id),
+        sentence_endings: persona
+            .and_then(|p| p["endings"].as_array())
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default(),
+        politeness: persona.and_then(|p| render(&p["politeness"])),
+        tone_notes: persona.and_then(|p| render(&p["tone_notes"])),
+    }
+}
+
 /// 照合用に、記号・空白・伸ばし棒の揺れを落とす。
 fn fold(text: &str) -> String {
     text.chars()

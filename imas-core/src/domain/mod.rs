@@ -35,6 +35,7 @@ pub mod fuzzy_search;
 pub mod game_progress;
 pub mod idol_detail;
 pub mod idol_list_filtering;
+pub mod idol_facets;
 pub mod idol_queries;
 pub mod idol_song_queries;
 pub mod image_template_json;

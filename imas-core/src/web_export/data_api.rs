@@ -4,7 +4,7 @@
 //!
 //! Web 用の JSON ([`super::emit`]) とは別の出力。やることは 3 つだけ:
 //!
-//! 1. 文書 (`agent::tools::publish`) を JSON にして `docs` 表の行にする
+//! 1. 文書 (`agent::tools::publish`) を JSON にして `docs` 表の行にする (アイドルは `idol` と、項目の束 `facts`)
 //! 2. 一覧・検索の索引行 (`idols` / `songs` / `units` / `song_idols` / `terms`) を作る
 //! 3. 同期の版 (`meta`) を決める
 //!
@@ -19,6 +19,7 @@
 use super::{Result, WebExportError};
 use crate::agent::tools::publish;
 use crate::domain::idol_song_queries::{idol_songs, idol_unit_song_ids};
+use crate::domain::idol_facets::TagFacetInput;
 use crate::domain::snapshot::{split_csv, Snapshot};
 use crate::domain::unit_queries;
 use crate::web_export::url::fnv1a64;
@@ -58,8 +59,28 @@ fn terms<'a>(values: impl IntoIterator<Item = Option<&'a str>>) -> BTreeSet<Stri
         .collect()
 }
 
-/// 全置き換えの SQL を組む。`today` は `YYYY-MM-DD` (JST)。
+/// タグの票の写し: アイドル id → そのアイドルに付いたタグ。
+pub type FacetTags = BTreeMap<String, Vec<TagFacetInput>>;
+
+/// タグの票の写し (JSON) を読む。形は [`TagFacetInput`] の配列をアイドル id で束ねたもの。
+pub fn load_facet_tags(path: &std::path::Path) -> Result<FacetTags> {
+    let text = std::fs::read_to_string(path)?;
+    serde_json::from_str(&text)
+        .map_err(|e| WebExportError::Invariant(format!("タグの票の写しが読めない {}: {e}", path.display())))
+}
+
+/// 全置き換えの SQL を組む (タグの票なし)。`today` は `YYYY-MM-DD` (JST)。
 pub fn render_sql(snap: &Snapshot, today: &str, source_hash: Option<&str>) -> Result<String> {
+    render_sql_with_tags(snap, today, source_hash, &FacetTags::new())
+}
+
+/// 全置き換えの SQL を組む。`tags` は `/facts` に足すタグの票 (空でよい)。
+pub fn render_sql_with_tags(
+    snap: &Snapshot,
+    today: &str,
+    source_hash: Option<&str>,
+    tags: &FacetTags,
+) -> Result<String> {
     let mut body = String::new();
     let mut term_rows: Vec<(&'static str, String, usize)> = Vec::new();
 
@@ -94,6 +115,10 @@ pub fn render_sql(snap: &Snapshot, today: &str, source_hash: Option<&str>) -> Re
         idol_ord.insert(idol.id.clone(), ord);
         let value = publish::idol_document(snap, &idol.id, today).map_err(|e| tool_err(&idol.id, e))?;
         doc("idol", &idol.id, &value)?;
+        let no_tags = Vec::new();
+        let facts = publish::idol_facts_document(snap, &idol.id, tags.get(&idol.id).unwrap_or(&no_tags))
+            .map_err(|e| tool_err(&idol.id, e))?;
+        doc("facts", &idol.id, &facts)?;
         idol_lines.push(format!(
             "({ord}, {}, {}, {}, {}, {})",
             lit(&idol.id),
@@ -249,7 +274,7 @@ mod tests {
         assert_eq!(count("songs") as usize, snap.songs.len());
         assert_eq!(count("units") as usize, snap.units.len());
         let docs: i64 = count("docs");
-        assert_eq!(docs as usize, snap.idols.len() + snap.songs.len() + snap.units.len() + 1);
+        assert_eq!(docs as usize, snap.idols.len() * 2 + snap.songs.len() + snap.units.len() + 1);
         assert!(count("terms") > 0 && count("song_idols") > 0);
         let version: String =
             conn.query_row("SELECT value FROM meta WHERE key='version'", [], |r| r.get(0)).unwrap();

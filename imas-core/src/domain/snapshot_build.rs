@@ -13,7 +13,7 @@ use crate::domain::snapshot::{
     Anniversary, Brand, BrandMemberLink, Costume, CostumeWear, Creator, Event, EventRelease, Idol,
     IdolBrandLink, IdolSongLink,
     IdolVoiceActor, SetlistItem, Show, ShowCastLink, Snapshot, Song, SongArtistLink, Staff,
-    ShowArchiveRow, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
+    IdolFacetRow, IdolHairstyleRow, ShowArchiveRow, TicketSaleRow, Unit, Venue, VenueHall, VenueName,
 };
 use crate::domain::text_search_index::TextSearchIndex;
 
@@ -51,6 +51,12 @@ pub struct RawTables {
     /// 配信のアーカイブ期間 (`show_tickets` の期間の入った行だけ)。同じく後から足した表。
     #[serde(default)]
     pub show_archives: Vec<ShowArchiveRow>,
+    /// アイドルの項目 (idol_facets)。ブラウザには配らない (`shippable_tables` が空にする)。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub idol_facets: Vec<IdolFacetRow>,
+    /// アイドルの髪型 (idol_hairstyles)。同じくブラウザには配らない。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub idol_hairstyles: Vec<IdolHairstyleRow>,
     /// (song_id, idol_id, role)
     pub song_artists: Vec<(String, String, Option<String>)>,
     /// (setlist_item_id, idol_id)
@@ -86,6 +92,8 @@ pub fn build(raw: RawTables) -> Snapshot {
         costume_wears,
         ticket_sales,
         mut show_archives,
+        mut idol_facets,
+        mut idol_hairstyles,
         song_artists,
         setlist_performers,
         show_cast,
@@ -408,6 +416,24 @@ pub fn build(raw: RawTables) -> Snapshot {
         });
     }
 
+    // idol_facets → (idol_id, facet, sort_order, id) の並びと、アイドル添字ごとの逆引き。
+    idol_facets.sort_by(|a, b| {
+        (&a.idol_id, &a.facet, a.sort_order, &a.id).cmp(&(&b.idol_id, &b.facet, b.sort_order, &b.id))
+    });
+    idol_hairstyles
+        .sort_by(|a, b| (&a.idol_id, a.sort_order, &a.id).cmp(&(&b.idol_id, b.sort_order, &b.id)));
+    let mut idol_hairstyles_by_idol: Vec<Vec<u32>> = vec![Vec::new(); idols.len()];
+    for (i, row) in idol_hairstyles.iter().enumerate() {
+        if let Some(&ii) = idol_index_by_id.get(&row.idol_id) {
+            idol_hairstyles_by_idol[ii as usize].push(i as u32);
+        }
+    }
+    let mut idol_facets_by_idol: Vec<Vec<u32>> = vec![Vec::new(); idols.len()];
+    for (i, row) in idol_facets.iter().enumerate() {
+        if let Some(&ii) = idol_index_by_id.get(&row.idol_id) {
+            idol_facets_by_idol[ii as usize].push(i as u32);
+        }
+    }
     // show_archives → (show 添字, ticket_id)。読んだ経路 (DB / tables.json) に依らず並びを揃える。
     show_archives.sort_by(|a, b| (a.show, &a.ticket_id).cmp(&(b.show, &b.ticket_id)));
 
@@ -581,6 +607,10 @@ pub fn build(raw: RawTables) -> Snapshot {
         costume_wears,
         ticket_sales,
         show_archives,
+        idol_facets,
+        idol_facets_by_idol,
+        idol_hairstyles,
+        idol_hairstyles_by_idol,
         meta,
         artists_by_song,
         songs_by_idol,
