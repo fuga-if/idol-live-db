@@ -232,6 +232,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_idol_search_target_counts,
     uniffi_imas_core_checksum_func_idol_short_name,
     uniffi_imas_core_checksum_func_idol_sort_order_table,
+    uniffi_imas_core_checksum_func_idol_tag_category_groups,
     uniffi_imas_core_checksum_func_image_template_json,
     uniffi_imas_core_checksum_func_input_clamp,
     uniffi_imas_core_checksum_func_input_is_acceptable,

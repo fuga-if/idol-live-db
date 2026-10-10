@@ -19,6 +19,21 @@ pub fn song_type_term(value: String) -> Option<crate::domain::vocabulary::Vocabu
     domain::song_type(&value).map(Into::into)
 }
 
+/// タグを選ぶ画面に渡す 1 件 (id とカテゴリだけ)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct TagCategoryInput {
+    pub id: String,
+    pub category: Option<String>,
+}
+
+/// アイドルのタグをカテゴリごとにまとめる (タグを選ぶ画面の見出し分け)。
+/// 並びはアイドルのタグのカテゴリの語彙の順、最後に「その他」。各まとまりの中は渡した順のまま。
+#[uniffi::export]
+pub fn idol_tag_category_groups(tags: Vec<TagCategoryInput>) -> Vec<domain::TagCategoryGroup> {
+    let pairs: Vec<(String, Option<String>)> = tags.into_iter().map(|t| (t.id, t.category)).collect();
+    domain::group_tags_by_category(&domain::IDOL_TAG_CATEGORIES, &pairs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -30,5 +45,14 @@ mod tests {
         assert_eq!(song_type_term("original".into()).map(|t| t.label), Some("オリジナル".to_string()));
         assert_eq!(song_type_term("unknown".into()).map(|t| t.label), Some("不明".to_string()));
         assert_eq!(song_type_term("mystery".into()), None);
+    }
+
+    #[test]
+    fn idol_tag_category_groups_delegates() {
+        let g = idol_tag_category_groups(vec![
+            TagCategoryInput { id: "a".into(), category: Some("appearance".into()) },
+            TagCategoryInput { id: "b".into(), category: None },
+        ]);
+        assert_eq!(g.iter().map(|g| g.label.as_str()).collect::<Vec<_>>(), vec!["容姿", "その他"]);
     }
 }

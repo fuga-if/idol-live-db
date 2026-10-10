@@ -105,9 +105,11 @@ pub const SONG_TAG_CATEGORIES: [Term; 4] = [
     term("special", "特別", "特別"),
     term("free", "フリー", "フリー"),
 ];
-pub const IDOL_TAG_CATEGORIES: [Term; 4] = [
+pub const IDOL_TAG_CATEGORIES: [Term; 5] = [
     term("personality", "性格", "性格"),
     term("charm", "魅力・外見", "魅力・外見"),
+    // 髪色・髪の長さ・髪型・飾り・目。公式のタグ (D1 の migrations/0050) がここに入る。
+    term("appearance", "容姿", "容姿"),
     term("talent", "特技", "特技"),
     term("free", "フリー", "フリー"),
 ];
@@ -120,6 +122,51 @@ pub const UNIT_TAG_CATEGORIES: [Term; 4] = [
 
 /// タグのカテゴリを付けないときの選択肢の言葉 (値は空文字)。
 pub const TAG_CATEGORY_NONE_LABEL: &str = "なし";
+
+/// タグを選ぶ画面で、カテゴリの無いタグ (と語彙に無いカテゴリのタグ) をまとめる見出し。
+pub const TAG_CATEGORY_OTHER_GROUP_LABEL: &str = "その他";
+
+/// タグを選ぶ画面に出す、カテゴリごとのまとまり 1 つ。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct TagCategoryGroup {
+    /// カテゴリの生値。カテゴリの無いタグのまとまりは空文字。
+    pub category: String,
+    /// 見出しの言葉。
+    pub label: String,
+    /// まとまりに入るタグの id。並びは渡された順 (= 呼び出し側の人気順) のまま。
+    pub tag_ids: Vec<String>,
+}
+
+/// タグをカテゴリごとにまとめる。まとまりの並びは語彙 (`categories`) の並びで、
+/// カテゴリの無いタグと語彙に無いカテゴリのタグは最後の「その他」に入る
+/// (新しいカテゴリを知らない古いアプリでも、タグは消えずに「その他」に出る)。
+/// 中身の無いまとまりは返さない。各まとまりの中は渡された順を崩さない。
+pub fn group_tags_by_category(
+    categories: &[Term],
+    tags: &[(String, Option<String>)],
+) -> Vec<TagCategoryGroup> {
+    let mut groups: Vec<TagCategoryGroup> = categories
+        .iter()
+        .map(|t| TagCategoryGroup { category: t.value.to_string(), label: t.label.to_string(), tag_ids: vec![] })
+        .collect();
+    let mut other = TagCategoryGroup {
+        category: String::new(),
+        label: TAG_CATEGORY_OTHER_GROUP_LABEL.to_string(),
+        tag_ids: vec![],
+    };
+    for (id, category) in tags {
+        let slot = category
+            .as_deref()
+            .and_then(|c| categories.iter().position(|t| t.value == c));
+        match slot {
+            Some(i) => groups[i].tag_ids.push(id.clone()),
+            None => other.tag_ids.push(id.clone()),
+        }
+    }
+    groups.push(other);
+    groups.retain(|g| !g.tag_ids.is_empty());
+    groups
+}
 
 fn find(table: &'static [Term], value: &str) -> Option<&'static Term> {
     table.iter().find(|t| t.value == value)
@@ -266,6 +313,35 @@ mod tests {
             assert!(list.iter().all(|t| !t.short_label.is_empty() && !t.label.is_empty()), "{name}");
         }
         assert_eq!(v.song_types.len(), 5, "Web の曲種別は 5 種すべて出す (Q-08f)");
+    }
+
+    #[test]
+    fn idol_tags_group_by_category_in_vocabulary_order() {
+        let tags: Vec<(String, Option<String>)> = vec![
+            ("t-free".into(), Some("free".into())),
+            ("t-none".into(), None),
+            ("t-hair1".into(), Some("appearance".into())),
+            ("t-kind".into(), Some("personality".into())),
+            ("t-future".into(), Some("future_category".into())),
+            ("t-hair2".into(), Some("appearance".into())),
+            ("t-empty".into(), Some(String::new())),
+        ];
+        let groups = group_tags_by_category(&IDOL_TAG_CATEGORIES, &tags);
+        let shape: Vec<(&str, &str, Vec<&str>)> = groups
+            .iter()
+            .map(|g| (g.category.as_str(), g.label.as_str(), g.tag_ids.iter().map(String::as_str).collect()))
+            .collect();
+        assert_eq!(
+            shape,
+            vec![
+                ("personality", "性格", vec!["t-kind"]),
+                ("appearance", "容姿", vec!["t-hair1", "t-hair2"]),
+                ("free", "フリー", vec!["t-free"]),
+                ("", "その他", vec!["t-none", "t-future", "t-empty"]),
+            ],
+            "語彙の順・空のまとまりは出さない・知らないカテゴリは消さずにその他・中は渡した順"
+        );
+        assert!(group_tags_by_category(&IDOL_TAG_CATEGORIES, &[]).is_empty());
     }
 
     /// マスタに入っている曲種別・催しの種別・性格は、どれも語彙で引ける。
