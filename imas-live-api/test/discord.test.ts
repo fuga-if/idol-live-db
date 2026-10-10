@@ -285,6 +285,8 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
        ('d1', 'song-a', 't1', 0), ('d2', 'song-a', 't1', 0), ('d1', 'song-a', 't2', 0), ('d1', 'song-b', 't3', 0)`
     );
     await exec("INSERT INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES ('d1', 'idol-c', 'it1', 0)");
+    // 運営が入れた票 (公式タグの初期値) は知らせない。
+    await exec("INSERT INTO device_idol_tag (device_id, idol_id, tag_id, created_at) VALUES ('official:seed', 'idol-d', 'it1', 0)");
 
     fetchMock.get("https://api.apple-cloudkit.com")
       .intercept({ path: /\/records\/lookup$/, method: "POST" })
@@ -314,6 +316,7 @@ describe("#更新通知 のまとめ投稿 (5 分 cron)", () => {
     expect(posted.content).toContain("曲にタグ** 1曲");
     expect(posted.content).toContain("アイドルにタグ** [如月千早](<https://idollivedb.fugaapp.site/idols/idol-c/>) #歌姫");
     expect(posted.content).not.toContain("消えた");
+    expect(posted.content).not.toContain("idol-d");
   });
 
   it("編集は項目ごとの変更前→変更後と、セトリの追加・削除・曲順を出す", async () => {

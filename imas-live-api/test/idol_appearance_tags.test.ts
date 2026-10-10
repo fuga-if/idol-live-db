@@ -2,7 +2,7 @@
 // (data/fixes/idol_appearance_review_20261010.csv の「入れるタグ」列) とそろえてある。
 
 import { describe, expect, it } from "vitest";
-import { callJson } from "./support/worker";
+import { callJson, device } from "./support/worker";
 
 describe("アイドルの容姿の公式タグ (migration 0050)", () => {
   it("容姿の分類で 40 語が公式として一覧に出る", async () => {
@@ -20,5 +20,13 @@ describe("アイドルの容姿の公式タグ (migration 0050)", () => {
     const res = await callJson("GET", "/idol-tags/official_appearance_hair_black");
     expect(res.status).toBe(200);
     expect(res.body.tag).toMatchObject({ name: "黒髪", category: "appearance", is_official: 1, description: "髪色" });
+  });
+
+  it("利用者の端末は運営の端末 ID (official:) を名乗れない", async () => {
+    const res = await callJson("POST", "/idols/765as_天海春香/tags", {
+      headers: device("official:appearance-20261010"),
+      body: { tag_ids: ["official_appearance_hair_brown"] },
+    });
+    expect(res.status).toBe(400);
   });
 });

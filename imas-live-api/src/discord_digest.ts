@@ -19,6 +19,7 @@ import { cloudKitLookup } from "./cloudkit";
 import { postChannelMessage } from "./discord";
 import { buildChanges, referencedIds, RECORD_LABELS as EDIT_RECORD_LABELS, type Change, type ChangeField, type HistoryRow } from "./discord_edit_diff";
 import type { Env } from "./env";
+import { OFFICIAL_DEVICE_PREFIX } from "./routes/guards";
 
 const WEB_BASE = "https://idollivedb.fugaapp.site";
 /** 1 回に読む行数の上限 (source ごと)。超えた分は次の回に回る。 */
@@ -199,7 +200,10 @@ export async function postDiscordDigest(env: DigestEnv): Promise<void> {
   const calls = source<{ song_id: string }>("calls", "call_edit_history", "song_id");
   const timings = source<{ song_id: string }>("timings", "timing_edit_history", "song_id");
   const songTags = source<{ target: string; tag_id: string }>("song_tags", "device_song_tag", "song_id AS target, tag_id");
-  const idolTags = source<{ target: string; tag_id: string }>("idol_tags", "device_idol_tag", "idol_id AS target, tag_id");
+  // 運営が入れた票 (公式タグの初期値) は利用者の動きではないので知らせない。
+  const idolTags = source<{ target: string; tag_id: string }>(
+    "idol_tags", "device_idol_tag", "idol_id AS target, tag_id", `device_id NOT LIKE '${OFFICIAL_DEVICE_PREFIX}%'`
+  );
   const unitTags = source<{ target: string; tag_id: string }>("unit_tags", "device_unit_tag", "unit_id AS target, tag_id");
   const newSongTags = source<{ name: string }>("tag_master", "tags", "name", "status = 'active'");
   const newIdolTags = source<{ name: string }>("idol_tag_master", "idol_tag_master", "name", "status = 'active'");

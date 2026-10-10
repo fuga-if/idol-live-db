@@ -25,6 +25,7 @@ import {
   readJsonBody,
   requireActiveUser,
   requireDeviceWrite,
+  OFFICIAL_DEVICE_PREFIX,
   type JsonFields,
 } from "./guards";
 
@@ -867,8 +868,9 @@ type ActivityRow = Record<string, unknown>;
 
 /**
  * device_song_tag / device_idol_tag は「端末 1 件ごとのタグ付与」を created_at 付きで持つので、
- * 新しい表を足さずに直近の流れと期間内の急増を出せる。曲名・アイドル名は解決せず entity_id だけ
- * 返し、名前と色はクライアントが同期済みのローカル DB で引く (GET <master>/:id と同じ分担)。
+ * 新しい表を足さずに直近の流れと期間内の急増を出せる。運営が入れた票 (公式タグの初期値。
+ * 端末 ID が OFFICIAL_DEVICE_PREFIX) は利用者の動きではないので、アイドルの流れからは外す。
+ * 曲名・アイドル名は解決せず entity_id だけ返し、名前と色はクライアントが同期済みのローカル DB で引く (GET <master>/:id と同じ分担)。
  */
 async function tagActivity(ctx: RouteContext): Promise<Response> {
   const { env, url, json } = ctx;
@@ -888,7 +890,7 @@ async function tagActivity(ctx: RouteContext): Promise<Response> {
         `SELECT dit.idol_id as entity_id, dit.tag_id, t.name as tag_name, t.color as tag_color,
                 t.category as tag_category, dit.created_at
          FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
-         WHERE t.status != 'removed'
+         WHERE dit.device_id NOT LIKE '${OFFICIAL_DEVICE_PREFIX}%' AND t.status != 'removed'
          ORDER BY dit.created_at DESC LIMIT 40`
       ).all<ActivityRow>(),
       env.DB.prepare(
@@ -904,7 +906,7 @@ async function tagActivity(ctx: RouteContext): Promise<Response> {
                 COUNT(*) as recent_count,
                 COALESCE((SELECT SUM(vote_count) FROM idol_tags WHERE tag_id = t.id), 0) as total_count
          FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
-         WHERE dit.created_at >= ? AND t.status != 'removed'
+         WHERE dit.device_id NOT LIKE '${OFFICIAL_DEVICE_PREFIX}%' AND dit.created_at >= ? AND t.status != 'removed'
          GROUP BY dit.tag_id ORDER BY recent_count DESC LIMIT 10`
       ).bind(windowStart).all<ActivityRow>(),
       env.DB.prepare(
@@ -919,7 +921,7 @@ async function tagActivity(ctx: RouteContext): Promise<Response> {
         `SELECT dit.idol_id as entity_id, dit.tag_id, t.name as tag_name, t.color as tag_color,
                 COUNT(*) as recent_count
          FROM device_idol_tag dit JOIN idol_tag_master t ON t.id = dit.tag_id
-         WHERE dit.created_at >= ? AND t.status != 'removed'
+         WHERE dit.device_id NOT LIKE '${OFFICIAL_DEVICE_PREFIX}%' AND dit.created_at >= ? AND t.status != 'removed'
          GROUP BY dit.idol_id, dit.tag_id HAVING COUNT(*) >= 2
          ORDER BY recent_count DESC LIMIT 10`
       ).bind(windowStart).all<ActivityRow>(),
