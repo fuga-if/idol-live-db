@@ -1,0 +1,688 @@
+{
+ "title": "アイドルの容姿 シンデレラガールズ 1",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "cg_相川千夏",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%9B%B8%E5%B7%9D%E5%8D%83%E5%A4%8F , https://dic.nicovideo.jp/a/%E7%9B%B8%E5%B7%9D%E5%8D%83%E5%A4%8F",
+   "note": "髪色は萌娘百科で棕发。黒に近い濃い茶の可能性あり。ニコニコ大百科でショートカット&眼鏡"
+  },
+  {
+   "table": "idols",
+   "id": "cg_愛野渚",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ポニーテール,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%84%9B%E9%87%8E%E6%B8%9A , https://dic.nicovideo.jp/a/%E6%84%9B%E9%87%8E%E6%B8%9A",
+   "note": "色は萌娘百科の棕发。長さは目視判断で要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_相原雪乃",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%9B%B8%E5%8E%9F%E9%9B%AA%E4%B9%83 , https://dic.nicovideo.jp/a/%E7%9B%B8%E5%8E%9F%E9%9B%AA%E4%B9%83",
+   "note": "萌娘百科: 棕发、単麻花辫・超長髪(三つ編みでも膝に届く)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_相葉夕美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%9B%B8%E8%91%89%E5%A4%95%E7%BE%8E , https://dic.nicovideo.jp/a/%E7%9B%B8%E8%91%89%E5%A4%95%E7%BE%8E",
+   "note": "萌娘百科は金发、別情報は茶/金で割れる。薄い茶〜金の境目で要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_赤城みりあ",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%B5%A4%E5%9F%8E%E3%81%BF%E3%82%8A%E3%81%82 , https://dic.nicovideo.jp/a/%E8%B5%A4%E5%9F%8E%E3%81%BF%E3%82%8A%E3%81%82",
+   "note": "萌娘百科は黑发、色は茶か黒か要確認。萌点は披肩双马尾"
+  },
+  {
+   "table": "idols",
+   "id": "cg_赤西瑛梨華",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "三つ編み"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%B5%A4%E8%A5%BF%E7%91%9B%E6%A2%A8%E8%8F%AF , https://dic.nicovideo.jp/a/%E8%B5%A4%E8%A5%BF%E7%91%9B%E6%A2%A8%E8%8F%AF",
+   "note": "萌娘百科: 棕发、麻花辫(おさげ)。長さは要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_浅野風香",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B5%85%E9%87%8E%E9%A2%A8%E9%A6%99 , https://dic.nicovideo.jp/a/%E6%B5%85%E9%87%8E%E9%A2%A8%E9%A6%99",
+   "note": "萌娘百科: 黑发、下双马尾。長さは要確認。ツインテールは低め(下ツイン)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_浅利七海",
+   "fields": {
+    "hair_color": "水色",
+    "hair_length": "ミディアム",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B5%85%E5%88%A9%E4%B8%83%E6%B5%B7 , https://dic.nicovideo.jp/a/%E6%B5%85%E5%88%A9%E4%B8%83%E6%B5%B7",
+   "note": "萌娘百科は蓝发。水色/青の境目。卷发。ほかの結び方は未確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_アナスタシア",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E3%82%A2%E3%83%8A%E3%82%B9%E3%82%BF%E3%82%B7%E3%82%A2 , https://dic.nicovideo.jp/a/%E3%82%A2%E3%83%8A%E3%82%B9%E3%82%BF%E3%82%B7%E3%82%A2",
+   "note": "銀髪はマンガペディア/ニコニコ等の記述。長さと型は立ち絵に基づく判断で要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_安部菜々",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%AE%89%E9%83%A8%E8%8F%9C%E3%80%85 , https://dic.nicovideo.jp/a/%E5%AE%89%E9%83%A8%E8%8F%9C%E3%80%85",
+   "note": "萌娘百科: 橙发、马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_綾瀬穂乃香",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%B6%BE%E7%80%AC%E7%A9%82%E4%B9%83%E9%A6%99 , https://dic.nicovideo.jp/a/%E7%B6%BE%E7%80%AC%E7%A9%82%E4%B9%83%E9%A6%99",
+   "note": "萌娘百科: 黑发。髪型・長さは出典で確認できず要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_荒木比奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ボサボサ,アホ毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%8D%92%E6%9C%A8%E6%AF%94%E5%A5%88 , https://dic.nicovideo.jp/a/%E8%8D%92%E6%9C%A8%E6%AF%94%E5%A5%88",
+   "note": "萌娘百科: 棕发、乱发・呆毛。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_有浦柑奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ウェーブ,サイドテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9C%89%E6%B5%A6%E6%9F%91%E5%A5%88 , https://dic.nicovideo.jp/a/%E6%9C%89%E6%B5%A6%E6%9F%91%E5%A5%88",
+   "note": "萌娘百科: 棕发、卷发・侧单马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_安斎都",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%AE%89%E6%96%8E%E9%83%BD , https://dic.nicovideo.jp/a/%E5%AE%89%E6%96%8E%E9%83%BD",
+   "note": "萌娘百科は红发。赤茶系で赤/茶の境目。短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_五十嵐響子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "サイドテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%BA%94%E5%8D%81%E5%B5%90%E9%9F%BF%E5%AD%90 , https://dic.nicovideo.jp/a/%E4%BA%94%E5%8D%81%E5%B5%90%E9%9F%BF%E5%AD%90",
+   "note": "萌娘百科: 棕发、侧单马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_池袋晶葉",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B1%A0%E8%A2%8B%E6%99%B6%E8%91%89 , https://dic.nicovideo.jp/a/%E6%B1%A0%E8%A2%8B%E6%99%B6%E8%91%89",
+   "note": "萌娘百科: 棕发、双马尾・兔耳蝴蝶结。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_伊集院惠",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%BC%8A%E9%9B%86%E9%99%A2%E6%83%A0 , https://dic.nicovideo.jp/a/%E4%BC%8A%E9%9B%86%E9%99%A2%E6%83%A0",
+   "note": "萌娘百科: 棕发、马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_一ノ瀬志希",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ウェーブ,ボサボサ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B8%80%E3%83%8E%E7%80%AC%E5%BF%97%E5%B8%8C , https://dic.nicovideo.jp/a/%E4%B8%80%E3%83%8E%E7%80%AC%E5%BF%97%E5%B8%8C",
+   "note": "萌娘百科: 棕发、卷发・乱发。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_市原仁奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_style": "ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B8%82%E5%8E%9F%E4%BB%81%E5%A5%88 , https://dic.nicovideo.jp/a/%E5%B8%82%E5%8E%9F%E4%BB%81%E5%A5%88",
+   "note": "萌娘百科: 棕发、齐刘海。長さ・結び方は出典で確認できず"
+  },
+  {
+   "table": "idols",
+   "id": "cg_今井加奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%BB%8A%E4%BA%95%E5%8A%A0%E5%A5%88 , https://dic.nicovideo.jp/a/%E4%BB%8A%E4%BA%95%E5%8A%A0%E5%A5%88",
+   "note": "萌娘百科: 棕发、缎带双马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_井村雪菜",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%BA%95%E6%9D%91%E9%9B%AA%E8%8F%9C , https://dic.nicovideo.jp/a/%E4%BA%95%E6%9D%91%E9%9B%AA%E8%8F%9C",
+   "note": "萌娘百科: 红发、长直"
+  },
+  {
+   "table": "idols",
+   "id": "cg_上田鈴帆",
+   "fields": {
+    "hair_color": "茶",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B8%8A%E7%94%B0%E9%88%B4%E5%B8%86 , https://dic.nicovideo.jp/a/%E4%B8%8A%E7%94%B0%E9%88%B4%E5%B8%86",
+   "note": "萌娘百科: 棕发、呆毛。長さは出典で確認できず"
+  },
+  {
+   "table": "idols",
+   "id": "cg_氏家むつみ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "三つ編み,ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B0%8F%E5%AE%B6%E3%82%80%E3%81%A4%E3%81%BF , https://dic.nicovideo.jp/a/%E6%B0%8F%E5%AE%B6%E3%82%80%E3%81%A4%E3%81%BF",
+   "note": "萌娘百科: 黑发、麻花辫・齐刘海。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_梅木音葉",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A2%85%E6%9C%A8%E9%9F%B3%E8%91%89 , https://dic.nicovideo.jp/a/%E6%A2%85%E6%9C%A8%E9%9F%B3%E8%91%89",
+   "note": "萌娘百科: 金发、短发。淡い金〜ベージュ寄りの可能性"
+  },
+  {
+   "table": "idols",
+   "id": "cg_江上椿",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B1%9F%E4%B8%8A%E6%A4%BF , https://dic.nicovideo.jp/a/%E6%B1%9F%E4%B8%8A%E6%A4%BF",
+   "note": "萌娘百科: 黑发、黑长直・马尾"
+  },
+  {
+   "table": "idols",
+   "id": "cg_衛藤美紗希",
+   "fields": {
+    "hair_color": "茶"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%A1%9B%E8%97%A4%E7%BE%8E%E7%B4%97%E5%B8%8C , https://dic.nicovideo.jp/a/%E8%A1%9B%E8%97%A4%E7%BE%8E%E7%B4%97%E5%B8%8C",
+   "note": "萌娘百科: 棕发のみ。髪型・長さは出典で確認できず"
+  },
+  {
+   "table": "idols",
+   "id": "cg_海老原菜帆",
+   "fields": {
+    "hair_color": "黒",
+    "hair_style": "お団子,ポニーテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B5%B7%E8%80%81%E5%8E%9F%E8%8F%9C%E5%B8%86 , https://dic.nicovideo.jp/a/%E6%B5%B7%E8%80%81%E5%8E%9F%E8%8F%9C%E5%B8%86",
+   "note": "萌娘百科: 黑发、丸子头・马尾。長さ未確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_及川雫",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%8F%8A%E5%B7%9D%E9%9B%AB , https://dic.nicovideo.jp/a/%E5%8F%8A%E5%B7%9D%E9%9B%AB",
+   "note": "萌娘百科: 黑发、短发。色は黒か濃い茶か要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_大石泉",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E7%9F%B3%E6%B3%89 , https://dic.nicovideo.jp/a/%E5%A4%A7%E7%9F%B3%E6%B3%89",
+   "note": "萌娘百科は墨绿发(暗い緑)。黒に見える可能性もあり緑/黒の境目。长直"
+  },
+  {
+   "table": "idols",
+   "id": "cg_太田優",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%AA%E7%94%B0%E5%84%AA , https://dic.nicovideo.jp/a/%E5%A4%AA%E7%94%B0%E5%84%AA",
+   "note": "萌娘百科: 棕发、短发・翻翘"
+  },
+  {
+   "table": "idols",
+   "id": "cg_大槻唯",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E6%A7%BB%E5%94%AF , https://dic.nicovideo.jp/a/%E5%A4%A7%E6%A7%BB%E5%94%AF",
+   "note": "萌娘百科: 金发、卷发。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_大西由里子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_style": "ポニーテール,ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E8%A5%BF%E7%94%B1%E9%87%8C%E5%AD%90 , https://dic.nicovideo.jp/a/%E5%A4%A7%E8%A5%BF%E7%94%B1%E9%87%8C%E5%AD%90",
+   "note": "萌娘百科: 棕发、卷发・马尾・齐刘海。長さ未確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_大沼くるみ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E6%B2%BC%E3%81%8F%E3%82%8B%E3%81%BF , https://dic.nicovideo.jp/a/%E5%A4%A7%E6%B2%BC%E3%81%8F%E3%82%8B%E3%81%BF",
+   "note": "萌娘百科: 黑发、黑长直・大蝴蝶结"
+  },
+  {
+   "table": "idols",
+   "id": "cg_大原みちる",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "縦ロール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E5%8E%9F%E3%81%BF%E3%81%A1%E3%82%8B , https://dic.nicovideo.jp/a/%E5%A4%A7%E5%8E%9F%E3%81%BF%E3%81%A1%E3%82%8B",
+   "note": "萌娘百科: 褐发、单螺旋・卷发。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_岡崎泰葉",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B2%A1%E5%B4%8E%E6%B3%B0%E8%91%89 , https://dic.nicovideo.jp/a/%E5%B2%A1%E5%B4%8E%E6%B3%B0%E8%91%89",
+   "note": "萌娘百科は蓝发(黒に近い暗色の可能性)。黒か青系か要確認。短发・齐刘海"
+  },
+  {
+   "table": "idols",
+   "id": "cg_緒方智絵里",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール,ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%B7%92%E6%96%B9%E6%99%BA%E7%B5%B5%E9%87%8C , https://dic.nicovideo.jp/a/%E7%B7%92%E6%96%B9%E6%99%BA%E7%B5%B5%E9%87%8C",
+   "note": "萌娘百科は酒红发。赤/茶の境目。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_奥山沙織",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "三つ編み,アホ毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A5%A5%E5%B1%B1%E6%B2%99%E7%B9%94 , https://dic.nicovideo.jp/a/%E5%A5%A5%E5%B1%B1%E6%B2%99%E7%B9%94",
+   "note": "萌娘百科: 棕发、麻花辫・呆毛。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_乙倉悠貴",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B9%99%E5%80%89%E6%82%A0%E8%B2%B4 , https://dic.nicovideo.jp/a/%E4%B9%99%E5%80%89%E6%82%A0%E8%B2%B4",
+   "note": "萌娘百科は灰发のみが根拠。灰か薄い茶か要確認。短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_片桐早苗",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%89%87%E6%A1%90%E6%97%A9%E8%8B%97 , https://dic.nicovideo.jp/a/%E7%89%87%E6%A1%90%E6%97%A9%E8%8B%97",
+   "note": "萌娘百科: 棕发、下双马尾(低めのツイン)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_上条春菜",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "M字前髪,ヘアピン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B8%8A%E6%9D%A1%E6%98%A5%E8%8F%9C , https://dic.nicovideo.jp/a/%E4%B8%8A%E6%9D%A1%E6%98%A5%E8%8F%9C",
+   "note": "萌娘百科: 棕发、中长发・M形刘海・发夹"
+  },
+  {
+   "table": "idols",
+   "id": "cg_神谷奈緒",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "お団子,ウェーブ,ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%A5%9E%E8%B0%B7%E5%A5%88%E7%B7%92 , https://dic.nicovideo.jp/a/%E7%A5%9E%E8%B0%B7%E5%A5%88%E7%B7%92",
+   "note": "萌娘百科は卷发・乱发・齐刘海・丸子头と記載でツインテールは出典で未確認。要確認 / 基本はツインテールではない (オーナー指摘) ので外した / お団子のイメージが強い (オーナー指摘) ので足した"
+  },
+  {
+   "table": "idols",
+   "id": "cg_川島瑞樹",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "サイドテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B7%9D%E5%B3%B6%E7%91%9E%E6%A8%B9 , https://dic.nicovideo.jp/a/%E5%B7%9D%E5%B3%B6%E7%91%9E%E6%A8%B9",
+   "note": "萌娘百科: 棕发、侧单马尾。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_神崎蘭子",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "縦ロール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%A5%9E%E5%B4%8E%E8%98%AD%E5%AD%90 , https://dic.nicovideo.jp/a/%E7%A5%9E%E5%B4%8E%E8%98%AD%E5%AD%90",
+   "note": "萌娘百科: 银发、双螺旋・卷发。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_岸部彩華",
+   "fields": {
+    "hair_color": "茶"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B2%B8%E9%83%A8%E5%BD%A9%E8%8F%AF , https://dic.nicovideo.jp/a/%E5%B2%B8%E9%83%A8%E5%BD%A9%E8%8F%AF",
+   "note": "萌娘百科: 棕发のみ。髪型・長さは出典で確認できず"
+  },
+  {
+   "table": "idols",
+   "id": "cg_北川真尋",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%8C%97%E5%B7%9D%E7%9C%9F%E5%B0%8B , https://dic.nicovideo.jp/a/%E5%8C%97%E5%B7%9D%E7%9C%9F%E5%B0%8B",
+   "note": "萌娘百科: 棕发、短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_喜多日菜子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%96%9C%E5%A4%9A%E6%97%A5%E8%8F%9C%E5%AD%90 , https://dic.nicovideo.jp/a/%E5%96%9C%E5%A4%9A%E6%97%A5%E8%8F%9C%E5%AD%90",
+   "note": "萌娘百科: 棕发、短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_喜多見柚",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ぱっつん前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%96%9C%E5%A4%9A%E8%A6%8B%E6%9F%9A , https://dic.nicovideo.jp/a/%E5%96%9C%E5%A4%9A%E8%A6%8B%E6%9F%9A",
+   "note": "萌娘百科: 棕发、短发・齐刘海"
+  },
+  {
+   "table": "idols",
+   "id": "cg_木場真奈美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9C%A8%E5%A0%B4%E7%9C%9F%E5%A5%88%E7%BE%8E , https://dic.nicovideo.jp/a/%E6%9C%A8%E5%A0%B4%E7%9C%9F%E5%A5%88%E7%BE%8E",
+   "note": "萌娘百科: 棕发、短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_木村夏樹",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "リーゼント"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9C%A8%E6%9D%91%E5%A4%8F%E6%A8%B9 , https://dic.nicovideo.jp/a/%E6%9C%A8%E6%9D%91%E5%A4%8F%E6%A8%B9",
+   "note": "萌娘百科: 棕发、短发・大背头(リーゼント風)"
+  },
+  {
+   "table": "idols",
+   "id": "cg_キャシー_グラハム",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E3%82%AD%E3%83%A3%E3%82%B7%E3%83%BC%E3%83%BB%E3%82%B0%E3%83%A9%E3%83%8F%E3%83%A0 , https://dic.nicovideo.jp/a/%E3%82%AD%E3%83%A3%E3%82%B7%E3%83%BC%E3%83%BB%E3%82%B0%E3%83%A9%E3%83%8F%E3%83%A0",
+   "note": "ニコニコ大百科でショートの金髪。萌娘百科は橙发で金/オレンジの境目"
+  },
+  {
+   "table": "idols",
+   "id": "cg_桐野アヤ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_style": "お団子,アホ毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A1%90%E9%87%8E%E3%82%A2%E3%83%A4 , https://dic.nicovideo.jp/a/%E6%A1%90%E9%87%8E%E3%82%A2%E3%83%A4",
+   "note": "萌娘百科: 黑发、丸子头・呆毛。長さ未確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_桐生つかさ",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "編み込み"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A1%90%E7%94%9F%E3%81%A4%E3%81%8B%E3%81%95 , https://dic.nicovideo.jp/a/%E6%A1%90%E7%94%9F%E3%81%A4%E3%81%8B%E3%81%95",
+   "note": "萌娘百科: 金发、王冠编发(クラウンブレイド)。長さ要確認"
+  },
+  {
+   "table": "idols",
+   "id": "cg_日下部若葉",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%97%A5%E4%B8%8B%E9%83%A8%E8%8B%A5%E8%91%89 , https://dic.nicovideo.jp/a/%E6%97%A5%E4%B8%8B%E9%83%A8%E8%8B%A5%E8%91%89",
+   "note": "萌娘百科: 棕发、长卷发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_工藤忍",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B7%A5%E8%97%A4%E5%BF%8D , https://dic.nicovideo.jp/a/%E5%B7%A5%E8%97%A4%E5%BF%8D",
+   "note": "萌娘百科: 棕发、短发"
+  },
+  {
+   "table": "idols",
+   "id": "cg_クラリス",
+   "fields": {
+    "hair_color": "金",
+    "hair_style": "M字前髪,編み込み"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E3%82%AF%E3%83%A9%E3%83%AA%E3%82%B9 , https://dic.nicovideo.jp/a/%E3%82%AF%E3%83%A9%E3%83%AA%E3%82%B9",
+   "note": "萌娘百科: 金发、M形刘海。編み込みはファン製資料の記述。長さは出典で確認できず"
+  },
+  {
+   "table": "idols",
+   "id": "cg_栗原ネネ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ハーフアップ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A0%97%E5%8E%9F%E3%83%8D%E3%83%8D , https://dic.nicovideo.jp/a/%E6%A0%97%E5%8E%9F%E3%83%8D%E3%83%8D",
+   "note": "萌娘百科: 黑发、黑长直・Half-up"
+  },
+  {
+   "table": "idols",
+   "id": "cg_黒川千秋",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "姫カット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E9%BB%92%E5%B7%9D%E5%8D%83%E7%A7%8B , https://dic.nicovideo.jp/a/%E9%BB%92%E5%B7%9D%E5%8D%83%E7%A7%8B",
+   "note": "萌娘百科: 黑发、黑长直・姬发式"
+  },
+  {
+   "table": "idols",
+   "id": "cg_黒埼ちとせ",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "片目隠れ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E9%BB%92%E5%9F%BC%E3%81%A1%E3%81%A8%E3%81%9B , https://dic.nicovideo.jp/a/%E9%BB%92%E5%9F%BC%E3%81%A1%E3%81%A8%E3%81%9B",
+   "note": "萌娘百科: 金发、超长发・遮眼发。淡い金/銀寄りの可能性あり"
+  },
+  {
+   "table": "idols",
+   "id": "cg_古賀小春",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "M字前髪"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%8F%A4%E8%B3%80%E5%B0%8F%E6%98%A5 , https://dic.nicovideo.jp/a/%E5%8F%A4%E8%B3%80%E5%B0%8F%E6%98%A5",
+   "note": "萌娘百科: 金发、短发・M形刘海。淡い金/茶の境目"
+  },
+  {
+   "table": "idols",
+   "id": "cg_輿水幸子",
+   "fields": {
+    "hair_length": "ショート",
+    "hair_style": "ボブ,ヘアピン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%BC%BF%E6%B0%B4%E5%B9%B8%E5%AD%90 , https://dic.nicovideo.jp/a/%E8%BC%BF%E6%B0%B4%E5%B9%B8%E5%AD%90",
+   "note": "髪色は萌娘百科の紫发のみで、他で確認できず保留。短发・发卡"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小関麗奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B0%8F%E9%96%A2%E9%BA%97%E5%A5%88 , https://dic.nicovideo.jp/a/%E5%B0%8F%E9%96%A2%E9%BA%97%E5%A5%88",
+   "note": "萌娘百科: 棕发、短刘海・长直"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小早川紗枝",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "姫カット"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B0%8F%E6%97%A9%E5%B7%9D%E7%B4%97%E6%9E%9D , https://dic.nicovideo.jp/a/%E5%B0%8F%E6%97%A9%E5%B7%9D%E7%B4%97%E6%9E%9D",
+   "note": "萌娘百科は灰发。黒か灰か要確認。长直・姬发式"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小日向美穂",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ショートカット,アホ毛,ヘアバンド"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B0%8F%E6%97%A5%E5%90%91%E7%BE%8E%E7%A9%82 , https://dic.nicovideo.jp/a/%E5%B0%8F%E6%97%A5%E5%90%91%E7%BE%8E%E7%A9%82",
+   "note": "萌娘百科は黑发。茶か黒か要確認。短发・呆毛・发箍"
+  }
+ ]
+}

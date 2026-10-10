@@ -1,0 +1,529 @@
+{
+ "title": "アイドルの容姿 SideM",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "sidem_蒼井享介",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。悠介より赤みが強く赤との境目に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_蒼井悠介",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_紅井朱雀",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤と黄のグラデーション気味。髪型にこだわりあり(pixiv百科事典)"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_秋月涼",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://dic.pixiv.net/a/%E7%A7%8B%E6%9C%88%E6%B6%BC",
+   "note": "pixiv百科事典: アホ毛の記述あり。色・長さはアイコン目視。濃い茶(黒との境目に迷う)"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_秋山隼人",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_握野英雄",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_アスランbbⅱ世",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "片目隠れ"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。紫がかった黒"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_天ヶ瀬冬馬",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛,アホ毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤みのある茶。アホ毛は pixiv百科事典に言及あり"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_伊集院北斗",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ミディアム",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。金髪は pixiv百科事典に記述あり(染めている)。長さは短め〜中間で迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_伊瀬谷四季",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ自信低め"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_卯月巻緒",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "編み込み"
+   },
+   "source": "https://dic.pixiv.net/a/%E5%8D%AF%E6%9C%88%E5%B7%BB%E7%B7%92",
+   "note": "pixiv百科事典: 明るい緑色の髪と左こめかみあたりの編み込み。長さはアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_円城寺道流",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。バンダナ着用で髪の見える範囲が狭い。黒か濃い茶か迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_岡村直央",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。アホ毛は pixiv百科事典の岡村直央の項に言及"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_神楽麗",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "ボブ"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_柏木翼",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。カーキ寄りの緑で茶との境目に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_兜大吾",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_神谷幸広",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。灰がかった茶"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_牙崎漣",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ミディアム",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。銀髪は pixiv百科事典に記述あり(髪紐は衣装時)。長さ自信低め"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_北村想楽",
+   "fields": {
+    "hair_color": "その他",
+    "hair_length": "ミディアム",
+    "hair_style": "ツートン"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。白と黒のツートン(アイコン目視)。単色に収まらないため『その他』"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_木村龍",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_清澄九郎",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。緑がかった黒"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_葛之葉雨彦",
+   "fields": {
+    "hair_color": "水色",
+    "hair_length": "ミディアム",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。銀との境目に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_黒野玄武",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "オールバック"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_古論クリス",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://dic.pixiv.net/a/%E5%8F%A4%E8%AB%96%E3%82%AF%E3%83%AA%E3%82%B9",
+   "note": "pixiv百科事典: 金髪ポニテ。長さはアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_榊夏来",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ミディアム",
+    "hair_style": "前髪長め"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。pixiv百科事典の山下次郎の項に銀髪組の記述"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_桜庭薫",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "前髪長め"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さは耳にかかる程度"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_東雲荘一郎",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_信玄誠司",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。濃い茶"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_大河タケル",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。青みのある黒"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_鷹城恭二",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://dic.pixiv.net/a/%E9%B7%B9%E5%9F%8E%E6%81%AD%E4%BA%8C",
+   "note": "pixiv百科事典: 日常は濃いめの茶髪(衣装時のみ灰がかった黒髪)。長さ・髪型はアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_橘志狼",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "逆立て"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_九十九一希",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ミディアム",
+    "hair_style": "前髪長め"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ自信低め"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_都築圭",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。長さ・髪型は自信低め"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_天道輝",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ツンツン"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。赤みの茶"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_猫柳キリオ",
+   "fields": {
+    "hair_color": "その他",
+    "hair_length": "ショート",
+    "hair_style": "ツートン"
+   },
+   "source": "https://dic.pixiv.net/a/%E7%8C%AB%E6%9F%B3%E3%82%AD%E3%83%AA%E3%82%AA",
+   "note": "pixiv百科事典: 黄緑とピンクのヘアカラー(染めている)。単色に収まらないため『その他』。長さ・髪型はアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_硲道夫",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。pixiv百科事典の山下次郎の項に銀髪組の記述"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_華村翔真",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://dic.pixiv.net/a/%E8%8F%AF%E6%9D%91%E7%BF%94%E7%9C%9F",
+   "note": "pixiv百科事典(秋月涼の項) に髪の長い翔真との記述、金髪アイドルの記述あり。髪型はアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_姫野かのん",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。明るい茶"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_冬美旬",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_舞田類",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_水嶋咲",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ストレート"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "通常(男性姿)は短髪(Wikipedia 登場人物)。ツインテールは女装時のウィッグ。色・髪型はアイコン(女装姿)目視で、標準姿の判断に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_御手洗翔太",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "跳ね毛,ヘアバンド"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。黄緑寄り(pixiv百科事典『髪色に合わせた黄緑色』)"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_山下次郎",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "片目隠れ"
+   },
+   "source": "https://dic.pixiv.net/a/%E5%B1%B1%E4%B8%8B%E6%AC%A1%E9%83%8E",
+   "note": "pixiv百科事典: 普段は片目隠れ(右目)でステージでは前髪を分ける。色・長さはアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_若里春名",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ショート",
+    "hair_style": "ヘアバンド"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "公式ではなく非公式 Wiki のアイコン画像(Idol File)を目視。顔アイコンのため長さ・髪型は大まか。茶との境目に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_渡辺みのり",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "一つ結び"
+   },
+   "source": "https://dic.pixiv.net/a/%E6%B8%A1%E8%BE%BA%E3%81%BF%E3%81%AE%E3%82%8A",
+   "note": "pixiv百科事典: 普段は後ろで結わえた髪にヘアピン。色・長さはアイコン目視"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_天峰秀",
+   "fields": {
+    "hair_color": "青"
+   },
+   "source": "https://dic.pixiv.net/a/%E5%A4%A9%E5%B3%B0%E7%A7%80",
+   "note": "pixiv百科事典: 本人の髪色も青寄り。長さ・髪型は帽子を被った画像のため不明"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_花園百々人",
+   "fields": {
+    "hair_color": "金"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "アイコン目視(帽子姿)。長さ・髪型は不明。淡い黄で金との境目に迷う"
+  },
+  {
+   "table": "idols",
+   "id": "sidem_眉見鋭心",
+   "fields": {
+    "hair_color": "赤"
+   },
+   "source": "https://sidem.miraheze.org/wiki/Idol_File",
+   "note": "アイコン目視(帽子姿)。長さ・髪型は不明。赤茶寄り"
+  }
+ ]
+}

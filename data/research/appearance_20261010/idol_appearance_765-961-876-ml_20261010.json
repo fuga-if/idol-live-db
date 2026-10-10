@@ -1,0 +1,606 @@
+{
+ "title": "アイドルの容姿 (髪色・長さ・髪型) 765/961/876/ミリオン",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "765as_天海春香",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ストレート,リボン"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは2つのリボンのみ記載。色・長さは公式のカード絵で確認"
+  },
+  {
+   "table": "idols",
+   "id": "765as_如月千早",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは「青味のかかった黒」。青と黒で迷う (青を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "765as_星井美希",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ,アホ毛"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "覚醒後 (茶のショート) は別。基本の姿を採用。ふわっとした髪なのでストレートではなくウェーブ (オーナー指摘)"
+  },
+  {
+   "table": "idols",
+   "id": "765as_萩原雪歩",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaはボブ。長さはあご〜首元でショートとミディアムの境目。色はカード絵"
+  },
+  {
+   "table": "idols",
+   "id": "765as_高槻やよい",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaはおさげ (ツインテール)。色・長さはカード絵"
+  },
+  {
+   "table": "idols",
+   "id": "765as_秋月律子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "三つ編み"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは2本のお下げ。色・長さはカード絵"
+  },
+  {
+   "table": "idols",
+   "id": "765as_三浦あずさ",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,アホ毛"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは「青味のかかった黒」。青と黒で迷う。アニメ版は途中から短髪"
+  },
+  {
+   "table": "idols",
+   "id": "765as_水瀬伊織",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,おでこ"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは前髪アップ (おでこ)。色はオレンジ寄りの茶"
+  },
+  {
+   "table": "idols",
+   "id": "765as_菊地真",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ショート,アホ毛"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaはショートヘア (アホ毛2本)"
+  },
+  {
+   "table": "idols",
+   "id": "765as_双海亜美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "サイドテール"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは向かって左で結ぶ。長さは真美より短めでミディアムとした"
+  },
+  {
+   "table": "idols",
+   "id": "765as_双海真美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "サイドテール"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは向かって右で結ぶ (『2』では長いサイドテール)。長さの判断は低確度"
+  },
+  {
+   "table": "idols",
+   "id": "765as_四条貴音",
+   "fields": {
+    "hair_color": "銀",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物"
+  },
+  {
+   "table": "idols",
+   "id": "765as_我那覇響",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール,アホ毛"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaはリボンで結ぶポニーテール (アホ毛2本)"
+  },
+  {
+   "table": "idols",
+   "id": "765as_音無小鳥",
+   "fields": {
+    "hair_length": "ショート"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaに「ショートヘアの小鳥」の記述のみ。髪色・髪型は未確認のため空欄"
+  },
+  {
+   "table": "idols",
+   "id": "876_日高愛",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "ボブ,アホ毛"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは「茶色がかった赤のミディボブ、アホ毛2本」。茶と赤で迷う (茶を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "876_水谷絵理",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "ストレート,ヘアクリップ"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STERの登場人物",
+   "note": "Wikipediaは「青みがかった黒のミディアムレイヤーストレート、左側をヘアクリップでまとめる」。黒と青で迷う (黒を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "765as_亜夜",
+   "fields": {
+    "hair_style": "ツインテール"
+   },
+   "source": "https://www.gamespark.jp/article/2021/09/14/111827.html",
+   "note": "声優コメントでツインテールの言及のみ。髪色・長さは未確認のため空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_春日未来",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄 (髪留めを集める設定)"
+  },
+  {
+   "table": "idols",
+   "id": "ml_エミリースチュアート",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_高坂海美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_佐竹美奈子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型はカード絵に基づく。低確度"
+  },
+  {
+   "table": "idols",
+   "id": "ml_高山紗代子",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。Wikipedia ML登場人物に「お下げ」の記述。色はカード絵"
+  },
+  {
+   "table": "idols",
+   "id": "ml_田中琴葉",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_徳川まつり",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ミディアム",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。青緑寄りで緑とした。長さは短めのツインテールでミディアム"
+  },
+  {
+   "table": "idols",
+   "id": "ml_中谷育",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_七尾百合子",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。濃い青〜黒で迷う (青を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "ml_福田のり子",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_松田亜利沙",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_矢吹可奈",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ミディアム"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。オレンジ寄りの茶で迷う。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_横山奈緒",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_北沢志保",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。濃い茶"
+  },
+  {
+   "table": "idols",
+   "id": "ml_ジュリア",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_白石紬",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。紫がかった灰。色は灰と紫で迷う。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_周防桃子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_天空橋朋花",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。ベージュ寄りの茶。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_所恵美",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_永吉昴",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。暗い緑がかった茶。緑と茶で迷う (緑を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "ml_二階堂千鶴",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_伴田路子",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。灰がかったベージュ。灰と金で迷う"
+  },
+  {
+   "table": "idols",
+   "id": "ml_舞浜歩",
+   "fields": {
+    "hair_color": "ピンク",
+    "hair_length": "ミディアム",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。長さ・髪型はカード絵に基づく。低確度"
+  },
+  {
+   "table": "idols",
+   "id": "ml_真壁瑞希",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。薄い灰紫"
+  },
+  {
+   "table": "idols",
+   "id": "ml_最上静香",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。暗い紫がかった黒"
+  },
+  {
+   "table": "idols",
+   "id": "ml_百瀬莉緒",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。金と明るい茶で迷う"
+  },
+  {
+   "table": "idols",
+   "id": "ml_伊吹翼",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,アホ毛"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_大神環",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。赤みのオレンジ。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_北上麗花",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。濃い青緑〜黒で迷う (青を採用)"
+  },
+  {
+   "table": "idols",
+   "id": "ml_木下ひなた",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_桜守歌織",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ボブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。長さはあご付近でショートとミディアムの境目"
+  },
+  {
+   "table": "idols",
+   "id": "ml_篠宮可憐",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。オレンジ寄りの金。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_島原エレナ",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ロング"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず空欄"
+  },
+  {
+   "table": "idols",
+   "id": "ml_豊川風花",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ミディアム",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。濃い青紫。紫と青で迷う"
+  },
+  {
+   "table": "idols",
+   "id": "ml_野々原茜",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ショート",
+    "hair_style": "ショート"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_箱崎星梨花",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認"
+  },
+  {
+   "table": "idols",
+   "id": "ml_馬場このみ",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。サイドの三つ編み"
+  },
+  {
+   "table": "idols",
+   "id": "ml_宮尾美也",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。Wikipedia ML登場人物に「ウェーブのかかった長い髪」。色はカード絵"
+  },
+  {
+   "table": "idols",
+   "id": "ml_望月杏奈",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ロング",
+    "hair_style": "アホ毛"
+   },
+   "source": "https://millionlive-theaterdays.idolmaster-official.jp/idol/",
+   "note": "公式カード絵 (ミリシタ公式) を確認。髪型は確認できず、アホ毛のみ"
+  }
+ ]
+}

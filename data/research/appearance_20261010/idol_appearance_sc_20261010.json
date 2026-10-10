@@ -1,0 +1,290 @@
+{
+ "title": "アイドルの容姿 シャイニーカラーズ",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "sc_市川雛菜",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "お団子,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B8%82%E5%B7%9D%E9%9B%8F%E8%8F%9C (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=ichikawa_hinana+solo (タグ集計)",
+   "note": "茶170/200、ロング127。萌娘百科は浅茶发・丸子头。片側のお団子が多い(single_side_bun 52)"
+  },
+  {
+   "table": "idols",
+   "id": "sc_有栖川夏葉",
+   "fields": {
+    "hair_color": "オレンジ",
+    "hair_length": "ロング",
+    "hair_style": "ウェーブ,アホ毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9C%89%E6%A0%96%E5%B7%9D%E5%A4%8F%E5%8F%B6 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=arisugawa_natsuha+solo (タグ集計)",
+   "note": "オレンジ121/茶29。萌娘百科は深橙发・长卷发・呆毛"
+  },
+  {
+   "table": "idols",
+   "id": "sc_大崎甘奈",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E5%B4%8E%E7%94%98%E5%A5%88 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=osaki_amana+solo (タグ集計)",
+   "note": "茶70/赤68で割れた。萌娘百科は红棕发・长直・偏分のため茶。固有の結い方は無し"
+  },
+  {
+   "table": "idols",
+   "id": "sc_和泉愛依",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ツートン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%92%8C%E6%B3%89%E7%88%B1%E4%BE%9D (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=izumi_mei+solo (タグ集計)",
+   "note": "茶107/金102でほぼ同数(multicolored 103、gradient 95)。金〜茶のグラデーション。萌娘百科は棕发・渐变色发。金とする見方もあり要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_三峰結華",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B8%89%E5%B3%B0%E7%BB%93%E5%8D%8E (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=mitsumine_yuika+solo (タグ集計)",
+   "note": "黒185/200、ツインテール85。眼鏡あり"
+  },
+  {
+   "table": "idols",
+   "id": "sc_田中摩美々",
+   "fields": {
+    "hair_color": "紫",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,ぱっつん"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%94%B0%E4%B8%AD%E6%91%A9%E7%BE%8E%E7%BE%8E (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=tanaka_mamimi+solo (タグ集計)",
+   "note": "紫183/200。萌娘百科は紫发・双马尾。blunt_bangs 76"
+  },
+  {
+   "table": "idols",
+   "id": "sc_大崎甜花",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,片目隠れ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%A4%A7%E5%B4%8E%E7%94%9C%E8%8A%B1 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=osaki_tenka+solo (タグ集計)",
+   "note": "茶130/169。萌娘百科は红棕发・长直・遮单眼发"
+  },
+  {
+   "table": "idols",
+   "id": "sc_黛冬優子",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,ぱっつん,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E9%BB%9B%E5%86%AC%E4%BC%98%E5%AD%90 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=mayuzumi_fuyuko+solo (タグ集計)",
+   "note": "黒172/200。萌娘百科は黑长直・披肩双马尾・平切发梢・齐刘海。two_side_up 97もあり、ツーサイドアップ寄りの可能性。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_斑鳩ルカ",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "メッシュ,ツートン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=ikaruga_luca+solo (タグ集計)",
+   "note": "黒188/金154でmulticolored 181。黒に金の内側メッシュ。ミディアム97/ショート29/ロング18"
+  },
+  {
+   "table": "idols",
+   "id": "sc_風野灯織",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ハーフアップ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E9%A3%8E%E9%87%8E%E7%81%AF%E7%BB%87 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=kazano_hiori+solo (タグ集計)",
+   "note": "黒191/200。萌娘百科は黑发・半马尾・不对称鬓发。タグのponytail 72とも整合"
+  },
+  {
+   "table": "idols",
+   "id": "sc_西城樹里",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ショート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%A5%BF%E5%9F%8E%E6%A0%91%E9%87%8C (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=saijou_juri+solo (タグ集計)",
+   "note": "金152/153、ショート141。萌娘百科も金发・短发。特記できる髪型語は無し(髪型は空)"
+  },
+  {
+   "table": "idols",
+   "id": "sc_白瀬咲耶",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ポニーテール"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%99%BD%E6%BF%91%E5%92%B2%E8%80%B6 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=shirase_sakuya+solo (タグ集計)",
+   "note": "黒173/200、ponytail113(high 60)。萌娘百科も黑发・高马尾"
+  },
+  {
+   "table": "idols",
+   "id": "sc_七草にちか",
+   "fields": {
+    "hair_color": "緑",
+    "hair_length": "ショート",
+    "hair_style": "ボブ,リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E4%B8%83%E8%8D%89%E6%97%A5%E8%8A%B1 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=nanakusa_nichika+solo (タグ集計)",
+   "note": "緑181/200。短100/長40(接发エクステで長く見える絵が混在)。萌娘百科は妹妹头・接发・蝴蝶结。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_月岡恋鐘",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "リボン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9C%88%E5%86%88%E6%81%8B%E9%92%9F (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=tsukioka_kogane+solo (タグ集計)",
+   "note": "茶190/200、ロング174、hair_bow 67。萌娘百科は褐发・兔耳蝴蝶结"
+  },
+  {
+   "table": "idols",
+   "id": "sc_八宮めぐる",
+   "fields": {
+    "hair_color": "金",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,アホ毛,ヘアピン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%85%AB%E5%AE%AB%E5%B7%A1 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=hachimiya_meguru+solo (タグ集計)",
+   "note": "金182/200、低めツインテール(low 57)、ahoge123、hairclip75。萌娘百科は下双马尾・发夹・呆毛"
+  },
+  {
+   "table": "idols",
+   "id": "sc_園田智代子",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "お団子"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%9B%AD%E7%94%B0%E6%99%BA%E4%BB%A3%E5%AD%90 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=sonoda_chiyoko+solo (タグ集計)",
+   "note": "茶186/200。萌娘百科は双丸子头。ツインテール97/お団子90で近接、着替え絵の混在あり。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_小宮果穂",
+   "fields": {
+    "hair_color": "赤",
+    "hair_length": "ロング",
+    "hair_style": "アホ毛,跳ね毛"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E5%B0%8F%E5%AE%AB%E6%9E%9C%E7%A9%97 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=komiya_kaho+solo (タグ集計)",
+   "note": "赤44のみ他は小数(色タグの無い絵が多い)。萌娘百科は红发・呆毛。長148/200、ahoge132、flipped_hair18"
+  },
+  {
+   "table": "idols",
+   "id": "sc_浅倉透",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ショート",
+    "hair_style": "アホ毛,メッシュ"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%B5%85%E4%BB%93%E9%80%8F (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=asakura_tooru+solo (タグ集計)",
+   "note": "青128/茶59/紫59/黒42で割れた。multicolored151・gradient133。萌娘百科は褐，青・内层挑染。黒〜濃紺に見える絵もあり要目視。ショート153"
+  },
+  {
+   "table": "idols",
+   "id": "sc_杜野凛世",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ミディアム",
+    "hair_style": "髪飾り"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%9D%9C%E9%87%8E%E5%87%9B%E4%B8%96 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=morino_rinze+solo (タグ集計)",
+   "note": "黒109/青(紺)82。萌娘百科は黑发・中长发・M形刘海。タグはショート95/ミディアム21で割れた(着替え絵のお団子67混在)。髪型は花の髪飾り。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_樋口円香",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "ヘアピン"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A8%8B%E5%8F%A3%E5%9C%86%E9%A6%99 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=higuchi_madoka+solo (タグ集計)",
+   "note": "茶158/200、ショート142、hairclip116。萌娘百科は棕发・短发・发夹・斜刘海"
+  },
+  {
+   "table": "idols",
+   "id": "sc_芹沢あさひ",
+   "fields": {
+    "hair_color": "灰",
+    "hair_length": "ショート"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E8%8A%B9%E6%B3%BD%E6%9C%9D%E6%97%A5 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=serizawa_asahi+solo (タグ集計)",
+   "note": "灰139/茶32。萌娘百科は亚麻发(淡い灰みの茶)。ショート133。髪型は固有語無し(萌娘百科は妹妹头=おかっぱ風)。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_緋田美琴",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%BB%AF%E7%94%B0%E7%BE%8E%E7%90%B4 (萌点・発色)",
+   "note": "タグ集計不可(safebooruに専用タグ無し)。萌娘百科は棕→灰绿发・渐变色发・接发。茶から灰緑のグラデーション。長さは長髪の記憶ベースで未確認。髪型語は不明"
+  },
+  {
+   "table": "idols",
+   "id": "sc_櫻木真乃",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ミディアム",
+    "hair_style": "髪飾り"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E6%A8%B1%E6%9C%A8%E7%9C%9F%E4%B9%83 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=sakuragi_mano+solo (タグ集計)",
+   "note": "茶131/淡茶62。ミディアム86/ロング36。萌娘百科は浅棕发・中长发"
+  },
+  {
+   "table": "idols",
+   "id": "sc_鈴木羽那",
+   "fields": {
+    "hair_color": "青",
+    "hair_length": "ロング",
+    "hair_style": "ストレート,ヘアバンド"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E9%93%83%E6%9C%A8%E7%BE%BD%E9%82%A3 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=suzuki_hana+solo (タグ集計)",
+   "note": "青133/159。ロング128、straight38、hairband32。萌娘百科は蓝发・长直・内层挑染"
+  },
+  {
+   "table": "idols",
+   "id": "sc_福丸小糸",
+   "fields": {
+    "hair_color": "黒",
+    "hair_length": "ロング",
+    "hair_style": "ツインテール,髪飾り"
+   },
+   "source": "https://mzh.moegirl.org.cn/%E7%A6%8F%E4%B8%B8%E5%B0%8F%E7%B3%B8 (萌点・発色) ; https://safebooru.org/index.php?page=post&s=list&tags=fukumaru_koito+solo (タグ集計)",
+   "note": "黒146/青(紺)23。萌娘百科は蓝黑发・双马尾。長さはロング55/ミディアム47で接戦。要目視"
+  },
+  {
+   "table": "idols",
+   "id": "sc_郁田はるき",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ショート",
+    "hair_style": "リボン"
+   },
+   "source": "https://safebooru.org/index.php?page=post&s=list&tags=ikuta_haruki+solo (タグ集計)",
+   "note": "茶72/ピンク20、ショート76。100件のみ。髪型はリボン13/ahoge7。萌娘百科は未掲載"
+  }
+ ]
+}

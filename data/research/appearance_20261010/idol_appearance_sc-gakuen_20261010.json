@@ -1,0 +1,28 @@
+{
+ "title": "アイドルの容姿 シャイニーカラーズ・学園アイドルマスター",
+ "author": "claude",
+ "source": "項目ごとに source を書く",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "sc_桑山千雪",
+   "fields": {
+    "hair_color": "茶",
+    "hair_length": "ロング",
+    "hair_style": "三つ編み,リボン"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS",
+   "note": "Wikipediaの記述「ひとつに纏めた三つ編みの髪をリボンで結んでいる」。髪色・長さは記述なしのため未記入 / 色と長さはオーナー指摘で「長めの茶髪」"
+  },
+  {
+   "table": "idols",
+   "id": "sc_幽谷霧子",
+   "fields": {
+    "hair_color": "銀",
+    "hair_style": "ツインテール"
+   },
+   "source": "https://ja.wikipedia.org/wiki/THE_IDOLM@STER_SHINY_COLORS",
+   "note": "Wikipediaの記述「ツインテールの銀髪にぐるぐる巻きの包帯が特徴」。髪の長さは記述なしのため未記入"
+  }
+ ]
+}
