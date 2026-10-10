@@ -18,8 +18,9 @@
 //! 絞ったら通算回数も絞った世界のものになる — 片方だけ元の世界の数を出すと、
 //! 「3 回目なのに初披露」のような行ができる。
 
+use crate::domain::event_detail_queries::{show_performer, ShowPerformer};
 use crate::domain::snapshot::Snapshot;
-use crate::domain::song_detail_queries::performance_ordinal_label;
+use crate::domain::song_detail_queries::{performance_ordinal_label, FIRST_PERFORMANCE_LABEL};
 use std::collections::HashSet;
 
 /// その披露の「何回目か」と「いつぶりか」。
@@ -258,6 +259,61 @@ pub fn original_singers(snap: &Snapshot, item: u32) -> OriginalSingers {
     }
 }
 
+/// その披露で**新しい演者として初めて**その曲を歌った歌唱者 1 人。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewPerformerDebut {
+    /// スナップショットの idol 添字。
+    pub idol: u32,
+    /// この披露でそのアイドルを演じた人 ([`show_performer`])。
+    pub performer: ShowPerformer,
+}
+
+/// その披露で、**演者が変わってから初めて**その曲を歌ったアイドル (歌唱者の並び順)。
+///
+/// 声優交代のあと後任が初めて歌った (三峰結華の曲を希水しおが初めて歌った)、舞台で俳優が
+/// 歌った、の類。「新たな CV での初披露」はファンにとって初披露と同じくらい事件になる。
+///
+/// 当たるのは、そのアイドルが**この披露より前に**その曲を歌ったことがあり、かつその
+/// どれも演者が今回の演者ではないとき。アイドルとして初めて歌う披露は対象外
+/// (それは `初歌唱` / `初披露` が言う)。数える世界は [`performance_gap`] と同じ
+/// (その公演の時点から・上映会は入らない・同日は公演の並び順)。演者の決め方は
+/// [`show_performer`] の 1 か所で、演者の分からない人は対象外。
+pub fn new_performer_debuts(snap: &Snapshot, item: u32) -> Vec<NewPerformerDebut> {
+    if !is_performance(snap, item) {
+        return Vec::new();
+    }
+    let row = &snap.setlist_items[item as usize];
+    let key = chronological_key(snap, item);
+    let history = &snap.setlist_items_by_song[row.song as usize];
+    let mut seen = HashSet::new();
+    snap.performers_by_item[item as usize]
+        .iter()
+        .copied()
+        .filter(|&idol| seen.insert(idol))
+        .filter_map(|idol| {
+            let performer = show_performer(snap, row.show, idol)?;
+            let earlier: Vec<u32> = history
+                .iter()
+                .copied()
+                .filter(|&i| {
+                    chronological_key(snap, i) < key
+                        && snap.performers_by_item[i as usize].contains(&idol)
+                })
+                .collect();
+            let sang_as_same = earlier.iter().any(|&i| {
+                show_performer(snap, snap.setlist_items[i as usize].show, idol)
+                    .is_some_and(|p| p.name == performer.name)
+            });
+            (!earlier.is_empty() && !sang_as_same).then_some(NewPerformerDebut { idol, performer })
+        })
+        .collect()
+}
+
+/// 新しい演者での初披露の札 (`希水しおで初披露`)。**言い方はここ 1 箇所。**
+pub fn new_performer_debut_label(performer_name: &str) -> String {
+    format!("{performer_name}で{FIRST_PERFORMANCE_LABEL}")
+}
+
 /// 古い順に並べるキー。同じ日の昼夜は `shows.sort_order` → セトリ内の `position` の順。
 fn chronological_key(snap: &Snapshot, item: u32) -> (&str, i64, i64, u32) {
     let row = &snap.setlist_items[item as usize];
@@ -484,3 +540,81 @@ mod tests {
     }
 }
 
+
+#[cfg(test)]
+mod new_performer_debut_tests {
+    use super::*;
+    use crate::domain::event_detail_queries::PerformerKind;
+    use crate::test_support::bundle_snapshot;
+
+    fn item_in(snap: &Snapshot, show_id: &str, song_id: &str) -> u32 {
+        let show = snap.show_index_by_id[show_id];
+        snap.setlist_items_by_show[show as usize]
+            .iter()
+            .copied()
+            .find(|&i| snap.songs[snap.setlist_items[i as usize].song as usize].id == song_id)
+            .unwrap_or_else(|| panic!("{show_id} に {song_id} がある"))
+    }
+
+    fn debuts(show_id: &str, song_id: &str) -> Vec<(String, String, PerformerKind)> {
+        let snap = bundle_snapshot();
+        new_performer_debuts(snap, item_in(snap, show_id, song_id))
+            .into_iter()
+            .map(|d| (snap.idols[d.idol as usize].name.clone(), d.performer.name, d.performer.kind))
+            .collect()
+    }
+
+    /// 2022-10-22 (シャニマス 4th DAY1)。成海瑠奈で 8 回歌ってきた曲を、希水しおが初めて歌った。
+    #[test]
+    fn 声優交代の後任が初めて歌った披露() {
+        assert_eq!(
+            debuts("sh_L0791", "sc_バベルシティグレイス"),
+            vec![("三峰結華".to_string(), "希水しお".to_string(), PerformerKind::Voice)]
+        );
+        assert_eq!(new_performer_debut_label("希水しお"), "希水しおで初披露");
+    }
+
+    /// 翌日の DAY2 は希水しおの 2 回目なので対象外。
+    #[test]
+    fn 同じ演者の2回目は対象外() {
+        assert!(debuts("sh_L0792", "sc_バベルシティグレイス").is_empty());
+    }
+
+    /// アイドルとして初めて歌う披露は「新しい演者での初披露」ではない (初歌唱・初披露が言う)。
+    #[test]
+    fn 初めて歌うアイドルは対象外() {
+        // 2018-08-12 の初披露。三峰結華もここが初めて。
+        assert!(debuts("sh_L0507", "sc_バベルシティグレイス").is_empty());
+        // 舞台の天道輝も、それまで歌ったことの無い曲は対象外。
+        assert!(debuts("sh_L0755", "sidem_sunrise_dreamer").is_empty());
+    }
+
+    /// 舞台で俳優が歌った。同じ規則で数え、舞台の 2 公演目は同じ俳優の 2 回目。
+    #[test]
+    fn 舞台の俳優も同じ規則で数える() {
+        let first = debuts("sh_L0755", "sidem_drive_a_live");
+        assert!(
+            first.contains(&("天道輝".to_string(), "加藤良輔".to_string(), PerformerKind::Stage)),
+            "{first:?}"
+        );
+        let second = debuts("sh_L0756", "sidem_drive_a_live");
+        assert!(second.iter().all(|(idol, _, _)| idol != "天道輝"), "{second:?}");
+    }
+
+    /// 実データで何行当たるか (報告用。件数そのものは固定しない)。
+    #[test]
+    fn 実データの件数() {
+        let snap = bundle_snapshot();
+        let (mut voice, mut stage) = (0, 0);
+        for item in 0..snap.setlist_items.len() as u32 {
+            for d in new_performer_debuts(snap, item) {
+                match d.performer.kind {
+                    PerformerKind::Voice => voice += 1,
+                    PerformerKind::Stage => stage += 1,
+                }
+            }
+        }
+        eprintln!("新しい演者での初披露: 声優 {voice} 件 / 舞台 {stage} 件");
+        assert!(voice > 0 && stage > 0);
+    }
+}

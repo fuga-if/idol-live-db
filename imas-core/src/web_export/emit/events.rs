@@ -4,7 +4,10 @@ use super::context::{simple_json_ld, Ctx};
 use crate::domain::costume_queries as costume;
 use crate::domain::date_display::{range_with_weekday, short_with_weekday};
 use crate::domain::event_detail_queries as detail;
-use crate::domain::performance_gap::{is_performance, original_singers, performance_gap};
+use crate::domain::performance_gap::{
+    is_performance, new_performer_debut_label, new_performer_debuts, original_singers,
+    performance_gap,
+};
 use crate::domain::screen_composition::{
     setlist_public_note_groups, RowNoteTone, SetlistRowNoteGroupRecord,
 };
@@ -395,6 +398,8 @@ fn setlist_rows(
                 .unwrap_or_default();
             // 「全員」の札とオリメンの札は 1 回で決まる (出演者 ∪ 歌唱メンバーで見る。アプリと同じ規則)。
             let lineup = row_lineup(&original_ids, &performer_ids, cast);
+            // 上映会の行は空 (披露ではない)。
+            let debuts = new_performer_debuts(ctx.snap, item);
             let row = SetlistRow {
                 id: e.id.clone(),
                 // entries は position 昇順なので、添字がそのまま「何曲目か」になる。
@@ -421,11 +426,16 @@ fn setlist_rows(
                 is_cover: ctx.snap.song(&e.song_id).is_some_and(Snapshot::is_cover),
                 first_performance_label: (ctx.snap.ordinal_by_item[item as usize] == 1)
                     .then(|| FIRST_PERFORMANCE_LABEL.to_string()),
+                new_performer_debut_labels: debuts
+                    .iter()
+                    .map(|d| new_performer_debut_label(&d.performer.name))
+                    .collect(),
                 // 上映会の行は披露ではないので履歴を持たない (`ordinal_by_item` も 0)。
                 history: if is_performance(ctx.snap, item) {
                     setlist_public_note_groups(
                         &performance_gap(ctx.snap, item),
                         &original_singers(ctx.snap, item),
+                        &debuts,
                     )
                     .into_iter()
                     .map(history_group)

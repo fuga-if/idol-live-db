@@ -21,7 +21,10 @@
 //!   実際の遷移は各OSが自分の navigation で行う)
 
 use crate::domain::collection_gap::{collection_interval_label, CollectionGap};
-use crate::domain::performance_gap::{OriginalSingerOrdinal, OriginalSingers, PerformanceGap};
+use crate::domain::performance_gap::{
+    new_performer_debut_label, NewPerformerDebut, OriginalSingerOrdinal, OriginalSingers,
+    PerformanceGap,
+};
 
 // =============================================================================
 // セトリをどれだけ詳しく出すか
@@ -206,11 +209,19 @@ pub fn setlist_row_note_groups(
 }
 
 /// 世の中から見た軸 (`披露` と、あれば `歌唱`)。**参加記録を持たない出面 (Web) はこれだけを出す。**
+///
+/// 新しい演者での初披露 (`debuts`、[`crate::domain::performance_gap::new_performer_debuts`]) は
+/// 「披露」の段の最後に、`希水しおで初披露` を人数ぶん初披露と同じ強さで添える。
 pub fn setlist_public_note_groups(
     performance: &PerformanceGap,
     singers: &OriginalSingers,
+    debuts: &[NewPerformerDebut],
 ) -> Vec<SetlistRowNoteGroupRecord> {
-    let mut groups = vec![setlist_performance_note_group(performance)];
+    let mut performance_group = setlist_performance_note_group(performance);
+    performance_group.notes.extend(debuts.iter().map(|d| {
+        SetlistRowNoteRecord::new(&new_performer_debut_label(&d.performer.name), RowNoteTone::Debut)
+    }));
+    let mut groups = vec![performance_group];
     groups.extend(setlist_singer_note_group(performance, singers));
     groups
 }
@@ -580,7 +591,7 @@ mod setlist_row_note_tests {
         setlist_row_note_groups(
             SetlistDisplayMode::Detailed,
             is_real_live,
-            setlist_public_note_groups(performance, &OriginalSingers::default()),
+            setlist_public_note_groups(performance, &OriginalSingers::default(), &[]),
             mine,
         )
     }

@@ -16,14 +16,15 @@
 //! 1 操作 = 1 呼び出し (docs/ARCHITECTURE.md)。
 
 use crate::domain::event_detail_queries::{
-    self as detail, PerformerNameMode, SetlistPerformerRecord,
+    self as detail, PerformerKind, PerformerNameMode, SetlistPerformerRecord,
 };
 use crate::domain::collection_gap::{
     attended_real_live_shows, collection_gap, is_real_live, show_collection_summary, CollectionGap,
     ShowCollectionRecord,
 };
 use crate::domain::performance_gap::{
-    is_performance, original_singers, performance_gap, row_singers,
+    is_performance, new_performer_debut_label, new_performer_debuts, original_singers,
+    performance_gap, row_singers,
 };
 use crate::domain::performer_label::{setlist_performer_label, SetlistNaming};
 use crate::domain::screen_composition::{
@@ -89,6 +90,21 @@ pub struct SetlistRowMetaRecord {
     pub absent_originals: Vec<SetlistAbsentOriginalRecord>,
     /// `absent_originals` の見出し (`歌っていないオリメン`)。
     pub absent_originals_heading: String,
+    /// 新しい演者で初めてこの曲を歌った人 (声優交代の後任・舞台の俳優。歌唱者の並び順)。
+    /// 札 (`希水しおで初披露`) は `note_groups` の「披露」の段に入っている。上映会の行は空。
+    /// 規則は [`crate::domain::performance_gap::new_performer_debuts`]。
+    pub new_performer_debuts: Vec<SetlistNewPerformerDebutRecord>,
+}
+
+/// 新しい演者での初披露 1 人ぶん。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct SetlistNewPerformerDebutRecord {
+    pub idol_id: String,
+    /// この披露でそのアイドルを演じた人。
+    pub performer_name: String,
+    pub performer_kind: PerformerKind,
+    /// `希水しおで初披露`。
+    pub label: String,
 }
 
 /// この行で歌っていないオリメン 1 人。歌唱者の一覧の行に要るものだけ (押すとアイドル詳細へ)。
@@ -217,9 +233,10 @@ pub fn setlist_row_meta(
             let mine = collection_gap(snap, item, &attended);
             // 上映会の行は披露ではないので、世の中から見た軸 (披露・歌唱) を持たない。
             let performance = is_performance(snap, item);
+            let debuts = new_performer_debuts(snap, item);
             let public = if performance {
                 let singers = original_singers(snap, item);
-                let mut groups = setlist_public_note_groups(&gap, &singers);
+                let mut groups = setlist_public_note_groups(&gap, &singers, &debuts);
                 // 本来のオリメン (今はアプリだけ。Web の公演ページはこの段を出していない)。
                 // 「披露」のすぐ下、「歌唱」の上に置く: 本来は誰の曲か → 誰が歌ったか の順に読ませる。
                 if let Some(original) = setlist_original_note_group(&singers) {
@@ -288,6 +305,15 @@ pub fn setlist_row_meta(
                 performer_notes,
                 absent_originals,
                 absent_originals_heading: ABSENT_ORIGINALS_HEADING.to_string(),
+                new_performer_debuts: debuts
+                    .into_iter()
+                    .map(|d| SetlistNewPerformerDebutRecord {
+                        idol_id: snap.idols[d.idol as usize].id.clone(),
+                        label: new_performer_debut_label(&d.performer.name),
+                        performer_name: d.performer.name,
+                        performer_kind: d.performer.kind,
+                    })
+                    .collect(),
             }
         })
         .collect();
@@ -422,6 +448,25 @@ mod tests {
         let firsts = row.performer_notes.iter().take_while(|p| debut(p)).count();
         assert_eq!(firsts, count, "初歌唱の人が先頭に、段の人数と同じだけ");
         assert!(row.performer_notes[firsts..].iter().all(|p| !debut(p)));
+    }
+
+    /// 新しい演者での初披露は、行の素材と「披露」の段の札 (初披露と同じ強さ) の両方に出る。
+    #[test]
+    fn 新しい演者での初披露は披露の段に札が並ぶ() {
+        let snap = bundle_snapshot();
+        let rows =
+            rows_of(snap, "sh_L0791", PerformerNameMode::IdolOnly, SetlistDisplayMode::Detailed);
+        let item = snap.setlist_items_by_show[snap.show_index_by_id["sh_L0791"] as usize]
+            .iter()
+            .find(|&&i| snap.songs[snap.setlist_items[i as usize].song as usize].id == "sc_バベルシティグレイス")
+            .unwrap();
+        let row = rows.iter().find(|r| r.item_id == snap.setlist_items[*item as usize].id).unwrap();
+        assert_eq!(row.new_performer_debuts.len(), 1);
+        assert_eq!(row.new_performer_debuts[0].idol_id, "sc_三峰結華");
+        assert_eq!(row.new_performer_debuts[0].label, "希水しおで初披露");
+        let performance = row.note_groups.iter().find(|g| g.label == "披露").unwrap();
+        let note = performance.notes.last().unwrap();
+        assert_eq!((note.text.as_str(), note.tone), ("希水しおで初披露", RowNoteTone::Debut));
     }
 
     /// 依頼の実例。エミリー スチュアートと徳川まつりの 2 人が歌うが、

@@ -491,6 +491,7 @@ fn show_page() -> ShowPage {
                         }),
                         is_cover: false,
                         first_performance_label: None,
+                    new_performer_debut_labels: Vec::new(),
                         history: Vec::new(),
                         // 共通衣装は「全員」と書かず、着用者の括弧を付けない。
                         costumes: vec![SetlistCostume {
@@ -516,6 +517,7 @@ fn show_page() -> ShowPage {
                             label: "ソロステージ衣装（春日未来）".to_string(),
                         }],
                         first_performance_label: None,
+                    new_performer_debut_labels: Vec::new(),
                         history: Vec::new(),
                     },
                 ],
@@ -549,6 +551,7 @@ fn show_page() -> ShowPage {
                     }),
                     is_cover: false,
                     first_performance_label: None,
+                    new_performer_debut_labels: Vec::new(),
                         history: Vec::new(),
                     // 衣装の記録が無い行 (実データではこちらが大多数)。
                     costumes: vec![],

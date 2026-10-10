@@ -217,7 +217,8 @@ final class SetlistViewModelTests: XCTestCase {
             itemId: itemId, performerLabel: nil, unitNames: [], isFullCast: false, ordinal: 1,
             ordinalLabel: "", isFirstPerformance: false, previousDate: nil, sinceLabel: nil,
             noteGroups: [], sectionHeading: heading, startsSection: true, lineup: nil,
-            performerNotes: [], absentOriginals: [], absentOriginalsHeading: "")
+            performerNotes: [], absentOriginals: [], absentOriginalsHeading: "",
+            newPerformerDebuts: [])
     }
 }
 

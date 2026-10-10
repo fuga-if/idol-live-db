@@ -37,12 +37,14 @@ const { row } = Astro.props;
       {row.notes && <span class="setlist__notes">{row.notes}</span>}
     </p>
     {
-      (row.unitLabel || row.isCover || row.lineup || row.firstPerformanceLabel) && (
+      (row.unitLabel || row.isCover || row.lineup || row.firstPerformanceLabel || row.newPerformerDebutLabels.length > 0) && (
         <p class="u-row setlist__tags" data-lineup={row.lineup?.kind}>
           {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
           {row.isCover && <TagChip text="カバー" kind="cover" />}
           {row.lineup && <TagChip text={row.lineup.label} kind="lineup" />}
           {row.firstPerformanceLabel && <TagChip text={row.firstPerformanceLabel} kind="first" />}
+          {/* 新しい演者での初披露 (「希水しおで初披露」)。初披露と同じ札で、人数ぶん並ぶ。 */}
+          {row.newPerformerDebutLabels.map((label) => <TagChip text={label} kind="first" />)}
         </p>
       )
     }
