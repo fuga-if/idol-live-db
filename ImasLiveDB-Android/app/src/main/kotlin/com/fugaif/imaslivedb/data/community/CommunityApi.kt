@@ -681,7 +681,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
      * 引っ張って更新が一度失敗しただけで表示中の一覧が消える (iOS も両者を区別している)。
      */
     suspend fun polls(status: String = "active"): List<PollSummary>? = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls?status=${enc(status)}") ?: return@withContext null
+        val arr = getArray("/polls?status=${enc(status)}", authorized = true) ?: return@withContext null
         (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
     }
 
@@ -768,7 +768,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
 
     /** GET /polls/{id} — ポール詳細 (選択肢 + 票数 + 自分の投票)。 */
     suspend fun pollDetail(id: String): PollDetail? = withContext(Dispatchers.IO) {
-        val json = get("/polls/${enc(id)}") ?: return@withContext null
+        val json = get("/polls/${enc(id)}", authorized = true) ?: return@withContext null
         val poll = json.optJSONObject("poll") ?: return@withContext null
         val entriesArr = json.optJSONArray("entries") ?: JSONArray()
         val entries = (0 until entriesArr.length()).map { i ->
@@ -844,18 +844,21 @@ class CommunityApi(private val http: WorkerHttpClient) {
     private fun JSONObject.strOrNull(key: String): String? =
         if (isNull(key)) null else optString(key).ifEmpty { null }
 
-    private fun get(path: String): JSONObject? {
+    // 読み取りは既定でセッションを付けない (iOS の APIClient と同じ)。Worker はセッション付きの GET を
+    // エッジキャッシュに載せないので、付けるとサインイン中は公開の一覧も毎回 D1 まで読みに行く。
+    // 利用者ごとの値を返す GET (お題の自分の票) だけ authorized = true で付ける。
+    private fun get(path: String, authorized: Boolean = false): JSONObject? {
         return try {
-            val response = http.request("GET", path)
+            val response = http.request("GET", path, authorized = authorized)
             if (response.isSuccess && !response.body.isNullOrEmpty()) JSONObject(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "GET $path failed: ${e.message}"); null
         }
     }
 
-    private fun getArray(path: String): JSONArray? {
+    private fun getArray(path: String, authorized: Boolean = false): JSONArray? {
         return try {
-            val response = http.request("GET", path)
+            val response = http.request("GET", path, authorized = authorized)
             if (response.isSuccess && !response.body.isNullOrEmpty()) JSONArray(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "GET[] $path failed: ${e.message}"); null
