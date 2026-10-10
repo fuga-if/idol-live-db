@@ -120,16 +120,23 @@ enum TagStatus: String, Codable, Sendable {
     }
 }
 
-enum TagCategory: String, Codable, Sendable {
-    case mood
-    case scene
-    case special
-    case free
+/// タグのカテゴリの生値。**値は読んだまま持つ** (語彙はプールごとに違い、コアの `vocabulary()` が持つ)。
+///
+/// 以前は曲タグの 4 値 (mood / scene / special / free) の enum で、知らない値を `.free` に倒していた。
+/// アイドル・ユニットのタグ (personality / charm / appearance / concept …) が全部「フリー」と出て、
+/// 編集シートがその `free` を初期値にして保存するので、説明を直しただけでカテゴリが消えていた。
+struct TagCategory: RawRepresentable, Codable, Hashable, Sendable {
+    let rawValue: String
+
+    init(rawValue: String) { self.rawValue = rawValue }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let raw = try container.decode(String.self)
-        self = TagCategory(rawValue: raw) ?? .free
+        rawValue = try decoder.singleValueContainer().decode(String.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
     }
 }
 
