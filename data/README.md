@@ -65,6 +65,21 @@ master.sqlite → CloudKit に一括反映します（直接 CloudKit に書く�
 { "fixes": [ { "table": "songs", "id": "ml_your_home_town", "add_original_singers": ["765as_双海亜美"] } ] }
 ```
 
+アイドルの容姿 (髪色・髪の長さ・髪型・髪の飾り) は idols の列ではなく、**アイドルのタグ**の
+「容姿」(category `appearance`) の公式タグで持つ (利用者が投票で育てられるように)。初期値は
+`add_official_tags` に公式タグの名前を並べると、運営の 1 票として入る。使える名前は
+`imas-live-api/migrations/0050_idol_appearance_tags.sql` の 42 語 (髪色: 黒髪 / 茶髪 / 金髪 /
+銀髪 / 赤髪 / オレンジ髪 / ピンク髪 / 緑髪 / 青髪 / 水色の髪 / 紫髪、長さ: ロングヘア /
+ミディアムヘア / ショートヘア、ほかに髪型と飾り)。
+```json
+{ "fixes": [ { "table": "idols", "id": "765as_天海春香", "add_official_tags": ["茶髪", "ミディアムヘア", "リボン"] } ] }
+```
+タグと票はマスタ (CloudKit) ではなく D1 にあるので、`--apply --push` では届かない。
+オーナーは `--apply --only <ファイル名> --d1-sql <書き出し先.sql>` で SQL を作り、
+`cd imas-live-api && npx wrangler d1 execute imas-live-db --remote --file <その.sql>` で流す。
+票は端末 ID `official:<ファイル名>` の記録として入るので、利用者の票と分かれる
+(タグの流れ・#更新通知 には出ない。利用者はこの票を外せない)。何度流しても 1 票のまま。
+
 ## 値の決まり
 
 - **brand_id**: `765as` / `cg` / `ml` / `sidem` / `sc`（シャニ）/ `gakuen`（学マス）/ `876` / `961` / `other`

@@ -287,6 +287,68 @@ class AddOriginalSingersTest(PostFixture):
         self.assertTrue(any("空は不可" in p for p in self.validate()))
 
 
+class AddOfficialTagsTest(PostFixture):
+    """data/fixes/ の add_official_tags でアイドルの公式タグに運営の 1 票を入れる (D1 行き)。"""
+
+    def post(self, *fixes):
+        support.write_json(self.data / "fixes" / "votes.json",
+                           {"source": "https://example.com/card", "fixes": list(fixes)})
+
+    def validate(self):
+        conn = sqlite3.connect(str(self.db))
+        try:
+            return apply_data.validate(conn)
+        finally:
+            conn.close()
+
+    def test_votes_go_to_d1_sql_and_nothing_is_pushed(self):
+        self.post({"table": "idols", "id": "ml_t", "add_official_tags": ["黒髪", "ロングヘア"]})
+        self.assertEqual(self.validate(), [])
+        conn = sqlite3.connect(str(self.db))
+        votes = []
+        with contextlib.redirect_stdout(io.StringIO()):
+            affected = apply_data.apply_all(conn, votes)
+        conn.close()
+        self.assertEqual(dict(affected), {}, "マスタの行は変わらないので CloudKit へ押さない")
+        device = "official:votes"
+        self.assertEqual(votes, [(device, "ml_t", "黒髪"), (device, "ml_t", "ロングヘア")])
+
+        # 書き出した SQL を D1 の表に 2 回流しても 1 票のまま。利用者の票には足すだけ。
+        d1 = sqlite3.connect(":memory:")
+        for name in ("0020_idol_tags.sql", "0021_idol_tag_master.sql", "0050_idol_appearance_tags.sql"):
+            d1.executescript((apply_data.D1_MIGRATIONS_DIR / name).read_text(encoding="utf-8"))
+        d1.execute("INSERT INTO idol_tags VALUES ('ml_t', 'official_appearance_hair_black', 2)")
+        sql = apply_data.official_tag_vote_sql(votes)
+        d1.executescript(sql)
+        d1.executescript(sql)
+        self.assertEqual(
+            d1.execute("SELECT tag_id, vote_count FROM idol_tags ORDER BY tag_id").fetchall(),
+            [("official_appearance_hair_black", 3), ("official_appearance_length_long", 1)])
+        self.assertEqual(d1.execute("SELECT DISTINCT device_id FROM device_idol_tag").fetchall(), [(device,)])
+
+    def test_an_unknown_tag_is_rejected(self):
+        self.post({"table": "idols", "id": "ml_t", "add_official_tags": ["猫耳"]})
+        [problem] = self.validate()
+        self.assertIn("猫耳", problem)
+
+    def test_only_idols_take_official_tags(self):
+        self.post({"table": "songs", "id": "song_t", "add_official_tags": ["黒髪"]})
+        self.assertTrue(any("idols の修正にだけ" in p for p in self.validate()))
+
+    def test_apply_without_d1_sql_stops_before_touching_the_db(self):
+        self.post({"table": "idols", "id": "ml_t", "add_official_tags": ["黒髪"]})
+        argv = sys.argv
+        sys.argv = ["apply_data.py", "--apply", "--db", str(self.db)]
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as ctx:
+                    apply_data.main()
+        finally:
+            sys.argv = argv
+        self.assertNotEqual(ctx.exception.code, 0)
+        self.assertEqual(list(self.db.parent.glob("*.bak_*")), [], "バックアップも作らずに止まる")
+
+
 TICKET_SALES_DDL = (
     "CREATE TABLE ticket_sales ("
     " id TEXT PRIMARY KEY NOT NULL, event_id TEXT NOT NULL, show_ids TEXT, kind TEXT NOT NULL,"
