@@ -120,7 +120,8 @@ describe("退会で共有データに残った uid", () => {
     ]);
     expect(await row("SELECT first_voted_by FROM setlist_performer_predictions")).toEqual({ first_voted_by: "deleted" });
     for (const [table, history] of [["tags", "tag_description_history"], ["idol_tag_master", "idol_tag_description_history"], ["unit_tag_master", "unit_tag_description_history"]]) {
-      expect(await row(`SELECT created_by, updated_by FROM ${table}`), table).toEqual({ created_by: "dev-1", updated_by: "deleted" });
+      // idol_tag_master には migration 0050 の公式タグが入っているので、足した行だけを見る。
+      expect(await row(`SELECT created_by, updated_by FROM ${table} WHERE id = 't'`), table).toEqual({ created_by: "dev-1", updated_by: "deleted" });
       expect(await rows(`SELECT edited_by FROM ${history} ORDER BY edited_at`), history)
         .toEqual([{ edited_by: "deleted" }, { edited_by: "dev-2" }]);
     }
