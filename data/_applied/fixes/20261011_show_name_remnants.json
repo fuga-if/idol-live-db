@@ -1,0 +1,12 @@
+{
+ "title": "公演名の末尾に残った対の無い「）」を外す",
+ "author": "daily-data-crawl",
+ "source": "derived:公演名の取り込み時に括弧の片側だけ残った残骸 (同じイベントの他の公演名と揃える)",
+ "fixes": [
+  {"table": "shows", "id": "sh_L0317", "fields": {"name": "昼の部"}, "note": "末尾の「）」は取り込みの残骸"},
+  {"table": "shows", "id": "sh_L0318", "fields": {"name": "夜の部"}, "note": "同上"},
+  {"table": "shows", "id": "sh_L1055", "fields": {"name": "夜公演"}, "note": "同上"},
+  {"table": "shows", "id": "sh_L1059", "fields": {"name": "昼公演"}, "note": "同上"},
+  {"table": "shows", "id": "sh_L1060", "fields": {"name": "夜公演"}, "note": "同上"}
+ ]
+}

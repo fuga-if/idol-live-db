@@ -87586,8 +87586,8 @@ INSERT INTO "shows" VALUES('sh_L0313','ev_シンデレラガールズステー�
 INSERT INTO "shows" VALUES('sh_L0314','ev_monacaフェス2016','MONACAフェス2016','2016-04-30','埼玉・大宮ソニックシティ大ホール',NULL,NULL,1,'cast','venue_大宮ソニックシティ','大ホール',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0315','ev_the_idolmster_sidem_strting_line_0910cd発売記念イベント_第1回公演','「THE IDOLM@STER SideM ST@RTING LINE 09・10」CD発売記念イベント 第1回公演','2016-05-15','都内某所ライブハウス',NULL,NULL,1,'cast','venue_都内某所',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0316','ev_the_idolmster_sidem_strting_line_0910cd発売記念イベント_第1回公演','「THE IDOLM@STER SideM ST@RTING LINE 09・10」CD発売記念イベント 第2回公演','2016-05-15','都内某所ライブハウス',NULL,NULL,1,'cast','venue_都内某所',NULL,NULL,NULL);
-INSERT INTO "shows" VALUES('sh_L0317','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','昼の部）','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
-INSERT INTO "shows" VALUES('sh_L0318','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','夜の部）','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_L0317','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','昼の部','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_L0318','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','夜の部','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0319','ev_アイドルマスター_シンデレラガールズワンフェスサマーステージin_2016','アイドルマスター シンデレラガールズ／ワンフェスサマーステージin 2016','2016-07-24','千葉・幕張メッセ国際展示場',NULL,NULL,1,'cast','venue_幕張メッセ','国際展示場',NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0320','ev_the_idolmster_station_summer_night_party','THE IDOLM@STER STATION!!! Summer Night Party!!!','2016-07-24','神奈川・横浜ベイホール',NULL,NULL,1,'cast','venue_横浜ベイホール',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0321','ev_アイドルマスター_シンデレラガールズ_コロムビアcd映像作品累計出荷300万枚突破_the_idolmster_cinderella_girls_star','アイドルマスター シンデレラガールズ コロムビアCD＆映像作品累計出荷300万枚突破 ＆THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTERシリーズ発売記念イベント MEMORIAL PARADE','2016-07-30','東京・新木場STUDIO COAST',NULL,NULL,1,'cast','venue_新木場studiocoast',NULL,NULL,NULL);
@@ -88413,9 +88413,9 @@ INSERT INTO "shows" VALUES('sh_L1184','ev_life_like_a_live10_第一公演','Life
 INSERT INTO "shows" VALUES('sh_L0943','ev_life_like_a_live8_第一公演えるすりー8_第一公演','Life Like a Live!8 第一公演（えるすりー8 第一公演）','2024-09-06','オンライン配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'オンライン配信・Z-aN','online');
 INSERT INTO "shows" VALUES('sh_L0946','ev_life_like_a_live8_第一公演えるすりー8_第一公演','Life Like a Live!8 第四公演（えるすりー8 第四公演）','2024-09-08','オンライン配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'オンライン配信・Z-aN','online');
 INSERT INTO "shows" VALUES('sh_L0947','ev_life_like_a_live8_第一公演えるすりー8_第一公演','Life Like a Live!8 第五公演（えるすりー8 第五公演）','2024-09-08','オンライン配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'オンライン配信・Z-aN','online');
-INSERT INTO "shows" VALUES('sh_L1055','ev_life_like_a_live9_エピソードi第一公演','夜公演）','2025-03-14','オンライン配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'オンライン配信・Z-aN','online');
-INSERT INTO "shows" VALUES('sh_L1059','ev_life_like_a_live9_エピソードi第一公演','昼公演）','2025-03-16','リアルタイム配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'リアルタイム配信・Z-aN','online');
-INSERT INTO "shows" VALUES('sh_L1060','ev_life_like_a_live9_エピソードi第一公演','夜公演）','2025-03-16','リアルタイム配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'リアルタイム配信・Z-aN','online');
+INSERT INTO "shows" VALUES('sh_L1055','ev_life_like_a_live9_エピソードi第一公演','夜公演','2025-03-14','オンライン配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'オンライン配信・Z-aN','online');
+INSERT INTO "shows" VALUES('sh_L1059','ev_life_like_a_live9_エピソードi第一公演','昼公演','2025-03-16','リアルタイム配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'リアルタイム配信・Z-aN','online');
+INSERT INTO "shows" VALUES('sh_L1060','ev_life_like_a_live9_エピソードi第一公演','夜公演','2025-03-16','リアルタイム配信・Z-aN',NULL,NULL,1,'cast',NULL,NULL,'リアルタイム配信・Z-aN','online');
 INSERT INTO "shows" VALUES('sh_L1054','ev_music_scene_special_live','MUSIC SCENE SPECIAL LIVE','2025-03-12','アイドルマスターチャンネル(YouTube 公式チャンネル)で配信',NULL,NULL,1,'cast',NULL,NULL,'アイドルマスターチャンネル(YouTube 公式チャンネル)で配信','online');
 INSERT INTO "shows" VALUES('sh_L0402','ev_nhk総合naomiの部屋','NHK総合『NAOMIの部屋』','2017-11-19','NHK放送センター（ライブは収録放送、NHK総合で放映）',NULL,NULL,1,'cast','venue_nhk放送センター',NULL,'NHK総合','online');
 INSERT INTO "shows" VALUES('sh_L0630','ev_nhk総合シブヤノオト生放送','NHK総合『シブヤノオト』(生放送)','2019-11-17','東京・NHK放送センター',NULL,NULL,1,'cast','venue_nhk放送センター',NULL,NULL,'online');
