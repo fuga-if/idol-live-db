@@ -17,8 +17,10 @@
 
 やること:
   1. imas-core の web-export (`--api-sql`) で SQL を組む。文書は agent::tools と同じ規則を通る。
-  2. `wrangler d1 execute imas-master-db --file` で流す。SQL は表を DROP → CREATE → INSERT
-     し直す全置き換えなので、何度流しても同じ結果になる。
+  2. 流す。ローカルは `wrangler d1 execute imas-master-db --local --file`。本番は D1 の REST API
+     (`/d1/database/<id>/query`) に文の切れ目で分けて POST する。`wrangler ... --remote --file` が叩く
+     `/import` は API トークンでも OAuth でも `Authentication error [code: 10000]` で落ちるため使わない。
+     SQL は表を DROP → CREATE → INSERT し直す全置き換えなので、途中で落ちても頭から流し直せばよい。
   3. meta.version (日付 + 組んだ SQL の内容ハッシュ) が新しくなり、エッジのキャッシュ鍵が
      切り替わる (古い応答は 1 時間で消える)。
 
@@ -33,9 +35,15 @@ D1 の無料枠は 1 日の書き込み 10 万行。1 回の同期で書く行�
 imas-data-api/wrangler.jsonc に書く)。
 """
 import argparse
+import json
 import os
+import re
+import sqlite3
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 API = os.path.join(ROOT, "imas-data-api")
@@ -45,6 +53,8 @@ INPUT = os.path.join(BUILD, "master-input.sql")  # --from-* で取ってきた�
 BOT_REF = "bot/data-refresh"
 MASTER_PATH = "db/master.sql"
 DB_NAME = "imas-master-db"
+# 本番へは 1 リクエストにこの大きさまで文を詰める。D1 の 1 文の上限は 100KB (文書 1 件は 1 文で最大 70KB 程度)。
+CHUNK_BYTES = 90_000
 
 
 def run(cmd, cwd):
@@ -113,6 +123,82 @@ def build_sql(master_sql):
          "--work-db", os.path.join(BUILD, "work.sqlite")], os.path.join(ROOT, "imas-core"))
 
 
+def split_statements(path):
+    """SQL を文ごとに返す (文字列中の ; では切らない)。コメントだけの行は捨てる。"""
+    buf = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if not buf and (not line.strip() or line.lstrip().startswith("--")):
+                continue
+            buf.append(line)
+            text = "".join(buf)
+            if sqlite3.complete_statement(text):
+                yield text.strip()
+                buf = []
+    rest = "".join(buf).strip()
+    if rest:
+        sys.exit(f"{path} の末尾に終わっていない文がある: {rest[:120]!r}")
+
+
+def chunks(statements, limit=CHUNK_BYTES):
+    """文を順に limit バイトまで詰めた塊にする (1 文が limit を超えるときはその文だけで 1 塊)。"""
+    cur, size = [], 0
+    for st in statements:
+        n = len(st.encode("utf-8")) + 1
+        if cur and size + n > limit:
+            yield "\n".join(cur)
+            cur, size = [], 0
+        cur.append(st)
+        size += n
+    if cur:
+        yield "\n".join(cur)
+
+
+def database_id():
+    with open(os.path.join(API, "wrangler.jsonc"), encoding="utf-8") as f:
+        m = re.search(r'"database_name"\s*:\s*"%s"[^}]*?"database_id"\s*:\s*"([0-9a-f-]{36})"' % DB_NAME, f.read(), re.S)
+    if not m:
+        sys.exit(f"imas-data-api/wrangler.jsonc に {DB_NAME} の database_id が無い")
+    return m.group(1)
+
+
+def post_query(url, token, sql, attempts=3):
+    body = json.dumps({"sql": sql}).encode("utf-8")
+    for i in range(1, attempts + 1):
+        req = urllib.request.Request(url, data=body, method="POST", headers={
+            "Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=120) as res:
+                data = json.load(res)
+            if data.get("success"):
+                return
+            err = data.get("errors")
+        except urllib.error.HTTPError as e:
+            err = f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:500]}"
+            if e.code in (400, 401, 403):
+                break  # 文の誤り・権限は再試行しても通らない
+        except (urllib.error.URLError, TimeoutError) as e:
+            err = str(e)
+        print(f"  失敗 ({i}/{attempts}): {err}", file=sys.stderr, flush=True)
+        time.sleep(5 * i)
+    sys.exit(f"D1 への書き込みが落ちた: {err}\n全置き換えなので、直してから頭から流し直せばよい。")
+
+
+def push_remote(sql_path):
+    """本番 D1 に REST API で流す。資格情報は wrangler と同じ環境変数 (CI の environment cloudflare)。"""
+    token = os.environ.get("CLOUDFLARE_API_TOKEN")
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID")
+    if not token or not account:
+        sys.exit("CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID が要る (D1 の編集権限のあるトークン)")
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account}/d1/database/{database_id()}/query"
+    parts = list(chunks(split_statements(sql_path)))
+    print(f"本番 D1 {DB_NAME} に {len(parts)} 回に分けて流す", flush=True)
+    for i, part in enumerate(parts, 1):
+        post_query(url, token, part)
+        if i % 25 == 0 or i == len(parts):
+            print(f"  {i}/{len(parts)}", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     where = ap.add_mutually_exclusive_group()
@@ -159,14 +245,14 @@ def main():
         print(counts, "合計", sum(counts.values()), "行 (索引の書き込みは別)")
         return
 
-    target = "--remote" if args.remote else "--local"
-    cmd = ["npx", "wrangler", "d1", "execute", DB_NAME, target, "--file", SQL, "--yes"]
-    if args.remote and not args.yes:
-        print("本番 D1 には流していません。流すなら次を打つ (オーナー):")
-        print("  cd imas-data-api && " + " ".join(cmd))
-        print("または: python3 tools/sync_master_d1.py --remote --yes")
+    if args.remote:
+        if not args.yes:
+            print("本番 D1 には流していません。流すなら次を打つ (オーナー。CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が要る):")
+            print("  python3 tools/sync_master_d1.py --remote --yes --skip-export")
+            return
+        push_remote(SQL)
         return
-    run(cmd, API)
+    run(["npx", "wrangler", "d1", "execute", DB_NAME, "--local", "--file", SQL, "--yes"], API)
 
 
 if __name__ == "__main__":

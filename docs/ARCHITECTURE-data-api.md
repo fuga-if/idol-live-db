@@ -166,6 +166,10 @@ PR で入るまで古いので入力にしない。yesno などの利用者は�
 - 手元: `python3 tools/sync_master_d1.py --local` (ローカル D1)、`--remote` は流すコマンドを**表示するだけ**、
   `--remote --yes` で本番。既定の入力は `bot/data-refresh` の最新。`--from-cloudkit` / `--from-develop` /
   `--master-sql PATH` で変えられる。
+- 本番へは D1 の REST API (`/d1/database/<id>/query`) に文の切れ目で約 90KB ずつ POST する
+  (`wrangler d1 execute --remote --file` が叩く `/import` は API トークンでも OAuth でも
+  `Authentication error [code: 10000]` で落ちる。2026-10-11 の CI で確認)。塊ごとに別の書き込みなので、
+  同期中の数分は表が空・途中の状態になりうる。落ちたら頭から流し直す。
 - 全置き換え (DROP → CREATE → INSERT)。何度流しても同じ。`meta.version` (日付 + SQL の内容ハッシュ) が
   内容が変わると新しくなり、エッジのキャッシュ鍵が切り替わる。
 - **`apply_data.py --push` の最後には足さない。** push は CloudKit への書き込みで、翌日の cron か手動実行が
