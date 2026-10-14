@@ -158,10 +158,20 @@ fun AppNavigation() {
 
     // One NavController per destination to maintain independent back stacks
     val navControllers = AppDestination.entries.associateWith { rememberNavController() }
+    // 今いるタブをもう一度押したら、そのタブの最初の画面まで戻る (iOS のタブと同じ)。
+    // 押しても何も起きないと、戻る矢印の無い画面から抜ける手が「戻る」ジェスチャーしか無くなる。
+    val selectDestination: (AppDestination) -> Unit = { destination ->
+        if (destination == current) {
+            val nav = navControllers.getValue(destination)
+            nav.popBackStack(nav.graph.startDestinationId, inclusive = false)
+        } else {
+            current = destination
+        }
+    }
 
     Row {
         if (wide) {
-            AppSidebar(sections = sections, current = current, onSelect = { current = it })
+            AppSidebar(sections = sections, current = current, onSelect = selectDestination)
         }
         // ステージ (タブバーを隠すゲームの画面) は会場の地を画面の端まで敷く。システムバーの分の
         // 余白は画面の側が取る (QuizStageScaffold・イントロドン)。それ以外は外枠が空ける。
@@ -172,7 +182,7 @@ fun AppNavigation() {
                 // ナビゲーションバー本体 (地は平らなまま)。再生中バーはここに相乗りせず、
                 // 中身の上に浮く枠として下で重ねる (ステージの間は出さない)。
                 if (!wide && !BottomBarVisibility.isHidden) {
-                    BottomNavBar(items = tabItems, current = current, onSelect = { current = it })
+                    BottomNavBar(items = tabItems, current = current, onSelect = selectDestination)
                 }
             }
         ) { innerPadding ->
@@ -309,7 +319,7 @@ internal fun NavGraphBuilder.scheduleNavGraph(navController: NavHostController) 
             onNavigateToTicketBoard = { navController.navigate(NavRoutes.TicketBoard.route) }
         )
     }
-    composable(NavRoutes.Settings.route) { SettingsScreen() }
+    composable(NavRoutes.Settings.route) { SettingsScreen(onBack = navController.backOrNull()) }
     composable(NavRoutes.TicketBoard.route) {
         TicketBoardScreen(
             onBack = { navController.popBackStack() },
@@ -430,8 +440,8 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onOpenShow = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
         )
     }
-    composable(NavRoutes.Stats.route) { StatsScreen() }
-    composable(NavRoutes.Settings.route) { SettingsScreen() }
+    composable(NavRoutes.Stats.route) { StatsScreen(onBack = navController.backOrNull()) }
+    composable(NavRoutes.Settings.route) { SettingsScreen(onBack = navController.backOrNull()) }
     composable(NavRoutes.Polls.route) {
         PollsScreen(
             onBack = navController.backOrNull(),

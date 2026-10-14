@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CloudSync
@@ -47,6 +48,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -121,6 +124,7 @@ private const val GITHUB_ISSUE_URL = "https://github.com/fuga-if/imas-live-priva
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onBack: (() -> Unit)? = null,
     viewModel: SettingsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -129,7 +133,16 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("設定") })
+            TopAppBar(
+                title = { Text("設定") },
+                navigationIcon = {
+                    // スケジュール・プロデュースから push して開くので、戻る先があれば矢印を出す。
+                    // 無いとジェスチャーの「戻る」を知らない人は抜けられない。
+                    onBack?.let { back ->
+                        IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         if (state.isLoading) {

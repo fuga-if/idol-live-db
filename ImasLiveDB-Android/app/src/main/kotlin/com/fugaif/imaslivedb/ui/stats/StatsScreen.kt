@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
@@ -15,6 +16,8 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -80,12 +83,24 @@ import uniffi.imas_core.UncollectedSongRecord
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = viewModel()) {
+fun StatsScreen(onBack: (() -> Unit)? = null, viewModel: StatsViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     var selectedSongId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedShowId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("回収ダッシュボード") }) }) { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("回収ダッシュボード") },
+                navigationIcon = {
+                    // サイドバーの根として開いたときは戻る先が無いので出さない。
+                    onBack?.let { back ->
+                        IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
+                    }
+                }
+            )
+        }
+    ) { padding ->
         if (state.isLoading) {
             ImasLoadingState(modifier = Modifier.padding(padding))
         } else {
