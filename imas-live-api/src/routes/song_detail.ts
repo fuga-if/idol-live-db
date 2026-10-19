@@ -30,6 +30,7 @@ import { getAuthUser } from "../auth";
 import { checkIsAdmin } from "../users";
 import { dryCheckIpRateLimit, commitIpRateLimit } from "../rate_limit";
 import { fetchPenlightVotes } from "./device_aggregates";
+import { fetchSongCounts } from "./plays";
 import { fetchPublishedLyrics, logLyricsRead, LYRICS_IP_LIMITS, NO_STORE } from "./lyrics";
 import {
   clampSimilarLimit,
@@ -161,10 +162,11 @@ export async function handleSongDetail(ctx: RouteContext): Promise<Response | nu
   // 認証は任意。付いていれば歌詞も同梱する (未認証は歌詞を返さない)。
   const user = await getAuthUser(request, env);
 
-  const [tags, similar, penlight, lyrics] = await Promise.all([
+  const [tags, similar, penlight, counts, lyrics] = await Promise.all([
     optional("tags", fetchSongTagList(env.DB, songId, deviceId)),
     optional("similar", fetchSimilarSongsCached(ctx, songId, similarLimit)),
     optional("penlight", fetchPenlightVotes(env.DB, songId, deviceId)),
+    optional("counts", fetchSongCounts(env.DB, songId)),
     user ? optional("lyrics", loadLyrics(ctx, songId, user.uid)) : Promise.resolve(null),
   ]);
 
@@ -174,5 +176,5 @@ export async function handleSongDetail(ctx: RouteContext): Promise<Response | nu
   //   - どちらでもない    → 既存の集計 read と同じ公開キャッシュ
   const headers = user ? NO_STORE : deviceId ? PRIVATE_HEADERS : PUBLIC_CACHE_HEADERS;
 
-  return json({ songId, tags, similar, penlight, lyrics }, 200, headers);
+  return json({ songId, tags, similar, penlight, counts, lyrics }, 200, headers);
 }

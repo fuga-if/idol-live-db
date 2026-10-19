@@ -26,7 +26,7 @@ describe("GET /songs/:id/detail の歌詞", () => {
     expect(res.status).toBe(200);
     expect(res.res.headers.get("Cache-Control")).toBe("no-store");
     expect(res.body.lyrics).toMatchObject({ songId: "s1", status: "published" });
-    expect(Object.keys(res.body).sort()).toEqual(["lyrics", "penlight", "similar", "songId", "tags"]);
+    expect(Object.keys(res.body).sort()).toEqual(["counts", "lyrics", "penlight", "similar", "songId", "tags"]);
   });
 
   it("未公開は admin にだけ同梱する (env の許可リスト / users.is_admin)", async () => {

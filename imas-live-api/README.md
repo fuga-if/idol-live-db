@@ -2,6 +2,21 @@
 
 Cloudflare Workers + D1 で動く THE IDOLM@STER Live Database 投稿・投票 API。
 
+## 料金プラン (D1 は有料)
+
+**Cloudflare は Workers Paid (月 $5) に入っていて、D1 も有料プランの枠で動いている**
+(2026-09-04 から。無料枠の 1 日 500 万行の読み込みを使い切りかけたため)。月の込み分と、超えたときの従量:
+
+| 項目 | 月の込み分 | 超えた分 |
+|---|---|---|
+| D1 書き込み行数 | 5000 万行 | 100 万行ごとに $1.00 |
+| D1 読み込み行数 | 250 億行 | 100 万行ごとに $0.001 |
+| D1 保存容量 | 5 GB | 1 GB・月ごとに $0.75 |
+| Worker のリクエスト | 1000 万回 | 100 万回ごとに $0.30 |
+
+$5 を超える請求は出さない。新しい書き込み・集計を足すときは、利用者数 (2026-10 時点で 6000 人) で
+月の行数を見積もってから入れる。D1 は索引の更新も書き込み行に数える。
+
 ## セットアップ
 
 ### 必須の secret 登録
@@ -172,6 +187,8 @@ Cron (scheduled) は掃除だけ:
 |--------|------|------|------|
 | POST | /favorites/toggle | X-Device-Id | お気に入りトグル |
 | GET | /favorites/ranking | - | お気に入りランキング |
+| POST | /plays/batch | X-Device-Id | 再生回数 (試聴 / フル) をまとめて足す。端末は 1 時間に 1 回、端末ごとに 1 日 30 回まで |
+| GET | /community/song-stats | - | 全曲のお気に入り・再生回数・今週と先週の再生。順位は端末のコア (`community_ranking.rs`) が出す。公開キャッシュ 30 分 |
 | GET | /penlight/palette | - | ペンライト色パレット |
 | POST | /penlight/vote | X-Device-Id | ペンライト色投票 |
 | DELETE | /penlight/vote | X-Device-Id | ペンライト色投票取り消し |
@@ -292,10 +309,10 @@ SELECT sl.song_id,
 | GET | /songs/:id/detail | 任意 (Bearer で歌詞同梱) | tags + similar + penlight を 1 リクエストで返す |
 
 曲詳細を 1 回開くたびに 3 リクエスト (`/penlight/votes/:id` + `/songs/:id/tags` +
-`/songs/:id/similar`) 飛んでいたのを 1 本に束ねたもの。Worker 無料枠 (10万リクエスト/日) で
+`/songs/:id/similar`) 飛んでいたのを 1 本に束ねたもの。Worker のリクエスト枠で
 捌ける同時利用者が 3 倍になる。既存 3 エンドポイントは段階移行のため残してある。
 
-- 応答は `{ songId, tags, similar, penlight, lyrics }`。`tags` / `similar` / `penlight` は
+- 応答は `{ songId, tags, similar, penlight, counts, lyrics }`。`counts` はその曲のお気に入り・試聴・フル再生の数。`tags` / `similar` / `penlight` は
   **既存エンドポイントの応答そのまま**を入れ子にしている (iOS が既存モデルでデコードできる契約)。
 - `lyrics` は Bearer 付きのときだけ入る。未認証・歌詞未投入・`status != 'published'` はすべて `null`。
 - 個々の取得が失敗しても全体は落とさず、失敗した部分だけ `null` にして 200 を返す。

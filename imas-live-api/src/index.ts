@@ -10,6 +10,7 @@ import { handleAdmin } from "./routes/admin";
 import { handleSetlistPredictions } from "./routes/setlist_predictions";
 import { handlePolls } from "./routes/polls";
 import { handleDeviceAggregates } from "./routes/device_aggregates";
+import { handlePlays } from "./routes/plays";
 import { handleTags } from "./routes/tags";
 import { handleLyrics } from "./routes/lyrics";
 import { handleLyricsCalls, handleCallsDashboard } from "./routes/calls";
@@ -264,6 +265,8 @@ const ROUTES: ReadonlyArray<(ctx: RouteContext) => Promise<Response | null>> = [
   // みんなのプレイリスト (曲 id の並び・タイトル・ひとこと)。一覧と 1 つ取りは公開キャッシュ。
   handleCommunityPlaylists,
   handleDeviceAggregates,
+  // 再生回数 (POST /plays/batch) と全曲の数 (GET /community/song-stats。公開キャッシュ 30 分)。
+  handlePlays,
   handleTags,
   // 歌詞 (GET /songs/:id/lyrics・/lyrics/search・/admin/lyrics/*)。
   // ⚠️ ゲートの対象 (isCommunityRead) には足さないこと。歌詞は下の isLyricsRead で

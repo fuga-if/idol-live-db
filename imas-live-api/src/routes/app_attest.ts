@@ -118,7 +118,7 @@ async function readProof(
 function isCommunityRead(path: string, method: string): boolean {
   if (method !== "GET") return false;
   // D1 固定無料枠に乗る集計 read を網羅する (CLAUDE.md 名指しの予想/いいね/ランキング含む)
-  if (/^\/(polls|favorites|penlight|tags|master)(\/|$)/.test(path)) return true;
+  if (/^\/(polls|favorites|penlight|tags|master|community)(\/|$)/.test(path)) return true;
   if (/^\/songs\/[^/]+\/(tags|similar|detail)$/.test(path)) return true;
   if (/^\/idols\/[^/]+\/similar$/.test(path)) return true;
   if (/^\/units\/[^/]+\/similar$/.test(path)) return true;

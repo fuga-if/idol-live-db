@@ -67,6 +67,9 @@ const LIMITS = {
   lyric_submission: 20,
   // credit: 公演ページの奥付に名前を載せるかの切り替え。設定を行き来する程度。
   credit: 20,
+  // play_batch: 再生回数のまとめ送り (POST /plays/batch)。端末ごとに数える (鍵は `device:<id>`)。
+  // 端末は 1 時間に 1 回しか送らない (imas-core play_counts::SEND_INTERVAL_SECONDS) ので 24 で足りる。
+  play_batch: 30,
 } as const satisfies Record<string, number>;
 
 /** 日次枠の種類。LIMITS に無い名前は型で弾く (知らない名前に黙って既定値を当てない)。 */
