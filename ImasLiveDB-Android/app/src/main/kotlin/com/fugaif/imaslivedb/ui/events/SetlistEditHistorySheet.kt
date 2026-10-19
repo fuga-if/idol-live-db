@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,7 @@ import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasText
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.ImasType
+import kotlinx.coroutines.flow.first
 import uniffi.imas_core.relativeTimes
 
 /**
@@ -55,21 +57,40 @@ fun SetlistEditHistorySheet(showId: String, showName: String, onDismiss: () -> U
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var history by remember { mutableStateOf<List<EditApi.RecordHistoryEntry>?>(null) }
+    // 続きのカーソル (直前の応答の next)。null なら最後まで読んだ。
+    var next by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scroll = rememberScrollState()
 
     LaunchedEffect(showId) {
         try {
-            history = AppModule.from(context).editApi.recordHistory("ShowSetlist", showId)
+            val page = AppModule.from(context).editApi.recordHistory("ShowSetlist", showId)
+            history = page.entries
+            next = page.next
         } catch (e: Exception) {
             error = "変更履歴の取得に失敗しました"
         }
+    }
+
+    suspend fun loadMore(cursor: String) {
+        val page = try {
+            AppModule.from(context).editApi.recordHistory("ShowSetlist", showId, before = cursor)
+        } catch (e: Exception) {
+            return
+        }
+        // 待っている間に読み直しで入れ替わっていたら付け足さない。
+        if (next != cursor) return
+        val current = history.orEmpty()
+        val known = current.mapTo(HashSet()) { it.id }
+        history = current + page.entries.filter { it.id !in known }
+        next = page.next
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = DS.bg) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(horizontal = DS.Space.rowH, vertical = DS.Space.gap),
             verticalArrangement = Arrangement.spacedBy(DS.Space.gap)
         ) {
@@ -97,6 +118,14 @@ fun SetlistEditHistorySheet(showId: String, showName: String, onDismiss: () -> U
                     val times = remember(entries) { relativeTimes(entries.map { it.createdAt }, System.currentTimeMillis()) }
                     entries.forEachIndexed { i, h ->
                         HistoryRow(h, times[i])
+                    }
+                    // 末尾まで来たら古い履歴を 30 件ずつ読み足す (一度に全件は読まない)。
+                    next?.let { cursor ->
+                        LaunchedEffect(cursor) {
+                            snapshotFlow { scroll.value >= scroll.maxValue }.first { it }
+                            loadMore(cursor)
+                        }
+                        ImasInlineLoading()
                     }
                 }
             }

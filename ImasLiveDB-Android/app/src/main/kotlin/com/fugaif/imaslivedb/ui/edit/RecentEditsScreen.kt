@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -91,6 +92,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasStateContainer
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasTextRole
 import com.fugaif.imaslivedb.ui.theme.imasRowPress
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uniffi.imas_core.relativeTimes
 
@@ -372,15 +374,34 @@ fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     var history by remember { mutableStateOf<List<EditApi.RecordHistoryEntry>?>(null) }
+    // 続きのカーソル (直前の応答の next)。null なら最後まで読んだ。
+    var next by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scroll = rememberScrollState()
 
     LaunchedEffect(recordType, recordName) {
         val editApi = AppModule.from(context).editApi
         try {
-            history = editApi.recordHistory(recordType, recordName)
+            val page = editApi.recordHistory(recordType, recordName)
+            history = page.entries
+            next = page.next
         } catch (e: Exception) {
             error = "変更履歴の取得に失敗しました"
         }
+    }
+
+    suspend fun loadMore(cursor: String) {
+        val page = try {
+            AppModule.from(context).editApi.recordHistory(recordType, recordName, before = cursor)
+        } catch (e: Exception) {
+            return
+        }
+        // 待っている間に読み直しで入れ替わっていたら付け足さない。
+        if (next != cursor) return
+        val current = history.orEmpty()
+        val known = current.mapTo(HashSet()) { it.id }
+        history = current + page.entries.filter { it.id !in known }
+        next = page.next
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -405,9 +426,17 @@ fun RecordHistorySheet(recordType: String, recordName: String, onDismiss: () -> 
                 val times = remember(currentHistory) {
                     relativeTimes(currentHistory!!.map { it.createdAt }, System.currentTimeMillis())
                 }
-                Column(Modifier.verticalScroll(rememberScrollState())) {
+                Column(Modifier.verticalScroll(scroll)) {
                     ImasListSection {
                         currentHistory!!.forEachIndexed { i, h -> HistoryRow(h, times.getOrElse(i) { "" }) }
+                    }
+                    // 末尾まで来たら古い履歴を 30 件ずつ読み足す (一度に全件は読まない)。
+                    next?.let { cursor ->
+                        LaunchedEffect(cursor) {
+                            snapshotFlow { scroll.value >= scroll.maxValue }.first { it }
+                            loadMore(cursor)
+                        }
+                        ImasInlineLoading()
                     }
                 }
             }

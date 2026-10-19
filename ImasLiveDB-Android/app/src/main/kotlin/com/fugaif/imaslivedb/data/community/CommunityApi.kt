@@ -154,6 +154,8 @@ class CommunityApi(private val http: WorkerHttpClient) {
     /** ユニットタグ (unit_tag_master) の詳細。曲/アイドルタグとは別プール。 */
     data class UnitTagDetail(val tag: CommunityTag, val units: List<TagUnitEntry>)
     data class TagHistoryEntry(
+        /** 履歴行の id (編集順に増える)。続きを読むときは直前ページ末尾の id を before に渡す。 */
+        val id: Int,
         val descriptionAfter: String?,
         val descriptionBefore: String?,
         val editedBy: String,
@@ -315,12 +317,22 @@ class CommunityApi(private val http: WorkerHttpClient) {
             json.optJSONObject("tag")?.let { parseTagFull(it) }
         }
 
-    /** GET /tags/{id}/history — 説明文の編集履歴。 */
-    suspend fun tagHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
-        val arr = getArray("/tags/${enc(id)}/history") ?: return@withContext emptyList()
+    /**
+     * GET /tags/{id}/history?limit=&before= — 説明文の編集履歴を新しい順に 1 ページ ([TAG_HISTORY_PAGE_SIZE] 件)。
+     * [before] に直前ページ末尾の [TagHistoryEntry.id] を渡すと、それより古い行を返す (iOS と同じ契約)。
+     * 通信失敗は null、「もう無い」は空リストで返す。
+     */
+    suspend fun tagHistory(id: String, before: Int? = null): List<TagHistoryEntry>? =
+        tagHistoryPage("/tags/${enc(id)}/history", before)
+
+    /** 3 つのタグプール共通の説明履歴 1 ページ。応答は配列のまま (旧アプリ互換)。 */
+    private suspend fun tagHistoryPage(path: String, before: Int?): List<TagHistoryEntry>? = withContext(Dispatchers.IO) {
+        val query = "limit=$TAG_HISTORY_PAGE_SIZE" + (before?.let { "&before=$it" } ?: "")
+        val arr = getArray("$path?$query") ?: return@withContext null
         (0 until arr.length()).map {
             val o = arr.getJSONObject(it)
             TagHistoryEntry(
+                id = o.optInt("id"),
                 descriptionAfter = o.strOrNull("description_after"),
                 descriptionBefore = o.strOrNull("description_before"),
                 editedBy = o.optString("edited_by"),
@@ -381,19 +393,9 @@ class CommunityApi(private val http: WorkerHttpClient) {
             json.optJSONObject("tag")?.let { parseTagFull(it) }
         }
 
-    /** GET /idol-tags/{id}/history — 説明文の編集履歴。 */
-    suspend fun idolTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
-        val arr = getArray("/idol-tags/${enc(id)}/history") ?: return@withContext emptyList()
-        (0 until arr.length()).map {
-            val o = arr.getJSONObject(it)
-            TagHistoryEntry(
-                descriptionAfter = o.strOrNull("description_after"),
-                descriptionBefore = o.strOrNull("description_before"),
-                editedBy = o.optString("edited_by"),
-                editedAt = o.optLong("edited_at")
-            )
-        }
-    }
+    /** GET /idol-tags/{id}/history?limit=&before= — 説明文の編集履歴を 1 ページ ([tagHistory] と同じ契約)。 */
+    suspend fun idolTagOptionHistory(id: String, before: Int? = null): List<TagHistoryEntry>? =
+        tagHistoryPage("/idol-tags/${enc(id)}/history", before)
 
     /** POST /idol-tags/{id}/report — 不適切なアイドルタグを通報。 */
     suspend fun reportIdolTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
@@ -447,19 +449,9 @@ class CommunityApi(private val http: WorkerHttpClient) {
             json.optJSONObject("tag")?.let { parseTagFull(it) }
         }
 
-    /** GET /unit-tags/{id}/history — 説明文の編集履歴。 */
-    suspend fun unitTagOptionHistory(id: String): List<TagHistoryEntry> = withContext(Dispatchers.IO) {
-        val arr = getArray("/unit-tags/${enc(id)}/history") ?: return@withContext emptyList()
-        (0 until arr.length()).map {
-            val o = arr.getJSONObject(it)
-            TagHistoryEntry(
-                descriptionAfter = o.strOrNull("description_after"),
-                descriptionBefore = o.strOrNull("description_before"),
-                editedBy = o.optString("edited_by"),
-                editedAt = o.optLong("edited_at")
-            )
-        }
-    }
+    /** GET /unit-tags/{id}/history?limit=&before= — 説明文の編集履歴を 1 ページ ([tagHistory] と同じ契約)。 */
+    suspend fun unitTagOptionHistory(id: String, before: Int? = null): List<TagHistoryEntry>? =
+        tagHistoryPage("/unit-tags/${enc(id)}/history", before)
 
     /** POST /unit-tags/{id}/report — 不適切なユニットタグを通報。 */
     suspend fun reportUnitTagOption(id: String, reason: String? = null): Boolean = withContext(Dispatchers.IO) {
@@ -664,9 +656,13 @@ class CommunityApi(private val http: WorkerHttpClient) {
         check(response.isSuccess) { "favorites/toggle -> HTTP ${response.code}" }
     }
 
-    /** GET /favorites/ranking — お気に入りの曲別集計 (曲メタは呼び出し側でローカルカタログから解決する)。 */
-    suspend fun favoritesRanking(): List<FavoriteRankingDto> = withContext(Dispatchers.IO) {
-        val arr = getArray("/favorites/ranking") ?: return@withContext emptyList()
+    /**
+     * GET /favorites/ranking?limit=&offset= — お気に入りの曲別集計を件数の多い順に 1 ページ
+     * (曲メタは呼び出し側でローカルカタログから解決する)。ブランドは手元で絞るので、
+     * 呼び出し側は絞った件数がたまるまで offset を進めて読む (iOS と同じ契約)。
+     */
+    suspend fun favoritesRanking(offset: Int = 0, limit: Int = FAVORITES_RANKING_PAGE_SIZE): List<FavoriteRankingDto> = withContext(Dispatchers.IO) {
+        val arr = getArray("/favorites/ranking?limit=$limit&offset=$offset") ?: return@withContext emptyList()
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             FavoriteRankingDto(o.optString("song_id"), o.optInt("count"))
@@ -918,6 +914,12 @@ class CommunityApi(private val http: WorkerHttpClient) {
 
     companion object {
         private const val TAG = "CommunityApi"
+
+        /** タグ説明の履歴の 1 ページの件数 (サーバの既定と同じ)。満杯なら続きがあるかもしれない。 */
+        const val TAG_HISTORY_PAGE_SIZE = 30
+
+        /** お気に入りランキングの 1 ページの件数。 */
+        const val FAVORITES_RANKING_PAGE_SIZE = 200
     }
 }
 

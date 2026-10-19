@@ -139,6 +139,12 @@ class EditApi(private val http: WorkerHttpClient, private val authService: AuthS
         val reverted: Boolean
     )
 
+    /** 変更履歴の 1 ページ。[next] は続きのカーソル (`<created_at>|<id>`)。null なら最後まで読んだ。 */
+    data class RecordHistoryPage(
+        val entries: List<RecordHistoryEntry>,
+        val next: String?
+    )
+
     sealed class ApiException(message: String) : Exception(message) {
         object NotAuthorized : ApiException("unauthorized")
         object Banned : ApiException("banned")
@@ -221,12 +227,21 @@ class EditApi(private val http: WorkerHttpClient, private val authService: AuthS
         return RevertOutcome.from(json.optString("outcome"))
     }
 
-    /** `GET /master/:recordType/:recordName/history` — あるレコードの変更履歴 (差分の主要キーのみ)。 */
-    suspend fun recordHistory(recordType: String, recordName: String, limit: Int = 30): List<RecordHistoryEntry> {
-        val path = "/master/${enc(recordType)}/${enc(recordName)}/history?limit=$limit"
+    /**
+     * `GET /master/:recordType/:recordName/history` — あるレコードの変更履歴 (差分の主要キーのみ) を新しい順に 1 ページ。
+     * 続きは直前の応答の [RecordHistoryPage.next] を [before] に渡す (一度に全件は読まない。iOS と同じ契約)。
+     */
+    suspend fun recordHistory(
+        recordType: String,
+        recordName: String,
+        limit: Int = 30,
+        before: String? = null
+    ): RecordHistoryPage {
+        val path = "/master/${enc(recordType)}/${enc(recordName)}/history?limit=$limit" +
+            (before?.let { "&before=${enc(it)}" } ?: "")
         val json = request("GET", path, null)
         val arr = json.optJSONArray("history") ?: JSONArray()
-        return (0 until arr.length()).map { i ->
+        val entries = (0 until arr.length()).map { i ->
             val h = arr.getJSONObject(i)
             val changed = h.optJSONArray("changedFields") ?: JSONArray()
             RecordHistoryEntry(
@@ -239,6 +254,9 @@ class EditApi(private val http: WorkerHttpClient, private val authService: AuthS
                 reverted = h.optBoolean("reverted", false)
             )
         }
+        // next は満杯のページのときだけ入る (古いサーバは返さないので null = 続きなし)。
+        val next = if (json.isNull("next")) null else json.optString("next").ifEmpty { null }
+        return RecordHistoryPage(entries, next)
     }
 
     // MARK: - parsing
