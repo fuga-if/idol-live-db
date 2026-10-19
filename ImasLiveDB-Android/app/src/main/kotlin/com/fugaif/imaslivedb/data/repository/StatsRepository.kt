@@ -120,33 +120,6 @@ class StatsRepository(
     internal companion object {
         /** 「この公演で聴けるかも」に出す公演の数。 */
         private const val CATCH_CHANCE_LIMIT = 8
-
-        /**
-         * お気に入りランキングを 1 ページ ([CommunityApi.FAVORITES_RANKING_PAGE_SIZE] 件) ずつ読み、
-         * ブランドで絞った件数が [limit] に届くまで offset を進める (iOS CommunityAPI.favoritesRanking と同じ)。
-         * 一度に全件は取らない。小さいブランドの曲も上位 200 で切れない。
-         * 読んでいる間に順位が入れ替わってページをまたいで同じ曲が出ることがあるので、曲 ID で重複を除く。
-         */
-        suspend fun collectFavoritesRanking(
-            brandId: String?,
-            limit: Int,
-            fetchPage: suspend (offset: Int) -> List<CommunityApi.FavoriteRankingDto>,
-            resolve: suspend (List<CommunityApi.FavoriteRankingDto>) -> List<FavoriteRankingEntry>
-        ): List<FavoriteRankingEntry> {
-            val pageSize = CommunityApi.FAVORITES_RANKING_PAGE_SIZE
-            val entries = mutableListOf<FavoriteRankingEntry>()
-            val seen = HashSet<String>()
-            var offset = 0
-            while (entries.size < limit) {
-                val dtos = fetchPage(offset)
-                val fresh = dtos.filter { seen.add(it.songId) }
-                entries += resolve(fresh).filter { brandId == null || it.brandId == brandId }
-                // 満杯でないページが最後。満杯でも新しい曲が 1 つも無ければ進めても同じなので打ち切る。
-                if (dtos.size < pageSize || fresh.isEmpty()) break
-                offset += pageSize
-            }
-            return entries.take(limit)
-        }
     }
 }
 
