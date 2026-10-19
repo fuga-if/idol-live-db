@@ -1,0 +1,15 @@
+{
+ "title": "→→→SP の補足: アイドルマスター TOURS のオリジナル楽曲",
+ "author": "daily-data-crawl (issue #326)",
+ "source": "https://idolmaster-official.jp/news/01_19544 (『アイドルマスター TOURS』大型アップデート、オリジナル楽曲『→→→SP』が登場) / https://idolmaster-official.jp/news/01_19443",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "765as_→→→sp",
+   "fields": {
+    "note": "アイドルマスター TOURS オリジナル楽曲"
+   },
+   "note": "公式ポータルのニュースで『アイドルマスター TOURS』初のオリジナル楽曲と告知。issue #326 の投稿を公式の呼び方に寄せて反映"
+  }
+ ]
+}
