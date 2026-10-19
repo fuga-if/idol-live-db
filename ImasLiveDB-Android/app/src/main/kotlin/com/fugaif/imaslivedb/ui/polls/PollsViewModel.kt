@@ -28,12 +28,14 @@ data class PollMonthSection(
 data class PollsUiState(
     /** 開催中タブの一覧。 */
     val cards: List<PollCard> = emptyList(),
+    /** 開催中タブ: まだ読んでいない次のページがあるか (直前のページが満杯だった)。 */
+    val hasMoreActive: Boolean = false,
     /** 終了タブ: 締切の月 (日本時間) ごとのセクション (新しい月から)。 */
     val pastSections: List<PollMonthSection> = emptyList(),
     /** まだ読んでいない古い月があるか。 */
     val hasMorePast: Boolean = false,
     val isLoading: Boolean = true,
-    /** 終了タブの「1 か月古い月」を読んでいる最中か。 */
+    /** 開催中タブの次のページ / 終了タブの「1 か月古い月」を読んでいる最中か。 */
     val isLoadingMore: Boolean = false,
     /** 表示中のセグメント。true=開催中 / false=終了。 */
     val showActive: Boolean = true,
@@ -47,6 +49,7 @@ data class PollsUiState(
  * 以前はお題ごとに `GET /polls/:id` を順に取り、一覧に候補と投票のボタンまで並べていた。
  * 画面が前面に来るたびに Worker (D1) を 1+N 回読んでいたので、iOS と同じく要約だけにした。
  *
+ * 開催中タブは `status=active` を 20 件ずつ読み、末尾まで見たら offset を進めて次のページを読む。
  * 終了タブは `status=past` の件数既定 20 で古いお題が切れるため、月 (日本時間) ごとに読む。
  * 最初は新しい月だけ取り、末尾まで見たら 1 か月ずつさかのぼる (iOS PollListViewModel と同じ契約)。
  */
@@ -64,6 +67,8 @@ class PollsViewModel internal constructor(
 
     // セグメントごとのキャッシュ。開催中/終了を往復するだけで取り直さない。
     private var activeCards: List<PollCard>? = null
+    /** 開催中の次のページがあるか (直前に読んだページが満杯だった)。 */
+    private var activeHasMore: Boolean = false
     /** 終了したお題がある月 (新しい月から)。`pastSections` の先頭から順に埋まる。 */
     private var pastMonths: List<CommunityApi.PollMonth>? = null
     private var pastSections: List<PollMonthSection>? = null
@@ -76,7 +81,12 @@ class PollsViewModel internal constructor(
         if (_uiState.value.showActive == active) return
         if (active) {
             val cached = activeCards
-            _uiState.value = PollsUiState(cards = cached.orEmpty(), isLoading = cached == null, showActive = true)
+            _uiState.value = PollsUiState(
+                cards = cached.orEmpty(),
+                hasMoreActive = cached != null && activeHasMore,
+                isLoading = cached == null,
+                showActive = true
+            )
             if (cached == null) loadActive()
         } else {
             val cachedSections = pastSections
@@ -96,7 +106,7 @@ class PollsViewModel internal constructor(
      */
     fun refresh() {
         if (_uiState.value.showActive) {
-            activeCards = null
+            // 詳細から戻ったときの読み直しで、読み進めたページを畳まない (loadActive が既存の件数を保つ)。
             loadActive()
         } else {
             // 詳細から戻ったときの読み直しで、さかのぼった月を畳まない (loadPast が既存の件数を保つ)。
@@ -106,7 +116,9 @@ class PollsViewModel internal constructor(
 
     private fun loadActive() {
         viewModelScope.launch {
-            val polls = runCatching { api.polls("active") }.getOrNull()
+            // 既に読んだ件数 (最低 1 ページ、上限はサーバの 100) ぶんを先頭から読み直す。
+            val limit = (activeCards?.size ?: 0).coerceIn(ACTIVE_PAGE_SIZE, ACTIVE_MAX_LIMIT)
+            val polls = runCatching { api.activePolls(offset = 0, limit = limit) }.getOrNull()
             // 読み込み中に利用者がセグメントを切り替えていたら、こちらの結果は捨てる
             // (遅れて届いた前のセグメントの一覧で上書きしないため)。
             val stillCurrent = { _uiState.value.showActive }
@@ -117,8 +129,48 @@ class PollsViewModel internal constructor(
             }
             val cards = polls.map { buildCard(it) }
             activeCards = cards
+            activeHasMore = polls.size >= limit
             if (stillCurrent()) {
-                _uiState.value = _uiState.value.copy(cards = cards, isLoading = false, loadError = null)
+                _uiState.value = _uiState.value.copy(
+                    cards = cards,
+                    hasMoreActive = activeHasMore,
+                    isLoading = false,
+                    loadError = null
+                )
+            }
+        }
+    }
+
+    /** 開催中タブの次のページ (20 件) を読む。末尾の行が見えたときに呼ぶ。 */
+    fun loadMoreActive() {
+        val cards = activeCards ?: return
+        if (!activeHasMore) return
+        if (_uiState.value.isLoadingMore || _uiState.value.isLoading) return
+        _uiState.value = _uiState.value.copy(isLoadingMore = true)
+        viewModelScope.launch {
+            val polls = runCatching { api.activePolls(offset = cards.size, limit = ACTIVE_PAGE_SIZE) }.getOrNull()
+            // 待っている間に読み直し・作成で中身が入れ替わっていたら付け足さない。
+            if (activeCards !== cards) {
+                _uiState.value = _uiState.value.copy(isLoadingMore = false)
+                return@launch
+            }
+            val stillCurrent = { _uiState.value.showActive }
+            if (polls == null) {
+                if (stillCurrent()) _uiState.value = _uiState.value.copy(isLoadingMore = false, loadError = "通信エラー")
+                return@launch
+            }
+            // 読んでいる間に締切や新規作成で並びがずれると同じお題が重なるので、ID で重複を除く。
+            val known = cards.mapTo(HashSet()) { it.poll.id }
+            val newCards = cards + polls.filter { it.id !in known }.map { buildCard(it) }
+            activeCards = newCards
+            activeHasMore = polls.size >= ACTIVE_PAGE_SIZE
+            if (stillCurrent()) {
+                _uiState.value = _uiState.value.copy(
+                    cards = newCards,
+                    hasMoreActive = activeHasMore,
+                    isLoadingMore = false,
+                    loadError = null
+                )
             }
         }
     }
@@ -204,6 +256,11 @@ class PollsViewModel internal constructor(
         PollCard(poll, poll.topEntityId?.let { entityName(poll.targetType, it) })
 
     private companion object {
+        /** 開催中タブの 1 ページの件数 (サーバの既定と同じ)。 */
+        const val ACTIVE_PAGE_SIZE = 20
+        /** 読み直しで一度に取れる上限 (サーバの limit の上限)。 */
+        const val ACTIVE_MAX_LIMIT = 100
+
         fun hasMorePast(months: List<CommunityApi.PollMonth>?, sections: List<PollMonthSection>?): Boolean =
             months != null && (sections?.size ?: 0) < months.size
 

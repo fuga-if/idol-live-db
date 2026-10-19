@@ -7,6 +7,7 @@ import com.fugaif.imaslivedb.data.net.WorkerHttpClient
 import com.fugaif.imaslivedb.data.net.WorkerResponse
 import com.fugaif.imaslivedb.testing.FakeWorkerTransport
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -99,6 +100,70 @@ class PollsViewModelTest {
         assertEquals(listOf("2026-10", "2026-09"), viewModel.uiState.value.pastSections.map { it.month.month })
     }
 
+    /**
+     * 開催中タブは 20 件ずつ。末尾まで見たら offset を進めて次のページを読み、
+     * 読み直し (詳細から戻ったとき) は読んだ件数ぶんを 1 回で取り直して一覧を畳まない。
+     */
+    @Test
+    fun activeLoadsTwentyAtATimeAndReloadKeepsLoadedCount() {
+        val all = (1..25).map { "a$it" }
+        val transport = FakeWorkerTransport { request ->
+            check(request.url.contains("/polls?status=active")) { "一覧以外を読んだ: ${request.url}" }
+            val limit = Regex("limit=(\\d+)").find(request.url)!!.groupValues[1].toInt()
+            val offset = Regex("offset=(\\d+)").find(request.url)!!.groupValues[1].toInt()
+            WorkerResponse(200, activeJson(all.drop(offset).take(limit)))
+        }
+        val api = CommunityApi(WorkerHttpClient(app, { null }, transport))
+        val viewModel = PollsViewModel(app, api) { type, id -> "$type:$id" }
+
+        viewModel.refresh()
+        idleUntil { !viewModel.uiState.value.isLoading }
+        assertEquals(all.take(20), viewModel.uiState.value.cards.map { it.poll.id })
+        assertEquals(true, viewModel.uiState.value.hasMoreActive)
+        assertTrue(transport.requests.last().url.contains("limit=20&offset=0"))
+
+        viewModel.loadMoreActive()
+        idleUntil { !viewModel.uiState.value.isLoadingMore }
+        assertEquals(all, viewModel.uiState.value.cards.map { it.poll.id })
+        assertEquals(false, viewModel.uiState.value.hasMoreActive)
+        assertTrue(transport.requests.last().url.contains("limit=20&offset=20"))
+
+        viewModel.refresh()
+        idleUntil { transport.requests.size >= 3 }
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(3, transport.requests.size)
+        assertTrue(transport.requests[2].url.contains("limit=25&offset=0"))
+        assertEquals(all, viewModel.uiState.value.cards.map { it.poll.id })
+    }
+
+    /** 終了したお題は 1 位の票数 (top_vote_count) を読む。無投票・古いサーバでは null。 */
+    @Test
+    fun pastPollParsesTopVoteCount() {
+        val past = System.currentTimeMillis() / 1000 - 86_400 * 30
+        val transport = FakeWorkerTransport { request ->
+            when {
+                request.url.contains("/polls/months") -> WorkerResponse(200, """[{"month":"2026-10","label":"2026.10","count":2}]""")
+                request.url.contains("month=2026-10") -> WorkerResponse(
+                    200,
+                    """[{"id":"won","title":"決着","target_type":"song","status":"active","ends_at":$past,
+                        "total_votes":9,"top_entity_id":"s1","top_vote_count":5},
+                       {"id":"none","title":"無投票","target_type":"song","status":"active","ends_at":$past,
+                        "total_votes":0,"top_entity_id":null,"top_vote_count":null}]""".trimIndent()
+                )
+                else -> throw AssertionError("想定外のリクエスト: ${request.url}")
+            }
+        }
+        val api = CommunityApi(WorkerHttpClient(app, { null }, transport))
+        val viewModel = PollsViewModel(app, api) { type, id -> "$type:$id" }
+
+        viewModel.setShowActive(false)
+        idleUntil { !viewModel.uiState.value.isLoading }
+
+        val cards = viewModel.uiState.value.pastSections.flatMap { it.cards }
+        assertEquals(listOf(5, null), cards.map { it.poll.topVoteCount })
+        assertEquals(listOf("song:s1", null), cards.map { it.topEntityName })
+    }
+
     private fun idleUntil(condition: () -> Boolean) {
         val deadline = System.currentTimeMillis() + 10_000
         while (!condition() && System.currentTimeMillis() < deadline) {
@@ -108,6 +173,11 @@ class PollsViewModelTest {
     }
 
     private companion object {
+        fun activeJson(ids: List<String>): String = ids.joinToString(",", "[", "]") { id ->
+            """{"id":"$id","title":"$id","target_type":"song","status":"active","ends_at":$FAR,
+               "total_votes":0,"top_entity_id":null}"""
+        }
+
         val FAR = System.currentTimeMillis() / 1000 + 86_400 * 30
         val POLLS = """
             [{"id":"p1","title":"夏の曲","target_type":"song","status":"active","ends_at":$FAR,

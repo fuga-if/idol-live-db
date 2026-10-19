@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,7 +59,6 @@ import com.fugaif.imaslivedb.ui.share.SocialShareIconButton
 fun PollsScreen(
     onBack: (() -> Unit)?,
     onPollClick: (String) -> Unit = {},
-    onHallOfFameClick: () -> Unit = {},
     viewModel: PollsViewModel = viewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -85,7 +83,6 @@ fun PollsScreen(
                     }
                 },
                 actions = {
-                    ImasToolbarButton(icon = Icons.Filled.EmojiEvents, label = "殿堂を見る", onClick = onHallOfFameClick, tint = DS.warning)
                     // 作成はログイン必須 (サーバが 401 を返す)。未ログインでは押せるボタンを出さない。
                     if (authState.isSignedIn) {
                         ImasToolbarButton(icon = Icons.Filled.Add, label = "お題を作成", onClick = { showCreateSheet = true })
@@ -143,6 +140,13 @@ fun PollsScreen(
                                 onClick = { onPollClick(card.poll.id) },
                                 position = if (idx == 0) ImasRowPosition.FIRST else ImasRowPosition.FOLLOWING
                             )
+                        }
+                        // 開催中は 20 件ずつ。末尾まで来たら次のページを読む (終了タブの月送りと同じ形)。
+                        if (state.hasMoreActive) {
+                            item(key = "load-more-active") {
+                                LaunchedEffect(state.cards.size) { viewModel.loadMoreActive() }
+                                ImasInlineLoading(modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     } else {
                         // 終了したお題は締切の月 (日本時間) ごとに区切り、末尾まで来たら 1 か月古い月を読む。
@@ -218,7 +222,10 @@ private fun PollRow(
             ScopeBadge(poll)
         }
         card.topEntityName?.let { name ->
-            Text("1位 $name", style = ImasTextRole.ROW_SUBTITLE.style, color = DS.ink2, maxLines = 1)
+            // 終了したお題は確定した 1 位なので票数も添える (殿堂の代わり。古いサーバは票数を返さないので名前だけ)。
+            val votes = poll.topVoteCount?.takeIf { !poll.isActive }
+            val line = if (votes != null) "1位 $name · ${votes}票" else "1位 $name"
+            Text(line, style = ImasTextRole.ROW_SUBTITLE.style, color = DS.ink2, maxLines = 1)
         }
     }
 }

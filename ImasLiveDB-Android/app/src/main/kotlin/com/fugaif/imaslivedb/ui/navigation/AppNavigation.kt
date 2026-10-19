@@ -76,7 +76,6 @@ import com.fugaif.imaslivedb.ui.mypage.FavoritesScreen
 import com.fugaif.imaslivedb.ui.mypage.MyContributionsScreen
 import com.fugaif.imaslivedb.ui.polls.MyVotesScreen
 import com.fugaif.imaslivedb.ui.polls.PollDetailScreen
-import com.fugaif.imaslivedb.ui.polls.PollHallOfFameScreen
 import com.fugaif.imaslivedb.ui.polls.PollsScreen
 import com.fugaif.imaslivedb.ui.ledger.LedgerScreen
 import com.fugaif.imaslivedb.ui.producercard.CardCaseScreen
@@ -445,16 +444,7 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     composable(NavRoutes.Polls.route) {
         PollsScreen(
             onBack = navController.backOrNull(),
-            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) },
-            onHallOfFameClick = { navController.navigate(NavRoutes.PollHallOfFame.route) }
-        )
-    }
-    composable(NavRoutes.PollHallOfFame.route) {
-        PollHallOfFameScreen(
-            onBack = { navController.popBackStack() },
-            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) },
-            onIdolClick = { navController.navigate(NavRoutes.IdolDetail.createRoute(it)) },
-            onUnitClick = { navController.navigate(NavRoutes.UnitDetail.createRoute(it)) }
+            onPollClick = { navController.navigate(NavRoutes.PollDetail.createRoute(it)) }
         )
     }
     composable(NavRoutes.Favorites.route) {

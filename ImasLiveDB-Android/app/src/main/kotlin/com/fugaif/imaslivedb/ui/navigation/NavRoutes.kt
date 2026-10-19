@@ -219,9 +219,6 @@ sealed class NavRoutes(val route: String) {
         }
     }
 
-    /** 終了したお題の優勝者一覧 (iOS PollHallOfFameView)。 */
-    data object PollHallOfFame : NavRoutes("poll_hall_of_fame")
-
     /** ユニットタグの詳細 (曲/アイドルのタグ詳細と同型)。 */
     data class UnitTagDetail(val tagId: String) : NavRoutes("unit_tag_detail/{tagId}") {
         companion object {

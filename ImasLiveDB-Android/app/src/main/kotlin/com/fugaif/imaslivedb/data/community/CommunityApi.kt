@@ -31,6 +31,8 @@ class CommunityApi(private val http: WorkerHttpClient) {
         val scopeEntityIds: List<String> = emptyList(),
         /** いま 1 位の曲/アイドル/ユニットの ID。まだ票が無ければ null。 */
         val topEntityId: String? = null,
+        /** 1 位の票数 (無投票なら null)。終了タブの行に「1位 ○○ · N票」と出す。古いサーバでは null。 */
+        val topVoteCount: Int? = null,
     ) {
         /** iOS Poll.isActive の移植: サーバが active かつ締切前。 */
         val isActive: Boolean get() = status == "active" && endsAtMs > System.currentTimeMillis()
@@ -46,15 +48,6 @@ class CommunityApi(private val http: WorkerHttpClient) {
         /** 月の見出し ("2026.10")。文言はサーバが作る。 */
         val label: String,
         val count: Int,
-    )
-    /** 終了お題の優勝者 1 件 (殿堂)。iOS PollResult の移植。 */
-    data class PollResult(
-        val pollId: String,
-        val title: String,
-        val targetType: String,
-        val endsAtMs: Long,
-        val entityId: String,
-        val voteCount: Int
     )
     /**
      * お題作成の結果。作成は認証・レート制限 (1日◯件) の対象で、失敗理由を
@@ -694,6 +687,17 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /**
+     * GET /polls?status=active&limit=&offset= — 開催中のお題を 1 ページ分 (締切が近い順)。
+     * サーバの limit は既定 20・上限 100。開催中タブは末尾まで見たら offset を進めて次のページを読む
+     * (iOS と同じ契約)。通信失敗は null、「もう無い」は空リストで返す。
+     */
+    suspend fun activePolls(offset: Int, limit: Int = 20): List<PollSummary>? = withContext(Dispatchers.IO) {
+        val arr = getArray("/polls?status=active&limit=$limit&offset=$offset", authorized = true)
+            ?: return@withContext null
+        (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
+    }
+
+    /**
      * GET /polls/months — 終了したお題がある月 (日本時間、新しい月から)。認証不要。
      * `status=past` は件数既定 20 で切れるため、終了タブはこれで月ごとにさかのぼる (iOS と同じ契約)。
      * 通信失敗は null、「無い」は空リストで返す。
@@ -710,22 +714,6 @@ class CommunityApi(private val http: WorkerHttpClient) {
     suspend fun pastPolls(month: String): List<PollSummary>? = withContext(Dispatchers.IO) {
         val arr = getArray("/polls?status=past&month=${enc(month)}", authorized = true) ?: return@withContext null
         (0 until arr.length()).mapNotNull { i -> parsePollSummary(arr.getJSONObject(i)) }
-    }
-
-    /** GET /polls/results — 終了お題の優勝者一覧 (殿堂)。認証不要の公開集計。通信失敗は null。 */
-    suspend fun pollResults(): List<PollResult>? = withContext(Dispatchers.IO) {
-        val arr = getArray("/polls/results") ?: return@withContext null
-        (0 until arr.length()).map { i ->
-            val o = arr.getJSONObject(i)
-            PollResult(
-                pollId = o.optString("poll_id"),
-                title = o.optString("title"),
-                targetType = o.optString("target_type"),
-                endsAtMs = epochSecToMs(o.optLong("ends_at")),
-                entityId = o.optString("entity_id"),
-                voteCount = o.optInt("vote_count"),
-            )
-        }
     }
 
     /**
@@ -790,6 +778,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
             scopeBrandIds = o.optJSONArray("scope_brand_ids")?.toStringList().orEmpty(),
             scopeEntityIds = o.optJSONArray("scope_entity_ids")?.toStringList().orEmpty(),
             topEntityId = o.strOrNull("top_entity_id"),
+            topVoteCount = if (o.isNull("top_vote_count")) null else o.optInt("top_vote_count"),
         )
     }
 
