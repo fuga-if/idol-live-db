@@ -51,7 +51,7 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
-            id = "v2.9.0_play_counts",
+            id = "v2.8.0_play_counts",
             date = "2026-10-20",
             title = "曲の再生回数と、人気・急上昇のランキング",
             summary = "みんなが聴いた回数を曲ごとに数え、人気・急上昇などのランキングと曲詳細に出します。",
