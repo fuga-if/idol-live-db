@@ -6,7 +6,6 @@ import SwiftUI
 enum PollRoute: Hashable {
     case list           // みんなの投票一覧 (PollListView)
     case detail(String) // pollId
-    case hallOfFame
 }
 
 /// `PollRoute` の行き先。プロデュースのスタックとサイドバーの「みんなの投票」の
@@ -18,7 +17,6 @@ struct PollRouteView: View {
         switch route {
         case .list: PollListView()
         case let .detail(pollId): PollDetailView(pollId: pollId)
-        case .hallOfFame: PollHallOfFameView()
         }
     }
 }
@@ -67,12 +65,6 @@ struct PollListView: View {
             .navigationTitle("みんなの投票")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(value: PollRoute.hallOfFame) {
-                        Image(systemName: "crown.fill")
-                    }
-                    .accessibilityLabel("殿堂を見る")
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     if AuthService.shared.isSignedIn {
                         ImasToolbarButton(systemImage: "plus", label: "お題を作成") {
@@ -107,9 +99,16 @@ struct PollListView: View {
         // 隣のお題も開く」現象が起きる。ScrollView ならセル概念が無いので回避できる。
         ScrollView {
             if segmentIndex == 0 {
-                pollCards(currentPolls)
-                    .padding(.horizontal, DS.sp5)
-                    .padding(.vertical, DS.sp3)
+                // 締切の近い順に 20 件ずつ。末尾まで来たら続きを読む。
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    pollCards(currentPolls)
+                    if vm.hasMoreActive {
+                        ImasInlineLoading()
+                            .onAppear { Task { await vm.loadMoreActive() } }
+                    }
+                }
+                .padding(.horizontal, DS.sp5)
+                .padding(.vertical, DS.sp3)
             } else {
                 // 終了したお題は締切の月 (日本時間) ごとに区切り、末尾まで来たら 1 か月古い月を読む。
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -187,15 +186,34 @@ private struct PollRowView: View {
 
     var body: some View {
         ImasRow(title: poll.title, leading: leading, trailing: .chevron) {
-            HStack(spacing: DS.Space.gapTight) {
-                scopeBadge
-                ImasBadge(text: poll.statusLabel, kind: poll.isActive ? .attention : .neutral)
-                if let totalVotes = poll.totalVotes, totalVotes > 0 {
-                    Text("計\(totalVotes)票").imasText(.meta)
+            VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                HStack(spacing: DS.Space.gapTight) {
+                    scopeBadge
+                    ImasBadge(text: poll.statusLabel, kind: poll.isActive ? .attention : .neutral)
+                    if let totalVotes = poll.totalVotes, totalVotes > 0 {
+                        Text("計\(totalVotes)票").imasText(.meta)
+                    }
+                }
+                // 終わったお題は 1 位を名前で出す (殿堂をここにまとめた)。
+                if !poll.isActive, let winnerLine {
+                    Text(winnerLine).imasText(.meta).lineLimit(1)
                 }
             }
         }
         .task { await resolveTopEntity() }
+    }
+
+    /// 「1位 ○○ · N票」。1 位の名前が引けるまでは出さない。
+    private var winnerLine: String? {
+        let name: String?
+        switch poll.targetType {
+        case .song: name = topSong?.title
+        case .idol: name = topIdol?.name
+        case .unit: name = topUnit?.displayName
+        }
+        guard let name else { return nil }
+        if let votes = poll.topVoteCount { return "1位 \(name) · \(votes)票" }
+        return "1位 \(name)"
     }
 
     private func resolveTopEntity() async {

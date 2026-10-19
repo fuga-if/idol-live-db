@@ -87,7 +87,8 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
           COUNT(pe.entity_id) AS entry_count,
           (SELECT COUNT(*) FROM poll_votes pv WHERE pv.poll_id = p.id AND pv.user_id = ?) AS my_vote_count,
           (SELECT pe2.entity_id FROM poll_entries pe2 WHERE pe2.poll_id = p.id AND pe2.vote_count > 0
-             ORDER BY pe2.vote_count DESC LIMIT 1) AS top_entity_id
+             ORDER BY pe2.vote_count DESC LIMIT 1) AS top_entity_id,
+          (SELECT MAX(pe3.vote_count) FROM poll_entries pe3 WHERE pe3.poll_id = p.id) AS top_vote_count
         FROM polls p
         LEFT JOIN poll_entries pe ON pe.poll_id = p.id
         WHERE p.status = 'active' AND ${timeCondition} ${monthCondition}
@@ -120,6 +121,8 @@ export async function handlePolls(ctx: RouteContext): Promise<Response | null> {
           // 一覧行に現在1位の曲/アイドルの写真を出すための ID (アイマスらしい実写優先の
           // デザインシステムに合わせる。まだ無投票なら null → クライアント側で汎用表示)。
           top_entity_id: r.top_entity_id,
+          // 1 位の票数 (終了タブの行に「1位 ○○ · N票」と出す。殿堂を終了タブにまとめた)。
+          top_vote_count: r.top_entity_id ? r.top_vote_count : null,
         }))
       );
     }

@@ -139,10 +139,10 @@ describe("GET /polls と GET /polls/:id", () => {
     expect(res.res.headers.get("Cache-Control")).toBeNull();
     expect(res.body.map((p: any) => p.id)).toEqual(["sooner", "later"]);
     expect(Object.keys(res.body[0]).sort()).toEqual(
-      [...POLL_KEYS, "my_vote_count", "top_entity_id"].sort()
+      [...POLL_KEYS, "my_vote_count", "top_entity_id", "top_vote_count"].sort()
     );
-    expect(res.body[0]).toMatchObject({ total_votes: 3, entry_count: 2, my_vote_count: 2, top_entity_id: "s2" });
-    expect(res.body[1]).toMatchObject({ total_votes: 0, entry_count: 0, my_vote_count: 0, top_entity_id: null });
+    expect(res.body[0]).toMatchObject({ total_votes: 3, entry_count: 2, my_vote_count: 2, top_entity_id: "s2", top_vote_count: 2 });
+    expect(res.body[1]).toMatchObject({ total_votes: 0, entry_count: 0, my_vote_count: 0, top_entity_id: null, top_vote_count: null });
 
     const past = await callJson("GET", "/polls?status=past");
     expect(past.body.map((p: any) => p.id)).toEqual(["ended"]);

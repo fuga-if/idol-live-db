@@ -62,6 +62,27 @@ final class PollListViewModelTests: XCTestCase {
         XCTAssertEqual(fake.pastPollMonthCalls, ["2026-10", "2026-09", "2026-10", "2026-09"])
     }
 
+    func testActiveLoadsTwentyAtATimeAndKeepsLoadedCountOnReload() async {
+        let fake = FakeCommunityVoting()
+        fake.pollsByStatus["active"] = (0..<45).map { makePoll(id: "a\($0)", active: true) }
+        let vm = PollListViewModel(voting: fake)
+
+        await vm.load(active: true)
+        XCTAssertEqual(vm.polls(active: true).count, 20)
+        XCTAssertTrue(vm.hasMoreActive)
+
+        await vm.loadMoreActive()
+        await vm.loadMoreActive()
+        XCTAssertEqual(vm.polls(active: true).map(\.id), (0..<45).map { "a\($0)" })
+        XCTAssertFalse(vm.hasMoreActive)
+
+        // 詳細から戻っての読み直しで、読んだところまで畳まない。
+        await vm.load(active: true)
+        XCTAssertEqual(vm.polls(active: true).count, 45)
+        XCTAssertEqual(fake.activePageCalls.map(\.offset), [0, 20, 40, 0])
+        XCTAssertEqual(fake.activePageCalls.last?.limit, 45)
+    }
+
     func testInsertCreatedPrependsActivePoll() async {
         let fake = FakeCommunityVoting()
         fake.pollsByStatus["active"] = [makePoll(id: "p1", active: true)]
@@ -71,35 +92,5 @@ final class PollListViewModelTests: XCTestCase {
         vm.insertCreated(makePoll(id: "new", active: true))
 
         XCTAssertEqual(vm.polls(active: true).map(\.id), ["new", "p1"])
-    }
-}
-
-@MainActor
-final class PollHallOfFameViewModelTests: XCTestCase {
-
-    func testLoadPopulatesResults() async {
-        let fake = FakeCommunityVoting()
-        fake.resultsToReturn = [
-            PollResult(pollId: "p1", title: "最強の曲", targetType: .song,
-                       endsAt: Date(), entityId: "s1", voteCount: 42)
-        ]
-        let vm = PollHallOfFameViewModel(voting: fake)
-
-        await vm.load()
-
-        XCTAssertFalse(vm.isLoading)
-        XCTAssertNil(vm.loadError)
-        XCTAssertEqual(vm.results.map(\.entityId), ["s1"])
-    }
-
-    func testLoadErrorSetsMessage() async {
-        let fake = FakeCommunityVoting()
-        fake.shouldThrow = true
-        let vm = PollHallOfFameViewModel(voting: fake)
-
-        await vm.load()
-
-        XCTAssertNotNil(vm.loadError)
-        XCTAssertTrue(vm.results.isEmpty)
     }
 }

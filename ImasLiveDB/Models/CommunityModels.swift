@@ -479,6 +479,8 @@ struct Poll: Codable, Identifiable, Hashable, Sendable {
     let scopeEntityIds: [String]?
     /// 現在1位の曲/アイドルの entity_id (無投票なら nil)。一覧行のサムネイルに使う。
     let topEntityId: String?
+    /// 1 位の票数 (無投票なら nil)。終了タブの行に「1位 ○○ · N票」と出す。古いサーバでは nil。
+    var topVoteCount: Int? = nil
     /// 呼び出した人のお題か (削除の導線を出す判定)。サーバが認証から決める。古いサーバでは nil。
     var isOwnPoll: Bool? = nil
 
@@ -519,17 +521,6 @@ struct PollMonthSection: Identifiable, Sendable {
     var id: String { month.month }
     let month: PollMonth
     let polls: [Poll]
-}
-
-/// 終了お題の優勝者 (殿堂/結果一覧用)。
-struct PollResult: Codable, Identifiable, Sendable {
-    var id: String { pollId }
-    let pollId: String
-    let title: String
-    let targetType: PollTargetType
-    let endsAt: Date
-    let entityId: String
-    let voteCount: Int
 }
 
 /// ある曲/アイドルが終了お題で取った順位 (詳細バッジ用)。

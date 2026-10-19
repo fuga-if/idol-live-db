@@ -501,6 +501,14 @@ actor CommunityAPI {
         return try await APIClient.shared.request("GET", path: "/polls", query: ["status": status], authorized: true)
     }
 
+    func activePolls(offset: Int, limit: Int) async throws -> [Poll] {
+        return try await APIClient.shared.request(
+            "GET", path: "/polls",
+            query: ["status": "active", "offset": String(offset), "limit": String(limit)],
+            authorized: true
+        )
+    }
+
     func pollMonths() async throws -> [PollMonth] {
         return try await APIClient.shared.request("GET", path: "/polls/months")
     }
@@ -516,11 +524,6 @@ actor CommunityAPI {
         // 投票済みでも「残り3/3」表示 → 投票するとサーバに重複拒否されてエラーになる。
         // 未ログインは匿名で取得 (myVoteCount=0)、期限切れトークンは 401→sliding refresh で自己回復。
         return try await APIClient.shared.request("GET", path: "/polls/\(id)", authorized: true)
-    }
-
-    /// 終了お題の優勝者一覧 (殿堂)。
-    func pollResults() async throws -> [PollResult] {
-        return try await APIClient.shared.request("GET", path: "/polls/results")
     }
 
     /// 指定エンティティ(曲/アイドル)の終了お題での順位実績 (上位3位)。

@@ -7,7 +7,6 @@ import XCTest
 final class FakeCommunityVoting: CommunityVoting {
     var detailToReturn: PollDetail?
     var pollsByStatus: [String: [Poll]] = [:]
-    var resultsToReturn: [PollResult] = []
     var voteResultByEntity: [String: PollVoteResult] = [:]
     var unvoteResultByEntity: [String: PollVoteResult] = [:]
     var shouldThrow = false
@@ -19,6 +18,17 @@ final class FakeCommunityVoting: CommunityVoting {
     func polls(status: String) async throws -> [Poll] {
         if shouldThrow { throw FakeError.boom }
         return pollsByStatus[status] ?? []
+    }
+
+    private(set) var activePageCalls: [(offset: Int, limit: Int)] = []
+
+    /// `pollsByStatus["active"]` を offset/limit で切って返す (サーバの LIMIT/OFFSET と同じ)。
+    func activePolls(offset: Int, limit: Int) async throws -> [Poll] {
+        if shouldThrow { throw FakeError.boom }
+        activePageCalls.append((offset, limit))
+        let all = pollsByStatus["active"] ?? []
+        guard offset < all.count else { return [] }
+        return Array(all[offset..<min(all.count, offset + limit)])
     }
 
     var monthsToReturn: [PollMonth] = []
@@ -42,10 +52,6 @@ final class FakeCommunityVoting: CommunityVoting {
         return d
     }
 
-    func pollResults() async throws -> [PollResult] {
-        if shouldThrow { throw FakeError.boom }
-        return resultsToReturn
-    }
     func pollAchievements(entityId: String) async throws -> [PollAchievement] { [] }
 
     var createPollResult: Poll?

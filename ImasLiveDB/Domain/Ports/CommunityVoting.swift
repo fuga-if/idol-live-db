@@ -10,14 +10,14 @@ import Foundation
 protocol CommunityVoting: Sendable {
     /// お題一覧。status は "active" / "past" など。
     func polls(status: String) async throws -> [Poll]
+    /// 開催中のお題を締切の近い順に `offset` から `limit` 件 (サーバの上限は 100)。
+    func activePolls(offset: Int, limit: Int) async throws -> [Poll]
     /// 終了したお題がある月 (新しい月から)。
     func pollMonths() async throws -> [PollMonth]
     /// 締切がその月 (日本時間、"YYYY-MM") の終了したお題。新しい順。
     func pastPolls(month: String) async throws -> [Poll]
     /// お題詳細 (ランキング + 自分の投票数)。
     func poll(id: String) async throws -> PollDetail
-    /// 終了お題の優勝者一覧 (殿堂)。
-    func pollResults() async throws -> [PollResult]
     /// ある曲/アイドルが終了お題で取った順位 (詳細バッジ用)。
     func pollAchievements(entityId: String) async throws -> [PollAchievement]
     /// 新しいお題を作成。
