@@ -64,6 +64,26 @@ describe("予想セトリ (/shows/:id/predictions と /me/predictions)", () => {
     expect((await callJson("GET", "/me/predictions")).status).toBe(401);
   });
 
+  it("/me/predictions は limit と before で新しい順に続きを読む。limit なしは今までどおり", async () => {
+    await insertUser(UID);
+    for (let i = 0; i < 5; i++) {
+      await exec(
+        "INSERT INTO setlist_prediction_votes (show_id, song_id, user_id, voted_at) VALUES (?, 's', ?, ?)",
+        `sh${i}`, UID, `2026-10-0${i + 1} 00:00:00`
+      );
+    }
+    const h = { headers: await bearer(UID) };
+    const p1 = await callJson("GET", "/me/predictions?limit=2", h);
+    expect(p1.body.map((r: any) => r.show_id)).toEqual(["sh4", "sh3"]);
+    const last = p1.body[1];
+    const cursor = encodeURIComponent(`${last.voted_at}|${last.show_id}|${last.song_id}`);
+    const p2 = await callJson("GET", `/me/predictions?limit=2&before=${cursor}`, h);
+    expect(p2.body.map((r: any) => r.show_id)).toEqual(["sh2", "sh1"]);
+    expect((await callJson("GET", "/me/predictions", h)).body).toHaveLength(5);
+    expect((await callJson("GET", "/me/predictions/count", h)).body).toEqual({ count: 5 });
+    expect((await callJson("GET", "/me/predictions/count")).status).toBe(401);
+  });
+
   it("一覧の first_voted_by は先頭 8 文字だけ返す (キーは残す。値の無い行は null のまま)", async () => {
     await insertUser(UID);
     await predict("sh1", "s1");

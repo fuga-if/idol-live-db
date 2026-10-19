@@ -546,8 +546,10 @@ export async function handleGetRecordHistory(
   recordName: string
 ): Promise<Response> {
   const { url, env, json } = ctx;
-  const limit = parsePositiveInt(url.searchParams.get("limit"), 30);
-  const rows = await getRecordHistory(env.DB, recordType, recordName, limit);
+  const limit = Math.min(parsePositiveInt(url.searchParams.get("limit"), 30), 100);
+  // 続きは before=<created_at>|<id> (直前の応答の next をそのまま渡す)。一度に全件は読まない。
+  const before = parseHistoryCursor(url.searchParams.get("before"));
+  const rows = await getRecordHistory(env.DB, recordType, recordName, limit, before);
   // 一覧では変更フィールド名のみの要約 + フル diff を併せて返す (RedTeam Medium: 応答肥大対策の一次表現)。
   // レスポンスキーは確定契約により camelCase (batchId/changedFields/editorName/modifiedAt 等)。
   const history = rows.map((r) => {
@@ -568,7 +570,16 @@ export async function handleGetRecordHistory(
       reverted: !!r.reverted || r.reverted_at != null,
     };
   });
-  return json({ history });
+  const last = rows[rows.length - 1];
+  // 満杯なら続きがあるかもしれない (次のページが空なら終わり)。
+  const next = rows.length === limit && last ? `${last.created_at}|${last.id}` : null;
+  return json({ history, next });
+}
+
+/** before=<created_at (ms)>|<id>。数で比べる (created_at は INTEGER 列。文字列で渡すと全行が「より前」になる)。 */
+function parseHistoryCursor(s: string | null): { createdAt: number; id: number } | null {
+  const m = s?.match(/^(\d+)\|(\d+)$/);
+  return m ? { createdAt: Number(m[1]), id: Number(m[2]) } : null;
 }
 
 function parsePositiveInt(s: string | null, fallback: number): number {

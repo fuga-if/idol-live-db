@@ -647,20 +647,26 @@ async function updateTag(ctx: RouteContext, pool: TagPool, rawId: string): Promi
 }
 
 /**
- * GET <master>/:id/history — 説明の編集履歴 (新しい順に 30 件)。
+ * GET <master>/:id/history — 説明の編集履歴 (新しい順に limit 件、既定 30・上限 100)。
+ * 続きは before=<id> (直前ページ末尾の行の id。id は編集順に増えるので edited_at の順と一致)。
+ * 応答は配列のまま (旧アプリ互換)。
  * 編集者 (端末 ID か uid) は先頭 8 文字だけ返す (maskUserRef。予想の first_voted_by と同じ)。
  */
 async function tagHistory(ctx: RouteContext, pool: TagPool, rawId: string): Promise<Response> {
   const tagId = decodePathParam(ctx, rawId, "tag_id");
   if (tagId instanceof Response) return tagId;
+  const limit = Math.min(Math.max(Number(ctx.url.searchParams.get("limit")) || 30, 1), 100);
+  const beforeId = Number(ctx.url.searchParams.get("before"));
+  const before = Number.isInteger(beforeId) && beforeId > 0 ? beforeId : null;
   const { results } = await ctx.env.DB.prepare(
     `SELECT id, tag_id,
             description AS description_after,
             description_before,
             edited_by, edited_at
      FROM ${pool.historyTable}
-     WHERE tag_id = ? ORDER BY edited_at DESC LIMIT 30`
-  ).bind(tagId).all();
+     WHERE tag_id = ? ${before ? "AND id < ?" : ""}
+     ORDER BY edited_at DESC, id DESC LIMIT ?`
+  ).bind(tagId, ...(before ? [before] : []), limit).all();
   return ctx.json(results.map((r) => ({ ...r, edited_by: maskUserRef(r.edited_by) })));
 }
 

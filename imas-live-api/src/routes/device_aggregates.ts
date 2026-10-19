@@ -132,13 +132,15 @@ export async function handleDeviceAggregates(ctx: RouteContext): Promise<Respons
       // D1 の songs はコードから書かれない陳腐化ミラーで、新曲が JOIN で脱落する/
       // s.artist カラムが存在せずクエリ自体が壊れるため、ミラー依存を撤去した。
       // ブランド絞り込みと曲メタ解決は iOS local カタログ側で行う (予想機能と同方針)。
+      // offset で続きを読む (アプリはブランドで絞った件数がたまるまでページを進める)。
       const limit = parsePositiveInt(url.searchParams.get("limit"), 200, 1000);
+      const offset = parsePositiveInt(url.searchParams.get("offset"), 0, 100000);
 
       const { results } = await env.DB.prepare(
         `SELECT song_id, count FROM song_favorites
-         ORDER BY count DESC LIMIT ?`
+         ORDER BY count DESC LIMIT ? OFFSET ?`
       )
-        .bind(limit)
+        .bind(limit, offset)
         .all();
       // ランキングはコミュニティ集計 (song_id, count) のみでユーザー非依存。
       // 画面を開くたびに叩かれるが順位変動は緩やかなので、エッジで全ユーザ共有

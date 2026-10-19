@@ -60,6 +60,8 @@ describe("GET /favorites/ranking", () => {
     ]);
     const limited = await callJson("GET", "/favorites/ranking?limit=2");
     expect(limited.body.map((r: any) => r.song_id)).toEqual(["b", "c"]);
+    const rest = await callJson("GET", "/favorites/ranking?limit=2&offset=2");
+    expect(rest.body.map((r: any) => r.song_id)).toEqual(["a"]);
   });
 });
 

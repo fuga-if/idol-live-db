@@ -141,7 +141,9 @@ export async function getRecordHistory(
   db: D1Database,
   recordType: string,
   recordName: string,
-  limit = 30
+  limit = 30,
+  /** これより古い行だけ (続きを読む用。直前ページ末尾の created_at と id)。 */
+  before: { createdAt: number; id: number } | null = null
 ): Promise<RecordHistoryRow[]> {
   const { results } = await db
     .prepare(
@@ -153,10 +155,16 @@ export async function getRecordHistory(
          JOIN edit_batch eb ON eb.id = eh.batch_id
          LEFT JOIN users u ON u.id = eb.editor_id
         WHERE eh.record_type = ? AND eh.record_name = ? AND eb.cloudkit_ok = 1
-        ORDER BY eh.created_at DESC
+          ${before ? "AND (eh.created_at, eh.id) < (?, ?)" : ""}
+        ORDER BY eh.created_at DESC, eh.id DESC
         LIMIT ?`
     )
-    .bind(recordType, recordName, Math.min(Math.max(limit, 1), 100))
+    .bind(
+      recordType,
+      recordName,
+      ...(before ? [before.createdAt, before.id] : []),
+      Math.min(Math.max(limit, 1), 100)
+    )
     .all<RecordHistoryRow>();
   return results ?? [];
 }

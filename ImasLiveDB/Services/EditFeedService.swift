@@ -162,6 +162,8 @@ struct RecordHistoryEntry: Decodable, Identifiable, Sendable {
 
 private struct RecordHistoryResponse: Decodable, Sendable {
     let history: [RecordHistoryEntry]
+    /// 続きのカーソル (満杯のページのときだけ。古いサーバでは nil)。
+    let next: String?
 }
 
 /// edit_history の before/after に入る任意 JSON 値 (CK フィールド値) を緩く受けるための型。
@@ -270,19 +272,21 @@ actor EditFeedService {
     func recordHistory(
         recordType: String,
         recordName: String,
-        limit: Int = 30
-    ) async throws -> [RecordHistoryEntry] {
+        limit: Int = 30,
+        before: String? = nil
+    ) async throws -> (entries: [RecordHistoryEntry], next: String?) {
         // recordType/recordName は raw のまま渡す。APIClient の URLComponents (path セグメント)
         // が既に 1 回エンコードするため、ここで addingPercentEncoding を被せると二重エンコードになり、
         // サーバ側の decodeURIComponent 1 回では戻りきらず別キー扱いになる (他の呼び出し箇所と同じ形)。
         let resp: RecordHistoryResponse = try await APIClient.shared.request(
             "GET",
             path: "/master/\(recordType)/\(recordName)/history",
-            query: ["limit": "\(limit)"],
+            // 続きは直前の応答の next を before に渡す (一度に全件は読まない)。
+            query: ["limit": "\(limit)", "before": before].compactMapValues { $0 },
             // 認証不要 (公開履歴) だが、可用時はトークンを乗せる (将来の本人判定余地)。
             authorized: true
         )
-        return resp.history
+        return (resp.history, resp.next)
     }
 
     // 個別 batch の revert は `AdminModerationService.revertBatch` に集約 (本人 / admin 共通)。

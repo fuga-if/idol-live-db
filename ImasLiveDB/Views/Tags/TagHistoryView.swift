@@ -5,6 +5,9 @@ struct TagHistoryView: View {
     var domain: TagDomain = .song
 
     @State private var history: [TagHistoryEntry] = []
+    /// 直前のページが満杯だった (続きがあるかもしれない)。
+    @State private var hasMore = false
+    @State private var isLoadingMore = false
     @State private var isLoading = true
 
     var body: some View {
@@ -39,6 +42,12 @@ struct TagHistoryView: View {
                     .listRowBackground(DS.surface)
                     .listRowSeparatorTint(DS.sep)
                 }
+                // 末尾まで来たら古い履歴を読み足す (一度に全件は読まない)。
+                if hasMore {
+                    ImasInlineLoading()
+                        .listRowBackground(Color.clear)
+                        .onAppear { Task { await loadMore() } }
+                }
             }
         }
         .listStyle(.plain)
@@ -53,14 +62,27 @@ struct TagHistoryView: View {
     private func loadHistory() async {
         isLoading = true
         defer { isLoading = false }
+        let page = (try? await fetchPage(before: nil)) ?? []
+        history = page
+        hasMore = page.count == CommunityAPI.tagHistoryPageSize
+    }
+
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore, let last = history.last else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        guard let page = try? await fetchPage(before: last.id) else { return }
+        let known = Set(history.map(\.id))
+        history += page.filter { !known.contains($0.id) }
+        hasMore = page.count == CommunityAPI.tagHistoryPageSize
+    }
+
+    private func fetchPage(before: Int?) async throws -> [TagHistoryEntry] {
         let reading = AppContainer.shared.communityTagReading
         switch domain {
-        case .song:
-            history = (try? await reading.tagHistory(id: tagId)) ?? []
-        case .idol:
-            history = (try? await reading.idolTagHistory(id: tagId)) ?? []
-        case .unit:
-            history = (try? await reading.unitTagHistory(id: tagId)) ?? []
+        case .song: return try await reading.tagHistory(id: tagId, before: before)
+        case .idol: return try await reading.idolTagHistory(id: tagId, before: before)
+        case .unit: return try await reading.unitTagHistory(id: tagId, before: before)
         }
     }
 }

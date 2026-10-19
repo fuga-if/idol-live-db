@@ -119,13 +119,26 @@ actor CommunityAPI {
 
     func favoritesRanking(brandId: String?, limit: Int = 20) async throws -> [FavoriteRankingEntry] {
         // API はコミュニティ集計 (song_id, count) のみ返す。曲メタ・ブランドは local カタログで
-        // 解決する (D1 ミラー非依存)。ブランド絞り込み後に top N を切るため、API からは多めに取る。
-        let dtos: [FavoriteRankingDTO] = try await APIClient.shared.request("GET", path: "/favorites/ranking")
-        let songs = (try? AppDatabase.shared.fetchSongs(ids: dtos.map(\.songId))) ?? []
-        let songsById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
-        let entries = dtos
-            .map { FavoriteRankingEntry(dto: $0, song: songsById[$0.songId]) }
-            .filter { brandId == nil || $0.brandId == brandId }
+        // 解決する (D1 ミラー非依存)。ブランドは手元で絞るので、絞った件数が limit に届くまで
+        // 1 ページずつ読み進める (一度に全件は取らない。小さいブランドの曲も上位 200 で切れない)。
+        let pageSize = 200
+        var entries: [FavoriteRankingEntry] = []
+        var seen = Set<String>()
+        var offset = 0
+        while entries.count < limit {
+            let dtos: [FavoriteRankingDTO] = try await APIClient.shared.request(
+                "GET", path: "/favorites/ranking",
+                query: ["limit": "\(pageSize)", "offset": "\(offset)"]
+            )
+            let songs = (try? AppDatabase.shared.fetchSongs(ids: dtos.map(\.songId))) ?? []
+            let songsById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
+            entries += dtos
+                .filter { seen.insert($0.songId).inserted }
+                .map { FavoriteRankingEntry(dto: $0, song: songsById[$0.songId]) }
+                .filter { brandId == nil || $0.brandId == brandId }
+            if dtos.count < pageSize { break }
+            offset += pageSize
+        }
         return Array(entries.prefix(limit))
     }
 
@@ -241,8 +254,14 @@ actor CommunityAPI {
         return tag
     }
 
-    func tagHistory(id: String) async throws -> [TagHistoryEntry] {
-        return try await APIClient.shared.request("GET", path: "/tags/\(id)/history")
+    /// タグ説明の履歴の 1 ページの件数。
+    static let tagHistoryPageSize = 30
+
+    func tagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry] {
+        return try await APIClient.shared.request(
+            "GET", path: "/tags/\(id)/history",
+            query: ["limit": "\(Self.tagHistoryPageSize)", "before": before.map { "\($0)" }].compactMapValues { $0 }
+        )
     }
 
     func applySongTags(songId: String, tagIds: [String]) async throws {
@@ -376,8 +395,11 @@ actor CommunityAPI {
         return tag
     }
 
-    func idolTagHistory(id: String) async throws -> [TagHistoryEntry] {
-        return try await APIClient.shared.request("GET", path: "/idol-tags/\(id)/history")
+    func idolTagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry] {
+        return try await APIClient.shared.request(
+            "GET", path: "/idol-tags/\(id)/history",
+            query: ["limit": "\(Self.tagHistoryPageSize)", "before": before.map { "\($0)" }].compactMapValues { $0 }
+        )
     }
 
     func reportIdolTag(id: String, reason: String? = nil) async throws {
@@ -434,8 +456,11 @@ actor CommunityAPI {
         return tag
     }
 
-    func unitTagHistory(id: String) async throws -> [TagHistoryEntry] {
-        return try await APIClient.shared.request("GET", path: "/unit-tags/\(id)/history")
+    func unitTagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry] {
+        return try await APIClient.shared.request(
+            "GET", path: "/unit-tags/\(id)/history",
+            query: ["limit": "\(Self.tagHistoryPageSize)", "before": before.map { "\($0)" }].compactMapValues { $0 }
+        )
     }
 
     func reportUnitTag(id: String, reason: String? = nil) async throws {

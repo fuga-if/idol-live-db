@@ -19,6 +19,9 @@ struct EditHistoryView: View {
     var title: String?
 
     @State private var entries: [RecordHistoryEntry] = []
+    /// 続きのカーソル。nil なら最後まで読んだ。
+    @State private var next: String?
+    @State private var isLoadingMore = false
     @State private var isLoading = false
     @State private var errorMessage: String?
 
@@ -28,6 +31,11 @@ struct EditHistoryView: View {
             LazyVStack(spacing: DS.Space.gapLoose) {
                 ForEach(entries) { entry in
                     HistoryRow(entry: entry, recordType: recordType, timeLabel: times[entry.id] ?? "")
+                }
+                // 末尾まで来たら古い履歴を 30 件ずつ読み足す。
+                if next != nil {
+                    ImasInlineLoading()
+                        .onAppear { Task { await loadMore() } }
                 }
             }
             .padding(.horizontal, DS.sp5)
@@ -67,13 +75,33 @@ struct EditHistoryView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            entries = try await EditFeedService.shared.recordHistory(
+            (entries, next) = try await EditFeedService.shared.recordHistory(
                 recordType: recordType,
                 recordName: recordName
             )
         } catch {
             errorMessage = error.localizedDescription
             Logger.community.error("record_history_failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func loadMore() async {
+        guard let cursor = next, !isLoadingMore, !isLoading else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await EditFeedService.shared.recordHistory(
+                recordType: recordType,
+                recordName: recordName,
+                before: cursor
+            )
+            // 待っている間に読み直しで入れ替わっていたら付け足さない。
+            guard next == cursor else { return }
+            let known = Set(entries.map(\.id))
+            entries += page.entries.filter { !known.contains($0.id) }
+            next = page.next
+        } catch {
+            Logger.community.error("record_history_more_failed: \(error.localizedDescription)")
         }
     }
 }

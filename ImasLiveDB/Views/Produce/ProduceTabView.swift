@@ -667,8 +667,8 @@ struct ProduceTabView: View {
             contributionCount = 0
             return
         }
-        if let predictions = try? await PredictionService.shared.myPredictions() {
-            predictionCount = predictions.count
+        if let count = try? await PredictionService.shared.myPredictionCount() {
+            predictionCount = count
         }
         if let badges = await BadgeService.shared.currentUserBadges() {
             contributionCount = badges.editCount

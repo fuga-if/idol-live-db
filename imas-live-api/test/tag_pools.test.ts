@@ -291,6 +291,13 @@ describe.each(POOLS)("$label タグ: 説明の編集 (PUT $master/:id) と履歴
     const byAfter = Object.fromEntries(history.body.map((h: any) => [h.description_after, h]));
     expect(byAfter.after).toMatchObject({ tag_id: "tt", description_before: "before", edited_by: "dev-edit" });
     expect(byAfter.third).toMatchObject({ description_before: "after", edited_by: UID.slice(0, 8) });
+    // limit と before (末尾の id) で続きを読む。
+    const page1 = await callJson("GET", `${pool.master}/tt/history?limit=1`);
+    expect(page1.body).toHaveLength(1);
+    const lastRow = page1.body[0];
+    const page2 = await callJson("GET", `${pool.master}/tt/history?limit=1&before=${lastRow.id}`);
+    expect(page2.body).toHaveLength(1);
+    expect(page2.body[0].id).not.toBe(lastRow.id);
     // 表には全体が残る。
     expect(await row(`SELECT edited_by FROM ${pool.historyTable} WHERE description = 'third'`))
       .toEqual({ edited_by: UID });

@@ -26,7 +26,7 @@ import { decodePathParam, readJsonBody, requireActiveUser, requireOpaqueKey } fr
  * どのルートにも一致しなければ `null` を返し、呼び出し元の if チェーンへ処理を戻す。
  */
 export async function handleSetlistPredictions(ctx: RouteContext): Promise<Response | null> {
-  const { request, env, path, json, error, rateLimitResponse } = ctx;
+  const { request, env, url, path, json, error, rateLimitResponse } = ctx;
 
     // ================================================================
     // 予想セトリ API
@@ -40,16 +40,35 @@ export async function handleSetlistPredictions(ctx: RouteContext): Promise<Respo
     if (path === "/me/predictions" && request.method === "GET") {
       const user = await getAuthUser(request, env);
       if (!user) return error("Unauthorized", 401);
+      // limit を付けた呼び出しはページ単位 (上限 100)。続きは before=<voted_at>|<show_id>|<song_id>
+      // (直前ページ末尾の行の値)。limit なしの旧アプリは今までどおり新しい 200 件。応答は配列のまま。
+      const limitParam = url.searchParams.get("limit");
+      const limit = limitParam ? Math.min(Math.max(Number(limitParam) || 50, 1), 100) : 200;
+      const parts = url.searchParams.get("before")?.split("|");
+      const before = parts?.length === 3 ? parts : null;
       const { results } = await env.DB.prepare(`
         SELECT spv.show_id, spv.song_id, sp.vote_count, spv.voted_at
         FROM setlist_prediction_votes spv
         LEFT JOIN setlist_predictions sp
           ON sp.show_id = spv.show_id AND sp.song_id = spv.song_id
         WHERE spv.user_id = ?
-        ORDER BY spv.voted_at DESC
-        LIMIT 200
-      `).bind(user.uid).all();
+          ${before ? "AND (spv.voted_at, spv.show_id, spv.song_id) < (?, ?, ?)" : ""}
+        ORDER BY spv.voted_at DESC, spv.show_id DESC, spv.song_id DESC
+        LIMIT ?
+      `).bind(user.uid, ...(before ?? []), limit).all();
       return json(results.map((r: any) => ({ ...r, vote_count: r.vote_count ?? 1 })));
+    }
+
+    // ----------------------------------------------------------------
+    // GET /me/predictions/count — 自分の予想の票数 (プロデュース画面の数字用。一覧は読まない)
+    // ----------------------------------------------------------------
+    if (path === "/me/predictions/count" && request.method === "GET") {
+      const user = await getAuthUser(request, env);
+      if (!user) return error("Unauthorized", 401);
+      const r = await env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM setlist_prediction_votes WHERE user_id = ?"
+      ).bind(user.uid).first<{ count: number }>();
+      return json({ count: r?.count ?? 0 });
     }
 
     // ----------------------------------------------------------------

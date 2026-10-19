@@ -14,7 +14,8 @@ protocol CommunityTagReading: Sendable {
     /// タグ詳細 (付いた曲ランキングつき)。
     func tag(id: String) async throws -> TagDetailResponse
     /// タグの編集履歴。
-    func tagHistory(id: String) async throws -> [TagHistoryEntry]
+    /// `before` に直前ページ末尾の id を渡すと、それより古い 30 件を返す。
+    func tagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry]
     /// タグ付けの盛り上がり (直近フィード/トレンドタグ/急上昇コンテンツ)。
     func tagActivity(windowDays: Int) async throws -> TagActivityResponse
     /// 指定曲に付いたタグ一覧 (自分が付けたタグを含む)。
@@ -29,7 +30,8 @@ protocol CommunityTagReading: Sendable {
     /// アイドルタグ詳細 (付いたアイドルランキングつき)。
     func idolTagDetail(id: String) async throws -> IdolTagDetailResponse
     /// アイドルタグの編集履歴。
-    func idolTagHistory(id: String) async throws -> [TagHistoryEntry]
+    /// `before` に直前ページ末尾の id を渡すと、それより古い 30 件を返す。
+    func idolTagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry]
     /// タグが似ているアイドル (共有タグ数の降順。サーバ算出)。
     func similarIdolsByTags(idolId: String, limit: Int) async throws -> SimilarIdolsResponse
 
@@ -42,5 +44,6 @@ protocol CommunityTagReading: Sendable {
     /// ユニットタグ詳細 (付いたユニットランキングつき)。
     func unitTagDetail(id: String) async throws -> UnitTagDetailResponse
     /// ユニットタグの編集履歴。
-    func unitTagHistory(id: String) async throws -> [TagHistoryEntry]
+    /// `before` に直前ページ末尾の id を渡すと、それより古い 30 件を返す。
+    func unitTagHistory(id: String, before: Int?) async throws -> [TagHistoryEntry]
 }

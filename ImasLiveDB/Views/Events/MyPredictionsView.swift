@@ -6,6 +6,10 @@ struct MyPredictionsView: View {
     @Environment(AppDatabase.self) private var database
 
     @State private var groups: [ShowGroup] = []
+    /// 読んだ票 (新しい順)。50 件ずつ読み足し、公演ごとのまとまりはここから組み直す。
+    @State private var dtos: [MyPredictionDTO] = []
+    @State private var hasMore = false
+    @State private var isLoadingMore = false
     @State private var isLoading = true
     @State private var sheetDestination: DetailDestination?
 
@@ -63,6 +67,11 @@ struct MyPredictionsView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    // 末尾まで来たら古い予想を読み足す (一度に全件は読まない)。
+                    if hasMore {
+                        ImasInlineLoading()
+                            .onAppear { Task { await loadMore() } }
+                    }
                 }
                 .imasList()
             }
@@ -76,12 +85,33 @@ struct MyPredictionsView: View {
         .trackScreen("my_predictions")
     }
 
+    private static let pageSize = 50
+
     private func load() async {
         isLoading = true
         defer { isLoading = false }
         guard isSignedIn else { groups = []; return }
-        guard let dtos = try? await PredictionService.shared.myPredictions() else { groups = []; return }
+        guard let page = try? await PredictionService.shared.myPredictions(limit: Self.pageSize) else {
+            groups = []; return
+        }
+        dtos = page
+        hasMore = page.count == Self.pageSize
+        groups = await resolveGroups(dtos)
+    }
 
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore, let last = dtos.last else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        guard let page = try? await PredictionService.shared.myPredictions(after: last, limit: Self.pageSize) else {
+            return
+        }
+        dtos += page
+        hasMore = page.count == Self.pageSize
+        groups = await resolveGroups(dtos)
+    }
+
+    private func resolveGroups(_ dtos: [MyPredictionDTO]) async -> [ShowGroup] {
         // 曲を local カタログから一括解決。
         let songs = (try? await AppContainer.shared.songReading.songs(ids: dtos.map(\.songId))) ?? []
         let songsById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
@@ -101,6 +131,6 @@ struct MyPredictionsView: View {
                   let entries = byShow[showId] else { continue }
             resolved.append(ShowGroup(show: show, entries: entries))
         }
-        groups = resolved
+        return resolved
     }
 }

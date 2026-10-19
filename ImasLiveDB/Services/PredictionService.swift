@@ -59,8 +59,13 @@ final class PredictionService {
 
     // MARK: - My Predictions
 
-    /// 自分が投票した予想一覧 (新しい順)。曲/公演メタは呼び出し側が local カタログで解決する。
-    func myPredictions() async throws -> [MyPredictionDTO] {
+    /// 自分が投票した予想を新しい順に 1 ページ。`after` に直前ページの末尾を渡すと続きを読む。
+    /// 曲/公演メタは呼び出し側が local カタログで解決する。
+    func myPredictions(after last: MyPredictionDTO? = nil, limit: Int = 50) async throws -> [MyPredictionDTO] {
+        var query = ["limit": "\(limit)"]
+        if let last, let votedAt = last.votedAt {
+            query["before"] = "\(votedAt)|\(last.showId)|\(last.songId)"
+        }
         // bearerToken の事前チェックはしない。vote()/unvote() と同じ理由 (401 自動リフレッシュに委ねる)。
         // トークンが期限切れ (nil) でも isSignedIn は true のまま残ることがあり、ここで弾くと
         // APIClient の 401→sliding refresh 経路に乗らず、セッション更新中の窓で誤って
@@ -68,8 +73,18 @@ final class PredictionService {
         return try await APIClient.shared.request(
             "GET",
             path: "/me/predictions",
+            query: query,
             authorized: true
         )
+    }
+
+    /// 自分の予想の票数 (一覧は読まずに数だけ)。
+    func myPredictionCount() async throws -> Int {
+        struct CountDTO: Decodable { let count: Int }
+        let dto: CountDTO = try await APIClient.shared.request(
+            "GET", path: "/me/predictions/count", authorized: true
+        )
+        return dto.count
     }
 
     // MARK: - Vote
