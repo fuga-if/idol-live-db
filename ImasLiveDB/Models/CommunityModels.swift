@@ -1,40 +1,5 @@
 import Foundation
 
-// MARK: - Favorite Ranking
-
-/// お気に入りランキング API が返す「コミュニティ集計」のみ。
-///
-/// 曲名・ブランド・ジャケ写は **API からは取得しない**。それらの正は CloudKit / iOS local
-/// カタログであり、D1 に曲ミラーを持たせると新曲追加のたびにズレて「ランキングから脱落」する
-/// バグになるため、iOS local から解決する (予想機能と同方針)。
-///
-/// APIClient の decoder は `convertFromSnakeCase` を有効にしているため、CodingKeys は書かず
-/// property 名 (camelCase) そのままに任せる (snake_case 手書きは keyNotFound になる)。
-struct FavoriteRankingDTO: Decodable {
-    let songId: String
-    let count: Int
-}
-
-/// 画面表示用のランキング行。API のコミュニティ集計 (`FavoriteRankingDTO`) に
-/// iOS local カタログの曲メタデータを結合して組み立てる。
-struct FavoriteRankingEntry: Identifiable {
-    var id: String { songId }
-    let songId: String
-    let count: Int
-    let title: String
-    let brandId: String?
-    let artworkUrl: String?
-
-    /// local に曲が無い場合でも songId を題名にフォールバックして表示する。
-    init(dto: FavoriteRankingDTO, song: Song?) {
-        songId = dto.songId
-        count = dto.count
-        title = song?.title ?? dto.songId
-        brandId = song?.brandId
-        artworkUrl = song?.artworkUrl
-    }
-}
-
 // MARK: - Penlight Palette
 
 struct PenlightPaletteEntry: Decodable, Identifiable {

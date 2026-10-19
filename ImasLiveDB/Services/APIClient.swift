@@ -178,6 +178,20 @@ actor APIClient {
         )
     }
 
+    /// 組み立て済みの JSON 本文をそのまま送る (本文の形をコアが決めるもの。再生回数の送信)。
+    func requestRawJSON(
+        _ method: String,
+        path: String,
+        jsonBody: String,
+        authorized: Bool = false
+    ) async throws {
+        _ = try await performRequest(
+            method, path: path, body: nil, queryItems: nil,
+            authorized: authorized, deviceIdHeader: true,
+            rawBody: Data(jsonBody.utf8)
+        )
+    }
+
     /// 明示した Bearer トークンでリクエストする (sliding refresh 専用)。
     /// 通常の authorized 経路 (AuthService.bearerToken) とは独立し、401 でも再 refresh しない。
     func requestWithBearer<T: Decodable>(
@@ -209,7 +223,8 @@ actor APIClient {
         deviceIdHeader: Bool,
         treatConflictAsSuccess: Bool = false,
         bearerOverride: String? = nil,
-        allowRefresh: Bool = true
+        allowRefresh: Bool = true,
+        rawBody: Data? = nil
     ) async throws -> Data {
         var components = URLComponents(
             url: APIEndpoints.baseURL.appendingPathComponent(path),
@@ -241,7 +256,9 @@ actor APIClient {
             req.setValue(appToken, forHTTPHeaderField: "X-App-Token")
         }
 
-        if let body {
+        if let rawBody {
+            req.httpBody = rawBody
+        } else if let body {
             do {
                 req.httpBody = try encoder.encode(body)
             } catch {
@@ -271,7 +288,8 @@ actor APIClient {
                         method, path: path, body: body, queryItems: queryItems,
                         authorized: authorized, deviceIdHeader: deviceIdHeader,
                         treatConflictAsSuccess: treatConflictAsSuccess,
-                        allowRefresh: false
+                        allowRefresh: false,
+                        rawBody: rawBody
                     )
                 }
                 if authorized {

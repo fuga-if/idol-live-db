@@ -117,29 +117,27 @@ actor CommunityAPI {
         )
     }
 
-    func favoritesRanking(brandId: String?, limit: Int = 20) async throws -> [FavoriteRankingEntry] {
-        // API はコミュニティ集計 (song_id, count) のみ返す。曲メタ・ブランドは local カタログで
-        // 解決する (D1 ミラー非依存)。ブランドは手元で絞るので、絞った件数が limit に届くまで
-        // 1 ページずつ読み進める (一度に全件は取らない。小さいブランドの曲も上位 200 で切れない)。
-        let pageSize = 200
-        var entries: [FavoriteRankingEntry] = []
-        var seen = Set<String>()
-        var offset = 0
-        while entries.count < limit {
-            let dtos: [FavoriteRankingDTO] = try await APIClient.shared.request(
-                "GET", path: "/favorites/ranking",
-                query: ["limit": "\(pageSize)", "offset": "\(offset)"]
-            )
-            let songs = (try? AppDatabase.shared.fetchSongs(ids: dtos.map(\.songId))) ?? []
-            let songsById = Dictionary(uniqueKeysWithValues: songs.map { ($0.id, $0) })
-            entries += dtos
-                .filter { seen.insert($0.songId).inserted }
-                .map { FavoriteRankingEntry(dto: $0, song: songsById[$0.songId]) }
-                .filter { brandId == nil || $0.brandId == brandId }
-            if dtos.count < pageSize { break }
-            offset += pageSize
+    // MARK: - 全曲の数 (お気に入り・試聴・フル再生)
+
+    private var statsCache: (stats: CommunityStats, at: Date)?
+    private let statsCacheTTL: TimeInterval = 30 * 60
+
+    /// 全曲の集計 (`GET /community/song-stats`)。応答は JSON のままコアが読む。30 分メモリに持つ。
+    func songStats(forceRefresh: Bool = false) async throws -> CommunityStats {
+        if !forceRefresh, let cached = statsCache, Date().timeIntervalSince(cached.at) < statsCacheTTL {
+            return cached.stats
         }
-        return Array(entries.prefix(limit))
+        let data = try await APIClient.shared.requestData("GET", path: "/community/song-stats")
+        guard let stats = communityStatsParse(json: String(decoding: data, as: UTF8.self)) else {
+            throw APIClientError.decoding(URLError(.cannotParseResponse))
+        }
+        statsCache = (stats, Date())
+        return stats
+    }
+
+    /// 再生回数のまとまりを送る。本文はコア (`playBatchBody`) が作った JSON そのまま。
+    func sendPlayBatch(body: String) async throws {
+        try await APIClient.shared.requestRawJSON("POST", path: "/plays/batch", jsonBody: body)
     }
 
     // MARK: - Penlight

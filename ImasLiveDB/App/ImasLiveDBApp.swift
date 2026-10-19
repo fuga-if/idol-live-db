@@ -156,6 +156,10 @@ struct ImasLiveDBApp: App {
                 Task.detached(priority: .utility) { await updateService.check() }
             }
             .onChange(of: scenePhase) { _, phase in
+                // 貯めた再生回数は、前面に来たとき・背面に回るときに (送る時期なら) 送る。
+                if (phase == .active || phase == .background), !ProcessInfo.processInfo.isRunningTests {
+                    PlayCountService.shared.flushIfDue()
+                }
                 // フォアグラウンド復帰で同期を再開/継続する。フルsyncが途中で中断されて
                 // いれば残りステップ/チャンクから再開、そうでなければ差分syncで最新化。
                 // (再入は SyncEngine 側でガード済みなので二重には走らない)

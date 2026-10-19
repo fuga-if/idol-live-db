@@ -564,7 +564,13 @@ struct SongSheetContent: View {
 
     /// 披露・回収・最終披露 (今ある数をそのまま電光掲示板で)。
     private var statsBoard: some View {
-        ImasBoard(cells: boardCells)
+        VStack(alignment: .leading, spacing: DS.Space.gap) {
+            ImasBoard(cells: boardCells)
+            if let counts = vm.counts {
+                Text("♥ \(counts.favorites) ・ 試聴 \(counts.preview) 回 ・ フル \(counts.full) 回")
+                    .imasText(.meta)
+            }
+        }
     }
 
     private var boardCells: [ImasBoard.Cell] {

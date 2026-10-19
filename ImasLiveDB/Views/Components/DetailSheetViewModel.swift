@@ -37,6 +37,8 @@ final class DetailSheetViewModel {
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
     private(set) var songVideos: [SongVideo] = []
     private(set) var penlightVotes: PenlightVoteResult?
+    /// ♥・試聴・フル再生の数 (束ねに入っている。出せなかったときは nil)。
+    private(set) var counts: SongDetailCounts?
     private(set) var songTagData: SongTagListResponse?
     /// タグが似ている楽曲 (この曲が好きな人にはこれもおすすめ, サーバ算出)。
     private(set) var similarTagSongs: [Song] = []
@@ -147,6 +149,7 @@ final class DetailSheetViewModel {
             let bundle = try await songDetailReading.songDetail(songId: song.id)
             songTagData = bundle.tags
             penlightVotes = bundle.penlight
+            counts = bundle.counts
             lyrics = bundle.lyrics
             await applySimilarSongs(bundle.similar)
             serverDataState = .loaded

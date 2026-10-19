@@ -23,14 +23,14 @@ private final class Boxed<T>: @unchecked Sendable {
 final class MusicKitService {
     private(set) var authorizationStatus: MusicAuthorization.Status = .notDetermined
     private(set) var hasAppleMusicSubscription: Bool = false
-    private(set) var isPlaying = false { didSet { syncPlayFlags() } }
+    private(set) var isPlaying = false { didSet { syncPlayFlags(); updatePlayCounting() } }
     /// 鳴っている曲の `songs.id`。
     ///
     /// **曲名で持ってはいけない。** 「私はアイドル♡ (M@STER VERSION)」のように
     /// 同名で歌唱者の違う録音が実在するので、曲名で同一性を見ると別バージョンの
     /// ジャケと名義が出る。再生中バーの引き当てもここを使う。
-    private(set) var nowPlayingSongId: String? { didSet { syncPlayFlags() } }
-    private(set) var isFullPlayback = false
+    private(set) var nowPlayingSongId: String? { didSet { syncPlayFlags(); updatePlayCounting() } }
+    private(set) var isFullPlayback = false { didSet { updatePlayCounting() } }
     /// フル尺をどこで鳴らしているか。Spotify は利用者の Spotify アプリを操作して鳴らす (`SpotifyRemotePlayer`)。
     enum FullSource { case appleMusic, spotify }
     private(set) var fullSource: FullSource = .appleMusic
@@ -88,6 +88,46 @@ final class MusicKitService {
     }
 
     @ObservationIgnored private var playFlags: [String: SongPlayFlag] = [:]
+
+    // MARK: - 再生回数
+
+    /// いま数えている再生 (曲 × 試聴かフルか)。曲か種類が変わったら新しい再生として数え直す。
+    @ObservationIgnored private var countedSession: (songId: String, kind: PlayKind)?
+    /// この再生をもう数えたか (一時停止・再開で二重に数えない)。
+    @ObservationIgnored private var sessionCounted = false
+    @ObservationIgnored private var countTask: Task<Void, Never>?
+
+    /// 再生の状態が変わるたびに、数える予約を組み直す。
+    /// 「試聴 5 秒 / フル 30 秒たって、まだ同じ曲が同じ鳴らし方で流れている」ときだけ 1 回。
+    /// 曲が替わる・止まると予約は取り消す (送り・止めた曲を数えない)。
+    private func updatePlayCounting() {
+        guard let songId = nowPlayingSongId else {
+            countTask?.cancel(); countTask = nil
+            countedSession = nil
+            return
+        }
+        let kind: PlayKind = isFullPlayback ? .full : .preview
+        if countedSession?.songId != songId || countedSession?.kind != kind {
+            countTask?.cancel(); countTask = nil
+            countedSession = (songId, kind)
+            sessionCounted = false
+        }
+        guard isPlaying, !sessionCounted else {
+            if !isPlaying { countTask?.cancel(); countTask = nil }
+            return
+        }
+        guard countTask == nil else { return }
+        let seconds = PlayCountService.secondsToCount(kind)
+        countTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            self.countTask = nil
+            guard self.isPlaying, self.nowPlayingSongId == songId,
+                  (self.isFullPlayback ? PlayKind.full : .preview) == kind, !self.sessionCounted else { return }
+            self.sessionCounted = true
+            PlayCountService.shared.record(songId: songId, kind: kind)
+        }
+    }
 
     private func syncPlayFlags() {
         for (id, flag) in playFlags {

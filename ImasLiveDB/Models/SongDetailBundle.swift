@@ -29,11 +29,21 @@ struct SongDetailBundle: Decodable, Sendable {
     let similar: SimilarSongsResponse?
     let penlight: PenlightVoteResult?
     let lyrics: Lyrics?
+    /// ♥・試聴・フル再生の数 (サーバが出せなかったときは nil)。
+    var counts: SongDetailCounts? = nil
+}
+
+/// 曲詳細に出す数。`plays_since` は再生回数を数え始めた日 (`yyyy-MM-dd`)。
+struct SongDetailCounts: Decodable, Sendable, Equatable {
+    let favorites: Int
+    let preview: Int
+    let full: Int
+    let playsSince: String?
 }
 
 extension SongDetailBundle {
     private enum CodingKeys: String, CodingKey {
-        case songId, tags, similar, penlight, lyrics
+        case songId, tags, similar, penlight, lyrics, counts
     }
 
     /// 部分ごとに寛容にデコードする。
@@ -54,7 +64,8 @@ extension SongDetailBundle {
             similar: part(.similar),
             penlight: part(.penlight),
             // 入れ子の歌詞は songId を持たない形もありうるので、束ねの songId で補う。
-            lyrics: (part(.lyrics) as Lyrics?)?.resolvingSongId(id)
+            lyrics: (part(.lyrics) as Lyrics?)?.resolvingSongId(id),
+            counts: part(.counts)
         )
     }
 }

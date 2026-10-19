@@ -11,12 +11,11 @@ struct StatsView: View {
     @State private var latestShow: Show?
     @State private var latestShowBrandColor: String?
     @State private var latestShowSongCount: Int = 0
-    @State private var favoritesRanking: [FavoriteRankingEntry] = []
+    @State private var rankingKind: CommunityRankingKind = .popular
     @State private var favoriteBrandId: String? = nil
     @State private var brands: [Brand] = []
     @State private var selectedSong: Song?
     @State private var selectedShow: Show?
-    @State private var isLoadingFavorites = false
     /// 回収率シェアカードの sheet 表示。
     @State private var showCollectionShare = false
 
@@ -255,55 +254,25 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - コミュニティの熱量 (お気に入りランキング ♥)
+    // MARK: - コミュニティの熱量 (人気・急上昇・お気に入り・試聴・フル再生)
 
     @ViewBuilder
     private var heatSection: some View {
         ImasSection("コミュニティの熱量", style: .small) {
             VStack(alignment: .leading, spacing: DS.Space.gap) {
-                ImasChipRow {
-                    brandFilterChip(label: "すべて", brandId: nil)
-                    ForEach(brands) { brand in
-                        brandFilterChip(label: brand.shortName, brandId: brand.id, seed: brand.color)
-                    }
+                ImasTabs(options: CommunityRankingKind.allCases, selection: $rankingKind) { $0.label }
+                CommunityBrandChips(brands: brands, selection: $favoriteBrandId)
+                CommunityRankingList(kind: rankingKind, brandId: favoriteBrandId, limit: 10, brands: brands) { songId in
+                    Task { selectedSong = try? await AppContainer.shared.songReading.song(id: songId) }
                 }
-
-                if isLoadingFavorites {
-                    ImasInlineLoading()
-                } else if favoritesRanking.isEmpty {
-                    ImasCard {
-                        ImasEmptyState(
-                            systemImage: "heart",
-                            title: "まだデータがありません",
-                            message: "お気に入り登録が増えるとここにランキングが表示されます。"
-                        )
-                    }
-                } else {
-                    ImasCardList {
-                        ForEach(Array(favoritesRanking.enumerated()), id: \.element.id) { index, entry in
-                            Button {
-                                Task { selectedSong = try? await AppContainer.shared.songReading.song(id: entry.songId) }
-                            } label: {
-                                ImasRankingRow(
-                                    rank: index + 1,
-                                    lead: .artwork(title: entry.title, imageURL: artworkURL(entry.artworkUrl)),
-                                    title: entry.title,
-                                    sub: brandShortName(for: entry.brandId),
-                                    metric: heatMetric(entry.count),
-                                    unit: "♥",
-                                    brand: brandHex(for: entry.brandId)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            if index < favoritesRanking.count - 1 {
-                                ImasRowDivider(inset: 52)
-                            }
-                        }
-                    }
+                NavigationLink {
+                    CommunityRankingView(kind: rankingKind, brandId: favoriteBrandId)
+                } label: {
+                    ImasNavRow(title: "すべて見る")
                 }
+                .buttonStyle(.plain)
             }
         }
-        .task(id: favoriteBrandId) { await loadFavoritesRanking() }
     }
 
     // MARK: - 活動量 ・ 披露回数 (曲)
@@ -382,18 +351,6 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - ブランドフィルタチップ
-
-    private func brandFilterChip(label: String, brandId: String?, seed: String? = nil) -> some View {
-        let isSelected = favoriteBrandId == brandId
-        return Button {
-            favoriteBrandId = brandId
-        } label: {
-            ImasChip(text: label, style: isSelected ? .selected : .neutral, seed: seed)
-        }
-        .buttonStyle(.plain)
-    }
-
     // MARK: - Helpers
 
     private func brandHex(for brandId: String?) -> String? {
@@ -410,18 +367,6 @@ struct StatsView: View {
         guard let raw, !raw.isEmpty else { return nil }
         return URL(string: raw)
     }
-
-    /// "1280" → "1,280" のような桁区切り。
-    private func heatMetric(_ count: Int) -> String {
-        Self.decimal.string(from: NSNumber(value: count)) ?? "\(count)"
-    }
-
-    /// 書式は作るのが重いので 1 つを使い回す (描き直しのたびに作らない)。
-    private static let decimal: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        return f
-    }()
 
     // MARK: - Loading
 
@@ -445,7 +390,6 @@ struct StatsView: View {
             Logger.database.error("load_failed stats: \(error.localizedDescription)")
         }
         await loadDashboard()
-        await loadFavoritesRanking()
     }
 
     /// 回収ダッシュボード。組み立てはコア (`collection_dashboard`) が 1 回で行う。
@@ -478,11 +422,5 @@ struct StatsView: View {
 
     private func applyUncollectedScope() {
         uncollectedSongs = uncollectedScope == .myPick ? pickUncollectedCache : allUncollectedCache
-    }
-
-    private func loadFavoritesRanking() async {
-        isLoadingFavorites = true
-        favoritesRanking = (try? await CommunityAPI.shared.favoritesRanking(brandId: favoriteBrandId, limit: 20)) ?? []
-        isLoadingFavorites = false
     }
 }
