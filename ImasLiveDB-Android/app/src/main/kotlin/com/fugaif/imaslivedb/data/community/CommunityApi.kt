@@ -673,7 +673,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
         val now = System.currentTimeMillis()
         statsCache?.let { (at, stats) -> if (now - at < STATS_TTL_MS) return@withContext stats }
         val parsed = try {
-            val response = http.request("GET", "/community/song-stats")
+            val response = http.request("GET", "/community/song-stats", authorized = false)
             if (response.isSuccess && !response.body.isNullOrEmpty()) communityStatsParse(response.body) else null
         } catch (e: Exception) {
             Log.w(TAG, "GET /community/song-stats failed: ${e.message}"); null

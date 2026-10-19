@@ -7,7 +7,8 @@ import com.fugaif.imaslivedb.player.PlaybackState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -15,8 +16,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uniffi.imas_core.PlayKind
+import uniffi.imas_core.PlayObservation
+import uniffi.imas_core.PlayTimerAction
+import uniffi.imas_core.playSessionFire
+import uniffi.imas_core.playSessionIdle
+import uniffi.imas_core.playSessionObserve
 import uniffi.imas_core.playBatchBody
-import uniffi.imas_core.playCountAfterSeconds
 import uniffi.imas_core.playLogAfterSent
 import uniffi.imas_core.playLogDecode
 import uniffi.imas_core.playLogDue
@@ -45,29 +50,50 @@ class PlayCountRepository(
     private val flushing = Mutex()
 
     /**
-     * 流れ続けているかを見て数える。
-     * - 試聴: 試聴が鳴り始めてから 5 秒後に、まだ同じ曲の試聴が鳴っていれば 1 回。
-     *   イントロクイズなど数えない再生 ([PlaybackState.countsAsPlay] が false) は見ない。
-     * - フル再生: 鳴っている曲が変わるたびに 30 秒後、まだその曲が鳴っていれば 1 回。
-     * 曲が変わる・止まると見ている待ちは取り消されるので、二重に数えない。
+     * 鳴っている曲を見て数える。いつ 1 回と数えるかは imas-core の状態機械 (`playSessionObserve` /
+     * `playSessionFire`) が決め、ここは「観測を渡す」「指示どおりにタイマを動かす」「鳴ったら記録する」だけ。
+     * 試聴とフル再生は別々のまとまりとして見る。
+     * 一時停止中も曲は渡し続け (isPlaying だけ false)、止めて曲が無くなったときだけ songId を null にする。
+     * イントロクイズなど数えない再生 ([PlaybackState.countsAsPlay] が false) もそのまま渡す。
      */
     fun observe(preview: StateFlow<PlaybackState>, full: LyricsPlayback) {
-        scope.launch {
-            preview
-                .map { if (it.isPlaying && it.countsAsPlay) it.nowPlayingSongId else null }
-                .distinctUntilChanged()
-                .collectLatest { songId -> if (songId != null) countAfter(PlayKind.PREVIEW, songId) }
-        }
-        scope.launch {
-            combine(full.loadedSongId, full.isPlaying) { id, playing -> if (playing) id else null }
-                .distinctUntilChanged()
-                .collectLatest { songId -> if (songId != null) countAfter(PlayKind.FULL, songId) }
-        }
+        track(
+            preview.map { PlayObservation(it.nowPlayingSongId, PlayKind.PREVIEW, it.isPlaying, it.countsAsPlay) }
+        )
+        // フル再生の loadedSongId は一時停止・Spotify の一瞬の null でも手放さない (止めたときだけ null)。
+        track(
+            combine(full.loadedSongId, full.isPlaying) { id, playing ->
+                PlayObservation(id, PlayKind.FULL, playing, true)
+            }
+        )
     }
 
-    private suspend fun countAfter(kind: PlayKind, songId: String) {
-        delay((playCountAfterSeconds(kind) * 1000).toLong())
-        record(songId, kind)
+    private fun track(observations: Flow<PlayObservation>) {
+        val sessionLock = Mutex()
+        var session = playSessionIdle()
+        var timer: Job? = null
+        scope.launch {
+            observations.distinctUntilChanged().collect { observation ->
+                sessionLock.withLock {
+                    val step = playSessionObserve(session, observation)
+                    session = step.session
+                    when (val action = step.timer) {
+                        is PlayTimerAction.Keep -> Unit
+                        is PlayTimerAction.Cancel -> { timer?.cancel(); timer = null }
+                        is PlayTimerAction.Start -> {
+                            timer?.cancel()
+                            timer = scope.launch {
+                                delay((action.seconds * 1000).toLong())
+                                val fire = sessionLock.withLock {
+                                    playSessionFire(session).also { session = it.session }
+                                }
+                                if (fire.record) record(fire.session.songId, fire.session.kind)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /** 1 回数える。 */

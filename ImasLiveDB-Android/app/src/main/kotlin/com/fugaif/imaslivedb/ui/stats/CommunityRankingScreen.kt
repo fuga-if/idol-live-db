@@ -31,7 +31,7 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasRankingRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasSection
 import com.fugaif.imaslivedb.ui.designsystem.ImasSectionHeaderStyle
-import com.fugaif.imaslivedb.ui.designsystem.ImasSegmented
+import com.fugaif.imaslivedb.ui.designsystem.ImasTabs
 import com.fugaif.imaslivedb.ui.theme.DS
 import uniffi.imas_core.CommunityRankingKind
 
@@ -99,7 +99,7 @@ fun CommunityRankingSection(
     }
     ImasSection(title, style = style, footer = footer, seeAll = if (ranking?.items.isNullOrEmpty()) null else seeAll) {
         Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-            ImasSegmented(
+            ImasTabs(
                 labels = CommunityRankingKinds.map { it.label() },
                 selection = CommunityRankingKinds.indexOf(kind),
                 onSelect = { onKindChange(CommunityRankingKinds[it]) }
@@ -152,7 +152,7 @@ fun CommunityRankingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("みんなのランキング") },
+                title = { Text("みんなの曲ランキング") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "戻る") }
                 }
