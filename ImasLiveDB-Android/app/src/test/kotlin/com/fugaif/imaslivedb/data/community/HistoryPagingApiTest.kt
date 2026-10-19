@@ -59,16 +59,6 @@ class HistoryPagingApiTest {
     }
 
     @Test
-    fun favoritesRankingSendsLimitAndOffset() = runBlocking {
-        val transport = FakeWorkerTransport { WorkerResponse(200, """[{"song_id":"s1","count":3}]""") }
-        val ranking = CommunityApi(http(transport)).favoritesRanking(offset = 400)
-
-        assertEquals(listOf(CommunityApi.FavoriteRankingDto("s1", 3)), ranking)
-        val url = transport.requests.single().url
-        assertTrue(url, url.endsWith("/favorites/ranking?limit=200&offset=400"))
-    }
-
-    @Test
     fun recordHistoryReturnsNextCursorAndSendsItAsBefore() = runBlocking {
         val transport = FakeWorkerTransport { request ->
             if (request.url.contains("before=")) {

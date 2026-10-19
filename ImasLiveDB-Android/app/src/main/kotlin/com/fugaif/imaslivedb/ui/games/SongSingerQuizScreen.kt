@@ -229,7 +229,7 @@ class SongSingerQuizViewModel(
         _uiState.value = withHintState(s.copy(opened = s.opened + kind))
         if (kind == SongQuizHintKind.PREVIEW) {
             song.previewUrl?.takeIf { it.isNotEmpty() }?.let {
-                AudioPreviewManager.togglePreview(it, song.id)
+                AudioPreviewManager.togglePreview(it, song.id, countsAsPlay = false)
             }
         }
     }

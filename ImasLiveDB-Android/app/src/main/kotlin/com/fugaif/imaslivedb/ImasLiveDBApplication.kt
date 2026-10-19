@@ -21,6 +21,8 @@ class ImasLiveDBApplication : Application() {
         // Apple Music の再生器は「いま前に出ている Activity」を Activity のライフサイクルで覚える。
         // 歌詞を開いた時点で初めて作ると最初の Activity を取り逃がすので、起動時に作っておく。
         appModule.lyricsPlayback
+        // 曲の再生回数: 試聴は 5 秒、フル再生は 30 秒流れ続けたら数える。
+        appModule.playCountRepository.observe(AudioPreviewManager.playbackState, appModule.lyricsPlayback)
         // プレイヤーは初めて鳴らすときに作る。ここでは Context を渡すだけ。
         AudioPreviewManager.init(this)
     }

@@ -96,6 +96,7 @@ import com.fugaif.imaslivedb.data.repository.SearchScope
 import com.fugaif.imaslivedb.ui.settings.SettingsScreen
 import com.fugaif.imaslivedb.ui.songs.SongDetailScreen
 import com.fugaif.imaslivedb.ui.songs.SongListScreen
+import com.fugaif.imaslivedb.ui.stats.CommunityRankingScreen
 import com.fugaif.imaslivedb.ui.stats.StatsScreen
 import com.fugaif.imaslivedb.ui.tags.IdolTagDetailScreen
 import com.fugaif.imaslivedb.ui.tags.TagActivityScreen
@@ -439,7 +440,18 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
             onOpenShow = { navController.navigate(NavRoutes.Setlist.createRoute(it)) }
         )
     }
-    composable(NavRoutes.Stats.route) { StatsScreen(onBack = navController.backOrNull()) }
+    composable(NavRoutes.Stats.route) {
+        StatsScreen(
+            onBack = navController.backOrNull(),
+            onOpenRanking = { navController.navigate(NavRoutes.CommunityRanking.route) }
+        )
+    }
+    composable(NavRoutes.CommunityRanking.route) {
+        CommunityRankingScreen(
+            onBack = { navController.popBackStack() },
+            onSongClick = { navController.navigate(NavRoutes.SongDetail.createRoute(it)) }
+        )
+    }
     composable(NavRoutes.Settings.route) { SettingsScreen(onBack = navController.backOrNull()) }
     composable(NavRoutes.Polls.route) {
         PollsScreen(

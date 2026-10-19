@@ -219,6 +219,15 @@ class MainActivity : ComponentActivity() {
         }
         // 送れなかったお気に入りの集計を送り直す。
         module.appScope.launch { module.favoriteAggregation.flushPending() }
+        // 貯めた再生回数を送る (1 時間に 1 回まで。空なら何もしない)。
+        module.appScope.launch { module.playCountRepository.flushIfDue() }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // 背面に回るときも送る (送る時間でなければ何もしない)。
+        val module = AppModule.from(this)
+        module.appScope.launch { module.playCountRepository.flushIfDue() }
     }
 }
 

@@ -83,7 +83,7 @@ import uniffi.imas_core.UncollectedSongRecord
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(onBack: (() -> Unit)? = null, viewModel: StatsViewModel = viewModel()) {
+fun StatsScreen(onBack: (() -> Unit)? = null, onOpenRanking: (() -> Unit)? = null, viewModel: StatsViewModel = viewModel()) {
     val state by viewModel.uiState.collectAsState()
     var selectedSongId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedShowId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -156,13 +156,17 @@ fun StatsScreen(onBack: (() -> Unit)? = null, viewModel: StatsViewModel = viewMo
                     )
                 }
 
-                HeatSection(
+                CommunityRankingSection(
+                    title = "コミュニティの熱量",
+                    kind = state.rankingKind,
+                    onKindChange = viewModel::selectRankingKind,
                     brands = state.brands,
                     selectedBrandId = state.favoriteBrandId,
                     onBrandSelected = viewModel::selectFavoriteBrand,
-                    ranking = state.favoritesRanking,
-                    isLoading = state.isLoadingFavorites,
-                    onSongClick = { selectedSongId = it }
+                    ranking = state.communityRanking,
+                    isLoading = state.isLoadingRanking,
+                    onSongClick = { selectedSongId = it },
+                    seeAll = onOpenRanking
                 )
 
                 // iOS には無い Android 独自の区画 (マスタの規模を一目で)。
@@ -408,54 +412,6 @@ private fun LatestSection(show: com.fugaif.imaslivedb.data.model.Show, songCount
         }
     }
 }
-
-// MARK: - コミュニティの熱量
-
-@Composable
-private fun HeatSection(
-    brands: List<com.fugaif.imaslivedb.data.model.Brand>,
-    selectedBrandId: String?,
-    onBrandSelected: (String?) -> Unit,
-    ranking: List<com.fugaif.imaslivedb.data.model.FavoriteRankingEntry>,
-    isLoading: Boolean,
-    onSongClick: (String) -> Unit
-) {
-    ImasSection("コミュニティの熱量", style = ImasSectionHeaderStyle.SMALL) {
-        Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
-            BrandFilterChips(
-                brands = brands.map { BrandFilterItem(it.id, it.shortName) },
-                selectedBrandId = selectedBrandId,
-                onBrandSelected = onBrandSelected
-            )
-            when {
-                isLoading -> ImasInlineLoading()
-                ranking.isEmpty() -> ImasCard {
-                    ImasEmptyState(
-                        icon = Icons.Filled.Favorite,
-                        title = "まだデータがありません",
-                        message = "お気に入り登録が増えるとここにランキングが表示されます。"
-                    )
-                }
-                else -> ImasCardList(items = ranking.withIndex().toList(), key = { it.index }) { (index, entry) ->
-                    ImasRankingRow(
-                        rank = index + 1,
-                        title = entry.title,
-                        metric = heatMetric(entry.count),
-                        unit = "♥",
-                        brand = entry.brandId,
-                        onClick = { onSongClick(entry.songId) }
-                    ) {
-                        ImasArtwork(title = entry.title, brand = entry.brandId, size = 44.dp, imageUrl = entry.artworkUrl)
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** "1280" → "1,280" のような桁区切り。 */
-private fun heatMetric(count: Int): String =
-    "%,d".format(count)
 
 /** "2026-06-04" → "6/4" 表示用。失敗時は元文字列。 */
 private fun displayDate(raw: String): String {

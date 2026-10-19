@@ -119,6 +119,10 @@ class AppModule private constructor(context: Context) {
     val favoriteAggregation: FavoriteAggregation by lazy {
         FavoriteAggregation(appContext, appScope, send = communityApi::toggleFavorite)
     }
+    /** 曲の再生回数 (試聴 / フル) を数えて、みんなの集計に送る。貯めた分は端末に持つ。 */
+    val playCountRepository: com.fugaif.imaslivedb.data.community.PlayCountRepository by lazy {
+        com.fugaif.imaslivedb.data.community.PlayCountRepository(appContext, appScope, send = communityApi::postPlays)
+    }
     val personalTagRepository: PersonalTagRepository by lazy { PersonalTagRepository(database) }
     val expenseRepository: ExpenseRepository by lazy { ExpenseRepository(database) }
     /** P名刺 (自分の名刺と名刺入れ。端末にだけある)。 */

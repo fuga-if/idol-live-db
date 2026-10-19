@@ -1,5 +1,7 @@
 package com.fugaif.imaslivedb.data.community
 
+import uniffi.imas_core.CommunityStats
+import uniffi.imas_core.communityStatsParse
 import android.util.Log
 import com.fugaif.imaslivedb.data.net.WorkerHttpClient
 import kotlinx.coroutines.Dispatchers
@@ -643,8 +645,6 @@ class CommunityApi(private val http: WorkerHttpClient) {
         )
     }
 
-    data class FavoriteRankingDto(val songId: String, val count: Int)
-
     /**
      * POST /favorites/toggle — 曲のお気に入りの付け外しを、みんなの集計に送る (端末単位で重複を除く)。
      * 失敗は例外にする (送り直しの判断は [FavoriteAggregation])。
@@ -657,17 +657,32 @@ class CommunityApi(private val http: WorkerHttpClient) {
     }
 
     /**
-     * GET /favorites/ranking?limit=&offset= — お気に入りの曲別集計を件数の多い順に 1 ページ
-     * (曲メタは呼び出し側でローカルカタログから解決する)。ブランドは手元で絞るので、
-     * 呼び出し側は絞った件数がたまるまで offset を進めて読む (iOS と同じ契約)。
+     * POST /plays/batch — 端末が貯めた再生回数をまとめて送る。[body] は imas-core `playBatchBody` の文字列。
+     * 429・失敗は例外 (貯めたまま残す判断は [PlayCountRepository])。
      */
-    suspend fun favoritesRanking(offset: Int = 0, limit: Int = FAVORITES_RANKING_PAGE_SIZE): List<FavoriteRankingDto> = withContext(Dispatchers.IO) {
-        val arr = getArray("/favorites/ranking?limit=$limit&offset=$offset") ?: return@withContext emptyList()
-        (0 until arr.length()).map { i ->
-            val o = arr.getJSONObject(i)
-            FavoriteRankingDto(o.optString("song_id"), o.optInt("count"))
-        }
+    suspend fun postPlays(body: String): Unit = withContext(Dispatchers.IO) {
+        val response = http.request("POST", "/plays/batch", JSONObject(body))
+        check(response.isSuccess) { "plays/batch -> HTTP ${response.code}" }
     }
+
+    /**
+     * GET /community/song-stats — 全曲のお気に入り・再生回数。応答はコアの `communityStatsParse` がそのまま読む
+     * (DTO は作らない)。30 分はメモリに持つ。取れなければ (古いのがあればそれを) null を返す。
+     */
+    suspend fun songStats(): CommunityStats? = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        statsCache?.let { (at, stats) -> if (now - at < STATS_TTL_MS) return@withContext stats }
+        val parsed = try {
+            val response = http.request("GET", "/community/song-stats")
+            if (response.isSuccess && !response.body.isNullOrEmpty()) communityStatsParse(response.body) else null
+        } catch (e: Exception) {
+            Log.w(TAG, "GET /community/song-stats failed: ${e.message}"); null
+        }
+        if (parsed != null) statsCache = now to parsed
+        parsed ?: statsCache?.second
+    }
+
+    @Volatile private var statsCache: Pair<Long, CommunityStats>? = null
 
     /**
      * GET /polls?status= — お題一覧。
@@ -917,9 +932,7 @@ class CommunityApi(private val http: WorkerHttpClient) {
 
         /** タグ説明の履歴の 1 ページの件数 (サーバの既定と同じ)。満杯なら続きがあるかもしれない。 */
         const val TAG_HISTORY_PAGE_SIZE = 30
-
-        /** お気に入りランキングの 1 ページの件数。 */
-        const val FAVORITES_RANKING_PAGE_SIZE = 200
+        private const val STATS_TTL_MS = 30 * 60 * 1000L
     }
 }
 

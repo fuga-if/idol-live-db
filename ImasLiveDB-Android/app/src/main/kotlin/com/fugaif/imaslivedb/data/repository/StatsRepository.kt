@@ -7,9 +7,9 @@ import com.fugaif.imaslivedb.data.model.JstDay
 import com.fugaif.imaslivedb.data.model.Brand
 import com.fugaif.imaslivedb.data.model.BrandSongCount
 import com.fugaif.imaslivedb.data.model.DatabaseStats
-import com.fugaif.imaslivedb.data.model.FavoriteRankingEntry
 import com.fugaif.imaslivedb.data.model.YearlyShowCount
 import uniffi.imas_core.CollectionDashboardRecord
+import uniffi.imas_core.CommunityRankingKind
 
 /**
  * 統計・回収ダッシュボードの読み取り口。
@@ -90,28 +90,32 @@ class StatsRepository(
             )
         }
 
-    // MARK: - コミュニティの熱量 (お気に入りランキング)
+    // MARK: - コミュニティの熱量 (人気・急上昇・お気に入り・試聴・フル再生のランキング)
 
-    suspend fun fetchFavoritesRanking(brandId: String?, limit: Int = 20): List<FavoriteRankingEntry> =
-        collectFavoritesRanking(
-            brandId = brandId,
-            limit = limit,
-            fetchPage = { offset -> communityApi.favoritesRanking(offset = offset) },
-            resolve = { dtos ->
-                // 曲メタの引き当ては hydration (Room が正)。ランキング自体は端末外データなのでコア対象外。
-                val songs = db.songDao().fetchSongsByIds(dtos.map { it.songId }).associateBy { it.id }
-                dtos.map { dto ->
-                    val song = songs[dto.songId]
-                    FavoriteRankingEntry(
-                        songId = dto.songId,
-                        count = dto.count,
-                        title = song?.title ?: dto.songId,
-                        brandId = song?.brandId,
-                        artworkUrl = song?.artworkUrl
-                    )
-                }
+    /**
+     * みんなの集計から [kind] の順位表を作る。順位・点・今週の数・ブランドの絞り込みはコア
+     * (`SnapshotStore.communityRanking`)。ここは曲メタ (題・ジャケ) の引き当てだけ。
+     * 集計が取れなければ null (空の順位表と区別する)。
+     */
+    suspend fun fetchCommunityRanking(kind: CommunityRankingKind, brandId: String?, limit: Int): CommunityRanking? {
+        val stats = communityApi.songStats() ?: return null
+        val ranked = snapshots.query { store -> store.communityRanking(stats, kind, brandId, limit.toUInt()) }
+        val songs = db.songDao().fetchSongsByIds(ranked.map { it.songId }).associateBy { it.id }
+        return CommunityRanking(
+            playsSince = stats.playsSince,
+            items = ranked.map { r ->
+                val song = songs[r.songId]
+                CommunityRankingItem(
+                    rank = r.rank.toInt(),
+                    songId = r.songId,
+                    value = r.value.toLong(),
+                    title = song?.title ?: r.songId,
+                    brandId = song?.brandId,
+                    artworkUrl = song?.artworkUrl
+                )
             }
         )
+    }
 
     internal companion object {
         /** 「この公演で聴けるかも」に出す公演の数。 */
@@ -145,3 +149,16 @@ class StatsRepository(
         }
     }
 }
+
+/** 順位表の 1 行。[value] は種類ごとの数 (人気=点、急上昇=今週の再生回数、ほかはその数)。 */
+data class CommunityRankingItem(
+    val rank: Int,
+    val songId: String,
+    val value: Long,
+    val title: String,
+    val brandId: String?,
+    val artworkUrl: String?
+)
+
+/** [playsSince] は再生回数を数え始めた日 (`yyyy-MM-dd`)。 */
+data class CommunityRanking(val playsSince: String, val items: List<CommunityRankingItem>)

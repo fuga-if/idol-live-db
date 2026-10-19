@@ -52,6 +52,8 @@ data class SongDetailUiState(
     val tags: List<CommunityApi.SongTag> = emptyList(),
     val penlight: CommunityApi.PenlightResult? = null,
     val isFavorite: Boolean = false,
+    /** みんなのお気に入り・再生回数 (集計を取れなかったら null)。 */
+    val communityCounts: uniffi.imas_core.SongCommunityStat? = null,
     /** KAMISABI カードを所持済みか (song.hasKamisabiCard が true の曲でのみ意味を持つ)。 */
     val isCardOwned: Boolean = false,
     /**
@@ -138,8 +140,9 @@ class SongDetailViewModel : ViewModel() {
         val a = api ?: return
         val tags = runCatching { a.songTags(songId) }.getOrDefault(emptyList())
         val pen = runCatching { a.penlightVotes(songId) }.getOrNull()
+        val counts = runCatching { a.songStats() }.getOrNull()?.let { uniffi.imas_core.communityStatFor(it, songId) }
         if (currentSongId == songId) {
-            _uiState.value = _uiState.value.copy(tags = tags, penlight = pen)
+            _uiState.value = _uiState.value.copy(tags = tags, penlight = pen, communityCounts = counts)
         }
     }
 

@@ -24,7 +24,9 @@ data class PlaybackState(
      * 同名で歌唱者の違う録音が実在するので、曲名で同一性を見ると別バージョンの
      * ジャケと名義が出る。再生中バーの引き当てもここを使う。
      */
-    val nowPlayingSongId: String? = null
+    val nowPlayingSongId: String? = null,
+    /** 再生回数に数える再生か。イントロクイズの出題の再生は false (みんなの集計に入れない)。 */
+    val countsAsPlay: Boolean = true
 ) {
     /**
      * この曲が今このアプリで鳴っているか。
@@ -97,13 +99,13 @@ object AudioPreviewManager {
      * - If [url] matches the currently playing track → pause/stop.
      * - Otherwise → start playing the new URL.
      */
-    fun togglePreview(url: String, songId: String) {
+    fun togglePreview(url: String, songId: String, countsAsPlay: Boolean = true) {
         val current = _playbackState.value
         if (current.nowPlayingUrl == url && current.isPlaying) {
             stop()
             return
         }
-        playUrl(url, songId)
+        playUrl(url, songId, countsAsPlay)
     }
 
     /** Pause playback without clearing the media item (position is kept, use [resume] to continue). */
@@ -133,14 +135,15 @@ object AudioPreviewManager {
 
     // --- Private helpers ---
 
-    private fun playUrl(url: String, songId: String) {
+    private fun playUrl(url: String, songId: String, countsAsPlay: Boolean) {
         val exo = ensurePlayer() ?: return
         if (!requestAudioFocus()) return
 
         _playbackState.value = PlaybackState(
             isPlaying = false,
             nowPlayingUrl = url,
-            nowPlayingSongId = songId
+            nowPlayingSongId = songId,
+            countsAsPlay = countsAsPlay
         )
 
         exo.stop()

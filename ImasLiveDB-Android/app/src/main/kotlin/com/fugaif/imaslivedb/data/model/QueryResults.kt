@@ -217,15 +217,6 @@ data class YearlyShowCount(
 
 // MARK: - Collection Dashboard Query Types (iOS Database/QueryTypes.swift の移植)
 
-/** お気に入りランキング行。API のコミュニティ集計 (song_id, count) にローカルカタログの曲メタを結合。 */
-data class FavoriteRankingEntry(
-    val songId: String,
-    val count: Int,
-    val title: String,
-    val brandId: String?,
-    val artworkUrl: String?
-)
-
 /**
  * あいまい検索へ渡す綴り (曲名 + 読み) の軽い射影。
  *

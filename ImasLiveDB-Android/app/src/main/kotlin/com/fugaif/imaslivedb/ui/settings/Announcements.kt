@@ -51,6 +51,20 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
+            id = "v2.9.0_play_counts",
+            date = "2026-10-20",
+            title = "曲の再生回数と、人気・急上昇のランキング",
+            summary = "みんなが聴いた回数を曲ごとに数え、人気・急上昇などのランキングと曲詳細に出します。",
+            body = listOf(
+                "試聴を 5 秒、フル再生を 30 秒聴くと、その曲を 1 回聴いたと数えます。回数は匿名で、まとめて送られます。",
+                "「回収ダッシュボード」の「コミュニティの熱量」で、人気・急上昇・お気に入り・試聴・フル再生のランキングを切り替えて見られます。「すべて見る」で上位 100 曲まで。",
+                "曲の詳細に、お気に入り・試聴・フル再生の数を出しました。",
+            ),
+            icon = Icons.Filled.BarChart,
+            tint = "#3373BF",
+            link = null
+        ),
+        Announcement(
             id = "v2.8.0_share_to_x",
             date = "2026-10-19",
             title = "X へのシェアが画像付きに",

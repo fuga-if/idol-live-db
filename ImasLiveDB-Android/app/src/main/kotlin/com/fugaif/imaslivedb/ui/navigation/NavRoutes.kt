@@ -64,6 +64,8 @@ sealed class NavRoutes(val route: String) {
         }
     }
     data object Stats : NavRoutes("stats")
+    /** みんなのランキング (統計の「すべて見る」から)。 */
+    data object CommunityRanking : NavRoutes("community_ranking")
     data object Mastery : NavRoutes("mastery")
     data object Ledger : NavRoutes("ledger")
     /** 自分の P名刺 (プロデュースの担当の入場証の下から)。 */

@@ -484,6 +484,14 @@ private fun SongSheetContent(
             cells = boardCells(state),
             modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
         )
+        // みんなの数 (集計を取れなかったときは出さない)。
+        state.communityCounts?.let { counts ->
+            ImasText(
+                "♥ ${"%,d".format(counts.favorites.toLong())} · 試聴 ${"%,d".format(counts.preview.toLong())} 回 · フル ${"%,d".format(counts.full.toLong())} 回",
+                ImasTextRole.ROW_SUBTITLE,
+                modifier = Modifier.padding(start = DS.sp5, end = DS.sp5, bottom = DS.sp4)
+            )
+        }
         ImasTabs(
             labels = tabLabels,
             selection = segment, onSelect = { segment = it },
