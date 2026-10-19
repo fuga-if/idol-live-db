@@ -3339,7 +3339,7 @@ INSERT INTO "idols" VALUES('sidem_花園百々人','sidem','花園百々人','�
 INSERT INTO "idols" VALUES('cg_依田芳乃','cg','依田芳乃','よりたよしの',NULL,'#C7BAB4',4185,'--07-03','O',151.0,40.0,'鹿児島',16,73.0,53.0,73.0,'蟹座','失せ物探し、悩み事解決、石ころ集め',NULL,'人々の願いを叶えるのが好きな16歳の神秘的アイドル。古めかしい語尾で話す純粋無垢な性格。CV: 高田憂希。','female','right','依田','芳乃',NULL,'2014-05-28','passion',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','106');
+INSERT INTO "meta" VALUES('data_version','107');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -88965,7 +88965,6 @@ INSERT INTO "shows" VALUES('sh_L1060','ev_life_like_a_live9_エピソードi第�
 INSERT INTO "shows" VALUES('sh_L0317','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','昼の部','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L0318','ev_アイドルマスター_sidem_ラジオ_315プロnight_ドラマチックミーティング_vol2_moon_side','夜の部','2016-07-17','東京・ラフォーレミュージアム六本木',NULL,NULL,1,'cast','venue_ラフォーレミュージアム六本木',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演_1','ev_animethon_2026_musicfes_アイドルマスター_シャイニーカラーズ出演','Animethon 2026 MusicFes（アイドルマスター シャイニーカラーズ出演）','2026-08-08','Edmonton Convention Centre (エドモントン, アルバータ州 / カナダ)',NULL,NULL,0,'cast','venue_edmontonconventioncentre',NULL,NULL,NULL);
-INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC HIGHLIGHTS','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast','venue_toyotaarenatokyo',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','ev_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier','MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in Comic Frontier','2026-11-01','ICE (Indonesia Convention Exhibition) BSD (インドネシア)',NULL,NULL,0,'cast','venue_iceindonesiaconventionexhibitionbsd',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_korea_1','ev_miki_hoshii_solo_showcase_the_future_spotlight_in_korea','MIKI HOSHII SOLO SHOWCASE「THE FUTURE SPOTLIGHT」in KOREA','2026-08-09','Gabin Art Hall (ソウル / 韓国)',NULL,NULL,0,'cast','venue_gabinarthall',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_1','ev_project_imas_valiv_3rdlive_meeting_qonnect_as_one','PRODUCER MEETING in NAGOYA','2027-01-30','愛知県芸術劇場','名古屋','17:00',0,'cast','venue_愛知県芸術劇場','大ホール',NULL,NULL);
@@ -88995,6 +88994,7 @@ INSERT INTO "shows" VALUES('sh_L1238','ev_project_ims_vα-liv_2ndlive_-beyond_th
 INSERT INTO "shows" VALUES('sh_L1239','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY2 THE IDOLM@STER Dearly Stars -Dearly, Dearly MEETING !!!-','2026-02-22','東京・日本工学院アリーナ',NULL,'17:00',2,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L1240','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY3 昼公演 Dearly Stars×vα-liv LIVE -UNDER ONE SKY !!!!!!-','2026-02-23','東京・日本工学院アリーナ',NULL,'14:00',3,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L1241','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY3 夜公演 Dearly Stars×vα-liv LIVE -UNDER ONE SKY !!!!!!-','2026-02-23','東京・日本工学院アリーナ',NULL,'17:30',4,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC HIGHLIGHTS','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast','venue_toyotaarenatokyo',NULL,NULL,NULL);
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_天海春香','original');
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_如月千早','original');
