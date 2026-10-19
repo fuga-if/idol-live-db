@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import OSLog
 
 private let logger = Logger(subsystem: "com.fugaif.ImasLiveDB", category: "play_count")
@@ -57,8 +58,13 @@ final class PlayCountService {
         log = playLogMarkAttempt(log: log, now: now)
         persist()
         let body = playBatchBody(batch: batch)
+        // 背面に回った直後でも送り切れるよう、OS に少し待ってもらう。
+        let bgTask = UIApplication.shared.beginBackgroundTask(withName: "play_count_flush")
         Task {
-            defer { isFlushing = false }
+            defer {
+                isFlushing = false
+                if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
+            }
             do {
                 try await sendBatch(body)
                 // 待つ間に増えたぶんを失わないよう、今の log から送れたぶんだけ引く。

@@ -200,7 +200,7 @@ struct SongSingerQuizView: View {
             refreshHint(song)
         }
         if kind == .preview, let url = song.previewUrl.flatMap({ URL(string: $0) }) {
-            MusicKitService.shared.togglePreview(url: url, songId: song.id)
+            MusicKitService.shared.togglePreview(url: url, songId: song.id, countsAsPlay: false)
         }
     }
 

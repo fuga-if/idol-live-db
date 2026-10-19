@@ -91,41 +91,41 @@ final class MusicKitService {
 
     // MARK: - 再生回数
 
-    /// いま数えている再生 (曲 × 試聴かフルか)。曲か種類が変わったら新しい再生として数え直す。
-    @ObservationIgnored private var countedSession: (songId: String, kind: PlayKind)?
-    /// この再生をもう数えたか (一時停止・再開で二重に数えない)。
-    @ObservationIgnored private var sessionCounted = false
+    // いつ 1 回と数えるかはコアの状態機械 (`play_counts` の「再生のまとまり」)。
+    // ここは状態をそのまま渡して、返ってきたタイマの指示どおりに動かすだけ。
+    @ObservationIgnored private var playSession = playSessionIdle()
     @ObservationIgnored private var countTask: Task<Void, Never>?
+    /// 試聴が実際に鳴っているか (`AVPlayer.timeControlStatus`)。押しただけ・読み込み失敗・圏外では false。
+    @ObservationIgnored private var previewAudible = false
+    /// いまの試聴を再生回数に数えるか (ゲームの出題用の試聴は数えない)。
+    @ObservationIgnored private var previewCountsAsPlay = true
+    @ObservationIgnored private var previewStatusObservation: NSKeyValueObservation?
 
-    /// 再生の状態が変わるたびに、数える予約を組み直す。
-    /// 「試聴 5 秒 / フル 30 秒たって、まだ同じ曲が同じ鳴らし方で流れている」ときだけ 1 回。
-    /// 曲が替わる・止まると予約は取り消す (送り・止めた曲を数えない)。
     private func updatePlayCounting() {
-        guard let songId = nowPlayingSongId else {
+        let observation = PlayObservation(
+            songId: nowPlayingSongId,
+            kind: isFullPlayback ? .full : .preview,
+            isPlaying: isFullPlayback ? isPlaying : previewAudible,
+            countsAsPlay: isFullPlayback ? true : previewCountsAsPlay)
+        let step = playSessionObserve(session: playSession, observation: observation)
+        playSession = step.session
+        switch step.timer {
+        case .keep:
+            break
+        case .cancel:
             countTask?.cancel(); countTask = nil
-            countedSession = nil
-            return
-        }
-        let kind: PlayKind = isFullPlayback ? .full : .preview
-        if countedSession?.songId != songId || countedSession?.kind != kind {
-            countTask?.cancel(); countTask = nil
-            countedSession = (songId, kind)
-            sessionCounted = false
-        }
-        guard isPlaying, !sessionCounted else {
-            if !isPlaying { countTask?.cancel(); countTask = nil }
-            return
-        }
-        guard countTask == nil else { return }
-        let seconds = PlayCountService.secondsToCount(kind)
-        countTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            guard !Task.isCancelled, let self else { return }
-            self.countTask = nil
-            guard self.isPlaying, self.nowPlayingSongId == songId,
-                  (self.isFullPlayback ? PlayKind.full : .preview) == kind, !self.sessionCounted else { return }
-            self.sessionCounted = true
-            PlayCountService.shared.record(songId: songId, kind: kind)
+        case .start(let seconds):
+            countTask?.cancel()
+            countTask = Task { @MainActor [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(max(0, seconds) * 1_000_000_000))
+                guard !Task.isCancelled, let self else { return }
+                self.countTask = nil
+                let fire = playSessionFire(session: self.playSession)
+                self.playSession = fire.session
+                if fire.record {
+                    PlayCountService.shared.record(songId: fire.session.songId, kind: fire.session.kind)
+                }
+            }
         }
     }
 
@@ -261,13 +261,24 @@ final class MusicKitService {
     // MARK: - Playback
 
     /// プレビュー再生（30秒、誰でも可）
-    func togglePreview(url: URL, songId: String) {
+    /// - Parameter countsAsPlay: 再生回数に数えるか。ゲームの出題で流す試聴は false。
+    func togglePreview(url: URL, songId: String, countsAsPlay: Bool = true) {
         if isPlaying(songId: songId) {
             stop()
         } else {
             stop()
+            previewCountsAsPlay = countsAsPlay
             let playerItem = AVPlayerItem(url: url)
-            player = AVPlayer(playerItem: playerItem)
+            let newPlayer = AVPlayer(playerItem: playerItem)
+            player = newPlayer
+            previewStatusObservation = newPlayer.observe(\.timeControlStatus) { [weak self] p, _ in
+                let audible = p.timeControlStatus == .playing
+                Task { @MainActor in
+                    guard let self, self.player === p else { return }
+                    self.previewAudible = audible
+                    self.updatePlayCounting()
+                }
+            }
 
             endObserverToken = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
@@ -615,6 +626,9 @@ final class MusicKitService {
             NotificationCenter.default.removeObserver(token)
             endObserverToken = nil
         }
+        previewStatusObservation?.invalidate()
+        previewStatusObservation = nil
+        previewAudible = false
         player?.pause()
         player = nil
         // MusicKit の ApplicationMusicPlayer.shared は MPMusicPlayerController.application

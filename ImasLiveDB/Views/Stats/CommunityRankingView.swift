@@ -30,7 +30,7 @@ extension CommunityRankingKind: CaseIterable, Identifiable {
     var emptyIcon: String { self == .favorites ? "heart" : "chart.bar" }
 
     /// 再生回数が根拠の種類 (数え始めた日を添える)。
-    var isPlayBased: Bool { self == .trending || self == .preview || self == .full }
+    var isPlayBased: Bool { self != .favorites }
 }
 
 /// ブランドの絞り込み (すべて + 各ブランド)。
@@ -48,12 +48,9 @@ struct CommunityBrandChips: View {
     }
 
     private func chip(label: String, brandId: String?, seed: String?) -> some View {
-        Button {
+        ImasFilterChip(text: label, isSelected: selection == brandId, seed: seed) {
             selection = brandId
-        } label: {
-            ImasChip(text: label, style: selection == brandId ? .selected : .neutral, seed: seed)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -68,6 +65,7 @@ struct CommunityRankingList: View {
     @State private var rows: [Row] = []
     @State private var playsSince: String?
     @State private var isLoading = true
+    @State private var failed = false
 
     struct Row: Identifiable {
         let ranked: RankedSong
@@ -79,6 +77,14 @@ struct CommunityRankingList: View {
         VStack(alignment: .leading, spacing: DS.Space.gap) {
             if isLoading && rows.isEmpty {
                 ImasInlineLoading()
+            } else if failed {
+                ImasCard {
+                    ImasEmptyState(
+                        .failed,
+                        title: "ランキングを取得できませんでした",
+                        message: "通信を確かめてもう一度開いてください。"
+                    )
+                }
             } else if rows.isEmpty {
                 ImasCard {
                     ImasEmptyState(
@@ -120,6 +126,7 @@ struct CommunityRankingList: View {
 
     private func load() async {
         isLoading = true
+        failed = false
         defer { isLoading = false }
         do {
             let stats = try await CommunityAPI.shared.songStats()
@@ -134,6 +141,7 @@ struct CommunityRankingList: View {
             if !(error is CancellationError) {
                 Logger.database.error("load_failed community_ranking: \(error.localizedDescription)")
                 rows = []
+                failed = true
             }
         }
     }
