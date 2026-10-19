@@ -5,7 +5,8 @@
 //! 規則:
 //! - 1 回と数えるのは、試聴は [`PREVIEW_COUNT_AFTER_SECONDS`] 秒、フル再生は
 //!   [`FULL_COUNT_AFTER_SECONDS`] 秒続けて流れたとき。押してすぐ止めた分は数えない。
-//!   端末は再生を始めたらこの秒数のあとに「まだ同じ曲が流れているか」を見て [`record`] を呼ぶ。
+//!   いつ 1 回と数えるか (一時停止をまたぐ・曲が変わる・ゲームは数えない) は再生のまとまりの
+//!   状態機械 ([`session_observe`] / [`session_fire`]) が決め、端末はタイマを回すだけ。
 //! - 数えた分は端末に貯めておき、まとめて送る。送るのは前回の送信から
 //!   [`SEND_INTERVAL_SECONDS`] 以上たったときだけ (送信回数を抑えて、Worker と D1 の
 //!   有料プランの枠に収めるため。サーバ側でも端末ごとに 1 日の送信回数を制限している)。
@@ -160,6 +161,111 @@ pub fn decode(text: &str) -> PlayLog {
     log
 }
 
+// ---- 再生のまとまり (いつ 1 回と数えるか) ----
+//
+// 端末は「いま何がどう鳴っているか」が変わるたびに [`session_observe`] を呼び、返ってきた
+// タイマの指示 (始める / 止める / そのまま) に従うだけにする。タイマが鳴ったら [`session_fire`]
+// を呼び、`record` なら [`record`] する。数えたかどうか・区切りはここが決める。
+//
+// - 1 つの再生のまとまりは「曲と種類 (試聴 / フル) が同じで、止めていない (曲が無くならない)」間。
+//   一時停止・再開・読み込み待ちで鳴りやんでも同じまとまりで、数えるのは 1 回だけ。
+// - 曲か種類が変わる、または止めて曲が無くなったら新しいまとまり。
+// - 鳴っている間だけタイマを進める。鳴りやんだら止め、また鳴ったら最初から数え直す
+//   (まだ数えていなければ)。
+// - ゲーム (イントロクイズ等) の再生は `counts_as_play = false` で渡し、数えない。
+// - 端末は「押した」ではなく「実際に音が鳴っている」を `is_playing` に渡す。
+
+/// 再生のまとまりの状態。何も鳴っていないときは `song_id` が空。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct PlaySession {
+    pub song_id: String,
+    pub kind: PlayKind,
+    pub counts_as_play: bool,
+    pub counted: bool,
+    pub playing: bool,
+}
+
+/// 端末が見ている「いまの再生」。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct PlayObservation {
+    /// 鳴らしている曲 (止めて無くなったら None)。
+    pub song_id: Option<String>,
+    pub kind: PlayKind,
+    /// 実際に音が鳴っているか (一時停止・読み込み待ちは false)。
+    pub is_playing: bool,
+    /// 再生回数に数える再生か (ゲームは false)。
+    pub counts_as_play: bool,
+}
+
+/// タイマへの指示。
+#[derive(uniffi::Enum, Clone, Debug, PartialEq)]
+pub enum PlayTimerAction {
+    /// 今のタイマのまま。
+    Keep,
+    /// 今のタイマを止める。
+    Cancel,
+    /// 今のタイマを止めて、この秒数のタイマを始める。
+    Start { seconds: f64 },
+}
+
+/// [`session_observe`] の結果。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct PlaySessionStep {
+    pub session: PlaySession,
+    pub timer: PlayTimerAction,
+}
+
+/// [`session_fire`] の結果。
+#[derive(uniffi::Record, Clone, Debug, PartialEq)]
+pub struct PlaySessionFire {
+    pub session: PlaySession,
+    /// 1 回数えるか (数えるなら `session.song_id` と `session.kind` で [`record`] する)。
+    pub record: bool,
+}
+
+/// 何も鳴っていない状態。
+pub fn session_idle() -> PlaySession {
+    PlaySession { song_id: String::new(), kind: PlayKind::Preview, counts_as_play: true, counted: false, playing: false }
+}
+
+fn waits(s: &PlaySession) -> bool {
+    !s.song_id.is_empty() && s.playing && s.counts_as_play && !s.counted
+}
+
+/// 再生の様子が変わったときに呼ぶ。
+pub fn session_observe(prev: &PlaySession, obs: &PlayObservation) -> PlaySessionStep {
+    let Some(song_id) = obs.song_id.as_deref().filter(|s| !s.is_empty()) else {
+        return PlaySessionStep { session: session_idle(), timer: PlayTimerAction::Cancel };
+    };
+    let start = PlayTimerAction::Start { seconds: count_after_seconds(obs.kind) };
+    if prev.song_id != song_id || prev.kind != obs.kind {
+        let session = PlaySession {
+            song_id: song_id.to_string(),
+            kind: obs.kind,
+            counts_as_play: obs.counts_as_play,
+            counted: false,
+            playing: obs.is_playing,
+        };
+        let timer = if waits(&session) { start } else { PlayTimerAction::Cancel };
+        return PlaySessionStep { session, timer };
+    }
+    let session = PlaySession { playing: obs.is_playing, ..prev.clone() };
+    let timer = match (waits(prev), waits(&session)) {
+        (false, true) => start,
+        (true, false) => PlayTimerAction::Cancel,
+        _ => PlayTimerAction::Keep,
+    };
+    PlaySessionStep { session, timer }
+}
+
+/// タイマが鳴ったときに呼ぶ。数えるのはまとまりごとに 1 回だけ。
+pub fn session_fire(session: &PlaySession) -> PlaySessionFire {
+    if !waits(session) {
+        return PlaySessionFire { session: session.clone(), record: false };
+    }
+    PlaySessionFire { session: PlaySession { counted: true, ..session.clone() }, record: true }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,6 +276,70 @@ mod tests {
 
     fn tally(id: &str, preview: u32, full: u32) -> PlayTally {
         PlayTally { song_id: id.into(), preview, full }
+    }
+
+    fn obs(song: Option<&str>, kind: PlayKind, playing: bool) -> PlayObservation {
+        PlayObservation { song_id: song.map(Into::into), kind, is_playing: playing, counts_as_play: true }
+    }
+
+    fn start(kind: PlayKind) -> PlayTimerAction {
+        PlayTimerAction::Start { seconds: count_after_seconds(kind) }
+    }
+
+    #[test]
+    fn 鳴り始めでタイマを始め_鳴ったら1回だけ数える() {
+        let step = session_observe(&session_idle(), &obs(Some("s1"), PlayKind::Preview, true));
+        assert_eq!(step.timer, start(PlayKind::Preview));
+        let fired = session_fire(&step.session);
+        assert!(fired.record);
+        assert!(!session_fire(&fired.session).record);
+    }
+
+    #[test]
+    fn 一時停止と再開をまたいでも同じ再生は1回() {
+        let s = session_observe(&session_idle(), &obs(Some("s1"), PlayKind::Full, true)).session;
+        let s = session_fire(&s).session;
+        let paused = session_observe(&s, &obs(Some("s1"), PlayKind::Full, false));
+        assert_eq!(paused.timer, PlayTimerAction::Keep);
+        let resumed = session_observe(&paused.session, &obs(Some("s1"), PlayKind::Full, true));
+        assert_eq!(resumed.timer, PlayTimerAction::Keep);
+        assert!(!session_fire(&resumed.session).record);
+    }
+
+    #[test]
+    fn 数える前に止めたらタイマを止め_また鳴ったら数え直す() {
+        let s = session_observe(&session_idle(), &obs(Some("s1"), PlayKind::Preview, false));
+        assert_eq!(s.timer, PlayTimerAction::Cancel); // 押しただけで鳴っていない
+        let playing = session_observe(&s.session, &obs(Some("s1"), PlayKind::Preview, true));
+        assert_eq!(playing.timer, start(PlayKind::Preview));
+        let paused = session_observe(&playing.session, &obs(Some("s1"), PlayKind::Preview, false));
+        assert_eq!(paused.timer, PlayTimerAction::Cancel);
+        assert!(!session_fire(&paused.session).record); // 遅れて鳴ったタイマでは数えない
+        let again = session_observe(&paused.session, &obs(Some("s1"), PlayKind::Preview, true));
+        assert_eq!(again.timer, start(PlayKind::Preview));
+        assert!(session_fire(&again.session).record);
+    }
+
+    #[test]
+    fn 曲か種類が変わるか止めたら新しい再生() {
+        let s = session_fire(&session_observe(&session_idle(), &obs(Some("s1"), PlayKind::Preview, true)).session).session;
+        let full = session_observe(&s, &obs(Some("s1"), PlayKind::Full, true));
+        assert_eq!(full.timer, start(PlayKind::Full));
+        let next = session_observe(&full.session, &obs(Some("s2"), PlayKind::Full, true));
+        assert_eq!(next.timer, start(PlayKind::Full));
+        let s = session_fire(&next.session).session;
+        let stopped = session_observe(&s, &obs(None, PlayKind::Full, false));
+        assert_eq!(stopped, PlaySessionStep { session: session_idle(), timer: PlayTimerAction::Cancel });
+        let replay = session_observe(&stopped.session, &obs(Some("s2"), PlayKind::Full, true));
+        assert_eq!(replay.timer, start(PlayKind::Full));
+    }
+
+    #[test]
+    fn ゲームの再生は数えない() {
+        let o = PlayObservation { counts_as_play: false, ..obs(Some("s1"), PlayKind::Preview, true) };
+        let step = session_observe(&session_idle(), &o);
+        assert_eq!(step.timer, PlayTimerAction::Cancel);
+        assert!(!session_fire(&step.session).record);
     }
 
     #[test]

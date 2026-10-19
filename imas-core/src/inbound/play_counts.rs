@@ -1,6 +1,8 @@
 //! 再生回数の積み残しの FFI 面。規則は [`crate::domain::play_counts`]。
 
-use crate::domain::play_counts::{self as domain, PlayKind, PlayLog, PlayTally};
+use crate::domain::play_counts::{
+    self as domain, PlayKind, PlayLog, PlayObservation, PlaySession, PlaySessionFire, PlaySessionStep, PlayTally,
+};
 
 /// 保存された文字列を読む。
 #[uniffi::export]
@@ -48,4 +50,22 @@ pub fn play_log_after_sent(log: PlayLog, sent: Vec<PlayTally>) -> PlayLog {
 #[uniffi::export]
 pub fn play_batch_body(batch: Vec<PlayTally>) -> String {
     domain::batch_body(&batch)
+}
+
+/// 何も鳴っていない状態。
+#[uniffi::export]
+pub fn play_session_idle() -> PlaySession {
+    domain::session_idle()
+}
+
+/// 再生の様子が変わったときに呼ぶ (タイマの指示を返す)。
+#[uniffi::export]
+pub fn play_session_observe(session: PlaySession, observation: PlayObservation) -> PlaySessionStep {
+    domain::session_observe(&session, &observation)
+}
+
+/// タイマが鳴ったときに呼ぶ (`record` なら 1 回数える)。
+#[uniffi::export]
+pub fn play_session_fire(session: PlaySession) -> PlaySessionFire {
+    domain::session_fire(&session)
 }

@@ -43,6 +43,8 @@ function weekBefore(week: string): string {
 }
 
 // 週が変わっていたら今週の数を前の週へ送ってから足す。SET の右辺はどれも更新前の行を読む。
+// 週の境目で送信の順序が入れ替わり、行より古い週の数が後から来たときは、週を巻き戻さず
+// 1 つ前の週なら前の週に足し、もっと古ければ累計にだけ足す。
 const UPSERT_PLAYS_SQL = `
 INSERT INTO song_play_counts
   (song_id, preview_count, full_count, week, week_preview, week_full, prev_week_preview, prev_week_full)
@@ -51,14 +53,20 @@ ON CONFLICT(song_id) DO UPDATE SET
   preview_count = preview_count + excluded.preview_count,
   full_count = full_count + excluded.full_count,
   prev_week_preview = CASE WHEN week = excluded.week THEN prev_week_preview
-                           WHEN week = ?5 THEN week_preview ELSE 0 END,
+                           WHEN week < excluded.week THEN (CASE WHEN week = ?5 THEN week_preview ELSE 0 END)
+                           WHEN excluded.week = date(week, '-7 days') THEN prev_week_preview + excluded.week_preview
+                           ELSE prev_week_preview END,
   prev_week_full = CASE WHEN week = excluded.week THEN prev_week_full
-                        WHEN week = ?5 THEN week_full ELSE 0 END,
+                        WHEN week < excluded.week THEN (CASE WHEN week = ?5 THEN week_full ELSE 0 END)
+                        WHEN excluded.week = date(week, '-7 days') THEN prev_week_full + excluded.week_full
+                        ELSE prev_week_full END,
   week_preview = CASE WHEN week = excluded.week THEN week_preview + excluded.week_preview
-                      ELSE excluded.week_preview END,
+                      WHEN week < excluded.week THEN excluded.week_preview
+                      ELSE week_preview END,
   week_full = CASE WHEN week = excluded.week THEN week_full + excluded.week_full
-                   ELSE excluded.week_full END,
-  week = excluded.week`;
+                   WHEN week < excluded.week THEN excluded.week_full
+                   ELSE week_full END,
+  week = MAX(week, excluded.week)`;
 
 function isCount(v: unknown): v is number {
   return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= MAX_COUNT_PER_ENTRY;

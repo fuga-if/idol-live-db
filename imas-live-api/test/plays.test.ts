@@ -76,6 +76,18 @@ describe("POST /plays/batch", () => {
       .toEqual({ week: "2026-11-02", week_preview: 0, week_full: 2, prev_week_preview: 0, prev_week_full: 0 });
   });
 
+  it("週の境目で古い週の送信が後から届いても週を巻き戻さない", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.UTC(2026, 9, 20, 3)); // 10-19 の週
+    await send([{ song_id: "s1", preview: 2 }]);
+    vi.setSystemTime(Date.UTC(2026, 9, 13, 3)); // 1 つ前の週の送信が遅れて届いた
+    await send([{ song_id: "s1", preview: 3, full: 1 }]);
+    vi.setSystemTime(Date.UTC(2026, 9, 1, 3)); // もっと古い週は累計にだけ足す
+    await send([{ song_id: "s1", preview: 10 }]);
+    expect(await row("SELECT week, week_preview, week_full, prev_week_preview, prev_week_full, preview_count, full_count FROM song_play_counts"))
+      .toEqual({ week: "2026-10-19", week_preview: 2, week_full: 0, prev_week_preview: 3, prev_week_full: 1, preview_count: 15, full_count: 1 });
+  });
+
   it("端末ごとに 1 日 30 回まで", async () => {
     // IP の分の枠 (30 回/分) に先に当たらないよう、その日の 30 回は表に入れておく
     const today = new Date().toISOString().slice(0, 10);
