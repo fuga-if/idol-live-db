@@ -97,7 +97,7 @@ fun SpotifySettingsRow(onOpen: () -> Unit) {
  * Spotify 連携の案内と状態。iOS `SpotifySettingsView`。手順・貼る値・注意の文言はコア (`spotifySetupGuide`)。
  *
  * 連携していなければ、上から順にやれば終わるように「アプリを作る手順 → Client ID → ログイン」と並べる。
- * 手順の中で要る操作 (開発者サイトを開く・Redirect URI を写す) はその手順の真下に置く。
+ * 手順の中で要る操作 (アプリを作る画面を開く・Redirect URI を写す) はその手順の真下に置く。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,8 +242,8 @@ private fun SetupSections(onOpenHowTo: (() -> Unit)?) {
                 when (index) {
                     0 -> ImasStep(step.title, step.detail) {
                         ImasButton(
-                            title = "開発者サイトを開く",
-                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(guide.dashboardUrl))) },
+                            title = "アプリを作る画面を開く",
+                            onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(guide.createAppUrl))) },
                             icon = Icons.Filled.Language,
                             role = ImasButtonRole.SECONDARY,
                             size = ImasButtonSize.SMALL,

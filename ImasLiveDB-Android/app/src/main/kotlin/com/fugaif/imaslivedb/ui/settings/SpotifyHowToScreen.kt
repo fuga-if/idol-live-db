@@ -104,7 +104,7 @@ fun SpotifyHowToScreen(onBack: () -> Unit, onOpenSettings: (() -> Unit)? = null)
                 guide.steps.forEachIndexed { index, step ->
                     ImasCard {
                         ImasStepList(
-                            steps = listOf(ImasStep(step.title, step.detail) { Illustration(index, guide.dashboardUrl, guide.redirectUri, guide.steps) }),
+                            steps = listOf(ImasStep(step.title, step.detail) { Illustration(index, guide.createAppUrl, guide.redirectUri, guide.steps) }),
                             startIndex = index + 1,
                         )
                     }
@@ -137,25 +137,25 @@ private fun Tip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Str
 }
 
 @Composable
-private fun Illustration(index: Int, dashboardUrl: String, redirectUri: String, steps: List<SpotifyGuideStep>) {
+private fun Illustration(index: Int, createAppUrl: String, redirectUri: String, steps: List<SpotifyGuideStep>) {
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
         when (index) {
             0 -> {
-                ImasMockBrowser("developer.spotify.com/dashboard") {
-                    ImasText("Dashboard", role = ImasTextRole.ROW_TITLE)
+                ImasMockBrowser("developer.spotify.com/dashboard/create") {
+                    ImasText("Log in to Spotify", role = ImasTextRole.ROW_TITLE)
                     ImasMockButton("Log in", isTarget = true)
                 }
                 ImasButton(
-                    title = "開発者サイトを開く",
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(dashboardUrl))) },
+                    title = "アプリを作る画面を開く",
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(createAppUrl))) },
                     icon = Icons.Filled.Language,
                     role = ImasButtonRole.SECONDARY,
                     size = ImasButtonSize.SMALL,
                 )
             }
-            1 -> ImasMockBrowser("developer.spotify.com/dashboard") {
-                ImasMockButton("Create app", isTarget = true)
+            1 -> ImasMockBrowser("developer.spotify.com/dashboard/create") {
+                ImasText("Create app", role = ImasTextRole.ROW_TITLE)
                 ImasMockField("App name", "アイドルライブDB")
                 ImasMockField("App description", "アイマスのライブの記録")
             }

@@ -33,8 +33,10 @@ const PLAYBACK_SCOPES: [&str; 3] = [
     "user-modify-playback-state",
     "app-remote-control",
 ];
-/// 開発者向けのダッシュボード。ここでアプリを作る。
-pub const DASHBOARD_URL: &str = "https://developer.spotify.com/dashboard";
+/// 開発者サイトの「アプリを作る」画面。ダッシュボードの一覧を経ずに直接開く
+/// (スマホだと一覧の画面は「Create app」のボタンを出さない。2026-10-20 に利用者から報告)。
+/// ログインしていなければ、ログインのあとこの画面に戻る。
+pub const CREATE_APP_URL: &str = "https://developer.spotify.com/dashboard/create";
 /// 書き出したプレイリストの説明。
 pub const PLAYLIST_DESCRIPTION: &str = "アイドルライブDB から作成";
 /// 1 曲あたりに試す検索の数の上限。
@@ -57,7 +59,8 @@ pub const ANDROID_SHA1: &str = "1F:83:20:23:99:01:62:E7:A8:F1:57:AF:CA:68:9B:1C:
 /// 設定画面の案内。手順と、貼り付けてもらう値。
 #[derive(uniffi::Record, Clone, Debug, PartialEq)]
 pub struct SpotifySetupGuide {
-    pub dashboard_url: String,
+    /// アプリを作る画面 ([`CREATE_APP_URL`])。
+    pub create_app_url: String,
     pub redirect_uri: String,
     pub scopes: String,
     /// 画面の頭の説明。
@@ -113,21 +116,21 @@ pub fn setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
         ),
     };
     SpotifySetupGuide {
-        dashboard_url: DASHBOARD_URL.to_string(),
+        create_app_url: CREATE_APP_URL.to_string(),
         redirect_uri: REDIRECT_URI.to_string(),
         scopes: SCOPES.to_string(),
         lead: "自分の Spotify アカウントで「アプリ」を作り、その Client ID を貼ると、曲を Spotify でフル尺で鳴らして歌詞を追いかけたり、セトリやプレイリストを Spotify のプレイリストに書き出したりできます。作るのは最初の 1 回だけです。".to_string(),
         steps: vec![
             step(
-                "Spotify for Developers を開く",
-                "下の「開発者サイトを開く」から、いつもの Spotify アカウントでログインします。初めてのときは利用規約への同意とメールアドレスの確認を求められます。",
+                "アプリを作る画面を開く",
+                "下の「アプリを作る画面を開く」から、いつもの Spotify アカウントでログインします。ログインすると、そのままアプリを作る画面になります。初めてのときは利用規約への同意とメールアドレスの確認を求められます。",
                 vec![],
             ),
             step(
-                "「Create app」でアプリを作る",
+                "名前を入れる",
                 &format!(
                     "App name と App description は何でもかまいません (例: アイドルライブDB)。Website は空のままで大丈夫です。\n\
-                     スマホでは画面が狭いと「Create app」のボタンが出ません。{}",
+                     アプリを作る画面にならず Dashboard が出たときは、「Create app」を押します。スマホでは画面が狭いとこのボタンが出ません。{}",
                     desktop_site_hint(platform)
                 ),
                 vec![],
@@ -158,7 +161,7 @@ pub fn setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
 }
 
 /// スマホのブラウザを PC 版の表示に切り替える方法。Spotify の開発者サイトは画面が狭いと
-/// 「Create app」のボタンを出さないので、手順 2 で案内する (2026-10-20 に利用者から報告)。
+/// 「Create app」のボタンを出さない。直リンク ([`CREATE_APP_URL`]) で開けなかったときの逃げ道として手順 2 で案内する。
 fn desktop_site_hint(platform: SpotifyGuidePlatform) -> &'static str {
     match platform {
         SpotifyGuidePlatform::Ios => "Safari ならアドレス欄の「ぁあ」から「デスクトップ用 Web サイトを表示」を選ぶと出てきます (パソコンで作ってもかまいません)。",

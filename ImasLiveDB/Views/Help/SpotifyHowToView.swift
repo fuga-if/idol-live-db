@@ -69,16 +69,16 @@ struct SpotifyHowToView: View {
     private func illustration(_ index: Int) -> some View {
         switch index {
         case 0:
-            ImasMockBrowser(url: "developer.spotify.com/dashboard") {
-                Text("Dashboard").imasText(.rowTitle)
+            ImasMockBrowser(url: "developer.spotify.com/dashboard/create") {
+                Text("Log in to Spotify").imasText(.rowTitle)
                 ImasMockButton(title: "Log in", isTarget: true)
             }
-            ImasButton(title: "開発者サイトを開く", systemImage: "safari", role: .secondary, size: .small) {
-                if let url = URL(string: guide.dashboardUrl) { openURL(url) }
+            ImasButton(title: "アプリを作る画面を開く", systemImage: "safari", role: .secondary, size: .small) {
+                if let url = URL(string: guide.createAppUrl) { openURL(url) }
             }
         case 1:
-            ImasMockBrowser(url: "developer.spotify.com/dashboard") {
-                ImasMockButton(title: "Create app", isTarget: true)
+            ImasMockBrowser(url: "developer.spotify.com/dashboard/create") {
+                Text("Create app").imasText(.rowTitle)
                 ImasMockField(label: "App name", value: "アイドルライブDB")
                 ImasMockField(label: "App description", value: "アイマスのライブの記録")
             }

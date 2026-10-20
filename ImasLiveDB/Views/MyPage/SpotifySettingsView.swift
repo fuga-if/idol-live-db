@@ -25,7 +25,7 @@ struct SpotifySettingsRow: View {
 /// Spotify 連携の案内と状態。手順・貼る値・注意の文言はコア (`spotifySetupGuide`) が持つ。
 ///
 /// 連携していなければ、上から順にやれば終わるように「アプリを作る手順 → Client ID → ログイン」と並べる。
-/// 手順の中で要る操作 (開発者サイトを開く・Redirect URI を写す) はその手順の真下に置く。
+/// 手順の中で要る操作 (アプリを作る画面を開く・Redirect URI を写す) はその手順の真下に置く。
 struct SpotifySettingsView: View {
     private var spotify: SpotifyService { .shared }
     private let guide = spotifySetupGuide(platform: .ios)
@@ -171,8 +171,8 @@ struct SpotifySettingsView: View {
         guide.steps.enumerated().map { index, step in
             if index == 0 {
                 return .init(title: step.title, detail: step.detail) {
-                    ImasButton(title: "開発者サイトを開く", systemImage: "safari", role: .secondary, size: .small) {
-                        if let url = URL(string: guide.dashboardUrl) { openURL(url) }
+                    ImasButton(title: "アプリを作る画面を開く", systemImage: "safari", role: .secondary, size: .small) {
+                        if let url = URL(string: guide.createAppUrl) { openURL(url) }
                     }
                 }
             }
