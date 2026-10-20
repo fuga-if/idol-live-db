@@ -51,6 +51,8 @@ haze = "1.5.4"
 
 # P名刺: 近くの Android どうしの受け渡し (iOS の MultipeerConnectivity の対)
 playServicesNearby = "19.3.0"
+# 新しい版が Play に出たかの確認 (起動時のお知らせ)。
+playAppUpdate = "2.1.0"
 # P名刺: QR を読むカメラ (CameraX) と、端末内で動く QR の読み取り (圏外でも動く bundled モデル)
 camerax = "1.4.1"
 mlkitBarcode = "17.3.0"
@@ -120,6 +122,7 @@ haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", versi
 
 # P名刺
 play-services-nearby = { group = "com.google.android.gms", name = "play-services-nearby", version.ref = "playServicesNearby" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }

@@ -274,6 +274,7 @@ dependencies {
 
     // P名刺: 近くの Android どうしの受け渡し・QR を読むカメラ・端末内の QR 読み取り・紙の名刺の撮影・QR を刷る。
     implementation(libs.play.services.nearby)
+    implementation(libs.play.app.update.ktx)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
