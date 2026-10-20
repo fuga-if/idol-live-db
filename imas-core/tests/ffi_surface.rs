@@ -400,6 +400,7 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_share_poll_result_text,
     uniffi_imas_core_checksum_func_share_poll_invite_payload,
     uniffi_imas_core_checksum_func_share_poll_url,
+    uniffi_imas_core_checksum_func_share_poll_id_from_url,
     uniffi_imas_core_checksum_func_share_poll_votes_payload,
     uniffi_imas_core_checksum_func_poll_competition_ranks,
     uniffi_imas_core_checksum_func_poll_result_card,

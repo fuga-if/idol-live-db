@@ -28,6 +28,14 @@ final class SocialShareTests: XCTestCase {
         XCTAssertEqual(DeeplinkRouter.parse(url), .poll(id: "46987cdb-0bca"))
     }
 
+    /// お題の共有 URL (公開サイトのお題一覧の節) と、配布済みの旧い API ドメインの形を読み戻せること。
+    func testParsePollShareURLs() {
+        let id = "27384517-a77f-4d30-b654-84d08b79e105"
+        XCTAssertEqual(DeeplinkRouter.parse(DeeplinkBuilder.pollURL(id: id)), .poll(id: id))
+        let legacy = URL(string: "https://imas-live-api.tokata3011.workers.dev/app/polls/\(id)")!
+        XCTAssertEqual(DeeplinkRouter.parse(legacy), .poll(id: id))
+    }
+
     func testUnknownKindIsIgnored() {
         XCTAssertNil(DeeplinkRouter.parse(URL(string: "imaslivedb://unknown/1")!))
     }

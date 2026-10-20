@@ -6,7 +6,8 @@ import Foundation
 enum Deeplink: Equatable {
     case event(id: String)
     case show(id: String)
-    /// みんなの投票のお題 (`/app/polls/{id}`)。実体はサーバ側なので local DB 解決は不要。
+    /// みんなの投票のお題 (`https://idollivedb.fugaapp.site/polls/#poll-{id}`、旧 `/app/polls/{id}`)。
+    /// 実体はサーバ側なので local DB 解決は不要。
     case poll(id: String)
     /// P名刺 (`https://idollivedb.fugaapp.site/p/#…` / `imaslivedb://p#…`)。中身は `#` の後ろ。
     /// サーバに何も無いので local DB も API も引かず、受け取りの確認を開く。
@@ -28,6 +29,10 @@ enum DeeplinkRouter {
         // P名刺の URL。どの形を名刺と読むかはコア (`classifyScannedCode`) 一本。
         if case .card(_, let payload) = classifyScannedCode(text: url.absoluteString) {
             return .producerCard(payload: payload)
+        }
+        // お題の共有 URL (公開サイトの形・旧い API ドメインの形)。どの形をお題と読むかはコア一本。
+        if let id = sharePollIdFromUrl(url: url.absoluteString) {
+            return .poll(id: id)
         }
         if url.scheme == DeeplinkBuilder.customScheme {
             // imaslivedb://events/{id} → host="events", pathComponents=["/", "{id}"]

@@ -86,7 +86,7 @@ object SocialShare {
 /** 投票系のシェアの材料をコアに渡す口。一覧と詳細で同じ文面・同じリンクになる。 */
 object ShareMessage {
     /**
-     * お題そのもののシェア (まだ投票していない人への誘い)。締切は開催中のときだけ載る。
+     * お題そのもののシェア。開催中は誘い (締切つき)、終了後は結果が出たことの知らせ (文面はコア)。
      * 締切を「何月何日」に直すための端末の TZ のずれは、締切の時点のものを渡す (iOS と同じ)。
      */
     fun pollInvitePayload(id: String, title: String, endsAtMs: Long?, isActive: Boolean): SharePayload {

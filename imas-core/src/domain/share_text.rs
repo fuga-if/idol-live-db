@@ -155,9 +155,56 @@ pub fn show_url(id: &str) -> String {
     format!("{UNIVERSAL_LINK_BASE}/app/shows/{}", escaped_id(id))
 }
 
+/// お題の一覧ページで、1 つのお題の節を指す断片の接頭辞。
+/// Web の節の `id` (`poll-{id}`) と同じ形にして、ブラウザでそのお題まで飛ばす。
+const POLL_FRAGMENT_PREFIX: &str = "poll-";
+
 /// みんなの投票のお題への共有 URL。
+///
+/// **公開サイトのお題一覧の、そのお題の節** (`{WEB_ORIGIN}/polls/#poll-{id}`) を指す。
+/// 旧来の API ドメインの着地ページ (`/app/polls/{id}`) は App Store への誘導しか無く、
+/// 開いた人に中身が見えなかった。お題ごとのページにしないのは、お題が利用者の手で
+/// いつでも立つのに出面は日に 1 度しか作り直さないため (立てた直後のお題が 404 になる)。
+/// 一覧ページなら常に開け、OGP も付き、載っていれば節まで飛ぶ。
+/// アプリの入った iOS 端末では Universal Links でお題の画面が開く ([`poll_id_from_url`])。
 pub fn poll_url(id: &str) -> String {
-    format!("{UNIVERSAL_LINK_BASE}/app/polls/{}", escaped_id(id))
+    format!("{WEB_ORIGIN}/polls/#{POLL_FRAGMENT_PREFIX}{}", escaped_id(id))
+}
+
+/// 共有 URL からお題の id を取り出す。[`poll_url`] の逆。
+///
+/// 公開サイトの形 (`{WEB_ORIGIN}/polls/#poll-{id}`) と、配布済みの旧い形
+/// (`{UNIVERSAL_LINK_BASE}/app/polls/{id}`) の両方を受ける。どちらでもなければ `None`。
+pub fn poll_id_from_url(url: &str) -> Option<String> {
+    let id = if let Some(rest) = url.strip_prefix(WEB_ORIGIN) {
+        let fragment = rest
+            .strip_prefix("/polls/#")
+            .or_else(|| rest.strip_prefix("/polls#"))?;
+        fragment.strip_prefix(POLL_FRAGMENT_PREFIX)?
+    } else {
+        let rest = url.strip_prefix(UNIVERSAL_LINK_BASE)?.strip_prefix("/app/polls/")?;
+        rest.split(['?', '#']).next().unwrap_or(rest).trim_end_matches('/')
+    };
+    let decoded = percent_decode(id)?;
+    (!decoded.is_empty() && !decoded.contains('/')).then_some(decoded)
+}
+
+/// `%XX` を戻す。不正な並び・UTF-8 にならない結果は `None`。
+fn percent_decode(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            let hex = s.get(i + 1..i + 3)?;
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 // ---------------------------------------------------------------------------
@@ -271,10 +318,11 @@ pub fn poll_result_share_text(title: &str) -> String {
     format!("お題「{title}」の結果")
 }
 
-/// お題そのもののシェア (まだ投票していない人への誘い)。
+/// お題そのもののシェア。
 ///
-/// 締切は **開催中のときだけ**載せる (終了済みに締切を出しても意味がない)。
-/// `ends_at_epoch_ms` が `None`、または `is_active == false` なら締切節は丸ごと落ちる。
+/// 開催中はまだ投票していない人への誘い (「投票しよう！」と締切)。
+/// **終了済みはもう投票できないので誘わず、結果が出たことを伝える。**
+/// 締切は開催中のときだけ載せる。`ends_at_epoch_ms` が `None` なら締切節は落ちる。
 pub fn poll_invite_payload(
     poll_id: &str,
     title: &str,
@@ -282,12 +330,16 @@ pub fn poll_invite_payload(
     is_active: bool,
     tz_offset_seconds: i32,
 ) -> SharePayload {
-    let deadline = ends_at_epoch_ms
-        .filter(|_| is_active)
-        .map(|ms| format!(" 締切は{}！", month_day(ms, tz_offset_seconds)))
-        .unwrap_or_default();
+    let message = if is_active {
+        let deadline = ends_at_epoch_ms
+            .map(|ms| format!(" 締切は{}！", month_day(ms, tz_offset_seconds)))
+            .unwrap_or_default();
+        format!("お題「{title}」に投票しよう！{deadline} {HASHTAG}")
+    } else {
+        format!("お題「{title}」の結果が出ました！ {HASHTAG}")
+    };
     SharePayload {
-        message: format!("お題「{title}」に投票しよう！{deadline} {HASHTAG}"),
+        message,
         url: Some(poll_url(poll_id)),
     }
 }
@@ -685,7 +737,7 @@ mod tests {
         };
         assert_eq!(
             p.plain_text(),
-            "お題「ベストソング」に投票しよう！ #アイドルライブDB\nhttps://imas-live-api.tokata3011.workers.dev/app/polls/p1"
+            "お題「ベストソング」に投票しよう！ #アイドルライブDB\nhttps://idollivedb.fugaapp.site/polls/#poll-p1"
         );
     }
 
@@ -778,10 +830,7 @@ mod tests {
             p.message,
             "お題「一番好きな夏曲」で「Q&A」「LOVE & PEACH」に投票しました！ #アイドルライブDB"
         );
-        assert_eq!(
-            p.url.as_deref(),
-            Some("https://imas-live-api.tokata3011.workers.dev/app/polls/p1")
-        );
+        assert_eq!(p.url.as_deref(), Some("https://idollivedb.fugaapp.site/polls/#poll-p1"));
     }
 
     #[test]
@@ -812,14 +861,40 @@ mod tests {
         );
     }
 
-    /// 終了済み (`is_active == false`) は締切節ごと落ちて空白 1 個になる。
+    /// 終了済み (`is_active == false`) は誘わず、結果が出たことを伝える (締切も載せない)。
     #[test]
-    fn poll_invite_drops_deadline_when_finished() {
+    fn poll_invite_tells_result_when_finished() {
         let p = poll_invite_payload("p1", "ベストソング", Some(1_756_652_400_000), false, 9 * 3600);
-        assert_eq!(p.message, "お題「ベストソング」に投票しよう！ #アイドルライブDB");
-        // 締切が未知 (一覧で詳細未取得) のときも同じ文面。
+        assert_eq!(p.message, "お題「ベストソング」の結果が出ました！ #アイドルライブDB");
+        assert_eq!(p.url.as_deref(), Some("https://idollivedb.fugaapp.site/polls/#poll-p1"));
+    }
+
+    /// 開催中で締切が未知 (一覧で詳細未取得) なら締切節だけ落ちる。
+    #[test]
+    fn poll_invite_without_deadline_while_active() {
         let q = poll_invite_payload("p1", "ベストソング", None, true, 9 * 3600);
-        assert_eq!(q.message, p.message);
+        assert_eq!(q.message, "お題「ベストソング」に投票しよう！ #アイドルライブDB");
+    }
+
+    /// 共有 URL と id の往復。旧い API ドメインの形も読む。
+    #[test]
+    fn poll_url_round_trips_and_reads_legacy_form() {
+        let id = "27384517-a77f-4d30-b654-84d08b79e105";
+        assert_eq!(
+            poll_url(id),
+            "https://idollivedb.fugaapp.site/polls/#poll-27384517-a77f-4d30-b654-84d08b79e105"
+        );
+        assert_eq!(poll_id_from_url(&poll_url(id)).as_deref(), Some(id));
+        assert_eq!(poll_id_from_url(&poll_url("p@1")).as_deref(), Some("p@1"));
+        assert_eq!(
+            poll_id_from_url(&format!("https://imas-live-api.tokata3011.workers.dev/app/polls/{id}"))
+                .as_deref(),
+            Some(id)
+        );
+        assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/polls/"), None);
+        assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/polls/#poll-"), None);
+        assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/p/#poll-x"), None);
+        assert_eq!(poll_id_from_url("https://example.com/polls/#poll-x"), None);
     }
 
     /// 日付は端末 TZ で解決する。同じ瞬間でも JST では 1/1、UTC では 12/31。

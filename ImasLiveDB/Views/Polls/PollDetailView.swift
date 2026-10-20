@@ -63,7 +63,7 @@ struct PollDetailView: View {
         .toolbar {
             if let poll {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // 結果の画像 (票が入ってから) と、お題そのもののシェア (「このお題に投票しよう！」、常に出す)。
+                    // 結果の画像 (票が入ってから) と、お題そのもののシェア (開催中は誘い、終了後は結果の知らせ。常に出す)。
                     Menu {
                         if vm.detail?.entries.isEmpty == false {
                             Section {

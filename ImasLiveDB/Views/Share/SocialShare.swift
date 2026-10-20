@@ -13,7 +13,7 @@ import UIKit
 // =============================================================================
 
 extension SharePayload {
-    /// お題への誘いシェア。締切を載せるか (開催中のときだけ) も、書き方もコアが決める。
+    /// お題そのもののシェア。開催中は誘い、終了後は結果の知らせ。締切を載せるかも書き方もコアが決める。
     static func pollInvite(poll: Poll) -> SharePayload {
         sharePollInvitePayload(
             pollId: poll.id,

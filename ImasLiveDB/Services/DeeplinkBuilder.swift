@@ -19,7 +19,7 @@ enum DeeplinkBuilder {
     /// 公演セトリへの共有 URL (https://…/app/shows/{showId})。
     static func showURL(id: String) -> URL { url(shareShowUrl(id: id)) }
 
-    /// みんなの投票のお題への共有 URL (https://…/app/polls/{pollId})。
+    /// みんなの投票のお題への共有 URL (公開サイトのお題一覧の、そのお題の節)。
     static func pollURL(id: String) -> URL { url(sharePollUrl(id: id)) }
 
     private static func url(_ string: String) -> URL {
