@@ -6,9 +6,14 @@ import SwiftUI
 /// (公演ごとに誰と会ったかが分かるように。名刺の中身は 1 枚で、いちばん新しいもの)。行頭の帯は相手の担当の色、
 /// 自分と担当が同じなら朱の札「担当被り」。会場で交換した記録は朱の線の札「会場で交換」、2 回目からは「2回目」
 /// (札と回数はコアの `cardMeetingViews`)。行は右に引くとメモ、左に引くと削除。
+/// 一番上 (名刺が無くても) にすれちがいモードの行 (様子の文言はコアの `streetpassStatus`、右にオン/オフ)。
 ///
 /// ⚠️ 行のスワイプを効かせるため **List** で組む。
 struct CardCaseView: View {
+    @Environment(\.dismiss) private var dismiss
+    /// 自分の名刺の画面から来た。すれちがいの行から自分の名刺へは、積み直さずに戻る。
+    var openedFromMyCard = false
+
     @State private var cards: [ReceivedProducerCard] = []
     @State private var decoded: [String: ProducerCard] = [:]
     @State private var sections: [CardCaseSection] = []
@@ -23,10 +28,15 @@ struct CardCaseView: View {
     @State private var memoTarget: ReceivedProducerCard?
     @State private var showingExchange = false
     @State private var showingPaper = false
+    @State private var showingMyCard = false
+    @State private var streetPass = AppContainer.shared.streetPass
     @State private var error: String?
 
     var body: some View {
         List {
+            if loaded {
+                streetPassRow
+            }
             if !loaded {
                 ImasInlineLoading().padding(.vertical, DS.Space.section).plainRow(background: DS.bg)
             } else if cards.isEmpty {
@@ -71,6 +81,7 @@ struct CardCaseView: View {
         .navigationDestination(item: $openCard) { card in
             ReceivedCardDetailView(cardId: card.id)
         }
+        .navigationDestination(isPresented: $showingMyCard) { MyProducerCardView() }
         .sheet(item: $memoTarget) { card in
             CardMemoEditorView(card: card)
         }
@@ -86,6 +97,52 @@ struct CardCaseView: View {
             Task { await load() }
         }
         .trackScreen("card_case")
+    }
+
+    // MARK: - すれちがい
+
+    /// すれちがいモードの行。自分の名刺が無いときは切替を出さず、押すと自分の名刺の画面へ。
+    @ViewBuilder
+    private var streetPassRow: some View {
+        let status = streetPass.status
+        let row = ImasRow(
+            title: status.title,
+            subtitle: status.detail,
+            leading: .icon("dot.radiowaves.left.and.right", tone: .solid),
+            trailing: streetPass.hasCard ? .toggle(streetPassToggle) : .none,
+            subtitleLineLimit: 3
+        ) {
+            if let hint = status.hint {
+                Text(hint).imasText(.note)
+            }
+        }
+        Group {
+            if streetPass.hasCard {
+                row
+            } else {
+                Button {
+                    if openedFromMyCard { dismiss() } else { showingMyCard = true }
+                } label: { row }
+                    .buttonStyle(.imasRow)
+            }
+        }
+        .listRowInsets(EdgeInsets(top: 0, leading: DS.Space.screen, bottom: 0, trailing: DS.Space.screen))
+        .listRowBackground(DS.surface)
+        .listRowSeparatorTint(DS.sep)
+    }
+
+    private var streetPassToggle: Binding<Bool> {
+        Binding(
+            get: { streetPass.isOn },
+            set: { on in
+                AppAnalytics.tap(on ? "producer_card.streetpass_on" : "producer_card.streetpass_off")
+                if on {
+                    Task { await streetPass.turnOn() }
+                } else {
+                    streetPass.turnOff()
+                }
+            }
+        )
     }
 
     // MARK: - 束の頭 (公演の半券)
@@ -177,6 +234,7 @@ struct CardCaseView: View {
             CardCaseEntry(id: $0.id, showId: $0.showId, showDate: $0.showDate, receivedAt: $0.receivedAt)
         }
         let record = try? await ProducerCardAssembler.loadMyRecord()
+        await streetPass.refresh()
         let built = cardCaseSections(entries: entries)
         let idolIds = map.values.flatMap(\.oshiIdolIds)
         directory = await ProducerCardDirectory.load(idolIds: idolIds, showIds: built.compactMap(\.showId))

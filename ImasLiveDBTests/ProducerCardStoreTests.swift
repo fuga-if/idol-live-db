@@ -380,6 +380,39 @@ final class ProducerCardStoreTests: XCTestCase {
         XCTAssertEqual(upgraded.receivedAt, meetings[0].metAt)
     }
 
+    /// すれちがいで受け取った名刺は「すれちがい」の札と「すれちがいで受け取り」。同じ日に 2 度すれちがっても
+    /// 会った記録は 1 つで、今日すれちがった人数は 1 人。
+    func testStreetPassReceiptBadgesAndCountsOncePerDay() async throws {
+        let db = try makeDatabase()
+        let card = payload(name: "ふがP", cardId: nil)
+        let first = try await db.receiveProducerCard(
+            meetingAt(card, show: nil, via: .streetPass, at: 1_789_970_000), matchSamePerson: true, choice: .separate)
+        let second = try await db.receiveProducerCard(
+            meetingAt(card, show: nil, via: .streetPass, at: 1_789_973_600), matchSamePerson: true, choice: .separate)
+        XCTAssertEqual(second.id, first.id, "同じ中身は 1 枚")
+        XCTAssertEqual(first.via, "streetpass")
+        let meetings = try await db.receivedCardMeetingsAsync(cardId: first.id)
+        XCTAssertEqual(meetings.count, 1, "同じ日に 2 度でも記録は 1 つ")
+        let views = cardMeetingViews(meetings: meetings.map(\.record))
+        XCTAssertEqual(views.first?.badge, "すれちがい")
+        XCTAssertEqual(views.first?.viaLabel, "すれちがいで受け取り")
+        let now = ISO8601DateFormatter.shared.string(from: Date(timeIntervalSince1970: 1_789_977_200))
+        XCTAssertEqual(streetpassTodayCount(meetings: meetings.map(\.record), now: now), 1)
+    }
+
+    /// 名乗る値 (見出しと欠片) は Swift の Data のまま往復し、読み手は先頭から欠片の数だけ読めば戻る。
+    func testStreetPassFramesRoundTripThroughBinding() throws {
+        let card = payload(name: "ふがP", cardId: nil)
+        let frames = try XCTUnwrap(streetpassFrames(payload: card))
+        XCTAssertEqual(frames.chunks.count, streetpassUuids().chunks.count)
+        let header = try XCTUnwrap(streetpassHeaderDecode(bytes: frames.header))
+        let read = Array(frames.chunks.prefix(Int(header.chunkCount)))
+        XCTAssertEqual(streetpassJoin(header: header, chunks: read), card)
+        XCTAssertFalse(streetpassShouldRead(fingerprint: header.fingerprint,
+                                            ownFingerprint: streetpassFingerprint(payload: card),
+                                            recent: [], now: "2026-10-21T00:00:00Z"), "自分の名刺は読まない")
+    }
+
     /// バックアップで中身が同じ別 id の名刺を飛ばしたら、その会った記録を端末の名刺に付け替えて入れ、行に最後の記録を写す。
     func testBackupMovesMeetingsOfSkippedDuplicateCard() async throws {
         let card = payload(name: "ふがP", cardId: nil)

@@ -67,6 +67,7 @@ struct MyProducerCardView: View {
                 // 画像の選択 (大きさ・載せる項目) は画像の画面で書くので、開いた時の古い中身で戻さない。
                 let latest = try await AppContainer.shared.producerCards.myCard()
                 try await AppContainer.shared.producerCards.saveMyCard(saved.applyingEdit(onto: latest))
+                NotificationCenter.default.post(name: .myProducerCardChanged, object: nil)
                 await load()
             }
         }
@@ -80,7 +81,7 @@ struct MyProducerCardView: View {
                 ProducerCardPrintView(card: encoded, directory: directory)
             }
         }
-        .navigationDestination(isPresented: $showingCase) { CardCaseView() }
+        .navigationDestination(isPresented: $showingCase) { CardCaseView(openedFromMyCard: true) }
         .navigationDestination(isPresented: $showingImage) { ProducerCardImageView() }
         .task { await load() }
         .onReceive(NotificationCenter.default.publisher(for: .producerCardsChanged)) { _ in

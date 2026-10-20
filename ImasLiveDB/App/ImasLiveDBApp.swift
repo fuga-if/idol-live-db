@@ -42,6 +42,12 @@ struct ImasLiveDBApp: App {
         LocalWriteFailure.presenter = LocalWriteFailureAlert.present
         BrandColors.startObservingReloads()
 
+        // P名刺のすれちがいモード。オンのままなら再開する (裏で Bluetooth に起こされたときも、ここで
+        // 同じ復元の識別子で作り直すと続きが届く)。テストホストでは外に出る副作用を起こさない。
+        if !ProcessInfo.processInfo.isRunningTests {
+            StreetPassService.shared.resumeIfActive()
+        }
+
         // 曲アートワーク (mzstatic CDN のリモート URL) を永続ディスクキャッシュする。
         // 全 LazyImage は表示サイズへの Resize processor 付きなので、元 JPEG を保持しても
         // 肥大しすぎず、再起動後の再ダウンロードを回避できる。アイドル/ブランド画像は
@@ -164,6 +170,8 @@ struct ImasLiveDBApp: App {
                 // いれば残りステップ/チャンクから再開、そうでなければ差分syncで最新化。
                 // (再入は SyncEngine 側でガード済みなので二重には走らない)
                 guard phase == .active, !ProcessInfo.processInfo.isRunningTests else { return }
+                // すれちがいの自動オフを確かめ、名乗る名刺を作り直す。
+                StreetPassService.shared.sceneBecameActive()
                 Task.detached(priority: .utility) {
                     await syncEngine.performStartupSync(database: appDatabase)
                 }

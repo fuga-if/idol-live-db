@@ -51,6 +51,24 @@ final class NotificationService {
         }
     }
 
+    // MARK: - その場の知らせ
+
+    /// 今すぐ出す知らせ (すれちがいで名刺を受け取ったとき等)。許可が無ければ出さない (ここでは許可を求めない)。
+    func postNow(identifier: String, body: String) async {
+        let status = await authorizationStatus()
+        guard status == .authorized || status == .provisional || status == .ephemeral else { return }
+        let content = UNMutableNotificationContent()
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
+        // ⚠️ 完了ハンドラは @Sendable にする (requestAuthorization と同じ理由)。
+        center.add(request) { @Sendable error in
+            if let error {
+                Logger.notification.error("notif_post_failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     // MARK: - Reschedule All
 
     /// いま走っている再予約。次の呼び出しは、これが終わってから走る。

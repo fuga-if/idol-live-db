@@ -174,6 +174,7 @@ struct ProducerCardImageView: View {
         next.songs = saved.profile.songs
         saved.profile = next
         try await AppContainer.shared.producerCards.saveMyCard(saved)
+        NotificationCenter.default.post(name: .myProducerCardChanged, object: nil)
     }
 
     private func load() async {

@@ -61,6 +61,11 @@
 		<string>card_name_mincho.ttf</string>
 		<string>card_name_pop.ttf</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
