@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Poll
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -50,6 +51,20 @@ enum class AnnouncementLink { WIDGET_HOW_TO }
 object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
+        Announcement(
+            id = "v2.8.1_fixes",
+            date = "2026-10-21",
+            title = "新しい版のお知らせと、投票の共有リンク",
+            summary = "Play に新しい版が出ていたら、起動したときにお知らせします。",
+            body = listOf(
+                "アプリを起動したとき、Play に新しい版が出ていればお知らせを出します。「後で」を押した版はもう出しません。",
+                "みんなの投票: 共有リンクの行き先を、公開サイトのお題一覧のそのお題の所にしました。終了したお題を共有すると「結果が出ました！」と添えます。",
+                "Spotify の連携の案内: ボタンからアプリを作る画面を直接開くようにし、スマホで「Create app」が出ないときの切り替え方を書き足しました。",
+            ),
+            icon = Icons.Filled.Share,
+            tint = "#3373BF",
+            link = null
+        ),
         Announcement(
             id = "v2.8.0_play_counts",
             date = "2026-10-20",

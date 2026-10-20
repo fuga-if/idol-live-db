@@ -21,6 +21,20 @@ enum AnnouncementCatalog {
     /// 新しいものほど上 (表示順)。
     static let all: [Announcement] = [
         Announcement(
+            id: "v2.8.1_fixes",
+            date: "2026-10-21",
+            title: "投票の共有リンクと Spotify の案内を直しました",
+            summary: "共有した投票のリンクを開くと、公開サイトでそのお題が見られるようになりました。",
+            body: [
+                "みんなの投票: 共有リンクの行き先を、公開サイトのお題一覧のそのお題の所にしました。アプリが入った iPhone ではアプリでお題が開きます。前のリンクも引き続き開けます。",
+                "終了したお題を共有すると、「投票しよう！」ではなく「結果が出ました！」と添えるようにしました。",
+                "Spotify の連携の案内: ボタンからアプリを作る画面を直接開くようにし、スマホで「Create app」が出ないときの切り替え方を書き足しました。",
+            ],
+            icon: "square.and.arrow.up",
+            tint: Color(red: 0.20, green: 0.45, blue: 0.75),
+            link: nil
+        ),
+        Announcement(
             id: "v2.8.0_play_counts",
             date: "2026-10-20",
             title: "曲の再生回数と、人気・急上昇のランキング",

@@ -28,8 +28,8 @@ packages:
 # 「app extension の CFBundleVersion は本体と一致していること」で弾かれる)。
 settings:
   base:
-    MARKETING_VERSION: "2.8.0"
-    CURRENT_PROJECT_VERSION: "69"
+    MARKETING_VERSION: "2.8.1"
+    CURRENT_PROJECT_VERSION: "70"
 
 targets:
   ImasLiveDB:
