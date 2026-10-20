@@ -28,8 +28,8 @@ packages:
 # 「app extension の CFBundleVersion は本体と一致していること」で弾かれる)。
 settings:
   base:
-    MARKETING_VERSION: "2.8.1"
-    CURRENT_PROJECT_VERSION: "70"
+    MARKETING_VERSION: "2.9.0"
+    CURRENT_PROJECT_VERSION: "71"
 
 targets:
   ImasLiveDB:
@@ -84,6 +84,8 @@ targets:
         INFOPLIST_KEY_NSCameraUsageDescription: "セットリストの写真から曲名を読み取るときと、P名刺の QR や紙の名刺を読み取るときに使用します"
         # P名刺の交換で、近くの iPhone に担当の画像を直接送る (MultipeerConnectivity)。
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: "P名刺を交換するとき、近くの iPhone に担当の画像を直接送るために使用します"
+        # P名刺のすれちがいモード (Bluetooth Low Energy で近くの端末と名刺を自動で交換する。StreetPassService)。
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "P名刺のすれちがいモードで、近くでオンにしている人と名刺を交換するために使用します"
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "セットリストの写真を選択してOCRで曲名を認識します"
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "ティアー表の画像を写真に保存します"
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "イントロドンで曲名を音声で答えるために使用します"
@@ -136,6 +138,10 @@ targets:
         NSBonjourServices:
           - _imascard._tcp
           - _imascard._udp
+        # P名刺のすれちがいモード。裏にいる間も BLE で名乗り・探し続ける (StreetPassService)。
+        UIBackgroundModes:
+          - bluetooth-central
+          - bluetooth-peripheral
         # 名刺ファイル (.imascard)。名乗り (拡張子・MIME・UTI) はコアの cardFileTypeInfo と同じ値。
         # AirDrop / Quick Share で届いたファイルを「このアプリで開く」で受け取る。
         UTExportedTypeDeclarations:
