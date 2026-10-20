@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     DatabaseBoot.State.Ready -> {
                         AppRoot(sync)
                         com.fugaif.imaslivedb.ui.components.SpotifyPlaybackAlert()
+                        com.fugaif.imaslivedb.ui.components.UpdateAvailableAlert()
                     }
                 }
             }
