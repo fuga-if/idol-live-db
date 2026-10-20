@@ -20,7 +20,7 @@
 use crate::domain::card_meetings::{
     card_receive_via_from_key, jst_day, CardMeetingRecord, CardReceiveVia,
 };
-use crate::domain::producer_card::decode_producer_card;
+use crate::domain::producer_card::{decode_producer_card, CardShowRef};
 
 /// GATT のサービス (広告にも載せる。これで探す)。
 pub const STREETPASS_SERVICE_UUID: &str = "6F3C2A10-5B7E-4D21-9A8C-1E4F7B2D9C01";
@@ -43,6 +43,37 @@ pub const STREETPASS_DAILY_LIMIT: u32 = 100;
 pub const STREETPASS_ACTIVE_HOURS: i64 = 12;
 /// 同じ指紋の名刺を読み直さない間 (分)。同じ人とずっと近くにいても繋ぎ続けない。
 pub const STREETPASS_REREAD_MINUTES: i64 = 60;
+
+/// 通信の段取りの数字 (両 OS で同じ値にそろえる)。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct StreetpassTuning {
+    /// 読めた端末 (識別子) に繋ぎ直さない間 (秒)。名刺を読み直さない間と同じ。
+    pub reconnect_after_read_seconds: u32,
+    /// 読めなかった端末に繋ぎ直さない間 (秒)。
+    pub reconnect_after_failure_seconds: u32,
+    /// 繋ぐ待ち行列の長さの上限 (超えたら古いものから捨てる)。
+    pub queue_max: u32,
+    /// 見つけてからこの秒数を過ぎた待ち行列の相手は捨てる (もう離れている)。
+    pub queue_stale_seconds: u32,
+    /// 1 台に繋いで読み終えるまでの待ち時間 (秒)。
+    pub connect_timeout_seconds: u32,
+    /// MTU の返事を待つ時間 (秒)。来なくても先へ進む (long read で読める)。
+    pub mtu_wait_seconds: u32,
+    /// 自動オフ・日付の変わり目を確かめる間隔 (秒)。
+    pub tick_seconds: u32,
+}
+
+pub fn streetpass_tuning() -> StreetpassTuning {
+    StreetpassTuning {
+        reconnect_after_read_seconds: (STREETPASS_REREAD_MINUTES * 60) as u32,
+        reconnect_after_failure_seconds: 180,
+        queue_max: 8,
+        queue_stale_seconds: 20,
+        connect_timeout_seconds: 10,
+        mtu_wait_seconds: 2,
+        tick_seconds: 60,
+    }
+}
 
 /// BLE の識別子 (端末が GATT を組むのに使う)。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
@@ -98,6 +129,10 @@ pub enum StreetpassRadio {
     Unauthorized,
     /// この端末では使えない (BLE の広告ができない等)。
     Unsupported,
+    /// 端末の位置情報が切れている (Android 11 以下はこれが切れているとスキャンが届かない)。
+    LocationOff,
+    /// 名乗れなかった (広告を始められなかった)。探して受け取るだけは続く。
+    AdvertiseFailed,
     /// まだ分からない (起動直後)。
     Unknown,
 }
@@ -113,7 +148,13 @@ pub struct StreetpassStatus {
     pub today_count: u32,
     /// 今日の上限に届いた (受け取りを止めている)。
     pub limit_reached: bool,
+    /// オンの間に添える注意 (届きやすさ・相手に見えるもの)。オフの間・名刺が無いときは None。
+    pub hint: Option<String>,
 }
+
+/// オンの間に添える注意。iPhone は裏に回ると Android から見えにくく、iPhone どうしでも両方が裏だと届きにくい。
+/// Android はアプリを開いている間だけ動く。繋いだ相手には端末の Bluetooth の名前が見えることがある。
+pub const STREETPASS_HINT: &str = "アプリの画面を開いているときがいちばん届きやすくなります。交換した相手には、端末の Bluetooth の名前が見えることがあります";
 
 fn fnv1a64(bytes: &[u8]) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -254,6 +295,10 @@ pub fn streetpass_status(active: bool, has_card: bool, today_count: u32, radio: 
         ("すれちがい中 (止まっています)", "設定でこのアプリに Bluetooth を許可すると、すれちがいが動きます".to_string())
     } else if active && radio == StreetpassRadio::Unsupported {
         ("すれちがい中 (止まっています)", "この端末では、すれちがいが使えません".to_string())
+    } else if active && radio == StreetpassRadio::LocationOff {
+        ("すれちがい中 (止まっています)", "端末の位置情報をオンにすると、すれちがいが動きます".to_string())
+    } else if active && radio == StreetpassRadio::AdvertiseFailed && !limit_reached {
+        ("すれちがい中", "自分の名刺を出せていません。受け取りだけ続けています".to_string())
     } else if !active {
         (
             "すれちがいはオフ",
@@ -266,7 +311,26 @@ pub fn streetpass_status(active: bool, has_card: bool, today_count: u32, radio: 
     } else {
         ("すれちがい中", format!("今日すれちがった P: {today_count} 人"))
     };
-    StreetpassStatus { title: title.to_string(), detail, today_count, limit_reached }
+    let hint = (active && has_card).then(|| STREETPASS_HINT.to_string());
+    StreetpassStatus { title: title.to_string(), detail, today_count, limit_reached, hint }
+}
+
+/// しまった後に端末の知らせを出すか。今日はじめての人のときだけ (同じ人と近くに居続けて読み直したときは黙る)。
+/// `before` / `after` はしまう前後の今日の人数 ([`streetpass_today_count`])。
+pub fn streetpass_should_notice(before: u32, after: u32) -> bool {
+    after > before
+}
+
+/// すれちがいで受け取った名刺を紐づける公演。今日 (JST) の参加公演だけ (近距離の交換と違い、前日の公演には
+/// 紐づけない。公演の翌日に駅ですれちがった人を前日の公演の束に入れない)。同じ日に複数あれば id の順の先頭。
+pub fn streetpass_show_candidate(today: &str, my_attended: &[CardShowRef]) -> Option<String> {
+    let mut ids: Vec<&str> = my_attended
+        .iter()
+        .filter(|r| r.date == today)
+        .map(|r| r.show_id.as_str())
+        .collect();
+    ids.sort_unstable();
+    ids.first().map(|s| s.to_string())
 }
 
 /// すれちがいで受け取ったときの知らせの文言 (アプリが裏にいるとき)。名前が無ければ「P」。
@@ -409,6 +473,22 @@ mod tests {
             "設定でこのアプリに Bluetooth を許可すると、すれちがいが動きます"
         );
         assert!(!streetpass_accepts(STREETPASS_DAILY_LIMIT));
+    }
+
+    #[test]
+    fn notice_and_show() {
+        assert!(streetpass_should_notice(0, 1));
+        assert!(!streetpass_should_notice(1, 1));
+        let refs = vec![
+            CardShowRef { show_id: "sh_b".into(), date: "2026-10-21".into() },
+            CardShowRef { show_id: "sh_a".into(), date: "2026-10-21".into() },
+            CardShowRef { show_id: "sh_y".into(), date: "2026-10-20".into() },
+        ];
+        assert_eq!(streetpass_show_candidate("2026-10-21", &refs).as_deref(), Some("sh_a"));
+        assert_eq!(streetpass_show_candidate("2026-10-22", &refs), None, "前日の公演には紐づけない");
+        assert!(streetpass_status(true, true, 0, StreetpassRadio::Ready).hint.is_some());
+        assert!(streetpass_status(false, true, 0, StreetpassRadio::Ready).hint.is_none());
+        assert_eq!(streetpass_tuning().reconnect_after_read_seconds, 3600);
     }
 
     #[test]

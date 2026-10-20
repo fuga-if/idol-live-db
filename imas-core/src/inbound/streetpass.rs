@@ -1,9 +1,10 @@
 //! すれちがいモードの FFI 面。ロジックは domain::streetpass。
 
 use crate::domain::card_meetings::CardMeetingRecord;
+use crate::domain::producer_card::CardShowRef;
 use crate::domain::streetpass::{
     StreetpassFrames, StreetpassHeader, StreetpassRadio, StreetpassSeen, StreetpassStatus,
-    StreetpassUuids,
+    StreetpassTuning, StreetpassUuids,
 };
 
 /// GATT のサービス・特性の UUID。
@@ -86,4 +87,22 @@ pub fn streetpass_status(
 #[uniffi::export]
 pub fn streetpass_notice_text(name: String) -> String {
     crate::domain::streetpass::streetpass_notice_text(&name)
+}
+
+/// 通信の段取りの数字 (繋ぎ直さない間・待ち行列・待ち時間)。
+#[uniffi::export]
+pub fn streetpass_tuning() -> StreetpassTuning {
+    crate::domain::streetpass::streetpass_tuning()
+}
+
+/// しまった後に端末の知らせを出すか (今日はじめての人のときだけ)。
+#[uniffi::export]
+pub fn streetpass_should_notice(before: u32, after: u32) -> bool {
+    crate::domain::streetpass::streetpass_should_notice(before, after)
+}
+
+/// すれちがいで受け取った名刺を紐づける公演 (今日の参加公演だけ)。`today` は JST の `YYYY-MM-DD`。
+#[uniffi::export]
+pub fn streetpass_show_candidate(today: String, my_attended: Vec<CardShowRef>) -> Option<String> {
+    crate::domain::streetpass::streetpass_show_candidate(&today, &my_attended)
 }

@@ -291,8 +291,18 @@ pub fn card_latest_meeting(meetings: &[CardMeetingRecord], card_id: &str) -> Opt
         .cloned()
 }
 
-/// 同じ機会にもう一度読んだときの、最後の記録の書き換え。中身は新しい方に、新しい方が会場での交換に
-/// 当たり最後の記録が当たらなければ受け取り方を上げる (公演が無ければ新しい方の公演も写す)。
+/// 同じ機会の記録を上げるときの受け取り方の順位。会場で向き合って交換した (近距離・公演つきの QR) が一番上、
+/// すれちがいが次、それ以外 (ファイル・リンク・紙・公演なしの QR・不明) が下。
+fn via_rank(via: Option<CardReceiveVia>, show_id: Option<&str>) -> u8 {
+    match via {
+        Some(CardReceiveVia::StreetPass) => 1,
+        v if card_met_in_person(v, show_id) => 2,
+        _ => 0,
+    }
+}
+
+/// 同じ機会にもう一度読んだときの、最後の記録の書き換え。中身は新しい方に、新しい方の受け取り方の順位 ([`via_rank`]) が
+/// 最後の記録より上なら受け取り方を上げる (公演が無ければ新しい方の公演も写す)。
 fn refresh_last_meeting(
     last: &CardMeetingRecord,
     incoming_payload: &str,
@@ -304,7 +314,7 @@ fn refresh_last_meeting(
     updated.payload = Some(incoming_payload.to_string());
     let last_via = last.via.as_deref().and_then(card_receive_via_from_key);
     let new_show = show_id.filter(|s| !s.is_empty());
-    if card_met_in_person(via, new_show) && !card_met_in_person(last_via, non_empty(&last.show_id)) {
+    if via_rank(via, new_show) > via_rank(last_via, non_empty(&last.show_id)) {
         updated.via = via.map(card_receive_via_key);
         if non_empty(&last.show_id).is_none() {
             updated.show_id = new_show.map(str::to_string);
@@ -724,6 +734,29 @@ mod tests {
         nearby.payload = Some(payload("ふがP", None));
         let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::Link), "2026-10-05T11:00:00Z"), &stored, &[nearby], Undecided);
         assert_eq!(p.last_meeting_update, None);
+    }
+
+    /// すれちがった後に同じ機会で会場で交換したら「会場で交換」に上げ、会場で交換した後のすれちがいでは下げない。
+    #[test]
+    fn street_pass_then_in_person_upgrades() {
+        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload("ふがP", None) }];
+        let mut sp = meeting("m1", "c1", Some("sh_1"), Some("streetpass"), "2026-10-05T03:00:00Z");
+        sp.payload = Some(payload("ふがP", None));
+        let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::Nearby), "2026-10-05T11:00:00Z"), &stored, &[sp.clone()], Undecided);
+        let up = p.last_meeting_update.expect("上げる");
+        assert_eq!(up.via.as_deref(), Some("nearby"));
+        assert_eq!(card_meeting_views(&[up])[0].badge.as_deref(), Some("会場で交換"));
+
+        let mut nearby = sp.clone();
+        nearby.via = Some("nearby".into());
+        let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::StreetPass), "2026-10-05T11:00:00Z"), &stored, &[nearby], Undecided);
+        assert_eq!(p.last_meeting_update, None, "下げない");
+
+        let mut link = sp.clone();
+        link.via = Some("link".into());
+        link.show_id = None;
+        let p = plan(&incoming(&payload("ふがP", None), None, Some(CardReceiveVia::StreetPass), "2026-10-05T11:00:00Z"), &stored, &[link], Undecided);
+        assert_eq!(p.last_meeting_update.and_then(|u| u.via).as_deref(), Some("streetpass"), "リンクよりは上");
     }
 
     #[test]
