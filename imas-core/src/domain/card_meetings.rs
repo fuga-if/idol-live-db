@@ -38,10 +38,14 @@ pub enum CardReceiveVia {
     Link,
     /// 紙の名刺を撮って取り込んだ (写真から QR を読んだものも含む)。
     Paper,
+    /// すれちがいモードで、近くでオンにしていた人と自動で交換した (Bluetooth)。
+    StreetPass,
 }
 
 /// 会場で交換した名刺に付ける札の文言。
 pub const CARD_MET_IN_PERSON_LABEL: &str = "会場で交換";
+/// すれちがいで受け取った名刺に付ける札の文言。
+pub const CARD_STREET_PASS_LABEL: &str = "すれちがい";
 
 pub fn card_receive_via_key(via: CardReceiveVia) -> String {
     match via {
@@ -50,6 +54,7 @@ pub fn card_receive_via_key(via: CardReceiveVia) -> String {
         CardReceiveVia::File => "file",
         CardReceiveVia::Link => "link",
         CardReceiveVia::Paper => "paper",
+        CardReceiveVia::StreetPass => "streetpass",
     }
     .to_string()
 }
@@ -62,6 +67,7 @@ pub fn card_receive_via_from_key(key: &str) -> Option<CardReceiveVia> {
         "file" => CardReceiveVia::File,
         "link" => CardReceiveVia::Link,
         "paper" => CardReceiveVia::Paper,
+        "streetpass" => CardReceiveVia::StreetPass,
         _ => return None,
     })
 }
@@ -74,22 +80,26 @@ pub fn card_receive_via_label(via: CardReceiveVia) -> String {
         CardReceiveVia::File => "名刺ファイルで受け取り",
         CardReceiveVia::Link => "リンクで受け取り",
         CardReceiveVia::Paper => "紙の名刺を取り込み",
+        CardReceiveVia::StreetPass => "すれちがいで受け取り",
     }
     .to_string()
 }
 
-/// 会場で会って交換したか。近くの端末で受け取った、またはカメラで QR を読んで受け取った公演がある。
+/// 会場で会って交換したか。近くの端末・すれちがいで受け取った、またはカメラで QR を読んで受け取った公演がある。
 pub fn card_met_in_person(via: Option<CardReceiveVia>, show_id: Option<&str>) -> bool {
     let has_show = show_id.is_some_and(|s| !s.is_empty());
     match via {
-        Some(CardReceiveVia::Nearby) => true,
+        Some(CardReceiveVia::Nearby | CardReceiveVia::StreetPass) => true,
         Some(CardReceiveVia::CameraQr) => has_show,
         _ => false,
     }
 }
 
-/// 会場で交換した名刺の札 (会場で交換していなければ None)。
+/// 会場で交換した名刺の札 (会場で交換していなければ None)。すれちがいは「すれちがい」の札。
 pub fn card_meeting_badge(via: Option<CardReceiveVia>, show_id: Option<&str>) -> Option<String> {
+    if via == Some(CardReceiveVia::StreetPass) {
+        return Some(CARD_STREET_PASS_LABEL.to_string());
+    }
     card_met_in_person(via, show_id).then(|| CARD_MET_IN_PERSON_LABEL.to_string())
 }
 
@@ -252,7 +262,7 @@ fn find_same_person(incoming_payload: &str, stored: &[CardStoredRef]) -> Option<
 }
 
 /// ISO 8601 の日時の JST の日付 (`YYYY-MM-DD`)。読めなければ先頭 10 文字。
-fn jst_day(at: &str) -> String {
+pub(crate) fn jst_day(at: &str) -> String {
     chrono::DateTime::parse_from_rfc3339(at)
         .map(|t| {
             (t.with_timezone(&chrono::Utc) + chrono::Duration::hours(9))

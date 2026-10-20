@@ -32,6 +32,7 @@ pub mod oshi_theme_resolution;
 pub mod poll_result_card;
 pub mod card_meetings;
 pub mod producer_card;
+pub mod streetpass;
 pub mod favorite_song_picks;
 pub mod profile_sheet;
 pub mod quiz_generation;

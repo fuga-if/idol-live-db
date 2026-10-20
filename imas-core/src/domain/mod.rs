@@ -79,6 +79,7 @@ pub mod poll_result_card;
 pub mod prng;
 pub mod card_meetings;
 pub mod producer_card;
+pub mod streetpass;
 pub mod producer_card_avatar;
 pub mod favorite_song_picks;
 pub mod profile_sheet;
