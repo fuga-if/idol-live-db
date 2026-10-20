@@ -1,0 +1,22 @@
+{
+ "title": "あいくるしい の歌唱者を公式の 5 人に直す (issue #329 / #330)",
+ "author": "daily-data-crawl",
+ "source": "https://columbia.jp/prod-info/COCC-17151/ (THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER 11 あんきら！？狂騒曲、3.あいくるしい 歌：佐久間まゆ、小早川紗枝、水本ゆかり、三村かな子、速水奏)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_あいくるしい",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "佐久間まゆ、小早川紗枝、水本ゆかり、三村かな子、速水奏"
+   },
+   "add_original_singers": [
+    "cg_小早川紗枝",
+    "cg_水本ゆかり",
+    "cg_三村かな子",
+    "cg_速水奏"
+   ],
+   "note": "投稿は佐久間まゆ・小早川紗枝の 2 人だったが、日本コロムビアの商品ページでは 5 人歌唱。solo → unit、原唱者に 4 人を追加"
+  }
+ ]
+}

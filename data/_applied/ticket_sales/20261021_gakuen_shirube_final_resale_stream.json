@@ -1,0 +1,42 @@
+{
+ "title": "学マス 標ツアー ファイナル公演: 公式リセールと配信チケット",
+ "author": "daily-data-crawl",
+ "ticket_sales": [
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final",
+   "show_ids": ["sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_1"],
+   "kind": "resale",
+   "name": "公式リセール(11月7日(土)公演)",
+   "starts_at": "2026-10-20 20:00",
+   "ends_at": "2026-10-28 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/020245bc-d81a-4f98-98f7-8d24f6eda837",
+   "note": "ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final",
+   "show_ids": ["sh_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final_2"],
+   "kind": "resale",
+   "name": "公式リセール(11月8日(日)公演)",
+   "starts_at": "2026-10-20 20:00",
+   "ends_at": "2026-10-28 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/03f82da5-8b3f-4886-a7b2-11734211d30f",
+   "note": "ASOBI TICKET公式リセール（定価仲介）。10月26日0:00以降の支払いはクレジットカードのみ。一般販売の実施なし。顔認証手数料220円/枚。",
+   "source_url": "https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final",
+   "show_ids": [],
+   "kind": "first_come",
+   "name": "配信チケット",
+   "starts_at": "2026-10-20",
+   "ends_at": "2026-11-23",
+   "url": "https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket",
+   "note": "ASOBI STAGE 両日視聴チケット13,000円／DAY1視聴チケット6,500円／DAY2視聴チケット6,500円（各税込・機能利用料込）。プレゼント用視聴チケットあり。",
+   "source_url": "https://asobistage.asobistore.jp/event/gakuen_shirube_final/ticket",
+   "sort_order": 5
+  }
+ ]
+}
