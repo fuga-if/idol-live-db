@@ -125,7 +125,11 @@ pub fn setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
             ),
             step(
                 "「Create app」でアプリを作る",
-                "App name と App description は何でもかまいません (例: アイドルライブDB)。Website は空のままで大丈夫です。",
+                &format!(
+                    "App name と App description は何でもかまいません (例: アイドルライブDB)。Website は空のままで大丈夫です。\n\
+                     スマホでは画面が狭いと「Create app」のボタンが出ません。{}",
+                    desktop_site_hint(platform)
+                ),
                 vec![],
             ),
             step(
@@ -150,6 +154,15 @@ pub fn setup_guide(platform: SpotifyGuidePlatform) -> SpotifySetupGuide {
             "「INVALID_CLIENT: Invalid client」と出たら、Client ID の貼り間違いです。".to_string(),
             "曲を鳴らすときに Spotify アプリで断られたら、手順 4 の値が 1 文字でも違っていないかを確かめてください。".to_string(),
         ],
+    }
+}
+
+/// スマホのブラウザを PC 版の表示に切り替える方法。Spotify の開発者サイトは画面が狭いと
+/// 「Create app」のボタンを出さないので、手順 2 で案内する (2026-10-20 に利用者から報告)。
+fn desktop_site_hint(platform: SpotifyGuidePlatform) -> &'static str {
+    match platform {
+        SpotifyGuidePlatform::Ios => "Safari ならアドレス欄の「ぁあ」から「デスクトップ用 Web サイトを表示」を選ぶと出てきます (パソコンで作ってもかまいません)。",
+        SpotifyGuidePlatform::Android => "Chrome なら右上の「⋮」から「PC 版サイト」にチェックを入れると出てきます (パソコンで作ってもかまいません)。",
     }
 }
 
@@ -809,5 +822,10 @@ mod tests {
         let a = setup_guide(SpotifyGuidePlatform::Android);
         assert_eq!(a.steps[3].values.len(), 2);
         assert!(a.steps[3].title.contains("Android"));
+        // スマホでは Create app が出ないので、PC 版表示への切り替え方を端末ごとに案内する。
+        assert!(g.steps[1]
+            .detail
+            .contains("デスクトップ用 Web サイトを表示"));
+        assert!(a.steps[1].detail.contains("PC 版サイト"));
     }
 }
