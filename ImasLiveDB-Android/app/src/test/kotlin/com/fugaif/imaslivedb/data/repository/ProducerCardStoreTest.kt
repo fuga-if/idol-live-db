@@ -399,6 +399,52 @@ class ProducerCardStoreTest {
         assertEquals(meetings[0].metAt, upgraded.receivedAt)
     }
 
+    /**
+     * すれちがいで受け取った名刺は「すれちがい」の札と「すれちがいで受け取り」。同じ日に 2 度すれちがっても
+     * 会った記録は 1 つで、今日すれちがった人数は 1 人。
+     */
+    // 時刻は JST の同じ日 (2026-09-22 01:13 / 02:13、数えるのは 03:13)。
+    @Test
+    fun streetPassReceiptBadgesAndCountsOncePerDay() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        val card = payload("ふがP", null)
+        val first = repo.receive(
+            meetingAt(card, null, CardReceiveVia.STREET_PASS, 1_790_007_200), matchSamePerson = true,
+            choice = CardSamePersonChoice.SEPARATE
+        )
+        val second = repo.receive(
+            meetingAt(card, null, CardReceiveVia.STREET_PASS, 1_790_010_800), matchSamePerson = true,
+            choice = CardSamePersonChoice.SEPARATE
+        )
+        assertEquals("同じ中身は 1 枚", first.id, second.id)
+        assertEquals("streetpass", first.via)
+        assertEquals(CardReceiveVia.STREET_PASS, first.receiveVia)
+        val meetings = repo.meetings(first.id)
+        assertEquals("同じ日に 2 度でも記録は 1 つ", 1, meetings.size)
+        val views = cardMeetingViews(meetings.map { it.record })
+        assertEquals("すれちがい", views.first().badge)
+        assertEquals("すれちがいで受け取り", views.first().viaLabel)
+        val now = java.time.Instant.ofEpochSecond(1_790_014_400).toString()
+        assertEquals(1u, uniffi.imas_core.streetpassTodayCount(meetings.map { it.record }, now))
+    }
+
+    /** 名乗る値 (見出しと欠片) は Kotlin の ByteArray のまま往復し、読み手は先頭から欠片の数だけ読めば戻る。 */
+    @Test
+    fun streetPassFramesRoundTripThroughBinding() {
+        val card = payload("ふがP", null)
+        val frames = uniffi.imas_core.streetpassFrames(card)!!
+        assertEquals(uniffi.imas_core.streetpassUuids().chunks.size, frames.chunks.size)
+        val header = uniffi.imas_core.streetpassHeaderDecode(frames.header)!!
+        val read = frames.chunks.take(header.chunkCount.toInt())
+        assertEquals(card, uniffi.imas_core.streetpassJoin(header, read))
+        assertFalse(
+            "自分の名刺は読まない",
+            uniffi.imas_core.streetpassShouldRead(
+                header.fingerprint, uniffi.imas_core.streetpassFingerprint(card), emptyList(), "2026-10-21T00:00:00Z"
+            )
+        )
+    }
+
     /** バックアップで中身が同じ別 id の名刺を飛ばしたら、その会った記録を端末の名刺に付け替えて入れ、行に最後の記録を写す。 */
     @Test
     fun backupMovesMeetingsOfSkippedDuplicateCard() = runBlocking {

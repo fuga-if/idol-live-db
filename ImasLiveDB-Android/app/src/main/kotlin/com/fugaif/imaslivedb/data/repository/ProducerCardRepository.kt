@@ -6,6 +6,9 @@ import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.data.model.ReceivedCardMeeting
 import com.fugaif.imaslivedb.data.model.ReceivedProducerCard
 import java.time.Instant
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.temporal.ChronoUnit
@@ -27,11 +30,17 @@ class ProducerCardRepository(private val db: AppDatabase) {
 
     private fun now(): String = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()
 
+    private val _myCardChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+
+    /** 自分の名刺を書いた (編集・画像の選択・復元)。すれちがいが名乗る値を作り直す。 */
+    val myCardChanges: SharedFlow<Unit> = _myCardChanges.asSharedFlow()
+
     /** 自分の名刺。まだ作っていなければ null。 */
     suspend fun myCard(): MyProducerCard? = dao.myCard()
 
     suspend fun saveMyCard(card: MyProducerCard) {
         dao.upsertMyCard(card.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()))
+        _myCardChanges.tryEmit(Unit)
     }
 
     /** 自分の名刺の行を読んで直して書くのを 1 本ずつ流す ([updateMyCard])。 */
@@ -46,7 +55,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
         myCardLock.withLock {
             val next = transform(dao.myCard()) ?: return@withLock null
             next.withCardId().copy(id = MyProducerCard.SINGLETON_ID, updatedAt = now()).also { dao.upsertMyCard(it) }
-        }
+        }.also { if (it != null) _myCardChanges.tryEmit(Unit) }
 
     /** 受け取った名刺 (新しく受け取った順)。 */
     suspend fun receivedCards(): List<ReceivedProducerCard> = dao.receivedCards()
@@ -106,7 +115,7 @@ class ProducerCardRepository(private val db: AppDatabase) {
         if (meetings.isEmpty()) 0 else dao.restoreMeetingsIfAbsent(meetings)
 
     suspend fun restoreMyCardIfAbsent(cards: List<MyProducerCard>): Int =
-        if (cards.isEmpty()) 0 else dao.restoreMyCardIfAbsent(cards)
+        (if (cards.isEmpty()) 0 else dao.restoreMyCardIfAbsent(cards)).also { if (it > 0) _myCardChanges.tryEmit(Unit) }
 
     // ---- 公演 ----
 

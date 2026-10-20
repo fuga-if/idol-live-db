@@ -129,6 +129,10 @@ class AppModule private constructor(context: Context) {
     val producerCardRepository: com.fugaif.imaslivedb.data.repository.ProducerCardRepository by lazy {
         com.fugaif.imaslivedb.data.repository.ProducerCardRepository(database)
     }
+    /** P名刺のすれちがいモード (プロセスの間ずっと 1 つ)。 */
+    val streetPassService: com.fugaif.imaslivedb.data.producercard.StreetPassService by lazy {
+        com.fugaif.imaslivedb.data.producercard.StreetPassService(appContext, this)
+    }
     val playlistRepository: com.fugaif.imaslivedb.data.repository.PlaylistRepository by lazy {
         com.fugaif.imaslivedb.data.repository.PlaylistRepository(database)
     }

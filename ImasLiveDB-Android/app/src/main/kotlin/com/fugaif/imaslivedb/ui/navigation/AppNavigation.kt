@@ -428,7 +428,15 @@ internal fun NavGraphBuilder.produceNavGraph(navController: NavHostController) {
     composable(NavRoutes.CardCase.route) {
         CardCaseScreen(
             onBack = { navController.popBackStack() },
-            onOpenCard = { navController.navigate(NavRoutes.ReceivedCard.createRoute(it)) }
+            onOpenCard = { navController.navigate(NavRoutes.ReceivedCard.createRoute(it)) },
+            // 自分の名刺の画面から来たならそこへ戻る (重ねない)。
+            onOpenMyCard = {
+                if (navController.previousBackStackEntry?.destination?.route == NavRoutes.ProducerCard.route) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate(NavRoutes.ProducerCard.route)
+                }
+            }
         )
     }
     composable(NavRoutes.ReceivedCard.ROUTE) { backStackEntry ->

@@ -764,7 +764,9 @@ fun ImasToggleRow(
     subtitle: String? = null,
     icon: ImageVector? = null,
     position: ImasRowPosition? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    subtitleLineLimit: Int = 1,
+    detail: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     val haptics = rememberImasHaptics()
     ImasRow(
@@ -780,6 +782,8 @@ fun ImasToggleRow(
         trailing = ImasRowTrailing.Custom { ImasSwitch(checked = isOn, onCheckedChange = null) },
         density = ImasRowDensity.COMPACT,
         titleRole = ImasTextRole.ROW_LABEL,
+        subtitleLineLimit = subtitleLineLimit,
+        detail = detail,
         position = position
     )
 }

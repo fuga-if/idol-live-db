@@ -1,12 +1,23 @@
 package com.fugaif.imaslivedb.ui.producercard
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.fugaif.imaslivedb.data.producercard.StreetPassPermissions
+import com.fugaif.imaslivedb.ui.designsystem.ImasRowDensity
+import com.fugaif.imaslivedb.ui.designsystem.ImasToggleRow
+import uniffi.imas_core.StreetpassStatus
+import uniffi.imas_core.streetpassStatus
 import androidx.compose.foundation.layout.Row
 import com.fugaif.imaslivedb.ui.designsystem.ImasBadge
 import uniffi.imas_core.cardMeetingViews
 import uniffi.imas_core.CardMeetingView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -92,10 +103,12 @@ import uniffi.imas_core.cardCaseSections
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
+fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit, onOpenMyCard: () -> Unit) {
     val context = LocalContext.current
     val module = remember { AppModule.from(context) }
     val scope = rememberCoroutineScope()
+    val streetPass = module.streetPassService
+    val streetPassState by streetPass.state.collectAsState()
 
     var cards by remember { mutableStateOf<List<ReceivedProducerCard>>(emptyList()) }
     var decoded by remember { mutableStateOf<Map<String, ProducerCard>>(emptyMap()) }
@@ -107,6 +120,7 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
     // 束の行 (会った記録の id) → 会った記録。記録の無い名刺は名刺の id のまま (記録は無し)。
     var meetings by remember { mutableStateOf<Map<String, CardMeetingView>>(emptyMap()) }
     var myCard by remember { mutableStateOf<EncodedProducerCard?>(null) }
+    var hasMyCard by remember { mutableStateOf(false) }
     var loaded by remember { mutableStateOf(false) }
 
     var memoTarget by remember { mutableStateOf<ReceivedProducerCard?>(null) }
@@ -131,6 +145,7 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
         if (myCard == null && record != null) {
             repo.myCard()?.let { myCard = ProducerCardAssembler.encode(it, record) }
         }
+        hasMyCard = myCard != null
         images = withContext(Dispatchers.IO) {
             all.associate { row -> row.id to ReceivedCardImages.load(context, row.id, map[row.id]?.oshiIdolIds.orEmpty()) }
         }
@@ -145,6 +160,26 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
     // 紙の名刺の書類カメラを電波のあるうちに入れておく (会場は圏外のことが多い)。
     LaunchedEffect(Unit) { prefetchPaperCardCamera(context) }
     LaunchedEffect(Unit) { ProducerCardInbox.changes.collect { load() } }
+    // 設定で Bluetooth・許可を変えて戻ってきたら、すれちがいの様子を読み直す。
+    LifecycleResumeEffect(Unit) {
+        streetPass.refreshRadio()
+        onPauseOrDispose { }
+    }
+
+    fun turnOnStreetPass() {
+        scope.launch { streetPass.setEnabled(true) }
+    }
+    // すれちがいに要る Bluetooth の許可は、初めてオンにしたときに求める (断られたら行が「止まっています」になる)。
+    val streetPassPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        turnOnStreetPass()
+    }
+    fun toggleStreetPass(on: Boolean) {
+        when {
+            !on -> scope.launch { streetPass.setEnabled(false) }
+            StreetPassPermissions.granted(context) -> turnOnStreetPass()
+            else -> streetPassPermissions.launch(StreetPassPermissions.required())
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -174,6 +209,17 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
         }
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).background(DS.bg)) {
+            if (loaded) {
+                item(key = "streetpass") {
+                    StreetPassRow(
+                        status = streetpassStatus(streetPassState.active, hasMyCard, streetPassState.todayCount, streetPassState.radio),
+                        hasCard = hasMyCard,
+                        isOn = streetPassState.active,
+                        onToggle = ::toggleStreetPass,
+                        onOpenMyCard = onOpenMyCard
+                    )
+                }
+            }
             when {
                 !loaded -> item { ImasInlineLoading(Modifier.padding(vertical = DS.Space.section)) }
                 cards.isEmpty() -> item {
@@ -225,6 +271,50 @@ fun CardCaseScreen(onBack: () -> Unit, onOpenCard: (String) -> Unit) {
         PaperCardImportSheet(onDismiss = { showingPaper = false })
     }
     ImasErrorAlert(message = error, onDismiss = { error = null }, title = "名刺を消せませんでした")
+}
+
+/**
+ * すれちがいの 1 行 (iOS `CardCaseView` の `StreetPassRow` と対)。題と説明はコアの `streetpassStatus`。
+ * 自分の名刺が無いときは切替を出さず、押すと自分の名刺の画面へ。
+ */
+@Composable
+private fun StreetPassRow(
+    status: StreetpassStatus,
+    hasCard: Boolean,
+    isOn: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onOpenMyCard: () -> Unit
+) {
+    val modifier = Modifier.background(DS.surface)
+    // オンの間の注意 (説明の下に。文言はコア)。
+    val hint: (@Composable ColumnScope.() -> Unit)? = status.hint?.let { text ->
+        { Text(text, style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color) }
+    }
+    if (hasCard) {
+        ImasToggleRow(
+            title = status.title,
+            isOn = isOn,
+            onCheckedChange = onToggle,
+            modifier = modifier,
+            subtitle = status.detail,
+            icon = Icons.Filled.Bluetooth,
+            position = ImasRowPosition.STANDALONE,
+            subtitleLineLimit = 3,
+            detail = hint
+        )
+    } else {
+        ImasRow(
+            title = status.title,
+            subtitle = status.detail,
+            leading = ImasRowLeading.Icon(Icons.Filled.Bluetooth, tone = ImasIconTileTone.NEUTRAL),
+            density = ImasRowDensity.COMPACT,
+            titleRole = ImasTextRole.ROW_LABEL,
+            subtitleLineLimit = 3,
+            position = ImasRowPosition.STANDALONE,
+            modifier = modifier.imasRowPress(onClick = onOpenMyCard),
+            detail = hint
+        )
+    }
 }
 
 /** 束の頭 (公演の半券)。 */

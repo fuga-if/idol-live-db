@@ -102,6 +102,8 @@ class MainActivity : ComponentActivity() {
         val module = AppModule.from(this)
         lifecycleScope.launch {
             module.databaseBoot.prepare()
+            // P名刺のすれちがいをオンのままにしていたら再開する (12 時間を過ぎていれば止める)。
+            if (module.databaseBoot.state.value == DatabaseBoot.State.Ready) module.streetPassService.resumeIfNeeded()
             // 通知の積み直しはスナップショットを読むので、seed の投入・入れ直しの後 (AppRoot) に回す。
         }
     }

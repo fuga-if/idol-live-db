@@ -53,8 +53,8 @@ android {
         applicationId = "site.fugaapp.imaslivedb"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 17
-        versionName = "2.8.1"
+        versionCode = 18
+        versionName = "2.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -224,6 +224,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // すれちがい: アプリが裏に回ったら BLE を止める (ProcessLifecycleOwner)。
+    implementation(libs.androidx.lifecycle.process)
 
     // Activity
     implementation(libs.androidx.activity.compose)
