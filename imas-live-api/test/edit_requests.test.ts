@@ -100,6 +100,7 @@ describe("POST /edit-requests — マスタ検証", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].path).toBe("/repos/owner/repo/issues");
     expect(calls[0].payload.title).toBe("[修正リクエスト] アイドル編集");
+    expect((calls[0].payload as Record<string, unknown>).labels).toEqual(["edit-request"]);
   });
 });
 

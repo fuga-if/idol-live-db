@@ -110,4 +110,5 @@ jobs:
           gh issue create --repo "$REPO" \
             --title "本番スキーマ反映待ち (${SHA:0:7})" \
             --body-file body.md \
+            --label schema-pending \
             --assignee "${{ github.repository_owner }}"

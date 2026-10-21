@@ -218,7 +218,7 @@ export async function handlePostEditRequests(ctx: RouteContext): Promise<Respons
       body: JSON.stringify(payload),
     });
 
-  const res = await gh("/issues", { title, body: issueBody });
+  const res = await gh("/issues", { title, body: issueBody, labels: ["edit-request"] });
 
   if (!res.ok) {
     const t = await res.text();
