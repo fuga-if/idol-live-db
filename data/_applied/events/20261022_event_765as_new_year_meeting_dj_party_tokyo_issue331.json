@@ -1,0 +1,40 @@
+{
+ "title": "THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@TOKYO の追加 (issue #331)",
+ "author": "daily-data-crawl",
+ "source": "公式特設 https://idolmaster-official.jp/live_event/newyear2026/ (2026-10-22 はポータルがメンテ中で未確認)。日付・会場・開演は アニメハック イベント情報 https://anime.eiga.com/event/173249/ (1 日目) / https://anime.eiga.com/event/173250/ (2 日目)",
+ "events": [
+  {
+   "id": "ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo",
+   "brand_id": "765as",
+   "name": "THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@TOKYO",
+   "event_type": "",
+   "kind": "live",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "joint_brand_ids": "cg,ml,sidem,sc,gakuen",
+   "ticket_url": "https://idolmaster-official.jp/live_event/newyear2026/",
+   "shows": [
+    {
+     "id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_1",
+     "name": "DAY1",
+     "date": "2026-01-10",
+     "venue": "Zepp DiverCity Tokyo",
+     "venue_city": "東京",
+     "venue_id": "venue_zeppdivercity",
+     "start_time": "17:00",
+     "sort_order": 1
+    },
+    {
+     "id": "sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_2",
+     "name": "DAY2",
+     "date": "2026-01-11",
+     "venue": "Zepp DiverCity Tokyo",
+     "venue_city": "東京",
+     "venue_id": "venue_zeppdivercity",
+     "start_time": "17:00",
+     "sort_order": 2
+    }
+   ]
+  }
+ ]
+}

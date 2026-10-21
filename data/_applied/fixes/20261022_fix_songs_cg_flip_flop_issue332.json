@@ -1,0 +1,17 @@
+{
+ "title": "Flip Flop の原唱者を 日野茜・高森藍子 の二人歌唱に (issue #332)",
+ "author": "daily-data-crawl",
+ "source": "日本コロムビア 2017.04.14 News「最初は日野茜、高森藍子の二人歌唱の楽曲で初出されました」 https://columbia.jp/idolmaster/imasnews/170414.html",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_flip_flop",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "日野茜、高森藍子"
+   },
+   "add_original_singers": ["cg_高森藍子"],
+   "note": "初出 (デレステ 2016-02) は日野茜・高森藍子の二人歌唱。STARLIGHT MASTER 10 収録の 5 人版は後の再録 (及川雫・脇山珠美・道明寺歌鈴は performer のまま)"
+  }
+ ]
+}

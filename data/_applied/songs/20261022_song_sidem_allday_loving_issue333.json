@@ -1,0 +1,29 @@
+{
+ "title": "ALLDAY LOVING! (Café Parade, MONTHLY THEME SONG 12) の追加 (issue #333)",
+ "author": "daily-data-crawl",
+ "source": "バンダイナムコミュージックライブ カタログ LACM-24792 (2026.10.21) https://catalog.bandainamcomusiclive.co.jp/release/94490/ / Apple Music lookup id=6813319014 (album 6813318808)。作詞・作曲・編曲はカタログに記載が無く、投稿 (issue #333) の値で登録",
+ "songs": [
+  {
+   "id": "sidem_allday_loving",
+   "title": "ALLDAY LOVING!",
+   "title_kana": "おーるでいらびんぐ",
+   "brand_id": "sidem",
+   "song_type": "unit",
+   "release_date": "2026-10-21",
+   "streaming_date": "2026-10-21",
+   "cd_release_date": "2026-10-21",
+   "cd_series": "THE IDOLM@STER SideM ～P@SSION CHALLENGE We are 315!～ MONTHLY THEME SONG 12 Café Parade",
+   "unit_id": "unit_café_parade",
+   "unit_name": "Café Parade",
+   "singer_label": "Café Parade（神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲）",
+   "lyricist": "松井洋平",
+   "composer": "佐々木裕 (Smile Publishers Ltd.)",
+   "arranger": "佐々木裕 (Smile Publishers Ltd.)",
+   "apple_music_id": "6813319014",
+   "apple_music_album_id": "6813318808",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/27/8f/db/278fdb38-3306-b80c-6824-9d6c7cc5e45c/4540774247929.png/600x600bb.jpg",
+   "original_singers": ["sidem_神谷幸広","sidem_東雲荘一郎","sidem_アスランbbⅱ世","sidem_卯月巻緒","sidem_水嶋咲"],
+   "note": "各アイドルのソロVer. と Off Vocal は別トラック (登録対象外)"
+  }
+ ]
+}
