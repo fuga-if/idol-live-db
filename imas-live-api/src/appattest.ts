@@ -213,6 +213,21 @@ export async function verifyAttestation(
   attestationB64: string,
   allowDev = false
 ): Promise<AttestResult> {
+  return verifyAttestationWithRoot(challenge, keyId, attestationB64, allowDev, await appleRootSpki());
+}
+
+/**
+ * トラストアンカーを引数で受ける版。実機の attestation の fixture が無いので、テストは
+ * 自前のルートからチェーンを組んでこちらに通す。本番の経路は verifyAttestation のままで、
+ * そちらは Apple のルートしか渡さない (自前のチェーンは中間の段で落ちる)。
+ */
+export async function verifyAttestationWithRoot(
+  challenge: Uint8Array,
+  keyId: Uint8Array,
+  attestationB64: string,
+  allowDev: boolean,
+  rootSpki: Uint8Array
+): Promise<AttestResult> {
   const obj = cborDecode(base64ToBytes(attestationB64));
   if (obj.fmt !== "apple-appattest") throw new Error("bad fmt");
   const x5c: Uint8Array[] = obj.attStmt.x5c;
@@ -220,8 +235,7 @@ export async function verifyAttestation(
   const credCert = parseCert(x5c[0]);
   const interCert = parseCert(x5c[1]);
 
-  // チェーン検証: leaf ← intermediate ← Apple Root
-  const rootSpki = await appleRootSpki();
+  // チェーン検証: leaf ← intermediate ← root (本番は Apple Root)
   if (!(await verifyCertSig(interCert, rootSpki, "P-384"))) throw new Error("intermediate not signed by root");
   if (!(await verifyCertSig(credCert, interCert.spki, "P-384"))) throw new Error("leaf not signed by intermediate");
 
