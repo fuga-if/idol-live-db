@@ -1,0 +1,12 @@
+# アニメ BD 特典 CD「346Pro IDOL selection」初出の二人歌唱曲に入っている 5 人版の追加 3 人の original 行 (2026-10-23, issue #335/#336/#337)。
+# 出典: https://imas-cinderella.com/bdbox/ (vol.1 Nocturne 高垣楓・川島瑞樹 / vol.3 あいくるしい 佐久間まゆ・小早川紗枝 / vol.4 Lunatic Show 星輝子・白坂小梅)。
+# Flip Flop (#332) と同じく 3 人は performer 行に残す。消すのは original 行だけ。master.sqlite 側も同じ 9 行を DELETE する。
+SongArtist	song_artists-cg_nocturne-cg_松永涼-original
+SongArtist	song_artists-cg_nocturne-cg_速水奏-original
+SongArtist	song_artists-cg_nocturne-cg_新田美波-original
+SongArtist	song_artists-cg_あいくるしい-cg_水本ゆかり-original
+SongArtist	song_artists-cg_あいくるしい-cg_三村かな子-original
+SongArtist	song_artists-cg_あいくるしい-cg_速水奏-original
+SongArtist	song_artists-cg_lunatic_show-cg_輿水幸子-original
+SongArtist	song_artists-cg_lunatic_show-cg_小早川紗枝-original
+SongArtist	song_artists-cg_lunatic_show-cg_姫川友紀-original

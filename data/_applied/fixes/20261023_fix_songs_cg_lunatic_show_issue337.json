@@ -1,0 +1,16 @@
+{
+ "title": "Lunatic Show の名義を初出の二人歌唱に (issue #337)",
+ "author": "daily-data-crawl",
+ "source": "アニメ公式サイト Blu-ray Disc BOX ページ「346Pro IDOL selection」収録リスト（vol.1「Nocturne」(新曲) 高垣楓・川島瑞樹 / vol.3「あいくるしい」(新曲) 佐久間まゆ・小早川紗枝 / vol.4「Lunatic Show」(新曲) 星輝子・白坂小梅） https://imas-cinderella.com/bdbox/",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "cg_lunatic_show",
+   "fields": {
+    "song_type": "unit",
+    "singer_label": "星輝子、白坂小梅"
+   },
+   "note": "初出 (アニメ BD 特典 CD 346Pro IDOL selection vol.4) は 星輝子・白坂小梅 の二人歌唱。CD の 5 人版は後の再録。輿水幸子・小早川紗枝・姫川友紀 の original 行の削除は CloudKit 側の削除 TSV (tools/pending_cloudkit_deletions_anime_bonus_originals_20261023.tsv) でオーナー判断"
+  }
+ ]
+}
