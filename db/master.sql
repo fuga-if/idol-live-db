@@ -1907,6 +1907,7 @@ INSERT INTO "events" VALUES('ev_劇場版the_idolmster_movie輝きの向こう�
 INSERT INTO "events" VALUES('ev_the_idolmster_msters_of_idol_world2014','765as','THE IDOLM@STER M@STERS OF IDOL WORLD!!2014','live',0,1,'live',NULL,NULL,NULL,'cg,ml,876',NULL,NULL);
 INSERT INTO "events" VALUES('ev_project_imas_valiv_3rdlive_meeting_qonnect_as_one','876','PROJECT IM@S vα-liv 3rdLIVE & MEETING -QONNECT AS ONE-','live',0,0,'live',NULL,NULL,'https://idolmaster-official.jp/va-liv/event/3rd_live',NULL,NULL,'ぷろじぇくとあいますゔいあらいぶさーどらいぶあんどみーてぃんぐこねくとあずわん');
 INSERT INTO "events" VALUES('ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','876','THE IDOLM@STER 20th Anniversary 876 PRODUCTION FES.','anniversary',0,1,'live',NULL,NULL,NULL,NULL,NULL,'876ぷろふぇす ぷろだくしょんふぇす');
+INSERT INTO "events" VALUES('ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','765as','THE IDOLM@STER 20th ANNIVERSARY NEW YEAR MEETING & DJ PARTY@TOKYO','',0,0,'live',NULL,NULL,'https://idolmaster-official.jp/live_event/newyear2026/','cg,ml,sidem,sc,gakuen',NULL,NULL);
 CREATE TABLE idol_brands (idol_id TEXT NOT NULL, brand_id TEXT NOT NULL, is_primary INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (idol_id, brand_id));
 INSERT INTO "idol_brands" VALUES('cg_大石泉','cg',1);
 INSERT INTO "idol_brands" VALUES('cg_双葉杏','cg',1);
@@ -3339,7 +3340,7 @@ INSERT INTO "idols" VALUES('sidem_花園百々人','sidem','花園百々人','�
 INSERT INTO "idols" VALUES('cg_依田芳乃','cg','依田芳乃','よりたよしの',NULL,'#C7BAB4',4185,'--07-03','O',151.0,40.0,'鹿児島',16,73.0,53.0,73.0,'蟹座','失せ物探し、悩み事解決、石ころ集め',NULL,'人々の願いを叶えるのが好きな16歳の神秘的アイドル。古めかしい語尾で話す純粋無垢な性格。CV: 高田憂希。','female','right','依田','芳乃',NULL,'2014-05-28','passion',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','109');
+INSERT INTO "meta" VALUES('data_version','110');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -89009,6 +89010,8 @@ INSERT INTO "shows" VALUES('sh_L1239','ev_project_ims_vα-liv_2ndlive_-beyond_th
 INSERT INTO "shows" VALUES('sh_L1240','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY3 昼公演 Dearly Stars×vα-liv LIVE -UNDER ONE SKY !!!!!!-','2026-02-23','東京・日本工学院アリーナ',NULL,'14:00',3,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L1241','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY3 夜公演 Dearly Stars×vα-liv LIVE -UNDER ONE SKY !!!!!!-','2026-02-23','東京・日本工学院アリーナ',NULL,'17:30',4,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC HIGHLIGHTS','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast','venue_toyotaarenatokyo',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_1','ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','DAY1','2026-01-10','Zepp DiverCity Tokyo','東京','17:00',1,'cast','venue_zeppdivercity',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_2','ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','DAY2','2026-01-11','Zepp DiverCity Tokyo','東京','17:00',2,'cast','venue_zeppdivercity',NULL,NULL,NULL);
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_天海春香','original');
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_如月千早','original');
@@ -100192,17 +100195,7 @@ INSERT INTO "song_artists" VALUES('cg_fine美しき終焉','cg_一ノ瀬志希',
 INSERT INTO "song_artists" VALUES('cg_fine美しき終焉','cg_一ノ瀬志希','performer');
 INSERT INTO "song_artists" VALUES('cg_fine美しき終焉','cg_黒埼ちとせ','original');
 INSERT INTO "song_artists" VALUES('cg_fine美しき終焉','cg_黒埼ちとせ','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_佐々木千枝','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_及川雫','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_堀裕子','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_大槻唯','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_姫川友紀','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_日野茜','original');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_片桐早苗','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_脇山珠美','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_諸星きらり','performer');
 INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_道明寺歌鈴','performer');
-INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_高森藍子','performer');
 INSERT INTO "song_artists" VALUES('cg_flip_flop_for_ss3a_rearrange_mix','cg_三村かな子','performer');
 INSERT INTO "song_artists" VALUES('cg_flip_flop_for_ss3a_rearrange_mix','cg_上条春菜','original');
 INSERT INTO "song_artists" VALUES('cg_flip_flop_for_ss3a_rearrange_mix','cg_上条春菜','performer');
@@ -117023,6 +117016,22 @@ INSERT INTO "song_artists" VALUES('cg_あいくるしい','cg_白坂小梅','per
 INSERT INTO "song_artists" VALUES('cg_あいくるしい','cg_藤本里奈','performer');
 INSERT INTO "song_artists" VALUES('cg_あいくるしい','cg_速水奏','original');
 INSERT INTO "song_artists" VALUES('cg_あいくるしい','cg_速水奏','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_佐々木千枝','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_及川雫','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_堀裕子','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_大槻唯','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_姫川友紀','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_日野茜','original');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_片桐早苗','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_脇山珠美','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_諸星きらり','performer');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_高森藍子','original');
+INSERT INTO "song_artists" VALUES('cg_flip_flop','cg_高森藍子','performer');
+INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_アスランbbⅱ世','original');
+INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_卯月巻緒','original');
+INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_東雲荘一郎','original');
+INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_水嶋咲','original');
+INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_神谷幸広','original');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
   unit_id TEXT NOT NULL,
@@ -118935,7 +118944,6 @@ INSERT INTO "songs" VALUES('cg_evil_live','EVIL LIVE','いーびるらいぶ','c
 INSERT INTO "songs" VALUES('cg_fantasia_for_the_girls','Fantasia for the Girls','ふぁんたじあふぉーざがーるず','cg','unit','2024-08-30',NULL,'設楽哲也','八城雄太','設楽哲也','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER CRYSTAL QUALIA 01 Fantasia for the Girls',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ca/53/0f/ca530f64-6288-a148-c530-68e6c7cb20c1/COCC-18241.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/c3/b6/b9/c3b6b998-bdea-51f2-8cfe-b82ff0f96c76/mzaf_11227200843552672443.plus.aac.p.m4a','1766631645','1766631632','','https://www.uta-net.com/song/360849/',NULL,'久川颯、イヴ・サンタクロース、白雪千夜、神谷奈緒、藤原肇、依田芳乃、赤城みりあ、星輝子、小早川紗枝',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2024-08-31',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_fascinate','Fascinate','ふぁしねいと','cg','unit','2019-02-28',NULL,'睦月周平','ミズノゲンキ','睦月周平','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER 31〜40 GAME VERSION',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/be/ce/79/bece795e-5351-d30c-6cea-458604a15491/COKM-44140.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview122/v4/c5/a5/4c/c5a54cec-3913-6d8e-b0b5-4e88e457c49e/mzaf_3932411454353975943.plus.aac.p.m4a','1655784952','1655784851','','https://www.uta-net.com/song/284338/',NULL,'VelvetRose（黒埼ちとせ、白雪千夜）','VelvetRose','velvetrose','STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2020-04-15',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_fine美しき終焉','Fin[e]〜美しき終焉〜','ふぃーねうつくしきしゅうえん','cg','unit','2024-09-14',NULL,'伊藤翼','只野菜摘','伊藤翼','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER CRYSTAL QUALIA 02 Fin[e]〜美しき終焉〜 - EP',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/72/68/d8/7268d8be-ecd8-2d6b-8a6b-2010fd676eda/COCC-18242.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/8e/4b/f6/8e4bf64c-40c9-34d7-b3d5-4f3385ddbe68/mzaf_17415715258008416813.plus.aac.p.m4a','1794973852','1794973816','','https://www.uta-net.com/song/368150/',NULL,'一ノ瀬志希、黒埼ちとせ',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2024-10-01',NULL,NULL);
-INSERT INTO "songs" VALUES('cg_flip_flop','Flip Flop','ふりっぷふろっぷ','cg','solo','2016-02-25',NULL,'ミト','ミト','ミト','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER SERIES GAME VERSION SONG COLLECTION Vol.2',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/1b/92/87/1b928722-cb7f-e61d-24f4-9537504d5bb0/COKM-44250.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/9f/9d/4f/9f9d4fce-f808-ca24-304d-46db8a4c728a/mzaf_17161071235522141298.plus.aac.p.m4a','1670044928','1670044924','','https://www.uta-net.com/song/227930/',NULL,'日野茜',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2023-02-28',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_frost','Frost','ふろすと','cg','unit','2017-12-13',NULL,'睦月周平','ミズノゲンキ','睦月周平','THE IDOLM@STER CINDERELLA GIRLS MASTER SEASONS SERIES GAME VERSION SONG COLLECTION',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/56/27/24/562724de-9c25-1059-1ca4-d6ffc33bd284/COKM-44258.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/58/da/06/58da0654-cfb6-4944-2b60-e72ba6ca13f4/mzaf_2987703815503095952.plus.aac.p.m4a','1670047948','1670047724','','https://www.uta-net.com/song/241298/',NULL,'神谷奈緒、神崎蘭子、脇山珠美',NULL,NULL,'MASTER SEASONS',NULL,NULL,NULL,0,0,NULL,'2023-02-28',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_frozen_tears','Frozen Tears','ふろーずんてぃあーず','cg','solo','2017-02-01',NULL,'小野貴光','磯谷佳江','玉木千尋','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER 08 BEYOND THE STARLIGHT',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/6d/ad/88/6dad8898-aac2-0cf4-7b0a-11327b1a4445/COKM-44249.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/c3/8c/2b/c38c2b96-503f-76b3-9bfb-18f409037524/mzaf_733575314693928912.plus.aac.p.m4a','1670044150','1431640261','','https://www.uta-net.com/song/223205/',NULL,'北条加蓮',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2023-02-28',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_gaze_and_gaze','Gaze and Gaze','げいずあんどげいず','cg','unit','2020-02-15',NULL,'睦月周平','ミズノゲンキ','睦月周平','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER for the NEXT! SERIES GAME VERSION',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/d9/c7/b0/d9c7b046-014b-0d7b-f623-a008a1cf1f13/COKM-44253.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/b8/c8/b0/b8c8b046-10d4-0cb3-783e-436ff0908ccc/mzaf_8886508634701724506.plus.aac.p.m4a','1670044366','1670044208','','https://www.uta-net.com/song/285156/',NULL,'フォーリンシーサイド（川島瑞樹、村上巴）','フォーリンシーサイド','フォーリンシーサイド','STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2020-04-22',NULL,NULL);
@@ -120899,6 +120907,8 @@ INSERT INTO "songs" VALUES('sc_bloomy','Bloomy!','ぶるーみー','sc','unit','
 INSERT INTO "songs" VALUES('765as_destiny','Destiny','ですてぃにー','765as','all',NULL,NULL,'BNSI(渡辺量)','白瀬彩','BNSI(渡辺量)','THE IDOLM@STER MASTER ARTIST 3 FINALE Destiny','THE IDOLM@STER MASTER ARTIST 3 FINALE Destiny',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'765PRO ALLSTARS',NULL,NULL,'THE IDOLM@STER RADIO',NULL,NULL,NULL,0,0,NULL,NULL,'2016-02-17',NULL);
 INSERT INTO "songs" VALUES('765as_→→→sp','→→→SP','みぎみぎみぎすぺしゃる','765as','all','2026-07-28',209,'佐藤貴文','佐藤貴文','星銀乃丈','→→→SP - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/0c/e4/b2/0ce4b21a-ea0e-5d65-45af-218503d349bf/PA00223354_0_250549_jacket.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/31/52/d8/3152d832-d03c-3519-b9f9-23bb1af97b93/mzaf_11690342937052625022.plus.aac.p.m4a','6793033374','6793033369',NULL,NULL,NULL,'天海春香、島村卯月、春日未来、天道輝、櫻木真乃、花海咲季',NULL,NULL,NULL,NULL,NULL,'cg,ml,sidem,sc,gakuen',1,0,'アイドルマスター TOURS オリジナル楽曲','2026-07-28',NULL,NULL);
 INSERT INTO "songs" VALUES('cg_あいくるしい','あいくるしい','あいくるしい','cg','unit','2015-09-25',NULL,'田村歩美','田村歩美','田村歩美','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER SERIES GAME VERSION SONG COLLECTION Vol.2',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/1b/92/87/1b928722-cb7f-e61d-24f4-9537504d5bb0/COKM-44250.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/0a/3e/58/0a3e58c2-1365-e0a0-9519-15d573515a59/mzaf_14842968909021209998.plus.aac.p.m4a','1670044930','1670044924','','https://www.uta-net.com/song/230223/',NULL,'佐久間まゆ、小早川紗枝、水本ゆかり、三村かな子、速水奏',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2023-02-28',NULL,NULL);
+INSERT INTO "songs" VALUES('cg_flip_flop','Flip Flop','ふりっぷふろっぷ','cg','unit','2016-02-25',NULL,'ミト','ミト','ミト','THE IDOLM@STER CINDERELLA GIRLS STARLIGHT MASTER SERIES GAME VERSION SONG COLLECTION Vol.2',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/1b/92/87/1b928722-cb7f-e61d-24f4-9537504d5bb0/COKM-44250.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/9f/9d/4f/9f9d4fce-f808-ca24-304d-46db8a4c728a/mzaf_17161071235522141298.plus.aac.p.m4a','1670044928','1670044924','','https://www.uta-net.com/song/227930/',NULL,'日野茜、高森藍子',NULL,NULL,'STARLIGHT MASTER',NULL,NULL,NULL,0,0,NULL,'2023-02-28',NULL,NULL);
+INSERT INTO "songs" VALUES('sidem_allday_loving','ALLDAY LOVING!','おーるでいらびんぐ','sidem','unit','2026-10-21',NULL,'佐々木裕 (Smile Publishers Ltd.)','松井洋平','佐々木裕 (Smile Publishers Ltd.)','THE IDOLM@STER SideM ～P@SSION CHALLENGE We are 315!～ MONTHLY THEME SONG 12 Café Parade',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/27/8f/db/278fdb38-3306-b80c-6824-9d6c7cc5e45c/4540774247929.png/600x600bb.jpg',NULL,'6813319014','6813318808',NULL,NULL,NULL,'Café Parade（神谷幸広、東雲荘一郎、アスラン＝ベルゼビュートⅡ世、卯月巻緒、水嶋咲）','Café Parade','unit_café_parade',NULL,NULL,NULL,NULL,0,0,NULL,'2026-10-21','2026-10-21',NULL);
 CREATE TABLE staff (
     id TEXT PRIMARY KEY NOT NULL,
     brand_id TEXT NOT NULL REFERENCES brands(id),
