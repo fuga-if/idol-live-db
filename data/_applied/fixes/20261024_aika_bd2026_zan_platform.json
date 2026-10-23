@@ -1,0 +1,28 @@
+{
+ "title": "灯里愛夏 BIRTHDAY ONLINE LIVE 2026 延期公演の配信プラットフォームを ASOBI STAGE から Z-aN に変更",
+ "author": "daily-data-crawl",
+ "source": "https://x.com/valiv_official/status/2113616932297666733 / https://www.zan-live.com/ja/live/detail/11035",
+ "fixes": [
+  {
+   "table": "events",
+   "id": "ev_灯里愛夏_birthday_online_live_2026",
+   "fields": {
+    "ticket_url": "https://www.zan-live.com/ja/live/detail/11035"
+   },
+   "note": "ASOBI STAGE の配信チケットは無効になり、Z-aN 特設ページで再購入 (公式 X 2026-10-23)"
+  },
+  {
+   "table": "ticket_sales",
+   "id": "ts_2aa1df8eead9",
+   "fields": {
+    "name": "配信チケット (Z-aN)",
+    "starts_at": "2026-10-23 22:00",
+    "ends_at": "2026-11-29 18:00",
+    "url": "https://www.zan-live.com/ja/live/detail/11035",
+    "note": "Z-aN 通常配信チケット 5,000円(税込)、プレゼント用視聴チケット 5,000円。特典: アフタートーク配信視聴権。アーカイブは 11/29 23:59 まで。ASOBI STAGE で 9/21 から販売していた配信チケットは無効 (払い戻し)",
+    "source_url": "https://www.zan-live.com/ja/live/detail/11035"
+   },
+   "note": "配信プラットフォーム変更 (公式 X 2026-10-23 22:02)。Z-aN の販売期間は 10/23 22:00〜11/29 18:00"
+  }
+ ]
+}
