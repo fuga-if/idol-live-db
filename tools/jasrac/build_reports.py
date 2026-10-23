@@ -12,6 +12,10 @@ Usage:
     python3 tools/jasrac/build_reports.py nextone --published published.txt \
         --requests-dir data/lyrics_requests --period 202605-202609
 
+    # PlayN にアップロードする利用実績データ (許諾番号-利用年月.txt を月ごと)
+    python3 tools/jasrac/build_reports.py playn --published published.txt \
+        --codes nx_codes.tsv --period 202607-202609
+
     # 不足項目の洗い出し
     python3 tools/jasrac/build_reports.py gaps
 
@@ -372,6 +376,110 @@ def cmd_nextone(args):
     print("  %d 曲 / 合計 %d 回 (%s)" % (len(out), total, args.period))
 
 
+# NexTone 作品コード: N + 数字8桁 (利用実績報告概要 P.12「Nから始まる8桁の作品コード」)。
+NX_CODE_RE = re.compile(r"N[0-9]{8}")
+
+# PlayN 利用実績データ (1コンテンツ1曲 / 21項目)。利用実績報告概要 P.9 の並び順。
+# 出典: https://www.nex-tone.co.jp/files/i_format.pdf
+PLAYN_COLUMNS = [
+    "インターフェイスキーコード", "コンテンツ区分", "コンテンツ枝番", "メドレー区分",
+    "メドレー枝番", "コレクトコード", "JASRAC作品コード", "作品名", "副題", "作詞者",
+    "補作詞者・訳詞者", "作曲者", "編曲者", "アーティスト", "情報料(税抜)", "IVT区分",
+    "原詞訳詞区分", "IL区分", "リクエスト回数", "管理団体名", "NexTone作品コード",
+]
+
+
+def nextone_code(row, extra_codes):
+    """曲の NexTone 作品コード。--codes で渡した対応表が台帳の note より優先。"""
+    if row["song_id"] in extra_codes:
+        return extra_codes[row["song_id"]]
+    m = NX_CODE_RE.search(row.get("note", ""))
+    return m.group(0) if m else ""
+
+
+def read_code_table(path):
+    """song_id<TAB>NexTone作品コード の対応表 (確定作品リストと突き合わせた結果)。"""
+    if not path:
+        return {}
+    codes = {}
+    with io.open(path, encoding="utf-8") as f:
+        for line in f:
+            if not line.strip() or line.startswith("#"):
+                continue
+            song_id, _, code = line.rstrip("\n").partition("\t")
+            if not NX_CODE_RE.fullmatch(code.strip()):
+                sys.exit("%s: 作品コードの形が違う: %r" % (path, line))
+            codes[song_id.strip()] = code.strip()
+    return codes
+
+
+def months_in(period):
+    start, end = parse_period(period)
+    y, m = int(start[:4]), int(start[4:])
+    out = []
+    while "%04d%02d" % (y, m) <= end:
+        out.append("%04d%02d" % (y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def cmd_playn(args):
+    """PlayN にアップロードする利用実績データを 許諾番号-利用年月.txt で月ごとに書く。
+
+    様式は利用実績報告概要 P.9「1コンテンツ1曲」: 21項目 / タブ区切り / UTF-8。
+    報告するのは NexTone 管理作品だけ (P.6) なので、作品コードが分からない曲は書かずに
+    一覧で知らせる。PlayN の確定作品リストで引いて --codes に足せば次から入る。
+
+    ⚠️ リクエスト回数の日次ファイルが1日も無い月は書かない。全曲 0 回の報告は
+       「読まれなかった」と言うのと同じなので、--allow-no-counts を付けたときだけ
+       下書きとして書く (アップロードはしないこと)。
+    """
+    ledger = read_works(args.works)
+    rows = [r for r in ledger if W.reports_to_nextone(r)]
+    rows = filter_published(rows, args.published, " NexTone 管理曲", ledger)
+    extra = read_code_table(args.codes)
+
+    no_code = [r["song_id"] for r in rows if not nextone_code(r, extra)]
+    rows = [r for r in rows if nextone_code(r, extra)]
+    print("作品コードあり %d 曲 / なし %d 曲 (なしは報告から外した)"
+          % (len(rows), len(no_code)))
+    if no_code:
+        print("⚠️ 作品コードが無い: %s" % ", ".join(no_code[:ERROR_PREVIEW])
+              + (" …" if len(no_code) > ERROR_PREVIEW else ""), file=sys.stderr)
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    for month in months_in(args.period):
+        counts = read_request_counts(args.requests_dir, "%s-%s" % (month, month))
+        has_days = any(n.startswith("%s-%s-" % (month[:4], month[4:]))
+                       for n in os.listdir(args.requests_dir))
+        if not has_days and not args.allow_no_counts:
+            print("✗ %s: 回数の日次ファイルが無いので書かなかった" % month, file=sys.stderr)
+            continue
+        lines = []
+        for r in rows:
+            values = [
+                r.get("interface_key", ""), "", "000", "", "000", "", "",
+                report_title(r), r.get("subtitle", ""),
+                report_name(r, "lyricist"), "", report_name(r, "composer"), "",
+                r.get("artist", ""),
+                "0",   # 情報料: 無料・アプリ内課金なし
+                "T",   # 詞のみ利用
+                "1",   # 原詞
+                "",    # IL区分: 音源を使わない
+                str(counts.get(r["song_id"], 0)),
+                "NXT", nextone_code(r, extra),
+            ]
+            if any("\t" in v or "\n" in v for v in values):
+                sys.exit("%s: 値にタブか改行が入っている" % r["song_id"])
+            lines.append("\t".join(values))
+        name = "%s-%s.txt" % (args.license_no, month)
+        with io.open(os.path.join(OUT_DIR, name), "w", encoding="utf-8", newline="") as f:
+            f.write("".join(ln + "\r\n" for ln in lines))
+        total = sum(counts.get(r["song_id"], 0) for r in rows)
+        print("wrote %s (%d 曲 / 管理作品のリクエスト合計 %d 回%s)"
+              % (name, len(lines), total, "" if has_days else " ⚠️回数なしの下書き"))
+
+
 def cmd_annual(args):
     # ファイル名は 許諾番号(10桁) + 報告年月(YYYYMM) + 任意の英数字。
     # 手引きの例 J123456789201207.txt のとおり許諾番号には英字が入りうる。
@@ -544,6 +652,20 @@ def main():
                       help="曲別リクエスト回数の日次 TSV があるディレクトリ")
     p_nx.add_argument("--period", required=True, help="集計期間 YYYYMM-YYYYMM")
     p_nx.set_defaults(func=cmd_nextone)
+
+    p_pn = sub.add_parser("playn", help="PlayN 用の利用実績データ (21項目/UTF-8/月ごと)")
+    p_pn.add_argument("--license-no", default="ID000012667",
+                      help="NexTone の許諾番号 (既定: ID000012667)")
+    p_pn.add_argument("--published",
+                      help="掲載中の song_id を1行1件で書いたファイル。報告の母集団になる")
+    p_pn.add_argument("--codes",
+                      help="song_id<TAB>NexTone作品コード の対応表 (台帳の note に無い曲用)")
+    p_pn.add_argument("--requests-dir", default="data/lyrics_requests",
+                      help="曲別リクエスト回数の日次 TSV があるディレクトリ")
+    p_pn.add_argument("--period", required=True, help="利用年月の範囲 YYYYMM-YYYYMM")
+    p_pn.add_argument("--allow-no-counts", action="store_true",
+                      help="回数の日次ファイルが無い月も全曲0回の下書きとして書く")
+    p_pn.set_defaults(func=cmd_playn)
 
     p_gap = sub.add_parser("gaps", help="不足項目の洗い出し")
     add_profile_args(p_gap)
