@@ -1,0 +1,43 @@
+{
+ "title": "F＠NTASTIC BATTLE FES ～Wanna step in～ 長野公演 アソビストア一般会員先行",
+ "author": "daily-data-crawl",
+ "source": "https://x.com/SideM_official/status/2113468428627673260",
+ "ticket_sales": [
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": [
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_5",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_2",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_6"
+   ],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行(SP席)(長野公演)",
+   "starts_at": "2026-10-23 12:00",
+   "ends_at": "2026-11-03 23:59",
+   "result_at": "2026-11-13 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c42df7e9-30a9-40d6-954b-17fafab5c159",
+   "note": "SP席ストーリーセット 20,000円・SP席 17,800円。お一人様1公演につき2枚まで（複数公演申込可）。入金期間は2026年11月13日13:00〜11月17日23:59。幕張公演の一般会員先行は11月下旬開始予定",
+   "source_url": "https://asobiticket2.asobistore.jp/receptions/c42df7e9-30a9-40d6-954b-17fafab5c159",
+   "sort_order": 4
+  },
+  {
+   "event_id": "ev_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~",
+   "show_ids": [
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_5",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_2",
+    "sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_6"
+   ],
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行(S席・A席)(長野公演)",
+   "starts_at": "2026-10-23 12:00",
+   "ends_at": "2026-11-03 23:59",
+   "result_at": "2026-11-13 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/6e2e6dc9-9c8c-42ca-b546-3af887c236f3",
+   "note": "S席ストーリーセット 15,000円・S席 12,800円・A席ストーリーセット 12,000円・A席 9,800円。お一人様1公演につき4枚まで（複数公演申込可）。入金期間は2026年11月13日13:00〜11月17日23:59",
+   "source_url": "https://asobiticket2.asobistore.jp/receptions/6e2e6dc9-9c8c-42ca-b546-3af887c236f3",
+   "sort_order": 5
+  }
+ ]
+}
