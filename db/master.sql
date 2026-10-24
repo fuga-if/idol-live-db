@@ -84797,6 +84797,7 @@ INSERT INTO "show_cast" VALUES('sh_上水流宇宙_birthday_online_live_2026_1',
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','cg_関裕美','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_アスランbbⅱ世','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_ピエール','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_伊集院北斗','member');

@@ -1,0 +1,19 @@
+{
+ "title": "レトラ BIRTHDAY ONLINE LIVE 2026: LV 先行抽選 (一次・二次) の受付開始時刻を LivePocket の表記に合わせる",
+ "author": "daily-data-crawl",
+ "source": "https://livepocket.jp/e/va-liv_letora_bd2026",
+ "fixes": [
+  {
+   "table": "ticket_sales",
+   "id": "ts_a97e0d95b8ba",
+   "fields": {"starts_at": "2026-10-01 21:00"},
+   "note": "LivePocket 受付・チケット情報: 先行抽選申込受付 2026年10月1日(木) 21:00〜10月11日(日) 23:59、結果発表 10月13日(火)"
+  },
+  {
+   "table": "ticket_sales",
+   "id": "ts_d0b88f03beac",
+   "fields": {"starts_at": "2026-10-16 20:00"},
+   "note": "LivePocket 受付・チケット情報: 先行抽選二次申込受付 2026年10月16日(金) 20:00〜10月30日(金) 23:59、結果発表 10月31日(土)。価格 9,000 円 (税込) は登録済みの行と一致"
+  }
+ ]
+}
