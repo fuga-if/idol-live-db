@@ -1,0 +1,17 @@
+{
+ "title": "THE IDOLM@STER SHINY COLORS Song for Prism Karma / Naraku 発売記念イベント 第一回 (2026-08-23)",
+ "source": "issue #339 (アプリからの投稿、第一回のみ) / https://shinycolors.lantis.jp/event/251229_2/",
+ "note": "公式は「ミニライブの歌唱は1曲・第一回と第二回で同一」、出演は和久井優(浅倉透)・結名美月(幽谷霧子)の 2 人。2 人で歌う収録曲は Fumage の Karma だけなので投稿どおり Karma。第二回も公式の「同一」で同じ曲を入れる。",
+ "show_id": "sh_the_idolm@ster_shiny_colors_song_for_prism_karma_naraku_発売記念イベント_1",
+ "all_performers": [
+  "sc_浅倉透",
+  "sc_幽谷霧子"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "sc_karma",
+   "performers": "all"
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "title": "THE IDOLM@STER SHINY COLORS Song for Prism 散花-sanka- / 紅花-benibana- 発売記念イベント 第二回 (2026-10-17)",
+ "source": "issue #341 (アプリからの投稿) / https://shinycolors.lantis.jp/event/260515_1/",
+ "note": "公式は「ミニライブの歌唱は1曲・第一回と第二回で同一」まで。曲名は公式・WebSearch とも出典が見つからず、投稿どおり 散花-sanka- で登録。歌唱者は出演 5 人 (投稿どおり)。",
+ "show_id": "sh_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント_2",
+ "all_performers": [
+  "sc_有栖川夏葉",
+  "sc_和泉愛依",
+  "sc_風野灯織",
+  "sc_桑山千雪",
+  "sc_白瀬咲耶"
+ ],
+ "songs": [
+  {
+   "position": 1,
+   "song_id": "sc_散花-sanka-",
+   "performers": "all"
+  }
+ ]
+}
