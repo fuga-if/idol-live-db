@@ -3340,7 +3340,7 @@ INSERT INTO "idols" VALUES('sidem_花園百々人','sidem','花園百々人','�
 INSERT INTO "idols" VALUES('cg_依田芳乃','cg','依田芳乃','よりたよしの',NULL,'#C7BAB4',4185,'--07-03','O',151.0,40.0,'鹿児島',16,73.0,53.0,73.0,'蟹座','失せ物探し、悩み事解決、石ころ集め',NULL,'人々の願いを叶えるのが好きな16歳の神秘的アイドル。古めかしい語尾で話す純粋無垢な性格。CV: 高田憂希。','female','right','依田','芳乃',NULL,'2014-05-28','passion',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','112');
+INSERT INTO "meta" VALUES('data_version','113');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -84794,10 +84794,6 @@ INSERT INTO "show_cast" VALUES('sh_上水流宇宙_birthday_online_live_2026_1',
 INSERT INTO "show_cast" VALUES('sh_上水流宇宙_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
 INSERT INTO "show_cast" VALUES('sh_上水流宇宙_birthday_online_live_2026_1','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_上水流宇宙_birthday_online_live_2026_1','876_灯里愛夏','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_上水流宇宙','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_灯里愛夏','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','cg_関裕美','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_アスランbbⅱ世','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_ピエール','member');
 INSERT INTO "show_cast" VALUES('sh_315_production_presents_f@ntastic_battle_fes_~wanna_step_in~_1','sidem_伊集院北斗','member');
@@ -86268,6 +86264,10 @@ INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
+INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_上水流宇宙','member');
+INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_灯里愛夏','member');
+INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','cg_関裕美','member');
 CREATE TABLE show_cast_performers (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -89005,7 +89005,6 @@ INSERT INTO "shows" VALUES('sh_the_idolm@ster_shiny_colors_song_for_prism_散花
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント_2','ev_the_idolm@ster_shiny_colors_song_for_prism_散花-sanka-_紅花-benibana-_発売記念イベント','第二回','2026-10-17','都内某所 ※当選者のみ告知',NULL,'17:30',1,'cast','venue_都内某所',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_レトラ_birthday_online_live_2026_1','ev_レトラ_birthday_online_live_2026','レトラ BIRTHDAY ONLINE LIVE 2026','2026-11-11','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,'19:00',0,'cast',NULL,NULL,'ASOBI STAGE',NULL);
 INSERT INTO "shows" VALUES('sh_上水流宇宙_birthday_online_live_2026_1','ev_上水流宇宙_birthday_online_live_2026','上水流宇宙 BIRTHDAY ONLINE LIVE 2026','2026-09-12','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,NULL,0,'cast',NULL,NULL,'ASOBI STAGE','online');
-INSERT INTO "shows" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','ev_灯里愛夏_birthday_online_live_2026','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','2026-10-28','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,'19:00',0,'cast',NULL,NULL,'ASOBI STAGE','online');
 INSERT INTO "shows" VALUES('sh_L1238','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY1 PROJECT IM@S vα-liv 2ndLIVE -BEYOND THE CUSTOM !!!-','2026-02-21','東京・日本工学院アリーナ',NULL,'18:00',1,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L1239','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY2 THE IDOLM@STER Dearly Stars -Dearly, Dearly MEETING !!!-','2026-02-22','東京・日本工学院アリーナ',NULL,'17:00',2,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_L1240','ev_project_ims_vα-liv_2ndlive_-beyond_the_custom_-','DAY3 昼公演 Dearly Stars×vα-liv LIVE -UNDER ONE SKY !!!!!!-','2026-02-23','東京・日本工学院アリーナ',NULL,'14:00',3,'cast','venue_日本工学院アリーナ',NULL,NULL,NULL);
@@ -89013,6 +89012,7 @@ INSERT INTO "shows" VALUES('sh_L1241','ev_project_ims_vα-liv_2ndlive_-beyond_th
 INSERT INTO "shows" VALUES('sh_e656e30e-e4a6-4f8e-84fe-ab83bc7f7eb8','ev_e8a2e8ce-261b-43f6-829f-d4b041ddf000','リスアニ！LIVE on TOKYO ANIME MUSIC HIGHLIGHTS','2026-06-09','TOYOTA ARENA TOKYO','東京都江東区青海１丁目３−３−１','19:00',0,'cast','venue_toyotaarenatokyo',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_1','ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','DAY1','2026-01-10','Zepp DiverCity Tokyo','東京','17:00',1,'cast','venue_zeppdivercity',NULL,NULL,NULL);
 INSERT INTO "shows" VALUES('sh_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo_2','ev_the_idolm@ster_20th_anniversary_new_year_meeting_dj_party@tokyo','DAY2','2026-01-11','Zepp DiverCity Tokyo','東京','17:00',2,'cast','venue_zeppdivercity',NULL,NULL,NULL);
+INSERT INTO "shows" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','ev_灯里愛夏_birthday_online_live_2026','灯里愛夏 BIRTHDAY ONLINE LIVE 2026','2026-10-28','配信：ASOBI STAGE、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]',NULL,'19:00',0,'cast',NULL,'配信：Z-aN、LV会場：東京・ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]','Z-aN','online');
 CREATE TABLE song_artists (song_id TEXT NOT NULL, idol_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'original', PRIMARY KEY (song_id, idol_id, role));
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_天海春香','original');
 INSERT INTO "song_artists" VALUES('765as_shining_star彡','765as_如月千早','original');
@@ -121055,9 +121055,6 @@ INSERT INTO "ticket_sales" VALUES('ts_3d205984dfbc','ev_the_idolm@ster_cinderell
 INSERT INTO "ticket_sales" VALUES('ts_24733c23cbcf','ev_the_idolm@ster_cinderella_girls_×_million_live_clash_m@tch',NULL,'lottery','アソビストア一般会員先行','2026-10-07 12:00','2026-11-01 23:59','2026-11-14 13:00','https://asobiticket2.asobistore.jp/receptions/eea32b55-afb5-4ff8-be1b-f9ed1bf22008','1公演2枚まで(複数公演申込可)。入金期間11/14 13:00〜11/18 23:59。対象席種はアリーナ前方席/プレミアムラウンジ付指定席/一般指定席。','https://idolmaster-official.jp/news/01_20072',1);
 INSERT INTO "ticket_sales" VALUES('ts_c0ad5270019d','ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-16 12:00','2026-09-27 23:59','2026-10-08 13:00','https://asobiticket2.asobistore.jp/receptions/c8ebec95-7950-4db1-8177-05e72fe230d2','アソビストアプレミアム12ヶ月会員限定。1公演2枚まで(複数公演申込可)。入金期間10/8 13:00〜10/12 23:59。対象席種はS席スペシャルシート/A席全席指定。','https://idolmaster-official.jp/live_event/cg_15th_orchestra/ticket/',0);
 INSERT INTO "ticket_sales" VALUES('ts_9019da745cdd','ev_the_idolm@ster_cinderella_girls_15th_anniversary_orchestra_concert_~_シンデレラの演奏会_~',NULL,'lottery','アソビストアプレミアム会員2次先行','2026-10-14 12:00','2026-10-25 23:59','2026-11-07 13:00','https://asobiticket2.asobistore.jp/receptions/3fe939f3-266b-41cb-98b5-54f64d0c4e7b','1公演2枚まで(複数公演申込可)。入金期間11/7 13:00〜11/11 23:59。対象席種はS席スペシャルシート/A席全席指定。','https://idolmaster-official.jp/news/01_20141.html',1);
-INSERT INTO "ticket_sales" VALUES('ts_a97e0d95b8ba','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-10-01','2026-10-11 23:59','2026-10-13','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。入金期間 10/13〜10/18 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20045.html',0);
-INSERT INTO "ticket_sales" VALUES('ts_3b12b8465b80','ev_レトラ_birthday_online_live_2026',NULL,'first_come','配信チケット','2026-10-12 12:00','2026-12-13 18:00',NULL,'https://asobistage.asobistore.jp/event/valiv_bd2026_letora/ticket','ASOBI STAGE 5,000円(税込・機能利用料込)。プレゼント用視聴チケットあり。配信特典: 終演後のアフタートーク配信','https://idolmaster-official.jp/news/01_20100.html',1);
-INSERT INTO "ticket_sales" VALUES('ts_d0b88f03beac','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選二次','2026-10-16','2026-10-30 23:59','2026-10-31','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。9,000円(税込)。入金期間 10/31〜11/3 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20161.html',2);
 INSERT INTO "ticket_sales" VALUES('ts_d72fcf728ae6','ev_project_imas_valiv_3rdlive_meeting_qonnect_as_one',NULL,'lottery','現地チケット アソビストア一般会員先行抽選','2026-10-17 21:30','2026-11-15 23:59','2026-11-28 13:00','https://asobiticket2.asobistore.jp/receptions/a911b189-ae4a-4bc6-9f15-729201d4ff7c','入金 11/28 13:00〜12/2 23:59。各公演 2 枚まで・複数公演申込可。早期限定のグッズ付きチケットあり','https://idolmaster-official.jp/news/01_20181',0);
 INSERT INTO "ticket_sales" VALUES('ts_48b5806a7332','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員2次先行','2026-09-05 12:00','2026-09-23 23:59','2026-10-10 13:00','https://asobiticket2.asobistore.jp/receptions/57f8ab06-d65f-4e81-a0d3-c0180baef8fb','対象席種は全席指定席のみ(14,000円)。入金期間10/10 13:00〜10/14 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',0);
 INSERT INTO "ticket_sales" VALUES('ts_216510a72da3','ev_学園アイドルマスター_live_tour_-標-_kアリーナ横浜公演_final',NULL,'lottery','アソビストア一般会員先行','2026-07-15 12:00','2026-07-26 23:59','2026-08-11 13:00','https://asobiticket2.asobistore.jp/receptions/ed8e612d-5681-44bb-ae9e-3623a176908f','1公演2枚まで(複数公演申込可)。入金期間8/11 13:00〜8/16 23:59。顔写真登録による本人確認のため手数料220円/枚が必要。','https://idolmaster-official.jp/live_event/gkmas_livetour_shirube/ticket/final.php',1);
@@ -121074,6 +121071,9 @@ INSERT INTO "ticket_sales" VALUES('ts_769374a974a5','ev_315_production_presents_
 INSERT INTO "ticket_sales" VALUES('ts_14518c9f5b01','ev_灯里愛夏_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-09-21','2026-10-04 23:59','2026-10-06','https://livepocket.jp/e/va-liv_manaka_bd2026_re','ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]。入金期間 10/6〜10/11 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_19896.html',0);
 INSERT INTO "ticket_sales" VALUES('ts_2aa1df8eead9','ev_灯里愛夏_birthday_online_live_2026',NULL,'first_come','配信チケット (Z-aN)','2026-10-23 22:00','2026-11-29 18:00',NULL,'https://www.zan-live.com/ja/live/detail/11035','Z-aN 通常配信チケット 5,000円(税込)、プレゼント用視聴チケット 5,000円。特典: アフタートーク配信視聴権。アーカイブは 11/29 23:59 まで。ASOBI STAGE で 9/21 から販売していた配信チケットは無効 (払い戻し)','https://www.zan-live.com/ja/live/detail/11035',1);
 INSERT INTO "ticket_sales" VALUES('ts_ce9b13eef9b3','ev_灯里愛夏_birthday_online_live_2026',NULL,'first_come','限定グッズ付き現地ライブビューイングチケット 一般先着','2026-10-17 12:00','2026-10-28 18:00',NULL,'https://livepocket.jp/e/va-liv_manaka_bd2026_re','ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]。全席指定 9,000円(税込)。コンビニ決済は 10/26 23:59 まで、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20111.html',2);
+INSERT INTO "ticket_sales" VALUES('ts_a97e0d95b8ba','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-10-01 21:00','2026-10-11 23:59','2026-10-13','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。入金期間 10/13〜10/18 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20045.html',0);
+INSERT INTO "ticket_sales" VALUES('ts_3b12b8465b80','ev_レトラ_birthday_online_live_2026',NULL,'first_come','配信チケット','2026-10-12 12:00','2026-12-13 18:00',NULL,'https://asobistage.asobistore.jp/event/valiv_bd2026_letora/ticket','ASOBI STAGE 5,000円(税込・機能利用料込)。プレゼント用視聴チケットあり。配信特典: 終演後のアフタートーク配信','https://idolmaster-official.jp/news/01_20100.html',1);
+INSERT INTO "ticket_sales" VALUES('ts_d0b88f03beac','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選二次','2026-10-16 20:00','2026-10-30 23:59','2026-10-31','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。9,000円(税込)。入金期間 10/31〜11/3 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20161.html',2);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
