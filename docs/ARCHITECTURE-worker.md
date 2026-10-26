@@ -156,7 +156,9 @@ Bearer 付きで歌詞を同梱した `GET /songs/:id/detail` の両方)。
   (`POST /accounts/{account_id}/workers/observability/telemetry/query`) で拾い、
   `data/lyrics_requests/YYYY-MM-DD.tsv` に畳む。
 - ⚠️ **ログの保持は 3 日**。バッチが 3 日以上止まるとその分は取り返せない。
-  既定で 3 日ぶん引き直すのは 1〜2 日の失敗を翌日が埋めるため。
+  6 時間おきに直近 2 日を引き直す。3 日前の未保存日は一部が期限切れなので失敗させる。
+  認証未設定・不正応答・ページング不完了も失敗。保存用ブランチの履歴を引き継ぎ、
+  force push はしない。報告時は期間内に 1 日でも欠測があれば出力を止める。
 - ログの形式 (JSON 1 行・キー名) はバッチのパーサと 1:1 の契約。片方だけ変えると
   集計が 0 になる。`test/lyrics_read_log.test.ts` が「歌詞を返したときだけ出る」ことを固定する。
 

@@ -27,6 +27,7 @@ Usage:
 """
 
 import argparse
+import datetime as dt
 import io
 import os
 import re
@@ -220,31 +221,41 @@ def read_request_counts(requests_dir, period):
         sys.exit("リクエスト集計のディレクトリが無い: %s" % requests_dir)
     start, end = parse_period(period)
 
+    first = dt.date(int(start[:4]), int(start[4:]), 1)
+    last_month = dt.date(int(end[:4]), int(end[4:]), 1)
+    after = (last_month.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+    expected = {(first + dt.timedelta(days=i)).isoformat() + ".tsv"
+                for i in range((after - first).days)}
+    missing = sorted(expected - set(os.listdir(requests_dir)))
+    if missing:
+        sys.exit("%s: %d 日ぶん欠測 (%s%s)。実測の 0 回として報告できない"
+                 % (period, len(missing), ", ".join(missing[:5]),
+                    " …" if len(missing) > 5 else ""))
+
     counts, days = {}, []
     for name in sorted(os.listdir(requests_dir)):
         if not name.endswith(".tsv"):
             continue
-        # ファイル名 YYYY-MM-DD.tsv の年月だけ見る (日は範囲判定に要らない)。
-        month = name[:7].replace("-", "")
-        if len(month) != 6 or not month.isdigit() or not (start <= month <= end):
+        if name not in expected:
             continue
         days.append(name)
         with io.open(os.path.join(requests_dir, name), encoding="utf-8") as f:
-            for i, line in enumerate(f):
-                line = line.rstrip("\n")
-                if not line or (i == 0 and line.startswith("song_id\t")):
-                    continue
-                song_id, _, raw = line.partition("\t")
-                if not raw.isdigit():
+            if f.readline().rstrip("\r\n") != "song_id\tcount":
+                sys.exit("%s の集計ヘッダが不正" % name)
+            seen = set()
+            for line in f:
+                line = line.rstrip("\r\n")
+                song_id, separator, raw = line.partition("\t")
+                if not song_id or separator != "\t" or not raw.isascii() or not raw.isdigit():
                     sys.exit("%s の回数が数字でない: %r" % (name, line))
+                if song_id in seen:
+                    sys.exit("%s に曲の重複がある: %s" % (name, song_id))
+                seen.add(song_id)
                 counts[song_id] = counts.get(song_id, 0) + int(raw)
 
     total = sum(counts.values())
     print("リクエスト回数: %s の日次ファイル %d 日ぶん / %d 曲 / 合計 %d 回"
           % (period, len(days), len(counts), total))
-    if not days:
-        print("⚠️ 期間内の日次ファイルが 1 つも無い。全曲 0 で報告することになる",
-              file=sys.stderr)
     # 9桁上限 (項目表)。超える曲は報告できないので先に落とす。
     over = [sid for sid, n in counts.items() if n > 999999999]
     if over:

@@ -1,28 +1,16 @@
 name: Lyrics request stats
 
-# 歌詞の曲別リクエスト回数を Workers Logs から日次で集め、data/lyrics_requests/ に貯める。
-# JASRAC 年次利用曲目報告の 19 項目目 (リクエスト回数) の材料。
-#
-# ⚠️ なぜ毎日走らせる必要があるか:
-#    Workers Logs の保持期間は無料プランで 3 日。**3 日以上止まるとその間の回数は
-#    二度と取れない** (再実行しても API がもう返さない)。既定で「昨日から 3 日ぶん」を
-#    引き直すので、1〜2 日の失敗は翌日の実行が自動で埋める。3 日連続で赤いときだけ
-#    人が対処すればよい設計。
-#
-# ⚠️ セキュリティ前提:
-#    使う secret は Cloudflare の **Workers Observability: Read** だけの API トークン。
-#    CloudKit 鍵 (refresh-data.yml) と違い書き込み権限が無いので environment で
-#    ブランチを縛らず repository secret に置く。書き込み権限のあるトークンをここに
-#    入れないこと (このワークフローは develop の内容で走る)。
+# Logs の保持は 72 時間。全時間帯が残る直近 2 日だけを再取得する。
+# bot/lyrics-stats は追記履歴を保持し、develop への取り込みを待たず蓄積する。
 on:
   schedule:
-    - cron: "0 21 * * *"   # 毎日 06:00 JST
+    - cron: "17 1,7,13,19 * * *" # 6 時間おき。UTC の前日までを集計
   workflow_dispatch:
     inputs:
       days:
-        description: "昨日から遡る日数 (既定 3)"
+        description: "昨日から遡る日数 (既定 2)"
         required: false
-        default: "3"
+        default: "2"
 
 concurrency:
   group: lyrics-request-stats
@@ -31,55 +19,68 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
-      contents: write            # bot/lyrics-stats への push に必要
+      contents: write
     steps:
-      # main / develop はどちらも保護ブランチなので bot は直接 push できない。
-      # refresh-data.yml と同じ流儀で bot 専用ブランチに出し、オーナーが
-      # bot/lyrics-stats → develop の PR で取り込む。
       - uses: actions/checkout@v4
         with:
           ref: develop
           persist-credentials: false
 
-      # 依存は標準ライブラリだけ (urllib) だが、Python の版は他の workflow と同じく
-      # .python-version / uv.lock で固定する。
-      - uses: astral-sh/setup-uv@v10.3.0
-        with:
-          enable-cache: true
-
       - name: Check secret
-        id: gate
         env:
           CLOUDFLARE_OBSERVABILITY_TOKEN: ${{ secrets.CLOUDFLARE_OBSERVABILITY_TOKEN }}
         run: |
           if [ -z "$CLOUDFLARE_OBSERVABILITY_TOKEN" ]; then
-            echo "::notice::CLOUDFLARE_OBSERVABILITY_TOKEN が未登録のため集計をスキップした。登録手順は docs/JASRAC.md「リクエスト回数の集計」"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::error::CLOUDFLARE_OBSERVABILITY_TOKEN が未登録。歌詞の利用回数を集計できない"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+
+      - name: Open stats archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # --exit-code の 2 だけがブランチ未作成。通信・認証失敗を初回扱いしない。
+          gh auth setup-git
+          result=0
+          git ls-remote --exit-code --heads origin bot/lyrics-stats > /dev/null || result=$?
+          if [ "$result" = 0 ]; then
+            git fetch origin refs/heads/bot/lyrics-stats
+            git worktree add --detach "$RUNNER_TEMP/lyrics-stats" FETCH_HEAD
+          elif [ "$result" = 2 ]; then
+            git worktree add --detach "$RUNNER_TEMP/lyrics-stats" HEAD
           else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
+            exit "$result"
           fi
 
       - name: Collect lyrics_read logs
-        if: steps.gate.outputs.ok == 'true'
         env:
           CLOUDFLARE_OBSERVABILITY_TOKEN: ${{ secrets.CLOUDFLARE_OBSERVABILITY_TOKEN }}
+          DAYS: ${{ inputs.days || '2' }}
         run: |
-          uv run --frozen python tools/lyrics/collect_request_logs.py --days "${{ inputs.days || '3' }}"
+          # 実行するコードは最新 develop、データとコミット親は保存用ブランチ。
+          uv run --frozen python tools/lyrics/collect_request_logs.py \
+            --days "$DAYS" --out-dir "$RUNNER_TEMP/lyrics-stats/data/lyrics_requests"
 
       - name: Commit if changed
-        if: steps.gate.outputs.ok == 'true'
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet -- data/lyrics_requests; then
+          cd "$RUNNER_TEMP/lyrics-stats"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 新規ファイルも先に stage し、空ファイルだけの日も確実に保存する。
+          find data/lyrics_requests -maxdepth 1 -name '*.tsv' -type f -print0 |
+            xargs -0 -r git add --
+          if git diff --cached --quiet; then
             echo "変化なし"
             exit 0
           fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/lyrics_requests
           git commit -m "chore(jasrac): 歌詞リクエスト回数を集計 ($(date -u +%Y-%m-%d))"
-          # checkout で資格情報を残していないので、push のときだけ token を渡す。
-          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" HEAD:bot/lyrics-stats
+          # 保存済みデータを消す force push はしない。競合時は失敗として通知する。
+          git push origin HEAD:refs/heads/bot/lyrics-stats

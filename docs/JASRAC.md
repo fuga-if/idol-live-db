@@ -138,7 +138,7 @@ Worker  歌詞を返したときだけ 1 行 console.log
           ↓ Workers Logs (observability.enabled = true, head_sampling_rate = 1)
 日次バッチ  Telemetry Query API で前日ぶんを引き、song_id ごとに数える
           ↓                                              tools/lyrics/collect_request_logs.py
-data/lyrics_requests/YYYY-MM-DD.tsv  (song_id, count)    毎日 06:00 JST / bot/lyrics-stats へ push
+data/lyrics_requests/YYYY-MM-DD.tsv  (song_id, count)    6 時間おき / bot/lyrics-stats へ追記 push
           ↓ 期間ぶん合算
 build_reports.py annual --requests-dir data/lyrics_requests --period YYYYMM-YYYYMM
 ```
@@ -155,11 +155,12 @@ build_reports.py annual --requests-dir data/lyrics_requests --period YYYYMM-YYYY
 (出した瞬間に Workers Logs が「誰が何を読んだか」の閲覧履歴になる)。
 
 ⚠️ **制約: Workers Logs の保持期間は無料プランで 3 日。**
-日次バッチが 3 日以上止まると、その間のリクエスト回数は二度と取れない (再実行しても
-API が返さない)。バッチが既定で「昨日から 3 日ぶん」を引き直すのは、1〜2 日の失敗を
-翌日の実行が自動で埋めるため。3 日連続で失敗しているときだけ人が対処する。
-欠測は報告上「その日は 0 回」ではなく単に合計から抜ける — 過少申告になるので、
-`build_reports.py` は合算した日数を必ず表示する。
+6 時間おきに直近 2 日 (UTC の完了日) を引き直す。3 日前は当日の前半がすでに
+保持期限外なので、新規集計は失敗させる。期限外の保存済み TSV は再取得しない。
+認証情報未登録・API の不正応答・ページングの停滞や上限到達は失敗として通知する。
+`build_reports.py` は期間内の全日の日次ファイルを検査し、1 日でも欠測なら出力を止める。
+ヘッダだけの正常な TSV は 0 回、ファイル欠落・破損は欠測として区別する。
+過去の欠測は推計値で埋めて実測扱いにせず、報告先と扱いを確認する。
 
 ⚠️ `head_sampling_rate` は 1 で固定。間引くと報告が実数より少なくなる。
 
@@ -170,15 +171,23 @@ API が返さない)。バッチが既定で「昨日から 3 日ぶん」を引
 #   権限: Account / Workers Observability / Read  だけのトークンを作る
 # GitHub → Settings → Secrets and variables → Actions に
 #   CLOUDFLARE_OBSERVABILITY_TOKEN として登録する
-# 未登録の間、日次ワークフローは notice を出してスキップする (赤くならない)
+# 未登録ならワークフローは失敗する。成功扱いのスキップにはしない
 
 # 手元で試す (書かずに件数だけ見る)
 export CLOUDFLARE_OBSERVABILITY_TOKEN=...
-python3 tools/lyrics/collect_request_logs.py --days 3 --dry-run
+python3 tools/lyrics/collect_request_logs.py --days 2 --dry-run
 ```
 
-集計の TSV は bot ブランチ `bot/lyrics-stats` に push される。develop へは PR で取り込む
-(`refresh-data.yml` と同じ運用。develop は保護ブランチなので bot は直接 push できない)。
+集計の TSV は `bot/lyrics-stats` の直前のコミットを親として追加保存する。
+実行コードは最新 develop を使い、データは保存用ブランチから読み出すため、develop に
+取り込まなくても蓄積する。新規 TSV も stage してから差分を判定し、force push はしない。
+報告時は保存用ブランチの `data/lyrics_requests/` を取得してから合算する。
+GitHub Actions の失敗通知を有効にし、失敗はその日のうちに対処する。
+
+2026-10-27 の調査: 読取用 secret が未登録で、9/30・10/26 の実行は集計をスキップして成功扱いに
+なっていた。保存用ブランチも未作成。コード修正だけでは認証情報は補えないため、専用の
+**Workers Observability: Read** トークンを登録し、手動実行と TSV の保存まで確認すること。
+デプロイ用の書込トークンや Wrangler の OAuth トークンを流用しない。
 
 ### 2026-09-04 追記: 学マス・876 は draft に戻した (管理団体の確認待ち)
 

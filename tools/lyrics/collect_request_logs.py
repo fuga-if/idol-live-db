@@ -22,17 +22,17 @@ JASRAC 年次利用曲目報告の 19 項目目「リクエスト回数」の材
 
 ⚠️ Workers Logs の保持期間は無料プランで 3 日。**このバッチが 3 日以上止まると、
    その間のリクエスト回数は取り返せない** (再実行しても API がもう返さない)。
-   既定で「昨日から 3 日ぶん」を毎回引き直すのは、1〜2 日の失敗なら次回の実行が
-   自動的に埋めるようにするため。同じ日の TSV は上書きなので何度流しても同じ結果になる。
+   6 時間おきに直近 2 日を再取得する。3 日前はすでに日の前半が期限外なので、
+   欠測を 0 回として保存しない。期限外の保存済み TSV は上書きしない。
 
 ⚠️ ログに載るのは event 名と song_id だけ。uid も IP も歌詞本文も出さない
    (出すと Workers Logs が「誰が何を読んだか」の閲覧履歴になる)。
 
 Usage:
     export CLOUDFLARE_OBSERVABILITY_TOKEN=...      # Workers Observability: Read 権限
-    python3 tools/lyrics/collect_request_logs.py                    # 昨日から 3 日ぶん
+    python3 tools/lyrics/collect_request_logs.py                    # 昨日から 2 日ぶん
     python3 tools/lyrics/collect_request_logs.py --date 2026-09-01  # 1 日だけ
-    python3 tools/lyrics/collect_request_logs.py --days 3 --dry-run # 書かずに件数だけ
+    python3 tools/lyrics/collect_request_logs.py --days 2 --dry-run # 書かずに件数だけ
 """
 
 import argparse
@@ -40,6 +40,7 @@ import datetime as dt
 import json
 import os
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -187,18 +188,26 @@ def parse_event(event):
     if not isinstance(payload, dict) or payload.get("event") != EVENT_NAME:
         return None
     song_id = payload.get("song_id")
-    return song_id if isinstance(song_id, str) and song_id else None
+    if not isinstance(song_id, str) or not song_id or any(c in song_id for c in "\t\r\n"):
+        raise ApiError("lyrics_read の song_id が不正。欠測を 0 回にしない")
+    return song_id
 
 
 def extract_events(response):
-    """API 応答から events 配列を取り出す。形が違えば空配列 (落とさない)。"""
+    """形の違う応答は欠測。正常な空配列だけを 0 件とする。"""
     if not isinstance(response, dict):
-        return []
-    if response.get("success") is False:
+        raise ApiError("API 応答がオブジェクトではない")
+    if response.get("success") is not True:
         raise ApiError("API errors=%s" % json.dumps(response.get("errors"), ensure_ascii=False))
-    result = response.get("result") or {}
-    events = (result.get("events") or {}).get("events")
-    return events if isinstance(events, list) else []
+    result = response.get("result")
+    envelope = result.get("events") if isinstance(result, dict) else None
+    events = envelope.get("events") if isinstance(envelope, dict) else None
+    if not isinstance(events, list) or not all(isinstance(e, dict) for e in events):
+        raise ApiError("API 応答に正常な result.events.events がない")
+    statistics = result.get("statistics") or {}
+    if statistics.get("abr_level", 1) > 1:
+        raise ApiError("API が間引いた結果を返した。実測として保存しない")
+    return events
 
 
 def collect_day(token, day, opener=None):
@@ -207,6 +216,7 @@ def collect_day(token, day, opener=None):
     counts = {}
     cursor = None
     total = 0
+    expected_total = 0
     # イベント ID で重複を落とす。カーソル (offset) がその行を含む向きに動くと
     # ページの境目が 1 件重なり、その曲だけ回数が水増しされる。報告に出す数なので
     # 「同じログを 2 回数えない」ことを API の挙動に頼らず自分で担保する。
@@ -214,14 +224,19 @@ def collect_day(token, day, opener=None):
     for page in range(MAX_PAGES_PER_DAY):
         response = post_query(token, build_query(from_ms, to_ms, cursor), opener)
         events = extract_events(response)
+        reported_total = response["result"]["events"].get("count", 0)
+        if not isinstance(reported_total, (int, float)) or reported_total < 0:
+            raise ApiError("API の総件数が不正")
+        expected_total = max(expected_total, reported_total)
         if not events:
             break
         for event in events:
             event_id = (event.get("$metadata") or {}).get("id")
-            if event_id:
-                if event_id in seen_ids:
-                    continue
-                seen_ids.add(event_id)
+            if not isinstance(event_id, str) or not event_id:
+                raise ApiError("イベント ID がないため重複を判定できない")
+            if event_id in seen_ids:
+                continue
+            seen_ids.add(event_id)
             total += 1
             song_id = parse_event(event)
             if song_id:
@@ -231,13 +246,13 @@ def collect_day(token, day, opener=None):
         next_cursor = ((events[-1].get("$metadata") or {}).get("id"))
         if not next_cursor or next_cursor == cursor:
             # カーソルが進まないなら同じページを引き続けることになる。止める。
-            print("  ⚠️ カーソルが進まないのでページングを打ち切る (%d 件)" % total,
-                  file=sys.stderr)
-            break
+            raise ApiError("カーソルが進まない。部分集計は保存しない (%d 件)" % total)
         cursor = next_cursor
     else:
-        print("  ⚠️ %s: ページ上限 %d に達した。取りこぼしがある可能性がある"
-              % (iso_day(day), MAX_PAGES_PER_DAY), file=sys.stderr)
+        raise ApiError("%s: ページ上限 %d。部分集計は保存しない"
+                       % (iso_day(day), MAX_PAGES_PER_DAY))
+    if total < expected_total:
+        raise ApiError("API の総件数に対し取得が不足 (%d/%s)" % (total, expected_total))
     return counts, total
 
 
@@ -246,10 +261,17 @@ def write_tsv(path, counts):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # 多い順、同数は song_id 順。差分が読みやすく、再実行で行が入れ替わらない。
     rows = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-    with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("song_id\tcount\n")
-        for song_id, n in rows:
-            f.write("%s\t%d\n" % (song_id, n))
+    # 中断時にヘッダだけの「正常な 0 回」が残らないよう、完成してから置き換える。
+    fd, temporary = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".lyrics-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write("song_id\tcount\n")
+            for song_id, n in rows:
+                f.write("%s\t%d\n" % (song_id, n))
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def target_days(args):
@@ -267,8 +289,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--date", help="集計する日 (YYYY-MM-DD)。指定すると --days は無視")
-    ap.add_argument("--days", type=int, default=3,
-                    help="昨日から遡る日数 (既定 3 = Workers Logs の保持期間)")
+    ap.add_argument("--days", type=int, default=2,
+                    help="昨日から遡る日数 (既定 2。3日前は保持期限で一部欠ける)")
     ap.add_argument("--out-dir", default=DEFAULT_OUT_DIR, help="TSV の出力先")
     ap.add_argument("--dry-run", action="store_true", help="TSV を書かず件数だけ表示する")
     args = ap.parse_args(argv)
@@ -281,12 +303,26 @@ def main(argv=None):
         sys.exit("CLOUDFLARE_OBSERVABILITY_TOKEN が未設定 "
                  "(Workers Observability: Read 権限の API トークン)")
 
+    now = dt.datetime.now(dt.timezone.utc)
+    days = target_days(args)
+    pending = []
+    for day in days:
+        path = os.path.join(args.out_dir, "%s.tsv" % iso_day(day))
+        start, end = day_bounds_ms(day)
+        if end > now.timestamp() * 1000:
+            sys.exit("%s はまだ終了していないため集計できない" % iso_day(day))
+        if start <= (now - dt.timedelta(days=3)).timestamp() * 1000:
+            if os.path.isfile(path):
+                print("%s: 保存済み。保持期限外なので再取得しない" % iso_day(day))
+                continue
+            sys.exit("%s は保持期限外で欠測。0 回のファイルは作らない" % iso_day(day))
+        pending.append((day, path))
+
     grand = 0
-    for day in target_days(args):
+    for day, path in pending:
         counts, seen = collect_day(token, day)
         total = sum(counts.values())
         grand += total
-        path = os.path.join(args.out_dir, "%s.tsv" % iso_day(day))
         if args.dry_run:
             print("%s: %d 曲 / %d 回 (ログ %d 件) — dry-run なので書かない"
                   % (iso_day(day), len(counts), total, seen))

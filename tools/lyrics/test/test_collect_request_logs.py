@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import collect_request_logs as C  # noqa: E402
@@ -83,8 +84,8 @@ class TestCollectDay(unittest.TestCase):
         # 同じページを返し続ける API でも無限ループせず、二重計上もしない。
         same = [lyrics_event("a", "id%d" % i) for i in range(C.PAGE_SIZE)]
         api = FakeApi([response(same)] * 5)
-        counts, _ = C.collect_day("tok", DAY, opener=api)
-        self.assertEqual(counts, {"a": C.PAGE_SIZE})
+        with self.assertRaisesRegex(C.ApiError, "カーソル"):
+            C.collect_day("tok", DAY, opener=api)
         # 2 回目でカーソルが進んでいないと分かって止まる。
         self.assertEqual(len(api.bodies), 2)
 
@@ -102,17 +103,74 @@ class TestCollectDay(unittest.TestCase):
         with self.assertRaises(C.ApiError):
             C.collect_day("tok", DAY, opener=api)
 
+    def test_malformed_response_is_not_zero(self):
+        for bad in (None, {}, {"success": True}, {"success": True, "result": {"events": {}}}):
+            with self.subTest(bad=bad), self.assertRaises(C.ApiError):
+                C.collect_day("tok", DAY, opener=FakeApi([bad]))
+
+    def test_page_limit_is_not_a_complete_day(self):
+        api = FakeApi([response([lyrics_event("a") for _ in range(C.PAGE_SIZE)])])
+        with patch.object(C, "MAX_PAGES_PER_DAY", 1), self.assertRaises(C.ApiError):
+            C.collect_day("tok", DAY, opener=api)
+
+    def test_event_without_id_is_not_counted_as_complete(self):
+        with self.assertRaises(C.ApiError):
+            C.collect_day("tok", DAY, opener=FakeApi([response([{"$metadata": {}}])]))
+
+    def test_short_page_below_reported_total_is_incomplete(self):
+        r = response([lyrics_event("a")])
+        r["result"]["events"]["count"] = 2
+        with self.assertRaisesRegex(C.ApiError, "取得が不足"):
+            C.collect_day("tok", DAY, opener=FakeApi([r]))
+
+    def test_sampling_is_not_an_exact_count(self):
+        r = response([])
+        r["result"]["statistics"] = {"abr_level": 2}
+        with self.assertRaisesRegex(C.ApiError, "間引いた"):
+            C.collect_day("tok", DAY, opener=FakeApi([r]))
+
+    def test_bad_lyrics_payload_is_not_zero(self):
+        r = response([event('{"event":"lyrics_read"}')])
+        with self.assertRaisesRegex(C.ApiError, "song_id"):
+            C.collect_day("tok", DAY, opener=FakeApi([r]))
+
+
+class TestRetention(unittest.TestCase):
+    def test_expired_day_never_creates_zero_file(self):
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {"CLOUDFLARE_OBSERVABILITY_TOKEN": "tok"}):
+            with patch.object(C, "collect_day") as collect, self.assertRaisesRegex(SystemExit, "保持期限外"):
+                C.main(["--date", "2026-01-01", "--out-dir", d])
+            collect.assert_not_called()
+            self.assertEqual(os.listdir(d), [])
+
+    def test_expired_saved_day_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as d, patch.dict(os.environ, {"CLOUDFLARE_OBSERVABILITY_TOKEN": "tok"}):
+            path = os.path.join(d, "2026-01-01.tsv")
+            C.write_tsv(path, {"a": 7})
+            with patch.object(C, "collect_day") as collect:
+                C.main(["--date", "2026-01-01", "--out-dir", d])
+            collect.assert_not_called()
+            with open(path) as f:
+                self.assertIn("a\t7", f.read())
+
+    def test_future_day_rejected(self):
+        with patch.dict(os.environ, {"CLOUDFLARE_OBSERVABILITY_TOKEN": "tok"}):
+            with self.assertRaisesRegex(SystemExit, "終了していない"):
+                C.main(["--date", "2099-01-01"])
+
 
 class TestWriteTsv(unittest.TestCase):
     def test_sorted_and_idempotent(self):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "2026-09-01.tsv")
             C.write_tsv(path, {"b": 1, "a": 5, "c": 1})
-            first = open(path, encoding="utf-8").read()
+            with open(path, encoding="utf-8") as f:
+                first = f.read()
             self.assertEqual(first, "song_id\tcount\na\t5\nb\t1\nc\t1\n")
             # 同じ日を引き直しても同じ中身 = 冪等 (差分が出ない)。
             C.write_tsv(path, {"c": 1, "a": 5, "b": 1})
-            self.assertEqual(open(path, encoding="utf-8").read(), first)
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(f.read(), first)
 
 
 class TestTargetDays(unittest.TestCase):

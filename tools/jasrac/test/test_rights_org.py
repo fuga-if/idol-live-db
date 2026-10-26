@@ -58,6 +58,9 @@ class TestRightsOrgSplit(unittest.TestCase):
         os.mkdir(self.req)
         with open(os.path.join(self.req, "2026-09-01.tsv"), "w") as f:
             f.write("song_id\tcount\ncg_a\t3\ngakuen_c\t5\n")
+        for day in range(2, 31):
+            with open(os.path.join(self.req, "2026-09-%02d.tsv" % day), "w") as f:
+                f.write("song_id\tcount\n")
         self.out = os.path.join(d, "out")
         self._orig_out = B.OUT_DIR
         B.OUT_DIR = self.out

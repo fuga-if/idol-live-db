@@ -7,6 +7,7 @@
 """
 
 import io
+import datetime as dt
 import os
 import sys
 import tempfile
@@ -22,6 +23,12 @@ def write(dirpath, name, rows, header=True):
             f.write("song_id\tcount\n")
         for song_id, n in rows:
             f.write("%s\t%d\n" % (song_id, n))
+
+
+def fill_period(directory, first=dt.date(2026, 4, 1), after=dt.date(2027, 4, 1)):
+    while first < after:
+        write(directory, first.isoformat() + ".tsv", [])
+        first += dt.timedelta(days=1)
 
 
 class Args(object):
@@ -43,6 +50,7 @@ class TestParsePeriod(unittest.TestCase):
 class TestReadRequestCounts(unittest.TestCase):
     def test_sums_days_in_period_only(self):
         with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
             write(d, "2026-04-01.tsv", [("a", 3), ("b", 1)])
             write(d, "2026-04-02.tsv", [("a", 2)])
             # 期間外 (2026-03) は合算しない。
@@ -54,18 +62,21 @@ class TestReadRequestCounts(unittest.TestCase):
 
     def test_ignores_non_tsv_files(self):
         with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
             write(d, "2026-04-01.tsv", [("a", 1)])
             with io.open(os.path.join(d, "README.md"), "w", encoding="utf-8") as f:
                 f.write("メモ\n")
             self.assertEqual(B.read_request_counts(d, "202604-202604"), {"a": 1})
 
-    def test_empty_period_is_zero_not_error(self):
-        # 日次ファイルがまだ 1 つも無くても報告は作れる (全曲 0 になる)。
+    def test_complete_zero_days_are_zero(self):
+        # 全日が正常に採取されたヘッダだけのファイルなら実測 0 回。
         with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
             self.assertEqual(B.read_request_counts(d, "202604-202703"), {})
 
     def test_broken_count_exits(self):
         with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
             with io.open(os.path.join(d, "2026-04-01.tsv"), "w", encoding="utf-8") as f:
                 f.write("song_id\tcount\na\tたくさん\n")
             with self.assertRaises(SystemExit):
@@ -78,9 +89,31 @@ class TestReadRequestCounts(unittest.TestCase):
     def test_over_nine_digits_exits(self):
         # 項目表の上限は9桁。溢れる値を黙って報告しない。
         with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
             write(d, "2026-04-01.tsv", [("a", 10 ** 9)])
             with self.assertRaises(SystemExit):
                 B.read_request_counts(d, "202604-202604")
+
+    def test_missing_one_day_exits(self):
+        with tempfile.TemporaryDirectory() as d:
+            fill_period(d)
+            os.unlink(os.path.join(d, "2026-04-15.tsv"))
+            with self.assertRaisesRegex(SystemExit, "1 日ぶん欠測"):
+                B.read_request_counts(d, "202604-202703")
+
+    def test_no_data_is_missing_not_zero(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaisesRegex(SystemExit, "欠測"):
+                B.read_request_counts(d, "202604-202604")
+
+    def test_truncated_or_duplicate_file_exits(self):
+        for body in ("", "song_id\tcount\na\t1\na\t2\n"):
+            with self.subTest(body=body), tempfile.TemporaryDirectory() as d:
+                fill_period(d)
+                with open(os.path.join(d, "2026-04-01.tsv"), "w") as f:
+                    f.write(body)
+                with self.assertRaises(SystemExit):
+                    B.read_request_counts(d, "202604-202604")
 
 
 class TestBuildRecordRequestCount(unittest.TestCase):
