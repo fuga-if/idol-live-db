@@ -214,6 +214,10 @@ def parse_period(period):
     return start, end
 
 
+class MissingRequestDays(SystemExit):
+    """実測の欠測。意図的な下書き生成だけが捕捉してよい。"""
+
+
 def read_request_counts(requests_dir, period):
     """data/lyrics_requests/YYYY-MM-DD.tsv を期間ぶん合算して song_id → 回数 にする。
 
@@ -232,9 +236,9 @@ def read_request_counts(requests_dir, period):
                 for i in range((after - first).days)}
     missing = sorted(expected - set(os.listdir(requests_dir)))
     if missing:
-        sys.exit("%s: %d 日ぶん欠測 (%s%s)。実測の 0 回として報告できない"
-                 % (period, len(missing), ", ".join(missing[:5]),
-                    " …" if len(missing) > 5 else ""))
+        raise MissingRequestDays("%s: %d 日ぶん欠測 (%s%s)。実測の 0 回として報告できない"
+                                 % (period, len(missing), ", ".join(missing[:5]),
+                                    " …" if len(missing) > 5 else ""))
 
     counts, days = {}, []
     for name in sorted(os.listdir(requests_dir)):
@@ -441,9 +445,8 @@ def cmd_playn(args):
     報告するのは NexTone 管理作品だけ (P.6) なので、作品コードが分からない曲は書かずに
     一覧で知らせる。PlayN の確定作品リストで引いて --codes に足せば次から入る。
 
-    ⚠️ リクエスト回数の日次ファイルが1日も無い月は書かない。全曲 0 回の報告は
-       「読まれなかった」と言うのと同じなので、--allow-no-counts を付けたときだけ
-       下書きとして書く (アップロードはしないこと)。
+    ⚠️ 1 日でも欠測があれば提出用ファイルは書かない。--allow-no-counts は
+       回数欄を空にした .draft.tsv だけを作る (アップロードはしないこと)。
     """
     ledger = read_works(args.works)
     rows = [r for r in ledger if W.reports_to_nextone(r)]
@@ -460,12 +463,14 @@ def cmd_playn(args):
 
     os.makedirs(OUT_DIR, exist_ok=True)
     for month in months_in(args.period):
-        counts = read_request_counts(args.requests_dir, "%s-%s" % (month, month))
-        has_days = any(n.startswith("%s-%s-" % (month[:4], month[4:]))
-                       for n in os.listdir(args.requests_dir))
-        if not has_days and not args.allow_no_counts:
-            print("✗ %s: 回数の日次ファイルが無いので書かなかった" % month, file=sys.stderr)
-            continue
+        try:
+            counts = read_request_counts(args.requests_dir, "%s-%s" % (month, month))
+        except MissingRequestDays as error:
+            print("✗ %s" % error, file=sys.stderr)
+            if args.allow_no_counts:
+                counts = None
+            else:
+                raise
         lines = []
         for r in rows:
             values = [
@@ -477,18 +482,19 @@ def cmd_playn(args):
                 "T",   # 詞のみ利用
                 "1",   # 原詞
                 "",    # IL区分: 音源を使わない
-                str(counts.get(r["song_id"], 0)),
+                "" if counts is None else str(counts.get(r["song_id"], 0)),
                 "NXT", nextone_code(r, extra),
             ]
             if any("\t" in v or "\n" in v for v in values):
                 sys.exit("%s: 値にタブか改行が入っている" % r["song_id"])
             lines.append("\t".join(values))
-        name = "%s-%s.txt" % (args.license_no, month)
+        name = "%s-%s%s" % (args.license_no, month,
+                              ".draft.tsv" if counts is None else ".txt")
         with io.open(os.path.join(OUT_DIR, name), "w", encoding="utf-8", newline="") as f:
             f.write("".join(ln + "\r\n" for ln in lines))
-        total = sum(counts.get(r["song_id"], 0) for r in rows)
-        print("wrote %s (%d 曲 / 管理作品のリクエスト合計 %d 回%s)"
-              % (name, len(lines), total, "" if has_days else " ⚠️回数なしの下書き"))
+        total = "不明" if counts is None else str(sum(counts.get(r["song_id"], 0) for r in rows))
+        print("wrote %s (%d 曲 / 管理作品のリクエスト合計 %s 回%s)"
+              % (name, len(lines), total, " ⚠️回数なしの下書き" if counts is None else ""))
 
 
 def cmd_annual(args):

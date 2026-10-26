@@ -95,8 +95,8 @@ class TestRightsOrgSplit(unittest.TestCase):
         with open(self.published, "w") as f:
             f.write("cg_a\ngakuen_c\n")
         run_quiet(B.cmd_playn, self._args(license_no="ID000012667", codes=None,
-                                          period="202608-202609", allow_no_counts=False))
-        # 8月は日次ファイルが無いので書かない
+                                          period="202609-202609", allow_no_counts=False))
+        # 全日が揃った9月だけを書き出す
         self.assertEqual(os.listdir(self.out), ["ID000012667-202609.txt"])
         with open(os.path.join(self.out, "ID000012667-202609.txt"), encoding="utf-8",
                   newline="") as f:
@@ -106,6 +106,22 @@ class TestRightsOrgSplit(unittest.TestCase):
         self.assertEqual(len(cols), len(B.PLAYN_COLUMNS))
         self.assertEqual(cols[0], "k-gakuen_c")
         self.assertEqual(cols[15:], ["T", "1", "", "5", "NXT", "N00000001"])
+
+    def test_playn_missing_day_rejects_submission(self):
+        os.unlink(os.path.join(self.req, "2026-09-15.tsv"))
+        with self.assertRaises(B.MissingRequestDays):
+            run_quiet(B.cmd_playn, self._args(license_no="ID000012667", codes=None,
+                                              allow_no_counts=False))
+        self.assertEqual(os.listdir(self.out), [])
+
+    def test_playn_unknown_counts_are_blank_in_separate_draft(self):
+        W.write_rows(self.works, [row("gakuen_c", "nextone", note="NexTone: 作品コード N00000001")])
+        os.unlink(os.path.join(self.req, "2026-09-15.tsv"))
+        run_quiet(B.cmd_playn, self._args(license_no="ID000012667", codes=None,
+                                          allow_no_counts=True))
+        self.assertEqual(os.listdir(self.out), ["ID000012667-202609.draft.tsv"])
+        with open(os.path.join(self.out, "ID000012667-202609.draft.tsv")) as f:
+            self.assertEqual(f.read().rstrip("\n").split("\t")[18], "")
 
     def test_playn_skips_songs_without_code(self):
         # gakuen_c は note に作品コードが無く、--codes にも無い
