@@ -86272,10 +86272,6 @@ INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_上水流宇宙','member');
 INSERT INTO "show_cast" VALUES('sh_project_imas_valiv_3rdlive_meeting_qonnect_as_one_6','876_灯里愛夏','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_サラ_レトラ_オリヴェイラ_ウタガワ','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_上水流宇宙','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','876_灯里愛夏','member');
-INSERT INTO "show_cast" VALUES('sh_灯里愛夏_birthday_online_live_2026_1','cg_関裕美','member');
 CREATE TABLE show_cast_performers (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
