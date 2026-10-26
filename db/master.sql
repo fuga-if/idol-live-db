@@ -74839,6 +74839,10 @@ INSERT INTO "setlist_performers" VALUES('sh_the_idolm@ster_shiny_colors_song_for
 INSERT INTO "setlist_performers" VALUES('sh_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント_2_0001','sc_緋田美琴');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント_2_0001','sc_芹沢あさひ');
 INSERT INTO "setlist_performers" VALUES('sh_the_idolm@ster_shiny_colors_song_for_prism_super_duper_dreamer_beast_mode_発売記念イベント_2_0001','sc_西城樹里');
+INSERT INTO "setlist_performers" VALUES('sh_L0247_2081','cg_前川みく');
+INSERT INTO "setlist_performers" VALUES('sh_L0247_2081','cg_多田李衣菜');
+INSERT INTO "setlist_performers" VALUES('sh_L0260_2201','cg_前川みく');
+INSERT INTO "setlist_performers" VALUES('sh_L0260_2201','cg_多田李衣菜');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
@@ -102627,18 +102631,10 @@ INSERT INTO "song_artists" VALUES('cg_youre_stars_shine_on_me','cg_辻野あか�
 INSERT INTO "song_artists" VALUES('cg_youre_stars_shine_on_me','cg_道明寺歌鈴','performer');
 INSERT INTO "song_artists" VALUES('cg_youre_stars_shine_on_me_for_miku_rearrange_mix','cg_前川みく','original');
 INSERT INTO "song_artists" VALUES('cg_youre_stars_shine_on_me_for_miku_rearrange_mix','cg_前川みく','performer');
-INSERT INTO "song_artists" VALUES('cg_øωøver','cg_城ヶ崎美嘉','original');
 INSERT INTO "song_artists" VALUES('cg_øωøver','cg_多田李衣菜','original');
 INSERT INTO "song_artists" VALUES('cg_øωøver','cg_多田李衣菜','performer');
-INSERT INTO "song_artists" VALUES('cg_øωøver','cg_島村卯月','original');
-INSERT INTO "song_artists" VALUES('cg_øωøver','cg_本田未央','original');
-INSERT INTO "song_artists" VALUES('cg_øωøver','cg_渋谷凛','original');
-INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_城ヶ崎美嘉','original');
 INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_多田李衣菜','original');
 INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_多田李衣菜','performer');
-INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_島村卯月','original');
-INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_本田未央','original');
-INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_渋谷凛','original');
 INSERT INTO "song_artists" VALUES('cg_あいくるしい_for_ss3a_rearrange_mix','cg_森久保乃々','original');
 INSERT INTO "song_artists" VALUES('cg_あいくるしい_for_ss3a_rearrange_mix','cg_森久保乃々','performer');
 INSERT INTO "song_artists" VALUES('cg_あいくるしい_for_ss3a_rearrange_mix','cg_関裕美','original');
@@ -117033,6 +117029,8 @@ INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_卯月巻緒','or
 INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_東雲荘一郎','original');
 INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_水嶋咲','original');
 INSERT INTO "song_artists" VALUES('sidem_allday_loving','sidem_神谷幸広','original');
+INSERT INTO "song_artists" VALUES('cg_øωøver','cg_前川みく','original');
+INSERT INTO "song_artists" VALUES('cg_øωøver_-heart_beat_version-','cg_前川みく','original');
 CREATE TABLE song_units (
   song_id TEXT NOT NULL,
   unit_id TEXT NOT NULL,
@@ -117798,10 +117796,8 @@ INSERT INTO "song_units" VALUES('sidem_live_in_your_smile','神速一魂');
 INSERT INTO "song_units" VALUES('sidem_live_in_your_smile','sem');
 INSERT INTO "song_units" VALUES('sidem_live_in_your_smile','the虎牙道');
 INSERT INTO "song_units" VALUES('sidem_live_in_your_smile','legenders');
-INSERT INTO "song_units" VALUES('cg_øωøver','デレパジ');
 INSERT INTO "song_units" VALUES('cg_lovedestiny_-jealous_prisoner_remix-','masquerade');
 INSERT INTO "song_units" VALUES('cg_o-ku-ri-mo-no_sunday_-ヒゲドライバー_remix-','miroir');
-INSERT INTO "song_units" VALUES('cg_øωøver_-heart_beat_version-','デレパジ');
 INSERT INTO "song_units" VALUES('cg_pretty_liar_-ミフメイ_remix-','ミステリアスアイズ');
 INSERT INTO "song_units" VALUES('cg_つぼみ_-djtekinasomething_aka_ゆよゆっぺ_remix-','unit_the_idolmster_cinderella_girls_for_best5');
 INSERT INTO "song_units" VALUES('cg_レッドソール_-烏屋茶房_remix-','unit_flamme_martini');
@@ -118202,7 +118198,7 @@ INSERT INTO "songs" VALUES('ml_stereophonic_isotonic','STEREOPHONIC ISOTONIC','�
 INSERT INTO "songs" VALUES('ml_addicted','addicted','あでぃくてぃっど','ml','solo','2015-03-25',NULL,'KOH','KOH','KOH','THE IDOLM@STER LIVE THE@TER HARMONY 10',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/c9/de/31/c9de315c-2f1f-1b1a-5285-ad1fa3891fe5/4540774154401.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/cb/33/83/cb338364-6e85-dc7f-727b-04c18849dbf0/mzaf_10394477540086876967.plus.aac.p.m4a','1718674694','1718674689','','https://www.uta-net.com/song/182559/',NULL,'四条貴音',NULL,NULL,'LIVE THE@TER HARMONY',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('ml_夕風のメロディー','夕風のメロディー','ゆうかぜのめろでぃー','ml','solo','2015-03-25',NULL,'野井洋児','藤本記子','野井洋児','THE IDOLM@STER LIVE THE@TER HARMONY 10',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/c9/de/31/c9de315c-2f1f-1b1a-5285-ad1fa3891fe5/4540774154401.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview116/v4/5a/63/6c/5a636c18-2673-7cf4-1a9a-b47513e73143/mzaf_313880702102277815.plus.aac.p.m4a','1718674695','1718674689','','https://www.uta-net.com/song/182558/',NULL,'篠宮可憐',NULL,NULL,'LIVE THE@TER HARMONY',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('765as_good-byes','Good-Byes','ぐっどばいず','765as','unit','2015-03-25',NULL,'BNSI(Taku Inoue)','BNSI(MC TC)','BNSI(Taku Inoue)','THE IDOLM@STER MASTER ARTIST 3 10高槻やよい','THE IDOLM@STER MASTER ARTIST 3 10高槻やよい',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'高槻やよい',NULL,NULL,'MASTER ARTIST',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('cg_øωøver','ØωØver!!','おーばー','cg','unit','2015-03-28',NULL,'小野貴光','前川みく（高森奈津美）、多田李衣菜（青木瑠璃子）','玉木千尋','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP06','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP06',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'デレパジ','デレパジ','デレパジ','ANIMATION PROJECT',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('cg_øωøver','ØωØver!!','おーばー','cg','unit','2015-03-28',NULL,'小野貴光','前川みく（高森奈津美）、多田李衣菜（青木瑠璃子）','玉木千尋','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP06','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP06',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'＊(Asterisk)','＊(Asterisk)','unit_444a9693','ANIMATION PROJECT',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('sidem_brand_new_field','BRAND NEW FIELD','ぶらんどにゅーふぃーるど','sidem','unit','2015-04-15',NULL,'山口朗彦','真崎エリカ','山口朗彦','THE IDOLM@STER SideM ST@RTING LINE-01 Jupiter - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/6a/22/61/6a226144-99b1-1c7a-7fda-c1b119216e13/4540774143214.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/c7/6a/6c/c76a6cd2-41bf-d861-df92-1e89abc8b223/mzaf_10896947449696391765.plus.aac.p.m4a','1731760884','1731760883','','https://www.uta-net.com/song/184000/',NULL,'Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）','Jupiter','jupiter','ST@RTING LINE',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('sidem_planet_scape','Planet scape','ぷらねっとすけーぷ','sidem','unit','2015-04-15',NULL,'Kon-K','真崎エリカ','Kon-K','THE IDOLM@STER SideM 10th ANNIVERSARY P@SSION 02 Jupiter',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/6a/22/61/6a226144-99b1-1c7a-7fda-c1b119216e13/4540774143214.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/e1/83/a3/e183a338-ce70-fb57-5c40-9015dc944eb5/mzaf_653283341881060686.plus.aac.p.m4a','1731760885','1773460842','','https://www.uta-net.com/song/183999/',NULL,'Jupiter（天ヶ瀬冬馬、御手洗翔太、伊集院北斗）','Jupiter','jupiter','SideM 10th ANNIVERSARY P@SSION',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('sidem_dramatic_nonfiction','DRAMATIC NONFICTION','どらまちっくのんふぃくしょん','sidem','unit','2015-04-15',NULL,'磯崎健史','松井洋平','Kon-K','THE IDOLM@STER SideM ST@RTING LINE-02 DRAMATIC STARS - Single',NULL,'https://is1-ssl.mzstatic.com/image/thumb/Music122/v4/36/14/3f/36143f52-49af-1a84-9977-9f59ab1acc17/4540774143221.jpg/600x600bb.jpg','https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview112/v4/38/3b/e5/383be504-a319-29ea-62cb-6f779547b687/mzaf_1114941351509394752.plus.aac.p.m4a','1731760154','1731760152','','https://www.uta-net.com/song/184002/',NULL,'DRAMATIC STARS（天道輝、桜庭薫、柏木翼）','DRAMATIC STARS','dramaticstars','ST@RTING LINE',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
@@ -118316,7 +118312,7 @@ INSERT INTO "songs" VALUES('cg_never_say_never_for_anastasia_rearrange_mix','Nev
 INSERT INTO "songs" VALUES('cg_o-ku-ri-mo-no_sunday_-ヒゲドライバー_remix-','O-Ku-Ri-Mo-No Sunday! -ヒゲドライバー Remix-','おくりものさんでー','cg','unit','2022-04-02',NULL,'烏屋茶房、篠崎あやと','烏屋茶房','ヒゲドライバー','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final',NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/286488/','cg_o-ku-ri-mo-no_sunday','miroir（久川颯、久川凪）',NULL,'miroir','ライブ会場限定CD',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('765as_okey-dokeyニューアレンジ','Okey-dokey(ニュー・アレンジ)','おーきーどーきー','765as','unit','2008-04-02',NULL,'神前暁','森由里子','鈴木CHiBUN智文','THE IDOLM@STER RADIO シリーズ#VOCAL MASTER','THE IDOLM@STER RADIO シリーズ#VOCAL MASTER',NULL,NULL,NULL,NULL,NULL,NULL,'765as_okey-dokey','今井麻美、たかはし智秋',NULL,NULL,'THE IDOLM@STER RADIO',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('cg_otahen_アンセム_-massive_new_krew_remix-','OTAHEN アンセム -Massive New Krew Remix-','おたへんあんせむ','cg','solo','2022-04-02',NULL,'BNSI(佐藤貴文)','BNSI(佐藤貴文)','Massive New Krew(篠崎あやと、橘亮祐)','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final',NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/285178/','cg_otahen_アンセム','夢見りあむ',NULL,NULL,'ライブ会場限定CD',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
-INSERT INTO "songs" VALUES('cg_øωøver_-heart_beat_version-','ØωØver!! -Heart Beat Version-','おーばー','cg','unit','2015-10-07',NULL,'小野貴光','前川みく（高森奈津美）、多田李衣菜（青木瑠璃子）','玉木千尋','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP2nd04','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP2nd04',NULL,NULL,NULL,NULL,NULL,NULL,'cg_øωøver','デレパジ','デレパジ','デレパジ','ANIMATION PROJECT',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
+INSERT INTO "songs" VALUES('cg_øωøver_-heart_beat_version-','ØωØver!! -Heart Beat Version-','おーばー','cg','unit','2015-10-07',NULL,'小野貴光','前川みく（高森奈津美）、多田李衣菜（青木瑠璃子）','玉木千尋','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP2nd04','THE IDOLM@STER CINDERELLA GIRLS ANIMATION PROJECT シリーズ#AP2nd04',NULL,NULL,NULL,NULL,NULL,NULL,'cg_øωøver','＊(Asterisk)','＊(Asterisk)','unit_444a9693','ANIMATION PROJECT',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('ml_poker_poker_toriena_remix','POKER POKER (TORIENA Remix)','ぽーかーぽーかー','ml','solo','2021-01-23',NULL,'橋本由香利','松井洋平','TORIENA','THE IDOLM@STER LIVE THE@TER PERFORMANCE Remix CD シリーズ#LTP_Remix02','THE IDOLM@STER LIVE THE@TER PERFORMANCE Remix CD シリーズ#LTP_Remix02',NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/151727/','ml_poker_poker','真壁瑞希',NULL,NULL,'LIVE THE@TER PERFORMANCE Remix',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('ml_precious_grain_teddyloid_remix','Precious Grain (TeddyLoid Remix)','ぷれしゃすぐれいん','ml','solo','2021-01-23',NULL,'佐々木裕','松井洋平 ','TeddyLoid','THE IDOLM@STER LIVE THE@TER PERFORMANCE Remix CD シリーズ#LTP_Remix01','THE IDOLM@STER LIVE THE@TER PERFORMANCE Remix CD シリーズ#LTP_Remix01',NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/146949/','ml_precious_grain','最上静香',NULL,NULL,'LIVE THE@TER PERFORMANCE Remix',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
 INSERT INTO "songs" VALUES('cg_pretty_liar_-ミフメイ_remix-','Pretty Liar -ミフメイ Remix-','ぷりてぃらいあー','cg','unit','2022-04-02',NULL,'石濱翔(MONACA)','森由里子','BNSI（ミフメイ）','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final','CINDERELLA_GIRLSのライブ会場限定CD_page2#Final',NULL,NULL,NULL,NULL,NULL,'https://www.uta-net.com/song/273303/','cg_pretty_liar','ミステリアスアイズ（高垣楓、速水奏）',NULL,'ミステリアスアイズ','ライブ会場限定CD',NULL,NULL,NULL,0,0,NULL,NULL,NULL,NULL);
