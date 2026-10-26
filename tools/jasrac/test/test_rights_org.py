@@ -87,6 +87,33 @@ class TestRightsOrgSplit(unittest.TestCase):
         self.assertEqual([ln.split("\t")[0] for ln in lines[1:]], ["gakuen_c"])
         self.assertEqual(lines[1].split("\t")[-1], "5")
 
+    def test_playn_writes_21_columns_per_month(self):
+        W.write_rows(self.works, [
+            row("gakuen_c", "nextone", note="NexTone: 作品コード N00000001"),
+            row("cg_a"),
+        ])
+        with open(self.published, "w") as f:
+            f.write("cg_a\ngakuen_c\n")
+        run_quiet(B.cmd_playn, self._args(license_no="ID000012667", codes=None,
+                                          period="202608-202609", allow_no_counts=False))
+        # 8月は日次ファイルが無いので書かない
+        self.assertEqual(os.listdir(self.out), ["ID000012667-202609.txt"])
+        with open(os.path.join(self.out, "ID000012667-202609.txt"), encoding="utf-8",
+                  newline="") as f:
+            body = f.read()
+        self.assertTrue(body.endswith("\r\n"))
+        cols = body.rstrip("\r\n").split("\t")
+        self.assertEqual(len(cols), len(B.PLAYN_COLUMNS))
+        self.assertEqual(cols[0], "k-gakuen_c")
+        self.assertEqual(cols[15:], ["T", "1", "", "5", "NXT", "N00000001"])
+
+    def test_playn_skips_songs_without_code(self):
+        # gakuen_c は note に作品コードが無く、--codes にも無い
+        run_quiet(B.cmd_playn, self._args(license_no="ID000012667", codes=None,
+                                          period="202609-202609", allow_no_counts=False))
+        with open(os.path.join(self.out, "ID000012667-202609.txt"), encoding="utf-8") as f:
+            self.assertEqual(f.read(), "")
+
     def test_annual_leaves_out_nextone_songs(self):
         run_quiet(B.cmd_annual, self._args(license_no="J260943703", month="202609",
                                            suffix="", force=False))
