@@ -185,9 +185,17 @@ python3 tools/lyrics/collect_request_logs.py --days 2 --dry-run
 GitHub Actions の失敗通知を有効にし、失敗はその日のうちに対処する。
 
 2026-10-27 の調査: 読取用 secret が未登録で、9/30・10/26 の実行は集計をスキップして成功扱いに
-なっていた。保存用ブランチも未作成。コード修正だけでは認証情報は補えないため、専用の
-**Workers Observability: Read** トークンを登録し、手動実行と TSV の保存まで確認すること。
+なっていた。保存用ブランチも未作成。同日に専用の **Workers Observability: Read** トークンを
+対象アカウントだけに限定して発行し、`CLOUDFLARE_OBSERVABILITY_TOKEN` として登録済み。
+[初回手動実行](https://github.com/fuga-if/idol-live-db/actions/runs/40380615692)は成功し、
+`bot/lyrics-stats` に UTC 10/24・10/25 の TSV (両日ともヘッダのみ) が保存されたことを確認した。
+7〜9月や、それ以前の欠測が埋まったという意味ではない。
 デプロイ用の書込トークンや Wrangler の OAuth トークンを流用しない。
+
+**過去の報告対象の注意**: 10/6 に掲載歌詞を全削除し、投稿によって入れ直している。
+現在の `song_lyrics.first_published_at` だけでは、削除前の7〜9月の掲載曲を復元できない。
+9/29 の公開記録 (下記) と当時の資料を照合する必要がある。現在の掲載数だけで過去の
+報告対象や「実績なし」を決めない。
 
 ### 2026-09-04 追記: 学マス・876 は draft に戻した (管理団体の確認待ち)
 
