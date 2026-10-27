@@ -51,3 +51,12 @@ Play への上げは `tools/play_release.py` (Android Publisher API v3) で行�
 ## 経緯
 
 - 2026-10: クローズドテスト (versionCode 5 / 2.1.0) を経て、初の本番は 2.3.0 / versionCode 6。
+
+## 2026-10-27: 2.9.0 (versionCode 19)
+
+- JASRAC 管理曲の歌詞表示に対応 (Android 許諾番号 J261043814)。
+- 署名付き AAB を `tools/play_release.py` で production に提出。
+- `--status completed` (全ユーザー向け) で commit し、再取得でも production / completed / versionCodes 19 を確認。
+- Google Play の審査・ストアへの反映完了は別途確認が必要。
+- 署名、arm64-v8a / x86_64 のコア・デバッグシンボル表、JASRAC マークの同梱を検証。
+- R8 は Gradle の既定 2GB では GC thrashing で停止したため、`-Dorg.gradle.jvmargs='-Xmx4g -Dfile.encoding=UTF-8' --max-workers=2` を付けて成功。
