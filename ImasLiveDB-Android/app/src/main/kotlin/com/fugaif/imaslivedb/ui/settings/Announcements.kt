@@ -52,6 +52,18 @@ object AnnouncementCatalog {
     /** 新しいものほど上 (表示順)。 */
     val all: List<Announcement> = listOf(
         Announcement(
+            id = "android_lyrics_2026_10",
+            date = "2026-10-27",
+            title = "Android でも JASRAC 管理曲の歌詞が読めます",
+            summary = "JASRAC の許諾を受けて、Android 版でも登録済みの歌詞を表示できるようになりました。",
+            body = listOf(
+                "曲の詳細の「歌詞」から、投稿・公開された歌詞とコールガイドを読めます。これまでの NexTone 管理曲に加えて、JASRAC 管理曲にも対応しました。",
+                "Android 版の JASRAC 許諾番号は J261043814 です。歌詞は 1 曲ずつ取得し、端末には保存しません。"
+            ),
+            icon = Icons.Filled.FormatQuote,
+            tint = "#7B61A8"
+        ),
+        Announcement(
             id = "v2.9.0_streetpass",
             date = "2026-10-21",
             title = "P名刺のすれちがいモード",
