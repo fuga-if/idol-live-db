@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
+import com.fugaif.imaslivedb.ui.components.LyricsLicenseNotice
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -333,7 +334,7 @@ fun SongLyricsTab(
                 )
             }
         }
-        if (lyrics != null) NexToneLicenseNotice()
+        if (lyrics != null) LyricsLicenseNotice()
     }
 
     if (showPlayer && lyrics != null) {
@@ -835,35 +836,5 @@ private fun rubyHighlightLookup(text: String, highlights: List<LyricHighlight>):
                 underline = true
             )
         }
-    }
-}
-
-// MARK: - NexTone 許諾の掲示
-
-/** NexTone 許諾の掲示物 (iOS `NexToneLicense`)。NexTone 管理曲 (学マス・876 系に多い) の歌詞を出す根拠。 */
-object NexToneLicense {
-    /** NexTone の許諾番号は英字2文字 + 数字9桁の11桁。 */
-    const val NUMBER = "ID000012667"
-    /** 掲示に使う表記。NexTone の許諾メールの表記 (「許諾番号：ID…」) に合わせる。 */
-    const val NOTICE = "NexTone許諾番号 $NUMBER"
-}
-
-/**
- * NexTone の許諾マークと許諾番号 (iOS `JASRACLicenseNotice(.lyrics)` の NexTone 分のみ)。
- * マーク画像は NexTone から受け取った原本 (`res/drawable-nodpi/nextone_mark.png`)。
- * 色を変えたり縦横比を崩したりしないこと。
- */
-@Composable
-private fun NexToneLicenseNotice() {
-    Column(
-        Modifier.fillMaxWidth().padding(vertical = DS.sp5),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        androidx.compose.foundation.Image(
-            painter = androidx.compose.ui.res.painterResource(id = com.fugaif.imaslivedb.R.drawable.nextone_mark),
-            contentDescription = null,
-            modifier = Modifier.height(28.dp).width(28.dp)
-        )
-        ImasText(NexToneLicense.NOTICE, ImasTextRole.META, modifier = Modifier.padding(top = DS.sp1))
     }
 }

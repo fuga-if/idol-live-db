@@ -37,12 +37,9 @@ pub const REPOSITORY_URL: &str = "https://github.com/fuga-if/idol-live-db";
 /// **アプリの** JASRAC 非商用配信の許諾番号。出面の断り書き (「アプリは … のもとで配信」) にだけ使う。
 pub const APP_JASRAC_LICENSE_NUMBER: &str = "J260943703";
 
-/// **この出面 (Web) の** JASRAC 許諾番号。Web の許諾はまだ無いので `None` (D-WEB-13)。
-///
-/// 出面で歌詞を出すときに掲示する番号 (フッタ・曲ページ) は必ずこれを使う。アプリの番号を
-/// 使うと、許諾の無い出面にアプリの番号を掲示してしまう。許諾が下りたらここに番号を入れ、
-/// それから [`LYRICS_ON_WEB`] を開ける (番号が無いまま開けるとコンパイルが通らない)。
-pub const WEB_JASRAC_LICENSE_NUMBER: Option<&str> = None;
+/// Web 版の JASRAC 許諾 (2026年10月〜2027年9月、以降自動更新)。
+/// フッタ・曲ページには iOS の番号ではなく、この出面の番号を掲示する。
+pub const WEB_JASRAC_LICENSE_NUMBER: Option<&str> = Some("J261043815");
 
 // 出面で歌詞を出すなら、出面の許諾番号の掲示が要る (掲示が許諾の条件)。
 const _: () = assert!(!LYRICS_ON_WEB || WEB_JASRAC_LICENSE_NUMBER.is_some());
@@ -52,25 +49,8 @@ pub fn web_license_number() -> Option<&'static str> {
     if LYRICS_ON_WEB { WEB_JASRAC_LICENSE_NUMBER } else { None }
 }
 
-/// **この出面で歌詞を出すか。**
-///
-/// **2026-09-08 現在 `false`。Web に歌詞を出すには JASRAC の追加の許諾が要る**と分かったため。
-/// (2026-09-06 に「この Web サイトも許諾 J260943703 の対象か」を確認して問題ないと回答を得たが、
-/// その後、出面は別枠の申請が必要と判明した。)
-///
-/// **開けるときはこの 1 行を `true` にするだけ**。歌詞・コールガイド・案内文・API の呼び出し先は
-/// すべてこの定数から出ているので、他に触る場所は無い (`lyrics_note` / `LyricsBlock` /
-/// `call_guide_vocabulary` が全部ここを見る)。`false` の間は歌詞を 1 文字も配らない
-/// (ページにも JSON にも出てこず、アプリへ案内する断り書きだけになる)。
-///
-/// 出す側の実装 (許諾番号とマークの掲示・コピー防止・1 リクエスト 1 曲・回数ログ) は
-/// ここに揃っている。**本番で動く条件は API 側にもある** (docs/JASRAC.md §6.5):
-/// 匿名 GET が本番に出ていること、CORS の許可 origin に出面があること、D1 の読み取り枠。
-///
-/// 歌詞 1 曲の取得は D1 の読み取り 1 回で、これは「リクエスト回数が数えられること」
-/// という許諾の要件そのものなのでキャッシュできない。出面は押されたときだけ取りに行き、
-/// 歌詞検索 (索引の全走査で最も枠を食う) は出面に持たない。
-pub const LYRICS_ON_WEB: bool = false;
+/// Web 版も許諾取得済み。本文は静的出力に含めず、操作時に 1 曲ずつ取得する。
+pub const LYRICS_ON_WEB: bool = true;
 
 /// 歌詞を出していないときの状態の札。**「載せない」ではなく「まだ待っている」**と読める
 /// 短い語にする (許諾が下りたら開ける、という状態を出すのがこの札の役目)。

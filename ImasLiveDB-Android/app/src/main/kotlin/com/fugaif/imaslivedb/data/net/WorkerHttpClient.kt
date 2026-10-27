@@ -115,7 +115,7 @@ class WorkerHttpClient(
         val headers = buildMap {
             put("Content-Type", "application/json")
             put("X-Device-Id", DeviceIdentity.get(appContext))
-            // 歌詞は Android では NexTone 管理曲だけ返る (Worker の lyricsAllowedForClient)。
+            // クライアントの種類を API に通知する。
             put("X-Client-Platform", "android")
             token?.let { put("Authorization", "Bearer $it") }
         }

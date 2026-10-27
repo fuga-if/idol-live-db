@@ -476,12 +476,20 @@ hr {
    暗い帯の上でも原本の色で見えるよう、白い台紙に載せる。 */
 .site-footer__license {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--sp4);
   margin-top: var(--sp8);
   padding-top: var(--sp5);
   border-top: 1px solid var(--footer-line);
   font-size: var(--fs-caption);
+}
+.site-footer__license-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp2);
+  margin: 0;
 }
 .site-footer__license img {
   flex: none;

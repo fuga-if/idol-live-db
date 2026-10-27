@@ -49,13 +49,51 @@
   },
   "hasCommunity": true,
   "lyrics": {
-    "available": false,
-    "statusLabel": "JASRAC 許諾待ち",
-    "note": "本サイトでの歌詞の掲載には JASRAC の許諾が別に必要なため、いまは見合わせています。歌詞はアプリ『アイドルライブDB』でご覧いただけます（アプリは JASRAC 許諾番号 J260943703 のもとで歌詞を配信しています）。",
-    "licenseNote": null,
-    "sourceUrl": null,
-    "readLabel": null,
-    "callGuide": null
+    "available": true,
+    "statusLabel": null,
+    "note": "JASRAC 許諾番号 J261043815 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
+    "licenseNote": "JASRAC 許諾番号 J261043815 のもとで掲載しています。1 曲ずつの表示のみで、まとめての取得はできません。",
+    "sourceUrl": "https://imas-live-api.tokata3011.workers.dev/songs/ml_mirai/lyrics",
+    "readLabel": "歌詞とコールガイドを読む",
+    "callGuide": {
+      "claps": [
+        {
+          "kind": "back_beat",
+          "symbol": "★",
+          "label": "裏拍"
+        },
+        {
+          "kind": "four_on_floor",
+          "symbol": "■",
+          "label": "4つ打ち"
+        },
+        {
+          "kind": "ppph",
+          "symbol": "♠",
+          "label": "PPPH"
+        },
+        {
+          "kind": "none",
+          "symbol": "♥",
+          "label": "コールなし"
+        }
+      ],
+      "emphases": [
+        {
+          "kind": "normal",
+          "label": "通常"
+        },
+        {
+          "kind": "optional",
+          "label": "おこのみで"
+        },
+        {
+          "kind": "performer_request",
+          "label": "演者要望"
+        }
+      ],
+      "staleLabel": "ズレ"
+    }
   },
   "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",
@@ -241,7 +279,7 @@
     "title": "アプリ「アイドルライブDB」",
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": null,
-    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+    "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {
     "title": "Thank You! | アイドルライブDB",

@@ -142,11 +142,13 @@
   ],
   "footerNotes": [
     "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。",
-    "キャラクター画像・公式ロゴ・歌詞は掲載していません。ジャケット画像は Apple Music の提供によるものです。"
+    "キャラクター画像・公式ロゴは掲載していません。ジャケット画像は Apple Music の提供によるものです。"
   ],
-  "lyricsLicenseNotice": null,
-  "lyricsSearchUrl": null,
-  "connectOrigins": [],
+  "lyricsLicenseNotice": "JASRAC 許諾番号 J261043815",
+  "lyricsSearchUrl": "https://imas-live-api.tokata3011.workers.dev/lyrics/search",
+  "connectOrigins": [
+    "https://imas-live-api.tokata3011.workers.dev"
+  ],
   "siteName": "アイドルライブDB",
   "notFound": {
     "eyebrow": "404",

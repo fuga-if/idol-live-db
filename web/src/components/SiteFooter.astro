@@ -79,14 +79,16 @@ const { app } = meta;
     </div>
     {
       meta.lyricsLicenseNotice && (
-        <p class="site-footer__license">
+        <div class="site-footer__license">
           {/* JASRAC の許諾マーク。**JASRAC から届いた原本をそのまま置く** (自作・加工・色替え禁止)。
               「申し込んだサイトの見やすい位置に表示」が許諾の条件で、全ページのフッタに載せる。
               版権物を持たない方針の唯一の例外で、これは版権物ではなく許諾の証。
               暗い地でも原本のまま見えるよう、白い台紙に載せる (base.css)。 */}
-          <img src="/jasrac-mark.png" alt="" width="60" height="60" loading="lazy" decoding="async" />
-          <span>{meta.lyricsLicenseNotice}</span>
-        </p>
+          <p class="site-footer__license-item"><img src="/jasrac-mark.png" alt="" width="60" height="60" loading="lazy" decoding="async" />
+          <span>{meta.lyricsLicenseNotice}</span></p>
+          <p class="site-footer__license-item"><img src="/nextone-mark.png" alt="" width="40" height="40" loading="lazy" decoding="async" />
+          <span>NexTone許諾番号 ID000012667</span></p>
+        </div>
       )
     }
   </div>

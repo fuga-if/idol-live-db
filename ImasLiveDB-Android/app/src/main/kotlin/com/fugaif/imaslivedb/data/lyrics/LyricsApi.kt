@@ -13,7 +13,7 @@ sealed interface LyricsResult {
     data class Loaded(val lyrics: Lyrics) : LyricsResult
     /** この曲の歌詞はまだ無い。 */
     data object NotFound : LyricsResult
-    /** この曲は Android ではまだ歌詞を出せない (Worker の 451。NexTone 管理曲だけ出している)。 */
+    /** サーバが配信を制限している曲 (Worker の 451)。 */
     data object NotLicensed : LyricsResult
     /** ログインしていない (歌詞はログイン必須)。 */
     data object NeedsLogin : LyricsResult

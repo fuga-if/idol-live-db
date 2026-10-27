@@ -156,7 +156,7 @@ class AppModule private constructor(context: Context) {
             spotify = spotifyService,
         )
     }
-    /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。Android は NexTone 管理曲だけ返る。 */
+    /** 歌詞 (取得・ここ好き・タイミング・行の区切り)。JASRAC・NexTone とも許諾取得済み。 */
     val lyricsApi: com.fugaif.imaslivedb.data.lyrics.LyricsApi by lazy {
         com.fugaif.imaslivedb.data.lyrics.LyricsApi(workerHttpClient)
     }

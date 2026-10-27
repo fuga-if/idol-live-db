@@ -490,21 +490,6 @@ export function buildLyricsPayload(
   };
 }
 
-/**
- * この端末に歌詞を返してよいか。Android 版は当面 NexTone の許諾だけで歌詞を出すので、
- * NexTone 管理曲 (song_lyrics.rights_org = 'nextone') に限る。iOS・Web は従来どおり全曲。
- *
- * 端末の種別はアプリが名乗る X-Client-Platform で見る (名乗りを偽れば外せるが、
- * 守りたいのは「配布している Android アプリが許諾の無い曲を出さない」ことの方)。
- */
-export function lyricsAllowedForClient(request: Request, rightsOrg: string | null | undefined): boolean {
-  const platform = (request.headers.get("X-Client-Platform") ?? "").toLowerCase();
-  return platform !== "android" || rightsOrg === "nextone";
-}
-
-/** 許諾の無い端末への応答。歌詞が無い (404) と分けて、アプリが理由を出せるようにする。 */
-export const LYRICS_NOT_LICENSED_STATUS = 451;
-
 /** song_lyrics.likes_json ({行ID: 人数}) を読む。壊れていれば空。 */
 export function parseLikeCounts(likesJson: string | null): Record<string, number> {
   if (!likesJson) return {};
@@ -553,8 +538,7 @@ export function parseLines(linesJson: string | null): LyricLineRow[] {
 export async function fetchPublishedLyrics(
   db: D1Database,
   songId: string,
-  includeDraft = false,
-  request?: Request
+  includeDraft = false
 ): Promise<(ReturnType<typeof buildLyricsPayload> & { status: string; submittedBy: CreditRole }) | null> {
   const header = await db
     .prepare(
@@ -565,7 +549,6 @@ export async function fetchPublishedLyrics(
     .first<{ source: string | null; updated_at: string; lines_json: string | null;
              status: string; likes_json: string | null; rights_org: string | null }>();
   if (!header) return null;
-  if (request && !lyricsAllowedForClient(request, header.rights_org)) return null;
   // 行は同じ 1 行に JSON で入っているので、追加の読み取りは発生しない。
   return { ...buildLyricsPayload(songId, header, parseLines(header.lines_json)),
            status: header.status,
@@ -921,10 +904,6 @@ export async function handleLyrics(ctx: RouteContext): Promise<Response | null> 
       .first<{ source: string | null; updated_at: string; lines_json: string | null;
                status: string; likes_json: string | null; rights_org: string | null }>();
     if (!header) return error("lyrics not found", 404);
-    // Android 版は NexTone 管理曲だけ (lyricsAllowedForClient)。枠を消費する前に断る。
-    if (!lyricsAllowedForClient(request, header.rights_org)) {
-      return error("lyrics not licensed on this platform", LYRICS_NOT_LICENSED_STATUS);
-    }
     // 未公開 (draft) は admin にだけ返す。未認証は当然 admin ではないので 404。
     if (header.status !== "published" && !(user && (await checkIsAdmin(env, user.uid)))) {
       // 存在自体を伏せる必要はないが、公開済みと同じ 404 に揃える。

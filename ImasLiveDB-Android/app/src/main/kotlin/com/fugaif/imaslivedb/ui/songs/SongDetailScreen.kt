@@ -145,8 +145,7 @@ import uniffi.imas_core.splitCreditNames
 /**
  * 楽曲詳細。iOS の `SongSheetContent` (D2: ジャケ左 + 題・歌唱者・配信日を先に読ませる頭、
  * `ImasBoard` の数、`ImasTabs` 4 タブ [情報・歌唱/披露履歴/コミュニティ/歌詞]) の組み方を 1:1 で写す。
- * 歌詞タブは Android も NexTone 管理曲 (許諾取得済み) だけ表示できる ([SongLyricsTab] 参照)。
- * JASRAC 管理曲は Worker が 451 (NotLicensed) を返すので、そこだけ iOS と見せ方が分かれる。
+ * 歌詞タブは Android も JASRAC・NexTone の許諾を受けて表示する ([SongLyricsTab] 参照)。
  *
  * 関連楽曲/似ているタグ楽曲のタップ、タグタップでのタグ詳細表示は、
  * AppNavigation.kt の NavHost を経由せず画面内のローカル状態で完結させている

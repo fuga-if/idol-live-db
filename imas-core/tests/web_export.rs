@@ -266,7 +266,10 @@ fn fixture_covers_the_boundary_cases_the_web_needs() {
     assert!(no_art.app.deeplink.is_none());
     // 歌詞の断り書きは必ず出る。出さない設定 (LYRICS_ON_WEB=false) では
     // 取得先も許諾番号も配らず、案内文だけになる。
-    assert!(no_art.lyrics.note.contains("J260943703"));
+    assert!(no_art.lyrics.note.contains(
+        imas_core::web_export::content::web_license_number()
+            .unwrap_or(imas_core::web_export::content::APP_JASRAC_LICENSE_NUMBER)
+    ));
     if no_art.lyrics.available {
         assert!(no_art.lyrics.source_url.is_some(), "出すなら取得先が要る");
         assert!(no_art.lyrics.license_note.is_some(), "出すなら許諾番号の掲示が要る");
