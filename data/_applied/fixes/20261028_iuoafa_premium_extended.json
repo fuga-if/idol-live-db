@@ -1,0 +1,18 @@
+{
+ "title": "765×961 xRライブ IDOL ULTIMATE ONCE AND FOR ALL アソビストアプレミアム会員先行の受付期間延長",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20219.html / https://x.com/imas_official/status/2115035792053809194",
+ "fixes": [
+  {
+   "table": "ticket_sales",
+   "id": "ts_53770c58613a",
+   "fields": {
+    "ends_at": "2026-11-08 23:59",
+    "result_at": "2026-11-25 13:00",
+    "note": "ASOBI STORE 緊急メンテナンスに伴い受付期間を 10/28 23:59 → 11/8 23:59 に延長。結果発表 11/25 13:00〜、入金期間 11/25 13:00〜11/30 23:59 (公式ニュース 2026-10-27)",
+    "source_url": "https://idolmaster-official.jp/news/01_20219.html"
+   },
+   "note": "変更前: 受付 9/6 12:00〜10/28 23:59、結果発表 11/16 13:00。変更後: 受付 〜11/8 23:59、結果発表 11/25 13:00 (公式ニュース 01_20219)"
+  }
+ ]
+}
