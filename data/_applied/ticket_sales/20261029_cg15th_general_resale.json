@@ -1,0 +1,42 @@
+{
+ "title": "シンデレラ 15th ANNIVERSARY PARTY!!!! ~ for your ONE ~ 現地チケット 一般販売(先着)・公式リセール",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20192",
+ "ticket_sales": [
+  {
+   "event_id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "kind": "first_come",
+   "name": "一般販売(先着)",
+   "starts_at": "2026-11-07 12:00",
+   "ends_at": "2026-11-22 23:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/9dfacb31-3381-42b4-a804-de1812f1630c",
+   "note": "対象席種は全席指定 / 着席指定（SPラウンジ席・バルコニー席は完売のため取り扱いなし）。お一人様1公演につき2枚まで（複数公演申込可）。予定枚数に達し次第受付終了。11月20日00:00以降の支払いはクレジットカードのみ",
+   "source_url": "https://idolmaster-official.jp/news/01_20192",
+   "sort_order": 2
+  },
+  {
+   "event_id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "show_ids": ["sh_シンデレラガールズ_15周年_大型イベント_1"],
+   "kind": "resale",
+   "name": "公式リセール(11/28 DAY1)",
+   "starts_at": "2026-11-07 15:00",
+   "ends_at": "2026-11-23 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/d9c0888d-0868-4fd9-aede-a05ef1a87e2e",
+   "note": "対象席種はSPラウンジ席 / バルコニー席 / 全席指定 / 着席指定席。お一人様1公演につき2枚まで。購入希望者がいない場合は出品が成立しないことあり。リセール抽選中（毎日10:00〜抽選終了まで）は申込・キャンセル不可。11月21日00:00以降の支払いはクレジットカードのみ",
+   "source_url": "https://idolmaster-official.jp/news/01_20192",
+   "sort_order": 3
+  },
+  {
+   "event_id": "ev_シンデレラガールズ_15周年_大型イベント",
+   "show_ids": ["sh_シンデレラガールズ_15周年_大型イベント_2"],
+   "kind": "resale",
+   "name": "公式リセール(11/29 DAY2)",
+   "starts_at": "2026-11-07 15:00",
+   "ends_at": "2026-11-23 09:59",
+   "url": "https://asobiticket2.asobistore.jp/receptions/203a03a6-56ca-4c39-b121-1ed44b332e83",
+   "note": "対象席種はSPラウンジ席 / バルコニー席 / 全席指定 / 着席指定席。お一人様1公演につき2枚まで。購入希望者がいない場合は出品が成立しないことあり。リセール抽選中（毎日10:00〜抽選終了まで）は申込・キャンセル不可。11月21日00:00以降の支払いはクレジットカードのみ",
+   "source_url": "https://idolmaster-official.jp/news/01_20192",
+   "sort_order": 4
+  }
+ ]
+}

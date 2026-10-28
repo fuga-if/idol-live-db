@@ -1,0 +1,22 @@
+{
+ "title": "灯里愛夏 BIRTHDAY ONLINE LIVE 2026 延期公演 (2026-10-28) のセットリスト",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20193 (公式セットリスト画像 MUSIC SETLIST M01〜M08)",
+ "show_id": "sh_灯里愛夏_birthday_online_live_2026_1",
+ "all_performers": [
+  "876_灯里愛夏",
+  "876_上水流宇宙",
+  "876_サラ_レトラ_オリヴェイラ_ウタガワ",
+  "cg_関裕美"
+ ],
+ "songs": [
+  {"position": 1, "song_id": "876_ともすれば中略アイドル", "performers": ["876_灯里愛夏"]},
+  {"position": 2, "song_id": "876_虹の王国の物語エトワールを目指して", "performers": ["876_灯里愛夏"]},
+  {"position": 3, "song_id": "cg_モーレツ世直しギルティ", "performers": ["876_灯里愛夏", "876_上水流宇宙", "876_サラ_レトラ_オリヴェイラ_ウタガワ"]},
+  {"position": 4, "song_id": "876_エキセントリックラブ", "performers": ["876_灯里愛夏"]},
+  {"position": 5, "song_id": "cg_楽園", "performers": ["876_灯里愛夏", "cg_関裕美"]},
+  {"position": 6, "song_id": "876_はらぺこ泣き虫", "performers": ["876_灯里愛夏"]},
+  {"position": 7, "song_id": "cg_サインオブホープ", "performers": ["876_灯里愛夏"]},
+  {"position": 8, "song_id": "876_あっちこっちプリンセス", "performers": ["876_灯里愛夏"]}
+ ]
+}

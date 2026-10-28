@@ -1,0 +1,28 @@
+{
+ "title": "一旦愛して♡ (ミリシタ プラチナスターツアービンゴ ～一旦愛して♡～) の追加 (issue #351)",
+ "author": "daily-data-crawl",
+ "source": "https://x.com/imasml_theater/status/2100828414986903582 (2026-09-18 ミリシタ公式 X: 歌唱 白石紬・望月杏奈・春日未来・矢吹可奈) / Apple Music lookup id=6804979540 (album 6804979539「一旦愛して♡ - Single」℗ 2026 Lantis、配信 2026-09-27) / 作詞・作曲・編曲は公式に記載が見つからず、ミリシタ攻略 wiki (https://gamerch.com/imasml-theater/1015192) と投稿 (issue #351) の値。投稿の「左高陵平」は「佐高陵平」の誤記として訂正",
+ "songs": [
+  {
+   "id": "ml_一旦愛して",
+   "title": "一旦愛して♡",
+   "title_kana": "いったんあいして",
+   "brand_id": "ml",
+   "song_type": "unit",
+   "release_date": "2026-09-18",
+   "streaming_date": "2026-09-27",
+   "cd_series": "一旦愛して♡ - Single",
+   "singer_label": "白石紬、望月杏奈、春日未来、矢吹可奈",
+   "lyricist": "佐高陵平 (Hifumi,inc.)",
+   "composer": "佐高陵平 (Hifumi,inc.)",
+   "arranger": "佐高陵平 (Hifumi,inc.)",
+   "duration_sec": 173,
+   "apple_music_id": "6804979540",
+   "apple_music_album_id": "6804979539",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ec/2f/ac/ec2fac53-40c3-a8cd-7d20-4404fa992efa/4540774750580.png/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8e/dd/b5/8eddb5ee-e5b9-8ea6-daee-b1b44c1e4e4e/mzaf_14235163444742337624.plus.aac.p.m4a",
+   "first_appearance_note": "ミリシタ イベント「プラチナスターツアービンゴ ～一旦愛して♡～」(2026-09-18) にて実装",
+   "original_singers": ["ml_白石紬", "ml_望月杏奈", "ml_春日未来", "ml_矢吹可奈"]
+  }
+ ]
+}

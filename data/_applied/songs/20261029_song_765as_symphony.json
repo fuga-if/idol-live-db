@@ -1,0 +1,30 @@
+{
+ "title": "SYMPHONY (アイドルマスター TOURS 実装楽曲) の追加",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20213 (2026-10-28 公式ニュース: 『SYMPHONY』天海春香、島村卯月、春日未来 / 作詞 yura・作曲 滝澤俊輔（TRYTONELABO）・編曲 EFFY / 10月29日0時配信開始、TOURS S2弾から登場) / Apple Music lookup id=6824776029 (album 6824776026, isStreamable)",
+ "songs": [
+  {
+   "id": "765as_symphony",
+   "title": "SYMPHONY",
+   "title_kana": "しんふぉにー",
+   "brand_id": "765as",
+   "song_type": "unit",
+   "release_date": "2026-10-29",
+   "streaming_date": "2026-10-29",
+   "cd_series": "SYMPHONY - Single",
+   "singer_label": "天海春香、島村卯月、春日未来",
+   "lyricist": "yura",
+   "composer": "滝澤俊輔（TRYTONELABO）",
+   "arranger": "EFFY",
+   "duration_sec": 314,
+   "apple_music_id": "6824776029",
+   "apple_music_album_id": "6824776026",
+   "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/d1/93/0e/d1930ee0-1493-f953-6f7b-72b1e9d2ce61/PA00236663_0_257238_jacket.jpg/600x600bb.jpg",
+   "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ee/ce/3b/eece3b04-8e1e-a563-3d09-c70984a9843c/mzaf_445821438478348265.plus.aac.p.m4a",
+   "joint_brand_ids": "cg,ml",
+   "is_collab": 1,
+   "note": "アイドルマスター TOURS オリジナル楽曲",
+   "original_singers": ["765as_天海春香", "cg_島村卯月", "ml_春日未来"]
+  }
+ ]
+}
