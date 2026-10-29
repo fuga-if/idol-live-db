@@ -1,0 +1,229 @@
+{
+  "reviewed_on": "2026-10-29",
+  "issue_count": 24,
+  "song_count": 11,
+  "correction_count": 32,
+  "verification": [
+    "本番APIから保存後の全対象曲を再取得し本文・行数・公開状態を確認",
+    "既存の対応行ID・クラップ・歌割り・コールID・再生位置・ここ好き数を確認",
+    "本文変更で消える3行の行内歌割りを復元。1文字挿入後の境界位置を補正"
+  ],
+  "songs": [
+    {
+      "song_id": "765as_空",
+      "issues": [
+        350,
+        345,
+        344
+      ],
+      "sources": [
+        "https://www.joysound.com/web/search/song/120269",
+        "https://www.uta-net.com/song/275778/"
+      ],
+      "structural": [
+        "繰り返し記号を既存サビの実際の行へ展開"
+      ],
+      "correction_count": 3,
+      "verified": true,
+      "before_lines": 47,
+      "after_lines": 55,
+      "updated_at": 1793237219
+    },
+    {
+      "song_id": "ml_born_on_dream_hanabinight",
+      "issues": [
+        318,
+        317,
+        306,
+        299,
+        294,
+        288,
+        283,
+        282
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/252827/",
+        "https://utaten.com/lyric/mi18072431/"
+      ],
+      "structural": [
+        "2番に誤って重複した3行を削除"
+      ],
+      "correction_count": 5,
+      "verified": true,
+      "before_lines": 61,
+      "after_lines": 58,
+      "updated_at": 1793237220
+    },
+    {
+      "song_id": "cg_情熱ファンファンファーレ",
+      "issues": [
+        297,
+        296
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/239162/",
+        "https://utaten.com/lyric/yc17110826/"
+      ],
+      "structural": [],
+      "correction_count": 3,
+      "verified": true,
+      "before_lines": 96,
+      "after_lines": 96,
+      "updated_at": 1793237220
+    },
+    {
+      "song_id": "sc_naraku",
+      "issues": [
+        293
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/387421/",
+        "https://utaten.com/lyric/qa60133041/"
+      ],
+      "structural": [],
+      "correction_count": 1,
+      "verified": true,
+      "before_lines": 34,
+      "after_lines": 34,
+      "updated_at": 1793237221
+    },
+    {
+      "song_id": "sidem_cupids",
+      "issues": [
+        286
+      ],
+      "sources": [
+        "https://api.uta-net.com/song/244140/",
+        "https://www.shazam.com/song/1656238660/cupids"
+      ],
+      "structural": [],
+      "correction_count": 3,
+      "verified": true,
+      "before_lines": 62,
+      "after_lines": 62,
+      "updated_at": 1793237222
+    },
+    {
+      "song_id": "sidem_ring_ding_wrong",
+      "issues": [
+        284
+      ],
+      "sources": [
+        "https://utaten.com/lyric/mi26073001/",
+        "https://www.uta-net.com/global/en/lyric/397201/"
+      ],
+      "structural": [],
+      "correction_count": 3,
+      "verified": true,
+      "before_lines": 46,
+      "after_lines": 46,
+      "updated_at": 1793237222
+    },
+    {
+      "song_id": "sidem_cast_a_spell",
+      "issues": [
+        280
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/384579/",
+        "https://www.oricon.co.jp/prof/944067/lyrics/263836/"
+      ],
+      "structural": [],
+      "correction_count": 3,
+      "verified": true,
+      "before_lines": 51,
+      "after_lines": 51,
+      "updated_at": 1793237223
+    },
+    {
+      "song_id": "sidem_yellow",
+      "issues": [
+        278,
+        277
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/387418/"
+      ],
+      "structural": [],
+      "correction_count": 2,
+      "verified": true,
+      "before_lines": 26,
+      "after_lines": 26,
+      "updated_at": 1793237223
+    },
+    {
+      "song_id": "ml_想い出はクリアスカイ",
+      "issues": [
+        270
+      ],
+      "sources": [
+        "https://www.uta-net.com/song/246444/"
+      ],
+      "structural": [],
+      "correction_count": 1,
+      "verified": true,
+      "before_lines": 26,
+      "after_lines": 26,
+      "updated_at": 1793237224
+    },
+    {
+      "song_id": "sidem_アニマフォルトゥナ",
+      "issues": [
+        268
+      ],
+      "sources": [
+        "https://www.uta-net.com/movie/399558/"
+      ],
+      "structural": [],
+      "correction_count": 4,
+      "verified": true,
+      "before_lines": 77,
+      "after_lines": 77,
+      "updated_at": 1793237225
+    },
+    {
+      "song_id": "sc_銀翼のアレジアンス_-blade_of_truth-",
+      "issues": [
+        266,
+        265,
+        264
+      ],
+      "sources": [
+        "https://j-lyric.net/artist/a05ec3e/l068002.html",
+        "https://www.uta-net.com/movie/389541/"
+      ],
+      "structural": [],
+      "correction_count": 4,
+      "verified": true,
+      "before_lines": 90,
+      "after_lines": 90,
+      "updated_at": 1793237225
+    }
+  ],
+  "issues_closed": [
+    264,
+    265,
+    266,
+    268,
+    270,
+    277,
+    278,
+    280,
+    282,
+    283,
+    284,
+    286,
+    288,
+    293,
+    294,
+    296,
+    297,
+    299,
+    306,
+    317,
+    318,
+    344,
+    345,
+    350
+  ]
+}
