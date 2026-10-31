@@ -23,6 +23,11 @@ import SwiftUI
 //                  - 担当を大きく (oshi): 左半分に担当の画像を大きく (1 人なら 1 枚、複数なら分けて。先頭ほど
 //                    大きな枠。並びはコアの `CardFace.heroIdolIds`)。画像の無い担当は大きな判子と名前。
 //                    右に名前・P歴・名刺の写真・ハンドル。境目に担当色の細い縦の線。
+//                  - チケット (ticket): 右に切り取り線と担当色の半券 (名刺の写真と P歴の年)。
+//                  - 縦書き (vertical): 明朝の名前を右に縦に大きく、左に名刺の写真・担当・ハンドル。
+//                  - 墨一色 (sumi): 罫も帯も無い紙に名前を大きく。担当色は名前の下の点 1 つだけ。
+//                  - 夜公演 (night): 黒い紙に白い文字。担当色は上の細い線と写真の縁と判子だけ。
+//                  帯・罫・判子を刷る色 (`ink.accent`) は名刺の刷る色 (コアの `CardFace.accentIdolId`)。
 // ImasMeishiBack   裏。QR (交換用か自分の QR)・参加公演数・回収曲数・「YYYY.MM.DD 時点」。
 // ImasMeishiStamp  表に並べる担当 1 人 (写真があれば写真、無ければ判子)。
 // =============================================================================
@@ -45,16 +50,30 @@ struct ImasMeishiInk {
     var accent: Color
     /// 担当の色の帯の上の文字。
     var onAccent: Color
+    /// 夜公演 (黒い紙) で刷る担当の色。暗い紙の上でも沈まない色。
+    var nightAccent: Color? = nil
 
     /// 画面の名刺。ダークでも紙は明るいチケットの紙 (QR を読めるように・紙の名刺に見えるように)。
     /// 担当の色は明るい紙の上の色で引く。
     static func screen(seed: String?, brand: String?) -> ImasMeishiInk {
         let theme = ImasTheme.derive(seed: seed, brand: brand, scheme: .light)
+        let night = ImasTheme.derive(seed: seed, brand: brand, scheme: .dark)
         return ImasMeishiInk(
             paper: DS.ticket, ink: DS.ticketInk, sub: DS.ticketSub, line: DS.ticketDash,
             accent: theme.isNeutral ? DS.ticketInk : theme.accent,
-            onAccent: theme.isNeutral ? DS.ticket : theme.onAccent
+            onAccent: theme.isNeutral ? DS.ticket : theme.onAccent,
+            nightAccent: night.isNeutral ? nil : night.accent
         )
+    }
+
+    /// 夜公演の黒い紙と白い墨 (紙に刷る画像も画面も同じ固定色。担当の色だけ受け継ぐ)。
+    var night: ImasMeishiInk {
+        let paper = Color(.sRGB, red: 0x17 / 255, green: 0x16 / 255, blue: 0x1A / 255)
+        let white = Color(.sRGB, red: 0xF4 / 255, green: 0xF1 / 255, blue: 0xEA / 255)
+        let accent = nightAccent ?? white
+        return ImasMeishiInk(paper: paper, ink: white,
+                             sub: Color(.sRGB, red: 0xA3 / 255, green: 0x9F / 255, blue: 0x98 / 255),
+                             line: white.opacity(0.22), accent: accent, onAccent: paper, nightAccent: accent)
     }
 }
 
@@ -86,7 +105,7 @@ struct ImasMeishiOshi: Identifiable {
 // MARK: - 表
 
 struct ImasMeishiFront: View {
-    enum Look { case pass, formal, pop, oshi }
+    enum Look { case pass, ticket, formal, vertical, pop, sumi, night, oshi }
 
     var look: Look = .pass
     let name: String
@@ -108,9 +127,31 @@ struct ImasMeishiFront: View {
     var portrait: ImasMeishiPicture? = nil
     /// 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
     var portraitRound = false
-    let ink: ImasMeishiInk
+    /// 渡された紙と墨 (夜公演はここから黒い紙を組む。描くときは `ink`)。
+    private let baseInk: ImasMeishiInk
     /// 紙の上の寸法を何倍で描くか (画面は幅に合わせる)。
     var scale: CGFloat = 1
+
+    init(look: Look = .pass, name: String, sinceImprint: String? = nil, oshiGroups: [ImasMeishiOshiGroup] = [],
+         hero: [ImasMeishiOshi] = [], oshiCaption: String? = nil, moreOshi: Int = 0, handle: String? = nil,
+         nameFont: String? = nil, portrait: ImasMeishiPicture? = nil, portraitRound: Bool = false,
+         ink: ImasMeishiInk, scale: CGFloat = 1) {
+        self.look = look
+        self.name = name
+        self.sinceImprint = sinceImprint
+        self.oshiGroups = oshiGroups
+        self.hero = hero
+        self.oshiCaption = oshiCaption
+        self.moreOshi = moreOshi
+        self.handle = handle
+        self.nameFont = nameFont
+        self.portrait = portrait
+        self.portraitRound = portraitRound
+        self.baseInk = ink
+        self.scale = scale
+    }
+
+    private var ink: ImasMeishiInk { look == .night ? baseInk.night : baseInk }
 
     private func p(_ v: CGFloat) -> CGFloat { v * scale }
 
@@ -118,8 +159,12 @@ struct ImasMeishiFront: View {
         Group {
             switch look {
             case .pass: passBody
+            case .ticket: ticketBody
             case .formal: formalBody
+            case .vertical: verticalBody
             case .pop: popBody
+            case .sumi: sumiBody
+            case .night: nightBody
             case .oshi: oshiBody
             }
         }
@@ -205,6 +250,177 @@ struct ImasMeishiFront: View {
             .padding(.vertical, p(12))
         }
         .overlay(Rectangle().strokeBorder(ink.ink, lineWidth: p(5)))
+    }
+
+    // MARK: チケット (右に切り取り線と担当色の半券)
+
+    /// 半券の幅。
+    private static let stubWidth: CGFloat = 92
+
+    private var ticketBody: some View {
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                imprint("ADMIT ONE PRODUCER", design: .monospaced)
+                Spacer(minLength: p(4))
+                nameText(size: 25)
+                oshiBlock(stamp: 20, font: .system(size: p(8.5), weight: .regular, design: .serif),
+                          labelFont: .system(size: p(6), weight: .semibold, design: .monospaced))
+                    .padding(.top, p(6))
+                Spacer(minLength: p(4))
+                footer(design: .monospaced, weight: .medium)
+            }
+            .padding(.leading, p(20))
+            .padding(.trailing, p(14))
+            .padding(.vertical, p(16))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            // 切り取り線 (上下に半円の切り欠き)。
+            ZStack {
+                Rectangle()
+                    .stroke(ink.line, style: StrokeStyle(lineWidth: max(p(1), 0.5), dash: [p(3), p(2.5)]))
+                    .frame(width: max(p(1), 0.5))
+                    .padding(.vertical, p(10))
+                VStack {
+                    Circle().strokeBorder(ink.line, lineWidth: max(p(0.75), 0.5))
+                        .frame(width: p(12), height: p(12)).offset(y: -p(6))
+                    Spacer()
+                    Circle().strokeBorder(ink.line, lineWidth: max(p(0.75), 0.5))
+                        .frame(width: p(12), height: p(12)).offset(y: p(6))
+                }
+            }
+            .frame(width: p(12))
+            VStack(spacing: p(8)) {
+                portraitView(border: ink.onAccent, width: p(1.5), side: 58)
+                Spacer(minLength: 0)
+                Text("SINCE")
+                    .font(.system(size: p(6), weight: .semibold, design: .monospaced))
+                    .tracking(p(1.4))
+                    .foregroundStyle(ink.onAccent.opacity(0.8))
+                Text(sinceYear ?? "—")
+                    .font(.system(size: p(20), weight: .heavy, design: .monospaced).monospacedDigit())
+                    .foregroundStyle(ink.onAccent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .padding(.vertical, p(16))
+            .padding(.horizontal, p(10))
+            .frame(width: p(Self.stubWidth))
+            .frame(maxHeight: .infinity)
+            .background(ink.accent)
+        }
+    }
+
+    /// P歴の年だけ (「SINCE 2014」の「2014」)。
+    private var sinceYear: String? {
+        sinceImprint?.split(separator: " ").last.map(String.init)
+    }
+
+    // MARK: 縦書き (明朝の名前を右に縦に)
+
+    private var verticalBody: some View {
+        HStack(alignment: .top, spacing: p(14)) {
+            VStack(alignment: .leading, spacing: p(8)) {
+                portraitView(border: ink.line, width: p(0.5), side: 64)
+                Spacer(minLength: 0)
+                oshiBlock(stamp: 18, font: .system(size: p(8), weight: .regular, design: .serif),
+                          labelFont: .system(size: p(6), weight: .medium, design: .serif))
+                footer(design: .serif, weight: .regular)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            HStack(alignment: .top, spacing: p(8)) {
+                if let sinceYear {
+                    ImasMeishiVerticalText(text: "\(Self.kanjiDigits(sinceYear))年就任", font: .system(size: p(7.5), weight: .regular,
+                                                                                     design: .serif),
+                                           color: ink.sub, step: p(9.5))
+                        .padding(.top, p(4))
+                }
+                Rectangle().fill(ink.accent).frame(width: max(p(1), 0.5))
+                verticalName
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        .padding(.horizontal, p(22))
+        .padding(.vertical, p(18))
+    }
+
+    /// 縦書きの年は漢数字で (「2014」→「二〇一四」。算用数字は縦に積むと読みにくい)。
+    private static func kanjiDigits(_ s: String) -> String {
+        let map: [Character: Character] = ["0": "〇", "1": "一", "2": "二", "3": "三", "4": "四",
+                                           "5": "五", "6": "六", "7": "七", "8": "八", "9": "九"]
+        return String(s.map { map[$0] ?? $0 })
+    }
+
+    /// 縦に組む名前。紙の高さに収まる大きさに縮める (長い名前は 2 列に折る)。
+    private var verticalName: some View {
+        let chars = Array(name)
+        let room = ImasMeishi.canvas.height - 36
+        let perColumn = max(1, Int((room / 30).rounded(.down)))
+        let columns = chars.count > perColumn * 2 ? 2 : (chars.count > perColumn ? 2 : 1)
+        let rows = Int((Double(chars.count) / Double(columns)).rounded(.up))
+        let size = min(30, room / CGFloat(max(rows, 1)) * 0.92)
+        let parts: [String] = (0..<columns).map { c in
+            String(chars[min(c * rows, chars.count)..<min((c + 1) * rows, chars.count)])
+        }
+        return HStack(alignment: .top, spacing: p(size * 0.25)) {
+            // 縦書きは右の列から読む。
+            ForEach(Array(parts.enumerated().reversed()), id: \.offset) { _, part in
+                ImasMeishiVerticalText(text: part, font: .imasCardNameFixed(nameFont, size: p(size)),
+                                       color: ink.ink, step: p(size * 1.04))
+            }
+        }
+    }
+
+    // MARK: 墨一色 (名前を大きく、担当色は点 1 つ)
+
+    private var sumiBody: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                imprint("PRODUCER", design: .serif, tracking: 2)
+                Spacer(minLength: p(8))
+                portraitView(border: ink.line, width: p(0.5), side: 42)
+            }
+            Spacer(minLength: 0)
+            nameText(size: 32, tracking: 2)
+            Circle().fill(ink.accent).frame(width: p(5), height: p(5)).padding(.top, p(8))
+            Spacer(minLength: 0)
+            HStack(alignment: .bottom) {
+                oshiBlock(stamp: 15, font: .system(size: p(7.5), weight: .regular, design: .serif),
+                          labelFont: .system(size: p(5.5), weight: .medium, design: .serif))
+                Spacer(minLength: p(6))
+                if let handle {
+                    Text(handle)
+                        .font(.system(size: p(8), weight: .regular, design: .serif))
+                        .foregroundStyle(ink.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+        }
+        .padding(.horizontal, p(28))
+        .padding(.vertical, p(20))
+    }
+
+    // MARK: 夜公演 (黒い紙・白い文字)
+
+    private var nightBody: some View {
+        VStack(spacing: 0) {
+            Rectangle().fill(ink.accent).frame(height: p(3))
+            HStack(alignment: .center, spacing: p(14)) {
+                VStack(alignment: .leading, spacing: 0) {
+                    imprint("TONIGHT'S PRODUCER", design: .monospaced, tracking: 1.6)
+                    Spacer(minLength: p(4))
+                    nameText(size: 26)
+                    oshiBlock(stamp: 22, font: .system(size: p(8.5), weight: .regular),
+                              labelFont: .system(size: p(6), weight: .semibold, design: .monospaced))
+                        .padding(.top, p(6))
+                    Spacer(minLength: p(4))
+                    footer(design: .monospaced, weight: .medium)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                portraitView(border: ink.accent, width: p(1.5))
+            }
+            .padding(.horizontal, p(20))
+            .padding(.vertical, p(16))
+        }
     }
 
     // MARK: 担当を大きく (左半分に担当の画像)
@@ -562,5 +778,36 @@ struct ImasMeishiPictureView<Fallback: View>: View {
 extension ImasMeishiPictureView where Fallback == Color {
     init(picture: ImasMeishiPicture, contentMode: ContentMode = .fill) {
         self.init(picture: picture, contentMode: contentMode, fallback: DS.surface2)
+    }
+}
+
+// MARK: - 縦書き
+
+/// 1 字ずつ縦に積む縦書き。長音・ダッシュ・波線は 90° 回し、小書きの仮名は右上に寄せる。
+struct ImasMeishiVerticalText: View {
+    let text: String
+    let font: Font
+    let color: Color
+    /// 1 字の送り (字の高さ)。
+    let step: CGFloat
+
+    private static let rotated: Set<Character> = ["ー", "－", "—", "‐", "-", "〜", "～", "…", "‥", "(", ")", "（", "）",
+                                                   "「", "」", "[", "]"]
+    private static let small: Set<Character> = ["ぁ", "ぃ", "ぅ", "ぇ", "ぉ", "っ", "ゃ", "ゅ", "ょ", "ゎ",
+                                                 "ァ", "ィ", "ゥ", "ェ", "ォ", "ッ", "ャ", "ュ", "ョ", "ヮ", "、", "。"]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(text.enumerated()), id: \.offset) { _, c in
+                Text(String(c))
+                    .font(font)
+                    .foregroundStyle(color)
+                    .rotationEffect(.degrees(Self.rotated.contains(c) ? 90 : 0))
+                    .offset(x: Self.small.contains(c) ? step * 0.12 : 0, y: Self.small.contains(c) ? -step * 0.12 : 0)
+                    .frame(width: step, height: step)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
     }
 }

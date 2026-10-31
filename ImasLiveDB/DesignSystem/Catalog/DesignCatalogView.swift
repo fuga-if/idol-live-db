@@ -256,7 +256,7 @@ private struct VenueRowsPage: View {
                              subtitle: "コミュニティで表示される名前", onOpen: {})
                 }
             }
-            ImasSection("P名刺", style: .small, footer: "名刺は 91:55 の横長の紙 1 枚 (紙に刷る画像と同じ組み)。表は名前・P歴・名刺の写真・担当 (写真か判子をブランドごとにまとめ、5 人まで全員。ブランドの略称は「刷る」を選んだ名刺だけ)・ハンドル 1 つ。押すと裏返って QR・参加公演数・回収曲数・日付。デザインは 4 つ (入場証・かしこまった名刺・ポップ・担当を大きく) と自作の画像。担当を大きく は左半分に担当の画像を大きく (無い担当は大きな判子)。紙はダークでも明るいチケットの紙。収まらない詳細 (ひとこと・担当・リンク・受け取った名刺の記録) は名刺の下に並べる。") {
+            ImasSection("P名刺", style: .small, footer: "名刺は 91:55 の横長の紙 1 枚 (紙に刷る画像と同じ組み)。表は名前・P歴・名刺の写真・担当 (写真か判子をブランドごとにまとめ、5 人まで全員。ブランドの略称は「刷る」を選んだ名刺だけ)・ハンドル 1 つ。押すと裏返って QR・参加公演数・回収曲数・日付。デザインは 8 つ (入場証・チケット・かしこまった名刺・縦書き・ポップ・墨一色・夜公演・担当を大きく) と自作の画像。刷る色は先頭の担当・載せた担当の誰か・墨から選ぶ。担当を大きく は左半分に担当の画像を大きく (無い担当は大きな判子)。紙はダークでも明るいチケットの紙。収まらない詳細 (ひとこと・担当・リンク・受け取った名刺の記録) は名刺の下に並べる。") {
                 let lead = ImasProducerCard(
                     sinceImprint: "SINCE 2014", name: "ふがP", message: "現地派・Pライブ皆勤目指してます",
                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
@@ -277,6 +277,18 @@ private struct VenueRowsPage: View {
                     ImasProducerCard(design: .pop, sinceImprint: "SINCE 2020", name: "みどりP",
                                      oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups,
                                      handle: "@midori_p", nameFont: "MochiyPopOne-Regular")
+                    ImasProducerCard(design: .ticket, sinceImprint: "SINCE 2014", name: "ふがP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, handle: "@fuga_p",
+                                     portraitURL: URL(fileURLWithPath: "/dev/null"))
+                    ImasProducerCard(design: .vertical, sinceImprint: "SINCE 2011", name: "かるたP",
+                                     oshi: [Sample.cardOshi[1]], faceGroups: [.init(label: "", oshi: [Sample.cardOshi[1]])],
+                                     faceCaption: "如月千早 担当", handle: "@karuta_p", nameFont: "ZenOldMincho-Black")
+                    ImasProducerCard(design: .sumi, sinceImprint: "SINCE 2020", name: "みどりP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, handle: "@midori_p",
+                                     nameFont: "ZenOldMincho-Black", sumiInk: true)
+                    ImasProducerCard(design: .night, sinceImprint: "SINCE 2014", name: "ふがP",
+                                     oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, handle: "@fuga_p",
+                                     accentOshiId: Sample.cardOshi.last?.id)
                     ImasProducerCard(design: .oshi, sinceImprint: "SINCE 2014", name: "ふがP",
                                      oshi: Sample.cardOshi, faceGroups: Sample.cardFaceGroups, heroOshi: Sample.cardOshi,
                                      handle: "@fuga_p")
@@ -1570,8 +1582,12 @@ private struct CatalogDesignPicker: View {
                 let look: ImasCardDesignPicker.Option.Look
                 switch info.design {
                 case .pass: look = .pass
+                case .ticket: look = .ticket
                 case .formal: look = .formal
+                case .vertical: look = .vertical
                 case .pop: look = .pop
+                case .sumi: look = .sumi
+                case .night: look = .night
                 case .oshi: look = .oshi(nil)
                 case .custom: look = .face(nil)
                 }

@@ -1300,6 +1300,14 @@ enum DatabaseMigrations {
                 """)
         }
 
+        // v52: 名刺の刷る色 (コアの `cardInkKey`)。NULL は先頭の担当の色。**端末ローカル唯一データ**なので足すだけ。
+        migrator.registerMigration("v52_producer_card_ink") { db in
+            let cols = try Row.fetchAll(db, sql: "PRAGMA table_info(my_producer_card)").map { $0["name"] as String? }
+            if !cols.contains("ink") {
+                try db.execute(sql: "ALTER TABLE my_producer_card ADD COLUMN ink TEXT")
+            }
+        }
+
         return migrator
     }
 }

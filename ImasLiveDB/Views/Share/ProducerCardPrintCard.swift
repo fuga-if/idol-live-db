@@ -24,7 +24,8 @@ enum ProducerCardPrint {
     static func colors(seed: String?) -> ImasMeishiInk {
         ImasMeishiInk(paper: paper, ink: ink, sub: sub, line: sub.opacity(0.35),
                       accent: seed == nil ? ink : ShareCardPalette(seed: seed).accent,
-                      onAccent: seed == nil ? paper : ink)
+                      onAccent: seed == nil ? paper : ink,
+                      nightAccent: seed == nil ? nil : ShareCardPalette(seed: seed).accent)
     }
 
     /// 担当の判子の色。

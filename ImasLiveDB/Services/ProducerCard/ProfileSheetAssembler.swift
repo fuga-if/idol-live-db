@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-/// P名刺の画像 (SNS に貼る履歴書の様式) に載る担当 1 人 (押印欄の判子と担当の行)。画像は焼く前に読んでおく
+/// P名刺の画像 (SNS に貼る P履歴書) に載る担当 1 人 (担当の行)。画像は焼く前に読んでおく
 /// (ImageRenderer は画像の読み込みを待たない)。
 struct ProfileSheetOshi: Identifiable {
     let id: String
@@ -17,6 +17,7 @@ struct ProfileSheetOshi: Identifiable {
 struct ProfileSheetMaterials {
     /// 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。
     var record: ProfileSheetRecord
+    /// アプリの担当すべて (並べ方はコアの `ProfileSheetLayout.oshiGroups`)。
     var oshi: [ProfileSheetOshi] = []
     /// 証明写真の欄の画像 (P名刺の写真)。
     var portrait: UIImage?
@@ -26,9 +27,9 @@ struct ProfileSheetMaterials {
     var qr: UIImage?
 
     static let empty = ProfileSheetMaterials(
-        record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshiNames: [], oshiBrandIds: [], attended: [],
-                                   songCount: 0, brands: [], brandRolesJson: "", favoriteSongs: [], links: [],
-                                   hasPhoto: false, hasQr: false)
+        record: ProfileSheetRecord(today: "", name: "", sinceYear: nil, oshi: [], oshiBrandIds: [], attended: [],
+                                   songCount: 0, ownedReleaseCount: 0, brands: [], brandRolesJson: "",
+                                   favoriteSongs: [], message: "", links: [], hasPhoto: false, hasQr: false)
     )
 }
 
@@ -36,15 +37,12 @@ struct ProfileSheetMaterials {
 enum ProfileSheetAssembler {
     static func load(card: MyProducerCard) async -> ProfileSheetMaterials {
         let c = AppContainer.shared
-        let limits = producerCardLimits()
         let today = JSTDay.today()
-        // 載せる担当は名刺に載せた担当 (本人の選択。まだ選んでいなければブランドごとに 1 人を先に確保して
-        // 上限まで。規則はコア)。
-        let entries = await ProducerCardAssembler.oshiEntries(
-            (try? await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
-        )
-        let oshiIds = Array(producerCardOshiPickedIds(chosen: card.cardOshiChoice, oshi: entries)
-            .prefix(Int(limits.maxOshi)))
+        // 載せる担当はアプリの担当すべて (名刺に載せる担当の選択とは別。2026-10 ユーザー
+        // 「履歴書にはすべての担当を乗せたい」)。
+        let oshiIds = (try? await c.markReading.markedEntityIds(entity: .idol, kind: .myPick)) ?? []
+        let favoriteEvents = Set((try? await c.markReading.markedEntityIds(entity: .event, kind: .favorite)) ?? [])
+        let ownedReleases = (try? await c.markReading.markedEntityIds(entity: .release, kind: .owned))?.count ?? 0
         let attendedRefs = (try? await c.producerCards.attendedShowRefs()) ?? []
         let shows = (try? await c.producerCards.showInfos(ids: attendedRefs.map(\.showId))) ?? [:]
         let songCount = (try? await c.markReading.autoCollectedSongIds())?.count ?? 0
@@ -74,19 +72,22 @@ enum ProfileSheetAssembler {
             today: today,
             name: card.name,
             sinceYear: card.sinceYear.flatMap(UInt16.init(exactly:)),
-            oshiNames: oshiIdols.map(\.name),
+            oshi: oshiIdols.map { ProfileOshiInput(idolId: $0.id, name: $0.name, brandId: $0.brandId) },
             oshiBrandIds: brandRoleRecord.oshiBrandIds,
             attended: attendedRefs.compactMap { ref in
                 guard let info = shows[ref.showId] else { return nil }
                 return ProfileShowInput(showId: ref.showId, date: ref.date, title: info.label,
-                                        venue: info.venue, brandId: info.brandId)
+                                        venue: info.venue, brandId: info.brandId,
+                                        favorite: favoriteEvents.contains(info.eventId))
             },
             songCount: UInt32(songCount),
+            ownedReleaseCount: UInt32(ownedReleases),
             brands: brands.map {
                 ProfileBrandInput(id: $0.id, label: $0.shortName, color: $0.color, sortOrder: Int64($0.sortOrder))
             },
             brandRolesJson: BrandRoleStore.json,
             favoriteSongs: favorites.map(\.input),
+            message: card.message,
             links: card.links.map { cardLinkView(link: $0).display },
             hasPhoto: portrait != nil,
             hasQr: qr != nil

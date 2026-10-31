@@ -33,6 +33,8 @@ struct ProducerCardEditorView: View {
     @State private var confirmDiscard = false
 
     @State private var design: String
+    /// 刷る色 (nil は先頭の担当の色。選べるのはコアの `cardInkChoices`)。
+    @State private var ink: CardInk?
     @State private var qrUrl: String
     @State private var qrPick: PhotosPickerItem?
     @State private var qrNotice: String?
@@ -111,6 +113,7 @@ struct ProducerCardEditorView: View {
         _links = State(initialValue: card.links.map { EditableLink(kind: $0.kind, value: $0.value) })
         _hidden = State(initialValue: card.hidden)
         _design = State(initialValue: cardDesignKey(design: card.cardDesign))
+        _ink = State(initialValue: card.cardInk)
         _qrUrl = State(initialValue: card.qrUrl ?? "")
         _songs = State(initialValue: card.profile.songs)
         _oshiChoice = State(initialValue: card.cardOshiChoice)
@@ -154,7 +157,7 @@ struct ProducerCardEditorView: View {
                 if producerCardEmbedsCardId() {
                     cardIdCard
                     ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
-                } else if design != designs[0].key || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
+                } else if design != designs[0].key || ink != nil || !qrUrl.trimmingCharacters(in: .whitespaces).isEmpty {
                     ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                 }
                 ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
@@ -256,7 +259,12 @@ struct ProducerCardEditorView: View {
     }
 
     private var designCard: some View {
-        let lead = oshi.first
+        // 見本の札も刷る色で (墨なら色なし)。
+        let lead: Idol? = switch cardInkNormalize(ink: ink, oshiIdolIds: oshi.map(\.id)) {
+        case .sumi: nil
+        case let .oshi(idolId): oshi.first { $0.id == idolId } ?? oshi.first
+        case nil: oshi.first
+        }
         return ImasFormCard {
             ImasFormField(label: "名刺のデザイン", imprint: "DESIGN") {
                 ImasCardDesignPicker(
@@ -271,15 +279,64 @@ struct ProducerCardEditorView: View {
             }
             if selectedDesign.usesFaceImage {
                 faceField
+            } else {
+                inkField
             }
+        }
+    }
+
+    /// 刷る色: 名刺に載せる担当の誰の色で帯・罫・判子を刷るか、墨一色か (既定は先頭の担当)。
+    private var inkField: some View {
+        let byId = Dictionary(oshi.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let choices = cardInkChoices(ink: ink, oshiIdolIds: oshi.map(\.id))
+        return ImasFormField(label: "刷る色", imprint: "INK") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
+                    ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
+                        let idol = choice.idolId.flatMap { byId[$0] }
+                        Button {
+                            withAnimation(.imasStandard) { ink = choice.ink }
+                        } label: {
+                            VStack(spacing: DS.Space.gapTight) {
+                                Group {
+                                    if let idol {
+                                        ImasAvatar(label: idol.shortName, seed: idol.color,
+                                                   brand: brands[idol.brandId]?.color, size: 34,
+                                                   reservesPickRing: false)
+                                    } else {
+                                        Circle().fill(DS.ink)
+                                            .overlay(Text(choice.label).imasText(.rowLabel, color: DS.bg))
+                                            .frame(width: 34, height: 34)
+                                    }
+                                }
+                                .padding(3)
+                                .overlay(Circle().strokeBorder(choice.selected ? DS.ink : .clear, lineWidth: 2))
+                                Text(idol?.name ?? choice.label)
+                                    .imasText(.note, color: choice.selected ? DS.ink : DS.ink2)
+                                    .lineLimit(1)
+                                    .frame(maxWidth: 64)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(idol.map { "\($0.name)の色" } ?? "墨一色")
+                        .accessibilityAddTraits(choice.selected ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .sensoryFeedback(.selection, trigger: ink)
         }
     }
 
     private func look(_ design: CardDesign) -> ImasCardDesignPicker.Option.Look {
         switch design {
         case .pass: return .pass
+        case .ticket: return .ticket
         case .formal: return .formal
+        case .vertical: return .vertical
         case .pop: return .pop
+        case .sumi: return .sumi
+        case .night: return .night
         case .oshi: return .oshi(oshi.first.flatMap { CustomImageService.shared.imageURL(for: $0.id) })
         case .custom: return .face(facePreview[.front])
         }
@@ -635,6 +692,7 @@ struct ProducerCardEditorView: View {
             .compactMap { normalizeCardLink(link: CardLink(kind: $0.kind, value: $0.value)) }
         out.hidden = hidden
         out.design = design
+        out.cardInk = ink
         out.qrUrl = normalizeCardQrUrl(raw: qrUrl)
         out.profile.songs = songs
         out.cardOshiChoice = oshiChoice
@@ -664,7 +722,7 @@ struct ProducerCardEditorView: View {
     private var isDirty: Bool {
         name != card.name || message != card.message || sinceYear != card.sinceYear
             || hidden != card.hidden || draft.linksJson != card.linksJson
-            || draft.cardDesign != card.cardDesign || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
+            || draft.cardDesign != card.cardDesign || draft.ink != card.ink || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
             || songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != nil
     }
 

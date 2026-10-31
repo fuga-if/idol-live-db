@@ -45,6 +45,14 @@ struct ImasProducerCard: View {
         case pop
         /// 担当を大きく。左半分に担当の画像を大きく、右に名前・P歴・ハンドル。
         case oshi
+        /// チケット。右に切り取り線と担当色の半券。
+        case ticket
+        /// 縦書き。明朝の名前を右に縦に。
+        case vertical
+        /// 墨一色。名前を大きく、担当色は点 1 つ。
+        case sumi
+        /// 夜公演。黒い紙に白い文字。
+        case night
         /// 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。
         case face(front: URL, back: URL?)
     }
@@ -125,6 +133,10 @@ struct ImasProducerCard: View {
     var portraitRound = false
     /// 名前の書体の PostScript 名 (コアの `CardDesignInfo.font.postscriptName`)。nil は見出しの書体。
     var nameFont: String? = nil
+    /// 帯・罫・判子を刷る色の担当 (コアの `CardFace.accentIdolId`)。nil は先頭の担当。
+    var accentOshiId: String? = nil
+    /// 墨一色で刷る (刷る色に墨を選んだ。コアの `CardFace.accentIdolId` が無い)。
+    var sumiInk = false
     /// 裏。nil なら返さない (自作の画像に裏の画像があればそれを裏にする)。
     var back: Back? = nil
     /// 押して裏返せる (編集画面の固定の見本は返さない)。
@@ -143,7 +155,9 @@ struct ImasProducerCard: View {
     var details: ImasProducerCardDetails { ImasProducerCardDetails(card: self) }
 
     private var ink: ImasMeishiInk {
-        ImasMeishiInk.screen(seed: oshi.first?.seed, brand: oshi.first?.brand)
+        if sumiInk { return ImasMeishiInk.screen(seed: nil, brand: nil) }
+        let accent = oshi.first { $0.id == accentOshiId } ?? oshi.first
+        return ImasMeishiInk.screen(seed: accent?.seed, brand: accent?.brand)
     }
 
     /// 裏があるか (自作の画像の裏、または QR の裏)。
@@ -220,7 +234,7 @@ struct ImasProducerCard: View {
         switch design {
         case let .face(url, _):
             imageSide(url, scale: scale)
-        case .pass, .formal, .pop, .oshi:
+        case .pass, .ticket, .formal, .vertical, .pop, .sumi, .night, .oshi:
             ImasMeishiFront(
                 look: look,
                 name: name,
@@ -246,6 +260,10 @@ struct ImasProducerCard: View {
         case .formal: return .formal
         case .pop: return .pop
         case .oshi: return .oshi
+        case .ticket: return .ticket
+        case .vertical: return .vertical
+        case .sumi: return .sumi
+        case .night: return .night
         case .pass, .face: return .pass
         }
     }
@@ -686,7 +704,7 @@ struct ImasPortraitCropper: View {
 struct ImasCardDesignPicker: View {
     struct Option: Identifiable, Hashable {
         enum Look: Hashable {
-            case pass, formal, pop
+            case pass, ticket, formal, vertical, pop, sumi, night
             /// 担当を大きく (先頭の担当の画像。無ければ判子)。
             case oshi(URL?)
             /// 自作の画像 (表の画像。まだ選んでいなければ nil)。
@@ -826,6 +844,63 @@ struct ImasCardDesignPicker: View {
             .background(DS.bg)
             .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.ink, lineWidth: 2))
+        case .ticket:
+            HStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: DS.Space.gapTight) {
+                    Text("ADMIT ONE").imasText(.imprint, color: DS.ink2)
+                    nameText
+                    Spacer(minLength: 0)
+                }
+                .padding(DS.Space.gap)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                Rectangle()
+                    .stroke(DS.line, style: StrokeStyle(lineWidth: 1, dash: [3, 2.5]))
+                    .frame(width: 1)
+                    .padding(.vertical, 6)
+                accent.frame(width: 34)
+            }
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+        case .vertical:
+            HStack(alignment: .top, spacing: DS.Space.gapTight) {
+                Spacer(minLength: 0)
+                accent.frame(width: 1)
+                ImasMeishiVerticalText(text: String(name.prefix(5)),
+                                       font: .imasCardName(option.postScriptName, size: 15),
+                                       color: DS.ink, step: 16)
+            }
+            .padding(DS.Space.gap)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+        case .sumi:
+            VStack(spacing: DS.Space.gap) {
+                Spacer(minLength: 0)
+                nameText
+                Circle().fill(accent).frame(width: 4, height: 4)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(DS.Space.gap)
+            .background(DS.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous).strokeBorder(DS.line, lineWidth: 1))
+        case .night:
+            let paper = ImasMeishiInk.screen(seed: nil, brand: nil).night
+            VStack(alignment: .leading, spacing: 0) {
+                accent.frame(height: 3)
+                Text(name)
+                    .font(.imasCardName(option.postScriptName, size: 18))
+                    .foregroundStyle(paper.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(DS.Space.gap)
+                Spacer(minLength: 0)
+            }
+            .background(paper.paper)
+            .clipShape(RoundedRectangle(cornerRadius: DS.rTag, style: .continuous))
         case let .oshi(url):
             HStack(spacing: 0) {
                 Color.clear
