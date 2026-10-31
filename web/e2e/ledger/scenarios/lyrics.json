@@ -1,0 +1,35 @@
+{
+  "area": "lyrics",
+  "scenarios": [
+    {
+      "id": "LYRICS-001",
+      "title": "曲ページの静的 HTML に歌詞は無く、許諾番号は最初から見える。ボタンを押すと 1 曲ぶんだけ取って表示し、本文へフォーカスを移す",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/SongLyrics.astro",
+        "op:src/components/SongLyrics.astro#<top>/button:click"
+      ]
+    },
+    {
+      "id": "LYRICS-002",
+      "title": "歌詞が取れなかったら案内を出し、ボタンをもう一度押せるようにする",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/components/SongLyrics.astro#<top>/button:click"
+      ]
+    },
+    {
+      "id": "LYRICS-003",
+      "title": "歌詞の本文はコピー・切り取り・ドラッグできない",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/components/SongLyrics.astro#<top>/body:copy",
+        "op:src/components/SongLyrics.astro#<top>/body:cut",
+        "op:src/components/SongLyrics.astro#<top>/body:dragstart"
+      ]
+    }
+  ]
+}

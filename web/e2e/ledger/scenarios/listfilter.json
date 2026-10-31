@@ -1,0 +1,47 @@
+{
+  "area": "listfilter",
+  "scenarios": [
+    {
+      "id": "FILTER-001",
+      "title": "曲・アイドル一覧で絞り込みを開き、並べ替え (ボタン・列見出し・昇順/降順) で行の並びが変わる",
+      "status": "pending",
+      "pendingReason": "フィクスチャに snapshot/tables.json (wasm が組み直す生テーブル) が無く、絞り込みが起動しない",
+      "covers": [
+        "island:src/components/ListFilterBar.astro",
+        "op:src/lib/listfilter/island.ts#mountListFilter/el.open:click",
+        "op:src/lib/listfilter/island.ts#renderSorts/button:click",
+        "op:src/lib/listfilter/island.ts#bindSortHeaders/b:click",
+        "op:src/lib/listfilter/island.ts#mountListFilter/el.dir:click"
+      ]
+    },
+    {
+      "id": "FILTER-002",
+      "title": "絞り込みの入力・選択・トグルで行が絞られ、URL に条件が載る",
+      "status": "pending",
+      "pendingReason": "フィクスチャに snapshot/tables.json が無い",
+      "covers": [
+        "op:src/lib/listfilter/island.ts#renderFields/c:input",
+        "op:src/lib/listfilter/island.ts#renderFields/c:change",
+        "op:src/lib/listfilter/island.ts#renderFields/b:click"
+      ]
+    },
+    {
+      "id": "FILTER-003",
+      "title": "リセットで条件が外れ、元の並びに戻る",
+      "status": "pending",
+      "pendingReason": "フィクスチャに snapshot/tables.json が無い",
+      "covers": [
+        "op:src/lib/listfilter/island.ts#mountListFilter/el.reset:click"
+      ]
+    },
+    {
+      "id": "FILTER-004",
+      "title": "ブラウザの戻る/進むで絞り込みの状態が URL どおりに戻る",
+      "status": "pending",
+      "pendingReason": "フィクスチャに snapshot/tables.json が無い",
+      "covers": [
+        "op:src/lib/listfilter/island.ts#mountListFilter/window:popstate"
+      ]
+    }
+  ]
+}

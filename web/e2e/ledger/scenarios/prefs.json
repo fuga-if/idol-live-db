@@ -1,0 +1,25 @@
+{
+  "area": "prefs",
+  "scenarios": [
+    {
+      "id": "PREF-001",
+      "title": "公演ページで歌唱者の表示 (アイドル名 / CV名 …) を切り替えるとその場で変わり、再読み込みしても残る",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/PerformerNamePref.astro",
+        "op:src/components/PerformerNamePref.astro#<top>/select:change"
+      ]
+    },
+    {
+      "id": "PREF-002",
+      "title": "公演ページでセトリの詳しさを切り替えるとその場で変わり、再読み込みしても残る",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/SetlistDisplayPref.astro",
+        "op:src/components/SetlistDisplayPref.astro#<top>/select:change"
+      ]
+    }
+  ]
+}

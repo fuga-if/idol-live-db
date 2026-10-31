@@ -1,0 +1,24 @@
+{
+  "area": "card",
+  "scenarios": [
+    {
+      "id": "CARD-001",
+      "title": "読めない名刺 (/p/#壊れた値) は「読み取れませんでした」と出す",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "route:/p/",
+        "island:src/pages/p/index.astro"
+      ]
+    },
+    {
+      "id": "CARD-002",
+      "title": "読める名刺 (/p/#…) は名前・担当・次の現場を台帳と突き合わせて描く",
+      "status": "pending",
+      "pendingReason": "正しい名刺の見本 (encode_producer_card の出力) をフィクスチャに出す仕組みがまだ無い",
+      "covers": [
+        "island:src/pages/p/index.astro"
+      ]
+    }
+  ]
+}

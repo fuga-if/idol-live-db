@@ -9,3 +9,7 @@ data/
 # wasm-pack の出力。Vite が glue の new URL(...) を解決して
 # content-hash 付きのアセットとして dist に出す。
 src/lib/fold/
+
+# Playwright (npm run e2e) の出力
+test-results/
+playwright-report/

@@ -20,11 +20,17 @@
     "check": "astro check && tsc --noEmit",
     "test": "vitest run",
     "test:fold": "vitest run tests/fold.parity.test.ts",
+    "e2e": "npm run e2e:ledger && npm run build:fixture && playwright test",
+    "e2e:changed": "node e2e/tools/changed.mjs",
+    "e2e:ledger": "node e2e/tools/ledger.mjs",
+    "e2e:inventory": "node e2e/tools/inventory.mjs --write",
+    "e2e:install": "playwright install chromium",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@astrojs/sitemap": "3.7.4",
+    "@playwright/test": "1.63.0",
     "astro": "7.3.1",
     "typescript": "~5.9.3",
     "vitest": "^5.0.0",

@@ -1,0 +1,76 @@
+{
+  "area": "pages",
+  "scenarios": [
+    {
+      "id": "PAGE-001",
+      "title": "フィクスチャのルート台帳にある全ページが 200 で開け、見出しとヘッダが出て、例外・console.error・CSP 違反が無い",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "route:/",
+        "route:/about/",
+        "route:/brands/",
+        "route:/brands/[brandId]/",
+        "route:/calendar/",
+        "route:/calendar/[month]/",
+        "route:/calls/[...slug]/",
+        "route:/events/",
+        "route:/events/[eventId]/",
+        "route:/events/brand/[brandId]/",
+        "route:/events/past/",
+        "route:/events/past/[year]/",
+        "route:/events/upcoming/",
+        "route:/idols/",
+        "route:/idols/[idolId]/",
+        "route:/idols/birth-month/[month]/",
+        "route:/idols/brand/[brandId]/",
+        "route:/ranking/",
+        "route:/ranking/brand/[brandId]/",
+        "route:/search/",
+        "route:/shows/[showId]/",
+        "route:/songs/",
+        "route:/songs/[songId]/",
+        "route:/songs/all/",
+        "route:/songs/brand/[brandId]/",
+        "route:/tags/[...slug]/",
+        "route:/tags/[tagId]/",
+        "route:/timeline/",
+        "route:/timeline/brand/[brandId]/",
+        "route:/units/",
+        "route:/units/[unitId]/",
+        "route:/units/brand/[brandId]/",
+        "route:/venues/",
+        "route:/venues/[venueId]/",
+        "route:/venues/pref/[pref]/"
+      ]
+    },
+    {
+      "id": "PAGE-002",
+      "title": "知らない URL は 404 で返し、404 ページの検索窓から /search/?q= に飛んで探し直せる",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "route:/404",
+        "route:/search/"
+      ]
+    },
+    {
+      "id": "PAGE-003",
+      "title": "末尾のスラッシュが無い URL はスラッシュ付きに寄せる",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "route:/songs/"
+      ]
+    },
+    {
+      "id": "PAGE-004",
+      "title": "投票結果ページ (/polls/…) が開ける",
+      "status": "pending",
+      "pendingReason": "フィクスチャ (web-export --emit-fixture) に投票結果のページが無い。代表値を足したら implemented にする",
+      "covers": [
+        "route:/polls/[...slug]/"
+      ]
+    }
+  ]
+}

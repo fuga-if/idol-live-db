@@ -43,6 +43,8 @@
 | `npm run preview` | `wrangler dev` = 本番と同じ配信 (`_headers` の CSP・trailing slash・404 込み) | — |
 | `npm run check` | `astro check` + `tsc --noEmit` | — |
 | `npm test` | パリティ検査 + フィクスチャ / データの不変条件検査 | — |
+| `npm run e2e` | **ローカル専用の E2E。** 台帳の突き合わせ → フィクスチャでビルド → Playwright (使い方は [e2e/README.md](e2e/README.md)) | — |
+| `npm run e2e:changed` | 変えたところに関係するシナリオだけ回す | — |
 | `npm run deploy` | `wrangler deploy` (通常は CI が行う) | — |
 
 `npm run build` は **cargo を呼ばない**。データの再生成は明示的に `npm run export` / `build:all`
@@ -68,6 +70,7 @@ public/         そのまま配信されるもの (アイコン / OGP / フォ�
 data/           ★生成物★ web-export が出すページ JSON (約 7,600 個)
 data-fixture/   代表値のフィクスチャ (commit されている)。実データ無しで開発・テストできる
 tests/          vitest
+e2e/            Playwright の E2E とシナリオ台帳 (ローカル専用。e2e/README.md)
 ```
 
 ★生成物★ は `.gitignore` されているか、生成した担当がコミットする。**手で編集しない。**

@@ -1,0 +1,65 @@
+{
+  "area": "search",
+  "scenarios": [
+    {
+      "id": "SEARCH-001",
+      "title": "名前を打つと種別ごとに結果が出る。Enter でページは送信されず、結果のリンクから曲のページへ行ける",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/pages/search.astro",
+        "op:src/lib/search/island.ts#init/input:focus",
+        "op:src/lib/search/island.ts#init/input:input",
+        "op:src/lib/search/island.ts#init/form:submit"
+      ]
+    },
+    {
+      "id": "SEARCH-002",
+      "title": "ひらがな・カタカナ・大文字小文字の違いを畳んで当てる (Rust と同じ畳み込みを wasm で使う)",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/lib/search/island.ts#init/input:input"
+      ]
+    },
+    {
+      "id": "SEARCH-003",
+      "title": "当たらない語では結果を空にして状態を伝える",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/lib/search/island.ts#init/input:input"
+      ]
+    },
+    {
+      "id": "SEARCH-004",
+      "title": "歌詞モードに切り替えると、打ち終わってから歌詞 API に 1 回だけ問い合わせ、一致箇所を <mark> で添えて曲を出す",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/lib/search/island.ts#init/m:change",
+        "op:src/lib/search/island.ts#init/input:input"
+      ]
+    },
+    {
+      "id": "SEARCH-005",
+      "title": "歌詞の一致箇所はコピー・切り取り・ドラッグできない",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/lib/search/island.ts#init/results:copy",
+        "op:src/lib/search/island.ts#init/results:cut",
+        "op:src/lib/search/island.ts#init/results:dragstart"
+      ]
+    },
+    {
+      "id": "SEARCH-006",
+      "title": "歌詞 API が落ちていたら失敗を伝える",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "op:src/lib/search/island.ts#init/input:input"
+      ]
+    }
+  ]
+}
