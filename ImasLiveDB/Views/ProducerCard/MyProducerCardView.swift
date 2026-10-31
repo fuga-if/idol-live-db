@@ -16,6 +16,8 @@ struct MyProducerCardView: View {
     @State private var loaded = false
 
     @State private var editing: MyProducerCard?
+    /// 持っている名刺を取り込むところから編集を始める。
+    @State private var editImportsFace = false
     @State private var showingExchange = false
     @State private var showingPrint = false
     @State private var showingCase = false
@@ -46,8 +48,23 @@ struct MyProducerCardView: View {
                         title: "まだ P名刺がありません",
                         message: "名前とひとことを書くと、担当と参加の記録はアプリから自動で入ります。",
                         actionTitle: "名刺を作る",
-                        action: { editing = myCard ?? .empty() }
+                        action: {
+                            editImportsFace = false
+                            editing = myCard ?? .empty()
+                        }
                     )
+                }
+                // 自分で作った名刺 (画像・紙に刷った名刺) を持っている人は、そのまま P名刺にできる。
+                ImasCard {
+                    Button {
+                        editImportsFace = true
+                        editing = myCard ?? .empty()
+                    } label: {
+                        ImasNavRow(title: "持っている名刺を取り込む",
+                                   subtitle: "作った名刺の画像や紙の名刺の写真を、そのまま自分の P名刺にします",
+                                   systemImage: "square.and.arrow.down", subtitleLineLimit: 2)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -57,13 +74,14 @@ struct MyProducerCardView: View {
             if encoded != nil {
                 ToolbarItem(placement: .topBarTrailing) {
                     ImasToolbarButton(systemImage: "pencil", label: "名刺を編集") {
+                        editImportsFace = false
                         editing = myCard ?? .empty()
                     }
                 }
             }
         }
         .sheet(item: $editing) { card in
-            ProducerCardEditorView(card: card, record: record) { saved in
+            ProducerCardEditorView(card: card, record: record, importsFace: editImportsFace) { saved in
                 // 画像の選択 (大きさ・載せる項目) は画像の画面で書くので、開いた時の古い中身で戻さない。
                 let latest = try await AppContainer.shared.producerCards.myCard()
                 try await AppContainer.shared.producerCards.saveMyCard(saved.applyingEdit(onto: latest))

@@ -109,17 +109,22 @@ struct ProducerCardEditorView: View {
         var value: String
     }
 
-    init(card: MyProducerCard, record: ProducerCardMyRecord?,
+    /// 持っている名刺を取り込むところから始める (デザインを自作の画像にして、開いたら表の画像を選ぶ)。
+    private let importsFace: Bool
+    @State private var showingFaceImport = false
+
+    init(card: MyProducerCard, record: ProducerCardMyRecord?, importsFace: Bool = false,
          onSave: @escaping (MyProducerCard) async throws -> Void) {
         self.card = card
         self.record = record
+        self.importsFace = importsFace
         self.onSave = onSave
         _name = State(initialValue: card.name)
         _message = State(initialValue: card.message)
         _sinceYear = State(initialValue: card.sinceYear)
         _links = State(initialValue: card.links.map { EditableLink(kind: $0.kind, value: $0.value) })
         _hidden = State(initialValue: card.hidden)
-        _design = State(initialValue: cardDesignKey(design: card.cardDesign))
+        _design = State(initialValue: cardDesignKey(design: importsFace ? .custom : card.cardDesign))
         _ink = State(initialValue: card.cardInk)
         _qrUrl = State(initialValue: card.qrUrl ?? "")
         _songs = State(initialValue: card.profile.songs)
@@ -217,6 +222,7 @@ struct ProducerCardEditorView: View {
                 qrPick = nil
                 Task { await readQR(item) }
             }
+            .photosPicker(isPresented: $showingFaceImport, selection: $faceFrontPick, matching: .images)
             .onChange(of: faceFrontPick) { _, item in
                 guard let item else { return }
                 faceFrontPick = nil
@@ -239,6 +245,7 @@ struct ProducerCardEditorView: View {
             await loadOshi()
             loadPhoto()
             loadFaces()
+            if importsFace && facePreview[.front] == nil { showingFaceImport = true }
             await loadImageMaterials()
         }
         .onReceive(NotificationCenter.default.publisher(for: .brandRolesChanged)) { _ in
