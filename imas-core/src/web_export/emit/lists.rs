@@ -1466,7 +1466,6 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
     HomePage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
-        headline: content::HOME_HEADLINE.iter().map(|s| (*s).to_string()).collect(),
         tagline: content::SITE_TAGLINE.to_string(),
         today_display: crate::domain::date_display::masthead(&ctx.today),
         next_countdown,

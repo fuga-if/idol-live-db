@@ -232,21 +232,6 @@ details[open] > summary .chevron {
 .home-hero__date {
   font-size: var(--fs-caption);
 }
-.home-hero__title {
-  font-family: var(--font-heading);
-  font-weight: var(--fw-heading);
-  font-size: clamp(1.875rem, 1rem + 2.6vw, 3rem);
-  line-height: 1.2;
-  letter-spacing: -0.015em;
-}
-.home-hero__title > span {
-  display: block;
-}
-@media (min-width: 30rem) {
-  .home-hero__title > span {
-    white-space: nowrap;
-  }
-}
 @media (min-width: 62rem) {
   .home-hero .ticket-wrap {
     align-self: center;

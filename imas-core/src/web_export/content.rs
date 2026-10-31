@@ -17,8 +17,6 @@ use crate::domain::vocabulary;
 pub const SITE_ORIGIN: &str = crate::domain::share_text::WEB_ORIGIN;
 
 pub const SITE_NAME: &str = "アイドルライブDB";
-/// トップの大見出し。1 要素 = 1 行 (広い画面での改行位置)。
-pub const HOME_HEADLINE: [&str; 2] = ["アイマスのライブを、", "セトリから引ける。"];
 pub const SITE_TAGLINE: &str = "アイマスのライブ・公演・セットリスト・楽曲・アイドルを横断して調べられるデータベースです。";
 pub const SITE_DISCLAIMER: &str =
     "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。";

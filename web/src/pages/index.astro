@@ -7,7 +7,7 @@ import Ticket from "../components/Ticket.astro";
 import Board from "../components/Board.astro";
 import EmptyState from "../components/EmptyState.astro";
 import SearchBox from "../components/SearchBox.astro";
-import { page, routeData } from "../lib/data";
+import { meta, page, routeData } from "../lib/data";
 import type { HomePage } from "../lib/schema/HomePage";
 
 /**
@@ -24,9 +24,8 @@ const [featured, ...restUpcoming] = home.upcoming;
   <section class="home-hero" aria-labelledby="home-title">
     <div class="home-hero__body">
       <p class="imprint home-hero__date">IDOL LIVE DB · {home.todayDisplay}</p>
-      <h1 class="home-hero__title" id="home-title">
-        {home.headline.map((line) => <span>{line}</span>)}
-      </h1>
+      {/* キャッチコピーは置かない (2026-10-31)。題はサイト名を読み上げと検索エンジンにだけ渡す。 */}
+      <h1 class="u-visually-hidden" id="home-title">{meta().siteName}</h1>
       <p class="lede">{home.tagline}</p>
       <SearchBox />
       {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}

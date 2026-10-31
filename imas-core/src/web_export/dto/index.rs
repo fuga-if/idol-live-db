@@ -575,8 +575,6 @@ web_dto! {
     pub struct HomePage {
         pub schema_version: u32,
         pub path: String,
-        /// ヒーローの大見出し (改行位置を含む行の列)。
-        pub headline: Vec<String>,
         /// ヒーローの 1 行説明。
         pub tagline: String,
         /// 見出しの上の日付欄 (`2026.09.24 THU`)。

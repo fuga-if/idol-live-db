@@ -14,10 +14,6 @@ import type { StatTile } from "./StatTile";
  */
 export type HomePage = { schemaVersion: number, path: string, 
 /**
- * ヒーローの大見出し (改行位置を含む行の列)。
- */
-headline: Array<string>, 
-/**
  * ヒーローの 1 行説明。
  */
 tagline: string, 

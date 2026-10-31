@@ -1593,7 +1593,6 @@ fn home_page() -> HomePage {
     HomePage {
         schema_version: SCHEMA_VERSION,
         path: "/".to_string(),
-        headline: content::HOME_HEADLINE.iter().map(|s| (*s).to_string()).collect(),
         tagline: content::SITE_TAGLINE.to_string(),
         today_display: "2026.09.24 THU".to_string(),
         next_countdown: Some(Countdown {
