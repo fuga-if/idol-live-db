@@ -17,7 +17,10 @@
 #   無駄 (というより後者は不可能)。
 set -euo pipefail
 cd "$(dirname "$0")/.."  # リポジトリルート
-source "$HOME/.cargo/env"
+# rustup の env は入れ方によって無い (GitHub の macOS runner は 2026-10 から置いていない)。
+# あれば読み、無ければ PATH にある cargo をそのまま使う。
+if [ -f "$HOME/.cargo/env" ]; then source "$HOME/.cargo/env"; fi
+command -v cargo >/dev/null || { echo "cargo が見つかりません" >&2; exit 1; }
 
 CRATE=imas-core
 OUT=build/imas-core
