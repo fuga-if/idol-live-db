@@ -2,9 +2,9 @@
 
 use crate::domain::producer_card::{
     CardCaseEntry, CardCaseSection, CardCommon, CardDesign, CardDesignInfo, CardFace,
-    CardFileContents, CardFileImage, CardFileTypeInfo, CardLink, CardLinkKind, CardLinkKindInfo,
-    CardLinkView, CardNameFont, CardOshiPicks, CardNameFontInfo, CardOshiEntry, CardPhotoShape, CardPhotoSource,
-    CardRecordSummary, CardShowRef,
+    CardFileContents, CardFileImage, CardFileTypeInfo, CardInk, CardInkChoice, CardLink,
+    CardLinkKind, CardLinkKindInfo, CardLinkView, CardNameFont, CardNameFontInfo, CardOshiEntry,
+    CardOshiPicks, CardPhotoShape, CardPhotoSource, CardRecordSummary, CardShowRef,
     EncodedProducerCard, ProducerCard, ProducerCardInput, ProducerCardInputError,
     ProducerCardLimits, ScannedCode,
 };
@@ -141,19 +141,29 @@ pub fn producer_card_id_is_valid(id: String) -> bool {
 /// 名刺に載せる担当 id (載せる順)。`chosen` が None (まだ選んでいない) なら自動の選び方。
 /// 選んだ人のうち担当から外れた人は抜け、誰も残らなければ自動の選び方。
 #[uniffi::export]
-pub fn producer_card_oshi_picked_ids(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>) -> Vec<String> {
+pub fn producer_card_oshi_picked_ids(
+    chosen: Option<Vec<String>>,
+    oshi: Vec<CardOshiEntry>,
+) -> Vec<String> {
     crate::domain::producer_card::producer_card_oshi_picked_ids(chosen.as_deref(), &oshi)
 }
 
 /// 名刺に載せる担当を選ぶ画面に並べるもの。
 #[uniffi::export]
-pub fn producer_card_oshi_picks(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>) -> CardOshiPicks {
+pub fn producer_card_oshi_picks(
+    chosen: Option<Vec<String>>,
+    oshi: Vec<CardOshiEntry>,
+) -> CardOshiPicks {
     crate::domain::producer_card::producer_card_oshi_picks(chosen.as_deref(), &oshi)
 }
 
 /// 1 人を載せる / 外した後の選択 (最後の 1 人は外さない)。
 #[uniffi::export]
-pub fn producer_card_oshi_toggle(chosen: Option<Vec<String>>, oshi: Vec<CardOshiEntry>, idol_id: String) -> Vec<String> {
+pub fn producer_card_oshi_toggle(
+    chosen: Option<Vec<String>>,
+    oshi: Vec<CardOshiEntry>,
+    idol_id: String,
+) -> Vec<String> {
     crate::domain::producer_card::producer_card_oshi_toggle(chosen.as_deref(), &oshi, &idol_id)
 }
 
@@ -276,6 +286,16 @@ pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
 #[uniffi::export]
 pub fn producer_card_display_design(card: ProducerCard, has_face_image: bool) -> CardDesignInfo {
     crate::domain::producer_card::producer_card_display_design(&card, has_face_image)
+}
+
+#[uniffi::export]
+pub fn card_ink_choices(ink: Option<CardInk>, oshi_idol_ids: Vec<String>) -> Vec<CardInkChoice> {
+    crate::domain::producer_card::card_ink_choices(ink.as_ref(), &oshi_idol_ids)
+}
+
+#[uniffi::export]
+pub fn card_ink_normalize(ink: Option<CardInk>, oshi_idol_ids: Vec<String>) -> Option<CardInk> {
+    crate::domain::producer_card::card_ink_normalize(ink.as_ref(), &oshi_idol_ids)
 }
 
 #[uniffi::export]
