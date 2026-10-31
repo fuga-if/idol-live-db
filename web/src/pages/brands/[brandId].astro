@@ -16,7 +16,7 @@ const brand = page<BrandPage>(Astro.props.data);
 
 <DetailLayout seo={brand.seo} themeKey={brand.themeKey}>
   <Fragment slot="hero">
-    <DetailHead imprint={["BRAND", brand.shortName]} title={brand.name} id="brand-title" />
+    <DetailHead title={brand.name} id="brand-title" />
     {/* 件数つきの入口 (ライブ / 楽曲 / アイドル / ユニット)。押せる数として掲示板に置く。 */}
     <StatStrip items={brand.statTiles} label="このブランドの一覧" />
   </Fragment>

@@ -17,7 +17,7 @@ export const getStaticPaths = () => optionalPage("tagListIndex", "/tags/");
 const list = page<TagListPage>(Astro.props.data);
 ---
 
-<ListLayout seo={list.seo} title={list.title} total={list.total} imprint="TAGS">
+<ListLayout seo={list.seo} title={list.title} total={list.total}>
   <p slot="lede" class="u-muted">{list.lede}</p>
 
   <ListContainer as="ul">

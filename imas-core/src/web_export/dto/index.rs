@@ -575,8 +575,6 @@ web_dto! {
     pub struct HomePage {
         pub schema_version: u32,
         pub path: String,
-        /// ヒーローの 1 行説明。
-        pub tagline: String,
         /// 見出しの上の日付欄 (`2026.09.24 THU`)。
         pub today_display: String,
         /// 次のライブ (今後のライブの先頭) までの残り日数の札。先頭の日付が読めなければ `None`。

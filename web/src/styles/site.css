@@ -7,10 +7,6 @@
  * ========================================================================== */
 
 /* --- サイトフッタ (奥付) --------------------------------------------------- */
-.site-footer__imprint {
-  color: var(--footer-ink2);
-  margin-block-end: var(--sp1);
-}
 .site-footer .btn {
   border-radius: var(--r-ctl-md);
 }
@@ -128,10 +124,8 @@
 }
 .cal__table th {
   padding-block: var(--sp2);
-  font-family: var(--font-imprint);
-  font-size: var(--fs-imprint);
-  font-weight: 500;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-caption);
+  font-weight: 700;
   color: var(--ds-ink2);
   text-align: center;
 }

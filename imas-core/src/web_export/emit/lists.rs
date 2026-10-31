@@ -1466,7 +1466,6 @@ pub fn home(ctx: &Ctx, upcoming: &[EventListItem], counts: Counts) -> HomePage {
     HomePage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
-        tagline: content::SITE_TAGLINE.to_string(),
         today_display: crate::domain::date_display::masthead(&ctx.today),
         next_countdown,
         // 先頭 8 件。種別の札は例外 (フェス・リリースイベント) にだけ付く (`content::kind_chip`)。

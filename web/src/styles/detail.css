@@ -44,12 +44,6 @@
   flex-direction: column;
   gap: var(--sp3);
 }
-.dhead__imprint {
-  display: block;
-}
-.dhead__imprint .imprint {
-  white-space: normal;
-}
 .dhead__titlerow {
   display: flex;
   align-items: stretch;

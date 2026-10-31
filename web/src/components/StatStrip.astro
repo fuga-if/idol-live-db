@@ -2,7 +2,7 @@
 import Board from "./Board.astro";
 import type { StatTile } from "../lib/schema/StatTile";
 /**
- * 詳細の頭の下に置く数 = 電光掲示板 (`ImasBoard`、DESIGN_SYSTEM §6.7)。題の印字は `STATS`。
+ * 詳細の頭の下に置く数 = 電光掲示板 (`ImasBoard`、DESIGN_SYSTEM §6.7)。題の印字は置かない。
  * **どの数を何の順で出すかは Rust の `StatTile` が決める。** 記号 (`glyph`) は出さない。
  */
 interface Props {
@@ -12,4 +12,4 @@ interface Props {
 const { items, label } = Astro.props;
 ---
 
-<Board title="STATS" cells={items} label={label} />
+<Board cells={items} label={label} />

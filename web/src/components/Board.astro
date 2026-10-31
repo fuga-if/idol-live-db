@@ -2,29 +2,21 @@
 import type { StatTile } from "../lib/schema/StatTile";
 /**
  * 電光掲示板 (アプリの `ImasBoard`、DESIGN_SYSTEM §6.7)。
- * 記録・収録の数を暗い板に細長い数字で並べる。上の行は印字 (`STATS`)。
+ * 記録・収録の数を暗い板に細長い数字で並べる。上の行の印字 (`STATS`) は情報が無いので置かない。
  * ライトでもダークでも板は暗い。
  *
  * どの数を何の順で出すかは Rust の `StatTile` が決める。記号 (`glyph`) はここでは出さない。
  */
 interface Props {
-  title?: string;
-  trailing?: string;
   cells: readonly StatTile[];
   label?: string;
 }
-const { title, trailing, cells, label } = Astro.props;
+const { cells, label } = Astro.props;
 ---
 
 {
   cells.length > 0 && (
     <div class="board" role="group" aria-label={label}>
-      {(title || trailing) && (
-        <div class="board__head" aria-hidden="true">
-          <span class="imprint">{title}</span>
-          <span class="imprint">{trailing}</span>
-        </div>
-      )}
       <div class="board__cells">
         {cells.map((c) =>
           c.href ? (

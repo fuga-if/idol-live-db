@@ -18,7 +18,7 @@ const venue = page<VenuePage>(Astro.props.data);
 
 <DetailLayout seo={venue.seo} themeKey={venue.themeKey} app={venue.app}>
   <Fragment slot="hero">
-    <DetailHead imprint={["VENUE", venue.prefecture]} title={venue.name} id="venue-title" kana={venue.nameKana} bar={false} />
+    <DetailHead title={venue.name} id="venue-title" kana={venue.nameKana} bar={false} />
     {/* 「基本情報」の行 (所在・収容人数・別名) はどれを出すかを Rust が決めている。 */}
     <Facts rows={venue.factRows} />
   </Fragment>

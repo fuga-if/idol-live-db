@@ -3,20 +3,20 @@ import type { EventListItem } from "../lib/schema/EventListItem";
 import type { Countdown } from "../lib/schema/Countdown";
 /**
  * 紙のチケット (アプリの `ImasTicket`、DESIGN_SYSTEM §6.7)。トップの「次のライブ」。
- * 上に印字の目印 (`ADMIT ONE · NEXT LIVE`)、題、日付と会場。右の半券にカウントダウン。
+ * 上に目印 (「次のライブ」)、題、日付と会場。右の半券にカウントダウン。英字の印字は置かない (2026-10-31)。
  * 紙はダークでも明るい。押すとそのライブへ。
  *
  * 材料は一覧と同じ `EventListItem`。どれが次のライブかは Rust が決めた順 (先頭)。
- * 日付の印字 (`NOV 01 SUN`) は `DateBadge.stub` の 3 段をそのまま並べる。
+ * 日付は `DateBadge` の月日と曜日をそのまま置く。
  */
 interface Props {
   item: EventListItem;
   label?: string;
   countdown?: Countdown | null;
 }
-const { item, label = "NEXT LIVE", countdown } = Astro.props;
-const stub = item.dateBadge?.stub ?? null;
-const dateImprint = stub ? [stub.top, stub.big, stub.bottom].filter((s) => s !== "").join(" ") : null;
+const { item, label = "次のライブ", countdown } = Astro.props;
+const badge = item.dateBadge ?? null;
+const dateText = badge ? `${badge.monthDay}${badge.weekday ? ` (${badge.weekday})` : ""}` : null;
 const metaParts = [item.endDisplay, item.venueDisplay].filter((s): s is string => !!s);
 const countdownIsText = countdown ? !/^\d+$/.test(countdown.value) : false;
 ---
@@ -24,23 +24,23 @@ const countdownIsText = countdown ? !/^\d+$/.test(countdown.value) : false;
 <div class="ticket-wrap">
   <a class:list={["ticket", !countdown && "ticket--plain"]} data-theme={item.ref.themeKey} href={item.ref.path}>
     <span class="ticket__main">
-      <span class="ticket__imprint">
+      <span class="ticket__label">
         <span class="penlight" aria-hidden="true"></span>
-        <span class="imprint">ADMIT ONE · {label}</span>
+        <span>{label}</span>
       </span>
       <span class="ticket__title">{item.ref.name}</span>
       {
-        (dateImprint || metaParts.length > 0) && (
+        (dateText || metaParts.length > 0) && (
           <span class="ticket__meta">
-            {dateImprint && (
+            {dateText && (
               <>
-                <span class="u-visually-hidden">{item.dateBadge!.spoken}</span>
-                <span class="imprint" aria-hidden="true">
-                  {dateImprint}
+                <span class="u-visually-hidden">{badge!.spoken}</span>
+                <span class="num" aria-hidden="true">
+                  {dateText}
                 </span>
               </>
             )}
-            {dateImprint && metaParts.length > 0 && <span aria-hidden="true"> · </span>}
+            {dateText && metaParts.length > 0 && <span aria-hidden="true"> · </span>}
             {metaParts.map((m, i) => (
               <>
                 {i > 0 && <span aria-hidden="true"> · </span>}
@@ -56,7 +56,7 @@ const countdownIsText = countdown ? !/^\d+$/.test(countdown.value) : false;
         <span class="ticket__stub">
           <span class="u-visually-hidden">{countdown.spoken}</span>
           {countdown.lead && (
-            <span class="imprint" aria-hidden="true">
+            <span class="ticket__unit" aria-hidden="true">
               {countdown.lead}
             </span>
           )}
@@ -64,7 +64,7 @@ const countdownIsText = countdown ? !/^\d+$/.test(countdown.value) : false;
             {countdown.value}
           </b>
           {countdown.unit && (
-            <span class="imprint" aria-hidden="true">
+            <span class="ticket__unit" aria-hidden="true">
               {countdown.unit}
             </span>
           )}

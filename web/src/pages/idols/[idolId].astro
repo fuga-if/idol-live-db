@@ -23,7 +23,7 @@ const multiShelf = idol.songSections.length > 1;
 {/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
 <DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
   <Fragment slot="hero">
-    <DetailHead imprint={["IDOL", idol.brand?.name]} title={idol.name} id="idol-title" kana={idol.nameKana}>
+    <DetailHead title={idol.name} id="idol-title" kana={idol.nameKana}>
       <Fragment slot="sub">
         {idol.currentVoiceActor && <p class="dhead__cv">CV: {idol.currentVoiceActor}</p>}
         {idol.description && <p class="dhead__note">{idol.description}</p>}

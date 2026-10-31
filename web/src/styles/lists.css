@@ -23,9 +23,6 @@
   flex-direction: column;
   gap: var(--sp4);
 }
-.list-head__imprint {
-  margin-block-end: calc(-1 * var(--sp3));
-}
 .list-head__title {
   display: flex;
   align-items: baseline;

@@ -20,7 +20,7 @@ const ev = page<EventPage>(Astro.props.data);
 <DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app} asideAfterMain>
   <Fragment slot="hero">
     {/* 日付の印字は初日の半券 3 段 (一覧の行と同じ。ライブ自身は日付ブロックを持たない)。 */}
-    <DetailHead imprint={["LIVE"]} date={ev.dateBadge} title={ev.name} id="event-title" kana={ev.nameKana}>
+    <DetailHead title={ev.name} id="event-title" kana={ev.nameKana}>
       <Fragment slot="sub">
         {ev.dateDisplay && <p class="dhead__date num">{ev.dateDisplay}</p>}
         {

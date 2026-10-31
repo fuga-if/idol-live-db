@@ -920,7 +920,7 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | アプリの部品 | Web | 置き場 |
 |---|---|---|
 | `DS.bg` / `surface` / `ticket` / `board` / `stamp` … | `--ds-bg` / `--ds-surface` / `--ds-ticket` / `--ds-board` / `--ds-stamp` … | `tokens.css` |
-| `.imasText(.imprint)` 印字 | `.imprint` | `venue.css` |
+| `.imasText(.imprint)` 印字 | **使わない** (英字の印字は情報を持たない装飾として外した。2026-10-31 ユーザー「情報がいらない過度な装飾はすべて取っ払って」) | — |
 | `ImasNumeralSize` 数字 | `.num .num--large / --date / --medium / --small / --countdown` | `venue.css` |
 | `ImasPerforation` 切り取り線 | `.perf` / `.perf--v` (チケットの紙の上は `.perf--ticket`) | `venue.css` |
 | `ImasTicket` 紙のチケット | `.ticket` (`Ticket.astro`) | `venue.css` |
@@ -930,7 +930,7 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | `ImasChip` / `ImasFilterChip` チップ | `.chip` (高さ 32・角丸 8。カプセルにしない) | `components.css` |
 | `ImasBrandCell` / `ImasAvatar` の判子 | `.stamp` (`data-len` で字数に合わせる)、格子は `.stamp-grid` + `.stamp-cell` | `venue.css` |
 | `ImasLeadBar` 行頭の帯 | `.lead-bar` / `.stub__bar` / `.penlight` | `venue.css` |
-| `ImasMasthead` 頭の印字 | `.imprint` を題の上に置く (`IDOL LIVE DB · 2026.10.31 SAT`) | 各ページ |
+| `ImasMasthead` 頭の印字 | **使わない** (同上。トップの日付の行・一覧と詳細の頭の英字・掲示板の `STATS`・フッタの `DATA/SITE/APP`・チケットの `ADMIT ONE` は置かない) | — |
 | `ImasSectionHeader` | `.section__title` (20〜24px 極太) + `.section__more` (灰、矢印) | `components.css` |
 | `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` | `base.css` / `components.css` |
 

@@ -307,7 +307,6 @@ fn month_page(ctx: &Ctx, index: usize, range: &MonthRange) -> Option<Emitted<Cal
                 list_crumbs(SiteList::Calendar, &title, &path),
             ),
             title,
-            imprint: content::calendar_imprint(year, month),
             summary: content::calendar_summary(&counts),
             prev: index.checked_sub(1).and_then(neighbour),
             next: neighbour(index + 1),

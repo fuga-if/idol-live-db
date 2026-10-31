@@ -20,10 +20,9 @@ interface Props {
   scope?: FilterAxis;
   filters?: readonly FilterAxis[];
   /** 題の上の頭の印字 (`SONGS` / `LIVES`)。一覧の種類を表す決まった英字で、各ページが渡す (題から作らない)。 */
-  imprint?: string;
   wide?: boolean;
 }
-const { seo, title, total, themeKey, scope, filters = [], imprint, wide = false } = Astro.props;
+const { seo, title, total, themeKey, scope, filters = [], wide = false } = Astro.props;
 const hasFilters = scope !== undefined || filters.length > 0;
 ---
 
@@ -31,7 +30,6 @@ const hasFilters = scope !== undefined || filters.length > 0;
   <div class="list-body">
   <div class="list-head">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
-    {imprint && <p class="imprint list-head__imprint">{imprint}</p>}
     <div class="list-head__title">
       <h1>{title}</h1>
       {

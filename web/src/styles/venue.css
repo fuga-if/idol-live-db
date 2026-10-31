@@ -2,7 +2,7 @@
  * ImasLiveDB Web — 会場とチケットの部品 (docs/DESIGN_SYSTEM.md §1・§4・§6.7・§10)
  *
  * iOS の ImasVenue.swift / ImasVenueRows.swift / ImasLabels.swift の写し。
- *   .imprint     英字の印字 (ADMIT ONE・STATS・頭の日付)。等幅・字間・灰。大文字には変えない
+ *   (英字の印字 `.imprint` は情報を持たない装飾なので Web では使わない。2026-10-31)
  *   .num         細長い太字の等幅の数字 (ImasNumeralSize)
  *   .perf        切り取り線 (ImasPerforation)
  *   .ticket      紙のチケット (ImasTicket)。右の半券にカウントダウン。ダークでも紙は明るい
@@ -15,16 +15,7 @@
  * 形 (角丸・切り欠き) は部品が持つ。画面の CSS に数字の寸法を書かない。
  * ========================================================================== */
 
-/* --- 印字と数字 ----------------------------------------------------------- */
-.imprint {
-  font-family: var(--font-imprint);
-  font-size: var(--fs-imprint);
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  line-height: 1.3;
-  color: var(--ds-ink2);
-  white-space: nowrap;
-}
+/* --- 数字 ----------------------------------------------------------------- */
 .num {
   font-family: var(--font-display);
   font-weight: 700;
@@ -138,16 +129,20 @@ a.ticket:active {
   gap: 5px;
   padding: 14px 14px 14px 16px;
 }
-.ticket__imprint {
+/* 目印 (「次のライブ」)。12px 太字・灰 (ImasFeatureCard の目印)。 */
+.ticket__label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
   color: var(--ds-ticket-sub);
 }
-.ticket__imprint .imprint {
-  color: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* 半券のカウントダウンの前後 (「あと」「日」)。 */
+.ticket__unit {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ticket-sub);
 }
 /* ペンライト: 印字の前の短い縦の棒 (実体の色)。 */
 .penlight {
@@ -170,9 +165,6 @@ a.ticket:active {
   color: var(--ds-ticket-sub);
   line-height: var(--lh-snug);
 }
-.ticket__meta .imprint {
-  color: inherit;
-}
 .ticket__stub {
   flex: none;
   inline-size: var(--ticket-stub-w);
@@ -185,9 +177,6 @@ a.ticket:active {
   margin-block: 12px;
   border-inline-start: 2px dashed var(--ds-ticket-dash);
   color: var(--ds-ticket-ink);
-}
-.ticket__stub .imprint {
-  color: var(--ds-ticket-sub);
 }
 .ticket__stub .num {
   max-inline-size: 100%;
@@ -349,17 +338,6 @@ a.stub:hover::before {
   background: var(--ds-board);
   color: var(--ds-board-ink);
   overflow: hidden;
-}
-.board__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp3);
-  padding: 12px 14px 8px;
-  border-block-end: 1px solid var(--ds-board-line);
-}
-.board__head .imprint {
-  color: var(--ds-board-dim);
 }
 /* マスの間の線は、マス自身が持つ (隙間に線色を敷くと、空きトラックが線色の塊になる)。
    隣り合うマスの 0.5px が重なって 1px の線になる。 */

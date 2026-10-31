@@ -229,9 +229,6 @@ details[open] > summary .chevron {
   flex-direction: column;
   gap: var(--sp6);
 }
-.home-hero__date {
-  font-size: var(--fs-caption);
-}
 @media (min-width: 62rem) {
   .home-hero .ticket-wrap {
     align-self: center;

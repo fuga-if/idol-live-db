@@ -26,7 +26,7 @@ const song = page<SongPage>(Astro.props.data);
 <DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app} asideAfterMain>
   <Fragment slot="hero">
     {/* ジャケを左、右に種類・題・歌唱者・配信日 (DESIGN_SYSTEM §2.2)。画像が無ければ色の面 + 曲名。 */}
-    <DetailHead imprint={["SONG", song.brand?.name]} title={song.title} id="song-title" kana={song.titleKana}>
+    <DetailHead title={song.title} id="song-title" kana={song.titleKana}>
       <Artwork slot="lead" title={song.title} artworkUrl={song.artworkUrl} size="hero" />
       <Fragment slot="sub">
         {/* 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。アプリの曲詳細と同じく曲名の下に 1 文。 */}

@@ -15,7 +15,7 @@ const unit = page<UnitPage>(Astro.props.data);
 ---
 
 <DetailLayout seo={unit.seo} themeKey={unit.themeKey} app={unit.app}>
-  <DetailHead slot="hero" imprint={["UNIT"]} title={unit.name} id="unit-title" kana={unit.nameKana}>
+  <DetailHead slot="hero" title={unit.name} id="unit-title" kana={unit.nameKana}>
     <Fragment slot="sub">
       {unit.nameAlt && <p class="dhead__cv">別名: {unit.nameAlt}</p>}
     </Fragment>

@@ -14,10 +14,6 @@ import type { StatTile } from "./StatTile";
  */
 export type HomePage = { schemaVersion: number, path: string, 
 /**
- * ヒーローの 1 行説明。
- */
-tagline: string, 
-/**
  * 見出しの上の日付欄 (`2026.09.24 THU`)。
  */
 todayDisplay: string, 

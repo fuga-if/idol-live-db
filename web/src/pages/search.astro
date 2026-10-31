@@ -16,7 +16,7 @@ const search = page<SearchPage>(routeData("search", "/search/"));
 const site = meta();
 ---
 
-<ListLayout seo={search.seo} title={search.title} imprint="SEARCH">
+<ListLayout seo={search.seo} title={search.title}>
   <p slot="lede" class="u-muted">
     {search.lede}
   </p>

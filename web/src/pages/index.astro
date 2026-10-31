@@ -12,7 +12,7 @@ import type { HomePage } from "../lib/schema/HomePage";
 
 /**
  * トップ = ハブの型 (DESIGN_SYSTEM §2.3)。
- * 頭の印字と大見出し → 主役 (次のライブの紙のチケット) → 記録の数 (電光掲示板) →
+ * 主役 (次のライブの紙のチケット) → 記録の数 (電光掲示板) →
  * 一覧 (半券の行) → ブランドの判子の格子 → アプリの案内。
  * 何を何件出すか・並びは Rust の `HomePage` のまま。先頭 1 件をチケットにするのは見せ方の判断。
  */
@@ -23,17 +23,16 @@ const [featured, ...restUpcoming] = home.upcoming;
 <BaseLayout seo={home.seo}>
   <section class="home-hero" aria-labelledby="home-title">
     <div class="home-hero__body">
-      <p class="imprint home-hero__date">IDOL LIVE DB · {home.todayDisplay}</p>
-      {/* キャッチコピーは置かない (2026-10-31)。題はサイト名を読み上げと検索エンジンにだけ渡す。 */}
+      {/* キャッチコピーも説明文も置かない (2026-10-31)。題はサイト名を読み上げと検索エンジンにだけ渡す。
+          サイトの説明は SEO の description と About が持つ。 */}
       <h1 class="u-visually-hidden" id="home-title">{meta().siteName}</h1>
-      <p class="lede">{home.tagline}</p>
       <SearchBox />
       {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}
     </div>
     {featured && <Ticket item={featured} countdown={home.nextCountdown} />}
   </section>
 
-  <Board title="STATS" trailing={home.todayDisplay} cells={home.statTiles} label="収録データ" />
+  <Board cells={home.statTiles} label="収録データ" />
 
   <Section id="home-upcoming" title="これからのライブ" moreHref="/events/upcoming/">
     {

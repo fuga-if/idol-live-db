@@ -1353,7 +1353,6 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
         title,
-        imprint: content::calendar_imprint(2026, 9),
         summary: content::calendar_summary(&counts),
         prev: None,
         next: None,
@@ -1593,7 +1592,6 @@ fn home_page() -> HomePage {
     HomePage {
         schema_version: SCHEMA_VERSION,
         path: "/".to_string(),
-        tagline: content::SITE_TAGLINE.to_string(),
         today_display: "2026.09.24 THU".to_string(),
         next_countdown: Some(Countdown {
             lead: "あと".to_string(),
