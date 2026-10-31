@@ -20,6 +20,8 @@ use imas_core::domain::producer_card::{
     producer_card_face, CardLinkView, CardOshiEntry,
 };
 use imas_core::domain::{idol_queries, list_facets};
+use imas_core::domain::lyric_display::{lyric_line_display, LyricDisplayCall};
+use imas_core::domain::lyric_sync::LyricPartBreak;
 use wasm_bindgen::prelude::*;
 
 /// 組み立て済みの Snapshot を握るハンドル。
@@ -176,6 +178,47 @@ pub fn producer_card_face_json(text: &str, drawable_json: &str) -> Result<JsValu
         serde_json::from_str(drawable_json).map_err(|e| JsValue::from_str(&e.to_string()))?;
     let json = to_json(&producer_card_face(&card, &drawable))?;
     Ok(JsValue::from_str(&json))
+}
+
+/// 歌詞の行 1 本 (Worker の `GET /songs/:id/lyrics` の `lines[]` のうち、置き方に要るところだけ)。
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LyricLineInput {
+    #[serde(default)]
+    text: String,
+    #[serde(default)]
+    singers: Vec<String>,
+    #[serde(default)]
+    part_breaks: Vec<LyricPartBreakInput>,
+    #[serde(default)]
+    calls: Vec<LyricDisplayCall>,
+}
+
+#[derive(serde::Deserialize)]
+struct LyricPartBreakInput {
+    at: u32,
+    #[serde(default)]
+    singers: Vec<String>,
+}
+
+/// 歌詞 1 曲の行ごとの置き方 (`lyric_line_display`: 振り仮名・脇の字・歌う人・歌詞と同じ文字のコール)。
+/// `lines_json` は Worker が返した `lines` の配列、`cast_json` はパート分けを出す原唱者の id の配列
+/// (ソロ曲などパート分けを出さない曲は空。ページの `lyrics.partCast` から詰める)。
+/// 返すのは行と同じ順の `LyricLineDisplay` の配列の JSON。
+#[wasm_bindgen]
+pub fn lyric_lines_display_json(lines_json: &str, cast_json: &str) -> Result<String, JsValue> {
+    let lines: Vec<LyricLineInput> =
+        serde_json::from_str(lines_json).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let cast: Vec<String> = serde_json::from_str(cast_json).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let out: Vec<_> = lines
+        .iter()
+        .map(|l| {
+            let breaks: Vec<LyricPartBreak> =
+                l.part_breaks.iter().map(|b| LyricPartBreak { at: b.at, singers: b.singers.clone() }).collect();
+            lyric_line_display(&l.text, &l.singers, &breaks, &l.calls, &cast)
+        })
+        .collect();
+    to_json(&out)
 }
 
 /// `"2026-10-06"` → `"2026.10.06 時点"`。既に `YYYY-MM-DD` である前提

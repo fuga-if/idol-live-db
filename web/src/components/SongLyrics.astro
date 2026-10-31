@@ -28,6 +28,15 @@ import type { LyricsBlock } from "../lib/schema/LyricsBlock";
  * 画面幅が変わったら測り直す。コールが重なるときは右へずらし、入らなければ段を足す。
  * 記号・凡例の語は Rust (`content::call_guide_vocabulary`) が `lyrics.callGuide` で配り、
  * ここは位置 (Unicode スカラー単位の start/end) と突き合わせて置くだけ。
+ *
+ * 本文の字の置き方はアプリ (iOS/Android の歌詞タブ) と同じ。決めるのは Rust
+ * (`lyric_line_display`、ブラウザの wasm で呼ぶ。`lib/lyrics/display.ts`) で、ここは置くだけ:
+ * - 振り仮名 (`親字《よみ》`) は記号を外し、読みを親字の上に (`<ruby>`)。
+ * - 括弧で書いた脇の字 (被せ・コーラス) は一段小さく薄く。
+ * - パート分けのある曲 (原唱者 2 人以上、`lyrics.partCast`) は、字を歌う人の担当色で塗る
+ *   (何人かで歌う字は上から歌う人の順に縞で塗り分ける。境目はくっきり、ぼかさない)。
+ *   行の下に歌う人の名前を添える (色だけに頼らない)。
+ * - 歌詞と同じ文字のコールは行に並べず、歌詞のその部分を濃く敷いて太字にする。
  */
 interface Props {
   lyrics: LyricsBlock;
@@ -42,6 +51,7 @@ const { lyrics } = Astro.props;
       data-lyrics
       data-source={lyrics.sourceUrl}
       data-call-guide={lyrics.callGuide ? JSON.stringify(lyrics.callGuide) : undefined}
+      data-part-cast={lyrics.partCast.length > 0 ? JSON.stringify(lyrics.partCast) : undefined}
     >
       <p class="note lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
@@ -63,6 +73,8 @@ const { lyrics } = Astro.props;
 
 <script>
   import type { CallGuideVocabulary } from "../lib/schema/CallGuideVocabulary";
+  import type { LyricPartCastMember } from "../lib/schema/LyricPartCastMember";
+  import { lyricLinesDisplay, type LyricLineDisplay, type LyricRun } from "../lib/lyrics/display";
 
   /** Worker が返す歌詞 1 曲。本文はここでしか扱わない。 */
   interface LyricCall {
@@ -81,6 +93,8 @@ const { lyrics } = Astro.props;
     clap?: string | null;
     calls?: LyricCall[] | null;
   }
+  /** 縞で塗り分ける色の上限 (全体曲で全員の色を重ねると縞が細すぎて読めない。アプリと同じ 4)。 */
+  const PART_COLORS_MAX = 4;
 
   const root = document.querySelector<HTMLElement>("[data-lyrics]");
   const source = root?.dataset.source;
@@ -91,6 +105,10 @@ const { lyrics } = Astro.props;
     const vocabulary: CallGuideVocabulary | null = root.dataset.callGuide
       ? (JSON.parse(root.dataset.callGuide) as CallGuideVocabulary)
       : null;
+    const cast: LyricPartCastMember[] = root.dataset.partCast
+      ? (JSON.parse(root.dataset.partCast) as LyricPartCastMember[])
+      : [];
+    const castById = new Map(cast.map((m) => [m.id, m]));
 
     // コピーを取りにくくする。コピー・切り取り・ドラッグを止める (選択は CSS、印刷も CSS)。
     // 完全には防げないが、まとめ取りの手間を上げる。
@@ -161,33 +179,80 @@ const { lyrics } = Astro.props;
     };
 
     /**
+     * 字のひと続き 1 つ。振り仮名は `<ruby>`、脇の字は一段小さく、歌う人は担当色。
+     * 何人かで歌う字は、歌う人ごとのテーマを外側から入れ子にして `--p1`… に色を取り
+     * (各テーマの `--accent` を、その層で値にして受け継ぐ)、内側で縞に塗る。
+     */
+    const runNode = (run: LyricRun): Node => {
+      const themes = run.singers
+        .map((id) => castById.get(id)?.themeKey)
+        .filter((t): t is string => !!t)
+        .slice(0, PART_COLORS_MAX);
+      if (!run.ruby && !run.aside && themes.length === 0) return document.createTextNode(run.text);
+      const node = el("span", run.aside ? "lyrics__run lyrics__run--aside" : "lyrics__run");
+      if (run.ruby) {
+        const ruby = document.createElement("ruby");
+        ruby.append(run.text, el("rt", "lyrics__ruby", run.ruby));
+        node.append(ruby);
+      } else {
+        node.textContent = run.text;
+      }
+      const [only] = themes;
+      if (themes.length === 1 && only) {
+        node.dataset.theme = only;
+        node.dataset.part = "";
+        return node;
+      }
+      if (themes.length === 0) return node;
+      node.dataset.stripes = String(themes.length);
+      let outer: HTMLElement = node;
+      // 内側から外へ包む (層の番号は歌う人の並び。どの層も自分のテーマの --accent を値にして受け継ぐ)。
+      for (const [i, theme] of [...themes.entries()].reverse()) {
+        const layer = el("span", `lyrics__part-layer lyrics__part-layer--${i + 1}`);
+        layer.dataset.theme = theme;
+        layer.append(outer);
+        outer = layer;
+      }
+      return outer;
+    };
+
+    /**
      * 本文。アンカー範囲 (追っかけの分も含む) は薄く色を敷き、スロットの位置に目印
      * (範囲は mark そのもの、1 点は幅ゼロの span) を置く。コールは重ね書きの層に出し、
      * 位置は描画後に目印の矩形から決める。重なる範囲は先勝ち。位置はスカラー単位。
+     * 字はひと続き (`display.runs`) ごとに置く。ひと続きはコールの端で切れているので、
+     * 範囲の中に丸ごと入るか外にあるかのどちらか (振り仮名の親字の途中だけは切らない)。
+     * 歌詞と同じ文字のコール (`echo`) は行に並べず、範囲を濃く敷いて太字にする。
      */
-    const lineContent = (text: string, calls: LyricCall[]): HTMLElement => {
-      const scalars = Array.from(text);
+    const lineContent = (calls: LyricCall[], display: LyricLineDisplay): HTMLElement => {
+      const runs = display.runs;
+      const length = runs.at(-1)?.end ?? 0;
       const content = el("span", "lyrics__content");
       const textEl = el("span", "lyrics__text");
       const overlay = el("span", "lyrics__overlay");
-      const tint = new Map<string, { start: number; end: number; emphasis: string }>();
-      for (const c of calls) {
-        if (!hasAnchor(c)) continue;
+      const listed = calls.filter((_, i) => !display.echoes[i]);
+      const tint = new Map<string, { start: number; end: number; emphasis: string; echo: boolean }>();
+      calls.forEach((c, i) => {
+        if (!hasAnchor(c)) return;
         const key = `${c.start}-${c.end}`;
         const emphasis = c.emphasis ?? "normal";
+        const echo = display.echoes[i] === true;
         const current = tint.get(key);
-        if (!current || rank(emphasis) > rank(current.emphasis)) {
-          tint.set(key, { start: c.start, end: c.end, emphasis });
+        if (!current) tint.set(key, { start: c.start, end: c.end, emphasis, echo });
+        else {
+          if (rank(emphasis) > rank(current.emphasis)) current.emphasis = emphasis;
+          current.echo ||= echo;
         }
-      }
+      });
       interface Piece {
         start: number;
         end: number;
         emphasis?: string;
+        echo?: boolean;
         slot?: Slot;
       }
       const pieces: Piece[] = [...tint.values()];
-      for (const slot of slotsOf(calls)) {
+      for (const slot of slotsOf(listed)) {
         const same = pieces.find((p) => p.start === slot.start && p.end === slot.end && !p.slot);
         if (same && slot.end > slot.start) same.slot = slot;
         else pieces.push({ start: slot.start, end: slot.end, slot });
@@ -195,29 +260,36 @@ const { lyrics } = Astro.props;
       pieces.sort((a, b) => a.start - b.start || a.end - b.end);
 
       const slots: CallSlot[] = [];
-      let cursor = 0;
+      let next = 0; // まだ置いていないひと続き
+      /** `before` より前から始まるひと続きを `into` に置いていく。 */
+      const placeRuns = (into: HTMLElement, before: number) => {
+        for (let run = runs[next]; run && run.start < before; run = runs[++next]) into.append(runNode(run));
+      };
       for (const piece of pieces) {
-        const start = Math.min(Math.max(piece.start, cursor), scalars.length);
-        const end = Math.min(Math.max(piece.end, start), scalars.length);
-        if (start > cursor) textEl.append(scalars.slice(cursor, start).join(""));
-        const word = scalars.slice(start, end).join("");
-        let marker: HTMLElement;
-        if (word) {
-          marker = el("mark", "lyrics__anchor", word);
-          marker.dataset.emphasis = piece.emphasis ?? "normal";
-        } else {
-          // 幅ゼロの目印。中身はゼロ幅スペース (空の span は矩形を持たない)。
-          marker = el("span", "lyrics__point", "\u200b");
+        const start = Math.min(piece.start, length);
+        const end = Math.min(Math.max(piece.end, start), length);
+        placeRuns(textEl, start);
+        let marker: HTMLElement | null = null;
+        if (end > start) {
+          const mark = el("mark", "lyrics__anchor");
+          placeRuns(mark, end);
+          if (mark.childNodes.length > 0) {
+            mark.dataset.emphasis = piece.emphasis ?? "normal";
+            if (piece.echo) mark.dataset.echo = "";
+            marker = mark;
+          }
         }
+        // 幅ゼロの目印。中身はゼロ幅スペース (空の span は矩形を持たない)。
+        // 範囲が先の範囲に食われて空になったときも、ここに置く。
+        if (!marker) marker = el("span", "lyrics__point", "\u200b");
         if (piece.slot) {
           const call = callRow(piece.slot);
           overlay.append(call);
-          slots.push({ marker, call, over: piece.slot.end > piece.slot.start });
+          slots.push({ marker, call, over: marker.tagName === "MARK" && piece.slot.end > piece.slot.start });
         }
         textEl.append(marker);
-        cursor = end;
       }
-      if (cursor < scalars.length) textEl.append(scalars.slice(cursor).join(""));
+      placeRuns(textEl, Infinity);
       content.append(textEl);
       if (slots.length > 0) {
         content.dataset.hasCalls = "";
@@ -226,6 +298,24 @@ const { lyrics } = Astro.props;
       }
       return content;
     };
+
+    /** 行の下に添える歌う人の名前 (「未来・静香」、途中で変わる行は「未来 → 静香」)。 */
+    const partNames = (display: LyricLineDisplay): HTMLElement | null => {
+      const groups = display.partGroups
+        .map((g) => g.map((id) => castById.get(id)?.name).filter((n): n is string => !!n))
+        .filter((g) => g.length > 0);
+      if (groups.length === 0) return null;
+      const names = el("span", "lyrics__parts", groups.map((g) => g.join("・")).join(" → "));
+      names.setAttribute("aria-label", `歌唱 ${groups.map((g) => g.join("、")).join("、つづいて ")}`);
+      return names;
+    };
+
+    /** wasm が読めないときの置き方 (本文を 1 字ずつそのまま。印を付けない)。 */
+    const plainDisplay = (line: LyricLine): LyricLineDisplay => ({
+      runs: Array.from(line.text).map((text, i) => ({ start: i, end: i + 1, text, ruby: null, aside: false, singers: [] })),
+      echoes: (line.calls ?? []).map(() => false),
+      partGroups: [],
+    });
 
     /**
      * コールの位置を語の矩形から決める。
@@ -369,15 +459,16 @@ const { lyrics } = Astro.props;
       return box;
     };
 
-    const render = (lines: LyricLine[]): void => {
+    const render = (lines: LyricLine[], displays: LyricLineDisplay[]): void => {
       const nodes: HTMLElement[] = [];
       const head = legend(lines);
       if (head) nodes.push(head);
       // 手拍子の記号は行頭の固定幅の列に置く。ある行だけ本文が右にズレないよう、
       // 1 行でも指示があれば全行にその列を確保する (アプリと同じ)。
       const clapColumn = lines.some((l) => l.clap && vocabulary);
-      for (const line of lines) {
+      lines.forEach((line, index) => {
         const calls = line.calls ?? [];
+        const display = displays[index] ?? plainDisplay(line);
         const kind = line.kind ?? "lyric";
         const p = el("p", `lyrics__line lyrics__line--${kind}`);
         if (clapColumn) {
@@ -386,9 +477,13 @@ const { lyrics } = Astro.props;
           if (clap) glyph.setAttribute("aria-label", clap.label);
           p.append(glyph);
         }
-        p.append(lineContent(line.text, calls));
+        const main = el("span", "lyrics__main");
+        main.append(lineContent(calls, display));
+        const names = partNames(display);
+        if (names) main.append(names);
+        p.append(main);
         nodes.push(p);
-      }
+      });
       body.replaceChildren(...nodes);
     };
 
@@ -400,7 +495,15 @@ const { lyrics } = Astro.props;
         const res = await fetch(source, { headers: { Accept: "application/json" } });
         if (!res.ok) throw new Error(String(res.status));
         const data = (await res.json()) as { lines: LyricLine[] };
-        render(data.lines);
+        // 字の置き方 (振り仮名・被せ・歌い分け) は wasm。読めなければ素の本文で出す (歌詞は読める)。
+        const displays = await lyricLinesDisplay(
+          data.lines,
+          cast.map((m) => m.id),
+        ).catch((e: unknown) => {
+          console.error("lyrics: 置き方を組めない", e);
+          return data.lines.map(plainDisplay);
+        });
+        render(data.lines, displays);
         // 位置は見える状態で測る (隠れたままでは矩形が全部 0)。
         body.hidden = false;
         layoutCalls(true);

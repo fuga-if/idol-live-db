@@ -67,6 +67,7 @@ export type { KanaSection } from "./KanaSection";
 export type { Lineup } from "./Lineup";
 export type { LineupNote } from "./LineupNote";
 export type { LinkedNote } from "./LinkedNote";
+export type { LyricPartCastMember } from "./LyricPartCastMember";
 export type { LyricsBlock } from "./LyricsBlock";
 export type { MissingOriginals } from "./MissingOriginals";
 export type { MonthSpan } from "./MonthSpan";

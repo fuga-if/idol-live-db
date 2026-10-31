@@ -62,7 +62,7 @@ pub use calls::{CallGuideEditRow, CallGuidePage, CallGuideSongRow};
 pub use common::{filter_axes, nonzero_tiles};
 pub use common::{
     mark_current, AppLinks, AppOpen, CallGuideClap, CallGuideEmphasis, CallGuideVocabulary, Counts,
-    Crumb, DateBadge, EmptyText, FilterAxis, LinkedNote, LyricsBlock, NavLink, PenlightSetDto,
+    Crumb, DateBadge, EmptyText, FilterAxis, LinkedNote, LyricPartCastMember, LyricsBlock, NavLink, PenlightSetDto,
     PerformerNameOptionDto, Ref, RefKind, Robots, SeoBlock, SetlistDisplayOptionDto, SiteMeta,
     SongCommunity, StatTile, TagBadge, TagChipDto, ThemePair, ThemeTable, ThemeTokens,
     SCHEMA_VERSION,

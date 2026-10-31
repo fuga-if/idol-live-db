@@ -617,7 +617,21 @@ web_dto! {
         pub read_label: Option<String>,
         /// コールガイドの語彙 (記号・札・凡例の語)。出すときだけ。
         pub call_guide: Option<CallGuideVocabulary>,
+        /// パート分け (歌い分け) を描く原唱者 (並びが縞の順)。行が持つのは id だけなので、
+        /// 色と名前はここから引く。ソロ曲 (`parts_applicable` が偽) と歌詞を出さないときは空。
+        pub part_cast: Vec<LyricPartCastMember>,
 }
+}
+
+web_dto! {
+    /// パート分けを描く原唱者 1 人。字の色は `theme_key` (`themes.css` の `idol:<id>`) の `--accent`、
+    /// 行の下に添える名前は `name` (短縮名。アプリの `shortName` と同じ規則)。
+    #[derive(Eq)]
+    pub struct LyricPartCastMember {
+        pub id: String,
+        pub name: String,
+        pub theme_key: String,
+    }
 }
 
 web_dto! {

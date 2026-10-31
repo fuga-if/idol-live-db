@@ -49,4 +49,46 @@ test.describe("曲ページの歌詞とコールガイド", () => {
       expect(prevented, type).toBe(true);
     }
   });
+
+  test("振り仮名・被せ・歌い分け・歌詞と同じ文字のコールをアプリと同じに出す", { tag: "@LYRICS-004" }, async ({ page }) => {
+    await mockLyricsApi(page, LYRICS, {
+      lines: [
+        // 振り仮名 (親字《よみ》) と括弧の被せ。未来が歌う。
+        { text: "五輪咲《ごりん》の夢を（夢を）", kind: "lyric", calls: [], singers: ["ml_kasuga_mirai"], partBreaks: [] },
+        // 途中で歌う人が変わる行 (前半は 2 人)。歌詞と同じ文字のコール (同時) と、別の文字のコール。
+        {
+          text: "はいはいここから",
+          kind: "lyric",
+          singers: ["ml_kasuga_mirai", "ml_mogami_shizuka"],
+          partBreaks: [{ at: 4, singers: ["ml_mogami_shizuka"] }],
+          calls: [
+            { id: "c1", start: 0, end: 4, text: "ハイハイ", timing: "over" },
+            { id: "c2", start: 4, end: 8, text: "オーイ", timing: "after" },
+          ],
+        },
+      ],
+    });
+    await page.goto("/songs/ml_sample/");
+    await page.locator("[data-lyrics-load]").click();
+    const [first, second] = [0, 1].map((i) => page.locator("[data-lyrics-body] .lyrics__line").nth(i));
+    await expect(first).toBeVisible();
+
+    // 記号は出さず、読みは親字の上 (<rt>)。
+    await expect(first.locator("ruby")).toHaveCount(1);
+    await expect(first.locator("rt")).toHaveText("ごりん");
+    await expect(first).not.toContainText("《");
+    // 被せは小さい字。
+    await expect(first.locator(".lyrics__run--aside")).toHaveText("（夢を）");
+    // 1 人の字は担当色、行の下に名前。
+    await expect(first.locator(".lyrics__run[data-part]").first()).toHaveAttribute("data-theme", "idol:ml_kasuga_mirai");
+    await expect(first.locator(".lyrics__parts")).toHaveText("未来");
+
+    // 2 人で歌う字は縞、名前は途中で変わるところを「→」でつなぐ。
+    await expect(second.locator(".lyrics__run[data-stripes='2']")).toHaveText("はいはい");
+    await expect(second.locator(".lyrics__parts")).toHaveText("未来・静香 → 静香");
+    // 歌詞と同じ文字のコールは行に並べず、歌詞を濃く敷く。別の文字のコールは並べる。
+    await expect(second.locator(".lyrics__anchor[data-echo]")).toHaveText("はいはい");
+    await expect(second.locator(".lyrics__call")).toHaveCount(1);
+    await expect(second.locator(".lyrics__call")).toHaveText("オーイ");
+  });
 });

@@ -24,6 +24,7 @@
         "artworkUrl": "https://is1-ssl.mzstatic.com/image/thumb/Music/sample/600x600bb.jpg"
       },
       "releaseDate": "2019-03-13",
+      "releaseDisplay": "2019年3月13日(水)",
       "unitLabel": "765MILLION ALLSTARS",
       "artistsLabel": "春日未来",
       "songTypeLabel": "ユニット曲",
@@ -32,7 +33,7 @@
       "composerCredit": "作曲 高田暁",
       "cdCredit": "収録 THE IDOLM@STER LIVE THE@TER PERFORMANCE 01",
       "performanceCount": 12,
-      "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13"
+      "subtitle": "765MILLION ALLSTARS ・ 春日未来 ・ 2019年3月13日(水)"
     },
     {
       "ref": {
@@ -45,6 +46,7 @@
         "artworkUrl": null
       },
       "releaseDate": null,
+      "releaseDisplay": null,
       "unitLabel": null,
       "artistsLabel": null,
       "songTypeLabel": null,
@@ -79,6 +81,11 @@
   "fixedAxes": [
     "brandIds"
   ],
+  "pageSort": {
+    "key": "kana",
+    "label": "五十音順",
+    "defaultAscending": true
+  },
   "kanaSections": [
     {
       "label": "さ",

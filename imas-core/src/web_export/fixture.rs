@@ -331,6 +331,7 @@ fn theme_table() -> ThemeTable {
     themes.insert("brand:ml".to_string(), pair(None, Some("#ffc30b")));
     themes.insert("brand:cg".to_string(), pair(None, Some("#2681c8")));
     themes.insert("idol:ml_kasuga_mirai".to_string(), pair(Some("#f39800"), Some("#ffc30b")));
+    themes.insert("idol:ml_mogami_shizuka".to_string(), pair(Some("#0077dd"), Some("#ffc30b")));
     ThemeTable { schema_version: SCHEMA_VERSION, themes }
 }
 
@@ -625,6 +626,23 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
                 .then(|| format!("{}/songs/ml_mirai/lyrics", content::API_ORIGIN)),
             read_label: content::LYRICS_ON_WEB.then(|| content::LYRICS_READ_LABEL.to_string()),
             call_guide: content::LYRICS_ON_WEB.then(content::call_guide_vocabulary),
+            // 代表値は 2 人で歌う曲として、パート分けの色と名前が描ける形にしておく。
+            part_cast: if minimal {
+                Vec::new()
+            } else {
+                vec![
+                    LyricPartCastMember {
+                        id: "ml_kasuga_mirai".to_string(),
+                        name: "未来".to_string(),
+                        theme_key: super::theme::idol_key("ml_kasuga_mirai"),
+                    },
+                    LyricPartCastMember {
+                        id: "ml_mogami_shizuka".to_string(),
+                        name: "静香".to_string(),
+                        theme_key: super::theme::idol_key("ml_mogami_shizuka"),
+                    },
+                ]
+            },
         },
         // 代表値でもコミュニティ集計が入る形にしておく (器だけ空にしない)。
         community: SongCommunity {

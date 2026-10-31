@@ -17,7 +17,20 @@
   "jointBrands": [],
   "kind": "live",
   "kindLabel": "ライブ",
-  "dateDisplay": "2026-04-03 (金) 〜 2026-04-04 (土)",
+  "dateDisplay": "4月3日(金)〜4日(土)",
+  "dateBadge": {
+    "iso": "2026-04-03",
+    "year": "2026",
+    "monthDay": "4/3",
+    "weekday": "金",
+    "spoken": "2026年4月3日 金曜日",
+    "stub": {
+      "top": "APR",
+      "big": "03",
+      "bottom": "FRI",
+      "weekdayKind": "weekday"
+    }
+  },
   "isUpcoming": true,
   "ticket": {
     "sales": [
