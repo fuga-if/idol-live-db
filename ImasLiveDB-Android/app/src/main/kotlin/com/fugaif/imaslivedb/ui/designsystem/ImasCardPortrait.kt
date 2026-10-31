@@ -304,8 +304,12 @@ data class ImasCardDesignOption(
     /** 札の中に組む小さな名刺の形。 */
     sealed interface Look {
         data object Pass : Look
+        data object Ticket : Look
         data object Formal : Look
+        data object Vertical : Look
         data object Pop : Look
+        data object Sumi : Look
+        data object Night : Look
         /** 担当を大きく (先頭の担当の画像。無ければ担当色の丸)。 */
         data class Oshi(val url: String?) : Look
         /** 自作の画像 (表の画像。まだ選んでいなければ null)。 */
@@ -459,6 +463,47 @@ private fun DesignLook(option: ImasCardDesignOption, name: String, accent: Color
             Column(Modifier.padding(DS.Space.gap), verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                 ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
                 Box(Modifier.size(width = 32.dp, height = 5.dp).background(accent))
+            }
+        }
+        ImasCardDesignOption.Look.Ticket -> Row(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape)
+        ) {
+            Column(
+                Modifier.weight(1f).fillMaxHeight().padding(DS.Space.gap),
+                verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+            ) {
+                Text("ADMIT ONE", style = ImasTextRole.IMPRINT.style, color = DS.ink2, maxLines = 1)
+                ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
+            }
+            ImasPerforation(Modifier.padding(vertical = 6.dp), axis = ImasPerforationAxis.VERTICAL, color = DS.line)
+            Box(Modifier.width(34.dp).fillMaxHeight().background(accent))
+        }
+        ImasCardDesignOption.Look.Vertical -> Row(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape).padding(DS.Space.gap),
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight, Alignment.End),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(Modifier.width(1.dp).fillMaxHeight().background(accent))
+            ImasMeishiVerticalText(
+                text = name.take(5), style = ImasType.cardName(option.family, 15.sp), color = DS.ink, step = 16.dp
+            )
+        }
+        ImasCardDesignOption.Look.Sumi -> Column(
+            Modifier.fillMaxSize().background(DS.bg, shape).clip(shape).border(1.dp, DS.line, shape).padding(DS.Space.gap),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(DS.Space.gap, Alignment.CenterVertically)
+        ) {
+            ImasFitText(name, style = nameStyle, color = DS.ink, maxLines = 1, minScale = 0.5f)
+            Box(Modifier.size(4.dp).background(accent, CircleShape))
+        }
+        ImasCardDesignOption.Look.Night -> {
+            val night = ImasMeishiInk.screen(null, null).night()
+            Column(Modifier.fillMaxSize().background(night.paper, shape).clip(shape)) {
+                Box(Modifier.fillMaxWidth().height(3.dp).background(accent))
+                ImasFitText(
+                    name, style = ImasType.cardName(option.family, 18.sp), color = night.ink, maxLines = 1, minScale = 0.5f,
+                    modifier = Modifier.padding(DS.Space.gap)
+                )
             }
         }
         is ImasCardDesignOption.Look.Oshi -> Row(

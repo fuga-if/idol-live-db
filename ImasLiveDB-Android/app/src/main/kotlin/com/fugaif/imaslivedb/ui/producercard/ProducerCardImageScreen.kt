@@ -2,6 +2,7 @@ package com.fugaif.imaslivedb.ui.producercard
 
 import android.graphics.Bitmap
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +51,9 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasEmptyState
 import com.fugaif.imaslivedb.ui.designsystem.ImasErrorAlert
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormBackdrop
+import com.fugaif.imaslivedb.ui.designsystem.ImasIconTileTone
 import com.fugaif.imaslivedb.ui.designsystem.ImasListSection
+import com.fugaif.imaslivedb.ui.designsystem.ImasNavRow
 import com.fugaif.imaslivedb.ui.designsystem.ImasLoadingState
 import com.fugaif.imaslivedb.ui.designsystem.ImasPage
 import com.fugaif.imaslivedb.ui.designsystem.ImasPinnedPreview
@@ -71,7 +76,7 @@ import uniffi.imas_core.ProfileAutoField
 import uniffi.imas_core.ProfileAutoFieldRow
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.ProfileSheetLayout
-import uniffi.imas_core.profileAutoFieldRows
+import uniffi.imas_core.profileAutoFieldGroups
 import uniffi.imas_core.profileSheetLayout
 import uniffi.imas_core.profileSheetSizes
 import uniffi.imas_core.profileToggleField
@@ -79,15 +84,16 @@ import uniffi.imas_core.profileToggleField
 private const val FILE_PREFIX = "producer_card_image"
 
 /**
- * SNS に貼る P名刺の画像: 自分の P名刺と記録を、履歴書の様式の 1 枚絵にする (P名刺の 3 つ目の出し方)。
+ * SNS に貼る P名刺の画像: 自分の P名刺と記録を、P履歴書の様式の 1 枚絵にする (P名刺の 3 つ目の出し方)。
  * iOS `ProducerCardImageView` の移植。
  *
- * 開くとすぐできあがりの見本が上に固定で見え (押すと原寸)、選ぶのは大きさ (4:5 / 9:16) と載せる項目の付け外しだけ。
- * 中身はすべて P名刺とアプリの記録から入る: 名前・P歴・写真・リンク・自分の QR・好きな曲は P名刺
+ * 開くとすぐできあがりの見本が上に固定で見え (押すと原寸)、そのまま書き出せる (簡単に作れる)。こだわるなら大きさ (4:5 / 9:16)、
+ * 載せる項目の付け外し (見出しごと)、好きな曲と思い出の公演を自分で選べる。
+ * 中身はすべて P名刺とアプリの記録から入る: 名前・P歴・写真・ひとこと・リンク・自分の QR は P名刺
  * (直すのは P名刺の編集)、担当ブランドの丸はアプリ全体の設定 ([BrandRoleStore])、参加した公演・回収は記録。
  * 名刺 (交換するもの) に載せない記録の数も、ここ (見せるもの) には載る。
  * 選んだものはその場で自分の名刺の行に保存する。欄の一覧と値・付け外しはコア
- * (`profileAutoFieldRows` / `profileToggleField`、組みは `profileSheetLayout`)。
+ * (`profileAutoFieldGroups` / `profileToggleField`、組みは `profileSheetLayout`)。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +109,10 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
     var saveError by remember { mutableStateOf<String?>(null) }
     var exportError by remember { mutableStateOf<String?>(null) }
     var exporting by remember { mutableStateOf(false) }
+    // この画面で好きな曲を選び直したか (選び直していなければ、保存のときに P名刺の編集で選んだ最新を使う)。
+    var songsTouched by remember { mutableStateOf(false) }
+    // 選ぶ画面 (好きな曲・思い出の公演) を開いているとき、その欄。
+    var picking by remember { mutableStateOf<ProfileAutoField?>(null) }
     val capture = rememberShareCardCapture()
     // Android 9 以下の保存経路。保存先を選んで戻ってくるまで画像を持っておく。
     var pendingSave by remember { mutableStateOf<Bitmap?>(null) }
@@ -141,7 +151,8 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
     /**
      * 選んだらその場で保存する。保存は順に 1 本ずつ流し (古い選択が後から書かれないように。読んで重ねて書くのは
      * リポジトリが 1 本ずつ流す)、失敗したときは最後に変えた分だけ前の選択に戻す。
-     * 名刺のほかの欄と好きな曲は DB の最新を使う (好きな曲は P名刺の編集で直すので、開いた時の古い選択で戻さない)。
+     * 名刺のほかの欄は DB の最新を使い、好きな曲もこの画面で選び直していなければ DB の最新 (P名刺の編集で直したもの) を使う
+     * (開いた時の古い選択で戻さない)。
      * 保存はアプリのスコープで流す (選んですぐ戻っても、画面と一緒に取り消されて書き落とさない。iOS の Task と同じ)。
      */
     fun update(sheet: ProfileSheet) {
@@ -155,7 +166,7 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
             try {
                 module.producerCardRepository.updateMyCard { latest ->
                     val row = latest ?: current
-                    row.withProfile(sheet.copy(songs = row.profile.songs))
+                    row.withProfile(if (songsTouched) sheet else sheet.copy(songs = row.profile.songs))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -191,6 +202,31 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
         }
     }
 
+    // 好きな曲・思い出の公演を選ぶ画面 (この画面の上に重ねる)。戻るで元に戻る。
+    val pickingNow = picking
+    val mineNow = card
+    if (pickingNow != null && mineNow != null) {
+        BackHandler { picking = null }
+        when (pickingNow) {
+            ProfileAutoField.SONGS -> FavoriteSongPickerScreen(
+                chosen = mineNow.profile.songs,
+                onChange = { ids ->
+                    songsTouched = true
+                    update(mineNow.profile.copy(songs = ids))
+                },
+                onBack = { picking = null }
+            )
+            else -> MemoryShowPickerScreen(
+                sheet = mineNow.profile,
+                record = materials.record,
+                // 選んだ公演だけを今の選択に移す (ほかの欄はこの画面の最新のまま)。
+                onChange = { next -> card?.let { update(it.profile.copy(memories = next.memories)) } },
+                onBack = { picking = null }
+            )
+        }
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -223,7 +259,7 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
             else -> {
                 val sheet = mine.profile
                 val layout = profileSheetLayout(sheet, materials.record)
-                val rows = profileAutoFieldRows(sheet, materials.record)
+                val groups = profileAutoFieldGroups(sheet, materials.record)
                 Column(Modifier.fillMaxSize().padding(padding)) {
                     ImasPinnedPreview(full = { SheetPreview(layout, materials, rememberShareCardCapture()) }) {
                         SheetPreview(layout, materials, capture)
@@ -241,17 +277,29 @@ fun ProducerCardImageScreen(onBack: () -> Unit) {
                                     modifier = Modifier.padding(horizontal = DS.Space.rowH, vertical = DS.Space.rowV)
                                 )
                             }
-                            ImasListSection(
-                                "載せる項目",
-                                footer = "記録の無いものは並びません。名前・P歴・写真・リンク・自分の QR・好きな曲は P名刺の編集で、担当ブランドは設定で直せます。"
-                            ) {
-                                rows.forEach { row ->
-                                    ImasToggleRow(
-                                        title = row.label,
-                                        subtitle = subtitle(row),
-                                        isOn = row.shown,
-                                        onCheckedChange = { update(profileToggleField(sheet, row.field)) }
-                                    )
+                            groups.forEachIndexed { i, group ->
+                                ImasListSection(
+                                    group.title,
+                                    footer = if (i == groups.size - 1) {
+                                        "記録の無いものは並びません。名前・P歴・写真・ひとこと・リンク・自分の QR は P名刺の編集で、担当ブランドは設定で直せます。"
+                                    } else null
+                                ) {
+                                    group.rows.forEach { row ->
+                                        ImasToggleRow(
+                                            title = row.label,
+                                            subtitle = subtitle(row),
+                                            isOn = row.shown,
+                                            onCheckedChange = { update(profileToggleField(sheet, row.field)) }
+                                        )
+                                        if (row.pickable && row.shown) {
+                                            ImasNavRow(
+                                                title = if (row.field == ProfileAutoField.SONGS) "載せる曲を選ぶ" else "載せる公演を選ぶ",
+                                                icon = if (row.field == ProfileAutoField.SONGS) Icons.AutoMirrored.Filled.QueueMusic else Icons.Filled.ConfirmationNumber,
+                                                iconTone = ImasIconTileTone.NEUTRAL,
+                                                showsChevron = false
+                                            ) { picking = row.field }
+                                        }
+                                    }
                                 }
                             }
                             Column(
@@ -294,7 +342,6 @@ private fun SheetPreview(layout: ProfileSheetLayout, materials: ProfileSheetMate
 private fun subtitle(row: ProfileAutoFieldRow): String? {
     val from = when (row.field) {
         ProfileAutoField.BRANDS -> "設定の担当ブランドから"
-        ProfileAutoField.SONGS -> "P名刺の好きな曲から"
         else -> if (row.fromCard) "P名刺から" else null
     }
     return listOfNotNull(from, row.value.ifEmpty { null }).joinToString(" · ").ifEmpty { null }

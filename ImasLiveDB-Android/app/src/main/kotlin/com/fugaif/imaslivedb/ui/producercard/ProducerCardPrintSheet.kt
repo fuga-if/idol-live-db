@@ -35,7 +35,6 @@ import com.fugaif.imaslivedb.ui.share.ProducerCardPrintFront
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintImage
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshi
 import com.fugaif.imaslivedb.ui.share.ProducerCardPrintOshiGroup
-import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
 import com.fugaif.imaslivedb.di.AppModule
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.producerCardFace
@@ -76,12 +75,7 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
     // 表の組み (載せる担当・畳む数・ハンドルはコア)。
     val face = remember(c, directory) { producerCardFace(c, directory.oshiEntries(c.oshiIdolIds)) }
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(c))
-    val look = when (ProducerCardDisplay.design(c, null).design) {
-        CardDesign.FORMAL -> ImasMeishiLook.FORMAL
-        CardDesign.POP -> ImasMeishiLook.POP
-        CardDesign.OSHI -> ImasMeishiLook.OSHI
-        CardDesign.PASS, CardDesign.CUSTOM -> ImasMeishiLook.PASS
-    }
+    val look = ProducerCardDisplay.look(ProducerCardDisplay.design(c, null).design)
     val backOptions = listOfNotNull(Back.FACE_BACK.takeIf { faceBack != null }, Back.EXCHANGE, Back.OWN.takeIf { c.qrUrl != null })
     // 裏の QR の中身と案内。
     val own = if (back == Back.OWN) c.qrUrl else null
@@ -123,8 +117,8 @@ fun ProducerCardPrintSheet(card: EncodedProducerCard, directory: ProducerCardDir
                             },
                             caption = face.oshiCaption,
                             moreOshi = face.moreOshi.toInt(),
-                            // 担当の色は画面の名刺と同じく、描ける先頭の担当の色。
-                            seed = face.oshiGroups.firstOrNull()?.idolIds?.firstOrNull()?.let { directory.idols[it]?.color },
+                            // 担当の色は画面の名刺と同じく、名刺の刷る色の担当 (既定は描ける先頭の担当、墨なら無し)。
+                            seed = face.accentIdolId?.let { directory.idols[it]?.color },
                             handle = face.handle?.display,
                             nameFamily = nameFamily,
                             portrait = materials.portrait,

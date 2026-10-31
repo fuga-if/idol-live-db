@@ -58,7 +58,8 @@ object ProducerCardPrint {
         return ImasMeishiInk(
             paper = paper, ink = ink, sub = sub, line = sub.copy(alpha = 0.35f),
             accent = if (seed == null) ink else accent,
-            onAccent = if (seed == null) paper else ink
+            onAccent = if (seed == null) paper else ink,
+            nightAccent = if (seed == null) null else accent
         )
     }
 }
@@ -75,7 +76,7 @@ data class ProducerCardPrintOshi(
 /** 紙に刷る担当のブランドごとのまとまり (コアの `CardFaceOshiGroup`)。 */
 data class ProducerCardPrintOshiGroup(val label: String, val oshi: List<ProducerCardPrintOshi>)
 
-/** 表。デザイン (入場証・かしこまった名刺・ポップ・担当を大きく) ごとに組みを変える。載せるものは画面の名刺と同じ。 */
+/** 表。デザイン (入場証・チケット・かしこまった名刺・縦書き・ポップ・墨一色・夜公演・担当を大きく) ごとに組みを変える。載せるものは画面の名刺と同じ。 */
 @Composable
 fun ProducerCardPrintFront(
     name: String,
@@ -89,7 +90,7 @@ fun ProducerCardPrintFront(
     /** 判子の下の 1 行 (コアの `CardFace.oshiCaption`)。 */
     caption: String? = null,
     moreOshi: Int = 0,
-    /** 担当の色 (帯・罫)。先頭の担当の色。 */
+    /** 担当の色 (帯・罫)。名刺の刷る色の担当の色 (墨なら null)。 */
     seed: String? = null,
     /** 右下に刷るハンドル (「@fuga_p」)。 */
     handle: String? = null,

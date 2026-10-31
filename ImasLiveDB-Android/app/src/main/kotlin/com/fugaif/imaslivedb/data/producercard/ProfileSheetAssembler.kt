@@ -10,14 +10,13 @@ import com.fugaif.imaslivedb.ui.designsystem.imasQrMatrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import uniffi.imas_core.ProfileBrandInput
+import uniffi.imas_core.ProfileOshiInput
 import uniffi.imas_core.ProfileSheetRecord
 import uniffi.imas_core.ProfileShowInput
 import uniffi.imas_core.cardLinkView
-import uniffi.imas_core.producerCardLimits
-import uniffi.imas_core.producerCardOshiPickedIds
 
 /**
- * P名刺の画像 (SNS に貼る履歴書の様式) に載る担当 1 人 (押印欄の判子と担当の行)。iOS `ProfileSheetOshi` と対。
+ * P名刺の画像 (SNS に貼る P履歴書) に載る担当 1 人 (担当の行)。iOS `ProfileSheetOshi` と対。
  * 画像は焼く前に読んでおく (焼くのは今描かれているものだけで、読み込みを待たない)。
  */
 data class ProfileSheetOshi(
@@ -36,6 +35,7 @@ data class ProfileSheetOshi(
 data class ProfileSheetMaterials(
     /** 名前・P歴・リンク・記録・ブランド・担当ブランドの設定・お気に入りの曲。 */
     val record: ProfileSheetRecord,
+    /** アプリの担当すべて (並べ方はコアの `ProfileSheetLayout.oshiGroups`)。 */
     val oshi: List<ProfileSheetOshi> = emptyList(),
     /** 証明写真の欄の画像 (P名刺の写真)。 */
     val portrait: Bitmap? = null,
@@ -47,9 +47,9 @@ data class ProfileSheetMaterials(
     companion object {
         val EMPTY = ProfileSheetMaterials(
             record = ProfileSheetRecord(
-                today = "", name = "", sinceYear = null, oshiNames = emptyList(), oshiBrandIds = emptyList(),
-                attended = emptyList(), songCount = 0u, brands = emptyList(), brandRolesJson = "",
-                favoriteSongs = emptyList(), links = emptyList(), hasPhoto = false, hasQr = false
+                today = "", name = "", sinceYear = null, oshi = emptyList(), oshiBrandIds = emptyList(),
+                attended = emptyList(), songCount = 0u, ownedReleaseCount = 0u, brands = emptyList(), brandRolesJson = "",
+                favoriteSongs = emptyList(), message = "", links = emptyList(), hasPhoto = false, hasQr = false
             )
         )
     }
@@ -58,14 +58,11 @@ data class ProfileSheetMaterials(
 /** P名刺の画像の材料を集める。iOS `ProfileSheetAssembler` と対 (並びと除外はコア)。 */
 object ProfileSheetAssembler {
     suspend fun load(context: Context, module: AppModule, card: MyProducerCard): ProfileSheetMaterials {
-        val limits = producerCardLimits()
         val marks = module.userMarkRepository
-        // 載せる担当は名刺に載せた担当 (本人の選択。まだ選んでいなければブランドごとに 1 人を先に確保して
-        // 上限まで。規則はコア)。
-        val entries = ProducerCardAssembler.oshiEntries(
-            module, runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList())
-        )
-        val oshiIds = producerCardOshiPickedIds(card.cardOshiChoice, entries).take(limits.maxOshi.toInt())
+        // 載せる担当はアプリの担当すべて (名刺に載せる担当の選択とは別。「履歴書にはすべての担当を乗せたい」)。
+        val oshiIds = runCatching { marks.pickedIdolIdList() }.getOrDefault(emptyList())
+        val favoriteEvents = runCatching { marks.favoriteEventIds() }.getOrDefault(emptySet())
+        val ownedReleases = runCatching { marks.ownedReleaseIds().size }.getOrDefault(0)
         val repo = module.producerCardRepository
         val attendedRefs = runCatching { repo.attendedShowRefs() }.getOrDefault(emptyList())
         val shows = runCatching { repo.showInfos(attendedRefs.map { it.showId }) }.getOrDefault(emptyMap())
@@ -105,16 +102,18 @@ object ProfileSheetAssembler {
             today = today,
             name = card.name,
             sinceYear = card.sinceYear?.takeIf { it in 0..65535 }?.toUShort(),
-            oshiNames = oshiIdols.map { it.name },
+            oshi = oshiIdols.map { ProfileOshiInput(it.id, it.name, it.brandId) },
             oshiBrandIds = brandRoleRecord.oshiBrandIds,
             attended = attendedRefs.mapNotNull { ref ->
                 val info = shows[ref.showId] ?: return@mapNotNull null
-                ProfileShowInput(ref.showId, ref.date, info.label, info.venue, info.brandId)
+                ProfileShowInput(ref.showId, ref.date, info.label, info.venue, info.brandId, info.eventId in favoriteEvents)
             },
             songCount = songCount.toUInt(),
+            ownedReleaseCount = ownedReleases.toUInt(),
             brands = brands.map { ProfileBrandInput(it.id, it.shortName, it.color, it.sortOrder.toLong()) },
             brandRolesJson = BrandRoleStore.json(context),
             favoriteSongs = favorites.map { it.input },
+            message = card.message,
             links = card.links.map { cardLinkView(it).display },
             hasPhoto = portrait != null,
             hasQr = qrUrl != null

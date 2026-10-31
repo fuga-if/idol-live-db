@@ -121,7 +121,7 @@ object BackupExportImportService {
                 BackupMyProducerCardRecord(
                     it.id, it.name, it.message, it.sinceYear?.toLong(), it.linksJson, it.hiddenFields, it.updatedAt,
                     design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson,
-                    cardId = it.cardId
+                    cardId = it.cardId, ink = it.ink
                 )
             },
             // 担当ブランドはアプリ全体の設定 (端末の SharedPreferences)。まだ決めていなければ空 (運ばない)。
@@ -225,7 +225,7 @@ object BackupExportImportService {
                 MyProducerCard(
                     it.id, it.name, it.message, it.sinceYear?.toInt(), it.linksJson, it.hiddenFields, it.updatedAt,
                     design = it.design, qrUrl = it.qrUrl, profileJson = it.profileJson, cardOshiJson = it.cardOshiJson,
-                    cardId = it.cardId
+                    cardId = it.cardId, ink = it.ink
                 )
             }
         )
