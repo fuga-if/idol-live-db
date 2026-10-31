@@ -25,6 +25,8 @@ struct SongFilterView: View {
     /// 歌詞のタイミング (行の再生位置) が記録されている曲だけに絞るか。
     @Binding var lyricTimingOnly: Bool
     @Binding var partsOnly: Bool
+    /// 歌詞が登録 (公開) されている曲だけに絞るか。
+    @Binding var lyricsOnly: Bool
     /// 音楽カードゲーム「KAMISABI」の収録曲だけに絞るか。
     @Binding var kamisabiOnly: Bool
 
@@ -81,8 +83,9 @@ struct SongFilterView: View {
                 }
 
                 if listMode == .songs, LyricsFeature.isAvailable {
-                    ImasListSection("コールガイド・タイミング・パート分け",
-                                    footer: "歌詞の行にコール・手拍子や、再生に合わせて追いかけるための時刻、誰が歌うかが書き込まれている曲だけを表示します (通信が必要)。") {
+                    ImasListSection("歌詞",
+                                    footer: "歌詞が登録されている曲や、歌詞の行にコール・手拍子、再生に合わせて追いかけるための時刻、誰が歌うかが書き込まれている曲だけを表示します (通信が必要)。") {
+                        ImasToggleRow(title: "歌詞がある曲のみ", systemImage: "text.quote", isOn: $lyricsOnly)
                         ImasToggleRow(title: "コールガイドがある曲のみ", systemImage: "hands.clap.fill", isOn: $callGuideOnly)
                         ImasToggleRow(title: "歌詞のタイミングがある曲のみ", systemImage: "metronome", isOn: $lyricTimingOnly)
                         ImasToggleRow(title: "パート分けがある曲のみ", systemImage: "person.2.fill", isOn: $partsOnly)

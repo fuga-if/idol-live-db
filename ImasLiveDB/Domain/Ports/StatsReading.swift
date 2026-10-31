@@ -26,4 +26,6 @@ protocol StatsReading: Sendable {
     ) async throws -> CollectionDashboard
     /// 歌詞の投稿状況 (全体とブランド別)。`publishedSongIds` はサーバの公開曲 id。
     func lyricCoverage(publishedSongIds: [String]) async throws -> LyricCoverageRecord
+    /// 歌詞のある曲の id (`lyricCoverage` と同じ母集合)。`brandId` が nil なら全ブランド。
+    func lyricSongIds(publishedSongIds: [String], brandId: String?) async throws -> [String]
 }

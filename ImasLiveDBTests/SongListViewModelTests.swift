@@ -76,6 +76,36 @@ final class SongListViewModelTests: XCTestCase {
         XCTAssertTrue(vm.callGuideFilterError)
         XCTAssertEqual(vm.callGuideSongIds, ["s1"])
     }
+
+    /// 「歌詞がある曲のみ」は公開曲 id から集合を作り、失敗時は既存の集合を残してフラグだけ立てる。
+    func testLyricsFilterUsesPublishedIdsAndKeepsSetOnFailure() async {
+        let lyrics = StubLyricsQuizReading()
+        lyrics.ids = ["s3", "s4"]
+        let vm = SongListViewModel(songReading: StubSongReading(), annotations: StubLyricAnnotations(),
+                                   lyricsReading: lyrics)
+        await vm.resolveLyricsFilter(true)
+        XCTAssertEqual(vm.lyricsSongIds, ["s3", "s4"])
+        lyrics.shouldThrow = true
+        await vm.resolveLyricsFilter(true)
+        XCTAssertTrue(vm.lyricsFilterError)
+        XCTAssertEqual(vm.lyricsSongIds, ["s3", "s4"])
+        await vm.resolveLyricsFilter(false)
+        XCTAssertNil(vm.lyricsSongIds)
+        XCTAssertFalse(vm.lyricsFilterError)
+    }
+}
+
+/// 歌詞の公開曲 id のスタブ (本文は返さない)。
+final class StubLyricsQuizReading: LyricsQuizReading, @unchecked Sendable {
+    var ids: [String] = []
+    var shouldThrow = false
+
+    func publishedSongIds() async throws -> [String] {
+        if shouldThrow { throw StubLyricAnnotations.StubError.boom }
+        return ids
+    }
+
+    func lyrics(songId: String) async throws -> Lyrics? { nil }
 }
 
 /// ページを返すスタブ。

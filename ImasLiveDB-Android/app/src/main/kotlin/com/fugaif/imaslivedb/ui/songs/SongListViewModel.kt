@@ -103,6 +103,8 @@ data class SongListUiState(
      * 適用せず、このフラグで画面に警告を出す (iOS tagFilterError と同じ扱い)。
      */
     val tagFilterError: Boolean = false,
+    /** 「歌詞がある曲のみ」の集合が (オフライン等で) 取れず、絞り込みを掛けていないか。扱いはタグと同じ。 */
+    val lyricsFilterError: Boolean = false,
     /** 表示中でないスコープに何件当たるか。検索語が空のときは空。 */
     val otherScopeCounts: Map<SongSearchMode, Int> = emptyMap(),
     /** 表示形式 = アルバム / シリーズ のときのカード。 */
@@ -136,6 +138,11 @@ class SongListViewModel : ViewModel() {
 
     private var loadJob: Job? = null
     private var appContext: Context? = null
+    /**
+     * 直近に取れた歌詞の公開曲 id と取得時刻。打鍵のたびに引き直さない
+     * (サーバ側もエッジで 30 分持つので、それより短く持つ意味は薄い)。
+     */
+    private var lyricsIdsCache: Pair<Long, Set<String>>? = null
 
     fun init(context: Context) {
         appContext = context.applicationContext
@@ -240,6 +247,24 @@ class SongListViewModel : ViewModel() {
     fun clearNoteFilter() {
         _uiState.value = _uiState.value.copy(myMarkFilter = _uiState.value.myMarkFilter.copy(requireNote = false))
         loadSongs()
+    }
+
+    /** 除去可能フィルタチップからの個別解除 (歌詞あり)。 */
+    fun clearLyricsFilter() {
+        _uiState.value = _uiState.value.copy(myMarkFilter = _uiState.value.myMarkFilter.copy(requireLyrics = false))
+        loadSongs()
+    }
+
+    /** 歌詞の公開曲 id。取れなければ手元に残っている分、それも無ければ null。 */
+    private suspend fun lyricsSongIds(module: AppModule): Set<String>? {
+        val now = System.currentTimeMillis()
+        lyricsIdsCache?.let { (at, ids) -> if (now - at < LYRICS_IDS_TTL_MS) return ids }
+        val fresh = module.lyricsApi.publishedSongIds()
+        if (fresh != null) {
+            lyricsIdsCache = now to fresh
+            return fresh
+        }
+        return lyricsIdsCache?.second
     }
 
     /** 除去可能フィルタチップからの個別解除 (回収済み/未回収)。 */
@@ -366,7 +391,10 @@ class SongListViewModel : ViewModel() {
             val collectedCounts = module.songRepository.fetchSongCollectedCounts()
             val masteryLevels = module.userMarkRepository.masteryLevels()
 
-            val criteria = markFilterCriteria(state, favoriteIds, notedIds, myPickIds, collectedCounts)
+            // 歌詞あり: 取れなければ絞り込まない (null) で、バナーで断る。空集合で絞ると理由の分からない空一覧になる。
+            val lyricsIds = if (state.myMarkFilter.requireLyrics) lyricsSongIds(module) else null
+            val lyricsFilterError = state.myMarkFilter.requireLyrics && lyricsIds == null
+            val criteria = markFilterCriteria(state, favoriteIds, notedIds, myPickIds, collectedCounts, lyricsIds)
             songs = applyMarkFilters(songs, criteria)
 
             _uiState.value = _uiState.value.copy(
@@ -379,6 +407,7 @@ class SongListViewModel : ViewModel() {
                 masteryScale = AppPreferences.masteryScale,
                 tagVoteCounts = tagVoteCounts,
                 tagFilterError = tagFilterError,
+                lyricsFilterError = lyricsFilterError,
                 // 前の語の「もしかして」を残さない (打ち直した直後だけ関係ない曲が下にぶら下がる)。
                 fuzzySongs = emptyList(),
                 // 件数は下で数え直す。古い数字を残すと「ほかに 8 件」が別の語のままになる。
@@ -461,7 +490,8 @@ class SongListViewModel : ViewModel() {
         favoriteIds: Set<String>,
         notedIds: Set<String>,
         myPickIds: Set<String>,
-        collectedCounts: Map<String, Int>
+        collectedCounts: Map<String, Int>,
+        lyricsSongIds: Set<String>?
     ) = SongListFilterCriteria(
         collectMode = when (state.collectFilter) {
             SongCollectFilter.ALL -> SongCollectMode.ALL
@@ -477,9 +507,10 @@ class SongListViewModel : ViewModel() {
         requireMyPick = state.myMarkFilter.requireMyPick,
         myPickSongIds = myPickIds.toList(),
         tagSongIds = null,
-        // Android には歌詞・コール機能がまだ無いので、この絞り込みは使わない。
+        // コールガイドの絞り込みは Android ではまだ使わない。
         // null は「絞り込まない」の意味 (空リストは「該当 0 件」で一覧が消える)。
         callGuideSongIds = null,
+        lyricsSongIds = lyricsSongIds?.toList(),
         rankByTagVotes = false,
         tagVoteCounts = emptyMap()
     )
@@ -559,6 +590,8 @@ class SongListViewModel : ViewModel() {
     private companion object {
         /** 入力が落ち着いたと見なすまでの待ち (iOS FuzzySearchTuning.debounce と同値)。 */
         const val FUZZY_DEBOUNCE_MS = 250L
+        /** 歌詞の公開曲 id を持っておく時間 (サーバのエッジキャッシュと同じ 30 分)。 */
+        const val LYRICS_IDS_TTL_MS = 30 * 60 * 1000L
     }
 }
 

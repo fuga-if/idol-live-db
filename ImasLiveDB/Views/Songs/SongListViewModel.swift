@@ -106,6 +106,10 @@ final class SongListViewModel {
     private(set) var partSongIds: Set<String>?
     private(set) var partFilterError = false
     private var currentPartResolveId = UUID()
+    /// 歌詞が公開されている曲の song_id 集合 (nil = この絞り込みなし)。失敗規約はコールガイドと同じ。
+    private(set) var lyricsSongIds: Set<String>?
+    private(set) var lyricsFilterError = false
+    private var currentLyricsResolveId = UUID()
     /// `resolveCallGuideFilter` の世代。`await` の間にトグルが動いていたら古い応答は捨てる。
     private var currentCallGuideResolveId = UUID()
 
@@ -128,14 +132,18 @@ final class SongListViewModel {
     private let songReading: any SongReading
     /// コールガイド・タイミング絞り込みの母集合 (端末に覚えた印)。注入にしてフェイクを差せるようにしてある。
     private let annotations: any LyricAnnotationProviding
+    /// 「歌詞がある曲のみ」の母集合 (サーバの公開曲 id。本文は取らない)。
+    private let lyricsReading: any LyricsQuizReading
     private var markService: UserMarkService { UserMarkService.shared }
 
     nonisolated init(
         songReading: any SongReading = AppContainer.shared.songReading,
-        annotations: any LyricAnnotationProviding = LyricAnnotationStore.shared
+        annotations: any LyricAnnotationProviding = LyricAnnotationStore.shared,
+        lyricsReading: any LyricsQuizReading = AppContainer.shared.lyricsQuizReading
     ) {
         self.songReading = songReading
         self.annotations = annotations
+        self.lyricsReading = lyricsReading
     }
 
     @discardableResult
@@ -231,6 +239,7 @@ final class SongListViewModel {
         if request.callGuideOnly { ctx.callGuideSongIds = callGuideSongIds }
         if request.lyricTimingOnly { ctx.lyricTimingSongIds = lyricTimingSongIds }
         if request.partsOnly { ctx.partSongIds = partSongIds }
+        if request.lyricsOnly { ctx.lyricsSongIds = lyricsSongIds }
         return ctx
     }
 
@@ -489,6 +498,26 @@ final class SongListViewModel {
         }
     }
 
+    /// 「歌詞がある曲のみ」の song_id 集合を解決する (`GET /lyrics/published`)。規約は `resolveCallGuideFilter` と同じ。
+    func resolveLyricsFilter(_ enabled: Bool) async {
+        let resolveId = UUID()
+        currentLyricsResolveId = resolveId
+        guard enabled else {
+            lyricsSongIds = nil
+            lyricsFilterError = false
+            return
+        }
+        do {
+            let ids = try await lyricsReading.publishedSongIds()
+            guard currentLyricsResolveId == resolveId else { return }
+            lyricsSongIds = Set(ids)
+            lyricsFilterError = false
+        } catch {
+            guard currentLyricsResolveId == resolveId else { return }
+            lyricsFilterError = true
+        }
+    }
+
 }
 
 /// SongListView の現在の UI 状態を、データ取得に必要な純粋値へまとめたリクエスト。
@@ -507,6 +536,8 @@ struct SongListRequest {
     /// 「歌詞のタイミングがある曲のみ」が要求されているか。集合の解決は VM が持つ。
     var lyricTimingOnly: Bool = false
     var partsOnly: Bool = false
+    /// 「歌詞がある曲のみ」が要求されているか。集合の解決は VM が持つ。
+    var lyricsOnly: Bool = false
     /// 「KAMISABI 収録曲のみ」が要求されているか。判定はコアに渡すだけ。
     var kamisabiOnly: Bool = false
     var searchText: String

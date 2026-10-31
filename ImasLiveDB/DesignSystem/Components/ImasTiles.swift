@@ -343,6 +343,8 @@ struct ImasStatBar: View {
     var brand: String? = nil
     /// 右端の値の幅。金額のように桁が伸びる値は広げる。
     var valueWidth: CGFloat = 52
+    /// 押して中身へ進める行か。右端に ›  を出す (押す処理は呼び出し側の Button)。
+    var tappable: Bool = false
 
     @Environment(\.colorScheme) private var scheme
 
@@ -364,9 +366,17 @@ struct ImasStatBar: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .frame(width: valueWidth, alignment: .trailing)
+            if tappable {
+                Image(systemName: "chevron.right")
+                    .font(.imasScaled(10, weight: .bold))
+                    .foregroundStyle(DS.ink3)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.vertical, DS.Space.gap)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(tappable ? .isButton : [])
     }
 }
 

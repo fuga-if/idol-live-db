@@ -8,6 +8,7 @@
 //!   ブランドの無い曲は行を立てられないので数えない。
 //! - 公開数は母数に入る曲だけ数える (割合が 100% を超えないように)。
 //! - ブランドは表示順 (`sort_order`)。投稿できる曲が 0 のブランド (その他) は載せない。
+//! - [`lyric_song_ids`] は数えた「歌詞のある曲」そのものの一覧 (画面の数と一覧の行数を一致させる)。
 
 use std::collections::HashSet;
 
@@ -48,24 +49,49 @@ fn ratio(n: u32, d: u32) -> f64 {
     }
 }
 
+/// 母数に入る曲か (派生曲・ブランド無し・投稿を受け付けない曲を除く)。数えるのも一覧もこれ 1 本。
+fn counted_brand(snap: &Snapshot, s: &crate::domain::snapshot::Song) -> Option<u32> {
+    if s.parent_song_id.is_some() {
+        return None;
+    }
+    let brand_id = s.brand_id.as_deref()?;
+    let &brand = snap.brand_index_by_id.get(brand_id)?;
+    submission_allowed(brand_id, s.song_type.as_deref(), s.singer_label.as_deref()).then_some(brand)
+}
+
+/// 歌詞が公開されている曲の id 一覧 (「歌詞の投稿状況」の数と同じ母集合)。
+///
+/// `brand_id` を渡すとそのブランドだけ。並びはブランドの表示順 → 50 音 (title_kana、無ければ title)。
+pub fn lyric_song_ids(snap: &Snapshot, published_song_ids: &[String], brand_id: Option<&str>) -> Vec<String> {
+    let published_ids: HashSet<&str> = published_song_ids.iter().map(String::as_str).collect();
+    let mut brand_rank = vec![u32::MAX; snap.brands.len()];
+    for (rank, &b) in snap.brand_order.iter().enumerate() {
+        brand_rank[b as usize] = rank as u32;
+    }
+    let mut hits: Vec<(u32, &str, &str)> = snap
+        .songs
+        .iter()
+        .filter(|s| published_ids.contains(s.id.as_str()))
+        .filter(|s| brand_id.is_none_or(|b| s.brand_id.as_deref() == Some(b)))
+        .filter_map(|s| {
+            let brand = counted_brand(snap, s)?;
+            let key = s.title_kana.as_deref().unwrap_or(&s.title);
+            Some((brand_rank[brand as usize], key, s.id.as_str()))
+        })
+        .collect();
+    hits.sort();
+    hits.into_iter().map(|(_, _, id)| id.to_string()).collect()
+}
+
 /// 歌詞の投稿状況を数える。`published_song_ids` はサーバが公開している曲の id (未知の id は無視する)。
 pub fn lyric_coverage(snap: &Snapshot, published_song_ids: &[String]) -> LyricCoverageRecord {
     let published_ids: HashSet<&str> = published_song_ids.iter().map(String::as_str).collect();
     let mut eligible = vec![0u32; snap.brands.len()];
     let mut published = vec![0u32; snap.brands.len()];
     for s in &snap.songs {
-        if s.parent_song_id.is_some() {
-            continue;
-        }
-        let Some(brand_id) = s.brand_id.as_deref() else {
+        let Some(brand) = counted_brand(snap, s) else {
             continue;
         };
-        let Some(&brand) = snap.brand_index_by_id.get(brand_id) else {
-            continue;
-        };
-        if !submission_allowed(brand_id, s.song_type.as_deref(), s.singer_label.as_deref()) {
-            continue;
-        }
         eligible[brand as usize] += 1;
         if published_ids.contains(s.id.as_str()) {
             published[brand as usize] += 1;
@@ -149,6 +175,36 @@ mod tests {
             .brands
             .iter()
             .all(|b| b.brand_id != "other" && b.eligible > 0));
+    }
+
+    #[test]
+    fn song_ids_match_counts_and_order() {
+        let snap = bundle_snapshot();
+        // 公開扱いにする曲: 各ブランドの数曲 + 数えない曲 (派生曲・その他・未知の id)。
+        let mut ids: Vec<String> = snap.songs.iter().step_by(7).map(|s| s.id.clone()).collect();
+        ids.push(id_where(snap, |s| s.parent_song_id.is_some()));
+        ids.push("no_such_song".into());
+
+        let r = lyric_coverage(snap, &ids);
+        let all = lyric_song_ids(snap, &ids, None);
+        assert_eq!(all.len() as u32, r.published, "一覧の行数は「歌詞あり」の数と一致する");
+        for b in &r.brands {
+            let one = lyric_song_ids(snap, &ids, Some(&b.brand_id));
+            assert_eq!(one.len() as u32, b.published, "{} の行数", b.brand_id);
+            assert!(one.iter().all(|id| snap.song(id).unwrap().brand_id.as_deref() == Some(b.brand_id.as_str())));
+        }
+        // ブランドの表示順に並ぶ (同じブランドが飛び飛びにならない)。
+        let brands: Vec<&str> = all.iter().map(|id| snap.song(id).unwrap().brand_id.as_deref().unwrap()).collect();
+        let mut seen: Vec<&str> = vec![];
+        for b in brands {
+            if seen.last() != Some(&b) {
+                assert!(!seen.contains(&b), "{b} が飛び飛び");
+                seen.push(b);
+            }
+        }
+        let want: Vec<&str> = r.brands.iter().filter(|b| b.published > 0).map(|b| b.brand_id.as_str()).collect();
+        assert_eq!(seen, want);
+        assert!(lyric_song_ids(snap, &[], None).is_empty());
     }
 
     #[test]

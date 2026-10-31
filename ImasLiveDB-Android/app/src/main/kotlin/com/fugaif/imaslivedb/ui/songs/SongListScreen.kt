@@ -154,6 +154,7 @@ fun SongListScreen(
             ImasFilterBar(items = filterBarItems(uiState, viewModel))
 
             TagFilterErrorBanner(visible = uiState.tagFilterError)
+            LyricsFilterErrorBanner(visible = uiState.lyricsFilterError)
             KamisabiCompletionBanner(uiState = uiState)
 
             // 件数 / 並び替え。並び替えはその場のメニューで切り替える。
@@ -429,6 +430,17 @@ private fun TagFilterErrorBanner(visible: Boolean) {
     )
 }
 
+/** 「歌詞がある曲のみ」の集合が取れなかった (オフライン等) ときの断り。一覧は絞られていない。 */
+@Composable
+private fun LyricsFilterErrorBanner(visible: Boolean) {
+    if (!visible) return
+    ImasNotice(
+        kind = ImasNoticeKind.WARNING,
+        message = "歌詞のある曲の情報を取得できませんでした。表示中の一覧には歌詞の条件が反映されていません。",
+        modifier = Modifier.padding(horizontal = DS.Space.screen, vertical = DS.Space.note)
+    )
+}
+
 /**
  * 「KAMISABI収録のみ」絞り込み中だけ出す所持コンプ (iOS `SongListView.kamisabiCompletionBanner` 相当)。
  *
@@ -474,6 +486,9 @@ private fun filterBarItems(uiState: SongListUiState, viewModel: SongListViewMode
         }
         if (uiState.myMarkFilter.requireNote) {
             add(ImasFilterBarItem(id = "note", title = "メモあり", onRemove = viewModel::clearNoteFilter))
+        }
+        if (uiState.myMarkFilter.requireLyrics) {
+            add(ImasFilterBarItem(id = "lyrics", title = "歌詞あり", onRemove = viewModel::clearLyricsFilter))
         }
         when (uiState.collectFilter) {
             SongCollectFilter.COLLECTED ->

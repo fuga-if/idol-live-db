@@ -318,15 +318,21 @@ enum class SongCollectFilter {
 data class SongMyMarkFilter(
     val requireMyPick: Boolean = false,
     val requireFavorite: Boolean = false,
-    val requireNote: Boolean = false
+    val requireNote: Boolean = false,
+    /**
+     * 歌詞が登録 (公開) されている曲だけ (iOS `lyricsOnly`)。マイマークではないが、同じ「AND で絞る
+     * トグル」の束としてシート → 画面へ一緒に運ぶ。集合はサーバ (`GET /lyrics/published`) から引く。
+     */
+    val requireLyrics: Boolean = false
 ) {
-    val isActive: Boolean get() = requireMyPick || requireFavorite || requireNote
+    val isActive: Boolean get() = requireMyPick || requireFavorite || requireNote || requireLyrics
     val activeCount: Int
         get() {
             var c = 0
             if (requireMyPick) c++
             if (requireFavorite) c++
             if (requireNote) c++
+            if (requireLyrics) c++
             return c
         }
 }

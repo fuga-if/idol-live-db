@@ -39,6 +39,7 @@ mod tests {
             call_guide_song_ids: None,
             lyric_timing_song_ids: None,
             part_song_ids: None,
+            lyrics_song_ids: None,
             rank_by_tag_votes: false,
             tag_vote_counts: HashMap::new(),
         };

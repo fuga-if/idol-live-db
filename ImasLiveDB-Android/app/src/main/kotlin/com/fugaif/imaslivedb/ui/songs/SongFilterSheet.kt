@@ -260,6 +260,14 @@ fun SongFilterSheet(
                         )
                     }
 
+                    ImasListSection("歌詞", footer = "歌詞が登録されている曲だけを表示します (通信が必要)。") {
+                        ImasToggleRow(
+                            title = "歌詞がある曲のみ",
+                            isOn = myMarkFilter.requireLyrics,
+                            onCheckedChange = { myMarkFilter = myMarkFilter.copy(requireLyrics = it) }
+                        )
+                    }
+
                     // 並び順
                     ImasListSection("並び順") {
                         ImasMenuRow(

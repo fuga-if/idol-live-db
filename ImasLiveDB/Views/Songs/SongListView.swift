@@ -106,6 +106,8 @@ struct SongListView: View {
     /// 「歌詞のタイミングがある曲のみ」(再生に合わせて歌詞を追える曲)。`callGuideOnly` と同じ理由で保存しない。
     @State private var lyricTimingOnly = false
     @State private var partsOnly = false
+    /// 「歌詞がある曲のみ」。`callGuideOnly` と同じ理由で保存しない。
+    @State private var lyricsOnly = false
     @State private var showTagPicker = false
     @State private var showIntroDon = false
     /// 曲一覧の「この絞り込みでイントロドン」導線の表示/非表示 (設定アプリから戻せる)。
@@ -133,6 +135,7 @@ struct SongListView: View {
             callGuideOnly: callGuideOnly,
             lyricTimingOnly: lyricTimingOnly,
             partsOnly: partsOnly,
+            lyricsOnly: lyricsOnly,
             kamisabiOnly: kamisabiOnly,
             // 歌詞モードの入力は手元で絞れる語ではない。そのまま渡すと再ロードのたびに
             // 曲名で絞り直され、歌詞で当たった曲まで落ちる。
@@ -238,6 +241,7 @@ struct SongListView: View {
                         callGuideOnly: $callGuideOnly,
                         lyricTimingOnly: $lyricTimingOnly,
                         partsOnly: $partsOnly,
+                        lyricsOnly: $lyricsOnly,
                         kamisabiOnly: $kamisabiOnly
                     )
                     .environment(database)
@@ -297,6 +301,12 @@ struct SongListView: View {
                 .onChange(of: partsOnly) { _, enabled in
                     Task {
                         await vm.resolvePartFilter(enabled)
+                        reload()
+                    }
+                }
+                .onChange(of: lyricsOnly) { _, enabled in
+                    Task {
+                        await vm.resolveLyricsFilter(enabled)
                         reload()
                     }
                 }
@@ -463,6 +473,11 @@ struct SongListView: View {
     /// タグ側と同じく、失敗時は絞り込みを適用しないので一覧は絞られていない。
     @ViewBuilder
     private var callGuideFilterErrorBanner: some View {
+        if vm.lyricsFilterError {
+            ImasNotice(kind: .warning, message: "歌詞のある曲の情報を取得できませんでした。表示中の一覧には歌詞の条件が反映されていません。")
+                .padding(.horizontal, DS.Space.screen)
+                .padding(.vertical, DS.Space.gapTight)
+        }
         if vm.partFilterError {
             ImasNotice(kind: .warning, message: "パート分けの情報を取得できませんでした。表示中の一覧にはパート分けの条件が反映されていません。")
                 .padding(.horizontal, DS.Space.screen)
@@ -529,6 +544,10 @@ struct SongListView: View {
         }
         // アルバム/シリーズ表示ではこの絞り込みは効かない (曲行を絞る条件なので)。
         // 効いていない条件をチップに出すと、外しても件数が変わらず理由が分からなくなる。
+        if lyricsOnly, listMode == .songs {
+            // 解除の後始末は `onChange(of: lyricsOnly)` が担う。
+            chips.append(.init(id: "lyrics", label: "歌詞あり") { lyricsOnly = false })
+        }
         if callGuideOnly, listMode == .songs {
             // 解除の後始末 (集合を捨てて引き直す) は `onChange(of: callGuideOnly)` が担う。
             chips.append(.init(id: "call_guide", label: "コールガイドあり") { callGuideOnly = false })
@@ -670,6 +689,7 @@ struct SongListView: View {
         callGuideOnly = false
         lyricTimingOnly = false
         partsOnly = false
+        lyricsOnly = false
         kamisabiOnly = false
         Task {
             await vm.resolveTagFilter([])
@@ -697,6 +717,7 @@ struct SongListView: View {
         if callGuideOnly, listMode == .songs { count += 1 }
         if lyricTimingOnly, listMode == .songs { count += 1 }
         if partsOnly, listMode == .songs { count += 1 }
+        if lyricsOnly, listMode == .songs { count += 1 }
         if kamisabiOnly, listMode == .songs { count += 1 }
         count += myMarkFilter.activeCount
         return count

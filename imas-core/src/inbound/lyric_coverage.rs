@@ -13,4 +13,15 @@ impl SnapshotStore {
         let snap = self.current()?;
         Ok(domain::lyric_coverage(&snap, &published_song_ids))
     }
+
+    /// 歌詞が公開されている曲の id 一覧 (`lyric_coverage` と同じ母集合)。`brand_id` でブランドを絞る。
+    /// 並びはブランドの表示順 → 50 音。
+    pub fn lyric_song_ids(
+        &self,
+        published_song_ids: Vec<String>,
+        brand_id: Option<String>,
+    ) -> Result<Vec<String>, SnapshotError> {
+        let snap = self.current()?;
+        Ok(domain::lyric_song_ids(&snap, &published_song_ids, brand_id.as_deref()))
+    }
 }

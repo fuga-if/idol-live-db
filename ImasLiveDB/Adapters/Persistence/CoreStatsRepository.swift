@@ -69,4 +69,10 @@ struct CoreStatsRepository: StatsReading {
             try store.lyricCoverage(publishedSongIds: publishedSongIds)
         }
     }
+
+    func lyricSongIds(publishedSongIds: [String], brandId: String?) async throws -> [String] {
+        try await snapshot.withStore { store in
+            try store.lyricSongIds(publishedSongIds: publishedSongIds, brandId: brandId)
+        }
+    }
 }

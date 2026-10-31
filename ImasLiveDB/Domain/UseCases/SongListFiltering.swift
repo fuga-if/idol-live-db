@@ -23,6 +23,8 @@ struct SongMarkFilterContext {
     var lyricTimingSongIds: Set<String>? = nil
     /// パート分けがある曲の集合 (nil = 絞り込みなし)。`callGuideSongIds` と同じ扱い。
     var partSongIds: Set<String>? = nil
+    /// 歌詞が公開されている曲の集合 (nil = 絞り込みなし)。`callGuideSongIds` と同じ扱い。
+    var lyricsSongIds: Set<String>? = nil
     /// 単一タグ絞り込み + デフォルト並びの時に「そのタグの票数」降順へ並べ替えるか。
     var rankByTagVotes: Bool = false
     var tagVoteCounts: [String: Int] = [:]
@@ -58,6 +60,7 @@ func applySongMarkFilters(_ songs: [SongWithArtists], _ ctx: SongMarkFilterConte
         callGuideSongIds: ctx.callGuideSongIds.map(Array.init),
         lyricTimingSongIds: ctx.lyricTimingSongIds.map(Array.init),
         partSongIds: ctx.partSongIds.map(Array.init),
+        lyricsSongIds: ctx.lyricsSongIds.map(Array.init),
         rankByTagVotes: ctx.rankByTagVotes,
         tagVoteCounts: ctx.tagVoteCounts.mapValues(Int64.init))
     return filterSongList(entries: entries, criteria: criteria).map { songs[Int($0)] }

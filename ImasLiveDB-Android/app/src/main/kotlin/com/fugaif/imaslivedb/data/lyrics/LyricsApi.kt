@@ -45,6 +45,23 @@ class LyricsApi(private val client: WorkerHttpClient) {
         }
     }
 
+    /**
+     * 歌詞を公開している曲の id (GET /lyrics/published。本文は含まない)。iOS `publishedSongIds` と同じ口。
+     * 取れなければ null (呼び出し側は「絞り込まない」に倒す。空集合は「該当 0 件」で意味が違う)。
+     */
+    suspend fun publishedSongIds(): Set<String>? = withContext(Dispatchers.IO) {
+        try {
+            val res = client.request("GET", "/lyrics/published", authorized = false)
+            if (res.code != 200) return@withContext null
+            val arr = JSONObject(res.body ?: "{}").optJSONArray("songIds") ?: return@withContext null
+            (0 until arr.length()).mapTo(HashSet()) { arr.getString(it) }
+        } catch (e: IOException) {
+            null
+        } catch (e: org.json.JSONException) {
+            null
+        }
+    }
+
     /** 行とコールの再生位置・行の被せ指定を保存する (PUT /songs/:id/timings。全置換)。 */
     suspend fun saveTimings(
         songId: String,
