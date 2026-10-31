@@ -2,7 +2,7 @@
 
 use super::context::{simple_json_ld, Ctx};
 use crate::domain::costume_queries as costume;
-use crate::domain::date_display::{range_with_weekday, short_with_weekday};
+use crate::domain::date_display::{range_label_ja, short_with_weekday};
 use crate::domain::event_detail_queries as detail;
 use crate::domain::performance_gap::{
     is_performance, new_performer_debut_label, new_performer_debuts, original_singers,
@@ -66,7 +66,8 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         kind: record.kind.clone(),
         kind_label: content::kind_label(&record.kind).to_string(),
         is_upcoming: is_upcoming(ctx, first_date.as_deref()),
-        date_display: range_with_weekday(first_date.as_deref(), last_date.as_deref()),
+        date_display: range_label_ja(first_date.as_deref(), last_date.as_deref(), &ctx.today),
+        date_badge: first_date.as_deref().map(DateBadge::from_ymd),
         ticket: ticket_info(ctx, event_id),
         stat_tiles: event_stat_tiles(detail::event_stats(ctx.snap, event_id)),
         cast: event_cast(ctx, event_id),

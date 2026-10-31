@@ -298,6 +298,11 @@ pub fn calendar_month_title(year: i32, month: u32) -> String {
     format!("{year}年{month}月")
 }
 
+/// カレンダーの頭の印字 (`CALENDAR · 2026.09`)。
+pub fn calendar_imprint(year: i32, month: u32) -> String {
+    format!("CALENDAR · {year}.{month:02}")
+}
+
 pub fn calendar_month_description(year: i32, month: u32, shows: u32) -> String {
     format!("{year}年{month}月のアイドルマスターの公演 {shows} 件と、楽曲のリリース・誕生日・記念日の日程。")
 }

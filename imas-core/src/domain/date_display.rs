@@ -128,6 +128,41 @@ pub fn label_ja(date: &str, today: &str) -> String {
     }
 }
 
+/// 年を必ず付けた日付 (`2026年9月23日(水)`)。初出・CD 発売日のように「いつの年か」が
+/// 中身そのものの行に使う。部分日付は `2024年8月` / `2024年`、読めない入力は原文のまま。
+pub fn ymd_ja(date: &str) -> String {
+    if let Some(d) = parse_ymd(date) {
+        return format!("{}年{}月{}日({})", d.year(), d.month(), d.day(), weekday_of(d));
+    }
+    let parts = date_parts(date);
+    match (parts.year.is_empty(), parts.month_day.is_empty()) {
+        (false, false) => format!("{}年{}", parts.year, parts.month_day),
+        (false, true) => format!("{}年", parts.year),
+        _ => date.to_string(),
+    }
+}
+
+/// 開催期間をアプリの書き方で 1 本に (`11月7日(土)〜8日(日)`、docs/DESIGN_SYSTEM.md §16)。
+/// 今年でなければ初日に年を付け、月をまたげば終端にも月を、年をまたげば終端にも年を付ける。
+/// 1 日で終わるライブは初日だけ、片方しか無ければそれだけ、読めない日付は原文のまま。
+pub fn range_label_ja(first: Option<&str>, last: Option<&str>, today: &str) -> Option<String> {
+    let f = first.or(last)?;
+    let Some(l) = range_end(first, last).filter(|_| first.is_some()) else {
+        return Some(label_ja(f, today));
+    };
+    let (Some(fd), Some(ld)) = (parse_ymd(f), parse_ymd(l)) else {
+        return Some(format!("{}〜{}", label_ja(f, today), label_ja(l, today)));
+    };
+    let tail = if fd.year() != ld.year() {
+        format!("{}年{}月{}日({})", ld.year(), ld.month(), ld.day(), weekday_of(ld))
+    } else if fd.month() != ld.month() {
+        format!("{}月{}日({})", ld.month(), ld.day(), weekday_of(ld))
+    } else {
+        format!("{}日({})", ld.day(), weekday_of(ld))
+    };
+    Some(format!("{}〜{tail}", label_ja(f, today)))
+}
+
 /// 曜日の種類。土日を色で分けるため (祝日は持たない)。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
 pub enum WeekdayKind {
@@ -236,6 +271,26 @@ pub fn year_range(earliest: Option<&str>, latest: Option<&str>) -> Option<String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ymd_ja_always_carries_the_year() {
+        assert_eq!(ymd_ja("2026-09-23"), "2026年9月23日(水)");
+        assert_eq!(ymd_ja("2024-08"), "2024年8月");
+        assert_eq!(ymd_ja("2024"), "2024年");
+        assert_eq!(ymd_ja("未定"), "未定");
+    }
+
+    #[test]
+    fn range_label_ja_folds_the_shared_parts() {
+        let today = "2026-10-31";
+        assert_eq!(range_label_ja(Some("2026-11-07"), Some("2026-11-08"), today).as_deref(), Some("11月7日(土)〜8日(日)"));
+        assert_eq!(range_label_ja(Some("2026-11-07"), Some("2026-11-07"), today).as_deref(), Some("11月7日(土)"));
+        assert_eq!(range_label_ja(Some("2022-07-09"), Some("2022-07-10"), today).as_deref(), Some("2022年7月9日(土)〜10日(日)"));
+        assert_eq!(range_label_ja(Some("2026-11-29"), Some("2026-12-01"), today).as_deref(), Some("11月29日(日)〜12月1日(火)"));
+        assert_eq!(range_label_ja(Some("2026-12-31"), Some("2027-01-01"), today).as_deref(), Some("12月31日(木)〜2027年1月1日(金)"));
+        assert_eq!(range_label_ja(None, Some("2026-11-08"), today).as_deref(), Some("11月8日(日)"));
+        assert_eq!(range_label_ja(None, None, today), None);
+    }
 
     #[test]
     fn year_range_collapses_the_same_year() {

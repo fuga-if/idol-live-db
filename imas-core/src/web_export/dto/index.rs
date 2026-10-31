@@ -352,6 +352,10 @@ web_dto! {
         pub ends_on: Option<String>,
         /// 締切の日付に添える語 (締切前は「締切」、過ぎたら「終了」)。無期限なら `None`。
         pub ends_label: Option<String>,
+        /// 画面に置く締切 (`10月6日(火)`、今年でなければ年付き)。ISO は `ends_on` (`<time>` 用) に残す。
+        pub ends_display: Option<String>,
+        /// 締切前 (無期限のお題も開いたまま)。
+        pub is_open: bool,
         pub total_votes: u32,
         /// 上位の得票。同数は entity id 順で安定させる。
         pub entries: Vec<PollEntryDto>,

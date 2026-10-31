@@ -1,6 +1,7 @@
 ---
 import ListLayout from "../layouts/ListLayout.astro";
 import Section from "./Section.astro";
+import StubRow from "./StubRow.astro";
 import type { TimelinePage } from "../lib/schema/TimelinePage";
 /**
  * 年表 (全体 / ブランドごと)。節目・ライブ・楽曲の 3 段を 1 枚の SVG に置く。
@@ -100,14 +101,16 @@ const c = p.chart;
     {
       p.yearLives.length > 0 && (
         <Section id="timeline-lives" title={p.yearLivesTitle} count={p.yearLives.length}>
-          <ul class="card tl-list">
+          <ul class="stub-list">
             {p.yearLives.map((row) => (
               <li>
-                <a class="tl-list__row" href={row.event.path} data-theme={row.event.themeKey}>
-                  <span class="tl-list__date num num--medium">{row.dateDisplay}</span>
-                  <span class="tl-list__name u-underline-hover">{row.event.name}</span>
-                  {row.chip && <span class="badge badge--themed">{row.chip}</span>}
-                </a>
+                <StubRow badge={row.dateBadge} title={row.event.name} href={row.event.path} themeKey={row.event.themeKey}>
+                  {row.chip && (
+                    <Fragment slot="badges">
+                      <span class="badge badge--themed">{row.chip}</span>
+                    </Fragment>
+                  )}
+                </StubRow>
               </li>
             ))}
           </ul>

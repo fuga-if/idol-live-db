@@ -21,6 +21,8 @@ web_dto! {
         /// 開催期間を曜日つきで 1 本にしたもの (`2026-09-19 (土) 〜 2026-09-20 (日)`)。
         /// 日付が無ければ `None`。
         pub date_display: Option<String>,
+        /// 初日の日付ブロック (詳細の頭の印字 `NOV 07 SAT` と `<time>` 用)。日付が無ければ `None`。
+        pub date_badge: Option<DateBadge>,
         /// `first_date >= todayJst`。判定は `event_grouping::group_events_by_year` を
         /// 1 要素で呼んだ結果で、**`>=` をここに書かない** (規則を二重に持たないため)。
         pub is_upcoming: bool,

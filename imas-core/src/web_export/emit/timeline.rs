@@ -38,6 +38,7 @@ fn page(ctx: &Ctx, brand_id: Option<&str>, path: String, data: String) -> Option
         .filter_map(|l| {
             Some(TimelineLiveRow {
                 date_display: short_date(&l.date),
+                date_badge: DateBadge::from_ymd(&l.date),
                 event: ctx.event_ref(&l.event_id)?,
                 chip: l.featured.then(|| content::TIMELINE_FEATURED_CHIP.to_string()),
             })

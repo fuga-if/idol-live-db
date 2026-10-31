@@ -33,7 +33,7 @@ use std::path::Path;
 use super::emit::events::ShowContext;
 use super::emit::context::TAGS_PATH;
 use super::emit::calendar::{month_counts, month_grid, month_path, CALENDAR_PATH};
-use crate::domain::date_display::{range_with_weekday, until_display, with_weekday};
+use crate::domain::date_display::{range_label_ja, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::{IdolQuery, IdolSortKind};
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
@@ -345,7 +345,8 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         joint_brands: if empty { vec![] } else { vec![brand_cg()] },
         kind: "live".to_string(),
         kind_label: content::kind_label("live").to_string(),
-        date_display: range_with_weekday(Some("2026-04-03"), Some("2026-04-04")),
+        date_display: range_label_ja(Some("2026-04-03"), Some("2026-04-04"), "2026-04-01"),
+        date_badge: Some(DateBadge::from_ymd("2026-04-03")),
         is_upcoming: true,
         ticket: Some(TicketInfo {
             sales: vec![TicketSaleItem {
@@ -1350,6 +1351,7 @@ fn calendar_page(path: &str, key: &str) -> CalendarPage {
         schema_version: SCHEMA_VERSION,
         path: path.to_string(),
         title,
+        imprint: content::calendar_imprint(2026, 9),
         summary: content::calendar_summary(&counts),
         prev: None,
         next: None,
@@ -1575,6 +1577,7 @@ fn timeline_page(path: &str, title: &str, brand: bool) -> TimelinePage {
         year_lives_title: "2026年のライブ".to_string(),
         year_lives: vec![TimelineLiveRow {
             date_display: "9.26".to_string(),
+            date_badge: DateBadge::from_ymd("2026-09-26"),
             event: event_sample(),
             chip: Some(content::TIMELINE_FEATURED_CHIP.to_string()),
         }],

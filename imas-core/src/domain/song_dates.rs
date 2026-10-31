@@ -15,6 +15,7 @@
 //! 画面ごとに「どの日付を出すか」を書くと、片方だけライブの初披露を見る、といった
 //! 食い違いが必ず出るので、行の組み立てまでここで決める。
 
+use crate::domain::date_display;
 use crate::domain::snapshot::{Show, Snapshot};
 
 pub const FIRST_APPEARANCE_LABEL: &str = "初出";
@@ -63,7 +64,7 @@ pub fn song_date_rows(snap: &Snapshot, song_id: &str) -> Vec<SongDateRow> {
         (Some(r), _) => {
             let mut first = row(SongDateKind::FirstAppearance, FIRST_APPEARANCE_LABEL, r);
             if let Some(note) = non_empty(&song.first_appearance_note) {
-                first.display = format!("{r}（{note}）");
+                first.display = format!("{}（{note}）", date_display::ymd_ja(r));
                 first.detail = Some(note.to_string());
             }
             rows.push(first);
@@ -94,7 +95,7 @@ fn live_row(snap: &Snapshot, show: &Show) -> SongDateRow {
     SongDateRow {
         kind: SongDateKind::FirstPerformance,
         label: FIRST_APPEARANCE_LABEL.to_string(),
-        display: format!("{}（{name}）", show.date),
+        display: format!("{}（{name}）", date_display::ymd_ja(&show.date)),
         date: show.date.clone(),
         detail: Some(name),
     }
@@ -122,7 +123,7 @@ fn row(kind: SongDateKind, label: &str, date: &str) -> SongDateRow {
         label: label.to_string(),
         date: date.to_string(),
         detail: None,
-        display: date.to_string(),
+        display: date_display::ymd_ja(date),
     }
 }
 
@@ -253,8 +254,8 @@ mod tests {
             vec![("初出", "2026-09-23", Some("初星学園 標 DAY1")), ("配信開始日", "2026-09-24", None)]
         );
         assert_eq!(rows[0].kind, SongDateKind::FirstPerformance);
-        assert_eq!(rows[0].display, "2026-09-23（初星学園 標 DAY1）");
-        assert_eq!(rows[1].display, "2026-09-24");
+        assert_eq!(rows[0].display, "2026年9月23日(水)（初星学園 標 DAY1）");
+        assert_eq!(rows[1].display, "2026年9月24日(木)");
     }
 
     #[test]
@@ -263,7 +264,7 @@ mod tests {
         s.first_appearance_note = Some("TVアニメ第14話 新OP".into());
         let rows = song_date_rows(&snap(s, vec![]), "s");
         assert_eq!(rows[0].detail.as_deref(), Some("TVアニメ第14話 新OP"));
-        assert_eq!(rows[0].display, "2011-10-07（TVアニメ第14話 新OP）");
+        assert_eq!(rows[0].display, "2011年10月7日(金)（TVアニメ第14話 新OP）");
         assert_eq!(rows[0].kind, SongDateKind::FirstAppearance);
     }
 

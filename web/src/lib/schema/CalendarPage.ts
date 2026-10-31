@@ -15,6 +15,10 @@ export type CalendarPage = { schemaVersion: number, path: string,
  */
 title: string, 
 /**
+ * 頭の印字 (`CALENDAR · 2026.09`)。
+ */
+imprint: string, 
+/**
  * この月の件数を 1 行に (`公演 10 ・ リリース曲 35 ・ 誕生日 32`)。0 のものは無く、全部 0 なら `None`。
  */
 summary: string | null, 

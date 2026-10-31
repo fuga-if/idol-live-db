@@ -25,6 +25,7 @@ const { page } = Astro.props;
 <ListLayout
   seo={page.seo}
   title={page.title}
+  imprint={page.imprint}
   filters={page.filters}
 >
   {page.summary && <p slot="lede" class="u-muted">{page.summary}</p>}

@@ -12,6 +12,8 @@ web_dto! {
         pub path: String,
         /// `2026年9月`。
         pub title: String,
+        /// 頭の印字 (`CALENDAR · 2026.09`)。
+        pub imprint: String,
         /// この月の件数を 1 行に (`公演 10 ・ リリース曲 35 ・ 誕生日 32`)。0 のものは無く、全部 0 なら `None`。
         pub summary: Option<String>,
         /// 前の月・次の月。範囲の端では `None`。

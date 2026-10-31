@@ -36,7 +36,7 @@ const list = page<PollListPage>(Astro.props.data);
           <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
           {poll.endsOn && (
             <p class="poll__sub">
-              {poll.endsLabel} <time class="num num--small" datetime={poll.endsOn}>{poll.endsOn}</time>
+              {poll.endsLabel} <time datetime={poll.endsOn}>{poll.endsDisplay}</time>
             </p>
           )}
           {poll.description && <p class="lede lede--small">{poll.description}</p>}

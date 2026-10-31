@@ -16,7 +16,15 @@ endsOn: string | null,
 /**
  * 締切の日付に添える語 (締切前は「締切」、過ぎたら「終了」)。無期限なら `None`。
  */
-endsLabel: string | null, totalVotes: number, 
+endsLabel: string | null, 
+/**
+ * 画面に置く締切 (`10月6日(火)`、今年でなければ年付き)。ISO は `ends_on` (`<time>` 用) に残す。
+ */
+endsDisplay: string | null, 
+/**
+ * 締切前 (無期限のお題も開いたまま)。
+ */
+isOpen: boolean, totalVotes: number, 
 /**
  * 上位の得票。同数は entity id 順で安定させる。
  */

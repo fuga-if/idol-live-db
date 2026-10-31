@@ -3,7 +3,7 @@
 //! 図は 1 枚の SVG。座標は viewBox 単位で Rust (`domain::timeline_chart`) が決め、
 //! Astro は属性に置くだけ (CSP で style 属性が使えない)。
 
-use super::common::{FilterAxis, Ref, SeoBlock};
+use super::common::{DateBadge, FilterAxis, Ref, SeoBlock};
 
 web_dto! {
     pub struct TimelinePage {
@@ -118,6 +118,8 @@ web_dto! {
     pub struct TimelineLiveRow {
         /// `9.26`。
         pub date_display: String,
+        /// 半券の行の日付欄。
+        pub date_badge: DateBadge,
         pub event: Ref,
         /// 周年ライブの札。
         pub chip: Option<String>,

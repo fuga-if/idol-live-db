@@ -1288,6 +1288,11 @@ pub fn poll_list(ctx: &Ctx) -> PollListPage {
                 ends_on: poll.ends_at.as_ref().map(|e| e[..10.min(e.len())].to_string()),
                 // 締切前か。`ends_at` が無いお題は開いたまま。
                 ends_label: poll.ends_at.as_ref().map(|_| content::poll_ends_label(is_open).to_string()),
+                ends_display: poll
+                    .ends_at
+                    .as_ref()
+                    .map(|e| crate::domain::date_display::label_ja(&e[..10.min(e.len())], &ctx.today)),
+                is_open,
                 total_votes: all.iter().map(|e| e.vote_count.max(0) as u32).sum(),
                 entries,
             }
