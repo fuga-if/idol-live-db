@@ -117,12 +117,7 @@ struct ProducerCardPrintSheet {
     }
 
     private var look: ImasMeishiFront.Look {
-        switch ProducerCardDisplay.design(card.card, face: nil).design {
-        case .formal: return .formal
-        case .pop: return .pop
-        case .oshi: return .oshi
-        case .pass, .custom: return .pass
-        }
+        ProducerCardDisplay.look(ProducerCardDisplay.design(card.card, face: nil).design)
     }
 
     private var front: ProducerCardPrintFront {
@@ -147,8 +142,8 @@ struct ProducerCardPrintSheet {
             },
             caption: face.oshiCaption,
             moreOshi: Int(face.moreOshi),
-            // 担当の色は画面の名刺と同じく、描ける先頭の担当の色。
-            seed: face.oshiIdolIds.first.flatMap { directory.idols[$0]?.color },
+            // 担当の色は画面の名刺と同じく、名刺の刷る色の担当 (既定は描ける先頭の担当、墨なら無し)。
+            seed: face.accentIdolId.flatMap { directory.idols[$0]?.color },
             handle: face.handle?.display,
             nameFont: ProducerCardDisplay.nameFont(card.card),
             portrait: materials.portrait,

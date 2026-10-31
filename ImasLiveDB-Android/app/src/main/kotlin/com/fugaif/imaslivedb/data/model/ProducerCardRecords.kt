@@ -9,6 +9,9 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import uniffi.imas_core.CardLink
 import uniffi.imas_core.CardDesign
+import uniffi.imas_core.CardInk
+import uniffi.imas_core.cardInkFromKey
+import uniffi.imas_core.cardInkKey
 import uniffi.imas_core.ProducerCard
 import uniffi.imas_core.ProfileSheet
 import uniffi.imas_core.cardLinksFromJson
@@ -87,7 +90,10 @@ data class MyProducerCard(
      * 保存のときに無ければ作る ([withCardId])。
      */
     @ColumnInfo(name = "card_id")
-    val cardId: String? = null
+    val cardId: String? = null,
+    /** 名刺の刷る色のキー (コアの `cardInkKey`)。null・空は先頭の担当の色。 */
+    @ColumnInfo(name = "ink")
+    val ink: String? = null
 ) {
     val links: List<CardLink> get() = cardLinksFromJson(linksJson)
 
@@ -95,6 +101,11 @@ data class MyProducerCard(
     val cardDesign: CardDesign get() = cardDesignFromKey(design) ?: cardDesigns().first().design
 
     fun withCardDesign(cardDesign: CardDesign): MyProducerCard = copy(design = cardDesignKey(cardDesign))
+
+    /** 名刺の刷る色 (null は先頭の担当の色)。名刺に載せない担当を指していても、組むときにコアが既定に揃える。 */
+    val cardInk: CardInk? get() = ink?.let { cardInkFromKey(it) }
+
+    fun withCardInk(cardInk: CardInk?): MyProducerCard = copy(ink = cardInk?.let { cardInkKey(it) })
 
     val hidden: Set<ProducerCardField>
         get() {

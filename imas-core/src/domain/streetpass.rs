@@ -88,7 +88,10 @@ pub fn streetpass_uuids() -> StreetpassUuids {
     StreetpassUuids {
         service: STREETPASS_SERVICE_UUID.to_string(),
         header: STREETPASS_HEADER_UUID.to_string(),
-        chunks: STREETPASS_CHUNK_UUIDS.iter().map(|s| s.to_string()).collect(),
+        chunks: STREETPASS_CHUNK_UUIDS
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
     }
 }
 
@@ -181,7 +184,10 @@ pub fn streetpass_frames(payload: &str) -> Option<StreetpassFrames> {
     if bytes.is_empty() || bytes.len() > max || decode_producer_card(payload).is_none() {
         return None;
     }
-    let mut chunks: Vec<Vec<u8>> = bytes.chunks(STREETPASS_CHUNK_BYTES).map(<[u8]>::to_vec).collect();
+    let mut chunks: Vec<Vec<u8>> = bytes
+        .chunks(STREETPASS_CHUNK_BYTES)
+        .map(<[u8]>::to_vec)
+        .collect();
     let count = chunks.len();
     chunks.resize(STREETPASS_CHUNK_UUIDS.len(), Vec::new());
     let mut header = Vec::with_capacity(HEADER_LEN);
@@ -228,27 +234,40 @@ pub fn streetpass_join(header: &StreetpassHeader, chunks: &[Vec<u8>]) -> Option<
 }
 
 fn parse(at: &str) -> Option<chrono::DateTime<chrono::Utc>> {
-    chrono::DateTime::parse_from_rfc3339(at).ok().map(|t| t.with_timezone(&chrono::Utc))
+    chrono::DateTime::parse_from_rfc3339(at)
+        .ok()
+        .map(|t| t.with_timezone(&chrono::Utc))
 }
 
 /// この指紋の名刺を (欠片まで) 読むか。自分の名刺・最近 [`STREETPASS_REREAD_MINUTES`] 分以内に読んだ名刺は読まない。
-pub fn streetpass_should_read(fingerprint: &str, own_fingerprint: Option<&str>, recent: &[StreetpassSeen], now: &str) -> bool {
+pub fn streetpass_should_read(
+    fingerprint: &str,
+    own_fingerprint: Option<&str>,
+    recent: &[StreetpassSeen],
+    now: &str,
+) -> bool {
     if own_fingerprint == Some(fingerprint) {
         return false;
     }
     let Some(now) = parse(now) else { return true };
     !recent.iter().any(|s| {
         s.fingerprint == fingerprint
-            && parse(&s.at).is_some_and(|at| now - at < chrono::Duration::minutes(STREETPASS_REREAD_MINUTES))
+            && parse(&s.at)
+                .is_some_and(|at| now - at < chrono::Duration::minutes(STREETPASS_REREAD_MINUTES))
     })
 }
 
 /// 覚えておく「最近読んだ名刺」を、読み直さない間を過ぎたものを落として返す。
 pub fn streetpass_prune_seen(recent: &[StreetpassSeen], now: &str) -> Vec<StreetpassSeen> {
-    let Some(now) = parse(now) else { return recent.to_vec() };
+    let Some(now) = parse(now) else {
+        return recent.to_vec();
+    };
     recent
         .iter()
-        .filter(|s| parse(&s.at).is_some_and(|at| now - at < chrono::Duration::minutes(STREETPASS_REREAD_MINUTES)))
+        .filter(|s| {
+            parse(&s.at)
+                .is_some_and(|at| now - at < chrono::Duration::minutes(STREETPASS_REREAD_MINUTES))
+        })
         .cloned()
         .collect()
 }
@@ -273,7 +292,9 @@ pub fn streetpass_today_count(meetings: &[CardMeetingRecord], now: &str) -> u32 
 /// オンにしていない (None)・読めない日時はオフ。
 pub fn streetpass_is_active(started_at: Option<&str>, now: &str) -> bool {
     match (started_at.and_then(parse), parse(now)) {
-        (Some(start), Some(now)) => now >= start && now - start < chrono::Duration::hours(STREETPASS_ACTIVE_HOURS),
+        (Some(start), Some(now)) => {
+            now >= start && now - start < chrono::Duration::hours(STREETPASS_ACTIVE_HOURS)
+        }
         _ => false,
     }
 }
@@ -285,34 +306,72 @@ pub fn streetpass_accepts(today_count: u32) -> bool {
 
 /// 名刺入れの行に出す様子。`has_card` は自分の名刺を作ってあるか (無いとオンにできない)。
 /// `radio` はオンのときだけ見る (オフの間は Bluetooth の様子を問わない)。
-pub fn streetpass_status(active: bool, has_card: bool, today_count: u32, radio: StreetpassRadio) -> StreetpassStatus {
+pub fn streetpass_status(
+    active: bool,
+    has_card: bool,
+    today_count: u32,
+    radio: StreetpassRadio,
+) -> StreetpassStatus {
     let limit_reached = !streetpass_accepts(today_count);
     let (title, detail) = if !has_card {
-        ("すれちがい", "自分の名刺を作ると、すれちがいをオンにできます".to_string())
+        (
+            "すれちがい",
+            "自分の名刺を作ると、すれちがいをオンにできます".to_string(),
+        )
     } else if active && radio == StreetpassRadio::PoweredOff {
-        ("すれちがい中 (止まっています)", "Bluetooth をオンにすると、すれちがいが動きます".to_string())
+        (
+            "すれちがい中 (止まっています)",
+            "Bluetooth をオンにすると、すれちがいが動きます".to_string(),
+        )
     } else if active && radio == StreetpassRadio::Unauthorized {
-        ("すれちがい中 (止まっています)", "設定でこのアプリに Bluetooth を許可すると、すれちがいが動きます".to_string())
+        (
+            "すれちがい中 (止まっています)",
+            "設定でこのアプリに Bluetooth を許可すると、すれちがいが動きます".to_string(),
+        )
     } else if active && radio == StreetpassRadio::Unsupported {
-        ("すれちがい中 (止まっています)", "この端末では、すれちがいが使えません".to_string())
+        (
+            "すれちがい中 (止まっています)",
+            "この端末では、すれちがいが使えません".to_string(),
+        )
     } else if active && radio == StreetpassRadio::LocationOff {
-        ("すれちがい中 (止まっています)", "端末の位置情報をオンにすると、すれちがいが動きます".to_string())
+        (
+            "すれちがい中 (止まっています)",
+            "端末の位置情報をオンにすると、すれちがいが動きます".to_string(),
+        )
     } else if active && radio == StreetpassRadio::AdvertiseFailed && !limit_reached {
-        ("すれちがい中", "自分の名刺を出せていません。受け取りだけ続けています".to_string())
+        (
+            "すれちがい中",
+            "自分の名刺を出せていません。受け取りだけ続けています".to_string(),
+        )
     } else if !active {
         (
             "すれちがいはオフ",
             format!("オンにすると、近くでオンにしている P と名刺を自動で交換します ({STREETPASS_ACTIVE_HOURS} 時間で自動でオフ)"),
         )
     } else if limit_reached {
-        ("すれちがい中", format!("今日は {STREETPASS_DAILY_LIMIT} 人に届いたので、受け取りを止めています"))
+        (
+            "すれちがい中",
+            format!("今日は {STREETPASS_DAILY_LIMIT} 人に届いたので、受け取りを止めています"),
+        )
     } else if today_count == 0 {
-        ("すれちがい中", "近くでオンにしている P を探しています".to_string())
+        (
+            "すれちがい中",
+            "近くでオンにしている P を探しています".to_string(),
+        )
     } else {
-        ("すれちがい中", format!("今日すれちがった P: {today_count} 人"))
+        (
+            "すれちがい中",
+            format!("今日すれちがった P: {today_count} 人"),
+        )
     };
     let hint = (active && has_card).then(|| STREETPASS_HINT.to_string());
-    StreetpassStatus { title: title.to_string(), detail, today_count, limit_reached, hint }
+    StreetpassStatus {
+        title: title.to_string(),
+        detail,
+        today_count,
+        limit_reached,
+        hint,
+    }
 }
 
 /// しまった後に端末の知らせを出すか。今日はじめての人のときだけ (同じ人と近くに居続けて読み直したときは黙る)。
@@ -363,6 +422,7 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            ink: None,
             card_id: None,
         };
         let url = encode_producer_card(&input).url;
@@ -386,7 +446,10 @@ mod tests {
         let p = payload(&"P".repeat(24), &long);
         let f = streetpass_frames(&p).unwrap();
         let h = streetpass_header_decode(&f.header).unwrap();
-        assert_eq!(h.chunk_count as usize, p.len().div_ceil(STREETPASS_CHUNK_BYTES));
+        assert_eq!(
+            h.chunk_count as usize,
+            p.len().div_ceil(STREETPASS_CHUNK_BYTES)
+        );
         // 読んだ欠片だけ渡しても戻る (使わない欠片は読まなくてよい)。
         let read: Vec<Vec<u8>> = f.chunks[..h.chunk_count as usize].to_vec();
         assert_eq!(streetpass_join(&h, &read).as_deref(), Some(p.as_str()));
@@ -407,7 +470,11 @@ mod tests {
         assert_eq!(streetpass_header_decode(&f.header[..5]), None, "短い");
         let mut wrong_count = f.header.clone();
         wrong_count[3] = 3;
-        assert_eq!(streetpass_header_decode(&wrong_count), None, "長さと欠片の数が合わない");
+        assert_eq!(
+            streetpass_header_decode(&wrong_count),
+            None,
+            "長さと欠片の数が合わない"
+        );
     }
 
     #[test]
@@ -419,11 +486,32 @@ mod tests {
 
     #[test]
     fn reread_window() {
-        let seen = vec![StreetpassSeen { fingerprint: "aa".into(), at: "2026-10-21T10:00:00Z".into() }];
-        assert!(!streetpass_should_read("aa", None, &seen, "2026-10-21T10:30:00Z"));
-        assert!(streetpass_should_read("aa", None, &seen, "2026-10-21T11:00:00Z"));
-        assert!(streetpass_should_read("bb", None, &seen, "2026-10-21T10:30:00Z"));
-        assert!(!streetpass_should_read("cc", Some("cc"), &[], "2026-10-21T10:30:00Z"), "自分の名刺");
+        let seen = vec![StreetpassSeen {
+            fingerprint: "aa".into(),
+            at: "2026-10-21T10:00:00Z".into(),
+        }];
+        assert!(!streetpass_should_read(
+            "aa",
+            None,
+            &seen,
+            "2026-10-21T10:30:00Z"
+        ));
+        assert!(streetpass_should_read(
+            "aa",
+            None,
+            &seen,
+            "2026-10-21T11:00:00Z"
+        ));
+        assert!(streetpass_should_read(
+            "bb",
+            None,
+            &seen,
+            "2026-10-21T10:30:00Z"
+        ));
+        assert!(
+            !streetpass_should_read("cc", Some("cc"), &[], "2026-10-21T10:30:00Z"),
+            "自分の名刺"
+        );
         assert_eq!(streetpass_prune_seen(&seen, "2026-10-21T11:00:00Z"), vec![]);
         assert_eq!(streetpass_prune_seen(&seen, "2026-10-21T10:10:00Z"), seen);
     }
@@ -465,8 +553,14 @@ mod tests {
     fn status_lines() {
         let ready = StreetpassRadio::Ready;
         assert_eq!(streetpass_status(true, false, 0, ready).title, "すれちがい");
-        assert_eq!(streetpass_status(false, true, 0, StreetpassRadio::PoweredOff).title, "すれちがいはオフ");
-        assert_eq!(streetpass_status(true, true, 3, ready).detail, "今日すれちがった P: 3 人");
+        assert_eq!(
+            streetpass_status(false, true, 0, StreetpassRadio::PoweredOff).title,
+            "すれちがいはオフ"
+        );
+        assert_eq!(
+            streetpass_status(true, true, 3, ready).detail,
+            "今日すれちがった P: 3 人"
+        );
         assert!(streetpass_status(true, true, STREETPASS_DAILY_LIMIT, ready).limit_reached);
         assert_eq!(
             streetpass_status(true, true, 0, StreetpassRadio::Unauthorized).detail,
@@ -480,29 +574,66 @@ mod tests {
         assert!(streetpass_should_notice(0, 1));
         assert!(!streetpass_should_notice(1, 1));
         let refs = vec![
-            CardShowRef { show_id: "sh_b".into(), date: "2026-10-21".into() },
-            CardShowRef { show_id: "sh_a".into(), date: "2026-10-21".into() },
-            CardShowRef { show_id: "sh_y".into(), date: "2026-10-20".into() },
+            CardShowRef {
+                show_id: "sh_b".into(),
+                date: "2026-10-21".into(),
+            },
+            CardShowRef {
+                show_id: "sh_a".into(),
+                date: "2026-10-21".into(),
+            },
+            CardShowRef {
+                show_id: "sh_y".into(),
+                date: "2026-10-20".into(),
+            },
         ];
-        assert_eq!(streetpass_show_candidate("2026-10-21", &refs).as_deref(), Some("sh_a"));
-        assert_eq!(streetpass_show_candidate("2026-10-22", &refs), None, "前日の公演には紐づけない");
-        assert!(streetpass_status(true, true, 0, StreetpassRadio::Ready).hint.is_some());
-        assert!(streetpass_status(false, true, 0, StreetpassRadio::Ready).hint.is_none());
+        assert_eq!(
+            streetpass_show_candidate("2026-10-21", &refs).as_deref(),
+            Some("sh_a")
+        );
+        assert_eq!(
+            streetpass_show_candidate("2026-10-22", &refs),
+            None,
+            "前日の公演には紐づけない"
+        );
+        assert!(streetpass_status(true, true, 0, StreetpassRadio::Ready)
+            .hint
+            .is_some());
+        assert!(streetpass_status(false, true, 0, StreetpassRadio::Ready)
+            .hint
+            .is_none());
         assert_eq!(streetpass_tuning().reconnect_after_read_seconds, 3600);
     }
 
     #[test]
     fn notice_text() {
-        assert_eq!(streetpass_notice_text(" 天海P "), "天海P さんとすれちがいました。名刺入れに入れました");
-        assert_eq!(streetpass_notice_text(""), "P とすれちがいました。名刺入れに入れました");
+        assert_eq!(
+            streetpass_notice_text(" 天海P "),
+            "天海P さんとすれちがいました。名刺入れに入れました"
+        );
+        assert_eq!(
+            streetpass_notice_text(""),
+            "P とすれちがいました。名刺入れに入れました"
+        );
     }
 
     #[test]
     fn via_and_badge() {
-        use crate::domain::card_meetings::{card_meeting_badge, card_met_in_person, card_receive_via_key};
-        assert_eq!(card_receive_via_key(CardReceiveVia::StreetPass), "streetpass");
-        assert_eq!(card_receive_via_from_key("streetpass"), Some(CardReceiveVia::StreetPass));
+        use crate::domain::card_meetings::{
+            card_meeting_badge, card_met_in_person, card_receive_via_key,
+        };
+        assert_eq!(
+            card_receive_via_key(CardReceiveVia::StreetPass),
+            "streetpass"
+        );
+        assert_eq!(
+            card_receive_via_from_key("streetpass"),
+            Some(CardReceiveVia::StreetPass)
+        );
         assert!(card_met_in_person(Some(CardReceiveVia::StreetPass), None));
-        assert_eq!(card_meeting_badge(Some(CardReceiveVia::StreetPass), Some("sh")).as_deref(), Some("すれちがい"));
+        assert_eq!(
+            card_meeting_badge(Some(CardReceiveVia::StreetPass), Some("sh")).as_deref(),
+            Some("すれちがい")
+        );
     }
 }

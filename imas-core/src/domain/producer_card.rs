@@ -139,6 +139,10 @@ pub struct ProducerCard {
     /// 名前と担当が同じとき (確かめる) に同じ人として扱う。自分の名刺に載せるかは `PRODUCER_CARD_EMBEDS_CARD_ID`。
     #[uniffi(default = None)]
     pub card_id: Option<String>,
+    /// 刷る色。None は先頭の担当の色 (既定。中身に書かない)。`CardInk::Oshi` は名刺に載せた担当の誰か、
+    /// `CardInk::Sumi` は墨一色。描く色は `producer_card_face` の `accent_idol_id`。
+    #[uniffi(default = None)]
+    pub ink: Option<CardInk>,
 }
 
 /// 自分の名刺を作るときの材料。数や公演はアプリの記録から、名前などは編集画面から。
@@ -165,6 +169,9 @@ pub struct ProducerCardInput {
     /// 名刺 id ([`ProducerCard::card_id`])。形の合わないものは載せない。
     #[uniffi(default = None)]
     pub card_id: Option<String>,
+    /// 刷る色 ([`ProducerCard::ink`])。名刺に載せない担当・先頭の担当を指したものは既定 (None) に揃える。
+    #[uniffi(default = None)]
+    pub ink: Option<CardInk>,
 }
 
 /// 組み上がった名刺と QR に入れる URL。
@@ -357,8 +364,13 @@ pub fn encode_producer_card(input: &ProducerCardInput) -> EncodedProducerCard {
             .filter(|u| !u.trim().is_empty())
             .and_then(normalize_card_qr_url),
         show_brand_labels: input.show_brand_labels,
-        card_id: input.card_id.clone().filter(|id| card_id_bytes(id).is_some()),
+        card_id: input
+            .card_id
+            .clone()
+            .filter(|id| card_id_bytes(id).is_some()),
+        ink: None,
     };
+    card.ink = card_ink_normalize(input.ink.as_ref(), &card.oshi_idol_ids);
 
     let total = card.attended.len();
     let mut url = card_url(&card);
@@ -747,10 +759,18 @@ pub enum CardDesign {
     /// 入場証 (既定)。担当色の帯・ストラップの穴・太いゴシック。
     #[default]
     Pass,
+    /// チケット。右に切り取り線と半券 (担当の判子と P歴の番号)。
+    Ticket,
     /// かしこまった名刺。明朝・白い紙に端正な組み。担当色は細い罫と判子だけ。
     Formal,
+    /// 縦書き。明朝の名前を右に縦に大きく、担当と P歴は左に縦に。
+    Vertical,
     /// ポップ。丸い太字・太い線・担当色をはっきり。
     Pop,
+    /// 墨一色。名前を大きく 1 つだけ。罫も帯も無く、担当色は名前の下の点 1 つ。
+    Sumi,
+    /// 夜公演。黒い紙に白い文字、担当色は細い線と判子だけ (開演前の客席の暗さ)。
+    Night,
     /// 担当を大きく。表の左半分に担当の画像を大きく (複数なら分けて) 並べ、右に名前・P歴・ハンドル。
     /// 画像の無い担当は大きな判子。
     Oshi,
@@ -813,10 +833,14 @@ const ALL_NAME_FONTS: [CardNameFont; 3] = [
     CardNameFont::Pop,
 ];
 
-const ALL_DESIGNS: [CardDesign; 5] = [
+const ALL_DESIGNS: [CardDesign; 9] = [
     CardDesign::Pass,
+    CardDesign::Ticket,
     CardDesign::Formal,
+    CardDesign::Vertical,
     CardDesign::Pop,
+    CardDesign::Sumi,
+    CardDesign::Night,
     CardDesign::Oshi,
     CardDesign::Custom,
 ];
@@ -863,8 +887,12 @@ pub fn card_designs() -> Vec<CardDesignInfo> {
 pub fn card_design_info(design: CardDesign) -> CardDesignInfo {
     let (key, label, font) = match design {
         CardDesign::Pass => ("pass", "入場証", CardNameFont::Gothic),
+        CardDesign::Ticket => ("ticket", "チケット", CardNameFont::Gothic),
         CardDesign::Formal => ("formal", "かしこまった名刺", CardNameFont::Mincho),
+        CardDesign::Vertical => ("vertical", "縦書き", CardNameFont::Mincho),
         CardDesign::Pop => ("pop", "ポップ", CardNameFont::Pop),
+        CardDesign::Sumi => ("sumi", "墨一色", CardNameFont::Mincho),
+        CardDesign::Night => ("night", "夜公演", CardNameFont::Gothic),
         CardDesign::Oshi => ("oshi", "担当を大きく", CardNameFont::Gothic),
         CardDesign::Custom => ("custom", "自作の画像", CardNameFont::Gothic),
     };
@@ -915,7 +943,8 @@ pub fn card_design_from_key(key: &str) -> Option<CardDesign> {
 /// 中身に書くデザインの番号。書体を選んでいた頃の番号 (0 ゴシック・1 明朝・2 丸ゴシック・
 /// 3 ポップ・4 手書き) と同じ場所に入れるので、明朝とポップは同じ番号のまま
 /// (書体の版のアプリでも、かしこまった名刺は明朝・ポップはポップ体で出る)。
-/// 担当を大きく (6) を知らない版のアプリは既定のデザイン (入場証) で描く。
+/// 担当を大きく (6) や、あとから足したチケット (7)・縦書き (8)・墨一色 (9)・夜公演 (10) を知らない版の
+/// アプリは既定のデザイン (入場証) で描く (名刺そのものは読める)。
 fn design_code(design: CardDesign) -> u8 {
     match design {
         CardDesign::Pass => 0,
@@ -923,6 +952,10 @@ fn design_code(design: CardDesign) -> u8 {
         CardDesign::Pop => 3,
         CardDesign::Custom => 5,
         CardDesign::Oshi => 6,
+        CardDesign::Ticket => 7,
+        CardDesign::Vertical => 8,
+        CardDesign::Sumi => 9,
+        CardDesign::Night => 10,
     }
 }
 
@@ -932,6 +965,10 @@ const DESIGN_CODE_MASK: u8 = 0x0F;
 /// 旗だけ立てる名刺は既定のデザイン (0) と一緒に書く。旗を知らない版のアプリは
 /// 16 以上を知らない番号として既定のデザインで読み、名刺そのものは読める。
 const DESIGN_BRAND_LABELS: u8 = 0x10;
+/// デザインの 1 バイトの上位 3 bit: 刷る色 (`ProducerCard::ink`)。0 は先頭の担当 (既定)、1〜4 は名刺の
+/// 担当の 2〜5 人目、7 は墨。上位の bit を知らない版のアプリは読み飛ばす (先頭の担当の色で描く)。
+const DESIGN_INK_SHIFT: u8 = 5;
+const DESIGN_INK_SUMI: u8 = 7;
 
 /// 番号からデザインを戻す。書体の頃の丸ゴシック・手書きはポップに読み替える。
 /// 知らない番号 (新しい版のアプリが足したデザイン) は既定のデザインで読む
@@ -942,9 +979,131 @@ fn design_from_code(code: u8) -> Option<CardDesign> {
         2..=4 => CardDesign::Pop,
         5 => CardDesign::Custom,
         6 => CardDesign::Oshi,
+        7 => CardDesign::Ticket,
+        8 => CardDesign::Vertical,
+        9 => CardDesign::Sumi,
+        10 => CardDesign::Night,
         _ => CardDesign::Pass,
     };
     (design != CardDesign::default()).then_some(design)
+}
+
+// ---------------------------------------------------------------------------
+// 刷る色
+//
+// 名刺の帯・罫・判子の色。既定は先頭の担当の色 (今までどおり)。こだわる人は名刺に載せた担当の誰の色で
+// 刷るか、墨一色かを選べる (2026-10-31 ユーザー「たくさんこだわって作れるものにしたいな。簡単にも作れるけど」)。
+// 色そのものは持たず「誰の色か」だけを持つ (担当の色はマスタにあり、相手の端末・Web でも同じ色になる)。
+// ---------------------------------------------------------------------------
+
+/// 刷る色 (先頭の担当の色でないとき)。
+#[derive(uniffi::Enum, Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum CardInk {
+    /// 名刺に載せた担当の 1 人の色。
+    Oshi { idol_id: String },
+    /// 墨一色 (担当の色を使わない)。
+    Sumi,
+}
+
+/// 編集画面の刷る色の選択肢 1 つ。
+#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
+pub struct CardInkChoice {
+    /// 選んだときに保存するもの (None は先頭の担当の色)。
+    pub ink: Option<CardInk>,
+    /// 担当の色ならその担当 (名前と色は端末がマスタから引く)。墨なら None。
+    pub idol_id: Option<String>,
+    /// 墨のときの名前 (「墨」)。担当の色なら空 (端末が担当の名前を出す)。
+    pub label: String,
+    pub selected: bool,
+}
+
+/// 刷る色を名刺に載せる担当に合わせて揃える。先頭の担当・載っていない担当を指すものは None (既定)。
+pub fn card_ink_normalize(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Option<CardInk> {
+    match ink? {
+        CardInk::Sumi => Some(CardInk::Sumi),
+        CardInk::Oshi { idol_id } => {
+            let i = oshi_idol_ids.iter().position(|id| id == idol_id)?;
+            (i > 0 && i < MAX_OSHI as usize).then(|| CardInk::Oshi {
+                idol_id: idol_id.clone(),
+            })
+        }
+    }
+}
+
+/// 編集画面の刷る色の選択肢: 名刺に載せる担当の色 (並び順) と墨。担当が居なければ墨だけ
+/// (担当の居ない名刺はもともと墨で刷る)。
+pub fn card_ink_choices(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Vec<CardInkChoice> {
+    let current = card_ink_normalize(ink, oshi_idol_ids);
+    let ids: Vec<&String> = oshi_idol_ids.iter().take(MAX_OSHI as usize).collect();
+    let mut out: Vec<CardInkChoice> = ids
+        .iter()
+        .enumerate()
+        .map(|(i, id)| {
+            let choice = (i > 0).then(|| CardInk::Oshi {
+                idol_id: (*id).clone(),
+            });
+            CardInkChoice {
+                selected: choice == current,
+                ink: choice,
+                idol_id: Some((*id).clone()),
+                label: String::new(),
+            }
+        })
+        .collect();
+    out.push(CardInkChoice {
+        ink: Some(CardInk::Sumi),
+        idol_id: None,
+        label: "墨".into(),
+        selected: current == Some(CardInk::Sumi) || ids.is_empty(),
+    });
+    out
+}
+
+/// 端末に保存する刷る色のキー (先頭の担当は空、墨は `sumi`、担当は `oshi:<idol id>`)。
+pub fn card_ink_key(ink: Option<&CardInk>) -> String {
+    match ink {
+        None => String::new(),
+        Some(CardInk::Sumi) => "sumi".into(),
+        Some(CardInk::Oshi { idol_id }) => format!("oshi:{idol_id}"),
+    }
+}
+
+/// 保存のキーから刷る色を戻す。空・知らないキーは None (先頭の担当の色)。
+pub fn card_ink_from_key(key: &str) -> Option<CardInk> {
+    match key {
+        "sumi" => Some(CardInk::Sumi),
+        _ => key
+            .strip_prefix("oshi:")
+            .filter(|id| !id.is_empty())
+            .map(|id| CardInk::Oshi {
+                idol_id: id.to_string(),
+            }),
+    }
+}
+
+/// 刷る色の番号 (デザインの 1 バイトの上位 3 bit)。
+fn ink_code(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> u8 {
+    match card_ink_normalize(ink, oshi_idol_ids) {
+        None => 0,
+        Some(CardInk::Sumi) => DESIGN_INK_SUMI,
+        Some(CardInk::Oshi { idol_id }) => oshi_idol_ids
+            .iter()
+            .position(|id| *id == idol_id)
+            .map(|i| i as u8)
+            .unwrap_or(0),
+    }
+}
+
+/// 番号から刷る色を戻す。知らない番号・担当の居ない位置は既定 (先頭の担当の色)。
+fn ink_from_code(code: u8, oshi_idol_ids: &[String]) -> Option<CardInk> {
+    match code {
+        DESIGN_INK_SUMI => Some(CardInk::Sumi),
+        1..=4 => oshi_idol_ids.get(code as usize).map(|id| CardInk::Oshi {
+            idol_id: id.clone(),
+        }),
+        _ => None,
+    }
 }
 
 fn is_simple_handle(s: &str) -> bool {
@@ -1055,7 +1214,11 @@ fn card_id_bytes(id: &str) -> Option<[u8; CARD_ID_BYTES]> {
 /// 自分の名刺 id を作る。`seed` は端末が作った UUID (16 進の 32 桁。ハイフンはあってもよい) で、
 /// 先頭 16 桁を 8 バイトにする。UUID でない文字なら文字から散らして作る (同じ文字なら同じ id)。
 pub fn producer_card_new_id(seed: &str) -> String {
-    let hex: String = seed.chars().filter(|c| c.is_ascii_hexdigit()).take(16).collect();
+    let hex: String = seed
+        .chars()
+        .filter(|c| c.is_ascii_hexdigit())
+        .take(16)
+        .collect();
     let bytes: [u8; CARD_ID_BYTES] = if hex.len() == 16 {
         let mut out = [0u8; CARD_ID_BYTES];
         for (i, b) in out.iter_mut().enumerate() {
@@ -1095,7 +1258,9 @@ pub fn producer_card_id_to_embed(card_id: Option<&str>) -> Option<String> {
     if !PRODUCER_CARD_EMBEDS_CARD_ID {
         return None;
     }
-    card_id.filter(|id| card_id_bytes(id).is_some()).map(str::to_string)
+    card_id
+        .filter(|id| card_id_bytes(id).is_some())
+        .map(str::to_string)
 }
 
 /// 名刺 id の形として正しいか (端末に残っている id を確かめる)。
@@ -1123,7 +1288,8 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
         flags |= 1 << 4;
     }
     let design = card.design.filter(|d| *d != CardDesign::default());
-    if design.is_some() || card.show_brand_labels {
+    let ink = ink_code(card.ink.as_ref(), &card.oshi_idol_ids);
+    if design.is_some() || card.show_brand_labels || ink != 0 {
         flags |= FLAG_DESIGN;
     }
     if card.qr_url.is_some() {
@@ -1166,13 +1332,13 @@ fn write_card(card: &ProducerCard) -> Vec<u8> {
         w.extend_from_slice(&s.tag.to_le_bytes());
         prev = s.day;
     }
-    if design.is_some() || card.show_brand_labels {
+    if design.is_some() || card.show_brand_labels || ink != 0 {
         let labels = if card.show_brand_labels {
             DESIGN_BRAND_LABELS
         } else {
             0
         };
-        w.push(design_code(design.unwrap_or_default()) | labels);
+        w.push(design_code(design.unwrap_or_default()) | labels | (ink << DESIGN_INK_SHIFT));
     }
     if let Some(url) = &card.qr_url {
         put_str(&mut w, url);
@@ -1242,6 +1408,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
     };
     let design = design_byte.and_then(design_from_code);
     let show_brand_labels = design_byte.is_some_and(|b| b & DESIGN_BRAND_LABELS != 0);
+    let ink = design_byte.and_then(|b| ink_from_code(b >> DESIGN_INK_SHIFT, &oshi_idol_ids));
     let qr_url = if flags & FLAG_QR_URL != 0 {
         Some(r.str()?)
     } else {
@@ -1303,6 +1470,7 @@ fn read_card(bytes: &[u8]) -> Option<ProducerCard> {
         qr_url,
         show_brand_labels,
         card_id,
+        ink,
     })
 }
 
@@ -1558,6 +1726,9 @@ pub struct CardFace {
     pub since_imprint: Option<String>,
     /// 裏に刷る日付 (「2026.10.06 時点」)。記録の数がその日のものだと分かるように。
     pub issued_label: String,
+    /// 帯・罫・判子を刷る色の担当 (名刺の刷る色。既定は表に並べる先頭の担当)。None は墨
+    /// (墨を選んだ・描ける担当が居ない)。選んだ担当が描けなければ先頭の担当。
+    pub accent_idol_id: Option<String>,
 }
 
 /// 並びのまま渡された担当から `slots` 人を選ぶ (選んだ位置を並びの順で返す)。
@@ -1590,7 +1761,12 @@ fn pick_oshi_by_brand(oshi: &[&CardOshiEntry], slots: usize) -> Vec<usize> {
             count += 1;
         }
     }
-    picked.iter().enumerate().filter(|(_, p)| **p).map(|(i, _)| i).collect()
+    picked
+        .iter()
+        .enumerate()
+        .filter(|(_, p)| **p)
+        .map(|(i, _)| i)
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -1674,19 +1850,30 @@ fn oshi_choice_in_effect(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> O
 }
 
 /// 名刺に載せる担当 id (載せる順)。まだ選んでいない・選んだ人が全員担当から外れたときは自動の選び方。
-pub fn producer_card_oshi_picked_ids(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> Vec<String> {
+pub fn producer_card_oshi_picked_ids(
+    chosen: Option<&[String]>,
+    oshi: &[CardOshiEntry],
+) -> Vec<String> {
     oshi_choice_in_effect(chosen, oshi).unwrap_or_else(|| producer_card_pick_oshi(oshi))
 }
 
 /// 選ぶ画面に並べるもの。
-pub fn producer_card_oshi_picks(chosen: Option<&[String]>, oshi: &[CardOshiEntry]) -> CardOshiPicks {
+pub fn producer_card_oshi_picks(
+    chosen: Option<&[String]>,
+    oshi: &[CardOshiEntry],
+) -> CardOshiPicks {
     let by_hand = oshi_choice_in_effect(chosen, oshi);
     let chosen_by_hand = by_hand.is_some();
     let ids = by_hand.unwrap_or_else(|| producer_card_pick_oshi(oshi));
     let unique = unique_oshi(oshi);
     let picked: Vec<CardOshiEntry> = ids
         .iter()
-        .filter_map(|id| unique.iter().find(|o| &o.idol_id == id).map(|o| (*o).clone()))
+        .filter_map(|id| {
+            unique
+                .iter()
+                .find(|o| &o.idol_id == id)
+                .map(|o| (*o).clone())
+        })
         .collect();
     CardOshiPicks {
         full: picked.len() >= MAX_OSHI as usize,
@@ -1700,7 +1887,11 @@ pub fn producer_card_oshi_picks(chosen: Option<&[String]>, oshi: &[CardOshiEntry
 
 /// 1 人を載せる / 外した後の選択。載っていなければ末尾に足し (上限なら変えない)、載っていれば外す
 /// (最後の 1 人は外さない)。まだ選んでいなければ、今載っている既定の並びから始める。
-pub fn producer_card_oshi_toggle(chosen: Option<&[String]>, oshi: &[CardOshiEntry], idol_id: &str) -> Vec<String> {
+pub fn producer_card_oshi_toggle(
+    chosen: Option<&[String]>,
+    oshi: &[CardOshiEntry],
+    idol_id: &str,
+) -> Vec<String> {
     let mut ids = producer_card_oshi_picked_ids(chosen, oshi);
     if let Some(i) = ids.iter().position(|id| id == idol_id) {
         if ids.len() > 1 {
@@ -1757,12 +1948,18 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
     // ブランドごとにまとめる (ブランドは並びで先に出た順)。
     let mut grouped: Vec<(&str, Vec<&CardOshiEntry>)> = Vec::new();
     for o in picked.iter().map(|&i| oshi[i]) {
-        match grouped.iter_mut().find(|(b, _)| !b.is_empty() && *b == o.brand_id) {
+        match grouped
+            .iter_mut()
+            .find(|(b, _)| !b.is_empty() && *b == o.brand_id)
+        {
             Some((_, members)) => members.push(o),
             None => grouped.push((&o.brand_id, vec![o])),
         }
     }
-    let names: Vec<&str> = grouped.iter().flat_map(|(_, m)| m.iter().map(|o| o.name.as_str())).collect();
+    let names: Vec<&str> = grouped
+        .iter()
+        .flat_map(|(_, m)| m.iter().map(|o| o.name.as_str()))
+        .collect();
     let groups: Vec<CardFaceOshiGroup> = grouped
         .iter()
         .map(|(_, members)| CardFaceOshiGroup {
@@ -1774,11 +1971,18 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
             idol_ids: members.iter().map(|o| o.idol_id.clone()).collect(),
         })
         .collect();
-    let shown: Vec<String> = groups.iter().flat_map(|g| g.idol_ids.iter().cloned()).collect();
+    let shown: Vec<String> = groups
+        .iter()
+        .flat_map(|g| g.idol_ids.iter().cloned())
+        .collect();
     let hero: Vec<String> = groups
         .iter()
         .filter_map(|g| g.idol_ids.first().cloned())
-        .chain(groups.iter().flat_map(|g| g.idol_ids.iter().skip(1).cloned()))
+        .chain(
+            groups
+                .iter()
+                .flat_map(|g| g.idol_ids.iter().skip(1).cloned()),
+        )
         .collect();
     let caption = card_face_caption(&groups, &names);
     let handle = card
@@ -1787,7 +1991,15 @@ pub fn producer_card_face(card: &ProducerCard, drawable: &[CardOshiEntry]) -> Ca
         .find(|l| l.kind == CardLinkKind::X)
         .or_else(|| card.links.first())
         .map(card_link_view);
+    let accent = match &card.ink {
+        Some(CardInk::Sumi) => None,
+        Some(CardInk::Oshi { idol_id }) if oshi.iter().any(|o| &o.idol_id == idol_id) => {
+            Some(idol_id.clone())
+        }
+        _ => shown.first().cloned(),
+    };
     CardFace {
+        accent_idol_id: accent,
         oshi_idol_ids: shown,
         oshi_groups: groups,
         hero_idol_ids: hero,
@@ -2068,7 +2280,10 @@ pub fn encode_card_file(payload: &str, images: &[CardFileImage]) -> Option<Vec<u
         .filter(|s| *s != CardPhotoSource::Picked);
     // 写真も自作の画像も無ければ区画ごと書かない (足す前のファイルと同じ形のまま)。
     if !sections.is_empty() {
-        put_varint(&mut w, (sections.len() + usize::from(photo_source.is_some())) as u64);
+        put_varint(
+            &mut w,
+            (sections.len() + usize::from(photo_source.is_some())) as u64,
+        );
         for image in &sections {
             w.push(image.kind.section()?);
             put_varint(&mut w, image.jpeg.len() as u64);
@@ -2144,7 +2359,10 @@ pub fn decode_card_file(bytes: &[u8]) -> Option<CardFileContents> {
             return None;
         }
     }
-    if let Some(photo) = images.iter_mut().find(|i| i.kind == CardFileImageKind::Photo) {
+    if let Some(photo) = images
+        .iter_mut()
+        .find(|i| i.kind == CardFileImageKind::Photo)
+    {
         photo.photo_source = photo_source;
     }
     let images = card_file_images(&card, images);
@@ -2227,7 +2445,12 @@ mod tests {
     use super::*;
 
     fn entry(id: &str, name: &str, brand: &str, label: &str) -> CardOshiEntry {
-        CardOshiEntry { idol_id: id.into(), name: name.into(), brand_id: brand.into(), brand_label: label.into() }
+        CardOshiEntry {
+            idol_id: id.into(),
+            name: name.into(),
+            brand_id: brand.into(),
+            brand_label: label.into(),
+        }
     }
 
     /// 担当 5 人・4 ブランド (765AS 美希 / 876 宇宙 / 学マス 手毬・美鈴 / ミリオン 桃子)。
@@ -2253,7 +2476,12 @@ mod tests {
         let groups: Vec<(&str, Vec<&str>)> = face
             .oshi_groups
             .iter()
-            .map(|g| (g.brand_label.as_str(), g.idol_ids.iter().map(String::as_str).collect()))
+            .map(|g| {
+                (
+                    g.brand_label.as_str(),
+                    g.idol_ids.iter().map(String::as_str).collect(),
+                )
+            })
             .collect();
         assert_eq!(
             groups,
@@ -2264,11 +2492,17 @@ mod tests {
                 ("ミリオン", vec!["momoko"]),
             ]
         );
-        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "misuzu", "sora", "momoko"]);
+        assert_eq!(
+            face.oshi_idol_ids,
+            vec!["miki", "temari", "misuzu", "sora", "momoko"]
+        );
         // ブランドが 2 つ以上なら名前の行は刷らず、まとまりごとにブランドの略称を刷る。
         assert_eq!(face.oshi_caption, None);
         // 大きく並べる順は、ブランドごとの代表が先 (学マスの 2 人目は後ろ)。
-        assert_eq!(face.hero_idol_ids, vec!["miki", "temari", "sora", "momoko", "misuzu"]);
+        assert_eq!(
+            face.hero_idol_ids,
+            vec!["miki", "temari", "sora", "momoko", "misuzu"]
+        );
     }
 
     #[test]
@@ -2282,15 +2516,22 @@ mod tests {
         assert_eq!(face.oshi_groups.len(), 4);
         assert!(face.oshi_groups.iter().all(|g| g.brand_label.is_empty()));
         // 1 ブランドで数で畳む行も略称を落とす。
-        let many: Vec<CardOshiEntry> = ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
-            .iter()
-            .enumerate()
-            .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
-            .collect();
+        let many: Vec<CardOshiEntry> =
+            ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
+                .iter()
+                .enumerate()
+                .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
+                .collect();
         card.oshi_idol_ids = many.iter().map(|o| o.idol_id.clone()).collect();
-        assert_eq!(producer_card_face(&card, &many).oshi_caption.as_deref(), Some("5人 担当"));
+        assert_eq!(
+            producer_card_face(&card, &many).oshi_caption.as_deref(),
+            Some("5人 担当")
+        );
         card.show_brand_labels = true;
-        assert_eq!(producer_card_face(&card, &many).oshi_caption.as_deref(), Some("765AS 5人 担当"));
+        assert_eq!(
+            producer_card_face(&card, &many).oshi_caption.as_deref(),
+            Some("765AS 5人 担当")
+        );
     }
 
     #[test]
@@ -2311,7 +2552,10 @@ mod tests {
         assert_eq!(back.design, Some(CardDesign::Oshi));
         assert!(!decode_producer_card(&plain.url).unwrap().show_brand_labels);
         // 旗を知らない版のアプリの読み方 (16 以上は知らない番号) と同じく、番号の下位だけでデザインを読む。
-        assert_eq!(design_from_code(DESIGN_BRAND_LABELS | 1), Some(CardDesign::Formal));
+        assert_eq!(
+            design_from_code(DESIGN_BRAND_LABELS | 1),
+            Some(CardDesign::Formal)
+        );
     }
 
     #[test]
@@ -2330,18 +2574,22 @@ mod tests {
         let face = producer_card_face(&card, &one);
         assert_eq!(face.oshi_caption.as_deref(), Some("星井美希 担当"));
         assert_eq!(face.oshi_groups.len(), 1);
-        let many: Vec<CardOshiEntry> = ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
-            .iter()
-            .enumerate()
-            .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
-            .collect();
+        let many: Vec<CardOshiEntry> =
+            ["天海春香", "如月千早", "星井美希", "萩原雪歩", "高槻やよい"]
+                .iter()
+                .enumerate()
+                .map(|(i, n)| entry(&format!("i{i}"), n, "765as", "765AS"))
+                .collect();
         card.oshi_idol_ids = many.iter().map(|o| o.idol_id.clone()).collect();
         card.show_brand_labels = true;
         let face = producer_card_face(&card, &many);
         assert_eq!(face.oshi_caption.as_deref(), Some("765AS 5人 担当"));
         card.oshi_idol_ids.truncate(2);
         let face = producer_card_face(&card, &many);
-        assert_eq!(face.oshi_caption.as_deref(), Some("天海春香・如月千早 担当"));
+        assert_eq!(
+            face.oshi_caption.as_deref(),
+            Some("天海春香・如月千早 担当")
+        );
         // 担当がいなければ何も刷らない。
         let face = producer_card_face(&card, &[]);
         assert!(face.oshi_idol_ids.is_empty() && face.oshi_groups.is_empty());
@@ -2354,9 +2602,16 @@ mod tests {
         let all = five_in_four_brands();
         card.oshi_idol_ids = all.iter().map(|o| o.idol_id.clone()).collect();
         // 手元に無い担当は出さず、畳む数にも数えない。
-        let drawable: Vec<CardOshiEntry> = all.iter().filter(|o| o.idol_id != "sora").cloned().collect();
+        let drawable: Vec<CardOshiEntry> = all
+            .iter()
+            .filter(|o| o.idol_id != "sora")
+            .cloned()
+            .collect();
         let face = producer_card_face(&card, &drawable);
-        assert_eq!(face.oshi_idol_ids, vec!["miki", "temari", "misuzu", "momoko"]);
+        assert_eq!(
+            face.oshi_idol_ids,
+            vec!["miki", "temari", "misuzu", "momoko"]
+        );
         assert_eq!(face.more_oshi, 0);
     }
 
@@ -2374,14 +2629,21 @@ mod tests {
             entry("momoko", "周防桃子", "ml", "ミリオン"),
         ];
         // ブランドごとに 1 人 (春香・宇宙・手毬・桃子) を先に、残りの 1 枠に並び順で千早。並びはアプリのまま。
-        assert_eq!(producer_card_pick_oshi(&oshi), vec!["haruka", "chihaya", "sora", "temari", "momoko"]);
+        assert_eq!(
+            producer_card_pick_oshi(&oshi),
+            vec!["haruka", "chihaya", "sora", "temari", "momoko"]
+        );
         // 5 人以下はそのまま。同じ id は 1 度だけ。
         let few = vec![oshi[0].clone(), oshi[4].clone(), oshi[0].clone()];
         assert_eq!(producer_card_pick_oshi(&few), vec!["haruka", "sora"]);
         // ブランドが枠より多ければ、並びで先に出たブランドから。ブランドが分からない担当は 1 人ずつ数える。
-        let wide: Vec<CardOshiEntry> =
-            (0..7).map(|i| entry(&format!("i{i}"), "名前", &format!("b{i}"), "")).collect();
-        assert_eq!(producer_card_pick_oshi(&wide), vec!["i0", "i1", "i2", "i3", "i4"]);
+        let wide: Vec<CardOshiEntry> = (0..7)
+            .map(|i| entry(&format!("i{i}"), "名前", &format!("b{i}"), ""))
+            .collect();
+        assert_eq!(
+            producer_card_pick_oshi(&wide),
+            vec!["i0", "i1", "i2", "i3", "i4"]
+        );
         let unknown = vec![entry("a", "名前", "", ""), entry("b", "名前", "", "")];
         assert_eq!(producer_card_pick_oshi(&unknown), vec!["a", "b"]);
     }
@@ -2408,11 +2670,17 @@ mod tests {
         let oshi = eight_oshi();
         let picks = producer_card_oshi_picks(None, &oshi);
         let picked: Vec<&str> = picks.picked.iter().map(|o| o.idol_id.as_str()).collect();
-        assert_eq!(picked, vec!["haruka", "chihaya", "sora", "temari", "momoko"]);
+        assert_eq!(
+            picked,
+            vec!["haruka", "chihaya", "sora", "temari", "momoko"]
+        );
         assert!(!picks.chosen_by_hand && picks.full && !picks.single);
         assert_eq!(picks.max, 5);
         assert_eq!(picks.oshi.len(), 8);
-        assert_eq!(producer_card_oshi_picked_ids(None, &oshi), producer_card_pick_oshi(&oshi));
+        assert_eq!(
+            producer_card_oshi_picked_ids(None, &oshi),
+            producer_card_pick_oshi(&oshi)
+        );
         assert!(producer_card_oshi_picks(None, &[]).picked.is_empty());
     }
 
@@ -2429,7 +2697,10 @@ mod tests {
         let one = ids(&["miki"]);
         let picks = producer_card_oshi_picks(Some(&one), &oshi);
         assert!(picks.single && picks.chosen_by_hand);
-        assert_eq!(producer_card_oshi_picked_ids(Some(&one), &oshi), ids(&["miki"]));
+        assert_eq!(
+            producer_card_oshi_picked_ids(Some(&one), &oshi),
+            ids(&["miki"])
+        );
         // 上限で切る。
         let many = ids(&["momoko", "misuzu", "temari", "sora", "yukiho", "miki"]);
         assert_eq!(
@@ -2440,7 +2711,10 @@ mod tests {
         let gone = ids(&["gone"]);
         let picks = producer_card_oshi_picks(Some(&gone), &oshi);
         assert!(!picks.chosen_by_hand);
-        assert_eq!(producer_card_oshi_picked_ids(Some(&gone), &oshi), producer_card_pick_oshi(&oshi));
+        assert_eq!(
+            producer_card_oshi_picked_ids(Some(&gone), &oshi),
+            producer_card_pick_oshi(&oshi)
+        );
     }
 
     #[test]
@@ -2452,12 +2726,24 @@ mod tests {
             ids(&["haruka", "sora", "temari", "momoko"])
         );
         // 上限なら足さない。担当でない人は足さない。
-        assert_eq!(producer_card_oshi_toggle(None, &oshi, "miki"), producer_card_pick_oshi(&oshi));
+        assert_eq!(
+            producer_card_oshi_toggle(None, &oshi, "miki"),
+            producer_card_pick_oshi(&oshi)
+        );
         let one = ids(&["miki"]);
-        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "stranger"), ids(&["miki"]));
-        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "sora"), ids(&["miki", "sora"]));
+        assert_eq!(
+            producer_card_oshi_toggle(Some(&one), &oshi, "stranger"),
+            ids(&["miki"])
+        );
+        assert_eq!(
+            producer_card_oshi_toggle(Some(&one), &oshi, "sora"),
+            ids(&["miki", "sora"])
+        );
         // 最後の 1 人は外さない。
-        assert_eq!(producer_card_oshi_toggle(Some(&one), &oshi, "miki"), ids(&["miki"]));
+        assert_eq!(
+            producer_card_oshi_toggle(Some(&one), &oshi, "miki"),
+            ids(&["miki"])
+        );
     }
 
     #[test]
@@ -2506,9 +2792,15 @@ mod tests {
     fn oshi_design_without_oshi_falls_back_to_pass() {
         let mut card = encode_producer_card(&input()).card;
         card.design = Some(CardDesign::Oshi);
-        assert_eq!(producer_card_display_design(&card, false).design, CardDesign::Oshi);
+        assert_eq!(
+            producer_card_display_design(&card, false).design,
+            CardDesign::Oshi
+        );
         card.oshi_idol_ids.clear();
-        assert_eq!(producer_card_display_design(&card, false).design, CardDesign::Pass);
+        assert_eq!(
+            producer_card_display_design(&card, false).design,
+            CardDesign::Pass
+        );
     }
 
     fn input() -> ProducerCardInput {
@@ -2544,6 +2836,7 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            ink: None,
             card_id: None,
         }
     }
@@ -2559,7 +2852,10 @@ mod tests {
         let mut with_id = input();
         with_id.card_id = producer_card_id_to_embed(Some(&id));
         let enc = encode_producer_card(&with_id);
-        assert_eq!(base64url_decode(&producer_card_payload(&enc.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(
+            base64url_decode(&producer_card_payload(&enc.card)).unwrap()[1] & FLAG_EXT,
+            0
+        );
         assert_eq!(enc.card, encode_producer_card(&input()).card);
     }
 
@@ -2568,13 +2864,22 @@ mod tests {
         let id = producer_card_new_id("8D3F2A10-9B7C-4E21-A0B1-1234567890AB");
         assert_eq!(id.len(), 11);
         assert!(producer_card_id_is_valid(&id));
-        assert_eq!(id, producer_card_new_id("8d3f2a109b7c4e21"), "UUID の先頭 16 桁で決まる");
-        assert!(producer_card_id_is_valid(&producer_card_new_id("not-a-uuid")));
+        assert_eq!(
+            id,
+            producer_card_new_id("8d3f2a109b7c4e21"),
+            "UUID の先頭 16 桁で決まる"
+        );
+        assert!(producer_card_id_is_valid(&producer_card_new_id(
+            "not-a-uuid"
+        )));
         assert!(!producer_card_id_is_valid("short"));
 
         // id の無い名刺は足す前と同じ (旗 bit7 が立たない)。
         let plain = encode_producer_card(&input());
-        assert_eq!(base64url_decode(&producer_card_payload(&plain.card)).unwrap()[1] & FLAG_EXT, 0);
+        assert_eq!(
+            base64url_decode(&producer_card_payload(&plain.card)).unwrap()[1] & FLAG_EXT,
+            0
+        );
         assert_eq!(plain.card.card_id, None);
 
         let mut with_id = input();
@@ -3116,9 +3421,10 @@ mod tests {
         i.design = Some(CardDesign::Pop);
         let mut bytes = write_card(&encode_producer_card(&i).card);
         let last = bytes.len() - 1;
-        bytes[last] = 200;
+        bytes[last] = 15;
         let card = read_card(&bytes).expect("知らないデザインは既定で読む");
         assert_eq!(card.design, None);
+        assert_eq!(card.ink, None);
         let mut bytes = write_card(&encode_producer_card(&input()).card);
         bytes[1] |= 1 << 7;
         assert_eq!(read_card(&bytes), None);
@@ -3180,9 +3486,141 @@ mod tests {
     }
 
     #[test]
+    fn ink_round_trips_in_the_design_byte_and_falls_back() {
+        let mut i = input();
+        i.oshi_idol_ids = vec!["haruka".into(), "miki".into(), "chihaya".into()];
+        // 先頭の担当を指したもの・載っていない担当は既定に揃い、中身は 1 バイトも増えない。
+        let plain = write_card(&encode_producer_card(&i).card);
+        i.ink = Some(CardInk::Oshi {
+            idol_id: "haruka".into(),
+        });
+        assert_eq!(encode_producer_card(&i).card.ink, None);
+        i.ink = Some(CardInk::Oshi {
+            idol_id: "nobody".into(),
+        });
+        assert_eq!(write_card(&encode_producer_card(&i).card), plain);
+        // 3 人目の色・墨は読み戻せる。デザインも旗も無い名刺でもデザインの 1 バイトに入る。
+        for ink in [
+            CardInk::Oshi {
+                idol_id: "chihaya".into(),
+            },
+            CardInk::Sumi,
+        ] {
+            i.ink = Some(ink.clone());
+            let enc = encode_producer_card(&i);
+            assert_eq!(enc.card.ink, Some(ink.clone()));
+            let back = decode_producer_card(&enc.url).unwrap();
+            assert_eq!(back.ink, Some(ink.clone()));
+            assert_eq!(back.design, None);
+            assert!(!back.show_brand_labels);
+        }
+        // デザイン・旗と一緒でも互いに崩さない。
+        i.design = Some(CardDesign::Night);
+        i.show_brand_labels = true;
+        i.ink = Some(CardInk::Oshi {
+            idol_id: "miki".into(),
+        });
+        let back = decode_producer_card(&encode_producer_card(&i).url).unwrap();
+        assert_eq!(back.design, Some(CardDesign::Night));
+        assert!(back.show_brand_labels);
+        assert_eq!(
+            back.ink,
+            Some(CardInk::Oshi {
+                idol_id: "miki".into()
+            })
+        );
+        // 担当の居ない位置の番号は既定で読む。
+        assert_eq!(ink_from_code(4, &i.oshi_idol_ids), None);
+        assert_eq!(ink_from_code(5, &i.oshi_idol_ids), None);
+    }
+
+    #[test]
+    fn ink_keys_round_trip() {
+        for ink in [
+            None,
+            Some(CardInk::Sumi),
+            Some(CardInk::Oshi {
+                idol_id: "miki".into(),
+            }),
+        ] {
+            assert_eq!(card_ink_from_key(&card_ink_key(ink.as_ref())), ink);
+        }
+        assert_eq!(card_ink_from_key("oshi:"), None);
+        assert_eq!(card_ink_from_key("rainbow"), None);
+    }
+
+    #[test]
+    fn ink_choices_and_face_accent() {
+        let ids: Vec<String> = vec!["haruka".into(), "miki".into()];
+        let choices = card_ink_choices(None, &ids);
+        let got: Vec<(Option<&str>, &str, bool)> = choices
+            .iter()
+            .map(|c| (c.idol_id.as_deref(), c.label.as_str(), c.selected))
+            .collect();
+        assert_eq!(
+            got,
+            vec![
+                (Some("haruka"), "", true),
+                (Some("miki"), "", false),
+                (None, "墨", false)
+            ]
+        );
+        assert_eq!(choices[0].ink, None);
+        let sumi = card_ink_choices(Some(&CardInk::Sumi), &ids);
+        assert!(sumi[2].selected && !sumi[0].selected);
+        // 担当が居なければ墨だけ (選ばれている)。
+        let none = card_ink_choices(None, &[]);
+        assert_eq!(none.len(), 1);
+        assert!(none[0].selected);
+
+        let drawable = vec![
+            CardOshiEntry {
+                idol_id: "haruka".into(),
+                name: "春香".into(),
+                brand_id: "765".into(),
+                brand_label: "765AS".into(),
+            },
+            CardOshiEntry {
+                idol_id: "miki".into(),
+                name: "美希".into(),
+                brand_id: "765".into(),
+                brand_label: "765AS".into(),
+            },
+        ];
+        let mut card = encode_producer_card(&input()).card;
+        card.oshi_idol_ids = ids.clone();
+        assert_eq!(
+            producer_card_face(&card, &drawable)
+                .accent_idol_id
+                .as_deref(),
+            Some("haruka")
+        );
+        card.ink = Some(CardInk::Oshi {
+            idol_id: "miki".into(),
+        });
+        assert_eq!(
+            producer_card_face(&card, &drawable)
+                .accent_idol_id
+                .as_deref(),
+            Some("miki")
+        );
+        // 選んだ担当が手元で描けなければ先頭の担当。
+        assert_eq!(
+            producer_card_face(&card, &drawable[..1])
+                .accent_idol_id
+                .as_deref(),
+            Some("haruka")
+        );
+        card.ink = Some(CardInk::Sumi);
+        assert_eq!(producer_card_face(&card, &drawable).accent_idol_id, None);
+        card.ink = None;
+        assert_eq!(producer_card_face(&card, &[]).accent_idol_id, None);
+    }
+
+    #[test]
     fn design_keys_and_codes_round_trip() {
         let designs = card_designs();
-        assert_eq!(designs.len(), 5);
+        assert_eq!(designs.len(), 9);
         assert_eq!(designs[0].design, CardDesign::default());
         for info in &designs {
             assert_eq!(card_design_from_key(&info.key), Some(info.design));
@@ -3394,12 +3832,21 @@ mod tests {
         let file = decode_card_file(&bytes).unwrap();
         assert_eq!(file.images.len(), 1);
         assert_eq!(file.images[0].photo_source, Some(CardPhotoSource::XIcon));
-        assert_eq!(card_photo_shape(CardPhotoSource::XIcon), CardPhotoShape::Round);
+        assert_eq!(
+            card_photo_shape(CardPhotoSource::XIcon),
+            CardPhotoShape::Round
+        );
         // 写真から選んだ写真は出どころを書かない (足す前のファイルと同じ形)。
         let picked = encode_card_file(&enc.url, &[photo(Some(CardPhotoSource::Picked))]).unwrap();
         assert_eq!(picked, encode_card_file(&enc.url, &[photo(None)]).unwrap());
-        assert_eq!(decode_card_file(&picked).unwrap().images[0].photo_source, None);
-        assert_eq!(card_photo_shape(CardPhotoSource::Picked), CardPhotoShape::Square);
+        assert_eq!(
+            decode_card_file(&picked).unwrap().images[0].photo_source,
+            None
+        );
+        assert_eq!(
+            card_photo_shape(CardPhotoSource::Picked),
+            CardPhotoShape::Square
+        );
         // 出どころは写真の後ろの別の区画なので、その区画を知らない読み方でも写真は読める
         // (知らない区画として飛ばす。区画の種類を知らない番号に替えて確かめる)。
         let mut older = bytes.clone();
@@ -3424,9 +3871,15 @@ mod tests {
     #[test]
     fn photo_source_keys_round_trip_and_unknown_reads_as_picked() {
         for source in [CardPhotoSource::Picked, CardPhotoSource::XIcon] {
-            assert_eq!(card_photo_source_from_key(&card_photo_source_key(source)), source);
+            assert_eq!(
+                card_photo_source_from_key(&card_photo_source_key(source)),
+                source
+            );
         }
         assert_eq!(card_photo_source_from_key(""), CardPhotoSource::Picked);
-        assert_eq!(card_photo_source_from_key("instagram"), CardPhotoSource::Picked);
+        assert_eq!(
+            card_photo_source_from_key("instagram"),
+            CardPhotoSource::Picked
+        );
     }
 }

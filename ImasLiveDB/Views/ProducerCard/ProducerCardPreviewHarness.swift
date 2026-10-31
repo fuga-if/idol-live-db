@@ -307,12 +307,19 @@ struct ProducerCardPreviewHarness: View {
                 let recent = try String.fetchAll(d, sql: """
                     SELECT id FROM shows WHERE date <= '2026-10-05' ORDER BY date DESC LIMIT 8 OFFSET 4
                     """)
-                let next = try String.fetchAll(d, sql: "SELECT id FROM shows WHERE date > '2026-10-06' ORDER BY date LIMIT 1")
+                let next = try String.fetchAll(d, sql: "SELECT id FROM shows WHERE date > '2026-10-06' ORDER BY date LIMIT 3")
                 for id in oshiShows + recent + next {
                     try d.execute(sql: """
                         INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
                         VALUES ('show', ?, 'attended', 1, 'live', ?)
                         """, arguments: [id, now])
+                }
+                // 思い出の公演の既定 (お気に入りのライブの公演) が出るように、行ったライブを 2 つお気に入りに。
+                for id in oshiShows.prefix(1) + recent.prefix(1) {
+                    try d.execute(sql: """
+                        INSERT OR REPLACE INTO user_marks (entity_type, entity_id, kind, bool_value, text_value, updated_at)
+                        SELECT 'event', event_id, 'favorite', 1, NULL, ? FROM shows WHERE id = ?
+                        """, arguments: [now, id])
                 }
             }
             guard var mine = try? db.myProducerCard() else { return }
@@ -338,9 +345,11 @@ struct ProducerCardPreviewHarness: View {
         static func sparse(_ m: ProfileSheetMaterials) -> ProfileSheetMaterials {
             var out = m
             out.record.attended = Array(m.record.attended.suffix(1))
-            out.record.oshiNames = []
+            out.record.oshi = []
             out.record.oshiBrandIds = []
             out.record.favoriteSongs = []
+            out.record.message = ""
+            out.record.ownedReleaseCount = 0
             out.record.songCount = 12
             out.record.sinceYear = nil
             out.record.hasPhoto = false
@@ -409,7 +418,7 @@ struct ProducerCardPreviewHarness: View {
             }
         }
 
-        /// 5 デザインの紙に刷る画像 (表・裏) を書き出す (Documents/print_exports/)。担当を大きく は担当の
+        /// 全デザインの紙に刷る画像 (表・裏) を書き出す (Documents/print_exports/)。担当を大きく は担当の
         /// 人数を変えても書き出す (`PRODUCER_CARD_OSHI` の人数で `oshi_front.png`)。
         @MainActor
         static func exportPrints(_ db: AppDatabase) async -> Int {
@@ -420,7 +429,7 @@ struct ProducerCardPreviewHarness: View {
             try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             saveMyFaces()
             var count = 0
-            for design in ["pass", "formal", "pop", "oshi", "custom"] {
+            for design in cardDesigns().map(\.key) {
                 mine.design = design
                 guard let record = try? await ProducerCardAssembler.loadMyRecord(),
                       let encoded = ProducerCardAssembler.encode(card: mine, record: record) else { continue }

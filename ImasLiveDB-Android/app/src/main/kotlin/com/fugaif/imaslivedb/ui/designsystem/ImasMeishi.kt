@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -36,7 +37,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -76,6 +82,11 @@ import java.util.Locale
 //                  - 担当を大きく (OSHI): 左半分に担当の画像を大きく (1 人なら 1 枚、複数なら分けて。先頭ほど
 //                    大きな枠。並びはコアの `CardFace.heroIdolIds`)。画像の無い担当は大きな判子と名前。
 //                    右に名前・P歴・名刺の写真・ハンドル。境目に担当色の細い縦の線。
+//                  - チケット (TICKET): 右に切り取り線と担当色の半券 (名刺の写真と P歴の年)。
+//                  - 縦書き (VERTICAL): 明朝の名前を右に縦に大きく、左に名刺の写真・担当・ハンドル。
+//                  - 墨一色 (SUMI): 罫も帯も無い紙に名前を大きく。担当色は名前の下の点 1 つだけ。
+//                  - 夜公演 (NIGHT): 黒い紙に白い文字。担当色は上の細い線と写真の縁と判子だけ。
+//                  帯・罫・判子を刷る色 ([ImasMeishiInk.accent]) は名刺の刷る色 (コアの `CardFace.accentIdolId`)。
 // ImasMeishiBack   裏。QR (交換用か自分の QR)・参加公演数・回収曲数・「YYYY.MM.DD 時点」。
 // ImasMeishiStamp  表に並べる担当 1 人 (写真があれば写真、無ければ判子)。
 // ImasMeishiHero   担当を大きく の左の枠 (担当の画像を枠いっぱいに分けて並べる)。
@@ -122,8 +133,21 @@ data class ImasMeishiInk(
     /** 担当の色 (帯・罫・下線)。担当がいなければ墨。 */
     val accent: Color,
     /** 担当の色の帯の上の文字。 */
-    val onAccent: Color
+    val onAccent: Color,
+    /** 夜公演 (黒い紙) で刷る担当の色。暗い紙の上でも沈まない色。null は白。 */
+    val nightAccent: Color? = null
 ) {
+    /** 夜公演の黒い紙と白い墨 (紙に刷る画像も画面も同じ固定色。担当の色だけ受け継ぐ)。 */
+    fun night(): ImasMeishiInk {
+        val paper = Color(0xFF17161A)
+        val white = Color(0xFFF4F1EA)
+        val accent = nightAccent ?: white
+        return ImasMeishiInk(
+            paper = paper, ink = white, sub = Color(0xFFA39F98), line = white.copy(alpha = 0.22f),
+            accent = accent, onAccent = paper, nightAccent = accent
+        )
+    }
+
     companion object {
         /**
          * 画面の名刺。ダークでも紙は明るいチケットの紙 (QR を読めるように・紙の名刺に見えるように)。
@@ -132,10 +156,12 @@ data class ImasMeishiInk(
         @Composable
         fun screen(seed: String?, brand: String?): ImasMeishiInk {
             val theme = ImasTheme.derive(seed = seed, brand = brand, dark = false)
+            val night = ImasTheme.derive(seed = seed, brand = brand, dark = true)
             return ImasMeishiInk(
                 paper = DS.ticket, ink = DS.ticketInk, sub = DS.ticketSub, line = DS.ticketDash,
                 accent = if (theme.isNeutral) DS.ticketInk else theme.accent,
-                onAccent = if (theme.isNeutral) DS.ticket else theme.onAccent
+                onAccent = if (theme.isNeutral) DS.ticket else theme.onAccent,
+                nightAccent = if (night.isNeutral) null else night.accent
             )
         }
 
@@ -175,7 +201,7 @@ data class ImasMeishiOshiGroup(
 )
 
 /** 表の組み (名刺のデザイン。自作の画像は画像そのもの)。 */
-enum class ImasMeishiLook { PASS, FORMAL, POP, OSHI }
+enum class ImasMeishiLook { PASS, TICKET, FORMAL, VERTICAL, POP, SUMI, NIGHT, OSHI }
 
 /** 紙の上の寸法を倍率で描くための換算 (文字は端末の文字の大きさに追わない)。 */
 private class MeishiScale(val scale: Float, private val fontScale: Float) {
@@ -230,12 +256,18 @@ fun ImasMeishiFront(
     scale: Float = 1f
 ) {
     val p = rememberMeishiScale(scale)
-    val parts = MeishiFrontParts(name, ink, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
-    Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(ink.paper)) {
+    // 夜公演は渡された墨から黒い紙を組む。
+    val drawn = if (look == ImasMeishiLook.NIGHT) ink.night() else ink
+    val parts = MeishiFrontParts(name, drawn, sinceImprint, oshiGroups, hero, oshiCaption, moreOshi, handle, nameFamily, portrait, portraitRound, p)
+    Box(modifier.requiredSize(p.dp(ImasMeishi.WIDTH), p.dp(ImasMeishi.HEIGHT)).background(drawn.paper)) {
         when (look) {
             ImasMeishiLook.PASS -> PassFront(parts)
+            ImasMeishiLook.TICKET -> TicketFront(parts)
             ImasMeishiLook.FORMAL -> FormalFront(parts)
+            ImasMeishiLook.VERTICAL -> VerticalFront(parts)
             ImasMeishiLook.POP -> PopFront(parts)
+            ImasMeishiLook.SUMI -> SumiFront(parts)
+            ImasMeishiLook.NIGHT -> NightFront(parts)
             ImasMeishiLook.OSHI -> OshiFront(parts)
         }
     }
@@ -351,6 +383,185 @@ private fun PopFront(m: MeishiFrontParts) {
                 Footer(m, MeishiFace.ROUNDED, FontWeight.Black)
             }
             Portrait(m, m.ink.ink, 2f)
+        }
+    }
+}
+
+/** 半券の幅。 */
+private const val TICKET_STUB_WIDTH = 92f
+
+/** チケット (右に切り取り線と担当色の半券)。 */
+@Composable
+private fun TicketFront(m: MeishiFrontParts) {
+    val p = m.p
+    Row(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f).fillMaxHeight()
+                .padding(start = p.dp(20f), end = p.dp(14f), top = p.dp(16f), bottom = p.dp(16f))
+        ) {
+            Imprint(m, "ADMIT ONE PRODUCER", MeishiFace.MONO)
+            Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+            NameText(m, 25f)
+            OshiBlock(
+                m, stamp = 20f,
+                caption = meishiText(p, 8.5f, FontWeight.Normal, MeishiFace.SERIF),
+                label = meishiText(p, 6f, FontWeight.SemiBold, MeishiFace.MONO),
+                modifier = Modifier.padding(top = p.dp(6f))
+            )
+            Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+            Footer(m, MeishiFace.MONO, FontWeight.Medium)
+        }
+        // 切り取り線 (上下に半円の切り欠き)。
+        Box(Modifier.width(p.dp(12f)).fillMaxHeight(), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxHeight().width(p.hair(1f)).padding(vertical = p.dp(10f))) {
+                drawLine(
+                    m.ink.line, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height), strokeWidth = size.width,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(p.dp(3f).toPx(), p.dp(2.5f).toPx()))
+                )
+            }
+            Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+                Box(Modifier.offset(y = -p.dp(6f)).size(p.dp(12f)).border(p.hair(0.75f), m.ink.line, CircleShape))
+                Box(Modifier.offset(y = p.dp(6f)).size(p.dp(12f)).border(p.hair(0.75f), m.ink.line, CircleShape))
+            }
+        }
+        Column(
+            Modifier.width(p.dp(TICKET_STUB_WIDTH)).fillMaxHeight().background(m.ink.accent)
+                .padding(vertical = p.dp(16f), horizontal = p.dp(10f)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(p.dp(8f))
+        ) {
+            Portrait(m, m.ink.onAccent, 1.5f, side = 58f)
+            Spacer(Modifier.weight(1f))
+            Text(
+                "SINCE", style = meishiText(p, 6f, FontWeight.SemiBold, MeishiFace.MONO, tracking = 1.4f),
+                color = m.ink.onAccent.copy(alpha = 0.8f), maxLines = 1
+            )
+            ImasFitText(
+                sinceYear(m) ?: "—",
+                style = meishiText(p, 20f, FontWeight.ExtraBold, MeishiFace.MONO).copy(fontFeatureSettings = "tnum"),
+                color = m.ink.onAccent, maxLines = 1, minScale = 0.6f
+            )
+        }
+    }
+}
+
+/** P歴の年だけ (「SINCE 2014」の「2014」)。 */
+private fun sinceYear(m: MeishiFrontParts): String? = m.sinceImprint?.split(" ")?.lastOrNull()?.takeIf { it.isNotEmpty() }
+
+/** 縦書きの年は漢数字で (「2014」→「二〇一四」。算用数字は縦に積むと読みにくい)。 */
+private fun kanjiDigits(s: String): String {
+    val map = mapOf('0' to '〇', '1' to '一', '2' to '二', '3' to '三', '4' to '四', '5' to '五', '6' to '六', '7' to '七', '8' to '八', '9' to '九')
+    return s.map { map[it] ?: it }.joinToString("")
+}
+
+/** 縦書き (明朝の名前を右に縦に)。 */
+@Composable
+private fun VerticalFront(m: MeishiFrontParts) {
+    val p = m.p
+    Row(
+        Modifier.fillMaxSize().padding(horizontal = p.dp(22f), vertical = p.dp(18f)),
+        horizontalArrangement = Arrangement.spacedBy(p.dp(14f)),
+        verticalAlignment = Alignment.Top
+    ) {
+        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(p.dp(8f))) {
+            Portrait(m, m.ink.line, 0.5f, side = 64f)
+            Spacer(Modifier.weight(1f))
+            OshiBlock(
+                m, stamp = 18f,
+                caption = meishiText(p, 8f, FontWeight.Normal, MeishiFace.SERIF),
+                label = meishiText(p, 6f, FontWeight.Medium, MeishiFace.SERIF)
+            )
+            Footer(m, MeishiFace.SERIF, FontWeight.Normal)
+        }
+        Row(Modifier.fillMaxHeight(), horizontalArrangement = Arrangement.spacedBy(p.dp(8f)), verticalAlignment = Alignment.Top) {
+            sinceYear(m)?.let { year ->
+                ImasMeishiVerticalText(
+                    text = "${kanjiDigits(year)}年就任",
+                    style = meishiText(p, 7.5f, FontWeight.Normal, MeishiFace.SERIF),
+                    color = m.ink.sub, step = p.dp(9.5f), modifier = Modifier.padding(top = p.dp(4f))
+                )
+            }
+            Box(Modifier.width(p.hair(1f)).fillMaxHeight().background(m.ink.accent))
+            VerticalName(m)
+        }
+    }
+}
+
+/** 縦に組む名前。紙の高さに収まる大きさに縮める (長い名前は 2 列に折る)。 */
+@Composable
+private fun VerticalName(m: MeishiFrontParts) {
+    val p = m.p
+    val chars = m.name.toList()
+    val room = ImasMeishi.HEIGHT - 36f
+    val perColumn = maxOf(1, (room / 30f).toInt())
+    val columns = if (chars.size > perColumn) 2 else 1
+    val rows = kotlin.math.ceil(chars.size.toDouble() / columns).toInt()
+    val size = minOf(30f, room / maxOf(rows, 1) * 0.92f)
+    val parts = (0 until columns).map { c ->
+        String(chars.subList(minOf(c * rows, chars.size), minOf((c + 1) * rows, chars.size)).toCharArray())
+    }
+    val base = m.nameFamily?.let { TextStyle(fontFamily = it, fontSize = p.sp(size)) }
+        ?: TextStyle(fontFamily = FontFamily.Serif, fontSize = p.sp(size))
+    Row(horizontalArrangement = Arrangement.spacedBy(p.dp(size * 0.25f)), verticalAlignment = Alignment.Top) {
+        // 縦書きは右の列から読む。
+        parts.reversed().forEach { part ->
+            ImasMeishiVerticalText(text = part, style = base, color = m.ink.ink, step = p.dp(size * 1.04f))
+        }
+    }
+}
+
+/** 墨一色 (名前を大きく、担当色は点 1 つ)。 */
+@Composable
+private fun SumiFront(m: MeishiFrontParts) {
+    val p = m.p
+    Column(Modifier.fillMaxSize().padding(horizontal = p.dp(28f), vertical = p.dp(20f))) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Imprint(m, "PRODUCER", MeishiFace.SERIF, tracking = 2f)
+            Portrait(m, m.ink.line, 0.5f, side = 42f)
+        }
+        Spacer(Modifier.weight(1f))
+        NameText(m, 32f, tracking = 2f)
+        Box(Modifier.padding(top = p.dp(8f)).size(p.dp(5f)).background(m.ink.accent, CircleShape))
+        Spacer(Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            OshiBlock(
+                m, stamp = 15f,
+                caption = meishiText(p, 7.5f, FontWeight.Normal, MeishiFace.SERIF),
+                label = meishiText(p, 5.5f, FontWeight.Medium, MeishiFace.SERIF)
+            )
+            Spacer(Modifier.weight(1f).widthIn(min = p.dp(6f)))
+            m.handle?.let {
+                ImasFitText(it, style = meishiText(p, 8f, FontWeight.Normal, MeishiFace.SERIF), color = m.ink.ink, maxLines = 1, minScale = 0.6f)
+            }
+        }
+    }
+}
+
+/** 夜公演 (黒い紙・白い文字)。 */
+@Composable
+private fun NightFront(m: MeishiFrontParts) {
+    val p = m.p
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxWidth().height(p.dp(3f)).background(m.ink.accent))
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = p.dp(20f), vertical = p.dp(16f)),
+            horizontalArrangement = Arrangement.spacedBy(p.dp(14f)),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f).fillMaxHeight()) {
+                Imprint(m, "TONIGHT'S PRODUCER", MeishiFace.MONO, tracking = 1.6f)
+                Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+                NameText(m, 26f)
+                OshiBlock(
+                    m, stamp = 22f,
+                    caption = meishiText(p, 8.5f, FontWeight.Normal, MeishiFace.ROUNDED),
+                    label = meishiText(p, 6f, FontWeight.SemiBold, MeishiFace.MONO),
+                    modifier = Modifier.padding(top = p.dp(6f))
+                )
+                Spacer(Modifier.weight(1f).heightIn(min = p.dp(4f)))
+                Footer(m, MeishiFace.MONO, FontWeight.Medium)
+            }
+            Portrait(m, m.ink.accent, 1.5f)
         }
     }
 }
@@ -632,5 +843,36 @@ fun ImasMeishiPictureView(
             model = picture.url, contentDescription = null, contentScale = contentScale, alignment = alignment,
             modifier = modifier, loading = { fallback() }, error = { fallback() }
         )
+    }
+}
+
+
+// MARK: - 縦書き
+
+private val VERTICAL_ROTATED = setOf('ー', '－', '—', '‐', '-', '〜', '～', '…', '‥', '(', ')', '（', '）', '「', '」', '[', ']')
+private val VERTICAL_SMALL = setOf(
+    'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'っ', 'ゃ', 'ゅ', 'ょ', 'ゎ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ッ', 'ャ', 'ュ', 'ョ', 'ヮ', '、', '。'
+)
+
+/**
+ * 1 字ずつ縦に積む縦書き。長音・ダッシュ・波線は 90° 回し、小書きの仮名は右上に寄せる。iOS `ImasMeishiVerticalText`。
+ *
+ * @param step 1 字の送り (字の高さ)。
+ */
+@Composable
+fun ImasMeishiVerticalText(text: String, style: TextStyle, color: Color, step: Dp, modifier: Modifier = Modifier) {
+    Column(modifier.semantics(mergeDescendants = true) { contentDescription = text }) {
+        text.forEach { c ->
+            val small = c in VERTICAL_SMALL
+            Box(Modifier.size(step), contentAlignment = Alignment.Center) {
+                Text(
+                    c.toString(), style = style, color = color, maxLines = 1, softWrap = false,
+                    modifier = Modifier
+                        .graphicsLayer { rotationZ = if (c in VERTICAL_ROTATED) 90f else 0f }
+                        .offset(x = if (small) step * 0.12f else 0.dp, y = if (small) -step * 0.12f else 0.dp)
+                        .clearAndSetSemantics { }
+                )
+            }
+        }
     }
 }

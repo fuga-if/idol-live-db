@@ -20,6 +20,8 @@ interface Elements {
   status: HTMLElement;
   card: HTMLElement;
   band: HTMLElement;
+  tenure: HTMLElement;
+  stubYear: HTMLElement;
   hero: HTMLElement;
   imprint: HTMLElement;
   name: HTMLElement;
@@ -47,6 +49,8 @@ function elements(): Elements | null {
   const status = document.querySelector<HTMLElement>("[data-meishi-status]");
   const card = document.querySelector<HTMLElement>("[data-meishi-card]");
   const band = document.querySelector<HTMLElement>("[data-meishi-band]");
+  const tenure = document.querySelector<HTMLElement>("[data-meishi-tenure]");
+  const stubYear = document.querySelector<HTMLElement>("[data-meishi-stub-year]");
   const hero = document.querySelector<HTMLElement>("[data-meishi-hero]");
   const imprint = document.querySelector<HTMLElement>("[data-meishi-imprint]");
   const name = document.querySelector<HTMLElement>("[data-meishi-name]");
@@ -68,7 +72,7 @@ function elements(): Elements | null {
   const caseScheme = document.querySelector<HTMLAnchorElement>("[data-meishi-case-scheme]");
   const unreadable = document.querySelector<HTMLElement>("[data-meishi-unreadable]");
   if (
-    !root || !status || !card || !band || !hero || !imprint || !name || !faceOshi || !handle || !details ||
+    !root || !status || !card || !band || !tenure || !stubYear || !hero || !imprint || !name || !faceOshi || !handle || !details ||
     !oshiSection || !linksSection || !message || !since || !oshi || !links ||
     !showCount || !songCount || !next || !asof || !caseBox || !caseNote || !caseScheme ||
     !unreadable
@@ -76,7 +80,7 @@ function elements(): Elements | null {
     return null;
   }
   return {
-    root, status, card, band, hero, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
+    root, status, card, band, tenure, stubYear, hero, imprint, name, faceOshi, handle, details, oshiSection, linksSection, message, since, oshi, links, showCount, songCount, next,
     asof, caseBox, caseNote, caseScheme, unreadable,
   };
 }
@@ -211,6 +215,12 @@ function renderHero(el: HTMLElement, face: CardFace, idols: readonly Ref[]): voi
   el.dataset.count = String(el.childElementCount);
 }
 
+/** 縦書きの年は漢数字で (「2014」→「二〇一四」。アプリの縦書きの名刺と同じ字面)。 */
+function kanjiDigits(s: string): string {
+  const map = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+  return s.replace(/[0-9]/g, (d) => map[Number(d)] ?? d);
+}
+
 /** 台帳にある担当だけを、wasm に渡す形 (名前とブランド) に詰める。 */
 function drawableOshi(idolIds: readonly string[], catalog: CardCatalog): CardOshiEntry[] {
   return idolIds.flatMap((id) => {
@@ -241,9 +251,16 @@ function renderCard(e: Elements, card: CardView, face: CardFace, catalog: CardCa
     e.since.hidden = true;
   }
 
-  // 担当色の帯は先頭の担当 1 人分だけ (カード全体は塗らない。淡い色の地のカードは却下済み)。
-  const primaryOshi = renderOshi(e.oshi, card.oshiIdolIds, catalog.idols);
-  const theme = primaryOshi?.themeKey ?? "neutral";
+  // 縦書きの就任の年 (漢数字) と、チケットの半券の年。年が無ければ出さない。
+  e.stubYear.textContent = card.sinceYear !== null ? String(card.sinceYear) : "—";
+  e.tenure.textContent = card.sinceYear !== null ? `${kanjiDigits(String(card.sinceYear))}年就任` : "";
+  e.tenure.hidden = card.sinceYear === null;
+
+  // 刷る色は名刺が選んだ担当 (`accentIdolId`。コアが決める)。null は墨 (neutral)。
+  // 帯・罫・判子だけ担当色で、カード全体は塗らない (淡い色の地のカードは却下済み)。
+  renderOshi(e.oshi, card.oshiIdolIds, catalog.idols);
+  const accent = face.accentIdolId === null ? undefined : refById(catalog.idols, face.accentIdolId);
+  const theme = accent?.themeKey ?? "neutral";
   e.band.dataset.theme = theme;
   // ポップの名前の下線も担当色 (カードの地は塗らない。地色は --ds-surface のまま)。
   e.card.dataset.theme = theme;

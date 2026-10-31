@@ -2,21 +2,25 @@ import SwiftUI
 import UIKit
 
 // =============================================================================
-// P名刺の画像 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた **履歴書** の様式。
+// P名刺の画像 (SNS に貼る自己紹介の 1 枚絵)。P を職業に見立てた **P履歴書** の様式。
 //
 // - 欄・行・丸・詰め方はコア (`profileSheetLayout`) が決め、ここは描くだけ。
-// - 紙は生成り、線は墨。罫の太さは 2 段 (外枠と欄の中)。担当色は押印欄の判子の 1 か所だけ
-//   (面を塗らない・帯を引かない)。ブランドの丸はブランドの色の手描きの線 (中身そのものの色)。
+// - 紙は生成り、線は墨。罫の太さは 2 段 (外枠と欄の中)。色は担当のアイコンの縁と、ブランドの丸の手描きの線
+//   (中身そのものの色) だけ (面を塗らない・帯を引かない)。英字の印字と押印欄の判子は置かない
+//   (2026-10 ユーザー「RESUME みたいなサブタイトルいらない。あと謎のハンコも」)。
 // - 字面は事務書類の端正さに寄せる (2026-10 ユーザー「文字の感じが若干垢抜けてない」)。題・名前・欄の題は明朝、
-//   本文はゴシック (`ProfileSheetType`)、英字は等幅の大文字の印字だけ。太さは 2 段 (本文 = regular・見出し = semibold)、
-//   和文はかなを詰めて (palt) 字間を少し詰め、英字の大文字にだけ字間を足す。数字は等幅。
-//   題は大きく本文は控えめにして、大きさの比をはっきり取る。
-// - 中身はすべてアプリの記録から (自分で書く欄は無い)。アプリ名の帯 (`ShareCardFooter`) を下に置く。
+//   本文はゴシック (`ProfileSheetType`)。太さは 2 段 (本文 = regular・見出し = semibold)、
+//   和文はかなを詰めて (palt) 字間を少し詰める。数字は等幅。題は大きく本文は控えめにして、大きさの比をはっきり取る。
+// - 中身はすべてアプリの記録と P名刺から (自分で書く欄は無い)。アプリ名の帯 (`ShareCardFooter`) を下に置く。
+//
+// 組み: 頭 (題・日付) / 氏名・P歴・連絡先と証明写真・担当 (ブランドごとの行) / 担当ブランド / P歴の表 /
+//       好きな曲 / 思い出の公演 / 次の現場と記録 (左右に) / ひとこと。
 //
 // ImageRenderer で焼く固定のキャンバスなので、色は固定色、文字は固定 pt (docs/DESIGN_SYSTEM.md §13)。
 // 画像は読み込み済みの UIImage だけを使う (ImageRenderer は読み込みを待たない)。画像は大きさの決まった枠を
 // 先に作ってから重ねて切る (縦長の大きな画像で枠が膨らまないように)。
 // =============================================================================
+
 
 enum ProfileSheetInk {
     /// 生成りの紙。
@@ -136,11 +140,7 @@ private struct ProfileSheetHeading: View {
             HStack(alignment: .lastTextBaseline, spacing: 10) {
                 Text(layout.title)
                     .font(T.display(30))
-                    .tracking(7)
-                Text(layout.imprint)
-                    .font(T.imprint(8))
-                    .tracking(T.imprintTracking)
-                    .foregroundStyle(Ink.sub)
+                    .tracking(6)
                 Spacer(minLength: 8)
                 Text(layout.asOf)
                     .font(T.jp(9.5))
@@ -152,7 +152,7 @@ private struct ProfileSheetHeading: View {
     }
 }
 
-// MARK: - 履歴書
+// MARK: - P履歴書
 
 private struct ProfileResumeBody: View {
     let layout: ProfileSheetLayout
@@ -165,32 +165,22 @@ private struct ProfileResumeBody: View {
             if !layout.brands.isEmpty {
                 ProfileBrandRange(title: layout.brandsTitle, brands: layout.brands, s: s)
             }
-            if !layout.history.isEmpty || !layout.licenses.isEmpty {
+            if !layout.history.isEmpty {
                 ProfileBox {
                     VStack(spacing: 0) {
-                        if !layout.history.isEmpty {
-                            ProfileTableHead(title: "P歴（学歴・職歴）", s: s)
-                            ForEach(Array(layout.history.enumerated()), id: \.offset) { i, row in
-                                if i > 0 { ProfileRule() }
-                                ProfileHistoryLine(row: row, s: s)
-                            }
-                        }
-                        if !layout.licenses.isEmpty {
-                            if !layout.history.isEmpty { ProfileRule(width: Ink.frame) }
-                            ProfileTableHead(title: "免許・資格", s: s)
-                            ForEach(Array(layout.licenses.enumerated()), id: \.offset) { i, row in
-                                if i > 0 { ProfileRule() }
-                                ProfileHistoryLine(row: row, s: s)
-                            }
+                        ProfileTableHead(title: layout.historyTitle, s: s)
+                        ForEach(Array(layout.history.enumerated()), id: \.offset) { i, row in
+                            if i > 0 { ProfileRule() }
+                            ProfileHistoryLine(row: row, s: s)
                         }
                     }
                 }
             }
-            // 志望の動機は横いっぱい、趣味・特技と本人希望記入欄は左右に並べる (様式の欄の並び)。
-            ForEach(layout.sections.filter { $0.slot == .motivation }, id: \.title) { section in
+            // 好きな曲・思い出の公演・ひとことは横いっぱい、次の現場と記録は左右に並べる。
+            ForEach(full(.songs) + full(.memories), id: \.title) { section in
                 ProfileBox { ProfileSectionView(section: section, s: s) }
             }
-            let pair = layout.sections.filter { $0.slot != .motivation }
+            let pair = layout.sections.filter { $0.slot == .nextShow || $0.slot == .records }
             if !pair.isEmpty {
                 HStack(alignment: .top, spacing: 10 * s) {
                     ForEach(pair, id: \.title) { section in
@@ -198,70 +188,79 @@ private struct ProfileResumeBody: View {
                             ProfileSectionView(section: section, s: s)
                                 .frame(maxHeight: .infinity, alignment: .top)
                         }
+                        // 記録は数が短いので幅を取りすぎない。
+                        .frame(maxWidth: section.slot == .records && pair.count == 2 ? 150 * s : .infinity)
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }
+            ForEach(full(.message), id: \.title) { section in
+                ProfileBox { ProfileSectionView(section: section, s: s) }
+            }
         }
     }
 
-    /// 氏名・押印・P歴・担当・連絡先と証明写真。
+    private func full(_ slot: ProfileSlot) -> [ProfileSection] {
+        layout.sections.filter { $0.slot == slot }
+    }
+
+    /// 氏名・P歴・連絡先と証明写真、その下に担当 (ブランドごとの行)。
     private var identity: some View {
         ProfileBox {
-            HStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    ProfileField(label: "氏名", s: s) {
-                        HStack(spacing: 8) {
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    VStack(spacing: 0) {
+                        ProfileField(label: "氏名", s: s) {
                             Text(layout.name)
                                 .font(T.display(24 * s))
                                 .tracking(T.jpTracking)
                                 .foregroundStyle(Ink.ink)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.5)
-                            Spacer(minLength: 0)
-                            if layout.showOshi, let oshi = materials.oshi.first {
-                                ProfileSeal(oshi: oshi, diameter: 42 * s)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 3 * s)
+                        }
+                        if let since = layout.sinceLabel {
+                            ProfileRule()
+                            ProfileField(label: "P歴", s: s) {
+                                Text(since)
+                                    .font(T.jp(10 * s))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Ink.ink)
+                                    .lineLimit(1)
                             }
                         }
-                        .padding(.vertical, 3 * s)
-                    }
-                    if let since = layout.sinceLabel {
-                        ProfileRule()
-                        ProfileField(label: "P歴", s: s) {
-                            Text(since)
-                                .font(T.jp(10 * s))
-                                .monospacedDigit()
-                                .foregroundStyle(Ink.ink)
-                                .lineLimit(1)
-                        }
-                    }
-                    if layout.showOshi && !materials.oshi.isEmpty {
-                        ProfileRule()
-                        ProfileField(label: "担当", s: s) { ProfileOshiList(oshi: materials.oshi, s: s) }
-                    }
-                    if !layout.contacts.isEmpty || (layout.showQr && materials.qr != nil) {
-                        ProfileRule()
-                        ProfileField(label: "連絡先", s: s) {
-                            HStack(spacing: 8) {
-                                Text(layout.contacts.joined(separator: "   "))
-                                    .font(T.imprint(9.5 * s))
-                                    .foregroundStyle(Ink.ink)
-                                    .lineLimit(2)
-                                    .minimumScaleFactor(0.7)
-                                Spacer(minLength: 0)
-                                if layout.showQr, let qr = materials.qr {
-                                    ProfileQR(image: qr, side: Ink.qrSide)
+                        if !layout.contacts.isEmpty || (layout.showQr && materials.qr != nil) {
+                            ProfileRule()
+                            ProfileField(label: "連絡先", s: s) {
+                                HStack(spacing: 8) {
+                                    Text(layout.contacts.joined(separator: "   "))
+                                        .font(T.imprint(9.5 * s))
+                                        .foregroundStyle(Ink.ink)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.7)
+                                    Spacer(minLength: 0)
+                                    if layout.showQr, let qr = materials.qr {
+                                        ProfileQR(image: qr, side: Ink.qrSide)
+                                    }
                                 }
                             }
                         }
+                        Spacer(minLength: 0)
+                    }
+                    Rectangle().fill(Ink.ink).frame(width: Ink.rule)
+                    ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil,
+                                    round: materials.portraitRound, width: 78 * s)
+                        .padding(9 * s)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                if !layout.oshiGroups.isEmpty {
+                    ProfileRule()
+                    ProfileField(label: "担当", s: s) {
+                        ProfileOshiRows(groups: layout.oshiGroups, oshi: materials.oshi, s: s)
                     }
                 }
-                Rectangle().fill(Ink.ink).frame(width: Ink.rule)
-                ProfilePhotoBox(image: layout.showPhoto ? materials.portrait : nil, round: materials.portraitRound,
-                                width: 88 * s)
-                    .padding(10 * s)
             }
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -359,42 +358,93 @@ private struct ProfileHistoryColumns<Content: View>: View {
     }
 }
 
-/// 欄 (題と、項目の並び)。
+/// 欄 (題と中身)。中身の組みは欄ごと: 好きな曲は「」で流し組み、思い出の公演・次の現場は日付と公演の行、
+/// 記録は項目と数の行、ひとことは本文だけ。
 private struct ProfileSectionView: View {
     let section: ProfileSection
     let s: CGFloat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6 * s) {
-            HStack(alignment: .lastTextBaseline, spacing: 8) {
-                Text(section.title)
-                    .font(T.display(10.5 * s))
-                    .tracking(T.jpTracking)
-                Text(section.imprint)
-                    .font(T.imprint(7))
-                    .tracking(T.imprintTracking)
-                    .foregroundStyle(Ink.sub)
-            }
-            .foregroundStyle(Ink.ink)
-            VStack(alignment: .leading, spacing: 6 * s) {
-                ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.label)
-                            .font(T.jp(7.5 * s, .semibold))
-                            .foregroundStyle(Ink.sub)
-                        Text(entry.text)
-                            .font(T.jp(10.5 * s))
-                            .tracking(T.jpTracking)
-                            .monospacedDigit()
-                            .lineSpacing(2 * s)
-                            .foregroundStyle(Ink.ink)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+            Text(section.title)
+                .font(T.display(10.5 * s))
+                .tracking(T.jpTracking)
+                .foregroundStyle(Ink.ink)
+            switch section.slot {
+            case .songs: songs
+            case .memories, .nextShow: shows
+            case .records: records
+            case .message: message
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 9 * s)
+    }
+
+    private var songs: some View {
+        FlowLayout(spacing: 2 * s, lineSpacing: 4 * s) {
+            ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
+                Text("「\(entry.text)」")
+                    .font(T.jp(10.5 * s))
+                    .tracking(T.jpTracking)
+                    .foregroundStyle(Ink.ink)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    /// 日付 | 公演 (会場)。日付は列を揃える。
+    private var shows: some View {
+        VStack(alignment: .leading, spacing: 4 * s) {
+            ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
+                HStack(alignment: .firstTextBaseline, spacing: 8 * s) {
+                    Text(entry.label)
+                        .font(T.jp(8.5 * s))
+                        .monospacedDigit()
+                        .foregroundStyle(Ink.sub)
+                        .frame(width: 70 * s, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.text)
+                            .font(T.jp(10 * s))
+                            .tracking(T.jpTracking)
+                            .foregroundStyle(Ink.ink)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !entry.note.isEmpty {
+                            Text(entry.note)
+                                .font(T.jp(8 * s))
+                                .foregroundStyle(Ink.sub)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var records: some View {
+        VStack(alignment: .leading, spacing: 4 * s) {
+            ForEach(Array(section.entries.enumerated()), id: \.offset) { _, entry in
+                HStack(alignment: .firstTextBaseline, spacing: 8 * s) {
+                    Text(entry.label)
+                        .font(T.jp(8.5 * s))
+                        .foregroundStyle(Ink.sub)
+                    Spacer(minLength: 4)
+                    Text(entry.text)
+                        .font(T.num(11 * s, .semibold))
+                        .foregroundStyle(Ink.ink)
+                }
+            }
+        }
+    }
+
+    private var message: some View {
+        Text(section.entries.first?.text ?? "")
+            .font(T.jp(10.5 * s))
+            .tracking(T.jpTracking)
+            .lineSpacing(2 * s)
+            .foregroundStyle(Ink.ink)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -469,61 +519,45 @@ struct ProfileHandCircle: Shape {
     }
 }
 
-/// 押印欄の判子 (担当の名前を担当色の二重の丸に。少し傾けて押す)。P名刺の画像で担当色を使う唯一の所。
-private struct ProfileSeal: View {
-    let oshi: ProfileSheetOshi
-    let diameter: CGFloat
-
-    var body: some View {
-        let color = Ink.accent(oshi.color ?? oshi.brandColor)
-        ZStack {
-            Circle().strokeBorder(color, lineWidth: 2)
-            Circle().strokeBorder(color, lineWidth: 0.8).padding(3.5)
-            sealText.foregroundStyle(color)
-        }
-        .frame(width: diameter, height: diameter)
-        .rotationEffect(.degrees(-12))
-    }
-
-    /// 2〜3 文字は縦書き、長い名前は横に縮めて入れる。
-    @ViewBuilder private var sealText: some View {
-        let chars = Array(oshi.shortName)
-        if chars.count <= 3 {
-            VStack(spacing: -diameter * 0.04) {
-                ForEach(Array(chars.enumerated()), id: \.offset) { _, c in
-                    Text(String(c))
-                }
-            }
-            .font(.system(size: diameter * (chars.count == 3 ? 0.22 : 0.28), weight: .heavy, design: .serif))
-        } else {
-            Text(oshi.shortName)
-                .font(.system(size: diameter * 0.24, weight: .heavy, design: .serif))
-                .lineLimit(1)
-                .minimumScaleFactor(0.4)
-                .padding(.horizontal, diameter * 0.14)
-        }
-    }
-}
-
-/// 担当の並び (写真か判子 + 名前)。
-private struct ProfileOshiList: View {
+/// 担当の行 (ブランドごとに 1 行、入りきらなければ折り返す)。ブランドが 2 つ以上なら行の頭にブランドの名前
+/// (コアの `ProfileOshiGroup.brandLabel`。1 つなら空)。
+private struct ProfileOshiRows: View {
+    let groups: [ProfileOshiGroup]
     let oshi: [ProfileSheetOshi]
     let s: CGFloat
 
     var body: some View {
-        HStack(spacing: 12 * s) {
-            ForEach(oshi) { idol in
-                HStack(spacing: 5) {
-                    ProfileOshiIcon(oshi: idol, size: 22 * s)
-                    Text(idol.name)
-                        .font(T.jp(10 * s))
-                        .tracking(T.jpTracking)
-                        .foregroundStyle(Ink.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
+        let byId = Dictionary(oshi.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let labeled = groups.contains { !$0.brandLabel.isEmpty }
+        VStack(alignment: .leading, spacing: 5 * s) {
+            ForEach(groups, id: \.brandId) { group in
+                HStack(alignment: .top, spacing: 8 * s) {
+                    if labeled {
+                        Text(group.brandLabel)
+                            .font(T.jp(7.5 * s, .semibold))
+                            .foregroundStyle(Ink.sub)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .frame(width: 44 * s, alignment: .leading)
+                            .padding(.top, 5 * s)
+                    }
+                    FlowLayout(spacing: 10 * s, lineSpacing: 4 * s) {
+                        ForEach(group.idolIds.compactMap { byId[$0] }) { idol in
+                            HStack(spacing: 4) {
+                                ProfileOshiIcon(oshi: idol, size: 20 * s)
+                                Text(idol.name)
+                                    .font(T.jp(9.5 * s))
+                                    .tracking(T.jpTracking)
+                                    .foregroundStyle(Ink.ink)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
+        .padding(.vertical, 2 * s)
     }
 }
 

@@ -36,6 +36,8 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
     /// 名刺 id (同じ人の名刺を見分ける、コアの `producerCardNewId`)。端末で一度だけ作り、名刺の中身に載せる。
     /// 保存のときに無ければ作る (`AppDatabase.saveMyProducerCard`)。
     var cardId: String? = nil
+    /// 名刺の刷る色のキー (コアの `cardInkKey`)。nil・空は先頭の担当の色。
+    var ink: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, message
@@ -48,6 +50,7 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
         case profileJson = "profile_json"
         case cardOshiJson = "card_oshi_json"
         case cardId = "card_id"
+        case ink
     }
 
     static func empty() -> MyProducerCard {
@@ -85,6 +88,12 @@ struct MyProducerCard: Codable, FetchableRecord, PersistableRecord, Hashable, Se
         var row = self
         row.cardId = producerCardNewId(seed: UUID().uuidString)
         return row
+    }
+
+    /// 名刺の刷る色 (nil は先頭の担当の色)。名刺に載せない担当を指していても、組むときにコアが既定に揃える。
+    var cardInk: CardInk? {
+        get { ink.flatMap { cardInkFromKey(key: $0) } }
+        set { ink = newValue.map { cardInkKey(ink: $0) } }
     }
 
     /// 名刺に載せる担当の選択 (アプリの担当の id、載せる順)。nil はまだ選んでいない。

@@ -521,7 +521,7 @@ class ProducerCardStoreTest {
         val favorites = times.keys.sorted().map { ProfileSongInput(it, "曲$it", times[it].orEmpty()) }
         val record = ProfileSheetMaterials.EMPTY.record.copy(today = "2026-10-06", favoriteSongs = favorites)
         val sheet = profileSheetDefault().copy(songs = listOf("s2", "s3", "s1"))
-        assertEquals("「曲s3」「曲s1」", profileSheetLayout(sheet, record).sections.first().entries.first().text)
+        assertEquals(listOf("曲s3", "曲s1"), profileSheetLayout(sheet, record).sections.first().entries.map { it.text })
 
         // 選ぶ画面: 載っている曲を押すと外れ、上限までは末尾に足す (規則はコア)。
         assertEquals(listOf("s3", "s1"), favoriteSongToggle(listOf("s3"), favorites, "s1"))
@@ -541,7 +541,20 @@ class ProducerCardStoreTest {
         val loaded = repo.myCard()!!.profile
         assertEquals(ProfileSheetSize.STORY, loaded.size)
         assertEquals(listOf(ProfileAutoField.QR), loaded.hidden)
-        assertEquals("履歴書", profileSheetLayout(loaded, ProfileSheetMaterials.EMPTY.record).title)
+        assertEquals("P履歴書", profileSheetLayout(loaded, ProfileSheetMaterials.EMPTY.record).title)
+    }
+
+    /** 刷る色 (墨・載せた担当の誰か) は保存して読み戻せる。名刺には載せた担当の中だけ残る。 */
+    @Test
+    fun cardInkIsStoredAndReadBack() = runBlocking {
+        val repo = ProducerCardRepository(database())
+        assertEquals(null, repo.run { saveMyCard(myCard("ふがP")); myCard() }?.cardInk)
+        repo.saveMyCard(myCard("ふがP").withCardInk(uniffi.imas_core.CardInk.Sumi))
+        assertEquals(uniffi.imas_core.CardInk.Sumi, repo.myCard()?.cardInk)
+        repo.saveMyCard(myCard("ふがP").withCardInk(uniffi.imas_core.CardInk.Oshi("miki")))
+        assertEquals(uniffi.imas_core.CardInk.Oshi("miki"), repo.myCard()?.cardInk)
+        repo.saveMyCard(myCard("ふがP").withCardInk(null))
+        assertEquals(null, repo.myCard()?.cardInk)
     }
 
     /** 書き出したバックアップを空の端末に取り込むと、名刺入れと自分の名刺が戻る。 */

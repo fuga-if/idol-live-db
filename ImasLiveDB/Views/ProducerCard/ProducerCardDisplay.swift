@@ -81,10 +81,28 @@ enum ProducerCardDisplay {
     static func cardDesign(_ card: ProducerCard, face: Face?) -> ImasProducerCard.Design {
         switch design(card, face: face).design {
         case .pass: return .pass
+        case .ticket: return .ticket
         case .formal: return .formal
+        case .vertical: return .vertical
         case .pop: return .pop
+        case .sumi: return .sumi
+        case .night: return .night
         case .oshi: return .oshi
         case .custom: return face.map { .face(front: $0.front, back: $0.back) } ?? .pass
+        }
+    }
+
+    /// 紙の名刺の組み (自作の画像は紙に刷る側が画像をそのまま刷るので、ここでは入場証)。
+    static func look(_ design: CardDesign) -> ImasMeishiFront.Look {
+        switch design {
+        case .pass, .custom: return .pass
+        case .ticket: return .ticket
+        case .formal: return .formal
+        case .vertical: return .vertical
+        case .pop: return .pop
+        case .sumi: return .sumi
+        case .night: return .night
+        case .oshi: return .oshi
         }
     }
 
@@ -195,6 +213,8 @@ enum ProducerCardDisplay {
             portraitURL: portraitURL,
             portraitRound: cardPhotoShape(source: portraitSource) == .round,
             nameFont: nameFont(card, face: face),
+            accentOshiId: cardFace.accentIdolId,
+            sumiInk: cardFace.accentIdolId == nil,
             back: Self.back(card, face: cardFace, payload: payload, qr: back),
             onOpenLink: onOpenLink,
             onOpenOshi: onOpenOshi

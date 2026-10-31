@@ -6,6 +6,7 @@ import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.ProducerCardShowInfo
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasBoardCell
+import com.fugaif.imaslivedb.ui.designsystem.ImasMeishiLook
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardBack
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardContent
 import com.fugaif.imaslivedb.ui.designsystem.ImasProducerCardFaceGroup
@@ -141,10 +142,26 @@ object ProducerCardDisplay {
     fun nameFont(card: ProducerCard, face: ProducerCardFace? = null): String = design(card, face).font.fileStem
 
     /** DS の名刺のデザイン。 */
+    /** 紙の名刺の組み (自作の画像は紙に刷る側が画像をそのまま刷るので、ここでは入場証)。iOS `ProducerCardDisplay.look`。 */
+    fun look(design: CardDesign): ImasMeishiLook = when (design) {
+        CardDesign.PASS, CardDesign.CUSTOM -> ImasMeishiLook.PASS
+        CardDesign.TICKET -> ImasMeishiLook.TICKET
+        CardDesign.FORMAL -> ImasMeishiLook.FORMAL
+        CardDesign.VERTICAL -> ImasMeishiLook.VERTICAL
+        CardDesign.POP -> ImasMeishiLook.POP
+        CardDesign.SUMI -> ImasMeishiLook.SUMI
+        CardDesign.NIGHT -> ImasMeishiLook.NIGHT
+        CardDesign.OSHI -> ImasMeishiLook.OSHI
+    }
+
     fun cardDesign(card: ProducerCard, face: ProducerCardFace?): ImasProducerCardDesign = when (design(card, face).design) {
         CardDesign.PASS -> ImasProducerCardDesign.Pass
+        CardDesign.TICKET -> ImasProducerCardDesign.Ticket
         CardDesign.FORMAL -> ImasProducerCardDesign.Formal
+        CardDesign.VERTICAL -> ImasProducerCardDesign.Vertical
         CardDesign.POP -> ImasProducerCardDesign.Pop
+        CardDesign.SUMI -> ImasProducerCardDesign.Sumi
+        CardDesign.NIGHT -> ImasProducerCardDesign.Night
         CardDesign.OSHI -> ImasProducerCardDesign.Oshi
         CardDesign.CUSTOM -> face?.let { ImasProducerCardDesign.Face(it.front, it.back) } ?: ImasProducerCardDesign.Pass
     }
@@ -250,6 +267,8 @@ fun rememberProducerCardContent(
             portraitUrl = portraitUrl,
             portraitRound = cardPhotoShape(portraitSource) == CardPhotoShape.ROUND,
             nameFamily = nameFamily,
+            accentOshiId = cardFace.accentIdolId,
+            sumiInk = cardFace.accentIdolId == null,
             back = back ?: ImasProducerCardBack(
                 qr = producerCardUrlFromPayload(payload ?: producerCardPayload(card)),
                 issuedLabel = cardFace.issuedLabel,

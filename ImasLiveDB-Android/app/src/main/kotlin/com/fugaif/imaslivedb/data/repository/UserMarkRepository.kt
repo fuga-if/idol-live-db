@@ -263,6 +263,11 @@ class UserMarkRepository(
     suspend fun favoriteSongIds(): Set<String> = dao.idsFor(UserMark.SONG, UserMark.FAVORITE).toSet()
 
     /** カード所持 (KAMISABI 等) をマークした曲 ID セット。曲詳細のコンプ率計算用。 */
+    suspend fun ownedReleaseIds(): Set<String> = dao.idsFor(UserMark.RELEASE, UserMark.OWNED).toSet()
+
+    /** お気に入りのライブ (イベント)。P履歴書の「思い出の公演」の既定に使う。 */
+    suspend fun favoriteEventIds(): Set<String> = dao.idsFor(UserMark.EVENT, UserMark.FAVORITE).toSet()
+
     suspend fun ownedSongIds(): Set<String> = dao.idsFor(UserMark.SONG, UserMark.OWNED).toSet()
 
     private suspend fun fetchIdols(ids: List<String>): List<Idol> {

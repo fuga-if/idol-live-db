@@ -57,6 +57,18 @@ import uniffi.imas_core.cardDesigns
 import uniffi.imas_core.classifyScannedCode
 import uniffi.imas_core.encodeProducerCard
 import uniffi.imas_core.normalizeCardQrUrl
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.unit.dp
+import uniffi.imas_core.CardInk
+import uniffi.imas_core.cardInkChoices
+import uniffi.imas_core.cardInkNormalize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,6 +108,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import com.fugaif.imaslivedb.data.model.Idol
+import com.fugaif.imaslivedb.ui.theme.rememberImasHaptics
 import com.fugaif.imaslivedb.data.model.MyProducerCard
 import com.fugaif.imaslivedb.data.model.ProducerCardField
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
@@ -218,6 +231,8 @@ fun ProducerCardEditorSheet(
 
     val designs = remember { cardDesigns() }
     var design by remember { mutableStateOf(cardDesignKey(card.cardDesign)) }
+    // 刷る色 (null は先頭の担当の色。選べるのはコアの `cardInkChoices`)。
+    var ink by remember { mutableStateOf(card.cardInk) }
     val selectedDesign = designs.firstOrNull { it.key == design } ?: designs.first()
     var qrUrl by remember { mutableStateOf(card.qrUrl.orEmpty()) }
     var qrNotice by remember { mutableStateOf<String?>(null) }
@@ -491,6 +506,7 @@ fun ProducerCardEditorSheet(
         sinceYear = sinceYear
     ).withLinks(filled().mapNotNull { normalizeCardLink(CardLink(it.kind, it.value)) }).withHidden(hidden)
         .copy(design = design, qrUrl = normalizeCardQrUrl(qrUrl))
+        .withCardInk(ink)
         .let { it.withProfile(it.profile.copy(songs = songs)) }
         .withCardOshiChoice(oshiChoice)
         .let { d -> renewedCardId?.let { d.copy(cardId = it) } ?: d }
@@ -509,7 +525,7 @@ fun ProducerCardEditorSheet(
         !(selectedDesign.usesFaceImage && facePreview[ProducerCardFiles.Side.FRONT] == null)
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
-        draft().cardDesign != card.cardDesign || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
+        draft().cardDesign != card.cardDesign || draft().ink != card.ink || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
         songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != null
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
@@ -614,7 +630,12 @@ fun ProducerCardEditorSheet(
                                     ImasCardDesignOption(it.key, it.label, designLook(it.design, frontFace, leadImage), ImasCardNameFonts.family(assets, it.font.fileStem))
                                 }
                             }
-                            val lead = oshi.firstOrNull()
+                            // 見本の札も刷る色で (墨なら色なし)。
+                            val lead = when (val c = cardInkNormalize(ink, oshi.map { it.id })) {
+                                CardInk.Sumi -> null
+                                is CardInk.Oshi -> oshi.firstOrNull { it.id == c.idolId } ?: oshi.firstOrNull()
+                                null -> oshi.firstOrNull()
+                            }
                             ImasCardDesignPicker(
                                 options = options, selection = design, onSelect = { design = it }, sample = name.trim(),
                                 seed = lead?.color, brand = lead?.brandId
@@ -649,6 +670,8 @@ fun ProducerCardEditorSheet(
                                     faceNotice?.let { Text(it, style = ImasTextRole.NOTE.style, color = DS.ink) }
                                 }
                             }
+                        } else {
+                            InkField(ink = ink, oshi = oshi, onSelect = { ink = it })
                         }
                     }
 
@@ -792,7 +815,7 @@ fun ProducerCardEditorSheet(
                     if (producerCardEmbedsCardId()) {
                         CardIdCard(renewedCardId, onRenew = { confirmRenewCardId = true })
                         ImasNote("名刺には同じ人と分かる名刺 id が入るので、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
-                    } else if (design != designs[0].key || qrUrl.trim().isNotEmpty()) {
+                    } else if (design != designs[0].key || ink != null || qrUrl.trim().isNotEmpty()) {
                         ImasNote("デザインや自分の QR を載せた名刺は、古い版のアプリでは読めません (相手にアプリを最新にしてもらうと読めます)。")
                     }
                     ImasNote("名刺の中身は QR に全部入ります。サーバには何も置かないので、圏外の会場でも交換できます。後から名刺を直したら、もう一度交換すると相手の名刺入れの名刺も新しくなります。")
@@ -864,8 +887,12 @@ private fun faceFolder(context: Context): File = File(context.cacheDir, "produce
 /** デザインの札に組む小さな名刺の形。 */
 private fun designLook(design: CardDesign, frontFace: String?, leadImage: String?): ImasCardDesignOption.Look = when (design) {
     CardDesign.PASS -> ImasCardDesignOption.Look.Pass
+    CardDesign.TICKET -> ImasCardDesignOption.Look.Ticket
     CardDesign.FORMAL -> ImasCardDesignOption.Look.Formal
+    CardDesign.VERTICAL -> ImasCardDesignOption.Look.Vertical
     CardDesign.POP -> ImasCardDesignOption.Look.Pop
+    CardDesign.SUMI -> ImasCardDesignOption.Look.Sumi
+    CardDesign.NIGHT -> ImasCardDesignOption.Look.Night
     CardDesign.OSHI -> ImasCardDesignOption.Look.Oshi(leadImage)
     CardDesign.CUSTOM -> ImasCardDesignOption.Look.Face(frontFace)
 }
@@ -1134,5 +1161,57 @@ private fun LinkEditor(
             )
         }
         if (invalid) Text("リンクの書き方を確かめてください", style = ImasTextRole.NOTE.style, color = DS.danger)
+    }
+}
+
+/** 刷る色: 名刺に載せる担当の誰の色で帯・罫・判子を刷るか、墨一色か (既定は先頭の担当)。iOS `inkField`。 */
+@Composable
+private fun InkField(ink: CardInk?, oshi: List<Idol>, onSelect: (CardInk?) -> Unit) {
+    val byId = remember(oshi) { oshi.associateBy { it.id } }
+    val choices = remember(ink, oshi) { cardInkChoices(ink, oshi.map { it.id }) }
+    val haptics = rememberImasHaptics()
+    ImasFormField(label = "刷る色", imprint = "INK") {
+        Row(
+            Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top
+        ) {
+            choices.forEach { choice ->
+                val idol = choice.idolId?.let { byId[it] }
+                Column(
+                    Modifier
+                        .clickable {
+                            haptics.selection()
+                            onSelect(choice.ink)
+                        }
+                        .semantics {
+                            contentDescription = idol?.let { "${it.name}の色" } ?: "墨一色"
+                            selected = choice.selected
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                ) {
+                    Box(
+                        Modifier.padding(3.dp).border(2.dp, if (choice.selected) DS.ink else Color.Transparent, CircleShape)
+                            .padding(3.dp)
+                    ) {
+                        if (idol != null) {
+                            ImasAvatar(
+                                label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 34.dp,
+                                reservesPickRing = false
+                            )
+                        } else {
+                            Box(Modifier.size(34.dp).background(DS.ink, CircleShape), contentAlignment = Alignment.Center) {
+                                Text(choice.label, style = ImasTextRole.ROW_LABEL.style, color = DS.bg, maxLines = 1)
+                            }
+                        }
+                    }
+                    Text(
+                        idol?.name ?: choice.label,
+                        style = ImasTextRole.NOTE.style, color = if (choice.selected) DS.ink else DS.ink2,
+                        maxLines = 1, modifier = Modifier.widthIn(max = 64.dp)
+                    )
+                }
+            }
+        }
     }
 }

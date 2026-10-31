@@ -27,6 +27,8 @@ data class UserMark(
         const val SONG = "song"
         const val EVENT = "event"
         const val SHOW = "show"
+        /** 映像円盤 (event_releases)。iOS の `.release` と同じ名前 (バックアップで運ばれてきた所持を数えるため)。 */
+        const val RELEASE = "release"
         /** チケット受付 (ticket_sales)。自分の申込の記録 ([APPLICATION]) だけを付ける。iOS と同じ名前。 */
         const val TICKET_SALE = "ticket_sale"
         // kinds

@@ -255,7 +255,8 @@ fn find_same_person(incoming_payload: &str, stored: &[CardStoredRef]) -> Option<
     decoded
         .iter()
         .find(|(_, c)| {
-            let ids_conflict = matches!((&c.card_id, &incoming.card_id), (Some(a), Some(b)) if a != b);
+            let ids_conflict =
+                matches!((&c.card_id, &incoming.card_id), (Some(a), Some(b)) if a != b);
             !ids_conflict && same_identity(c, &incoming)
         })
         .map(|(s, _)| SamePerson::Ask(s.id.clone()))
@@ -283,7 +284,10 @@ pub(crate) fn same_occasion(last: &CardMeetingRecord, show_id: Option<&str>, met
 
 /// 名刺の会った記録のうち最後のもの (日時、同じ時刻は id の大きい方)。受け取った名刺の行はこれを写して持つ
 /// (公演・受け取り方・日時・中身)。
-pub fn card_latest_meeting(meetings: &[CardMeetingRecord], card_id: &str) -> Option<CardMeetingRecord> {
+pub fn card_latest_meeting(
+    meetings: &[CardMeetingRecord],
+    card_id: &str,
+) -> Option<CardMeetingRecord> {
     meetings
         .iter()
         .filter(|m| m.card_id == card_id)
@@ -373,16 +377,18 @@ pub fn card_receive_plan(
         Some(l)
             if same_occasion(&l, show_id, &incoming.met_at)
                 && l.payload.as_deref().is_none_or(|p| p == incoming.payload) =>
-        (
-            false,
-            refresh_last_meeting(
-                &l,
-                &incoming.payload,
-                show_id,
-                incoming.show_date.as_deref(),
-                incoming.via,
-            ),
-        ),
+        {
+            (
+                false,
+                refresh_last_meeting(
+                    &l,
+                    &incoming.payload,
+                    show_id,
+                    incoming.show_date.as_deref(),
+                    incoming.via,
+                ),
+            )
+        }
         _ => (true, None),
     };
     CardReceivePlan {
@@ -462,7 +468,8 @@ pub fn card_same_person_confirm(
 
 /// 会った記録の名刺に戻せるか (そのときの中身があり、今の中身と違う)。
 pub fn card_meeting_restorable(meeting_payload: Option<&str>, current_payload: &str) -> bool {
-    meeting_payload.is_some_and(|p| !p.is_empty() && p != current_payload && decode_producer_card(p).is_some())
+    meeting_payload
+        .is_some_and(|p| !p.is_empty() && p != current_payload && decode_producer_card(p).is_some())
 }
 
 /// 会った記録が 1 つも無い名刺 (足す前に受け取った名刺・古いバックアップ) の 1 回目の記録の id。
@@ -495,12 +502,19 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            ink: None,
             card_id: card_id.map(str::to_string),
         });
         producer_card_payload(&enc.card)
     }
 
-    fn meeting(id: &str, card: &str, show: Option<&str>, via: Option<&str>, at: &str) -> CardMeetingRecord {
+    fn meeting(
+        id: &str,
+        card: &str,
+        show: Option<&str>,
+        via: Option<&str>,
+        at: &str,
+    ) -> CardMeetingRecord {
         CardMeetingRecord {
             id: id.into(),
             card_id: card.into(),
@@ -518,7 +532,10 @@ mod tests {
             message: message.into(),
             since_year: None,
             oshi_idol_ids: oshi.iter().map(|s| s.to_string()).collect(),
-            links: vec![CardLink { kind: CardLinkKind::X, value: format!("user{}", name.len()) }],
+            links: vec![CardLink {
+                kind: CardLinkKind::X,
+                value: format!("user{}", name.len()),
+            }],
             show_count: None,
             song_count: None,
             next_show_id: None,
@@ -527,12 +544,18 @@ mod tests {
             design: None,
             qr_url: None,
             show_brand_labels: false,
+            ink: None,
             card_id: card_id.map(str::to_string),
         });
         producer_card_payload(&enc.card)
     }
 
-    fn incoming(payload: &str, show: Option<&str>, via: Option<CardReceiveVia>, at: &str) -> CardIncoming {
+    fn incoming(
+        payload: &str,
+        show: Option<&str>,
+        via: Option<CardReceiveVia>,
+        at: &str,
+    ) -> CardIncoming {
         CardIncoming {
             payload: payload.into(),
             show_id: show.map(str::to_string),
@@ -560,7 +583,10 @@ mod tests {
             CardReceiveVia::Link,
             CardReceiveVia::Paper,
         ] {
-            assert_eq!(card_receive_via_from_key(&card_receive_via_key(via)), Some(via));
+            assert_eq!(
+                card_receive_via_from_key(&card_receive_via_key(via)),
+                Some(via)
+            );
         }
         assert_eq!(card_receive_via_from_key(""), None);
         assert_eq!(card_receive_via_from_key("bluetooth"), None);
@@ -576,8 +602,14 @@ mod tests {
         for online in [File, Link, Paper] {
             assert!(!card_met_in_person(Some(online), Some("sh_1")));
         }
-        assert!(!card_met_in_person(None, Some("sh_1")), "古い行 (不明) は札なし");
-        assert_eq!(card_meeting_badge(Some(Nearby), None).as_deref(), Some("会場で交換"));
+        assert!(
+            !card_met_in_person(None, Some("sh_1")),
+            "古い行 (不明) は札なし"
+        );
+        assert_eq!(
+            card_meeting_badge(Some(Nearby), None).as_deref(),
+            Some("会場で交換")
+        );
     }
 
     #[test]
@@ -587,8 +619,14 @@ mod tests {
         let edited = payload_with("ふがP", Some(&id), &["i2"], "リンクを変えた");
         let legacy = payload("あおいP", None);
         let stored = vec![
-            CardStoredRef { id: "c1".into(), payload: old },
-            CardStoredRef { id: "c3".into(), payload: legacy.clone() },
+            CardStoredRef {
+                id: "c1".into(),
+                payload: old,
+            },
+            CardStoredRef {
+                id: "c3".into(),
+                payload: legacy.clone(),
+            },
         ];
         let at = "2026-10-05T10:00:00Z";
         // 名刺 id と名前が同じなら、中身が違っても黙って更新。
@@ -599,36 +637,83 @@ mod tests {
         let p = plan(&incoming(&legacy, None, None, at), &stored, &[], Undecided);
         assert_eq!(p.existing_card_id.as_deref(), Some("c3"));
         // 名前も担当も違えば別の人。
-        let p = plan(&incoming(&payload("あおいP2", None), None, None, at), &stored, &[], Undecided);
-        assert_eq!(p, CardReceivePlan { existing_card_id: None, add_meeting: true, confirm_card_id: None, last_meeting_update: None });
+        let p = plan(
+            &incoming(&payload("あおいP2", None), None, None, at),
+            &stored,
+            &[],
+            Undecided,
+        );
+        assert_eq!(
+            p,
+            CardReceivePlan {
+                existing_card_id: None,
+                add_meeting: true,
+                confirm_card_id: None,
+                last_meeting_update: None
+            }
+        );
     }
 
     /// 他人の名刺 id を名乗った名刺 (id が同じで名前が違う) は黙って差し替えない。確かめ、既定は別の名刺。
     #[test]
     fn spoofed_card_id_needs_confirmation_and_defaults_to_a_separate_card() {
         let id = producer_card_new_id("0123456789abcdef");
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload_with("ふがP", Some(&id), &["i1"], "") }];
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload_with("ふがP", Some(&id), &["i1"], ""),
+        }];
         let spoof = payload_with("なりすましP", Some(&id), &["i1"], "");
-        let inc = incoming(&spoof, Some("sh_1"), Some(CardReceiveVia::Nearby), "2026-10-05T10:00:00Z");
+        let inc = incoming(
+            &spoof,
+            Some("sh_1"),
+            Some(CardReceiveVia::Nearby),
+            "2026-10-05T10:00:00Z",
+        );
 
         let ask = plan(&inc, &stored, &[], Undecided);
         assert_eq!(ask.confirm_card_id.as_deref(), Some("c1"));
-        assert_eq!(ask.existing_card_id, None, "選ばずに書いたら別の名刺として足す");
+        assert_eq!(
+            ask.existing_card_id, None,
+            "選ばずに書いたら別の名刺として足す"
+        );
         assert!(ask.add_meeting);
 
         let same = plan(&inc, &stored, &[], SamePerson);
-        assert_eq!((same.existing_card_id.as_deref(), same.confirm_card_id), (Some("c1"), None));
+        assert_eq!(
+            (same.existing_card_id.as_deref(), same.confirm_card_id),
+            (Some("c1"), None)
+        );
         let separate = plan(&inc, &stored, &[], Separate);
-        assert_eq!((separate.existing_card_id, separate.confirm_card_id), (None, None));
+        assert_eq!(
+            (separate.existing_card_id, separate.confirm_card_id),
+            (None, None)
+        );
 
         // 別の名刺として残した後は、同じ id でも名前が同じ方に黙ってまとめる。
-        let both = vec![stored[0].clone(), CardStoredRef { id: "c2".into(), payload: spoof.clone() }];
+        let both = vec![
+            stored[0].clone(),
+            CardStoredRef {
+                id: "c2".into(),
+                payload: spoof.clone(),
+            },
+        ];
         let again = payload_with("なりすましP", Some(&id), &["i1"], "2 枚目");
-        let p = plan(&incoming(&again, None, None, "2026-12-01T10:00:00Z"), &both, &[], Undecided);
-        assert_eq!((p.existing_card_id.as_deref(), p.confirm_card_id), (Some("c2"), None));
+        let p = plan(
+            &incoming(&again, None, None, "2026-12-01T10:00:00Z"),
+            &both,
+            &[],
+            Undecided,
+        );
+        assert_eq!(
+            (p.existing_card_id.as_deref(), p.confirm_card_id),
+            (Some("c2"), None)
+        );
 
         let confirm = card_same_person_confirm(&stored[0].payload, &spoof).expect("読める");
-        assert_eq!(confirm.title, "すでにある ふがP さんの名刺と同じ人として受け取ろうとしています");
+        assert_eq!(
+            confirm.title,
+            "すでにある ふがP さんの名刺と同じ人として受け取ろうとしています"
+        );
         assert_eq!(confirm.before.name, "ふがP");
         assert_eq!(confirm.after.name, "なりすましP");
         assert_eq!(confirm.before.links[0].display, "@user7");
@@ -641,47 +726,130 @@ mod tests {
     /// 名刺 id を載せない間 (今) は、名前と担当が同じで中身が違う名刺を確かめる。
     #[test]
     fn without_card_id_same_name_and_oshi_needs_confirmation() {
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload_with("ふがP", None, &["i1", "i2"], "前") }];
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload_with("ふがP", None, &["i1", "i2"], "前"),
+        }];
         let edited = payload_with("ふがP", None, &["i1", "i2"], "後");
-        let p = plan(&incoming(&edited, None, None, "2026-12-01T10:00:00Z"), &stored, &[], Undecided);
-        assert_eq!((p.existing_card_id, p.confirm_card_id.as_deref()), (None, Some("c1")));
+        let p = plan(
+            &incoming(&edited, None, None, "2026-12-01T10:00:00Z"),
+            &stored,
+            &[],
+            Undecided,
+        );
+        assert_eq!(
+            (p.existing_card_id, p.confirm_card_id.as_deref()),
+            (None, Some("c1"))
+        );
         let confirm = card_same_person_confirm(&stored[0].payload, &edited).unwrap();
         assert!(confirm.reason.starts_with("名前と担当が同じ"));
         // 担当が違えば別の人。
         let other = payload_with("ふがP", None, &["i3"], "後");
-        assert_eq!(plan(&incoming(&other, None, None, "2026-12-01T10:00:00Z"), &stored, &[], Undecided).confirm_card_id, None);
+        assert_eq!(
+            plan(
+                &incoming(&other, None, None, "2026-12-01T10:00:00Z"),
+                &stored,
+                &[],
+                Undecided
+            )
+            .confirm_card_id,
+            None
+        );
         // どちらも id を持っていて違えば、名前と担当が同じでも別の人。
         let a = producer_card_new_id("aaaaaaaaaaaaaaaa");
         let b = producer_card_new_id("bbbbbbbbbbbbbbbb");
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload_with("ふがP", Some(&a), &["i1"], "") }];
-        let inc = incoming(&payload_with("ふがP", Some(&b), &["i1"], ""), None, None, "2026-12-01T10:00:00Z");
-        assert_eq!(plan(&inc, &stored, &[], Undecided), CardReceivePlan { existing_card_id: None, add_meeting: true, confirm_card_id: None, last_meeting_update: None });
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload_with("ふがP", Some(&a), &["i1"], ""),
+        }];
+        let inc = incoming(
+            &payload_with("ふがP", Some(&b), &["i1"], ""),
+            None,
+            None,
+            "2026-12-01T10:00:00Z",
+        );
+        assert_eq!(
+            plan(&inc, &stored, &[], Undecided),
+            CardReceivePlan {
+                existing_card_id: None,
+                add_meeting: true,
+                confirm_card_id: None,
+                last_meeting_update: None
+            }
+        );
         // QR の無い紙の名刺は同じ人を探さない。
-        let paper = card_receive_plan(&incoming(&stored[0].payload, None, None, "2026-12-01T10:00:00Z"), &stored, &[], false, Undecided);
+        let paper = card_receive_plan(
+            &incoming(&stored[0].payload, None, None, "2026-12-01T10:00:00Z"),
+            &stored,
+            &[],
+            false,
+            Undecided,
+        );
         assert_eq!(paper.existing_card_id, None);
     }
 
     #[test]
     fn plan_adds_a_meeting_unless_it_is_the_same_occasion() {
         let id = producer_card_new_id("0123456789abcdef");
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload("ふがP", Some(&id)) }];
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload("ふがP", Some(&id)),
+        }];
         let again = payload("ふがP", Some(&id));
-        let meetings = vec![meeting("m1", "c1", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z")];
+        let meetings = vec![meeting(
+            "m1",
+            "c1",
+            Some("sh_1"),
+            Some("camera_qr"),
+            "2026-10-05T10:00:00Z",
+        )];
         let qr = Some(CardReceiveVia::CameraQr);
 
-        let same_show = plan(&incoming(&again, Some("sh_1"), qr, "2026-10-05T12:00:00Z"), &stored, &meetings, Undecided);
+        let same_show = plan(
+            &incoming(&again, Some("sh_1"), qr, "2026-10-05T12:00:00Z"),
+            &stored,
+            &meetings,
+            Undecided,
+        );
         assert_eq!(same_show.existing_card_id.as_deref(), Some("c1"));
         assert!(!same_show.add_meeting);
 
-        let next_show = plan(&incoming(&again, Some("sh_2"), qr, "2026-12-01T12:00:00Z"), &stored, &meetings, Undecided);
+        let next_show = plan(
+            &incoming(&again, Some("sh_2"), qr, "2026-12-01T12:00:00Z"),
+            &stored,
+            &meetings,
+            Undecided,
+        );
         assert!(next_show.add_meeting);
         assert_eq!(next_show.last_meeting_update, None);
 
         // 公演が無ければ JST の同じ日だけ同じ機会 (UTC 15 時は JST の翌日)。
-        let no_show = vec![meeting("m1", "c1", None, Some("link"), "2026-10-05T10:00:00Z")];
+        let no_show = vec![meeting(
+            "m1",
+            "c1",
+            None,
+            Some("link"),
+            "2026-10-05T10:00:00Z",
+        )];
         let link = Some(CardReceiveVia::Link);
-        assert!(!plan(&incoming(&again, None, link, "2026-10-05T14:00:00Z"), &stored, &no_show, Undecided).add_meeting);
-        assert!(plan(&incoming(&again, None, link, "2026-10-05T15:30:00Z"), &stored, &no_show, Undecided).add_meeting);
+        assert!(
+            !plan(
+                &incoming(&again, None, link, "2026-10-05T14:00:00Z"),
+                &stored,
+                &no_show,
+                Undecided
+            )
+            .add_meeting
+        );
+        assert!(
+            plan(
+                &incoming(&again, None, link, "2026-10-05T15:30:00Z"),
+                &stored,
+                &no_show,
+                Undecided
+            )
+            .add_meeting
+        );
     }
 
     /// 片方だけに公演があるときも、JST の同じ日なら同じ機会。
@@ -689,10 +857,22 @@ mod tests {
     fn one_sided_show_on_the_same_day_is_the_same_occasion() {
         let last = meeting("m1", "c1", None, Some("link"), "2026-10-05T10:00:00Z");
         assert!(same_occasion(&last, Some("sh_1"), "2026-10-05T14:59:00Z"));
-        assert!(!same_occasion(&last, Some("sh_1"), "2026-10-05T15:00:00Z"), "JST の翌日");
-        let with_show = meeting("m1", "c1", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z");
+        assert!(
+            !same_occasion(&last, Some("sh_1"), "2026-10-05T15:00:00Z"),
+            "JST の翌日"
+        );
+        let with_show = meeting(
+            "m1",
+            "c1",
+            Some("sh_1"),
+            Some("camera_qr"),
+            "2026-10-05T10:00:00Z",
+        );
         assert!(same_occasion(&with_show, None, "2026-10-05T11:00:00Z"));
-        assert!(!same_occasion(&with_show, Some("sh_2"), "2026-10-05T11:00:00Z"), "どちらにも公演があれば公演で");
+        assert!(
+            !same_occasion(&with_show, Some("sh_2"), "2026-10-05T11:00:00Z"),
+            "どちらにも公演があれば公演で"
+        );
     }
 
     /// 同じ機会でも中身の違う名刺 (同じ人として更新した名刺) は記録を積み、前の中身を記録に残す。
@@ -700,10 +880,29 @@ mod tests {
     fn same_occasion_with_different_payload_keeps_the_previous_payload() {
         let old = payload_with("ふがP", None, &["i1"], "前");
         let new = payload_with("ふがP", None, &["i1"], "後");
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: old.clone() }];
-        let mut last = meeting("m1", "c1", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z");
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: old.clone(),
+        }];
+        let mut last = meeting(
+            "m1",
+            "c1",
+            Some("sh_1"),
+            Some("camera_qr"),
+            "2026-10-05T10:00:00Z",
+        );
         last.payload = Some(old.clone());
-        let p = plan(&incoming(&new, Some("sh_1"), Some(CardReceiveVia::Nearby), "2026-10-05T11:00:00Z"), &stored, &[last], SamePerson);
+        let p = plan(
+            &incoming(
+                &new,
+                Some("sh_1"),
+                Some(CardReceiveVia::Nearby),
+                "2026-10-05T11:00:00Z",
+            ),
+            &stored,
+            &[last],
+            SamePerson,
+        );
         assert_eq!(p.existing_card_id.as_deref(), Some("c1"));
         assert!(p.add_meeting, "前の中身を残すため記録を積む");
         assert_eq!(p.last_meeting_update, None, "前の記録は書き換えない");
@@ -712,11 +911,19 @@ mod tests {
     /// 同じ機会の 2 回目でも、新しい方が会場での交換なら最後の記録の受け取り方を上げ、中身を新しい方にする。
     #[test]
     fn same_occasion_upgrades_via_and_refreshes_payload() {
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload("ふがP", None) }];
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload("ふがP", None),
+        }];
         let mut last = meeting("m1", "c1", None, Some("link"), "2026-10-05T10:00:00Z");
         last.payload = Some(payload("ふがP", None));
         let p = plan(
-            &incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::CameraQr), "2026-10-05T11:00:00Z"),
+            &incoming(
+                &payload("ふがP", None),
+                Some("sh_1"),
+                Some(CardReceiveVia::CameraQr),
+                "2026-10-05T11:00:00Z",
+            ),
             &stored,
             &[last.clone()],
             Undecided,
@@ -725,38 +932,107 @@ mod tests {
         let up = p.last_meeting_update.expect("上げる");
         assert_eq!(up.id, "m1");
         assert_eq!(up.via.as_deref(), Some("camera_qr"));
-        assert_eq!(up.show_id.as_deref(), Some("sh_1"), "公演の無い記録には新しい方の公演を写す");
+        assert_eq!(
+            up.show_id.as_deref(),
+            Some("sh_1"),
+            "公演の無い記録には新しい方の公演を写す"
+        );
         assert_eq!(up.met_at, last.met_at, "日時は最初に会ったときのまま");
-        assert_eq!(card_meeting_views(&[up])[0].badge.as_deref(), Some("会場で交換"));
+        assert_eq!(
+            card_meeting_views(&[up])[0].badge.as_deref(),
+            Some("会場で交換")
+        );
 
         // 既に会場で交換していれば下げない。中身も同じなら書き換えない。
-        let mut nearby = meeting("m1", "c1", Some("sh_1"), Some("nearby"), "2026-10-05T10:00:00Z");
+        let mut nearby = meeting(
+            "m1",
+            "c1",
+            Some("sh_1"),
+            Some("nearby"),
+            "2026-10-05T10:00:00Z",
+        );
         nearby.payload = Some(payload("ふがP", None));
-        let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::Link), "2026-10-05T11:00:00Z"), &stored, &[nearby], Undecided);
+        let p = plan(
+            &incoming(
+                &payload("ふがP", None),
+                Some("sh_1"),
+                Some(CardReceiveVia::Link),
+                "2026-10-05T11:00:00Z",
+            ),
+            &stored,
+            &[nearby],
+            Undecided,
+        );
         assert_eq!(p.last_meeting_update, None);
     }
 
     /// すれちがった後に同じ機会で会場で交換したら「会場で交換」に上げ、会場で交換した後のすれちがいでは下げない。
     #[test]
     fn street_pass_then_in_person_upgrades() {
-        let stored = vec![CardStoredRef { id: "c1".into(), payload: payload("ふがP", None) }];
-        let mut sp = meeting("m1", "c1", Some("sh_1"), Some("streetpass"), "2026-10-05T03:00:00Z");
+        let stored = vec![CardStoredRef {
+            id: "c1".into(),
+            payload: payload("ふがP", None),
+        }];
+        let mut sp = meeting(
+            "m1",
+            "c1",
+            Some("sh_1"),
+            Some("streetpass"),
+            "2026-10-05T03:00:00Z",
+        );
         sp.payload = Some(payload("ふがP", None));
-        let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::Nearby), "2026-10-05T11:00:00Z"), &stored, &[sp.clone()], Undecided);
+        let p = plan(
+            &incoming(
+                &payload("ふがP", None),
+                Some("sh_1"),
+                Some(CardReceiveVia::Nearby),
+                "2026-10-05T11:00:00Z",
+            ),
+            &stored,
+            &[sp.clone()],
+            Undecided,
+        );
         let up = p.last_meeting_update.expect("上げる");
         assert_eq!(up.via.as_deref(), Some("nearby"));
-        assert_eq!(card_meeting_views(&[up])[0].badge.as_deref(), Some("会場で交換"));
+        assert_eq!(
+            card_meeting_views(&[up])[0].badge.as_deref(),
+            Some("会場で交換")
+        );
 
         let mut nearby = sp.clone();
         nearby.via = Some("nearby".into());
-        let p = plan(&incoming(&payload("ふがP", None), Some("sh_1"), Some(CardReceiveVia::StreetPass), "2026-10-05T11:00:00Z"), &stored, &[nearby], Undecided);
+        let p = plan(
+            &incoming(
+                &payload("ふがP", None),
+                Some("sh_1"),
+                Some(CardReceiveVia::StreetPass),
+                "2026-10-05T11:00:00Z",
+            ),
+            &stored,
+            &[nearby],
+            Undecided,
+        );
         assert_eq!(p.last_meeting_update, None, "下げない");
 
         let mut link = sp.clone();
         link.via = Some("link".into());
         link.show_id = None;
-        let p = plan(&incoming(&payload("ふがP", None), None, Some(CardReceiveVia::StreetPass), "2026-10-05T11:00:00Z"), &stored, &[link], Undecided);
-        assert_eq!(p.last_meeting_update.and_then(|u| u.via).as_deref(), Some("streetpass"), "リンクよりは上");
+        let p = plan(
+            &incoming(
+                &payload("ふがP", None),
+                None,
+                Some(CardReceiveVia::StreetPass),
+                "2026-10-05T11:00:00Z",
+            ),
+            &stored,
+            &[link],
+            Undecided,
+        );
+        assert_eq!(
+            p.last_meeting_update.and_then(|u| u.via).as_deref(),
+            Some("streetpass"),
+            "リンクよりは上"
+        );
     }
 
     #[test]
@@ -764,7 +1040,11 @@ mod tests {
         let a = meeting("a", "c1", None, None, "2026-10-05T10:00:00Z");
         let b = meeting("b", "c1", None, None, "2026-10-05T10:00:00Z");
         let other = meeting("z", "c2", None, None, "2026-12-05T10:00:00Z");
-        assert_eq!(card_latest_meeting(&[b.clone(), a, other], "c1"), Some(b), "同じ時刻は id の大きい方");
+        assert_eq!(
+            card_latest_meeting(&[b.clone(), a, other], "c1"),
+            Some(b),
+            "同じ時刻は id の大きい方"
+        );
         assert_eq!(card_latest_meeting(&[], "c1"), None);
 
         let old = payload("ふがP", None);
@@ -778,8 +1058,20 @@ mod tests {
     #[test]
     fn meeting_views_are_newest_first_and_count_per_person() {
         let views = card_meeting_views(&[
-            meeting("a2", "A", Some("sh_2"), Some("nearby"), "2026-12-01T10:00:00Z"),
-            meeting("a1", "A", Some("sh_1"), Some("camera_qr"), "2026-10-05T10:00:00Z"),
+            meeting(
+                "a2",
+                "A",
+                Some("sh_2"),
+                Some("nearby"),
+                "2026-12-01T10:00:00Z",
+            ),
+            meeting(
+                "a1",
+                "A",
+                Some("sh_1"),
+                Some("camera_qr"),
+                "2026-10-05T10:00:00Z",
+            ),
             meeting("b1", "B", None, Some("link"), "2026-11-01T10:00:00Z"),
             meeting("a0", "A", None, None, "2026-09-01T10:00:00Z"),
         ]);

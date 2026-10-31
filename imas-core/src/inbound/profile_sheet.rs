@@ -1,8 +1,9 @@
 //! P名刺の画像の FFI 面。ロジックは domain::profile_sheet。
 
 use crate::domain::profile_sheet::{
-    ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck, ProfileSheet,
-    ProfileSheetLayout, ProfileSheetRecord, ProfileSheetSize, ProfileSheetSizeInfo,
+    ProfileAutoField, ProfileAutoFieldInfo, ProfileAutoFieldRow, ProfileBrandCheck,
+    ProfileFieldGroupRows, ProfileMemoryPicks, ProfileSheet, ProfileSheetLayout,
+    ProfileSheetRecord, ProfileSheetSize, ProfileSheetSizeInfo,
 };
 
 #[uniffi::export]
@@ -26,6 +27,38 @@ pub fn profile_auto_field_rows(
     record: ProfileSheetRecord,
 ) -> Vec<ProfileAutoFieldRow> {
     crate::domain::profile_sheet::profile_auto_field_rows(&sheet, &record)
+}
+
+#[uniffi::export]
+pub fn profile_auto_field_groups(
+    sheet: ProfileSheet,
+    record: ProfileSheetRecord,
+) -> Vec<ProfileFieldGroupRows> {
+    crate::domain::profile_sheet::profile_auto_field_groups(&sheet, &record)
+}
+
+#[uniffi::export]
+pub fn profile_memory_picks(sheet: ProfileSheet, record: ProfileSheetRecord) -> ProfileMemoryPicks {
+    crate::domain::profile_sheet::profile_memory_picks(&sheet, &record)
+}
+
+#[uniffi::export]
+pub fn profile_toggle_memory(
+    sheet: ProfileSheet,
+    record: ProfileSheetRecord,
+    show_id: String,
+) -> ProfileSheet {
+    crate::domain::profile_sheet::profile_toggle_memory(&sheet, &record, &show_id)
+}
+
+#[uniffi::export]
+pub fn profile_move_memory(
+    sheet: ProfileSheet,
+    record: ProfileSheetRecord,
+    from: u32,
+    to: u32,
+) -> ProfileSheet {
+    crate::domain::profile_sheet::profile_move_memory(&sheet, &record, from, to)
 }
 
 #[uniffi::export]

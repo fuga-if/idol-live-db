@@ -66,7 +66,7 @@ import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 //
 // ImasProducerCard   P名刺 1 枚。名刺そのものは 91:55 の横長の紙 1 枚 (紙に刷る画像の表・裏と同じ組み、
 //                    `ImasMeishiFront` / `ImasMeishiBack`)。押すと裏返って裏 (QR・参加公演数・回収曲数・日付)。
-//                    デザイン (`design`) は 4 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
+//                    デザイン (`design`) は 8 つと自作の画像 (一覧・既定・書体はコアの `cardDesigns`)。
 //                    - 担当を大きく (Oshi): 左半分に担当の画像を大きく (`heroOshi` の順。無い担当は大きな判子)。
 //                    表に載せるのは名前・P歴・名刺の写真・担当 (判子か写真、ブランドごとにまとめ、多いときは数で畳む)・
 //                    ハンドル 1 つ (載せる担当とハンドルはコアの `producerCardFace`)。
@@ -104,6 +104,18 @@ sealed interface ImasProducerCardDesign {
 
     /** 担当を大きく。左半分に担当の画像を大きく、右に名前・P歴・ハンドル。 */
     data object Oshi : ImasProducerCardDesign
+
+    /** チケット。右に切り取り線と担当色の半券。 */
+    data object Ticket : ImasProducerCardDesign
+
+    /** 縦書き。明朝の名前を右に縦に。 */
+    data object Vertical : ImasProducerCardDesign
+
+    /** 墨一色。名前を大きく、担当色は点 1 つ。 */
+    data object Sumi : ImasProducerCardDesign
+
+    /** 夜公演。黒い紙に白い文字。 */
+    data object Night : ImasProducerCardDesign
 
     /** 自作の画像。表は自分で作った名刺の画像、裏は裏の画像 (無ければ QR の裏)。 */
     data class Face(val front: String, val back: String? = null) : ImasProducerCardDesign
@@ -178,6 +190,8 @@ data class ImasProducerCardBack(
  * @param portraitUrl 名刺の写真 (自分で選んだ写真か X のアイコン。表の右の正方形の枠に出す)。
  * @param portraitRound 名刺の写真を丸く切る (X のアイコン。切り方はコアの `cardPhotoShape`)。
  * @param nameFamily 名前の書体。null は見出しの書体。
+ * @param accentOshiId 帯・罫・判子を刷る色の担当 (コアの `CardFace.accentIdolId`)。null は先頭の担当。
+ * @param sumiInk 墨一色で刷る。
  * @param back 裏。null なら返さない (自作の画像に裏の画像があればそれを裏にする)。
  */
 @Immutable
@@ -200,6 +214,10 @@ data class ImasProducerCardContent(
     val portraitUrl: String? = null,
     val portraitRound: Boolean = false,
     val nameFamily: FontFamily? = null,
+    /** 帯・罫・判子を刷る色の担当 (コアの `CardFace.accentIdolId`)。null は先頭の担当。 */
+    val accentOshiId: String? = null,
+    /** 墨一色で刷る (刷る色に墨を選んだ。コアの `CardFace.accentIdolId` が無い)。 */
+    val sumiInk: Boolean = false,
     val back: ImasProducerCardBack? = null
 ) {
     /** 裏があるか (自作の画像の裏、または QR の裏)。 */
@@ -233,8 +251,8 @@ fun ImasProducerCard(content: ImasProducerCardContent, modifier: Modifier = Modi
     val haptics = rememberImasHaptics()
     val angle by animateFloatAsState(if (flipped && !reduceMotion) 180f else 0f, label = "meishi_flip")
     val density = LocalDensity.current.density
-    val lead = content.oshi.firstOrNull()
-    val ink = ImasMeishiInk.screen(lead?.seed, lead?.brand)
+    val lead = content.oshi.firstOrNull { it.id == content.accentOshiId } ?: content.oshi.firstOrNull()
+    val ink = if (content.sumiInk) ImasMeishiInk.screen(null, null) else ImasMeishiInk.screen(lead?.seed, lead?.brand)
     // 返せない名刺 (編集画面の見本) は裏を出さないので QR を描かない。
     val qr = remember(canFlip, content.back?.qr) { if (canFlip) content.back?.qr?.let(::imasQrMatrix) else null }
     // 角丸と縁は面ごと (外に付けると回る途中で枠だけ残る)。
@@ -307,6 +325,10 @@ private fun MeishiFrontSide(content: ImasProducerCardContent, ink: ImasMeishiInk
                 ImasProducerCardDesign.Formal -> ImasMeishiLook.FORMAL
                 ImasProducerCardDesign.Pop -> ImasMeishiLook.POP
                 ImasProducerCardDesign.Oshi -> ImasMeishiLook.OSHI
+                ImasProducerCardDesign.Ticket -> ImasMeishiLook.TICKET
+                ImasProducerCardDesign.Vertical -> ImasMeishiLook.VERTICAL
+                ImasProducerCardDesign.Sumi -> ImasMeishiLook.SUMI
+                ImasProducerCardDesign.Night -> ImasMeishiLook.NIGHT
                 ImasProducerCardDesign.Pass, is ImasProducerCardDesign.Face -> ImasMeishiLook.PASS
             },
             sinceImprint = content.sinceImprint,

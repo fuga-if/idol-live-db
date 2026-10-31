@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// SNS に貼る P名刺の画像: 自分の P名刺と記録を、履歴書の様式の 1 枚絵にする (P名刺の 3 つ目の出し方)。
+/// SNS に貼る P名刺の画像: 自分の P名刺と記録を、P履歴書の様式の 1 枚絵にする (P名刺の 3 つ目の出し方)。
 ///
-/// 開くとすぐできあがりの見本が上に固定で見え、選ぶのは大きさ (4:5 / 9:16) と載せる項目の付け外しだけ。
+/// 開くとすぐできあがりの見本が上に固定で見え、そのまま書き出せる (簡単に作れる)。こだわるなら大きさ (4:5 / 9:16)、
+/// 載せる項目の付け外し (見出しごと)、好きな曲と思い出の公演を自分で選べる。
 /// 中身はすべて P名刺とアプリの記録から入る: 名前・P歴・写真・リンク・自分の QR・好きな曲は P名刺
 /// (直すのは P名刺の編集)、担当ブランドの丸はアプリ全体の設定 (`BrandRoleStore`)、参加した公演・回収は記録。
 /// 名刺 (交換するもの) に載せない記録の数も、ここ (見せるもの) には載る。
@@ -17,6 +18,8 @@ struct ProducerCardImageView: View {
     @State private var exportError: String?
     @State private var pendingSave: Task<Void, Never>?
     @State private var saveGeneration = 0
+    /// この画面で好きな曲を選び直したか (選び直していなければ、保存のときに P名刺の編集で選んだ最新を使う)。
+    @State private var songsTouched = false
 
     private let sizes = profileSheetSizes()
 
@@ -74,18 +77,25 @@ struct ProducerCardImageView: View {
     private func chooser(_ card: MyProducerCard) -> some View {
         let sheet = card.profile
         let layout = profileSheetLayout(sheet: sheet, record: materials.record)
-        let rows = profileAutoFieldRows(sheet: sheet, record: materials.record)
+        let groups = profileAutoFieldGroups(sheet: sheet, record: materials.record)
         return List {
             ImasListSection("大きさ") {
                 ImasSegmented(options: sizes.map(\.size), selection: sizeBinding) { size in
                     sizes.first { $0.size == size }.map { "\($0.label) \($0.caption)" } ?? ""
                 }
             }
-            ImasListSection("載せる項目",
-                            footer: "記録の無いものは並びません。名前・P歴・写真・リンク・自分の QR・好きな曲は P名刺の編集で、担当ブランドは設定で直せます。") {
-                ForEach(rows, id: \.key) { row in
-                    ImasToggleRow(title: row.label, subtitle: subtitle(row),
-                                  isOn: Binding(get: { row.shown }, set: { _ in toggleField(row.field) }))
+            ForEach(Array(groups.enumerated()), id: \.element.title) { i, group in
+                ImasListSection(group.title,
+                                footer: i == groups.count - 1
+                                    ? "記録の無いものは並びません。名前・P歴・写真・ひとこと・リンク・自分の QR は P名刺の編集で、担当ブランドは設定で直せます。"
+                                    : nil) {
+                    ForEach(group.rows, id: \.key) { row in
+                        ImasToggleRow(title: row.label, subtitle: subtitle(row),
+                                      isOn: Binding(get: { row.shown }, set: { _ in toggleField(row.field) }))
+                        if row.pickable && row.shown {
+                            picker(row.field, sheet: sheet)
+                        }
+                    }
                 }
             }
             Section {
@@ -106,11 +116,42 @@ struct ProducerCardImageView: View {
         }
     }
 
+    /// 好きな曲・思い出の公演を自分で選ぶ画面への入口 (付けている欄の下に)。
+    @ViewBuilder private func picker(_ field: ProfileAutoField, sheet: ProfileSheet) -> some View {
+        switch field {
+        case .songs:
+            NavigationLink {
+                FavoriteSongPickerView(chosen: sheet.songs) { ids in
+                    guard var next = card?.profile else { return }
+                    next.songs = ids
+                    songsTouched = true
+                    update(next)
+                }
+            } label: {
+                ImasNavRow(title: "載せる曲を選ぶ", systemImage: "music.note.list", iconTone: .neutral,
+                           showsChevron: false)
+            }
+        case .memories:
+            NavigationLink {
+                MemoryShowPickerView(sheet: sheet, record: materials.record) { next in
+                    // 選んだ公演だけを今の選択に移す (ほかの欄はこの画面の最新のまま)。
+                    guard var current = card?.profile else { return }
+                    current.memories = next.memories
+                    update(current)
+                }
+            } label: {
+                ImasNavRow(title: "載せる公演を選ぶ", systemImage: "ticket", iconTone: .neutral,
+                           showsChevron: false)
+            }
+        default:
+            EmptyView()
+        }
+    }
+
     /// 行の副題: 中身の出どころ (P名刺・設定) と今の値。
     private func subtitle(_ row: ProfileAutoFieldRow) -> String? {
         let from: String? = switch row.field {
         case .brands: "設定の担当ブランドから"
-        case .songs: "P名刺の好きな曲から"
         default: row.fromCard ? "P名刺から" : nil
         }
         let parts = [from, row.value.isEmpty ? nil : row.value].compactMap { $0 }
@@ -165,13 +206,14 @@ struct ProducerCardImageView: View {
         }
     }
 
-    /// 自分の名刺の行に画像の選択 (大きさ・載せる項目) を書く。名刺のほかの欄と好きな曲は DB の最新を使う
-    /// (好きな曲は P名刺の編集で直すので、ここで開いた時の古い選択で戻さない)。
+    /// 自分の名刺の行に画像の選択 (大きさ・載せる項目・思い出の公演) を書く。名刺のほかの欄は DB の最新を使い、
+    /// 好きな曲もこの画面で選び直していなければ DB の最新 (P名刺の編集で直したもの) を使う
+    /// (ここで開いた時の古い選択で戻さない)。
     private func persist(_ sheet: ProfileSheet) async throws {
         guard let card else { return }
         var saved = (try await AppContainer.shared.producerCards.myCard()) ?? card
         var next = sheet
-        next.songs = saved.profile.songs
+        if !songsTouched { next.songs = saved.profile.songs }
         saved.profile = next
         try await AppContainer.shared.producerCards.saveMyCard(saved)
         NotificationCenter.default.post(name: .myProducerCardChanged, object: nil)

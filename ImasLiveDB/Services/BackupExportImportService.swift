@@ -130,7 +130,7 @@ enum BackupExportImportService {
                                         sinceYear: $0.sinceYear.map(Int64.init), linksJson: $0.linksJson,
                                         hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
                                         design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson,
-                                        cardOshiJson: $0.cardOshiJson, cardId: $0.cardId)]
+                                        cardOshiJson: $0.cardOshiJson, cardId: $0.cardId, ink: $0.ink)]
         } ?? []
 
         // 時刻・アプリ版・端末 ID は OS からしか分からないので引数で渡す (共有コアは時刻を取らない)。
@@ -291,7 +291,7 @@ enum BackupExportImportService {
             MyProducerCard(id: $0.id, name: $0.name, message: $0.message, sinceYear: $0.sinceYear.map { Int($0) },
                            linksJson: $0.linksJson, hiddenFields: $0.hiddenFields, updatedAt: $0.updatedAt,
                            design: $0.design, qrUrl: $0.qrUrl, profileJson: $0.profileJson,
-                           cardOshiJson: $0.cardOshiJson, cardId: $0.cardId)
+                           cardOshiJson: $0.cardOshiJson, cardId: $0.cardId, ink: $0.ink)
         })
 
         // 担当ブランドは端末の設定に担当・メインが 1 つも無いときだけ (コアが決める)。

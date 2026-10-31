@@ -159,7 +159,7 @@ final class ProducerCardStoreTests: XCTestCase {
         let loaded = try XCTUnwrap(db.myProducerCard())
         XCTAssertEqual(loaded.profile.size, .story)
         XCTAssertEqual(loaded.profile.hidden, [.qr])
-        XCTAssertEqual(profileSheetLayout(sheet: loaded.profile, record: ProfileSheetMaterials.empty.record).title, "履歴書")
+        XCTAssertEqual(profileSheetLayout(sheet: loaded.profile, record: ProfileSheetMaterials.empty.record).title, "P履歴書")
     }
 
     /// 履歴書に載せる好きな曲は曲 id の並びで自分の名刺の行に持つ。選ぶ前の保存 (キーなし) は「まだ選んでいない」。
@@ -205,7 +205,7 @@ final class ProducerCardStoreTests: XCTestCase {
         var sheet = profileSheetDefault()
         sheet.songs = ["s2", "s3", "s1"]
         let layout = profileSheetLayout(sheet: sheet, record: record)
-        XCTAssertEqual(layout.sections.first?.entries.first?.text, "「曲s3」「曲s1」")
+        XCTAssertEqual(layout.sections.first?.entries.map(\.text), ["曲s3", "曲s1"])
 
         // 選ぶ画面: 載っている曲を押すと外れ、上限までは末尾に足す (規則はコア)。
         XCTAssertEqual(favoriteSongToggle(chosen: ["s3"], favorites: favorites, songId: "s1"), ["s3", "s1"])

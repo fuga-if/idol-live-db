@@ -101,7 +101,8 @@ object ProducerCardAssembler {
             qrUrl = card.qrUrl,
             showBrandLabels = card.shows(ProducerCardField.BRAND_LABELS),
             // 名刺 id を載せるかはコアの定数 1 か所 (公開中の 2.5.0 が読めないので今は載せない)。
-            cardId = producerCardIdToEmbed(card.cardId)
+            cardId = producerCardIdToEmbed(card.cardId),
+            ink = card.cardInk
         )
     }
 
