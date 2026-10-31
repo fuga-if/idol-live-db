@@ -56,13 +56,12 @@ enum ProfileSheetAssembler {
         // お気に入りの曲すべて (載せる曲と並びは選択からコアが決める。引けない曲は入れない)。
         let favorites = await FavoriteSongSource.load()
 
-        let images = CustomImageService.shared
         let oshi = oshiIdols.map { idol in
             ProfileSheetOshi(
                 id: idol.id, name: idol.name, shortName: idol.shortName, color: idol.color,
                 brandColor: brandById[idol.brandId]?.color,
                 // 書き出しは画像の読み込みを待たないので、ここで小さく読んでおく。
-                image: images.imageURL(for: idol.id).flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 240) }
+                image: ProducerCardFiles.cardOshiImageURL(idolId: idol.id).flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 240) }
             )
         }
         let portrait = ProducerCardFiles.myPhotoURL.flatMap { ProducerCardFiles.printImage(at: $0, maxPixels: 600) }

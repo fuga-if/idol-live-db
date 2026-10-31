@@ -163,7 +163,7 @@ struct ProducerCardPreviewHarness: View {
                 ImasPage {
                     ProducerCardDisplay.view(
                         myCard.card, directory: directory,
-                        imageURL: { CustomImageService.shared.imageURL(for: $0) },
+                        imageURL: { ProducerCardFiles.cardOshiImageURL(idolId: $0) },
                         onOpenLink: { _ in }, onOpenOshi: nil
                     ).details
                 }

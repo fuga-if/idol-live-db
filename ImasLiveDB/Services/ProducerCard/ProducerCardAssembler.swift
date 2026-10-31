@@ -91,11 +91,11 @@ enum ProducerCardAssembler {
         producerCardPayload(card: encoded.card)
     }
 
-    /// 自分の担当の画像 (代表の 1 枚) を送る形にする。画像を設定していない担当は入れない (判子で出る)。
+    /// 自分の担当の画像 (名刺用に選んだ画像、無ければアプリの代表の 1 枚) を送る形にする。
+    /// 画像を設定していない担当は入れない (判子で出る)。
     static func myOshiImages(for card: ProducerCard) -> [CardFileImage] {
-        let images = CustomImageService.shared
-        return card.oshiIdolIds.compactMap { id in
-            guard let url = images.imageURL(for: id),
+        card.oshiIdolIds.compactMap { id in
+            guard let url = ProducerCardFiles.cardOshiImageURL(idolId: id),
                   let image = UIImage(contentsOfFile: url.path),
                   let jpeg = ProducerCardFiles.jpeg(image) else { return nil }
             return CardFileImage(idolId: id, jpeg: jpeg, kind: .oshi)

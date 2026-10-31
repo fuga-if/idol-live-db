@@ -95,7 +95,7 @@ struct MyProducerCardView: View {
         let own = qrMode == .own ? encoded.card.qrUrl : nil
         return ProducerCardDisplay.view(
             encoded.card, directory: directory,
-            imageURL: { CustomImageService.shared.imageURL(for: $0) },
+            imageURL: { ProducerCardFiles.cardOshiImageURL(idolId: $0) },
             portraitURL: portraitURL,
             portraitSource: ProducerCardFiles.myPhotoSource,
             face: face,

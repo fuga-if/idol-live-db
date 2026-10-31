@@ -179,6 +179,56 @@ enum ProducerCardFiles {
         try? FileManager.default.removeItem(at: myFolder)
     }
 
+    // MARK: 自分の名刺用の担当の画像
+
+    /// 名刺だけに使う担当の画像の置き場所 (`Documents/producer_card_oshi/`)。アプリの担当の画像
+    /// (`CustomImageService`) とは別に持ち、名刺 (画面・紙・SNS の画像・交換で渡す画像) ではこちらを先に使う
+    /// (2026-10 ユーザー「使いたい画像を別で好きにアップロードさせてくれないか」)。
+    private static var myOshiFolder: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("producer_card_oshi", isDirectory: true)
+    }
+
+    /// 名刺用の担当の画像のファイル (新しい順)。名前は書くたびに変える (読み込みの控えが古い画像を出さないように)。
+    private static func myOshiFiles(_ idolId: String) -> [URL] {
+        let prefix = "\(safeName(idolId))-"
+        let urls = (try? FileManager.default.contentsOfDirectory(
+            at: myOshiFolder, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        return urls
+            .filter { $0.lastPathComponent.hasPrefix(prefix) && $0.pathExtension == "jpg" }
+            .sorted {
+                let a = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                let b = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                return a > b
+            }
+    }
+
+    /// 名刺用に選んだ担当の画像 (無ければ nil)。
+    static func myOshiImageURL(idolId: String) -> URL? {
+        myOshiFiles(idolId).first
+    }
+
+    /// 名刺に出す自分の担当の画像。名刺用に選んだ画像、無ければアプリの担当の画像。
+    @MainActor
+    static func cardOshiImageURL(idolId: String) -> URL? {
+        myOshiImageURL(idolId: idolId) ?? CustomImageService.shared.imageURL(for: idolId)
+    }
+
+    /// 名刺用の担当の画像を書く (前の画像は消す)。
+    static func saveMyOshiImage(_ image: UIImage, idolId: String) throws {
+        guard let data = jpeg(image, maxPixels: 2000) else { return }
+        try FileManager.default.createDirectory(at: myOshiFolder, withIntermediateDirectories: true)
+        let previous = myOshiFiles(idolId)
+        let name = "\(safeName(idolId))-\(UUID().uuidString.prefix(8).lowercased()).jpg"
+        try data.write(to: myOshiFolder.appendingPathComponent(name), options: .atomic)
+        for url in previous { try? FileManager.default.removeItem(at: url) }
+    }
+
+    /// 名刺用の担当の画像を外す (アプリの担当の画像に戻る)。
+    static func deleteMyOshiImage(idolId: String) {
+        for url in myOshiFiles(idolId) { try? FileManager.default.removeItem(at: url) }
+    }
+
     // MARK: 自分の自作の名刺の画像
 
     /// 自作の名刺の画像の置き場所 (`Documents/producer_card_face/`)。写真のフォルダとは別

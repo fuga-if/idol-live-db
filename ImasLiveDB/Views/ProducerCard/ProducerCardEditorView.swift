@@ -27,6 +27,13 @@ struct ProducerCardEditorView: View {
     @State private var oshiIdols: [String: Idol] = [:]
     /// 名刺に載せる担当の選択 (idol id、載せる順。nil はまだ選んでいない)。
     @State private var oshiChoice: [String]?
+    /// 名刺用の担当の画像の書きかけ (担当の id → 見本の一時ファイル。nil はアプリの画像に戻す)。✓ で端末に書く。
+    @State private var oshiImageDraft: [String: URL?] = [:]
+    /// 名刺用の画像を選んでいる担当。
+    @State private var oshiImageTarget: String?
+    @State private var oshiImagePick: PhotosPickerItem?
+    @State private var showingOshiImagePicker = false
+    @State private var oshiImageMenuTarget: Idol?
     @State private var brands: [String: Brand] = [:]
     @State private var isSaving = false
     @State private var error: String?
@@ -187,6 +194,19 @@ struct ProducerCardEditorView: View {
                     Task { await applyCrop(image: draft.image, crop: result, origin: draft.origin) }
                 }
             }
+            .photosPicker(isPresented: $showingOshiImagePicker, selection: $oshiImagePick, matching: .images)
+            .onChange(of: oshiImagePick) { _, item in
+                guard let item, let id = oshiImageTarget else { return }
+                oshiImagePick = nil
+                Task { await loadOshiImage(item, idolId: id) }
+            }
+            .confirmationDialog(oshiImageMenuTarget.map { "\($0.name)の名刺用の画像" } ?? "",
+                                isPresented: Binding(get: { oshiImageMenuTarget != nil },
+                                                     set: { if !$0 { oshiImageMenuTarget = nil } }),
+                                titleVisibility: .visible, presenting: oshiImageMenuTarget) { idol in
+                Button("画像を選び直す") { pickOshiImage(idol.id) }
+                Button("アプリの担当の画像に戻す", role: .destructive) { oshiImageDraft[idol.id] = .some(nil) }
+            }
             .onChange(of: photoPick) { _, item in
                 guard let item else { return }
                 photoPick = nil
@@ -237,7 +257,7 @@ struct ProducerCardEditorView: View {
         let card = encodeProducerCard(input: ProducerCardAssembler.input(card: sample, record: rec)).card
         var display = ProducerCardDisplay.view(
             card, directory: directory,
-            imageURL: { CustomImageService.shared.imageURL(for: $0) },
+            imageURL: { oshiImageURL($0) },
             portraitURL: previewPortrait,
             portraitSource: photoOrigin,
             face: previewFace,
@@ -311,7 +331,7 @@ struct ProducerCardEditorView: View {
         case .pop: return .pop
         case .sumi: return .sumi
         case .night: return .night
-        case .oshi: return .oshi(oshi.first.flatMap { CustomImageService.shared.imageURL(for: $0.id) })
+        case .oshi: return .oshi(oshi.first.flatMap { oshiImageURL($0.id) })
         case .custom: return .face(facePreview[.front])
         }
     }
@@ -480,9 +500,21 @@ struct ProducerCardEditorView: View {
                         ForEach(oshi) { idol in
                             HStack(spacing: DS.Space.gap) {
                                 ImasAvatar(label: idol.shortName, seed: idol.color, brand: brands[idol.brandId]?.color,
-                                           size: 26, isPick: true,
-                                           imageURL: CustomImageService.shared.imageURL(for: idol.id))
-                                Text(idol.name).imasText(.rowTitle)
+                                           size: 26, isPick: true, imageURL: oshiImageURL(idol.id))
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(idol.name).imasText(.rowTitle)
+                                    if hasCardOshiImage(idol.id) {
+                                        Text("名刺用の画像").imasText(.note)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                                ImasIconButton(systemImage: "photo", label: "\(idol.name)の名刺用の画像", size: .small) {
+                                    if hasCardOshiImage(idol.id) {
+                                        oshiImageMenuTarget = idol
+                                    } else {
+                                        pickOshiImage(idol.id)
+                                    }
+                                }
                             }
                         }
                         NavigationLink {
@@ -495,6 +527,8 @@ struct ProducerCardEditorView: View {
                                        systemImage: "person.crop.rectangle.stack", subtitleLineLimit: 2)
                         }
                         .buttonStyle(.plain)
+                        Text("画像の印から、名刺だけに使う担当の画像を選べます (アプリの担当の画像はそのまま)。")
+                            .imasText(.note)
                     }
                 }
             }
@@ -698,6 +732,7 @@ struct ProducerCardEditorView: View {
             || hidden != card.hidden || draft.linksJson != card.linksJson
             || draft.cardDesign != card.cardDesign || draft.ink != card.ink || draft.qrUrl != card.qrUrl || photoDirty || !faceDirty.isEmpty
             || songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != nil
+            || !oshiImageDraft.isEmpty
     }
 
     private func cancel() {
@@ -721,6 +756,13 @@ struct ProducerCardEditorView: View {
                     ProducerCardFiles.deleteMyPhoto()
                 }
             }
+            for (id, url) in oshiImageDraft {
+                if let url, let image = UIImage(contentsOfFile: url.path) {
+                    try ProducerCardFiles.saveMyOshiImage(image, idolId: id)
+                } else {
+                    ProducerCardFiles.deleteMyOshiImage(idolId: id)
+                }
+            }
             for side in faceDirty {
                 if let image = faceImages[side] {
                     try ProducerCardFiles.saveMyFace(image, side: side)
@@ -733,6 +775,38 @@ struct ProducerCardEditorView: View {
         } catch {
             self.error = "保存できませんでした。\(error.localizedDescription)"
         }
+    }
+
+    // MARK: - 名刺用の担当の画像
+
+    /// 名刺に出す担当の画像 (書きかけ → 名刺用に選んだ画像 → アプリの担当の画像)。
+    private func oshiImageURL(_ id: String) -> URL? {
+        if let draft = oshiImageDraft[id] { return draft ?? CustomImageService.shared.imageURL(for: id) }
+        return ProducerCardFiles.cardOshiImageURL(idolId: id)
+    }
+
+    private func hasCardOshiImage(_ id: String) -> Bool {
+        if let draft = oshiImageDraft[id] { return draft != nil }
+        return ProducerCardFiles.myOshiImageURL(idolId: id) != nil
+    }
+
+    private func pickOshiImage(_ id: String) {
+        oshiImageTarget = id
+        showingOshiImagePicker = true
+    }
+
+    /// 選んだ画像を見本の一時ファイルにする (✓ で端末に書く)。
+    private func loadOshiImage(_ item: PhotosPickerItem, idolId: String) async {
+        guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data),
+              let jpeg = ProducerCardFiles.jpeg(PaperCardRectifier.upright(image), maxPixels: 2000) else {
+            error = "画像を読み込めませんでした。"
+            return
+        }
+        let dir = Self.previewFolder
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("oshi-\(UUID().uuidString).jpg")
+        guard (try? jpeg.write(to: url, options: .atomic)) != nil else { return }
+        oshiImageDraft[idolId] = .some(url)
     }
 
     // MARK: - 写真

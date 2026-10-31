@@ -80,7 +80,7 @@ struct ProducerCardPrintMaterials {
         // 担当を大きく は左半分いっぱいに刷るので、担当の画像を大きく読む (紙の 1638×990px の半分に足りる大きさ)。
         let oshiPixels = ProducerCardDisplay.design(card, face: face).design == .oshi ? 1600 : 600
         for id in card.oshiIdolIds {
-            if let url = CustomImageService.shared.imageURL(for: id),
+            if let url = ProducerCardFiles.cardOshiImageURL(idolId: id),
                let image = ProducerCardFiles.printImage(at: url, maxPixels: oshiPixels) { out.oshiImages[id] = image }
         }
         if ProducerCardDisplay.design(card, face: face).usesFaceImage, let face {
