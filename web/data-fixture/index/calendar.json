@@ -52,8 +52,7 @@
           "inMonth": false,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-08-31",
@@ -61,8 +60,7 @@
           "inMonth": false,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-01",
@@ -80,16 +78,7 @@
               "refs": []
             }
           ],
-          "overflowLabel": null,
-          "bands": [
-            {
-              "label": "サンプルライブ",
-              "themeKey": "brand:ml",
-              "starts": true,
-              "ends": false,
-              "path": "/events/ev_sample/"
-            }
-          ]
+          "overflowLabel": null
         },
         {
           "date": "2026-09-02",
@@ -97,16 +86,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": [
-            {
-              "label": "サンプルライブ",
-              "themeKey": "brand:ml",
-              "starts": false,
-              "ends": false,
-              "path": "/events/ev_sample/"
-            }
-          ]
+          "overflowLabel": null
         },
         {
           "date": "2026-09-03",
@@ -143,16 +123,7 @@
               ]
             }
           ],
-          "overflowLabel": null,
-          "bands": [
-            {
-              "label": "サンプルライブ",
-              "themeKey": "brand:ml",
-              "starts": false,
-              "ends": true,
-              "path": "/events/ev_sample/"
-            }
-          ]
+          "overflowLabel": null
         },
         {
           "date": "2026-09-04",
@@ -160,8 +131,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-05",
@@ -197,8 +167,7 @@
               "refs": []
             }
           ],
-          "overflowLabel": "+1",
-          "bands": []
+          "overflowLabel": "+1"
         }
       ]
     },
@@ -220,8 +189,7 @@
               "refs": []
             }
           ],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-07",
@@ -229,8 +197,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-08",
@@ -238,8 +205,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-09",
@@ -247,8 +213,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-10",
@@ -256,8 +221,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-11",
@@ -265,8 +229,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-12",
@@ -274,8 +237,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         }
       ]
     },
@@ -287,8 +249,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-14",
@@ -296,8 +257,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-15",
@@ -305,8 +265,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-16",
@@ -314,8 +273,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-17",
@@ -323,8 +281,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-18",
@@ -332,8 +289,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-19",
@@ -341,8 +297,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         }
       ]
     },
@@ -354,8 +309,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-21",
@@ -363,8 +317,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-22",
@@ -372,8 +325,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-23",
@@ -381,8 +333,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-24",
@@ -390,8 +341,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-25",
@@ -399,8 +349,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-26",
@@ -408,8 +357,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         }
       ]
     },
@@ -421,8 +369,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-28",
@@ -430,8 +377,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-29",
@@ -439,8 +385,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-09-30",
@@ -448,8 +393,7 @@
           "inMonth": true,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-10-01",
@@ -457,8 +401,7 @@
           "inMonth": false,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-10-02",
@@ -466,8 +409,7 @@
           "inMonth": false,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         },
         {
           "date": "2026-10-03",
@@ -475,8 +417,7 @@
           "inMonth": false,
           "isToday": false,
           "items": [],
-          "overflowLabel": null,
-          "bands": []
+          "overflowLabel": null
         }
       ]
     }

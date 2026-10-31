@@ -101,7 +101,8 @@
                 "themeKey": "idol:ml_kasuga_mirai",
                 "artworkUrl": null
               },
-              "castName": "山崎はるか"
+              "castName": "山崎はるか",
+              "castKind": "voice"
             }
           ],
           "fullCastLabel": null,
@@ -131,6 +132,7 @@
             }
           ],
           "firstPerformanceLabel": null,
+          "newPerformerDebutLabels": [],
           "history": []
         },
         {
@@ -158,6 +160,7 @@
             }
           ],
           "firstPerformanceLabel": null,
+          "newPerformerDebutLabels": [],
           "history": []
         }
       ]
@@ -190,7 +193,8 @@
                 "themeKey": "idol:ml_kasuga_mirai",
                 "artworkUrl": null
               },
-              "castName": "山崎はるか"
+              "castName": "山崎はるか",
+              "castKind": "voice"
             },
             {
               "ref": {
@@ -202,7 +206,8 @@
                 "themeKey": "idol:ml_mogami_shizuka",
                 "artworkUrl": null
               },
-              "castName": "田所あずさ"
+              "castName": "田所あずさ",
+              "castKind": "voice"
             }
           ],
           "fullCastLabel": "全員",
@@ -214,6 +219,7 @@
           "isCover": false,
           "costumes": [],
           "firstPerformanceLabel": null,
+          "newPerformerDebutLabels": [],
           "history": []
         }
       ]
@@ -275,9 +281,10 @@
         },
         "percent": 83,
         "reasons": [
-          "オリメン全員出演",
+          "前日に歌った",
           "全体曲の定番"
-        ]
+        ],
+        "originals": "オリメン 2/3: 春日未来・最上静香 · 欠席 伊吹翼"
       },
       {
         "rank": 2,
@@ -291,7 +298,8 @@
           "artworkUrl": null
         },
         "percent": 4,
-        "reasons": []
+        "reasons": [],
+        "originals": null
       }
     ],
     "notes": [
@@ -314,7 +322,7 @@
     "title": "アプリ「アイドルライブDB」",
     "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
     "deeplink": "imaslivedb://shows/sh_sample_1",
-    "note": "参加記録・投票・歌詞・コール・タグ付けはアプリでご利用いただけます。"
+    "note": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。"
   },
   "seo": {
     "title": "DAY1 | アイドルライブDB",

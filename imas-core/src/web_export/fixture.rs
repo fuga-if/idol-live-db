@@ -1769,6 +1769,9 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
     w.write_json("index/timeline-brand-ml.json", &timeline_page("/timeline/brand/ml/", "ミリオンライブ!の年表", true))?;
     w.write_json("index/ranking-brand-ml.json", &ranking_page("/ranking/brand/ml/", "ミリオンライブ!のランキング", true))?;
 
+    // P名刺 (`/p/`) の台帳。無いと `/p/` だけビルドが落ちる (ページが静的に読むため)。
+    w.write_json("p/catalog.json", &card_catalog())?;
+
     // --- 検索 ---
     let shards = [
         (RefKind::Song, "楽曲", "/songs/", "songs"),
@@ -1825,6 +1828,34 @@ pub fn emit(dir: &Path, pretty: bool) -> Result<Stats> {
         routes.routes.iter().filter(|r| r.id.is_some() && r.id != r.key).count();
     stats.fallback_slugs = stats.fallback_unsafe;
     Ok(stats)
+}
+
+/// P名刺の台帳の代表値。担当 2 人 (同じブランド) と、今後の公演 1 件。
+fn card_catalog() -> CardCatalog {
+    let app = content::app_open_plain();
+    CardCatalog {
+        schema_version: SCHEMA_VERSION,
+        idols: vec![idol_mirai(), idol_shizuka()],
+        idol_brand_ids: [("ml_kasuga_mirai", "ml"), ("ml_mogami_shizuka", "ml")]
+            .into_iter()
+            .map(|(i, b)| (i.to_string(), b.to_string()))
+            .collect(),
+        brand_labels: [("ml", "ミリオン"), ("cg", "シンデレラ")]
+            .into_iter()
+            .map(|(b, l)| (b.to_string(), l.to_string()))
+            .collect(),
+        upcoming_shows: vec![show_sample()],
+        app_store_url: app.app_store_url,
+        deeplink_prefix: format!("{}://p#", content::DEEPLINK_SCHEME),
+        app_open_title: app.title,
+        app_open_note: app.note,
+        unreadable_text: "この名刺は読み取れませんでした".to_string(),
+        // 本番と同じく JSON-LD・パンくずは持たない (どこにも位置しないページ)。
+        seo: SeoBlock {
+            json_ld: serde_json::json!({}),
+            ..seo("P名刺", "QR で受け取った P名刺を表示します。", crate::domain::producer_card::CARD_PATH, Robots::NoindexFollow, &[])
+        },
+    }
 }
 
 /// 代表値ぶんのルート台帳。

@@ -193,6 +193,7 @@
   "queryBase": {
     "brandIds": [],
     "attribute": null,
+    "subAttribute": null,
     "birthMonth": null,
     "searchText": "",
     "voiceActor": "",

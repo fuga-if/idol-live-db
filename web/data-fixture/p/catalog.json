@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "idols": [
+    {
+      "kind": "idol",
+      "id": "ml_kasuga_mirai",
+      "name": "春日未来",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_kasuga_mirai/",
+      "themeKey": "idol:ml_kasuga_mirai",
+      "artworkUrl": null
+    },
+    {
+      "kind": "idol",
+      "id": "ml_mogami_shizuka",
+      "name": "最上静香",
+      "sub": "ミリオンライブ!",
+      "path": "/idols/ml_mogami_shizuka/",
+      "themeKey": "idol:ml_mogami_shizuka",
+      "artworkUrl": null
+    }
+  ],
+  "idolBrandIds": {
+    "ml_kasuga_mirai": "ml",
+    "ml_mogami_shizuka": "ml"
+  },
+  "brandLabels": {
+    "cg": "シンデレラ",
+    "ml": "ミリオン"
+  },
+  "upcomingShows": [
+    {
+      "kind": "show",
+      "id": "sh_sample_1",
+      "name": "DAY1",
+      "sub": "2026-04-03",
+      "path": "/shows/sh_sample_1/",
+      "themeKey": "brand:ml",
+      "artworkUrl": null
+    }
+  ],
+  "appStoreUrl": "https://apps.apple.com/jp/app/id6763342297",
+  "deeplinkPrefix": "imaslivedb://p#",
+  "appOpenTitle": "アプリ「アイドルライブDB」",
+  "appOpenNote": "参加記録・投票・コールの編集・タグ付けはアプリでご利用いただけます。",
+  "unreadableText": "この名刺は読み取れませんでした",
+  "seo": {
+    "title": "P名刺 | アイドルライブDB",
+    "description": "QR で受け取った P名刺を表示します。",
+    "canonical": "https://idollivedb.fugaapp.site/p/",
+    "ogImage": "https://idollivedb.fugaapp.site/og/default.png",
+    "robots": "noindex,follow",
+    "jsonLd": {},
+    "breadcrumbs": []
+  }
+}
