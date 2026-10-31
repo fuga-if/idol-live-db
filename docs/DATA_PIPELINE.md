@@ -155,6 +155,13 @@ API の利用者が読むのはこの経路の結果。
   (`gh workflow run refresh-data.yml --ref develop`)。`workflow_dispatch` で export → check → 同期まで通る。
 - CloudKit の鍵は `export` だけが持つ。`sync-data-api` は Cloudflare の資格情報だけを持つ。
 
+### 同期が 403 [7403] で落ちるとき
+
+`The given account is not valid or is not authorized to access this service` は、アカウント ID の取り違えと
+トークンの権限不足のどちらでも出る。`sync-data-api` はビルドの前に
+`tools/sync_master_d1.py --preflight` で切り分け、どちらを直すかをログに出して落ちる
+(手元でも同じ環境変数を入れて打てる)。直したら Actions → Refresh master data → Run workflow で流し直す。
+
 ### 必要な設定 (オーナーが 1 度だけ。ここでは作っていない)
 
 1. D1 とデプロイ ([`ARCHITECTURE-data-api.md`](ARCHITECTURE-data-api.md) §8): `wrangler d1 create imas-master-db` で

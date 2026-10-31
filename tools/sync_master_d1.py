@@ -4,6 +4,7 @@
   python3 tools/sync_master_d1.py --local            # ローカル D1 (wrangler dev が読む) に流す。既定
   python3 tools/sync_master_d1.py --remote           # 流すコマンドを表示するだけ
   python3 tools/sync_master_d1.py --remote --yes     # 本番 D1 に流す (オーナーだけが打つ)
+  python3 tools/sync_master_d1.py --preflight        # 本番 D1 に届くか (トークン・アカウント ID) だけ確かめる
 
 入力の master.sql (どれか 1 つ。既定は --from-bot):
   --from-bot         bot/data-refresh の最新の db/master.sql (git fetch して git show)。既定。
@@ -184,6 +185,77 @@ def post_query(url, token, sql, attempts=3):
     sys.exit(f"D1 への書き込みが落ちた: {err}\n全置き換えなので、直してから頭から流し直せばよい。")
 
 
+def cf_get(path, token):
+    """Cloudflare API を GET して (HTTP 状態, 応答 JSON) を返す。落ちても例外にしない (診断用)。"""
+    req = urllib.request.Request("https://api.cloudflare.com/client/v4" + path,
+                                 headers={"Authorization": f"Bearer {token}"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as res:
+            return res.status, json.load(res)
+    except urllib.error.HTTPError as e:
+        try:
+            return e.code, json.loads(e.read().decode("utf-8", "replace"))
+        except ValueError:
+            return e.code, {}
+    except (urllib.error.URLError, TimeoutError) as e:
+        return 0, {"errors": [{"message": str(e)}]}
+
+
+def errors_of(data):
+    return ", ".join(f"[{e.get('code')}] {e.get('message')}" for e in (data.get("errors") or [])) or "(エラー本文なし)"
+
+
+def preflight():
+    """本番 D1 に届くかを、重いビルドの前に確かめる。届かなければ何が悪いかを言って落ちる。
+
+    D1 の 403 [7403] "The given account is not valid or is not authorized" は、
+    アカウント ID の取り違えとトークンの権限不足のどちらでも出るので、ここで切り分ける。
+    秘密の値そのものは出さない (アカウント ID は末尾 4 文字だけ)。
+    """
+    token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    if not token or not account:
+        sys.exit("CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID が要る (D1 の編集権限のあるトークン)")
+    if os.environ.get("CLOUDFLARE_ACCOUNT_ID") != account or os.environ.get("CLOUDFLARE_API_TOKEN") != token:
+        print("注意: secret の前後に空白か改行が入っている (ここでは取り除いて試す)", flush=True)
+    if not re.fullmatch(r"[0-9a-f]{32}", account):
+        sys.exit("CLOUDFLARE_ACCOUNT_ID がアカウント ID の形 (英数字 32 文字) でない。"
+                 "ダッシュボードの URL https://dash.cloudflare.com/<ここ>/ の 32 文字を入れ直す。")
+    tail = account[-4:]
+
+    # 1. トークン自体が生きているか (ユーザーのトークンとアカウントのトークンで確かめる場所が違う)
+    st, data = cf_get("/user/tokens/verify", token)
+    if not (st == 200 and data.get("success")):
+        st, data = cf_get(f"/accounts/{account}/tokens/verify", token)
+    if st == 200 and data.get("success"):
+        status = (data.get("result") or {}).get("status")
+        print(f"トークン: 有効 (status={status})", flush=True)
+        if status and status != "active":
+            sys.exit(f"CLOUDFLARE_API_TOKEN が {status} になっている。Cloudflare でトークンを作り直す。")
+    else:
+        sys.exit(f"CLOUDFLARE_API_TOKEN が通らない (失効・削除・貼り間違い): HTTP {st} {errors_of(data)}")
+
+    # 2. トークンが見えるアカウントに、指定のアカウント ID が入っているか
+    st, data = cf_get("/accounts?per_page=50", token)
+    seen = [a.get("id", "") for a in (data.get("result") or [])] if st == 200 else []
+    if seen:
+        print(f"トークンが見えるアカウント: {', '.join('…' + a[-4:] for a in seen)} / 指定: …{tail}", flush=True)
+        if account not in seen:
+            sys.exit(f"CLOUDFLARE_ACCOUNT_ID (…{tail}) はこのトークンのアカウントではない。"
+                     "アカウント ID を入れ直すか、そのアカウントでトークンを作り直す。")
+
+    # 3. D1 の imas-master-db に届くか (D1 Edit なら読める)
+    st, data = cf_get(f"/accounts/{account}/d1/database/{database_id()}", token)
+    if st == 200 and data.get("success"):
+        print(f"D1 {DB_NAME}: 届く。同期できる", flush=True)
+        return
+    if st == 404:
+        sys.exit(f"D1 {DB_NAME} (id は imas-data-api/wrangler.jsonc) がアカウント …{tail} に無い: {errors_of(data)}")
+    sys.exit(f"D1 {DB_NAME} に届かない: HTTP {st} {errors_of(data)}\n"
+             f"トークンに Account → D1 → Edit が無いか、Account Resources にアカウント …{tail} が入っていない。"
+             "Cloudflare → My Profile → API Tokens で権限を足すか作り直す。")
+
+
 def push_remote(sql_path):
     """本番 D1 に REST API で流す。資格情報は wrangler と同じ環境変数 (CI の environment cloudflare)。"""
     token = os.environ.get("CLOUDFLARE_API_TOKEN")
@@ -213,7 +285,12 @@ def main():
     ap.add_argument("--key-file", help="--from-cloudkit の CloudKit 秘密鍵 (既定は export_cloudkit.py の既定)")
     ap.add_argument("--skip-export", action="store_true", help="SQL の組み直しを飛ばす (.build/master-d1.sql をそのまま流す)")
     ap.add_argument("--count", action="store_true", help="流さず、書く行数の見積もりだけ出す")
+    ap.add_argument("--preflight", action="store_true", help="本番 D1 に届くか (資格情報) だけ確かめる。SQL は組まない")
     args = ap.parse_args()
+
+    if args.preflight:
+        preflight()
+        return
 
     if not args.skip_export:
         if args.master_sql:
@@ -250,6 +327,7 @@ def main():
             print("本番 D1 には流していません。流すなら次を打つ (オーナー。CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が要る):")
             print("  python3 tools/sync_master_d1.py --remote --yes --skip-export")
             return
+        preflight()
         push_remote(SQL)
         return
     run(["npx", "wrangler", "d1", "execute", DB_NAME, "--local", "--file", SQL, "--yes"], API)

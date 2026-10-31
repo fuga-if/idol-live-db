@@ -221,6 +221,12 @@ jobs:
           EXPECTED: ${{ needs.export.outputs.sha256 }}
         run: echo "$EXPECTED  db/master.sql" | sha256sum --check
 
+      # 6 分かかるビルドの前に、本番 D1 に届くか (トークンの有効性・アカウント ID・D1 の権限) を確かめる。
+      # 届かなければ何を直せばよいかを出して落ちる。標準ライブラリだけなので uv も要らない。
+      - name: Check Cloudflare access to D1
+        if: steps.gate.outputs.enabled == 'true'
+        run: python3 tools/sync_master_d1.py --preflight
+
       # Cloudflare のトークンを持つジョブなので、第三者の action を増やさず rustup で入れる (他のガードと同じ)。
       - name: Install Rust
         if: steps.gate.outputs.enabled == 'true'
