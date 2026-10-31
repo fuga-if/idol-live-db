@@ -1,5 +1,5 @@
 ---
-/** ImasEntryCard の Web 版 — 奥のページへの入口。 */
+/** ImasEntryCard の Web 版 — 奥のページへの入口。先頭は判子 (venue.css の .stamp)。 */
 interface Props {
   glyph: string;
   title: string;
@@ -11,7 +11,8 @@ const { glyph, title, preview, href, themeKey } = Astro.props;
 ---
 
 <a class="entry-card" data-theme={themeKey} href={href}>
-  <span class="entry-card__icon" aria-hidden="true">{glyph}</span>
+  {/* 記号は判子 (紙の丸 + 実体色の輪と略称)。淡い色の四角に入れない。 */}
+  <span class="stamp" data-len={String(Math.min(glyph.length, 5))} aria-hidden="true">{glyph}</span>
   <span class="entry-card__body">
     <span class="entry-card__title u-underline-hover">{title}</span>
     {preview && <span class="entry-card__preview u-clamp2">{preview}</span>}

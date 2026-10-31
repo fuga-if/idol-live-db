@@ -1,44 +1,36 @@
 ---
-import DatedRow from "./DatedRow.astro";
-import BrandMark from "./BrandMark.astro";
+import StubRow from "./StubRow.astro";
 import TagChip from "./TagChip.astro";
 import type { EventListItem } from "../lib/schema/EventListItem";
 /**
- * 一覧の 1 ライブ。
- * 日付は左の日付ブロック、期間の終端・公演数・会場は文字、ブランドは色付きの札、
- * 種別は右端の札。**何を出すかは全部 Rust が決めた項目**で、ここは置く場所を決めるだけ
+ * 一覧の 1 ライブ = 半券の行 (`ImasEventRow`)。
+ * 左の半券に初日、行頭の帯にブランドの色、副題にブランド・期間の終端・公演数・会場、
+ * 札に種別。**何を出すかは全部 Rust が決めた項目**で、ここは置く場所を決めるだけ
  * (`brandMark` / `kindLabel` / `showCountDisplay` / `endDisplay` は要らない文脈では null で来る)。
+ * 名前の前に色の点は置かない (色は行頭の帯、名前は文字が言う)。
  */
 interface Props {
   item: EventListItem;
-  /** 年の見出しの下に並ぶ行では、日付ブロックの年を落とす。 */
+  /** 年の見出しの下に並ぶ行。半券の日付欄は年を持たないので今は使わない (互換のため残す)。 */
   showYear?: boolean;
 }
-const { item, showYear = true } = Astro.props;
+const { item } = Astro.props;
 ---
 
 <li>
-  <DatedRow
+  <StubRow
     badge={item.dateBadge}
-    showYear={showYear}
     title={item.ref.name}
     href={item.ref.path}
     themeKey={item.ref.themeKey}
-    meta={[item.endDisplay, item.showCountDisplay, item.venueDisplay]}
+    meta={[item.brandMark ? (item.brandMark.sub ?? item.brandMark.name) : null, item.endDisplay, item.showCountDisplay, item.venueDisplay]}
   >
     {
-      item.brandMark && (
-        <span slot="meta" class="row__meta-item">
-          <BrandMark brand={item.brandMark} short />
-        </span>
-      )
-    }
-    {
       item.kindLabel && (
-        <span slot="trailing">
+        <Fragment slot="badges">
           <TagChip text={item.kindLabel} kind="all" />
-        </span>
+        </Fragment>
       )
     }
-  </DatedRow>
+  </StubRow>
 </li>

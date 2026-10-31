@@ -221,6 +221,7 @@ hr {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  color: var(--ds-ink);
   font-family: var(--font-heading);
   font-weight: var(--fw-heading);
   font-size: 1.1875rem;
@@ -240,21 +241,24 @@ hr {
   display: flex;
   gap: 2px;
 }
+/* 一覧の入口は ImasTabs と同じ: 太字を並べ、現在地は墨 + 下線 2px、ほかは灰。 */
 .site-nav__links a {
   display: block;
-  padding: 8px 12px;
-  border-radius: var(--r-pill);
+  padding: 10px 10px;
+  border-radius: var(--r-ctl-sm);
   font-size: var(--fs-subhead);
-  font-weight: 500;
-  color: var(--ds-ink);
+  font-weight: 700;
+  color: var(--ds-ink2);
   white-space: nowrap;
+  box-shadow: inset 0 -2px 0 transparent;
 }
 .site-nav__links a:hover {
-  background: var(--ds-fill);
+  color: var(--ds-ink);
 }
 .site-nav__links a[aria-current="page"] {
-  background: var(--ds-sys);
-  color: var(--ds-on-sys);
+  color: var(--ds-ink);
+  box-shadow: inset 0 -2px 0 var(--ds-ink);
+  border-radius: 0;
 }
 .site-nav__search {
   margin-inline-start: auto;

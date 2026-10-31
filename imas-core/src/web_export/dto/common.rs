@@ -419,19 +419,61 @@ web_dto! {
         /// 読み上げ用の 1 本 (`"2026年9月19日 土曜日"`)。見た目の 3 分割は耳では
         /// 「9/19 土 2026」と聞こえるので、支援技術にはこちらを渡す。
         pub spoken: String,
+        /// 半券の日付欄 (`NOV` / `07` / `SAT`)。アプリの `ImasStubRow` と同じ分け方
+        /// (`date_display::ticket_stub`)。年月だけ・年だけの日付もここで畳んである。
+        pub stub: TicketStub,
+    }
+}
+
+web_dto! {
+    /// 半券の日付欄の 3 段。月の略号と曜日の英字はコアが決め、出面は置くだけ。
+    #[derive(Eq)]
+    pub struct TicketStub {
+        /// 上段 (`NOV`)。年月だけの日付では年、年だけなら空。
+        pub top: String,
+        /// 中段の大きな数字 (`07`)。
+        pub big: String,
+        /// 下段 (`SAT`)。曜日が決まらなければ空。
+        pub bottom: String,
+        /// 下段の色分け (土曜は青・日曜は赤)。
+        pub weekday_kind: StubWeekday,
+    }
+}
+
+web_dto! {
+    /// 半券の曜日の色分け。
+    #[derive(Copy, Eq)]
+    pub enum StubWeekday {
+        Weekday,
+        Saturday,
+        Sunday,
+        Unknown,
     }
 }
 
 impl DateBadge {
     /// `yyyy-MM-dd` (部分日付も可) から作る。
     pub fn from_ymd(date: &str) -> Self {
-        let parts = crate::domain::date_display::date_parts(date);
+        use crate::domain::date_display::{self, WeekdayKind};
+        let parts = date_display::date_parts(date);
+        let stub = date_display::ticket_stub(date);
         Self {
             iso: date.to_string(),
             year: parts.year,
             month_day: parts.month_day,
             weekday: parts.weekday.map(str::to_string),
-            spoken: crate::domain::date_display::spoken(date),
+            spoken: date_display::spoken(date),
+            stub: TicketStub {
+                top: stub.top,
+                big: stub.big,
+                bottom: stub.bottom,
+                weekday_kind: match stub.weekday_kind {
+                    WeekdayKind::Weekday => StubWeekday::Weekday,
+                    WeekdayKind::Saturday => StubWeekday::Saturday,
+                    WeekdayKind::Sunday => StubWeekday::Sunday,
+                    WeekdayKind::Unknown => StubWeekday::Unknown,
+                },
+            },
         }
     }
 }

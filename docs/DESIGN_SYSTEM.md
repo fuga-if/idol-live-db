@@ -908,3 +908,32 @@ ISO 形式 (2026-11-07) は画面に出さない。
 
 **言葉**
 担当 (推しとは書かない) / オリメン / 全体曲 / ユニット曲 / ソロ曲 / 披露 / 回収 (現地で聴けた) / 現地・配信・LV / 公演 (DAY1) / ライブ (催し全体) / セトリ / 歌唱者。
+
+---
+
+## 17. Web 出面 (`web/`) の対応
+
+Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS の `DesignSystem/`。Web の土台は
+`web/src/styles/tokens.css` (DS.* と同じ値。hex を書いてよいのはここだけ) と `venue.css` (会場の部品)。
+ブランド・アイドルの色は Rust が出す `themes.css` が `[data-theme]` で `--accent` 等を与える。
+
+| アプリの部品 | Web | 置き場 |
+|---|---|---|
+| `DS.bg` / `surface` / `ticket` / `board` / `stamp` … | `--ds-bg` / `--ds-surface` / `--ds-ticket` / `--ds-board` / `--ds-stamp` … | `tokens.css` |
+| `.imasText(.imprint)` 印字 | `.imprint` | `venue.css` |
+| `ImasNumeralSize` 数字 | `.num .num--large / --date / --medium / --small / --countdown` | `venue.css` |
+| `ImasPerforation` 切り取り線 | `.perf` / `.perf--v` (チケットの紙の上は `.perf--ticket`) | `venue.css` |
+| `ImasTicket` 紙のチケット | `.ticket` (`Ticket.astro`) | `venue.css` |
+| `ImasStubRow` / `ImasEventRow` / `ImasShowRow` 半券の行 | `.stub` (`StubRow.astro` → `EventRow` / `ShowRow`)。並べる器は `.stub-list` | `venue.css` |
+| `ImasBoard` 電光掲示板 | `.board` (`Board.astro`) | `venue.css` |
+| `ImasBadge` 札 | `.badge` / 旧 `.tag` (`TagChip.astro`) も同じ見え方 | `venue.css` / `components.css` |
+| `ImasChip` / `ImasFilterChip` チップ | `.chip` (高さ 32・角丸 8。カプセルにしない) | `components.css` |
+| `ImasBrandCell` / `ImasAvatar` の判子 | `.stamp` (`data-len` で字数に合わせる)、格子は `.stamp-grid` + `.stamp-cell` | `venue.css` |
+| `ImasLeadBar` 行頭の帯 | `.lead-bar` / `.stub__bar` / `.penlight` | `venue.css` |
+| `ImasMasthead` 頭の印字 | `.imprint` を題の上に置く (`IDOL LIVE DB · 2026.10.31 SAT`) | 各ページ |
+| `ImasSectionHeader` | `.section__title` (20〜24px 極太) + `.section__more` (灰、矢印) | `components.css` |
+| `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` | `base.css` / `components.css` |
+
+Web でやらないこと (アプリと同じ): 淡い色の地のチップ・カプセルの札・名前の前の色の点・記号を淡い色の四角に
+入れる・色の地のカード・グラデーション・ぼかした光。判断 (文言・並び・日付の分け方) は Rust の DTO が持ち、
+Astro は置くだけ (半券の 3 段は `DateBadge.stub`)。

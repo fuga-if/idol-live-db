@@ -1,21 +1,20 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Section from "../components/Section.astro";
-import EntryCard from "../components/EntryCard.astro";
 import EventRow from "../components/EventRow.astro";
 import ShowRow from "../components/ShowRow.astro";
-import FeatureEvent from "../components/FeatureEvent.astro";
-import ListContainer from "../components/ListContainer.astro";
+import Ticket from "../components/Ticket.astro";
+import Board from "../components/Board.astro";
 import EmptyState from "../components/EmptyState.astro";
 import SearchBox from "../components/SearchBox.astro";
-import StatStrip from "../components/StatStrip.astro";
-import { meta, page, routeData } from "../lib/data";
+import { page, routeData } from "../lib/data";
 import type { HomePage } from "../lib/schema/HomePage";
 
 /**
- * トップ。
- * 「見せる塊」(ヒーローの検索窓・直近ライブの注目カード) と「並べる塊」(行の一覧) を分ける。
- * 何を何件出すか・並びは Rust の `HomePage` のまま。先頭 1 件を大きくするのは見せ方の判断。
+ * トップ = ハブの型 (DESIGN_SYSTEM §2.3)。
+ * 頭の印字と大見出し → 主役 (次のライブの紙のチケット) → 記録の数 (電光掲示板) →
+ * 一覧 (半券の行) → ブランドの判子の格子 → アプリの案内。
+ * 何を何件出すか・並びは Rust の `HomePage` のまま。先頭 1 件をチケットにするのは見せ方の判断。
  */
 const home = page<HomePage>(routeData("home", "/"));
 const [featured, ...restUpcoming] = home.upcoming;
@@ -24,17 +23,18 @@ const [featured, ...restUpcoming] = home.upcoming;
 <BaseLayout seo={home.seo}>
   <section class="home-hero" aria-labelledby="home-title">
     <div class="home-hero__body">
-      <p class="home-hero__date u-num">{home.todayDisplay}</p>
+      <p class="imprint home-hero__date">IDOL LIVE DB · {home.todayDisplay}</p>
       <h1 class="home-hero__title" id="home-title">
         {home.headline.map((line) => <span>{line}</span>)}
       </h1>
       <p class="lede">{home.tagline}</p>
       <SearchBox />
-      <StatStrip items={home.statTiles} label="収録データ" />
       {/* 非公式の断りはフッタ (Rust の footerNotes) が全ページで言う。最初の一画面には置かない。 */}
     </div>
-    {featured && <FeatureEvent item={featured} countdown={home.nextCountdown} />}
+    {featured && <Ticket item={featured} countdown={home.nextCountdown} />}
   </section>
+
+  <Board title="STATS" trailing={home.todayDisplay} cells={home.statTiles} label="収録データ" />
 
   <Section id="home-upcoming" title="これからのライブ" moreHref="/events/upcoming/">
     {
@@ -42,11 +42,11 @@ const [featured, ...restUpcoming] = home.upcoming;
         <EmptyState {...home.upcomingEmpty} />
       ) : (
         restUpcoming.length > 0 && (
-          <ListContainer as="ul">
+          <ul class="stub-list">
             {restUpcoming.map((e) => (
               <EventRow item={e} />
             ))}
-          </ListContainer>
+          </ul>
         )
       )
     }
@@ -62,26 +62,26 @@ const [featured, ...restUpcoming] = home.upcoming;
       home.recentShowsEmpty ? (
         <EmptyState {...home.recentShowsEmpty} />
       ) : (
-        <ListContainer as="ul">
+        <ul class="stub-list">
           {home.recentShows.map((s) => (
             <ShowRow show={s} />
           ))}
-        </ListContainer>
+        </ul>
       )
     }
   </Section>
 
   <Section id="home-brands" title="ブランドから探す" moreHref="/brands/">
-    <div class="entry-grid">
+    <div class="stamp-grid">
       {
         home.brands.map((b) => (
-          <EntryCard
-            glyph={b.glyph}
-            title={b.ref.name}
-            preview={b.previewDisplay}
-            href={b.ref.path}
-            themeKey={b.ref.themeKey}
-          />
+          <a class="stamp-cell" data-theme={b.ref.themeKey} href={b.ref.path}>
+            <span class="stamp" data-len={String(Math.min(b.glyph.length, 5))} aria-hidden="true">
+              {b.glyph}
+            </span>
+            <span class="stamp-cell__name">{b.ref.name}</span>
+            <span class="stamp-cell__sub">{b.previewDisplay}</span>
+          </a>
         ))
       }
     </div>

@@ -12,49 +12,73 @@
   color-scheme: light dark;
 
   /* --- ニュートラル階調 -------------------------------------------------------
-     2026-09 の刷新で「公演パンフの紙面」に寄せた。地は生成りの紙色、面は白、文字は
-     わずかに紫がかった墨。色 (ブランド・アイドル) は themes.css だけが持ち、ここは無彩に近い。
-     ink2 は bg #F4F2ED 上で 6.2:1 / surface #FFFFFF 上で 6.9:1 (WCAG AA を余裕で超える)。 */
-  --ds-bg: #f4f2ed;
-  --ds-surface: #ffffff;
-  --ds-surface2: #faf8f4;
-  --ds-fill: #ece9e2;
-  --ds-sep: #ebe7df;
-  --ds-ink: #18171c;
-  --ds-ink2: #5b5863;
-  /* 面の輪郭 (ヘッダの下線・検索欄の枠)。行の区切り (--ds-sep) より一段濃い。 */
-  --ds-line: #e3dfd6;
-  /* フッタ (墨の帯)。明暗どちらでも暗い地。 */
-  --footer-bg: #18171c;
-  --footer-ink: #ffffff;
-  --footer-ink2: #cfcbd6;
-  --footer-line: #4a4750;
-  --footer-plate: #ffffff;
-  /* グラフの棒 (過ぎた年など、目立たせない側)。 */
-  --chart-bar: #c9c3b8;
-  /* ink3 はコントラストを満たさないので **文字には使わない** (シェブロン・区切りなど装飾専用)。 */
-  --ds-ink3: rgb(24 23 28 / 0.3);
+     世界は「会場とチケット」(docs/DESIGN_SYSTEM.md §1)。ライトは開演前のロビー
+     (生成りの地に墨の文字)、ダークは客席の暗転 (紫がかった闇に生成りの文字)。
+     値は iOS の DesignTokens.swift (DS.*) と同じ。ここを変えるときはそちらと同時に。 */
+  --ds-bg: #f4f0e8;
+  --ds-surface: #fffdf8;
+  --ds-surface2: #f1ebdf;
+  --ds-fill: rgb(27 24 34 / 0.06);
+  --ds-sep: #e4dbcb;
+  --ds-ink: #1b1822;
+  --ds-ink2: #6b6478;
+  /* 線で形を取る部品 (切り替え・札・入口) の輪郭。区切り線より一段濃い。 */
+  --ds-line: #dcd2c0;
+  /* ink3 は文字には使わない (コントラストが足りない)。薄字・矢印・区切りの装飾専用。 */
+  --ds-ink3: #a49b8c;
+
+  /* --- チケットの紙 (ダークでも紙のまま明るい) --- */
+  --ds-ticket: #fffdf8;
+  --ds-ticket-ink: #1b1822;
+  --ds-ticket-sub: #6b6478;
+  --ds-ticket-dash: #cec3b0;
+  /* 面の上の切り取り線。 */
+  --ds-perforation: #cec3b0;
+
+  /* --- 電光掲示板 (ライトでもダークでも暗い板) --- */
+  --ds-board: #1f1c28;
+  --ds-board-ink: #f6f1e7;
+  --ds-board-dim: #a7a1b5;
+  --ds-board-line: #3a3547;
+  --ds-lamp: #ff4d5e;
+
+  /* --- 判子の朱・穴 --- */
+  --ds-stamp: #b42335;
+  --ds-hole: #2a2633;
+
+  /* --- 曜日 (半券の日付欄だけ) --- */
+  --ds-saturday: #2e6bd8;
+  --ds-sunday: #c8293f;
 
   /* --- セマンティック --- */
-  --ds-success: #2fa84f;
-  --ds-warning: #e08600;
-  --ds-danger: #e5342b;
-  --ds-sys: #18171c;
-  --ds-on-sys: #ffffff;
-  --ds-sys2: rgb(60 60 67 / 0.55);
+  --ds-success: #2f8f4e;
+  --ds-success-ink: #1f6b39;
+  --ds-warning: #c27200;
+  --ds-danger: var(--ds-stamp);
+  /* アプリの枠 (ナビ・主ボタン) は墨 1 色。 */
+  --ds-sys: #1b1822;
+  --ds-on-sys: #f6f1e7;
+  --ds-sys2: #6b6478;
   --ds-pick: #ff2d78;
-  /* 文字に使う側 (14% の薄い地の上で AA)。--ds-pick は印・線用。 */
   --ds-pick-ink: #c2185b;
   --ds-favorite: #e8a800;
-  /* 曜日の色。日曜は赤・土曜は青という暦の慣習に合わせる (日付ブロック専用)。 */
-  --ds-sunday: #c5221f;
-  --ds-saturday: #1f5fc4;
+
+  /* フッタ (奥付)。掲示板と同じ暗い板。 */
+  --footer-bg: var(--ds-board);
+  --footer-ink: var(--ds-board-ink);
+  --footer-ink2: var(--ds-board-dim);
+  --footer-line: var(--ds-board-line);
+  --footer-plate: #ffffff;
+  /* グラフの棒 (過ぎた年など、目立たせない側)。 */
+  --chart-bar: #cec3b0;
 
   /* --- エレベーション (フラット基調なので控えめ) --- */
-  /* 紙の上に白い面を置くだけで段差は足りる。影は輪郭を締める程度に留める。 */
-  --ds-shadow1: 0 0 0 1px rgb(24 23 28 / 0.035);
-  /* 浮かせる面 (次のライブの札・ホバー)。 */
-  --ds-shadow2: 0 12px 32px rgb(24 23 28 / 0.08), 0 1px 2px rgb(24 23 28 / 0.06);
+  /* 紙の上に面を置くだけで段差は足りる。ライトは薄い影で輪郭を締める。 */
+  --ds-shadow1: 0 1px 2px rgb(27 24 34 / 0.05), 0 0 0 1px rgb(27 24 34 / 0.03);
+  /* 手元のチケット (浮かせる面)。 */
+  --ds-shadow2: 0 4px 9px rgb(0 0 0 / 0.06);
+  /* 面の縁。ライトは影、ダークは細い線 (imasSurfaceEdge)。 */
+  --ds-surface-edge: var(--ds-shadow1);
 
   /* --- スペーシング (4pt グリッド。DS.sp1…sp9) --- */
   --sp1: 2px;
@@ -67,31 +91,45 @@
   --sp8: 32px;
   --sp9: 44px;
 
-  /* --- 角丸 (DS.rXS…rPill) --- */
+  /* --- 角丸 (DS.rXS…rPill)。面は rCard (18)、札は rTag (4)、押せるものは高さに比例
+     (50→12・44→11・40→10・32→8)。カプセルは OS の枠 (検索欄・タブバー) と下線だけ。 --- */
+  --r-tag: 4px;
   --r-xs: 6px;
   --r-sm: 10px;
-  --r-md: 16px;
-  --r-lg: 20px;
-  --r-xl: 28px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-card: 18px;
+  --r-inner: 10px;
+  --r-xl: 24px;
   --r-pill: 999px;
+  --r-ctl-lg: 12px;
+  --r-ctl-md: 10px;
+  --r-ctl-sm: 8px;
 
   /* --- 部品の寸法 --- */
   /* 行に置く小さいジャケ。表の畳んだ副題の字下げもこれに揃える。 */
   --artwork-sm: 44px;
+  /* 半券の日付欄の幅 (ImasStubRow の stubWidth)。 */
+  --stub-w: 62px;
+  /* チケットの半券 (カウントダウン) の幅。 */
+  --ticket-stub-w: 96px;
 
   /* --- タイポ --- */
   --font-body: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN",
     "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-  /* 数字と欧文の札 (日付・曲番号・件数)。細身で、紙面の数字が詰まって見える。 */
+  /* 数字 (日付・曲番号・件数・掲示板)。会場の掲示板と同じ細長い太字の等幅。 */
   --font-display: "Barlow Condensed", var(--font-body);
-  /* 見出しは Zen Kaku Gothic New の 900 (fonts.css。unicode-range 分割で出る字の分だけ届く)。
-     本文は各 OS の和文ゴシックのまま (ヒラギノ / Noto Sans CJK / 游ゴシック)。 */
+  /* 印字 (ADMIT ONE・SETLIST・頭の日付)。等幅で字間を空ける。大文字には変えない。 */
+  --font-imprint: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  /* 見出しは Zen Kaku Gothic New の 900 (fonts.css)。本文は各 OS の和文ゴシック。 */
   --font-heading: "Zen Kaku Gothic New", var(--font-body);
   --fw-heading: 900;
 
+  --fs-micro: 0.5rem;       /* 8px */
   --fs-caption2: 0.6875rem; /* 11px */
   --fs-caption: 0.75rem;    /* 12px */
   --fs-footnote: 0.8125rem; /* 13px */
+  --fs-chip: 0.875rem;      /* 14px */
   --fs-subhead: 0.9375rem;  /* 15px */
   --fs-callout: 1rem;       /* 16px */
   --fs-body: 1.0625rem;     /* 17px */
@@ -101,79 +139,100 @@
   --fs-large: 2.125rem;     /* 34px */
   /* トップの見出し。狭い画面では title1、広い画面で large を少し超える。 */
   --fs-display: clamp(2rem, 1.2rem + 3.2vw, 3.5rem);
+  /* 印字の大きさ (10.5pt)。 */
+  --fs-imprint: 0.65625rem;
+  /* 数字の大きさ (ImasNumeralSize)。 */
+  --num-poster: 4.75rem;    /* 76 */
+  --num-countdown: 3.375rem;/* 54 */
+  --num-large: 1.875rem;    /* 30 */
+  --num-date: 1.75rem;      /* 28 */
+  --num-medium: 1.25rem;    /* 20 */
+  --num-small: 0.9375rem;   /* 15 */
 
-  /* 行間: 和文は欧文より広く取る (Apple の leading の考え方を和文に合わせて調整) */
+  /* 行間: 和文は欧文より広く取る。 */
   --lh-tight: 1.25;
   --lh-snug: 1.4;
   --lh-body: 1.65;
   --lh-relaxed: 1.9;
 
   /* 版面。ナビは上部バー 1 本 (サイドバーは持たない) なので本文が幅を全部使える。 */
-  /* 吸着する年見出しのオフセット = 上部バーの高さ。2 段に折り返す幅で base.css が上書きする。 */
   --header-h: 72px;
   --page-max: 1200px;
-  /* 表や 2 段組の広い版面も、ヘッダ・本文と同じ左端に揃える (紙面の版面は 1 つ)。 */
   --page-wide: 1200px;
 
   /* --- エンティティ色の既定 (= neutral)。themes.css が [data-theme] で上書きする --- */
-  --accent: #1c1c1e;
-  --on-accent: #ffffff;
-  --tint: rgb(60 60 67 / 0.10);
-  --tint-strong: rgb(60 60 67 / 0.18);
-  --chip-bg: rgb(60 60 67 / 0.10);
-  --chip-text: #1c1c1e;
-  --ring: rgb(60 60 67 / 0.20);
-  --bar: rgb(60 60 67 / 0.45);
-  --dot: #1c1c1e;
-  --grad-from: rgb(60 60 67 / 0.14);
-  --grad-to: rgb(60 60 67 / 0.04);
-  --separator: rgb(60 60 67 / 0.16);
-  --hero-surface: #f7f7fa;
+  --accent: #1b1822;
+  --on-accent: #f6f1e7;
+  --accent-ink: #1b1822;
+  --tint: rgb(27 24 34 / 0.06);
+  --tint-strong: rgb(27 24 34 / 0.12);
+  --chip-bg: rgb(27 24 34 / 0.06);
+  --chip-text: #1b1822;
+  --ring: rgb(27 24 34 / 0.2);
+  --bar: #1b1822;
+  --dot: #1b1822;
+  --grad-from: rgb(27 24 34 / 0.14);
+  --grad-to: rgb(27 24 34 / 0.04);
+  --separator: rgb(27 24 34 / 0.16);
+  --hero-surface: #f1ebdf;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* 夜の紙面: 真っ黒ではなく墨色の地に、一段明るい面。ink2 は bg 上で 8:1。 */
-    --ds-bg: #121114;
-    --ds-surface: #1c1b20;
-    --ds-surface2: #25242a;
-    --ds-fill: #2b2a31;
-    --ds-sep: #2e2d34;
-    --ds-ink: #f4f2ed;
-    --ds-ink2: #b3afba;
-    --ds-line: #34333a;
-    --footer-bg: #0b0a0d;
-    --chart-bar: #4a4750;
-    --ds-ink3: rgb(244 242 237 / 0.3);
+    /* 客席の暗転: 紫がかった闇に生成りの文字。 */
+    --ds-bg: #15131c;
+    --ds-surface: #1f1c28;
+    --ds-surface2: #2a2633;
+    --ds-fill: rgb(246 241 231 / 0.1);
+    --ds-sep: #2f2a3a;
+    --ds-ink: #f6f1e7;
+    --ds-ink2: #a7a1b5;
+    --ds-line: #3a3547;
+    --ds-ink3: #7e7890;
 
-    --ds-success: #34d364;
-    --ds-warning: #ffb23e;
-    --ds-danger: #ff5247;
-    --ds-sys: #f4f2ed;
-    --ds-on-sys: #18171c;
-    --ds-sys2: rgb(235 235 245 / 0.55);
+    /* チケットの紙はダークでも明るい (暗い客席で手元のチケットだけが白く見える)。 */
+    --ds-ticket: #f6f1e7;
+    --ds-ticket-dash: #c9c0b0;
+    --ds-perforation: #4a4458;
+
+    --ds-board: #24212e;
+    --ds-stamp: #e0546a;
+    --ds-hole: #e9e2d3;
+
+    --ds-saturday: #7ea6ff;
+    --ds-sunday: #ff6b7d;
+
+    --ds-success: #4cc97a;
+    --ds-success-ink: #4cc97a;
+    --ds-warning: #f2a83b;
+    --ds-sys: #f6f1e7;
+    --ds-on-sys: #1b1822;
+    --ds-sys2: #a7a1b5;
     --ds-pick: #ff5a8c;
     --ds-pick-ink: #ff5a8c;
     --ds-favorite: #ffc83e;
-    --ds-sunday: #ff8a80;
-    --ds-saturday: #7fb0ff;
 
-    --ds-shadow1: 0 0 0 1px rgb(255 255 255 / 0.04);
-    --ds-shadow2: 0 10px 28px rgb(0 0 0 / 0.55), 0 1px 2px rgb(0 0 0 / 0.5);
+    --footer-bg: #0f0d14;
+    --chart-bar: #4a4458;
 
-    --accent: #ffffff;
-    --on-accent: #1c1c1e;
-    --tint: rgb(235 235 245 / 0.12);
-    --tint-strong: rgb(235 235 245 / 0.20);
-    --chip-bg: rgb(235 235 245 / 0.12);
-    --chip-text: #ffffff;
-    --ring: rgb(235 235 245 / 0.22);
-    --bar: rgb(235 235 245 / 0.45);
-    --dot: #ffffff;
-    --grad-from: rgb(235 235 245 / 0.14);
-    --grad-to: rgb(235 235 245 / 0.04);
-    --separator: rgb(84 84 88 / 0.42);
-    --hero-surface: #1c1c1e;
+    --ds-shadow1: 0 0 0 1px #2f2a3a;
+    --ds-shadow2: 0 4px 9px rgb(0 0 0 / 0.4);
+    --ds-surface-edge: 0 0 0 1px #2f2a3a;
+
+    --accent: #f6f1e7;
+    --on-accent: #1b1822;
+    --accent-ink: #f6f1e7;
+    --tint: rgb(246 241 231 / 0.1);
+    --tint-strong: rgb(246 241 231 / 0.18);
+    --chip-bg: rgb(246 241 231 / 0.1);
+    --chip-text: #f6f1e7;
+    --ring: rgb(246 241 231 / 0.22);
+    --bar: #f6f1e7;
+    --dot: #f6f1e7;
+    --grad-from: rgb(246 241 231 / 0.14);
+    --grad-to: rgb(246 241 231 / 0.04);
+    --separator: rgb(246 241 231 / 0.16);
+    --hero-surface: #2a2633;
   }
 }
 

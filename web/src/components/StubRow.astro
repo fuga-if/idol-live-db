@@ -1,0 +1,94 @@
+---
+import type { DateBadge } from "../lib/schema/DateBadge";
+/**
+ * 半券の行 (アプリの `ImasStubRow`、DESIGN_SYSTEM §5.4・§5.5)。
+ * [日付の半券] ┆ [行頭の帯 = 実体の色] [題 / 副題 / 札] [末尾]。
+ *
+ * ライブ・公演の 1 行はすべてこれ。行の間を空けて地を透かし、区切り線は出さない。
+ * 日付欄の 3 段 (`NOV` / `07` / `SAT`) は Rust の `DateBadge.stub` をそのまま置く
+ * (月の略号も曜日の色分けもここでは決めない)。
+ * 副題は項目ごとに別の要素で並べ、無いもの (null) は飛ばす。
+ */
+interface Props {
+  badge?: DateBadge | null;
+  title: string;
+  href: string;
+  themeKey?: string;
+  /** 副題に並べる文字。null / 空は飛ばす。 */
+  meta?: readonly (string | null | undefined)[];
+  /** 終わったもの・欠席など、薄く出す行。 */
+  dim?: boolean;
+  /** 別画面へ進む矢印。一覧の行は行全体が押せるので既定で出す。 */
+  chevron?: boolean;
+}
+const { badge, title, href, themeKey, meta = [], dim = false, chevron = true } = Astro.props;
+const metaItems = meta.filter((m): m is string => typeof m === "string" && m !== "");
+const stub = badge?.stub ?? null;
+const hasBadges = Astro.slots.has("badges");
+const hasTrailing = Astro.slots.has("trailing");
+---
+
+<a class:list={["stub", dim && "stub--dim"]} data-theme={themeKey} href={href}>
+  <span class="stub__date">
+    {
+      stub ? (
+        <>
+          {/* 見た目の 3 段は耳では読みにくいので、読み上げには Rust が組んだ 1 本を渡す。 */}
+          <span class="u-visually-hidden">{badge!.spoken}</span>
+          {stub.top && (
+            <span class="stub__top" aria-hidden="true">
+              {stub.top}
+            </span>
+          )}
+          <span class="stub__big num num--date" data-long={stub.big.length > 3 ? "" : undefined} aria-hidden="true">
+            {stub.big}
+          </span>
+          {stub.bottom && (
+            <span class="stub__bottom" data-weekday={stub.weekdayKind} aria-hidden="true">
+              {stub.bottom}
+            </span>
+          )}
+        </>
+      ) : (
+        <span class="stub__none">未定</span>
+      )
+    }
+  </span>
+  <span class="stub__perf" aria-hidden="true"></span>
+  {themeKey && themeKey !== "neutral" && <span class="stub__bar" aria-hidden="true"></span>}
+  <span class="stub__body">
+    <span class="stub__title u-underline-hover"><slot name="title">{title}</slot></span>
+    {
+      metaItems.length > 0 && (
+        <span class="stub__sub">
+          {metaItems.map((m, i) => (
+            <>
+              {i > 0 && <span aria-hidden="true"> · </span>}
+              <span>{m}</span>
+            </>
+          ))}
+        </span>
+      )
+    }
+    {
+      hasBadges && (
+        <span class="stub__badges">
+          <slot name="badges" />
+        </span>
+      )
+    }
+    <slot name="body" />
+  </span>
+  {
+    (hasTrailing || chevron) && (
+      <span class="stub__trailing">
+        <slot name="trailing" />
+        {chevron && (
+          <span class="stub__chevron" aria-hidden="true">
+            ›
+          </span>
+        )}
+      </span>
+    )
+  }
+</a>

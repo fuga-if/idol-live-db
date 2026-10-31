@@ -66,6 +66,20 @@ function copyGeneratedAssets() {
   return {
     name: "imas:copy-generated-assets",
     hooks: {
+      /** dev サーバでも themes.css を配る (無いと全ページが neutral 色で見え、確認にならない)。
+       *  @param {{ server: import("vite").ViteDevServer }} ctx */
+      "astro:server:setup": ({ server }) => {
+        server.middlewares.use("/themes.css", (_req, res) => {
+          const themes = path.join(dataRoot(), "themes.css");
+          if (!fs.existsSync(themes)) {
+            res.statusCode = 404;
+            res.end();
+            return;
+          }
+          res.setHeader("Content-Type", "text/css; charset=utf-8");
+          res.end(fs.readFileSync(themes));
+        });
+      },
       /** @param {{ dir: URL, logger: { info: (m: string) => void, warn: (m: string) => void } }} ctx */
       "astro:build:done": ({ dir, logger }) => {
         const root = dataRoot();

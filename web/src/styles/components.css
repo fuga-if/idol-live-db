@@ -26,7 +26,8 @@
 /* --- ListContainer (inset-grouped 風カード) -------------------------------- */
 .card {
   background: var(--ds-surface);
-  border-radius: var(--r-md);
+  border-radius: var(--r-card);
+  box-shadow: var(--ds-surface-edge);
   overflow: hidden;
   /* 行の中身をカードの幅で切り替える (狭いカードでは末尾の札を落とす)。
      ビューポートでなくカードで測るのは、脇 (aside) の 20rem 幅でも同じ判断が効くように。 */
@@ -71,7 +72,8 @@
   padding-inline: var(--sp1);
 }
 .section__title {
-  font-size: clamp(var(--fs-title3), 1rem + 1vw, 1.875rem);
+  font-family: var(--font-heading);
+  font-size: clamp(var(--fs-title3), 1rem + 0.6vw, 1.5rem);
   font-weight: var(--fw-heading);
   letter-spacing: -0.01em;
 }
@@ -88,19 +90,14 @@
 }
 .section__more {
   margin-inline-start: auto;
-  font-size: var(--fs-subhead);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: var(--ds-ink3);
-  text-underline-offset: 4px;
-  color: var(--ds-ink);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
   white-space: nowrap;
-  padding: 4px var(--sp3);
-  border-radius: var(--r-pill);
+  padding: 4px var(--sp2);
 }
 .section__more:hover {
   color: var(--ds-ink);
-  background: var(--ds-fill);
 }
 /* 見出しの行の右端に置く操作 (歌唱者の表示切替など)。 */
 .section__tools {
@@ -406,123 +403,17 @@ details[open] > summary .chevron {
   white-space: nowrap;
 }
 
-/* --- Feature (次のライブの札: トップのヒーロー右) ---------------------------
-   チケットの半券: 上辺にブランド色の帯、残り日数を大きく、下にミシン目で区切った「見る」。 */
-.feature {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp4);
-  padding: calc(var(--sp6) + 8px) var(--sp6) 0;
-  border-radius: var(--r-xl);
-  background: var(--ds-surface);
-  box-shadow: var(--ds-shadow2);
-  overflow: hidden;
-  transition: transform 160ms ease, box-shadow 160ms ease;
-}
-.feature::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  block-size: 8px;
-  background: var(--accent);
-}
-.feature:hover {
-  transform: translateY(-2px);
-}
-@media (min-width: 44rem) {
-  .feature {
-    padding: calc(var(--sp7) + 8px) var(--sp7) 0;
-  }
-}
-.feature__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp3);
-}
-.feature__kicker {
-  font-family: var(--font-display);
-  font-size: var(--fs-footnote);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--ds-ink2);
-  white-space: nowrap;
-}
-.feature__brand {
-  padding: 4px 12px;
-  border-radius: var(--r-pill);
-  background: var(--tint);
-}
-.feature__countdown {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp2);
-  font-size: var(--fs-title3);
-  font-weight: 700;
-}
-.feature__countdown b {
-  font-size: 5.5rem;
-  line-height: 0.9;
-  font-weight: 700;
-}
-.feature__title {
-  font-family: var(--font-heading);
-  font-size: var(--fs-title2);
-  font-weight: var(--fw-heading);
-  line-height: var(--lh-snug);
-}
-.feature__facts {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--sp2) var(--sp5);
-  font-size: var(--fs-subhead);
-}
-.feature__facts > div {
-  display: contents;
-}
-.feature__facts dt {
-  color: var(--ds-ink2);
-}
-.feature__facts dd {
-  font-weight: 700;
-}
-.feature__shows {
-  margin-inline-start: var(--sp4);
-}
-.feature__go {
-  margin-top: auto;
-  margin-inline: calc(-1 * var(--sp6));
-  padding: var(--sp5) var(--sp6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1.5px dashed var(--ds-line);
-  font-size: var(--fs-subhead);
-  font-weight: 700;
-}
-@media (min-width: 44rem) {
-  .feature__go {
-    margin-inline: calc(-1 * var(--sp7));
-    padding-inline: var(--sp7);
-  }
-}
-
 /* --- トップのヒーロー -----------------------------------------------------
    左: 日付欄・大見出し・説明・検索・数。右: 次のライブの札。 */
 .home-hero {
   display: grid;
-  gap: var(--sp8) 56px;
+  gap: var(--sp7) 48px;
   align-items: start;
 }
 @media (min-width: 62rem) {
   .home-hero {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     padding-block-start: var(--sp5);
-  }
-  .home-hero .feature {
-    align-self: stretch;
   }
 }
 .home-hero__body {
@@ -531,15 +422,14 @@ details[open] > summary .chevron {
   gap: var(--sp6);
 }
 .home-hero__date {
-  font-size: var(--fs-subhead);
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--ds-ink2);
+  font-size: var(--fs-caption);
 }
 .home-hero__title {
-  font-size: clamp(2rem, 1rem + 3.4vw, 3.5rem);
+  font-family: var(--font-heading);
+  font-weight: var(--fw-heading);
+  font-size: clamp(1.875rem, 1rem + 2.6vw, 3rem);
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 .home-hero__title > span {
   display: block;
@@ -549,10 +439,10 @@ details[open] > summary .chevron {
     white-space: nowrap;
   }
 }
-/* 数の帯: 上に細い罫、数字を大きく、ラベルは下に小さく。 */
-.home-hero .stat-strip {
-  padding-top: var(--sp6);
-  border-top: 1px solid var(--ds-line);
+@media (min-width: 62rem) {
+  .home-hero .ticket-wrap {
+    align-self: center;
+  }
 }
 
 /* --- Chip (ImasChip) ------------------------------------------------------ */
@@ -560,13 +450,14 @@ details[open] > summary .chevron {
   display: inline-flex;
   align-items: center;
   gap: var(--sp2);
-  padding: 6px 13px;
-  border-radius: var(--r-pill);
-  font-size: var(--fs-footnote);
+  min-block-size: 32px;
+  padding: 5px 12px;
+  border-radius: var(--r-ctl-sm);
+  font-size: var(--fs-chip);
   font-weight: 600;
   line-height: 1.35;
   background: var(--ds-fill);
-  color: var(--ds-ink2);
+  color: var(--ds-ink);
   /* 中身は公演名・会場名・ホール名などデータ由来で、長さに上限が無い。
      flex の子は min-width:auto で内容幅より縮まないため、nowrap のままだと
      375px でコンテナからはみ出して横スクロールが出る。折り返して収める
@@ -576,16 +467,22 @@ details[open] > summary .chevron {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
+/* 実体に属する情報は線 (淡い色の地は敷かない)。 */
 .chip--themed {
-  background: var(--chip-bg);
-  color: var(--chip-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--accent-ink);
 }
+/* 選んだもの = 墨の塗り。 */
 .chip--selected {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
 }
 a.chip:hover {
-  filter: brightness(0.96);
+  background: var(--tint-strong);
+}
+a.chip--selected:hover {
+  background: var(--ds-sys);
 }
 /* チップの添字 (公演の日付・会場の都道府県)。本体より一段落として並べる。 */
 .chip__sub {
@@ -597,62 +494,59 @@ a.chip:hover {
   white-space: nowrap;
 }
 
-/* --- TagChip (ImasTagChip: セトリ行のユニット/カバー/全員) ----------------- */
+/* --- TagChip → 札 (ImasBadge、DESIGN_SYSTEM §10.1) ---------------------------
+   高さ 20・角丸 4 の四角、11pt 太字。色で意味を分けない: 灰の地 (ユニット・全員・カバー・
+   一部・衣装・受付)、墨の塗り (主演)、墨の線 (初披露)、灰の線 (ゲスト)。見た目の規則は
+   venue.css の .badge と同じ。 */
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--r-pill);
+  block-size: 20px;
+  padding-inline: 6px;
+  border-radius: var(--r-tag);
   font-size: var(--fs-caption2);
-  font-weight: 600;
-  line-height: 1.5;
-  /* `tag--unit` にはこの披露限りのユニット表記が入り、長いものがある。 */
-  overflow-wrap: anywhere;
-  min-inline-size: 0;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  background: var(--ds-fill);
+  color: var(--ds-ink2);
   max-inline-size: 100%;
 }
-/* 文字に使うのは常に --accent-ink (地に対して AA まで寄せた側)。--accent そのものは
-   ミリオンの黄・シャニマスの水色が白地で 1.7:1 しか無く、線と点にしか使えない。 */
+/* `tag--unit` にはこの披露限りのユニット表記が入り、長いものがある。折り返して収める。 */
 .tag--unit {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent-ink);
+  block-size: auto;
+  min-block-size: 20px;
+  padding-block: 3px;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-/* コミュニティのタグ。色はタグ自身のテーマ (data-theme="tag:<id>")。自分の色を持たない
-   タグは data-theme が無く、囲む要素のテーマ (曲・アイドルの色) をそのまま継ぐ。 */
+/* コミュニティのタグ: 実体の色の線 (タグ自身の色は data-theme="tag:<id>")。 */
 .tag--community {
   gap: var(--sp2);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--accent);
   color: var(--accent-ink);
 }
 .tag--community.tag--official {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
 }
-
-/* 全員曲と衣装。他の札 (ユニット表記・カバー・初披露) がアクセント色を使うので、
-   こちらは地の色で置く。同じ行に並ぶので、色まで同じだと種類の違いが読めない。 */
-.tag--all,
-.tag--costume,
-.tag--sale {
-  background: var(--ds-fill);
-  color: var(--ds-ink2);
-}
-.tag--cover {
-  background: color-mix(in srgb, var(--ds-pick) 14%, transparent);
-  color: var(--ds-pick-ink);
-}
+/* 主演 = 墨の塗り。 */
 .tag--lead {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
 }
-/* 初披露。曲の色の薄い地に、読める側の色。 */
+/* 初披露 = 墨の線 (attention)。 */
 .tag--first {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--accent-ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-ink);
+  color: var(--ds-ink);
 }
+/* ゲスト = 灰の線。 */
 .tag--guest {
   background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-ink2);
   color: var(--ds-ink2);
-  box-shadow: inset 0 0 0 1px var(--ds-ink3);
 }
 /* --- 衣装 (公演ページの脇) ---------------------------------------------
    画像は持てないので (版権物を配らない方針)、名前・帰属・どこで着たかの
@@ -927,7 +821,7 @@ a.chip:hover {
   display: flex;
   gap: var(--sp1);
   padding: 4px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--ds-fill);
   overflow-x: auto;
   scrollbar-width: none;
@@ -942,7 +836,7 @@ a.chip:hover {
 }
 .segmented a {
   padding: 8px 16px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   font-size: var(--fs-subhead);
   font-weight: 700;
   color: var(--ds-ink2);
@@ -1007,7 +901,7 @@ a.chip:hover {
   position: relative;
 }
 .fmenu__summary {
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--ds-surface);
   box-shadow: inset 0 0 0 1px var(--ds-line);
   padding: 9px 16px;
@@ -1085,22 +979,17 @@ a.chip:hover {
   flex-direction: column;
   gap: var(--sp3);
   padding: var(--sp5);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   background: var(--ds-surface);
-  box-shadow: var(--ds-shadow1);
+  box-shadow: var(--ds-surface-edge);
 }
 a.stat-tile:hover {
   background: var(--ds-surface2);
 }
 .stat-tile__icon {
-  inline-size: 30px;
-  block-size: 30px;
-  border-radius: 9px;
-  background: var(--chip-bg);
-  color: var(--chip-text);
-  display: grid;
-  place-items: center;
+  color: var(--accent-ink);
   font-size: var(--fs-callout);
+  line-height: 1;
 }
 .stat-tile__value {
   display: flex;
@@ -1180,15 +1069,13 @@ a.stat-strip__item:hover {
   align-items: center;
   gap: var(--sp5);
   padding: var(--sp5) var(--sp6);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-card);
   background: var(--ds-surface);
-  box-shadow: var(--ds-shadow1);
+  box-shadow: var(--ds-surface-edge);
   overflow: hidden;
-  transition: transform 160ms ease, box-shadow 160ms ease;
 }
 .entry-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--ds-shadow2);
+  background: var(--ds-surface2);
 }
 /* 中身は短縮名 (`765AS` / `シャニマス`) で、最長 5 文字。
    **正方形に押し込めない。** 44px 角に入れていた頃は 7/9 が枠から溢れ、
@@ -1196,19 +1083,22 @@ a.stat-strip__item:hover {
    横に伸びる錠剤にして、1 行で必ず収める。 */
 /* ブランド色の面そのものを札にする。文字は on-accent (地に対して読める側を Rust が導出済み)。 */
 .entry-card__icon {
-  min-inline-size: 52px;
-  block-size: 52px;
-  padding-inline: var(--sp3);
-  border-radius: 14px;
-  background: var(--accent);
-  color: var(--on-accent);
+  flex: none;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 50%;
+  background: var(--ds-ticket);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--accent-ink);
   display: grid;
   place-items: center;
+  padding: 4px;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--fs-footnote);
+  line-height: 1;
   white-space: nowrap;
-  flex: none;
+  overflow: hidden;
 }
 .entry-card__body {
   min-width: 0;
@@ -1389,7 +1279,7 @@ a.rank-row:hover {
 .forecast__note {
   align-self: flex-start;
   padding: 4px 12px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--ds-fill);
   font-size: var(--fs-caption);
   font-weight: 700;
@@ -1407,7 +1297,7 @@ a.rank-row:hover {
 }
 .forecast__reason {
   padding: 1px 8px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--tint);
   color: var(--chip-text);
   font-size: var(--fs-caption2);
@@ -1602,7 +1492,7 @@ a.tl-list__row:hover {
 }
 .tl-list__chip {
   padding: 3px 10px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--tint);
   color: var(--chip-text);
   font-size: var(--fs-caption);
@@ -1718,7 +1608,7 @@ a.labeled-row .labeled-row__value {
 .hero__brand {
   display: inline-flex;
   padding: 4px 12px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--tint);
 }
 .hero__brand:hover {
@@ -1962,8 +1852,8 @@ a.labeled-row .labeled-row__value {
   align-items: center;
   gap: var(--sp3);
   padding-inline: var(--sp5);
-  border-radius: var(--r-md);
-  border: 1.5px solid var(--ds-ink);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ds-line);
   background: var(--ds-surface);
 }
 /* 検索欄の輪郭は base.css の 1 つのフォーカスリング規則が描く (枠の色だけでは 1.9:1 で見えない)。 */
@@ -1976,7 +1866,7 @@ a.labeled-row .labeled-row__value {
 .search-box__input {
   flex: 1;
   min-width: 0;
-  padding: 16px 0;
+  padding: 13px 0;
   border: 0;
   background: transparent;
   color: var(--ds-ink);
@@ -1995,10 +1885,10 @@ a.labeled-row .labeled-row__value {
 }
 .search-box__btn {
   flex: none;
-  min-block-size: 56px;
+  min-block-size: 50px;
   padding: 0 var(--sp7);
   border: 0;
-  border-radius: var(--r-md);
+  border-radius: var(--r-ctl-lg);
   background: var(--ds-sys);
   color: var(--ds-on-sys);
   font: inherit;
@@ -2016,7 +1906,7 @@ a.labeled-row .labeled-row__value {
   margin: 0;
   padding: 3px;
   border: 0;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--ds-fill);
   align-self: center;
 }
@@ -2024,7 +1914,7 @@ a.labeled-row .labeled-row__value {
   display: flex;
   align-items: center;
   padding: 8px 14px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   font-size: var(--fs-footnote);
   font-weight: 600;
   color: var(--ds-ink2);
@@ -2159,7 +2049,7 @@ a.labeled-row .labeled-row__value {
   align-items: center;
   gap: var(--sp2);
   padding: 9px var(--sp5);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   font-size: var(--fs-footnote);
   font-weight: 700;
   background: var(--ds-sys);
@@ -2635,7 +2525,7 @@ a.labeled-row .labeled-row__value {
   align-items: baseline;
   gap: 6px;
   padding: 8px 16px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   background: var(--ds-surface);
   box-shadow: inset 0 0 0 1px var(--ds-line);
   font-size: var(--fs-footnote);
@@ -2689,17 +2579,18 @@ a.labeled-row .labeled-row__value {
 .month-group__title {
   display: flex;
   align-items: baseline;
-  gap: 2px;
+  gap: 3px;
   font-family: var(--font-body);
 }
 .month-group__num {
-  font-size: 2.5rem;
+  font-size: var(--num-date);
   font-weight: 700;
   line-height: 1;
 }
 .month-group__unit {
-  font-size: var(--fs-subhead);
+  font-size: var(--fs-footnote);
   font-weight: 700;
+  color: var(--ds-ink2);
 }
 /* 年は紙面の柱: 細身の数字を大きく。吸着はしない (大きな字が行に被さる)。 */
 .year-group__title {
@@ -2714,7 +2605,7 @@ a.labeled-row .labeled-row__value {
 }
 @media (min-width: 44rem) {
   .year-group__title {
-    font-size: 3.5rem;
+    font-size: 3rem;
   }
 }
 
@@ -2888,7 +2779,7 @@ a.labeled-row .labeled-row__value {
   background: var(--ds-surface);
   border: 0;
   box-shadow: inset 0 0 0 1px var(--ds-line);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-ctl-sm);
   padding: var(--sp3) var(--sp4);
   cursor: pointer;
   flex: none;
