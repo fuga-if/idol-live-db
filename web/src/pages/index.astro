@@ -88,22 +88,34 @@ const [featured, ...restUpcoming] = home.upcoming;
   </Section>
 
   <section class="cta" aria-labelledby="home-app">
-    <img
-      class="cta__icon"
-      src="/logo-mark.png"
-      alt=""
-      width="64"
-      height="64"
-      loading="lazy"
-      decoding="async"
-    />
-    <div class="cta__body">
-      <h2 class="cta__title" id="home-app">アプリで、もっと</h2>
-      <p class="lede lede--small">{home.appNote}</p>
-      <p class="cta__actions">
-        <a class="btn" href={home.app.appStoreUrl}>App Store で見る</a>
-        <a class="btn btn--ghost" href={home.app.repositoryUrl}>GitHub でデータに協力する</a>
-      </p>
+    <div class="cta__head">
+      <img
+        class="cta__icon"
+        src="/logo-mark.png"
+        alt=""
+        width="48"
+        height="48"
+        loading="lazy"
+        decoding="async"
+      />
+      <div class="cta__body">
+        <h2 class="cta__title" id="home-app">アプリで、もっと</h2>
+        <p class="lede lede--small">{home.appNote}</p>
+      </div>
     </div>
+    <ul class="cta__links">
+      <li>
+        <a class="cta__link" href={home.app.appStoreUrl}>
+          <span class="u-underline-hover">App Store で見る</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+      </li>
+      <li>
+        <a class="cta__link" href={home.app.repositoryUrl}>
+          <span class="u-underline-hover">GitHub でデータに協力する</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+      </li>
+    </ul>
   </section>
 </BaseLayout>

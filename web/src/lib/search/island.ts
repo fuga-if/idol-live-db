@@ -16,6 +16,7 @@ import type { SearchManifest } from "../schema/SearchManifest";
 import type { SearchShard } from "../schema/SearchShard";
 import type { SearchShardMeta } from "../schema/SearchShardMeta";
 import type { SearchRow } from "../schema/SearchRow";
+import type { RefKind } from "../schema/RefKind";
 
 const DEBOUNCE_MS = 80;
 /** 歌詞は Worker (D1) を叩くので、打鍵ごとには飛ばさない。 */
@@ -237,7 +238,11 @@ function init({ form, input, status, results, fallback, lyricsSearchUrl, modes, 
  * 結果の 1 区画の器 (見出し + 行を入れる器)。見出しの形とクラスは `SectionHeader.astro` と同じ。
  * 名前の検索と歌詞の検索で同じものを使う。
  */
-function resultSection(title: string, count: number): { el: HTMLElement; list: HTMLUListElement } {
+function resultSection(
+  title: string,
+  count: number,
+  kind: RefKind,
+): { el: HTMLElement; list: HTMLUListElement } {
   const el = document.createElement("section");
   el.className = "section";
   const head = document.createElement("div");
@@ -251,19 +256,20 @@ function resultSection(title: string, count: number): { el: HTMLElement; list: H
   head.append(h, n);
 
   const list = document.createElement("ul");
-  list.className = "card";
+  // ライブは半券の行を空けて並べる器、それ以外は面に行を並べて区切り線を引く器 (一覧ページと同じ)。
+  list.className = kind === "event" ? "stub-list" : "card";
   el.append(head, list);
   return { el, list };
 }
 
 /** 歌詞検索の結果 1 区画。行は名前の検索と同じ骨格に、一致箇所の窓を 1 本添える。 */
 function lyricsSection(hits: LyricsHit[], rows: Map<string, SearchRow>, songs: Shard): HTMLElement {
-  const { el, list } = resultSection("歌詞", hits.length);
+  const { el, list } = resultSection("歌詞", hits.length, "song");
   for (const hit of hits) {
     const row = rows.get(hit.songId)!;
     const li = item(row, songs);
     const first = hit.snippets[0];
-    if (first) li.querySelector(".row__body")?.append(snippet(first));
+    if (first) li.querySelector(".list-row__body")?.append(snippet(first));
     list.append(li);
   }
   return el;
@@ -272,7 +278,7 @@ function lyricsSection(hits: LyricsHit[], rows: Map<string, SearchRow>, songs: S
 /** 一致箇所の窓。一致した部分だけ <mark> で示す。 */
 function snippet(s: { snippet: string; matchStart: number; matchLength: number }): HTMLElement {
   const p = document.createElement("span");
-  p.className = "row__meta search-snippet";
+  p.className = "list-row__sub search-snippet";
   const chars = Array.from(s.snippet);
   const before = chars.slice(0, s.matchStart).join("");
   const match = chars.slice(s.matchStart, s.matchStart + s.matchLength).join("");
@@ -317,7 +323,7 @@ function render(results: HTMLElement, groups: readonly Group[], total: number): 
 }
 
 function section(g: Group): HTMLElement {
-  const { el, list } = resultSection(g.shard.meta.label, g.total);
+  const { el, list } = resultSection(g.shard.meta.label, g.total, g.shard.meta.kind);
   for (const row of g.hits) list.append(item(row, g.shard));
 
   if (g.total > g.hits.length) {
@@ -329,41 +335,61 @@ function section(g: Group): HTMLElement {
   return el;
 }
 
-/** 結果の 1 行。一覧の行 (`DatedRow.astro`) と同じ骨格・クラスで描く (見た目を 2 つ持たない)。 */
+/**
+ * 結果の 1 行。一覧ページの行と同じクラスで描く (見た目を 2 つ持たない)。
+ * ライブは半券の行 (`StubRow.astro`)。索引に日付は無く、補助表記 (`s` = 年) を日付欄に置く。
+ * それ以外は行の共通の形 (`ListRow.astro`)。
+ */
 function item(row: SearchRow, shard: Shard): HTMLLIElement {
   const li = document.createElement("li");
-  const a = document.createElement("a");
-  a.className = "row row--bar";
   // `k` は Rust が path_key で安全化したキー。encode は配管であって規則ではない。
-  a.href = `${shard.body.pathPrefix}${encodeURIComponent(row.k)}/`;
-
-  const body = document.createElement("span");
-  body.className = "row__body";
-  const title = document.createElement("span");
-  title.className = "row__title";
-  title.textContent = row.n;
-  body.append(title);
-  if (row.s) {
-    const meta = document.createElement("span");
-    meta.className = "row__meta";
-    const sub = document.createElement("span");
-    sub.className = "row__meta-item";
-    sub.textContent = row.s;
-    meta.append(sub);
-    body.append(meta);
-  }
-
-  const trailing = document.createElement("span");
-  trailing.className = "row__trailing";
-  const chev = document.createElement("span");
-  chev.className = "chevron";
-  chev.setAttribute("aria-hidden", "true");
-  chev.textContent = "›";
-  trailing.append(chev);
-
-  a.append(body, trailing);
-  li.append(a);
+  const href = `${shard.body.pathPrefix}${encodeURIComponent(row.k)}/`;
+  li.append(shard.meta.kind === "event" ? stubRow(row, href) : listRow(row, href));
   return li;
+}
+
+function make<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  e.className = className;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function listRow(row: SearchRow, href: string): HTMLAnchorElement {
+  const a = make("a", "list-row list-row--nobar");
+  a.href = href;
+  const body = make("span", "list-row__body");
+  body.append(make("span", "list-row__title u-underline-hover", row.n));
+  if (row.s) {
+    const sub = make("span", "list-row__sub");
+    sub.append(make("span", "", row.s));
+    body.append(sub);
+  }
+  a.append(body, make("span", "list-row__trailing"));
+  return a;
+}
+
+function stubRow(row: SearchRow, href: string): HTMLAnchorElement {
+  const a = make("a", "stub");
+  a.href = href;
+  const date = make("span", "stub__date");
+  if (row.s) {
+    const big = make("span", "stub__big num num--date", row.s);
+    if (row.s.length > 3) big.dataset.long = "";
+    date.append(big);
+  } else {
+    date.append(make("span", "stub__none", "未定"));
+  }
+  const perf = make("span", "stub__perf");
+  perf.setAttribute("aria-hidden", "true");
+  const body = make("span", "stub__body");
+  body.append(make("span", "stub__title u-underline-hover", row.n));
+  a.append(date, perf, body);
+  return a;
 }
 
 async function load(): Promise<Loaded> {

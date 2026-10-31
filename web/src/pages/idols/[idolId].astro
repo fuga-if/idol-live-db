@@ -1,14 +1,13 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import Chip from "../../components/Chip.astro";
+import DetailHead from "../../components/DetailHead.astro";
+import DetailRow from "../../components/DetailRow.astro";
+import StubRow from "../../components/StubRow.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
-import DatedRow from "../../components/DatedRow.astro";
-import Count from "../../components/Count.astro";
 import RefList from "../../components/RefList.astro";
 import StatStrip from "../../components/StatStrip.astro";
-import RankingRow from "../../components/RankingRow.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
 import { page, pathsFor } from "../../lib/data";
@@ -18,32 +17,34 @@ export const getStaticPaths = () => pathsFor("idol", "idolId");
 
 const idol = page<IdolPage>(Astro.props.data);
 const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
+const multiShelf = idol.songSections.length > 1;
 ---
 
 {/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
 <DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
-  <section class="hero" slot="hero" aria-labelledby="idol-title">
-    <div class="hero__body">
-      {idol.brand && <p class="hero__eyebrow">{idol.brand.name}</p>}
-      <h1 class="hero__title" id="idol-title">{idol.name}</h1>
-      {idol.nameKana && <p class="hero__kana">{idol.nameKana}</p>}
-      {idol.currentVoiceActor && <p class="lede">CV: {idol.currentVoiceActor}</p>}
-      <div class="hero__meta">
-        {idol.brands.map((b) => (
-          <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
-        ))}
-      </div>
-      {idol.description && <p class="lede">{idol.description}</p>}
-      <StatStrip items={idol.statTiles} label="このアイドルの数" />
-    </div>
-  </section>
+  <Fragment slot="hero">
+    <DetailHead imprint={["IDOL", idol.brand?.name]} title={idol.name} id="idol-title" kana={idol.nameKana}>
+      <Fragment slot="sub">
+        {idol.currentVoiceActor && <p class="dhead__cv">CV: {idol.currentVoiceActor}</p>}
+        {idol.description && <p class="dhead__note">{idol.description}</p>}
+      </Fragment>
+      <Fragment slot="badges">
+        {
+          idol.brands.map((b) => (
+            <a class="badge badge--themed" data-theme={b.themeKey} href={b.path}>
+              {b.name}
+            </a>
+          ))
+        }
+      </Fragment>
+    </DetailHead>
+    <StatStrip items={idol.statTiles} label="このアイドルの数" />
+  </Fragment>
 
   {
     idol.tags.length > 0 && (
       <Section id="idol-tags" title="みんなのタグ">
-        <div class="card card__pad">
-          <CommunityTags tags={idol.tags} />
-        </div>
+        <CommunityTags tags={idol.tags} />
       </Section>
     )
   }
@@ -81,7 +82,7 @@ const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
   {
     idol.units.length > 0 && (
       <Section slot="aside" id="idol-units" title="所属ユニット" count={idol.units.length}>
-        <RefList refs={idol.units} label="所属ユニット" />
+        <RefList refs={idol.units} variant="neutral" label="所属ユニット" />
       </Section>
     )
   }
@@ -91,39 +92,40 @@ const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
       idol.songsEmpty ? (
         <EmptyState {...idol.songsEmpty} />
       ) : (
-        <div class="shelves">
-          {/* 棚の切替 = ページ内リンク (JS なし)。棚の並びと見出しはアプリの持ち歌と同じ (Rust)。 */}
-          {idol.songSections.length > 1 && (
-            <nav class="shelf-nav" aria-label="持ち曲の種類">
-              {idol.songSections.map((sec) => (
-                <a href={`#${sec.anchor}`}>
-                  {sec.shortHeading}
-                  <span class="u-num">{sec.songs.length}</span>
-                </a>
-              ))}
-            </nav>
-          )}
-          {idol.songSections.map((sec) => (
-            <section class="shelf" aria-labelledby={sec.anchor}>
-              <h3 class="shelf__title" id={sec.anchor}>
-                {sec.heading}
-                <span class="shelf__count u-num">{sec.songs.length}</span>
-              </h3>
-              <ListContainer as="ul">
-                {sec.songs.map((s) => (
-                  <li>
-                    {/* 披露回数は Rust が副題に畳んでいる (`N 回披露`)。末尾に重ねて出さない。 */}
-                    <DatedRow
-                      title={s.song.name}
-                      href={s.song.path}
-                      themeKey={s.song.themeKey}
-                      meta={[s.subtitle]}
-                    />
-                  </li>
-                ))}
-              </ListContainer>
-            </section>
+        <div class:list={["shelves", multiShelf && "tabset"]}>
+          {/* 棚の切替 = ImasTabs。ラジオ + 兄弟セレクタで切り替えるので JS は要らない
+              (CSS が無ければ全部の棚が縦に並ぶ)。棚の並びと見出しはアプリの持ち歌と同じ (Rust)。 */}
+          {multiShelf && idol.songSections.map((_, i) => (
+            <input class="tabset__input" type="radio" name="idol-shelf" id={`shelf-tab-${i}`} checked={i === 0} />
           ))}
+          {multiShelf && (
+            <div class="dtabs" role="group" aria-label="持ち曲の種類">
+              {idol.songSections.map((sec, i) => (
+                <label for={`shelf-tab-${i}`}>
+                  <span class="dtabs__name">{sec.shortHeading}</span>
+                  <span class="dtabs__sub num">{sec.songs.length}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div class="tabset__panels">
+            {idol.songSections.map((sec) => (
+              <section class="shelf" aria-labelledby={sec.anchor}>
+                <h3 class:list={["shelf__title", multiShelf && "u-visually-hidden"]} id={sec.anchor}>
+                  {sec.heading}
+                  <span class="shelf__count num">{sec.songs.length}</span>
+                </h3>
+                <ListContainer as="ul">
+                  {sec.songs.map((s) => (
+                    <li>
+                      {/* 披露回数は Rust が副題に畳んでいる (`N 回披露`)。末尾に重ねて出さない。 */}
+                      <DetailRow artwork={s.song} title={s.song.name} sub={s.subtitle} href={s.song.path} themeKey={s.song.themeKey} />
+                    </li>
+                  ))}
+                </ListContainer>
+              </section>
+            ))}
+          </div>
         </div>
       )
     }
@@ -135,12 +137,11 @@ const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
         <ListContainer as="ol">
           {idol.performedSongs.map((s, i) => (
             <li>
-              <RankingRow
+              <DetailRow
                 rank={i + 1}
-                artwork
+                artwork={s.song}
                 title={s.song.name}
                 sub={s.subtitle}
-                artworkUrl={s.song.artworkUrl}
                 metric={s.times}
                 href={s.song.path}
                 themeKey={s.song.themeKey}
@@ -155,21 +156,20 @@ const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
   {
     idol.shows.length > 0 && (
       <Section id="idol-shows" title="出演公演" count={idol.shows.length}>
-        <ListContainer as="ul">
+        <ul class="stub-list">
           {idol.shows.map((s) => (
             <li>
-              <DatedRow
-                badge={s.dateBadge}
-                title={s.event.name}
-                href={s.show.path}
-                themeKey={s.show.themeKey}
-                meta={[s.subtitle]}
-              >
-                {s.songCount > 0 && <Count slot="trailing" strong value={s.songCount} unit="曲" />}
-              </DatedRow>
+              <StubRow badge={s.dateBadge} title={s.event.name} href={s.show.path} themeKey={s.show.themeKey} meta={[s.subtitle]}>
+                {s.songCount > 0 && (
+                  <span slot="trailing" class="num num--medium">
+                    {s.songCount}
+                    <span class="num__unit">曲</span>
+                  </span>
+                )}
+              </StubRow>
             </li>
           ))}
-        </ListContainer>
+        </ul>
       </Section>
     )
   }

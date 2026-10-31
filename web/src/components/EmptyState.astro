@@ -9,6 +9,8 @@ const { title, body } = Astro.props;
 ---
 
 <div class="empty">
+  {/* 細い線の記号を薄い灰で 1 つ (色の四角に入れない)。 */}
+  <svg class="empty__glyph" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path><path d="M15 7v10" stroke-dasharray="1.6 2.2"></path></svg>
   <p class="empty__title">{title}</p>
   {body && <p class="empty__body">{body}</p>}
   <slot />

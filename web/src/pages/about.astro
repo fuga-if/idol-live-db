@@ -24,16 +24,23 @@ const about = page<AboutPage>(routeData("about", "/about/"));
   {
     about.sections.map((s, i) => (
       <Section id={`about-s${i}`} title={s.heading}>
-        <div class="card card__pad u-stack">
-          {s.paragraphs.map((p) => (
-            <p>{p}</p>
-          ))}
+        <div class="card about-card">
+          <div class="card__pad u-stack">
+            {s.paragraphs.map((p) => (
+              <p>{p}</p>
+            ))}
+          </div>
           {s.links.length > 0 && (
-            <p class="u-row">
+            <ul class="about-links">
               {s.links.map((l) => (
-                <a class="btn btn--ghost" href={l.href}>{l.label}</a>
+                <li>
+                  <a class="about-link" href={l.href}>
+                    <span class="u-underline-hover">{l.label}</span>
+                    <span class="chevron" aria-hidden="true">›</span>
+                  </a>
+                </li>
               ))}
-            </p>
+            </ul>
           )}
         </div>
       </Section>

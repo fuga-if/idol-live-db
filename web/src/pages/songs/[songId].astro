@@ -2,16 +2,14 @@
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
 import Artwork from "../../components/Artwork.astro";
-import Chip from "../../components/Chip.astro";
-import TagChip from "../../components/TagChip.astro";
+import DetailHead from "../../components/DetailHead.astro";
+import DetailRow from "../../components/DetailRow.astro";
+import StubRow from "../../components/StubRow.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
 import SongLyrics from "../../components/SongLyrics.astro";
 import RefList from "../../components/RefList.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
-import RankingRow from "../../components/RankingRow.astro";
-import DatedRow from "../../components/DatedRow.astro";
-import Count from "../../components/Count.astro";
 import Fold from "../../components/Fold.astro";
 import StatStrip from "../../components/StatStrip.astro";
 import { setlistAnchorId } from "../../lib/anchors";
@@ -26,45 +24,62 @@ const song = page<SongPage>(Astro.props.data);
 
 {/* 電話では脇 (基本情報・クレジット・その他の歌唱者) より本体 (歌詞・披露履歴) を先に。 */}
 <DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app} asideAfterMain>
-  <section class="hero" slot="hero" aria-labelledby="song-title">
-    <Artwork title={song.title} artworkUrl={song.artworkUrl} size="hero" />
-    <div class="hero__body">
-      {song.songTypeLabel && <p class="hero__eyebrow">{song.songTypeLabel}</p>}
-      <h1 class="hero__title" id="song-title">{song.title}</h1>
-      {song.titleKana && <p class="hero__kana">{song.titleKana}</p>}
-      {/* 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。アプリの曲詳細と同じく曲名の下に 1 文。 */}
-      {song.note && <p class="hero__note">{song.note}</p>}
-      {/* 全体曲は 49 人。セトリの行と同じ畳み (色の点 + 人数、開けば全員)。 */}
-      {
-        song.originalArtists.length > 0 && (
-          <Fold label="歌唱アイドル" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
-            <RefList refs={song.originalArtists} label="歌唱アイドル" />
-          </Fold>
-        )
-      }
-      <div class="hero__meta">
+  <Fragment slot="hero">
+    {/* ジャケを左、右に種類・題・歌唱者・配信日 (DESIGN_SYSTEM §2.2)。画像が無ければ色の面 + 曲名。 */}
+    <DetailHead imprint={["SONG", song.brand?.name]} title={song.title} id="song-title" kana={song.titleKana}>
+      <Artwork slot="lead" title={song.title} artworkUrl={song.artworkUrl} size="hero" />
+      <Fragment slot="sub">
+        {/* 曲の補足 (「ミリシタ 1 周年記念楽曲」など)。アプリの曲詳細と同じく曲名の下に 1 文。 */}
+        {song.note && <p class="dhead__note">{song.note}</p>}
+        {
+          song.parentNote && (
+            <p class="dhead__note">
+              {song.parentNote.before}<a class="u-underline-hover" href={song.parentNote.link.path}>{song.parentNote.link.name}</a>{song.parentNote.after}
+            </p>
+          )
+        }
+        {/* 全体曲は 49 人。セトリの行と同じ畳み (ペンライトの棒 + 人数、開けば全員)。 */}
+        {
+          song.originalArtists.length > 0 && (
+            <Fold label="歌唱アイドル" themeKeys={song.originalArtists.map((r) => r.themeKey)}>
+              <RefList refs={song.originalArtists} variant="neutral" label="歌唱アイドル" />
+            </Fold>
+          )
+        }
+      </Fragment>
+      <Fragment slot="badges">
+        {song.songTypeLabel && <span class="badge">{song.songTypeLabel}</span>}
         {/* 合同曲はその印を先に。続く札が「参加ブランド」だと読めるようにする。 */}
-        {song.collabLabel && <TagChip text={song.collabLabel} kind="all" />}
+        {song.collabLabel && <span class="badge">{song.collabLabel}</span>}
         {/* KAMISABI (音楽カードゲーム) の収録札。 */}
-        {song.kamisabiLabel && <TagChip text={song.kamisabiLabel} kind="guest" />}
-        {song.brand && <Chip text={song.brand.name} href={song.brand.path} variant="themed" themeKey={song.brand.themeKey} />}
-        {song.jointBrands.map((b) => (
-          <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
-        ))}
-        {song.unit && <Chip text={song.unit.name} href={song.unit.path} variant="themed" themeKey={song.unit.themeKey} />}
-        {!song.unit && song.unitLabel && <Chip text={song.unitLabel} />}
-        {song.appleMusicUrl && <a class="btn btn--ghost" href={song.appleMusicUrl}>Apple Music</a>}
-      </div>
-      {
-        song.parentNote && (
-          <p class="u-muted">
-            {song.parentNote.before}<a class="u-underline-hover" href={song.parentNote.link.path}>{song.parentNote.link.name}</a>{song.parentNote.after}
-          </p>
-        )
-      }
-      <StatStrip items={song.statTiles} label="この曲の数" />
-    </div>
-  </section>
+        {song.kamisabiLabel && <span class="badge badge--guest">{song.kamisabiLabel}</span>}
+        {
+          song.brand && (
+            <a class="badge badge--themed" data-theme={song.brand.themeKey} href={song.brand.path}>
+              {song.brand.name}
+            </a>
+          )
+        }
+        {
+          song.jointBrands.map((b) => (
+            <a class="badge badge--themed" data-theme={b.themeKey} href={b.path}>
+              {b.name}
+            </a>
+          ))
+        }
+        {
+          song.unit && (
+            <a class="badge badge--themed" data-theme={song.unit.themeKey} href={song.unit.path}>
+              {song.unit.name}
+            </a>
+          )
+        }
+        {!song.unit && song.unitLabel && <span class="badge">{song.unitLabel}</span>}
+      </Fragment>
+      {song.appleMusicUrl && <a class="btn btn--ghost dhead__action" href={song.appleMusicUrl}>Apple Music</a>}
+    </DetailHead>
+    <StatStrip items={song.statTiles} label="この曲の数" />
+  </Fragment>
 
   {/* 歌詞とコールガイドはこのページの主目的。111 行の披露履歴の下に置くと見つからない。 */}
   <Section id="song-lyrics" title="歌詞とコールガイド">
@@ -129,26 +144,31 @@ const song = page<SongPage>(Astro.props.data);
       song.historyEmpty ? (
         <EmptyState {...song.historyEmpty} />
       ) : (
-        <ListContainer as="ol">
+        <ol class="stub-list">
           {song.performanceHistory.map((h) => (
             <li>
               {/* 飛び先は公演ページのその曲の行 (曲順が分からなければ公演の頭)。
                   誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
-              <DatedRow
+              <StubRow
                 badge={h.dateBadge}
                 title={h.event.name}
                 href={h.number > 0 ? `${h.show.path}#${setlistAnchorId(h.number)}` : h.show.path}
                 themeKey={h.show.themeKey}
                 meta={[h.placeDisplay, h.performersDisplay]}
               >
-                <span slot="trailing" class="u-row">
-                  <span class="u-dim">{h.ordinalLabel}</span>
-                  {h.number > 0 && <Count strong value={h.number} unit="曲目" />}
+                <span slot="trailing" class="stub-trail">
+                  <span class="stub-trail__label">{h.ordinalLabel}</span>
+                  {h.number > 0 && (
+                    <span class="num num--medium">
+                      {h.number}
+                      <span class="num__unit">曲目</span>
+                    </span>
+                  )}
                 </span>
-              </DatedRow>
+              </StubRow>
             </li>
           ))}
-        </ListContainer>
+        </ol>
       )
     }
   </Section>
@@ -159,7 +179,7 @@ const song = page<SongPage>(Astro.props.data);
         <ListContainer as="ol">
           {song.frequentSingers.map((s, i) => (
             <li>
-              <RankingRow
+              <DetailRow
                 rank={i + 1}
                 title={s.idol.name}
                 sub={s.idol.sub}
@@ -180,12 +200,11 @@ const song = page<SongPage>(Astro.props.data);
         <ListContainer as="ol">
           {song.coOccurring.map((c, i) => (
             <li>
-              <RankingRow
+              <DetailRow
                 rank={i + 1}
-                artwork
+                artwork={c.song}
                 title={c.song.name}
                 sub={c.song.sub}
-                artworkUrl={c.song.artworkUrl}
                 metric={c.together}
                 href={c.song.path}
                 themeKey={c.song.themeKey}

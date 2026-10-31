@@ -1,0 +1,92 @@
+---
+import type { DateBadge } from "../lib/schema/DateBadge";
+/**
+ * 詳細の頭 (アプリの `ImasHero` / `ImasMasthead`、DESIGN_SYSTEM §2.2・§6.9)。
+ * 全詳細ページで同じ形: 頭の印字 → 題 (極太) → 副題 (よみ・CV・会場と日付) → 札。
+ * 地は紙面のまま。色の地は敷かない。実体の色は題の左の帯 (`.lead-bar`) の 1 か所だけ。
+ *
+ * - 印字は `imprint` の各語を中黒でつなぐ (`LIVE` / `SETLIST · Day2` / `SONG · ブランド名`)。
+ *   日付があれば `Ticket.astro` と同じく `DateBadge.stub` の 3 段 (`NOV 07 SAT`) を続ける。
+ *   月の略号も曜日も Rust が決めたもので、ここでは切らない・求めない。
+ * - 曲のジャケは `lead` スロットで左に置く。
+ * - 副題は `sub`、札は `badges`、頭の下に続けたいもの (公演の切替など) は既定のスロット。
+ */
+interface Props {
+  imprint: readonly (string | null | undefined)[];
+  /** 日付の印字。年月だけ・年だけの日付もコアが畳んだ 3 段をそのまま使う。 */
+  date?: DateBadge | null;
+  title: string;
+  id: string;
+  kana?: string | null;
+  /** 題の左の帯 (実体の色) を出すか。色を持たないページ (neutral) では出さない。 */
+  bar?: boolean;
+  /** 題を別のリンクにする (公演ページの題 = ライブ名)。 */
+  titleHref?: string;
+}
+const { imprint, date, title, id, kana, bar = true, titleHref } = Astro.props;
+const parts = imprint.filter((p): p is string => typeof p === "string" && p !== "");
+const stub = date?.stub ?? null;
+const stubText = stub ? [stub.top, stub.big, stub.bottom].filter((s) => s !== "").join(" ") : "";
+// 年月だけ・年だけの日付は上段がすでに年なので、年を重ねない。
+const yearText = date && stub && date.year && stub.top !== date.year ? date.year : "";
+const hasLead = Astro.slots.has("lead");
+const hasSub = Astro.slots.has("sub");
+const hasBadges = Astro.slots.has("badges");
+const hasAfter = Astro.slots.has("default");
+---
+
+<header class:list={["dhead", hasLead && "dhead--lead"]} aria-labelledby={id}>
+  {
+    hasLead && (
+      <div class="dhead__lead">
+        <slot name="lead" />
+      </div>
+    )
+  }
+  <div class="dhead__body">
+    <p class="dhead__imprint">
+      {
+        parts.map((p, i) => (
+          <>
+            {i > 0 && <span class="imprint dhead__dot" aria-hidden="true"> · </span>}
+            <span class="imprint">{p}</span>
+          </>
+        ))
+      }
+      {
+        stub && (
+          <>
+            {parts.length > 0 && <span class="imprint dhead__dot" aria-hidden="true"> · </span>}
+            <span class="u-visually-hidden">{date!.spoken}</span>
+            <span class="imprint" aria-hidden="true">
+              {stubText}
+              {yearText && ` ${yearText}`}
+            </span>
+          </>
+        )
+      }
+    </p>
+    <div class="dhead__titlerow">
+      {bar && <span class="lead-bar" aria-hidden="true"></span>}
+      <h1 class="dhead__title" id={id}>
+        {titleHref ? <a class="u-underline-hover" href={titleHref}>{title}</a> : title}
+      </h1>
+    </div>
+    {kana && <p class="dhead__kana">{kana}</p>}
+    {
+      hasSub && (
+        <div class="dhead__sub">
+          <slot name="sub" />
+        </div>
+      )
+    }
+    {
+      hasBadges && (
+        <div class="dhead__badges">
+          <slot name="badges" />
+        </div>
+      )
+    }
+    {hasAfter && <slot />}
+  </div>
+</header>

@@ -1,64 +1,56 @@
 ---
-import DatedRow from "./DatedRow.astro";
+import ListRow from "./ListRow.astro";
 import Artwork from "./Artwork.astro";
-import Count from "./Count.astro";
-import TagChip from "./TagChip.astro";
 import type { SongListItem } from "../lib/schema/SongListItem";
 
 /**
- * 楽曲一覧の 1 行 — [ジャケ] [曲名 + 札 / ユニット・歌唱アイドル / 作曲・収録] [初出 ・ 回数 ›]。
+ * 楽曲一覧の 1 行 (アプリの `ImasSongRow`、DESIGN_SYSTEM §5.1)。
  *
- * 表 (曲 × 属性) は列に幅を配ると曲名が「余り」になり、幅によっては 1 文字ずつ縦に潰れた。
- * 行に積めば、どの幅でも曲名が先に幅を取り、属性は折り返すだけで済む。
- * 骨格はライブ・公演の行と同じ `DatedRow` で、先頭が日付ではなくジャケになるだけ。
+ *   [帯 = ブランドの色] [ジャケ 48] [曲名 / 歌唱者 / 日付・札] [N 回]
  *
- * メタは**種類ごとに別の要素**で並べる (文字列で繋がない)。「作曲 …」「収録 …」の語は
- * Rust (`content::composer_credit` / `cd_credit`) が付けたもので、ここは置くだけ。
- * 作曲・収録は「読む」より「引く」ための情報なので、幅があるカードでだけ 3 行目に出す (CSS)。
+ * 列に幅を配る表は曲名が「余り」になり潰れたので、行に積む。曲名が先に幅を取り、
+ * 下段の札は折り返すだけで済む。ジャケが無い曲はブランド色の面 + 曲名 (`Artwork`)。
+ * 札は種類ごとに別の要素 (文字列で繋がない)。語 (「ソロ曲」「作曲 …」「収録 …」) は Rust が付けたもの。
+ * 末尾の披露回数は `.num`。全件ハブ (`light`) は行を ref だけに削ってあるので副題だけを置く。
  */
 interface Props {
   item: SongListItem;
+  light?: boolean;
 }
-const { item } = Astro.props;
-const meta = [item.unitLabel, item.artistsLabel].filter((m): m is string => !!m);
+const { item, light = false } = Astro.props;
+const meta = light
+  ? [item.subtitle]
+  : [item.unitLabel, item.artistsLabel];
+const badges = [item.songTypeLabel, item.collabLabel, item.kamisabiLabel].filter((m): m is string => !!m);
 const credits = [item.composerCredit, item.cdCredit].filter((m): m is string => !!m);
+const hasFoot = !!item.releaseDisplay || badges.length > 0 || credits.length > 0;
 ---
 
-<DatedRow variant="song-row" href={item.ref.path} themeKey={item.ref.themeKey}>
+<ListRow variant="list-row--song" href={item.ref.path} themeKey={item.ref.themeKey} title={item.ref.name} meta={meta}>
   <Artwork slot="lead" title={item.ref.name} artworkUrl={item.ref.artworkUrl} size="sm" />
-  {/* 名前付きスロットに渡す中身は、要素の間の改行と字下げが落とされる。
-      曲名と札の間の空白は見た目の間であり折り返しの位置なので、`{" "}` で書く。 */}
-  <Fragment slot="title">
-    {" "}{item.ref.name}{" "}
-    {item.songTypeLabel && <TagChip text={item.songTypeLabel} kind="all" />}{" "}
-    {/* 合同曲。ブランド別の一覧ではそのブランドの曲に混じって出るので、行で見分けられるように。 */}
-    {item.collabLabel && <TagChip text={item.collabLabel} kind="cover" />}{" "}
-    {/* KAMISABI (音楽カードゲーム) の収録札。 */}
-    {item.kamisabiLabel && <TagChip text={item.kamisabiLabel} kind="guest" />}{" "}
-  </Fragment>
-  <Fragment slot="body">
-    {" "}
-    {
-      meta.length > 0 && (
-        <span class="row__meta">
-          {meta.map((m) => (
-            <span class="row__meta-item">{m}</span>
-          ))}
-        </span>
-      )
-    }{" "}
-    {
-      credits.length > 0 && (
-        <span class="row__meta song-row__credits">
-          {credits.map((m) => (
-            <span class="row__meta-item">{m}</span>
-          ))}
-        </span>
-      )
-    }
-  </Fragment>
-  <Fragment slot="trailing">
-    {item.releaseDate && <span class="song-row__date u-num">{item.releaseDate}</span>}{" "}
-    <Count value={item.performanceCount} unit="回" strong />
-  </Fragment>
-</DatedRow>
+  {
+    hasFoot && (
+      <span slot="foot" class="list-row__foot">
+        {item.releaseDisplay && (
+          <time class="list-row__date" datetime={item.releaseDate ?? undefined}>
+            {item.releaseDisplay}
+          </time>
+        )}
+        {badges.map((b) => (
+          <span class="badge">{b}</span>
+        ))}
+        {credits.map((c) => (
+          <span class="list-row__credit">{c}</span>
+        ))}
+      </span>
+    )
+  }
+  {
+    item.performanceCount !== null && (
+      <span slot="trailing" class="list-row__metric">
+        <span class="num num--medium">{item.performanceCount}</span>
+        <span class="num__unit">回</span>
+      </span>
+    )
+  }
+</ListRow>

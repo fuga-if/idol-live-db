@@ -22,6 +22,7 @@ const { list } = Astro.props;
   total={list.total}
   scope={list.scope}
   filters={list.filters}
+  imprint="LIVES"
 >
   <YearGroups groups={list.groups} empty={list.empty} />
   {/* 入口だけ: 開催済みの最新の年。見出しの文字も Rust。 */}

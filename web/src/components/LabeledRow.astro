@@ -1,6 +1,7 @@
 ---
 /**
- * ImasLabeledRow の Web 版。
+ * ImasValueRow の Web 版 (DESIGN_SYSTEM §5.9)。左に灰の項目名、右に墨の値。
+ * 数字・日付の値 (`mono`) は細長い等幅。色そのものが中身の値 (`swatch`) は先頭に色見本。
  * アプリの「長押しでコピー / タップで展開」は状態を持つので Web には作らない。
  * 長文も省略せずそのまま出す (SEO のため)。
  */
@@ -17,7 +18,8 @@ const Tag = href ? "a" : "div";
 
 <Tag class="labeled-row" href={href ?? undefined}>
   <span class="labeled-row__key">{label}</span>
-  {swatch && <span class="labeled-row__swatch" aria-hidden="true" />}
-  <span class:list={["labeled-row__value", mono && "labeled-row__value--mono"]}>{value}</span>
+  <span class:list={["labeled-row__value", mono && "labeled-row__value--mono"]}>
+    {swatch && <span class="swatch" aria-hidden="true" />}{value}
+  </span>
   {href && <span class="chevron" aria-hidden="true">›</span>}
 </Tag>

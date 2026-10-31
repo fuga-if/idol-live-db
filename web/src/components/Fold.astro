@@ -1,12 +1,11 @@
 ---
-import ColorDot from "./ColorDot.astro";
 import Count from "./Count.astro";
 /**
  * 人の多い並びを畳む (セトリ行の歌唱者、曲ページの歌唱アイドル)。
  *
- * 畳んでも中身は DOM にあり、JS 無しで開ける (<details>)。畳んだ状態でも色の点で
- * 「誰が・何人」を示す。何人を超えたら畳むかは純粋に高さの話で、ここが唯一の閾値。
- * `label` は読み上げ用 (見えるのは点と人数だけなので、何の人数かを添える)。
+ * 畳んでも中身は DOM にあり、JS 無しで開ける (<details>)。畳んだ状態でも実体の色の
+ * 短い縦の棒 (ペンライト) で「誰が・何人」を示す。何人を超えたら畳むかは純粋に高さの話で、
+ * ここが唯一の閾値。`label` は読み上げ用 (見えるのは棒と人数だけなので、何の人数かを添える)。
  * `force` は人数に関わらず畳む (全員曲など、呼び出し側が判断したとき)。
  */
 interface Props {
@@ -26,9 +25,9 @@ const Wrap = folded ? "details" : "div";
       <summary class="fold__summary">
         <slot name="lead" />
         <span class="u-visually-hidden">{label}</span>
-        <span class="fold__dots" aria-hidden="true">
+        <span class="fold__lights" aria-hidden="true">
           {themeKeys.map((k) => (
-            <ColorDot size="md" themeKey={k ?? undefined} />
+            <span class="penlight" data-theme={k ?? undefined} />
           ))}
         </span>
         <Count value={themeKeys.length} unit="人" strong />

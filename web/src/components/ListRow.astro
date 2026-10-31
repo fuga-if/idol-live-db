@@ -1,0 +1,44 @@
+---
+/**
+ * 一覧の行の共通の形 (アプリの `ImasRow`、DESIGN_SYSTEM §5.0)。
+ *
+ *   [帯] [先頭] [題 / 副題 / 下段]                     [末尾]
+ *
+ * 曲・ユニット・会場・タグ・検索結果の行がすべてこれ (検索の島が DOM で組む行も同じクラス)。
+ * 帯は実体 (ブランド・アイドル) の色で、色の持ち場所はここだけ (名前の前に色の点は置かない)。
+ * 中身 (何を副題にし、何を末尾に置くか) は呼び出し側が Rust の項目をそのまま渡す。
+ * ライブ・公演の行は半券の行 (`StubRow`) で、これは使わない。
+ */
+interface Props {
+  href: string;
+  /** 帯の色 (`data-theme`)。`neutral` か無ければ帯を出さない。 */
+  themeKey?: string;
+  title?: string;
+  /** 副題 (灰・1 行)。null / 空は飛ばす。 */
+  meta?: readonly (string | null | undefined)[];
+  /** 行の種類のクラス (`list-row--song`)。 */
+  variant?: string;
+}
+const { href, themeKey, title, meta = [], variant } = Astro.props;
+const metaItems = meta.filter((m): m is string => typeof m === "string" && m !== "");
+const hasBar = !!themeKey && themeKey !== "neutral";
+---
+
+<a class:list={["list-row", variant, !hasBar && "list-row--nobar"]} data-theme={themeKey} href={href}>
+  {hasBar && <span class="lead-bar" aria-hidden="true"></span>}
+  <slot name="lead" />
+  <span class="list-row__body">
+    <span class="list-row__title u-underline-hover"><slot name="title">{title}</slot></span>
+    {
+      metaItems.length > 0 && (
+        <span class="list-row__sub">
+          {metaItems.map((m) => (
+            <span>{m}</span>
+          ))}
+        </span>
+      )
+    }
+    <slot name="foot" />
+  </span>
+  <span class="list-row__trailing"><slot name="trailing" /></span>
+</a>

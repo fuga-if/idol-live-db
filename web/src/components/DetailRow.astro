@@ -1,0 +1,48 @@
+---
+import Artwork from "./Artwork.astro";
+import type { Ref } from "../lib/schema/Ref";
+/**
+ * 詳細ページの中の曲・アイドルの行 (アプリの `ImasSongRow` / `ImasRankingRow` の形、§5.1・§5.7)。
+ * [順位] [行頭の帯 = 実体の色] [ジャケ 48] [題 / 副題] [末尾の数]。
+ * 帯は実体の色をここ 1 か所に出す。名前の前の色の点は置かない。
+ *
+ * 末尾の数は細長い太字の等幅 + 小さい灰の単位。**何を数えるか・副題の文言は Rust の DTO が決めたもの**
+ * をそのまま置く。
+ */
+interface Props {
+  href: string;
+  title: string;
+  sub?: string | null;
+  themeKey?: string;
+  rank?: number;
+  /** 曲のジャケを出す。曲の行だけ渡す。 */
+  artwork?: Ref | null;
+  metric?: number | string | null;
+  unit?: string;
+}
+const { href, title, sub, themeKey, rank, artwork, metric, unit = "回" } = Astro.props;
+const bar = !!themeKey && themeKey !== "neutral";
+---
+
+<a class:list={["drow", rank !== undefined && rank <= 3 && "drow--top"]} data-theme={themeKey} href={href}>
+  {rank !== undefined && <span class="drow__rank num num--medium">{rank}</span>}
+  {bar && <span class="lead-bar drow__bar" aria-hidden="true"></span>}
+  {artwork !== undefined && artwork !== null && <Artwork title={title} artworkUrl={artwork.artworkUrl} size="sm" />}
+  <span class="drow__body">
+    <span class="drow__title u-underline-hover">{title}</span>
+    {sub && <span class="drow__sub">{sub}</span>}
+    <slot />
+  </span>
+  <span class="drow__trailing">
+    <slot name="trailing" />
+    {
+      metric !== undefined && metric !== null && (
+        <span class="drow__metric">
+          <b class="num num--medium">{metric}</b>
+          <span class="num__unit">{unit}</span>
+        </span>
+      )
+    }
+    <span class="chevron" aria-hidden="true">›</span>
+  </span>
+</a>

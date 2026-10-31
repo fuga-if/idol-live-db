@@ -1,1 +1,823 @@
-/* detail.css — 領域ごとの見た目 (venue.css の部品を使って画面を組む)。土台のトークンは tokens.css。 */
+/* =============================================================================
+ * detail.css — 詳細ページ群 (ライブ・公演・曲・アイドル・ユニット・会場・ブランド・コールガイド)
+ * の見た目。venue.css の部品 (.imprint .num .perf .stub .board .badge .lead-bar .penlight) を
+ * 使って画面を組む。土台のトークンは tokens.css。DESIGN_SYSTEM §2.2・§5・§6.7・§8.1・§9。
+ *
+ * 地は紙面のまま。色の地・淡い色のチップは敷かない。実体の色は題の左の帯 (.lead-bar)・
+ * 行頭の帯・ペンライト (.penlight)・タブの下線にだけ出す。
+ * ========================================================================== */
+
+/* --- 詳細の頭 (DetailLayout / DetailHead) -----------------------------------
+   パンくず → 頭の印字 → 題 (極太) → 副題 → 札 → 数 (掲示板)。 */
+.detail-head {
+  gap: var(--sp5);
+}
+.dhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp5) var(--sp7);
+}
+.dhead__lead {
+  flex: none;
+  display: flex;
+}
+/* 曲のジャケは頭の左。右に種類・題・歌唱者。 */
+.dhead__lead .artwork--hero {
+  --artwork-size: 128px;
+}
+@media (min-width: 44rem) {
+  .dhead__lead .artwork--hero {
+    --artwork-size: 176px;
+  }
+}
+.dhead__body {
+  flex: 1 1 16rem;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+}
+.dhead__imprint {
+  display: block;
+}
+.dhead__imprint .imprint {
+  white-space: normal;
+}
+.dhead__titlerow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp3);
+}
+.dhead__titlerow .lead-bar {
+  /* 題の行の高さいっぱい (2 行に折り返せば 2 行ぶん)。 */
+  align-self: stretch;
+}
+.dhead__title {
+  min-inline-size: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(var(--fs-title1), 1.2rem + 2vw, var(--fs-large));
+  font-weight: var(--fw-heading);
+  letter-spacing: -0.01em;
+  line-height: var(--lh-tight);
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+.dhead__title a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14em;
+}
+.dhead__kana {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+/* 副題: よみ・CV・会場と日付・歌唱者。灰の 15px。 */
+.dhead__sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  font-size: var(--fs-subhead);
+  color: var(--ds-ink2);
+}
+.dhead__date {
+  color: var(--ds-ink);
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+}
+.dhead__date.num {
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  line-height: var(--lh-snug);
+}
+.dhead__cv,
+.dhead__note {
+  color: var(--ds-ink);
+  font-size: var(--fs-subhead);
+  max-inline-size: 40em;
+}
+.dhead__places {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp1) var(--sp4);
+  color: var(--ds-ink);
+}
+.dhead__places a {
+  font-weight: 600;
+}
+.dhead__places-sub {
+  color: var(--ds-ink2);
+  font-weight: 500;
+  font-size: var(--fs-footnote);
+}
+.dhead__sub a:not(.badge) {
+  text-decoration: underline;
+  text-decoration-color: var(--ds-ink3);
+  text-underline-offset: 3px;
+}
+.dhead__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2) 6px;
+}
+a.badge:hover {
+  background-color: var(--ds-fill);
+}
+a.badge--positive:hover {
+  background-color: var(--ds-sys);
+  filter: brightness(1.15);
+}
+.dhead__action {
+  align-self: flex-start;
+  margin-block-start: var(--sp2);
+}
+
+/* 事実の 1 行 (開演・会場 …)。項目名は灰、値は墨。 */
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp6);
+}
+.facts__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp3);
+  min-inline-size: 0;
+}
+.facts__label {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.facts__value {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+/* 小見出し (ライブ詳細の出演者の公演名)。 */
+.detail-sub {
+  font-family: var(--font-heading);
+  font-size: var(--fs-callout);
+  font-weight: var(--fw-heading);
+}
+
+/* 囲まない灰の文 (ImasNote)。 */
+.note {
+  font-size: var(--fs-footnote);
+  line-height: var(--lh-snug);
+  color: var(--ds-ink2);
+  max-inline-size: 40em;
+}
+
+/* --- ImasTabs (§8.1) -----------------------------------------------------
+   文字を左から並べ、選んだものは墨 + 下線 2px (実体の色)、ほかは灰。下に細い線。
+   公演の切替 (リンク) と持ち曲の棚 (ラジオ) で同じ見え方。 */
+.dtabs {
+  display: flex;
+  gap: var(--sp7);
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-block-end: 1px solid var(--ds-sep);
+}
+.dtabs::-webkit-scrollbar {
+  display: none;
+}
+.dtabs > a,
+.dtabs > label {
+  flex: 0 0 auto;
+  max-inline-size: min(16rem, 70vw);
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp2);
+  flex-wrap: wrap;
+  padding-block: var(--sp3);
+  margin-block-end: -1px;
+  border-block-end: 2px solid transparent;
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+.dtabs > a:hover,
+.dtabs > label:hover {
+  color: var(--ds-ink);
+}
+.dtabs > a[aria-current="page"] {
+  color: var(--ds-ink);
+  border-block-end-color: var(--accent);
+}
+.dtabs__name {
+  min-inline-size: 0;
+}
+.dtabs__sub {
+  font-size: var(--fs-subhead);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+
+/* 棚の切替: ラジオを前に置き、兄弟セレクタで選んだ棚だけを見せる (JS なし)。
+   ラジオは見えなくする。ラベルが押せる面。CSS が無ければ全部の棚が縦に並ぶ。 */
+.tabset__input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.tabset .tabset__panels > .shelf {
+  display: none;
+}
+.tabset__input:nth-of-type(1):checked ~ .dtabs > :nth-child(1),
+.tabset__input:nth-of-type(2):checked ~ .dtabs > :nth-child(2),
+.tabset__input:nth-of-type(3):checked ~ .dtabs > :nth-child(3),
+.tabset__input:nth-of-type(4):checked ~ .dtabs > :nth-child(4),
+.tabset__input:nth-of-type(5):checked ~ .dtabs > :nth-child(5),
+.tabset__input:nth-of-type(6):checked ~ .dtabs > :nth-child(6) {
+  color: var(--ds-ink);
+  border-block-end-color: var(--ds-ink);
+}
+.tabset__input:nth-of-type(1):checked ~ .tabset__panels > :nth-child(1),
+.tabset__input:nth-of-type(2):checked ~ .tabset__panels > :nth-child(2),
+.tabset__input:nth-of-type(3):checked ~ .tabset__panels > :nth-child(3),
+.tabset__input:nth-of-type(4):checked ~ .tabset__panels > :nth-child(4),
+.tabset__input:nth-of-type(5):checked ~ .tabset__panels > :nth-child(5),
+.tabset__input:nth-of-type(6):checked ~ .tabset__panels > :nth-child(6) {
+  display: flex;
+}
+.tabset__input:nth-of-type(1):focus-visible ~ .dtabs > :nth-child(1),
+.tabset__input:nth-of-type(2):focus-visible ~ .dtabs > :nth-child(2),
+.tabset__input:nth-of-type(3):focus-visible ~ .dtabs > :nth-child(3),
+.tabset__input:nth-of-type(4):focus-visible ~ .dtabs > :nth-child(4),
+.tabset__input:nth-of-type(5):focus-visible ~ .dtabs > :nth-child(5),
+.tabset__input:nth-of-type(6):focus-visible ~ .dtabs > :nth-child(6) {
+  outline: 2px solid var(--ds-sys);
+  outline-offset: 2px;
+}
+
+/* --- 棚 (アイドルの持ち曲: ソロ / ユニット / 全体曲 / カバー) -------------- */
+.shelves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+}
+.shelf__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp2);
+  padding-inline: var(--sp1);
+  font-size: var(--fs-callout);
+}
+.shelf__count {
+  color: var(--ds-ink2);
+  font-weight: 600;
+}
+
+/* --- 項目と値 (ImasValueRow、§5.9) -----------------------------------------
+   紙のカード (.card) に積む。左 15px 灰の項目名、右 15px 墨の値。行の区切りは --ds-sep。 */
+.labeled-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp4);
+  padding: 12px var(--sp5);
+  background: var(--ds-surface);
+  font-size: var(--fs-subhead);
+  line-height: var(--lh-snug);
+}
+.labeled-row__key {
+  flex: none;
+  min-inline-size: 5.5em;
+  max-inline-size: 45%;
+  color: var(--ds-ink2);
+}
+.labeled-row__value {
+  margin-inline-start: auto;
+  min-inline-size: 0;
+  text-align: end;
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+/* 数字・日付は細長い等幅 (.num と同じ書体)。和文が混ざる値でも太字にはしない。 */
+.labeled-row__value--mono {
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.labeled-row__value .swatch {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-inline-end: var(--sp2);
+  inline-size: 14px;
+  block-size: 14px;
+}
+a.labeled-row:hover {
+  background: var(--ds-surface2);
+}
+/* 値が押せるときは値を実体の色に。 */
+a.labeled-row .labeled-row__value {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+a.labeled-row .chevron {
+  flex: none;
+  color: var(--ds-ink3);
+}
+
+/* --- ペンライトの棒 (畳んだ歌唱者の「誰が・何人」) ------------------------- */
+.fold > summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp3);
+  padding: 2px 0;
+}
+.fold > summary:hover .row__count {
+  color: var(--ds-ink);
+}
+.fold__lights {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-inline-size: 28rem;
+}
+.fold > .performers {
+  margin-top: var(--sp3);
+}
+
+/* --- 曲・アイドルの行 (DetailRow、ImasSongRow / ImasRankingRow の形) ------- */
+.drow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  min-block-size: 64px;
+  padding: var(--sp3) var(--sp4);
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+}
+.drow:hover {
+  background: var(--ds-surface2);
+}
+.drow__rank {
+  flex: none;
+  inline-size: 1.75rem;
+  text-align: center;
+  color: var(--ds-ink2);
+}
+.drow--top .drow__rank {
+  color: var(--ds-ink);
+}
+.drow__bar {
+  align-self: stretch;
+  margin-block: 2px;
+}
+.drow__body {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.drow__title {
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+.drow__sub {
+  font-size: var(--fs-footnote);
+  line-height: var(--lh-snug);
+  color: var(--ds-ink2);
+  overflow-wrap: anywhere;
+}
+.drow__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+}
+.drow__metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.drow__when {
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.drow .chevron {
+  color: var(--ds-ink3);
+  font-size: var(--fs-title3);
+  line-height: 1;
+}
+
+/* 半券の行の右端 (披露履歴の「初披露 / N 曲目」)。 */
+.stub-trail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.stub-trail__label {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+
+/* --- 札の補助 ---------------------------------------------------------------
+   この披露限りのユニット表記は長いことがある。折り返して収める。 */
+.badge--wrap {
+  block-size: auto;
+  min-block-size: 20px;
+  padding-block: 3px;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* --- セトリ (ImasSetlistRow、§5.6 / §6.2 .sheet) ---------------------------
+   区切り (本編 / アンコール / 合同ライブのブロック) ごとの <ol> を 1 枚の紙に積む。
+   行の間は切り取り線。行は [曲順] [ジャケ] [題 / 歌唱者 / 札と事実]。 */
+.setlist__section {
+  padding: var(--sp4) var(--sp5) var(--sp3);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  color: var(--ds-ink2);
+}
+.setlist.card > * + * {
+  border-block-start: 2px dashed var(--ds-perforation);
+}
+.setlist__rows > li + li {
+  border-block-start: 2px dashed var(--ds-perforation);
+}
+/* 70 曲 × 歌唱者の行は重い。画面外の行の描画を省く (楽曲一覧と同じ)。 */
+.setlist__rows > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+.setlist__row {
+  display: grid;
+  grid-template-columns: 2rem var(--artwork-sm) minmax(0, 1fr);
+  gap: var(--sp4);
+  align-items: start;
+  padding: var(--sp4) var(--sp5);
+  background: var(--ds-surface);
+}
+.setlist__row:hover {
+  background: var(--ds-surface2);
+}
+.setlist__no {
+  padding-top: 2px;
+  color: var(--ds-ink2);
+  text-align: end;
+}
+.setlist__main {
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+.setlist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp1) var(--sp3);
+}
+.setlist__title {
+  display: inline-block;
+  padding-block: 3px;
+  margin-block: -3px;
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+}
+.setlist__notes {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+/* 下段: 札と、初披露・初歌唱 (太字 + 曲の色の文字でいちばん強く)。 */
+.setlist__tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) 6px;
+}
+.setlist__first {
+  font-size: var(--fs-footnote);
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+/* 「いたのに歌わなかった」人は、歌唱者の**後**に控えめな 1 行で。歌唱者と同じ色の線を
+   引くと 2 つの歌唱者一覧に見え、49 人の全体曲では歌っていない人の方が目立っていた。 */
+.lineup__missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp1) var(--sp3);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.lineup__missing-label {
+  font-weight: 600;
+}
+
+/* 歌唱者。名前の下に実体の色の線 (ピルにしないのは、74 人の全体曲が読めるように)。 */
+.performers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp4);
+}
+.performer {
+  display: inline-flex;
+  padding: 2px 0 3px;
+  border-bottom: 3px solid var(--accent);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink);
+  line-height: 1.3;
+}
+.performer:hover {
+  background: var(--ds-fill);
+}
+/* 原唱者だがこの行では歌っていない人。 */
+.performer--absent {
+  border-bottom: 0;
+  padding: 0;
+  color: var(--ds-ink2);
+  font-weight: 500;
+  font-size: var(--fs-caption);
+}
+
+/* 歌唱者の名前。
+   両方の名前を持たせておき、閲覧者が選んだモード (data-performer-name) で
+   どちらを出すかを決める。**規則は imas-core が持ち、ここは見せ隠しだけ。**
+   既定 (属性なし = アイドル名) はサーバが描いたままで、JS を必要としない。
+
+   モードは「どの変数をどう置くか」だけを決め、要素は変数を読む。
+   モードごとに複合セレクタを書くと、モードを 1 つ足すたびに同じ条件を
+   3 箇所へ書き足すことになり、2/3 だけ直して半分だけ変わる事故になる。 */
+.performer__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.performer__idol {
+  display: var(--idol-show, inline);
+}
+.performer__cast {
+  display: var(--cast-show, none);
+  color: var(--cast-ink, var(--ds-ink2));
+  font-size: var(--cast-size, var(--fs-caption2));
+}
+.performer__cast::before {
+  content: var(--cast-prefix, "CV. ");
+}
+/* 舞台の俳優が演じた公演 (data-cast-kind="stage") は声優ではないので「CV.」を添えない。 */
+.performer[data-cast-kind="stage"] {
+  --cast-prefix: "";
+}
+
+/* CV 名を主にするモード。
+   - 「CV 名」= 常に CV 名
+   - 「公演に合わせる」= 声優ライブのときだけ (公演種別は show ページが
+     data-character-live で持つ。キャラライブならアイドル名のまま) */
+:is([data-performer-name="cast"], [data-performer-name="show"]:not([data-character-live="true"])) {
+  --idol-show: none;
+  --cast-show: inline;
+  --cast-ink: inherit;
+  --cast-size: inherit;
+  --cast-prefix: "";
+}
+
+/* 併記。 */
+[data-performer-name="both"] {
+  --cast-show: inline;
+}
+
+/* CV 不在の人 (data-no-cast) はどのモードでもアイドル名を出す。
+   .performer__cast をそもそも持たないので、消すと名前が 1 つも出ない。 */
+.performer[data-no-cast] {
+  --idol-show: inline;
+}
+
+/* --- セトリの詳しさ (data-setlist-display) -----------------------------------
+   行は全モードぶんの中身を持って描かれていて、ここで見せ隠しだけを切り替える。
+   どのモードで何を出すかの判断は imas-core の SetlistDisplayMode と同じ:
+   シンプル = 曲名と歌唱者だけ / 普通 = 既定 (属性なし) / 詳細 = 普通 + 披露の履歴。 */
+.setlist__history {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--fs-caption);
+}
+.setlist__history-axis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp1) var(--sp3);
+}
+.setlist__history dt {
+  min-inline-size: 2.5em;
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.setlist__history dd {
+  margin: 0;
+  color: var(--ds-ink);
+  font-variant-numeric: tabular-nums;
+}
+.setlist__history dd[data-tone="detail"] {
+  color: var(--ds-ink2);
+}
+.setlist__history dd[data-tone="debut"] {
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+[data-setlist-display="detailed"] .setlist__history {
+  display: flex;
+}
+/* 詳細表示では「初披露」は履歴の段が言う (下段と二重に出さない)。 */
+[data-setlist-display="detailed"] .setlist__row .setlist__first {
+  display: none;
+}
+[data-setlist-display="simple"] .setlist__row {
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: var(--sp3);
+  padding-block: var(--sp2);
+}
+[data-setlist-display="simple"] .setlist__row :is(.artwork, .setlist__notes, .setlist__tags, .lineup__missing) {
+  display: none;
+}
+[data-setlist-display="simple"] .setlist__main {
+  gap: var(--sp1);
+}
+[data-setlist-display="simple"] .setlist__rows > li {
+  contain-intrinsic-size: auto 56px;
+}
+.setlist-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp4);
+}
+
+/* 歌唱者の表示切り替え。絞り込みと同じ入力部品を使うので、器だけ用意する。 */
+.perf-pref {
+  display: flex;
+  align-items: center;
+  gap: var(--sp3);
+}
+.perf-pref__label {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.perf-pref .song-filter__select {
+  width: auto;
+}
+
+/* --- 衣装 (公演ページの脇) ---------------------------------------------
+   画像は持てないので (版権物を配らない方針)、名前・帰属・どこで着たかの
+   3 つで見分ける。「どこで着たか」の文言は Rust が組んだものをそのまま出す。 */
+.costumes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp3);
+  margin: 0;
+  padding: var(--sp4) var(--sp5);
+  list-style: none;
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+}
+.costume {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp1);
+  min-inline-size: 0;
+}
+.costume__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2);
+  min-inline-size: 0;
+}
+.costume__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* 「どこで着たか」「説明」「出典」を 1 行に。項目の切れ目が分かるよう中黒を挟む
+   (区切り文字は本文と同じ `PARTS_SEPARATOR`)。 */
+.costume__meta {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--fs-caption);
+  min-inline-size: 0;
+}
+.costume__meta > * + *::before {
+  content: " ・ ";
+  white-space: pre;
+}
+/* 1 着ぶんを 1 かたまりに見せるため、2 着目からは切り取り線を引く。 */
+.costume + .costume {
+  padding-block-start: var(--sp3);
+  border-block-start: 2px dashed var(--ds-perforation);
+}
+
+/* --- チケット受付 (ImasTicketRow、§5.5。公演の脇) ---------------------------
+   [記号] ┆ [受付の名前 + 種別の札 / 項目と値]。半券の形の短い行。 */
+.tsale {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  overflow: hidden;
+}
+.tsale__mark {
+  flex: none;
+  inline-size: 52px;
+  padding-block-start: var(--sp4);
+  display: flex;
+  justify-content: center;
+  color: var(--ds-ink2);
+}
+.tsale__perf {
+  flex: none;
+  margin-block: var(--sp3);
+}
+.tsale__body {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  padding-block: var(--sp3);
+}
+.tsale__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp3);
+  padding-inline: var(--sp4);
+  margin: 0;
+}
+.tsale__name {
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+.tsale__rows .labeled-row {
+  padding-inline: var(--sp4);
+  padding-block: 8px;
+  font-size: var(--fs-footnote);
+  background: transparent;
+}
+.tsale__rows .labeled-row__value--mono {
+  font-size: var(--fs-subhead);
+}
+.tsale__note {
+  padding-inline: var(--sp4);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+
+/* --- 歌詞とコールガイド (§2.8) -----------------------------------------------
+   説明は囲まない灰の文 (.note)、ボタンは墨の塗り (.btn)。 */
+.lyrics--pending {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp3);
+}
+
+/* --- 詳細ページの 2 段組 --------------------------------------------------
+   長いものが 1 本 (披露履歴 / セトリ / 持ち曲 / 公演) と、短い属性の塊。
+   幅があるときだけ属性を右に寄せる。判定はビューポートではなくコンテナで行う。
+   脇の区画の見出しは小 (13px 中太・灰、§3)。 */
+.detail-cols__aside .section {
+  gap: var(--sp3);
+}
+.detail-cols__aside .section__title {
+  font-family: var(--font-body);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ds-ink2);
+}
+.detail-cols__aside .section__count {
+  font-family: var(--font-body);
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+}

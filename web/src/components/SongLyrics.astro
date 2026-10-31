@@ -43,20 +43,20 @@ const { lyrics } = Astro.props;
       data-source={lyrics.sourceUrl}
       data-call-guide={lyrics.callGuide ? JSON.stringify(lyrics.callGuide) : undefined}
     >
-      <p class="lyrics__license">{lyrics.licenseNote}</p>
+      <p class="note lyrics__license">{lyrics.licenseNote}</p>
       <button class="btn" type="button" data-lyrics-load>
         {lyrics.readLabel}
       </button>
       {/* 最初から木に居る (display:none の live region は最初の変化が読まれないことがある)。 */}
-      <p class="lyrics__status" data-lyrics-status role="status" aria-live="polite" />
+      <p class="note lyrics__status" data-lyrics-status role="status" aria-live="polite" />
       {/* 本文はここに描かれる。サーバから配る HTML には入っていない。
           読み込んだらここへフォーカスを移す (押したボタンが消えて焦点が迷子にならない)。 */}
       <div class="lyrics__body" data-lyrics-body tabindex="-1" aria-labelledby="song-lyrics" hidden />
     </div>
   ) : (
-    <div class="card card__pad">
-      {lyrics.statusLabel && <p class="chip lyrics__pending">{lyrics.statusLabel}</p>}
-      <p>{lyrics.note}</p>
+    <div class="lyrics lyrics--pending">
+      {lyrics.statusLabel && <span class="badge lyrics__pending">{lyrics.statusLabel}</span>}
+      <p class="note">{lyrics.note}</p>
     </div>
   )
 }

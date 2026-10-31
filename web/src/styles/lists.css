@@ -1,1 +1,681 @@
-/* lists.css — 領域ごとの見た目 (venue.css の部品を使って画面を組む)。土台のトークンは tokens.css。 */
+/* =============================================================================
+ * 一覧ページ (docs/DESIGN_SYSTEM.md §2.1・§5・§8) — venue.css の部品を使って組む。
+ *   頭 (ListLayout)・切替 (ImasSegmented)・絞り込み (チップ)・件数の行 (ImasListSummary)
+ *   行の共通の形 (.list-row = ImasRow) と曲の行 (ImasSongRow)
+ *   アイドルの表・格子 (ImasIdolCell)・年と月の見出し (ImasDateHeader)・検索
+ * 実体の色は行頭の帯 (.lead-bar) と格子の上の帯・色見本にだけ出す。淡い地は敷かない。
+ * ========================================================================== */
+
+/* --- 一覧ページの頭 (ListLayout) -------------------------------------------
+   印字 → 題 + 件数 → 切替の溝・絞り込みのチップ。 */
+.list-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.list-head__imprint {
+  margin-block-end: calc(-1 * var(--sp3));
+}
+.list-head__title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp4);
+}
+.list-head__title h1 {
+  font-size: var(--fs-large);
+  letter-spacing: -0.01em;
+}
+@media (min-width: 44rem) {
+  .list-head__title h1 {
+    font-size: var(--fs-display);
+  }
+}
+.list-head__count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp1);
+}
+.list-head__count .num {
+  font-size: var(--num-large);
+  color: var(--ds-ink2);
+}
+.list-head__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp3);
+}
+
+/* --- 切替 (SegmentedLinks = ImasSegmented) ---------------------------------
+   溝 (--ds-fill) に、選んだものだけ紙の面。リンクの集合なので状態は aria-current。 */
+.segmented {
+  display: flex;
+  gap: var(--sp1);
+  padding: var(--sp2);
+  border-radius: var(--r-ctl-md);
+  background: var(--ds-fill);
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* 中身が収まるなら内容幅、溢れるなら親幅で止めて自身が横スクロールする。 */
+  inline-size: fit-content;
+  max-inline-size: 100%;
+}
+.segmented::-webkit-scrollbar {
+  display: none;
+}
+.segmented a {
+  padding: var(--sp3) var(--sp5);
+  border-radius: var(--r-ctl-sm);
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  color: var(--ds-ink2);
+  white-space: nowrap;
+}
+.segmented a:hover {
+  color: var(--ds-ink);
+}
+.segmented a[aria-current="page"] {
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  box-shadow: var(--ds-surface-edge);
+}
+
+/* --- 畳んだ切替メニュー (FilterMenu) -----------------------------------------
+   閉じているときは「軸 いまの値 ›」のチップ 1 つ。開くと、押したチップの真下に一覧が出る
+   (details、JS 無し)。チップは列の左側に並ぶので、左寄せのままで画面からはみ出さない。 */
+.fmenu {
+  position: relative;
+}
+.fmenu__summary {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+.fmenu__summary::-webkit-details-marker {
+  display: none;
+}
+.fmenu__summary:hover {
+  background: var(--ds-fill);
+}
+.fmenu__label {
+  color: var(--ds-ink2);
+  font-weight: 500;
+}
+.fmenu__panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--sp2));
+  inset-inline-start: 0;
+  z-index: 20;
+  display: grid;
+  gap: 1px;
+  min-inline-size: 12rem;
+  /* 画面より広くならない (どの札の下でも横スクロールを作らない)。 */
+  max-inline-size: min(22rem, calc(100vw - 2rem));
+  max-block-size: 60vh;
+  overflow: auto;
+  padding: var(--sp2);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge), var(--ds-shadow2);
+}
+.fmenu__panel a {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp3);
+  padding: var(--sp3) var(--sp4);
+  border-radius: var(--r-ctl-sm);
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+.fmenu__panel a:hover {
+  background: var(--ds-fill);
+}
+.fmenu__panel a[aria-current="page"] {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+/* 選んだものの中の件数。地の色が反転するので、文字色も地に合わせる。 */
+.fmenu__panel a[aria-current="page"] .u-dim {
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* --- 件数と並び順の行 + 絞り込みの島 (ImasListSummary / 絞り込みシート) -----
+   「絞り込み・並べ替え」を押すまでは入力欄の器を畳んでおく。素材を取っている間は
+   薄くして、押しても何も起きない時間を見せる。 */
+.song-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+  padding: var(--sp5);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+}
+.song-filter[data-state="loading"] {
+  opacity: 0.6;
+}
+/* 開く前は面を持たない 1 行 (件数 | 操作)。開いてから操作面のカードになる。 */
+.song-filter[data-state="idle"] {
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+.song-filter__status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp1);
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.song-filter__status .num {
+  color: var(--ds-ink);
+}
+.song-filter__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.song-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+  align-items: center;
+}
+.song-filter__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp3);
+  align-items: center;
+}
+.song-filter__fields:empty {
+  display: none;
+}
+.song-filter__field {
+  min-inline-size: 0;
+}
+.song-filter__input,
+.song-filter__select {
+  inline-size: 100%;
+  max-inline-size: 20rem;
+  min-block-size: 32px;
+  font: inherit;
+  font-size: var(--fs-chip);
+  font-weight: 600;
+  color: var(--ds-ink);
+  background: var(--ds-fill);
+  border: 0;
+  border-radius: var(--r-ctl-sm);
+  padding: var(--sp2) var(--sp4);
+}
+/* 開く・向き・クリア = チップ (線 + 墨の文字)。 */
+.song-filter__open,
+.song-filter__dir,
+.song-filter__reset {
+  flex: none;
+  min-block-size: 32px;
+  padding: var(--sp2) var(--sp4);
+  border: 0;
+  border-radius: var(--r-ctl-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
+  color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--fs-chip);
+  font-weight: 600;
+  cursor: pointer;
+}
+.song-filter__dir {
+  min-inline-size: 2.5rem;
+}
+.song-filter__open:hover,
+.song-filter__dir:hover:not(:disabled),
+.song-filter__reset:hover:not(:disabled) {
+  background: var(--ds-fill);
+}
+.song-filter__open:disabled,
+.song-filter__dir:disabled,
+.song-filter__reset:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+/* 並べ替えの札・2 択の帯 = 切替の溝 (ImasSegmented)。どの札があるかは island が描く。 */
+.song-filter__sorts {
+  display: flex;
+  gap: var(--sp1);
+  padding: var(--sp2);
+  border-radius: var(--r-ctl-md);
+  background: var(--ds-fill);
+  flex: none;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.song-filter__sorts:empty {
+  display: none;
+}
+.song-filter__sort {
+  padding: var(--sp2) var(--sp4);
+  border: 0;
+  border-radius: var(--r-ctl-sm);
+  background: transparent;
+  color: var(--ds-ink2);
+  font: inherit;
+  font-size: var(--fs-chip);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.song-filter__sort:hover {
+  color: var(--ds-ink);
+}
+/* 選ばれている方。並べ替えの札は `aria-pressed`、2 択の帯は `aria-checked`。 */
+.song-filter__sort[aria-pressed="true"],
+.song-filter__sort[aria-checked="true"] {
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+  box-shadow: var(--ds-surface-edge);
+}
+.song-filter__sort[data-dir="asc"]::after {
+  content: " ↑";
+}
+.song-filter__sort[data-dir="desc"]::after {
+  content: " ↓";
+}
+.song-filter__sort:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.song-filter__input:focus-visible,
+.song-filter__select:focus-visible,
+.song-filter__sort:focus-visible {
+  outline: 2px solid var(--ds-sys);
+  outline-offset: 1px;
+}
+
+/* --- 色見本 (.swatch、§8.2): 色そのものが中身のとき (タグの色) だけ --------- */
+.swatch {
+  flex: none;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: var(--r-tag);
+  background: var(--accent);
+}
+
+/* --- コミュニティのタグ = チップ (曲ページ・タグ一覧) -------------------------
+   高さ 32・角丸 8。運営のタグは線を太く。色は先頭の色見本だけで、地は敷かない。 */
+.chip--tag {
+  box-shadow: inset 0 0 0 1px var(--ds-line);
+  background: transparent;
+}
+.chip--official {
+  box-shadow: inset 0 0 0 1.5px var(--ds-ink);
+}
+.chip--tag .chip__count {
+  color: var(--ds-ink2);
+}
+a.chip--tag:hover {
+  background: var(--ds-fill);
+}
+
+/* --- 数 (MetricBadge): 墨の数字 + 灰の単位。実体の色で飾らない --------------- */
+.metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp1);
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--num-medium);
+  font-weight: 700;
+  color: var(--ds-ink);
+  white-space: nowrap;
+}
+.metric--muted {
+  color: var(--ds-ink2);
+}
+.metric__unit {
+  font-family: var(--font-body);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+
+/* --- 行の共通の形 (.list-row = ImasRow、§5.0) ------------------------------
+   [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。区切り線は器 (.card) が引く。
+   曲の行 (.list-row--song = ImasSongRow) はジャケ 48。 */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  min-block-size: 56px;
+  padding: var(--sp4) var(--sp5);
+  background: var(--ds-surface);
+  color: var(--ds-ink);
+}
+a.list-row:hover {
+  background: var(--ds-surface2);
+}
+.list-row > .lead-bar {
+  align-self: stretch;
+}
+.list-row--song .artwork {
+  --artwork-size: 48px;
+}
+.list-row__body {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp1);
+}
+.list-row__title {
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  overflow-wrap: anywhere;
+}
+.list-row__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sp4);
+  font-size: var(--fs-footnote);
+  line-height: var(--lh-snug);
+  color: var(--ds-ink2);
+}
+/* 下段: 日付・札・作曲/収録。 */
+.list-row__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp2) var(--sp3);
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.list-row__date {
+  font-variant-numeric: tabular-nums;
+}
+/* 作曲・収録は「引く」ための情報。幅があるカードでだけ出す。 */
+.list-row__credit {
+  display: none;
+}
+@container (min-width: 62rem) {
+  .list-row__credit {
+    display: inline;
+  }
+}
+.list-row__trailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp5);
+  white-space: nowrap;
+}
+.list-row__trailing:empty {
+  display: none;
+}
+.list-row__metrics {
+  display: flex;
+  align-items: center;
+  gap: var(--sp5);
+}
+.list-row__metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp1);
+}
+/* 狭いカードでは下段の日付を落として曲名に幅を回す (回数は残す)。 */
+@container (max-width: 30rem) {
+  .list-row__date {
+    display: none;
+  }
+}
+/* 画面外の行の描画を省く (楽曲 2,000 行超・ライブ 700 行超)。一度出た行の高さは覚えられる。 */
+.stub-list > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
+/* --- 格子 (IdolTile = ImasIdolCell、§6.6) ----------------------------------
+   紙の面。上の帯が実体の色、その下に名前と副題。顔写真も判子も置かない (確定済み)。 */
+.grid-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: var(--sp4);
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp2);
+  padding: var(--sp5) var(--sp3) var(--sp4);
+  border-radius: var(--r-inner);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  text-align: center;
+  min-block-size: 100%;
+  overflow: hidden;
+  position: relative;
+}
+.tile::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--sp2);
+  background: var(--accent);
+}
+.tile:hover {
+  background: var(--ds-surface2);
+}
+.tile__name {
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+}
+.tile__sub {
+  font-size: var(--fs-caption2);
+  color: var(--ds-ink2);
+}
+
+/* --- 表 (アイドル一覧) -----------------------------------------------------
+   属性を見比べる一覧なので表。面は紙 (角丸 --r-card・縁)。見出し行は 13px 中太・灰、
+   行頭の帯 (3px) がアイドルの色。狭い幅では**枠の中だけ横に流し**、名前の列は左に貼り付ける。
+   見出しと値の並びは Rust が決める (`IdolListPage.columns` / `IdolListItem.cells`)。 */
+.table-wrap {
+  /* この枠自体がスクロール面。見出しの行と名前の列をこの枠に貼り付ける。 */
+  overflow: auto;
+  max-block-size: calc(100dvh - var(--header-h) - var(--sp6));
+  overscroll-behavior: contain;
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+}
+.dtable {
+  border-collapse: collapse;
+  inline-size: 100%;
+  font-size: var(--fs-footnote);
+  white-space: nowrap;
+}
+.dtable th,
+.dtable td {
+  padding: var(--sp4) var(--sp4);
+  text-align: start;
+  border-block-end: 1px solid var(--ds-sep);
+}
+.dtable tbody tr:last-child :is(th, td) {
+  border-block-end: 0;
+}
+.dtable thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  padding: 0;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  color: var(--ds-ink2);
+  background: var(--ds-surface);
+}
+.dtable thead th:not(:has(.dtable__sort)) {
+  padding: var(--sp3) var(--sp4);
+}
+/* border は sticky だと一緒に流れて消えるので影で描く。 */
+.dtable thead tr :is(th, td) {
+  border-block-end: 0;
+  box-shadow: inset 0 -1px 0 var(--ds-sep);
+}
+/* 押せる見出し = 並べ替え。 */
+.dtable__sort {
+  display: flex;
+  align-items: center;
+  gap: var(--sp2);
+  inline-size: 100%;
+  padding: var(--sp3) var(--sp4);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+.dtable__num .dtable__sort {
+  justify-content: flex-end;
+}
+.dtable__sort:disabled {
+  cursor: default;
+}
+.dtable__sort:not(:disabled):hover {
+  color: var(--ds-ink);
+}
+.dtable__sort[data-dir] {
+  color: var(--ds-ink);
+  font-weight: 700;
+}
+.dtable__arrow::before {
+  content: "↕";
+  opacity: 0.35;
+}
+.dtable__sort:disabled .dtable__arrow {
+  visibility: hidden;
+}
+.dtable__sort[data-dir="asc"] .dtable__arrow::before {
+  content: "↑";
+  opacity: 1;
+}
+.dtable__sort[data-dir="desc"] .dtable__arrow::before {
+  content: "↓";
+  opacity: 1;
+}
+.dtable tbody tr:hover {
+  background: var(--ds-fill);
+}
+/* 名前の列。横に流しても見失わないよう左に貼り付ける。行頭の帯 (3px) はアイドルの色。 */
+.dtable__name {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: inherit;
+  border-inline-start: 3px solid var(--accent);
+  font-weight: 700;
+}
+.dtable thead .dtable__name {
+  z-index: 3;
+  background: var(--ds-surface);
+  border-inline-start-color: transparent;
+}
+.dtable tbody .dtable__name {
+  background: var(--ds-surface);
+  box-shadow: inset 0 -1px 0 var(--ds-sep);
+}
+.dtable tbody tr:last-child .dtable__name {
+  box-shadow: none;
+}
+.dtable td {
+  max-inline-size: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dtable tbody tr:hover .dtable__name {
+  background: var(--ds-surface2);
+}
+.dtable__kana {
+  display: block;
+  font-size: var(--fs-caption2);
+  font-weight: 400;
+  color: var(--ds-ink2);
+}
+.dtable__num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 年と月の見出し (ImasDateHeader、§6.7) ---------------------------------
+   細長い大きな数字 + 印字の単位。月の柱は広い画面では左に、狭い画面では行の上に。 */
+.year-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp5);
+}
+.year-group__title {
+  align-self: flex-start;
+  color: var(--ds-ink);
+  font-size: var(--num-countdown);
+}
+.month-group {
+  display: grid;
+  gap: var(--sp3) var(--sp6);
+  align-items: start;
+}
+@media (min-width: 44rem) {
+  .month-group {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+  .month-group__title {
+    position: sticky;
+    inset-block-start: calc(var(--header-h) + var(--sp4));
+    padding-block-start: var(--sp3);
+  }
+}
+.month-group__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp1);
+}
+.month-group__num {
+  font-size: var(--num-date);
+  color: var(--ds-ink);
+}
+.month-group__unit {
+  color: var(--ds-ink2);
+}
+.list-next {
+  margin-block-start: var(--sp5);
+}
+
+/* --- 検索 (/search/ の island) ---------------------------------------------
+   結果の行は一覧ページと同じクラス (曲・アイドル・会場は .list-row、ライブは .stub)。 */
+.search-status {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+  min-block-size: 1.4em;
+}
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp4);
+}
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp6);
+}
+.search-results:empty {
+  display: none;
+}

@@ -425,6 +425,7 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         return Some(SongListItem {
             reference,
             release_date: None,
+            release_display: None,
             unit_label: None,
             artists_label: None,
             song_type_label: None,
@@ -443,14 +444,19 @@ fn song_list_item(ctx: &Ctx, index: u32, light: bool) -> Option<SongListItem> {
         .map(|i| i.name.as_str())
         .collect();
     let artists_label = artists_display(&names);
+    let release_display = song
+        .release_date
+        .as_deref()
+        .map(|d| crate::domain::date_display::label_ja(d, &ctx.today));
     Some(SongListItem {
         subtitle: join_parts([
             song.unit_name.clone(),
             artists_label.clone(),
-            song.release_date.clone(),
+            release_display.clone(),
         ]),
         reference,
         release_date: song.release_date.clone(),
+        release_display,
         unit_label: song.unit_name.clone(),
         artists_label,
         song_type_label: song.song_type.as_deref().and_then(content::song_type_label).map(str::to_string),

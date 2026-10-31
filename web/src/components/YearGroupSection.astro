@@ -1,11 +1,11 @@
 ---
 import EventRow from "./EventRow.astro";
-import ListContainer from "./ListContainer.astro";
 import type { YearGroup } from "../lib/schema/YearGroup";
 /**
  * 年 (または入口の「開催済み (2026年)」) の束 1 つ。見出しの文字は Rust が決める。
  * 束の中は月の柱で区切る。区切り (どこからどこまでが何月か) は Rust の `months` が
  * 件数で持っていて、ここは先頭から順に件数ぶんずつ取り分けるだけ。
+ * 年・月の見出しは `ImasDateHeader` (細長い大きな数字 + 印字の単位)、行は半券の行を `.stub-list` に並べる。
  */
 interface Props {
   title: string;
@@ -21,19 +21,19 @@ const months = group.months.map((m) => {
 ---
 
 <section class="year-group" aria-label={title}>
-  <h2 class="year-group__title">{title}</h2>
+  <h2 class="year-group__title num">{title}</h2>
   {
     months.map((m) => (
       <div class="month-group">
         <h3 class="month-group__title">
-          {m.number && <span class="month-group__num u-num">{m.number}</span>}
-          <span class="month-group__unit">{m.unit}</span>
+          {m.number && <span class="month-group__num num">{m.number}</span>}
+          <span class="month-group__unit imprint">{m.unit}</span>
         </h3>
-        <ListContainer as="ul">
+        <ul class="stub-list">
           {m.events.map((e) => (
             <EventRow item={e} showYear={false} />
           ))}
-        </ListContainer>
+        </ul>
       </div>
     ))
   }

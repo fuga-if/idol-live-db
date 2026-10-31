@@ -2,25 +2,28 @@
 import Artwork from "./Artwork.astro";
 import Fold from "./Fold.astro";
 import { setlistAnchorId } from "../lib/anchors";
-import TagChip from "./TagChip.astro";
 import Performer from "./Performer.astro";
 import type { SetlistRow } from "../lib/schema/SetlistRow";
 /**
- * セトリの 1 行。[番号] [ジャケ] [曲名 + 注記 / 札 / 歌唱者]。
+ * セトリの 1 行 (アプリの `ImasSetlistRow`、DESIGN_SYSTEM §5.6)。
+ * [曲順] [ジャケ] [題 / 副題 = 歌唱者 / 下段 = 札と事実]。行の間は切り取り線。
  *
  * 札と歌唱者の関係 (全員曲か・オリメンが揃っているか・誰がいなかったか) は Rust が
  * 解いて行に付けてある。ここは来た形を置くだけで、集合を比べ直さない。
+ * 初披露・初歌唱は札にせず、太字 + 曲の色の文字でいちばん強く出す。
  *
  * 衣装も**この披露で着ていたもの**で、曲そのものの属性ではない
  * (同じ曲でも公演が違えば衣装は違う)。記録がある行の方が少ない。
+ * 全員曲 (fullCastLabel あり) は人数に関わらず歌唱者を畳む。閾値は Fold が持つ。
  */
 interface Props {
   row: SetlistRow;
 }
 const { row } = Astro.props;
-
-// 歌唱者がこの数を超える行は名前を畳む (全員曲は数に関わらず畳む)。
-// 全員曲 (fullCastLabel あり) は人数に関わらず畳む。閾値は Fold が持つ。
+const firsts = [row.firstPerformanceLabel, ...row.newPerformerDebutLabels].filter(
+  (l): l is string => typeof l === "string" && l !== "",
+);
+const hasBadges = !!(row.unitLabel || row.isCover || row.lineup || firsts.length > 0);
 ---
 
 {/* id は披露履歴 (曲ページ) からの飛び先 (`…/#setlist-N`)。番号は Rust が振ったもの。 */}
@@ -29,7 +32,7 @@ const { row } = Astro.props;
       `row.position` は setlist_items 全体を通した並び順の鍵で、表示用ではない。
       描画側で連番を振らないのは、将来「アンコールは別番号」のような規則が
       入ったときに番号の決め方が 2 実装になるため。 */}
-  <span class="setlist__no u-num">{row.number}</span>
+  <span class="setlist__no num num--small">{row.number}</span>
   <Artwork title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
   <div class="setlist__main">
     <p class="setlist__head">
@@ -37,36 +40,9 @@ const { row } = Astro.props;
       {row.notes && <span class="setlist__notes">{row.notes}</span>}
     </p>
     {
-      (row.unitLabel || row.isCover || row.lineup || row.firstPerformanceLabel || row.newPerformerDebutLabels.length > 0) && (
-        <p class="u-row setlist__tags" data-lineup={row.lineup?.kind}>
-          {row.unitLabel && <TagChip text={row.unitLabel} kind="unit" />}
-          {row.isCover && <TagChip text="カバー" kind="cover" />}
-          {row.lineup && <TagChip text={row.lineup.label} kind="lineup" />}
-          {row.firstPerformanceLabel && <TagChip text={row.firstPerformanceLabel} kind="first" />}
-          {/* 新しい演者での初披露 (「希水しおで初披露」)。初披露と同じ札で、人数ぶん並ぶ。 */}
-          {row.newPerformerDebutLabels.map((label) => <TagChip text={label} kind="first" />)}
-        </p>
-      )
-    }
-    {/* 詳細表示だけで見える披露の履歴。軸と文言と主従は Rust が決めてある。 */}
-    {
-      row.history.length > 0 && (
-        <dl class="setlist__history">
-          {row.history.map((group) => (
-            <div class="setlist__history-axis">
-              <dt>{group.label}</dt>
-              {group.notes.map((note) => (
-                <dd data-tone={note.tone}>{note.text}</dd>
-              ))}
-            </div>
-          ))}
-        </dl>
-      )
-    }
-    {
       row.performers.length > 0 && (
         <Fold label="歌唱者" themeKeys={row.performers.map((p) => p.ref.themeKey)} force={row.fullCastLabel !== null}>
-          {row.fullCastLabel && <TagChip slot="lead" text={row.fullCastLabel} kind="all" />}
+          {row.fullCastLabel && <span slot="lead" class="badge">{row.fullCastLabel}</span>}
           <span class="performers">
             {row.performers.map((p) => (
               <Performer ref={p.ref} castName={p.castName} castKind={p.castKind} />
@@ -84,6 +60,32 @@ const { row } = Astro.props;
             <Performer ref={idol} absent />
           ))}
         </p>
+      )
+    }
+    {
+      hasBadges && (
+        <p class="setlist__tags" data-lineup={row.lineup?.kind}>
+          {row.unitLabel && <span class="badge badge--wrap">{row.unitLabel}</span>}
+          {row.isCover && <span class="badge">カバー</span>}
+          {row.lineup && <span class="badge">{row.lineup.label}</span>}
+          {/* 新しい演者での初披露 (「希水しおで初披露」)。初披露と同じ強さで、人数ぶん並ぶ。 */}
+          {firsts.map((label) => <span class="setlist__first">{label}</span>)}
+        </p>
+      )
+    }
+    {/* 詳細表示だけで見える披露の履歴。軸と文言と主従は Rust が決めてある。 */}
+    {
+      row.history.length > 0 && (
+        <dl class="setlist__history">
+          {row.history.map((group) => (
+            <div class="setlist__history-axis">
+              <dt>{group.label}</dt>
+              {group.notes.map((note) => (
+                <dd data-tone={note.tone}>{note.text}</dd>
+              ))}
+            </div>
+          ))}
+        </dl>
       )
     }
   </div>

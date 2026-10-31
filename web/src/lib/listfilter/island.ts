@@ -275,7 +275,7 @@ export function mountListFilter<F extends ListFacets>(
     }
 
     const narrowed = isNarrowed(fields, state);
-    el.status.textContent = narrowed ? `${visible} 件 / ${total} 件` : `${total} 件`;
+    showCount(el.status, narrowed ? visible : total, narrowed ? total : null);
     el.root.dataset.filtered = String(narrowed);
     const pageOrder = state.__sort === defaultSort && currentAscending() === defaultAscendingOf(defaultSort);
     spec.onApply?.({ narrowed, pageOrder });
@@ -426,6 +426,30 @@ export function mountListFilter<F extends ListFacets>(
 }
 
 // --- 部品 -------------------------------------------------------------------
+
+/**
+ * 件数の行 (`ImasListSummary` の左)。数は `.num`、単位は `.num__unit`。
+ * 絞り込み中は「見えている数 / 全体の数」。文言ではなく数と単位の並べ替えだけなのでここで組む。
+ */
+function showCount(status: HTMLElement, shown: number, of: number | null): void {
+  const part = (n: number): Node[] => {
+    const num = document.createElement("span");
+    num.className = "num num--medium";
+    num.textContent = String(n);
+    const unit = document.createElement("span");
+    unit.className = "num__unit";
+    unit.textContent = "件";
+    return [num, unit];
+  };
+  const nodes = part(shown);
+  if (of !== null) {
+    const sep = document.createElement("span");
+    sep.className = "num__unit";
+    sep.textContent = " / ";
+    nodes.push(sep, ...part(of));
+  }
+  status.replaceChildren(...nodes);
+}
 
 function must<T extends HTMLElement>(root: HTMLElement, selector: string): T {
   const found = root.querySelector<T>(selector);

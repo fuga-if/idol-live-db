@@ -1,7 +1,7 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import Chip from "../../components/Chip.astro";
+import DetailHead from "../../components/DetailHead.astro";
 import Facts from "../../components/Facts.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
@@ -17,15 +17,11 @@ const venue = page<VenuePage>(Astro.props.data);
 ---
 
 <DetailLayout seo={venue.seo} themeKey={venue.themeKey} app={venue.app}>
-  <section class="hero" slot="hero" aria-labelledby="venue-title">
-    <div class="hero__body">
-      {venue.prefecture && <p class="hero__eyebrow">{venue.prefecture}</p>}
-      <h1 class="hero__title" id="venue-title">{venue.name}</h1>
-      {venue.nameKana && <p class="hero__kana">{venue.nameKana}</p>}
-      {/* 「基本情報」の行 (所在・収容人数・別名) はどれを出すかを Rust が決めている。 */}
-      <Facts rows={venue.factRows} />
-    </div>
-  </section>
+  <Fragment slot="hero">
+    <DetailHead imprint={["VENUE", venue.prefecture]} title={venue.name} id="venue-title" kana={venue.nameKana} bar={false} />
+    {/* 「基本情報」の行 (所在・収容人数・別名) はどれを出すかを Rust が決めている。 */}
+    <Facts rows={venue.factRows} />
+  </Fragment>
 
   {
     venue.halls.length > 0 && (
@@ -36,7 +32,7 @@ const venue = page<VenuePage>(Astro.props.data);
         <ul class="u-row" aria-label="ホール">
           {venue.halls.map((h) => (
             <li>
-              <Chip text={h.name} sub={h.capacityDisplay} />
+              <span class="chip">{h.name}{h.capacityDisplay && <span class="chip__sub">{h.capacityDisplay}</span>}</span>
             </li>
           ))}
         </ul>
@@ -69,11 +65,11 @@ const venue = page<VenuePage>(Astro.props.data);
       venue.showsEmpty ? (
         <EmptyState {...venue.showsEmpty} />
       ) : (
-        <ListContainer as="ul">
+        <ul class="stub-list">
           {venue.shows.map((s) => (
             <ShowRow show={s} />
           ))}
-        </ListContainer>
+        </ul>
       )
     }
   </Section>

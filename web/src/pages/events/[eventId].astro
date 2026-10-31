@@ -5,13 +5,12 @@ import StatStrip from "../../components/StatStrip.astro";
 import ShowRow from "../../components/ShowRow.astro";
 import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
-import Chip from "../../components/Chip.astro";
-import BrandMark from "../../components/BrandMark.astro";
+import DetailHead from "../../components/DetailHead.astro";
+import TicketSaleRow from "../../components/TicketSaleRow.astro";
 import Performer from "../../components/Performer.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { page, pathsFor } from "../../lib/data";
 import type { EventPage } from "../../lib/schema/EventPage";
-import TagChip from "../../components/TagChip.astro";
 
 export const getStaticPaths = () => pathsFor("event", "eventId");
 
@@ -19,47 +18,56 @@ const ev = page<EventPage>(Astro.props.data);
 ---
 
 <DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app} asideAfterMain>
-  <section class="hero" slot="hero" aria-labelledby="event-title">
-    <div class="hero__body">
-      {/* 上の行: ブランドの札 → 種別 → 開催予定。公演ページと同じ並び。 */}
-      <p class="hero__eyebrow">
-        {ev.brand && (
-          <a class="u-underline-hover" href={ev.brand.path}>
-            <BrandMark brand={ev.brand} />
-          </a>
-        )}
-        <span>{ev.kindLabel}</span>
-        {ev.isUpcoming && <Chip text="開催予定" variant="selected" />}
-      </p>
-      <h1 class="hero__title" id="event-title">{ev.name}</h1>
-      {ev.nameKana && <p class="hero__kana">{ev.nameKana}</p>}
-      {ev.dateDisplay && <p class="hero__date u-num">{ev.dateDisplay}</p>}
-      {
-        (ev.jointBrands.length > 0 || ev.venues.length > 0) && (
-          <div class="hero__meta">
-            {ev.jointBrands.map((b) => (
-              <Chip text={b.name} href={b.path} variant="themed" themeKey={b.themeKey} />
-            ))}
-            {ev.venues.map((v) => (
-              <Chip text={v.name} href={v.path} sub={v.sub} />
-            ))}
-          </div>
-        )
-      }
-      <StatStrip items={ev.statTiles} label="このライブの数" />
-    </div>
-  </section>
+  <Fragment slot="hero">
+    {/* 日付の印字は初日の半券 3 段 (一覧の行と同じ。ライブ自身は日付ブロックを持たない)。 */}
+    <DetailHead imprint={["LIVE"]} date={ev.shows[0]?.dateBadge} title={ev.name} id="event-title" kana={ev.nameKana}>
+      <Fragment slot="sub">
+        {ev.dateDisplay && <p class="dhead__date num">{ev.dateDisplay}</p>}
+        {
+          ev.venues.length > 0 && (
+            <p class="dhead__places">
+              {ev.venues.map((v) => (
+                <a class="u-underline-hover" href={v.path}>
+                  {v.name}
+                  {v.sub && <span class="dhead__places-sub"> {v.sub}</span>}
+                </a>
+              ))}
+            </p>
+          )
+        }
+      </Fragment>
+      <Fragment slot="badges">
+        {ev.isUpcoming && <span class="badge badge--positive">開催予定</span>}
+        <span class="badge">{ev.kindLabel}</span>
+        {
+          ev.brand && (
+            <a class="badge badge--themed" data-theme={ev.brand.themeKey} href={ev.brand.path}>
+              {ev.brand.name}
+            </a>
+          )
+        }
+        {
+          ev.jointBrands.map((b) => (
+            <a class="badge badge--themed" data-theme={b.themeKey} href={b.path}>
+              {b.name}
+            </a>
+          ))
+        }
+      </Fragment>
+    </DetailHead>
+    <StatStrip items={ev.statTiles} label="このライブの数" />
+  </Fragment>
 
   <Section id="event-shows" title="公演" count={ev.shows.length}>
     {
       ev.showsEmpty ? (
         <EmptyState {...ev.showsEmpty} />
       ) : (
-        <ListContainer as="ul">
+        <ul class="stub-list">
           {ev.shows.map((s) => (
             <ShowRow show={s} />
           ))}
-        </ListContainer>
+        </ul>
       )
     }
   </Section>
@@ -71,15 +79,15 @@ const ev = page<EventPage>(Astro.props.data);
         <div class="u-stack">
           {ev.cast.shows.map((cs) => (
             <div class="card card__pad u-stack">
-              <h3 class="row__title">
+              <h3 class="detail-sub">
                 <a class="u-underline-hover" href={cs.show.path}>{cs.show.name}</a>
               </h3>
               <ul class="performers">
                 {cs.performers.map((m) => (
                   <li class="u-row">
                     <Performer ref={m.ref} />
-                    {m.isLead && <TagChip text="主演" kind="lead" />}
-                    {m.isGuest && <TagChip text="ゲスト" kind="guest" />}
+                    {m.isLead && <span class="badge badge--positive">主演</span>}
+                    {m.isGuest && <span class="badge badge--guest">ゲスト</span>}
                   </li>
                 ))}
               </ul>
@@ -109,25 +117,12 @@ const ev = page<EventPage>(Astro.props.data);
       <Section slot="aside" id="event-ticket" title="チケット" count={ev.ticket.sales.length || undefined}>
         <div class="u-stack">
           {ev.ticket.sales.map((s) => (
-            <div class="card card__pad u-stack">
-              <p class="ticket-sale__head">
-                <span class="ticket-sale__name">{s.name}</span>
-                <TagChip text={s.kindLabel} kind="sale" />
-              </p>
-              <ListContainer>
-                {s.showsLabel && <LabeledRow label="対象" value={s.showsLabel} />}
-                {s.period && <LabeledRow label="期間" value={s.period} mono />}
-                {s.result && <LabeledRow label="当落発表" value={s.result} mono />}
-                {s.url && <LabeledRow label="申込" value="申込ページ" href={s.url} />}
-                <LabeledRow label="出典" value="出典を見る" href={s.sourceUrl} />
-              </ListContainer>
-              {s.note && <p class="ticket-sale__note">{s.note}</p>}
-            </div>
+            <TicketSaleRow sale={s} />
           ))}
           {ev.ticket.url && (
-            <ListContainer>
+            <div class="card">
               <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />
-            </ListContainer>
+            </div>
           )}
         </div>
       </Section>

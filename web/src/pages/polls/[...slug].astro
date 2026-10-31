@@ -1,8 +1,6 @@
 ---
 import ListLayout from "../../layouts/ListLayout.astro";
-import ListContainer from "../../components/ListContainer.astro";
 import RankingRow from "../../components/RankingRow.astro";
-import TagChip from "../../components/TagChip.astro";
 import { optionalPage, page } from "../../lib/data";
 import type { PollListPage } from "../../lib/schema/PollListPage";
 
@@ -26,20 +24,24 @@ const list = page<PollListPage>(Astro.props.data);
   {
     list.polls.map((poll) => (
       <section class="poll" aria-labelledby={`poll-${poll.id}`}>
+        {/* ImasFeatureCard の形: 目印 (灰・12px 太字) と右上の数、題、添える日付。 */}
         <div class="poll__head">
+          <div class="poll__top">
+            <span class="poll__mark">{poll.targetLabel}</span>
+            <span class="poll__votes">
+              <b class="num num--large">{poll.totalVotes}</b>
+              <span class="num__unit">票</span>
+            </span>
+          </div>
           <h2 class="poll__title" id={`poll-${poll.id}`}>{poll.title}</h2>
-          <p class="u-row polls__meta">
-            <TagChip text={poll.targetLabel} kind="all" />
-            <span class="u-muted u-num">{poll.totalVotes} 票</span>
-            {poll.endsOn && (
-              <span class="u-muted">
-                {poll.endsLabel} <time class="u-num" datetime={poll.endsOn}>{poll.endsOn}</time>
-              </span>
-            )}
-          </p>
+          {poll.endsOn && (
+            <p class="poll__sub">
+              {poll.endsLabel} <time class="num num--small" datetime={poll.endsOn}>{poll.endsOn}</time>
+            </p>
+          )}
           {poll.description && <p class="lede lede--small">{poll.description}</p>}
         </div>
-        <ListContainer as="ol">
+        <ol class="poll__entries">
           {poll.entries.map((entry) => (
             <li>
               <RankingRow
@@ -55,7 +57,7 @@ const list = page<PollListPage>(Astro.props.data);
               />
             </li>
           ))}
-        </ListContainer>
+        </ol>
       </section>
     ))
   }

@@ -1,22 +1,14 @@
 ---
-import StatTile from "./StatTile.astro";
-import type { StatTile as StatTileData } from "../lib/schema/StatTile";
+import Board from "./Board.astro";
+import type { StatTile } from "../lib/schema/StatTile";
 /**
- * 統計タイルの並び。**どのタイルを何の順で出すかは Rust の `stat_tiles` が決める**
- * (トップ / About / ブランドで同じ形を使う)。
+ * 統計の並び。**どの数を何の順で出すかは Rust の `stat_tiles` が決める**
+ * (トップ / About / ブランドで同じ形を使う)。見た目は電光掲示板 (`Board`)。
  */
 interface Props {
-  tiles: readonly StatTileData[];
+  tiles: readonly StatTile[];
 }
 const { tiles } = Astro.props;
 ---
 
-{
-  tiles.length > 0 && (
-    <div class="stat-grid">
-      {tiles.map((t) => (
-        <StatTile glyph={t.glyph} value={t.value} label={t.label} href={t.href ?? undefined} />
-      ))}
-    </div>
-  )
-}
+<Board title="STATS" cells={tiles} />

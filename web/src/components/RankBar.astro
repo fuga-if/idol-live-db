@@ -1,9 +1,9 @@
 ---
 import Artwork from "./Artwork.astro";
-import ColorDot from "./ColorDot.astro";
 import type { RankRow } from "../lib/schema/RankRow";
 /**
- * ランキングの 1 行: 順位 + (曲ならジャケ) + 名前 + 棒 + 数。
+ * ランキングの 1 行 (ImasRankingRow): 順位 + (曲ならジャケ、それ以外は行頭の帯) + 名前 + 数。
+ * 割合は行の下端の細い線 (ImasProportionLine)。
  * 棒の長さ (`sharePermille`) も順位も Rust が決める。棒は SVG の rect で描く
  * (CSP で style 属性が使えないので、長さは属性で渡す)。色は行の `data-theme` の accent。
  */
@@ -20,17 +20,17 @@ const name = short ? (r.sub ?? r.name) : r.name;
 ---
 
 <a class:list={["rank-row", row.rank !== null && row.rank <= 3 && "rank-row--top"]} href={r.path} data-theme={r.themeKey}>
-  {row.rank !== null && <span class="rank-row__rank u-num">{row.rank}</span>}
+  {row.rank !== null && <span class="rank-row__rank num num--medium">{row.rank}</span>}
   <span class="rank-row__lead">
-    {artwork ? <Artwork title={r.name} artworkUrl={r.artworkUrl} size="sm" /> : <ColorDot />}
+    {artwork ? <Artwork title={r.name} artworkUrl={r.artworkUrl} size="sm" /> : <span class="lead-bar" aria-hidden="true"></span>}
   </span>
   <span class="rank-row__name">
     <span class="rank-row__title u-clamp1 u-underline-hover">{name}</span>
     {!short && r.sub && <span class="rank-row__sub u-clamp1">{r.sub}</span>}
   </span>
+  <span class="rank-row__value"><b class="num num--medium">{row.value}</b><span class="num__unit">{row.unit}</span></span>
   <svg class="rank-row__bar" viewBox="0 0 1000 10" preserveAspectRatio="none" aria-hidden="true">
     <rect class="rank-row__track" width="1000" height="10"></rect>
     <rect class="rank-row__fill" width={row.sharePermille} height="10"></rect>
   </svg>
-  <span class="rank-row__value"><b class="u-num">{row.value}</b>{row.unit}</span>
 </a>

@@ -7,7 +7,7 @@ import type { SeoBlock } from "../lib/schema/SeoBlock";
 
 /**
  * 詳細ページ (ライブ / 公演 / 楽曲 / アイドル / ユニット / 会場 / ブランド) の枠。
- * パンくず → ヒーロー (`hero` スロット) → 本文 → 「アプリで開く」導線、の順で固定する。
+ * パンくず → 頭 (`hero` スロット) → 本文 → 「アプリで開く」導線、の順で固定する。
  *
  * どの詳細ページも中身は同じ形をしている: **長いものがちょうど 1 本** (披露履歴 /
  * セットリスト / 持ち曲 / 公演) と、**短い属性の塊** (基本情報 / プロフィール /
@@ -37,12 +37,11 @@ const { seo, themeKey, app, isCharacterLive, asideAfterMain = false } = Astro.pr
   wide={Astro.slots.has("aside")}
   isCharacterLive={isCharacterLive}
 >
-  {/* 紙面の表紙: 画面幅いっぱいの白い帯。上辺にページの主の色 (ブランド・アイドル)。 */}
-  <div class="detail-band">
-    <div class="detail-band__inner u-stack">
-      <Breadcrumbs crumbs={seo.breadcrumbs} />
-      <slot name="hero" />
-    </div>
+  {/* 詳細の頭 (DESIGN_SYSTEM §2.2): パンくず → 頭の印字・題・副題・札 (`DetailHead`) → 数 (`Board`)。
+      地は紙面のまま。色の地・帯は敷かない。 */}
+  <div class="detail-head u-stack">
+    <Breadcrumbs crumbs={seo.breadcrumbs} />
+    <slot name="hero" />
   </div>
   {
     Astro.slots.has("aside") ? (

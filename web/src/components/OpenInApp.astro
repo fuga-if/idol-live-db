@@ -1,9 +1,11 @@
 ---
 import type { AppOpen } from "../lib/schema/AppOpen";
 /**
- * 「アプリで開く」導線。ユーザー指示により、状態を持つ機能 (参加記録・投票・歌詞・
- * タグ・コール) はすべてアプリ側なので、詳細ページから必ずここへ誘導する。
- * 文面 (`note`) と deeplink の有無は Rust が決める。
+ * 「アプリで開く」導線 (アプリの `ImasEntryCard` の形、DESIGN_SYSTEM §6.4)。
+ * 記号 (アプリのアイコン) は地なし、題 + 説明、紙の面。
+ * ユーザー指示により、状態を持つ機能 (参加記録・投票・歌詞・タグ・コール) はすべて
+ * アプリ側なので、詳細ページから必ずここへ誘導する。
+ * 文面 (`note`) と deeplink の有無は Rust が決める。主ボタンは deeplink がある 1 つだけ。
  */
 interface Props {
   app: AppOpen;
@@ -27,8 +29,6 @@ const { app } = Astro.props;
   </div>
   <div class="open-in-app__actions">
     {app.deeplink && <a class="btn" href={app.deeplink}>アプリで開く</a>}
-    <a class:list={["btn", app.deeplink && "btn--ghost"]} href={app.appStoreUrl}>
-      App Store
-    </a>
+    <a class="btn btn--ghost" href={app.appStoreUrl}>App Store</a>
   </div>
 </aside>

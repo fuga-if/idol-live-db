@@ -3,8 +3,7 @@ import ListLayout from "../../layouts/ListLayout.astro";
 import Section from "../../components/Section.astro";
 import StatStrip from "../../components/StatStrip.astro";
 import ListContainer from "../../components/ListContainer.astro";
-import Artwork from "../../components/Artwork.astro";
-import DatedRow from "../../components/DatedRow.astro";
+import DetailRow from "../../components/DetailRow.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import { optionalPage, page } from "../../lib/data";
@@ -37,11 +36,10 @@ const guide = page<CallGuidePage>(Astro.props.data);
         <ListContainer as="ul">
           {guide.withCalls.map((row) => (
             <li>
-              <DatedRow title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} meta={[row.updatedBy]}>
-                <Artwork slot="lead" title={row.song.name} artworkUrl={row.song.artworkUrl} size="sm" />
-                <span slot="meta" class="row__meta-item u-num">{row.detail}</span>
-                <span slot="trailing" class="u-num">{row.updatedDisplay}</span>
-              </DatedRow>
+              <DetailRow artwork={row.song} title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} sub={row.updatedBy}>
+                <span class="drow__sub">{row.detail}</span>
+                <span slot="trailing" class="drow__when num">{row.updatedDisplay}</span>
+              </DetailRow>
             </li>
           ))}
         </ListContainer>
@@ -58,9 +56,10 @@ const guide = page<CallGuidePage>(Astro.props.data);
         <ListContainer as="ul">
           {guide.recentEdits.map((row) => (
             <li>
-              <DatedRow title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} meta={[row.label, row.by]}>
-                <span slot="trailing" class="u-num">{row.atDisplay}</span>
-              </DatedRow>
+              <DetailRow title={row.song.name} href={row.song.path} themeKey={row.song.themeKey} sub={row.label}>
+                {row.by && <span class="drow__sub">{row.by}</span>}
+                <span slot="trailing" class="drow__when num">{row.atDisplay}</span>
+              </DetailRow>
             </li>
           ))}
         </ListContainer>

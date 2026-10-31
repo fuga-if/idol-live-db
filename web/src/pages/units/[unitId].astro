@@ -1,7 +1,7 @@
 ---
 import DetailLayout from "../../layouts/DetailLayout.astro";
 import Section from "../../components/Section.astro";
-import Chip from "../../components/Chip.astro";
+import DetailHead from "../../components/DetailHead.astro";
 import IdolTile from "../../components/IdolTile.astro";
 import RefList from "../../components/RefList.astro";
 import EmptyState from "../../components/EmptyState.astro";
@@ -15,25 +15,26 @@ const unit = page<UnitPage>(Astro.props.data);
 ---
 
 <DetailLayout seo={unit.seo} themeKey={unit.themeKey} app={unit.app}>
-  <section class="hero" slot="hero" aria-labelledby="unit-title">
-    <div class="hero__body">
-      {unit.brand && <p class="hero__eyebrow">{unit.brand.name}</p>}
-      <h1 class="hero__title" id="unit-title">{unit.name}</h1>
-      {unit.nameKana && <p class="hero__kana">{unit.nameKana}</p>}
-      {unit.nameAlt && <p class="lede">別名: {unit.nameAlt}</p>}
-      <div class="hero__meta">
-        <Chip text={unit.kindLabel} variant="themed" />
-        {unit.brand && <Chip text={unit.brand.name} href={unit.brand.path} variant="themed" themeKey={unit.brand.themeKey} />}
-      </div>
-    </div>
-  </section>
+  <DetailHead slot="hero" imprint={["UNIT"]} title={unit.name} id="unit-title" kana={unit.nameKana}>
+    <Fragment slot="sub">
+      {unit.nameAlt && <p class="dhead__cv">別名: {unit.nameAlt}</p>}
+    </Fragment>
+    <Fragment slot="badges">
+      <span class="badge">{unit.kindLabel}</span>
+      {
+        unit.brand && (
+          <a class="badge badge--themed" data-theme={unit.brand.themeKey} href={unit.brand.path}>
+            {unit.brand.name}
+          </a>
+        )
+      }
+    </Fragment>
+  </DetailHead>
 
   {
     unit.tags.length > 0 && (
       <Section id="unit-tags" title="みんなのタグ">
-        <div class="card card__pad">
-          <CommunityTags tags={unit.tags} />
-        </div>
+        <CommunityTags tags={unit.tags} />
       </Section>
     )
   }
@@ -58,7 +59,7 @@ const unit = page<UnitPage>(Astro.props.data);
       unit.songsEmpty ? (
         <EmptyState {...unit.songsEmpty} />
       ) : (
-        <RefList refs={unit.songs} label="ユニット曲" />
+        <RefList refs={unit.songs} variant="neutral" label="ユニット曲" />
       )
     }
   </Section>

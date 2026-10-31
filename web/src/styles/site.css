@@ -1,1 +1,610 @@
-/* site.css — 領域ごとの見た目 (venue.css の部品を使って画面を組む)。土台のトークンは tokens.css。 */
+/* =============================================================================
+ * ImasLiveDB Web — サイト共通の枠と、一覧・詳細以外のページ (site 担当の置き場)
+ *
+ *   フッタの細部 / アプリ案内 (cta) / 空状態 / カレンダー / ランキング / 年表 / お題 / About
+ *   / P名刺の紙面。形は venue.css (.imprint .num .badge .lead-bar) を使い、
+ *   画面の CSS に数字の寸法・hex を書かない。
+ * ========================================================================== */
+
+/* --- サイトフッタ (奥付) --------------------------------------------------- */
+.site-footer__imprint {
+  color: var(--footer-ink2);
+  margin-block-end: var(--sp1);
+}
+.site-footer .btn {
+  border-radius: var(--r-ctl-md);
+}
+
+/* --- 入口の行 (アプリ案内 cta / About のリンク) ---------------------------------
+   ImasNavRow: 文言 + 矢印。行の上に細い区切り線。 */
+.cta__link,
+.about-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp4);
+  min-block-size: 52px;
+  padding-inline: var(--sp6);
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  color: var(--ds-ink);
+}
+.cta__link:hover,
+.about-link:hover {
+  background: var(--ds-surface2);
+}
+.cta__link .chevron,
+.about-link .chevron {
+  color: var(--ds-ink3);
+  font-size: var(--fs-title3);
+}
+.cta__links li,
+.about-links li {
+  border-block-start: 1px solid var(--ds-sep);
+}
+.about-card {
+  display: flex;
+  flex-direction: column;
+}
+/* .card の「子の間に罫」は、本文の紙面とリンク行の境目の 1 本だけで足りる。 */
+.about-card > * + * {
+  border-top: 0;
+}
+
+/* --- アプリ案内 (トップの末尾) -----------------------------------------------
+   ImasEntryCard + ImasNote: 紙の面にロゴ (地なし) + 題 + 説明 + 入口の行 2 つ。 */
+.cta {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  overflow: hidden;
+}
+.cta__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp5);
+  padding: var(--sp6);
+}
+.cta__icon {
+  inline-size: 48px;
+  block-size: 48px;
+  flex: none;
+}
+.cta__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+}
+.cta__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-title3);
+  font-weight: var(--fw-heading);
+  letter-spacing: -0.01em;
+}
+
+/* --- 空状態 (ImasEmptyState) ------------------------------------------------
+   細い線の記号を薄い灰で 1 つ + 題 + 次にできること (+ ボタン 1 つ)。 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp3);
+  padding: var(--sp8) var(--sp5);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  text-align: center;
+  color: var(--ds-ink2);
+}
+.empty__glyph {
+  color: var(--ds-ink3);
+}
+.empty__title {
+  font-size: var(--fs-callout);
+  font-weight: 700;
+  color: var(--ds-ink);
+}
+.empty__body {
+  max-inline-size: 34em;
+  font-size: var(--fs-footnote);
+}
+
+/* --- カレンダー (CalendarView) ------------------------------------------------
+   週 × 7 日の枠は Rust が組んだ表。枠の中は 1 日 3 件までで、残りは +N と下の一覧。
+   曜日は印字、日のマスは紙、当日は墨の丸 (ImasDateMark)。予定は札の大きさで、
+   実体の色は左端の 3px の帯にだけ出す。 */
+.cal {
+  container-type: inline-size;
+}
+.cal__table {
+  inline-size: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 3px;
+}
+.cal__table th {
+  padding-block: var(--sp2);
+  font-family: var(--font-imprint);
+  font-size: var(--fs-imprint);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--ds-ink2);
+  text-align: center;
+}
+.cal__table th[data-weekday="日"],
+.cal__day[data-weekday="日"] {
+  color: var(--ds-sunday);
+}
+.cal__table th[data-weekday="土"],
+.cal__day[data-weekday="土"] {
+  color: var(--ds-saturday);
+}
+.cal__cell {
+  vertical-align: top;
+  block-size: 6rem;
+  padding: 3px;
+  border-radius: var(--r-inner);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  overflow: hidden;
+}
+/* 月の外の日は枠を揃えるためだけに居る。 */
+.cal__cell--out {
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.45;
+}
+.cal__day {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-size: var(--fs-footnote);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+}
+a.cal__day:hover {
+  background: var(--ds-fill);
+}
+.cal__cell--today .cal__day,
+.cal__cell--today a.cal__day:hover {
+  background: var(--ds-sys);
+  color: var(--ds-on-sys);
+}
+.cal__items {
+  margin-block-start: 2px;
+  display: grid;
+  gap: 2px;
+}
+.cal__item {
+  display: block;
+  padding: 2px 4px 2px 5px;
+  border-inline-start: 3px solid var(--accent);
+  border-radius: var(--r-tag);
+  font-size: var(--fs-caption2);
+  line-height: 1.3;
+  background: var(--ds-fill);
+  color: var(--ds-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.cal__item:hover {
+  background: var(--ds-surface2);
+}
+/* 公演だけ太字 (主役)。リリースは帯なしで灰。 */
+.cal__item--show {
+  font-weight: 700;
+}
+.cal__item--release {
+  border-inline-start-color: var(--ds-ink3);
+  color: var(--ds-ink2);
+}
+.cal__more {
+  display: block;
+  padding-inline: 4px;
+  font-size: var(--fs-caption2);
+  color: var(--ds-ink2);
+}
+/* 狭い幅 (上部ナビが折れる幅と同じ): 文字を落として帯 (ペンライト) だけにする。中身は下の一覧で読む。 */
+@container (max-width: 44rem) {
+  .cal__table {
+    border-spacing: 2px;
+  }
+  .cal__cell {
+    block-size: 4.4rem;
+    padding: 2px;
+  }
+  .cal__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-block-start: 3px;
+  }
+  .cal__item {
+    inline-size: 3px;
+    block-size: 11px;
+    padding: 0;
+    border: 0;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .cal__item--release {
+    background: var(--ds-ink3);
+  }
+  .cal__item-text {
+    display: none;
+  }
+  .cal__more {
+    padding: 0;
+    font-size: var(--fs-micro);
+  }
+}
+/* 枠の下の一覧。 */
+.cal-days {
+  display: grid;
+  gap: var(--sp4);
+  margin-block-start: var(--sp5);
+}
+.cal-day {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp4);
+  align-items: start;
+}
+.cal-day__items {
+  display: grid;
+  gap: var(--sp2);
+}
+
+/* --- ランキング (ImasRankingRow) ---------------------------------------------
+   順位 (1〜3 は墨、4 位以下は ink3) | ジャケ 44 か行頭の帯 | 題・副題 | 数 + 単位。
+   割合は行の下端の細い線 (ImasProportionLine、2px)。 */
+.rank-grid {
+  display: grid;
+  gap: var(--sp8);
+  align-items: start;
+}
+@media (min-width: 62rem) {
+  .rank-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .rank-grid--chart {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
+.rank-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rank-row,
+.ranking-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: 10px var(--sp5);
+  background: var(--ds-surface);
+}
+.ranking-row {
+  padding-block: var(--sp3);
+}
+a.rank-row:hover,
+a.ranking-row:hover {
+  background: var(--ds-surface2);
+}
+.rank-row__rank,
+.ranking-row__rank {
+  flex: none;
+  inline-size: 1.75rem;
+  text-align: end;
+  font-family: var(--font-display);
+  font-size: var(--num-medium);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ds-ink3);
+}
+.rank-row--top .rank-row__rank,
+.ranking-row--top .ranking-row__rank {
+  color: var(--ds-ink);
+}
+.rank-row__lead {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.rank-row .lead-bar,
+.ranking-row .lead-bar {
+  block-size: 32px;
+}
+.rank-row__name,
+.ranking-row__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.rank-row__title,
+.ranking-row__title {
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+}
+.rank-row__sub,
+.ranking-row__sub {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.rank-row__value,
+.ranking-row__metric {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: nowrap;
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+.rank-row__value b,
+.ranking-row__metric b {
+  font-family: var(--font-display);
+  font-size: var(--num-medium);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--ds-ink);
+}
+.ranking-row__metric--muted b {
+  color: var(--ds-ink2);
+}
+/* 割合の線は行の下端いっぱい。 */
+.rank-row__bar {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 2px;
+}
+.rank-row__track {
+  fill: var(--ds-fill);
+}
+.rank-row__fill {
+  fill: var(--accent);
+}
+
+/* --- 年表 (TimelineView) -------------------------------------------------- */
+.timeline-chart {
+  margin: 0;
+  padding: var(--sp6) var(--sp6) var(--sp5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp5);
+}
+.card.timeline-chart > * + * {
+  border-top: 0;
+}
+.timeline-chart__scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+/* PC では枠に合わせて縮め、狭い画面では最小幅を保って横に流す (文字が潰れない)。 */
+.timeline-chart__svg {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 56rem;
+  block-size: auto;
+  font-family: var(--font-body);
+}
+.tl-year line {
+  stroke: var(--ds-sep);
+  stroke-width: 1;
+}
+.tl-year text {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  fill: var(--ds-ink2);
+}
+.tl-lane line {
+  stroke: var(--ds-line);
+  stroke-width: 1;
+}
+.tl-lane text {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 900;
+  fill: var(--ds-ink);
+}
+.tl-today {
+  stroke: var(--ds-stamp);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.tl-release rect {
+  fill: var(--chart-bar);
+}
+.tl-release text {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ds-ink2);
+}
+.tl-live {
+  fill: var(--accent);
+  fill-opacity: 0.45;
+}
+.tl-live--featured {
+  fill-opacity: 1;
+  stroke: var(--ds-surface);
+  stroke-width: 1.5;
+}
+a:hover > .tl-live,
+a:focus-visible > .tl-live {
+  fill-opacity: 1;
+  stroke: var(--ds-ink);
+  stroke-width: 1.5;
+}
+.tl-milestone circle {
+  fill: var(--accent);
+  stroke: var(--ds-surface);
+  stroke-width: 1.5;
+}
+.tl-milestone__date {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--ds-ink2);
+}
+.tl-milestone__label {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ds-ink);
+}
+.tl-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp4);
+  padding: var(--sp4) var(--sp5);
+  background: var(--ds-surface);
+}
+a.tl-list__row:hover {
+  background: var(--ds-surface2);
+}
+/* ライブの行は行頭の帯 (実体の色)。 */
+a.tl-list__row::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 28px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.tl-list__date {
+  flex: none;
+  min-inline-size: 3.5rem;
+  color: var(--ds-ink);
+}
+.tl-list__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+}
+
+/* --- お題の一覧 (/polls/) ------------------------------------------------------
+   ImasFeatureCard の形: 目印 (灰・12px 太字) と右上の数、題、添える日付。
+   順位の行は下に続ける。紙の面 1 枚。 */
+.poll {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  overflow: hidden;
+}
+.poll__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp2);
+  padding: var(--sp5) var(--sp5) var(--sp4);
+}
+.poll__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp4);
+}
+.poll__mark {
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--ds-ink2);
+}
+.poll__votes {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.poll__title {
+  font-family: var(--font-heading);
+  font-size: var(--fs-title3);
+  font-weight: var(--fw-heading);
+  line-height: var(--lh-snug);
+}
+.poll__sub {
+  font-size: var(--fs-footnote);
+  color: var(--ds-ink2);
+}
+.poll__entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--ds-sep);
+}
+.poll__entries > li + li {
+  border-block-start: 1px solid var(--ds-sep);
+}
+
+/* --- P名刺 (/p/) の名刺の外 -----------------------------------------------------
+   名刺そのものは 91:55 の紙 (--ds-ticket。ダークでも明るいので、紙の上の墨・灰は
+   ticket 側のトークンに差し替える)。下の詳細は紙の面の行。 */
+.meishi-card {
+  --ds-ink: var(--ds-ticket-ink);
+  --ds-ink2: var(--ds-ticket-sub);
+  background: var(--ds-ticket);
+  color: var(--ds-ticket-ink);
+  box-shadow: var(--ds-shadow2);
+}
+.meishi-card__hero-tile {
+  background: var(--ds-ticket);
+}
+.meishi-card[data-design="formal"] {
+  box-shadow: none;
+}
+.meishi-details {
+  gap: var(--sp5);
+}
+.meishi-details__message,
+.meishi-details__since {
+  padding: var(--sp4) var(--sp5);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+}
+.meishi-details__since {
+  font-size: var(--fs-footnote);
+}
+.meishi-details > .section {
+  padding: var(--sp4) var(--sp5) var(--sp5);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+}
+.meishi-details > .section .section__title {
+  font-size: var(--fs-subhead);
+}
+/* 記録の数は掲示板 (.board) と同じ暗い板に数字。 */
+.meishi-details__board {
+  padding: var(--sp4) var(--sp5);
+  border-block-start: 0;
+  border-radius: var(--r-card);
+  background: var(--ds-board);
+  color: var(--ds-board-ink);
+}
+.meishi-details__digit-value {
+  font-size: var(--num-large);
+  line-height: 1;
+}
+.meishi-details__digit-label,
+.meishi-details__next .meishi-card__next-label {
+  color: var(--ds-board-dim);
+}

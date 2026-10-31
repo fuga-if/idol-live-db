@@ -1,7 +1,5 @@
 ---
 import Artwork from "./Artwork.astro";
-import ColorDot from "./ColorDot.astro";
-import MetricBadge from "./MetricBadge.astro";
 /**
  * ImasRankingRow の Web 版 — 順位 + (曲ならジャケ写) + 名前 + 数値。
  * `rank` と `metric` は省略可 (順位を振らない一覧・回数を持たない行でも同じ形を使う)。
@@ -39,12 +37,12 @@ const {
   data-theme={themeKey}
   href={href}
 >
-  {rank !== undefined && <span class="ranking-row__rank">{rank}</span>}
+  {rank !== undefined && <span class="ranking-row__rank num num--medium">{rank}</span>}
   {
     artwork ? (
       <Artwork title={title} artworkUrl={artworkUrl} size="sm" />
     ) : (
-      <ColorDot />
+      <span class="lead-bar" aria-hidden="true"></span>
     )
   }
   <span class="ranking-row__body">
@@ -52,10 +50,12 @@ const {
     {sub && <span class="ranking-row__sub u-clamp1">{sub}</span>}
   </span>
   {
-    /* 順位を振らない一覧では数値を強調しない (2,000 行が全部アクセント色になると
-       「上位」の意味が消える)。順位付きの行だけ accent にする。 */
+    /* 順位を振らない一覧では数値を強調しない (2,000 行が全部目立つと「上位」の意味が消える)。 */
     metric !== undefined && metric !== null && (
-      <MetricBadge value={metric} unit={unit} muted={rank === undefined} />
+      <span class:list={["ranking-row__metric", rank === undefined && "ranking-row__metric--muted"]}>
+        <b class="num num--medium">{metric}</b>
+        {unit && <span class="num__unit">{unit}</span>}
+      </span>
     )
   }
 </a>

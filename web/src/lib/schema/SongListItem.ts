@@ -4,7 +4,12 @@ import type { Ref } from "./Ref";
 /**
  * 楽曲一覧の 1 行。
  */
-export type SongListItem = { ref: Ref, releaseDate: string | null, unitLabel: string | null, 
+export type SongListItem = { ref: Ref, releaseDate: string | null, 
+/**
+ * 画面に置く初出の日付 (`2018年4月25日(水)`、今年なら年なし)。ISO を画面に出さないための
+ * 表示用の 1 本 (`date_display::label_ja`)。`release_date` は `<time datetime>` 用に残す。
+ */
+releaseDisplay: string | null, unitLabel: string | null, 
 /**
  * 原唱者を 1 行に畳んだもの (`join_capped` で「先頭 4 名 ほか N 名」に丸めた形)。
  *

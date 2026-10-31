@@ -104,9 +104,9 @@ const c = p.chart;
             {p.yearLives.map((row) => (
               <li>
                 <a class="tl-list__row" href={row.event.path} data-theme={row.event.themeKey}>
-                  <span class="tl-list__date u-num">{row.dateDisplay}</span>
+                  <span class="tl-list__date num num--medium">{row.dateDisplay}</span>
                   <span class="tl-list__name u-underline-hover">{row.event.name}</span>
-                  {row.chip && <span class="tl-list__chip">{row.chip}</span>}
+                  {row.chip && <span class="badge badge--themed">{row.chip}</span>}
                 </a>
               </li>
             ))}
@@ -119,8 +119,8 @@ const c = p.chart;
         <Section id="timeline-milestones" title={p.yearMilestonesTitle} count={p.yearMilestones.length}>
           <ul class="card tl-list">
             {p.yearMilestones.map((row) => (
-              <li class="tl-list__row">
-                <span class="tl-list__date u-num">{row.dateDisplay}</span>
+              <li class="tl-list__row tl-list__row--static">
+                <span class="tl-list__date num num--medium">{row.dateDisplay}</span>
                 <span class="tl-list__name">{row.label}</span>
               </li>
             ))}

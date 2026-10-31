@@ -1025,6 +1025,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
         SongListItem {
             reference: song_sample(),
             release_date: Some("2019-03-13".to_string()),
+            release_display: Some("2019年3月13日(水)".to_string()),
             unit_label: Some("765MILLION ALLSTARS".to_string()),
             artists_label: Some("春日未来".to_string()),
             song_type_label: Some("ユニット曲".to_string()),
@@ -1034,12 +1035,13 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             composer_credit: Some("作曲 高田暁".to_string()),
             cd_credit: Some("収録 THE IDOLM@STER LIVE THE@TER PERFORMANCE 01".to_string()),
             performance_count: Some(12),
-            subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
+            subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019年3月13日(水)".to_string()),
         },
         // `/songs/all/` の軽い行 (ref だけ・ジャケも原唱者も披露回数も無い)。
         SongListItem {
             reference: song_no_artwork(),
             release_date: None,
+            release_display: None,
             unit_label: None,
             artists_label: None,
             song_type_label: None,
@@ -1267,7 +1269,7 @@ fn tag_page() -> TagPage {
         items: vec![
             TagSongRow {
                 reference: song_sample(),
-                subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019-03-13".to_string()),
+                subtitle: Some("765MILLION ALLSTARS ・ 春日未来 ・ 2019年3月13日(水)".to_string()),
                 votes: 12,
                 rank: 1,
             },

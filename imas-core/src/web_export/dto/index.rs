@@ -177,6 +177,9 @@ web_dto! {
         #[serde(rename = "ref")]
         pub reference: Ref,
         pub release_date: Option<String>,
+        /// 画面に置く初出の日付 (`2018年4月25日(水)`、今年なら年なし)。ISO を画面に出さないための
+        /// 表示用の 1 本 (`date_display::label_ja`)。`release_date` は `<time datetime>` 用に残す。
+        pub release_display: Option<String>,
         pub unit_label: Option<String>,
         /// 原唱者を 1 行に畳んだもの (`join_capped` で「先頭 4 名 ほか N 名」に丸めた形)。
         ///

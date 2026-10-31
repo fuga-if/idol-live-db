@@ -1,0 +1,37 @@
+---
+import LabeledRow from "./LabeledRow.astro";
+import type { TicketSaleItem } from "../lib/schema/TicketSaleItem";
+/**
+ * チケット受付 1 件 = 半券の形の短い行 (アプリの `ImasTicketRow`、DESIGN_SYSTEM §5.5)。
+ * [記号] ┆ [受付の名前 + 種別の札 / 対象・期間・当落・申込・出典の項目と値]。
+ * 段階・日程・当落・対象公演の文言は domain (`ticket_sales`) が組み切ったものをそのまま出す。
+ */
+interface Props {
+  sale: TicketSaleItem;
+}
+const { sale: s } = Astro.props;
+---
+
+<div class="tsale">
+  <span class="tsale__mark" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+      <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"></path>
+      <path d="M14 6v12" stroke-dasharray="2 2.4"></path>
+    </svg>
+  </span>
+  <span class="tsale__perf perf--v" aria-hidden="true"></span>
+  <div class="tsale__body">
+    <p class="tsale__head">
+      <span class="tsale__name">{s.name}</span>
+      <span class="badge">{s.kindLabel}</span>
+    </p>
+    <div class="tsale__rows">
+      {s.showsLabel && <LabeledRow label="対象" value={s.showsLabel} />}
+      {s.period && <LabeledRow label="期間" value={s.period} mono />}
+      {s.result && <LabeledRow label="当落発表" value={s.result} mono />}
+      {s.url && <LabeledRow label="申込" value="申込ページ" href={s.url} />}
+      <LabeledRow label="出典" value="出典を見る" href={s.sourceUrl} />
+    </div>
+    {s.note && <p class="tsale__note">{s.note}</p>}
+  </div>
+</div>
