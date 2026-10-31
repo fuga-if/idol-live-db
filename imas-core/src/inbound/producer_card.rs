@@ -299,6 +299,16 @@ pub fn card_ink_normalize(ink: Option<CardInk>, oshi_idol_ids: Vec<String>) -> O
 }
 
 #[uniffi::export]
+pub fn card_ink_key(ink: Option<CardInk>) -> String {
+    crate::domain::producer_card::card_ink_key(ink.as_ref())
+}
+
+#[uniffi::export]
+pub fn card_ink_from_key(key: String) -> Option<CardInk> {
+    crate::domain::producer_card::card_ink_from_key(&key)
+}
+
+#[uniffi::export]
 pub fn card_design_key(design: CardDesign) -> String {
     crate::domain::producer_card::card_design_key(design)
 }

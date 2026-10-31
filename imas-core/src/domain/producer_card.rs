@@ -1060,6 +1060,28 @@ pub fn card_ink_choices(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> Vec<
     out
 }
 
+/// 端末に保存する刷る色のキー (先頭の担当は空、墨は `sumi`、担当は `oshi:<idol id>`)。
+pub fn card_ink_key(ink: Option<&CardInk>) -> String {
+    match ink {
+        None => String::new(),
+        Some(CardInk::Sumi) => "sumi".into(),
+        Some(CardInk::Oshi { idol_id }) => format!("oshi:{idol_id}"),
+    }
+}
+
+/// 保存のキーから刷る色を戻す。空・知らないキーは None (先頭の担当の色)。
+pub fn card_ink_from_key(key: &str) -> Option<CardInk> {
+    match key {
+        "sumi" => Some(CardInk::Sumi),
+        _ => key
+            .strip_prefix("oshi:")
+            .filter(|id| !id.is_empty())
+            .map(|id| CardInk::Oshi {
+                idol_id: id.to_string(),
+            }),
+    }
+}
+
 /// 刷る色の番号 (デザインの 1 バイトの上位 3 bit)。
 fn ink_code(ink: Option<&CardInk>, oshi_idol_ids: &[String]) -> u8 {
     match card_ink_normalize(ink, oshi_idol_ids) {
@@ -3510,6 +3532,21 @@ mod tests {
         // 担当の居ない位置の番号は既定で読む。
         assert_eq!(ink_from_code(4, &i.oshi_idol_ids), None);
         assert_eq!(ink_from_code(5, &i.oshi_idol_ids), None);
+    }
+
+    #[test]
+    fn ink_keys_round_trip() {
+        for ink in [
+            None,
+            Some(CardInk::Sumi),
+            Some(CardInk::Oshi {
+                idol_id: "miki".into(),
+            }),
+        ] {
+            assert_eq!(card_ink_from_key(&card_ink_key(ink.as_ref())), ink);
+        }
+        assert_eq!(card_ink_from_key("oshi:"), None);
+        assert_eq!(card_ink_from_key("rainbow"), None);
     }
 
     #[test]

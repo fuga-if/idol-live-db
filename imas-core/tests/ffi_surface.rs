@@ -148,6 +148,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_card_design_key,
     uniffi_imas_core_checksum_func_card_ink_choices,
     uniffi_imas_core_checksum_func_card_ink_normalize,
+    uniffi_imas_core_checksum_func_card_ink_key,
+    uniffi_imas_core_checksum_func_card_ink_from_key,
     uniffi_imas_core_checksum_func_card_design_from_key,
     uniffi_imas_core_checksum_func_card_x_avatar_handle,
     uniffi_imas_core_checksum_func_x_profile_api_url,
