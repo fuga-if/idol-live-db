@@ -116,10 +116,14 @@ object ProducerCardAssembler {
     /** `#` の後ろ。 */
     fun payload(encoded: EncodedProducerCard): String = producerCardPayload(encoded.card)
 
-    /** 自分の担当の画像 (代表の 1 枚) を送る形にする。画像を設定していない担当は入れない (判子で出る)。 */
-    fun myOshiImages(module: AppModule, card: ProducerCard): List<CardFileImage> =
+    /**
+     * 自分の担当の画像 (名刺用に選んだ画像、無ければアプリの代表の 1 枚) を送る形にする。
+     * 画像を設定していない担当は入れない (判子で出る)。
+     */
+    fun myOshiImages(context: Context, module: AppModule, card: ProducerCard): List<CardFileImage> =
         card.oshiIdolIds.mapNotNull { id ->
-            val file = module.customImageStore.primaryImageFile(id) ?: return@mapNotNull null
+            val file = ProducerCardFiles.cardOshiImageFile(context, id, module.customImageStore.primaryImageFile(id))
+                ?: return@mapNotNull null
             val jpeg = ProducerCardFiles.jpeg(file) ?: return@mapNotNull null
             CardFileImage(idolId = id, jpeg = jpeg, kind = CardFileImageKind.OSHI)
         }
@@ -149,7 +153,7 @@ object ProducerCardAssembler {
      */
     suspend fun myCardFile(context: Context, module: AppModule, encoded: EncodedProducerCard): ByteArray? =
         withContext(Dispatchers.Default) {
-            val images = myOshiImages(module, encoded.card) + listOfNotNull(myPhotoImage(context)) + myFaceImages(context)
+            val images = myOshiImages(context, module, encoded.card) + listOfNotNull(myPhotoImage(context)) + myFaceImages(context)
             encodeCardFile(payload(encoded), images)
         }
 

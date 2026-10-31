@@ -12,5 +12,6 @@
     <exclude domain="file" path="producer_cards/" />
     <exclude domain="file" path="producer_card_me/" />
     <exclude domain="file" path="producer_card_face/" />
+    <exclude domain="file" path="producer_card_oshi/" />
     <exclude domain="file" path="profile_sheet_photo/" />
 </full-backup-content>

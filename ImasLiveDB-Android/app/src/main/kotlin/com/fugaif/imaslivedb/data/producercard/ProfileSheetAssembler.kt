@@ -86,7 +86,7 @@ object ProfileSheetAssembler {
                     id = idol.id, name = idol.name, shortName = idol.shortName, color = idol.color,
                     brandColor = brandById[idol.brandId]?.color,
                     // 書き出しは画像の読み込みを待たないので、ここで小さく読んでおく。
-                    image = module.customImageStore.primaryImageFile(idol.id)?.let { ProducerCardFiles.decodeBounded(it, 240) }
+                    image = ProducerCardFiles.cardOshiImageFile(context, idol.id, module.customImageStore.primaryImageFile(idol.id))?.let { ProducerCardFiles.decodeBounded(it, 240) }
                 )
             }
         }

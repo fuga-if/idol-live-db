@@ -109,22 +109,23 @@ object ProducerCardDisplay {
 
     /**
      * 担当の行。[imageUrls] は担当の画像の在り処 (アイドルの id → 画像。受け取った名刺は受け取った画像)。
-     * [ownImages] = true は自分の名刺 (端末に取り込んだアイドルの写真を引く)。
+     * [ownImages] = true は自分の名刺 (名刺用に選んだ画像 [ownOshiImages]、無ければ端末に取り込んだアイドルの写真を引く)。
      */
     fun oshi(
         card: ProducerCard,
         directory: ProducerCardDirectory,
         sharedWith: Set<String> = emptySet(),
         ownImages: Boolean = false,
-        imageUrls: Map<String, String> = emptyMap()
+        imageUrls: Map<String, String> = emptyMap(),
+        ownOshiImages: Map<String, String> = emptyMap()
     ): List<ImasProducerCardOshi> = card.oshiIdolIds.mapNotNull { id ->
         val idol = directory.idols[id] ?: return@mapNotNull null
         val brand = directory.brands[idol.brandId]
         ImasProducerCardOshi(
             id = idol.id, name = idol.name, shortName = idol.shortName,
             seed = idol.color, brand = idol.brandId,
-            imageUrl = if (ownImages) null else imageUrls[idol.id],
-            entityId = if (ownImages) idol.id else null,
+            imageUrl = if (ownImages) ownOshiImages[idol.id] else imageUrls[idol.id],
+            entityId = if (ownImages && idol.id !in ownOshiImages) idol.id else null,
             subtitle = brand?.shortName, isShared = idol.id in sharedWith
         )
     }
@@ -235,15 +236,22 @@ fun rememberProducerCardContent(
     face: ProducerCardFace? = null,
     back: ImasProducerCardBack? = null,
     payload: String? = null,
-    showsRecord: Boolean = true
+    showsRecord: Boolean = true,
+    ownOshiDraft: Map<String, String?> = emptyMap()
 ): ImasProducerCardContent {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val nameFamily = rememberCardNameFamily(ProducerCardDisplay.nameFont(card, face))
-    val photoEntityId = if (ownImages) firstWithImage(card, directory) else null
+    // 自分の名刺の担当の画像: 編集の書きかけ → 名刺用に選んだ画像 (アプリの担当の画像は entityId で引く)。
+    val ownOshiImages: Map<String, String> = if (!ownImages) emptyMap() else card.oshiIdolIds.mapNotNull { id ->
+        val url = if (ownOshiDraft.containsKey(id)) ownOshiDraft[id] else ProducerCardFiles.myOshiImageUrl(context, id)
+        url?.let { id to it }
+    }.toMap()
+    val photoEntityId = if (ownImages) firstWithImage(card, directory, ownOshiImages) else null
     return remember(
         card, directory, sharedWith, ownImages, imageUrls, portraitUrl, portraitSource, face, back, payload, showsRecord,
-        nameFamily, photoEntityId
+        nameFamily, photoEntityId, ownOshiImages
     ) {
-        val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrls)
+        val oshi = ProducerCardDisplay.oshi(card, directory, sharedWith, ownImages, imageUrls, ownOshiImages)
         val cardFace = producerCardFace(card, directory.oshiEntries(oshi.map { it.id }))
         val byId = oshi.associateBy { it.id }
         ImasProducerCardContent(
@@ -262,7 +270,7 @@ fun rememberProducerCardContent(
             links = ProducerCardDisplay.links(card),
             cells = if (showsRecord) ProducerCardDisplay.cells(card, directory) else emptyList(),
             boardTrailing = ProducerCardDisplay.boardTrailing(card),
-            photoUrl = if (ownImages) null else oshi.firstNotNullOfOrNull { it.imageUrl },
+            photoUrl = oshi.firstNotNullOfOrNull { it.imageUrl },
             photoEntityId = photoEntityId,
             portraitUrl = portraitUrl,
             portraitRound = cardPhotoShape(portraitSource) == CardPhotoShape.ROUND,
@@ -286,12 +294,14 @@ fun ownQrBack(card: ProducerCard, url: String): ImasProducerCardBack = ImasProdu
     showCount = card.showCount?.toLong(), songCount = card.songCount?.toLong()
 )
 
-/** 自分の名刺の写真: 端末に写真を取り込んだ先頭の担当。 */
+/** 自分の名刺の写真: 画像のある先頭の担当 (名刺用に選んだ画像があればそれが先。無ければ端末に取り込んだ写真の担当の id)。 */
 @Composable
-private fun firstWithImage(card: ProducerCard, directory: ProducerCardDirectory): String? {
+private fun firstWithImage(card: ProducerCard, directory: ProducerCardDirectory, ownOshiImages: Map<String, String>): String? {
     val store = AppModule.from(androidx.compose.ui.platform.LocalContext.current).customImageStore
     val version by store.galleryVersion.collectAsState()
-    return remember(card.oshiIdolIds, directory, version) {
-        card.oshiIdolIds.firstOrNull { it in directory.idols && store.primaryImageFile(it) != null }
+    return remember(card.oshiIdolIds, directory, version, ownOshiImages) {
+        // 名刺用の画像を持つ担当が先なら、その画像は photoUrl で出す (ここでは返さない)。
+        card.oshiIdolIds.firstOrNull { it in directory.idols && (it in ownOshiImages || store.primaryImageFile(it) != null) }
+            ?.takeIf { it !in ownOshiImages }
     }
 }

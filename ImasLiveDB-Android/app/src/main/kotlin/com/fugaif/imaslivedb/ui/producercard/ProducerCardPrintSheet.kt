@@ -205,7 +205,7 @@ data class ProducerCardPrintMaterials(
                     faceFront = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.FRONT)?.let { ProducerCardFiles.decodeBounded(it, 2000) } else null,
                     faceBack = if (usesFace) ProducerCardFiles.myFaceFile(context, ProducerCardFiles.Side.BACK)?.let { ProducerCardFiles.decodeBounded(it, 2000) } else null,
                     oshiImages = card.oshiIdolIds.mapNotNull { id ->
-                        module.customImageStore.primaryImageFile(id)?.let { ProducerCardFiles.decodeBounded(it, oshiPixels) }?.let { id to it }
+                        ProducerCardFiles.cardOshiImageFile(context, id, module.customImageStore.primaryImageFile(id))?.let { ProducerCardFiles.decodeBounded(it, oshiPixels) }?.let { id to it }
                     }.toMap()
                 )
             }

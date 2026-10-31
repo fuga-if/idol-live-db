@@ -45,6 +45,12 @@ object ProducerCardFiles {
     const val MY_FACE_DIRECTORY_NAME = "producer_card_face"
 
     /**
+     * 名刺だけに使う担当の画像の置き場所 (filesDir の下。アプリの担当の画像 (CustomImageStore) とは別。
+     * Auto Backup から外す)。iOS `Documents/producer_card_oshi/`。
+     */
+    const val MY_OSHI_DIRECTORY_NAME = "producer_card_oshi"
+
+    /**
      * 前の版のプロフィール帳だけの写真の置き場所 (filesDir の下)。プロフィール帳は P名刺の画像に一本化し、
      * 写真は P名刺の写真を使う。残っていれば P名刺の画面を開いたときに片付ける ([removeLegacyProfileSheetPhoto])。
      * 片付けるまでは Auto Backup から外したまま (BackupRulesTest が突き合わせる)。
@@ -200,6 +206,41 @@ object ProducerCardFiles {
     fun removeLegacyProfileSheetPhoto(context: Context) {
         val dir = File(context.filesDir, LEGACY_PROFILE_SHEET_DIRECTORY_NAME)
         if (dir.exists()) dir.deleteRecursively()
+    }
+
+    // ---- 自分の名刺用の担当の画像 ----
+
+    private fun myOshiFolder(context: Context): File = File(context.filesDir, MY_OSHI_DIRECTORY_NAME)
+
+    /** 名刺用の担当の画像のファイル (新しい順)。名前は書くたびに変える (読み込みの控えが古い画像を出さないように)。 */
+    private fun myOshiFiles(context: Context, idolId: String): List<File> =
+        myOshiFolder(context).listFiles()
+            ?.filter { it.name.startsWith("${safeName(idolId)}-") && it.name.endsWith(".jpg") }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+
+    /** 名刺用に選んだ担当の画像 (無ければ null)。 */
+    fun myOshiImageFile(context: Context, idolId: String): File? = myOshiFiles(context, idolId).firstOrNull()
+
+    fun myOshiImageUrl(context: Context, idolId: String): String? =
+        myOshiImageFile(context, idolId)?.let { Uri.fromFile(it).toString() }
+
+    /** 名刺に出す自分の担当の画像。名刺用に選んだ画像、無ければアプリの担当の画像 ([appImage])。 */
+    fun cardOshiImageFile(context: Context, idolId: String, appImage: File?): File? =
+        myOshiImageFile(context, idolId) ?: appImage
+
+    /** 名刺用の担当の画像を書く (前の画像は消す)。書けなければ投げる。 */
+    fun saveMyOshiImage(context: Context, image: Bitmap, idolId: String) {
+        val data = jpeg(image, maxPixels = 2000) ?: throw IOException("担当の画像を書き出せませんでした")
+        val dir = myOshiFolder(context).apply { mkdirs() }
+        val previous = myOshiFiles(context, idolId)
+        writeAtomically(File(dir, "${safeName(idolId)}-${UUID.randomUUID().toString().take(8)}.jpg"), data)
+        previous.forEach { it.delete() }
+    }
+
+    /** 名刺用の担当の画像を外す (アプリの担当の画像に戻る)。 */
+    fun deleteMyOshiImage(context: Context, idolId: String) {
+        myOshiFiles(context, idolId).forEach { it.delete() }
     }
 
     // ---- 自分の自作の名刺の画像 ----

@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import uniffi.imas_core.CardInk
 import uniffi.imas_core.cardInkChoices
 import uniffi.imas_core.cardInkNormalize
+import com.fugaif.imaslivedb.ui.designsystem.ImasChoiceDialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -243,6 +244,10 @@ fun ProducerCardEditorSheet(
     var photoSource by remember { mutableStateOf<Bitmap?>(null) }
     var crop by remember { mutableStateOf(ImasPortraitCrop()) }
     var photoDirty by remember { mutableStateOf(false) }
+    // 名刺用の担当の画像の書きかけ (担当の id → 見本の一時ファイルの URI。null はアプリの画像に戻す)。✓ で端末に書く。
+    val oshiImageDraft = remember { mutableStateMapOf<String, String?>() }
+    var oshiImageTarget by remember { mutableStateOf<String?>(null) }
+    var oshiImageMenuTarget by remember { mutableStateOf<Idol?>(null) }
     // 写真を選び直した (元の写真も書き直す)。位置を直しただけなら元の写真は書き直さない。
     var photoSourceChanged by remember { mutableStateOf(false) }
     // 切り抜きを決めて見本を作っている間は保存させない (写真が書かれずに閉じないように)。
@@ -286,9 +291,13 @@ fun ProducerCardEditorSheet(
     }
     // 先頭の担当の画像 (担当を大きく のデザインの札)。選び直したら引き直す。
     val leadId = oshi.firstOrNull()?.id
-    LaunchedEffect(leadId) {
+    val leadDraft = leadId?.let { if (oshiImageDraft.containsKey(it)) oshiImageDraft[it] else "" }
+    LaunchedEffect(leadId, leadDraft) {
         leadImage = leadId?.let { id ->
-            withContext(Dispatchers.IO) { module.customImageStore.primaryImageFile(id)?.let { Uri.fromFile(it).toString() } }
+            withContext(Dispatchers.IO) {
+                val chosen = if (oshiImageDraft.containsKey(id)) oshiImageDraft[id] else ProducerCardFiles.myOshiImageUrl(context, id)
+                chosen ?: module.customImageStore.primaryImageFile(id)?.let { Uri.fromFile(it).toString() }
+            }
         }
     }
     LaunchedEffect(Unit) { favorites = FavoriteSongSource.load(module).map { it.input } }
@@ -343,6 +352,33 @@ fun ProducerCardEditorSheet(
             cropping = CropDraft(image, ImasPortraitCrop(), CardPhotoSource.PICKED)
         }
     }
+
+    /** 名刺用の担当の画像を選ぶ。選んだ画像は見本の一時ファイルにする (✓ で端末に書く)。 */
+    val pickOshiImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val id = oshiImageTarget
+        if (uri == null || id == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val image = PaperCardCodeReader.loadBitmap(context, uri)
+            val jpeg = image?.let { ProducerCardFiles.jpeg(it, maxPixels = 2000) }
+            if (jpeg == null) {
+                error = "画像を読み込めませんでした。"
+                return@launch
+            }
+            val file = withContext(Dispatchers.IO) {
+                File(oshiDraftFolder(context).apply { mkdirs() }, "oshi-${UUID.randomUUID()}.jpg").also { it.writeBytes(jpeg) }
+            }
+            oshiImageDraft[id] = Uri.fromFile(file).toString()
+        }
+    }
+
+    fun startPickOshiImage(id: String) {
+        oshiImageTarget = id
+        pickOshiImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
+    /** 名刺に出す担当の画像 (書きかけ → 名刺用に選んだ画像 → アプリの担当の画像)。 */
+    fun hasCardOshiImage(id: String): Boolean =
+        if (oshiImageDraft.containsKey(id)) oshiImageDraft[id] != null else ProducerCardFiles.myOshiImageFile(context, id) != null
 
     /** 写真に写った QR を読み、URL なら自分の QR に入れる (分け方はコア)。 */
     val pickQrPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -528,7 +564,8 @@ fun ProducerCardEditorSheet(
     val isDirty = name != card.name || message != card.message || sinceYear != card.sinceYear ||
         hidden != card.hidden || draft().linksJson != card.linksJson ||
         draft().cardDesign != card.cardDesign || draft().ink != card.ink || draft().qrUrl != card.qrUrl || photoDirty || faceDirty.isNotEmpty() ||
-        songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != null
+        songs != card.profile.songs || oshiChoice != card.cardOshiChoice || renewedCardId != null ||
+        oshiImageDraft.isNotEmpty()
     val qrInvalid = qrUrl.isNotBlank() && normalizeCardQrUrl(qrUrl) == null
 
     // ✕・✓ と払う動きは、押した時点の判定で決める (下の関数は組み立てたときの値を抱えたまま
@@ -558,6 +595,14 @@ fun ProducerCardEditorSheet(
                     withContext(Dispatchers.IO) {
                         if (source != null) ProducerCardFiles.saveMyPhoto(context, source, result, origin, writeSource = photoSourceChanged)
                         else ProducerCardFiles.deleteMyPhoto(context)
+                    }
+                }
+                val oshiImages = oshiImageDraft.toMap()
+                withContext(Dispatchers.IO) {
+                    oshiImages.forEach { (id, uri) ->
+                        val bitmap = uri?.let { ProducerCardFiles.decodeBounded(File(Uri.parse(it).path.orEmpty()), 2000) }
+                        if (bitmap != null) ProducerCardFiles.saveMyOshiImage(context, bitmap, id)
+                        else ProducerCardFiles.deleteMyOshiImage(context, id)
                     }
                 }
                 val faces = faceDirty.associateWith { faceImages[it] }
@@ -595,7 +640,8 @@ fun ProducerCardEditorSheet(
                 ImasPinnedPreview {
                     CardPreview(
                         draft(), record, directory, previewPortrait, photoOrigin,
-                        facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) }
+                        facePreview[ProducerCardFiles.Side.FRONT]?.let { ProducerCardFace(it, facePreview[ProducerCardFiles.Side.BACK]) },
+                        oshiImageDraft
                     )
                 }
                 Column(
@@ -716,15 +762,34 @@ fun ProducerCardEditorSheet(
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
                                     oshi.forEach { idol ->
+                                        val cardImage = if (oshiImageDraft.containsKey(idol.id)) oshiImageDraft[idol.id]
+                                        else ProducerCardFiles.myOshiImageUrl(context, idol.id)
                                         Row(horizontalArrangement = Arrangement.spacedBy(DS.Space.gap), verticalAlignment = Alignment.CenterVertically) {
                                             ImasAvatar(
                                                 label = idol.shortName, seed = idol.color, brand = idol.brandId,
-                                                size = DS.Size.avatarSmall, isPick = true, entityId = idol.id
+                                                size = DS.Size.avatarSmall, isPick = true,
+                                                imageUrl = cardImage, entityId = if (cardImage == null) idol.id else null
                                             )
-                                            Text(idol.name, style = ImasTextRole.ROW_TITLE.style, color = DS.ink)
+                                            Column(Modifier.weight(1f)) {
+                                                Text(idol.name, style = ImasTextRole.ROW_TITLE.style, color = DS.ink)
+                                                if (hasCardOshiImage(idol.id)) {
+                                                    Text("名刺用の画像", style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color)
+                                                }
+                                            }
+                                            ImasIconButton(
+                                                icon = Icons.Filled.Photo, label = "${idol.name}の名刺用の画像",
+                                                size = ImasIconButtonSize.SMALL,
+                                                onClick = {
+                                                    if (hasCardOshiImage(idol.id)) oshiImageMenuTarget = idol else startPickOshiImage(idol.id)
+                                                }
+                                            )
                                         }
                                     }
                                     val byHand = producerCardOshiPicks(oshiChoice, oshiEntries).chosenByHand
+                                    Text(
+                                        "画像の印から、名刺だけに使う担当の画像を選べます (アプリの担当の画像はそのまま)。",
+                                        style = ImasTextRole.NOTE.style, color = ImasTextRole.NOTE.color
+                                    )
                                     ImasNavRow(
                                         title = "名刺に載せる担当を選ぶ",
                                         subtitle = if (byHand) "選んだ ${oshi.size} 人 (この順に載ります)" else "おまかせ (ブランドごとに 1 人)",
@@ -831,6 +896,18 @@ fun ProducerCardEditorSheet(
         confirmDiscard = false
         onDismiss()
     })
+    ImasChoiceDialog(
+        title = oshiImageMenuTarget?.let { "${it.name}の名刺用の画像" }.orEmpty(),
+        isPresented = oshiImageMenuTarget != null,
+        options = listOf("repick" to "画像を選び直す", "revert" to "アプリの担当の画像に戻す"),
+        onPick = { key ->
+            val idol = oshiImageMenuTarget
+            if (idol != null) {
+                if (key == "repick") startPickOshiImage(idol.id) else oshiImageDraft[idol.id] = null
+            }
+        },
+        onDismiss = { oshiImageMenuTarget = null }
+    )
     ImasConfirmDestructive(
         title = "名刺 id を作り直しますか？",
         isPresented = confirmRenewCardId,
@@ -882,6 +959,9 @@ private class FaceCornerDraft(val side: ProducerCardFiles.Side, val source: Pape
 
 /** 見本に出す切り抜き済みの写真の一時置き場。 */
 private fun previewFolder(context: Context): File = File(context.cacheDir, "producer_card_edit")
+
+/** 名刺用の担当の画像の一時置き場。 */
+private fun oshiDraftFolder(context: Context): File = File(context.cacheDir, "producer_card_oshi_edit")
 
 /** 自作の名刺の画像の一時置き場。 */
 private fun faceFolder(context: Context): File = File(context.cacheDir, "producer_card_face_edit")
@@ -939,13 +1019,15 @@ private fun CardPreview(
     directory: ProducerCardDirectory,
     portraitUrl: String?,
     portraitSource: CardPhotoSource,
-    face: ProducerCardFace?
+    face: ProducerCardFace?,
+    oshiImageDraft: Map<String, String?>
 ) {
     val rec = record ?: ProducerCardMyRecord(oshiIds = emptyList(), attended = emptyList(), songCount = 0)
     val sample = draft.copy(name = draft.name.ifEmpty { "名前" })
     val card = encodeProducerCard(ProducerCardAssembler.input(sample, rec)).card
     val content = rememberProducerCardContent(
-        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, portraitSource = portraitSource, face = face
+        card = card, directory = directory, ownImages = true, portraitUrl = portraitUrl, portraitSource = portraitSource, face = face,
+        ownOshiDraft = oshiImageDraft
     )
     ImasProducerCard(content, isFlippable = false, modifier = Modifier.semantics { contentDescription = "名刺の見本" })
 }
