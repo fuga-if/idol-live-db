@@ -67,12 +67,10 @@ object LyricsSession {
             val artists = songRepository.fetchSongArtists(songId, "original")
             // 曲詳細と同じ差し色: 原唱者が 1 人ならその人の色、他はブランドの色。
             val seed = if (artists.size == 1) artists.first().color else BrandColors.hex(song.brandId)
-            val artistLine = when {
-                artists.isNotEmpty() -> artists.joinToString(" / ") { it.name }
-                !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-                !song.unitName.isNullOrEmpty() -> song.unitName
-                else -> null
-            }
+            // 曲詳細と同じ歌唱者行 (全体曲は名義に畳む。規則はコア)。
+            val artistLine = uniffi.imas_core.songArtistLine(
+                song.unitName, song.singerLabel, artists.map { it.name }
+            )?.text
             // パート分けはソロ曲 (原唱者 1 人) には出さない (imas-core `lyricPartsApplicable`)。
             val cast = if (lyricPartsApplicable(artists.size.toUInt())) LyricPartCast(artists) else LyricPartCast.EMPTY
             register(

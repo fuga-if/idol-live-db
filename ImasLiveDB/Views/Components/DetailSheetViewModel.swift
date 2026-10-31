@@ -233,11 +233,20 @@ final class DetailSheetViewModel {
     // MARK: - 整形 (楽曲情報行 / クレジット)
 
     /// アーティスト = 歌唱アイドル名連結 (なければ singerLabel / unitName)。
+    /// 全体曲 (6 人以上) は名義 (`765 MILLION ALLSTARS` など) に畳む。規則はコア (`songArtistLine`)。
     func artistLine(for song: Song) -> String? {
-        if !originalArtists.isEmpty {
-            return originalArtists.map(\.name).joined(separator: " / ")
-        }
-        return song.singerLabel ?? song.unitName
+        artistLineInfo(for: song)?.text
+    }
+
+    /// 畳む前の全員ぶん。「歌唱者をコピー」はこちらを使う。
+    func fullArtistLine(for song: Song) -> String? {
+        artistLineInfo(for: song)?.fullText
+    }
+
+    /// 歌唱者行の中身 (表示・全員ぶん・畳んだか)。
+    func artistLineInfo(for song: Song) -> SongArtistLine? {
+        songArtistLine(unitName: song.unitName, singerLabel: song.singerLabel,
+                       artistNames: originalArtists.map(\.name))
     }
 
     /// 「楽曲情報」セクションの行を宣言的モデルとして組み立てる。

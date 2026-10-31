@@ -20,7 +20,7 @@
 //! `song_id` を 1 つ渡せば 1 枚返る形にしておくと、**1 操作 = 1 FFI 呼び出し**
 //! (docs/ARCHITECTURE.md) が守れて、Android 移植でも同じ手組みを書き直さずに済む。
 
-use crate::domain::performer_label::{performer_label, PerformerNaming};
+use crate::domain::performer_label::{performer_display_label, PerformerNaming};
 use crate::domain::snapshot::Snapshot;
 
 /// 鳴らし方。
@@ -102,7 +102,7 @@ fn compose_bar(
     NowPlayingBar {
         song_id: song_id.to_string(),
         title: title.to_string(),
-        subtitle: performer_label(naming),
+        subtitle: performer_display_label(naming),
         preview_mark: (kind == NowPlayingKind::Preview).then(|| PREVIEW_MARK.to_string()),
         // 空文字の URL を掴ませると、OS 側に壊れた画像枠が出る。
         artwork_url: artwork_url

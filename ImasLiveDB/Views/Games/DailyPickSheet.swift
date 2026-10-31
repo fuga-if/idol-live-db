@@ -130,7 +130,7 @@ struct DailyPickSheet: View {
         } labels: {
             Text(brand?.shortName ?? "").font(.imasCaption.weight(.semibold)).foregroundStyle(DS.ink3)
             Text(song.title).font(.imasSubhead.weight(.bold)).foregroundStyle(DS.ink).lineLimit(2)
-            if let label = song.singerLabel, !label.isEmpty {
+            if let label = song.singerLine, !label.isEmpty {
                 Text(label).font(.imasCaption).foregroundStyle(DS.ink2).lineLimit(1)
             }
         } onVote: {

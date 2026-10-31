@@ -29,5 +29,5 @@ impl SnapshotStore {
 /// (iOS の `SongRowView` とコアで食い違っていた)。
 #[uniffi::export]
 pub fn performer_label(naming: PerformerNaming) -> Option<String> {
-    crate::domain::performer_label::performer_label(&naming)
+    crate::domain::performer_label::performer_display_label(&naming)
 }

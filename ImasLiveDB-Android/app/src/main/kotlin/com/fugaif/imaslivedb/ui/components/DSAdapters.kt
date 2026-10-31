@@ -103,7 +103,7 @@ fun ImasSongRow(
     ImasSongRow(
         title = song.title,
         modifier = modifier,
-        subtitle = subtitle ?: song.unitName ?: song.singerLabel,
+        subtitle = subtitle ?: song.creditLine,
         artworkUrl = song.artworkUrl,
         brand = song.brandId,
         showsBrandBar = showsBrandBar,

@@ -182,8 +182,9 @@ struct LyricsQuizView: View {
     }
 
     private func singerText(_ s: SongWithArtists) -> String {
+        // 全体曲は全員の名前を抱えているので畳む (コアの規則)。
         let label = s.song.singerLabel ?? ""
-        return label.isEmpty ? s.artistNames : label
+        return compactSingerLabel(label: label.isEmpty ? s.artistNames : label)
     }
 
     // MARK: - チケット

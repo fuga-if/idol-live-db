@@ -14,7 +14,7 @@ struct RelatedSongRow: View {
     var body: some View {
         ImasSongRow(
             title: song.title,
-            subtitle: song.singerLabel ?? song.unitName,
+            subtitle: song.singerLine,
             artworkURL: URL.safeHTTP(string: song.artworkUrl),
             brandHex: seed,
             trailing: badge.map { .custom(AnyView(trailingBadge($0))) } ?? .chevron,

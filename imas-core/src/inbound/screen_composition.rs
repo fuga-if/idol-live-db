@@ -77,3 +77,20 @@ mod tests {
 pub fn song_credit_label(unit_name: Option<String>, singer_label: Option<String>, artist_names: String) -> String {
     crate::domain::song_credit_label::song_credit_label(unit_name.as_deref(), singer_label.as_deref(), &artist_names)
 }
+
+/// 全体曲の長い歌唱者表記 (`765 MILLION ALLSTARS 天海春香、…`) を 1 行に畳む。
+/// 短い表記はそのまま返る。規則は `domain::singer_compact`。
+#[uniffi::export]
+pub fn compact_singer_label(label: String) -> String {
+    crate::domain::singer_compact::compact_singer_label(&label)
+}
+
+/// 曲の詳細の歌唱者行 (全体曲は名義に畳む)。規則は `domain::song_credit_label::song_artist_line`。
+#[uniffi::export]
+pub fn song_artist_line(
+    unit_name: Option<String>,
+    singer_label: Option<String>,
+    artist_names: Vec<String>,
+) -> Option<crate::domain::song_credit_label::SongArtistLine> {
+    crate::domain::song_credit_label::song_artist_line(unit_name.as_deref(), singer_label.as_deref(), &artist_names)
+}

@@ -60,6 +60,22 @@ pub fn performer_label(naming: &PerformerNaming) -> Option<String> {
     (!joined.is_empty()).then_some(joined)
 }
 
+/// 画面の 1 行に出す名義。[`performer_label`] と同じ順で決め、全体曲の長い表記だけ畳む
+/// ([`crate::domain::singer_compact`])。
+///
+/// [`performer_label`] は群分け (`mastery`) や照合 (`entity_resolution`) の鍵にも使うので、
+/// そちらは生の値のまま残す。畳むのは見せるときだけ。
+pub fn performer_display_label(naming: &PerformerNaming) -> Option<String> {
+    use crate::domain::singer_compact::{cap_names, compact_singer_label};
+    if let Some(unit) = non_empty(&naming.unit_name) {
+        return Some(unit.to_string());
+    }
+    if let Some(label) = non_empty(&naming.singer_label) {
+        return Some(compact_singer_label(label));
+    }
+    cap_names(&naming.performer_names).or_else(|| performer_label(naming))
+}
+
 /// 空白だけの要素を落としてから繋ぐ。区切りだけが並ぶのを防ぐ 1 段で、
 /// 曲一覧の中黒もセトリ行の全角スラッシュもここを通る。
 fn join_names(names: &[String], separator: &str) -> String {
@@ -258,8 +274,9 @@ pub fn setlist_performer_label(naming: &SetlistNaming) -> Option<SetlistLabel> {
     }
     if let Some(label) = non_empty(&naming.singer_label) {
         // 個人名の併記はユニット名ではないのでチップにしない。
+        // 全体曲の表記は全員の名前を抱えているので畳む (誰が歌ったかはアバターの列が持つ)。
         return Some(SetlistLabel {
-            text: label.to_string(),
+            text: crate::domain::singer_compact::compact_singer_label(label),
             source: SetlistLabelSource::SingerLabel,
             unit_names: Vec::new(),
         });
@@ -278,7 +295,9 @@ pub fn setlist_performer_label(naming: &SetlistNaming) -> Option<SetlistLabel> {
             unit_names: Vec::new(),
         });
     }
-    let text = join_names(&naming.performer_names, SETLIST_SEPARATOR);
+    // 大勢で歌った行は名前を畳む (全員の顔ぶれは行のアバターと歌唱者シートが持つ)。
+    let text = crate::domain::singer_compact::cap_names_with(&naming.performer_names, SETLIST_SEPARATOR)
+        .unwrap_or_else(|| join_names(&naming.performer_names, SETLIST_SEPARATOR));
     (!text.is_empty()).then(|| SetlistLabel {
         text,
         source: SetlistLabelSource::PerformerNames,
@@ -397,6 +416,22 @@ mod setlist_tests {
             ..naming()
         };
         assert_eq!(label(&unit_show).as_deref(), Some("アンティーカ"));
+    }
+
+    /// 回帰 (2026-10-31): 全体曲の表記が全員の名前ごとセトリ行に出ていた。
+    #[test]
+    fn whole_cast_singer_label_is_compacted() {
+        let n = SetlistNaming {
+            singer_label: Some("765 MILLION ALLSTARS 天海春香、春日未来、如月千早、木下ひなた、四条貴音、ジュリア".into()),
+            has_original_artists: true,
+            ..naming()
+        };
+        assert_eq!(label(&n).as_deref(), Some("765 MILLION ALLSTARS"));
+        let many = SetlistNaming {
+            performer_names: ["A", "B", "C", "D", "E", "F"].map(String::from).to_vec(),
+            ..Default::default()
+        };
+        assert_eq!(label(&many).as_deref(), Some("A／B／C ほか 3 人"));
     }
 
     /// DB には `NULL` と `''` が混ざっている。空文字で止めない。

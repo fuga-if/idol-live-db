@@ -125,7 +125,7 @@ object InfoWidgetData {
                 return@runCatching TodaySongInfo(
                     songId = song.id,
                     title = song.title,
-                    artistLabel = song.singerLabel,
+                    artistLabel = song.singerLabel?.let { uniffi.imas_core.compactSingerLabel(it) },
                     artworkUrl = song.artworkUrl,
                     brandColorHex = brand.color
                 )

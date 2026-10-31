@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.mastery
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import com.fugaif.imaslivedb.ui.components.creditLine
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -182,7 +183,7 @@ private fun SongMasteryRow(
         ImasArtwork(title = song.title, brand = song.brandId, size = 36.dp, imageUrl = song.artworkUrl)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             ImasText(song.title, ImasTextRole.ROW_LABEL, maxLines = 1)
-            val sub = song.unitName ?: song.singerLabel
+            val sub = song.creditLine
             if (!sub.isNullOrEmpty()) ImasText(sub, ImasTextRole.META, maxLines = 1)
         }
         if (collected) {

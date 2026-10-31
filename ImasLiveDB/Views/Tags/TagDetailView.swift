@@ -168,7 +168,7 @@ struct TagDetailView: View {
             // 行全体は onTapGesture で遷移を受ける。
             HStack(spacing: DS.Space.gapTight) {
                 ImasRankBadge(rank: rank)
-                ImasSongRow(song: song, subtitle: song.singerLabel, trailing: .custom(AnyView(
+                ImasSongRow(song: song, subtitle: song.singerLine, trailing: .custom(AnyView(
                     HStack(spacing: DS.Space.gap) {
                         ImasMetric(value: "\(entry.voteCount)", unit: "票", size: .medium)
                         ImasRowChevron()

@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.tags
 
 import androidx.compose.foundation.layout.Arrangement
+import com.fugaif.imaslivedb.ui.components.singerLine
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -204,7 +205,7 @@ private fun SongRankRow(row: TagSongRankRow, rank: Int, onSongClick: (String) ->
             ImasSongRow(
                 song = song,
                 modifier = Modifier.weight(1f),
-                subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                subtitle = song.singerLine,
                 showsBrandBar = true,
                 trailing = ImasRowTrailing.Metric("${row.voteCount}", unit = "票"),
                 onClick = { onSongClick(song.id) }

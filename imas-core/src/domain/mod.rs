@@ -108,6 +108,7 @@ pub mod show_list_filtering;
 pub mod show_naming;
 pub mod snapshot;
 pub mod snapshot_build;
+pub mod singer_compact;
 pub mod song_credit_label;
 pub mod song_dates;
 pub mod song_detail_queries;

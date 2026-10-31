@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.idols
 
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
+import com.fugaif.imaslivedb.ui.components.singerLine
 import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import uniffi.imas_core.groupIndicesByYearDesc
 import com.fugaif.imaslivedb.ui.designsystem.ImasDateHeader
@@ -505,7 +506,7 @@ private fun LiveBody(
                 ) { item ->
                     ImasSongRow(
                         song = item.song,
-                        subtitle = item.song.singerLabel?.takeIf { it.isNotEmpty() } ?: item.song.unitName,
+                        subtitle = item.song.singerLine,
                         density = ImasRowDensity.COMPACT,
                         playsPreview = false,
                         onClick = { onSongHistory(item.song.id) }
@@ -605,7 +606,7 @@ private fun SongsBody(state: IdolDetailUiState, idol: Idol, onUnit: (String) -> 
                 ) { song ->
                     ImasSongRow(
                         song = song,
-                        subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                        subtitle = song.singerLine,
                         density = ImasRowDensity.COMPACT,
                         playsPreview = false,
                         onClick = { onSong(song.id) }

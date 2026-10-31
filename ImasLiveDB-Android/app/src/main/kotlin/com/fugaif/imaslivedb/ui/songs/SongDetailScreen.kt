@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.songs
 
 import com.fugaif.imaslivedb.data.lyrics.LyricsFeature
+import com.fugaif.imaslivedb.ui.components.singerLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasFullScreenDialog
 import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -23,6 +24,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -59,12 +61,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import uniffi.imas_core.songArtistLine
 import coil3.compose.SubcomposeAsyncImage
 import com.fugaif.imaslivedb.data.auth.AuthState
 import com.fugaif.imaslivedb.data.auth.shouldPromptLogin
@@ -477,8 +482,22 @@ private fun SongSheetContent(
         lyricSubmissionAllowed(song.brandId ?: "", song.songType, song.singerLabel)
 
     val scroll = rememberScrollState()
-    Column(modifier = modifier.verticalScroll(scroll)) {
-        Hero(song, state, seed, onToggleFavorite, onToggleCardOwned, onAddToPlaylist)
+    // 「歌唱アイドル」の節の位置 (スクロールの中身の頭から)。上部の歌唱者行 (全体曲の名義) から送る。
+    var columnTop by remember { mutableIntStateOf(0) }
+    var singersTop by remember { mutableIntStateOf(-1) }
+    var singersRequest by remember { mutableIntStateOf(0) }
+    LaunchedEffect(singersRequest) {
+        if (singersRequest == 0) return@LaunchedEffect
+        // タブを替えたときは中身の差し替えと頭への戻しを 1 拍待つ (先に送ると行き先がまだ無い)。
+        kotlinx.coroutines.delay(150)
+        if (singersTop >= 0) scroll.animateScrollTo(singersTop)
+    }
+    Column(
+        modifier = modifier.verticalScroll(scroll)
+            .onGloballyPositioned { columnTop = it.positionInRoot().y.toInt() + scroll.value }
+    ) {
+        Hero(song, state, seed, onToggleFavorite, onToggleCardOwned, onAddToPlaylist,
+            onShowSingers = { segment = 0; singersRequest++ })
         ImasBoard(
             cells = boardCells(state),
             modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4)
@@ -502,7 +521,8 @@ private fun SongSheetContent(
                 song, state, seed, onIdolClick, onUnitClick, onSongClick, onShowClick,
                 onRegisterAttendance = { segment = 1 },
                 onFilteredSongsClick = onFilteredSongsClick,
-                onEditNote = onEditNote
+                onEditNote = onEditNote,
+                onSingersPositioned = { y -> singersTop = y - columnTop + scroll.value }
             )
             1 -> HistoryTab(
                 state.performanceHistory, state.performanceEvidence, seed, song.brandId,
@@ -516,12 +536,9 @@ private fun SongSheetContent(
             )
             else -> {
                 if (LyricsFeature.isAvailable) {
-                    val artistLine = when {
-                        state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
-                        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-                        !song.unitName.isNullOrEmpty() -> song.unitName
-                        else -> null
-                    }
+                    val artistLine = songArtistLine(
+                        song.unitName, song.singerLabel, state.originalArtists.map { it.name }
+                    )?.text
                     SongLyricsTab(
                         song = song, seed = seed, artistLine = artistLine,
                         lyricsResult = state.lyrics, isLyricsLoading = state.isLyricsLoading,
@@ -565,13 +582,12 @@ private fun Hero(
     seed: String?,
     onToggleFavorite: () -> Unit,
     onToggleCardOwned: () -> Unit,
-    onAddToPlaylist: () -> Unit
+    onAddToPlaylist: () -> Unit,
+    onShowSingers: () -> Unit
 ) {
-    val artistLine = when {
-        state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
-        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-        !song.unitName.isNullOrEmpty() -> song.unitName
-        else -> null
+    // 全体曲 (6 人以上) は名義に畳む (規則はコア `songArtistLine`)。全員はアイコンの並びが持つ。
+    val artistLine = remember(song.id, state.originalArtists) {
+        songArtistLine(song.unitName, song.singerLabel, state.originalArtists.map { it.name })
     }
     val typeLabel = song.songType.takeIf { it.isNotEmpty() && it != "unknown" }?.let { songTypeLabel(it) }
     val eyebrow = listOfNotNull(typeLabel, state.brand?.shortName).joinToString(" ・ ").ifEmpty { null }
@@ -599,7 +615,25 @@ private fun Hero(
             Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)) {
                 if (artistLine != null) {
                     // 色の点は付けない (名前の横の点は何も伝えない)。
-                    ImasText(artistLine, ImasTextRole.ROW_SUBTITLE)
+                    if (artistLine.isCompact && state.originalArtists.isNotEmpty()) {
+                        // 畳んだ名義を押すと「歌唱アイドル」(全員のアイコン) まで送る (iOS と同じ)。
+                        Row(
+                            modifier = Modifier.clickable(onClickLabel = "歌唱アイドル ${state.originalArtists.size} 人を見る") {
+                                onShowSingers()
+                            },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
+                        ) {
+                            ImasText(artistLine.text, ImasTextRole.ROW_SUBTITLE, maxLines = 2)
+                            androidx.compose.material3.Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = DS.ink3
+                            )
+                        }
+                    } else {
+                        ImasText(artistLine.text, ImasTextRole.ROW_SUBTITLE)
+                    }
                 }
                 if (releaseMeta != null) {
                     ImasText(releaseMeta, ImasTextRole.IMPRINT, color = DS.ink3)
@@ -670,13 +704,12 @@ private fun InfoTab(
     onShowClick: (String) -> Unit,
     onRegisterAttendance: () -> Unit,
     onFilteredSongsClick: (String, String) -> Unit,
-    onEditNote: (() -> Unit)?
+    onEditNote: (() -> Unit)?,
+    /** 「歌唱アイドル」の節の画面上の位置 (root 座標の y)。上部の歌唱者行から送るのに使う。 */
+    onSingersPositioned: (Int) -> Unit = {}
 ) {
-    val artistLine = when {
-        state.originalArtists.isNotEmpty() -> state.originalArtists.joinToString(" / ") { it.name }
-        !song.singerLabel.isNullOrEmpty() -> song.singerLabel
-        !song.unitName.isNullOrEmpty() -> song.unitName
-        else -> null
+    val artistLine = remember(song.id, state.originalArtists) {
+        songArtistLine(song.unitName, song.singerLabel, state.originalArtists.map { it.name })?.text
     }
     Column(
         modifier = Modifier.padding(horizontal = DS.sp5, vertical = DS.sp4),
@@ -770,7 +803,10 @@ private fun InfoTab(
         }
         // 歌唱アイドル
         if (state.originalArtists.isNotEmpty()) {
-            IdolGridSection("歌唱アイドル", state.originalArtists, onIdolClick)
+            IdolGridSection(
+                "歌唱アイドル", state.originalArtists, onIdolClick,
+                modifier = Modifier.onGloballyPositioned { onSingersPositioned(it.positionInRoot().y.toInt()) }
+            )
         }
         // ライブ歌唱歴
         if (state.performerArtists.isNotEmpty()) {
@@ -865,7 +901,7 @@ private fun RelatedSongsSection(
 private fun RelatedSongRow(song: Song, seed: String?, brand: String?, badge: Int?, subtitle: String? = null, onClick: () -> Unit) {
     ImasSongRow(
         title = song.title,
-        subtitle = subtitle ?: (song.singerLabel ?: song.unitName),
+        subtitle = subtitle ?: song.singerLine,
         artworkUrl = song.artworkUrl,
         seed = seed,
         brand = brand,

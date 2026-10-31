@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.sortmaker
 
 import com.fugaif.imaslivedb.data.core.VoiceActorDirectory
+import com.fugaif.imaslivedb.ui.components.singerLine
 import com.fugaif.imaslivedb.data.games.SortMakerSubject
 import com.fugaif.imaslivedb.data.model.Idol
 import com.fugaif.imaslivedb.data.model.Song
@@ -33,7 +34,7 @@ sealed class SortMakerItem {
     /** 曲は歌唱名義、アイドルは CV。 */
     val subtitle: String?
         get() = when (this) {
-            is SongItem -> song.singerLabel ?: song.unitName
+            is SongItem -> song.singerLine
             is IdolItem -> VoiceActorDirectory.current(idol.id)?.let { "CV. $it" }
         }
 

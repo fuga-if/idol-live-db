@@ -24,7 +24,7 @@ enum SortMakerItem: Identifiable, Hashable {
     var subtitle: String? {
         switch self {
         case .song(let s):
-            return s.singerLabel ?? s.unitName
+            return s.singerLine
         case .idol(let i):
             return VoiceActorDirectory.shared.current(for: i.id).map { "CV. \($0)" }
         }

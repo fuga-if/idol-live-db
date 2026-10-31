@@ -60,8 +60,9 @@ final class LyricsSession {
         let artists = (try? await container.songReading.songArtists(songId: songId, role: "original")) ?? []
         // 曲詳細と同じ差し色: 原唱者が 1 人ならその人の色、他はブランドの色。
         let seed = artists.count == 1 ? artists.first?.color : BrandColors.hex(for: song.brandId)
-        let artistLine = artists.isEmpty ? (song.singerLabel ?? song.unitName)
-            : artists.map(\.name).joined(separator: " / ")
+        // 曲詳細と同じ歌唱者行 (全体曲は名義に畳む)。
+        let artistLine = songArtistLine(unitName: song.unitName, singerLabel: song.singerLabel,
+                                        artistNames: artists.map(\.name))?.text
         let artwork = await MusicKitService.shared.fetchSongInfo(appleMusicId: song.appleMusicId)?.artworkURL
             ?? song.artworkUrl.flatMap(URL.init(string:))
         register(.init(song: song, seed: seed, artistLine: artistLine, artworkURL: artwork,

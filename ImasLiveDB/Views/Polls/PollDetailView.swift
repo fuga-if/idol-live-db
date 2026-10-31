@@ -473,7 +473,7 @@ private struct PollEntryRow: View {
     /// 曲の副題 (ユニット名、無ければ歌唱者の表記)。アイドル・ユニット候補には付けない (前どおり)。
     private var subtitle: String? {
         guard targetType == .song, let resolvedSong else { return nil }
-        return resolvedSong.unitName ?? resolvedSong.singerLabel
+        return resolvedSong.creditLine
     }
 
     /// ジャケが無いときの面の色 (曲のブランド色)。

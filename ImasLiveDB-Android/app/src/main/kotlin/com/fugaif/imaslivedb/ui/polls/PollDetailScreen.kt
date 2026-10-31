@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.polls
 
 import android.net.Uri
+import com.fugaif.imaslivedb.ui.components.creditLine
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -298,7 +299,7 @@ private fun PollEntryRow(
         "unit" -> unit?.displayName
         else -> song?.title
     } ?: fallbackName ?: entry.entityId
-    val subtitle = if (targetType == "song") song?.let { it.unitName ?: it.singerLabel } else null
+    val subtitle = if (targetType == "song") song?.creditLine else null
     val previewUrl = if (targetType == "song") safeHttp(song?.previewUrl) else null
     val playback by AudioPreviewManager.playbackState.collectAsState()
     val isPreviewing = previewUrl != null && song != null && playback.isPlaying(song.id)

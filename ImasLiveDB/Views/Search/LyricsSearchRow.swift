@@ -14,7 +14,7 @@ struct LyricsSearchRow: View {
             artwork
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
                 Text(song.title).imasText(.body).lineLimit(1)
-                if let label = song.unitName ?? song.singerLabel, !label.isEmpty {
+                if let label = song.creditLine {
                     Text(label).font(.imasCaption2).foregroundStyle(DS.ink2).lineLimit(1)
                 }
                 // 語ごとに1本ずつ。AND だと複数出て「なぜ引っかかったか」が分かる。

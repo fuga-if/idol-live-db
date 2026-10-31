@@ -58,7 +58,7 @@ extension ImasSongRow where Detail == EmptyView {
         let (previewURL, isPreviewing, onPreviewTap) = playsPreview ? Self.previewWiring(for: song) : (nil, false, {})
         self.init(
             title: song.title,
-            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
+            subtitle: subtitle ?? song.creditLine,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
             showsBrandBar: showsBrandBar,
@@ -82,7 +82,7 @@ extension ImasSongRow {
         let (previewURL, isPreviewing, onPreviewTap) = playsPreview ? Self.previewWiring(for: song) : (nil, false, {})
         self.init(
             title: song.title,
-            subtitle: subtitle ?? song.unitName ?? song.singerLabel,
+            subtitle: subtitle ?? song.creditLine,
             artworkURL: song.artworkUrl.flatMap(URL.init(string:)),
             brandHex: BrandColors.hex(for: song.brandId),
             showsBrandBar: showsBrandBar,

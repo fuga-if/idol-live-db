@@ -300,6 +300,8 @@ struct SongSheetContent: View {
     private static let tabsAnchor = "song_detail_tabs"
     private static let scrollSpace = "song_detail_scroll"
     @State private var tabsScrolledPast = false
+    /// 歌唱者行を押した回数。増えるたびに「歌唱アイドル」まで流す。
+    @State private var singersScrollRequest = 0
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -339,6 +341,16 @@ struct SongSheetContent: View {
             // タブを替えたら、前のタブで下まで流していても次のタブは頭 (タブの見出しの下) から見せる。
             .onChange(of: tab) { _, _ in
                 if tabsScrolledPast { proxy.scrollTo(Self.tabsAnchor, anchor: .top) }
+            }
+            // 歌唱者行 (全体曲の名義) を押したら「歌唱アイドル」まで流す。タブの切り替えで
+            // 中身が差し替わるのを 1 拍待ってから送る (先に送ると行き先がまだ無い)。
+            .onChange(of: singersScrollRequest) { _, _ in
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(120))
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        proxy.scrollTo(SongInfoTab.singersAnchor, anchor: .top)
+                    }
+                }
             }
         }
         .background(DS.bg)
@@ -476,7 +488,7 @@ struct SongSheetContent: View {
             )
         } facts: {
             VStack(alignment: .leading, spacing: DS.Space.gapTight) {
-                if let artistLine = vm.artistLine(for: song) {
+                if let artistLine = vm.artistLineInfo(for: song) {
                     artistLineView(artistLine)
                 }
                 if let meta = heroReleaseMeta {
@@ -500,16 +512,35 @@ struct SongSheetContent: View {
         .imasCopyable([
             CopyItem("曲名をコピー", song.title, key: "song_title"),
             CopyItem("よみをコピー", song.titleKana, key: "kana"),
-            CopyItem("歌唱者をコピー", vm.artistLine(for: song), key: "artists"),
+            CopyItem("歌唱者をコピー", vm.fullArtistLine(for: song), key: "artists"),
         ])
     }
 
     /// 歌唱者を「/」で繋いだ 1 行。全体曲は 10 人を超えることがあり、`ImasPerformerChip`
     /// (1 行固定・fixedSize) に入れると画面全体が横に広がって崩れる (原唱 4 人以上の曲は
     /// 605 曲ある)。複数行に折り返せる Text にする。
-    private func artistLineView(_ artistLine: String) -> some View {
+    ///
+    /// 全体曲 (6 人以上) は名義に畳んで出し (コアの `songArtistLine`)、押すと「情報・歌唱」タブの
+    /// 「歌唱アイドル」(全員のアイコン) まで送る。全員の名前は消さずにそちらで見せる。
+    @ViewBuilder
+    private func artistLineView(_ artistLine: SongArtistLine) -> some View {
         // 色の点は付けない (名前の横の点は何も伝えない)。
-        Text(artistLine).imasText(.rowSubtitle).lineLimit(2)
+        if artistLine.isCompact && !vm.originalArtists.isEmpty {
+            Button {
+                AppAnalytics.tap("song_detail.singers_jump")
+                tab = .info
+                singersScrollRequest += 1
+            } label: {
+                HStack(spacing: DS.Space.gapTight) {
+                    Text(artistLine.text).imasText(.rowSubtitle).lineLimit(2)
+                    Image(systemName: "chevron.right").imasText(.imprint, color: DS.ink3)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(artistLine.text)、歌唱アイドル \(vm.originalArtists.count) 人を見る")
+        } else {
+            Text(artistLine.text).imasText(.rowSubtitle).lineLimit(2)
+        }
     }
 
     /// 再生 (主ボタン 1 つ) + 印のボタン (お気に入り・KAMISABI 所持)。今ある操作だけ残す

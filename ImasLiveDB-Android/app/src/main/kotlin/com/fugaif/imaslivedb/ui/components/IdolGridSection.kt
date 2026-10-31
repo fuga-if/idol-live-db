@@ -25,9 +25,10 @@ fun IdolGridSection(
     title: String,
     idols: List<Idol>,
     onIdolClick: (String) -> Unit,
-    badge: Map<String, Int>? = null
+    badge: Map<String, Int>? = null,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier) {
         ImasSectionHeader(title, count = "${idols.size}")
         ImasIdolGrid(Modifier.padding(horizontal = DS.Space.screen), columns = 4) {
             idols.forEach { idol ->
@@ -53,9 +54,10 @@ fun UnitGridSection(
     title: String,
     units: List<ImasUnit>,
     onUnitClick: (String) -> Unit,
-    badge: Map<String, Int>? = null
+    badge: Map<String, Int>? = null,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier) {
         ImasSectionHeader(title, count = "${units.size}")
         ImasIdolGrid(Modifier.padding(horizontal = DS.Space.screen), columns = 4) {
             units.forEach { unit ->

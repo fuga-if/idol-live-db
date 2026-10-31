@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.units
 
 import com.fugaif.imaslivedb.ui.designsystem.imasResetScrollOnTabChange
+import com.fugaif.imaslivedb.ui.components.singerLine
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -255,7 +256,7 @@ private fun SongsBody(state: UnitDetailUiState, onSongClick: (String) -> Unit) {
             ) { song ->
                 ImasSongRow(
                     song = song,
-                    subtitle = song.singerLabel?.takeIf { it.isNotEmpty() } ?: song.unitName,
+                    subtitle = song.singerLine,
                     showsBrandBar = true,
                     density = ImasRowDensity.COMPACT,
                     onClick = { onSongClick(song.id) }

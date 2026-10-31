@@ -78,7 +78,7 @@ enum InfoWidgetBridge {
             return TodaySongInfo(
                 songId: song.id,
                 title: song.title,
-                artistLabel: song.singerLabel,
+                artistLabel: song.singerLabel.map { compactSingerLabel(label: $0) },
                 artworkUrl: song.artworkUrl,
                 brandColorHex: brand.color
             )

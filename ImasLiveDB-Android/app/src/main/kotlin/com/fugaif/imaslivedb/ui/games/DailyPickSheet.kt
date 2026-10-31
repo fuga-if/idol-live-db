@@ -1,6 +1,7 @@
 package com.fugaif.imaslivedb.ui.games
 
 import androidx.compose.foundation.layout.Arrangement
+import com.fugaif.imaslivedb.ui.components.singerLine
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -164,7 +165,7 @@ fun DailyPickSheet(
                                 seed = brand?.color,
                                 brandLabel = brand?.shortName.orEmpty(),
                                 title = song.title,
-                                subtitle = song.singerLabel,
+                                subtitle = song.singerLine,
                                 tagged = song.id in taggedIds,
                                 onVote = { songTarget = song },
                                 thumbnail = {

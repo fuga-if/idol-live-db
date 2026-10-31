@@ -18,12 +18,16 @@ struct SongInfoTab: View {
     /// 「参加ライブを登録して現地回収」を押した。どこへ誘導するかは親が決める。
     let onRequestAttendPicker: () -> Void
 
+    /// 「歌唱アイドル」の節の位置。詳細の上部の歌唱者行 (全体曲の名義) から送られてくる。
+    static let singersAnchor = "song_detail_singers"
+
     var body: some View {
         VStack(spacing: DS.sp5) {
             performanceStats
             songInfoSection
             if !vm.originalArtists.isEmpty {
                 IdolGridSection(title: "歌唱アイドル", idols: vm.originalArtists, navigate: navigate)
+                    .id(Self.singersAnchor)
             }
             if !vm.performerArtists.isEmpty {
                 IdolGridSection(title: "ライブ歌唱歴", idols: vm.performerArtists, navigate: navigate)
