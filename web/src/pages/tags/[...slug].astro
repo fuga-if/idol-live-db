@@ -20,7 +20,7 @@ const list = page<TagListPage>(Astro.props.data);
 <ListLayout seo={list.seo} title={list.title} total={list.total}>
   <p slot="lede" class="u-muted">{list.lede}</p>
 
-  <ListContainer as="ul">
+  <ListContainer as="ul" rows>
     {
       list.items.map((item) => (
         <li>

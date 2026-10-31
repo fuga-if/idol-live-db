@@ -50,7 +50,7 @@ const next = siblings[position + 1] ?? null;
         <Facts rows={show.factRows} variant="inline" />
       </Fragment>
       <Fragment slot="badges">
-        {show.isUpcoming && <span class="badge badge--positive">開催予定</span>}
+        {show.isUpcoming && <span class="badge badge--planned">開催予定</span>}
         {
           show.brand && (
             <a class="badge badge--themed" data-theme={show.brand.themeKey} href={show.brand.path}>

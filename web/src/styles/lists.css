@@ -30,13 +30,10 @@
   gap: var(--sp2) var(--sp4);
 }
 .list-head__title h1 {
-  font-size: var(--fs-large);
-  letter-spacing: -0.01em;
-}
-@media (min-width: 44rem) {
-  .list-head__title h1 {
-    font-size: var(--fs-display);
-  }
+  /* アプリはナビの inline タイトル。大見出しにせず sectionTitle (20 bold) に落とす。 */
+  font-size: var(--fs-title3);
+  font-weight: 700;
+  letter-spacing: 0;
 }
 .list-head__count {
   display: inline-flex;
@@ -44,8 +41,13 @@
   gap: var(--sp1);
 }
 .list-head__count .num {
-  font-size: var(--num-large);
-  color: var(--ds-ink2);
+  font-size: var(--num-small);
+  color: var(--ds-ink3);
+}
+.list-head__count .num__unit {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink3);
 }
 .list-head__filters {
   display: flex;
@@ -54,50 +56,54 @@
   gap: var(--sp3);
 }
 
-/* --- 切替 (SegmentedLinks = ImasSegmented) ---------------------------------
-   溝 (--ds-fill) に、選んだものだけ紙の面。リンクの集合なので状態は aria-current。 */
+/* --- 切替 (SegmentedLinks = ImasTabs) ---------------------------------------
+   16 太字の文字を 22 間隔で横に並べ、選んだものは墨 + 下に高さ 3 の丸い下線 (ブランドの --accent、
+   無色なら墨)。選ばないものは ink3、全体の下に hairline。リンクの集合なので状態は aria-current。 */
 .segmented {
   display: flex;
-  gap: var(--sp1);
-  padding: var(--sp2);
-  border-radius: var(--r-ctl-md);
-  background: var(--ds-fill);
+  gap: 22px;
+  border-block-end: 1px solid var(--ds-sep);
   overflow-x: auto;
   scrollbar-width: none;
-  /* 中身が収まるなら内容幅、溢れるなら親幅で止めて自身が横スクロールする。 */
-  inline-size: fit-content;
-  max-inline-size: 100%;
+  inline-size: 100%;
 }
 .segmented::-webkit-scrollbar {
   display: none;
 }
 .segmented a {
-  padding: var(--sp3) var(--sp5);
-  border-radius: var(--r-ctl-sm);
-  font-size: var(--fs-subhead);
+  position: relative;
+  padding-block: var(--sp4);
+  font-size: var(--fs-callout);
   font-weight: 700;
-  color: var(--ds-ink2);
+  color: var(--ds-ink3);
   white-space: nowrap;
 }
 .segmented a:hover {
   color: var(--ds-ink);
 }
 .segmented a[aria-current="page"] {
-  background: var(--ds-surface);
   color: var(--ds-ink);
-  box-shadow: var(--ds-surface-edge);
+}
+.segmented a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -1px;
+  block-size: 3px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
 }
 
 /* 現在地の無い切替 (入口のページ)。溝にせず、文字リンクの列。 */
 .segmented--links {
   gap: var(--sp5);
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
+  border-block-end: 0;
+  inline-size: fit-content;
+  max-inline-size: 100%;
 }
 .segmented--links a {
-  padding: var(--sp2) 0;
-  border-radius: 0;
+  padding-block: var(--sp2);
+  font-size: var(--fs-subhead);
   color: var(--ds-ink);
   text-decoration: underline;
   text-decoration-color: var(--ds-ink3);
@@ -114,8 +120,6 @@
   position: relative;
 }
 .fmenu__summary {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--ds-ink2);
   cursor: pointer;
   list-style: none;
   white-space: nowrap;
@@ -171,47 +175,82 @@
   opacity: 0.7;
 }
 
-/* --- 件数と並び順の行 + 絞り込みの島 (ImasListSummary / 絞り込みシート) -----
-   「絞り込み・並べ替え」を押すまでは入力欄の器を畳んでおく。素材を取っている間は
-   薄くして、押しても何も起きない時間を見せる。 */
+/* --- 件数と並び順の行 + 絞り込みの島 (ImasListSummary) ---------------------
+   左に件数 (15 数字 + 「件」12)、右に並び替えのメニュー 1 つ。「開く」「向き」「クリア」と
+   並べ替えの帯は、そのメニュー (details) の中に畳む。素材を取っている間は薄くする。 */
 .song-filter {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  gap: var(--sp4);
-  padding: var(--sp5);
-  border-radius: var(--r-card);
-  background: var(--ds-surface);
-  box-shadow: var(--ds-surface-edge);
-}
-.song-filter[data-state="loading"] {
-  opacity: 0.6;
-}
-/* 開く前は面を持たない 1 行 (件数 | 操作)。開いてから操作面のカードになる。 */
-.song-filter[data-state="idle"] {
   flex-direction: row-reverse;
   align-items: center;
   justify-content: space-between;
-  padding: 0;
-  background: none;
-  box-shadow: none;
+  gap: var(--sp3);
+  padding: var(--sp2) var(--sp5);
+}
+.song-filter[data-state="loading"] {
+  opacity: 0.6;
 }
 .song-filter__status {
   display: flex;
   align-items: baseline;
   gap: var(--sp1);
-  font-size: var(--fs-footnote);
-  color: var(--ds-ink2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--ds-ink3);
 }
 .song-filter__status:empty {
   display: none;
 }
 .song-filter__status .num {
+  font-size: var(--num-small);
+  color: var(--ds-ink3);
+}
+.song-filter__status .num__unit {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+/* メニュー本体。閉じているときは「記号 + 軸名」の線の札 1 つ。 */
+.song-filter__menu {
+  position: relative;
+}
+.song-filter__open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp2);
+  min-block-size: 32px;
+  padding-inline: var(--sp4);
+  border: 0;
+  border-radius: var(--r-ctl-sm);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
   color: var(--ds-ink);
+  font: inherit;
+  font-size: var(--fs-footnote);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+.song-filter__open::-webkit-details-marker {
+  display: none;
+}
+.song-filter__open:hover {
+  background: var(--ds-fill);
 }
 .song-filter__controls {
+  position: absolute;
+  inset-block-start: calc(100% + var(--sp2));
+  inset-inline-end: 0;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   gap: var(--sp4);
+  inline-size: max-content;
+  max-inline-size: min(36rem, calc(100vw - 2rem));
+  padding: var(--sp4);
+  border-radius: var(--r-md);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge), var(--ds-shadow2);
 }
 .song-filter__row {
   display: flex;
@@ -245,8 +284,7 @@
   border-radius: var(--r-ctl-sm);
   padding: var(--sp2) var(--sp4);
 }
-/* 開く・向き・クリア = チップ (線 + 墨の文字)。 */
-.song-filter__open,
+/* 向き・クリア = チップ (線 + 墨の文字)。 */
 .song-filter__dir,
 .song-filter__reset {
   flex: none;
@@ -265,53 +303,49 @@
 .song-filter__dir {
   min-inline-size: 2.5rem;
 }
-.song-filter__open:hover,
 .song-filter__dir:hover:not(:disabled),
 .song-filter__reset:hover:not(:disabled) {
   background: var(--ds-fill);
 }
-.song-filter__open:disabled,
 .song-filter__dir:disabled,
 .song-filter__reset:disabled {
   cursor: default;
   opacity: 0.45;
 }
-/* 並べ替えの札・2 択の帯 = 切替の溝 (ImasSegmented)。どの札があるかは island が描く。 */
+/* 並べ替えの札・2 択の帯。メニューの中で並べる (選んだものは墨塗り)。 */
 .song-filter__sorts {
   display: flex;
-  gap: var(--sp1);
-  padding: var(--sp2);
-  border-radius: var(--r-ctl-md);
-  background: var(--ds-fill);
+  flex-wrap: wrap;
+  gap: var(--sp2);
   flex: none;
   max-inline-size: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 .song-filter__sorts:empty {
   display: none;
 }
 .song-filter__sort {
+  min-block-size: 32px;
   padding: var(--sp2) var(--sp4);
   border: 0;
   border-radius: var(--r-ctl-sm);
   background: transparent;
-  color: var(--ds-ink2);
+  box-shadow: inset 0 0 0 1px var(--ds-line);
+  color: var(--ds-ink);
   font: inherit;
   font-size: var(--fs-chip);
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
 .song-filter__sort:hover {
-  color: var(--ds-ink);
+  background: var(--ds-fill);
 }
 /* 選ばれている方。並べ替えの札は `aria-pressed`、2 択の帯は `aria-checked`。 */
 .song-filter__sort[aria-pressed="true"],
 .song-filter__sort[aria-checked="true"] {
-  background: var(--ds-surface);
-  color: var(--ds-ink);
-  box-shadow: var(--ds-surface-edge);
+  background: var(--ds-sys);
+  box-shadow: none;
+  color: var(--ds-on-sys);
 }
 .song-filter__sort[data-dir="asc"]::after {
   content: " ↑";
@@ -325,7 +359,8 @@
 }
 .song-filter__input:focus-visible,
 .song-filter__select:focus-visible,
-.song-filter__sort:focus-visible {
+.song-filter__sort:focus-visible,
+.song-filter__open:focus-visible {
   outline: 2px solid var(--ds-sys);
   outline-offset: 1px;
 }
@@ -355,51 +390,93 @@ a.chip--tag:hover {
   background: var(--ds-fill);
 }
 
+/* --- 行の入れ物 (.rows = ImasListContainer) -------------------------------
+   角丸にしない。surface の帯が本文幅いっぱいに続き、行の間は hairline。線は行の本文の頭
+   (帯 + ジャケ + 隙間のぶん字下げ) から引く。 */
+.rows {
+  /* 行の中身をカードの幅で切り替える (狭い器では下段の日付を落とす)。 */
+  container-type: inline-size;
+  background: var(--ds-surface);
+}
+.rows > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+
 /* --- 行の共通の形 (.list-row = ImasRow、§5.0) ------------------------------
-   [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。区切り線は器 (.card) が引く。
+   [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。最小高さ 44・横 16・縦 12・間 12。
    曲の行 (.list-row--song = ImasSongRow) はジャケ 48。 */
 .list-row {
+  --row-indent: calc(var(--sp5) + 3px + var(--sp4));
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp4);
-  min-block-size: 56px;
+  min-block-size: 44px;
   padding: var(--sp4) var(--sp5);
   background: var(--ds-surface);
   color: var(--ds-ink);
 }
+.list-row--nobar {
+  --row-indent: var(--sp5);
+}
+.list-row--song {
+  --row-indent: calc(var(--sp5) + 3px + var(--sp4) + 48px + var(--sp4));
+}
+.list-row--song.list-row--nobar {
+  --row-indent: calc(var(--sp5) + 48px + var(--sp4));
+}
+.rows > li:not([hidden]) ~ li:not([hidden]) > .list-row::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--row-indent) 0;
+  block-size: 1px;
+  background: var(--ds-sep);
+}
 a.list-row:hover {
   background: var(--ds-surface2);
 }
+/* 帯: ジャケのある行はジャケの高さ (48)、無い行は 36。 */
 .list-row > .lead-bar {
-  align-self: stretch;
+  align-self: center;
+  block-size: 36px;
+  border-radius: 1.5px;
+}
+.list-row--song > .lead-bar {
+  block-size: 48px;
 }
 .list-row--song .artwork {
   --artwork-size: 48px;
+  border-radius: 4px;
 }
 .list-row__body {
   flex: 1;
   min-inline-size: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp1);
+  gap: var(--sp2);
 }
 .list-row__title {
   font-size: var(--fs-callout);
-  font-weight: 700;
+  font-weight: 600;
   line-height: var(--lh-snug);
   overflow-wrap: anywhere;
 }
+/* 副題は ` · ` で繋いだ 1 本の文字列を 1 行に収める。 */
 .list-row__sub {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--sp4);
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: var(--fs-footnote);
   line-height: var(--lh-snug);
   color: var(--ds-ink2);
 }
 /* 検索の一致箇所は 1 本の文。flex だと <mark> の前後が別の項目に割れる。 */
 .list-row__sub.search-snippet {
-  display: block;
+  white-space: normal;
+  text-overflow: clip;
 }
 /* 下段: 日付・札・作曲/収録。 */
 .list-row__foot {
@@ -408,7 +485,7 @@ a.list-row:hover {
   align-items: center;
   gap: var(--sp2) var(--sp3);
   font-size: var(--fs-caption);
-  color: var(--ds-ink2);
+  color: var(--ds-ink3);
 }
 .list-row__date {
   font-variant-numeric: tabular-nums;
@@ -627,44 +704,21 @@ a.list-row:hover {
   font-variant-numeric: tabular-nums;
 }
 
-/* --- 年と月の見出し (ImasDateHeader、§6.7) ---------------------------------
-   細長い大きな数字 + 印字の単位。月の柱は広い画面では左に、狭い画面では行の上に。 */
+/* --- 年の見出し (ImasDateHeader、§6.7) ------------------------------------
+   1 段: 年の数字 28 太字、上 12・下 4。開催済みは ink3。月は出さない (半券の上段に NOV 等がある)。 */
 .year-group {
   display: flex;
   flex-direction: column;
-  gap: var(--sp5);
+  gap: var(--sp3);
 }
 .year-group__title {
   align-self: flex-start;
+  padding-block: var(--sp4) var(--sp2);
   color: var(--ds-ink);
-  font-size: var(--num-countdown);
-}
-.month-group {
-  display: grid;
-  gap: var(--sp3) var(--sp6);
-  align-items: start;
-}
-@media (min-width: 44rem) {
-  .month-group {
-    grid-template-columns: 5rem minmax(0, 1fr);
-  }
-  .month-group__title {
-    position: sticky;
-    inset-block-start: calc(var(--header-h) + var(--sp4));
-    padding-block-start: var(--sp3);
-  }
-}
-.month-group__title {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp1);
-}
-.month-group__num {
   font-size: var(--num-date);
-  color: var(--ds-ink);
 }
-.month-group__unit {
-  color: var(--ds-ink2);
+.year-group[data-past] .year-group__title {
+  color: var(--ds-ink3);
 }
 /* 一覧の続き (「開催済みをすべて見る」)。見た目は節の「すべて見る」と同じ。 */
 .list-next {

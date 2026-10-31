@@ -924,15 +924,18 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | `ImasNumeralSize` 数字 | `.num .num--large / --date / --medium / --small / --countdown` | `venue.css` |
 | `ImasPerforation` 切り取り線 | `.perf` / `.perf--v` (チケットの紙の上は `.perf--ticket`) | `venue.css` |
 | `ImasTicket` 紙のチケット | `.ticket` (`Ticket.astro`) | `venue.css` |
-| `ImasStubRow` / `ImasEventRow` / `ImasShowRow` 半券の行 | `.stub` (`StubRow.astro` → `EventRow` / `ShowRow`)。並べる器は `.stub-list` | `venue.css` |
-| `ImasBoard` 電光掲示板 | `.board` (`Board.astro`) | `venue.css` |
-| `ImasBadge` 札 | `.badge` / 旧 `.tag` (`TagChip.astro`) も同じ見え方 | `venue.css` / `components.css` |
-| `ImasChip` / `ImasFilterChip` チップ | `.chip` (高さ 32・角丸 8。カプセルにしない) | `components.css` |
+| `ImasStubRow` / `ImasEventRow` / `ImasShowRow` 半券の行 | `.stub` (`StubRow.astro` → `EventRow` / `ShowRow`)。並べる器は `.stub-list` (行間 8、地は bg)。最小高さの指定なし (中身で決まる)、題は 3 行で打ち切り、末尾は 13px の SVG chevron (ink3、stroke 2) | `venue.css` |
+| `ImasBoard` 電光掲示板 | `.board` (`Board.astro`)。マスは等幅 (左右 14 上下 12、値 30、ラベル 11)、縦線 1px `--ds-board-line` はマスの間だけ・上下 10 で短く、外周に線なし。<600px だけ横スクロール | `venue.css` |
+| `ImasBadge` 札 | `.badge` / 旧 `.tag` (`TagChip.astro`) も同じ見え方。高さ 20・横 6・角丸 4・11px bold。既定は透明地 + `--ds-line` 1px + ink2、`--positive` は朱の線 + 朱文字、`--planned` / `--lead` は墨塗り、`--new` は朱塗り、`--themed` は accent 文字 + accent 55% の線 | `venue.css` / `components.css` |
+| `ImasChip` / `ImasFilterChip` チップ | `.chip` (高さ 32・角丸 8・左右 12・14px semibold。カプセルにしない)。既定は `--ds-line` の線で地なし、選択 (`--selected`) は `--ds-sys` 塗り、`--ds-fill` 地は効いている絞り込みの除去チップ (`--removable`) だけ。FilterMenu の見出しの線も `--ds-line` | `components.css` |
 | `ImasBrandCell` / `ImasAvatar` の判子 | `.stamp` (`data-len` で字数に合わせる)、格子は `.stamp-grid` + `.stamp-cell` | `venue.css` |
 | `ImasLeadBar` 行頭の帯 | `.lead-bar` / `.stub__bar` / `.penlight` | `venue.css` |
 | `ImasMasthead` 頭の印字 | **使わない** (同上。トップの日付の行・一覧と詳細の頭の英字・掲示板の `STATS`・フッタの `DATA/SITE/APP`・チケットの `ADMIT ONE` は置かない) | — |
+| `ImasListSummary` 件数 + 並べ替え | `.song-filter`: 左に件数 (15 数字 + 「件」12 semibold ink3)、右に並べ替えのメニュー 1 つ (横 12・最小高さ 32・`--ds-line` の線・角丸 8・13 semibold)。開く・向き・クリア・帯はそのメニューの中。全体 padding 横 16 縦 4 | `lists.css` |
+| `ImasDateHeader` 年の見出し | `.year-group__title` 1 段 (年の数字 28、上 12 下 4、ink。開催済みは ink3)。月は出さない (半券の上段にある) | `lists.css` |
+| `ImasListContainer` 行の入れ物 | `.rows` (角丸なし・全幅の surface の帯。行間は hairline `--ds-sep` で、線は本文の頭 = 帯 + ジャケ + 隙間のぶん字下げから)。`.list-row` は最小高さ 44・題 16 semibold・副題 13 ink2 を ` · ` で繋いだ 1 行省略・下段 12 ink3・帯はジャケ高 48 (無ければ 36)。件数行を持つページの h1 は 20 bold (詳細は 22) + 件数 small 数字 | `lists.css` |
 | `ImasSectionHeader` | `.section__title` (20〜24px 極太) + `.section__more` (灰、矢印) | `components.css` |
-| `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` | `base.css` / `components.css` |
+| `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` (16 heavy・間隔 22・上下 12・選択は墨 + 高さ 3 の丸い `--accent` の下線・非選択 ink3・全体の下に hairline) | `base.css` / `components.css` |
 
 Web でやらないこと (アプリと同じ): 淡い色の地のチップ・カプセルの札・名前の前の色の点・記号を淡い色の四角に
 入れる・色の地のカード・グラデーション・ぼかした光。判断 (文言・並び・日付の分け方) は Rust の DTO が持ち、
@@ -948,4 +951,4 @@ Web だけにある組み合わせ (アプリの部品を Web の器に合わせ
 | `SetlistRow.astro` | `ImasSetlistRow` §5.6 (行の間は切り取り線) |
 | `TicketSaleRow.astro` (`.tsale`) | `ImasTicketRow` §5.5 |
 | `.entry-link` (文言 + ›) | 入口の行 `ImasNavRow` §5.10。主ボタンの隣に副ボタンを並べない §6.3 |
-| `.segmented` / `.segmented--links` | `ImasSegmented` (現在地が無い切替は帯にせず文字リンクの列) |
+| `.segmented` / `.segmented--links` | `ImasTabs` 型 (現在地が無い切替は下線も hairline も無い文字リンクの列) |

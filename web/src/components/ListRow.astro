@@ -31,11 +31,7 @@ const hasBar = !!themeKey && themeKey !== "neutral";
     <span class="list-row__title u-underline-hover"><slot name="title">{title}</slot></span>
     {
       metaItems.length > 0 && (
-        <span class="list-row__sub">
-          {metaItems.map((m) => (
-            <span>{m}</span>
-          ))}
-        </span>
+        <span class="list-row__sub">{metaItems.join(" · ")}</span>
       )
     }
     <slot name="foot" />

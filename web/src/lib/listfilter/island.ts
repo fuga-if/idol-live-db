@@ -153,11 +153,27 @@ export function mountListFilter<F extends ListFacets>(
   let ready: Promise<boolean> | null = null;
   let timer = 0;
 
+  // 並べ替えのメニュー (ImasListSummary)。押すと起動して操作面を開き、もう一度押す・Escape で畳む。
+  function setMenu(open: boolean): void {
+    el.controls.hidden = !open;
+    el.open.setAttribute("aria-expanded", String(open));
+  }
   el.open.addEventListener("click", () => {
+    if (!el.controls.hidden) {
+      setMenu(false);
+      return;
+    }
     void start().then((ok) => {
-      // 押したボタンは消えるので、フォーカスを最初の入力欄へ移す。
-      if (ok) el.fields.querySelector<HTMLElement>("input, select, button")?.focus();
+      if (!ok) return;
+      setMenu(true);
+      el.fields.querySelector<HTMLElement>("input, select, button")?.focus();
     });
+  });
+  el.root.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !el.controls.hidden) {
+      setMenu(false);
+      el.open.focus();
+    }
   });
   bindSortHeaders();
   // 共有された絞り込み・戻る/進む で来たときは、すぐ起動して URL の条件を復元する。
@@ -187,8 +203,7 @@ export function mountListFilter<F extends ListFacets>(
       renderFields();
       hideDuplicateAxes();
       renderSorts();
-      el.open.hidden = true;
-      el.controls.hidden = false;
+      el.open.disabled = false;
       for (const c of [el.dir, el.reset]) c.disabled = false;
       el.root.dataset.state = "ready";
       apply();
@@ -196,6 +211,7 @@ export function mountListFilter<F extends ListFacets>(
     } catch (e) {
       // 絞り込めないだけで一覧は読める。壊れた見た目のまま黙らない。
       el.status.textContent = "絞り込みを読み込めませんでした。再読み込みしてください。";
+      el.open.disabled = false;
       el.root.dataset.state = "failed";
       console.error(`${spec.name}: 読み込みに失敗`, e);
       return false;

@@ -11,8 +11,9 @@ import type { YearGroup } from "../lib/schema/YearGroup";
 interface Props {
   groups: readonly YearGroup[];
   empty: EmptyText | null;
+  past?: boolean;
 }
-const { groups, empty } = Astro.props;
+const { groups, empty, past = false } = Astro.props;
 ---
 
 {
@@ -21,7 +22,7 @@ const { groups, empty } = Astro.props;
   ) : (
     <div class="u-stack">
       {groups.map((g) => (
-        <YearGroupSection title={g.year} group={g} />
+        <YearGroupSection title={g.year} group={g} past={past} />
       ))}
     </div>
   )

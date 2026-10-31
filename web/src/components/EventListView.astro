@@ -14,6 +14,8 @@ interface Props {
   list: EventListPage;
 }
 const { list } = Astro.props;
+// 開催済みの一覧 (/events/past/…) では年の見出しを薄くする。
+const past = list.scope.links.find((l) => l.current)?.path.startsWith("/events/past/") ?? false;
 ---
 
 <ListLayout
@@ -23,11 +25,11 @@ const { list } = Astro.props;
   scope={list.scope}
   filters={list.filters}
 >
-  <YearGroups groups={list.groups} empty={list.empty} />
+  <YearGroups groups={list.groups} empty={list.empty} past={past} />
   {/* 入口だけ: 開催済みの最新の年。見出しの文字も Rust。 */}
   {
     list.recentPast && list.recentPastTitle && (
-      <YearGroupSection title={list.recentPastTitle} group={list.recentPast} />
+      <YearGroupSection title={list.recentPastTitle} group={list.recentPast} past />
     )
   }
   {/* 一覧が途中で切れているとき、続き (開催済みをすべて / 1 つ前の年) へ。 */}

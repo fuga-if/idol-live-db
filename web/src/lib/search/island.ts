@@ -257,7 +257,7 @@ function resultSection(
 
   const list = document.createElement("ul");
   // ライブは半券の行を空けて並べる器、それ以外は面に行を並べて区切り線を引く器 (一覧ページと同じ)。
-  list.className = kind === "event" ? "stub-list" : "card";
+  list.className = kind === "event" ? "stub-list" : "rows";
   el.append(head, list);
   return { el, list };
 }

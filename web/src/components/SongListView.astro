@@ -38,9 +38,9 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
       <EmptyState {...list.empty} />
     ) : list.rowsAreLight ? (
       /* `/songs/all/` は行を ref だけに削った到達性のためのハブ。列が無いので表にせず、
-         `.card > li` の content-visibility が効くリストのまま出す (3,153 行)。
+         `.rows > li` の content-visibility が効くリストのまま出す (3,153 行)。
          行は曲の行と同じ形 (`SongRow`)、ref だけなので副題だけが載る。 */
-      <ListContainer as="ul">
+      <ListContainer as="ul" rows>
         {list.items.map((item, i) => (
           <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined}>
             <SongRow item={item} light />
@@ -50,7 +50,7 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
     ) : (
       /* 表ではなく行を積む。列に幅を配ると曲名が「余り」になって潰れる (SongRow 参照)。
          `data-song-list` は絞り込みの島が器を探す目印。 */
-      <ListContainer as="ul" data-song-list="">
+      <ListContainer as="ul" rows data-song-list="">
         {list.items.map((item, i) => (
           <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined} data-song-id={item.ref.id}>
             <SongRow item={item} />

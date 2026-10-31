@@ -206,7 +206,6 @@ a.ticket:active {
   display: flex;
   align-items: stretch;
   inline-size: 100%;
-  min-block-size: 64px;
   border-radius: var(--stub-radius);
   color: var(--ds-ink);
 }
@@ -299,6 +298,12 @@ a.stub:hover::before {
   line-height: 1.4;
   color: var(--ds-ink);
   overflow-wrap: anywhere;
+  /* 題は 3 行で打ち切る。 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 .stub__sub {
   font-size: var(--fs-caption);
@@ -319,9 +324,17 @@ a.stub:hover::before {
   padding-inline-end: 14px;
 }
 .stub__chevron {
+  display: inline-flex;
   color: var(--ds-ink3);
-  font-size: var(--fs-title3);
-  line-height: 1;
+}
+.stub__chevron svg {
+  inline-size: 13px;
+  block-size: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 /* 日付の無い行の日付欄。 */
 .stub__none {
@@ -339,22 +352,41 @@ a.stub:hover::before {
   color: var(--ds-board-ink);
   overflow: hidden;
 }
-/* マスの間の線は、マス自身が持つ (隙間に線色を敷くと、空きトラックが線色の塊になる)。
-   隣り合うマスの 0.5px が重なって 1px の線になる。 */
+/* マスは等幅。縦線 (1px) はマスの間だけ、上下 10 で短く。外周や上下には線を出さない。
+   狭い画面 (<600px) だけ横スクロール。 */
 .board__cells {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: var(--ds-board);
 }
+.board__cells::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 37.4375rem) {
+  .board__cells {
+    grid-auto-columns: minmax(7rem, 1fr);
+  }
+}
 .board__cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
   background: var(--ds-board);
-  box-shadow: 0 0 0 0.5px var(--ds-board-line);
   color: var(--ds-board-ink);
   min-inline-size: 0;
+}
+.board__cell + .board__cell::before {
+  content: "";
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  background: var(--ds-board-line);
 }
 a.board__cell:hover {
   background: var(--ds-board-hover);
@@ -379,7 +411,9 @@ a.board__cell:hover {
 }
 
 /* --- 札 (ImasBadge) --------------------------------------------------------
-   高さ 20・角丸 4 の四角、11pt 太字。見え方は 4 つだけで、意味は文字が言う。 */
+   高さ 20・横 6・角丸 4、11px 太字。既定 (neutral/unit/all/cover/partial) は透明地 +
+   --ds-line の線 + ink2。positive は朱の線 + 朱の文字 (塗らない)。planned / lead だけ墨塗り、
+   new は朱塗り + 白、themed は accent の文字 + accent 55% の線。 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -390,35 +424,37 @@ a.board__cell:hover {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  background: var(--ds-fill);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
   color: var(--ds-ink2);
 }
 .badge--positive {
+  box-shadow: inset 0 0 0 1px var(--ds-stamp);
+  color: var(--ds-stamp);
+}
+.badge--planned,
+.badge--lead {
   background: var(--ds-sys);
+  box-shadow: none;
   color: var(--ds-on-sys);
 }
 .badge--attention {
-  background: transparent;
   box-shadow: inset 0 0 0 1px var(--ds-ink);
   color: var(--ds-ink);
 }
-.badge--guest {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--ds-ink2);
+.badge--guest,
+.badge--negative {
+  box-shadow: inset 0 0 0 1px var(--ds-line);
   color: var(--ds-ink2);
 }
 .badge--themed {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--accent-ink);
 }
 .badge--new {
   background: var(--ds-stamp);
+  box-shadow: none;
   color: var(--ds-stamp-ink);
-}
-.badge--negative {
-  background: var(--ds-fill);
-  color: var(--ds-ink2);
 }
 
 /* --- 判子 (ImasBrandCell の判子・写真の無いアイコン) --------------------------

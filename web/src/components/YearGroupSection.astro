@@ -3,38 +3,20 @@ import EventRow from "./EventRow.astro";
 import type { YearGroup } from "../lib/schema/YearGroup";
 /**
  * 年 (または入口の「開催済み (2026年)」) の束 1 つ。見出しの文字は Rust が決める。
- * 束の中は月の柱で区切る。区切り (どこからどこまでが何月か) は Rust の `months` が
- * 件数で持っていて、ここは先頭から順に件数ぶんずつ取り分けるだけ。
- * 年・月の見出しは `ImasDateHeader` (細長い大きな数字 + 印字の単位)、行は半券の行を `.stub-list` に並べる。
+ * 見出しは `ImasDateHeader` と同じ 1 段 (年の数字だけ。月は半券の上段に出る)。
+ * 行は半券の行を `.stub-list` に並べる。開催済みの束は見出しを ink3 にする。
  */
 interface Props {
   title: string;
   group: YearGroup;
+  past?: boolean;
 }
-const { title, group } = Astro.props;
-let offset = 0;
-const months = group.months.map((m) => {
-  const events = group.events.slice(offset, offset + m.count);
-  offset += m.count;
-  return { ...m, events };
-});
+const { title, group, past = false } = Astro.props;
 ---
 
-<section class="year-group" aria-label={title}>
+<section class="year-group" aria-label={title} data-past={past ? "" : undefined}>
   <h2 class="year-group__title num">{title}</h2>
-  {
-    months.map((m) => (
-      <div class="month-group">
-        <h3 class="month-group__title">
-          {m.number && <span class="month-group__num num">{m.number}</span>}
-          <span class="month-group__unit">{m.unit}</span>
-        </h3>
-        <ul class="stub-list">
-          {m.events.map((e) => (
-            <EventRow item={e} />
-          ))}
-        </ul>
-      </div>
-    ))
-  }
+  <ul class="stub-list">
+    {group.events.map((e) => <EventRow item={e} />)}
+  </ul>
 </section>

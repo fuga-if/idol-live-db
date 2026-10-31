@@ -37,7 +37,7 @@ const ev = page<EventPage>(Astro.props.data);
         }
       </Fragment>
       <Fragment slot="badges">
-        {ev.isUpcoming && <span class="badge badge--positive">開催予定</span>}
+        {ev.isUpcoming && <span class="badge badge--planned">開催予定</span>}
         <span class="badge">{ev.kindLabel}</span>
         {
           ev.brand && (
@@ -86,7 +86,7 @@ const ev = page<EventPage>(Astro.props.data);
                 {cs.performers.map((m) => (
                   <li class="u-row">
                     <Performer ref={m.ref} />
-                    {m.isLead && <span class="badge badge--positive">主演</span>}
+                    {m.isLead && <span class="badge badge--lead">主演</span>}
                     {m.isGuest && <span class="badge badge--guest">ゲスト</span>}
                   </li>
                 ))}

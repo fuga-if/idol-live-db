@@ -56,9 +56,10 @@
 .dhead__title {
   min-inline-size: 0;
   font-family: var(--font-heading);
-  font-size: clamp(var(--fs-title1), 1.2rem + 2vw, var(--fs-large));
+  /* アプリのナビ inline タイトル相当。大見出しにせず title2 (22) まで。 */
+  font-size: var(--fs-title2);
   font-weight: var(--fw-heading);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: var(--lh-tight);
   color: var(--ds-ink);
   overflow-wrap: anywhere;
@@ -123,7 +124,8 @@
 a.badge:hover {
   background-color: var(--ds-fill);
 }
-a.badge--positive:hover {
+a.badge--planned:hover,
+a.badge--lead:hover {
   background-color: var(--ds-sys);
   filter: brightness(1.15);
 }

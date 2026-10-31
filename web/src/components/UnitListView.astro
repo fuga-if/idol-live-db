@@ -26,7 +26,7 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
     list.empty ? (
       <EmptyState {...list.empty} />
     ) : (
-      <ListContainer as="ul">
+      <ListContainer as="ul" rows>
         {list.items.map((item, i) => (
           <li id={sectionStarts.has(i) ? kanaAnchorId(i) : undefined}>
             <ListRow

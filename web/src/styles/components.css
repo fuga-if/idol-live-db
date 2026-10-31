@@ -246,7 +246,9 @@ details[open] > summary .chevron {
   font-size: var(--fs-chip);
   font-weight: 600;
   line-height: 1.35;
-  background: var(--ds-fill);
+  /* 既定は線で囲んで地なし。選択は墨塗り。--ds-fill の地は「効いている絞り込みの除去チップ」だけ。 */
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
   color: var(--ds-ink);
   /* 中身は公演名・会場名・ホール名などデータ由来で、長さに上限が無い。
      flex の子は min-width:auto で内容幅より縮まないため、nowrap のままだと
@@ -258,7 +260,19 @@ details[open] > summary .chevron {
   max-inline-size: 100%;
 }
 a.chip:hover {
-  background: var(--tint-strong);
+  background: var(--ds-fill);
+}
+.chip--selected {
+  background: var(--ds-sys);
+  box-shadow: none;
+  color: var(--ds-on-sys);
+}
+a.chip--selected:hover {
+  background: var(--ds-sys);
+}
+.chip--removable {
+  background: var(--ds-fill);
+  box-shadow: none;
 }
 /* チップの添字 (公演の日付・会場の都道府県)。本体より一段落として並べる。 */
 .chip__sub {
@@ -271,8 +285,8 @@ a.chip:hover {
 }
 
 /* --- TagChip → 札 (ImasBadge、DESIGN_SYSTEM §10.1) ---------------------------
-   高さ 20・角丸 4 の四角、11pt 太字。色で意味を分けない: 灰の地 (ユニット・全員・カバー・
-   一部・衣装・受付)、墨の塗り (主演)、墨の線 (初披露)、灰の線 (ゲスト)。見た目の規則は
+   高さ 20・角丸 4・11px 太字。既定は透明地 + --ds-line の線 + ink2 (ユニット・全員・カバー・
+   一部・衣装・受付)。主演は墨塗り、初披露は墨の線、ゲストは灰の線。見た目の規則は
    venue.css の .badge と同じ。 */
 .tag {
   display: inline-flex;
@@ -284,7 +298,8 @@ a.chip:hover {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  background: var(--ds-fill);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ds-line);
   color: var(--ds-ink2);
   max-inline-size: 100%;
 }
@@ -300,17 +315,16 @@ a.chip:hover {
 /* 主演 = 墨の塗り。 */
 .tag--lead {
   background: var(--ds-sys);
+  box-shadow: none;
   color: var(--ds-on-sys);
 }
 /* 初披露 = 墨の線 (attention)。 */
 .tag--first {
-  background: transparent;
   box-shadow: inset 0 0 0 1px var(--ds-ink);
   color: var(--ds-ink);
 }
 /* ゲスト = 灰の線。 */
 .tag--guest {
-  background: transparent;
   box-shadow: inset 0 0 0 1px var(--ds-ink2);
   color: var(--ds-ink2);
 }
@@ -1052,7 +1066,7 @@ a.chip:hover {
 /* --- 箱に収まった行のフォーカス -------------------------------------------
    `.card` / `.grid-tiles` は overflow: hidden、行は li いっぱいなので、外側に描く輪郭
    (outline-offset: 2px) は描く場所が無く消える。箱の直下の行は種類を問わず内側に描く。 */
-:is(.card, .grid-tiles) > li > a:focus-visible {
+:is(.card, .rows, .grid-tiles) > li > a:focus-visible {
   outline-offset: -3px;
   box-shadow: none;
   border-radius: 0;
