@@ -1,0 +1,15 @@
+{
+ "title": "xR LIVE REVIVAL 現地チケット アソビストア一般会員先行の受付期間延長 (〜11/8 23:59)",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20230.html",
+ "fixes": [
+  {
+   "table": "ticket_sales",
+   "id": "ts_dfa3446f6cc2",
+   "fields": {
+    "ends_at": "2026-11-08 23:59"
+   },
+   "note": "公式ニュース 01_20230 (2026-10-29): 受付期間を 2026年11月8日(日)23:59 まで延長。結果発表・入金期間は変更なし"
+  }
+ ]
+}

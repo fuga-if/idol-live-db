@@ -1,0 +1,247 @@
+{
+ "title": "シンデレラのアイドルの属性 (attribute) を公式シンデレラライブラリーに合わせる (修正リクエスト #353〜#382)",
+ "author": "daily-data-crawl",
+ "source": "https://cinderella-library.idolmaster-official.jp/idol/",
+ "fixes": [
+  {
+   "table": "idols",
+   "id": "cg_荒木比奈",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #353。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_氏家むつみ",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #354。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_梅木音葉",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #355。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_森久保乃々",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #356。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_江上椿",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #357。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_及川雫",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #358。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_太田優",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #359。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_岡崎泰葉",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #360。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_上条春菜",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #361。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_岸部彩華",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #362。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_北川真尋",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #363。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_喜多日菜子",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #364。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_木場真奈美",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #365。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_木村夏樹",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #366。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_キャシー_グラハム",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #367。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_桐生つかさ",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #368。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_工藤忍",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #369。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_栗原ネネ",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #370。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_黒埼ちとせ",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #371。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小松伊吹",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #372。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_小室千奈美",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #373。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_冴島清美",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #374。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_財前時子",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #375。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐々木千枝",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #376。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_佐城雪美",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #377。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_椎名法子",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #378。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 passion"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白菊ほたる",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #379。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白坂小梅",
+   "fields": {
+    "attribute": "cool"
+   },
+   "note": "issue #380。公式シンデレラライブラリー profile.attr = cool（デレステの属性とも一致）。旧値 cute"
+  },
+  {
+   "table": "idols",
+   "id": "cg_白雪千夜",
+   "fields": {
+    "attribute": "cute"
+   },
+   "note": "issue #381。公式シンデレラライブラリー profile.attr = cute（デレステの属性とも一致）。旧値 cool"
+  },
+  {
+   "table": "idols",
+   "id": "cg_杉坂海",
+   "fields": {
+    "attribute": "passion"
+   },
+   "note": "issue #382。公式シンデレラライブラリー profile.attr = passion（デレステの属性とも一致）。旧値 cool"
+  }
+ ]
+}

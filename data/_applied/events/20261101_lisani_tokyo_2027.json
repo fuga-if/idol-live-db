@@ -1,0 +1,28 @@
+{
+ "title": "LISANI！TOKYO 2027 SUNDAY STAGE (ストレイライト出演)",
+ "author": "daily-data-crawl",
+ "source": "https://www.lisani.jp/live/",
+ "events": [
+  {
+   "id": "ev_lisani_tokyo_2027_sunday_stage",
+   "brand_id": "sc",
+   "name": "LISANI！TOKYO 2027 SUNDAY STAGE",
+   "event_type": "external_event",
+   "kind": "festival",
+   "is_streaming": 0,
+   "is_solo": 0,
+   "ticket_url": "https://www.lisani.jp/live/ticket/",
+   "shows": [
+    {
+     "id": "sh_lisani_tokyo_2027_sunday_stage_1",
+     "name": "SUNDAY STAGE",
+     "date": "2027-02-21",
+     "venue": "TOYOTA ARENA TOKYO",
+     "venue_city": "東京",
+     "start_time": "16:00",
+     "sort_order": 1
+    }
+   ]
+  }
+ ]
+}

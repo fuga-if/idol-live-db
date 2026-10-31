@@ -1,0 +1,18 @@
+{
+ "title": "LISANI！TOKYO 2027 チケット最速先行",
+ "author": "daily-data-crawl",
+ "source": "https://www.lisani.jp/live/",
+ "ticket_sales": [
+  {
+   "event_id": "ev_lisani_tokyo_2027_sunday_stage",
+   "kind": "lottery",
+   "name": "チケット最速先行",
+   "starts_at": "2026-11-01 00:00",
+   "ends_at": "2026-11-15 23:59",
+   "url": "https://eplus.jp/lisani2027/",
+   "note": "全席指定 13,200円(税込)。お一人様1公演につき4枚まで",
+   "source_url": "https://www.lisani.jp/live/",
+   "sort_order": 0
+  }
+ ]
+}
