@@ -1,0 +1,20 @@
+{
+ "title": "Project“ReLight”AXE8 の曲のユニット表記に「（AXE8）」を付ける",
+ "author": "fuga",
+ "_help": "リブート後の版 (unit_versions.code='AXE8') の曲だけ、名義でリブート前の曲と見分けられるようにする。ユニット自体 (units / unit_id) はそのままで、変えるのは曲の表記だけ。括弧で版を添える書き方は既存の '315 STARS (インテリ Ver.)' などと同じ。",
+ "source": "derived:songs.unit_version_id が unit_versions.code='AXE8' の版を指す曲 (オーナー指示 2026-10-31)",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_beam",
+   "fields": {"unit_name": "アルストロメリア（AXE8）"},
+   "note": "unit_version_id = unit_アルストロメリア__axe8"
+  },
+  {
+   "table": "songs",
+   "id": "sc_iwe",
+   "fields": {"unit_name": "イルミネーションスターズ（AXE8）"},
+   "note": "unit_version_id = unit_イルミネーションスターズ__axe8"
+  }
+ ]
+}
