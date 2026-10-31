@@ -32,7 +32,7 @@ export interface CardView {
   /** `"2026.10.06 時点"` のように、既に整形済み。 */
   issuedOnDisplay: string;
   /**
-   * 名刺のデザインのキー (`pass` / `formal` / `pop` / `oshi`)。名刺の `data-design` にそのまま置く
+   * 名刺のデザインのキー (`pass` / `formal` / `pop` / `oshi` / `ticket` / `vertical` / `sumi` / `night`)。名刺の `data-design` にそのまま置く
    * (書体と並びは CSS)。自作の画像の名刺は画像が Web に無いので `pass` で届く。
    */
   design: string;
@@ -81,4 +81,9 @@ export interface CardFace {
   sinceImprint: string | null;
   /** `"2026.10.06 時点"`。 */
   issuedLabel: string;
+  /**
+   * 帯・罫・判子を刷る色の担当 (名刺の刷る色)。`null` は墨 (色を使わない)。
+   * 選んだ担当が描けなければコアが先頭の担当に直して渡す。
+   */
+  accentIdolId: string | null;
 }
