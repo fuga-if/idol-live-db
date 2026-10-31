@@ -38,7 +38,7 @@ const bar = !!themeKey && themeKey !== "neutral";
     {
       metric !== undefined && metric !== null && (
         <span class="drow__metric">
-          <b class="num num--medium">{metric}</b>
+          <b class="num num--medium">{typeof metric === "number" ? metric.toLocaleString("ja-JP") : metric}</b>
           <span class="num__unit">{unit}</span>
         </span>
       )

@@ -8,7 +8,11 @@ export type IdolSongRow = { song: Ref,
 /**
  * `song_artists.role` (`original` / `cover` 等)。
  */
-role: string | null, releaseDate: string | null, performanceCount: number, 
+role: string | null, releaseDate: string | null, 
+/**
+ * 画面に置くリリース日 (`2022年8月31日(水)`)。ISO は `release_date` (`<time>` 用) に残す。
+ */
+releaseDisplay: string | null, performanceCount: number, 
 /**
  * 行の副題 (ユニット名・リリース日・披露回数を `" ・ "` で繋いだもの)。空なら `None`。
  */

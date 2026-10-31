@@ -9,6 +9,12 @@
 
 /* --- 詳細の頭 (DetailLayout / DetailHead) -----------------------------------
    パンくず → 頭の印字 → 題 (極太) → 副題 → 札 → 数 (掲示板)。 */
+/* .main の gap は区画 (.section) の間のもの。詳細の頭・数・タブ・本体は 1 つの器に入れて詰める。 */
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp6);
+}
 .detail-head {
   gap: var(--sp5);
 }
@@ -724,7 +730,8 @@ a.labeled-row .chevron {
   font-size: var(--fs-caption);
   min-inline-size: 0;
 }
-.costume__meta > * + *::before {
+/* 区切りは前の項目の後ろに付ける (折り返したとき行頭に「・」が浮かない)。リンクの外の要素に付ける。 */
+.costume__meta > :not(:last-child)::after {
   content: " ・ ";
   white-space: pre;
 }

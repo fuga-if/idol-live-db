@@ -28,7 +28,6 @@ const siblingsAsPager = show.siblingNav === "pager";
 const position = siblings.findIndex((s) => s.id === show.id);
 const prev = siblings[position - 1] ?? null;
 const next = siblings[position + 1] ?? null;
-const setlistCount = show.setlistSections.reduce((n, section) => n + section.rows.length, 0);
 ---
 
 <DetailLayout
@@ -100,7 +99,7 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
     )
   }
 
-  <Section id="show-setlist" title="セットリスト" count={setlistCount}>
+  <Section id="show-setlist" title="セットリスト">
     {/* セトリがある公演だけ。空のセトリに詳しさの切替を置いても何も変わらない。 */}
     <div class="setlist-prefs" slot="tools">
       {!show.setlistEmpty && <SetlistDisplayPref />}
@@ -136,7 +135,7 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
 
   {
     show.cast.length > 0 && (
-      <Section slot="aside" id="show-cast" title="出演者" count={show.cast.length}>
+      <Section slot="aside" id="show-cast" title="出演者">
         <RefList refs={show.cast} variant="neutral" label="出演者" />
       </Section>
     )
@@ -157,9 +156,11 @@ const setlistCount = show.setlistSections.reduce((n, section) => n + section.row
                 <span>{c.whereLabel}</span>
                 {c.description && <span>{c.description}</span>}
                 {c.sourceUrl && (
-                  <a class="u-underline-hover" href={c.sourceUrl}>
-                    出典
-                  </a>
+                  <span>
+                    <a class="u-underline-hover" href={c.sourceUrl}>
+                      出典
+                    </a>
+                  </span>
                 )}
               </span>
             </li>

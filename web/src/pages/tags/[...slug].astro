@@ -30,7 +30,7 @@ const list = page<TagListPage>(Astro.props.data);
               {item.officialLabel && <span class="badge">{item.officialLabel}</span>}
             </span>
             <span slot="trailing" class="list-row__metric">
-              <span class="num num--medium">{item.songCount}</span>
+              <span class="num num--medium">{item.songCount.toLocaleString("ja-JP")}</span>
               <span class="num__unit">曲</span>
             </span>
           </ListRow>

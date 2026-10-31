@@ -273,6 +273,7 @@ fn site_meta() -> SiteMeta {
         schema_version: SCHEMA_VERSION,
         generated_at: GENERATED_AT.to_string(),
         today_jst: TODAY.to_string(),
+        today_display: crate::domain::date_display::ymd_ja(TODAY),
         data_version: Some("2026090401".to_string()),
         content_hash: Some("6c41f0e2b9d4a7c8e5f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7".to_string()),
         app: content::app_links(),
@@ -793,8 +794,9 @@ fn idol_page(reference: &Ref) -> IdolPage {
                 song: song_sample(),
                 role: Some("original".to_string()),
                 release_date: Some("2019-03-13".to_string()),
+                release_display: Some("2019年3月13日(水)".to_string()),
                 performance_count: 12,
-                subtitle: Some("765MILLION ALLSTARS ・ 2019-03-13 ・ 12 回披露".to_string()),
+                subtitle: Some("765MILLION ALLSTARS ・ 2019年3月13日(水) ・ 12 回披露".to_string()),
             }],
         }],
         performed_songs: vec![IdolPerformedRow {

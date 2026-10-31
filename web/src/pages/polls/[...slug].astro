@@ -29,7 +29,7 @@ const list = page<PollListPage>(Astro.props.data);
           <div class="poll__top">
             <span class="poll__mark">{poll.targetLabel}</span>
             <span class="poll__votes">
-              <b class="num num--large">{poll.totalVotes}</b>
+              <b class="num num--large">{poll.totalVotes.toLocaleString("ja-JP")}</b>
               <span class="num__unit">票</span>
             </span>
           </div>

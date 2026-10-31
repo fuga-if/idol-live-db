@@ -11,9 +11,12 @@ interface Props {
   axis: FilterAxis;
 }
 const { axis } = Astro.props;
+// 現在地が 1 つも無い (入口のページ) ときは、全部が灰の帯になって何も選ばれていないように
+// 見えるので、帯にせず文字リンクの列にする。
+const hasCurrent = axis.links.some((l) => l.current);
 ---
 
-<nav aria-label={axis.label} class="segmented">
+<nav aria-label={axis.label} class:list={["segmented", !hasCurrent && "segmented--links"]}>
   {
     axis.links.map((l) => (
       <a href={l.path} aria-current={l.current ? "page" : undefined}>

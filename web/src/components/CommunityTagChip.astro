@@ -26,5 +26,5 @@ const Tag = href ? "a" : "span";
   {/* 色そのものが中身のタグだけ、先頭に色見本 (DESIGN_SYSTEM §8.2)。 */}
   {tag.themeKey && <span class="swatch" aria-hidden="true"></span>}
   {tag.name}
-  {count !== undefined && count !== null && <b class="num num--small chip__count">{count}</b>}
+  {count !== undefined && count !== null && <b class="num num--small chip__count">{count.toLocaleString("ja-JP")}</b>}
 </Tag>

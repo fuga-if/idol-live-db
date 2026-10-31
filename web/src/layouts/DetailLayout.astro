@@ -39,6 +39,7 @@ const { seo, themeKey, app, isCharacterLive, asideAfterMain = false } = Astro.pr
 >
   {/* 詳細の頭 (DESIGN_SYSTEM §2.2): パンくず → 頭の印字・題・副題・札 (`DetailHead`) → 数 (`Board`)。
       地は紙面のまま。色の地・帯は敷かない。 */}
+  <div class="detail-body">
   <div class="detail-head u-stack">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
     <slot name="hero" />
@@ -63,8 +64,11 @@ const { seo, themeKey, app, isCharacterLive, asideAfterMain = false } = Astro.pr
         </div>
       </div>
     ) : (
-      <slot />
+      <div class="detail-cols__main">
+        <slot />
+      </div>
     )
   }
   {app && <OpenInApp app={app} />}
+  </div>
 </BaseLayout>

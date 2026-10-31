@@ -265,7 +265,7 @@ a.cal__item:hover {
 }
 
 /* --- ランキング (ImasRankingRow) ---------------------------------------------
-   順位 (1〜3 は墨、4 位以下は ink3) | ジャケ 44 か行頭の帯 | 題・副題 | 数 + 単位。
+   順位 (1〜3 は墨、4 位以下は ink2) | ジャケ 44 か行頭の帯 | 題・副題 | 数 + 単位。
    割合は行の下端の細い線 (ImasProportionLine、2px)。 */
 .rank-grid {
   display: grid;
@@ -311,7 +311,7 @@ a.ranking-row:hover {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 .rank-row--top .rank-row__rank,
 .ranking-row--top .ranking-row__rank {
@@ -499,6 +499,32 @@ a.tl-list__row::before {
   min-width: 0;
   font-size: var(--fs-subhead);
   font-weight: 700;
+}
+
+.tl-legend {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp2) var(--sp6);
+  font-size: var(--fs-footnote);
+}
+.tl-legend div {
+  display: flex;
+  gap: var(--sp3);
+}
+.tl-legend dt {
+  flex: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tl-legend dd {
+  margin: 0;
+  color: var(--ds-ink2);
+}
+.tl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 /* --- お題の一覧 (/polls/) ------------------------------------------------------

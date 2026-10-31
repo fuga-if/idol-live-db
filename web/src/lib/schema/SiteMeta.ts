@@ -19,7 +19,11 @@ generatedAt: string,
  * JST の「今日」。upcoming / past の分割はすべてこの 1 個から決まる。
  * Astro もブラウザも `Date` を触らない。
  */
-todayJst: string, dataVersion: string | null, contentHash: string | null, app: AppLinks, 
+todayJst: string, 
+/**
+ * 画面に置く基準日 (`2026年10月31日(土)`)。フッタの「データ基準日」。
+ */
+todayDisplay: string, dataVersion: string | null, contentHash: string | null, app: AppLinks, 
 /**
  * セトリの歌唱者をどの名前で出すかの選択肢 (順・保存値・文言)。
  *

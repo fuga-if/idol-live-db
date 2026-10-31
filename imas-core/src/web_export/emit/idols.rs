@@ -45,15 +45,17 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             .map(|&i| ctx.snap.performance_counts[i as usize])
             .unwrap_or(0);
         let song = ctx.song_ref(&s.song_id)?;
+        let release_display = s.release_date.as_deref().map(crate::domain::date_display::ymd_ja);
         Some(IdolSongRow {
             subtitle: join_parts([
                 song.sub.clone(),
-                s.release_date.clone(),
+                release_display.clone(),
                 (performance_count > 0).then(|| format!("{performance_count} 回披露")),
             ]),
             song,
             role: Some(s.role),
             release_date: s.release_date,
+            release_display,
             performance_count,
         })
     };
@@ -148,7 +150,12 @@ fn profile_rows(record: &idol_queries::IdolRecord) -> Vec<ProfileRow> {
         .into_iter()
         .map(|row| ProfileRow {
             label: row.label,
-            value: row.value,
+            // 色の行は hex を画面に出さず色の名前 (`color_names`) にする。見本の色は
+            // ページのテーマ (`data-theme`) が同じ色を持っている。
+            value: match row.style {
+                RowStyle::ColorSwatch => crate::domain::color_names::color_name(Some(&row.value)),
+                _ => row.value,
+            },
             style: match row.style {
                 RowStyle::Plain => "plain",
                 RowStyle::Monospaced => "monospaced",

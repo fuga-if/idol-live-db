@@ -98,7 +98,10 @@ const catalog = page<CardCatalog>("p/catalog.json");
       </div>
       <div class="open-in-app__actions">
         <a class="btn" data-meishi-case-scheme href={catalog.appStoreUrl}>アプリで開く</a>
-        <a class="btn btn--ghost" href={catalog.appStoreUrl}>App Store</a>
+        <a class="entry-link" href={catalog.appStoreUrl}>
+          <span class="u-underline-hover">App Store</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
       </div>
     </div>
 

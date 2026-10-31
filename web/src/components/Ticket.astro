@@ -53,7 +53,8 @@ const countdownIsText = countdown ? !/^\d+$/.test(countdown.value) : false;
     </span>
     {
       countdown && (
-        <span class="ticket__stub" aria-label={countdown.spoken}>
+        <span class="ticket__stub">
+          <span class="u-visually-hidden">{countdown.spoken}</span>
           {countdown.lead && (
             <span class="imprint" aria-hidden="true">
               {countdown.lead}

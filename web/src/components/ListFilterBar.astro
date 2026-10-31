@@ -23,7 +23,7 @@ interface Props {
   fixedAxes: readonly string[];
   total: number;
 }
-const { kind, queryBase, fixedAxes, total } = Astro.props;
+const { kind, queryBase, fixedAxes } = Astro.props;
 ---
 
 <section
@@ -45,9 +45,8 @@ const { kind, queryBase, fixedAxes, total } = Astro.props;
       <button class="song-filter__reset" type="button" data-filter-reset disabled>クリア</button>
     </div>
   </div>
-  <p class="song-filter__status" data-filter-status aria-live="polite">
-    <span class="num num--medium">{total}</span><span class="num__unit">件</span>
-  </p>
+  {/* 件数は題の横に出ている。この行は絞り込み中 (見えている数 / 全体) とエラーの案内だけ。 */}
+  <p class="song-filter__status" data-filter-status aria-live="polite"></p>
 </section>
 
 <script>

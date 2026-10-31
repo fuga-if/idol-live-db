@@ -13,7 +13,7 @@ interface Props {
 const { page: p } = Astro.props;
 ---
 
-<ListLayout seo={p.seo} title={p.title} scope={p.scope}>
+<ListLayout seo={p.seo} title={p.title} filters={[p.scope]}>
   <p slot="lede" class="lede lede--wide">{p.lede}</p>
 
   <div class="rank-grid">
@@ -66,7 +66,7 @@ const { page: p } = Astro.props;
             <ol class="year-chart__cols">
               {p.years.map((y) => (
                 <li class:list={["year-chart__col", y.isPlanned && "year-chart__col--planned"]}>
-                  <span class="year-chart__value u-num">{y.value}</span>
+                  <span class="year-chart__value u-num">{y.value.toLocaleString("ja-JP")}</span>
                   <svg class="year-chart__bar" viewBox="0 0 10 1000" preserveAspectRatio="none" aria-hidden="true">
                     <rect x="0" y={1000 - y.sharePermille} width="10" height={y.sharePermille}></rect>
                   </svg>

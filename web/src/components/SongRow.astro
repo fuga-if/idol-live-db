@@ -48,7 +48,7 @@ const hasFoot = !!item.releaseDisplay || badges.length > 0 || credits.length > 0
   {
     item.performanceCount !== null && (
       <span slot="trailing" class="list-row__metric">
-        <span class="num num--medium">{item.performanceCount}</span>
+        <span class="num num--medium">{item.performanceCount.toLocaleString("ja-JP")}</span>
         <span class="num__unit">回</span>
       </span>
     )

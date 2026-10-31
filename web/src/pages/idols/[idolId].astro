@@ -103,7 +103,7 @@ const multiShelf = idol.songSections.length > 1;
               {idol.songSections.map((sec, i) => (
                 <label for={`shelf-tab-${i}`}>
                   <span class="dtabs__name">{sec.shortHeading}</span>
-                  <span class="dtabs__sub num">{sec.songs.length}</span>
+                  <span class="dtabs__sub num">{sec.songs.length.toLocaleString("ja-JP")}</span>
                 </label>
               ))}
             </div>
@@ -113,7 +113,7 @@ const multiShelf = idol.songSections.length > 1;
               <section class="shelf" aria-labelledby={sec.anchor}>
                 <h3 class:list={["shelf__title", multiShelf && "u-visually-hidden"]} id={sec.anchor}>
                   {sec.heading}
-                  <span class="shelf__count num">{sec.songs.length}</span>
+                  <span class="shelf__count num">{sec.songs.length.toLocaleString("ja-JP")}</span>
                 </h3>
                 <ListContainer as="ul">
                   {sec.songs.map((s) => (

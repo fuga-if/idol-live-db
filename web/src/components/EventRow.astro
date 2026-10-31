@@ -11,8 +11,6 @@ import type { EventListItem } from "../lib/schema/EventListItem";
  */
 interface Props {
   item: EventListItem;
-  /** 年の見出しの下に並ぶ行。半券の日付欄は年を持たないので今は使わない (互換のため残す)。 */
-  showYear?: boolean;
 }
 const { item } = Astro.props;
 ---

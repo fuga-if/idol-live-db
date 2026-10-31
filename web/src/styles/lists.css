@@ -8,6 +8,16 @@
 
 /* --- 一覧ページの頭 (ListLayout) -------------------------------------------
    印字 → 題 + 件数 → 切替の溝・絞り込みのチップ。 */
+/* .main の gap は区画 (.section) の間のもの。頭・目次・件数の行・本体は 1 つの器に入れて詰める。 */
+.list-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp5);
+  min-inline-size: 0;
+}
+.list-body > .section {
+  margin-block-start: var(--sp5);
+}
 .list-head {
   display: flex;
   flex-direction: column;
@@ -81,6 +91,25 @@
   box-shadow: var(--ds-surface-edge);
 }
 
+/* 現在地の無い切替 (入口のページ)。溝にせず、文字リンクの列。 */
+.segmented--links {
+  gap: var(--sp5);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.segmented--links a {
+  padding: var(--sp2) 0;
+  border-radius: 0;
+  color: var(--ds-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ds-ink3);
+  text-underline-offset: 4px;
+}
+.segmented--links a:hover {
+  text-decoration-color: var(--ds-ink);
+}
+
 /* --- 畳んだ切替メニュー (FilterMenu) -----------------------------------------
    閉じているときは「軸 いまの値 ›」のチップ 1 つ。開くと、押したチップの真下に一覧が出る
    (details、JS 無し)。チップは列の左側に並ぶので、左寄せのままで画面からはみ出さない。 */
@@ -89,7 +118,7 @@
 }
 .fmenu__summary {
   background: transparent;
-  box-shadow: inset 0 0 0 1px var(--ds-line);
+  box-shadow: inset 0 0 0 1px var(--ds-ink2);
   cursor: pointer;
   list-style: none;
   white-space: nowrap;
@@ -175,6 +204,9 @@
   gap: var(--sp1);
   font-size: var(--fs-footnote);
   color: var(--ds-ink2);
+}
+.song-filter__status:empty {
+  display: none;
 }
 .song-filter__status .num {
   color: var(--ds-ink);
@@ -326,28 +358,6 @@ a.chip--tag:hover {
   background: var(--ds-fill);
 }
 
-/* --- 数 (MetricBadge): 墨の数字 + 灰の単位。実体の色で飾らない --------------- */
-.metric {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--sp1);
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--num-medium);
-  font-weight: 700;
-  color: var(--ds-ink);
-  white-space: nowrap;
-}
-.metric--muted {
-  color: var(--ds-ink2);
-}
-.metric__unit {
-  font-family: var(--font-body);
-  font-size: var(--fs-caption);
-  font-weight: 600;
-  color: var(--ds-ink2);
-}
-
 /* --- 行の共通の形 (.list-row = ImasRow、§5.0) ------------------------------
    [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。区切り線は器 (.card) が引く。
    曲の行 (.list-row--song = ImasSongRow) はジャケ 48。 */
@@ -389,6 +399,10 @@ a.list-row:hover {
   font-size: var(--fs-footnote);
   line-height: var(--lh-snug);
   color: var(--ds-ink2);
+}
+/* 検索の一致箇所は 1 本の文。flex だと <mark> の前後が別の項目に割れる。 */
+.list-row__sub.search-snippet {
+  display: block;
 }
 /* 下段: 日付・札・作曲/収録。 */
 .list-row__foot {
@@ -655,8 +669,10 @@ a.list-row:hover {
 .month-group__unit {
   color: var(--ds-ink2);
 }
+/* 一覧の続き (「開催済みをすべて見る」)。見た目は節の「すべて見る」と同じ。 */
 .list-next {
-  margin-block-start: var(--sp5);
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* --- 検索 (/search/ の island) ---------------------------------------------

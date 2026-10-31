@@ -528,6 +528,7 @@ fn write_all(
             schema_version: SCHEMA_VERSION,
             generated_at: ctx.generated_at.clone(),
             today_jst: ctx.today.clone(),
+            today_display: crate::domain::date_display::ymd_ja(&ctx.today),
             data_version: ctx.data_version.clone(),
             content_hash: ctx.content_hash.clone(),
             app: crate::web_export::content::app_links(),

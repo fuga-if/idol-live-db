@@ -28,6 +28,7 @@ const hasFilters = scope !== undefined || filters.length > 0;
 ---
 
 <BaseLayout seo={seo} themeKey={themeKey} wide={wide}>
+  <div class="list-body">
   <div class="list-head">
     <Breadcrumbs crumbs={seo.breadcrumbs} />
     {imprint && <p class="imprint list-head__imprint">{imprint}</p>}
@@ -36,7 +37,7 @@ const hasFilters = scope !== undefined || filters.length > 0;
       {
         total !== undefined && total !== null && (
           <span class="list-head__count">
-            <span class="num num--medium">{total}</span>
+            <span class="num num--medium">{total.toLocaleString("ja-JP")}</span>
             <span class="num__unit">件</span>
           </span>
         )
@@ -56,4 +57,5 @@ const hasFilters = scope !== undefined || filters.length > 0;
     <slot name="lede" />
   </div>
   <slot />
+  </div>
 </BaseLayout>

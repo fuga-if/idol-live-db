@@ -937,3 +937,15 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 Web でやらないこと (アプリと同じ): 淡い色の地のチップ・カプセルの札・名前の前の色の点・記号を淡い色の四角に
 入れる・色の地のカード・グラデーション・ぼかした光。判断 (文言・並び・日付の分け方) は Rust の DTO が持ち、
 Astro は置くだけ (半券の 3 段は `DateBadge.stub`)。
+
+Web だけにある組み合わせ (アプリの部品を Web の器に合わせたもの):
+
+| Web の部品 | 相当するアプリの形 |
+|---|---|
+| `DetailHead.astro` (`.detail-head`) | 詳細の頭 §2.2: 印字 → 題 (左に実体色の帯) → 副題 → 札 |
+| `ListRow.astro` (`.list-row`) / `DetailRow.astro` (`.drow`) | 行の共通の形 §5.0 (行頭の帯・先頭・題・副題・末尾) |
+| `SongRow.astro` | `ImasSongRow` §5.1 |
+| `SetlistRow.astro` | `ImasSetlistRow` §5.6 (行の間は切り取り線) |
+| `TicketSaleRow.astro` (`.tsale`) | `ImasTicketRow` §5.5 |
+| `.entry-link` (文言 + ›) | 入口の行 `ImasNavRow` §5.10。主ボタンの隣に副ボタンを並べない §6.3 |
+| `.segmented` / `.segmented--links` | `ImasSegmented` (現在地が無い切替は帯にせず文字リンクの列) |

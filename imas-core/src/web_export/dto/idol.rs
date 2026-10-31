@@ -91,6 +91,8 @@ web_dto! {
         /// `song_artists.role` (`original` / `cover` 等)。
         pub role: Option<String>,
         pub release_date: Option<String>,
+        /// 画面に置くリリース日 (`2022年8月31日(水)`)。ISO は `release_date` (`<time>` 用) に残す。
+        pub release_display: Option<String>,
         pub performance_count: u32,
         /// 行の副題 (ユニット名・リリース日・披露回数を `" ・ "` で繋いだもの)。空なら `None`。
         pub subtitle: Option<String>,

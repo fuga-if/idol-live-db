@@ -28,12 +28,15 @@ const { app } = meta;
         <div class="site-footer__notes">
           {meta.footerNotes.map((note) => <p>{note}</p>)}
           <p>
-            データ基準日 <span class="u-num">{meta.todayJst}</span> (JST)
+            データ基準日 <time datetime={meta.todayJst}>{meta.todayDisplay}</time> (JST)
           </p>
         </div>
         <div class="site-footer__actions">
           <a class="btn btn--inverse" href={app.appStoreUrl}>アプリで記録する</a>
-          <a class="btn btn--ghost-inverse" href={app.repositoryUrl}>データに協力する</a>
+          <a class="entry-link entry-link--inverse" href={app.repositoryUrl}>
+            <span class="u-underline-hover">データに協力する</span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </a>
         </div>
       </div>
       <div class="site-footer__cols">

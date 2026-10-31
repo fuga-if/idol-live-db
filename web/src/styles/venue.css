@@ -82,20 +82,33 @@
 
 /* --- チケット (ImasTicket) -------------------------------------------------
    角丸 14 の紙に、半券との境目の両端に半円の切り欠き (mask で抜く)。
-   mask は影も切るので、影は外側の .ticket-wrap が drop-shadow で落とす。 */
+   mask は要素の輪郭 (フォーカスリング) まで切ってしまうので、紙の面だけを ::before に描いて
+   そこへ mask を掛ける。影は外側の .ticket-wrap が ::before ごと落とす drop-shadow。 */
 .ticket-wrap {
-  filter: drop-shadow(0 4px 9px rgb(0 0 0 / 0.06));
+  filter: drop-shadow(var(--ds-shadow2-drop));
 }
 .ticket {
   --cut: var(--ticket-stub-w);
   --notch: 10px;
+  --ticket-radius: 14px;
   position: relative;
+  isolation: isolate;
   display: flex;
   align-items: stretch;
   inline-size: 100%;
-  border-radius: 14px;
-  background: var(--ds-ticket);
+  border-radius: var(--ticket-radius);
   color: var(--ds-ticket-ink);
+}
+.ticket:focus-visible {
+  border-radius: var(--ticket-radius);
+}
+.ticket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--ticket-radius);
+  background: var(--ds-ticket);
   /* 切り欠きの位置は半券の幅 + 切り取り線の分。 */
   -webkit-mask:
     radial-gradient(circle at calc(100% - var(--cut) - 1px) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
@@ -107,12 +120,12 @@
   mask-composite: intersect;
 }
 /* 半券の無いチケット (日付の読めないライブ) は切り欠きも無い。 */
-.ticket--plain {
+.ticket--plain::before {
   -webkit-mask: none;
   mask: none;
 }
-a.ticket:hover {
-  background: #fffaf0;
+a.ticket:hover::before {
+  background: var(--ds-ticket-hover);
 }
 a.ticket:active {
   transform: scale(0.985);
@@ -198,13 +211,27 @@ a.ticket:active {
 .stub {
   --cut: calc(var(--stub-w) + 1px);
   --notch: 6px;
+  --stub-radius: 12px;
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: stretch;
   inline-size: 100%;
   min-block-size: 64px;
-  border-radius: 12px;
-  background: var(--ds-surface);
+  border-radius: var(--stub-radius);
   color: var(--ds-ink);
+}
+.stub:focus-visible {
+  border-radius: var(--stub-radius);
+}
+/* 紙の面だけを ::before に描いて mask を掛ける (要素に mask を掛けるとフォーカスリングが切れる)。 */
+.stub::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--stub-radius);
+  background: var(--ds-surface);
   -webkit-mask:
     radial-gradient(circle at var(--cut) 0, transparent var(--notch), #000 calc(var(--notch) + 0.5px)),
     radial-gradient(circle at var(--cut) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
@@ -214,7 +241,7 @@ a.ticket:active {
     radial-gradient(circle at var(--cut) 100%, transparent var(--notch), #000 calc(var(--notch) + 0.5px));
   mask-composite: intersect;
 }
-a.stub:hover {
+a.stub:hover::before {
   background: var(--ds-surface2);
 }
 .stub__date {
@@ -311,7 +338,7 @@ a.stub:hover {
 .stub__none {
   font-size: var(--fs-caption2);
   font-weight: 700;
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 
 /* --- 電光掲示板 (ImasBoard) ----------------------------------------------- */
@@ -334,12 +361,12 @@ a.stub:hover {
 .board__head .imprint {
   color: var(--ds-board-dim);
 }
-/* マスの間の線は、板の線色を地にして 1px の隙間で出す (縦横どちらに並んでも線になる)。 */
+/* マスの間の線は、マス自身が持つ (隙間に線色を敷くと、空きトラックが線色の塊になる)。
+   隣り合うマスの 0.5px が重なって 1px の線になる。 */
 .board__cells {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  gap: 1px;
-  background: var(--ds-board-line);
+  background: var(--ds-board);
 }
 .board__cell {
   display: flex;
@@ -347,11 +374,12 @@ a.stub:hover {
   gap: 4px;
   padding: 12px 14px;
   background: var(--ds-board);
+  box-shadow: 0 0 0 0.5px var(--ds-board-line);
   color: var(--ds-board-ink);
   min-inline-size: 0;
 }
 a.board__cell:hover {
-  background: #2a2633;
+  background: var(--ds-board-hover);
 }
 .board__value {
   display: flex;
@@ -408,11 +436,11 @@ a.board__cell:hover {
 }
 .badge--new {
   background: var(--ds-stamp);
-  color: #fff;
+  color: var(--ds-stamp-ink);
 }
 .badge--negative {
   background: var(--ds-fill);
-  color: var(--ds-ink3);
+  color: var(--ds-ink2);
 }
 
 /* --- 判子 (ImasBrandCell の判子・写真の無いアイコン) --------------------------
@@ -488,9 +516,6 @@ a.board__cell:hover {
   color: var(--ds-ink2);
   line-height: var(--lh-snug);
   word-break: keep-all;
-}
-
-/* --- 頭の印字 (ImasMasthead) ---------------------------------------------- */
-.masthead {
-  display: block;
+  overflow-wrap: normal;
+  text-wrap: balance;
 }

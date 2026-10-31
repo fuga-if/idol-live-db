@@ -34,13 +34,13 @@ const { list } = Astro.props;
               <span slot="trailing" class="list-row__metrics">
                 {item.capacity !== null && (
                   <span class="list-row__metric">
-                    <span class="num num--medium">{item.capacity}</span>
+                    <span class="num num--medium">{item.capacity.toLocaleString("ja-JP")}</span>
                     <span class="num__unit">人</span>
                   </span>
                 )}
                 {item.showCount > 0 && (
                   <span class="list-row__metric">
-                    <span class="num num--medium">{item.showCount}</span>
+                    <span class="num num--medium">{item.showCount.toLocaleString("ja-JP")}</span>
                     <span class="num__unit">公演</span>
                   </span>
                 )}

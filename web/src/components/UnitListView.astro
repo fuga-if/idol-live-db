@@ -39,12 +39,12 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
               <span slot="trailing" class="list-row__metrics">
                 {item.note && <span class="badge">{item.note}</span>}
                 <span class="list-row__metric">
-                  <span class="num num--medium">{item.memberCount}</span>
+                  <span class="num num--medium">{item.memberCount.toLocaleString("ja-JP")}</span>
                   <span class="num__unit">人</span>
                 </span>
                 {item.songCount > 0 && (
                   <span class="list-row__metric">
-                    <span class="num num--medium">{item.songCount}</span>
+                    <span class="num num--medium">{item.songCount.toLocaleString("ja-JP")}</span>
                     <span class="num__unit">曲</span>
                   </span>
                 )}

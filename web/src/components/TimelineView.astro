@@ -15,7 +15,7 @@ const { page: p } = Astro.props;
 const c = p.chart;
 ---
 
-<ListLayout seo={p.seo} title={p.title} scope={p.scope}>
+<ListLayout seo={p.seo} title={p.title} filters={[p.scope]}>
   <p slot="lede" class="lede lede--wide">{p.lede}</p>
 
   <figure class="card timeline-chart">

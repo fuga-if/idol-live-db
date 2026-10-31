@@ -109,35 +109,13 @@
 .section__tools:empty {
   display: none;
 }
-/* 一覧の続き (「開催済みをすべて見る」「2025年のライブ」)。見た目は節の「すべて見る」と同じ。 */
-.list-next {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* --- アイドルカラーの点 --------------------------------------------------
-   誰の行かを色で見分けるための印 (アプリの ColorDot と同じ役割)。
-   色は themes.css が `data-theme` から与えるので、ここに hex は書かない。
-   囲みが色を持たない要素 (neutral) では既定アクセントになる。
-   マークアップは ColorDot.astro が持つ (生 span を各所に写さない)。 */
-.color-dot {
-  inline-size: var(--dot-size, 6px);
-  block-size: var(--dot-size, 6px);
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  flex: none;
-}
-/* ブランドの札の中の点 (行のメタは文字が小さいので、点も一段大きい方が目に付く)。 */
-.color-dot--md {
-  --dot-size: 8px;
-}
 
 /* --- Artwork (ImasArtwork: 画像 or ソリッド面 + 曲名) ---------------------- */
 .artwork {
   position: relative;
   inline-size: var(--artwork-size, 56px);
   block-size: var(--artwork-size, 56px);
-  border-radius: max(8px, calc(var(--artwork-size, 56px) * 0.16));
+  border-radius: clamp(3px, calc(var(--artwork-size, 56px) * 0.08), 10px);
   overflow: hidden;
   background: var(--accent);
   flex: none;
@@ -216,161 +194,7 @@
   margin-top: 3px;
   letter-spacing: 0.03em;
 }
-/* 大きい版 (注目カード・ヒーロー)。 */
-.date-badge--lg {
-  min-inline-size: 5.5rem;
-}
-.date-badge--lg .date-badge__md {
-  font-size: 2.75rem;
-}
-.date-badge--lg .date-badge__wd {
-  font-size: var(--fs-caption);
-  margin-top: 3px;
-}
-.date-badge--lg .date-badge__yr {
-  font-size: var(--fs-caption2);
-}
-/* 文の中に置く形 (`2026 9/19 (土)`)。年を先に、曜日は括弧に入れる。 */
-.date-badge--inline {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 6px;
-  min-inline-size: 0;
-}
-.date-badge--inline .date-badge__md {
-  font-size: 1.25rem;
-}
-.date-badge--inline .date-badge__yr {
-  order: -1;
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--ds-ink);
-}
-.date-badge--inline .date-badge__wd {
-  margin: 0;
-  font-size: var(--fs-subhead);
-}
-.date-badge--inline .date-badge__wd::before {
-  content: "(";
-  color: var(--ds-ink2);
-}
-.date-badge--inline .date-badge__wd::after {
-  content: ")";
-  color: var(--ds-ink2);
-}
-/* 期間の終端 (初日の隣に小さく添える)。 */
-.date-badge__until {
-  font-size: var(--fs-caption);
-  color: var(--ds-ink2);
-  white-space: nowrap;
-}
 
-/* --- Row (行の共通骨格) ---------------------------------------------------
-   [先頭: 日付ブロック / ジャケ / 色] [本体: 見出し + メタ] [末尾: 数 + ›]。
-   ライブ・公演・披露履歴・出演公演・ユニット・会場の行が全部これ。 */
-.row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp5);
-  padding: var(--sp5) var(--sp6);
-  background: var(--ds-surface);
-  min-height: 72px;
-}
-@media (max-width: 44rem) {
-  .row {
-    gap: var(--sp4);
-    padding: 14px var(--sp5);
-  }
-}
-a.row:hover {
-  background: var(--ds-surface2);
-}
-/* 日付で並ぶ行 (ライブ・公演) は、左端にブランド / ライブの色の帯を立てる。
-   紙面の索引のように、色の並びで「どのブランドのライブが続いているか」が読める。 */
-.row[data-theme]:has(> .row__lead .date-badge) {
-  position: relative;
-}
-.row[data-theme]:has(> .row__lead .date-badge)::before {
-  content: "";
-  position: absolute;
-  inset-block: 12px;
-  inset-inline-start: 0;
-  inline-size: 4px;
-  border-radius: 0 3px 3px 0;
-  background: var(--accent);
-}
-/* 先頭に何も置かない行は、色のリードバーで所属を示す。 */
-.row--bar {
-  grid-template-columns: minmax(0, 1fr) auto;
-  position: relative;
-  padding-inline-start: calc(var(--sp5) + 6px);
-}
-.row--bar::before {
-  content: "";
-  position: absolute;
-  inset-block: 14px;
-  inset-inline-start: var(--sp4);
-  inline-size: 3px;
-  border-radius: 2px;
-  background: var(--bar);
-}
-.row__lead {
-  display: flex;
-  align-items: center;
-  gap: var(--sp2);
-  flex: none;
-}
-.row__body {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.row__title {
-  font-size: var(--fs-callout);
-  font-weight: 700;
-  line-height: var(--lh-snug);
-  color: var(--ds-ink);
-}
-.row__meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp1) var(--sp4);
-  font-size: var(--fs-footnote);
-  color: var(--ds-ink2);
-  line-height: var(--lh-snug);
-}
-.row__meta-item {
-  min-width: 0;
-}
-.row__trailing {
-  display: flex;
-  align-items: center;
-  gap: var(--sp3);
-  color: var(--ds-ink2);
-  font-size: var(--fs-caption);
-  white-space: nowrap;
-  flex: none;
-}
-.row__count {
-  font-weight: 600;
-  font-size: var(--fs-footnote);
-  color: var(--ds-ink2);
-}
-.row__count b {
-  color: var(--ds-ink);
-  font-weight: 700;
-}
-/* 狭いカード (電話・脇) では末尾の種別札を落として見出しに幅を回す。
-   数 (曲数・回数) は残す — 行を選ぶ判断に要るのはそちら。 */
-@container (max-width: 30rem) {
-  .row__trailing .tag {
-    display: none;
-  }
-}
 .chevron {
   flex: none;
   color: var(--ds-ink2);
@@ -385,16 +209,6 @@ summary .chevron {
 }
 details[open] > summary .chevron {
   transform: rotate(-90deg);
-}
-/* ブランドの小さな札 (メタ行の中)。色の点 + 短縮名。 */
-.brand-mark {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 700;
-  color: var(--ds-ink);
-  font-size: var(--fs-caption);
-  white-space: nowrap;
 }
 
 /* --- トップのヒーロー -----------------------------------------------------
@@ -461,22 +275,8 @@ details[open] > summary .chevron {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
-/* 実体に属する情報は線 (淡い色の地は敷かない)。 */
-.chip--themed {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--accent);
-  color: var(--accent-ink);
-}
-/* 選んだもの = 墨の塗り。 */
-.chip--selected {
-  background: var(--ds-sys);
-  color: var(--ds-on-sys);
-}
 a.chip:hover {
   background: var(--tint-strong);
-}
-a.chip--selected:hover {
-  background: var(--ds-sys);
 }
 /* チップの添字 (公演の日付・会場の都道府県)。本体より一段落として並べる。 */
 .chip__sub {
@@ -720,7 +520,9 @@ a.chip--selected:hover {
   font-weight: 600;
 }
 .link-row a {
-  padding-block: 2px;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 24px;
   color: var(--ds-ink2);
 }
 .link-row a:hover {
@@ -755,25 +557,6 @@ a.chip--selected:hover {
    **正方形に押し込めない。** 44px 角に入れていた頃は 7/9 が枠から溢れ、
    `シャニ / マス` のように折り返して読めなくなっていた。
    横に伸びる錠剤にして、1 行で必ず収める。 */
-/* ブランド色の面そのものを札にする。文字は on-accent (地に対して読める側を Rust が導出済み)。 */
-.entry-card__icon {
-  flex: none;
-  inline-size: 48px;
-  block-size: 48px;
-  border-radius: 50%;
-  background: var(--ds-ticket);
-  box-shadow: inset 0 0 0 2px var(--accent);
-  color: var(--accent-ink);
-  display: grid;
-  place-items: center;
-  padding: 4px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-footnote);
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-}
 .entry-card__body {
   min-width: 0;
   flex: 1;
@@ -791,6 +574,9 @@ a.chip--selected:hover {
   font-size: var(--fs-caption);
   color: var(--ds-ink2);
   word-break: keep-all;
+  overflow-wrap: normal;
+  /* 区切りの「・」が行頭に落ちる折り方を、行の長さを揃えて避ける (1 本の文字列なので切り分けない)。 */
+  text-wrap: balance;
 }
 
 /* --- ランキング (RankingView / RankBar) ----------------------------------- */
@@ -898,119 +684,6 @@ a.chip--selected:hover {
   font-size: var(--fs-footnote);
 }
 
-/* --- 年表 (TimelineView) ------------------------------------------------- */
-.timeline-chart {
-  margin: 0;
-  padding: var(--sp6) var(--sp6) var(--sp5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp5);
-}
-.card.timeline-chart > * + * {
-  border-top: 0;
-}
-.timeline-chart__scroll {
-  overflow-x: auto;
-  scrollbar-width: thin;
-}
-/* PC では枠に合わせて縮め、狭い画面では最小幅を保って横に流す (文字が潰れない)。 */
-.timeline-chart__svg {
-  display: block;
-  inline-size: 100%;
-  min-inline-size: 56rem;
-  block-size: auto;
-  font-family: var(--font-body);
-}
-.tl-year line {
-  stroke: var(--ds-sep);
-  stroke-width: 1;
-}
-.tl-year text {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  fill: var(--ds-ink2);
-}
-.tl-lane line {
-  stroke: var(--ds-line);
-  stroke-width: 1;
-}
-.tl-lane text {
-  font-family: var(--font-heading);
-  font-size: 13px;
-  font-weight: 900;
-  fill: var(--ds-ink);
-}
-.tl-today {
-  stroke: var(--ds-pick);
-  stroke-width: 1.5;
-  stroke-dasharray: 3 3;
-}
-.tl-release rect {
-  fill: var(--ds-ink);
-}
-.tl-release text {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 600;
-  fill: var(--ds-ink2);
-}
-.tl-live {
-  fill: var(--accent);
-  fill-opacity: 0.45;
-}
-.tl-live--featured {
-  fill-opacity: 1;
-  stroke: var(--ds-surface);
-  stroke-width: 1.5;
-}
-a:hover > .tl-live,
-a:focus-visible > .tl-live {
-  fill-opacity: 1;
-  stroke: var(--ds-ink);
-  stroke-width: 1.5;
-}
-.tl-milestone circle {
-  fill: var(--accent);
-  stroke: var(--ds-surface);
-  stroke-width: 1.5;
-}
-.tl-milestone__date {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 600;
-  fill: var(--ds-ink2);
-}
-.tl-milestone__label {
-  font-size: 12px;
-  font-weight: 700;
-  fill: var(--ds-ink);
-}
-.tl-legend {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp2) var(--sp6);
-  font-size: var(--fs-footnote);
-}
-.tl-legend div {
-  display: flex;
-  gap: var(--sp3);
-}
-.tl-legend dt {
-  flex: none;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.tl-legend dd {
-  margin: 0;
-  color: var(--ds-ink2);
-}
-.tl-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 /* --- Hero (詳細以外の頭: 404 など) ---------------------------------------------
    詳細ページの頭は detail.css の DetailHead (.dhead)。 */
 .hero {
@@ -1232,11 +905,11 @@ a:focus-visible > .tl-live {
   /* 縮めるのは長い段 (ライブ名・ブランド名 = 最後の 1 つ前) から。「ホーム」「ライブ」の
      ような短い段まで比例して縮めると全段が「ホ…」になる。 */
   .crumbs li {
-    flex: 0 1 auto;
-    min-inline-size: 4.5em;
-  }
-  .crumbs li:nth-last-child(2) {
+    flex: none;
     min-inline-size: 0;
+  }
+  .crumbs li:nth-last-child(-n + 2) {
+    flex: 0 1 auto;
   }
   .crumbs a,
   .crumbs span {
@@ -1278,8 +951,32 @@ a:focus-visible > .tl-live {
 }
 .open-in-app__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--sp2);
+}
+/* 墨のボタンの下に重ねる入口の行 (§6.3 操作は行で下に重ねる)。文言 + 矢印だけ。 */
+.entry-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp2);
+  min-block-size: 32px;
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  color: var(--ds-ink);
+}
+.entry-link .chevron {
+  color: var(--ds-ink3);
+  font-size: var(--fs-title3);
+  line-height: 1;
+}
+.entry-link--inverse {
+  justify-content: flex-start;
+  color: var(--footer-ink);
+}
+.entry-link--inverse .chevron {
+  color: var(--footer-ink2);
 }
 .btn {
   display: inline-flex;
@@ -1311,12 +1008,6 @@ a:focus-visible > .tl-live {
   padding: 12px var(--sp6);
   background: var(--footer-ink);
   color: var(--footer-bg);
-}
-.btn--ghost-inverse {
-  padding: 11px var(--sp6);
-  background: transparent;
-  color: var(--footer-ink);
-  border: 1px solid var(--footer-line);
 }
 
 /* --- 印字用 --------------------------------------------------------------- */

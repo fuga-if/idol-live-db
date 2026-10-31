@@ -28,7 +28,18 @@ const { app } = Astro.props;
     <p class="open-in-app__note">{app.note}</p>
   </div>
   <div class="open-in-app__actions">
-    {app.deeplink && <a class="btn" href={app.deeplink}>アプリで開く</a>}
-    <a class="btn btn--ghost" href={app.appStoreUrl}>App Store</a>
+    {
+      app.deeplink ? (
+        <>
+          <a class="btn" href={app.deeplink}>アプリで開く</a>
+          <a class="entry-link" href={app.appStoreUrl}>
+            <span class="u-underline-hover">App Store</span>
+            <span class="chevron" aria-hidden="true">›</span>
+          </a>
+        </>
+      ) : (
+        <a class="btn" href={app.appStoreUrl}>App Store</a>
+      )
+    }
   </div>
 </aside>

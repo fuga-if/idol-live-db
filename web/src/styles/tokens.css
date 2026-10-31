@@ -40,10 +40,15 @@
   --ds-board-ink: #f6f1e7;
   --ds-board-dim: #a7a1b5;
   --ds-board-line: #3a3547;
+  --ds-board-hover: #2a2633;
   --ds-lamp: #ff4d5e;
 
   /* --- 判子の朱・穴 --- */
   --ds-stamp: #b42335;
+  /* 朱の札の上の文字。ライト 6.4:1。 */
+  --ds-stamp-ink: #fffdf8;
+  /* 紙 (チケット・半券) を押したときの色。 */
+  --ds-ticket-hover: #fffaf0;
   --ds-hole: #2a2633;
 
   /* --- 曜日 (半券の日付欄だけ) --- */
@@ -77,6 +82,8 @@
   --ds-shadow1: 0 1px 2px rgb(27 24 34 / 0.05), 0 0 0 1px rgb(27 24 34 / 0.03);
   /* 手元のチケット (浮かせる面)。 */
   --ds-shadow2: 0 4px 9px rgb(0 0 0 / 0.06);
+  /* 同じ影を filter: drop-shadow() に渡す形 (mask した面の外側に落とす)。 */
+  --ds-shadow2-drop: 0 4px 9px rgb(0 0 0 / 0.06);
   /* 面の縁。ライトは影、ダークは細い線 (imasSurfaceEdge)。 */
   --ds-surface-edge: var(--ds-shadow1);
 
@@ -197,6 +204,9 @@
 
     --ds-board: #24212e;
     --ds-stamp: #e0546a;
+    /* 暗い朱 (#e0546a) の上は墨の文字が 4.7:1。 */
+    --ds-stamp-ink: #1b1822;
+    --ds-ticket-hover: #fffaf0;
     --ds-hole: #e9e2d3;
 
     --ds-saturday: #7ea6ff;
@@ -217,6 +227,7 @@
 
     --ds-shadow1: 0 0 0 1px #2f2a3a;
     --ds-shadow2: 0 4px 9px rgb(0 0 0 / 0.4);
+    --ds-shadow2-drop: 0 4px 9px rgb(0 0 0 / 0.4);
     --ds-surface-edge: 0 0 0 1px #2f2a3a;
 
     --accent: #f6f1e7;

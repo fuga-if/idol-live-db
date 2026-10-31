@@ -31,6 +31,8 @@ web_dto! {
         /// JST の「今日」。upcoming / past の分割はすべてこの 1 個から決まる。
         /// Astro もブラウザも `Date` を触らない。
         pub today_jst: String,
+        /// 画面に置く基準日 (`2026年10月31日(土)`)。フッタの「データ基準日」。
+        pub today_display: String,
         pub data_version: Option<String>,
         pub content_hash: Option<String>,
         pub app: AppLinks,

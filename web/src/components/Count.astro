@@ -12,7 +12,9 @@ interface Props {
   dim?: boolean;
   strong?: boolean;
 }
-const { value, unit, dim = false, strong = false } = Astro.props;
+const { value: raw, unit, dim = false, strong = false } = Astro.props;
+// 3 桁区切り。文字列 (「3/4」など Rust が組んだもの) はそのまま。
+const value = typeof raw === "number" ? raw.toLocaleString("ja-JP") : raw;
 ---
 
 {

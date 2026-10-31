@@ -28,7 +28,7 @@ const name = short ? (r.sub ?? r.name) : r.name;
     <span class="rank-row__title u-clamp1 u-underline-hover">{name}</span>
     {!short && r.sub && <span class="rank-row__sub u-clamp1">{r.sub}</span>}
   </span>
-  <span class="rank-row__value"><b class="num num--medium">{row.value}</b><span class="num__unit">{row.unit}</span></span>
+  <span class="rank-row__value"><b class="num num--medium">{row.value.toLocaleString("ja-JP")}</b><span class="num__unit">{row.unit}</span></span>
   <svg class="rank-row__bar" viewBox="0 0 1000 10" preserveAspectRatio="none" aria-hidden="true">
     <rect class="rank-row__track" width="1000" height="10"></rect>
     <rect class="rank-row__fill" width={row.sharePermille} height="10"></rect>
