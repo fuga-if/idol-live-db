@@ -25,12 +25,18 @@ const { list } = Astro.props;
 <ListLayout
   seo={list.seo}
   title={list.title}
-  total={list.total}
   themeKey={list.brand?.themeKey}
   filters={list.filters}
   wide
 >
-  <ListFilterBar kind="idols" queryBase={list.queryBase} fixedAxes={list.fixedAxes} total={list.total} />
+  {/* 件数はこの行 (ImasListSummary) に出すので、題の横には出さない。 */}
+  <ListFilterBar
+    kind="idols"
+    queryBase={list.queryBase}
+    fixedAxes={list.fixedAxes}
+    total={list.total}
+    pageSort={list.pageSort}
+  />
   {
     list.empty ? (
       <EmptyState {...list.empty} />

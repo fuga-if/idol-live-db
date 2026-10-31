@@ -93,6 +93,25 @@ pub const SONG_DEFAULT_SORT: SongListSort = SongListSort::TitleKana;
 /// アイドル一覧の既定の並び。`IdolSortKind::from_key` が未知の鍵を倒す先と同じ。
 pub const IDOL_DEFAULT_SORT: IdolSortKind = IdolSortKind::Official;
 
+/// 楽曲一覧のページが組まれたときの並び (`ImasListSummary` の右の札)。島が起動する前から
+/// 同じ語と向きを出すので、ページの行の順と札がずれない。
+pub fn song_page_sort() -> SortOption {
+    SortOption {
+        key: SONG_DEFAULT_SORT.key().to_string(),
+        label: SONG_DEFAULT_SORT.label().to_string(),
+        default_ascending: SONG_DEFAULT_SORT.default_ascending(),
+    }
+}
+
+/// アイドル一覧のページが組まれたときの並び (`song_page_sort` と同じ役)。
+pub fn idol_page_sort() -> SortOption {
+    let m = sort_order_table()
+        .into_iter()
+        .find(|m| m.kind == IDOL_DEFAULT_SORT)
+        .expect("既定の並びは sort_order_table に必ずある");
+    SortOption { key: m.kind.key().to_string(), label: m.display_name, default_ascending: m.default_ascending }
+}
+
 fn option(value: impl Into<String>, label: impl Into<String>) -> FacetOption {
     FacetOption { value: value.into(), label: label.into() }
 }
@@ -203,6 +222,8 @@ mod tests {
         assert!(songs.brands.is_empty() && songs.idols.is_empty() && songs.song_types.is_empty());
         assert_eq!(songs.default_sort, "kana");
         assert!(songs.sorts.iter().any(|s| s.key == songs.default_sort));
+        // ページの札は既定の並びそのもの (鍵・語・向きが島の選択肢と一致する)。
+        assert!(songs.sorts.contains(&song_page_sort()));
         // ユーザーデータの要る並び (回収数・回収率) は出面に出さない。
         assert!(songs.sorts.iter().all(|s| !SongListSort::from_key(&s.key).requires_user_marks()));
 
@@ -211,6 +232,7 @@ mod tests {
         assert_eq!((idols.birth_months[0].value.as_str(), idols.birth_months[0].label.as_str()), ("1", "1月"));
         assert_eq!(idols.default_sort, "official");
         assert!(idols.sorts.iter().any(|s| s.key == idols.default_sort));
+        assert!(idols.sorts.contains(&idol_page_sort()));
     }
 
     #[test]

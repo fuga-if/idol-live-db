@@ -181,10 +181,10 @@
 .song-filter {
   position: relative;
   display: flex;
-  flex-direction: row-reverse;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp3);
+  gap: var(--sp2) var(--sp3);
   padding: var(--sp2) var(--sp5);
 }
 .song-filter[data-state="loading"] {
@@ -198,16 +198,22 @@
   font-weight: 600;
   color: var(--ds-ink3);
 }
-.song-filter__status:empty {
-  display: none;
-}
 .song-filter__status .num {
   font-size: var(--num-small);
-  color: var(--ds-ink3);
+  color: var(--ds-ink);
 }
 .song-filter__status .num__unit {
   font-size: var(--fs-caption);
   font-weight: 600;
+}
+/* 準備中・失敗の案内。件数と札の下に 1 行。 */
+.song-filter__note {
+  flex-basis: 100%;
+  font-size: var(--fs-caption);
+  color: var(--ds-ink3);
+}
+.song-filter__note:empty {
+  display: none;
 }
 /* メニュー本体。閉じているときは「記号 + 軸名」の線の札 1 つ。 */
 .song-filter__menu {

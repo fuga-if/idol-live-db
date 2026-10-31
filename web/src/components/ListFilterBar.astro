@@ -1,17 +1,22 @@
 ---
 import type { IdolQuery } from "../lib/schema/IdolQuery";
 import type { SongQuery } from "../lib/schema/SongQuery";
+import type { SortOption } from "../lib/schema/SortOption";
 
 /**
- * 一覧の絞り込み・並べ替えの操作面 (曲・アイドル共通)。
+ * 件数と並び順の行 (アプリの `ImasListSummary`、DESIGN_SYSTEM §8.9) + 絞り込みの島 (曲・アイドル共通)。
  *
- * 中身 (軸と値) は Rust が出した素材から island が描く。ここが持つのは器だけで、
- * **どんな軸があるかをこのファイルは知らない**。
+ *   [2,058 件]                                   [↓ 読み順]
  *
- * JS が動かない環境では操作できないので、その場合はそもそも出さない
- * (押しても何も起きないものを置かない)。器は `hidden` で出しておき、JS が外す。
+ * 左は件数、右は並び順のメニュー (矢印 + いまの並びの語)。押すと島が起動して操作面
+ * (入力欄・並べ替えの札・向き・クリア) がその真下に開く。中身 (軸と値) は Rust が出した素材から
+ * island が描く。ここが持つのは器だけで、**どんな軸があるかをこのファイルは知らない**。
  *
- * 島を起動するのは「絞り込み・並べ替え」のメニューを押したとき (か URL に条件があるとき) で、
+ * 並びの語と向きはページが組まれたときのもの (`pageSort`、Rust) を最初から出す。
+ * 島が並びを変えたら語と矢印を差し替える。JS が動かない環境ではメニューを押しても何も
+ * 起きないので、ボタンは `hidden` で出しておき JS が外す (件数と並びの語は JS 無しでも読める)。
+ *
+ * 島を起動するのはメニューを押したとき (か URL に条件があるとき) で、
  * それまでは入力欄の器 (`data-filter-controls`) を畳んでおく (Q-14)。開いても閉じても件数の行は残る。
  */
 interface Props {
@@ -22,8 +27,10 @@ interface Props {
   /** ページが値を決めている軸 (島に出さない)。Rust の `*ListPage.fixedAxes`。 */
   fixedAxes: readonly string[];
   total: number;
+  /** ページの行が並んでいる順。Rust の `*ListPage.pageSort`。 */
+  pageSort: SortOption;
 }
-const { kind, queryBase, fixedAxes } = Astro.props;
+const { kind, queryBase, fixedAxes, total, pageSort } = Astro.props;
 ---
 
 <section
@@ -33,11 +40,17 @@ const { kind, queryBase, fixedAxes } = Astro.props;
   data-query-base={JSON.stringify(queryBase)}
   data-fixed-axes={JSON.stringify(fixedAxes)}
   data-state="idle"
-  hidden
 >
+  {/* 件数。絞り込み中は「見えている数 / 全体の数」に島が差し替える。 */}
+  <p class="song-filter__status" data-filter-status aria-live="polite">
+    <span class="num num--medium">{total.toLocaleString("ja-JP")}</span>
+    <span class="num__unit">件</span>
+  </p>
   <div class="song-filter__menu">
-    <button class="song-filter__open" type="button" data-filter-open aria-expanded="false">
-      <span aria-hidden="true">↕</span>絞り込み・並べ替え
+    <button class="song-filter__open" type="button" data-filter-open aria-expanded="false" hidden>
+      <span class="u-visually-hidden">絞り込み・並べ替え: </span>
+      <span class="song-filter__arrow" data-filter-arrow aria-hidden="true">{pageSort.defaultAscending ? "↑" : "↓"}</span>
+      <span data-filter-sort-label>{pageSort.label}</span>
     </button>
     <div class="song-filter__controls" data-filter-controls hidden>
       <div class="song-filter__fields" data-filter-fields></div>
@@ -49,14 +62,14 @@ const { kind, queryBase, fixedAxes } = Astro.props;
       </div>
     </div>
   </div>
-  {/* 件数は題の横に出ている。この行は絞り込み中 (見えている数 / 全体) とエラーの案内だけ。 */}
-  <p class="song-filter__status" data-filter-status aria-live="polite"></p>
+  {/* 準備中・失敗の案内。件数の行とは別に、下に 1 行。 */}
+  <p class="song-filter__note" data-filter-note aria-live="polite"></p>
 </section>
 
 <script>
   const root = document.querySelector<HTMLElement>("[data-list-filter]");
   if (root) {
-    root.hidden = false;
+    root.querySelector<HTMLElement>("[data-filter-open]")!.hidden = false;
     // 一覧ごとの設定は動的 import で分ける (曲のページにアイドルの設定を配らない)。
     if (root.dataset.filterKind === "idols") {
       const { mountIdolFilter } = await import("../lib/listfilter/idols");

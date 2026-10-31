@@ -7,6 +7,7 @@
 use super::common::{AppLinks, DateBadge, EmptyText, FilterAxis, NavLink, Ref, SeoBlock, StatTile, TagBadge};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
+use crate::domain::list_facets::SortOption;
 use crate::domain::song_list_queries::SongQuery;
 
 // ---------------------------------------------------------------------------
@@ -139,6 +140,9 @@ web_dto! {
         /// ページが値を決めている軸の鍵 (ブランド別の一覧の `brandIds`)。島はこの軸を出さない
         /// (切り替えは畳んだメニューのリンク = 別のページ)。鍵は島の `FieldSpec.key` と同じ。
         pub fixed_axes: Vec<String>,
+        /// ページの行が並んでいる順 (件数の行の右の札 `ImasListSummary`)。島はこの鍵から始まり、
+        /// 並びを変えたら札の語と矢印を差し替える。語は島の選択肢 (`sorts`) と同じもの。
+        pub page_sort: SortOption,
         pub kana_sections: Vec<KanaSection>,
         /// 畳んだメニューにする軸 (ブランド)。
         pub filters: Vec<FilterAxis>,
@@ -304,6 +308,10 @@ web_dto! {
         pub columns: Vec<IdolColumn>,
         /// 名前の列。他の列と同じ器にしてあるので、見出しの出し方を分岐させずに済む。
         pub name_column: IdolColumn,
+        /// ページの行が並んでいる順 (件数の行の右の札 `ImasListSummary`)。島はこの鍵から始まり、
+        /// 並びを変えたら札の語と矢印を差し替える。語は島の選択肢 (`sorts`) と同じもの。
+        pub page_sort: SortOption,
+
         /// 畳んだメニューにする軸 (ブランド・誕生月)。
         pub filters: Vec<FilterAxis>,
         pub total: u32,

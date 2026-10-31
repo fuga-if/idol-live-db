@@ -20,7 +20,7 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
 <ListLayout
   seo={list.seo}
   title={list.title}
-  total={list.total}
+  total={list.queryBase ? null : list.total}
   themeKey={list.brand?.themeKey}
   filters={list.filters}
   wide
@@ -29,7 +29,13 @@ const sectionStarts = new Set(list.kanaSections.map((s) => s.startIndex));
 
   {
     list.queryBase && (
-      <ListFilterBar kind="songs" queryBase={list.queryBase} fixedAxes={list.fixedAxes} total={list.total} />
+      <ListFilterBar
+        kind="songs"
+        queryBase={list.queryBase}
+        fixedAxes={list.fixedAxes}
+        total={list.total}
+        pageSort={list.pageSort}
+      />
     )
   }
 

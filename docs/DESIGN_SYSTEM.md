@@ -931,7 +931,7 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | `ImasBrandCell` / `ImasAvatar` の判子 | `.stamp` (`data-len` で字数に合わせる)、格子は `.stamp-grid` + `.stamp-cell` | `venue.css` |
 | `ImasLeadBar` 行頭の帯 | `.lead-bar` / `.stub__bar` / `.penlight` | `venue.css` |
 | `ImasMasthead` 頭の印字 | **使わない** (同上。トップの日付の行・一覧と詳細の頭の英字・掲示板の `STATS`・フッタの `DATA/SITE/APP`・チケットの `ADMIT ONE` は置かない) | — |
-| `ImasListSummary` 件数 + 並べ替え | `.song-filter`: 左に件数 (15 数字 + 「件」12 semibold ink3)、右に並べ替えのメニュー 1 つ (横 12・最小高さ 32・`--ds-line` の線・角丸 8・13 semibold)。開く・向き・クリア・帯はそのメニューの中。全体 padding 横 16 縦 4 | `lists.css` |
+| `ImasListSummary` 件数 + 並べ替え | `.song-filter` (`ListFilterBar`): 左に件数 (15 数字 + 「件」12 semibold。件数行を持つページは題の横に件数を出さない)、右に並べ替えのメニュー 1 つ (矢印 + いまの並びの語。横 12・最小高さ 32・`--ds-line` の線・角丸 8・13 semibold)。語と向きはページが組まれた順 (Rust の `*ListPage.pageSort`) を JS 無しでも出し、島が並びを変えたら差し替える。開く・向き・クリア・帯はそのメニューの中。全体 padding 横 16 縦 4 | `lists.css` |
 | `ImasDateHeader` 年の見出し | `.year-group__title` 1 段 (年の数字 28、上 12 下 4、ink。開催済みは ink3)。月は出さない (半券の上段にある) | `lists.css` |
 | `ImasListContainer` 行の入れ物 | `.rows` (角丸なし・全幅の surface の帯。行間は hairline `--ds-sep` で、線は本文の頭 = 帯 + ジャケ + 隙間のぶん字下げから)。`.list-row` は最小高さ 44・題 16 semibold・副題 13 ink2 を ` · ` で繋いだ 1 行省略・下段 12 ink3・帯はジャケ高 48 (無ければ 36)。件数行を持つページの h1 は 20 bold (詳細は 22) + 件数 small 数字 | `lists.css` |
 | `ImasSectionHeader` | `.section__title` (20〜24px 極太) + `.section__more` (灰、矢印) | `components.css` |

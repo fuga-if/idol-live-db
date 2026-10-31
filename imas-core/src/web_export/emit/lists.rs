@@ -12,6 +12,7 @@ use super::places::{location_display, UNCLASSIFIED_PREFECTURE};
 use crate::domain::event_grouping::{group_events_by_year, year_key};
 use crate::domain::event_list_queries::{self, EventWithDateRecord};
 use crate::domain::idol_queries;
+use crate::domain::list_facets;
 use crate::domain::song_list_queries::{song_list_indexes, SongListFilter, SongListSort};
 use crate::domain::unit_queries;
 use crate::web_export::content;
@@ -579,6 +580,7 @@ pub fn song_lists(ctx: &Ctx) -> Vec<Emitted<SongListPage>> {
                 fixed_axes: fixed_axes([(!base.brand_ids.is_empty(), ISLAND_KEY_BRAND)]),
                 query_base,
                 kana_sections: kana_sections(ctx, &items),
+                page_sort: list_facets::song_page_sort(),
                 total: items.len() as u32,
                 empty: content::empty_text(items.is_empty(), content::EMPTY_SONGS, Some(content::EMPTY_SONGS_BODY)),
                 all_songs_link: (path == "/songs/")
@@ -896,6 +898,7 @@ pub fn idol_lists(ctx: &Ctx) -> Vec<Emitted<IdolListPage>> {
                 items,
                 columns,
                 name_column: column(content::IDOL_COLUMN_NAME, false, Some(IdolSortKind::NameKana)),
+                page_sort: list_facets::idol_page_sort(),
                 // 島 (絞り込みバー) が同じ 2 軸を持つので、島が動く環境では隠れる。
                 // ページが決めている軸 (`fixed_axes`) は島に出ないので、そのメニューは残る。
                 filters: filter_axes([

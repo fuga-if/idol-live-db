@@ -8,6 +8,7 @@ import type { SeoBlock } from "./SeoBlock";
 import type { SongListItem } from "./SongListItem";
 import type { SongListKind } from "./SongListKind";
 import type { SongQuery } from "./SongQuery";
+import type { SortOption } from "./SortOption";
 
 /**
  * 楽曲一覧ページ。`/songs/` `/songs/brand/<brandId>/` `/songs/all/`。
@@ -34,7 +35,12 @@ queryBase: SongQuery | null,
  * ページが値を決めている軸の鍵 (ブランド別の一覧の `brandIds`)。島はこの軸を出さない
  * (切り替えは畳んだメニューのリンク = 別のページ)。鍵は島の `FieldSpec.key` と同じ。
  */
-fixedAxes: Array<string>, kanaSections: Array<KanaSection>, 
+fixedAxes: Array<string>, 
+/**
+ * ページの行が並んでいる順 (件数の行の右の札 `ImasListSummary`)。島はこの鍵から始まり、
+ * 並びを変えたら札の語と矢印を差し替える。語は島の選択肢 (`sorts`) と同じもの。
+ */
+pageSort: SortOption, kanaSections: Array<KanaSection>, 
 /**
  * 畳んだメニューにする軸 (ブランド)。
  */

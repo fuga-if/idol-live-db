@@ -36,6 +36,7 @@ use super::emit::calendar::{month_counts, month_grid, month_path, CALENDAR_PATH}
 use crate::domain::date_display::{range_label_ja, until_display, with_weekday};
 use crate::domain::setlist_lineup::Lineup;
 use crate::domain::idol_list_filtering::{IdolQuery, IdolSortKind};
+use crate::domain::list_facets;
 use crate::domain::song_list_queries::{SongListFilter, SongQuery};
 
 const TODAY: &str = "2026-09-04";
@@ -1072,6 +1073,7 @@ fn song_list_page(path: &str, title: &str, kind: SongListKind) -> SongListPage {
             })
         }),
         fixed_axes: if matches!(kind, SongListKind::Brand) { vec!["brandIds".to_string()] } else { vec![] },
+        page_sort: list_facets::song_page_sort(),
         kana_sections: vec![
             KanaSection { label: "さ".to_string(), start_index: 0 },
             KanaSection { label: "英数".to_string(), start_index: 1 },
@@ -1145,6 +1147,7 @@ fn idol_list_page(path: &str, title: &str, kind: IdolListKind, empty: bool) -> I
             IdolListKind::BirthMonth => vec!["birthMonth".to_string()],
             IdolListKind::Index => vec![],
         },
+        page_sort: list_facets::idol_page_sort(),
         items: if empty {
             vec![]
         } else {

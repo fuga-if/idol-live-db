@@ -120,7 +120,10 @@ export function mountListFilter<F extends ListFacets>(
     root,
     container,
     status: must(root, "[data-filter-status]"),
+    note: must(root, "[data-filter-note]"),
     open: must<HTMLButtonElement>(root, "[data-filter-open]"),
+    arrow: must(root, "[data-filter-arrow]"),
+    sortLabel: must(root, "[data-filter-sort-label]"),
     controls: must(root, "[data-filter-controls]"),
     fields: must(root, "[data-filter-fields]"),
     sorts: must<HTMLElement>(root, "[data-filter-sorts]"),
@@ -190,7 +193,7 @@ export function mountListFilter<F extends ListFacets>(
   async function boot(): Promise<boolean> {
     el.open.disabled = true;
     el.root.dataset.state = "loading";
-    el.status.textContent = "絞り込みを準備しています…";
+    el.note.textContent = "絞り込みを準備しています…";
     try {
       engine = await loadEngine();
       const facets = spec.facets(engine);
@@ -205,12 +208,13 @@ export function mountListFilter<F extends ListFacets>(
       renderSorts();
       el.open.disabled = false;
       for (const c of [el.dir, el.reset]) c.disabled = false;
+      el.note.replaceChildren();
       el.root.dataset.state = "ready";
       apply();
       return true;
     } catch (e) {
       // 絞り込めないだけで一覧は読める。壊れた見た目のまま黙らない。
-      el.status.textContent = "絞り込みを読み込めませんでした。再読み込みしてください。";
+      el.note.textContent = "絞り込みを読み込めませんでした。再読み込みしてください。";
       el.open.disabled = false;
       el.root.dataset.state = "failed";
       console.error(`${spec.name}: 読み込みに失敗`, e);
@@ -265,7 +269,7 @@ export function mountListFilter<F extends ListFacets>(
     try {
       ids = spec.ids(engine, JSON.stringify(query));
     } catch (e) {
-      el.status.textContent = "絞り込みに失敗しました。";
+      el.note.textContent = "絞り込みに失敗しました。";
       console.error(`${spec.name}: 条件の適用に失敗`, e);
       return;
     }
@@ -315,10 +319,14 @@ export function mountListFilter<F extends ListFacets>(
     return state.__ascending ?? defaultAscendingOf(state.__sort);
   }
 
+  /** 向きのボタンと、メニューの札 (矢印 + いまの並びの語、`ImasListSummary` の右) を今の状態に。 */
   function syncDir(): void {
     const asc = currentAscending();
     el.dir.textContent = asc ? "↑" : "↓";
     el.dir.setAttribute("aria-label", asc ? "昇順（クリックで降順）" : "降順（クリックで昇順）");
+    el.arrow.textContent = asc ? "↑" : "↓";
+    const label = sorts.find((o) => o.key === state.__sort)?.label;
+    if (label) el.sortLabel.textContent = label;
   }
 
   /**
@@ -444,15 +452,11 @@ export function mountListFilter<F extends ListFacets>(
 // --- 部品 -------------------------------------------------------------------
 
 /**
- * 件数の行 (`ImasListSummary` の左)。数は `.num`、単位は `.num__unit`。
- * 絞り込み中だけ「見えている数 / 全体の数」を出す。文言ではなく数と単位の並べ替えだけなのでここで組む。
+ * 件数 (`ImasListSummary` の左)。数は `.num`、単位は `.num__unit`。
+ * 絞り込み中は「見えている数 / 全体の数」、そうでなければ全体の数だけ (Astro が最初に出したものと同じ形)。
+ * 文言ではなく数と単位の並べ替えだけなのでここで組む。
  */
 function showCount(status: HTMLElement, shown: number | null, of: number): void {
-  // 絞り込んでいないときは題の横の件数がそのまま全体なので、この行は空にする (件数の二重を避ける)。
-  if (shown === null) {
-    status.replaceChildren();
-    return;
-  }
   const part = (n: number): Node[] => {
     const num = document.createElement("span");
     num.className = "num num--medium";
@@ -462,6 +466,10 @@ function showCount(status: HTMLElement, shown: number | null, of: number): void 
     unit.textContent = "件";
     return [num, unit];
   };
+  if (shown === null) {
+    status.replaceChildren(...part(of));
+    return;
+  }
   const sep = document.createElement("span");
   sep.className = "num__unit";
   sep.textContent = " / ";

@@ -7,6 +7,7 @@ import type { IdolListKind } from "./IdolListKind";
 import type { IdolQuery } from "./IdolQuery";
 import type { Ref } from "./Ref";
 import type { SeoBlock } from "./SeoBlock";
+import type { SortOption } from "./SortOption";
 
 /**
  * アイドル一覧ページ。`/idols/` `/idols/brand/<brandId>/` `/idols/birth-month/<m>/`。
@@ -20,6 +21,11 @@ columns: Array<IdolColumn>,
  * 名前の列。他の列と同じ器にしてあるので、見出しの出し方を分岐させずに済む。
  */
 nameColumn: IdolColumn, 
+/**
+ * ページの行が並んでいる順 (件数の行の右の札 `ImasListSummary`)。島はこの鍵から始まり、
+ * 並びを変えたら札の語と矢印を差し替える。語は島の選択肢 (`sorts`) と同じもの。
+ */
+pageSort: SortOption, 
 /**
  * 畳んだメニューにする軸 (ブランド・誕生月)。
  */
