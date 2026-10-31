@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1063,6 +1064,8 @@ fun ImasMarkButton(
     modifier: Modifier = Modifier,
     seed: String? = null,
     brand: String? = null,
+    /** みんなが付けた数。渡すと記号の右に並べる (押す所と数を 1 つに見せる)。null なら記号だけ。 */
+    count: Long? = null,
     onClick: () -> Unit
 ) {
     val t = ImasChipColors.theme(seed, brand, null)
@@ -1083,23 +1086,33 @@ fun ImasMarkButton(
             bounce.animateTo(1f, ImasMotion.standard())
         }
     }
-    Box(
+    val label = kind.accessibilityLabel(isOn) + (count?.let { "、$it 人" } ?: "")
+    val tint = if (isOn) onColor else DS.ink3
+    Row(
         modifier
-            .size(DS.Size.touch)
+            .defaultMinSize(minWidth = DS.Size.touch, minHeight = DS.Size.touch)
             .clickable(role = Role.Button, onClickLabel = kind.accessibilityLabel(isOn)) {
                 haptics.impactLight()
                 onClick()
             }
-            .clearAndSetSemantics { contentDescription = kind.accessibilityLabel(isOn) },
-        contentAlignment = Alignment.Center
+            .clearAndSetSemantics { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             kind.icon(isOn),
             contentDescription = null,
-            tint = if (isOn) onColor else DS.ink3,
+            tint = tint,
             modifier = Modifier
                 .size(with(LocalDensity.current) { 20.sp.toDp() })
                 .scale(bounce.value)
         )
+        if (count != null) {
+            Text(
+                "%,d".format(count),
+                style = ImasType.text(14.sp, FontWeight.SemiBold).copy(fontFeatureSettings = "tnum"),
+                color = tint
+            )
+        }
     }
 }

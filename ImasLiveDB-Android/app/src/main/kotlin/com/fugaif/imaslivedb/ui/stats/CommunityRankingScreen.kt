@@ -52,10 +52,10 @@ private fun CommunityRankingKind.label(): String = when (this) {
     CommunityRankingKind.FULL -> "フル再生"
 }
 
-/** 数の単位。人気は点、お気に入りは ♥、それ以外は回 (急上昇は行の補足に「今週」)。 */
+/** 数の単位。人気は点、お気に入りは ★、それ以外は回 (急上昇は行の補足に「今週」)。 */
 private fun CommunityRankingKind.unit(): String = when (this) {
     CommunityRankingKind.POPULAR -> "pt"
-    CommunityRankingKind.FAVORITES -> "♥"
+    CommunityRankingKind.FAVORITES -> "★"
     else -> "回"
 }
 

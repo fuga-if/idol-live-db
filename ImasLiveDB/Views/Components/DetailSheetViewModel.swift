@@ -37,8 +37,10 @@ final class DetailSheetViewModel {
     // MARK: - コミュニティ (CommunityAPI + SongReading ミラー)
     private(set) var songVideos: [SongVideo] = []
     private(set) var penlightVotes: PenlightVoteResult?
-    /// ♥・試聴・フル再生の数 (束ねに入っている。出せなかったときは nil)。
+    /// お気に入り・試聴・フル再生の数 (束ねに入っている。出せなかったときは nil)。
     private(set) var counts: SongDetailCounts?
+    /// `counts` を読んだ時点でお気に入りが付いていたか。サーバの数はこの印を含んでいる。
+    private var favoriteAtLoad = false
     private(set) var songTagData: SongTagListResponse?
     /// タグが似ている楽曲 (この曲が好きな人にはこれもおすすめ, サーバ算出)。
     private(set) var similarTagSongs: [Song] = []
@@ -65,6 +67,8 @@ final class DetailSheetViewModel {
     private let showReading: any ShowReading
     private let songDetailReading: any SongDetailReading
     private let performanceEvidenceReading: any PerformanceEvidenceReading
+    /// 今この曲にお気に入りが付いているか (端末の印)。数を読んだ時点の印を覚えるのに使う。
+    private let isFavoriteNow: @MainActor @Sendable (String) -> Bool
 
     nonisolated init(
         songReading: any SongReading = AppContainer.shared.songReading,
@@ -72,7 +76,10 @@ final class DetailSheetViewModel {
         unitReading: any UnitReading = AppContainer.shared.unitReading,
         showReading: any ShowReading = AppContainer.shared.showReading,
         songDetailReading: any SongDetailReading = AppContainer.shared.songDetailReading,
-        performanceEvidenceReading: any PerformanceEvidenceReading = AppContainer.shared.performanceEvidenceReading
+        performanceEvidenceReading: any PerformanceEvidenceReading = AppContainer.shared.performanceEvidenceReading,
+        isFavoriteNow: @escaping @MainActor @Sendable (String) -> Bool = {
+            UserMarkService.shared.bool(.favorite, entity: .song, id: $0)
+        }
     ) {
         self.songReading = songReading
         self.brandReading = brandReading
@@ -80,6 +87,7 @@ final class DetailSheetViewModel {
         self.showReading = showReading
         self.songDetailReading = songDetailReading
         self.performanceEvidenceReading = performanceEvidenceReading
+        self.isFavoriteNow = isFavoriteNow
     }
 
     /// 披露実績から出す共起曲の表示件数。関連楽曲 (8 件) と同じ長さに揃える。
@@ -143,6 +151,15 @@ final class DetailSheetViewModel {
     /// my_vote / my_tag_ids といった自分の状態が入っており、投票やタグ付けのたびに
     /// 曲単位で無効化しないと開き直した時に古い自分の票が出る。1 オープン 1
     /// リクエストという単純な上限のほうが、無効化漏れで嘘を表示するより安全。
+    /// ★ の横に出すお気に入りの数。読んだ時点から印が変わった分だけその場で足し引きする
+    /// (送信は `PendingCommunityActions` が後から確実に届けるので、通信を待たずに動かす)。
+    /// 数を読めていなければ nil。
+    func favoriteCount(isFavorite: Bool) -> Int? {
+        guard let counts else { return nil }
+        let delta = (isFavorite ? 1 : 0) - (favoriteAtLoad ? 1 : 0)
+        return max(0, counts.favorites + delta)
+    }
+
     func loadServerData(song: Song) async {
         serverDataState = .loading
         do {
@@ -150,6 +167,7 @@ final class DetailSheetViewModel {
             songTagData = bundle.tags
             penlightVotes = bundle.penlight
             counts = bundle.counts
+            favoriteAtLoad = isFavoriteNow(song.id)
             lyrics = bundle.lyrics
             await applySimilarSongs(bundle.similar)
             serverDataState = .loaded

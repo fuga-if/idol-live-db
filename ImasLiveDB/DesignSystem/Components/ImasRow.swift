@@ -840,6 +840,8 @@ struct ImasMarkButton: View {
     let isOn: Bool
     var seed: String? = nil
     var brand: String? = nil
+    /// みんなが付けた数。渡すと記号の右に並べる (押す所と数を 1 つに見せる)。nil なら記号だけ。
+    var count: Int? = nil
     let action: () -> Void
 
     @Environment(\.imasTheme) private var envTheme
@@ -848,16 +850,26 @@ struct ImasMarkButton: View {
     var body: some View {
         let t = ImasChipColors.theme(seed: seed, brand: brand, color: nil, env: envTheme, scheme: scheme)
         Button(action: action) {
-            Image(systemName: kind.systemImage(isOn: isOn))
-                .font(.imasScaled(18, weight: isOn ? .semibold : .regular))
-                .foregroundStyle(isOn ? onColor(t) : DS.ink3)
-                .symbolEffect(.bounce, value: isOn)
-                .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
-                .contentShape(Rectangle())
+            HStack(spacing: 4) {
+                Image(systemName: kind.systemImage(isOn: isOn))
+                    .font(.imasScaled(18, weight: isOn ? .semibold : .regular))
+                    .foregroundStyle(isOn ? onColor(t) : DS.ink3)
+                    .symbolEffect(.bounce, value: isOn)
+                if let count {
+                    Text(count.formatted())
+                        .font(.imasDisplay(14))
+                        .monospacedDigit()
+                        .foregroundStyle(isOn ? onColor(t) : DS.ink3)
+                        .contentTransition(.numericText(value: Double(count)))
+                }
+            }
+            .frame(minWidth: DS.Size.touch, minHeight: DS.Size.touch)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.borderless)
         .sensoryFeedback(.impact(weight: .light), trigger: isOn)
         .accessibilityLabel(kind.accessibilityLabel(isOn: isOn))
+        .accessibilityValue(count.map { "\($0) 人" } ?? "")
     }
 
     private func onColor(_ t: ImasTheme) -> Color {

@@ -505,7 +505,8 @@ private fun SongSheetContent(
         // みんなの数 (集計を取れなかったときは出さない)。
         state.communityCounts?.let { counts ->
             ImasText(
-                "♥ ${"%,d".format(counts.favorites.toLong())} · 試聴 ${"%,d".format(counts.preview.toLong())} 回 · フル ${"%,d".format(counts.full.toLong())} 回",
+                // お気に入りの数は ★ ボタンの横に出す (押す所と数を同じ所に)。
+                "試聴 ${"%,d".format(counts.preview.toLong())} 回 · フル ${"%,d".format(counts.full.toLong())} 回",
                 ImasTextRole.ROW_SUBTITLE,
                 modifier = Modifier.padding(start = DS.sp5, end = DS.sp5, bottom = DS.sp4)
             )
@@ -665,7 +666,10 @@ private fun Hero(
             enabled = canPlay,
             modifier = Modifier.weight(1f)
         )
-        ImasMarkButton(kind = ImasMarkKind.FAVORITE, isOn = state.isFavorite, onClick = onToggleFavorite)
+        ImasMarkButton(
+            kind = ImasMarkKind.FAVORITE, isOn = state.isFavorite,
+            count = state.favoriteCount, onClick = onToggleFavorite
+        )
         ImasIconButton(
             icon = Icons.AutoMirrored.Filled.PlaylistAdd,
             label = "プレイリストに追加",

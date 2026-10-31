@@ -561,7 +561,8 @@ struct SongSheetContent: View {
             .disabled(vm.artworkInfo?.previewURL == nil && vm.artworkInfo?.musicKitId == nil
                       && MusicKitService.shared.fullPlaybackService != .spotify)
 
-            ImasMarkButton(kind: .favorite, isOn: isFavorite, seed: songSeed) {
+            ImasMarkButton(kind: .favorite, isOn: isFavorite, seed: songSeed,
+                           count: vm.favoriteCount(isFavorite: isFavorite)) {
                 AppAnalytics.tap("song_detail.toggle_favorite")
                 toggleFavorite()
             }
@@ -598,7 +599,8 @@ struct SongSheetContent: View {
         VStack(alignment: .leading, spacing: DS.Space.gap) {
             ImasBoard(cells: boardCells)
             if let counts = vm.counts {
-                Text("♥ \(counts.favorites) ・ 試聴 \(counts.preview) 回 ・ フル \(counts.full) 回")
+                // お気に入りの数は ★ ボタンの横に出す (押す所と数を同じ所に)。
+                Text("試聴 \(counts.preview) 回 ・ フル \(counts.full) 回")
                     .imasText(.meta)
             }
         }
@@ -642,6 +644,7 @@ struct SongSheetContent: View {
             try markService.toggle(.favorite, entity: .song, id: song.id)
             markVersion += 1
         } catch {
+            // 書けなかったときは印も数も動かない (数は今の印から出すので、戻す処理は要らない)。
             LocalWriteFailure.report(error, action: "お気に入りの切り替え")
         }
     }

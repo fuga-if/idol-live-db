@@ -22,12 +22,12 @@ extension CommunityRankingKind: CaseIterable, Identifiable {
         switch self {
         case .popular: "pt"
         case .trending: "回/今週"
-        case .favorites: "♥"
+        case .favorites: "★"
         case .preview, .full: "回"
         }
     }
 
-    var emptyIcon: String { self == .favorites ? "heart" : "chart.bar" }
+    var emptyIcon: String { self == .favorites ? "star" : "chart.bar" }
 
     /// 再生回数が根拠の種類 (数え始めた日を添える)。
     var isPlayBased: Bool { self != .favorites }

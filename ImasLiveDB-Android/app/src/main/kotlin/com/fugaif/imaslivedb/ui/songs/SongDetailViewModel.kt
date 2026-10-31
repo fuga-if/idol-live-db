@@ -54,6 +54,8 @@ data class SongDetailUiState(
     val isFavorite: Boolean = false,
     /** みんなのお気に入り・再生回数 (集計を取れなかったら null)。 */
     val communityCounts: uniffi.imas_core.SongCommunityStat? = null,
+    /** [communityCounts] を読んだ時点でお気に入りが付いていたか。サーバの数はこの印を含んでいる。 */
+    val favoriteAtLoad: Boolean = false,
     /** KAMISABI カードを所持済みか (song.hasKamisabiCard が true の曲でのみ意味を持つ)。 */
     val isCardOwned: Boolean = false,
     /**
@@ -65,7 +67,17 @@ data class SongDetailUiState(
     /** 歌詞タブの取得結果。歌詞タブを一度開くまでは null (束ね取得に同梱せず遅延取得)。 */
     val lyrics: com.fugaif.imaslivedb.data.lyrics.LyricsResult? = null,
     val isLyricsLoading: Boolean = false
-)
+) {
+    /**
+     * ★ の横に出すお気に入りの数。読んだ時点から印が変わった分だけその場で足し引きする
+     * (送信は通信を待たない)。数を読めていなければ null。iOS `DetailSheetViewModel.favoriteCount`。
+     */
+    val favoriteCount: Long?
+        get() = communityCounts?.let { c ->
+            val delta = (if (isFavorite) 1 else 0) - (if (favoriteAtLoad) 1 else 0)
+            maxOf(0L, c.favorites.toLong() + delta)
+        }
+}
 
 class SongDetailViewModel : ViewModel() {
 
@@ -142,7 +154,10 @@ class SongDetailViewModel : ViewModel() {
         val pen = runCatching { a.penlightVotes(songId) }.getOrNull()
         val counts = runCatching { a.songStats() }.getOrNull()?.let { uniffi.imas_core.communityStatFor(it, songId) }
         if (currentSongId == songId) {
-            _uiState.value = _uiState.value.copy(tags = tags, penlight = pen, communityCounts = counts)
+            _uiState.value = _uiState.value.copy(
+                tags = tags, penlight = pen, communityCounts = counts,
+                favoriteAtLoad = _uiState.value.isFavorite
+            )
         }
     }
 

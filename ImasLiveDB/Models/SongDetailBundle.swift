@@ -29,7 +29,7 @@ struct SongDetailBundle: Decodable, Sendable {
     let similar: SimilarSongsResponse?
     let penlight: PenlightVoteResult?
     let lyrics: Lyrics?
-    /// ♥・試聴・フル再生の数 (サーバが出せなかったときは nil)。
+    /// お気に入り・試聴・フル再生の数 (サーバが出せなかったときは nil)。
     var counts: SongDetailCounts? = nil
 }
 
