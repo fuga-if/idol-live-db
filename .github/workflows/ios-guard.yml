@@ -28,11 +28,15 @@ on:
       - '.github/workflows/ios-guard.yml'
   workflow_dispatch:
 
+# GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -47,7 +51,7 @@ jobs:
         run: rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry
@@ -64,7 +68,7 @@ jobs:
       #
       # setup-uv は他の action と違い浮動 major タグ (v10) が打たれていないので、
       # 実在するフルバージョンで固定する (v10 を指すと action の解決自体で落ちる)。
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
 
@@ -183,7 +187,7 @@ jobs:
 
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: xcresult
           path: |

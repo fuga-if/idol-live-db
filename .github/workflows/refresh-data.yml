@@ -43,13 +43,13 @@ jobs:
     outputs:
       sha256: ${{ steps.digest.outputs.sha256 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: develop
           persist-credentials: false
 
       # Python 依存は pyproject.toml / uv.lock で固定し、uv で再現可能に入れる。
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
 
@@ -78,7 +78,7 @@ jobs:
         run: echo "sha256=$(sha256sum db/master.sql | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Hand the export to the check and save jobs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: master-sql
           path: db/master.sql
@@ -90,20 +90,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: develop
           persist-credentials: false
 
       # Python 依存は pyproject.toml / uv.lock で固定し、uv で再現可能に入れる。
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
 
       - name: Install deps
         run: uv sync --frozen
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: master-sql
           path: db
@@ -142,12 +142,12 @@ jobs:
     steps:
       # main / develop はどちらも保護ブランチ (PR+オーナー承認必須) なので bot は直接 push できない。
       # bot 専用ブランチに出し、オーナーが bot/data-refresh → develop の PR でレビュー&マージする。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: develop
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: master-sql
           path: db
@@ -203,13 +203,13 @@ jobs:
             echo "::notice::environment cloudflare に CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が無いので、公開データ API への同期は飛ばした"
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: steps.gate.outputs.enabled == 'true'
         with:
           ref: develop
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         if: steps.gate.outputs.enabled == 'true'
         with:
           name: master-sql
@@ -226,12 +226,12 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         run: rustup toolchain install stable --profile minimal
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: steps.gate.outputs.enabled == 'true'
         with:
           node-version: 24
 
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         if: steps.gate.outputs.enabled == 'true'
         with:
           enable-cache: true

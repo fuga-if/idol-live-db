@@ -29,11 +29,11 @@ jobs:
       run:
         working-directory: imas-live-api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           cache: npm
@@ -62,7 +62,7 @@ jobs:
       # アクション側が warning にして Job Summary は書くので、ジョブは赤くならない。
       - name: Report coverage
         if: always()
-        uses: davelosert/vitest-coverage-report-action@v2
+        uses: davelosert/vitest-coverage-report-action@8f86cfb56ed6d5613ea8cdc5259f207fbfd51ece # v2.13.1
         with:
           working-directory: imas-live-api
 
@@ -70,7 +70,7 @@ jobs:
       # 数値だけ見たいときは上の Job Summary で足りる。
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-imas-live-api
           path: imas-live-api/coverage

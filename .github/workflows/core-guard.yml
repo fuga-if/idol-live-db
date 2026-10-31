@@ -30,11 +30,15 @@ on:
       - "ImasLiveDB-Android/app/schemas/**"
       - ".github/workflows/core-guard.yml"
 
+# GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -42,7 +46,7 @@ jobs:
         run: rustup toolchain install stable --profile minimal
 
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry

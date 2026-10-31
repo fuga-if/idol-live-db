@@ -43,6 +43,10 @@ concurrency:
   group: web-deploy-${{ github.ref }}
   cancel-in-progress: true
 
+# GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -50,7 +54,7 @@ jobs:
     env:
       HAS_CF: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
@@ -66,7 +70,7 @@ jobs:
       # コールドビルドし直すので、プレフィックス一致の復元先を足す
       # (Simplifier 指摘 Eff-11)。
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry/index
@@ -80,7 +84,7 @@ jobs:
           restore-keys: |
             web-cargo-${{ runner.os }}-
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -88,7 +92,7 @@ jobs:
 
       # コールガイドの写し (tools/export_calls_dashboard.py) 用。runner の system python に
       # 任せず、.python-version / uv.lock で版を固定する (依存は標準ライブラリだけ)。
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
 
@@ -150,7 +154,7 @@ jobs:
       # ソースからのビルド (cargo install wasm-pack) は依存ツリーが大きくキャッシュミス時に
       # 数分かかる。プリビルドバイナリを取得する (Simplifier 指摘 Eff-12)。
       - name: Install wasm-pack
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@68a389c788b2cd04016ce8c80ee23b80d2ab3d68 # v2.88.1
         with:
           tool: wasm-pack
 

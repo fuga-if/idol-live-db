@@ -1,0 +1,40 @@
+// Renovate の設定。依存の更新 PR を自動で作る (GitHub App「Renovate」を入れると動く)。
+//
+// 方針:
+// - 公開から 7 日経っていない版には上げない (minimumReleaseAge)。乗っ取られた版や
+//   壊れた版は数日以内に取り下げられることが多いので、その間は待つ。
+// - patch 更新だけ、CI (GitHub の checks) が全部通ったら Renovate が自分でマージする。
+//   minor / major は PR を作るだけで、マージは人が見て判断する。
+// - GitHub Actions は commit SHA に固定し、版はコメントで残す (helpers:pinGitHubActionDigests)。
+//   タグは付け替えられるので、SHA でないと中身がすり替わっても気づけない。
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":timezone(Asia/Tokyo)",
+  ],
+
+  minimumReleaseAge: "7 days",
+  // 7 日待ちの版の PR を先に作らない (待ちの間に PR が開いたり閉じたりしない)。
+  internalChecksFilter: "strict",
+
+  // マージは GitHub の auto-merge ではなく Renovate 自身が行う。
+  // Renovate はブランチの checks が全部緑なのを確かめてからマージし、
+  // checks が 1 つも走らなかった PR はマージしない (そのまま残る)。
+  platformAutomerge: false,
+
+  // 最初に溜まった更新が一度に押し寄せないように。
+  prConcurrentLimit: 5,
+  prHourlyLimit: 2,
+
+  labels: ["dependencies"],
+
+  packageRules: [
+    {
+      description: "patch 更新は checks が通れば自動マージ",
+      matchUpdateTypes: ["patch"],
+      automerge: true,
+    },
+  ],
+}

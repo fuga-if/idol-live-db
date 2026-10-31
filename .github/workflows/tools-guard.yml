@@ -19,19 +19,23 @@ on:
       - '.github/workflows/tools-guard.yml'
   workflow_dispatch:
 
+# GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     env:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       # Python の版と依存は pyproject.toml / uv.lock で固定する (.python-version が 3.12)。
       # 手元 (macOS の 3.9) で動くかは構文検査の側で見る。
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: true
 

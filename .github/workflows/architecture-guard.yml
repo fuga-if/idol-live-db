@@ -15,11 +15,15 @@ on:
       - 'tools/check_domain_purity.sh'
   workflow_dispatch:
 
+# GITHUB_TOKEN は既定で読み取りのみ (書き込みが要るジョブは個別に足す)。
+permissions:
+  contents: read
+
 jobs:
   domain-purity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
       - name: Check Domain purity (no SwiftUI/GRDB/CloudKit import)
