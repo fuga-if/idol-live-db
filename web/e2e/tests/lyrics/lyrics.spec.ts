@@ -70,7 +70,9 @@ test.describe("曲ページの歌詞とコールガイド", () => {
     });
     await page.goto("/songs/ml_sample/");
     await page.locator("[data-lyrics-load]").click();
-    const [first, second] = [0, 1].map((i) => page.locator("[data-lyrics-body] .lyrics__line").nth(i));
+    const lines = page.locator("[data-lyrics-body] .lyrics__line");
+    const first = lines.nth(0);
+    const second = lines.nth(1);
     await expect(first).toBeVisible();
 
     // 記号は出さず、読みは親字の上 (<rt>)。
