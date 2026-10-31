@@ -11,6 +11,8 @@ use crate::domain::performance_stats;
 use crate::domain::song_dates;
 use crate::domain::song_detail_queries as detail;
 use crate::domain::song_detail_queries::performance_ordinal_label;
+use crate::domain::lyric_sync::parts_applicable;
+use crate::domain::snapshot::idol_short_name;
 use crate::web_export::content;
 use crate::web_export::dto::*;
 use crate::web_export::url;
@@ -44,12 +46,8 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
     .collect();
 
     // 原唱者とそれ以外を分ける。role の意味は Snapshot::song_artists が持っている。
-    let original_artists: Vec<Ref> = ctx
-        .snap
-        .song_artists(song_id, Some("original"))
-        .iter()
-        .filter_map(|i| ctx.idol_ref(&i.id))
-        .collect();
+    let original_idols = ctx.snap.song_artists(song_id, Some("original"));
+    let original_artists: Vec<Ref> = original_idols.iter().filter_map(|i| ctx.idol_ref(&i.id)).collect();
     let other_artists: Vec<Ref> = ctx.snap.artists_by_song[index as usize]
         .iter()
         .filter(|link| link.role != "original")
@@ -136,6 +134,18 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
             }),
             read_label: content::LYRICS_ON_WEB.then(|| content::LYRICS_READ_LABEL.to_string()),
             call_guide: content::LYRICS_ON_WEB.then(content::call_guide_vocabulary),
+            part_cast: if content::LYRICS_ON_WEB && parts_applicable(original_idols.len() as u32) {
+                original_idols
+                    .iter()
+                    .map(|i| LyricPartCastMember {
+                        id: i.id.clone(),
+                        name: idol_short_name(&i.name, i.given_name.as_deref(), i.nickname.as_deref()).to_string(),
+                        theme_key: ctx.idol_theme(&i.id),
+                    })
+                    .collect()
+            } else {
+                Vec::new()
+            },
         },
         id: record.id.clone(),
         path: path.clone(),

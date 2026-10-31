@@ -152,9 +152,10 @@ describe("絶対制約: 歌詞の本文とプレビュー音源を出力に含�
   const forbidden = /"(previewUrl|preview_url|lyricsUrl|lyrics_url|lyricsText|lyrics_text|lyricsBody|lyrics_body|lines)"\s*:/;
   // callGuide は記号・札・凡例の語彙 (Rust content::call_guide_vocabulary) で、本文ではない。
   // `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
+  // `partCast` はパート分けを描く原唱者 (id・短縮名・テーマ) で、歌詞には触れない。
   const LYRICS_BLOCK_KEYS = new Set([
     "available", "statusLabel", "note", "licenseNote", "sourceUrl", "readLabel",
-    "callGuide",
+    "callGuide", "partCast",
   ]);
 
   it("web/data 配下の全 JSON に歌詞本文・試聴音源のキーが無い", () => {

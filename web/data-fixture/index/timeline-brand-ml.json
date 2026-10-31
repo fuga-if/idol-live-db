@@ -112,6 +112,19 @@
   "yearLives": [
     {
       "dateDisplay": "9.26",
+      "dateBadge": {
+        "iso": "2026-09-26",
+        "year": "2026",
+        "monthDay": "9/26",
+        "weekday": "土",
+        "spoken": "2026年9月26日 土曜日",
+        "stub": {
+          "top": "SEP",
+          "big": "26",
+          "bottom": "SAT",
+          "weekdayKind": "saturday"
+        }
+      },
       "event": {
         "kind": "event",
         "id": "ev_sample",

@@ -130,7 +130,8 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
     /// `callGuide` はコールガイドの語彙 (記号・札・凡例の語。`content::call_guide_vocabulary`) で、
     /// 歌詞にもコールの本文にも触れない。
     /// `statusLabel` は状態の札 (`JASRAC 許諾待ち`) で、歌詞そのものではない。
-    const LYRICS_BLOCK_KEYS: [&str; 7] = [
+    /// `partCast` はパート分けを描く原唱者 (id・短縮名・テーマ) で、歌詞には触れない。
+    const LYRICS_BLOCK_KEYS: [&str; 8] = [
         "available",
         "statusLabel",
         "note",
@@ -138,6 +139,7 @@ fn t12_no_lyrics_or_preview_audio_anywhere_in_the_output() {
         "sourceUrl",
         "readLabel",
         "callGuide",
+        "partCast",
     ];
 
     fn walk(rel: &str, value: &serde_json::Value) {

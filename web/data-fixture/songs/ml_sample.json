@@ -93,7 +93,19 @@
         }
       ],
       "staleLabel": "ズレ"
-    }
+    },
+    "partCast": [
+      {
+        "id": "ml_kasuga_mirai",
+        "name": "未来",
+        "themeKey": "idol:ml_kasuga_mirai"
+      },
+      {
+        "id": "ml_mogami_shizuka",
+        "name": "静香",
+        "themeKey": "idol:ml_mogami_shizuka"
+      }
+    ]
   },
   "songTypeLabel": "全体曲",
   "releaseDate": "2019-03-13",
@@ -193,7 +205,13 @@
         "year": "2026",
         "monthDay": "4/3",
         "weekday": "金",
-        "spoken": "2026年4月3日 金曜日"
+        "spoken": "2026年4月3日 金曜日",
+        "stub": {
+          "top": "APR",
+          "big": "03",
+          "bottom": "FRI",
+          "weekdayKind": "weekday"
+        }
       },
       "venue": "幕張メッセ",
       "number": 1,

@@ -389,6 +389,63 @@ a.chip--selected:hover {
   line-height: calc(var(--lh-relaxed) * 1em + var(--band));
   margin-block-start: calc(var(--band) * -0.5);
 }
+/* 行の本文と、その下に添える歌う人の名前の列。 */
+.lyrics__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+/* 振り仮名。親字の上に小さく (アプリと同じく本文の半分の大きさ)。行送りは本文の
+   relaxed のままで足りる (読みは行間に収まる)。 */
+.lyrics__ruby {
+  font-size: 0.5em;
+  line-height: 1;
+  color: var(--ds-ink2);
+  /* 縞で塗る字の中でも、読みは墨で出す。 */
+  -webkit-text-fill-color: currentColor;
+}
+/* 括弧で書いた脇の字 (被せ・コーラス・歌わない字)。一段小さく薄く。 */
+.lyrics__run--aside {
+  font-size: var(--fs-caption);
+  color: var(--ds-ink2);
+}
+/* 歌う人の担当色 (1 人)。テーマは data-theme で当たっている。 */
+.lyrics__run[data-part] {
+  color: var(--accent);
+}
+/* 何人かで歌う字。外側の層 (data-theme) ごとに --p1… に色を取り、字の形で縞に塗る
+   (上から歌う人の順。境目はくっきり。ぼかさない・光らせない)。 */
+.lyrics__part-layer--1 { --p1: var(--accent); }
+.lyrics__part-layer--2 { --p2: var(--accent); }
+.lyrics__part-layer--3 { --p3: var(--accent); }
+.lyrics__part-layer--4 { --p4: var(--accent); }
+.lyrics__run[data-stripes] {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.lyrics__run[data-stripes="2"] {
+  background-image: linear-gradient(var(--p1) 0 50%, var(--p2) 50% 100%);
+}
+.lyrics__run[data-stripes="3"] {
+  background-image: linear-gradient(var(--p1) 0 33.34%, var(--p2) 33.34% 66.67%, var(--p3) 66.67% 100%);
+}
+.lyrics__run[data-stripes="4"] {
+  background-image: linear-gradient(
+    var(--p1) 0 25%,
+    var(--p2) 25% 50%,
+    var(--p3) 50% 75%,
+    var(--p4) 75% 100%
+  );
+}
+/* 行の下に添える歌う人の名前。 */
+.lyrics__parts {
+  font-size: var(--fs-caption2);
+  line-height: 1.4;
+  color: var(--ds-ink2);
+}
 /* --- コールガイド --------------------------------------------------------------
    コールは位置で示す (実物のコール表と同じ組み方):
    同時 (歌に被せる) は語の真下、追っかけは語の後ろ、行末に足したものは行末。
@@ -410,6 +467,11 @@ a.chip--selected:hover {
   text-decoration-color: var(--anchor);
   text-underline-offset: 3px;
   border-radius: 2px;
+}
+/* 歌詞と同じ文字のコール (一緒に叫ぶところ)。コールを並べない代わりに濃く敷いて太字にする。 */
+.lyrics__anchor[data-echo] {
+  background: color-mix(in srgb, var(--anchor) 32%, transparent);
+  font-weight: 700;
 }
 .lyrics__anchor[data-emphasis="optional"] {
   --anchor: var(--ds-success);

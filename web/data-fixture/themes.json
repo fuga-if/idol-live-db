@@ -103,6 +103,40 @@
         "heroSurface": "#4a391c"
       }
     },
+    "idol:ml_mogami_shizuka": {
+      "light": {
+        "accent": "#0976d4",
+        "onAccent": "#ffffff",
+        "accentInk": "#0976d4",
+        "tint": "#f3f6f9",
+        "tintStrong": "#dee9f2",
+        "chipBg": "#e9eff4",
+        "chipText": "#056dc7",
+        "ring": "#0a87f2",
+        "bar": "#0976d4",
+        "dot": "#0976d4",
+        "gradFrom": "#0a84ed",
+        "gradTo": "#035ba7",
+        "separator": "#d3dce4",
+        "heroSurface": "#eff4f8"
+      },
+      "dark": {
+        "accent": "#2c96f2",
+        "onAccent": "#15161a",
+        "accentInk": "#2c96f2",
+        "tint": "#1a2e3f",
+        "tintStrong": "#1f3e59",
+        "chipBg": "#213b51",
+        "chipText": "#49a5f3",
+        "ring": "#2c96f2",
+        "bar": "#2c96f2",
+        "dot": "#2c96f2",
+        "gradFrom": "#2c96f2",
+        "gradTo": "#0973ce",
+        "separator": "#364e63",
+        "heroSurface": "#1c354a"
+      }
+    },
     "neutral": {
       "light": {
         "accent": "#87878c",

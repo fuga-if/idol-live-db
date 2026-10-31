@@ -69,6 +69,11 @@
     "numeric": false,
     "sortKey": "kana"
   },
+  "pageSort": {
+    "key": "official",
+    "label": "公式順",
+    "defaultAscending": true
+  },
   "filters": [
     {
       "label": "ブランド",

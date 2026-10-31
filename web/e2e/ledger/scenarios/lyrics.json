@@ -30,6 +30,16 @@
         "op:src/components/SongLyrics.astro#<top>/body:cut",
         "op:src/components/SongLyrics.astro#<top>/body:dragstart"
       ]
+    },
+    {
+      "id": "LYRICS-004",
+      "title": "振り仮名は記号を外して親字の上に、括弧の被せは小さく、歌い分けは担当色 (何人かは縞) と行の下の名前で、歌詞と同じ文字のコールは行に並べず歌詞を濃く敷いて出す (アプリと同じ)",
+      "status": "implemented",
+      "pendingReason": null,
+      "covers": [
+        "island:src/components/SongLyrics.astro",
+        "op:src/components/SongLyrics.astro#<top>/button:click"
+      ]
     }
   ]
 }

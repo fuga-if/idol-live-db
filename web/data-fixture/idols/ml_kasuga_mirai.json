@@ -86,8 +86,9 @@
           },
           "role": "original",
           "releaseDate": "2019-03-13",
+          "releaseDisplay": "2019年3月13日(水)",
           "performanceCount": 12,
-          "subtitle": "765MILLION ALLSTARS ・ 2019-03-13 ・ 12 回披露"
+          "subtitle": "765MILLION ALLSTARS ・ 2019年3月13日(水) ・ 12 回披露"
         }
       ]
     }
@@ -134,7 +135,13 @@
         "year": "2026",
         "monthDay": "4/3",
         "weekday": "金",
-        "spoken": "2026年4月3日 金曜日"
+        "spoken": "2026年4月3日 金曜日",
+        "stub": {
+          "top": "APR",
+          "big": "03",
+          "bottom": "FRI",
+          "weekdayKind": "weekday"
+        }
       },
       "venueLabel": "幕張メッセ",
       "songCount": 7,
