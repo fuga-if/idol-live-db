@@ -195,7 +195,8 @@ fun ProducerCardEditorSheet(
     card: MyProducerCard,
     record: ProducerCardMyRecord?,
     onSave: suspend (MyProducerCard) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    importsFace: Boolean = false
 ) {
     val context = LocalContext.current
     val module = remember { AppModule.from(context) }
@@ -233,7 +234,7 @@ fun ProducerCardEditorSheet(
     var confirmRenewCardId by remember { mutableStateOf(false) }
 
     val designs = remember { cardDesigns() }
-    var design by remember { mutableStateOf(cardDesignKey(card.cardDesign)) }
+    var design by remember { mutableStateOf(cardDesignKey(if (importsFace) CardDesign.CUSTOM else card.cardDesign)) }
     // 刷る色 (null は先頭の担当の色。選べるのはコアの `cardInkChoices`)。
     var ink by remember { mutableStateOf(card.cardInk) }
     val selectedDesign = designs.firstOrNull { it.key == design } ?: designs.first()
@@ -575,6 +576,18 @@ fun ProducerCardEditorSheet(
 
     fun cancel() {
         if (dirtyNow) confirmDiscard = true else onDismiss()
+    }
+
+    // 持っている名刺を取り込むところから始めたら、表の画像がまだ無ければ開いてすぐ選んでもらう。
+    LaunchedEffect(Unit) {
+        if (importsFace) {
+            // 端末に書いてある表の画像を読み終えてから確かめる。
+            val saved = withContext(Dispatchers.IO) { ProducerCardFiles.myFaceUrl(context, ProducerCardFiles.Side.FRONT) }
+            if (saved == null && facePreview[ProducerCardFiles.Side.FRONT] == null) {
+                pickingFace = ProducerCardFiles.Side.FRONT
+                pickFace.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        }
     }
 
     fun save() {

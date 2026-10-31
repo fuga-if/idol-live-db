@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.QrCode
@@ -83,6 +84,8 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
     var loaded by remember { mutableStateOf(false) }
 
     var editing by remember { mutableStateOf<MyProducerCard?>(null) }
+    // 持っている名刺を取り込むところから編集を始める。
+    var editImportsFace by remember { mutableStateOf(false) }
     var showingExchange by remember { mutableStateOf(false) }
     var showingPrint by remember { mutableStateOf(false) }
     var qrMode by remember { mutableStateOf(QrMode.EXCHANGE) }
@@ -129,7 +132,10 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
                 },
                 actions = {
                     if (encoded != null) {
-                        IconButton(onClick = { editing = myCard ?: MyProducerCard.empty() }) {
+                        IconButton(onClick = {
+                            editImportsFace = false
+                            editing = myCard ?: MyProducerCard.empty()
+                        }) {
                             Icon(Icons.Filled.Edit, contentDescription = "名刺を編集")
                         }
                     }
@@ -190,14 +196,31 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
                         }
                     }
                 }
-                else -> ImasCard {
-                    ImasEmptyState(
-                        icon = Icons.Filled.Badge,
-                        title = "まだ P名刺がありません",
-                        message = "名前とひとことを書くと、担当と参加の記録はアプリから自動で入ります。",
-                        actionTitle = "名刺を作る",
-                        onAction = { editing = myCard ?: MyProducerCard.empty() }
-                    )
+                else -> Column(verticalArrangement = Arrangement.spacedBy(DS.Space.gap)) {
+                    ImasCard {
+                        ImasEmptyState(
+                            icon = Icons.Filled.Badge,
+                            title = "まだ P名刺がありません",
+                            message = "名前とひとことを書くと、担当と参加の記録はアプリから自動で入ります。",
+                            actionTitle = "名刺を作る",
+                            onAction = {
+                                editImportsFace = false
+                                editing = myCard ?: MyProducerCard.empty()
+                            }
+                        )
+                    }
+                    // 自分で作った名刺 (画像・紙に刷った名刺) を持っている人は、そのまま P名刺にできる。
+                    ImasCard {
+                        ImasNavRow(
+                            title = "持っている名刺を取り込む",
+                            subtitle = "作った名刺の画像や紙の名刺の写真を、そのまま自分の P名刺にします",
+                            icon = Icons.Filled.Download, subtitleLineLimit = 2,
+                            onClick = {
+                                editImportsFace = true
+                                editing = myCard ?: MyProducerCard.empty()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -207,6 +230,7 @@ fun MyProducerCardScreen(onBack: () -> Unit, onOpenCardCase: () -> Unit, onOpenI
         ProducerCardEditorSheet(
             card = card,
             record = record,
+            importsFace = editImportsFace,
             onSave = { saved ->
                 // 画像の選択 (大きさ・載せる項目) は画像の画面で書くので、開いた時の古い中身で戻さない
                 // (読んで重ねて書くのはリポジトリが 1 本ずつ流す)。
