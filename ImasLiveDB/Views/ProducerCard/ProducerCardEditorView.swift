@@ -290,41 +290,15 @@ struct ProducerCardEditorView: View {
         let byId = Dictionary(oshi.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let choices = cardInkChoices(ink: ink, oshiIdolIds: oshi.map(\.id))
         return ImasFormField(label: "刷る色", imprint: "INK") {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: DS.Space.gapLoose) {
-                    ForEach(Array(choices.enumerated()), id: \.offset) { _, choice in
-                        let idol = choice.idolId.flatMap { byId[$0] }
-                        Button {
-                            withAnimation(.imasStandard) { ink = choice.ink }
-                        } label: {
-                            VStack(spacing: DS.Space.gapTight) {
-                                Group {
-                                    if let idol {
-                                        ImasAvatar(label: idol.shortName, seed: idol.color,
-                                                   brand: brands[idol.brandId]?.color, size: 34,
-                                                   reservesPickRing: false)
-                                    } else {
-                                        Circle().fill(DS.ink)
-                                            .overlay(Text(choice.label).imasText(.rowLabel, color: DS.bg))
-                                            .frame(width: 34, height: 34)
-                                    }
-                                }
-                                .padding(3)
-                                .overlay(Circle().strokeBorder(choice.selected ? DS.ink : .clear, lineWidth: 2))
-                                Text(idol?.name ?? choice.label)
-                                    .imasText(.note, color: choice.selected ? DS.ink : DS.ink2)
-                                    .lineLimit(1)
-                                    .frame(maxWidth: 64)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(idol.map { "\($0.name)の色" } ?? "墨一色")
-                        .accessibilityAddTraits(choice.selected ? .isSelected : [])
-                    }
-                }
-                .padding(.vertical, 2)
+            ImasInkSwatches(items: choices.enumerated().map { i, choice in
+                let idol = choice.idolId.flatMap { byId[$0] }
+                return ImasInkSwatches.Item(
+                    id: "\(i)", name: idol?.name ?? choice.label, stamp: idol?.shortName, seed: idol?.color,
+                    brand: idol.flatMap { brands[$0.brandId]?.color }, isSelected: choice.selected,
+                    accessibilityLabel: idol.map { "\($0.name)の色" } ?? "墨一色")
+            }) { item in
+                if let i = Int(item.id) { ink = choices[i].ink }
             }
-            .sensoryFeedback(.selection, trigger: ink)
         }
     }
 

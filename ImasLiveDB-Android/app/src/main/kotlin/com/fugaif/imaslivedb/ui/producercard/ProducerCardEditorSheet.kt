@@ -114,6 +114,8 @@ import com.fugaif.imaslivedb.data.model.ProducerCardField
 import com.fugaif.imaslivedb.data.producercard.ProducerCardMyRecord
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
+import com.fugaif.imaslivedb.ui.designsystem.ImasInkSwatch
+import com.fugaif.imaslivedb.ui.designsystem.ImasInkSwatches
 import com.fugaif.imaslivedb.ui.designsystem.ImasCardList
 import com.fugaif.imaslivedb.ui.designsystem.ImasDiscardConfirmation
 import com.fugaif.imaslivedb.ui.designsystem.ImasFormCard
@@ -1169,49 +1171,15 @@ private fun LinkEditor(
 private fun InkField(ink: CardInk?, oshi: List<Idol>, onSelect: (CardInk?) -> Unit) {
     val byId = remember(oshi) { oshi.associateBy { it.id } }
     val choices = remember(ink, oshi) { cardInkChoices(ink, oshi.map { it.id }) }
-    val haptics = rememberImasHaptics()
     ImasFormField(label = "刷る色", imprint = "INK") {
-        Row(
-            Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(DS.Space.gapLoose), verticalAlignment = Alignment.Top
-        ) {
-            choices.forEach { choice ->
+        ImasInkSwatches(
+            items = choices.map { choice ->
                 val idol = choice.idolId?.let { byId[it] }
-                Column(
-                    Modifier
-                        .clickable {
-                            haptics.selection()
-                            onSelect(choice.ink)
-                        }
-                        .semantics {
-                            contentDescription = idol?.let { "${it.name}の色" } ?: "墨一色"
-                            selected = choice.selected
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(DS.Space.gapTight)
-                ) {
-                    Box(
-                        Modifier.padding(3.dp).border(2.dp, if (choice.selected) DS.ink else Color.Transparent, CircleShape)
-                            .padding(3.dp)
-                    ) {
-                        if (idol != null) {
-                            ImasAvatar(
-                                label = idol.shortName, seed = idol.color, brand = idol.brandId, size = 34.dp,
-                                reservesPickRing = false
-                            )
-                        } else {
-                            Box(Modifier.size(34.dp).background(DS.ink, CircleShape), contentAlignment = Alignment.Center) {
-                                Text(choice.label, style = ImasTextRole.ROW_LABEL.style, color = DS.bg, maxLines = 1)
-                            }
-                        }
-                    }
-                    Text(
-                        idol?.name ?: choice.label,
-                        style = ImasTextRole.NOTE.style, color = if (choice.selected) DS.ink else DS.ink2,
-                        maxLines = 1, modifier = Modifier.widthIn(max = 64.dp)
-                    )
-                }
+                ImasInkSwatch(
+                    name = idol?.name ?: choice.label, stamp = idol?.shortName, seed = idol?.color, brand = idol?.brandId,
+                    isSelected = choice.selected, accessibilityLabel = idol?.let { "${it.name}の色" } ?: "墨一色"
+                )
             }
-        }
+        ) { i -> onSelect(choices[i].ink) }
     }
 }
