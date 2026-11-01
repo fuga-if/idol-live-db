@@ -405,32 +405,37 @@ a.chip--tag:hover {
   background: var(--ds-surface);
 }
 .rows > li {
+  /* 行ごとに器にする。下段の日付を落とす・作曲を出す判断は「その行の幅」で決める
+     (広い画面で 2 列に並べたとき、1 列ぶんの幅で判断させる)。 */
+  container-type: inline-size;
   content-visibility: auto;
-  contain-intrinsic-size: auto 64px;
+  contain-intrinsic-size: auto 56px;
 }
 
 /* --- 行の共通の形 (.list-row = ImasRow、§5.0) ------------------------------
-   [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。最小高さ 44・横 16・縦 12・間 12。
-   曲の行 (.list-row--song = ImasSongRow) はジャケ 48。 */
+   [帯] [先頭 (ジャケ)] [題 / 副題 / 下段] [末尾]。
+   Web はアプリより一回り詰める (横 12・縦 8・間 8、ジャケ 40): 画面が広いぶん 1 画面に
+   たくさん載せる。要素は減らさない。 */
 .list-row {
-  --row-indent: calc(var(--sp5) + 3px + var(--sp4));
+  --row-art: 40px;
+  --row-indent: calc(var(--sp4) + 3px + var(--sp3));
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--sp4);
-  min-block-size: 44px;
-  padding: var(--sp4) var(--sp5);
+  gap: var(--sp3);
+  min-block-size: 40px;
+  padding: var(--sp3) var(--sp4);
   background: var(--ds-surface);
   color: var(--ds-ink);
 }
 .list-row--nobar {
-  --row-indent: var(--sp5);
+  --row-indent: var(--sp4);
 }
 .list-row--song {
-  --row-indent: calc(var(--sp5) + 3px + var(--sp4) + 48px + var(--sp4));
+  --row-indent: calc(var(--sp4) + 3px + var(--sp3) + var(--row-art) + var(--sp3));
 }
 .list-row--song.list-row--nobar {
-  --row-indent: calc(var(--sp5) + 48px + var(--sp4));
+  --row-indent: calc(var(--sp4) + var(--row-art) + var(--sp3));
 }
 .rows > li:not([hidden]) ~ li:not([hidden]) > .list-row::before {
   content: "";
@@ -443,17 +448,17 @@ a.chip--tag:hover {
 a.list-row:hover {
   background: var(--ds-surface2);
 }
-/* 帯: ジャケのある行はジャケの高さ (48)、無い行は 36。 */
+/* 帯: ジャケのある行はジャケの高さ、無い行は 32。 */
 .list-row > .lead-bar {
   align-self: center;
-  block-size: 36px;
+  block-size: 32px;
   border-radius: 1.5px;
 }
 .list-row--song > .lead-bar {
-  block-size: 48px;
+  block-size: var(--row-art);
 }
 .list-row--song .artwork {
-  --artwork-size: 48px;
+  --artwork-size: var(--row-art);
   border-radius: 4px;
 }
 .list-row__body {
@@ -461,10 +466,10 @@ a.list-row:hover {
   min-inline-size: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp2);
+  gap: var(--sp1);
 }
 .list-row__title {
-  font-size: var(--fs-callout);
+  font-size: var(--fs-subhead);
   font-weight: 600;
   line-height: var(--lh-snug);
   overflow-wrap: anywhere;
@@ -475,7 +480,7 @@ a.list-row:hover {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: var(--fs-footnote);
+  font-size: var(--fs-caption);
   line-height: var(--lh-snug);
   color: var(--ds-ink2);
 }
@@ -489,18 +494,18 @@ a.list-row:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp2) var(--sp3);
-  font-size: var(--fs-caption);
+  gap: var(--sp1) var(--sp3);
+  font-size: var(--fs-caption2);
   color: var(--ds-ink3);
 }
 .list-row__date {
   font-variant-numeric: tabular-nums;
 }
-/* 作曲・収録は「引く」ための情報。幅があるカードでだけ出す。 */
+/* 作曲・収録は「引く」ための情報。幅がある行でだけ出す (2 列に並べた 1 列ぶんでも出る)。 */
 .list-row__credit {
   display: none;
 }
-@container (min-width: 62rem) {
+@container (min-width: 32rem) {
   .list-row__credit {
     display: inline;
   }
@@ -525,8 +530,8 @@ a.list-row:hover {
   align-items: baseline;
   gap: var(--sp1);
 }
-/* 狭いカードでは下段の日付を落として曲名に幅を回す (回数は残す)。 */
-@container (max-width: 30rem) {
+/* 狭い行では下段の日付を落として曲名に幅を回す (回数は残す)。 */
+@container (max-width: 26rem) {
   .list-row__date {
     display: none;
   }
@@ -534,7 +539,40 @@ a.list-row:hover {
 /* 画面外の行の描画を省く (楽曲 2,000 行超・ライブ 700 行超)。一度出た行の高さは覚えられる。 */
 .stub-list > li {
   content-visibility: auto;
-  contain-intrinsic-size: auto 64px;
+  contain-intrinsic-size: auto 56px;
+}
+
+/* --- 広い画面の一覧ページは 2 列 ------------------------------------------
+   アプリは縦 1 列だが Web の机の画面は横に余る。一覧ページ (.list-body) の行の帯と半券の
+   束だけ 2 列に並べ、1 画面に倍載せる。詳細ページの中の一覧は 1 列のまま。
+   帯 (.rows) は 1 枚の面のまま: 列の間に縦の hairline を 1 本、行の下に横の hairline
+   (各行の本文の頭から)。 */
+@media (min-width: 64rem) {
+  .list-body .rows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 1px;
+    background: linear-gradient(var(--ds-sep), var(--ds-sep)) 50% 0 / 1px 100% no-repeat var(--ds-surface);
+  }
+  .list-body .rows > li {
+    background: var(--ds-surface);
+  }
+  .list-body .rows > li:not([hidden]) ~ li:not([hidden]) > .list-row::before {
+    content: none;
+  }
+  .list-body .rows > li > .list-row::after {
+    content: "";
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline: var(--row-indent) 0;
+    block-size: 1px;
+    background: var(--ds-sep);
+  }
+  .list-body .stub-list,
+  .tabset--page .stub-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 /* --- 格子 (IdolTile = ImasIdolCell、§6.6) ----------------------------------
@@ -600,7 +638,7 @@ a.list-row:hover {
 }
 .dtable th,
 .dtable td {
-  padding: var(--sp4) var(--sp4);
+  padding: var(--sp2) var(--sp3);
   text-align: start;
   border-block-end: 1px solid var(--ds-sep);
 }
@@ -618,7 +656,7 @@ a.list-row:hover {
   background: var(--ds-surface);
 }
 .dtable thead th:not(:has(.dtable__sort)) {
-  padding: var(--sp3) var(--sp4);
+  padding: var(--sp2) var(--sp3);
 }
 /* border は sticky だと一緒に流れて消えるので影で描く。 */
 .dtable thead tr :is(th, td) {
@@ -631,7 +669,7 @@ a.list-row:hover {
   align-items: center;
   gap: var(--sp2);
   inline-size: 100%;
-  padding: var(--sp3) var(--sp4);
+  padding: var(--sp2) var(--sp3);
   border: 0;
   background: none;
   color: inherit;

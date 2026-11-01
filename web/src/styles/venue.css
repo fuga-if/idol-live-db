@@ -239,8 +239,8 @@ a.stub:hover::before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding-block: 10px;
+  gap: 2px;
+  padding-block: 6px;
   text-align: center;
 }
 .stub__top,
@@ -272,13 +272,13 @@ a.stub:hover::before {
 }
 .stub__perf {
   flex: none;
-  margin-block: 8px;
+  margin-block: 6px;
   border-inline-start: 2px dashed var(--ds-perforation);
 }
 .stub__bar {
   flex: none;
   inline-size: 3px;
-  margin: 12px 0 12px 10px;
+  margin: 8px 0 8px 8px;
   border-radius: 2px;
   background: var(--accent);
 }
@@ -288,14 +288,14 @@ a.stub:hover::before {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 10px 14px 10px 12px;
+  gap: 2px;
+  padding: 6px 12px 6px 10px;
 }
 .stub__title {
   font-family: var(--font-heading);
-  font-size: 0.90625rem; /* 14.5px */
+  font-size: 0.84375rem; /* 13.5px */
   font-weight: var(--fw-heading);
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--ds-ink);
   overflow-wrap: anywhere;
   /* 題は 3 行で打ち切る。 */
@@ -321,7 +321,7 @@ a.stub:hover::before {
   display: flex;
   align-items: center;
   gap: var(--sp3);
-  padding-inline-end: 14px;
+  padding-inline-end: 10px;
 }
 .stub__chevron {
   display: inline-flex;
