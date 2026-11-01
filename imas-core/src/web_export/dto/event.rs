@@ -1,6 +1,6 @@
 //! ライブ (event) 詳細ページの DTO。
 
-use super::common::{AppOpen, DateBadge, EmptyText, Ref, SeoBlock, StatTile};
+use super::common::{AppOpen, DateBadge, DetailTab, EmptyText, Ref, SeoBlock, StatTile};
 
 web_dto! {
     /// `/events/<id>/` の中身 (`events/<key>.json`)。
@@ -41,6 +41,8 @@ web_dto! {
         pub releases: Vec<ReleaseInfo>,
         /// 公演会場の重複排除 (初出順)。
         pub venues: Vec<Ref>,
+        /// タブ (公演・セトリ / 出演 / 情報)。`domain::detail_tabs::event_detail_tabs`。
+        pub tabs: Vec<DetailTab>,
         pub app: AppOpen,
         pub seo: SeoBlock,
     }

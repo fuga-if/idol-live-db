@@ -23,7 +23,9 @@
 //! * `noindex` のページ (`other` ブランド配下)
 
 use super::content::{self, absolute};
+use crate::domain::detail_tabs as detail_tabs_rule;
 use super::dto::*;
+use super::dto::common::detail_tabs;
 use super::emit::context::{json_ld_graph, page_title, simple_json_ld};
 use super::theme;
 use super::url::{detail_path, path_key, reserved_for};
@@ -379,6 +381,7 @@ fn event_page(reference: &Ref, empty: bool) -> EventPage {
         // 公演ゼロのライブ (空一覧の確認)。
         shows: if empty { vec![] } else { vec![show_summary(ShowContext::InEvent)] },
         shows_empty: content::empty_text(empty, content::EMPTY_EVENT_SHOWS, None),
+        tabs: detail_tabs(detail_tabs_rule::event_detail_tabs(!empty, !empty)),
         cast: if empty {
             // event_attendance は None を返しうる。
             None
@@ -651,6 +654,7 @@ fn song_page(reference: &Ref, minimal: bool) -> SongPage {
             penlight: vec![PenlightSetDto { key: "pink_white".to_string(), count: 5 }],
         },
         has_community: true,
+        tabs: detail_tabs(detail_tabs_rule::song_detail_tabs(true)),
         id: reference.id.clone(),
         path: reference.path.clone(),
         title: reference.name.clone(),
@@ -768,6 +772,8 @@ fn song_variant_page() -> SongPage {
 fn idol_page(reference: &Ref) -> IdolPage {
     IdolPage {
         schema_version: SCHEMA_VERSION,
+        tabs: detail_tabs(detail_tabs_rule::idol_detail_tabs(true)),
+        live_empty: None,
         stat_tiles: vec![
             tile("♪", 2, "持ち曲", Some("#idol-songs")),
             tile("▤", 1, "出演公演", Some("#idol-shows")),
@@ -847,6 +853,7 @@ fn idol_page(reference: &Ref) -> IdolPage {
 fn unit_page(reference: &Ref, empty: bool) -> UnitPage {
     UnitPage {
         schema_version: SCHEMA_VERSION,
+        tabs: detail_tabs(detail_tabs_rule::unit_detail_tabs(!empty)),
         tags: vec![tag_genki_chip()],
         id: reference.id.clone(),
         path: reference.path.clone(),

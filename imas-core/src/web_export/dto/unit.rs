@@ -1,6 +1,6 @@
 //! ユニット (unit) 詳細ページの DTO。
 
-use super::common::{AppOpen, EmptyText, Ref, SeoBlock};
+use super::common::{AppOpen, DetailTab, EmptyText, Ref, SeoBlock};
 use super::common::TagChipDto;
 
 web_dto! {
@@ -25,6 +25,8 @@ web_dto! {
         pub songs: Vec<Ref>,
         /// ユニット曲が 1 曲も無いときの案内。
         pub songs_empty: Option<EmptyText>,
+        /// タブ (楽曲 / メンバー / コミュニティ)。`domain::detail_tabs::unit_detail_tabs`。
+        pub tabs: Vec<DetailTab>,
         pub app: AppOpen,
         pub seo: SeoBlock,
     }

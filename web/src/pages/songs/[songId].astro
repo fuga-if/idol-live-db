@@ -12,6 +12,7 @@ import ListContainer from "../../components/ListContainer.astro";
 import LabeledRow from "../../components/LabeledRow.astro";
 import Fold from "../../components/Fold.astro";
 import StatStrip from "../../components/StatStrip.astro";
+import DetailTabs from "../../components/DetailTabs.astro";
 import { setlistAnchorId } from "../../lib/anchors";
 import EmptyState from "../../components/EmptyState.astro";
 import { page, pathsFor } from "../../lib/data";
@@ -22,8 +23,9 @@ export const getStaticPaths = () => pathsFor("song", "songId");
 const song = page<SongPage>(Astro.props.data);
 ---
 
-{/* 電話では脇 (基本情報・クレジット・その他の歌唱者) より本体 (歌詞・披露履歴) を先に。 */}
-<DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app} asideAfterMain>
+{/* 頭 → タブ (情報・歌唱 / 歌詞 / 披露履歴 / コミュニティ) → 中身。アプリの曲詳細と同じ組み (DESIGN_SYSTEM §2.2)。
+    どのタブを出すかは Rust (`song.tabs`)。 */}
+<DetailLayout seo={song.seo} themeKey={song.themeKey} app={song.app}>
   <Fragment slot="hero">
     {/* ジャケを左、右に種類・題・歌唱者・配信日 (DESIGN_SYSTEM §2.2)。画像が無ければ色の面 + 曲名。 */}
     <DetailHead title={song.title} id="song-title" kana={song.titleKana}>
@@ -81,161 +83,165 @@ const song = page<SongPage>(Astro.props.data);
     <StatStrip items={song.statTiles} label="この曲の数" />
   </Fragment>
 
-  {/* 歌詞とコールガイドはこのページの主目的。111 行の披露履歴の下に置くと見つからない。 */}
-  <Section id="song-lyrics" title="歌詞とコールガイド">
-    <SongLyrics lyrics={song.lyrics} />
-  </Section>
-
-  {
-    song.factRows.length > 0 && (
-      <Section slot="aside" id="song-facts" title="基本情報">
-        <ListContainer>
-          {song.factRows.map((r) => (
-            <LabeledRow
-              label={r.label}
-              value={r.value}
-              href={r.link}
-              mono={r.style === "monospaced"}
-            />
-          ))}
-        </ListContainer>
+  <DetailTabs tabs={song.tabs} name="song-tab">
+    {/* 情報・歌唱: 基本情報・クレジット・ほかに歌ったアイドル・派生曲・関連する曲。 */}
+    <Fragment slot="info">
+      {
+        song.factRows.length > 0 && (
+          <Section id="song-facts" title="基本情報">
+            <ListContainer>
+              {song.factRows.map((r) => (
+                <LabeledRow
+                  label={r.label}
+                  value={r.value}
+                  href={r.link}
+                  mono={r.style === "monospaced"}
+                />
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        song.credits.length > 0 && (
+          <Section id="song-credits" title="クレジット">
+            <ListContainer>
+              {song.credits.map((c) => (
+                <LabeledRow label={c.role} value={c.display} />
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        song.otherArtists.length > 0 && (
+          <Section id="song-artists" title="ほかに歌ったアイドル">
+            <RefList refs={song.otherArtists} variant="neutral" label="ほかに歌ったアイドル" />
+          </Section>
+        )
+      }
+      {
+        song.variants.length > 0 && (
+          <Section id="song-variants" title="派生曲" count={song.variants.length}>
+            <RefList refs={song.variants} variant="neutral" label="派生曲" />
+          </Section>
+        )
+      }
+      {
+        song.related.length > 0 && (
+          <Section id="song-related" title="関連する曲">
+            <RefList refs={song.related} variant="neutral" label="関連する曲" />
+          </Section>
+        )
+      }
+    </Fragment>
+    {/* 歌詞: 出すかどうかは Rust (`song.lyrics.available`)。出さない間は案内だけ。 */}
+    <Fragment slot="lyrics">
+      <Section id="song-lyrics" title="歌詞とコールガイド">
+        <SongLyrics lyrics={song.lyrics} />
       </Section>
-    )
-  }
-
-  {
-    song.credits.length > 0 && (
-      <Section slot="aside" id="song-credits" title="クレジット">
-        <ListContainer>
-          {song.credits.map((c) => (
-            <LabeledRow label={c.role} value={c.display} />
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
-
-  {
-    song.otherArtists.length > 0 && (
-      <Section slot="aside" id="song-artists" title="ほかに歌ったアイドル">
-        <RefList refs={song.otherArtists} variant="neutral" label="ほかに歌ったアイドル" />
-      </Section>
-    )
-  }
-
-  {
-    song.variants.length > 0 && (
-      <Section slot="aside" id="song-variants" title="派生曲" count={song.variants.length}>
-        <RefList refs={song.variants} variant="neutral" label="派生曲" />
-      </Section>
-    )
-  }
-
-  {
-    song.related.length > 0 && (
-      <Section slot="aside" id="song-related" title="関連する曲">
-        <RefList refs={song.related} variant="neutral" label="関連する曲" />
-      </Section>
-    )
-  }
-
-  <Section id="song-history" title="披露履歴" count={song.performanceCount}>
-    {
-      song.historyEmpty ? (
-        <EmptyState {...song.historyEmpty} />
-      ) : (
-        <ol class="stub-list">
-          {song.performanceHistory.map((h) => (
-            <li>
-              {/* 飛び先は公演ページのその曲の行 (曲順が分からなければ公演の頭)。
-                  誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
-              <StubRow
-                badge={h.dateBadge}
-                title={h.event.name}
-                href={h.number > 0 ? `${h.show.path}#${setlistAnchorId(h.number)}` : h.show.path}
-                themeKey={h.show.themeKey}
-                meta={[h.placeDisplay, h.performersDisplay]}
-              >
-                <span slot="trailing" class="stub-trail">
-                  <span class="stub-trail__label">{h.ordinalLabel}</span>
-                  {h.number > 0 && (
-                    <span class="num num--medium">
-                      {h.number}
-                      <span class="num__unit">曲目</span>
+    </Fragment>
+    {/* 披露履歴: 履歴・よく歌うアイドル・よく一緒に披露される曲。 */}
+    <Fragment slot="history">
+      <Section id="song-history" title="披露履歴" count={song.performanceCount}>
+        {
+          song.historyEmpty ? (
+            <EmptyState {...song.historyEmpty} />
+          ) : (
+            <ol class="stub-list">
+              {song.performanceHistory.map((h) => (
+                <li>
+                  {/* 飛び先は公演ページのその曲の行 (曲順が分からなければ公演の頭)。
+                      誰が歌ったかは行の中で言う (セトリを目で探さない)。 */}
+                  <StubRow
+                    badge={h.dateBadge}
+                    title={h.event.name}
+                    href={h.number > 0 ? `${h.show.path}#${setlistAnchorId(h.number)}` : h.show.path}
+                    themeKey={h.show.themeKey}
+                    meta={[h.placeDisplay, h.performersDisplay]}
+                  >
+                    <span slot="trailing" class="stub-trail">
+                      <span class="stub-trail__label">{h.ordinalLabel}</span>
+                      {h.number > 0 && (
+                        <span class="num num--medium">
+                          {h.number}
+                          <span class="num__unit">曲目</span>
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-              </StubRow>
-            </li>
-          ))}
-        </ol>
-      )
-    }
-  </Section>
-
-  {
-    song.frequentSingers.length > 0 && (
-      <Section id="song-singers" title="よく歌うアイドル">
-        <ListContainer as="ol">
-          {song.frequentSingers.map((s, i) => (
-            <li>
-              <DetailRow
-                rank={i + 1}
-                title={s.idol.name}
-                sub={s.idol.sub}
-                metric={s.times}
-                href={s.idol.path}
-                themeKey={s.idol.themeKey}
-              />
-            </li>
-          ))}
-        </ListContainer>
+                  </StubRow>
+                </li>
+              ))}
+            </ol>
+          )
+        }
       </Section>
-    )
-  }
-
-  {
-    song.coOccurring.length > 0 && (
-      <Section id="song-cooccur" title="よく一緒に披露される曲">
-        <ListContainer as="ol">
-          {song.coOccurring.map((c, i) => (
-            <li>
-              <DetailRow
-                rank={i + 1}
-                artwork={c.song}
-                title={c.song.name}
-                sub={c.song.sub}
-                metric={c.together}
-                href={c.song.path}
-                themeKey={c.song.themeKey}
-              />
-            </li>
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
-
-  {
-    song.hasCommunity && (
-      <Section id="song-community" title="みんなの記録">
-        <div class="card card__pad u-stack">
-          <CommunityTags tags={song.community.tags} />
-          <p class="community-stats">
-            {song.community.favorites > 0 && (
-              <span>
-                お気に入り <b>{song.community.favorites}</b>
-              </span>
-            )}
-            {song.community.penlight.length > 0 && (
-              <span>
-                ペンライトの色 <b>{song.community.penlight.length}</b> 通り
-              </span>
-            )}
-          </p>
-        </div>
-      </Section>
-    )
-  }
+      {
+        song.frequentSingers.length > 0 && (
+          <Section id="song-singers" title="よく歌うアイドル">
+            <ListContainer as="ol">
+              {song.frequentSingers.map((s, i) => (
+                <li>
+                  <DetailRow
+                    rank={i + 1}
+                    title={s.idol.name}
+                    sub={s.idol.sub}
+                    metric={s.times}
+                    href={s.idol.path}
+                    themeKey={s.idol.themeKey}
+                  />
+                </li>
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        song.coOccurring.length > 0 && (
+          <Section id="song-cooccur" title="よく一緒に披露される曲">
+            <ListContainer as="ol">
+              {song.coOccurring.map((c, i) => (
+                <li>
+                  <DetailRow
+                    rank={i + 1}
+                    artwork={c.song}
+                    title={c.song.name}
+                    sub={c.song.sub}
+                    metric={c.together}
+                    href={c.song.path}
+                    themeKey={c.song.themeKey}
+                  />
+                </li>
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+    </Fragment>
+    {/* コミュニティ: タブ自体は `song.hasCommunity` のときだけ来る (Rust)。 */}
+    <Fragment slot="community">
+      {
+        song.hasCommunity && (
+          <Section id="song-community" title="みんなの記録">
+            <div class="card card__pad u-stack">
+              <CommunityTags tags={song.community.tags} />
+              <p class="community-stats">
+                {song.community.favorites > 0 && (
+                  <span>
+                    お気に入り <b>{song.community.favorites}</b>
+                  </span>
+                )}
+                {song.community.penlight.length > 0 && (
+                  <span>
+                    ペンライトの色 <b>{song.community.penlight.length}</b> 通り
+                  </span>
+                )}
+              </p>
+            </div>
+          </Section>
+        )
+      }
+    </Fragment>
+  </DetailTabs>
 
 </DetailLayout>

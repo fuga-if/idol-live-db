@@ -109,6 +109,28 @@ web_dto! {
 }
 
 web_dto! {
+    /// 詳細ページのタブ 1 つ (アプリの `ImasTabs`、DESIGN_SYSTEM §2.2)。
+    /// どのタブを何の順で出すか、中身が無いとき出さないかは `domain::detail_tabs` が決める。
+    /// 出面は `key` を `#tab-<key>` と節の入れ物の id に、`label` を札の語に使う。
+    #[derive(Eq)]
+    pub struct DetailTab {
+        pub key: String,
+        pub label: String,
+    }
+}
+
+impl From<crate::domain::detail_tabs::DetailTab> for DetailTab {
+    fn from(t: crate::domain::detail_tabs::DetailTab) -> Self {
+        DetailTab { key: t.key.to_string(), label: t.label.to_string() }
+    }
+}
+
+/// `domain::detail_tabs` の結果を DTO に詰め替える。
+pub fn detail_tabs(tabs: Vec<crate::domain::detail_tabs::DetailTab>) -> Vec<DetailTab> {
+    tabs.into_iter().map(Into::into).collect()
+}
+
+web_dto! {
     /// 途中にリンクを 1 つ挟んだ 1 文 (`この曲は <派生元> の派生曲です。`)。
     /// 文の前後は Rust が持ち、受け手はリンクを挟んで並べるだけ。
     #[derive(Eq)]

@@ -37,6 +37,7 @@ export type { Counts } from "./Counts";
 export type { CreditGroup } from "./CreditGroup";
 export type { Crumb } from "./Crumb";
 export type { DateBadge } from "./DateBadge";
+export type { DetailTab } from "./DetailTab";
 export type { EmptyText } from "./EmptyText";
 export type { EventCast } from "./EventCast";
 export type { EventCastMember } from "./EventCastMember";

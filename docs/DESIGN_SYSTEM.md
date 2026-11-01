@@ -924,7 +924,7 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | `ImasNumeralSize` 数字 | `.num .num--large / --date / --medium / --small / --countdown` | `venue.css` |
 | `ImasPerforation` 切り取り線 | `.perf` / `.perf--v` (チケットの紙の上は `.perf--ticket`) | `venue.css` |
 | `ImasTicket` 紙のチケット | `.ticket` (`Ticket.astro`) | `venue.css` |
-| `ImasStubRow` / `ImasEventRow` / `ImasShowRow` 半券の行 | `.stub` (`StubRow.astro` → `EventRow` / `ShowRow`)。並べる器は `.stub-list` (行間 8、地は bg)。最小高さの指定なし (中身で決まる)、題は 3 行で打ち切り、末尾は 13px の SVG chevron (ink3、stroke 2) | `venue.css` |
+| `ImasStubRow` / `ImasEventRow` / `ImasShowRow` 半券の行 | `.stub` (`StubRow.astro` → `EventRow` / `ShowRow`)。並べる器は `.stub-list` (行間 8、地は bg)。Web はアプリより一回り詰める (半券の上下 6・本文の上下 6・題 13.5): 机の画面に 1 画面でたくさん載せる。最小高さの指定なし (中身で決まる)、題は 3 行で打ち切り、末尾は 13px の SVG chevron (ink3、stroke 2)。一覧ページ (`.list-body`) と詳細のタブ (`.tabset--page`) の中では 64rem 以上で 2 列 (2026-11-01 ユーザー「もっとそれぞれ小さくしてたくさん表示」) | `venue.css` / `lists.css` |
 | `ImasBoard` 電光掲示板 | `.board` (`Board.astro`)。マスは等幅 (左右 14 上下 12、値 30、ラベル 11)、縦線 1px `--ds-board-line` はマスの間だけ・上下 10 で短く、外周に線なし。<600px だけ横スクロール | `venue.css` |
 | `ImasBadge` 札 | `.badge` / 旧 `.tag` (`TagChip.astro`) も同じ見え方。高さ 20・横 6・角丸 4・11px bold。既定は透明地 + `--ds-line` 1px + ink2、`--positive` は朱の線 + 朱文字、`--planned` / `--lead` は墨塗り、`--new` は朱塗り、`--themed` は accent 文字 + accent 55% の線 | `venue.css` / `components.css` |
 | `ImasChip` / `ImasFilterChip` チップ | `.chip` (高さ 32・角丸 8・左右 12・14px semibold。カプセルにしない)。既定は `--ds-line` の線で地なし、選択 (`--selected`) は `--ds-sys` 塗り、`--ds-fill` 地は効いている絞り込みの除去チップ (`--removable`) だけ。FilterMenu の見出しの線も `--ds-line` | `components.css` |
@@ -933,9 +933,9 @@ Web (Astro、`web/src/`) も同じ世界で組む。正本はこの文書と iOS
 | `ImasMasthead` 頭の印字 | **使わない** (同上。トップの日付の行・一覧と詳細の頭の英字・掲示板の `STATS`・フッタの `DATA/SITE/APP`・チケットの `ADMIT ONE` は置かない) | — |
 | `ImasListSummary` 件数 + 並べ替え | `.song-filter` (`ListFilterBar`): 左に件数 (15 数字 + 「件」12 semibold。件数行を持つページは題の横に件数を出さない)、右に並べ替えのメニュー 1 つ (矢印 + いまの並びの語。横 12・最小高さ 32・`--ds-line` の線・角丸 8・13 semibold)。語と向きはページが組まれた順 (Rust の `*ListPage.pageSort`) を JS 無しでも出し、島が並びを変えたら差し替える。開く・向き・クリア・帯はそのメニューの中。全体 padding 横 16 縦 4 | `lists.css` |
 | `ImasDateHeader` 年の見出し | `.year-group__title` 1 段 (年の数字 28、上 12 下 4、ink。開催済みは ink3)。月は出さない (半券の上段にある) | `lists.css` |
-| `ImasListContainer` 行の入れ物 | `.rows` (角丸なし・全幅の surface の帯。行間は hairline `--ds-sep` で、線は本文の頭 = 帯 + ジャケ + 隙間のぶん字下げから)。`.list-row` は最小高さ 44・題 16 semibold・副題 13 ink2 を ` · ` で繋いだ 1 行省略・下段 12 ink3・帯はジャケ高 48 (無ければ 36)。件数行を持つページの h1 は 20 bold (詳細は 22) + 件数 small 数字 | `lists.css` |
+| `ImasListContainer` 行の入れ物 | `.rows` (角丸なし・全幅の surface の帯。行間は hairline `--ds-sep` で、線は本文の頭 = 帯 + ジャケ + 隙間のぶん字下げから)。`.list-row` はアプリより一回り詰める: 最小高さ 40・横 12・縦 8・題 15 semibold・副題 12 ink2 を ` · ` で繋いだ 1 行省略・下段 11 ink3・帯はジャケ高 40 (無ければ 32)。要素は減らさない (作曲・収録は行の幅 32rem 以上で出す、日付は 26rem 以下で落とす。行ごとに `container-type` なので 2 列でも 1 列ぶんの幅で判断する)。一覧ページ (`.list-body`) では 64rem 以上で 2 列 (列の間に縦の hairline、行の下に横の hairline)。件数行を持つページの h1 は 20 bold (詳細は 22) + 件数 small 数字 | `lists.css` |
 | `ImasSectionHeader` | `.section__title` (20〜24px 極太) + `.section__more` (灰、矢印) | `components.css` |
-| `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` (16 heavy・間隔 22・上下 12・選択は墨 + 高さ 3 の丸い `--accent` の下線・非選択 ink3・全体の下に hairline) | `base.css` / `components.css` |
+| `ImasTabs` | 上部バーの一覧の入口 (`.site-nav__links`: 現在地は墨 + 下線 2px) / `.segmented` (16 heavy・間隔 22・上下 12・選択は墨 + 高さ 3 の丸い `--accent` の下線・非選択 ink3・全体の下に hairline) / 詳細のタブは `DetailTabs.astro` (`.tabset--page`: ラジオ + ラベルの `.dtabs--page`、JS なしで切り替わる。頭を越えたら上部バーの下に貼り付く)。**どのタブを出すかは Rust `*Page.tabs` (`domain::detail_tabs`)** で、曲 = 情報・歌唱 / 歌詞 / 披露履歴 / コミュニティ、アイドル = ライブ / 楽曲 / プロフィール / コミュニティ、ユニット = 楽曲 / メンバー / コミュニティ、ライブ = 公演・セトリ / 出演 / 情報 (アプリと同じ語・同じ順。中身の無いタブは来ない)。数の帯からの `#id` は畳まれたタブを開いてから飛ぶ、`#tab-<key>` でタブを指せる | `base.css` / `components.css` / `detail.css` |
 
 Web でやらないこと (アプリと同じ): 淡い色の地のチップ・カプセルの札・名前の前の色の点・記号を淡い色の四角に
 入れる・色の地のカード・グラデーション・ぼかした光。判断 (文言・並び・日付の分け方) は Rust の DTO が持ち、

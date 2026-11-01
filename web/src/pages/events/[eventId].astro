@@ -9,6 +9,7 @@ import DetailHead from "../../components/DetailHead.astro";
 import TicketSaleRow from "../../components/TicketSaleRow.astro";
 import Performer from "../../components/Performer.astro";
 import EmptyState from "../../components/EmptyState.astro";
+import DetailTabs from "../../components/DetailTabs.astro";
 import { page, pathsFor } from "../../lib/data";
 import type { EventPage } from "../../lib/schema/EventPage";
 
@@ -17,7 +18,9 @@ export const getStaticPaths = () => pathsFor("event", "eventId");
 const ev = page<EventPage>(Astro.props.data);
 ---
 
-<DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app} asideAfterMain>
+{/* 頭 → タブ (公演・セトリ / 出演 / 情報) → 中身。アプリのライブ詳細と同じ組み (DESIGN_SYSTEM §2.2)。
+    どのタブを出すかは Rust (`ev.tabs`)。 */}
+<DetailLayout seo={ev.seo} themeKey={ev.themeKey} app={ev.app}>
   <Fragment slot="hero">
     {/* 日付の印字は初日の半券 3 段 (一覧の行と同じ。ライブ自身は日付ブロックを持たない)。 */}
     <DetailHead title={ev.name} id="event-title" kana={ev.nameKana}>
@@ -58,74 +61,83 @@ const ev = page<EventPage>(Astro.props.data);
     <StatStrip items={ev.statTiles} label="このライブの数" />
   </Fragment>
 
-  <Section id="event-shows" title="公演" count={ev.shows.length}>
-    {
-      ev.showsEmpty ? (
-        <EmptyState {...ev.showsEmpty} />
-      ) : (
-        <ul class="stub-list">
-          {ev.shows.map((s) => (
-            <ShowRow show={s} />
-          ))}
-        </ul>
-      )
-    }
-  </Section>
+  <DetailTabs tabs={ev.tabs} name="event-tab">
+    <Fragment slot="shows">
+      <Section id="event-shows" title="公演" count={ev.shows.length}>
+        {
+          ev.showsEmpty ? (
+            <EmptyState {...ev.showsEmpty} />
+          ) : (
+            <ul class="stub-list">
+              {ev.shows.map((s) => (
+                <ShowRow show={s} />
+              ))}
+            </ul>
+          )
+        }
+      </Section>
+    </Fragment>
 
-  {/* 出演者は本体側 (長いのはこちら。脇の 20rem に 36 人 × 2 日を詰めると 8 行に折れる)。 */}
-  {
-    ev.cast && ev.cast.shows.length > 0 && (
-      <Section id="event-cast" title="出演者">
-        <div class="u-stack">
-          {ev.cast.shows.map((cs) => (
-            <div class="card card__pad u-stack">
-              <h3 class="detail-sub">
-                <a class="u-underline-hover" href={cs.show.path}>{cs.show.name}</a>
-              </h3>
-              <ul class="performers">
-                {cs.performers.map((m) => (
-                  <li class="u-row">
-                    <Performer ref={m.ref} />
-                    {m.isLead && <span class="badge badge--lead">主演</span>}
-                    {m.isGuest && <span class="badge badge--guest">ゲスト</span>}
-                  </li>
-                ))}
-              </ul>
+    {/* 出演: タブ自体は出演者があるときだけ来る (Rust)。 */}
+    <Fragment slot="cast">
+      {
+        ev.cast && ev.cast.shows.length > 0 && (
+          <Section id="event-cast" title="出演者">
+            <div class="u-stack">
+              {ev.cast.shows.map((cs) => (
+                <div class="card card__pad u-stack">
+                  <h3 class="detail-sub">
+                    <a class="u-underline-hover" href={cs.show.path}>{cs.show.name}</a>
+                  </h3>
+                  <ul class="performers">
+                    {cs.performers.map((m) => (
+                      <li class="u-row">
+                        <Performer ref={m.ref} />
+                        {m.isLead && <span class="badge badge--lead">主演</span>}
+                        {m.isGuest && <span class="badge badge--guest">ゲスト</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </Section>
-    )
-  }
+          </Section>
+        )
+      }
+    </Fragment>
 
-  {
-    ev.releases.length > 0 && (
-      <Section slot="aside" id="event-releases" title="映像・音源">
-        <ListContainer>
-          {ev.releases.map((r) => (
-            <LabeledRow label={r.kindLabel} value={r.display} href={r.url} />
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
+    {/* 情報: 映像・音源・チケット。タブ自体はどちらかがあるときだけ来る (Rust)。 */}
+    <Fragment slot="info">
+      {
+        ev.releases.length > 0 && (
+          <Section id="event-releases" title="映像・音源">
+            <ListContainer>
+              {ev.releases.map((r) => (
+                <LabeledRow label={r.kindLabel} value={r.display} href={r.url} />
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
 
-  {
-    /* 受付 1 件 = 1 カード。段階・日程・当落・対象公演の文言は domain (`ticket_sales`) が
-       組み切ったものをそのまま出す。 */
-    ev.ticket && (
-      <Section slot="aside" id="event-ticket" title="チケット" count={ev.ticket.sales.length || undefined}>
-        <div class="u-stack">
-          {ev.ticket.sales.map((s) => (
-            <TicketSaleRow sale={s} />
-          ))}
-          {ev.ticket.url && (
-            <div class="card">
-              <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />
+      {
+        /* 受付 1 件 = 1 カード。段階・日程・当落・対象公演の文言は domain (`ticket_sales`) が
+           組み切ったものをそのまま出す。 */
+        ev.ticket && (
+          <Section id="event-ticket" title="チケット" count={ev.ticket.sales.length || undefined}>
+            <div class="u-stack">
+              {ev.ticket.sales.map((s) => (
+                <TicketSaleRow sale={s} />
+              ))}
+              {ev.ticket.url && (
+                <div class="card">
+                  <LabeledRow label="公式情報" value="チケット情報" href={ev.ticket.url} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </Section>
-    )
-  }
+          </Section>
+        )
+      }
+    </Fragment>
+  </DetailTabs>
 </DetailLayout>

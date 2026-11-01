@@ -2,6 +2,7 @@
 import type { AppOpen } from "./AppOpen";
 import type { CoOccurRow } from "./CoOccurRow";
 import type { CreditGroup } from "./CreditGroup";
+import type { DetailTab } from "./DetailTab";
 import type { EmptyText } from "./EmptyText";
 import type { LinkedNote } from "./LinkedNote";
 import type { LyricsBlock } from "./LyricsBlock";
@@ -90,4 +91,8 @@ historyEmpty: EmptyText | null, frequentSingers: Array<SingerRow>, coOccurring: 
  * アイドルの `profile_rows` と同じ形。**どの項目をどの順で出すか / 値が無い行を
  * 落とすか**の判断はここで済ませてあるので、web は上から並べるだけでよい。
  */
-factRows: Array<ProfileRow>, app: AppOpen, seo: SeoBlock, };
+factRows: Array<ProfileRow>, 
+/**
+ * タブ (情報・歌唱 / 歌詞 / 披露履歴 / コミュニティ)。`domain::detail_tabs::song_detail_tabs`。
+ */
+tabs: Array<DetailTab>, app: AppOpen, seo: SeoBlock, };

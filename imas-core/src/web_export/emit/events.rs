@@ -17,8 +17,10 @@ use crate::domain::setlist_lineup::{row_lineup, LineupSummary, FULL_CAST_LABEL, 
 use crate::domain::setlist_sections::{group_consecutive, section_label};
 use crate::domain::show_naming::show_identity;
 use crate::domain::song_detail_queries::FIRST_PERFORMANCE_LABEL;
+use crate::domain::detail_tabs as detail_tabs_rule;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::dto::common::detail_tabs;
 use crate::web_export::url::url_segment;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -54,6 +56,21 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         Ctx::crumb(&name, &path),
     ];
 
+    let ticket = ticket_info(ctx, event_id);
+    let cast = event_cast(ctx, event_id);
+    let releases: Vec<ReleaseInfo> = detail::event_releases(ctx.snap, event_id)
+        .into_iter()
+        .map(|r| ReleaseInfo {
+            id: r.id,
+            display: content::release_display(&r.title, r.release_date.as_deref()),
+            title: r.title,
+            kind_label: release_kind_label(&r.product_type).to_string(),
+            kind: Some(r.product_type),
+            release_date: r.release_date,
+            url: r.purchase_url,
+        })
+        .collect();
+
     Some(EventPage {
         schema_version: SCHEMA_VERSION,
         id: record.id.clone(),
@@ -68,21 +85,14 @@ pub fn event_page(ctx: &Ctx, event_id: &str) -> Option<EventPage> {
         is_upcoming: is_upcoming(ctx, first_date.as_deref()),
         date_display: range_label_ja(first_date.as_deref(), last_date.as_deref(), &ctx.today),
         date_badge: first_date.as_deref().map(DateBadge::from_ymd),
-        ticket: ticket_info(ctx, event_id),
+        tabs: detail_tabs(detail_tabs_rule::event_detail_tabs(
+            cast.as_ref().is_some_and(|c| !c.shows.is_empty()),
+            !releases.is_empty() || ticket.is_some(),
+        )),
+        ticket,
         stat_tiles: event_stat_tiles(detail::event_stats(ctx.snap, event_id)),
-        cast: event_cast(ctx, event_id),
-        releases: detail::event_releases(ctx.snap, event_id)
-            .into_iter()
-            .map(|r| ReleaseInfo {
-                id: r.id,
-                display: content::release_display(&r.title, r.release_date.as_deref()),
-                title: r.title,
-                kind_label: release_kind_label(&r.product_type).to_string(),
-                kind: Some(r.product_type),
-                release_date: r.release_date,
-                url: r.purchase_url,
-            })
-            .collect(),
+        cast,
+        releases,
         venues,
         shows_empty: content::empty_text(shows.is_empty(), content::EMPTY_EVENT_SHOWS, None),
         shows,

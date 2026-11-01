@@ -1,6 +1,6 @@
 //! 楽曲 (song) 詳細ページの DTO。
 
-use super::common::{AppOpen, DateBadge, EmptyText, LinkedNote, Ref, SeoBlock, StatTile};
+use super::common::{AppOpen, DateBadge, DetailTab, EmptyText, LinkedNote, Ref, SeoBlock, StatTile};
 use super::idol::ProfileRow;
 use super::common::{LyricsBlock, SongCommunity};
 
@@ -63,6 +63,8 @@ web_dto! {
         /// アイドルの `profile_rows` と同じ形。**どの項目をどの順で出すか / 値が無い行を
         /// 落とすか**の判断はここで済ませてあるので、web は上から並べるだけでよい。
         pub fact_rows: Vec<ProfileRow>,
+        /// タブ (情報・歌唱 / 歌詞 / 披露履歴 / コミュニティ)。`domain::detail_tabs::song_detail_tabs`。
+        pub tabs: Vec<DetailTab>,
         pub app: AppOpen,
         pub seo: SeoBlock,
     }

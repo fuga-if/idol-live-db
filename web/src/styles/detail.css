@@ -218,8 +218,9 @@ a.badge--lead:hover {
   color: var(--ds-ink2);
 }
 
-/* 棚の切替: ラジオを前に置き、兄弟セレクタで選んだ棚だけを見せる (JS なし)。
-   ラジオは見えなくする。ラベルが押せる面。CSS が無ければ全部の棚が縦に並ぶ。 */
+/* タブの切替 (.tabset): ラジオを前に置き、兄弟セレクタで選んだ中身だけを見せる (JS なし)。
+   ラジオは見えなくする。ラベルが押せる面。CSS が無ければ全部の中身が縦に並ぶ。
+   詳細ページのタブ (`DetailTabs`、.tabset--page) がこれで組まれている。 */
 .tabset__input {
   position: absolute;
   inline-size: 1px;
@@ -227,8 +228,20 @@ a.badge--lead:hover {
   opacity: 0;
   pointer-events: none;
 }
-.tabset .tabset__panels > .shelf {
+.tabset > .tabset__panels > * {
   display: none;
+}
+/* 詳細ページのタブ: 頭を越えたら上部バーの下に貼り付く (アプリの ImasTabs と同じ)。 */
+.dtabs--page {
+  position: sticky;
+  inset-block-start: var(--header-h);
+  z-index: 5;
+  background: var(--ds-bg);
+}
+.tabpanel {
+  flex-direction: column;
+  gap: var(--sp6);
+  padding-block-start: var(--sp5);
 }
 .tabset__input:nth-of-type(1):checked ~ .dtabs > :nth-child(1),
 .tabset__input:nth-of-type(2):checked ~ .dtabs > :nth-child(2),

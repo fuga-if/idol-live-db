@@ -1,0 +1,67 @@
+---
+import type { DetailTab } from "../lib/schema/DetailTab";
+
+/**
+ * 詳細ページのタブ (アプリの `ImasTabs`、DESIGN_SYSTEM §2.2)。頭の下に置き、中身の節を
+ * タブごとに分ける。**どのタブを何の順で出すかは Rust (`*Page.tabs`、`domain::detail_tabs`)。**
+ * ここは札と中身の器だけ。
+ *
+ * 切替はラジオ + 兄弟セレクタ (`.tabset`、JS なし)。CSS が無ければ全部の中身が縦に並ぶ。
+ * 中身は `slot` を `tabs[].key` の名で渡す (`<Fragment slot="history">`)。
+ *
+ * 少しの JS で 2 つだけ足す: 節への飛び先 (`#song-history` など、数の帯から) が畳まれた
+ * タブの中にあればそのタブを開く。札を押したら URL の `#tab-<key>` を差し替える
+ * (共有したリンクで同じタブが開く)。
+ */
+interface Props {
+  tabs: readonly DetailTab[];
+  /** ラジオの name。ページに 1 つ。 */
+  name: string;
+}
+const { tabs, name } = Astro.props;
+---
+
+<div class="tabset tabset--page" data-detail-tabs>
+  {tabs.map((t, i) => <input class="tabset__input" type="radio" name={name} id={`${name}-${t.key}`} value={t.key} checked={i === 0} />)}
+  <div class="dtabs dtabs--page">
+    {tabs.map((t) => <label for={`${name}-${t.key}`}><span class="dtabs__name">{t.label}</span></label>)}
+  </div>
+  <div class="tabset__panels">
+    {
+      tabs.map((t) => (
+        <div class="tabpanel" id={`tab-${t.key}`}>
+          <slot name={t.key} />
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-detail-tabs]");
+  if (root) {
+    const inputs = Array.from(root.querySelectorAll<HTMLInputElement>(":scope > .tabset__input"));
+    const panels = Array.from(root.querySelectorAll<HTMLElement>(":scope > .tabset__panels > .tabpanel"));
+    const open = (key: string) => {
+      const input = inputs.find((i) => i.value === key);
+      if (input && !input.checked) input.checked = true;
+      return !!input;
+    };
+    // `#tab-<key>` はタブそのもの、それ以外の `#id` は節 (畳まれたタブの中なら開いてから飛ぶ)。
+    const follow = () => {
+      const hash = decodeURIComponent(location.hash.slice(1));
+      if (!hash) return;
+      if (hash.startsWith("tab-") && open(hash.slice(4))) return;
+      const target = document.getElementById(hash);
+      const panel = target && panels.find((p) => p.contains(target));
+      if (panel && open(panel.id.slice(4))) target.scrollIntoView();
+    };
+    follow();
+    addEventListener("hashchange", follow);
+    for (const input of inputs) {
+      input.addEventListener("change", () => {
+        if (input.checked) history.replaceState(null, "", `#tab-${input.value}`);
+      });
+    }
+  }
+</script>

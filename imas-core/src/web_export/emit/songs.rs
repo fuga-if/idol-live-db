@@ -13,8 +13,10 @@ use crate::domain::song_detail_queries as detail;
 use crate::domain::song_detail_queries::performance_ordinal_label;
 use crate::domain::lyric_sync::parts_applicable;
 use crate::domain::snapshot::idol_short_name;
+use crate::domain::detail_tabs as detail_tabs_rule;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::dto::common::detail_tabs;
 use crate::web_export::url;
 
 /// 「よく歌う人」「よく一緒に披露される曲」に出す件数。アプリの詳細画面と同じ。
@@ -153,6 +155,7 @@ pub fn song_page(ctx: &Ctx, song_id: &str) -> Option<SongPage> {
         title_kana: record.title_kana.clone(),
         // 「みんなの記録」は、タグ・お気に入り・ペンライトのどれかがあるときだけ出す。
         has_community: !community.is_empty(),
+        tabs: detail_tabs(detail_tabs_rule::song_detail_tabs(!community.is_empty())),
         community,
         theme_key: ctx.brand_theme(brand_id.as_deref()),
         brand: brand_id.as_deref().and_then(|b| ctx.brand_ref(b)),

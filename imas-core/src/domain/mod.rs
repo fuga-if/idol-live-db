@@ -25,6 +25,7 @@ pub mod costume_queries;
 pub mod credit_names;
 pub mod daily_pick;
 pub mod date_display;
+pub mod detail_tabs;
 pub mod display_join;
 pub mod edit_permission_rules;
 pub mod event_detail_queries;

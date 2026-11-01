@@ -552,6 +552,7 @@ pub const EMPTY_SHOW_RECORDS: &str = "公演の記録がありません";
 pub const EMPTY_EVENT_SHOWS: &str = "公演がまだ登録されていません";
 pub const EMPTY_SONG_HISTORY: &str = "ライブでの披露記録がありません";
 pub const EMPTY_IDOL_SONGS: &str = "持ち曲がまだ登録されていません";
+pub const EMPTY_IDOL_LIVE: &str = "ライブの記録がまだありません";
 pub const EMPTY_SETLIST: &str = "セットリストがまだ登録されていません";
 pub const EMPTY_SETLIST_BODY: &str = "GitHub のリポジトリからデータの追加にご協力いただけます。";
 pub const EMPTY_BRAND_IDOLS: &str = "アイドルが登録されていません";

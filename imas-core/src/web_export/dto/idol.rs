@@ -1,6 +1,6 @@
 //! アイドル (idol) 詳細ページの DTO。
 
-use super::common::{AppOpen, DateBadge, EmptyText, Ref, SeoBlock, StatTile};
+use super::common::{AppOpen, DateBadge, DetailTab, EmptyText, Ref, SeoBlock, StatTile};
 use super::common::TagChipDto;
 
 web_dto! {
@@ -38,6 +38,10 @@ web_dto! {
         pub description: Option<String>,
         /// 数の帯 (持ち曲 / ライブで歌った曲 / 出演公演)。ページ内の該当の節へ飛ぶ。
         pub stat_tiles: Vec<StatTile>,
+        /// タブ (ライブ / 楽曲 / プロフィール / コミュニティ)。`domain::detail_tabs::idol_detail_tabs`。
+        pub tabs: Vec<DetailTab>,
+        /// 「ライブ」のタブに載せるものが 1 つも無い (歌った曲も出演公演も無い) ときの案内。
+        pub live_empty: Option<EmptyText>,
         pub app: AppOpen,
         pub seo: SeoBlock,
     }

@@ -10,6 +10,7 @@ import RefList from "../../components/RefList.astro";
 import StatStrip from "../../components/StatStrip.astro";
 import EmptyState from "../../components/EmptyState.astro";
 import CommunityTags from "../../components/CommunityTags.astro";
+import DetailTabs from "../../components/DetailTabs.astro";
 import { page, pathsFor } from "../../lib/data";
 import type { IdolPage } from "../../lib/schema/IdolPage";
 
@@ -17,11 +18,11 @@ export const getStaticPaths = () => pathsFor("idol", "idolId");
 
 const idol = page<IdolPage>(Astro.props.data);
 const songCount = idol.songSections.reduce((n, sec) => n + sec.songs.length, 0);
-const multiShelf = idol.songSections.length > 1;
 ---
 
-{/* 電話ではプロフィール・ユニット (脇) より持ち曲・出演公演 (本体) を先に。 */}
-<DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app} asideAfterMain>
+{/* 頭 → タブ (ライブ / 楽曲 / プロフィール / コミュニティ) → 中身。アプリのアイドル詳細と同じ組み
+    (DESIGN_SYSTEM §2.2)。どのタブを出すかは Rust (`idol.tabs`)。 */}
+<DetailLayout seo={idol.seo} themeKey={idol.themeKey} app={idol.app}>
   <Fragment slot="hero">
     <DetailHead title={idol.name} id="idol-title" kana={idol.nameKana}>
       <Fragment slot="sub">
@@ -41,136 +42,132 @@ const multiShelf = idol.songSections.length > 1;
     <StatStrip items={idol.statTiles} label="このアイドルの数" />
   </Fragment>
 
-  {
-    idol.tags.length > 0 && (
-      <Section id="idol-tags" title="みんなのタグ">
-        <CommunityTags tags={idol.tags} />
-      </Section>
-    )
-  }
+  <DetailTabs tabs={idol.tabs} name="idol-tab">
+    {/* ライブ: ライブで歌った曲・出演公演。どちらも無ければ案内 (Rust)。 */}
+    <Fragment slot="live">
+      {idol.liveEmpty && <EmptyState {...idol.liveEmpty} />}
+      {
+        idol.performedSongs.length > 0 && (
+          <Section id="idol-performed" title="ライブで歌った曲" count={idol.performedSongs.length}>
+            <ListContainer as="ol">
+              {idol.performedSongs.map((s, i) => (
+                <li>
+                  <DetailRow
+                    rank={i + 1}
+                    artwork={s.song}
+                    title={s.song.name}
+                    sub={s.subtitle}
+                    metric={s.times}
+                    href={s.song.path}
+                    themeKey={s.song.themeKey}
+                  />
+                </li>
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        idol.shows.length > 0 && (
+          <Section id="idol-shows" title="出演公演" count={idol.shows.length}>
+            <ul class="stub-list">
+              {idol.shows.map((s) => (
+                <li>
+                  <StubRow badge={s.dateBadge} title={s.event.name} href={s.show.path} themeKey={s.show.themeKey} meta={[s.subtitle]}>
+                    {s.songCount > 0 && (
+                      <span slot="trailing" class="num num--medium">
+                        {s.songCount}
+                        <span class="num__unit">曲</span>
+                      </span>
+                    )}
+                  </StubRow>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )
+      }
+    </Fragment>
 
-  {
-    idol.profileRows.length > 0 && (
-      <Section slot="aside" id="idol-profile" title="プロフィール">
-        <ListContainer>
-          {idol.profileRows.map((r) => (
-            <LabeledRow
-              label={r.label}
-              value={r.value}
-              href={r.link}
-              mono={r.style === "monospaced"}
-              swatch={r.style === "colorSwatch"}
-            />
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
-
-  {
-    idol.voiceActorHistory.length > 0 && (
-      <Section slot="aside" id="idol-cv" title="CV">
-        <ListContainer>
-          {idol.voiceActorHistory.map((v) => (
-            <LabeledRow label={v.label} value={v.display} />
-          ))}
-        </ListContainer>
-      </Section>
-    )
-  }
-
-  {
-    idol.units.length > 0 && (
-      <Section slot="aside" id="idol-units" title="所属ユニット" count={idol.units.length}>
-        <RefList refs={idol.units} variant="neutral" label="所属ユニット" />
-      </Section>
-    )
-  }
-
-  <Section id="idol-songs" title="持ち曲" count={songCount}>
-    {
-      idol.songsEmpty ? (
-        <EmptyState {...idol.songsEmpty} />
-      ) : (
-        <div class:list={["shelves", multiShelf && "tabset"]}>
-          {/* 棚の切替 = ImasTabs。ラジオ + 兄弟セレクタで切り替えるので JS は要らない
-              (CSS が無ければ全部の棚が縦に並ぶ)。棚の並びと見出しはアプリの持ち歌と同じ (Rust)。 */}
-          {multiShelf && idol.songSections.map((_, i) => (
-            <input class="tabset__input" type="radio" name="idol-shelf" id={`shelf-tab-${i}`} checked={i === 0} />
-          ))}
-          {multiShelf && (
-            <div class="dtabs" role="group" aria-label="持ち曲の種類">
-              {idol.songSections.map((sec, i) => (
-                <label for={`shelf-tab-${i}`}>
-                  <span class="dtabs__name">{sec.shortHeading}</span>
-                  <span class="dtabs__sub num">{sec.songs.length.toLocaleString("ja-JP")}</span>
-                </label>
+    {/* 楽曲: 持ち曲を ソロ曲 / ユニット曲 / 全体曲 / カバー の棚に分けて縦に積む (アプリの持ち歌と同じ、Rust)。
+        タブの中にさらにタブは置かない (§2.2)。 */}
+    <Fragment slot="songs">
+      <Section id="idol-songs" title="持ち曲" count={songCount}>
+        {
+          idol.songsEmpty ? (
+            <EmptyState {...idol.songsEmpty} />
+          ) : (
+            <div class="shelves">
+              {idol.songSections.map((sec) => (
+                <section class="shelf" aria-labelledby={sec.anchor}>
+                  <h3 class="shelf__title" id={sec.anchor}>
+                    {sec.heading}
+                    <span class="shelf__count num">{sec.songs.length.toLocaleString("ja-JP")}</span>
+                  </h3>
+                  <ListContainer as="ul">
+                    {sec.songs.map((s) => (
+                      <li>
+                        {/* 披露回数は Rust が副題に畳んでいる (`N 回披露`)。末尾に重ねて出さない。 */}
+                        <DetailRow artwork={s.song} title={s.song.name} sub={s.subtitle} href={s.song.path} themeKey={s.song.themeKey} />
+                      </li>
+                    ))}
+                  </ListContainer>
+                </section>
               ))}
             </div>
-          )}
-          <div class="tabset__panels">
-            {idol.songSections.map((sec) => (
-              <section class="shelf" aria-labelledby={sec.anchor}>
-                <h3 class:list={["shelf__title", multiShelf && "u-visually-hidden"]} id={sec.anchor}>
-                  {sec.heading}
-                  <span class="shelf__count num">{sec.songs.length.toLocaleString("ja-JP")}</span>
-                </h3>
-                <ListContainer as="ul">
-                  {sec.songs.map((s) => (
-                    <li>
-                      {/* 披露回数は Rust が副題に畳んでいる (`N 回披露`)。末尾に重ねて出さない。 */}
-                      <DetailRow artwork={s.song} title={s.song.name} sub={s.subtitle} href={s.song.path} themeKey={s.song.themeKey} />
-                    </li>
-                  ))}
-                </ListContainer>
-              </section>
-            ))}
-          </div>
-        </div>
-      )
-    }
-  </Section>
-
-  {
-    idol.performedSongs.length > 0 && (
-      <Section id="idol-performed" title="ライブで歌った曲" count={idol.performedSongs.length}>
-        <ListContainer as="ol">
-          {idol.performedSongs.map((s, i) => (
-            <li>
-              <DetailRow
-                rank={i + 1}
-                artwork={s.song}
-                title={s.song.name}
-                sub={s.subtitle}
-                metric={s.times}
-                href={s.song.path}
-                themeKey={s.song.themeKey}
-              />
-            </li>
-          ))}
-        </ListContainer>
+          )
+        }
       </Section>
-    )
-  }
+    </Fragment>
 
-  {
-    idol.shows.length > 0 && (
-      <Section id="idol-shows" title="出演公演" count={idol.shows.length}>
-        <ul class="stub-list">
-          {idol.shows.map((s) => (
-            <li>
-              <StubRow badge={s.dateBadge} title={s.event.name} href={s.show.path} themeKey={s.show.themeKey} meta={[s.subtitle]}>
-                {s.songCount > 0 && (
-                  <span slot="trailing" class="num num--medium">
-                    {s.songCount}
-                    <span class="num__unit">曲</span>
-                  </span>
-                )}
-              </StubRow>
-            </li>
-          ))}
-        </ul>
-      </Section>
-    )
-  }
+    {/* プロフィール: 項目表・CV の履歴・所属ユニット。 */}
+    <Fragment slot="profile">
+      {
+        idol.profileRows.length > 0 && (
+          <Section id="idol-profile" title="プロフィール">
+            <ListContainer>
+              {idol.profileRows.map((r) => (
+                <LabeledRow
+                  label={r.label}
+                  value={r.value}
+                  href={r.link}
+                  mono={r.style === "monospaced"}
+                  swatch={r.style === "colorSwatch"}
+                />
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        idol.voiceActorHistory.length > 0 && (
+          <Section id="idol-cv" title="CV">
+            <ListContainer>
+              {idol.voiceActorHistory.map((v) => (
+                <LabeledRow label={v.label} value={v.display} />
+              ))}
+            </ListContainer>
+          </Section>
+        )
+      }
+      {
+        idol.units.length > 0 && (
+          <Section id="idol-units" title="所属ユニット" count={idol.units.length}>
+            <RefList refs={idol.units} variant="neutral" label="所属ユニット" />
+          </Section>
+        )
+      }
+    </Fragment>
+
+    {/* コミュニティ: タブ自体はタグがあるときだけ来る (Rust)。 */}
+    <Fragment slot="community">
+      {
+        idol.tags.length > 0 && (
+          <Section id="idol-tags" title="みんなのタグ">
+            <CommunityTags tags={idol.tags} />
+          </Section>
+        )
+      }
+    </Fragment>
+  </DetailTabs>
 </DetailLayout>

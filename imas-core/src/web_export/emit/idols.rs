@@ -5,8 +5,10 @@ use crate::domain::idol_queries;
 use crate::domain::idol_song_queries;
 use crate::domain::screen_composition::{idol_profile_rows, RowAction, RowStyle};
 use crate::domain::unit_queries;
+use crate::domain::detail_tabs as detail_tabs_rule;
 use crate::web_export::content;
 use crate::web_export::dto::*;
+use crate::web_export::dto::common::detail_tabs;
 
 pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
     let idol = ctx.snap.idol(idol_id)?;
@@ -85,6 +87,7 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             })
             .collect();
     let shows: Vec<IdolShowRow> = idol_shows(ctx, idol_id, index);
+    let tags = super::context::tag_chips(ctx, TagScope::Idol, ctx.community.idol_tags(&record.id));
 
     Some(IdolPage {
         schema_version: SCHEMA_VERSION,
@@ -93,7 +96,13 @@ pub fn idol_page(ctx: &Ctx, idol_id: &str) -> Option<IdolPage> {
             StatTile::new("♬", performed_songs.len() as u32, "ライブで歌った曲").with_href("#idol-performed"),
             StatTile::new("▤", shows.len() as u32, "出演公演").with_href("#idol-shows"),
         ]),
-        tags: super::context::tag_chips(ctx, TagScope::Idol, ctx.community.idol_tags(&record.id)),
+        tabs: detail_tabs(detail_tabs_rule::idol_detail_tabs(!tags.is_empty())),
+        tags,
+        live_empty: content::empty_text(
+            performed_songs.is_empty() && shows.is_empty(),
+            content::EMPTY_IDOL_LIVE,
+            None,
+        ),
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),
@@ -266,9 +275,12 @@ pub fn unit_page(ctx: &Ctx, unit_id: &str) -> Option<UnitPage> {
     let songs: Vec<Ref> =
         unit_queries::unit_song_ids(ctx.snap, unit_id).iter().filter_map(|id| ctx.song_ref(id)).collect();
 
+    let tags = super::context::tag_chips(ctx, TagScope::Unit, ctx.community.unit_tags(&record.id));
+
     Some(UnitPage {
         schema_version: SCHEMA_VERSION,
-        tags: super::context::tag_chips(ctx, TagScope::Unit, ctx.community.unit_tags(&record.id)),
+        tabs: detail_tabs(detail_tabs_rule::unit_detail_tabs(!tags.is_empty())),
+        tags,
         id: record.id.clone(),
         path: path.clone(),
         name: record.name.clone(),
