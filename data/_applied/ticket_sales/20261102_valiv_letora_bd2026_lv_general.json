@@ -1,0 +1,18 @@
+{
+ "title": "レトラ BIRTHDAY ONLINE LIVE 2026 現地ライブビューイング 一般先着",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20256",
+ "ticket_sales": [
+  {
+   "event_id": "ev_レトラ_birthday_online_live_2026",
+   "kind": "first_come",
+   "name": "限定グッズ付き現地ライブビューイングチケット 一般先着",
+   "starts_at": "2026-11-04 12:00",
+   "ends_at": "2026-11-11 18:00",
+   "url": "https://livepocket.jp/e/va-liv_letora_bd2026",
+   "note": "9,000円(税込)。お一人様2枚まで。コンビニ決済は 11/9 23:59 まで",
+   "source_url": "https://idolmaster-official.jp/news/01_20256",
+   "sort_order": 3
+  }
+ ]
+}
