@@ -3341,7 +3341,7 @@ INSERT INTO "idols" VALUES('cg_高森藍子','cg','高森藍子','たかもり�
 INSERT INTO "idols" VALUES('cg_鷹富士茄子','cg','鷹富士茄子','たかふじかこ',NULL,'#5C068F',4100,'--01-01','AB',160.0,43.0,'島根',20,88.0,57.0,88.0,'山羊座','隠し芸',NULL,'島根出身の20歳の元日生まれの幸運体質アイドル。隠し芸が趣味、誠実に実力で勝負する。CV: 森下来奈。','female','right','鷹富士','茄子',NULL,'2011-12-28','cool',0,NULL,NULL);
 CREATE TABLE meta (key TEXT PRIMARY KEY NOT NULL, value TEXT);
 INSERT INTO "meta" VALUES('schema_version','1');
-INSERT INTO "meta" VALUES('data_version','115');
+INSERT INTO "meta" VALUES('data_version','116');
 INSERT INTO "meta" VALUES('migration_v14_idol_is_external','applied');
 INSERT INTO "meta" VALUES('content_hash','2aa7a46f3715a4a1ef87214b4fffccbd4137a8edc8d49048d0e084df00c7a2ce');
 CREATE TABLE setlist_items (id TEXT PRIMARY KEY NOT NULL, show_id TEXT NOT NULL, song_id TEXT NOT NULL, position INTEGER NOT NULL, section TEXT, notes TEXT, unit_name TEXT, UNIQUE(show_id, position));
@@ -16937,6 +16937,14 @@ INSERT INTO "setlist_items" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_
 INSERT INTO "setlist_items" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0006','sh_灯里愛夏_birthday_online_live_2026_1','876_はらぺこ泣き虫',6,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0007','sh_灯里愛夏_birthday_online_live_2026_1','cg_サインオブホープ',7,NULL,NULL,NULL);
 INSERT INTO "setlist_items" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0008','sh_灯里愛夏_birthday_online_live_2026_1','876_あっちこっちプリンセス',8,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0001','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_relations',1,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0002','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_マリオネットの心',2,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0003','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_nostalgia',3,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0004','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','ml_追憶のサンドグラス',4,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0005','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','ml_marionetteは眠らない',5,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0006','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_ダンスダンスダンス',6,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0007','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_ショッキングな彼',7,NULL,NULL,NULL);
+INSERT INTO "setlist_items" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0008','sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1','765as_day_of_the_future',8,NULL,NULL,NULL);
 CREATE TABLE "setlist_performers" (
             setlist_item_id TEXT NOT NULL,
             idol_id TEXT NOT NULL,
@@ -74878,6 +74886,14 @@ INSERT INTO "setlist_performers" VALUES('sh_灯里愛夏_birthday_online_live_20
 INSERT INTO "setlist_performers" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0006','876_灯里愛夏');
 INSERT INTO "setlist_performers" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0007','876_灯里愛夏');
 INSERT INTO "setlist_performers" VALUES('sh_灯里愛夏_birthday_online_live_2026_1_0008','876_灯里愛夏');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0001','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0002','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0003','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0004','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0005','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0006','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0007','765as_星井美希');
+INSERT INTO "setlist_performers" VALUES('sh_miki_hoshii_solo_showcase_the_future_spotlight_in_comic_frontier_1_0008','765as_星井美希');
 CREATE TABLE "show_cast" (
             show_id TEXT NOT NULL,
             idol_id TEXT NOT NULL, cast_role TEXT NOT NULL DEFAULT 'member',
@@ -121109,9 +121125,6 @@ INSERT INTO "ticket_sales" VALUES('ts_769374a974a5','ev_315_production_presents_
 INSERT INTO "ticket_sales" VALUES('ts_14518c9f5b01','ev_灯里愛夏_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-09-21','2026-10-04 23:59','2026-10-06','https://livepocket.jp/e/va-liv_manaka_bd2026_re','ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]。入金期間 10/6〜10/11 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_19896.html',0);
 INSERT INTO "ticket_sales" VALUES('ts_2aa1df8eead9','ev_灯里愛夏_birthday_online_live_2026',NULL,'first_come','配信チケット (Z-aN)','2026-10-23 22:00','2026-11-29 18:00',NULL,'https://www.zan-live.com/ja/live/detail/11035','Z-aN 通常配信チケット 5,000円(税込)、プレゼント用視聴チケット 5,000円。特典: アフタートーク配信視聴権。アーカイブは 11/29 23:59 まで。ASOBI STAGE で 9/21 から販売していた配信チケットは無効 (払い戻し)','https://www.zan-live.com/ja/live/detail/11035',1);
 INSERT INTO "ticket_sales" VALUES('ts_ce9b13eef9b3','ev_灯里愛夏_birthday_online_live_2026',NULL,'first_come','限定グッズ付き現地ライブビューイングチケット 一般先着','2026-10-17 12:00','2026-10-28 18:00',NULL,'https://livepocket.jp/e/va-liv_manaka_bd2026_re','ユナイテッド・シネマ アクアシティお台場 [3番スクリーン]。全席指定 9,000円(税込)。コンビニ決済は 10/26 23:59 まで、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20111.html',2);
-INSERT INTO "ticket_sales" VALUES('ts_a97e0d95b8ba','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-10-01 21:00','2026-10-11 23:59','2026-10-13','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。入金期間 10/13〜10/18 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20045.html',0);
-INSERT INTO "ticket_sales" VALUES('ts_3b12b8465b80','ev_レトラ_birthday_online_live_2026',NULL,'first_come','配信チケット','2026-10-12 12:00','2026-12-13 18:00',NULL,'https://asobistage.asobistore.jp/event/valiv_bd2026_letora/ticket','ASOBI STAGE 5,000円(税込・機能利用料込)。プレゼント用視聴チケットあり。配信特典: 終演後のアフタートーク配信','https://idolmaster-official.jp/news/01_20100.html',1);
-INSERT INTO "ticket_sales" VALUES('ts_d0b88f03beac','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選二次','2026-10-16 20:00','2026-10-30 23:59','2026-10-31','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。9,000円(税込)。入金期間 10/31〜11/3 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20161.html',2);
 INSERT INTO "ticket_sales" VALUES('ts_53770c58613a','ev_765_production_×_961_production_idol_ultimate_once_and_for_all',NULL,'lottery','アソビストアプレミアム会員先行','2026-09-06 12:00','2026-11-08 23:59','2026-11-25 13:00','https://asobiticket2.asobistore.jp/receptions/36ac2a17-d201-44fd-ab28-049fc28c560d','ASOBI STORE 緊急メンテナンスに伴い受付期間を 10/28 23:59 → 11/8 23:59 に延長。結果発表 11/25 13:00〜、入金期間 11/25 13:00〜11/30 23:59 (公式ニュース 2026-10-27)','https://idolmaster-official.jp/news/01_20219.html',0);
 INSERT INTO "ticket_sales" VALUES('ts_3029b614eb66','ev_シンデレラガールズ_15周年_大型イベント',NULL,'lottery','アソビストア一般会員先行','2026-09-30 12:00','2026-10-19 23:59','2026-10-31 13:00','https://asobiticket2.asobistore.jp/receptions/b8fb50b4-d55d-49e2-96d4-f6c6fdc97b0b','アソビストア会員限定。1公演2枚まで(複数公演申込可)。入金期間10/31 13:00〜11/4 23:59。対象席種はSPラウンジ席/バルコニー席/全席指定/着席指定。','https://idolmaster-official.jp/live_event/cg_15th_for_your_one/',0);
 INSERT INTO "ticket_sales" VALUES('ts_55b7c0876ff1','ev_シンデレラガールズ_15周年_大型イベント',NULL,'lottery','アソビストアプレミアム会員先行','2026-08-02 16:00','2026-08-23 23:59','2026-09-05 13:00','https://asobiticket2.asobistore.jp/receptions/26e2852d-7ff6-4d47-8c67-3598602d923f','アソビストアプレミアム12ヶ月会員限定。1公演2枚まで(複数公演申込可)。入金期間9/5 13:00〜9/9 23:59。対象席種はSPラウンジ席/バルコニー席/全席指定/着席指定。','https://idolmaster-official.jp/live_event/cg_15th_for_your_one/',1);
@@ -121120,6 +121133,10 @@ INSERT INTO "ticket_sales" VALUES('ts_50b6a00e0ded','ev_シンデレラガール
 INSERT INTO "ticket_sales" VALUES('ts_c880ff9f24ac','ev_シンデレラガールズ_15周年_大型イベント','sh_シンデレラガールズ_15周年_大型イベント_2','resale','公式リセール(11/29 DAY2)','2026-11-07 15:00','2026-11-23 09:59',NULL,'https://asobiticket2.asobistore.jp/receptions/203a03a6-56ca-4c39-b121-1ed44b332e83','対象席種はSPラウンジ席 / バルコニー席 / 全席指定 / 着席指定席。お一人様1公演につき2枚まで。購入希望者がいない場合は出品が成立しないことあり。リセール抽選中（毎日10:00〜抽選終了まで）は申込・キャンセル不可。11月21日00:00以降の支払いはクレジットカードのみ','https://idolmaster-official.jp/news/01_20192',4);
 INSERT INTO "ticket_sales" VALUES('ts_dfa3446f6cc2','ev_xr_live_revival',NULL,'lottery','アソビストア一般会員先行','2026-10-03 19:00','2026-11-08 23:59','2026-11-14 13:00','https://asobiticket2.asobistore.jp/receptions/d0d5822a-deb6-46fa-b2ab-19b2fedb592c','入金期間 11/14 13:00〜11/18 23:59。お一人様 1 公演につき 2 枚まで（複数公演申込可）','https://idolmaster-official.jp/news/01_20062',0);
 INSERT INTO "ticket_sales" VALUES('ts_68bd3f7bb694','ev_lisani_tokyo_2027_sunday_stage',NULL,'lottery','チケット最速先行','2026-11-01 00:00','2026-11-15 23:59',NULL,'https://eplus.jp/lisani2027/','全席指定 13,200円(税込)。お一人様1公演につき4枚まで','https://www.lisani.jp/live/',0);
+INSERT INTO "ticket_sales" VALUES('ts_a97e0d95b8ba','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選','2026-10-01 21:00','2026-10-11 23:59','2026-10-13','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。入金期間 10/13〜10/18 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20045.html',0);
+INSERT INTO "ticket_sales" VALUES('ts_3b12b8465b80','ev_レトラ_birthday_online_live_2026',NULL,'first_come','配信チケット','2026-10-12 12:00','2026-12-13 18:00',NULL,'https://asobistage.asobistore.jp/event/valiv_bd2026_letora/ticket','ASOBI STAGE 5,000円(税込・機能利用料込)。プレゼント用視聴チケットあり。配信特典: 終演後のアフタートーク配信','https://idolmaster-official.jp/news/01_20100.html',1);
+INSERT INTO "ticket_sales" VALUES('ts_d0b88f03beac','ev_レトラ_birthday_online_live_2026',NULL,'lottery','限定グッズ付き現地ライブビューイングチケット 先行抽選二次','2026-10-16 20:00','2026-10-30 23:59','2026-10-31','https://livepocket.jp/e/va-liv_letora_bd2026','ユナイテッド・シネマ アクアシティお台場。9,000円(税込)。入金期間 10/31〜11/3 23:59、お一人様 2 枚まで','https://idolmaster-official.jp/news/01_20161.html',2);
+INSERT INTO "ticket_sales" VALUES('ts_6633d1c7382d','ev_レトラ_birthday_online_live_2026',NULL,'first_come','限定グッズ付き現地ライブビューイングチケット 一般先着','2026-11-04 12:00','2026-11-11 18:00',NULL,'https://livepocket.jp/e/va-liv_letora_bd2026','9,000円(税込)。お一人様2枚まで。コンビニ決済は 11/9 23:59 まで','https://idolmaster-official.jp/news/01_20256',3);
 CREATE TABLE unit_members (unit_id TEXT NOT NULL, idol_id TEXT NOT NULL, PRIMARY KEY (unit_id, idol_id));
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_成宮由愛');
 INSERT INTO "unit_members" VALUES('オリジナル_カラーズ_feat_和','cg_的場梨沙');
