@@ -114,7 +114,6 @@ fun CalendarScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            com.fugaif.imaslivedb.ui.components.LyricsLicenseNotice(compact = true)
             FilterBar(state, viewModel)
 
             if (state.weekMode) {

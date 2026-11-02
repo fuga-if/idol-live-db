@@ -18,9 +18,9 @@ import com.fugaif.imaslivedb.ui.theme.DS
 
 /** 原本のマークの下に、この Android 版の許諾番号を表示する。 */
 @Composable
-fun LyricsLicenseNotice(compact: Boolean = false) {
+fun LyricsLicenseNotice() {
     Column(
-        Modifier.fillMaxWidth().padding(vertical = if (compact) DS.sp1 else DS.sp5),
+        Modifier.fillMaxWidth().padding(vertical = DS.sp5),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(DS.sp2)
     ) {
@@ -30,13 +30,11 @@ fun LyricsLicenseNotice(compact: Boolean = false) {
             modifier = Modifier.height(28.dp).width(28.dp)
         )
         ImasText(JASRACLicense.NOTICE, ImasTextRole.META)
-        if (!compact) {
-            androidx.compose.foundation.Image(
-                painter = androidx.compose.ui.res.painterResource(id = com.fugaif.imaslivedb.R.drawable.nextone_mark),
-                contentDescription = null,
-                modifier = Modifier.height(28.dp).width(28.dp)
-            )
-            ImasText(NexToneLicense.NOTICE, ImasTextRole.META)
-        }
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = com.fugaif.imaslivedb.R.drawable.nextone_mark),
+            contentDescription = null,
+            modifier = Modifier.height(28.dp).width(28.dp)
+        )
+        ImasText(NexToneLicense.NOTICE, ImasTextRole.META)
     }
 }
