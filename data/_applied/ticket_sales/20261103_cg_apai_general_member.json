@@ -1,0 +1,19 @@
+{
+ "title": "ATHOME xR LIVE Apple of my アイ 現地チケット アソビストア一般会員先行",
+ "author": "daily-data-crawl",
+ "source": "https://idolmaster-official.jp/news/01_20265",
+ "ticket_sales": [
+  {
+   "event_id": "ev_athome_xr_live_apple_of_my_アイ",
+   "kind": "lottery",
+   "name": "アソビストア一般会員先行",
+   "starts_at": "2026-11-02 12:00",
+   "ends_at": "2026-11-15 23:59",
+   "result_at": "2026-11-28 13:00",
+   "url": "https://asobiticket2.asobistore.jp/receptions/c229a53c-ea41-4007-b747-57dbaa7f6724",
+   "note": "受付対象: 現地チケット 全席指定 9,800円・【特典付き】現地+xRライブストリーミングセット 15,000円・各 3公演通し券。スペシャル特典付きは対象外。入金 11/28 13:00〜12/2 23:59。1公演2枚まで",
+   "source_url": "https://idolmaster-official.jp/news/01_20265",
+   "sort_order": 1
+  }
+ ]
+}
