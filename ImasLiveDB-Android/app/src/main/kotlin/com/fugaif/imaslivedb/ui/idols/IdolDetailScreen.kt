@@ -676,8 +676,7 @@ private fun ProfileBody(
                 }
                 // カラーは押すと写せる (配信や実況で色コードを使う人が居る)。
                 RowAction.CopyValue -> ({ clipboard.setText(AnnotatedString(row.value)) })
-                // 全文展開は ImasLabeledRow が未対応なので、行の onClick には載せない
-                // (値の全文は行の長押しコピーで取れる)。
+                // 展開は ImasLabeledRow が自前の状態で行うので、行の onClick には載せない。
                 RowAction.ToggleExpansion, RowAction.None -> null
             }
             ImasLabeledRow(
@@ -690,7 +689,9 @@ private fun ProfileBody(
                 // 「別画面へ行く」行だけ立てる — 複写は押せるが行先が無いので矢印は嘘になる
                 // (iOS ImasLabeledRow の showChevron/tappable と同じ切り分け)。
                 tappable = action is RowAction.FilterByBirthMonth || action is RowAction.FilterBySubAttribute,
-                seed = idol.color, brand = idol.brandId, onClick = onClick
+                seed = idol.color, brand = idol.brandId, onClick = onClick,
+                // 遷移/複写を持たない行 (よみ/趣味・特技 等) はタップで全文展開できるようにする (iOS と同じ)。
+                expandable = onClick == null
             )
         }
         idol.description?.takeIf { it.isNotEmpty() }?.let { desc ->
