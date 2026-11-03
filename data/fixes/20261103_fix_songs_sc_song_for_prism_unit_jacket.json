@@ -1,0 +1,74 @@
+{
+ "title": "シャニマス Song for Prism の両A面曲を、歌うユニットの盤のジャケに直す",
+ "author": "fuga (thread: グッバイのジャケをノクチルに直す)",
+ "source": "iTunes Lookup API https://itunes.apple.com/lookup?country=jp&id=1776583326,1737148869,1764932456,1797688558,1753379826,1745447731",
+ "note": "Song for Prism は同じ2曲を各ユニット盤で出しているため、相手ユニット盤のトラックに紐づいてジャケが相手側になっていた（例: グッバイ→コメティック盤）。歌うユニットの盤のトラックに付け替える。",
+ "fixes": [
+  {
+   "table": "songs",
+   "id": "sc_グッバイ",
+   "fields": {
+    "apple_music_id": "1776583326",
+    "apple_music_album_id": "1776583325",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2b/27/37/2b27373a-8cfb-a4be-5af8-5af1d30808b3/4540774246298.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/44/96/5d/44965d30-b8e7-6303-1b4a-e1620b532a59/mzaf_9002052943996164759.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism Heads or Tails? / グッバイ【ノクチル盤】 - EP"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sc_青空",
+   "fields": {
+    "apple_music_id": "1737148869",
+    "apple_music_album_id": "1737148868",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/6d/bd/e7/6dbde767-fc8b-7df6-cc89-8375563587f5/4540774245260.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4f/23/7c/4f237ce0-f8d1-e66c-03e9-412d14952033/mzaf_5785781939641208642.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism ハナムケのハナタバ / 青空【ノクチル盤】 - EP"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sc_mellow_mellow",
+   "fields": {
+    "apple_music_id": "1764932456",
+    "apple_music_album_id": "1764932455",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/18/6a/d9/186ad9c7-fc86-a9a1-8bea-50357ca569e9/4540774246106.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/80/ec/77/80ec774d-a08f-c676-5b73-b121a97517ff/mzaf_1707747991245263430.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism After Run / mellow mellow【アルストロメリア盤】 - EP"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sc_real_mind_shakes",
+   "fields": {
+    "apple_music_id": "1797688558",
+    "apple_music_album_id": "1797688556",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/ff/ca/98/ffca98ef-4c28-d349-6a96-dd03db8f7cdf/4540774246366.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3e/8d/96/3e8d967d-920a-3d30-3c69-6c728f219000/mzaf_16972043732716868624.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism Real Mind Shakes / THE LAST PRIDE【ストレイライト盤】 - EP"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sc_時限式狂騒ワンダーランド",
+   "fields": {
+    "apple_music_id": "1753379826",
+    "apple_music_album_id": "1753379825",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/6f/5c/a4/6f5ca429-161d-f859-ea82-9bc2cb9fb576/4540774245529.png/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4d/55/8f/4d558fa6-568c-0b3b-c3a3-891e85f71dfe/mzaf_13808493424104098714.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism 時限式狂騒ワンダーランド / LINKs【アンティーカ盤】 - EP"
+   }
+  },
+  {
+   "table": "songs",
+   "id": "sc_枕木の歌",
+   "fields": {
+    "apple_music_id": "1745447731",
+    "apple_music_album_id": "1745447730",
+    "artwork_url": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/9c/e6/d6/9ce6d6fb-e59b-29e4-63d5-e243e12063fb/4540774245291.jpg/600x600bb.jpg",
+    "preview_url": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bc/3c/85/bc3c850e-577f-2c79-e5b7-98432e41b45e/mzaf_8875238767489995038.plus.aac.p.m4a",
+    "cd_series": "THE IDOLM@STER SHINY COLORS Song for Prism Happier / 枕木の歌【イルミネーションスターズ盤】 - EP"
+   }
+  }
+ ]
+}
