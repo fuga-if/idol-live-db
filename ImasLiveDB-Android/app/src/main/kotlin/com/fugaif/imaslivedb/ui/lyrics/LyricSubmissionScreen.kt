@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -57,12 +59,14 @@ import com.fugaif.imaslivedb.ui.designsystem.ImasIconButton
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonSize
 import com.fugaif.imaslivedb.ui.designsystem.ImasIconButtonStyle
 import com.fugaif.imaslivedb.ui.designsystem.ImasRubyPreview
-import com.fugaif.imaslivedb.ui.designsystem.ImasTextSelectionAction
 import com.fugaif.imaslivedb.ui.designsystem.ImasSavingOverlay
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbar
 import com.fugaif.imaslivedb.ui.designsystem.ImasSheetToolbarKind
 import com.fugaif.imaslivedb.ui.designsystem.ImasStep
 import com.fugaif.imaslivedb.ui.designsystem.ImasStepList
+import com.fugaif.imaslivedb.ui.designsystem.ImasSuggestionBar
+import com.fugaif.imaslivedb.ui.designsystem.ImasSuggestionBarStyle
+import com.fugaif.imaslivedb.ui.designsystem.ImasTextSelectionAction
 import com.fugaif.imaslivedb.ui.producercard.PaperCardCodeReader
 import com.fugaif.imaslivedb.ui.producercard.cardCameraAvailable
 import com.fugaif.imaslivedb.ui.producercard.rememberDocumentCamera
@@ -108,6 +112,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
     /** 送る形の本文 (読み仮名を記法で入れたもの)。画面には出さない。 */
     val markup = lyricRubyJoin(text, rubies)
     fun setText(new: String) = LyricSubmissionDrafts.setText(song.id, new)
+    val rubyEditor = remember { RubyEditorState() }
     fun setAgreed(new: Boolean) = LyricSubmissionDrafts.update(song.id) { it.copy(agreed = new) }
 
     var isSaving by remember { mutableStateOf(false) }
@@ -207,6 +212,7 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
 
                 ImasFormCard {
                     LyricsRubyFields(
+                        state = rubyEditor,
                         text = text,
                         onTextChange = { setText(it) },
                         onAddRuby = { start, end, reading ->
@@ -246,6 +252,18 @@ fun LyricSubmissionScreen(song: Song, onDismiss: () -> Unit) {
                 ImasText(
                     "送った歌詞はすぐに公開され、運営があとから確認します。歌詞サイトや他のサービスから写した歌詞は、公開後でも削除し、投稿した人のアカウントを止めることがあります。聴き取りの書き起こしも投稿できません。",
                     ImasTextRole.NOTE
+                )
+            }
+            // キーボードのすぐ上の帯 (iOS の入力欄の inputAccessoryView)。歌詞が長くて下の
+            // 「選んだ字に読み仮名を付ける」が画面の外にあっても、字を選んだまま押せる。
+            if (rubyEditor.focused) {
+                ImasSuggestionBar(
+                    icon = Icons.Filled.TextFields,
+                    title = "ルビを付ける",
+                    detail = if (rubyEditor.selected == null) "歌詞の字を選んでください" else null,
+                    onClick = { rubyEditor.ask(rubyEditor.selected) },
+                    style = ImasSuggestionBarStyle.PROMINENT,
+                    isEnabled = rubyEditor.selected != null
                 )
             }
         }
@@ -369,62 +387,71 @@ private fun IssueNotes(
  * コードポイントの位置へ直す。
  */
 @Composable
-private fun LyricsRubyFields(text: String, onTextChange: (String) -> Unit, onAddRuby: (Int, Int, String) -> Unit) {
+private fun LyricsRubyFields(
+    state: RubyEditorState,
+    text: String,
+    onTextChange: (String) -> Unit,
+    onAddRuby: (Int, Int, String) -> Unit
+) {
     var field by rememberRubyFieldValue(text)
-    var pending by remember { mutableStateOf<IntRange?>(null) }
-    var reading by remember { mutableStateOf("") }
 
-    val selection = field.selection
-    val selectedCodepoints: IntRange? = if (selection.collapsed) {
-        null
-    } else {
-        val start = text.codePointCount(0, selection.min)
-        val end = text.codePointCount(0, selection.max)
-        start until end
-    }
+    fun codepoints(selection: TextRange): IntRange? =
+        if (selection.collapsed) null else text.codePointCount(0, selection.min) until text.codePointCount(0, selection.max)
 
     ImasFormSelectableTextArea(
         label = "歌詞",
         value = field,
         onValueChange = {
             field = it
+            state.selected = if (it.selection.collapsed) null else it.text.codePointCount(0, it.selection.min) until it.text.codePointCount(0, it.selection.max)
             if (it.text != text) onTextChange(it.text)
         },
         prompt = "1 行ずつ改行して入力してください",
+        modifier = Modifier.onFocusChanged { state.focused = it.hasFocus },
         imprint = "LYRICS",
         selectionActions = listOf(
-            ImasTextSelectionAction("ルビ") { range ->
-                if (!range.collapsed) {
-                    reading = ""
-                    pending = text.codePointCount(0, range.min) until text.codePointCount(0, range.max)
-                }
-            }
+            ImasTextSelectionAction("ルビ") { range -> state.ask(codepoints(range)) }
         )
     )
     ImasFormField(label = "読み仮名を付ける", imprint = "RUBY", icon = Icons.Filled.TextFields) {
+        val selected = codepoints(field.selection)
         ImasButton(
-            title = if (selectedCodepoints == null) "歌詞の字を選んでください" else "選んだ字に読み仮名を付ける",
-            onClick = {
-                reading = ""
-                pending = selectedCodepoints
-            },
+            title = if (selected == null) "歌詞の字を選んでください" else "選んだ字に読み仮名を付ける",
+            onClick = { state.ask(selected) },
             role = ImasButtonRole.SECONDARY,
             size = ImasButtonSize.SMALL,
-            enabled = selectedCodepoints != null
+            enabled = selected != null
         )
     }
 
-    val range = pending
+    val range = state.pending
     if (range != null) {
         RubyReadingDialog(
-            reading = reading,
-            onReadingChange = { reading = it },
+            reading = state.reading,
+            onReadingChange = { state.reading = it },
             onConfirm = {
-                onAddRuby(range.first, range.last + 1, reading)
-                pending = null
+                onAddRuby(range.first, range.last + 1, state.reading)
+                state.pending = null
             },
-            onDismiss = { pending = null }
+            onDismiss = { state.pending = null }
         )
+    }
+}
+
+/**
+ * 歌詞の入力欄の選択 (コードポイントの位置) と、読みを聞いている範囲。入力欄と、キーボードの上の帯で分け合う。
+ */
+@Stable
+private class RubyEditorState {
+    var selected by mutableStateOf<IntRange?>(null)
+    var focused by mutableStateOf(false)
+    var pending by mutableStateOf<IntRange?>(null)
+    var reading by mutableStateOf("")
+
+    fun ask(range: IntRange?) {
+        if (range == null) return
+        reading = ""
+        pending = range
     }
 }
 

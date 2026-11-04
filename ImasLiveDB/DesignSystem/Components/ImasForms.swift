@@ -211,6 +211,7 @@ private struct SelectableTextView: UIViewRepresentable {
         view.accessibilityLabel = label
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         view.text = text
+        view.inputAccessoryView = context.coordinator.makeAccessory()
         return view
     }
 
@@ -236,7 +237,36 @@ private struct SelectableTextView: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: SelectableTextView
+        private weak var textView: UITextView?
+        private var accessoryItems: [UIBarButtonItem] = []
         init(_ parent: SelectableTextView) { self.parent = parent }
+
+        /// キーボードのすぐ上の帯。足した項目を並べ、字を選んでいる間だけ押せる
+        /// (入力欄が長くて画面の下の部品が見えなくても、選んだまま押せるように)。
+        func makeAccessory() -> UIToolbar? {
+            guard !parent.actions.isEmpty else { return nil }
+            let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+            accessoryItems = parent.actions.indices.map { index in
+                let action = parent.actions[index]
+                // 字だけで出す (記号だけだと iOS 26 の帯では何のボタンか分からない)。
+                let item = UIBarButtonItem(primaryAction: UIAction(title: action.title) { [weak self] _ in
+                    self?.runAccessory(index)
+                })
+                item.isEnabled = false
+                return item
+            }
+            bar.items = accessoryItems + [.flexibleSpace()]
+            bar.sizeToFit()
+            return bar
+        }
+
+        private func runAccessory(_ index: Int) {
+            guard let view = textView, index < parent.actions.count,
+                  let scalars = Self.scalars(view.selectedRange, in: view.text) else { return }
+            parent.actions[index].handler(scalars)
+        }
+
+        func textViewDidBeginEditing(_ view: UITextView) { textView = view }
 
         func textViewDidChange(_ view: UITextView) {
             if parent.text != view.text { parent.text = view.text }
@@ -244,7 +274,9 @@ private struct SelectableTextView: UIViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ view: UITextView) {
+            textView = view
             let range = Self.scalars(view.selectedRange, in: view.text)
+            accessoryItems.forEach { $0.isEnabled = range != nil }
             if parent.selection != range { parent.selection = range }
         }
 
