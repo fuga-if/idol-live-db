@@ -61,23 +61,27 @@ final class CallGuideEditorModel {
     /// 幅ゼロのアンカー (`start == end`、行末の追っかけ) は被せる相手が無いので
     /// `timing` は `after` に倒す (サーバも同じ規則で正規化する)。
     func addCall(lineId: String, start: Int, end: Int, anchorText: String,
-                 text: String, emphasis: CallEmphasis, timing: CallTiming) {
+                 text: String, emphasis: CallEmphasis, timing: CallTiming,
+                 penlight: LyricPenlight? = nil) {
         mutate(lineId) {
             $0.calls.append(LyricCall(id: Self.newCallId(), start: start, end: end,
                                       anchorText: anchorText, text: text,
                                       emphasis: emphasis,
                                       timing: end > start ? timing : .after,
-                                      stale: nil))
+                                      stale: nil, penlight: penlight))
         }
     }
 
+    /// `penlight` を渡すとペンライトの指示になり、nil なら叫ぶコールになる (どちらにも切り替えられる)。
     func updateCall(lineId: String, callId: String, text: String,
-                    emphasis: CallEmphasis, timing: CallTiming) {
+                    emphasis: CallEmphasis, timing: CallTiming,
+                    penlight: LyricPenlight? = nil) {
         mutate(lineId) { line in
             guard let index = line.calls.firstIndex(where: { $0.id == callId }) else { return }
             line.calls[index].text = text
             line.calls[index].emphasis = emphasis
             line.calls[index].timing = line.calls[index].hasAnchor ? timing : .after
+            line.calls[index].penlight = penlight
         }
     }
 

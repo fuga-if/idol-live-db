@@ -104,12 +104,17 @@ struct CallGuideCallRows: View {
                 .font(.imasCaption2)
                 .foregroundStyle(DS.ink3)
                 .frame(width: 16, alignment: .trailing)
-            Text(call.text)
-                .font(.imasFootnote.weight(.semibold))
-                .foregroundStyle(call.emphasis.color(accent: theme.accent))
-                .fixedSize(horizontal: false, vertical: true)
-                .multilineTextAlignment(.leading)
-            if call.isOverlapping {
+            if let penlight = call.penlight {
+                // ペンライトの指示は文言ではなく棒と動きの記号で出す (text は古いアプリ向け)。
+                CallGuidePenlightLabel(penlight: penlight)
+            } else {
+                Text(call.text)
+                    .font(.imasFootnote.weight(.semibold))
+                    .foregroundStyle(call.emphasis.color(accent: theme.accent))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
+            }
+            if call.isOverlapping, !call.isPenlight {
                 ImasBadge(text: CallTiming.over.label, kind: .neutral)
             } else if isMixed, !call.hasAnchor {
                 ImasBadge(text: "行末", kind: .neutral)
@@ -126,6 +131,7 @@ struct CallGuideCallRows: View {
     }
 
     private func accessibilityLabel(_ call: LyricCall) -> String {
+        if call.isPenlight { return call.text }
         let place = call.hasAnchor ? call.timing.label : "行末"
         return "\(place)のコール: \(call.text)。\(call.emphasis.label)"
     }
@@ -183,8 +189,12 @@ struct CallGuideLegend: View {
     let claps: [LyricClap]
     /// 「同時」のコールがこの曲にあるか。追っかけ (既定) は凡例に出さない。
     var showsOverTiming: Bool = false
+    /// この曲のペンライトの指示で使われている動き。記号の読み方を凡例に出す。
+    var penlightMoves: [LyricPenlightMove] = []
 
-    private var isEmpty: Bool { emphases.isEmpty && claps.isEmpty && !showsOverTiming }
+    private var isEmpty: Bool {
+        emphases.isEmpty && claps.isEmpty && !showsOverTiming && penlightMoves.isEmpty
+    }
 
     var body: some View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
@@ -198,6 +208,9 @@ struct CallGuideLegend: View {
                 }
                 if showsOverTiming {
                     legendItem(symbol: CallTiming.over.label, text: "歌に被せる")
+                }
+                ForEach(penlightMoves, id: \.self) { move in
+                    ImasChip(text: move.label, style: .neutral, leading: .symbol(move.symbol))
                 }
             }
         }

@@ -138,6 +138,54 @@ extension CallTiming: Decodable {
     }
 }
 
+/// ペンライトの動き (ペンラ芸)。保存値は Worker / コアと 1:1 (`lyric_penlight`)。
+enum LyricPenlightMove: String, Sendable, Hashable, CaseIterable {
+    case sway, pump, spin, raise, wave, off, on
+
+    /// 名前はコアが唯一の正。
+    var label: String {
+        lyricPenlightMoves().first { $0.key == rawValue }?.label ?? rawValue
+    }
+
+    /// 動きの記号。文字より先に目に入るものにする。
+    var symbol: String {
+        switch self {
+        case .sway:  return "arrow.left.and.right"
+        case .pump:  return "arrow.up.and.down"
+        case .spin:  return "arrow.clockwise"
+        case .raise: return "arrow.up.to.line"
+        case .wave:  return "water.waves"
+        case .off:   return "power"
+        case .on:    return "light.max"
+        }
+    }
+}
+
+/// ペンライトの指示 (コールの一種)。色の書き方は `oshi` / `idol:<id>` / `#RRGGBB` (読み方はコア)。
+struct LyricPenlight: Sendable, Hashable {
+    var color: String?
+    var move: LyricPenlightMove?
+    var note: String?
+
+    /// 色の指示を読んだもの。書き方が違えば nil (色の指示なしとして描く)。
+    var parsedColor: PenlightColor? { color.flatMap(lyricPenlightColor(spec:)) }
+    var isEmpty: Bool { color == nil && move == nil && (note ?? "").isEmpty }
+}
+
+extension LyricPenlight: Decodable {
+    private enum CodingKeys: String, CodingKey { case color, move, note }
+
+    /// 未知の動き (サーバが種類を増やした) は nil に倒して、指示ごと落とさない。
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            color: (try? c.decodeIfPresent(String.self, forKey: .color)).flatMap { $0 },
+            move: (try? c.decodeIfPresent(String.self, forKey: .move)).flatMap { $0 }.flatMap(LyricPenlightMove.init(rawValue:)),
+            note: (try? c.decodeIfPresent(String.self, forKey: .note)).flatMap { $0 }
+        )
+    }
+}
+
 /// 歌詞行の一部 (アンカー) に紐づくコール 1 件。
 ///
 /// ⚠️ `anchorText` は歌詞の一部を含む。`Lyrics` / `LyricLine` と同じく
@@ -162,6 +210,12 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
     var stale: Bool?
     /// コールを出す再生位置 (ms)。タイミング編集で記録する。無ければ nil。
     var startMs: Int? = nil
+    /// ペンライトの指示 (ペンラ芸)。非 nil ならこれは叫ぶコールではなく、`text` は
+    /// 古いアプリ向けの代わりの文言 (このアプリでは描かない)。
+    var penlight: LyricPenlight? = nil
+
+    /// ペンライトの指示か。
+    var isPenlight: Bool { penlight != nil }
 
     /// ズレの印。**幅ゼロのアンカーは対象外**にする。
     ///
@@ -187,7 +241,7 @@ struct LyricCall: Decodable, Identifiable, Sendable, Hashable {
 
 extension LyricCall {
     private enum CodingKeys: String, CodingKey {
-        case id, start, end, anchorText, text, emphasis, timing, stale, startMs
+        case id, start, end, anchorText, text, emphasis, timing, stale, startMs, kind, penlight
     }
 
     /// 欠けたフィールドに耐える。Worker とアプリの配信タイミングがズレても、
@@ -205,7 +259,10 @@ extension LyricCall {
             emphasis: try c.decodeIfPresent(CallEmphasis.self, forKey: .emphasis) ?? .normal,
             timing: try c.decodeIfPresent(CallTiming.self, forKey: .timing) ?? .after,
             stale: try c.decodeIfPresent(Bool.self, forKey: .stale),
-            startMs: (try? c.decodeIfPresent(Int.self, forKey: .startMs)).flatMap { $0 }
+            startMs: (try? c.decodeIfPresent(Int.self, forKey: .startMs)).flatMap { $0 },
+            penlight: (try? c.decodeIfPresent(String.self, forKey: .kind)).flatMap { $0 } == "penlight"
+                ? (try? c.decodeIfPresent(LyricPenlight.self, forKey: .penlight)).flatMap { $0 }
+                : nil
         )
     }
 }
@@ -257,7 +314,7 @@ struct LyricLine: Decodable, Identifiable, Sendable, Hashable {
     /// この行のコールが、掛かっている歌詞と同じ文字か (同時、または歌詞の被せの括弧の中に掛かっている)。
     /// 閲覧では行に並べず、歌詞のその部分に印を付ける (同じ文字を 2 回出さない)。判定はコア。
     func echoes(_ call: LyricCall) -> Bool {
-        call.hasAnchor && lyricCallEchoesLine(lineText: text, start: UInt32(call.start), end: UInt32(call.end),
+        !call.isPenlight && call.hasAnchor && lyricCallEchoesLine(lineText: text, start: UInt32(call.start), end: UInt32(call.end),
                                               callText: call.text, timing: call.timing.rawValue)
     }
 }
@@ -337,7 +394,7 @@ struct Lyrics: Decodable, Sendable, Hashable {
     /// この曲で**実際に使われている**強調度 (`normal` を除く)。凡例はここからだけ作る
     /// — 実物のコール表と同じく、曲ごとに凡例の中身が変わる。
     var usedEmphases: [CallEmphasis] {
-        let used = Set(lines.flatMap(\.calls).map(\.emphasis))
+        let used = Set(lines.flatMap(\.calls).filter { !$0.isPenlight }.map(\.emphasis))
         return CallEmphasis.allCases.filter { $0 != .normal && used.contains($0) }
     }
 
@@ -345,7 +402,15 @@ struct Lyrics: Decodable, Sendable, Hashable {
     ///
     /// 追っかけ (`after`) は既定なので凡例に出さない — 出しても情報が増えない。
     /// 例外的な「同時」だけを凡例に出す (強調度で `normal` を出さないのと同じ判断)。
-    var usesOverTiming: Bool { lines.contains { $0.calls.contains(where: \.isOverlapping) } }
+    var usesOverTiming: Bool {
+        lines.contains { $0.calls.contains { $0.isOverlapping && !$0.isPenlight } }
+    }
+
+    /// この曲のペンライトの指示で使われている動き。凡例に記号の読み方を出す。
+    var usedPenlightMoves: [LyricPenlightMove] {
+        let used = Set(lines.flatMap(\.calls).compactMap { $0.penlight?.move })
+        return LyricPenlightMove.allCases.filter { used.contains($0) }
+    }
 
     /// この曲で実際に使われている手拍子指示。凡例用。
     var usedClaps: [LyricClap] {

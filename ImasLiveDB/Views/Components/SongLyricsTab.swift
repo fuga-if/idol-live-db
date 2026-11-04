@@ -101,6 +101,8 @@ struct SongLyricsTab: View {
         }
         .padding(.top, DS.sp4)
         .padding(.horizontal, DS.sp5)
+        // ペンライトの「アイドルの色」を原唱者から引く。
+        .environment(\.lyricPartCast, partCast)
         // フル再生中の曲なら、再生中バーから今の行・歌詞プレイヤーを出せるよう預ける (メモリだけ)。
         .task(id: SessionKey(playback: MusicKitService.shared.playbackKey, lyrics: vm.lyrics,
                              artists: vm.originalArtists.map(\.id))) {
@@ -117,9 +119,8 @@ struct SongLyricsTab: View {
             CallEditorSheet(
                 request: request,
                 seed: seed,
-                onSubmit: { text, emphasis, timing in
-                    apply(request, text: text, emphasis: emphasis, timing: timing)
-                },
+                cast: partCast,
+                onSubmit: { apply(request, $0) },
                 onDelete: request.existing.map { call in
                     { editor?.deleteCall(lineId: request.lineId, callId: call.id) }
                 }
@@ -319,8 +320,10 @@ struct SongLyricsTab: View {
         let emphases = lyrics.usedEmphases
         let claps = lyrics.usedClaps
         let showsOverTiming = lyrics.usesOverTiming
-        if !emphases.isEmpty || !claps.isEmpty || showsOverTiming {
-            CallGuideLegend(emphases: emphases, claps: claps, showsOverTiming: showsOverTiming)
+        let penlightMoves = lyrics.usedPenlightMoves
+        if !emphases.isEmpty || !claps.isEmpty || showsOverTiming || !penlightMoves.isEmpty {
+            CallGuideLegend(emphases: emphases, claps: claps, showsOverTiming: showsOverTiming,
+                            penlightMoves: penlightMoves)
                 .padding(.bottom, DS.sp4)
         }
     }
@@ -647,16 +650,17 @@ struct SongLyricsTab: View {
                                               existing: call)
     }
 
-    private func apply(_ request: CallEditorSheet.Request, text: String,
-                       emphasis: CallEmphasis, timing: CallTiming) {
+    private func apply(_ request: CallEditorSheet.Request, _ result: CallEditorSheet.Result) {
         guard let editor else { return }
         if let existing = request.existing {
             editor.updateCall(lineId: request.lineId, callId: existing.id,
-                              text: text, emphasis: emphasis, timing: timing)
+                              text: result.text, emphasis: result.emphasis, timing: result.timing,
+                              penlight: result.penlight)
         } else {
             editor.addCall(lineId: request.lineId, start: request.start, end: request.end,
-                           anchorText: request.anchorText, text: text,
-                           emphasis: emphasis, timing: timing)
+                           anchorText: request.anchorText, text: result.text,
+                           emphasis: result.emphasis, timing: result.timing,
+                           penlight: result.penlight)
         }
         selectionResetToken += 1
     }

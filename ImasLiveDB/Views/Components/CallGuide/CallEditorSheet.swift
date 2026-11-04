@@ -26,10 +26,32 @@ struct CallEditorSheet: View {
         var hasAnchor: Bool { end > start }
     }
 
+    /// 入力の結果。`penlight` が非 nil ならペンライトの指示 (`text` は古いアプリ向けの代わりの文言)。
+    struct Result {
+        let text: String
+        let emphasis: CallEmphasis
+        let timing: CallTiming
+        let penlight: LyricPenlight?
+    }
+
+    /// 叫ぶコールか、ペンライトの指示か。
+    enum Kind: Hashable, CaseIterable {
+        case call, penlight
+
+        var label: String {
+            switch self {
+            case .call:     return "コール"
+            case .penlight: return "ペンライト"
+            }
+        }
+    }
+
     let request: Request
     var seed: String?
+    /// ペンライトの「アイドルの色」の選択肢 (この曲の原唱者)。
+    var cast: LyricPartCast = .empty
     /// 保存 (新規なら追加、既存なら更新)。
-    let onSubmit: (String, CallEmphasis, CallTiming) -> Void
+    let onSubmit: (Result) -> Void
     /// 既存コールの削除。新規のときは呼ばれない。
     let onDelete: (() -> Void)?
 
@@ -38,6 +60,8 @@ struct CallEditorSheet: View {
     @State private var text: String = ""
     @State private var emphasis: CallEmphasis = .normal
     @State private var timing: CallTiming = .after
+    @State private var kind: Kind = .call
+    @State private var penlight = LyricPenlight()
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -45,16 +69,22 @@ struct CallEditorSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: DS.sp5) {
                     anchorSection
-                    inputSection
-                    timingSection
-                    emphasisSection
-                    paletteSection
+                    ImasSegmented(options: Kind.allCases, selection: $kind, seed: seed) { $0.label }
+                    switch kind {
+                    case .call:
+                        inputSection
+                        timingSection
+                        emphasisSection
+                        paletteSection
+                    case .penlight:
+                        CallEditorPenlightSection(penlight: $penlight, seed: seed, cast: cast)
+                    }
                     if onDelete != nil { deleteButton }
                 }
                 .padding(DS.sp5)
             }
             .background(DS.bg)
-            .navigationTitle(request.existing == nil ? "コールを追加" : "コールを編集")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -62,12 +92,11 @@ struct CallEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完了") {
-                        onSubmit(text.trimmingCharacters(in: .whitespacesAndNewlines),
-                                 emphasis, request.hasAnchor ? timing : .after)
+                        onSubmit(result)
                         dismiss()
                     }
                     .fontWeight(.semibold)
-                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!canSubmit)
                 }
             }
         }
@@ -77,7 +106,50 @@ struct CallEditorSheet: View {
             emphasis = request.existing?.emphasis ?? .normal
             // 既定は追っかけ (アイマスではこちらが主)。
             timing = request.existing?.timing ?? .after
-            focused = true
+            if let existing = request.existing?.penlight {
+                kind = .penlight
+                penlight = existing
+            } else {
+                focused = true
+            }
+        }
+    }
+
+    private var title: String {
+        let isNew = request.existing == nil
+        switch kind {
+        case .call:     return isNew ? "コールを追加" : "コールを編集"
+        case .penlight: return isNew ? "ペンライトを追加" : "ペンライトを編集"
+        }
+    }
+
+    private var trimmedText: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    /// 入力し終えた形。ペンライトはメモの空白を落とし、古いアプリ向けの文言をコアで作る。
+    private var cleanedPenlight: LyricPenlight {
+        var cue = penlight
+        let note = (cue.note ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        cue.note = note.isEmpty ? nil : note
+        return cue
+    }
+
+    private var canSubmit: Bool {
+        switch kind {
+        case .call:     return !trimmedText.isEmpty
+        case .penlight: return !cleanedPenlight.isEmpty
+        }
+    }
+
+    private var result: Result {
+        switch kind {
+        case .call:
+            return Result(text: trimmedText, emphasis: emphasis,
+                          timing: request.hasAnchor ? timing : .after, penlight: nil)
+        case .penlight:
+            let cue = cleanedPenlight
+            // 語に掛けたペンライトはそのフレーズで振る (被せ)。行末は歌い終わってから。
+            return Result(text: PenlightLook(penlight: cue, cast: cast).description, emphasis: .normal,
+                          timing: request.hasAnchor ? .over : .after, penlight: cue)
         }
     }
 
@@ -204,7 +276,7 @@ struct CallEditorSheet: View {
     // MARK: - 削除
 
     private var deleteButton: some View {
-        ImasButton(title: "このコールを削除", systemImage: "trash", role: .destructive, size: .medium, fillsWidth: true) {
+        ImasButton(title: kind == .penlight ? "このペンライトを削除" : "このコールを削除", systemImage: "trash", role: .destructive, size: .medium, fillsWidth: true) {
             onDelete?()
             dismiss()
         }

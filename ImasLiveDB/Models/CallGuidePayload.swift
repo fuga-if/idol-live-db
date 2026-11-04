@@ -50,6 +50,16 @@ struct CallGuidePayload: Encodable, Sendable {
         let emphasis: String
         /// "over" (同時) / "after" (追っかけ)。幅ゼロのアンカーはサーバが "after" に倒す。
         let timing: String
+        /// ペンライトの指示のときだけ "penlight"。叫ぶコールではキーごと送らない。
+        var kind: String? = nil
+        var penlight: Penlight? = nil
+    }
+
+    /// ペンライトの指示 (色・動き・メモ)。無い項目はキーごと送らない (サーバは null と同じに読む)。
+    struct Penlight: Encodable, Sendable {
+        let color: String?
+        let move: String?
+        let note: String?
     }
 }
 
@@ -65,7 +75,11 @@ extension CallGuidePayload.Call {
             emphasis: call.emphasis.rawValue,
             // 幅ゼロに "over" を送ってもサーバ側で "after" に倒されるが、
             // 送信値と保存値が食い違うのは気持ちが悪いのでこちらでも揃えておく。
-            timing: call.isOverlapping ? CallTiming.over.rawValue : CallTiming.after.rawValue
+            timing: call.isOverlapping ? CallTiming.over.rawValue : CallTiming.after.rawValue,
+            kind: call.penlight == nil ? nil : "penlight",
+            penlight: call.penlight.map {
+                CallGuidePayload.Penlight(color: $0.color, move: $0.move?.rawValue, note: $0.note)
+            }
         )
     }
 }
