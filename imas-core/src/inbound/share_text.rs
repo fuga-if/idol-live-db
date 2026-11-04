@@ -31,7 +31,7 @@ pub fn share_poll_url(id: String) -> String {
     share_text::poll_url(&id)
 }
 
-/// 共有 URL (公開サイトの形・旧い API ドメインの形) からお題の id を取り出す。対象外は `None`。
+/// 共有 URL (公開サイトの形・旧い API ドメインの形・`imaslivedb://polls/{id}`) からお題の id を取り出す。対象外は `None`。
 #[uniffi::export]
 pub fn share_poll_id_from_url(url: String) -> Option<String> {
     share_text::poll_id_from_url(&url)

@@ -1298,6 +1298,8 @@ pub fn poll_list(ctx: &Ctx) -> PollListPage {
                 is_open,
                 total_votes: all.iter().map(|e| e.vote_count.max(0) as u32).sum(),
                 entries,
+                app_url: crate::domain::share_text::poll_app_url(&poll.id),
+                app_label: content::poll_app_label(is_open).to_string(),
             }
         })
         .collect();
@@ -1309,6 +1311,10 @@ pub fn poll_list(ctx: &Ctx) -> PollListPage {
         lede: content::POLL_LIST_LEDE.to_string(),
         total: polls.len() as u32,
         polls,
+        app: AppOpen { note: content::POLL_APP_OPEN_NOTE.to_string(), ..content::app_open_plain() },
+        missing_poll_note: content::POLL_MISSING_NOTE.to_string(),
+        missing_poll_app_url_prefix: crate::domain::share_text::poll_app_url(""),
+        missing_poll_app_label: content::poll_app_label(true).to_string(),
         seo: ctx.seo(
             "みんなのお題",
             "アプリの利用者が出し合ったお題と、その時点の得票。投票はアプリから。",

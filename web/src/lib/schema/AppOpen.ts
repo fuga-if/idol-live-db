@@ -12,6 +12,10 @@ export type AppOpen = {
  */
 title: string, appStoreUrl: string, 
 /**
+ * Google Play のページ。
+ */
+playStoreUrl: string | null, 
+/**
  * `imaslivedb://events/<id>` 等。**event / show にしか無い**
  * (`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ)。
  */

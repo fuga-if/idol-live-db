@@ -1,5 +1,6 @@
 ---
 import ListLayout from "../../layouts/ListLayout.astro";
+import OpenInApp from "../../components/OpenInApp.astro";
 import RankingRow from "../../components/RankingRow.astro";
 import { optionalPage, page } from "../../lib/data";
 import type { PollListPage } from "../../lib/schema/PollListPage";
@@ -10,6 +11,12 @@ import type { PollListPage } from "../../lib/schema/PollListPage";
  * **読むだけ。** 投票にはログインが要るので、この出面には操作を置かない。
  * 中身は D1 の集計を焼き込んだもので、閲覧のたびに D1 は読まない。
  * 「締切前か」も Rust が `ends_at` と出面の「今日」から決め、添える語 (`endsLabel`) まで出す。
+ *
+ * 共有 URL (`/polls/#poll-<id>`) はアプリが入っていればアプリで開く (iOS Universal Links /
+ * Android App Links)。ここに来たのはアプリが無い人か、アプリ内ブラウザでリンクが発火しなかった人。
+ * 節ごとの「アプリで投票する」はアプリのスキーム (`imaslivedb://polls/<id>`) へ飛ばす
+ * (同じサイト内の https リンクではアプリが開かない)。アプリが無い人には下の導線がストアを出す。
+ * 立てたばかりで一覧にまだ無いお題は、`poll-missing.ts` が知らせを出す。
  */
 export const getStaticPaths = () => optionalPage("pollList", "/polls/");
 
@@ -19,6 +26,19 @@ const list = page<PollListPage>(Astro.props.data);
 <ListLayout seo={list.seo} title={list.title} total={list.total}>
   <p slot="lede" class="u-muted">
     {list.lede}
+  </p>
+
+  <p
+    class="poll-missing"
+    data-poll-missing
+    data-app-url-prefix={list.missingPollAppUrlPrefix}
+    hidden
+  >
+    <span>{list.missingPollNote}</span>
+    <a class="entry-link" data-poll-missing-link href={list.missingPollAppUrlPrefix}>
+      <span class="u-underline-hover">{list.missingPollAppLabel}</span>
+      <span class="chevron" aria-hidden="true">›</span>
+    </a>
   </p>
 
   {
@@ -58,7 +78,18 @@ const list = page<PollListPage>(Astro.props.data);
             </li>
           ))}
         </ol>
+        <a class="entry-link poll__app" href={poll.appUrl}>
+          <span class="u-underline-hover">{poll.appLabel}</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
       </section>
     ))
   }
+
+  <OpenInApp app={list.app} />
 </ListLayout>
+
+<script>
+  import { watchMissingPoll } from "../../lib/poll-missing";
+  watchMissingPoll();
+</script>

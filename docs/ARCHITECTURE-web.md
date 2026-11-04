@@ -191,7 +191,7 @@ https://imas-live-web.tokata3011.workers.dev/
 
 `/p/` は個人の名刺なので常に `noindex` (`CardCatalog.seo.robots = NoindexFollow`。どこにも位置しないページとして `404.html` と同じ扱いでパンくず・JSON-LD を持たない)。`p/catalog.json` 自体も `_headers` で `X-Robots-Tag: noindex`。
 
-Universal Links (`web/public/.well-known/apple-app-site-association`) は `/p/*` だけを対象にした、このサイト専用の AASA (`imas-live-api/` が返す既存の AASA とは別ファイル・別ドメイン)。`appID` は `imas-live-api/src/appattest.ts` の `APP_ID` と同じ値を手で合わせてある (機械的な同期の仕組みは無い)。Android の `assetlinks.json` は、署名 SHA256 フィンガープリントがリポジトリ内に見当たらなかったため未作成 (別途取得して追加する)。
+Universal Links (`web/public/.well-known/apple-app-site-association`) は `/p/*` とお題の共有 URL (`/polls/#poll-*`) を対象にした、このサイト専用の AASA (`imas-live-api/` が返す既存の AASA とは別ファイル・別ドメイン)。`appID` は `imas-live-api/src/appattest.ts` の `APP_ID` と同じ値を手で合わせてある (機械的な同期の仕組みは無い)。Android App Links の `web/public/.well-known/assetlinks.json` は Play App Signing の鍵と debug 鍵の SHA-256 を載せる (Play の鍵は androidpublisher `generatedapks.list` の `certificateSha256Hash` で取れる)。`imas-live-api` の `/.well-known/assetlinks.json` も同じ値で、旧いお題の共有 URL (`/app/polls/*`) を受ける。
 
 ---
 

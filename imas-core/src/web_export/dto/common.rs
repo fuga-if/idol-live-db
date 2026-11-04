@@ -239,6 +239,8 @@ web_dto! {
         /// 導線の見出し (`アプリ「アイドルライブDB」`)。
         pub title: String,
         pub app_store_url: String,
+        /// Google Play のページ。
+        pub play_store_url: Option<String>,
         /// `imaslivedb://events/<id>` 等。**event / show にしか無い**
         /// (`DeeplinkRouter` が受けるのは events / shows / polls の 3 種だけ)。
         pub deeplink: Option<String>,

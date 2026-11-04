@@ -41,5 +41,13 @@ const { app } = Astro.props;
         <a class="btn" href={app.appStoreUrl}>App Store</a>
       )
     }
+    {
+      app.playStoreUrl && (
+        <a class="entry-link" href={app.playStoreUrl}>
+          <span class="u-underline-hover">Google Play</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </a>
+      )
+    }
   </div>
 </aside>

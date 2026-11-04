@@ -171,16 +171,36 @@ pub fn poll_url(id: &str) -> String {
     format!("{WEB_ORIGIN}/polls/#{POLL_FRAGMENT_PREFIX}{}", escaped_id(id))
 }
 
-/// 共有 URL からお題の id を取り出す。[`poll_url`] の逆。
+/// アプリでお題を開くカスタムスキームの URL の頭。
+const POLL_APP_URL_PREFIX: &str = "imaslivedb://polls/";
+
+/// アプリでお題を直接開く URL (`imaslivedb://polls/{id}`)。
 ///
-/// 公開サイトの形 (`{WEB_ORIGIN}/polls/#poll-{id}`) と、配布済みの旧い形
-/// (`{UNIVERSAL_LINK_BASE}/app/polls/{id}`) の両方を受ける。どちらでもなければ `None`。
+/// 共有には使わない (アプリが無い端末では何も開かない)。公開サイトのお題の節に置く
+/// 「アプリで投票する」の行き先で、共有 URL ([`poll_url`]) をアプリでなくブラウザで
+/// 開いてしまった人 (X 等のアプリ内ブラウザで Universal Links / App Links が発火しない) の救済。
+/// 同じサイト内の https リンクではアプリが開かないので、スキームにする。
+/// ライブ・公演ページの「アプリで開く」(`imaslivedb://events/…`) と同じ扱い。
+pub fn poll_app_url(id: &str) -> String {
+    format!("{POLL_APP_URL_PREFIX}{}", escaped_id(id))
+}
+
+/// 共有 URL からお題の id を取り出す。[`poll_url`] / [`poll_app_url`] の逆。
+///
+/// 公開サイトの形 (`{WEB_ORIGIN}/polls/#poll-{id}`)、API の着地ページの形
+/// (`{UNIVERSAL_LINK_BASE}/app/polls/{id}`、旧い共有 URL もこれ)、
+/// アプリのスキーム (`imaslivedb://polls/{id}`、公開サイト・着地ページの「アプリで…」) を受ける。
+/// どれでもなければ `None`。公開サイトの形は `?` の付いたもの (`/polls/?s=x#poll-…`) も受ける。
 pub fn poll_id_from_url(url: &str) -> Option<String> {
     let id = if let Some(rest) = url.strip_prefix(WEB_ORIGIN) {
-        let fragment = rest
-            .strip_prefix("/polls/#")
-            .or_else(|| rest.strip_prefix("/polls#"))?;
+        let (path, fragment) = rest.split_once('#')?;
+        let path = path.split('?').next().unwrap_or(path);
+        if path != "/polls/" && path != "/polls" {
+            return None;
+        }
         fragment.strip_prefix(POLL_FRAGMENT_PREFIX)?
+    } else if let Some(rest) = url.strip_prefix(POLL_APP_URL_PREFIX) {
+        rest.split(['?', '#']).next().unwrap_or(rest).trim_end_matches('/')
     } else {
         let rest = url.strip_prefix(UNIVERSAL_LINK_BASE)?.strip_prefix("/app/polls/")?;
         rest.split(['?', '#']).next().unwrap_or(rest).trim_end_matches('/')
@@ -895,6 +915,16 @@ mod tests {
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/polls/#poll-"), None);
         assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/p/#poll-x"), None);
         assert_eq!(poll_id_from_url("https://example.com/polls/#poll-x"), None);
+        // 公開サイトの「アプリで投票する」・着地ページのスキーム・問い合わせ付きの公開サイトの形。
+        assert_eq!(poll_id_from_url(&poll_app_url("p@1")).as_deref(), Some("p@1"));
+        assert_eq!(poll_app_url("p@1"), "imaslivedb://polls/p%401");
+        assert_eq!(poll_id_from_url("imaslivedb://polls/p1/").as_deref(), Some("p1"));
+        assert_eq!(poll_id_from_url("imaslivedb://polls/"), None);
+        assert_eq!(
+            poll_id_from_url("https://idollivedb.fugaapp.site/polls/?s=09#poll-p1").as_deref(),
+            Some("p1")
+        );
+        assert_eq!(poll_id_from_url("https://idollivedb.fugaapp.site/pollsx/#poll-p1"), None);
     }
 
     /// 日付は端末 TZ で解決する。同じ瞬間でも JST では 1/1、UTC では 12/31。

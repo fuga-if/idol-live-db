@@ -55,6 +55,10 @@ export function buildHeaders(meta) {
 /.well-known/apple-app-site-association
   Content-Type: application/json; charset=utf-8
   X-Robots-Tag: noindex
+# Android App Links の受け口 (P名刺 /p/・お題 /polls/)。指紋は Play の署名鍵と debug 鍵。
+/.well-known/assetlinks.json
+  Content-Type: application/json; charset=utf-8
+  X-Robots-Tag: noindex
 
 # content-hash 付きアセットは中身が変われば必ずファイル名も変わるため immutable で安全。
 # HTML (/*) は日次再ビルドで内容が変わるので既定のまま。

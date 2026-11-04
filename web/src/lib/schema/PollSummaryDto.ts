@@ -28,4 +28,12 @@ isOpen: boolean, totalVotes: number,
 /**
  * 上位の得票。同数は entity id 順で安定させる。
  */
-entries: Array<PollEntryDto>, };
+entries: Array<PollEntryDto>, 
+/**
+ * アプリでこのお題を開く URL (`imaslivedb://polls/{id}`)。
+ */
+appUrl: string, 
+/**
+ * その導線の語 (締切前は「アプリで投票する」、過ぎたら「アプリで見る」)。
+ */
+appLabel: string, };

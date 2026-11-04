@@ -541,6 +541,8 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_year_range_display,
     uniffi_imas_core_checksum_func_youtube_is_upload_url,
     uniffi_imas_core_checksum_func_youtube_video_refs,
+    uniffi_imas_core_checksum_func_youtube_embed_player,
+    uniffi_imas_core_checksum_func_youtube_player_event,
     uniffi_imas_core_checksum_method_snapshotstore_next_song_recommendations,
     uniffi_imas_core_checksum_method_snapshotstore_album_summaries,
     uniffi_imas_core_checksum_method_snapshotstore_all_idols_for_picker,

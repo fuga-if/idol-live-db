@@ -573,6 +573,27 @@ a.tl-list__row::before {
 .poll__entries > li + li {
   border-block-start: 1px solid var(--ds-sep);
 }
+/* 節の下の「アプリで投票する」。行の続きとして区切り線の下に置く。 */
+.poll__app {
+  justify-content: flex-start;
+  padding: var(--sp3) var(--sp5);
+  border-block-start: 1px solid var(--ds-sep);
+}
+/* 共有 URL で開いたお題がまだ載っていないときの知らせ (poll-missing.ts が出し入れする)。 */
+.poll-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp2);
+  padding: var(--sp4) var(--sp5);
+  border-radius: var(--r-card);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-surface-edge);
+  font-size: var(--fs-subhead);
+}
+.poll-missing[hidden] {
+  display: none;
+}
 
 /* --- P名刺 (/p/) の名刺の外 -----------------------------------------------------
    名刺そのものは 91:55 の紙 (--ds-ticket。ダークでも明るいので、紙の上の墨・灰は

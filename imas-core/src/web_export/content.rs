@@ -22,6 +22,8 @@ pub const SITE_DISCLAIMER: &str =
     "非公式のファンメイドサイトです。株式会社バンダイナムコエンターテインメントおよび関連権利者とは一切関係ありません。";
 
 pub const APP_STORE_URL: &str = "https://apps.apple.com/jp/app/id6763342297";
+/// Google Play (site.fugaapp.imaslivedb)。2026-11-04 に公開を確認。
+pub const PLAY_STORE_URL: &str = "https://play.google.com/store/apps/details?id=site.fugaapp.imaslivedb";
 /// 共有文と同じハッシュタグ。**値の正は `domain::share_text`** で、アプリの共有シートと
 /// 出面で別のタグを出さないよう再輸出にしてある。
 pub use crate::domain::share_text::HASHTAG;
@@ -368,9 +370,7 @@ pub const DEFAULT_OG_IMAGE: &str = "/og/default.png";
 pub fn app_links() -> AppLinks {
     AppLinks {
         app_store_url: APP_STORE_URL.to_string(),
-        // Google Play (site.fugaapp.imaslivedb) は 2026-09-04 時点で 404。
-        // 生きていないリンクを出面に置かない。
-        play_store_url: None,
+        play_store_url: Some(PLAY_STORE_URL.to_string()),
         x_url: Some(X_URL.to_string()),
         privacy_url: PRIVACY_URL.to_string(),
         support_url: SUPPORT_URL.to_string(),
@@ -389,6 +389,7 @@ pub fn app_open_plain() -> AppOpen {
     AppOpen {
         title: app_open_title(),
         app_store_url: APP_STORE_URL.to_string(),
+        play_store_url: Some(PLAY_STORE_URL.to_string()),
         deeplink: None,
         note: APP_OPEN_NOTE.to_string(),
     }
@@ -405,6 +406,7 @@ pub fn app_open_deeplink(kind: &str, segment: &str) -> AppOpen {
     AppOpen {
         title: app_open_title(),
         app_store_url: APP_STORE_URL.to_string(),
+        play_store_url: Some(PLAY_STORE_URL.to_string()),
         deeplink: Some(format!("{DEEPLINK_SCHEME}://{collection}/{segment}")),
         note: APP_OPEN_NOTE.to_string(),
     }
@@ -596,6 +598,19 @@ pub const POLL_LIST_LEDE: &str = "アプリの利用者が出し合ったお題�
 pub fn poll_ends_label(is_open: bool) -> &'static str {
     if is_open { "締切" } else { "終了" }
 }
+
+/// お題の節に置く「アプリで開く」の語。締切前は投票へ、過ぎたら結果へ誘う。
+pub fn poll_app_label(is_open: bool) -> &'static str {
+    if is_open { "アプリで投票する" } else { "アプリで見る" }
+}
+
+/// お題の一覧の「アプリで開く」の説明。投票はアプリでしかできない。
+pub const POLL_APP_OPEN_NOTE: &str = "お題への投票と、お題を立てるのはアプリからです。";
+
+/// 共有 URL で開いたお題がまだ一覧に無いときの知らせ。お題はいつでも立つが、
+/// この一覧は日に 1 度しか作り直さない。
+pub const POLL_MISSING_NOTE: &str =
+    "このお題は立ったばかりで、まだこのページに載っていません (ページは毎日更新)。アプリならすぐに投票できます。";
 
 /// CV の履歴の行の見出し。
 pub fn voice_actor_label(is_current: bool) -> &'static str {

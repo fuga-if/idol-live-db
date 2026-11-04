@@ -4,7 +4,7 @@
 //! 出す。クライアント状態を持たせないというユーザー指示の直接の帰結で、切替 UI は
 //! [`super::common::NavLink`] のリンク集になる。
 
-use super::common::{AppLinks, DateBadge, EmptyText, FilterAxis, NavLink, Ref, SeoBlock, StatTile, TagBadge};
+use super::common::{AppLinks, AppOpen, DateBadge, EmptyText, FilterAxis, NavLink, Ref, SeoBlock, StatTile, TagBadge};
 use super::event::ShowSummary;
 use crate::domain::idol_list_filtering::IdolQuery;
 use crate::domain::list_facets::SortOption;
@@ -344,6 +344,14 @@ web_dto! {
         pub lede: String,
         pub polls: Vec<PollSummaryDto>,
         pub total: u32,
+        /// 「アプリで開く」導線 (投票はアプリでしかできない)。
+        pub app: AppOpen,
+        /// 共有 URL で開いたお題がこのページにまだ無い (立てた直後で、出面の作り直し前) ときの知らせ。
+        pub missing_poll_note: String,
+        /// その知らせに置く、アプリでお題を開く行き先の頭 (`imaslivedb://polls/`)。id は画面が足す。
+        pub missing_poll_app_url_prefix: String,
+        /// その行き先の語。
+        pub missing_poll_app_label: String,
         pub seo: SeoBlock,
     }
 }
@@ -367,6 +375,10 @@ web_dto! {
         pub total_votes: u32,
         /// 上位の得票。同数は entity id 順で安定させる。
         pub entries: Vec<PollEntryDto>,
+        /// アプリでこのお題を開く URL (`imaslivedb://polls/{id}`)。
+        pub app_url: String,
+        /// その導線の語 (締切前は「アプリで投票する」、過ぎたら「アプリで見る」)。
+        pub app_label: String,
     }
 }
 
