@@ -23,13 +23,13 @@ final class LyricsPictureInPictureTests: XCTestCase {
 
     private func entry() -> LyricsSession.Entry {
         let lines = [
-            line("1", 0, "ここに見本の一行目を置く", 1_000, singers: ["a"],
-                 breaks: [LyricLinePartBreak(at: 5, singers: ["a", "b"])]),
-            line("2", 1, "見本《みほん》の二行目 (追いかけ)", 6_000, singers: ["b"]),
+            line("1", 0, "ここに見本の一行目を置く", 1_000, singers: ["春香"],
+                 breaks: [LyricLinePartBreak(at: 5, singers: ["春香", "千早"])]),
+            line("2", 1, "見本《みほん》の二行目 (追いかけ)", 6_000, singers: ["千早"]),
         ]
         return .init(song: makeStubSong("s1"), seed: "#E4007F", artistLine: nil, artworkURL: nil,
                      lyrics: Lyrics(songId: "s1", source: nil, updatedAt: nil, lines: lines.map { var l = $0; if l.id == "1" { l.calls = [LyricCall(id: "c", start: 0, end: 0, anchorText: "", text: "ハイ！", emphasis: .normal, timing: .after, stale: nil, startMs: 1_500)] }; return l }, status: nil),
-                     cast: LyricPartCast(artists: [idol("a", "#E4007F"), idol("b", "#2743D2")]))
+                     cast: LyricPartCast(artists: [idol("春香", "#E4007F"), idol("千早", "#2743D2")]))
     }
 
     func testRendersAFrameForTheCurrentLine() throws {

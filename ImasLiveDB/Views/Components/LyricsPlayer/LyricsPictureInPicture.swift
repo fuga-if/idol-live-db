@@ -374,11 +374,29 @@ final class LyricsPictureInPicture: NSObject {
                                                      parts: parts)
             y += drawRuby(attributed, at: CGPoint(x: margin, y: y), width: width, maxHeight: 250, in: context)
             y += 10
+            // 歌う人: アイコン (写真か判子) を並べ、その右に名前。
+            let singers = line.allSingers.compactMap { id in entry.cast.artists.first { $0.id == id } }
             let groups = entry.cast.groups(line).filter { !$0.isEmpty }
-            if !groups.isEmpty {
-                y += drawPlain(groups.map { $0.joined(separator: "・") }.joined(separator: " → "),
-                               font: font(30, .bold), color: ink2, at: CGPoint(x: margin, y: y), width: width)
-                y += 6
+            if !singers.isEmpty || !groups.isEmpty {
+                let iconSize: CGFloat = 60
+                var x = margin
+                let shown = singers.prefix(singers.count > avatarMax ? avatarMax - 1 : avatarMax)
+                for idol in shown {
+                    drawAvatar(idol, at: CGPoint(x: x, y: y), size: iconSize, scheme: scheme, traits: traits, in: context)
+                    x += iconSize + 8
+                }
+                if singers.count > shown.count {
+                    drawPlain("+\(singers.count - shown.count)", font: font(26, .bold), color: ink2,
+                              at: CGPoint(x: x, y: y + (iconSize - 32) / 2), width: 60)
+                    x += 60
+                }
+                if !groups.isEmpty {
+                    if x > margin { x += 6 }
+                    drawPlain(groups.map { $0.joined(separator: "・") }.joined(separator: " → "),
+                              font: font(30, .bold), color: ink2,
+                              at: CGPoint(x: x, y: y + (iconSize - 38) / 2), width: margin + width - x)
+                }
+                y += iconSize + 8
             }
         } else {
             // イントロ・間奏。
@@ -404,6 +422,69 @@ final class LyricsPictureInPicture: NSObject {
         let view = ImasRubyLabel.RubyTextView(frame: .zero)
         view.attributed = attributed
         return view.fittingHeight(width: width)
+    }
+
+    /// 歌う人のアイコンを並べる上限 (超えたら最後の 1 つを「+N」にする)。
+    private static let avatarMax = 6
+
+    /// アイドルのアイコン (`ImasAvatar` と同じ形)。設定した写真があれば写真、無ければ判子
+    /// (紙の白の丸に、実体色の輪と実体色の名前)。
+    private static func drawAvatar(_ idol: Idol, at point: CGPoint, size: CGFloat, scheme: ColorScheme,
+                                   traits: UITraitCollection, in context: CGContext) {
+        let accent = UIColor(ImasTheme.derive(seed: idol.color, scheme: scheme).accent).resolvedColor(with: traits)
+        let rect = CGRect(origin: point, size: CGSize(width: size, height: size))
+        context.saveGState()
+        context.addEllipse(in: rect)
+        context.clip()
+        if let photo = avatarPhoto(idolId: idol.id) {
+            // 丸に合わせて切り抜く (はみ出す方を切る)。
+            let scale = max(size / photo.size.width, size / photo.size.height)
+            let drawn = CGSize(width: photo.size.width * scale, height: photo.size.height * scale)
+            photo.draw(in: CGRect(x: rect.midX - drawn.width / 2, y: rect.midY - drawn.height / 2,
+                                  width: drawn.width, height: drawn.height))
+        } else {
+            context.setFillColor(UIColor(DS.paper).resolvedColor(with: traits).cgColor)
+            context.fill(rect)
+            let label = font(size * 0.34, .bold)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            paragraph.lineBreakMode = .byClipping
+            let text = NSAttributedString(string: idol.shortName, attributes: [
+                .font: label, .foregroundColor: accent, .paragraphStyle: paragraph,
+            ])
+            let inset = size * 0.1
+            let width = size - inset * 2
+            // 長い名前は丸に収まるまで縮める (`ImasAvatar` の minimumScaleFactor 0.5 と同じ)。
+            let natural = text.size().width
+            let fitted = natural > width
+                ? NSAttributedString(string: idol.shortName, attributes: [
+                    .font: font(size * 0.34 * max(0.5, width / natural), .bold), .foregroundColor: accent,
+                    .paragraphStyle: paragraph,
+                ])
+                : text
+            let height = fitted.size().height
+            fitted.draw(in: CGRect(x: rect.minX + inset, y: rect.midY - height / 2, width: width, height: height))
+        }
+        context.restoreGState()
+        context.setStrokeColor(accent.cgColor)
+        context.setLineWidth(2)
+        context.strokeEllipse(in: rect.insetBy(dx: 1, dy: 1))
+    }
+
+    /// 設定した写真の小さな版 (描くたびに元の写真を読み直さない)。
+    private static var avatarPhotos: [String: UIImage] = [:]
+
+    private static func avatarPhoto(idolId: String) -> UIImage? {
+        guard let url = CustomImageService.shared.imageURL(for: idolId) else { return nil }
+        if let hit = avatarPhotos[url.path] { return hit }
+        guard let original = UIImage(contentsOfFile: url.path), original.size.width > 0, original.size.height > 0
+        else { return nil }
+        let scale = 160 / min(original.size.width, original.size.height)
+        guard let image = original.preparingThumbnail(of: CGSize(width: original.size.width * scale,
+                                                                 height: original.size.height * scale))
+        else { return nil }
+        avatarPhotos[url.path] = image
+        return image
     }
 
     /// 1 行で切って描く。描いた高さを返す。

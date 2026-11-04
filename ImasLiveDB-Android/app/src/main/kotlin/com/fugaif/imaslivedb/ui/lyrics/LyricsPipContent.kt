@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.fugaif.imaslivedb.data.lyrics.LyricLineKind
 import com.fugaif.imaslivedb.di.AppModule
 import com.fugaif.imaslivedb.player.LyricsSession
+import com.fugaif.imaslivedb.ui.designsystem.ImasAvatar
 import com.fugaif.imaslivedb.ui.designsystem.ImasPartNames
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerCallLine
 import com.fugaif.imaslivedb.ui.designsystem.ImasPlayerLyricLine
@@ -49,6 +50,9 @@ import uniffi.imas_core.lyricOverlaySplit
 /** 絵の大きさ (16:9)。PiP の窓の大きさに合わせて、これを丸ごと縮めて出す (字の大きさの比を保つ)。 */
 private val CanvasWidth = 480.dp
 private val CanvasHeight = 270.dp
+
+/** 歌う人のアイコンを並べる上限 (超えたら最後の 1 つを「+N」にする)。iOS と同じ。 */
+private const val AVATAR_MAX = 6
 
 /**
  * PiP の窓の中身。いま歌っている行 (歌う人の色で字を塗る)・歌う人・コール・次の行。iOS `LyricsPictureInPicture` の絵と対。
@@ -116,7 +120,24 @@ private fun PipLines(entry: LyricsSession.Entry, positionMs: Int) {
                 ImasPlayerLyricLine(text = "♪", isCurrent = false, seed = entry.seed)
             }
         }
-        if (current != null) ImasPartNames(groups = entry.cast.groups(current))
+        if (current != null) {
+            // 歌う人: アイコン (写真か判子) を並べ、その右に名前。
+            val singers = current.allSingers.mapNotNull { id -> entry.cast.artists.firstOrNull { it.id == id } }
+            val shown = singers.take(if (singers.size > AVATAR_MAX) AVATAR_MAX - 1 else AVATAR_MAX)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(DS.sp2)) {
+                shown.forEach { idol ->
+                    ImasAvatar(
+                        label = idol.shortName, seed = idol.color, size = 30.dp,
+                        entityId = idol.id, reservesPickRing = false
+                    )
+                }
+                if (singers.size > shown.size) {
+                    ImasText("+${singers.size - shown.size}", ImasTextRole.ROW_SUBTITLE)
+                }
+                if (singers.isNotEmpty()) Spacer(Modifier.width(DS.sp1))
+                ImasPartNames(groups = entry.cast.groups(current))
+            }
+        }
         if (call != null) {
             val (line, c) = call
             ImasPlayerCallLine(
