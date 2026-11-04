@@ -115,7 +115,7 @@ struct CallGuidePreviewHarness: View {
                                    lineText: "ダミー歌詞のサンプル行です 2",
                                    existing: LyricCall(id: "c_p", start: 0, end: 3, anchorText: "ダミー",
                                                        text: "ペンライト", emphasis: .normal, timing: .over,
-                                                       penlight: LyricPenlight(color: "#1E50FF", move: .sway))),
+                                                       penlight: LyricPenlight(color: "#1E50FF", note: "2本持ち"))),
                     seed: nil,
                     onSubmit: { _ in },
                     onDelete: {}

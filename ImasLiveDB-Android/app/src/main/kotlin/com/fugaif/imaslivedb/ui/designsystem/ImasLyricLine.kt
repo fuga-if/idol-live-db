@@ -63,7 +63,6 @@ import com.fugaif.imaslivedb.data.lyrics.LyricCall
 import com.fugaif.imaslivedb.data.lyrics.LyricClap
 import com.fugaif.imaslivedb.data.lyrics.LyricPartCast
 import com.fugaif.imaslivedb.data.lyrics.LyricPartMark
-import com.fugaif.imaslivedb.data.lyrics.LyricPenlightMove
 import com.fugaif.imaslivedb.data.lyrics.colorsAt
 import com.fugaif.imaslivedb.ui.theme.DS
 import com.fugaif.imaslivedb.ui.theme.ImasType
@@ -731,7 +730,7 @@ fun ImasCallRows(
                 Text(marker, style = ImasType.text(11.sp), color = DS.ink3, modifier = Modifier.widthIn(min = 16.dp))
                 val penlight = call.penlight
                 if (penlight != null) {
-                    // ペンライトの指示は文言でなく棒と動きの記号で出す (text は古いアプリ向け)。
+                    // ペンライトの指示は文言でなく色の棒とメモで出す (text は古いアプリ向け)。
                     ImasPenlightCueLabel(PenlightLook(penlight, cast), modifier = Modifier.weight(1f))
                 } else {
                     Text(
@@ -765,12 +764,10 @@ fun ImasCallLegend(
     emphases: List<CallEmphasis>,
     claps: List<LyricClap>,
     showsOverTiming: Boolean,
-    modifier: Modifier = Modifier,
-    /** ペンライトの指示で使われている動き。記号の読み方を出す。 */
-    penlightMoves: List<LyricPenlightMove> = emptyList()
+    modifier: Modifier = Modifier
 ) {
     val theme = imasTheme(seed = null)
-    if (emphases.isEmpty() && claps.isEmpty() && !showsOverTiming && penlightMoves.isEmpty()) return
+    if (emphases.isEmpty() && claps.isEmpty() && !showsOverTiming) return
     androidx.compose.foundation.layout.FlowRow(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(DS.sp2),
@@ -784,9 +781,6 @@ fun ImasCallLegend(
         }
         if (showsOverTiming) {
             ImasChip(text = "${CallTiming.OVER.label} 歌に被せる", style = ImasChipStyle.NEUTRAL)
-        }
-        penlightMoves.forEach { move ->
-            ImasChip(text = move.label, style = ImasChipStyle.NEUTRAL, leading = ImasChipLeading.Symbol(move.icon))
         }
     }
 }

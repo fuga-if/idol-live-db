@@ -35,18 +35,6 @@ export const CALL_EMPHASES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * ペンライトの動き。コール本の「ペンラ芸」の型に対応する。
- *   sway=左右に振る / pump=縦に振る / spin=回す / raise=掲げる / wave=ウェーブ (客席の波) /
- *   off=消す (消灯) / on=点ける (消灯からの点灯)。
- * 色を変えるだけで振り方の指示が無いときは move を null にする。
- */
-export type PenlightMove = "sway" | "pump" | "spin" | "raise" | "wave" | "off" | "on";
-
-export const PENLIGHT_MOVES: ReadonlySet<string> = new Set([
-  "sway", "pump", "spin", "raise", "wave", "off", "on",
-]);
-
-/**
  * ペンライトの指示 (コールの一種。`LyricCall.kind === "penlight"` のときだけ載る)。
  *
  * 色の書き方 (アプリと共有する契約。読み方はアプリ側は imas-core の lyric_penlight が唯一):
@@ -57,7 +45,6 @@ export const PENLIGHT_MOVES: ReadonlySet<string> = new Set([
  */
 export interface PenlightCue {
   color: string | null;
-  move: PenlightMove | null;
   /** 補足 (「2 本持ち」「サビ頭で一斉に」など)。無ければ省略。 */
   note?: string;
 }
@@ -67,11 +54,6 @@ const PENLIGHT_COLOR_RE = /^(oshi|idol:[A-Za-z0-9_.-]{1,64}|#[0-9A-Fa-f]{6})$/;
 /** ペンライトのメモの長さ上限 (Unicode スカラー数)。 */
 export const MAX_PENLIGHT_NOTE_CHARS = 80;
 
-const PENLIGHT_MOVE_LABELS: Record<PenlightMove, string> = {
-  sway: "左右に振る", pump: "縦に振る", spin: "回す", raise: "掲げる",
-  wave: "ウェーブ", off: "消す", on: "点ける",
-};
-
 /**
  * 古いアプリ向けの代わりの文言。ペンライトを知らないアプリはこれを普通のコールとして出す。
  * アプリは色の名前 (アイドル名など) を入れた文言を送ってくるので、空のときだけここで作る。
@@ -79,7 +61,6 @@ const PENLIGHT_MOVE_LABELS: Record<PenlightMove, string> = {
 export function penlightFallbackText(cue: PenlightCue): string {
   const parts = [
     cue.color === "oshi" ? "担当色" : null,
-    cue.move ? PENLIGHT_MOVE_LABELS[cue.move] : null,
     cue.note ?? null,
   ].filter((p): p is string => !!p);
   return parts.length ? `ペンライト: ${parts.join("・")}` : "ペンライト";
@@ -88,12 +69,9 @@ export function penlightFallbackText(cue: PenlightCue): string {
 /** ペンライトの指示を検証して正規化する。 */
 function validatePenlight(raw: unknown, at: string): { ok: true; cue: PenlightCue } | { ok: false; error: string } {
   if (!isPlainObject(raw)) return { ok: false, error: `${at}.penlight must be an object` };
-  const { color, move, note } = raw;
+  const { color, note } = raw;
   if (color !== undefined && color !== null && (typeof color !== "string" || !PENLIGHT_COLOR_RE.test(color))) {
     return { ok: false, error: `${at}.penlight.color must be null, "oshi", "idol:<id>" or "#RRGGBB"` };
-  }
-  if (move !== undefined && move !== null && (typeof move !== "string" || !PENLIGHT_MOVES.has(move))) {
-    return { ok: false, error: `${at}.penlight.move must be null or one of ${[...PENLIGHT_MOVES].join("/")}` };
   }
   if (note !== undefined && note !== null) {
     if (typeof note !== "string") return { ok: false, error: `${at}.penlight.note must be a string` };
@@ -105,11 +83,10 @@ function validatePenlight(raw: unknown, at: string): { ok: true; cue: PenlightCu
   const trimmed = typeof note === "string" ? note.trim() : "";
   const cue: PenlightCue = {
     color: typeof color === "string" ? (color.startsWith("#") ? color.toUpperCase() : color) : null,
-    move: (move as PenlightMove | null | undefined) ?? null,
     ...(trimmed ? { note: trimmed } : {}),
   };
-  if (!cue.color && !cue.move && !cue.note) {
-    return { ok: false, error: `${at}.penlight needs a color, a move or a note` };
+  if (!cue.color && !cue.note) {
+    return { ok: false, error: `${at}.penlight needs a color or a note` };
   }
   return { ok: true, cue };
 }
@@ -118,10 +95,9 @@ function validatePenlight(raw: unknown, at: string): { ok: true; cue: PenlightCu
 function normalizePenlight(raw: unknown): PenlightCue | null {
   if (!isPlainObject(raw)) return null;
   const color = typeof raw.color === "string" && PENLIGHT_COLOR_RE.test(raw.color) ? raw.color : null;
-  const move = typeof raw.move === "string" && PENLIGHT_MOVES.has(raw.move) ? (raw.move as PenlightMove) : null;
   const note = typeof raw.note === "string" && raw.note ? raw.note : undefined;
-  if (!color && !move && !note) return null;
-  return { color, move, ...(note ? { note } : {}) };
+  if (!color && !note) return null;
+  return { color, ...(note ? { note } : {}) };
 }
 
 export interface LyricCall {
@@ -159,7 +135,7 @@ export interface LyricCall {
   /**
    * コールの種類。省略は叫ぶコール。"penlight" はペンライトの指示 (ペンラ芸) で、
    * penlight に中身が載る。そのとき text は古いアプリ向けの代わりの文言
-   * (ペンライトを知らないアプリでも「ペンライト: 青・左右に振る」と読めるように)。
+   * (ペンライトを知らないアプリでも「ペンライト: 青・サビ頭で一斉に」と読めるように)。
    * ペンライトもアンカー・タイミング・再生位置はコールと同じ仕組みに乗る
    * (歌詞の差し替え・行の結合や分割・退避からの付け直しで一緒に動く)。
    */

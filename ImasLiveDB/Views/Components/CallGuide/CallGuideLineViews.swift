@@ -105,7 +105,7 @@ struct CallGuideCallRows: View {
                 .foregroundStyle(DS.ink3)
                 .frame(width: 16, alignment: .trailing)
             if let penlight = call.penlight {
-                // ペンライトの指示は文言ではなく棒と動きの記号で出す (text は古いアプリ向け)。
+                // ペンライトの指示は文言ではなく色の棒とメモで出す (text は古いアプリ向け)。
                 CallGuidePenlightLabel(penlight: penlight)
             } else {
                 Text(call.text)
@@ -189,12 +189,7 @@ struct CallGuideLegend: View {
     let claps: [LyricClap]
     /// 「同時」のコールがこの曲にあるか。追っかけ (既定) は凡例に出さない。
     var showsOverTiming: Bool = false
-    /// この曲のペンライトの指示で使われている動き。記号の読み方を凡例に出す。
-    var penlightMoves: [LyricPenlightMove] = []
-
-    private var isEmpty: Bool {
-        emphases.isEmpty && claps.isEmpty && !showsOverTiming && penlightMoves.isEmpty
-    }
+    private var isEmpty: Bool { emphases.isEmpty && claps.isEmpty && !showsOverTiming }
 
     var body: some View {
         let theme = ImasTheme.derive(seed: nil, scheme: scheme)
@@ -208,9 +203,6 @@ struct CallGuideLegend: View {
                 }
                 if showsOverTiming {
                     legendItem(symbol: CallTiming.over.label, text: "歌に被せる")
-                }
-                ForEach(penlightMoves, id: \.self) { move in
-                    ImasChip(text: move.label, style: .neutral, leading: .symbol(move.symbol))
                 }
             }
         }

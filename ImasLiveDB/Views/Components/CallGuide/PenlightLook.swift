@@ -12,16 +12,13 @@ struct PenlightLook {
         guard let parsed else { return .none }
         switch parsed.kind {
         case .oshi:
-            return .stripes(QS.penlights)
+            return .oshi
         case .idol:
-            guard let hex = parsed.idolId.flatMap({ cast.colors([$0]).first }) else { return .none }
-            return .color(Color(hexString: hex, default: DS.ink3))
+            return parsed.idolId.flatMap { cast.colors([$0]).first }.map { .hex($0) } ?? .none
         case .fixed:
-            return .color(Self.color(rgb: parsed.rgb ?? 0))
+            return .rgb(parsed.rgb ?? 0)
         }
     }
-
-    var isOff: Bool { penlight.move == .off }
 
     /// 色の名前 (アイドルの色は「春香の色」)。名付けられなければ nil。
     var colorName: String? {
@@ -33,13 +30,7 @@ struct PenlightLook {
 
     /// 古いアプリ向けの代わりの文言 (保存するときコールの text に入れる)。読み上げにも使う。
     var description: String {
-        lyricPenlightFallbackText(color: penlight.color, colorName: colorName,
-                                  moveKey: penlight.move?.rawValue, note: penlight.note)
-    }
-
-    static func color(rgb: UInt32) -> Color {
-        Color(red: Double((rgb >> 16) & 0xFF) / 255, green: Double((rgb >> 8) & 0xFF) / 255,
-              blue: Double(rgb & 0xFF) / 255)
+        lyricPenlightFallbackText(color: penlight.color, colorName: colorName, note: penlight.note)
     }
 }
 
@@ -66,8 +57,7 @@ struct CallGuidePenlightLabel: View {
 
     var body: some View {
         let look = PenlightLook(penlight: penlight, cast: cast)
-        ImasPenlightCueLabel(fill: look.fill, moveSymbol: penlight.move?.symbol,
-                             isOff: look.isOff, note: penlight.note)
+        ImasPenlightCueLabel(fill: look.fill, note: penlight.note)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(look.description)
     }

@@ -2,7 +2,6 @@
 //!
 //! 保存の形は Worker (imas-live-api/src/lyrics_calls.ts の `PenlightCue`) と 1:1 の契約:
 //! - 色: `"oshi"` (各自の担当色) / `"idol:<idol_id>"` (そのアイドルの色) / `"#RRGGBB"` (決まった色) / なし
-//! - 動き: `sway` / `pump` / `spin` / `raise` / `wave` / `off` / `on` / なし (色を変えるだけ)
 //! - メモ: 自由な一言
 //!
 //! `text` は古いアプリ向けの代わりの文言で、アプリは [`fallback_text`] で作って送る
@@ -29,13 +28,6 @@ pub struct PenlightColor {
     pub rgb: Option<u32>,
 }
 
-/// 動き 1 つ (入力の選択肢と凡例に使う)。
-#[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
-pub struct PenlightMoveInfo {
-    pub key: String,
-    pub label: String,
-}
-
 /// 決まった色の選択肢 1 つ。
 #[derive(uniffi::Record, Clone, Debug, PartialEq, Eq)]
 pub struct PenlightPreset {
@@ -44,16 +36,6 @@ pub struct PenlightPreset {
     pub rgb: u32,
     pub name: String,
 }
-
-const MOVES: [(&str, &str); 7] = [
-    ("sway", "左右に振る"),
-    ("pump", "縦に振る"),
-    ("spin", "回す"),
-    ("raise", "掲げる"),
-    ("wave", "ウェーブ"),
-    ("off", "消す"),
-    ("on", "点ける"),
-];
 
 /// ライブでよく指定される色。白と UO (オレンジ) が多く、あとは色相環を一周。
 const PRESETS: [(u32, &str); 9] = [
@@ -97,14 +79,6 @@ pub fn preset_name(rgb: u32) -> Option<&'static str> {
     PRESETS.iter().find(|(v, _)| *v == rgb).map(|(_, n)| *n)
 }
 
-pub fn moves() -> Vec<PenlightMoveInfo> {
-    MOVES.iter().map(|(k, l)| PenlightMoveInfo { key: (*k).into(), label: (*l).into() }).collect()
-}
-
-pub fn move_label(key: &str) -> Option<&'static str> {
-    MOVES.iter().find(|(k, _)| *k == key).map(|(_, l)| *l)
-}
-
 pub fn presets() -> Vec<PenlightPreset> {
     PRESETS
         .iter()
@@ -126,12 +100,11 @@ pub fn color_name(spec: Option<&str>, given: Option<&str>) -> Option<String> {
     }
 }
 
-/// 古いアプリ向けの代わりの文言 (「ペンライト: 青・左右に振る・2本持ち」)。
-/// Worker の `penlightFallbackText` と同じ並び (色・動き・メモ)。
-pub fn fallback_text(color_spec: Option<&str>, color_given_name: Option<&str>, move_key: Option<&str>, note: Option<&str>) -> String {
+/// 古いアプリ向けの代わりの文言 (「ペンライト: 青・2本持ち」)。
+/// Worker の `penlightFallbackText` と同じ並び (色・メモ)。
+pub fn fallback_text(color_spec: Option<&str>, color_given_name: Option<&str>, note: Option<&str>) -> String {
     let parts: Vec<String> = [
         color_name(color_spec, color_given_name),
-        move_key.and_then(move_label).map(Into::into),
         note.map(str::trim).filter(|n| !n.is_empty()).map(Into::into),
     ]
     .into_iter()
@@ -161,12 +134,12 @@ mod tests {
 
     #[test]
     fn fallback_text_matches_worker() {
-        assert_eq!(fallback_text(Some("oshi"), None, Some("raise"), None), "ペンライト: 担当色・掲げる");
-        assert_eq!(fallback_text(Some("#1E50FF"), None, Some("sway"), Some(" 2本持ち ")), "ペンライト: 青・左右に振る・2本持ち");
-        assert_eq!(fallback_text(Some("idol:x"), Some("春香の色"), None, None), "ペンライト: 春香の色");
+        assert_eq!(fallback_text(Some("oshi"), None, None), "ペンライト: 担当色");
+        assert_eq!(fallback_text(Some("#1E50FF"), None, Some(" 2本持ち ")), "ペンライト: 青・2本持ち");
+        assert_eq!(fallback_text(Some("idol:x"), Some("春香の色"), None), "ペンライト: 春香の色");
         // アイドルの色で名前が渡されなければ色は書かない (id を人に見せない)。
-        assert_eq!(fallback_text(Some("idol:x"), None, None, None), "ペンライト");
-        assert_eq!(fallback_text(Some("#123456"), None, Some("off"), None), "ペンライト: 消す");
+        assert_eq!(fallback_text(Some("idol:x"), None, None), "ペンライト");
+        assert_eq!(fallback_text(Some("#123456"), None, None), "ペンライト");
     }
 
     #[test]
@@ -175,6 +148,5 @@ mod tests {
             assert_eq!(parse_color(&p.value).unwrap().rgb, Some(p.rgb));
             assert_eq!(preset_name(p.rgb), Some(p.name.as_str()));
         }
-        assert_eq!(moves().len(), 7);
     }
 }

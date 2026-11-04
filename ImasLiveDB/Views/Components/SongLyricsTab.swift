@@ -320,10 +320,8 @@ struct SongLyricsTab: View {
         let emphases = lyrics.usedEmphases
         let claps = lyrics.usedClaps
         let showsOverTiming = lyrics.usesOverTiming
-        let penlightMoves = lyrics.usedPenlightMoves
-        if !emphases.isEmpty || !claps.isEmpty || showsOverTiming || !penlightMoves.isEmpty {
-            CallGuideLegend(emphases: emphases, claps: claps, showsOverTiming: showsOverTiming,
-                            penlightMoves: penlightMoves)
+        if !emphases.isEmpty || !claps.isEmpty || showsOverTiming {
+            CallGuideLegend(emphases: emphases, claps: claps, showsOverTiming: showsOverTiming)
                 .padding(.bottom, DS.sp4)
         }
     }

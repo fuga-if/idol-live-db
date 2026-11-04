@@ -136,30 +136,30 @@ describe("carryOverAnnotation", () => {
 describe("ペンライトの指示 (kind: penlight)", () => {
   it("色・動き・メモを正規化して残す。文言が無ければ代わりの文言を作る", () => {
     const r = validateCallsBody(
-      body([call({ id: "cl_p", text: "", kind: "penlight", penlight: { color: "#ff8800", move: "sway", note: " 2本持ち " } })]),
+      body([call({ id: "cl_p", text: "", kind: "penlight", penlight: { color: "#ff8800", note: " 2本持ち " } })]),
       LINES
     );
     if (!r.ok) throw new Error(r.error);
     const [p] = r.lines[0].calls;
     expect(p.kind).toBe("penlight");
-    expect(p.penlight).toEqual({ color: "#FF8800", move: "sway", note: "2本持ち" });
-    expect(p.text).toBe("ペンライト: 左右に振る・2本持ち");
+    expect(p.penlight).toEqual({ color: "#FF8800", note: "2本持ち" });
+    expect(p.text).toBe("ペンライト: 2本持ち");
   });
 
   it("アプリが送った代わりの文言はそのまま使う。担当色・アイドルの色を受ける", () => {
     const r = validateCallsBody(
       body([
-        call({ kind: "penlight", text: "ペンライト: 春香の色", penlight: { color: "idol:haruka_amami", move: null } }),
-        call({ kind: "penlight", text: "", penlight: { color: "oshi", move: "raise" } }),
+        call({ kind: "penlight", text: "ペンライト: 春香の色", penlight: { color: "idol:haruka_amami" } }),
+        call({ kind: "penlight", text: "", penlight: { color: "oshi" } }),
       ]),
       LINES
     );
     if (!r.ok) throw new Error(r.error);
-    expect(r.lines[0].calls.map((c) => c.text)).toEqual(["ペンライト: 春香の色", "ペンライト: 担当色・掲げる"]);
+    expect(r.lines[0].calls.map((c) => c.text)).toEqual(["ペンライト: 春香の色", "ペンライト: 担当色"]);
   });
 
-  it("色の書き方・動きが違えば落とす。中身が空の指示も落とす", () => {
-    for (const penlight of [{ color: "blue" }, { color: "#12345" }, { move: "jump" }, {}, { note: "\n" }]) {
+  it("色の書き方が違えば落とす。中身が空の指示も落とす", () => {
+    for (const penlight of [{ color: "blue" }, { color: "#12345" }, {}, { note: "\n" }]) {
       const r = validateCallsBody(body([call({ kind: "penlight", penlight })]), LINES);
       expect(r.ok).toBe(false);
     }
@@ -168,16 +168,16 @@ describe("ペンライトの指示 (kind: penlight)", () => {
 
   it("古いアプリが kind を送らずに保存しても、id が一致すればペンライトのまま残す", () => {
     const existing = penlightsById([
-      { calls: [{ id: "cl_p", kind: "penlight", penlight: { color: "oshi", move: "spin" } }, { id: "cl_c", text: "はい" }] },
+      { calls: [{ id: "cl_p", kind: "penlight", penlight: { color: "oshi" } }, { id: "cl_c", text: "はい" }] },
     ]);
     expect([...existing.keys()]).toEqual(["cl_p"]);
     const r = validateCallsBody(
-      body([call({ id: "cl_p", text: "ペンライト: 担当色・回す" }), call({ id: "cl_c" })]),
+      body([call({ id: "cl_p", text: "ペンライト: 担当色" }), call({ id: "cl_c" })]),
       LINES,
       existing
     );
     if (!r.ok) throw new Error(r.error);
-    expect(r.lines[0].calls[0]).toMatchObject({ kind: "penlight", penlight: { color: "oshi", move: "spin" } });
+    expect(r.lines[0].calls[0]).toMatchObject({ kind: "penlight", penlight: { color: "oshi" } });
     expect(r.lines[0].calls[1].kind).toBeUndefined();
   });
 
@@ -186,13 +186,13 @@ describe("ペンライトの指示 (kind: penlight)", () => {
       {
         clap: null,
         calls: [
-          { id: "cl_p", start: 0, end: 2, anchorText: "あい", text: "ペンライト", kind: "penlight", penlight: { color: "#FFFFFF", move: "off" } },
+          { id: "cl_p", start: 0, end: 2, anchorText: "あい", text: "ペンライト", kind: "penlight", penlight: { color: "#FFFFFF", note: "消す" } },
           { id: "cl_x", start: 0, end: 0, anchorText: "", text: "ペンライト", kind: "penlight", penlight: { color: "red" } },
         ],
       },
       "あいう"
     );
-    expect(a.calls[0]).toMatchObject({ kind: "penlight", penlight: { color: "#FFFFFF", move: "off" } });
+    expect(a.calls[0]).toMatchObject({ kind: "penlight", penlight: { color: "#FFFFFF", note: "消す" } });
     expect(a.calls[1].kind).toBeUndefined();
   });
 });

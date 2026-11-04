@@ -306,7 +306,6 @@ declare_and_call_checksums! {
     uniffi_imas_core_checksum_func_lyric_penlight_color_name,
     uniffi_imas_core_checksum_func_lyric_penlight_fallback_text,
     uniffi_imas_core_checksum_func_lyric_penlight_fixed_value,
-    uniffi_imas_core_checksum_func_lyric_penlight_moves,
     uniffi_imas_core_checksum_func_lyric_penlight_presets,
     uniffi_imas_core_checksum_func_lyric_part_erase,
     uniffi_imas_core_checksum_func_lyric_part_ink,

@@ -55,10 +55,9 @@ struct CallGuidePayload: Encodable, Sendable {
         var penlight: Penlight? = nil
     }
 
-    /// ペンライトの指示 (色・動き・メモ)。無い項目はキーごと送らない (サーバは null と同じに読む)。
+    /// ペンライトの指示 (色・メモ)。無い項目はキーごと送らない (サーバは null と同じに読む)。
     struct Penlight: Encodable, Sendable {
         let color: String?
-        let move: String?
         let note: String?
     }
 }
@@ -78,7 +77,7 @@ extension CallGuidePayload.Call {
             timing: call.isOverlapping ? CallTiming.over.rawValue : CallTiming.after.rawValue,
             kind: call.penlight == nil ? nil : "penlight",
             penlight: call.penlight.map {
-                CallGuidePayload.Penlight(color: $0.color, move: $0.move?.rawValue, note: $0.note)
+                CallGuidePayload.Penlight(color: $0.color, note: $0.note)
             }
         )
     }

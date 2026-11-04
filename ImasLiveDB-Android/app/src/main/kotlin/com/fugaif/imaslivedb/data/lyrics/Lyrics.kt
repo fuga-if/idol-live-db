@@ -7,7 +7,6 @@ import uniffi.imas_core.LyricPartSegment
 import uniffi.imas_core.PenlightColor
 import uniffi.imas_core.lyricCallEchoesLine
 import uniffi.imas_core.lyricPenlightColor
-import uniffi.imas_core.lyricPenlightMoves
 import uniffi.imas_core.lyricPartInk
 import uniffi.imas_core.lyricPartSegments
 import uniffi.imas_core.lyricPartUnion
@@ -64,25 +63,13 @@ enum class CallTiming(val raw: String, val label: String) {
     }
 }
 
-/** ペンライトの動き (ペンラ芸)。保存値は Worker / コアと 1:1 (iOS `LyricPenlightMove`)。名前はコア。 */
-enum class LyricPenlightMove(val raw: String) {
-    SWAY("sway"), PUMP("pump"), SPIN("spin"), RAISE("raise"), WAVE("wave"), OFF("off"), ON("on");
-
-    val label: String get() = lyricPenlightMoves().firstOrNull { it.key == raw }?.label ?: raw
-
-    companion object {
-        fun of(raw: String?): LyricPenlightMove? = entries.firstOrNull { it.raw == raw }
-    }
-}
-
 /** ペンライトの指示 (コールの一種)。色は `oshi` / `idol:<id>` / `#RRGGBB` (読み方はコア)。iOS `LyricPenlight`。 */
-data class LyricPenlight(val color: String?, val move: LyricPenlightMove?, val note: String?) {
+data class LyricPenlight(val color: String?, val note: String?) {
     val parsedColor: PenlightColor? get() = color?.let { lyricPenlightColor(it) }
 
     companion object {
         fun parse(o: JSONObject) = LyricPenlight(
             color = o.optStringOrNull("color"),
-            move = LyricPenlightMove.of(o.optStringOrNull("move")),
             note = o.optStringOrNull("note")?.takeIf { it.isNotEmpty() },
         )
     }
@@ -220,12 +207,6 @@ data class Lyrics(
         }
     val usesOverTiming: Boolean get() = lines.any { l -> l.calls.any { it.isOverlapping && !it.isPenlight } }
 
-    /** ペンライトの指示で使われている動き。凡例に記号の読み方を出す。 */
-    val usedPenlightMoves: List<LyricPenlightMove>
-        get() {
-            val used = lines.flatMap { it.calls }.mapNotNull { it.penlight?.move }.toSet()
-            return LyricPenlightMove.entries.filter { it in used }
-        }
     val usedClaps: List<LyricClap>
         get() {
             val used = lines.mapNotNull { it.clap }.toSet()

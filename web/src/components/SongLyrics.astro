@@ -88,7 +88,7 @@ const { lyrics } = Astro.props;
     stale?: boolean | null;
     /** "penlight" はペンライトの指示 (ペンラ芸)。text は代わりの文言 (読み上げに使う)。 */
     kind?: string | null;
-    penlight?: { color?: string | null; move?: string | null; note?: string | null } | null;
+    penlight?: { color?: string | null; note?: string | null } | null;
   }
   interface LyricLine {
     kind?: string | null;
@@ -168,12 +168,8 @@ const { lyrics } = Astro.props;
     const lineSlots = new WeakMap<HTMLElement, CallSlot[]>();
 
     /** 1 スロットぶんのコール (複数なら空白で 1 段に並べる)。 */
-    /** ペンライトの動きの記号 (アプリの記号と対)。 */
-    const PENLIGHT_MOVE_GLYPHS: Record<string, string> = {
-      sway: "↔", pump: "↕", spin: "⟳", raise: "⤒", wave: "〰", off: "⏻", on: "☀",
-    };
     /**
-     * ペンライトの指示 1 つ: 棒 (色の面。光らせない) + 動きの記号 + メモ。色は data 属性と CSSOM で塗る
+     * ペンライトの指示 1 つ: 棒 (色の面。光らせない) + メモ。色は data 属性と CSSOM で塗る
      * (style 属性は本番の CSP で落ちる)。アイドルの色はその人のテーマ、担当色は縞。
      */
     const penlightItem = (c: LyricCall): HTMLElement => {
@@ -182,8 +178,7 @@ const { lyrics } = Astro.props;
       item.setAttribute("aria-label", c.text);
       const stick = el("span", "lyrics__penlight-stick");
       const color = c.penlight?.color ?? "";
-      if (c.penlight?.move === "off") stick.dataset.off = "";
-      else if (color === "oshi") stick.dataset.fill = "oshi";
+      if (color === "oshi") stick.dataset.fill = "oshi";
       else if (color.startsWith("idol:")) {
         const theme = castById.get(color.slice(5))?.themeKey;
         if (theme) {
@@ -195,8 +190,6 @@ const { lyrics } = Astro.props;
         stick.style.backgroundColor = color;
       }
       item.append(stick);
-      const glyph = c.penlight?.move ? PENLIGHT_MOVE_GLYPHS[c.penlight.move] : undefined;
-      if (glyph) item.append(el("span", "lyrics__penlight-move", glyph));
       if (c.penlight?.note) item.append(el("span", "lyrics__penlight-note", c.penlight.note));
       return item;
     };

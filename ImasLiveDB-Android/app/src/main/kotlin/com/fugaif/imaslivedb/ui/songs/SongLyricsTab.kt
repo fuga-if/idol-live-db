@@ -431,10 +431,8 @@ private fun ViewingBody(
     val emphases = lyrics.usedEmphases
     val claps = lyrics.usedClaps
     val showsOverTiming = lyrics.usesOverTiming
-    val penlightMoves = lyrics.usedPenlightMoves
-    if (emphases.isNotEmpty() || claps.isNotEmpty() || showsOverTiming || penlightMoves.isNotEmpty()) {
-        ImasCallLegend(emphases, claps, showsOverTiming, modifier = Modifier.padding(bottom = DS.sp4),
-            penlightMoves = penlightMoves)
+    if (emphases.isNotEmpty() || claps.isNotEmpty() || showsOverTiming) {
+        ImasCallLegend(emphases, claps, showsOverTiming, modifier = Modifier.padding(bottom = DS.sp4))
     }
     LikeHeatBar(lyrics = lyrics, seed = seed, song = song, heatTick = heatTick)
     if (likes.isEmpty()) {

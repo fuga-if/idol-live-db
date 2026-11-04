@@ -9,17 +9,17 @@ final class LyricPenlightTests: XCTestCase {
     }
 
     func testDecodesPenlightOnlyWhenKindSaysSo() throws {
-        let cue = try decodeCall(##"{"id":"c1","start":0,"end":2,"text":"ペンライト: 青","kind":"penlight","penlight":{"color":"#1E50FF","move":"sway","note":"2本"}}"##)
-        XCTAssertEqual(cue.penlight, LyricPenlight(color: "#1E50FF", move: .sway, note: "2本"))
+        let cue = try decodeCall(##"{"id":"c1","start":0,"end":2,"text":"ペンライト: 青","kind":"penlight","penlight":{"color":"#1E50FF","note":"2本"}}"##)
+        XCTAssertEqual(cue.penlight, LyricPenlight(color: "#1E50FF", note: "2本"))
         XCTAssertTrue(cue.isPenlight)
 
         // kind が無ければ penlight が付いていても叫ぶコールとして読む (サーバの契約)。
         let call = try decodeCall(##"{"id":"c2","start":0,"end":0,"text":"Hi!","penlight":{"color":"oshi"}}"##)
         XCTAssertNil(call.penlight)
 
-        // 知らない動きは落とさず nil にする。
-        let unknown = try decodeCall(##"{"id":"c3","start":0,"end":0,"text":"x","kind":"penlight","penlight":{"color":"oshi","move":"jump"}}"##)
-        XCTAssertEqual(unknown.penlight, LyricPenlight(color: "oshi", move: nil, note: nil))
+        // 型違いの項目は落とさず nil にする。
+        let odd = try decodeCall(##"{"id":"c3","start":0,"end":0,"text":"x","kind":"penlight","penlight":{"color":"oshi","note":3}}"##)
+        XCTAssertEqual(odd.penlight, LyricPenlight(color: "oshi", note: nil))
     }
 
     func testPenlightNeverEchoesTheLyric() {
@@ -34,10 +34,10 @@ final class LyricPenlightTests: XCTestCase {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         let cue = LyricCall(id: "c", start: 0, end: 0, anchorText: "", text: "ペンライト: 担当色",
-                            emphasis: .normal, penlight: LyricPenlight(color: "oshi", move: .raise))
+                            emphasis: .normal, penlight: LyricPenlight(color: "oshi", note: "掲げる"))
         let sent = try JSONSerialization.jsonObject(with: encoder.encode(CallGuidePayload.Call(cue))) as? [String: Any]
         XCTAssertEqual(sent?["kind"] as? String, "penlight")
-        XCTAssertEqual((sent?["penlight"] as? [String: Any])?["move"] as? String, "raise")
+        XCTAssertEqual((sent?["penlight"] as? [String: Any])?["note"] as? String, "掲げる")
 
         let call = LyricCall(id: "d", start: 0, end: 0, anchorText: "", text: "Hi!", emphasis: .normal)
         let plain = try JSONSerialization.jsonObject(with: encoder.encode(CallGuidePayload.Call(call))) as? [String: Any]
@@ -46,8 +46,8 @@ final class LyricPenlightTests: XCTestCase {
     }
 
     func testFallbackTextNamesIdolColorFromCast() {
-        let look = PenlightLook(penlight: LyricPenlight(color: "oshi", move: .sway), cast: .empty)
-        XCTAssertEqual(look.description, "ペンライト: 担当色・左右に振る")
+        let look = PenlightLook(penlight: LyricPenlight(color: "oshi", note: "2本持ち"), cast: .empty)
+        XCTAssertEqual(look.description, "ペンライト: 担当色・2本持ち")
         XCTAssertEqual(PenlightLook(penlight: LyricPenlight(color: "idol:x"), cast: .empty).description, "ペンライト")
     }
 }

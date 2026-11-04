@@ -138,49 +138,24 @@ extension CallTiming: Decodable {
     }
 }
 
-/// ペンライトの動き (ペンラ芸)。保存値は Worker / コアと 1:1 (`lyric_penlight`)。
-enum LyricPenlightMove: String, Sendable, Hashable, CaseIterable {
-    case sway, pump, spin, raise, wave, off, on
-
-    /// 名前はコアが唯一の正。
-    var label: String {
-        lyricPenlightMoves().first { $0.key == rawValue }?.label ?? rawValue
-    }
-
-    /// 動きの記号。文字より先に目に入るものにする。
-    var symbol: String {
-        switch self {
-        case .sway:  return "arrow.left.and.right"
-        case .pump:  return "arrow.up.and.down"
-        case .spin:  return "arrow.clockwise"
-        case .raise: return "arrow.up.to.line"
-        case .wave:  return "water.waves"
-        case .off:   return "power"
-        case .on:    return "light.max"
-        }
-    }
-}
-
 /// ペンライトの指示 (コールの一種)。色の書き方は `oshi` / `idol:<id>` / `#RRGGBB` (読み方はコア)。
 struct LyricPenlight: Sendable, Hashable {
     var color: String?
-    var move: LyricPenlightMove?
     var note: String?
 
     /// 色の指示を読んだもの。書き方が違えば nil (色の指示なしとして描く)。
     var parsedColor: PenlightColor? { color.flatMap(lyricPenlightColor(spec:)) }
-    var isEmpty: Bool { color == nil && move == nil && (note ?? "").isEmpty }
+    var isEmpty: Bool { color == nil && (note ?? "").isEmpty }
 }
 
 extension LyricPenlight: Decodable {
-    private enum CodingKeys: String, CodingKey { case color, move, note }
+    private enum CodingKeys: String, CodingKey { case color, note }
 
-    /// 未知の動き (サーバが種類を増やした) は nil に倒して、指示ごと落とさない。
+    /// 欠けた項目・型違いは nil に倒して、指示ごと落とさない。
     init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             color: (try? c.decodeIfPresent(String.self, forKey: .color)).flatMap { $0 },
-            move: (try? c.decodeIfPresent(String.self, forKey: .move)).flatMap { $0 }.flatMap(LyricPenlightMove.init(rawValue:)),
             note: (try? c.decodeIfPresent(String.self, forKey: .note)).flatMap { $0 }
         )
     }
@@ -406,11 +381,6 @@ struct Lyrics: Decodable, Sendable, Hashable {
         lines.contains { $0.calls.contains { $0.isOverlapping && !$0.isPenlight } }
     }
 
-    /// この曲のペンライトの指示で使われている動き。凡例に記号の読み方を出す。
-    var usedPenlightMoves: [LyricPenlightMove] {
-        let used = Set(lines.flatMap(\.calls).compactMap { $0.penlight?.move })
-        return LyricPenlightMove.allCases.filter { used.contains($0) }
-    }
 
     /// この曲で実際に使われている手拍子指示。凡例用。
     var usedClaps: [LyricClap] {

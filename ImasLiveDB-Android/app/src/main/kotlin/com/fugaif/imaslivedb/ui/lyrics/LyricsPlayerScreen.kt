@@ -459,7 +459,7 @@ private fun LyricsPlayerRow(
             line.calls.filter { !line.echoes(it) }.forEach { call ->
                 val penlight = call.penlight
                 if (penlight != null) {
-                    // ペンライトは文言でなく、棒と動きの記号で流す。
+                    // ペンライトは文言でなく、色の棒とメモで流す。
                     ImasPlayerPenlightLine(
                         marker = if (call.hasAnchor) "↳" else "»",
                         look = PenlightLook(penlight, cast),

@@ -248,10 +248,9 @@ struct LyricsPlayerView: View {
             // コールは行の直下に流す。いま出すコールだけ大きく点ける (歌詞と同じ文字のものは行に出さず、上の歌詞を点ける)。
             ForEach(line.calls.filter { !line.echoes($0) }) { call in
                 if let penlight = call.penlight {
-                    // ペンライトは文言でなく、棒と動きの記号で流す。
+                    // ペンライトは文言でなく、色の棒とメモで流す。
                     let look = PenlightLook(penlight: penlight, cast: cast)
                     ImasPlayerPenlightLine(marker: call.hasAnchor ? "↳" : "»", fill: look.fill,
-                                           moveSymbol: penlight.move?.symbol, isOff: look.isOff,
                                            note: penlight.note, description: look.description,
                                            isActive: call.id == activeCallId)
                 } else {
