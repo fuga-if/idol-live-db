@@ -315,7 +315,14 @@ fun SongLyricsTab(
                             ViewingBody(
                                 lyrics = lyrics, seed = seed, likes = likes, activeLineId = activeLineId,
                                 heatTick = heatTick, song = song, cast = partCast,
-                                onToggleLike = ::toggleLike
+                                onToggleLike = ::toggleLike,
+                                // 再生中の曲なら、タップした行の歌い出しへ飛ぶ (時刻の入った行だけ)。
+                                onSeekLine = { line ->
+                                    val start = line.startMs
+                                    if (start != null && playback.loadedSongId.value == song.id && lyricHasTiming(lyrics.startsForCore)) {
+                                        playback.seek(start)
+                                    }
+                                }
                             )
                         }
                     }
@@ -418,7 +425,8 @@ private fun ViewingBody(
     heatTick: Int,
     song: Song,
     cast: LyricPartCast,
-    onToggleLike: (LyricLine) -> Unit
+    onToggleLike: (LyricLine) -> Unit,
+    onSeekLine: (LyricLine) -> Unit
 ) {
     val emphases = lyrics.usedEmphases
     val claps = lyrics.usedClaps
@@ -434,14 +442,22 @@ private fun ViewingBody(
     lyrics.lines.forEach { line ->
         val state = if (line.id == activeLineId) ImasLyricLineState.CURRENT else ImasLyricLineState.NORMAL
         ImasLyricLineRow(state = state, seed = seed) {
-            ViewingRow(line = line, isLiked = likes.contains(line.id), accent = theme.accent, cast = cast, onToggleLike = onToggleLike)
+            ViewingRow(line = line, isLiked = likes.contains(line.id), accent = theme.accent, cast = cast,
+                onToggleLike = onToggleLike, onSeekLine = onSeekLine)
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: LyricPartCast, onToggleLike: (LyricLine) -> Unit) {
+private fun ViewingRow(
+    line: LyricLine,
+    isLiked: Boolean,
+    accent: Color,
+    cast: LyricPartCast,
+    onToggleLike: (LyricLine) -> Unit,
+    onSeekLine: (LyricLine) -> Unit
+) {
     when (line.kind) {
         LyricLineKind.LYRIC -> {
             Row(
@@ -449,7 +465,7 @@ private fun ViewingRow(line: LyricLine, isLiked: Boolean, accent: Color, cast: L
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min)
                     .padding(vertical = DS.sp1)
-                    .combinedClickable(onClick = {}, onDoubleClick = { onToggleLike(line) }),
+                    .combinedClickable(onClick = { onSeekLine(line) }, onDoubleClick = { onToggleLike(line) }),
                 horizontalArrangement = Arrangement.spacedBy(DS.sp2),
                 verticalAlignment = Alignment.Top
             ) {

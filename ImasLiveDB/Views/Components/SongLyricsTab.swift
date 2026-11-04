@@ -365,6 +365,7 @@ struct SongLyricsTab: View {
             // 行のどこをダブルタップしても付け外しできるように、余白も当たりにする。
             .contentShape(Rectangle())
             .onTapGesture(count: 2) { toggleLike(line) }
+            .onTapGesture { seekToLine(line) }
             .accessibilityAction(named: isLiked ? "ここ好きを外す" : "ここ好き") { toggleLike(line) }
         case .marker:
             VStack(alignment: .leading, spacing: 0) {
@@ -665,6 +666,13 @@ struct SongLyricsTab: View {
     /// 表示順の各行の開始 ms。
     private func starts(_ lyrics: Lyrics) -> [Int64?] {
         lyrics.lines.map { $0.startMs.map(Int64.init) }
+    }
+
+    /// 再生中の曲なら、タップした行の歌い出しへ飛ぶ (時刻の入った行だけ。編集・記録中は飛ばない)。
+    private func seekToLine(_ line: LyricLine) {
+        guard followsPlayback, let start = line.startMs else { return }
+        AppAnalytics.tap("song_lyrics.seek_line")
+        playback.seek(start)
     }
 
     /// 今の行に追従するか。フル再生中で、記録が足りていて、編集・記録をしていないときだけ
